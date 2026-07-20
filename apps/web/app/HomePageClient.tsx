@@ -16,17 +16,13 @@ import { Input } from '@/components/ui/input';
 import { DualAudienceCta } from '@/components/home/DualAudienceCta';
 import { CareerEvidenceField } from '@/components/home/CareerEvidenceField';
 import { EvidenceTruthPanel } from '@/components/home/EvidenceTruthPanel';
-import { HeroLoopPills } from '@/components/home/HeroLoopPills';
-import { HomepageSectionRail } from '@/components/home/HomepageSectionRail';
 import { LiveNpiResult } from '@/components/home/LiveNpiResult';
 import { MetricStrip } from '@/components/home/MetricStrip';
 import { ProblemStatBand } from '@/components/home/ProblemStatBand';
 import { ProductCarousel } from '@/components/home/ProductCarousel';
 import { ResumeToProof } from '@/components/home/ResumeToProof';
-import { RotatingProofLine } from '@/components/home/RotatingProofLine';
-import { ScrollFocusManifesto } from '@/components/home/ScrollFocusManifesto';
 import { SourceCoverageRibbon } from '@/components/home/SourceCoverageRibbon';
-import { StickyProductStory } from '@/components/home/StickyProductStory';
+import { RailJourney } from '@/components/home/rail/RailJourney';
 import { TimeToStartComparison } from '@/components/home/TimeToStartComparison';
 import { Reveal } from '@/components/motion/Reveal';
 import { AmbientField } from '@/components/home/scene/AmbientField';
@@ -127,11 +123,11 @@ export default function HomePageClient() {
       )}
 
       {/* The right-edge dot rail is the sole page-level in-page navigator
-          (AUD-1.2). The former left-floating "Page outline" was removed: at
-          desktop width it overlaid the first lines of major headings. The
-          header covers site destinations; StickyProductStory's 01–05 controls
-          are local story-step controls only. */}
-      <HomepageSectionRail />
+          (AUD-1.2 → W2.3). The former left-floating "Page outline" and the
+          right-edge dot rail are both retired: the horizontal journey rail's
+          own chapter navigator is now the ONE page-level in-page navigator
+          (composition manifest + gate test). The header covers site
+          destinations; vertical fallbacks navigate by document order. */}
 
       <main className="mz-scale-lg relative mx-auto w-full max-w-[1320px] px-4 pb-14 pt-4 sm:px-6 sm:pt-6">
         {/* The NPI action belongs in the first viewport. Hero motion is a
@@ -286,29 +282,24 @@ export default function HomePageClient() {
           </div>
         </section>
 
-        {/* The deck's four-stage career loop as a connected pill strip. Placed
-            just below the hero (not inside it) so it never pushes the NPI action
-            below the opening laptop viewport — the compact-hero contract. */}
-        <div className="pt-5">
-          <HeroLoopPills />
-        </div>
-
         <SourceCoverageRibbon />
 
         {/* Visible uplift: static sections rise+fade as they enter view (the
             template's reveal grammar via the platform Reveal primitive —
             reduced-motion-safe, shows content if JS/IO is unavailable). The
-            scroll-COUPLED sections (manifesto, product story, ribbon) keep
-            their own motion and are deliberately not wrapped. */}
+            scroll-COUPLED sections (journey rail, ribbon) keep their own
+            motion and are deliberately not wrapped. */}
         <Reveal><ProblemStatBand /></Reveal>
-
-        {/* The reframe: résumé = form, VitalCV = system. Scroll-focus prose +
-            the hand-drawn form/systems diagram (Chris, 2026-07-18). */}
-        <ScrollFocusManifesto />
 
         <Reveal><TimeToStartComparison /></Reveal>
 
-        <StickyProductStory />
+        {/* W2: THE career journey — four chapters through the horizontal rail
+            on eligible desktop (native scroll → horizontal translate, rolodex
+            leaves, one chapter navigator); the exact same chapters render
+            vertically everywhere else. Replaces the vertical StickyProductStory
+            runway, the loop-pill strip, the scroll-focus manifesto, and the
+            word cycler (composition manifest dispositions, W2.1–W2.3). */}
+        <RailJourney />
 
         {/* fade (not rise): this section carries a scrub-coupled heading, and
             mz-rise's scale(0.985) changes the heading's measured box while the
@@ -318,9 +309,6 @@ export default function HomePageClient() {
         <Reveal variant="fade" className="pt-8" data-home-experience="evidence-trace">
           <EvidenceTruthPanel />
         </Reveal>
-
-        {/* Kinetic reusable-evidence beat (UIverse word-cycler, MIT). */}
-        <RotatingProofLine />
 
         {/* fade for the same reason: the carousel title is a scrub heading. */}
         <Reveal variant="fade"><ProductCarousel /></Reveal>

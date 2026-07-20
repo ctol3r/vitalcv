@@ -76,3 +76,73 @@
     transition: none !important;
   }
 }
+
+/* ── W2.2: rolodex leaves inside the rail ──────────────────────────────────
+   The rail driver writes --leaf-* custom properties on each pinned chapter
+   per animation frame (pure railLeafTransform curves — the same stops the
+   vertical rolodex used). The transform applies to the CARD inside the
+   chapter, so the track's horizontal translate and the leaf's rotary flip
+   compose: outgoing leaves lean up and away over the spindle, incoming
+   leaves rise from below. Vertical fallback never sets the vars, so cards
+   render untransformed. */
+.story-rail-track {
+  perspective: 1500px;
+  perspective-origin: 50% 44%;
+}
+.story-rail-chapter {
+  transform-style: preserve-3d;
+}
+.story-rail-chapter .journey-card {
+  transform-origin: 50% 116%;
+  transform: rotateX(var(--leaf-rx, 0deg)) translateY(var(--leaf-ty, 0px))
+    translateZ(var(--leaf-tz, 0px)) scale(var(--leaf-s, 1));
+  opacity: var(--leaf-o, 1);
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+}
+
+/* ── W2.3: the one chapter navigator (pinned mode only) ─────────────────── */
+.story-rail-nav {
+  position: absolute;
+  bottom: 1.4rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 55;
+  display: flex;
+  gap: 0.4rem;
+  padding: 0.35rem;
+  border: 1px solid var(--vt-border);
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--vt-surface) 88%, transparent);
+  backdrop-filter: blur(10px);
+}
+.story-rail-nav button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  padding: 0.4rem 0.85rem;
+  font-size: 0.72rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  color: var(--vt-text-muted);
+  cursor: pointer;
+}
+.story-rail-nav button span {
+  font-family: var(--mz-mono, monospace);
+  font-size: 0.62rem;
+  opacity: 0.7;
+}
+.story-rail-nav button:hover {
+  color: var(--vt-text-primary);
+}
+.story-rail-nav button:focus-visible {
+  outline: 2px solid var(--vt-focus-ring, currentColor);
+  outline-offset: 2px;
+}
+.story-rail-nav button[aria-current='step'] {
+  background: var(--vt-text-primary);
+  color: var(--vt-bg);
+}

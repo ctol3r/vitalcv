@@ -1,9 +1,10 @@
 'use client';
 
 /**
- * HorizontalStoryRail (SHD-3.1) — the pinned desktop chapter rail.
+ * HorizontalStoryRail (SHD-3.1, extended for deep-audit W2) — the pinned
+ * desktop chapter rail.
  *
- * Contract (tasklist SHD-3.1):
+ * Contract:
  *  - ELIGIBLE desktop only (fine pointer, ≥ minWidth, no reduced motion, JS on):
  *    a bounded vertical scroll runway pins a sticky viewport and translates the
  *    chapters horizontally left→right — a spatial career journey.
@@ -19,6 +20,20 @@
  *  - A keyboard-visible "Skip product story" control jumps past the runway.
  *  - Footer / legal live OUTSIDE the rail in normal vertical flow (caller).
  *
+ * W2 extensions:
+ *  - Rolodex leaf pose (W2.2): every rAF, each chapter element receives its
+ *    `--leaf-*` custom properties from the pure railLeafTransform curves —
+ *    the card INSIDE the chapter turns through the rotary-file fan while the
+ *    track translates. One driver, zero extra listeners, zero React renders
+ *    per frame.
+ *  - Chapter navigation (W2.3): the ONE page-level in-page navigator
+ *    (`data-story-rail-nav`), rendered only while pinned — labels + progress
+ *    state, click/keyboard to a chapter's rest position. In the vertical
+ *    fallback, DOM order IS the navigation and no navigator renders.
+ *  - `onProgress` / `onPinnedChange`: continuous progress out to the
+ *    chapter-driver bridge so the ambient scene follows the SAME single
+ *    model (audit rule: one motion driver per story).
+ *
  * SSR renders the vertical fallback; eligibility is decided post-mount, so
  * there is never a pinned blank frame and no-JS gets the full document.
  */
@@ -26,6 +41,7 @@
 import * as React from 'react';
 
 import { useScene } from '@/components/home/scene/SceneProvider';
+import { railLeafTransform } from '@/lib/home/rolodex';
 import { railRunwayHeight, resolveRail, scrollForChapter } from './geometry';
 
 export interface RailChapter {
@@ -42,6 +58,10 @@ interface HorizontalStoryRailProps {
   dwellVh?: number;
   /** Called with the active chapter index as the runway scrubs. */
   onActiveChange?: (index: number) => void;
+  /** Continuous 0→1 runway progress, per animation frame (pinned mode only). */
+  onProgress?: (progress01: number, activeIndex: number) => void;
+  /** Called when the pin engages/releases (for driver handoff). */
+  onPinnedChange?: (pinned: boolean) => void;
   /** id of the element to land on when "Skip product story" is used. */
   skipTargetId?: string;
 }
@@ -51,10 +71,13 @@ export function HorizontalStoryRail({
   minWidth = 1024,
   dwellVh = 1,
   onActiveChange,
+  onProgress,
+  onPinnedChange,
   skipTargetId,
 }: HorizontalStoryRailProps) {
   const { capabilities, ready } = useScene();
   const [wideEnough, setWideEnough] = React.useState(false);
+  const [navActive, setNavActive] = React.useState(0);
   const rootRef = React.useRef<HTMLDivElement>(null);
   const runwayRef = React.useRef<HTMLDivElement>(null);
   const trackRef = React.useRef<HTMLDivElement>(null);
@@ -72,13 +95,20 @@ export function HorizontalStoryRail({
   const pinned =
     ready && wideEnough && !capabilities.reducedMotion && !capabilities.coarsePointer;
 
+  React.useEffect(() => {
+    onPinnedChange?.(pinned);
+  }, [pinned, onPinnedChange]);
+
   // The native-scroll driver: one rAF-throttled scroll listener maps scrollY to
-  // a horizontal transform. Active only while pinned.
+  // a horizontal transform + the rolodex leaf poses. Active only while pinned.
   React.useEffect(() => {
     if (!pinned) {
-      // vertical fallback: clear any leftover transform/height
       if (trackRef.current) trackRef.current.style.transform = '';
       if (runwayRef.current) runwayRef.current.style.height = '';
+      // Clear leaf poses so the vertical fallback renders untransformed.
+      rootRef.current
+        ?.querySelectorAll<HTMLElement>('[data-rail-chapter]')
+        .forEach((el) => el.removeAttribute('style'));
       return;
     }
     const runway = runwayRef.current;
@@ -88,11 +118,13 @@ export function HorizontalStoryRail({
     let raf = 0;
     let runwayTop = 0;
     let runwayHeight = 0;
+    let chapterEls: HTMLElement[] = [];
 
     const measure = () => {
       runwayHeight = railRunwayHeight(chapters.length, window.innerHeight, dwellVh);
       runway.style.height = `${runwayHeight}px`;
       runwayTop = runway.getBoundingClientRect().top + window.scrollY;
+      chapterEls = Array.from(track.querySelectorAll<HTMLElement>('[data-rail-chapter]'));
     };
 
     const apply = () => {
@@ -105,14 +137,29 @@ export function HorizontalStoryRail({
         chapters.length,
       );
       track.style.transform = `translate3d(-${geo.translatePercent}vw, 0, 0)`;
+
+      // Rolodex leaf poses (W2.2): pure curves over offset = index − journey.
+      const journey = geo.progress * (chapters.length - 1);
+      chapterEls.forEach((el, i) => {
+        const pose = railLeafTransform(i - journey);
+        el.style.setProperty('--leaf-rx', `${pose.rotateX.toFixed(2)}deg`);
+        el.style.setProperty('--leaf-ty', `${pose.y.toFixed(1)}px`);
+        el.style.setProperty('--leaf-tz', `${pose.z.toFixed(1)}px`);
+        el.style.setProperty('--leaf-s', pose.scale.toFixed(3));
+        el.style.setProperty('--leaf-o', pose.opacity.toFixed(3));
+        el.style.zIndex = String(pose.zIndex);
+      });
+
       // Publish geometry to the DOM directly (no React round-trip) so scroll →
-      // active state is deterministic for tests and for the dot rail.
+      // active state is deterministic for tests and consumers.
       if (rootRef.current) {
         rootRef.current.dataset.railActive = String(geo.activeIndex);
         rootRef.current.dataset.railProgress = geo.progress.toFixed(3);
       }
+      onProgress?.(geo.progress, geo.activeIndex);
       if (geo.activeIndex !== activeRef.current) {
         activeRef.current = geo.activeIndex;
+        setNavActive(geo.activeIndex);
         onActiveChange?.(geo.activeIndex);
       }
     };
@@ -138,7 +185,7 @@ export function HorizontalStoryRail({
       window.removeEventListener('resize', onResize);
       ro.disconnect();
     };
-  }, [pinned, chapters.length, dwellVh, onActiveChange]);
+  }, [pinned, chapters.length, dwellVh, onActiveChange, onProgress]);
 
   const scrollToChapter = React.useCallback(
     (index: number) => {
@@ -192,6 +239,24 @@ export function HorizontalStoryRail({
 
       <div ref={runwayRef} className={pinned ? 'story-rail-runway' : undefined}>
         <div className={pinned ? 'story-rail-viewport' : undefined}>
+          {/* W2.3: THE one page-level chapter navigator — pinned mode only.
+              In the vertical fallback the document order is the navigation. */}
+          {pinned ? (
+            <nav className="story-rail-nav" aria-label="Career journey chapters" data-story-rail-nav="">
+              {chapters.map((chapter, i) => (
+                <button
+                  key={chapter.id}
+                  type="button"
+                  aria-current={i === navActive ? 'step' : undefined}
+                  data-rail-nav-target={chapter.id}
+                  onClick={() => scrollToChapter(i)}
+                >
+                  <span aria-hidden="true">{String(i + 1).padStart(2, '0')}</span>
+                  {chapter.label}
+                </button>
+              ))}
+            </nav>
+          ) : null}
           <div
             ref={trackRef}
             className={pinned ? 'story-rail-track' : 'story-rail-stack'}
