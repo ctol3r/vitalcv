@@ -1,8 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { ShieldCheck, FileCheck2, Clock } from 'lucide-react';
 import { EmployerGetStartedClient } from './EmployerGetStartedClient';
-import { Reveal } from '@/components/motion/Reveal';
+import { EmployerWorkflowPreview } from '@/components/employers/EmployerWorkflowPreview';
 import { PageFrame } from '@/components/layout/PageFrame';
 
 /**
@@ -23,24 +22,6 @@ export const metadata: Metadata = {
   description:
     "Claim your organization's Type 2 NPI and start reviewing source-backed clinician passports — onboarding as simple as the clinician sign-up.",
 };
-
-const VALUE_PROPS = [
-  {
-    icon: FileCheck2,
-    title: 'Start from a proof packet',
-    body: 'Review a source-backed readiness snapshot, not a stack of scattered documents.',
-  },
-  {
-    icon: ShieldCheck,
-    title: 'Accept as a head start',
-    body: 'Take a clinician’s snapshot as a head start. Your credentialing committee keeps the decision.',
-  },
-  {
-    icon: Clock,
-    title: 'Start clinicians sooner',
-    body: 'See source coverage, freshness, and blockers up front — shorten time-to-start.',
-  },
-];
 
 export default function EmployersPage() {
   return (
@@ -68,24 +49,7 @@ export default function EmployersPage() {
           <EmployerGetStartedClient />
         </section>
 
-        <div className="mt-6 grid gap-3 sm:grid-cols-3">
-          {VALUE_PROPS.map((v, i) => (
-            <Reveal
-              key={v.title}
-              delay={i * 80}
-              className="mz-interactive flex flex-col gap-2 rounded-[3px] border border-[var(--vt-border)] bg-[var(--vt-surface)] px-4 py-4"
-            >
-              <span
-                aria-hidden="true"
-                className="mz-pop flex h-9 w-9 items-center justify-center rounded-full border border-[var(--vt-border)] text-[var(--vt-accent-emerald)]"
-              >
-                <v.icon className="h-4 w-4" />
-              </span>
-              <h2 className="text-sm font-semibold leading-snug text-[var(--vt-text-primary)]">{v.title}</h2>
-              <p className="text-[13px] leading-relaxed text-[var(--vt-text-secondary)]">{v.body}</p>
-            </Reveal>
-          ))}
-        </div>
+        <EmployerWorkflowPreview />
 
         <p className="mt-6 text-center text-xs text-[var(--vt-text-muted)]">
           A network or health system?{' '}
