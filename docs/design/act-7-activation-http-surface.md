@@ -30,15 +30,21 @@ Mounts `services/activation` as an **application-scoped** HTTP surface in `route
 - **Org-role is a header-trust boundary** until G1 (verified identity) is at enforce — the same boundary every other verifier mutation route already accepts. When `VERIFIER_RBAC_MODE`/G1 flips to enforce, these routes inherit it with no code change.
 - **No migration.** `ActivationRequirement`, `StartActivation`, and the `START_*` audit types already exist on `main`.
 
-## ACT-7.4 — the reconciliation decision (deferred, needs sign-off)
+## ACT-7.4 — the reconciliation decision (Option 1 CHOSEN 2026-07-20; sequenced behind ACT-7.2)
 
-This branch does **not** touch `confirm-start`. Reconciling the two start paths is a trust-contract decision:
+This branch does **not** touch `confirm-start`. Reconciling the two start paths is a trust-contract decision. The options considered:
 
-- **Option 1 — Bridge (recommended).** When `confirm-start` runs and its `EmployerAcceptance` carries an `applicationId`, also call `recordStart()` so the application's `START_RECORDED` lifecycle stays consistent with the attestation. `StartAttestation` remains the employer-facing non-repudiation artifact. Additive; does not disturb the live path. **Depends on ACT-7.2** (populating `applicationId` on the acceptance — `ReviewClient` currently posts only `{ acceptanceScope: 'pilot' }`, so the link is unreachable from the UI).
-- **Option 2 — Replace.** Route `confirm-start` entirely through `startEventService` and retire `StartAttestation`. More disruptive; `START_ATTESTED` is described in-code as a canonical non-repudiation event.
-- **Option 3 — Keep separate.** Document them as two intentional concepts (attestation vs lifecycle). Least work; leaves the ambiguity BASE-0 flagged.
+- **Option 1 — Bridge (CHOSEN).** When `confirm-start` runs and its `EmployerAcceptance` carries an `applicationId`, also drive the application's `START_RECORDED` lifecycle so it stays consistent with the attestation. `StartAttestation` remains the employer-facing non-repudiation artifact. Additive; does not disturb the live path.
+- **Option 2 — Replace.** Route `confirm-start` entirely through `startEventService` and retire `StartAttestation`. Rejected: more disruptive; `START_ATTESTED` is a canonical non-repudiation event in-code.
+- **Option 3 — Keep separate.** Rejected: leaves the "two unconnected start concepts" ambiguity BASE-0 flagged.
 
-**Recommendation:** ACT-7.2 (wire `applicationId` through the accept payload) → then ACT-7.4 Option 1 (bridge). Do not implement ACT-7.4 until the option is chosen.
+**Two hard constraints discovered while grounding the implementation (do not skip):**
+
+1. **`recordStart` only fires from `start_ready`** (`canRecordStart` in `startState.ts`). A naive `confirm-start → recordStart()` returns `invalid_state` whenever the application was never marked start-ready. The bridge must therefore either (a) require the application be `start_ready` before an attested start is accepted (preferred — keeps the readiness gate meaningful), or (b) mark-ready-then-record only when the requirement ledger's `readiness.startReady` is true. It must never force a start past open required requirements.
+
+2. **`ReviewClient` has no `applicationId`.** It is keyed on `passport.entityId` and reached via an entity/packet-share link; the application context lives in the separate `/employer/decision/[applicationId]` surface. The backend accept route *already* accepts + verifies `applicationId` + `packetHash` (`employerActions.ts` ~397–481) — so **ACT-7.2 is a web/surface-linkage task, not a field-add**: decide how an entity-keyed review obtains its application (pass it into `ReviewClient` from an application-aware mount, or reconcile the two employer surfaces). Until an acceptance actually carries an `applicationId`, the Option-1 bridge has nothing to key on.
+
+**Sequence:** ACT-7.2 (establish the review→application linkage so acceptances carry `applicationId`) → ACT-7.4 (bridge, honoring constraint 1). Neither is in this PR.
 
 ## Test
 
