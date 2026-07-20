@@ -311,6 +311,24 @@ export default async function VerifierPage({
     },
   ];
 
+  // Revocation is a VISIBLE step, now backed by the real artifact-ledger count
+  // the backend attaches (additive contract; older payloads fall back to the
+  // honest "Not checked"). Any revoked artifact fails the whole verdict closed
+  // — a reviewer must look before relying on anything here.
+  const revocationStep = passport.revocation?.checked
+    ? passport.revocation.revokedCount > 0
+      ? {
+          state: 'revoked' as const,
+          source: `artifact ledger · ${passport.revocation.revokedCount} revoked`,
+          checkedAt: passport.revocation.checkedAt ?? undefined,
+        }
+      : {
+          state: 'none-found' as const,
+          source: 'artifact ledger',
+          checkedAt: passport.revocation.checkedAt ?? undefined,
+        }
+    : { state: 'unknown' as const, source: 'not checked on this public snapshot' };
+
   return (
     <div className="mz mz-paper mz-persona-verifier min-h-screen overflow-hidden">
       {/* ── Read-Only Header ───────────────────────────────────────────────── */}
@@ -336,7 +354,7 @@ export default async function VerifierPage({
           <VerdictSplit
             integrity={integrityItems}
             issuer={issuerItems}
-            revocation={{ state: 'unknown', source: 'not checked on this public snapshot' }}
+            revocation={revocationStep}
           />
         </Reveal>
 
