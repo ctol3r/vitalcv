@@ -13,6 +13,10 @@ html[data-theme='light'] {
   --vt-surface-dim: #EBEAE5;
   --vt-border: #E2E1DC;
   --vt-border-subtle: #EBEAE5;
+  /* PANTONE 11-4201 "Cloud Dancer" — approved web approximation (HERO-RESET-1).
+     The physical swatch is the authority; consumed by the scoped
+     `.mz-cloud-paper` public-home paper override, never applied globally. */
+  --vt-cloud-dancer: #F0EEE9;
   --vt-text-primary: #141414;
   --vt-text-secondary: #141414CC;
   --vt-text-muted: #14141466;

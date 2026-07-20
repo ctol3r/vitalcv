@@ -30,24 +30,31 @@ function renderHomepage(): string {
   return renderToStaticMarkup(<HomePageClient />);
 }
 
-describe('HomePageClient — hero and live NPI moment', () => {
-  it('keeps the clinician-led headline, live NPI control, and immediate lookup action', () => {
+describe('HomePageClient — hero and live NPI moment (HERO-RESET-1)', () => {
+  it('leads with the clinician outcome and the exact NPI action', () => {
     const html = renderHomepage();
     expect(html).toContain('data-home-hero');
-    expect(html).toContain('Find the opportunity. Prove your career');
+    // The outcome IS the headline. Category language is banned above the fold.
+    expect(html).toMatch(/<h1[^>]*>Get hired <em[^>]*>faster\.<\/em><\/h1>/);
+    expect(html).toContain('Start with your NPI');
     expect(html).toContain('aria-label="NPI number"');
     expect(html).toContain('data-home-primary-cta');
-    expect(html).toContain('Check readiness');
-    expect(html).toContain('No account required');
+    expect(html).toContain('Check what’s ready');
+    expect(html).toContain('Free for clinicians · No account required');
   });
 
-  it('keeps the complete five-part scroll narrative in the DOM', () => {
+  it('ships a static mechanism line — the scroll-scrub narrative is deleted', () => {
     const html = renderHomepage();
     expect(html).toContain('data-home-hero-subhead');
-    // The complete narrative remains present without reserving a pinned hero
-    // runway; the NPI action belongs in the opening viewport.
+    expect(html).toContain(
+      'Start with your NPI. See what employers can confirm, fix what is missing, and reuse your career profile for every job.',
+    );
+    // The compact-hero contract survives the reset; no runway returns.
     expect(html).toContain('hero-compact');
     expect(html).toContain('data-home-hero-stage');
+    // The deleted effect and its sentence cannot linger in any form.
+    expect(html).not.toContain('data-narrative-');
+    expect(html).not.toContain('VitalCV recognizes your identity');
     for (const phrase of [
       'recognizes your identity',
       'checks the primary sources',
@@ -55,8 +62,28 @@ describe('HomePageClient — hero and live NPI moment', () => {
       'matches the right opportunity',
       'carries your evidence forward',
     ]) {
-      expect(html).toContain(phrase);
+      expect(html).not.toContain(phrase);
     }
+  });
+
+  it('moves the category statement below the fold, exactly once, in the story', () => {
+    const html = renderHomepage();
+    expect(html).not.toContain('data-home-eyebrow');
+    const category = 'The clinician career evidence network';
+    const first = html.indexOf(category);
+    expect(first, 'category statement still exists on the page').toBeGreaterThan(-1);
+    expect(first, 'category statement sits inside the product story, not the hero').toBeGreaterThan(
+      html.indexOf('data-home-sticky-product-story'),
+    );
+    expect(html.indexOf(category, first + 1), 'category statement appears once').toBe(-1);
+  });
+
+  it('sits on the scoped Cloud Dancer paper without retheming anything else', () => {
+    const html = renderHomepage();
+    expect(html).toContain('mz-cloud-paper');
+    // Route-scoped body paper: the style tag ships with the page and unmounts
+    // with it, so no other surface inherits Cloud Dancer.
+    expect(html).toContain('body{background:var(--vt-cloud-dancer,#F0EEE9)}');
   });
 });
 

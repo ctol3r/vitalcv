@@ -33,8 +33,9 @@ import {
  * NOT a typing effect: no character is ever absent, so layout cannot shift and
  * a fast scroller always reads a complete line.
  *
- * Distinct from ScrollTypeNarrative (the hero sentence), which stays as-is —
- * that is a word-cadenced narrative scrub; this is display typography.
+ * Serves SECTION headings only. The hero's scroll-scrubbed sentence
+ * (ScrollTypeNarrative) was removed in HERO-RESET-1 — the hero is static,
+ * outcome-first copy now, and no hero effect should be rebuilt on this.
  *
  * Motion architecture (the performance contract):
  *  - ONE scroll source per heading (`useScroll` on the section), never a

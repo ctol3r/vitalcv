@@ -92,6 +92,25 @@ export function buildModel(): FieldModel {
     });
   }
 
+  // HERO-RESET-1: pin the anchor geometry of the composition. The three real
+  // public sources, the single amber needs-action signal, and the ringed
+  // opportunity hold curated deterministic positions so the SVG poster, the
+  // Canvas 2D tier, the WebGPU tier, and the HTML label overlay all agree on
+  // where the named story sits. Every other atom stays seeded texture.
+  const pin = (index: number, x: number, y: number) => {
+    const atom = atoms[index];
+    if (atom) {
+      atom.x = x;
+      atom.y = y;
+    }
+  };
+  pin(0, 0.1, 0.16); // NPPES
+  pin(3, 0.085, 0.46); // OIG / LEIE
+  pin(5, 0.175, 0.885); // texture source — its seeded spot sat on the PECOS label
+  pin(6, 0.105, 0.76); // PECOS
+  pin(7, 0.24, 0.66); // needs-action signal, clear of the source labels
+  pin(oppStart + 1, 0.87, 0.44); // the one opportunity carrying the bounded ring
+
   const inLinks = atoms
     .map((_, i) => i)
     .filter((i) => i < inCount + 1 && atoms[i].kind !== 'opportunity');
@@ -100,6 +119,32 @@ export function buildModel(): FieldModel {
 }
 
 export const MODEL = buildModel();
+
+export interface FieldAnchor {
+  id: 'nppes' | 'oig-leie' | 'pecos' | 'record' | 'opportunity';
+  label: string;
+  x: number;
+  y: number;
+}
+
+/**
+ * Labeled anchors of the shared composition (HERO-RESET-1). The labels name
+ * real public sources and abstract roles only — never a person, an employer,
+ * or a fabricated outcome. Coordinates come FROM the model so the overlay can
+ * never drift from the geometry the tiers render.
+ */
+export const FIELD_ANCHORS: FieldAnchor[] = [
+  { id: 'nppes', label: 'NPPES', x: MODEL.atoms[0].x, y: MODEL.atoms[0].y },
+  { id: 'oig-leie', label: 'OIG / LEIE', x: MODEL.atoms[3].x, y: MODEL.atoms[3].y },
+  { id: 'pecos', label: 'PECOS', x: MODEL.atoms[6].x, y: MODEL.atoms[6].y },
+  { id: 'record', label: 'Your career record', x: MODEL.capsule.x, y: MODEL.capsule.y },
+  {
+    id: 'opportunity',
+    label: 'Opportunity',
+    x: MODEL.atoms[MODEL.acceptance].x,
+    y: MODEL.atoms[MODEL.acceptance].y,
+  },
+];
 
 export interface Palette {
   source: string;

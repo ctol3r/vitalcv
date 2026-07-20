@@ -336,7 +336,9 @@ export function StickyProductStory() {
 
       <div className="story-stage">
         <div className="story-intro">
-          <p className="mz-eyebrow">How it moves</p>
+          {/* The category statement lives here, below the fold (HERO-RESET-1):
+              the hero sells the outcome; the story explains the system. */}
+          <p className="mz-eyebrow">The clinician career evidence network</p>
           <ScrollScrubHeading
             id="product-story-title"
             as="h2"

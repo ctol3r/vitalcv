@@ -14,13 +14,15 @@
  *  1. Server / first paint: a static SVG poster (below) — no blank reserved area.
  *  2. Reduced motion / no canvas / init failure: the poster stays; no rAF loop.
  *  3. Default: a deterministic, seeded Canvas 2D animation fades in over it.
- * The real explorable graph remains at /evidence-network; this is not that.
+ * The public /evidence-network page is a static system-concept explainer; the
+ * formerly explorable public graph is retired (SHD-0.3) and must not return.
  */
 
 import * as React from 'react';
 
 import { SceneBoundary } from '@/components/home/scene/SceneBoundary';
 import {
+  FIELD_ANCHORS,
   KIND_COLOR,
   MODEL,
   readPalette,
@@ -32,59 +34,174 @@ import { cn } from '@/lib/utils';
    components/home/evidence-field/model.ts (SHD-2.1) so the WebGPU tier, this
    2D tier, and the SVG poster all bind the SAME semantic composition. */
 
+/** Anchor indices whose in-links carry the named-source emphasis. */
+const NAMED_SOURCE_ATOMS = new Set([0, 3, 6]);
+
+const pct = (n: number) => `${(n * 100).toFixed(2)}%`;
+
+/**
+ * The designed static baseline (HERO-RESET-1). Percentage geometry, not a
+ * sliced viewBox: the previous `viewBox="0 0 100 62"` + `slice` cropped ~40%
+ * of the composition out of the tall desktop panel, which is why the field
+ * read as nonexistent while technically present. Every element now maps the
+ * SAME normalized model coordinates the Canvas 2D and WebGPU tiers use, so
+ * nothing essential exists only in an animated tier.
+ */
 function FieldPoster() {
-  // Static, theme-aware SVG that matches the animated composition. Inherits the
-  // page's CSS vars, so it is correct in light and dark and needs no canvas.
   return (
-    <svg
-      data-field-poster=""
-      aria-hidden="true"
-      viewBox="0 0 100 62"
-      preserveAspectRatio="xMidYMid slice"
-      className="absolute inset-0 h-full w-full"
-    >
+    <svg data-field-poster="" aria-hidden="true" className="absolute inset-0 h-full w-full">
       <defs>
-        <radialGradient id="cef-cap" cx="50%" cy="42%" r="65%">
-          <stop offset="0%" stopColor="var(--vt-surface)" />
-          <stop offset="100%" stopColor="var(--vt-surface-subtle)" />
+        <radialGradient id="cef-wash-source" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor="color-mix(in oklab, var(--vt-accent-emerald) 9%, transparent)" />
+          <stop offset="100%" stopColor="transparent" />
         </radialGradient>
+        <radialGradient id="cef-wash-record" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor="color-mix(in oklab, var(--accent) 10%, transparent)" />
+          <stop offset="100%" stopColor="transparent" />
+        </radialGradient>
+        <radialGradient id="cef-wash-opportunity" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor="color-mix(in oklab, var(--vt-field-opportunity, #2f6fb0) 8%, transparent)" />
+          <stop offset="100%" stopColor="transparent" />
+        </radialGradient>
+        <linearGradient id="cef-cap" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="var(--vt-surface)" />
+          <stop offset="60%" stopColor="var(--vt-surface-subtle)" />
+          <stop offset="100%" stopColor="color-mix(in oklab, var(--accent) 12%, var(--vt-surface-subtle))" />
+        </linearGradient>
       </defs>
+
+      {/* atmosphere washes — restrained depth so the panel never reads as blank paper */}
+      <ellipse cx="14%" cy="46%" rx="26%" ry="42%" fill="url(#cef-wash-source)" />
+      <ellipse cx={pct(MODEL.capsule.x)} cy={pct(MODEL.capsule.y)} rx="30%" ry="38%" fill="url(#cef-wash-record)" />
+      <ellipse cx="87%" cy="44%" rx="20%" ry="30%" fill="url(#cef-wash-opportunity)" />
+
+      {/* converging evidence — named sources carry the strongest connectors */}
       {MODEL.inLinks.map((i) => {
         const a = MODEL.atoms[i];
+        const named = NAMED_SOURCE_ATOMS.has(i);
         return (
           <line
             key={`in-${i}`}
-            x1={a.x * 100} y1={a.y * 62}
-            x2={MODEL.capsule.x * 100} y2={MODEL.capsule.y * 62}
-            stroke="var(--vt-border)" strokeWidth="0.2"
+            x1={pct(a.x)} y1={pct(a.y)}
+            x2={pct(MODEL.capsule.x)} y2={pct(MODEL.capsule.y)}
+            stroke={
+              named
+                ? 'color-mix(in oklab, var(--vt-accent-emerald) 44%, transparent)'
+                : 'color-mix(in oklab, var(--vt-text-primary) 16%, transparent)'
+            }
+            strokeWidth={named ? 1.6 : 1.1}
           />
         );
       })}
+      {/* the record carrying evidence out toward opportunity */}
       {MODEL.outLinks.map((i) => {
         const a = MODEL.atoms[i];
         return (
           <line
             key={`out-${i}`}
-            x1={MODEL.capsule.x * 100} y1={MODEL.capsule.y * 62}
-            x2={a.x * 100} y2={a.y * 62}
-            stroke="var(--vt-border)" strokeWidth="0.2"
+            x1={pct(MODEL.capsule.x)} y1={pct(MODEL.capsule.y)}
+            x2={pct(a.x)} y2={pct(a.y)}
+            stroke="color-mix(in oklab, var(--vt-field-opportunity, #2f6fb0) 42%, transparent)"
+            strokeWidth={1.4}
           />
         );
       })}
+
+      {/* the clinician-owned record capsule */}
       <rect
-        x={MODEL.capsule.x * 100 - 6} y={MODEL.capsule.y * 62 - 5}
-        width="12" height="10" rx="3"
-        fill="url(#cef-cap)" stroke="var(--vt-border)" strokeWidth="0.3"
+        x="48%" y="41.5%" width="24%" height="17%" rx="12"
+        fill="url(#cef-cap)"
+        stroke="color-mix(in oklab, var(--vt-text-primary) 30%, transparent)"
+        strokeWidth="1.25"
       />
+      <line
+        x1="50%" y1="50%" x2="70%" y2="50%"
+        stroke="color-mix(in oklab, var(--vt-text-primary) 14%, transparent)"
+        strokeWidth="1"
+      />
+
+      {/* signal atoms — named sources read as clear stations, texture stays quiet */}
       {MODEL.atoms.map((a, i) => {
         const color =
           a.kind === 'source' ? 'var(--vt-accent-emerald)'
             : a.kind === 'proof' ? 'var(--accent)'
               : a.kind === 'opportunity' ? 'var(--vt-field-opportunity, #2f6fb0)'
                 : 'var(--vt-state-stale, #a2670b)';
-        return <circle key={i} cx={a.x * 100} cy={a.y * 62} r={0.9 + a.base * 0.7} fill={color} opacity="0.85" />;
+        const named = NAMED_SOURCE_ATOMS.has(i);
+        const r = named ? 6 : a.kind === 'opportunity' ? 4.5 + a.base : a.kind === 'attention' ? 4 : 3 + a.base;
+        return (
+          <g key={i}>
+            {named ? (
+              <circle
+                cx={pct(a.x)} cy={pct(a.y)} r={11}
+                fill="none"
+                stroke="color-mix(in oklab, var(--vt-accent-emerald) 35%, transparent)"
+                strokeWidth="1.25"
+              />
+            ) : null}
+            {a.kind === 'attention' ? (
+              <circle
+                cx={pct(a.x)} cy={pct(a.y)} r={8}
+                fill="none"
+                stroke="color-mix(in oklab, var(--vt-state-stale, #a2670b) 55%, transparent)"
+                strokeWidth="1.25"
+                strokeDasharray="3 3"
+              />
+            ) : null}
+            <circle cx={pct(a.x)} cy={pct(a.y)} r={r} fill={color} opacity="0.9" />
+          </g>
+        );
       })}
+
+      {/* ONE bounded employer-decision ring — a boundary, never a clearance */}
+      <circle
+        data-poster-ring=""
+        cx={pct(MODEL.atoms[MODEL.acceptance].x)}
+        cy={pct(MODEL.atoms[MODEL.acceptance].y)}
+        r={16}
+        fill="none"
+        stroke="var(--vt-field-opportunity, #2f6fb0)"
+        strokeWidth="1.5"
+        strokeDasharray="5 4"
+        opacity="0.75"
+      />
     </svg>
+  );
+}
+
+/**
+ * Shared label overlay (HERO-RESET-1). Rendered OUTSIDE the tier switch so
+ * static, Canvas 2D, and WebGPU present identical names — a tier change can
+ * never drop the composition's meaning. Positions come from FIELD_ANCHORS,
+ * the same coordinates every renderer draws.
+ */
+const LABEL_OFFSET: Record<(typeof FIELD_ANCHORS)[number]['id'], string> = {
+  nppes: 'translate(14px, -50%)',
+  'oig-leie': 'translate(14px, -50%)',
+  pecos: 'translate(14px, -50%)',
+  record: 'translate(-50%, 54px)',
+  opportunity: 'translate(-50%, 24px)',
+};
+
+function FieldLabels() {
+  return (
+    <div data-field-labels="" aria-hidden="true" className="pointer-events-none absolute inset-0 z-[2]">
+      {FIELD_ANCHORS.map((anchor) => (
+        <span
+          key={anchor.id}
+          data-field-label={anchor.id}
+          className={cn(
+            'absolute whitespace-nowrap font-semibold uppercase',
+            anchor.id === 'record'
+              ? 'text-[11px] tracking-[0.16em] text-[var(--vt-text-secondary)]'
+              : 'text-[10px] tracking-[0.14em] text-[var(--vt-text-muted)]',
+          )}
+          style={{ left: pct(anchor.x), top: pct(anchor.y), transform: LABEL_OFFSET[anchor.id] }}
+        >
+          {anchor.label}
+        </span>
+      ))}
+    </div>
   );
 }
 
@@ -108,6 +225,11 @@ function FieldLegend() {
           {item.label}
         </li>
       ))}
+      <li className="sr-only">
+        Named public sources shown: NPPES, OIG/LEIE, and PECOS — signals flowing into a
+        clinician-owned career record and out to one opportunity with a single bounded
+        employer decision. Illustrative structure; no real people or employers.
+      </li>
     </ul>
   );
 }
@@ -203,9 +325,12 @@ function FieldCanvas({ wrapRef }: { wrapRef: React.RefObject<HTMLDivElement | nu
       MODEL.inLinks.forEach((i) => drawLink(i, true));
       MODEL.outLinks.forEach((i) => drawLink(i, false));
 
-      // the wallet capsule — a frosted refractive plate that breathes softly
+      // the wallet capsule — a frosted refractive plate that breathes softly.
+      // Proportional to the panel (24% × 17%) so it lands exactly on the
+      // poster capsule beneath it — the tiers must share one geometry.
       const breathe = 1 + Math.sin(t * 0.9) * 0.02;
-      const cw = 34 * breathe, ch = 26 * breathe;
+      const cw = w * 0.24 * breathe, ch = h * 0.17 * breathe;
+      const rr = Math.min(12, ch * 0.3);
       const cx0 = capX - cw / 2, cy0 = capY - ch / 2;
       // outer bloom so it sits in light, not on a flat card
       const bloom = ctx.createRadialGradient(capX, capY, ch * 0.3, capX, capY, cw * 1.5);
@@ -218,11 +343,11 @@ function FieldCanvas({ wrapRef }: { wrapRef: React.RefObject<HTMLDivElement | nu
       grad.addColorStop(0, withAlpha(palette.capsule, 0.97));
       grad.addColorStop(0.55, withAlpha(palette.capsule, 0.9));
       grad.addColorStop(1, withAlpha(palette.proof, 0.14));
-      roundRect(ctx, cx0, cy0, cw, ch, 8);
+      roundRect(ctx, cx0, cy0, cw, ch, rr);
       ctx.fillStyle = grad; ctx.fill();
       // caustic highlight — a soft light band sweeping the upper third
       ctx.save();
-      roundRect(ctx, cx0, cy0, cw, ch, 8); ctx.clip();
+      roundRect(ctx, cx0, cy0, cw, ch, rr); ctx.clip();
       const sweep = capX + Math.sin(t * 0.5) * cw * 0.28;
       const caustic = ctx.createLinearGradient(sweep - cw * 0.4, cy0, sweep + cw * 0.4, cy0 + ch * 0.6);
       caustic.addColorStop(0, withAlpha('#ffffff', 0));
@@ -233,10 +358,10 @@ function FieldCanvas({ wrapRef }: { wrapRef: React.RefObject<HTMLDivElement | nu
       ctx.restore();
       // rim light (top) + edge
       ctx.lineWidth = 1; ctx.strokeStyle = withAlpha(palette.capsuleEdge, 0.9);
-      roundRect(ctx, cx0, cy0, cw, ch, 8); ctx.stroke();
+      roundRect(ctx, cx0, cy0, cw, ch, rr); ctx.stroke();
       ctx.lineWidth = 1.2; ctx.strokeStyle = withAlpha('#ffffff', 0.5);
       ctx.beginPath();
-      ctx.moveTo(cx0 + 8, cy0 + 0.6); ctx.lineTo(cx0 + cw - 8, cy0 + 0.6); ctx.stroke();
+      ctx.moveTo(cx0 + rr, cy0 + 0.6); ctx.lineTo(cx0 + cw - rr, cy0 + 0.6); ctx.stroke();
       // engraved centre line — the "record" seam
       ctx.strokeStyle = withAlpha(palette.ink, 0.12);
       ctx.beginPath(); ctx.moveTo(cx0 + 6, capY); ctx.lineTo(cx0 + cw - 6, capY); ctx.stroke();
@@ -273,8 +398,9 @@ function FieldCanvas({ wrapRef }: { wrapRef: React.RefObject<HTMLDivElement | nu
         const ax = px(acc.x), ay = py(acc.y);
         const rp = 0.5 + 0.5 * Math.sin(t * 0.8);
         ctx.globalAlpha = 0.3 + rp * 0.4;
-        ctx.strokeStyle = palette.opportunity; ctx.lineWidth = 1.4;
-        ctx.beginPath(); ctx.arc(ax, ay, 8 + rp * 4, 0, Math.PI * 2); ctx.stroke();
+        ctx.strokeStyle = palette.opportunity; ctx.lineWidth = 1.5;
+        // breathes around the poster ring's r=16 so the tiers agree at rest
+        ctx.beginPath(); ctx.arc(ax, ay, 14 + rp * 4, 0, Math.PI * 2); ctx.stroke();
         ctx.globalAlpha = 1;
       }
 
@@ -434,6 +560,7 @@ export function CareerEvidenceField({ signal = 'idle' }: { signal?: FieldSignal 
           }
         </SceneBoundary>
       </div>
+      <FieldLabels />
       <FieldLegend />
     </div>
   );
