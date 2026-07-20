@@ -1,9 +1,21 @@
 # BASE-0 — current-state contract (Wave 0)
 
-**Baseline commit:** `86151ad8e` (`origin/main`, 2026-07-20)
+**Baseline commit:** `83812d1a2` (`origin/main`, 2026-07-20; component statuses read at `86151ad8e` and re-confirmed unchanged by `#796`, which added only docs + a new test)
 **Plan reconciled:** `VitalCV_Deep_Audit_and_Claude_Code_Master_Waves_2026-07-19.md` (Waves 0–11)
 **Second source reconciled:** `docs/design/shd-0-source-parity-manifest.md` §7 (SHD execution ledger)
 **Method:** every status below was read from `origin/main` at the commit named above, not from a working branch. Claims sourced from a subagent sweep were re-verified against `git show origin/main:<path>` before being written down.
+
+### How this fits with the other Wave-0 documents
+
+Three Wave-0 artifacts now exist and they do **not** compete. Read them in this order:
+
+| Document | Scope | Authority for |
+| --- | --- | --- |
+| `docs/design/homepage-composition-manifest.md` (`#796`) | The homepage, section by section | **Per-section owner / motion owner / fallback / conversion job / keep-or-retire disposition.** Enforced by `__tests__/homepage-composition-gate.test.tsx` (at most one page-level nav rail). |
+| `docs/ops/release-required-checks.md` (`#796`) | Release mechanics | Required-check names, red-run protocol, and the **one-homepage-visual-PR-at-a-time** rule. |
+| **this document** | The whole product | **What is actually mounted vs implemented-not-mounted vs dev-only**, across homepage *and* verify/review/employers/ACT-1; open-PR triage; wave↔reality reconciliation; the lane-claim table. |
+
+If this document and the composition manifest disagree about a homepage section, **the manifest wins** — it is the design authority and it has a CI gate. This document is the mount-status and backlog authority.
 
 > **Why this document exists.** Two build lanes merged into `main` within 30 minutes of each other on 2026-07-20 (`#791` hero reset, `#792` NUM-1) working from the same plan. NUM-1 was dispatched twice; the second dispatch was abandoned on discovery. This is the plan's own Wave 0 exit gate: *every later PR knows whether it is mounting, refactoring, or replacing existing work.* Read this before starting any wave, and re-read `git log origin/main` before merging.
 
@@ -114,7 +126,7 @@ There is an adjacent, *different* start path that **is** live: `POST /api/employ
 | --- | --- | --- |
 | **Wave 0** BASE-0.1/0.2/0.4 | This document. BASE-0.4 already satisfied — the stale "graph moves to /evidence-network" comments were removed in `#791`; surviving mentions are honest. | BASE-0.3 (visual/a11y baselines) is **largely already covered** by `scene-degradation`, `homepage-motion`, `scrub-headings`, `visual-density` specs + the axe WCAG CI job. Do not rebuild it; extend if a gap is proven. |
 | **Wave 1** NUM-1.1–1.6 | **NUM-1.1–1.4 SHIPPED** (`#792`): `components/motion/EvidenceMetric.tsx` primitive with four source classes, `ProblemStatBand`/`MetricStrip` converted, and the unsourced 34% bar **deleted** (recast as evidence-coverage, no day count, no implied SLA). | Only **NUM-1.5** (dynamic numbers on live product surfaces) and **NUM-1.6** (metric analytics) remain. |
-| **Wave 2** HORIZ-2.1–2.6 | Engine + harness shipped (`#780`); **not mounted**; `StickyProductStory` still owns a competing scroll model. | **Unclaimed — the highest-value next build.** Mount + migrate, per §3.1/§3.2. |
+| **Wave 2** HORIZ-2.1–2.6 | Engine + harness shipped (`#780`); **not mounted**; `StickyProductStory` still owns a competing scroll model. | **The highest-value next build.** Mount + migrate, per §3.1/§3.2. Bound by two `#796` constraints: the composition manifest already rules that `HeroLoopPills` and `ScrollFocusManifesto` **retire** when the rail lands, and the composition gate makes *mounting rail navigation without retiring the dot rail* a CI failure. Obey the manifest's dispositions rather than re-deciding them. |
 | **Wave 3** ROLO-3.1–3.5 | Rolodex 3D shipped (`#779`, `rolodex-leaves.test.ts` locks ≥2 leaves). Residual = run it *inside* the rail. | Serial after Wave 2. §3.2 is the exact target. |
 | **Wave 4** VIS-4.1–4.5 | Scene runtime/primitives/chapter driver (`#770/#771/#774`), WebGPU Graphene hero (`#777`), liquid menu (`#763`), degradation matrix (`#787`) all shipped. **Hero portion superseded by HERO-RESET-1 (`#791`).** | Remaining: per-chapter scene reaction (SHD-3.3 residual), VIS-4.5 contrast/visual regression. |
 | **Wave 5** PROOF-5.1–5.5 | `ProofPacketInspector` exists, DEV-ONLY (§3.3). | PROOF-5.1 is a mount. Resolve the `/design/*` guard question first. |
@@ -143,11 +155,16 @@ There is an adjacent, *different* start path that **is** live: `POST /api/employ
 
 Because parallel lanes work from the same plan documents, a lane **must** claim its bundle here before writing code, and re-check `git log origin/main` immediately before merging.
 
+This is not theoretical. On 2026-07-20 alone: `#791`/`#792` merged 30 minutes apart from the same plan; NUM-1 was dispatched a second time and abandoned mid-setup on discovering `#792`; `#790`/`#791` collided in the homepage zone (which is why `#796` added the one-homepage-PR rule); and **this document was itself rebased mid-review** because `#796` landed a second Wave-0 artifact while it was in CI. The re-check-before-merge step caught all three.
+
+For homepage-zone work, the lane claim below is necessary but **not sufficient** — `docs/ops/release-required-checks.md` additionally allows only one open homepage visual PR at a time.
+
 | Bundle | Status | Claimed |
 | --- | --- | --- |
 | BASE-0.1 / 0.2 / 0.4 | this PR | Wave-0 lane |
-| HORIZ-2.1 → 2.6 | **UNCLAIMED — next up** | — |
-| NUM-1.5 / 1.6 | unclaimed | — |
+| Composition manifest + gate, release protocol | shipped `#796` | deep-audit W0 lane |
+| HORIZ-2.1 → 2.6 | **UNCLAIMED — next up** (homepage zone: check for an open homepage PR first) | — |
+| NUM-1.5 / 1.6 | unclaimed (not homepage-zone) | — |
 | EMP-6.1 / 6.2 | unclaimed (6.3+ blocked on product decision) | — |
 
 ---
