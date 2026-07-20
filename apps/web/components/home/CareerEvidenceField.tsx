@@ -32,9 +32,24 @@ import { cn } from '@/lib/utils';
    components/home/evidence-field/model.ts (SHD-2.1) so the WebGPU tier, this
    2D tier, and the SVG poster all bind the SAME semantic composition. */
 
+const KIND_FILL = (kind: string) =>
+  kind === 'source'
+    ? 'var(--vt-accent-emerald)'
+    : kind === 'proof'
+      ? 'var(--accent)'
+      : kind === 'opportunity'
+        ? 'var(--vt-field-opportunity, #2f6fb0)'
+        : 'var(--vt-state-stale, #a2670b)';
+
 function FieldPoster() {
-  // Static, theme-aware SVG that matches the animated composition. Inherits the
-  // page's CSS vars, so it is correct in light and dark and needs no canvas.
+  // HERO-RESET-1 Task 4: the poster is the BASELINE composition, not a
+  // low-contrast emergency state. A human must recognize the evidence field in
+  // a static screenshot: washed depth, a fine grid, colored source→record
+  // connectors with a visible flow mark, a dimensional record capsule, one
+  // bounded employer-decision ring. Canvas/WebGPU add motion over this same
+  // geometry; nothing essential exists only in an animated tier.
+  const cap = MODEL.capsule;
+  const acc = MODEL.atoms[MODEL.acceptance];
   return (
     <svg
       data-field-poster=""
@@ -48,43 +63,137 @@ function FieldPoster() {
           <stop offset="0%" stopColor="var(--vt-surface)" />
           <stop offset="100%" stopColor="var(--vt-surface-subtle)" />
         </radialGradient>
+        <radialGradient id="cef-wash-a" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor="var(--vt-accent-emerald)" stopOpacity="0.1" />
+          <stop offset="100%" stopColor="var(--vt-accent-emerald)" stopOpacity="0" />
+        </radialGradient>
+        <radialGradient id="cef-wash-b" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.09" />
+          <stop offset="100%" stopColor="var(--accent)" stopOpacity="0" />
+        </radialGradient>
+        <radialGradient id="cef-glow" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor="var(--vt-text-primary)" stopOpacity="0.16" />
+          <stop offset="100%" stopColor="var(--vt-text-primary)" stopOpacity="0" />
+        </radialGradient>
       </defs>
+
+      {/* depth washes — the field sits IN light, not on flat paper */}
+      <ellipse cx="20" cy="28" rx="26" ry="20" fill="url(#cef-wash-a)" />
+      <ellipse cx="82" cy="34" rx="24" ry="18" fill="url(#cef-wash-b)" />
+
+      {/* fine clinical grid */}
+      {[12.4, 24.8, 37.2, 49.6].map((gy) => (
+        <line key={`gy-${gy}`} x1="0" y1={gy} x2="100" y2={gy} stroke="var(--vt-text-primary)" strokeOpacity="0.05" strokeWidth="0.12" />
+      ))}
+      {[16.6, 33.3, 50, 66.6, 83.3].map((gx) => (
+        <line key={`gx-${gx}`} x1={gx} y1="0" x2={gx} y2="62" stroke="var(--vt-text-primary)" strokeOpacity="0.05" strokeWidth="0.12" />
+      ))}
+
+      {/* source → record connectors, colored by their signal, with a visible
+          static flow mark at two-thirds travel */}
       {MODEL.inLinks.map((i) => {
         const a = MODEL.atoms[i];
+        const color = KIND_FILL(a.kind);
+        const mx = a.x * 100 + (cap.x * 100 - a.x * 100) * 0.66;
+        const my = a.y * 62 + (cap.y * 62 - a.y * 62) * 0.66;
         return (
-          <line
-            key={`in-${i}`}
-            x1={a.x * 100} y1={a.y * 62}
-            x2={MODEL.capsule.x * 100} y2={MODEL.capsule.y * 62}
-            stroke="var(--vt-border)" strokeWidth="0.2"
-          />
+          <g key={`in-${i}`}>
+            <line x1={a.x * 100} y1={a.y * 62} x2={cap.x * 100} y2={cap.y * 62} stroke={color} strokeOpacity="0.38" strokeWidth="0.4" />
+            <circle cx={mx} cy={my} r="0.55" fill={color} opacity="0.75" />
+          </g>
         );
       })}
+      {/* record → opportunity connectors */}
       {MODEL.outLinks.map((i) => {
         const a = MODEL.atoms[i];
         return (
           <line
             key={`out-${i}`}
-            x1={MODEL.capsule.x * 100} y1={MODEL.capsule.y * 62}
+            x1={cap.x * 100} y1={cap.y * 62}
             x2={a.x * 100} y2={a.y * 62}
-            stroke="var(--vt-border)" strokeWidth="0.2"
+            stroke="var(--vt-field-opportunity, #2f6fb0)" strokeOpacity="0.34" strokeWidth="0.38"
+            strokeDasharray="1.3 1"
           />
         );
       })}
+
+      {/* the clinician-owned record capsule — dimensional, not a flat chip */}
+      <ellipse cx={cap.x * 100} cy={cap.y * 62 + 4.4} rx="8.6" ry="1.7" fill="var(--vt-text-primary)" opacity="0.08" />
       <rect
-        x={MODEL.capsule.x * 100 - 6} y={MODEL.capsule.y * 62 - 5}
-        width="12" height="10" rx="3"
-        fill="url(#cef-cap)" stroke="var(--vt-border)" strokeWidth="0.3"
+        x={cap.x * 100 - 7} y={cap.y * 62 - 5.6}
+        width="14" height="11.2" rx="3.2"
+        fill="url(#cef-cap)" stroke="var(--vt-border)" strokeWidth="0.45"
       />
+      <line x1={cap.x * 100 - 4.6} y1={cap.y * 62 - 2.2} x2={cap.x * 100 + 4.6} y2={cap.y * 62 - 2.2} stroke="var(--vt-text-primary)" strokeOpacity="0.28" strokeWidth="0.45" />
+      <line x1={cap.x * 100 - 4.6} y1={cap.y * 62 + 0.2} x2={cap.x * 100 + 2.8} y2={cap.y * 62 + 0.2} stroke="var(--vt-text-primary)" strokeOpacity="0.18" strokeWidth="0.45" />
+      <line x1={cap.x * 100 - 4.6} y1={cap.y * 62 + 2.5} x2={cap.x * 100 + 3.8} y2={cap.y * 62 + 2.5} stroke="var(--vt-text-primary)" strokeOpacity="0.18" strokeWidth="0.45" />
+
+      {/* atoms — glow + core + specular so every node reads at a glance */}
       {MODEL.atoms.map((a, i) => {
-        const color =
-          a.kind === 'source' ? 'var(--vt-accent-emerald)'
-            : a.kind === 'proof' ? 'var(--accent)'
-              : a.kind === 'opportunity' ? 'var(--vt-field-opportunity, #2f6fb0)'
-                : 'var(--vt-state-stale, #a2670b)';
-        return <circle key={i} cx={a.x * 100} cy={a.y * 62} r={0.9 + a.base * 0.7} fill={color} opacity="0.85" />;
+        const color = KIND_FILL(a.kind);
+        const r = 1.15 + a.base * 0.85;
+        return (
+          <g key={i}>
+            <circle cx={a.x * 100} cy={a.y * 62} r={r * 2.6} fill="url(#cef-glow)" opacity="0.5" />
+            <circle cx={a.x * 100} cy={a.y * 62} r={r * 1.9} fill={color} opacity="0.14" />
+            <circle cx={a.x * 100} cy={a.y * 62} r={r} fill={color} opacity="0.95" />
+            <circle cx={a.x * 100 - r * 0.3} cy={a.y * 62 - r * 0.34} r={r * 0.3} fill="#ffffff" opacity="0.55" />
+            {a.kind === 'attention' ? (
+              <circle cx={a.x * 100} cy={a.y * 62} r={r * 1.7} fill="none" stroke={color} strokeOpacity="0.6" strokeWidth="0.3" />
+            ) : null}
+          </g>
+        );
       })}
+
+      {/* ONE bounded employer-decision ring — never a universal cleared badge */}
+      {acc ? (
+        <>
+          <circle cx={acc.x * 100} cy={acc.y * 62} r="5.4" fill="none" stroke="var(--vt-field-opportunity, #2f6fb0)" strokeOpacity="0.55" strokeWidth="0.5" />
+          <circle cx={acc.x * 100} cy={acc.y * 62} r="7.2" fill="none" stroke="var(--vt-field-opportunity, #2f6fb0)" strokeOpacity="0.22" strokeWidth="0.35" />
+        </>
+      ) : null}
     </svg>
+  );
+}
+
+/**
+ * Shared tier-independent labels (HERO-RESET-1): the three named public
+ * sources, the record, and the decision ring are captioned in plain HTML
+ * ABOVE every render tier, so static, Canvas 2D, and WebGPU all present the
+ * same composition. Decorative (`aria-hidden`) — the accessible meaning
+ * stays in the legend and surrounding copy. No person or employer names.
+ */
+const FIELD_LABELS = [
+  // Anchors chosen so no caption collides with the legend strip at the panel
+  // bottom (atom 6 sits too low — verified visually, HERO-RESET-1).
+  { text: 'NPPES', atom: 0, dx: -1, dy: -3 },
+  { text: 'OIG / LEIE', atom: 3, dx: -1, dy: -3 },
+  { text: 'PECOS', atom: 5, dx: -1, dy: -3 },
+] as const;
+
+function FieldLabels() {
+  return (
+    <div aria-hidden="true" data-field-labels="" className="pointer-events-none absolute inset-0 z-[2]">
+      {FIELD_LABELS.map((l) => {
+        const a = MODEL.atoms[l.atom];
+        if (!a) return null;
+        return (
+          <span
+            key={l.text}
+            className="absolute font-mono text-[9px] font-semibold uppercase tracking-[0.14em] text-[var(--vt-text-secondary)]"
+            style={{ left: `${a.x * 100 + l.dx}%`, top: `calc(${a.y * 100}% + ${l.dy * 4}px)` }}
+          >
+            {l.text}
+          </span>
+        );
+      })}
+      <span
+        className="absolute -translate-x-1/2 font-mono text-[9px] font-semibold uppercase tracking-[0.14em] text-[var(--vt-text-secondary)]"
+        style={{ left: `${MODEL.capsule.x * 100}%`, top: `calc(${MODEL.capsule.y * 100}% + 44px)` }}
+      >
+        Your career record
+      </span>
+    </div>
   );
 }
 
@@ -433,6 +542,9 @@ export function CareerEvidenceField({ signal = 'idle' }: { signal?: FieldSignal 
             )
           }
         </SceneBoundary>
+        {/* Tier-independent captions sit ABOVE the animated layers, so every
+            tier presents the same named composition (HERO-RESET-1 Task 4). */}
+        <FieldLabels />
       </div>
       <FieldLegend />
     </div>

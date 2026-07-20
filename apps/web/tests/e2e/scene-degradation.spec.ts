@@ -38,7 +38,7 @@ async function expectNpiActionUsable(page: import('@playwright/test').Page) {
   const input = page.getByLabel('NPI number');
   await expect(input).toBeVisible();
   await input.fill('1234567893'); // checksum-valid — enables the CTA
-  await expect(page.getByRole('button', { name: /check readiness/i })).toBeEnabled();
+  await expect(page.getByRole('button', { name: /check what.s ready/i })).toBeEnabled();
 }
 
 test.describe('scene degradation matrix (SHD-6.1)', () => {
@@ -157,5 +157,86 @@ test.describe('scene degradation matrix (SHD-6.1)', () => {
       if (isNpi) { reached = true; break; }
     }
     expect(reached, 'Tab order must reach the NPI input within 25 stops').toBe(true);
+  });
+});
+
+test.describe('perceived visibility + Cloud Dancer scope (HERO-RESET-1)', () => {
+  test('static tier: the evidence field is visibly COMPOSED, not merely attached', async ({ page }) => {
+    await page.setViewportSize(DESKTOP);
+    await page.goto('/?sceneTier=static', { waitUntil: 'networkidle' });
+
+    const field = page.locator('[data-home-evidence-field]');
+    const box = await field.boundingBox();
+    expect(box, 'field panel must occupy real space').not.toBeNull();
+    expect(box!.width).toBeGreaterThan(300);
+    expect(box!.height).toBeGreaterThan(300);
+
+    // The shared caption layer names the composition on EVERY tier — a human
+    // can identify sources → record without canvas or GPU.
+    for (const label of ['NPPES', 'OIG / LEIE', 'PECOS', 'Your career record']) {
+      await expect(field.locator('[data-field-labels]').getByText(label)).toBeVisible();
+    }
+
+    // The poster carries real geometry: colored connectors, glowing atoms, a
+    // record capsule, and exactly one bounded decision-ring cluster — with
+    // fills/strokes that are NOT the paper color (the "present but invisible"
+    // failure this bundle exists to prevent).
+    const density = await field.locator('[data-field-poster]').evaluate((svg) => {
+      const paper = getComputedStyle(document.querySelector('.home-cloud-dancer')!).backgroundColor;
+      const els = [...svg.querySelectorAll('circle, line, rect, ellipse')];
+      const colored = els.filter((el) => {
+        const s = getComputedStyle(el as SVGElement);
+        const fill = s.fill;
+        const stroke = s.stroke;
+        return (fill !== 'none' && fill !== paper) || (stroke !== 'none' && stroke !== paper);
+      });
+      return { total: els.length, colored: colored.length };
+    });
+    expect(density.total).toBeGreaterThan(30);
+    expect(density.colored).toBeGreaterThan(25);
+  });
+
+  test('canvas2d tier: the live canvas actually PAINTS over the same composition', async ({ page }) => {
+    await page.setViewportSize(DESKTOP);
+    await page.goto('/?sceneTier=canvas2d', { waitUntil: 'networkidle' });
+
+    const canvas = page.locator('[data-home-evidence-field] canvas');
+    await expect(canvas).toBeVisible();
+    // Same-origin canvas is readable: require a material number of painted
+    // (non-transparent) pixels — a mounted-but-blank canvas fails.
+    await expect
+      .poll(
+        () =>
+          canvas.evaluate((c) => {
+            const ctx = (c as HTMLCanvasElement).getContext('2d');
+            if (!ctx) return -1;
+            const { width, height } = c as HTMLCanvasElement;
+            if (width === 0 || height === 0) return 0;
+            const data = ctx.getImageData(0, 0, width, height).data;
+            let painted = 0;
+            for (let i = 3; i < data.length; i += 40) if (data[i] > 8) painted++;
+            return painted;
+          }),
+        { timeout: 5000 },
+      )
+      .toBeGreaterThan(500);
+    // The caption layer still names the composition above the canvas.
+    await expect(page.locator('[data-field-labels]').getByText('NPPES')).toBeVisible();
+  });
+
+  test('Cloud Dancer papers the homepage — and ONLY the homepage', async ({ page }) => {
+    await page.setViewportSize(DESKTOP);
+    await page.goto('/', { waitUntil: 'networkidle' });
+    const homePaper = await page
+      .locator('.home-cloud-dancer')
+      .evaluate((el) => getComputedStyle(el).backgroundColor);
+    expect(homePaper).toBe('rgb(240, 238, 233)');
+
+    // A non-homepage public surface must NOT drift to the new paper.
+    await page.goto('/trust', { waitUntil: 'domcontentloaded' });
+    const trustPaper = await page.evaluate(
+      () => getComputedStyle(document.body).backgroundColor,
+    );
+    expect(trustPaper).not.toBe('rgb(240, 238, 233)');
   });
 });

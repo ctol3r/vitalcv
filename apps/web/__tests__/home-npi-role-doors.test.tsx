@@ -31,32 +31,35 @@ function renderHomepage(): string {
 }
 
 describe('HomePageClient — hero and live NPI moment', () => {
-  it('keeps the clinician-led headline, live NPI control, and immediate lookup action', () => {
+  it('leads with the clinician outcome and the NPI action (HERO-RESET-1)', () => {
     const html = renderHomepage();
     expect(html).toContain('data-home-hero');
-    expect(html).toContain('Find the opportunity. Prove your career');
+    // H1: `Get hired faster.` (the accent <em> splits the markup)
+    expect(html).toContain('Get hired');
+    expect(html).toContain('faster.');
+    expect(html).toContain(
+      'Start with your NPI. See what employers can confirm, fix what is missing, and reuse your career profile for every job.',
+    );
+    expect(html).toContain('Start with your NPI</label>');
     expect(html).toContain('aria-label="NPI number"');
     expect(html).toContain('data-home-primary-cta');
-    expect(html).toContain('Check readiness');
-    expect(html).toContain('No account required');
+    expect(html).toContain('Check what’s ready');
+    expect(html).toContain('Free for clinicians · No account required');
   });
 
-  it('keeps the complete five-part scroll narrative in the DOM', () => {
+  it('removes the scroll narrative and category jargon from the hero', () => {
     const html = renderHomepage();
+    // The subhead is a STATIC paragraph; the scrub effect is gone entirely.
     expect(html).toContain('data-home-hero-subhead');
-    // The complete narrative remains present without reserving a pinned hero
-    // runway; the NPI action belongs in the opening viewport.
+    expect(html).not.toContain('data-narrative');
+    expect(html).not.toContain('recognizes your identity');
+    expect(html).not.toContain('carries your evidence forward');
+    // No category jargon above the fold: old eyebrow + old headline are gone.
+    expect(html).not.toContain('The clinician career evidence network');
+    expect(html).not.toContain('Find the opportunity. Prove your career');
+    // Compact-hero contract still holds.
     expect(html).toContain('hero-compact');
     expect(html).toContain('data-home-hero-stage');
-    for (const phrase of [
-      'recognizes your identity',
-      'checks the primary sources',
-      'shows what still needs review',
-      'matches the right opportunity',
-      'carries your evidence forward',
-    ]) {
-      expect(html).toContain(phrase);
-    }
   });
 });
 

@@ -4,6 +4,25 @@
  * never depends on these layers rendering.
  */
 
+/* ── Cloud Dancer public-home paper (HERO-RESET-1) ──────────────────────────
+   Scoped override: ONLY the public homepage resolves its paper to the Cloud
+   Dancer token. `.mz` bridges --vt-bg/--vt-border through --paper/--rule, so
+   overriding the base tokens here re-papers the whole homepage without
+   touching signed-in, dark, admin, or verification surfaces. Borders warm and
+   strengthen so evidence lines read on the deeper paper (the old #E2E1DC was
+   built for white). Cards stay white — raised surfaces must be distinct from
+   the paper, not camouflage. */
+.home-cloud-dancer {
+  --paper: var(--vt-cloud-dancer, #f0eee9);
+  --vt-bg: var(--vt-cloud-dancer, #f0eee9);
+  --paper-2: #eae7e0;
+  --vt-surface-subtle: #eae7e0;
+  --rule: #d6d2c7;
+  --vt-border: #d6d2c7;
+  --rule-soft: #e2dfd6;
+  --vt-border-subtle: #e2dfd6;
+}
+
 /* ── Ambient poster ─────────────────────────────────────────────────────────
    The static-tier stand-in for AmbientField: the same palette as the canvas
    (provenance emerald + evidence indigo at whisper amplitude on paper), so

@@ -8,6 +8,11 @@ html[data-theme='light'] {
   /* Lighter off-white palette (Chris, Homepage Motion Convergence Wave). Soft
      borders replace the brutalist black rule; ink stays #141414. */
   --vt-bg: #FAFAF8;
+  /* Cloud Dancer (HERO-RESET-1): approved WEB APPROXIMATION of PANTONE
+     11-4201 TCX for the public homepage paper. The physical swatch is the
+     authority; this is an intentional digital match, not a claimed Pantone
+     conversion. Consumed only by the `.home-cloud-dancer` scope. */
+  --vt-cloud-dancer: #F0EEE9;
   --vt-surface: #FFFFFF;
   --vt-surface-subtle: #F5F5F2;
   --vt-surface-dim: #EBEAE5;
