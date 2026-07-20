@@ -1,5 +1,7 @@
 import * as React from 'react';
 
+import { AnimatedMetricValue, MetricSourceTag } from '@/components/motion/EvidenceMetric';
+
 /**
  * MetricStrip — the Anyscale "large quantitative proof" row, restricted to real,
  * defensible numbers (Chris's explicit rule: no manufactured precision).
@@ -26,14 +28,18 @@ export function MetricStrip() {
       <dl className="grid grid-cols-2 gap-x-6 gap-y-8 border-y border-[var(--vt-border)] py-8 lg:grid-cols-4">
         {STATS.map((s) => (
           <div key={s.label}>
-            <dd
-              className="text-[clamp(40px,6vw,60px)] font-semibold leading-none tracking-tight text-[var(--vt-text-primary)]"
-              style={{ fontVariantNumeric: 'tabular-nums' }}
-            >
-              {s.n}
+            {/* NUM-1.3: leading zeros keep their exact grammar (`00 → 03`);
+                the `00` accounts figure plays the zero ink-reveal, never a
+                fake 0→0 counter. All four are live system facts. */}
+            <dd>
+              <AnimatedMetricValue
+                value={s.n}
+                className="text-[clamp(40px,6vw,60px)] font-semibold leading-none tracking-tight text-[var(--vt-text-primary)]"
+              />
             </dd>
             <dt className="mt-3 text-[13px] font-semibold text-[var(--vt-text-secondary)]">{s.label}</dt>
             <p className="mt-1 font-mono text-[11px] text-[var(--vt-text-muted)]">{s.sub}</p>
+            <MetricSourceTag sourceClass="live-system-fact" className="mt-2" />
           </div>
         ))}
       </dl>

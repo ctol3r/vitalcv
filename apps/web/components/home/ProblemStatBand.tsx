@@ -1,5 +1,7 @@
 import * as React from 'react';
 
+import { AnimatedMetricValue, MetricSourceTag } from '@/components/motion/EvidenceMetric';
+
 /**
  * ProblemStatBand — the pitch deck's "trust-liquidity problem" numbers, in Calm
  * Wave. Three big figures state the problem VitalCV addresses. Structure from
@@ -9,6 +11,11 @@ import * as React from 'react';
  * never a VitalCV outcome claim. The deck's own "honest claim" slide is the
  * rule — VitalCV addresses the self-inflicted verification-queue slice, not the
  * underlying clinician supply gap.
+ *
+ * NUM-1.2: the figures animate ONCE on entry through the EvidenceMetric
+ * contract — the range counts both bounds in place, `0` plays an ink reveal
+ * (never a fake counter), SSR/no-JS/reduced-motion always show the final
+ * value, and each card carries its visible source class.
  */
 const PROBLEM_STATS = [
   {
@@ -46,17 +53,17 @@ export function ProblemStatBand() {
             className="rounded-[14px] border border-[var(--vt-border)] bg-[var(--vt-surface)] px-6 py-7"
           >
             <dd className="flex items-baseline gap-2">
-              <span
+              <AnimatedMetricValue
+                value={s.n}
                 className="text-[clamp(44px,6vw,68px)] font-semibold leading-none tracking-tight text-[var(--vt-text-primary)]"
-                style={{ fontFamily: 'var(--mz-serif)', fontVariantNumeric: 'tabular-nums' }}
-              >
-                {s.n}
-              </span>
+                style={{ fontFamily: 'var(--mz-serif)' }}
+              />
               <span className="text-[13px] font-semibold uppercase tracking-[0.12em] text-[var(--vt-text-muted)]">
                 {s.unit}
               </span>
             </dd>
             <dt className="mt-3 text-[14px] leading-relaxed text-[var(--vt-text-secondary)]">{s.label}</dt>
+            <MetricSourceTag sourceClass="industry-benchmark" className="mt-3" />
           </div>
         ))}
       </dl>
