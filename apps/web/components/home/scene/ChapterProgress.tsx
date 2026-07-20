@@ -45,6 +45,13 @@ interface ChapterProgressContextValue {
   activeId: string;
   subscribe: (cb: ProgressListener) => () => void;
   getProgress: () => ChapterProgress | null;
+  /**
+   * W2 rail bridge: while the horizontal rail is pinned, it publishes the
+   * journey model directly (its chapters share one document top, so the
+   * vertical-span model is blind there). Publishing non-null suspends the
+   * scroll-derived model; publishing null hands control back.
+   */
+  publishExternal: (p: ChapterProgress | null) => void;
 }
 
 const ChapterProgressContext = React.createContext<ChapterProgressContextValue | null>(null);
@@ -54,6 +61,7 @@ export function ChapterProgressProvider({ children }: { children: React.ReactNod
   const listenersRef = React.useRef<Set<ProgressListener>>(new Set());
   const progressRef = React.useRef<ChapterProgress | null>(null);
   const activeIdRef = React.useRef(activeId);
+  const externalRef = React.useRef(false);
 
   React.useEffect(() => {
     let spans: ChapterSpan[] = [];
@@ -71,6 +79,7 @@ export function ChapterProgressProvider({ children }: { children: React.ReactNod
 
     const compute = () => {
       raf = 0;
+      if (externalRef.current) return; // the rail owns the model while pinned
       if (spans.length === 0) return;
       const anchor = window.scrollY + window.innerHeight * ANCHOR_VIEWPORT_FRACTION;
       const p = resolveProgress(anchor, spans, document.documentElement.scrollHeight);
@@ -116,6 +125,16 @@ export function ChapterProgressProvider({ children }: { children: React.ReactNod
         return () => listenersRef.current.delete(cb);
       },
       getProgress: () => progressRef.current,
+      publishExternal: (p) => {
+        externalRef.current = p !== null;
+        if (!p) return; // scroll model resumes on its next frame
+        progressRef.current = p;
+        listenersRef.current.forEach((cb) => cb(p));
+        if (p.id !== activeIdRef.current) {
+          activeIdRef.current = p.id;
+          setActiveId(p.id);
+        }
+      },
     }),
     [activeId],
   );
@@ -128,6 +147,15 @@ export function ChapterProgressProvider({ children }: { children: React.ReactNod
 /** Active chapter id; re-renders only on chapter change. `null` = no provider. */
 export function useActiveChapter(): string | null {
   return React.useContext(ChapterProgressContext)?.activeId ?? null;
+}
+
+/**
+ * The rail's publishing handle (W2 bridge). No-op without a provider so the
+ * rail keeps working in isolation (dev harness, tests).
+ */
+export function useChapterProgressPublisher(): (p: ChapterProgress | null) => void {
+  const ctx = React.useContext(ChapterProgressContext);
+  return ctx?.publishExternal ?? (() => {});
 }
 
 /**

@@ -58,99 +58,30 @@
   .proofcycle-word { animation: none; }
 }
 
-/* Floating scroll-progress rail pinned to the right edge (desktop only).
-   Compact dots that expand to labelled pills on hover/focus — keeps
-   jump-to-section navigation without a full-width bar crowding the top. */
-.homepage-section-rail {
-  position: fixed;
-  right: 1.15rem;
-  top: 50%;
-  transform: translateY(-50%);
-  z-index: 45;
-}
 
-.homepage-section-rail ul {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
 
-.homepage-section-rail a {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 0.55rem;
-  padding: 0.3rem 0.4rem;
-  color: var(--vt-text-muted);
-  text-decoration: none;
-}
 
-.homepage-section-rail__dot {
-  flex: none;
-  width: 0.5rem;
-  height: 0.5rem;
-  border-radius: 999px;
-  background: var(--vt-border);
-  transition: background 0.18s ease, transform 0.18s ease;
-}
 
-.homepage-section-rail__label {
-  max-width: 0;
-  overflow: hidden;
-  opacity: 0;
-  font-size: 0.7rem;
-  font-weight: 650;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  white-space: nowrap;
-  transition: max-width 0.22s ease, opacity 0.18s ease;
-}
 
-.homepage-section-rail a:hover .homepage-section-rail__label,
-.homepage-section-rail a:focus-visible .homepage-section-rail__label {
-  max-width: 9rem;
-  opacity: 1;
-}
 
-.homepage-section-rail a:hover .homepage-section-rail__dot,
-.homepage-section-rail a:focus-visible .homepage-section-rail__dot {
-  background: var(--vt-text-secondary);
-}
 
 /* A clear focus ring on the rail link itself — keyboard users must see where
    focus landed, not only the revealed label (AUD-1.2). */
-.homepage-section-rail a:focus-visible {
-  outline: 2px solid var(--vt-focus-ring);
-  outline-offset: 2px;
-  border-radius: 8px;
-}
 
-.homepage-section-rail a[aria-current='location'] {
-  color: var(--vt-text-primary);
-}
 
-.homepage-section-rail a[aria-current='location'] .homepage-section-rail__dot {
-  background: var(--vt-text-primary);
-  transform: scale(1.3);
-}
 
 /* The rail is a motion affordance (a scroll-progress indicator). Under reduced
    motion it is hidden entirely — the vertical DOM order and the header nav
    remain a complete route to every section (AUD-1.2). */
 @media (prefers-reduced-motion: reduce) {
-  .homepage-section-rail { display: none; }
-}
+  }
 
 /* Hide the floating rail on smaller screens and on coarse pointers (touch) —
    the header nav covers navigation there, the hover-to-reveal label is
    meaningless without a fine pointer, and the rail would overlap content
    (AUD-1.2). */
 @media (max-width: 1023px), (pointer: coarse) {
-  .homepage-section-rail { display: none; }
-}
+  }
 
 #wallet,
 #readiness,

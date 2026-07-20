@@ -72,8 +72,8 @@ describe('HomePageClient — hero and live NPI moment (HERO-RESET-1)', () => {
     const category = 'The clinician career evidence network';
     const first = html.indexOf(category);
     expect(first, 'category statement still exists on the page').toBeGreaterThan(-1);
-    expect(first, 'category statement sits inside the product story, not the hero').toBeGreaterThan(
-      html.indexOf('data-home-sticky-product-story'),
+    expect(first, 'category statement sits inside the journey story, not the hero').toBeGreaterThan(
+      html.indexOf('data-home-journey'),
     );
     expect(html.indexOf(category, first + 1), 'category statement appears once').toBe(-1);
   });
@@ -87,23 +87,46 @@ describe('HomePageClient — hero and live NPI moment (HERO-RESET-1)', () => {
   });
 });
 
-describe('HomePageClient — pinned product story', () => {
-  it('renders one scroll-linked five-step story with every product card in the DOM', () => {
+describe('HomePageClient — career journey rail (W2)', () => {
+  it('renders the four journey chapters in DOM order with every card present', () => {
     const html = renderHomepage();
-    expect(html).toContain('data-home-sticky-product-story');
-    expect(html).toContain('data-home-loop');
-    for (const step of ['recognize', 'prepare', 'match', 'apply', 'accept']) {
-      expect(html).toContain(`data-story-card="${step}"`);
+    expect(html).toContain('data-home-journey');
+    expect(html).toContain('data-story-rail');
+    let previous = -1;
+    for (const id of ['readiness', 'matcha', 'apply', 'start']) {
+      const index = html.indexOf(`data-journey-card="${id}"`);
+      expect(index, `chapter card ${id} renders`).toBeGreaterThan(previous);
+      previous = index;
+    }
+    // The retired story systems cannot linger in any form (W2.1/W2.3).
+    for (const removed of [
+      'data-home-sticky-product-story',
+      'data-home-loop',
+      'data-home-section-rail',
+      'data-home-outline-panel',
+      'data-story-card=',
+    ]) {
+      expect(html, `${removed} is retired`).not.toContain(removed);
     }
   });
 
-  it('preserves the canonical labels and the employer review boundary', () => {
+  it('preserves the journey labels and the employer review boundary', () => {
     const html = renderHomepage();
-    for (const label of ['Recognize', 'Prepare', 'Match', 'Apply', 'Accept']) {
+    for (const label of ['See what is ready', 'Find roles that fit', 'Apply with proof', 'Start faster']) {
       expect(html).toContain(label);
     }
     expect(html).toContain('VitalCV Recognition');
+    expect(html).toContain('Institution review remains');
     expect(html).toContain('institution review remains the final step');
+  });
+
+  it('SSR is the vertical fallback: no pin, no transforms, chapters in flow', () => {
+    const html = renderHomepage();
+    expect(html).toContain('data-rail-pinned="false"');
+    expect(html).toContain('story-rail-chapter-vertical');
+    expect(html).not.toContain('story-rail-runway');
+    // The chapter navigator is a pinned-mode enhancement — never in SSR.
+    expect(html).not.toContain('data-story-rail-nav');
   });
 });
 
@@ -125,14 +148,14 @@ describe('HomePageClient — product carousel and rail', () => {
     expect(html).toContain('aria-label="Pause the product flow"');
   });
 
-  it('renders direct section links in the required order', () => {
+  it('keeps the journey deep-link anchors resolvable in document order', () => {
     const html = renderHomepage();
-    expect(html).toContain('data-home-section-rail');
-    const links = ['#wallet', '#readiness', '#matcha', '#apply', '#employers'];
+    // The dot rail is retired (W2.3); the ids themselves remain the deep-link
+    // contract — each journey chapter section carries its anchor.
     let previous = -1;
-    for (const href of links) {
-      const index = html.indexOf(`href="${href}"`);
-      expect(index).toBeGreaterThan(previous);
+    for (const id of ['wallet', 'readiness', 'matcha', 'apply', 'employers']) {
+      const index = html.indexOf(`id="${id}"`);
+      expect(index, `#${id} anchor exists`).toBeGreaterThan(previous);
       previous = index;
     }
   });
@@ -142,7 +165,7 @@ describe('HomePageClient — consolidated story and truth boundary', () => {
   it('keeps exactly the requested core experiences and removes duplicate legacy grids', () => {
     const html = renderHomepage();
     expect(html).toContain('data-home-hero');
-    expect(html).toContain('data-home-sticky-product-story');
+    expect(html).toContain('data-home-journey');
     expect(html).toContain('data-home-evidence-truth');
     expect(html).toContain('data-home-product-carousel');
     expect(html).toContain('data-home-experience="metrics-and-cta"');

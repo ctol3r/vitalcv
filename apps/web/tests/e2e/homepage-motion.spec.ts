@@ -1,20 +1,5 @@
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
 
-async function captureStoryFrame(page: Page, testInfo: TestInfo, name: string, progress: number) {
-  const story = page.locator('[data-home-sticky-product-story]');
-  const metrics = await story.evaluate((node) => {
-    const rect = node.getBoundingClientRect();
-    return { top: rect.top + window.scrollY, height: rect.height };
-  });
-  const scrollDistance = Math.max(1, metrics.height - page.viewportSize()!.height);
-  await page.evaluate((y) => window.scrollTo({ top: y, behavior: 'auto' }), metrics.top + scrollDistance * progress);
-  // The story intentionally settles over ~1s; screenshots capture the stable
-  // lockup rather than an arbitrary frame in the flip.
-  await page.waitForTimeout(1250);
-  const screenshot = await page.screenshot({ animations: 'disabled' });
-  await testInfo.attach(`homepage-story-${name}`, { body: screenshot, contentType: 'image/png' });
-}
-
 /** The belt's current leftward travel in px (0 when untransformed). */
 async function beltOffset(page: Page): Promise<number> {
   return page.locator('[data-carousel-belt]').evaluate((node) => {
@@ -61,58 +46,6 @@ test.describe('Homepage motion convergence', () => {
     expect(bodyText).not.toContain('recognizes your identity');
   });
 
-  test('captures the start, middle, and end of the reversible rolodex sequence', async ({ page }, testInfo) => {
-    await page.setViewportSize({ width: 1440, height: 1000 });
-    await page.goto('/', { waitUntil: 'networkidle' });
-
-    const story = page.locator('[data-home-sticky-product-story]');
-    await expect(story).toBeVisible();
-    await expect(story).toHaveCSS('min-height', '2000px');
-    await expect(story).toHaveAttribute('data-story-motion', 'motion-values');
-    await expect(story).toHaveAttribute('data-story-effect', 'rolodex');
-    await expect(story).toHaveAttribute('data-story-transition-ms', '1050');
-    const storyHeight = await story.evaluate((node) => node.getBoundingClientRect().height);
-    const transitionRunway = (storyHeight - page.viewportSize()!.height) / 4;
-    expect(transitionRunway, 'each card transition must begin within 35vh').toBeLessThanOrEqual(350);
-
-    // The rolodex mechanics: the stack has real perspective and cards hinge on
-    // a spindle BELOW their box, so the step change is a flip, not a fade.
-    await expect(page.locator('.story-cards')).toHaveCSS('perspective', '1500px');
-    const origin = await page
-      .locator('[data-story-card="recognize"]')
-      .evaluate((n) => getComputedStyle(n).transformOrigin);
-    const originYFraction = await page.locator('[data-story-card="recognize"]').evaluate((n) => {
-      const parts = getComputedStyle(n).transformOrigin.split(' ');
-      return Number.parseFloat(parts[1]) / n.getBoundingClientRect().height;
-    });
-    expect(originYFraction, `spindle below the card (origin ${origin})`).toBeGreaterThan(1.05);
-
-    await captureStoryFrame(page, testInfo, 'start', 0);
-    await expect(story).toHaveAttribute('data-active-step', 'recognize');
-
-    // Mid-flip, a non-active card is ROTATED in X (matrix3d), not just faded.
-    await page.evaluate(() => {
-      const node = document.querySelector('[data-home-sticky-product-story]')!;
-      const rect = node.getBoundingClientRect();
-      const distance = rect.height - window.innerHeight;
-      window.scrollTo({ top: rect.top + window.scrollY + distance * 0.32, behavior: 'auto' });
-    });
-    await page.waitForTimeout(400);
-    const midTransform = await page
-      .locator('[data-story-card="prepare"]')
-      .evaluate((n) => getComputedStyle(n).transform);
-    expect(midTransform, 'transitioning card must carry a 3d flip').toContain('matrix3d');
-
-    await captureStoryFrame(page, testInfo, 'middle', 0.5);
-    await expect(story).toHaveAttribute('data-active-step', 'match');
-    await captureStoryFrame(page, testInfo, 'end', 1);
-    await expect(story).toHaveAttribute('data-active-step', 'accept');
-
-    // Reverse scroll must deterministically reverse the active state.
-    await captureStoryFrame(page, testInfo, 'reverse-middle', 0.5);
-    await expect(story).toHaveAttribute('data-active-step', 'match');
-  });
-
   for (const width of [360, 768, 1440]) {
     test(`has no horizontal page overflow at ${width}px`, async ({ page }) => {
       await page.setViewportSize({ width, height: 900 });
@@ -137,29 +70,13 @@ test.describe('Homepage motion convergence', () => {
     });
   }
 
-  test('mobile swipe updates the active story step (card observer)', async ({ page }) => {
+  test('mobile: journey chapters stack vertically; the carousel belt flows inside a clip', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto('/', { waitUntil: 'networkidle' });
-    const story = page.locator('[data-home-sticky-product-story]');
-    await story.scrollIntoViewIfNeeded();
-    await expect(story).toHaveAttribute('data-active-step', 'recognize');
-    // Swipe (programmatic horizontal scroll of the snap track) to the 3rd card.
-    await page.evaluate(() => {
-      const track = document.querySelector('.story-cards')!;
-      const card = track.querySelectorAll<HTMLElement>('[data-story-card-index]')[2]!;
-      track.scrollTo({ left: card.offsetLeft - (track as HTMLElement).offsetLeft, behavior: 'auto' });
-    });
-    await expect(story).toHaveAttribute('data-active-step', 'match');
-    // Tap-to-jump also works (the dead cardRefs no-op is fixed).
-    await page.getByRole('button', { name: /05.*Accept/i }).click();
-    await expect(story).toHaveAttribute('data-active-step', 'accept');
-  });
-
-  test('mobile: story keeps scroll-snap; the carousel belt flows inside a clip', async ({ page }) => {
-    await page.setViewportSize({ width: 390, height: 844 });
-    await page.goto('/', { waitUntil: 'networkidle' });
-    await expect(page.locator('.story-stage')).toHaveCSS('position', 'relative');
-    await expect(page.locator('.story-cards')).toHaveCSS('scroll-snap-type', 'x mandatory');
+    // W2 fallback: no pin, no navigator, all four chapters in document flow.
+    await expect(page.locator('[data-story-rail]')).toHaveAttribute('data-rail-pinned', 'false');
+    await expect(page.locator('[data-journey-card]')).toHaveCount(4);
+    await expect(page.locator('[data-story-rail-nav]')).toHaveCount(0);
     await expect(page.locator('.product-carousel-track')).toHaveCSS('overflow', 'hidden');
     await expect(page.locator('[data-carousel-belt]')).toHaveCSS('display', 'flex');
   });
@@ -168,14 +85,15 @@ test.describe('Homepage motion convergence', () => {
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.setViewportSize({ width: 1440, height: 1000 });
     await page.goto('/', { waitUntil: 'networkidle' });
-    await expect(page.locator('[data-story-card]')).toHaveCount(5);
-    await expect(page.locator('.story-stage')).toHaveCSS('position', 'relative');
+    // W2: reduced motion renders the four journey chapters as a static
+    // vertical document — no pin, no navigator, no leaf transforms.
+    await expect(page.locator('[data-journey-card]')).toHaveCount(4);
+    await expect(page.locator('[data-story-rail]')).toHaveAttribute('data-rail-pinned', 'false');
     await expect(page.locator('[data-carousel-belt]')).toHaveCSS('display', 'grid');
     // One copy of each card only — the seam duplicate never renders.
     await expect(page.locator('[data-carousel-belt] article')).toHaveCount(6);
     await expect(page.getByText(/Start with your NPI\. See what employers can confirm/).first()).toBeVisible();
     // Headings render plain and complete under reduced motion (M1 contract).
-    await expect(page.locator('#product-story-title')).toHaveAttribute('data-scrub-heading', 'reduced');
     await expect(page.locator('#product-carousel-title')).toHaveAttribute('data-scrub-heading', 'reduced');
   });
 
@@ -309,41 +227,6 @@ test.describe('Homepage motion convergence', () => {
     await expect(field.locator('canvas')).toHaveCount(0);
   });
 
-  // ── Reader features (Chris, 2026-07-18): scroll-focus manifesto ──
-
-  test('the manifesto lines come into focus by distance from viewport centre', async ({ page }) => {
-    await page.setViewportSize({ width: 1440, height: 1000 });
-    await page.goto('/', { waitUntil: 'networkidle' });
-
-    const band = page.locator('[data-home-manifesto]');
-    const lines = page.locator('[data-manifesto-line]');
-    await expect(lines).toHaveCount(4);
-    // Every line's full text is present regardless of the visual focus.
-    await expect(band).toContainText('A résumé says you are qualified.');
-    await expect(band).toContainText('VitalCV is the system beneath it:');
-
-    // Park the band so its top sits high in the viewport: the first line is far
-    // from centre (dim) while a lower line sits near centre (sharp).
-    const top = await band.evaluate((n) => n.getBoundingClientRect().top + window.scrollY);
-    await scrollTo(page, Math.max(0, top - 60));
-    await page.waitForTimeout(160);
-    const opacities = await lines.evaluateAll((els) =>
-      els.map((e) => Number(getComputedStyle(e).opacity)),
-    );
-    const spread = Math.max(...opacities) - Math.min(...opacities);
-    expect(spread, `focus gradient across lines (${opacities.join(', ')})`).toBeGreaterThan(0.25);
-  });
-
-  test('reduced motion renders every manifesto line fully legible', async ({ page }) => {
-    await page.emulateMedia({ reducedMotion: 'reduce' });
-    await page.setViewportSize({ width: 1440, height: 1000 });
-    await page.goto('/', { waitUntil: 'networkidle' });
-    const opacities = await page
-      .locator('[data-manifesto-line]')
-      .evaluateAll((els) => els.map((e) => Number(getComputedStyle(e).opacity)));
-    expect(Math.min(...opacities)).toBeGreaterThan(0.99);
-  });
-
   // AUD-1.1 guard: the left-floating "Page outline" was removed because at
   // desktop width it overlaid the first lines of major headings. This is the
   // regression guard — no fixed/sticky overlay may cover the primary heading,
@@ -375,75 +258,6 @@ test.describe('Homepage motion convergence', () => {
       });
       expect(overlay, `fixed/sticky overlay covering ${sel}`).toBeNull();
     }
-  });
-
-  test('the reusable-evidence cycler carries an honest static meaning', async ({ page }) => {
-    await page.setViewportSize({ width: 1440, height: 1000 });
-    await page.goto('/', { waitUntil: 'networkidle' });
-    const cycle = page.locator('[data-home-proof-cycle]');
-    // The animated words are decorative; the complete meaning is real text.
-    await expect(cycle).toHaveAccessibleName('Carry your source-backed evidence forward');
-    await expect(cycle.locator('.proofcycle-word')).toHaveCount(5);
-    // The rotation is running (an animation is applied to the words).
-    const anim = await cycle.locator('.proofcycle-word').first().evaluate(
-      (n) => getComputedStyle(n).animationName,
-    );
-    expect(anim).toBe('proofcycle-spin');
-  });
-
-  test('reduced motion parks the evidence cycler', async ({ page }) => {
-    await page.emulateMedia({ reducedMotion: 'reduce' });
-    await page.setViewportSize({ width: 1440, height: 1000 });
-    await page.goto('/', { waitUntil: 'networkidle' });
-    const anim = await page.locator('[data-home-proof-cycle] .proofcycle-word').first().evaluate(
-      (n) => getComputedStyle(n).animationName,
-    );
-    expect(anim).toBe('none');
-  });
-
-  // ── SHD-1.3: one chapter-progress driver behind the rail and the scene ──
-
-  test('the dot rail follows the chapter driver forward and agrees in reverse', async ({ page }) => {
-    await page.setViewportSize({ width: 1440, height: 1000 });
-    await page.goto('/', { waitUntil: 'networkidle' });
-
-    const railActive = () =>
-      page
-        .locator('[data-home-section-rail] a[aria-current="location"]')
-        .getAttribute('href');
-
-    // chapter tops in document space, as the driver measures them
-    const tops = await page.evaluate(() =>
-      Object.fromEntries(
-        ['wallet', 'readiness', 'matcha', 'employers'].map((id) => [
-          id,
-          (document.getElementById(id)?.getBoundingClientRect().top ?? 0) + window.scrollY,
-        ]),
-      ),
-    );
-
-    // Anchor sits at 35% viewport height: scroll so each chapter top passes it.
-    const anchorLead = 1000 * 0.35 - 40;
-    expect(await railActive()).toBe('#wallet');
-
-    await scrollTo(page, tops.readiness - anchorLead + 80);
-    await expect
-      .poll(railActive, { message: 'rail follows into readiness' })
-      .toBe('#readiness');
-
-    await scrollTo(page, tops.matcha - anchorLead + 80);
-    await expect.poll(railActive).toBe('#matcha');
-
-    await scrollTo(page, tops.employers - anchorLead + 80);
-    await expect.poll(railActive).toBe('#employers');
-
-    // Reverse scrub: the model is a pure function of scroll position, so the
-    // same positions resolve identically on the way back — no stuck state.
-    await scrollTo(page, tops.matcha - anchorLead + 80);
-    await expect.poll(railActive).toBe('#matcha');
-
-    await scrollTo(page, 0);
-    await expect.poll(railActive).toBe('#wallet');
   });
 
   test('the ambient scene layer rides under content and never blocks input', async ({ page }) => {
