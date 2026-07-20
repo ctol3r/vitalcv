@@ -106,6 +106,7 @@ export function buildModel(): FieldModel {
   };
   pin(0, 0.1, 0.16); // NPPES
   pin(3, 0.085, 0.46); // OIG / LEIE
+  pin(5, 0.175, 0.885); // texture source — its seeded spot sat on the PECOS label
   pin(6, 0.105, 0.76); // PECOS
   pin(7, 0.24, 0.66); // needs-action signal, clear of the source labels
   pin(oppStart + 1, 0.87, 0.44); // the one opportunity carrying the bounded ring

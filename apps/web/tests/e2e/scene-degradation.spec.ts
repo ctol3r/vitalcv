@@ -213,13 +213,19 @@ test.describe('hero reset — clinician sell and field visibility (HERO-RESET-1)
 
     // Precedence contract: the dark theme's paper stays authoritative — the
     // Cloud Dancer scope must never leak into dark or non-optin surfaces.
+    // Assert the custom property, not background-color: the theme transition
+    // animates background-color, so an immediate read mid-transition still
+    // reports the old paint; the variable itself flips instantly.
     const darkPaper = await page.evaluate(() => {
       document.documentElement.classList.add('dark');
-      const v = getComputedStyle(document.querySelector('.mz-cloud-paper') as HTMLElement).backgroundColor;
+      const v = getComputedStyle(document.querySelector('.mz-cloud-paper') as HTMLElement)
+        .getPropertyValue('--paper')
+        .trim()
+        .toLowerCase();
       document.documentElement.classList.remove('dark');
       return v;
     });
-    expect(darkPaper).toBe('rgb(21, 20, 15)'); // .dark .mz --paper #15140f
+    expect(darkPaper).toBe('#15140f'); // .dark .mz paper wins, not Cloud Dancer
   });
 
   test('static tier: the designed composition is inside the panel and materially distinct from it', async ({ page }) => {

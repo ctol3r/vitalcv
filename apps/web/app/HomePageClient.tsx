@@ -233,7 +233,15 @@ export default function HomePageClient() {
               {/* Magnetic affordance (SHD-1.2, manifest row 7): pure translate
                   on a wrapper; the Link keeps its own semantics and focus. */}
               <MagneticButton>
-                <Link href="/onboarding" className="inline-flex items-center gap-1.5 rounded-full bg-[var(--vt-text-primary)] px-4 py-2 font-semibold text-[var(--vt-bg)]">
+                {/* Inline background: unlayered normalize.css ships
+                    `a{background-color:transparent}`, which beats EVERY
+                    @layer-utilities bg-* class on anchors — the pill was
+                    silently invisible. Inline style outranks both. */}
+                <Link
+                  href="/onboarding"
+                  style={{ background: 'var(--vt-text-primary)' }}
+                  className="inline-flex items-center gap-1.5 rounded-full px-4 py-2 font-semibold text-[var(--vt-bg)]"
+                >
                   <Wallet size={14} aria-hidden="true" /> Get your free CV Wallet
                 </Link>
               </MagneticButton>
