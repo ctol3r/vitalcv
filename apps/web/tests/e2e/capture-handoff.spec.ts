@@ -29,12 +29,13 @@ test('capture desktop motion frames', async ({ page }) => {
   await scrollWithin(page, '#wallet', 0.9);
   await shot(page, '03-hero-typing-complete');
 
-  await scrollWithin(page, '[data-home-sticky-product-story]', 0);
-  await shot(page, '04-story-start-recognize');
-  await scrollWithin(page, '[data-home-sticky-product-story]', 0.5);
-  await shot(page, '05-story-middle-match');
-  await scrollWithin(page, '[data-home-sticky-product-story]', 1);
-  await shot(page, '06-story-end-accept');
+  // W2: the journey is the pinned horizontal rail — capture its runway scrub.
+  await scrollWithin(page, '[data-story-rail] .story-rail-runway', 0);
+  await shot(page, '04-journey-start-readiness');
+  await scrollWithin(page, '[data-story-rail] .story-rail-runway', 0.5);
+  await shot(page, '05-journey-middle');
+  await scrollWithin(page, '[data-story-rail] .story-rail-runway', 1);
+  await shot(page, '06-journey-end-start-faster');
 
   await page.locator('[data-home-evidence-trace]').scrollIntoViewIfNeeded();
   await shot(page, '07-evidence-truth-panel');
@@ -49,8 +50,8 @@ test('capture mobile frames', async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 780 });
   await page.goto('/', { waitUntil: 'networkidle' });
   await shot(page, '10-mobile-hero');
-  await page.locator('.story-cards').scrollIntoViewIfNeeded();
-  await shot(page, '11-mobile-story-snap');
+  await page.locator('[data-journey-card="matcha"]').scrollIntoViewIfNeeded();
+  await shot(page, '11-mobile-journey-stack');
   await page.locator('.product-carousel-track').scrollIntoViewIfNeeded();
   await shot(page, '12-mobile-carousel');
 });
