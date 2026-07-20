@@ -256,14 +256,29 @@ test.describe('hero reset — clinician sell and field visibility (HERO-RESET-1)
     await expect(page.locator('[data-poster-ring]')).toBeVisible();
 
     // Deterministic contrast: a named source station vs the panel surface.
+    // W0.1b: computed colors here can be oklch()/color-mix() — regex-plucking
+    // digits from those strings produced garbage luminance. Normalize ANY css
+    // color to sRGB bytes first via canvas readback (the browser does the
+    // conversion), THEN apply the WCAG math.
     const contrast = await page.evaluate(() => {
+      const cvs = document.createElement('canvas');
+      cvs.width = cvs.height = 1;
+      const ctx = cvs.getContext('2d', { willReadFrequently: true });
+      if (!ctx) return -1;
+      const toRgb = (c: string): [number, number, number] => {
+        ctx.fillStyle = '#000';
+        ctx.fillStyle = c; // invalid strings keep the previous fill
+        ctx.fillRect(0, 0, 1, 1);
+        const d = ctx.getImageData(0, 0, 1, 1).data;
+        return [d[0], d[1], d[2]];
+      };
       const lum = (c: string) => {
-        const m = (c.match(/\d+(\.\d+)?/g) || []).map(Number);
+        const [r, g, b] = toRgb(c);
         const f = (v: number) => {
           const s = v / 255;
           return s <= 0.04045 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
         };
-        return 0.2126 * f(m[0] || 0) + 0.7152 * f(m[1] || 0) + 0.0722 * f(m[2] || 0);
+        return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
       };
       const panel = document.querySelector('[data-home-evidence-field]') as HTMLElement;
       const station = document.querySelector('[data-field-poster] g circle[opacity="0.9"]') as SVGCircleElement | null;
