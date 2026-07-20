@@ -94,7 +94,7 @@ const hero = (page: Page) => page.locator('[data-home-hero]');
 async function submitNpi(page: Page, npi: string) {
   await page.goto('/', { waitUntil: 'networkidle' });
   await page.getByLabel('NPI number').fill(npi);
-  const cta = page.getByRole('button', { name: /check readiness/i });
+  const cta = page.getByRole('button', { name: /check what.s ready/i });
   // Enablement requires hydration + a checksum-valid NPI; waiting here keeps
   // the click from racing a pre-hydration (native, no-op) form submit.
   await expect(cta).toBeEnabled();
@@ -118,12 +118,12 @@ test.describe('NPI truth engine — homepage hero', () => {
     await expect(
       page.getByText('That is 10 digits but not a valid NPI — check for a typo.'),
     ).toBeVisible();
-    await expect(page.getByRole('button', { name: /check readiness/i })).toBeDisabled();
+    await expect(page.getByRole('button', { name: /check what.s ready/i })).toBeDisabled();
 
     // The same field with a checksum-valid NPI unlocks the lookup.
     await page.getByLabel('NPI number').fill(VALID_NPI);
     await expect(page.getByText('Press Enter to continue')).toBeVisible();
-    await expect(page.getByRole('button', { name: /check readiness/i })).toBeEnabled();
+    await expect(page.getByRole('button', { name: /check what.s ready/i })).toBeEnabled();
   });
 
   test('clean clinician: confirmed sources are named, gated licensure stays unavailable', async ({ page }) => {
