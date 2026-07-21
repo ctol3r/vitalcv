@@ -6,6 +6,7 @@
  */
 
 import { getOrInitKeypair } from '@/lib/crypto/receiptIssuer';
+import { SOURCE_LANE_OPS } from '@/lib/trust/sourceLanes';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -107,36 +108,19 @@ export async function GET() {
       algorithm: 'djb2-hash(npi:checkedAt) → hex → first-8',
     },
 
-    source_lanes: {
-      nppes_identity: {
-        lifecycle: 'active',
-        status: 'operational',
-        detail: 'Live NPPES registry lookups.',
-      },
-      oig_exclusions: {
-        lifecycle: 'active',
-        status: 'operational',
-        detail: 'Monthly LEIE snapshot cache with nightly exclusion sweep; fails closed when the cache is stale.',
-      },
-      state_license: {
-        lifecycle: 'planned',
-        status: 'pending_integration',
-        detail: 'Launch-state board lane requires live board or FSMB institutional access.',
-      },
-      employment_history: {
-        lifecycle: 'demo_only',
-        status: 'non_production',
-      },
-      board_certification: {
-        lifecycle: 'unintegrated',
-        status: 'not_implemented',
-      },
-      pecos_enrollment: {
-        lifecycle: 'active',
-        status: 'operational',
-        detail: 'Quarterly PECOS snapshot; snapshot age is surfaced as staleness on trust surfaces.',
-      },
-    },
+    // Derived from the canonical registry (NUM-1.5). Key spellings are the
+    // registry's `statusApiKey`, so `board_cert` keeps publishing as
+    // `board_certification` and this payload's shape is unchanged.
+    source_lanes: Object.fromEntries(
+      SOURCE_LANE_OPS.map((lane) => [
+        lane.statusApiKey,
+        {
+          lifecycle: lane.lifecycle,
+          status: lane.statusApiStatus,
+          ...(lane.detail ? { detail: lane.detail } : {}),
+        },
+      ]),
+    ),
 
     doctrine: {
       version: '1.0',

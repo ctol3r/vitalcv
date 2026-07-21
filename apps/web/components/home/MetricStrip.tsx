@@ -1,6 +1,7 @@
 import * as React from 'react';
 
 import { AnimatedMetricValue, MetricSourceTag } from '@/components/motion/EvidenceMetric';
+import { getLiveSourceLanes, getReadinessDimensionLanes } from '@/lib/trust/sourceLanes';
 
 /**
  * MetricStrip — the Anyscale "large quantitative proof" row, restricted to real,
@@ -15,9 +16,29 @@ import { AnimatedMetricValue, MetricSourceTag } from '@/components/motion/Eviden
  * The caption names what is live vs source-access-gated so the numbers can't be
  * read as more than they are.
  */
+// NUM-1.5: the two system numbers are counted from the canonical source-lane
+// registry rather than typed in. They render `03` and `04` today — identical to
+// the literals they replace — but they are now bound to the lanes themselves, so
+// a lane going dark or landing changes this strip instead of leaving it
+// confidently wrong. The wallet and accounts figures stay constant because they
+// are product facts, not lane state.
+const liveLanes = getLiveSourceLanes();
+const dimensionLanes = getReadinessDimensionLanes();
+
+/** Two-digit grammar (`00 → 03`) is load-bearing — see the NUM-1.3 note below. */
+const pad = (n: number) => String(n).padStart(2, '0');
+
 const STATS = [
-  { n: '03', label: 'federal source lanes, live', sub: 'NPPES · OIG/LEIE · PECOS' },
-  { n: '04', label: 'readiness dimensions', sub: 'identity · exclusion · licensure · enrollment' },
+  {
+    n: pad(liveLanes.length),
+    label: 'federal source lanes, live',
+    sub: liveLanes.map((lane) => lane.marketingShortName).join(' · '),
+  },
+  {
+    n: pad(dimensionLanes.length),
+    label: 'readiness dimensions',
+    sub: dimensionLanes.map((lane) => lane.readinessDimension).join(' · '),
+  },
   { n: '01', label: 'wallet you own', sub: 'reused for every move' },
   { n: '00', label: 'accounts required to look', sub: 'no card, no upload' },
 ] as const;
