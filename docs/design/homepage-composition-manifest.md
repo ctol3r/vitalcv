@@ -23,7 +23,7 @@ Dispositions below encode the path from today's page to that target.
 
 | # | Section | Owner component | Data source | Motion owner | Fallback | Conversion job | Disposition |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | Hero — "Get hired faster." + NPI action | `HomePageClient` (hero block) + `CareerEvidenceField` / `LiveNpiResult` | Static copy; live NPI lookup (`checkNpi` → trust-state) | None on copy (W1.1 contract: no scroll-scrubbed copy); field animates via scene tiers | SSR static poster + full form pre-hydration | THE primary conversion: NPI → readiness | **Keep** |
+| 1 | Hero — "Get hired faster." + NPI action | `HomePageClient` (hero block) + `CareerEvidenceField` / `LiveNpiResult` | Static copy; live NPI lookup (`checkNpi` → trust-state) | None on copy (W1.1 contract: no scroll-scrubbed copy); field animates via scene tiers | SSR static poster + full form pre-hydration | THE primary conversion: NPI → readiness | **Keep — single-purpose (2026-07-21)**: the NPI control is the ONLY interactive element in the first screen. The wallet pill and employer link moved to row 13; the stage is sized to its content so row 3 crests the fold. |
 | 2 | ~~Career-loop pill strip~~ | ~~`HeroLoopPills`~~ | — | — | — | — | **RETIRED (W2.3 executed)** — the rail's chapters carry the journey |
 | 3 | Source signal strip | `SourceCoverageRibbon` | Real lane states | Own marquee (pauseable, reduced-motion-safe) | Static list | Establish what VitalCV can actually read | **Keep** |
 | 4 | Problem numbers | `ProblemStatBand` | Cited industry figures via `EvidenceMetric` | AnimatedMetricValue (once, IO) | SSR final text | Make the cost of delay tangible | **Keep** (W3.1 registry pending) |
@@ -34,9 +34,9 @@ Dispositions below encode the path from today's page to that target.
 | 8b | Evidence truth panel | `EvidenceTruthPanel` | Illustrative product UI (labeled) | Reveal (fade) | Static | The evidence-trace narrative + truth boundary | **Keep** — distinct from the inspector; also a `ResumeToProof` dependency and its own scrub-heading e2e |
 | 9 | ~~Reusable-evidence word cycler~~ | ~~`RotatingProofLine`~~ | — | — | — | — | **RETIRED (W2 executed)** — failed the W9.1 category test |
 | 10 | Product carousel | `ProductCarousel` | Illustrative product UI | Own belt (pause control) | Reduced-motion grid | Product surface tour | **Keep; merge at W4/W5** — candidates for the proof-moment recomposition |
-| 11 | Résumé→proof comparison | `ResumeToProof` | Static | Reveal on entry | Static | Contrast old vs new way | **Keep; merge at W4/W5** — carries the form→system reframe after the manifesto retirement |
+| 11 | ~~Résumé→proof comparison~~ | ~~`ResumeToProof`~~ | — | — | — | — | **RETIRED (2026-07-21)** — 25 words and 200px restating the old-way/new-way contrast the rail's four chapters already carry. No test, spec, or copy-source depended on it. Component retained on disk; this is a composition change, not a deletion of the idea. |
 | 12 | Metrics strip | `MetricStrip` | Live capability counts via `EvidenceMetric` | AnimatedMetricValue (once, IO) | SSR final text | Prove what is real today | **Keep** (W3.1 registry pending) |
-| 13 | Dual-audience CTA | `DualAudienceCta` | Static routes | Reveal on entry | Static | Route clinician + employer to real product | **Keep** |
+| 13 | Dual-audience CTA | `DualAudienceCta` | Static routes | Reveal on entry | Static | Route clinician + employer to real product | **Keep — now the only employer entrance in the page body (2026-07-21)**: SHD-2.2's hero employer link moved here with its `data-home-employer-cta` hook and funnel event; the site header still carries "For Employers". |
 | 14 | Trust footer | `HomePageClient` footer nav | Static routes | None | Static | Trust surface deep links | **Keep** |
 
 ## The W2 composition (EXECUTED 2026-07-20)

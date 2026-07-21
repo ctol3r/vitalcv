@@ -14,7 +14,7 @@ import { UX_EVENTS } from '@/lib/analytics/ux-events';
 import { Menu, X } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 // Public-only nav items, clinician-led (Sprint 1). Never add ops/internal routes
 // here, and never a dead link — /explore + /developers are intentionally omitted
@@ -38,6 +38,27 @@ export default function Navbar() {
   const toggleRef = useRef<HTMLButtonElement>(null);
   const { track } = useUxTelemetry();
 
+  // Glass is right over paper and wrong over content. At 60% translucency a
+  // large serif heading scrolling underneath reads THROUGH the bar, which
+  // looks like a rendering fault rather than a material. So the rail keeps its
+  // full translucency at rest and firms up once there is content behind it.
+  //
+  // A sentinel + IntersectionObserver, deliberately not a scroll listener:
+  // this is site chrome on every public surface, and the homepage's rule is
+  // that ChapterProgress owns the only scroll model.
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  const [lifted, setLifted] = useState(false);
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel || typeof IntersectionObserver === 'undefined') return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setLifted(!(entry?.isIntersecting ?? true)),
+      { threshold: 0 },
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, []);
+
   // Calm Wave: a single, consistent paper bar on every public surface. The
   // homepage's dark drama now lives in inset "instrument" panels below the
   // nav, so the bar no longer flips dark over a full-bleed hero.
@@ -56,13 +77,26 @@ export default function Navbar() {
   };
 
   return (
-    <header className="sticky top-0 z-50 px-3 pt-3">
+    <>
+    {/* Top-of-document sentinel: while it is in view the rail is at rest. */}
+    <div ref={sentinelRef} aria-hidden="true" className="absolute top-0 h-px w-full" />
+    <header className="sticky top-0 z-50 px-3 pt-3" data-nav-lifted={lifted ? '' : undefined}>
       {/* Vital Glass — a floating frosted rail. Detached from the top edge and
          translucent enough (60%) that page content frosts through it under a
          high blur + saturate, with a bright inset top-sheen and a soft float
          shadow. A flush frosted bar over flat paper read as nothing; a floating
-         translucent rail reads unmistakably as glass. Theme-safe. */}
-      <div className="mx-auto max-w-7xl overflow-hidden rounded-2xl border border-[color-mix(in_oklab,var(--foreground)_10%,transparent)] bg-[color-mix(in_oklab,var(--background)_60%,transparent)] backdrop-blur-2xl backdrop-saturate-150 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.5),0_14px_40px_-18px_rgba(2,6,23,0.42)]">
+         translucent rail reads unmistakably as glass. Theme-safe.
+
+         Lifted state: once the page has scrolled, the same rail moves to 92%
+         and takes a firmer edge — still glass, but content passing underneath
+         no longer prints through the words on top of it. */}
+      <div
+        className={`mx-auto max-w-7xl overflow-hidden rounded-2xl border backdrop-blur-2xl backdrop-saturate-150 transition-[background-color,border-color,box-shadow] duration-300 ${
+          lifted
+            ? 'border-[color-mix(in_oklab,var(--foreground)_16%,transparent)] bg-[color-mix(in_oklab,var(--background)_92%,transparent)] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.5),0_18px_44px_-20px_rgba(2,6,23,0.5)]'
+            : 'border-[color-mix(in_oklab,var(--foreground)_10%,transparent)] bg-[color-mix(in_oklab,var(--background)_60%,transparent)] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.5),0_14px_40px_-18px_rgba(2,6,23,0.42)]'
+        }`}
+      >
       <div className="flex h-16 items-center justify-between gap-6 px-5 sm:px-6">
 
         {/* Logo */}
@@ -140,5 +174,6 @@ export default function Navbar() {
         }))}
       />
     </header>
+    </>
   );
 }

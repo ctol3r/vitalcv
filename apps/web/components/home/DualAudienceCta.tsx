@@ -2,13 +2,20 @@ import * as React from 'react';
 import Link from 'next/link';
 import { ArrowRight, Stethoscope, Building2 } from 'lucide-react';
 
+import { MagneticButton } from '@/components/home/scene/MagneticButton';
+
 /**
  * DualAudienceCta — the Anyscale/Palantir dual pre-footer: two clear entrances,
  * clinician and employer, so the page serves both sides of the marketplace
  * without muddying the single-purpose hero. Honest: no "pilot" language (pilots
  * are not yet enrolling); the employer preserves final credentialing authority.
+ *
+ * This is now the ONLY employer entrance in the page body (SHD-2.2's hero link
+ * moved here): the first screen is single-purpose, and the site header already
+ * carries "For Employers". The hook and funnel event travelled with the link so
+ * the two sides of the conversion stay distinguishable.
  */
-export function DualAudienceCta() {
+export function DualAudienceCta({ onEmployerClick }: { onEmployerClick?: () => void }) {
   return (
     <section aria-label="Get started" data-home-dual-cta="" className="mz mt-16 grid gap-4 md:grid-cols-2">
       {/* Clinician */}
@@ -25,14 +32,16 @@ export function DualAudienceCta() {
         <p className="mt-2 flex-1 text-[14px] leading-relaxed text-[var(--vt-text-secondary)]">
           Enter your NPI and read the evidence today — free, no account required.
         </p>
-        <Link
-          href="/#npi"
-          className="mt-5 inline-flex w-fit items-center gap-2 rounded-[6px] px-4 py-2.5 text-[14px] font-semibold text-white"
-          style={{ backgroundColor: 'var(--vt-text-primary)' }}
-        >
-          Check my readiness
-          <ArrowRight size={15} aria-hidden="true" />
-        </Link>
+        <MagneticButton>
+          <Link
+            href="/#npi"
+            className="mt-5 inline-flex w-fit items-center gap-2 rounded-[6px] px-4 py-2.5 text-[14px] font-semibold text-white"
+            style={{ backgroundColor: 'var(--vt-text-primary)' }}
+          >
+            Check my readiness
+            <ArrowRight size={15} aria-hidden="true" />
+          </Link>
+        </MagneticButton>
       </div>
 
       {/* Employer */}
@@ -50,13 +59,17 @@ export function DualAudienceCta() {
           Open a candidate&rsquo;s source-backed packet and act on what&rsquo;s ready — you keep
           final credentialing authority.
         </p>
-        <Link
-          href="/employers"
-          className="mt-5 inline-flex w-fit items-center gap-2 rounded-[6px] border border-[var(--vt-text-primary)] px-4 py-2.5 text-[14px] font-semibold text-[var(--vt-text-primary)] transition-colors hover:bg-[var(--vt-surface)]"
-        >
-          For employers
-          <ArrowRight size={15} aria-hidden="true" />
-        </Link>
+        <MagneticButton>
+          <Link
+            href="/employers"
+            data-home-employer-cta=""
+            onClick={onEmployerClick}
+            className="mt-5 inline-flex w-fit items-center gap-2 rounded-[6px] border border-[var(--vt-text-primary)] px-4 py-2.5 text-[14px] font-semibold text-[var(--vt-text-primary)] transition-colors hover:bg-[var(--vt-surface)]"
+          >
+            For employers — start review from evidence
+            <ArrowRight size={15} aria-hidden="true" />
+          </Link>
+        </MagneticButton>
       </div>
     </section>
   );

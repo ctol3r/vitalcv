@@ -172,6 +172,15 @@
   letter-spacing: -0.021em;
   color: var(--ink-950);
 }
+/* The homepage hero only. A modifier rather than a bump to `.mz-display`,
+   which seven other surfaces share at the current scale. The first screen is
+   now single-purpose — one headline, one control, one visual — and at 68px the
+   headline could not carry a full viewport on its own. */
+.mz-display-hero {
+  font-size: clamp(2.75rem, 6.6vw, 5.75rem);
+  letter-spacing: -0.028em;
+}
+
 .mz-accent { font-style: italic; color: var(--accent); }
 
 .mz-h1 { margin: 0; font-family: var(--mz-serif); font-weight: 500; font-size: clamp(1.6rem, 3vw, 2.1rem); line-height: 1.12; letter-spacing: -0.02em; color: var(--ink-950); }
@@ -196,6 +205,17 @@
   color: var(--vt-text-muted);
 }
 .mz-eyebrow::after { content: ''; width: 40px; height: 1px; background: var(--rule); }
+
+/* Chapter index. The body carried six eyebrow labels and five headlines that
+   each read as THE thesis, so the page argued five times instead of once.
+   Numbering the chapters is the cheapest honest fix: it changes no claim and
+   no headline, but it turns five essays into one five-part argument. The
+   ribbon stays unnumbered — it is a capability strip, not a chapter. */
+.mz-eyebrow-index {
+  font-variant-numeric: tabular-nums;
+  color: var(--accent);
+  opacity: 0.75;
+}
 
 /* ── Buttons ──────────────────────────────────────────────────────────────── */
 
