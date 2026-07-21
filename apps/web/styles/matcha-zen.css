@@ -172,6 +172,15 @@
   letter-spacing: -0.021em;
   color: var(--ink-950);
 }
+/* The homepage hero only. A modifier rather than a bump to `.mz-display`,
+   which seven other surfaces share at the current scale. The first screen is
+   now single-purpose — one headline, one control, one visual — and at 68px the
+   headline could not carry a full viewport on its own. */
+.mz-display-hero {
+  font-size: clamp(2.75rem, 6.6vw, 5.75rem);
+  letter-spacing: -0.028em;
+}
+
 .mz-accent { font-style: italic; color: var(--accent); }
 
 .mz-h1 { margin: 0; font-family: var(--mz-serif); font-weight: 500; font-size: clamp(1.6rem, 3vw, 2.1rem); line-height: 1.12; letter-spacing: -0.02em; color: var(--ink-950); }

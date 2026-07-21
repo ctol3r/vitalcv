@@ -6,12 +6,11 @@ import { SignedIn } from '@clerk/nextjs';
 import {
   ArrowRight,
   CheckCircle2,
+  ChevronDown,
   Fingerprint,
-  Wallet,
   Zap,
 } from 'lucide-react';
 
-import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { DualAudienceCta } from '@/components/home/DualAudienceCta';
 import { CareerEvidenceField } from '@/components/home/CareerEvidenceField';
@@ -29,7 +28,6 @@ import { Reveal } from '@/components/motion/Reveal';
 import { AmbientField } from '@/components/home/scene/AmbientField';
 import { ChapterProgressProvider } from '@/components/home/scene/ChapterProgress';
 import { GrainOverlay } from '@/components/home/scene/GrainOverlay';
-import { MagneticButton } from '@/components/home/scene/MagneticButton';
 import { SceneBoundary } from '@/components/home/scene/SceneBoundary';
 import { SceneCursor } from '@/components/home/scene/SceneCursor';
 import { SceneProvider } from '@/components/home/scene/SceneProvider';
@@ -141,30 +139,41 @@ export default function HomePageClient() {
         >
           <div
             data-home-hero-stage=""
-            className="hero-stage relative isolate grid min-h-[min(46rem,calc(100svh-11rem))] items-center gap-8 py-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,29rem)] lg:py-6"
+            /* Sized to its content, not to the viewport. A full-height stage
+               centred a ~300px text column in 780px and left 239px of dead air
+               above the headline — the first screen read as having sunk. This
+               lands the headline in the upper third and lets the next section
+               crest the fold, which is the invitation to scroll. */
+            className="hero-stage relative isolate grid min-h-[min(38rem,calc(100svh-9rem))] items-center gap-10 py-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,32rem)]"
           >
-          <div className="max-w-3xl">
-            <div className="space-y-4">
+          <div className="max-w-2xl">
+            <div className="space-y-5">
               {/* HERO-RESET-1: outcome first. The category eyebrow and the
                   scroll-scrubbed system sentence are gone — a clinician must
                   answer "what do I get?" and "what do I do?" at a glance,
                   before any category language. Category framing now lives in
                   the product story below the fold. */}
-              <h1 className="mz-display">
+              <h1 className="mz-display mz-display-hero">
                 Get hired <em className="mz-accent">faster.</em>
               </h1>
               <p
                 data-home-hero-subhead=""
-                className="max-w-2xl text-[21px] leading-[1.5] text-[var(--vt-text-secondary)]"
+                className="max-w-xl text-[21px] leading-[1.5] text-[var(--vt-text-secondary)]"
               >
                 Start with your NPI. See what employers can confirm, fix what is
                 missing, and reuse your career profile for every job.
               </p>
             </div>
 
-            <div className="mz-glass mz-glass-interactive mt-5 max-w-2xl rounded-[12px]">
-              <Card id="npi" className="scroll-mt-36 rounded-[12px] border-0 bg-transparent shadow-none">
-                <CardContent className="space-y-5 px-5 py-5 sm:px-6 sm:py-6">
+            {/* One screen, one action. The NPI control is the ONLY interactive
+                element in the first viewport — the wallet pill and the employer
+                link moved down to DualAudienceCta, which already carries both
+                entrances, and "For Employers" is in the site nav besides. The
+                glass card around the field is gone for the same reason the
+                evidence panel lost its fill: a box on paper competing with the
+                thing inside it. */}
+            <div id="npi" className="mt-8 max-w-xl scroll-mt-36">
+              <div className="space-y-4">
                   <form className="space-y-2" onSubmit={(event) => { event.preventDefault(); handleSubmit(); }}>
                     <label htmlFor="npi-input" className="text-[11px] font-medium uppercase tracking-[0.2em] text-[var(--vt-text-muted)]">
                       Start with your NPI
@@ -206,7 +215,10 @@ export default function HomePageClient() {
                     </div>
                   </form>
 
-                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[var(--vt-text-secondary)]">
+                  {/* One quiet line, not three. The Sign in link left with it —
+                      the site header already carries it, and the first screen
+                      earns its calm by having exactly one thing to do. */}
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-[var(--vt-text-secondary)]">
                     <span className={error ? 'text-[var(--vt-state-blocked)]' : undefined} role={error ? 'alert' : undefined} id={error ? 'home-npi-error' : undefined}>
                       {error ??
                         (isValid
@@ -216,49 +228,11 @@ export default function HomePageClient() {
                             : `${digits.length}/10 digits`)}
                     </span>
                     <span aria-hidden="true" className="text-[var(--vt-border)]">·</span>
-                    {/* The reassurance line lives once, directly under the form
-                        (HERO-RESET-1); the wallet CTA row no longer repeats it. */}
                     <span>Free for clinicians · No account required</span>
-                    <span aria-hidden="true" className="text-[var(--vt-border)]">·</span>
-                    <Link href="/sign-in" data-home-secondary-cta="" className="font-medium underline underline-offset-4">Sign in</Link>
                   </div>
-                </CardContent>
-              </Card>
+              </div>
             </div>
 
-            <div className="mt-4 flex flex-wrap items-center gap-3 text-[13px]">
-              {/* Magnetic affordance (SHD-1.2, manifest row 7): pure translate
-                  on a wrapper; the Link keeps its own semantics and focus. */}
-              <MagneticButton>
-                {/* The bg-* utility is authoritative again since #793 layered
-                    normalize.css; HERO-RESET-1's inline-style workaround is
-                    gone. (Unlayered normalize used to beat every layered
-                    utility on anchors, rendering this pill invisible.) */}
-                <Link
-                  href="/onboarding"
-                  className="inline-flex items-center gap-1.5 rounded-full bg-[var(--vt-text-primary)] px-4 py-2 font-semibold text-[var(--vt-bg)]"
-                >
-                  <Wallet size={14} aria-hidden="true" /> Get your free CV Wallet
-                </Link>
-              </MagneticButton>
-            </div>
-
-            {/* SHD-2.2: a quiet employer entry beside the clinician action.
-                Subdued so the NPI lookup stays visually and semantically
-                primary; routed to the real /employers destination (no
-                speculative onboarding). Distinct data hook + funnel event so
-                the two sides of the hero conversion stay distinguishable. */}
-            <p className="mt-3 text-[13px] text-[var(--vt-text-secondary)]">
-              <Link
-                href="/employers"
-                data-home-employer-cta=""
-                onClick={() => trackFunnelEvent(FUNNEL_EVENTS.EMPLOYER_ENTRY_CLICKED)}
-                className="inline-flex items-center gap-1 font-medium underline decoration-[var(--vt-border)] underline-offset-4 transition-colors hover:decoration-[var(--vt-text-secondary)]"
-              >
-                For employers — start review from evidence
-                <ArrowRight size={13} aria-hidden="true" />
-              </Link>
-            </p>
           </div>
 
           {/* The hero's living panel: the abstract Career Evidence Field
@@ -280,6 +254,19 @@ export default function HomePageClient() {
               <CareerEvidenceField signal={focused ? (isValid ? 'ready' : 'listening') : 'idle'} />
             )}
           </div>
+          </div>
+
+          {/* The one thing the first screen asks for after the NPI field: a
+              reason to keep going. Decorative and aria-hidden — the page is
+              navigable by document order without it. */}
+          <div
+            data-home-scroll-cue=""
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-x-0 bottom-1 flex justify-center"
+          >
+            <span className="mz-scroll-cue text-[var(--vt-text-muted)]">
+              <ChevronDown size={18} />
+            </span>
           </div>
         </section>
 
@@ -324,7 +311,11 @@ export default function HomePageClient() {
 
         <section id="employers" data-home-experience="metrics-and-cta" className="pt-14">
           <Reveal><MetricStrip /></Reveal>
-          <Reveal delay={90}><DualAudienceCta /></Reveal>
+          <Reveal delay={90}>
+            <DualAudienceCta
+              onEmployerClick={() => trackFunnelEvent(FUNNEL_EVENTS.EMPLOYER_ENTRY_CLICKED)}
+            />
+          </Reveal>
         </section>
 
         <nav aria-label="Trust footer" data-home-trust-footer="" className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-[var(--vt-border-subtle)] pt-6 text-[12px] text-[var(--vt-text-muted)]">
