@@ -62,6 +62,47 @@ never fired from anywhere. With no denominator and no conversion event, no rate
 in this funnel was computable — a run that died was indistinguishable from one
 that succeeded.
 
+## Actor — who an event is attributed to
+
+**Nobody identifiable. Every funnel event is anonymous.**
+
+`posthog.identify()` is never called anywhere in `apps/web` — verified by grep
+across `lib/`, `app/`, and `components/`. No funnel event is ever tied to a Clerk
+user, an NPI, or an email. The whole funnel measures signed-out homepage traffic,
+which is the population it exists to measure.
+
+| Actor field | What it is | Scope |
+| --- | --- | --- |
+| PostHog `distinct_id` | Random id in a first-party cookie, assigned by the SDK | One browser profile; resets when cookies clear |
+| `utm_source` / `utm_medium` / `utm_campaign` | Campaign attribution from the landing URL, persisted in `localStorage` under `vitalcv:utm` | Same browser |
+
+`providers.tsx` sets `person_profiles: 'identified_only'`. Combined with never
+calling `identify()`, that means PostHog creates **no person profiles at all** for
+these events — they aggregate as anonymous events, not as people.
+
+Consequence to design around: a clinician who checks their NPI on a phone and
+again on a laptop is two `distinct_id`s. Funnel rates are per-browser-session,
+not per-person, and must be reported that way. Do not call these "clinicians."
+
+## Retention
+
+**Retention is a PostHog project setting, not a code setting — it is not
+configured in this repo and cannot be asserted here.**
+
+The instrumentation is dormant until `NEXT_PUBLIC_POSTHOG_KEY` is set. Setting
+that key is therefore the moment retention starts mattering, and it is an owner
+task with a prerequisite:
+
+- **Before enabling the key:** set an explicit event-retention window on the
+  PostHog project. Do not accept the vendor default silently — an unbounded
+  default is a decision, just an unexamined one.
+- These events carry no direct identifiers (see below), so the retention question
+  is about behavioural attribution over time via `distinct_id`, not about
+  identifiable records.
+- Record the chosen window here once it is set, with the date it was set.
+
+Until that line is filled in, treat retention as **unset and unverified**.
+
 ## What these events must never carry
 
 **No NPI value, in any form — including hashed.** A SHA-256 of a 10-digit number
