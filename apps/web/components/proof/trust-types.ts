@@ -71,16 +71,45 @@ export interface LaneDefinition {
   source: string;
   isRequired: boolean;    // required for decision_grade
   freshnessWindowLabel: string;
+  /**
+   * Backend `sourceCoverage.checks[].sourceId` spellings that mean this lane.
+   * The passport emits catalog ids (`PECOS_PUBLIC`); the degraded stub emits
+   * snake_case (`pecos_public`). Without these, a real payload falls through to
+   * the raw id and the reviewer reads `PECOS_PUBLIC` instead of the lane name.
+   */
+  aliases: string[];
 }
 
 export const KNOWN_LANES: LaneDefinition[] = [
-  { laneId: 'nppes_identity',   displayName: 'NPPES Identity',     shortName: 'NPPES',  source: 'CMS Registry',             isRequired: true,  freshnessWindowLabel: '24 hours' },
-  { laneId: 'oig_exclusions',   displayName: 'OIG Exclusions',     shortName: 'OIG',    source: 'OIG LEIE',                 isRequired: true,  freshnessWindowLabel: '7 days' },
-  { laneId: 'state_license',    displayName: 'State License',      shortName: 'License', source: 'State Medical Board',     isRequired: true,  freshnessWindowLabel: '30 days' },
-  { laneId: 'employment_history', displayName: 'Employment History', shortName: 'Employ', source: 'The Work Number',        isRequired: false, freshnessWindowLabel: '90 days' },
-  { laneId: 'board_cert',       displayName: 'Board Certification', shortName: 'Board',  source: 'ABMS / Specialty Board',  isRequired: false, freshnessWindowLabel: '1 year' },
-  { laneId: 'pecos_enrollment', displayName: 'PECOS Enrollment',   shortName: 'PECOS',  source: 'CMS PECOS',               isRequired: false, freshnessWindowLabel: '90 days' },
+  { laneId: 'nppes_identity',   displayName: 'NPPES Identity',     shortName: 'NPPES',  source: 'CMS Registry',             isRequired: true,  freshnessWindowLabel: '24 hours', aliases: ['NPPES_API', 'NPPES_BULK', 'NPPES', 'NPI_REGISTRY'] },
+  { laneId: 'oig_exclusions',   displayName: 'OIG Exclusions',     shortName: 'OIG',    source: 'OIG LEIE',                 isRequired: true,  freshnessWindowLabel: '7 days',   aliases: ['OIG_LEIE', 'OIG'] },
+  { laneId: 'state_license',    displayName: 'State License',      shortName: 'License', source: 'State Medical Board',     isRequired: true,  freshnessWindowLabel: '30 days',  aliases: ['STATE_BOARD', 'NURSYS', 'NURSYS_ENOTIFY'] },
+  { laneId: 'employment_history', displayName: 'Employment History', shortName: 'Employ', source: 'The Work Number',        isRequired: false, freshnessWindowLabel: '90 days',  aliases: ['THE_WORK_NUMBER'] },
+  { laneId: 'board_cert',       displayName: 'Board Certification', shortName: 'Board',  source: 'ABMS / Specialty Board',  isRequired: false, freshnessWindowLabel: '1 year',   aliases: ['ABMS'] },
+  { laneId: 'pecos_enrollment', displayName: 'PECOS Enrollment',   shortName: 'PECOS',  source: 'CMS PECOS',               isRequired: false, freshnessWindowLabel: '90 days',  aliases: ['PECOS_PUBLIC', 'PECOS'] },
 ];
+
+/** Same normalization the passport coverage reader uses: case- and separator-insensitive. */
+function normalizeLaneToken(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, '');
+}
+
+/**
+ * Resolve a backend sourceId to its lane definition. Returns null for lanes we
+ * have no definition for — callers fall back to the raw id rather than invent a
+ * friendly name for a source they cannot describe.
+ */
+export function findLaneDefinition(laneId: string): LaneDefinition | null {
+  const token = normalizeLaneToken(laneId);
+  if (!token) return null;
+
+  return (
+    KNOWN_LANES.find((lane) => (
+      normalizeLaneToken(lane.laneId) === token
+      || lane.aliases.some((alias) => normalizeLaneToken(alias) === token)
+    )) ?? null
+  );
+}
 
 // ─── Lane snapshot (runtime state) ───────────────────────────────
 

@@ -141,12 +141,22 @@ function checksToLaneSnapshots(
       previewOnly: 'not_checked',
     };
 
+    // The source's own refresh SLA (sourceCatalog.refreshSlaHours), carried on
+    // the passport. Without it the strip can only show an absolute timestamp,
+    // which reads as "just checked" for a periodic source — the over-claim the
+    // freshness line repairs.
+    const freshnessWindowMs =
+      typeof c.freshnessWindowHours === 'number' && c.freshnessWindowHours > 0
+        ? c.freshnessWindowHours * 60 * 60 * 1000
+        : undefined;
+
     return {
       laneId: c.sourceId,
       status: statusMap[c.state] ?? 'not_checked',
       checkedAt: isNaN(checkedAtMs as number) ? null : checkedAtMs,
       source: c.sourceUrl ?? undefined,
       receiptId,
+      freshnessWindowMs,
     };
   });
 }
@@ -239,6 +249,10 @@ export default async function VerifierPage({
 
   // Derive lane snapshots from source coverage
   const lanes = checksToLaneSnapshots(passport.sourceCoverage?.checks ?? []);
+  // Pin the clock server-side: lane ages are rendered in a client component, so
+  // letting it read its own Date.now() would hydrate to a different age than the
+  // one served. This page is force-dynamic, so the stamp is per-request.
+  const renderedAt = Date.now();
 
   // Proof tier
   const proofTier =
@@ -441,7 +455,7 @@ export default async function VerifierPage({
         {/* ── Section: Provenance Strip ──────────────────────────────────── */}
         <Reveal delay={40}>
         <Section title="Source coverage">
-          <ProvenanceStrip lanes={lanes} />
+          <ProvenanceStrip lanes={lanes} now={renderedAt} />
         </Section>
         </Reveal>
 
