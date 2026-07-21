@@ -35,6 +35,7 @@ node scripts/security/audit-gate.mjs
 | + PR #569 (`@clerk/nextjs` → 6.39.5) | 2 | 80 | 72 | 14 | 168 | cleared Clerk cluster crit + 5 highs |
 | + PR #572 (protobufjs / shell-quote overrides) | **0** | **75** | **67** | **14** | **156** | **criticals eliminated** |
 | 2026-07-20 (`tar` GHSA-23hp-3jrh-7fpw ignore) | **0** *(1 suppressed)* | 79 | 75 | 16 | 170 | new build-time critical newly disclosed against `tar@6.2.1`; accepted-risk ignore (below). High/moderate drift = registry advisory DB growth, not new deps. |
+| 2026-07-21 (#812 — revert #808's `tar` override) | **0** *(1 suppressed)* | 79 | 75 | 16 | 170 | `tar` back to `6.2.1`; #808's `>=7.5.19` override broke `@expo/cli` on `main`. Counts unchanged — the ignore already held the gate. |
 
 ### Criticals — DONE (0 remaining)
 
@@ -87,6 +88,17 @@ Because `@expo/cli` is `tar`'s *sole* consumer, no scoped override can satisfy
 the gate without also hitting the consumer that breaks; and bumping the Expo SDK
 is a large, fast-CI-unverifiable migration disproportionate to a dormant app.
 Hence the documented ignore.
+
+> **This was confirmed the hard way — do not re-attempt the override.** A
+> parallel lane briefly landed exactly that override on `main` in **#808**
+> (`"tar": ">=7.5.19"`), which its own commit message flagged as unverified
+> ("*if tar@7 disagrees with @expo/cli at build time, the fallback is to scope
+> the SCA audit rather than the override*"). It does disagree: with #808 on
+> `main`, `@expo/cli` resolved `tar@7.5.20` and its extract path threw
+> `Cannot read properties of undefined (reading 'extract')`. The override was
+> reverted in **#812**, restoring `tar@6.2.1` and a working Expo toolchain while
+> the ignore below keeps the gate green. The advisory is build-time-only, so the
+> ignore costs nothing that the override was buying.
 
 **Blast-radius note.** This entry leaves `apps/mobile` running the vulnerable
 `tar@6.2.1` in its **build toolchain**. That is the accepted risk. It is bounded
