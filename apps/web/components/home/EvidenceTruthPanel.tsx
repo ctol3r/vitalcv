@@ -54,7 +54,7 @@ function Dot({ tone }: { tone: Tone }) {
 export function EvidenceTruthPanel() {
   return (
     <section aria-label="What sits behind every claim" data-home-evidence-truth="" className="mz">
-      <p className="mz-eyebrow">Truth before beauty</p>
+      <p className="mz-eyebrow"><span className="mz-eyebrow-index" aria-hidden="true">04</span>Truth before beauty</p>
       {/* No pinned runway. This heading previously ran `variant="scene" pin`,
           which reserved 124vh — 1.24 screens of blank paper whose only job was
           to scrub three lines of type. That runway WAS the homepage's "too much

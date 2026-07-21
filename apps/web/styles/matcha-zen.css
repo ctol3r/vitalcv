@@ -206,6 +206,17 @@
 }
 .mz-eyebrow::after { content: ''; width: 40px; height: 1px; background: var(--rule); }
 
+/* Chapter index. The body carried six eyebrow labels and five headlines that
+   each read as THE thesis, so the page argued five times instead of once.
+   Numbering the chapters is the cheapest honest fix: it changes no claim and
+   no headline, but it turns five essays into one five-part argument. The
+   ribbon stays unnumbered — it is a capability strip, not a chapter. */
+.mz-eyebrow-index {
+  font-variant-numeric: tabular-nums;
+  color: var(--accent);
+  opacity: 0.75;
+}
+
 /* ── Buttons ──────────────────────────────────────────────────────────────── */
 
 .mz-btn {
