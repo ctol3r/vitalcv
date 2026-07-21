@@ -2,7 +2,7 @@
 
 Gate: `.github/workflows/header-trust-gate.yml`
 Script: `scripts/check-header-trust-ratchet.ts`
-Baseline: `apps/api/backend/header-trust-baseline.json` (33 files at introduction)
+Baseline: `apps/api/backend/header-trust-baseline.json` (34 files at introduction)
 
 ## What it enforces
 
@@ -16,10 +16,21 @@ reviewed baseline. The baseline may shrink; it may not grow.
 
 G1 (#589) shipped deliberately as a *rewrite* rather than a removal:
 `middleware/verifiedIdentity.ts` verifies the Clerk session JWT and then
-overwrites `x-clerk-user-id` with the verified subject before routes run. The 33
+overwrites `x-clerk-user-id` with the verified subject before routes run. The 34
 files on the baseline therefore read verified data — **but only while that
 middleware runs in front of them**. That conditional is the whole risk, and this
 gate exists to stop the conditional from spreading.
+
+### Reviewed exception: `middleware/rateLimitFactory.ts`
+
+Added when G3 (#814) landed rate-limit bucket keying. It is the one entry that
+does not depend on middleware ordering: the read is guarded by
+`env().CLERK_JWT_VERIFICATION === 'enforce'`, which is exactly the mode in which
+`verifiedIdentity` has already overwritten the header with the verified subject.
+Outside `enforce` it ignores the header entirely and keys by IP, because keying
+on a caller-supplied header would let an attacker mint unlimited buckets by
+rotating it. That guard is pinned by `middleware/__tests__/rateLimitFactory.test.ts`
+("IGNORES x-clerk-user-id unless verification is enforced").
 
 Two idioms are matched as reads:
 

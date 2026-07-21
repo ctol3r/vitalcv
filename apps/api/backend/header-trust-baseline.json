@@ -3,6 +3,7 @@
   "scanDir": "apps/api/backend/src",
   "baselineHeaderReaderFiles": [
     "middleware/authMiddleware.ts",
+    "middleware/rateLimitFactory.ts",
     "middleware/verifiedIdentity.ts",
     "routes/activation.ts",
     "routes/applications.ts",
