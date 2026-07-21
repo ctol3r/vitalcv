@@ -19,7 +19,6 @@ import { LiveNpiResult } from '@/components/home/LiveNpiResult';
 import { MetricStrip } from '@/components/home/MetricStrip';
 import { ProblemStatBand } from '@/components/home/ProblemStatBand';
 import { ProductCarousel } from '@/components/home/ProductCarousel';
-import { ResumeToProof } from '@/components/home/ResumeToProof';
 import { SourceCoverageRibbon } from '@/components/home/SourceCoverageRibbon';
 import { RailJourney } from '@/components/home/rail/RailJourney';
 import { HomeProofMoment } from '@/components/home/HomeProofMoment';
@@ -307,7 +306,10 @@ export default function HomePageClient() {
         {/* fade for the same reason: the carousel title is a scrub heading. */}
         <Reveal variant="fade"><ProductCarousel /></Reveal>
 
-        <Reveal><ResumeToProof /></Reveal>
+        {/* ResumeToProof retired: 25 words and 200px restating the old-way /
+            new-way contrast that the rail's four chapters already carry, with
+            no test or copy-source depending on it. The component stays on disk
+            — this is a composition change, not a deletion of the idea. */}
 
         <section id="employers" data-home-experience="metrics-and-cta" className="pt-14">
           <Reveal><MetricStrip /></Reveal>
