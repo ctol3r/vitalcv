@@ -1,12 +1,15 @@
 # Dependency remediation & burn-down
 
 **Enterprise-map B1 (supply chain) · ASVS G8 (SCA).**
-Owner: platform security · Last updated: 2026-07-06
+Owner: platform security · Last updated: 2026-07-20
 
 This is the living register for third-party dependency vulnerabilities. The
 **[SCA gate](../../.github/workflows/security-audit.yml)** blocks new
 **criticals**; everything else is tracked here and burned down deliberately so
-the signal stays actionable instead of permanently red.
+the signal stays actionable instead of permanently red. A narrow, documented
+escape hatch (**[Accepted-risk audit ignores](#accepted-risk-audit-ignores)**)
+exists for a critical that reaches only a build-time / non-deploy-path surface
+and cannot be safely upgraded or overridden.
 
 ## Policy
 
@@ -15,6 +18,7 @@ the signal stays actionable instead of permanently red.
 | **Critical** | ❌ **blocks merge** (`scripts/security/audit-gate.mjs` exits 1) | A critical in a shipped dependency is never acceptable. Fix with an upgrade or `pnpm.overrides` before merge. |
 | High | ⚠️ reported, non-blocking | 75 pre-existing highs; a hard gate here would be permanently red and train reviewers to ignore it. Burned down in waves (below). |
 | Moderate / Low | reported, non-blocking | Batched via Dependabot version updates. |
+| **Accepted-risk ignore** | 🔕 suppressed via `pnpm.auditConfig.ignoreGhsas` | **Narrow exception** for a critical that reaches **only** a build-time / non-deploy-path surface and cannot be safely upgraded or overridden. Requires an **owner sign-off** + a row in [Accepted-risk audit ignores](#accepted-risk-audit-ignores). The gate counts criticals from the (ignore-aware) advisory list, so a documented ignore clears the bar while any *un-ignored* critical still blocks. |
 
 The gate reads `pnpm audit --prod` (production tree only — dev-only tooling
 advisories are excluded from the merge signal). Run it locally:
@@ -29,7 +33,8 @@ node scripts/security/audit-gate.mjs
 |---|---:|---:|---:|---:|---:|---|
 | 2026-07-05 (baseline, `origin/main`) | 4 | 85 | 72 | 14 | 175 | pre-remediation |
 | + PR #569 (`@clerk/nextjs` → 6.39.5) | 2 | 80 | 72 | 14 | 168 | cleared Clerk cluster crit + 5 highs |
-| + this PR (protobufjs / shell-quote overrides) | **0** | **75** | **67** | **14** | **156** | **criticals eliminated** |
+| + PR #572 (protobufjs / shell-quote overrides) | **0** | **75** | **67** | **14** | **156** | **criticals eliminated** |
+| 2026-07-20 (`tar` GHSA-23hp-3jrh-7fpw ignore) | **0** *(1 suppressed)* | 79 | 75 | 16 | 170 | new build-time critical newly disclosed against `tar@6.2.1`; accepted-risk ignore (below). High/moderate drift = registry advisory DB growth, not new deps. |
 
 ### Criticals — DONE (0 remaining)
 
@@ -38,6 +43,55 @@ node scripts/security/audit-gate.mjs
 | `@clerk/nextjs` (+ `@clerk/shared`) | bump `apps/web` → `^6.39.5` | GHSA-vqx2-fgx2-5wq9 — middleware route-protection **bypass** (P0, auth boundary) |
 | `protobufjs` | `pnpm.overrides` → `^7.5.5` (resolves 7.6.5) | GHSA-xq3m-2v4x-88gg — arbitrary code execution. Transitive via `posthog-js` → OTLP exporter (apps/web). |
 | `shell-quote` | `pnpm.overrides` → `^1.8.4` (resolves 1.9.0) | GHSA-w7jw-789q-3m8p — `quote()` newline-escape bypass. Transitive via `react-native` → `react-devtools-core` (apps/mobile). |
+
+## Accepted-risk audit ignores
+
+Criticals suppressed via `pnpm.auditConfig.ignoreGhsas` in the root
+`package.json`. This list is the **only** sanctioned reason a critical does not
+block. Each entry is a deliberate, owner-signed decision — not a convenience.
+The gate ([`audit-gate.mjs`](../../scripts/security/audit-gate.mjs)) counts
+criticals from the ignore-aware advisory list, so these clear the bar while any
+*other* critical still fails the build. Re-evaluate every entry whenever its
+revisit condition changes.
+
+| GHSA | Package | Severity | Reaches | Signed off | Revisit when |
+|---|---|---|---|---|---|
+| [GHSA-23hp-3jrh-7fpw](https://github.com/advisories/GHSA-23hp-3jrh-7fpw) (CVE-2026-59873) | `tar@6.2.1` | Critical (CVSS 7.5) | `apps/mobile` build tooling only | Chris (owner), 2026-07-20 | (a) `apps/mobile` joins the production deploy path, **or** (b) Expo ships `@expo/cli` on a patched `tar`, **or** (c) `@expo/cli` drops the babel `_interopRequireDefault` default-import shim so a `tar@≥7.5.19` override becomes safe |
+
+### GHSA-23hp-3jrh-7fpw — node-tar decompression/parse DoS
+
+**What it is.** node-tar `<=7.5.18` does not bound total decompressed bytes or
+entry counts, so a tiny "gzip bomb" can exhaust disk/CPU during extraction.
+Patched in `tar@>=7.5.19`; **no patched `6.x` line exists**.
+
+**Why it's an accepted risk here (not a real exposure).** The only `tar` in the
+tree is `tar@6.2.1`, reachable through exactly one consumer: **`@expo/cli`** (a
+build/dev CLI under `apps/mobile → expo`). It is **never bundled into a shipped
+runtime** — not `apps/web`, not `apps/api/*`, not even the release RN app binary
+— and it only ever extracts Expo's own trusted CDN/npm archives at developer
+build time, never untrusted attacker input. `apps/mobile` is **not on the
+production deployment path**. (The `cacache@18 → tar` edge that also appears in
+the graph is dead code — `cacache` lists `tar` as a dependency but never
+`require`s it.)
+
+**Why we did not upgrade/override (the endorsed remediation) — verified.**
+Forcing `tar@6→7` via `pnpm.overrides` turns the gate green with a clean
+lockfile, **but provably breaks `@expo/cli` at runtime.** `tar@7`'s CommonJS
+build sets `__esModule = true` with **no `.default` export**; `@expo/cli`'s
+compiled code calls `_interopRequireDefault(require("tar")).default.extract(…)`,
+which under `tar@7` evaluates to `undefined.extract` → **`TypeError` thrown**.
+The `extractNpmTarballAsync` path in `@expo/cli` (used by `expo install` /
+`expo prebuild`) has no native-`tar` fallback, so it breaks unconditionally. The
+fast CI never exercises Expo, so the override would merge **silently broken**.
+Because `@expo/cli` is `tar`'s *sole* consumer, no scoped override can satisfy
+the gate without also hitting the consumer that breaks; and bumping the Expo SDK
+is a large, fast-CI-unverifiable migration disproportionate to a dormant app.
+Hence the documented ignore.
+
+**Blast-radius note.** This entry leaves `apps/mobile` running the vulnerable
+`tar@6.2.1` in its **build toolchain**. That is the accepted risk. It is bounded
+to developer machines building the mobile app against trusted inputs; nothing on
+the trust platform's shipped surface is affected.
 
 ## High-severity backlog (75 advisories, 21 modules)
 
@@ -85,14 +139,23 @@ not a PR gate.
 
 ### P4 — `apps/mobile` only (Expo / React Native transitive; deferred + tracked)
 
-`@xmldom/xmldom` (5), `node-forge` (4), `tar` (6), `@babel/plugin-transform-modules-systemjs` (1),
-plus the bulk of `minimatch` / `picomatch` install paths.
+`@xmldom/xmldom` (5), `node-forge` (4), `tar` (6 high **+ 1 critical**),
+`@babel/plugin-transform-modules-systemjs` (1), plus the bulk of `minimatch` /
+`picomatch` install paths.
 
 These sit under React Native / Expo and **cannot be safely force-overridden**
 without risking the RN toolchain. `apps/mobile` is **not currently on the
 production deployment path** for the trust platform. **Accepted risk, tracked** —
 revisit when either (a) `apps/mobile` ships, or (b) RN/Expo publishes patched
 transitives. Needs an explicit owner sign-off to keep as accepted risk.
+
+> **`tar` note (2026-07-20):** the "cannot be safely force-overridden" caution
+> is now empirically confirmed — see
+> [Accepted-risk audit ignores](#accepted-risk-audit-ignores). A newly disclosed
+> **critical** (GHSA-23hp-3jrh-7fpw) landed on `tar@6.2.1`; the `tar@6→7`
+> override provably breaks `@expo/cli`, so the critical is carried as a
+> documented `ignoreGhsas` entry rather than an override. The 6 `tar` *highs*
+> remain in this backlog and are non-blocking.
 
 ## How to burn one down
 
@@ -121,3 +184,4 @@ node scripts/security/audit-gate.mjs
 - **[SCA gate](../../.github/workflows/security-audit.yml)** keeps criticals at 0 while the backlog burns down.
 - **[Dependabot](../../.github/dependabot.yml)** opens weekly npm + github-actions update PRs. Enable repo-level **Dependabot security updates** (Settings → Code security) for immediate GHSA-alert PRs.
 - Never add an override just to silence the gate for a *critical* — fix the root cause. Overrides are for transitive fixes where the direct consumer hasn't shipped a patched range yet.
+- The **only** sanctioned way to pass the gate with a critical still in the tree is a `pnpm.auditConfig.ignoreGhsas` entry that meets **all** of: (1) reaches a build-time / non-deploy-path surface only, (2) cannot be safely upgraded or overridden (say why), (3) has an owner sign-off, and (4) has a documented row in [Accepted-risk audit ignores](#accepted-risk-audit-ignores). Anything else must be remediated, not ignored.

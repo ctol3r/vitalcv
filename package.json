@@ -34,6 +34,11 @@
     "typescript": "5.9.3"
   },
   "pnpm": {
+    "auditConfig": {
+      "ignoreGhsas": [
+        "GHSA-23hp-3jrh-7fpw"
+      ]
+    },
     "overrides": {
       "@types/react": "^19",
       "@types/react-dom": "^19",
