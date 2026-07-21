@@ -296,7 +296,7 @@ export function ProductCarousel() {
     >
       <div className="product-carousel-heading">
         <div>
-          <p className="mz-eyebrow"><span className="mz-eyebrow-index" aria-hidden="true">05</span>The product, end to end</p>
+          <p className="mz-eyebrow"><span className="mz-eyebrow-index" aria-hidden="true">06</span>The product, end to end</p>
           <ScrollScrubHeading
             id="product-carousel-title"
             as="h2"
