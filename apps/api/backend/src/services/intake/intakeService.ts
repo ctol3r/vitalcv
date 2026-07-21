@@ -17,6 +17,7 @@ import prisma from '../../graphql/prisma_client';
 import { log } from '../../obs/logger';
 import { sha256ForPayload } from '../../utils/deterministic';
 import { HttpError } from '../../utils/httpError';
+import { PREVIEW_PROFESSION } from '../identity/identityTier';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -378,6 +379,83 @@ export async function bootstrapNpiIntake(
     alreadyRegistered: Boolean(existing),
     completeness:     30,
   };
+}
+
+export interface StudentBootstrapResult {
+  profession:   string;
+  /** True when a preview-only (no-NPI) profile was created or already stood. */
+  previewOnly:  boolean;
+  completeness: number;
+}
+
+/**
+ * Student / no-NPI lane. A clinician-in-training with no NPI yet starts a
+ * PREVIEW-ONLY profile (profession = PREVIEW_PROFESSION, no NPI). The derived
+ * identity tier reads this as `preview` — the same trust floor as a bare
+ * account, so it unlocks nothing a bare account cannot do (publish, apply, and
+ * the AI features all stay gated at work_email_confirmed). Nothing here is
+ * source-verified; the student status is self-attested.
+ *
+ * It upgrades to a source-checked record automatically when the person later
+ * binds an NPI via `bootstrapNpiIntake` (the same userId upsert overwrites
+ * profession and adds the NPI, moving them to npi_bound). This never downgrades
+ * an already NPI-backed profile back to a preview.
+ */
+export async function bootstrapStudentIntake(
+  userId: string,
+  attestation?: { attested?: boolean; attestationVersion?: string },
+): Promise<StudentBootstrapResult> {
+  const existing = await prisma.personProfile.findUnique({
+    where: { userId },
+    select: { npi: true, profession: true, completeness: true },
+  });
+
+  // Never downgrade an already NPI-backed profile to a student preview.
+  if (existing?.npi) {
+    return {
+      profession:   existing.profession ?? 'clinician',
+      previewOnly:  false,
+      completeness: existing.completeness ?? 30,
+    };
+  }
+
+  const attested = attestation?.attested === true;
+  const attestedAt = attested ? new Date() : undefined;
+  const attestationVersion = attested
+    ? attestation?.attestationVersion ?? 'v1'
+    : undefined;
+  const completeness = 10;
+
+  await prisma.personProfile.upsert({
+    where: { userId },
+    create: {
+      userId,
+      profession: PREVIEW_PROFESSION,
+      attestedAt,
+      attestationVersion,
+      completeness,
+    },
+    update: {
+      profession:         PREVIEW_PROFESSION,
+      attestedAt:         attestedAt ?? undefined,
+      attestationVersion: attestationVersion ?? undefined,
+      completeness,
+      updatedAt:          new Date(),
+    },
+  });
+
+  // Audit-first: the preview start + its self-attestation are recorded before
+  // success is returned. previewOnly + attested make the honesty explicit and
+  // greppable. Attested ≠ verified.
+  await emitAudit('student_bootstrapped', userId, {
+    previewOnly: true,
+    attested,
+    attestationVersion: attestationVersion ?? null,
+  });
+
+  log('info', 'Student preview profile bootstrapped', { userId, attested });
+
+  return { profession: PREVIEW_PROFESSION, previewOnly: true, completeness };
 }
 
 /**

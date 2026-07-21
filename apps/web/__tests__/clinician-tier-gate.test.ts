@@ -42,6 +42,13 @@ describe('userMeetsTier', () => {
     expect(await userMeetsTier('user_test', 'work_email_confirmed')).toBe(false);
   });
 
+  it('false at preview tier — a no-NPI preview never unlocks a clinician power', async () => {
+    global.fetch = identityFetchMock('preview');
+    expect(await userMeetsTier('user_test', 'work_email_confirmed')).toBe(false);
+    global.fetch = identityFetchMock('preview');
+    expect(await userMeetsTier('user_test', 'npi_bound')).toBe(false);
+  });
+
   it('fails closed when the identity state is unreadable', async () => {
     global.fetch = identityFetchMock(null);
     expect(await userMeetsTier('user_test', 'work_email_confirmed')).toBe(false);
