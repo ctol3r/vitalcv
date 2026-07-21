@@ -25,6 +25,7 @@ Each ADR follows the template in [0000-template.md](./0000-template.md).
 | [0003](./0003-openid-federation.md) | OpenID Federation for Cross-Network Trust | Accepted |
 | [0004](./0004-healthstart-controls.md) | HealthStart NIST/HIPAA Control Mapping | Accepted |
 | [0005](./0005-audit-ledger-taxonomy.md) | Audit Ledger Event Taxonomy | Accepted |
+| [0006](./0006-graph-backlinks-authz-consent.md) | Public Bidirectional-Relationships Endpoint — Authz & Consent | Proposed |
 
 ## Contributing
 
