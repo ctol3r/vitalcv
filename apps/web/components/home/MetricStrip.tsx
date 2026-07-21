@@ -1,6 +1,7 @@
 import * as React from 'react';
 
 import { AnimatedMetricValue, MetricSourceTag } from '@/components/motion/EvidenceMetric';
+import { getLiveSourceLanes, getReadinessDimensionLanes } from '@/lib/trust/sourceLanes';
 
 /**
  * MetricStrip — the Anyscale "large quantitative proof" row, restricted to real,
@@ -16,10 +17,26 @@ import { AnimatedMetricValue, MetricSourceTag } from '@/components/motion/Eviden
  *  - 00 accounts    → the public readiness lookup needs no auth.
  * The caption names what is a live read vs a dated snapshot vs source-access-
  * gated so the numbers can't be read as more than they are.
+ *
+ * NUM-1.5: the two system counts come from lib/trust/sourceLanes.ts — the same
+ * registry that feeds /status and /api/status — so this strip changes when a
+ * lane's lifecycle changes instead of staying confidently wrong. The wallet and
+ * accounts figures stay literal because they are product facts, not lane state.
  */
+/** Two-digit grammar (`00 → 03`) is load-bearing — see the NUM-1.3 note below. */
+const pad = (n: number) => String(n).padStart(2, '0');
+
 const STATS = [
-  { n: '03', label: 'federal source lanes', sub: 'NPPES live · OIG/LEIE + PECOS snapshot' },
-  { n: '04', label: 'readiness dimensions', sub: 'identity · exclusion · licensure · enrollment' },
+  {
+    n: pad(getLiveSourceLanes().length),
+    label: 'federal source lanes',
+    sub: 'NPPES live · OIG/LEIE + PECOS snapshot',
+  },
+  {
+    n: pad(getReadinessDimensionLanes().length),
+    label: 'readiness dimensions',
+    sub: 'identity · exclusion · licensure · enrollment',
+  },
   { n: '01', label: 'wallet you own', sub: 'reused for every move' },
   { n: '00', label: 'accounts required to look', sub: 'no card, no upload' },
 ] as const;
