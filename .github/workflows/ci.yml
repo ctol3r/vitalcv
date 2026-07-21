@@ -11,16 +11,28 @@ on:
       - 'pnpm-workspace.yaml'
       - 'turbo.json'
       - '.github/workflows/ci.yml'
+  # Deliberately NOT path-filtered.
+  #
+  # "Web E2E (Playwright)" (the `web-e2e` job below) is a REQUIRED status check on
+  # main. A path-filtered workflow is skipped *entirely* on a PR that touches none
+  # of those paths, so the required check run is never created — and a required
+  # check that never reports leaves the PR permanently blocked: `mergeable` stays
+  # MERGEABLE while `mergeStateStatus` is BLOCKED and `gh pr merge` refuses with
+  # "the base branch policy prohibits the merge". Every backend-only PR hit this
+  # (first observed on #806).
+  #
+  # The usual remedy — a companion workflow on `paths-ignore` reporting the same
+  # job name — is NOT safe here: `paths` and `paths-ignore` are not exact
+  # complements, so a PR touching both web and non-web files satisfies BOTH
+  # triggers and produces two check runs with the same name, which can mask a real
+  # E2E failure behind the always-green stub.
+  #
+  # Running the suite on every PR to main costs CI minutes but keeps the required
+  # gate honest and always-reporting. If the cost bites, the follow-up is to keep
+  # this trigger unfiltered and short-circuit the expensive steps inside the job
+  # after a change-detection step — never to re-add a trigger-level filter.
   pull_request:
     branches: [main]
-    paths:
-      - 'apps/web/**'
-      - 'packages/**'
-      - 'package.json'
-      - 'pnpm-lock.yaml'
-      - 'pnpm-workspace.yaml'
-      - 'turbo.json'
-      - '.github/workflows/ci.yml'
 
 env:
   NODE_VERSION: '22'
