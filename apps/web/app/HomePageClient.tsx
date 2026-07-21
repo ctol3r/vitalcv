@@ -23,6 +23,7 @@ import { ProductCarousel } from '@/components/home/ProductCarousel';
 import { ResumeToProof } from '@/components/home/ResumeToProof';
 import { SourceCoverageRibbon } from '@/components/home/SourceCoverageRibbon';
 import { RailJourney } from '@/components/home/rail/RailJourney';
+import { HomeProofMoment } from '@/components/home/HomeProofMoment';
 import { TimeToStartComparison } from '@/components/home/TimeToStartComparison';
 import { Reveal } from '@/components/motion/Reveal';
 import { AmbientField } from '@/components/home/scene/AmbientField';
@@ -308,6 +309,12 @@ export default function HomePageClient() {
             runway, the loop-pill strip, the scroll-focus manifesto, and the
             word cycler (composition manifest dispositions, W2.1–W2.3). */}
         <RailJourney />
+
+        {/* W4.2: the one tangible proof moment — the interactive proof-packet
+            inspector (claim → source → retrieval/receipt → state → limitation),
+            explicitly illustrative, linking the real clinician flow. Placed as
+            the "why this is credible" beat right after the journey. */}
+        <Reveal><HomeProofMoment /></Reveal>
 
         {/* fade (not rise): this section carries a scrub-coupled heading, and
             mz-rise's scale(0.985) changes the heading's measured box while the

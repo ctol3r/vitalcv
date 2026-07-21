@@ -8,7 +8,10 @@
  *
  * Auth: all routes require `x-clerk-user-id` header.
  *
- * TODO (production): add per-user rate limiting via rateLimitFactory middleware.
+ * Rate limiting (G3): parse + verify run OCR and primary-source calls, making them
+ * the most expensive lanes in the API — both sit behind the 10/min
+ * `documentIntelligence` tier. The stored-result read is a cheap lookup. Buckets key
+ * by verified user id once CLERK_JWT_VERIFICATION=enforce, by IP before that.
  */
 
 import type { Express, NextFunction, Request, Response } from 'express';
@@ -18,6 +21,10 @@ import { sourceVerifier } from '../services/ai/sourceVerifier';
 import { log } from '../obs/logger';
 import { storeExtraction, getExtraction, isAllowedMimeType } from '../services/documents/documentStore';
 import { auditParse, auditVerify } from '../services/documents/documentAudit';
+import {
+  credentialStatusRateLimit,
+  documentIntelligenceRateLimit,
+} from '../middleware/rateLimitFactory';
 
 // ── Allowed file types ─────────────────────────────────────────────
 const ALLOWED_MIME_TYPES = ['application/pdf', 'image/png', 'image/jpeg', 'image/tiff'];
@@ -65,6 +72,7 @@ export function registerDocumentRoutes(app: Express): void {
    */
   app.post(
     '/api/documents/parse',
+    documentIntelligenceRateLimit,
     requireClerkUser,
     upload.single('file'),
     async (req: Request, res: Response): Promise<void> => {
@@ -138,6 +146,7 @@ export function registerDocumentRoutes(app: Express): void {
    */
   app.post(
     '/api/documents/verify',
+    documentIntelligenceRateLimit,
     requireClerkUser,
     async (req: Request, res: Response): Promise<void> => {
       try {
@@ -207,6 +216,7 @@ export function registerDocumentRoutes(app: Express): void {
    */
   app.get(
     '/api/documents/:id',
+    credentialStatusRateLimit,
     requireClerkUser,
     async (req: Request, res: Response): Promise<void> => {
       try {

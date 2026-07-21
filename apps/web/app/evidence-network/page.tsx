@@ -45,7 +45,7 @@ const CONCEPTS: ReadonlyArray<Concept> = [
   {
     eyebrow: 'Inputs',
     title: 'Primary sources, named honestly',
-    body: 'NPPES, OIG / LEIE exclusions, and CMS PECOS enrollment are read live. State license boards are access-gated — VitalCV does not read them without agreements, and says so rather than implying coverage.',
+    body: 'NPPES is read live per request. OIG / LEIE exclusions refresh on a monthly snapshot and CMS PECOS enrollment on a quarterly one — real sources, but not realtime, and labelled that way. State license boards are access-gated — VitalCV does not read them without agreements, and says so rather than implying coverage.',
     boundary: 'A source that was not read is shown as not read — never inferred.',
   },
   {

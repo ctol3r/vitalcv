@@ -1,63 +1,85 @@
 # VitalCV Deploy Canonicality
 
-Last updated: Wave LIVE-100 audit.
+**Last verified:** 2026-07-21 against live production and the GitHub deployments API.
 
-## Canonical repo root
-`/Users/christoler/vitalcv` (Git repo `vitalcv`). Monorepo via pnpm workspaces: `apps/*`, `packages/*`, `services/*`.
+> **This file was rewritten on 2026-07-21.** Every prior version described a
+> Vercel project (`vcv-web`) as canonical. That has not been true since Vercel was
+> deprecated, and the stale version was still being read as current — the
+> 2026-07-21 deep audit's Wave 0 opens by warning "do not assume repository
+> documentation is current," and this file was the documentation it meant.
+> Verified facts only below; each carries how it was checked.
 
-## Canonical app path
-`apps/web` (`@vitalcv/web`). This is the **canonical public shell** for vitalcv.com:
+## Where vitalcv.com is served from
 
-* Homepage (`apps/web/app/page.tsx` → `HomePageClient` → `HeroWithAuthPrompt` → `LiveTrustConsole`) — NPI-first entry. User enters a 10-digit NPI and sees a source-backed readiness preview.
-* Pilot CTA (`apps/web/app/pilot/page.tsx` + client `PilotRequestForm`) — posts to `apps/web/app/api/pilot-request/route.ts` and renders a structured confirmation inline.
-* Clinician passport (`apps/web/app/passport/[id]/page.tsx`, 11.1 kB) — clinician profile/passport entry.
-* Employer review (`apps/web/app/review/[entityId]/`) — reviewer surface; wires the TrustContainerPanel and proof panel.
-* Evidence-bearing pilot page (`apps/web/app/p/[slug]/page.tsx`) — `/p/norcal-pa-pilot-1` is the only live proof-slug, carries explicit limitations.
-* Apply flow (`apps/web/app/apply/[bundleId]/page.tsx`) — candidate apply entry.
+**Railway**, not Vercel.
 
-## Vercel project / domain mapping
-Two `.vercel` links exist in the tree; canonical mapping is resolved at root:
+| Fact | Value | How verified |
+| :--- | :--- | :--- |
+| Host | Railway | `server: railway-hikari`, `x-railway-edge: sjc1` response headers |
+| Project / environment | `inspiring-reflection / production` | GitHub deployments API `environment` field |
+| Web service | `vitalcv-web` → `vitalcv.com` | commit-status context `inspiring-reflection - vitalcv-web`, description `Success - vitalcv.com` |
+| API service | `delightful-essence` → `api.vitalcv.com` | commit-status context `inspiring-reflection - delightful-essence`, description `Success - api.vitalcv.com` |
+| Trigger | push to `main` → automatic Railway deploy | deployments recorded within ~60s of each squash-merge to `main` |
 
-| Link location | projectId | projectName | buildCommand | Role |
-| :--- | :--- | :--- | :--- | :--- |
-| `./.vercel/project.json` | `prj_TFcurSwwzG2TCvR9INCVcZlGPiDZ` | **`vcv-web`** | `pnpm turbo run build --filter=@vitalcv/web` | **Canonical.** The root-linked Vercel project that serves the canonical app; monorepo-aware build command filters to `@vitalcv/web`. |
-| `apps/web/.vercel/project.json` | `prj_ycAjB1G2LNw4lE2JZ6p6l7b9mi1o` | `web` | (nested) | Secondary / legacy link. Present but not used by the root `vercel deploy`. Carry-over from an earlier deploy path. |
-| `apps/marketing/.vercel/project.json` | `prj_Rsi0LSCEbf9QUzVnxEz1uCqmvgXo` | `vitalcv-marketing` | (nested) | **Legacy / non-canonical.** `apps/marketing` has its own Next.js app and its own Vercel project. Recent commits (`fix(seam): close marketing→web gap`, `fix(web,marketing): complete-state canon launch blockers + P0 seams`) explicitly route wedge traffic back to `apps/web`. This project is kept link-present but not the source of truth for vitalcv.com. |
+There is no manual deploy step. A merge to `main` **is** the release. The Vercel
+project links still present in the tree are dead weight and serve nothing;
+`docs/deployment/railway-migration.md` covers the migration itself.
 
-Domain mapping itself (`vitalcv.com → vcv-web`) lives in Vercel's DNS/domain settings and is **not** checked into the repo. Verification must come from the Vercel CLI / Vercel dashboard (`vercel domains ls`, `vercel inspect vitalcv.com`) or the Claude Browser agent hitting the domain.
+## Reading the release state
 
-## Deploy command (canonical)
-```sh
-# From repo root, with root .vercel/project.json in place:
-pnpm install --frozen-lockfile
-pnpm turbo run build --filter=@vitalcv/web
-# OR, trigger via Vercel:
-vercel deploy --prod            # uses root project.json → vcv-web
+```bash
+# What Railway most recently deployed, newest first
+gh api repos/ctol3r/vitalcv/deployments \
+  --jq '.[0:5][] | "\(.created_at)  \(.sha[0:9])  \(.environment)"'
+
+# Whether a given commit deployed green to both services
+gh api repos/ctol3r/vitalcv/commits/<sha>/status \
+  --jq '.state, (.statuses[] | "\(.context): \(.description)")'
 ```
 
-## Legacy status of apps/marketing
-* Has its own Next.js app, Prisma client build, and Vercel project (`vitalcv-marketing`).
-* Recent git log shows marketing → web seam closure (commits 1a5bb290, f1604599) — canonical wedge routing now lives in `apps/web`.
-* **Not proven live on vitalcv.com from inside the repo.** This file assumes `apps/web` is the production mapping for vitalcv.com per the root Vercel link. Claude Browser must confirm.
+`/api/status` returns live continuity state (issuer, replay, runtime, source
+lanes) but **does not publish a build SHA**, so it cannot answer "which commit is
+live." Use the deployments API above for that.
 
-## Build health (Wave LIVE-100)
-* `pnpm exec tsc --noEmit` (apps/web) → exit 0.
-* `pnpm exec next build` (apps/web) → succeeds.
-  * Homepage `/` → dynamic (`ƒ`) with NPI search-param support.
-  * `/pilot` → 2.48 kB.
-  * `/p/norcal-pa-pilot-1` → prerendered (`●`).
-  * `/passport/[id]` → 11.1 kB.
-  * `/review/[entityId]` → 21.9 kB.
-  * `/apply/[bundleId]` → 4.16 kB.
-* `pnpm exec vitest run` → 85 suites / 408 tests pass.
+## Verifying the deployed homepage is current
 
-## What this repo cannot self-verify
-The following gates can only be confirmed by Claude Browser (or the Vercel CLI with credentials), not from inside this terminal session:
+The homepage is ISR with `revalidate = 300` (`apps/web/app/page.tsx`). The
+deployed cache header is the cheapest proof that a given build is live:
 
-1. `https://vitalcv.com/` returns HTTP 200.
-2. The response is served by the `vcv-web` Vercel project (not `vitalcv-marketing`).
-3. The hero visible at vitalcv.com matches the current `apps/web/app/HomePageClient.tsx` output.
-4. The NPI entry box on the homepage accepts input and routes to the readiness view.
-5. `/pilot` CTA submit hits `/api/pilot-request` and renders the structured confirmation.
-6. Mobile viewport (390×844, 414×896) lays out without horizontal overflow.
-7. No stale `apps/marketing` content is shadowing the canonical hero.
+```bash
+curl -sI https://vitalcv.com/ | grep -i cache-control
+# expect: cache-control: s-maxage=300, stale-while-revalidate=31535700
+```
+
+`s-maxage=300` is the signal. A fully-static Next page ships `s-maxage=31536000`
+instead, so seeing `300` proves the ISR bound is deployed.
+
+### The stale-cache trap (root cause of a false audit finding)
+
+Before `revalidate = 300` landed, the homepage shipped `s-maxage=31536000`.
+Railway's edge busts on deploy, but **external** caches do not — so a reader
+behind one could be served a pre-deploy homepage for up to a year.
+
+This is not hypothetical. The 2026-07-21 deep audit's headline P0 was "the
+deployed homepage is materially behind `main`," listing the old hero, the old
+five-step story, and duplicate navigation as live. Re-checked against production
+the same day, none of it was: the homepage served `Get hired faster.`, the
+NPI-first subhead, and the four-chapter rail (`data-rail-pinned`,
+`data-rail-chapter`, `data-rail-skip`), byte-identical across cache-busted
+requests. The audit was written against a stale cached copy.
+
+**When a report says production is behind, verify before acting on it:**
+
+```bash
+curl -s "https://vitalcv.com/?bust=$(date +%s%N)" | grep -o "Get hired faster"
+```
+
+Compare a cache-busted body against a plain one. If they match, production is
+canonical and the report is stale — do not redeploy or rebuild to "fix" it.
+
+## What this file cannot verify from the repo
+
+Domain→service mapping and environment variables live in Railway's dashboard, not
+in the tree. In particular several features are code-complete but inert until
+their Railway variables are set (`CLERK_JWT_VERIFICATION` enforce, Sentry DSNs,
+`CLAIM_DIGEST_HMAC_SECRET`). Code presence is not proof those are on.
