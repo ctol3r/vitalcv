@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { scrubEvent } from '../lib/observability/sentryScrub';
+import { scrubEvent, resolveSentryRelease } from '../lib/observability/sentryScrub';
 
 describe('scrubEvent — M5-1 PII scrubbing', () => {
   it('redacts email / NPI / SSN / bearer token in message + exception', () => {
@@ -46,5 +46,40 @@ describe('scrubEvent — M5-1 PII scrubbing', () => {
     expect(JSON.stringify(ev.extra)).not.toMatch(/bob@hospital\.org/);
     expect(JSON.stringify(ev.request.data)).not.toMatch(/1457128589/);
     expect(ev.request.data.ok).toBe('value');
+  });
+
+  // MS-1: the backend routes NPIs in the path, so URL and the Express
+  // transaction name are PII carriers before any body is considered.
+  it('scrubs the NPI out of request.url and the transaction name', () => {
+    const ev = scrubEvent({
+      transaction: 'GET /api/passport/1457128589',
+      request: {
+        url: 'https://api.vitalcv.com/api/passport/1457128589?email=jane@example.com',
+        query_string: 'email=jane@example.com',
+      },
+    });
+    expect(ev.request.url).not.toMatch(/1457128589/);
+    expect(ev.request.url).not.toMatch(/jane@example\.com/);
+    expect(ev.transaction).not.toMatch(/1457128589/);
+    expect(ev.transaction).toMatch(/redacted/);
+    expect(ev.request.query_string).not.toMatch(/jane@example\.com/);
+  });
+
+  it('scrubs tags and breadcrumbs', () => {
+    const ev = scrubEvent({
+      tags: { npi: '1457128589', route: 'passport' },
+      breadcrumbs: [{ message: 'looked up jane@example.com', data: { authorization: 'Bearer x' } }],
+    });
+    expect(JSON.stringify(ev.tags)).not.toMatch(/1457128589/);
+    expect(ev.tags.route).toBe('passport');
+    expect(JSON.stringify(ev.breadcrumbs)).not.toMatch(/jane@example\.com/);
+    expect(ev.breadcrumbs[0].data.authorization).toBe('[redacted]');
+  });
+
+  it('resolves an honest release tag — undefined rather than a placeholder', () => {
+    expect(resolveSentryRelease({ RAILWAY_GIT_COMMIT_SHA: 'abc123' })).toBe('abc123');
+    expect(resolveSentryRelease({ GIT_SHA: 'def456' })).toBe('def456');
+    expect(resolveSentryRelease({ RAILWAY_GIT_COMMIT_SHA: '  ' })).toBeUndefined();
+    expect(resolveSentryRelease({})).toBeUndefined();
   });
 });

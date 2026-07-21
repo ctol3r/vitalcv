@@ -26,6 +26,7 @@ import prisma from '../graphql/prisma_client';
 import { getCachedTrustState } from '../services/trust/trustStateEngine';
 import { agentSwarm } from '../services/agents/AgentSwarm';
 import { log } from '../obs/logger';
+import { proofRateLimit } from '../middleware/rateLimitFactory';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -338,7 +339,7 @@ export function registerVerifyProfessionalRoutes(app: Express): void {
    * live=true: triggers the agent swarm for fresh data before returning verdict
    *            (adds ~2–8s latency; do not use in real-time UX hot paths)
    */
-  app.post('/api/verify-professional', async (req: Request, res: Response) => {
+  app.post('/api/verify-professional', proofRateLimit, async (req: Request, res: Response) => {
     const { npi, credentialType, jurisdiction, live } = req.body as {
       npi?: string;
       credentialType?: string;
@@ -387,7 +388,7 @@ export function registerVerifyProfessionalRoutes(app: Express): void {
    * Idempotent — safe to call on every AI decision.
    * Cached path returns in < 200ms.
    */
-  app.get('/api/verify-professional/:npi([0-9]{10})', async (req: Request, res: Response) => {
+  app.get('/api/verify-professional/:npi([0-9]{10})', proofRateLimit, async (req: Request, res: Response) => {
     const { npi }  = req.params;
     const ctype    = parseCredentialType(req.query.credentialType);
     const jur      = typeof req.query.jurisdiction === 'string'
