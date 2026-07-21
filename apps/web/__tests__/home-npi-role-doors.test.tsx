@@ -166,6 +166,7 @@ describe('HomePageClient — consolidated story and truth boundary', () => {
     const html = renderHomepage();
     expect(html).toContain('data-home-hero');
     expect(html).toContain('data-home-journey');
+    expect(html).toContain('data-home-proof-moment');
     expect(html).toContain('data-home-evidence-truth');
     expect(html).toContain('data-home-product-carousel');
     expect(html).toContain('data-home-experience="metrics-and-cta"');
@@ -181,6 +182,26 @@ describe('HomePageClient — consolidated story and truth boundary', () => {
     ]) {
       expect(html).not.toContain(removed);
     }
+  });
+
+  it('mounts the interactive proof moment: illustrative, employer boundary, real-flow CTA (W4.2)', () => {
+    const html = renderHomepage();
+    expect(html).toContain('data-home-proof-moment');
+    // The real, tested inspector — not a fresh mock dashboard.
+    expect(html).toContain('data-proof-packet-inspector');
+    // Explicitly illustrative, never a live result.
+    expect(html).toContain('Illustrative — not a live result');
+    // The employer-final boundary is stated in the proof moment.
+    expect(html).toContain('remain with the institution');
+    // Links the REAL clinician flow, not a dead-end demo.
+    const ctaAt = html.indexOf('data-home-proof-cta');
+    expect(ctaAt, 'proof CTA renders').toBeGreaterThan(-1);
+    expect(html.slice(0, ctaAt).lastIndexOf('href="/onboarding"')).toBeGreaterThan(-1);
+    // The proof moment sits after the journey, before the metrics/CTA close.
+    expect(html.indexOf('data-home-proof-moment')).toBeGreaterThan(html.indexOf('data-home-journey'));
+    expect(html.indexOf('data-home-proof-moment')).toBeLessThan(
+      html.indexOf('data-home-experience="metrics-and-cta"'),
+    );
   });
 
   it('retains the single technical evidence panel and explicit limits', () => {
