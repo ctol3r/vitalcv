@@ -206,7 +206,12 @@ describe('HomePageClient — consolidated story and truth boundary', () => {
   it('keeps only real metrics and the dual-audience close', () => {
     const html = renderHomepage();
     expect(html).toContain('data-home-metric-strip');
-    expect(html).toContain('NPPES · OIG/LEIE · PECOS');
+    // The three federal lanes are named WITH their real freshness: only NPPES
+    // is a live read, OIG/LEIE and PECOS are dated snapshots. The previous
+    // pin ('NPPES · OIG/LEIE · PECOS') sat under a "lanes, live" label that
+    // overclaimed all three as live.
+    expect(html).toContain('NPPES live · OIG/LEIE + PECOS snapshot');
+    expect(html).not.toContain('federal source lanes, live');
     expect(html).toContain('No pilot outcomes are claimed');
     expect(html).toContain('data-home-dual-cta');
     expect(html).toContain('final credentialing authority');
