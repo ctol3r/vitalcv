@@ -97,15 +97,20 @@ test.describe('horizontal story rail (SHD-3.1)', () => {
 
   test('narrow viewport falls back to a vertical stack (no pin, no transform)', async ({ page }) => {
     // The invariant that matters is not a magic number — it is that the
-    // fallback carries the SAME chapters as the pinned rail, in DOM order.
+    // fallback carries the SAME chapters as the pinned rail.
+    //
+    // Resize rather than navigate twice: the rail listens to its own
+    // `(min-width)` mediaquery, so this exercises the live unpin a user gets by
+    // dragging a window edge, and keeps the test to ONE navigation. Two
+    // `networkidle` gotos in one test exceeded the 30s CI timeout.
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto(URL, { waitUntil: 'networkidle' });
+    const rail = page.locator('[data-story-rail]');
+    await expect(rail).toHaveAttribute('data-rail-pinned', 'true');
     const pinnedCount = await chapterCount(page);
     expect(pinnedCount).toBeGreaterThan(0);
 
     await page.setViewportSize({ width: 390, height: 800 });
-    await page.goto(URL, { waitUntil: 'networkidle' });
-    const rail = page.locator('[data-story-rail]');
     await expect(rail).toHaveAttribute('data-rail-pinned', 'false');
     await expect(page.locator('[data-rail-chapter]')).toHaveCount(pinnedCount);
     await expect(page.locator('.story-rail-track')).toHaveCount(0);
