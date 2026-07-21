@@ -16,7 +16,12 @@
 
 import type { Express, Request, Response } from 'express';
 import prisma from '../graphql/prisma_client';
-import { proofRateLimit } from '../middleware/rateLimitFactory';
+import {
+  credentialStatusRateLimit,
+  passportExportRateLimit,
+  proofRateLimit,
+  trustStateRateLimit,
+} from '../middleware/rateLimitFactory';
 import { log } from '../obs/logger';
 import { emitLearningEvent } from '../services/feedback/prismaEventStore';
 import { generateShareLink } from '../services/passport/shareLink';
@@ -1019,7 +1024,7 @@ export function registerPassportRoutes(app: Express): void {
    * public  → credentials filtered to isPublic, org names redacted from decisions
    * wallet  → all credentials + full sanctions detail + unredacted decisions
    */
-  app.get('/api/passport/:npi', async (req: Request, res: Response) => {
+  app.get('/api/passport/:npi', trustStateRateLimit, async (req: Request, res: Response) => {
     const { npi } = req.params;
     if (!validateNpi(res, npi)) return;
 
@@ -1056,7 +1061,7 @@ export function registerPassportRoutes(app: Express): void {
    * Suitable for verifier-requested presentations — clinician controls which
    * sections are revealed without exposing the full passport.
    */
-  app.get('/api/passport/:npi([0-9]{10})/disclose', async (req: Request, res: Response) => {
+  app.get('/api/passport/:npi([0-9]{10})/disclose', proofRateLimit, async (req: Request, res: Response) => {
     const { npi } = req.params;
     if (!validateNpi(res, npi)) return;
 
@@ -1120,7 +1125,7 @@ export function registerPassportRoutes(app: Express): void {
     }
   });
 
-  app.get('/api/passport/:npi/embed.svg', async (req: Request, res: Response) => {
+  app.get('/api/passport/:npi/embed.svg', credentialStatusRateLimit, async (req: Request, res: Response) => {
     const { npi } = req.params;
     if (!validateNpi(res, npi)) {
       return;
@@ -1142,7 +1147,7 @@ export function registerPassportRoutes(app: Express): void {
     }
   });
 
-  app.get('/api/passport/:npi/card.json', async (req: Request, res: Response) => {
+  app.get('/api/passport/:npi/card.json', credentialStatusRateLimit, async (req: Request, res: Response) => {
     const { npi } = req.params;
     if (!validateNpi(res, npi)) {
       return;
@@ -1184,7 +1189,7 @@ export function registerPassportRoutes(app: Express): void {
   //
   // Writes an ARTIFACT_EXPORTED audit event before returning the payload.
   // ─────────────────────────────────────────────────────────────────────────
-  app.get('/api/passport/:npi/export', async (req: Request, res: Response) => {
+  app.get('/api/passport/:npi/export', passportExportRateLimit, async (req: Request, res: Response) => {
     const { npi } = req.params;
     if (!validateNpi(res, npi)) {
       return;
