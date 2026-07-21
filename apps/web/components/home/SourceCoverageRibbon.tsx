@@ -14,10 +14,11 @@
  * live" on it is exactly the kind of claim this product exists to refuse.
  *
  * So the ribbon carries three honest states — live · snapshot · access-gated —
- * each named by a WORD, not colour alone (WCAG). It mirrors the authoritative
- * `app/api/status/route.ts` lane details; if those change, change these to
- * match. It never implies a per-clinician result — it names the sources
- * VitalCV reads and how fresh each one is, nothing more.
+ * each named by a WORD, not colour alone (WCAG). Cadence badges derive from
+ * `lib/trust/sourceLanes.ts` (NUM-1.5), the registry that also feeds /status
+ * and /api/status; the accessible descriptions mirror the registry's details.
+ * It never implies a per-clinician result — it names the sources VitalCV reads
+ * and how fresh each one is, nothing more.
  *
  * Marquee is progressive enhancement: it pauses on hover/focus and via an
  * explicit control, and collapses to a static wrapped list under
@@ -29,6 +30,7 @@ import * as React from 'react';
 import { Pause, Play } from 'lucide-react';
 import styles from './SourceCoverageRibbon.module.css';
 import { cn } from '@/lib/utils';
+import { SOURCE_LANE_OPS, type SourceLaneOps } from '@/lib/trust/sourceLanes';
 
 type LaneAvailability = 'live' | 'snapshot' | 'gated';
 
@@ -43,36 +45,45 @@ interface SourceLane {
 }
 
 /**
- * Real lane names + their REAL freshness, mirroring app/api/status/route.ts.
- * Only NPPES is a live read; the two federal snapshot lanes are dated, and
- * saying so is the whole point of the ribbon.
+ * Ribbon copy per lane: the full product name and the accessible description
+ * stay ribbon-local wording. Lane STATE — cadence badge and availability — is
+ * derived from lib/trust/sourceLanes.ts (NUM-1.5), the same registry that
+ * feeds /status and /api/status, so a lane's badge cannot drift from its truth.
  */
-const LANES: ReadonlyArray<SourceLane> = [
+const RIBBON_COPY: ReadonlyArray<{ laneId: string; name: string; sr: string }> = [
   {
+    laneId: 'nppes_identity',
     name: 'NPPES NPI Registry',
-    availability: 'live',
-    label: 'read live',
     sr: 'public source, read live per request',
   },
   {
+    laneId: 'oig_exclusions',
     name: 'OIG LEIE Exclusions',
-    availability: 'snapshot',
-    label: 'monthly snapshot',
     sr: 'monthly LEIE snapshot, swept nightly; fails closed when the cache is stale',
   },
   {
+    laneId: 'pecos_enrollment',
     name: 'CMS PECOS Enrollment',
-    availability: 'snapshot',
-    label: 'quarterly snapshot',
     sr: 'quarterly PECOS snapshot; snapshot age is shown as staleness',
   },
   {
+    laneId: 'state_license',
     name: 'State license boards',
-    availability: 'gated',
-    label: 'access-gated',
     sr: 'access-gated source, not read without an agreement',
   },
 ];
+
+function availabilityOf(cadence: SourceLaneOps['readCadence']): LaneAvailability {
+  if (cadence === 'per_request') return 'live';
+  if (cadence === 'not_read') return 'gated';
+  return 'snapshot';
+}
+
+const LANES: ReadonlyArray<SourceLane> = RIBBON_COPY.map(({ laneId, name, sr }) => {
+  const lane = SOURCE_LANE_OPS.find((l) => l.laneId === laneId);
+  if (!lane) throw new Error(`SourceCoverageRibbon: unknown lane ${laneId}`);
+  return { name, availability: availabilityOf(lane.readCadence), label: lane.cadenceLabel, sr };
+});
 
 /** Colour reinforces the word; it never carries the state alone (WCAG). */
 const AVAILABILITY_COLOR: Record<LaneAvailability, string> = {
