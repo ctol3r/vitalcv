@@ -8,6 +8,11 @@
  */
 
 import { getPublicKeyJwk } from '@/lib/crypto/receiptIssuer';
+import {
+  SOURCE_LANE_OPS,
+  getLaneDisplayName,
+  toRegisterLifecycle,
+} from '@/lib/trust/sourceLanes';
 
 export interface TrustRegisterSnapshot {
   // Issuer continuity
@@ -67,38 +72,16 @@ export async function getTrustRegisterSnapshot(): Promise<TrustRegisterSnapshot>
     replaySurvivable: true,
     lastVerifiedAt: Date.now(),
 
-    sources: [
-      {
-        sourceId: 'nppes_identity',
-        displayName: 'NPPES Identity',
-        lifecycle: 'active',
-        lastCheckedAt: null,
-      },
-      {
-        sourceId: 'oig_exclusions',
-        displayName: 'OIG Exclusions',
-        lifecycle: 'partial',
-        lastCheckedAt: null,
-      },
-      {
-        sourceId: 'state_license',
-        displayName: 'State License',
-        lifecycle: 'planned',
-        lastCheckedAt: null,
-      },
-      {
-        sourceId: 'employment_history',
-        displayName: 'Employment History',
-        lifecycle: 'unintegrated',
-        lastCheckedAt: null,
-      },
-      {
-        sourceId: 'board_cert',
-        displayName: 'Board Certification',
-        lifecycle: 'unintegrated',
-        lastCheckedAt: null,
-      },
-    ],
+    // Derived from the canonical registry (NUM-1.5). This list used to be
+    // written out by hand and had gone stale against the platform: it marked
+    // OIG `partial` and omitted PECOS, so the public /status page under-reported
+    // two lanes that /api/status already published as live.
+    sources: SOURCE_LANE_OPS.map((lane) => ({
+      sourceId: lane.laneId,
+      displayName: getLaneDisplayName(lane.laneId),
+      lifecycle: toRegisterLifecycle(lane.lifecycle),
+      lastCheckedAt: null,
+    })),
 
     verifierEndpoints: [
       {

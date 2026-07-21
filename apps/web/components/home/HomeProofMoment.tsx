@@ -26,7 +26,7 @@ export function HomeProofMoment() {
       className="mz pt-14"
     >
       <div className="mx-auto w-full max-w-[1320px]">
-        <p className="mz-eyebrow">Why this is credible</p>
+        <p className="mz-eyebrow"><span className="mz-eyebrow-index" aria-hidden="true">04</span>Why this is credible</p>
         <h2 id="home-proof-moment-title" className="mz-h1 mt-3 max-w-[20ch]">
           Inspect the proof, claim by claim.
         </h2>
