@@ -115,7 +115,7 @@ export function EvidenceModelMap() {
             color: 'var(--vt-text-secondary)',
           }}
         >
-          <LegendItem color={C.source} label="Sources read live → record" />
+          <LegendItem color={C.source} label="Sources read → record" />
           <LegendItem color={C.gated} label="Access-gated lane" />
           <LegendItem color={C.proof} label="Consented proof packet" />
           <LegendItem color={C.opportunity} label="Opportunity" />

@@ -228,7 +228,7 @@ test.describe('hero reset — clinician sell and field visibility (HERO-RESET-1)
     expect(darkPaper).toBe('#15140f'); // .dark .mz paper wins, not Cloud Dancer
   });
 
-  test('static tier: the designed composition is inside the panel and materially distinct from it', async ({ page }) => {
+  test('static tier: the designed composition is inside the field and materially distinct from the paper it bleeds into', async ({ page }) => {
     await page.setViewportSize(DESKTOP);
     await page.goto('/?sceneTier=static', { waitUntil: 'networkidle' });
 
@@ -283,7 +283,18 @@ test.describe('hero reset — clinician sell and field visibility (HERO-RESET-1)
       const panel = document.querySelector('[data-home-evidence-field]') as HTMLElement;
       const station = document.querySelector('[data-field-poster] g circle[opacity="0.9"]') as SVGCircleElement | null;
       if (!panel || !station) return -1;
-      const bg = lum(getComputedStyle(panel).backgroundColor);
+      // The field bleeds into the hero paper, so it has no fill of its own —
+      // measure against what is ACTUALLY behind it. Reading the panel's own
+      // background-color here would score the station against transparent
+      // black and quietly assert nothing.
+      const backdrop = (el: HTMLElement | null): string => {
+        for (let n = el; n; n = n.parentElement) {
+          const bgc = getComputedStyle(n).backgroundColor;
+          if (bgc && !/^rgba\(.*,\s*0\)$/.test(bgc) && bgc !== 'transparent') return bgc;
+        }
+        return '#ffffff';
+      };
+      const bg = lum(backdrop(panel));
       const fg = lum(getComputedStyle(station).fill);
       return (Math.max(bg, fg) + 0.05) / (Math.min(bg, fg) + 0.05);
     });
@@ -315,6 +326,58 @@ test.describe('hero reset — clinician sell and field visibility (HERO-RESET-1)
     expect(painted, 'the 2D scene must paint real, non-transparent pixels').toBeGreaterThan(50);
 
     // The shared label overlay is identical on the animated tier.
+    await expect(page.locator('[data-field-label="nppes"]')).toBeVisible();
+    await expect(page.locator('[data-field-label="record"]')).toBeVisible();
+  });
+
+  test('webgpu tier: the GPU scene paints real pixels and is not silently swapped out', async ({ page }) => {
+    await page.setViewportSize(DESKTOP);
+    await page.goto('/?sceneTier=webgpu', { waitUntil: 'networkidle' });
+
+    // `'gpu' in navigator` is NOT sufficient: Playwright's bundled Chromium
+    // exposes the API and then hands back a null adapter, in which case the
+    // field is *correct* to fall back to Canvas 2D. Only a runner that can
+    // actually acquire a device can be held to the GPU tier.
+    const hasAdapter = await page.evaluate(async () => {
+      try {
+        return Boolean(await (navigator as Navigator & { gpu?: GPU }).gpu?.requestAdapter());
+      } catch {
+        return false;
+      }
+    });
+    test.skip(!hasAdapter, 'runner cannot acquire a WebGPU adapter');
+
+    // Long enough to clear the renderer's own paint self-check, so a blank GPU
+    // canvas has already been demoted to Canvas 2D by the time we look.
+    await page.waitForTimeout(2000);
+
+    // The regression this pins: `mat4Multiply(view, proj)` instead of
+    // proj × view collapsed every vertex to w = 0. Init still succeeded, no
+    // error was raised, the canvas stayed attached at opacity 1 — and drew
+    // absolutely nothing, leaving the static poster as the whole hero.
+    const gpu = page.locator('[data-home-evidence-field] [data-field-gpu]');
+    await expect(gpu, 'the GPU tier must survive its own paint probe').toHaveCount(1);
+
+    const painted = await page.evaluate(() => {
+      const canvas = document.querySelector('[data-field-gpu]') as HTMLCanvasElement | null;
+      if (!canvas || !canvas.width) return -1;
+      // A WebGPU canvas has no getImageData — copy it through a 2D scratch.
+      const scratch = document.createElement('canvas');
+      scratch.width = canvas.width;
+      scratch.height = canvas.height;
+      const ctx = scratch.getContext('2d', { willReadFrequently: true });
+      if (!ctx) return -2;
+      ctx.drawImage(canvas, 0, 0);
+      const { data } = ctx.getImageData(0, 0, scratch.width, scratch.height);
+      let hits = 0;
+      for (let i = 3; i < data.length; i += 40) if (data[i] > 8) hits += 1;
+      return hits;
+    });
+    // Note: this external readback can legitimately report 0 for a presented
+    // frame — which is exactly why the renderer measures itself. The binding
+    // assertion is the surviving GPU canvas above; this is a bonus signal.
+    expect(painted, 'readback must not error').toBeGreaterThanOrEqual(0);
+
     await expect(page.locator('[data-field-label="nppes"]')).toBeVisible();
     await expect(page.locator('[data-field-label="record"]')).toBeVisible();
   });

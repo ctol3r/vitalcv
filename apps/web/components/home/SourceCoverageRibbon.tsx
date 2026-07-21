@@ -5,12 +5,20 @@
  * pausable provenance ribbon.
  *
  * Truth over polish: the old strip painted every lane with the same emerald
- * dot, which read as a universal "all live" signal. In reality the public
- * lanes (NPPES, OIG/LEIE, PECOS) are read live, but **state licensure is
- * access-gated** — VitalCV cannot read it without agreements. This ribbon
- * shows each lane's real availability, and the state is carried by a WORD, not
- * colour alone (WCAG). It never implies a per-clinician result — it names the
- * sources VitalCV reads, nothing more.
+ * dot, which read as a universal "all live" signal. Then a later cut called
+ * all three public lanes "read live" — but that was ALSO an overclaim, and a
+ * worse one, because it asserted freshness the system does not have. Per
+ * /api/status, only NPPES is a live registry lookup; OIG/LEIE is a **monthly
+ * snapshot** (swept nightly, fails closed when stale) and CMS PECOS is a
+ * **quarterly snapshot**. A quarterly snapshot can be ~90 days old, so "read
+ * live" on it is exactly the kind of claim this product exists to refuse.
+ *
+ * So the ribbon carries three honest states — live · snapshot · access-gated —
+ * each named by a WORD, not colour alone (WCAG). Cadence badges derive from
+ * `lib/trust/sourceLanes.ts` (NUM-1.5), the registry that also feeds /status
+ * and /api/status; the accessible descriptions mirror the registry's details.
+ * It never implies a per-clinician result — it names the sources VitalCV reads
+ * and how fresh each one is, nothing more.
  *
  * Marquee is progressive enhancement: it pauses on hover/focus and via an
  * explicit control, and collapses to a static wrapped list under
@@ -22,40 +30,73 @@ import * as React from 'react';
 import { Pause, Play } from 'lucide-react';
 import styles from './SourceCoverageRibbon.module.css';
 import { cn } from '@/lib/utils';
+import { SOURCE_LANE_OPS, type SourceLaneOps } from '@/lib/trust/sourceLanes';
 
-type LaneAvailability = 'live' | 'gated';
+type LaneAvailability = 'live' | 'snapshot' | 'gated';
 
 interface SourceLane {
   name: string;
   availability: LaneAvailability;
+  /** Short state word shown in the chip. Per-lane, because two snapshot lanes
+      refresh on different cadences and that difference is real. */
+  label: string;
+  /** Full accessible description — mirrors app/api/status/route.ts details. */
+  sr: string;
 }
 
-/** Real lane names only — mirrors the launch source spine. */
-const LANES: ReadonlyArray<SourceLane> = [
-  { name: 'NPPES NPI Registry', availability: 'live' },
-  { name: 'OIG LEIE Exclusions', availability: 'live' },
-  { name: 'CMS PECOS Enrollment', availability: 'live' },
-  { name: 'State license boards', availability: 'gated' },
+/**
+ * Ribbon copy per lane: the full product name and the accessible description
+ * stay ribbon-local wording. Lane STATE — cadence badge and availability — is
+ * derived from lib/trust/sourceLanes.ts (NUM-1.5), the same registry that
+ * feeds /status and /api/status, so a lane's badge cannot drift from its truth.
+ */
+const RIBBON_COPY: ReadonlyArray<{ laneId: string; name: string; sr: string }> = [
+  {
+    laneId: 'nppes_identity',
+    name: 'NPPES NPI Registry',
+    sr: 'public source, read live per request',
+  },
+  {
+    laneId: 'oig_exclusions',
+    name: 'OIG LEIE Exclusions',
+    sr: 'monthly LEIE snapshot, swept nightly; fails closed when the cache is stale',
+  },
+  {
+    laneId: 'pecos_enrollment',
+    name: 'CMS PECOS Enrollment',
+    sr: 'quarterly PECOS snapshot; snapshot age is shown as staleness',
+  },
+  {
+    laneId: 'state_license',
+    name: 'State license boards',
+    sr: 'access-gated source, not read without an agreement',
+  },
 ];
 
-const AVAILABILITY_META: Record<
-  LaneAvailability,
-  { label: string; sr: string; color: string }
-> = {
-  live: {
-    label: 'read live',
-    sr: 'public source, read live',
-    color: 'var(--vt-accent-emerald)',
-  },
-  gated: {
-    label: 'access-gated',
-    sr: 'access-gated source, not read without an agreement',
-    color: 'var(--vt-state-stale, #a2670b)',
-  },
+function availabilityOf(cadence: SourceLaneOps['readCadence']): LaneAvailability {
+  if (cadence === 'per_request') return 'live';
+  if (cadence === 'not_read') return 'gated';
+  return 'snapshot';
+}
+
+const LANES: ReadonlyArray<SourceLane> = RIBBON_COPY.map(({ laneId, name, sr }) => {
+  const lane = SOURCE_LANE_OPS.find((l) => l.laneId === laneId);
+  if (!lane) throw new Error(`SourceCoverageRibbon: unknown lane ${laneId}`);
+  return { name, availability: availabilityOf(lane.readCadence), label: lane.cadenceLabel, sr };
+});
+
+/** Colour reinforces the word; it never carries the state alone (WCAG). */
+const AVAILABILITY_COLOR: Record<LaneAvailability, string> = {
+  live: 'var(--vt-accent-emerald)',
+  // A calm slate — plainly not the live emerald and not the gated amber: real
+  // data, periodically refreshed, not a real-time read.
+  snapshot: 'var(--vt-field-opportunity, #4c6b8a)',
+  gated: 'var(--vt-state-stale, #a2670b)',
 };
 
 function Lane({ lane, dupe }: { lane: SourceLane; dupe?: boolean }) {
-  const meta = AVAILABILITY_META[lane.availability];
+  const color = AVAILABILITY_COLOR[lane.availability];
+  const live = lane.availability === 'live';
   return (
     <li
       data-source-lane={dupe ? undefined : lane.availability}
@@ -65,19 +106,21 @@ function Lane({ lane, dupe }: { lane: SourceLane; dupe?: boolean }) {
         dupe && styles.dupe,
       )}
     >
+      {/* Filled dot = live read; hollow ring = a dated snapshot or a gated
+          lane. A second, non-colour signal for the "not a live read" states. */}
       <span
         aria-hidden="true"
         className="h-1.5 w-1.5 shrink-0 rounded-full"
-        style={{ background: meta.color }}
+        style={live ? { background: color } : { border: `1.5px solid ${color}` }}
       />
       <span>{lane.name}</span>
       <span
         className="font-mono text-[10px] uppercase tracking-[0.1em]"
-        style={{ color: meta.color }}
+        style={{ color }}
       >
-        {meta.label}
+        {lane.label}
       </span>
-      {!dupe && <span className="sr-only">— {meta.sr}</span>}
+      {!dupe && <span className="sr-only">— {lane.sr}</span>}
     </li>
   );
 }
@@ -123,7 +166,7 @@ export function SourceCoverageRibbon() {
         </div>
 
         <p className="shrink-0 text-[11px] text-[var(--vt-text-muted)]">
-          Public lanes read live; licensure is access-gated.
+          NPPES reads live; OIG/LEIE and PECOS are dated snapshots; licensure is access-gated.
         </p>
       </div>
     </section>

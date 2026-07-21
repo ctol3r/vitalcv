@@ -17,6 +17,7 @@ import prisma from '../../graphql/prisma_client';
 import { log } from '../../obs/logger';
 import { sha256ForPayload } from '../../utils/deterministic';
 import { HttpError } from '../../utils/httpError';
+import { PREVIEW_PROFESSION } from '../identity/identityTier';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -380,6 +381,83 @@ export async function bootstrapNpiIntake(
   };
 }
 
+export interface StudentBootstrapResult {
+  profession:   string;
+  /** True when a preview-only (no-NPI) profile was created or already stood. */
+  previewOnly:  boolean;
+  completeness: number;
+}
+
+/**
+ * Student / no-NPI lane. A clinician-in-training with no NPI yet starts a
+ * PREVIEW-ONLY profile (profession = PREVIEW_PROFESSION, no NPI). The derived
+ * identity tier reads this as `preview` — the same trust floor as a bare
+ * account, so it unlocks nothing a bare account cannot do (publish, apply, and
+ * the AI features all stay gated at work_email_confirmed). Nothing here is
+ * source-verified; the student status is self-attested.
+ *
+ * It upgrades to a source-checked record automatically when the person later
+ * binds an NPI via `bootstrapNpiIntake` (the same userId upsert overwrites
+ * profession and adds the NPI, moving them to npi_bound). This never downgrades
+ * an already NPI-backed profile back to a preview.
+ */
+export async function bootstrapStudentIntake(
+  userId: string,
+  attestation?: { attested?: boolean; attestationVersion?: string },
+): Promise<StudentBootstrapResult> {
+  const existing = await prisma.personProfile.findUnique({
+    where: { userId },
+    select: { npi: true, profession: true, completeness: true },
+  });
+
+  // Never downgrade an already NPI-backed profile to a student preview.
+  if (existing?.npi) {
+    return {
+      profession:   existing.profession ?? 'clinician',
+      previewOnly:  false,
+      completeness: existing.completeness ?? 30,
+    };
+  }
+
+  const attested = attestation?.attested === true;
+  const attestedAt = attested ? new Date() : undefined;
+  const attestationVersion = attested
+    ? attestation?.attestationVersion ?? 'v1'
+    : undefined;
+  const completeness = 10;
+
+  await prisma.personProfile.upsert({
+    where: { userId },
+    create: {
+      userId,
+      profession: PREVIEW_PROFESSION,
+      attestedAt,
+      attestationVersion,
+      completeness,
+    },
+    update: {
+      profession:         PREVIEW_PROFESSION,
+      attestedAt:         attestedAt ?? undefined,
+      attestationVersion: attestationVersion ?? undefined,
+      completeness,
+      updatedAt:          new Date(),
+    },
+  });
+
+  // Audit-first: the preview start + its self-attestation are recorded before
+  // success is returned. previewOnly + attested make the honesty explicit and
+  // greppable. Attested ≠ verified.
+  await emitAudit('student_bootstrapped', userId, {
+    previewOnly: true,
+    attested,
+    attestationVersion: attestationVersion ?? null,
+  });
+
+  log('info', 'Student preview profile bootstrapped', { userId, attested });
+
+  return { profession: PREVIEW_PROFESSION, previewOnly: true, completeness };
+}
+
 /**
  * Get current profile completeness dimensions.
  */
@@ -452,6 +530,8 @@ export interface SelfAttestedProfile {
   affiliations?:   SelfAttestedAffiliation[];
   careerGoals?:    string;
   researchSummary?: string;
+  /** Clinician-provided Doximity profile URL. Host-validated (doximity.com, https). */
+  doximityUrl?:    string;
   sharing?:        SelfAttestedSharing;
 }
 
@@ -471,6 +551,25 @@ function cleanYear(value: unknown): number | undefined {
   if (!Number.isFinite(n)) return undefined;
   const year = Math.trunc(n);
   return year >= MIN_YEAR && year <= MAX_YEAR ? year : undefined;
+}
+
+/**
+ * Accept only a well-formed https doximity.com profile URL; drop anything
+ * else so a self-attested external link can never point off-Doximity.
+ */
+function cleanDoximityUrl(value: unknown): string | undefined {
+  const raw = cleanStr(value);
+  if (!raw) return undefined;
+  let url: URL;
+  try {
+    url = new URL(raw);
+  } catch {
+    return undefined;
+  }
+  if (url.protocol !== 'https:') return undefined;
+  const host = url.hostname.toLowerCase();
+  if (host !== 'doximity.com' && host !== 'www.doximity.com') return undefined;
+  return url.toString();
 }
 
 /** Drop keys whose values are all undefined so the JSON stays compact. */
@@ -548,6 +647,9 @@ export function sanitizeSelfAttested(input: unknown): SelfAttestedProfile {
 
   const researchSummary = cleanStr(src.researchSummary);
   if (researchSummary) out.researchSummary = researchSummary;
+
+  const doximityUrl = cleanDoximityUrl(src.doximityUrl);
+  if (doximityUrl) out.doximityUrl = doximityUrl;
 
   const sharingSrc = (src.sharing && typeof src.sharing === 'object' ? src.sharing : {}) as Record<string, unknown>;
   if (sharingSrc.careerProfile === 'public' || sharingSrc.careerProfile === 'private') {

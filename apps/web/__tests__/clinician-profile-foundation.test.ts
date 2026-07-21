@@ -241,6 +241,18 @@ describe('clinician foundation — route copy invariants', () => {
     expect(src).toContain('Government ID, liveness, and license verification are separate');
   });
 
+  it('the no-NPI preview lane is honestly labelled preview / self-attested', () => {
+    const src = readAppRoute('get-ready/GetReadySurface.tsx');
+    // The lane exists and posts to the preview-only bootstrap.
+    expect(src).toContain('/api/profile/student/bootstrap');
+    expect(src).toContain('health-professions student');
+    // Honest labelling: preview, self-attested, not source-verified, not decision-grade.
+    expect(src).toContain('self-attested and not source-verified');
+    expect(src.toLowerCase()).toContain('not decision-grade');
+    // Reuses the attestation-is-not-verification pin.
+    expect(src).toContain('VitalCV records this attestation; it does not verify it here.');
+  });
+
   it('profile page renders provenance vocabulary disclaimer', () => {
     const src = readRoute('profile/page.tsx');
     expect(src).toContain('User-entered information is not verified until source-backed evidence is attached.');

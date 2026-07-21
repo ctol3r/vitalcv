@@ -66,6 +66,8 @@ describe('tenantGuard', () => {
     // Onboarding-time, Clerk-user-scoped routes: a brand-new clinician has no
     // org, so org context here dead-ends the signup golden path (blocker #4).
     expect(shouldSkipTenantContext('/api/profile/npi/bootstrap')).toBe(true);
+    // No-NPI / student preview lane — same onboarding-time, org-less rationale.
+    expect(shouldSkipTenantContext('/api/profile/student/bootstrap')).toBe(true);
     expect(shouldSkipTenantContext('/api/profile/links')).toBe(true);
     expect(shouldSkipTenantContext('/api/profile/work-auth')).toBe(true);
     expect(shouldSkipTenantContext('/api/profile/self-attested')).toBe(true);

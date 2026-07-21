@@ -1,23 +1,42 @@
 import * as React from 'react';
 
 import { AnimatedMetricValue, MetricSourceTag } from '@/components/motion/EvidenceMetric';
+import { getLiveSourceLanes, getReadinessDimensionLanes } from '@/lib/trust/sourceLanes';
 
 /**
  * MetricStrip — the Anyscale "large quantitative proof" row, restricted to real,
  * defensible numbers (Chris's explicit rule: no manufactured precision).
  *
  * Every figure is grounded in the engine / verified on prod:
- *  - 03 live lanes  → NPPES, OIG/LEIE, PECOS all return live results today.
+ *  - 03 federal lanes → NPPES is read live; OIG/LEIE is a monthly snapshot and
+ *                       PECOS a quarterly snapshot (per /api/status). Calling
+ *                       all three "live" was a freshness overclaim — fixed.
  *  - 04 dimensions  → the confidence-weighted set (identity, exclusion,
  *                     licensure, enrollment) on /api/trust-state.
  *  - 01 wallet      → one clinician-owned wallet, reused per move.
  *  - 00 accounts    → the public readiness lookup needs no auth.
- * The caption names what is live vs source-access-gated so the numbers can't be
- * read as more than they are.
+ * The caption names what is a live read vs a dated snapshot vs source-access-
+ * gated so the numbers can't be read as more than they are.
+ *
+ * NUM-1.5: the two system counts come from lib/trust/sourceLanes.ts — the same
+ * registry that feeds /status and /api/status — so this strip changes when a
+ * lane's lifecycle changes instead of staying confidently wrong. The wallet and
+ * accounts figures stay literal because they are product facts, not lane state.
  */
+/** Two-digit grammar (`00 → 03`) is load-bearing — see the NUM-1.3 note below. */
+const pad = (n: number) => String(n).padStart(2, '0');
+
 const STATS = [
-  { n: '03', label: 'federal source lanes, live', sub: 'NPPES · OIG/LEIE · PECOS' },
-  { n: '04', label: 'readiness dimensions', sub: 'identity · exclusion · licensure · enrollment' },
+  {
+    n: pad(getLiveSourceLanes().length),
+    label: 'federal source lanes',
+    sub: 'NPPES live · OIG/LEIE + PECOS snapshot',
+  },
+  {
+    n: pad(getReadinessDimensionLanes().length),
+    label: 'readiness dimensions',
+    sub: 'identity · exclusion · licensure · enrollment',
+  },
   { n: '01', label: 'wallet you own', sub: 'reused for every move' },
   { n: '00', label: 'accounts required to look', sub: 'no card, no upload' },
 ] as const;
@@ -44,9 +63,9 @@ export function MetricStrip() {
         ))}
       </dl>
       <p className="mt-4 max-w-3xl text-[12px] leading-relaxed text-[var(--vt-text-muted)]">
-        Only real, defensible numbers. NPPES, OIG/LEIE, and PECOS return live results today; state
-        licensure is source-access-gated and shows as such. No pilot outcomes are claimed until a
-        real pilot produces them.
+        Only real, defensible numbers. NPPES is read live; OIG/LEIE and PECOS return dated snapshots
+        (monthly and quarterly), shown with their age; state licensure is source-access-gated and
+        shows as such. No pilot outcomes are claimed until a real pilot produces them.
       </p>
     </section>
   );

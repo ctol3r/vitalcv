@@ -12,6 +12,10 @@
  *            → intro                 (signed in → "Confirm you're a clinician")
  *              → form → submitting → success | form+error
  *
+ * The form carries two lanes (FormMode): the default NPI binding, and a no-NPI
+ * preview lane for clinicians-in-training (→ student_success). A preview profile
+ * is self-attested, never source-backed, and upgrades automatically on NPI bind.
+ *
  * Binding is POST /api/profile/npi/bootstrap: the backend resolves the live
  * NPPES registry record, upserts the workspace PersonProfile, and emits an
  * audit event. Copy states the registry-identity match only — an NPPES match
@@ -55,13 +59,22 @@ type Phase =
   | 'form'
   | 'submitting'
   | 'success'
+  | 'student_success'
   | 'load_error';
+
+/**
+ * Which lane the form is showing: the NPI binding (default) or the no-NPI
+ * student / in-training preview lane. The preview lane is self-attested and
+ * never source-backed — it starts a preview-only profile that upgrades
+ * automatically when the clinician later binds an NPI.
+ */
+type FormMode = 'npi' | 'student';
 
 /**
  * The clinician professions VitalCV onboards. Selecting one is a self-attested
  * role (it guides which source lanes apply downstream) — it is NOT a
- * license verification, and the copy says so. Students onboard via a separate
- * no-NPI lane, added in a later step.
+ * license verification, and the copy says so. Clinicians-in-training with no NPI
+ * onboard via the separate no-NPI preview lane (see FormMode 'student').
  */
 const PROFESSIONS = [
   { value: 'physician', label: 'Physician (MD/DO)' },
@@ -104,11 +117,23 @@ const FAQS: ReadonlyArray<{ q: string; a: string }> = [
   },
 ];
 
+/**
+ * Honest next steps shown after a no-NPI preview profile is started. Guidance
+ * only — none of these are source checks, and none imply a completed
+ * verification. The source-backed readiness lane opens once an NPI is bound.
+ */
+const PREVIEW_NEXT_STEPS: ReadonlyArray<string> = [
+  'Build your self-attested profile — add your program, training, and career goals in your wallet.',
+  'Explore what a source-backed VitalCV wallet unlocks for clinicians, so you know what to expect.',
+  'Connect your NPI the moment you receive it — that unlocks your source-backed readiness, publishing, and applications.',
+];
+
 export default function GetReadySurface() {
   const [phase, setPhase] = useState<Phase>('checking');
   const [existingNpi, setExistingNpi] = useState<string | null>(null);
   const [profession, setProfession] = useState<Profession | null>(null);
   const [attested, setAttested] = useState(false);
+  const [mode, setMode] = useState<FormMode>('npi');
   const [npiInput, setNpiInput] = useState('');
   const [formError, setFormError] = useState<string | null>(null);
   const [summary, setSummary] = useState<BoundIdentitySummary | null>(null);
@@ -213,6 +238,44 @@ export default function GetReadySurface() {
     }
   }
 
+  /** No-NPI lane: start a self-attested, preview-only profile. */
+  async function submitStudent(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!attested) {
+      setFormError('Please attest and agree to the Services Agreement to continue.');
+      return;
+    }
+    setFormError(null);
+    setPhase('submitting');
+    try {
+      const res = await fetch('/api/profile/student/bootstrap', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        // A self-attested claim the backend records (+ a hashed audit row) — it
+        // is never a verified claim, and it creates a preview-only profile.
+        body: JSON.stringify({ attested: true, attestationVersion: ATTESTATION_VERSION }),
+      });
+      if (!mountedRef.current) return;
+      if (!res.ok) {
+        setFormError('Could not start your preview profile. This is a system state — try again shortly.');
+        setPhase('form');
+        return;
+      }
+      setPhase('student_success');
+    } catch {
+      if (!mountedRef.current) return;
+      setFormError('Could not start your preview profile. This is a system state — try again shortly.');
+      setPhase('form');
+    }
+  }
+
+  /** Flip between the NPI and student lanes, clearing lane-specific input. */
+  function switchMode(next: FormMode) {
+    setMode(next);
+    setAttested(false);
+    setFormError(null);
+  }
+
   /* ── Checking session/workspace ── */
   if (phase === 'checking') {
     return (
@@ -302,10 +365,24 @@ export default function GetReadySurface() {
           You&apos;re signed in as{' '}
           <span className="font-medium text-[var(--vt-text-primary)]">{accountEmail ?? 'your account'}</span>.
         </p>
-        <button type="button" onClick={() => setPhase('form')} className={`${primaryBtn} mt-5`}>
+        <button
+          type="button"
+          onClick={() => { setMode('npi'); setPhase('form'); }}
+          className={`${primaryBtn} mt-5`}
+        >
           Confirm you&apos;re a clinician <ChevronRight className="h-4 w-4" aria-hidden />
         </button>
         <p className="mz-small mt-4 text-center">
+          Still in training and don&apos;t have an NPI yet?{' '}
+          <button
+            type="button"
+            onClick={() => { switchMode('student'); setPhase('form'); }}
+            className="font-medium text-[var(--vt-text-primary)] underline underline-offset-2 transition-opacity hover:opacity-70"
+          >
+            Start a preview profile
+          </button>
+        </p>
+        <p className="mz-small mt-2 text-center">
           <Link
             href="/sign-in?redirect_url=%2Fonboarding"
             className="underline underline-offset-2 transition-opacity hover:opacity-70"
@@ -355,6 +432,55 @@ export default function GetReadySurface() {
     );
   }
 
+  /* ── Student / no-NPI preview success ── */
+  if (phase === 'student_success') {
+    return (
+      <Shell>
+        <GateIcon done />
+        <Header
+          title="Your preview profile is started"
+          lede="You're in preview. When you receive your NPI, connect it here to unlock your source-backed readiness — your profile upgrades automatically."
+        />
+        <div className="mz-inset mt-6 p-4 text-left">
+          <p className="mz-eyebrow">Preview · self-attested</p>
+          <p className="mz-small mt-2 leading-relaxed">
+            Everything here is self-attested and not source-verified. A preview
+            profile is a place to start — it is not decision-grade, and VitalCV
+            never presents it to an employer as a completed check.
+          </p>
+        </div>
+        <div className="mt-6 text-left">
+          <p className="mz-eyebrow">What you can do now</p>
+          <ol className="mt-3 space-y-3">
+            {PREVIEW_NEXT_STEPS.map((step, i) => (
+              <li key={i} className="flex items-start gap-3 text-sm text-[var(--vt-text-secondary)]">
+                <span
+                  className="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-[3px] border border-[var(--vt-border)] font-mono text-xs text-[var(--vt-text-muted)]"
+                  aria-hidden
+                >
+                  {i + 1}
+                </span>
+                <span className="leading-relaxed">{step}</span>
+              </li>
+            ))}
+          </ol>
+        </div>
+        <div className="mt-6 space-y-3">
+          <Link href="/holder" className={primaryBtn}>
+            Open your wallet <ChevronRight className="h-4 w-4" aria-hidden />
+          </Link>
+          <button
+            type="button"
+            onClick={() => { switchMode('npi'); setPhase('form'); }}
+            className={secondaryBtn}
+          >
+            I have an NPI — connect it instead
+          </button>
+        </div>
+      </Shell>
+    );
+  }
+
   /* ── Form (+ submitting) ── */
   const submitting = phase === 'submitting';
   // Live structural validity — drives the checkmark that springs in as the
@@ -363,10 +489,18 @@ export default function GetReadySurface() {
   return (
     <Shell>
       <GateIcon />
-      <Header
-        title="Confirm you are a clinician"
-        lede="Enter your NPI to start your workspace. VitalCV reads your public NPPES registry record — no document uploads required to get started."
-      />
+      {mode === 'npi' ? (
+        <Header
+          title="Confirm you are a clinician"
+          lede="Enter your NPI to start your workspace. VitalCV reads your public NPPES registry record — no document uploads required to get started."
+        />
+      ) : (
+        <Header
+          title="Start a preview profile"
+          lede="No NPI yet? Start a self-attested preview as a health-professions student. When you receive your NPI, connect it here and your profile upgrades to source-backed."
+        />
+      )}
+      {mode === 'npi' ? (
       <form onSubmit={submit} className="mt-6 space-y-4 text-left" noValidate>
         <fieldset disabled={submitting} className="m-0 border-0 p-0">
           <legend className="mz-eyebrow">Your profession</legend>
@@ -485,6 +619,71 @@ export default function GetReadySurface() {
           each with its own receipt.
         </p>
       </form>
+      ) : (
+        <form onSubmit={submitStudent} className="mt-6 space-y-4 text-left" noValidate>
+          <p className="mz-small leading-relaxed">
+            Start a preview profile as a health-professions student. When you receive your
+            NPI, connect it here and your profile upgrades to source-backed — you keep
+            everything you added.
+          </p>
+          <label className="flex items-start gap-2.5 text-xs leading-relaxed text-[var(--vt-text-secondary)]">
+            <input
+              type="checkbox"
+              checked={attested}
+              onChange={(e) => setAttested(e.target.checked)}
+              disabled={submitting}
+              className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--vt-text-primary)]"
+            />
+            <span>
+              I attest that I am a health-professions student and agree to the{' '}
+              <a
+                href="/terms"
+                target="_blank"
+                rel="noreferrer"
+                className="underline underline-offset-2 transition-opacity hover:opacity-70"
+              >
+                VitalCV Services Agreement
+              </a>
+              . VitalCV records this attestation; it does not verify it here.
+            </span>
+          </label>
+          {formError ? (
+            <p role="alert" className="text-sm text-[var(--vt-risk-high)]">
+              {formError}
+            </p>
+          ) : null}
+          <button
+            type="submit"
+            disabled={submitting}
+            className={`${primaryBtn} disabled:cursor-not-allowed disabled:opacity-60`}
+          >
+            {submitting ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> Starting your preview…
+              </>
+            ) : (
+              <>
+                Start a preview profile <ChevronRight className="h-4 w-4" aria-hidden />
+              </>
+            )}
+          </button>
+          <p className="mz-small leading-relaxed">
+            A preview profile is self-attested and not source-verified. Your source-backed
+            readiness — license, exclusion, and enrollment checks — opens once you connect
+            your NPI.
+          </p>
+        </form>
+      )}
+      <button
+        type="button"
+        onClick={() => switchMode(mode === 'npi' ? 'student' : 'npi')}
+        disabled={submitting}
+        className="mt-4 text-xs text-[var(--vt-text-muted)] underline underline-offset-2 transition-opacity hover:opacity-70 disabled:opacity-40"
+      >
+        {mode === 'npi'
+          ? "Still in training and don't have an NPI yet?"
+          : '← I have an NPI — connect it instead'}
+      </button>
       <FaqSection />
     </Shell>
   );
