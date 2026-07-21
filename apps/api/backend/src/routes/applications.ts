@@ -37,6 +37,7 @@ import {
   readApplicationEvidenceView,
 } from '../services/opportunities/applicationPacketReadService';
 import { capsuleEngine } from '../services/decision/capsuleEngine';
+import { getClinicianApplicationActivation } from '../services/activation/clinicianActivationService';
 import { HttpError } from '../utils/httpError';
 import { log } from '../obs/logger';
 import { requireOrgRole, VERIFIER_MUTATION_ROLES } from '../middleware/orgRoleGuard';
@@ -134,6 +135,22 @@ export function registerApplicationRoutes(app: Express): void {
         ? await readApplicationEvidenceView(readInput)
         : await readApplicationPacket(readInput);
       res.json(packet);
+    }),
+  );
+
+  /* ── Clinician: own activation "path to start" (ACT-7.1 read) ── */
+  app.get(
+    '/api/applications/:appId/activation',
+    asyncHandler(async (req, res) => {
+      // Same verified-identity boundary as the packet read: a forgeable
+      // x-clerk-user-id header is never sufficient for a per-application
+      // personal read. Ownership authorizes (never org); a non-owned or
+      // unknown id returns a uniform 404 (getClinicianApplicationActivation),
+      // so this endpoint cannot enumerate other clinicians' applications.
+      const clerkUserId = requireVerifiedClerkUserId(req);
+      const appId = requireUuidParam(req.params.appId, 'Application');
+      const view = await getClinicianApplicationActivation(appId, clerkUserId);
+      res.json(view);
     }),
   );
 
