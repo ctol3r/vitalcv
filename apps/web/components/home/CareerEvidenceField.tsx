@@ -37,6 +37,9 @@ import { cn } from '@/lib/utils';
 /** Anchor indices whose in-links carry the named-source emphasis. */
 const NAMED_SOURCE_ATOMS = new Set([0, 3, 6]);
 
+/** How long to wait between asking the GPU tier to prove it painted something. */
+const GPU_PAINT_PROBE_MS = 1200;
+
 const pct = (n: number) => `${(n * 100).toFixed(2)}%`;
 
 /**
@@ -175,12 +178,16 @@ function FieldPoster() {
  * never drop the composition's meaning. Positions come from FIELD_ANCHORS,
  * the same coordinates every renderer draws.
  */
+// Cleared past the station, not tucked against it: the GPU tier draws these as
+// lit spheres ~20px across where the poster draws a 6px dot, so the old 14px
+// offset put the first letter of every source name underneath its own atom.
+// One offset has to clear the largest tier.
 const LABEL_OFFSET: Record<(typeof FIELD_ANCHORS)[number]['id'], string> = {
-  nppes: 'translate(14px, -50%)',
-  'oig-leie': 'translate(14px, -50%)',
-  pecos: 'translate(14px, -50%)',
+  nppes: 'translate(26px, -50%)',
+  'oig-leie': 'translate(26px, -50%)',
+  pecos: 'translate(26px, -50%)',
   record: 'translate(-50%, 54px)',
-  opportunity: 'translate(-50%, 24px)',
+  opportunity: 'translate(-50%, 30px)',
 };
 
 function FieldLabels() {
@@ -476,6 +483,7 @@ function FieldGpuCanvas({
     if (!wrap || !canvas) return;
     let cancelled = false;
     let handle: { destroy(): void } | null = null;
+    let probe = 0;
 
     void import('@/components/home/evidence-field/webgpu').then(async (mod) => {
       if (cancelled) return;
@@ -490,10 +498,34 @@ function FieldGpuCanvas({
       }
       handle = h;
       setGpuReady(true);
+
+      // Paint probe. A successful init proves the device came up, NOT that the
+      // scene draws: a bad projection matrix produces a valid, wholly blank
+      // canvas and no error, so `onFallback` never fires and the 2D tier never
+      // mounts — the hero silently degrades to a static poster. That shipped.
+      //
+      // The measurement belongs to the renderer (`paintedPixels`), which reads
+      // its own render target GPU-side. Reading it from here instead —
+      // `drawImage` onto a 2D scratch canvas — returns empty for a live rAF
+      // loop once the frame has been presented, and demotes a scene that is
+      // visibly drawing. `null` means not measured yet (the loop parks while
+      // offscreen or hidden, and a background tab starts hidden), so this asks
+      // again rather than assuming the worst.
+      const judge = () => {
+        if (cancelled) return;
+        const painted = h.paintedPixels();
+        if (painted === null) {
+          probe = window.setTimeout(judge, GPU_PAINT_PROBE_MS); // not measured yet
+          return;
+        }
+        if (painted === 0) onFallback(); // −1 = unmeasurable → keep the tier
+      };
+      probe = window.setTimeout(judge, GPU_PAINT_PROBE_MS);
     });
 
     return () => {
       cancelled = true;
+      window.clearTimeout(probe);
       handle?.destroy();
     };
   }, [wrapRef, onFallback]);
@@ -532,12 +564,17 @@ export function CareerEvidenceField({ signal = 'idle' }: { signal?: FieldSignal 
       data-home-evidence-field=""
       data-field-signal={signal}
       className={cn(
-        'relative aspect-[16/10] w-full overflow-hidden rounded-[16px] border bg-[var(--vt-surface)] transition-[box-shadow,border-color] duration-500 lg:aspect-auto lg:h-[clamp(28rem,54vh,38rem)]',
-        signal === 'ready'
-          ? 'border-[color-mix(in_oklab,var(--vt-accent-emerald)_55%,var(--vt-border))] shadow-[0_30px_70px_-52px_color-mix(in_oklab,var(--vt-accent-emerald)_45%,transparent)]'
-          : signal === 'listening'
-            ? 'border-[color-mix(in_oklab,var(--vt-accent-emerald)_28%,var(--vt-border))] shadow-[0_30px_70px_-54px_rgba(20,20,20,0.4)]'
-            : 'border-[var(--vt-border)] shadow-[0_30px_70px_-55px_rgba(20,20,20,0.4)]',
+        // The field BLEEDS into the hero paper: no fill, no rule, no card.
+        // It was `bg-[var(--vt-surface)]` + a 1px `--vt-border` — but
+        // `.mz-cloud-paper` re-tints --paper to Cloud Dancer WITHOUT re-tinting
+        // --vt-surface, so the panel kept --card (#FBFAF6, cooler and brighter)
+        // outlined in --rule (#C9C3B6) on #F0EEE9 paper: a pasted-on box, and a
+        // temperature mismatch besides. Ambience belongs in the paper; depth is
+        // the renderer's job, not a frame's.
+        'relative aspect-[16/10] w-full overflow-hidden bg-transparent transition-[opacity] duration-500 lg:aspect-auto lg:h-[clamp(28rem,54vh,38rem)]',
+        // The NPI signal now reads as the field itself lifting, not as chrome
+        // changing colour — nothing here fabricates a per-clinician claim.
+        signal === 'idle' ? 'opacity-95' : 'opacity-100',
       )}
     >
       {/* Decorative visual layer only. The honest meaning lives in the

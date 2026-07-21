@@ -27,6 +27,9 @@ import {
 
 const INIT_DEADLINE_MS = 900;
 
+/** Frame index whose render target is copied back for the paint self-check. */
+const PAINT_CHECK_FRAME = 8;
+
 /** shape ids matched in the fragment shader */
 const SHAPE_ATOM = 0;
 const SHAPE_PULSE = 1;
@@ -39,9 +42,12 @@ const WGSL = /* wgsl */ `
 struct Uniforms {
   viewProj : mat4x4<f32>,
   time : f32,
+  // Projection scale terms (f/aspect, f) handed to the billboard expansion so
+  // sprite corners grow with the SAME projection the camera applies: square
+  // sprites stay square at any panel aspect instead of stretching with it.
+  projX : f32,
+  projY : f32,
   _pad0 : f32,
-  _pad1 : f32,
-  _pad2 : f32,
 };
 @group(0) @binding(0) var<uniform> U : Uniforms;
 
@@ -68,12 +74,14 @@ struct VSOut {
 @vertex
 fn vs(in : VSIn) -> VSOut {
   var out : VSOut;
-  // billboard: expand the quad in view space so plates face the camera
+  // billboard: expand the quad in clip space using the projection's own scale
+  // terms. The perspective divide happens after this, so a sprite shrinks with
+  // distance exactly like the geometry it sits on — depth reads as depth.
   let world = vec4<f32>(in.ipos, 1.0);
   let center = U.viewProj * world;
-  let scale = vec2<f32>(in.isize * in.iaspect, in.isize);
-  // perspective-correct expansion in clip space (keep aspect via y ratio)
-  out.pos = center + vec4<f32>(in.corner.x * scale.x, in.corner.y * scale.y, 0.0, 0.0);
+  let sx = in.isize * in.iaspect * U.projX;
+  let sy = in.isize * U.projY;
+  out.pos = center + vec4<f32>(in.corner.x * sx, in.corner.y * sy, 0.0, 0.0);
   out.uv = in.corner;
   out.color = in.icolor;
   out.alpha = in.ialpha;
@@ -150,6 +158,25 @@ fn lfs(in : LVSOut) -> @location(0) vec4<f32> {
 
 export interface GpuFieldHandle {
   destroy(): void;
+  /**
+   * Frames actually submitted. The caller's paint probe needs this to tell
+   * "drew nothing because it is broken" apart from "drew nothing because the
+   * loop is correctly parked" — the render loop suspends while the field is
+   * offscreen or the tab is hidden, and a tab restored in the background
+   * starts life at `document.hidden === true`.
+   */
+  framesDrawn(): number;
+  /**
+   * Non-transparent pixels counted from the render target, or null until the
+   * self-check has run (it needs a drawn frame).
+   *
+   * This is measured GPU-side, inside the renderer, because it cannot be
+   * measured from outside: `drawImage(webgpuCanvas)` on a live rAF loop reads
+   * back empty once the frame has been presented, so an external probe scores
+   * a perfectly healthy scene as blank and demotes it. Verified — that false
+   * negative demoted this very renderer while it was visibly drawing.
+   */
+  paintedPixels(): number | null;
 }
 
 interface Vec3 {
@@ -158,9 +185,29 @@ interface Vec3 {
   z: number;
 }
 
-/** model space: x,y 0..1 → world −1..1 (y flipped), z passed through scaled */
-function toWorld(x: number, y: number, z: number): Vec3 {
-  return { x: (x - 0.5) * 2.2, y: (0.5 - y) * 1.5, z: z * 0.55 };
+const FOV_Y = 0.62;
+const CAM_DIST = 2.35;
+const DEPTH_SPAN = 0.55;
+
+/**
+ * Model space (x, y in 0..1) → world, FITTED to the panel rather than fixed.
+ *
+ * Solving `ndc.x = (x − 0.5) · 2` for a point at camera distance D gives
+ * spanX = 2·D·aspect/f and spanY = 2·D/f. So the z = 0 plane lands exactly on
+ * the panel rect at any aspect ratio: nothing in the composition can be
+ * cropped by a tall desktop panel, and the labelled anchors (pinned to z = 0)
+ * sit under the HTML labels, which are placed by these same normalized
+ * coordinates. Depth is carried by z alone — that is what parallaxes.
+ *
+ * The old fixed spans (2.2 × 1.5) assumed a 1.46 panel aspect; the real panel
+ * is ~1.04 landscape and portrait on tall desktops, which pushed the outer
+ * sources past |ndc.x| = 1.24 — outside the frustum.
+ */
+export function makeToWorld(aspect: number): (x: number, y: number, z: number) => Vec3 {
+  const f = 1 / Math.tan(FOV_Y / 2);
+  const spanX = (2 * CAM_DIST * aspect) / f;
+  const spanY = (2 * CAM_DIST) / f;
+  return (x, y, z) => ({ x: (x - 0.5) * spanX, y: (0.5 - y) * spanY, z: z * DEPTH_SPAN });
 }
 
 function mat4Multiply(a: Float32Array, b: Float32Array): Float32Array {
@@ -206,6 +253,45 @@ function lookAt(eye: Vec3, target: Vec3): Float32Array {
 }
 
 /**
+ * The field camera: a bounded orbit around the composition.
+ *
+ * Exported pure, with `projectToNdc` below, so the projection is assertable in
+ * plain vitest with no GPU present. The bug these guard against — building
+ * view × projection instead of projection × view — was invisible to every
+ * existing check: init succeeded, no error was thrown, the canvas stayed
+ * attached, and it drew nothing at all.
+ */
+export function computeViewProj(
+  aspect: number,
+  yaw: number,
+  pitch: number,
+): { viewProj: Float32Array; proj: Float32Array } {
+  const eye = {
+    x: Math.sin(yaw) * CAM_DIST,
+    y: pitch * CAM_DIST * 0.9,
+    z: Math.cos(yaw) * CAM_DIST,
+  };
+  const proj = perspective(FOV_Y, aspect, 0.1, 10);
+  return { viewProj: mat4Multiply(proj, lookAt(eye, { x: 0, y: 0, z: 0 })), proj };
+}
+
+/** Column-major mat4 × point → NDC, or null when the point is degenerate/behind. */
+export function projectToNdc(
+  m: Float32Array,
+  p: Vec3,
+): { x: number; y: number; z: number } | null {
+  const v = [p.x, p.y, p.z, 1];
+  const o = [0, 0, 0, 0];
+  for (let row = 0; row < 4; row++) {
+    let s = 0;
+    for (let k = 0; k < 4; k++) s += m[k * 4 + row] * v[k];
+    o[row] = s;
+  }
+  if (!(o[3] > 1e-6)) return null; // w ≤ 0 → nothing drawable
+  return { x: o[0] / o[3], y: o[1] / o[3], z: o[2] / o[3] };
+}
+
+/**
  * Initialize the WebGPU field. Resolves null (never throws) when the device
  * is unavailable or too slow — the caller mounts the Canvas-2D tier instead.
  */
@@ -236,7 +322,15 @@ export async function initEvidenceFieldGpu(
       return null;
     }
     const format = gpu.getPreferredCanvasFormat();
-    context.configure({ device, format, alphaMode: 'premultiplied' });
+    // COPY_SRC so the renderer can read its OWN output back once and prove it
+    // actually painted (see `paintedPixels`). RENDER_ATTACHMENT is the default
+    // and must be restated once `usage` is given explicitly.
+    context.configure({
+      device,
+      format,
+      alphaMode: 'premultiplied',
+      usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC,
+    });
 
     device.lost.then(() => onLost()).catch(() => onLost());
 
@@ -366,6 +460,8 @@ export async function initEvidenceFieldGpu(
     let onscreen = true;
     let hidden = document.hidden;
     let destroyed = false;
+    let framesDrawn = 0;
+    let paintedPixels: number | null = null;
     const start = performance.now();
     const ptr = { x: 0, y: 0, tx: 0, ty: 0 };
 
@@ -379,8 +475,6 @@ export async function initEvidenceFieldGpu(
       canvas.style.height = `${r.height}px`;
     };
 
-    const capsuleWorld = toWorld(MODEL.capsule.x, MODEL.capsule.y, 0);
-
     const frame = (now: number) => {
       raf = 0;
       if (destroyed || !onscreen || hidden) return;
@@ -393,18 +487,16 @@ export async function initEvidenceFieldGpu(
       // scene, not a flat graph; pointer adds a bounded parallax on top.
       const yaw = ptr.x * 0.12 + Math.sin(t * 0.11) * 0.07;
       const pitch = ptr.y * 0.09 + Math.cos(t * 0.13) * 0.045;
-      const dist = 2.35;
-      const eye = {
-        x: Math.sin(yaw) * dist,
-        y: pitch * dist * 0.9,
-        z: Math.cos(yaw) * dist,
-      };
       const aspect = canvas.width / Math.max(1, canvas.height);
-      const viewProj = mat4Multiply(lookAt(eye, { x: 0, y: 0, z: 0 }), perspective(0.62, aspect, 0.1, 10));
+      const { viewProj, proj } = computeViewProj(aspect, yaw, pitch);
+      const toWorld = makeToWorld(aspect);
+      const capsuleWorld = toWorld(MODEL.capsule.x, MODEL.capsule.y, 0);
 
       const ub = new Float32Array(20);
       ub.set(viewProj, 0);
       ub[16] = t;
+      ub[17] = proj[0]; // f / aspect
+      ub[18] = proj[5]; // f
       device.queue.writeBuffer(uniforms, 0, ub);
 
       // ── instances ──
@@ -496,11 +588,12 @@ export async function initEvidenceFieldGpu(
       device.queue.writeBuffer(lines, 0, lineData);
 
       // ── encode ──
+      const target = context.getCurrentTexture();
       const encoder = device.createCommandEncoder();
       const pass = encoder.beginRenderPass({
         colorAttachments: [
           {
-            view: context.getCurrentTexture().createView(),
+            view: target.createView(),
             clearValue: { r: 0, g: 0, b: 0, a: 0 },
             loadOp: 'clear',
             storeOp: 'store',
@@ -516,7 +609,65 @@ export async function initEvidenceFieldGpu(
       pass.setVertexBuffer(1, instances);
       pass.draw(6, instanceCount);
       pass.end();
+
+      // Self-check, once, on a settled frame: copy this frame's render target
+      // and count what actually landed in it. Encoded into the SAME command
+      // buffer as the draw, so it reads the texture while it is still valid —
+      // the one place this measurement is trustworthy.
+      let readback: GPUBuffer | null = null;
+      let bytesPerRow = 0;
+      if (framesDrawn === PAINT_CHECK_FRAME) {
+        // Guarded: an implementation that refuses a copy from the swap-chain
+        // texture must cost us the self-check, not the render loop. Throwing
+        // here would escape rAF and kill the scene outright — a worse failure
+        // than the one being checked for.
+        try {
+          bytesPerRow = Math.ceil((target.width * 4) / 256) * 256; // WebGPU alignment
+          readback = device.createBuffer({
+            size: bytesPerRow * target.height,
+            usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
+          });
+          encoder.copyTextureToBuffer(
+            { texture: target },
+            { buffer: readback, bytesPerRow },
+            { width: target.width, height: target.height },
+          );
+        } catch {
+          readback = null;
+          paintedPixels = -1; // unmeasurable → the caller keeps this tier
+        }
+      }
+
       device.queue.submit([encoder.finish()]);
+      framesDrawn += 1;
+
+      if (readback) {
+        const buf = readback;
+        const w = target.width;
+        const h = target.height;
+        void buf
+          .mapAsync(GPUMapMode.READ)
+          .then(() => {
+            const bytes = new Uint8Array(buf.getMappedRange());
+            let painted = 0;
+            for (let y = 0; y < h; y++) {
+              const row = y * bytesPerRow;
+              for (let x = 0; x < w; x++) if (bytes[row + x * 4 + 3] > 8) painted += 1;
+            }
+            paintedPixels = painted;
+            buf.unmap();
+          })
+          .catch(() => {
+            paintedPixels = -1; // unmeasurable → caller must not demote on this
+          })
+          .finally(() => {
+            try {
+              buf.destroy();
+            } catch {
+              /* already gone */
+            }
+          });
+      }
 
       raf = requestAnimationFrame(frame);
     };
@@ -557,6 +708,8 @@ export async function initEvidenceFieldGpu(
     wake();
 
     return {
+      framesDrawn: () => framesDrawn,
+      paintedPixels: () => paintedPixels,
       destroy() {
         destroyed = true;
         cancelAnimationFrame(raf);

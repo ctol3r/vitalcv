@@ -97,11 +97,16 @@ export function buildModel(): FieldModel {
   // opportunity hold curated deterministic positions so the SVG poster, the
   // Canvas 2D tier, the WebGPU tier, and the HTML label overlay all agree on
   // where the named story sits. Every other atom stays seeded texture.
+  // Pinning also zeroes z: the WebGPU tier fits the z = 0 plane exactly onto
+  // the panel, so a named station stays under its HTML label instead of
+  // parallaxing out from beneath the word that names it. Unlabelled texture
+  // atoms keep their seeded depth — they are what carries the 3D.
   const pin = (index: number, x: number, y: number) => {
     const atom = atoms[index];
     if (atom) {
       atom.x = x;
       atom.y = y;
+      atom.z = 0;
     }
   };
   pin(0, 0.1, 0.16); // NPPES
