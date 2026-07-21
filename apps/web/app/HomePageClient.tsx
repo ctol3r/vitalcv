@@ -59,6 +59,14 @@ export default function HomePageClient() {
   const [focused, setFocused] = React.useState(false);
   const [submittedNpi, setSubmittedNpi] = React.useState<string | null>(null);
 
+  // NUM-1.6: the funnel's denominator. HOMEPAGE_VIEWED has been declared in
+  // FUNNEL_EVENTS since the funnel was built but never fired from anywhere, so
+  // every downstream rate (focus rate, submit rate, completion rate) had no
+  // base to divide by. Fires once per mount, before any interaction.
+  React.useEffect(() => {
+    trackFunnelEvent(FUNNEL_EVENTS.HOMEPAGE_VIEWED);
+  }, []);
+
   const digits = raw.replace(/\D/g, '').slice(0, 10);
   // Canonical validation (lib/vital/npi): the hero previously enabled submit on
   // ANY 10 digits while Passport checksum-validated — one shared rule now. A
