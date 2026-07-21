@@ -41,13 +41,31 @@ language, not decoration:
 | `Employer decision` | a human employer decides; VitalCV does not |
 
 **The bare word `Verified` is banned as a status label anywhere on the site.**
-So are these phrases: `automatically verified`, `guaranteed verification`,
-`complete credentialing`, `instant credentialing`, `legally accepted`,
-`risk transferred`, `final verification without review`,
-`source confirmed before response`, `certified compliant`, `HIPAA compliant`,
-`HIPAA certified`, `HIPAA-aligned`, `SOC2 certified`, `blockchain-anchored`,
-`cryptographically signed`, `audit trail`, `credentialing head start`,
-`start clinicians in days, not months`.
+
+The banned-phrase list is exactly these 23 strings, and nothing else — taken
+from the `phrase:` field of `scripts/check-public-claims.ts`:
+
+`hire instantly` · `instant credentialing` · `complete credentialing` ·
+`credentialing replacement` · `automatically verified` ·
+`guaranteed verification` · `no further verification required` ·
+`final verification without review` · `source confirmed before response` ·
+`legally accepted` · `risk transferred` · `final authority` ·
+`certified compliant` · `HIPAA certified` · `HIPAA compliant` ·
+`SOC 2 certified` · `SOC2 certified` · `NCQA certified` · `NPDB cleared` ·
+`blockchain anchored` · `zero knowledge proof` · `zero trust ledger` ·
+`all 50 states`
+
+> **Do NOT flag these — they are the APPROVED replacements**, not violations:
+> `audit trail`, `cryptographically signed`, `selectively disclosed (SD-JWT)`,
+> `configured source lanes`. They live in the script's `fix:` field, which is
+> the *recommended wording* for each banned phrase. An earlier cut of this
+> bundle scraped both fields and listed them as banned; that produced a
+> false-positive "audit trail" defect on `/trust`. If in doubt, only the 23
+> strings above count.
+
+**More important than the string list:** `check-public-claims` can only catch
+*phrases*. It cannot catch a claim that is simply **false against system
+state** — see TASK 2, which is where the real defects live.
 
 ---
 
@@ -96,8 +114,22 @@ report if you find one actually linked from a rendered page.
 
 ## TASK 2 — Does the site contradict itself about which lanes are live?
 
-There is a known history of the human-readable status page and the JSON API
-disagreeing about which data lanes are live vs partial vs access-gated.
+**A CONFIRMED DEFECT ALREADY LIVES HERE (verified 2026-07-21).** Three surfaces
+in production state three different things about the same two source lanes:
+
+| Surface | OIG / LEIE and CMS PECOS |
+| --- | --- |
+| Homepage source ribbon | "read live — public source, read live", under a **"Live system fact"** badge |
+| `/trust/attribution` | "not retrieved (**connector not live**)", `data-truth-state="connector-not-live"` |
+| `/api/status` | `operational`, but **monthly LEIE snapshot cache** / **quarterly PECOS snapshot** |
+
+The JSON is the precise one: these are cached snapshots, not live reads. A
+quarterly PECOS snapshot can be ~90 days stale, so the homepage's "read live"
+is an **overclaim** — the exact failure this product exists to prevent. Note
+that `check-public-claims` cannot catch it: "read live" is not a banned phrase,
+it is a claim that is false against system state.
+
+**Your job is to find the REST of this class**, not to re-report the above.
 
 > 1. Open `https://vitalcv.com/status` and write down, for every data lane
 >    listed, its exact stated state.
