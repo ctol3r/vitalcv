@@ -58,167 +58,39 @@
   .proofcycle-word { animation: none; }
 }
 
+/* The floating section rail (`data-home-section-rail`) was retired with the W2
+   journey rail; `home-npi-role-doors.test.tsx` asserts it cannot return. Its
+   rules here had already been emptied, leaving two `{ }` blocks and comments
+   describing a hover-to-reveal affordance that no longer exists. Removed. */
 
-
-
-
-
-
-
-/* A clear focus ring on the rail link itself — keyboard users must see where
-   focus landed, not only the revealed label (AUD-1.2). */
-
-
-
-/* The rail is a motion affordance (a scroll-progress indicator). Under reduced
-   motion it is hidden entirely — the vertical DOM order and the header nav
-   remain a complete route to every section (AUD-1.2). */
-@media (prefers-reduced-motion: reduce) {
-  }
-
-/* Hide the floating rail on smaller screens and on coarse pointers (touch) —
-   the header nav covers navigation there, the hover-to-reveal label is
-   meaningless without a fine pointer, and the rail would overlap content
-   (AUD-1.2). */
-@media (max-width: 1023px), (pointer: coarse) {
-  }
-
+/* Every id in CHAPTER_DOM_IDS (components/home/scene/ChapterProgress.tsx) must
+   appear here, or anchoring to that chapter lands it under the fixed header.
+   `#start` was missing while the rail shipped with a `start` chapter. */
 #wallet,
 #readiness,
 #matcha,
 #apply,
-#employers { scroll-margin-top: 8.8rem; }
+#employers,
+#start { scroll-margin-top: 8.8rem; }
 
 /* The hero is a normal document section. Its primary action stays in the
    opening viewport; no scroll distance exists solely to keep hero copy pinned. */
 .hero-compact { position: relative; }
 
-.sticky-product-story {
-  position: relative;
-  margin-top: 2.25rem;
-}
+/* The sticky product story (`.sticky-product-story`, `.story-observer*`,
+   `.story-stage`, `.story-intro*`, `.story-progress-*`) was the pre-W2 scroll
+   model. `StickyProductStory` was deleted from the tree in #800 when the
+   journey rail shipped, and `home-npi-role-doors.test.tsx` asserts its markers
+   cannot return — so every rule above had zero consumers and is removed here.
+   The `.story-card-*`, `.story-state-*` and `.story-product-*` families below
+   are NOT dead: `components/home/rail/JourneyCard.tsx` renders them, which is
+   why this cleanup is surgical rather than a prefix sweep. */
 
-/* Five cards need four transition intervals. At 100vh of runway each interval
-   is 25vh — still a visible state change per scroll gesture, tighter than the
-   old 140vh (35vh each) so the story reads denser and reaches the evidence
-   panel sooner. The sticky stage itself contributes the first 100vh. */
-@media (min-width: 1024px) and (prefers-reduced-motion: no-preference) {
-  .sticky-product-story {
-    min-height: calc(100vh + 100vh);
-  }
-}
-
-.story-observer {
-  position: absolute;
-  left: 0;
-  width: 1px;
-  height: 24%;
-  pointer-events: none;
-}
-.story-observer-readiness { top: 0; }
-.story-observer-matcha { top: 44%; }
-.story-observer-apply { top: 68%; }
-
-.story-stage {
-  position: sticky;
-  top: 8.5rem;
-  display: grid;
-  grid-template-columns: minmax(15rem, 0.72fr) minmax(0, 1.28fr);
-  gap: clamp(2rem, 5vw, 5rem);
-  align-items: center;
-  min-height: calc(100vh - 9.5rem);
-  overflow: clip;
-  padding-block: 2rem;
-}
-
-.story-intro { align-self: center; }
-.story-intro .mz-h1 { margin-top: 0.6rem; max-width: 12ch; }
-.story-intro-body {
-  max-width: 31rem;
-  margin-top: 1rem;
-  color: var(--vt-text-secondary);
-  font-size: 0.93rem;
-  line-height: 1.7;
-}
-
-.story-progress-rail {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-  margin-top: 2rem;
-  border-left: 1px solid var(--vt-border);
-}
-
-.story-progress-step {
-  display: grid;
-  grid-template-columns: 2.2rem 1fr;
-  align-items: center;
-  min-height: 2.5rem;
-  margin-left: -1px;
-  border: 0;
-  border-left: 2px solid transparent;
-  background: transparent;
-  color: var(--vt-text-muted);
-  cursor: pointer;
-  font-size: 0.8rem;
-  text-align: left;
-}
-.story-progress-step span:first-child { font-family: var(--font-mono); font-size: 0.66rem; }
-.story-progress-step[data-active='true'] {
-  border-left-color: var(--vt-text-primary);
-  color: var(--vt-text-primary);
-  font-weight: 650;
-}
-.story-progress-step:focus-visible { outline: 2px solid var(--vt-focus-ring); outline-offset: 4px; }
-
-.story-cards {
-  position: relative;
-  display: grid;
-  min-height: min(34rem, calc(100vh - 13rem));
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  /* Rolodex depth: the flip needs real perspective or rotateX reads as a
-     vertical squash. Origin centred so the up-fan (completed leaves) and the
-     down-fan (upcoming leaves) both read (SHD-3.2). */
-  perspective: 1500px;
-  perspective-origin: 50% 44%;
-}
-
-.story-card {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  /* The spindle: rotation axis sits BELOW the card (116% of its height), so
-     cards swing around a common axle like rolodex leaves, not tilt in place. */
-  transform-origin: 50% 116%;
-  transform-style: preserve-3d;
-  backface-visibility: hidden;
-  will-change: transform, opacity;
-}
-
-/* Reduced motion: the rotary file collapses to a clean, static vertical stack —
-   the same chapters in DOM order, no flip, no perspective, no render loop
-   (SHD-3.2 exit criterion). */
-@media (prefers-reduced-motion: reduce) {
-  .story-cards {
-    position: relative;
-    display: grid;
-    gap: 1.25rem;
-    min-height: auto;
-    perspective: none;
-  }
-  .story-card {
-    position: relative;
-    inset: auto;
-    transform: none !important;
-    opacity: 1 !important;
-    transform-origin: center !important;
-    will-change: auto;
-  }
-}
+/* `.story-cards` / `.story-card` held the Rolodex perspective for the pre-W2
+   stage. The shipped rail owns that on `.story-rail-track` (see below), and
+   `HorizontalStoryRail` never renders these two — so their rules, including the
+   reduced-motion collapse, styled nothing. Removed with the rest of the old
+   scroll model. */
 
 .story-card-shell {
   position: relative;
@@ -415,7 +287,6 @@
   font-size: 0.7rem;
   font-weight: 650;
 }
-.story-footnote { position: absolute; bottom: 1rem; left: 0; max-width: 42rem; color: var(--vt-text-muted); font-size: 0.72rem; line-height: 1.55; }
 
 .product-carousel { margin-top: 2.5rem; }
 .product-carousel-heading { display: flex; align-items: end; justify-content: space-between; gap: 2rem; }
@@ -480,18 +351,7 @@
 .product-carousel-ui li svg { flex: none; color: var(--vt-accent-emerald); }
 
 @media (max-width: 1023px) {
-  .sticky-product-story { min-height: auto; margin-top: 2rem; }
-  .story-observer { top: 0; height: 1px; }
-  .story-stage { position: relative; top: auto; display: block; min-height: auto; overflow: visible; padding-block: 0; }
-  .story-intro .mz-h1 { max-width: 16ch; }
-  .story-progress-rail { flex-direction: row; overflow-x: auto; border-left: 0; border-bottom: 1px solid var(--vt-border); scrollbar-width: none; }
-  .story-progress-step { flex: 0 0 auto; grid-template-columns: auto auto; gap: 0.5rem; border-left: 0; border-bottom: 2px solid transparent; padding-inline: 0.75rem; }
-  .story-progress-step[data-active='true'] { border-left-color: transparent; border-bottom-color: var(--vt-text-primary); }
-  .story-cards { display: flex; gap: 1rem; min-height: auto; margin-top: 1.5rem; overflow-x: auto; padding: 0 1.5rem 1rem 0; scroll-snap-type: x mandatory; scrollbar-width: none; }
-  .story-cards::-webkit-scrollbar { display: none; }
-  .story-card { position: relative; inset: auto; flex: 0 0 min(84vw, 39rem); align-items: stretch; opacity: 1 !important; transform: none !important; scroll-snap-align: start; }
   .story-card-shell { grid-template-columns: 1fr; min-height: 28rem; }
-  .story-footnote { position: relative; bottom: auto; margin-top: 0.75rem; }
 }
 
 @media (max-width: 700px) {
@@ -504,13 +364,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .sticky-product-story { min-height: auto; }
-  .story-stage { position: relative; top: auto; display: block; min-height: auto; overflow: visible; }
-  .story-progress-rail { display: none; }
-  .story-cards { position: relative; display: grid; gap: 1rem; min-height: auto; margin-top: 2rem; overflow: visible; }
-  .story-card { position: relative; inset: auto; opacity: 1 !important; transform: none !important; }
   .story-card-shell { min-height: auto; }
-  .story-footnote { position: relative; bottom: auto; margin-top: 1rem; }
   /* Reduced motion: no belt, no flow — a static readable grid. */
   .product-carousel-track { margin-inline: 0; overflow: visible; cursor: default; }
   .product-carousel-belt { display: grid; width: auto; transform: none !important; will-change: auto; }
@@ -707,7 +561,6 @@
   font-size: 1.0625rem;
   line-height: 1.6;
 }
-.mz-scale-lg .story-intro-body { font-size: 1.0625rem; line-height: 1.65; }
 
 /* The product mockups themselves: rows were 0.78rem/12.5px — unreadable as
    "real product UI" at this canvas size. */
@@ -719,8 +572,6 @@
 .mz-scale-lg .product-carousel-ui li { font-size: 0.82rem; min-height: 3rem; }
 .mz-scale-lg .story-card-eyebrow,
 .mz-scale-lg .product-carousel-card-copy > p:first-of-type { font-size: 0.72rem; }
-.mz-scale-lg .story-progress-step { font-size: 0.92rem; min-height: 2.9rem; }
-.mz-scale-lg .story-footnote { font-size: 0.8rem; }
 
 /* Cards grow with their contents so the extra type doesn't force a scrollbar. */
 .mz-scale-lg .story-card-shell { min-height: 30rem; }
