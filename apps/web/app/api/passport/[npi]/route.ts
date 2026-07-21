@@ -4,6 +4,7 @@ import {
   logPassportRuntimeFailure,
   logPassportRuntimeSuccess,
 } from '@/lib/trust/passport-observability';
+import { invalidNpiResponse, isStructurallyValidNpi } from '@/lib/trust/npi-format';
 
 export const runtime = 'nodejs';
 
@@ -12,6 +13,14 @@ export async function GET(
   { params }: { params: Promise<{ npi: string }> },
 ) {
   const { npi } = await params;
+
+  // Structurally malformed input is not a passport read — reject before the
+  // runtime degrades it into a passport-shaped 200. Well-formed-but-unknown
+  // NPIs deliberately fall through to the degraded read below.
+  if (!isStructurallyValidNpi(npi)) {
+    return invalidNpiResponse();
+  }
+
   const startedAt = performance.now();
 
   try {

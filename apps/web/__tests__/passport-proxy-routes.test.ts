@@ -516,3 +516,89 @@ describe('passport runtime convergence routes', () => {
     expect(JSON.stringify(body)).not.toContain('1346053246');
   });
 });
+
+describe('passport proxy NPI format guard', () => {
+  beforeEach(() => {
+    vi.resetModules();
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+    vi.spyOn(console, 'info').mockImplementation(() => undefined);
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+  });
+
+  const MALFORMED = ['not-a-npi-abc', '123', '12345678901', '123456789a', '', '  1234567890  '];
+
+  for (const npi of MALFORMED) {
+    it(`rejects structurally malformed NPI ${JSON.stringify(npi)} with the backend's 400 contract`, async () => {
+      const fetchSpy = vi.fn().mockRejectedValue(new Error('no upstream call expected'));
+      vi.stubGlobal('fetch', fetchSpy);
+
+      const bare = await import('../app/api/passport/[npi]/route');
+      const scoped = await import('../app/api/passport/npi/[npi]/route');
+
+      const responses = [
+        await bare.GET(new Request('http://localhost/api/passport/x') as never, {
+          params: Promise.resolve({ npi }),
+        }),
+        await scoped.GET(new Request('http://localhost/api/passport/npi/x') as never, {
+          params: Promise.resolve({ npi }),
+        }),
+      ];
+
+      for (const response of responses) {
+        expect(response.status).toBe(400);
+        expect(response.headers.get('Cache-Control')).toBe('no-store');
+        // Byte-for-byte match with apps/api/backend/src/routes/passport.ts validateNpi.
+        expect(await response.json()).toEqual({
+          error: 'invalid_npi',
+          error_description: 'NPI must be a 10-digit string.',
+        });
+      }
+
+      // Rejected before any runtime work — no upstream probe, no hydration log.
+      expect(fetchSpy).not.toHaveBeenCalled();
+      expect(vi.mocked(console.info)).not.toHaveBeenCalled();
+    });
+  }
+
+  it('preserves the degraded 200 for a well-formed but unknown NPI (anti-enumeration)', async () => {
+    // 0000000000 is 10 digits but fails the CMS check digit and is not registered.
+    // It must stay indistinguishable from any other unknown-but-well-formed NPI.
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation(async () => jsonResponse({ results: [] })),
+    );
+
+    const bare = await import('../app/api/passport/[npi]/route');
+    const scoped = await import('../app/api/passport/npi/[npi]/route');
+
+    for (const [route, GET] of [
+      ['/api/passport/[npi]', bare.GET],
+      ['/api/passport/npi/[npi]', scoped.GET],
+    ] as const) {
+      const response = await GET(new Request(`http://localhost${route}`) as never, {
+        params: Promise.resolve({ npi: '0000000000' }),
+      });
+
+      expect(response.status).toBe(200);
+      const body = await response.json();
+      expectStableRuntimeShape(body as Record<string, unknown>);
+      expect(body).toEqual(expect.objectContaining({ entityId: '0000000000' }));
+    }
+  });
+
+  it('still resolves a hydrated well-formed NPI to 200', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation(async () => jsonResponse(buildNppesResponse())),
+    );
+
+    const { GET } = await import('../app/api/passport/npi/[npi]/route');
+    const response = await GET(new Request('http://localhost/api/passport/npi/1234567890') as never, {
+      params: Promise.resolve({ npi: '1234567890' }),
+    });
+
+    expect(response.status).toBe(200);
+    expectStableRuntimeShape((await response.json()) as Record<string, unknown>);
+  });
+});
