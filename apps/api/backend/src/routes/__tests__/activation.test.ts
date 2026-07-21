@@ -30,11 +30,10 @@ jest.mock('../../middleware/orgRoleGuard', () => ({
 
 import prisma from '../../graphql/prisma_client';
 import {
-  getApplicationActivation,
   instantiateActivationRequirements,
   resolveActivationRequirement,
 } from '../../services/activation/activationRequirementService';
-import { markStartReady, recordStart } from '../../services/activation/startEventService';
+import { getApplicationStartState, markStartReady, recordStart } from '../../services/activation/startEventService';
 import { registerActivationRoutes } from '../activation';
 
 const APP_ID = '11111111-1111-4111-8111-111111111111';
@@ -61,32 +60,34 @@ function mockApplication(overrides: Partial<{ clerkUserId: string; npi: string |
 
 beforeEach(() => jest.clearAllMocks());
 
-describe('activation routes — reads', () => {
-  it('lets the owning clinician read the ledger', async () => {
+// The ledger read (GET /activation) is owned by ACT-7.1 (#805). These exercise
+// the read-authz + uuid guard on the start-state read this module still owns.
+describe('activation routes — start-state read + authz', () => {
+  it('lets the owning clinician read the start-state', async () => {
     mockApplication({ clerkUserId: CLINICIAN });
-    (getApplicationActivation as jest.Mock).mockResolvedValue({ requirements: [], readiness: { startReady: true, blocking: [] } });
+    (getApplicationStartState as jest.Mock).mockResolvedValue('not_ready');
 
     const res = await request(buildApp())
-      .get(`/api/applications/${APP_ID}/activation`)
+      .get(`/api/applications/${APP_ID}/start-state`)
       .set('x-clerk-user-id', CLINICIAN);
 
     expect(res.status).toBe(200);
-    expect(res.body.readiness.startReady).toBe(true);
+    expect(res.body.state).toBe('not_ready');
   });
 
   it('rejects a caller who is neither the applicant nor an org member (403)', async () => {
     mockApplication({ clerkUserId: CLINICIAN });
     const res = await request(buildApp())
-      .get(`/api/applications/${APP_ID}/activation`)
+      .get(`/api/applications/${APP_ID}/start-state`)
       .set('x-clerk-user-id', 'user_stranger');
     expect(res.status).toBe(403);
   });
 
   it('allows an employer with an org-role header to read', async () => {
     mockApplication({ clerkUserId: CLINICIAN });
-    (getApplicationActivation as jest.Mock).mockResolvedValue({ requirements: [], readiness: { startReady: false, blocking: [] } });
+    (getApplicationStartState as jest.Mock).mockResolvedValue('start_ready');
     const res = await request(buildApp())
-      .get(`/api/applications/${APP_ID}/activation`)
+      .get(`/api/applications/${APP_ID}/start-state`)
       .set('x-clerk-user-id', EMPLOYER)
       .set('x-org-role', 'reviewer');
     expect(res.status).toBe(200);
@@ -95,14 +96,14 @@ describe('activation routes — reads', () => {
   it('404s a missing application', async () => {
     findUnique.mockResolvedValue(null);
     const res = await request(buildApp())
-      .get(`/api/applications/${APP_ID}/activation`)
+      .get(`/api/applications/${APP_ID}/start-state`)
       .set('x-clerk-user-id', CLINICIAN);
     expect(res.status).toBe(404);
   });
 
   it('404s a non-uuid application id before touching the DB', async () => {
     const res = await request(buildApp())
-      .get('/api/applications/not-a-uuid/activation')
+      .get('/api/applications/not-a-uuid/start-state')
       .set('x-clerk-user-id', CLINICIAN);
     expect(res.status).toBe(404);
     expect(findUnique).not.toHaveBeenCalled();

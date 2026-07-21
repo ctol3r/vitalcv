@@ -37,7 +37,6 @@ import { requireOrgRole, VERIFIER_MUTATION_ROLES } from '../middleware/orgRoleGu
 import {
   instantiateActivationRequirements,
   resolveActivationRequirement,
-  getApplicationActivation,
   type RequirementSeed,
 } from '../services/activation/activationRequirementService';
 import {
@@ -170,16 +169,9 @@ function validateRequirementSeeds(value: unknown): RequirementSeed[] {
 }
 
 export function registerActivationRoutes(app: Express): void {
-  // ── Read the requirement ledger + derived start-readiness ──
-  app.get(
-    '/api/applications/:appId/activation',
-    asyncHandler(async (req, res) => {
-      const applicationId = requireUuidParam(req.params.appId, 'Application');
-      await resolveReadableApplication(req, applicationId);
-      const activation = await getApplicationActivation(applicationId);
-      res.json(activation);
-    }),
-  );
+  // The ledger READ — GET /api/applications/:appId/activation — is owned by
+  // ACT-7.1 (`applications.ts`, #805). This module adds only the mutation and
+  // start-state surface below; it must not re-register that read.
 
   // ── Instantiate the ledger for an application (employer, once, after a decision) ──
   app.post(

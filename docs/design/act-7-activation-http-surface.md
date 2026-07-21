@@ -11,11 +11,10 @@ Separately, there is a **live but different** start path: `POST /api/employer-re
 
 ## ACT-7.3 — what this branch does
 
-Mounts `services/activation` as an **application-scoped** HTTP surface in `routes/activation.ts`, registered in `app.ts`:
+Mounts `services/activation` as an **application-scoped** HTTP surface in `routes/activation.ts`, registered in `app.ts`. The ledger **read** (`GET /api/applications/:appId/activation`) is owned by **ACT-7.1 (`applications.ts`, #805)**, which merged in parallel; this module was reconciled to not re-register it (a duplicate handler would shadow #805's). The mutation + start-state surface is this branch's unique contribution:
 
 | Method | Route | Service | Authz |
 | --- | --- | --- | --- |
-| GET | `/api/applications/:appId/activation` | `getApplicationActivation` | applicant or org member |
 | POST | `/api/applications/:appId/activation/instantiate` | `instantiateActivationRequirements` | `requireOrgRole(VERIFIER_MUTATION_ROLES)` |
 | PATCH | `/api/applications/:appId/activation/requirements/:requirementId` | `resolveActivationRequirement` | `requireOrgRole(VERIFIER_MUTATION_ROLES)` |
 | GET | `/api/applications/:appId/start-state` | `getApplicationStartState` | applicant or org member |
