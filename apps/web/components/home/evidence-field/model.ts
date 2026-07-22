@@ -12,7 +12,7 @@
  * (the tasklist's exit criterion).
  */
 
-import { ALL_NODES } from '@/components/home/evidence-field/graph';
+import { ALL_NODES, type GraphNodeId } from '@/components/home/evidence-field/graph';
 
 /* deterministic PRNG so the field's geometry is identical every render */
 export function mulberry32(seed: number): () => number {
@@ -128,7 +128,10 @@ export function buildModel(): FieldModel {
 export const MODEL = buildModel();
 
 export interface FieldAnchor {
-  id: 'nppes' | 'oig-leie' | 'pecos' | 'record' | 'opportunity';
+  /* Derived from the graph rather than restated, so the two cannot disagree
+     about which nodes exist — the same reason FIELD_ANCHORS itself is now a
+     map over ALL_NODES instead of a hand-picked list of atom indices. */
+  id: GraphNodeId;
   label: string;
   x: number;
   y: number;

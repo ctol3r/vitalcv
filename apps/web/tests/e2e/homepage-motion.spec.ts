@@ -109,20 +109,30 @@ test.describe('Homepage motion convergence', () => {
     await expect(page.locator('[data-home-trust-footer]').getByRole('link', { name: /evidence network/i })).toHaveAttribute('href', '/evidence-network');
   });
 
-  test('reduced motion keeps the field poster with no animation loop', async ({ page }) => {
+  test('reduced motion keeps the whole graph, with no continuous motion', async ({ page }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.setViewportSize({ width: 1440, height: 1000 });
     await page.goto('/', { waitUntil: 'networkidle' });
     const field = page.locator('[data-home-evidence-field]');
     await expect(field).toBeVisible();
-    // SHD-1.1 strengthened this contract: under reduced motion the
-    // SceneBoundary resolves the 'static' tier, so the live canvas scene is
-    // never MOUNTED (previously an idle canvas held opacity 0). The designed
-    // poster is the whole visual.
     await expect(field.locator('[data-field-poster]')).toBeVisible();
     await page.waitForTimeout(600);
-    await expect(field.locator('[data-scene-boundary]')).toHaveAttribute('data-scene-tier', 'static');
+
+    // The field no longer has render TIERS. It used to be WebGPU → Canvas2D →
+    // poster behind a SceneBoundary, where reduced motion's job was to resolve
+    // the 'static' tier so no canvas mounted. It is now plain SVG, so the
+    // guarantee is unconditional and stronger: there is no canvas and no rAF
+    // loop to disable on any tier, for any visitor.
     await expect(field.locator('canvas')).toHaveCount(0);
+
+    // Reduced motion must not COST anything: the full composition is still
+    // present and still interactive — seven named nodes and the bounded ring.
+    await expect(field.locator('[data-field-label]')).toHaveCount(7);
+    await expect(field.locator('[data-poster-ring]')).toHaveCount(1);
+
+    // The only continuous motion (the travelling edge pulse) is removed
+    // outright rather than merely slowed.
+    await expect(field.locator('.ceg-pulse').first()).toHaveCSS('display', 'none');
   });
 
   // AUD-1.1 guard: the left-floating "Page outline" was removed because at

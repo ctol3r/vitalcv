@@ -27,8 +27,22 @@ export type EvidenceState =
   /** A lane whose live result has not come back yet (live mode only). */
   | 'resolving';
 
+/**
+ * The closed set of node ids. Declared as a union rather than `string` so that
+ * adding a node forces every consumer that switches on an id to be updated —
+ * including `FieldAnchor` in ./model.ts, which derives from this.
+ */
+export type GraphNodeId =
+  | 'nppes'
+  | 'oig-leie'
+  | 'pecos'
+  | 'licensure'
+  | 'record'
+  | 'opportunity'
+  | 'decision';
+
 export interface GraphNode {
-  id: string;
+  id: GraphNodeId;
   label: string;
   /** Normalized 0–1 position. */
   x: number;
