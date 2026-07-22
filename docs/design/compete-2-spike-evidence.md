@@ -20,28 +20,36 @@ plus a raw `curl` of the server HTML. Every value is observed, not asserted.
 
 ## Film travel — desktop 1440×900
 
-Track transform, sampled across the runway (2700 px = 300 vh):
+Six scenes → a 600 vh runway (5,400 px) with 4,500 px of travel. At each of the
+six scene boundaries the active scene's measured `left` is **exactly 0** and its
+width is **exactly 1440** — one viewport of travel per transition, no drift:
 
-| Progress | 0 | 25% | 50% | 75% | 100% |
-| --- | --- | --- | --- | --- | --- |
-| `translateX` | 0 | −354 px | −714 px | −1074 px | −1434 px |
+| Boundary | arrival | recognition | momentum | opportunity | start | choice |
+| --- | --- | --- | --- | --- | --- | --- |
+| scene `left` | 0 | 0 | 0 | 0 | 0 | 0 |
+| overflow below stage | −229 px | −278 px | −289 px | −124 px | −124 px | −282 px |
 
-Monotonic and leftward, ending at one full viewport of travel for the
-two-scene film. Pinned via `position: sticky` inside a tall spacer, so the
-browser keeps ownership of scrolling.
+Negative overflow = content ends *above* the stage bottom. A pinned stage cannot
+scroll, so anything below the fold would be lost; both facts are now pinned by
+e2e tests.
 
-**Axis not hijacked (measured):** after reaching the end of the film, a further
-`mouse.wheel(0, 400)` increases `window.scrollY`. The page keeps scrolling
-normally; nothing traps the user.
+Pinned via `position: sticky` inside a tall spacer, so the browser keeps
+ownership of scrolling.
+
+**Axis not hijacked (measured):** an ordinary `mouse.wheel(0, 400)` moves the
+document, `mouse.wheel(0, -400)` reverses it, and `scrollY` reaches the document
+maximum at the end of the film. Nothing captures or traps the wheel.
 
 ## No-JS — raw server HTML (`curl`, no browser)
 
 ```
-mode: vertical            scenesInOrder: [arrival, recognition]
-posterRects: 65           hasCanvas: false
-trackHasInlineTransform: false
-"Get hired faster."  ✓    "Your record is already out there."  ✓
-NPI label ✓               "does not look anything up" disclosure ✓
+mode: vertical
+scenes: [arrival, recognition, momentum, opportunity, start, choice]
+posterRects: 65        hasCanvas: false      trackInlineTransform: false
+all six scene phrases present        ✓
+TruthBoundary ("not a completed credentialing…")  ✓
+ProofPacketInspector ("Proof packet…")            ✓
+no 01–06 step numbers anywhere                    ✓
 ```
 
 The film is a transform applied to a linear document, never a different
@@ -61,8 +69,16 @@ document. With no JS the composition is complete and readable.
 - `pnpm check:claims` → **PASS** (23 phrases checked).
 - No percentage, counter, `Dr.`, `MD`, or `RN` in visible text.
 - No `Find the opportunity` / `VitalCV recognizes` (R7).
-- NPI field reports only `n/10 digits` or `Checksum looks right.` — it performs
-  no lookup, and says so on the surface.
+- No `01`–`06` step numbering anywhere in the rendered document (R4).
+- Before submit, Recognition renders the standing disclosure — *"Nothing
+  personal is shown until a real lookup returns"* — and no result surface
+  exists in the DOM at all.
+- The NPI field validates locally (checksum) and **enables submit only for a
+  valid NPI**; a full-length number failing the CMS check digit stays disabled.
+- **Lookup failure is honest.** With no reachable registry locally,
+  `LiveNpiResult` renders *"We couldn't reach the registry — this is a system
+  state, not a finding about NPI …"* rather than an empty or implied-negative
+  result.
 
 ## No-graph discipline (R1)
 
@@ -111,8 +127,9 @@ document. With no JS the composition is complete and readable.
 ## Test coverage added
 
 - `apps/web/__tests__/compete-film-spike.test.tsx` — 26 tests: model determinism, fragment bounds, no-graph source guard, single-listener/single-rAF guard, no-hijack guard, scene spans, copy ceiling, SSR linear fallback, truth contract, style isolation.
-- `apps/web/tests/e2e/compete-film.spec.ts` — 10 tests: film travel monotonicity, axis not hijacked, mobile vertical + no overflow, reduced motion, static tier, canvas2d tier, keyboard, no fabricated state, no graph.
+- `apps/web/tests/e2e/compete-film.spec.ts` — 13 tests: film travel monotonicity, **exact scene alignment at every boundary**, **no scene overflows the stage**, **the atmosphere never paints over the copy** (`elementFromPoint`), axis not hijacked in both directions, mobile vertical + no horizontal overflow, reduced motion, static tier, canvas2d tier, keyboard, no fabricated state, NPI validation, no graph.
 - `apps/web/__tests__/page-density-system.test.tsx` — route-count tripwire 138 → 139.
 
 Full suite at time of writing: **2,939 passed, 0 failed** (326 files, 1 skipped).
-`pnpm turbo run build --filter @vitalcv/web` → clean; `/dev/compete-film` = 4.33 kB.
+`pnpm turbo run build --filter @vitalcv/web` → clean; `/dev/compete-film` = 5.15 kB
+(238 kB first load, which carries the real proof inspector and NPI result).
