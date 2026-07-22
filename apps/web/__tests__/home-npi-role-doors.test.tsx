@@ -197,7 +197,15 @@ describe('HomePageClient — consolidated story and truth boundary', () => {
       m[1].replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim(),
     );
     expect(new Set(headings).size, `duplicate H2s: ${headings.join(' | ')}`).toBe(headings.length);
-    expect(headings.length, `H2s rendered: ${headings.join(' | ')}`).toBeLessThanOrEqual(4);
+    // Raised 4 → 5 for the wave1501 career constellation.
+    //
+    // This cap is a REDUNDANCY guard, not a section-count target: it exists
+    // because the page once argued the same point twice (ProblemStatBand above
+    // TimeToStart, EvidenceTruthPanel below HomeProofMoment). The constellation
+    // restates nothing on the page — it is the only surface that shows a career
+    // as a shape over time. Raise this again only for a section that likewise
+    // makes an argument no other section makes.
+    expect(headings.length, `H2s rendered: ${headings.join(' | ')}`).toBeLessThanOrEqual(5);
   });
 
   it('mounts the interactive proof moment: illustrative, employer boundary, real-flow CTA (W4.2)', () => {
