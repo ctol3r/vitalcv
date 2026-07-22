@@ -27,7 +27,18 @@ describe('roleCookie sign/verify', () => {
 
   it('rejects a tampered signature', async () => {
     const value = await signRoleCookie('VERIFIER');
-    const forged = `${value!.slice(0, -2)}xy`;
+    const [role, exp, sig] = value!.split('.');
+
+    // Tamper the FIRST signature character, never the tail. The signature is 32
+    // HMAC bytes in unpadded base64url — 43 characters, and 43 % 4 === 3, so the
+    // FINAL character contributes only 2 significant bits. Sixteen distinct
+    // characters decode to the same 32 bytes, so editing the tail can leave the
+    // decoded signature identical; the verifier then accepts, correctly, and the
+    // test fails for a reason that has nothing to do with signature checking.
+    // The first character's six bits are all significant, so changing it always
+    // changes byte 0.
+    const forged = `${role}.${exp}.${sig[0] === 'A' ? 'B' : 'A'}${sig.slice(1)}`;
+    expect(forged, 'the forgery must actually differ').not.toBe(value);
     expect(await verifyRoleCookie(forged)).toBeNull();
   });
 

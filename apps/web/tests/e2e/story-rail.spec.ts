@@ -12,8 +12,26 @@ import { expect, test } from '@playwright/test';
 // writes each frame.
 
 const URL = '/dev/story-rail';
-const active = (page: import('@playwright/test').Page) =>
+type Page = import('@playwright/test').Page;
+
+const active = (page: Page) =>
   page.locator('[data-story-rail]').getAttribute('data-rail-active');
+
+// Chapter count and per-id indices are READ FROM THE DOM, never hardcoded.
+// This spec used to pin `5 // last of six chapters`, `#matcha is index 2` and
+// `toHaveCount(6)` — all inherited from a harness that hardcoded six chapters
+// including `evidence` and `recognition`, neither of which exists in the
+// shipped four-chapter journey. The harness now renders JOURNEY_CHAPTERS, so
+// literals here would just relocate the same drift into the test.
+const chapterCount = (page: Page) => page.locator('[data-rail-chapter]').count();
+
+const chapterIndex = (page: Page, id: string) =>
+  page.evaluate((chapterId) => {
+    const ids = [...document.querySelectorAll('[data-rail-chapter]')].map((el) =>
+      el.getAttribute('data-rail-chapter-id'),
+    );
+    return ids.indexOf(chapterId);
+  }, id);
 
 test.describe('horizontal story rail (SHD-3.1)', () => {
   test('pins on eligible desktop and translates chapters horizontally on scroll', async ({ page }) => {
@@ -43,7 +61,7 @@ test.describe('horizontal story rail (SHD-3.1)', () => {
     // Wheel well past the runway travel (~4500px) so progress clamps to 1.
     for (let i = 0; i < 6; i++) await page.mouse.wheel(0, 1500);
     await page.waitForTimeout(200);
-    expect(Number(await active(page))).toBe(5); // last of six chapters
+    expect(Number(await active(page))).toBe((await chapterCount(page)) - 1);
 
     await expect(page.locator('#rail-end')).toBeVisible();
   });
@@ -52,7 +70,9 @@ test.describe('horizontal story rail (SHD-3.1)', () => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto(`${URL}#matcha`, { waitUntil: 'networkidle' });
     await page.waitForTimeout(500);
-    expect(Number(await active(page))).toBe(2); // #matcha is index 2
+    const matcha = await chapterIndex(page, 'matcha');
+    expect(matcha, 'the matcha chapter must exist to deep-link to it').toBeGreaterThanOrEqual(0);
+    expect(Number(await active(page))).toBe(matcha);
   });
 
   test('keyboard focus pulls an off-screen chapter into the pin', async ({ page }) => {
@@ -61,7 +81,7 @@ test.describe('horizontal story rail (SHD-3.1)', () => {
 
     await page.locator('[data-chapter-cta="apply"]').focus();
     await page.waitForTimeout(600);
-    expect(Number(await active(page))).toBe(3); // apply is index 3
+    expect(Number(await active(page))).toBe(await chapterIndex(page, 'apply'));
   });
 
   test('skip-story control is keyboard-reachable and lands past the rail', async ({ page }) => {
@@ -76,11 +96,23 @@ test.describe('horizontal story rail (SHD-3.1)', () => {
   });
 
   test('narrow viewport falls back to a vertical stack (no pin, no transform)', async ({ page }) => {
-    await page.setViewportSize({ width: 390, height: 800 });
+    // The invariant that matters is not a magic number — it is that the
+    // fallback carries the SAME chapters as the pinned rail.
+    //
+    // Resize rather than navigate twice: the rail listens to its own
+    // `(min-width)` mediaquery, so this exercises the live unpin a user gets by
+    // dragging a window edge, and keeps the test to ONE navigation. Two
+    // `networkidle` gotos in one test exceeded the 30s CI timeout.
+    await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto(URL, { waitUntil: 'networkidle' });
     const rail = page.locator('[data-story-rail]');
+    await expect(rail).toHaveAttribute('data-rail-pinned', 'true');
+    const pinnedCount = await chapterCount(page);
+    expect(pinnedCount).toBeGreaterThan(0);
+
+    await page.setViewportSize({ width: 390, height: 800 });
     await expect(rail).toHaveAttribute('data-rail-pinned', 'false');
-    await expect(page.locator('[data-rail-chapter]')).toHaveCount(6);
+    await expect(page.locator('[data-rail-chapter]')).toHaveCount(pinnedCount);
     await expect(page.locator('.story-rail-track')).toHaveCount(0);
   });
 
