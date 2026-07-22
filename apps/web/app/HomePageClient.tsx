@@ -14,12 +14,10 @@ import {
 import { Input } from '@/components/ui/input';
 import { DualAudienceCta } from '@/components/home/DualAudienceCta';
 import { CareerEvidenceField } from '@/components/home/CareerEvidenceField';
-import { EvidenceTruthPanel } from '@/components/home/EvidenceTruthPanel';
 import { LiveNpiResult } from '@/components/home/LiveNpiResult';
 import { MetricStrip } from '@/components/home/MetricStrip';
-import { ProblemStatBand } from '@/components/home/ProblemStatBand';
-import { ProductCarousel } from '@/components/home/ProductCarousel';
 import { SourceCoverageRibbon } from '@/components/home/SourceCoverageRibbon';
+import { TruthBoundary } from '@/components/home/TruthBoundary';
 import { RailJourney } from '@/components/home/rail/RailJourney';
 import { HomeProofMoment } from '@/components/home/HomeProofMoment';
 import { TimeToStartComparison } from '@/components/home/TimeToStartComparison';
@@ -295,8 +293,14 @@ export default function HomePageClient() {
             reduced-motion-safe, shows content if JS/IO is unavailable). The
             scroll-COUPLED sections (journey rail, ribbon) keep their own
             motion and are deliberately not wrapped. */}
-        <Reveal><ProblemStatBand /></Reveal>
 
+        {/* THE PROBLEM — stated once.
+            ProblemStatBand ("Healthcare hiring has a trust-liquidity problem")
+            ran ~610px immediately above this section, which then argued the
+            same point again with a sharper line and an actual comparison
+            visual. Two H2s and ~1,000px to make one argument is the redundancy
+            that made this page feel long without feeling full. The band is
+            retired from the composition; the component stays on disk. */}
         <Reveal><TimeToStartComparison /></Reveal>
 
         {/* W2: THE career journey — four chapters through the horizontal rail
@@ -313,22 +317,33 @@ export default function HomePageClient() {
             the "why this is credible" beat right after the journey. */}
         <Reveal><HomeProofMoment /></Reveal>
 
-        {/* fade (not rise): this section carries a scrub-coupled heading, and
-            mz-rise's scale(0.985) changes the heading's measured box while the
-            reveal settles — breaking the scrub contract "the text is laid out
-            from the start, only its ink changes" (scrub-headings e2e, the CLS
-            guard). Opacity-only keeps the uplift with stable geometry. */}
-        <Reveal variant="fade" className="pt-8" data-home-experience="evidence-trace">
-          <EvidenceTruthPanel />
+        {/* The limitation that came off EvidenceTruthPanel when that section was
+            retired. Redundant ARGUMENT is worth cutting; a redundant-looking
+            DISCLAIMER is not — this names what VitalCV does and does not know,
+            and it is the page's only enumerated statement that a packet is not
+            a credentialing, privileging, or clearance decision. */}
+        <Reveal delay={90} className="pt-6">
+          <TruthBoundary />
         </Reveal>
 
-        {/* fade for the same reason: the carousel title is a scrub heading. */}
-        <Reveal variant="fade"><ProductCarousel /></Reveal>
+        {/* THE PROOF — also stated once.
+            EvidenceTruthPanel ("Every claim shows its source", ~811px) sat
+            directly below HomeProofMoment ("Inspect the proof, claim by
+            claim"), making the same argument twice in a row — the second and
+            larger instance of the page's redundancy problem. HomeProofMoment
+            wins the slot because it is the INTERACTIVE one: a real proof-packet
+            inspector (claim → source → retrieval → state → limitation) instead
+            of a static restatement. EvidenceTruthPanel stays on disk.
 
-        {/* ResumeToProof retired: 25 words and 200px restating the old-way /
-            new-way contrast that the rail's four chapters already carry, with
-            no test or copy-source depending on it. The component stays on disk
-            — this is a composition change, not a deletion of the idea. */}
+            ProductCarousel ("One career record. Six reusable surfaces.")
+            is retired here too — a six-panel feature carousel is a product-tour
+            device, and it was the third pass at "look what the record can do"
+            after the journey rail had already walked through it in four
+            chapters. Its evidence-state glyph grammar is a real contract, so
+            that guard moves rather than disappears (see homepage-truth-pass).
+
+            ResumeToProof was retired earlier for the same reason: 25 words and
+            200px restating the old-way / new-way contrast the rail carries. */}
 
         <section id="employers" data-home-experience="metrics-and-cta" className="pt-14">
           <Reveal><MetricStrip /></Reveal>

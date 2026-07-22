@@ -60,9 +60,25 @@ export function RailJourney() {
           missing, and reuse your proof for every move.
         </p>
       </div>
+      {/*
+        dwellVh 1 → 0.5.
+
+        railRunwayHeight is (chapters - 1) * dwellVh * viewportH + viewportH, so
+        four chapters at a full viewport-height of dwell each demanded 3,600px
+        of pinned scrolling — measured at 3,882px with the heading, which was
+        44% of the entire page. The rail was not broken (progress ran 0 → 1 and
+        the track translated 0 → -300vw exactly as designed); it was simply
+        geared so low that four screens of scrolling produced barely-perceptible
+        movement, which reads as "the page is stuck", not as motion.
+
+        Half a viewport per transition keeps the same choreography and the same
+        four chapters, but the rail now moves visibly for every bit of scroll
+        spent on it. Runway: 3,600px → 2,250px.
+      */}
       <HorizontalStoryRail
         chapters={chapters}
         skipTargetId="employers"
+        dwellVh={0.5}
         onProgress={onProgress}
         onPinnedChange={onPinnedChange}
       />

@@ -1,15 +1,5 @@
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
 
-/** The belt's current leftward travel in px (0 when untransformed). */
-async function beltOffset(page: Page): Promise<number> {
-  return page.locator('[data-carousel-belt]').evaluate((node) => {
-    const t = getComputedStyle(node).transform;
-    if (t === 'none') return 0;
-    const m = new DOMMatrixReadOnly(t);
-    return -m.m41;
-  });
-}
-
 test.describe('Homepage motion convergence', () => {
   // behavior: 'instant' — the page sets CSS smooth scrolling, so 'auto' defers
   // to it and one-shot reads would race the animation.
@@ -55,7 +45,9 @@ test.describe('Homepage motion convergence', () => {
       if (width === 1440) {
         // Cloud Dancer public paper (HERO-RESET-1): #F0EEE9, route-scoped.
         await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(240, 238, 233)');
-        await expect(page.locator('[data-home-evidence-trace]')).toHaveCount(1);
+        // EvidenceTruthPanel retired; the limitation it owned now ships as the
+        // shared boundary under the surviving proof section.
+        await expect(page.locator('[data-home-truth-boundary]')).toHaveCount(1);
       }
     });
   }
@@ -70,18 +62,16 @@ test.describe('Homepage motion convergence', () => {
     });
   }
 
-  test('mobile: journey chapters stack vertically; the carousel belt flows inside a clip', async ({ page }) => {
+  test('mobile: journey chapters stack vertically', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto('/', { waitUntil: 'networkidle' });
     // W2 fallback: no pin, no navigator, all four chapters in document flow.
     await expect(page.locator('[data-story-rail]')).toHaveAttribute('data-rail-pinned', 'false');
     await expect(page.locator('[data-journey-card]')).toHaveCount(4);
     await expect(page.locator('[data-story-rail-nav]')).toHaveCount(0);
-    await expect(page.locator('.product-carousel-track')).toHaveCSS('overflow', 'hidden');
-    await expect(page.locator('[data-carousel-belt]')).toHaveCSS('display', 'flex');
   });
 
-  test('reduced motion exposes a static stacked story and carousel grid', async ({ page }) => {
+  test('reduced motion exposes a static stacked story', async ({ page }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.setViewportSize({ width: 1440, height: 1000 });
     await page.goto('/', { waitUntil: 'networkidle' });
@@ -89,101 +79,9 @@ test.describe('Homepage motion convergence', () => {
     // vertical document — no pin, no navigator, no leaf transforms.
     await expect(page.locator('[data-journey-card]')).toHaveCount(4);
     await expect(page.locator('[data-story-rail]')).toHaveAttribute('data-rail-pinned', 'false');
-    await expect(page.locator('[data-carousel-belt]')).toHaveCSS('display', 'grid');
-    // One copy of each card only — the seam duplicate never renders.
-    await expect(page.locator('[data-carousel-belt] article')).toHaveCount(6);
     await expect(page.getByText(/Start with your NPI\. See what employers can confirm/).first()).toBeVisible();
-    // Headings render plain and complete under reduced motion (M1 contract).
-    await expect(page.locator('#product-carousel-title')).toHaveAttribute('data-scrub-heading', 'reduced');
-  });
-
-  // ── Continuous-flow carousel (Chris, 2026-07-17: "100% continuous flow") ──
-  // The contract is a seamless marquee with accessible controls: it streams at
-  // a constant pace while idle, suspends on hover/focus (WCAG 2.2.2 via the
-  // visible pause control), duplicates its sequence once (aria-hidden) to hide
-  // the wrap seam, and never moves for reduced-motion visitors.
-
-  test('carousel streams continuously while idle and unhovered', async ({ page }) => {
-    await page.setViewportSize({ width: 1440, height: 1000 });
-    await page.goto('/', { waitUntil: 'networkidle' });
-    const section = page.locator('[data-home-product-carousel]');
-    await section.scrollIntoViewIfNeeded();
-    await page.mouse.move(10, 10); // ensure the pointer is OUTSIDE the section
-    await expect(section).toHaveAttribute('data-carousel-flow', 'continuous');
-    await expect(section).toHaveAttribute('data-carousel-autoplay', 'on');
-
-    // Two copies of the six cards, clones hidden from assistive tech.
-    await expect(page.locator('[data-carousel-belt] article')).toHaveCount(12);
-    await expect(page.locator('[data-carousel-belt] article[aria-hidden="true"]')).toHaveCount(6);
-
-    const a = await beltOffset(page);
-    await page.waitForTimeout(1200);
-    const b = await beltOffset(page);
-    await page.waitForTimeout(1200);
-    const c = await beltOffset(page);
-    expect(b, 'belt must advance').toBeGreaterThan(a);
-    expect(c, 'belt must KEEP advancing — continuous, not stepped').toBeGreaterThan(b);
-    // Constant pace: two equal windows travel roughly equal distances.
-    expect(Math.abs(c - b - (b - a))).toBeLessThan(25);
-  });
-
-  test('carousel suspends on hover and honors the visible pause control', async ({ page }) => {
-    await page.setViewportSize({ width: 1440, height: 1000 });
-    await page.goto('/', { waitUntil: 'networkidle' });
-    const section = page.locator('[data-home-product-carousel]');
-    await section.scrollIntoViewIfNeeded();
-
-    // Hovering anywhere in the section suspends the stream (WCAG 2.2.2).
-    await section.hover();
-    await page.waitForTimeout(300);
-    const hovered = await beltOffset(page);
-    await page.waitForTimeout(1500);
-    expect(Math.abs((await beltOffset(page)) - hovered)).toBeLessThan(2);
-
-    // The pause control flips the state and survives un-hovering.
-    await page.getByRole('button', { name: 'Pause the product flow' }).click();
-    await expect(section).toHaveAttribute('data-carousel-autoplay', 'off');
-    await expect(page.getByRole('button', { name: 'Resume the product flow' })).toBeVisible();
-    await page.mouse.move(10, 10);
-    await page.waitForTimeout(300);
-    const paused = await beltOffset(page);
-    await page.waitForTimeout(1500);
-    expect(Math.abs((await beltOffset(page)) - paused)).toBeLessThan(2);
-
-    // Resume restores the stream.
-    await page.getByRole('button', { name: 'Resume the product flow' }).click();
-    await page.mouse.move(10, 10);
-    const resumed = await beltOffset(page);
-    await expect
-      .poll(() => beltOffset(page), { intervals: [400], timeout: 5000 })
-      .toBeGreaterThan(resumed + 5);
-  });
-
-  test('keyboard nudges the belt one card while focus holds the stream', async ({ page }) => {
-    await page.setViewportSize({ width: 1440, height: 1000 });
-    await page.goto('/', { waitUntil: 'networkidle' });
-    const track = page.getByRole('region', { name: 'VitalCV product surfaces' });
-    await track.scrollIntoViewIfNeeded();
-    await track.focus();
-    await page.waitForTimeout(200);
-    const before = await beltOffset(page);
-    await page.keyboard.press('ArrowRight');
-    const after = await beltOffset(page);
-    expect(after - before, 'ArrowRight advances about one card').toBeGreaterThan(300);
-    // Focus inside the region keeps the stream suspended (no drift on top of
-    // the manual position).
-    await page.waitForTimeout(1200);
-    expect(Math.abs((await beltOffset(page)) - after)).toBeLessThan(2);
-  });
-
-  test('reduced motion never streams', async ({ page }) => {
-    await page.emulateMedia({ reducedMotion: 'reduce' });
-    await page.setViewportSize({ width: 1440, height: 1000 });
-    await page.goto('/', { waitUntil: 'networkidle' });
-    await expect(page.locator('[data-home-product-carousel]')).toHaveAttribute(
-      'data-carousel-autoplay',
-      'off',
-    );
+    // The limitation is plain server-rendered text under reduced motion too.
+    await expect(page.getByText('What this does not mean')).toBeVisible();
   });
 
   // ── Career Evidence Field (hero, VHS-1) ─────────────────────────────────
@@ -267,10 +165,14 @@ test.describe('Homepage motion convergence', () => {
     const scene = page.locator('[data-home-scene]');
     await expect(scene).toHaveCSS('pointer-events', 'none');
     await expect(scene).toHaveCSS('position', 'fixed');
-
-    // The ambient canvas is mounted on animated tiers and aria-hidden.
-    await expect(page.locator('[data-scene-ambient]')).toHaveCount(1);
     await expect(scene).toHaveAttribute('aria-hidden', 'true');
+
+    // The ambient COLOUR field is gone. It painted emerald 12% / indigo 10%
+    // radial gradients on this fixed layer, so the tint stayed welded to the
+    // viewport while content scrolled past — the single reason a deliberately
+    // uniform Cloud Dancer page read as having an inconsistent background.
+    // Grain (a baked texture, not a colour) is all that may live here now.
+    await expect(page.locator('[data-scene-ambient]')).toHaveCount(0);
 
     // The NPI input receives real clicks straight through the fixed layer.
     await page.locator('#npi-input').click();
