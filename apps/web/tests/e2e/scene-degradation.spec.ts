@@ -47,84 +47,22 @@ test.describe('scene degradation matrix (SHD-6.1)', () => {
     await page.setViewportSize(DESKTOP);
     await page.goto('/?sceneTier=static', { waitUntil: 'networkidle' });
 
-    // Every scene boundary honors the forced tier.
-    const boundaries = page.locator('[data-scene-boundary]');
-    const count = await boundaries.count();
-    expect(count).toBeGreaterThan(0);
-    for (let i = 0; i < count; i++) {
-      await expect(boundaries.nth(i)).toHaveAttribute('data-scene-tier', 'static');
-    }
+    // There are no scene BOUNDARIES left to honour a forced tier: the ambient
+    // colour field and the evidence field's WebGPU/Canvas2D tiers were both
+    // retired in the 2026-07-21 rebuild, so SceneBoundary has no live consumer.
+    // What that tier system existed to guarantee — a designed poster, never a
+    // blank or canvas-dependent hero — is now unconditional, which is what the
+    // rest of this test asserts.
+    await expect(page.locator('[data-scene-boundary]')).toHaveCount(0);
 
-    // The designed poster is the visual — no live scene canvas mounts.
+    // The designed poster is the visual — no live scene canvas mounts, on any
+    // tier, for any visitor.
     await expect(page.locator('[data-field-poster]')).toBeAttached();
     await expect(page.locator('[data-home-evidence-field] canvas')).toHaveCount(0);
 
     await expectNpiActionUsable(page);
     await expectNoHorizontalOverflow(page);
     expect(errors).toEqual([]);
-  });
-
-  test('canvas2d tier: the live 2D scene mounts over the poster, which stays', async ({ page }) => {
-    const errors = collectPageErrors(page);
-    await page.setViewportSize(DESKTOP);
-    await page.goto('/?sceneTier=canvas2d', { waitUntil: 'networkidle' });
-
-    const field = page.locator('[data-home-evidence-field] [data-scene-boundary]');
-    await expect(field).toHaveAttribute('data-scene-tier', 'canvas2d');
-    // Live scene present…
-    await expect(page.locator('[data-home-evidence-field] canvas')).not.toHaveCount(0);
-    // …and the poster is layered beneath it, never removed.
-    await expect(page.locator('[data-field-poster]')).toBeAttached();
-
-    await expectNpiActionUsable(page);
-    expect(errors).toEqual([]);
-  });
-
-  test('webgpu tier in a GPU-less browser: degrades cleanly, never a blank or error region', async ({ page }) => {
-    const errors = collectPageErrors(page);
-    await page.setViewportSize(DESKTOP);
-    await page.goto('/?sceneTier=webgpu', { waitUntil: 'networkidle' });
-
-    const field = page.locator('[data-home-evidence-field] [data-scene-boundary]');
-    // The boundary grants the forced tier; the field's WebGPU renderer must
-    // fall back internally (onFallback → Canvas-2D) when init fails.
-    await expect(field).toHaveAttribute('data-scene-tier', 'webgpu');
-    // Never a crash-fallback marker, never a missing poster.
-    await expect(field).not.toHaveAttribute('data-scene-error', '');
-    await expect(page.locator('[data-field-poster]')).toBeAttached();
-    // A live surface eventually paints (WebGPU where supported, else the 2D
-    // fallback) — either way a canvas exists and the page stays whole.
-    await expect(page.locator('[data-home-evidence-field] canvas')).not.toHaveCount(0, { timeout: 10_000 });
-
-    await expectNpiActionUsable(page);
-    expect(errors).toEqual([]);
-  });
-
-  test('an invalid sceneTier value is ignored — real detection decides, page stays whole', async ({ page }) => {
-    const errors = collectPageErrors(page);
-    await page.setViewportSize(DESKTOP);
-    await page.goto('/?sceneTier=bogus', { waitUntil: 'networkidle' });
-
-    const field = page.locator('[data-home-evidence-field] [data-scene-boundary]');
-    const tier = await field.getAttribute('data-scene-tier');
-    expect(['static', 'canvas2d', 'webgpu']).toContain(tier);
-    await expect(page.locator('[data-field-poster]')).toBeAttached();
-    await expectNpiActionUsable(page);
-    expect(errors).toEqual([]);
-  });
-
-  test('reduced motion resolves every boundary to static — no live scene anywhere', async ({ page }) => {
-    await page.emulateMedia({ reducedMotion: 'reduce' });
-    await page.setViewportSize(DESKTOP);
-    await page.goto('/', { waitUntil: 'networkidle' });
-
-    const boundaries = page.locator('[data-scene-boundary]');
-    const count = await boundaries.count();
-    expect(count).toBeGreaterThan(0);
-    for (let i = 0; i < count; i++) {
-      await expect(boundaries.nth(i)).toHaveAttribute('data-scene-tier', 'static');
-    }
-    await expect(page.locator('[data-home-evidence-field] canvas')).toHaveCount(0);
   });
 
   test('no-JS SSR floor: heading, NPI form, posters, and source lanes are all served', async ({ browser }) => {
@@ -136,9 +74,9 @@ test.describe('scene degradation matrix (SHD-6.1)', () => {
     await expect(page.getByLabel('NPI number')).toBeAttached();
     await expect(page.locator('[data-field-poster]')).toBeAttached();
     await expect(page.locator('[data-home-source-strip]')).toBeAttached();
-    // The scene never blocks the semantic page: boundaries render their poster
-    // server-side (static) with no client JS at all.
-    await expect(page.locator('[data-scene-boundary]').first()).toBeAttached();
+    // The graph is plain server-rendered SVG — no boundary, no tier, no client
+    // JS required for the composition to exist.
+    await expect(page.locator('[data-field-edges]')).toBeAttached();
     // HERO-RESET-1: the designed composition — named stations, ring, legend —
     // is complete without JavaScript, not a low-contrast emergency state.
     for (const id of ['nppes', 'oig-leie', 'pecos', 'record', 'opportunity']) {
@@ -281,7 +219,15 @@ test.describe('hero reset — clinician sell and field visibility (HERO-RESET-1)
         return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
       };
       const panel = document.querySelector('[data-home-evidence-field]') as HTMLElement;
-      const station = document.querySelector('[data-field-poster] g circle[opacity="0.9"]') as SVGCircleElement | null;
+      // The station is the SMALL inner dot of a source node — the element that
+      // actually carries the lane's state colour. (The outer circle is a
+      // surface-filled halo; measuring that would score paper against paper and
+      // quietly assert nothing.) The old selector looked for `opacity="0.9"`
+      // circles from the retired particle poster and matched nothing, which
+      // returned -1 and read as a contrast failure.
+      const station = document.querySelector(
+        '[data-field-poster] g circle[r="4.5"]',
+      ) as SVGCircleElement | null;
       if (!panel || !station) return -1;
       // The field bleeds into the hero paper, so it has no fill of its own —
       // measure against what is ACTUALLY behind it. Reading the panel's own
@@ -300,86 +246,18 @@ test.describe('hero reset — clinician sell and field visibility (HERO-RESET-1)
     });
     expect(contrast, 'station color must stand off the panel, not camouflage').toBeGreaterThan(3);
 
-    // Structural density: the poster is a designed drawing, not three faint lines.
+    // Structural density: the composition is a designed drawing, not three
+    // faint lines. Counted across BOTH layers, because the drawing genuinely
+    // spans them now — edges must live in their own stretched viewBox (path
+    // `d` data cannot take percentages) while nodes keep percentage geometry so
+    // circles stay round. Counting only the node layer would undercount the
+    // drawing by every connection in it.
     const shapes = await page
-      .locator('[data-field-poster] line, [data-field-poster] circle, [data-field-poster] ellipse, [data-field-poster] rect')
+      .locator(
+        '[data-field-poster] circle, [data-field-poster] line, [data-field-poster] rect, [data-field-edges] path',
+      )
       .count();
     expect(shapes).toBeGreaterThan(20);
-  });
-
-  test('canvas tier: real pixels are painted over the same named composition', async ({ page }) => {
-    await page.setViewportSize(DESKTOP);
-    await page.goto('/?sceneTier=canvas2d', { waitUntil: 'networkidle' });
-    await expect(page.locator('[data-home-evidence-field] canvas')).not.toHaveCount(0);
-    await page.waitForTimeout(900); // let a few frames draw
-
-    const painted = await page.evaluate(() => {
-      const canvas = document.querySelector('[data-home-evidence-field] canvas') as HTMLCanvasElement | null;
-      if (!canvas || canvas.width === 0) return -1;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) return -2;
-      const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      let hits = 0;
-      for (let i = 3; i < data.length; i += 40) if (data[i] > 8) hits += 1;
-      return hits;
-    });
-    expect(painted, 'the 2D scene must paint real, non-transparent pixels').toBeGreaterThan(50);
-
-    // The shared label overlay is identical on the animated tier.
-    await expect(page.locator('[data-field-label="nppes"]')).toBeVisible();
-    await expect(page.locator('[data-field-label="record"]')).toBeVisible();
-  });
-
-  test('webgpu tier: the GPU scene paints real pixels and is not silently swapped out', async ({ page }) => {
-    await page.setViewportSize(DESKTOP);
-    await page.goto('/?sceneTier=webgpu', { waitUntil: 'networkidle' });
-
-    // `'gpu' in navigator` is NOT sufficient: Playwright's bundled Chromium
-    // exposes the API and then hands back a null adapter, in which case the
-    // field is *correct* to fall back to Canvas 2D. Only a runner that can
-    // actually acquire a device can be held to the GPU tier.
-    const hasAdapter = await page.evaluate(async () => {
-      try {
-        return Boolean(await (navigator as Navigator & { gpu?: GPU }).gpu?.requestAdapter());
-      } catch {
-        return false;
-      }
-    });
-    test.skip(!hasAdapter, 'runner cannot acquire a WebGPU adapter');
-
-    // Long enough to clear the renderer's own paint self-check, so a blank GPU
-    // canvas has already been demoted to Canvas 2D by the time we look.
-    await page.waitForTimeout(2000);
-
-    // The regression this pins: `mat4Multiply(view, proj)` instead of
-    // proj × view collapsed every vertex to w = 0. Init still succeeded, no
-    // error was raised, the canvas stayed attached at opacity 1 — and drew
-    // absolutely nothing, leaving the static poster as the whole hero.
-    const gpu = page.locator('[data-home-evidence-field] [data-field-gpu]');
-    await expect(gpu, 'the GPU tier must survive its own paint probe').toHaveCount(1);
-
-    const painted = await page.evaluate(() => {
-      const canvas = document.querySelector('[data-field-gpu]') as HTMLCanvasElement | null;
-      if (!canvas || !canvas.width) return -1;
-      // A WebGPU canvas has no getImageData — copy it through a 2D scratch.
-      const scratch = document.createElement('canvas');
-      scratch.width = canvas.width;
-      scratch.height = canvas.height;
-      const ctx = scratch.getContext('2d', { willReadFrequently: true });
-      if (!ctx) return -2;
-      ctx.drawImage(canvas, 0, 0);
-      const { data } = ctx.getImageData(0, 0, scratch.width, scratch.height);
-      let hits = 0;
-      for (let i = 3; i < data.length; i += 40) if (data[i] > 8) hits += 1;
-      return hits;
-    });
-    // Note: this external readback can legitimately report 0 for a presented
-    // frame — which is exactly why the renderer measures itself. The binding
-    // assertion is the surviving GPU canvas above; this is a bonus signal.
-    expect(painted, 'readback must not error').toBeGreaterThanOrEqual(0);
-
-    await expect(page.locator('[data-field-label="nppes"]')).toBeVisible();
-    await expect(page.locator('[data-field-label="record"]')).toBeVisible();
   });
 
   test('reduced motion: the poster composition is complete and obvious without any render loop', async ({ page }) => {

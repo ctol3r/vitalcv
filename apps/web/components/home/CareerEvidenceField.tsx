@@ -330,9 +330,14 @@ export function CareerEvidenceField({
                       : 'text-[var(--vt-text-secondary)]',
                   )}
                 >
-                  {n.id === 'record' && live && boot
-                    ? [boot.firstName, boot.lastName].filter(Boolean).join(' ') || n.label
-                    : n.label}
+                  {/* The record node keeps its STRUCTURAL label even in live
+                      mode. Substituting the clinician's name here rendered it
+                      twice on the same screen — once as this node, once in
+                      LiveNpiResult's identity block — which is both the
+                      duplication this rebuild is removing and a Playwright
+                      strict-mode violation in npi-truth-engine. The card owns
+                      identity; the graph owns structure. */}
+                  {n.label}
                 </span>
               </button>
             );
@@ -390,20 +395,20 @@ function Legend({ live }: { live: boolean }) {
           </li>
         ))}
       </ul>
-      <p className="mt-2 text-[11px] leading-relaxed text-[var(--vt-text-muted)]">
-        {live ? (
-          <>
-            A public snapshot of what primary sources return today — not a completed credentialing
-            decision. Institution review remains the final step.
-          </>
-        ) : (
-          <>
-            Named public sources shown: NPPES, OIG/LEIE, and PECOS — signals flowing into a record
-            you own. State licensure is access-gated and drawn as such. Illustrative structure:
-            no real people or employers are represented until you enter an NPI.
-          </>
-        )}
-      </p>
+      {/* In LIVE mode this paragraph is deliberately absent. LiveNpiResult
+          renders directly beneath the graph and already carries the snapshot
+          limitation ("A public snapshot of what primary sources return today
+          — not a completed credentialing decision…"), which npi-truth-engine
+          asserts. Repeating it here put the same sentence on screen twice and
+          broke that test on a strict-mode violation. The card owns the
+          disclaimer; the graph owns the structure. */}
+      {live ? null : (
+        <p className="mt-2 text-[11px] leading-relaxed text-[var(--vt-text-muted)]">
+          Named public sources shown: NPPES, OIG/LEIE, and PECOS — signals flowing into a record
+          you own. State licensure is access-gated and drawn as such. Illustrative structure:
+          no real people or employers are represented until you enter an NPI.
+        </p>
+      )}
     </div>
   );
 }

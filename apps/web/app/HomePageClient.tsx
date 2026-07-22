@@ -315,7 +315,14 @@ export default function HomePageClient() {
             inspector (claim → source → retrieval/receipt → state → limitation),
             explicitly illustrative, linking the real clinician flow. Placed as
             the "why this is credible" beat right after the journey. */}
-        <Reveal><HomeProofMoment /></Reveal>
+        {/* fade, NOT rise — this section now carries the scrub-coupled heading.
+            mz-rise's scale(0.985) changes the heading's measured box while the
+            reveal settles, which breaks the scrub contract "the text is laid
+            out from the start, only its ink changes" (the scrub-headings CLS
+            guard). Opacity-only keeps the uplift with stable geometry. This
+            constraint travelled here with the heading from EvidenceTruthPanel,
+            which carried the same comment for the same reason. */}
+        <Reveal variant="fade"><HomeProofMoment /></Reveal>
 
         {/* The limitation that came off EvidenceTruthPanel when that section was
             retired. Redundant ARGUMENT is worth cutting; a redundant-looking

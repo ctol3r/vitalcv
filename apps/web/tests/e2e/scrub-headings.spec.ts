@@ -17,8 +17,24 @@ import { expect, test, type Page } from '@playwright/test';
  */
 
 const HEADING = '[data-scrub-heading]';
-const EVIDENCE_HEADING = '[data-home-evidence-truth] [data-scrub-heading]';
-const EVIDENCE_TEXT = 'Every claim shows its source.';
+
+/**
+ * The scrubbed heading now lives on the PROOF section (2026-07-21 rebuild).
+ *
+ * Its previous two hosts — ProductCarousel and EvidenceTruthPanel — were both
+ * retired from the homepage composition (one unwanted, one a redundant restating
+ * of the proof argument). That left this whole spec pointed at markup that no
+ * longer rendered anywhere. Rather than delete ~14 tests covering a real motion
+ * contract, the treatment was re-pointed onto the heading that survived, so the
+ * page keeps the animation AND the coverage keeps a live target.
+ *
+ * Every guarantee below is unchanged: characters resolve with scroll and
+ * reverse, words never shatter, reduced motion gets the finished heading, and
+ * — the regression guard — NO pinned runway of blank paper ever returns.
+ */
+const EVIDENCE_SECTION = '[data-home-proof-moment]';
+const EVIDENCE_HEADING = '[data-home-proof-moment] [data-scrub-heading]';
+const EVIDENCE_TEXT = 'Inspect the proof, claim by claim.';
 
 async function scrollTo(page: Page, y: number) {
   await page.evaluate((top) => window.scrollTo({ top, behavior: 'instant' }), y);
@@ -114,11 +130,11 @@ test.describe('scroll-scrubbed character heading', () => {
     await page.setViewportSize({ width: 1440, height: 1000 });
     await page.goto('/', { waitUntil: 'networkidle' });
 
-    const evidenceSection = page.locator('[data-home-evidence-truth]');
+    const evidenceSection = page.locator(EVIDENCE_SECTION);
     expect(await evidenceSection.locator('[data-scrub-pin]').count()).toBe(0);
     expect(await evidenceSection.locator('[data-scrub-scene]').count()).toBe(0);
     // The lede sits directly under the heading, not stranded past a runway.
-    const lede = page.locator('[data-home-evidence-truth] .evidence-truth-lede');
+    const lede = page.locator(`${EVIDENCE_SECTION} .evidence-truth-lede`);
     await expect(lede).toBeVisible();
     // No element inside the panel is a >1-viewport tall scroll runway.
     const tallest = await evidenceSection.evaluate((node) => {

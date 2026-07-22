@@ -37,10 +37,14 @@ test('capture desktop motion frames', async ({ page }) => {
   await scrollWithin(page, '[data-story-rail] .story-rail-runway', 1);
   await shot(page, '06-journey-end-start-faster');
 
-  await page.locator('[data-home-evidence-trace]').scrollIntoViewIfNeeded();
-  await shot(page, '07-evidence-truth-panel');
-  await page.locator('[data-home-product-carousel]').scrollIntoViewIfNeeded();
-  await shot(page, '08-product-carousel');
+  // The evidence-truth panel and the product carousel were retired from the
+  // composition (2026-07-21 rebuild), so there are no frames to capture for
+  // them. The proof moment now carries this beat — and the truth boundary that
+  // came off the retired panel is captured with it.
+  await page.locator('[data-home-proof-moment]').scrollIntoViewIfNeeded();
+  await shot(page, '07-proof-moment');
+  await page.locator('[data-home-truth-boundary]').scrollIntoViewIfNeeded();
+  await shot(page, '08-truth-boundary');
   await page.locator('[data-home-dual-cta]').scrollIntoViewIfNeeded();
   await shot(page, '09-metrics-dual-cta');
 });
@@ -52,6 +56,8 @@ test('capture mobile frames', async ({ page }) => {
   await shot(page, '10-mobile-hero');
   await page.locator('[data-journey-card="matcha"]').scrollIntoViewIfNeeded();
   await shot(page, '11-mobile-journey-stack');
-  await page.locator('.product-carousel-track').scrollIntoViewIfNeeded();
-  await shot(page, '12-mobile-carousel');
+  // Was '12-mobile-carousel'; the carousel is retired. The evidence graph is
+  // the more useful mobile frame now — it is the surface that changed most.
+  await page.locator('[data-home-evidence-field]').scrollIntoViewIfNeeded();
+  await shot(page, '12-mobile-evidence-graph');
 });
