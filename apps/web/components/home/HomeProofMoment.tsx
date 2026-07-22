@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 
 import { ProofPacketInspector } from '@/components/proof/ProofPacketInspector';
+import { ScrollScrubHeading } from '@/components/motion/ScrollScrubHeading';
 
 /**
  * HomeProofMoment (deep-audit W4.2) — the homepage's one tangible proof moment.
@@ -21,16 +22,42 @@ import { ProofPacketInspector } from '@/components/proof/ProofPacketInspector';
 export function HomeProofMoment() {
   return (
     <section
-      aria-labelledby="home-proof-moment-title"
+      /* ScrollScrubHeading renders its own `aria-label` (one accessible name
+         for the whole heading, with the characters aria-hidden), and takes no
+         `id`, so the section names itself directly — the same pattern
+         EvidenceTruthPanel used. No other file referenced the old id. */
+      aria-label="Inspect the proof, claim by claim"
       data-home-proof-moment=""
       className="mz pt-14"
     >
       <div className="mx-auto w-full max-w-[1320px]">
         <p className="mz-eyebrow"><span className="mz-eyebrow-index" aria-hidden="true">04</span>Why this is credible</p>
-        <h2 id="home-proof-moment-title" className="mz-h1 mt-3 max-w-[20ch]">
-          Inspect the proof, claim by claim.
-        </h2>
-        <p className="mz-body mt-3 max-w-2xl text-[var(--vt-text-secondary)]">
+        {/* The scrub heading moved here (2026-07-21 rebuild). Its only two
+            consumers — ProductCarousel and EvidenceTruthPanel — were both
+            retired from the composition, which would have left the homepage
+            with no scrubbed heading at all and ~14 e2e tests covering a
+            treatment that no longer rendered anywhere. Re-pointed rather than
+            deleted: the page keeps the animation, and the coverage keeps a
+            live target.
+
+            `ink` scrubs in place as the heading enters and reserves NO scroll
+            of its own. The pinned variant is banned — its 124vh of blank paper
+            was the homepage's "too much empty space" and must not return. */}
+        <ScrollScrubHeading
+          as="h2"
+          /* No `max-w-*` here. `.evidence-cinematic-heading` already sets
+             `width: 100%` and `text-wrap: balance`, and at this clamp the
+             display font renders ~118px, so a 20ch cap lands within a few
+             pixels of the container — parking the text on a wrapping boundary
+             where the browser rebalances lines as the spring settles. That
+             showed up as a 7x2px box change between unresolved and resolved,
+             which the layout-shift guard correctly rejected. */
+          className="evidence-cinematic-heading mt-3"
+          text={'Inspect the proof, claim by claim.'}
+          accentWords={['claim by claim.']}
+          variant="ink"
+        />
+        <p className="mz-body evidence-truth-lede mt-3 max-w-2xl text-[var(--vt-text-secondary)]">
           Every claim carries its source, how it was retrieved, a receipt, its state, and what it
           does not decide. Pick one and follow the whole chain.
         </p>

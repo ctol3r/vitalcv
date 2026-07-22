@@ -12,6 +12,8 @@
  * (the tasklist's exit criterion).
  */
 
+import { ALL_NODES, type GraphNodeId } from '@/components/home/evidence-field/graph';
+
 /* deterministic PRNG so the field's geometry is identical every render */
 export function mulberry32(seed: number): () => number {
   let a = seed >>> 0;
@@ -126,7 +128,10 @@ export function buildModel(): FieldModel {
 export const MODEL = buildModel();
 
 export interface FieldAnchor {
-  id: 'nppes' | 'oig-leie' | 'pecos' | 'record' | 'opportunity';
+  /* Derived from the graph rather than restated, so the two cannot disagree
+     about which nodes exist — the same reason FIELD_ANCHORS itself is now a
+     map over ALL_NODES instead of a hand-picked list of atom indices. */
+  id: GraphNodeId;
   label: string;
   x: number;
   y: number;
@@ -138,18 +143,20 @@ export interface FieldAnchor {
  * or a fabricated outcome. Coordinates come FROM the model so the overlay can
  * never drift from the geometry the tiers render.
  */
-export const FIELD_ANCHORS: FieldAnchor[] = [
-  { id: 'nppes', label: 'NPPES', x: MODEL.atoms[0].x, y: MODEL.atoms[0].y },
-  { id: 'oig-leie', label: 'OIG / LEIE', x: MODEL.atoms[3].x, y: MODEL.atoms[3].y },
-  { id: 'pecos', label: 'PECOS', x: MODEL.atoms[6].x, y: MODEL.atoms[6].y },
-  { id: 'record', label: 'Your career record', x: MODEL.capsule.x, y: MODEL.capsule.y },
-  {
-    id: 'opportunity',
-    label: 'Opportunity',
-    x: MODEL.atoms[MODEL.acceptance].x,
-    y: MODEL.atoms[MODEL.acceptance].y,
-  },
-];
+/**
+ * The named anchors, now DERIVED from the graph layout rather than restated.
+ *
+ * These used to be hand-picked indices into MODEL.atoms (the seeded particle
+ * scatter). The hero renders from `evidence-field/graph.ts` instead, so keeping
+ * a second, independently-authored copy of the composition here is exactly how
+ * a label drifts away from the node it names. One source of truth: the graph.
+ */
+export const FIELD_ANCHORS: FieldAnchor[] = ALL_NODES.map((n) => ({
+  id: n.id,
+  label: n.label,
+  x: n.x,
+  y: n.y,
+}));
 
 export interface Palette {
   source: string;

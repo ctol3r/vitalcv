@@ -131,21 +131,20 @@ describe('HomePageClient — career journey rail (W2)', () => {
 });
 
 describe('HomePageClient — product carousel and rail', () => {
-  it('renders the six carousel cards in a continuous flow with a pause control', () => {
-    // Continuous flow (Chris, 2026-07-17) replaced discrete auto-advance. The
-    // guard pins the accessibility contract that makes a marquee defensible:
-    // a visible pause control ships in the SSR markup, and the server render
-    // carries exactly ONE copy of each card (the seam-hiding duplicate is a
-    // client-only, aria-hidden presentation detail).
+  it('does NOT mount the product carousel — the rail already tells that story', () => {
+    // ProductCarousel ("One career record. Six reusable surfaces.") is retired
+    // from the composition. It was the third pass at "look what the record can
+    // do", after the journey rail had already walked the same ground in four
+    // chapters, and a six-panel feature carousel is a product-tour device on a
+    // page whose job is one argument.
+    //
+    // The component stays on disk and keeps its own tests: its evidence-state
+    // glyph grammar (a check glyph may appear ONLY on source-backed/checked
+    // rows, never on gated or review rows) is a real truth contract, and
+    // homepage-truth-pass.test.tsx renders ProductCarousel DIRECTLY to guard
+    // it. That guard is unaffected by this section leaving the homepage.
     const html = renderHomepage();
-    expect(html).toContain('data-home-product-carousel');
-    expect(html).toContain('data-carousel-flow="continuous"');
-    for (const product of ['wallet', 'readiness', 'matcha', 'apply', 'recognition', 'reuse']) {
-      const occurrences = html.split(`data-carousel-card="${product}"`).length - 1;
-      expect(occurrences, `${product} card renders once in SSR`).toBe(1);
-    }
-    expect(html).toContain('data-carousel-autoplay');
-    expect(html).toContain('aria-label="Pause the product flow"');
+    expect(html).not.toContain('data-home-product-carousel');
   });
 
   it('keeps the journey deep-link anchors resolvable in document order', () => {
@@ -167,8 +166,7 @@ describe('HomePageClient — consolidated story and truth boundary', () => {
     expect(html).toContain('data-home-hero');
     expect(html).toContain('data-home-journey');
     expect(html).toContain('data-home-proof-moment');
-    expect(html).toContain('data-home-evidence-truth');
-    expect(html).toContain('data-home-product-carousel');
+    expect(html).toContain('data-home-truth-boundary');
     expect(html).toContain('data-home-experience="metrics-and-cta"');
 
     for (const removed of [
@@ -179,9 +177,27 @@ describe('HomePageClient — consolidated story and truth boundary', () => {
       'data-home-audiences',
       'data-home-role-doors',
       'data-home-proof-strip',
+      // Retired in the homepage rebuild: each made an argument the page was
+      // already making. ProblemStatBand restated the problem section, and
+      // EvidenceTruthPanel restated HomeProofMoment immediately after it —
+      // together ~1.4k px and two extra H2s for zero new information.
+      'data-home-evidence-truth',
+      'data-home-product-carousel',
     ]) {
       expect(html).not.toContain(removed);
     }
+  });
+
+  it('states each argument exactly once — one H2 per section', () => {
+    // The redundancy this page kept regrowing was structural: two headings for
+    // "the problem" and two for "the proof". Pin the shape, not the prose, so a
+    // future section cannot quietly restate a neighbour.
+    const html = renderHomepage();
+    const headings = [...html.matchAll(/<h2[^>]*>([\s\S]*?)<\/h2>/g)].map((m) =>
+      m[1].replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim(),
+    );
+    expect(new Set(headings).size, `duplicate H2s: ${headings.join(' | ')}`).toBe(headings.length);
+    expect(headings.length, `H2s rendered: ${headings.join(' | ')}`).toBeLessThanOrEqual(4);
   });
 
   it('mounts the interactive proof moment: illustrative, employer boundary, real-flow CTA (W4.2)', () => {
@@ -204,24 +220,32 @@ describe('HomePageClient — consolidated story and truth boundary', () => {
     );
   });
 
-  it('retains the single technical evidence panel and explicit limits', () => {
+  it('keeps the explicit limits even though the panel that owned them is gone', () => {
+    // This is the guard that matters most in the rebuild. EvidenceTruthPanel
+    // was retired as redundant ARGUMENT, but it was the only place carrying the
+    // enumerated limitation — and removing the wrapper silently removed the
+    // sentence with it. A section being a redundant argument does not make its
+    // disclaimers redundant guarantees, so the boundary moved to a shared
+    // component mounted under the surviving proof section.
     const html = renderHomepage();
-    expect(html).toContain('data-home-evidence-trace');
     expect(html).toContain('data-home-truth-boundary');
-    expect(html).toContain('Evidence trace');
+    expect(html).toContain('What VitalCV knows');
     expect(html).toContain('What this does not mean');
-    expect(html).toContain('This is not a completed credentialing, privileging, or employer clearance decision.');
+    expect(html).toContain(
+      'This is not a completed credentialing, privileging, or employer clearance decision.',
+    );
+    expect(html).toContain('Institution review remains the final step.');
   });
 
-  it('ships the evidence statement complete and unpinned before JavaScript', () => {
+  it('ships the boundary complete and unpinned before JavaScript', () => {
     const html = renderHomepage();
-    expect(html).toContain('data-scrub-heading="static"');
-    expect(html).toContain('Every claim shows its source.');
-    // The heading now inks in place (variant="ink") — no scene, and crucially
-    // no pinned runway. The pin's 124vh of blank paper was the homepage's "too
-    // much empty space"; it must not return.
+    // The pin's 124vh of blank paper was the homepage's "too much empty
+    // space"; it must not return in any form.
     expect(html).not.toContain('data-scrub-scene');
     expect(html).not.toContain('data-scrub-pin=""');
+    // The limitation is server-rendered text, not something a reveal or a
+    // client effect can withhold.
+    expect(html).toContain('What this does not mean');
   });
 
   it('keeps only real metrics and the dual-audience close', () => {

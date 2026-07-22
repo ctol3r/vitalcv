@@ -14,20 +14,16 @@ import {
 import { Input } from '@/components/ui/input';
 import { DualAudienceCta } from '@/components/home/DualAudienceCta';
 import { CareerEvidenceField } from '@/components/home/CareerEvidenceField';
-import { EvidenceTruthPanel } from '@/components/home/EvidenceTruthPanel';
 import { LiveNpiResult } from '@/components/home/LiveNpiResult';
 import { MetricStrip } from '@/components/home/MetricStrip';
-import { ProblemStatBand } from '@/components/home/ProblemStatBand';
-import { ProductCarousel } from '@/components/home/ProductCarousel';
 import { SourceCoverageRibbon } from '@/components/home/SourceCoverageRibbon';
+import { TruthBoundary } from '@/components/home/TruthBoundary';
 import { RailJourney } from '@/components/home/rail/RailJourney';
 import { HomeProofMoment } from '@/components/home/HomeProofMoment';
 import { TimeToStartComparison } from '@/components/home/TimeToStartComparison';
 import { Reveal } from '@/components/motion/Reveal';
-import { AmbientField } from '@/components/home/scene/AmbientField';
 import { ChapterProgressProvider } from '@/components/home/scene/ChapterProgress';
 import { GrainOverlay } from '@/components/home/scene/GrainOverlay';
-import { SceneBoundary } from '@/components/home/scene/SceneBoundary';
 import { SceneCursor } from '@/components/home/scene/SceneCursor';
 import { SceneProvider } from '@/components/home/scene/SceneProvider';
 import { getChapterScene } from '@/components/home/scene/registry';
@@ -103,15 +99,21 @@ export default function HomePageClient() {
       <style>{'body{background:var(--vt-cloud-dancer,#F0EEE9)}'}</style>
       <div aria-hidden="true" className="mz-dotgrid pointer-events-none absolute inset-x-0 top-0 h-[26rem] opacity-20" />
 
-      {/* SHD-1.2 scene layer: the page-level career-evidence atmosphere
-          (manifest rows 1–3, 23). Fixed to the viewport like the source's
-          full-page shader, painted UNDER all positioned content. Decorative
-          only — the poster gradient stands alone on the static tier, and the
-          grain is a baked SVG texture, not a render loop. */}
+      {/* Scene layer — grain ONLY (homepage rebuild).
+          The ambient colour field is retired here. It painted emerald at 12%
+          and indigo at 10% as radial gradients on a `position: fixed` layer,
+          so the tint stayed welded to the viewport while content scrolled past
+          it: the top-left corner was permanently green-grey and the wash never
+          travelled with a section. On a page whose paper is a single deliberate
+          Cloud Dancer (--vt-cloud-dancer, #F0EEE9, uniform at every scroll
+          offset), a fixed coloured veil is the one thing that can make that
+          paper look inconsistent — so it goes.
+
+          Atmosphere is now earned by CONTENT motion (the evidence graph, the
+          horizontal journey) rather than by tinting the page. The grain stays:
+          it is a baked SVG texture, not a colour, and it is what keeps a flat
+          Cloud Dancer reading as paper instead of as a blank div. */}
       <div aria-hidden="true" data-home-scene="" className="pointer-events-none fixed inset-0">
-        <SceneBoundary poster={<div className="scene-ambient-poster" />} className="absolute inset-0">
-          {() => <AmbientField />}
-        </SceneBoundary>
         <GrainOverlay opacity={getChapterScene('wallet').grain} />
       </div>
       <SceneCursor />
@@ -250,16 +252,23 @@ export default function HomePageClient() {
               formerly explorable public graph is retired (SHD-0.3) and
               /evidence-network is a static system-concept page. After an NPI
               is entered the panel becomes that provider's live result. */}
-          <div className={submittedNpi ? 'flex justify-center' : 'block'}>
+          {/* The graph is now the constant, and the NPI makes it REAL: instead
+              of being swapped out for a card, it stays mounted and resolves its
+              four public lanes for that clinician. The result card keeps its
+              own job — the explicit grouped breakdown and the one next-best
+              action — which the graph deliberately does not duplicate. */}
+          <div className="flex flex-col items-center gap-6">
+            {/* SHD-2.2: before submit the field responds to SAFE, non-sensitive
+                input state only — the caret being present ('listening') and a
+                valid checksum ('ready'). No clinician-specific claim is ever
+                rendered before a real lookup returns. */}
+            <CareerEvidenceField
+              signal={focused ? (isValid ? 'ready' : 'listening') : 'idle'}
+              npi={submittedNpi}
+            />
             {submittedNpi ? (
               <LiveNpiResult npi={submittedNpi} onReset={() => { setSubmittedNpi(null); setRaw(''); }} />
-            ) : (
-              // SHD-2.2: the field responds to SAFE, non-sensitive input state
-              // only — the caret being present ('listening') and a valid
-              // checksum ('ready'). No clinician-specific claim is ever
-              // rendered before a real lookup returns.
-              <CareerEvidenceField signal={focused ? (isValid ? 'ready' : 'listening') : 'idle'} />
-            )}
+            ) : null}
           </div>
           </div>
 
@@ -284,8 +293,14 @@ export default function HomePageClient() {
             reduced-motion-safe, shows content if JS/IO is unavailable). The
             scroll-COUPLED sections (journey rail, ribbon) keep their own
             motion and are deliberately not wrapped. */}
-        <Reveal><ProblemStatBand /></Reveal>
 
+        {/* THE PROBLEM — stated once.
+            ProblemStatBand ("Healthcare hiring has a trust-liquidity problem")
+            ran ~610px immediately above this section, which then argued the
+            same point again with a sharper line and an actual comparison
+            visual. Two H2s and ~1,000px to make one argument is the redundancy
+            that made this page feel long without feeling full. The band is
+            retired from the composition; the component stays on disk. */}
         <Reveal><TimeToStartComparison /></Reveal>
 
         {/* W2: THE career journey — four chapters through the horizontal rail
@@ -300,24 +315,42 @@ export default function HomePageClient() {
             inspector (claim → source → retrieval/receipt → state → limitation),
             explicitly illustrative, linking the real clinician flow. Placed as
             the "why this is credible" beat right after the journey. */}
-        <Reveal><HomeProofMoment /></Reveal>
-
-        {/* fade (not rise): this section carries a scrub-coupled heading, and
+        {/* fade, NOT rise — this section now carries the scrub-coupled heading.
             mz-rise's scale(0.985) changes the heading's measured box while the
-            reveal settles — breaking the scrub contract "the text is laid out
-            from the start, only its ink changes" (scrub-headings e2e, the CLS
-            guard). Opacity-only keeps the uplift with stable geometry. */}
-        <Reveal variant="fade" className="pt-8" data-home-experience="evidence-trace">
-          <EvidenceTruthPanel />
+            reveal settles, which breaks the scrub contract "the text is laid
+            out from the start, only its ink changes" (the scrub-headings CLS
+            guard). Opacity-only keeps the uplift with stable geometry. This
+            constraint travelled here with the heading from EvidenceTruthPanel,
+            which carried the same comment for the same reason. */}
+        <Reveal variant="fade"><HomeProofMoment /></Reveal>
+
+        {/* The limitation that came off EvidenceTruthPanel when that section was
+            retired. Redundant ARGUMENT is worth cutting; a redundant-looking
+            DISCLAIMER is not — this names what VitalCV does and does not know,
+            and it is the page's only enumerated statement that a packet is not
+            a credentialing, privileging, or clearance decision. */}
+        <Reveal delay={90} className="pt-6">
+          <TruthBoundary />
         </Reveal>
 
-        {/* fade for the same reason: the carousel title is a scrub heading. */}
-        <Reveal variant="fade"><ProductCarousel /></Reveal>
+        {/* THE PROOF — also stated once.
+            EvidenceTruthPanel ("Every claim shows its source", ~811px) sat
+            directly below HomeProofMoment ("Inspect the proof, claim by
+            claim"), making the same argument twice in a row — the second and
+            larger instance of the page's redundancy problem. HomeProofMoment
+            wins the slot because it is the INTERACTIVE one: a real proof-packet
+            inspector (claim → source → retrieval → state → limitation) instead
+            of a static restatement. EvidenceTruthPanel stays on disk.
 
-        {/* ResumeToProof retired: 25 words and 200px restating the old-way /
-            new-way contrast that the rail's four chapters already carry, with
-            no test or copy-source depending on it. The component stays on disk
-            — this is a composition change, not a deletion of the idea. */}
+            ProductCarousel ("One career record. Six reusable surfaces.")
+            is retired here too — a six-panel feature carousel is a product-tour
+            device, and it was the third pass at "look what the record can do"
+            after the journey rail had already walked through it in four
+            chapters. Its evidence-state glyph grammar is a real contract, so
+            that guard moves rather than disappears (see homepage-truth-pass).
+
+            ResumeToProof was retired earlier for the same reason: 25 words and
+            200px restating the old-way / new-way contrast the rail carries. */}
 
         <section id="employers" data-home-experience="metrics-and-cta" className="pt-14">
           <Reveal><MetricStrip /></Reveal>
