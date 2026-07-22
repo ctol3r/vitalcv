@@ -3,7 +3,7 @@ import {
   CAREER_NODES,
   CAREER_EDGES,
   GROUP_META,
-} from '@/components/career-graph/data';
+} from './fixtures/career-graph-roster';
 
 /**
  * Career-evidence graph data contract.

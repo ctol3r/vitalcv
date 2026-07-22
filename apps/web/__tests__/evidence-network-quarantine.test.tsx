@@ -30,8 +30,11 @@ const PAGE_SOURCE = fs.readFileSync(
   path.join(APP_DIR, 'evidence-network/page.tsx'),
   'utf8',
 );
+// Synthetic roster moved to a test fixture (C2): it used to sit in
+// `components/career-graph/data.ts`, importable from product code. This guard
+// still reads it as the SOURCE of names to prove none of them render.
 const GRAPH_DATA_SOURCE = fs.readFileSync(
-  path.resolve(process.cwd(), 'components/career-graph/data.ts'),
+  path.resolve(process.cwd(), '__tests__/fixtures/career-graph-roster.ts'),
   'utf8',
 );
 

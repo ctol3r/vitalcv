@@ -1,4 +1,32 @@
 /**
+ * ⚠ SYNTHETIC DATA — TEST FIXTURE ONLY. NOT REAL PEOPLE. NEVER IMPORT FROM
+ * PRODUCT CODE.
+ *
+ * The 14 `Dr. …` entries below are invented. They are not clinicians, not
+ * anonymised real records, and carry no NPI that resolves to a person. This
+ * file lives under `__tests__/fixtures/` precisely so that a `Dr.` name can
+ * never reach a rendered surface: on a product whose entire claim is that it
+ * does not overstate, a synthetic roster sitting in `components/` was a loaded
+ * gun for anyone grepping for "a graph to reuse".
+ *
+ * Two tests depend on this file and both are load-bearing:
+ *   - `career-graph-data.test.ts` pins the dataset's shape contract.
+ *   - `evidence-network-quarantine.test.tsx` reads this file as its SOURCE of
+ *     synthetic names, then asserts none of them render on /evidence-network.
+ *     It self-checks against rot (expects ≥10 names, and `Dr. A. Okafor`), so
+ *     renaming or trimming the roster will correctly fail that guard rather
+ *     than silently weaken it.
+ * `no-synthetic-roster-in-product.test.ts` fails the build if any non-test file
+ * imports this path.
+ *
+ * Historical note: this shipped as `components/career-graph/data.ts` alongside
+ * a `CareerGraph.tsx` that had zero importers. The component was deleted; only
+ * the fixture survived, and only for tests. Do not confuse any of this with
+ * `@vitalcv/career-graph` (`packages/career-graph`), which is a different and
+ * genuinely live package.
+ *
+ * ── Original description, still accurate for the dataset's shape ────────────
+ *
  * Career-evidence network — curated, illustrative dataset for the public graph
  * explorer, modeled the Roam/Obsidian way: EVERY NODE IS A UNIQUE ENTITY.
  *
