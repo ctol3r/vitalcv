@@ -116,22 +116,39 @@
 
 /* ------------------------------------------------------------------ copy */
 
+/* SCENE_SCRIM_FLOOR: text never sits on unscrimmed animated pixels.
+   A flat rectangle of scrim reads as a CARD, which the mandate retires
+   (R2/R3), so the scrim fades out on BOTH sides and has no visible edge.
+
+   Deliberately a background on the element itself, NOT a `z-index: -1`
+   pseudo-element: in film mode `.film-track` carries `will-change: transform`,
+   which makes it a stacking context, and a negative-z-index child inside it
+   renders behind the whole scene — which blanked the copy entirely. Keeping
+   the scrim in the normal paint order removes that class of bug.
+
+   Stops are in `rem`, not `%`, so the fade lands the same distance past the
+   text at every viewport width. */
 .film-copy {
   position: relative;
   z-index: 3;
   max-width: 34rem;
-  /* SCENE_SCRIM_FLOOR: text never sits on unscrimmed animated pixels.
-     A flat rectangle of scrim reads as a CARD, which the mandate retires
-     (R2/R3) — so the scrim is a directional gradient that is opaque behind the
-     text and dissolves into the field. It reads as paper catching light,
-     with no edge anywhere. */
+  padding: 2rem 7rem 2rem 0;
   background: linear-gradient(
-    100deg,
-    var(--film-paper) 0%,
-    color-mix(in oklab, var(--film-paper) 92%, transparent) 55%,
+    to right,
+    var(--film-paper) 0,
+    var(--film-paper) calc(100% - 14rem),
+    color-mix(in oklab, var(--film-paper) 55%, transparent) calc(100% - 5rem),
     transparent 100%
   );
-  padding: 2rem 6rem 2rem 0;
+}
+
+/* The bleed is film-only: it carries the scrim off the left edge of the
+   viewport so there is no vertical seam beside the headline. In vertical mode
+   the gutter is only 1.5rem, so the same offset would push copy off-screen. */
+.film[data-film-mode='film'] .film-copy {
+  margin-left: calc(-1 * clamp(3rem, 9vw, 10rem));
+  padding-left: clamp(3rem, 9vw, 10rem);
+  max-width: calc(34rem + clamp(3rem, 9vw, 10rem));
 }
 
 .film-phrase {
