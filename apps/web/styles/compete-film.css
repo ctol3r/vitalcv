@@ -1,0 +1,265 @@
+/**
+ * COMPETE-2 spike styles.
+ *
+ * Every rule is scoped under `.film`. Nothing here may publish a token to
+ * :root, html, or body — this is an isolated island on a dev-gated route, and
+ * it must not be able to affect any other surface (the same discipline the
+ * `.w1501` island uses).
+ *
+ * The fallback ladder is expressed here, not in JS: `[data-film-mode='vertical']`
+ * is the ORDINARY document, and film styles are additive on top of it. That
+ * ordering is deliberate — if JS never runs, the vertical rules are what the
+ * browser already applied.
+ */
+
+.film {
+  --film-paper: var(--vt-cloud-dancer, #f0eee9);
+  --film-ink: var(--vt-text-primary, #1e1c19);
+  --film-ink-soft: var(--vt-text-secondary, #55504a);
+  --film-ink-muted: var(--vt-text-muted, #86807a);
+  --film-rule: rgba(30, 28, 25, 0.14);
+
+  position: relative;
+  background: var(--film-paper);
+  color: var(--film-ink);
+}
+
+/* ---------------------------------------------------------------- runway */
+
+/* Vertical (default, and the no-JS state): no runway, no pin, no transform. */
+.film-runway {
+  position: relative;
+}
+
+.film-stage {
+  position: relative;
+  overflow: hidden;
+}
+
+.film-track {
+  display: flex;
+  flex-direction: column;
+}
+
+.film-scene {
+  position: relative;
+  display: flex;
+  align-items: center;
+  padding: 5rem 1.5rem;
+  min-height: 60vh;
+}
+
+/* Film mode — additive. Only reachable after hydration proves eligibility. */
+.film[data-film-mode='film'] .film-runway {
+  /* One viewport of travel per transition, plus one to read the last scene. */
+  height: 300vh;
+}
+
+.film[data-film-mode='film'] .film-stage {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+}
+
+.film[data-film-mode='film'] .film-track {
+  flex-direction: row;
+  height: 100%;
+  width: 100%;
+  will-change: transform;
+}
+
+.film[data-film-mode='film'] .film-scene {
+  flex: 0 0 100%;
+  width: 100%;
+  min-height: 0;
+  height: 100%;
+  padding: 0 clamp(3rem, 9vw, 10rem);
+}
+
+/* ------------------------------------------------------------ atmosphere */
+
+.film-atmosphere {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.film-atmosphere-poster,
+.film-atmosphere-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* The canvas draws the same geometry as the poster, so the poster stays
+   underneath as the guaranteed floor rather than being swapped out. */
+.film-atmosphere-canvas {
+  z-index: 1;
+}
+
+.film-readinglight {
+  position: absolute;
+  z-index: 2;
+  width: 22rem;
+  height: 22rem;
+  margin: -11rem 0 0 -11rem;
+  border-radius: 50%;
+  pointer-events: none;
+  background: radial-gradient(
+    circle,
+    color-mix(in oklab, var(--vt-accent-emerald, #126a54) 9%, transparent) 0%,
+    transparent 68%
+  );
+  transition: opacity 220ms ease;
+}
+
+/* ------------------------------------------------------------------ copy */
+
+.film-copy {
+  position: relative;
+  z-index: 3;
+  max-width: 34rem;
+  /* SCENE_SCRIM_FLOOR: text never sits on unscrimmed animated pixels.
+     A flat rectangle of scrim reads as a CARD, which the mandate retires
+     (R2/R3) — so the scrim is a directional gradient that is opaque behind the
+     text and dissolves into the field. It reads as paper catching light,
+     with no edge anywhere. */
+  background: linear-gradient(
+    100deg,
+    var(--film-paper) 0%,
+    color-mix(in oklab, var(--film-paper) 92%, transparent) 55%,
+    transparent 100%
+  );
+  padding: 2rem 6rem 2rem 0;
+}
+
+.film-phrase {
+  margin: 0;
+  font-family: var(--vt-font-display, Fraunces, Georgia, serif);
+  font-size: clamp(2.5rem, 5.5vw, 4.5rem);
+  line-height: 1.02;
+  letter-spacing: -0.022em;
+  text-wrap: balance;
+}
+
+.film-kinetic-words {
+  display: inline;
+}
+
+.film-kinetic-word {
+  display: inline-block;
+  /* `inline-block` collapses the trailing space inside each word span, which
+     ran the headline together as "Gethiredfaster." `pre-wrap` preserves the
+     space while still allowing the phrase to wrap between words. */
+  white-space: pre-wrap;
+  will-change: transform, opacity;
+}
+
+.film-support {
+  margin: 1.25rem 0 0;
+  font-size: clamp(1rem, 1.4vw, 1.3125rem);
+  line-height: 1.5;
+  color: var(--film-ink-soft);
+}
+
+.film-note {
+  margin: 1.5rem 0 0;
+  max-width: 30rem;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--film-ink-muted);
+}
+
+/* ------------------------------------------------------------------- NPI */
+
+.film-npi {
+  margin-top: 2.25rem;
+}
+
+.film-npi-label {
+  display: block;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--film-ink-muted);
+}
+
+/* A ruled line on paper, not a boxed form control. */
+.film-npi-input {
+  width: 100%;
+  max-width: 22rem;
+  margin-top: 0.5rem;
+  padding: 0.5rem 0;
+  border: 0;
+  border-bottom: 1.5px solid var(--film-rule);
+  border-radius: 0;
+  background: transparent;
+  color: var(--film-ink);
+  font-family: var(--vt-font-mono, ui-monospace, SFMono-Regular, monospace);
+  font-size: 1.5rem;
+  letter-spacing: 0.16em;
+  transition: border-color 180ms ease;
+}
+
+.film-npi-input::placeholder {
+  color: color-mix(in oklab, var(--film-ink-muted) 55%, transparent);
+  letter-spacing: 0.08em;
+}
+
+.film-npi-input:focus {
+  outline: none;
+  border-bottom-color: var(--film-ink);
+}
+
+.film-npi-input:focus-visible {
+  /* Keyboard users get a real, visible focus affordance — the underline alone
+     is too subtle to satisfy 2.4.7. */
+  outline: 2px solid var(--vt-focus-ring, #126a54);
+  outline-offset: 4px;
+}
+
+.film-npi-hint {
+  margin: 0.5rem 0 0;
+  font-size: 0.75rem;
+  color: var(--film-ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ------------------------------------------------------- reduced motion */
+
+/* Belt and braces: the tier system already resolves reduced motion to
+   'static' (no rAF, no film). This guarantees stillness even if a future
+   change forgets to consult the tier. */
+@media (prefers-reduced-motion: reduce) {
+  .film[data-film-mode='film'] .film-runway {
+    height: auto;
+  }
+
+  .film[data-film-mode='film'] .film-stage {
+    position: relative;
+    height: auto;
+  }
+
+  .film[data-film-mode='film'] .film-track {
+    flex-direction: column;
+    transform: none !important;
+  }
+
+  .film[data-film-mode='film'] .film-scene {
+    flex: initial;
+    height: auto;
+    min-height: 60vh;
+    padding: 5rem 1.5rem;
+  }
+
+  .film-kinetic-word {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
+  .film-readinglight {
+    display: none;
+  }
+}
