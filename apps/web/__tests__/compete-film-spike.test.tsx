@@ -3,7 +3,7 @@ import { resolve } from 'node:path';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 
-import { FilmSpike } from '@/components/home/film/FilmSpike';
+import { HorizontalCareerFilm } from '@/components/home/film/HorizontalCareerFilm';
 import {
   DEFAULT_FRAGMENT_COUNT,
   coreLight,
@@ -28,6 +28,18 @@ import {
 
 const FILM_DIR = resolve(process.cwd(), 'components/home/film');
 const read = (file: string) => readFileSync(resolve(FILM_DIR, file), 'utf8');
+
+/**
+ * Source text with comments removed.
+ *
+ * These files DOCUMENT the rules they follow ("never preventDefault", "no
+ * wheel listener"), so a naive source scan matches the prose and fails on
+ * correct code. Scan behavior, not documentation.
+ */
+const readCode = (file: string) =>
+  read(file)
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/^\s*\/\/.*$/gm, '');
 
 describe('evidence atmosphere — the model', () => {
   it('is deterministic, so the poster and the canvas never disagree', () => {
@@ -77,7 +89,7 @@ describe('evidence atmosphere — the model', () => {
    * and the reason it cannot be promoted to `/`.
    */
   it('draws no edges, nodes, or connections between fragments (R1)', () => {
-    const source = read('atmosphere.ts') + read('EvidenceAtmosphere.tsx');
+    const source = readCode('atmosphere.ts') + readCode('EvidenceAtmosphere.tsx');
     // Canvas path-drawing between points is how an edge would be built.
     expect(source).not.toMatch(/\.lineTo\(/);
     expect(source).not.toMatch(/\.moveTo\(/);
@@ -108,7 +120,7 @@ describe('film driver — the one scroll owner', () => {
   });
 
   it('attaches exactly one scroll listener and one rAF loop', () => {
-    const source = read('useFilmProgress.ts');
+    const source = readCode('useFilmProgress.ts');
     expect(source.match(/addEventListener\('scroll'/g) ?? []).toHaveLength(1);
     expect(source.match(/requestAnimationFrame\(/g) ?? []).toHaveLength(1);
     // Removing the listener is not optional — a leaked driver is a second owner.
@@ -116,15 +128,25 @@ describe('film driver — the one scroll owner', () => {
   });
 
   it('never hijacks the vertical axis', () => {
-    const source = read('useFilmProgress.ts') + read('FilmSpike.tsx');
-    expect(source).not.toMatch(/addEventListener\('wheel'/);
-    expect(source).not.toMatch(/preventDefault\(\)/);
-    // The listener must be passive, which is what makes hijacking impossible.
-    expect(read('useFilmProgress.ts')).toContain('passive: true');
+    const driver = readCode('useFilmProgress.ts');
+    const film = readCode('HorizontalCareerFilm.tsx');
+
+    // No component may intercept the input events that scroll a page.
+    for (const source of [driver, film]) {
+      expect(source).not.toMatch(/addEventListener\('wheel'/);
+      expect(source).not.toMatch(/addEventListener\('touchmove'/);
+      expect(source).not.toMatch(/onWheel/);
+    }
+    // The DRIVER must never cancel anything — that is where hijacking would
+    // live. (The film calls preventDefault in its form's onSubmit, which is
+    // ordinary form handling and has nothing to do with scrolling.)
+    expect(driver).not.toMatch(/preventDefault/);
+    // The scroll listener must be passive, which makes hijacking impossible.
+    expect(driver).toContain('passive: true');
   });
 
   it('keeps the film off touch, reduced motion, and small viewports', () => {
-    const source = read('useFilmProgress.ts');
+    const source = readCode('useFilmProgress.ts');
     expect(source).toContain('prefers-reduced-motion: reduce');
     expect(source).toContain('pointer: coarse');
     expect(FILM_MIN_WIDTH).toBeGreaterThanOrEqual(1024);
@@ -134,12 +156,23 @@ describe('film driver — the one scroll owner', () => {
 
 describe('scenes', () => {
   it('assigns each progress value to exactly one scene span', () => {
+    const spans = FILM_SCENES.length - 1;
     expect(sceneAt(0)).toEqual({ index: 0, local: 0 });
-    expect(sceneAt(0.5).index).toBe(0);
-    expect(sceneAt(0.5).local).toBeCloseTo(0.5, 5);
     // At the end the LAST scene owns the frame with nothing left to travel.
-    // FilmSpike reads that as `1 - local` = fully seated.
-    expect(sceneAt(1)).toEqual({ index: FILM_SCENES.length - 1, local: 0 });
+    // HorizontalCareerFilm reads that as `1 - local` = fully seated.
+    expect(sceneAt(1)).toEqual({ index: spans, local: 0 });
+
+    // Every scene boundary lands exactly on its own index with local 0 —
+    // written off the scene COUNT so adding a scene cannot silently pass.
+    for (let i = 0; i <= spans; i += 1) {
+      const at = sceneAt(i / spans);
+      expect(at.index).toBe(i);
+      expect(at.local).toBeCloseTo(0, 5);
+    }
+    // And a midpoint sits halfway through the span it belongs to.
+    const mid = sceneAt(0.5 / spans);
+    expect(mid.index).toBe(0);
+    expect(mid.local).toBeCloseTo(0.5, 5);
   });
 
   it('clamps out-of-range progress into a real scene index', () => {
@@ -164,7 +197,7 @@ describe('scenes', () => {
   });
 
   it('never renders a scene name as a visible header (R6)', () => {
-    const html = renderToStaticMarkup(<FilmSpike />);
+    const html = renderToStaticMarkup(<HorizontalCareerFilm />);
     for (const scene of FILM_SCENES) {
       // The internal id may appear as a data hook, never as visible text.
       expect(html).not.toContain(`>${scene.id}<`);
@@ -175,7 +208,7 @@ describe('scenes', () => {
 });
 
 describe('SSR fallback — the linear document', () => {
-  const html = renderToStaticMarkup(<FilmSpike />);
+  const html = renderToStaticMarkup(<HorizontalCareerFilm />);
 
   it('renders vertical before hydration, never a pinned film', () => {
     expect(html).toContain('data-film-mode="vertical"');
@@ -204,21 +237,26 @@ describe('SSR fallback — the linear document', () => {
     expect(html).not.toContain('film-atmosphere-canvas');
   });
 
-  it('gives the NPI control a real label and no dead submit button', () => {
+  it('gives the NPI control a real label and a submit disabled until valid', () => {
     expect(html).toContain('id="film-npi-input"');
     expect(html).toContain('for="film-npi-input"');
-    expect(html).not.toContain('type="submit"');
+    // The action is real now (COMPETE-1 wires the lookup), and it must start
+    // disabled: an empty field is not a submittable NPI.
+    expect(html).toContain('type="submit"');
+    expect(html).toMatch(/type="submit"[^>]*disabled|disabled[^>]*type="submit"/);
   });
 
-  it('discloses that the spike performs no lookup', () => {
-    expect(html).toContain('does not look anything up');
+  it('shows no personal state until a lookup returns', () => {
+    // Recognition renders the standing disclosure, NOT a result, on first paint.
     expect(html).toContain('Nothing personal is shown until a real lookup returns');
+    // The result surface itself must be absent before submit.
+    expect(html).not.toContain('film-artifact');
   });
 });
 
 describe('truth contract', () => {
-  const html = renderToStaticMarkup(<FilmSpike />);
-  const source = read('FilmSpike.tsx') + read('scenes.ts');
+  const html = renderToStaticMarkup(<HorizontalCareerFilm />);
+  const source = readCode('HorizontalCareerFilm.tsx') + readCode('scenes.ts');
 
   it('carries no banned public claim', () => {
     const banned = [

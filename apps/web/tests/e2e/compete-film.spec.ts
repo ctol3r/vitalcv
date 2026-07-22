@@ -14,16 +14,23 @@ import { expect, test } from '@playwright/test';
 
 const ROUTE = '/dev/compete-film';
 
-/** Scroll the film runway to a fraction of its travel and settle a frame. */
+/**
+ * Scroll the film runway to a fraction of its travel and settle a frame.
+ *
+ * `behavior: 'instant'` is REQUIRED: the app sets `html { scroll-behavior:
+ * smooth }` globally, so a plain `scrollTo` animates and the assertion samples
+ * a frame mid-flight. That reads as the film being ~74px misaligned at every
+ * scene boundary when it is in fact exact.
+ */
 async function scrubTo(page: import('@playwright/test').Page, fraction: number) {
   await page.evaluate((f) => {
     const runway = document.querySelector('.film-runway');
     if (!runway) return;
     const rect = runway.getBoundingClientRect();
     const top = window.scrollY + rect.top;
-    window.scrollTo(0, top + (rect.height - window.innerHeight) * f);
+    window.scrollTo({ top: top + (rect.height - window.innerHeight) * f, behavior: 'instant' });
   }, fraction);
-  await page.waitForTimeout(250);
+  await page.waitForTimeout(300);
 }
 
 const trackX = async (page: import('@playwright/test').Page) =>
@@ -57,20 +64,108 @@ test.describe('COMPETE-2 horizontal film', () => {
     for (let i = 1; i < samples.length; i += 1) {
       expect(samples[i]!).toBeLessThan(samples[i - 1]!);
     }
-    // One full viewport of travel per transition (2 scenes → 1 transition).
-    expect(samples.at(-1)!).toBeLessThanOrEqual(-1400);
+    // One full viewport of travel per transition.
+    const viewport = page.viewportSize()!.width;
+    const transitions = await page.locator('[data-film-scene]').count() - 1;
+    expect(samples.at(-1)!).toBeCloseTo(-viewport * transitions, -1);
+  });
+
+  test('desktop: every scene lands exactly in frame at its boundary', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.waitForTimeout(300);
+
+    const count = await page.locator('[data-film-scene]').count();
+    for (let i = 0; i < count; i += 1) {
+      await scrubTo(page, i / (count - 1));
+      const left = await page.evaluate((idx) => {
+        const el = document.querySelectorAll('[data-film-scene]')[idx] as HTMLElement;
+        return Math.round(el.getBoundingClientRect().left);
+      }, i);
+      // Exact, not approximate: a drifting scene is a broken film.
+      expect(left).toBe(0);
+    }
+  });
+
+  /**
+   * Paint-order guard.
+   *
+   * This bug shipped TWICE and no assertion caught it: the atmosphere canvas
+   * carries `z-index: 1`, while `.film-track` is a stacking context with
+   * `z-index: auto` (level 0) because of `will-change: transform`. Record
+   * fragments therefore drew straight over the headline. Nothing in the DOM
+   * reports it — the text is "visible" with opacity 1 — so only a hit test
+   * finds it.
+   */
+  test('the atmosphere never paints over the copy', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.waitForTimeout(300);
+
+    const count = await page.locator('[data-film-scene]').count();
+    for (let i = 0; i < count; i += 1) {
+      await scrubTo(page, i / (count - 1));
+      const hit = await page.evaluate((idx) => {
+        const scene = document.querySelectorAll('[data-film-scene]')[idx] as HTMLElement;
+        const phrase = scene.querySelector('.film-phrase') as HTMLElement | null;
+        if (!phrase) return { scene: scene.dataset.filmScene, ok: true, topEl: null };
+        const r = phrase.getBoundingClientRect();
+        const el = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+        return {
+          scene: scene.dataset.filmScene,
+          // The topmost element over the phrase must be the phrase itself or
+          // something inside it — never the canvas or the reading light.
+          ok: !!el && (phrase.contains(el) || el === phrase),
+          topEl: el?.className?.toString() ?? null,
+        };
+      }, i);
+      expect(hit, `scene ${hit.scene} covered by ${hit.topEl}`).toMatchObject({ ok: true });
+    }
+  });
+
+  test('no scene overflows the pinned stage', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.waitForTimeout(300);
+
+    const count = await page.locator('[data-film-scene]').count();
+    for (let i = 0; i < count; i += 1) {
+      await scrubTo(page, i / (count - 1));
+      const overflow = await page.evaluate((idx) => {
+        const el = document.querySelectorAll('[data-film-scene]')[idx] as HTMLElement;
+        const stage = document.querySelector('.film-stage')!.getBoundingClientRect();
+        const kids = [...el.querySelectorAll('*')]
+          .map((k) => k.getBoundingClientRect())
+          .filter((r) => r.height > 0);
+        return Math.round(Math.max(...kids.map((k) => k.bottom)) - stage.bottom);
+      }, i);
+      // A pinned stage cannot scroll, so anything below the fold is lost.
+      expect(overflow).toBeLessThanOrEqual(0);
+    }
   });
 
   test('desktop: the vertical axis is never hijacked', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.waitForTimeout(300);
 
-    // Scrolling past the end of the film must keep scrolling the document.
-    await scrubTo(page, 1);
-    const atEnd = await page.evaluate(() => window.scrollY);
+    // Ordinary wheel input must move the document by an ordinary amount — the
+    // film translates scroll, it never captures it.
+    await page.mouse.move(720, 450);
     await page.mouse.wheel(0, 400);
-    await page.waitForTimeout(200);
-    expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(atEnd);
+    await page.waitForTimeout(250);
+    const afterDown = await page.evaluate(() => window.scrollY);
+    expect(afterDown).toBeGreaterThan(0);
+
+    // And it must reverse. A one-way trap is the classic scroll-jack symptom.
+    await page.mouse.wheel(0, -400);
+    await page.waitForTimeout(250);
+    expect(await page.evaluate(() => window.scrollY)).toBeLessThan(afterDown);
+
+    // The end of the document must be reachable — a pin that never releases
+    // would leave scrollY short of the maximum forever.
+    await scrubTo(page, 1);
+    const { scrollY, max } = await page.evaluate(() => ({
+      scrollY: Math.round(window.scrollY),
+      max: Math.round(document.documentElement.scrollHeight - window.innerHeight),
+    }));
+    expect(scrollY).toBe(max);
   });
 
   test('mobile: an ordinary vertical document, no horizontal travel', async ({ page }) => {
@@ -157,12 +252,21 @@ test.describe('COMPETE-2 horizontal film', () => {
   test('the NPI field validates locally without claiming a lookup', async ({ page }) => {
     await page.waitForTimeout(300);
     await page.locator('#film-npi-input').fill('123');
-    await expect(page.locator('#film-npi-hint')).toHaveText('3/10 digits');
+    // The hint also carries the standing "free / no account" line, so match
+    // the digit counter within it rather than the whole string.
+    await expect(page.locator('#film-npi-hint')).toContainText('3/10 digits');
 
-    // A checksum-valid NPI reports only that the NUMBER is well formed.
+    // A checksum-valid NPI enables submit and says nothing about the person.
     await page.locator('#film-npi-input').fill('1234567893');
-    await expect(page.locator('#film-npi-hint')).toContainText('Checksum');
-    await expect(page.locator('.film')).toContainText('does not look anything up');
+    await expect(page.locator('.film-npi-submit')).toBeEnabled();
+    // A checksum-INVALID full-length number is caught before any lookup.
+    await page.locator('#film-npi-input').fill('1234567890');
+    await expect(page.locator('.film-npi-submit')).toBeDisabled();
+
+    // Recognition still shows no personal state until a lookup returns.
+    await expect(page.locator('.film')).toContainText(
+      'Nothing personal is shown until a real lookup returns',
+    );
   });
 
   test('no graph: no nodes, edges, or drag controls anywhere (R1)', async ({ page }) => {

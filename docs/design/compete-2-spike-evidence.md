@@ -1,4 +1,4 @@
-# COMPETE-2 spike — verification evidence
+# COMPETE-1 / COMPETE-2 film — verification evidence
 
 **Captured:** 2026-07-21 · **Route:** `/dev/compete-film` (dev-gated, `noindex`)
 **Branch:** `wave/compete-0-mandate` off `origin/main@47d94070a`
@@ -82,8 +82,17 @@ document. With no JS the composition is complete and readable.
   the capture actually exercised. **A real WebGPU renderer, and proof it draws
   non-zero pixels, is COMPETE-2 production work** — see
   [[webgpu_hero_field_blank_in_prod]] for why "it shipped" is not "it drew".
-- Only 2 of the 6 scenes exist. The dispatch asked for one transition; the
-  remaining four are COMPETE-1.
+- **`/` is not switched.** The six-scene film is production code, but it is
+  mounted only at the dev-gated preview route. Flipping `apps/web/app/page.tsx`
+  to render `HorizontalCareerFilm` is a one-line change held for founder review:
+  COMPETE-1's own acceptance test ("at 1440px the page *feels* like a
+  continuous left-to-right environment") is a judgement call, and today's `/`
+  carries working product surfaces that a premature swap would regress.
+- The Choice scene leaves the right half of the frame empty. "CTAs only" is what
+  the mandate specifies, so this is a composition weakness rather than a
+  contract violation — worth a design pass before `/` switches.
+- `SourceCoverageRibbon` and the `CareerEvidenceField` hero panel are not yet
+  recomposed into the film; the atmosphere currently stands in for both.
 - `FeedbackButton` and `VCommandBar` still render (they are on every ops-surface
   route). The promo rail, navbar, and footer are suppressed.
 
@@ -95,6 +104,9 @@ document. With no JS the composition is complete and readable.
 | Headline rendered `Gethiredfaster.` | `display: inline-block` collapses each word span's trailing space | `white-space: pre-wrap` on the word span |
 | Copy blanked entirely | A `z-index: -1` scrim pseudo-element inside `.film-track`, which `will-change: transform` makes a stacking context, painted behind the whole scene | Scrim moved to the element's own background in normal paint order |
 | Scrim read as a card edge | Flat rectangle of paper over the field | Gradient fading on both sides, bleeding off the left viewport edge |
+| Atmosphere painted **over** the copy | `.film-atmosphere-canvas` has `z-index: 1`; `.film-track` is a stacking context via `will-change: transform` but sat at `z-index: auto` (level 0), so fragments drew across the headline | `.film-track` given `position: relative; z-index: 3`. **Now guarded** by an `elementFromPoint` hit test — 38 prior tests missed it because the DOM reports the text as visible |
+| Two competing headlines in the Start scene | `HomeProofMoment` is a page SECTION: it brings a numbered eyebrow ("04 Why this is credible" — R4 + R6) and its own display H2 | Mount `ProofPacketInspector` (the artifact) instead of its section wrapper. Same reason `DualAudienceCta` (a two-card grid, R3, linking to a non-existent `/#npi`) was replaced with plain in-scene CTAs |
+| Scenes appeared ~74px misaligned | The app sets `html { scroll-behavior: smooth }`, so the capture sampled a frame mid-animation | Measurement bug, not a product bug — `behavior: 'instant'` in the harness and the e2e `scrubTo`. Every scene lands at exactly `left: 0` |
 
 ## Test coverage added
 

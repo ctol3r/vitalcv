@@ -163,7 +163,35 @@ previously-signed direction, or where the controlling document is missing.
 | C2 | **Horizontal Rolodex** | `VitalCV_Deep_Audit_Design_Direction_and_Master_Waves_2026-07-21.md` (15:39): *"Do not replace `HorizontalStoryRail`; audit and tune the shipped implementation"* | R2 — retired from the homepage | **Resolved to the mandate.** The rail is retired from `/` |
 | C3 | **Full-page horizontal scrolling** | Same doc lists it under "Do not add or restore" | Required — the whole desktop homepage is one horizontal film | **Resolved to the mandate.** Direct reversal |
 | C4 | **GSAP** | Same doc: *"GSAP ScrollTrigger added beside the existing rail driver"* is forbidden | Permitted only as the sole owner | **Moot** — §1 chose the in-repo engine, satisfying both documents |
-| C5 | **`TimeToStartComparison` and `MetricStrip`** | Kept as honest, live-data sections | R4 bans metric theatre | **Needs founder review.** Both use real data; the question is whether their *presentation* reads as a counter |
+| C5 | **`TimeToStartComparison` and `MetricStrip`** | Kept as honest, live-data sections | R4 bans metric theatre | **RESOLVED 2026-07-21 — see below.** `MetricStrip` retires; `TimeToStartComparison` recomposes |
+
+### C5 ruling (2026-07-21)
+
+The founder delegated this. Both components use real, defensible data — neither
+fabricates. R4's target is **theatre**, and the mandate's operative sentence is
+narrower than "no numbers": *"Animate only returned personal state after an NPI
+lookup, and later real, scoped pilot outcomes."*
+
+**`MetricStrip` → RETIRE from the composition.** Not because its numbers are
+wrong — they are live reads from `lib/trust/sourceLanes.ts` — but because its
+*presentation* is precisely what R4 names:
+
+- Two-digit `00`–`03` grammar is literally the banned step-number pattern.
+- Numerals render at `clamp(40px, 6vw, 60px)`.
+- `AnimatedMetricValue` animates **system facts on page load**, before any
+  lookup — the exact thing the mandate restricts to returned personal state.
+
+The four facts are worth keeping (3 federal lanes, 4 readiness dimensions, one
+owned wallet, no account required). They move into the Choice scene as quiet
+ink, not a counter row. The component stays on disk.
+
+**`TimeToStartComparison` → RECOMPOSE into Momentum.** This one is *not* R4
+theatre: the 90–120 day figure is a cited industry benchmark rather than a
+VitalCV claim, and the fabricated "34% head start" bar was already removed
+(NUM-1.4). What disqualifies its current form is different — it is a **widget
+where the mandate wants a scene event**. The benchmark survives as one editorial
+phrase; the coverage state (3 source-backed, 1 access-gated) survives as
+evidence fragments in the atmosphere. The animated bar does not.
 
 ---
 
