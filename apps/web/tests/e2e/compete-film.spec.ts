@@ -89,36 +89,45 @@ test.describe('COMPETE-2 horizontal film', () => {
   /**
    * Paint-order guard.
    *
-   * This bug shipped TWICE and no assertion caught it: the atmosphere canvas
-   * carries `z-index: 1`, while `.film-track` is a stacking context with
-   * `z-index: auto` (level 0) because of `will-change: transform`. Record
-   * fragments therefore drew straight over the headline. Nothing in the DOM
-   * reports it — the text is "visible" with opacity 1 — so only a hit test
-   * finds it.
+   * This bug shipped TWICE: the atmosphere canvas carries `z-index: 1`, while
+   * `.film-track` is a stacking context with `z-index: auto` (level 0) because
+   * of `will-change: transform`. Record fragments therefore drew straight over
+   * the headline.
+   *
+   * Two instruments were tried and REJECTED, which is why this test asserts
+   * computed style instead:
+   *
+   *  - `document.elementFromPoint` is VACUOUS here. `.film-atmosphere` is
+   *    `pointer-events: none`, so the canvas can never be the hit-test result
+   *    no matter how far in front it paints. That test passed with the bug
+   *    deliberately reintroduced.
+   *  - A full-page screenshot diff does not separate signal from noise for
+   *    this bug: measured on 2026-07-22 the regression moved 91 px while the
+   *    run-to-run noise floor is 33 px, against a 0.001 ratio budget of
+   *    ~1296 px. The screenshot suite catches gross regressions (copy
+   *    blanking, scene drift); it cannot catch this one.
+   *
+   * The stacking level is the actual invariant, so assert it directly.
    */
-  test('the atmosphere never paints over the copy', async ({ page }) => {
+  test('the film track paints in front of the atmosphere', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.waitForTimeout(300);
 
-    const count = await page.locator('[data-film-scene]').count();
-    for (let i = 0; i < count; i += 1) {
-      await scrubTo(page, i / (count - 1));
-      const hit = await page.evaluate((idx) => {
-        const scene = document.querySelectorAll('[data-film-scene]')[idx] as HTMLElement;
-        const phrase = scene.querySelector('.film-phrase') as HTMLElement | null;
-        if (!phrase) return { scene: scene.dataset.filmScene, ok: true, topEl: null };
-        const r = phrase.getBoundingClientRect();
-        const el = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
-        return {
-          scene: scene.dataset.filmScene,
-          // The topmost element over the phrase must be the phrase itself or
-          // something inside it — never the canvas or the reading light.
-          ok: !!el && (phrase.contains(el) || el === phrase),
-          topEl: el?.className?.toString() ?? null,
-        };
-      }, i);
-      expect(hit, `scene ${hit.scene} covered by ${hit.topEl}`).toMatchObject({ ok: true });
-    }
+    const order = await page.evaluate(() => {
+      const z = (sel: string) => {
+        const el = document.querySelector(sel);
+        if (!el) return null;
+        const raw = getComputedStyle(el).zIndex;
+        return raw === 'auto' ? 'auto' : Number(raw);
+      };
+      return { track: z('.film-track'), canvas: z('.film-atmosphere-canvas') };
+    });
+
+    expect(order.canvas, 'atmosphere canvas should be present in film mode').not.toBeNull();
+    // `auto` is the failure mode: it paints at level 0, behind the canvas's 1.
+    expect(order.track, '.film-track must declare an explicit stacking level').not.toBe('auto');
+    expect(typeof order.track).toBe('number');
+    expect(order.track as number).toBeGreaterThanOrEqual(order.canvas as number);
   });
 
   test('no scene overflows the pinned stage', async ({ page }) => {

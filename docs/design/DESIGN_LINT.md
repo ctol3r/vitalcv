@@ -110,19 +110,62 @@ reports `tail`'s status, not the gate's.
 
 ---
 
+---
+
+## DG-18.3 — visual regression
+
+Built, scoped to the film: `apps/web/tests/e2e/film-visual.spec.ts`, 11
+baselines across desktop (six scene boundaries + a mid-transition frame),
+tablet 768×1024, mobile 360×740, the static tier, and reduced motion.
+`maxDiffPixelRatio` 0.001, `animations: 'disabled'`, waiting on
+`document.fonts.ready`. Dynamic content masks by the `data-vr-mask` attribute,
+never by pixel coordinate.
+
+**Determinism.** The atmosphere drifts continuously, so a naive screenshot is
+flaky by construction. `?filmFreeze=1` renders one frame at time 0 — the same
+frame the static tier and the SSR poster draw — so a capture is a real frame of
+the composition, not a test-only rendering path. Reduced motion is deliberately
+**not** used to stabilise the film: it resolves the static tier, which disables
+the film and would silently baseline the vertical fallback instead.
+
+**What it catches, and what it does not.** Measured 2026-07-22 by reintroducing
+the paint-order bug: it moved **91 px**, while the run-to-run noise floor is
+**33 px**, against a 0.001 budget of ~1296 px. Signal and noise overlap, so no
+threshold separates them. The screenshot suite is the right instrument for
+*gross* regressions — content blanking, scenes drifting, a card edge appearing.
+It is the wrong instrument for paint order, which is asserted directly in
+`compete-film.spec.ts` ("the film track paints in front of the atmosphere").
+
+Two instruments were tried and rejected for paint order, both recorded in the
+spec so they are not retried: `document.elementFromPoint` is **vacuous** here
+(the atmosphere is `pointer-events: none`, so the canvas can never be the
+hit-test result — that test passed with the bug deliberately reintroduced), and
+the screenshot diff per above.
+
+**Baselines are per-platform.** Playwright tags them `-chromium-darwin` /
+`-chromium-linux`, so local and CI sets coexist. CI runs ubuntu; generate its
+set with the **Visual Baselines** workflow (`workflow_dispatch`), download the
+artifact, unzip into `apps/web/tests/e2e/film-visual.spec.ts-snapshots/`, and
+commit it in a PR. Committing from CI is deliberately not automated: a baseline
+update asserts that a visual change was *intended*, and that needs a human.
+
+Until Linux baselines exist the suite **skips on that platform rather than
+failing** (`requireBaseline`), so the e2e job is never red for a suite that has
+simply never been generated there. It arms itself the moment the baselines
+land — no code change required.
+
+**Not yet extended** to the nine other DG-18.3 matrix routes (`/`, `/pricing`,
+`/contact`, `/legal/privacy`, `/get-ready`, `/passport`, `/p/[slug]`,
+`/review/request`, `/trust`, `/status`). Those carry freshness stamps and run
+ids that need `data-vr-mask` attributes added at the source first; the canonical
+list is `REGRESSION_MATRIX.md` in the handoff bundle.
+
+---
+
 ## Not yet built
 
-- **DG-18.3 — the visual-regression matrix.** 10 routes × 3 viewports
-  (360×740, 768×1024, 1440×900), Playwright screenshots, `maxDiffPixelRatio`
-  0.001, `animations: 'disabled'`, `prefers-reduced-motion: 'reduce'`,
-  `deviceScaleFactor` 2, waiting on `document.fonts.ready` + network idle.
-  Dynamic content masked by `data-vr-mask="freshness|runid|timestamp"` **by
-  attribute selector, never by pixel coordinate**, and never silently mocked.
-  Baseline updates require a CHANGES entry naming the intentional visual change.
-  The repo currently has **no** `toHaveScreenshot` specs and **no**
-  `data-vr-mask` attributes; the canonical spec is `REGRESSION_MATRIX.md` in the
-  handoff bundle.
 - **DG-18.2 — `/dev/design`**, the living style guide: every primitive in every
   state with the usage rule beside it. "If it isn't here, it isn't in the
   system."
 - **LINT-10**, per above.
+- The nine remaining DG-18.3 matrix routes, per above.

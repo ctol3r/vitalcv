@@ -47,6 +47,35 @@ export interface EvidenceAtmosphereProps {
   fragmentCount?: number;
 }
 
+/**
+ * Test-only still-frame hook (DG-18.3).
+ *
+ * Visual-regression baselines need a deterministic frame, and the atmosphere
+ * drifts continuously — a screenshot at T differs from one at T+16ms, which
+ * would make every baseline flaky. Freezing renders exactly one frame at
+ * time 0, which is also what the static tier and the SSR poster draw, so a
+ * frozen capture is a real frame of the composition rather than a special
+ * rendering path invented for tests.
+ *
+ * This does NOT disable the film (reduced motion would, by resolving the
+ * static tier) — layout stays pinned and horizontal, only the clock stops.
+ *
+ * Gated exactly like `readForcedTier`: dev/test only, never honored in a
+ * production build unless NEXT_PUBLIC_SCENE_DEBUG=1 is set for a test deploy.
+ */
+export function readFrozen(win: Window): boolean {
+  const debugAllowed =
+    process.env.NODE_ENV !== 'production' || process.env.NEXT_PUBLIC_SCENE_DEBUG === '1';
+  if (!debugAllowed) return false;
+  const fromGlobal = (win as Window & { __VCV_FILM_FREEZE__?: unknown }).__VCV_FILM_FREEZE__;
+  if (fromGlobal === true) return true;
+  try {
+    return new URLSearchParams(win.location.search).get('filmFreeze') === '1';
+  } catch {
+    return false;
+  }
+}
+
 export function EvidenceAtmosphere({
   progress,
   tier,
@@ -63,7 +92,11 @@ export function EvidenceAtmosphere({
   progressRef.current = progress;
   pointerRef.current = pointer;
 
-  const animated = tier !== 'static';
+  // Resolved after mount so SSR and the first client render agree.
+  const [frozen, setFrozen] = React.useState(false);
+  React.useEffect(() => setFrozen(readFrozen(window)), []);
+
+  const animated = tier !== 'static' && !frozen;
 
   React.useEffect(() => {
     const canvas = canvasRef.current;
