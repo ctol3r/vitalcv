@@ -14,10 +14,18 @@
 
 import * as React from 'react';
 
+// Imported here, not only at the island root: this section is mounted on the
+// live homepage as well as at /design/wave1501, and it renders nothing legible
+// without the scoped `.w1501` token layer. Next dedupes the double import.
+import '@/styles/wave1501-home.css';
+
 import { HonestyLabel } from './primitives';
 import { Reveal, SecHead, useReducedMotion } from './shared';
 
 const NOW_T = 0.5;
+
+/** Deterministic width for the server render and the hydrating client render. */
+const SSR_WIDTH = 720;
 
 type SkyEvent = {
   t: number;
@@ -49,7 +57,8 @@ const skyPath = (arr: Placed[]) =>
 export const SkySection = () => {
   const reduced = useReducedMotion();
   const wrapRef = React.useRef<HTMLDivElement>(null);
-  const [w, setW] = React.useState(720);
+  const [measured, setMeasured] = React.useState(SSR_WIDTH);
+  const [hydrated, setHydrated] = React.useState(false);
   const [rot, setRot] = React.useState(-8);
   const [T, setT] = React.useState(NOW_T);
   const [dragging, setDragging] = React.useState(false);
@@ -58,20 +67,69 @@ export const SkySection = () => {
   React.useEffect(() => {
     const el = wrapRef.current;
     if (!el) return;
-    const ro = new ResizeObserver((es) => setW(Math.max(300, es[0].contentRect.width)));
+    const ro = new ResizeObserver((es) => setMeasured(Math.max(300, es[0].contentRect.width)));
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
 
-  const h = Math.round(Math.min(480, Math.max(340, w * 0.58)));
+  React.useEffect(() => {
+    setHydrated(true);
+  }, []);
+
+  /**
+   * Every star coordinate is derived from `w`, so `w` MUST be identical on the
+   * server and in React's hydrating render. The ResizeObserver fires before
+   * hydration commits, so reading its value directly meant the server emitted
+   * the arc at 720px while the client rendered it at the real width — a real
+   * hydration mismatch on ~40 SVG attributes, which React refuses to patch up.
+   *
+   * Pinning to SSR_WIDTH until the mount effect has run guarantees the first
+   * client render matches the HTML byte for byte; the true width lands on the
+   * very next commit. The alternative — a fixed viewBox scaled by CSS — was
+   * rejected because it shrinks the 9.5px mono labels below legibility at
+   * 360px, which is the reason the handoff computes geometry in px at all.
+   */
+  const w = hydrated ? measured : SSR_WIDTH;
+
+  const h = Math.round(Math.min(560, Math.max(340, w * 0.58)));
   const cx = w / 2;
   const cy = h / 2;
-  const rad = Math.min(w, h) / 2 - 56;
   const small = w < 560;
 
+  /**
+   * DEVIATION from the handoff, deliberate.
+   *
+   * hp-sky.jsx uses one radius, `Math.min(w, h) / 2 - 56`. On a wide stage the
+   * height wins, so at 1200×480 the arc is a 368px circle floating in a 1200px
+   * box with dead space either side. The projection is not load-bearing — the
+   * truth encoding lives in `solid` vs dashed, not in the shape — so the radius
+   * is split per axis and the arc fills the stage it was given.
+   *
+   * radX keeps 130px of right margin because labels render at `x + 10` and
+   * would otherwise run out of the pane at the 3 o'clock positions.
+   */
+  const radX = Math.max(120, w / 2 - (small ? 92 : 130));
+  const radY = Math.max(110, h / 2 - 44);
+
+  /**
+   * Coordinates are ROUNDED, and that is a correctness fix rather than tidiness.
+   *
+   * `Math.cos`/`Math.sin` are not required by the spec to be correctly rounded,
+   * so Node's V8 and the browser's V8 can disagree in the last ULP: the server
+   * emitted `cx="204.4787351667836"` where the client computed
+   * `204.47873516678362`, and React reported a hydration mismatch on every star
+   * and label. The handoff never hit this because `skyPath` already rounds via
+   * `.toFixed(1)` — only the raw `cx`/`x` attributes were unrounded.
+   *
+   * Two decimals is far below one device pixel, so nothing moves.
+   */
   const pts: Placed[] = SKY_EVENTS.map((e) => {
     const ang = ((e.a + rot) * Math.PI) / 180;
-    return { ...e, x: cx + Math.cos(ang) * rad * e.r, y: cy + Math.sin(ang) * rad * e.r };
+    return {
+      ...e,
+      x: Math.round((cx + Math.cos(ang) * radX * e.r) * 100) / 100,
+      y: Math.round((cy + Math.sin(ang) * radY * e.r) * 100) / 100,
+    };
   });
   const recorded = pts.filter((p) => p.t <= NOW_T); // solid ink, always
   const future = pts.filter((p) => p.t > NOW_T); // dashed, always
@@ -130,11 +188,12 @@ export const SkySection = () => {
             >
               <svg width={w} height={h} style={{ display: 'block' }} aria-hidden="true">
                 {[0.35, 0.65, 0.95].map((k) => (
-                  <circle
+                  <ellipse
                     key={k}
                     cx={cx}
                     cy={cy}
-                    r={rad * k}
+                    rx={radX * k}
+                    ry={radY * k}
                     fill="none"
                     stroke="var(--vt-rule-soft)"
                     strokeWidth="1"

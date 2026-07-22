@@ -19,6 +19,7 @@ import { MetricStrip } from '@/components/home/MetricStrip';
 import { SourceCoverageRibbon } from '@/components/home/SourceCoverageRibbon';
 import { TruthBoundary } from '@/components/home/TruthBoundary';
 import { RailJourney } from '@/components/home/rail/RailJourney';
+import { SkySection } from '@/components/home/w1501/Sky';
 import { HomeProofMoment } from '@/components/home/HomeProofMoment';
 import { TimeToStartComparison } from '@/components/home/TimeToStartComparison';
 import { Reveal } from '@/components/motion/Reveal';
@@ -332,6 +333,28 @@ export default function HomePageClient() {
         <Reveal delay={90} className="pt-6">
           <TruthBoundary />
         </Reveal>
+
+        {/* The career constellation, from the wave1501 handoff (DG-7.8).
+            Drag-rotate arc + a Began→Now→Headed horizon slider.
+
+            It is HERE and not in the hero on purpose. The hero graph
+            (CareerEvidenceField) resolves its lanes from the real
+            /api/identity/bootstrap + /api/trust-state reads once an NPI is
+            entered; this arc is fixed illustrative data with no NPI binding.
+            Putting fixture data in the hero of the marketing homepage — in the
+            slot where the page promises "enter your NPI and see what is real" —
+            would trade a truthful graph for a prettier fake one. Below the
+            proof boundary, labelled illustrative, it is honest: an argument
+            about what a career record LOOKS like over time, not a claim about
+            anyone's actual record.
+
+            Scoped in `.w1501` because it consumes wave1500's token vocabulary,
+            in which eight `--vt-*` names mean something different from this
+            app's (`--vt-focus-ring` is a colour here, a box-shadow list there).
+            The island keeps those definitions off every other surface. */}
+        <div className="w1501">
+          <SkySection />
+        </div>
 
         {/* THE PROOF — also stated once.
             EvidenceTruthPanel ("Every claim shows its source", ~811px) sat
