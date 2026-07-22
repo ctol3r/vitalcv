@@ -24,10 +24,8 @@ import { RailJourney } from '@/components/home/rail/RailJourney';
 import { HomeProofMoment } from '@/components/home/HomeProofMoment';
 import { TimeToStartComparison } from '@/components/home/TimeToStartComparison';
 import { Reveal } from '@/components/motion/Reveal';
-import { AmbientField } from '@/components/home/scene/AmbientField';
 import { ChapterProgressProvider } from '@/components/home/scene/ChapterProgress';
 import { GrainOverlay } from '@/components/home/scene/GrainOverlay';
-import { SceneBoundary } from '@/components/home/scene/SceneBoundary';
 import { SceneCursor } from '@/components/home/scene/SceneCursor';
 import { SceneProvider } from '@/components/home/scene/SceneProvider';
 import { getChapterScene } from '@/components/home/scene/registry';
@@ -103,15 +101,21 @@ export default function HomePageClient() {
       <style>{'body{background:var(--vt-cloud-dancer,#F0EEE9)}'}</style>
       <div aria-hidden="true" className="mz-dotgrid pointer-events-none absolute inset-x-0 top-0 h-[26rem] opacity-20" />
 
-      {/* SHD-1.2 scene layer: the page-level career-evidence atmosphere
-          (manifest rows 1–3, 23). Fixed to the viewport like the source's
-          full-page shader, painted UNDER all positioned content. Decorative
-          only — the poster gradient stands alone on the static tier, and the
-          grain is a baked SVG texture, not a render loop. */}
+      {/* Scene layer — grain ONLY (homepage rebuild).
+          The ambient colour field is retired here. It painted emerald at 12%
+          and indigo at 10% as radial gradients on a `position: fixed` layer,
+          so the tint stayed welded to the viewport while content scrolled past
+          it: the top-left corner was permanently green-grey and the wash never
+          travelled with a section. On a page whose paper is a single deliberate
+          Cloud Dancer (--vt-cloud-dancer, #F0EEE9, uniform at every scroll
+          offset), a fixed coloured veil is the one thing that can make that
+          paper look inconsistent — so it goes.
+
+          Atmosphere is now earned by CONTENT motion (the evidence graph, the
+          horizontal journey) rather than by tinting the page. The grain stays:
+          it is a baked SVG texture, not a colour, and it is what keeps a flat
+          Cloud Dancer reading as paper instead of as a blank div. */}
       <div aria-hidden="true" data-home-scene="" className="pointer-events-none fixed inset-0">
-        <SceneBoundary poster={<div className="scene-ambient-poster" />} className="absolute inset-0">
-          {() => <AmbientField />}
-        </SceneBoundary>
         <GrainOverlay opacity={getChapterScene('wallet').grain} />
       </div>
       <SceneCursor />
@@ -250,16 +254,23 @@ export default function HomePageClient() {
               formerly explorable public graph is retired (SHD-0.3) and
               /evidence-network is a static system-concept page. After an NPI
               is entered the panel becomes that provider's live result. */}
-          <div className={submittedNpi ? 'flex justify-center' : 'block'}>
+          {/* The graph is now the constant, and the NPI makes it REAL: instead
+              of being swapped out for a card, it stays mounted and resolves its
+              four public lanes for that clinician. The result card keeps its
+              own job — the explicit grouped breakdown and the one next-best
+              action — which the graph deliberately does not duplicate. */}
+          <div className="flex flex-col items-center gap-6">
+            {/* SHD-2.2: before submit the field responds to SAFE, non-sensitive
+                input state only — the caret being present ('listening') and a
+                valid checksum ('ready'). No clinician-specific claim is ever
+                rendered before a real lookup returns. */}
+            <CareerEvidenceField
+              signal={focused ? (isValid ? 'ready' : 'listening') : 'idle'}
+              npi={submittedNpi}
+            />
             {submittedNpi ? (
               <LiveNpiResult npi={submittedNpi} onReset={() => { setSubmittedNpi(null); setRaw(''); }} />
-            ) : (
-              // SHD-2.2: the field responds to SAFE, non-sensitive input state
-              // only — the caret being present ('listening') and a valid
-              // checksum ('ready'). No clinician-specific claim is ever
-              // rendered before a real lookup returns.
-              <CareerEvidenceField signal={focused ? (isValid ? 'ready' : 'listening') : 'idle'} />
-            )}
+            ) : null}
           </div>
           </div>
 

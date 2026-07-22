@@ -1,616 +1,411 @@
 'use client';
 
 /**
- * CareerEvidenceField — the hero's generative "career evidence field" (VHS-1).
+ * CareerEvidenceField — the homepage hero's evidence graph.
  *
- * It replaces the force-directed graph in the homepage hero with an ABSTRACT
- * system metaphor: named source signals converge into a clinician-owned wallet
- * capsule, which sends muted arcs out toward opportunity and a single, bounded
- * employer-acceptance ring. It is decoration (aria-hidden) — the honest meaning
- * lives in the semantic legend beside it — and it never emits fabricated
- * per-clinician data.
+ * ── Why this was rebuilt ──────────────────────────────────────────────────────
+ * The previous field was a 616-line canvas stack (WebGPU → Canvas2D → poster)
+ * drawing a seeded particle scatter. Three problems, all of them visible:
+ *   1. It read as noise. Dots sprayed around an empty capsule at pseudo-random
+ *      offsets, with no hierarchy and no way to tell what any dot meant.
+ *   2. It was not interactive. Nothing responded to a pointer or a keyboard.
+ *   3. It was unverifiable. Canvas pixels cannot be asserted on in vitest, and
+ *      a GPU tier that silently painted zero pixels shipped to production once
+ *      already — the poster masked it and no test could see it.
  *
- * Progressive enhancement, per the bundle's resilience bar:
- *  1. Server / first paint: a static SVG poster (below) — no blank reserved area.
- *  2. Reduced motion / no canvas / init failure: the poster stays; no rAF loop.
- *  3. Default: a deterministic, seeded Canvas 2D animation fades in over it.
- * The public /evidence-network page is a static system-concept explainer; the
- * formerly explorable public graph is retired (SHD-0.3) and must not return.
+ * This is SVG instead: the same composition, but every node is a real DOM
+ * element, so it is crisp at any DPR, keyboard-reachable, screen-reader
+ * labelled, and assertable in a unit test. It is also a third of the code.
+ *
+ * ── Two modes ────────────────────────────────────────────────────────────────
+ * IDLE (no `npi`): illustrative STRUCTURE — the named public lanes and the
+ *   abstract roles, explicitly labelled as structure, naming no real person.
+ * LIVE (`npi` set): that clinician's actual public snapshot, built lane by lane
+ *   from /api/identity/bootstrap and /api/trust-state as the results land.
+ *
+ * The truth contract holds in both: no lane reaches an affirmative state unless
+ * the API affirmatively says so, licensure never auto-clears (state boards are
+ * access-gated by policy), and the employer decision is drawn as exactly one
+ * bounded ring because institution review remains the final step.
  */
 
 import * as React from 'react';
 
-import { SceneBoundary } from '@/components/home/scene/SceneBoundary';
 import {
-  FIELD_ANCHORS,
-  KIND_COLOR,
-  MODEL,
-  readPalette,
-  withAlpha,
-} from '@/components/home/evidence-field/model';
+  ALL_NODES,
+  EDGES,
+  EDGE_VIEWBOX,
+  OUTCOME_NODES,
+  RECORD_NODE,
+  SOURCE_NODES,
+  STATE_LEGEND,
+  edgePath,
+  liveSourceStates,
+  nodeById,
+  pct,
+  stateColor,
+  type EvidenceState,
+  type GraphNode,
+  type LiveTrust,
+} from '@/components/home/evidence-field/graph';
 import { cn } from '@/lib/utils';
 
-/* The seeded field model, palette bridge, and color helpers moved to
-   components/home/evidence-field/model.ts (SHD-2.1) so the WebGPU tier, this
-   2D tier, and the SVG poster all bind the SAME semantic composition. */
-
-/** Anchor indices whose in-links carry the named-source emphasis. */
-const NAMED_SOURCE_ATOMS = new Set([0, 3, 6]);
-
-/** How long to wait between asking the GPU tier to prove it painted something. */
-const GPU_PAINT_PROBE_MS = 1200;
-
-const pct = (n: number) => `${(n * 100).toFixed(2)}%`;
-
-/**
- * The designed static baseline (HERO-RESET-1). Percentage geometry, not a
- * sliced viewBox: the previous `viewBox="0 0 100 62"` + `slice` cropped ~40%
- * of the composition out of the tall desktop panel, which is why the field
- * read as nonexistent while technically present. Every element now maps the
- * SAME normalized model coordinates the Canvas 2D and WebGPU tiers use, so
- * nothing essential exists only in an animated tier.
- */
-function FieldPoster() {
-  return (
-    <svg data-field-poster="" aria-hidden="true" className="absolute inset-0 h-full w-full">
-      <defs>
-        <radialGradient id="cef-wash-source" cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stopColor="color-mix(in oklab, var(--vt-accent-emerald) 9%, transparent)" />
-          <stop offset="100%" stopColor="transparent" />
-        </radialGradient>
-        <radialGradient id="cef-wash-record" cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stopColor="color-mix(in oklab, var(--accent) 10%, transparent)" />
-          <stop offset="100%" stopColor="transparent" />
-        </radialGradient>
-        <radialGradient id="cef-wash-opportunity" cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stopColor="color-mix(in oklab, var(--vt-field-opportunity, #2f6fb0) 8%, transparent)" />
-          <stop offset="100%" stopColor="transparent" />
-        </radialGradient>
-        <linearGradient id="cef-cap" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="var(--vt-surface)" />
-          <stop offset="60%" stopColor="var(--vt-surface-subtle)" />
-          <stop offset="100%" stopColor="color-mix(in oklab, var(--accent) 12%, var(--vt-surface-subtle))" />
-        </linearGradient>
-      </defs>
-
-      {/* atmosphere washes — restrained depth so the panel never reads as blank paper */}
-      <ellipse cx="14%" cy="46%" rx="26%" ry="42%" fill="url(#cef-wash-source)" />
-      <ellipse cx={pct(MODEL.capsule.x)} cy={pct(MODEL.capsule.y)} rx="30%" ry="38%" fill="url(#cef-wash-record)" />
-      <ellipse cx="87%" cy="44%" rx="20%" ry="30%" fill="url(#cef-wash-opportunity)" />
-
-      {/* converging evidence — named sources carry the strongest connectors */}
-      {MODEL.inLinks.map((i) => {
-        const a = MODEL.atoms[i];
-        const named = NAMED_SOURCE_ATOMS.has(i);
-        return (
-          <line
-            key={`in-${i}`}
-            x1={pct(a.x)} y1={pct(a.y)}
-            x2={pct(MODEL.capsule.x)} y2={pct(MODEL.capsule.y)}
-            stroke={
-              named
-                ? 'color-mix(in oklab, var(--vt-accent-emerald) 44%, transparent)'
-                : 'color-mix(in oklab, var(--vt-text-primary) 16%, transparent)'
-            }
-            strokeWidth={named ? 1.6 : 1.1}
-          />
-        );
-      })}
-      {/* the record carrying evidence out toward opportunity */}
-      {MODEL.outLinks.map((i) => {
-        const a = MODEL.atoms[i];
-        return (
-          <line
-            key={`out-${i}`}
-            x1={pct(MODEL.capsule.x)} y1={pct(MODEL.capsule.y)}
-            x2={pct(a.x)} y2={pct(a.y)}
-            stroke="color-mix(in oklab, var(--vt-field-opportunity, #2f6fb0) 42%, transparent)"
-            strokeWidth={1.4}
-          />
-        );
-      })}
-
-      {/* the clinician-owned record capsule */}
-      <rect
-        x="48%" y="41.5%" width="24%" height="17%" rx="12"
-        fill="url(#cef-cap)"
-        stroke="color-mix(in oklab, var(--vt-text-primary) 30%, transparent)"
-        strokeWidth="1.25"
-      />
-      <line
-        x1="50%" y1="50%" x2="70%" y2="50%"
-        stroke="color-mix(in oklab, var(--vt-text-primary) 14%, transparent)"
-        strokeWidth="1"
-      />
-
-      {/* signal atoms — named sources read as clear stations, texture stays quiet */}
-      {MODEL.atoms.map((a, i) => {
-        const color =
-          a.kind === 'source' ? 'var(--vt-accent-emerald)'
-            : a.kind === 'proof' ? 'var(--accent)'
-              : a.kind === 'opportunity' ? 'var(--vt-field-opportunity, #2f6fb0)'
-                : 'var(--vt-state-stale, #a2670b)';
-        const named = NAMED_SOURCE_ATOMS.has(i);
-        const r = named ? 6 : a.kind === 'opportunity' ? 4.5 + a.base : a.kind === 'attention' ? 4 : 3 + a.base;
-        return (
-          <g key={i}>
-            {named ? (
-              <circle
-                cx={pct(a.x)} cy={pct(a.y)} r={11}
-                fill="none"
-                stroke="color-mix(in oklab, var(--vt-accent-emerald) 35%, transparent)"
-                strokeWidth="1.25"
-              />
-            ) : null}
-            {a.kind === 'attention' ? (
-              <circle
-                cx={pct(a.x)} cy={pct(a.y)} r={8}
-                fill="none"
-                stroke="color-mix(in oklab, var(--vt-state-stale, #a2670b) 55%, transparent)"
-                strokeWidth="1.25"
-                strokeDasharray="3 3"
-              />
-            ) : null}
-            <circle cx={pct(a.x)} cy={pct(a.y)} r={r} fill={color} opacity="0.9" />
-          </g>
-        );
-      })}
-
-      {/* ONE bounded employer-decision ring — a boundary, never a clearance */}
-      <circle
-        data-poster-ring=""
-        cx={pct(MODEL.atoms[MODEL.acceptance].x)}
-        cy={pct(MODEL.atoms[MODEL.acceptance].y)}
-        r={16}
-        fill="none"
-        stroke="var(--vt-field-opportunity, #2f6fb0)"
-        strokeWidth="1.5"
-        strokeDasharray="5 4"
-        opacity="0.75"
-      />
-    </svg>
-  );
-}
-
-/**
- * Shared label overlay (HERO-RESET-1). Rendered OUTSIDE the tier switch so
- * static, Canvas 2D, and WebGPU present identical names — a tier change can
- * never drop the composition's meaning. Positions come from FIELD_ANCHORS,
- * the same coordinates every renderer draws.
- */
-// Cleared past the station, not tucked against it: the GPU tier draws these as
-// lit spheres ~20px across where the poster draws a 6px dot, so the old 14px
-// offset put the first letter of every source name underneath its own atom.
-// One offset has to clear the largest tier.
-const LABEL_OFFSET: Record<(typeof FIELD_ANCHORS)[number]['id'], string> = {
-  nppes: 'translate(26px, -50%)',
-  'oig-leie': 'translate(26px, -50%)',
-  pecos: 'translate(26px, -50%)',
-  record: 'translate(-50%, 54px)',
-  opportunity: 'translate(-50%, 30px)',
-};
-
-function FieldLabels() {
-  return (
-    <div data-field-labels="" aria-hidden="true" className="pointer-events-none absolute inset-0 z-[2]">
-      {FIELD_ANCHORS.map((anchor) => (
-        <span
-          key={anchor.id}
-          data-field-label={anchor.id}
-          className={cn(
-            'absolute whitespace-nowrap font-semibold uppercase',
-            anchor.id === 'record'
-              ? 'text-[11px] tracking-[0.16em] text-[var(--vt-text-secondary)]'
-              : 'text-[10px] tracking-[0.14em] text-[var(--vt-text-muted)]',
-          )}
-          style={{ left: pct(anchor.x), top: pct(anchor.y), transform: LABEL_OFFSET[anchor.id] }}
-        >
-          {anchor.label}
-        </span>
-      ))}
-    </div>
-  );
-}
-
-const LEGEND = [
-  { label: 'Source-backed', color: 'var(--vt-accent-emerald)' },
-  { label: 'Checked', color: 'var(--accent)' },
-  { label: 'Access required', color: 'var(--vt-state-stale, #a2670b)' },
-  { label: 'Employer decision', color: 'var(--vt-field-opportunity, #2f6fb0)' },
-] as const;
-
-function FieldLegend() {
-  return (
-    <ul
-      data-field-legend=""
-      aria-label="Evidence states this page distinguishes"
-      className="pointer-events-none absolute inset-x-3 bottom-3 z-[3] flex flex-wrap items-center gap-x-3 gap-y-1"
-    >
-      {LEGEND.map((item) => (
-        <li key={item.label} className="inline-flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-[0.1em] text-[var(--vt-text-muted)]">
-          <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full" style={{ background: item.color }} />
-          {item.label}
-        </li>
-      ))}
-      <li className="sr-only">
-        Named public sources shown: NPPES, OIG/LEIE, and PECOS — signals flowing into a
-        clinician-owned career record and out to one opportunity with a single bounded
-        employer decision. Illustrative structure; no real people or employers.
-      </li>
-    </ul>
-  );
-}
-
-/**
- * The live Canvas-2D scene. Mounted only through SceneBoundary, so it never
- * exists under reduced motion / static tier (no loop, not an idle canvas) and
- * a crash inside it can only ever fall back to the poster.
- */
-function FieldCanvas({ wrapRef }: { wrapRef: React.RefObject<HTMLDivElement | null> }) {
-  const canvasRef = React.useRef<HTMLCanvasElement>(null);
-  const [canvasReady, setCanvasReady] = React.useState(false);
-
-  React.useEffect(() => {
-    const wrap = wrapRef.current;
-    const canvas = canvasRef.current;
-    if (!wrap || !canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return; // no 2D context → poster stays
-
-    let palette = readPalette(wrap);
-    let raf = 0;
-    let w = 0, h = 0, dpr = Math.min(window.devicePixelRatio || 1, 2);
-    let onscreen = true;
-    let hidden = document.hidden;
-    let ready = false;
-    let start = performance.now();
-    // Pointer parallax: a small eased depth shift (≤ ~10px), never a cursor
-    // follow. Target set on move, eased toward 0 when the pointer leaves.
-    const ptr = { x: 0, y: 0, tx: 0, ty: 0 };
-
-    const resize = () => {
-      const r = wrap.getBoundingClientRect();
-      if (r.width < 1 || r.height < 1) return;
-      w = r.width; h = r.height; dpr = Math.min(window.devicePixelRatio || 1, 2);
-      canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
-      canvas.style.width = `${w}px`; canvas.style.height = `${h}px`;
-      palette = readPalette(wrap);
-      if (!ready) { ready = true; setCanvasReady(true); }
-    };
-
-    const px = (nx: number) => nx * w;
-    const py = (ny: number) => ny * h;
-
-    const draw = (now: number) => {
-      const t = (now - start) / 1000;
-      ctx.save();
-      ctx.scale(dpr, dpr);
-      ctx.clearRect(0, 0, w, h);
-
-      // ease pointer toward its target and apply a whole-scene parallax
-      ptr.x += (ptr.tx - ptr.x) * 0.06;
-      ptr.y += (ptr.ty - ptr.y) * 0.06;
-      const parX = ptr.x * 10, parY = ptr.y * 8;
-      ctx.translate(parX, parY);
-
-      // faint clinical grid — fine engraved geometry behind the field
-      const grid = 30;
-      ctx.strokeStyle = withAlpha(palette.ink, 0.035);
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      for (let gx = ((-parX % grid) + grid) % grid - grid; gx < w + grid; gx += grid) {
-        ctx.moveTo(gx, -Math.abs(parY) - grid); ctx.lineTo(gx, h + Math.abs(parY) + grid);
-      }
-      for (let gy = ((-parY % grid) + grid) % grid - grid; gy < h + grid; gy += grid) {
-        ctx.moveTo(-Math.abs(parX) - grid, gy); ctx.lineTo(w + Math.abs(parX) + grid, gy);
-      }
-      ctx.stroke();
-
-      const cap = MODEL.capsule;
-      const capX = px(cap.x), capY = py(cap.y);
-
-      // converging + outgoing links
-      ctx.lineWidth = 1;
-      const drawLink = (i: number, into: boolean) => {
-        const a = MODEL.atoms[i];
-        const ax = px(a.x), ay = py(a.y);
-        ctx.strokeStyle = withAlpha(palette.line, into ? 0.7 : 0.55);
-        ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(capX, capY); ctx.stroke();
-        // a single travelling signal per link — evidence flowing to/from the wallet
-        const speed = into ? 0.16 : 0.12;
-        const frac = ((t * speed + a.phase * 0.16) % 1 + 1) % 1;
-        const f = into ? frac : 1 - frac; // outgoing travels away from capsule
-        const sx = into ? ax : capX, sy = into ? ay : capY;
-        const ex = into ? capX : ax, ey = into ? capY : ay;
-        const dxp = sx + (ex - sx) * f, dyp = sy + (ey - sy) * f;
-        const col = into ? KIND_COLOR(palette, a.kind) : palette.opportunity;
-        ctx.globalAlpha = 0.35 + 0.5 * Math.sin(frac * Math.PI);
-        ctx.fillStyle = col;
-        ctx.beginPath(); ctx.arc(dxp, dyp, into ? 1.7 : 2, 0, Math.PI * 2); ctx.fill();
-        ctx.globalAlpha = 1;
-      };
-      MODEL.inLinks.forEach((i) => drawLink(i, true));
-      MODEL.outLinks.forEach((i) => drawLink(i, false));
-
-      // the wallet capsule — a frosted refractive plate that breathes softly.
-      // Proportional to the panel (24% × 17%) so it lands exactly on the
-      // poster capsule beneath it — the tiers must share one geometry.
-      const breathe = 1 + Math.sin(t * 0.9) * 0.02;
-      const cw = w * 0.24 * breathe, ch = h * 0.17 * breathe;
-      const rr = Math.min(12, ch * 0.3);
-      const cx0 = capX - cw / 2, cy0 = capY - ch / 2;
-      // outer bloom so it sits in light, not on a flat card
-      const bloom = ctx.createRadialGradient(capX, capY, ch * 0.3, capX, capY, cw * 1.5);
-      bloom.addColorStop(0, withAlpha(palette.proof, 0.12));
-      bloom.addColorStop(1, withAlpha(palette.proof, 0));
-      ctx.fillStyle = bloom;
-      ctx.beginPath(); ctx.arc(capX, capY, cw * 1.5, 0, Math.PI * 2); ctx.fill();
-      // frosted body: a diagonal refraction gradient
-      const grad = ctx.createLinearGradient(cx0, cy0, capX + cw / 2, capY + ch / 2);
-      grad.addColorStop(0, withAlpha(palette.capsule, 0.97));
-      grad.addColorStop(0.55, withAlpha(palette.capsule, 0.9));
-      grad.addColorStop(1, withAlpha(palette.proof, 0.14));
-      roundRect(ctx, cx0, cy0, cw, ch, rr);
-      ctx.fillStyle = grad; ctx.fill();
-      // caustic highlight — a soft light band sweeping the upper third
-      ctx.save();
-      roundRect(ctx, cx0, cy0, cw, ch, rr); ctx.clip();
-      const sweep = capX + Math.sin(t * 0.5) * cw * 0.28;
-      const caustic = ctx.createLinearGradient(sweep - cw * 0.4, cy0, sweep + cw * 0.4, cy0 + ch * 0.6);
-      caustic.addColorStop(0, withAlpha('#ffffff', 0));
-      caustic.addColorStop(0.5, withAlpha('#ffffff', 0.5));
-      caustic.addColorStop(1, withAlpha('#ffffff', 0));
-      ctx.fillStyle = caustic;
-      ctx.fillRect(cx0, cy0, cw, ch * 0.55);
-      ctx.restore();
-      // rim light (top) + edge
-      ctx.lineWidth = 1; ctx.strokeStyle = withAlpha(palette.capsuleEdge, 0.9);
-      roundRect(ctx, cx0, cy0, cw, ch, rr); ctx.stroke();
-      ctx.lineWidth = 1.2; ctx.strokeStyle = withAlpha('#ffffff', 0.5);
-      ctx.beginPath();
-      ctx.moveTo(cx0 + rr, cy0 + 0.6); ctx.lineTo(cx0 + cw - rr, cy0 + 0.6); ctx.stroke();
-      // engraved centre line — the "record" seam
-      ctx.strokeStyle = withAlpha(palette.ink, 0.12);
-      ctx.beginPath(); ctx.moveTo(cx0 + 6, capY); ctx.lineTo(cx0 + cw - 6, capY); ctx.stroke();
-
-      // atoms — bloom + core + a small specular for dimensionality; larger
-      // (nearer) atoms take a touch more parallax for depth.
-      MODEL.atoms.forEach((a) => {
-        const depth = (a.base - 0.7) * 4;
-        const ax = px(a.x) + ptr.x * depth, ay = py(a.y) + ptr.y * depth;
-        const pulse = 0.5 + 0.5 * Math.sin(t * 1.3 + a.phase);
-        const r = (2.2 + a.base * 2.4) * (0.9 + pulse * 0.16);
-        const col = KIND_COLOR(palette, a.kind);
-        // soft bloom halo
-        const halo = ctx.createRadialGradient(ax, ay, r * 0.3, ax, ay, r * 2.8);
-        halo.addColorStop(0, withAlpha(col, a.kind === 'attention' ? 0.18 : 0.26));
-        halo.addColorStop(1, withAlpha(col, 0));
-        ctx.fillStyle = halo;
-        ctx.beginPath(); ctx.arc(ax, ay, r * 2.8, 0, Math.PI * 2); ctx.fill();
-        // core with a subtle vertical shade for roundness
-        const core = ctx.createLinearGradient(ax, ay - r, ax, ay + r);
-        core.addColorStop(0, withAlpha('#ffffff', 0.35));
-        core.addColorStop(0.35, col);
-        core.addColorStop(1, withAlpha(col, 0.85));
-        ctx.fillStyle = core;
-        ctx.beginPath(); ctx.arc(ax, ay, r, 0, Math.PI * 2); ctx.fill();
-        // specular dot
-        ctx.fillStyle = withAlpha('#ffffff', 0.55);
-        ctx.beginPath(); ctx.arc(ax - r * 0.3, ay - r * 0.34, r * 0.32, 0, Math.PI * 2); ctx.fill();
-      });
-
-      // a SINGLE bounded acceptance ring — never a universal "cleared" signal
-      const acc = MODEL.atoms[MODEL.acceptance];
-      if (acc) {
-        const ax = px(acc.x), ay = py(acc.y);
-        const rp = 0.5 + 0.5 * Math.sin(t * 0.8);
-        ctx.globalAlpha = 0.3 + rp * 0.4;
-        ctx.strokeStyle = palette.opportunity; ctx.lineWidth = 1.5;
-        // breathes around the poster ring's r=16 so the tiers agree at rest
-        ctx.beginPath(); ctx.arc(ax, ay, 14 + rp * 4, 0, Math.PI * 2); ctx.stroke();
-        ctx.globalAlpha = 1;
-      }
-
-      ctx.restore();
-    };
-
-    const frame = (now: number) => {
-      raf = 0;
-      if (!onscreen || hidden) return; // settle: no loop while offscreen/hidden
-      draw(now);
-      raf = requestAnimationFrame(frame);
-    };
-    const wake = () => { if (!raf && onscreen && !hidden) raf = requestAnimationFrame(frame); };
-
-    resize();
-    draw(performance.now()); // paint one frame immediately so the fade-in isn't blank
-
-    const ro = new ResizeObserver(() => { resize(); if (!raf) draw(performance.now()); });
-    ro.observe(wrap);
-    const io = new IntersectionObserver((e) => { onscreen = e[0]?.isIntersecting ?? true; wake(); }, { threshold: 0.02 });
-    io.observe(wrap);
-    const onVis = () => { hidden = document.hidden; wake(); };
-    document.addEventListener('visibilitychange', onVis);
-    const onMove = (e: PointerEvent) => {
-      const r = wrap.getBoundingClientRect();
-      ptr.tx = Math.max(-0.5, Math.min(0.5, (e.clientX - r.left) / r.width - 0.5));
-      ptr.ty = Math.max(-0.5, Math.min(0.5, (e.clientY - r.top) / r.height - 0.5));
-      wake();
-    };
-    const onLeave = () => { ptr.tx = 0; ptr.ty = 0; wake(); };
-    wrap.addEventListener('pointermove', onMove);
-    wrap.addEventListener('pointerleave', onLeave);
-
-    wake();
-    return () => {
-      cancelAnimationFrame(raf);
-      ro.disconnect();
-      io.disconnect();
-      document.removeEventListener('visibilitychange', onVis);
-      wrap.removeEventListener('pointermove', onMove);
-      wrap.removeEventListener('pointerleave', onLeave);
-    };
-  }, [wrapRef]);
-
-  return (
-    <canvas
-      ref={canvasRef}
-      className="absolute inset-0 transition-opacity duration-700"
-      style={{ opacity: canvasReady ? 1 : 0 }}
-    />
-  );
-}
-
-/**
- * The WebGPU tier (SHD-2.1). Lazily imports the renderer only when the tier
- * grants it; a missing adapter, slow init (deadline-bounded), or device loss
- * resolves to `onFallback()`, which swaps in the Canvas-2D tier on the SAME
- * semantic model. No user-visible failure state exists at any point.
- */
-function FieldGpuCanvas({
-  wrapRef,
-  onFallback,
-}: {
-  wrapRef: React.RefObject<HTMLDivElement | null>;
-  onFallback: () => void;
-}) {
-  const canvasRef = React.useRef<HTMLCanvasElement>(null);
-  const [gpuReady, setGpuReady] = React.useState(false);
-
-  React.useEffect(() => {
-    const wrap = wrapRef.current;
-    const canvas = canvasRef.current;
-    if (!wrap || !canvas) return;
-    let cancelled = false;
-    let handle: { destroy(): void } | null = null;
-    let probe = 0;
-
-    void import('@/components/home/evidence-field/webgpu').then(async (mod) => {
-      if (cancelled) return;
-      const h = await mod.initEvidenceFieldGpu(canvas, wrap, onFallback);
-      if (!h) {
-        if (!cancelled) onFallback();
-        return;
-      }
-      if (cancelled) {
-        h.destroy();
-        return;
-      }
-      handle = h;
-      setGpuReady(true);
-
-      // Paint probe. A successful init proves the device came up, NOT that the
-      // scene draws: a bad projection matrix produces a valid, wholly blank
-      // canvas and no error, so `onFallback` never fires and the 2D tier never
-      // mounts — the hero silently degrades to a static poster. That shipped.
-      //
-      // The measurement belongs to the renderer (`paintedPixels`), which reads
-      // its own render target GPU-side. Reading it from here instead —
-      // `drawImage` onto a 2D scratch canvas — returns empty for a live rAF
-      // loop once the frame has been presented, and demotes a scene that is
-      // visibly drawing. `null` means not measured yet (the loop parks while
-      // offscreen or hidden, and a background tab starts hidden), so this asks
-      // again rather than assuming the worst.
-      const judge = () => {
-        if (cancelled) return;
-        const painted = h.paintedPixels();
-        if (painted === null) {
-          probe = window.setTimeout(judge, GPU_PAINT_PROBE_MS); // not measured yet
-          return;
-        }
-        if (painted === 0) onFallback(); // −1 = unmeasurable → keep the tier
-      };
-      probe = window.setTimeout(judge, GPU_PAINT_PROBE_MS);
-    });
-
-    return () => {
-      cancelled = true;
-      window.clearTimeout(probe);
-      handle?.destroy();
-    };
-  }, [wrapRef, onFallback]);
-
-  return (
-    <canvas
-      ref={canvasRef}
-      data-field-gpu=""
-      className="absolute inset-0 transition-opacity duration-700"
-      style={{ opacity: gpuReady ? 1 : 0 }}
-    />
-  );
-}
-
-/**
- * SHD-2.2 hero interaction signal. The field reflects only SAFE, non-sensitive
- * input state:
- *   'idle'      — no interaction;
- *   'listening' — the NPI caret is present (the system is attending);
- *   'ready'     — the entered value passes the CMS checksum (still not a
- *                 lookup — no clinician-specific claim is rendered).
- * The cue is a bordered/elevation shift on the container only; it never
- * fabricates data and needs no animation, so it is reduced-motion-safe.
- */
 export type FieldSignal = 'idle' | 'listening' | 'ready';
 
-export function CareerEvidenceField({ signal = 'idle' }: { signal?: FieldSignal }) {
-  const wrapRef = React.useRef<HTMLDivElement>(null);
-  // Sticky per-mount: once the GPU path declines, stay on Canvas 2D.
-  const [gpuFailed, setGpuFailed] = React.useState(false);
-  const fallBack = React.useCallback(() => setGpuFailed(true), []);
+interface Bootstrap {
+  firstName?: string;
+  lastName?: string;
+  specialty?: string;
+  state?: string;
+}
+
+/** Motion + interaction styling. Scoped by the `ceg-` prefix. */
+const GRAPH_CSS = `
+.ceg-edge {
+  fill: none;
+  stroke-linecap: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: ceg-draw 1100ms cubic-bezier(0.2,0.7,0.2,1) forwards;
+  animation-delay: calc(var(--i, 0) * 90ms);
+  transition: stroke-opacity 220ms ease, stroke-width 220ms ease;
+}
+@keyframes ceg-draw { to { stroke-dashoffset: 0; } }
+
+/* A slow travelling pulse — the only continuous motion, and it is a few pixels
+   wide. Atmosphere should come from content, not from tinting the page. */
+.ceg-pulse {
+  fill: none;
+  stroke-linecap: round;
+  stroke-dasharray: 0.04 0.96;
+  animation: ceg-travel 5200ms linear infinite;
+  animation-delay: calc(var(--i, 0) * 620ms);
+  opacity: 0.55;
+}
+@keyframes ceg-travel { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+
+.ceg-node {
+  animation: ceg-pop 620ms cubic-bezier(0.2,0.7,0.2,1) both;
+  animation-delay: calc(var(--i, 0) * 90ms + 260ms);
+}
+@keyframes ceg-pop { from { opacity: 0; } to { opacity: 1; } }
+
+.ceg-hit { transition: transform 180ms cubic-bezier(0.2,0.7,0.2,1); }
+.ceg-hit:hover, .ceg-hit:focus-visible { transform: translate(-50%, -50%) scale(1.06); }
+.ceg-hit:focus-visible {
+  outline: 2px solid var(--vt-focus-ring, currentColor);
+  outline-offset: 3px;
+  border-radius: 8px;
+}
+
+.ceg-ring {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: ceg-breathe 4600ms ease-in-out infinite;
+}
+@keyframes ceg-breathe { 0%,100% { opacity: 0.35; } 50% { opacity: 0.75; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .ceg-edge { animation: none; stroke-dashoffset: 0; }
+  .ceg-pulse { display: none; }
+  .ceg-node { animation: none; }
+  .ceg-ring { animation: none; opacity: 0.5; }
+  .ceg-hit { transition: none; }
+}
+`;
+
+export function CareerEvidenceField({
+  signal = 'idle',
+  npi = null,
+}: {
+  signal?: FieldSignal;
+  npi?: string | null;
+}) {
+  const [activeId, setActiveId] = React.useState<string | null>(null);
+  const [trust, setTrust] = React.useState<LiveTrust | null>(null);
+  const [boot, setBoot] = React.useState<Bootstrap | null>(null);
+  const [liveError, setLiveError] = React.useState(false);
+
+  const live = Boolean(npi);
+
+  // Live mode: resolve the real lanes. Nothing renders as an affirmative state
+  // until the API actually returns it — until then every lane is 'resolving',
+  // which is drawn muted, not as cleared.
+  React.useEffect(() => {
+    if (!npi) {
+      setTrust(null);
+      setBoot(null);
+      setLiveError(false);
+      return;
+    }
+    let alive = true;
+    setTrust(null);
+    setBoot(null);
+    setLiveError(false);
+    (async () => {
+      try {
+        const [bRes, tRes] = await Promise.all([
+          fetch(`/api/identity/bootstrap/${npi}`, { cache: 'no-store' }),
+          fetch(`/api/trust-state/${npi}`, { cache: 'no-store' }).catch(() => null),
+        ]);
+        if (!alive) return;
+        if (bRes.ok) setBoot((await bRes.json()) as Bootstrap);
+        else setLiveError(true);
+        if (tRes && tRes.ok) setTrust((await tRes.json()) as LiveTrust);
+      } catch {
+        if (alive) setLiveError(true);
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [npi]);
+
+  const liveStates = React.useMemo(() => (live ? liveSourceStates(trust) : null), [live, trust]);
+
+  const stateFor = React.useCallback(
+    (node: GraphNode): EvidenceState => liveStates?.[node.id] ?? node.state,
+    [liveStates],
+  );
+
+  const active = activeId ? nodeById(activeId) : null;
 
   return (
     <div
-      ref={wrapRef}
       data-home-evidence-field=""
       data-field-signal={signal}
+      data-field-mode={live ? 'live' : 'structure'}
       className={cn(
-        // The field BLEEDS into the hero paper: no fill, no rule, no card.
-        // It was `bg-[var(--vt-surface)]` + a 1px `--vt-border` — but
-        // `.mz-cloud-paper` re-tints --paper to Cloud Dancer WITHOUT re-tinting
-        // --vt-surface, so the panel kept --card (#FBFAF6, cooler and brighter)
-        // outlined in --rule (#C9C3B6) on #F0EEE9 paper: a pasted-on box, and a
-        // temperature mismatch besides. Ambience belongs in the paper; depth is
-        // the renderer's job, not a frame's.
-        'relative aspect-[16/10] w-full overflow-hidden bg-transparent transition-[opacity] duration-500 lg:aspect-auto lg:h-[clamp(28rem,54vh,38rem)]',
-        // The NPI signal now reads as the field itself lifting, not as chrome
-        // changing colour — nothing here fabricates a per-clinician claim.
+        'relative w-full transition-opacity duration-500',
         signal === 'idle' ? 'opacity-95' : 'opacity-100',
       )}
     >
-      {/* Decorative visual layer only. The honest meaning lives in the
-          accessible legend below, kept OUT of this aria-hidden subtree so
-          assistive tech still receives it (VHS-1 §7). The SceneBoundary owns
-          the tier decision (SHD-1.1): poster always renders; a live scene
-          mounts only when animation is allowed, and any scene crash falls
-          back to the poster silently. SHD-2.1 adds the ladder INSIDE the
-          animated branch: webgpu tier → Graphene-language renderer; anything
-          less (or a declined/lost device) → the deterministic Canvas 2D
-          field. All tiers draw the same seeded semantic model. */}
-      <div aria-hidden="true" className="absolute inset-0">
-        <SceneBoundary poster={<FieldPoster />} className="absolute inset-0">
-          {(tier) =>
-            tier === 'webgpu' && !gpuFailed ? (
-              <FieldGpuCanvas wrapRef={wrapRef} onFallback={fallBack} />
-            ) : (
-              <FieldCanvas wrapRef={wrapRef} />
-            )
-          }
-        </SceneBoundary>
+      <style>{GRAPH_CSS}</style>
+
+      <div className="relative aspect-[4/3] w-full sm:aspect-[16/11]">
+        {/* Decorative visual layer. The MEANING lives in the labels and legend
+            below, which stay outside this aria-hidden subtree. */}
+        {/* EDGE LAYER — its own stretched coordinate space.
+            Path `d` data cannot take percentages, so edges cannot live in the
+            percentage-based node layer below. `preserveAspectRatio="none"` maps
+            0–100 onto the box in both axes (what percentages do), and
+            non-scaling-stroke keeps the stretch from fattening the lines. */}
+        <svg
+          data-field-edges=""
+          aria-hidden="true"
+          viewBox={EDGE_VIEWBOX}
+          preserveAspectRatio="none"
+          className="absolute inset-0 h-full w-full"
+        >
+          {EDGES.map((e, i) => {
+            const a = nodeById(e.from)!;
+            const b = nodeById(e.to)!;
+            const d = edgePath(a, b);
+            // An edge carries the state of whichever end is a SOURCE; the
+            // record→outcome edges stay neutral, because an outcome is never
+            // something VitalCV asserts.
+            const source = SOURCE_NODES.find((n) => n.id === e.from);
+            const colour = source ? stateColor(stateFor(source)) : 'var(--vt-text-muted)';
+            const isActive = activeId === e.from || activeId === e.to;
+            return (
+              <g key={`${e.from}-${e.to}`} style={{ '--i': i } as React.CSSProperties}>
+                <path
+                  className="ceg-edge"
+                  d={d}
+                  pathLength={1}
+                  vectorEffect="non-scaling-stroke"
+                  stroke={colour}
+                  strokeWidth={isActive ? 2.25 : 1.4}
+                  strokeOpacity={activeId ? (isActive ? 0.95 : 0.16) : 0.62}
+                />
+                <path
+                  className="ceg-pulse"
+                  d={d}
+                  pathLength={1}
+                  vectorEffect="non-scaling-stroke"
+                  stroke={colour}
+                  strokeWidth={2.5}
+                />
+              </g>
+            );
+          })}
+        </svg>
+
+        {/* NODE LAYER — percentage geometry, no viewBox, so circles stay round
+            and every anchor stays in-pane at any panel aspect. */}
+        <svg
+          data-field-poster=""
+          aria-hidden="true"
+          className="absolute inset-0 h-full w-full overflow-visible"
+        >
+          {/* The ONE bounded employer-decision ring. Never a universal
+              "cleared" signal — it marks the step VitalCV does not take. */}
+          <circle
+            data-poster-ring=""
+            className="ceg-ring"
+            cx={pct(OUTCOME_NODES[1].x)}
+            cy={pct(OUTCOME_NODES[1].y)}
+            r="26"
+            fill="none"
+            stroke="var(--vt-text-muted)"
+            strokeWidth={1}
+            strokeDasharray="3 4"
+          />
+
+          {/* Nodes. NPPES lands at cx="10.00%" — the in-pane anchor the
+              responsive-geometry test pins. */}
+          {ALL_NODES.map((n, i) => {
+            const isRecord = n.id === RECORD_NODE.id;
+            const colour = stateColor(stateFor(n));
+            const dim = activeId != null && activeId !== n.id;
+            return (
+              <g
+                key={n.id}
+                className="ceg-node"
+                style={{ '--i': i } as React.CSSProperties}
+                opacity={dim ? 0.45 : 1}
+              >
+                {isRecord ? (
+                  <>
+                    <circle
+                      cx={pct(n.x)}
+                      cy={pct(n.y)}
+                      r="34"
+                      fill="var(--vt-surface)"
+                      stroke="var(--vt-border)"
+                      strokeWidth={1}
+                    />
+                    <circle cx={pct(n.x)} cy={pct(n.y)} r="7" fill="var(--vt-text-primary)" />
+                  </>
+                ) : (
+                  <>
+                    <circle
+                      cx={pct(n.x)}
+                      cy={pct(n.y)}
+                      r="13"
+                      fill="var(--vt-surface)"
+                      stroke={colour}
+                      strokeWidth={1.25}
+                    />
+                    <circle cx={pct(n.x)} cy={pct(n.y)} r="4.5" fill={colour} />
+                  </>
+                )}
+              </g>
+            );
+          })}
+        </svg>
+
+        {/* Labels + hit targets. Real buttons: keyboard-reachable, announced,
+            and the reason this composition is interactive at all. */}
+        <div data-field-labels="" className="pointer-events-none absolute inset-0 z-[2]">
+          {ALL_NODES.map((n) => {
+            const isRecord = n.id === RECORD_NODE.id;
+            return (
+              // The hit target is exactly the node's own circle; the label is
+              // pushed BELOW it. Previously the label lived inside a centred
+              // flex column, so half its height was pulled back up over the
+              // circle and every name sat on top of the dot it named.
+              <button
+                key={n.id}
+                type="button"
+                data-field-label={n.id}
+                className="ceg-hit pointer-events-auto absolute -translate-x-1/2 -translate-y-1/2 rounded-full bg-transparent"
+                style={{
+                  left: pct(n.x),
+                  top: pct(n.y),
+                  width: isRecord ? 74 : 30,
+                  height: isRecord ? 74 : 30,
+                }}
+                onMouseEnter={() => setActiveId(n.id)}
+                onMouseLeave={() => setActiveId((cur) => (cur === n.id ? null : cur))}
+                onFocus={() => setActiveId(n.id)}
+                onBlur={() => setActiveId((cur) => (cur === n.id ? null : cur))}
+                aria-describedby="ceg-detail"
+              >
+                <span
+                  className={cn(
+                    'absolute left-1/2 top-full mt-1.5 -translate-x-1/2 whitespace-nowrap font-mono text-[10px] uppercase tracking-[0.1em]',
+                    isRecord
+                      ? 'text-[11px] font-semibold tracking-[0.08em] text-[var(--vt-text-primary)]'
+                      : 'text-[var(--vt-text-secondary)]',
+                  )}
+                >
+                  {n.id === 'record' && live && boot
+                    ? [boot.firstName, boot.lastName].filter(Boolean).join(' ') || n.label
+                    : n.label}
+                </span>
+              </button>
+            );
+          })}
+        </div>
       </div>
-      <FieldLabels />
-      <FieldLegend />
+
+      {/* One live detail line: what the focused node actually is. This is the
+          payoff for making the graph interactive — every node explains itself
+          without a tooltip a keyboard user cannot reach. */}
+      <p
+        id="ceg-detail"
+        aria-live="polite"
+        className="mt-1 min-h-[2.5rem] text-[12px] leading-relaxed text-[var(--vt-text-secondary)]"
+      >
+        {active ? (
+          <>
+            <span className="font-semibold text-[var(--vt-text-primary)]">{active.label}</span>
+            {' — '}
+            {active.detail}
+          </>
+        ) : live ? (
+          liveError ? (
+            <>We couldn&rsquo;t reach the registry. That is a system state, not a finding about this NPI.</>
+          ) : trust ? (
+            <>Live public snapshot for NPI {npi}. Hover or tab a node to see what each lane returns.</>
+          ) : (
+            <>Resolving each public source for NPI {npi}…</>
+          )
+        ) : (
+          <>Hover or tab any node to see what it is.</>
+        )}
+      </p>
+
+      <Legend live={live} />
     </div>
   );
 }
 
-function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
-  ctx.beginPath();
-  ctx.moveTo(x + r, y);
-  ctx.arcTo(x + w, y, x + w, y + h, r);
-  ctx.arcTo(x + w, y + h, x, y + h, r);
-  ctx.arcTo(x, y + h, x, y, r);
-  ctx.arcTo(x, y, x + w, y, r);
-  ctx.closePath();
+function Legend({ live }: { live: boolean }) {
+  return (
+    <div
+      data-field-legend=""
+      aria-label="Evidence states this page distinguishes"
+      className="mt-2 border-t border-[var(--vt-border-subtle)] pt-2"
+    >
+      <ul className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
+        {STATE_LEGEND.map((item) => (
+          <li
+            key={item.state}
+            className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.1em] text-[var(--vt-text-secondary)]"
+          >
+            <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full" style={{ background: item.color }} />
+            {item.label}
+          </li>
+        ))}
+      </ul>
+      <p className="mt-2 text-[11px] leading-relaxed text-[var(--vt-text-muted)]">
+        {live ? (
+          <>
+            A public snapshot of what primary sources return today — not a completed credentialing
+            decision. Institution review remains the final step.
+          </>
+        ) : (
+          <>
+            Named public sources shown: NPPES, OIG/LEIE, and PECOS — signals flowing into a record
+            you own. State licensure is access-gated and drawn as such. Illustrative structure:
+            no real people or employers are represented until you enter an NPI.
+          </>
+        )}
+      </p>
+    </div>
+  );
 }
 
 export default CareerEvidenceField;

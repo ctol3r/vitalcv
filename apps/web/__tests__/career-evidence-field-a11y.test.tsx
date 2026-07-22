@@ -78,7 +78,26 @@ describe('CareerEvidenceField — visible designed baseline (HERO-RESET-1)', () 
   });
 
   it('labels never fabricate people, employers, or outcomes', () => {
-    const allowed = new Set(['NPPES', 'OIG / LEIE', 'PECOS', 'Your career record', 'Opportunity']);
+    // The closed set of things the hero graph is allowed to name. Two entries
+    // were added when the field became a structured graph:
+    //   'State licensure'   — a real, named public lane that is access-gated.
+    //       The legend has always listed "Access required"; before this, no
+    //       node ever carried that state, which is how a legend turns into
+    //       decoration. Naming the lane and drawing it as gated is the honest
+    //       version, and it never claims a licence was checked.
+    //   'Employer decision' — the ONE bounded ring, i.e. the step VitalCV
+    //       explicitly does not take. It names a role, not an employer.
+    // Neither names a person, an institution, or an outcome — which is what
+    // this guard actually exists to prevent.
+    const allowed = new Set([
+      'NPPES',
+      'OIG / LEIE',
+      'PECOS',
+      'State licensure',
+      'Your career record',
+      'Opportunity',
+      'Employer decision',
+    ]);
     for (const anchor of FIELD_ANCHORS) {
       expect(allowed.has(anchor.label), `unexpected label "${anchor.label}"`).toBe(true);
     }
