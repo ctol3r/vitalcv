@@ -81,8 +81,8 @@ export interface LaneDefinition {
 }
 
 export const KNOWN_LANES: LaneDefinition[] = [
-  { laneId: 'nppes_identity',   displayName: 'NPPES Identity',     shortName: 'NPPES',  source: 'CMS Registry',             isRequired: true,  freshnessWindowLabel: '24 hours', aliases: ['NPPES_API', 'NPPES_BULK', 'NPPES', 'NPI_REGISTRY'] },
-  { laneId: 'oig_exclusions',   displayName: 'OIG Exclusions',     shortName: 'OIG',    source: 'OIG LEIE',                 isRequired: true,  freshnessWindowLabel: '7 days',   aliases: ['OIG_LEIE', 'OIG'] },
+  { laneId: 'nppes_identity',   displayName: 'NPPES Identity',     shortName: 'NPPES',  source: 'CMS Registry',             isRequired: true,  freshnessWindowLabel: '7 days',   aliases: ['NPPES_API', 'NPPES_BULK', 'NPPES', 'NPI_REGISTRY'] },
+  { laneId: 'oig_exclusions',   displayName: 'OIG Exclusions',     shortName: 'OIG',    source: 'OIG LEIE',                 isRequired: true,  freshnessWindowLabel: '24 hours', aliases: ['OIG_LEIE', 'OIG'] },
   { laneId: 'state_license',    displayName: 'State License',      shortName: 'License', source: 'State Medical Board',     isRequired: true,  freshnessWindowLabel: '30 days',  aliases: ['STATE_BOARD', 'NURSYS', 'NURSYS_ENOTIFY'] },
   { laneId: 'employment_history', displayName: 'Employment History', shortName: 'Employ', source: 'The Work Number',        isRequired: false, freshnessWindowLabel: '90 days',  aliases: ['THE_WORK_NUMBER'] },
   { laneId: 'board_cert',       displayName: 'Board Certification', shortName: 'Board',  source: 'ABMS / Specialty Board',  isRequired: false, freshnessWindowLabel: '1 year',   aliases: ['ABMS'] },
