@@ -42,7 +42,7 @@ async function expectNpiActionUsable(page: import('@playwright/test').Page) {
 }
 
 test.describe('scene degradation matrix (SHD-6.1)', () => {
-  test('static tier: posters only, no live canvas, NPI fully usable', async ({ page }) => {
+  test('static tier: NPI remains fully usable without a public graph', async ({ page }) => {
     const errors = collectPageErrors(page);
     await page.setViewportSize(DESKTOP);
     await page.goto('/?sceneTier=static', { waitUntil: 'networkidle' });
@@ -55,35 +55,22 @@ test.describe('scene degradation matrix (SHD-6.1)', () => {
     // rest of this test asserts.
     await expect(page.locator('[data-scene-boundary]')).toHaveCount(0);
 
-    // The designed poster is the visual — no live scene canvas mounts, on any
-    // tier, for any visitor.
-    await expect(page.locator('[data-field-poster]')).toBeAttached();
-    await expect(page.locator('[data-home-evidence-field] canvas')).toHaveCount(0);
+    await expect(page.locator('[data-home-evidence-field], [data-field-poster], [data-field-edges]')).toHaveCount(0);
 
     await expectNpiActionUsable(page);
     await expectNoHorizontalOverflow(page);
     expect(errors).toEqual([]);
   });
 
-  test('no-JS SSR floor: heading, NPI form, posters, and source lanes are all served', async ({ browser }) => {
+  test('no-JS SSR floor: heading, NPI form, and source lanes are all served', async ({ browser }) => {
     const context = await browser.newContext({ javaScriptEnabled: false, viewport: DESKTOP });
     const page = await context.newPage();
     await page.goto('/', { waitUntil: 'domcontentloaded' });
 
     await expect(page.locator('h1').first()).toBeVisible();
     await expect(page.getByLabel('NPI number')).toBeAttached();
-    await expect(page.locator('[data-field-poster]')).toBeAttached();
     await expect(page.locator('[data-home-source-strip]')).toBeAttached();
-    // The graph is plain server-rendered SVG — no boundary, no tier, no client
-    // JS required for the composition to exist.
-    await expect(page.locator('[data-field-edges]')).toBeAttached();
-    // HERO-RESET-1: the designed composition — named stations, ring, legend —
-    // is complete without JavaScript, not a low-contrast emergency state.
-    for (const id of ['nppes', 'oig-leie', 'pecos', 'record', 'opportunity']) {
-      await expect(page.locator(`[data-field-label="${id}"]`)).toBeAttached();
-    }
-    await expect(page.locator('[data-poster-ring]')).toBeAttached();
-    await expect(page.locator('[data-field-legend]')).toBeAttached();
+    await expect(page.locator('[data-home-evidence-field], [data-field-poster], [data-field-edges]')).toHaveCount(0);
 
     await context.close();
   });
@@ -166,124 +153,30 @@ test.describe('hero reset — clinician sell and field visibility (HERO-RESET-1)
     expect(darkPaper).toBe('#15140f'); // .dark .mz paper wins, not Cloud Dancer
   });
 
-  test('static tier: the designed composition is inside the field and materially distinct from the paper it bleeds into', async ({ page }) => {
+  test('static tier: the hero keeps the NPI action without a public graph', async ({ page }) => {
     await page.setViewportSize(DESKTOP);
     await page.goto('/?sceneTier=static', { waitUntil: 'networkidle' });
 
-    const field = page.locator('[data-home-evidence-field]');
-    const box = await field.boundingBox();
-    expect(box).not.toBeNull();
-    expect(box!.width).toBeGreaterThan(300);
-    expect(box!.height).toBeGreaterThan(300);
-
-    // Every named station renders INSIDE the visible panel — the old sliced
-    // viewBox cropped the sources and opportunity out of the tall desktop
-    // panel, which is exactly the "reads as empty" failure.
-    for (const id of ['nppes', 'oig-leie', 'pecos', 'record', 'opportunity']) {
-      const label = page.locator(`[data-field-label="${id}"]`);
-      await expect(label).toBeVisible();
-      const lb = await label.boundingBox();
-      expect(lb, `${id} label has a box`).not.toBeNull();
-      const inside =
-        lb!.x >= box!.x - 1 &&
-        lb!.x + lb!.width <= box!.x + box!.width + 1 &&
-        lb!.y >= box!.y - 1 &&
-        lb!.y + lb!.height <= box!.y + box!.height + 1;
-      expect(inside, `${id} label inside the panel`).toBe(true);
-    }
-    await expect(page.locator('[data-poster-ring]')).toBeVisible();
-
-    // Deterministic contrast: a named source station vs the panel surface.
-    // W0.1b: computed colors here can be oklch()/color-mix() — regex-plucking
-    // digits from those strings produced garbage luminance. Normalize ANY css
-    // color to sRGB bytes first via canvas readback (the browser does the
-    // conversion), THEN apply the WCAG math.
-    const contrast = await page.evaluate(() => {
-      const cvs = document.createElement('canvas');
-      cvs.width = cvs.height = 1;
-      const ctx = cvs.getContext('2d', { willReadFrequently: true });
-      if (!ctx) return -1;
-      const toRgb = (c: string): [number, number, number] => {
-        ctx.fillStyle = '#000';
-        ctx.fillStyle = c; // invalid strings keep the previous fill
-        ctx.fillRect(0, 0, 1, 1);
-        const d = ctx.getImageData(0, 0, 1, 1).data;
-        return [d[0], d[1], d[2]];
-      };
-      const lum = (c: string) => {
-        const [r, g, b] = toRgb(c);
-        const f = (v: number) => {
-          const s = v / 255;
-          return s <= 0.04045 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
-        };
-        return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
-      };
-      const panel = document.querySelector('[data-home-evidence-field]') as HTMLElement;
-      // The station is the SMALL inner dot of a source node — the element that
-      // actually carries the lane's state colour. (The outer circle is a
-      // surface-filled halo; measuring that would score paper against paper and
-      // quietly assert nothing.) The old selector looked for `opacity="0.9"`
-      // circles from the retired particle poster and matched nothing, which
-      // returned -1 and read as a contrast failure.
-      const station = document.querySelector(
-        '[data-field-poster] g circle[r="4.5"]',
-      ) as SVGCircleElement | null;
-      if (!panel || !station) return -1;
-      // The field bleeds into the hero paper, so it has no fill of its own —
-      // measure against what is ACTUALLY behind it. Reading the panel's own
-      // background-color here would score the station against transparent
-      // black and quietly assert nothing.
-      const backdrop = (el: HTMLElement | null): string => {
-        for (let n = el; n; n = n.parentElement) {
-          const bgc = getComputedStyle(n).backgroundColor;
-          if (bgc && !/^rgba\(.*,\s*0\)$/.test(bgc) && bgc !== 'transparent') return bgc;
-        }
-        return '#ffffff';
-      };
-      const bg = lum(backdrop(panel));
-      const fg = lum(getComputedStyle(station).fill);
-      return (Math.max(bg, fg) + 0.05) / (Math.min(bg, fg) + 0.05);
-    });
-    expect(contrast, 'station color must stand off the panel, not camouflage').toBeGreaterThan(3);
-
-    // Structural density: the composition is a designed drawing, not three
-    // faint lines. Counted across BOTH layers, because the drawing genuinely
-    // spans them now — edges must live in their own stretched viewBox (path
-    // `d` data cannot take percentages) while nodes keep percentage geometry so
-    // circles stay round. Counting only the node layer would undercount the
-    // drawing by every connection in it.
-    const shapes = await page
-      .locator(
-        '[data-field-poster] circle, [data-field-poster] line, [data-field-poster] rect, [data-field-edges] path',
-      )
-      .count();
-    expect(shapes).toBeGreaterThan(20);
+    await expectNpiActionUsable(page);
+    await expect(page.locator('[data-home-evidence-field], [data-field-poster], [data-field-edges]')).toHaveCount(0);
   });
 
-  test('reduced motion: the poster composition is complete and obvious without any render loop', async ({ page }) => {
+  test('reduced motion: the NPI action and source strip stay complete without graph motion', async ({ page }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.setViewportSize(DESKTOP);
     await page.goto('/', { waitUntil: 'networkidle' });
 
-    await expect(page.locator('[data-home-evidence-field] canvas')).toHaveCount(0);
-    await expect(page.locator('[data-poster-ring]')).toBeAttached();
-    for (const id of ['nppes', 'oig-leie', 'pecos', 'record', 'opportunity']) {
-      await expect(page.locator(`[data-field-label="${id}"]`)).toBeVisible();
-    }
+    await expectNpiActionUsable(page);
+    await expect(page.locator('[data-home-source-strip]')).toBeVisible();
+    await expect(page.locator('[data-home-evidence-field], [data-field-poster], [data-field-edges]')).toHaveCount(0);
   });
 
-  test('mobile: the field follows the form, stays visible, and never crowds the NPI action', async ({ page }) => {
+  test('mobile: the NPI action remains visible and never overflows', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto('/?sceneTier=static', { waitUntil: 'networkidle' });
 
-    const form = await page.locator('#npi').boundingBox();
-    const field = await page.locator('[data-home-evidence-field]').boundingBox();
-    expect(form).not.toBeNull();
-    expect(field).not.toBeNull();
-    expect(field!.y, 'field follows the form on mobile').toBeGreaterThan(form!.y);
-    expect(field!.height).toBeGreaterThan(180);
-    await expect(page.locator('[data-field-label="record"]')).toBeVisible();
     await expectNpiActionUsable(page);
+    await expect(page.locator('[data-home-evidence-field], [data-field-poster], [data-field-edges]')).toHaveCount(0);
     await expectNoHorizontalOverflow(page);
   });
 });

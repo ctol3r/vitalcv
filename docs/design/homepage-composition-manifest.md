@@ -23,7 +23,7 @@ Dispositions below encode the path from today's page to that target.
 
 | # | Section | Owner component | Data source | Motion owner | Fallback | Conversion job | Disposition |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | Hero — "Get hired faster." + NPI action | `HomePageClient` (hero block) + `CareerEvidenceField` / `LiveNpiResult` | Static copy; live NPI lookup (`checkNpi` → trust-state) | None on copy (W1.1 contract: no scroll-scrubbed copy); field animates via scene tiers | SSR static poster + full form pre-hydration | THE primary conversion: NPI → readiness | **Keep — single-purpose (2026-07-21)**: the NPI control is the ONLY interactive element in the first screen. The wallet pill and employer link moved to row 13; the stage is sized to its content so row 3 crests the fold. |
+| 1 | Hero — "Get hired faster." + NPI action | `HomePageClient` (hero block) + `LiveNpiResult` | Static copy; live NPI lookup (`checkNpi` → trust-state) | None on copy (W1.1 contract: no scroll-scrubbed copy) | SSR-complete form pre-hydration; result renders only after lookup | THE primary conversion: NPI → readiness | **Keep — single-purpose (2026-07-23)**: the NPI control is the ONLY interactive element in the first screen. The wallet pill and employer link moved to row 13; public source state is named in row 3, and the hero never presents a node/edge graph before a real lookup. |
 | 2 | ~~Career-loop pill strip~~ | ~~`HeroLoopPills`~~ | — | — | — | — | **RETIRED (W2.3 executed)** — the rail's chapters carry the journey |
 | 3 | Source signal strip | `SourceCoverageRibbon` | Real lane states | Own marquee (pauseable, reduced-motion-safe) | Static list | Establish what VitalCV can actually read | **Keep** |
 | 4 | ~~Problem numbers~~ | ~~`ProblemStatBand`~~ | — | — | — | — | **RETIRED (2026-07-21 rebuild)** — "Healthcare hiring has a trust-liquidity problem" ran ~610px immediately above row 6, which made the same argument with a sharper line and an actual comparison visual. Two H2s and ~1,000px for one argument. Component retained on disk. |
@@ -51,12 +51,10 @@ did nothing. Three decisions, then the cuts above.
    painted page measured `rgb(240,238,233)` at all 11 sampled scroll offsets.
    The fixed ambient colour layer was the whole problem (page-level systems
    table, row 1).
-2. **The hero graph builds from the NPI.** `CareerEvidenceField` went from a
-   616-line canvas stack drawing a seeded particle scatter to a structured SVG
-   graph — four named public lanes → one record you own → what it unlocks —
-   where every node is a focusable button that explains itself, and entering an
-   NPI resolves the lanes for real instead of swapping the graph out for a card.
-   Canvas was also unverifiable; SVG nodes are assertable in vitest.
+2. **The hero starts with the NPI.** The hero names no public career graph,
+   nodes, or links before a lookup. `LiveNpiResult` renders source-specific
+   state only after a clinician enters a valid NPI, while the source signal
+   strip names the available lanes in the regular document flow.
 3. **Each argument exactly once.** Rows 4, 8b and 10 retired. Page height
    8,872px → 5,451px (9.9 → 6.1 viewports) with no information removed — only
    restatements. `home-npi-role-doors` now pins the shape ("one H2 per section",

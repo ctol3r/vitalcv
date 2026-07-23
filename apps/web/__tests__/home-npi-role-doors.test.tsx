@@ -41,6 +41,8 @@ describe('HomePageClient — hero and live NPI moment (HERO-RESET-1)', () => {
     expect(html).toContain('data-home-primary-cta');
     expect(html).toContain('Check what’s ready');
     expect(html).toContain('Free for clinicians · No account required');
+    expect(html).not.toContain('data-home-evidence-field');
+    expect(html).not.toContain('data-field-edges');
   });
 
   it('ships a static mechanism line — the scroll-scrub narrative is deleted', () => {

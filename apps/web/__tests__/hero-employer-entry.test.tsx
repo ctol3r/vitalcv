@@ -44,8 +44,9 @@ describe('hero employer entry (SHD-2.2)', () => {
 
   it('makes no clinician-specific claim in the idle hero scene', () => {
     const html = render();
-    // The field's SSR signal is idle before any interaction.
-    expect(html).toContain('data-field-signal="idle"');
+    // The idle hero does not imply a public evidence graph or source state.
+    expect(html).not.toContain('data-home-evidence-field');
+    expect(html).not.toContain('data-field-signal');
     // No fabricated readiness verdict in the hero.
     expect(html).not.toMatch(/\bverified\b/i);
   });
