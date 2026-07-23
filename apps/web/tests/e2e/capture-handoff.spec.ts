@@ -29,12 +29,13 @@ test('capture desktop motion frames', async ({ page }) => {
   await scrollWithin(page, '#wallet', 0.9);
   await shot(page, '03-hero-typing-complete');
 
-  // W2: the journey is the pinned horizontal rail — capture its runway scrub.
-  await scrollWithin(page, '[data-story-rail] .story-rail-runway', 0);
+  // The journey is an ordinary grid — capture the beginning, middle, and end
+  // without a pinned runway or carousel state.
+  await scrollWithin(page, '[data-home-journey-grid]', 0);
   await shot(page, '04-journey-start-readiness');
-  await scrollWithin(page, '[data-story-rail] .story-rail-runway', 0.5);
+  await scrollWithin(page, '[data-home-journey-grid]', 0.5);
   await shot(page, '05-journey-middle');
-  await scrollWithin(page, '[data-story-rail] .story-rail-runway', 1);
+  await scrollWithin(page, '[data-home-journey-grid]', 1);
   await shot(page, '06-journey-end-start-faster');
 
   // The evidence-truth panel and the product carousel were retired from the

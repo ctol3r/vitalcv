@@ -89,11 +89,11 @@ describe('HomePageClient — hero and live NPI moment (HERO-RESET-1)', () => {
   });
 });
 
-describe('HomePageClient — career journey rail (W2)', () => {
+describe('HomePageClient — career journey', () => {
   it('renders the four journey chapters in DOM order with every card present', () => {
     const html = renderHomepage();
     expect(html).toContain('data-home-journey');
-    expect(html).toContain('data-story-rail');
+    expect(html).toContain('data-home-journey-grid');
     let previous = -1;
     for (const id of ['readiness', 'matcha', 'apply', 'start']) {
       const index = html.indexOf(`data-journey-card="${id}"`);
@@ -122,21 +122,20 @@ describe('HomePageClient — career journey rail (W2)', () => {
     expect(html).toContain('institution review remains the final step');
   });
 
-  it('SSR is the vertical fallback: no pin, no transforms, chapters in flow', () => {
+  it('keeps chapters in normal document flow without a carousel or pinned rail', () => {
     const html = renderHomepage();
-    expect(html).toContain('data-rail-pinned="false"');
-    expect(html).toContain('story-rail-chapter-vertical');
+    expect(html).not.toContain('data-story-rail');
     expect(html).not.toContain('story-rail-runway');
-    // The chapter navigator is a pinned-mode enhancement — never in SSR.
     expect(html).not.toContain('data-story-rail-nav');
+    expect(html).not.toContain('Skip product story');
   });
 });
 
-describe('HomePageClient — product carousel and rail', () => {
-  it('does NOT mount the product carousel — the rail already tells that story', () => {
+describe('HomePageClient — product carousel', () => {
+  it('does NOT mount a carousel', () => {
     // ProductCarousel ("One career record. Six reusable surfaces.") is retired
     // from the composition. It was the third pass at "look what the record can
-    // do", after the journey rail had already walked the same ground in four
+    // do", after the journey had already walked the same ground in four
     // chapters, and a six-panel feature carousel is a product-tour device on a
     // page whose job is one argument.
     //
