@@ -65,9 +65,10 @@ test.describe('Homepage motion convergence', () => {
   test('mobile: journey chapters stack vertically', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto('/', { waitUntil: 'networkidle' });
-    // W2 fallback: no pin, no navigator, all four chapters in document flow.
-    await expect(page.locator('[data-story-rail]')).toHaveAttribute('data-rail-pinned', 'false');
+    // The journey is ordinary document flow at every viewport.
     await expect(page.locator('[data-journey-card]')).toHaveCount(4);
+    await expect(page.locator('[data-home-journey-grid]')).toHaveCount(1);
+    await expect(page.locator('[data-story-rail]')).toHaveCount(0);
     await expect(page.locator('[data-story-rail-nav]')).toHaveCount(0);
   });
 
@@ -75,10 +76,9 @@ test.describe('Homepage motion convergence', () => {
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.setViewportSize({ width: 1440, height: 1000 });
     await page.goto('/', { waitUntil: 'networkidle' });
-    // W2: reduced motion renders the four journey chapters as a static
-    // vertical document — no pin, no navigator, no leaf transforms.
+    // The journey stays static and linear — no pin, no navigator, no leaf transforms.
     await expect(page.locator('[data-journey-card]')).toHaveCount(4);
-    await expect(page.locator('[data-story-rail]')).toHaveAttribute('data-rail-pinned', 'false');
+    await expect(page.locator('[data-story-rail]')).toHaveCount(0);
     await expect(page.getByText(/Start with your NPI\. See what employers can confirm/).first()).toBeVisible();
     // The limitation is plain server-rendered text under reduced motion too.
     await expect(page.getByText('What this does not mean')).toBeVisible();

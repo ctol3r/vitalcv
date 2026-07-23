@@ -273,7 +273,7 @@ export default function HomePageClient() {
         {/* Visible uplift: static sections rise+fade as they enter view (the
             template's reveal grammar via the platform Reveal primitive —
             reduced-motion-safe, shows content if JS/IO is unavailable). The
-            scroll-COUPLED sections (journey rail, ribbon) keep their own
+            scroll-coupled sections (the source ribbon) keep their own
             motion and are deliberately not wrapped. */}
 
         {/* THE PROBLEM — stated once.
@@ -285,12 +285,10 @@ export default function HomePageClient() {
             retired from the composition; the component stays on disk. */}
         <Reveal><TimeToStartComparison /></Reveal>
 
-        {/* W2: THE career journey — four chapters through the horizontal rail
-            on eligible desktop (native scroll → horizontal translate, rolodex
-            leaves, one chapter navigator); the exact same chapters render
-            vertically everywhere else. Replaces the vertical StickyProductStory
-            runway, the loop-pill strip, the scroll-focus manifesto, and the
-            word cycler (composition manifest dispositions, W2.1–W2.3). */}
+        {/* THE career journey — four direct, linkable chapters in ordinary
+            document flow. The former pinned horizontal rail read as a carousel
+            and interrupted scrolling, so the same evidence-backed story now
+            stays visible in a responsive grid. */}
         <RailJourney />
 
         {/* W4.2: the one tangible proof moment — the interactive proof-packet
