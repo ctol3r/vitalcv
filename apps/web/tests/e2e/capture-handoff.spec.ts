@@ -56,8 +56,6 @@ test('capture mobile frames', async ({ page }) => {
   await shot(page, '10-mobile-hero');
   await page.locator('[data-journey-card="matcha"]').scrollIntoViewIfNeeded();
   await shot(page, '11-mobile-journey-stack');
-  // Was '12-mobile-carousel'; the carousel is retired. The evidence graph is
-  // the more useful mobile frame now — it is the surface that changed most.
-  await page.locator('[data-home-evidence-field]').scrollIntoViewIfNeeded();
-  await shot(page, '12-mobile-evidence-graph');
+  await page.locator('[data-home-source-strip]').scrollIntoViewIfNeeded();
+  await shot(page, '12-mobile-source-strip');
 });
