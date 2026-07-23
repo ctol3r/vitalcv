@@ -64,6 +64,12 @@ export type EmployerWorkflowActionResult = {
   decisionOutboxEventId: string | null;
 };
 
+type DecisionSubmissionBinding = {
+  mode: 'sealed' | 'legacy';
+  packetVersion: number | null;
+  packetHash: string | null;
+};
+
 type MissingRequestEventRecord = {
   type: string;
   referenceId: string | null;
@@ -94,6 +100,16 @@ type WorkflowTransaction = {
       where: { id: string };
       data: Record<string, unknown>;
     }) => Promise<unknown>;
+    findUnique: (args: {
+      where: { id: string };
+      select: { sealedPacketVersion: true };
+    }) => Promise<{ sealedPacketVersion: number | null } | null>;
+  };
+  applicationPacket: {
+    findFirst: (args: {
+      where: { applicationId: string; packetVersion: number };
+      select: { packetVersion: true; packetHash: true };
+    }) => Promise<{ packetVersion: number; packetHash: string } | null>;
   };
   auditEvent: {
     create: (args: {
@@ -369,6 +385,7 @@ function decisionAuditPayload(input: {
   reviewerClerkUserId: string;
   reviewNote: string;
   decidedAt: Date;
+  submission: DecisionSubmissionBinding;
 }) {
   return {
     schema: 'vitalcv.application-decision.v1',
@@ -380,6 +397,50 @@ function decisionAuditPayload(input: {
     reviewerClerkUserId: input.reviewerClerkUserId,
     reviewNote: input.reviewNote,
     decidedAt: input.decidedAt.toISOString(),
+    submission: input.submission,
+  };
+}
+
+async function resolveDecisionSubmissionBinding(
+  tx: WorkflowTransaction,
+  applicationId: string,
+): Promise<DecisionSubmissionBinding> {
+  const application = await tx.application.findUnique({
+    where: { id: applicationId },
+    select: { sealedPacketVersion: true },
+  });
+  if (!application) {
+    throw new HttpError(404, 'Application not found.');
+  }
+
+  if (application.sealedPacketVersion === null) {
+    return {
+      mode: 'legacy',
+      packetVersion: null,
+      packetHash: null,
+    };
+  }
+
+  const packet = await tx.applicationPacket.findFirst({
+    where: {
+      applicationId,
+      packetVersion: application.sealedPacketVersion,
+    },
+    select: {
+      packetVersion: true,
+      packetHash: true,
+    },
+  });
+  if (!packet) {
+    // A sealed version with no stored packet is an integrity ambiguity. Do
+    // not record a decision that a future dispatcher could misbind.
+    throw new HttpError(409, 'The submitted application packet is unavailable.');
+  }
+
+  return {
+    mode: 'sealed',
+    packetVersion: packet.packetVersion,
+    packetHash: packet.packetHash,
   };
 }
 
@@ -622,6 +683,10 @@ export async function runEmployerWorkflowAction(input: {
 
   await prisma.$transaction(async (tx: unknown) => {
     const workflowTx = tx as unknown as WorkflowTransaction;
+    const submission = await resolveDecisionSubmissionBinding(
+      workflowTx,
+      application.id,
+    );
 
     await workflowTx.application.update({
       where: { id: application.id },
@@ -646,6 +711,7 @@ export async function runEmployerWorkflowAction(input: {
       reviewerClerkUserId: input.reviewerClerkUserId,
       reviewNote: nextReviewNote,
       decidedAt: now,
+      submission,
     });
     const auditEvent = await workflowTx.auditEvent.create({
       data: {
