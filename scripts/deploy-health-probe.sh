@@ -62,13 +62,13 @@ echo "Probing ${URL}..."
 
 # -s silent, -S show errors, -o body, -w status
 # Use Authorization header (Bearer); never echo the secret to stdout.
+# `-w '%{http_code}'` already emits 000 when the request never completes, so
+# the old `|| echo "000"` concatenated a second one and reported "HTTP 000000".
 HTTP_STATUS=$(curl -sS -o /tmp/deploy_health_probe_body \
   -w '%{http_code}' \
   -H "Authorization: Bearer ${CRON_SECRET}" \
   -H 'Accept: application/json' \
   --max-time 15 \
-  # `-w '%{http_code}'` already emits 000 when the request never completes, so
-  # the old `|| echo "000"` concatenated a second one and reported "HTTP 000000".
   "$URL" 2>/dev/null || true)
 
 # Normalise the "request never completed" case to a single 000. The old
