@@ -23,7 +23,6 @@ import {
   withdrawApplication,
   listAllOrgApplications,
   listApplicationsForOpportunity,
-  reviewApplication,
 } from '../services/opportunities/applicationService';
 import {
   getEmployerWorkflowApplication,
@@ -36,10 +35,8 @@ import {
   readApplicationPacket,
   readApplicationEvidenceView,
 } from '../services/opportunities/applicationPacketReadService';
-import { capsuleEngine } from '../services/decision/capsuleEngine';
 import { getClinicianApplicationActivation } from '../services/activation/clinicianActivationService';
 import { HttpError } from '../utils/httpError';
-import { log } from '../obs/logger';
 import { requireOrgRole, VERIFIER_MUTATION_ROLES } from '../middleware/orgRoleGuard';
 import type { VerifiedAuth } from '../middleware/verifiedIdentity';
 
@@ -198,36 +195,22 @@ export function registerApplicationRoutes(app: Express): void {
         throw new HttpError(400, 'status must be REVIEWED, ACCEPTED, or DECLINED.');
       }
 
-      const updated = await reviewApplication({
+      const action = status === 'ACCEPTED'
+        ? 'accept'
+        : status === 'DECLINED'
+          ? 'reject'
+          : 'start_review';
+      const result = await runEmployerWorkflowAction({
+        action,
         applicationId,
         reviewerClerkUserId: clerkUserId,
-        status: status as 'REVIEWED' | 'ACCEPTED' | 'DECLINED',
         reviewNote,
       });
 
-      // Wave 269: Persist verifier decision capsules for approve / reject / conditional approve.
-      const decisionAction = status === 'ACCEPTED'
-        ? 'APPROVE'
-        : status === 'DECLINED'
-          ? 'REJECT'
-          : 'CONDITIONAL_APPROVE';
-
-      if (status === 'REVIEWED' || status === 'ACCEPTED' || status === 'DECLINED') {
-        capsuleEngine.createDecisionFromApplication({
-          applicationId,
-          verifierClerkUserId: clerkUserId,
-          decisionType: 'HIRING',
-          decisionAction,
-        }).catch((err: unknown) => {
-          // Non-fatal: log but don't block the response
-          log('warn', 'applications: decision_capsule_creation_failed', {
-            applicationId,
-            error: String(err),
-          });
-        });
-      }
-
-      res.json(updated);
+      // Compatibility response: the legacy route still returns its original
+      // application-shaped result, while all mutations now pass through the
+      // canonical workflow command service.
+      res.json(result.application);
     }),
   );
 
@@ -273,23 +256,6 @@ export function registerApplicationRoutes(app: Express): void {
         })),
         reviewNote,
       });
-
-      if (action === 'accept' || action === 'reject') {
-        const decisionAction = action === 'accept' ? 'APPROVE' : 'REJECT';
-
-        capsuleEngine.createDecisionFromApplication({
-          applicationId: appId,
-          verifierClerkUserId: clerkUserId,
-          decisionType: 'HIRING',
-          decisionAction,
-        }).catch((err: unknown) => {
-          log('warn', 'applications: workflow_capsule_creation_failed', {
-            applicationId: appId,
-            action,
-            error: String(err),
-          });
-        });
-      }
 
       res.json(result);
     }),
