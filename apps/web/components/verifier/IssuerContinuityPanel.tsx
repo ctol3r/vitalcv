@@ -64,7 +64,10 @@ export function IssuerContinuityPanel({
                   href={JWKS_URI}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="mz-mono text-[9px] text-[var(--accent)] hover:underline flex-shrink-0"
+                  /* 9px type gave a 43x14 target on production /verify — under
+                     the 24px WCAG 2.5.8 floor. Transparent ::before overlay
+                     lifts the hit area without touching the type scale. */
+                  className="relative mz-mono text-[9px] text-[var(--accent)] hover:underline flex-shrink-0 before:absolute before:left-0 before:top-1/2 before:h-6 before:w-full before:-translate-y-1/2 before:content-['']"
                 >
                   verify →
                 </a>
