@@ -196,6 +196,17 @@ runs `preview:e2e`). Download the artifact, unzip into
 from CI is deliberately not automated: a baseline update asserts a visual change
 was *intended*, and that needs a human.
 
+> **A skip-guard placed before `toHaveScreenshot()` silently breaks
+> generation.** `requireBaseline()` runs first, so under `--update-snapshots`
+> the screenshot call never executes and nothing is written — the workflow
+> reported `6 skipped`, uploaded the stale files already in the checkout, and
+> went green. Measured, not assumed (Playwright 1.58):
+> `config.updateSnapshots` is `'missing'` by default and `'changed'` under
+> `--update-snapshots`, so the guard stands down unless the value is
+> `'missing'`. The workflow now clears the snapshot dirs first, asserts files
+> were written, and rejects a `-darwin` suffix on an ubuntu runner — a skipped
+> generation run can no longer masquerade as a successful one.
+
 Locally the suite therefore **skips** (`requireBaseline`), which is deliberate
 rather than a gap — local dev-mode rendering is not what CI enforces, so a
 passing local visual run would be false comfort. It arms itself the moment the
