@@ -1,8 +1,14 @@
 # Browser-agent audit bundle — vitalcv.com current state
 
-**Cut:** 2026-07-21, against production after `#816` (hero 3D field) landed.
+**Cut:** 2026-07-21 · **Refreshed:** 2026-07-25 (TASK 9 added; surface map re-verified).
 **For:** Claude in Chrome / any browser agent. Each task below is a self-contained
 prompt — paste one at a time. Do not run them as one blob; the findings blur.
+
+> **Staleness warning.** The homepage changed substantially between the cut and the
+> refresh (#831, #834, #835, #836, #842, #849, #850). The *surface map* and the
+> constraints below still hold; anything this bundle says about homepage
+> **composition** may not. TASK 9 audits against the controlling doctrine and is
+> the one to run first if you only run one.
 
 ---
 
@@ -285,3 +291,48 @@ Then a single combined table of all findings, sorted severity-first.
 **Anything you could not test — especially anything behind sign-in — goes in a
 separate "Blocked, needs a human" list.** That list is a real deliverable, not a
 failure.
+
+---
+
+## TASK 9 — Audit `/` against the competitive mandate's eight guardrails
+
+**Run this one first.** `docs/strategy/competitive-mandate.md` (from Chris's
+`VitalCV_Competitive_Mandate_and_Claude_Code_Waves_2026-07-21.md`) is the
+**controlling creative authority** for the homepage. Everything else in this
+bundle is a quality check; this is a doctrine check.
+
+Read its §"Homepage guardrails" first — do not work from the summary below,
+which is a checklist, not the text.
+
+> On `https://vitalcv.com/` at 1440×900, signed out, with a cache-busting query
+> param (an audit was once written against a stale cached copy):
+>
+> | # | Guardrail | What a violation looks like |
+> | --- | --- | --- |
+> | 1 | One horizontal film driven by vertical scroll | The page is an ordinary vertical stack of sections |
+> | 2 | No Rolodex / card queue | Framed "chapter cards", a product carousel, wide card decks |
+> | 3 | No public graph | Nodes, links, a constellation, people, physics/drag controls |
+> | 4 | Cloud Dancer `#F0EEE9` is the paper | A competing background palette |
+> | 5 | Almost no copy | Visible section taxonomy, generic feature headers, long body copy |
+> | 6 | No number theatre | Giant counters, `01`–`06` step grammar, percentage rings, "days saved" |
+> | 7 | Proof is a close-up | A wall of status labels instead of one evidence artifact |
+> | 8 | Mobile / reduced-motion / no-JS are first-class | Meaning that only exists with GPU, hover, or motion |
+>
+> For each: PASS / VIOLATION / PARTIAL, with a screenshot and the specific
+> element. Then count the **visible words** on the page and report the number —
+> guardrail 5 is the one most easily rationalised away.
+>
+> **Known and already recorded — do not re-report as new findings:**
+> - Guardrails 1, 2 and 5 are expected to fail today. `/` has not been flipped
+>   to the film; the film lives at `/dev/compete-film`, and the flip is a
+>   pending founder decision (see `docs/design/homepage-film-flip-plan.md`).
+>   Confirm the current state, do not re-litigate it.
+> - Guardrail 6's `01`–`06` numbering was retired in #850. If you still see
+>   numbered eyebrows, that is a **deploy/caching** finding, not a code one —
+>   say so and give the timestamp.
+> - CSS custom properties named `--vt-graph-node-*` exist in the stylesheet.
+>   Those are dormant tokens, not a rendered graph. Only report guardrail 3 if
+>   nodes/links are actually **drawn**.
+>
+> What is genuinely useful from this task: guardrails **3, 4, 7, 8**, and an
+> honest word count for 5.
