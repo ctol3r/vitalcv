@@ -163,12 +163,14 @@
   font-weight:    var(--type-body-sm-weight);
 }
 
+/* CD-8/CD-9, the mono law: retrieved facts render in Geist Mono. A slashed zero
+   keeps 0 and O unambiguous in NPIs, license numbers, and digests. */
 .type-code {
   font-family:    var(--type-code-font);
   font-size:      var(--type-code-size);
   line-height:    var(--type-code-line);
   font-weight:    var(--type-code-weight);
-  font-variant-numeric: tabular-nums;
+  font-variant-numeric: tabular-nums slashed-zero;
 }
 
 .type-label {
@@ -242,7 +244,7 @@
   font-size: var(--type-code-size);
   line-height: var(--type-code-line);
   font-weight: var(--type-code-weight);
-  font-variant-numeric: tabular-nums;
+  font-variant-numeric: tabular-nums slashed-zero;
 }
 .label {
   font-family: var(--type-label-font);
