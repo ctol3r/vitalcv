@@ -74,7 +74,7 @@ export function TimeToStartComparison() {
       className="mz pt-14"
       aria-labelledby="time-to-start-comparison-heading"
     >
-      <p className="mz-eyebrow"><span className="mz-eyebrow-index" aria-hidden="true">02</span>Interview-to-start velocity</p>
+      <p className="mz-eyebrow">Interview-to-start velocity</p>
       <h2 id="time-to-start-comparison-heading" className="mz-h1 mt-3 max-w-[18ch]">
         The queue is the cost. The head start is the fix.
       </h2>
