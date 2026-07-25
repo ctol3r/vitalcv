@@ -80,9 +80,22 @@ const maskOf = (page: Page) => page.locator('[data-vr-mask]');
  * Deliberately not `if (CI) skip`: the enforcement point IS CI, and gating on
  * the environment rather than on the artifact would mean the suite could never
  * enforce anywhere.
+ *
+ * CRITICAL — the guard must stand down for `--update-snapshots`. It runs
+ * BEFORE `toHaveScreenshot()`, so skipping would mean the screenshot call never
+ * executes and no baseline is ever written: the generation workflow could never
+ * do its one job. That is not hypothetical — the first Visual Baselines run
+ * reported "6 skipped" and uploaded the stale files already in the checkout.
+ *
+ * Measured (Playwright 1.58, not assumed): `config.updateSnapshots` is
+ * `'missing'` by default and `'changed'` under `--update-snapshots`. So
+ * `'missing'` is the only value that means "nobody asked to regenerate".
  */
 function requireBaseline(name: string) {
-  const path = test.info().snapshotPath(name);
+  const info = test.info();
+  if (info.config.updateSnapshots !== 'missing') return;
+
+  const path = info.snapshotPath(name);
   test.skip(
     !existsSync(path),
     `no baseline for this platform (${path.split('/').pop()}) — baselines are ` +
