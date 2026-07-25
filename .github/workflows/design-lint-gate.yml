@@ -1,0 +1,38 @@
+name: Design Lint Gate
+
+# DG-18.4 design-lint rules + the COMPETE composition rules (R1-R8).
+#
+# Two kinds of rule run here (see docs/design/DESIGN_LINT.md):
+#   error   - must be zero; blocks merge.
+#   ratchet - a measured baseline in scripts/design-lint-baseline.json that may
+#             shrink but never grow.
+#
+# The script uses only Node built-ins, so this gate needs no dependency install
+# and stays fast. LINT-07 (gated states never render a check) is a component
+# test and runs in the normal vitest suite, not here.
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'apps/web/app/**'
+      - 'apps/web/components/**'
+      - 'apps/web/styles/**'
+      - 'scripts/check-design-lint.ts'
+      - 'scripts/design-lint-baseline.json'
+      - '.github/workflows/design-lint-gate.yml'
+
+env:
+  NODE_VERSION: '22'
+
+jobs:
+  check-design-lint:
+    name: check-design-lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Enforce design-lint rules and ratchets
+        run: node --experimental-strip-types --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/check-design-lint.ts

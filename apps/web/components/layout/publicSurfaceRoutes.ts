@@ -54,6 +54,10 @@ export const OPS_SURFACE_PREFIXES = [
   '/ops/engine',
   // Design-reference surfaces carry their own chrome (wave1505 port et al.)
   '/design',
+  // COMPETE-2 film spike: a full-viewport composition cannot be evaluated with
+  // a promo rail over its first scene. Scoped to this ONE harness rather than
+  // all of /dev, so the other dev routes keep the chrome their tests expect.
+  '/dev/compete-film',
   // NOTE: /evidence-network is no longer self-chromed — the public route is a
   // static transparency page (SHD-0.3 quarantine) rendered with standard site
   // chrome; the explorable graph lives on signed-in surfaces only.

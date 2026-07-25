@@ -1,0 +1,59 @@
+name: Visual Baselines
+
+# DG-18.3 — regenerate the film's visual-regression baselines ON THE CI
+# PLATFORM and hand them back as an artifact.
+#
+# Why a manual workflow rather than local generation: Playwright names
+# baselines per platform, and font rasterisation on macOS differs enough from
+# ubuntu that a locally-generated set fails every diff on CI. Until this has
+# run once, `film-visual.spec.ts` SKIPS on Linux instead of failing (see
+# `requireBaseline`), so the e2e job stays honest rather than red.
+#
+# Run it from the Actions tab, download `visual-baselines`, unzip into
+# apps/web/tests/e2e/film-visual.spec.ts-snapshots/, and commit. Committing
+# from CI is deliberately not automated: a baseline update is a claim that a
+# visual change was INTENDED, and that claim needs a human and a PR.
+
+on:
+  workflow_dispatch:
+    inputs:
+      spec:
+        description: 'Spec to regenerate baselines for'
+        required: false
+        default: 'tests/e2e/film-visual.spec.ts'
+
+env:
+  NODE_VERSION: '22'
+
+jobs:
+  regenerate:
+    name: regenerate baselines (ubuntu)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Chromium
+        run: pnpm --filter @vitalcv/web exec playwright install --with-deps chromium
+
+      - name: Regenerate baselines
+        env:
+          CI: 'true'
+        run: pnpm --filter @vitalcv/web exec playwright test "${{ inputs.spec }}" --project=chromium --update-snapshots
+
+      - name: Upload baselines
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-baselines
+          path: apps/web/tests/e2e/*.spec.ts-snapshots/
+          if-no-files-found: error
+          retention-days: 14

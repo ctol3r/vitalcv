@@ -1,0 +1,381 @@
+'use client';
+
+import * as React from 'react';
+import Link from 'next/link';
+
+import { checkNpi } from '@/lib/vital/npi';
+import { FUNNEL_EVENTS, trackFunnelEvent } from '@/lib/analytics/funnel';
+import { detectCapabilities, resolveTier, type SceneTier } from '@/components/home/scene/capabilities';
+import { LiveNpiResult } from '@/components/home/LiveNpiResult';
+import { TruthBoundary } from '@/components/home/TruthBoundary';
+import { ProofPacketInspector } from '@/components/proof/ProofPacketInspector';
+import { EvidenceAtmosphere } from './EvidenceAtmosphere';
+import { FILM_SCENES, sceneAt } from './scenes';
+import { useFilmProgress } from './useFilmProgress';
+
+/**
+ * HorizontalCareerFilm (COMPETE-1).
+ *
+ * The homepage acquisition experience as ONE continuous left-to-right
+ * composition driven by ordinary vertical scroll. Six scenes; no card deck, no
+ * carousel, no graph, no section taxonomy.
+ *
+ * This RECOMPOSES existing capability rather than layering over it — the NPI
+ * lookup, `LiveNpiResult`, `HomeProofMoment`, `TruthBoundary`, and
+ * `DualAudienceCta` are the same real surfaces the current homepage ships. What
+ * changes is that they are scene events instead of stacked sections. Retired
+ * here: `RailJourney`/`HorizontalStoryRail` (R2) and `MetricStrip` (R4, see the
+ * C5 ruling in docs/design/homepage-composition-ownership.md).
+ *
+ * Fallback contract (composition-ownership §3): the DOM below is a linear,
+ * SSR-complete vertical document. The film is a TRANSFORM applied to it after
+ * hydration on eligible desktop — never a different document. With no JS, a
+ * coarse pointer, reduced motion, or a narrow viewport, what remains is an
+ * ordinary readable page in the same order.
+ */
+
+const TRUST_FOOTER_LINKS = [
+  { label: 'Status', href: '/status' },
+  { label: 'Source attribution', href: '/trust/attribution' },
+  { label: 'Evidence network', href: '/evidence-network' },
+  { label: 'Trust', href: '/trust' },
+] as const;
+
+/**
+ * The four facts that survive `MetricStrip`'s retirement (C5). They are live
+ * system facts, so they render as quiet ink — never as animated counters, and
+ * never with the banned two-digit step grammar.
+ */
+const CHOICE_FACTS = [
+  'Three federal source lanes',
+  'Four readiness dimensions',
+  'One record you own',
+  'No account required to look',
+] as const;
+
+function useSceneTier(): SceneTier {
+  // 'static' until capabilities are proven — SSR and the first client render
+  // must agree, and nothing animates before it is known to be safe.
+  const [tier, setTier] = React.useState<SceneTier>('static');
+
+  React.useEffect(() => {
+    const apply = () => setTier(resolveTier(detectCapabilities(window)));
+    apply();
+    const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    motion.addEventListener('change', apply);
+    return () => motion.removeEventListener('change', apply);
+  }, []);
+
+  return tier;
+}
+
+/**
+ * Kinetic editorial type. Each word carries its own delay off the scene's local
+ * progress, so the phrase assembles rather than fading in as a block.
+ *
+ * The full phrase is always in the DOM as one text node for assistive tech (the
+ * animated spans are aria-hidden), so the treatment can never cost a screen
+ * reader the sentence.
+ */
+function KineticPhrase({ text, local, live }: { text: string; local: number; live: boolean }) {
+  const words = React.useMemo(() => text.split(' '), [text]);
+
+  return (
+    <span className="film-kinetic">
+      <span className="sr-only">{text}</span>
+      <span aria-hidden="true" className="film-kinetic-words">
+        {words.map((word, i) => {
+          const start = (i / Math.max(1, words.length)) * 0.45;
+          const t = live ? Math.min(1, Math.max(0, (local - start) / 0.55)) : 1;
+          return (
+            <span
+              key={`${word}-${i}`}
+              className="film-kinetic-word"
+              style={{ opacity: t, transform: `translate3d(0, ${(1 - t) * 0.42}em, 0)` }}
+            >
+              {word}
+              {i < words.length - 1 ? ' ' : ''}
+            </span>
+          );
+        })}
+      </span>
+    </span>
+  );
+}
+
+export function HorizontalCareerFilm() {
+  const runwayRef = React.useRef<HTMLDivElement | null>(null);
+  const stageRef = React.useRef<HTMLDivElement | null>(null);
+  const tier = useSceneTier();
+
+  // Reduced motion resolves to the 'static' tier, which is also the signal to
+  // stop driving the film — one condition, not two that can disagree.
+  const { progress, eligible, ready } = useFilmProgress(runwayRef, tier !== 'static');
+
+  const [pointer, setPointer] = React.useState<{ x: number; y: number } | null>(null);
+  const [raw, setRaw] = React.useState('');
+  const [error, setError] = React.useState<string | null>(null);
+  const [submittedNpi, setSubmittedNpi] = React.useState<string | null>(null);
+
+  // The funnel's denominator.
+  React.useEffect(() => {
+    trackFunnelEvent(FUNNEL_EVENTS.HOMEPAGE_VIEWED);
+  }, []);
+
+  // Layout mode follows ELIGIBILITY, never `pinned` — see useFilmProgress.
+  const isFilm = ready && eligible && tier !== 'static';
+  const { index, local } = sceneAt(progress);
+
+  const onPointerMove = React.useCallback((event: React.PointerEvent<HTMLDivElement>) => {
+    if (event.pointerType !== 'mouse') return;
+    const el = stageRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    setPointer({
+      x: (event.clientX - rect.left) / rect.width,
+      y: (event.clientY - rect.top) / rect.height,
+    });
+  }, []);
+
+  const digits = raw.replace(/\D/g, '').slice(0, 10);
+  const npiCheck = checkNpi(raw);
+  const isValid = npiCheck.validity === 'valid';
+
+  const handleSubmit = React.useCallback(() => {
+    if (!isValid || !npiCheck.npi) {
+      setError(npiCheck.reason ?? 'Enter a full 10-digit NPI.');
+      return;
+    }
+    setError(null);
+    try {
+      window.sessionStorage.setItem('onboarding_npi', npiCheck.npi);
+      window.localStorage.setItem('onboarding_npi', npiCheck.npi);
+    } catch {
+      // The lookup still works when storage is unavailable.
+    }
+    setSubmittedNpi(npiCheck.npi);
+  }, [isValid, npiCheck.npi, npiCheck.reason]);
+
+  return (
+    <div className="film" data-film-mode={isFilm ? 'film' : 'vertical'} data-film-tier={tier}>
+      {/* Route-scoped paper. Cloud Dancer is the unifying field; it unmounts
+          with the route so no other surface inherits it. */}
+      <style>{'body{background:var(--vt-cloud-dancer,#F0EEE9)}'}</style>
+
+      {/* Runway height scales with the scene count so travel stays one
+          viewport per transition. Inline rather than in CSS precisely so it
+          cannot drift out of sync when a scene is added or removed. */}
+      <div
+        ref={runwayRef}
+        className="film-runway"
+        style={isFilm ? { height: `${FILM_SCENES.length * 100}vh` } : undefined}
+      >
+        <div
+          ref={stageRef}
+          className="film-stage"
+          onPointerMove={onPointerMove}
+          onPointerLeave={() => setPointer(null)}
+        >
+          <EvidenceAtmosphere progress={progress} tier={tier} pointer={pointer} />
+
+          {/* The cursor as a reading light. Decorative, pointer-events-none,
+              and absent entirely unless a mouse is present. */}
+          {pointer && tier !== 'static' ? (
+            <div
+              aria-hidden="true"
+              className="film-readinglight"
+              style={{ left: `${pointer.x * 100}%`, top: `${pointer.y * 100}%` }}
+            />
+          ) : null}
+
+          <div
+            className="film-track"
+            style={
+              isFilm
+                ? { transform: `translate3d(-${progress * (FILM_SCENES.length - 1) * 100}%, 0, 0)` }
+                : undefined
+            }
+          >
+            {FILM_SCENES.map((scene, i) => {
+              // In vertical mode every scene is fully seated; in film mode only
+              // the active pair is animating.
+              const sceneLocal = !isFilm
+                ? 1
+                : i === index
+                  ? 1 - local
+                  : i === index + 1
+                    ? local
+                    : 0;
+              const isActive = isFilm && (i === index || (i === index + 1 && local > 0));
+
+              return (
+                <section
+                  key={scene.id}
+                  className="film-scene"
+                  data-film-scene={scene.id}
+                  data-film-active={isActive ? '' : undefined}
+                  aria-label={scene.label}
+                >
+                  <div className="film-copy">
+                    <h2 className="film-phrase">
+                      <KineticPhrase text={scene.phrase} local={sceneLocal} live={isFilm} />
+                    </h2>
+                    {scene.support ? <p className="film-support">{scene.support}</p> : null}
+
+                    {/* ---- Arrival: the ONE primary action ---- */}
+                    {scene.id === 'arrival' ? (
+                      <form
+                        className="film-npi"
+                        onSubmit={(event) => {
+                          event.preventDefault();
+                          handleSubmit();
+                        }}
+                      >
+                        <label htmlFor="film-npi-input" className="film-npi-label">
+                          Start with your NPI
+                        </label>
+                        {/* A designed object inside the scene — a ruled line on
+                            paper, not a boxed form card beside a visual. */}
+                        <div className="film-npi-row">
+                          <input
+                            id="film-npi-input"
+                            className="film-npi-input"
+                            type="text"
+                            inputMode="numeric"
+                            autoComplete="off"
+                            placeholder="10-digit NPI"
+                            value={raw}
+                            onChange={(event) => {
+                              setRaw(event.target.value);
+                              setError(null);
+                            }}
+                            aria-invalid={Boolean(error)}
+                            aria-describedby="film-npi-hint"
+                          />
+                          <button
+                            type="submit"
+                            className="film-npi-submit"
+                            data-home-primary-cta=""
+                            disabled={!isValid}
+                          >
+                            Check what&rsquo;s ready
+                          </button>
+                        </div>
+                        <p
+                          id="film-npi-hint"
+                          className="film-npi-hint"
+                          role={error ? 'alert' : undefined}
+                        >
+                          {error ??
+                            (digits.length === 10
+                              ? isValid
+                                ? 'Press Enter to continue'
+                                : (npiCheck.reason ?? 'Check the number for a typo.')
+                              : `${digits.length}/10 digits`)}
+                          <span aria-hidden="true"> · </span>
+                          Free for clinicians · No account required
+                        </p>
+                      </form>
+                    ) : null}
+
+                    {/* ---- Recognition: REAL returned state, or nothing ---- */}
+                    {scene.id === 'recognition' ? (
+                      submittedNpi ? (
+                        <div className="film-artifact">
+                          <LiveNpiResult
+                            npi={submittedNpi}
+                            onReset={() => {
+                              setSubmittedNpi(null);
+                              setRaw('');
+                            }}
+                          />
+                        </div>
+                      ) : (
+                        <p className="film-note">
+                          Nothing personal is shown until a real lookup returns.
+                          Enter an NPI in the first scene to see your own state here.
+                        </p>
+                      )
+                    ) : null}
+
+                    {/* ---- Momentum: the coverage fact, as ink ---- */}
+                    {scene.id === 'momentum' ? (
+                      <p className="film-note">
+                        Three of four readiness dimensions are source-backed
+                        before any review begins. Licensure needs source access.
+                      </p>
+                    ) : null}
+
+                    {/* ---- Opportunity: honest about what it can show ---- */}
+                    {scene.id === 'opportunity' ? (
+                      <p className="film-note">
+                        Roles are measured against the evidence you have and the
+                        gaps you do not. Fit is shown with its reasons, once you
+                        are signed in.
+                      </p>
+                    ) : null}
+
+                    {/* ---- Choice: the four surviving facts, as quiet ink ---- */}
+                    {scene.id === 'choice' ? (
+                      <ul className="film-facts">
+                        {CHOICE_FACTS.map((fact) => (
+                          <li key={fact}>{fact}</li>
+                        ))}
+                      </ul>
+                    ) : null}
+                  </div>
+
+                  {/* ---- Wide artifacts sit beside the copy, not inside it ----
+
+                       Deliberately `ProofPacketInspector`, NOT its
+                       `HomeProofMoment` wrapper: that wrapper is a vertical
+                       PAGE SECTION and brings its own numbered eyebrow ("04
+                       Why this is credible" — R4 + R6) and a second display
+                       H2 that competes with the scene's phrase. The film wants
+                       the artifact, not the section around it. Same reason
+                       `DualAudienceCta` is not used below — it is a two-card
+                       grid (R3) whose clinician CTA points at `/#npi`, an
+                       anchor this composition does not have. */}
+                  {scene.id === 'start' ? (
+                    <div className="film-wide">
+                      <ProofPacketInspector />
+                      <TruthBoundary className="film-boundary" />
+                    </div>
+                  ) : null}
+
+                  {scene.id === 'choice' ? (
+                    <div className="film-wide">
+                      {/* "CTAs only" — clinician primary, employer secondary. */}
+                      <div className="film-routes">
+                        <Link href="/onboarding" className="film-route film-route-primary">
+                          Check my readiness
+                        </Link>
+                        <Link
+                          href="/employers"
+                          className="film-route"
+                          data-home-employer-cta=""
+                          onClick={() => trackFunnelEvent(FUNNEL_EVENTS.EMPLOYER_ENTRY_CLICKED)}
+                        >
+                          For employers
+                        </Link>
+                      </div>
+                      <nav aria-label="Trust footer" className="film-trust">
+                        {TRUST_FOOTER_LINKS.map((link) => (
+                          <Link key={link.href} href={link.href}>
+                            {link.label}
+                          </Link>
+                        ))}
+                      </nav>
+                    </div>
+                  ) : null}
+                </section>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default HorizontalCareerFilm;
