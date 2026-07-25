@@ -72,13 +72,3 @@ function mapPassportToSandboxShape(npi: string, passport: any): NPIDataResponse 
     readinessScore: Number(readiness.score ?? 0),
   };
 }
-
-export async function fetchReadinessSnapshot(npi: string) {
-  const response = await axios.get(`/api/passport/entity/${npi}`);
-  return response.data;
-}
-
-export async function fetchPassportStatus(npi: string) {
-  const response = await axios.get(`/api/passport/${npi}`);
-  return response.data;
-}

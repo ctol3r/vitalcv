@@ -5,11 +5,11 @@
 **Enforced by:** `scripts/check-design-lint.ts` · CI job `Design Lint Gate` · `pnpm check:design`
 **Composition contract:** [`docs/strategy/competitive-mandate.md`](../strategy/competitive-mandate.md) (R1–R8)
 
-Two machine-enforceable specs were meant to keep the design system honest after
-the design program ends: a screenshot matrix that catches visual drift
-(DG-18.3), and lint rules that make off-system code fail CI (DG-18.4). This
-document and its script are DG-18.4. **DG-18.3 is not built yet** — see
-[Not yet built](#not-yet-built).
+Two machine-enforceable specs keep the design system honest after the design
+program ends: lint rules that make off-system code fail CI (DG-18.4, this
+document and `check-design-lint.ts`), and a screenshot matrix that catches
+visual drift ([DG-18.3](#dg-183--visual-regression), built for the film — with
+a measured account of what a screenshot diff can and cannot catch).
 
 ---
 
@@ -110,8 +110,6 @@ reports `tail`'s status, not the gate's.
 
 ---
 
----
-
 ## Two things a ratchet cannot do (learned 2026-07-22)
 
 **A buggy rule inflates its own baseline.** LINT-06 and LINT-09 shipped as
@@ -148,7 +146,7 @@ add debt?" directly.
 ## DG-18.3 — visual regression
 
 Built, scoped to the film: `apps/web/tests/e2e/film-visual.spec.ts`, 11
-baselines across desktop (six scene boundaries + a mid-transition frame),
+captures across desktop (six scene boundaries + a mid-transition frame),
 tablet 768×1024, mobile 360×740, the static tier, and reduced motion.
 `maxDiffPixelRatio` 0.001, `animations: 'disabled'`, waiting on
 `document.fonts.ready`. Dynamic content masks by the `data-vr-mask` attribute,
