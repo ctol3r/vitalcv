@@ -304,7 +304,13 @@ body {
 @theme inline {
   --font-heading: var(--font-fraunces);
   --font-sans: var(--font-body);
-  --font-mono: 'Geist Mono', ui-monospace, monospace;
+  /* CD-8, the mono law. `@theme inline` inlines this value straight into the
+     generated `font-mono` utility, so a bare 'Geist Mono' family name here
+     resolved to nothing — next/font emits a hashed family — and all 1,229
+     `font-mono` usages silently fell back to the OS monospace. Point it at the
+     loaded face instead. Referencing --font-geist-mono-loaded (not --font-mono)
+     keeps this out of the circular-alias trap that broke the tokens in #801. */
+  --font-mono: var(--font-geist-mono-loaded, ui-monospace, 'SFMono-Regular', Menlo, Monaco, monospace);
 
   /* Sandbox palette aliases for 1:1 sandbox component imports */
   --color-bg: var(--vt-bg);
