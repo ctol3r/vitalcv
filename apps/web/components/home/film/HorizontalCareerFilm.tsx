@@ -103,9 +103,14 @@ function KineticPhrase({ text, local, live }: { text: string; local: number; liv
   );
 }
 
+/** Index of the scene that renders the lookup result. */
+const RECOGNITION_INDEX = FILM_SCENES.findIndex((s) => s.id === 'recognition');
+
 export function HorizontalCareerFilm() {
   const runwayRef = React.useRef<HTMLDivElement | null>(null);
   const stageRef = React.useRef<HTMLDivElement | null>(null);
+  const arrivalRef = React.useRef<HTMLElement | null>(null);
+  const recognitionRef = React.useRef<HTMLElement | null>(null);
   const tier = useSceneTier();
 
   // Reduced motion resolves to the 'static' tier, which is also the signal to
@@ -125,6 +130,53 @@ export function HorizontalCareerFilm() {
   // Layout mode follows ELIGIBILITY, never `pinned` — see useFilmProgress.
   const isFilm = ready && eligible && tier !== 'static';
   const { index, local } = sceneAt(progress);
+
+  /**
+   * Carry the reader between the question and their answer.
+   *
+   * The lookup renders in the RECOGNITION scene, which in film mode sits one
+   * full viewport to the right of the arrival scene. Without this, submitting
+   * an NPI rendered the result off-screen with the page unmoved — the primary
+   * action of the page appeared to do nothing. (Measured: result in the DOM,
+   * `left = 1440`, `scrollY = 0`.) Reset has the same problem mirrored: it
+   * clears the field the reader can no longer see.
+   *
+   * The film is driven by ordinary scroll position, so both directions move the
+   * SCROLL — never the track transform directly, which would desynchronise the
+   * driver from the window and break rule 4 in useFilmProgress.
+   */
+  const scrollToScene = React.useCallback(
+    (sceneIndex: number, fallback: React.RefObject<HTMLElement | null>) => {
+      const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const behavior: ScrollBehavior = reduced ? 'auto' : 'smooth';
+
+      if (isFilm && runwayRef.current) {
+        const rect = runwayRef.current.getBoundingClientRect();
+        const travel = rect.height - window.innerHeight;
+        if (travel > 0) {
+          const target = sceneIndex / Math.max(1, FILM_SCENES.length - 1);
+          window.scrollTo({ top: rect.top + window.scrollY + target * travel, behavior });
+          return;
+        }
+      }
+      // Vertical composition: scenes are ordinary blocks in document flow.
+      fallback.current?.scrollIntoView({ behavior, block: 'start' });
+    },
+    [isFilm],
+  );
+
+  // Only a TRANSITION should move the reader — not the initial mount, and not
+  // an unrelated re-render.
+  const previousNpi = React.useRef<string | null>(null);
+  React.useEffect(() => {
+    const had = previousNpi.current;
+    previousNpi.current = submittedNpi;
+    if (submittedNpi && submittedNpi !== had) {
+      scrollToScene(RECOGNITION_INDEX, recognitionRef);
+    } else if (had && !submittedNpi) {
+      scrollToScene(0, arrivalRef);
+    }
+  }, [submittedNpi, scrollToScene]);
 
   const onPointerMove = React.useCallback((event: React.PointerEvent<HTMLDivElement>) => {
     if (event.pointerType !== 'mouse') return;
@@ -211,6 +263,13 @@ export function HorizontalCareerFilm() {
               return (
                 <section
                   key={scene.id}
+                  ref={
+                    scene.id === 'recognition'
+                      ? recognitionRef
+                      : scene.id === 'arrival'
+                        ? arrivalRef
+                        : undefined
+                  }
                   className="film-scene"
                   data-film-scene={scene.id}
                   data-film-active={isActive ? '' : undefined}

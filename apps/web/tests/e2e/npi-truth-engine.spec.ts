@@ -89,7 +89,14 @@ async function mockNpiApis(
   );
 }
 
-const hero = (page: Page) => page.locator('[data-home-hero]');
+/**
+ * Where the clinician's own returned state renders.
+ *
+ * COMPETE-1 moved this out of `[data-home-hero]`: the film shows the answer in
+ * the RECOGNITION scene, one scene on from where the NPI was typed. Every truth
+ * assertion below is unchanged and still applies — only the container moved.
+ */
+const hero = (page: Page) => page.locator('[data-film-scene="recognition"]');
 
 /**
  * The hero's primary action (HERO-RESET-1: was "Check readiness"). The dot
@@ -98,9 +105,23 @@ const hero = (page: Page) => page.locator('[data-home-hero]');
  */
 const HERO_CTA = /check what.s ready/i;
 
+/**
+ * The NPI field's accessible name.
+ *
+ * COMPETE-1: the film labels this field with a VISIBLE `<label>` reading
+ * "Start with your NPI", where the retired stacked composition used an
+ * invisible `aria-label="NPI number"`. The visible label is the better markup
+ * — and it is why this could not simply be aliased back: adding
+ * `aria-label="NPI number"` over visible text that says something else breaks
+ * WCAG 2.5.3 (Label in Name) for voice-control users, who speak what they see.
+ *
+ * Declared once so the next composition change edits one line, not four.
+ */
+const NPI_FIELD = { name: /start with your npi/i };
+
 async function submitNpi(page: Page, npi: string) {
   await page.goto('/', { waitUntil: 'networkidle' });
-  await page.getByLabel('NPI number').fill(npi);
+  await page.getByRole('textbox', NPI_FIELD).fill(npi);
   const cta = page.getByRole('button', { name: HERO_CTA });
   // Enablement requires hydration + a checksum-valid NPI; waiting here keeps
   // the click from racing a pre-hydration (native, no-op) form submit.
@@ -121,14 +142,14 @@ test.describe('NPI truth engine — homepage hero', () => {
   test('a checksum-invalid NPI cannot start a lookup and says why', async ({ page }) => {
     await page.goto('/', { waitUntil: 'networkidle' });
 
-    await page.getByLabel('NPI number').fill(BAD_CHECKSUM_NPI);
+    await page.getByRole('textbox', NPI_FIELD).fill(BAD_CHECKSUM_NPI);
     await expect(
       page.getByText('That is 10 digits but not a valid NPI — check for a typo.'),
     ).toBeVisible();
     await expect(page.getByRole('button', { name: HERO_CTA })).toBeDisabled();
 
     // The same field with a checksum-valid NPI unlocks the lookup.
-    await page.getByLabel('NPI number').fill(VALID_NPI);
+    await page.getByRole('textbox', NPI_FIELD).fill(VALID_NPI);
     await expect(page.getByText('Press Enter to continue')).toBeVisible();
     await expect(page.getByRole('button', { name: HERO_CTA })).toBeEnabled();
   });
@@ -287,8 +308,13 @@ test.describe('NPI truth engine — homepage hero', () => {
 
     await page.getByRole('button', { name: /check another npi/i }).click();
     await expect(hero(page).locator('[data-home-evidence-field]')).toHaveCount(0);
-    await expect(hero(page).getByRole('button', { name: /check what’s ready/i })).toBeDisabled();
-    await expect(page.getByLabel('NPI number')).toHaveValue('');
+    // COMPETE-1: the reset control and the NPI action now live in DIFFERENT
+    // scenes, so the CTA is addressed at page level rather than within the
+    // result container. The contract is unchanged — cleared field, disabled
+    // action — and `film-npi-response.spec.ts` pins that reset also carries the
+    // reader back to the field it just cleared.
+    await expect(page.getByRole('button', { name: HERO_CTA })).toBeDisabled();
+    await expect(page.getByRole('textbox', NPI_FIELD)).toHaveValue('');
   });
 });
 

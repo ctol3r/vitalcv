@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
-import HomePageClient from './HomePageClient';
+
+import { HorizontalCareerFilm } from '@/components/home/film/HorizontalCareerFilm';
+import '@/styles/compete-film.css';
 
 // One consistent category statement (Sprint 1). The site previously mixed three
 // taglines — "Professional identity that moves clinicians forward",
@@ -57,6 +59,18 @@ const STRUCTURED_DATA = {
   ],
 };
 
+/**
+ * COMPETE-1: `/` serves the six-scene horizontal career film.
+ *
+ * The film replaces the stacked-section composition (`HomePageClient`) that the
+ * competitive mandate retires — `RailJourney`/`JourneyCard` (R2, R3) and
+ * `MetricStrip`'s `00`–`03` counter grammar (R4). See
+ * docs/strategy/competitive-mandate.md and the composition ownership record.
+ *
+ * `HomePageClient` stays on disk: it still owns the hero/NPI unit tests and is
+ * the rollback target — reverting this file restores the previous homepage with
+ * no other change.
+ */
 export default function HomePage() {
   return (
     <>
@@ -65,7 +79,7 @@ export default function HomePage() {
         // schema.org markup is static + trusted (no user input), safe to inline.
         dangerouslySetInnerHTML={{ __html: JSON.stringify(STRUCTURED_DATA) }}
       />
-      <HomePageClient />
+      <HorizontalCareerFilm />
     </>
   );
 }
