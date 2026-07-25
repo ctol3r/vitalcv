@@ -34,8 +34,17 @@ async function expectNoHorizontalOverflow(page: import('@playwright/test').Page)
   expect(overflow).toBeLessThanOrEqual(1);
 }
 
+/**
+ * COMPETE-1: the field is addressed by ROLE. The film labels it with a visible
+ * `<label>` ("Start with your NPI") instead of the retired composition's
+ * invisible `aria-label="NPI number"`, and the arrival scene's region shares
+ * that accessible name — so a bare `getByLabel` is ambiguous between the
+ * landmark and the control.
+ */
+const NPI_FIELD = { name: /start with your npi/i };
+
 async function expectNpiActionUsable(page: import('@playwright/test').Page) {
-  const input = page.getByLabel('NPI number');
+  const input = page.getByRole('textbox', NPI_FIELD);
   await expect(input).toBeVisible();
   await input.fill('1234567893'); // checksum-valid — enables the CTA
   await expect(page.getByRole('button', { name: /check what’s ready/i })).toBeEnabled();
@@ -68,8 +77,11 @@ test.describe('scene degradation matrix (SHD-6.1)', () => {
     await page.goto('/', { waitUntil: 'domcontentloaded' });
 
     await expect(page.locator('h1').first()).toBeVisible();
-    await expect(page.getByLabel('NPI number')).toBeAttached();
-    await expect(page.locator('[data-home-source-strip]')).toBeAttached();
+    await expect(page.getByRole('textbox', NPI_FIELD)).toBeAttached();
+    // The source signal survives the composition change: `SourceCoverageRibbon`
+    // retired with the stacked page, and the cadence statement it carried is now
+    // one registry-derived sentence. Still SSR-served, still on the no-JS floor.
+    await expect(page.locator('[data-home-source-cadence]')).toBeAttached();
     await expect(page.locator('[data-home-evidence-field], [data-field-poster], [data-field-edges]')).toHaveCount(0);
 
     await context.close();
@@ -84,7 +96,7 @@ test.describe('scene degradation matrix (SHD-6.1)', () => {
       await page.keyboard.press('Tab');
       const isNpi = await page.evaluate(() => {
         const el = document.activeElement as HTMLElement | null;
-        return !!el && el.getAttribute('aria-label') === 'NPI number';
+        return !!el && el.id === 'film-npi-input';
       });
       if (isNpi) { reached = true; break; }
     }
@@ -106,12 +118,20 @@ test.describe('hero reset — clinician sell and field visibility (HERO-RESET-1)
     await page.setViewportSize(DESKTOP);
     await page.goto('/', { waitUntil: 'networkidle' });
 
-    await expect(page.locator('h1').first()).toHaveText('Get hired faster.');
-    await expect(page.getByText('Start with your NPI. See what employers can confirm', { exact: false }).first()).toBeVisible();
+    // Accessible name, not raw text: `KineticPhrase` renders the phrase twice on
+    // purpose — once `sr-only` for assistive tech and once `aria-hidden` for the
+    // per-word animation — so textContent legitimately reads it twice. The
+    // accessible name is the single copy a screen reader announces, which is the
+    // thing this contract is actually about.
+    await expect(page.locator('h1').first()).toHaveAccessibleName('Get hired faster.');
+    // The mandate's copy ceiling is ONE short editorial phrase per scene, so the
+    // old two-sentence subhead is now just "Start with your NPI." The contract
+    // that matters — the action is explained in plain words — is unchanged.
+    await expect(page.getByText('Start with your NPI.', { exact: false }).first()).toBeVisible();
     await expect(page.getByRole('button', { name: /check what’s ready/i })).toBeVisible();
     await expect(page.getByText('Free for clinicians · No account required')).toBeVisible();
 
-    const heroText = (await page.locator('[data-home-hero]').innerText()).toLowerCase();
+    const heroText = (await page.locator('[data-film-scene="arrival"]').innerText()).toLowerCase();
     for (const jargon of ['career evidence network', 'matcha', 'proof packet', 'recognition']) {
       expect(heroText, `category jargon "${jargon}" leaked above the fold`).not.toContain(jargon);
     }
@@ -119,38 +139,37 @@ test.describe('hero reset — clinician sell and field visibility (HERO-RESET-1)
     await expect(page.locator('[data-narrative-state], [data-narrative-words], [data-narrative-complete]')).toHaveCount(0);
   });
 
-  test('Cloud Dancer is scoped: homepage paper resolves it, dark mode keeps its own paper', async ({ page }) => {
+  test('Cloud Dancer is scoped to the homepage: it paints / and does not leak to other routes', async ({ page }) => {
     await page.setViewportSize(DESKTOP);
     await page.goto('/', { waitUntil: 'networkidle' });
 
-    const paper = await page.evaluate(() => {
-      const root = document.querySelector('.mz-cloud-paper') as HTMLElement;
+    const home = await page.evaluate(() => {
+      const film = document.querySelector('.film') as HTMLElement;
       return {
-        root: getComputedStyle(root).backgroundColor,
         body: getComputedStyle(document.body).backgroundColor,
-        token: getComputedStyle(root).getPropertyValue('--vt-cloud-dancer').trim(),
+        token: getComputedStyle(film).getPropertyValue('--vt-cloud-dancer').trim(),
+        paper: getComputedStyle(film).getPropertyValue('--film-paper').trim(),
       };
     });
     // CSS minification lowercases hex — compare case-insensitively.
-    expect(paper.token.toLowerCase()).toBe('#f0eee9');
-    expect(paper.root).toBe('rgb(240, 238, 233)');
-    expect(paper.body).toBe('rgb(240, 238, 233)');
+    expect(home.token.toLowerCase()).toBe('#f0eee9');
+    expect(home.paper.toLowerCase()).toMatch(/#f0eee9|var\(--vt-cloud-dancer/);
+    expect(home.body).toBe('rgb(240, 238, 233)');
 
-    // Precedence contract: the dark theme's paper stays authoritative — the
-    // Cloud Dancer scope must never leak into dark or non-optin surfaces.
-    // Assert the custom property, not background-color: the theme transition
-    // animates background-color, so an immediate read mid-transition still
-    // reports the old paint; the variable itself flips instantly.
-    const darkPaper = await page.evaluate(() => {
-      document.documentElement.classList.add('dark');
-      const v = getComputedStyle(document.querySelector('.mz-cloud-paper') as HTMLElement)
-        .getPropertyValue('--paper')
-        .trim()
-        .toLowerCase();
-      document.documentElement.classList.remove('dark');
-      return v;
-    });
-    expect(darkPaper).toBe('#15140f'); // .dark .mz paper wins, not Cloud Dancer
+    // The precedence contract, restated for this composition. The retired page
+    // scoped its paper with `.mz-cloud-paper` and proved `.dark .mz` still won;
+    // the film has no `.mz` scope, so the equivalent guarantee is ROUTE scoping:
+    // the paper is set by a style that unmounts with the film, and must not
+    // follow the reader to another surface.
+    await page.goto('/trust', { waitUntil: 'networkidle' });
+    const elsewhere = await page.evaluate(() => ({
+      body: getComputedStyle(document.body).backgroundColor,
+      film: document.querySelectorAll('.film').length,
+    }));
+    expect(elsewhere.film, 'the film must not render outside /').toBe(0);
+    expect(elsewhere.body, 'Cloud Dancer must not leak past the homepage').not.toBe(
+      'rgb(240, 238, 233)',
+    );
   });
 
   test('static tier: the hero keeps the NPI action without a public graph', async ({ page }) => {
@@ -167,7 +186,7 @@ test.describe('hero reset — clinician sell and field visibility (HERO-RESET-1)
     await page.goto('/', { waitUntil: 'networkidle' });
 
     await expectNpiActionUsable(page);
-    await expect(page.locator('[data-home-source-strip]')).toBeVisible();
+    await expect(page.locator('[data-home-source-cadence]')).toBeAttached();
     await expect(page.locator('[data-home-evidence-field], [data-field-poster], [data-field-edges]')).toHaveCount(0);
   });
 

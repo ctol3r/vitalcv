@@ -209,3 +209,65 @@ A homepage PR is rejected if any answer is "no":
 - [ ] Nothing personal, fabricated, or clinician-specific rendered before a real NPI lookup returns?
 - [ ] `TruthBoundary` still mounted?
 - [ ] `scripts/check-public-claims.ts` green?
+
+---
+
+## 7. The switch: `/` now serves the film (COMPETE-1)
+
+**Landed:** `apps/web/app/page.tsx` renders `HorizontalCareerFilm`.
+`HomePageClient` stays on disk and is the rollback target — reverting that one
+file restores the previous composition with no other change.
+
+### Three defects the switch surfaced
+
+Verifying the switch was worth more than building it. All three were invisible
+in the `/dev/compete-film` harness and only appeared once `/` was the film:
+
+1. **The page answered off-screen.** The lookup renders in the RECOGNITION
+   scene, one full viewport right of the input. Submitting did not move the
+   page: `resultRendered: true, resultOnScreen: false, left: 1440, scrollY: 0`.
+   The page's single primary action appeared to do nothing. Reset had the mirror
+   bug. Both now move window **scroll** — never the track transform, which would
+   desynchronise `useFilmProgress` from the window and break its rule 4.
+2. **No `<h1>`.** Every scene phrase rendered as `<h2>`, leaving the homepage
+   with no top-level heading — a document-outline and SEO regression against the
+   composition it replaced. The opening phrase is now the `h1`.
+3. **The atmosphere canvas was exposed to assistive tech.** It had
+   `pointer-events: none` but no `aria-hidden`, so a screen reader could
+   announce a decorative graphic that carries no meaning.
+
+### Source freshness stays on `/`
+
+Retiring `MetricStrip` (R4) and `SourceCoverageRibbon` together removed every
+cadence claim from the homepage — `read live` and `snapshot` both dropped to
+**zero occurrences**. Nothing false was left behind, but "three federal source
+lanes" with no cadence invites precisely the reading the freshness work
+(#822/#817/#824) existed to prevent.
+
+R4 retires counter *theatre*, not source honesty. The statement returns as one
+sentence of ink (`[data-home-source-cadence]`), **derived from
+`lib/trust/sourceLanes.ts`** — the same registry behind `/status` and
+`/api/status` — so a lane's cadence cannot drift from what the homepage says.
+
+### Test contract: what was ported, what was retired
+
+Retiring a spec because its mechanism is retired is correct. Retiring the
+*durable* assertions that happened to live in the same file is not — so the two
+were separated deliberately:
+
+| Spec | Disposition |
+| --- | --- |
+| `npi-truth-engine` | **Ported.** All 10 truth assertions kept verbatim; only the container moved (`[data-home-hero]` → `[data-film-scene="recognition"]`) and the field is now addressed by role. |
+| `scene-degradation` | **Ported**, 8/8 — no-JS floor, keyboard reach, reduced motion, mobile overflow, Cloud Dancer scoping (restated as route scoping, since the film has no `.mz` scope). |
+| `homepage-proof-moment` | **Ported**, 3/3 — scoped to the `start` scene; the film uses `ProofPacketInspector` without the `HomeProofMoment` wrapper, which carries a numbered eyebrow (R4/R6). |
+| `homepage-motion`, `scrub-headings`, `homepage-journey-rail` | **Retired** (R2/R3/R6/R8) — but their composition-independent assertions were **salvaged** into `film-composition.spec.ts`: AUD-1.1 overlay guard, ambient-layer-never-blocks-input, one accessible name, no-animation-gate, no layout shift, no horizontal overflow, mobile normal flow. |
+| `film-npi-response` | **New** — pins defect 1 in film, vertical, reduced-motion, and reset-return. |
+| `capture-handoff` | **Retired.** A screenshot utility, not a contract — zero `expect()` calls, no CI reference — that drove the retired composition's anchors (`#wallet`, `#readiness`). It could not catch a regression, and the frames it captured are of a page that no longer exists. |
+
+**Note on the NPI field selector.** The film labels it with a visible
+`<label>` ("Start with your NPI") where the retired composition used an
+invisible `aria-label="NPI number"`. Aliasing the old name back would break
+WCAG 2.5.3 (Label in Name) for voice-control users, who speak what they see —
+so the specs follow the better markup. Use
+`getByRole('textbox', { name: /start with your npi/i })`: the arrival scene's
+region shares that accessible name, so a bare `getByLabel` is ambiguous.

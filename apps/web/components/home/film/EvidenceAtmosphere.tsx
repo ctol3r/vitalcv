@@ -219,7 +219,12 @@ export function EvidenceAtmosphere({
           );
         })}
       </svg>
-      {tier !== 'static' ? <canvas ref={canvasRef} className="film-atmosphere-canvas" /> : null}
+      {/* Decoration only. `aria-hidden` keeps a screen reader from announcing a
+          bare graphic that carries no meaning — the film's meaning is always in
+          the text, never in the atmosphere (composition-ownership §3). */}
+      {tier !== 'static' ? (
+        <canvas ref={canvasRef} className="film-atmosphere-canvas" aria-hidden="true" />
+      ) : null}
     </div>
   );
 }

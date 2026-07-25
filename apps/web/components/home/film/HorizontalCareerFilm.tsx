@@ -12,6 +12,7 @@ import { ProofPacketInspector } from '@/components/proof/ProofPacketInspector';
 import { EvidenceAtmosphere } from './EvidenceAtmosphere';
 import { FILM_SCENES, sceneAt } from './scenes';
 import { useFilmProgress } from './useFilmProgress';
+import { SOURCE_LANE_OPS } from '@/lib/trust/sourceLanes';
 
 /**
  * HorizontalCareerFilm (COMPETE-1).
@@ -52,6 +53,30 @@ const CHOICE_FACTS = [
   'One record you own',
   'No account required to look',
 ] as const;
+
+/**
+ * The homepage's source-freshness statement, in one sentence of ink.
+ *
+ * Retiring `MetricStrip` and `SourceCoverageRibbon` from the composition also
+ * removed every cadence claim from `/` — the corrected labels from the
+ * freshness work (#822/#817/#824) stopped appearing at all. Nothing false was
+ * left behind, but "three federal source lanes" without cadence invites exactly
+ * the reading that work existed to prevent: that all three are read live.
+ *
+ * R4 retires counter THEATRE, not source honesty, so the fact returns as a
+ * sentence rather than a marquee or a numbered strip. It is DERIVED from
+ * `lib/trust/sourceLanes.ts` — the same registry behind /status and
+ * /api/status — so a lane's cadence cannot drift from what the homepage says.
+ */
+function sourceCadenceSentence(): string {
+  const label = (id: string) =>
+    SOURCE_LANE_OPS.find((lane) => lane.laneId === id)?.cadenceLabel ?? 'not read';
+  return (
+    `NPPES is ${label('nppes_identity')} per request; ` +
+    `OIG/LEIE returns a ${label('oig_exclusions')} and CMS PECOS a ${label('pecos_enrollment')}; ` +
+    `state licensure is ${label('state_license')}.`
+  );
+}
 
 function useSceneTier(): SceneTier {
   // 'static' until capabilities are proven — SSR and the first client render
@@ -276,9 +301,16 @@ export function HorizontalCareerFilm() {
                   aria-label={scene.label}
                 >
                   <div className="film-copy">
-                    <h2 className="film-phrase">
-                      <KineticPhrase text={scene.phrase} local={sceneLocal} live={isFilm} />
-                    </h2>
+                    {/* The opening phrase is the page's H1. Every scene rendered
+                        an <h2> in the first cut, which left the homepage with no
+                        <h1> at all — a document-outline and SEO regression
+                        against the composition it replaces. The heading LEVEL is
+                        structural; the visual treatment is identical. */}
+                    {React.createElement(
+                      i === 0 ? 'h1' : 'h2',
+                      { className: 'film-phrase' },
+                      <KineticPhrase text={scene.phrase} local={sceneLocal} live={isFilm} />,
+                    )}
                     {scene.support ? <p className="film-support">{scene.support}</p> : null}
 
                     {/* ---- Arrival: the ONE primary action ---- */}
@@ -376,11 +408,16 @@ export function HorizontalCareerFilm() {
 
                     {/* ---- Choice: the four surviving facts, as quiet ink ---- */}
                     {scene.id === 'choice' ? (
-                      <ul className="film-facts">
-                        {CHOICE_FACTS.map((fact) => (
-                          <li key={fact}>{fact}</li>
-                        ))}
-                      </ul>
+                      <>
+                        <ul className="film-facts">
+                          {CHOICE_FACTS.map((fact) => (
+                            <li key={fact}>{fact}</li>
+                          ))}
+                        </ul>
+                        <p className="film-note" data-home-source-cadence="">
+                          {sourceCadenceSentence()}
+                        </p>
+                      </>
                     ) : null}
                   </div>
 
