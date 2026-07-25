@@ -42,6 +42,14 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # @vitalcv/web's build runs inside playwright's webServer (`preview:e2e`)
+      # and resolves workspace deps from their dist/, so those must exist
+      # first. Without this the build dies on "Can't resolve
+      # '@vitalcv/trust-state'" and the webServer never starts. Mirrors the
+      # e2e job in ci.yml.
+      - name: Build workspace package dependencies
+        run: pnpm turbo build --filter='!@vitalcv/web'
+
       - name: Install Chromium
         run: pnpm --filter @vitalcv/web exec playwright install --with-deps chromium
 

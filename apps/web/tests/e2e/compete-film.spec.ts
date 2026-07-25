@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test';
 
+import { requireHarness } from './film-harness';
+
 /**
  * COMPETE-2 film spike — scene-boundary contract.
  *
@@ -44,7 +46,7 @@ const trackX = async (page: import('@playwright/test').Page) =>
 test.describe('COMPETE-2 horizontal film', () => {
   test.beforeEach(async ({ page }) => {
     const response = await page.goto(ROUTE);
-    test.skip(!response || response.status() === 404, 'film harness is not enabled here');
+    requireHarness(response);
   });
 
   test('desktop: vertical scroll advances one horizontal film', async ({ page }) => {
@@ -200,7 +202,7 @@ test.describe('COMPETE-2 horizontal film', () => {
     });
     const page = await ctx.newPage();
     const response = await page.goto(ROUTE);
-    test.skip(!response || response.status() === 404, 'film harness is not enabled here');
+    requireHarness(response);
     await page.waitForTimeout(300);
 
     await expect(page.locator('.film')).toHaveAttribute('data-film-mode', 'vertical');
