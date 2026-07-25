@@ -31,7 +31,7 @@ export function HomeProofMoment() {
       className="mz pt-14"
     >
       <div className="mx-auto w-full max-w-[1320px]">
-        <p className="mz-eyebrow"><span className="mz-eyebrow-index" aria-hidden="true">04</span>Why this is credible</p>
+        <p className="mz-eyebrow">Why this is credible</p>
         {/* The scrub heading moved here (2026-07-21 rebuild). Its only two
             consumers — ProductCarousel and EvidenceTruthPanel — were both
             retired from the composition, which would have left the homepage

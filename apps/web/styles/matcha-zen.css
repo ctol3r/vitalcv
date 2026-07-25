@@ -206,16 +206,17 @@
 }
 .mz-eyebrow::after { content: ''; width: 40px; height: 1px; background: var(--rule); }
 
-/* Chapter index. The body carried six eyebrow labels and five headlines that
-   each read as THE thesis, so the page argued five times instead of once.
-   Numbering the chapters is the cheapest honest fix: it changes no claim and
-   no headline, but it turns five essays into one five-part argument. The
-   ribbon stays unnumbered — it is a capability strip, not a chapter. */
-.mz-eyebrow-index {
-  font-variant-numeric: tabular-nums;
-  color: var(--accent);
-  opacity: 0.75;
-}
+/* RETIRED 2026-07-25 — do not reintroduce a chapter index here.
+   A numbered 01–06 eyebrow sequence was added on 07-21 to give the body one
+   spine instead of five competing theses. It worked for that, but the
+   competitive mandate (docs/strategy/competitive-mandate.md) had already
+   forbidden it the same day, on two counts:
+     · guardrail 5 — "No visible section taxonomy or generic feature headers."
+     · guardrail 6 — "No marketing-number theatre. No giant counters,
+       steps `01–06`, percentage rings…"
+   The real fix for a body that argues five times is the six-scene horizontal
+   film, where a scene IS the sequence and needs no printed number. Numbering
+   was a symptom-level patch on a composition the mandate retires outright. */
 
 /* ── Buttons ──────────────────────────────────────────────────────────────── */
 
