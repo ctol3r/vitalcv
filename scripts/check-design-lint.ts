@@ -155,7 +155,12 @@ const RULES: Rule[] = [
     fix: 'Use var(--vt-lift) or var(--vt-focus-ring).',
     roots: [join(web, 'styles')],
     exts: CSS,
-    pattern: /box-shadow\s*:\s*(?!none|var\(|inherit|initial|unset)/,
+    // The `\s*` MUST live inside the lookahead. With it outside
+    // (`:\s*(?!var\()`) the engine backtracks `\s*` to zero width, evaluates
+    // the lookahead against the leading space, finds no `var(` there, and
+    // reports a false positive on every correctly-tokenised declaration.
+    // That bug inflated this rule's first baseline — see DESIGN_LINT.md.
+    pattern: /box-shadow\s*:\s*(?!\s*(?:none|var\(|inherit|initial|unset))/,
     allow: (f) => isTokenFile(f),
   },
   {
@@ -178,7 +183,8 @@ const RULES: Rule[] = [
     fix: 'Use var(--font-display | --font-body | --font-mono).',
     roots: [join(web, 'styles')],
     exts: CSS,
-    pattern: /font-family\s*:\s*(?!var\()/,
+    // `\s*` inside the lookahead — same backtracking trap as LINT-06.
+    pattern: /font-family\s*:\s*(?!\s*var\()/,
     allow: (f) => isTokenFile(f) || f.endsWith('fonts.css'),
   },
 

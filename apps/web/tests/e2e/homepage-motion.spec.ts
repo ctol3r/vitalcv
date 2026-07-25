@@ -65,9 +65,10 @@ test.describe('Homepage motion convergence', () => {
   test('mobile: journey chapters stack vertically', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto('/', { waitUntil: 'networkidle' });
-    // W2 fallback: no pin, no navigator, all four chapters in document flow.
-    await expect(page.locator('[data-story-rail]')).toHaveAttribute('data-rail-pinned', 'false');
+    // The journey is ordinary document flow at every viewport.
     await expect(page.locator('[data-journey-card]')).toHaveCount(4);
+    await expect(page.locator('[data-home-journey-grid]')).toHaveCount(1);
+    await expect(page.locator('[data-story-rail]')).toHaveCount(0);
     await expect(page.locator('[data-story-rail-nav]')).toHaveCount(0);
   });
 
@@ -75,64 +76,30 @@ test.describe('Homepage motion convergence', () => {
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.setViewportSize({ width: 1440, height: 1000 });
     await page.goto('/', { waitUntil: 'networkidle' });
-    // W2: reduced motion renders the four journey chapters as a static
-    // vertical document — no pin, no navigator, no leaf transforms.
+    // The journey stays static and linear — no pin, no navigator, no leaf transforms.
     await expect(page.locator('[data-journey-card]')).toHaveCount(4);
-    await expect(page.locator('[data-story-rail]')).toHaveAttribute('data-rail-pinned', 'false');
+    await expect(page.locator('[data-story-rail]')).toHaveCount(0);
     await expect(page.getByText(/Start with your NPI\. See what employers can confirm/).first()).toBeVisible();
     // The limitation is plain server-rendered text under reduced motion too.
     await expect(page.getByText('What this does not mean')).toBeVisible();
   });
 
-  // ── Career Evidence Field (hero, VHS-1) ─────────────────────────────────
-  // The force-directed graph was replaced by an abstract generative field. The
-  // canvas itself is unverifiable from the DOM, so the tests pin the resilience
-  // contract: a static SSR poster is always present (no blank/black hero), the
-  // honest legend carries the meaning, and no graph appears in the hero.
-
-  test('the hero renders the evidence field with an SSR poster and legend, no graph', async ({ page }) => {
+  test('the hero has one NPI action and no public graph before a lookup', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 1000 });
     await page.goto('/', { waitUntil: 'networkidle' });
 
-    const field = page.locator('[data-home-evidence-field]');
-    await expect(field).toBeVisible();
-    // Static poster is server-rendered → present even before/without canvas.
-    await expect(field.locator('[data-field-poster]')).toBeAttached();
-    // The honest, non-claiming legend expresses the meaning semantically.
-    const legend = field.locator('[data-field-legend]');
-    await expect(legend).toContainText('Source-backed');
-    await expect(legend).toContainText('Employer decision');
-    // No force-directed graph remains in the hero.
-    await expect(page.locator('[data-home-hero-graph]')).toHaveCount(0);
-    await expect(page.locator('[data-graph-caption]')).toHaveCount(0);
-    // The deep graph is still reachable from the trust footer.
+    await expect(page.getByLabel('NPI number')).toBeVisible();
+    await expect(page.getByRole('button', { name: /check what’s ready/i })).toBeVisible();
+    await expect(page.locator('[data-home-evidence-field], [data-field-poster], [data-field-edges]')).toHaveCount(0);
     await expect(page.locator('[data-home-trust-footer]').getByRole('link', { name: /evidence network/i })).toHaveAttribute('href', '/evidence-network');
   });
 
-  test('reduced motion keeps the whole graph, with no continuous motion', async ({ page }) => {
+  test('reduced motion keeps the NPI action complete without graph motion', async ({ page }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.setViewportSize({ width: 1440, height: 1000 });
     await page.goto('/', { waitUntil: 'networkidle' });
-    const field = page.locator('[data-home-evidence-field]');
-    await expect(field).toBeVisible();
-    await expect(field.locator('[data-field-poster]')).toBeVisible();
-    await page.waitForTimeout(600);
-
-    // The field no longer has render TIERS. It used to be WebGPU → Canvas2D →
-    // poster behind a SceneBoundary, where reduced motion's job was to resolve
-    // the 'static' tier so no canvas mounted. It is now plain SVG, so the
-    // guarantee is unconditional and stronger: there is no canvas and no rAF
-    // loop to disable on any tier, for any visitor.
-    await expect(field.locator('canvas')).toHaveCount(0);
-
-    // Reduced motion must not COST anything: the full composition is still
-    // present and still interactive — seven named nodes and the bounded ring.
-    await expect(field.locator('[data-field-label]')).toHaveCount(7);
-    await expect(field.locator('[data-poster-ring]')).toHaveCount(1);
-
-    // The only continuous motion (the travelling edge pulse) is removed
-    // outright rather than merely slowed.
-    await expect(field.locator('.ceg-pulse').first()).toHaveCSS('display', 'none');
+    await expect(page.getByLabel('NPI number')).toBeVisible();
+    await expect(page.locator('[data-home-evidence-field], [data-field-poster], [data-field-edges]')).toHaveCount(0);
   });
 
   // AUD-1.1 guard: the left-floating "Page outline" was removed because at

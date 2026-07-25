@@ -41,6 +41,8 @@ describe('HomePageClient — hero and live NPI moment (HERO-RESET-1)', () => {
     expect(html).toContain('data-home-primary-cta');
     expect(html).toContain('Check what’s ready');
     expect(html).toContain('Free for clinicians · No account required');
+    expect(html).not.toContain('data-home-evidence-field');
+    expect(html).not.toContain('data-field-edges');
   });
 
   it('ships a static mechanism line — the scroll-scrub narrative is deleted', () => {
@@ -87,11 +89,11 @@ describe('HomePageClient — hero and live NPI moment (HERO-RESET-1)', () => {
   });
 });
 
-describe('HomePageClient — career journey rail (W2)', () => {
+describe('HomePageClient — career journey', () => {
   it('renders the four journey chapters in DOM order with every card present', () => {
     const html = renderHomepage();
     expect(html).toContain('data-home-journey');
-    expect(html).toContain('data-story-rail');
+    expect(html).toContain('data-home-journey-grid');
     let previous = -1;
     for (const id of ['readiness', 'matcha', 'apply', 'start']) {
       const index = html.indexOf(`data-journey-card="${id}"`);
@@ -120,21 +122,20 @@ describe('HomePageClient — career journey rail (W2)', () => {
     expect(html).toContain('institution review remains the final step');
   });
 
-  it('SSR is the vertical fallback: no pin, no transforms, chapters in flow', () => {
+  it('keeps chapters in normal document flow without a carousel or pinned rail', () => {
     const html = renderHomepage();
-    expect(html).toContain('data-rail-pinned="false"');
-    expect(html).toContain('story-rail-chapter-vertical');
+    expect(html).not.toContain('data-story-rail');
     expect(html).not.toContain('story-rail-runway');
-    // The chapter navigator is a pinned-mode enhancement — never in SSR.
     expect(html).not.toContain('data-story-rail-nav');
+    expect(html).not.toContain('Skip product story');
   });
 });
 
-describe('HomePageClient — product carousel and rail', () => {
-  it('does NOT mount the product carousel — the rail already tells that story', () => {
+describe('HomePageClient — product carousel', () => {
+  it('does NOT mount a carousel', () => {
     // ProductCarousel ("One career record. Six reusable surfaces.") is retired
     // from the composition. It was the third pass at "look what the record can
-    // do", after the journey rail had already walked the same ground in four
+    // do", after the journey had already walked the same ground in four
     // chapters, and a six-panel feature carousel is a product-tour device on a
     // page whose job is one argument.
     //
@@ -197,7 +198,20 @@ describe('HomePageClient — consolidated story and truth boundary', () => {
       m[1].replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim(),
     );
     expect(new Set(headings).size, `duplicate H2s: ${headings.join(' | ')}`).toBe(headings.length);
+    // This cap is a REDUNDANCY guard, not a section-count target: it exists
+    // because the page once argued the same point twice (ProblemStatBand above
+    // TimeToStart, EvidenceTruthPanel below HomeProofMoment). Raise this only
+    // for a section that makes an argument no other section makes.
     expect(headings.length, `H2s rendered: ${headings.join(' | ')}`).toBeLessThanOrEqual(4);
+  });
+
+  it('keeps fixture career graphs off the public acquisition page', () => {
+    const html = renderHomepage();
+    // The public story may show real lane state after a lookup, but a fixed
+    // career constellation is neither a clinician record nor a valid product
+    // claim. It belongs only in the isolated design reference.
+    expect(html).not.toContain('data-screen-label="Career constellation"');
+    expect(html).not.toContain('Your career isn’t a timeline.');
   });
 
   it('mounts the interactive proof moment: illustrative, employer boundary, real-flow CTA (W4.2)', () => {

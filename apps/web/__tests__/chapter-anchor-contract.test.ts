@@ -70,16 +70,15 @@ describe('chapter anchor contract', () => {
     }
   });
 
-  it('keeps the classes the shipped rail actually renders', () => {
-    // The counterpart guard: this cleanup must stay surgical. JourneyCard and
-    // HorizontalStoryRail render these, so they are load-bearing.
+  it('keeps the classes the shipped journey cards actually render', () => {
+    // The counterpart guard: the journey remains as static cards after the
+    // pinned rail is removed, so their evidence-state styles stay load-bearing.
     for (const live of [
       '.story-card-shell',
       '.story-card-copy',
       '.story-card-eyebrow',
       '.story-state',
       '.story-product-ui',
-      '.story-rail-track',
     ]) {
       expect(css, `${live} is rendered by the rail and must keep its styles`).toContain(live);
     }

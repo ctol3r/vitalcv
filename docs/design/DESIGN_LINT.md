@@ -112,6 +112,39 @@ reports `tail`'s status, not the gate's.
 
 ---
 
+## Two things a ratchet cannot do (learned 2026-07-22)
+
+**A buggy rule inflates its own baseline.** LINT-06 and LINT-09 shipped as
+`/font-family\s*:\s*(?!var\()/`. That flags *correctly tokenised* code: the
+engine backtracks `\s*` to zero width, evaluates the lookahead against the
+leading space, finds no `var(` there, and matches. The `\s*` must sit **inside**
+the lookahead. Fixing it dropped LINT-09 from 88 to **8** — 91% of that baseline
+was noise — and LINT-06 from 82 to **61**.
+
+A ratchet holding a fabricated number is worse than no ratchet: it looks like
+enforcement while real debt hides underneath the false positives.
+`apps/web/__tests__/design-lint-rules.test.ts` now pins each pattern against
+hand-written good and bad lines, and asserts that **no** rule places `\s*`
+outside a negative lookahead.
+
+**A ratchet blames the PR for main's debt.** Baselines are committed numbers,
+so when main lands new violations the next branch to merge main inherits them
+and fails. That happened here: merging main brought `wave1501-home.css` with
+exactly 2 `@keyframes` and 1 literal `z-index`, which is exactly the +2/+1 that
+failed LINT-03 and LINT-05 on a branch that had added neither.
+
+The current answer is to re-measure after merging main, and to **attribute the
+delta before doing so** — `git diff --diff-filter=A $(git merge-base HEAD
+origin/main) origin/main` names the files main added, so "is this mine?" is a
+30-second check, not a judgement call. Re-baselining without that check is how a
+ratchet quietly becomes a rubber stamp.
+
+The better fix, not yet built: compute main's counts at runtime and compare
+against those instead of a committed file, so the gate asks "did *this branch*
+add debt?" directly.
+
+---
+
 ## DG-18.3 — visual regression
 
 Built, scoped to the film: `apps/web/tests/e2e/film-visual.spec.ts`, 11

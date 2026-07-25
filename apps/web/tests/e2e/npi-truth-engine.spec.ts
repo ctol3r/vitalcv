@@ -280,17 +280,14 @@ test.describe('NPI truth engine — homepage hero', () => {
     await expect(hero(page).getByRole('button', { name: /try another npi/i })).toBeVisible();
   });
 
-  test('reset returns to the illustrative preview with a cleared field', async ({ page }) => {
+  test('reset returns to the NPI action with a cleared field', async ({ page }) => {
     await mockNpiApis(page, {});
     await submitNpi(page, VALID_NPI);
     await expectResolved(page);
 
     await page.getByRole('button', { name: /check another npi/i }).click();
-    // The pre-lookup panel is the abstract Career Evidence Field (VHS-1). It is
-    // a system metaphor, not per-clinician data — its legend names source states
-    // rather than asserting an outcome. Reset returns to it with a cleared field.
-    await expect(hero(page).locator('[data-home-evidence-field]')).toBeVisible();
-    await expect(hero(page).locator('[data-field-legend]')).toContainText('Source-backed');
+    await expect(hero(page).locator('[data-home-evidence-field]')).toHaveCount(0);
+    await expect(hero(page).getByRole('button', { name: /check what’s ready/i })).toBeDisabled();
     await expect(page.getByLabel('NPI number')).toHaveValue('');
   });
 });

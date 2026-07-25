@@ -13,7 +13,6 @@ import {
 
 import { Input } from '@/components/ui/input';
 import { DualAudienceCta } from '@/components/home/DualAudienceCta';
-import { CareerEvidenceField } from '@/components/home/CareerEvidenceField';
 import { LiveNpiResult } from '@/components/home/LiveNpiResult';
 import { MetricStrip } from '@/components/home/MetricStrip';
 import { SourceCoverageRibbon } from '@/components/home/SourceCoverageRibbon';
@@ -153,7 +152,7 @@ export default function HomePageClient() {
                above the headline — the first screen read as having sunk. This
                lands the headline in the upper third and lets the next section
                crest the fold, which is the invitation to scroll. */
-            className="hero-stage relative isolate grid min-h-[min(38rem,calc(100svh-9rem))] items-center gap-10 py-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,32rem)]"
+            className="hero-stage relative isolate min-h-[min(38rem,calc(100svh-9rem))] py-2"
           >
           <div className="max-w-2xl">
             <div className="space-y-5">
@@ -244,32 +243,15 @@ export default function HomePageClient() {
 
           </div>
 
-          {/* The hero's living panel: the abstract Career Evidence Field
-              (VHS-1, made visibly intentional in HERO-RESET-1) — named public
-              sources converging into a clinician-owned record, arcs out to
-              opportunity, ONE bounded employer-decision ring. It is decorative
-              support for the NPI action, never a public person graph; the
-              formerly explorable public graph is retired (SHD-0.3) and
-              /evidence-network is a static system-concept page. After an NPI
-              is entered the panel becomes that provider's live result. */}
-          {/* The graph is now the constant, and the NPI makes it REAL: instead
-              of being swapped out for a card, it stays mounted and resolves its
-              four public lanes for that clinician. The result card keeps its
-              own job — the explicit grouped breakdown and the one next-best
-              action — which the graph deliberately does not duplicate. */}
-          <div className="flex flex-col items-center gap-6">
-            {/* SHD-2.2: before submit the field responds to SAFE, non-sensitive
-                input state only — the caret being present ('listening') and a
-                valid checksum ('ready'). No clinician-specific claim is ever
-                rendered before a real lookup returns. */}
-            <CareerEvidenceField
-              signal={focused ? (isValid ? 'ready' : 'listening') : 'idle'}
-              npi={submittedNpi}
-            />
-            {submittedNpi ? (
+          {/* The homepage makes no public graph claim. Before a lookup, the
+              source strip below the hero names available lanes. After one, the
+              real result is shown here in place — source state and the next
+              action, not a speculative map of a clinician's career. */}
+          {submittedNpi ? (
+            <div className="mx-auto mt-8 max-w-sm lg:mx-0">
               <LiveNpiResult npi={submittedNpi} onReset={() => { setSubmittedNpi(null); setRaw(''); }} />
-            ) : null}
-          </div>
+            </div>
+          ) : null}
           </div>
 
           {/* The one thing the first screen asks for after the NPI field: a
@@ -291,7 +273,7 @@ export default function HomePageClient() {
         {/* Visible uplift: static sections rise+fade as they enter view (the
             template's reveal grammar via the platform Reveal primitive —
             reduced-motion-safe, shows content if JS/IO is unavailable). The
-            scroll-COUPLED sections (journey rail, ribbon) keep their own
+            scroll-coupled sections (the source ribbon) keep their own
             motion and are deliberately not wrapped. */}
 
         {/* THE PROBLEM — stated once.
@@ -303,12 +285,10 @@ export default function HomePageClient() {
             retired from the composition; the component stays on disk. */}
         <Reveal><TimeToStartComparison /></Reveal>
 
-        {/* W2: THE career journey — four chapters through the horizontal rail
-            on eligible desktop (native scroll → horizontal translate, rolodex
-            leaves, one chapter navigator); the exact same chapters render
-            vertically everywhere else. Replaces the vertical StickyProductStory
-            runway, the loop-pill strip, the scroll-focus manifesto, and the
-            word cycler (composition manifest dispositions, W2.1–W2.3). */}
+        {/* THE career journey — four direct, linkable chapters in ordinary
+            document flow. The former pinned horizontal rail read as a carousel
+            and interrupted scrolling, so the same evidence-backed story now
+            stays visible in a responsive grid. */}
         <RailJourney />
 
         {/* W4.2: the one tangible proof moment — the interactive proof-packet

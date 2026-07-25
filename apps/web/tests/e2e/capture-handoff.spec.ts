@@ -29,12 +29,13 @@ test('capture desktop motion frames', async ({ page }) => {
   await scrollWithin(page, '#wallet', 0.9);
   await shot(page, '03-hero-typing-complete');
 
-  // W2: the journey is the pinned horizontal rail — capture its runway scrub.
-  await scrollWithin(page, '[data-story-rail] .story-rail-runway', 0);
+  // The journey is an ordinary grid — capture the beginning, middle, and end
+  // without a pinned runway or carousel state.
+  await scrollWithin(page, '[data-home-journey-grid]', 0);
   await shot(page, '04-journey-start-readiness');
-  await scrollWithin(page, '[data-story-rail] .story-rail-runway', 0.5);
+  await scrollWithin(page, '[data-home-journey-grid]', 0.5);
   await shot(page, '05-journey-middle');
-  await scrollWithin(page, '[data-story-rail] .story-rail-runway', 1);
+  await scrollWithin(page, '[data-home-journey-grid]', 1);
   await shot(page, '06-journey-end-start-faster');
 
   // The evidence-truth panel and the product carousel were retired from the
@@ -56,8 +57,6 @@ test('capture mobile frames', async ({ page }) => {
   await shot(page, '10-mobile-hero');
   await page.locator('[data-journey-card="matcha"]').scrollIntoViewIfNeeded();
   await shot(page, '11-mobile-journey-stack');
-  // Was '12-mobile-carousel'; the carousel is retired. The evidence graph is
-  // the more useful mobile frame now — it is the surface that changed most.
-  await page.locator('[data-home-evidence-field]').scrollIntoViewIfNeeded();
-  await shot(page, '12-mobile-evidence-graph');
+  await page.locator('[data-home-source-strip]').scrollIntoViewIfNeeded();
+  await shot(page, '12-mobile-source-strip');
 });

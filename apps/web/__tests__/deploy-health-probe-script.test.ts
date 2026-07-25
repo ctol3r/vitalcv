@@ -35,6 +35,9 @@ describe('deploy-health-probe', () => {
     expect(script).toMatch(/\$\{?CRON_SECRET\b/);
     // Authorization header uses Bearer scheme
     expect(script).toContain('Authorization: Bearer');
+    // The snapshots URL remains an argument to curl. In a continued shell
+    // command, an inline comment after a trailing backslash would swallow it.
+    expect(script).toMatch(/--max-time 15 \\\n\s+"\$URL"/);
     // Never echo the secret to stdout
     expect(script).not.toMatch(/echo\s+["'$]?\$\{?CRON_SECRET\b/);
     // No SMTP / mailer / notifier wired in (failure surfaces as workflow status only)
