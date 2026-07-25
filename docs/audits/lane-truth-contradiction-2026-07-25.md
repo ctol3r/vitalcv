@@ -1,101 +1,110 @@
-# Two public trust surfaces disagree about the OIG and PECOS connectors
+# "Can VitalCV read OIG exclusions?" — the site gives two opposite answers
 
-**Found:** 2026-07-25, on production, both surfaces served from the same deploy.
-**Status:** unresolved — resolving it requires reading a Railway env var. **Not a
-guess I should make.** See §4 for the single question that settles it.
+**Found:** 2026-07-25 on production. Three public surfaces, one deploy.
+**Status:** unresolved. Needs a scope ruling, and one Railway env fact. §5.
+
+> **Revision note.** The first cut of this document said the surfaces
+> "cannot both be true" and that `connector not live` was probably the stale
+> claim. Further tracing showed that is **wrong**, and the real defect is more
+> interesting: they describe **different subsystems**, and neither says which.
+> Corrected in place rather than re-filed, so the reasoning stays inspectable.
 
 ---
 
-## 1. The contradiction
+## 1. What a reader sees
 
-| Surface | OIG / LEIE | CMS PECOS |
+| Surface | Served by | Says about OIG / LEIE and CMS PECOS |
 | --- | --- | --- |
-| `/api/status` (JSON) | `lifecycle: active`, `status: operational` — *"Monthly LEIE snapshot cache with nightly exclusion sweep; fails closed when the cache is stale."* | `lifecycle: active`, `status: operational` — *"Quarterly PECOS snapshot; snapshot age is surfaced as staleness on trust surfaces."* |
-| `/trust/attribution` (page) | `not retrieved (connector not live)`, `data-truth-state="connector-not-live"` | `not retrieved (connector not live)`, same state |
+| `/api/status` | web | `lifecycle: active`, `status: operational` — "Monthly LEIE snapshot cache…", "Quarterly PECOS snapshot…" |
+| `/trust/attribution` | web | `not retrieved (connector not live)` — **20 occurrences** |
+| `/status/technical` | web | `connector-not-live` — *"none are wired to live upstream services in the current build"* |
 
-`connector not live` appears **20 times** on `/trust/attribution`.
+All three are public and unauthenticated. A clinician or employer asking the
+plain question *"can VitalCV read federal exclusion data?"* gets **yes** from
+one page and **no** from two others.
 
-Both are public, unauthenticated, and describe platform capability rather than
-one clinician's record. They cannot both be true.
+## 2. Why this is not simply one page lying
 
-## 2. Why they diverged
+The three surfaces are answering about **different systems**:
 
-`lib/trust/sourceLanes.ts` (NUM-1.5) exists precisely to stop this. Its header
-documents the same four-way drift and says:
+- **`/api/status`** derives from `apps/web/lib/trust/sourceLanes.ts`. Its
+  evidence comments cite **backend** code — `OigLeieAdapter.ts:79` (reads the
+  real HHS LEIE CSV, live unless `OIG_LEIE_ENABLED=false`) and
+  `identityIngestionPipeline.fetchPecos` (real CMS data.gov API). So it is a
+  claim about the **backend ingestion pipeline**.
+- **`/trust/attribution`** and **`/status/technical`** are hand-written registers
+  describing what the **web tier itself** retrieves per field. `ConnectorMatrix`
+  states its bar explicitly: *"MUST NOT claim a connector is live unless the
+  build has evidence."*
 
-> Add a lane here and every surface picks it up. Do not re-introduce a
-> hand-written lane list somewhere else.
+And the web tier genuinely cannot read OIG data: `apps/web/package.json` has **no
+dependency on the backend package**, and the only OIG code in `apps/web` is
+`lib/source-health/probes/oigProbe.ts`, which fetches
+`oig.hhs.gov/exclusions/exclusions_list.asp` purely to check the **site is
+reachable**. It is a liveness probe, not a data read.
 
-`/api/status` and the homepage source ribbon both derive from it.
-**`components/trust/TrustAttributionRegister.tsx` does not.** It is a
-hand-written array with `state: 'connector-not-live'` as a literal — the exact
-pattern the registry forbids. It was not among the surfaces NUM-1.5 replaced, so
-`source-lane-registry.test.ts` ("leaves no hand-written lane list behind in the
-surfaces it replaced") never covered it.
+**So all three statements can be simultaneously accurate.** The defect is that
+none of them names its scope, so together they publish a contradiction the
+reader has no way to resolve.
 
-## 3. Which side the code evidence favours
+## 3. Why it still matters
 
-The registry's values are cited; the attribution register's are not.
+For a product whose entire thesis is refusing to overclaim, "does VitalCV read
+the federal exclusion list?" is close to the most consequential question an
+employer can ask — and the site answers it both ways within three clicks. The
+`/api/status` payload is the one other systems consume, and it is the one making
+the **stronger** claim while describing a service the web tier cannot reach.
 
-- **OIG** — `apps/api/backend/adapters/OigLeieAdapter.ts:5` targets the real
-  feed `https://oig.hhs.gov/exclusions/downloadables/UPDATED.csv`, and `:79`
-  resolves `mode: process.env.OIG_LEIE_ENABLED === 'false' ? 'disabled' : 'csv'`
-  — i.e. **live unless explicitly disabled**.
-- **PECOS** — the registry cites `identityIngestionPipeline.fetchPecos` calling
-  the real CMS data.gov dataset API.
+## 4. The structural cause
 
-On code alone, `connector not live` looks like the stale claim.
+`lib/trust/sourceLanes.ts` (NUM-1.5) is the designated single definition of lane
+truth, and its header says: *"Do not re-introduce a hand-written lane list
+somewhere else."*
 
-## 4. Why this is NOT being auto-corrected
+`source-lane-registry.test.ts` enforces that for the four surfaces NUM-1.5
+replaced — `register.ts`, `app/api/status/route.ts`, `MetricStrip`,
+`SourceCoverageRibbon`. It does **not** cover `TrustAttributionRegister` or
+`ConnectorMatrix`, which are hand-written lane lists that predate it. A sixth
+copy could be added tomorrow and nothing would notice.
 
-The adapter defaults to live, but the deployed truth depends on
-**`OIG_LEIE_ENABLED` on Railway**, which cannot be read from the repo. This
-codebase has a documented history of env-gated features being inert in
-production while the code path looks live.
+## 5. What has to be decided (not guessable from the repo)
 
-The two possible corrections are **not** symmetric in harm:
+**A — the scope ruling (design).** Should a public lane state describe *platform
+capability including the backend pipeline*, or *what the surface in front of you
+retrieves*? Both are defensible; publishing both silently is not. Whichever is
+chosen, every surface must state it in words.
 
-| Direction | If it turns out wrong |
-| --- | --- |
-| Raise `/trust/attribution` to match `/api/status` | **Overclaim** — the site tells employers VitalCV reads federal exclusion data when it does not. The worst failure mode this product has. |
-| Lower `/api/status` to match `/trust/attribution` | Underclaim — the site hides a real capability. Bad, not dangerous. |
+**B — one environment fact.** On the Railway **API** service, is
+`OIG_LEIE_ENABLED` set to `false`? If it is, then the backend does not read LEIE
+either, and `/api/status` is overclaiming `operational` outright — the most
+serious version of this, because that payload is machine-consumed.
 
-Because the harmful direction is the one the code evidence points toward, this
-needs a human who can read the Railway environment. Guessing here would repeat
-the exact class of defect the audit exists to find.
+These are not correctable by inference. The two directions are asymmetric:
+raising the attribution surfaces to match `/api/status` is an **overclaim** if
+wrong — telling employers VitalCV reads federal exclusions when nothing in the
+serving tier does. That is the failure mode this product exists to prevent, so
+this stops at proof.
 
-**The one question that resolves it:** on the Railway API service, is
-`OIG_LEIE_ENABLED` set to `false`?
+## 6. The fix, once A and B are answered
 
-- **Not set / any other value** → the connector is live. `/trust/attribution` is
-  stale; fix it by binding it to the registry (§5).
-- **Set to `false`** → `/trust/attribution` is right and **`/api/status` is
-  overclaiming `operational`** — a more serious bug, because `/api/status` is
-  the surface other systems consume.
+1. Give `SourceLaneOps` an explicit scope field (which subsystem the state
+   describes) so the distinction is data, not prose.
+2. Bind `TrustAttributionRegister` and `ConnectorMatrix` to the registry.
+3. Extend `source-lane-registry.test.ts` from a fixed list of four files to a
+   **discovery** check: any file declaring a lane-availability literal must
+   either consume the registry or sit on a documented exception list. That is
+   what would have caught this, and the freshness overclaim fixed in #822.
 
-Either answer produces a real fix. Only the founder can supply it.
+Constraint worth knowing before starting: `trust-attribution-register.test.tsx`
+pins that OIG / PECOS / STATE_BOARD / FSMB / NURSYS rows never claim
+`source-backed`, and `connector-matrix.test.tsx` pins the same for its rows. A
+live-but-snapshotted backend lane therefore needs a truth state *between*
+`source-backed` and `connector-not-live`. That is a design decision, not a
+rename.
 
-## 5. The structural fix, once the answer is known
+## 7. The gap this belongs to
 
-Do not hand-edit the strings; that is what produced the drift. Bind
-`TrustAttributionRegister` to `SOURCE_LANE_OPS` so lane liveness has exactly one
-definition, then extend `source-lane-registry.test.ts` with a case asserting no
-surface publishes a lane state contradicting the registry.
-
-Note the constraint that makes this non-trivial: `trust-attribution-register.test.tsx`
-pins that OIG / PECOS / STATE_BOARD / FSMB / NURSYS rows **never claim
-`source-backed`**. A live-but-snapshotted lane therefore needs a truth state
-between "source-backed" and "connector not live" — the registry's `detail`
-strings already carry the honest wording ("monthly snapshot", "quarterly
-snapshot"). That mapping is a design decision, not a mechanical rename.
-
-## 6. The wider gap this belongs to
-
-`check-public-claims` matches 23 banned **phrases**. It structurally cannot
-catch a claim that is *false against system state* — `read live` was never a
-banned phrase, and neither is `connector not live`. Every defect in this class
-found so far has been caught by a human comparing two surfaces by hand.
-
-The durable fix is a data-derived test: for each lane in `SOURCE_LANE_OPS`,
-assert every public surface's rendered claim is consistent with it. That guard
-would have caught both this and the freshness overclaim fixed in #822.
+`check-public-claims` matches 23 banned **phrases**. It structurally cannot catch
+a claim that is false — or unscoped — against system state. Neither `read live`
+(fixed in #822) nor `connector not live` is a banned string. Every defect in this
+class so far has been found by a human comparing two surfaces by hand.
