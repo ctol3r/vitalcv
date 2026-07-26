@@ -1,0 +1,78 @@
+name: Rust SCA (cargo audit)
+
+# Software Composition Analysis for the Cargo dependency trees — the companion
+# to the pnpm gate in security-audit.yml.
+#
+# Why: `pnpm audit` cannot see Rust dependencies at all, so every Cargo.lock in
+# the repo had zero SCA coverage. Dependabot was raising critical alerts against
+# them (GHSA-ff4p-7xrq-q5r8, wasmtime) that no CI job could surface.
+#
+# Policy lives in scripts/security/cargo-audit-gate.mjs and mirrors the pnpm
+# gate: FAIL ONLY ON CRITICAL (CVSS >= 9.0). Lower-severity and unscored
+# advisories are reported in the log but non-blocking — the dormant Substrate
+# pallet lockfiles carry a large pre-existing backlog, and a hard bar there
+# would be permanently red. Accepted-risk suppressions:
+# scripts/security/cargo-audit-ignores.json (+ docs/security/dependency-remediation.md).
+
+on:
+  # No path filter on pull_request: this job must report on every PR so it can
+  # be made a required status check. A path-filtered required check never
+  # reports on unrelated PRs and blocks them forever.
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+    paths:
+      - '**/Cargo.lock'
+      - '**/Cargo.toml'
+      - 'scripts/security/cargo-audit-gate.mjs'
+      - 'scripts/security/cargo-audit-ignores.json'
+      - '.github/workflows/cargo-audit.yml'
+  schedule:
+    # Weekly, Monday 06:41 UTC — offset from the pnpm gate's 06:17 so the two
+    # don't contend. Surfaces advisories newly disclosed against unchanged
+    # lockfiles, which is how most Rust advisories arrive.
+    - cron: '41 6 * * 1'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cargo-sca-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '22'
+  # Pinned so the gate's behaviour cannot change under us on a silent upstream
+  # release. Bump deliberately. The advisory data itself is NOT pinned —
+  # cargo-audit fetches rustsec/advisory-db at run time, so a newly disclosed
+  # critical is caught without touching this file.
+  CARGO_AUDIT_VERSION: '0.22.2'
+
+jobs:
+  cargo-sca:
+    name: Rust SCA — critical-only gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      # cargo-audit takes ~2min to compile from source; cache the built binary.
+      - name: Cache cargo-audit binary
+        id: cache-cargo-audit
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/bin/cargo-audit
+          key: cargo-audit-${{ env.CARGO_AUDIT_VERSION }}-${{ runner.os }}
+
+      - name: Install cargo-audit
+        if: steps.cache-cargo-audit.outputs.cache-hit != 'true'
+        run: cargo install cargo-audit --locked --version ${{ env.CARGO_AUDIT_VERSION }}
+
+      # cargo-audit reads Cargo.lock + the RustSec advisory DB directly; it does
+      # not build or run the (potentially vulnerable) crates to audit them.
+      - name: Audit Rust dependencies (fails only on critical; lower reported)
+        run: node scripts/security/cargo-audit-gate.mjs
