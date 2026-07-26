@@ -7,6 +7,9 @@
       "copySources": [
         "apps/web/components/home/film/HorizontalCareerFilm.tsx",
         "apps/web/components/home/film/scenes.ts",
+        "apps/web/components/home/film/FilmRecord.tsx",
+        "apps/web/components/home/film/FilmFit.tsx",
+        "apps/web/components/home/film/FilmSignature.tsx",
         "apps/web/components/home/LiveNpiResult.tsx",
         "apps/web/components/home/TruthBoundary.tsx",
         "apps/web/components/proof/ProofPacketInspector.tsx",
