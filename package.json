@@ -26,7 +26,8 @@
     "verify:passport-runtime": "node --experimental-strip-types scripts/runtime/verify-passport-runtime.ts",
     "release:readiness": "node --experimental-strip-types scripts/release/release-readiness.ts",
     "runtime:kill-shadow-runtimes": "bash scripts/runtime/kill-shadow-runtimes.sh",
-    "smoke:deploy": "node scripts/deploy-smoke.mjs"
+    "smoke:deploy": "node scripts/deploy-smoke.mjs",
+    "check:workflow-contract": "node scripts/check-workflow-path-filters.js"
   },
   "devDependencies": {
     "@types/node": "^20",
