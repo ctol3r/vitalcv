@@ -12,17 +12,60 @@
  * is the point of COMPETE-1: the film recomposes existing capability, it does
  * not decorate over it. A scene with `artifact: null` is pure choreography and
  * must never imply a product claim.
+ *
+ * ---------------------------------------------------------------------------
+ * 2026-07-26 — restructured to six DISTINCT claims.
+ *
+ * Founder review: "it's selling one thing and the same thing over and over."
+ * Correct. The previous set read `Get hired faster` → `Your record is already
+ * out there` → `Stop starting over` → `Hand over proof, not promises`: one idea
+ * in four costumes, with no opportunity story and no employer story at all.
+ *
+ * The reference is Carefam's hire page, which earns its length by giving each
+ * value proposition its own frame and its own visual — cost, speed, quality,
+ * automation. This set does the same with the three the founder named — better
+ * opportunities, better hiring, speed — plus the one thing neither competitor
+ * can answer, which is why anyone should believe the evidence at all.
+ *
+ * TWO CLAIMS ARE DELIBERATELY NOT MADE HERE.
+ *
+ * 1. No speed multiple. Carefam publishes "Hire 3x faster" behind 300+
+ *    facilities and named testimonials. VitalCV has run no measured pilot —
+ *    /pilot's only figure is explicitly labelled an internal simulation — so a
+ *    multiple here would be the first claim a buyer tests and the first one to
+ *    fail. `verification` therefore carries the INDUSTRY baseline, worded as
+ *    industry, and lets the artifact make the argument. The moment a pilot
+ *    measures a real number it replaces this line, and a measured number beats
+ *    a claimed one.
+ *
+ * 2. No blockchain, chain, ledger, wallet, or DID vocabulary. The competitive
+ *    mandate bans it from the acquisition path, and `TRUST_ANCHORS` is a
+ *    feature flag currently set to false — anchoring is not running. What IS
+ *    running is stronger for this purpose, and is what `verification` says in
+ *    plain words: receipts are ES256-signed and the public key is published at
+ *    /.well-known/jwks.json, so a verifier can check one WITHOUT trusting
+ *    VitalCV. In an era where a convincing credential PDF takes seconds to
+ *    generate, that is the differentiator.
  */
 
 export type FilmArtifact =
-  | 'npi'        // the NPI control + real returned state
-  | 'proof'      // the proof-packet inspector + the truth boundary
-  | 'routes'     // clinician primary / employer secondary
+  | 'npi' // the NPI control + the empty record
+  | 'state' // real returned state, only after a lookup
+  | 'fit' // how a role is measured against a record
+  | 'packet' // what an employer actually receives
+  | 'signature' // the signed receipt + the published key
+  | 'routes' // clinician primary / employer secondary
   | null;
 
 export interface FilmScene {
   /** Internal id. Never rendered as visible text. */
-  readonly id: 'arrival' | 'recognition' | 'momentum' | 'opportunity' | 'start' | 'choice';
+  readonly id:
+    | 'arrival'
+    | 'recognition'
+    | 'opportunities'
+    | 'hiring'
+    | 'verification'
+    | 'choice';
   /** Accessible region name. Not a visible header. */
   readonly label: string;
   /** THE one editorial phrase. */
@@ -47,29 +90,32 @@ export const FILM_SCENES: readonly FilmScene[] = Object.freeze([
     // No product nouns, no taxonomy, no claim about a specific clinician.
     label: 'What is already true',
     phrase: 'Your record is already out there.',
-    artifact: 'npi',
+    artifact: 'state',
   }),
   Object.freeze<FilmScene>({
-    id: 'momentum',
-    label: 'Proof you keep',
-    phrase: 'Stop starting over.',
-    // The cited industry benchmark, as ink — this is what survives of
-    // TimeToStartComparison (composition-ownership C5 ruling). It is an
-    // INDUSTRY figure, never a VitalCV result, and it is worded to say so.
-    support: 'The industry queue runs about 90–120 days.',
-    artifact: null,
+    id: 'opportunities',
+    label: 'Roles measured against your record',
+    phrase: 'Better opportunities.',
+    support: 'Roles measured against the record you have.',
+    artifact: 'fit',
   }),
   Object.freeze<FilmScene>({
-    id: 'opportunity',
-    label: 'Roles measured against your evidence',
-    phrase: 'See what actually fits.',
-    artifact: null,
-  }),
-  Object.freeze<FilmScene>({
-    id: 'start',
+    id: 'hiring',
     label: 'What an employer receives',
-    phrase: 'Hand over proof, not promises.',
-    artifact: 'proof',
+    phrase: 'Better hiring.',
+    support: 'Employers begin from evidence, not from scratch.',
+    artifact: 'packet',
+  }),
+  Object.freeze<FilmScene>({
+    id: 'verification',
+    label: 'Checkable without trusting us',
+    phrase: 'Check it without asking us.',
+    // The industry figure, as ink. It is an INDUSTRY benchmark, never a VitalCV
+    // result, and it is worded so it cannot be read as one. Trimmed to the
+    // 8-word support ceiling; "industry" carries the attribution, and the
+    // re-checking argument is the scene's job to show, not the caption's.
+    support: 'The industry queue runs about 90–120 days.',
+    artifact: 'signature',
   }),
   Object.freeze<FilmScene>({
     id: 'choice',

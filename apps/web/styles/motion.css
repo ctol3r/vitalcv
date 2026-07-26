@@ -1,0 +1,24 @@
+/* The house motion file.
+ *
+ * `scripts/check-design-lint.ts` LINT-03 allows `@keyframes` in exactly one
+ * place — this file — and that file did not exist yet, so every animation in
+ * the codebase sat in a feature stylesheet and the rule had nothing but a
+ * baseline. This is the first entry.
+ *
+ * `compete-film.css` additionally cannot hold keyframes at all:
+ * `compete-film-spike.test.tsx` asserts every rule in it is scoped under
+ * `.film`, and it detects selectors by splitting on `}` — so a keyframe's
+ * steps (`from`, `to`, `0%`) parse as unscoped selectors and fail the check.
+ * Keyframes for film surfaces therefore live here, not there.
+ */
+
+/* Used by `.film-record` (COMPETE-2): the record settles onto the paper rather
+ * than appearing. Opacity only — no transform — so it cannot shift layout. */
+@keyframes film-record-settle {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}

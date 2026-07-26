@@ -10,6 +10,9 @@ import { LiveNpiResult } from '@/components/home/LiveNpiResult';
 import { TruthBoundary } from '@/components/home/TruthBoundary';
 import { ProofPacketInspector } from '@/components/proof/ProofPacketInspector';
 import { EvidenceAtmosphere } from './EvidenceAtmosphere';
+import { FilmRecord } from './FilmRecord';
+import { FilmFit } from './FilmFit';
+import { FilmSignature } from './FilmSignature';
 import { FILM_SCENES, sceneAt } from './scenes';
 import { useFilmProgress } from './useFilmProgress';
 import { SOURCE_LANE_OPS } from '@/lib/trust/sourceLanes';
@@ -132,11 +135,47 @@ function KineticPhrase({ text, local, live }: { text: string; local: number; liv
 const RECOGNITION_INDEX = FILM_SCENES.findIndex((s) => s.id === 'recognition');
 
 export function HorizontalCareerFilm() {
+  const rootRef = React.useRef<HTMLDivElement | null>(null);
   const runwayRef = React.useRef<HTMLDivElement | null>(null);
-  const stageRef = React.useRef<HTMLDivElement | null>(null);
   const arrivalRef = React.useRef<HTMLElement | null>(null);
   const recognitionRef = React.useRef<HTMLElement | null>(null);
+  const stageRef = React.useRef<HTMLDivElement | null>(null);
   const tier = useSceneTier();
+
+  /**
+   * Publish the height of the pinned site chrome as `--film-chrome`.
+   *
+   * The stage is sticky, and the nav above it is `sticky top-0` too. Without
+   * this the stage pinned at 0 and stood a full 100vh, so the nav sat on top of
+   * every scene's first 78px and the opening frame overhung the fold by the
+   * height of the announcement bar. Measuring the real element is what makes it
+   * correct at every breakpoint, and correct again after the bar is dismissed.
+   */
+  React.useLayoutEffect(() => {
+    const root = rootRef.current;
+    if (!root) return;
+
+    const measure = () => {
+      const header = document.querySelector('header');
+      // Only chrome that STAYS counts — a banner that scrolls away must not
+      // permanently shorten the stage.
+      const pinned =
+        header && getComputedStyle(header).position === 'sticky'
+          ? Math.round(header.getBoundingClientRect().height)
+          : 0;
+      root.style.setProperty('--film-chrome', `${pinned}px`);
+    };
+
+    measure();
+    window.addEventListener('resize', measure);
+    const observer = new ResizeObserver(measure);
+    const header = document.querySelector('header');
+    if (header) observer.observe(header);
+    return () => {
+      window.removeEventListener('resize', measure);
+      observer.disconnect();
+    };
+  }, []);
 
   // Reduced motion resolves to the 'static' tier, which is also the signal to
   // stop driving the film — one condition, not two that can disagree.
@@ -155,6 +194,21 @@ export function HorizontalCareerFilm() {
   // Layout mode follows ELIGIBILITY, never `pinned` — see useFilmProgress.
   const isFilm = ready && eligible && tier !== 'static';
   const { index, local } = sceneAt(progress);
+
+  const onPointerMove = React.useCallback((event: React.PointerEvent<HTMLDivElement>) => {
+    if (event.pointerType !== 'mouse') return;
+    const el = stageRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    setPointer({
+      x: (event.clientX - rect.left) / rect.width,
+      y: (event.clientY - rect.top) / rect.height,
+    });
+  }, []);
+
+  const digits = raw.replace(/\D/g, '').slice(0, 10);
+  const npiCheck = checkNpi(raw);
+  const isValid = npiCheck.validity === 'valid';
 
   /**
    * Carry the reader between the question and their answer.
@@ -203,21 +257,6 @@ export function HorizontalCareerFilm() {
     }
   }, [submittedNpi, scrollToScene]);
 
-  const onPointerMove = React.useCallback((event: React.PointerEvent<HTMLDivElement>) => {
-    if (event.pointerType !== 'mouse') return;
-    const el = stageRef.current;
-    if (!el) return;
-    const rect = el.getBoundingClientRect();
-    setPointer({
-      x: (event.clientX - rect.left) / rect.width,
-      y: (event.clientY - rect.top) / rect.height,
-    });
-  }, []);
-
-  const digits = raw.replace(/\D/g, '').slice(0, 10);
-  const npiCheck = checkNpi(raw);
-  const isValid = npiCheck.validity === 'valid';
-
   const handleSubmit = React.useCallback(() => {
     if (!isValid || !npiCheck.npi) {
       setError(npiCheck.reason ?? 'Enter a full 10-digit NPI.');
@@ -234,7 +273,12 @@ export function HorizontalCareerFilm() {
   }, [isValid, npiCheck.npi, npiCheck.reason]);
 
   return (
-    <div className="film" data-film-mode={isFilm ? 'film' : 'vertical'} data-film-tier={tier}>
+    <div
+      ref={rootRef}
+      className="film"
+      data-film-mode={isFilm ? 'film' : 'vertical'}
+      data-film-tier={tier}
+    >
       {/* Route-scoped paper. Cloud Dancer is the unifying field; it unmounts
           with the route so no other surface inherits it. */}
       <style>{'body{background:var(--vt-cloud-dancer,#F0EEE9)}'}</style>
@@ -288,11 +332,13 @@ export function HorizontalCareerFilm() {
               return (
                 <section
                   key={scene.id}
+                  // Scroll targets for the vertical composition, where scenes are
+                  // ordinary blocks rather than positions along the runway.
                   ref={
-                    scene.id === 'recognition'
-                      ? recognitionRef
-                      : scene.id === 'arrival'
-                        ? arrivalRef
+                    scene.id === 'arrival'
+                      ? arrivalRef
+                      : scene.id === 'recognition'
+                        ? recognitionRef
                         : undefined
                   }
                   className="film-scene"
@@ -301,11 +347,12 @@ export function HorizontalCareerFilm() {
                   aria-label={scene.label}
                 >
                   <div className="film-copy">
-                    {/* The opening phrase is the page's H1. Every scene rendered
-                        an <h2> in the first cut, which left the homepage with no
-                        <h1> at all — a document-outline and SEO regression
-                        against the composition it replaces. The heading LEVEL is
-                        structural; the visual treatment is identical. */}
+                    {/* The opening phrase is the page's H1. Every scene rendering
+                        an <h2> left the homepage with NO top-level heading at
+                        all — a document-outline and SEO regression against the
+                        composition this replaces, which had one. The heading
+                        LEVEL is structural; `.film-phrase` sets margin and
+                        font-size explicitly, so the visual is unchanged. */}
                     {React.createElement(
                       i === 0 ? 'h1' : 'h2',
                       { className: 'film-phrase' },
@@ -389,20 +436,13 @@ export function HorizontalCareerFilm() {
                       )
                     ) : null}
 
-                    {/* ---- Momentum: the coverage fact, as ink ---- */}
-                    {scene.id === 'momentum' ? (
+                    {/* ---- Verification: the industry cost of NOT being
+                         checkable. An industry benchmark, never a VitalCV
+                         result, and worded so it cannot be read as one. ---- */}
+                    {scene.id === 'verification' ? (
                       <p className="film-note">
-                        Three of four readiness dimensions are source-backed
-                        before any review begins. Licensure needs source access.
-                      </p>
-                    ) : null}
-
-                    {/* ---- Opportunity: honest about what it can show ---- */}
-                    {scene.id === 'opportunity' ? (
-                      <p className="film-note">
-                        Roles are measured against the evidence you have and the
-                        gaps you do not. Fit is shown with its reasons, once you
-                        are signed in.
+                        VitalCV has not yet published a measured time-to-start
+                        of its own. The first pilot will, and it will say so.
                       </p>
                     ) : null}
 
@@ -421,6 +461,35 @@ export function HorizontalCareerFilm() {
                     ) : null}
                   </div>
 
+                  {/* ---- Arrival: the empty record, gathering source light ----
+
+                       COMPETE-2 asks each scene for "a large visual event, not
+                       a component", and the mandate's brief for Arrival is
+                       exactly this: an empty career core. Without it the
+                       opening frame was a phrase in a narrow column beside
+                       ~800px of blank paper, which reads as unfinished and
+                       leaves the visitor with no idea what they are being
+                       offered. The record answers that in one look, and it
+                       fabricates nothing: it shows which sources exist and
+                       stamps every one of them "Not checked", because for this
+                       visitor none of them have been. */}
+                  {scene.id === 'arrival' ? <FilmRecord live={isFilm} /> : null}
+
+                  {/* ---- Better opportunities: the mechanism, not a match ----
+                       The mandate forbids a fake role or employer before a
+                       lookup, so this shows the SHAPE of the answer: every
+                       requirement resolves to your record, to a gap, or to the
+                       employer. The third row is the boundary that makes the
+                       first two believable. */}
+                  {scene.id === 'opportunities' ? <FilmFit /> : null}
+
+                  {/* ---- Check it without asking us ----
+                       The one thing neither Medallion nor Carefam can answer.
+                       Real, live, and checkable in a click: ES256 signatures
+                       and a published key. Plain words only — no chain, wallet,
+                       or DID vocabulary in the acquisition path. */}
+                  {scene.id === 'verification' ? <FilmSignature /> : null}
+
                   {/* ---- Wide artifacts sit beside the copy, not inside it ----
 
                        Deliberately `ProofPacketInspector`, NOT its
@@ -432,7 +501,7 @@ export function HorizontalCareerFilm() {
                        `DualAudienceCta` is not used below — it is a two-card
                        grid (R3) whose clinician CTA points at `/#npi`, an
                        anchor this composition does not have. */}
-                  {scene.id === 'start' ? (
+                  {scene.id === 'hiring' ? (
                     <div className="film-wide">
                       <ProofPacketInspector />
                       <TruthBoundary className="film-boundary" />

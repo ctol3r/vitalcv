@@ -30,11 +30,26 @@ import {
  */
 
 /** Ink values, not tokens: canvas cannot resolve CSS custom properties. */
+/**
+ * The atmosphere is INK, not colour.
+ *
+ * These four lanes used to paint in green, indigo and amber. Two problems, and
+ * they compound: at up to 0.52 opacity a field of tinted horizontal bars reads
+ * as a loading skeleton rather than as evidence, and it was the loudest thing
+ * in every frame. It also spends the state palette on decoration — CD-4 keeps
+ * green, amber and slate for what a source actually returned, so a decorative
+ * bar in "confirmed green" devalues the one place green is allowed to mean
+ * something.
+ *
+ * Warm ink at four weights instead. The fragments still separate into lanes by
+ * value, so the composition keeps its depth, but nothing in the atmosphere can
+ * be mistaken for a state.
+ */
 const LANE_INK: Record<FragmentLane, string> = {
-  provenance: '18, 106, 84',
-  evidence: '54, 62, 138',
-  attention: '146, 96, 18',
-  neutral: '61, 58, 52',
+  provenance: '26, 24, 21',
+  evidence: '61, 58, 52',
+  attention: '87, 83, 74',
+  neutral: '103, 98, 87',
 };
 
 export interface EvidenceAtmosphereProps {
