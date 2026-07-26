@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { ArrowRight, X } from 'lucide-react';
 
 /**
@@ -16,7 +17,30 @@ import { ArrowRight, X } from 'lucide-react';
 const ANNOUNCE_VERSION = 'v1';
 const STORAGE_KEY = `vcv-announce-dismissed-${ANNOUNCE_VERSION}`;
 
+/**
+ * Buyer surfaces where the clinician-wallet pitch must not render. The
+ * employer doorway (Wave 6) opens with "Start clinicians faster from
+ * source-backed evidence" — a strip above it addressing a different audience
+ * ("The VitalCV Wallet is free for clinicians → Check your NPI") undercuts the
+ * page's one argument, and "wallet" is on the buyer-surface banned list that
+ * buyer-proof-page.test.tsx enforces for page copy. Suppressing here closes
+ * the gap between the component-level guard and what the layout actually
+ * serves on those routes.
+ */
+const BUYER_PATH_PREFIXES = ['/employers', '/employer', '/pilot', '/review', '/for/'] as const;
+
+export function isBuyerSurfacePath(pathname: string | null): boolean {
+  if (!pathname) return false;
+  return BUYER_PATH_PREFIXES.some(
+    (prefix) =>
+      pathname === prefix ||
+      pathname === prefix.replace(/\/$/, '') ||
+      pathname.startsWith(prefix.endsWith('/') ? prefix : `${prefix}/`),
+  );
+}
+
 export function AnnouncementRail() {
+  const pathname = usePathname();
   const [dismissed, setDismissed] = React.useState(false);
   const [mounted, setMounted] = React.useState(false);
 
@@ -28,6 +52,10 @@ export function AnnouncementRail() {
       /* private mode / storage blocked — just keep it visible */
     }
   }, []);
+
+  // Buyer surfaces never render the clinician pitch — server and client agree
+  // on pathname, so this is hydration-safe and holds for no-JS readers too.
+  if (isBuyerSurfacePath(pathname)) return null;
 
   // Renders on the server + first paint (so no-JS users see it), then hides
   // itself after mount if this message was already dismissed.
