@@ -291,7 +291,7 @@ jobs:
 
       - name: Comment PR with conformance results
         if: github.event_name == 'pull_request' && always()
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         env:
           CONF_TOTAL: ${{ steps.results.outputs.total }}
           CONF_PASSED: ${{ steps.results.outputs.passed }}
