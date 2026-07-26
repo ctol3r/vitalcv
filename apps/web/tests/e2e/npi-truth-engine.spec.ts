@@ -92,11 +92,14 @@ async function mockNpiApis(
 /**
  * Where the clinician's own returned state renders.
  *
- * COMPETE-1 moved this out of `[data-home-hero]`: the film shows the answer in
- * the RECOGNITION scene, one scene on from where the NPI was typed. Every truth
- * assertion below is unchanged and still applies — only the container moved.
+ * This moved twice. COMPETE-1 took it out of `[data-home-hero]` and into a
+ * scene of its own; COMPETE-3 folded it back into ARRIVAL, because a scene that
+ * exists only to hold a result is blank for every visitor who has not asked for
+ * one — it was the emptiest frame on the site. The answer now replaces the
+ * empty record in the frame where the NPI was typed. Every truth assertion
+ * below is unchanged and still applies — only the container moved.
  */
-const hero = (page: Page) => page.locator('[data-film-scene="recognition"]');
+const hero = (page: Page) => page.locator('[data-film-scene="arrival"]');
 
 /**
  * The hero's primary action (HERO-RESET-1: was "Check readiness"). The dot

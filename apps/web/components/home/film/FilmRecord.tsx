@@ -62,12 +62,19 @@ function buildLanes(): RecordLane[] {
 export function FilmRecord({ live }: { live: boolean }) {
   const lanes = React.useMemo(buildLanes, []);
 
+  // Framed as a HIRING checklist, not a credentialing inventory. The rows are
+  // identical either way — the difference is whether a clinician reads "here are
+  // six sources we audit" (someone else's compliance process, which is what a
+  // credentialing vendor sells) or "here is what every employer is going to ask
+  // you for" (their own hiring queue, which is what this is). The second framing
+  // is also the truer one: this list exists because employers ask for it, not
+  // because VitalCV audits it.
   return (
-    <aside className="film-record" aria-label="What your record is assembled from">
+    <aside className="film-record" aria-label="What every employer asks for">
       <header className="film-record-head">
-        <span className="film-record-kicker">Your record</span>
+        <span className="film-record-kicker">What employers ask for</span>
         <p className="film-record-note">
-          Six sources. Nothing is filled in until you enter an NPI.
+          The same six every time. Nothing is filled in until you enter an NPI.
         </p>
       </header>
 
