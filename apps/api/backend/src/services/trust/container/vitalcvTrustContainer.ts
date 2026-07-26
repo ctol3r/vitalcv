@@ -20,7 +20,7 @@
  *     'vitalcv-signed'.
  */
 
-import { SignJWT, importJWK, jwtVerify, type JWK, type KeyLike } from 'jose';
+import { SignJWT, importJWK, jwtVerify, type CryptoKey, type JWK } from 'jose';
 import { sha256Hex, stableStringify } from '../../../utils/deterministic';
 import type {
   AnchorReceiptResult,
@@ -52,8 +52,8 @@ export interface VitalCvTrustContainerConfig {
 }
 
 interface LoadedKeyMaterial {
-  privateKey: KeyLike;
-  publicKey: KeyLike;
+  privateKey: CryptoKey;
+  publicKey: CryptoKey;
   publicJwk: JWK;
   kid: string;
   issuerDid: string;
@@ -105,8 +105,8 @@ export class VitalCvTrustContainer implements TrustContainerProvider {
     }
 
     const { d: _privateScalar, ...publicJwk } = parsed;
-    const privateKey = (await importJWK(parsed, 'ES256')) as KeyLike;
-    const publicKey = (await importJWK(publicJwk, 'ES256')) as KeyLike;
+    const privateKey = (await importJWK(parsed, 'ES256')) as CryptoKey;
+    const publicKey = (await importJWK(publicJwk, 'ES256')) as CryptoKey;
 
     this.keyMaterial = {
       privateKey,
