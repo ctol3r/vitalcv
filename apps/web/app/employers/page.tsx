@@ -3,15 +3,22 @@ import Link from 'next/link';
 import { EmployerGetStartedClient } from './EmployerGetStartedClient';
 import { EmployerWorkflowPreview } from '@/components/employers/EmployerWorkflowPreview';
 import { PageFrame } from '@/components/layout/PageFrame';
+import { SOURCE_LANE_OPS } from '@/lib/trust/sourceLanes';
 
 /**
  * /employers — the employer landing + onboarding.
  *
- * Previously a bare redirect to /pilot (a rescue for a broken directory). Now a
- * real page: employers verify ownership of their organization as simply as a
- * clinician verifies their NPI — enter your organization's Type 2 NPI, confirm
- * it against NPPES, and claim it. (Enterprise/network buyers can still request a
- * pilot below.)
+ * Wave 6 (deep-audit 2026-07-21) + D3 (one-platform synthesis): the doorway
+ * leads with the BUYER OUTCOME — "Start clinicians faster from source-backed
+ * evidence" — not with setup mechanics. The Type 2 NPI claim is real and
+ * necessary, but it is Step 1 of the workflow, so it renders after the buyer
+ * has seen the job-to-start operating model, not as the page's thesis.
+ *
+ * D3 (high-effort readers): limits are stated plainly and EARLY on this
+ * surface — the blemishing effect that lets the clinician film defer limits
+ * does not apply to procurement readers. The cadence sentence derives from
+ * lib/trust/sourceLanes.ts, the same registry behind /, /status and
+ * /api/status, so this page cannot drift from lane truth.
  */
 
 // Bound external shared-cache staleness to 5 min (see app/page.tsx note).
@@ -20,8 +27,19 @@ export const revalidate = 300;
 export const metadata: Metadata = {
   title: 'For Employers · VitalCV',
   description:
-    "Claim your organization's Type 2 NPI and start reviewing source-backed clinician passports — onboarding as simple as the clinician sign-up.",
+    'Start clinicians faster from source-backed evidence — review consented, attributable packets, see remaining requirements up front, and keep the final decision. Claim your organization’s Type 2 NPI to begin.',
 };
+
+/** Lane-truth cadences, from the registry — never hand-typed on this page. */
+function cadenceSentence(): string {
+  const label = (id: string) =>
+    SOURCE_LANE_OPS.find((lane) => lane.laneId === id)?.cadenceLabel ?? 'not read';
+  return (
+    `NPPES is ${label('nppes_identity')} per request; ` +
+    `OIG/LEIE is a ${label('oig_exclusions')}; CMS PECOS a ${label('pecos_enrollment')}; ` +
+    `state licensure stays ${label('state_license')}.`
+  );
+}
 
 export default function EmployersPage() {
   return (
@@ -32,24 +50,41 @@ export default function EmployersPage() {
       <PageFrame as="main" mode="focused-form">
         <header className="mb-5">
           <p className="mz-eyebrow">For employers &amp; verifiers</p>
-          <h1 className="mz-h1" style={{ marginTop: 12, maxWidth: 640 }}>
-            Claim your organization, <span className="mz-accent">verify clinicians</span>.
+          <h1 className="mz-h1" style={{ marginTop: 12, maxWidth: 680 }}>
+            Start clinicians faster from <span className="mz-accent">source-backed evidence</span>.
           </h1>
-          <p className="mz-lede" style={{ marginTop: 12, maxWidth: 560 }}>
-            Onboarding is as simple as a clinician&rsquo;s. Your organization has a Type 2 NPI in the same federal
-            registry — enter it, confirm it, and claim your employer workspace.
+          <p className="mz-lede" style={{ marginTop: 12, maxWidth: 620 }}>
+            A clinician arrives with a consented, attributable evidence packet — identity,
+            exclusions, enrollment, each answer named to its source. You see requirements and
+            remaining blockers up front, instead of opening another document chase.
           </p>
+          {/* D3: plain, early limits — visible prose in the opening viewport,
+              never a footnote. Boundary first, cadence second. */}
+          <div
+            data-employer-limits=""
+            className="mz-mono mt-4 max-w-[620px] border-l-2 border-[var(--vt-border)] pl-3 text-[12px] leading-relaxed text-[var(--vt-text-muted)]"
+          >
+            <p>
+              The limits, stated plainly: VitalCV is not a credentialing service. Head-start
+              acceptance is not a credentialing decision, and the hiring decision stays yours.
+            </p>
+            <p style={{ marginTop: 6 }}>{cadenceSentence()}</p>
+          </div>
         </header>
 
-        <section className="mz-card p-5 sm:p-6" aria-label="Claim your organization">
-          <h2 className="mz-h2">Enter your organization&rsquo;s NPI</h2>
+        <EmployerWorkflowPreview />
+
+        <section className="mz-card mt-10 p-5 sm:p-6" aria-label="Step 1 — claim your organization">
+          <p className="mz-eyebrow">Step 1 — Claim your organization</p>
+          <h2 className="mz-h2" style={{ marginTop: 8 }}>
+            Enter your organization&rsquo;s NPI
+          </h2>
           <p className="mz-small" style={{ marginTop: 4, marginBottom: 16 }}>
-            The same 30-second flow a clinician uses — resolved against NPPES, the federal source of record.
+            The same 30-second flow a clinician uses — your organization has a Type 2 NPI in the
+            same federal registry, resolved against NPPES, the federal source of record.
           </p>
           <EmployerGetStartedClient />
         </section>
-
-        <EmployerWorkflowPreview />
 
         <p className="mt-6 text-center text-xs text-[var(--vt-text-muted)]">
           A network or health system?{' '}
