@@ -114,6 +114,37 @@ const RULED_MEASURES = Object.freeze([0.05, 0.09, 0.14, 0.21]);
 const SCATTER_ROWS = 15;
 
 /**
+ * The copy keep-out — the most important constraint in this file.
+ *
+ * Fragments used to settle at `toX ≈ 0.08–0.14` across eleven bands spanning
+ * `y 0.16–0.84`. That is the left column, and the left column is where the
+ * headline and the body copy live: the atmosphere was DESIGNED to land on the
+ * type. While the rows were ragged it merely looked noisy. Once they were
+ * snapped to a baseline rhythm they stopped missing — and every scene rendered
+ * its own sentences with rules drawn cleanly through them.
+ *
+ * A horizontal line through text is strikethrough. It is the one mark every
+ * reader knows means deleted, void, retracted. On a page whose entire argument
+ * is that its claims can be trusted, the claims looked crossed out. That is
+ * also why "make the atmosphere quieter" never fixed it — the problem was
+ * never density, it was position.
+ *
+ * So the field is confined to two margins, above and below the reading zone,
+ * at every progress including mid-transition. Making this a property of the
+ * MODEL rather than a rect the renderer has to measure means the SSR poster,
+ * the Canvas 2D tier, and the tests all inherit it for free — and no future
+ * change can reintroduce the collision by adjusting opacity or count.
+ *
+ * It is a better composition, too: evidence now frames the argument instead of
+ * competing with it, and the quiet middle is deliberate rather than accidental.
+ */
+const BAND_TOP = Object.freeze({ min: 0.03, max: 0.2 });
+const BAND_BOTTOM = Object.freeze({ min: 0.82, max: 0.97 });
+
+/** Ruled rows per margin band. */
+const ROWS_PER_BAND = 6;
+
+/**
  * Lowered from 64. With every scene now carrying a real product artifact
  * (FilmRecord / FilmFit / ProofPacketInspector / FilmSignature), the atmosphere
  * no longer has to carry a frame on its own — so it can afford to be quieter
@@ -137,19 +168,23 @@ export function createFragments(
 ): readonly Fragment[] {
   const rand = mulberry32(seed);
   const fragments: Fragment[] = [];
-  const bands = 11;
 
   for (let id = 0; id < count; id += 1) {
-    const band = id % bands;
-    // Settled: left-anchored strata with a slight organic x offset.
-    const toY = 0.16 + (band / (bands - 1)) * 0.68;
-    const toX = 0.08 + rand() * 0.06;
-    // Scattered: anywhere across the stage, biased right so the field
-    // *travels* leftward into the core as progress advances. The Y is SNAPPED
-    // to a rhythm rather than sprayed — scattered evidence is still evidence,
-    // and rows that share baselines read as a record even before they align.
-    const fromX = 0.18 + rand() * 0.78;
-    const fromY = Math.round(rand() * (SCATTER_ROWS - 1)) / (SCATTER_ROWS - 1);
+    // Alternate margins so both bands read as populated at every progress.
+    const band = id % 2 === 0 ? BAND_TOP : BAND_BOTTOM;
+    const row = Math.floor(id / 2) % ROWS_PER_BAND;
+    const span = band.max - band.min;
+
+    // Settled: ruled rows inside the margin, spread across the full width.
+    const toY = band.min + (row / (ROWS_PER_BAND - 1)) * span;
+    const toX = 0.04 + rand() * 0.42;
+    // Scattered: still inside the SAME margin. The field must never enter the
+    // reading zone at any progress, including mid-transition — so the keep-out
+    // is a property of the model, not something the renderer has to police.
+    // Still biased right of its destination, so the strata travel leftward as
+    // progress advances.
+    const fromX = toX + 0.2 + rand() * 0.4;
+    const fromY = band.min + (Math.round(rand() * (SCATTER_ROWS - 1)) / (SCATTER_ROWS - 1)) * span;
 
     fragments.push({
       id,
