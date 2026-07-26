@@ -70,11 +70,23 @@ export default function EmployersPage() {
             </p>
             <p style={{ marginTop: 6 }}>{cadenceSentence()}</p>
           </div>
+          {/* The opening viewport keeps one honest action. It ASKS for nothing —
+              it jumps to Step 1 below, after the operating model has made the
+              case. Returning buyers skip straight to the claim flow. */}
+          <p style={{ marginTop: 20 }}>
+            <a href="#claim-your-organization" className="mz-btn">
+              Claim your organization
+            </a>
+          </p>
         </header>
 
         <EmployerWorkflowPreview />
 
-        <section className="mz-card mt-10 p-5 sm:p-6" aria-label="Step 1 — claim your organization">
+        <section
+          id="claim-your-organization"
+          className="mz-card mt-10 scroll-mt-24 p-5 sm:p-6"
+          aria-label="Step 1 — claim your organization"
+        >
           <p className="mz-eyebrow">Step 1 — Claim your organization</p>
           <h2 className="mz-h2" style={{ marginTop: 8 }}>
             Enter your organization&rsquo;s NPI
