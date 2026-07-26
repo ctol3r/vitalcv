@@ -24,6 +24,11 @@ import {
   useSourceCheckSequence,
   type TrustState,
 } from '@/components/readiness/sourceCheckNarration';
+import { SOURCE_LANE_OPS } from '@/lib/trust/sourceLanes';
+
+/** Cadence for the exclusion lane, read from the registry rather than typed. */
+const OIG_CADENCE =
+  SOURCE_LANE_OPS.find((l) => l.laneId === 'oig_exclusions')?.cadenceLabel ?? 'monthly snapshot';
 
 interface Bootstrap {
   firstName?: string;
@@ -102,7 +107,20 @@ export function LiveNpiResult({ npi, onReset }: { npi: string; onReset: () => vo
   const unavailable: Row[] = [];
 
   if (trust?.identityVerified) confirmed.push({ label: 'Identity', detail: 'Confirmed through the NPPES registry' });
-  if (trust?.exclusionStatus === 'CLEAR') confirmed.push({ label: 'OIG exclusions', detail: 'No exclusion match returned' });
+  // The exclusion result carries its cadence. `sourceLanes.ts:68` already
+  // requires it — "copy must render cadence, never a blanket 'live'" — and
+  // this panel was the surface breaking that rule: a monthly LEIE snapshot
+  // rendered under a heading that says "Confirmed today", with no age shown.
+  // HHS publishes the LEIE file monthly, so a same-day exclusion cannot be in
+  // it, and exclusion status is the one fact where that gap is a liability for
+  // an employer acting on the panel. The label comes from the registry so it
+  // cannot drift from /api/status or the source ribbon.
+  if (trust?.exclusionStatus === 'CLEAR') {
+    confirmed.push({
+      label: 'OIG exclusions',
+      detail: `No match in the current LEIE file (${OIG_CADENCE})`,
+    });
+  }
 
   if (trust?.pecosStatus === 'NOT_FOUND') attention.push({ label: 'Medicare enrollment (PECOS)', detail: 'No active enrollment found' });
   for (const b of trust?.blockers ?? []) {

@@ -38,7 +38,7 @@ const PROBLEM_STATS = [
 export function ProblemStatBand() {
   return (
     <section aria-label="The problem VitalCV addresses" data-home-problem-band="" className="mz pt-14">
-      <p className="mz-eyebrow"><span className="mz-eyebrow-index" aria-hidden="true">01</span>The problem</p>
+      <p className="mz-eyebrow">The problem</p>
       <h2 className="mz-h1 mt-3 max-w-[16ch]">
         Healthcare hiring has a <em className="mz-accent">trust-liquidity</em> problem.
       </h2>

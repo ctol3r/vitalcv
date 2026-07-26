@@ -302,9 +302,23 @@ body {
 
 /* ─── Tailwind v4 theme bridge ──────────────────────────── */
 @theme inline {
+  /* CD-3 — there is no pure white in this product. `bg-white` compiles to
+     `background-color: var(--color-white)`, so redefining the token warms all
+     549 `bg-white` call sites across 173 files at once, instead of a sweep.
+     Deliberately a fixed value rather than `var(--vt-surface)`: --color-white
+     also powers `text-white`, and a theme-tracking value would turn white label
+     text on dark buttons dark in dark mode. */
+  --color-white: #F7F5F1;
+
   --font-heading: var(--font-fraunces);
   --font-sans: var(--font-body);
-  --font-mono: 'Geist Mono', ui-monospace, monospace;
+  /* CD-8, the mono law. `@theme inline` inlines this value straight into the
+     generated `font-mono` utility, so a bare 'Geist Mono' family name here
+     resolved to nothing — next/font emits a hashed family — and all 1,229
+     `font-mono` usages silently fell back to the OS monospace. Point it at the
+     loaded face instead. Referencing --font-geist-mono-loaded (not --font-mono)
+     keeps this out of the circular-alias trap that broke the tokens in #801. */
+  --font-mono: var(--font-geist-mono-loaded, ui-monospace, 'SFMono-Regular', Menlo, Monaco, monospace);
 
   /* Sandbox palette aliases for 1:1 sandbox component imports */
   --color-bg: var(--vt-bg);
@@ -330,16 +344,6 @@ body {
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-
-  /* ── Semantic shorthand Tailwind tokens ─────────────── */
-  --color-bg: var(--color-bg);
-  --color-ink: var(--color-ink);
-  --color-line: var(--color-line);
-  --color-bg-muted: var(--color-bg-muted);
-  --color-ink-muted: var(--color-ink-muted);
-  --color-danger: var(--color-danger);
-  --color-success: var(--color-success);
-  --color-warning: var(--color-warning);
 
   /* ── Trust / claim tokens for Tailwind ─────────────────── */
   --color-trust-green: var(--trust-green);

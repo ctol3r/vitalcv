@@ -15,46 +15,71 @@ import '../styles/page-density.css';
 import Providers from './providers';
 import localFont from 'next/font/local';
 
-// Real Fraunces — the Calm Wave display face — self-hosted as a variable woff2
-// in app/fonts. Self-hosted (not next/font/google) on purpose: the build must
-// never reach out to Google Fonts, which is why an earlier setup fell back to a
-// system serif and left the whole site rendering Georgia instead of the design's
-// Fraunces. The weight axis spans the 500/560 the display uses; Georgia stays as
-// the graceful fallback if the face ever fails to load.
+// CD-W1 — the three faces of the creative direction (docs/design/VITALCV_CREATIVE_DIRECTION.md
+// §CD-7/CD-8). All three are self-hosted variable woff2 files in app/fonts and loaded through
+// next/font/local. Self-hosted (never next/font/google) on purpose: the build must not reach out
+// to Google Fonts, which is what broke an earlier attempt and left the whole site rendering the
+// system serif. Each keeps its system stack as an inline var() fallback so a font miss degrades
+// cleanly instead of collapsing the layout.
+//
+// Display — Fraunces. Roman and a true italic: the direction gives every headline one accent word
+// set in Fraunces italic, and without the italic file the browser synthesises a slanted roman,
+// which is exactly the kind of detail that makes a page read as unfinished.
 const fraunces = localFont({
-  src: './fonts/Fraunces-Variable.woff2',
-  weight: '100 900',
-  style: 'normal',
+  src: [
+    { path: './fonts/Fraunces-Variable.woff2', weight: '100 900', style: 'normal' },
+    { path: './fonts/Fraunces-Variable-Italic.woff2', weight: '100 900', style: 'italic' },
+  ],
   display: 'swap',
   variable: '--font-fraunces-loaded',
   fallback: ['Georgia', 'Times New Roman', 'serif'],
 });
 
-const systemSansStack =
-  "ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
-const systemDisplayStack = "Georgia, 'Times New Roman', serif";
-const systemMonoStack =
-  "ui-monospace, 'SFMono-Regular', Menlo, Monaco, Consolas, 'Liberation Mono', monospace";
-// Display/serif tokens now resolve to the loaded Fraunces face, with the system
-// serif kept inline as a var() fallback so a font miss still degrades cleanly.
+// Text — Geist Sans. Every paragraph, label, control, and form on the product.
+const geistSans = localFont({
+  src: './fonts/Geist-Variable.woff2',
+  weight: '100 900',
+  style: 'normal',
+  display: 'swap',
+  variable: '--font-geist-loaded',
+  fallback: ['ui-sans-serif', 'system-ui', '-apple-system', 'Segoe UI', 'sans-serif'],
+});
+
+// Data — Geist Mono. CD-8, the mono law: machine facts are mono, human prose is sans, argument is
+// serif. NPIs, license numbers, timestamps, snapshot dates, source names, hashes and receipt ids
+// all render in this face, so mono itself becomes the signal that a value was retrieved rather
+// than written.
+const geistMono = localFont({
+  src: './fonts/GeistMono-Variable.woff2',
+  weight: '100 900',
+  style: 'normal',
+  display: 'swap',
+  variable: '--font-geist-mono-loaded',
+  fallback: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'monospace'],
+});
+
 const displayStack = "var(--font-fraunces-loaded, Georgia, 'Times New Roman', serif)";
+const sansStack =
+  "var(--font-geist-loaded, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif)";
+const monoStack =
+  "var(--font-geist-mono-loaded, ui-monospace, 'SFMono-Regular', Menlo, Monaco, Consolas, 'Liberation Mono', monospace)";
 
 const fontVariables = {
   ...vdsCssVariables,
   '--font-fraunces': displayStack,
-  '--font-plus-jakarta': systemSansStack,
-  '--font-inter': systemSansStack,
-  '--font-jetbrains': systemMonoStack,
-  '--font-geist': systemSansStack,
-  '--font-geist-mono': systemMonoStack,
-  '--vt-font-body': systemSansStack,
+  '--font-plus-jakarta': sansStack,
+  '--font-inter': sansStack,
+  '--font-jetbrains': monoStack,
+  '--font-geist': sansStack,
+  '--font-geist-mono': monoStack,
+  '--vt-font-body': sansStack,
   '--vt-font-display': displayStack,
-  '--font-body': systemSansStack,
+  '--font-body': sansStack,
   '--font-display': displayStack,
-  '--font-sans': systemSansStack,
-  '--font-heading': systemSansStack,
+  '--font-sans': sansStack,
+  '--font-heading': sansStack,
   '--font-serif': displayStack,
-  '--font-mono': systemMonoStack,
+  '--font-mono': monoStack,
 } as React.CSSProperties;
 
 export const metadata: Metadata = {
@@ -128,7 +153,7 @@ export default function RootLayout({
   const hydratedContent = (
     <html
       lang="en"
-      className={fraunces.variable}
+      className={`${fraunces.variable} ${geistSans.variable} ${geistMono.variable}`}
       style={fontVariables}
       suppressHydrationWarning
     >

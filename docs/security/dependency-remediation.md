@@ -3,9 +3,13 @@
 **Enterprise-map B1 (supply chain) · ASVS G8 (SCA).**
 Owner: platform security · Last updated: 2026-07-20
 
-This is the living register for third-party dependency vulnerabilities. The
-**[SCA gate](../../.github/workflows/security-audit.yml)** blocks new
-**criticals**; everything else is tracked here and burned down deliberately so
+This is the living register for third-party dependency vulnerabilities. Two
+gates block new **criticals** — the
+**[pnpm SCA gate](../../.github/workflows/security-audit.yml)** for the
+JavaScript tree and the
+**[Rust SCA gate](../../.github/workflows/cargo-audit.yml)** for the Cargo trees
+(see [Rust / Cargo SCA](#rust--cargo-sca)) — and everything else is tracked here
+and burned down deliberately so
 the signal stays actionable instead of permanently red. A narrow, documented
 escape hatch (**[Accepted-risk audit ignores](#accepted-risk-audit-ignores)**)
 exists for a critical that reaches only a build-time / non-deploy-path surface
@@ -104,6 +108,51 @@ Hence the documented ignore.
 `tar@6.2.1` in its **build toolchain**. That is the accepted risk. It is bounded
 to developer machines building the mobile app against trusted inputs; nothing on
 the trust platform's shipped surface is affected.
+
+## Rust / Cargo SCA
+
+`pnpm audit` cannot see Rust dependencies **at all**. Until 2026-07-25 the
+repo's seven `Cargo.lock` files had **zero** SCA coverage — Dependabot was
+raising critical alerts against them that no CI job could surface, so a green
+"SCA — critical-only gate" said nothing whatsoever about Rust.
+
+**The repo now ships no Rust at all.** The dormant Substrate pallet trees were
+deleted on 2026-07-25 (founder decision), which removed **all 171** Rust
+advisories outright — including `RUSTSEC-2023-0090` (`wasmtime@1.0.2`, CVSS 9.9,
+guest-controlled OOB read/write), 28 lower-severity advisories, and 136 unscored
+ones such as `RUSTSEC-2022-0093` (`ed25519-dalek` double-public-key signing
+oracle). Deleting beat suppressing: the pallets were never built or deployed, and
+the advisory was unfixable in place (`sp-wasm-interface@8.0.0` pins
+`wasmtime ^1.0.0`, so `cargo update -p wasmtime --precise 4.0.1` cannot resolve —
+clearing it would have meant upgrading the whole `frame-support 4.0` /
+`sp-runtime 7.0` stack). See
+[the anchoring ADR](../architecture/adr-substrate-anchoring.md).
+
+The **[Rust SCA gate](../../.github/workflows/cargo-audit.yml)**
+([`cargo-audit-gate.mjs`](../../scripts/security/cargo-audit-gate.mjs)) stays
+in place as a **tripwire**: it auto-discovers `Cargo.lock` files, so the day any
+Rust re-enters the repo it is audited from the first commit rather than sitting
+unscanned for years as the pallets did. With no lockfiles present it reports
+"nothing to audit" and exits 0.
+
+Policy mirrors the pnpm gate:
+
+| Severity | CI behavior | Rationale |
+|---|---|---|
+| **Critical** (CVSS ≥ 9.0) | ❌ **blocks merge** (gate exits 1) | Same bar as the pnpm gate. |
+| High / moderate / low | ⚠️ reported, non-blocking | Same rationale as the JS backlog. |
+| **Unscored** | ⚠️ reported, non-blocking, **needs triage** | Many RustSec advisories carry no CVSS vector and cannot be classified. They are printed on every run so they cannot rot silently. |
+| **Accepted-risk ignore** | 🔕 suppressed via [`cargo-audit-ignores.json`](../../scripts/security/cargo-audit-ignores.json) | Same bar as `pnpm.auditConfig.ignoreGhsas`. **Currently empty, which is the correct state** — prefer deleting dead Rust over suppressing its advisories. |
+
+cargo-audit reports only a CVSS *vector*, never a score, so the gate computes
+the base score itself (CVSS v3.1 spec §8.1). That arithmetic is pinned by
+`apps/web/__tests__/cargo-audit-gate.test.ts` against published ratings — if it
+drifts, criticals get silently misclassified. Run it locally:
+
+```bash
+cargo install cargo-audit --locked   # once
+node scripts/security/cargo-audit-gate.mjs
+```
 
 ## High-severity backlog (75 advisories, 21 modules)
 

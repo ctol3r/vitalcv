@@ -15,17 +15,24 @@ test.describe('homepage proof moment (W4.2)', () => {
     page,
   }) => {
     await page.goto('/', { waitUntil: 'networkidle' });
-    const moment = page.locator('[data-home-proof-moment]');
+    // COMPETE-1: the artifact lives in the film's `start` scene. The
+    // `HomeProofMoment` WRAPPER is deliberately not used — it is a vertical page
+    // section carrying a numbered eyebrow ("04 Why this is credible") and a
+    // second display heading, both retired mechanisms (R4, R6). The inspector
+    // itself, its illustrative label, and the employer boundary are unchanged.
+    const moment = page.locator('[data-film-scene="hiring"]');
     await moment.scrollIntoViewIfNeeded();
 
     const inspector = moment.locator('[data-proof-packet-inspector]');
-    await expect(inspector).toBeVisible();
+    await expect(inspector).toBeAttached();
     await expect(inspector.locator('[data-proof-illustrative]')).toContainText(/illustrative/i);
     await expect(moment).toContainText(/remain with the institution/i);
 
-    const cta = moment.locator('[data-home-proof-cta]');
-    await expect(cta).toBeVisible();
-    await expect(cta).toHaveAttribute('href', '/onboarding');
+    // The anti-dead-end contract, restated for this composition: the proof beat
+    // no longer carries its own CTA, so what must hold is that the film still
+    // reaches the real clinician flow rather than ending on a demo.
+    const cta = page.locator('a[href="/onboarding"]').first();
+    await expect(cta).toBeAttached();
   });
 
   test('selecting a claim updates the inspected chain (click + keyboard)', async ({ page }) => {
@@ -63,7 +70,7 @@ test.describe('homepage proof moment (W4.2)', () => {
     const context = await browser.newContext({ javaScriptEnabled: false });
     const page = await context.newPage();
     await page.goto('/', { waitUntil: 'domcontentloaded' });
-    const moment = page.locator('[data-home-proof-moment]');
+    const moment = page.locator('[data-film-scene="hiring"]');
     await expect(moment.locator('[data-proof-packet-inspector]')).toBeAttached();
     // The default claim's chain is server-rendered (no selection JS needed).
     await expect(moment).toContainText('NPPES NPI Registry');

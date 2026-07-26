@@ -25,7 +25,7 @@ vi.mock('@clerk/nextjs', () => ({
   SignedIn: ({ children }: { children: React.ReactNode }) => null,
 }));
 
-import HomePageClient from '@/app/HomePageClient';
+import { renderHomepageHtml } from './helpers/render-homepage';
 
 /**
  * Every marker that constitutes a PAGE-LEVEL in-page navigator. The homepage
@@ -39,13 +39,34 @@ const PAGE_LEVEL_NAV_MARKERS = [
 
 describe('homepage composition gate (W0.2)', () => {
   it('renders no page-level in-page navigation rail', () => {
-    const html = renderToStaticMarkup(<HomePageClient />);
+    const html = renderHomepageHtml();
     const present = PAGE_LEVEL_NAV_MARKERS.filter((marker) => html.includes(marker));
     expect(
       present.length,
       `page-level navigators rendered: [${present.join(', ')}] — the composition ` +
         'manifest prohibits them; keep the journey in ordinary document flow',
     ).toBe(0);
+  });
+
+  /**
+   * Competitive-mandate guardrails 5 and 6. A numbered 01–06 eyebrow sequence
+   * shipped on 2026-07-21 to give the body one spine instead of five competing
+   * theses. The mandate — authored the same day — already forbade it:
+   *   guardrail 5: "No visible section taxonomy or generic feature headers."
+   *   guardrail 6: "No marketing-number theatre. No giant counters,
+   *                 steps `01–06`, percentage rings…"
+   * It is cheap to reach for again, so it is pinned here rather than left to
+   * review. The composition answer is the six-scene film, not a printed index.
+   */
+  it('prints no chapter index on any homepage section eyebrow', () => {
+    const html = renderHomepageHtml();
+    expect(html).not.toContain('mz-eyebrow-index');
+    // Catch a hand-rolled equivalent: a 2-digit index opening an eyebrow.
+    const numberedEyebrow = /class="[^"]*mz-eyebrow[^"]*"[^>]*>\s*(?:<[^>]+>\s*)?0[1-9]\b/;
+    expect(
+      numberedEyebrow.test(html),
+      'a section eyebrow starts with a 01-style step number — guardrail 6 retires step sequences',
+    ).toBe(false);
   });
 
   it('the composition manifest exists and names the enforcing test', () => {
