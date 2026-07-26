@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test';
 
+import { readingCorridor } from './film-reading-corridor';
+
 /**
  * COMPETE-1 — the composition-independent contracts of the homepage.
  *
@@ -141,10 +143,31 @@ test.describe('homepage composition contracts (COMPETE-1)', () => {
     expect(Math.abs(after.height - before.height), 'heading height shifted').toBeLessThanOrEqual(2);
   });
 
+  /**
+   * Three viewports, three navigations, one test — which is why this was the
+   * only spec in the file needing a retry to pass.
+   *
+   * On main's CI it failed at 30.1s and passed on retry #1 in 10.1s, every run.
+   * The retry made it look healthy while it was in fact one slow runner away
+   * from failing both attempts and blocking a merge for no product reason.
+   *
+   * Two changes, no loss of coverage:
+   *  - `waitUntil: 'load'`, not `'networkidle'`. This measures LAYOUT overflow;
+   *    it does not need every analytics beacon and font request to fall quiet,
+   *    and `networkidle` on a page with a rAF loop and third-party widgets is
+   *    the slowest possible way to ask "is the DOM laid out yet".
+   *  - `test.slow()` for an honest budget, since three navigations in one test
+   *    legitimately need more than a single-navigation default.
+   */
   test('the document never scrolls horizontally, at any viewport', async ({ page }) => {
+    test.slow();
     for (const vp of [DESKTOP, { width: 1024, height: 768 }, { width: 390, height: 844 }]) {
       await page.setViewportSize(vp);
-      await page.goto('/', { waitUntil: 'networkidle' });
+      await page.goto('/', { waitUntil: 'load' });
+      // The film only pins after hydration resolves capabilities, and the
+      // pinned track is the thing most likely to overflow — so wait for the
+      // mode to be decided rather than for a fixed interval.
+      await page.locator('.film[data-film-mode]').first().waitFor({ state: 'attached' });
       await page.waitForTimeout(300);
       const overflow = await page.evaluate(
         () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
@@ -165,5 +188,86 @@ test.describe('homepage composition contracts (COMPETE-1)', () => {
       .locator('.film-track')
       .evaluate((el) => getComputedStyle(el).transform);
     expect(['none', 'matrix(1, 0, 0, 1, 0, 0)']).toContain(transform);
+  });
+
+  /**
+   * DOM half of the copy-legibility invariant.
+   *
+   * #886 fixed the shipped bug — atmosphere fragments running through the
+   * headline and the honesty line — by confining the field to a top and a
+   * bottom margin band. `film-reading-corridor.test.ts` proves the model keeps
+   * out of the space between them; this proves the copy actually LIVES there.
+   * Neither half is sufficient: fragments could avoid a corridor the copy does
+   * not occupy, or copy could sit in a corridor the fragments invade.
+   *
+   * The corridor is measured from `fragmentPose`, never hardcoded, so widening
+   * the bands fails this test instead of silently shrinking the safe zone.
+   *
+   * Checked at scene boundaries AND mid-transition: the copy translates with
+   * the track, and a frame in flight is where an overlap would first appear.
+   */
+  test('every scene keeps its copy inside the atmosphere reading corridor', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto('/', { waitUntil: 'networkidle' });
+    await page.waitForTimeout(600);
+
+    // Only meaningful while the film is pinned; the vertical fallback is an
+    // ordinary document where the atmosphere spans the whole runway.
+    const mode = await page.locator('.film').getAttribute('data-film-mode');
+    test.skip(mode !== 'film', 'corridor geometry applies to the pinned film');
+
+    const { top, bottom } = readingCorridor();
+    const sceneCount = await page.locator('[data-film-scene]').count();
+
+    // Boundaries plus the midpoint of each transition.
+    const stops: number[] = [];
+    for (let i = 0; i < sceneCount; i += 1) {
+      stops.push(i / (sceneCount - 1));
+      if (i < sceneCount - 1) stops.push((i + 0.5) / (sceneCount - 1));
+    }
+
+    const offenders: string[] = [];
+    for (const fraction of stops) {
+      await page.evaluate((f) => {
+        const runway = document.querySelector('.film-runway');
+        if (!runway) return;
+        const rect = runway.getBoundingClientRect();
+        window.scrollTo({
+          top: window.scrollY + rect.top + (rect.height - window.innerHeight) * f,
+          behavior: 'instant',
+        });
+      }, fraction);
+      await page.waitForTimeout(220);
+
+      const bad = await page.evaluate(
+        ({ top: t, bottom: b }) => {
+          const stage = document.querySelector('.film-stage')?.getBoundingClientRect();
+          if (!stage || stage.height === 0) return [];
+          const out: string[] = [];
+          for (const scene of document.querySelectorAll('[data-film-scene]')) {
+            const box = scene.getBoundingClientRect();
+            // Only the scene currently in frame.
+            if (box.right < stage.left + 8 || box.left > stage.right - 8) continue;
+            const copy = scene.querySelector('.film-copy');
+            if (!copy) continue;
+            const r = copy.getBoundingClientRect();
+            if (r.height === 0) continue;
+            const yTop = (r.top - stage.top) / stage.height;
+            const yBottom = (r.bottom - stage.top) / stage.height;
+            if (yTop < t || yBottom > b) {
+              out.push(
+                `${(scene as HTMLElement).dataset.filmScene}: copy spans ` +
+                  `${yTop.toFixed(3)}–${yBottom.toFixed(3)}, corridor ${t.toFixed(3)}–${b.toFixed(3)}`,
+              );
+            }
+          }
+          return out;
+        },
+        { top, bottom },
+      );
+      offenders.push(...bad);
+    }
+
+    expect(offenders, 'copy overlapping an atmosphere margin band').toEqual([]);
   });
 });
