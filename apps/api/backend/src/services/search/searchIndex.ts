@@ -70,11 +70,39 @@ export interface IndexStatusResponse {
   activeRuns: number;
 }
 
-type IndexedSearchObject = Prisma.SearchObjectGetPayload<{
-  include: {
-    acl: true;
-  };
-}>;
+// SearchObject has NO `acl` Prisma relation — SearchObjectACL is a
+// standalone table keyed by a plain searchObjectId FK column, so
+// `include: { acl: true }` throws P2009 at runtime. The ACL rows are
+// stitched in JS by attachSearchObjectAcls() instead.
+type SearchObjectAclEntry = Prisma.SearchObjectACLGetPayload<object>;
+
+type IndexedSearchObject = Prisma.SearchObjectGetPayload<object> & {
+  acl: SearchObjectAclEntry[];
+};
+
+async function attachSearchObjectAcls(
+  objects: Prisma.SearchObjectGetPayload<object>[],
+): Promise<IndexedSearchObject[]> {
+  if (objects.length === 0) {
+    return [];
+  }
+  const aclRows = await prisma.searchObjectACL.findMany({
+    where: { searchObjectId: { in: objects.map((object) => object.id) } },
+  });
+  const aclByObjectId = new Map<string, SearchObjectAclEntry[]>();
+  for (const row of aclRows) {
+    const list = aclByObjectId.get(row.searchObjectId);
+    if (list) {
+      list.push(row);
+    } else {
+      aclByObjectId.set(row.searchObjectId, [row]);
+    }
+  }
+  return objects.map((object) => ({
+    ...object,
+    acl: aclByObjectId.get(object.id) ?? [],
+  }));
+}
 
 const ACL_COMPATIBILITY: Record<SearchAclLevel, SearchAclLevel[]> = {
   PUBLIC: ['PUBLIC'],
@@ -273,7 +301,7 @@ function dedupeResults(results: SearchResult[]): SearchResult[] {
 }
 
 async function fetchIndexedResults(query: SearchQuery): Promise<SearchResult[]> {
-  const rawResults = await prisma.searchObject.findMany({
+  const rawResults = await attachSearchObjectAcls(await prisma.searchObject.findMany({
     where: {
       active: true,
       aclLevel: { in: resolveAclLevels(query.aclLevel ?? 'PUBLIC') },
@@ -285,8 +313,7 @@ async function fetchIndexedResults(query: SearchQuery): Promise<SearchResult[]> 
     },
     orderBy: { indexedAt: 'desc' },
     take: Math.max((query.limit ?? 10) + (query.offset ?? 0), 20),
-    include: { acl: true },
-  });
+  }));
 
   return rawResults
     .filter((object) => canAccessIndexedObject(object, query))
@@ -578,15 +605,14 @@ export async function suggestSearch(
     return { suggestions: [] };
   }
 
-  const indexedHits = await prisma.searchObject.findMany({
+  const indexedHits = await attachSearchObjectAcls(await prisma.searchObject.findMany({
     where: {
       active: true,
       aclLevel: { in: resolveAclLevels(options.aclLevel ?? 'PUBLIC') },
       title: { contains: normalizedQuery, mode: 'insensitive' },
     },
-    include: { acl: true },
     take: Math.max(limit * 2, 10),
-  });
+  }));
 
   const indexedSuggestions = indexedHits
     .filter((object) => canAccessIndexedObject(object, { q: normalizedQuery, ...options }))

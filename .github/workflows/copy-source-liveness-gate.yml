@@ -1,0 +1,53 @@
+name: Copy Source Liveness Gate
+
+# Verifies scripts/public-entry-copy-sources.json against reality: every listed
+# surface entry and copy source must EXIST, and — unless it is itself a route —
+# must have at least one importer under apps/web.
+#
+# Why this is a gate and not just a report. The script existed in package.json
+# for months and was wired to nothing, so nobody ran it. In that time the
+# homepage surface came to name five copy sources of which three were dead code
+# and none were rendered by `/`; the developer-shell entry pointed at
+# apps/web/app/developers/page.tsx, a route that no longer exists. The script
+# was ALREADY exiting 1 on that last one and had been for some time — an unrun
+# check is indistinguishable from a passing one.
+#
+# A manifest claiming where public copy lives, never checked against where copy
+# actually lives, is worse than no manifest: it is a confident wrong answer that
+# other tooling and humans then trust. See docs/design/homepage-film-flip-plan.md
+# for the same failure in the homepage test suite.
+
+on:
+  # Deliberately NOT path-filtered, matching design-lint-gate.yml and ci.yml.
+  #
+  # A path-filtered workflow is skipped ENTIRELY on a PR touching none of its
+  # paths, so its check run is never created. If this is ever made a REQUIRED
+  # status check, a skipped run leaves the PR permanently blocked — `mergeable`
+  # stays MERGEABLE while `mergeStateStatus` sits at BLOCKED and `gh pr merge`
+  # refuses with "the base branch policy prohibits the merge". That trap cost
+  # #806 real time and was de-filtered in #811; design-lint hit it again in #871.
+  #
+  # Do NOT work around it with a companion workflow on `paths-ignore` reporting
+  # the same job name: `paths` and `paths-ignore` are not exact complements, so
+  # a PR touching both sides satisfies BOTH and produces two check runs sharing
+  # one name — which can mask a real failure behind an always-green stub.
+  #
+  # The cost of running always is negligible: the script uses only Node built-ins
+  # (node:fs, node:path), needs no dependency install, and finishes in ~1s.
+  pull_request:
+    branches: [main]
+
+env:
+  NODE_VERSION: '22'
+
+jobs:
+  check-copy-source-liveness:
+    name: check-copy-source-liveness
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Verify public-entry copy sources exist and are live
+        run: node scripts/report-public-entry-copy-sources.js

@@ -102,7 +102,7 @@ function ApplicationCard({ application }: { application: EmployerWorkflowApplica
 
         <div className="mt-5">
           <Button asChild className="w-full" size="sm">
-            <Link href={`/employer/review/${encodeURIComponent(application.id)}`}>
+            <Link href={`/employer/applications/${encodeURIComponent(application.id)}`}>
               Review application
               <ArrowRight className="h-4 w-4" />
             </Link>

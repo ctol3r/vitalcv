@@ -54,6 +54,9 @@ interface ShareResult {
   bundleUrl: string;
   webhookDelivered: boolean;
   emailSent: boolean;
+  /** Wave M — persisted reusable readiness snapshot issued with this share (null until backend migration deploys). */
+  readinessSnapshotId?: string | null;
+  readinessSnapshotPath?: string | null;
 }
 
 interface OrgContext {
@@ -68,6 +71,8 @@ type Step = 'credentials' | 'org_context' | 'confirmed';
 interface Props {
   npi: string;
   label?: string;
+  /** Prefill the share destination (e.g. from a MATCHA opportunity's employer). Always editable. */
+  initialOrgContext?: Partial<OrgContext>;
   onShareComplete?: (result: ShareResult) => void;
 }
 
@@ -128,7 +133,13 @@ function clerkId(): string {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export function ApplyWithVitalCV({ npi, label = 'Apply with VitalCV', onShareComplete }: Props) {
+export function ApplyWithVitalCV({ npi, label = 'Apply with VitalCV', initialOrgContext, onShareComplete }: Props) {
+  const baseOrgCtx = useCallback((): OrgContext => ({
+    organization_id: initialOrgContext?.organization_id ?? '',
+    name: initialOrgContext?.name ?? '',
+    callback_url: initialOrgContext?.callback_url ?? '',
+    purpose_of_use: initialOrgContext?.purpose_of_use ?? PURPOSE_OPTIONS[0],
+  }), [initialOrgContext]);
   const [isOpen, setIsOpen] = useState(false);
   const [step, setStep] = useState<Step>('credentials');
   const [isLoading, setIsLoading] = useState(false);
@@ -138,9 +149,7 @@ export function ApplyWithVitalCV({ npi, label = 'Apply with VitalCV', onShareCom
   const [trustState, setTrustState] = useState<TrustStateData | null>(null);
   const [credentials, setCredentials] = useState<BundleCredential[]>([]);
   const [selectedTypes, setSelectedTypes] = useState<Set<string>>(new Set());
-  const [orgCtx, setOrgCtx] = useState<OrgContext>({
-    organization_id: '', name: '', callback_url: '', purpose_of_use: PURPOSE_OPTIONS[0],
-  });
+  const [orgCtx, setOrgCtx] = useState<OrgContext>(baseOrgCtx);
   const [orgCtxErrors, setOrgCtxErrors] = useState<Partial<Record<keyof OrgContext, string>>>({});
   const [shareResult, setShareResult] = useState<ShareResult | null>(null);
   const [countdown, setCountdown] = useState('');
@@ -153,10 +162,10 @@ export function ApplyWithVitalCV({ npi, label = 'Apply with VitalCV', onShareCom
     setStep('credentials');
     setError(null);
     setShareResult(null);
-    setOrgCtx({ organization_id: '', name: '', callback_url: '', purpose_of_use: PURPOSE_OPTIONS[0] });
+    setOrgCtx(baseOrgCtx());
     setOrgCtxErrors({});
     setIsOpen(true);
-  }, []);
+  }, [baseOrgCtx]);
 
   const closeModal = useCallback(() => { setIsOpen(false); }, []);
 
@@ -557,6 +566,27 @@ export function ApplyWithVitalCV({ npi, label = 'Apply with VitalCV', onShareCom
                 </div>
               </div>
 
+              {/* Reusable readiness snapshot (Wave M) */}
+              {shareResult.readinessSnapshotPath ? (
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-zinc-500 mb-2">
+                    Reusable readiness snapshot
+                  </p>
+                  <a
+                    href={shareResult.readinessSnapshotPath}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="block rounded-lg border border-border bg-black/30 px-3 py-2 text-xs text-emerald-300 truncate font-mono hover:border-emerald-500/40 transition-colors"
+                  >
+                    {shareResult.readinessSnapshotPath}
+                  </a>
+                  <p className="mt-1.5 text-[10px] text-zinc-600 leading-relaxed">
+                    Your evidence as issued right now — reviewers you give this to see the same
+                    snapshot, every access is audited, and revoking this share closes it.
+                  </p>
+                </div>
+              ) : null}
+
               {/* Credentials shared summary */}
               <div>
                 <p className="text-[10px] font-semibold uppercase tracking-widest text-zinc-500 mb-2">
@@ -637,7 +667,7 @@ export function ApplyWithVitalCV({ npi, label = 'Apply with VitalCV', onShareCom
                   onClick={() => {
                     setStep('credentials');
                     setShareResult(null);
-                    setOrgCtx({ organization_id: '', name: '', callback_url: '', purpose_of_use: PURPOSE_OPTIONS[0] });
+                    setOrgCtx(baseOrgCtx());
                   }}
                   className="flex-1 py-3 rounded-xl border border-border text-xs font-medium text-zinc-400 hover:text-foreground transition-colors"
                 >

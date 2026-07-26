@@ -4,6 +4,7 @@
  * POST /api/trust/events/batch (handled by Next.js via subpath)
  */
 import { NextRequest, NextResponse } from 'next/server';
+import { buildIdentityHeaders } from '@/lib/auth/forwardIdentity';
 
 export const runtime = 'nodejs';
 
@@ -16,12 +17,14 @@ const B =
 export async function POST(req: NextRequest) {
   try {
     const body = await req.text();
-    const clerkUserId = req.headers.get('x-clerk-user-id') ?? '';
+    // Identity is derived from the SERVER-side Clerk session (G1) — previously
+    // this proxy forwarded the client-supplied x-clerk-user-id header verbatim,
+    // which was spoofable by any caller.
     const res = await fetch(`${B}/api/trust/events`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-clerk-user-id': clerkUserId,
+        ...(await buildIdentityHeaders()),
       },
       body,
     });

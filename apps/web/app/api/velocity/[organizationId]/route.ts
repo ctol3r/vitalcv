@@ -1,5 +1,6 @@
 import { auth } from '@clerk/nextjs/server';
 import { NextRequest, NextResponse } from 'next/server';
+import { buildIdentityHeaders } from '@/lib/auth/forwardIdentity';
 export const runtime = 'nodejs';
 const B =
   process.env.BACKEND_URL ||
@@ -20,7 +21,7 @@ export async function GET(
   const res = await fetch(`${B}/api/velocity/${organizationId}`, {
     headers: {
       'Content-Type': 'application/json',
-      'x-clerk-user-id': session.userId,
+      ...(await buildIdentityHeaders({ userId: session.userId })),
     },
   });
   return NextResponse.json(await res.json().catch(() => ({})), {

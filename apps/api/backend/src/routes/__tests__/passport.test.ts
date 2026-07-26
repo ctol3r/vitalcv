@@ -24,9 +24,21 @@ jest.mock('../../graphql/prisma_client', () => ({
   },
 }));
 
-jest.mock('../../middleware/rateLimitFactory', () => ({
-  proofRateLimit: (_req: express.Request, _res: express.Response, next: express.NextFunction) => next(),
-}));
+jest.mock('../../middleware/rateLimitFactory', () => {
+  const passthrough = (
+    _req: express.Request,
+    _res: express.Response,
+    next: express.NextFunction,
+  ): void => next();
+  // Every limiter passport.ts imports must be stubbed — a missing export lands as
+  // `undefined` in the route chain and Express throws at registration time.
+  return {
+    proofRateLimit: passthrough,
+    trustStateRateLimit: passthrough,
+    credentialStatusRateLimit: passthrough,
+    passportExportRateLimit: passthrough,
+  };
+});
 
 jest.mock('../../services/passport/shareLink', () => ({
   generateShareLink: jest.fn((npi: string) => ({

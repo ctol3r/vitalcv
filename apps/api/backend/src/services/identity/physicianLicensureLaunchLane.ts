@@ -62,6 +62,8 @@ function stateBoardDegradationReason(result: StateBoardResult, launchState: stri
       return `${launchState} state-board lookup failed or timed out. Treat this lane as unavailable until the source recovers or is manually verified.`;
     case 'PARSER_FAILURE':
       return `${launchState} state-board response could not be parsed safely. Manual verification is required until the parser is repaired.`;
+    case 'IDENTITY_UNRESOLVED':
+      return `${launchState} state-board search requires the provider's legal name, which could not be resolved from NPPES for this NPI. Manual verification is required.`;
     case 'STALE':
       return `${launchState} state-board verification returned stale data. Treat this lane as unresolved until a fresh board result is available.`;
     case 'NOT_IMPLEMENTED':
@@ -266,7 +268,8 @@ function buildStateBoardLicenseClaim(input: {
     participationStatus: authorityFields.participationStatus,
     boardOrderSeverity: authorityFields.boardOrderSeverity,
     connectorState: authorityFields.connectorState,
-    sourceDisclaimer: 'California live state-board lane only. No sandbox or scraper fallback.',
+    sourceDisclaimer: input.result.sourceDisclaimer
+      ?? 'California live state-board lane only. No sandbox fallback.',
   };
 
   const reviewRequired = input.result.licenseStatus === 'NOT_FOUND';

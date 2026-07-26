@@ -1,0 +1,67 @@
+/**
+ * MATCHA polish utilities (Wave 9).
+ *
+ * Small, opt-in classes for the MATCHA intelligence surfaces: a calm entrance, hover elevation
+ * on interactive cards, and a skeleton shimmer. Reduced-motion users get static equivalents.
+ * Uses the house motion curve (cubic-bezier(0.2,0.8,0.2,1)).
+ */
+
+@keyframes matcha-enter-kf {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes matcha-shimmer-kf {
+  0% {
+    background-position: -420px 0;
+  }
+  100% {
+    background-position: 420px 0;
+  }
+}
+
+/* Calm fade-in-up for surface roots. */
+.matcha-enter {
+  animation: matcha-enter-kf 420ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+/* Hover elevation for interactive cards. */
+.matcha-lift {
+  transition:
+    transform 240ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    box-shadow 240ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    border-color 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.matcha-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.1);
+  border-color: color-mix(in srgb, var(--vt-accent, #0a7b7f) 40%, transparent);
+}
+
+/* Skeleton shimmer block. */
+.matcha-skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--vt-surface-subtle, #edf2f0) 25%,
+    color-mix(in srgb, var(--vt-surface-subtle, #edf2f0) 60%, white) 37%,
+    var(--vt-surface-subtle, #edf2f0) 63%
+  );
+  background-size: 840px 100%;
+  animation: matcha-shimmer-kf 1.5s ease-in-out infinite;
+  border-radius: 10px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .matcha-enter,
+  .matcha-lift,
+  .matcha-skeleton {
+    animation: none;
+    transition: none;
+  }
+}

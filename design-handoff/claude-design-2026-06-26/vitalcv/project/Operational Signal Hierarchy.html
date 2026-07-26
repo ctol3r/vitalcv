@@ -1,0 +1,960 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>VitalCV · Operational Signal Hierarchy · v1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+:root {
+  --ink-0:   #fff;
+  --ink-50:  #f7f6f2;
+  --ink-100: #efede7;
+  --ink-200: #dddbd3;
+  --ink-300: #c2bfb5;
+  --ink-400: #96938a;
+  --ink-500: #6b6860;
+  --ink-600: #474540;
+  --ink-700: #2d2c28;
+  --ink-800: #1a1916;
+  --ink-900: #0f0e0c;
+  --ink-950: #050504;
+  --rule:    #dddbd3;
+  --rule-soft: #eceae4;
+  --paper:   #f4f2ec;
+  --s-ok:    #2d6a4f;
+  --s-watch: #7d5a1e;
+  --s-hold:  #5a3a1e;
+}
+*, *::before, *::after { box-sizing: border-box; }
+html, body {
+  margin: 0; padding: 0;
+  background: var(--paper);
+  color: var(--ink-900);
+  font-family: 'Geist', ui-sans-serif, system-ui, sans-serif;
+  font-feature-settings: 'ss01','cv11';
+  -webkit-font-smoothing: antialiased;
+  font-size: 13.5px;
+  line-height: 1.55;
+  letter-spacing: -.003em;
+}
+.mono, code, time { font-family: 'Geist Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; font-feature-settings: 'zero','tnum'; }
+
+/* ── Op bar ──────────────────────────────────────────────── */
+.opbar { background: var(--ink-950); color: var(--ink-300); font-family: 'Geist Mono', monospace; font-size: 10.5px; position: sticky; top: 0; z-index: 50; }
+.opbar .in { max-width: 1340px; margin: 0 auto; padding: 0 36px; height: 32px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.opbar .l { display: flex; align-items: center; gap: 14px; }
+.opbar .l .g { width: 17px; height: 17px; background: #fff; color: #000; display: grid; place-items: center; font-size: 9.5px; font-weight: 700; }
+.opbar .l strong { color: #fff; font-weight: 600; letter-spacing: .04em; }
+.opbar .l .sep { color: var(--ink-700); }
+.opbar .r { display: flex; align-items: center; gap: 16px; color: var(--ink-500); text-transform: uppercase; letter-spacing: .12em; font-size: 9.5px; }
+.opbar .r .pill { display: inline-flex; align-items: center; gap: 5px; padding: 1px 7px; border: 1px solid var(--ink-700); font-size: 9px; color: var(--ink-300); }
+.opbar .r .dot { width: 5px; height: 5px; background: #fff; border-radius: 50%; opacity: .7; }
+
+/* ── Doc ─────────────────────────────────────────────────── */
+.doc { max-width: 1340px; margin: 0 auto; background: var(--ink-0); box-shadow: 0 1px 0 rgba(0,0,0,.04), 0 20px 60px -20px rgba(0,0,0,.10); }
+
+/* ── Masthead ────────────────────────────────────────────── */
+.mast { padding: 36px 56px 32px; border-bottom: 1px solid var(--ink-900); }
+.mast .crumb { font-family: 'Geist Mono', monospace; font-size: 9.5px; text-transform: uppercase; letter-spacing: .18em; color: var(--ink-500); display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
+.mast .crumb .r { display: inline-block; width: 18px; height: 1px; background: var(--ink-300); }
+.mast h1 { font-size: 34px; line-height: 1.05; letter-spacing: -.028em; font-weight: 600; margin: 0 0 10px; max-width: 900px; }
+.mast h1 em { font-style: normal; color: var(--ink-500); font-weight: 400; }
+.mast .lede { font-size: 14.5px; color: var(--ink-600); line-height: 1.6; max-width: 72ch; margin: 0 0 24px; letter-spacing: -.005em; }
+.mast .lede strong { color: var(--ink-900); font-weight: 500; }
+.mast .meta { display: flex; gap: 24px; flex-wrap: wrap; font-family: 'Geist Mono', monospace; font-size: 10px; text-transform: uppercase; letter-spacing: .14em; color: var(--ink-500); }
+.mast .meta span strong { color: var(--ink-900); font-weight: 500; }
+
+/* ── Layout ──────────────────────────────────────────────── */
+.body { display: grid; grid-template-columns: 220px 1fr; }
+.toc { border-right: 1px solid var(--rule); padding: 28px 24px 48px; position: sticky; top: 32px; align-self: flex-start; height: calc(100vh - 32px); overflow-y: auto; }
+.toc .lbl { font-family: 'Geist Mono', monospace; font-size: 9px; text-transform: uppercase; letter-spacing: .18em; color: var(--ink-400); font-weight: 600; padding-bottom: 10px; margin-bottom: 10px; border-bottom: 1px solid var(--rule-soft); }
+.toc nav { display: flex; flex-direction: column; }
+.toc a { display: flex; align-items: baseline; gap: 10px; padding: 7px 0; text-decoration: none; font-size: 12px; font-weight: 500; color: var(--ink-700); border-bottom: 1px dashed var(--rule-soft); letter-spacing: -.005em; transition: color .1s; }
+.toc a:last-child { border-bottom: 0; }
+.toc a:hover { color: var(--ink-950); }
+.toc a .n { font-family: 'Geist Mono', monospace; font-size: 9.5px; color: var(--ink-400); font-weight: 400; letter-spacing: .04em; flex-shrink: 0; }
+
+.content { padding: 0 56px 80px; min-width: 0; }
+
+/* ── Section ─────────────────────────────────────────────── */
+.sec { margin-top: 52px; }
+.sec:first-child { margin-top: 40px; }
+.sh { display: flex; align-items: baseline; gap: 14px; border-bottom: 1px solid var(--ink-900); padding-bottom: 9px; margin-bottom: 22px; }
+.sh .n { font-family: 'Geist Mono', monospace; font-size: 9.5px; text-transform: uppercase; letter-spacing: .18em; color: var(--ink-300); font-weight: 600; }
+.sh h2 { font-size: 17px; margin: 0; font-weight: 600; letter-spacing: -.015em; }
+.sh .ey { font-family: 'Geist Mono', monospace; font-size: 9.5px; text-transform: uppercase; letter-spacing: .16em; color: var(--ink-500); margin-left: auto; }
+.prose { font-size: 13.5px; color: var(--ink-700); line-height: 1.65; max-width: 72ch; margin-bottom: 20px; }
+.prose strong { color: var(--ink-900); font-weight: 500; }
+.prose em { font-style: normal; color: var(--ink-600); }
+
+/* ═══════════════════════════════════════════════════════════
+   00 · ATTENTION MODEL
+   ═══════════════════════════════════════════════════════════ */
+.attention-zones {
+  display: grid; grid-template-columns: 1fr 340px; gap: 0;
+  border: 1px solid var(--ink-900);
+}
+.az-canvas {
+  padding: 0; border-right: 1px solid var(--rule); background: var(--ink-50);
+  display: flex; flex-direction: column;
+}
+.az-canvas .az-label { font-family: 'Geist Mono', monospace; font-size: 9px; text-transform: uppercase; letter-spacing: .16em; color: var(--ink-500); padding: 10px 16px; border-bottom: 1px solid var(--rule); background: var(--ink-0); }
+
+/* Zone mockup */
+.zone-mock { padding: 20px; display: flex; flex-direction: column; gap: 8px; }
+.zone-a {
+  background: var(--ink-900); color: #fff;
+  padding: 16px 20px; position: relative;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.zone-a .tag { font-family: 'Geist Mono', monospace; font-size: 9px; text-transform: uppercase; letter-spacing: .18em; color: rgba(255,255,255,.4); }
+.zone-a .signal { font-size: 20px; font-weight: 600; letter-spacing: -.02em; line-height: 1.1; }
+.zone-a .zone-id { position: absolute; right: 12px; top: 10px; font-family: 'Geist Mono', monospace; font-size: 9px; text-transform: uppercase; letter-spacing: .14em; color: rgba(255,255,255,.3); }
+
+.zone-b {
+  background: var(--ink-0); border: 1px solid var(--rule);
+  padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; position: relative;
+}
+.zone-b .context { font-size: 13px; color: var(--ink-700); }
+.zone-b .context strong { color: var(--ink-900); font-weight: 500; }
+.zone-b .zone-id { font-family: 'Geist Mono', monospace; font-size: 9px; text-transform: uppercase; letter-spacing: .14em; color: var(--ink-400); }
+
+.zone-c {
+  background: var(--ink-0); border: 1px solid var(--rule);
+  padding: 10px 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; position: relative;
+}
+.zone-c .action-btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--ink-900); color: #fff;
+  font-family: 'Geist Mono', monospace; font-size: 10px;
+  text-transform: uppercase; letter-spacing: .12em; font-weight: 600;
+  padding: 7px 14px; border: 0; cursor: pointer;
+}
+.zone-c .ghost-btn {
+  display: inline-flex; align-items: center;
+  font-family: 'Geist Mono', monospace; font-size: 10px;
+  text-transform: uppercase; letter-spacing: .12em; font-weight: 500;
+  color: var(--ink-600); padding: 7px 0; border: 0; background: transparent; cursor: pointer;
+  text-decoration: underline; text-decoration-color: var(--ink-300);
+}
+.zone-c .zone-id { font-family: 'Geist Mono', monospace; font-size: 9px; text-transform: uppercase; letter-spacing: .14em; color: var(--ink-400); }
+
+.zone-d {
+  background: var(--ink-50); border: 1px dashed var(--rule);
+  padding: 10px 16px; display: flex; gap: 20px; flex-wrap: wrap; position: relative;
+}
+.zone-d .detail-item { display: flex; flex-direction: column; gap: 2px; }
+.zone-d .dk { font-family: 'Geist Mono', monospace; font-size: 9px; text-transform: uppercase; letter-spacing: .14em; color: var(--ink-500); }
+.zone-d .dv { font-family: 'Geist Mono', monospace; font-size: 11px; color: var(--ink-700); font-weight: 500; }
+.zone-d .zone-id { position: absolute; right: 10px; top: 8px; font-family: 'Geist Mono', monospace; font-size: 9px; text-transform: uppercase; letter-spacing: .14em; color: var(--ink-400); }
+
+/* Legend */
+.az-legend { padding: 20px 22px; display: flex; flex-direction: column; gap: 0; }
+.legend-row {
+  display: grid; grid-template-columns: 56px 1fr;
+  gap: 12px; padding: 14px 0; border-bottom: 1px dashed var(--rule-soft);
+  align-items: start;
+}
+.legend-row:last-child { border-bottom: 0; }
+.legend-zone {
+  font-family: 'Geist Mono', monospace; font-size: 10px;
+  text-transform: uppercase; letter-spacing: .12em; font-weight: 600;
+  padding: 4px 8px; text-align: center;
+}
+.lz-a { background: var(--ink-900); color: #fff; }
+.lz-b { background: var(--ink-0); color: var(--ink-900); border: 1px solid var(--rule); }
+.lz-c { background: var(--ink-0); color: var(--ink-900); border: 1px solid var(--rule); }
+.lz-d { background: var(--ink-50); color: var(--ink-600); border: 1px dashed var(--rule); }
+.legend-text .l-title { font-size: 12.5px; font-weight: 600; color: var(--ink-900); letter-spacing: -.008em; margin-bottom: 3px; }
+.legend-text .l-rule { font-size: 11.5px; color: var(--ink-600); line-height: 1.5; }
+.legend-text .l-rule strong { color: var(--ink-900); font-weight: 500; }
+
+/* ═══════════════════════════════════════════════════════════
+   01 · SIGNAL HIERARCHY
+   ═══════════════════════════════════════════════════════════ */
+.signal-matrix {
+  display: grid; grid-template-columns: 160px repeat(3, 1fr);
+  border: 1px solid var(--ink-900);
+}
+.sm-head { padding: 10px 14px; background: var(--ink-900); color: #fff; font-family: 'Geist Mono', monospace; font-size: 9.5px; text-transform: uppercase; letter-spacing: .14em; border-right: 1px solid var(--ink-700); }
+.sm-head:last-child { border-right: 0; }
+.sm-head strong { display: block; font-weight: 600; font-size: 10.5px; }
+.sm-head .sub { color: rgba(255,255,255,.4); font-size: 9px; margin-top: 2px; }
+.sm-lbl { padding: 12px 14px; background: var(--ink-50); border-right: 1px solid var(--rule); border-top: 1px solid var(--rule); font-family: 'Geist Mono', monospace; font-size: 9.5px; text-transform: uppercase; letter-spacing: .12em; color: var(--ink-900); font-weight: 600; display: flex; align-items: center; }
+.sm-cell { padding: 12px 14px; border-right: 1px solid var(--rule); border-top: 1px solid var(--rule); font-size: 12px; color: var(--ink-700); line-height: 1.5; vertical-align: top; }
+.sm-cell:last-child { border-right: 0; }
+.sm-cell strong { color: var(--ink-900); font-weight: 500; }
+.sm-cell code { font-family: 'Geist Mono', monospace; font-size: 10.5px; color: var(--ink-900); }
+.sm-cell .eg { font-size: 11.5px; color: var(--ink-600); margin-top: 6px; padding-top: 6px; border-top: 1px dashed var(--rule-soft); font-style: normal; }
+.sm-cell .eg::before { content: "e.g. "; font-family: 'Geist Mono', monospace; font-size: 9.5px; text-transform: uppercase; letter-spacing: .12em; color: var(--ink-400); }
+
+/* Weight bands */
+.w-primary { font-size: 14px; font-weight: 600; color: var(--ink-900); letter-spacing: -.01em; }
+.w-context  { font-size: 12.5px; color: var(--ink-700); }
+.w-action   { font-family: 'Geist Mono', monospace; font-size: 10px; text-transform: uppercase; letter-spacing: .12em; color: var(--ink-900); font-weight: 600; }
+.w-detail   { font-family: 'Geist Mono', monospace; font-size: 10px; color: var(--ink-500); letter-spacing: .04em; }
+
+/* ═══════════════════════════════════════════════════════════
+   02 · PROGRESSIVE DISCLOSURE
+   ═══════════════════════════════════════════════════════════ */
+.disclosure-flow { display: flex; flex-direction: column; gap: 0; }
+.dl-tier {
+  border: 1px solid var(--rule); margin-bottom: -1px;
+  display: grid; grid-template-columns: 140px 1fr 1fr;
+}
+.dl-tier.active { border-color: var(--ink-900); z-index: 2; position: relative; }
+.dl-meta {
+  padding: 16px 18px; background: var(--ink-50); border-right: 1px solid var(--rule);
+  display: flex; flex-direction: column; gap: 5px; justify-content: center;
+}
+.dl-meta .tier-num { font-family: 'Geist Mono', monospace; font-size: 9px; text-transform: uppercase; letter-spacing: .18em; color: var(--ink-400); font-weight: 600; }
+.dl-meta .tier-name { font-size: 13px; font-weight: 600; color: var(--ink-900); letter-spacing: -.01em; }
+.dl-meta .tier-time { font-family: 'Geist Mono', monospace; font-size: 9.5px; color: var(--ink-500); }
+.dl-demo { padding: 16px 18px; border-right: 1px solid var(--rule); }
+.dl-rules { padding: 16px 18px; font-size: 12px; color: var(--ink-700); line-height: 1.55; }
+.dl-rules strong { color: var(--ink-900); font-weight: 500; }
+.dl-rules .tag { font-family: 'Geist Mono', monospace; font-size: 9px; text-transform: uppercase; letter-spacing: .12em; color: var(--ink-500); display: block; margin-bottom: 5px; }
+
+/* Disclosure mock surfaces */
+.dm-t0 { display: flex; flex-direction: column; gap: 6px; }
+.dm-verdict { font-size: 18px; font-weight: 600; letter-spacing: -.018em; color: var(--ink-900); }
+.dm-sub { font-size: 12px; color: var(--ink-600); }
+.dm-chip { display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px; border: 1px solid var(--ink-900); font-family: 'Geist Mono', monospace; font-size: 9.5px; text-transform: uppercase; letter-spacing: .10em; font-weight: 500; color: var(--ink-900); }
+.dm-chip .cd { width: 5px; height: 5px; background: var(--ink-900); border-radius: 50%; }
+.dm-chip.dashed { border-style: dashed; color: var(--ink-600); }
+.dm-chip.dashed .cd { background: transparent; border: 1.5px dashed var(--ink-600); border-radius: 50%; }
+
+.dm-t1 { display: flex; flex-direction: column; gap: 8px; }
+.dm-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 6px 0; border-bottom: 1px dashed var(--rule-soft); }
+.dm-row:last-child { border-bottom: 0; }
+.dm-row .dk { font-family: 'Geist Mono', monospace; font-size: 9.5px; text-transform: uppercase; letter-spacing: .12em; color: var(--ink-500); }
+.dm-row .dv { font-size: 12px; color: var(--ink-900); font-weight: 500; }
+.dm-row .dv.mono { font-family: 'Geist Mono', monospace; font-size: 11px; letter-spacing: .04em; }
+
+.dm-t2 { display: flex; flex-direction: column; gap: 6px; }
+.dm-claim { padding: 8px 10px; border: 1px solid var(--rule); background: var(--ink-0); display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.dm-claim .cn { font-size: 12px; color: var(--ink-900); font-weight: 500; }
+.dm-claim .ca { display: flex; align-items: center; gap: 8px; }
+
+.dm-t3 { display: flex; flex-direction: column; gap: 8px; }
+.chain-mini { display: flex; align-items: center; gap: 0; font-family: 'Geist Mono', monospace; font-size: 9.5px; color: var(--ink-700); }
+.chain-mini .h { padding: 3px 7px; background: var(--ink-50); border: 1px solid var(--rule); }
+.chain-mini .h.cur { background: var(--ink-900); color: #fff; border-color: var(--ink-900); }
+.chain-mini .arr { color: var(--ink-400); padding: 0 3px; }
+
+/* ═══════════════════════════════════════════════════════════
+   03 · QUIET STATUS LANGUAGE
+   ═══════════════════════════════════════════════════════════ */
+.language-table { border: 1px solid var(--ink-900); }
+.lt-head { display: grid; grid-template-columns: 1fr 1fr 160px; padding: 10px 20px; background: var(--ink-900); color: #fff; font-family: 'Geist Mono', monospace; font-size: 9.5px; text-transform: uppercase; letter-spacing: .14em; gap: 16px; }
+.lt-head strong { font-weight: 500; color: #fff; }
+.lt-row { display: grid; grid-template-columns: 1fr 1fr 160px; padding: 13px 20px; border-top: 1px solid var(--rule); gap: 16px; align-items: start; }
+.lt-row .from { font-size: 12.5px; color: var(--ink-500); letter-spacing: -.005em; }
+.lt-row .from code { font-family: 'Geist Mono', monospace; font-size: 10.5px; color: var(--ink-600); }
+.lt-row .to { font-size: 13px; font-weight: 500; color: var(--ink-900); letter-spacing: -.008em; line-height: 1.4; }
+.lt-row .surface { font-family: 'Geist Mono', monospace; font-size: 9.5px; text-transform: uppercase; letter-spacing: .12em; color: var(--ink-500); line-height: 1.6; }
+
+/* ═══════════════════════════════════════════════════════════
+   04 · DOMINANT ACTION HIERARCHY
+   ═══════════════════════════════════════════════════════════ */
+.action-system { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; border: 1px solid var(--rule); }
+.action-tier { padding: 20px 18px; border-right: 1px solid var(--rule); display: flex; flex-direction: column; gap: 12px; }
+.action-tier:last-child { border-right: 0; }
+.at-label { font-family: 'Geist Mono', monospace; font-size: 9px; text-transform: uppercase; letter-spacing: .16em; color: var(--ink-500); font-weight: 600; }
+.at-demo { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+.at-rule { font-size: 12px; color: var(--ink-700); line-height: 1.5; }
+.at-rule strong { color: var(--ink-900); font-weight: 500; }
+
+/* Button specimens */
+.btn-primary { display: inline-flex; align-items: center; gap: 8px; background: var(--ink-900); color: #fff; font-family: 'Geist Mono', monospace; font-size: 10px; text-transform: uppercase; letter-spacing: .12em; font-weight: 600; padding: 9px 16px; border: 1px solid var(--ink-900); cursor: pointer; }
+.btn-secondary { display: inline-flex; align-items: center; gap: 7px; background: var(--ink-0); color: var(--ink-900); font-family: 'Geist Mono', monospace; font-size: 10px; text-transform: uppercase; letter-spacing: .12em; font-weight: 500; padding: 7px 14px; border: 1px solid var(--rule); cursor: pointer; }
+.btn-ghost { display: inline-flex; align-items: center; gap: 7px; background: transparent; color: var(--ink-600); font-family: 'Geist Mono', monospace; font-size: 10px; text-transform: uppercase; letter-spacing: .12em; font-weight: 500; padding: 5px 0; border: 0; cursor: pointer; text-decoration: underline; text-decoration-color: var(--ink-300); }
+.btn-text { display: inline-flex; align-items: center; font-size: 12px; color: var(--ink-500); background: transparent; border: 0; cursor: pointer; padding: 0; text-decoration: underline; text-decoration-color: var(--ink-200); }
+.btn-danger { color: var(--s-hold); }
+
+/* ═══════════════════════════════════════════════════════════
+   05 · SURFACE PATTERNS — live examples of each stage
+   ═══════════════════════════════════════════════════════════ */
+.surface-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.surface-card { border: 1px solid var(--ink-900); display: flex; flex-direction: column; }
+.sc-label { padding: 9px 16px; background: var(--ink-50); border-bottom: 1px solid var(--rule); font-family: 'Geist Mono', monospace; font-size: 9.5px; text-transform: uppercase; letter-spacing: .16em; color: var(--ink-500); display: flex; justify-content: space-between; align-items: center; }
+.sc-label strong { color: var(--ink-900); font-weight: 600; }
+.sc-body { padding: 0; flex: 1; display: flex; flex-direction: column; }
+
+/* Intake surface */
+.intake-sig { padding: 20px 22px; background: var(--ink-900); color: #fff; display: flex; flex-direction: column; gap: 6px; }
+.intake-sig .tag { font-family: 'Geist Mono', monospace; font-size: 9px; text-transform: uppercase; letter-spacing: .18em; color: rgba(255,255,255,.4); }
+.intake-sig .headline { font-size: 22px; font-weight: 600; letter-spacing: -.022em; line-height: 1.1; }
+.intake-sig .sub { font-size: 12.5px; color: rgba(255,255,255,.55); }
+.intake-ctx { padding: 14px 22px; display: flex; align-items: center; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--rule-soft); }
+.intake-ctx .ctx-text { font-size: 12.5px; color: var(--ink-700); }
+.intake-ctx .ctx-text strong { color: var(--ink-900); font-weight: 500; }
+.intake-act { padding: 14px 22px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+
+/* Pilot surface */
+.pilot-sig { padding: 20px 22px; background: var(--ink-900); color: #fff; display: flex; flex-direction: column; gap: 6px; }
+.pilot-sig .tag { font-family: 'Geist Mono', monospace; font-size: 9px; text-transform: uppercase; letter-spacing: .18em; color: rgba(255,255,255,.4); }
+.pilot-sig .headline { font-size: 22px; font-weight: 600; letter-spacing: -.022em; line-height: 1.1; }
+.pilot-sig .sub { font-size: 12.5px; color: rgba(255,255,255,.55); }
+.pilot-stat { padding: 0 22px; border-bottom: 1px solid var(--rule-soft); }
+.pilot-stat .stat-row { display: flex; gap: 28px; padding: 12px 0; }
+.pilot-stat .stat { display: flex; flex-direction: column; gap: 2px; }
+.pilot-stat .stat .k { font-family: 'Geist Mono', monospace; font-size: 9px; text-transform: uppercase; letter-spacing: .14em; color: var(--ink-500); }
+.pilot-stat .stat .v { font-family: 'Geist Mono', monospace; font-size: 14px; font-weight: 600; color: var(--ink-900); letter-spacing: .02em; }
+.pilot-act { padding: 14px 22px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+
+/* Waste visibility */
+.waste-sig { padding: 20px 22px; display: flex; flex-direction: column; gap: 4px; border-bottom: 1px solid var(--rule); }
+.waste-sig .tag { font-family: 'Geist Mono', monospace; font-size: 9px; text-transform: uppercase; letter-spacing: .18em; color: var(--ink-500); }
+.waste-sig .headline { font-size: 26px; font-weight: 600; letter-spacing: -.025em; color: var(--ink-900); line-height: 1.1; }
+.waste-sig .headline em { font-style: normal; color: var(--ink-500); font-weight: 400; font-size: 18px; }
+.waste-sig .sub { font-size: 12.5px; color: var(--ink-600); }
+.waste-ctx { padding: 12px 22px; border-bottom: 1px solid var(--rule-soft); display: flex; gap: 24px; }
+.waste-ctx .item { display: flex; flex-direction: column; gap: 2px; }
+.waste-ctx .item .k { font-family: 'Geist Mono', monospace; font-size: 9px; text-transform: uppercase; letter-spacing: .14em; color: var(--ink-500); }
+.waste-ctx .item .v { font-size: 12.5px; color: var(--ink-900); font-weight: 500; }
+.waste-act { padding: 14px 22px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+
+/* Deployment surface */
+.deploy-sig { padding: 20px 22px; border-bottom: 1px solid var(--rule); display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.deploy-sig .verdict-block { display: flex; flex-direction: column; gap: 5px; }
+.deploy-sig .verdict-block .tag { font-family: 'Geist Mono', monospace; font-size: 9px; text-transform: uppercase; letter-spacing: .18em; color: var(--ink-500); }
+.deploy-sig .verdict-block .verdict { font-size: 22px; font-weight: 600; letter-spacing: -.022em; color: var(--ink-900); line-height: 1.1; }
+.deploy-sig .verdict-block .sub { font-size: 12px; color: var(--ink-600); }
+.hold-chip { display: inline-flex; align-items: center; gap: 7px; padding: 7px 14px; border: 1px dashed var(--ink-700); font-family: 'Geist Mono', monospace; font-size: 9.5px; text-transform: uppercase; letter-spacing: .12em; color: var(--ink-700); font-weight: 600; }
+.hold-chip .hd { width: 6px; height: 6px; border: 1.5px dashed var(--ink-700); border-radius: 50%; }
+.go-chip { display: inline-flex; align-items: center; gap: 7px; padding: 7px 14px; background: var(--ink-900); border: 1px solid var(--ink-900); font-family: 'Geist Mono', monospace; font-size: 9.5px; text-transform: uppercase; letter-spacing: .12em; color: #fff; font-weight: 600; }
+.go-chip .gd { width: 6px; height: 6px; background: #fff; border-radius: 50%; }
+.deploy-checks { padding: 12px 22px; border-bottom: 1px solid var(--rule-soft); display: flex; flex-direction: column; gap: 0; }
+.dc-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 6px 0; border-bottom: 1px dashed var(--rule-soft); font-size: 12px; }
+.dc-row:last-child { border-bottom: 0; }
+.dc-name { color: var(--ink-700); }
+.dc-ok { font-family: 'Geist Mono', monospace; font-size: 9.5px; text-transform: uppercase; letter-spacing: .10em; color: var(--s-ok); font-weight: 600; }
+.dc-ok::before { content: "✓ "; }
+.dc-watch { font-family: 'Geist Mono', monospace; font-size: 9.5px; text-transform: uppercase; letter-spacing: .10em; color: var(--s-watch); font-weight: 600; }
+.dc-watch::before { content: "△ "; }
+.deploy-act { padding: 14px 22px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+
+/* ═══════════════════════════════════════════════════════════
+   06 · IMPLEMENTATION GUIDANCE
+   ═══════════════════════════════════════════════════════════ */
+.impl-block { border: 1px solid var(--rule); margin-bottom: -1px; }
+.ib-head { padding: 10px 18px; background: var(--ink-50); border-bottom: 1px solid var(--rule); font-family: 'Geist Mono', monospace; font-size: 9.5px; text-transform: uppercase; letter-spacing: .16em; display: flex; justify-content: space-between; align-items: center; color: var(--ink-700); }
+.ib-head strong { color: var(--ink-900); font-weight: 600; font-size: 10.5px; }
+.ib-body { padding: 14px 18px; }
+.rule-row { display: grid; grid-template-columns: 160px 1fr; gap: 12px; padding: 8px 0; border-bottom: 1px dashed var(--rule-soft); align-items: start; }
+.rule-row:last-child { border-bottom: 0; }
+.rk { font-family: 'Geist Mono', monospace; font-size: 9.5px; text-transform: uppercase; letter-spacing: .12em; color: var(--ink-500); font-weight: 600; padding-top: 1px; }
+.rv { font-size: 12px; color: var(--ink-700); line-height: 1.55; }
+.rv strong { color: var(--ink-900); font-weight: 500; }
+.rv code { font-family: 'Geist Mono', monospace; font-size: 10.5px; color: var(--ink-900); background: var(--ink-50); padding: 1px 4px; border: 1px solid var(--rule); }
+.never { color: var(--s-hold); font-family: 'Geist Mono', monospace; font-size: 9.5px; text-transform: uppercase; letter-spacing: .10em; font-weight: 600; }
+.never::before { content: "× "; }
+.always { color: var(--s-ok); font-family: 'Geist Mono', monospace; font-size: 9.5px; text-transform: uppercase; letter-spacing: .10em; font-weight: 600; }
+.always::before { content: "✓ "; }
+
+/* ── Footer ──────────────────────────────────────────────── */
+footer.foot { padding: 20px 56px; border-top: 1px solid var(--rule); background: var(--ink-0); font-family: 'Geist Mono', monospace; font-size: 10px; color: var(--ink-500); text-transform: uppercase; letter-spacing: .14em; display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; }
+footer.foot strong { color: var(--ink-900); font-weight: 600; }
+
+@media (max-width: 900px) {
+  .body { grid-template-columns: 1fr; }
+  .toc { display: none; }
+  .content { padding: 0 24px 48px; }
+  .mast { padding: 24px; }
+  .attention-zones, .signal-matrix, .action-system, .surface-grid { grid-template-columns: 1fr; }
+  .dl-tier { grid-template-columns: 1fr; }
+  footer.foot { padding: 20px 24px; }
+}
+</style>
+</head>
+<body>
+
+<!-- Op bar -->
+<div class="opbar">
+  <div class="in">
+    <div class="l">
+      <span class="g">V</span>
+      <strong>VitalCV</strong>
+      <span class="sep">/</span>
+      <span style="color:var(--ink-400);">signal hierarchy · v1</span>
+    </div>
+    <div class="r">
+      <span>One signal · one action · one state · per screen</span>
+      <span style="color:var(--ink-700);">|</span>
+      <span class="pill"><span class="dot"></span>Operational</span>
+      <span style="color:var(--ink-600);">vc.2026.05.21-b</span>
+    </div>
+  </div>
+</div>
+
+<div class="doc">
+
+  <!-- Masthead -->
+  <header class="mast">
+    <div class="crumb"><span class="r"></span>Operational signal hierarchy · attention model · Claude Code handoff</div>
+    <h1>One thing at a time. <em>Every time.</em></h1>
+    <p class="lede">Every VitalCV surface communicates <strong>one primary signal, one primary action, and one dominant continuity state</strong>. Everything else is secondary — present but quiet, accessible but not competing. The goal is zero cognitive competition on any surface an institutional reviewer sees.</p>
+    <div class="meta">
+      <span>Zones · <strong>4 · A · B · C · D</strong></span>
+      <span>Tiers · <strong>4 · glance · review · audit · forensic</strong></span>
+      <span>Actions · <strong>1 primary per screen · max 3 total</strong></span>
+      <span>Language · <strong>plain operational · no engineering vocabulary</strong></span>
+    </div>
+  </header>
+
+  <div class="body">
+
+    <!-- TOC -->
+    <aside class="toc">
+      <div class="lbl">Contents</div>
+      <nav>
+        <a href="#attention"><span class="n">00</span>Attention Model</a>
+        <a href="#signal"><span class="n">01</span>Signal Hierarchy</a>
+        <a href="#disclosure"><span class="n">02</span>Progressive Disclosure</a>
+        <a href="#language"><span class="n">03</span>Quiet Status Language</a>
+        <a href="#action"><span class="n">04</span>Action Hierarchy</a>
+        <a href="#surfaces"><span class="n">05</span>Surface Patterns</a>
+        <a href="#impl"><span class="n">06</span>Implementation Guidance</a>
+      </nav>
+    </aside>
+
+    <div class="content">
+
+      <!-- ══ 00 · ATTENTION MODEL ══════════════════════════════ -->
+      <div class="sec" id="attention">
+        <div class="sh"><span class="n">00</span><h2>Attention model · four zones · one reading direction</h2><span class="ey">Z → A → B → C → D · never compete</span></div>
+        <p class="prose">Every screen is divided into four zones. The eye enters at Zone A. A reviewer should be able to form a judgment at Zone A alone and exit. Zones B, C, and D exist to answer follow-up questions — they never compete with Zone A for attention. <strong>Zone A is never empty. Zone D is never prominent.</strong></p>
+
+        <div class="attention-zones">
+          <div class="az-canvas">
+            <div class="az-label">Live specimen · Pilot surface · attention zones annotated</div>
+            <div class="zone-mock">
+
+              <!-- Zone A: Primary signal -->
+              <div class="zone-a">
+                <span class="zone-id">Zone A · primary signal</span>
+                <div class="tag">Cedar Health · Pilot R-2026-05-21</div>
+                <div class="signal">47 of 50 clinicians verified.</div>
+                <div style="margin-top:4px; display:flex; align-items:center; gap:8px;">
+                  <span style="font-family:'Geist Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.12em;color:rgba(255,255,255,.5);">3 pending · source health 4/5</span>
+                </div>
+              </div>
+
+              <!-- Zone B: Context -->
+              <div class="zone-b">
+                <span class="zone-id">Zone B · context</span>
+                <div class="context">Last verification run <strong>22 seconds ago</strong> — all sources active. One source checking again shortly.</div>
+              </div>
+
+              <!-- Zone C: Action -->
+              <div class="zone-c">
+                <span class="zone-id">Zone C · action</span>
+                <div style="display:flex;align-items:center;gap:10px;">
+                  <button class="action-btn">Review pending</button>
+                  <button class="ghost-btn">Export report</button>
+                </div>
+              </div>
+
+              <!-- Zone D: Detail -->
+              <div class="zone-d">
+                <span class="zone-id">Zone D · quiet detail</span>
+                <div class="detail-item"><div class="dk">Run</div><div class="dv">7a2c…b8d3</div></div>
+                <div class="detail-item"><div class="dk">Batch</div><div class="dv">R-2026-05-21</div></div>
+                <div class="detail-item"><div class="dk">checked_at</div><div class="dv">14:31:58Z</div></div>
+                <div class="detail-item"><div class="dk">Chain</div><div class="dv">anchored</div></div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- Legend -->
+          <div class="az-legend">
+            <div class="legend-row">
+              <div class="legend-zone lz-a">A</div>
+              <div class="legend-text">
+                <div class="l-title">Primary signal</div>
+                <div class="l-rule"><strong>What is true right now?</strong> One sentence or one number. High contrast (ink-900 fill or display type). Always above the fold. Never a label — always a fact.</div>
+              </div>
+            </div>
+            <div class="legend-row">
+              <div class="legend-zone lz-b">B</div>
+              <div class="legend-text">
+                <div class="l-title">Supporting context</div>
+                <div class="l-rule"><strong>Why is that true?</strong> One to two sentences. Body weight, muted color. Explains the primary signal without competing with it. No emphasis elements.</div>
+              </div>
+            </div>
+            <div class="legend-row">
+              <div class="legend-zone lz-c">C</div>
+              <div class="legend-text">
+                <div class="l-title">Primary action</div>
+                <div class="l-rule"><strong>What should happen next?</strong> One primary button (ink-900 fill). Maximum one secondary action (outline). No tertiary buttons — use ghost text links only.</div>
+              </div>
+            </div>
+            <div class="legend-row">
+              <div class="legend-zone lz-d">D</div>
+              <div class="legend-text">
+                <div class="l-title">Quiet detail</div>
+                <div class="l-rule"><strong>For those who need it.</strong> Operational IDs, timestamps, chain. Ink-50 background. Mono micro-type. <strong>Never a card or a panel</strong> — a flat row of data values only.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ 01 · SIGNAL HIERARCHY ═════════════════════════════ -->
+      <div class="sec" id="signal">
+        <div class="sh"><span class="n">01</span><h2>Signal hierarchy · four weights · one rule</h2><span class="ey">one primary per screen · no exceptions</span></div>
+        <p class="prose">Every piece of information on a screen belongs to exactly one weight tier. The tiers don't overlap. A designer who wants to add a second primary signal must first remove the current one. <strong>Cognitive competition is a design bug — not a design choice.</strong></p>
+
+        <div class="signal-matrix">
+          <div class="sm-head"></div>
+          <div class="sm-head"><strong>Primary signal</strong><div class="sub">Zone A · one per screen</div></div>
+          <div class="sm-head"><strong>Supporting context</strong><div class="sub">Zone B · one or two facts</div></div>
+          <div class="sm-head"><strong>Quiet detail</strong><div class="sub">Zone D · available, not prominent</div></div>
+
+          <div class="sm-lbl">Visual weight</div>
+          <div class="sm-cell"><span class="w-primary">Display · 600 · 20–34px · ink-900 or #fff on dark fill</span></div>
+          <div class="sm-cell"><span class="w-context">Body · 400 · 12–13.5px · ink-700</span></div>
+          <div class="sm-cell"><span class="w-detail">Mono · 400 · 9.5–11px · ink-500 · uppercase</span></div>
+
+          <div class="sm-lbl">What it answers</div>
+          <div class="sm-cell"><strong>What is true right now?</strong> A fact, not a label. A count, a state, a verdict.<div class="eg">47 of 50 clinicians verified · All checks passed · Hold — 3 pending</div></div>
+          <div class="sm-cell"><strong>Why? When? What produced this?</strong> One or two supporting facts.<div class="eg">Last checked 22 seconds ago · One source checking again</div></div>
+          <div class="sm-cell"><strong>Operational identity.</strong> IDs, timestamps, chain references. For reviewers who need them.<div class="eg">7a2c…b8d3 · 14:31:58Z · R-2026-05-21</div></div>
+
+          <div class="sm-lbl">Placement rule</div>
+          <div class="sm-cell">Top of page or card. Always above the fold. Never nested inside another element. <strong>One per screen</strong> — if a second competes, demote one.</div>
+          <div class="sm-cell">Immediately below primary signal. Inline prose, not a table. Maximum two sentences before fold.</div>
+          <div class="sm-cell">Bottom of card or collapsed by default. Ink-50 background. Dashed rule between primary and detail zones.</div>
+
+          <div class="sm-lbl">Forbidden</div>
+          <div class="sm-cell"><span class="never">two signals at equal visual weight</span><br/><span class="never">labels masquerading as signals</span><br/><span class="never">icons as primary signals</span></div>
+          <div class="sm-cell"><span class="never">more than 2 context facts above fold</span><br/><span class="never">tables in context zone</span><br/><span class="never">numbers without units</span></div>
+          <div class="sm-cell"><span class="never">run_id as primary signal</span><br/><span class="never">chain strip in Zone A or B</span><br/><span class="never">technical IDs in body text</span></div>
+        </div>
+      </div>
+
+      <!-- ══ 02 · PROGRESSIVE DISCLOSURE ══════════════════════ -->
+      <div class="sec" id="disclosure">
+        <div class="sh"><span class="n">02</span><h2>Progressive disclosure · four tiers · controlled reveal</h2><span class="ey">default to Tier 1 · reveal on explicit intent</span></div>
+        <p class="prose">Information reveals in response to intent, not by default. A reviewer who needs only a verdict gets the verdict. A reviewer conducting an audit gets the full chain. The surface never forces the audit view on the reviewer who needs the verdict. <strong>Each tier is a gate — opened by the reviewer, not by the system.</strong></p>
+
+        <div class="disclosure-flow">
+
+          <div class="dl-tier active">
+            <div class="dl-meta">
+              <div class="tier-num">Tier 0</div>
+              <div class="tier-name">Glance</div>
+              <div class="tier-time">≤ 3 seconds</div>
+            </div>
+            <div class="dl-demo">
+              <div class="dm-t0">
+                <div class="dm-verdict">47 of 50 clinicians verified.</div>
+                <div class="dm-sub">3 pending · updated 22 s ago</div>
+              </div>
+            </div>
+            <div class="dl-rules">
+              <span class="tag">What shows</span>
+              <strong>Primary signal only.</strong> One sentence, one count, or one verdict. No chips, no tables, no labels. The reviewer forms a judgment and exits. If they need more, Tier 1 is one scroll or click away.
+            </div>
+          </div>
+
+          <div class="dl-tier">
+            <div class="dl-meta">
+              <div class="tier-num">Tier 1</div>
+              <div class="tier-name">Review</div>
+              <div class="tier-time">≤ 30 seconds · default view</div>
+            </div>
+            <div class="dl-demo">
+              <div class="dm-t1">
+                <div class="dm-row"><span class="dk">Coverage</span><span class="dv">47 / 50 clinicians</span></div>
+                <div class="dm-row"><span class="dk">Updated</span><span class="dv">22 s ago</span></div>
+                <div class="dm-row"><span class="dk">Source health</span><span class="dv">4 of 5 live</span></div>
+                <div class="dm-row"><span class="dk">Open items</span><span class="dv">3 pending</span></div>
+              </div>
+            </div>
+            <div class="dl-rules">
+              <span class="tag">What shows</span>
+              <strong>Signal + primary context.</strong> Status chips, freshness age, key counts. No claim detail. No source names. No chain. <strong>Default tier for all institutional surfaces.</strong> Expanded by intent only.
+            </div>
+          </div>
+
+          <div class="dl-tier">
+            <div class="dl-meta">
+              <div class="tier-num">Tier 2</div>
+              <div class="tier-name">Audit</div>
+              <div class="tier-time">Full claim detail</div>
+            </div>
+            <div class="dl-demo">
+              <div class="dm-t2">
+                <div class="dm-claim">
+                  <span class="cn">DEA registration · active</span>
+                  <div class="ca">
+                    <span class="dm-chip"><span class="cd"></span>Subject</span>
+                    <span class="dm-chip dashed"><span class="cd"></span>5h stale</span>
+                  </div>
+                </div>
+                <div class="dm-claim">
+                  <span class="cn">State license · OH · active</span>
+                  <div class="ca">
+                    <span class="dm-chip"><span class="cd"></span>Subject</span>
+                    <span class="dm-chip"><span class="cd"></span>11 min ago</span>
+                  </div>
+                </div>
+                <div class="dm-claim">
+                  <span class="cn">OIG exclusion · no exclusion</span>
+                  <div class="ca">
+                    <span class="dm-chip"><span class="cd"></span>Subject</span>
+                    <span class="dm-chip"><span class="cd"></span>4 min ago</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="dl-rules">
+              <span class="tag">What shows</span>
+              <strong>Per-claim rows.</strong> Object, ownership chip, freshness chip. Source names visible. Degraded sources show dashed chip + explicit age. No chain. No run_id.
+            </div>
+          </div>
+
+          <div class="dl-tier">
+            <div class="dl-meta">
+              <div class="tier-num">Tier 3</div>
+              <div class="tier-name">Forensic</div>
+              <div class="tier-time">Chain + audit trail</div>
+            </div>
+            <div class="dl-demo">
+              <div class="dm-t3">
+                <div class="chain-mini">
+                  <span class="h">3e9f…a1c2</span>
+                  <span class="arr">←</span>
+                  <span class="h">b72a…f309</span>
+                  <span class="arr">←</span>
+                  <span class="h cur">7a2c…b8d3</span>
+                </div>
+                <div class="dm-row" style="margin-top:6px;"><span class="dk">run_id</span><span class="dv mono">7a2c…b8d3</span></div>
+                <div class="dm-row"><span class="dk">checked_at</span><span class="dv mono">14:31:58Z · 22 s ago</span></div>
+                <div class="dm-row"><span class="dk">Source</span><span class="dv mono">nppes.cms.hhs.gov</span></div>
+              </div>
+            </div>
+            <div class="dl-rules">
+              <span class="tag">What shows</span>
+              <strong>Full chain strip + operational IDs.</strong> run_id, checked_at (UTC + relative), source URLs, replay anchor status. Only on explicitly opened forensic views. <strong>Never on by default.</strong>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ══ 03 · QUIET STATUS LANGUAGE ═══════════════════════ -->
+      <div class="sec" id="language">
+        <div class="sh"><span class="n">03</span><h2>Quiet status language · plain English · no engineering vocabulary</h2><span class="ey">institutional readers · not infrastructure engineers</span></div>
+        <p class="prose">Every status message is written for an <strong>institutional reviewer, not a systems engineer</strong>. The infrastructure that produced the status is invisible. The operational meaning is clear. Messages are stated once, plainly, and without alarm unless alarm is warranted.</p>
+
+        <div class="language-table">
+          <div class="lt-head">
+            <strong>Engineering phrase · do not use</strong>
+            <strong>Plain institutional language · use this</strong>
+            <strong>Surface · tier</strong>
+          </div>
+
+          <div class="lt-row">
+            <div class="from"><code>source degraded · HTTP 503</code></div>
+            <div class="to">Checking again shortly — last result from 5 hours ago is shown.</div>
+            <div class="surface">Tier 1<br/>Zone B</div>
+          </div>
+          <div class="lt-row">
+            <div class="from"><code>verification interrupted · batch incomplete</code></div>
+            <div class="to">Verification paused — no data was lost. Resuming automatically.</div>
+            <div class="surface">Tier 1<br/>Zone A</div>
+          </div>
+          <div class="lt-row">
+            <div class="from"><code>replay anchor committed · RFC 3161</code></div>
+            <div class="to">This record can be independently re-verified at any time.</div>
+            <div class="surface">Tier 2<br/>Zone D</div>
+          </div>
+          <div class="lt-row">
+            <div class="from"><code>cryptographic proof · DID binding</code></div>
+            <div class="to">Record confirmed and independently verifiable.</div>
+            <div class="surface">Tier 2<br/>Zone C</div>
+          </div>
+          <div class="lt-row">
+            <div class="from"><code>NPI ownership unbound · DID unresolved</code></div>
+            <div class="to">This clinician hasn't confirmed their record yet.</div>
+            <div class="surface">Tier 1<br/>Zone B</div>
+          </div>
+          <div class="lt-row">
+            <div class="from"><code>trust state: S2 · delegated verification</code></div>
+            <div class="to">Verified by your organization on the clinician's behalf.</div>
+            <div class="surface">Tier 2<br/>Zone B</div>
+          </div>
+          <div class="lt-row">
+            <div class="from"><code>source SLO exceeded · staleness threshold</code></div>
+            <div class="to">Source is overdue — last known result still shown.</div>
+            <div class="surface">Tier 1–2<br/>Zone B–D</div>
+          </div>
+          <div class="lt-row">
+            <div class="from"><code>chain head current · run anchored</code></div>
+            <div class="to">Record is current and saved.</div>
+            <div class="surface">Tier 3<br/>Zone D</div>
+          </div>
+          <div class="lt-row">
+            <div class="from"><code>exclusion check · OIG · SAM.gov</code></div>
+            <div class="to">Federal exclusion check · no exclusion found.</div>
+            <div class="surface">Tier 2<br/>Zone A–B</div>
+          </div>
+          <div class="lt-row">
+            <div class="from"><code>pilot deployment readiness: hold</code></div>
+            <div class="to">Three verifications are still running — check back shortly.</div>
+            <div class="surface">Tier 0–1<br/>Zone A</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ 04 · ACTION HIERARCHY ═════════════════════════════ -->
+      <div class="sec" id="action">
+        <div class="sh"><span class="n">04</span><h2>Action hierarchy · four levels · maximum three visible</h2><span class="ey">one dominant · two supporting · no more</span></div>
+        <p class="prose">Every screen has <strong>one primary action</strong>. It is always the most important thing a reviewer can do right now. Secondary and ghost actions exist to support it — never to compete. Destructive actions have no button chrome. <strong>If three actions feel like too many, remove one.</strong></p>
+
+        <div class="action-system">
+          <div class="action-tier">
+            <div class="at-label">Level 1 · Primary</div>
+            <div class="at-demo">
+              <button class="btn-primary">Review pending</button>
+            </div>
+            <div class="at-rule">
+              <strong>ink-900 fill · white text · mono uppercase.</strong> One per screen. Answers "what should happen next?" Never disabled — if no action is available, hide it entirely. Never two primary buttons side by side.
+            </div>
+          </div>
+          <div class="action-tier">
+            <div class="at-label">Level 2 · Secondary</div>
+            <div class="at-demo">
+              <button class="btn-secondary">Export report</button>
+            </div>
+            <div class="at-rule">
+              <strong>ink-0 fill · ink-900 text · rule border.</strong> At most one secondary alongside a primary. Used for non-blocking supporting actions. Smaller padding than primary. Same mono uppercase treatment.
+            </div>
+          </div>
+          <div class="action-tier">
+            <div class="at-label">Level 3 · Ghost</div>
+            <div class="at-demo">
+              <button class="btn-ghost">View full audit trail</button>
+            </div>
+            <div class="at-rule">
+              <strong>No border · underline only · ink-600 text.</strong> For disclosure actions: "expand," "view detail," "see all." Never alongside two buttons of higher levels — only when primary is the only button or secondary is already present.
+            </div>
+          </div>
+          <div class="action-tier">
+            <div class="at-label">Level 4 · Destructive / Escape</div>
+            <div class="at-demo" style="display:flex;flex-direction:column;gap:8px;">
+              <button class="btn-text btn-danger">Revoke access</button>
+              <button class="btn-text">Cancel</button>
+            </div>
+            <div class="at-rule">
+              <strong>Text link only · no button chrome.</strong> Destructive actions (revoke, delete, withdraw) in s-hold ink. Escape actions (cancel, go back) in ink-500. Never a button. Never near a primary button. Always the lowest element in the action zone.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ 05 · SURFACE PATTERNS ════════════════════════════ -->
+      <div class="sec" id="surfaces">
+        <div class="sh"><span class="n">05</span><h2>Surface patterns · four stages · live specimens</h2><span class="ey">zone A → B → C → D · consistent across all stages</span></div>
+        <p class="prose">Each progression stage uses the same four-zone structure. The signal changes — the structure doesn't. A reviewer who has seen the Intake surface can orient immediately on the Deployment surface because the zones are in the same positions with the same visual weights.</p>
+
+        <div class="surface-grid">
+
+          <!-- Intake -->
+          <div class="surface-card">
+            <div class="sc-label"><strong>01 · Intake</strong><span>zone A → B → C → D · annotated</span></div>
+            <div class="sc-body">
+              <div class="intake-sig">
+                <div class="tag">Zone A · primary signal · Cedar Health</div>
+                <div class="headline">10 clinicians received. Ready to verify.</div>
+                <div class="sub">Paste or upload accepted · NPI format validated</div>
+              </div>
+              <div class="intake-ctx">
+                <div class="ctx-text">Zone B · <strong>10 NPIs</strong> validated · no duplicates found · pilot scope confirmed</div>
+              </div>
+              <div class="intake-act">
+                <div style="display:flex;align-items:center;gap:10px;">
+                  <button class="btn-primary">Start verification</button>
+                  <button class="btn-ghost">Edit list</button>
+                </div>
+                <span style="font-family:'Geist Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.14em;color:var(--ink-400);">Zone C</span>
+              </div>
+              <div style="padding:10px 22px;background:var(--ink-50);display:flex;gap:18px;align-items:center;border-top:1px dashed var(--rule-soft);">
+                <div style="display:flex;flex-direction:column;gap:2px;"><div style="font-family:'Geist Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.14em;color:var(--ink-500);">Zone D</div><div style="font-family:'Geist Mono',monospace;font-size:9.5px;color:var(--ink-600);">Batch ID · intake-2026-05-21</div></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Pilot -->
+          <div class="surface-card">
+            <div class="sc-label"><strong>02 · Pilot</strong><span>zone A → B → C → D · annotated</span></div>
+            <div class="sc-body">
+              <div class="pilot-sig">
+                <div class="tag">Zone A · primary signal</div>
+                <div class="headline">47 of 50 clinicians verified.</div>
+                <div class="sub">3 pending · source health 4 of 5</div>
+              </div>
+              <div class="pilot-stat">
+                <div class="stat-row" style="border-bottom:1px dashed var(--rule-soft);">
+                  <div class="stat"><div class="k">Zone B · Verified</div><div class="v">47</div></div>
+                  <div class="stat"><div class="k">Pending</div><div class="v">3</div></div>
+                  <div class="stat"><div class="k">Updated</div><div class="v">22s ago</div></div>
+                </div>
+              </div>
+              <div class="pilot-act">
+                <div style="display:flex;align-items:center;gap:10px;">
+                  <button class="btn-primary">Review pending 3</button>
+                  <button class="btn-ghost">Export coverage report</button>
+                </div>
+                <span style="font-family:'Geist Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.14em;color:var(--ink-400);">Zone C</span>
+              </div>
+              <div style="padding:10px 22px;background:var(--ink-50);display:flex;gap:18px;border-top:1px dashed var(--rule-soft);">
+                <div style="display:flex;flex-direction:column;gap:2px;"><div style="font-family:'Geist Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.14em;color:var(--ink-500);">Zone D · Run</div><div style="font-family:'Geist Mono',monospace;font-size:9.5px;color:var(--ink-600);">7a2c…b8d3</div></div>
+                <div style="display:flex;flex-direction:column;gap:2px;"><div style="font-family:'Geist Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.14em;color:var(--ink-500);">checked_at</div><div style="font-family:'Geist Mono',monospace;font-size:9.5px;color:var(--ink-600);">14:31:58Z</div></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Waste visibility -->
+          <div class="surface-card">
+            <div class="sc-label"><strong>03 · Waste Visibility</strong><span>zone A → B → C → D · annotated</span></div>
+            <div class="sc-body">
+              <div class="waste-sig">
+                <div class="tag">Zone A · primary signal</div>
+                <div class="headline">312 hours <em>recovered.</em></div>
+                <div class="sub">vs. prior manual credentialing workflow</div>
+              </div>
+              <div class="waste-ctx">
+                <div class="item"><div class="k">Zone B · Before</div><div class="v">6.5 weeks avg.</div></div>
+                <div class="item"><div class="k">With VitalCV</div><div class="v">4.2 hours avg.</div></div>
+                <div class="item"><div class="k">Pilot scope</div><div class="v">10 clinicians</div></div>
+              </div>
+              <div class="waste-act">
+                <div style="display:flex;align-items:center;gap:10px;">
+                  <button class="btn-primary">Share with leadership</button>
+                  <button class="btn-ghost">View methodology</button>
+                </div>
+                <span style="font-family:'Geist Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.14em;color:var(--ink-400);">Zone C</span>
+              </div>
+              <div style="padding:10px 22px;background:var(--ink-50);display:flex;gap:18px;border-top:1px dashed var(--rule-soft);">
+                <div style="display:flex;flex-direction:column;gap:2px;"><div style="font-family:'Geist Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.14em;color:var(--ink-500);">Zone D · Period</div><div style="font-family:'Geist Mono',monospace;font-size:9.5px;color:var(--ink-600);">2026-04-28 → 2026-05-21</div></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Deployment -->
+          <div class="surface-card">
+            <div class="sc-label"><strong>06 · Deployment Readiness</strong><span>zone A → B → C → D · annotated</span></div>
+            <div class="sc-body">
+              <div class="deploy-sig">
+                <div class="verdict-block">
+                  <div class="tag">Zone A · primary signal</div>
+                  <div class="verdict">Three verifications still running.</div>
+                  <div class="sub">Check back shortly — no blocking issues found</div>
+                </div>
+                <div class="hold-chip"><span class="hd"></span>Hold</div>
+              </div>
+              <div class="deploy-checks">
+                <div style="font-family:'Geist Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-500);padding:8px 0 6px;border-bottom:1px solid var(--rule-soft);">Zone B · readiness checks</div>
+                <div class="dc-row"><span class="dc-name">NPI coverage</span><span class="dc-watch">47 of 50</span></div>
+                <div class="dc-row"><span class="dc-name">Source health</span><span class="dc-watch">4 of 5 live</span></div>
+                <div class="dc-row"><span class="dc-name">Human review</span><span class="dc-ok">complete</span></div>
+                <div class="dc-row"><span class="dc-name">Open exceptions</span><span class="dc-ok">none</span></div>
+              </div>
+              <div class="deploy-act">
+                <div style="display:flex;align-items:center;gap:10px;">
+                  <button class="btn-secondary">Review pending 3</button>
+                  <button class="btn-ghost">Export readiness report</button>
+                </div>
+                <span style="font-family:'Geist Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.14em;color:var(--ink-400);">Zone C</span>
+              </div>
+              <div style="padding:10px 22px;background:var(--ink-50);display:flex;gap:18px;border-top:1px dashed var(--rule-soft);">
+                <div style="display:flex;flex-direction:column;gap:2px;"><div style="font-family:'Geist Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.14em;color:var(--ink-500);">Zone D · Pilot</div><div style="font-family:'Geist Mono',monospace;font-size:9.5px;color:var(--ink-600);">R-2026-05-21</div></div>
+                <div style="display:flex;flex-direction:column;gap:2px;"><div style="font-family:'Geist Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.14em;color:var(--ink-500);">Reviewed</div><div style="font-family:'Geist Mono',monospace;font-size:9.5px;color:var(--ink-600);">14:31Z today</div></div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ══ 06 · IMPLEMENTATION GUIDANCE ═════════════════════ -->
+      <div class="sec" id="impl">
+        <div class="sh"><span class="n">06</span><h2>Implementation guidance · Claude Code · binding rules</h2><span class="ey">zone structure · signal rules · language rules</span></div>
+        <p class="prose">These rules are binding on every surface built for the VitalCV progression arc. They are written as implementation directives — not preferences. Claude Code should treat any deviation as a bug to fix, not a judgment call.</p>
+
+        <div class="impl-grid" style="display:flex;flex-direction:column;gap:0;">
+
+          <div class="impl-block">
+            <div class="ib-head"><strong>Zone Structure</strong><span>every surface · no exceptions</span></div>
+            <div class="ib-body">
+              <div class="rule-row"><div class="rk">Zone A</div><div class="rv"><span class="always">always ink-900 fill or display-weight type</span> · one primary signal · one sentence or number · no labels, no chips, no icons as the signal itself</div></div>
+              <div class="rule-row"><div class="rk">Zone B</div><div class="rv">Body 400 13px · ink-700 · max 2 facts · no tables · no chips at body weight · inline prose only</div></div>
+              <div class="rule-row"><div class="rk">Zone C</div><div class="rv">One <code>.btn-primary</code> · optional one <code>.btn-ghost</code> · <span class="never">two primary buttons side by side</span> · <span class="never">disabled primary button</span> — hide instead</div></div>
+              <div class="rule-row"><div class="rk">Zone D</div><div class="rv">Ink-50 background · 1px dashed rule top · mono micro-type only · <span class="never">cards or panels in Zone D</span> · flat row of key-value pairs only</div></div>
+            </div>
+          </div>
+
+          <div class="impl-block">
+            <div class="ib-head"><strong>Signal Rules</strong><span>one per screen · competitive signals are bugs</span></div>
+            <div class="ib-body">
+              <div class="rule-row"><div class="rk">Primary signal</div><div class="rv"><span class="always">must be a fact, not a label</span> · "47 of 50 verified" not "Verification Status" · count or verdict or outcome · display-weight type (600, 20px+)</div></div>
+              <div class="rule-row"><div class="rk">Conflict check</div><div class="rv">Before shipping any screen: identify the primary signal. If two elements compete for Zone A weight, one must be demoted. <span class="never">two display-weight elements on one screen</span></div></div>
+              <div class="rule-row"><div class="rk">Empty states</div><div class="rv">Zone A is never empty. If no data: "Verification hasn't started yet." If loading: "Checking sources — results in a moment." One sentence. No spinners in Zone A.</div></div>
+              <div class="rule-row"><div class="rk">Error states</div><div class="rv">Zone A carries the error in plain English. Zone B carries what the reviewer should do. <span class="never">stack traces or error codes in Zone A</span> · <span class="never">red fills on Zone A</span></div></div>
+            </div>
+          </div>
+
+          <div class="impl-block">
+            <div class="ib-head"><strong>Progressive Disclosure</strong><span>Tier 1 default · Tier 3 never default</span></div>
+            <div class="ib-body">
+              <div class="rule-row"><div class="rk">Default tier</div><div class="rv"><span class="always">all surfaces default to Tier 1</span> · chain, run_id, source URLs hidden · expand via explicit intent (click "View detail" or "Audit trail")</div></div>
+              <div class="rule-row"><div class="rk">Tier 3 access</div><div class="rv">Only on surfaces explicitly labeled "Audit" or "Forensic" · <span class="never">Tier 3 data in the default view of any operational surface</span></div></div>
+              <div class="rule-row"><div class="rk">Expand pattern</div><div class="rv">Disclosure uses a ghost-level text link: "View claim detail ↓" · never a chevron icon · never a toggle switch · never a tab panel unless Tier 3 is the purpose of the surface</div></div>
+            </div>
+          </div>
+
+          <div class="impl-block">
+            <div class="ib-head"><strong>Language Rules</strong><span>plain English · institutional audience · no engineering vocabulary</span></div>
+            <div class="ib-body">
+              <div class="rule-row"><div class="rk">Audience</div><div class="rv">Write for a credentialing director or MSO compliance reviewer. Not for an engineer. If the sentence would confuse a non-technical reader, rewrite it.</div></div>
+              <div class="rule-row"><div class="rk">Forbidden terms</div><div class="rv"><span class="never">cryptographic · blockchain · DID · VC 2.0 · OpenID4VCI · hash · anchor · smart contract · immutable · zero-knowledge</span> — in body copy or Zone A/B</div></div>
+              <div class="rule-row"><div class="rk">Permitted technical terms</div><div class="rv"><code>run_id</code> · <code>checked_at</code> · <code>NPI</code> · <code>chain</code> · <code>replay</code> — in Zone D and Tier 3 surfaces only · never in body prose</div></div>
+              <div class="rule-row"><div class="rk">Alarm level</div><div class="rv">Match tone to severity. Degraded source: neutral, informational. Blocked claim: direct, factual. <span class="never">alarm language for non-blocking states</span> · <span class="never">reassuring language for blocking states</span></div></div>
+            </div>
+          </div>
+
+          <div class="impl-block">
+            <div class="ib-head"><strong>Forbidden Patterns</strong><span>design bugs · not design choices</span></div>
+            <div class="ib-body">
+              <div class="rule-row"><div class="rk">Dashboard clutter</div><div class="rv"><span class="never">equal-weight KPI card grids</span> · <span class="never">four stats at the same visual weight</span> · <span class="never">progress rings or doughnut charts</span> · <span class="never">sparklines</span> · <span class="never">trend arrows</span></div></div>
+              <div class="rule-row"><div class="rk">Status overload</div><div class="rv"><span class="never">more than 3 status chips visible simultaneously</span> · <span class="never">color fills for status</span> · <span class="never">icons as primary status signals</span> · <span class="never">blinking or pulsing status indicators</span> (except the single op-bar dot)</div></div>
+              <div class="rule-row"><div class="rk">Action overload</div><div class="rv"><span class="never">more than 3 actions visible simultaneously</span> · <span class="never">two primary buttons</span> · <span class="never">dropdown menus in Zone C</span> · <span class="never">icon-only buttons without accessible labels</span></div></div>
+              <div class="rule-row"><div class="rk">Engineering hierarchy</div><div class="rv"><span class="never">run_id in Zone A</span> · <span class="never">chain strip in Zone A or B</span> · <span class="never">source URLs in Zone A or B</span> · <span class="never">error codes in Zone A</span> · <span class="never">technical IDs in body prose</span></div></div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <footer class="foot">
+    <div>VitalCV · Operational Signal Hierarchy · v1 · <strong>4 zones · 4 tiers · 4 action levels · binding</strong></div>
+    <div style="text-align:right;line-height:1.6;">
+      <div>Build <strong>vc.2026.05.21-b</strong> · signal v1</div>
+      <div style="color:var(--ink-400);">one signal · one action · one state · per screen</div>
+    </div>
+  </footer>
+
+</div>
+</body>
+</html>

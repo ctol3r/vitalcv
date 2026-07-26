@@ -33,11 +33,11 @@ const STATE_VOCABULARY = [
   },
   {
     label: 'OWNED SNAPSHOT',
-    note: 'Attributed, replay-visible — full lineage chain',
+    note: 'Attributed, replay-visible — example lineage',
     style: 'border-gray-300 bg-white text-gray-700',
   },
   {
-    label: 'SIGNED INSTITUTIONAL ARTIFACT',
+    label: 'SIGNED ARTIFACT (EXAMPLE)',
     note: 'Cryptographic plane — issuer-signed, T4 capable',
     style: 'border-gray-700 bg-gray-900 text-gray-100',
   },

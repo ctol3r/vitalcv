@@ -26,7 +26,7 @@ import { cn } from '@/lib/utils';
  */
 
 export const SIGN_IN_DISCLOSURE =
-  'Sign in unlocks live event streams and operator tools. Public passport pages remain readable without an account.';
+  'Access your Wallet, readiness progress, opportunities, applications, and shared evidence. Public passport pages remain readable without an account.';
 
 export const SIGN_UP_DISCLOSURE =
   'Create an operator account. Sign-up does not credential a clinician and does not contact employers.';
@@ -61,7 +61,7 @@ export function AuthDisclosureCard({
   disclosure,
   className,
 }: AuthDisclosureCardProps) {
-  const defaultHeadline = mode === 'sign-in' ? 'Sign in' : 'Create account';
+  const defaultHeadline = mode === 'sign-in' ? 'Welcome back to VitalCV' : 'Create account';
   const defaultDisclosure = mode === 'sign-in' ? SIGN_IN_DISCLOSURE : SIGN_UP_DISCLOSURE;
   const resolvedHeadline = headline ?? defaultHeadline;
   const resolvedDisclosure = disclosure ?? defaultDisclosure;
@@ -91,8 +91,11 @@ export function AuthDisclosureCard({
 
         <div
           data-auth-clerk-mount=""
-          className="rounded-[1.25rem] border border-[var(--vt-border)] bg-[color-mix(in_oklab,var(--vt-surface)_96%,white)] p-2 shadow-[0_1px_0_rgba(255,255,255,0.6)]"
+          className="flex justify-center rounded-[1.25rem] border border-[var(--vt-border)] bg-[color-mix(in_oklab,var(--vt-surface)_96%,white)] p-2 shadow-[0_1px_0_rgba(255,255,255,0.6)]"
         >
+          {/* Clerk's card is a fixed ~400px; the shell is max-w-md (448px).
+              Center the card so it isn't flush-left with a gap on the right
+              (the wave1505 cardBox border made that mismatch visible). */}
           {children}
         </div>
 

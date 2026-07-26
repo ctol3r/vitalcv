@@ -1,0 +1,498 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>VitalCV · Trust State Visual System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --ink-0:#fff;--ink-50:#f8fafc;--ink-100:#f1f5f9;--ink-200:#e2e8f0;--ink-300:#cbd5e1;
+    --ink-400:#94a3b8;--ink-500:#64748b;--ink-600:#475569;--ink-700:#334155;
+    --ink-800:#1e293b;--ink-900:#0f172a;--ink-950:#020617;--rule:#e2e8f0;
+    --paper:#fafaf8;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--ink-100);color:var(--ink-900);font-family:'Geist',ui-sans-serif,system-ui,sans-serif;font-feature-settings:'ss01','cv11';-webkit-font-smoothing:antialiased;font-size:14px;line-height:1.5;}
+  code,.mono{font-family:'Geist Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;}
+
+  /* op bar */
+  .op{background:var(--ink-950);color:var(--ink-300);font-family:'Geist Mono',monospace;font-size:11px;}
+  .op .in{max-width:1320px;margin:0 auto;padding:0 32px;height:30px;display:flex;align-items:center;justify-content:space-between;}
+  .op .sep{color:var(--ink-600);}
+
+  header.mh{background:var(--ink-0);border-bottom:1px solid var(--rule);}
+  .mh .in{max-width:1320px;margin:0 auto;padding:24px 32px 22px;}
+  .brand{display:flex;align-items:center;gap:11px;margin-bottom:16px;}
+  .brand .g{width:22px;height:22px;background:var(--ink-900);color:#fff;display:grid;place-items:center;font-family:'Geist Mono',monospace;font-size:11px;font-weight:600;}
+  .brand .nm{font-weight:600;letter-spacing:-.01em;font-size:15px;}
+  .brand .nm .sl{color:var(--ink-400);font-weight:400;}
+  .brand .nm .sub{color:var(--ink-500);font-weight:400;}
+  .eyebrow{font-family:'Geist Mono',monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:.18em;color:var(--ink-500);display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+  .eyebrow .r{display:inline-block;width:22px;height:1px;background:var(--ink-300);}
+  h1{font-size:30px;line-height:1.1;letter-spacing:-.025em;font-weight:600;margin:0;max-width:38ch;}
+  h1 .muted{color:var(--ink-500);}
+  .sub{margin-top:10px;color:var(--ink-700);max-width:66ch;font-size:14px;line-height:1.6;}
+
+  main{max-width:1320px;margin:0 auto;padding:28px 32px 64px;}
+
+  /* state grid: 4 mock surfaces, each visually distinct */
+  .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;}
+
+  /* card shell */
+  .card{display:flex;flex-direction:column;border:1px solid var(--ink-300);background:var(--ink-0);min-height:560px;position:relative;overflow:hidden;}
+  .card .head{padding:12px 14px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--rule);}
+  .card .head .l{display:flex;align-items:center;gap:8px;}
+  .card .head .code{font-family:'Geist Mono',monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-500);}
+  .card .head .nm{font-size:13px;font-weight:600;letter-spacing:-.005em;color:var(--ink-900);}
+  .card .head .url{font-family:'Geist Mono',monospace;font-size:10px;color:var(--ink-500);}
+
+  .card .strip{height:3px;width:100%;}
+  .card .body{flex:1;padding:14px;display:flex;flex-direction:column;gap:12px;}
+  .card .foot{border-top:1px solid var(--rule);padding:11px 14px;display:flex;justify-content:space-between;font-family:'Geist Mono',monospace;font-size:9.5px;color:var(--ink-500);text-transform:uppercase;letter-spacing:.14em;}
+
+  /* ------ S0 PUBLIC ------ */
+  .s0 .strip{background:var(--ink-200);}
+  .s0{background:var(--paper);}
+  .s0 .body{padding:18px 14px;}
+  .s0 .marquee{font-family:'Geist',serif;font-size:18px;font-weight:600;letter-spacing:-.015em;line-height:1.2;color:var(--ink-900);max-width:18ch;}
+  .s0 .lede{font-size:11.5px;line-height:1.55;color:var(--ink-700);max-width:30ch;}
+  .s0 .cta{margin-top:6px;display:inline-flex;align-self:flex-start;padding:7px 12px;border:1px solid var(--ink-900);background:var(--ink-900);color:#fff;font-family:'Geist Mono',monospace;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;}
+  .s0 .sample{margin-top:6px;border:1px dashed var(--ink-300);padding:12px;background:var(--ink-0);}
+  .s0 .sample .lbl{font-family:'Geist Mono',monospace;font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-400);margin-bottom:6px;}
+  .s0 .sample .row{display:flex;justify-content:space-between;font-family:'Geist Mono',monospace;font-size:10.5px;color:var(--ink-500);padding:3px 0;border-bottom:1px solid var(--ink-100);}
+  .s0 .sample .row:last-child{border-bottom:0;}
+  .s0 .sample .row .v{color:var(--ink-700);}
+  .s0 .nothing{margin-top:auto;padding:10px;background:var(--ink-100);font-family:'Geist Mono',monospace;font-size:9.5px;color:var(--ink-700);letter-spacing:.04em;line-height:1.4;}
+  .s0 .nothing strong{color:var(--ink-900);}
+
+  /* ------ S1 AUTHENTICATED ------ */
+  .s1 .strip{background:var(--ink-500);}
+  .s1 .sessbar{display:flex;align-items:center;justify-content:space-between;padding:9px 14px;background:var(--ink-50);border-bottom:1px solid var(--rule);font-family:'Geist Mono',monospace;font-size:10px;color:var(--ink-700);}
+  .s1 .sessbar .who{display:flex;align-items:center;gap:8px;}
+  .s1 .sessbar .who .av{width:18px;height:18px;background:var(--ink-200);color:var(--ink-700);display:grid;place-items:center;font-size:9px;font-weight:600;font-family:'Geist',sans-serif;}
+  .s1 .sessbar .ttl{font-family:'Geist Mono',monospace;font-size:9px;color:var(--ink-500);letter-spacing:.12em;text-transform:uppercase;}
+  .s1 .ask{font-size:14px;font-weight:600;letter-spacing:-.01em;color:var(--ink-900);max-width:24ch;line-height:1.25;}
+  .s1 .sub2{font-size:11.5px;color:var(--ink-700);line-height:1.5;max-width:32ch;}
+  .s1 .input{border:1px solid var(--ink-300);padding:10px 12px;display:flex;justify-content:space-between;align-items:center;background:#fff;}
+  .s1 .input .lbl{font-family:'Geist Mono',monospace;font-size:9px;color:var(--ink-400);text-transform:uppercase;letter-spacing:.16em;display:block;margin-bottom:3px;}
+  .s1 .input .val{font-family:'Geist Mono',monospace;font-size:13px;color:var(--ink-300);letter-spacing:.04em;}
+  .s1 .input .caret{display:inline-block;width:7px;height:14px;background:var(--ink-900);animation:blink 1s steps(2) infinite;}
+  @keyframes blink{0%,49%{opacity:1}50%,100%{opacity:0}}
+  .s1 .pre{border:1px solid var(--rule);padding:10px;background:var(--ink-50);}
+  .s1 .pre .ttl{font-family:'Geist Mono',monospace;font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-500);margin-bottom:5px;}
+  .s1 .pre .item{display:flex;justify-content:space-between;font-family:'Geist Mono',monospace;font-size:10px;color:var(--ink-500);padding:2px 0;}
+  .s1 .pre .item .v{color:var(--ink-700);}
+  .s1 .pre .item .ph{color:var(--ink-300);font-style:italic;}
+  .s1 .nocred{margin-top:auto;padding:10px;border:1px solid var(--ink-300);background:#fff;font-family:'Geist Mono',monospace;font-size:9.5px;color:var(--ink-700);letter-spacing:.04em;line-height:1.4;}
+  .s1 .nocred strong{color:var(--ink-900);}
+
+  /* ------ S2 OWNED ------ */
+  .s2 .strip{background:var(--ink-700);}
+  .s2 .sessbar{display:flex;align-items:center;justify-content:space-between;padding:9px 14px;background:var(--ink-50);border-bottom:1px solid var(--rule);font-family:'Geist Mono',monospace;font-size:10px;color:var(--ink-700);}
+  .s2 .sessbar .who{display:flex;align-items:center;gap:8px;}
+  .s2 .sessbar .who .av{width:18px;height:18px;background:var(--ink-700);color:#fff;display:grid;place-items:center;font-size:9px;font-weight:600;font-family:'Geist',sans-serif;}
+  .s2 .sessbar .chip{padding:2px 7px;background:#fff;border:1px solid var(--ink-300);font-family:'Geist Mono',monospace;font-size:9px;color:var(--ink-900);letter-spacing:.08em;}
+  .s2 .claim{font-size:14px;font-weight:600;letter-spacing:-.01em;color:var(--ink-900);max-width:24ch;line-height:1.25;}
+  .s2 .lanes{display:flex;flex-direction:column;border:1px solid var(--rule);}
+  .s2 .lane{display:grid;grid-template-columns:1fr auto;padding:9px 11px;border-bottom:1px solid var(--rule);align-items:center;gap:8px;}
+  .s2 .lane:last-child{border-bottom:0;}
+  .s2 .lane .nm{font-size:11.5px;color:var(--ink-900);font-weight:500;}
+  .s2 .lane .meta{font-family:'Geist Mono',monospace;font-size:9.5px;color:var(--ink-500);display:block;margin-top:1px;}
+  .s2 .lane .st{font-family:'Geist Mono',monospace;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-700);display:inline-flex;align-items:center;gap:6px;}
+  .s2 .lane .st .d{width:6px;height:6px;background:var(--ink-900);border-radius:50%;}
+  .s2 .lane.pending .st .d{background:transparent;border:1px solid var(--ink-500);}
+  .s2 .receipt{padding:10px;background:var(--ink-50);border:1px solid var(--rule);}
+  .s2 .receipt .ttl{font-family:'Geist Mono',monospace;font-size:9px;color:var(--ink-500);letter-spacing:.16em;text-transform:uppercase;margin-bottom:5px;}
+  .s2 .receipt .row{display:flex;justify-content:space-between;font-family:'Geist Mono',monospace;font-size:10px;color:var(--ink-500);padding:2px 0;}
+  .s2 .receipt .row .v{color:var(--ink-900);}
+  .s2 .note{margin-top:auto;padding:10px;border:1px solid var(--ink-300);background:#fff;font-family:'Geist Mono',monospace;font-size:9.5px;color:var(--ink-700);letter-spacing:.04em;line-height:1.4;}
+  .s2 .note strong{color:var(--ink-900);}
+
+  /* ------ S3 SIGNED ------ */
+  .s3{background:var(--ink-950);color:var(--ink-100);border-color:var(--ink-950);}
+  .s3 .strip{background:#fff;}
+  .s3 .head{border-bottom-color:var(--ink-800);}
+  .s3 .head .code{color:var(--ink-400);}
+  .s3 .head .nm{color:#fff;}
+  .s3 .head .url{color:var(--ink-400);}
+  .s3 .vc{margin-top:0;display:flex;align-items:center;justify-content:space-between;border:1px solid var(--ink-700);padding:11px 12px;background:#0b1322;}
+  .s3 .vc .l{display:flex;flex-direction:column;gap:2px;}
+  .s3 .vc .lbl{font-family:'Geist Mono',monospace;font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-400);}
+  .s3 .vc .val{font-family:'Geist Mono',monospace;font-size:12px;color:#fff;}
+  .s3 .vc .seal{width:34px;height:34px;border:1px solid #fff;display:grid;place-items:center;color:#fff;font-family:'Geist Mono',monospace;font-size:10px;letter-spacing:.1em;}
+  .s3 .meta{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid var(--ink-800);}
+  .s3 .meta .cell{padding:9px 11px;border-right:1px solid var(--ink-800);border-bottom:1px solid var(--ink-800);}
+  .s3 .meta .cell:nth-child(2n){border-right:0;}
+  .s3 .meta .cell:nth-last-child(-n+2){border-bottom:0;}
+  .s3 .meta .k{font-family:'Geist Mono',monospace;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-400);margin-bottom:3px;}
+  .s3 .meta .v{font-family:'Geist Mono',monospace;font-size:10.5px;color:#fff;word-break:break-all;}
+  .s3 .chain{border:1px solid var(--ink-800);padding:10px;}
+  .s3 .chain .ttl{font-family:'Geist Mono',monospace;font-size:9px;color:var(--ink-400);letter-spacing:.14em;text-transform:uppercase;margin-bottom:6px;}
+  .s3 .chain .row{display:grid;grid-template-columns:14px 1fr;gap:8px;align-items:center;font-family:'Geist Mono',monospace;font-size:9.5px;color:var(--ink-300);padding:2px 0;}
+  .s3 .chain .row .h{color:#fff;font-weight:500;}
+  .s3 .chain .row .t{color:var(--ink-500);}
+  .s3 .chain .dot{width:5px;height:5px;background:#fff;border-radius:50%;margin-left:4px;}
+  .s3 .note{margin-top:auto;padding:10px;border:1px solid var(--ink-700);background:#0b1322;font-family:'Geist Mono',monospace;font-size:9.5px;color:var(--ink-300);letter-spacing:.04em;line-height:1.4;}
+  .s3 .note strong{color:#fff;}
+  .s3 .foot{border-top-color:var(--ink-800);color:var(--ink-500);}
+
+  /* state row labels under cards */
+  .row-labels{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:14px;}
+  .rl{padding:11px 14px;background:var(--ink-0);border:1px solid var(--rule);}
+  .rl .k{font-family:'Geist Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-500);margin-bottom:3px;}
+  .rl .v{font-size:12.5px;color:var(--ink-900);font-weight:500;line-height:1.4;}
+  .rl .v em{color:var(--ink-500);font-weight:400;font-style:normal;}
+
+  /* trust-distinction band */
+  .band{margin-top:32px;display:grid;grid-template-columns:repeat(4,1fr);gap:0;border:1px solid var(--rule);background:var(--ink-0);}
+  .band > div{padding:14px 18px;border-right:1px solid var(--rule);}
+  .band > div:last-child{border-right:0;}
+  .band .k{font-family:'Geist Mono',monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-500);margin-bottom:6px;}
+  .band .v{font-size:12.5px;color:var(--ink-700);line-height:1.6;}
+  .band .v strong{color:var(--ink-900);font-weight:500;}
+
+  /* visual register key */
+  .key{margin-top:32px;border-top:1px solid var(--ink-900);padding-top:14px;display:grid;grid-template-columns:140px 1fr 1fr 1fr 1fr;border:1px solid var(--rule);background:var(--ink-0);border-top:1px solid var(--ink-900);}
+  .key .hd-r{display:contents;}
+  .key .hd-r > div{padding:10px 14px;font-family:'Geist Mono',monospace;font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-500);background:var(--ink-50);border-bottom:1px solid var(--rule);border-right:1px solid var(--rule);}
+  .key .hd-r > div:last-child{border-right:0;}
+  .key .r{display:contents;}
+  .key .r > div{padding:10px 14px;font-size:12px;color:var(--ink-700);border-bottom:1px solid var(--rule);border-right:1px solid var(--rule);}
+  .key .r > div:last-child{border-right:0;}
+  .key .r:last-child > div{border-bottom:0;}
+  .key .r .lbl{font-family:'Geist Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.14em;color:var(--ink-500);}
+
+  /* transition rail */
+  .rail{margin-top:14px;display:grid;grid-template-columns:repeat(4,1fr);gap:14px;}
+  .rail .step{padding:11px 14px;background:var(--ink-0);border:1px solid var(--rule);font-family:'Geist Mono',monospace;font-size:10px;color:var(--ink-700);text-transform:uppercase;letter-spacing:.14em;display:flex;align-items:center;justify-content:space-between;}
+  .rail .step .ev{color:var(--ink-500);}
+  .rail .step .ar{color:var(--ink-900);font-weight:600;}
+  .rail .step.term{background:var(--ink-950);color:var(--ink-300);border-color:var(--ink-950);}
+  .rail .step.term .ar{color:#fff;}
+  .rail .step.term .ev{color:var(--ink-500);}
+
+  footer.foot-page{max-width:1320px;margin:24px auto 0;padding:24px 32px;font-family:'Geist Mono',monospace;font-size:10.5px;color:var(--ink-500);display:flex;justify-content:space-between;border-top:1px solid var(--rule);background:var(--ink-0);}
+  footer .v{color:var(--ink-700);}
+
+  @media(max-width:1200px){
+    .grid,.row-labels,.rail{grid-template-columns:repeat(2,1fr);}
+    .band{grid-template-columns:repeat(2,1fr);}
+  }
+</style>
+</head>
+<body>
+
+<div class="op">
+  <div class="in">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <span style="letter-spacing:.16em;text-transform:uppercase;color:var(--ink-400);font-weight:500;">Visual Trust System</span>
+      <span class="sep">/</span>
+      <span>Four states · four chromes · zero semantic ambiguity</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:14px;">
+      <span class="sep">|</span>
+      <span>Build <span style="color:var(--ink-200)">vc.2026.05.11-a</span></span>
+    </div>
+  </div>
+</div>
+
+<header class="mh">
+  <div class="in">
+    <div class="brand">
+      <span class="g">V</span>
+      <span class="nm">VitalCV<span class="sl">/</span><span class="sub">trust</span></span>
+    </div>
+    <div class="eyebrow"><span class="r"></span>Visual register per trust state · operational honesty</div>
+    <h1>Each state looks like itself. <span class="muted">No state borrows another's chrome.</span></h1>
+    <p class="sub">Four surfaces. Each carries a distinct visual register — typographic weight, background register, presence or absence of a session bar, presence or absence of cryptographic chrome. A clinician glancing at any one screen knows which state they are in before reading a word.</p>
+  </div>
+</header>
+
+<main>
+
+  <!-- Four mock surfaces -->
+  <div class="grid">
+
+    <!-- S0 PUBLIC -->
+    <div class="card s0">
+      <div class="strip"></div>
+      <div class="head">
+        <div class="l">
+          <span class="code">S0</span>
+          <span class="nm">Public</span>
+        </div>
+        <span class="url">vitalcv.health</span>
+      </div>
+      <div class="body">
+        <div class="marquee">Credentials that survive your outage.</div>
+        <div class="lede">Verifiable Credentials for clinicians. Source-backed at issuance, cryptographically verifiable forever.</div>
+        <div class="cta">See a sample passport</div>
+        <div class="sample">
+          <div class="lbl">Sample · not a real clinician</div>
+          <div class="row"><span>Subject</span><span class="v">Dr. Sample, MD</span></div>
+          <div class="row"><span>NPI</span><span class="v">1234567890</span></div>
+          <div class="row"><span>Sources</span><span class="v">NPPES · OIG · PECOS</span></div>
+        </div>
+        <div class="nothing"><strong>Anonymous.</strong> No session. No cookies that fingerprint. Nothing you see here implies that you are a user.</div>
+      </div>
+      <div class="foot">
+        <span>chrome · marketing</span>
+        <span>state · public</span>
+      </div>
+    </div>
+
+    <!-- S1 AUTHENTICATED -->
+    <div class="card s1">
+      <div class="strip"></div>
+      <div class="head">
+        <div class="l">
+          <span class="code">S1</span>
+          <span class="nm">Authenticated</span>
+        </div>
+        <span class="url">login.vitalcv.health</span>
+      </div>
+      <div class="sessbar">
+        <div class="who">
+          <span class="av">JC</span>
+          <span>j.chen@stanford-health.org</span>
+        </div>
+        <span class="ttl">session · 14:32</span>
+      </div>
+      <div class="body">
+        <div class="ask">Claim your NPI.</div>
+        <div class="sub2">Sign-in confirms you control your work inbox. It does not yet bind you to any clinical credential.</div>
+        <div class="input">
+          <div>
+            <span class="lbl">NPI</span>
+            <span class="val">enter 10 digits<span class="caret"></span></span>
+          </div>
+        </div>
+        <div class="pre">
+          <div class="ttl">Will resolve against</div>
+          <div class="item"><span>NPPES</span><span class="ph">awaiting input</span></div>
+          <div class="item"><span>OIG/LEIE</span><span class="ph">awaiting input</span></div>
+          <div class="item"><span>PECOS</span><span class="ph">awaiting input</span></div>
+        </div>
+        <div class="nocred"><strong>No credential exists yet.</strong> Session ≠ provider claim. Signing in does not assert that you are a clinician.</div>
+      </div>
+      <div class="foot">
+        <span>chrome · session bar</span>
+        <span>state · authenticated</span>
+      </div>
+    </div>
+
+    <!-- S2 OWNED -->
+    <div class="card s2">
+      <div class="strip"></div>
+      <div class="head">
+        <div class="l">
+          <span class="code">S2</span>
+          <span class="nm">Owned</span>
+        </div>
+        <span class="url">clinician.vitalcv.health</span>
+      </div>
+      <div class="sessbar">
+        <div class="who">
+          <span class="av">JC</span>
+          <span>j.chen@stanford-health.org</span>
+        </div>
+        <span class="chip">NPI 1234567890 · claimed</span>
+      </div>
+      <div class="body">
+        <div class="claim">Bound. Not yet issued.</div>
+        <div class="lanes">
+          <div class="lane">
+            <div>
+              <span class="nm">License · CA-MD-A12345</span>
+              <span class="meta">CA Medical Board · 14s ago</span>
+            </div>
+            <span class="st"><span class="d"></span>Source-confirmed</span>
+          </div>
+          <div class="lane">
+            <div>
+              <span class="nm">DEA · BC1234567</span>
+              <span class="meta">CSA · 14s ago</span>
+            </div>
+            <span class="st"><span class="d"></span>Source-confirmed</span>
+          </div>
+          <div class="lane pending">
+            <div>
+              <span class="nm">Hospital privileges</span>
+              <span class="meta">awaiting institutional attestation</span>
+            </div>
+            <span class="st"><span class="d"></span>Pending</span>
+          </div>
+        </div>
+        <div class="receipt">
+          <div class="ttl">Binding receipt · vc-internal</div>
+          <div class="row"><span>Issued by</span><span class="v">vitalcv.health</span></div>
+          <div class="row"><span>Receipt #</span><span class="v">rcpt_01HF…7a2c</span></div>
+          <div class="row"><span>Signed</span><span class="v">2026-05-11 14:32:08Z</span></div>
+        </div>
+        <div class="note"><strong>This is an internal receipt, not a credential.</strong> Do not share with third parties. Issue the VC to produce a verifiable badge.</div>
+      </div>
+      <div class="foot">
+        <span>chrome · session + claim chip</span>
+        <span>state · owned</span>
+      </div>
+    </div>
+
+    <!-- S3 SIGNED -->
+    <div class="card s3">
+      <div class="strip"></div>
+      <div class="head">
+        <div class="l">
+          <span class="code">S3</span>
+          <span class="nm">Signed</span>
+        </div>
+        <span class="url">wallet.vitalcv.health</span>
+      </div>
+      <div class="body">
+        <div class="vc">
+          <div class="l">
+            <span class="lbl">Verifiable Credential</span>
+            <span class="val">vc:vitalcv:01HF7a2c…b8d3</span>
+          </div>
+          <span class="seal">VC</span>
+        </div>
+        <div class="meta">
+          <div class="cell"><div class="k">Issuer</div><div class="v">did:web:vitalcv.health</div></div>
+          <div class="cell"><div class="k">Algorithm</div><div class="v">ed25519</div></div>
+          <div class="cell"><div class="k">Subject NPI</div><div class="v">1234567890</div></div>
+          <div class="cell"><div class="k">Status idx</div><div class="v">#48,217</div></div>
+          <div class="cell"><div class="k">Issued</div><div class="v">2026-05-11T14:32:08Z</div></div>
+          <div class="cell"><div class="k">Expires</div><div class="v">2027-05-11T14:32:08Z</div></div>
+        </div>
+        <div class="chain">
+          <div class="ttl">Receipt chain · 4 anchored</div>
+          <div class="row"><span class="dot"></span><span><span class="h">7a2c…b8d3</span><span class="t"> · now</span></span></div>
+          <div class="row"><span class="dot"></span><span><span class="h">9d11…3e4a</span><span class="t"> · −14d</span></span></div>
+          <div class="row"><span class="dot"></span><span><span class="h">4b00…f1c2</span><span class="t"> · −28d</span></span></div>
+          <div class="row"><span class="dot"></span><span><span class="h">2a17…0e8b</span><span class="t"> · genesis</span></span></div>
+        </div>
+        <div class="note"><strong>Verifiable offline.</strong> Any holder of the issuer DID document can verify this badge without contacting VitalCV.</div>
+      </div>
+      <div class="foot">
+        <span>chrome · cryptographic inversion</span>
+        <span>state · signed</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Transition rail -->
+  <div class="rail">
+    <div class="step"><span class="ev">A → B</span><span class="ar">Sign in →</span></div>
+    <div class="step"><span class="ev">B → C</span><span class="ar">Bind NPI →</span></div>
+    <div class="step"><span class="ev">C → D</span><span class="ar">Issue VC →</span></div>
+    <div class="step term"><span class="ev">D</span><span class="ar">/ verifier</span></div>
+  </div>
+
+  <!-- Single-line read per state -->
+  <div class="row-labels">
+    <div class="rl">
+      <div class="k">S0 · Public</div>
+      <div class="v">Exploratory. <em>Nothing here is yours.</em></div>
+    </div>
+    <div class="rl">
+      <div class="k">S1 · Authenticated</div>
+      <div class="v">Attributable. <em>This session is you, no further claim.</em></div>
+    </div>
+    <div class="rl">
+      <div class="k">S2 · Owned</div>
+      <div class="v">Bound. <em>Internal receipt, not a credential.</em></div>
+    </div>
+    <div class="rl">
+      <div class="k">S3 · Signed</div>
+      <div class="v">Institutionally trusted. <em>Cryptography survives our outage.</em></div>
+    </div>
+  </div>
+
+  <!-- Visual register key — what changes between states -->
+  <div class="key">
+    <div class="hd-r">
+      <div>Visual cue</div>
+      <div>S0 · Public</div>
+      <div>S1 · Authenticated</div>
+      <div>S2 · Owned</div>
+      <div>S3 · Signed</div>
+    </div>
+    <div class="r">
+      <div class="lbl">Surface tone</div>
+      <div>Paper · marketing</div>
+      <div>Light · workbench</div>
+      <div>Light · workbench</div>
+      <div>Inverted · cryptographic</div>
+    </div>
+    <div class="r">
+      <div class="lbl">Top strip</div>
+      <div>2px · ink-200</div>
+      <div>2px · ink-500</div>
+      <div>2px · ink-700</div>
+      <div>3px · white-on-black</div>
+    </div>
+    <div class="r">
+      <div class="lbl">Session bar</div>
+      <div>absent</div>
+      <div>present · identity only</div>
+      <div>present · identity + claim chip</div>
+      <div>absent · wallet chrome</div>
+    </div>
+    <div class="r">
+      <div class="lbl">Claim chip</div>
+      <div>—</div>
+      <div>—</div>
+      <div>"NPI · claimed"</div>
+      <div>VC artifact, not a chip</div>
+    </div>
+    <div class="r">
+      <div class="lbl">Signature visible</div>
+      <div>—</div>
+      <div>—</div>
+      <div>internal receipt only</div>
+      <div>issuer DID · ed25519 · chain</div>
+    </div>
+    <div class="r">
+      <div class="lbl">Honest disclaimer</div>
+      <div>"Anonymous. Not a user."</div>
+      <div>"Session ≠ provider claim."</div>
+      <div>"Not yet a credential."</div>
+      <div>"Verifiable offline."</div>
+    </div>
+  </div>
+
+  <!-- Operational honesty band -->
+  <div class="band">
+    <div>
+      <div class="k">Exploratory</div>
+      <div class="v">S0 reads as a brochure, not an app. <strong>If you see your name or NPI, you are not in S0.</strong></div>
+    </div>
+    <div>
+      <div class="k">Attributable</div>
+      <div class="v">S1 introduces the session bar. <strong>The session bar is the unambiguous signal that this surface knows who you are.</strong></div>
+    </div>
+    <div>
+      <div class="k">Owned (not signed)</div>
+      <div class="v">S2 introduces the claim chip and a labeled internal receipt. <strong>Receipt language never reuses the word "credential."</strong></div>
+    </div>
+    <div>
+      <div class="k">Institutionally trusted</div>
+      <div class="v">S3 inverts the surface. <strong>Dark chrome is reserved for cryptographic artifacts</strong> — never used decoratively elsewhere.</div>
+    </div>
+  </div>
+
+</main>
+
+<footer class="foot-page">
+  <div>VitalCV · Visual Trust System · <span class="v">four states · four chromes · one rule per state</span></div>
+  <div style="text-align:right;">
+    <div>Issuer <span class="v">did:web:vitalcv.health</span></div>
+    <div style="color:var(--ink-400);margin-top:2px;">Spec · OIDC 1.0 · DPoP · VC 2.0 · Status List 2021</div>
+  </div>
+</footer>
+
+</body>
+</html>

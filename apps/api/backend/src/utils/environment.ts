@@ -16,3 +16,7 @@ export function parseBooleanEnv(raw: string | undefined, fallback = false): bool
 export function isStrictTransitionMode(): boolean {
   return parseBooleanEnv(process.env.STRICT_TRANSITION_MODE, false);
 }
+
+export function isProductionRuntime(): boolean {
+  return process.env.NODE_ENV === 'production';
+}

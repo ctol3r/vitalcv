@@ -71,7 +71,7 @@ function normalizeWorkspace(raw: unknown): MobileDashboardData['workspace'] {
 
 export async function loadClinicianMobileData(session: AuthSession): Promise<ClinicianMobileData> {
   const signedIn = Boolean(session.userId);
-  const marketplaceHeaders = buildMarketplaceHeaders(session);
+  const marketplaceHeaders = await buildMarketplaceHeaders(session);
 
   const [workspaceRaw, applicationsRaw, opportunityPayload, profileCompletenessRaw, proofRaw] = await Promise.all([
     signedIn

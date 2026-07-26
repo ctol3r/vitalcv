@@ -11,16 +11,28 @@ on:
       - 'pnpm-workspace.yaml'
       - 'turbo.json'
       - '.github/workflows/ci.yml'
+  # Deliberately NOT path-filtered.
+  #
+  # "Web E2E (Playwright)" (the `web-e2e` job below) is a REQUIRED status check on
+  # main. A path-filtered workflow is skipped *entirely* on a PR that touches none
+  # of those paths, so the required check run is never created — and a required
+  # check that never reports leaves the PR permanently blocked: `mergeable` stays
+  # MERGEABLE while `mergeStateStatus` is BLOCKED and `gh pr merge` refuses with
+  # "the base branch policy prohibits the merge". Every backend-only PR hit this
+  # (first observed on #806).
+  #
+  # The usual remedy — a companion workflow on `paths-ignore` reporting the same
+  # job name — is NOT safe here: `paths` and `paths-ignore` are not exact
+  # complements, so a PR touching both web and non-web files satisfies BOTH
+  # triggers and produces two check runs with the same name, which can mask a real
+  # E2E failure behind the always-green stub.
+  #
+  # Running the suite on every PR to main costs CI minutes but keeps the required
+  # gate honest and always-reporting. If the cost bites, the follow-up is to keep
+  # this trigger unfiltered and short-circuit the expensive steps inside the job
+  # after a change-detection step — never to re-add a trigger-level filter.
   pull_request:
     branches: [main]
-    paths:
-      - 'apps/web/**'
-      - 'packages/**'
-      - 'package.json'
-      - 'pnpm-lock.yaml'
-      - 'pnpm-workspace.yaml'
-      - 'turbo.json'
-      - '.github/workflows/ci.yml'
 
 env:
   NODE_VERSION: '22'
@@ -29,6 +41,20 @@ jobs:
   web-quality:
     name: Web Quality
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: vitalcv_web_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d vitalcv_web_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - uses: actions/checkout@v4
       # pnpm version resolved from packageManager field in package.json (pnpm@10.6.1)
@@ -39,6 +65,10 @@ jobs:
           cache: 'pnpm'
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+      - name: Prepare web integration-test database
+        run: pnpm --filter @vitalcv/web exec prisma db push --schema prisma/schema.prisma --skip-generate
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/vitalcv_web_test
       # Vitest resolves workspace deps (e.g. @vitalcv/trust-state,
       # @vitalcv/shared/pricing) via their package.json "main"/"exports"
       # which point at dist/*. Build the upstream workspace packages
@@ -50,8 +80,155 @@ jobs:
       - name: Lint web app
         run: pnpm --filter @vitalcv/web lint
       - name: Run web unit tests
-        run: pnpm --filter @vitalcv/web test
+        run: pnpm --filter @vitalcv/web exec vitest run --exclude __tests__/verifier-worklist-db.test.ts
+      - name: Run web database integration tests
+        run: pnpm --filter @vitalcv/web exec vitest run __tests__/verifier-worklist-db.test.ts
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/vitalcv_web_test
       - name: Build web app
         run: pnpm --filter @vitalcv/web build
       - name: Launch-Gate Smoke Test
         run: bash scripts/launch-gate.sh
+
+  # The homepage's motion guarantees (scroll-linked typing that plays on screen,
+  # the pinned five-step story, mobile scroll-snap instead of hijacking,
+  # reduced-motion completeness, no horizontal overflow) and the hero NPI truth
+  # contract are only observable in a real browser. Without this job they cannot
+  # fail CI — which is how a broken assertion (#688) and one written against a
+  # since-canonicalised route (#685 vs #686) both reached main green.
+  web-e2e:
+    name: Web E2E (Playwright)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      # @vitalcv/web's own build runs inside playwright's webServer
+      # (`preview:e2e`), but it resolves workspace deps from their dist/, so
+      # those must exist first. Excluding @vitalcv/web avoids building it twice.
+      - name: Build workspace package dependencies
+        run: pnpm turbo build --filter='!@vitalcv/web'
+      - name: Install Playwright chromium
+        run: pnpm --filter @vitalcv/web exec playwright install --with-deps chromium
+      # CI=true makes playwright.config.ts serve a production build
+      # (`preview:e2e`) rather than next dev. Clerk keys stay unset: the suite
+      # runs signed-out and must not depend on a backend.
+      - name: Run web e2e suite
+        run: pnpm --filter @vitalcv/web exec playwright test
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            apps/web/playwright-report/
+            apps/web/test-results/
+          retention-days: 7
+
+  # Real-auth e2e (J8): signs a synthetic test clinician in through the REAL
+  # Clerk gate (development instance) and proves the deck's auth boundary,
+  # no-fixture-fallback truth rule, and decision persistence against a real
+  # Postgres — coverage the signed-out suite structurally cannot give.
+  #
+  # Requires two repo secrets from the Clerk DEVELOPMENT instance:
+  #   E2E_CLERK_PUBLISHABLE_KEY (pk_test_…), E2E_CLERK_SECRET_KEY (sk_test_…)
+  # Without them the job no-ops with a notice, so forks and secretless runs
+  # stay green. The signed-out gate above is untouched either way.
+  web-e2e-authed:
+    name: Web E2E (real auth)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: vitalcv_e2e
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      E2E_CLERK_PUBLISHABLE_KEY: ${{ secrets.E2E_CLERK_PUBLISHABLE_KEY }}
+      E2E_CLERK_SECRET_KEY: ${{ secrets.E2E_CLERK_SECRET_KEY }}
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/vitalcv_e2e
+      BACKEND_URL: http://127.0.0.1:4000
+    steps:
+      - name: Check for Clerk development-instance keys
+        id: keys
+        run: |
+          if [ -n "$E2E_CLERK_SECRET_KEY" ] && [ -n "$E2E_CLERK_PUBLISHABLE_KEY" ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::E2E_CLERK_* secrets not configured — real-auth e2e skipped"
+          fi
+      - uses: actions/checkout@v4
+        if: steps.keys.outputs.present == 'true'
+      - uses: pnpm/action-setup@v4
+        if: steps.keys.outputs.present == 'true'
+      - uses: actions/setup-node@v4
+        if: steps.keys.outputs.present == 'true'
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+      - name: Install dependencies
+        if: steps.keys.outputs.present == 'true'
+        run: pnpm install --frozen-lockfile
+      - name: Build workspace package dependencies
+        if: steps.keys.outputs.present == 'true'
+        run: pnpm turbo build --filter='!@vitalcv/web'
+      - name: Push database schema
+        if: steps.keys.outputs.present == 'true'
+        working-directory: apps/api/backend
+        run: pnpm exec prisma db push --schema prisma/schema.prisma --skip-generate
+      - name: Generate backend Prisma client
+        if: steps.keys.outputs.present == 'true'
+        working-directory: apps/api/backend
+        run: bash ../../../scripts/prisma-generate-locked.sh --schema prisma/schema.prisma
+      - name: Start backend (role resolution target)
+        if: steps.keys.outputs.present == 'true'
+        working-directory: apps/api/backend
+        env:
+          PORT: '4000'
+          # test, not development: the dev bootstrap runs prediction-engine
+          # warmup that fails on a cold database and wedges the readiness
+          # gate; the test bootstrap (the one backend jest uses) skips it.
+          NODE_ENV: test
+        run: |
+          nohup pnpm exec ts-node src/server.ts > "$RUNNER_TEMP/backend.log" 2>&1 &
+          # /health flips first; API routes open a beat later when the
+          # readiness gate lifts ("Service starting..." stops). Wait for BOTH.
+          for i in $(seq 1 60); do
+            if curl -sf http://127.0.0.1:4000/health > /dev/null; then
+              body=$(curl -sm 5 http://127.0.0.1:4000/api/me/role || true)
+              if [ "${body#Service starting}" = "$body" ]; then
+                echo "backend ready"; exit 0
+              fi
+            fi
+            sleep 2
+          done
+          echo "backend never became ready"; tail -50 "$RUNNER_TEMP/backend.log"; exit 1
+      - name: Install Playwright chromium
+        if: steps.keys.outputs.present == 'true'
+        run: pnpm --filter @vitalcv/web exec playwright install --with-deps chromium
+      - name: Run real-auth e2e suite
+        if: steps.keys.outputs.present == 'true'
+        run: pnpm --filter @vitalcv/web exec playwright test
+      - name: Upload Playwright report on failure
+        if: failure() && steps.keys.outputs.present == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-authed
+          path: |
+            apps/web/playwright-report/
+            apps/web/test-results/
+          retention-days: 7

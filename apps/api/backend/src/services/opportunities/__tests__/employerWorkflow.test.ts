@@ -126,9 +126,16 @@ describe('Employer Workflow Actions', () => {
     const transactionClient = {
       application: {
         update: jest.fn().mockResolvedValue({}),
+        findUnique: jest.fn().mockResolvedValue({ sealedPacketVersion: 1 }),
+      },
+      applicationPacket: {
+        findFirst: jest.fn().mockResolvedValue({ packetVersion: 1, packetHash: 'packet-hash-1' }),
       },
       auditEvent: {
         create: jest.fn().mockResolvedValue({}),
+      },
+      outboxEvent: {
+        upsert: jest.fn().mockResolvedValue({ id: 'outbox-1' }),
       },
       hITLReviewItem: {
         create: jest.fn().mockResolvedValue({ id: 'task-1' }),
@@ -243,9 +250,16 @@ describe('Employer Workflow Actions', () => {
     const transactionClient = {
       application: {
         update: jest.fn().mockResolvedValue({}),
+        findUnique: jest.fn().mockResolvedValue({ sealedPacketVersion: 1 }),
+      },
+      applicationPacket: {
+        findFirst: jest.fn().mockResolvedValue({ packetVersion: 1, packetHash: 'packet-hash-1' }),
       },
       auditEvent: {
-        create: jest.fn().mockResolvedValue({}),
+        create: jest.fn().mockResolvedValue({ id: 'audit-decision-1' }),
+      },
+      outboxEvent: {
+        upsert: jest.fn().mockResolvedValue({ id: 'outbox-decision-1' }),
       },
     };
 
@@ -265,5 +279,165 @@ describe('Employer Workflow Actions', () => {
     }));
     expect(result.application.workflowState).toBe('APPROVED');
     expect(result.application.queue).toBe('credentialing');
+    expect(transactionClient.auditEvent.create).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        type: 'APPLICATION_DECISION_RECORDED',
+        referenceId: 'app-1',
+      }),
+    }));
+    expect(transactionClient.outboxEvent.upsert).toHaveBeenCalledWith(expect.objectContaining({
+      where: {
+        dedupeKey: 'APPLICATION_DECISION_CAPSULE_REQUESTED:app-1:ACCEPTED',
+      },
+    }));
+    expect(transactionClient.outboxEvent.upsert).toHaveBeenCalledWith(expect.objectContaining({
+      create: expect.objectContaining({
+        payload: expect.objectContaining({
+          submission: {
+            mode: 'sealed',
+            packetVersion: 1,
+            packetHash: 'packet-hash-1',
+          },
+        }),
+      }),
+    }));
+    expect(result.auditEventId).toBe('audit-decision-1');
+    expect(result.decisionOutboxEventId).toBe('outbox-decision-1');
+  });
+
+  test('starts review through the canonical workflow command', async () => {
+    const initialApplication = buildApplication();
+    const reviewedApplication = buildApplication({
+      status: 'REVIEWED',
+      reviewedBy: 'verifier-1',
+      reviewedAt: '2026-04-09T12:00:00.000Z',
+      reviewNote: 'Review started.',
+      updatedAt: '2026-04-09T12:00:00.000Z',
+    });
+
+    listAllOrgApplicationsMock
+      .mockResolvedValueOnce([initialApplication] as never)
+      .mockResolvedValueOnce([reviewedApplication] as never);
+    prismaMock.auditEvent.findMany
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([]);
+
+    const transactionClient = {
+      application: {
+        update: jest.fn().mockResolvedValue({}),
+        findUnique: jest.fn(),
+      },
+      applicationPacket: {
+        findFirst: jest.fn(),
+      },
+      auditEvent: {
+        create: jest.fn().mockResolvedValue({ id: 'audit-review-1' }),
+      },
+      outboxEvent: {
+        upsert: jest.fn(),
+      },
+    };
+    prismaMock.$transaction.mockImplementation(async (callback: (tx: typeof transactionClient) => unknown) => callback(transactionClient));
+
+    const result = await runEmployerWorkflowAction({
+      action: 'start_review',
+      applicationId: 'app-1',
+      reviewerClerkUserId: 'verifier-1',
+      reviewNote: 'Review started.',
+    });
+
+    expect(transactionClient.application.update).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ status: 'REVIEWED' }),
+    }));
+    expect(transactionClient.auditEvent.create).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ type: 'APPLICATION_REVIEW_STARTED' }),
+    }));
+    expect(transactionClient.outboxEvent.upsert).not.toHaveBeenCalled();
+    expect(result.action).toBe('start_review');
+    expect(result.auditEventId).toBe('audit-review-1');
+  });
+
+  test('records an explicit legacy submission marker without fabricating a packet', async () => {
+    const initialApplication = buildApplication();
+    const rejectedApplication = buildApplication({
+      status: 'DECLINED',
+      reviewedBy: 'verifier-1',
+      reviewedAt: '2026-04-09T12:00:00.000Z',
+      reviewNote: 'Application rejected.',
+      updatedAt: '2026-04-09T12:00:00.000Z',
+    });
+    listAllOrgApplicationsMock
+      .mockResolvedValueOnce([initialApplication] as never)
+      .mockResolvedValueOnce([rejectedApplication] as never);
+    prismaMock.auditEvent.findMany
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([]);
+
+    const transactionClient = {
+      application: {
+        update: jest.fn().mockResolvedValue({}),
+        findUnique: jest.fn().mockResolvedValue({ sealedPacketVersion: null }),
+      },
+      applicationPacket: {
+        findFirst: jest.fn(),
+      },
+      auditEvent: {
+        create: jest.fn().mockResolvedValue({ id: 'audit-decision-legacy' }),
+      },
+      outboxEvent: {
+        upsert: jest.fn().mockResolvedValue({ id: 'outbox-decision-legacy' }),
+      },
+    };
+    prismaMock.$transaction.mockImplementation(async (callback: (tx: typeof transactionClient) => unknown) => callback(transactionClient));
+
+    await runEmployerWorkflowAction({
+      action: 'reject',
+      applicationId: 'app-1',
+      reviewerClerkUserId: 'verifier-1',
+    });
+
+    expect(transactionClient.applicationPacket.findFirst).not.toHaveBeenCalled();
+    expect(transactionClient.outboxEvent.upsert).toHaveBeenCalledWith(expect.objectContaining({
+      create: expect.objectContaining({
+        payload: expect.objectContaining({
+          submission: {
+            mode: 'legacy',
+            packetVersion: null,
+            packetHash: null,
+          },
+        }),
+      }),
+    }));
+  });
+
+  test('fails closed when a declared sealed packet is unavailable', async () => {
+    listAllOrgApplicationsMock.mockResolvedValueOnce([buildApplication()] as never);
+    prismaMock.auditEvent.findMany.mockResolvedValueOnce([]);
+
+    const transactionClient = {
+      application: {
+        update: jest.fn(),
+        findUnique: jest.fn().mockResolvedValue({ sealedPacketVersion: 1 }),
+      },
+      applicationPacket: {
+        findFirst: jest.fn().mockResolvedValue(null),
+      },
+      auditEvent: {
+        create: jest.fn(),
+      },
+      outboxEvent: {
+        upsert: jest.fn(),
+      },
+    };
+    prismaMock.$transaction.mockImplementation(async (callback: (tx: typeof transactionClient) => unknown) => callback(transactionClient));
+
+    await expect(runEmployerWorkflowAction({
+      action: 'accept',
+      applicationId: 'app-1',
+      reviewerClerkUserId: 'verifier-1',
+    })).rejects.toThrow('submitted application packet is unavailable');
+
+    expect(transactionClient.application.update).not.toHaveBeenCalled();
+    expect(transactionClient.outboxEvent.upsert).not.toHaveBeenCalled();
   });
 });

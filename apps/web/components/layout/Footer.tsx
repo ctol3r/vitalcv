@@ -4,6 +4,22 @@ import { isPublicSurfacePath } from '@/components/layout/publicSurfaceRoutes';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
+/**
+ * Footer links are `text-xs`, so their line box is only 16px tall — under the
+ * 24×24 CSS-px floor in WCAG 2.2 AA 2.5.8 (Target Size, Minimum). `gap-4` gives
+ * 16px between them, so the spacing exception does not rescue them either, and
+ * they are standalone nav links rather than inline-in-a-sentence, so that
+ * exception does not apply. Measured on production at a real 390×844 viewport:
+ * six links at 16px tall.
+ *
+ * `inline-flex items-center min-h-[24px]` lifts the hit area to the floor while
+ * leaving font size, colour and the text's optical position unchanged (the text
+ * centres inside the taller box). Widths already pass — the narrowest, "DPA", is
+ * 24px.
+ */
+const FOOTER_LINK_CLASS =
+  'inline-flex items-center min-h-[24px] text-xs text-muted-foreground transition-colors hover:text-foreground';
+
 const FOOTER_LINKS = [
   { href: '/privacy', label: 'Privacy' },
   { href: '/terms', label: 'Terms' },
@@ -31,15 +47,12 @@ export default function Footer() {
               <Link
                 key={link.href}
                 href={link.href}
-                className="text-xs text-muted-foreground transition-colors hover:text-foreground"
+                className={FOOTER_LINK_CLASS}
               >
                 {link.label}
               </Link>
             ))}
-            <Link
-              href="/contact"
-              className="text-xs text-muted-foreground transition-colors hover:text-foreground"
-            >
+            <Link href="/contact" className={FOOTER_LINK_CLASS}>
               Contact
             </Link>
           </nav>

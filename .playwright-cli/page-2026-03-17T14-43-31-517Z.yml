@@ -1,9 +1,0 @@
-- generic [active] [ref=e1]:
-  - generic [ref=e4]:
-    - generic [ref=e5]: ⚠️
-    - heading "Something went wrong" [level=1] [ref=e6]
-    - paragraph [ref=e7]: An unexpected error occurred. Please try again, or contact support if the problem persists.
-    - button "Try again" [ref=e8]
-  - region "Notifications":
-    - list
-  - alert [ref=e9]

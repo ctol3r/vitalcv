@@ -2,6 +2,8 @@
 **Generated:** 2026-03-28
 **Purpose:** Defines exactly what "pilot-ready" means. Each item must be GREEN before silent pilot begins.
 
+> **⚠️ Historical snapshot (superseded 2026-07-04).** This gate reflects the 2026-03-28 tree (PR #87/#88 era). The canonical open-blocker list is now `docs/ops/launch-blockers.md`; the on-disk verification that retired most rows below is `docs/ops/REBASELINE-2026-07-04.md`. Kept unedited for audit lineage.
+
 ---
 
 ## WEDGE TRUTH

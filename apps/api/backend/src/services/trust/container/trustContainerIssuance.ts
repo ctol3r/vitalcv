@@ -183,7 +183,7 @@ export interface IssueTrustContainerManifestEntryInput {
 export async function issueTrustContainerManifestEntry(
   input: IssueTrustContainerManifestEntryInput,
 ): Promise<TrustContainerManifestEntry> {
-  let providerKind: 'mock' | 'dock' | null = null;
+  let providerKind: 'mock' | 'dock' | 'vitalcv' | null = null;
   try {
     const container = createTrustContainer();
     providerKind = container.kind;

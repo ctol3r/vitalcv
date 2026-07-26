@@ -79,7 +79,7 @@ export default function PrequalificationRibbon({
 
         {/* CTA */}
         <Link
-          href="/get-ready"
+          href="/onboarding"
           className="flex-shrink-0 text-xs px-3 py-1.5 rounded-lg bg-blue-600/30 border border-blue-500/30 text-blue-400 hover:bg-blue-600/50 transition-colors"
         >
           Continue

@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sign in · VitalCV</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css?v=7">
+<script>
+(function(){
+  function apply(){
+    var hide = window.innerWidth < 1180;
+    var nodes = document.getElementsByClassName('hide-narrow');
+    for (var i = 0; i < nodes.length; i++) {
+      nodes[i].style.display = hide ? 'none' : '';
+    }
+  }
+  if (document.readyState !== 'loading') apply();
+  else document.addEventListener('DOMContentLoaded', apply);
+  window.addEventListener('resize', apply);
+})();
+</script>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-in">
+    <a href="index.html" class="brand"><span class="glyph">V</span><span>VitalCV</span><span class="ver">PREVIEW</span></a>
+    <div class="nav-links">
+      <a href="index.html">Overview</a>
+      <a href="trust.html">Trust</a>
+      <a href="trust-attribution.html">Attribution</a>
+      <a href="status.html">Status</a>
+    </div>
+    <div class="nav-right">
+      <span class="muted mono small">Don't have an account?</span>
+      <a href="sign-up.html" class="btn primary">Get a passport</a>
+    </div>
+  </div>
+</nav>
+
+<main class="page split">
+<div class="auth">
+
+  <aside class="auth-left">
+    <a href="index.html" class="brand" style="color:var(--paper)"><span class="glyph">V</span><span>VitalCV</span><span class="ver">PREVIEW</span></a>
+    <h2>Sign in to read what is <em>source-backed</em> about you — and to share it.</h2>
+
+    <div class="auth-disclosures">
+      <div class="row">
+        <span class="ic">i</span>
+        <div>
+          <span class="k">Why sign-in matters</span>
+          <span class="v">Reading a public NPI doesn't require an account. <strong>Sign in is for adding self-reported facts, sharing scope-bound packets with an institution, and seeing the receipts of every read.</strong></span>
+        </div>
+      </div>
+      <div class="row">
+        <span class="ic">i</span>
+        <div>
+          <span class="k">What sign-in is not</span>
+          <span class="v">VitalCV does not credential, license, or clear a clinician to practice. Institutions retain full authority over hiring and privileging.</span>
+        </div>
+      </div>
+      <div class="row">
+        <span class="ic">i</span>
+        <div>
+          <span class="k">How we authenticate</span>
+          <span class="v">Passwordless, by default — a one-time code to work email or phone. Hospital SSO when your institution provides it.</span>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <section class="auth-right">
+    <div class="eyebrow"><span class="tag">Sign in</span><span class="ln"></span><span>Choose how you're using VitalCV</span></div>
+    <h2 class="h1">Continue to VitalCV.</h2>
+    <p class="lede" style="font-size:14.5px; margin-top:-6px">Passwordless by default. We never ask for a long-lived password.</p>
+
+    <div class="seg-roles">
+      <button class="active"><span class="nm">Clinician</span><span class="ds">My passport</span></button>
+      <button><span class="nm">Reviewer</span><span class="ds">Read a passport</span></button>
+      <button><span class="nm">Operator</span><span class="ds">Console</span></button>
+    </div>
+
+    <div class="field-grp">
+      <label>Work email</label>
+      <input class="input" placeholder="asha.bhatt@ucsf.edu" value="asha.bhatt@ucsf.edu">
+      <div class="hint"><span>We send a 6-digit code · valid 10 minutes</span><a href="#">Use SSO instead</a></div>
+    </div>
+
+    <div class="field-grp">
+      <label>One-time code · sent to phone ending ··42</label>
+      <input class="input mono lg" value="842 · 19_" maxlength="9" style="letter-spacing: 0.35em">
+      <div class="hint"><span>Resend in 0:42</span><a href="#">Use a different method</a></div>
+    </div>
+
+    <div class="submit">
+      <button class="btn accent">Continue as clinician <span class="kbd">⏎</span></button>
+      <a href="sign-up.html" class="btn ghost">Don't have a passport?</a>
+    </div>
+
+    <div class="divider">or single sign-on</div>
+    <div class="sso">
+      <button class="btn">Hospital SSO · Okta</button>
+      <button class="btn">Google for Work</button>
+    </div>
+
+    <div class="boundary-banner" style="margin-top:8px">
+      <span class="ic">i</span>
+      <div>
+        <span class="k">Review boundary</span>
+        <span class="v">Signing in does not approve, clear, or credential anyone. VitalCV reads public sources and shows their state. <strong>Institutions retain full authority.</strong></span>
+      </div>
+      <span></span>
+    </div>
+
+    <div class="auth-ft">
+      <span>v2.4.0 · D57</span>
+      <span><a href="trust.html">How we read sources</a> · <a href="contact.html">Talk to us</a></span>
+    </div>
+  </section>
+
+</div>
+</main>
+
+
+<script>
+(function(){
+  function syncResponsive(){
+    var w = window.innerWidth;
+    document.querySelectorAll('.nav-status').forEach(function(el){
+      el.classList.toggle('no-on-narrow', w < 1180);
+    });
+    document.querySelectorAll('.nav-right .muted').forEach(function(el){
+      el.classList.toggle('no-on-narrow', w < 1180);
+    });
+  }
+  syncResponsive();
+  window.addEventListener('resize', syncResponsive);
+})();
+</script>
+</body>
+</html>

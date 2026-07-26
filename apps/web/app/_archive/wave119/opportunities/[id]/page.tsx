@@ -141,7 +141,7 @@ async function fetchOpportunityDetail(id: string, npi?: string): Promise<Opportu
       `${getBackendBase()}/api/opportunities/${encodeURIComponent(id)}${params.toString() ? `?${params.toString()}` : ''}`,
       {
         cache: 'no-store',
-        headers: buildMarketplaceHeaders(session, {
+        headers: await buildMarketplaceHeaders(session, {
           'Content-Type': 'application/json',
         }),
       },

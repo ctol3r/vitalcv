@@ -155,13 +155,15 @@ function degradedState(passport: PassportData & { _degraded?: boolean }): NonNul
 }
 
 function deploymentDiagnostics(): PassportRuntimeLogEntry['deploymentDiagnostics'] {
+  // Railway is canonical; VERCEL_* / NEXT_PUBLIC_VERCEL_URL remain as
+  // backwards-compatible fallbacks only.
   return {
     nodeEnv: process.env.NODE_ENV ?? 'unknown',
-    vercelEnv: process.env.VERCEL_ENV ?? null,
-    gitSha: (process.env.VERCEL_GIT_COMMIT_SHA ?? process.env.GIT_SHA ?? null)?.slice(0, 12) ?? null,
-    gitRef: process.env.VERCEL_GIT_COMMIT_REF ?? process.env.GIT_BRANCH ?? null,
-    deploymentUrlPresent: Boolean(process.env.VERCEL_URL ?? process.env.NEXT_PUBLIC_VERCEL_URL),
-    region: process.env.VERCEL_REGION ?? process.env.AWS_REGION ?? null,
+    vercelEnv: process.env.RAILWAY_ENVIRONMENT ?? process.env.VERCEL_ENV ?? null,
+    gitSha: (process.env.RAILWAY_GIT_COMMIT_SHA ?? process.env.VERCEL_GIT_COMMIT_SHA ?? process.env.GIT_SHA ?? null)?.slice(0, 12) ?? null,
+    gitRef: process.env.RAILWAY_GIT_BRANCH ?? process.env.VERCEL_GIT_COMMIT_REF ?? process.env.GIT_BRANCH ?? null,
+    deploymentUrlPresent: Boolean(process.env.RAILWAY_PUBLIC_DOMAIN ?? process.env.VERCEL_URL ?? process.env.NEXT_PUBLIC_VERCEL_URL),
+    region: process.env.RAILWAY_REGION ?? process.env.VERCEL_REGION ?? process.env.AWS_REGION ?? null,
   };
 }
 

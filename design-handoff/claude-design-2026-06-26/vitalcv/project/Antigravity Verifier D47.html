@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>VitalCV · Verifier · Dr. Connor Kilch</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --ink-0:#fff;--ink-50:#f8fafc;--ink-100:#f1f5f9;--ink-200:#e2e8f0;--ink-300:#cbd5e1;
+    --ink-400:#94a3b8;--ink-500:#64748b;--ink-600:#475569;--ink-700:#334155;
+    --ink-800:#1e293b;--ink-900:#0f172a;--ink-950:#020617;
+    --rule:#e2e8f0;
+    --green-border:#047857;--green-text:#065f46;--green-bg:#f0fdf4;
+    --amber-border:#92400e;--amber-text:#78350f;--amber-bg:#fffbeb;
+    --mono:'Geist Mono',ui-monospace,monospace;
+    --sans:'Geist',ui-sans-serif,system-ui,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--ink-50);color:var(--ink-900);font-family:var(--sans);-webkit-font-smoothing:antialiased;font-size:14px;line-height:1.5;}
+  code{font-family:var(--mono);font-variant-numeric:tabular-nums;}
+
+  /* === Verifier rail — deliberately terse. No nav. No welcome. === */
+  .rail{background:var(--ink-950);color:var(--ink-400);font-family:var(--mono);font-size:11px;}
+  .rail .in{max-width:960px;margin:0 auto;padding:0 28px;height:28px;display:flex;align-items:center;justify-content:space-between;gap:14px;}
+  .rail strong{color:var(--ink-200);font-weight:500;text-transform:uppercase;letter-spacing:.14em;font-size:10px;}
+  .rail .pill{display:inline-flex;align-items:center;gap:5px;padding:1px 7px;border:1px solid var(--ink-700);text-transform:uppercase;letter-spacing:.12em;font-size:9.5px;}
+  .rail .pill .d{width:5px;height:5px;border-radius:50%;background:#fff;}
+  .rail .expiry{color:var(--ink-600);}
+
+  /* === Main column === */
+  .wrap{max-width:960px;margin:0 auto;padding:28px 28px 64px;}
+
+  /* === Clinician identity block === */
+  .clinician{background:var(--ink-0);border:1px solid var(--ink-900);margin-bottom:2px;}
+  .clinician .c-top{padding:20px 24px 16px;border-bottom:1px solid var(--rule);}
+  .clinician .name{font-size:28px;font-weight:600;letter-spacing:-.022em;line-height:1.1;color:var(--ink-900);}
+  .clinician .npi-line{margin-top:6px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-family:var(--mono);font-size:11px;color:var(--ink-500);text-transform:uppercase;letter-spacing:.14em;}
+  .clinician .npi-line .sep{color:var(--ink-300);}
+  .clinician .npi-line .npi{color:var(--ink-900);font-weight:600;}
+  .clinician .c-meta{padding:12px 24px;display:grid;grid-template-columns:repeat(4,1fr);gap:0;}
+  .clinician .c-meta .mc{padding-right:18px;border-right:1px solid var(--rule);}
+  .clinician .c-meta .mc:last-child{border-right:0;padding-right:0;}
+  .clinician .c-meta .k{font-family:var(--mono);font-size:9.5px;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-500);font-weight:600;margin-bottom:3px;}
+  .clinician .c-meta .v{font-family:var(--mono);font-size:12px;color:var(--ink-900);font-weight:500;}
+  .clinician .c-meta .mc:nth-child(n+2){padding-left:18px;}
+
+  /* === Trust tier === */
+  .trust-tier{background:var(--ink-900);color:#fff;padding:10px 24px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.14em;margin-bottom:2px;}
+  .trust-tier .l{display:flex;align-items:center;gap:12px;}
+  .trust-tier .tag{display:inline-flex;align-items:center;gap:5px;padding:1px 8px;border:1px solid #fff;font-weight:700;font-size:10px;letter-spacing:.18em;}
+  .trust-tier .tag .d{width:5px;height:5px;background:#fff;}
+  .trust-tier .tier-nm{color:#fff;font-weight:500;letter-spacing:.06em;}
+  .trust-tier .flags{color:#94a3b8;}
+  .trust-tier .flags strong{color:#34d399;}
+
+  /* === Fact ledger === */
+  .fact-ledger{background:var(--ink-0);border:1px solid var(--ink-900);margin-bottom:2px;}
+  .fact-ledger .fh{background:var(--ink-50);border-bottom:1px solid var(--ink-900);display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;font-family:var(--mono);font-size:9.5px;text-transform:uppercase;letter-spacing:.14em;color:var(--ink-500);font-weight:600;}
+  .fact-ledger .fh > div{padding:9px 16px;border-right:1px solid var(--rule);}
+  .fact-ledger .fh > div:last-child{border-right:0;}
+  .fact-ledger .fr{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;border-bottom:1px solid var(--rule);align-items:stretch;}
+  .fact-ledger .fr:last-child{border-bottom:0;}
+  .fact-ledger .fr > div{padding:11px 16px;border-right:1px solid var(--rule);}
+  .fact-ledger .fr > div:last-child{border-right:0;}
+  .fact-ledger .fr .fact-nm{font-size:13.5px;color:var(--ink-900);font-weight:500;letter-spacing:-.005em;}
+  .fact-ledger .fr .fact-nm .sub{display:block;font-family:var(--mono);font-size:10px;color:var(--ink-500);font-weight:400;margin-top:2px;letter-spacing:.04em;text-transform:uppercase;}
+  .status-label{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.14em;padding:2px 8px;border:1px solid;}
+  .status-label .m{width:5px;height:5px;flex-shrink:0;}
+  .status-label.nppes{color:var(--green-text);border-color:var(--green-border);background:var(--green-bg);}
+  .status-label.nppes .m{background:var(--green-border);}
+  .status-label.source{color:var(--green-text);border-color:#166534;background:var(--green-bg);}
+  .status-label.source .m{background:#166534;}
+  .status-label.state{color:#1e40af;border-color:#1e40af;background:#eff6ff;}
+  .status-label.state .m{background:#1e40af;}
+  .fact-ledger .fr .src-cell{font-family:var(--mono);font-size:11px;color:var(--ink-700);}
+  .fact-ledger .fr .src-cell .sub{display:block;font-size:10px;color:var(--ink-400);margin-top:2px;}
+  .fact-ledger .fr .date-cell{font-family:var(--mono);font-size:11px;color:var(--ink-600);}
+
+  /* === Decision block — the whole point of this page === */
+  .decision{display:grid;grid-template-columns:1fr 280px;gap:2px;margin-top:2px;}
+  .decision .accept{background:var(--ink-900);padding:22px 28px;display:flex;flex-direction:column;justify-content:space-between;gap:14px;cursor:pointer;border:none;text-align:left;}
+  .decision .accept:hover{background:var(--ink-800);}
+  .decision .accept .label{font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.2em;color:#94a3b8;font-weight:600;}
+  .decision .accept .cta{font-family:var(--mono);font-size:18px;color:#fff;font-weight:600;letter-spacing:.04em;line-height:1.2;}
+  .decision .accept .cta .g{color:#64748b;font-weight:400;font-size:13px;}
+  .decision .accept .sub-txt{font-family:var(--mono);font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.14em;}
+  .decision .reject{background:var(--ink-0);border:1px solid var(--ink-900);padding:22px 24px;display:flex;flex-direction:column;justify-content:space-between;gap:12px;cursor:pointer;text-align:left;}
+  .decision .reject:hover{background:var(--ink-50);}
+  .decision .reject .label{font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.2em;color:var(--ink-500);font-weight:600;}
+  .decision .reject .cta{font-family:var(--mono);font-size:15px;color:var(--ink-900);font-weight:600;letter-spacing:.04em;}
+  .decision .reject .hint{font-family:var(--mono);font-size:10px;color:var(--ink-400);text-transform:uppercase;letter-spacing:.1em;line-height:1.5;}
+  .decision .reject .flag-opts{display:flex;flex-direction:column;gap:4px;}
+  .decision .reject .flag-opt{font-family:var(--mono);font-size:10px;color:var(--ink-500);letter-spacing:.08em;padding:3px 0;border-bottom:1px dashed var(--rule);text-transform:uppercase;}
+  .decision .reject .flag-opt:last-child{border-bottom:0;}
+
+  /* === Receipt footer === */
+  .receipt{margin-top:2px;background:var(--ink-0);border:1px solid var(--rule);padding:12px 24px;display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;font-family:var(--mono);font-size:10.5px;color:var(--ink-500);letter-spacing:.06em;}
+  .receipt strong{color:var(--ink-900);font-weight:500;}
+  .receipt .link{color:var(--ink-900);text-decoration:underline;text-decoration-color:var(--ink-300);text-underline-offset:3px;}
+
+  @media(max-width:720px){
+    .clinician .c-meta{grid-template-columns:1fr 1fr;}
+    .clinician .c-meta .mc:nth-child(2n){border-right:0;}
+    .clinician .c-meta .mc:nth-child(n+3){border-top:1px solid var(--rule);padding-top:10px;margin-top:0;}
+    .fact-ledger .fh,.fact-ledger .fr{grid-template-columns:1.4fr 1fr;}
+    .fact-ledger .fh > div:nth-child(n+3),.fact-ledger .fr > div:nth-child(n+3){display:none;}
+    .decision{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body data-screen-label="Antigravity Verifier D47">
+
+<!-- No sidebar. No nav menu. No "Welcome back." Just the decision. -->
+<div class="rail">
+  <div class="in">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span style="width:14px;height:14px;background:#fff;display:grid;place-items:center;font-size:8px;font-weight:700;color:#000;flex-shrink:0;">V</span>
+      <strong>VitalCV · Verifier</strong>
+      <span style="color:var(--ink-700);">·</span>
+      <span class="pill"><span class="d"></span>Secure channel</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <span>Ref <strong style="color:var(--ink-200);">VCV-2026-051-KILCH</strong></span>
+      <span style="color:var(--ink-700);">·</span>
+      <span class="expiry">Expires 2026-05-26</span>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <!-- Clinician identity — first thing you see -->
+  <div class="clinician">
+    <div class="c-top">
+      <div class="name">Dr. Connor Kilch, MD</div>
+      <div class="npi-line">
+        <span class="npi">NPI 1033806195</span>
+        <span class="sep">·</span>
+        <span>Family Medicine</span>
+        <span class="sep">·</span>
+        <span>207Q00000X</span>
+        <span class="sep">·</span>
+        <span>Individual Provider · Type 1</span>
+      </div>
+    </div>
+    <div class="c-meta">
+      <div class="mc">
+        <div class="k">Taxonomy</div>
+        <div class="v">Family Medicine</div>
+      </div>
+      <div class="mc">
+        <div class="k">Credential</div>
+        <div class="v">MD · Michigan</div>
+      </div>
+      <div class="mc">
+        <div class="k">Enumeration</div>
+        <div class="v">2010-04-15</div>
+      </div>
+      <div class="mc">
+        <div class="k">Last updated</div>
+        <div class="v">2024-11-07</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Trust tier summary -->
+  <div class="trust-tier">
+    <div class="l">
+      <span class="tag"><span class="d"></span>T3</span>
+      <span class="tier-nm">Federal Source · Primary Registry</span>
+    </div>
+    <div class="flags"><strong>0</strong> outstanding flags · All sources returned clean · Receipt replayable 7 years</div>
+  </div>
+
+  <!-- Fact ledger — the decision evidence -->
+  <div class="fact-ledger">
+    <div class="fh">
+      <div>Fact</div>
+      <div>Status</div>
+      <div>Source</div>
+      <div>Date checked</div>
+    </div>
+    <div class="fr">
+      <div class="fact-nm">National Provider Identity<span class="sub">NPI 1033806195 · Type 1</span></div>
+      <div><span class="status-label nppes"><span class="m"></span>NPPES-Confirmed</span></div>
+      <div class="src-cell">CMS NPPES<span class="sub">npiregistry.cms.hhs.gov</span></div>
+      <div class="date-cell">2026-05-19</div>
+    </div>
+    <div class="fr">
+      <div class="fact-nm">Federal Sanction Check<span class="sub">OIG exclusion · LEIE database</span></div>
+      <div><span class="status-label source"><span class="m"></span>Source-Checked</span></div>
+      <div class="src-cell">OIG/LEIE<span class="sub">exclusions.oig.hhs.gov</span></div>
+      <div class="date-cell">2026-05-19</div>
+    </div>
+    <div class="fr">
+      <div class="fact-nm">Medical License<span class="sub">MD · State of Michigan</span></div>
+      <div><span class="status-label state"><span class="m"></span>State-Verified</span></div>
+      <div class="src-cell">LARA Michigan<span class="sub">Board of Medicine</span></div>
+      <div class="date-cell">2026-05-19</div>
+    </div>
+    <div class="fr">
+      <div class="fact-nm">PECOS Enrollment<span class="sub">Medicare billing eligibility</span></div>
+      <div><span class="status-label source"><span class="m"></span>Source-Checked</span></div>
+      <div class="src-cell">CMS PECOS<span class="sub">pecos.cms.hhs.gov</span></div>
+      <div class="date-cell">2026-05-19</div>
+    </div>
+    <div class="fr">
+      <div class="fact-nm">DEA Registration<span class="sub">Controlled substance scheduling</span></div>
+      <div><span class="status-label source"><span class="m"></span>Source-Checked</span></div>
+      <div class="src-cell">DEA Connect<span class="sub">dea.gov/registration</span></div>
+      <div class="date-cell">2026-05-19</div>
+    </div>
+  </div>
+
+  <!-- Decision block — the singular purpose of this page -->
+  <div class="decision">
+    <button class="accept">
+      <div class="label">Accept clinician →</div>
+      <div class="cta">Dr. Connor Kilch, MD <div class="g">NPI 1033806195 · T3 Federal Source</div></div>
+      <div class="sub-txt">Creates a timestamped acceptance receipt · Replayable 7 years · Stored to audit log</div>
+    </button>
+    <div class="reject">
+      <div class="label">Reject / flag</div>
+      <div class="cta">Do not proceed</div>
+      <div class="flag-opts">
+        <div class="flag-opt">Insufficient documentation</div>
+        <div class="flag-opt">Taxonomy mismatch</div>
+        <div class="flag-opt">Sanction risk — escalate</div>
+        <div class="flag-opt">Request T4 board-direct</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Receipt — quiet proof at the bottom -->
+  <div class="receipt">
+    <div>
+      Receipt <strong>VCV-2026-051-KILCH</strong> · Signed <strong>ed25519:4f2a</strong> · Issued <strong>2026-05-19T14:32:08Z</strong>
+    </div>
+    <div>
+      Replayable 7 years · No VitalCV required to re-verify · <a class="link" href="Verifier Replay.html">View replay proof →</a>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,31 @@
+name: Public Claims Gate
+
+# Blocks over-claiming public copy (banned strings / unsupported marketing claims)
+# from reaching main. Scans apps/web/app + apps/web/components via
+# scripts/check-public-claims.ts. The script uses only Node built-ins, so this
+# gate needs no dependency install and stays fast.
+
+on:
+  # Deliberately NOT path-filtered — `check-public-claims` is a REQUIRED status
+  # check on main, and the two are incompatible: a filtered workflow is
+  # skipped, its check run is never created, and a required check that
+  # never reports blocks the PR forever. This gate is diff-independent
+  # anyway (it scans the whole tree / fixed fixtures), so the filter
+  # saved nothing. Enforced by scripts/check-workflow-path-filters.js.
+  pull_request:
+    branches: [main]
+
+env:
+  NODE_VERSION: '22'
+
+jobs:
+  check-public-claims:
+    name: check-public-claims
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Scan public copy for prohibited claims
+        run: node --experimental-strip-types --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/check-public-claims.ts

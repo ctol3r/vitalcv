@@ -1,0 +1,636 @@
+/* Homepage Motion Convergence Wave. The page remains complete and readable
+   without animation; desktop motion is a progressive enhancement. */
+
+/* ── Rotating evidence cycler (adapted from the UIverse "Loader" by kennyotsu,
+   MIT, Chris 2026-07-18): a fixed prefix + a column of words that snap-scroll
+   upward and dwell, behind a top/bottom fade mask — the same edge-fade language
+   as the manifesto band. Words cycle real reusable-evidence lanes. The last
+   word repeats the first so the loop is seamless. Reduced motion parks it on
+   the first word; the sr-only phrase carries the honest meaning regardless. */
+.proofcycle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4ch;
+  margin: 0;
+  font-family: var(--mz-serif);
+  font-size: clamp(1.5rem, 3.6vw, 2.6rem);
+  font-weight: 500;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+  color: var(--vt-text-primary);
+}
+.proofcycle-words {
+  position: relative;
+  height: 1.25em;
+  overflow: hidden;
+}
+.proofcycle-words::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  pointer-events: none;
+  background: linear-gradient(
+    var(--vt-bg) 8%,
+    transparent 34%,
+    transparent 66%,
+    var(--vt-bg) 92%
+  );
+}
+.proofcycle-word {
+  display: block;
+  height: 1.25em;
+  padding-left: 2px;
+  color: var(--accent);
+  animation: proofcycle-spin 6s infinite;
+}
+@keyframes proofcycle-spin {
+  10% { transform: translateY(-102%); }
+  25% { transform: translateY(-100%); }
+  35% { transform: translateY(-202%); }
+  50% { transform: translateY(-200%); }
+  60% { transform: translateY(-302%); }
+  75% { transform: translateY(-300%); }
+  85% { transform: translateY(-402%); }
+  100% { transform: translateY(-400%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .proofcycle-word { animation: none; }
+}
+
+/* The floating section rail (`data-home-section-rail`) was retired with the W2
+   journey rail; `home-npi-role-doors.test.tsx` asserts it cannot return. Its
+   rules here had already been emptied, leaving two `{ }` blocks and comments
+   describing a hover-to-reveal affordance that no longer exists. Removed. */
+
+/* Every id in CHAPTER_DOM_IDS (components/home/scene/ChapterProgress.tsx) must
+   appear here, or anchoring to that chapter lands it under the fixed header.
+   `#start` was missing while the rail shipped with a `start` chapter. */
+#wallet,
+#readiness,
+#matcha,
+#apply,
+#employers,
+#start { scroll-margin-top: 8.8rem; }
+
+/* The hero is a normal document section. Its primary action stays in the
+   opening viewport; no scroll distance exists solely to keep hero copy pinned. */
+.hero-compact { position: relative; }
+
+/* The sticky product story (`.sticky-product-story`, `.story-observer*`,
+   `.story-stage`, `.story-intro*`, `.story-progress-*`) was the pre-W2 scroll
+   model. `StickyProductStory` was deleted from the tree in #800 when the
+   journey rail shipped, and `home-npi-role-doors.test.tsx` asserts its markers
+   cannot return — so every rule above had zero consumers and is removed here.
+   The `.story-card-*`, `.story-state-*` and `.story-product-*` families below
+   are NOT dead: `components/home/rail/JourneyCard.tsx` renders them, which is
+   why this cleanup is surgical rather than a prefix sweep. */
+
+/* `.story-cards` / `.story-card` held the Rolodex perspective for the pre-W2
+   stage. The shipped rail owns that on `.story-rail-track` (see below), and
+   `HorizontalStoryRail` never renders these two — so their rules, including the
+   reduced-motion collapse, styled nothing. Removed with the rest of the old
+   scroll model. */
+
+.story-card-shell {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 0.82fr) minmax(17rem, 1.18fr);
+  gap: clamp(1rem, 3vw, 2rem);
+  width: 100%;
+  min-height: 28rem;
+  overflow: hidden;
+  border-color: var(--vt-border);
+  border-radius: 1.1rem;
+  background: var(--vt-surface);
+  padding: clamp(1.35rem, 3vw, 2.1rem);
+  box-shadow: 0 28px 75px -54px rgba(20, 20, 20, 0.46);
+}
+
+.story-card-copy { display: flex; flex-direction: column; justify-content: center; }
+.story-card-icon,
+.product-carousel-card-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.5rem;
+  height: 3.5rem;
+  border: 1px solid var(--vt-border);
+  border-radius: 0.9rem;
+  background: var(--vt-surface-subtle);
+  color: var(--vt-text-primary);
+}
+
+/* ── Animated story icons (Chris, 2026-07-18) ───────────────────────────────
+   Bespoke line icons that animate to tell each product stage. Every resting
+   state is complete, so reduced motion (all animation off) still shows a
+   finished icon. */
+.aicon { display: block; overflow: visible; }
+
+/* identity — a scan line sweeps across the fingerprint ridges */
+.aicon-scan { animation: aicon-scan 2.8s ease-in-out infinite; }
+@keyframes aicon-scan {
+  0%, 100% { transform: translateY(-9px); opacity: 0.2; }
+  50% { transform: translateY(9px); opacity: 1; }
+}
+
+/* readiness / recognition — a check (and ring) that periodically draws in */
+.aicon-draw {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0; /* resting = fully drawn (reduced-motion safe) */
+  animation: aicon-draw 4s ease-in-out infinite;
+}
+@keyframes aicon-draw {
+  0% { stroke-dashoffset: 1; }
+  30%, 100% { stroke-dashoffset: 0; }
+}
+.aicon-ring {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+  animation: aicon-draw 4s ease-in-out infinite;
+}
+
+/* match — the radar sweep rotates continuously; the blip pulses */
+.aicon-radar { animation: aicon-spin 3.6s linear infinite; }
+@keyframes aicon-spin { to { transform: rotate(360deg); } }
+.aicon-blip { animation: aicon-blip 3.6s ease-in-out infinite; }
+@keyframes aicon-blip {
+  0%, 60%, 100% { opacity: 0.2; }
+  75% { opacity: 1; }
+}
+
+/* apply — the proof packet glides out and returns */
+.aicon-fly { animation: aicon-fly 3.4s ease-in-out infinite; }
+@keyframes aicon-fly {
+  0% { transform: translate(0, 0); }
+  45% { transform: translate(4px, -4px); }
+  60% { transform: translate(0, 0); }
+  100% { transform: translate(0, 0); }
+}
+.aicon-trail { animation: aicon-trail 3.4s ease-in-out infinite; }
+@keyframes aicon-trail {
+  0%, 100% { opacity: 0.15; }
+  45% { opacity: 0.7; }
+}
+
+/* recognition — sparkle */
+.aicon-spark { animation: aicon-spark 4s ease-in-out infinite; transform-origin: 37px 14px; }
+@keyframes aicon-spark {
+  0%, 55%, 100% { opacity: 0; transform: scale(0.4); }
+  70% { opacity: 1; transform: scale(1); }
+}
+
+/* reuse — the two arrows cycle */
+.aicon-cycle { animation: aicon-spin 7s linear infinite; }
+
+/* wallet — a card slides up out of the wallet, then settles back */
+.aicon-card { animation: aicon-card 3.6s ease-in-out infinite; }
+@keyframes aicon-card {
+  0%, 100% { transform: translateY(0); }
+  45% { transform: translateY(-5px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aicon-scan, .aicon-draw, .aicon-ring, .aicon-radar, .aicon-blip,
+  .aicon-fly, .aicon-trail, .aicon-spark, .aicon-cycle, .aicon-card {
+    animation: none;
+  }
+  .aicon-scan { opacity: 0.8; transform: translateY(0); }
+}
+.story-card-eyebrow,
+.product-carousel-card-copy > p:first-of-type {
+  margin-top: 1.2rem;
+  color: var(--vt-text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  font-weight: 650;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+.story-card-copy h3,
+.product-carousel-card-copy h3 {
+  margin-top: 0.7rem;
+  color: var(--vt-text-primary);
+  font-family: var(--font-display);
+  font-size: clamp(1.65rem, 3vw, 2.35rem);
+  font-weight: 540;
+  letter-spacing: -0.025em;
+  line-height: 1.08;
+}
+.story-card-copy > p:last-child,
+.product-carousel-card-copy > p:last-child {
+  margin-top: 0.8rem;
+  color: var(--vt-text-secondary);
+  font-size: 0.9rem;
+  line-height: 1.65;
+}
+
+.story-product-ui {
+  align-self: center;
+  overflow: hidden;
+  border: 1px solid var(--vt-border);
+  border-radius: 0.8rem;
+  background: var(--vt-surface-subtle);
+}
+.story-product-topline,
+.product-carousel-ui > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.8rem 1rem;
+  border-bottom: 1px solid var(--vt-border);
+  color: var(--vt-text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.63rem;
+  font-weight: 650;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+.story-product-ui ul { margin: 0; padding: 0.55rem 1rem; list-style: none; }
+.story-product-ui li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+  min-height: 3.35rem;
+  border-bottom: 1px solid var(--vt-border-subtle);
+  color: var(--vt-text-primary);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+.story-product-ui li:last-child { border-bottom: 0; }
+.story-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  max-width: 68%;
+  border: 1px solid var(--vt-border);
+  border-radius: 999px;
+  padding: 0.28rem 0.5rem;
+  color: var(--vt-text-secondary);
+  font-size: 0.66rem;
+  font-weight: 540;
+  text-align: right;
+}
+.story-state-source { border-color: color-mix(in oklab, var(--vt-accent-emerald) 25%, var(--vt-border)); color: var(--vt-accent-emerald); }
+.story-state-gated,
+.story-state-attention { color: #8a5a05; }
+.story-product-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0.35rem 1rem 1rem;
+  border-radius: 0.42rem;
+  background: var(--vt-text-primary);
+  color: var(--vt-bg);
+  padding: 0.55rem 0.75rem;
+  font-size: 0.7rem;
+  font-weight: 650;
+}
+
+.product-carousel { margin-top: 2.5rem; }
+.product-carousel-heading { display: flex; align-items: end; justify-content: space-between; gap: 2rem; }
+.product-carousel-heading .mz-h1 { max-width: 14ch; margin-top: 0.6rem; }
+.product-carousel-controls { display: flex; align-items: center; gap: 0.55rem; }
+.product-carousel-controls button { border-color: var(--vt-border); background: var(--vt-surface); }
+
+/* Continuous flow: the track is a full-bleed clipping viewport; the belt
+   inside it carries two copies of the card sequence and slides by transform at
+   a constant pace. No scroll-snap, no discrete stops — 100% flow. */
+.product-carousel-track {
+  margin-top: 2.1rem;
+  margin-inline: calc((100vw - min(100vw, 1320px)) / -2);
+  overflow: hidden;
+  padding-bottom: 1rem;
+  cursor: grab;
+  touch-action: pan-y;
+}
+.product-carousel-track[data-dragging='true'] { cursor: grabbing; user-select: none; }
+.product-carousel-track:focus-visible { outline: 2px solid var(--vt-focus-ring); outline-offset: 5px; }
+
+.product-carousel-belt {
+  display: flex;
+  gap: 1rem;
+  width: max-content;
+  will-change: transform;
+}
+
+.product-carousel-card {
+  flex: 0 0 min(78vw, 33rem);
+}
+.product-carousel-card-shell {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(13rem, 1.1fr);
+  gap: 1.2rem;
+  min-height: 22rem;
+  border-color: var(--vt-border);
+  border-radius: 1rem;
+  background: var(--vt-surface);
+  padding: 1.5rem;
+}
+.product-carousel-card-copy { display: flex; flex-direction: column; justify-content: center; }
+.product-carousel-card-copy h3 { font-size: clamp(1.5rem, 2.7vw, 2.05rem); }
+.product-carousel-ui {
+  align-self: center;
+  overflow: hidden;
+  border: 1px solid var(--vt-border);
+  border-radius: 0.75rem;
+  background: var(--vt-surface-subtle);
+}
+.product-carousel-ui ul { margin: 0; padding: 0.65rem 0.9rem; list-style: none; }
+.product-carousel-ui li {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-height: 2.7rem;
+  border-bottom: 1px solid var(--vt-border-subtle);
+  color: var(--vt-text-secondary);
+  font-size: 0.72rem;
+}
+.product-carousel-ui li:last-child { border-bottom: 0; }
+.product-carousel-ui li svg { flex: none; color: var(--vt-accent-emerald); }
+
+@media (max-width: 1023px) {
+  .story-card-shell { grid-template-columns: 1fr; min-height: 28rem; }
+}
+
+@media (max-width: 700px) {
+  .product-carousel-heading { align-items: start; flex-direction: column; }
+  .product-carousel-controls { align-self: stretch; }
+  .product-carousel-card { flex-basis: 86vw; }
+  .product-carousel-card-shell { grid-template-columns: 1fr; min-height: 27rem; }
+  .story-product-ui li { align-items: flex-start; flex-direction: column; justify-content: center; }
+  .story-state { max-width: 100%; text-align: left; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .story-card-shell { min-height: auto; }
+  /* Reduced motion: no belt, no flow — a static readable grid. */
+  .product-carousel-track { margin-inline: 0; overflow: visible; cursor: default; }
+  .product-carousel-belt { display: grid; width: auto; transform: none !important; will-change: auto; }
+  .product-carousel-card { width: 100%; }
+  .product-carousel-controls { display: none; }
+}
+
+/* ── Motion M1: scroll-scrubbed character headings ──────────────────────────
+   Layout contract: a word is an inline-block with nowrap, so a line can only
+   ever break BETWEEN words — individual letters can never wrap onto their own
+   line at any width. Characters are inline-block so transforms apply without
+   affecting line box height (no reflow, no CLS while scrubbing). */
+.motion-word {
+  display: inline-block;
+  white-space: nowrap;
+  /* Perspective lives on the word so rotateX reads as depth per character
+     rather than one flat plane across the whole heading. */
+  perspective: 620px;
+}
+
+.motion-character {
+  display: inline-block;
+  /* Rotate about the baseline-ish anchor: characters tip up INTO place. */
+  transform-origin: 50% 80%;
+  /* Preserve intra-word spaces if a heading ever contains one. */
+  white-space: pre;
+  transform-style: preserve-3d;
+}
+
+.motion-line-mask {
+  display: block;
+  overflow: clip;
+  margin-block: -0.16em;
+  padding-block: 0.16em;
+}
+
+/* The hero eyebrow carries the accent so the primary palette registers at the
+   very top of the page; its rule-line softens the same hue. */
+[data-home-eyebrow] { color: var(--accent); }
+[data-home-eyebrow]::after { background: color-mix(in oklab, var(--accent) 45%, transparent); }
+
+/* ── `type` variant: the Palantir typewriter register ───────────────────────
+   Characters are all laid out from the first frame (opacity 0 until typed), so
+   typing can never reflow the page. The caret is a block the height of the
+   type, riding the last typed character. */
+.type-caret {
+  display: inline-block;
+  width: 0.08em;
+  height: 0.82em;
+  margin-left: 0.04em;
+  vertical-align: baseline;
+  transform: translateY(0.08em);
+  /* The caret carries the primary accent (indigo/violet) so the typing cursor
+     is a point of colour on every heading — part of leaning into the purple/
+     green scheme. */
+  background: var(--accent, currentColor);
+  animation: type-caret-blink 1.06s step-end infinite;
+}
+
+@keyframes type-caret-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+/* Accent words in typed headings match .mz-accent (italic + accent ink) —
+   typed characters arrive at their final color, they do not interpolate. */
+.type-accent {
+  font-style: italic;
+  color: var(--accent, var(--vt-accent-emerald));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .type-caret { display: none; }
+}
+
+.motion-line {
+  display: block;
+  transform-style: preserve-3d;
+  white-space: nowrap;
+}
+
+/* Hero/manifesto mode only: the tall runway + sticky stage. Standard headings
+   create no runway at all — they map their own viewport transit.
+
+   Runway length IS blank paper: the stage holds three lines, so every vh of
+   runway beyond the scrub's needs is a viewport of empty stage. Measured at
+   1440×900 with a 160vh runway, the worst frame was 620px blank — 69% of the
+   viewport — which is what "too much empty space" actually was. Trimming
+   padding and enlarging type never touched it, because the space was runway.
+
+   FLOOR: the runway must stay TALLER THAN THE VIEWPORT. useScroll's
+   ['start start','end end'] resolves 'end end' before 'start start' once the
+   container is shorter than the viewport, which inverts the progress range and
+   the heading arrives pre-assembled. 124vh = 24vh of real scrub travel, the
+   shortest that still reads as a deliberate beat rather than a pop-in. */
+.scrub-heading-pin {
+  position: relative;
+  min-height: 124vh;
+}
+
+/* The stage carries the heading AND its lede (column, centred on the main axis
+   — children still stretch to full width, as the row axis gave them).
+
+   Shrinking this box is a trap: the blank is BELOW the stage, so a shorter
+   stage lifts its bottom edge and opens a WIDER gap to the fold. The fix is to
+   fill it, not shrink it — the lede moves in here (stageFooter) so the pinned
+   screen states the claim and its qualifier together, instead of centring three
+   lines in a void. */
+.scrub-heading-pin .scrub-heading-stage {
+  position: sticky;
+  top: 11vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 74vh;
+  perspective: 980px;
+  perspective-origin: 50% 44%;
+}
+
+[data-scrub-scene] [data-scrub-lines] {
+  display: block;
+  transform-style: preserve-3d;
+}
+
+.evidence-cinematic-heading {
+  width: 100%;
+  color: var(--vt-text-primary);
+  font-family: var(--font-display);
+  font-size: clamp(2.35rem, 7.6vw, 7.4rem);
+  font-weight: 540;
+  letter-spacing: -0.055em;
+  line-height: 0.9;
+  text-wrap: balance;
+  white-space: pre-line;
+}
+
+.evidence-truth-lede {
+  max-width: 40rem;
+  margin-top: clamp(1rem, 2vw, 1.5rem);
+}
+
+@media (max-width: 767px) {
+  /* Mobile remains a normal document flow: the scene simplifies as it enters
+     and never adds a pinned runway or scroll trap. */
+  .scrub-heading-pin { min-height: auto; }
+  .scrub-heading-pin .scrub-heading-stage { position: static; min-height: auto; }
+  .motion-word { perspective: none; }
+  .evidence-cinematic-heading { line-height: 0.94; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* No runway exists solely for animation when motion is unwanted. */
+  .scrub-heading-pin { min-height: 0; }
+  .scrub-heading-pin .scrub-heading-stage { position: static; }
+}
+
+/* ── Marketing scale (Chris, 2026-07-16: "enlarge elements and fonts") ──────
+   THE ACTUAL PROBLEM behind "too much empty space": the content was sized for
+   a smaller canvas, so trimming padding never fixed it. Measured at 1440×1000
+   BEFORE this block: hero H1 68px but section H2 only 34px (half the hero),
+   body 15px, container 1200px leaving 120px of dead paper each side. Small
+   things with tight gaps still read as empty paper.
+
+   Scoped, NOT global: .mz-h1/.mz-body/.mz-lede are shared with product
+   surfaces (employer worklist, admin, opportunities) which must stay calmer
+   than the marketing narrative. Any marketing page can opt in by adding
+   .mz-scale-lg; product surfaces simply never do. */
+.mz-scale-lg {
+  --mz-marketing-measure: 1320px;
+}
+
+/* Section display: 34px → ~54px at 1440. A section headline should read as a
+   sibling of the hero, not a caption under it. */
+.mz-scale-lg .mz-h1 {
+  font-size: clamp(2.05rem, 4.2vw, 3.35rem);
+  line-height: 1.08;
+  letter-spacing: -0.025em;
+}
+
+/* Body/lede: 15px/17px → 17px/19.5px. Long-form reading size, not UI size. */
+.mz-scale-lg .mz-body { font-size: 1.0625rem; line-height: 1.62; }
+.mz-scale-lg .mz-lede { font-size: 1.2rem; line-height: 1.55; }
+.mz-scale-lg .mz-eyebrow { font-size: 0.75rem; letter-spacing: 0.16em; }
+
+/* Story + carousel cards carry real product UI — scale the whole card, not
+   just its title, or the mockups look like postage stamps in a large frame. */
+.mz-scale-lg .story-card-copy h3,
+.mz-scale-lg .product-carousel-card-copy h3 {
+  font-size: clamp(1.9rem, 3.4vw, 2.75rem);
+  line-height: 1.06;
+}
+.mz-scale-lg .story-card-copy > p:last-child,
+.mz-scale-lg .product-carousel-card-copy > p:last-child {
+  font-size: 1.0625rem;
+  line-height: 1.6;
+}
+
+/* The product mockups themselves: rows were 0.78rem/12.5px — unreadable as
+   "real product UI" at this canvas size. */
+.mz-scale-lg .story-product-ui li { font-size: 0.9rem; min-height: 3.6rem; }
+.mz-scale-lg .story-state { font-size: 0.75rem; }
+.mz-scale-lg .story-product-topline,
+.mz-scale-lg .product-carousel-ui > div { font-size: 0.7rem; }
+.mz-scale-lg .story-product-action { font-size: 0.8rem; padding: 0.65rem 0.9rem; }
+.mz-scale-lg .product-carousel-ui li { font-size: 0.82rem; min-height: 3rem; }
+.mz-scale-lg .story-card-eyebrow,
+.mz-scale-lg .product-carousel-card-copy > p:first-of-type { font-size: 0.72rem; }
+
+/* Cards grow with their contents so the extra type doesn't force a scrollbar. */
+.mz-scale-lg .story-card-shell { min-height: 30rem; }
+.mz-scale-lg .product-carousel-card { flex-basis: min(82vw, 37rem); }
+
+@media (max-width: 767px) {
+  /* Mobile already fills its canvas — only a modest lift, and the card
+     min-heights stay content-driven so nothing overflows. */
+  .mz-scale-lg .mz-h1 { font-size: clamp(1.85rem, 7.4vw, 2.3rem); }
+  .mz-scale-lg .story-card-copy h3,
+  .mz-scale-lg .product-carousel-card-copy h3 { font-size: clamp(1.6rem, 6.6vw, 2rem); }
+  .mz-scale-lg .story-card-shell,
+  .mz-scale-lg .product-carousel-card-shell { min-height: auto; }
+}
+
+/* ── Evidence metrics (NUM-1.1) ────────────────────────────────────────────
+   Zero/status values never fake-count: they play a brief ink reveal instead.
+   No-JS safety: the default is FULL ink — the dim state exists only after the
+   component primes it with JavaScript confirmed running, so SSR/no-JS always
+   shows the final value. Reduced motion never dims at all. */
+.metric-zero {
+  opacity: 1;
+  transition: opacity 620ms var(--mz-ease, ease);
+}
+.metric-zero.is-primed {
+  opacity: 0.22;
+}
+@media (prefers-reduced-motion: reduce) {
+  .metric-zero,
+  .metric-zero.is-primed {
+    opacity: 1 !important;
+    transition: none !important;
+  }
+}
+
+/* ── Hero scroll cue ───────────────────────────────────────────────────────
+   The first screen is deliberately single-purpose (one headline, one control),
+   so it needs one quiet signal that the page continues. A slow, small drift —
+   not a bounce. Decorative and aria-hidden; document order navigates without
+   it, and reduced motion simply holds it still rather than removing it. */
+.mz-scroll-cue {
+  display: inline-flex;
+  opacity: 0.55;
+  animation: mz-scroll-cue-drift 2.8s var(--mz-ease, ease-in-out) infinite;
+}
+@keyframes mz-scroll-cue-drift {
+  0%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.35;
+  }
+  50% {
+    transform: translateY(5px);
+    opacity: 0.7;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mz-scroll-cue {
+    animation: none;
+    opacity: 0.5;
+  }
+}

@@ -169,7 +169,7 @@ export class OmegaOrchestrator {
       return {
         id: a.id,
         clinicianNpi: a.clinicianNpi || '',
-        orgId: a.organization,
+        orgId: a.organization || '',
         role: (meta.role as string) || 'UNKNOWN',
         decisionState: (meta.decisionState as string) || 'UNKNOWN',
         trustSignals: (meta.trustSnapshot as Record<string, unknown>) || {},
@@ -235,7 +235,7 @@ export class OmegaOrchestrator {
       return {
         id: a.id,
         clinicianNpi: a.clinicianNpi || '',
-        orgId: a.organization,
+        orgId: a.organization || '',
         role: (meta.role as string) || 'UNKNOWN',
         decisionState: (meta.decisionState as string) || 'UNKNOWN',
         trustSignals: (meta.trustSnapshot as Record<string, unknown>) || {},

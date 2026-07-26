@@ -1,0 +1,715 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>VitalCV · Professional Reputation Engine · Wave 235</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --ink-0:#fff;--ink-50:#f8fafc;--ink-100:#f1f5f9;--ink-200:#e2e8f0;--ink-300:#cbd5e1;
+  --ink-400:#94a3b8;--ink-500:#64748b;--ink-600:#475569;--ink-700:#334155;--ink-800:#1e293b;
+  --ink-900:#0f172a;--ink-950:#020617;--rule:#e2e8f0;--rule-soft:#eef2f6;--paper:#f8f6f1;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:64px}
+html,body{margin:0;padding:0}
+body{
+  background:var(--ink-100);color:var(--ink-900);
+  font-family:'Geist',ui-sans-serif,system-ui,sans-serif;
+  font-feature-settings:'ss01','cv11';-webkit-font-smoothing:antialiased;
+  font-size:13.5px;line-height:1.55;letter-spacing:-.003em;
+}
+.mono,code{font-family:'Geist Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums}
+h1,h2,h3,h4{margin:0;font-weight:600}
+a{color:inherit}
+
+/* ── Op bar ─────────────────────────────────────── */
+.opbar{background:var(--ink-950);color:var(--ink-300);font-family:'Geist Mono',monospace;font-size:10px;position:sticky;top:0;z-index:80}
+.opbar .in{max-width:1340px;margin:0 auto;padding:0 32px;height:32px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.opbar .l{display:flex;align-items:center;gap:12px}
+.opbar .g{width:17px;height:17px;background:#fff;color:#000;display:grid;place-items:center;font-size:9px;font-weight:700}
+.opbar strong{color:#fff;font-weight:600;letter-spacing:.12em;text-transform:uppercase}
+.opbar .sep{color:var(--ink-700)}
+.opbar .r{display:flex;gap:14px;align-items:center;color:var(--ink-500);text-transform:uppercase;letter-spacing:.13em;font-size:9px}
+.opbar .pill{display:inline-flex;align-items:center;gap:5px;padding:2px 7px;border:1px solid var(--ink-700);color:var(--ink-300)}
+.opbar .dot{width:5px;height:5px;background:#10b981;border-radius:50%;animation:blink 2.6s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:.32}50%{opacity:1}}
+
+.doc{max-width:1340px;margin:0 auto;background:var(--ink-0);box-shadow:0 1px 0 rgba(2,6,23,.04),0 18px 56px -22px rgba(2,6,23,.22)}
+
+/* ── Masthead ───────────────────────────────────── */
+.mast{padding:34px 40px 26px;border-bottom:1px solid var(--ink-900)}
+.crumb{font-family:'Geist Mono',monospace;font-size:9.5px;text-transform:uppercase;letter-spacing:.2em;color:var(--ink-500);display:flex;align-items:center;gap:9px;margin-bottom:18px}
+.crumb .r{display:inline-block;width:20px;height:1px;background:var(--ink-300)}
+.crumb b{color:var(--ink-900);font-weight:600}
+.mast h1{font-size:31px;line-height:1.08;letter-spacing:-.028em;max-width:28ch}
+.mast h1 em{font-style:normal;color:var(--ink-400);font-weight:400}
+.mast .lede{font-size:14px;color:var(--ink-600);line-height:1.62;max-width:88ch;margin:14px 0 0}
+.mast .lede strong{color:var(--ink-900);font-weight:600}
+.meta-h{display:flex;gap:26px;margin-top:20px;flex-wrap:wrap;font-family:'Geist Mono',monospace;font-size:10px;color:var(--ink-500);text-transform:uppercase;letter-spacing:.14em}
+.meta-h span b{color:var(--ink-900);font-weight:600;display:block;margin-top:3px;letter-spacing:.04em}
+
+/* ── Arc ────────────────────────────────────────── */
+.arc{margin:24px 40px 0;border:1px solid var(--ink-900)}
+.arc .hd{background:var(--ink-950);color:#fff;padding:10px 18px;font-family:'Geist Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.18em;display:flex;justify-content:space-between;align-items:center}
+.arc .hd b{color:#fff;font-weight:500}
+.arc .row{display:grid;grid-template-columns:repeat(5,1fr)}
+.arc .cell{padding:16px 15px 15px;border-right:1px solid var(--rule);position:relative}
+.arc .cell:last-child{border-right:0}
+.arc .ord{font-family:'Geist Mono',monospace;font-size:9.5px;letter-spacing:.16em;color:var(--ink-400);margin-bottom:9px}
+.arc .nm{font-family:'Geist Mono',monospace;font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-900);margin-bottom:7px;line-height:1.2}
+.arc .q{font-size:11px;color:var(--ink-600);line-height:1.42}
+.arc .arrow{position:absolute;right:-7px;top:30px;width:12px;height:12px;background:var(--ink-0);border-top:1px solid var(--rule);border-right:1px solid var(--rule);transform:rotate(45deg);z-index:3}
+.arc .cell:last-child .arrow{display:none}
+.arc .foot{border-top:1px solid var(--rule);background:var(--ink-50);padding:9px 18px;font-family:'Geist Mono',monospace;font-size:9.5px;text-transform:uppercase;letter-spacing:.14em;color:var(--ink-600)}
+.arc .foot b{color:var(--ink-900);font-weight:600}
+
+/* ── TOC ────────────────────────────────────────── */
+.toc{margin:24px 40px 0;border:1px solid var(--rule);display:grid;grid-template-columns:repeat(6,1fr)}
+.toc a{padding:12px 14px;border-right:1px solid var(--rule);text-decoration:none;display:block;transition:background .12s}
+.toc a:last-child{border-right:0}
+.toc a:hover{background:var(--ink-50)}
+.toc .n{font-family:'Geist Mono',monospace;font-size:9px;letter-spacing:.14em;color:var(--ink-400);display:block;margin-bottom:5px}
+.toc .t{font-size:11.5px;font-weight:500;color:var(--ink-900);line-height:1.3}
+
+/* ── Section scaffold ───────────────────────────── */
+main{padding:8px 40px 40px}
+.sec{margin-top:42px;scroll-margin-top:56px}
+.sh{display:flex;align-items:baseline;gap:14px;border-bottom:1px solid var(--ink-900);padding-bottom:9px;margin-bottom:18px}
+.sh .n{font-family:'Geist Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-300);font-weight:600}
+.sh h2{font-size:19px;letter-spacing:-.018em;color:var(--ink-900)}
+.sh .ey{font-family:'Geist Mono',monospace;font-size:9.5px;text-transform:uppercase;letter-spacing:.15em;color:var(--ink-500);margin-left:auto}
+.lead{font-size:13.5px;color:var(--ink-600);line-height:1.62;max-width:96ch;margin:0 0 18px}
+.lead strong{color:var(--ink-900);font-weight:600}
+
+.kicker{font-family:'Geist Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-400);font-weight:600;margin:22px 0 9px}
+.cap{font-family:'Geist Mono',monospace;font-size:9.5px;text-transform:uppercase;letter-spacing:.13em;color:var(--ink-500);margin:10px 0 0;line-height:1.5}
+.cap b{color:var(--ink-900);font-weight:600}
+.cap em{font-style:normal;color:var(--ink-900)}
+
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+
+.card{border:1px solid var(--ink-300);background:var(--ink-0)}
+.card .ph{padding:9px 15px;background:var(--ink-50);border-bottom:1px solid var(--rule);font-family:'Geist Mono',monospace;font-size:9.5px;text-transform:uppercase;letter-spacing:.15em;color:var(--ink-500);display:flex;justify-content:space-between;align-items:center;gap:8px}
+.card .ph b{color:var(--ink-900);font-weight:600}
+.card .bd{padding:14px 16px}
+.card .bd p{margin:0 0 10px;font-size:12.5px;color:var(--ink-600);line-height:1.55}
+.card .bd p:last-child{margin-bottom:0}
+.card .bd strong{color:var(--ink-900);font-weight:600}
+
+.mn{font-family:'Geist Mono',monospace;font-size:11px;color:var(--ink-900);background:var(--ink-50);border:1px solid var(--rule);padding:1px 5px}
+
+/* tables */
+.tbl{width:100%;border-collapse:collapse;font-size:12px;border:1px solid var(--ink-300);background:var(--ink-0)}
+.tbl thead th{position:sticky;background:var(--ink-50);border-bottom:1px solid var(--ink-900);padding:10px 12px;text-align:left;font-family:'Geist Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.14em;color:var(--ink-500);font-weight:600;border-right:1px solid var(--rule);vertical-align:bottom}
+.tbl thead th:last-child{border-right:0}
+.tbl tbody td{padding:9px 12px;border-bottom:1px solid var(--rule);border-right:1px solid var(--rule);vertical-align:top;color:var(--ink-600);line-height:1.45}
+.tbl tbody td:last-child{border-right:0}
+.tbl tbody tr:last-child td{border-bottom:0}
+.tbl tbody td strong{color:var(--ink-900);font-weight:600}
+.tbl tbody td.nm{font-family:'Geist Mono',monospace;font-size:10.5px;letter-spacing:.04em;color:var(--ink-900);background:var(--ink-50);font-weight:500;white-space:nowrap}
+.tbl tbody td code{font-family:'Geist Mono',monospace;font-size:10.5px;color:var(--ink-900)}
+.dirpos{font-family:'Geist Mono',monospace;font-weight:600;color:var(--ink-950)}
+.dirneg{font-family:'Geist Mono',monospace;font-weight:600;color:var(--ink-700);border-bottom:2px solid var(--ink-900);padding-bottom:1px}
+.tbl .scroll{display:block;overflow-x:auto}
+
+/* note / callout */
+.note{border-left:2px solid var(--ink-900);padding:3px 0 3px 16px;margin:16px 0;font-size:12.5px;color:var(--ink-600);line-height:1.55}
+.note b{color:var(--ink-900);font-weight:600}
+.note .lb{font-family:'Geist Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-400);display:block;margin-bottom:4px}
+
+/* footer */
+.foot-page{padding:22px 40px;border-top:1px solid var(--rule);background:var(--ink-50);display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;font-family:'Geist Mono',monospace;font-size:10px;color:var(--ink-500);text-transform:uppercase;letter-spacing:.12em}
+.foot-page b{color:var(--ink-900);font-weight:600}
+
+/* ── Ladder (D1) · evidence → trust → recognition → reputation ── */
+.ladder{border:1px solid var(--ink-900);background:var(--ink-0)}
+.ladderhd{background:var(--ink-950);color:#fff;padding:9px 16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;font-family:'Geist Mono',monospace;font-size:10.5px;letter-spacing:.04em}
+.ladderhd b{color:#fff;font-weight:500}
+.ladderrow{display:grid;grid-template-columns:repeat(4,1fr)}
+.lcell{padding:15px 15px 14px;border-right:1px solid var(--rule);position:relative}
+.lcell:last-child{border-right:0}
+.lcell.cap4{background:var(--ink-950)}
+.lcell .ls{display:flex;align-items:center;gap:9px;margin-bottom:9px}
+.lcell .lo{font-family:'Geist Mono',monospace;font-size:8.5px;letter-spacing:.12em;color:var(--ink-400)}
+.lcell.cap4 .lo{color:var(--ink-500)}
+.lcell .lstep{width:18px;height:18px;display:grid;place-items:center;font-family:'Geist Mono',monospace;font-size:10px;font-weight:600;border:1.5px solid var(--ink-900);color:var(--ink-900);flex:none}
+.lcell.cap4 .lstep{border-color:#fff;color:#fff;background:transparent}
+.lcell .ln2{font-family:'Geist Mono',monospace;font-size:13px;font-weight:600;letter-spacing:.02em;text-transform:uppercase;color:var(--ink-900);margin-bottom:6px}
+.lcell.cap4 .ln2{color:#fff}
+.lcell p{margin:0;font-size:11px;color:var(--ink-600);line-height:1.45}
+.lcell.cap4 p{color:var(--ink-300)}
+.lcell p b{color:var(--ink-900);font-weight:600}
+.lcell.cap4 p b{color:#fff}
+.lcell .larrow{position:absolute;right:-7px;top:24px;width:12px;height:12px;background:var(--ink-0);border-top:1px solid var(--rule);border-right:1px solid var(--rule);transform:rotate(45deg);z-index:3}
+.lcell:last-child .larrow{display:none}
+.ladderfoot{border-top:1px solid var(--rule);background:var(--ink-50);padding:9px 16px;font-family:'Geist Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.13em;color:var(--ink-600)}
+.ladderfoot b{color:var(--ink-900);font-weight:600}
+
+/* four-way distinction (reused rdiff) */
+.rdiff{border:1px solid var(--ink-900);background:var(--ink-0)}
+.rdiffhd{background:var(--ink-950);color:#fff;padding:9px 16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;font-family:'Geist Mono',monospace;font-size:10.5px;letter-spacing:.04em}
+.rdiffhd b{color:#fff;font-weight:500}
+.drow{display:grid;grid-template-columns:158px 1fr 196px;border-bottom:1px solid var(--rule);align-items:stretch}
+.drow:last-child{border-bottom:0}
+.drow.hl{background:var(--ink-950)}
+.drow .dn{padding:13px 15px;border-right:1px solid var(--rule);display:flex;flex-direction:column;gap:3px;justify-content:center;background:var(--ink-50)}
+.drow .dn b{font-family:'Geist Mono',monospace;font-size:12px;font-weight:600;letter-spacing:.03em;text-transform:uppercase;color:var(--ink-900)}
+.drow .dn span{font-family:'Geist Mono',monospace;font-size:8px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-400)}
+.drow .dd{padding:13px 15px;border-right:1px solid var(--rule);font-size:11.5px;color:var(--ink-600);line-height:1.45;display:flex;align-items:center}
+.drow .dd b{color:var(--ink-900);font-weight:600}
+.drow .dk{padding:13px 15px;font-family:'Geist Mono',monospace;font-size:9.5px;color:var(--ink-700);line-height:1.4;display:flex;align-items:center;letter-spacing:.01em}
+.drow.hl .dn{background:#0a1326;border-right-color:var(--ink-800)}
+.drow.hl .dn b{color:#fff}.drow.hl .dn span{color:var(--ink-500)}
+.drow.hl .dd{color:var(--ink-300);border-right-color:var(--ink-800)}.drow.hl .dd b{color:#fff}
+.drow.hl .dk{color:var(--ink-400)}
+
+/* create/destroy/reinforce/never quad (D1) */
+.quad{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--ink-900);background:var(--ink-0)}
+.qc{padding:16px 18px;border-right:1px solid var(--rule);border-bottom:1px solid var(--rule)}
+.qc:nth-child(2n){border-right:0}
+.qc:nth-child(n+3){border-bottom:0}
+.qc .qi{font-family:'Geist Mono',monospace;font-size:9px;letter-spacing:.14em;color:var(--ink-400);margin-bottom:9px;display:flex;align-items:center;gap:9px;text-transform:uppercase}
+.qc .qmark{width:13px;height:13px;flex:none}
+.qm-up{background:var(--ink-950)}
+.qm-dn{background:var(--ink-950);clip-path:polygon(50% 100%,0 0,100% 0)}
+.qm-re{border:2px solid var(--ink-900);border-radius:50%}
+.qm-no{border:1.5px dashed var(--ink-500);border-radius:50%;position:relative}
+.qm-no::after{content:"";position:absolute;left:5px;top:-1px;width:1.5px;height:15px;background:var(--ink-500);transform:rotate(45deg)}
+.qc h4{font-size:13.5px;letter-spacing:-.01em;color:var(--ink-900);margin-bottom:8px}
+.qc.no h4{color:var(--ink-500)}
+.qc p{margin:0;font-size:12px;color:var(--ink-600);line-height:1.5}
+.qc p b{color:var(--ink-900);font-weight:600}
+.qc .qlist{margin:9px 0 0;display:flex;flex-wrap:wrap;gap:6px}
+.qchip{font-family:'Geist Mono',monospace;font-size:9px;letter-spacing:.01em;color:var(--ink-800);background:var(--ink-50);border:1px solid var(--rule);padding:3px 8px;white-space:nowrap}
+.qchip.x{border-color:var(--ink-900);color:var(--ink-900);font-weight:600}
+.qchip.gh{border-style:dashed;color:var(--ink-500)}
+
+/* dimensions register (D2) */
+.dimreg{border:1px solid var(--ink-900);background:var(--ink-0)}
+.dimhd{background:var(--ink-950);color:#fff;padding:9px 16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;font-family:'Geist Mono',monospace;font-size:10.5px;letter-spacing:.04em}
+.dimhd b{color:#fff;font-weight:500}
+.dimcols{display:grid;grid-template-columns:48px 188px 1fr 210px;background:var(--ink-50);border-bottom:1px solid var(--ink-900)}
+.dimcols span{padding:7px 14px;border-right:1px solid var(--rule);font-family:'Geist Mono',monospace;font-size:8px;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-400);font-weight:600}
+.dimcols span:last-child{border-right:0}
+.dimrow{display:grid;grid-template-columns:48px 188px 1fr 210px;border-bottom:1px solid var(--rule);align-items:stretch}
+.dimrow:last-child{border-bottom:0}
+.dimrow .di{display:flex;align-items:center;justify-content:center;background:var(--ink-50);border-right:1px solid var(--rule);font-family:'Geist Mono',monospace;font-size:12px;font-weight:600;color:var(--ink-300)}
+.dimrow .dnm{padding:12px 14px;border-right:1px solid var(--rule);display:flex;flex-direction:column;gap:3px;justify-content:center}
+.dimrow .dnm b{font-size:13px;color:var(--ink-900);letter-spacing:-.01em;font-weight:600}
+.dimrow .dnm span{font-family:'Geist Mono',monospace;font-size:8px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-400)}
+.dimrow .dpx{padding:12px 14px;border-right:1px solid var(--rule);font-size:11.5px;color:var(--ink-600);line-height:1.45;display:flex;align-items:center}
+.dimrow .dpx b{color:var(--ink-900);font-weight:600}
+.dimrow .dfd{padding:12px 14px;display:flex;align-items:center;flex-wrap:wrap;gap:5px}
+.fdchip{font-family:'Geist Mono',monospace;font-size:8.5px;letter-spacing:.01em;color:var(--ink-700);background:var(--ink-50);border:1px solid var(--rule);padding:2px 6px;white-space:nowrap}
+
+/* reputation profile (D2 / D4) */
+.profbox{border:1px solid var(--ink-900);background:var(--ink-0)}
+.profhd{background:var(--ink-950);color:#fff;padding:9px 16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;font-family:'Geist Mono',monospace;font-size:10.5px;letter-spacing:.04em}
+.profhd b{color:#fff;font-weight:500}
+.profwrap{padding:16px 18px 8px}
+.prow{display:grid;grid-template-columns:150px 1fr 60px;align-items:center;gap:14px;margin-bottom:11px}
+.prow:last-child{margin-bottom:0}
+.prow .pl{font-family:'Geist Mono',monospace;font-size:10.5px;letter-spacing:.02em;text-transform:uppercase;color:var(--ink-900);font-weight:600;text-align:right}
+.prow .ptrack{height:14px;background:var(--ink-50);border:1px solid var(--rule);position:relative;overflow:hidden}
+.prow .pfill{position:absolute;left:0;top:0;bottom:0;background:repeating-linear-gradient(135deg,var(--ink-900) 0 7px,var(--ink-800) 7px 9px)}
+.prow .pmk{position:absolute;top:-3px;bottom:-3px;width:1px;background:var(--ink-400);border-left:1px dashed var(--ink-400)}
+.prow .pv{font-family:'Geist Mono',monospace;font-size:10px;color:var(--ink-500);text-align:left;letter-spacing:.02em}
+.proffoot{border-top:1px solid var(--rule);background:var(--ink-50);padding:9px 16px;display:flex;gap:22px;flex-wrap:wrap;font-family:'Geist Mono',monospace;font-size:8.5px;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-500)}
+.proffoot .lg{display:flex;align-items:center;gap:7px}
+.proffoot .kf{width:16px;height:9px;background:repeating-linear-gradient(135deg,var(--ink-900) 0 5px,var(--ink-800) 5px 7px)}
+.proffoot .km{width:1px;height:11px;border-left:1px dashed var(--ink-400)}
+
+/* anti-social principles (D4) */
+.princ{border:1px solid var(--ink-900);background:var(--ink-0)}
+.prow2{display:grid;grid-template-columns:230px 1fr;border-bottom:1px solid var(--rule)}
+.prow2:last-child{border-bottom:0}
+.prow2 .pno{padding:13px 16px;border-right:1px solid var(--rule);background:var(--ink-50);display:flex;align-items:center;gap:10px}
+.prow2 .pno b{font-size:12.5px;color:var(--ink-900);font-weight:600;letter-spacing:-.01em}
+.prow2 .pno .x{width:14px;height:14px;border:1.5px dashed var(--ink-500);border-radius:50%;position:relative;flex:none}
+.prow2 .pno .x::after{content:"";position:absolute;left:5px;top:-1px;width:1.5px;height:16px;background:var(--ink-500);transform:rotate(45deg)}
+.prow2 .pyes{padding:13px 16px;font-size:12px;color:var(--ink-600);line-height:1.5;display:flex;align-items:center}
+.prow2 .pyes b{color:var(--ink-900);font-weight:600}
+
+/* portability matrix (D5) */
+.port{border:1px solid var(--ink-900);background:var(--ink-0)}
+.portcols{display:grid;grid-template-columns:176px 1fr 1fr 132px;background:var(--ink-50);border-bottom:1px solid var(--ink-900)}
+.portcols span{padding:7px 14px;border-right:1px solid var(--rule);font-family:'Geist Mono',monospace;font-size:8px;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-400);font-weight:600}
+.portcols span:last-child{border-right:0}
+.portrow{display:grid;grid-template-columns:176px 1fr 1fr 132px;border-bottom:1px solid var(--rule);align-items:stretch}
+.portrow:last-child{border-bottom:0}
+.portrow .pn{padding:13px 14px;border-right:1px solid var(--rule);background:var(--ink-50);display:flex;flex-direction:column;gap:3px;justify-content:center}
+.portrow .pn b{font-size:13px;color:var(--ink-900);letter-spacing:-.01em;font-weight:600}
+.portrow .pn span{font-family:'Geist Mono',monospace;font-size:8px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-400)}
+.portrow .pc2{padding:13px 14px;border-right:1px solid var(--rule);font-size:11px;color:var(--ink-600);line-height:1.45;display:flex;align-items:center}
+.portrow .pc2 b{color:var(--ink-900);font-weight:600}
+.portrow .pr2{padding:13px 14px;display:flex;align-items:center}
+.rb{font-family:'Geist Mono',monospace;font-size:8.5px;font-weight:600;letter-spacing:.05em;padding:3px 7px;text-transform:uppercase;white-space:nowrap;display:inline-flex;align-items:center;gap:6px}
+.rb::before{content:"";width:8px;height:8px;flex:none}
+.rb.carry{background:var(--ink-950);color:#fff}
+.rb.carry::before{background:#fff}
+.rb.hist{border:1px solid var(--ink-600);color:var(--ink-700);background:#fff}
+.rb.hist::before{border:1.5px solid var(--ink-400);background:#fff;border-radius:50%}
+
+/* laws (reused) */
+.laws{border:1px solid var(--ink-900);background:var(--ink-0)}
+.law{display:grid;grid-template-columns:46px 1fr;border-bottom:1px solid var(--rule)}
+.law:last-child{border-bottom:0}
+.law .ln{padding:13px 0;text-align:center;font-family:'Geist Mono',monospace;font-size:13px;font-weight:600;color:var(--ink-300);background:var(--ink-50);border-right:1px solid var(--rule)}
+.law .lc{padding:12px 16px}
+.law .lc b{font-size:12.5px;color:var(--ink-900);font-weight:600;display:block;margin-bottom:3px;letter-spacing:-.01em}
+.law .lc p{margin:0;font-size:12px;color:var(--ink-600);line-height:1.5}
+.law .lc code{font-family:'Geist Mono',monospace;font-size:11px;color:var(--ink-900);background:var(--ink-50);border:1px solid var(--rule);padding:1px 5px}
+
+/* build arc — 40-year (synthesis) */
+.spinebox{border:1px solid var(--ink-900);background:var(--ink-0)}
+.spinehd{background:var(--ink-950);color:#fff;padding:9px 16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;font-family:'Geist Mono',monospace;font-size:10.5px;letter-spacing:.04em}
+.spinehd b{color:#fff;font-weight:500}
+.erastrip{display:grid;grid-template-columns:repeat(4,1fr)}
+.eracell{padding:15px 16px;border-right:1px solid var(--rule);position:relative}
+.eracell:last-child{border-right:0}
+.eracell .eo{font-family:'Geist Mono',monospace;font-size:8.5px;letter-spacing:.12em;color:var(--ink-400);margin-bottom:5px}
+.eracell .en{font-family:'Geist Mono',monospace;font-size:12px;font-weight:600;letter-spacing:.03em;text-transform:uppercase;color:var(--ink-900);margin-bottom:8px}
+.eracell p{margin:0 0 10px;font-size:11px;color:var(--ink-600);line-height:1.45}
+.eracell p b{color:var(--ink-900);font-weight:600}
+.eracell .edims{display:flex;flex-wrap:wrap;gap:5px}
+.edim{font-family:'Geist Mono',monospace;font-size:8px;letter-spacing:.04em;text-transform:uppercase;padding:2px 6px;white-space:nowrap;background:var(--ink-950);color:#fff;font-weight:600}
+.eracell .earrow{position:absolute;right:-7px;top:24px;width:12px;height:12px;background:var(--ink-0);border-top:1px solid var(--rule);border-right:1px solid var(--rule);transform:rotate(45deg);z-index:3}
+.eracell:last-child .earrow{display:none}
+.spinefoot{border-top:1px solid var(--rule);background:var(--ink-50);padding:9px 16px;font-family:'Geist Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.12em;color:var(--ink-600)}
+.spinefoot b{color:var(--ink-900);font-weight:600}
+
+/* synthesis answers (reused) */
+.ans{border:1px solid var(--ink-900);background:var(--ink-0)}
+.qrow{display:grid;grid-template-columns:0.9fr 1.4fr;border-bottom:1px solid var(--rule)}
+.qrow.last{border-bottom:0}
+.qrow .aq{padding:14px 18px;border-right:1px solid var(--rule);background:var(--ink-50);font-size:13.5px;font-weight:600;color:var(--ink-900);letter-spacing:-.01em;display:flex;gap:11px;align-items:baseline;line-height:1.35}
+.qrow .aq .an{font-family:'Geist Mono',monospace;font-size:10px;color:var(--ink-400);letter-spacing:.1em;flex:none}
+.qrow .aa{padding:14px 18px;font-size:12.5px;color:var(--ink-600);line-height:1.55}
+.qrow .aa b{color:var(--ink-900);font-weight:600}
+.qrow .aa code{font-family:'Geist Mono',monospace;font-size:11px;color:var(--ink-900);background:var(--ink-50);border:1px solid var(--rule);padding:1px 5px}
+
+@media (max-width:1080px){
+  .arc .row{grid-template-columns:1fr 1fr}.arc .arrow{display:none}
+  .toc{grid-template-columns:1fr 1fr 1fr}
+  .grid2,.grid3,.grid4{grid-template-columns:1fr}
+  .ladderrow{grid-template-columns:1fr 1fr}.lcell .larrow{display:none}
+  .drow{grid-template-columns:1fr}.drow .dn,.drow .dd{border-right:0;border-bottom:1px solid var(--rule)}
+  .quad{grid-template-columns:1fr}.qc{border-right:0!important;border-bottom:1px solid var(--rule)!important}.qc:last-child{border-bottom:0!important}
+  .dimcols,.portcols{display:none}
+  .dimrow{grid-template-columns:1fr}.dimrow .di{border-right:0;border-bottom:1px solid var(--rule);padding:8px}.dimrow .dnm,.dimrow .dpx{border-right:0;border-bottom:1px solid var(--rule)}
+  .prow{grid-template-columns:110px 1fr 44px;gap:9px}
+  .prow2{grid-template-columns:1fr}.prow2 .pno{border-right:0;border-bottom:1px solid var(--rule)}
+  .portrow{grid-template-columns:1fr}.portrow .pn,.portrow .pc2{border-right:0;border-bottom:1px solid var(--rule)}
+  .erastrip{grid-template-columns:1fr 1fr}.eracell .earrow{display:none}
+  .qrow{grid-template-columns:1fr}.qrow .aq{border-right:0;border-bottom:1px solid var(--rule)}
+}
+</style>
+</head>
+<body>
+
+<div class="opbar">
+  <div class="in">
+    <div class="l">
+      <span class="g">V</span>
+      <strong>Wave 235</strong>
+      <span class="sep">/</span>
+      <span>Professional Reputation Engine</span>
+      <span class="sep">·</span>
+      <span>role: claude design</span>
+    </div>
+    <div class="r">
+      <span class="pill"><span class="dot"></span>Reputation model</span>
+      <span class="sep">|</span>
+      <span>vc.2026.06.21 · w235 · v1</span>
+    </div>
+  </div>
+</div>
+
+<div class="doc">
+
+  <!-- ════ MASTHEAD ════ -->
+  <header class="mast" data-screen-label="Masthead">
+    <div class="crumb"><span class="r"></span>VitalCV <span style="color:var(--ink-300)">/</span> Value Layer <span style="color:var(--ink-300)">/</span> <b>W235 · Professional Reputation Engine</b></div>
+    <h1>Reputation is the top of the ladder. <em>This wave builds the engine that climbs it — turning verified evidence into accumulated professional credibility that lasts a career.</em></h1>
+    <p class="lede">The canon froze it at W228: reputation is not a stored score, it is the <strong>aggregate projection</strong> at the summit of <span class="mn">evidence → trust → recognition → reputation</span>. This wave makes that projection real. Reputation here is <strong>accumulated professional credibility</strong> — and the engine is built to keep it that and nothing else. It is <strong>not social media</strong>: no followers, no feed, no virality. It is <strong>not endorsements</strong>: a colleague's opinion moves nothing. It is <strong>not popularity</strong>: being known is not being credible. Five deliverables define it — a <strong>doctrine</strong> that says what creates, destroys, and may never touch reputation; <strong>seven dimensions</strong> because credibility is domain-specific, not a single number; the <strong>events</strong> that move it, up and down, on a symmetric evidentiary bar; a <strong>visualization</strong> that shows standing without ever becoming a network; and the <strong>portability</strong> that lets reputation survive every change a forty-year career throws at it. One question governs all five: how does a professional build reputation over forty years?</p>
+    <div class="meta-h">
+      <span>Definition<b>accumulated credibility</b></span>
+      <span>Shape<b>projection · never stored</b></span>
+      <span>Dimensions<b>7 · multidimensional</b></span>
+      <span>Moves only on<b>verified events · ± symmetric</b></span>
+      <span>Never moves on<b>popularity · opinion</b></span>
+      <span>Portable because<b>the ledger is owned</b></span>
+    </div>
+  </header>
+
+  <!-- ════ ARC ════ -->
+  <section class="arc">
+    <div class="hd"><span>The engine in five moves · doctrine → dimensions → events → view → portability</span><b>credibility, accumulated &amp; carried</b></div>
+    <div class="row">
+      <div class="cell"><div class="ord">D1</div><div class="nm">Reputation<br/>Doctrine</div><div class="q">What professional reputation is, how it differs from evidence, trust, and recognition, and what creates, destroys, reinforces, or may never touch it.</div><div class="arrow"></div></div>
+      <div class="cell"><div class="ord">D2</div><div class="nm">Reputation<br/>Dimensions</div><div class="q">Seven domains of credibility — Authority, Clinical, Research, Leadership, Academic, Operational, Service — and why reputation is a profile, not a score.</div><div class="arrow"></div></div>
+      <div class="cell"><div class="ord">D3</div><div class="nm">Reputation<br/>Events</div><div class="q">Which CareerEvents move reputation, in which direction, by how much — and the rule that the same evidentiary bar governs a rise and a fall.</div><div class="arrow"></div></div>
+      <div class="cell"><div class="ord">D4</div><div class="nm">Reputation<br/>Visualization</div><div class="q">Clinician, recruiter, and employer views — and the design principles that show standing without ever becoming a social network.</div><div class="arrow"></div></div>
+      <div class="cell"><div class="ord">D5</div><div class="nm">Reputation<br/>Portability</div><div class="q">How reputation survives a change of employer, career, state, or specialty — because it is a projection of an owned, portable ledger.</div><div class="arrow"></div></div>
+    </div>
+    <div class="foot">Engine rule · <b>reputation only ever moves on a verified fact.</b> Nothing a person says about themselves, and nothing a crowd feels about them, changes their reputation by a single point. The only inputs are source-bound EvidenceObjects and conferred recognition — which is exactly the discipline that separates accumulated credibility from a popularity score, and the reason a reputation built here can be trusted at a hospital's front door.</div>
+  </section>
+
+  <!-- ════ TOC ════ -->
+  <nav class="toc">
+    <a href="#d1"><span class="n">D1</span><span class="t">Reputation Doctrine</span></a>
+    <a href="#d2"><span class="n">D2</span><span class="t">Reputation Dimensions</span></a>
+    <a href="#d3"><span class="n">D3</span><span class="t">Reputation Events</span></a>
+    <a href="#d4"><span class="n">D4</span><span class="t">Reputation Visualization</span></a>
+    <a href="#d5"><span class="n">D5</span><span class="t">Reputation Portability</span></a>
+    <a href="#synth"><span class="n">06</span><span class="t">Forty Years of Standing</span></a>
+  </nav>
+
+  <main>
+
+  <!-- ════════════ D1 ════════════ -->
+  <section class="sec" id="d1" data-screen-label="D1 Reputation Doctrine">
+    <div class="sh"><span class="n">D1</span><h2>Reputation Doctrine</h2><span class="ey">accumulated professional credibility</span></div>
+    <p class="lead"><strong>Professional Reputation is the durable, earned standing a clinician carries — the accumulated credibility that years of verified evidence and conferred recognition compound into.</strong> It is the <em>aggregate</em>, the fourth and final rung of a ladder where each step is the input to the next: a <strong>fact</strong> is observed (evidence), the fact is <strong>believed</strong> (trust), an honor is <strong>conferred</strong> (recognition), and over time these settle into <strong>standing</strong> (reputation). Reputation is not a separate primitive and is never stored as a number — it is computed from everything beneath it. The doctrine's whole job is to fix what may climb that ladder and what may not, because the difference between credibility and a popularity score is entirely a question of what you let in.</p>
+
+    <div class="kicker">The credibility ladder · four rungs, each the input to the next</div>
+    <div class="ladder">
+      <div class="ladderhd"><span>evidence → trust → recognition → reputation · the aggregate at the top</span><b>each rung feeds the one above</b></div>
+      <div class="ladderrow">
+        <div class="lcell">
+          <div class="ls"><span class="lstep">01</span><span class="lo">OBSERVED</span></div>
+          <div class="ln2">Evidence</div>
+          <p><b>A fact you hold.</b> A source-bound assertion — a license, a degree, a publication. The raw material; true, but not yet weighed.</p>
+          <div class="larrow"></div>
+        </div>
+        <div class="lcell">
+          <div class="ls"><span class="lstep">02</span><span class="lo">COMPUTED</span></div>
+          <div class="ln2">Trust</div>
+          <p><b>Belief in the fact.</b> How corroborated and current the evidence is. Trust is what evidence earns once it is verified and fresh.</p>
+          <div class="larrow"></div>
+        </div>
+        <div class="lcell">
+          <div class="ls"><span class="lstep">03</span><span class="lo">CONFERRED</span></div>
+          <div class="ln2">Recognition</div>
+          <p><b>Esteem others granted.</b> A scarce honor a third party bestowed, that cannot be self-claimed. Trusted evidence, amplified by who noticed it.</p>
+          <div class="larrow"></div>
+        </div>
+        <div class="lcell cap4">
+          <div class="ls"><span class="lstep">04</span><span class="lo">ACCUMULATED</span></div>
+          <div class="ln2">Reputation</div>
+          <p><b>Standing over time.</b> The aggregate of trusted evidence and conferred recognition, compounded across a career into durable credibility.</p>
+          <div class="larrow"></div>
+        </div>
+      </div>
+      <div class="ladderfoot">Reputation is the <b>integral of the ladder over time</b> · it is not a fifth kind of thing — it is what the first three become when they accumulate, corroborate, and persist for years.</div>
+    </div>
+
+    <div class="kicker">The four-way distinction · reputation against its inputs</div>
+    <div class="rdiff">
+      <div class="rdiffhd"><span>Reputation is built from evidence, trust, and recognition — but it is none of them</span><b>aggregate · earned · durable</b></div>
+      <div class="drow">
+        <div class="dn"><b>Evidence</b><span>a provable fact</span></div>
+        <div class="dd">A fact about the career that <b>can be verified at a source</b>. Evidence is what you <b>have</b>.</div>
+        <div class="dk">observed · source-bound</div>
+      </div>
+      <div class="drow">
+        <div class="dn"><b>Trust</b><span>belief in the fact</span></div>
+        <div class="dd">The degree to which evidence is <b>corroborated and current</b>. Trust is what your evidence <b>earns</b>, now.</div>
+        <div class="dk">computed · decays · refreshable</div>
+      </div>
+      <div class="drow">
+        <div class="dn"><b>Recognition</b><span>esteem conferred</span></div>
+        <div class="dd">A scarce honor a <b>third party chose to grant</b>. Recognition is what others <b>bestow</b> on you.</div>
+        <div class="dk">conferred · cannot self-claim</div>
+      </div>
+      <div class="drow hl">
+        <div class="dn"><b>Reputation</b><span>accumulated standing</span></div>
+        <div class="dd">The <b>sum of trusted evidence and conferred recognition over time</b> — durable, domain-specific, earned. Reputation is what you <b>are known to be good for</b>.</div>
+        <div class="dk">aggregate · compounds · the top rung</div>
+      </div>
+    </div>
+    <p class="cap">The line that keeps it honest · <b>evidence you hold, trust it earns, recognition others confer, reputation the whole career accumulates</b> — reputation is the only one that takes time, which is why it cannot be bought or faked in a moment.</p>
+
+    <div class="kicker">The four doctrinal questions · what may move reputation, and what may never</div>
+    <div class="quad">
+      <div class="qc">
+        <div class="qi"><span class="qmark qm-up"></span>Creates</div>
+        <h4>What creates reputation</h4>
+        <p><b>Verified evidence and conferred recognition, accumulated over time.</b> Reputation is built by doing the work and having it proven — a body of verified events, milestones reached, honors that others bestowed, and trust that has stayed high across years. It is earned slowly and only from facts.</p>
+        <div class="qlist"><span class="qchip x">verified events</span><span class="qchip x">conferred recognition</span><span class="qchip x">sustained trust</span><span class="qchip">breadth · depth</span></div>
+      </div>
+      <div class="qc">
+        <div class="qi"><span class="qmark qm-dn"></span>Destroys</div>
+        <h4>What destroys reputation</h4>
+        <p><b>Verified adverse facts — and only those.</b> A substantiated investigation, a license restriction, a retraction, a falsification proven at source. Destruction runs on the <b>same evidentiary bar</b> as creation: a fall must be as provable as a rise. Allegation alone moves nothing until it is verified.</p>
+        <div class="qlist"><span class="qchip x">license restriction</span><span class="qchip x">substantiated finding</span><span class="qchip x">retraction · fraud</span></div>
+      </div>
+      <div class="qc">
+        <div class="qi"><span class="qmark qm-re"></span>Reinforces</div>
+        <h4>What reinforces reputation</h4>
+        <p><b>Consistency, corroboration, and recency.</b> The same standing held steadily for years outweighs a recent spike; independent sources agreeing strengthen the read; continued activity keeps it current. Reinforcement is the compounding interest of a career that keeps showing up and proving it.</p>
+        <div class="qlist"><span class="qchip x">years of consistency</span><span class="qchip x">independent corroboration</span><span class="qchip x">recent activity</span></div>
+      </div>
+      <div class="qc no">
+        <div class="qi"><span class="qmark qm-no"></span>Never</div>
+        <h4>What may never affect reputation</h4>
+        <p><b>Anything that is not a verified professional fact.</b> Popularity, followers, endorsements, opinions, self-promotion, connection count, volume of profile views — and every demographic attribute. None of it is credibility, so the engine refuses all of it by construction. This list is what stops the engine from becoming a social network.</p>
+        <div class="qlist"><span class="qchip gh">popularity</span><span class="qchip gh">endorsements</span><span class="qchip gh">opinions</span><span class="qchip gh">followers</span><span class="qchip gh">demographics</span></div>
+      </div>
+    </div>
+    <div class="note"><span class="lb">Deliverable · Reputation Doctrine</span><b>Professional Reputation is accumulated professional credibility — the time-integral of trusted evidence and conferred recognition, computed at the top of the ladder and never stored as a score.</b> It is created by verified facts, destroyed only by verified adverse facts on the same evidentiary bar, reinforced by consistency and corroboration over time, and — by hard rule — moved by nothing that is merely popular, social, or opined. That refusal is the doctrine.</div>
+  </section>
+
+  <!-- ════════════ D2 ════════════ -->
+  <section class="sec" id="d2" data-screen-label="D2 Reputation Dimensions">
+    <div class="sh"><span class="n">D2</span><h2>Reputation Dimensions</h2><span class="ey">credibility is domain-specific</span></div>
+    <p class="lead"><strong>Should reputation be a single number or many? The answer is decisive: many — because a single reputation score is a popularity ranking in disguise.</strong> A brilliant researcher may be an untested administrator; a beloved clinician may have never published. Collapsing those into one figure destroys the only information an evaluator actually needs — credibility <em>at what</em>. So reputation is a <strong>profile of seven independent dimensions</strong>, each computed from its own evidence classes, each standing on its own. There is no headline number stored anywhere; if a single figure is ever shown, it is composed at read time against a specific question. The profile, not the score, is the unit of reputation.</p>
+
+    <div class="kicker">The seven dimensions of professional reputation</div>
+    <div class="dimreg">
+      <div class="dimhd"><span>Seven domains of credibility · each computed independently from its own evidence</span><b>a profile, not a score</b></div>
+      <div class="dimcols"><span>Dim</span><span>Reputation</span><span>What it measures — credibility at what</span><span>Fed by</span></div>
+      <div class="dimrow">
+        <div class="di">1</div>
+        <div class="dnm"><b>Authority</b><span>standing to practice</span></div>
+        <div class="dpx">Credibility of <b>legal standing</b> — an unbroken, unrestricted record of licensure and certification. The dimension a regulator reads.</div>
+        <div class="dfd"><span class="fdchip">license</span><span class="fdchip">board cert</span><span class="fdchip">clean record</span></div>
+      </div>
+      <div class="dimrow">
+        <div class="di">2</div>
+        <div class="dnm"><b>Clinical</b><span>credibility at the bedside</span></div>
+        <div class="dpx">Standing as a <b>practitioner</b> — outcomes, case volume, privileges held, peer corroboration of care delivered. The dimension a patient's safety rests on.</div>
+        <div class="dfd"><span class="fdchip">privileges</span><span class="fdchip">case volume</span><span class="fdchip">outcomes</span></div>
+      </div>
+      <div class="dimrow">
+        <div class="di">3</div>
+        <div class="dnm"><b>Research</b><span>contribution to the field</span></div>
+        <div class="dpx">Standing as a <b>contributor of knowledge</b> — peer-reviewed publication, grants, citations, scientific milestones. The dimension that compounds across a career.</div>
+        <div class="dfd"><span class="fdchip">publications</span><span class="fdchip">grants</span><span class="fdchip">citations</span></div>
+      </div>
+      <div class="dimrow">
+        <div class="di">4</div>
+        <div class="dnm"><b>Leadership</b><span>responsibility entrusted</span></div>
+        <div class="dpx">Standing as someone <b>others were entrusted to</b> — directorships, appointments, teams and services led. The dimension that measures borne responsibility.</div>
+        <div class="dfd"><span class="fdchip">directorships</span><span class="fdchip">appointments</span><span class="fdchip">tenure led</span></div>
+      </div>
+      <div class="dimrow">
+        <div class="di">5</div>
+        <div class="dnm"><b>Academic</b><span>training the next generation</span></div>
+        <div class="dpx">Standing as an <b>educator</b> — faculty rank, teaching, mentorship, trainees graduated. The dimension that propagates a clinician's practice beyond themselves.</div>
+        <div class="dfd"><span class="fdchip">faculty rank</span><span class="fdchip">teaching</span><span class="fdchip">mentorship</span></div>
+      </div>
+      <div class="dimrow">
+        <div class="di">6</div>
+        <div class="dnm"><b>Operational</b><span>dependability at scale</span></div>
+        <div class="dpx">Standing as someone the <b>work gets done</b> through — reliability, throughput, institutional dependability over time. The dimension an employer plans around.</div>
+        <div class="dfd"><span class="fdchip">tenure</span><span class="fdchip">continuity</span><span class="fdchip">reliability</span></div>
+      </div>
+      <div class="dimrow">
+        <div class="di">7</div>
+        <div class="dnm"><b>Service</b><span>contribution to the profession</span></div>
+        <div class="dpx">Standing as a <b>steward of the field</b> — society service, committee work, guideline authorship, community contribution. The dimension peers confer over a career.</div>
+        <div class="dfd"><span class="fdchip">society service</span><span class="fdchip">committees</span><span class="fdchip">guidelines</span></div>
+      </div>
+    </div>
+
+    <div class="kicker">The reputation profile · one career across seven dimensions</div>
+    <div class="profbox">
+      <div class="profhd"><span>Dr. A · reputation profile · year 22 of practice</span><b>computed from verified evidence · dashed mark = field median</b></div>
+      <div class="profwrap">
+        <div class="prow"><span class="pl">Authority</span><span class="ptrack"><span class="pfill" style="width:92%"></span><span class="pmk" style="left:70%"></span></span><span class="pv">strong</span></div>
+        <div class="prow"><span class="pl">Clinical</span><span class="ptrack"><span class="pfill" style="width:84%"></span><span class="pmk" style="left:66%"></span></span><span class="pv">strong</span></div>
+        <div class="prow"><span class="pl">Research</span><span class="ptrack"><span class="pfill" style="width:71%"></span><span class="pmk" style="left:58%"></span></span><span class="pv">above</span></div>
+        <div class="prow"><span class="pl">Leadership</span><span class="ptrack"><span class="pfill" style="width:63%"></span><span class="pmk" style="left:60%"></span></span><span class="pv">at median</span></div>
+        <div class="prow"><span class="pl">Academic</span><span class="ptrack"><span class="pfill" style="width:78%"></span><span class="pmk" style="left:55%"></span></span><span class="pv">strong</span></div>
+        <div class="prow"><span class="pl">Operational</span><span class="ptrack"><span class="pfill" style="width:88%"></span><span class="pmk" style="left:64%"></span></span><span class="pv">strong</span></div>
+        <div class="prow"><span class="pl">Service</span><span class="ptrack"><span class="pfill" style="width:46%"></span><span class="pmk" style="left:52%"></span></span><span class="pv">thin</span></div>
+      </div>
+      <div class="proffoot">
+        <span class="lg"><span class="kf"></span> reputation strength · each bar traceable to evidence</span>
+        <span class="lg"><span class="km"></span> field median · the only comparison the engine draws</span>
+      </div>
+    </div>
+    <p class="cap">A profile reads where a score cannot · <b>Dr. A is a strong clinician-educator with thin service standing</b> — a single number would hide exactly the shape an evaluator needs, and the only benchmark shown is an anonymous field median, never a rank against named peers.</p>
+
+    <div class="note"><span class="lb">Deliverable · Reputation Dimensions</span><b>Reputation is multidimensional — seven independent domains (Authority, Clinical, Research, Leadership, Academic, Operational, Service), each computed from its own verified evidence, presented as a profile rather than a score.</b> A single number would collapse credibility-at-what into a popularity figure; the profile preserves the shape of a career. No headline value is stored; any one number is composed at read time against a specific role's question.</div>
+  </section>
+
+  <!-- ════════════ D3 ════════════ -->
+  <section class="sec" id="d3" data-screen-label="D3 Reputation Events">
+    <div class="sh"><span class="n">D3</span><h2>Reputation Events</h2><span class="ey">which moments move standing</span></div>
+    <p class="lead"><strong>Not every CareerEvent touches reputation — only those that carry verified professional weight, and they move it in both directions on one symmetric rule.</strong> A reputation event is any CareerEvent whose verification changes a dimension of standing: a publication lifts Research, a directorship lifts Leadership, a board certification lifts Authority and sets a floor. The same engine that records a rise records a fall — a license restriction or a substantiated investigation lowers standing, but only once <em>verified at primary source</em>, exactly as a positive event must be. The magnitude scales with selectivity and severity; the direction is set by the event class; and a pending, unproven allegation moves nothing at all.</p>
+
+    <div class="kicker">The reputation event ledger · what moves standing, and how</div>
+    <div class="tbl scroll">
+    <table class="tbl">
+      <thead><tr><th style="width:188px">CareerEvent</th><th style="width:96px">Direction</th><th style="width:150px">Dimension(s)</th><th>Weight &amp; persistence</th></tr></thead>
+      <tbody>
+        <tr><td class="nm">Board Certification</td><td><span class="dirpos">▲ raises</span></td><td><strong>Authority</strong></td><td>High · sets a permanent <strong>milestone floor</strong> the dimension never falls below.</td></tr>
+        <tr><td class="nm">Publication</td><td><span class="dirpos">▲ raises</span></td><td><strong>Research</strong></td><td>Accretes · each verified work adds; a body of work compounds over decades.</td></tr>
+        <tr><td class="nm">Leadership Promotion</td><td><span class="dirpos">▲ raises</span></td><td><strong>Leadership</strong> · Operational</td><td>Medium-high · scales with scope and tenure of responsibility held.</td></tr>
+        <tr><td class="nm">Faculty Appointment</td><td><span class="dirpos">▲ raises</span></td><td><strong>Academic</strong> · Research</td><td>High · durable; rank advances raise it further.</td></tr>
+        <tr><td class="nm">Recognition Event (PRE)</td><td><span class="dirpos">▲ raises</span></td><td><strong>matched to honor</strong></td><td>High · scales with <strong>selectivity</strong>; conferred, undecaying, cannot be self-claimed.</td></tr>
+        <tr><td class="nm">Society Service · Committee</td><td><span class="dirpos">▲ raises</span></td><td><strong>Service</strong></td><td>Medium · accretes; sustained stewardship of the field.</td></tr>
+        <tr><td class="nm">Major Investigation <em>(substantiated)</em></td><td><span class="dirneg">▼ lowers</span></td><td><strong>Authority</strong> · Clinical</td><td>Severe · only on a <strong>verified finding</strong>; pending allegation moves nothing.</td></tr>
+        <tr><td class="nm">License Restriction</td><td><span class="dirneg">▼ lowers</span></td><td><strong>Authority</strong></td><td>Severe · the hardest hit; recovery requires verified remediation over time.</td></tr>
+        <tr><td class="nm">Retraction · Falsification</td><td><span class="dirneg">▼ lowers</span></td><td><strong>Research</strong> · Academic</td><td>Severe · reverses the contribution it negates; the original event stays in history, marked.</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p class="cap">One ledger, both directions · <b>a rise and a fall pass through the identical verification gate</b> — the engine is as disciplined about lowering standing as raising it, which is what makes a clean record mean something and an adverse one fair.</p>
+
+    <div class="grid2" style="margin-top:16px">
+      <div class="card"><div class="ph"><span>The symmetry rule</span><b>a fall is as provable as a rise</b></div><div class="bd"><p><strong>Reputation moves down only on the same evidentiary bar it moves up.</strong> A negative event must be <strong>verified at primary source</strong> — a board action published, a finding substantiated — before it touches a single dimension. An accusation, a rumor, a complaint under review: none of these are facts yet, so the engine holds reputation steady until they become facts or are dismissed. This protects the innocent as rigorously as it records the proven.</p></div></div>
+      <div class="card"><div class="ph"><span>What is excluded entirely</span><b>events that look relevant but aren't</b></div><div class="bd"><p><strong>Volume without verification is not an event.</strong> Profile views, messages received, searches appeared-in, connections made — high-traffic signals a social platform would weight — are invisible to the engine. So are unverified self-reported achievements. A moment only becomes a reputation event when it is a <strong>dated, sourced, typed CareerEvent</strong> that verified; everything else is noise the engine never sees.</p></div></div>
+    </div>
+    <div class="note"><span class="lb">Deliverable · Reputation Events</span><b>A reputation event is a verified CareerEvent that changes a dimension of standing — publications, promotions, appointments, certifications, and conferred recognition raise it; substantiated investigations, license restrictions, and retractions lower it.</b> Both directions pass the same primary-source gate, so a fall is exactly as provable as a rise, magnitude scales with selectivity and severity, and an unproven allegation moves nothing until it is proven.</div>
+  </section>
+
+  <!-- ════════════ D4 ════════════ -->
+  <section class="sec" id="d4" data-screen-label="D4 Reputation Visualization">
+    <div class="sh"><span class="n">D4</span><h2>Reputation Visualization</h2><span class="ey">standing without a social network</span></div>
+    <p class="lead"><strong>The hardest part of showing reputation is not the rendering — it is refusing every affordance that would turn it into a social network.</strong> The same data viewed three ways serves three readers: a clinician sees their own standing and how to strengthen it; a recruiter sees credibility weighted to a role; an employer sees dependability and any honest adverse history. But every view obeys the same constraints — no followers, no feed, no leaderboard, no public score ranked against named people. Every bar a reader sees <strong>dereferences to the verified evidence beneath it</strong>, and the only comparison ever drawn is against an anonymous field median, never against another clinician. Reputation is shown as a <em>profile to be read</em>, never a <em>number to be ranked</em>.</p>
+
+    <div class="kicker">The anti-social-network principles · what the view refuses by design</div>
+    <div class="princ">
+      <div class="prow2">
+        <div class="pno"><span class="x"></span><b>No followers or connections</b></div>
+        <div class="pyes">Reputation has <b>no social graph</b>. There is nothing to follow, no audience to grow, no connection count. Standing is computed from evidence, not from who you know or who watches you.</div>
+      </div>
+      <div class="prow2">
+        <div class="pno"><span class="x"></span><b>No feed or virality</b></div>
+        <div class="pyes">There is <b>no stream and nothing to broadcast</b>. A reputation cannot be liked, shared, boosted, or go viral. It changes only when a CareerEvent verifies — silently, on the record, not in a timeline of posts.</div>
+      </div>
+      <div class="prow2">
+        <div class="pno"><span class="x"></span><b>No public leaderboard</b></div>
+        <div class="pyes">No clinician is <b>ranked against another by name</b>. The only benchmark shown is an anonymous field median, and even that is contextual. Reputation answers "credible at what," never "who is winning."</div>
+      </div>
+      <div class="prow2">
+        <div class="pno"><span class="x"></span><b>No score without its evidence</b></div>
+        <div class="pyes">Every dimension is <b>traceable to source</b>. Tap any bar and it resolves to the verified events that produced it. A standing you cannot audit is not shown — the projection is reversible, per canon, or it is not displayed at all.</div>
+      </div>
+    </div>
+
+    <div class="kicker">Three lenses on one profile · what each reader sees</div>
+    <div class="grid3">
+      <div class="card"><div class="ph"><span>Clinician view</span><b>my standing</b></div><div class="bd"><p><strong>A mirror and a path.</strong> The clinician sees their full seven-dimension profile, which dimensions are strong and which are thin, and — for each — the <strong>verified events that would strengthen it</strong>. It is private, actionable, and honest: it never flatters, and it shows the evidence beneath every bar so standing is legible, not mysterious.</p></div></div>
+      <div class="card"><div class="ph"><span>Recruiter view</span><b>credibility for this role</b></div><div class="bd"><p><strong>The profile, weighted to the opening.</strong> The recruiter sees the dimensions <strong>that matter for the role being filled</strong> foregrounded, with depth and recency surfaced. It reads the profile against the role's requirements — a gate, not a ranking — so two candidates are compared to the <strong>job</strong>, never crudely to each other.</p></div></div>
+      <div class="card"><div class="ph"><span>Employer view</span><b>will they perform &amp; stay</b></div><div class="bd"><p><strong>Dependability, read honestly.</strong> The employer sees Operational, Clinical, and Authority standing foregrounded, consistency over time, and <strong>any adverse history surfaced plainly</strong> — neither hidden nor sensationalized. The question is steadiness and safety, answered from the same verified record everyone else reads.</p></div></div>
+    </div>
+    <div class="note"><span class="lb">Deliverable · Reputation Visualization</span><b>Three lenses — clinician, recruiter, employer — render one profile for three questions, under constraints that forbid every social-network affordance: no followers, no feed, no named leaderboard, and no score that does not dereference to its evidence.</b> Reputation appears as a profile to be read and audited, compared only to an anonymous field median, never as a popularity figure ranked against named peers. The design refuses to be a network, and that refusal is the feature.</div>
+  </section>
+
+  <!-- ════════════ D5 ════════════ -->
+  <section class="sec" id="d5" data-screen-label="D5 Reputation Portability">
+    <div class="sh"><span class="n">D5</span><h2>Reputation Portability</h2><span class="ey">standing that survives every change</span></div>
+    <p class="lead"><strong>A reputation an employer can erase by ending a job is not a reputation — it is a performance review. Real professional standing survives every change a career makes.</strong> Because reputation is a <em>projection of the clinician-owned EvidenceObject ledger</em> — never held by an employer, a state board, or a platform — it travels exactly as far as the evidence does, which is everywhere. When the world changes, the engine does not reset; it <strong>recomputes</strong>. Earned standing in transferable dimensions carries in full; standing tied to a specific context moves into history as a true past fact; and new context simply adds new evidence to project from. The ledger is portable, so the reputation is portable. That is the entire mechanism.</p>
+
+    <div class="kicker">Four changes a career makes · what carries, what becomes history</div>
+    <div class="port">
+      <div class="portcols"><span>Change</span><span>What carries forward, unchanged</span><span>What moves into history</span><span>Net effect</span></div>
+      <div class="portrow">
+        <div class="pn"><b>Employer change</b><span>new institution</span></div>
+        <div class="pc2"><b>Everything.</b> The whole profile — the ledger is owned by the clinician, so leaving a job changes nothing the engine reads.</div>
+        <div class="pc2">The role itself becomes a completed tenure; its <b>operational record stays</b> as evidence.</div>
+        <div class="pr2"><span class="rb carry">Carries whole</span></div>
+      </div>
+      <div class="portrow">
+        <div class="pn"><b>Career change</b><span>role or track pivot</span></div>
+        <div class="pc2"><b>Transferable dimensions</b> — Research, Academic, Leadership, Service standing earned in the prior chapter carry in full.</div>
+        <div class="pc2">Role-specific <b>clinical and operational</b> standing for the old track becomes historical, still legible.</div>
+        <div class="pr2"><span class="rb carry">Carries + history</span></div>
+      </div>
+      <div class="portrow">
+        <div class="pn"><b>State change</b><span>relocation</span></div>
+        <div class="pc2"><b>Nearly all of it.</b> Board certification, publications, leadership, recognition are <b>national</b> — they don't know what state you're in.</div>
+        <div class="pc2">The prior state license becomes historical; a <b>new license is new Authority evidence</b>.</div>
+        <div class="pr2"><span class="rb carry">Carries whole</span></div>
+      </div>
+      <div class="portrow">
+        <div class="pn"><b>Specialty change</b><span>re-training</span></div>
+        <div class="pc2"><b>Cross-cutting dimensions</b> — Leadership, Research, Academic, Service — carry fully; they are not specialty-bound.</div>
+        <div class="pc2">Specialty-specific <b>Clinical</b> standing becomes historical; new specialty Authority recomputes from new evidence.</div>
+        <div class="pr2"><span class="rb hist">Carries + rebuilds</span></div>
+      </div>
+    </div>
+    <p class="cap">Nothing earned is ever lost · <b>standing either carries forward or moves into history — it never deletes</b>, because every dimension is projected from owned evidence that no employer, board, or platform has the power to revoke.</p>
+
+    <div class="kicker">The three laws of reputation portability</div>
+    <div class="laws">
+      <div class="law"><div class="ln">01</div><div class="lc"><b>Reputation is owned, never held.</b><p>It is a projection of the clinician's own ledger, not a record kept by an employer or a platform. <code>reputation = project( owned_evidence )</code>. No institution can withhold, reset, or delete it, because none of them ever held it.</p></div></div>
+      <div class="law"><div class="ln">02</div><div class="lc"><b>Change recomputes, it does not reset.</b><p>When context changes, the engine re-projects the same evidence into the new situation. Transferable standing carries; context-bound standing ages into history. <code>nothing earned is deleted</code> — it is only ever re-read.</p></div></div>
+      <div class="law"><div class="ln">03</div><div class="lc"><b>Portability is inherited from the ledger.</b><p>Reputation is exactly as portable as the EvidenceObject it projects from — which W215 made fully portable and W228 froze as canon. The engine adds no portability of its own; it simply cannot be less portable than its substrate.</p></div></div>
+    </div>
+    <div class="note"><span class="lb">Deliverable · Reputation Portability</span><b>Reputation survives every change because it is a projection of an owned, portable ledger — it recomputes, it never resets.</b> An employer change carries the whole profile; a state change carries everything national; career and specialty changes carry the cross-cutting dimensions and age the context-bound ones into history. Nothing earned is ever deleted, because no employer, board, or platform ever held the reputation to take it away.</div>
+  </section>
+
+  <!-- ════════════ 06 · SYNTHESIS ════════════ -->
+  <section class="sec" id="synth" data-screen-label="Synthesis">
+    <div class="sh"><span class="n">06</span><h2>Forty Years of Standing</h2><span class="ey">how reputation is built over a career</span></div>
+    <p class="lead">The five deliverables compose into one engine and answer one question: how does a professional build reputation over forty years? Not in a moment, and not by being noticed — but by accumulating verified facts and conferred recognition across seven dimensions, era by era, until standing is wide, deep, and impossible to fake. Reputation is the compounding interest of a career of proven work.</p>
+
+    <div class="kicker">The forty-year build · which dimensions come online, era by era</div>
+    <div class="spinebox">
+      <div class="spinehd"><span>Dr. A · how reputation accumulates across a working life</span><b>each era adds dimensions · none are ever lost</b></div>
+      <div class="erastrip">
+        <div class="eracell">
+          <div class="eo">YR 0–6 · FORMATION</div>
+          <div class="en">Establish Authority</div>
+          <p>Graduation, licensure, board certification. The first standing is <b>legal</b> — and the milestone floor it sets never falls.</p>
+          <div class="edims"><span class="edim">Authority</span></div>
+          <div class="earrow"></div>
+        </div>
+        <div class="eracell">
+          <div class="eo">YR 6–16 · ESTABLISHMENT</div>
+          <div class="en">Prove the Work</div>
+          <p>Attending practice, case volume, first publications, steady tenure. <b>Clinical, Operational, and Research</b> standing begin to accrue from verified work.</p>
+          <div class="edims"><span class="edim">Clinical</span><span class="edim">Operational</span><span class="edim">Research</span></div>
+          <div class="earrow"></div>
+        </div>
+        <div class="eracell">
+          <div class="eo">YR 16–28 · LEADERSHIP</div>
+          <div class="en">Take Responsibility</div>
+          <p>Directorship, faculty appointment, first conferred honors. <b>Leadership and Academic</b> standing compound; recognition begins to amplify the rest.</p>
+          <div class="edims"><span class="edim">Leadership</span><span class="edim">Academic</span></div>
+          <div class="earrow"></div>
+        </div>
+        <div class="eracell">
+          <div class="eo">YR 28–40 · STANDING</div>
+          <div class="en">Steward the Field</div>
+          <p>Society service, guideline authorship, election to fellowship. <b>Service</b> completes the profile; decades of consistency become the asset.</p>
+          <div class="edims"><span class="edim">Service</span><span class="edim">all · deepened</span></div>
+          <div class="earrow"></div>
+        </div>
+      </div>
+      <div class="spinefoot">The shape of a built reputation · <b>breadth across seven dimensions, depth of decades, and milestone floors</b> — a standing this wide and this old cannot be assembled quickly, which is exactly why it can be trusted.</div>
+    </div>
+
+    <div class="ans" style="margin-top:18px">
+      <div class="qrow"><div class="aq"><span class="an">Q1</span>What is Professional Reputation?</div><div class="aa"><b>Accumulated professional credibility — the time-integral of trusted evidence and conferred recognition.</b> It is the top rung of the ladder <code>evidence → trust → recognition → reputation</code>, computed and never stored, durable and domain-specific. It is what a clinician is known to be good for, earned slowly and only from verified facts.</div></div>
+      <div class="qrow"><div class="aq"><span class="an">Q2</span>Singular or multidimensional?</div><div class="aa"><b>Multidimensional — seven domains, presented as a profile.</b> Authority, Clinical, Research, Leadership, Academic, Operational, Service, each computed independently. A single score would collapse "credible at what" into a popularity figure; the profile preserves the true shape of a career and stores no headline number.</div></div>
+      <div class="qrow"><div class="aq"><span class="an">Q3</span>What moves it — and what never does?</div><div class="aa"><b>Only verified CareerEvents move it, in both directions on one symmetric bar.</b> Publications, appointments, certifications, and recognition raise it; substantiated investigations and license restrictions lower it. Popularity, endorsements, opinions, followers, and demographics move it by <b>exactly zero</b> — that refusal is the engine.</div></div>
+      <div class="qrow"><div class="aq"><span class="an">Q4</span>How is it shown without a social network?</div><div class="aa"><b>As an auditable profile, never a ranked score.</b> No followers, no feed, no named leaderboard; every bar dereferences to its evidence; the only benchmark is an anonymous field median. Clinician, recruiter, and employer each read the same verified profile for a different question — credibility, never popularity.</div></div>
+      <div class="qrow"><div class="aq"><span class="an">Q5</span>How does it survive change?</div><div class="aa"><b>It recomputes; it never resets.</b> Because reputation is a projection of the clinician-owned ledger, an employer, state, career, or specialty change carries the transferable standing in full and ages the context-bound standing into history. Nothing earned is deleted, because no institution ever held it to take away.</div></div>
+      <div class="qrow last"><div class="aq"><span class="an">Q6</span>How is reputation built over forty years?</div><div class="aa"><b>Era by era, dimension by dimension, from verified facts that compound.</b> Authority forms first and sets a floor; clinical, operational, and research standing accrue through proven work; leadership, academic, and service standing compound with responsibility and conferred honor. <b>VitalCV makes reputation what it should always have been — credibility earned, not attention won.</b></div></div>
+    </div>
+    <div class="note"><span class="lb">Determination</span><b>Professional Reputation is accumulated credibility: a seven-dimension projection of trusted evidence and conferred recognition, moved only by verified facts, shown as an auditable profile rather than a social score, and as portable as the owned ledger it is computed from.</b> A professional builds it over forty years the only way credibility can be built — by doing verified work, having others confer recognition on it, and letting decades of consistency compound into a standing no moment of attention could ever buy.</div>
+  </section>
+
+  </main>
+
+  <footer class="foot-page">
+    <span>VitalCV · Wave 235 · Professional Reputation Engine</span>
+    <span>role: claude design · <b>D1–D5 + synthesis</b></span>
+    <span>vc.2026.06.21 · w235 · v1 · <b>credibility, not attention</b></span>
+  </footer>
+
+</div>
+</body>
+</html>

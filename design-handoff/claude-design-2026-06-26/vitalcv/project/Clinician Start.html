@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>VitalCV · Verify your professional identity</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --ink-0:#fff;--ink-50:#f8fafc;--ink-100:#f1f5f9;--ink-200:#e2e8f0;
+    --ink-300:#cbd5e1;--ink-400:#94a3b8;--ink-500:#64748b;--ink-600:#475569;
+    --ink-700:#334155;--ink-800:#1e293b;--ink-900:#0f172a;--ink-950:#020617;
+    --rule:#e2e8f0;
+    --paper:#f8f6f1;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--paper);color:var(--ink-900);}
+  body{font-family:'Geist',ui-sans-serif,system-ui,sans-serif;font-feature-settings:'ss01','cv11';-webkit-font-smoothing:antialiased;font-size:14px;line-height:1.55;min-height:100vh;}
+  .mono{font-family:'Geist Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;}
+
+  /* ===== Slim chrome — no opbar shouting at the clinician ===== */
+  header.mh{background:transparent;border-bottom:1px solid var(--rule);}
+  .mh .in{max-width:1240px;margin:0 auto;padding:18px 32px;display:flex;align-items:center;justify-content:space-between;}
+  .brand{display:flex;align-items:center;gap:11px;}
+  .brand .g{width:22px;height:22px;background:var(--ink-900);color:#fff;display:grid;place-items:center;font-family:'Geist Mono',monospace;font-size:11px;font-weight:600;}
+  .brand .nm{font-weight:600;letter-spacing:-.01em;font-size:15px;}
+  .brand .nm .sl{color:var(--ink-400);font-weight:400;}
+  .brand .nm .sub{color:var(--ink-500);font-weight:400;}
+  .mh-rt{font-family:'Geist Mono',monospace;font-size:10.5px;color:var(--ink-500);letter-spacing:.14em;text-transform:uppercase;display:flex;gap:14px;align-items:center;}
+  .mh-rt strong{color:var(--ink-900);font-weight:500;text-transform:none;letter-spacing:0;font-family:'Geist',sans-serif;}
+  .mh-rt a{color:var(--ink-900);text-decoration:underline;text-decoration-color:var(--ink-300);text-underline-offset:3px;}
+
+  /* ===== Two-column layout — calm, generous ===== */
+  main{max-width:1240px;margin:0 auto;padding:52px 32px 60px;display:grid;grid-template-columns:1.05fr .95fr;gap:64px;align-items:start;}
+
+  /* ===== LEFT · identity anchoring ===== */
+  .anchor .eyebrow{font-family:'Geist Mono',monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:.2em;color:var(--ink-500);display:flex;align-items:center;gap:10px;margin-bottom:18px;}
+  .anchor .eyebrow .r{display:inline-block;width:22px;height:1px;background:var(--ink-300);}
+  .anchor h1{font-family:'Geist',sans-serif;font-size:48px;line-height:1.04;letter-spacing:-.028em;font-weight:600;margin:0 0 16px;max-width:14ch;}
+  .anchor h1 .muted{color:var(--ink-500);font-weight:500;}
+  .anchor .sub{font-size:16px;color:var(--ink-700);line-height:1.6;margin:0 0 32px;max-width:46ch;}
+  .anchor .sub strong{color:var(--ink-900);font-weight:500;}
+
+  /* Primary sign-in CTA — calm, large hit target, no Web3 language */
+  .signin{display:flex;flex-direction:column;gap:10px;max-width:480px;}
+  .signin .btn{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:18px 22px;background:var(--ink-900);color:#fff;border:0;text-decoration:none;font-family:'Geist',sans-serif;font-weight:500;font-size:15px;cursor:pointer;letter-spacing:-.005em;transition:background .15s ease;text-align:left;line-height:1.25;}
+  .signin .btn:hover{background:#000;}
+  .signin .btn .lhs{display:flex;flex-direction:column;gap:1px;}
+  .signin .btn .lhs .pri{font-size:15.5px;}
+  .signin .btn .lhs .sec{font-family:'Geist Mono',monospace;font-size:10.5px;color:#94a3b8;font-weight:500;letter-spacing:.08em;text-transform:uppercase;}
+  .signin .btn .arr{font-family:'Geist Mono',monospace;font-size:13px;}
+  .signin .btn.alt{background:transparent;color:var(--ink-900);border:1px solid var(--ink-300);}
+  .signin .btn.alt:hover{border-color:var(--ink-900);background:var(--ink-0);}
+  .signin .btn.alt .lhs .sec{color:var(--ink-500);}
+  .signin .or{display:flex;align-items:center;gap:12px;font-family:'Geist Mono',monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-400);margin:6px 0;}
+  .signin .or::before,.signin .or::after{content:"";flex:1;height:1px;background:var(--ink-200);}
+
+  /* Reassurance row — plainspoken, no acronyms */
+  .reassure{margin-top:28px;display:flex;gap:24px;flex-wrap:wrap;font-size:12.5px;color:var(--ink-600);max-width:480px;}
+  .reassure .item{display:flex;align-items:flex-start;gap:8px;line-height:1.45;}
+  .reassure .item .m{width:6px;height:6px;background:var(--ink-900);display:inline-block;margin-top:6px;flex-shrink:0;}
+  .reassure .item strong{color:var(--ink-900);font-weight:500;}
+
+  /* Footnote — quiet pointer to advanced surfaces */
+  .footnote{margin-top:36px;padding-top:18px;border-top:1px solid var(--rule);font-family:'Geist Mono',monospace;font-size:10.5px;color:var(--ink-500);max-width:480px;line-height:1.55;letter-spacing:.04em;}
+  .footnote a{color:var(--ink-900);text-decoration:underline;text-decoration-color:var(--ink-300);text-underline-offset:3px;}
+
+  /* ===== RIGHT · "Why this matters" value card ===== */
+  .value{background:var(--ink-0);border:1px solid var(--rule);position:sticky;top:36px;}
+  .value .ph{padding:14px 22px;border-bottom:1px solid var(--rule);background:var(--ink-50);display:flex;justify-content:space-between;align-items:center;}
+  .value .ph .ttl{font-family:'Geist Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.18em;color:var(--ink-900);font-weight:700;}
+  .value .ph .sub{font-family:'Geist Mono',monospace;font-size:10px;color:var(--ink-500);letter-spacing:.04em;}
+  .value .lede{padding:22px 24px 6px;}
+  .value .lede h2{font-family:'Geist',sans-serif;font-size:22px;line-height:1.18;letter-spacing:-.018em;font-weight:600;margin:0 0 8px;color:var(--ink-900);max-width:18ch;}
+  .value .lede p{margin:0;font-size:13.5px;color:var(--ink-700);line-height:1.6;max-width:42ch;}
+  .value .lede p strong{color:var(--ink-900);font-weight:500;}
+
+  .benefits{padding:14px 24px 18px;display:flex;flex-direction:column;gap:0;}
+  .benefits .b{padding:14px 0;border-top:1px solid var(--rule);display:grid;grid-template-columns:30px 1fr auto;gap:16px;align-items:start;}
+  .benefits .b:first-child{border-top:0;padding-top:8px;}
+  .benefits .b .ord{font-family:'Geist Mono',monospace;font-size:10px;color:var(--ink-400);letter-spacing:.16em;text-transform:uppercase;font-weight:600;padding-top:2px;}
+  .benefits .b .body .ttl{font-size:15.5px;font-weight:600;letter-spacing:-.012em;color:var(--ink-900);line-height:1.25;}
+  .benefits .b .body .ttl .em{font-style:normal;}
+  .benefits .b .body .pn{margin-top:5px;font-size:12.5px;color:var(--ink-600);line-height:1.55;max-width:38ch;}
+  .benefits .b .body .pn strong{color:var(--ink-900);font-weight:500;}
+  .benefits .b .stat{font-family:'Geist Mono',monospace;text-align:right;}
+  .benefits .b .stat .v{font-size:17px;color:var(--ink-900);font-weight:500;letter-spacing:-.01em;line-height:1;}
+  .benefits .b .stat .u{display:block;font-size:9.5px;color:var(--ink-500);letter-spacing:.14em;text-transform:uppercase;margin-top:4px;}
+
+  .quote{padding:16px 24px 18px;background:var(--ink-50);border-top:1px solid var(--rule);}
+  .quote .q{font-size:13.5px;color:var(--ink-900);font-weight:500;line-height:1.55;letter-spacing:-.005em;max-width:42ch;}
+  .quote .q::before{content:"\"";color:var(--ink-300);font-size:24px;line-height:0;margin-right:2px;vertical-align:-4px;}
+  .quote .q::after{content:"\"";color:var(--ink-300);font-size:24px;line-height:0;margin-left:2px;vertical-align:-4px;}
+  .quote .by{margin-top:8px;font-family:'Geist Mono',monospace;font-size:10.5px;color:var(--ink-500);letter-spacing:.04em;}
+  .quote .by strong{color:var(--ink-900);font-weight:500;}
+
+  /* ===== Footer ===== */
+  footer.foot{max-width:1240px;margin:0 auto;padding:18px 32px 28px;font-family:'Geist Mono',monospace;font-size:10.5px;color:var(--ink-500);display:flex;justify-content:space-between;border-top:1px solid var(--rule);background:transparent;gap:12px;flex-wrap:wrap;letter-spacing:.04em;}
+  footer .v{color:var(--ink-700);}
+
+  @media(max-width:1000px){
+    main{grid-template-columns:1fr;gap:36px;padding:32px 24px 48px;}
+    .value{position:static;}
+    .anchor h1{font-size:36px;}
+  }
+  @media(max-width:600px){
+    .anchor h1{font-size:30px;max-width:none;}
+    .anchor .sub{font-size:14.5px;}
+    .signin .btn{padding:16px 18px;}
+    .benefits .b{grid-template-columns:1fr;gap:6px;}
+    .benefits .b .stat{text-align:left;}
+  }
+</style>
+</head>
+<body data-screen-label="Clinician Start">
+
+<header class="mh">
+  <div class="in">
+    <div class="brand">
+      <span class="g">V</span>
+      <span class="nm">VitalCV<span class="sl">/</span><span class="sub">for clinicians</span></span>
+    </div>
+    <div class="mh-rt">
+      <span>Already activated?</span>
+      <a href="Clinician Profile.html">Open your passport →</a>
+    </div>
+  </div>
+</header>
+
+<main>
+
+  <!-- LEFT — identity anchoring -->
+  <section class="anchor">
+    <div class="eyebrow"><span class="r"></span>Under three minutes &middot; no documents &middot; no uploads</div>
+    <h1>Verify your professional identity. <span class="muted">Once. Reusable.</span></h1>
+    <p class="sub">VitalCV reads what the federal registry already says about you and turns it into a credential <strong>your next employer can verify in seconds</strong> &mdash; without re-asking you for your license, your CV, or another fax-back. Start with your hospital sign-in.</p>
+
+    <div class="signin">
+      <a class="btn" href="Clinician Activation.html" id="primary-cta">
+        <span class="lhs">
+          <span class="pri">Continue with my hospital sign-in</span>
+          <span class="sec">Single sign-on &middot; Okta / Azure AD / Workday</span>
+        </span>
+        <span class="arr">→</span>
+      </a>
+      <div class="or"><span>or</span></div>
+      <a class="btn alt" href="Clinician Activation.html?mode=npi">
+        <span class="lhs">
+          <span class="pri">Start with my NPI</span>
+          <span class="sec">If your hospital isn't connected yet</span>
+        </span>
+        <span class="arr">→</span>
+      </a>
+    </div>
+
+    <div class="reassure">
+      <div class="item"><span class="m"></span><span><strong>You stay in control.</strong> Nothing is stored before you confirm at the final step.</span></div>
+      <div class="item"><span class="m"></span><span><strong>No passwords, ever.</strong> VitalCV doesn't see, store, or replay your hospital password.</span></div>
+      <div class="item"><span class="m"></span><span><strong>No PHI.</strong> Patient information never enters this flow.</span></div>
+    </div>
+
+    <p class="footnote">For credentialing teams &amp; auditors: this is the clinician entry. <a href="Verifier Replay.html">See what an employer sees →</a> &middot; <a href="Trust Anchor.html">/trust directory →</a></p>
+  </section>
+
+  <!-- RIGHT — value card -->
+  <aside class="value">
+    <div class="ph">
+      <span class="ttl">Why this matters</span>
+      <span class="sub">For you · the clinician</span>
+    </div>
+
+    <div class="lede">
+      <h2>You've done this paperwork enough times.</h2>
+      <p>Credentialing eats <strong>about a fifth</strong> of every working week the average clinician would rather spend on patients. VitalCV exists so the system stops re-asking you for the same answers.</p>
+    </div>
+
+    <div class="benefits">
+      <div class="b">
+        <span class="ord">01</span>
+        <div class="body">
+          <div class="ttl">Reuse verified credentials</div>
+          <div class="pn">Sign in once. The next hospital, the next payer, the next state &mdash; they verify what's already on file <strong>without re-asking you</strong>. Your license, your taxonomy, your standing &mdash; one source of truth, owned by you.</div>
+        </div>
+        <div class="stat"><div class="v">1×</div><span class="u">not 14×</span></div>
+      </div>
+      <div class="b">
+        <span class="ord">02</span>
+        <div class="body">
+          <div class="ttl">Reduce repetitive paperwork</div>
+          <div class="pn">No re-uploads. No fax-back. No CAQH chase. We confirm with the registry directly, and your employer's credentialing team gets the answer in seconds &mdash; not <strong>a hundred-day cycle</strong>.</div>
+        </div>
+        <div class="stat"><div class="v">~22</div><span class="u">days back</span></div>
+      </div>
+      <div class="b">
+        <span class="ord">03</span>
+        <div class="body">
+          <div class="ttl">Track your readiness in real time</div>
+          <div class="pn">License standing, sanctions screen, board status &mdash; <strong>continuously monitored</strong>. You see what your employer sees, and you find out before they do if something's about to lapse.</div>
+        </div>
+        <div class="stat"><div class="v">live</div><span class="u">7-day window</span></div>
+      </div>
+    </div>
+
+    <div class="quote">
+      <p class="q">The first time I changed hospitals I re-collected the same documents I'd already given my last employer. The fourth time, I realized the system was the problem.</p>
+      <div class="by">— <strong>Dr. R. Patel, MD</strong> · gastroenterology · early-adopter cohort</div>
+    </div>
+  </aside>
+
+</main>
+
+<footer class="foot">
+  <div>VitalCV &middot; <span class="v">for clinicians · your identity, portable</span></div>
+  <div style="text-align:right;">
+    <div>Under three minutes &middot; <span class="v">no documents · no uploads · no PHI</span></div>
+  </div>
+</footer>
+
+<script src="telemetry.js"></script>
+</body>
+</html>

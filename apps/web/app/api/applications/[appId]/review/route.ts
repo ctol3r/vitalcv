@@ -17,7 +17,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ ap
   const body = await req.text();
   const res = await fetch(`${MARKETPLACE_BACKEND}/api/applications/${appId}/review`, {
     method: 'PATCH',
-    headers: buildMarketplaceHeaders(session, { 'Content-Type': 'application/json' }),
+    headers: await buildMarketplaceHeaders(session, { 'Content-Type': 'application/json' }),
     body,
     cache: 'no-store',
     signal: AbortSignal.timeout(12_000),

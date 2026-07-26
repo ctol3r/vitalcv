@@ -28,6 +28,15 @@ pnpm turbo run build --filter @vitalcv/web   # prebuilds @vitalcv/trust-state di
 
 Do not remove worktrees you didn't create — they are load-bearing.
 
+## Deployment (Railway — Vercel is deprecated)
+
+**Railway is the canonical deployment platform; GitHub is the source of truth.** Vercel is legacy — do not add Vercel assumptions, and do not block work on Vercel previews/checks. There is no hard Vercel dependency (0 `@vercel/*` packages). See `docs/deployment/railway-migration.md` and `railway-env.md`.
+
+- **API** deploys from root `railway.toml` (+ `nixpacks.toml`, `apps/api/Dockerfile`): `pnpm turbo build`, `prisma migrate deploy`, health `/health`.
+- **Web** deploys from `apps/web/Dockerfile` (+ `apps/web/railway.toml`): `next start -p $PORT`, health `/api/health`. Both auto-deploy on push to `main`; `.github/workflows/deploy-api.yml` + `deploy-web.yml` wait + smoke-test.
+- **Required web env:** set `BACKEND_URL` (e.g. `https://api.vitalcv.com`) — `getBackendBase()` uses it for server-side reads and it overrides the Docker build default `NEXT_PUBLIC_API_BASE=http://localhost:4000`. Without it, live-data surfaces (e.g. `/ops/engine`) read the wrong base.
+- Deploy metadata: prefer `RAILWAY_*` env (`RAILWAY_ENVIRONMENT`, `RAILWAY_GIT_COMMIT_SHA`, `RAILWAY_GIT_BRANCH`); `VERCEL_*` reads remain only as backwards-compatible fallbacks.
+
 ## Commands
 
 ```bash

@@ -1,0 +1,134 @@
+/* ──────────────────────────────────────────────────────────────────────────
+   tweaks-vitalcv-v2.css — extends v1 tweaks-vitalcv.css with oklch-aware
+   variants. Backwards-compatible: every v1 selector and token still applies.
+   Wave 28 · OKLCH v2 migration
+   ────────────────────────────────────────────────────────────────────────── */
+
+@import url("./tweaks-vitalcv.css");
+@import url("./tokens-v2.css");
+
+/* ── status chips, oklch-canonical ────────────────────────────────────── */
+.vt-chip-v2 {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.125rem 0.5rem;
+  border-radius: var(--vt-radius-pill-v2);
+  font: var(--vt-type-micro-v2);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border: 1px solid color-mix(in oklch, currentColor 30%, transparent);
+}
+
+.vt-chip-v2--verified     { color: var(--vt-status-verified-v2);     background: color-mix(in oklch, var(--vt-status-verified-v2) 10%, var(--vt-surface-card-v2)); }
+.vt-chip-v2--pending      { color: var(--vt-status-pending-v2);      background: color-mix(in oklch, var(--vt-status-pending-v2)  10%, var(--vt-surface-card-v2)); }
+.vt-chip-v2--access       { color: var(--vt-status-access-v2);       background: color-mix(in oklch, var(--vt-status-access-v2)   10%, var(--vt-surface-card-v2)); }
+.vt-chip-v2--blocked      { color: var(--vt-status-blocked-v2);      background: color-mix(in oklch, var(--vt-status-blocked-v2)  10%, var(--vt-surface-card-v2)); }
+.vt-chip-v2--contradicted { color: var(--vt-status-contradicted-v2); background: color-mix(in oklch, var(--vt-status-contradicted-v2) 10%, var(--vt-surface-card-v2)); }
+.vt-chip-v2--unknown      { color: var(--vt-status-unknown-v2);      background: color-mix(in oklch, var(--vt-status-unknown-v2)  10%, var(--vt-surface-card-v2)); }
+
+/* ── card surface, oklch ──────────────────────────────────────────────── */
+.vt-card-v2 {
+  background: var(--vt-surface-card-v2);
+  color: var(--vt-ink-default-v2);
+  border: 1px solid var(--vt-surface-inset-v2);
+  border-radius: var(--vt-radius-lg-v2);
+  box-shadow: var(--vt-shadow-sm-v2);
+  padding: var(--vt-space-5-v2);
+}
+
+.vt-card-v2--inset {
+  background: var(--vt-surface-muted-v2);
+  box-shadow: none;
+}
+
+/* ── button, oklch ────────────────────────────────────────────────────── */
+.vt-btn-v2 {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.875rem;
+  border-radius: var(--vt-radius-md-v2);
+  font: var(--vt-type-small-v2);
+  font-weight: 500;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
+}
+
+.vt-btn-v2--primary {
+  background: var(--vt-accent-primary-v2);
+  color: var(--vt-ink-inverse-v2);
+}
+.vt-btn-v2--primary:hover {
+  background: color-mix(in oklch, var(--vt-accent-primary-v2) 88%, black);
+}
+
+.vt-btn-v2--ghost {
+  background: transparent;
+  color: var(--vt-ink-default-v2);
+  border-color: var(--vt-surface-inset-v2);
+}
+.vt-btn-v2--ghost:hover {
+  background: var(--vt-surface-muted-v2);
+}
+
+.vt-btn-v2--danger {
+  background: var(--vt-status-blocked-v2);
+  color: var(--vt-ink-inverse-v2);
+}
+
+.vt-btn-v2[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── confidence badge, oklch ──────────────────────────────────────────── */
+.vt-confidence-v2 {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--vt-radius-sm-v2);
+  font: var(--vt-type-micro-v2);
+  font-variant-numeric: tabular-nums;
+}
+
+.vt-confidence-v2--t1 { color: var(--vt-status-unknown-v2);   background: color-mix(in oklch, var(--vt-status-unknown-v2)   12%, transparent); }
+.vt-confidence-v2--t2 { color: var(--vt-status-access-v2);    background: color-mix(in oklch, var(--vt-status-access-v2)    12%, transparent); }
+.vt-confidence-v2--t3 { color: var(--vt-status-pending-v2);   background: color-mix(in oklch, var(--vt-status-pending-v2)   12%, transparent); }
+.vt-confidence-v2--t4 { color: var(--vt-status-verified-v2);  background: color-mix(in oklch, var(--vt-status-verified-v2)  16%, transparent); }
+
+/* ── modal, oklch ─────────────────────────────────────────────────────── */
+.vt-modal-v2-backdrop {
+  position: fixed;
+  inset: 0;
+  background: var(--vt-surface-overlay-v2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+}
+
+.vt-modal-v2-panel {
+  background: var(--vt-surface-card-v2);
+  color: var(--vt-ink-default-v2);
+  border-radius: var(--vt-radius-xl-v2);
+  box-shadow: var(--vt-shadow-lg-v2);
+  padding: var(--vt-space-6-v2);
+  max-width: 640px;
+  width: calc(100% - var(--vt-space-6-v2) * 2);
+  max-height: calc(100vh - var(--vt-space-6-v2) * 2);
+  overflow: auto;
+}
+
+/* ── print mode for tweaks panel itself ──────────────────────────────── */
+@media print {
+  .vt-tweaks-panel-v2 [data-panel-control] {
+    display: none !important;
+  }
+  .vt-tweaks-panel-v2 {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+}

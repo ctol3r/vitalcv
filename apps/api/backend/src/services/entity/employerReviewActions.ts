@@ -18,6 +18,10 @@ import {
   resolveEmployerReviewAttribution,
 } from './employerReviewAttribution';
 import {
+  buildEmployerAcceptanceMetadata,
+  type AcceptanceSourceSnapshotCheck,
+} from './acceptanceSourceSnapshot';
+import {
   buildRuntimeMutationMetadata,
   type RuntimeTrustActor,
   type RuntimeTrustMetadata,
@@ -34,6 +38,14 @@ export type EmployerReviewPersistenceTarget =
   | 'outbox_event'
   | 'audit_event';
 export type EmployerAcceptanceScope = 'pilot' | 'full' | 'partial';
+
+/**
+ * Canonical public copy for an acceptance with no employer-provided reason.
+ * Private review notes (context.notes) must never stand in for it: the
+ * acceptance record feeds the anonymous acceptance-history read that renders
+ * on /verify/[npi] and /holder/recognition.
+ */
+export const DEFAULT_ACCEPTANCE_REASON = 'Accepted as head start using VitalCV verification.';
 
 export interface EmployerReviewAcceptanceRecord {
   acceptedByOrgId: string | null;
@@ -780,13 +792,43 @@ async function writeEmployerReviewAuditEvent(
   });
 }
 
+// VcvEntity.id is a Postgres uuid column — querying it with a non-uuid string
+// makes Prisma throw (a 500) instead of returning null.
+const ENTITY_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export async function resolveEmployerReviewSubject(
   entityId: string,
 ): Promise<EmployerReviewSubject | null> {
-  if (!entityId.trim()) return null;
+  // Test the raw value — it is what the query below receives, so a padded
+  // uuid must fail here rather than reach Prisma.
+  if (!ENTITY_UUID_RE.test(entityId)) return null;
 
   const entity = await prisma.vcvEntity.findUnique({
     where: { id: entityId },
+    select: { id: true, npi: true },
+  });
+
+  if (!entity?.npi) return null;
+
+  return {
+    entityId: entity.id,
+    clinicianNpi: entity.npi,
+  };
+}
+
+/**
+ * Resolve a clinician NPI to the same subject shape used by entity-id lookups.
+ * Earliest entity row wins when an NPI has more than one (deterministic).
+ * Read-only: never creates an entity, unlike resolveEntityFromNpi.
+ */
+export async function resolveEmployerReviewSubjectByNpi(
+  npi: string,
+): Promise<EmployerReviewSubject | null> {
+  if (!npi.trim()) return null;
+
+  const entity = await prisma.vcvEntity.findFirst({
+    where: { npi },
+    orderBy: { createdAt: 'asc' },
     select: { id: true, npi: true },
   });
 
@@ -810,6 +852,16 @@ export async function recordEmployerReviewAcceptance(input: {
   notes?: unknown;
   acceptanceScope?: unknown;
   acceptanceReason?: unknown;
+  organizationName?: string | null;
+  // ACT-1.2 — link this acceptance to the exact sealed packet it accepted. Both
+  // optional: the NPI-keyed accept path (no application in hand) omits them and
+  // is unaffected. The route verifies the hash against the live packet first.
+  applicationId?: string | null;
+  packetHash?: string | null;
+  // Accept-time source-coverage snapshot ({sourceId,label,state,checkedAt}[]),
+  // frozen into EmployerAcceptance.metadata so the W6 "what changed since you
+  // accepted" diff has an accepted side to replay against.
+  acceptedSourceSnapshot?: readonly AcceptanceSourceSnapshotCheck[] | null;
 }): Promise<EmployerReviewActionState> {
   const now = new Date();
   const requestId = randomUUID();
@@ -829,8 +881,7 @@ export async function recordEmployerReviewAcceptance(input: {
     acceptanceScope: normalizeAcceptanceScope(input.acceptanceScope),
     acceptanceReason:
       sanitizeString(input.acceptanceReason, 280)
-      ?? context.notes
-      ?? 'Accepted as head start using VitalCV verification.',
+      ?? DEFAULT_ACCEPTANCE_REASON,
   };
 
   // ── Capture trust snapshot BEFORE transaction — immutable audit record ──
@@ -862,13 +913,33 @@ export async function recordEmployerReviewAcceptance(input: {
     reviewItemCreated: false,
   };
 
+  // Accept-time coverage snapshot, stored on the acceptance row itself (not
+  // only in audit metadata) — this is the durable "accepted" side the re-share
+  // diff reads. Null when the caller had no coverage in hand: the column stays
+  // NULL rather than recording an empty snapshot that would diff as "every
+  // current source is new".
+  const acceptanceRowMetadata = buildEmployerAcceptanceMetadata({
+    capturedAt: now.toISOString(),
+    checks: input.acceptedSourceSnapshot ?? [],
+  });
+
   const { auditEvent, metadata } = await prisma.$transaction(async (tx) => {
     const acceptanceRow = await tx.employerAcceptance.create({
       data: {
         id: randomUUID(),
+        // The review path has a real entity and org in hand — record them, so
+        // the acceptance ties to the VcvEntity that was reviewed. (Both columns
+        // are nullable; hiring.ts, which has neither, legitimately omits them.)
+        entityId: input.entityId,
+        organization: input.organizationName ?? input.employerId,
         employerId: input.employerId,
         clinicianNpi: input.clinicianNpi,
         artifactId: null,
+        // ACT-1.2 linkage — the exact packet this acceptance accepted (null on
+        // the NPI-keyed path that has no application in hand).
+        applicationId: input.applicationId ?? null,
+        packetHash: input.packetHash ?? null,
+        metadata: acceptanceRowMetadata ? toJsonValue(acceptanceRowMetadata) : undefined,
         status: 'ACCEPTED',
         acceptedAt: now,
       },
@@ -888,6 +959,8 @@ export async function recordEmployerReviewAcceptance(input: {
           employerId: input.employerId,
           entityId: input.entityId,
           clinicianNpi: input.clinicianNpi,
+          applicationId: input.applicationId ?? null,
+          packetHash: input.packetHash ?? null,
           requestId,
           ...runtimeTrust,
           persistence: seededPersistence,
@@ -1238,6 +1311,26 @@ export async function loadEmployerReviewStatus(input: {
   return null;
 }
 
+/**
+ * Acceptance reason as served on the anonymous acceptance-history read.
+ * Records written before the write path stopped copying context.notes into
+ * acceptanceReason may still carry the private note — when the stored reason
+ * matches the note it is suppressed and the canonical copy served instead.
+ */
+function publicAcceptanceReason(metadata: EmployerReviewActionAuditMetadata): string | null {
+  const storedReason = metadata.acceptance?.acceptanceReason ?? null;
+  if (storedReason === null) {
+    return null;
+  }
+
+  const privateNotes = metadata.context.notes ?? null;
+  if (privateNotes !== null && storedReason === privateNotes) {
+    return DEFAULT_ACCEPTANCE_REASON;
+  }
+
+  return storedReason;
+}
+
 export async function loadEmployerAcceptanceHistory(input: {
   entityId: string;
   clinicianNpi: string;
@@ -1278,10 +1371,7 @@ export async function loadEmployerAcceptanceHistory(input: {
       acceptedByOrgId,
       acceptedAt,
       acceptanceScope,
-      acceptanceReason:
-        metadata.acceptance?.acceptanceReason
-        ?? metadata.context.notes
-        ?? null,
+      acceptanceReason: publicAcceptanceReason(metadata),
     }];
   }).sort((left, right) => Date.parse(right.acceptedAt) - Date.parse(left.acceptedAt));
 
@@ -1305,7 +1395,10 @@ export async function loadEmployerAcceptanceHistory(input: {
       acceptanceId: entry.acceptanceId,
       orgLabel: org.orgLabel,
       isAnonymized: org.isAnonymized,
-      acceptedByOrgId: entry.acceptedByOrgId,
+      // An anonymized label with the raw org id beside it would defeat the
+      // anonymization on this anonymous read; the id ships only when the
+      // organization is already named.
+      acceptedByOrgId: org.isAnonymized ? null : entry.acceptedByOrgId,
       acceptedAt: entry.acceptedAt,
       acceptanceScope: entry.acceptanceScope,
       acceptanceReason: entry.acceptanceReason,

@@ -4,11 +4,13 @@ import * as React from 'react';
 import Link from 'next/link';
 import { notFound, useSearchParams } from 'next/navigation';
 import { useEffect } from 'react';
-import { ArrowLeft, ArrowRight, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, ArrowRight } from 'lucide-react';
+import { ApplicationEvidenceView } from '@/components/applications/ApplicationEvidenceView';
 import { useClinicianMobile } from '@/components/mobile/ClinicianMobileProvider';
 import { applicationStatusLabel, applicationStatusTone, type MobileApplication } from '@/lib/mobile/dashboard';
 import { trackClinicianEventOncePerSession } from '@/lib/mobile/analytics';
 import { buildApplicationProofMoments } from '@/lib/proof/proof-model';
+import type { ApplicationEvidenceLoadResult } from '@/lib/applications/evidenceView';
 
 function toneClasses(tone: ReturnType<typeof applicationStatusTone>): string {
   switch (tone) {
@@ -110,8 +112,10 @@ function applicationSummary(input: {
 
 export default function ClinicianApplicationDetailSurface({
   applicationId,
+  evidenceResult,
 }: {
   applicationId: string;
+  evidenceResult: ApplicationEvidenceLoadResult;
 }) {
   const {
     data,
@@ -239,36 +243,11 @@ export default function ClinicianApplicationDetailSurface({
         </div>
       </header>
 
+      <ApplicationEvidenceView result={evidenceResult} />
+
       <section className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)]">
         <div className="rounded-[32px] border border-white/10 bg-white/[0.04] p-5">
-          <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Why you were ready enough to submit</p>
-          <div className="mt-4 rounded-3xl border border-white/10 bg-black/20 p-4">
-            <div className="flex items-center justify-between gap-3">
-              <p className="text-sm font-semibold text-white">Readiness attached</p>
-              {application.readiness ? (
-                <span className="inline-flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-xs font-semibold text-emerald-100">
-                  <ShieldCheck className="h-3.5 w-3.5" />
-                  {application.readiness.readinessLevel} · {application.readiness.readinessScore}/100
-                </span>
-              ) : null}
-            </div>
-            <p className="mt-3 text-sm leading-6 text-white/70">
-              {application.readiness?.readinessStatus ?? 'Your readiness will refresh here when employer review updates.'}
-            </p>
-            {application.readiness?.gapSummary.length ? (
-              <div className="mt-3 space-y-2">
-                {application.readiness.gapSummary.slice(0, 3).map((gap) => (
-                  <p key={gap} className="text-sm text-amber-100">
-                    {gap}
-                  </p>
-                ))}
-              </div>
-            ) : (
-              <p className="mt-3 text-sm text-emerald-100/80">
-                Your verified profile was attached at submission, and we will only call out new requirements if something changes.
-              </p>
-            )}
-          </div>
+          <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Application activity</p>
 
           <div className="mt-4 rounded-3xl border border-white/10 bg-black/20 p-4">
             <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Timeline</p>
@@ -325,7 +304,7 @@ export default function ClinicianApplicationDetailSurface({
                 </Link>
               ) : null}
               <Link
-                href={`/opportunities/${encodeURIComponent(application.opportunity.id)}`}
+                href={`/holder/opportunities/${encodeURIComponent(application.opportunity.id)}`}
                 className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-white/10 bg-black/20 px-4 text-sm font-semibold text-white transition hover:border-white/20"
               >
                 View role details

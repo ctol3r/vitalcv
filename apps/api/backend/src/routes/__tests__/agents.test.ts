@@ -31,21 +31,22 @@ async function resetState(): Promise<void> {
 }
 
 async function seedProviderProfile(): Promise<void> {
-  await prisma.user.create({
+  const user = await prisma.user.create({
     data: {
       clerkUserId: 'clerk-strategy-agent-1',
       email: 'strategy-agent-test@vitalcv.local',
       role: 'CLINICIAN',
       status: 'ACTIVE',
-      personProfile: {
-        create: {
-          npi: '1558302470',
-          firstName: 'Ada',
-          lastName: 'Lovelace',
-          specialty: 'Cardiology',
-          stateOfPractice: 'CA',
-        },
-      },
+    },
+  });
+  await prisma.personProfile.create({
+    data: {
+      userId: user.id,
+      npi: '1558302470',
+      firstName: 'Ada',
+      lastName: 'Lovelace',
+      specialty: 'Cardiology',
+      stateOfPractice: 'CA',
     },
   });
 }

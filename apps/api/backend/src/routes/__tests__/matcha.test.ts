@@ -37,11 +37,15 @@ jest.mock('../../services/matcha/liveMatchaService', () => ({
 }));
 
 import { registerMatchaRoutes } from '../matcha';
+import { getLiveMatchesForNpi } from '../../services/matcha/liveMatchaService';
+
+const getLiveMatchesMock = getLiveMatchesForNpi as jest.Mock;
 
 async function invokeRoute(
   app: express.Express,
   routePath: string,
   params: Record<string, string>,
+  opts: { headers?: Record<string, string>; query?: Record<string, string> } = {},
 ) {
   const router = (app as unknown as {
     _router?: {
@@ -65,7 +69,7 @@ async function invokeRoute(
 
   return new Promise<{ status: number; body: unknown }>((resolve, reject) => {
     let statusCode = 200;
-    const req = { params, query: {}, headers: {} } as unknown as express.Request;
+    const req = { params, query: opts.query ?? {}, headers: opts.headers ?? {} } as unknown as express.Request;
     const res = {
       status(code: number) {
         statusCode = code;
@@ -100,5 +104,49 @@ describe('GET /api/matcha/opportunities/:npi', () => {
     expect(payload.opportunities[0]).toHaveProperty('employer.name');
     expect(payload.opportunities[0]).toHaveProperty('askContext.opportunityId');
     expect(payload.opportunities[0]).toHaveProperty('askContext.employerSlug');
+  });
+});
+
+describe('GET /api/matcha/opportunities/:npi — preference intent wiring', () => {
+  const NPI = '1003000126';
+  const intent = { npi: NPI, preferredStates: ['CA'], remoteOnly: true, preferredHiringTypes: ['locums'] };
+
+  function buildApp() {
+    const app = express();
+    app.use(express.json());
+    registerMatchaRoutes(app);
+    return app;
+  }
+
+  beforeEach(() => getLiveMatchesMock.mockClear());
+
+  it('forwards a valid x-matcha-intent header to the scorer (preference-driven ranking)', async () => {
+    await invokeRoute(buildApp(), '/api/matcha/opportunities/:npi', { npi: NPI }, {
+      headers: { 'x-matcha-intent': JSON.stringify(intent) },
+    });
+    expect(getLiveMatchesMock).toHaveBeenCalledWith(
+      NPI,
+      expect.anything(),
+      expect.objectContaining({ npi: NPI, remoteOnly: true, preferredStates: ['CA'] }),
+    );
+  });
+
+  it('passes null when no preference header is present (credential-only fallback)', async () => {
+    await invokeRoute(buildApp(), '/api/matcha/opportunities/:npi', { npi: NPI });
+    expect(getLiveMatchesMock).toHaveBeenCalledWith(NPI, expect.anything(), null);
+  });
+
+  it('ignores an intent whose NPI does not match the route', async () => {
+    await invokeRoute(buildApp(), '/api/matcha/opportunities/:npi', { npi: NPI }, {
+      headers: { 'x-matcha-intent': JSON.stringify({ ...intent, npi: '9999999999' }) },
+    });
+    expect(getLiveMatchesMock).toHaveBeenCalledWith(NPI, expect.anything(), null);
+  });
+
+  it('ignores a malformed intent header (never breaks the feed)', async () => {
+    await invokeRoute(buildApp(), '/api/matcha/opportunities/:npi', { npi: NPI }, {
+      headers: { 'x-matcha-intent': '{not valid json' },
+    });
+    expect(getLiveMatchesMock).toHaveBeenCalledWith(NPI, expect.anything(), null);
   });
 });

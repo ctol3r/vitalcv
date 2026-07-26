@@ -58,19 +58,20 @@ function formatTimestamp(value: string): string {
   });
 }
 
+/** Map an application-status tone onto a calm truth-state chip variant. */
 function toneClasses(tone: ReturnType<typeof applicationStatusTone>): string {
   switch (tone) {
     case 'emerald':
-      return 'border-emerald-400/20 bg-emerald-400/10 text-emerald-100';
+      return 'mz-chip-ok';
     case 'sky':
-      return 'border-sky-400/20 bg-sky-400/10 text-sky-100';
+      return 'mz-chip-unknown';
     case 'rose':
-      return 'border-rose-400/20 bg-rose-400/10 text-rose-100';
+      return 'mz-chip-p0';
     case 'zinc':
-      return 'border-white/10 bg-white/5 text-white/70';
+      return 'mz-chip-unknown';
     case 'amber':
     default:
-      return 'border-amber-400/20 bg-amber-400/10 text-amber-100';
+      return 'mz-chip-watch';
   }
 }
 
@@ -81,13 +82,13 @@ function matchTone(opportunity: MobileOpportunityCard): string {
 
   switch (opportunity.match?.band) {
     case 'CLEAR':
-      return 'border-emerald-400/20 bg-emerald-400/10 text-emerald-100';
+      return 'mz-chip-ok';
     case 'NEAR_CLEAR':
-      return 'border-sky-400/20 bg-sky-400/10 text-sky-100';
+      return 'mz-chip-watch';
     case 'PARTIAL':
-      return 'border-amber-400/20 bg-amber-400/10 text-amber-100';
+      return 'mz-chip-watch';
     default:
-      return 'border-white/10 bg-white/5 text-white/70';
+      return 'mz-chip-unknown';
   }
 }
 
@@ -107,20 +108,6 @@ function matchLabel(opportunity: MobileOpportunityCard): string {
       return 'Needs work';
     default:
       return 'Live role';
-  }
-}
-
-function quickActionToneClasses(tone: MobileQuickAction['tone']): string {
-  switch (tone) {
-    case 'emerald':
-      return 'border-emerald-400/15 bg-emerald-400/10 text-emerald-50';
-    case 'sky':
-      return 'border-sky-400/15 bg-sky-400/10 text-sky-50';
-    case 'amber':
-      return 'border-amber-400/15 bg-amber-400/10 text-amber-50';
-    case 'zinc':
-    default:
-      return 'border-white/10 bg-white/[0.05] text-white';
   }
 }
 
@@ -188,13 +175,13 @@ export function OpportunityGrid({
   }, [opportunities, searchParams, selectOpportunity, supportsApplyQuery, updateApplyQuery]);
 
   return (
-    <section className="rounded-[28px] border border-white/10 bg-white/[0.04] p-5 shadow-[0_18px_40px_rgba(0,0,0,0.25)]">
+    <section className="mz mz-card p-5">
       {heading ? (
         <div className="mb-4 flex items-start justify-between gap-3">
           <div>
-            <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">{heading}</p>
+            <p className="mz-eyebrow">{heading}</p>
           </div>
-          <Compass className="mt-0.5 h-5 w-5 text-white/45" />
+          <Compass className="mt-0.5 h-5 w-5 text-[var(--ink-400)]" />
         </div>
       ) : null}
 
@@ -205,38 +192,36 @@ export function OpportunityGrid({
             return (
               <article
                 key={opportunity.id}
-                className={`rounded-3xl border p-4 transition ${
-                  isSelected
-                    ? 'border-emerald-400/35 bg-emerald-400/10'
-                    : 'border-white/10 bg-black/20'
-                }`}
+                className={`mz-interactive p-4 ${isSelected ? 'mz-card' : 'mz-inset'}`}
+                style={isSelected ? { borderColor: 'var(--accent)' } : undefined}
               >
                 <div className="flex items-start justify-between gap-3">
                   <Link
-                    href={`/opportunities/${encodeURIComponent(opportunity.id)}`}
+                    href={`/holder/opportunities/${encodeURIComponent(opportunity.id)}`}
                     onClick={() => selectOpportunity(opportunity.id)}
                     className="min-w-0 flex-1"
                   >
-                    <p className="flex items-center gap-1.5 text-[11px] uppercase tracking-[0.18em] text-white/50">
+                    <p className="mz-mono flex items-center gap-1.5 text-[11px] uppercase tracking-[0.18em] text-[var(--ink-500)]">
                       <Building2 className="h-3.5 w-3.5 opacity-60" />
                       {opportunity.organizationName}
                     </p>
-                    <h3 className="mt-2 text-lg font-semibold text-white transition hover:text-emerald-200">
+                    <h3 className="mz-h2 mt-2 transition hover:text-[var(--accent)]">
                       {opportunity.title}
                     </h3>
-                    <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-white/65">
-                      <span className="inline-flex items-center gap-1"><MapPin className="h-3.5 w-3.5" />{opportunity.state}</span>
+                    <div className="mt-2 flex flex-wrap items-center gap-2 mz-body">
+                      <span className="inline-flex items-center gap-1"><MapPin className="h-3.5 w-3.5 opacity-70" />{opportunity.state}</span>
                       <span className="opacity-40">·</span>
-                      <span className="inline-flex items-center gap-1"><Stethoscope className="h-3.5 w-3.5" />{opportunity.specialty}</span>
+                      <span className="inline-flex items-center gap-1"><Stethoscope className="h-3.5 w-3.5 opacity-70" />{opportunity.specialty}</span>
                       {opportunity.payRange ? (
                         <>
                           <span className="opacity-40">·</span>
-                          <span className="inline-flex items-center gap-1 font-medium text-emerald-100/90"><Banknote className="h-3.5 w-3.5 opacity-70" />{opportunity.payRange}</span>
+                          <span className="mz-mono inline-flex items-center gap-1 font-medium text-[var(--ink-800)]"><Banknote className="h-3.5 w-3.5 opacity-70" />{opportunity.payRange}</span>
                         </>
                       ) : null}
                     </div>
                   </Link>
-                  <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${matchTone(opportunity)}`}>
+                  <span className={`mz-chip ${matchTone(opportunity)}`}>
+                    <span className="mz-gl" />
                     {matchLabel(opportunity)}
                   </span>
                 </div>
@@ -246,7 +231,7 @@ export function OpportunityGrid({
                     {opportunity.match.fitReasons.slice(0, 3).map((reason) => (
                       <span
                         key={reason}
-                        className="rounded-full border border-white/10 bg-white/[0.05] px-2.5 py-1 text-xs text-white/80"
+                        className="rounded-[2px] border border-[var(--rule)] bg-[var(--paper-2)] px-2.5 py-1 text-xs text-[var(--ink-600)]"
                       >
                         {reason}
                       </span>
@@ -255,12 +240,12 @@ export function OpportunityGrid({
                 ) : null}
 
                 {opportunity.match?.blockers.length ? (
-                  <div className="mt-3 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
-                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-white/50">Requirements remaining</p>
+                  <div className="mt-3 mz-inset px-4 py-3">
+                    <p className="mz-mono text-xs font-semibold uppercase tracking-[0.12em] text-[var(--ink-500)]">Requirements remaining</p>
                     <ul className="mt-2 space-y-1.5">
                       {opportunity.match.blockers.slice(0, 2).map((blocker) => (
-                        <li key={blocker.label} className="flex items-start gap-2 text-xs text-amber-50/80">
-                          <span className="mt-1 h-1 w-1 shrink-0 rounded-full bg-amber-400/50" />
+                        <li key={blocker.label} className="flex items-start gap-2 text-xs text-[var(--ink-700)]">
+                          <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--watch)]" />
                           <span>{blocker.label}</span>
                         </li>
                       ))}
@@ -268,18 +253,18 @@ export function OpportunityGrid({
                   </div>
                 ) : null}
 
-                <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-xs text-white/40">
+                <div className="mt-4 flex flex-wrap items-center justify-between gap-3 mz-small">
                   <span className="inline-flex items-center gap-1.5">
                     <Clock4 className="h-3.5 w-3.5 opacity-60" />
                     Updated {formatTimestamp(opportunity.createdAt)}
                   </span>
                   {opportunity.hiringType === 'PERMANENT' ? (
-                    <span className="inline-flex items-center gap-1.5 text-sky-100/60">
+                    <span className="inline-flex items-center gap-1.5">
                       <Users className="h-3.5 w-3.5 opacity-60" />
                       Direct Hire
                     </span>
                   ) : opportunity.hiringType === 'LOCUM_TENENS' ? (
-                    <span className="inline-flex items-center gap-1.5 text-sky-100/60">
+                    <span className="inline-flex items-center gap-1.5">
                       <Users className="h-3.5 w-3.5 opacity-60" />
                       Locums
                     </span>
@@ -291,7 +276,7 @@ export function OpportunityGrid({
                     <Link
                       href={`/holder/applications/${encodeURIComponent(opportunity.application.id)}`}
                       onClick={() => selectOpportunity(opportunity.id)}
-                      className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl bg-white px-4 text-sm font-semibold text-slate-950 transition hover:bg-white/90"
+                      className="mz-btn min-h-11 justify-center"
                     >
                       View application
                       <ArrowRight className="h-4 w-4" />
@@ -310,14 +295,14 @@ export function OpportunityGrid({
                         selectOpportunity(opportunity.id);
                         updateApplyQuery(opportunity.id);
                       }}
-                      className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl bg-white px-4 text-sm font-semibold text-slate-950 transition hover:bg-white/90"
+                      className="mz-btn min-h-11 justify-center"
                     >
                       Apply now
                       <ArrowRight className="h-4 w-4" />
                     </button>
                   )}
                   <Link
-                    href={`/opportunities/${opportunity.id}`}
+                    href={`/holder/opportunities/${opportunity.id}`}
                     onClick={() => {
                       void trackClinicianEventOncePerSession(`opportunity-view:${opportunity.id}`, 'clinician.opportunity_viewed', {
                         npi: data.workspace?.personProfile?.npi ?? null,
@@ -327,7 +312,7 @@ export function OpportunityGrid({
                       });
                       selectOpportunity(opportunity.id);
                     }}
-                    className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.05] px-4 text-sm font-semibold text-white transition hover:border-white/20 hover:bg-white/[0.08]"
+                    className="mz-btn mz-btn-ghost min-h-11 justify-center"
                   >
                     Role details
                   </Link>
@@ -391,60 +376,60 @@ export function NotificationList({
   const visibleNotifications = maxItems ? notifications.slice(0, maxItems) : notifications;
 
   return (
-    <section className="rounded-[28px] border border-white/10 bg-white/[0.04] p-5 shadow-[0_18px_40px_rgba(0,0,0,0.25)]">
+    <section className="mz mz-card p-5">
       <div className="mb-4 flex items-start justify-between gap-3">
         <div>
-          <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">{heading}</p>
+          <p className="mz-eyebrow">{heading}</p>
           {description ? (
-            <p className="mt-2 text-sm leading-6 text-white/60">{description}</p>
+            <p className="mt-2 mz-small">{description}</p>
           ) : null}
         </div>
-        <BellRing className="mt-0.5 h-5 w-5 text-white/45" />
+        <BellRing className="mt-0.5 h-5 w-5 text-[var(--ink-400)]" />
       </div>
 
       {visibleNotifications.length > 0 ? (
         <div className="space-y-3">
-          {visibleNotifications.map((notification) => (
-            <div
-              key={notification.id}
-              className={`relative rounded-3xl border p-4 ${
-                readNotificationIds.includes(notification.id)
-                  ? 'border-white/10 bg-black/20'
-                  : 'border-vt-info/30 bg-white/[0.07]'
-              }`}
-            >
-              {!readNotificationIds.includes(notification.id) ? (
-                <div className="absolute left-0 top-0 h-full w-1 rounded-l-3xl bg-vt-info" />
-              ) : null}
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold text-white">{notification.title}</p>
-                  <p className="mt-2 text-sm leading-6 text-white/65">{notification.body}</p>
-                </div>
-                {dismissible ? (
-                  <button
-                    type="button"
-                    onClick={() => dismissNotification(notification.id)}
-                    className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-white/70 transition hover:bg-white/[0.08] hover:text-white"
-                    aria-label={`Dismiss ${notification.title}`}
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
+          {visibleNotifications.map((notification) => {
+            const isRead = readNotificationIds.includes(notification.id);
+            return (
+              <div
+                key={notification.id}
+                className={`relative p-4 ${isRead ? 'mz-inset' : 'mz-card'}`}
+                style={isRead ? undefined : { borderColor: 'var(--accent)' }}
+              >
+                {!isRead ? (
+                  <div className="absolute left-0 top-0 h-full w-1 rounded-l-[3px] bg-[var(--accent)]" />
                 ) : null}
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="mz-h2">{notification.title}</p>
+                    <p className="mt-2 mz-body">{notification.body}</p>
+                  </div>
+                  {dismissible ? (
+                    <button
+                      type="button"
+                      onClick={() => dismissNotification(notification.id)}
+                      className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-[var(--rule)] bg-[var(--card)] text-[var(--ink-500)] transition hover:border-[var(--ink-400)] hover:text-[var(--ink-800)]"
+                      aria-label={`Dismiss ${notification.title}`}
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  ) : null}
+                </div>
+                <div className="mt-4 flex items-center justify-between gap-3">
+                  <span className="mz-small mz-mono">{formatTimestamp(notification.occurredAt)}</span>
+                  <Link
+                    href={notification.href}
+                    onClick={() => markNotificationRead(notification.id)}
+                    className="inline-flex items-center gap-1 text-sm font-semibold text-[var(--accent)] transition hover:text-[var(--ink-900)]"
+                  >
+                    {notification.ctaLabel}
+                    <ChevronRight className="h-4 w-4" />
+                  </Link>
+                </div>
               </div>
-              <div className="mt-4 flex items-center justify-between gap-3">
-                <span className="text-xs text-white/40">{formatTimestamp(notification.occurredAt)}</span>
-                <Link
-                  href={notification.href}
-                  onClick={() => markNotificationRead(notification.id)}
-                  className="inline-flex items-center gap-1 text-sm font-semibold text-emerald-200 transition hover:text-white"
-                >
-                  {notification.ctaLabel}
-                  <ChevronRight className="h-4 w-4" />
-                </Link>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       ) : (
         <ClinicianStatusBanner
@@ -473,56 +458,57 @@ export function ApplicationList({
   const visibleApplications = maxItems ? applications.slice(0, maxItems) : applications;
 
   return (
-    <section className="rounded-[28px] border border-white/10 bg-white/[0.04] p-5 shadow-[0_18px_40px_rgba(0,0,0,0.25)]">
+    <section className="mz mz-card p-5">
       <div className="mb-4 flex items-start justify-between gap-3">
         <div>
-          <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">{heading}</p>
+          <p className="mz-eyebrow">{heading}</p>
           {description ? (
-            <p className="mt-2 text-sm leading-6 text-white/60">{description}</p>
+            <p className="mt-2 mz-small">{description}</p>
           ) : null}
         </div>
-        <BriefcaseBusiness className="mt-0.5 h-5 w-5 text-white/45" />
+        <BriefcaseBusiness className="mt-0.5 h-5 w-5 text-[var(--ink-400)]" />
       </div>
 
       {visibleApplications.length > 0 ? (
         <div className="space-y-4">
           {visibleApplications.map((application) => (
-            <article key={application.id} className="rounded-3xl border border-white/10 bg-black/20 p-4">
+            <article key={application.id} className="mz-inset p-4">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="text-[11px] uppercase tracking-[0.18em] text-white/40">
+                  <p className="mz-mono text-[11px] uppercase tracking-[0.18em] text-[var(--ink-400)]">
                     {application.employer.name ?? application.opportunity.organizationName ?? 'Employer context'}
                   </p>
-                  <h3 className="mt-2 text-lg font-semibold text-white">{application.opportunity.title}</h3>
-                  <p className="mt-2 text-sm text-white/65">
+                  <h3 className="mz-h2 mt-2">{application.opportunity.title}</h3>
+                  <p className="mt-2 mz-body">
                     {application.opportunity.state} · {application.opportunity.specialty}
                   </p>
                 </div>
-                <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${toneClasses(applicationStatusTone(application.status))}`}>
+                <span className={`mz-chip ${toneClasses(applicationStatusTone(application.status))}`}>
+                  <span className="mz-gl" />
                   {applicationStatusLabel(application.status)}
                 </span>
               </div>
 
-              <div className="mt-4 rounded-3xl border border-white/10 bg-white/[0.05] px-4 py-4">
+              <div className="mt-4 mz-card px-4 py-4">
                 <div className="flex items-center justify-between gap-3">
-                  <p className="text-sm font-semibold text-white">Passport Attached</p>
-                  <span className="inline-flex items-center gap-1 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-xs font-semibold text-emerald-100">
+                  <p className="mz-h2">Passport Attached</p>
+                  <span className="mz-chip mz-chip-ok">
                     <ShieldCheck className="h-3.5 w-3.5" />
                     {application.readiness?.readinessLevel ?? 'L0'}
                   </span>
                 </div>
-                <p className="mt-3 text-sm text-white/70">
+                <p className="mt-3 mz-body">
                   {application.readiness?.readinessStatus ?? 'Your readiness will auto-refresh when reviewed.'}
                 </p>
                 {application.latestRecommendation?.label ? (
-                  <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/20 px-3 py-1 text-xs text-white/75">
+                  <div className="mt-3 inline-flex items-center gap-2 rounded-[2px] border border-[var(--rule)] bg-[var(--paper-2)] px-3 py-1 text-xs text-[var(--ink-700)]">
                     <CheckCircle2 className="h-3.5 w-3.5" />
                     {application.latestRecommendation.label}
                   </div>
                 ) : null}
               </div>
 
-              <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-xs text-white/45">
+              <div className="mt-4 flex flex-wrap items-center justify-between gap-3 mz-small">
                 <span className="inline-flex items-center gap-1">
                   <Clock3 className="h-3.5 w-3.5" />
                   Updated {formatTimestamp(application.updatedAt)}
@@ -530,14 +516,14 @@ export function ApplicationList({
                 <div className="flex flex-wrap items-center gap-3">
                   <Link
                     href={`/holder/applications/${encodeURIComponent(application.id)}`}
-                    className="inline-flex items-center gap-1 text-sm font-semibold text-emerald-200 transition hover:text-white"
+                    className="inline-flex items-center gap-1 text-sm font-semibold text-[var(--accent)] transition hover:text-[var(--ink-900)]"
                   >
                     View application
                     <ChevronRight className="h-4 w-4" />
                   </Link>
                   <Link
-                    href={`/opportunities/${application.opportunity.id}`}
-                    className="inline-flex items-center gap-1 text-sm text-white/55 transition hover:text-white"
+                    href={`/holder/opportunities/${application.opportunity.id}`}
+                    className="inline-flex items-center gap-1 text-sm text-[var(--ink-500)] transition hover:text-[var(--ink-900)]"
                   >
                     <Building2 className="h-4 w-4" />
                     Role details
@@ -562,12 +548,12 @@ export function ApplicationList({
 
 export function QuickActionGrid({ actions }: { actions: readonly MobileQuickAction[] }) {
   return (
-    <section className="rounded-[28px] border border-white/10 bg-white/[0.04] p-5 shadow-[0_18px_40px_rgba(0,0,0,0.25)]">
+    <section className="mz mz-card p-5">
       <div className="mb-4 flex items-start justify-between gap-3">
         <div>
-          <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Other actions</p>
+          <p className="mz-eyebrow">Other actions</p>
         </div>
-        <AlertTriangle className="mt-0.5 h-5 w-5 text-white/45" />
+        <AlertTriangle className="mt-0.5 h-5 w-5 text-[var(--ink-400)]" />
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
@@ -577,13 +563,13 @@ export function QuickActionGrid({ actions }: { actions: readonly MobileQuickActi
             <Link
               key={action.id}
               href={action.href}
-              className={`rounded-3xl border p-4 transition hover:border-white/20 ${quickActionToneClasses(action.tone)}`}
+              className="mz-inset mz-interactive p-4"
             >
-              <div className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-black/20">
-                <Icon className="h-5 w-5" />
+              <div className="inline-flex h-10 w-10 items-center justify-center rounded-[8px] border border-[var(--rule)] bg-[var(--card)]">
+                <Icon className="h-5 w-5 text-[var(--ink-700)]" />
               </div>
-              <p className="mt-4 text-base font-semibold">{action.label}</p>
-              <p className="mt-2 text-sm leading-6 text-white/70">{action.description}</p>
+              <p className="mz-h2 mt-4">{action.label}</p>
+              <p className="mt-2 mz-body">{action.description}</p>
             </Link>
           );
         })}
@@ -608,28 +594,28 @@ export function SelectedOpportunityBanner() {
   const continueLabel = selectedOpportunity.application ? 'View application' : 'Continue application';
 
   return (
-    <section className="rounded-[28px] border border-emerald-400/20 bg-emerald-400/10 p-5 shadow-[0_18px_40px_rgba(0,0,0,0.2)]">
+    <section className="mz mz-glass p-5">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-[11px] uppercase tracking-[0.18em] text-emerald-50/80">Continuing where you left off</p>
-          <h2 className="mt-2 text-lg font-semibold text-white">{selectedOpportunity.title}</h2>
-          <p className="mt-2 text-sm text-emerald-50/85">
+          <p className="mz-eyebrow">Continuing where you left off</p>
+          <h2 className="mz-h2 mt-3">{selectedOpportunity.title}</h2>
+          <p className="mt-2 mz-body">
             {selectedOpportunity.organizationName} · {selectedOpportunity.state}
           </p>
         </div>
-        <Building2 className="mt-0.5 h-5 w-5 text-emerald-100/80" />
+        <Building2 className="mt-0.5 h-5 w-5 text-[var(--accent)]" />
       </div>
       <div className="mt-4 flex flex-wrap gap-3">
         <Link
           href={continueHref}
-          className="inline-flex min-h-11 items-center gap-2 rounded-2xl bg-white px-4 text-sm font-semibold text-slate-950 transition hover:bg-white/90"
+          className="mz-btn min-h-11 justify-center"
         >
           {continueLabel}
           <ArrowRight className="h-4 w-4" />
         </Link>
         <Link
-          href={`/opportunities/${selectedOpportunity.id}`}
-          className="inline-flex min-h-11 items-center gap-2 rounded-2xl border border-white/10 bg-black/20 px-4 text-sm font-semibold text-white transition hover:border-white/20"
+          href={`/holder/opportunities/${selectedOpportunity.id}`}
+          className="mz-btn mz-btn-ghost min-h-11 justify-center"
         >
           Open role details
         </Link>
