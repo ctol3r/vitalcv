@@ -150,7 +150,7 @@
    drift risk. */
 .film-copy,
 .film-wide,
-.film-record {
+.film-panel {
   position: relative;
   z-index: 3;
 }
@@ -459,7 +459,7 @@
   }
 }
 
-/* ------------------------------------------------- the record (Arrival)
+/* ------------------------------------------------- the evidence panel
 
    COMPETE-2 asks each scene for "a large visual event, not a component". The
    film shipped without one, which is why the opening frame read as a phrase
@@ -468,14 +468,23 @@
 
    Built to the evidence-artifact rules — opaque paper, hairline rules, a 2px
    ink top edge, 3px corners, mono for anything the system retrieved, and no
-   shadow at all. It should look like something you could print and file. */
+   shadow at all. It should look like something you could print and file.
 
-.film-scene:has(.film-record) {
+   NAMING. `.film-panel` is the FRAME — the paper, the rules, the stamps, and
+   the scene layout that gives it the right-hand weight. Three scenes mount one:
+   Arrival (`.film-record`), Opportunities (`.film-fit`), and Signature
+   (`.film-signature`). Those three carry no styling; they exist so a test, a
+   guard, or a future rule can name ONE artifact. Style goes on `.film-panel`,
+   identity goes on the scene class. The two were the same class until they
+   weren't — `.film-record` matched all three asides at once, so a Playwright
+   locator written against "the record" silently measured the wrong one. */
+
+.film-scene:has(.film-panel) {
   justify-content: space-between;
   gap: clamp(2rem, 5vw, 5rem);
 }
 
-.film-scene:has(.film-record) .film-copy {
+.film-scene:has(.film-panel) .film-copy {
   /* The record now carries the right-hand weight, so the copy column no longer
      needs the paper gradient that used to fade it into empty space. */
   padding-right: 0;
@@ -499,13 +508,13 @@
  * Row sizing therefore belongs to film mode only; in vertical mode every
  * artifact block is simply as tall as its content.
  */
-.film[data-film-mode='vertical'] .film-scene:has(.film-record) .film-copy,
-.film[data-film-mode='vertical'] .film-record,
+.film[data-film-mode='vertical'] .film-scene:has(.film-panel) .film-copy,
+.film[data-film-mode='vertical'] .film-panel,
 .film[data-film-mode='vertical'] .film-wide {
   flex: 0 0 auto;
 }
 
-.film-record {
+.film-panel {
   flex: 0 1 30rem;
   min-width: 0;
   background: var(--vt-surface);
@@ -514,12 +523,12 @@
   border-radius: 3px;
 }
 
-.film-record-head {
+.film-panel-head {
   padding: 1rem 1.125rem 0.875rem;
   border-bottom: 1px solid var(--vt-border);
 }
 
-.film-record-kicker {
+.film-panel-kicker {
   display: block;
   font-family: var(--font-mono);
   font-size: 0.625rem;
@@ -528,20 +537,20 @@
   color: var(--vt-text-muted);
 }
 
-.film-record-note {
+.film-panel-note {
   margin: 0.375rem 0 0;
   font-size: 0.8125rem;
   line-height: 1.4;
   color: var(--vt-text-secondary);
 }
 
-.film-record-lanes {
+.film-panel-lanes {
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-.film-record-lane {
+.film-panel-lane {
   display: grid;
   grid-template-columns: 1fr auto;
   align-items: center;
@@ -550,18 +559,18 @@
   border-bottom: 1px solid var(--vt-border);
 }
 
-.film-record-lane:last-child {
+.film-panel-lane:last-child {
   border-bottom: 0;
 }
 
-.film-record-lane-name {
+.film-panel-lane-name {
   display: block;
   font-size: 0.8125rem;
   font-weight: 500;
   color: var(--vt-text-primary);
 }
 
-.film-record-lane-src {
+.film-panel-lane-src {
   display: block;
   margin-top: 0.125rem;
   font-family: var(--font-mono);
@@ -573,7 +582,7 @@
 /* A stamp, not a pill (CD-10) — a record carries stamps. The hue lives on the
    glyph and the left rule only; the word itself is ink, so the state survives
    grayscale and never depends on colour for contrast (CD-5). */
-.film-record-stamp {
+.film-panel-stamp {
   display: inline-flex;
   align-items: center;
   gap: 0.4375rem;
@@ -590,21 +599,21 @@
   color: var(--vt-text-primary);
 }
 
-.film-record-stamp[data-reachable] {
+.film-panel-stamp[data-reachable] {
   border-left-color: var(--vt-border);
 }
 
-.film-record-stamp:not([data-reachable]) {
+.film-panel-stamp:not([data-reachable]) {
   border-left-color: var(--vt-text-muted);
 }
 
-.film-record-glyph {
+.film-panel-glyph {
   font-size: 0.6875rem;
   line-height: 1;
   color: var(--vt-text-muted);
 }
 
-.film-record-foot {
+.film-panel-foot {
   padding: 0.8125rem 1.125rem;
   border-top: 1px solid var(--vt-border);
   background: var(--vt-surface-dim);
@@ -615,20 +624,20 @@
 
 /* Source light gathering: one opacity pass per row, single-shot. */
 @media (prefers-reduced-motion: no-preference) {
-  .film-record-lane[data-film-record-live] {
+  .film-panel-lane[data-film-record-live] {
     animation: film-record-settle 420ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
   }
 }
 
 
 @media (max-width: 900px) {
-  .film-scene:has(.film-record) {
+  .film-scene:has(.film-panel) {
     flex-direction: column;
     align-items: stretch;
     justify-content: center;
   }
 
-  .film-record {
+  .film-panel {
     flex: 0 0 auto;
     margin-top: 2rem;
   }
@@ -636,17 +645,17 @@
 
 /* The verification stamp is a link — it has to look operable, because the
    entire claim of that scene is that you can check it yourself. */
-.film-record-stamp-link {
+.film-panel-stamp-link {
   text-decoration: none;
   transition: border-color 160ms cubic-bezier(0.2, 0.7, 0.2, 1);
 }
 
-.film-record-stamp-link:hover,
-.film-record-stamp-link:focus-visible {
+.film-panel-stamp-link:hover,
+.film-panel-stamp-link:focus-visible {
   border-color: var(--vt-text-primary);
 }
 
-.film-record-stamp-link:focus-visible {
+.film-panel-stamp-link:focus-visible {
   outline: 2px solid var(--vt-focus-ring);
   outline-offset: 2px;
 }

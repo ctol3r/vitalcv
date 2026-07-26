@@ -70,38 +70,38 @@ export function FilmRecord({ live }: { live: boolean }) {
   // is also the truer one: this list exists because employers ask for it, not
   // because VitalCV audits it.
   return (
-    <aside className="film-record" aria-label="What every employer asks for">
-      <header className="film-record-head">
-        <span className="film-record-kicker">What employers ask for</span>
-        <p className="film-record-note">
+    <aside className="film-panel film-record" aria-label="What every employer asks for">
+      <header className="film-panel-head">
+        <span className="film-panel-kicker">What employers ask for</span>
+        <p className="film-panel-note">
           The same six every time. Nothing is filled in until you enter an NPI.
         </p>
       </header>
 
-      <ul className="film-record-lanes">
+      <ul className="film-panel-lanes">
         {lanes.map((lane, i) => (
           <li
             key={lane.id}
-            className="film-record-lane"
+            className="film-panel-lane"
             /* Source light gathering: a single-shot opacity reveal, staggered
                by row. Opacity-only is CLS-safe and outside WCAG 2.3.3, and the
                stylesheet drops the delay entirely under reduced motion. */
             style={live ? { animationDelay: `${120 + i * 70}ms` } : undefined}
             data-film-record-live={live ? '' : undefined}
           >
-            <div className="film-record-lane-id">
-              <span className="film-record-lane-name">{lane.name}</span>
-              <span className="film-record-lane-src">
+            <div className="film-panel-lane-id">
+              <span className="film-panel-lane-name">{lane.name}</span>
+              <span className="film-panel-lane-src">
                 {lane.source}
                 {lane.source && lane.cadence ? ' · ' : ''}
                 {lane.cadence}
               </span>
             </div>
             <span
-              className="film-record-stamp"
+              className="film-panel-stamp"
               data-reachable={lane.reachable ? '' : undefined}
             >
-              <span aria-hidden="true" className="film-record-glyph">
+              <span aria-hidden="true" className="film-panel-glyph">
                 {lane.reachable ? '○' : '⊘'}
               </span>
               {lane.reachable ? 'Not checked' : 'Access required'}
@@ -110,7 +110,7 @@ export function FilmRecord({ live }: { live: boolean }) {
         ))}
       </ul>
 
-      <footer className="film-record-foot">
+      <footer className="film-panel-foot">
         VitalCV assembles what these sources return. It does not credential,
         privilege, or clear anyone — the institution keeps that decision.
       </footer>

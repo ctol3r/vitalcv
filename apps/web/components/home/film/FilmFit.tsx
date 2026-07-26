@@ -63,27 +63,27 @@ const RESOLUTION_GLYPH: Record<FitRow['resolution'], string> = {
 
 export function FilmFit() {
   return (
-    <aside className="film-record" aria-label="How a role is measured against your record">
-      <header className="film-record-head">
-        <span className="film-record-kicker">Any role</span>
-        <p className="film-record-note">
+    <aside className="film-panel film-fit" aria-label="How a role is measured against your record">
+      <header className="film-panel-head">
+        <span className="film-panel-kicker">Any role</span>
+        <p className="film-panel-note">
           Every requirement lands in one of three places. No role is shown here
           until you are signed in.
         </p>
       </header>
 
-      <ul className="film-record-lanes">
+      <ul className="film-panel-lanes">
         {FIT_ROWS.map((row) => (
-          <li className="film-record-lane" key={row.requirement}>
-            <div className="film-record-lane-id">
-              <span className="film-record-lane-name">{row.requirement}</span>
-              <span className="film-record-lane-src">{row.detail}</span>
+          <li className="film-panel-lane" key={row.requirement}>
+            <div className="film-panel-lane-id">
+              <span className="film-panel-lane-name">{row.requirement}</span>
+              <span className="film-panel-lane-src">{row.detail}</span>
             </div>
             <span
-              className="film-record-stamp"
+              className="film-panel-stamp"
               data-reachable={row.resolution === 'record' ? '' : undefined}
             >
-              <span aria-hidden="true" className="film-record-glyph">
+              <span aria-hidden="true" className="film-panel-glyph">
                 {RESOLUTION_GLYPH[row.resolution]}
               </span>
               {RESOLUTION_LABEL[row.resolution]}
@@ -92,7 +92,7 @@ export function FilmFit() {
         ))}
       </ul>
 
-      <footer className="film-record-foot">
+      <footer className="film-panel-foot">
         VitalCV shows what your record already answers and what it does not. The
         last line is never ours to answer — the employer keeps that decision.
       </footer>

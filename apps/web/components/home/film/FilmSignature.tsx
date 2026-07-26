@@ -34,58 +34,58 @@ const SIGNING = {
 
 export function FilmSignature() {
   return (
-    <aside className="film-record film-signature" aria-label="How a VitalCV receipt is checked">
-      <header className="film-record-head">
-        <span className="film-record-kicker">Signed receipt</span>
-        <p className="film-record-note">
+    <aside className="film-panel film-signature" aria-label="How a VitalCV receipt is checked">
+      <header className="film-panel-head">
+        <span className="film-panel-kicker">Signed receipt</span>
+        <p className="film-panel-note">
           Every receipt VitalCV issues is signed. The key that checks it is
           published, so a verifier never has to take our word for it.
         </p>
       </header>
 
-      <ul className="film-record-lanes">
-        <li className="film-record-lane">
-          <div className="film-record-lane-id">
-            <span className="film-record-lane-name">Signature</span>
-            <span className="film-record-lane-src">
+      <ul className="film-panel-lanes">
+        <li className="film-panel-lane">
+          <div className="film-panel-lane-id">
+            <span className="film-panel-lane-name">Signature</span>
+            <span className="film-panel-lane-src">
               {SIGNING.alg} · {SIGNING.curve}
             </span>
           </div>
-          <span className="film-record-stamp" data-reachable="">
-            <span aria-hidden="true" className="film-record-glyph">
+          <span className="film-panel-stamp" data-reachable="">
+            <span aria-hidden="true" className="film-panel-glyph">
               ◆
             </span>
             Asymmetric
           </span>
         </li>
 
-        <li className="film-record-lane">
-          <div className="film-record-lane-id">
-            <span className="film-record-lane-name">Key identifier</span>
-            <span className="film-record-lane-src">{SIGNING.kid}</span>
+        <li className="film-panel-lane">
+          <div className="film-panel-lane-id">
+            <span className="film-panel-lane-name">Key identifier</span>
+            <span className="film-panel-lane-src">{SIGNING.kid}</span>
           </div>
-          <span className="film-record-stamp" data-reachable="">
-            <span aria-hidden="true" className="film-record-glyph">
+          <span className="film-panel-stamp" data-reachable="">
+            <span aria-hidden="true" className="film-panel-glyph">
               ◆
             </span>
             Published
           </span>
         </li>
 
-        <li className="film-record-lane">
-          <div className="film-record-lane-id">
-            <span className="film-record-lane-name">Where the key lives</span>
-            <span className="film-record-lane-src">{SIGNING.jwks}</span>
+        <li className="film-panel-lane">
+          <div className="film-panel-lane-id">
+            <span className="film-panel-lane-name">Where the key lives</span>
+            <span className="film-panel-lane-src">{SIGNING.jwks}</span>
           </div>
           {/* A real link to a real endpoint. The claim is checkable in one
               click, which is the entire point of the scene. */}
           <a
-            className="film-record-stamp film-record-stamp-link"
+            className="film-panel-stamp film-panel-stamp-link"
             href={SIGNING.jwks}
             target="_blank"
             rel="noreferrer"
           >
-            <span aria-hidden="true" className="film-record-glyph">
+            <span aria-hidden="true" className="film-panel-glyph">
               ↗
             </span>
             Open it
@@ -93,7 +93,7 @@ export function FilmSignature() {
         </li>
       </ul>
 
-      <footer className="film-record-foot">
+      <footer className="film-panel-foot">
         A signature proves a receipt came from VitalCV unaltered. It does not
         make the underlying fact true — that still depends on the source that
         returned it, which every receipt names.
