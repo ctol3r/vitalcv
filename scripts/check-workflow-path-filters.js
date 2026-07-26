@@ -57,6 +57,11 @@ const REQUIRED_CHECKS = [
   // protection matches on the exact string, and a typo blocks every PR forever.
   'check-copy-source-liveness',
   'check-workflow-contract',
+  // Same promotion, founder-directed. Both had to be de-filtered first (this
+  // PR) — #882 added the two above without needing that because neither was
+  // path-filtered to begin with.
+  'axe WCAG 2.2 AA',
+  'check-public-claims',
 ];
 
 const indentOf = (line) => line.match(/^\s*/)[0].length;
