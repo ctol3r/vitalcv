@@ -1,0 +1,41 @@
+name: Workflow Contract Gate
+
+# Enforces one rule: a REQUIRED status check must never path-filter its
+# `pull_request` trigger.
+#
+# A path-filtered workflow is skipped ENTIRELY on a PR touching none of its
+# paths, so its check run is never created — and a required check that never
+# reports leaves the PR permanently unmergeable (`mergeable` MERGEABLE,
+# `mergeStateStatus` BLOCKED, `gh pr merge` refusing). Nothing announces the
+# skip; the check simply never appears, which is why the repo has rediscovered
+# this three times: #806 (fixed in #811), and design-lint again in #871.
+#
+# The reasoning already existed as prose in three workflow files. Prose is
+# documentation, not enforcement.
+#
+# The rule is narrow on purpose: path-filtering is fine for non-required
+# workflows (eight currently do it to save CI minutes), and `paths:` under
+# `push:` is always fine because push filtering cannot affect a PR's checks.
+
+on:
+  # Not path-filtered — for the reason this gate exists. Filtering it to
+  # `.github/workflows/**` would mean a PR that changes branch protection
+  # expectations without touching a workflow file never runs it, and would make
+  # this file a live example of the bug it is meant to prevent.
+  pull_request:
+    branches: [main]
+
+env:
+  NODE_VERSION: '22'
+
+jobs:
+  check-workflow-contract:
+    name: check-workflow-contract
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Required checks must not be path-filtered on pull_request
+        run: node scripts/check-workflow-path-filters.js
