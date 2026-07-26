@@ -80,13 +80,20 @@ describe('public surface truth guards — post-release drift prevention', () => 
     ),
   );
 
+  /**
+   * Public surfaces this wording scan covers, beyond the copy manifest.
+   *
+   * Every entry must EXIST — see the assertion below. The list previously named
+   * `app/interview/page.tsx`, `app/explore/page.tsx` and `app/labs/page.tsx`,
+   * none of which are routes any more, plus `marketing/HomeSections.tsx`, which
+   * was dead code. `readFilesThatExist` silently skips what is gone, so the
+   * scan quietly covered four fewer surfaces than it advertised and no one
+   * could tell. A scan list that shrinks in silence is the same failure as a
+   * guard pinned to a component nobody serves.
+   */
   const candidatePublicSurfaces = Array.from(new Set([
-    'apps/web/app/interview/page.tsx',
     'apps/web/components/layout/Navbar.tsx',
-    'apps/web/components/marketing/HomeSections.tsx',
     'apps/web/components/hero/ReadinessPreview.tsx',
-    'apps/web/app/explore/page.tsx',
-    'apps/web/app/labs/page.tsx',
     'apps/web/components/explore/ExploreClient.tsx',
     ...publicEntryCopyFiles,
   ]));
@@ -94,6 +101,17 @@ describe('public surface truth guards — post-release drift prevention', () => 
   function readPublic(): string {
     return readFilesThatExist(candidatePublicSurfaces);
   }
+
+  it('scans every surface it claims to scan', () => {
+    // The scan is only as good as this list, and `readFilesThatExist` skips
+    // what is gone WITHOUT complaining. Without this assertion the coverage can
+    // shrink to nothing one deleted file at a time and every wording test below
+    // still passes — vacuously.
+    const missing = candidatePublicSurfaces.filter(
+      (rel) => !fs.existsSync(path.join(REPO_ROOT, rel)),
+    );
+    expect(missing, `scan list names files that do not exist: ${missing.join(', ')}`).toEqual([]);
+  });
 
   it('tracks canonical homepage and developer-shell copy sources', () => {
     const surfaceIds = publicEntryCopyManifest.surfaces.map((surface) => surface.id);
