@@ -11,11 +11,11 @@ vi.mock('@clerk/nextjs', () => ({
   useAuth: () => ({ isSignedIn: false }),
 }));
 
-import HomePageClient from '@/app/HomePageClient';
+import { renderHomepageHtml } from './helpers/render-homepage';
 import { FUNNEL_EVENTS } from '@/lib/analytics/funnel';
 
 function render() {
-  return renderToStaticMarkup(<HomePageClient />);
+  return renderHomepageHtml();
 }
 
 describe('hero employer entry (SHD-2.2)', () => {
@@ -23,7 +23,12 @@ describe('hero employer entry (SHD-2.2)', () => {
     const html = render();
     expect(html).toContain('data-home-employer-cta');
     expect(html).toContain('href="/employers"');
-    expect(html).toMatch(/For employers[^<]*start review from evidence/i);
+    // The label was "For employers — start review from evidence" on the retired
+    // vertical page. The film's closing scene is CTAs-only by mandate (guardrail
+    // 5, "almost no copy"), so the entry now reads "For employers". What this
+    // test protects is the CONTRACT — a distinct, labelled, real employer route
+    // that is not the primary action — not the retired sentence.
+    expect(html).toMatch(/For employers/i);
   });
 
   it('keeps the clinician NPI action primary and separate', () => {

@@ -31,7 +31,7 @@ pin scrolling, rotate through panels, or require a carousel control.
 | 7 | Career journey (4 chapters) | `RailJourney` + `JourneyCard` (`components/home/journey.ts` data) | Shared journey model | None | Same static two-column/one-column grid at every viewport | Explain how a clinician gets hired faster | **KEEP — carousel removed (2026-07-23)**. The four steps remain visible and linkable in ordinary document flow. |
 | 8 | Proof moment | `HomeProofMoment` → `ProofPacketInspector` | Illustrative proof grammar (labeled) | Reveal on entry | SSR-complete (default claim) | THE tangible proof moment: claim → source → receipt → state → limitation | **MOUNTED (W4.2 executed)** — interactive, keyboard, links `/onboarding` |
 | 8b | ~~Evidence truth panel~~ | ~~`EvidenceTruthPanel`~~ | — | — | — | — | **RETIRED (2026-07-21 rebuild)** — "Every claim shows its source" (~811px) sat directly below row 8 making the same argument again; row 8 wins the slot because it is the interactive one. **The limitation it owned did NOT retire with it**: the enumerated "not a completed credentialing, privileging, or employer clearance decision" was extracted to `TruthBoundary` (row 8c) before removal, because a redundant argument does not make its disclaimers redundant guarantees. |
-| 8c | Truth boundary | `TruthBoundary` | Static, enumerated | Reveal (delay 90) | SSR-complete text | What VitalCV knows — and the explicit limits | **MOUNTED (2026-07-21 rebuild)** — extracted from row 8b; `EvidenceTruthPanel` renders the same component so the two cannot drift. Guarded by `home-npi-role-doors` ("keeps the explicit limits even though the panel that owned them is gone"). |
+| 8c | Truth boundary | `TruthBoundary` | Static, enumerated | Reveal (delay 90) | SSR-complete text | What VitalCV knows — and the explicit limits | **MOUNTED (2026-07-21 rebuild)** — extracted from row 8b; `EvidenceTruthPanel` renders the same component so the two cannot drift. Guarded by `homepage-truth-contract` ("names the institution as the final step"), which renders the ROUTE — so the guard follows `/` through a composition change instead of orphaning on the retired one. |
 | 8d | ~~Career constellation~~ | ~~`w1501/Sky` (`SkySection`)~~ | — | — | — | — | **RETIRED FROM `/` (2026-07-23)** — this fixed, non-NPI-bound arc is not a clinician record and violates the public-homepage composition rule against nodes, links, and constellations. It remains available only in the isolated Wave 1501 design reference; the acquisition page retains the real, post-lookup `CareerEvidenceField`. |
 | 9 | ~~Reusable-evidence word cycler~~ | ~~`RotatingProofLine`~~ | — | — | — | — | **RETIRED (W2 executed)** — failed the W9.1 category test |
 | 10 | ~~Product carousel~~ | ~~`ProductCarousel`~~ | — | — | — | — | **RETIRED (2026-07-21 rebuild)** — "One career record. Six reusable surfaces." was the third pass at "look what the record can do" after row 7 had walked the same ground in four chapters, and a six-panel feature carousel is a product-tour device on a page that should make one argument. Component retained on disk **with its tests**: the evidence-state glyph grammar (a check glyph only on source-backed/checked rows, never on gated/review rows) is a real truth contract, and `homepage-truth-pass.test.tsx` renders `ProductCarousel` directly to guard it — unaffected by the section leaving the page. |
@@ -56,8 +56,12 @@ did nothing. Three decisions, then the cuts above.
    strip names the available lanes in the regular document flow.
 3. **Each argument exactly once.** Rows 4, 8b and 10 retired. Page height
    8,872px → 5,451px (9.9 → 6.1 viewports) with no information removed — only
-   restatements. `home-npi-role-doors` now pins the shape ("one H2 per section",
-   no duplicate headings) so the redundancy cannot regrow.
+   restatements. This applied to the retired vertical composition; the H2-cap
+   guard that pinned it retired with it, and the film's shape is now pinned
+   end-to-end by `tests/e2e/film-composition.spec.ts`. The surviving vitest
+   guard, `homepage-truth-contract`, keeps only the claim/disclosure rules —
+   deliberately, because those are properties of `/` rather than of any one
+   composition, and pointing them at the route is what stops them orphaning.
 
 The prior rail gearing is historical only. It was removed from the live
 composition because the interaction still read as a carousel and interrupted

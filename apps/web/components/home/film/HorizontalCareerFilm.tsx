@@ -296,8 +296,19 @@ export function HorizontalCareerFilm() {
                         : undefined
                   }
                   className="film-scene"
+                  /* `data-home-hero` on the arrival scene is the release marker
+                     `scripts/deploy-smoke.mjs:115` greps out of the raw
+                     production response to prove `/` actually rendered. It is
+                     deliberately composition-agnostic — it rode the old vertical
+                     hero and it rides the arrival scene now — because a deploy
+                     check that must be rewritten for every redesign is one that
+                     silently stops working. It did: between #859 and this commit
+                     the film carried no such marker and the homepage smoke
+                     assertion was failing against production. Do not remove
+                     without re-pointing deploy-smoke.mjs in the same change. */
                   data-film-scene={scene.id}
                   data-film-active={isActive ? '' : undefined}
+                  {...(scene.id === 'arrival' ? { 'data-home-hero': '' } : null)}
                   aria-label={scene.label}
                 >
                   <div className="film-copy">

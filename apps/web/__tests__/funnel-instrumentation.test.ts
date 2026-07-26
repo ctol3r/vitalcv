@@ -15,7 +15,11 @@ import { FUNNEL_EVENTS } from '@/lib/analytics/funnel';
 
 const webFile = (rel: string) => readFileSync(path.join(__dirname, '..', rel), 'utf8');
 
-const homepage = webFile('app/HomePageClient.tsx');
+// The homepage is the six-scene film (#859). This pointed at
+// `app/HomePageClient.tsx` until 2026-07-26 and kept passing after the switch —
+// asserting the denominator fired from a component no visitor reaches. The
+// funnel was in fact intact, but this guard could not have told us either way.
+const homepage = webFile('components/home/film/HorizontalCareerFilm.tsx');
 const passport = webFile('app/passport/page.tsx');
 const console_ = webFile('components/hero/LiveTrustConsole.tsx');
 
