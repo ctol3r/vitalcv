@@ -131,14 +131,10 @@ function KineticPhrase({ text, local, live }: { text: string; local: number; liv
   );
 }
 
-/** Index of the scene that renders the lookup result. */
-const RECOGNITION_INDEX = FILM_SCENES.findIndex((s) => s.id === 'recognition');
-
 export function HorizontalCareerFilm() {
   const rootRef = React.useRef<HTMLDivElement | null>(null);
   const runwayRef = React.useRef<HTMLDivElement | null>(null);
   const arrivalRef = React.useRef<HTMLElement | null>(null);
-  const recognitionRef = React.useRef<HTMLElement | null>(null);
   const stageRef = React.useRef<HTMLDivElement | null>(null);
   const tier = useSceneTier();
 
@@ -246,15 +242,18 @@ export function HorizontalCareerFilm() {
 
   // Only a TRANSITION should move the reader — not the initial mount, and not
   // an unrelated re-render.
+  //
+  // Submitting no longer travels anywhere: the result renders in the arrival
+  // scene, in place of the empty record, so the reader stays exactly where they
+  // typed. Carrying someone to a second frame to be told their own answer was
+  // the reason that frame existed, and the reason it was blank for everyone who
+  // had not typed yet. Reset still returns to arrival, because a reset from
+  // deeper in the film should bring the field back into view.
   const previousNpi = React.useRef<string | null>(null);
   React.useEffect(() => {
     const had = previousNpi.current;
     previousNpi.current = submittedNpi;
-    if (submittedNpi && submittedNpi !== had) {
-      scrollToScene(RECOGNITION_INDEX, recognitionRef);
-    } else if (had && !submittedNpi) {
-      scrollToScene(0, arrivalRef);
-    }
+    if (had && !submittedNpi) scrollToScene(0, arrivalRef);
   }, [submittedNpi, scrollToScene]);
 
   const handleSubmit = React.useCallback(() => {
@@ -334,13 +333,7 @@ export function HorizontalCareerFilm() {
                   key={scene.id}
                   // Scroll targets for the vertical composition, where scenes are
                   // ordinary blocks rather than positions along the runway.
-                  ref={
-                    scene.id === 'arrival'
-                      ? arrivalRef
-                      : scene.id === 'recognition'
-                        ? recognitionRef
-                        : undefined
-                  }
+                  ref={scene.id === 'arrival' ? arrivalRef : undefined}
                   className="film-scene"
                   /* `data-home-hero` on the arrival scene is the release marker
                      `scripts/deploy-smoke.mjs:115` greps out of the raw
@@ -371,8 +364,12 @@ export function HorizontalCareerFilm() {
                     )}
                     {scene.support ? <p className="film-support">{scene.support}</p> : null}
 
-                    {/* ---- Arrival: the ONE primary action ---- */}
-                    {scene.id === 'arrival' ? (
+                    {/* ---- Arrival: the ONE primary action ----
+                         Hidden once a lookup returns. Leaving the field sitting
+                         above the answer invites re-entry of a number that has
+                         already been answered; `LiveNpiResult` owns the reset
+                         that brings it back. */}
+                    {scene.id === 'arrival' && !submittedNpi ? (
                       <form
                         className="film-npi"
                         onSubmit={(event) => {
@@ -427,24 +424,23 @@ export function HorizontalCareerFilm() {
                       </form>
                     ) : null}
 
-                    {/* ---- Recognition: REAL returned state, or nothing ---- */}
-                    {scene.id === 'recognition' ? (
-                      submittedNpi ? (
-                        <div className="film-artifact">
-                          <LiveNpiResult
-                            npi={submittedNpi}
-                            onReset={() => {
-                              setSubmittedNpi(null);
-                              setRaw('');
-                            }}
-                          />
-                        </div>
-                      ) : (
-                        <p className="film-note">
-                          Nothing personal is shown until a real lookup returns.
-                          Enter an NPI in the first scene to see your own state here.
-                        </p>
-                      )
+                    {/* ---- Arrival: the REAL returned state, in place ----
+                         The answer to the question the reader just asked, in the
+                         frame they asked it in. Still the same hard rule as
+                         before — this renders only when a real lookup has
+                         returned, and nothing personal is invented to fill the
+                         frame beforehand. What fills it beforehand is the empty
+                         six-source record, which is true for that visitor. */}
+                    {scene.id === 'arrival' && submittedNpi ? (
+                      <div className="film-artifact">
+                        <LiveNpiResult
+                          npi={submittedNpi}
+                          onReset={() => {
+                            setSubmittedNpi(null);
+                            setRaw('');
+                          }}
+                        />
+                      </div>
                     ) : null}
 
                     {/* ---- Verification: the industry cost of NOT being

@@ -230,7 +230,7 @@ test.describe('COMPETE-2 horizontal film', () => {
 
     // Both scenes readable, in order, with no sideways overflow.
     await expect(page.locator('[data-film-scene="arrival"]')).toBeVisible();
-    await expect(page.locator('[data-film-scene="recognition"]')).toBeVisible();
+    await expect(page.locator('[data-film-scene="opportunities"]')).toBeVisible();
     const overflow = await page.evaluate(
       () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
     );
@@ -337,9 +337,12 @@ test.describe('COMPETE-2 horizontal film', () => {
     await page.locator('#film-npi-input').fill('1234567890');
     await expect(page.locator('.film-npi-submit')).toBeDisabled();
 
-    // Recognition still shows no personal state until a lookup returns.
+    // Still no personal state until a lookup returns. The disclosure moved onto
+    // the record it qualifies — it used to be a lone sentence in a scene of its
+    // own, which is why that scene was blank for every visitor who had not
+    // typed an NPI. Same promise, attached to the thing it promises about.
     await expect(page.locator('.film')).toContainText(
-      'Nothing personal is shown until a real lookup returns',
+      'Nothing is filled in until you enter an NPI',
     );
   });
 

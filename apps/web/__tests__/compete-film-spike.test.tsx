@@ -247,9 +247,13 @@ describe('SSR fallback — the linear document', () => {
   });
 
   it('shows no personal state until a lookup returns', () => {
-    // Recognition renders the standing disclosure, NOT a result, on first paint.
-    expect(html).toContain('Nothing personal is shown until a real lookup returns');
-    // The result surface itself must be absent before submit.
+    // The disclosure used to be a standalone sentence in a scene of its own,
+    // which is exactly why that scene was blank for anyone who had not typed an
+    // NPI. It now sits ON the record it qualifies, where a reader is already
+    // looking — the same promise, attached to the thing it is a promise about.
+    expect(html).toContain('Nothing is filled in until you enter an NPI');
+    // The invariant this test actually exists for, unchanged: the result
+    // surface must be absent from first paint until a real lookup returns.
     expect(html).not.toContain('film-artifact');
   });
 });
