@@ -19,6 +19,32 @@
   --film-ink-muted: var(--vt-text-muted);
   --film-rule: rgba(30, 28, 25, 0.14);
 
+  /* THE COPY SCRIM — a legibility floor, not a compositional flourish.
+     The atmosphere draws horizontal record fragments at text height, so copy
+     rendered on unscrimmed paper reads as STRUCK THROUGH. Shipped that way on
+     the live `/` for the two `.film-record` scenes (measured 2026-07-26).
+
+     Radial rather than linear: a linear gradient keeps hard top and bottom
+     edges, which read as a card behind the phrase (retired mechanism R3).
+
+     The radii are EXPLICIT rather than `farthest-corner`. Default sizing ties
+     the vertical radius to the box's diagonal, which a wide copy column
+     dominates — so the ellipse stayed flat and the last line of copy (measured
+     at 80% of the box height) sat outside the fade entirely, still crossed by
+     a fragment. Sizing height directly decouples coverage from aspect ratio.
+     Paired with the extra `padding-bottom` on record scenes, so the fade
+     completes inside the padding instead of cutting at the box edge.
+
+     Defined ONCE and shared by every artifact layout: two copies is how the
+     record scenes drifted out of the contract in the first place. */
+  --film-copy-scrim: radial-gradient(
+    ellipse 84% 78% at 34% 44%,
+    var(--film-paper) 0%,
+    var(--film-paper) 52%,
+    color-mix(in oklab, var(--film-paper) 60%, transparent) 74%,
+    transparent 94%
+  );
+
   position: relative;
   background: var(--film-paper);
   color: var(--film-ink);
@@ -174,6 +200,28 @@
   margin-left: calc(-1 * clamp(3rem, 9vw, 10rem));
   padding-left: clamp(3rem, 9vw, 10rem);
   max-width: calc(34rem + clamp(3rem, 9vw, 10rem));
+}
+
+/* A paper halo on the glyphs themselves, as the second half of the legibility
+   floor.
+
+   The radial scrim is an ellipse over the copy BOX, so its coverage falls off
+   with distance from the centre — measured on the verification scene, the
+   `.film-note` sits at 80% of the box height, past the fade, and a record
+   fragment still ran through it after the scrim was restored.
+
+   Tuning the gradient stops to reach it is the move that previously pushed the
+   scrim opaque all the way to the left edge and put a visible card back. A
+   halo has no box and no edges at all, so it holds for any copy length or
+   viewport without geometry to re-tune. Paper-on-paper, so it is invisible
+   except where it clears a fragment. */
+.film-phrase,
+.film-support,
+.film-note,
+.film-facts {
+  text-shadow:
+    0 0 5px var(--film-paper),
+    0 0 10px var(--film-paper);
 }
 
 .film-phrase {
@@ -332,19 +380,7 @@
   margin-left: 0;
   padding-left: 0;
   max-width: none;
-  /* A radial scrim, not the linear one: a linear gradient still has hard top
-     and bottom edges, which read as a card behind the phrase. Sized
-     `farthest-corner` (the default) with the fade completing at 72%, so the
-     scrim is provably transparent before it reaches any edge of the box —
-     an explicit 120%/90% radius left the left edge fully opaque and put the
-     card back. */
-  background: radial-gradient(
-    ellipse at 32% 50%,
-    var(--film-paper) 0%,
-    var(--film-paper) 34%,
-    color-mix(in oklab, var(--film-paper) 60%, transparent) 55%,
-    transparent 72%
-  );
+  background: var(--film-copy-scrim);
 }
 
 /* Dense artifacts are given a smaller type scale inside a pinned stage so the
@@ -476,10 +512,22 @@
 }
 
 .film-scene:has(.film-record) .film-copy {
-  /* The record now carries the right-hand weight, so the copy column no longer
-     needs the paper gradient that used to fade it into empty space. */
   padding-right: 0;
-  background: none;
+  /* Room for the scrim to FADE rather than cut. The copy box previously ended
+     32px under the last line, which is not enough distance for a soft edge, so
+     any gradient wide enough to cover the bottom line was also opaque at the
+     box boundary — the card edge, back again. With ~5rem of slack the opaque
+     core can clear the text and still reach transparent inside the padding. */
+  padding-bottom: 5rem;
+  /* NOT `background: none`. That was the shipped state, on the reasoning that
+     "the record carries the right-hand weight, so the copy no longer needs the
+     paper gradient that used to fade it into empty space" — which conflates
+     two different jobs. The fade into empty space is compositional; the scrim
+     is a LEGIBILITY floor. Dropping it put record fragments straight through
+     "Prove it once." and the sentence under it on the live homepage.
+     The radial scrim gives the legibility back without the card edges the
+     linear one had. */
+  background: var(--film-copy-scrim);
   flex: 1 1 32rem;
 }
 

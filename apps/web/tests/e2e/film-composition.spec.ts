@@ -166,4 +166,39 @@ test.describe('homepage composition contracts (COMPETE-1)', () => {
       .evaluate((el) => getComputedStyle(el).transform);
     expect(['none', 'matrix(1, 0, 0, 1, 0, 0)']).toContain(transform);
   });
+  /**
+   * Every scene's copy must sit on a scrim.
+   *
+   * The atmosphere draws horizontal record fragments at text height, so copy
+   * on unscrimmed paper reads as STRUCK THROUGH. That shipped to the live `/`:
+   * the two `.film-record` scenes carried `background: none`, on the reasoning
+   * that the record "carries the right-hand weight" — which conflates the
+   * compositional fade with the legibility floor.
+   *
+   * Asserted as an invariant over ALL scenes rather than a value on the two
+   * that were broken, so a new scene or artifact layout cannot opt out of it
+   * silently. Scenes with no atmosphere behind them would be a legitimate
+   * exemption; there are none, and adding one should be a deliberate edit here.
+   */
+  test('no scene renders its copy on unscrimmed paper', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto('/', { waitUntil: 'networkidle' });
+    await page.waitForTimeout(600);
+
+    const unscrimmed = await page.evaluate(() =>
+      [...document.querySelectorAll('[data-film-scene]')]
+        .map((scene) => {
+          const copy = scene.querySelector('.film-copy');
+          if (!copy) return null;
+          const cs = getComputedStyle(copy);
+          const painted =
+            (cs.backgroundImage && cs.backgroundImage !== 'none') ||
+            !/^rgba\(0, 0, 0, 0\)$|^transparent$/.test(cs.backgroundColor);
+          return painted ? null : (scene as HTMLElement).dataset.filmScene;
+        })
+        .filter(Boolean),
+    );
+
+    expect(unscrimmed, 'scenes whose copy has no scrim behind it').toEqual([]);
+  });
 });
