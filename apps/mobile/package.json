@@ -22,7 +22,7 @@
     "expo-router": "~4.0.0",
     "expo-secure-store": "~14.0.0",
     "expo-status-bar": "~2.0.0",
-    "jose": "^5.0.0",
+    "jose": "^6.2.4",
     "react": "18.3.1",
     "react-native": "0.76.5",
     "react-native-qrcode-svg": "^6.3.15",
