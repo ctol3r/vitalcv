@@ -167,6 +167,28 @@ describe('TrustAttributionRegister — per-field register', () => {
     assertNoBannedPhrases(html, 'TrustAttributionRegister');
   });
 
+  it('NPPES rows say source-backed — never understate a lane that works', () => {
+    // Regression guard for 2026-07-26. These rows shipped as
+    // `temporarily-unavailable`, which means "the source did not return a
+    // payload on this attempt" — false for NPPES, which returns one on every
+    // attempt in production (`nppes_identity state=checked`, `checkedAt` in
+    // the same second as the request) and is `lifecycle: 'active'` /
+    // `readCadence: 'per_request'` in the lane registry.
+    //
+    // The truth contract runs in both directions: overclaiming invents
+    // capability, understating publishes a contradiction against our own API.
+    // The second failure is what put `connector-not-live` on two live lanes
+    // (fixed in #862) — this pins the same class one lane over.
+    const nppes = TRUST_ATTRIBUTION_ROWS.filter((r) => r.source.includes('NPPES'));
+    expect(nppes.length).toBeGreaterThan(0);
+    for (const row of nppes) {
+      expect(
+        row.state,
+        `NPPES row "${row.field}" must be source-backed; NPPES returns a payload per request`,
+      ).toBe('source-backed');
+    }
+  });
+
   it('every row state is one of the allowed truth states (no false positives)', () => {
     const allowed = new Set([
       'source-backed',
