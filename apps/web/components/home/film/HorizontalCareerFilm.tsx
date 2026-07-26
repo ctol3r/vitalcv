@@ -12,6 +12,7 @@ import { ProofPacketInspector } from '@/components/proof/ProofPacketInspector';
 import { EvidenceAtmosphere } from './EvidenceAtmosphere';
 import { FILM_SCENES, sceneAt } from './scenes';
 import { useFilmProgress } from './useFilmProgress';
+import { SOURCE_LANE_OPS } from '@/lib/trust/sourceLanes';
 
 /**
  * HorizontalCareerFilm (COMPETE-1).
@@ -52,6 +53,30 @@ const CHOICE_FACTS = [
   'One record you own',
   'No account required to look',
 ] as const;
+
+/**
+ * The homepage's source-freshness statement, in one sentence of ink.
+ *
+ * Retiring `MetricStrip` and `SourceCoverageRibbon` from the composition also
+ * removed every cadence claim from `/` — the corrected labels from the
+ * freshness work (#822/#817/#824) stopped appearing at all. Nothing false was
+ * left behind, but "three federal source lanes" without cadence invites exactly
+ * the reading that work existed to prevent: that all three are read live.
+ *
+ * R4 retires counter THEATRE, not source honesty, so the fact returns as a
+ * sentence rather than a marquee or a numbered strip. It is DERIVED from
+ * `lib/trust/sourceLanes.ts` — the same registry behind /status and
+ * /api/status — so a lane's cadence cannot drift from what the homepage says.
+ */
+function sourceCadenceSentence(): string {
+  const label = (id: string) =>
+    SOURCE_LANE_OPS.find((lane) => lane.laneId === id)?.cadenceLabel ?? 'not read';
+  return (
+    `NPPES is ${label('nppes_identity')} per request; ` +
+    `OIG/LEIE returns a ${label('oig_exclusions')} and CMS PECOS a ${label('pecos_enrollment')}; ` +
+    `state licensure is ${label('state_license')}.`
+  );
+}
 
 function useSceneTier(): SceneTier {
   // 'static' until capabilities are proven — SSR and the first client render
@@ -103,9 +128,14 @@ function KineticPhrase({ text, local, live }: { text: string; local: number; liv
   );
 }
 
+/** Index of the scene that renders the lookup result. */
+const RECOGNITION_INDEX = FILM_SCENES.findIndex((s) => s.id === 'recognition');
+
 export function HorizontalCareerFilm() {
   const runwayRef = React.useRef<HTMLDivElement | null>(null);
   const stageRef = React.useRef<HTMLDivElement | null>(null);
+  const arrivalRef = React.useRef<HTMLElement | null>(null);
+  const recognitionRef = React.useRef<HTMLElement | null>(null);
   const tier = useSceneTier();
 
   // Reduced motion resolves to the 'static' tier, which is also the signal to
@@ -125,6 +155,53 @@ export function HorizontalCareerFilm() {
   // Layout mode follows ELIGIBILITY, never `pinned` — see useFilmProgress.
   const isFilm = ready && eligible && tier !== 'static';
   const { index, local } = sceneAt(progress);
+
+  /**
+   * Carry the reader between the question and their answer.
+   *
+   * The lookup renders in the RECOGNITION scene, which in film mode sits one
+   * full viewport to the right of the arrival scene. Without this, submitting
+   * an NPI rendered the result off-screen with the page unmoved — the primary
+   * action of the page appeared to do nothing. (Measured: result in the DOM,
+   * `left = 1440`, `scrollY = 0`.) Reset has the same problem mirrored: it
+   * clears the field the reader can no longer see.
+   *
+   * The film is driven by ordinary scroll position, so both directions move the
+   * SCROLL — never the track transform directly, which would desynchronise the
+   * driver from the window and break rule 4 in useFilmProgress.
+   */
+  const scrollToScene = React.useCallback(
+    (sceneIndex: number, fallback: React.RefObject<HTMLElement | null>) => {
+      const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const behavior: ScrollBehavior = reduced ? 'auto' : 'smooth';
+
+      if (isFilm && runwayRef.current) {
+        const rect = runwayRef.current.getBoundingClientRect();
+        const travel = rect.height - window.innerHeight;
+        if (travel > 0) {
+          const target = sceneIndex / Math.max(1, FILM_SCENES.length - 1);
+          window.scrollTo({ top: rect.top + window.scrollY + target * travel, behavior });
+          return;
+        }
+      }
+      // Vertical composition: scenes are ordinary blocks in document flow.
+      fallback.current?.scrollIntoView({ behavior, block: 'start' });
+    },
+    [isFilm],
+  );
+
+  // Only a TRANSITION should move the reader — not the initial mount, and not
+  // an unrelated re-render.
+  const previousNpi = React.useRef<string | null>(null);
+  React.useEffect(() => {
+    const had = previousNpi.current;
+    previousNpi.current = submittedNpi;
+    if (submittedNpi && submittedNpi !== had) {
+      scrollToScene(RECOGNITION_INDEX, recognitionRef);
+    } else if (had && !submittedNpi) {
+      scrollToScene(0, arrivalRef);
+    }
+  }, [submittedNpi, scrollToScene]);
 
   const onPointerMove = React.useCallback((event: React.PointerEvent<HTMLDivElement>) => {
     if (event.pointerType !== 'mouse') return;
@@ -211,15 +288,29 @@ export function HorizontalCareerFilm() {
               return (
                 <section
                   key={scene.id}
+                  ref={
+                    scene.id === 'recognition'
+                      ? recognitionRef
+                      : scene.id === 'arrival'
+                        ? arrivalRef
+                        : undefined
+                  }
                   className="film-scene"
                   data-film-scene={scene.id}
                   data-film-active={isActive ? '' : undefined}
                   aria-label={scene.label}
                 >
                   <div className="film-copy">
-                    <h2 className="film-phrase">
-                      <KineticPhrase text={scene.phrase} local={sceneLocal} live={isFilm} />
-                    </h2>
+                    {/* The opening phrase is the page's H1. Every scene rendered
+                        an <h2> in the first cut, which left the homepage with no
+                        <h1> at all — a document-outline and SEO regression
+                        against the composition it replaces. The heading LEVEL is
+                        structural; the visual treatment is identical. */}
+                    {React.createElement(
+                      i === 0 ? 'h1' : 'h2',
+                      { className: 'film-phrase' },
+                      <KineticPhrase text={scene.phrase} local={sceneLocal} live={isFilm} />,
+                    )}
                     {scene.support ? <p className="film-support">{scene.support}</p> : null}
 
                     {/* ---- Arrival: the ONE primary action ---- */}
@@ -317,11 +408,16 @@ export function HorizontalCareerFilm() {
 
                     {/* ---- Choice: the four surviving facts, as quiet ink ---- */}
                     {scene.id === 'choice' ? (
-                      <ul className="film-facts">
-                        {CHOICE_FACTS.map((fact) => (
-                          <li key={fact}>{fact}</li>
-                        ))}
-                      </ul>
+                      <>
+                        <ul className="film-facts">
+                          {CHOICE_FACTS.map((fact) => (
+                            <li key={fact}>{fact}</li>
+                          ))}
+                        </ul>
+                        <p className="film-note" data-home-source-cadence="">
+                          {sourceCadenceSentence()}
+                        </p>
+                      </>
                     ) : null}
                   </div>
 
