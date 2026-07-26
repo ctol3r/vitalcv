@@ -208,9 +208,12 @@ function freshnessFor(
   const expiresMs =
     basisMs !== null ? basisMs + source.freshnessWindowHours * 3_600_000 : null;
 
-  // No usable date means unknown — never assume current.
-  const state: 'checked' | 'stale' | 'unknown' =
-    basisMs === null ? 'unknown'
+  // No usable date means unknown — never assume current. There is no
+  // 'unknown' canonical state to pass in; the helper reports 'unknown' for
+  // any state other than 'stale'/'checked', and 'pending' is the accurate
+  // one here: we have a source but no dated reading from it.
+  const state: 'checked' | 'stale' | 'pending' =
+    basisMs === null ? 'pending'
     : expiresMs !== null && now.getTime() > expiresMs ? 'stale'
     : 'checked';
 
