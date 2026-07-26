@@ -116,16 +116,33 @@ repo's seven `Cargo.lock` files had **zero** SCA coverage — Dependabot was
 raising critical alerts against them that no CI job could surface, so a green
 "SCA — critical-only gate" said nothing whatsoever about Rust.
 
+**The repo now ships no Rust at all.** The dormant Substrate pallet trees were
+deleted on 2026-07-25 (founder decision), which removed **all 171** Rust
+advisories outright — including `RUSTSEC-2023-0090` (`wasmtime@1.0.2`, CVSS 9.9,
+guest-controlled OOB read/write), 28 lower-severity advisories, and 136 unscored
+ones such as `RUSTSEC-2022-0093` (`ed25519-dalek` double-public-key signing
+oracle). Deleting beat suppressing: the pallets were never built or deployed, and
+the advisory was unfixable in place (`sp-wasm-interface@8.0.0` pins
+`wasmtime ^1.0.0`, so `cargo update -p wasmtime --precise 4.0.1` cannot resolve —
+clearing it would have meant upgrading the whole `frame-support 4.0` /
+`sp-runtime 7.0` stack). See
+[the anchoring ADR](../architecture/adr-substrate-anchoring.md).
+
 The **[Rust SCA gate](../../.github/workflows/cargo-audit.yml)**
-([`cargo-audit-gate.mjs`](../../scripts/security/cargo-audit-gate.mjs)) closes
-that hole, mirroring the pnpm policy:
+([`cargo-audit-gate.mjs`](../../scripts/security/cargo-audit-gate.mjs)) stays
+in place as a **tripwire**: it auto-discovers `Cargo.lock` files, so the day any
+Rust re-enters the repo it is audited from the first commit rather than sitting
+unscanned for years as the pallets did. With no lockfiles present it reports
+"nothing to audit" and exits 0.
+
+Policy mirrors the pnpm gate:
 
 | Severity | CI behavior | Rationale |
 |---|---|---|
 | **Critical** (CVSS ≥ 9.0) | ❌ **blocks merge** (gate exits 1) | Same bar as the pnpm gate. |
-| High / moderate / low | ⚠️ reported, non-blocking | 28 pre-existing, all in the dormant pallet trees. |
-| **Unscored** | ⚠️ reported, non-blocking, **needs triage** | 136 advisories carry no CVSS vector, so they cannot be classified. Some are genuinely serious (e.g. RUSTSEC-2022-0093, `ed25519-dalek` double-public-key signing oracle). They are printed on every run so they cannot rot silently. |
-| **Accepted-risk ignore** | 🔕 suppressed via [`cargo-audit-ignores.json`](../../scripts/security/cargo-audit-ignores.json) | Same bar as `pnpm.auditConfig.ignoreGhsas` + a row below. |
+| High / moderate / low | ⚠️ reported, non-blocking | Same rationale as the JS backlog. |
+| **Unscored** | ⚠️ reported, non-blocking, **needs triage** | Many RustSec advisories carry no CVSS vector and cannot be classified. They are printed on every run so they cannot rot silently. |
+| **Accepted-risk ignore** | 🔕 suppressed via [`cargo-audit-ignores.json`](../../scripts/security/cargo-audit-ignores.json) | Same bar as `pnpm.auditConfig.ignoreGhsas`. **Currently empty, which is the correct state** — prefer deleting dead Rust over suppressing its advisories. |
 
 cargo-audit reports only a CVSS *vector*, never a score, so the gate computes
 the base score itself (CVSS v3.1 spec §8.1). That arithmetic is pinned by
@@ -136,39 +153,6 @@ drifts, criticals get silently misclassified. Run it locally:
 cargo install cargo-audit --locked   # once
 node scripts/security/cargo-audit-gate.mjs
 ```
-
-### RUSTSEC-2023-0090 — wasmtime guest-controlled OOB read/write
-
-| Advisory | Package | Severity | Reaches | Signed off | Revisit when |
-|---|---|---|---|---|---|
-| [RUSTSEC-2023-0090](https://rustsec.org/advisories/RUSTSEC-2023-0090) ([GHSA-ff4p-7xrq-q5r8](https://github.com/advisories/GHSA-ff4p-7xrq-q5r8), CVE-2023-26489) | `wasmtime@1.0.2` ×7 lockfiles | Critical (CVSS 9.9) | Dormant Substrate pallets only — **nothing builds or deploys them** | ⚠️ **UNSIGNED — pending founder sign-off** | (a) any pallet gains a real build/deploy path, (b) the pallets move off `frame-support 4.0` / `sp-runtime 7.0` so `wasmtime ≥ 4.0.1` resolves, or (c) the dormant trees are deleted — then delete the entry |
-
-**Why it is not simply fixed.** `sp-wasm-interface@8.0.0` pins `wasmtime ^1.0.0`,
-so the patched line is unreachable in place:
-
-```
-$ cargo update -p wasmtime --precise 4.0.1
-error: failed to select a version for the requirement `wasmtime = "^1.0.0"`
-candidate versions found which didn't match: 4.0.1
-required by package `sp-wasm-interface v8.0.0`
-```
-
-Clearing it means upgrading the entire `frame-support 4.0` / `sp-runtime 7.0`
-stack. Same shape as the `tar`/Expo case above: un-overridable without breaking
-the toolchain that pins it.
-
-**Blast-radius note.** Evidence that the pallet trees are dormant: no `cargo`
-step exists in any workflow, no Dockerfile compiles Rust, and
-`k8s/substrate/vitalcv-chain.yaml` still references the placeholder image
-`ghcr.io/YOURORG/vitalcv-node:latest`. Nothing on the shipped trust platform
-executes this code.
-
-> ⚠️ **This ignore is unsigned.** It was added so the new gate would not land
-> red and wedge every open PR, but the accept/delete decision is the founder's.
-> Two clean options: sign it off as accepted risk, or delete the dormant pallet
-> trees (which removes the advisory, the ignore, and 164 other Rust advisories
-> outright). Until then the gate protects against *new* Rust criticals while
-> carrying this one.
 
 ## High-severity backlog (75 advisories, 21 modules)
 
