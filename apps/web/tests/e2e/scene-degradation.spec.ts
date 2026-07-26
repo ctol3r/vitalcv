@@ -156,20 +156,34 @@ test.describe('hero reset — clinician sell and field visibility (HERO-RESET-1)
     expect(home.paper.toLowerCase()).toMatch(/#f0eee9|var\(--vt-cloud-dancer/);
     expect(home.body).toBe('rgb(240, 238, 233)');
 
-    // The precedence contract, restated for this composition. The retired page
-    // scoped its paper with `.mz-cloud-paper` and proved `.dark .mz` still won;
-    // the film has no `.mz` scope, so the equivalent guarantee is ROUTE scoping:
-    // the paper is set by a style that unmounts with the film, and must not
-    // follow the reader to another surface.
+    // The paper style is rendered INSIDE the film, so it must unmount with it.
+    // Assert that mechanism directly rather than inferring it from the body
+    // colour on another route: `/trust` independently computes
+    // rgb(240,238,233) — verified on a HARD load, where the film's style tag
+    // never existed — so a `not.toBe(Cloud Dancer)` probe there can never pass
+    // and says nothing about leakage either way.
+    //
+    // What actually matters is that the rule does not follow the reader, which
+    // is a statement about the STYLE ELEMENT, not about a colour two surfaces
+    // happen to share.
+    const paperRuleCount = () =>
+      page.evaluate(() =>
+        [...document.querySelectorAll('style')].filter((s) =>
+          (s.textContent ?? '').includes('--vt-cloud-dancer'),
+        ).length,
+      );
+
+    expect(await paperRuleCount(), 'the film owns the paper rule while it is mounted').toBe(1);
+
     await page.goto('/trust', { waitUntil: 'networkidle' });
     const elsewhere = await page.evaluate(() => ({
-      body: getComputedStyle(document.body).backgroundColor,
       film: document.querySelectorAll('.film').length,
     }));
     expect(elsewhere.film, 'the film must not render outside /').toBe(0);
-    expect(elsewhere.body, 'Cloud Dancer must not leak past the homepage').not.toBe(
-      'rgb(240, 238, 233)',
-    );
+    expect(
+      await paperRuleCount(),
+      'the film paper rule must unmount with the route, not follow the reader',
+    ).toBe(0);
   });
 
   test('static tier: the hero keeps the NPI action without a public graph', async ({ page }) => {
