@@ -156,29 +156,33 @@ test.describe('hero reset — clinician sell and field visibility (HERO-RESET-1)
     expect(home.paper.toLowerCase()).toMatch(/#f0eee9|var\(--vt-cloud-dancer/);
     expect(home.body).toBe('rgb(240, 238, 233)');
 
-    // The precedence contract, restated for this composition. The retired page
-    // scoped its paper with `.mz-cloud-paper` and proved `.dark .mz` still won;
-    // the film has no `.mz` scope, so the equivalent guarantee is ROUTE scoping:
-    // the paper is set by a style that unmounts with the film, and must not
-    // follow the reader to another surface.
+    // The paper style is rendered INSIDE the film, so it must unmount with it.
+    // Assert that mechanism directly rather than inferring it from the body
+    // colour on another route: `/trust` independently computes
+    // rgb(240,238,233) — verified on a HARD load, where the film's style tag
+    // never existed — so a `not.toBe(Cloud Dancer)` probe there can never pass
+    // and says nothing about leakage either way.
+    //
+    // What actually matters is that the rule does not follow the reader, which
+    // is a statement about the STYLE ELEMENT, not about a colour two surfaces
+    // happen to share.
+    const paperRuleCount = () =>
+      page.evaluate(() =>
+        [...document.querySelectorAll('style')].filter((s) =>
+          (s.textContent ?? '').includes('--vt-cloud-dancer'),
+        ).length,
+      );
+
+    expect(await paperRuleCount(), 'the film owns the paper rule while it is mounted').toBe(1);
+
     await page.goto('/trust', { waitUntil: 'networkidle' });
     const elsewhere = await page.evaluate(() => ({
       film: document.querySelectorAll('.film').length,
-      // The film sets the page paper through ONE inline <style> that unmounts
-      // with the component. Its absence — not the colour another route happens
-      // to paint — is the scoping contract. Asserting the colour differed was
-      // wrong: /trust legitimately renders the same warm paper tone on a cold
-      // load (measured rgb(240,238,233) with the film never mounted — #801's
-      // token restoration gave app surfaces their paper back), so a colour
-      // inequality fails without any leak existing.
-      filmPaperStyles: [...document.querySelectorAll('style')].filter((el) =>
-        (el.textContent ?? '').includes('--vt-cloud-dancer'),
-      ).length,
     }));
     expect(elsewhere.film, 'the film must not render outside /').toBe(0);
     expect(
-      elsewhere.filmPaperStyles,
-      "the film's body-paper style must unmount with it",
+      await paperRuleCount(),
+      'the film paper rule must unmount with the route, not follow the reader',
     ).toBe(0);
   });
 
