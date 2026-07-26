@@ -167,7 +167,12 @@ export function fragmentPose(
     width: fragment.width * (0.55 + 0.45 * t),
     // Dim to legible. Never fully opaque — this is atmosphere behind copy, and
     // the scrim floor (SCENE_SCRIM_FLOOR) is what protects text contrast.
-    opacity: 0.1 + 0.42 * t,
+    //
+    // Ceiling lowered from 0.52 to 0.26. At the old value the fragment field
+    // was the loudest element in every frame and read as a loading skeleton
+    // rather than as texture; the scenes looked noisy and unfinished at the
+    // same time. Atmosphere is support for the composition, never its subject.
+    opacity: 0.06 + 0.2 * t,
     lane: fragment.lane,
   };
 }

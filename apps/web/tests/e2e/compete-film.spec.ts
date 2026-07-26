@@ -10,11 +10,15 @@ import { requireHarness } from './film-harness';
  * test pins one rung of the fallback ladder in
  * docs/design/homepage-composition-ownership.md §3.
  *
- * The route is dev-gated, so this suite runs against the dev server (the
- * default e2e target) and is skipped when the harness is not reachable.
+ * COMPETE-1 pointed this suite at `/` — the public homepage — instead of the
+ * dev harness. Two assertions had to change, and both were assumptions that
+ * were only ever true because the harness rendered no site chrome: the film is
+ * no longer the entire document (a footer follows the runway), and it is no
+ * longer the first thing in the tab order (a skip link correctly is). Neither
+ * is a regression; the harness was simply not production.
  */
 
-const ROUTE = '/dev/compete-film';
+const ROUTE = '/';
 
 /**
  * Scroll the film runway to a fraction of its travel and settle a frame.
@@ -170,8 +174,14 @@ test.describe('COMPETE-2 horizontal film', () => {
     expect(await page.evaluate(() => window.scrollY)).toBeLessThan(afterDown);
 
     // The end of the document must be reachable — a pin that never releases
-    // would leave scrollY short of the maximum forever.
+    // would leave scrollY short of the maximum forever. On `/` the runway is
+    // not the whole document (the footer follows it), so this asks the real
+    // question directly: scroll to the bottom and confirm you arrive.
     await scrubTo(page, 1);
+    await page.evaluate(() =>
+      window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'instant' }),
+    );
+    await page.waitForTimeout(300);
     const { scrollY, max } = await page.evaluate(() => ({
       scrollY: Math.round(window.scrollY),
       max: Math.round(document.documentElement.scrollHeight - window.innerHeight),
@@ -214,7 +224,7 @@ test.describe('COMPETE-2 horizontal film', () => {
   });
 
   test('static tier: the poster carries the composition, never a blank stage', async ({ page }) => {
-    await page.goto(`${ROUTE}?sceneTier=static`);
+    await page.goto(`/?sceneTier=static`);
     await page.waitForTimeout(300);
 
     await expect(page.locator('.film-atmosphere-canvas')).toHaveCount(0);
@@ -233,11 +243,32 @@ test.describe('COMPETE-2 horizontal film', () => {
     await expect(page.locator('.film-atmosphere-canvas')).toBeVisible();
   });
 
-  test('keyboard: the NPI field is the first stop and shows a focus ring', async ({ page }) => {
+  test('keyboard: the NPI field is an early stop and shows a focus ring', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.waitForTimeout(300);
 
-    await page.keyboard.press('Tab');
+    // On the public homepage the skip link takes the first stop, which is
+    // correct and required — so this asserts the intent rather than the
+    // literal position: the one primary action is reachable within a handful
+    // of stops, not buried behind the whole navigation.
+    // The measured order on `/` is: skip link, announcement link, dismiss,
+    // wordmark, four nav links, sign-in, then the NPI field at stop 10. That
+    // is an ordinary chrome, so the bound is 12 — tight enough that the field
+    // slipping behind any further block of links fails the check.
+    const MAX_STOPS = 12;
+    let stops = 0;
+    for (; stops < MAX_STOPS; stops += 1) {
+      await page.keyboard.press('Tab');
+      const onInput = await page.evaluate(
+        () => document.activeElement?.id === 'film-npi-input',
+      );
+      if (onInput) break;
+    }
+    expect(
+      stops,
+      `the NPI field was not reachable within ${MAX_STOPS} tab stops — it is the ` +
+        'only primary action on the page and must not sit behind the nav',
+    ).toBeLessThan(MAX_STOPS);
     await expect(page.locator('#film-npi-input')).toBeFocused();
 
     const outline = await page.evaluate(() => {
