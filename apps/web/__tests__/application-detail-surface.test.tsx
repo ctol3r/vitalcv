@@ -114,11 +114,15 @@ describe('ClinicianApplicationDetailSurface', () => {
   it('renders clear progress and next-step messaging', () => {
     const markup = renderToStaticMarkup(
       <ClinicianMobileProvider initialData={buildSampleData()}>
-        <ClinicianApplicationDetailSurface applicationId="app_1" />
+        <ClinicianApplicationDetailSurface
+          applicationId="app_1"
+          evidenceResult={{ status: 'error', message: 'Application evidence is temporarily unavailable.' }}
+        />
       </ClinicianMobileProvider>,
     );
 
-    expect(markup).toContain('Why you were ready enough to submit');
+    expect(markup).toContain('Application evidence');
+    expect(markup).toContain('Application activity');
     expect(markup).toContain('What happens now');
     expect(markup).toContain('Status progression');
     expect(markup).toContain('View role details');

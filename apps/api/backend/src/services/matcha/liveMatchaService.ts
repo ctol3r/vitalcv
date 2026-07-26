@@ -14,15 +14,26 @@
 import { PrismaClient } from '@prisma/client';
 
 import { matchOpportunities, scoreOpportunity } from './matchaEngine';
+import { simulateCredentialImpact } from './matchaSimulator';
 import type {
+  CandidateIntent,
   ClinicianProfile,
   HeldCredential,
   HiringType,
   Opportunity as MatchaOpportunity,
   RequirementSpec,
+  SpecialtySource,
 } from './matchaModels';
+import {
+  seededOrgExclusionFilter,
+} from '../opportunities/launchOpportunitySeed';
 
 const prisma = new PrismaClient();
+
+// seededOrgExclusionFilter (shared): when SEED_DEMO_OPPORTUNITIES is off (the
+// prod default) it excludes opportunities belonging to the demo/launch seed
+// organizations so live matching sees only real postings; on (dev/demo) it's a
+// no-op. The same helper gates the public opportunity list/detail.
 
 // ── NPPES taxonomy → specialty string ─────────────────────────────────────────
 
@@ -65,6 +76,10 @@ async function buildClinicianProfile(npi: string): Promise<ClinicianProfile> {
   const url = `https://npiregistry.cms.hhs.gov/api/?number=${npi}&version=2.1`;
   let name = `Provider ${npi}`;
   let specialty = 'Medicine';
+  // Only an NPPES taxonomy we actually resolve counts as a source check; the
+  // generic 'Medicine' default and the NPPES-unavailable path stay 'unknown'
+  // so the engine never presents an unverified specialty as checked.
+  let specialtySource: SpecialtySource = 'unknown';
   let state = 'CA';
 
   try {
@@ -81,7 +96,12 @@ async function buildClinicianProfile(npi: string): Promise<ClinicianProfile> {
         // Primary taxonomy
         const taxonomies: any[] = result.taxonomies ?? [];
         const primary = taxonomies.find((t: any) => t.primary) ?? taxonomies[0];
-        if (primary?.code) specialty = mapTaxonomy(primary.code);
+        if (primary?.code) {
+          specialty = mapTaxonomy(primary.code);
+          // A code we recognize is a genuine NPPES source check for specialty;
+          // an unmapped code falls back to 'Medicine' and stays unverified.
+          if (TAXONOMY_MAP[primary.code]) specialtySource = 'nppes_taxonomy';
+        }
         if (primary?.state) state = primary.state;
 
         // Address-based state fallback
@@ -189,7 +209,7 @@ async function buildClinicianProfile(npi: string): Promise<ClinicianProfile> {
     // CandidateCredential enrichment is best-effort — don't fail the whole profile
   }
 
-  return { npi, name, specialty, states: [state], credentials };
+  return { npi, name, specialty, specialtySource, states: [state], credentials };
 }
 
 // ── Map DB Opportunity → MATCHA Opportunity ───────────────────────────────────
@@ -223,6 +243,17 @@ function requirementsFromLevel(
   return base;
 }
 
+// Employer-posted enums → engine enums, with a safe fallback for older postings
+// (or free-text) that predate the structured columns.
+const EMPLOYER_TYPES = new Set(['hospital', 'practice', 'telehealth', 'agency', 'health_system']);
+function normalizeEmployerType(v: string | null | undefined): MatchaOpportunity['employerType'] {
+  return v && EMPLOYER_TYPES.has(v) ? (v as MatchaOpportunity['employerType']) : 'hospital';
+}
+const START_URGENCIES = new Set(['immediate', 'within_2_weeks', 'within_month', 'flexible']);
+function normalizeStartUrgency(v: string | null | undefined): MatchaOpportunity['startUrgency'] {
+  return v && START_URGENCIES.has(v) ? (v as MatchaOpportunity['startUrgency']) : 'flexible';
+}
+
 function dbOppToMatcha(opp: {
   id: string;
   title: string;
@@ -230,6 +261,10 @@ function dbOppToMatcha(opp: {
   hiringType: string;
   state: string;
   payRange: string | null;
+  payMin?: number | null;
+  payMax?: number | null;
+  employerType?: string | null;
+  startUrgency?: string | null;
   requirementLevel: string;
   remote: boolean;
   status: string;
@@ -247,10 +282,14 @@ function dbOppToMatcha(opp: {
     state: opp.state,
     specialty: opp.specialty,
     hiringType: (opp.hiringType as HiringType) || 'perm',
-    employerType: 'hospital',
-    startUrgency: 'flexible',
+    // Employer-posted structured fields drive real scoring (comp/urgency/
+    // employer-fit); fall back to the old defaults when a posting omits them.
+    employerType: normalizeEmployerType(opp.employerType),
+    startUrgency: normalizeStartUrgency(opp.startUrgency),
     urgency: 'within_90_days',
     payRange: opp.payRange ?? undefined,
+    payMin: opp.payMin ?? undefined,
+    payMax: opp.payMax ?? undefined,
     remote: opp.remote ?? false,
     requirements: requirementsFromLevel(opp.requirementLevel, opp.specialty, opp.state),
     minimumTrustBand: opp.requirementLevel === 'L3'
@@ -271,12 +310,19 @@ function dbOppToMatcha(opp: {
 export async function getLiveMatchesForNpi(
   npi: string,
   filters?: { specialty?: string; state?: string; hiringType?: string },
+  // The clinician's stated preferences, mapped to the engine's CandidateIntent
+  // by the web proxy (which holds the durable, Clerk-scoped preference store).
+  // When present, ~50 of the 100 scoring points respond to what the clinician
+  // WANTS (location, hiring type, pay, remote, timing) on top of what they're
+  // credentialed FOR. When absent, ranking falls back to credentials only.
+  intent?: CandidateIntent | null,
 ) {
   const [profile, dbOpportunities] = await Promise.all([
     buildClinicianProfile(npi),
     prisma.opportunity.findMany({
       where: {
         status: 'ACTIVE',
+        ...seededOrgExclusionFilter(),
         ...(filters?.specialty ? { specialty: { contains: filters.specialty, mode: 'insensitive' } } : {}),
         ...(filters?.state ? { state: filters.state } : {}),
         ...(filters?.hiringType ? { hiringType: filters.hiringType } : {}),
@@ -287,7 +333,7 @@ export async function getLiveMatchesForNpi(
   ]);
 
   const matchaOpps = dbOpportunities.map(dbOppToMatcha);
-  const matches = matchOpportunities(profile, null, matchaOpps);
+  const matches = matchOpportunities(profile, intent ?? null, matchaOpps);
 
   return {
     npi,
@@ -300,6 +346,10 @@ export async function getLiveMatchesForNpi(
       score: m.explanation.matchScore,
       blockers: m.explanation.blockers.map(b => ({ label: b.label, action: b.actionLabel })),
       fitReasons: m.explanation.fitReasons.map(f => f.label),
+      // Full objects for the clinician surfaces (cards + detail view). The slim
+      // fields above are kept for existing consumers — additive only.
+      opportunity: m.opportunity,
+      explanation: m.explanation,
     })),
     profileCompleteness: {
       level: profile.credentials.some(c => c.claimLevel === 'L1') ? 'partial' : 'full',
@@ -310,7 +360,38 @@ export async function getLiveMatchesForNpi(
   };
 }
 
-export async function scoreOpportunityForNpi(npi: string, opportunityId: string) {
+/**
+ * Deterministic "what if" simulation for a clinician's real live roles.
+ * Loads the same real ClinicianProfile + active Opportunity set as the live
+ * match, then re-scores with each blocking credential hypothetically earned.
+ * Never mutates evidence; every number is the engine's own recomputed output.
+ */
+export async function simulateForNpi(npi: string) {
+  const [profile, dbOpportunities] = await Promise.all([
+    buildClinicianProfile(npi),
+    prisma.opportunity.findMany({
+      where: { status: 'ACTIVE', ...seededOrgExclusionFilter() },
+      include: { organization: { select: { id: true, name: true } } },
+      take: 50,
+    }),
+  ]);
+
+  const matchaOpps = dbOpportunities.map(dbOppToMatcha);
+  const result = simulateCredentialImpact(profile, matchaOpps, new Date().toISOString());
+
+  return {
+    npi,
+    clinicianName: profile.name,
+    specialty: profile.specialty,
+    ...result,
+  };
+}
+
+export async function scoreOpportunityForNpi(
+  npi: string,
+  opportunityId: string,
+  intent?: CandidateIntent | null,
+) {
   const [profile, dbOpp] = await Promise.all([
     buildClinicianProfile(npi),
     prisma.opportunity.findUnique({
@@ -321,7 +402,7 @@ export async function scoreOpportunityForNpi(npi: string, opportunityId: string)
 
   if (!dbOpp) return null;
   const matchaOpp = dbOppToMatcha(dbOpp);
-  const explanation = scoreOpportunity(profile, null, matchaOpp);
+  const explanation = scoreOpportunity(profile, intent ?? null, matchaOpp);
 
   return {
     npi,

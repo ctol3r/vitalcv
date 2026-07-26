@@ -1,0 +1,653 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>VitalCV · Platform Integration · W278</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --bg:#eef0f3; --paper:#ffffff;
+  --s50:#f8fafc; --s100:#f1f5f9; --s200:#e2e8f0; --s300:#cbd5e1;
+  --s400:#94a3b8; --s500:#64748b; --s600:#475569; --s700:#334155;
+  --s800:#1e293b; --s900:#0f172a; --s950:#020617;
+  --rule:#e2e8f0; --rule-soft:#eef2f6;
+  --keep:#047857; --keep-bg:#ecfdf5; --keep-line:#a7f3d0;
+  --seam:#b45309; --seam-bg:#fffbeb; --seam-line:#fde68a;
+  --cut:#be123c;  --cut-bg:#fff1f2;  --cut-line:#fecdd3;
+}
+*,*::before,*::after{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--s900);
+  font-family:'Geist',ui-sans-serif,system-ui,sans-serif;font-feature-settings:'ss01','cv11';
+  -webkit-font-smoothing:antialiased;font-size:13.5px;line-height:1.55;letter-spacing:-.004em}
+.mono,code{font-family:'Geist Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-feature-settings:'zero','tnum'}
+button{font-family:inherit}
+::selection{background:var(--s900);color:#fff}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-thumb{background:var(--s300);border-radius:10px}
+@keyframes blink{0%,100%{opacity:.32}50%{opacity:1}}
+.blink{animation:blink 2.6s ease-in-out infinite}
+
+/* ── Op bar ─────────────────────────────────────── */
+.opbar{background:var(--s950);color:var(--s400);font-family:'Geist Mono',monospace;font-size:10.5px;position:sticky;top:0;z-index:60}
+.opbar .in{max-width:1320px;margin:0 auto;padding:0 32px;height:34px;display:flex;align-items:center;justify-content:space-between;gap:16px}
+.opbar .l{display:flex;align-items:center;gap:12px;min-width:0}
+.opbar .l .g{width:17px;height:17px;background:#fff;color:#000;display:grid;place-items:center;font-size:10px;font-weight:700;border-radius:3px}
+.opbar .l strong{color:#fff;font-weight:600;letter-spacing:.02em}
+.opbar .l .sep{color:var(--s700)}
+.opbar .r{display:flex;align-items:center;gap:14px;text-transform:uppercase;letter-spacing:.12em;font-size:9px;color:var(--s500)}
+.opbar .r .pill{display:inline-flex;align-items:center;gap:5px;padding:2px 7px;border:1px solid var(--s700);color:var(--s300)}
+.opbar .r .dot{width:5px;height:5px;background:#10b981;border-radius:50%}
+
+/* ── Doc shell ──────────────────────────────────── */
+.doc{max-width:1320px;margin:0 auto;background:var(--paper);box-shadow:0 1px 0 rgba(0,0,0,.04),0 26px 70px -30px rgba(15,23,42,.22)}
+
+/* ── Masthead ───────────────────────────────────── */
+.mast{padding:40px 56px 34px;border-bottom:1px solid var(--s900)}
+.crumb{font-family:'Geist Mono',monospace;font-size:9.5px;text-transform:uppercase;letter-spacing:.18em;color:var(--s500);display:flex;align-items:center;gap:10px;margin-bottom:22px;flex-wrap:wrap}
+.crumb .r{display:inline-block;width:18px;height:1px;background:var(--s300)}
+.crumb b{color:var(--s900);font-weight:600}
+.mast h1{font-size:38px;line-height:1.03;letter-spacing:-.032em;font-weight:600;margin:0 0 14px;max-width:18ch}
+.mast h1 em{font-style:normal;color:var(--s400);font-weight:400}
+.lede{font-size:15px;color:var(--s600);line-height:1.62;max-width:70ch;margin:0 0 26px;letter-spacing:-.006em}
+.lede strong{color:var(--s900);font-weight:500}
+.metarow{display:flex;gap:0;flex-wrap:wrap;border:1px solid var(--rule);border-radius:8px;overflow:hidden}
+.metarow .m{padding:11px 18px;border-right:1px solid var(--rule);display:flex;flex-direction:column;gap:3px;min-width:140px;flex:1}
+.metarow .m:last-child{border-right:0}
+.metarow .mk{font-family:'Geist Mono',monospace;font-size:8.5px;text-transform:uppercase;letter-spacing:.16em;color:var(--s400)}
+.metarow .mv{font-size:13px;font-weight:600;color:var(--s900);letter-spacing:-.01em}
+.metarow .mv span{color:var(--s400);font-weight:400}
+
+/* ── Section frame ──────────────────────────────── */
+.canvas{padding:14px 56px 64px}
+.sec{margin-top:52px;scroll-margin-top:48px}
+.sec:first-child{margin-top:40px}
+.sh{display:flex;align-items:flex-end;gap:16px;border-bottom:1.5px solid var(--s900);padding-bottom:11px;margin-bottom:8px}
+.sh .tag{font-family:'Geist Mono',monospace;font-size:10px;font-weight:600;letter-spacing:.04em;color:#fff;background:var(--s900);padding:3px 8px;border-radius:4px;flex-shrink:0}
+.sh h2{font-size:21px;margin:0;font-weight:600;letter-spacing:-.022em}
+.sh .ey{font-family:'Geist Mono',monospace;font-size:9.5px;text-transform:uppercase;letter-spacing:.14em;color:var(--s400);margin-left:auto;flex-shrink:0}
+.deck{font-size:14px;color:var(--s600);line-height:1.62;max-width:74ch;margin:14px 0 24px}
+.deck strong{color:var(--s900);font-weight:500}
+.eyebrow{font-family:'Geist Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.18em;color:var(--s500);font-weight:600;margin:30px 0 12px;display:flex;align-items:center;gap:10px}
+.eyebrow::after{content:"";flex:1;height:1px;background:var(--rule-soft)}
+
+/* chips */
+.k{display:inline-flex;align-items:center;gap:5px;font-family:'Geist Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.08em;font-weight:600;padding:2px 7px;border-radius:3px;white-space:nowrap}
+.k .d{width:5px;height:5px;border-radius:50%}
+.k-keep{color:var(--keep);background:var(--keep-bg);box-shadow:inset 0 0 0 1px var(--keep-line)} .k-keep .d{background:var(--keep)}
+.k-seam{color:var(--seam);background:var(--seam-bg);box-shadow:inset 0 0 0 1px var(--seam-line)} .k-seam .d{background:var(--seam)}
+.k-cut{color:var(--cut);background:var(--cut-bg);box-shadow:inset 0 0 0 1px var(--cut-line)} .k-cut .d{background:var(--cut)}
+.k-ink{color:#fff;background:var(--s900)} .k-ink .d{background:#fff}
+.k-ghost{color:var(--s500);background:var(--s100);box-shadow:inset 0 0 0 1px var(--s200)} .k-ghost .d{background:var(--s400)}
+
+/* ════════ THE PROBLEM — four shells ════════ */
+.problem{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.shellcard{border:1px solid var(--s200);border-radius:9px;overflow:hidden;background:var(--s50);display:flex;flex-direction:column}
+.shellcard .strip{background:var(--s950);color:var(--s400);font-family:'Geist Mono',monospace;font-size:8.5px;padding:7px 10px;display:flex;align-items:center;justify-content:space-between;letter-spacing:.04em}
+.shellcard .strip b{color:#fff;font-weight:600;text-transform:uppercase;letter-spacing:.1em;font-size:8px}
+.shellcard .strip .w{color:#34d399}
+.shellcard .body{padding:11px 12px 13px;display:flex;flex-direction:column;gap:8px;flex:1}
+.shellcard .nm{font-size:13.5px;font-weight:600;letter-spacing:-.01em}
+.shellcard .navlist{display:flex;flex-direction:column;gap:3px}
+.shellcard .ni{font-size:11px;color:var(--s600);padding:3px 7px;background:#fff;border:1px solid var(--s200);border-radius:5px;display:flex;align-items:center;gap:6px}
+.shellcard .ni .b{width:4px;height:4px;border-radius:50%;background:var(--s300);flex-shrink:0}
+.shellcard .ni.dup{border-color:var(--seam-line);background:var(--seam-bg);color:var(--seam)}
+.shellcard .ni.dup .b{background:var(--seam)}
+.shellcard .ft{margin-top:auto;font-family:'Geist Mono',monospace;font-size:8px;color:var(--s400);text-transform:uppercase;letter-spacing:.08em;border-top:1px dashed var(--rule);padding-top:7px}
+.problem-note{margin-top:14px;display:flex;gap:18px;flex-wrap:wrap;font-size:11.5px;color:var(--s500)}
+.problem-note span{display:inline-flex;align-items:center;gap:7px}
+
+/* ════════ UNIFIED NAV MOCK ════════ */
+.mock{border:1px solid var(--s200);border-radius:11px;overflow:hidden;box-shadow:0 18px 40px -28px rgba(15,23,42,.4)}
+.mock .scn{background:var(--s950);color:var(--s400);font-size:11px}
+.mock .scn .in{padding:0 20px;height:34px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.mock .scn .l{display:flex;align-items:center;gap:11px;min-width:0}
+.mock .scn .l .mono{color:var(--s400);text-transform:uppercase;letter-spacing:.16em;font-size:9.5px}
+.mock .scn .l .sub{color:var(--s300)}
+.mock .scn .l .sub b{color:#fff;font-weight:600}
+.mock .scn .r{display:flex;align-items:center;gap:12px;color:var(--s500);font-size:9.5px}
+.mock .scn .r .dot{width:6px;height:6px;border-radius:50%;background:#10b981;display:inline-block;margin-right:5px}
+.mock .top{background:rgba(255,255,255,.96);border-bottom:1px solid var(--s200);padding:0 20px;height:58px;display:flex;align-items:center;justify-content:space-between;gap:20px}
+.brand{display:flex;align-items:center;gap:10px}
+.brand .glyph{position:relative;height:22px;width:22px;flex-shrink:0}
+.brand .glyph .sq{position:absolute;inset:0;background:var(--s900);border-radius:5px}
+.brand .glyph svg{position:absolute;inset:0;color:#fff}
+.brand .wm{font-weight:600;letter-spacing:-.02em;font-size:15px;color:var(--s900)}
+.gnav{display:flex;align-items:center;gap:2px;min-width:0;flex-shrink:1}
+.mock .top>div:first-child{flex-shrink:1;min-width:0}
+.gnav .t{display:flex;align-items:center;gap:8px;height:38px;padding:0 14px;border-radius:8px;font-size:13px;font-weight:500;color:var(--s500);cursor:default;position:relative}
+.gnav .t svg{color:var(--s400)}
+.gnav .t.home{color:var(--s900)}
+.gnav .t.on{color:var(--s900);background:var(--s100)}
+.gnav .t.on svg{color:var(--s700)}
+.gnav .t .home-mark{position:absolute;left:50%;bottom:-1px;transform:translateX(-50%);width:18px;height:2px;border-radius:2px;background:var(--s900)}
+.mock .topright{display:flex;align-items:center;gap:12px;flex-shrink:0}
+.mock .topright .owned{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--s500)}
+.mock .topright .owned svg{color:var(--keep)}
+.mock .topright .btn{height:32px;padding:0 13px;border:1px solid var(--s300);border-radius:7px;font-size:12px;font-weight:500;color:var(--s900);display:flex;align-items:center;gap:7px;background:#fff}
+.mock .subnav{background:var(--s50);border-bottom:1px solid var(--s200);padding:0 20px;height:40px;display:flex;align-items:center;gap:4px}
+.mock .subnav .lead{font-family:'Geist Mono',monospace;font-size:8.5px;text-transform:uppercase;letter-spacing:.14em;color:var(--s400);margin-right:8px}
+.mock .subnav .si{font-size:12px;color:var(--s500);padding:5px 10px;border-radius:6px}
+.mock .subnav .si.on{color:var(--s900);background:#fff;box-shadow:inset 0 0 0 1px var(--s200);font-weight:500}
+.mock .stagein{padding:18px 20px;background:var(--bg)}
+.mock-caption{margin-top:12px;font-size:11.5px;color:var(--s500);display:flex;gap:8px;align-items:baseline}
+.mock-caption b{color:var(--s700);font-weight:600;font-family:'Geist Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.12em;flex-shrink:0}
+
+/* ════════ ENTRY POINT (Career OS home) ════════ */
+.os{display:grid;grid-template-columns:1.15fr .85fr;gap:14px}
+.os-id{background:#fff;border:1px solid var(--s200);border-radius:10px;padding:18px;display:flex;flex-direction:column;gap:16px}
+.os-id .who{display:flex;align-items:flex-start;gap:14px}
+.os-id .ava{height:52px;width:52px;border-radius:12px;background:var(--s900);color:#fff;display:grid;place-items:center;font-size:19px;font-weight:600;flex-shrink:0}
+.os-id .nm{font-size:21px;font-weight:600;letter-spacing:-.02em;line-height:1.1}
+.os-id .meta{font-size:11.5px;color:var(--s500);margin-top:5px;display:flex;flex-wrap:wrap;gap:4px 9px}
+.os-id .meta .mono{color:var(--s800)}
+.os-id .cred{font-family:'Geist Mono',monospace;font-size:10px;color:var(--s500);text-transform:uppercase;letter-spacing:.08em;margin-top:4px}
+.health{border:1px solid var(--s200);border-radius:9px;overflow:hidden}
+.health .hh{padding:9px 13px;background:var(--s50);border-bottom:1px solid var(--s200);display:flex;align-items:center;justify-content:space-between}
+.health .hh .t{font-size:12px;font-weight:600}
+.health .hh .v{font-family:'Geist Mono',monospace;font-size:11px;color:var(--keep);font-weight:600}
+.health .bar{height:8px;background:var(--s100);position:relative}
+.health .bar i{position:absolute;left:0;top:0;bottom:0;width:68%;background:var(--s900)}
+.health .hb{padding:10px 13px;display:flex;justify-content:space-between;font-size:11px;color:var(--s500)}
+.health .hb b{color:var(--s900);font-weight:600}
+.continue{background:#fff;border:1px solid var(--s200);border-radius:10px;padding:15px;display:flex;flex-direction:column;gap:12px}
+.continue .lab{font-family:'Geist Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.16em;color:var(--s400);font-weight:600}
+.resume{border:1px solid var(--s200);border-radius:8px;padding:11px 12px;display:flex;align-items:center;gap:11px;background:var(--s50)}
+.resume .ic{height:34px;width:34px;border-radius:8px;background:#fff;border:1px solid var(--s200);display:grid;place-items:center;color:var(--s700);flex-shrink:0}
+.resume .tx{min-width:0;flex:1}
+.resume .tx .a{font-size:12.5px;font-weight:600;letter-spacing:-.01em}
+.resume .tx .b{font-size:11px;color:var(--s500)}
+.resume .go{font-family:'Geist Mono',monospace;font-size:9px;color:var(--s500);text-transform:uppercase;letter-spacing:.1em;display:flex;align-items:center;gap:5px;flex-shrink:0}
+.streams{grid-column:1/-1;display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:2px}
+.stream{background:#fff;border:1px solid var(--s200);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:9px;position:relative;overflow:hidden}
+.stream::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--s900)}
+.stream .row1{display:flex;align-items:center;justify-content:space-between}
+.stream .ic{height:34px;width:34px;border-radius:9px;background:var(--s900);color:#fff;display:grid;place-items:center;flex-shrink:0}
+.stream .ct{font-family:'Geist Mono',monospace;font-size:9px;color:var(--s400);text-transform:uppercase;letter-spacing:.1em}
+.stream .nm{font-size:14.5px;font-weight:600;letter-spacing:-.015em}
+.stream .ds{font-size:11.5px;color:var(--s500);line-height:1.45;flex:1}
+.stream .st{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--s600);border-top:1px dashed var(--rule);padding-top:8px}
+.stream .st .pp{width:6px;height:6px;border-radius:50%;background:var(--keep)}
+.stream .st .pp.am{background:var(--seam)}
+
+/* ════════ JOURNEY ════════ */
+.journey{border:1px solid var(--s200);border-radius:11px;overflow:hidden}
+.journey .jhead{display:grid;grid-template-columns:150px repeat(5,1fr);background:var(--s900)}
+.journey .jhead .c{padding:10px 12px;color:rgba(255,255,255,.55);font-family:'Geist Mono',monospace;font-size:8.5px;text-transform:uppercase;letter-spacing:.14em;border-right:1px solid rgba(255,255,255,.08)}
+.journey .jhead .c:last-child{border-right:0}
+.journey .jhead .c b{color:#fff;font-weight:600;display:block;font-size:11px;letter-spacing:.02em;text-transform:none}
+.journey .jhead .c.lab{background:var(--s950)}
+.jrow{display:grid;grid-template-columns:150px repeat(5,1fr);border-top:1px solid var(--rule)}
+.jrow .rk{padding:12px;background:var(--s50);border-right:1px solid var(--rule);font-family:'Geist Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--s500);font-weight:600;display:flex;align-items:center}
+.jrow .cell{padding:12px;border-right:1px solid var(--rule);font-size:11.5px;color:var(--s600);line-height:1.45}
+.jrow .cell:last-child{border-right:0}
+.jrow .cell b{color:var(--s900);font-weight:600;display:block;margin-bottom:2px;font-size:12px;letter-spacing:-.01em}
+.jrow .cell .mono{font-size:10px;color:var(--s500)}
+.seamrow .cell{background:var(--seam-bg)}
+.seamrow .rk{background:#fdf3e1;color:var(--seam)}
+.seamrow .cell .fr{color:var(--seam);font-weight:500}
+.seamrow .cell .fr::before{content:"△ ";font-family:'Geist Mono',monospace}
+.fixrow .cell{background:var(--keep-bg)}
+.fixrow .rk{background:#e7faf1;color:var(--keep)}
+.fixrow .cell .fx{color:var(--keep);font-weight:500}
+.fixrow .cell .fx::before{content:"→ ";font-family:'Geist Mono',monospace}
+
+/* ════════ POLISH / DEDUP TABLE ════════ */
+.dedup{border:1px solid var(--s900);border-radius:10px;overflow:hidden}
+.dedup .dh{display:grid;grid-template-columns:34px 1.1fr 1.5fr 1.3fr 110px;background:var(--s900)}
+.dedup .dh .c{padding:9px 13px;color:rgba(255,255,255,.55);font-family:'Geist Mono',monospace;font-size:8.5px;text-transform:uppercase;letter-spacing:.14em;border-right:1px solid rgba(255,255,255,.08)}
+.dedup .dh .c:last-child{border-right:0}
+.drow{display:grid;grid-template-columns:34px 1.1fr 1.5fr 1.3fr 110px;border-top:1px solid var(--rule)}
+.drow .c{padding:12px 13px;border-right:1px solid var(--rule-soft);font-size:11.5px;color:var(--s600);line-height:1.5}
+.drow .c:last-child{border-right:0}
+.drow .c.n{font-family:'Geist Mono',monospace;font-size:9px;color:var(--s400);background:var(--s50);display:flex;align-items:center;justify-content:center;border-right:1px solid var(--rule)}
+.drow .c .ti{font-size:12.5px;font-weight:600;color:var(--s900);letter-spacing:-.01em;margin-bottom:3px}
+.drow .c .where{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px}
+.drow .c .where code{font-family:'Geist Mono',monospace;font-size:9px;color:var(--s500);background:var(--s100);padding:1px 5px;border-radius:3px}
+.drow .c.dec{display:flex;align-items:flex-start}
+.drow .c b{color:var(--s900);font-weight:600}
+
+/* ════════ PRINCIPLES ════════ */
+.principles{display:grid;grid-template-columns:repeat(2,1fr);gap:0;border:1px solid var(--s200);border-radius:10px;overflow:hidden}
+.principle{padding:16px 18px;border-right:1px solid var(--rule);border-top:1px solid var(--rule);display:flex;flex-direction:column;gap:6px}
+.principle:nth-child(-n+2){border-top:0}
+.principle:nth-child(2n){border-right:0}
+.principle .pn{font-family:'Geist Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.16em;color:var(--s400);font-weight:600}
+.principle .pt{font-size:14px;font-weight:600;letter-spacing:-.015em}
+.principle .pd{font-size:12px;color:var(--s600);line-height:1.55}
+.principle .pd b{color:var(--s900);font-weight:500}
+
+/* ── Footer ─────────────────────────────────────── */
+.foot{padding:20px 56px;border-top:1px solid var(--s900);background:var(--s50);display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;font-family:'Geist Mono',monospace;font-size:9.5px;text-transform:uppercase;letter-spacing:.12em;color:var(--s500)}
+.foot strong{color:var(--s900);font-weight:600}
+.foot .crit{display:flex;gap:8px;align-items:center;color:var(--keep)}
+
+@media(max-width:1180px){
+  .gnav .t span{display:none}
+  .gnav .t{padding:0 11px}
+  .mock .topright .owned{display:none}
+  .mock .scn .l .sub{display:none}
+}
+@media(max-width:1080px){
+  .problem{grid-template-columns:1fr 1fr}
+  .os{grid-template-columns:1fr}
+  .streams{grid-template-columns:1fr 1fr}
+  .journey .jhead,.jrow{grid-template-columns:120px 1fr}
+  .journey .jhead .c:not(.lab):nth-child(n+3),.jrow .cell:nth-child(n+3){display:none}
+  .dedup .dh,.drow{grid-template-columns:28px 1fr 1fr}
+  .dedup .dh .c:nth-child(n+4),.drow .c:nth-child(n+4){display:none}
+}
+@media(max-width:720px){
+  .mast,.canvas,.foot{padding-left:22px;padding-right:22px}
+  .principles{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<div class="opbar">
+  <div class="in">
+    <div class="l">
+      <span class="g">V</span><strong>VitalCV</strong>
+      <span class="sep">/</span>
+      <span style="color:var(--s400)">platform integration · wave 278</span>
+    </div>
+    <div class="r">
+      <span>navigation · entry point · journey · polish</span>
+      <span style="color:var(--s700)">|</span>
+      <span class="pill"><span class="dot blink"></span>design</span>
+      <span style="color:var(--s500)">vc.2026.06.23</span>
+    </div>
+  </div>
+</div>
+
+<div class="doc">
+
+  <!-- ── MASTHEAD ────────────────────────────────── -->
+  <header class="mast">
+    <div class="crumb"><span class="r"></span>Wave 278 · platform integration · <b>no new features</b> · <b>no new pages</b> · <b>no new subsystems</b> · only integration</div>
+    <h1>Four streams. <em>One platform.</em></h1>
+    <p class="lede">VitalCV shipped as four self-standing products — <strong>Wallet, Mobility, Organizations, Opportunities</strong> — each with its own shell, its own navigation model, its own wave number, and no way to cross between them. Every stream is sound. The seams between them are the problem. Wave 278 adds nothing new: it draws <strong>one navigation model</strong>, names <strong>one place every user starts</strong>, traces the clinician across all four, and removes every surface that exists twice. The test is simple — VitalCV should feel like one platform, not four projects merged.</p>
+    <div class="metarow">
+      <div class="m"><div class="mk">Streams</div><div class="mv">4 <span>standalone shells</span></div></div>
+      <div class="m"><div class="mk">Wave spread</div><div class="mv">240–270 <span>· four numbers</span></div></div>
+      <div class="m"><div class="mk">Duplicate surfaces</div><div class="mv">7 <span>identified</span></div></div>
+      <div class="m"><div class="mk">Net new pages</div><div class="mv">0 <span>· integration only</span></div></div>
+      <div class="m"><div class="mk">Entry points today</div><div class="mv">4 <span>→ 1</span></div></div>
+    </div>
+  </header>
+
+  <div class="canvas">
+
+    <!-- ── THE PROBLEM ──────────────────────────── -->
+    <section class="sec">
+      <div class="sh"><span class="tag">W278</span><h2>The state today: four front doors</h2><span class="ey">before integration</span></div>
+      <p class="deck">Each stream renders its <strong>own</strong> dark scenario strip, its <strong>own</strong> sidebar, its <strong>own</strong> footer, and stamps its <strong>own</strong> wave number. A clinician who lands in the Wallet has no way to reach Mobility, Organizations, or Opportunities — they are separate URLs with separate chrome. The same concepts (<span class="k k-seam"><span class="d"></span>Timeline</span>&nbsp;<span class="k k-seam"><span class="d"></span>Trust</span>&nbsp;<span class="k k-seam"><span class="d"></span>Opportunities</span>) appear in more than one shell, drawn differently each time.</p>
+      <div class="problem">
+        <div class="shellcard">
+          <div class="strip"><b>Career Wallet</b><span class="w">w250</span></div>
+          <div class="body">
+            <div class="nm">Wallet</div>
+            <div class="navlist">
+              <div class="ni"><span class="b"></span>Wallet Home</div>
+              <div class="ni"><span class="b"></span>My Evidence</div>
+              <div class="ni dup"><span class="b"></span>My Timeline</div>
+              <div class="ni dup"><span class="b"></span>My Trust</div>
+              <div class="ni"><span class="b"></span>Share</div>
+            </div>
+            <div class="ft">/wallet · own sidebar</div>
+          </div>
+        </div>
+        <div class="shellcard">
+          <div class="strip"><b>Career OS</b><span class="w">w240</span></div>
+          <div class="body">
+            <div class="nm">Mobility</div>
+            <div class="navlist">
+              <div class="ni"><span class="b"></span>Career OS</div>
+              <div class="ni dup"><span class="b"></span>Memory · timeline</div>
+              <div class="ni"><span class="b"></span>Reputation</div>
+              <div class="ni"><span class="b"></span>Mobility</div>
+            </div>
+            <div class="ft">/career · own top-tabs</div>
+          </div>
+        </div>
+        <div class="shellcard">
+          <div class="strip"><b>Organization Graph</b><span class="w">w265</span></div>
+          <div class="body">
+            <div class="nm">Organizations</div>
+            <div class="navlist">
+              <div class="ni"><span class="b"></span>Profile</div>
+              <div class="ni dup"><span class="b"></span>Timeline</div>
+              <div class="ni dup"><span class="b"></span>Trust</div>
+              <div class="ni"><span class="b"></span>Graph</div>
+              <div class="ni dup"><span class="b"></span>Opportunities</div>
+            </div>
+            <div class="ft">/organizations · own sidebar</div>
+          </div>
+        </div>
+        <div class="shellcard">
+          <div class="strip"><b>Opportunity Network</b><span class="w">w270</span></div>
+          <div class="body">
+            <div class="nm">Opportunities</div>
+            <div class="navlist">
+              <div class="ni dup"><span class="b"></span>Opportunities</div>
+              <div class="ni"><span class="b"></span>Detail</div>
+              <div class="ni"><span class="b"></span>Next · recommend</div>
+              <div class="ni"><span class="b"></span>Growth</div>
+            </div>
+            <div class="ft">/opportunities · own sidebar</div>
+          </div>
+        </div>
+      </div>
+      <div class="problem-note">
+        <span><span class="k k-seam"><span class="d"></span>amber</span> = same concept rendered in more than one shell</span>
+        <span>4 scenario strips · 4 footers · 4 wave numbers · 0 cross-links</span>
+      </div>
+    </section>
+
+    <!-- ── D1 · PLATFORM NAVIGATION ─────────────── -->
+    <section class="sec" id="d1">
+      <div class="sh"><span class="tag">W278·D1</span><h2>Platform navigation — one model</h2><span class="ey">create</span></div>
+      <p class="deck">One shell wraps all four streams. <strong>A single dark op-bar</strong> (subject + ledger state, stated once), <strong>a single brandmark</strong>, and <strong>one global nav</strong> whose primary destinations <em>are</em> the four streams — entered from a home. Each destination keeps its existing surfaces, demoted to a <strong>contextual sub-nav</strong> that only appears when you're inside it. Nothing is rebuilt; the streams are mounted under one chrome instead of four.</p>
+
+      <div class="mock">
+        <div class="scn">
+          <div class="in">
+            <div class="l">
+              <span class="mono">VitalCV</span>
+              <span style="color:var(--s700)">/</span>
+              <span class="sub">Subject <b>Macie Miller</b> · NPI <b>1346053246</b></span>
+            </div>
+            <div class="r">
+              <span><span class="dot blink"></span>ledger live</span>
+              <span style="color:var(--s700)">|</span>
+              <span class="mono">vc.2026.06.23 · w278</span>
+            </div>
+          </div>
+        </div>
+        <div class="top">
+          <div style="display:flex;align-items:center;gap:26px;min-width:0">
+            <div class="brand">
+              <span class="glyph"><span class="sq"></span>
+                <svg viewBox="0 0 20 20" width="22" height="22"><path d="M3 10h3l2-5 4 10 2-5h3" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </span>
+              <span class="wm">VitalCV</span>
+            </div>
+            <nav class="gnav">
+              <div class="t home"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg><span>Career OS</span><span class="home-mark"></span></div>
+              <div class="t on"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/></svg><span>Wallet</span></div>
+              <div class="t"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 17l6-6 4 4 6-7"/><path d="M4 21h16"/></svg><span>Mobility</span></div>
+              <div class="t"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="6" cy="7" r="2.5"/><circle cx="18" cy="7" r="2.5"/><circle cx="12" cy="17" r="2.5"/><path d="M8 8l3 7M16 8l-3 7"/></svg><span>Organizations</span></div>
+              <div class="t"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg><span>Opportunities</span></div>
+            </nav>
+          </div>
+          <div class="topright">
+            <span class="owned"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l7 3v6c0 5-3 7-7 9-4-2-7-4-7-9V6z"/><path d="M9 12l2 2 4-4"/></svg>Owned ledger · portable</span>
+            <span class="btn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12"/><path d="M7 11l5 4 5-4"/><path d="M5 21h14"/></svg>Export receipt</span>
+          </div>
+        </div>
+        <div class="subnav">
+          <span class="lead">Wallet</span>
+          <span class="si on">Home</span>
+          <span class="si">Evidence</span>
+          <span class="si">Timeline</span>
+          <span class="si">Trust</span>
+          <span class="si">Share</span>
+        </div>
+        <div class="stagein">
+          <div style="background:#fff;border:1px solid var(--s200);border-radius:9px;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;gap:14px">
+            <div>
+              <div style="font-family:'Geist Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.14em;color:var(--s400)">Wallet · home</div>
+              <div style="font-size:16px;font-weight:600;letter-spacing:-.02em;margin-top:3px">Each stream renders here — same shell, contextual sub-nav</div>
+            </div>
+            <span class="k k-keep"><span class="d"></span>one chrome</span>
+          </div>
+        </div>
+      </div>
+      <div class="mock-caption"><b>Read</b><span>Global nav top = the four streams + their shared home. Grey strip below = the active stream's own surfaces, scoped to where you are. The op-bar states subject &amp; ledger state once, for the whole platform.</span></div>
+
+      <div class="eyebrow">The model in one line</div>
+      <div class="principles">
+        <div class="principle"><div class="pn">Spine</div><div class="pt">Career OS · Wallet · Mobility · Organizations · Opportunities</div><div class="pd">Five global destinations. <b>Career OS is home</b>; the other four are the streams. This is the only top-level nav anywhere in the product.</div></div>
+        <div class="principle"><div class="pn">Depth</div><div class="pt">Each stream owns a contextual sub-nav</div><div class="pd">Wallet's <b>Evidence · Timeline · Trust · Share</b> become a second row, visible only inside Wallet. Org's and Mobility's surfaces work the same way. No stream's surfaces leak into the global bar.</div></div>
+        <div class="principle"><div class="pn">Chrome stated once</div><div class="pt">One op-bar, one brandmark, one footer</div><div class="pd">Subject, NPI, ledger state, build hash — declared a single time for the platform, not re-declared per stream.</div></div>
+        <div class="principle"><div class="pn">One namespace</div><div class="pt">Every route hangs off the same root</div><div class="pd"><code style="font-family:'Geist Mono',monospace;font-size:10px">/wallet · /mobility · /organizations · /opportunities</code> under one router. Career OS's bare <code style="font-family:'Geist Mono',monospace;font-size:10px">/career</code> &amp; <code style="font-family:'Geist Mono',monospace;font-size:10px">/mobility</code> fold in.</div></div>
+      </div>
+    </section>
+
+    <!-- ── D2 · CAREER OS ENTRY POINT ───────────── -->
+    <section class="sec" id="d2">
+      <div class="sh"><span class="tag">W278·D2</span><h2>Career OS — the one entry point</h2><span class="ey">build</span></div>
+      <p class="deck"><strong>Where does every user start? Career OS.</strong> Not the Wallet, not a stream — a home that shows who you are, your one career-health read, where you left off, and four doors into the streams. It is the answer to "what is this platform," given in a single screen. Every stream is reachable in one click; nothing here is a new feature — it is the existing reads, composed once.</p>
+
+      <div class="mock">
+        <div class="scn"><div class="in">
+          <div class="l"><span class="mono">VitalCV</span><span style="color:var(--s700)">/</span><span class="sub">Subject <b>Macie Miller</b> · PA-C · Orthopedic Surgery</span></div>
+          <div class="r"><span><span class="dot blink"></span>ledger live</span></div>
+        </div></div>
+        <div class="top">
+          <div style="display:flex;align-items:center;gap:26px;min-width:0">
+            <div class="brand"><span class="glyph"><span class="sq"></span><svg viewBox="0 0 20 20" width="22" height="22"><path d="M3 10h3l2-5 4 10 2-5h3" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="wm">VitalCV</span></div>
+            <nav class="gnav">
+              <div class="t on home"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg><span>Career OS</span></div>
+              <div class="t"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/></svg><span>Wallet</span></div>
+              <div class="t"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 17l6-6 4 4 6-7"/><path d="M4 21h16"/></svg><span>Mobility</span></div>
+              <div class="t"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="6" cy="7" r="2.5"/><circle cx="18" cy="7" r="2.5"/><circle cx="12" cy="17" r="2.5"/><path d="M8 8l3 7M16 8l-3 7"/></svg><span>Organizations</span></div>
+              <div class="t"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg><span>Opportunities</span></div>
+            </nav>
+          </div>
+          <div class="topright"><span class="owned"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l7 3v6c0 5-3 7-7 9-4-2-7-4-7-9V6z"/><path d="M9 12l2 2 4-4"/></svg>Owned · portable</span></div>
+        </div>
+        <div class="stagein">
+          <div class="os">
+            <div class="os-id">
+              <div class="who">
+                <div class="ava">MM</div>
+                <div>
+                  <div class="nm">Macie Miller</div>
+                  <div class="cred">PA-C · Physician Assistant</div>
+                  <div class="meta"><span>Orthopedic Surgery</span><span>·</span><span>NPI <span class="mono">1346053246</span></span><span>·</span><span>Irvine, CA</span></div>
+                </div>
+              </div>
+              <div class="health">
+                <div class="hh"><span class="t">Career Health</span><span class="v">68% · Conditional Ready ▲ +6</span></div>
+                <div class="bar"><i></i></div>
+                <div class="hb"><span>Share of career standing on fresh, primary-source evidence</span><b>projected · never stored</b></div>
+              </div>
+            </div>
+            <div class="continue">
+              <div class="lab">Continue where you left off</div>
+              <div class="resume">
+                <div class="ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l7 3v6c0 5-3 7-7 9-4-2-7-4-7-9V6z"/></svg></div>
+                <div class="tx"><div class="a">CA PA License · expiring in 38 days</div><div class="b">Wallet · Evidence · authority lane</div></div>
+                <div class="go">open<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 6l6 6-6 6"/></svg></div>
+              </div>
+              <div class="resume">
+                <div class="ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg></div>
+                <div class="tx"><div class="a">3 roles match your fresh evidence</div><div class="b">Opportunities · projected from Wallet</div></div>
+                <div class="go">open<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 6l6 6-6 6"/></svg></div>
+              </div>
+            </div>
+
+            <div class="streams">
+              <div class="stream">
+                <div class="row1"><div class="ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/></svg></div><span class="ct">Stream 01</span></div>
+                <div class="nm">Wallet</div>
+                <div class="ds">Your owned evidence ledger — what you can prove, who you've shared it with.</div>
+                <div class="st"><span class="pp"></span>14 credentials · 68% fresh</div>
+              </div>
+              <div class="stream">
+                <div class="row1"><div class="ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 17l6-6 4 4 6-7"/><path d="M4 21h16"/></svg></div><span class="ct">Stream 02</span></div>
+                <div class="nm">Mobility</div>
+                <div class="ds">Readiness, reputation &amp; the next move — where your evidence can take you.</div>
+                <div class="st"><span class="pp am"></span>2 gaps to close</div>
+              </div>
+              <div class="stream">
+                <div class="row1"><div class="ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="6" cy="7" r="2.5"/><circle cx="18" cy="7" r="2.5"/><circle cx="12" cy="17" r="2.5"/><path d="M8 8l3 7M16 8l-3 7"/></svg></div><span class="ct">Stream 03</span></div>
+                <div class="nm">Organizations</div>
+                <div class="ds">The institutions you're connected to — your verified work-history graph.</div>
+                <div class="st"><span class="pp"></span>Cedar Health · active</div>
+              </div>
+              <div class="stream">
+                <div class="row1"><div class="ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg></div><span class="ct">Stream 04</span></div>
+                <div class="nm">Opportunities</div>
+                <div class="ds">Roles projected from your owned evidence — never a stored match.</div>
+                <div class="st"><span class="pp"></span>3 fresh matches</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="mock-caption"><b>Composed, not built</b><span>Identity block, Career Health read, continuity resume, and the four stream doors all pull from data that already exists across the streams. Career OS is the assembly — the platform's answer to "where am I, and where can I go."</span></div>
+    </section>
+
+    <!-- ── D3 · JOURNEY AUDIT ───────────────────── -->
+    <section class="sec" id="d3">
+      <div class="sh"><span class="tag">W278·D3</span><h2>User journey audit</h2><span class="ey">trace · clinician</span></div>
+      <p class="deck">Follow Macie across the platform: <strong>Wallet → Mobility → Organizations → Opportunity</strong>. Each step works inside its own stream. The friction is entirely at the <span class="k k-seam"><span class="d"></span>seams</span> — the handoffs where today she has to leave one product and re-orient in another. Integration closes the seams; it does not touch the steps.</p>
+
+      <div class="journey">
+        <div class="jhead">
+          <div class="c lab">Stage</div>
+          <div class="c"><b>Start</b>Career OS</div>
+          <div class="c"><b>Wallet</b>owned evidence</div>
+          <div class="c"><b>Mobility</b>readiness</div>
+          <div class="c"><b>Organizations</b>the graph</div>
+          <div class="c"><b>Opportunity</b>the role</div>
+        </div>
+        <div class="jrow">
+          <div class="rk">What she does</div>
+          <div class="cell"><b>Lands</b>Sees identity, health 68%, two things to resume.</div>
+          <div class="cell"><b>Proves</b>Reviews 14 credentials; spots license expiring.</div>
+          <div class="cell"><b>Reads</b>Sees readiness for a senior ortho role; 2 gaps.</div>
+          <div class="cell"><b>Connects</b>Confirms Cedar Health work history in the graph.</div>
+          <div class="cell"><b>Applies</b>Sends a scoped evidence packet to a matched role.</div>
+        </div>
+        <div class="jrow seamrow">
+          <div class="rk">Seam / friction</div>
+          <div class="cell"><span class="fr">None — this is the fix.</span> Today there is no such start.</div>
+          <div class="cell"><span class="fr">To act on a gap she must guess Mobility is a different app.</span></div>
+          <div class="cell"><span class="fr">Mobility's "Timeline" ≠ Wallet's "Timeline" — re-orient.</span></div>
+          <div class="cell"><span class="fr">Org "Trust" repeats Wallet "Trust" with different chrome.</span></div>
+          <div class="cell"><span class="fr">Opportunities is a 4th URL; the packet re-asks for evidence.</span></div>
+        </div>
+        <div class="jrow fixrow">
+          <div class="rk">After W278</div>
+          <div class="cell"><span class="fx">Career OS is the front door for everyone.</span></div>
+          <div class="cell"><span class="fx">"Close this gap" links straight into Mobility, in-shell.</span></div>
+          <div class="cell"><span class="fx">One Timeline concept; Mobility shows the readiness view of it.</span></div>
+          <div class="cell"><span class="fx">One Trust surface; Org shows the org-scoped view.</span></div>
+          <div class="cell"><span class="fx">Packet inherits the live Wallet — no re-entry.</span></div>
+        </div>
+      </div>
+      <div class="mock-caption"><b>Finding</b><span>Zero friction lives inside a stream. <strong>100% of it lives at the four handoffs</strong> — exactly what a single shell, one entry point, and shared concepts remove. The journey is already good; it was just cut into four.</span></div>
+    </section>
+
+    <!-- ── D4 · PLATFORM POLISH ─────────────────── -->
+    <section class="sec" id="d4">
+      <div class="sh"><span class="tag">W278·D4</span><h2>Platform polish — remove the duplicates</h2><span class="ey">remove</span></div>
+      <p class="deck">Integration is mostly subtraction. Seven things exist more than once across the four streams. Each gets one home; the rest are removed or demoted to a contextual view. <strong>No concept is deleted — only its duplicates.</strong></p>
+
+      <div class="dedup">
+        <div class="dh">
+          <div class="c">#</div>
+          <div class="c">Duplicate</div>
+          <div class="c">Where it exists today</div>
+          <div class="c">Resolution</div>
+          <div class="c">Action</div>
+        </div>
+        <div class="drow">
+          <div class="c n">01</div>
+          <div class="c"><div class="ti">Scenario strip</div>Four dark op-bars, one per stream, each restating subject &amp; build.</div>
+          <div class="c"><div class="where"><code>wallet w250</code><code>career w240</code><code>org w265</code><code>opp w270</code></div></div>
+          <div class="c">Collapse to <b>one platform op-bar</b>. Subject, NPI, ledger state &amp; build hash stated once.</div>
+          <div class="c dec"><span class="k k-cut"><span class="d"></span>remove ×3</span></div>
+        </div>
+        <div class="drow">
+          <div class="c n">02</div>
+          <div class="c"><div class="ti">Navigation pattern</div>Wallet/Org/Opp use a left sidebar; Career OS uses top tabs. Two grammars.</div>
+          <div class="c"><div class="where"><code>Sidebar</code><code>TopChrome</code></div></div>
+          <div class="c">Adopt <b>one global top-nav + contextual sub-nav</b> everywhere. Retire the per-stream sidebars.</div>
+          <div class="c dec"><span class="k k-cut"><span class="d"></span>unify</span></div>
+        </div>
+        <div class="drow">
+          <div class="c n">03</div>
+          <div class="c"><div class="ti">Timeline</div>Appears as Wallet "My Timeline", Org "Timeline", and Career OS "Memory".</div>
+          <div class="c"><div class="where"><code>/wallet/timeline</code><code>/organizations/…/timeline</code><code>memory</code></div></div>
+          <div class="c">One <b>Timeline concept</b>. Wallet shows the career-of-record view; Org shows its org-scoped slice; Mobility reads it for readiness.</div>
+          <div class="c dec"><span class="k k-seam"><span class="d"></span>merge → 1</span></div>
+        </div>
+        <div class="drow">
+          <div class="c n">04</div>
+          <div class="c"><div class="ti">Trust</div>Wallet "My Trust" and Org "Trust" are two surfaces drawing the same primitive.</div>
+          <div class="c"><div class="where"><code>/wallet/trust</code><code>/organizations/…/trust</code></div></div>
+          <div class="c">One <b>Trust surface</b> with a scope toggle (clinician ↔ org). Same dimensions, same chips, one component.</div>
+          <div class="c dec"><span class="k k-seam"><span class="d"></span>merge → 1</span></div>
+        </div>
+        <div class="drow">
+          <div class="c n">05</div>
+          <div class="c"><div class="ti">Opportunities</div>It's both a surface inside the Org graph and the entire Opportunity Network app.</div>
+          <div class="c"><div class="where"><code>/organizations/…/opportunities</code><code>/opportunities</code></div></div>
+          <div class="c"><b>Opportunities is one global destination.</b> The Org surface becomes a filtered link into it, not its own page.</div>
+          <div class="c dec"><span class="k k-seam"><span class="d"></span>demote</span></div>
+        </div>
+        <div class="drow">
+          <div class="c n">06</div>
+          <div class="c"><div class="ti">Readiness / Growth</div>Career OS "Mobility" overlaps Opportunity Network "Next" &amp; "Growth".</div>
+          <div class="c"><div class="where"><code>mobility</code><code>/opportunities/next</code><code>/opportunities/growth</code></div></div>
+          <div class="c">Consolidate forward-looking reads under <b>Mobility</b>. Opportunities lists roles; Mobility explains readiness for them.</div>
+          <div class="c dec"><span class="k k-seam"><span class="d"></span>merge → 1</span></div>
+        </div>
+        <div class="drow">
+          <div class="c n">07</div>
+          <div class="c"><div class="ti">Footer &amp; wave stamp</div>Four footers, four taglines, four wave numbers (240/250/265/270).</div>
+          <div class="c"><div class="where"><code>×4 footers</code></div></div>
+          <div class="c">One <b>platform footer</b> &amp; one wave stamp. Streams stop advertising their own version numbers to the user.</div>
+          <div class="c dec"><span class="k k-cut"><span class="d"></span>remove ×3</span></div>
+        </div>
+      </div>
+
+      <div class="eyebrow">Boundaries — what integration must not do</div>
+      <div class="principles">
+        <div class="principle"><div class="pn">Hold the line 01</div><div class="pt">No new features</div><div class="pd">Every surface in W278 already ships in a stream. The work is composition, not creation.</div></div>
+        <div class="principle"><div class="pn">Hold the line 02</div><div class="pt">No new pages</div><div class="pd">Career OS reuses existing reads. The dedup <b>reduces</b> page count; it never adds one.</div></div>
+        <div class="principle"><div class="pn">Hold the line 03</div><div class="pt">No new subsystems</div><div class="pd">One router, one shell, one chrome. The streams keep their data models untouched.</div></div>
+        <div class="principle"><div class="pn">Hold the line 04</div><div class="pt">Demote, don't delete</div><div class="pd">Duplicated concepts get one home and a contextual view — the concept survives, the copy of it doesn't.</div></div>
+      </div>
+    </section>
+
+    <!-- ── SUCCESS ─────────────────────────────── -->
+    <section class="sec" id="success">
+      <div class="sh"><span class="tag">W278</span><h2>Success criteria</h2><span class="ey">the test</span></div>
+      <div class="principles" style="border-color:var(--s900)">
+        <div class="principle" style="background:var(--keep-bg)"><div class="pn" style="color:var(--keep)">Met when</div><div class="pt">One front door</div><div class="pd">Every user — clinician, org, verifier — starts at <b>Career OS</b> and reaches any stream in one click.</div></div>
+        <div class="principle" style="background:var(--keep-bg)"><div class="pn" style="color:var(--keep)">Met when</div><div class="pt">One chrome</div><div class="pd">A single op-bar, brandmark, nav &amp; footer. No stream restates the subject or its wave number.</div></div>
+        <div class="principle" style="background:var(--keep-bg)"><div class="pn" style="color:var(--keep)">Met when</div><div class="pt">One of each concept</div><div class="pd">Timeline, Trust, Opportunities &amp; Readiness each have exactly one home, shown in context.</div></div>
+        <div class="principle" style="background:var(--keep-bg)"><div class="pn" style="color:var(--keep)">Met when</div><div class="pt">No visible seams</div><div class="pd">The clinician journey crosses all four streams without ever feeling she left one product for another.</div></div>
+      </div>
+    </section>
+
+  </div><!-- /canvas -->
+
+  <footer class="foot">
+    <div>VitalCV · <strong>Platform Integration · W278</strong> · D1 navigation · D2 entry point · D3 journey · D4 polish</div>
+    <div class="crit"><span style="width:6px;height:6px;border-radius:50%;background:var(--keep);display:inline-block"></span> one platform · not four merged projects</div>
+    <div>vc.2026.06.23 · w278 · v1</div>
+  </footer>
+</div>
+
+<template id="__bundler_thumbnail">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+    <rect width="100" height="100" fill="#0f172a"/>
+    <circle cx="50" cy="50" r="8" fill="none" stroke="#fff" stroke-width="3"/>
+    <circle cx="26" cy="30" r="5.5" fill="none" stroke="#34d399" stroke-width="3"/>
+    <circle cx="74" cy="30" r="5.5" fill="none" stroke="#34d399" stroke-width="3"/>
+    <circle cx="26" cy="72" r="5.5" fill="none" stroke="#34d399" stroke-width="3"/>
+    <circle cx="74" cy="72" r="5.5" fill="none" stroke="#34d399" stroke-width="3"/>
+    <path d="M30 33 44 47M70 33 56 47M30 69 44 53M70 69 56 53" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/>
+  </svg>
+</template>
+</body>
+</html>

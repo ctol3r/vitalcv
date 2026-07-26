@@ -28,6 +28,8 @@ import { CrsEngine } from '@vitalcv/crs';
 import type { TrustStateReceiptRecord } from '@vitalcv/psv';
 import prisma from '../graphql/prisma_client';
 import { log } from '../obs/logger';
+import { env } from '../config/env';
+import { hmacSha256Hex } from '../utils/deterministic';
 import { getActiveDivergencePenalty } from '../services/identity/divergenceEngine';
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -160,23 +162,49 @@ function extractPublicIdentityFields(
 }
 
 /**
- * Extract public audit hashes from the artifact's claimHashes field.
- * These are already SHA-256 digests committed to the transparency log — safe to expose.
+ * Extract public audit digests from the artifact's claimHashes field.
+ *
+ * `claimHashes` are the anchored Merkle **leaves** — raw `sha256({type,value})`
+ * of canonical claims. Their preimages are low-entropy (status, jurisdiction,
+ * the already-public NPI, ISO dates), so exposing the raw leaves lets an
+ * attacker dictionary-attack the claim values (ASVS gap G4). We MUST NOT change
+ * how the leaves are computed (they anchor `merkleRoot`), so instead we salt
+ * them at the trust boundary: each exposed digest is `HMAC-SHA256(leaf, secret)`
+ * with a server-held key the attacker doesn't have.
+ *
+ * Fail-closed: if no `CLAIM_DIGEST_HMAC_SECRET` is configured we expose NOTHING
+ * rather than leak the raw dictionary-attackable leaves. (The raw leaves remain
+ * internal for Merkle verification — see services/merkleIntegrity.ts.)
  */
-function extractPublicAuditHashes(claimHashes: unknown): string[] {
+export function extractPublicAuditHashes(claimHashes: unknown): string[] {
   if (!Array.isArray(claimHashes)) return [];
+  const secret = env().CLAIM_DIGEST_HMAC_SECRET;
+  if (!secret) return [];
   return claimHashes
     .filter((h): h is string => typeof h === 'string' && /^[0-9a-f]{64}$/i.test(h))
-    .slice(0, 10); // cap at 10 hashes
+    .slice(0, 10) // cap at 10 leaves
+    .map((leaf) => hmacSha256Hex(leaf, secret));
 }
 
 // ── Route handler ──────────────────────────────────────────────────────────
+
+// ShareLink.id is a Postgres uuid column — querying it with a non-uuid string
+// makes Prisma throw (a 500) instead of returning null, so a malformed slug
+// must 404 before it reaches the query.
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 async function handlePublicProfile(req: Request, res: Response): Promise<void> {
   const { slug } = req.params;
 
   if (typeof slug !== 'string' || slug.trim().length === 0) {
     res.status(400).json({ error: 'Invalid slug' });
+    return;
+  }
+
+  // Test the raw value — it is what the queries below receive, so a padded
+  // uuid must fail here rather than reach Prisma.
+  if (!UUID_RE.test(slug)) {
+    res.status(404).json({ error: 'Profile not found' });
     return;
   }
 

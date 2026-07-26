@@ -57,6 +57,17 @@ export type ResearchEventType =
   | 'RESEARCH_SCORE_COMPUTED'
   | 'RESEARCH_DISCLOSURE_UPDATED';
 
+// ── Activation lifecycle (ACT-1.3 / ACT-1.4) ─────────────────
+export type ActivationEventType =
+  | 'ACTIVATION_REQUIREMENTS_INSTANTIATED'
+  | 'ACTIVATION_REQUIREMENT_RESOLVED'
+  // ACT-1.4 — start-ready / started / cancellation event truth. Keyed on the
+  // application; the current start-state is DERIVED from this event stream, so a
+  // correction is a new event, never a silent overwrite.
+  | 'START_READY'
+  | 'START_RECORDED'
+  | 'START_CANCELLED';
+
 // ── Canonical union ──────────────────────────────────────────
 export type AuditEventType =
   | VerificationEventType
@@ -65,4 +76,5 @@ export type AuditEventType =
   | EmployerReviewEventType
   | TrustChainEventType
   | OperationalEventType
-  | ResearchEventType;
+  | ResearchEventType
+  | ActivationEventType;

@@ -5,12 +5,6 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 import { findHrefByText } from './helpers/public-copy-guard';
 
-const fetchLaunchEmployersMock = vi.hoisted(() => vi.fn());
-
-vi.mock('@/lib/launch/marketplace', () => ({
-  fetchLaunchEmployers: fetchLaunchEmployersMock,
-}));
-
 vi.mock('next/link', () => ({
   default: ({
     children,
@@ -74,38 +68,34 @@ describe('Wave 5 buyer proof surface', () => {
     expectNoBuyerBannedStrings(markup);
   });
 
-  it.skip('keeps /employers live, limitation-aware, and routed to the review request entry', async () => {
-    fetchLaunchEmployersMock.mockResolvedValueOnce({
-      employers: [
-        {
-          id: 'org_1',
-          slug: 'sample-health',
-          name: 'Sample Health',
-          facilityType: 'Hospital system',
-          tagline: 'Current regional care network with public role coverage.',
-          specialties: ['ICU'],
-          states: ['CA', 'NV'],
-          openRoles: 4,
-          trustScore: 89,
-          hiringStatus: 'HIRING_NOW',
-          verified: true,
-          trustIndicators: ['Current directory listing'],
-        },
-      ],
-      total: 3,
-    });
-
+  it('keeps /employers live, limitation-aware, and routed to the review request entry', async () => {
     const { default: EmployersPage } = await import('../app/employers/page');
 
     const markup = renderToStaticMarkup(await EmployersPage());
 
-    expect(markup).toContain('Decision before data.');
-    expect(markup).toContain('Stop chasing missing documents.');
-    expect(markup).toContain('Limitation-aware packets');
-    expect(markup).toContain('partial packet');
-    expect(markup).toContain('1 shown on this page');
-    expect(findHrefByText(markup, 'Request pilot review')).toBe('/review/request');
-    expect(findHrefByText(markup, 'Start with NPI lookup')).toBe('/passport');
+    // Wave 6: the doorway leads with the buyer outcome, not setup mechanics.
+    expect(markup).toContain('Start clinicians faster');
+    expect(markup).toContain('source-backed evidence');
+    // D3: limits are stated plainly and EARLY on employer surfaces, and the
+    // cadence line derives from the source-lane registry.
+    expect(markup).toContain('data-employer-limits');
+    expect(markup).toContain('not a credentialing service');
+    expect(markup).toContain('monthly snapshot');
+    expect(markup).toContain('quarterly snapshot');
+    // The Type 2 claim is real and necessary — but it is Step 1 of the
+    // workflow, rendered AFTER the operating model, never the page's thesis.
+    expect(markup).toContain('Claim your organization');
+    expect(markup).toContain('Enter your organization’s NPI');
+    expect(markup).toContain('it is not legal proof of authority');
+    const workflowAt = markup.indexOf('data-employer-workflow');
+    const claimAt = markup.indexOf('Enter your organization’s NPI');
+    expect(workflowAt, 'workflow section renders').toBeGreaterThan(-1);
+    expect(
+      workflowAt,
+      'the operating model must precede the claim step (outcome before mechanics)',
+    ).toBeLessThan(claimAt);
+    expect(findHrefByText(markup, 'Request a pilot')).toBe('/pilot');
+    expect(findHrefByText(markup, 'Open your workspace')).toBe('/employer/dashboard');
     expectNoBuyerBannedStrings(markup);
   });
 

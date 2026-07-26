@@ -1,6 +1,8 @@
 'use client';
 
-export const dynamic = 'force-dynamic';
+// (Removed a dead `export const dynamic = 'force-dynamic'` — segment config in
+// a client component is silently ignored by Next, so it never applied. The
+// segment's real caching lives in layout.tsx: revalidate = 300.)
 
 /**
  * /passport — Passport entry + live ingest hydration
@@ -37,6 +39,7 @@ import {
   type PublicWedgeSurfaceState,
 } from '@/lib/trust/public-wedge-parity';
 import { trackPilotEvent } from '@/lib/pilot-ops/client';
+import { FUNNEL_EVENTS, trackFunnelEvent } from '@/lib/analytics/funnel';
 import { UX_EVENTS } from '@/lib/analytics/ux-events';
 import { resolveLivePathReadinessStatus } from '@/lib/live-path/contracts';
 
@@ -432,6 +435,36 @@ function PassportPageContent({
       ? `Checking readiness for ${displayEmployer}.`
       : null;
 
+  // NUM-1.6: the funnel's conversion point. RESULTS_DISPLAYED was declared but
+  // never fired, so the funnel ended at NPI_SUBMITTED and no completion rate was
+  // computable — a run that died here was indistinguishable from one that
+  // succeeded. Fires once per terminal state, resolving to the outcome the user
+  // actually saw. No NPI is attached: a SHA-256 of a 10-digit number is
+  // brute-forceable in seconds, so hashing it would not make it anonymous.
+  const funnelOutcomeRef = useRef(false);
+  useEffect(() => {
+    if (!hasTerminalState || funnelOutcomeRef.current) return;
+    funnelOutcomeRef.current = true;
+
+    if (canViewPassport) {
+      trackFunnelEvent(FUNNEL_EVENTS.RESULTS_DISPLAYED, { outcome: 'passport' });
+      return;
+    }
+
+    const outcome = noProfileYet
+      ? 'no_profile'
+      : disconnected
+        ? 'disconnected'
+        : runCompletedWithoutAnchor
+          ? 'no_anchor'
+          : 'error';
+    trackFunnelEvent(FUNNEL_EVENTS.DROPOFF_DETECTED, {
+      last_step: FUNNEL_EVENTS.NPI_SUBMITTED,
+      dropoff_reason: 'error',
+      outcome,
+    });
+  }, [hasTerminalState, canViewPassport, noProfileYet, disconnected, runCompletedWithoutAnchor]);
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const trimmed = npi.trim();
@@ -473,6 +506,19 @@ function PassportPageContent({
         : state.identity.sourceResult === 'FAILED'
           ? 'Unavailable'
           : undefined;
+
+  // Practice location — VERIFIED / source-backed from NPPES. Present only when the
+  // NPPES record carried a usable address; never fabricated. Empty string omits
+  // the render entirely (no source-backed chip over absent data). Prefer city/state;
+  // fall back to ZIP or street so a street/ZIP-only record still shows (matches /verify).
+  const practiceLocationLabel = identity.practiceLocation
+    ? ([identity.practiceLocation.city, identity.practiceLocation.state]
+        .filter(Boolean)
+        .join(', ')
+        || identity.practiceLocation.postalCode
+        || identity.practiceLocation.addressLine
+        || '')
+    : '';
 
   const npiValid = npi.length === 10 && !/\D/.test(npi);
   const npiChecksumOk = npiValid && isValidNpiChecksum(npi);
@@ -604,6 +650,15 @@ function PassportPageContent({
                 </h2>
                 {identity.specialty && (
                   <p className="text-muted-foreground text-sm mt-0.5">{identity.specialty}</p>
+                )}
+                {practiceLocationLabel && (
+                  <p className="text-muted-foreground text-sm mt-1.5 flex flex-wrap items-center gap-2">
+                    <span className="text-foreground/90">{practiceLocationLabel}</span>
+                    <span className="mz-chip mz-chip-ok">
+                      <span className="mz-gl" aria-hidden />
+                      Source-backed
+                    </span>
+                  </p>
                 )}
                 <p className="text-muted-foreground/50 text-xs mt-1">NPI {state.npi}</p>
                 {/* Value translation — makes identity confirmation feel meaningful */}

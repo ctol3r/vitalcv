@@ -1,0 +1,76 @@
+/* ============================================================
+   VitalCV · 01-primitives.css · Wave 1500 (DG-1.1 / DG-1.3)
+   RAW SCALES ONLY. No component may reference these directly —
+   consume roles from 02-semantic.css.
+   Sources: matcha-zen doctrine + D56 calm wave (adopted),
+   vitalTokens.css Trust Blue / teal / glass / glow (DROPPED).
+   ============================================================ */
+
+:root {
+  /* ---- PAPER (warm surface scale) ---- */
+  --paper-0:   #ffffff;   /* raised card on paper */
+  --paper-50:  #f7f6f2;
+  --paper-100: #f4f2ec;   /* canonical page paper */
+  --paper-200: #efede7;
+  --paper-300: #e4e3e0;   /* deep paper / theme bridge */
+
+  /* ---- INK (warm near-black scale, anchored at #141414) ---- */
+  --ink-950: #0d0d0b;
+  --ink-900: #141414;    /* canonical ink */
+  --ink-800: #1a1916;
+  --ink-700: #2d2c28;
+  --ink-600: #474540;
+  --ink-500: #6b6860;    /* min for small text on paper (AA at 12px+) */
+  --ink-400: #96938a;    /* eyebrows / disabled only — never body text */
+  --ink-300: #c2bfb5;
+  --ink-200: #dddbd3;    /* rule */
+  --ink-100: #eceae4;    /* rule-soft */
+
+  /* ---- MATCHA (the ONE brand accent family) ---- */
+  --matcha-950: #16211a;
+  --matcha-900: #1f2c22;
+  --matcha-800: #2c3e2d;   /* canonical brand · meta theme-color */
+  --matcha-700: #3a4f3b;
+  --matcha-600: #4a634c;
+  --matcha-300: #a9bfa9;
+  --matcha-100: #e3eae2;
+  --matcha-50:  #f0f4ef;
+
+  /* ---- INDIGO (editorial italic accent ONLY — DG-2.4) ---- */
+  --indigo-600: #4f46e5;
+  --indigo-700: #4338ca;
+
+  /* ---- TRUTH-STATE HUES (D56, contrast-checked on paper) ---- */
+  --hue-ok:        #1c5c38;  --hue-ok-bg:      #f0faf5;  --hue-ok-rule:      #86c9a6;
+  --hue-watch:     #7d5a1e;  --hue-watch-bg:   #fdf4e7;  --hue-watch-rule:   #c9a84c;
+  --hue-p0:        #7a1414;  --hue-p0-bg:      #fef2f2;  --hue-p0-rule:      #f5a5a5;
+  --hue-info:      #1a3e6b;  --hue-info-bg:    #eff6ff;  --hue-info-rule:    #bfdbfe;
+  --hue-unknown:   #3f3d38;  --hue-unknown-bg: #f1efe9;  --hue-unknown-rule: #c8c4ba;
+  --hue-contra:    #5b2a86;  --hue-contra-bg:  #f6f0fb;  --hue-contra-rule:  #cdb0e8;
+
+  /* ---- TYPE ---- */
+  --font-display: 'Fraunces', Georgia, serif;
+  --font-body: 'Geist', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'Geist Mono', ui-monospace, 'SFMono-Regular', monospace;
+
+  --text-2xs: 10px;  --text-xs: 11px;  --text-sm: 12.5px; --text-base: 14px;
+  --text-md: 16px;   --text-lg: 19px;  --text-xl: 24px;   --text-2xl: 32px;
+  --text-3xl: 44px;  --text-4xl: 60px; --text-display: clamp(38px, 5.2vw, 68px);
+
+  /* ---- SPACE (4px base) ---- */
+  --space-1: 4px;  --space-2: 8px;  --space-3: 12px; --space-4: 16px;
+  --space-5: 20px; --space-6: 24px; --space-8: 32px; --space-10: 40px;
+  --space-12: 48px; --space-16: 64px; --space-24: 96px; --space-32: 128px;
+
+  /* ---- RADIUS (DG-1.9: near-sharp public; large radii = ops only) ---- */
+  --radius-1: 2px;  --radius-2: 4px;  --radius-3: 6px;
+  --radius-ops: 12px; /* OPS-ONLY */
+
+  /* ---- MOTION (DG-5.2 doctrine) ---- */
+  --ease-house: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --dur-fast: 160ms;  --dur-base: 320ms;  --dur-slow: 420ms;
+
+  /* ---- CONTAINER ---- */
+  --container-max: 1200px;
+  --prose-max: 68ch;
+}

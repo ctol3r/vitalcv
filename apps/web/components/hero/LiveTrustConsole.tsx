@@ -37,6 +37,16 @@ export function LiveTrustConsole({
     
     if (cleanNpi.length !== 10) {
       setFormMessage('NPI must be exactly 10 digits.');
+      // NUM-1.6: this rejection was silent. Someone who focused the field and
+      // typed a malformed NPI left no trace between NPI_INPUT_FOCUSED and
+      // NPI_SUBMITTED, so form abandonment was invisible. Length only — the
+      // value itself never leaves the client.
+      trackFunnelEvent(FUNNEL_EVENTS.DROPOFF_DETECTED, {
+        last_step: FUNNEL_EVENTS.NPI_INPUT_FOCUSED,
+        dropoff_reason: 'error',
+        outcome: 'invalid_length',
+        npi_length: cleanNpi.length,
+      });
       return;
     }
     

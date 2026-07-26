@@ -8,6 +8,7 @@ import {
   normalizeEmployerReviewStatusResponse,
 } from '@/lib/employer-review-actions';
 import { assertEmployerEvidencePacket } from '@/lib/trust/employer-packet-contract';
+import { buildIdentityHeaders } from '@/lib/auth/forwardIdentity';
 
 export const runtime = 'nodejs';
 
@@ -396,7 +397,7 @@ export async function POST(
         Accept: 'application/json',
         'x-correlation-id': resolveCorrelationId(req),
         ...optionalVerifierRoleHeader(req),
-        ...(userId ? { 'x-clerk-user-id': userId } : {}),
+        ...(await buildIdentityHeaders({ userId })),
       },
       body: JSON.stringify(sanitizedBody),
       cache: 'no-store',
@@ -470,7 +471,7 @@ export async function GET(
         Accept: req.headers.get('accept') ?? 'application/json',
         'x-correlation-id': resolveCorrelationId(req),
         ...optionalVerifierRoleHeader(req),
-        ...(userId ? { 'x-clerk-user-id': userId } : {}),
+        ...(await buildIdentityHeaders({ userId })),
       },
       cache: 'no-store',
       signal: AbortSignal.timeout(8_000),

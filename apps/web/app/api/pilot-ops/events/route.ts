@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.text();
-  const headers = buildMarketplaceHeaders(session, {
+  const headers = await buildMarketplaceHeaders(session, {
     'Content-Type': 'application/json',
   });
 

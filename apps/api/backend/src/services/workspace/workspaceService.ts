@@ -1,4 +1,3 @@
-// @ts-nocheck
 import {
   ActivePersona,
   type MembershipRole,
@@ -9,33 +8,90 @@ import {
   type User,
   UserRole,
   UserStatus,
+  type WorkspaceMembership,
   type WorkspacePreference,
 } from '@prisma/client';
+import { randomUUID } from 'node:crypto';
 import prisma from '../../graphql/prisma_client';
 import { fetchNpiFromCMS, normalizeProvider } from '../../modules/identity';
+import { AVAILABILITY_PLACEHOLDER_PREFIX } from '../matcha/availabilityRegistry';
 import { log } from '../../obs/logger';
 import { sha256ForPayload } from '../../utils/deterministic';
 import { HttpError } from '../../utils/httpError';
 
 const NPI_RE = /^\d{10}$/;
 
-type WorkspaceUserRecord = Prisma.UserGetPayload<{
-  include: {
-    personProfile: {
-      include: {
-        memberships: {
-          include: {
-            organizationProfile: true;
-          };
-          orderBy: {
-            createdAt: 'asc';
-          };
-        };
-      };
-    };
-    workspacePreference: true;
+// The Prisma schema declares NO relations between User, PersonProfile,
+// WorkspaceMembership, OrganizationProfile, or WorkspacePreference — the FK
+// columns exist as plain scalars, so `include` on any of them fails at
+// runtime ("Unknown field for include statement"). The composite below is
+// stitched from the real tables by hydrateWorkspaceUser(); do not reintroduce
+// `include` chains here without first adding the relations via an approved
+// migration.
+export type HydratedWorkspaceMembership = WorkspaceMembership & {
+  organizationProfile: OrganizationProfile;
+};
+
+export type HydratedPersonProfile = PersonProfile & {
+  memberships: HydratedWorkspaceMembership[];
+};
+
+export type WorkspaceUserRecord = User & {
+  personProfile: HydratedPersonProfile | null;
+  workspacePreference: WorkspacePreference | null;
+};
+
+export async function hydrateWorkspaceUser(user: User): Promise<WorkspaceUserRecord> {
+  const [personProfile, workspacePreference] = await Promise.all([
+    prisma.personProfile.findUnique({ where: { userId: user.id } }),
+    prisma.workspacePreference.findUnique({ where: { userId: user.id } }),
+  ]);
+
+  if (!personProfile) {
+    return { ...user, personProfile: null, workspacePreference };
+  }
+
+  const memberships = await prisma.workspaceMembership.findMany({
+    where: { personProfileId: personProfile.id },
+    orderBy: { createdAt: 'asc' },
+  });
+
+  const hydratedMemberships: HydratedWorkspaceMembership[] = [];
+  if (memberships.length > 0) {
+    const orgProfileIds = [...new Set(memberships.map((m) => m.organizationProfileId))];
+    const orgProfiles = await prisma.organizationProfile.findMany({
+      where: { id: { in: orgProfileIds } },
+    });
+    const orgById = new Map(orgProfiles.map((o) => [o.id, o]));
+    for (const membership of memberships) {
+      const organizationProfile = orgById.get(membership.organizationProfileId);
+      if (!organizationProfile) {
+        // Fail closed: a membership whose organization profile row is missing
+        // cannot grant a workspace.
+        log('warn', 'Workspace membership dropped — organization profile missing', {
+          event: 'workspace_membership_org_missing',
+          membershipId: membership.id,
+          organizationProfileId: membership.organizationProfileId,
+        });
+        continue;
+      }
+      hydratedMemberships.push({ ...membership, organizationProfile });
+    }
+  }
+
+  return {
+    ...user,
+    personProfile: { ...personProfile, memberships: hydratedMemberships },
+    workspacePreference,
   };
-}>;
+}
+
+export async function getHydratedWorkspaceUserByClerkUserId(
+  clerkUserId: string,
+): Promise<WorkspaceUserRecord | null> {
+  const user = await prisma.user.findUnique({ where: { clerkUserId } });
+  return user ? hydrateWorkspaceUser(user) : null;
+}
 
 export interface WorkspaceList {
   userId: string;
@@ -75,6 +131,17 @@ export interface PersonProfileInput {
   completeness: number;
 }
 
+/**
+ * True only for a platform-minted marketplace-availability placeholder row that
+ * is eligible to be reconciled onto a real Clerk id. This is an explicit
+ * allowlist (not "anything that isn't a `user_` id"): real Clerk accounts, seed
+ * rows, and any legacy/unknown row are all NOT eligible and must never be
+ * silently rebound. The prefix is imported from the minter so it cannot drift.
+ */
+export function isReconcilablePlaceholderId(id: string): boolean {
+  return id.startsWith(`${AVAILABILITY_PLACEHOLDER_PREFIX}:`);
+}
+
 export async function ensureWorkspaceUser(
   clerkUserId: string,
   email?: string,
@@ -97,6 +164,22 @@ export async function ensureWorkspaceUser(
   });
 
   if (byEmail) {
+    // Account-takeover guard. `email` reaches this function from a
+    // caller-supplied header (`x-clerk-user-email`) and the backend cannot
+    // verify it belongs to `clerkUserId`. Silently rebinding an existing row's
+    // clerkUserId to the incoming one would let an attacker who supplies a
+    // victim's email (with any Clerk id) hijack the victim's account.
+    //
+    // Reconcile onto the incoming id ONLY for a platform-minted placeholder row
+    // (explicit allowlist). Real Clerk accounts, seed rows, and any legacy row
+    // are refused. Note: every placeholder/seed minter uses a non-colliding
+    // synthetic `@*.local` address, so a real user's real email never reaches
+    // this branch for a real account — a match here is either a genuine
+    // placeholder handoff (allowed) or an attempt to rebind an established
+    // account (refused).
+    if (!isReconcilablePlaceholderId(byEmail.clerkUserId)) {
+      throw new HttpError(409, 'Email is already associated with another account.');
+    }
     return prisma.user.update({
       where: { id: byEmail.id },
       data: {
@@ -397,6 +480,11 @@ export async function ensureWorkspacePreference(
 
   return prisma.workspacePreference.create({
     data: {
+      // The schema declares id as dbgenerated(gen_random_uuid()) but the
+      // actual workspace_preferences table has NO column default (verified in
+      // prod information_schema 2026-07-05) — inserting without an id throws
+      // P2011. Supply it client-side.
+      id: randomUUID(),
       userId,
       activePersona: resolveDefaultPersona(user),
       activeOrgId: activeMemberships[0]?.organizationProfile.organizationId ?? null,
@@ -407,10 +495,7 @@ export async function ensureWorkspacePreference(
 async function getWorkspaceUserByClerkUserId(
   clerkUserId: string,
 ): Promise<WorkspaceUserRecord> {
-  const user = await prisma.user.findUnique({
-    where: { clerkUserId },
-    include: workspaceUserInclude,
-  });
+  const user = await getHydratedWorkspaceUserByClerkUserId(clerkUserId);
 
   if (!user) {
     throw new HttpError(404, 'Authenticated user has no VitalCV user record.');
@@ -422,10 +507,8 @@ async function getWorkspaceUserByClerkUserId(
 async function getWorkspaceUserById(
   userId: string,
 ): Promise<WorkspaceUserRecord | null> {
-  return prisma.user.findUnique({
-    where: { id: userId },
-    include: workspaceUserInclude,
-  });
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  return user ? hydrateWorkspaceUser(user) : null;
 }
 
 function getAvailablePersonas(user: WorkspaceUserRecord): ActivePersona[] {
@@ -548,18 +631,3 @@ function clampCompleteness(value: number): number {
   return Math.max(0, Math.min(100, Math.round(value)));
 }
 
-const workspaceUserInclude = {
-  personProfile: {
-    include: {
-      memberships: {
-        include: {
-          organizationProfile: true,
-        },
-        orderBy: {
-          createdAt: 'asc',
-        },
-      },
-    },
-  },
-  workspacePreference: true,
-} satisfies Prisma.UserInclude;

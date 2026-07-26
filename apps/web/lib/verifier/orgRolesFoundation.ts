@@ -3,6 +3,12 @@
  *
  * This module is a typed vocabulary only. It does not provision accounts,
  * enforce RBAC, or activate invitations.
+ *
+ * Enforcement now EXISTS on the backend: `requireOrgRole(...)` in
+ * apps/api/backend/src/middleware/orgRoleGuard.ts mirrors this OrgRole union
+ * and guards the mutating verifier routes, gated by `VERIFIER_RBAC_MODE`
+ * (off | shadow | enforce). `rbacEnforced` below stays `false` until that flag
+ * reaches `enforce` in production — see docs/security/verifier-rbac-rollout.md.
  */
 
 export type OrgRole = 'admin' | 'reviewer' | 'read_only';

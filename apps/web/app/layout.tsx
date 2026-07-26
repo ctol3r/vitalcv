@@ -3,47 +3,92 @@ import RootChrome from '@/components/layout/RootChrome';
 import { CommandPalette } from '@/components/ui/CommandPalette';
 import { Toaster } from '@/components/ui/sonner';
 import { CLERK_PROVIDER_ENABLED } from '@/lib/auth/clerkConfig';
+import { clerkAppearance } from '@/lib/clerkAppearance';
 import { vdsCssVariables } from '@/src/styles';
 import { ClerkProvider } from '@clerk/nextjs';
-import { auth } from '@clerk/nextjs/server';
 import type { Metadata } from 'next';
 import type React from 'react';
 import './globals.css';
 import '../styles/antigravity.css';
 import '../styles/typography.css';
+import '../styles/page-density.css';
 import Providers from './providers';
+import localFont from 'next/font/local';
 
-const systemSansStack =
-  "ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
-const systemDisplayStack = "Georgia, 'Times New Roman', serif";
-const systemMonoStack =
-  "ui-monospace, 'SFMono-Regular', Menlo, Monaco, Consolas, 'Liberation Mono', monospace";
+// CD-W1 — the three faces of the creative direction (docs/design/VITALCV_CREATIVE_DIRECTION.md
+// §CD-7/CD-8). All three are self-hosted variable woff2 files in app/fonts and loaded through
+// next/font/local. Self-hosted (never next/font/google) on purpose: the build must not reach out
+// to Google Fonts, which is what broke an earlier attempt and left the whole site rendering the
+// system serif. Each keeps its system stack as an inline var() fallback so a font miss degrades
+// cleanly instead of collapsing the layout.
+//
+// Display — Fraunces. Roman and a true italic: the direction gives every headline one accent word
+// set in Fraunces italic, and without the italic file the browser synthesises a slanted roman,
+// which is exactly the kind of detail that makes a page read as unfinished.
+const fraunces = localFont({
+  src: [
+    { path: './fonts/Fraunces-Variable.woff2', weight: '100 900', style: 'normal' },
+    { path: './fonts/Fraunces-Variable-Italic.woff2', weight: '100 900', style: 'italic' },
+  ],
+  display: 'swap',
+  variable: '--font-fraunces-loaded',
+  fallback: ['Georgia', 'Times New Roman', 'serif'],
+});
+
+// Text — Geist Sans. Every paragraph, label, control, and form on the product.
+const geistSans = localFont({
+  src: './fonts/Geist-Variable.woff2',
+  weight: '100 900',
+  style: 'normal',
+  display: 'swap',
+  variable: '--font-geist-loaded',
+  fallback: ['ui-sans-serif', 'system-ui', '-apple-system', 'Segoe UI', 'sans-serif'],
+});
+
+// Data — Geist Mono. CD-8, the mono law: machine facts are mono, human prose is sans, argument is
+// serif. NPIs, license numbers, timestamps, snapshot dates, source names, hashes and receipt ids
+// all render in this face, so mono itself becomes the signal that a value was retrieved rather
+// than written.
+const geistMono = localFont({
+  src: './fonts/GeistMono-Variable.woff2',
+  weight: '100 900',
+  style: 'normal',
+  display: 'swap',
+  variable: '--font-geist-mono-loaded',
+  fallback: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'monospace'],
+});
+
+const displayStack = "var(--font-fraunces-loaded, Georgia, 'Times New Roman', serif)";
+const sansStack =
+  "var(--font-geist-loaded, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif)";
+const monoStack =
+  "var(--font-geist-mono-loaded, ui-monospace, 'SFMono-Regular', Menlo, Monaco, Consolas, 'Liberation Mono', monospace)";
 
 const fontVariables = {
   ...vdsCssVariables,
-  '--font-fraunces': systemDisplayStack,
-  '--font-plus-jakarta': systemSansStack,
-  '--font-inter': systemSansStack,
-  '--font-jetbrains': systemMonoStack,
-  '--font-geist': systemSansStack,
-  '--font-geist-mono': systemMonoStack,
-  '--vt-font-body': systemSansStack,
-  '--vt-font-display': systemDisplayStack,
-  '--font-body': systemSansStack,
-  '--font-display': systemDisplayStack,
-  '--font-sans': systemSansStack,
-  '--font-heading': systemSansStack,
-  '--font-serif': systemDisplayStack,
-  '--font-mono': systemMonoStack,
+  '--font-fraunces': displayStack,
+  '--font-plus-jakarta': sansStack,
+  '--font-inter': sansStack,
+  '--font-jetbrains': monoStack,
+  '--font-geist': sansStack,
+  '--font-geist-mono': monoStack,
+  '--vt-font-body': sansStack,
+  '--vt-font-display': displayStack,
+  '--font-body': sansStack,
+  '--font-display': displayStack,
+  '--font-sans': sansStack,
+  '--font-heading': sansStack,
+  '--font-serif': displayStack,
+  '--font-mono': monoStack,
 } as React.CSSProperties;
 
 export const metadata: Metadata = {
   title: {
-    default: 'VitalCV — Professional identity that moves clinicians forward.',
+    default: 'VitalCV — Your career evidence, ready before your next job.',
     template: '%s — VitalCV',
   },
   description:
-    'Enter your NPI to see a calm, source-backed snapshot and the next step forward.',
+    'Enter your NPI and see your credential readiness in 30 seconds. Live federal data. No account required.',
   metadataBase: new URL('https://vitalcv.com'),
   keywords: [
     'healthcare credentialing',
@@ -60,9 +105,9 @@ export const metadata: Metadata = {
     'theme-color': '#2C3E2D',
   },
   openGraph: {
-    title: 'VitalCV — Professional identity that moves clinicians forward.',
+    title: 'VitalCV — Your career evidence, ready before your next job.',
     description:
-      'Enter your NPI to see a calm, source-backed snapshot and the next step forward.',
+      'Enter your NPI to see what employers can confirm today, what still needs review, and the next step toward being ready to start.',
     url: 'https://vitalcv.com',
     siteName: 'VitalCV',
     type: 'website',
@@ -72,70 +117,51 @@ export const metadata: Metadata = {
         url: '/opengraph-image',
         width: 1200,
         height: 630,
-        alt: 'VitalCV — Professional identity that moves clinicians forward.',
+        alt: 'VitalCV — Your career evidence, ready before your next job.',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'VitalCV — Professional identity that moves clinicians forward.',
+    title: 'VitalCV — Your career evidence, ready before your next job.',
     description:
-      'Enter your NPI to see a calm, source-backed snapshot and the next step forward.',
+      'Enter your NPI to see what employers can confirm today, what still needs review, and the next step toward being ready to start.',
     images: ['/twitter-image'],
   },
 };
 
 const clerkEnabled = CLERK_PROVIDER_ENABLED;
 
-function parseInitialClerkRole(
-  claims: Record<string, unknown> | undefined,
-): string | null {
-  const vitalcv = claims?.vitalcv;
-  if (vitalcv && typeof vitalcv === 'object' && 'role' in vitalcv && typeof vitalcv.role === 'string') {
-    return vitalcv.role;
-  }
-
-  if (typeof claims?.role === 'string') {
-    return claims.role;
-  }
-
-  if (typeof claims?.org_role === 'string') {
-    return claims.org_role;
-  }
-
-  return null;
-}
-
-export default async function RootLayout({
+// CACHE CONTRACT (Wave 0.2 follow-up): this layout wraps EVERY route, so it
+// must never read request state — `auth()`, `headers()`, `cookies()` here
+// would force the entire public marketing site into per-request dynamic
+// rendering and strip its bounded shared caching (measured live: /, /employers,
+// /trust, /status, /pricing all went `ƒ` + no-store the first time Clerk was
+// correctly enabled at build). The client session is resolved after hydration
+// by RoleProvider (Clerk useAuth) and Clerk-native <SignedIn> chrome; a static
+// prerender can only ever carry the guest state anyway.
+// Guarded by __tests__/static-marketing-cache-contract.test.ts.
+export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  let initialUserId: string | null = null;
-  let initialClerkRole: string | null = null;
-
-  if (clerkEnabled) {
-    try {
-      const session = await auth();
-      initialUserId = session.userId ?? null;
-      initialClerkRole = parseInitialClerkRole(session.sessionClaims as Record<string, unknown> | undefined);
-    } catch {
-      initialUserId = null;
-      initialClerkRole = null;
-    }
-  }
+  const staticFirstBuild =
+    process.env.CF_PAGES === '1' || process.env.STATIC_FIRST_BUILD === 'true';
+  const renderGlobalChrome = !staticFirstBuild;
 
   const hydratedContent = (
     <html
       lang="en"
+      className={`${fraunces.variable} ${geistSans.variable} ${geistMono.variable}`}
       style={fontVariables}
       suppressHydrationWarning
     >
       <body className="min-h-screen bg-background text-foreground antialiased font-sans">
-        <Providers initialUserId={initialUserId} initialClerkRole={initialClerkRole}>
+        <Providers initialUserId={null} initialClerkRole={null}>
           <RootChrome clerkEnabled={clerkEnabled}>{children}</RootChrome>
-          <CommandPalette />
-          <Toaster position="top-right" closeButton richColors />
+          {renderGlobalChrome ? <CommandPalette /> : null}
+          {renderGlobalChrome ? <Toaster position="top-right" closeButton richColors /> : null}
         </Providers>
       </body>
     </html>
@@ -145,6 +171,23 @@ export default async function RootLayout({
     return hydratedContent;
   }
 
-  return <ClerkProvider>{hydratedContent}</ClerkProvider>;
+  // wave1505 DG-12.1: theme Clerk to the house paper/ink system (no default purple).
+  //
+  // The fallback redirect URLs are load-bearing, NOT optional: when a user hits
+  // /sign-in or /sign-up directly (e.g. the navbar "Sign In", which carries no
+  // ?redirect_url), Clerk uses these to land them in the workspace. Without
+  // them Clerk falls back to homeUrl ("/"), so a successful sign-in dumps the
+  // user back on the marketing homepage and never routes through /auth/resolving
+  // to mint their role — which reads as "sign-in doesn't work." (Regressed once
+  // when the appearance prop was added; guarded by clerk-provider-redirect.test.)
+  return (
+    <ClerkProvider
+      appearance={clerkAppearance}
+      signInFallbackRedirectUrl="/holder"
+      signUpFallbackRedirectUrl="/holder"
+    >
+      {hydratedContent}
+    </ClerkProvider>
+  );
 }
 // polish wave

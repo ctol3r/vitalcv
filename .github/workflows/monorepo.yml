@@ -87,27 +87,33 @@ jobs:
         # test coverage lives in .github/workflows/ci-preflight.yml
         # (see the "backend tests" step there); the deploy-api job in
         # this file only builds the backend, it does not test it.
-        run: pnpm turbo run test --filter=!@vitalcv/api --filter=!chai-vc-platform-backend
+        #
+        # @vitalcv/web is excluded for the same class of reason: this job
+        # has no postgres service, but the dummy DATABASE_URL above (kept
+        # for other packages' env validation) un-skips the web suite's
+        # real-Postgres tests (__tests__/verifier-worklist-db.test.ts
+        # skips only when DATABASE_URL is unset), which then fail with
+        # P1001 — red on every push to main since PR #469. The full web
+        # suite runs without DATABASE_URL in .github/workflows/ci.yml
+        # ("Web Quality"), which triggers on the same web/package paths.
+        run: pnpm turbo run test --filter=!@vitalcv/api --filter=!chai-vc-platform-backend --filter=!@vitalcv/web
 
-      - name: Scale integrity gate (W2-PR38A)
-        # Mock-based scale + throughput suite for the replay engine and
-        # runtime trust cohesion. Does NOT need a database — runs Jest
-        # directly with mocked prisma + capsuleEngine. Guards against
-        # silent throughput collapse, governance classification drift,
-        # tamper-evidence regressions, and audit-bundle partial-failure
-        # invisibility. Suite lives under apps/api/backend/src/**/__tests__/scale/.
-        run: pnpm --filter chai-vc-platform-backend run test:scale
+      # REMOVED: "Scale integrity gate (W2-PR38A)" and "NCQA + regulatory
+      # operationalization gate (W2-PR40A)". Both steps referenced suites
+      # that do not exist on main — `test:scale` targets
+      # apps/api/backend/**/__tests__/scale/ (jest: "No tests found",
+      # exit 1) and `ncqa:validate` runs
+      # src/tools/runNcqaValidationGate.ts, which was never merged. The
+      # steps therefore failed on every push and had never passed on
+      # main. Re-add each gate in the SAME PR that lands its suite.
 
-      - name: NCQA + regulatory operationalization gate (W2-PR40A)
-        # Pure-function NCQA validation suite. Asserts the regulatory-export
-        # modules uphold their NCQA semantics: 120-day window constant,
-        # determinism, tamper-detection, traceability coverage, banned-string
-        # absence, and completeness semantics. Fails CI on any drift.
-        # Suite lives in apps/api/backend/src/services/audit/regulatoryExports/.
-        run: pnpm --filter chai-vc-platform-backend run ncqa:validate
-
+  # Build-validation only. The real API deploy is Railway's GitHub
+  # integration (service delightful-essence) triggered directly on push
+  # to main; this job proves the API still builds from a clean checkout.
+  # (Its previous "Deploy to container registry" step was an `echo`
+  # placeholder — removed rather than left pretending to deploy.)
   deploy-api:
-    name: Deploy API
+    name: API build validation
     needs: build
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
@@ -133,12 +139,11 @@ jobs:
       - name: Build API
         run: pnpm turbo run build --filter='@vitalcv/api'
 
-      - name: Deploy to container registry
-        # Add your deployment steps here
-        run: echo "Deploy API to container registry"
-
+  # Build-validation only. The real web deploy is Railway's GitHub
+  # integration (service vitalcv-web, apps/web/Dockerfile) triggered
+  # directly on push to main.
   deploy-web:
-    name: Deploy Web
+    name: Web build validation
     needs: build
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'

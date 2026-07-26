@@ -1385,6 +1385,14 @@ async function executeSourceIngestion(input: {
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
+    // Surface the per-source failure: it is otherwise only written to DB
+    // columns (quarantineReason/lastError), invisible in logs — which hid the
+    // prod "sourcesFailed" root cause. Now every failed lane says why.
+    log('warn', 'identity_source_failed', {
+      source: input.sourceId,
+      npi: input.npi,
+      error: message,
+    });
 
     if (sourceRecordId) {
       await identityPrisma.sourceRecord.update({

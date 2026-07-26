@@ -104,12 +104,12 @@ export function PilotRequestForm({
       <section
         data-testid="pilot-confirmation"
         aria-live="polite"
-        className="rounded-2xl border border-emerald-500/40 bg-emerald-500/5 p-6"
+        className="rounded-[10px] border border-[var(--ok-rule)] bg-[var(--ok-bg)] p-6"
       >
-        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald-500">
+        <p className="mz-mono text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--ok)]">
           {confirmation.headline}
         </p>
-        <p className="mt-2 text-base text-foreground/90">
+        <p className="mz-body mt-2 text-[var(--vt-text-primary)]">
           {confirmation.acknowledgement}
         </p>
 
@@ -136,7 +136,7 @@ export function PilotRequestForm({
           />
         </div>
 
-        <p className="mt-6 font-mono text-[11px] text-muted-foreground">
+        <p className="mz-mono mt-6 text-[11px] text-[var(--vt-text-muted)]">
           Reference: {confirmation.reference.pilotId} · {confirmation.reference.requestedAt}
         </p>
       </section>
@@ -146,7 +146,7 @@ export function PilotRequestForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-4" data-testid="pilot-request-form">
       <div>
-        <label htmlFor="org" className="block text-sm font-medium text-foreground mb-1.5">
+        <label htmlFor="org" className="block text-sm font-medium text-[var(--vt-text-primary)] mb-1.5">
           Organization
         </label>
         <input
@@ -154,13 +154,13 @@ export function PilotRequestForm({
           name="organization"
           type="text"
           required
-          className="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-foreground/20"
+          className="mz-input"
           placeholder="Acme Health System"
         />
       </div>
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label htmlFor="name" className="block text-sm font-medium text-foreground mb-1.5">
+          <label htmlFor="name" className="block text-sm font-medium text-[var(--vt-text-primary)] mb-1.5">
             Contact name
           </label>
           <input
@@ -168,12 +168,12 @@ export function PilotRequestForm({
             name="name"
             type="text"
             required
-            className="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-foreground/20"
+            className="mz-input"
             placeholder="Jane Smith"
           />
         </div>
         <div>
-          <label htmlFor="email" className="block text-sm font-medium text-foreground mb-1.5">
+          <label htmlFor="email" className="block text-sm font-medium text-[var(--vt-text-primary)] mb-1.5">
             Work email
           </label>
           <input
@@ -181,27 +181,27 @@ export function PilotRequestForm({
             name="email"
             type="email"
             required
-            className="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-foreground/20"
+            className="mz-input"
             placeholder="jane@acme.com"
           />
         </div>
       </div>
       <div>
-        <label htmlFor="usecase" className="block text-sm font-medium text-foreground mb-1.5">
+        <label htmlFor="usecase" className="block text-sm font-medium text-[var(--vt-text-primary)] mb-1.5">
           Tell us about your baseline
         </label>
         <textarea
           id="usecase"
           name="usecase"
           rows={3}
-          className="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-foreground/20 resize-none"
+          className="mz-input resize-none"
           placeholder="How many days does an application sit before first review today?"
         />
       </div>
       <button
         type="submit"
         disabled={phase === 'submitting'}
-        className="w-full mt-2 rounded-xl bg-emerald-600 px-4 py-3.5 text-sm font-semibold text-white hover:bg-emerald-500 disabled:opacity-60 disabled:cursor-not-allowed transition-colors shadow-sm inline-flex items-center justify-center gap-2"
+        className="mz-btn w-full justify-center mt-2 disabled:opacity-60 disabled:cursor-not-allowed"
       >
         {phase === 'submitting' ? 'Submitting…' : 'Submit pilot request'}
         <ArrowRight className="h-4 w-4" aria-hidden />
@@ -209,7 +209,7 @@ export function PilotRequestForm({
 
       {phase === 'error' && errorMessage ? (
         <p
-          className="mt-3 rounded-lg border border-red-300 bg-red-50/70 px-3 py-2 text-sm text-red-800"
+          className="mt-3 rounded-[6px] border border-[var(--p0-rule)] bg-[var(--p0-bg)] px-3 py-2 text-sm text-[var(--p0)]"
           role="alert"
           data-testid="pilot-request-error"
         >
@@ -231,10 +231,10 @@ function ConfirmationList({
 }): React.ReactElement {
   return (
     <div data-testid={testId}>
-      <h4 className="text-xs font-semibold uppercase tracking-[0.16em] text-foreground/80">
+      <h4 className="mz-mono text-xs font-semibold uppercase tracking-[0.16em] text-[var(--vt-text-secondary)]">
         {title}
       </h4>
-      <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-muted-foreground">
+      <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-[var(--vt-text-secondary)]">
         {items.map((item) => (
           <li key={item}>{item}</li>
         ))}

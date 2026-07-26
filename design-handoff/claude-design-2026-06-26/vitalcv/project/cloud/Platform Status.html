@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>VitalCV · Platform Status — the Professional Trust Cloud, live</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;1,9..144,400;1,9..144,500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="vitalcv.css" />
+<link rel="stylesheet" href="w900.css" />
+</head>
+<body>
+
+<!-- ═══ OP BAR ═══ -->
+<div class="opbar">
+  <div class="in">
+    <div class="l">
+      <strong>VitalCV</strong>
+      <span class="sep">/</span>
+      <span class="sub">Platform Status · real-time signal across the whole trust cloud · w900</span>
+    </div>
+    <div class="r">
+      <span><span class="dot blink"></span>all systems operational</span>
+      <span class="sep">|</span>
+      <span class="nav-hideS mono">api 2026-06-27</span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ NAV ═══ -->
+<header class="nav" id="nav">
+  <div class="in">
+    <div style="display:flex;align-items:center;gap:34px;min-width:0">
+      <a class="brand" href="VitalCV Trust Cloud.html" aria-label="VitalCV home">
+        <span class="glyph"><span class="sq"></span>
+          <svg viewBox="0 0 20 20" width="28" height="28"><path d="M3 10h3l2-5 4 10 2-5h3" stroke="currentColor" stroke-width="1.7" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </span>
+        <span class="wm">VitalCV</span>
+      </a>
+      <nav class="navlinks" id="navlinks">
+        <a href="VitalCV Trust Cloud.html"><span>Cloud</span><span class="sm">The platform</span></a>
+        <a href="../exchange/Trust Exchange.html"><span>Exchange</span><span class="sm">The network</span></a>
+        <a href="../solutions/VitalCV Solutions Platform.html"><span>Solutions</span><span class="sm">By role</span></a>
+        <a href="../platform/VitalCV Platform.html"><span>Developers</span><span class="sm">Platform</span></a>
+        <a href="../Why VitalCV.html"><span>Why</span><span class="sm">The thesis</span></a>
+      </nav>
+    </div>
+    <div class="navright">
+      <a class="btn btn-ghost nav-hideS" href="VitalCV Trust Cloud.html">Cloud home</a>
+      <a class="btn btn-pri" href="../Pilot Intake.html">Run a pilot</a>
+      <button class="navtoggle" id="navtoggle" aria-label="Menu">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<!-- ═══ CLOUD CONTEXT BAR ═══ -->
+<div class="cbar">
+  <div class="in">
+    <nav class="cnav">
+      <a href="VitalCV Trust Cloud.html"><span data-icon="cloud" data-sz="15"></span>Cloud</a>
+      <a href="Ecosystem Directory.html"><span data-icon="network" data-sz="15"></span>Ecosystem</a>
+      <a href="Trust Fabric.html"><span data-icon="layers" data-sz="15"></span>Trust fabric</a>
+      <a href="Application Marketplace.html"><span data-icon="grid" data-sz="15"></span>Marketplace</a>
+      <a class="on" href="Platform Status.html"><span data-icon="pulse" data-sz="15"></span>Status</a>
+    </nav>
+    <div class="clive"><span class="cd blink"></span><b data-live data-count="9620000" data-lo="40" data-hi="120">9,620,000</b>&nbsp;API calls / 24h</div>
+  </div>
+</div>
+
+<!-- ═══ STATUS HEAD ═══ -->
+<div class="statushead">
+  <div class="net-bg"></div>
+  <div class="in">
+    <div>
+      <div class="ptag"><span class="badge">Wave 900</span>Platform Status</div>
+      <h1>The Professional Trust Cloud, <em>live.</em></h1>
+    </div>
+    <div class="status-allok">
+      <span class="so-dot"></span>
+      <div>
+        <div class="so-t">All systems operational</div>
+        <div class="so-s">7 sources · 99.99% · updated just now</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<main>
+<section class="status-sec">
+  <div class="wrap">
+    <!-- six top metrics -->
+    <div class="statmetrics" id="statmetrics"></div>
+
+    <!-- activity feed + systems -->
+    <div class="statsplit">
+      <div class="statpanel">
+        <div class="sp-h">
+          <div class="sp-t"><span class="oi" data-icon="pulse" data-sz="15"></span>Live activity</div>
+          <span class="chip-live"><span class="cd"></span>Streaming</span>
+        </div>
+        <div class="feed" id="statfeed"></div>
+      </div>
+      <div class="statpanel">
+        <div class="sp-h">
+          <div class="sp-t"><span class="oi" data-icon="plug" data-sz="15"></span>Sources &amp; integrations</div>
+          <span style="font-family:var(--mono);font-size:10px;letter-spacing:.06em;color:var(--p500)">7 connected</span>
+        </div>
+        <div class="syslist" id="statsystems"></div>
+        <div style="padding:16px 22px 20px;border-top:1px solid rgba(255,255,255,.08)">
+          <div style="font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.12em;color:var(--p500);margin-bottom:9px">90-day platform uptime · 99.99%</div>
+          <div class="uptime" id="statuptime"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ CLOSING ═══ -->
+<section class="cloud-close">
+  <div class="grid-bg"></div>
+  <div class="in">
+    <div class="eyebrow center">Platform Status · Wave 900</div>
+    <h2>Infrastructure you can <em>watch</em> run.</h2>
+    <p>Evidence signed, recognition attested, trust exchanged, webhooks delivered — the whole cloud, accountable in real time. When trust is infrastructure, its health is everyone's business.</p>
+    <div class="cta">
+      <a class="btn btn-acc" href="VitalCV Trust Cloud.html">Back to the cloud <svg class="arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+      <a class="btn btn-line" href="../platform/VitalCV Platform.html">Developer platform</a>
+    </div>
+  </div>
+</section>
+</main>
+
+<!-- ═══ FOOTER ═══ -->
+<footer class="footer">
+  <div class="in">
+    <div class="top">
+      <div class="brandcol">
+        <a class="brand" href="VitalCV Trust Cloud.html">
+          <span class="glyph"><span class="sq" style="background:#fff"></span>
+            <svg viewBox="0 0 20 20" width="28" height="28" style="color:#0f172a"><path d="M3 10h3l2-5 4 10 2-5h3" stroke="currentColor" stroke-width="1.7" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </span>
+          <span class="wm">VitalCV</span>
+        </a>
+        <p>The Professional Trust Cloud for healthcare — where identity, evidence, recognition, and trust live, and every workforce application is built. Infrastructure, not software.</p>
+      </div>
+      <div class="fcol">
+        <h5>The cloud</h5>
+        <a href="VitalCV Trust Cloud.html">Trust Cloud</a>
+        <a href="Ecosystem Directory.html">Ecosystem directory</a>
+        <a href="Trust Fabric.html">Trust fabric</a>
+        <a href="Application Marketplace.html">Application marketplace</a>
+        <a href="Platform Status.html">Platform status</a>
+      </div>
+      <div class="fcol">
+        <h5>Build on it</h5>
+        <a href="../platform/VitalCV Platform.html">Developer platform</a>
+        <a href="../exchange/Trust Exchange.html">Trust Exchange</a>
+        <a href="../exchange/Issuer Portal.html">Issuer portal</a>
+        <a href="../exchange/Verifier Portal.html">Verifier portal</a>
+      </div>
+      <div class="fcol">
+        <h5>Company</h5>
+        <a href="../Why VitalCV.html">Why VitalCV</a>
+        <a href="../solutions/VitalCV Solutions Platform.html">Solutions</a>
+        <a href="../Pilot Intake.html">Run a pilot</a>
+      </div>
+    </div>
+    <div class="bot">
+      <span>© 2026 VitalCV · No PHI · No passwords · Never the source of record</span>
+      <div class="r">
+        <span>extends · never modifies core</span>
+        <span>api 2026-06-27 · w900</span>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<template id="__bundler_thumbnail">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+    <rect width="100" height="100" fill="#0f172a"/>
+    <path d="M16 56h14l8-22 12 34 8-20 6 12h20" fill="none" stroke="#34d399" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>
+</template>
+
+<script src="vitalcv.js"></script>
+<script src="w900-core.js"></script>
+<script src="w900-status.js"></script>
+</body>
+</html>

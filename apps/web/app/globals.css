@@ -1,5 +1,17 @@
-@import 'normalize.css/normalize.css';
+/* Layer order is declared here, before any @import, so it wins: normalize sits
+   above Tailwind's base (preflight) but below components/utilities.
+
+   Why not unlayered: unlayered CSS outranks every layered rule regardless of
+   specificity, so normalize's `a { background-color: transparent }` silently
+   killed every bg-* utility on an <a> — CTAs rendered invisible.
+
+   Why not layer(base): that puts normalize below preflight, which then wins
+   `html { line-height: 1.5 }` over normalize's 1.15 and re-spaces every text
+   block on the site. Its own layer keeps normalize authoritative over
+   preflight (the long-standing behaviour) while utilities win again. */
+@layer theme, base, normalize, components, utilities;
 @import 'tailwindcss';
+@import 'normalize.css/normalize.css' layer(normalize);
 @import '../styles/themes/index.css';
 @import '../styles/vds.css';
 @import '../styles/design-tokens.css';
@@ -8,8 +20,18 @@
 @import '../styles/tokens.css';
 @import '../styles/vitalTokens.css';
 @import '../styles/blueprint-overrides.css';
+@import '../styles/holder-light-compat.css';
+@import '../styles/matcha.css';
+@import '../styles/matcha-zen.css';
+@import '../styles/kinetic.css';
 @import '../styles/graph.css';
 @import '../styles/intelligence.css';
+@import '../styles/clinician-doc.css';
+@import '../styles/home-vitals.css';
+@import '../styles/homepage-motion.css';
+@import '../styles/scene.css';
+@import '../styles/story-rail.css';
+@import '../styles/matcha-deck.css';
 /* glue.css superseded by antigravity.css (imported in layout.tsx) */
 
 @custom-variant dark (&:is(.dark *));
@@ -280,9 +302,23 @@ body {
 
 /* ─── Tailwind v4 theme bridge ──────────────────────────── */
 @theme inline {
+  /* CD-3 — there is no pure white in this product. `bg-white` compiles to
+     `background-color: var(--color-white)`, so redefining the token warms all
+     549 `bg-white` call sites across 173 files at once, instead of a sweep.
+     Deliberately a fixed value rather than `var(--vt-surface)`: --color-white
+     also powers `text-white`, and a theme-tracking value would turn white label
+     text on dark buttons dark in dark mode. */
+  --color-white: #F7F5F1;
+
   --font-heading: var(--font-fraunces);
   --font-sans: var(--font-body);
-  --font-mono: 'Geist Mono', ui-monospace, monospace;
+  /* CD-8, the mono law. `@theme inline` inlines this value straight into the
+     generated `font-mono` utility, so a bare 'Geist Mono' family name here
+     resolved to nothing — next/font emits a hashed family — and all 1,229
+     `font-mono` usages silently fell back to the OS monospace. Point it at the
+     loaded face instead. Referencing --font-geist-mono-loaded (not --font-mono)
+     keeps this out of the circular-alias trap that broke the tokens in #801. */
+  --font-mono: var(--font-geist-mono-loaded, ui-monospace, 'SFMono-Regular', Menlo, Monaco, monospace);
 
   /* Sandbox palette aliases for 1:1 sandbox component imports */
   --color-bg: var(--vt-bg);
@@ -308,16 +344,6 @@ body {
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-
-  /* ── Semantic shorthand Tailwind tokens ─────────────── */
-  --color-bg: var(--color-bg);
-  --color-ink: var(--color-ink);
-  --color-line: var(--color-line);
-  --color-bg-muted: var(--color-bg-muted);
-  --color-ink-muted: var(--color-ink-muted);
-  --color-danger: var(--color-danger);
-  --color-success: var(--color-success);
-  --color-warning: var(--color-warning);
 
   /* ── Trust / claim tokens for Tailwind ─────────────────── */
   --color-trust-green: var(--trust-green);
@@ -997,4 +1023,109 @@ time, code, kbd, samp {
   .animate-critical-pulse {
     animation: critical-pulse 2s cubic-bezier(0.2, 0.8, 0.2, 1) infinite;
   }
+}
+
+/* ── Liquid mobile menu (VHS-2.5) ──────────────────────────────────────────
+   An accessible modal nav that opens with an organic circular bloom from the
+   top-right toggle. Focus-trapped + scroll-locked in JS; reduced motion drops
+   the bloom + stagger and just shows the panel. */
+.liquid-menu {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+}
+.liquid-menu__scrim {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  cursor: default;
+  background: color-mix(in oklab, var(--foreground) 26%, transparent);
+  animation: liquid-scrim 0.4s ease forwards;
+}
+@keyframes liquid-scrim { from { opacity: 0; } to { opacity: 1; } }
+
+.liquid-menu__panel {
+  position: absolute;
+  inset: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  border-radius: 1.5rem;
+  border: 1px solid color-mix(in oklab, var(--foreground) 10%, transparent);
+  background: color-mix(in oklab, var(--background) 92%, transparent);
+  backdrop-filter: blur(24px) saturate(150%);
+  box-shadow: 0 24px 70px -30px rgba(2, 6, 23, 0.5);
+  padding: 1.1rem 1.25rem 1.4rem;
+  /* Liquid bloom: an organic circle grows from the toggle corner. */
+  clip-path: circle(0% at calc(100% - 2.4rem) 2.4rem);
+  animation: liquid-bloom 0.52s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+@keyframes liquid-bloom {
+  to { clip-path: circle(160% at calc(100% - 2.4rem) 2.4rem); }
+}
+
+.liquid-menu__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+.liquid-menu__brand {
+  font-family: var(--font-heading, inherit);
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--foreground);
+}
+.liquid-menu__close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem;
+  border-radius: 0.75rem;
+  color: var(--muted-foreground, currentColor);
+}
+.liquid-menu__close:hover { background: color-mix(in oklab, var(--foreground) 6%, transparent); }
+
+.liquid-menu__list { list-style: none; margin: 0.5rem 0 0; padding: 0; }
+.liquid-menu__item {
+  opacity: 0;
+  transform: translateY(10px);
+  animation: liquid-item 0.4s ease forwards;
+  animation-delay: calc(0.12s + var(--i) * 0.05s);
+}
+@keyframes liquid-item { to { opacity: 1; transform: translateY(0); } }
+.liquid-menu__link {
+  display: block;
+  padding: 0.85rem 0.5rem;
+  border-bottom: 1px solid color-mix(in oklab, var(--foreground) 8%, transparent);
+  font-family: var(--font-heading, inherit);
+  font-size: 1.6rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--foreground);
+  text-decoration: none;
+}
+.liquid-menu__link[aria-current='page'] { color: var(--accent, var(--foreground)); }
+.liquid-menu__link:focus-visible { outline: 2px solid var(--vt-focus-ring, currentColor); outline-offset: 3px; border-radius: 0.4rem; }
+
+.liquid-menu__cta { margin-top: auto; display: flex; gap: 0.6rem; padding-top: 1rem; }
+.liquid-menu__cta-secondary,
+.liquid-menu__cta-primary {
+  flex: 1;
+  border-radius: 0.9rem;
+  padding: 0.85rem 0;
+  text-align: center;
+  font-size: 0.95rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+.liquid-menu__cta-secondary {
+  border: 1px solid color-mix(in oklab, var(--foreground) 16%, transparent);
+  color: var(--muted-foreground, var(--foreground));
+}
+.liquid-menu__cta-primary { background: oklch(18% 0.012 265); color: #fff; }
+
+@media (prefers-reduced-motion: reduce) {
+  .liquid-menu__panel { clip-path: none; animation: none; }
+  .liquid-menu__scrim { animation: none; }
+  .liquid-menu__item { opacity: 1; transform: none; animation: none; }
 }

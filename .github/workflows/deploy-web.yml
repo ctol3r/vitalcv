@@ -1,0 +1,78 @@
+name: Deploy Web + Smoke Test
+
+# Railway is the canonical deployment target for apps/web. Railway auto-deploys
+# the web service on push to main (apps/web/Dockerfile → next start). This
+# workflow waits for that deploy and smoke-tests the /api/health endpoint.
+#
+# Vercel is deprecated — no preview/deploy step here. See
+# docs/deployment/railway-migration.md.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/web/**'
+      - 'packages/**'
+      - 'apps/web/railway.toml'
+      - 'apps/web/Dockerfile'
+      - 'pnpm-lock.yaml'
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: 'Reason for manual trigger'
+        required: false
+        default: 'manual redeploy'
+
+concurrency:
+  group: deploy-web
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # Railway auto-deploys on push to main.
+  # This job waits for the deploy to complete, then runs smoke tests.
+  smoke-test:
+    name: Post-deploy smoke test
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Wait for Railway deploy to propagate
+        run: sleep 120
+
+      - name: Smoke test /api/health
+        env:
+          WEB_DOMAIN: ${{ secrets.RAILWAY_WEB_DOMAIN }}
+        run: |
+          if [ -z "$WEB_DOMAIN" ]; then
+            echo "RAILWAY_WEB_DOMAIN secret not set. Skipping smoke test."
+            exit 0
+          fi
+
+          HEALTH_URL="https://${WEB_DOMAIN}/api/health"
+          echo "Testing: $HEALTH_URL"
+
+          MAX_ATTEMPTS=12
+          INTERVAL=15
+          ATTEMPT=0
+
+          while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
+            HTTP_CODE=$(curl -s -o /tmp/health_body -w '%{http_code}' "$HEALTH_URL" 2>/dev/null || echo "000")
+
+            if [ "$HTTP_CODE" = "200" ]; then
+              echo "Health check passed (HTTP 200)"
+              cat /tmp/health_body
+              echo ""
+              exit 0
+            fi
+
+            ATTEMPT=$((ATTEMPT + 1))
+            echo "Attempt $ATTEMPT/$MAX_ATTEMPTS: HTTP $HTTP_CODE. Retrying in ${INTERVAL}s..."
+            sleep "$INTERVAL"
+          done
+
+          echo "Health check failed after $MAX_ATTEMPTS attempts"
+          cat /tmp/health_body 2>/dev/null || true
+          exit 1

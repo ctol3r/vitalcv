@@ -183,18 +183,38 @@ async function bootstrapApp() {
   const { log } = await import('./obs/logger');
   const { loadEnv } = await import('./config/env');
   const { ensureInvestigationSeedDataBootstrapped } = await import('./services/investigators/seedInvestigationData');
-  const { ensureLaunchOpportunitiesBootstrapped } = await import('./services/opportunities/launchOpportunitySeed');
+  const { ensureLaunchOpportunitiesBootstrapped, isDemoOpportunitySeedEnabled } = await import('./services/opportunities/launchOpportunitySeed');
   const { requestIntelligenceAutoWarm } = await import('./services/intelligence/intelligenceAutoWarmService');
   const { initializeTelemetry, shutdownTelemetry } = await import('./telemetry');
   const { runMonitoringCycle } = await import('../jobs/monitoringJob');
   const { isGeospatialPipelineEnabled, runGeospatialPipelineCycle } = await import('../jobs/geospatialJob');
   const { startQaAutomationRuntime } = await import('./qa/qaRuntime');
   const Sentry = await import('@sentry/node');
+  const { scrubEvent, resolveSentryRelease } = await import('@vitalcv/shared/observability');
   const cronMod = await import('node-cron');
 
   const config = loadEnv();
+
+  // NPPES V1 sunset 2026-03-03 — this is the production entrypoint
+  // (railway.toml startCommand runs server.js, not index.js), so the
+  // version guard must fire here. A drifted endpoint constant throws,
+  // which surfaces through the bootstrap failure path instead of
+  // silently degrading NPI enrichment.
+  const { assertNppesApiVersion } = await import('./services/identity/nppesApiVersion');
+  const nppes = assertNppesApiVersion();
+  log('info', 'NPPES API version pinned', {
+    event: 'nppes_api_version',
+    version: nppes.version,
+    endpoints: nppes.endpoints,
+  });
+
   await ensureInvestigationSeedDataBootstrapped({ logger: log });
-  if (config.NODE_ENV === 'production') {
+  // Auto-seed of demo/launch opportunities is flag-gated (SEED_DEMO_OPPORTUNITIES,
+  // default OFF). Production leaves it unset so it never seeds demo data — the
+  // bootstrap still runs to log the honest skip line; dev/demo sets the flag to
+  // seed on startup. ensureLaunchOpportunitiesBootstrapped enforces the gate again
+  // internally, so this is belt-and-suspenders.
+  if (config.NODE_ENV === 'production' || isDemoOpportunitySeedEnabled()) {
     await ensureLaunchOpportunitiesBootstrapped({ logger: log });
   }
 
@@ -232,17 +252,30 @@ async function bootstrapApp() {
   initializeTelemetry('vitalcv-agent');
   await initializeWave126Persistence();
 
-  // Initialize Sentry if DSN is configured
+  // Initialize Sentry if DSN is configured.
+  //
+  // MS-1: `beforeSend`/`beforeSendTransaction` are NOT optional here. This API
+  // routes NPIs in the path (`/api/passport/1234567890`), so error events carry
+  // PII in `request.url` and in the Express transaction name before any body is
+  // considered. The scrubber is shared with the web app (`@vitalcv/shared/
+  // observability`) so there is exactly one reviewed redaction list — see
+  // `docs/ops/observability.md`.
   const sentryDsn = process.env.SENTRY_DSN;
   if (sentryDsn) {
+    const release = resolveSentryRelease();
     Sentry.init({
       dsn: sentryDsn,
       environment: config.NODE_ENV,
-      tracesSampleRate: config.NODE_ENV === 'production' ? 0.2 : 1.0,
+      release,
+      sendDefaultPii: false,
+      tracesSampleRate: config.NODE_ENV === 'production' ? 0.1 : 1.0,
+      beforeSend: scrubEvent,
+      beforeSendTransaction: scrubEvent,
     });
     log('info', 'Sentry initialized', {
       event: 'sentry_initialized',
       environment: config.NODE_ENV,
+      release: release ?? 'unknown',
     });
   }
 
@@ -282,6 +315,7 @@ async function bootstrapApp() {
             totalChecked: result.totalChecked,
             statusChanges: result.statusChanges,
             deltasDetected: result.deltasDetected,
+            skippedSourceUnavailable: result.skippedSourceUnavailable,
             errors: result.errors,
             durationMs: result.durationMs,
           });

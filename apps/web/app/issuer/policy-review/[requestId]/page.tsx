@@ -20,6 +20,7 @@ import type {
   PolicyReviewAction,
   VerificationClaimType,
 } from '@/lib/issuer-verification/types';
+import { Reveal } from '@/components/motion/Reveal';
 
 /**
  * ISSUER-3 — Policy Review Decision Surface (demo render).
@@ -175,7 +176,7 @@ export default async function PolicyReviewPage({ params }: PageProps) {
 
   return (
     <main
-      className="min-h-screen bg-background"
+      className="mz mz-paper mz-persona-issuer relative min-h-screen overflow-x-hidden"
       data-testid="policy-review-page"
       data-receipt-candidate-id={candidate.receiptCandidateId}
       data-review-state={candidate.reviewState}
@@ -185,144 +186,158 @@ export default async function PolicyReviewPage({ params }: PageProps) {
       data-persistence-status={writeOutcome.status}
       data-recorded-by={persistedRecordedBy}
     >
-      <div className="mx-auto max-w-2xl px-4 py-10 space-y-8">
-        <header className="space-y-1">
-          <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/70">
-            Policy review
-          </p>
-          <h1 className="text-xl font-semibold text-foreground">
-            Receipt candidate {candidate.receiptCandidateId}
-          </h1>
-          <p
-            className="text-sm text-muted-foreground"
-            data-testid="policy-review-warning"
-          >
-            Policy review controls whether this candidate can become a PSV
-            receipt. The original issuer response remains evidence, even if the
-            candidate is rejected.
-          </p>
-          {writeOutcome.status === 'persisted' && (
+      {/* Hero — ambient wash + a clean, deliberate policy-desk header.
+          Glass is reserved for the single decision-moment panel below. */}
+      <section className="mz-ambient relative isolate">
+        <div className="mx-auto max-w-2xl px-4 pt-14 pb-2">
+          <Reveal as="header" variant="fade" className="space-y-3">
+            <p className="mz-eyebrow">Policy review</p>
+            <h1 className="mz-h1">
+              Receipt <span className="mz-accent">candidate</span>{' '}
+              <span className="mz-mono align-middle text-[0.5em] font-normal tracking-[0.06em] text-[var(--vt-text-secondary)]">
+                {candidate.receiptCandidateId}
+              </span>
+            </h1>
             <p
-              className="mt-2 inline-block rounded-md bg-emerald-50 px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-emerald-700"
-              data-testid="persistence-banner"
-              data-banner-state="persisted"
+              className="mz-body text-[var(--vt-text-secondary)]"
+              data-testid="policy-review-warning"
             >
-              Candidate row recorded (recordedBy: system)
+              Policy review controls whether this candidate can become a PSV
+              receipt. The original issuer response remains evidence, even if the
+              candidate is rejected.
             </p>
-          )}
-          {writeOutcome.status === 'tamper_detected' && (
-            <p
-              className="mt-2 inline-block rounded-md bg-amber-50 px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-amber-700"
-              data-testid="persistence-banner"
-              data-banner-state="tamper_detected"
-            >
-              Candidate row CHECK violation — render only (recordedBy: demo)
-            </p>
-          )}
-          {writeOutcome.status === 'transient_error' && (
-            <p
-              className="mt-2 inline-block rounded-md bg-slate-100 px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-slate-700"
-              data-testid="persistence-banner"
-              data-banner-state="transient_error"
-            >
-              Persistence unavailable — render only (recordedBy: demo)
-            </p>
-          )}
-          {writeOutcome.status === 'disabled' && (
-            <p
-              className="mt-2 inline-block rounded-md bg-slate-50 px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-slate-600"
-              data-testid="persistence-banner"
-              data-banner-state="disabled"
-            >
-              Persistence disabled — render only (recordedBy: demo)
-            </p>
-          )}
-        </header>
+            {writeOutcome.status === 'persisted' && (
+              <p
+                className="mt-2 inline-block rounded-[4px] border px-2.5 py-1 mz-mono text-[10px] font-medium uppercase tracking-[0.08em]"
+                style={{ background: 'var(--ok-bg)', color: 'var(--ok)', borderColor: 'var(--ok-rule)' }}
+                data-testid="persistence-banner"
+                data-banner-state="persisted"
+              >
+                Candidate row recorded (recordedBy: system)
+              </p>
+            )}
+            {writeOutcome.status === 'tamper_detected' && (
+              <p
+                className="mt-2 inline-block rounded-[4px] border px-2.5 py-1 mz-mono text-[10px] font-medium uppercase tracking-[0.08em]"
+                style={{ background: 'var(--watch-bg)', color: 'var(--watch)', borderColor: 'var(--watch-rule)' }}
+                data-testid="persistence-banner"
+                data-banner-state="tamper_detected"
+              >
+                Candidate row CHECK violation — render only (recordedBy: demo)
+              </p>
+            )}
+            {writeOutcome.status === 'transient_error' && (
+              <p
+                className="mt-2 inline-block rounded-[4px] border px-2.5 py-1 mz-mono text-[10px] font-medium uppercase tracking-[0.08em]"
+                style={{ background: 'var(--unknown-bg)', color: 'var(--unknown)', borderColor: 'var(--unknown-rule)' }}
+                data-testid="persistence-banner"
+                data-banner-state="transient_error"
+              >
+                Persistence unavailable — render only (recordedBy: demo)
+              </p>
+            )}
+            {writeOutcome.status === 'disabled' && (
+              <p
+                className="mt-2 inline-block rounded-[4px] border px-2.5 py-1 mz-mono text-[10px] font-medium uppercase tracking-[0.08em]"
+                style={{ background: 'var(--unknown-bg)', color: 'var(--unknown)', borderColor: 'var(--unknown-rule)' }}
+                data-testid="persistence-banner"
+                data-banner-state="disabled"
+              >
+                Persistence disabled — render only (recordedBy: demo)
+              </p>
+            )}
+          </Reveal>
+        </div>
+      </section>
 
-        <section
-          className="rounded-2xl border border-border bg-card p-5 space-y-4"
+      <div className="mx-auto max-w-2xl px-4 pb-16 pt-6 space-y-5">
+        <Reveal
+          as="section"
+          className="mz-card p-6 space-y-5"
           aria-label="Receipt candidate summary"
         >
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+            <p className="mz-mono text-[10px] uppercase tracking-[0.18em] text-[var(--vt-text-muted)]">
               Claim
             </p>
-            <p className="text-sm text-foreground">{request.claimSummary}</p>
-            <p className="text-xs text-muted-foreground">
+            <p className="mz-body mt-1 text-[var(--vt-text-primary)]">{request.claimSummary}</p>
+            <p className="mz-small mt-1 text-[var(--vt-text-secondary)]">
               Recommended route: {PARTNER_CATEGORY_LABEL[request.route.partnerCategory]}
             </p>
           </div>
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+            <p className="mz-mono text-[10px] uppercase tracking-[0.18em] text-[var(--vt-text-muted)]">
               Issuer response status
             </p>
-            <p className="text-sm text-foreground capitalize">
+            <p className="mz-body mt-1 capitalize text-[var(--vt-text-primary)]">
               {candidate.responseStatus?.replace(/_/g, ' ')}
             </p>
             {candidate.responseSummary && (
-              <p className="text-xs text-muted-foreground mt-1">
+              <p className="mz-small mt-1 text-[var(--vt-text-secondary)]">
                 {candidate.responseSummary}
               </p>
             )}
           </div>
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+            <p className="mz-mono text-[10px] uppercase tracking-[0.18em] text-[var(--vt-text-muted)]">
               Review state
             </p>
-            <p className="text-sm text-foreground">{reviewCopy.label}</p>
-            <p className="text-xs text-muted-foreground">{reviewCopy.description}</p>
+            <p className="mz-body mt-1 text-[var(--vt-text-primary)]">{reviewCopy.label}</p>
+            <p className="mz-small mt-1 text-[var(--vt-text-secondary)]">{reviewCopy.description}</p>
           </div>
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+            <p className="mz-mono text-[10px] uppercase tracking-[0.18em] text-[var(--vt-text-muted)]">
               Responder attribution
             </p>
-            <p className="text-sm text-foreground">
+            <p className="mz-body mt-1 text-[var(--vt-text-primary)]">
               {candidate.attributedResponder?.name ?? '(unattributed)'}
             </p>
             {candidate.attributedResponder?.role && (
-              <p className="text-xs text-muted-foreground">
+              <p className="mz-small mt-1 text-[var(--vt-text-secondary)]">
                 {candidate.attributedResponder.role}
               </p>
             )}
           </div>
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+            <p className="mz-mono text-[10px] uppercase tracking-[0.18em] text-[var(--vt-text-muted)]">
               Source basis
             </p>
-            <p className="text-sm text-foreground">
+            <p className="mz-body mt-1 text-[var(--vt-text-primary)]">
               {candidate.sourceBasis?.sourceOrganizationName}
             </p>
             {candidate.sourceBasis?.isContractedAgent && (
-              <p className="text-xs text-muted-foreground">
+              <p className="mz-small mt-1 text-[var(--vt-text-secondary)]">
                 Responding agent: {candidate.sourceBasis.agentName}
               </p>
             )}
             {candidate.sourceBasis?.basisNote && (
-              <p className="text-xs text-muted-foreground italic mt-1">
+              <p className="mz-small mt-1 italic text-[var(--vt-text-secondary)]">
                 {candidate.sourceBasis.basisNote}
               </p>
             )}
           </div>
           {candidate.limitationNote && (
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-amber-500/80">
+            <div className="space-y-2">
+              <span className="mz-chip mz-chip-watch">
+                <span className="mz-gl" aria-hidden="true" />
                 Limitation
-              </p>
-              <p className="text-xs text-muted-foreground italic">
+              </span>
+              <p className="mz-small italic text-[var(--vt-text-secondary)]">
                 {candidate.limitationNote}
               </p>
             </div>
           )}
-        </section>
+        </Reveal>
 
-        <section
-          className="rounded-2xl border border-border bg-card p-5"
+        {/* Decision moment — the single elevated glass panel. */}
+        <Reveal
+          as="section"
+          delay={80}
+          className="mz-glass rounded-[12px] p-6"
           aria-label="Available policy review actions"
         >
-          <h2 className="text-sm font-semibold mb-3 text-foreground">
-            Available actions
-          </h2>
-          <ul className="space-y-2" data-testid="policy-review-actions">
+          <h2 className="mz-h2">Available actions</h2>
+          <ul className="mt-4 space-y-2.5" data-testid="policy-review-actions">
             {ACTIONS.map((entry) => {
               const decision = buildPolicyReviewDecision(candidate, entry.action, {
                 decisionId: `dry-${entry.action}`,
@@ -338,42 +353,44 @@ export default async function PolicyReviewPage({ params }: PageProps) {
               return (
                 <li
                   key={entry.action}
-                  className="rounded-xl border border-border/60 bg-background/40 p-3"
+                  className="mz-glass-inset rounded-[10px] p-4"
                   data-action={entry.action}
                   data-creates-psv-candidate={String(
                     decision.createdPsvReceiptCandidate,
                   )}
                   data-decision-status={decision.status}
                 >
-                  <p className="text-sm font-medium text-foreground">
+                  <p className="mz-body font-medium text-[var(--vt-text-primary)]">
                     {entry.label}
                   </p>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="mz-small mt-0.5 text-[var(--vt-text-secondary)]">
                     {entry.description}
                   </p>
-                  <p className="text-[11px] mt-1 text-muted-foreground/80">
+                  <p className="mz-small mt-1 text-[var(--vt-text-muted)]">
                     Status: {copy.label} — {copy.description}
                   </p>
                 </li>
               );
             })}
           </ul>
-          <p className="mt-4 text-[11px] italic text-muted-foreground/80">
+          <p className="mt-5 mz-small italic text-[var(--vt-text-muted)]">
             Submitting on this page does not write an audit event and does not
             finalize verification. A PSV receipt candidate is not a global PSV
             receipt; promotion is gated by a separate review.
           </p>
-        </section>
+        </Reveal>
 
-        <section
-          className="rounded-2xl border border-border bg-card/60 p-4"
+        <Reveal
+          as="section"
+          delay={120}
+          className="mz-card p-6"
           aria-label="Dry-run outcome"
         >
-          <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+          <p className="mz-mono text-[10px] uppercase tracking-[0.18em] text-[var(--vt-text-muted)]">
             Dry-run accept outcome
           </p>
           <p
-            className="text-xs text-muted-foreground"
+            className="mz-small mt-1 text-[var(--vt-text-secondary)]"
             data-testid="dry-run-outcome"
             data-creates-psv-candidate={String(
               dryRunAccept.decision.createdPsvReceiptCandidate,
@@ -383,7 +400,7 @@ export default async function PolicyReviewPage({ params }: PageProps) {
           </p>
           {dryRunAccept.psvReceiptCandidate && (
             <p
-              className="text-[11px] text-muted-foreground/80 mt-1"
+              className="mz-small mt-1 text-[var(--vt-text-muted)]"
               data-testid="psv-candidate-tier"
               data-proof-tier={dryRunAccept.psvReceiptCandidate.proofTier}
               data-decision-grade={String(
@@ -394,16 +411,23 @@ export default async function PolicyReviewPage({ params }: PageProps) {
               Not final credentialing proof.
             </p>
           )}
-        </section>
+        </Reveal>
 
-        <section className="text-[11px] text-muted-foreground/70">
-          <p data-testid="policy-review-copy">
+        <Reveal
+          as="section"
+          delay={160}
+          className="border-t border-[var(--vt-border-subtle)] pt-6"
+        >
+          <p
+            data-testid="policy-review-copy"
+            className="mz-small text-[var(--vt-text-muted)]"
+          >
             Policy review states keep the candidate distinct from finalized
             verification: {Object.values(POLICY_REVIEW_COPY)
               .map((s) => s.label)
               .join(' · ')}
           </p>
-        </section>
+        </Reveal>
       </div>
     </main>
   );

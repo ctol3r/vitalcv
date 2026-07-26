@@ -15,7 +15,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 
   const { id } = await params;
   const res = await fetch(`${MARKETPLACE_BACKEND}/api/opportunities/${id}/applications`, {
-    headers: buildMarketplaceHeaders(session),
+    headers: await buildMarketplaceHeaders(session),
     cache: 'no-store',
     signal: AbortSignal.timeout(12_000),
   });

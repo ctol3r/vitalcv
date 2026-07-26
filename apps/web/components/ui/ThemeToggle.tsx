@@ -19,11 +19,9 @@ function resolveTheme(
     return theme;
   }
 
-  if (resolvedTheme === 'light') {
-    return 'light';
-  }
-
-  return 'dark';
+  // For 'system' (or unset), trust next-themes' resolved value and default to
+  // light — matching the provider default and the Calm Wave paper aesthetic.
+  return resolvedTheme === 'dark' ? 'dark' : 'light';
 }
 
 /**
@@ -33,12 +31,11 @@ export function ThemeToggle({ className = '' }: { className?: string }) {
   const { theme, setTheme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
-  // Avoid hydration mismatch — only render icon client-side
+  // Avoid hydration mismatch — only render icon client-side. Do NOT force a
+  // theme here: let the provider default (light) + any stored choice govern, so
+  // the icon never disagrees with what's rendered.
   useEffect(() => {
     setMounted(true);
-    if (!theme) {
-      setTheme('dark');
-    }
   }, [theme, setTheme]);
 
   if (!mounted) {

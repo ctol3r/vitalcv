@@ -1,0 +1,433 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>VitalCV · Institutional Trust Surface</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root{--ink-0:#fff;--ink-50:#f8fafc;--ink-100:#f1f5f9;--ink-200:#e2e8f0;--ink-300:#cbd5e1;--ink-400:#94a3b8;--ink-500:#64748b;--ink-600:#475569;--ink-700:#334155;--ink-800:#1e293b;--ink-900:#0f172a;--ink-950:#020617;--rule:#e2e8f0;}
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--ink-50);color:var(--ink-900);font-family:'Geist',ui-sans-serif,system-ui,sans-serif;font-feature-settings:'ss01','cv11';-webkit-font-smoothing:antialiased;font-size:14px;line-height:1.5;}
+  code,.mono{font-family:'Geist Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;}
+
+  .op{background:var(--ink-950);color:var(--ink-300);font-family:'Geist Mono',monospace;font-size:11px;}
+  .op .in{max-width:1280px;margin:0 auto;padding:0 32px;height:30px;display:flex;align-items:center;justify-content:space-between;}
+  .op .pill{display:inline-flex;align-items:center;gap:6px;padding:2px 7px;border:1px solid var(--ink-700);text-transform:uppercase;letter-spacing:.12em;font-size:10px;}
+  .op .pill .d{width:6px;height:6px;background:#10b981;border-radius:50%;}
+  .op .sep{color:var(--ink-600);}
+
+  header.mh{background:var(--ink-0);border-bottom:1px solid var(--rule);}
+  .mh .in{max-width:1280px;margin:0 auto;padding:22px 32px 22px;}
+  .brand{display:flex;align-items:center;gap:11px;margin-bottom:14px;}
+  .brand .g{width:22px;height:22px;background:var(--ink-900);color:#fff;display:grid;place-items:center;font-family:'Geist Mono',monospace;font-size:11px;font-weight:600;}
+  .brand .nm{font-weight:600;letter-spacing:-.01em;font-size:15px;}
+  .brand .nm .sl{color:var(--ink-400);font-weight:400;}
+  .brand .nm .sub{color:var(--ink-500);font-weight:400;}
+  .eyebrow{font-family:'Geist Mono',monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:.18em;color:var(--ink-500);display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+  .eyebrow .r{display:inline-block;width:22px;height:1px;background:var(--ink-300);}
+  h1{font-size:28px;line-height:1.12;letter-spacing:-.025em;font-weight:600;margin:0;max-width:46ch;}
+  h1 .muted{color:var(--ink-500);}
+  .sub{margin-top:10px;color:var(--ink-700);max-width:72ch;font-size:14px;line-height:1.6;}
+  .meta-h{display:flex;gap:18px;margin-top:14px;flex-wrap:wrap;font-family:'Geist Mono',monospace;font-size:10.5px;color:var(--ink-500);text-transform:uppercase;letter-spacing:.14em;}
+  .meta-h span strong{color:var(--ink-900);font-weight:500;}
+
+  main{max-width:1280px;margin:0 auto;padding:24px 32px 64px;}
+
+  /* 90-sec read strip */
+  .scan{display:grid;grid-template-columns:repeat(6,1fr);gap:0;border:1px solid var(--ink-900);background:var(--ink-0);margin-bottom:24px;}
+  .scan .cell{padding:13px 14px;border-right:1px solid var(--rule);}
+  .scan .cell:last-child{border-right:0;}
+  .scan .k{font-family:'Geist Mono',monospace;font-size:9.5px;color:var(--ink-500);text-transform:uppercase;letter-spacing:.14em;margin-bottom:4px;}
+  .scan .v{font-size:12.5px;font-weight:500;color:var(--ink-900);letter-spacing:-.005em;line-height:1.3;}
+  .scan .v .mn{font-family:'Geist Mono',monospace;font-weight:500;font-size:12px;}
+
+  /* section header */
+  .sec{margin-top:28px;}
+  .sh{display:flex;align-items:baseline;gap:14px;border-bottom:1px solid var(--ink-900);padding-bottom:8px;margin-bottom:14px;}
+  .sh h2{font-size:18px;margin:0;font-weight:600;letter-spacing:-.015em;color:var(--ink-900);}
+  .sh .ey{font-family:'Geist Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-500);}
+
+  /* issuer + key block — cryptographic inversion */
+  .ident{background:var(--ink-950);color:var(--ink-100);border:1px solid var(--ink-950);}
+  .ident .top{padding:18px 22px;display:grid;grid-template-columns:1fr auto;gap:24px;align-items:flex-end;border-bottom:1px solid var(--ink-800);}
+  .ident .did{display:flex;flex-direction:column;gap:5px;}
+  .ident .did .k{font-family:'Geist Mono',monospace;font-size:9.5px;color:var(--ink-400);text-transform:uppercase;letter-spacing:.16em;}
+  .ident .did .v{font-family:'Geist Mono',monospace;font-size:18px;color:#fff;letter-spacing:.005em;}
+  .ident .seal{width:56px;height:56px;border:1px solid #fff;display:grid;place-items:center;font-family:'Geist Mono',monospace;font-size:13px;color:#fff;letter-spacing:.1em;}
+  .ident .grid{display:grid;grid-template-columns:repeat(4,1fr);}
+  .ident .grid .cell{padding:14px 18px;border-right:1px solid var(--ink-800);border-bottom:1px solid var(--ink-800);}
+  .ident .grid .cell:nth-child(4n){border-right:0;}
+  .ident .grid .cell:nth-last-child(-n+4){border-bottom:0;}
+  .ident .k{font-family:'Geist Mono',monospace;font-size:9px;color:var(--ink-400);text-transform:uppercase;letter-spacing:.16em;margin-bottom:5px;}
+  .ident .v{font-family:'Geist Mono',monospace;font-size:11px;color:#fff;word-break:break-all;line-height:1.45;}
+  .ident .v .sub{color:var(--ink-400);}
+  .ident .fp{display:flex;align-items:center;gap:8px;}
+  .ident .fp .dot{width:6px;height:6px;background:#fff;border-radius:50%;}
+
+  /* key history strip */
+  .keyhist{display:grid;grid-template-columns:1fr 1fr 1fr;background:#0b1322;border-top:1px solid var(--ink-800);}
+  .keyhist .col{padding:14px 18px;border-right:1px solid var(--ink-800);}
+  .keyhist .col:last-child{border-right:0;}
+  .keyhist .k{font-family:'Geist Mono',monospace;font-size:9px;color:var(--ink-400);text-transform:uppercase;letter-spacing:.16em;margin-bottom:5px;}
+  .keyhist .v{font-family:'Geist Mono',monospace;font-size:11px;color:#fff;line-height:1.45;}
+  .keyhist .v .when{color:var(--ink-400);}
+  .keyhist .col.active::before{content:"active";display:block;margin-bottom:4px;font-family:'Geist Mono',monospace;font-size:9px;color:#10b981;text-transform:uppercase;letter-spacing:.16em;}
+  .keyhist .col.retired::before{content:"retired";display:block;margin-bottom:4px;font-family:'Geist Mono',monospace;font-size:9px;color:var(--ink-500);text-transform:uppercase;letter-spacing:.16em;}
+
+  /* Two-column section */
+  .two{display:grid;grid-template-columns:1.05fr .95fr;gap:24px;}
+
+  /* Trust registry node */
+  .reg{border:1px solid var(--ink-300);background:var(--ink-0);}
+  .reg .row{display:grid;grid-template-columns:1fr 110px 130px;border-bottom:1px solid var(--rule);align-items:center;padding:11px 14px;gap:14px;}
+  .reg .row:last-child{border-bottom:0;}
+  .reg .row .nm{font-size:12.5px;color:var(--ink-900);font-weight:500;}
+  .reg .row .nm .id{font-family:'Geist Mono',monospace;font-size:10px;color:var(--ink-500);display:block;margin-top:2px;letter-spacing:.04em;}
+  .reg .row .lst{font-family:'Geist Mono',monospace;font-size:10.5px;color:var(--ink-700);text-align:right;}
+  .reg .row .lst .sub{color:var(--ink-400);display:block;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;margin-top:2px;}
+  .reg .row .stchip{font-family:'Geist Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-900);display:inline-flex;align-items:center;gap:7px;justify-content:flex-end;}
+  .reg .row .stchip .d{width:6px;height:6px;background:var(--ink-900);border-radius:50%;}
+  .reg .row.prov .stchip{color:var(--ink-500);}
+  .reg .row.prov .stchip .d{background:transparent;border:1px solid var(--ink-500);}
+  .reg .hd{background:var(--ink-50);border-bottom:1px solid var(--ink-300);}
+  .reg .hd .c{font-family:'Geist Mono',monospace;font-size:9.5px;text-transform:uppercase;letter-spacing:.14em;color:var(--ink-500);}
+
+  /* Conformance regimes */
+  .conf{border:1px solid var(--ink-300);background:var(--ink-0);}
+  .conf .row{display:grid;grid-template-columns:1fr auto auto;border-bottom:1px solid var(--rule);padding:11px 14px;align-items:center;gap:14px;}
+  .conf .row:last-child{border-bottom:0;}
+  .conf .row .nm{font-size:12.5px;color:var(--ink-900);font-weight:500;}
+  .conf .row .nm .sub{font-family:'Geist Mono',monospace;font-size:10px;color:var(--ink-500);display:block;margin-top:2px;letter-spacing:.04em;}
+  .conf .row .ver{font-family:'Geist Mono',monospace;font-size:10.5px;color:var(--ink-700);}
+  .conf .row .when{font-family:'Geist Mono',monospace;font-size:10px;color:var(--ink-500);text-transform:uppercase;letter-spacing:.12em;text-align:right;}
+  .conf .row .when strong{color:var(--ink-900);font-weight:500;}
+  .conf .hd{background:var(--ink-50);border-bottom:1px solid var(--ink-300);}
+  .conf .hd .c{font-family:'Geist Mono',monospace;font-size:9.5px;text-transform:uppercase;letter-spacing:.14em;color:var(--ink-500);}
+
+  /* Verifier discovery endpoints — copyable mono blocks */
+  .endp{border:1px solid var(--ink-300);background:var(--ink-0);}
+  .endp .row{display:grid;grid-template-columns:170px 1fr 90px;align-items:center;padding:11px 14px;border-bottom:1px solid var(--rule);gap:14px;}
+  .endp .row:last-child{border-bottom:0;}
+  .endp .row .lbl{font-family:'Geist Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.14em;color:var(--ink-500);}
+  .endp .row .url{font-family:'Geist Mono',monospace;font-size:11.5px;color:var(--ink-900);word-break:break-all;}
+  .endp .row .url .h{color:var(--ink-500);}
+  .endp .row .verb{font-family:'Geist Mono',monospace;font-size:10px;color:var(--ink-900);font-weight:500;letter-spacing:.06em;text-align:right;}
+  .endp .row .verb .meth{display:inline-block;padding:1px 6px;background:var(--ink-100);border:1px solid var(--rule);margin-left:6px;}
+  .endp .hd{background:var(--ink-50);border-bottom:1px solid var(--ink-300);}
+  .endp .hd .c{font-family:'Geist Mono',monospace;font-size:9.5px;text-transform:uppercase;letter-spacing:.14em;color:var(--ink-500);}
+
+  /* Source operational states */
+  .src{border:1px solid var(--ink-300);background:var(--ink-0);}
+  .src .row{display:grid;grid-template-columns:1fr 100px 110px 130px;border-bottom:1px solid var(--rule);padding:11px 14px;align-items:center;gap:12px;}
+  .src .row:last-child{border-bottom:0;}
+  .src .row .nm{font-size:12.5px;color:var(--ink-900);font-weight:500;}
+  .src .row .nm .auth{font-family:'Geist Mono',monospace;font-size:10px;color:var(--ink-500);display:block;margin-top:2px;letter-spacing:.04em;}
+  .src .row .lat{font-family:'Geist Mono',monospace;font-size:11px;color:var(--ink-900);text-align:right;}
+  .src .row .lat .sub{display:block;font-size:9px;color:var(--ink-500);text-transform:uppercase;letter-spacing:.12em;}
+  .src .row .last{font-family:'Geist Mono',monospace;font-size:10.5px;color:var(--ink-700);text-align:right;}
+  .src .row .last .sub{display:block;font-size:9px;color:var(--ink-500);text-transform:uppercase;letter-spacing:.12em;}
+  .src .row .st{font-family:'Geist Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-900);display:inline-flex;align-items:center;gap:7px;justify-content:flex-end;font-weight:500;}
+  .src .row .st .d{width:6px;height:6px;background:var(--ink-900);border-radius:50%;}
+  .src .row.degraded .st{color:var(--ink-900);}
+  .src .row.degraded .st .d{background:transparent;border:1px solid var(--ink-900);}
+  .src .row.degraded{background:var(--ink-50);}
+  .src .hd{background:var(--ink-50);border-bottom:1px solid var(--ink-300);}
+  .src .hd .c{font-family:'Geist Mono',monospace;font-size:9.5px;text-transform:uppercase;letter-spacing:.14em;color:var(--ink-500);}
+  .src-degbar{padding:9px 14px;background:var(--ink-900);color:#fff;font-family:'Geist Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;display:flex;justify-content:space-between;align-items:center;}
+  .src-degbar .l{display:flex;align-items:center;gap:10px;}
+  .src-degbar .b{padding:2px 6px;border:1px solid #fff;font-weight:500;}
+
+  /* Trust verdict footer */
+  .verdict{margin-top:32px;display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid var(--ink-900);background:var(--ink-0);}
+  .verdict > div{padding:16px 20px;border-right:1px solid var(--ink-900);}
+  .verdict > div:last-child{border-right:0;background:var(--ink-950);color:var(--ink-100);}
+  .verdict .k{font-family:'Geist Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-500);margin-bottom:6px;}
+  .verdict > div:last-child .k{color:var(--ink-400);}
+  .verdict .v{font-size:13.5px;line-height:1.55;color:var(--ink-900);}
+  .verdict > div:last-child .v{color:#fff;}
+  .verdict .v code{color:var(--ink-900);background:var(--ink-100);padding:1px 5px;font-size:11.5px;}
+  .verdict > div:last-child .v code{color:#fff;background:#0b1322;}
+
+  footer.foot-page{max-width:1280px;margin:24px auto 0;padding:22px 32px;font-family:'Geist Mono',monospace;font-size:10.5px;color:var(--ink-500);display:flex;justify-content:space-between;border-top:1px solid var(--rule);background:var(--ink-0);}
+  footer .v{color:var(--ink-700);}
+
+  @media(max-width:1100px){
+    .scan{grid-template-columns:repeat(3,1fr);}
+    .two{grid-template-columns:1fr;}
+    .ident .grid{grid-template-columns:repeat(2,1fr);}
+    .ident .grid .cell:nth-child(4n){border-right:1px solid var(--ink-800);}
+    .ident .grid .cell:nth-child(2n){border-right:0;}
+    .keyhist{grid-template-columns:1fr;}
+    .src .row{grid-template-columns:1fr 1fr;}
+    .verdict{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+
+<div class="op">
+  <div class="in">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <span style="letter-spacing:.16em;text-transform:uppercase;color:var(--ink-400);font-weight:500;">Institutional Trust Surface</span>
+      <span class="sep">/</span>
+      <span>For verifiers · 90-second comprehension target</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:14px;">
+      <span class="pill"><span class="d"></span>Live</span>
+      <span class="sep">|</span>
+      <span>vc.2026.05.11-a · 14:32:08Z</span>
+    </div>
+  </div>
+</div>
+
+<header class="mh">
+  <div class="in">
+    <div class="brand">
+      <span class="g">V</span>
+      <span class="nm">VitalCV<span class="sl">/</span><span class="sub">trust</span></span>
+    </div>
+    <div class="eyebrow"><span class="r"></span>For institutional verifiers · MSOs · CVOs · payors</div>
+    <h1>Everything a verifier needs to trust this issuer. <span class="muted">In one page. No account.</span></h1>
+    <p class="sub">This surface declares VitalCV's cryptographic identity, the key currently signing badges, the registries that list us, the standards we conform to, and the endpoints you can call to verify a presented credential without contacting us. Source registries we depend on report their own live state below — degraded states are visible, not hidden.</p>
+    <div class="meta-h">
+      <span>Issuer · <strong>did:web:vitalcv.health</strong></span>
+      <span>Trust verdict timestamp · <strong>2026-05-11T14:32:08Z</strong></span>
+      <span>This page is signed · <strong>verifier.vitalcv.health/.well-known/trust.sig</strong></span>
+    </div>
+  </div>
+</header>
+
+<main>
+
+  <!-- 90-sec scan strip -->
+  <div class="scan">
+    <div class="cell"><div class="k">Issuer</div><div class="v"><span class="mn">did:web:vitalcv.health</span></div></div>
+    <div class="cell"><div class="k">Signing key</div><div class="v"><span class="mn">ed25519 · 4f2a…b8d3</span></div></div>
+    <div class="cell"><div class="k">Trust registry</div><div class="v">DirectTrust · listed</div></div>
+    <div class="cell"><div class="k">Conformance</div><div class="v">VC 2.0 · OID4VCI · SL 2021</div></div>
+    <div class="cell"><div class="k">Endpoints</div><div class="v">4 · all signed</div></div>
+    <div class="cell"><div class="k">Sources</div><div class="v">3 of 4 live · 1 degraded</div></div>
+  </div>
+
+  <!-- 1 · Issuer identity + signing key — inverted -->
+  <div class="sec">
+    <div class="sh"><h2>Issuer identity</h2><span class="ey">01 · cryptographic root</span></div>
+    <div class="ident">
+      <div class="top">
+        <div class="did">
+          <span class="k">Decentralized identifier</span>
+          <span class="v">did:web:vitalcv.health</span>
+        </div>
+        <div class="seal">VC</div>
+      </div>
+      <div class="grid">
+        <div class="cell"><div class="k">Algorithm</div><div class="v">ed25519</div></div>
+        <div class="cell"><div class="k">Key type</div><div class="v">Ed25519VerificationKey2020</div></div>
+        <div class="cell"><div class="k">Issuance method</div><div class="v">OpenID4VCI 1.0</div></div>
+        <div class="cell"><div class="k">Proof method</div><div class="v">DataIntegrityProof / eddsa-rdfc-2022</div></div>
+        <div class="cell"><div class="k">Key fingerprint</div><div class="v"><div class="fp"><span class="dot"></span><span>4f2a · 91c5 · 7e08 · b8d3</span></div><div class="sub">SHA-256 of public key</div></div></div>
+        <div class="cell"><div class="k">Activated</div><div class="v">2025-11-02T00:00:00Z<div class="sub">in service 190 days</div></div></div>
+        <div class="cell"><div class="k">Rotation policy</div><div class="v">Scheduled 365d<div class="sub">next: 2026-11-02</div></div></div>
+        <div class="cell"><div class="k">Compromise procedure</div><div class="v">SL2021 bit 1 on all VCs signed by retired key<div class="sub">irrevocable within 15m</div></div></div>
+      </div>
+      <div class="keyhist">
+        <div class="col active">
+          <div class="k">Current key</div>
+          <div class="v">4f2a · 91c5 · 7e08 · b8d3<br/><span class="when">since 2025-11-02</span></div>
+        </div>
+        <div class="col retired">
+          <div class="k">Previous key</div>
+          <div class="v">8c91 · 0d44 · a217 · e3f0<br/><span class="when">retired 2025-11-02 (scheduled)</span></div>
+        </div>
+        <div class="col retired">
+          <div class="k">Genesis key</div>
+          <div class="v">2a17 · 0e8b · 5fc6 · 1d92<br/><span class="when">retired 2024-11-02 (scheduled)</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2+3 · Trust registry + conformance -->
+  <div class="sec">
+    <div class="sh"><h2>Trust attestations</h2><span class="ey">02 · who lists us · 03 · what we conform to</span></div>
+    <div class="two">
+
+      <div class="reg">
+        <div class="row hd">
+          <div class="c">Trust registry node</div>
+          <div class="c" style="text-align:right;">Status</div>
+          <div class="c" style="text-align:right;">Last attested</div>
+        </div>
+        <div class="row">
+          <div class="nm">DirectTrust · Issuer Listing<span class="id">trust-registry.directtrust.org/issuers/vitalcv</span></div>
+          <div class="stchip"><span class="d"></span>Listed</div>
+          <div class="lst">2026-05-09<span class="sub">2 days ago</span></div>
+        </div>
+        <div class="row">
+          <div class="nm">CARIN Alliance · Trusted Issuer<span class="id">trust.carinalliance.com/registry</span></div>
+          <div class="stchip"><span class="d"></span>Listed</div>
+          <div class="lst">2026-05-05<span class="sub">6 days ago</span></div>
+        </div>
+        <div class="row">
+          <div class="nm">DIF Trust Framework · Pilot<span class="id">trust.identity.foundation/issuers</span></div>
+          <div class="stchip"><span class="d"></span>Listed</div>
+          <div class="lst">2026-04-28<span class="sub">13 days ago</span></div>
+        </div>
+        <div class="row prov">
+          <div class="nm">HL7 SMART Health Cards · Issuer<span class="id">trusted-issuers.smarthealth.cards</span></div>
+          <div class="stchip"><span class="d"></span>Provisional</div>
+          <div class="lst">2026-04-12<span class="sub">29 days ago</span></div>
+        </div>
+      </div>
+
+      <div class="conf">
+        <div class="row hd">
+          <div class="c">Conformance regime</div>
+          <div class="c" style="text-align:right;">Version</div>
+          <div class="c" style="text-align:right;">Last audit</div>
+        </div>
+        <div class="row">
+          <div class="nm">W3C Verifiable Credentials<span class="sub">Data Model</span></div>
+          <div class="ver">2.0</div>
+          <div class="when"><strong>2026-04-22</strong><br/>self-test · passing</div>
+        </div>
+        <div class="row">
+          <div class="nm">OpenID for Verifiable Credential Issuance<span class="sub">OID4VCI</span></div>
+          <div class="ver">1.0 final</div>
+          <div class="when"><strong>2026-04-18</strong><br/>OIDF interop · passing</div>
+        </div>
+        <div class="row">
+          <div class="nm">Bitstring Status List<span class="sub">revocation</span></div>
+          <div class="ver">v1.0</div>
+          <div class="when"><strong>2026-05-01</strong><br/>continuous</div>
+        </div>
+        <div class="row">
+          <div class="nm">RFC 9449 · DPoP<span class="sub">demonstration-of-possession</span></div>
+          <div class="ver">RFC 9449</div>
+          <div class="when"><strong>2026-04-30</strong><br/>continuous</div>
+        </div>
+        <div class="row">
+          <div class="nm">NCQA Credentialing §3<span class="sub">primary-source verification</span></div>
+          <div class="ver">2024 standards</div>
+          <div class="when"><strong>2026-03-14</strong><br/>third-party audit</div>
+        </div>
+        <div class="row">
+          <div class="nm">RFC 3161 · Time-Stamp Protocol<span class="sub">receipt anchoring</span></div>
+          <div class="ver">RFC 3161</div>
+          <div class="when"><strong>2026-05-11</strong><br/>continuous</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 4 · Verifier discovery endpoints -->
+  <div class="sec">
+    <div class="sh"><h2>Verifier discovery endpoints</h2><span class="ey">04 · everything you can call without an account</span></div>
+    <div class="endp">
+      <div class="row hd">
+        <div class="lbl c">Purpose</div>
+        <div class="c"><span class="lbl">URL</span></div>
+        <div class="c" style="text-align:right;"><span class="lbl">Method</span></div>
+      </div>
+      <div class="row">
+        <div class="lbl">DID document</div>
+        <div class="url"><span class="h">https://</span>vitalcv.health/.well-known/did.json</div>
+        <div class="verb">resolve<span class="meth">GET</span></div>
+      </div>
+      <div class="row">
+        <div class="lbl">Issuer metadata</div>
+        <div class="url"><span class="h">https://</span>vitalcv.health/.well-known/openid-credential-issuer</div>
+        <div class="verb">discover<span class="meth">GET</span></div>
+      </div>
+      <div class="row">
+        <div class="lbl">JWKS</div>
+        <div class="url"><span class="h">https://</span>vitalcv.health/.well-known/jwks.json</div>
+        <div class="verb">keyset<span class="meth">GET</span></div>
+      </div>
+      <div class="row">
+        <div class="lbl">Status list</div>
+        <div class="url"><span class="h">https://</span>vitalcv.health/status/v1/list.jsonld</div>
+        <div class="verb">revoke<span class="meth">GET</span></div>
+      </div>
+      <div class="row">
+        <div class="lbl">Verifier kit</div>
+        <div class="url"><span class="h">https://</span>verifier.vitalcv.health/v1/verify (or run client-side)</div>
+        <div class="verb">verify<span class="meth">POST</span></div>
+      </div>
+      <div class="row">
+        <div class="lbl">Trust manifest</div>
+        <div class="url"><span class="h">https://</span>vitalcv.health/.well-known/trust.json <span class="h">·</span> trust.sig</div>
+        <div class="verb">attest<span class="meth">GET</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5 · Source operational states -->
+  <div class="sec">
+    <div class="sh"><h2>Source operational states</h2><span class="ey">05 · the registries we depend on · live</span></div>
+    <div class="src">
+      <div class="src-degbar">
+        <span class="l"><span class="b">Degraded · 1 of 4</span><span>PECOS upstream latency above 5s threshold · receipts continue to issue · degraded state is recorded on each receipt</span></span>
+        <span>last refresh 14:32:02Z</span>
+      </div>
+      <div class="row hd">
+        <div class="c"><span class="nm">Registry</span></div>
+        <div class="c" style="text-align:right;"><span class="lbl">Latency p95</span></div>
+        <div class="c" style="text-align:right;"><span class="lbl">Last success</span></div>
+        <div class="c" style="text-align:right;"><span class="lbl">Status</span></div>
+      </div>
+      <div class="row">
+        <div class="nm">NPPES<span class="auth">CMS · National Provider Identifier</span></div>
+        <div class="lat">412 ms<span class="sub">p95</span></div>
+        <div class="last">14:32:01<span class="sub">7 s ago</span></div>
+        <div class="st"><span class="d"></span>Live</div>
+      </div>
+      <div class="row">
+        <div class="nm">OIG · LEIE<span class="auth">HHS · exclusion list</span></div>
+        <div class="lat">288 ms<span class="sub">p95</span></div>
+        <div class="last">14:31:58<span class="sub">10 s ago</span></div>
+        <div class="st"><span class="d"></span>Live</div>
+      </div>
+      <div class="row degraded">
+        <div class="nm">PECOS<span class="auth">CMS · provider enrollment</span></div>
+        <div class="lat">5,820 ms<span class="sub">p95 · ↑</span></div>
+        <div class="last">14:29:14<span class="sub">2m 54s ago</span></div>
+        <div class="st"><span class="d"></span>Degraded</div>
+      </div>
+      <div class="row">
+        <div class="nm">CA Medical Board<span class="auth">CA-PA · license verification</span></div>
+        <div class="lat">681 ms<span class="sub">p95</span></div>
+        <div class="last">14:32:04<span class="sub">4 s ago</span></div>
+        <div class="st"><span class="d"></span>Live</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Trust verdict footer -->
+  <div class="verdict">
+    <div>
+      <div class="k">What you can verify without us</div>
+      <div class="v">Resolve <code>did:web:vitalcv.health</code>, fetch the <code>jwks</code>, validate the signature on a presented credential, and check the <code>status</code> bit. <strong>Our server is not in the verification path.</strong> If we are offline, your verification still completes; if we are compromised, our revocation procedure flips every affected credential's status bit within 15 minutes.</div>
+    </div>
+    <div>
+      <div class="k">What requires our cooperation</div>
+      <div class="v">Receipt-chain inspection past the badge itself (audit replay), source-registry re-resolution at the moment of issuance, and degraded-state history on a specific receipt. <strong>None of these are required to trust a current credential</strong> — they are forensic and historical only.</div>
+    </div>
+  </div>
+
+</main>
+
+<footer class="foot-page">
+  <div>VitalCV · Institutional Trust Surface · <span class="v">designed to be read in 90 seconds</span></div>
+  <div style="text-align:right;">
+    <div>Issuer <span class="v">did:web:vitalcv.health</span></div>
+    <div style="color:var(--ink-400);margin-top:2px;">Spec · OIDC 1.0 · DPoP · VC 2.0 · Status List 2021 · NCQA CR §3</div>
+  </div>
+</footer>
+
+</body>
+</html>

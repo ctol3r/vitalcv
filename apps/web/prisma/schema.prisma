@@ -80,3 +80,100 @@ model ReceiptCandidate {
   @@index([reviewState])
   @@index([createdAt])
 }
+
+// MATCHA career preferences / Career DNA — mirror of the backend model (one
+// shared DB; migration + source of truth live in apps/api/backend/prisma).
+// The web app reads/writes this table directly via an auth-scoped route, keyed
+// by the authenticated Clerk user id. `data` is the sanitized MatchaPreferences
+// bag (self-stated, editable preferences — never credentials or evidence).
+model MatchaPreference {
+  id          String   @id @default(cuid())
+  clerkUserId String   @unique
+  data        Json
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([clerkUserId])
+}
+
+// Wave Q — durable commercial lead capture (mirror of the backend model;
+// migration lives in apps/api/backend/prisma/migrations/20260705120000_pilot_leads).
+// One row per submitted pilot request / pilot intake, paired with an
+// AuditEvent at insert. Operational CRM-lite, never evidence.
+model PilotLead {
+  id             String   @id @default(uuid()) @db.Uuid
+  source         String // pilot_request | pilot_intake
+  persona        String?
+  organization   String
+  contactName    String?
+  email          String
+  message        String?
+  workflowTarget String?
+  sourceContext  String?
+  payload        Json
+  slackDelivered Boolean  @default(false)
+  createdAt      DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([source, createdAt])
+  @@index([email])
+}
+
+// Wave K — clinician Save / Connect / Decline decisions on MATCHA
+// opportunities (mirror of the backend model; migrations live in
+// apps/api/backend/prisma/migrations/20260705000000_opportunity_actions and
+// .../20260717000000_opportunity_signal_fields).
+// Append-only: every decision (including clearing one back to "new") is a
+// NEW row; current state = latest row per (clerkUserId, opportunityId).
+// These are the clinician's own workflow decisions — never credentials,
+// never verification state.
+//
+// PR J2 — MATCHA Discover (the swipe deck) writes here too, so a role saved
+// on the board is the same role the deck shows as decided. Read the log
+// through apps/web/lib/matcha/opportunitySignals.ts (canonical vocabulary +
+// current-state derivation), never by casting `action` at a call site.
+model OpportunityAction {
+  id            String   @id @default(uuid()) @db.Uuid
+  clerkUserId   String
+  npi           String?
+  opportunityId String
+  action        String
+  source        String   @default("web")
+  createdAt     DateTime @default(now())
+  // PR J2 fields — additive + nullable, so every pre-deck row stays valid.
+  surface            String   @default("board")
+  opportunityVersion String?
+  recommendationId   String?
+  sessionId          String?
+  reason             String?
+  clientSignalId     String?  @unique
+
+  @@index([clerkUserId, opportunityId, createdAt])
+  @@index([opportunityId])
+  @@index([createdAt])
+  @@index([clerkUserId, surface, createdAt])
+}
+
+// Mirror of the backend AuditEvent model (one shared DB; migrations owned by
+// apps/api/backend/prisma). The web app APPENDS audit rows for the mutations
+// it owns (audit-first rule) — it never updates or deletes them, and never
+// anchors (anchored/merkleRoot are written by backend anchoring jobs only).
+model AuditEvent {
+  id             String   @id @default(uuid()) @db.Uuid
+  type           String
+  hash           String
+  referenceId    String?
+  clinicianId    String?
+  metadata       Json?
+  createdAt      DateTime @default(now())
+  organizationId String?
+  anchored       Boolean  @default(false)
+  merkleRoot     String?
+
+  @@index([type, createdAt])
+  @@index([clinicianId])
+  @@index([referenceId])
+  @@index([organizationId])
+  @@index([anchored])
+  @@index([merkleRoot])
+}

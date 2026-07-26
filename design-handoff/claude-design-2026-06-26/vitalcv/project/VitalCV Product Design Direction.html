@@ -1,0 +1,687 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>VitalCV · Product Design Direction</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="vitalcv-design-direction.css">
+</head>
+<body>
+
+<header class="chrome">
+  <div class="brand">
+    <span class="g">V</span>
+    <strong>VitalCV</strong>
+    <span class="sl">/</span>
+    <span>Design Direction</span>
+    <span class="sl">/</span>
+    <span>D57 · Calm Source-of-Truth</span>
+  </div>
+  <nav>
+    <a href="#north-star">01</a>
+    <a href="#principles">02</a>
+    <a href="#system">03</a>
+    <a href="#components">04</a>
+    <a href="#screens">05</a>
+    <a href="#features">06</a>
+    <a href="#interaction">07</a>
+    <a href="#states">08</a>
+    <a href="#bench">09</a>
+    <a href="#handoff">10</a>
+    <a href="#roadmap">11</a>
+    <a href="#verdict">12</a>
+  </nav>
+</header>
+
+<div class="page">
+
+  <section class="cover">
+    <div class="eyebrow">
+      <span>Product design direction</span>
+      <span class="line"></span>
+      <span>v1.0 · D57</span>
+    </div>
+    <h1>The calm source-of-truth layer between fragmented credentialing systems.</h1>
+    <p class="lede">VitalCV is trust infrastructure for healthcare credentialing. It must feel <strong>honest, evidence-bounded, and institution-review-aware</strong> — and look like something a chief medical officer would trust on first glance. This document defines the visual language, component set, screen architecture, and feature direction to move from <strong>limited-pass degraded surface</strong> to a state-of-the-art product.</p>
+    <div class="meta">
+      <div>Scope <strong>UI · UX · System</strong></div>
+      <div>Owner <strong>Design</strong></div>
+      <div>Status <strong>Ready for build</strong></div>
+      <div>Next wave <strong>D57</strong></div>
+    </div>
+  </section>
+
+  <!-- 01 NORTH STAR -->
+  <section id="north-star" class="section">
+    <div class="sec-head"><span class="sec-num">01</span><h2 class="sec-title">Visual North Star</h2><span class="sec-aside">Feeling · Tone · First five seconds</span></div>
+    <p class="sec-lede">If a chief credentialing officer opens a passport in a hallway between meetings, they should read three things in five seconds: <strong>what is true today, what is sourced, what still needs them to decide.</strong> The screen should feel like a printed document signed by a system — not a SaaS dashboard.</p>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-hd"><span class="ttl">What VitalCV should feel like</span><span class="sub">do</span></div>
+        <div class="card-bd prose">
+          <p><strong>Paper, not glass.</strong> Warm off-white substrate, near-black ink, hairline rules. The page reads like an issued document — quiet, dense where it matters, generous where it doesn't.</p>
+          <p><strong>Evidence first, action second.</strong> Every field carries its source inline; the primary action only appears after the evidence is legible.</p>
+          <p><strong>Quiet precision.</strong> Tabular numerics, monospace metadata, deliberate whitespace, a single accent. Nothing pulses, nothing animates without cause.</p>
+          <p><strong>System-side calm.</strong> Gaps are gray and labeled — never red. The product never sounds an alarm about a person.</p>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-hd"><span class="ttl">What it must not feel like</span><span class="sub">don't</span></div>
+        <div class="card-bd prose">
+          <p><strong>Not a hospital intranet.</strong> No teal gradients, no clipart caduceus, no 2004 portal chrome.</p>
+          <p><strong>Not a fintech dashboard.</strong> No vanity charts, no green-up-arrow trust scores, no leaderboard energy.</p>
+          <p><strong>Not crypto theater.</strong> No "chain of trust" animations, no node-graph visuals, no certificate seals.</p>
+          <p><strong>Not generic SaaS.</strong> No gradient blob hero, no oversized rounded cards, no fake live counters, no glassmorphism.</p>
+        </div>
+      </div>
+    </div>
+    <div class="grid-3" style="margin-top:18px">
+      <div class="card"><div class="card-hd"><span class="ttl">First 5 seconds</span></div><div class="card-bd prose"><p>User reads <strong>"NPPES directory record · retrieved 4h ago"</strong> beside the clinician's name and understands: sourced presence, not a credentialing verdict.</p></div></div>
+      <div class="card"><div class="card-hd"><span class="ttl">First 30 seconds</span></div><div class="card-bd prose"><p>User scans the five-row legend, locates the institution-review boundary, and identifies the single next step. No scrolling required.</p></div></div>
+      <div class="card"><div class="card-hd"><span class="ttl">First 5 minutes</span></div><div class="card-bd prose"><p>User opens the Receipt Drawer, sees field-level provenance, exports a Demo Packet. Confidence is earned through transparency, not asserted by chrome.</p></div></div>
+    </div>
+  </section>
+
+  <!-- 02 PRINCIPLES -->
+  <section id="principles" class="section">
+    <div class="sec-head"><span class="sec-num">02</span><h2 class="sec-title">Design Principles</h2><span class="sec-aside">Ten rules · Apply on every screen</span></div>
+    <div class="principles">
+      <div class="principle"><div class="n">P · 01</div><h4>Evidence before action.</h4><p>The primary CTA never appears above the sourced fields. Read first, decide second.</p></div>
+      <div class="principle"><div class="n">P · 02</div><h4>One primary action per screen.</h4><p>One ink-black button. Everything else is a link or a ghost. Hierarchy is moral, not visual.</p></div>
+      <div class="principle"><div class="n">P · 03</div><h4>Source state is always visible.</h4><p>Every fact carries source · timestamp · state inline. Tooltips are never the only carrier of truth.</p></div>
+      <div class="principle"><div class="n">P · 04</div><h4>System gaps are neutral, not alarming.</h4><p>Unavailable, gated, not-connected = muted grays and ambers. Red is reserved for true clinician-side adverse findings, which we do not yet surface.</p></div>
+      <div class="principle"><div class="n">P · 05</div><h4>Proof details are expandable, never noisy.</h4><p>The Receipt Drawer holds raw payload, signature, retrieval log. The page surface stays calm.</p></div>
+      <div class="principle"><div class="n">P · 06</div><h4>Institution review is always present, quietly.</h4><p>A visible rail or panel reminds the viewer that this passport is read input to institutional judgment — not the judgment itself.</p></div>
+      <div class="principle"><div class="n">P · 07</div><h4>NPI is the front door.</h4><p>Lookup, not sign-up. The homepage has a number field and a verb — "Look up an NPI" — before anything else.</p></div>
+      <div class="principle"><div class="n">P · 08</div><h4>Roles get doors, not modes.</h4><p>Verifier · Clinician · Employer · Issuer each enter through a labeled door on the homepage. No role-picker modal.</p></div>
+      <div class="principle"><div class="n">P · 09</div><h4>Auth gates explain themselves.</h4><p>Sign-in tells the user what unlocking buys (live event stream, operator tools) before asking for credentials.</p></div>
+      <div class="principle"><div class="n">P · 10</div><h4>Receipts beat copy.</h4><p>Where a marketing line would say "verified," show a row from the connector matrix instead. Show, don't claim.</p></div>
+    </div>
+  </section>
+
+  <!-- 03 DESIGN SYSTEM -->
+  <section id="system" class="section">
+    <div class="sec-head"><span class="sec-num">03</span><h2 class="sec-title">Design System</h2><span class="sec-aside">Color · Type · Spacing · Components</span></div>
+    <p class="sec-lede">A small, defensible set of tokens. Warm paper substrate, near-black ink, one restrained accent for primary action and focus only. Truth-state hues are muted and paper-compatible — never marketing-bright.</p>
+
+    <h3 class="t-h3" style="margin-bottom:14px">Foundation</h3>
+    <div class="swatches">
+      <div class="swatch"><div class="chip" style="background:#f4f2ec"></div><div class="meta"><div class="name">Paper</div><div class="hex">#F4F2EC</div><div class="role">page substrate</div></div></div>
+      <div class="swatch"><div class="chip" style="background:#ffffff;border-bottom:1px solid var(--rule)"></div><div class="meta"><div class="name">Card</div><div class="hex">#FFFFFF</div><div class="role">elevated surface</div></div></div>
+      <div class="swatch"><div class="chip" style="background:#1a1916"></div><div class="meta"><div class="name">Ink 800</div><div class="hex">#1A1916</div><div class="role">primary text</div></div></div>
+      <div class="swatch"><div class="chip" style="background:#6b6860"></div><div class="meta"><div class="name">Ink 500</div><div class="hex">#6B6860</div><div class="role">secondary text</div></div></div>
+      <div class="swatch"><div class="chip" style="background:#d8d5cb"></div><div class="meta"><div class="name">Rule</div><div class="hex">#D8D5CB</div><div class="role">hairline border</div></div></div>
+      <div class="swatch"><div class="chip" style="background:oklch(48% 0.13 252)"></div><div class="meta"><div class="name">Accent</div><div class="hex">oklch 48 .13 252</div><div class="role">primary action only</div></div></div>
+    </div>
+
+    <h3 class="t-h3" style="margin:32px 0 14px">Truth-state hues</h3>
+    <div class="swatches">
+      <div class="swatch"><div class="chip" style="background:#edf5ef"></div><div class="meta"><div class="name">Source-confirmed</div><div class="hex">#EDF5EF · #1C4A2F</div><div class="role">known · sourced</div></div></div>
+      <div class="swatch"><div class="chip" style="background:#faf3e0"></div><div class="meta"><div class="name">Temporarily unavailable</div><div class="hex">#FAF3E0 · #6B541E</div><div class="role">retry pending</div></div></div>
+      <div class="swatch"><div class="chip" style="background:#ece9e1"></div><div class="meta"><div class="name">Connector not live</div><div class="hex">#ECE9E1 · #4A4640</div><div class="role">never-wired</div></div></div>
+      <div class="swatch"><div class="chip" style="background:#f0eef9"></div><div class="meta"><div class="name">Access required</div><div class="hex">#F0EEF9 · #4A3E7A</div><div class="role">gated source</div></div></div>
+      <div class="swatch"><div class="chip" style="background:#efebf7"></div><div class="meta"><div class="name">Institution review</div><div class="hex">#EFEBF7 · #3B2C5E</div><div class="role">human boundary</div></div></div>
+      <div class="swatch"><div class="chip" style="background:#0f0e0c"></div><div class="meta"><div class="name">Ink 950</div><div class="hex">#0F0E0C</div><div class="role">cta strip · chrome</div></div></div>
+    </div>
+
+    <h3 class="t-h3" style="margin:32px 0 14px">Typography · Geist + Geist Mono</h3>
+    <div class="type-spec">
+      <div class="type-row"><div class="label">Display</div><div class="sample t-display">A passport you can read in one breath.</div><div class="spec">34 / 1.05 / −3.2%<br>Geist 600</div></div>
+      <div class="type-row"><div class="label">H1</div><div class="sample t-h1">Source attribution</div><div class="spec">24 / 1.12 / −2.2%<br>Geist 600</div></div>
+      <div class="type-row"><div class="label">H2</div><div class="sample t-h2">Connector matrix</div><div class="spec">18 / 1.2 / −1.5%<br>Geist 600</div></div>
+      <div class="type-row"><div class="label">H3</div><div class="sample t-h3">Section title</div><div class="spec">15 / 1.3 / −1%<br>Geist 600</div></div>
+      <div class="type-row"><div class="label">Body</div><div class="sample t-body">NPPES directory record retrieved four hours ago. Sanction, board, and PECOS checks are not attached to this view.</div><div class="spec">13.5 / 1.6<br>Geist 400</div></div>
+      <div class="type-row"><div class="label">Small</div><div class="sample t-small">Auxiliary metadata, captions, footnotes, source attribution.</div><div class="spec">12 / 1.55<br>Geist 400</div></div>
+      <div class="type-row"><div class="label">Eyebrow</div><div class="sample t-eyebrow">Source · retrieved · state</div><div class="spec">10 / 0.18em<br>Mono 500 · upper</div></div>
+      <div class="type-row"><div class="label">Mono</div><div class="sample t-mono">npi · 1699264564 · 2026-05-27T08:14Z</div><div class="spec">12 / 1.5<br>Geist Mono 400</div></div>
+    </div>
+
+    <h3 class="t-h3" style="margin:32px 0 14px">Spacing scale · 4-grid</h3>
+    <div class="spacing">
+      <div class="sp"><div class="bar" style="width:4px"></div><div class="name">xs</div><div class="v">4 px</div></div>
+      <div class="sp"><div class="bar" style="width:8px"></div><div class="name">sm</div><div class="v">8 px</div></div>
+      <div class="sp"><div class="bar" style="width:12px"></div><div class="name">md</div><div class="v">12 px</div></div>
+      <div class="sp"><div class="bar" style="width:16px"></div><div class="name">lg</div><div class="v">16 px</div></div>
+      <div class="sp"><div class="bar" style="width:24px"></div><div class="name">xl</div><div class="v">24 px</div></div>
+      <div class="sp"><div class="bar" style="width:32px"></div><div class="name">2xl</div><div class="v">32 px</div></div>
+      <div class="sp"><div class="bar" style="width:48px"></div><div class="name">3xl</div><div class="v">48 px</div></div>
+      <div class="sp"><div class="bar" style="width:64px"></div><div class="name">4xl</div><div class="v">64 px</div></div>
+    </div>
+
+    <h3 class="t-h3" style="margin:32px 0 14px">Surface rules</h3>
+    <div class="grid-3">
+      <div class="card"><div class="card-hd"><span class="ttl">Radius</span></div><div class="card-bd prose">
+        <p><strong>2 px</strong> — buttons, chips, inputs. <strong>0 px</strong> — cards, tables, full-bleed surfaces. Documents do not have rounded corners; UI affordances do, barely.</p>
+      </div></div>
+      <div class="card"><div class="card-hd"><span class="ttl">Borders</span></div><div class="card-bd prose">
+        <p><strong>1 px hairline</strong> in <code>--rule</code> for internal divisions. <strong>1 px ink-900</strong> for the outer edge of a document-like card. <strong>1 px dashed</strong> reserved for advisory or gate notices.</p>
+      </div></div>
+      <div class="card"><div class="card-hd"><span class="ttl">Shadow</span></div><div class="card-bd prose">
+        <p>One value only. <code>0 1px 0 rgba(15,14,12,.04), 0 0 0 1px rgba(15,14,12,.04)</code>. Used sparingly to lift a single critical card. No drop shadows on chips, buttons, or chips.</p>
+      </div></div>
+    </div>
+
+    <h3 class="t-h3" style="margin:32px 0 14px">Chips · Buttons · Inputs</h3>
+    <div class="card">
+      <div class="card-bd" style="display:flex;flex-wrap:wrap;gap:10px;align-items:center">
+        <span class="chip chip-known"><span class="gl"></span>NPPES · directory record</span>
+        <span class="chip chip-wait"><span class="gl"></span>Source temporarily unavailable</span>
+        <span class="chip chip-offline"><span class="gl"></span>Connector not live</span>
+        <span class="chip chip-gated"><span class="gl"></span>Access required</span>
+        <span class="chip chip-review"><span class="gl"></span>Institution review required</span>
+        <span class="chip chip-snapshot"><span class="gl"></span>Snapshot only · 04h old</span>
+      </div>
+      <div class="card-bd" style="border-top:1px solid var(--rule);display:flex;flex-wrap:wrap;gap:12px;align-items:center">
+        <button class="btn">Look up an NPI <span class="arr">→</span></button>
+        <button class="btn btn-ghost">Open receipt drawer</button>
+        <button class="btn btn-sm">Send to institution</button>
+        <button class="btn btn-sm btn-ghost">Copy passport URL</button>
+        <span class="kbd">⌘ K</span><span class="t-small" style="color:var(--ink-500)">Global lookup</span>
+      </div>
+      <div class="card-bd" style="border-top:1px solid var(--rule)">
+        <div class="field" style="max-width:520px">
+          <span class="prefix">NPI</span>
+          <input type="text" placeholder="10-digit national provider identifier" value="1699264564">
+          <button class="btn">Look up</button>
+        </div>
+        <div class="note">Single primary action. The button is ink-black, not accent — accent reserved for system-side affirmation states.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 04 COMPONENTS -->
+  <section id="components" class="section">
+    <div class="sec-head"><span class="sec-num">04</span><h2 class="sec-title">Component Library</h2><span class="sec-aside">16 anchor components · ready to extract</span></div>
+    <p class="sec-lede">Components are the contract between honest backend states and the page surface. Each is paired with an in-place mock so the visual register is concrete, not aspirational.</p>
+
+    <h3 class="t-h3" style="margin-bottom:10px">1 · NPI Lookup Hero</h3>
+    <div class="prose" style="margin-bottom:14px"><p>The product's front door. Number field with monospace prefix, ink-black primary action, three example links underneath. No marketing claims above this row.</p></div>
+    <div class="screen">
+      <div class="screen-bar"><div class="dots"><i></i><i></i><i></i></div><span class="url">vitalcv.io / <b>look up</b></span><span class="ttl">component · npi lookup hero</span></div>
+      <div class="screen-body" style="padding:42px 44px 36px;background:var(--card)">
+        <div class="t-eyebrow" style="margin-bottom:14px">Verifier · public lookup</div>
+        <h2 style="font-size:34px;font-weight:600;letter-spacing:-.032em;line-height:1.06;max-width:680px">Look up an NPI. <em style="font-style:normal;color:var(--ink-500)">See what each field is sourced from — and what still needs an institution to confirm.</em></h2>
+        <div class="field" style="margin-top:24px;max-width:560px">
+          <span class="prefix">NPI</span>
+          <input type="text" placeholder="10-digit national provider identifier">
+          <button class="btn">Look up <span class="arr">→</span></button>
+        </div>
+        <div class="t-mono" style="margin-top:14px;font-size:11px;color:var(--ink-500);display:flex;gap:18px"><span style="color:var(--ink-400)">Try:</span><a href="#" style="color:var(--ink-700);text-decoration:underline;text-decoration-color:var(--ink-300);text-underline-offset:3px">1699264564</a><a href="#" style="color:var(--ink-700);text-decoration:underline;text-decoration-color:var(--ink-300);text-underline-offset:3px">1083779269</a><a href="#" style="color:var(--ink-700);text-decoration:underline;text-decoration-color:var(--ink-300);text-underline-offset:3px">1730283837</a></div>
+      </div>
+    </div>
+    <div class="prose" style="margin-top:12px;font-size:12px;color:var(--ink-500)"><p><b style="color:var(--ink-700)">States.</b> idle · focus · loading (in-button progress bar, not skeleton) · invalid format · not-found · degraded (banner inside field). <b style="color:var(--ink-700)">Micro-interactions.</b> Enter submits, ⌘K focuses from anywhere, 10-digit pattern auto-masks. No spinner over the whole page. <b style="color:var(--ink-700)">Copy.</b> Verb is "look up," not "verify."</p></div>
+
+    <h3 class="t-h3" style="margin:36px 0 10px">2 · Role Door Cards</h3>
+    <div class="prose" style="margin-bottom:14px"><p>Four side-by-side doors under the hero. Labeled entry points — not tabs, not modals.</p></div>
+    <div class="screen">
+      <div class="screen-bar"><div class="dots"><i></i><i></i><i></i></div><span class="url">/ · <b>role doors</b></span><span class="ttl">component · role doors</span></div>
+      <div class="doors">
+        <div class="door"><div class="role">Verifier</div><h3>Look up an NPI</h3><p>See sourced fields, source state, and what an institution still needs to review. No account required.</p><div class="cta">Open lookup <span class="arr">→</span></div></div>
+        <div class="door"><div class="role">Clinician</div><h3>Claim my NPI record</h3><p>Connect to your NPPES record, attach institution-review materials, and control what your passport shows.</p><div class="cta">Start claim <span class="arr">→</span></div></div>
+        <div class="door"><div class="role">Employer</div><h3>Review a passport</h3><p>Walk the institution-review checklist for a passport sent to your team. Receipts attached.</p><div class="cta">Open review <span class="arr">→</span></div></div>
+        <div class="door"><div class="role">Issuer</div><h3>Connect a source</h3><p>Bring a primary source online. Today a waitlist; a private connector spec on request.</p><div class="cta">Join waitlist <span class="arr">→</span></div></div>
+      </div>
+    </div>
+
+    <h3 class="t-h3" style="margin:36px 0 10px">3 · Passport Header</h3>
+    <div class="prose" style="margin-bottom:14px"><p>Document-grade header: name, credentials, NPI, jurisdiction, taxonomy. Short lede with a left rule signals page-level truth state. Never carries a "verified" badge.</p></div>
+    <div class="screen">
+      <div class="screen-bar"><div class="dots"><i></i><i></i><i></i></div><span class="url">/passport?npi=<b>1699264564</b></span><span class="ttl">component · passport header</span></div>
+      <div class="pp-head">
+        <div>
+          <div class="t-eyebrow" style="margin-bottom:10px">Public passport · partial record</div>
+          <div class="name">Maya R. Okonkwo<span class="credentials">, MD</span></div>
+          <div class="meta"><span>NPI <b>1699264564</b></span><span>Taxonomy <b>207RC0000X · Cardiovascular Disease</b></span><span>State <b>NY</b></span><span>Issued <b>2014-08-12</b></span></div>
+          <div class="lede"><strong style="color:var(--ink-900)">NPPES directory record shown.</strong> Sanction, board, and PECOS checks are not attached and are not part of this view. Sourced presence, not a credentialing decision.</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end">
+          <span class="chip chip-known"><span class="gl"></span>NPPES · 04h ago</span>
+          <span class="chip chip-offline"><span class="gl"></span>OIG / LEIE · not live</span>
+          <span class="chip chip-offline"><span class="gl"></span>PECOS · not live</span>
+          <span class="chip chip-gated"><span class="gl"></span>State board · access required</span>
+        </div>
+      </div>
+      <div class="legend">
+        <div class="legend-item"><span class="k">01 · Known</span><span class="v">Identity, taxonomy, jurisdiction</span></div>
+        <div class="legend-item"><span class="k">02 · Sourced</span><span class="v">NPPES directory <span class="num">04h ago</span></span></div>
+        <div class="legend-item"><span class="k">03 · Unavailable</span><span class="v">OIG, PECOS, state board</span></div>
+        <div class="legend-item"><span class="k">04 · Review</span><span class="v">Institutional decision pending</span></div>
+        <div class="legend-item"><span class="k">05 · Next step</span><span class="v">Send to hiring institution</span></div>
+      </div>
+    </div>
+
+    <h3 class="t-h3" style="margin:36px 0 10px">4 · Source Row · Truth-State Chip Family</h3>
+    <div class="prose" style="margin-bottom:14px"><p>The canonical passport line. Four columns: label, value, source attribution + timestamp, state chip. Missing payload produces explicit reason copy, never an empty cell.</p></div>
+    <div class="card">
+      <div class="card-hd"><span class="ttl">Identity &amp; directory presence</span><span class="sub">6 fields · 5 states represented</span></div>
+      <div class="source-row">
+        <div class="sr-label">Legal name</div>
+        <div class="sr-value">Maya R. Okonkwo, MD<span class="sub">Display name matches NPPES directory record.</span></div>
+        <div class="sr-source">NPPES · primary directory<span class="age">retrieved 4h 12m ago</span></div>
+        <div class="sr-state"><span class="chip chip-known"><span class="gl"></span>Source-confirmed</span></div>
+      </div>
+      <div class="source-row">
+        <div class="sr-label">Taxonomy</div>
+        <div class="sr-value">207RC0000X · Cardiovascular Disease<span class="sub">Primary taxonomy as listed in NPPES.</span></div>
+        <div class="sr-source">NPPES · primary directory<span class="age">retrieved 4h 12m ago</span></div>
+        <div class="sr-state"><span class="chip chip-known"><span class="gl"></span>Source-confirmed</span></div>
+      </div>
+      <div class="source-row">
+        <div class="sr-label">State board status</div>
+        <div class="sr-value" style="color:var(--ink-500);font-weight:400">No reading attempted on this view.<span class="sub" style="color:var(--ink-500)">Per-state portals require access we don't have. System condition, not a clinician finding.</span></div>
+        <div class="sr-source">NY OPMC · primary source<span class="age">connector access pending</span></div>
+        <div class="sr-state"><span class="chip chip-gated"><span class="gl"></span>Access required</span></div>
+      </div>
+      <div class="source-row">
+        <div class="sr-label">Federal sanction history</div>
+        <div class="sr-value" style="color:var(--ink-500);font-weight:400">Not retrieved.<span class="sub" style="color:var(--ink-500)">OIG / LEIE connector is not live in this build. Absence here is silence, not exoneration.</span></div>
+        <div class="sr-source">OIG-LEIE · authoritative<span class="age">connector not live</span></div>
+        <div class="sr-state"><span class="chip chip-offline"><span class="gl"></span>Connector not live</span></div>
+      </div>
+      <div class="source-row">
+        <div class="sr-label">Medicare enrollment</div>
+        <div class="sr-value" style="color:var(--ink-500);font-weight:400">Not retrieved.<span class="sub" style="color:var(--ink-500)">PECOS connector is not yet wired. Will appear when enabled.</span></div>
+        <div class="sr-source">CMS PECOS · authoritative<span class="age">connector not live</span></div>
+        <div class="sr-state"><span class="chip chip-offline"><span class="gl"></span>Connector not live</span></div>
+      </div>
+      <div class="source-row">
+        <div class="sr-label">Hospital privileges</div>
+        <div class="sr-value" style="color:var(--ink-500);font-weight:400">Not in scope for this view.<span class="sub" style="color:var(--ink-500)">Institutional review territory. The hiring institution attaches this; VitalCV does not infer it.</span></div>
+        <div class="sr-source">Institutional file<span class="age">not part of passport</span></div>
+        <div class="sr-state"><span class="chip chip-review"><span class="gl"></span>Institution review</span></div>
+      </div>
+    </div>
+
+    <h3 class="t-h3" style="margin:36px 0 10px">5 · Connector Matrix</h3>
+    <div class="prose" style="margin-bottom:14px"><p>The /status page in component form. Every primary source enumerated with state, last-read, uptime. Silence on a connector is a bug.</p></div>
+    <div class="matrix">
+      <div class="matrix-head"><div>Source</div><div>State</div><div>Last read</div><div>24h read-rate</div><div></div></div>
+      <div class="matrix-row"><div class="m-name">NPPES<span class="sub">National provider directory</span></div><div><span class="chip chip-known"><span class="gl"></span>Live</span></div><div class="m-time">2026-05-27 08:14Z<span class="ago">4h 12m ago</span></div><div class="m-uptime">99.4 %</div><div><button class="btn btn-sm btn-ghost">Receipt →</button></div></div>
+      <div class="matrix-row"><div class="m-name">OIG / LEIE<span class="sub">Federal exclusion list</span></div><div><span class="chip chip-offline"><span class="gl"></span>Not live</span></div><div class="m-time">—<span class="ago">connector not wired</span></div><div class="m-uptime">—</div><div><button class="btn btn-sm btn-ghost">Brief →</button></div></div>
+      <div class="matrix-row"><div class="m-name">CMS PECOS<span class="sub">Medicare enrollment</span></div><div><span class="chip chip-offline"><span class="gl"></span>Not live</span></div><div class="m-time">—<span class="ago">connector not wired</span></div><div class="m-uptime">—</div><div><button class="btn btn-sm btn-ghost">Brief →</button></div></div>
+      <div class="matrix-row"><div class="m-name">NY OPMC<span class="sub">State medical board · NY</span></div><div><span class="chip chip-gated"><span class="gl"></span>Access required</span></div><div class="m-time">—<span class="ago">awaiting access</span></div><div class="m-uptime">—</div><div><button class="btn btn-sm btn-ghost">Brief →</button></div></div>
+      <div class="matrix-row"><div class="m-name">CA MBC<span class="sub">State medical board · CA</span></div><div><span class="chip chip-gated"><span class="gl"></span>Access required</span></div><div class="m-time">—<span class="ago">awaiting access</span></div><div class="m-uptime">—</div><div><button class="btn btn-sm btn-ghost">Brief →</button></div></div>
+      <div class="matrix-row"><div class="m-name">Live event stream (SSE)<span class="sub">Operator-side activity feed</span></div><div><span class="chip chip-review"><span class="gl"></span>Operator sign-in</span></div><div class="m-time">—<span class="ago">authenticated only</span></div><div class="m-uptime">—</div><div><button class="btn btn-sm btn-ghost">Sign in →</button></div></div>
+    </div>
+
+    <h3 class="t-h3" style="margin:36px 0 10px">6 · Proof Continuity Rail &nbsp;·&nbsp; 7 · Institution Review Panel</h3>
+    <div class="prose" style="margin-bottom:14px"><p>The rail summarizes proof state across the passport in five rows. The panel marks the institution-review boundary — what VitalCV does not attempt.</p></div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-hd"><span class="ttl">Proof continuity</span><span class="sub">5 of 5 states present</span></div>
+        <div class="card-bd" style="padding:0">
+          <div style="display:grid;grid-template-columns:18px 1fr 110px;gap:14px;padding:16px 20px;border-bottom:1px solid var(--rule);align-items:center"><span class="chip chip-known" style="padding:2px 4px;width:18px;height:18px;justify-content:center"><span class="gl" style="width:6px;height:6px;margin:0"></span></span><div><div style="font-size:13px;font-weight:500;color:var(--ink-900)">Identity &amp; directory</div><div style="font-size:11.5px;color:var(--ink-500);margin-top:2px">NPPES read 4h ago · 2 fields</div></div><div style="font-family:var(--font-mono);font-size:11px;color:var(--ink-700);text-align:right">2 / 2 sourced</div></div>
+          <div style="display:grid;grid-template-columns:18px 1fr 110px;gap:14px;padding:16px 20px;border-bottom:1px solid var(--rule);align-items:center"><span class="chip chip-gated" style="padding:2px 4px;width:18px;height:18px;justify-content:center"><span class="gl" style="width:6px;height:6px;margin:0;clip-path:none"></span></span><div><div style="font-size:13px;font-weight:500;color:var(--ink-900)">State board posture</div><div style="font-size:11.5px;color:var(--ink-500);margin-top:2px">Access-gated · system condition</div></div><div style="font-family:var(--font-mono);font-size:11px;color:var(--ink-700);text-align:right">0 / 1 attempted</div></div>
+          <div style="display:grid;grid-template-columns:18px 1fr 110px;gap:14px;padding:16px 20px;border-bottom:1px solid var(--rule);align-items:center"><span class="chip chip-offline" style="padding:2px 4px;width:18px;height:18px;justify-content:center"><span class="gl" style="width:6px;height:6px;margin:0;opacity:.6"></span></span><div><div style="font-size:13px;font-weight:500;color:var(--ink-900)">Sanction / enrollment</div><div style="font-size:11.5px;color:var(--ink-500);margin-top:2px">OIG-LEIE, PECOS connectors offline</div></div><div style="font-family:var(--font-mono);font-size:11px;color:var(--ink-700);text-align:right">0 / 2 wired</div></div>
+          <div style="display:grid;grid-template-columns:18px 1fr 110px;gap:14px;padding:16px 20px;border-bottom:1px solid var(--rule);align-items:center"><span class="chip chip-review" style="padding:2px 4px;width:18px;height:18px;justify-content:center"><span class="gl" style="width:6px;height:6px;margin:0;border-radius:50%"></span></span><div><div style="font-size:13px;font-weight:500;color:var(--ink-900)">Institution review</div><div style="font-size:11.5px;color:var(--ink-500);margin-top:2px">Privileges, references, work history</div></div><div style="font-family:var(--font-mono);font-size:11px;color:var(--ink-700);text-align:right">By institution</div></div>
+          <div style="display:grid;grid-template-columns:18px 1fr 110px;gap:14px;padding:16px 20px;align-items:center;background:var(--ink-50)"><span class="chip chip-snapshot" style="padding:2px 4px;width:18px;height:18px;justify-content:center"><span class="gl" style="width:6px;height:6px;margin:0"></span></span><div><div style="font-size:13px;font-weight:500;color:var(--ink-900)">Snapshot</div><div style="font-size:11.5px;color:var(--ink-500);margin-top:2px">Captured 2026-05-27 · view-only diff</div></div><div style="font-family:var(--font-mono);font-size:11px;color:var(--ink-700);text-align:right">Static</div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-hd"><span class="ttl">Institution review · what we don't attempt</span><span class="sub">5 items</span></div>
+        <div class="card-bd" style="padding:0">
+          <div style="padding:14px 20px;border-bottom:1px solid var(--rule);display:grid;grid-template-columns:14px 1fr;gap:10px;align-items:start"><span style="width:10px;height:10px;border:1.5px solid var(--t-review);border-radius:50%;display:inline-block;margin-top:5px"></span><div><div style="font-size:13px;font-weight:500;color:var(--ink-900)">Privileging &amp; scope of practice</div><div style="font-size:11.5px;color:var(--ink-500);margin-top:3px">Attached by the hiring institution from its own files. VitalCV does not infer.</div></div></div>
+          <div style="padding:14px 20px;border-bottom:1px solid var(--rule);display:grid;grid-template-columns:14px 1fr;gap:10px;align-items:start"><span style="width:10px;height:10px;border:1.5px solid var(--t-review);border-radius:50%;display:inline-block;margin-top:5px"></span><div><div style="font-size:13px;font-weight:500;color:var(--ink-900)">Reference verification</div><div style="font-size:11.5px;color:var(--ink-500);margin-top:3px">Direct contact with prior institutions remains an institutional responsibility.</div></div></div>
+          <div style="padding:14px 20px;border-bottom:1px solid var(--rule);display:grid;grid-template-columns:14px 1fr;gap:10px;align-items:start"><span style="width:10px;height:10px;border:1.5px solid var(--t-review);border-radius:50%;display:inline-block;margin-top:5px"></span><div><div style="font-size:13px;font-weight:500;color:var(--ink-900)">Work history reconciliation</div><div style="font-size:11.5px;color:var(--ink-500);margin-top:3px">Gaps, overlaps, terminations. We surface what is sourced; we do not adjudicate.</div></div></div>
+          <div style="padding:14px 20px;border-bottom:1px solid var(--rule);display:grid;grid-template-columns:14px 1fr;gap:10px;align-items:start"><span style="width:10px;height:10px;border:1.5px solid var(--t-review);border-radius:50%;display:inline-block;margin-top:5px"></span><div><div style="font-size:13px;font-weight:500;color:var(--ink-900)">DEA &amp; controlled-substance posture</div><div style="font-size:11.5px;color:var(--ink-500);margin-top:3px">Outside this passport. Confirm with DEA directly.</div></div></div>
+          <div style="padding:14px 20px;display:grid;grid-template-columns:14px 1fr;gap:10px;align-items:start"><span style="width:10px;height:10px;border:1.5px solid var(--t-review);border-radius:50%;display:inline-block;margin-top:5px"></span><div><div style="font-size:13px;font-weight:500;color:var(--ink-900)">Clinical competence</div><div style="font-size:11.5px;color:var(--ink-500);margin-top:3px">Not a question this product answers. Ever.</div></div></div>
+        </div>
+      </div>
+    </div>
+
+    <h3 class="t-h3" style="margin:36px 0 10px">8 · Auth Gate Disclosure &nbsp;·&nbsp; 9 · Sign-in / Sign-up Card</h3>
+    <div class="prose" style="margin-bottom:14px"><p>Where SSE is gated, the public surface shows a calm dashed-border block — what is gated, why, and what unlocking buys. Sign-in itself states what an account does and explicitly what it does not.</p></div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-hd"><span class="ttl">Auth gate · in-context disclosure</span><span class="sub">on public passport</span></div>
+        <div class="card-bd" style="padding:0">
+          <div class="gate-notice" style="margin:0;border:0;border-bottom:1px solid var(--rule);background:var(--ink-50)">
+            <div class="t"><b>Live event stream is operator-only.</b> The passport above is fully readable without an account. Sign in unlocks real-time source-read events, the receipt drawer with raw payloads, and the operator audit timeline.</div>
+            <div class="actions"><button class="btn btn-sm btn-ghost">Why sign in?</button><button class="btn btn-sm">Sign in →</button></div>
+          </div>
+          <div style="padding:18px 20px;display:grid;grid-template-columns:1fr 1fr;gap:18px;font-size:12px;color:var(--ink-600);line-height:1.6">
+            <div><div class="t-eyebrow" style="margin-bottom:6px">Without sign-in</div>Public passport, source attribution, connector matrix, snapshot diff.</div>
+            <div><div class="t-eyebrow" style="margin-bottom:6px">With sign-in</div>SSE live events, receipt drawer raw payloads, audit timeline, demo packet export.</div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-hd"><span class="ttl">Sign-in · operator</span><span class="sub">/sign-in</span></div>
+        <div class="card-bd">
+          <div class="t-eyebrow" style="margin-bottom:8px">Sign in</div>
+          <div style="font-size:14px;color:var(--ink-700);line-height:1.55;margin-bottom:18px">Operator credentials only. Public passport pages remain readable without an account.</div>
+          <div class="field" style="margin-bottom:10px"><span class="prefix">Email</span><input type="email" placeholder="you@institution.org"></div>
+          <div class="field" style="margin-bottom:14px"><span class="prefix">Pass</span><input type="password" placeholder="••••••••••"></div>
+          <button class="btn" style="width:100%;justify-content:center">Sign in</button>
+          <div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--rule);font-size:11.5px;color:var(--ink-500);line-height:1.6">
+            <b style="color:var(--ink-900);font-weight:500">What this account does.</b> Unlocks the live event stream and operator tools.<br>
+            <b style="color:var(--ink-900);font-weight:500">What it does not.</b> It does not credential a clinician. It does not contact employers. It does not run sanction checks today.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <h3 class="t-h3" style="margin:36px 0 10px">10 · Receipt Drawer &nbsp;·&nbsp; 11 · Audit Timeline</h3>
+    <div class="prose" style="margin-bottom:14px"><p>The Receipt Drawer slides in from the right when a source row is clicked. Raw payload, signature, retrieval log. The Audit Timeline reverses the perspective — every read event in chronological order, operator-side.</p></div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-hd"><span class="ttl">Receipt · NPPES read</span><span class="sub">payload + retrieval</span></div>
+        <div class="card-bd" style="padding:0">
+          <div style="padding:16px 20px;border-bottom:1px solid var(--rule);display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+            <span class="chip chip-known"><span class="gl"></span>NPPES · directory record</span>
+            <span class="t-mono" style="font-size:11px;color:var(--ink-500)">retrieved 2026-05-27 08:14:22Z</span>
+            <button class="btn btn-sm btn-ghost" style="margin-left:auto">Copy JSON</button>
+          </div>
+          <div style="padding:16px 20px;font-family:var(--font-mono);font-size:11.5px;line-height:1.7;color:var(--ink-700);background:var(--ink-50);white-space:pre;overflow-x:auto;border-bottom:1px solid var(--rule)">{
+  "npi": "1699264564",
+  "first_name": "Maya",
+  "last_name": "Okonkwo",
+  "credential": "MD",
+  "taxonomy_primary": "207RC0000X",
+  "address_state": "NY",
+  "enumeration_date": "2014-08-12"
+}</div>
+          <div style="padding:14px 20px;font-size:11.5px;color:var(--ink-500);display:grid;grid-template-columns:130px 1fr;gap:8px 16px">
+            <span>Source</span><span style="color:var(--ink-800)">NPPES public registry</span>
+            <span>Read by</span><span style="color:var(--ink-800)">vitalcv-api · pr-421</span>
+            <span>Signed</span><span class="t-mono" style="font-size:10.5px;color:var(--ink-700)">sha256:b71f…c4a9</span>
+            <span>Cache TTL</span><span style="color:var(--ink-800)">24 h</span>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-hd"><span class="ttl">Audit timeline · operator</span><span class="sub">last 24h</span></div>
+        <div class="card-bd" style="padding:0">
+          <div style="padding:14px 20px;border-bottom:1px solid var(--rule);display:grid;grid-template-columns:80px 1fr auto;gap:14px;align-items:center"><span class="t-mono" style="font-size:10.5px;color:var(--ink-500)">08:14:22</span><div style="font-size:12.5px"><b style="color:var(--ink-900);font-weight:500">NPPES read</b> · npi 1699264564 · 200 OK</div><span class="chip chip-known"><span class="gl"></span>OK</span></div>
+          <div style="padding:14px 20px;border-bottom:1px solid var(--rule);display:grid;grid-template-columns:80px 1fr auto;gap:14px;align-items:center"><span class="t-mono" style="font-size:10.5px;color:var(--ink-500)">08:14:23</span><div style="font-size:12.5px"><b style="color:var(--ink-900);font-weight:500">OIG-LEIE attempt</b> · connector offline · skipped</div><span class="chip chip-offline"><span class="gl"></span>Skip</span></div>
+          <div style="padding:14px 20px;border-bottom:1px solid var(--rule);display:grid;grid-template-columns:80px 1fr auto;gap:14px;align-items:center"><span class="t-mono" style="font-size:10.5px;color:var(--ink-500)">08:14:23</span><div style="font-size:12.5px"><b style="color:var(--ink-900);font-weight:500">NY OPMC attempt</b> · access required · skipped</div><span class="chip chip-gated"><span class="gl"></span>Gated</span></div>
+          <div style="padding:14px 20px;border-bottom:1px solid var(--rule);display:grid;grid-template-columns:80px 1fr auto;gap:14px;align-items:center"><span class="t-mono" style="font-size:10.5px;color:var(--ink-500)">08:14:24</span><div style="font-size:12.5px"><b style="color:var(--ink-900);font-weight:500">Passport rendered</b> · partial · 1 of 5 sources read</div><span class="chip chip-wait"><span class="gl"></span>Partial</span></div>
+          <div style="padding:14px 20px;display:grid;grid-template-columns:80px 1fr auto;gap:14px;align-items:center"><span class="t-mono" style="font-size:10.5px;color:var(--ink-500)">08:14:24</span><div style="font-size:12.5px"><b style="color:var(--ink-900);font-weight:500">Snapshot stored</b> · sha256 b71f…c4a9</div><span class="chip chip-snapshot"><span class="gl"></span>Stored</span></div>
+        </div>
+      </div>
+    </div>
+
+    <h3 class="t-h3" style="margin:36px 0 10px">12 · Footer Trust Row &nbsp;·&nbsp; 13 · Trust Register Table</h3>
+    <div class="prose" style="margin-bottom:14px"><p>Footer surfaces receipts before legal. The Trust Register Table is the canonical "what we claim and what we don't" — one row per claim with explicit posture.</p></div>
+    <div class="card">
+      <div class="card-bd" style="padding:24px 28px;background:var(--ink-950);color:#fff;display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:30px">
+        <div><div class="t-eyebrow" style="color:var(--ink-400);margin-bottom:10px">Receipts</div><div style="font-size:12.5px;line-height:2"><a style="color:#fff;display:block">Status</a><a style="color:#fff;display:block">Source attribution</a><a style="color:#fff;display:block">Trust register</a><a style="color:#fff;display:block">Changelog</a></div></div>
+        <div><div class="t-eyebrow" style="color:var(--ink-400);margin-bottom:10px">Product</div><div style="font-size:12.5px;line-height:2;color:var(--ink-300)"><a style="color:var(--ink-300);display:block">Look up</a><a style="color:var(--ink-300);display:block">For clinicians</a><a style="color:var(--ink-300);display:block">For employers</a><a style="color:var(--ink-300);display:block">For issuers</a></div></div>
+        <div><div class="t-eyebrow" style="color:var(--ink-400);margin-bottom:10px">Company</div><div style="font-size:12.5px;line-height:2;color:var(--ink-300)"><a style="color:var(--ink-300);display:block">Contact</a><a style="color:var(--ink-300);display:block">Pilot programs</a><a style="color:var(--ink-300);display:block">Demo packet</a></div></div>
+        <div><div class="t-eyebrow" style="color:var(--ink-400);margin-bottom:10px">Legal</div><div style="font-size:12.5px;line-height:2;color:var(--ink-300)"><a style="color:var(--ink-300);display:block">Terms</a><a style="color:var(--ink-300);display:block">Privacy</a><a style="color:var(--ink-300);display:block">Responsible use</a></div></div>
+      </div>
+    </div>
+    <div class="card" style="margin-top:18px">
+      <div class="card-hd"><span class="ttl">Trust register · /trust</span><span class="sub">6 rows · all postures stated</span></div>
+      <div class="card-bd" style="padding:0">
+        <div style="display:grid;grid-template-columns:240px 1fr 130px;padding:12px 20px;background:var(--ink-900);color:#fff;font-family:var(--font-mono);font-size:9.5px;text-transform:uppercase;letter-spacing:.16em;font-weight:600"><div>Claim</div><div>Our posture</div><div style="text-align:right">State</div></div>
+        <div style="display:grid;grid-template-columns:240px 1fr 130px;padding:14px 20px;border-bottom:1px solid var(--rule);align-items:center;gap:14px"><div style="font-size:13px;font-weight:500;color:var(--ink-900)">HIPAA-compliant</div><div style="font-size:12.5px;color:var(--ink-700);line-height:1.55">We do not claim HIPAA certification. We avoid storing PHI on this surface and enumerate what is on the surface.</div><div style="text-align:right"><span class="chip chip-offline"><span class="gl"></span>Not claimed</span></div></div>
+        <div style="display:grid;grid-template-columns:240px 1fr 130px;padding:14px 20px;border-bottom:1px solid var(--rule);align-items:center;gap:14px"><div style="font-size:13px;font-weight:500;color:var(--ink-900)">SOC 2 Type II</div><div style="font-size:12.5px;color:var(--ink-700);line-height:1.55">No certification. No claim. A roadmap, when in scope, will be linked here.</div><div style="text-align:right"><span class="chip chip-offline"><span class="gl"></span>Not claimed</span></div></div>
+        <div style="display:grid;grid-template-columns:240px 1fr 130px;padding:14px 20px;border-bottom:1px solid var(--rule);align-items:center;gap:14px"><div style="font-size:13px;font-weight:500;color:var(--ink-900)">NCQA credentialing</div><div style="font-size:12.5px;color:var(--ink-700);line-height:1.55">VitalCV is not a credentialing body. We surface sourced facts; we do not issue accreditations.</div><div style="text-align:right"><span class="chip chip-offline"><span class="gl"></span>Not claimed</span></div></div>
+        <div style="display:grid;grid-template-columns:240px 1fr 130px;padding:14px 20px;border-bottom:1px solid var(--rule);align-items:center;gap:14px"><div style="font-size:13px;font-weight:500;color:var(--ink-900)">NPPES read</div><div style="font-size:12.5px;color:var(--ink-700);line-height:1.55">Live read against the public NPPES registry. Cached for 24h. Source-confirmed when present, never used as a credentialing decision.</div><div style="text-align:right"><span class="chip chip-known"><span class="gl"></span>Live</span></div></div>
+        <div style="display:grid;grid-template-columns:240px 1fr 130px;padding:14px 20px;border-bottom:1px solid var(--rule);align-items:center;gap:14px"><div style="font-size:13px;font-weight:500;color:var(--ink-900)">Source signature</div><div style="font-size:12.5px;color:var(--ink-700);line-height:1.55">Every read produces a SHA-256 over the payload. Snapshots are addressable by hash. No on-chain anchoring; no decentralized-trust theater.</div><div style="text-align:right"><span class="chip chip-known"><span class="gl"></span>Live</span></div></div>
+        <div style="display:grid;grid-template-columns:240px 1fr 130px;padding:14px 20px;align-items:center;gap:14px"><div style="font-size:13px;font-weight:500;color:var(--ink-900)">Credentialing verdict</div><div style="font-size:12.5px;color:var(--ink-700);line-height:1.55">We do not issue one. The hiring institution decides. The passport is read input to that decision.</div><div style="text-align:right"><span class="chip chip-review"><span class="gl"></span>Institution</span></div></div>
+      </div>
+    </div>
+
+    <h3 class="t-h3" style="margin:36px 0 10px">14 · Demo Packet Preview &nbsp;·&nbsp; 15 · Status Page Matrix &nbsp;·&nbsp; 16 · Contact</h3>
+    <div class="prose" style="margin-bottom:14px"><p>The packet is a one-page export an operator hands a pilot lead. Status mirrors the connector matrix as its full page. Contact is a quiet form, paper-card style.</p></div>
+    <div class="grid-3">
+      <div class="card">
+        <div class="card-hd"><span class="ttl">Demo packet · v1</span><span class="sub">PDF + JSON</span></div>
+        <div class="card-bd" style="padding:0">
+          <div style="padding:18px 20px;border-bottom:1px solid var(--rule)"><div class="t-eyebrow" style="margin-bottom:6px">VitalCV passport</div><div style="font-size:15px;font-weight:600;color:var(--ink-900);letter-spacing:-.012em">Maya R. Okonkwo, MD</div><div style="font-family:var(--font-mono);font-size:10.5px;color:var(--ink-500);margin-top:4px">NPI 1699264564 · snapshot 2026-05-27</div></div>
+          <div style="padding:14px 20px;border-bottom:1px solid var(--rule);font-size:12px;color:var(--ink-700);line-height:1.6"><b style="color:var(--ink-900);font-weight:500">Source-confirmed.</b> NPPES record retrieved 4h ago. Identity and taxonomy match.</div>
+          <div style="padding:14px 20px;border-bottom:1px solid var(--rule);font-size:12px;color:var(--ink-700);line-height:1.6"><b style="color:var(--ink-900);font-weight:500">Connectors offline.</b> OIG-LEIE, PECOS not part of this snapshot.</div>
+          <div style="padding:14px 20px;border-bottom:1px solid var(--rule);font-size:12px;color:var(--ink-700);line-height:1.6"><b style="color:var(--ink-900);font-weight:500">Access required.</b> NY OPMC — institution to confirm directly.</div>
+          <div style="padding:14px 20px;font-size:12px;color:var(--ink-700);line-height:1.6"><b style="color:var(--ink-900);font-weight:500">Institution review.</b> Privileging, references, work history — by institution.</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-hd"><span class="ttl">/status · matrix</span><span class="sub">5 connectors</span></div>
+        <div class="card-bd" style="padding:0;font-family:var(--font-mono);font-size:11px">
+          <div style="display:grid;grid-template-columns:1fr 90px;padding:12px 18px;border-bottom:1px solid var(--rule);align-items:center"><div><b style="color:var(--ink-900);font-weight:500">NPPES</b><br><span style="color:var(--ink-500)">4h 12m ago</span></div><div style="text-align:right"><span class="chip chip-known"><span class="gl"></span>Live</span></div></div>
+          <div style="display:grid;grid-template-columns:1fr 90px;padding:12px 18px;border-bottom:1px solid var(--rule);align-items:center"><div><b style="color:var(--ink-900);font-weight:500">OIG / LEIE</b><br><span style="color:var(--ink-500)">connector not wired</span></div><div style="text-align:right"><span class="chip chip-offline"><span class="gl"></span>Offline</span></div></div>
+          <div style="display:grid;grid-template-columns:1fr 90px;padding:12px 18px;border-bottom:1px solid var(--rule);align-items:center"><div><b style="color:var(--ink-900);font-weight:500">CMS PECOS</b><br><span style="color:var(--ink-500)">connector not wired</span></div><div style="text-align:right"><span class="chip chip-offline"><span class="gl"></span>Offline</span></div></div>
+          <div style="display:grid;grid-template-columns:1fr 90px;padding:12px 18px;border-bottom:1px solid var(--rule);align-items:center"><div><b style="color:var(--ink-900);font-weight:500">State boards</b><br><span style="color:var(--ink-500)">access required · 50 jurisdictions</span></div><div style="text-align:right"><span class="chip chip-gated"><span class="gl"></span>Gated</span></div></div>
+          <div style="display:grid;grid-template-columns:1fr 90px;padding:12px 18px;align-items:center"><div><b style="color:var(--ink-900);font-weight:500">Event stream (SSE)</b><br><span style="color:var(--ink-500)">operator sign-in</span></div><div style="text-align:right"><span class="chip chip-review"><span class="gl"></span>Auth</span></div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-hd"><span class="ttl">/contact · quiet form</span><span class="sub">paper card</span></div>
+        <div class="card-bd">
+          <div style="font-size:12.5px;color:var(--ink-700);line-height:1.6;margin-bottom:14px">If a field is missing from a passport, it is a system-side gap. Flag a connector you need.</div>
+          <div class="field" style="margin-bottom:8px"><span class="prefix">From</span><input type="email" placeholder="you@institution.org"></div>
+          <div class="field" style="margin-bottom:8px"><span class="prefix">Re</span><input type="text" placeholder="Connector or pilot request"></div>
+          <div style="border:1px solid var(--ink-900);background:#fff;padding:14px;font-size:13px;color:var(--ink-700);min-height:80px">We use NPPES today; OIG and PECOS are not yet wired in our build. We would like to flag…</div>
+          <button class="btn" style="margin-top:10px;width:100%;justify-content:center">Send</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 05 SCREEN SPECS -->
+  <section id="screens" class="section">
+    <div class="sec-head"><span class="sec-num">05</span><h2 class="sec-title">Screen Design Specs</h2><span class="sec-aside">11 routes · composition, above-the-fold, primary action</span></div>
+    <p class="sec-lede">Each route is a single composition. The §04 mocks carry the visual register; the table pins the rules per page so engineering can build without re-interpreting.</p>
+
+    <div class="states">
+      <div class="states-head"><div>Route</div><div>Page goal</div><div>Above-the-fold</div><div>Primary action</div><div>Degraded behaviour</div></div>
+      <div class="state-row"><div class="sr-name">Homepage<div class="sub">/</div></div><div class="sr-cell">Get the right role to the right door. Make NPI lookup obvious.</div><div class="sr-cell">Hero with NPI field, four role doors. No marketing claims, no charts.</div><div class="sr-cell"><b style="color:var(--ink-900);font-weight:500">Look up an NPI</b>. Sign-in is secondary, top-right.</div><div class="sr-cell">If lookup is offline, in-field banner: "lookup temporarily unavailable, system-side."</div></div>
+      <div class="state-row"><div class="sr-name">Passport<div class="sub">/passport?npi=…</div></div><div class="sr-cell">Show what is sourced, gated, not connected, institution-side, and what to do next.</div><div class="sr-cell">Header + 5-row legend. No "verified" badge anywhere.</div><div class="sr-cell"><b style="color:var(--ink-900);font-weight:500">Send to institution for review</b>. Secondary: open Receipt Drawer.</div><div class="sr-cell">Reason copy per row. No skeletons. Auth-gate disclosure in place of SSE events.</div></div>
+      <div class="state-row"><div class="sr-name">Sign-in<div class="sub">/sign-in</div></div><div class="sr-cell">Make clear what unlocking gets the user. Distinguish "wrong password" from "SSE down."</div><div class="sr-cell">Paper card form with "what this account does / does not" beneath.</div><div class="sr-cell"><b style="color:var(--ink-900);font-weight:500">Sign in</b>. Secondary: "Look up an NPI without an account."</div><div class="sr-cell">SSE-down banner on signed-in shell; no sign-in loop.</div></div>
+      <div class="state-row"><div class="sr-name">Sign-up<div class="sub">/sign-up</div></div><div class="sr-cell">Create an operator account. Disclose limits above the form.</div><div class="sr-cell">Three-line disclosure: this does not credential, does not contact employers, does not run sanction checks today.</div><div class="sr-cell"><b style="color:var(--ink-900);font-weight:500">Create operator account</b>.</div><div class="sr-cell">If sign-up disabled, "waitlist" form replaces submit; same disclosure.</div></div>
+      <div class="state-row"><div class="sr-name">Trust<div class="sub">/trust</div></div><div class="sr-cell">State explicit postures on HIPAA / SOC2 / NCQA and credentialing.</div><div class="sr-cell">Trust Register Table. Receipts, not marketing.</div><div class="sr-cell"><b style="color:var(--ink-900);font-weight:500">Open source attribution</b>.</div><div class="sr-cell">Stable. No live data dependency.</div></div>
+      <div class="state-row"><div class="sr-name">Attribution<div class="sub">/trust/attribution</div></div><div class="sr-cell">Enumerate every connector, state, last-read, uptime.</div><div class="sr-cell">Connector Matrix as the page itself.</div><div class="sr-cell"><b style="color:var(--ink-900);font-weight:500">Open /status</b>.</div><div class="sr-cell">If feed unavailable, last-known snapshot with "snapshot only" chip.</div></div>
+      <div class="state-row"><div class="sr-name">Status<div class="sub">/status</div></div><div class="sr-cell">Runtime health, plain. Match attribution; no separate truth.</div><div class="sr-cell">Connector matrix + SSE row. One page.</div><div class="sr-cell">None (read-only).</div><div class="sr-cell">If route absent today, ship static fallback page mirroring attribution.</div></div>
+      <div class="state-row"><div class="sr-name">Contact<div class="sub">/contact</div></div><div class="sr-cell">Let users flag missing connectors and request a pilot.</div><div class="sr-cell">Quiet form, paper card, no support theater.</div><div class="sr-cell"><b style="color:var(--ink-900);font-weight:500">Send</b>.</div><div class="sr-cell">If form post fails, show mailto fallback as a monospace line.</div></div>
+      <div class="state-row"><div class="sr-name">Clinician<div class="sub">/clinician</div></div><div class="sr-cell">Claim NPI record, attach institution-review materials, control passport visibility.</div><div class="sr-cell">Two-column: "your NPPES record" + "what claiming does and does not."</div><div class="sr-cell"><b style="color:var(--ink-900);font-weight:500">Start claim</b>.</div><div class="sr-cell">Claim flow gated behind sign-up; calm disclosure.</div></div>
+      <div class="state-row"><div class="sr-name">Employer<div class="sub">/employer</div></div><div class="sr-cell">Walk the institution-review checklist; download demo packet.</div><div class="sr-cell">Institution Review Panel, full-width, with attached passport summary.</div><div class="sr-cell"><b style="color:var(--ink-900);font-weight:500">Open review</b>.</div><div class="sr-cell">If no passport context, "paste a VitalCV URL" field.</div></div>
+      <div class="state-row"><div class="sr-name">Issuer<div class="sub">/issuer</div></div><div class="sr-cell">Honest: today this is waitlist + spec. Tomorrow self-serve.</div><div class="sr-cell">Single-column: scope, spec excerpt, waitlist form.</div><div class="sr-cell"><b style="color:var(--ink-900);font-weight:500">Join waitlist</b>.</div><div class="sr-cell">No fake "request integration" CTA if no human will reply this week.</div></div>
+    </div>
+
+    <h3 class="t-h3" style="margin:36px 0 10px">Homepage · full composition</h3>
+    <div class="screen">
+      <div class="screen-bar"><div class="dots"><i></i><i></i><i></i></div><span class="url">vitalcv.io / <b>home</b></span><span class="ttl">screen · home</span></div>
+      <div class="app-nav">
+        <div class="brand"><span class="g">V</span> VitalCV</div>
+        <div class="links"><a>Look up</a><a>For clinicians</a><a>For employers</a><a>Trust</a><a>Status</a></div>
+        <div class="util"><button class="btn btn-sm btn-ghost">Sign in</button></div>
+      </div>
+      <div class="hero">
+        <div class="t-eyebrow" style="margin-bottom:14px">Trust infrastructure for healthcare credentialing</div>
+        <h2>Look up an NPI. <em>See what each field is sourced from — and what still needs an institution to confirm.</em></h2>
+        <p class="sub">A passport that shows source state per field, marks the institution-review boundary, and never pretends to be a credentialing decision.</p>
+        <div class="lookup">
+          <div class="field"><span class="prefix">NPI</span><input type="text" placeholder="10-digit national provider identifier"><button class="btn">Look up <span class="arr">→</span></button></div>
+        </div>
+        <div class="ex"><span class="k">Try:</span><a>1699264564</a><a>1083779269</a><a>1730283837</a><span class="kbd">⌘ K</span></div>
+      </div>
+      <div class="doors">
+        <div class="door"><div class="role">Verifier</div><h3>Look up an NPI</h3><p>See sourced fields, source state, what an institution still needs to review. No account required.</p><div class="cta">Open lookup <span class="arr">→</span></div></div>
+        <div class="door"><div class="role">Clinician</div><h3>Claim my NPI record</h3><p>Connect to your NPPES record, attach materials, control what your passport shows.</p><div class="cta">Start claim <span class="arr">→</span></div></div>
+        <div class="door"><div class="role">Employer</div><h3>Review a passport</h3><p>Walk the institution-review checklist. Receipts attached.</p><div class="cta">Open review <span class="arr">→</span></div></div>
+        <div class="door"><div class="role">Issuer</div><h3>Connect a source</h3><p>Bring a primary source online. Today a waitlist; spec available.</p><div class="cta">Join waitlist <span class="arr">→</span></div></div>
+      </div>
+      <div style="background:var(--card);padding:30px 28px;border-top:1px solid var(--rule);display:grid;grid-template-columns:1fr 1fr 1fr;gap:24px">
+        <div><div class="t-eyebrow" style="margin-bottom:8px">What is sourced</div><div style="font-size:12.5px;color:var(--ink-700);line-height:1.6">NPPES directory record — live read, 24h cache. Source-confirmed identity and taxonomy.</div></div>
+        <div><div class="t-eyebrow" style="margin-bottom:8px">What is not connected</div><div style="font-size:12.5px;color:var(--ink-700);line-height:1.6">OIG-LEIE and CMS PECOS connectors are not live in this build. Their silence is not a clinician finding.</div></div>
+        <div><div class="t-eyebrow" style="margin-bottom:8px">Who decides</div><div style="font-size:12.5px;color:var(--ink-700);line-height:1.6">The hiring institution. VitalCV surfaces sourced facts; we do not issue credentialing decisions.</div></div>
+      </div>
+    </div>
+
+    <h3 class="t-h3" style="margin:36px 0 10px">Passport · degraded (no NPPES payload)</h3>
+    <div class="screen">
+      <div class="screen-bar"><div class="dots"><i></i><i></i><i></i></div><span class="url">vitalcv.io/passport?npi=<b>1699264564</b></span><span class="ttl">screen · passport · degraded</span></div>
+      <div class="app-nav">
+        <div class="brand"><span class="g">V</span> VitalCV</div>
+        <div class="links"><a>Look up</a><a>For clinicians</a><a>For employers</a><a>Trust</a><a>Status</a></div>
+        <div class="util"><button class="btn btn-sm btn-ghost">Sign in</button></div>
+      </div>
+      <div class="pp-head">
+        <div>
+          <div class="t-eyebrow" style="margin-bottom:10px">Public passport · partial record</div>
+          <div class="name">NPI 1699264564</div>
+          <div class="meta"><span>Looked up <b>2026-05-27 08:14Z</b></span><span>Sources read <b>0 of 5</b></span><span>Snapshot <b>—</b></span></div>
+          <div class="lede"><strong style="color:var(--ink-900)">Directory source is temporarily unreachable.</strong> System condition, not a finding about the clinician. Try again, or open the connector matrix for status.</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end">
+          <span class="chip chip-wait"><span class="gl"></span>NPPES · retry pending</span>
+          <span class="chip chip-offline"><span class="gl"></span>OIG / LEIE · not live</span>
+          <span class="chip chip-offline"><span class="gl"></span>PECOS · not live</span>
+          <span class="chip chip-gated"><span class="gl"></span>State board · access required</span>
+        </div>
+      </div>
+      <div class="legend">
+        <div class="legend-item"><span class="k">01 · Known</span><span class="v">NPI string only<span class="num">no payload</span></span></div>
+        <div class="legend-item"><span class="k">02 · Sourced</span><span class="v">None this read</span></div>
+        <div class="legend-item"><span class="k">03 · Unavailable</span><span class="v">NPPES, OIG, PECOS, board</span></div>
+        <div class="legend-item"><span class="k">04 · Review</span><span class="v">By institution, when payload returns</span></div>
+        <div class="legend-item"><span class="k">05 · Next step</span><span class="v">Retry or open /status</span></div>
+      </div>
+      <div class="gate-notice"><div class="t"><b>Why this looks empty.</b> The NPPES directory connector returned no payload on this read. We don't fabricate fields. When the source returns, this page will populate; until then it stays honest.</div><div class="actions"><button class="btn btn-sm btn-ghost">Open /status</button><button class="btn btn-sm">Retry lookup</button></div></div>
+      <div class="pp-section"><div class="h"><span class="ttl">Identity &amp; directory presence</span><span class="ct">0 of 2 sourced this read</span></div></div>
+      <div style="margin:0 32px 14px;border:1px solid var(--rule);background:var(--card)">
+        <div class="source-row"><div class="sr-label">Legal name</div><div class="sr-value" style="color:var(--ink-500);font-weight:400">No reading.<span class="sub" style="color:var(--ink-500)">NPPES did not return a payload on this read.</span></div><div class="sr-source">NPPES · primary directory<span class="age">retry pending</span></div><div class="sr-state"><span class="chip chip-wait"><span class="gl"></span>Temporarily unavailable</span></div></div>
+        <div class="source-row"><div class="sr-label">Taxonomy</div><div class="sr-value" style="color:var(--ink-500);font-weight:400">No reading.<span class="sub" style="color:var(--ink-500)">Same condition. Snapshot from 04h ago available — open Receipt Drawer.</span></div><div class="sr-source">NPPES · primary directory<span class="age">retry pending</span></div><div class="sr-state"><span class="chip chip-snapshot"><span class="gl"></span>Snapshot · 04h</span></div></div>
+      </div>
+      <div class="cta-strip"><div><div>This passport is read input to an institution's review. <b>Send it to the hiring institution to start the review on file.</b></div><div class="sub">No credentialing decision is implied · no employer is contacted · institution holds the boundary</div></div><div style="display:flex;gap:10px"><button class="btn btn-ghost" style="background:transparent;border-color:var(--ink-700);color:#fff">Copy passport URL</button><button class="btn btn-accent">Send to institution →</button></div></div>
+    </div>
+  </section>
+
+  <!-- 06 FEATURES -->
+  <section id="features" class="section">
+    <div class="sec-head"><span class="sec-num">06</span><h2 class="sec-title">Feature Design Ideas</h2><span class="sec-aside">12 features · prioritized</span></div>
+    <p class="sec-lede">Features that earn their place without overclaiming. Each carries user value, visual behavior, truth boundary, and priority.</p>
+    <div class="grid-3">
+      <div class="feature"><div class="tag"><span>F · 01</span><span class="pri p1">P0</span></div><h4>Proof Continuity Rail</h4><div class="desc">A 5-row rail summarizing truth state across the passport: known, sourced, gated, review, snapshot.</div><div class="meta"><div><b>Value</b><span>Comprehension in 3 seconds</span></div><div><b>Truth</b><span>Mirrors actual states; never invents one</span></div><div><b>Effort</b><span>Small · pure UI</span></div></div></div>
+      <div class="feature"><div class="tag"><span>F · 02</span><span class="pri p1">P0</span></div><h4>Per-field Provenance Chip</h4><div class="desc">Every field carries source · timestamp · state inline. Replaces ambiguous "verified" labels with explicit attribution.</div><div class="meta"><div><b>Value</b><span>Defensible trust signal</span></div><div><b>Truth</b><span>Never claims more than the source did</span></div><div><b>Effort</b><span>Small · component family</span></div></div></div>
+      <div class="feature"><div class="tag"><span>F · 03</span><span class="pri p1">P0</span></div><h4>Connector Matrix as /status</h4><div class="desc">Single page truth: every connector, state, last read, uptime. Same data as /trust/attribution.</div><div class="meta"><div><b>Value</b><span>One place to check honesty</span></div><div><b>Truth</b><span>Read directly from runtime</span></div><div><b>Effort</b><span>Small · static fallback OK</span></div></div></div>
+      <div class="feature"><div class="tag"><span>F · 04</span><span class="pri p1">P0</span></div><h4>Receipt Drawer</h4><div class="desc">Click any source row → side drawer with raw payload, signature, retrieval log. Copy-JSON button.</div><div class="meta"><div><b>Value</b><span>Operator-grade transparency</span></div><div><b>Truth</b><span>Pure passthrough; nothing inferred</span></div><div><b>Effort</b><span>Medium · auth-gated for raw payload</span></div></div></div>
+      <div class="feature"><div class="tag"><span>F · 05</span><span class="pri p2">P1</span></div><h4>Snapshot Diff · "what changed since"</h4><div class="desc">Compare today's passport against the last stored snapshot. Field-level deltas with retrieval-time citations. No motion.</div><div class="meta"><div><b>Value</b><span>Surface drift without alarm</span></div><div><b>Truth</b><span>Diff between sourced reads, not inferences</span></div><div><b>Effort</b><span>Medium · diff engine on snapshots</span></div></div></div>
+      <div class="feature"><div class="tag"><span>F · 06</span><span class="pri p1">P0</span></div><h4>Institution Review Panel</h4><div class="desc">Explicit list of what VitalCV does not attempt. The boundary, in writing.</div><div class="meta"><div><b>Value</b><span>Liability-shaped clarity</span></div><div><b>Truth</b><span>Defines what we do not claim</span></div><div><b>Effort</b><span>Small · content-shaped component</span></div></div></div>
+      <div class="feature"><div class="tag"><span>F · 07</span><span class="pri p2">P1</span></div><h4>Demo Packet · pilot export</h4><div class="desc">One-page paper-grade export bundling passport + connector state + institution-review panel. PDF + JSON twin.</div><div class="meta"><div><b>Value</b><span>Sales / pilot enablement</span></div><div><b>Truth</b><span>Reflects build's actual posture</span></div><div><b>Effort</b><span>Medium · template + PDF render</span></div></div></div>
+      <div class="feature"><div class="tag"><span>F · 08</span><span class="pri p2">P1</span></div><h4>Operator Event Stream</h4><div class="desc">SSE-driven activity feed in the signed-in shell. Real events only — no fake live counters.</div><div class="meta"><div><b>Value</b><span>Live operator visibility</span></div><div><b>Truth</b><span>Auth-gated, real events only</span></div><div><b>Effort</b><span>Medium · depends on SSE health</span></div></div></div>
+      <div class="feature"><div class="tag"><span>F · 09</span><span class="pri p2">P1</span></div><h4>Role-aware Passport View</h4><div class="desc">Same data, different emphasis. Layout changes, facts don't.</div><div class="meta"><div><b>Value</b><span>Right answer per role</span></div><div><b>Truth</b><span>Identical underlying record</span></div><div><b>Effort</b><span>Medium · view variants</span></div></div></div>
+      <div class="feature"><div class="tag"><span>F · 10</span><span class="pri p3">P2</span></div><h4>Share Review Packet</h4><div class="desc">Stable URL with a sealed snapshot the employer can forward. URL embeds the snapshot hash.</div><div class="meta"><div><b>Value</b><span>Hand-off without drift</span></div><div><b>Truth</b><span>Sealed snapshot, not a live re-read</span></div><div><b>Effort</b><span>Medium · snapshot addressing</span></div></div></div>
+      <div class="feature"><div class="tag"><span>F · 11</span><span class="pri p3">P2</span></div><h4>Calm Auth Gate</h4><div class="desc">A dashed-border in-context block explaining what unlocking buys before asking for credentials. Never a modal.</div><div class="meta"><div><b>Value</b><span>Lower friction, higher trust</span></div><div><b>Truth</b><span>Public surface remains public</span></div><div><b>Effort</b><span>Small · single component</span></div></div></div>
+      <div class="feature"><div class="tag"><span>F · 12</span><span class="pri p3">P2</span></div><h4>Connector Health Matrix</h4><div class="desc">Matrix expanded with 30-day read-rate sparkline (static SVG) per connector. Honest history, not theater.</div><div class="meta"><div><b>Value</b><span>Calibrated expectations</span></div><div><b>Truth</b><span>Sparkline from measured reads</span></div><div><b>Effort</b><span>Medium · history table</span></div></div></div>
+    </div>
+  </section>
+
+  <!-- 07 INTERACTION -->
+  <section id="interaction" class="section">
+    <div class="sec-head"><span class="sec-num">07</span><h2 class="sec-title">Interaction Design</h2><span class="sec-aside">Hover · loading · gated · keyboard</span></div>
+    <p class="sec-lede">Motion is reserved for confirming reality, never performing it. Every interaction clarifies state, signals a transition, or exposes receipts. Nothing animates as decoration.</p>
+    <div class="grid-2">
+      <div class="card"><div class="card-hd"><span class="ttl">Hover · focus · active</span></div><div class="card-bd prose"><p><strong>Buttons</strong> darken 1 ink-step on hover (no scale, no shadow expand). 1px translate-y on active. Focus = 2px outline in <code>--accent</code>, 2px offset.</p><p><strong>Links</strong> get a 1px underline in <code>--ink-300</code> with 3px offset on hover. No color change.</p><p><strong>Source rows</strong> reveal a "Receipt →" affordance on hover and focus-within. Row background lifts one ink step.</p></div></div>
+      <div class="card"><div class="card-hd"><span class="ttl">Loading</span></div><div class="card-bd prose"><p><strong>No skeletons.</strong> Skeletons say "data is coming." VitalCV often has no payload, so a skeleton lies. Use a 1-line monospace state row: <code>NPPES · reading · 0.6s</code>.</p><p><strong>Lookup</strong> uses an in-button 2px progress bar across the bottom edge; never a full-page spinner.</p><p>If a read exceeds 3s, the row swaps to a "temporarily unavailable" chip with retry copy.</p></div></div>
+      <div class="card"><div class="card-hd"><span class="ttl">Degraded · source unavailable</span></div><div class="card-bd prose"><p><strong>Field-level.</strong> Row keeps its label and source column. Value reads "No reading." in ink-500 with one-line reason.</p><p><strong>Connector-level.</strong> Same surface, chip is "connector not live," copy distinguishes never-wired vs. transient.</p><p><strong>Page-level.</strong> If zero reads succeed, the gate-notice block at the top explains "system condition, not clinician finding."</p></div></div>
+      <div class="card"><div class="card-hd"><span class="ttl">Sign-in required / SSE blocked</span></div><div class="card-bd prose"><p><strong>Public surface remains public.</strong> The auth gate is an in-context dashed-border block, not a redirect. Sign-in is a verb the user chooses.</p><p><strong>SSE down when signed-in.</strong> Shell renders. Banner: "Live event stream unavailable · history readable." No sign-in loop.</p></div></div>
+      <div class="card"><div class="card-hd"><span class="ttl">Receipt Drawer interactions</span></div><div class="card-bd prose"><p>Slides in from right (200ms ease-out, no overshoot). <span class="kbd">Esc</span> closes. <span class="kbd">⌘C</span> copies the highlighted payload section. Body scroll is locked while open.</p><p>Width: 480px desktop · full-bleed sheet on mobile (slides up). Backdrop is a 1px ink-300 tint, not a black overlay.</p></div></div>
+      <div class="card"><div class="card-hd"><span class="ttl">Role switching</span></div><div class="card-bd prose"><p>No global role-picker. Roles enter through homepage doors. Once inside, the URL carries the role; a small monospace breadcrumb shows <code>employer · review · npi 1699264564</code>.</p><p>Switching roles = back to <code>/</code>. Cheaper than a modal, more honest about state.</p></div></div>
+      <div class="card"><div class="card-hd"><span class="ttl">Keyboard &amp; focus</span></div><div class="card-bd prose"><p><span class="kbd">⌘K</span> opens the global NPI lookup overlay from any route. Tab order follows DOM. All chips are focusable with Enter = "open receipt for this state."</p><p>Skip-to-content link on every page. Focus rings never suppressed.</p></div></div>
+      <div class="card"><div class="card-hd"><span class="ttl">Mobile</span></div><div class="card-bd prose"><p>Passport rows collapse to stacked blocks: label → value → source → chip. The 5-row legend becomes a horizontally-scrolling rail. CTA strip sticky at the bottom.</p><p>No hover affordances; long-press on a chip opens the Receipt Drawer as a bottom sheet.</p></div></div>
+      <div class="card"><div class="card-hd"><span class="ttl">Accessibility</span></div><div class="card-bd prose"><p>WCAG AA throughout: ink-700 on paper meets 7:1; chip text passes 4.5:1 against tinted ground. Each truth-state has a <strong>glyph</strong> in addition to color — never color-only.</p><p>Screen-reader copy spells the state ("connector not live, system-side") so meaning carries without sight.</p></div></div>
+    </div>
+  </section>
+
+  <!-- 08 STATE MODEL -->
+  <section id="states" class="section">
+    <div class="sec-head"><span class="sec-num">08</span><h2 class="sec-title">State Model as Design</h2><span class="sec-aside">10 visual states · canonical mapping</span></div>
+    <p class="sec-lede">Backend states become visual states with deliberate, non-alarming registers. This table is canon — no chip, copy, or icon may drift from this map.</p>
+    <div class="states">
+      <div class="states-head"><div>State</div><div>Visual treatment</div><div>User reading</div><div>Severity</div><div>Action surfaced</div></div>
+      <div class="state-row"><div class="sr-name">Source-confirmed<div class="sub">known · sourced</div></div><div class="sr-cell"><span class="chip chip-known"><span class="gl"></span>NPPES · 4h ago</span><div style="margin-top:6px;color:var(--ink-500);font-size:11px">filled square · green-700</div></div><div class="sr-cell">"This field came from the named source at this time."</div><div class="sr-cell"><b style="color:var(--ink-900)">Informational</b><br><span style="color:var(--ink-500);font-size:11px">No alarm. No celebration.</span></div><div class="sr-cell">Open receipt drawer</div></div>
+      <div class="state-row"><div class="sr-name">Temporarily unavailable<div class="sub">retry pending</div></div><div class="sr-cell"><span class="chip chip-wait"><span class="gl"></span>Source temporarily unavailable</span><div style="margin-top:6px;color:var(--ink-500);font-size:11px">filled circle · amber-700</div></div><div class="sr-cell">"Source did not return this read. System-side. Will retry."</div><div class="sr-cell"><b style="color:var(--ink-900)">Soft</b><br><span style="color:var(--ink-500);font-size:11px">Not clinician finding.</span></div><div class="sr-cell">Retry · open /status</div></div>
+      <div class="state-row"><div class="sr-name">Connector not live<div class="sub">never-wired</div></div><div class="sr-cell"><span class="chip chip-offline"><span class="gl"></span>Connector not live</span><div style="margin-top:6px;color:var(--ink-500);font-size:11px">muted square · neutral-700</div></div><div class="sr-cell">"This source is not part of our build today. Silence here is not exoneration."</div><div class="sr-cell"><b style="color:var(--ink-900)">Neutral</b><br><span style="color:var(--ink-500);font-size:11px">Honest absence.</span></div><div class="sr-cell">Brief on connector</div></div>
+      <div class="state-row"><div class="sr-name">Access required<div class="sub">gated source</div></div><div class="sr-cell"><span class="chip chip-gated"><span class="gl"></span>Access required</span><div style="margin-top:6px;color:var(--ink-500);font-size:11px">diamond · violet-700</div></div><div class="sr-cell">"Reading this source needs access we don't yet have. Not a clinician judgement."</div><div class="sr-cell"><b style="color:var(--ink-900)">Neutral</b><br><span style="color:var(--ink-500);font-size:11px">System-side.</span></div><div class="sr-cell">Open brief · what access requires</div></div>
+      <div class="state-row"><div class="sr-name">Institution review<div class="sub">human boundary</div></div><div class="sr-cell"><span class="chip chip-review"><span class="gl"></span>Institution review required</span><div style="margin-top:6px;color:var(--ink-500);font-size:11px">ring · violet-900</div></div><div class="sr-cell">"VitalCV does not attempt this. The hiring institution decides."</div><div class="sr-cell"><b style="color:var(--ink-900)">Boundary</b><br><span style="color:var(--ink-500);font-size:11px">Always present.</span></div><div class="sr-cell">Open Institution Review Panel</div></div>
+      <div class="state-row"><div class="sr-name">Snapshot only<div class="sub">view-only</div></div><div class="sr-cell"><span class="chip chip-snapshot"><span class="gl"></span>Snapshot only · 04h</span><div style="margin-top:6px;color:var(--ink-500);font-size:11px">filled square · neutral-800</div></div><div class="sr-cell">"Stored read, not a live re-fetch."</div><div class="sr-cell"><b style="color:var(--ink-900)">Informational</b><br><span style="color:var(--ink-500);font-size:11px">Honest about freshness.</span></div><div class="sr-cell">Refresh · open receipt</div></div>
+      <div class="state-row"><div class="sr-name">Demo only<div class="sub">non-production data</div></div><div class="sr-cell"><span class="chip chip-snapshot"><span class="gl"></span>Demo · not a real record</span><div style="margin-top:6px;color:var(--ink-500);font-size:11px">striped pattern · neutral</div></div><div class="sr-cell">"Illustrative. No real clinician data."</div><div class="sr-cell"><b style="color:var(--ink-900)">Informational</b><br><span style="color:var(--ink-500);font-size:11px">Always labeled.</span></div><div class="sr-cell">Look up a real NPI</div></div>
+      <div class="state-row"><div class="sr-name">Live stream available<div class="sub">authenticated</div></div><div class="sr-cell"><span class="chip chip-known"><span class="gl"></span>SSE · live · operator</span><div style="margin-top:6px;color:var(--ink-500);font-size:11px">ticker dot only when event arrives</div></div><div class="sr-cell">"Real events are streaming. No fake pulse."</div><div class="sr-cell"><b style="color:var(--ink-900)">Informational</b></div><div class="sr-cell">Open event stream</div></div>
+      <div class="state-row"><div class="sr-name">Auth blocked<div class="sub">SSE gated</div></div><div class="sr-cell"><span class="chip chip-review"><span class="gl"></span>Operator sign-in</span><div style="margin-top:6px;color:var(--ink-500);font-size:11px">in-context dashed-border block</div></div><div class="sr-cell">"Public passport remains readable. Live events require sign-in."</div><div class="sr-cell"><b style="color:var(--ink-900)">Neutral</b></div><div class="sr-cell">Sign in (calm)</div></div>
+      <div class="state-row"><div class="sr-name">Adverse record (future)<div class="sub">if ever surfaced</div></div><div class="sr-cell">Reserved. The <em>only</em> case red is allowed. Always paired with source attribution and the institution-review boundary.<div style="margin-top:6px;color:var(--ink-500);font-size:11px">never invented · never auto-rendered</div></div><div class="sr-cell">"Authoritative source reports an adverse record. Institution must verify directly before acting."</div><div class="sr-cell"><b style="color:#a3331f">Material</b><br><span style="color:var(--ink-500);font-size:11px">Only on confirmed read.</span></div><div class="sr-cell">Open source receipt · contact source directly</div></div>
+    </div>
+  </section>
+
+  <!-- 09 BENCHMARKS -->
+  <section id="bench" class="section">
+    <div class="sec-head"><span class="sec-num">09</span><h2 class="sec-title">Aesthetic Benchmarks</h2><span class="sec-aside">Lift principles · reject mannerisms</span></div>
+    <p class="sec-lede">Eight references. We extract underlying restraint, not surface treatment. None of these companies are healthcare; we translate their rigor, not their look.</p>
+    <div class="benches">
+      <div class="bench"><div class="name">Linear</div><div class="from">restraint · keyboard primacy</div><div class="lift"><b>Lift:</b> hairline rules, monospace metadata, ⌘K-first navigation, no decoration.</div><div class="reject"><b>reject</b>Dark-mode-only chrome; gradient brand strokes; "AI" auras.</div></div>
+      <div class="bench"><div class="name">Stripe</div><div class="from">clarity · receipts</div><div class="lift"><b>Lift:</b> tabular numerics, dense reference tables, side drawers for payload, "show the JSON" honesty.</div><div class="reject"><b>reject</b>Animated gradient hero; rainbow-on-dark; consumer-glossy marketing.</div></div>
+      <div class="bench"><div class="name">Palantir</div><div class="from">institutional seriousness</div><div class="lift"><b>Lift:</b> document-grade typography, monolithic ink-black bars, no smile, no exclamation.</div><div class="reject"><b>reject</b>Opaque ops aesthetic; chart-soup; surveillance-coded color.</div></div>
+      <div class="bench"><div class="name">Apple Wallet</div><div class="from">paper as metaphor</div><div class="lift"><b>Lift:</b> card-as-document, single primary action, sourced metadata on one line, generous quiet.</div><div class="reject"><b>reject</b>Skeumorphic embossing; rounded-rect SaaS pastiche.</div></div>
+      <div class="bench"><div class="name">Vercel</div><div class="from">developer polish</div><div class="lift"><b>Lift:</b> Geist stack, ink-black primary, status-as-product, /status that doesn't lie.</div><div class="reject"><b>reject</b>Hero gradient; deploy-success confetti; brand-as-meme.</div></div>
+      <div class="bench"><div class="name">Notion</div><div class="from">legibility · density</div><div class="lift"><b>Lift:</b> generous line-height, modular blocks, content over chrome.</div><div class="reject"><b>reject</b>Emoji decoration; cute illustrations; sidebar zoo.</div></div>
+      <div class="bench"><div class="name">Modern dev docs</div><div class="from">stripe · linear · vercel docs</div><div class="lift"><b>Lift:</b> persistent left nav, callout box family, inline code as a citizen.</div><div class="reject"><b>reject</b>Onboarding theater; "5 steps" gamification.</div></div>
+      <div class="bench"><div class="name">Premium fintech</div><div class="from">arc · mercury · ramp</div><div class="lift"><b>Lift:</b> ledger as primary UI, monospace numerics, calm receipt drawers.</div><div class="reject"><b>reject</b>Reward animations; balance-up celebrations; floating cards.</div></div>
+    </div>
+  </section>
+
+  <!-- 10 HANDOFF -->
+  <section id="handoff" class="section">
+    <div class="sec-head"><span class="sec-num">10</span><h2 class="sec-title">Claude Code Handoff</h2><span class="sec-aside">Routes · components · Tailwind tokens</span></div>
+    <p class="sec-lede">A buildable brief. Where to look, what to extract, what to ship in which order, and what to test.</p>
+    <div class="grid-2">
+      <div class="card"><div class="card-hd"><span class="ttl">Routes to inspect</span><span class="sub">existing repo</span></div><div class="card-bd prose"><p><code>/app/page.tsx</code> · replace marketing hero with NPI Lookup Hero + Role Doors.<br><code>/app/passport/page.tsx</code> · header + legend rail + Source Row family + CTA strip.<br><code>/app/trust/page.tsx</code> · Trust Register Table.<br><code>/app/trust/attribution/page.tsx</code> · Connector Matrix.<br><code>/app/status/page.tsx</code> · same matrix, deeper.<br><code>/app/(auth)/sign-in/page.tsx</code> · Sign-in Card with "what this account does / does not."<br><code>/app/(auth)/sign-up/page.tsx</code> · disclosure block above form.<br><code>/components/nav/site-header.tsx</code> · verb is "Look up," not "Verify."<br><code>/components/footer/footer.tsx</code> · receipts row before legal.</p></div></div>
+      <div class="card"><div class="card-hd"><span class="ttl">Component extraction order</span><span class="sub">first → last</span></div><div class="card-bd prose"><p>1. <code>&lt;Chip variant /&gt;</code> — 6 truth-state variants.<br>2. <code>&lt;SourceRow /&gt;</code> — label · value · source · chip.<br>3. <code>&lt;NpiLookupField /&gt;</code> — input + button atom.<br>4. <code>&lt;PassportHeader /&gt;</code>.<br>5. <code>&lt;LegendRail /&gt;</code>.<br>6. <code>&lt;ConnectorMatrix /&gt;</code>.<br>7. <code>&lt;ProofContinuityRail /&gt;</code>.<br>8. <code>&lt;InstitutionReviewPanel /&gt;</code>.<br>9. <code>&lt;AuthGateBlock /&gt;</code>.<br>10. <code>&lt;ReceiptDrawer /&gt;</code>.<br>11. <code>&lt;AuditTimeline /&gt;</code>.<br>12. <code>&lt;TrustRegisterTable /&gt;</code>.<br>13. <code>&lt;DemoPacketPreview /&gt;</code>.</p></div></div>
+      <div class="card"><div class="card-hd"><span class="ttl">Tailwind / token recs</span></div><div class="card-bd prose"><p>Move tokens to <code>tokens-v2.css</code> as CSS custom properties. Map to Tailwind v4 <code>@theme</code> block. Avoid hex literals in components.</p><p>Reserve <code>--accent</code> for primary action + focus only. Pre-flight ESLint rule: no <code>bg-red-*</code>, <code>text-red-*</code> in components other than <code>&lt;Chip variant="adverse" /&gt;</code> — which is not built yet.</p><p>Add <code>font-feature-settings:'ss01','cv11';font-variant-numeric:tabular-nums</code> to root.</p></div></div>
+      <div class="card"><div class="card-hd"><span class="ttl">Tests &amp; snapshots</span></div><div class="card-bd prose"><p>Playwright: <code>/passport?npi=…</code> renders with zero-payload (degraded) — assert no skeleton, no "verified," presence of LegendRail.<br>Visual snapshot: each Chip variant against paper background.<br>Lint: ban the §banned-copy list as a regex check in CI.<br>Axe: chips pass contrast on tinted ground; focus rings visible.</p></div></div>
+    </div>
+  </section>
+
+  <!-- 11 ROADMAP -->
+  <section id="roadmap" class="section">
+    <div class="sec-head"><span class="sec-num">11</span><h2 class="sec-title">Prioritized Implementation Roadmap</h2><span class="sec-aside">D57 · D58 · D59</span></div>
+    <p class="sec-lede">Three waves. Each shippable in isolation. Each moves the product one truth-grade up without depending on future backend connectors.</p>
+    <div class="wave">
+      <div class="lhs"><div><div class="num">Wave · D57</div><div class="name">Calm Degradation &amp; Truth Surfacing</div></div><div class="when">Ship · this sprint</div></div>
+      <div class="rhs">
+        <div class="col"><h5>Foundation</h5><ul><li>Token freeze · paper, ink, truth-state hues</li><li>Chip component family · 6 variants + glyphs</li><li>Geist + Geist Mono on root</li><li>Ban-list lint rule in CI</li></ul></div>
+        <div class="col"><h5>Surfaces</h5><ul><li>Passport header + LegendRail + SourceRow</li><li>Degraded passport reason copy per row</li><li>Connector matrix at /status (static fallback OK)</li><li>Footer receipts row reorder</li><li>Sign-in / sign-up disclosure blocks</li></ul></div>
+      </div>
+    </div>
+    <div class="wave">
+      <div class="lhs"><div><div class="num">Wave · D58</div><div class="name">Receipts &amp; Role Doors</div></div><div class="when">Next sprint</div></div>
+      <div class="rhs">
+        <div class="col"><h5>Receipts</h5><ul><li>ReceiptDrawer · raw payload, signature, retrieval log</li><li>AuditTimeline · operator-side, last 24h</li><li>Snapshot addressing by SHA-256</li><li>Demo Packet · paper export, PDF + JSON twin</li></ul></div>
+        <div class="col"><h5>Role doors</h5><ul><li>Four homepage doors + role-tagged URLs</li><li>Employer · Institution Review Panel</li><li>Clinician · claim NPI shell (auth-gated)</li><li>Issuer · waitlist + spec excerpt</li></ul></div>
+      </div>
+    </div>
+    <div class="wave">
+      <div class="lhs"><div><div class="num">Wave · D59</div><div class="name">Live Stream &amp; Snapshot Diff</div></div><div class="when">Following sprint</div></div>
+      <div class="rhs">
+        <div class="col"><h5>Live</h5><ul><li>SSE event stream UI (signed-in)</li><li>SSE-down banner state, no sign-in loop</li><li>Operator dashboard shell</li></ul></div>
+        <div class="col"><h5>Diff</h5><ul><li>"What changed since last snapshot" view</li><li>Share Review Packet · sealed URL</li><li>Connector health 30-day sparkline (static)</li></ul></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 12 VERDICT -->
+  <section id="verdict" class="section">
+    <div class="sec-head"><span class="sec-num">12</span><h2 class="sec-title">Final Design Call</h2><span class="sec-aside">Status · scope · cost of waiting</span></div>
+    <div class="verdict">
+      <div class="lhs">
+        <div><div class="lbl">Design status</div><div class="val"><span class="dot"></span>Ready to build</div></div>
+        <div><div class="lbl">Wave</div><div class="val" style="font-size:18px">D57 · Calm Source-of-Truth</div></div>
+        <div><div class="lbl">Window</div><div class="val" style="font-size:14px;color:var(--ink-300);font-weight:400;line-height:1.5">Ship Wave D57 in one sprint without backend dependency. D58 and D59 unlock as connectors come online.</div></div>
+      </div>
+      <div class="rhs">
+        <p><strong>The thesis.</strong> VitalCV is not a credentialing decision — it is the calm source-of-truth layer between fragmented systems. The visual language must carry that thesis in five seconds, before any marketing copy lands.</p>
+        <p><strong>What this direction commits to.</strong> Paper substrate, near-black ink, single restrained accent. A six-state truth-chip family with glyphs and copy. Source-row canonical layout on every passport field. Per-field provenance instead of bare "verified." Institution-review boundary always visible, always quiet. Receipts beat claims.</p>
+        <p><strong>What it commits against.</strong> No bare "Verified." No "cleared / approved / accepted." No HIPAA / SOC 2 / NCQA certification claims. No skeleton-only degraded states. No red on system-side gaps. No crypto theater. No fake live motion. No SaaS hero gradient.</p>
+        <p><strong>Cost of not shipping D57.</strong> The product remains a limited-pass degraded surface where source unavailability still reads, to a hurried viewer, as clinician failure. That is the only real risk left in the build, and it is a design risk.</p>
+        <p><strong>Recommendation.</strong> Adopt this direction as canon, freeze tokens, extract the chip + source-row family first, ship Wave D57 against the existing routes. The product can feel exceptional today without any new connector going live tomorrow.</p>
+      </div>
+    </div>
+  </section>
+
+</div>
+</body>
+</html>

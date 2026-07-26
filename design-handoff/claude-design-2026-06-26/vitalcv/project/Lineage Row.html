@@ -1,0 +1,492 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>VitalCV · Human-Readable Lineage</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root{--ink-0:#fff;--ink-50:#f8fafc;--ink-100:#f1f5f9;--ink-200:#e2e8f0;--ink-300:#cbd5e1;--ink-400:#94a3b8;--ink-500:#64748b;--ink-600:#475569;--ink-700:#334155;--ink-800:#1e293b;--ink-900:#0f172a;--ink-950:#020617;--rule:#e2e8f0;}
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--ink-50);color:var(--ink-900);font-family:'Geist',ui-sans-serif,system-ui,sans-serif;font-feature-settings:'ss01','cv11';-webkit-font-smoothing:antialiased;font-size:13.5px;line-height:1.5;}
+  code,.mono{font-family:'Geist Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;}
+
+  .op{background:var(--ink-950);color:var(--ink-300);font-family:'Geist Mono',monospace;font-size:11px;}
+  .op .in{max-width:1320px;margin:0 auto;padding:6px 32px;min-height:30px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+  .op .pill{display:inline-flex;align-items:center;gap:6px;padding:2px 7px;border:1px solid var(--ink-700);text-transform:uppercase;letter-spacing:.12em;font-size:10px;}
+  .op .pill .d{width:6px;height:6px;background:#fff;border-radius:50%;}
+  .op .sep{color:var(--ink-600);}
+
+  header.mh{background:var(--ink-0);border-bottom:1px solid var(--rule);}
+  .mh .in{max-width:1320px;margin:0 auto;padding:22px 32px;}
+  .brand{display:flex;align-items:center;gap:11px;margin-bottom:14px;}
+  .brand .g{width:22px;height:22px;background:var(--ink-900);color:#fff;display:grid;place-items:center;font-family:'Geist Mono',monospace;font-size:11px;font-weight:600;}
+  .brand .nm{font-weight:600;letter-spacing:-.01em;font-size:15px;}
+  .brand .nm .sl{color:var(--ink-400);font-weight:400;}
+  .brand .nm .sub{color:var(--ink-500);font-weight:400;}
+  .eyebrow{font-family:'Geist Mono',monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:.18em;color:var(--ink-500);display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+  .eyebrow .r{display:inline-block;width:22px;height:1px;background:var(--ink-300);}
+  h1{font-size:26px;line-height:1.12;letter-spacing:-.025em;font-weight:600;margin:0;max-width:760px;}
+  h1 .muted{color:var(--ink-500);}
+  .meta-h{display:flex;gap:18px;margin-top:12px;flex-wrap:wrap;font-family:'Geist Mono',monospace;font-size:10.5px;color:var(--ink-500);text-transform:uppercase;letter-spacing:.14em;}
+  .meta-h span strong{color:var(--ink-900);font-weight:500;}
+
+  /* 10s verdict */
+  .verdict{margin-top:14px;border:1px solid var(--ink-900);padding:13px 16px;display:flex;gap:14px;align-items:flex-start;}
+  .verdict .l{font-family:'Geist Mono',monospace;font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-900);white-space:nowrap;border-right:1px solid var(--ink-300);padding-right:14px;align-self:stretch;display:flex;align-items:center;}
+  .verdict .r{font-size:13.5px;color:var(--ink-900);}
+  .verdict .r strong{font-weight:500;}
+
+  main{max-width:1320px;margin:0 auto;padding:22px 32px 56px;}
+  .sec{margin-top:30px;}
+  .sec:first-child{margin-top:0;}
+  .sh{display:flex;align-items:baseline;gap:14px;border-bottom:1px solid var(--ink-900);padding-bottom:8px;margin-bottom:14px;}
+  .sh .n{font-family:'Geist Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-300);font-weight:600;}
+  .sh h2{font-size:17px;margin:0;font-weight:600;letter-spacing:-.015em;color:var(--ink-900);}
+  .sh .ey{font-family:'Geist Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-500);}
+
+  /* === LANE ROW ANATOMY === */
+  .anatomy{position:relative;background:var(--ink-0);border:1px solid var(--ink-300);padding:60px 40px 110px;}
+  .lane{display:grid;grid-template-columns:1.4fr 1fr auto auto auto auto auto;gap:14px;align-items:center;padding:14px 18px;background:var(--ink-0);border:1px solid var(--ink-900);position:relative;}
+  .lane .nm{font-size:14.5px;font-weight:600;color:var(--ink-900);letter-spacing:-.01em;}
+  .lane .nm .who{display:block;font-family:'Geist Mono',monospace;font-weight:400;font-size:10.5px;color:var(--ink-500);text-transform:uppercase;letter-spacing:.12em;margin-top:3px;}
+  .lane .src{font-family:'Geist Mono',monospace;font-size:11.5px;color:var(--ink-700);}
+  .lane .src .ttl{display:block;font-size:9.5px;color:var(--ink-500);text-transform:uppercase;letter-spacing:.14em;margin-bottom:2px;font-weight:500;}
+
+  /* shared chip styles */
+  .chip{display:inline-flex;align-items:center;gap:6px;padding:4px 8px;border:1px solid var(--ink-900);font-family:'Geist Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-900);background:var(--ink-0);font-weight:500;white-space:nowrap;}
+  .chip .d{width:5px;height:5px;background:var(--ink-900);border-radius:50%;}
+  .chip.solid{background:var(--ink-900);color:#fff;border-color:var(--ink-900);}
+  .chip.solid .d{background:#fff;}
+  .chip.muted{border:1px solid var(--ink-300);color:var(--ink-700);}
+  .chip.muted .d{background:var(--ink-400);}
+  .chip.dashed{border-style:dashed;color:var(--ink-700);}
+  .chip.dashed .d{background:transparent;border:1px solid var(--ink-700);}
+
+  .tier{display:inline-flex;align-items:center;border:1px solid var(--ink-900);font-family:'Geist Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.1em;font-weight:500;}
+  .tier .t{padding:4px 7px;background:var(--ink-900);color:#fff;}
+  .tier .l{padding:4px 7px;color:var(--ink-900);}
+
+  /* annotation callouts (anatomy) */
+  .ann{position:absolute;font-family:'Geist Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.14em;color:var(--ink-500);}
+  .ann .lbl{color:var(--ink-900);font-weight:500;display:block;margin-bottom:2px;letter-spacing:.12em;}
+  .ann .ex{display:block;font-family:'Geist',sans-serif;font-size:11.5px;color:var(--ink-700);text-transform:none;letter-spacing:0;margin-top:4px;line-height:1.45;max-width:230px;}
+  .ann::before{content:"";position:absolute;background:var(--ink-900);}
+  .ann.top::before{top:100%;left:0;width:1px;height:18px;}
+  .ann.bot::before{bottom:100%;left:0;width:1px;height:18px;}
+  .ann.top1{left:50px;top:6px;}
+  .ann.top2{left:255px;top:6px;}
+  .ann.bot1{left:50px;bottom:6px;}
+  .ann.bot2{left:280px;bottom:6px;}
+  .ann.bot3{left:510px;bottom:6px;}
+  .ann.bot4{left:720px;bottom:6px;}
+  .ann.bot5{left:920px;bottom:6px;}
+  .ann.bot6{right:40px;bottom:6px;max-width:240px;}
+  .ann.bot6::before{left:auto;right:0;}
+
+  /* === LANE TABLE === */
+  .lanes{border:1px solid var(--ink-300);background:var(--ink-0);}
+  .lanes .hd{display:grid;grid-template-columns:1.5fr 1fr 1fr auto auto auto auto auto;gap:12px;padding:9px 18px;background:var(--ink-50);border-bottom:1px solid var(--ink-300);font-family:'Geist Mono',monospace;font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-500);align-items:center;}
+  .lanes .row{display:grid;grid-template-columns:1.5fr 1fr 1fr auto auto auto auto auto;gap:12px;padding:14px 18px;border-bottom:1px solid var(--rule);align-items:center;}
+  .lanes .row:last-child{border-bottom:0;}
+  .lanes .row .nm{font-size:13.5px;font-weight:500;color:var(--ink-900);}
+  .lanes .row .nm .sub{display:block;font-family:'Geist Mono',monospace;font-size:10px;color:var(--ink-500);font-weight:400;text-transform:uppercase;letter-spacing:.12em;margin-top:2px;}
+  .lanes .row .src{font-family:'Geist Mono',monospace;font-size:11.5px;color:var(--ink-700);}
+  .lanes .row .src .sub{display:block;font-size:9.5px;color:var(--ink-500);text-transform:uppercase;letter-spacing:.12em;margin-top:2px;}
+  .lanes .row .ts{font-family:'Geist Mono',monospace;font-size:11.5px;color:var(--ink-900);}
+  .lanes .row .ts .sub{display:block;font-size:9.5px;color:var(--ink-500);text-transform:uppercase;letter-spacing:.12em;margin-top:2px;}
+  .lanes .row.deg{background:var(--ink-50);}
+
+  /* === RECEIPT DRAWER (signed receipt) === */
+  .drawer{margin-top:18px;background:var(--ink-950);color:var(--ink-100);border:1px solid var(--ink-800);}
+  .drawer .dh{padding:11px 18px;border-bottom:1px solid var(--ink-800);display:flex;justify-content:space-between;align-items:center;font-family:'Geist Mono',monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-400);}
+  .drawer .dh strong{color:#fff;font-weight:500;}
+  .drawer .body{display:grid;grid-template-columns:1.1fr 1fr;}
+  .drawer .col{padding:18px 18px 22px;}
+  .drawer .col + .col{border-left:1px solid var(--ink-800);}
+  .drawer .kv{display:grid;grid-template-columns:120px 1fr;gap:12px;padding:8px 0;border-bottom:1px dashed rgba(255,255,255,.08);align-items:baseline;}
+  .drawer .kv:last-child{border-bottom:0;}
+  .drawer .kv .k{font-family:'Geist Mono',monospace;font-size:9.5px;text-transform:uppercase;letter-spacing:.14em;color:var(--ink-400);}
+  .drawer .kv .v{font-family:'Geist Mono',monospace;font-size:11.5px;color:#fff;}
+  .drawer .kv .v .sub{display:block;font-family:'Geist',sans-serif;font-size:11px;color:var(--ink-400);margin-top:2px;letter-spacing:0;}
+  .drawer .chain{margin-top:10px;}
+  .drawer .chain .ln{display:grid;grid-template-columns:14px 1fr 80px;gap:8px;padding:3px 0;font-family:'Geist Mono',monospace;font-size:10.5px;color:var(--ink-400);align-items:center;}
+  .drawer .chain .ln .dt{width:5px;height:5px;background:#fff;border-radius:50%;margin-left:4px;}
+  .drawer .chain .ln .h{color:#fff;font-weight:500;}
+  .drawer .chain .ln .t{text-align:right;color:var(--ink-500);}
+  .drawer .chip-inv{display:inline-flex;align-items:center;gap:6px;padding:4px 8px;border:1px solid #fff;font-family:'Geist Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#fff;font-weight:500;}
+  .drawer .chip-inv .d{width:5px;height:5px;background:#fff;border-radius:50%;}
+
+  /* === STATES MATRIX === */
+  .states{display:grid;grid-template-columns:repeat(3,1fr);gap:0;border:1px solid var(--ink-300);background:var(--ink-0);}
+  .states .c{padding:14px 16px;border-right:1px solid var(--rule);border-bottom:1px solid var(--rule);}
+  .states .c:nth-child(3n){border-right:0;}
+  .states .c:nth-last-child(-n+3){border-bottom:0;}
+  .states .c .hd{font-family:'Geist Mono',monospace;font-size:9.5px;text-transform:uppercase;letter-spacing:.14em;color:var(--ink-500);margin-bottom:8px;}
+  .states .c .chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;}
+  .states .c .desc{font-size:12px;color:var(--ink-700);line-height:1.5;}
+  .states .c .desc strong{color:var(--ink-900);font-weight:500;}
+
+  /* tier ladder */
+  .ladder{display:grid;grid-template-columns:repeat(4,1fr);gap:0;border:1px solid var(--ink-300);background:var(--ink-0);}
+  .ladder .r{padding:14px 16px;border-right:1px solid var(--rule);}
+  .ladder .r:last-child{border-right:0;}
+  .ladder .tag{display:flex;align-items:center;gap:8px;margin-bottom:7px;}
+  .ladder .tag .num{font-family:'Geist Mono',monospace;font-size:10px;background:var(--ink-900);color:#fff;padding:3px 6px;letter-spacing:.12em;font-weight:500;}
+  .ladder .tag .lbl{font-family:'Geist Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.14em;color:var(--ink-900);font-weight:500;}
+  .ladder .nm{font-size:13px;color:var(--ink-900);font-weight:500;margin-bottom:3px;}
+  .ladder .desc{font-size:11.5px;color:var(--ink-600);line-height:1.45;}
+
+  footer.foot-page{max-width:1320px;margin:24px auto 0;padding:20px 32px;font-family:'Geist Mono',monospace;font-size:10.5px;color:var(--ink-500);display:flex;justify-content:space-between;border-top:1px solid var(--rule);background:var(--ink-0);}
+
+  @media(max-width:1100px){
+    .lane{grid-template-columns:1.4fr 1fr;}
+    .lane .chip,.lane .tier{grid-column:auto;}
+    .ann{display:none;}
+    .anatomy{padding:24px;}
+    .lanes .hd,.lanes .row{grid-template-columns:1.5fr 1fr 1fr;}
+    .lanes .hd > :nth-child(n+4),.lanes .row > :nth-child(n+4){display:none;}
+    .states{grid-template-columns:1fr;}
+    .states .c{border-right:0;}
+    .drawer .body{grid-template-columns:1fr;}
+    .drawer .col + .col{border-left:0;border-top:1px solid var(--ink-800);}
+    .ladder{grid-template-columns:1fr 1fr;}
+  }
+</style>
+</head>
+<body>
+
+<div class="op">
+  <div class="in">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <span style="letter-spacing:.16em;text-transform:uppercase;color:#fff;font-weight:500;">Lineage Primitives</span>
+      <span class="sep">/</span>
+      <span>Human-readable provenance · one row at a time</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:14px;">
+      <span class="pill"><span class="d"></span>Live · run_id rotates per refresh</span>
+      <span class="sep">|</span>
+      <span>vc.2026.05.11-a · 14:32:08Z</span>
+    </div>
+  </div>
+</div>
+
+<header class="mh">
+  <div class="in">
+    <div class="brand">
+      <span class="g">V</span>
+      <span class="nm">VitalCV<span class="sl">/</span><span class="sub">trust</span></span>
+    </div>
+    <div class="eyebrow"><span class="r"></span>Verifier view · one row · six primitives · zero implicit claims</div>
+    <h1>Every claim carries six things you can name. <span class="muted">If a primitive isn&rsquo;t present, the row doesn&rsquo;t assert it.</span></h1>
+    <div class="meta-h">
+      <span>Audience · <strong>credentialing director</strong></span>
+      <span>Read time · <strong>≈ 10 s per row</strong></span>
+      <span>Standards · <strong>VC 2.0 · Status List 2021 · RFC 3161</strong></span>
+    </div>
+
+    <div class="verdict">
+      <div class="l">Read in 10s</div>
+      <div class="r">A lane row is trustworthy only if you can say all six aloud: <strong>checked_at</strong> (when the source was consulted) · <strong>run_id</strong> (which verification run produced it) · <strong>ownership</strong> (who claims it) · <strong>replay</strong> (whether the receipt is chained &amp; anchored) · <strong>tier</strong> (T1–T4 strength of the source) · <strong>signed</strong> (whether the receipt itself carries an issuer signature). Anything missing reads as a gap, not as silence.</div>
+    </div>
+  </div>
+</header>
+
+<main>
+
+  <!-- 01 Anatomy -->
+  <div class="sec">
+    <div class="sh">
+      <span class="n">01</span>
+      <h2>Anatomy of one row</h2>
+      <span class="ey">six primitives · labeled</span>
+    </div>
+
+    <div class="anatomy">
+      <div class="lane">
+        <div class="nm">CA medical license<span class="who">subj · npi 1356428912 · dr. mira chen, md</span></div>
+        <div class="src"><span class="ttl">Source · checked</span>CA-PA · ca medical board<br/>14:31:58Z · 10 s ago</div>
+        <span class="chip solid"><span class="d"></span>Owned · subject</span>
+        <span class="chip"><span class="d"></span>Replay · anchored</span>
+        <span class="tier"><span class="t">T3</span><span class="l">Authoritative</span></span>
+        <span class="chip"><span class="d"></span>Signed · ed25519</span>
+        <span class="chip muted"><span class="d"></span>run · 7a2c…b8d3</span>
+      </div>
+
+      <span class="ann top top1">
+        <span class="lbl">1 · checked_at</span>
+        <span class="ex">UTC timestamp + age. When the source was actually re-consulted — not when the page loaded.</span>
+      </span>
+      <span class="ann top top2">
+        <span class="lbl">2 · source</span>
+        <span class="ex">Named registry. Tier-bearing. Same name as in trust.json.</span>
+      </span>
+
+      <span class="ann bot bot1">
+        <span class="lbl">3 · ownership</span>
+        <span class="ex">Who claims it. <code>subject</code>, <code>holder</code>, or <code>delegate</code>. <code>subject</code> is strongest.</span>
+      </span>
+      <span class="ann bot bot2">
+        <span class="lbl">4 · replay</span>
+        <span class="ex">Is the receipt for this row chain-linked and RFC 3161 anchored? <code>anchored</code> means re-verifiable months later.</span>
+      </span>
+      <span class="ann bot bot3">
+        <span class="lbl">5 · tier</span>
+        <span class="ex">T1 self-attest · T2 third-party · T3 authoritative · T4 issuer-signed. Source determines tier, not us.</span>
+      </span>
+      <span class="ann bot bot4">
+        <span class="lbl">6 · signed receipt</span>
+        <span class="ex">Issuer signature over receipt body. Verifiable offline against did:web:vitalcv.health.</span>
+      </span>
+      <span class="ann bot bot5">
+        <span class="lbl">+ run_id</span>
+        <span class="ex">Verification-run fingerprint. Same row, same run_id = same evidence. Different run_id = re-fetch.</span>
+      </span>
+    </div>
+
+    <div style="margin-top:12px;font-family:'Geist Mono',monospace;font-size:10.5px;color:var(--ink-500);text-transform:uppercase;letter-spacing:.14em;display:flex;gap:18px;flex-wrap:wrap;">
+      <span>Missing primitive · <strong style="color:var(--ink-900);font-weight:500;">claim is not asserted</strong></span>
+      <span>Dashed chip · <strong style="color:var(--ink-900);font-weight:500;">degraded or stale</strong></span>
+      <span>Solid chip · <strong style="color:var(--ink-900);font-weight:500;">strongest form available</strong></span>
+    </div>
+  </div>
+
+  <!-- 02 Lanes -->
+  <div class="sec">
+    <div class="sh">
+      <span class="n">02</span>
+      <h2>Five lanes · varying provenance state</h2>
+      <span class="ey">same six primitives · different combinations</span>
+    </div>
+
+    <div class="lanes">
+      <div class="hd">
+        <div>Claim · subject</div>
+        <div>Source · checked_at</div>
+        <div>Run · checked_at</div>
+        <div>Ownership</div>
+        <div>Replay</div>
+        <div>Tier</div>
+        <div>Receipt</div>
+        <div>Run id</div>
+      </div>
+
+      <!-- Row A — strongest -->
+      <div class="row">
+        <div class="nm">CA medical license<span class="sub">npi · 1356428912</span></div>
+        <div class="src">CA Medical Board<span class="sub">live · ca-pa registry</span></div>
+        <div class="ts">14:31:58Z<span class="sub">10 s ago</span></div>
+        <span class="chip solid"><span class="d"></span>Subject</span>
+        <span class="chip"><span class="d"></span>Anchored</span>
+        <span class="tier"><span class="t">T3</span><span class="l">Authoritative</span></span>
+        <span class="chip"><span class="d"></span>Signed</span>
+        <span class="chip muted"><span class="d"></span>7a2c…b8d3</span>
+      </div>
+
+      <!-- Row B — federal -->
+      <div class="row">
+        <div class="nm">DEA registration<span class="sub">BC4821739 · schedule II–V</span></div>
+        <div class="src">DEA CSOS<span class="sub">live · federal registry</span></div>
+        <div class="ts">14:31:42Z<span class="sub">26 s ago</span></div>
+        <span class="chip solid"><span class="d"></span>Subject</span>
+        <span class="chip"><span class="d"></span>Anchored</span>
+        <span class="tier"><span class="t">T4</span><span class="l">Issuer-signed</span></span>
+        <span class="chip"><span class="d"></span>Signed</span>
+        <span class="chip muted"><span class="d"></span>7a2c…b8d3</span>
+      </div>
+
+      <!-- Row C — delegate (board cert via specialty board, attested by employer) -->
+      <div class="row">
+        <div class="nm">Board cert · internal medicine<span class="sub">abim · cert 219874</span></div>
+        <div class="src">ABIM directory<span class="sub">third-party · public lookup</span></div>
+        <div class="ts">14:30:11Z<span class="sub">1 m 57 s ago</span></div>
+        <span class="chip"><span class="d"></span>Delegate</span>
+        <span class="chip"><span class="d"></span>Anchored</span>
+        <span class="tier"><span class="t">T2</span><span class="l">Third-party</span></span>
+        <span class="chip"><span class="d"></span>Signed</span>
+        <span class="chip muted"><span class="d"></span>7a2c…b8d3</span>
+      </div>
+
+      <!-- Row D — holder-attested, no signed receipt -->
+      <div class="row">
+        <div class="nm">Continuing education · 32 hrs<span class="sub">cycle 2024–2026 · holder-uploaded</span></div>
+        <div class="src">holder attestation<span class="sub">no third-party source</span></div>
+        <div class="ts">14:18:43Z<span class="sub">13 m 25 s ago · upload time</span></div>
+        <span class="chip dashed"><span class="d"></span>Holder · self</span>
+        <span class="chip dashed"><span class="d"></span>Logged · not anchored</span>
+        <span class="tier"><span class="t">T1</span><span class="l">Self-attest</span></span>
+        <span class="chip dashed"><span class="d"></span>Unsigned</span>
+        <span class="chip muted"><span class="d"></span>7a2c…b8d3</span>
+      </div>
+
+      <!-- Row E — degraded source (PECOS), stale checked_at -->
+      <div class="row deg">
+        <div class="nm">PECOS enrollment<span class="sub">cms · medicare ordering / referring</span></div>
+        <div class="src">PECOS<span class="sub">degraded · upstream p95 5.8 s</span></div>
+        <div class="ts">14:29:14Z<span class="sub">2 m 54 s ago · stale</span></div>
+        <span class="chip solid"><span class="d"></span>Subject</span>
+        <span class="chip dashed"><span class="d"></span>Pending anchor</span>
+        <span class="tier"><span class="t">T3</span><span class="l">Authoritative</span></span>
+        <span class="chip"><span class="d"></span>Signed</span>
+        <span class="chip muted"><span class="d"></span>7a2c…b8d3</span>
+      </div>
+    </div>
+
+    <div style="margin-top:10px;font-family:'Geist Mono',monospace;font-size:10.5px;color:var(--ink-500);text-transform:uppercase;letter-spacing:.14em;">
+      <span style="color:var(--ink-900);font-weight:500;">All five rows share one run_id</span> · 7a2c…b8d3 — they were produced by the same verification run · refresh rotates it
+    </div>
+  </div>
+
+  <!-- 03 Signed receipt drawer -->
+  <div class="sec">
+    <div class="sh">
+      <span class="n">03</span>
+      <h2>Drawer · the signed receipt behind one row</h2>
+      <span class="ey">cryptographic register · dark by reservation</span>
+    </div>
+
+    <div class="drawer">
+      <div class="dh">
+        <span><strong>Row · CA medical license</strong> · receipt #48,214 · checked_at 14:31:58Z</span>
+        <span class="chip-inv"><span class="d"></span>Signed · ed25519</span>
+      </div>
+      <div class="body">
+        <div class="col">
+          <div class="kv"><span class="k">subject</span><span class="v">did:vc:holder:8c91…0d44<span class="sub">npi · 1356428912</span></span></div>
+          <div class="kv"><span class="k">claim</span><span class="v">licensed.physician.california.active<span class="sub">CA Medical Board · A-148293</span></span></div>
+          <div class="kv"><span class="k">checked_at</span><span class="v">2026-05-11T14:31:58Z<span class="sub">UTC · age at render 10 s</span></span></div>
+          <div class="kv"><span class="k">run_id</span><span class="v">7a2c…b8d3<span class="sub">verification run · 18 rows in this batch</span></span></div>
+          <div class="kv"><span class="k">ownership</span><span class="v">subject<span class="sub">claim is held by the same identity it describes</span></span></div>
+          <div class="kv"><span class="k">tier</span><span class="v">T3 · authoritative<span class="sub">source is the licensing authority</span></span></div>
+        </div>
+        <div class="col">
+          <div class="kv"><span class="k">replay</span><span class="v">anchored<span class="sub">RFC 3161 · tsa.digicert.com · ts 14:31:47Z · serial 91c5…7e08</span></span></div>
+          <div class="kv"><span class="k">prev_hash</span><span class="v">9d11…3e4a<span class="sub">receipt #48,213 · 7 s earlier</span></span></div>
+          <div class="kv"><span class="k">hash</span><span class="v">7a2c…b8d3<span class="sub">this receipt · committed to chain head</span></span></div>
+          <div class="kv"><span class="k">signed_by</span><span class="v">did:web:vitalcv.health<span class="sub">key 4f2a · 91c5 · 7e08 · b8d3 · ed25519</span></span></div>
+          <div class="kv"><span class="k">verifiable</span><span class="v">offline<span class="sub">issuer DID document is all you need · VitalCV is not in the trust path</span></span></div>
+          <div class="chain">
+            <div class="ln"><span class="dt"></span><span><span class="h">7a2c…b8d3</span> · rcpt #48,214 · this row</span><span class="t">14:31:58</span></div>
+            <div class="ln"><span class="dt"></span><span><span class="h">9d11…3e4a</span> · rcpt #48,213 · ABIM cert</span><span class="t">14:30:11</span></div>
+            <div class="ln"><span class="dt"></span><span><span class="h">4b00…f1c2</span> · rcpt #48,212 · DEA</span><span class="t">14:31:42</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 04 T1-T4 ladder -->
+  <div class="sec">
+    <div class="sh">
+      <span class="n">04</span>
+      <h2>Trust tier ladder</h2>
+      <span class="ey">tier is a property of the source, not of us</span>
+    </div>
+    <div class="ladder">
+      <div class="r">
+        <div class="tag"><span class="num">T1</span><span class="lbl">Self-attest</span></div>
+        <div class="nm">Holder asserts</div>
+        <div class="desc">Holder claims, no third-party source. Useful as context. Never sufficient for privileging alone.</div>
+      </div>
+      <div class="r">
+        <div class="tag"><span class="num">T2</span><span class="lbl">Third-party</span></div>
+        <div class="nm">Directory or specialty board</div>
+        <div class="desc">Non-authoritative lookup confirms the claim. Probative, not definitive. Pair with T3 when possible.</div>
+      </div>
+      <div class="r">
+        <div class="tag"><span class="num">T3</span><span class="lbl">Authoritative</span></div>
+        <div class="nm">Licensing or regulatory body</div>
+        <div class="desc">The body of record confirms the claim live. Sufficient for most credentialing decisions.</div>
+      </div>
+      <div class="r">
+        <div class="tag"><span class="num">T4</span><span class="lbl">Issuer-signed</span></div>
+        <div class="nm">Source issues a signed VC</div>
+        <div class="desc">Source itself signs over the claim. Verifiable offline against the source&rsquo;s own DID. Strongest form.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 05 States matrix -->
+  <div class="sec">
+    <div class="sh">
+      <span class="n">05</span>
+      <h2>States that look similar · meanings that differ</h2>
+      <span class="ey">disambiguation</span>
+    </div>
+    <div class="states">
+
+      <div class="c">
+        <div class="hd">Ownership · subject vs holder vs delegate</div>
+        <div class="chips">
+          <span class="chip solid"><span class="d"></span>Subject</span>
+          <span class="chip"><span class="d"></span>Holder</span>
+          <span class="chip"><span class="d"></span>Delegate</span>
+        </div>
+        <div class="desc"><strong>Subject</strong> — same identity holds and is described. <strong>Holder</strong> — someone holds a credential about themselves but cannot prove subject-binding (rare, transitional). <strong>Delegate</strong> — an authorized third party (employer, registrar) supplies the claim on the subject&rsquo;s behalf.</div>
+      </div>
+
+      <div class="c">
+        <div class="hd">Replay · logged vs anchored vs pending</div>
+        <div class="chips">
+          <span class="chip"><span class="d"></span>Anchored</span>
+          <span class="chip muted"><span class="d"></span>Logged</span>
+          <span class="chip dashed"><span class="d"></span>Pending anchor</span>
+        </div>
+        <div class="desc"><strong>Anchored</strong> — receipt chained &amp; RFC 3161 timestamped, replayable months later. <strong>Logged</strong> — chained in the receipt ledger but no external anchor yet. <strong>Pending anchor</strong> — backlog or upstream TSA degraded; will anchor at next window.</div>
+      </div>
+
+      <div class="c">
+        <div class="hd">Signed · signed vs unsigned vs revoked</div>
+        <div class="chips">
+          <span class="chip"><span class="d"></span>Signed</span>
+          <span class="chip dashed"><span class="d"></span>Unsigned</span>
+          <span class="chip muted"><span class="d"></span>Revoked</span>
+        </div>
+        <div class="desc"><strong>Signed</strong> — issuer signature present, verifiable against did:web. <strong>Unsigned</strong> — row carries no issuer signature (holder self-attest, or surface-only). <strong>Revoked</strong> — signature was valid; Status List 2021 entry now flips the bit. The signature didn&rsquo;t break — the world changed.</div>
+      </div>
+
+      <div class="c">
+        <div class="hd">checked_at vs issued_at vs valid_from</div>
+        <div class="chips">
+          <span class="chip muted"><span class="d"></span>checked_at</span>
+          <span class="chip muted"><span class="d"></span>issued_at</span>
+          <span class="chip muted"><span class="d"></span>valid_from</span>
+        </div>
+        <div class="desc"><strong>checked_at</strong> — when this run consulted the source. The freshness signal. <strong>issued_at</strong> — when the original credential was issued. <strong>valid_from</strong> — when the underlying right took effect. A row may be freshly checked yet describe a privilege that began years ago.</div>
+      </div>
+
+      <div class="c">
+        <div class="hd">run_id stability · same run vs new run</div>
+        <div class="chips">
+          <span class="chip muted"><span class="d"></span>run · 7a2c…b8d3</span>
+          <span class="chip muted"><span class="d"></span>run · 9d11…3e4a</span>
+        </div>
+        <div class="desc"><strong>Same run_id</strong> across rows — they were evaluated together, with consistent source state. <strong>Different run_id</strong> — the row was re-fetched separately; do not compare timestamps without comparing runs. Refresh rotates the run_id even if nothing changed.</div>
+      </div>
+
+      <div class="c">
+        <div class="hd">Tier strength vs lane verdict</div>
+        <div class="chips">
+          <span class="tier"><span class="t">T3</span><span class="l">Authoritative</span></span>
+          <span class="chip"><span class="d"></span>Verified</span>
+        </div>
+        <div class="desc"><strong>Tier</strong> is the strength of the source — fixed for that registry. <strong>Verdict</strong> is the state of this particular check — verified, expired, revoked, unknown. A T3 source can return an unknown verdict; a T1 source can return a verified one. Never collapse the two.</div>
+      </div>
+
+    </div>
+  </div>
+
+</main>
+
+<footer class="foot-page">
+  <div>VitalCV · Lineage Primitives · <span style="color:var(--ink-700);">one row · six primitives · nothing implied</span></div>
+  <div style="text-align:right;">
+    <div>Build <span style="color:var(--ink-700);">vc.2026.05.11-a</span> · run <span style="color:var(--ink-700);">7a2c…b8d3</span></div>
+    <div style="color:var(--ink-400);margin-top:2px;">checked_at · run_id · ownership · replay · tier · signed</div>
+  </div>
+</footer>
+
+</body>
+</html>

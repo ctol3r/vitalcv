@@ -1,0 +1,507 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>VitalCV · Replay Chronology Topology</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--ink-0:#fff;--ink-50:#f7f7f5;--ink-100:#eeede9;--ink-200:#dcdbd5;--ink-300:#c0bfb8;--ink-400:#9a998f;--ink-500:#6e6d66;--ink-600:#4d4c47;--ink-700:#33322e;--ink-800:#1f1e1c;--ink-900:#121110;--ink-950:#000;--rule:#dcdbd5;--paper:#f4f1ea}
+*{box-sizing:border-box}html,body{margin:0;padding:0}
+body{font-family:"Geist",ui-sans-serif,system-ui,sans-serif;font-feature-settings:"ss01","cv11";-webkit-font-smoothing:antialiased;background:var(--ink-50);color:var(--ink-900);font-size:13px;line-height:1.45}
+.mono,code{font-family:"Geist Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums}
+
+.tdoc{background:var(--ink-0);border-top:2px solid var(--ink-950);border-bottom:1px solid var(--ink-900)}
+.tdoc .in{max-width:1480px;margin:0 auto;padding:14px 28px;display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr 1fr 1fr;gap:18px;align-items:end}
+.tdoc .cell{border-left:1px solid var(--rule);padding-left:16px}
+.tdoc .cell:first-child{border-left:0;padding-left:0}
+.tdoc .k{font-family:"Geist Mono",monospace;font-size:9.5px;letter-spacing:0.18em;text-transform:uppercase;color:var(--ink-500);margin-bottom:4px;font-weight:500}
+.tdoc .v{font-family:"Geist Mono",monospace;font-size:11.5px;color:var(--ink-900);font-weight:500;letter-spacing:0.04em;line-height:1.25}
+.tdoc .v .sub{display:block;font-family:"Geist",sans-serif;font-size:10.5px;color:var(--ink-500);margin-top:3px;font-weight:400;letter-spacing:0;text-transform:none}
+.tdoc .form{display:flex;flex-direction:column;gap:6px}
+.tdoc .form .g{display:flex;align-items:center;gap:8px}
+.tdoc .form .glyph{width:24px;height:24px;background:var(--ink-950);color:#fff;display:grid;place-items:center;font-family:"Geist Mono",monospace;font-size:9.5px;font-weight:600}
+.tdoc .form .nm{font-family:"Geist Mono",monospace;font-size:11px;letter-spacing:0.10em;text-transform:uppercase;color:var(--ink-950);font-weight:600}
+.tdoc .form .title{font-family:"Geist Mono",monospace;font-size:9.5px;letter-spacing:0.14em;color:var(--ink-500);text-transform:uppercase}
+.stamp{display:inline-flex;flex-direction:column;gap:2px;padding:8px 11px;border:1.5px solid var(--ink-950);font-family:"Geist Mono",monospace;min-width:130px}
+.stamp .lb{font-size:8.5px;letter-spacing:0.22em;text-transform:uppercase;color:var(--ink-500)}
+.stamp .v{font-size:13px;letter-spacing:0.18em;text-transform:uppercase;color:var(--ink-950);font-weight:600}
+.stamp[data-state="signed"]{background:var(--ink-950);border-color:var(--ink-950)}
+.stamp[data-state="signed"] .lb{color:var(--ink-400)}
+.stamp[data-state="signed"] .v{color:#fff}
+
+.mast{background:var(--ink-0);border-bottom:1px solid var(--ink-900);padding:22px 28px;max-width:1480px;margin:0 auto}
+.mast .l1{font-family:"Geist Mono",monospace;font-size:9.5px;letter-spacing:0.18em;text-transform:uppercase;color:var(--ink-500);font-weight:500}
+.mast h1{font-size:22px;margin:6px 0;font-weight:600;letter-spacing:-0.02em;color:var(--ink-900)}
+.mast .l2{font-family:"Geist",sans-serif;font-size:13px;color:var(--ink-600);max-width:1100px;line-height:1.55}
+.mast .l2 strong{color:var(--ink-900);font-weight:500}
+
+.wrap{max-width:1480px;margin:0 auto;padding:18px 28px 36px}
+.sh{display:flex;align-items:baseline;gap:12px;border-bottom:1px solid var(--ink-900);padding-bottom:8px;margin:24px 0 12px}
+.sh .n{font-family:"Geist Mono",monospace;font-size:10.5px;letter-spacing:0.18em;text-transform:uppercase;color:var(--ink-300);font-weight:600}
+.sh h2{font-size:15px;margin:0;font-weight:600;letter-spacing:-0.015em;color:var(--ink-900)}
+.sh .ey{font-family:"Geist Mono",monospace;font-size:10.5px;letter-spacing:0.18em;text-transform:uppercase;color:var(--ink-500);margin-left:auto}
+
+.lh{display:grid;grid-template-columns:1.4fr 0.9fr 1fr 1fr 0.85fr 1fr;background:var(--ink-0);border:1px solid var(--ink-900)}
+.lh .c{padding:12px 16px;border-right:1px solid var(--rule)}
+.lh .c:last-child{border-right:0}
+.lh .k{font-family:"Geist Mono",monospace;font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:var(--ink-500);margin-bottom:4px;font-weight:500}
+.lh .v{font-family:"Geist Mono",monospace;font-size:11.5px;color:var(--ink-900);font-weight:500;letter-spacing:0.04em;line-height:1.25}
+.lh .v .sub{display:block;font-family:"Geist",sans-serif;font-size:10.5px;color:var(--ink-500);margin-top:3px;font-weight:400;letter-spacing:0}
+.own{font-family:"Geist Mono",monospace;font-size:10px;text-transform:uppercase;letter-spacing:0.10em;display:inline-flex;align-items:center;gap:5px;padding:3px 7px;font-weight:500}
+.own[data-s="subject"]{background:var(--ink-900);color:#fff}
+.own[data-s="subject"] .d{width:5px;height:5px;background:#fff;border-radius:50%}
+.chip{display:inline-flex;align-items:center;gap:5px;padding:3px 7px;font-family:"Geist Mono",monospace;font-size:10px;text-transform:uppercase;letter-spacing:0.10em;font-weight:500}
+.chip[data-r="anchored"]{border:1px solid var(--ink-900);color:var(--ink-900)}
+.chip[data-r="anchored"] .d{width:5px;height:5px;background:var(--ink-900);border-radius:50%}
+
+.plane-band{background:var(--ink-50);border:1px solid var(--rule);padding:8px 16px;margin:14px 0;font-family:"Geist Mono",monospace;font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:var(--ink-500);display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap}
+.plane-band strong{color:var(--ink-900);font-weight:600}
+
+.pane{border:1px solid var(--ink-900);background:var(--ink-0);margin-bottom:14px}
+.pane .ph{padding:11px 16px;background:var(--ink-50);border-bottom:1px solid var(--rule);display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap}
+.pane .ph .h{font-family:"Geist Mono",monospace;font-size:10.5px;letter-spacing:0.18em;text-transform:uppercase;color:var(--ink-900);font-weight:600}
+.pane .ph .ix{font-family:"Geist Mono",monospace;font-size:9px;letter-spacing:0.18em;color:var(--ink-400);font-weight:600}
+.pane .pb{padding:14px 16px}
+
+.tbl{width:100%;border-collapse:collapse;font-family:"Geist Mono",monospace;font-size:10.5px;background:var(--ink-0)}
+.tbl th,.tbl td{padding:9px 12px;border-bottom:1px solid var(--rule);border-right:1px solid var(--rule);text-align:left;vertical-align:top}
+.tbl th:last-child,.tbl td:last-child{border-right:0}
+.tbl tr:last-child td{border-bottom:0}
+.tbl th{background:var(--ink-50);font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:var(--ink-500);font-weight:500}
+.tbl td.when{font-family:"Geist Mono",monospace;font-size:10.5px;color:var(--ink-900);font-weight:500;letter-spacing:0.04em}
+.tbl td.when .rel{display:block;font-family:"Geist",sans-serif;font-size:10px;color:var(--ink-500);margin-top:2px;letter-spacing:0;font-weight:400}
+.tbl td .note{display:block;font-family:"Geist",sans-serif;font-size:10px;color:var(--ink-500);margin-top:3px;letter-spacing:0;line-height:1.4;font-weight:400}
+
+.ok-pill{display:inline-block;padding:2px 6px;background:var(--ink-950);color:#fff;font-family:"Geist Mono",monospace;font-size:9px;letter-spacing:0.10em;text-transform:uppercase;font-weight:600}
+.defer-pill{display:inline-block;padding:2px 6px;border:1px dashed var(--ink-400);color:var(--ink-500);font-family:"Geist Mono",monospace;font-size:9px;letter-spacing:0.10em;text-transform:uppercase;font-weight:600}
+
+/* ============ TOPOLOGY · MULTI-SUBJECT TIMELINE ============ */
+.topo{background:var(--ink-0);border:1px solid var(--ink-900);overflow:hidden}
+.topo .hd{padding:11px 16px;background:var(--ink-50);border-bottom:1px solid var(--rule);font-family:"Geist Mono",monospace;font-size:10.5px;letter-spacing:0.18em;text-transform:uppercase;color:var(--ink-900);font-weight:600;display:flex;justify-content:space-between;flex-wrap:wrap;gap:14px}
+.topo .hd .ix{color:var(--ink-400);font-weight:500;font-size:9px}
+.topo .bd{padding:18px 22px}
+.topo svg{display:block;width:100%;height:auto;font-family:"Geist Mono",monospace}
+.topo .legend{display:flex;flex-wrap:wrap;gap:18px;padding:11px 16px;border-top:1px solid var(--rule);background:var(--ink-50);font-family:"Geist Mono",monospace;font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--ink-500)}
+.topo .legend .lk{display:inline-flex;align-items:center;gap:6px}
+.topo .legend .sq{width:10px;height:10px;display:inline-block;background:var(--ink-950);border-radius:50%}
+.topo .legend .sq[data-s="defer"]{background:transparent;border:1px dashed var(--ink-500);border-radius:50%}
+.topo .legend .sq[data-s="head"]{background:#fff;border:1.5px solid var(--ink-950);outline:1px solid var(--ink-950);outline-offset:1px;border-radius:50%}
+.topo .legend .sq[data-s="origin"]{background:var(--ink-950);outline:2px solid var(--ink-950);outline-offset:2px;border-radius:50%}
+.topo .legend .sq[data-s="rotation"]{background:var(--ink-0);border:1.5px solid var(--ink-950);border-radius:0;width:10px;height:10px}
+
+/* ============ FAN CHART ============ */
+.fan{background:var(--ink-0);border:1px solid var(--ink-900)}
+.fan .bd{padding:18px 22px}
+.fan svg{display:block;width:100%;height:auto}
+
+/* Chain mini */
+.chain{background:var(--ink-950);color:#fff;padding:14px 18px;margin-bottom:14px}
+.chain .h{font-family:"Geist Mono",monospace;font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:var(--ink-400);margin-bottom:10px;display:flex;justify-content:space-between;align-items:baseline;gap:14px;flex-wrap:wrap}
+.chain .h strong{color:#fff;font-weight:500}
+.chain .nodes{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.chain .n{display:inline-flex;align-items:center;gap:5px;font-family:"Geist Mono",monospace;font-size:11px;padding:4px 8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.18);letter-spacing:0.04em}
+.chain .n[data-h="true"]{background:#fff;color:var(--ink-950);border-color:#fff;font-weight:600}
+.chain .n[data-g="true"]{background:transparent;border-style:dashed;color:var(--ink-400)}
+.chain .link{color:rgba(255,255,255,0.3);font-family:"Geist Mono",monospace}
+.chain .f{font-family:"Geist Mono",monospace;font-size:9.5px;color:var(--ink-400);margin-top:12px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.10);display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap}
+.chain .f strong{color:#fff;font-weight:500}
+
+.kvrow{display:grid;grid-template-columns:1fr 1.5fr;padding:9px 0;border-bottom:1px solid var(--rule);gap:14px;align-items:center}
+.kvrow:last-child{border-bottom:0}
+.kvrow .k{font-family:"Geist Mono",monospace;font-size:9.5px;letter-spacing:0.14em;text-transform:uppercase;color:var(--ink-500);font-weight:500}
+.kvrow .v{font-family:"Geist Mono",monospace;font-size:11.5px;color:var(--ink-900);font-weight:500;letter-spacing:0.04em;line-height:1.3}
+.kvrow .v .sub{display:block;font-family:"Geist",sans-serif;font-size:10.5px;color:var(--ink-500);margin-top:3px;font-weight:400;letter-spacing:0}
+
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+@media (max-width:1100px){.grid2,.grid3{grid-template-columns:1fr}}
+
+/* Tape */
+.tape{display:flex;align-items:center;gap:3px;flex-wrap:wrap;margin-top:6px}
+.tape .cell{width:11px;height:14px;background:var(--ink-950)}
+.tape .cell[data-s="defer"]{background:transparent;border:1px dashed var(--ink-400)}
+.tape .cell[data-s="head"]{background:#fff;border:1.5px solid var(--ink-950)}
+
+.foot{max-width:1480px;margin:32px auto 0;padding:16px 28px;border-top:2px solid var(--ink-950);border-bottom:1px solid var(--ink-900);background:var(--ink-0);font-family:"Geist Mono",monospace;font-size:10.5px;color:var(--ink-500);display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap}
+.foot strong{color:var(--ink-900);font-weight:500}
+
+text.lbl{font-size:9px;letter-spacing:0.10em;text-transform:uppercase;fill:var(--ink-500)}
+text.lbl-d{font-size:9px;letter-spacing:0.10em;text-transform:uppercase;fill:var(--ink-900);font-weight:600}
+text.num{font-size:9px;letter-spacing:0.04em;fill:var(--ink-500)}
+text.head-lbl{font-size:9px;letter-spacing:0.10em;text-transform:uppercase;fill:var(--ink-950);font-weight:600}
+</style>
+</head>
+<body>
+
+<div class="tdoc">
+  <div class="in">
+    <div class="cell form">
+      <div class="g"><span class="glyph">V</span><span class="nm">VitalCV · Replay</span></div>
+      <div class="title">Chronology topology · continuity chain visualization</div>
+    </div>
+    <div class="cell"><div class="k">Form</div><div class="v">VCV-CHR-001<span class="sub">chronology topology · canon</span></div></div>
+    <div class="cell"><div class="k">Revision</div><div class="v">r.1.0<span class="sub">2026-05-12 effective</span></div></div>
+    <div class="cell"><div class="k">Scope</div><div class="v">4 subjects · 47 receipts<span class="sub">90-day window · single ledger</span></div></div>
+    <div class="cell"><div class="k">Controller</div><div class="v">did:web:vitalcv.health<span class="sub">σ chain · TSA anchored</span></div></div>
+    <div class="cell" style="border-left:0;"><div class="stamp" data-state="signed"><span class="lb">artifact state</span><span class="v">signed</span></div></div>
+  </div>
+</div>
+
+<div class="mast">
+  <div class="l1">Chronology topology · canon</div>
+  <h1>Every receipt is a node. Every chain reconciles to one TSA anchor.</h1>
+  <div class="l2">A chronology is not a list — it is a topology. Per-subject σ-chains are visibly distinct and never cross, every receipt is positioned by <strong>checked_at</strong>, every σ defer (mode A) is visibly notched into the line, every recovery anchor is named, every issuer rotation co-signs across both subject chains it crosses, and every chain head reconciles to the same independent RFC 3161 TSA anchor. A verifier sees the entire 90-day history without ambiguity about who signed what and when.</div>
+</div>
+
+<div class="wrap">
+
+<!-- ============ LINEAGE ============ -->
+<div class="sh"><span class="n">L ·</span><h2>This chronology document · canonical lineage</h2><span class="ey">chronology is itself a signed artifact</span></div>
+
+<div class="lh">
+  <div class="c"><div class="k">Object</div><div class="v">Chronology topology<span class="sub">4 subjects · 47 receipts · 90 d</span></div></div>
+  <div class="c"><div class="k">Ownership</div><div class="v" style="padding-top:2px;"><span class="own" data-s="subject"><span class="d"></span>VitalCV ledger</span></div></div>
+  <div class="c"><div class="k">checked_at</div><div class="v">2026-05-12T14:31:58Z<span class="sub">12 s ago</span></div></div>
+  <div class="c"><div class="k">Channel</div><div class="v">replay<span class="sub">multi-subject · operator + verifier</span></div></div>
+  <div class="c"><div class="k">Replay</div><div class="v" style="padding-top:2px;"><span class="chip" data-r="anchored"><span class="d"></span>anchored</span></div></div>
+  <div class="c"><div class="k">run_id</div><div class="v">chr.9d2e…7b41<span class="sub">topology digest · head</span></div></div>
+</div>
+
+<!-- ============ TOPOLOGY · MAIN ============ -->
+<div class="sh"><span class="n">01 ·</span><h2>Chronology topology · 4 subjects · 90 d</h2><span class="ey">x = time · y = subject lane · ● = σ ok · ○ = σ defer · ◇ = key rotation</span></div>
+
+<div class="plane-band"><span><strong>TOPOLOGY</strong> · 47 receipts · 45 σ ok · 2 σ defer (both recovered) · 0 forks</span><span>1 issuer rotation co-signed across all 4 chains · 41 d ago</span></div>
+
+<div class="topo">
+  <div class="hd"><span>Subject chronology · NPI 1356428912 · 8830014772 · 2401005583 · 6614927140</span><span class="ix">14:31:58Z · 12 s ago</span></div>
+  <div class="bd">
+    <svg viewBox="0 0 1400 460" preserveAspectRatio="xMidYMid meet">
+      <!-- Y axis lanes -->
+      <line x1="200" y1="40" x2="200" y2="380" stroke="#dcdbd5" stroke-width="1"/>
+      <line x1="1340" y1="40" x2="1340" y2="380" stroke="#dcdbd5" stroke-width="1"/>
+
+      <!-- Subject lane labels and rules -->
+      <g>
+        <text x="20" y="90" class="lbl-d">Subject A</text>
+        <text x="20" y="103" class="num">NPI 1356428912</text>
+        <text x="20" y="115" class="num">Mira Chen, MD</text>
+        <line x1="200" y1="100" x2="1340" y2="100" stroke="#eeede9" stroke-width="1"/>
+
+        <text x="20" y="170" class="lbl-d">Subject B</text>
+        <text x="20" y="183" class="num">NPI 8830014772</text>
+        <text x="20" y="195" class="num">D. Okafor, RN</text>
+        <line x1="200" y1="180" x2="1340" y2="180" stroke="#eeede9" stroke-width="1"/>
+
+        <text x="20" y="250" class="lbl-d">Subject C</text>
+        <text x="20" y="263" class="num">NPI 2401005583</text>
+        <text x="20" y="275" class="num">J. Park, MD</text>
+        <line x1="200" y1="260" x2="1340" y2="260" stroke="#eeede9" stroke-width="1"/>
+
+        <text x="20" y="330" class="lbl-d">Subject D</text>
+        <text x="20" y="343" class="num">NPI 6614927140</text>
+        <text x="20" y="355" class="num">K. Liu, NP</text>
+        <line x1="200" y1="340" x2="1340" y2="340" stroke="#eeede9" stroke-width="1"/>
+      </g>
+
+      <!-- X axis · time scale (90 d window) -->
+      <line x1="200" y1="400" x2="1340" y2="400" stroke="#1f1e1c" stroke-width="1"/>
+      <g font-family="Geist Mono">
+        <line x1="200" y1="395" x2="200" y2="405" stroke="#1f1e1c"/>
+        <text x="200" y="420" class="num" text-anchor="middle">d-90</text>
+        <text x="200" y="434" class="num" text-anchor="middle">2026-02-12</text>
+
+        <line x1="390" y1="395" x2="390" y2="405" stroke="#1f1e1c"/>
+        <text x="390" y="420" class="num" text-anchor="middle">d-75</text>
+
+        <line x1="580" y1="395" x2="580" y2="405" stroke="#1f1e1c"/>
+        <text x="580" y="420" class="num" text-anchor="middle">d-60</text>
+
+        <line x1="770" y1="395" x2="770" y2="405" stroke="#1f1e1c"/>
+        <text x="770" y="420" class="num" text-anchor="middle">d-45</text>
+
+        <line x1="960" y1="395" x2="960" y2="405" stroke="#1f1e1c"/>
+        <text x="960" y="420" class="num" text-anchor="middle">d-30</text>
+
+        <line x1="1150" y1="395" x2="1150" y2="405" stroke="#1f1e1c"/>
+        <text x="1150" y="420" class="num" text-anchor="middle">d-15</text>
+
+        <line x1="1340" y1="395" x2="1340" y2="405" stroke="#1f1e1c"/>
+        <text x="1340" y="420" class="num" text-anchor="middle">now</text>
+        <text x="1340" y="434" class="num" text-anchor="middle">14:31:58Z</text>
+      </g>
+
+      <!-- Rotation marker · 41 d ago = 1340 - (41/90)*1140 = 1340 - 519 = 821 -->
+      <g>
+        <line x1="821" y1="40" x2="821" y2="395" stroke="#1f1e1c" stroke-width="1" stroke-dasharray="2 3"/>
+        <rect x="816" y="33" width="10" height="10" fill="#fff" stroke="#000" stroke-width="1.5"/>
+        <text x="821" y="28" class="lbl-d" text-anchor="middle">◇ rotation · kid 0e7a…99c1 → 6f0e…1d22</text>
+        <text x="821" y="50" class="num" text-anchor="middle">co-signed across 4 subject chains</text>
+      </g>
+
+      <!-- Subject A chain · 14 receipts spanning d-88 to now -->
+      <g>
+        <!-- chain path -->
+        <line x1="225" y1="100" x2="1340" y2="100" stroke="#1f1e1c" stroke-width="1.5"/>
+        <!-- origin -->
+        <circle cx="225" cy="100" r="6" fill="#000" stroke="#000" stroke-width="2"/>
+        <circle cx="225" cy="100" r="9" fill="none" stroke="#000" stroke-width="1"/>
+        <text x="225" y="78" class="head-lbl" text-anchor="middle">#01 · origin</text>
+        <text x="225" y="135" class="num" text-anchor="middle">e004…51c9</text>
+        <!-- intermediate nodes · sample 12 -->
+        <circle cx="290" cy="100" r="4" fill="#000"/>
+        <circle cx="360" cy="100" r="4" fill="#000"/>
+        <circle cx="430" cy="100" r="4" fill="#000"/>
+        <circle cx="510" cy="100" r="4" fill="#000"/>
+        <circle cx="600" cy="100" r="4" fill="#000"/>
+        <circle cx="690" cy="100" r="4" fill="#000"/>
+        <!-- rotation co-sign tick at 821 -->
+        <circle cx="821" cy="100" r="5" fill="#fff" stroke="#000" stroke-width="2"/>
+        <circle cx="900" cy="100" r="4" fill="#000"/>
+        <circle cx="980" cy="100" r="4" fill="#000"/>
+        <!-- σ defer at #11 = d-2 = 1340 - (2/90)*1140 = 1340-25=1315 - actually #11 was 2 d ago = 1315... but let's place at 1095 (d-21) for spacing -->
+        <circle cx="1095" cy="100" r="5" fill="none" stroke="#000" stroke-width="1.5" stroke-dasharray="2 2"/>
+        <text x="1095" y="83" class="num" text-anchor="middle">σ defer #11</text>
+        <!-- recovery anchor #12 -->
+        <circle cx="1170" cy="100" r="4" fill="#000"/>
+        <line x1="1095" y1="115" x2="1170" y2="115" stroke="#1f1e1c" stroke-width="0.75"/>
+        <line x1="1170" y1="115" x2="1170" y2="106" stroke="#1f1e1c" stroke-width="0.75"/>
+        <text x="1132" y="128" class="num" text-anchor="middle">recover</text>
+        <!-- more nodes -->
+        <circle cx="1240" cy="100" r="4" fill="#000"/>
+        <!-- head #14 -->
+        <circle cx="1340" cy="100" r="7" fill="#fff" stroke="#000" stroke-width="2"/>
+        <circle cx="1340" cy="100" r="10" fill="none" stroke="#000" stroke-width="1"/>
+        <text x="1340" y="78" class="head-lbl" text-anchor="middle">#14 · head</text>
+        <text x="1340" y="135" class="num" text-anchor="middle">7a2c…b8d3</text>
+      </g>
+
+      <!-- Subject B chain · ~12 receipts -->
+      <g>
+        <line x1="270" y1="180" x2="1340" y2="180" stroke="#1f1e1c" stroke-width="1.5"/>
+        <circle cx="270" cy="180" r="6" fill="#000" stroke="#000" stroke-width="2"/>
+        <circle cx="270" cy="180" r="9" fill="none" stroke="#000" stroke-width="1"/>
+        <text x="270" y="158" class="head-lbl" text-anchor="middle">#01 · origin</text>
+        <circle cx="360" cy="180" r="4" fill="#000"/>
+        <circle cx="450" cy="180" r="4" fill="#000"/>
+        <circle cx="540" cy="180" r="4" fill="#000"/>
+        <circle cx="650" cy="180" r="4" fill="#000"/>
+        <circle cx="750" cy="180" r="4" fill="#000"/>
+        <!-- rotation co-sign -->
+        <circle cx="821" cy="180" r="5" fill="#fff" stroke="#000" stroke-width="2"/>
+        <circle cx="910" cy="180" r="4" fill="#000"/>
+        <circle cx="1010" cy="180" r="4" fill="#000"/>
+        <circle cx="1110" cy="180" r="4" fill="#000"/>
+        <circle cx="1220" cy="180" r="4" fill="#000"/>
+        <!-- head -->
+        <circle cx="1340" cy="180" r="7" fill="#fff" stroke="#000" stroke-width="2"/>
+        <text x="1340" y="158" class="head-lbl" text-anchor="middle">#12 · head</text>
+      </g>
+
+      <!-- Subject C chain · 11 receipts · admitted late, has 1 σ defer -->
+      <g>
+        <line x1="450" y1="260" x2="1340" y2="260" stroke="#1f1e1c" stroke-width="1.5"/>
+        <circle cx="450" cy="260" r="6" fill="#000" stroke="#000" stroke-width="2"/>
+        <circle cx="450" cy="260" r="9" fill="none" stroke="#000" stroke-width="1"/>
+        <text x="450" y="238" class="head-lbl" text-anchor="middle">#01 · origin · d-70</text>
+        <circle cx="540" cy="260" r="4" fill="#000"/>
+        <circle cx="630" cy="260" r="4" fill="#000"/>
+        <circle cx="720" cy="260" r="4" fill="#000"/>
+        <!-- σ defer at d-40 = 1340 - (40/90)*1140 = 1340 - 507 = 833 -->
+        <circle cx="780" cy="260" r="5" fill="none" stroke="#000" stroke-width="1.5" stroke-dasharray="2 2"/>
+        <text x="780" y="243" class="num" text-anchor="middle">σ defer · mode A · OIG</text>
+        <!-- recovery -->
+        <circle cx="821" cy="260" r="5" fill="#fff" stroke="#000" stroke-width="2"/>
+        <line x1="780" y1="275" x2="821" y2="275" stroke="#1f1e1c" stroke-width="0.75"/>
+        <line x1="821" y1="275" x2="821" y2="266" stroke="#1f1e1c" stroke-width="0.75"/>
+        <text x="800" y="288" class="num" text-anchor="middle">recover</text>
+        <circle cx="900" cy="260" r="4" fill="#000"/>
+        <circle cx="1000" cy="260" r="4" fill="#000"/>
+        <circle cx="1100" cy="260" r="4" fill="#000"/>
+        <circle cx="1200" cy="260" r="4" fill="#000"/>
+        <circle cx="1280" cy="260" r="4" fill="#000"/>
+        <circle cx="1340" cy="260" r="7" fill="#fff" stroke="#000" stroke-width="2"/>
+        <text x="1340" y="238" class="head-lbl" text-anchor="middle">#11 · head</text>
+      </g>
+
+      <!-- Subject D chain · 10 receipts -->
+      <g>
+        <line x1="510" y1="340" x2="1340" y2="340" stroke="#1f1e1c" stroke-width="1.5"/>
+        <circle cx="510" cy="340" r="6" fill="#000" stroke="#000" stroke-width="2"/>
+        <circle cx="510" cy="340" r="9" fill="none" stroke="#000" stroke-width="1"/>
+        <text x="510" y="318" class="head-lbl" text-anchor="middle">#01 · origin · d-63</text>
+        <circle cx="600" cy="340" r="4" fill="#000"/>
+        <circle cx="690" cy="340" r="4" fill="#000"/>
+        <circle cx="780" cy="340" r="4" fill="#000"/>
+        <circle cx="821" cy="340" r="5" fill="#fff" stroke="#000" stroke-width="2"/>
+        <circle cx="900" cy="340" r="4" fill="#000"/>
+        <circle cx="1000" cy="340" r="4" fill="#000"/>
+        <circle cx="1100" cy="340" r="4" fill="#000"/>
+        <circle cx="1200" cy="340" r="4" fill="#000"/>
+        <circle cx="1280" cy="340" r="4" fill="#000"/>
+        <circle cx="1340" cy="340" r="7" fill="#fff" stroke="#000" stroke-width="2"/>
+        <text x="1340" y="318" class="head-lbl" text-anchor="middle">#10 · head</text>
+      </g>
+
+      <!-- TSA anchor bar at bottom -->
+      <g>
+        <line x1="200" y1="378" x2="1340" y2="378" stroke="#1f1e1c" stroke-width="0.75" stroke-dasharray="1 2"/>
+        <text x="200" y="372" class="num">TSA anchor · did:web:tsa.vitalcv.health · independent · counter-signs every receipt</text>
+      </g>
+    </svg>
+  </div>
+  <div class="legend">
+    <span class="lk"><span class="sq" data-s="origin"></span>origin</span>
+    <span class="lk"><span class="sq"></span>σ ok</span>
+    <span class="lk"><span class="sq" data-s="defer"></span>σ defer (mode A · recovered)</span>
+    <span class="lk"><span class="sq" data-s="rotation"></span>kid rotation · co-signed</span>
+    <span class="lk"><span class="sq" data-s="head"></span>head</span>
+    <span>x · checked_at · 90-day window · y · subject lane</span>
+  </div>
+</div>
+
+<!-- ============ CONTINUITY CHAINS · PER SUBJECT ============ -->
+<div class="sh"><span class="n">02 ·</span><h2>Continuity chains · per subject</h2><span class="ey">head · origin · cadence · incidents · σ recoverability</span></div>
+
+<div class="grid2">
+  <div class="pane">
+    <div class="ph"><span class="h">Subject A · NPI 1356428912</span><span class="ix">14 receipts · 88 d</span></div>
+    <div class="pb">
+      <div class="kvrow"><div class="k">Origin</div><div class="v">#01 · e004…51c9<span class="sub">2026-02-14 · admit at credentialing intake</span></div></div>
+      <div class="kvrow"><div class="k">Head</div><div class="v">#14 · 7a2c…b8d3<span class="sub">12 s ago · σ ok · 4 of 4 sources fresh</span></div></div>
+      <div class="kvrow"><div class="k">Cadence</div><div class="v">≈ 6 d<span class="sub">14 receipts in 88 d window</span></div></div>
+      <div class="kvrow"><div class="k">Incidents</div><div class="v">1 σ defer · 0 fail<span class="sub">#11 · mode A · CMS PECOS · 47 m · recovered #12</span></div></div>
+      <div class="kvrow"><div class="k">Rotation crossings</div><div class="v">1 · co-signed<span class="sub">kid 0e7a…99c1 → 6f0e…1d22 · 41 d ago</span></div></div>
+      <div class="kvrow"><div class="k">Topology state</div><div class="v">linear · no fork<span class="sub">hash-linked end to end</span></div></div>
+    </div>
+  </div>
+
+  <div class="pane">
+    <div class="ph"><span class="h">Subject B · NPI 8830014772</span><span class="ix">12 receipts · 81 d</span></div>
+    <div class="pb">
+      <div class="kvrow"><div class="k">Origin</div><div class="v">#01 · a112…23df<span class="sub">2026-02-21 · admit</span></div></div>
+      <div class="kvrow"><div class="k">Head</div><div class="v">#12 · 6e91…0f48<span class="sub">2 h 14 m ago · σ ok</span></div></div>
+      <div class="kvrow"><div class="k">Cadence</div><div class="v">≈ 6.7 d<span class="sub">within nominal</span></div></div>
+      <div class="kvrow"><div class="k">Incidents</div><div class="v">0<span class="sub">no σ defer · no fail · 81 d clean</span></div></div>
+      <div class="kvrow"><div class="k">Rotation crossings</div><div class="v">1 · co-signed<span class="sub">same horizon · 41 d ago</span></div></div>
+      <div class="kvrow"><div class="k">Topology state</div><div class="v">linear · no fork<span class="sub">hash-linked end to end</span></div></div>
+    </div>
+  </div>
+
+  <div class="pane">
+    <div class="ph"><span class="h">Subject C · NPI 2401005583</span><span class="ix">11 receipts · 70 d</span></div>
+    <div class="pb">
+      <div class="kvrow"><div class="k">Origin</div><div class="v">#01 · 3f72…9b04<span class="sub">2026-03-04 · admit</span></div></div>
+      <div class="kvrow"><div class="k">Head</div><div class="v">#11 · 2c41…1a07<span class="sub">5 h 09 m ago · σ ok</span></div></div>
+      <div class="kvrow"><div class="k">Cadence</div><div class="v">≈ 6.4 d<span class="sub">within nominal</span></div></div>
+      <div class="kvrow"><div class="k">Incidents</div><div class="v">1 σ defer · 0 fail<span class="sub">#06 · mode A · OIG LEIE · 12 m · recovered #07</span></div></div>
+      <div class="kvrow"><div class="k">Rotation crossings</div><div class="v">1 · co-signed<span class="sub">41 d ago · co-sign coincides with #07 recovery</span></div></div>
+      <div class="kvrow"><div class="k">Topology state</div><div class="v">linear · no fork<span class="sub">hash-linked end to end</span></div></div>
+    </div>
+  </div>
+
+  <div class="pane">
+    <div class="ph"><span class="h">Subject D · NPI 6614927140</span><span class="ix">10 receipts · 63 d</span></div>
+    <div class="pb">
+      <div class="kvrow"><div class="k">Origin</div><div class="v">#01 · b908…6d35<span class="sub">2026-03-11 · admit</span></div></div>
+      <div class="kvrow"><div class="k">Head</div><div class="v">#10 · 8a55…cce1<span class="sub">3 d 02 h ago · σ ok</span></div></div>
+      <div class="kvrow"><div class="k">Cadence</div><div class="v">≈ 7 d<span class="sub">slightly outside ideal · monitored</span></div></div>
+      <div class="kvrow"><div class="k">Incidents</div><div class="v">0<span class="sub">no σ defer · no fail · 63 d clean</span></div></div>
+      <div class="kvrow"><div class="k">Rotation crossings</div><div class="v">1 · co-signed<span class="sub">41 d ago</span></div></div>
+      <div class="kvrow"><div class="k">Topology state</div><div class="v">linear · no fork<span class="sub">hash-linked end to end</span></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ REPLAY LINEAGE · DEEP DIVE ============ -->
+<div class="sh"><span class="n">03 ·</span><h2>Replay lineage · subject A · receipt-by-receipt</h2><span class="ey">every receipt names its prev-hash, σ-state, and source-of-claim</span></div>
+
+<div class="pane">
+  <div class="ph"><span class="h">Subject A · 14 receipts · canonical lineage</span><span class="ix">head → origin</span></div>
+  <div class="pb" style="padding:0;">
+    <table class="tbl">
+      <thead>
+        <tr><th>#</th><th>checked_at</th><th>receipt-ID</th><th>prev-hash</th><th>σ</th><th>kid signing</th><th>Sources fresh</th><th>Notes</th></tr>
+      </thead>
+      <tbody>
+        <tr style="background:var(--ink-50);"><td><strong>14 · head</strong></td><td class="when">2026-05-12T14:31:58Z<span class="rel">12 s ago</span></td><td>7a2c…b8d3</td><td>9d11…3e4a</td><td><span class="ok-pill">σ ok</span></td><td>6f0e…1d22</td><td>4 of 4</td><td>—</td></tr>
+        <tr><td>13</td><td class="when">2026-05-12T13:02:41Z<span class="rel">1 h 30 m ago</span></td><td>9d11…3e4a</td><td>4b00…f1c2</td><td><span class="ok-pill">σ ok</span></td><td>6f0e…1d22</td><td>4 of 4</td><td>steady</td></tr>
+        <tr><td>12 · recover</td><td class="when">2026-05-11T22:48:09Z<span class="rel">15 h ago</span></td><td>4b00…f1c2</td><td>cb2f…7a90</td><td><span class="ok-pill">σ ok</span></td><td>6f0e…1d22</td><td>4 of 4</td><td>post-incident · CMS resumed</td></tr>
+        <tr style="background:var(--paper);"><td><strong>11</strong></td><td class="when">2026-05-10T08:14:02Z<span class="rel">2 d ago</span></td><td>cb2f…7a90</td><td>2a17…0e8b</td><td><span class="defer-pill">σ defer</span></td><td>6f0e…1d22</td><td>3 of 4</td><td>mode A · CMS PECOS · 47 m · last fresh stamped</td></tr>
+        <tr><td>10</td><td class="when">2026-05-08T11:02:19Z<span class="rel">4 d ago</span></td><td>2a17…0e8b</td><td>5ee1…b2a7</td><td><span class="ok-pill">σ ok</span></td><td>6f0e…1d22</td><td>4 of 4</td><td>—</td></tr>
+        <tr><td>09</td><td class="when">2026-05-07T18:04:51Z<span class="rel">5 d ago</span></td><td>5ee1…b2a7</td><td>7c33…4901</td><td><span class="ok-pill">σ ok</span></td><td>6f0e…1d22</td><td>4 of 4</td><td>—</td></tr>
+        <tr><td>08</td><td class="when">2026-05-01T09:22:11Z<span class="rel">11 d ago</span></td><td>7c33…4901</td><td>e288…01ba</td><td><span class="ok-pill">σ ok</span></td><td>6f0e…1d22</td><td>4 of 4</td><td>—</td></tr>
+        <tr style="background:var(--ink-50);"><td>07 · rotation</td><td class="when">2026-04-01T00:14:38Z<span class="rel">41 d ago</span></td><td>e288…01ba</td><td>3a17…cd9f</td><td><span class="ok-pill">σ ok · co-sign</span></td><td>0e7a…99c1 + 6f0e…1d22</td><td>4 of 4</td><td><strong>kid rotation</strong> · both keys σ this receipt</td></tr>
+        <tr><td>06</td><td class="when">2026-03-25T16:09:24Z<span class="rel">48 d ago</span></td><td>3a17…cd9f</td><td>fb11…7e22</td><td><span class="ok-pill">σ ok</span></td><td>0e7a…99c1</td><td>4 of 4</td><td>—</td></tr>
+        <tr><td>05</td><td class="when">2026-03-18T11:55:02Z<span class="rel">55 d ago</span></td><td>fb11…7e22</td><td>92dc…00a4</td><td><span class="ok-pill">σ ok</span></td><td>0e7a…99c1</td><td>4 of 4</td><td>—</td></tr>
+        <tr><td>04</td><td class="when">2026-03-11T13:33:48Z<span class="rel">62 d ago</span></td><td>92dc…00a4</td><td>1144…ab06</td><td><span class="ok-pill">σ ok</span></td><td>0e7a…99c1</td><td>4 of 4</td><td>—</td></tr>
+        <tr><td>03</td><td class="when">2026-03-04T08:17:55Z<span class="rel">69 d ago</span></td><td>1144…ab06</td><td>d7e3…5520</td><td><span class="ok-pill">σ ok</span></td><td>0e7a…99c1</td><td>4 of 4</td><td>—</td></tr>
+        <tr><td>02</td><td class="when">2026-02-25T15:48:01Z<span class="rel">76 d ago</span></td><td>d7e3…5520</td><td>e004…51c9</td><td><span class="ok-pill">σ ok</span></td><td>0e7a…99c1</td><td>4 of 4</td><td>—</td></tr>
+        <tr style="background:var(--ink-50);"><td><strong>01 · origin</strong></td><td class="when">2026-02-14T16:02:00Z<span class="rel">88 d ago</span></td><td>e004…51c9</td><td>— · admit-anchor</td><td><span class="ok-pill">σ ok · admit</span></td><td>0e7a…99c1</td><td>4 of 4</td><td>first receipt · subject bind to NPI</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ============ TSA RECONCILIATION ============ -->
+<div class="sh"><span class="n">04 ·</span><h2>TSA reconciliation</h2><span class="ey">every chain head verifies independently against tsa.vitalcv.health</span></div>
+
+<div class="chain">
+  <div class="h"><span><strong>TSA reconciliation strip</strong> · 4 subject heads · RFC 3161 anchored</span><span>all heads verifiable offline</span></div>
+  <div class="nodes">
+    <span class="n" data-h="true">A · #14 · 7a2c…b8d3</span>
+    <span class="link">↔</span>
+    <span class="n">B · #12 · 6e91…0f48</span>
+    <span class="link">↔</span>
+    <span class="n">C · #11 · 2c41…1a07</span>
+    <span class="link">↔</span>
+    <span class="n">D · #10 · 8a55…cce1</span>
+  </div>
+  <div class="f"><span><strong>Counter-signature</strong> · did:web:tsa.vitalcv.health · independent key custody from issuer</span><span><strong>Re-derive</strong> · vitalcv-verify --topology --offline</span></div>
+</div>
+
+<!-- ============ TOPOLOGY OBLIGATIONS ============ -->
+<div class="sh"><span class="n">05 ·</span><h2>Topology obligations · canon</h2><span class="ey">what the chain must be · what it must not be</span></div>
+
+<div class="grid2">
+  <div class="pane" style="margin:0;">
+    <div class="ph"><span class="h">Must hold</span><span class="ix">positive obligations</span></div>
+    <div class="pb">
+      <ul style="margin:0;padding-left:1.1em;font-size:12.5px;line-height:1.65;color:var(--ink-700);">
+        <li><strong style="color:var(--ink-900);">Linear per subject.</strong> Each subject's chain is a strict sequence. No branching, no merges, no out-of-order writes.</li>
+        <li><strong style="color:var(--ink-900);">Hash-linked.</strong> Every receipt names its predecessor's hash. The link is verifiable without the issuer present.</li>
+        <li><strong style="color:var(--ink-900);">σ-typed at every node.</strong> Every receipt declares σ ok, σ defer, or σ withheld. There is no fourth state.</li>
+        <li><strong style="color:var(--ink-900);">Recovery anchor named.</strong> Every σ defer is followed by an explicit recovery receipt whose <code>recovers</code> field names the deferred receipt.</li>
+        <li><strong style="color:var(--ink-900);">Rotation co-signed.</strong> Every key rotation produces one receipt signed by both old kid and new kid. This is the cross-key continuity proof.</li>
+        <li><strong style="color:var(--ink-900);">TSA on every node.</strong> RFC 3161 counter-signature on every receipt. Independent key custody from issuer.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="pane" style="margin:0;">
+    <div class="ph"><span class="h">Must not occur</span><span class="ix">prohibited states</span></div>
+    <div class="pb">
+      <ul style="margin:0;padding-left:1.1em;font-size:12.5px;line-height:1.65;color:var(--ink-700);">
+        <li><strong style="color:var(--ink-900);">No forks.</strong> Two receipts naming the same prev-hash is a mode J halt. Issuance stops until forensic re-derivation completes.</li>
+        <li><strong style="color:var(--ink-900);">No retro-edits.</strong> A receipt's bytes are immutable from σ-time forward. Corrections are issued as new receipts that name the receipt they supersede.</li>
+        <li><strong style="color:var(--ink-900);">No silent gaps.</strong> A missed cadence tick is itself a receipt (σ defer · mode A or E) — not the absence of a receipt.</li>
+        <li><strong style="color:var(--ink-900);">No cross-subject leakage.</strong> A receipt under subject A never references claims of subject B. Lanes never cross.</li>
+        <li><strong style="color:var(--ink-900);">No unsigned origin.</strong> The first receipt in every subject chain is admit-signed. There is no implicit subject.</li>
+        <li><strong style="color:var(--ink-900);">No forged σ to hide degradation.</strong> Under any failure mode the system renders the typed mode, never a synthetic "fresh" verdict.</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<div class="foot">
+  <span>VCV-CHR-001 · r.1.0 · effective 2026-05-12 · 4 subjects · 47 receipts · 90 d</span>
+  <span>Controller · <strong>did:web:vitalcv.health</strong></span>
+  <span>Anchor · <strong>did:web:tsa.vitalcv.health</strong> · RFC 3161 · independent</span>
+  <span>Re-derive · <strong>vitalcv-verify --topology --offline</strong></span>
+</div>
+
+</body>
+</html>

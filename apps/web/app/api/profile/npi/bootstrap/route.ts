@@ -5,6 +5,7 @@
  */
 import { auth } from '@clerk/nextjs/server';
 import { type NextRequest, NextResponse } from 'next/server';
+import { applyIdentityHeaders } from '@/lib/auth/forwardIdentity';
 
 export const runtime = 'nodejs';
 
@@ -20,7 +21,7 @@ export async function POST(req: NextRequest) {
   const headers = new Headers({ 'Content-Type': 'application/json' });
   // Inject Clerk session — required by backend requireUserId()
   if (session.userId) {
-    headers.set('x-clerk-user-id', session.userId);
+    await applyIdentityHeaders(headers, { userId: session.userId });
   }
   const emailClaim = (session.sessionClaims as Record<string, unknown> | undefined)?.email;
   if (typeof emailClaim === 'string' && emailClaim.length > 0) {

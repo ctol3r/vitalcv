@@ -96,9 +96,25 @@ function baseArtifacts(): Array<{
 describe('computeClinicianTrustState authority readiness', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    // Pin the clock so PECOS freshness is evaluated relative to the fixtures'
+    // observation dates (2026-03-22), not real wall-clock time. Without this the
+    // artifacts age past the 90-day PECOS revalidation SLA and every case
+    // collapses to a stale "PECOS unknown" state. Fake only Date, not timers, so
+    // async engine paths still resolve.
+    jest.useFakeTimers({
+      doNotFake: [
+        'setTimeout', 'clearTimeout', 'setInterval', 'clearInterval',
+        'setImmediate', 'clearImmediate', 'queueMicrotask', 'nextTick',
+      ],
+    });
+    jest.setSystemTime(new Date('2026-03-23T12:00:00.000Z'));
     prismaMock.verificationArtifact.findMany.mockResolvedValue(baseArtifacts());
     prismaMock.vcvEntity.findFirst.mockResolvedValue({ id: 'entity-1' });
     prismaMock.vcvCredential.findMany.mockResolvedValue([]);
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
   });
 
   it('hard-blocks readiness for disciplined license authority results', async () => {

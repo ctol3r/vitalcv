@@ -93,10 +93,10 @@ function Field({
   const { display, provenance: resolved } = normalizeFieldProvenance(value, provenance);
   return (
     <div className="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between gap-y-1">
-      <span className="text-xs uppercase tracking-[0.12em] text-muted-foreground/70">
+      <span className="text-xs uppercase tracking-[0.12em] vcv-subtle">
         {label}
       </span>
-      <span className="flex items-center gap-2 text-sm text-foreground/90">
+      <span className="flex items-center gap-2 text-sm" style={{ color: 'var(--ink)' }}>
         <span className="break-words">{display}</span>
         <ProvenanceBadge provenance={resolved} />
       </span>
@@ -119,12 +119,12 @@ function Section({
     <section
       id={`profile-${id}`}
       data-testid={`profile-section-${id}`}
-      className="rounded-xl border border-border bg-card p-5 sm:p-6"
+      className="vcv-panel p-5 sm:p-6"
     >
       <header className="mb-4 space-y-1">
-        <h3 className="text-base font-semibold text-foreground">{title}</h3>
+        <h3 className="text-base font-semibold" style={{ color: 'var(--ink-strong)' }}>{title}</h3>
         {description ? (
-          <p className="text-xs text-muted-foreground/80">{description}</p>
+          <p className="text-xs vcv-muted">{description}</p>
         ) : null}
       </header>
       <div className="space-y-3">{children}</div>
@@ -135,7 +135,7 @@ function Section({
 function EmptyList({ label }: { label: string }) {
   return (
     <div className="flex items-center justify-between text-sm">
-      <span className="text-muted-foreground/70">{label}</span>
+      <span className="vcv-subtle">{label}</span>
       <ProvenanceBadge provenance="UNKNOWN" />
     </div>
   );
@@ -157,6 +157,14 @@ export function ClinicianProfileSections({
     ? `mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-3 ${className}`
     : 'mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-3';
 
+  const practiceLocation = passport.practiceLocation;
+  const hasPracticeLocation = Boolean(
+    practiceLocation
+      && (practiceLocation.addressLine
+        || practiceLocation.city
+        || practiceLocation.state
+        || practiceLocation.postalCode),
+  );
   const licences = passport.authority?.credentials.filter((c) => c.domain === 'LICENSURE') ?? [];
   const boards = passport.authority?.credentials.filter((c) => c.domain === 'BOARD_CERTIFICATION') ?? [];
   const trainingRecords = passport.training?.records ?? [];
@@ -191,7 +199,24 @@ export function ClinicianProfileSections({
         title="Practice locations"
         description="Addresses listed on NPPES for the NPI. Address accuracy is NPPES-dependent."
       >
-        <EmptyList label="No NPPES practice addresses hydrated on this passport yet." />
+        {hasPracticeLocation && practiceLocation ? (
+          <div className="space-y-1">
+            {practiceLocation.addressLine ? (
+              <Field label="Street address" value={practiceLocation.addressLine} provenance="VERIFIED" />
+            ) : null}
+            {practiceLocation.city ? (
+              <Field label="City" value={practiceLocation.city} provenance="VERIFIED" />
+            ) : null}
+            {practiceLocation.state ? (
+              <Field label="State" value={practiceLocation.state} provenance="VERIFIED" />
+            ) : null}
+            {practiceLocation.postalCode ? (
+              <Field label="Postal code" value={practiceLocation.postalCode} provenance="VERIFIED" />
+            ) : null}
+          </div>
+        ) : (
+          <EmptyList label="No NPPES practice addresses hydrated on this passport yet." />
+        )}
       </Section>
 
       <Section

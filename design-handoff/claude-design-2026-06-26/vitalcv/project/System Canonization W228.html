@@ -1,0 +1,666 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>VitalCV · System Canonization · Wave 228</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --ink-0:#fff;--ink-50:#f8fafc;--ink-100:#f1f5f9;--ink-200:#e2e8f0;--ink-300:#cbd5e1;
+  --ink-400:#94a3b8;--ink-500:#64748b;--ink-600:#475569;--ink-700:#334155;--ink-800:#1e293b;
+  --ink-900:#0f172a;--ink-950:#020617;--rule:#e2e8f0;--rule-soft:#eef2f6;--paper:#f8f6f1;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:64px}
+html,body{margin:0;padding:0}
+body{
+  background:var(--ink-100);color:var(--ink-900);
+  font-family:'Geist',ui-sans-serif,system-ui,sans-serif;
+  font-feature-settings:'ss01','cv11';-webkit-font-smoothing:antialiased;
+  font-size:13.5px;line-height:1.55;letter-spacing:-.003em;
+}
+.mono,code{font-family:'Geist Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums}
+h1,h2,h3,h4{margin:0;font-weight:600}
+a{color:inherit}
+
+/* ── Op bar ─────────────────────────────────────── */
+.opbar{background:var(--ink-950);color:var(--ink-300);font-family:'Geist Mono',monospace;font-size:10px;position:sticky;top:0;z-index:80}
+.opbar .in{max-width:1340px;margin:0 auto;padding:0 32px;height:32px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.opbar .l{display:flex;align-items:center;gap:12px}
+.opbar .g{width:17px;height:17px;background:#fff;color:#000;display:grid;place-items:center;font-size:9px;font-weight:700}
+.opbar strong{color:#fff;font-weight:600;letter-spacing:.12em;text-transform:uppercase}
+.opbar .sep{color:var(--ink-700)}
+.opbar .r{display:flex;gap:14px;align-items:center;color:var(--ink-500);text-transform:uppercase;letter-spacing:.13em;font-size:9px}
+.opbar .pill{display:inline-flex;align-items:center;gap:5px;padding:2px 7px;border:1px solid var(--ink-700);color:var(--ink-300)}
+.opbar .dot{width:5px;height:5px;background:#10b981;border-radius:50%;animation:blink 2.6s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:.32}50%{opacity:1}}
+
+.doc{max-width:1340px;margin:0 auto;background:var(--ink-0);box-shadow:0 1px 0 rgba(2,6,23,.04),0 18px 56px -22px rgba(2,6,23,.22)}
+
+/* ── Masthead ───────────────────────────────────── */
+.mast{padding:34px 40px 26px;border-bottom:1px solid var(--ink-900)}
+.crumb{font-family:'Geist Mono',monospace;font-size:9.5px;text-transform:uppercase;letter-spacing:.2em;color:var(--ink-500);display:flex;align-items:center;gap:9px;margin-bottom:18px}
+.crumb .r{display:inline-block;width:20px;height:1px;background:var(--ink-300)}
+.crumb b{color:var(--ink-900);font-weight:600}
+.mast h1{font-size:31px;line-height:1.08;letter-spacing:-.028em;max-width:28ch}
+.mast h1 em{font-style:normal;color:var(--ink-400);font-weight:400}
+.mast .lede{font-size:14px;color:var(--ink-600);line-height:1.62;max-width:88ch;margin:14px 0 0}
+.mast .lede strong{color:var(--ink-900);font-weight:600}
+.meta-h{display:flex;gap:26px;margin-top:20px;flex-wrap:wrap;font-family:'Geist Mono',monospace;font-size:10px;color:var(--ink-500);text-transform:uppercase;letter-spacing:.14em}
+.meta-h span b{color:var(--ink-900);font-weight:600;display:block;margin-top:3px;letter-spacing:.04em}
+
+/* ── Arc ────────────────────────────────────────── */
+.arc{margin:24px 40px 0;border:1px solid var(--ink-900)}
+.arc .hd{background:var(--ink-950);color:#fff;padding:10px 18px;font-family:'Geist Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.18em;display:flex;justify-content:space-between;align-items:center}
+.arc .hd b{color:#fff;font-weight:500}
+.arc .row{display:grid;grid-template-columns:repeat(4,1fr)}
+.arc .cell{padding:16px 15px 15px;border-right:1px solid var(--rule);position:relative}
+.arc .cell:last-child{border-right:0}
+.arc .ord{font-family:'Geist Mono',monospace;font-size:9.5px;letter-spacing:.16em;color:var(--ink-400);margin-bottom:9px}
+.arc .nm{font-family:'Geist Mono',monospace;font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-900);margin-bottom:7px;line-height:1.2}
+.arc .q{font-size:11px;color:var(--ink-600);line-height:1.42}
+.arc .arrow{position:absolute;right:-7px;top:30px;width:12px;height:12px;background:var(--ink-0);border-top:1px solid var(--rule);border-right:1px solid var(--rule);transform:rotate(45deg);z-index:3}
+.arc .cell:last-child .arrow{display:none}
+.arc .foot{border-top:1px solid var(--rule);background:var(--ink-50);padding:9px 18px;font-family:'Geist Mono',monospace;font-size:9.5px;text-transform:uppercase;letter-spacing:.14em;color:var(--ink-600)}
+.arc .foot b{color:var(--ink-900);font-weight:600}
+
+/* ── TOC ────────────────────────────────────────── */
+.toc{margin:24px 40px 0;border:1px solid var(--rule);display:grid;grid-template-columns:repeat(5,1fr)}
+.toc a{padding:12px 14px;border-right:1px solid var(--rule);text-decoration:none;display:block;transition:background .12s}
+.toc a:last-child{border-right:0}
+.toc a:hover{background:var(--ink-50)}
+.toc .n{font-family:'Geist Mono',monospace;font-size:9px;letter-spacing:.14em;color:var(--ink-400);display:block;margin-bottom:5px}
+.toc .t{font-size:11.5px;font-weight:500;color:var(--ink-900);line-height:1.3}
+
+/* ── Section scaffold ───────────────────────────── */
+main{padding:8px 40px 40px}
+.sec{margin-top:42px;scroll-margin-top:56px}
+.sh{display:flex;align-items:baseline;gap:14px;border-bottom:1px solid var(--ink-900);padding-bottom:9px;margin-bottom:18px}
+.sh .n{font-family:'Geist Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-300);font-weight:600}
+.sh h2{font-size:19px;letter-spacing:-.018em;color:var(--ink-900)}
+.sh .ey{font-family:'Geist Mono',monospace;font-size:9.5px;text-transform:uppercase;letter-spacing:.15em;color:var(--ink-500);margin-left:auto}
+.lead{font-size:13.5px;color:var(--ink-600);line-height:1.62;max-width:96ch;margin:0 0 18px}
+.lead strong{color:var(--ink-900);font-weight:600}
+
+.kicker{font-family:'Geist Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-400);font-weight:600;margin:22px 0 9px}
+.cap{font-family:'Geist Mono',monospace;font-size:9.5px;text-transform:uppercase;letter-spacing:.13em;color:var(--ink-500);margin:10px 0 0;line-height:1.5}
+.cap b{color:var(--ink-900);font-weight:600}
+.cap em{font-style:normal;color:var(--ink-900)}
+
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+
+.card{border:1px solid var(--ink-300);background:var(--ink-0)}
+.card .ph{padding:9px 15px;background:var(--ink-50);border-bottom:1px solid var(--rule);font-family:'Geist Mono',monospace;font-size:9.5px;text-transform:uppercase;letter-spacing:.15em;color:var(--ink-500);display:flex;justify-content:space-between;align-items:center;gap:8px}
+.card .ph b{color:var(--ink-900);font-weight:600}
+.card .bd{padding:14px 16px}
+.card .bd p{margin:0 0 10px;font-size:12.5px;color:var(--ink-600);line-height:1.55}
+.card .bd p:last-child{margin-bottom:0}
+.card .bd strong{color:var(--ink-900);font-weight:600}
+
+.mn{font-family:'Geist Mono',monospace;font-size:11px;color:var(--ink-900);background:var(--ink-50);border:1px solid var(--rule);padding:1px 5px}
+
+/* tables */
+.tbl{width:100%;border-collapse:collapse;font-size:12px;border:1px solid var(--ink-300);background:var(--ink-0)}
+.tbl thead th{position:sticky;background:var(--ink-50);border-bottom:1px solid var(--ink-900);padding:10px 12px;text-align:left;font-family:'Geist Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.14em;color:var(--ink-500);font-weight:600;border-right:1px solid var(--rule);vertical-align:bottom}
+.tbl thead th:last-child{border-right:0}
+.tbl tbody td{padding:9px 12px;border-bottom:1px solid var(--rule);border-right:1px solid var(--rule);vertical-align:top;color:var(--ink-600);line-height:1.45}
+.tbl tbody td:last-child{border-right:0}
+.tbl tbody tr:last-child td{border-bottom:0}
+.tbl tbody td strong{color:var(--ink-900);font-weight:600}
+.tbl tbody td.nm{font-family:'Geist Mono',monospace;font-size:10.5px;letter-spacing:.04em;color:var(--ink-900);background:var(--ink-50);font-weight:500;white-space:nowrap}
+.tbl tbody td code{font-family:'Geist Mono',monospace;font-size:10.5px;color:var(--ink-900)}
+.tbl .scroll{display:block;overflow-x:auto}
+
+/* note / callout */
+.note{border-left:2px solid var(--ink-900);padding:3px 0 3px 16px;margin:16px 0;font-size:12.5px;color:var(--ink-600);line-height:1.55}
+.note b{color:var(--ink-900);font-weight:600}
+.note .lb{font-family:'Geist Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-400);display:block;margin-bottom:4px}
+
+/* footer */
+.foot-page{padding:22px 40px;border-top:1px solid var(--rule);background:var(--ink-50);display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;font-family:'Geist Mono',monospace;font-size:10px;color:var(--ink-500);text-transform:uppercase;letter-spacing:.12em}
+.foot-page b{color:var(--ink-900);font-weight:600}
+
+/* ── Ruling badge (audit verdict tags) ──────────── */
+.rb{font-family:'Geist Mono',monospace;font-size:8.5px;font-weight:600;letter-spacing:.05em;padding:3px 7px;text-transform:uppercase;white-space:nowrap;display:inline-flex;align-items:center;gap:6px}
+.rb::before{content:"";width:8px;height:8px;flex:none}
+.rb.perm{background:var(--ink-950);color:#fff}
+.rb.perm::before{background:#fff}
+.rb.keep{border:1px solid var(--ink-700);color:var(--ink-800);background:#fff}
+.rb.keep::before{background:var(--ink-900)}
+.rb.fold{border:1px dashed var(--ink-500);color:var(--ink-500);background:#fff}
+.rb.fold::before{border:1.5px solid var(--ink-400);background:#fff;border-radius:50%}
+.rb.build{border:1px solid var(--ink-600);color:var(--ink-700);background:#fff}
+.rb.build::before{background:linear-gradient(90deg,var(--ink-900) 0 50%,transparent 50% 100%);border:1px solid var(--ink-500)}
+
+/* ── Layer audit (D1) ───────────────────────────── */
+.audit{border:1px solid var(--ink-900);background:var(--ink-0)}
+.audithd{background:var(--ink-950);color:#fff;padding:9px 16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;font-family:'Geist Mono',monospace;font-size:10.5px;letter-spacing:.04em}
+.audithd b{color:#fff;font-weight:500}
+.auditcols{display:grid;grid-template-columns:44px 188px 1fr 200px 120px;background:var(--ink-50);border-bottom:1px solid var(--ink-900)}
+.auditcols span{padding:7px 14px;border-right:1px solid var(--rule);font-family:'Geist Mono',monospace;font-size:8px;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-400);font-weight:600}
+.auditcols span:last-child{border-right:0}
+.arow2{display:grid;grid-template-columns:44px 188px 1fr 200px 120px;border-bottom:1px solid var(--rule);align-items:stretch}
+.arow2:last-child{border-bottom:0}
+.arow2 .ai{display:flex;align-items:center;justify-content:center;background:var(--ink-50);border-right:1px solid var(--rule);font-family:'Geist Mono',monospace;font-size:13px;font-weight:600;color:var(--ink-300)}
+.arow2 .anm{padding:13px 14px;border-right:1px solid var(--rule);display:flex;flex-direction:column;gap:3px;justify-content:center}
+.arow2 .anm b{font-size:13px;color:var(--ink-900);letter-spacing:-.01em;font-weight:600}
+.arow2 .anm span{font-family:'Geist Mono',monospace;font-size:8px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-400)}
+.arow2 .apx{padding:13px 14px;border-right:1px solid var(--rule);font-size:11.5px;color:var(--ink-600);line-height:1.45;display:flex;align-items:center}
+.arow2 .apx b{color:var(--ink-900);font-weight:600}
+.arow2 .ast{padding:13px 14px;border-right:1px solid var(--rule);font-family:'Geist Mono',monospace;font-size:10px;color:var(--ink-700);line-height:1.4;display:flex;align-items:center}
+.arow2 .ast b{color:var(--ink-900);font-weight:600}
+.arow2 .acl{padding:13px 14px;display:flex;align-items:center}
+
+/* findings register (D1) */
+.find{border:1px solid var(--ink-900);background:var(--ink-0)}
+.frow{display:grid;grid-template-columns:150px 1fr;border-bottom:1px solid var(--rule)}
+.frow:last-child{border-bottom:0}
+.frow .fq{padding:14px 16px;border-right:1px solid var(--rule);background:var(--ink-50);display:flex;flex-direction:column;gap:5px;justify-content:flex-start}
+.frow .fq b{font-size:13px;color:var(--ink-900);font-weight:600;letter-spacing:-.01em}
+.frow .fq span{font-family:'Geist Mono',monospace;font-size:8px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-400)}
+.frow .fa{padding:13px 16px;font-size:12px;color:var(--ink-600);line-height:1.5}
+.frow .fa b{color:var(--ink-900);font-weight:600}
+.frow .fa .verd{font-family:'Geist Mono',monospace;font-size:9px;letter-spacing:.08em;text-transform:uppercase;font-weight:600;color:var(--ink-900);display:inline-block;margin-right:8px;border-bottom:1.5px solid var(--ink-900);padding-bottom:1px}
+.frow .fl{margin-top:8px;display:flex;flex-wrap:wrap;gap:6px}
+.fchip{font-family:'Geist Mono',monospace;font-size:9px;letter-spacing:.01em;color:var(--ink-700);background:var(--ink-50);border:1px solid var(--rule);padding:3px 8px;white-space:nowrap}
+.fchip.x{border-color:var(--ink-900);color:var(--ink-900);font-weight:600}
+
+/* laws (reused) */
+.laws{border:1px solid var(--ink-900);background:var(--ink-0)}
+.law{display:grid;grid-template-columns:46px 1fr;border-bottom:1px solid var(--rule)}
+.law:last-child{border-bottom:0}
+.law .ln{padding:13px 0;text-align:center;font-family:'Geist Mono',monospace;font-size:13px;font-weight:600;color:var(--ink-300);background:var(--ink-50);border-right:1px solid var(--rule)}
+.law .lc{padding:12px 16px}
+.law .lc b{font-size:12.5px;color:var(--ink-900);font-weight:600;display:block;margin-bottom:3px;letter-spacing:-.01em}
+.law .lc p{margin:0;font-size:12px;color:var(--ink-600);line-height:1.5}
+.law .lc code{font-family:'Geist Mono',monospace;font-size:11px;color:var(--ink-900);background:var(--ink-50);border:1px solid var(--rule);padding:1px 5px}
+
+/* canon register (D2) */
+.canon{border:1px solid var(--ink-900);background:var(--ink-0)}
+.canoncols{display:grid;grid-template-columns:196px 1fr 128px 152px;background:var(--ink-50);border-bottom:1px solid var(--ink-900)}
+.canoncols span{padding:7px 14px;border-right:1px solid var(--rule);font-family:'Geist Mono',monospace;font-size:8px;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-400);font-weight:600}
+.canoncols span:last-child{border-right:0}
+.crow{display:grid;grid-template-columns:196px 1fr 128px 152px;border-bottom:1px solid var(--rule);align-items:stretch}
+.crow:last-child{border-bottom:0}
+.crow.spine{background:var(--ink-950)}
+.crow .cn{padding:13px 14px;border-right:1px solid var(--rule);background:var(--ink-50);display:flex;flex-direction:column;gap:3px;justify-content:center}
+.crow .cn b{font-family:'Geist Mono',monospace;font-size:11.5px;color:var(--ink-900);letter-spacing:.01em;font-weight:600}
+.crow .cn span{font-family:'Geist Mono',monospace;font-size:8px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-400)}
+.crow .cd{padding:13px 14px;border-right:1px solid var(--rule);font-size:11.5px;color:var(--ink-600);line-height:1.45;display:flex;align-items:center}
+.crow .cd b{color:var(--ink-900);font-weight:600}
+.crow .cc{padding:13px 14px;border-right:1px solid var(--rule);display:flex;align-items:center;font-family:'Geist Mono',monospace;font-size:9.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-900)}
+.crow .cr{padding:13px 14px;display:flex;align-items:center}
+.crow.spine .cn{background:#0a1326;border-right-color:var(--ink-800)}
+.crow.spine .cn b{color:#fff}.crow.spine .cn span{color:var(--ink-500)}
+.crow.spine .cd{color:var(--ink-300);border-right-color:var(--ink-800)}.crow.spine .cd b{color:#fff}
+.crow.spine .cc{color:#fff;border-right-color:var(--ink-800)}
+
+/* projection diagram (D2) */
+.projdia{border:1px solid var(--ink-900);background:var(--ink-0);padding:22px 20px 18px}
+.projdia .substrate{border:1.5px solid var(--ink-950);background:var(--ink-950);color:#fff;padding:12px 16px;text-align:center;margin:0 auto;max-width:340px}
+.projdia .substrate b{font-family:'Geist Mono',monospace;font-size:12px;letter-spacing:.04em;color:#fff;display:block}
+.projdia .substrate span{font-family:'Geist Mono',monospace;font-size:8.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-400);display:block;margin-top:4px}
+.projdia .fan{display:flex;justify-content:center;gap:18px;margin:6px 0 14px}
+.projdia .fan i{width:1px;height:26px;background:var(--ink-300);position:relative}
+.projdia .fan i::after{content:"";position:absolute;bottom:0;left:-3px;width:7px;height:7px;border-bottom:1px solid var(--ink-400);border-right:1px solid var(--ink-400);transform:rotate(45deg)}
+.projdia .lenses{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.projdia .lens{border:1px solid var(--ink-300);background:var(--ink-0);padding:11px 13px}
+.projdia .lens b{font-family:'Geist Mono',monospace;font-size:11px;letter-spacing:.02em;color:var(--ink-900);display:block;margin-bottom:4px}
+.projdia .lens span{font-size:10.5px;color:var(--ink-600);line-height:1.4;display:block}
+.projdia .lens .fn{font-family:'Geist Mono',monospace;font-size:8.5px;color:var(--ink-500);margin-top:7px;display:block;letter-spacing:.02em}
+
+/* survival register (D3) */
+.surv{border:1px solid var(--ink-900);background:var(--ink-0)}
+.survcols{display:grid;grid-template-columns:160px 1fr 178px 92px;background:var(--ink-50);border-bottom:1px solid var(--ink-900)}
+.survcols span{padding:7px 14px;border-right:1px solid var(--rule);font-family:'Geist Mono',monospace;font-size:8px;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-400);font-weight:600}
+.survcols span:last-child{border-right:0}
+.srow{display:grid;grid-template-columns:160px 1fr 178px 92px;border-bottom:1px solid var(--rule);align-items:stretch}
+.srow:last-child{border-bottom:0}
+.srow .sn{padding:13px 14px;border-right:1px solid var(--rule);background:var(--ink-50);display:flex;flex-direction:column;gap:3px;justify-content:center}
+.srow .sn b{font-size:13px;color:var(--ink-900);letter-spacing:-.01em;font-weight:600}
+.srow .sn span{font-family:'Geist Mono',monospace;font-size:8px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-400)}
+.srow .sd{padding:13px 14px;border-right:1px solid var(--rule);font-size:11.5px;color:var(--ink-600);line-height:1.45;display:flex;align-items:center}
+.srow .sd b{color:var(--ink-900);font-weight:600}
+.srow .sru{padding:13px 14px;border-right:1px solid var(--rule);display:flex;align-items:center}
+.srow .ssv{padding:13px 14px;display:flex;align-items:center;justify-content:center;font-family:'Geist Mono',monospace;font-size:14px;font-weight:600}
+.srow .ssv.y{color:var(--ink-950)}
+.srow .ssv.n{color:var(--ink-300)}
+.srow.fold-r{background:#fcfcfd}
+.srow.fold-r .sn{background:#fff}
+
+/* emergence triad (reused) */
+.emerg{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid var(--ink-900);background:var(--ink-0)}
+.emerg .ec{padding:15px 16px;border-right:1px solid var(--rule)}
+.emerg .ec:last-child{border-right:0}
+.emerg .ec .ei{font-family:'Geist Mono',monospace;font-size:9px;letter-spacing:.14em;color:var(--ink-400);margin-bottom:8px}
+.emerg .ec h4{font-size:13px;letter-spacing:-.01em;color:var(--ink-900);margin-bottom:7px}
+.emerg .ec p{margin:0;font-size:11.5px;color:var(--ink-600);line-height:1.5}
+.emerg .ec p b{color:var(--ink-900);font-weight:600}
+
+/* readiness matrix (D4) */
+.ready{border:1px solid var(--ink-900);background:var(--ink-0)}
+.readycols{display:grid;grid-template-columns:188px 1fr 184px 132px;background:var(--ink-50);border-bottom:1px solid var(--ink-900)}
+.readycols span{padding:7px 14px;border-right:1px solid var(--rule);font-family:'Geist Mono',monospace;font-size:8px;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-400);font-weight:600}
+.readycols span:last-child{border-right:0}
+.rrow2{display:grid;grid-template-columns:188px 1fr 184px 132px;border-bottom:1px solid var(--rule);align-items:stretch}
+.rrow2:last-child{border-bottom:0}
+.rrow2 .rn2{padding:13px 14px;border-right:1px solid var(--rule);background:var(--ink-50);display:flex;flex-direction:column;gap:3px;justify-content:center}
+.rrow2 .rn2 b{font-size:13px;color:var(--ink-900);letter-spacing:-.01em;font-weight:600}
+.rrow2 .rn2 span{font-family:'Geist Mono',monospace;font-size:8px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-400)}
+.rrow2 .rd2{padding:13px 14px;border-right:1px solid var(--rule);font-size:11.5px;color:var(--ink-600);line-height:1.45;display:flex;align-items:center}
+.rrow2 .rd2 b{color:var(--ink-900);font-weight:600}
+.rrow2 .rs2{padding:13px 14px;border-right:1px solid var(--rule);font-family:'Geist Mono',monospace;font-size:10px;color:var(--ink-700);line-height:1.4;display:flex;align-items:center}
+.rrow2 .rs2 b{color:var(--ink-900);font-weight:600}
+.rrow2 .rv2{padding:13px 14px;display:flex;align-items:center}
+.rrow2.build-r .rn2{background:#fff}
+
+/* synthesis answers (reused) */
+.ans{border:1px solid var(--ink-900);background:var(--ink-0)}
+.qrow{display:grid;grid-template-columns:0.9fr 1.4fr;border-bottom:1px solid var(--rule)}
+.qrow.last{border-bottom:0}
+.qrow .aq{padding:14px 18px;border-right:1px solid var(--rule);background:var(--ink-50);font-size:13.5px;font-weight:600;color:var(--ink-900);letter-spacing:-.01em;display:flex;gap:11px;align-items:baseline;line-height:1.35}
+.qrow .aq .an{font-family:'Geist Mono',monospace;font-size:10px;color:var(--ink-400);letter-spacing:.1em;flex:none}
+.qrow .aa{padding:14px 18px;font-size:12.5px;color:var(--ink-600);line-height:1.55}
+.qrow .aa b{color:var(--ink-900);font-weight:600}
+.qrow .aa code{font-family:'Geist Mono',monospace;font-size:11px;color:var(--ink-900);background:var(--ink-50);border:1px solid var(--rule);padding:1px 5px}
+
+/* verdict banner */
+.verdict{border:1px solid var(--ink-950);background:var(--ink-950);color:#fff;margin-top:24px}
+.verdict .vh{padding:11px 20px;border-bottom:1px solid var(--ink-800);font-family:'Geist Mono',monospace;font-size:9.5px;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-500);display:flex;justify-content:space-between;align-items:center;gap:10px}
+.verdict .vh b{color:#fff;font-weight:600}
+.verdict .vb{padding:22px 24px}
+.verdict .vb h3{font-size:23px;line-height:1.18;letter-spacing:-.02em;color:#fff;max-width:30ch;font-weight:600}
+.verdict .vb h3 em{font-style:normal;color:var(--ink-500);font-weight:400}
+.verdict .vb p{margin:12px 0 0;font-size:12.5px;color:var(--ink-300);line-height:1.6;max-width:88ch}
+.verdict .vb p b{color:#fff;font-weight:600}
+.verdict .vmoves{display:grid;grid-template-columns:repeat(3,1fr);gap:0;border-top:1px solid var(--ink-800);margin-top:20px}
+.verdict .vm{padding:16px 20px;border-right:1px solid var(--ink-800)}
+.verdict .vm:last-child{border-right:0}
+.verdict .vm .vmt{font-family:'Geist Mono',monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-500);margin-bottom:7px;display:flex;align-items:center;gap:8px}
+.verdict .vm .vmt::before{content:"";width:8px;height:8px;background:#fff;flex:none}
+.verdict .vm.demote .vmt::before{background:none;border:1.5px dashed var(--ink-500);border-radius:50%}
+.verdict .vm.build .vmt::before{background:linear-gradient(90deg,#fff 0 50%,transparent 50% 100%);border:1px solid var(--ink-500)}
+.verdict .vm h4{font-size:13px;color:#fff;letter-spacing:-.01em;margin-bottom:6px}
+.verdict .vm p{margin:0;font-size:11px;color:var(--ink-400);line-height:1.5}
+.verdict .vm p b{color:var(--ink-200);font-weight:600}
+
+@media (max-width:1080px){
+  .arc .row{grid-template-columns:1fr 1fr}.arc .arrow{display:none}
+  .toc{grid-template-columns:1fr 1fr 1fr}
+  .grid2,.grid3,.grid4{grid-template-columns:1fr}
+  .auditcols,.canoncols,.survcols,.readycols{display:none}
+  .arow2,.crow,.srow,.rrow2{grid-template-columns:1fr}
+  .arow2 .ai{padding:8px;border-right:0;border-bottom:1px solid var(--rule)}
+  .arow2 .anm,.arow2 .apx,.arow2 .ast,.crow .cn,.crow .cd,.crow .cc,.srow .sn,.srow .sd,.srow .sru,.rrow2 .rn2,.rrow2 .rd2,.rrow2 .rs2{border-right:0;border-bottom:1px solid var(--rule)}
+  .frow{grid-template-columns:1fr}.frow .fq{border-right:0;border-bottom:1px solid var(--rule)}
+  .emerg{grid-template-columns:1fr}.emerg .ec{border-right:0;border-bottom:1px solid var(--rule)}
+  .qrow{grid-template-columns:1fr}.qrow .aq{border-right:0;border-bottom:1px solid var(--rule)}
+  .projdia .lenses{grid-template-columns:1fr 1fr}
+  .verdict .vmoves{grid-template-columns:1fr}.verdict .vm{border-right:0;border-bottom:1px solid var(--ink-800)}
+}
+</style>
+</head>
+<body>
+
+<div class="opbar">
+  <div class="in">
+    <div class="l">
+      <span class="g">V</span>
+      <strong>Wave 228</strong>
+      <span class="sep">/</span>
+      <span>System Canonization</span>
+      <span class="sep">·</span>
+      <span>role: claude design</span>
+    </div>
+    <div class="r">
+      <span class="pill"><span class="dot"></span>Architecture audit</span>
+      <span class="sep">|</span>
+      <span>vc.2026.06.21 · w228 · v1</span>
+    </div>
+  </div>
+</div>
+
+<div class="doc">
+
+  <!-- ════ MASTHEAD ════ -->
+  <header class="mast" data-screen-label="Masthead">
+    <div class="crumb"><span class="r"></span>VitalCV <span style="color:var(--ink-300)">/</span> Canon Layer <span style="color:var(--ink-300)">/</span> <b>W228 · System Canonization</b></div>
+    <h1>Thirteen waves built an Evidence Network. <em>Before it expands, one wave audits it — and asks the only question that matters: is the foundation correct?</em></h1>
+    <p class="lede">This is not a build wave. It adds no object, no surface, no engine. Its entire job is <strong>judgment</strong>: to take the architecture that W215 through W230 assembled — Evidence, Graph, Trust, Timeline — hold it to the light, and decide whether it is coherent enough to deserve a decade of expansion on top of it. The audit does four things. It <strong>tests each layer</strong> for a unique purpose, redundancy, misplacement, and gaps. It <strong>freezes the ontology</strong> — five concepts, each ruled atom, aggregate, or projection, and each marked doctrine or not. It <strong>names the entities</strong> that must survive to Wave 300 and demotes the ones that should not. And it <strong>stress-tests readiness</strong>: can Career Wallet, Mobility, Matching, Reputation, and Network Effects ship on this substrate without a redesign? One finding governs all four — <strong>the system has exactly one store and everything else is a projection of it</strong>, and that is precisely what makes it correct.</p>
+    <div class="meta-h">
+      <span>Mandate<b>audit, not build</b></span>
+      <span>The atom<b>EvidenceObject · the only store</b></span>
+      <span>The law<b>store once · project many</b></span>
+      <span>Adjustments<b>+1 promote · −2 demote</b></span>
+      <span>Subjects to W300<b>Clinician · Organization · Opportunity</b></span>
+      <span>Verdict<b>foundation correct</b></span>
+    </div>
+  </header>
+
+  <!-- ════ ARC ════ -->
+  <section class="arc">
+    <div class="hd"><span>The audit in four moves · audit the layers → freeze the ontology → name the survivors → test readiness</span><b>judge the foundation · then expand it</b></div>
+    <div class="row">
+      <div class="cell"><div class="ord">D1</div><div class="nm">Ecosystem<br/>Audit</div><div class="q">Evidence, Graph, Trust, Timeline — does each have a unique purpose, is anything redundant, misplaced, or missing?</div><div class="arrow"></div></div>
+      <div class="cell"><div class="ord">D2</div><div class="nm">Canonical<br/>Ontology</div><div class="q">Freeze five concepts — EvidenceObject, CareerEvent, GraphNode, TrustProjection, TimelineProjection — and rule which become permanent doctrine.</div><div class="arrow"></div></div>
+      <div class="cell"><div class="ord">D3</div><div class="nm">Future Entity<br/>Model</div><div class="q">Eight candidate first-class entities. Which survive to Wave 300, which fold into something already canonized?</div><div class="arrow"></div></div>
+      <div class="cell"><div class="ord">D4</div><div class="nm">Network<br/>Readiness</div><div class="q">Can the substrate carry Wallet, Mobility, Matching, Reputation, and Network Effects without a redesign?</div><div class="arrow"></div></div>
+    </div>
+    <div class="foot">Audit rule · <b>a layer is coherent when it stores nothing the atom already stores.</b> The test for the whole architecture is a single property — every layer above Evidence must be a <b>pure, reversible projection</b> of the EvidenceObject ledger, holding no private state of its own. Where that holds, the layer is sound; where a layer keeps its own copy of a fact, that is the redundancy the audit hunts.</div>
+  </section>
+
+  <!-- ════ TOC ════ -->
+  <nav class="toc">
+    <a href="#d1"><span class="n">D1</span><span class="t">Ecosystem Audit</span></a>
+    <a href="#d2"><span class="n">D2</span><span class="t">Canonical Ontology</span></a>
+    <a href="#d3"><span class="n">D3</span><span class="t">Future Entity Model</span></a>
+    <a href="#d4"><span class="n">D4</span><span class="t">Network Readiness Review</span></a>
+    <a href="#synth"><span class="n">05</span><span class="t">The Verdict</span></a>
+  </nav>
+
+  <main>
+
+  <!-- ════════════ D1 ════════════ -->
+  <section class="sec" id="d1" data-screen-label="D1 Ecosystem Audit">
+    <div class="sh"><span class="n">D1</span><h2>Ecosystem Audit</h2><span class="ey">four layers, one test</span></div>
+    <p class="lead"><strong>The Evidence Network is four layers stacked on one atom — and the audit's first job is to confirm the stack does not repeat itself.</strong> Evidence (W215) invents the <span class="mn">EvidenceObject</span>, the source-bound atom. Graph (W220–W221) places atoms into structure via <span class="mn">project()</span>. Trust (W222) computes belief over that structure. Timeline (W225) reads the same record across time. The decisive observation is that <strong>only the first layer stores anything</strong>: Graph, Trust, and Timeline are functions of the EvidenceObject ledger, recomputable and reversible. That is the source of the architecture's coherence — and the lens through which every redundancy, misplacement, and gap below is judged.</p>
+
+    <div class="kicker">The four layers, audited · store vs projection</div>
+    <div class="audit">
+      <div class="audithd"><span>Evidence · Graph · Trust · Timeline — what each layer is for, and whether it holds its own state</span><b>one store · three projections</b></div>
+      <div class="auditcols"><span>Layer</span><span>Canonical role</span><span>Unique purpose — what only it does</span><span>What it actually stores</span><span>Classification</span></div>
+      <div class="arow2">
+        <div class="ai">1</div>
+        <div class="anm"><b>Evidence</b><span>W215 · the atom</span></div>
+        <div class="apx">Holds the one <b>source-attributed fact</b> — content-addressed, append-only, clinician-owned. The substrate everything else reads.</div>
+        <div class="ast"><b>The fact itself.</b><br/>The only durable store.</div>
+        <div class="acl"><span class="rb perm">Store</span></div>
+      </div>
+      <div class="arow2">
+        <div class="ai">2</div>
+        <div class="anm"><b>Graph</b><span>W220–W221 · structure</span></div>
+        <div class="apx">Turns atoms into <b>connected structure</b> — nodes and edges on shared anchors, so a fact verified once is reusable everywhere.</div>
+        <div class="ast">Nothing private.<br/><b>project( evidence )</b> — reversible to source.</div>
+        <div class="acl"><span class="rb keep">Projection</span></div>
+      </div>
+      <div class="arow2">
+        <div class="ai">3</div>
+        <div class="anm"><b>Trust</b><span>W222 · belief</span></div>
+        <div class="apx">Computes <b>how much a fact is believed</b> — minted at authorities, propagated along edges, decayed by half-life, compounded by density.</div>
+        <div class="ast">Nothing.<br/><b>Composed at read time</b> from the graph.</div>
+        <div class="acl"><span class="rb keep">Projection</span></div>
+      </div>
+      <div class="arow2">
+        <div class="ai">4</div>
+        <div class="anm"><b>Timeline</b><span>W225 · time</span></div>
+        <div class="apx">Reads the record <b>across time</b> — the career as a spine of dated events, rendered through four audience lenses.</div>
+        <div class="ast">Nothing.<br/><b>As-of render</b> of the same ledger.</div>
+        <div class="acl"><span class="rb keep">Projection</span></div>
+      </div>
+    </div>
+    <p class="cap">The shape of a sound stack · <b>one layer stores, three project</b> — Graph, Trust, and Timeline each answer a different question (where it connects, how much it's believed, when it happened) over the identical immutable record, and none keeps a private copy of a fact.</p>
+
+    <div class="kicker">The four audit questions · answered</div>
+    <div class="find">
+      <div class="frow">
+        <div class="fq"><span>Question 01</span><b>Unique purpose?</b></div>
+        <div class="fa"><span class="verd">Pass</span>Each layer answers a question no other layer can. <b>Evidence</b> = is it true and where from; <b>Graph</b> = what does it connect to; <b>Trust</b> = how much is it believed; <b>Timeline</b> = when, and in what order. The four are orthogonal — a fact, its structure, its belief, and its time are genuinely different axes of the same record, not four names for one thing.</div>
+      </div>
+      <div class="frow">
+        <div class="fq"><span>Question 02</span><b>Anything redundant?</b></div>
+        <div class="fa"><span class="verd">Naming only</span>No <b>structural</b> redundancy — but two <b>naming drifts</b> that must be reconciled. "Professional Memory" is defined twice: as <b>eleven evidence classes</b> in W215 and as <b>five memory layers</b> in W225. And trust dimensions drifted from <b>six</b> (W220) to <b>seven</b> (W222). Neither stores a fact twice; both are vocabulary that diverged across waves and should be frozen to one definition each.
+          <div class="fl"><span class="fchip x">memory · 11 classes vs 5 layers</span><span class="fchip x">trust dims · 6 → 7</span><span class="fchip">resolve in D2</span></div>
+        </div>
+      </div>
+      <div class="frow">
+        <div class="fq"><span>Question 03</span><b>Anything misplaced?</b></div>
+        <div class="fa"><span class="verd">Two</span><b>CareerEvent</b> is presented as a second atom beside EvidenceObject, but a career event is <b>composed of</b> evidence, not parallel to it — it belongs one level up, as an aggregate. And <b>Recognition</b> lives in three places at once (an event class, a memory layer, a reputation input); it is not its own primitive but a <b>conferred EvidenceObject</b>. Both are placement errors, not new facts — corrected by re-classing, not rebuilding.
+          <div class="fl"><span class="fchip x">CareerEvent · atom → aggregate</span><span class="fchip x">Recognition · primitive → evidence</span></div>
+        </div>
+      </div>
+      <div class="frow">
+        <div class="fq"><span>Question 04</span><b>Anything missing?</b></div>
+        <div class="fa"><span class="verd">Two</span>The four layers describe <b>one career in isolation</b>. Two things are absent. First, <b>Organization as a subject</b> — today it is only an anchor node; it has no evidence, trust, or memory of its own, yet the network needs it to. Second, the <b>cross-career transitivity engine</b> — the substrate has shared anchors (W220 named the network), but nothing yet computes trust that flows <b>between people</b> through them. Both are additive: they extend the substrate, they do not contradict it.
+          <div class="fl"><span class="fchip x">Organization-as-subject</span><span class="fchip x">network transitivity engine</span><span class="fchip">build in D3 · D4</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="note"><span class="lb">Deliverable · Ecosystem Audit</span><b>The four layers are coherent: one store, three projections, four orthogonal purposes, and no fact held twice.</b> What the audit finds is not structural rot but two naming drifts to reconcile (Professional Memory, trust dimensions), two misplacements to re-class (CareerEvent is an aggregate, Recognition is evidence), and two additive gaps to build (Organization as a subject, the transitivity engine). Every finding is a correction or an extension — none is a teardown.</div>
+  </section>
+
+  <!-- ════════════ D2 ════════════ -->
+  <section class="sec" id="d2" data-screen-label="D2 Canonical Ontology">
+    <div class="sh"><span class="n">D2</span><h2>Canonical Ontology</h2><span class="ey">freeze the five concepts</span></div>
+    <p class="lead"><strong>An ontology becomes doctrine the moment its terms stop drifting — so the audit freezes five concepts and rules each one's kind.</strong> The waves produced five load-bearing nouns: <span class="mn">EvidenceObject</span>, <span class="mn">CareerEvent</span>, <span class="mn">GraphNode</span>, <span class="mn">TrustProjection</span>, <span class="mn">TimelineProjection</span>. The freeze sorts them into exactly three kinds — an <strong>atom</strong> that is stored, an <strong>aggregate</strong> that is composed, and a <strong>projection</strong> that is computed and never stored — and rules each as permanent doctrine or merely canonical. The point of the exercise is the single law that falls out of it: <strong>store once, project many; never store a projection.</strong></p>
+
+    <div class="kicker">The canon register · five concepts, frozen</div>
+    <div class="canon">
+      <div class="canoncols"><span>Concept</span><span>What it is — frozen definition</span><span>Kind</span><span>Ruling</span></div>
+      <div class="crow spine">
+        <div class="cn"><b>EvidenceObject</b><span>W215 · the atom</span></div>
+        <div class="cd">A single <b>source-attributed assertion</b> about a subject, content-addressed and append-only. The one and only thing the system stores; every other concept dereferences to it.</div>
+        <div class="cc">Atom</div>
+        <div class="cr"><span class="rb perm">Permanent doctrine</span></div>
+      </div>
+      <div class="crow">
+        <div class="cn"><b>CareerEvent</b><span>W225 · re-classed</span></div>
+        <div class="cd">A dated, typed <b>moment composed of evidence</b> — a graduation, a license, a promotion. Canonical, but it is an <b>aggregate of EvidenceObjects</b>, not a second atom beside one.</div>
+        <div class="cc">Aggregate</div>
+        <div class="cr"><span class="rb keep">Canonical</span></div>
+      </div>
+      <div class="crow">
+        <div class="cn"><b>GraphNode</b><span>W220–W221</span></div>
+        <div class="cd">The <b>projected subject</b> of an EvidenceObject — a node placed on a shared anchor by <span class="mn">project()</span>. It stores no fact of its own; it dereferences to the atom it came from.</div>
+        <div class="cc">Projection</div>
+        <div class="cr"><span class="rb perm">Permanent doctrine</span></div>
+      </div>
+      <div class="crow">
+        <div class="cn"><b>TrustProjection</b><span>W222</span></div>
+        <div class="cd"><b>Belief computed at read time</b> over the graph — minted, propagated, decayed, compounded. Never a stored number; always a function of current evidence. The name itself enforces the rule.</div>
+        <div class="cc">Projection</div>
+        <div class="cr"><span class="rb perm">Permanent doctrine</span></div>
+      </div>
+      <div class="crow">
+        <div class="cn"><b>TimelineProjection</b><span>W225</span></div>
+        <div class="cd">The record <b>rendered across time</b> — an as-of view of the same ledger, lensed per audience. Time is a way of reading evidence, not a thing stored separately from it.</div>
+        <div class="cc">Projection</div>
+        <div class="cr"><span class="rb perm">Permanent doctrine</span></div>
+      </div>
+    </div>
+    <p class="cap">One atom, one aggregate, three projections · <b>four of the five are permanent doctrine; CareerEvent is canonical but demoted from atom to aggregate</b> — the only edit the freeze makes is to stop calling a composed thing an atomic one.</p>
+
+    <div class="kicker">The doctrine that falls out · everything is a projection of one ledger</div>
+    <div class="projdia">
+      <div class="substrate"><b>EvidenceObject ledger</b><span>the one store · append-only · clinician-owned</span></div>
+      <div class="fan"><i></i><i></i><i></i><i></i></div>
+      <div class="lenses">
+        <div class="lens"><b>Graph</b><span>where a fact connects</span><span class="fn">project( evidence )</span></div>
+        <div class="lens"><b>Trust</b><span>how much it's believed</span><span class="fn">trust( graph, now )</span></div>
+        <div class="lens"><b>Timeline</b><span>when it happened</span><span class="fn">timeline( ledger, as_of )</span></div>
+        <div class="lens"><b>Mobility</b><span>what it unlocks</span><span class="fn">match( trust, gates )</span></div>
+      </div>
+    </div>
+    <p class="cap">The canon in one picture · <b>one substrate, many lenses</b> — Graph, Trust, Timeline, and Mobility (W230) are all the same evidence ledger read through a different function, which is why no two of them can ever disagree about a fact.</p>
+
+    <div class="kicker">The three laws of the frozen ontology</div>
+    <div class="laws">
+      <div class="law"><div class="ln">01</div><div class="lc"><b>One store, never two.</b><p>Only the EvidenceObject is written. <code>store = { EvidenceObject }</code>. Graph, Trust, Timeline, and Mobility persist nothing of their own — if a fact appears to live in two places, one of them is a projection that must be recomputed, not saved.</p></div></div>
+      <div class="law"><div class="ln">02</div><div class="lc"><b>Projections are pure and reversible.</b><p>Every node, trust value, and timeline cell dereferences to the exact evidence it came from. <code>project⁻¹( x ) → evidence</code> always resolves. A projection that cannot be traced back to source is a bug, not a feature.</p></div></div>
+      <div class="law"><div class="ln">03</div><div class="lc"><b>An aggregate composes, it does not duplicate.</b><p>A CareerEvent is a named bundle of EvidenceObjects, not a copy of them. <code>CareerEvent = ⋃ evidence</code>. It carries no fact the atoms do not already hold — it only gives a set of them a date, a type, and a name.</p></div></div>
+    </div>
+    <div class="note"><span class="lb">Deliverable · Canonical Ontology</span><b>Five concepts, three kinds: one atom (EvidenceObject), one aggregate (CareerEvent), three projections (GraphNode, TrustProjection, TimelineProjection).</b> Four are permanent doctrine; CareerEvent is canonical but demoted from atom to aggregate. The doctrine they collapse into is a single law — <b>store once, project many; never store a projection</b> — and that law is itself the most permanent thing the wave produces.</div>
+  </section>
+
+  <!-- ════════════ D3 ════════════ -->
+  <section class="sec" id="d3" data-screen-label="D3 Future Entity Model">
+    <div class="sh"><span class="n">D3</span><h2>Future Entity Model</h2><span class="ey">which entities reach Wave 300</span></div>
+    <p class="lead"><strong>A first-class entity is one the system will still be modeling in seventy waves — so the audit tests eight candidates against that bar and lets most of them fail it.</strong> The candidates: Clinician, Organization, Opportunity, Recognition, Credential, Evidence, Trust, CareerEvent. The test is brutal and simple — <strong>does this need to be a thing of its own, or is it already something we canonized?</strong> Three survive as <strong>subjects</strong> the network is built around, two survive as the <strong>atom and aggregate</strong> from D2, one survives only as a <strong>projection</strong>, and two <strong>fold</strong> into evidence and graph entirely. Fewer entities, sharper canon.</p>
+
+    <div class="kicker">The survival test · eight candidates against Wave 300</div>
+    <div class="surv">
+      <div class="survcols"><span>Candidate</span><span>What it is today, and the ruling</span><span>Becomes</span><span>To W300</span></div>
+      <div class="srow">
+        <div class="sn"><b>Clinician</b><span>the subject</span></div>
+        <div class="sd">The person the whole record is <b>about</b>. The original and permanent subject — every EvidenceObject points at one. Nothing replaces it.</div>
+        <div class="sru"><span class="rb perm">First-class subject</span></div>
+        <div class="ssv y">✓</div>
+      </div>
+      <div class="srow">
+        <div class="sn"><b>Organization</b><span>promote</span></div>
+        <div class="sd">Today only an <b>anchor node</b> a clinician attaches to. Promoted to a <b>full subject</b> — orgs must carry their own evidence, trust, and memory for the network to have two sides.</div>
+        <div class="sru"><span class="rb perm">First-class subject</span></div>
+        <div class="ssv y">✓</div>
+      </div>
+      <div class="srow">
+        <div class="sn"><b>Opportunity</b><span>W230 object</span></div>
+        <div class="sd">The <b>OpportunityObject</b> — any opening expressed as gates over trust and evidence. The demand side of mobility; first-class and already specified.</div>
+        <div class="sru"><span class="rb perm">First-class object</span></div>
+        <div class="ssv y">✓</div>
+      </div>
+      <div class="srow">
+        <div class="sn"><b>Evidence</b><span>the atom</span></div>
+        <div class="sd">The <b>EvidenceObject</b> from D2 — the one store. Not negotiable; the foundation of everything above survives by definition.</div>
+        <div class="sru"><span class="rb perm">Atom · permanent</span></div>
+        <div class="ssv y">✓</div>
+      </div>
+      <div class="srow">
+        <div class="sn"><b>CareerEvent</b><span>the aggregate</span></div>
+        <div class="sd">The <b>dated bundle of evidence</b> from D2. Survives as the temporal aggregate — the unit a timeline plots and a milestone is set from.</div>
+        <div class="sru"><span class="rb keep">Aggregate · canonical</span></div>
+        <div class="ssv y">✓</div>
+      </div>
+      <div class="srow">
+        <div class="sn"><b>Trust</b><span>not an entity</span></div>
+        <div class="sd">Survives — but <b>never as a stored entity</b>. Trust is a TrustProjection: computed at read time, never written to a table. It reaches W300 as a function, not a noun.</div>
+        <div class="sru"><span class="rb keep">Projection only</span></div>
+        <div class="ssv y">✓</div>
+      </div>
+      <div class="srow fold-r">
+        <div class="sn"><b>Recognition</b><span>fold in</span></div>
+        <div class="sd">Not its own entity. A recognition is a <b>conferred EvidenceObject</b> — an assertion whose source is a third party with standing. It folds entirely into Evidence.</div>
+        <div class="sru"><span class="rb fold">Folds → Evidence</span></div>
+        <div class="ssv n">—</div>
+      </div>
+      <div class="srow fold-r">
+        <div class="sn"><b>Credential</b><span>fold in</span></div>
+        <div class="sd">Not its own entity. A credential is a <b>cluster of authority evidence</b> projected onto a node — a license is EvidenceObjects on a GraphNode. It folds into the Graph.</div>
+        <div class="sru"><span class="rb fold">Folds → Graph</span></div>
+        <div class="ssv n">—</div>
+      </div>
+    </div>
+    <p class="cap">Eight in, six survive, two fold · <b>three subjects, one atom, one aggregate, one projection reach Wave 300; Recognition and Credential do not</b> — they were never primitives, only evidence wearing a more specific name.</p>
+
+    <div class="kicker">What survives, sorted · the permanent shape of the system</div>
+    <div class="emerg">
+      <div class="ec"><div class="ei">Tier · Subjects</div><h4>Clinician · Organization · Opportunity</h4><p><b>The three things the network connects.</b> A clinician offers a career, an organization offers a place, an opportunity defines a fit. Every edge in the network is ultimately between two of these — promoting Organization is what gives the graph its second pole.</p></div>
+      <div class="ec"><div class="ei">Tier · Substrate</div><h4>EvidenceObject · CareerEvent</h4><p><b>The atom and its aggregate.</b> One stored fact, and the dated bundles those facts compose into. Everything a subject "is" reduces to evidence about it and the events that evidence forms — nothing else is ever written down.</p></div>
+      <div class="ec"><div class="ei">Tier · Projections</div><h4>Graph · Trust · Timeline · Mobility</h4><p><b>The ways the substrate is read.</b> Structure, belief, time, and opportunity — four functions over one ledger, none of them stored. Recognition and Credential live here too, as named patterns of evidence, not entities of their own.</p></div>
+    </div>
+    <div class="note"><span class="lb">Deliverable · Future Entity Model</span><b>Six of eight candidates reach Wave 300: three subjects (Clinician, Organization, Opportunity), the atom and aggregate (EvidenceObject, CareerEvent), and Trust as a projection only.</b> Recognition folds into Evidence; Credential folds into the Graph; Trust is never a stored entity. The single forward move the model demands is the <b>promotion of Organization to a full subject</b> — the one addition that turns a record about people into a network between them.</div>
+  </section>
+
+  <!-- ════════════ D4 ════════════ -->
+  <section class="sec" id="d4" data-screen-label="D4 Network Readiness Review">
+    <div class="sh"><span class="n">D4</span><h2>Network Readiness Review</h2><span class="ey">ship without redesign?</span></div>
+    <p class="lead"><strong>The final test is the only one that matters commercially: can the products the company has promised be built on this substrate as it stands — or does each one demand a teardown first?</strong> Five products are on the roadmap: <span class="mn">Career Wallet</span>, <span class="mn">Mobility Engine</span>, <span class="mn">Opportunity Matching</span>, <span class="mn">Professional Reputation</span>, and <span class="mn">Network Effects</span>. Each is checked against one bar — is it <strong>native</strong> to the substrate (already expressible as a projection of the ledger), or does it <strong>need new build</strong>? And critically: of the things that need building, does any of them require the foundation itself to change? The answer decides the wave.</p>
+
+    <div class="kicker">The readiness matrix · five products against the substrate</div>
+    <div class="ready">
+      <div class="readycols"><span>Product</span><span>What it requires</span><span>Does the substrate provide it</span><span>Ruling</span></div>
+      <div class="rrow2">
+        <div class="rn2"><b>Career Wallet</b><span>own & carry</span></div>
+        <div class="rd2">A clinician-held, portable record they take from job to job without re-proving anything.</div>
+        <div class="rs2"><b>It is the substrate.</b> The wallet <b>is</b> the clinician-owned EvidenceObject ledger — already content-addressed and portable.</div>
+        <div class="rv2"><span class="rb perm">Native</span></div>
+      </div>
+      <div class="rrow2">
+        <div class="rn2"><b>Mobility Engine</b><span>trust → role</span></div>
+        <div class="rd2">Convert verified trust into cleared gates for more valuable roles, with named gaps where it falls short.</div>
+        <div class="rs2"><b>Already built (W230).</b> Gates run over the TrustProjection; nothing new in the foundation is required.</div>
+        <div class="rv2"><span class="rb perm">Native</span></div>
+      </div>
+      <div class="rrow2">
+        <div class="rn2"><b>Opportunity Matching</b><span>fit & rank</span></div>
+        <div class="rd2">Match a career to openings by projecting its evidence onto each opportunity's requirements and ranking fit.</div>
+        <div class="rs2"><b>Native engine, thin supply.</b> The match function exists; it <b>scales</b> once Organization is a first-class subject (D3) — not a redesign, a population.</div>
+        <div class="rv2"><span class="rb keep">Native · scales on D3</span></div>
+      </div>
+      <div class="rrow2">
+        <div class="rn2"><b>Professional Reputation</b><span>standing</span></div>
+        <div class="rd2">A durable, hard-to-fake standing that the field reads and an evaluator can trust.</div>
+        <div class="rs2"><b>Emerges, not built.</b> Reputation is the top of the projection ladder — evidence → trust → recognition → reputation. No new primitive.</div>
+        <div class="rv2"><span class="rb perm">Native</span></div>
+      </div>
+      <div class="rrow2 build-r">
+        <div class="rn2"><b>Network Effects</b><span>transitive trust</span></div>
+        <div class="rd2">Trust that flows <b>between careers</b> through shared anchors, so each new verified clinician makes the others more valuable.</div>
+        <div class="rs2"><b>Needs new build — no redesign.</b> Shared anchors already exist (W220); the <b>transitivity engine</b> over them is the one piece not yet written. It extends the substrate; it does not alter it.</div>
+        <div class="rv2"><span class="rb build">Build · no redesign</span></div>
+      </div>
+    </div>
+    <p class="cap">Four native, one to build · <b>nothing on the roadmap requires the foundation to change</b> — three products are native today, one scales once Organization is promoted, and only Network Effects needs a new engine, written <b>on</b> the substrate rather than <b>under</b> it.</p>
+
+    <div class="grid2" style="margin-top:16px">
+      <div class="card"><div class="ph"><span>The decisive result</span><b>no redesign required</b></div><div class="bd"><p><strong>Every one of the five products is expressible as a projection of, or an extension to, the existing EvidenceObject ledger.</strong> Not one of them asks for a second store, a mutated fact, or a different atom. The only net-new code is the <strong>transitivity engine</strong> for network effects and the <strong>population</strong> of Organization as a subject — both additive.</p></div></div>
+      <div class="card"><div class="ph"><span>Why that is the whole point</span><b>additive, not corrective</b></div><div class="bd"><p><strong>A correct foundation is one you build <em>on</em>, never <em>over</em>.</strong> The readiness review is really a test of that single property: does the next decade of product sit on top of W215's atom, or does it force a return to it? It sits on top. The substrate carries the roadmap, and the roadmap never reaches back down to change the substrate.</p></div></div>
+    </div>
+    <div class="note"><span class="lb">Deliverable · Network Readiness Review</span><b>Four of five products are native to the substrate; the fifth needs a new engine but no redesign.</b> Career Wallet is the ledger itself, Mobility is already built, Reputation emerges from the projection ladder, and Matching scales the moment Organization is promoted. Only Network Effects requires net-new code — a transitivity engine written on the substrate, never under it. The foundation carries the entire roadmap without being touched.</div>
+  </section>
+
+  <!-- ════════════ 05 · VERDICT ════════════ -->
+  <section class="sec" id="synth" data-screen-label="The Verdict">
+    <div class="sh"><span class="n">05</span><h2>The Verdict</h2><span class="ey">have we built the correct foundation?</span></div>
+    <p class="lead">The four deliverables converge on one judgment. The layers are orthogonal and non-redundant; the ontology freezes to one atom, one aggregate, and a family of projections; six entities survive to Wave 300 and two correctly fold away; and the roadmap ships on the substrate without a redesign. Read together they answer the wave's six questions — and the one question those six were always asking.</p>
+
+    <div class="ans">
+      <div class="qrow"><div class="aq"><span class="an">Q1</span>Does each layer have a unique purpose?</div><div class="aa"><b>Yes — and that is the architecture's whole strength.</b> Evidence stores the fact, Graph connects it, Trust weighs it, Timeline times it. Four orthogonal axes of one record. The decisive property is that <b>only Evidence stores</b>; Graph, Trust, and Timeline are pure projections — which is exactly why they can never contradict each other.</div></div>
+      <div class="qrow"><div class="aq"><span class="an">Q2</span>Is anything redundant?</div><div class="aa"><b>No fact is stored twice — only two names drifted.</b> "Professional Memory" was defined as eleven classes and again as five layers; trust dimensions slid from six to seven. Both are vocabulary, not structure. The fix is to <b>freeze one definition each</b>, which D2 does — there is no redundant store to remove.</div></div>
+      <div class="qrow"><div class="aq"><span class="an">Q3</span>Is anything misplaced?</div><div class="aa"><b>Two things, both re-classed not rebuilt.</b> <b>CareerEvent</b> was billed as a second atom; it is an aggregate of evidence and moves up one level. <b>Recognition</b> was treated as a primitive; it is a conferred EvidenceObject and folds into Evidence. Correcting placement costs a definition, not a migration.</div></div>
+      <div class="qrow"><div class="aq"><span class="an">Q4</span>Is anything missing?</div><div class="aa"><b>Two additive pieces.</b> <b>Organization</b> must be promoted from anchor to full subject so the network has a second pole, and the <b>cross-career transitivity engine</b> must be written so trust can flow between careers. Both extend the substrate; <code>neither touches the atom</code>. Missing is not the same as wrong.</div></div>
+      <div class="qrow"><div class="aq"><span class="an">Q5</span>Which concepts are permanent doctrine?</div><div class="aa"><b>The EvidenceObject and the projection law.</b> One store, append-only, clinician-owned — and the rule that everything else is computed from it: <code>store once, project many; never store a projection</code>. GraphNode, TrustProjection, and TimelineProjection are doctrine because they encode that law in their very names.</div></div>
+      <div class="qrow last"><div class="aq"><span class="an">Q6</span>Have we built the correct foundation?</div><div class="aa"><b>Yes.</b> The system has exactly one store and reads it through many lenses; nothing on the roadmap forces a return to the atom to change it. The foundation is not just adequate — it is the kind you spend a decade building <b>on</b>. It earns its expansion. <b>VitalCV stops asking whether the architecture holds and starts building the network it was always for.</b></div></div>
+    </div>
+
+    <div class="verdict">
+      <div class="vh"><span>Determination · W228 · System Canonization</span><b>the foundation is correct — expand it</b></div>
+      <div class="vb">
+        <h3>One store, many projections. <em>The Evidence Network is coherent, and it deserves the decade that follows.</em></h3>
+        <p>Thirteen waves produced an architecture with a single immutable atom, one append-only ledger, and a law that makes Graph, Trust, Timeline, and Mobility all reversible projections of it. The audit found <b>no structural redundancy, no misplaced store, and no roadmap product that requires a redesign</b> — only naming to reconcile, two concepts to re-class, and additive engines to build. The verdict is unambiguous: <b>this is the correct foundation.</b> Canonization closes not by adding to it, but by clearing it for expansion — with exactly three moves.</p>
+        <div class="vmoves">
+          <div class="vm">
+            <div class="vmt">Move 01 · promote</div>
+            <h4>Organization → subject</h4>
+            <p><b>Give the network its second pole.</b> An organization gets its own evidence, trust, and memory — the single addition that turns a record about clinicians into a network between clinicians and the places they work.</p>
+          </div>
+          <div class="vm demote">
+            <div class="vmt">Move 02 · demote</div>
+            <h4>Recognition · Credential → fold in</h4>
+            <p><b>Stop minting primitives that already exist.</b> Recognition is conferred evidence; a credential is evidence on a node. Folding both into the atom and the graph keeps the canon small and the store singular.</p>
+          </div>
+          <div class="vm build">
+            <div class="vmt">Move 03 · build</div>
+            <h4>Transitivity engine</h4>
+            <p><b>Light up the network effect.</b> Write the one missing engine — trust that flows between careers through shared anchors — on top of the substrate, never under it. The last piece, and the only net-new foundation-level code.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="note"><span class="lb">Canon · frozen at W228</span><b>The EvidenceObject is the atom and the only store. CareerEvent is its aggregate. Graph, Trust, Timeline, and Mobility are projections — computed, reversible, never stored. The subjects are Clinician, Organization, and Opportunity. The law is: store once, project many.</b> Everything VitalCV builds from Wave 229 forward inherits this canon unchanged — because the audit's finding is that it does not need to change. The foundation is correct; the network is cleared to grow.</div>
+  </section>
+
+  </main>
+
+  <footer class="foot-page">
+    <span>VitalCV · Wave 228 · System Canonization</span>
+    <span>role: claude design · <b>D1–D4 + verdict</b></span>
+    <span>vc.2026.06.21 · w228 · v1 · <b>foundation correct · expand it</b></span>
+  </footer>
+
+</div>
+</body>
+</html>

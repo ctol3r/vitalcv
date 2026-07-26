@@ -5,21 +5,22 @@
       "label": "Homepage",
       "entryFile": "apps/web/app/page.tsx",
       "copySources": [
-        "apps/web/components/layout/Navbar.tsx",
-        "apps/web/components/hero/HeroWithAuthPrompt.tsx",
-        "apps/web/components/hero/LiveTrustConsole.tsx",
-        "apps/web/components/home/PublicTruthSections.tsx",
-        "apps/web/components/marketing/HomeSections.tsx"
+        "apps/web/components/home/film/HorizontalCareerFilm.tsx",
+        "apps/web/components/home/film/scenes.ts",
+        "apps/web/components/home/film/FilmRecord.tsx",
+        "apps/web/components/home/film/FilmFit.tsx",
+        "apps/web/components/home/film/FilmSignature.tsx",
+        "apps/web/components/home/LiveNpiResult.tsx",
+        "apps/web/components/home/TruthBoundary.tsx",
+        "apps/web/components/proof/ProofPacketInspector.tsx",
+        "apps/web/lib/trust/sourceLanes.ts"
       ]
     },
     {
       "id": "developer-shell",
       "label": "Developer shell",
-      "entryFile": "apps/web/app/developers/page.tsx",
-      "copySources": [
-        "apps/web/app/docs/page.tsx",
-        "apps/api/backend/src/services/search/searchIndex.ts"
-      ]
+      "entryFile": "apps/web/app/docs/page.tsx",
+      "copySources": ["apps/api/backend/src/services/search/searchIndex.ts"]
     },
     {
       "id": "buyer-pilot",

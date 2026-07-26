@@ -8,18 +8,18 @@
 const nodes = [
   { id: 'npi', label: 'NPI', x: 200, y: 60 },
   { id: 'license', label: 'Medical License', x: 80, y: 180 },
-  { id: 'board', label: 'Board Cert', x: 200, y: 220 },
-  { id: 'dea', label: 'DEA', x: 320, y: 180 },
+  { id: 'exclusions', label: 'OIG Exclusions', x: 200, y: 220 },
+  { id: 'enrollment', label: 'CMS Enrollment', x: 320, y: 180 },
   { id: 'vc', label: 'Verifiable Credential', x: 200, y: 340 },
 ];
 
 const edges: [string, string][] = [
   ['npi', 'license'],
-  ['npi', 'board'],
-  ['npi', 'dea'],
+  ['npi', 'exclusions'],
+  ['npi', 'enrollment'],
   ['license', 'vc'],
-  ['board', 'vc'],
-  ['dea', 'vc'],
+  ['exclusions', 'vc'],
+  ['enrollment', 'vc'],
 ];
 
 function getNode(id: string) {
@@ -40,9 +40,9 @@ export function GraphPreview() {
               One identity. Every credential. Linked and verifiable.
             </p>
             <p className="mt-4 text-base leading-relaxed text-muted">
-              VitalCV builds a connected graph of clinician credentials
-              — NPI, state licenses, board certifications, DEA registrations —
-              all anchored to a single portable identity.
+              VitalCV builds a connected graph of clinician evidence
+              — NPI identity, state licenses, OIG exclusion checks, CMS
+              enrollment — all anchored to a single portable identity.
             </p>
           </div>
 
@@ -51,7 +51,7 @@ export function GraphPreview() {
             <svg
               viewBox="0 0 400 400"
               className="h-[320px] w-[320px] md:h-[400px] md:w-[400px]"
-              aria-label="Credential graph showing NPI connected to license, board certification, DEA, and verifiable credential"
+              aria-label="Credential graph showing NPI connected to license, OIG exclusions, CMS enrollment, and verifiable credential"
               role="img"
             >
               {/* Edges */}

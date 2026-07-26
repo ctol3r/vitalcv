@@ -1,0 +1,524 @@
+/**
+ * matcha-zen.css — VitalCV "Calm Wave D56 / Zenlike" design layer for the MATCHA surfaces.
+ *
+ * Ported from the design handoff (docs/design/zenlike-ui-doctrine.md). Paper + ink, Geist prose,
+ * mono eyebrows/tokens, editorial serif display with italic indigo accents, near-sharp borders,
+ * semantic truth-state chips. Calm 320ms motion, single-shot only — NO gradients, NO looping
+ * animations, NO decorative visuals (doctrine §1.4 / §3).
+ *
+ * Everything is scoped under `.mz` so it never bleeds into the rest of the app. A surface adds
+ * className="mz" on its root; children use `.mz-*` classes.
+ */
+
+.mz {
+  /* Paper & ink — Calm Wave D56 exact tokens. Warm near-white paper (hue 85),
+     cool blue-black ink (hue 265). oklch, as the source design authored them. */
+  /* Lighter off-white palette (Homepage Motion Convergence Wave) — exact hexes. */
+  --paper:   #FAFAF8;
+  --paper-2: #F5F5F2;
+  --card:    #FFFFFF;
+  --ink-950: oklch(12% 0.012 265);
+  --ink-900: oklch(18% 0.012 265);
+  --ink-800: oklch(26% 0.012 265);
+  --ink-700: oklch(34% 0.011 265);
+  --ink-600: oklch(46% 0.010 265);
+  --ink-500: oklch(62% 0.008 265);
+  --ink-400: oklch(72% 0.007 265);
+  --ink-300: oklch(82% 0.007 265);
+  --ink-200: oklch(88% 0.007 265);
+  --ink-100: oklch(93% 0.006 265);
+  --ink-50:  oklch(96.5% 0.005 85);
+  --rule:      #E2E1DC;
+  --rule-soft: #EBEAE5;
+
+  /* Truth states — paired ink + wash + rule (design values, never neon) */
+  --ok: oklch(46% 0.10 152);        --ok-bg: oklch(94% 0.03 152);       --ok-rule: oklch(80% 0.06 152);
+  --watch: oklch(54% 0.10 78);      --watch-bg: oklch(95% 0.04 78);     --watch-rule: oklch(82% 0.07 78);
+  --unknown: oklch(48% 0.008 265);  --unknown-bg: oklch(94% 0.005 265); --unknown-rule: oklch(85% 0.006 265);
+  --p0: oklch(48% 0.16 25);         --p0-bg: oklch(94% 0.04 25);        --p0-rule: oklch(82% 0.09 25);
+
+  /* Single accent — ink-indigo (deep, muted — not the old bright #4f46e5) */
+  --accent: oklch(38% 0.14 274);
+
+  /* Fonts — reuse the app's exposed variables (Geist/serif/mono → system fallbacks) */
+  --mz-sans: var(--font-geist, var(--vt-font-body, ui-sans-serif, system-ui, sans-serif));
+  --mz-mono: var(--font-geist-mono, var(--font-mono, ui-monospace, 'JetBrains Mono', monospace));
+  --mz-serif: var(--vt-font-display, var(--font-fraunces, Georgia, 'Times New Roman', serif));
+
+  --mz-ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --mz-dur: 320ms;
+
+  color: var(--ink-900);
+  font-family: var(--mz-sans);
+  font-size: 15px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Opt-in paper canvas for full standalone surfaces. */
+.mz-paper { background: var(--paper); }
+
+/**
+ * Compatibility bridge: inside `.mz`, alias the app's --vt-* tokens to the Calm Wave palette.
+ * This recolors existing inline `var(--vt-*)` styles (teal → indigo, surfaces → paper/card,
+ * text → ink) without rewriting every component. Scoped to .mz so the rest of the app is
+ * untouched. Pair with `.mz-paper` on the surface root so ink text always sits on paper.
+ */
+.mz {
+  --vt-accent: var(--accent);
+  --vt-accent-emerald: var(--ok);
+  --vt-surface: var(--card);
+  --vt-surface-subtle: var(--paper-2);
+  --vt-bg: var(--paper);
+  --vt-border: var(--rule);
+  --vt-border-subtle: var(--rule-soft);
+  --vt-text-primary: var(--ink-900);
+  --vt-text-secondary: var(--ink-600);
+  /* AUD-2.1: muted TEXT must meet WCAG AA (4.5:1). --ink-400 (oklch 72%) was
+     only ~2.4:1 on paper — unusable for body text, and even below large-text
+     AA. The semantic text token is pinned to an AA-legible ink here; --ink-400
+     itself is unchanged for decorative (aria-hidden) use like dot separators. */
+  --vt-text-muted: oklch(53% 0.008 265);
+  --vt-status-resolved: var(--ok);
+  --vt-state-verified: var(--ok);
+  --vt-risk-high: var(--p0);
+  --vt-risk-medium: var(--watch);
+  --vt-accent-strong: var(--ink-900);
+}
+
+/**
+ * ── Cloud Dancer public paper (HERO-RESET-1) ─────────────────────────────────
+ * Opt-in paper override for PUBLIC marketing/home surfaces: the page paper is
+ * --vt-cloud-dancer (PANTONE 11-4201 "Cloud Dancer" web approximation — the
+ * physical swatch is the authority; this is a deliberate on-screen match, not
+ * a claimed Pantone conversion). Raised cards get a slightly lighter warm
+ * surface so they never camouflage white-on-off-white, and rules step up in
+ * contrast against the deeper paper. Add `mz-cloud-paper` next to `mz
+ * mz-paper` on a surface root to opt in.
+ *
+ * Scope discipline: `.mz-cloud-paper .mz` re-covers nested `.mz` elements
+ * (the base `.mz` rule re-declares --paper on every one of them), and this
+ * block sits BEFORE the `.dark .mz` block on purpose — equal specificity, so
+ * source order keeps dark mode's own paper authoritative. Signed-in, dark,
+ * admin, and verification surfaces are untouched.
+ */
+.mz-cloud-paper,
+.mz-cloud-paper .mz {
+  --paper: var(--vt-cloud-dancer, #F0EEE9);
+  --paper-2: #E8E5DC;
+  --card: #FBFAF6;
+  --rule: #C9C3B6;
+  --rule-soft: #DAD5C9;
+  /* AA on the deeper paper: the bridge's oklch(53%) muted ink measures ~4.5:1
+     against Cloud Dancer — too thin. One step darker holds ≥4.9:1. */
+  --vt-text-muted: oklch(50% 0.008 265);
+}
+
+/**
+ * ── Dark mode ─────────────────────────────────────────────────────────────────
+ * A dark Calm Wave: warm charcoal "paper", warm off-white "ink", indigo accent
+ * brightened for contrast. Only the BASE tokens are redefined here — the --vt-*
+ * bridge above resolves through them, so every `.mz` surface (homepage included)
+ * flips together with no per-component changes. Activated by next-themes adding
+ * `.dark` on <html>.
+ */
+.dark .mz {
+  /* Warm charcoal paper */
+  --paper: #15140f;
+  --paper-2: #1d1b15;
+  --card: #1b1915;
+
+  /* Ink ramp inverted: 950/900 = brightest (primary text on dark),
+     low numbers sit nearest the paper (subtle borders / raised fills). */
+  --ink-950: #faf9f4;
+  --ink-900: #f1efe8;
+  --ink-800: #e2dfd6;
+  --ink-700: #c9c5bb;
+  --ink-600: #a6a297;
+  --ink-500: #89857b;
+  --ink-400: #6e6a61;
+  --ink-300: #514e46;
+  --ink-200: #3a3830;
+  --ink-100: #2a2822;
+  --ink-50: #201e19;
+  --rule: #322f29;
+  --rule-soft: #262420;
+
+  /* Keep muted TEXT mode-appropriate on dark paper (the light .mz literal above
+     would otherwise leak in). --ink-500 is a legible warm grey on charcoal. */
+  --vt-text-muted: var(--ink-500);
+
+  /* Truth states — same hues, lifted foregrounds on deep backgrounds. */
+  --ok: #6cc79a;        --ok-bg: #10241a;      --ok-rule: #245c3d;
+  --watch: #dab662;     --watch-bg: #241d0f;   --watch-rule: #6b5620;
+  --unknown: #c7c3b9;   --unknown-bg: #201e1a; --unknown-rule: #423f38;
+  --p0: #f0a2a2;        --p0-bg: #2a1414;      --p0-rule: #6b2222;
+
+  /* Brighten the italic-display accent so it reads on charcoal. */
+  --accent: #8f88f6;
+}
+
+/* ── Typography ───────────────────────────────────────────────────────────── */
+
+.mz-display {
+  margin: 0;
+  font-family: var(--mz-serif);
+  font-weight: 500;
+  /* Design --text-display (wave1500 01-primitives): the hero display face is the
+     dominant element on the page. Was capped at 3.6rem/58px, which read smaller
+     than the Claude Design reference; the design scale runs to 68px. */
+  font-size: clamp(2.375rem, 5.2vw, 4.25rem);
+  line-height: 1.03;
+  letter-spacing: -0.021em;
+  color: var(--ink-950);
+}
+/* The homepage hero only. A modifier rather than a bump to `.mz-display`,
+   which seven other surfaces share at the current scale. The first screen is
+   now single-purpose — one headline, one control, one visual — and at 68px the
+   headline could not carry a full viewport on its own. */
+.mz-display-hero {
+  font-size: clamp(2.75rem, 6.6vw, 5.75rem);
+  letter-spacing: -0.028em;
+}
+
+.mz-accent { font-style: italic; color: var(--accent); }
+
+.mz-h1 { margin: 0; font-family: var(--mz-serif); font-weight: 500; font-size: clamp(1.6rem, 3vw, 2.1rem); line-height: 1.12; letter-spacing: -0.02em; color: var(--ink-950); }
+.mz-h2 { margin: 0; font-weight: 600; font-size: 1.05rem; line-height: 1.25; letter-spacing: -0.01em; color: var(--ink-900); }
+.mz-lede { margin: 0; font-size: 1.0625rem; line-height: 1.55; color: var(--ink-600); }
+.mz-body { margin: 0; font-size: 0.9375rem; line-height: 1.55; color: var(--ink-700); }
+/* --vt-text-muted, not the raw --ink-500. The raw ramp value is oklch(62%),
+   which measures 3.64:1 on white, 3.49:1 on --card, and 3.14:1 on Cloud
+   Dancer — all below WCAG AA's 4.5:1 for body-size text. The bridge token is
+   the AA-corrected one (53%, and 50% under .mz-cloud-paper): 5.27 / 5.04 /
+   5.19 respectively. This was live on production; CI could not see it because
+   the axe gate whitelists `color-contrast`.
+
+   No var() fallback: --vt-text-muted is scoped to .mz, and every file using
+   .mz-small was checked to carry a .mz root, so it is always in scope. A
+   literal fallback here would also be a raw colour outside the token files,
+   which design-lint LINT-01 correctly rejects. */
+.mz-small { font-size: 0.8125rem; color: var(--vt-text-muted); }
+.mz-mono { font-family: var(--mz-mono); font-variant-numeric: tabular-nums; }
+
+.mz-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--mz-mono);
+  font-size: 9.5px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+  /* AUD-2.1: eyebrows are small (9.5px) informational labels and must meet AA.
+     --ink-400 (oklch 72%) was 2.37:1; the AA-legible muted text token is
+     ~5:1 and stays mode-aware (light/dark). */
+  color: var(--vt-text-muted);
+}
+.mz-eyebrow::after { content: ''; width: 40px; height: 1px; background: var(--rule); }
+
+/* RETIRED 2026-07-25 — do not reintroduce a chapter index here.
+   A numbered 01–06 eyebrow sequence was added on 07-21 to give the body one
+   spine instead of five competing theses. It worked for that, but the
+   competitive mandate (docs/strategy/competitive-mandate.md) had already
+   forbidden it the same day, on two counts:
+     · guardrail 5 — "No visible section taxonomy or generic feature headers."
+     · guardrail 6 — "No marketing-number theatre. No giant counters,
+       steps `01–06`, percentage rings…"
+   The real fix for a body that argues five times is the six-scene horizontal
+   film, where a scene IS the sequence and needs no printed number. Numbering
+   was a symptom-level patch on a composition the mandate retires outright. */
+
+/* ── Buttons ──────────────────────────────────────────────────────────────── */
+
+.mz-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border: 1px solid var(--ink-900);
+  background: var(--ink-900);
+  color: var(--paper); /* contrast vs ink-900; flips correctly in dark (paper=charcoal, ink=light) */
+  border-radius: 3px;
+  font-family: var(--mz-sans);
+  font-size: 13.5px;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background var(--mz-dur) var(--mz-ease), transform 80ms var(--mz-ease);
+}
+.mz-btn:hover { background: var(--ink-700); }
+.mz-btn:active { transform: translateY(1px); }
+
+.mz-btn-ghost {
+  background: transparent;
+  color: var(--ink-900);
+  border-color: var(--rule);
+}
+.mz-btn-ghost:hover { background: var(--ink-50); border-color: var(--ink-300); }
+
+.mz-btn-sm { padding: 7px 13px; font-size: 12.5px; }
+
+/* ── Cards / surfaces ─────────────────────────────────────────────────────── */
+
+.mz-card {
+  border: 1px solid var(--rule);
+  background: var(--card);
+  border-radius: 3px;
+}
+.mz-card-pad { padding: 20px; }
+.mz-card-hd {
+  padding: 15px 20px;
+  border-bottom: 1px solid var(--rule);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.mz-card-ttl { font-size: 13.5px; font-weight: 600; color: var(--ink-900); letter-spacing: -0.005em; }
+.mz-inset { background: var(--paper-2); border: 1px solid var(--rule-soft); border-radius: 3px; }
+
+/* Hairline-lift for interactive cards — border darkens, no shadow bloom, no lift bounce. */
+.mz-interactive { transition: border-color var(--mz-dur) var(--mz-ease), background var(--mz-dur) var(--mz-ease); }
+.mz-interactive:hover { border-color: var(--ink-400); }
+
+/* ── State chips ──────────────────────────────────────────────────────────── */
+
+.mz-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 10px;
+  border: 1px solid;
+  border-radius: 2px;
+  font-family: var(--mz-mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.mz-gl { width: 8px; height: 8px; flex: 0 0 auto; border-radius: 1px; }
+.mz-chip-ok { color: var(--ok); background: var(--ok-bg); border-color: var(--ok-rule); }
+.mz-chip-ok .mz-gl { background: var(--ok); }
+.mz-chip-watch { color: var(--watch); background: var(--watch-bg); border-color: var(--watch-rule); }
+.mz-chip-watch .mz-gl { background: var(--watch); border-radius: 50%; }
+.mz-chip-unknown { color: var(--unknown); background: var(--unknown-bg); border-color: var(--unknown-rule); }
+.mz-chip-unknown .mz-gl { background: var(--unknown); opacity: 0.5; }
+.mz-chip-p0 { color: var(--p0); background: var(--p0-bg); border-color: var(--p0-rule); }
+.mz-chip-p0 .mz-gl { background: var(--p0); clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%); }
+
+/* ── Inputs / field ───────────────────────────────────────────────────────── */
+
+.mz-input {
+  width: 100%;
+  padding: 11px 13px;
+  border: 1px solid var(--ink-300);
+  background: var(--card);
+  color: var(--ink-900);
+  border-radius: 3px;
+  font: inherit;
+  font-size: 14px;
+  outline: none;
+  transition: border-color var(--mz-dur) var(--mz-ease);
+}
+.mz-input:focus { border-color: var(--ink-900); }
+.mz-input::placeholder { color: var(--ink-400); }
+
+.mz-field { display: flex; border: 1px solid var(--ink-900); background: var(--card); border-radius: 3px; overflow: hidden; }
+/* Same AA correction as .mz-small above — and this one is 10px, where the
+   4.5:1 floor applies with no large-text exemption at all. */
+.mz-field .mz-prefix { padding: 0 14px; display: flex; align-items: center; font-family: var(--mz-mono); font-size: 10px; color: var(--vt-text-muted); text-transform: uppercase; letter-spacing: 0.14em; border-right: 1px solid var(--rule); background: var(--ink-50); }
+.mz-field input { flex: 1; border: 0; padding: 13px 15px; font: inherit; font-size: 15px; color: var(--ink-900); background: transparent; outline: none; font-variant-numeric: tabular-nums; }
+
+/* ── Selectable chips (options) ───────────────────────────────────────────── */
+
+.mz-opt {
+  padding: 8px 13px;
+  border: 1px solid var(--ink-200);
+  background: var(--card);
+  border-radius: 3px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink-700);
+  cursor: pointer;
+  transition: border-color var(--mz-dur) var(--mz-ease), background var(--mz-dur) var(--mz-ease);
+}
+.mz-opt:hover { border-color: var(--ink-400); }
+.mz-opt[aria-pressed='true'] { border-color: var(--ink-900); background: var(--ink-900); color: var(--paper); }
+
+/* ── Progress meter (accent fill, no gradient) ────────────────────────────── */
+
+.mz-meter { height: 5px; border-radius: 999px; background: var(--ink-100); overflow: hidden; }
+/* Accent, not ink: a near-black bar reads as an error/void. The fill follows
+   the surface persona (holder indigo, employer green, …). */
+.mz-meter > span { display: block; height: 100%; background: var(--accent); border-radius: 999px; transition: width var(--mz-dur) var(--mz-ease); }
+/* Source-backed contexts can opt into the ok-green fill. */
+.mz-meter-ok > span { background: var(--ok); }
+
+/* ── Dotted grid backdrop (static, calm) ──────────────────────────────────── */
+
+.mz-dotgrid {
+  background-image: radial-gradient(var(--ink-200) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   CALM GLASS — the "calm glass" synthesis layer (2026-07-07).
+   Calm Wave stays the substrate (paper, ink, Fraunces/Geist, hairlines); this
+   adds a restrained frosted-translucent + soft-neuromorphic treatment for the
+   FLOATING surfaces only (nav, cards, modals, hero card, constellation frame).
+   Light-palette glass — paper-tinted translucency, never dark, never glossy-
+   plasticky. Reusable across every persona so the platform reads as one system.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Frosted paper glass. Reads best over ambient washes / imagery / the
+   constellation; over flat paper it's a soft raised card with a light top edge. */
+.mz-glass {
+  /* Legible on flat paper (whiter fill, defined hairline, a close grounding
+     shadow) while staying frosted — the blur still refracts over ambient
+     washes / imagery / the constellation. */
+  background: color-mix(in oklch, var(--card) 88%, transparent);
+  -webkit-backdrop-filter: blur(18px) saturate(150%);
+  backdrop-filter: blur(18px) saturate(150%);
+  border: 1px solid color-mix(in oklch, var(--ink-900) 13%, transparent);
+  border-radius: 10px;
+  box-shadow:
+    inset 0 1px 0 0 color-mix(in oklch, white 62%, transparent),      /* top inner light — neuromorphic lift */
+    inset 0 -1px 0 0 color-mix(in oklch, var(--ink-900) 4%, transparent),
+    0 2px 6px -3px color-mix(in oklch, var(--ink-900) 10%, transparent),   /* close grounding */
+    0 24px 55px -32px color-mix(in oklch, var(--ink-900) 40%, transparent); /* soft float */
+}
+/* A deeper elevation for modals / hero moments. */
+.mz-glass-strong {
+  background: color-mix(in oklch, var(--card) 82%, transparent);
+  -webkit-backdrop-filter: blur(26px) saturate(160%);
+  backdrop-filter: blur(26px) saturate(160%);
+  border: 1px solid color-mix(in oklch, var(--ink-900) 10%, transparent);
+  border-radius: 14px;
+  box-shadow:
+    inset 0 1px 0 0 color-mix(in oklch, white 62%, transparent),
+    0 40px 90px -44px color-mix(in oklch, var(--ink-900) 50%, transparent);
+}
+/* A faint recessed glass — inputs, insets (soft neuromorphic press). */
+.mz-glass-inset {
+  background: color-mix(in oklch, var(--paper-2) 70%, transparent);
+  border: 1px solid var(--rule-soft);
+  border-radius: 8px;
+  box-shadow: inset 0 1px 3px color-mix(in oklch, var(--ink-900) 6%, transparent);
+}
+/* Interactive glass: a natural spring lift on hover, accent-tinted rim. */
+.mz-glass-interactive {
+  transition: transform var(--mz-dur) var(--mz-ease),
+    box-shadow var(--mz-dur) var(--mz-ease),
+    border-color var(--mz-dur) var(--mz-ease);
+  will-change: transform;
+}
+.mz-glass-interactive:hover {
+  transform: translateY(-3px);
+  border-color: color-mix(in oklch, var(--accent) 40%, var(--rule));
+  box-shadow:
+    inset 0 1px 0 0 color-mix(in oklch, white 60%, transparent),
+    0 30px 70px -34px color-mix(in oklch, var(--ink-900) 48%, transparent),
+    0 0 0 4px color-mix(in oklch, var(--accent) 8%, transparent);
+}
+
+/* Ambient wash — a calm, static color field that gives glass something to
+   refract. Never a hard gradient band; fades to nothing. Persona-accent tinted. */
+.mz-ambient { position: relative; isolation: isolate; }
+.mz-ambient::before {
+  content: '';
+  position: absolute; inset: -10% -5% auto -5%; height: 60%;
+  z-index: -1; pointer-events: none;
+  background:
+    radial-gradient(60% 80% at 18% 0%, color-mix(in oklch, var(--accent) 10%, transparent), transparent 60%),
+    radial-gradient(50% 70% at 88% 8%, color-mix(in oklch, var(--ok) 7%, transparent), transparent 62%);
+}
+
+/* ── Natural motion — entrance reveals + calm springs ─────────────────────── */
+
+@keyframes mz-rise {
+  from { opacity: 0; transform: translateY(16px) scale(0.985); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes mz-fade { from { opacity: 0; } to { opacity: 1; } }
+
+/* Reveal-on-view: paired with the <Reveal> component, which adds `.is-in` when
+   the element scrolls into view. Staggerable via --mz-delay. The default state
+   is hidden so nothing flashes before the observer fires. */
+.mz-reveal { opacity: 0; }
+.mz-reveal.is-in {
+  animation: mz-rise var(--mz-rise-dur, 720ms) var(--mz-ease) var(--mz-delay, 0ms) both;
+}
+/* No-JS safety: without scripting the IntersectionObserver never adds .is-in,
+   so reveal content would stay at opacity:0 forever. Force it visible — every
+   chapter must be readable with JS disabled (a homepage fallback requirement). */
+@media (scripting: none) {
+  .mz-reveal { opacity: 1 !important; animation: none !important; }
+}
+.mz-reveal-fade.is-in { animation-name: mz-fade; }
+
+/* A calm attention pulse for "a pleasant surprise" moments (new evidence, a
+   state settling). One shot, never looping. */
+@keyframes mz-settle {
+  0% { transform: scale(0.96); opacity: 0.4; }
+  60% { transform: scale(1.015); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+.mz-settle { animation: mz-settle 560ms var(--mz-ease) both; }
+
+/* ── Per-persona accent identity — one system, four voices ─────────────────
+   Each persona surface sets --accent (the single accent the whole .mz layer
+   already threads through chips, links, glass rims, selected states). Distinct
+   hue per audience, all at the same calm depth/chroma so they read as siblings. */
+.mz-persona-holder   { --accent: oklch(38% 0.14 274); } /* indigo — the clinician's home */
+.mz-persona-verifier { --accent: oklch(44% 0.11 235); } /* trust-blue — the reader */
+.mz-persona-issuer   { --accent: oklch(46% 0.13 300); } /* violet — the attester */
+.mz-persona-employer { --accent: oklch(46% 0.10 152); } /* source-green — the hirer / start */
+.mz-persona-admin    { --accent: oklch(46% 0.03 250); } /* steel-graphite — internal control room, not a customer surface */
+
+/* ── Micro-interactions — icons + small elements answer the hand ──────────── */
+
+/* .mz-pop on an icon (or icon chip) makes it respond when its interactive
+   parent is hovered: a small lift + tilt toward the accent. Natural, one-shot,
+   never looping — the "pleasant surprise" register. */
+.mz-pop {
+  transition:
+    transform var(--mz-dur) var(--mz-ease),
+    color var(--mz-dur) var(--mz-ease),
+    border-color var(--mz-dur) var(--mz-ease),
+    background var(--mz-dur) var(--mz-ease);
+  will-change: transform;
+}
+.mz-glass-interactive:hover .mz-pop,
+.mz-interactive:hover .mz-pop,
+a:hover .mz-pop,
+button:hover .mz-pop {
+  transform: translateY(-2px) scale(1.07) rotate(-3deg);
+  color: var(--accent);
+  border-color: color-mix(in oklch, var(--accent) 45%, var(--rule));
+}
+
+/* CTA arrows nudge forward on hover. */
+.mz-btn svg, .mz-btn-ghost svg { transition: transform var(--mz-dur) var(--mz-ease); }
+.mz-btn:hover svg, .mz-btn-ghost:hover svg { transform: translateX(3px); }
+
+/* Selectable chips answer with a tiny lift. */
+.mz-opt { will-change: transform; transition: border-color var(--mz-dur) var(--mz-ease), background var(--mz-dur) var(--mz-ease), transform var(--mz-dur) var(--mz-ease); }
+.mz-opt:hover { transform: translateY(-1px); }
+
+/* ── Motion respect ───────────────────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  .mz *, .mz *::before, .mz *::after { transition: none !important; animation: none !important; }
+  .mz-reveal, .mz-reveal.is-in { opacity: 1 !important; animation: none !important; }
+  .mz-glass-interactive:hover { transform: none; }
+  .mz-settle { animation: none !important; }
+  .mz-glass-interactive:hover .mz-pop,
+  .mz-interactive:hover .mz-pop,
+  a:hover .mz-pop,
+  button:hover .mz-pop { transform: none; }
+  .mz-opt:hover { transform: none; }
+  .mz-btn:hover svg, .mz-btn-ghost:hover svg { transform: none; }
+}

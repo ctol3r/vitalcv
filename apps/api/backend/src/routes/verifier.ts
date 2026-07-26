@@ -16,11 +16,16 @@ import {
 } from '../services/verifier/credentialAcceptance';
 import { getPresentation } from '../services/credentials/credentialPresentation';
 import { log } from '../obs/logger';
+import { requireOrgRole, VERIFIER_MUTATION_ROLES } from '../middleware/orgRoleGuard';
 
 export function registerVerifierAcceptanceRoutes(app: Express): void {
 
   // ── POST /api/verifier/accept ──────────────────────────────────────
-  app.post('/api/verifier/accept', async (req: Request, res: Response) => {
+  // RBAC (blocker #2): mutating verifier action — gated by org-role once
+  // VERIFIER_RBAC_MODE reaches shadow/enforce. Note this route is also
+  // whitelisted from the tenant guard (tenantGuard.ts) — the org-role guard is
+  // the authz control here, and inherits the same header-trust caveat until G1.
+  app.post('/api/verifier/accept', requireOrgRole(VERIFIER_MUTATION_ROLES), async (req: Request, res: Response) => {
     try {
       const { presentationId, presentation: presentationBody } = req.body ?? {};
 

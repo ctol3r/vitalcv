@@ -57,7 +57,7 @@ describe('POST /api/pilot-intake', () => {
     const res = await POST(makeRequest(validBody));
     expect(res.status).toBe(200);
     const json = await res.json();
-    expect(json).toEqual({ ok: true, slackDelivered: true, slackReason: null });
+    expect(json).toEqual({ ok: true, persisted: false, slackDelivered: true, slackReason: null });
     expect(slackMock).toHaveBeenCalledTimes(1);
   });
 
@@ -66,7 +66,7 @@ describe('POST /api/pilot-intake', () => {
     const res = await POST(makeRequest(validBody));
     expect(res.status).toBe(200);
     const json = await res.json();
-    expect(json).toEqual({ ok: true, slackDelivered: false, slackReason: 'http_error' });
+    expect(json).toEqual({ ok: true, persisted: false, slackDelivered: false, slackReason: 'http_error' });
   });
 
   it('still returns 200 even when SLACK env is unconfigured (intake is logged-only)', async () => {
@@ -76,6 +76,7 @@ describe('POST /api/pilot-intake', () => {
     const json = await res.json();
     expect(json).toEqual({
       ok: true,
+      persisted: false,
       slackDelivered: false,
       slackReason: 'unconfigured',
     });

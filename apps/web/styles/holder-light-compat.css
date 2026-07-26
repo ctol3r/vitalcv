@@ -1,0 +1,45 @@
+/*
+ * Holder workspace — light-mode compatibility shim.
+ *
+ * The signed-in clinician surfaces (components/mobile/*, components/clinician/*)
+ * are authored DARK-ONLY: `text-white`, `bg-white/[…]`, `border-white/…`. On the
+ * light workspace theme (HolderWorkspaceShell → `mz-paper`, `[data-holder-theme
+ * ="light"]`) those go invisible — white text/cards on white paper. That's the
+ * "light mode is unreadable when signed in" bug.
+ *
+ * Until each surface is migrated to theme-aware `var(--vt-*)` tokens, this scoped
+ * shim remaps the dark-authored white utilities to ink so light mode is READABLE
+ * everywhere at once. It is:
+ *   - scoped to `[data-holder-theme="light"]` only → DARK mode is untouched,
+ *   - unlayered → it wins over Tailwind's `@layer utilities`,
+ *   - reversible → deleting this file restores the prior behavior.
+ * `.mz-paper` on the shell provides the light `--vt-*` values these resolve to.
+ */
+
+[data-holder-theme='light'] .text-white {
+  color: var(--vt-text-primary);
+}
+[data-holder-theme='light'] [class*='text-white/'] {
+  color: var(--vt-text-secondary);
+}
+[data-holder-theme='light'] [class*='bg-white/['] {
+  background-color: color-mix(in oklab, var(--vt-text-primary) 4%, transparent);
+}
+[data-holder-theme='light'] [class*='border-white/'] {
+  border-color: var(--vt-border);
+}
+
+/*
+ * Keep white text legible on SOLID-DARK controls (ink/dark buttons + inverted
+ * chips) — remapping their text to ink would put dark-on-dark. These stay dark
+ * in light mode, so their label stays white.
+ */
+[data-holder-theme='light'] [class*='bg-zinc-9'].text-white,
+[data-holder-theme='light'] [class*='bg-neutral-9'].text-white,
+[data-holder-theme='light'] [class*='bg-slate-9'].text-white,
+[data-holder-theme='light'] [class*='bg-gray-9'].text-white,
+[data-holder-theme='light'] .bg-black.text-white,
+[data-holder-theme='light'] [class*="bg-[var(--vt-text-primary"].text-white,
+[data-holder-theme='light'] [class*="bg-[var(--vt-accent"].text-white {
+  color: #fff;
+}

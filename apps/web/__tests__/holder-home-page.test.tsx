@@ -270,7 +270,12 @@ describe('/holder/home page', () => {
       </ClinicianMobileProvider>,
     );
 
-    expect(markup).toContain('Keep moving');
+    // Identity-forward wallet header: who you are + how to share/prove.
+    expect(markup).toContain('Your VitalCV Wallet');
+    expect(markup).toContain('Ada Lovelace');
+    expect(markup).toContain('NPI 1234567890');
+    expect(markup).toContain('Share / prove');
+    expect(markup).toContain('href="/verify/1234567890"');
     expect(markup).toContain('Readiness');
     expect(markup).toContain('What&#x27;s left');
     expect(markup).toContain('Recent changes');

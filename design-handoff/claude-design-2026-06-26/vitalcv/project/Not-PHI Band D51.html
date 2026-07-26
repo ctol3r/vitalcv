@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>VitalCV · Security Architecture · Not-PHI Exclusion Band</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --ink-0:#fff;--ink-50:#f8fafc;--ink-100:#f1f5f9;--ink-200:#e2e8f0;--ink-300:#cbd5e1;
+    --ink-400:#94a3b8;--ink-500:#64748b;--ink-600:#475569;--ink-700:#334155;
+    --ink-800:#1e293b;--ink-900:#0f172a;
+    --rule:#e2e8f0;
+    --mono:'Geist Mono',ui-monospace,monospace;
+    --sans:'Geist',ui-sans-serif,system-ui,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--ink-0);color:var(--ink-900);font-family:var(--sans);-webkit-font-smoothing:antialiased;font-size:14px;line-height:1.5;}
+
+  /* === Context shell === */
+  .shell{max-width:1080px;margin:0 auto;padding:64px 32px 80px;}
+  .shell-label{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.22em;color:var(--ink-400);margin-bottom:48px;display:flex;align-items:center;gap:14px;}
+  .shell-label .g{width:16px;height:16px;background:var(--ink-900);color:#fff;display:grid;place-items:center;font-size:9px;font-weight:700;}
+  .shell-label::after{content:"";flex:1;height:1px;background:var(--ink-200);}
+
+  /* === The exclusion band — the actual component === */
+  .excl-band{border:1px dashed var(--ink-900);}
+  .excl-band .band-head{padding:11px 24px;border-bottom:1px dashed var(--ink-900);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
+  .excl-band .band-head .ht{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.22em;color:var(--ink-500);font-weight:600;}
+  .excl-band .band-head .ref{font-family:var(--mono);font-size:9.5px;text-transform:uppercase;letter-spacing:.18em;color:var(--ink-300);}
+
+  .excl-cols{display:grid;grid-template-columns:repeat(3,1fr);}
+  .excl-col{padding:28px 28px 26px;border-right:1px dashed var(--ink-200);}
+  .excl-col:last-child{border-right:0;}
+
+  .excl-num{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.22em;color:var(--ink-400);font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:10px;}
+  .excl-num::after{content:"";flex:1;height:1px;background:var(--ink-200);}
+
+  .excl-heading{font-family:var(--mono);font-size:15px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--ink-900);line-height:1;margin-bottom:16px;}
+  .excl-heading .zero{color:var(--ink-300);font-size:13px;font-weight:400;}
+
+  .excl-body{font-family:var(--sans);font-size:14px;line-height:1.6;color:var(--ink-600);max-width:32ch;}
+  .excl-body strong{color:var(--ink-900);font-weight:500;}
+
+  .excl-band .band-foot{padding:11px 24px;border-top:1px dashed var(--ink-900);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
+  .excl-band .band-foot .ft{font-family:var(--mono);font-size:9.5px;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-400);}
+  .excl-band .band-foot .link{font-family:var(--mono);font-size:9.5px;color:var(--ink-900);text-decoration:underline;text-decoration-color:var(--ink-300);text-underline-offset:3px;text-transform:uppercase;letter-spacing:.14em;}
+
+  /* === Context note showing this is a reusable component === */
+  .context-note{margin-top:40px;padding-top:32px;border-top:1px solid var(--ink-200);}
+  .context-note .cn-label{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.2em;color:var(--ink-300);margin-bottom:16px;}
+  .context-note p{font-size:13.5px;color:var(--ink-500);line-height:1.6;max-width:72ch;}
+  .context-note p code{font-family:var(--mono);font-size:12px;color:var(--ink-700);background:var(--ink-100);padding:1px 5px;}
+
+  /* === Compact variant === */
+  .compact-label{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.2em;color:var(--ink-300);margin:40px 0 16px;display:flex;align-items:center;gap:14px;}
+  .compact-label::after{content:"";flex:1;height:1px;background:var(--ink-100);}
+  .excl-compact{border-top:1px solid var(--ink-900);border-bottom:1px solid var(--ink-200);display:flex;gap:0;}
+  .compact-col{flex:1;padding:14px 20px;border-right:1px solid var(--ink-200);}
+  .compact-col:last-child{border-right:0;}
+  .compact-col .cc-num{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.2em;color:var(--ink-400);margin-bottom:4px;}
+  .compact-col .cc-head{font-family:var(--mono);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-900);margin-bottom:5px;}
+  .compact-col .cc-body{font-size:12px;color:var(--ink-500);line-height:1.5;}
+
+  @media(max-width:760px){
+    .shell{padding:40px 20px 60px;}
+    .excl-cols{grid-template-columns:1fr;}
+    .excl-col{border-right:0;border-bottom:1px dashed var(--ink-200);}
+    .excl-col:last-child{border-bottom:0;}
+    .excl-compact{flex-direction:column;}
+    .compact-col{border-right:0;border-bottom:1px solid var(--ink-200);}
+    .compact-col:last-child{border-bottom:0;}
+  }
+</style>
+</head>
+<body data-screen-label="Not-PHI Band D51">
+
+<div class="shell">
+
+  <div class="shell-label">
+    <span class="g">V</span>
+    Component · D51 · Not-PHI Identity Exclusion Band · Global App Shell
+  </div>
+
+  <!-- === THE COMPONENT === -->
+  <div class="excl-band">
+    <div class="band-head">
+      <span class="ht">Security architecture · What this system never accesses</span>
+      <span class="ref">VCV-ARCH-001 · Permanent · Binding</span>
+    </div>
+
+    <div class="excl-cols">
+
+      <!-- Column 01: ZERO PHI -->
+      <div class="excl-col">
+        <div class="excl-num">01 <span style="margin-left:auto;margin-right:0;font-size:9px;color:var(--ink-300);">PHI</span></div>
+        <div class="excl-heading"><span class="zero">ZERO</span><br/>PHI</div>
+        <div class="excl-body">
+          No patient identifiers, clinical dates, or health records cross this lane. <strong>Inputs are rejected programmatically by schema validation</strong> — not by policy promise. No exception path exists in the current architecture or any planned revision of it.
+        </div>
+      </div>
+
+      <!-- Column 02: ZERO CREDENTIALS -->
+      <div class="excl-col">
+        <div class="excl-num">02 <span style="margin-left:auto;margin-right:0;font-size:9px;color:var(--ink-300);">CRED</span></div>
+        <div class="excl-heading"><span class="zero">ZERO</span><br/>Credentials</div>
+        <div class="excl-body">
+          VitalCV holds no passwords or authentication secrets. <strong>Sign-in resolves exclusively through sovereign hospital identity providers</strong> (Okta, Azure AD, SAML 2.0). We do not see, store, issue, or rotate authentication data of any kind.
+        </div>
+      </div>
+
+      <!-- Column 03: ZERO RE-INTERPRETATION -->
+      <div class="excl-col">
+        <div class="excl-num">03 <span style="margin-left:auto;margin-right:0;font-size:9px;color:var(--ink-300);">INTERP</span></div>
+        <div class="excl-heading"><span class="zero">ZERO</span><br/>Re-Interpretation</div>
+        <div class="excl-body">
+          Federal registries remain <strong>entirely authoritative</strong>. We trace and sign what the source returned; we never substitute independent judgment, amend the record, or certify beyond the registry response on file at time of issuance.
+        </div>
+      </div>
+
+    </div>
+
+    <div class="band-foot">
+      <span class="ft">Boundary is architectural, not advisory · Absence of scope is presence of trust</span>
+      <a class="link" href="Trust Directory D46.html">Verify at /trust →</a>
+    </div>
+  </div>
+
+  <!-- Compact variant for footer use -->
+  <div class="compact-label">Compact variant · footer / header embed</div>
+  <div class="excl-compact">
+    <div class="compact-col">
+      <div class="cc-num">01 · PHI</div>
+      <div class="cc-head">Zero PHI</div>
+      <div class="cc-body">No patient data. Schema-rejected, not policy-promised.</div>
+    </div>
+    <div class="compact-col">
+      <div class="cc-num">02 · CRED</div>
+      <div class="cc-head">Zero Credentials</div>
+      <div class="cc-body">No passwords. Auth routes through your hospital IdP.</div>
+    </div>
+    <div class="compact-col">
+      <div class="cc-num">03 · INTERP</div>
+      <div class="cc-head">Zero Re-Interpretation</div>
+      <div class="cc-body">We sign what federal registries returned. Nothing more.</div>
+    </div>
+  </div>
+
+  <div class="context-note">
+    <div class="cn-label">Component usage note</div>
+    <p>This band is designed to embed in the global app shell footer, or as a header block on any screen that handles clinician data. It carries no interactive state. Drop it above the <code>&lt;footer&gt;</code> or below the page <code>h1</code> on compliance-sensitive routes. The dashed border variant signals "boundary." The compact variant fits in a 48px footer rail.</p>
+  </div>
+
+</div>
+</body>
+</html>

@@ -1,5 +1,4 @@
 import { randomUUID } from 'node:crypto';
-import type { Prisma } from '@prisma/client';
 import prisma from '../../graphql/prisma_client';
 import {
   listAllOrgApplications,
@@ -20,7 +19,7 @@ export type EmployerWorkflowState =
 
 export type MissingRequestStatus = 'OPEN' | 'CLOSED';
 
-export type EmployerWorkflowAction = 'accept' | 'request_info' | 'reject';
+export type EmployerWorkflowAction = 'start_review' | 'accept' | 'request_info' | 'reject';
 
 export type MissingRequestInput = {
   field: string;
@@ -61,6 +60,14 @@ export type EmployerWorkflowActionResult = {
   application: EmployerWorkflowApplication;
   taskId: string | null;
   notificationTriggered: boolean;
+  auditEventId: string | null;
+  decisionOutboxEventId: string | null;
+};
+
+type DecisionSubmissionBinding = {
+  mode: 'sealed' | 'legacy';
+  packetVersion: number | null;
+  packetHash: string | null;
 };
 
 type MissingRequestEventRecord = {
@@ -91,13 +98,30 @@ type WorkflowTransaction = {
   application: {
     update: (args: {
       where: { id: string };
-      data: Prisma.ApplicationUncheckedUpdateInput;
+      data: Record<string, unknown>;
     }) => Promise<unknown>;
+    findUnique: (args: {
+      where: { id: string };
+      select: { sealedPacketVersion: true };
+    }) => Promise<{ sealedPacketVersion: number | null } | null>;
+  };
+  applicationPacket: {
+    findFirst: (args: {
+      where: { applicationId: string; packetVersion: number };
+      select: { packetVersion: true; packetHash: true };
+    }) => Promise<{ packetVersion: number; packetHash: string } | null>;
   };
   auditEvent: {
     create: (args: {
-      data: Prisma.AuditEventUncheckedCreateInput;
+      data: Record<string, unknown>;
     }) => Promise<unknown>;
+  };
+  outboxEvent: {
+    upsert: (args: {
+      where: { dedupeKey: string };
+      create: Record<string, unknown>;
+      update: Record<string, unknown>;
+    }) => Promise<{ id: string }>;
   };
 };
 
@@ -355,6 +379,71 @@ function ensureActionableState(application: EmployerWorkflowApplication): void {
   }
 }
 
+function decisionAuditPayload(input: {
+  action: 'accept' | 'reject';
+  application: EmployerWorkflowApplication;
+  reviewerClerkUserId: string;
+  reviewNote: string;
+  decidedAt: Date;
+  submission: DecisionSubmissionBinding;
+}) {
+  return {
+    schema: 'vitalcv.application-decision.v1',
+    action: input.action,
+    applicationId: input.application.id,
+    opportunityId: input.application.opportunityId,
+    organizationId: input.application.employer.organizationId,
+    clinicianNpi: input.application.npi,
+    reviewerClerkUserId: input.reviewerClerkUserId,
+    reviewNote: input.reviewNote,
+    decidedAt: input.decidedAt.toISOString(),
+    submission: input.submission,
+  };
+}
+
+async function resolveDecisionSubmissionBinding(
+  tx: WorkflowTransaction,
+  applicationId: string,
+): Promise<DecisionSubmissionBinding> {
+  const application = await tx.application.findUnique({
+    where: { id: applicationId },
+    select: { sealedPacketVersion: true },
+  });
+  if (!application) {
+    throw new HttpError(404, 'Application not found.');
+  }
+
+  if (application.sealedPacketVersion === null) {
+    return {
+      mode: 'legacy',
+      packetVersion: null,
+      packetHash: null,
+    };
+  }
+
+  const packet = await tx.applicationPacket.findFirst({
+    where: {
+      applicationId,
+      packetVersion: application.sealedPacketVersion,
+    },
+    select: {
+      packetVersion: true,
+      packetHash: true,
+    },
+  });
+  if (!packet) {
+    // A sealed version with no stored packet is an integrity ambiguity. Do
+    // not record a decision that a future dispatcher could misbind.
+    throw new HttpError(409, 'The submitted application packet is unavailable.');
+  }
+
+  return {
+    mode: 'sealed',
+    packetVersion: packet.packetVersion,
+    packetHash: packet.packetHash,
+  };
+}
+
 async function closeOpenMissingRequests(input: {
   tx: WorkflowTransaction;
   application: EmployerWorkflowApplication;
@@ -441,6 +530,63 @@ export async function runEmployerWorkflowAction(input: {
 
   const now = new Date();
 
+  if (input.action === 'start_review') {
+    const reviewNote = normalizeText(input.reviewNote, 500) ?? 'Employer review started.';
+    let auditEventId: string | null = null;
+
+    await prisma.$transaction(async (tx: unknown) => {
+      const workflowTx = tx as unknown as WorkflowTransaction;
+      await workflowTx.application.update({
+        where: { id: application.id },
+        data: {
+          status: 'REVIEWED',
+          reviewedBy: input.reviewerClerkUserId,
+          reviewedAt: now,
+          reviewNote,
+        },
+      });
+
+      const auditEvent = await workflowTx.auditEvent.create({
+        data: {
+          type: 'APPLICATION_REVIEW_STARTED',
+          hash: sha256ForPayload({
+            schema: 'vitalcv.application-review-started.v1',
+            applicationId: application.id,
+            reviewerClerkUserId: input.reviewerClerkUserId,
+            reviewNote,
+            reviewedAt: now.toISOString(),
+          }),
+          referenceId: application.id,
+          clinicianId: application.npi ?? null,
+          organizationId: application.employer.organizationId,
+          metadata: {
+            employerWorkflow: {
+              action: 'start_review',
+              reviewerClerkUserId: input.reviewerClerkUserId,
+              reviewNote,
+              reviewedAt: now.toISOString(),
+            },
+          },
+        },
+      });
+      auditEventId = (auditEvent as { id?: string }).id ?? null;
+    });
+
+    const updatedApplication = await getEmployerWorkflowApplication(
+      application.id,
+      input.reviewerClerkUserId,
+    );
+
+    return {
+      action: 'start_review',
+      application: updatedApplication,
+      taskId: null,
+      notificationTriggered: false,
+      auditEventId,
+      decisionOutboxEventId: null,
+    };
+  }
+
   if (input.action === 'request_info') {
     const requests = normalizeMissingRequestInputs(input.requests ?? []);
     if (requests.length === 0) {
@@ -450,7 +596,7 @@ export async function runEmployerWorkflowAction(input: {
     const summary = normalizeText(input.reviewNote, 500) ?? buildMissingRequestSummary(requests);
     let taskId: string | null = null;
 
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx: unknown) => {
       const workflowTx = tx as unknown as WorkflowTransaction & OptionalHitlWriter;
       const task = await workflowTx.hITLReviewItem?.create({
         data: {
@@ -520,17 +666,27 @@ export async function runEmployerWorkflowAction(input: {
       application: updatedApplication,
       taskId,
       notificationTriggered: true,
+      auditEventId: null,
+      decisionOutboxEventId: null,
     };
   }
 
-  const nextStatus = input.action === 'accept' ? 'ACCEPTED' : 'DECLINED';
+  const decisionAction = input.action === 'accept' ? 'accept' : 'reject';
+  const nextStatus = decisionAction === 'accept' ? 'ACCEPTED' : 'DECLINED';
   const nextReviewNote = normalizeText(input.reviewNote, 500)
-    ?? (input.action === 'accept'
+    ?? (decisionAction === 'accept'
       ? 'Approved and moved to credentialing.'
       : 'Application rejected.');
 
-  await prisma.$transaction(async (tx) => {
+  let auditEventId: string | null = null;
+  let decisionOutboxEventId: string | null = null;
+
+  await prisma.$transaction(async (tx: unknown) => {
     const workflowTx = tx as unknown as WorkflowTransaction;
+    const submission = await resolveDecisionSubmissionBinding(
+      workflowTx,
+      application.id,
+    );
 
     await workflowTx.application.update({
       where: { id: application.id },
@@ -548,6 +704,52 @@ export async function runEmployerWorkflowAction(input: {
       action: input.action as any,
       now,
     });
+
+    const decisionPayload = decisionAuditPayload({
+      action: decisionAction,
+      application,
+      reviewerClerkUserId: input.reviewerClerkUserId,
+      reviewNote: nextReviewNote,
+      decidedAt: now,
+      submission,
+    });
+    const auditEvent = await workflowTx.auditEvent.create({
+      data: {
+        type: 'APPLICATION_DECISION_RECORDED',
+        hash: sha256ForPayload(decisionPayload),
+        referenceId: application.id,
+        clinicianId: application.npi ?? null,
+        organizationId: application.employer.organizationId,
+        metadata: { employerWorkflow: decisionPayload },
+      },
+    });
+    auditEventId = (auditEvent as { id?: string }).id ?? null;
+
+    // A capsule is a required consequence of an employer decision. The
+    // outbox makes that intent durable in the same transaction as the state
+    // transition and audit record; a delivery worker may process it later.
+    const decisionOutbox = await workflowTx.outboxEvent.upsert({
+      where: {
+        dedupeKey: `APPLICATION_DECISION_CAPSULE_REQUESTED:${application.id}:${nextStatus}`,
+      },
+      create: {
+        eventType: 'APPLICATION_DECISION_CAPSULE_REQUESTED',
+        aggregateType: 'APPLICATION',
+        aggregateId: application.id,
+        payload: decisionPayload,
+        dedupeKey: `APPLICATION_DECISION_CAPSULE_REQUESTED:${application.id}:${nextStatus}`,
+        status: 'PENDING',
+        attemptCount: 0,
+        availableAt: now,
+      },
+      update: {
+        payload: decisionPayload,
+        status: 'PENDING',
+        availableAt: now,
+        lastError: null,
+      },
+    });
+    decisionOutboxEventId = decisionOutbox.id;
   });
 
   const updatedApplication = await getEmployerWorkflowApplication(
@@ -560,5 +762,7 @@ export async function runEmployerWorkflowAction(input: {
     application: updatedApplication,
     taskId: null,
     notificationTriggered: true,
+    auditEventId,
+    decisionOutboxEventId,
   };
 }

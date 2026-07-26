@@ -192,13 +192,6 @@ These allow the platform to bridge existing credentials to smart contracts on
 both EVM and WASM based chains. See `backend/src/blockchain/upgrade_paths.ts`
 for the implementation.
 
-## Blockchain Governance
-
-This repository now includes a Substrate pallet for managing on-chain
-identity policy changes via community voting. The pallet lives in
-`identity-governance-pallet` and provides basic functionality to propose
-policies, cast votes and finalize proposals.
-
 ## Staking Contract
 
 Verifiers are required to lock tokens in the `VerifierStaking` smart contract. If a
@@ -216,13 +209,6 @@ The `GovernanceToken` smart contract located under `backend/src/blockchain/contr
 implements an ERC20-compatible token with weighted voting and linear vesting
 schedules. Token holders can delegate their votes to another address, and
 vesting schedules allow timed release of allocated tokens.
-
-## Blockchain
-
-This repository contains a basic Substrate pallet implementation to manage
-utilitarian, governance, and reputation tokens. The pallet can be found in
-`backend/src/blockchain/multi_token_pallet.rs` and is intended as a starting
-point for future on-chain logic.
 
 ## Challenge Rewards Contract
 The `backend/contracts/ChallengeRewards.sol` contract contains basic logic for distributing rewards for challenge-based gamification events. It allows new challenges to be added and emits a `RewardDistributed` event when a participant completes a challenge.

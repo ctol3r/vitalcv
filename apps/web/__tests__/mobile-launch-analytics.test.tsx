@@ -421,7 +421,12 @@ describe('mobile launch analytics', () => {
     expect(trackOnceNames()).toContain('clinician.wallet_viewed');
     await view.unmount();
 
-    view = await renderWithProvider(<ClinicianApplicationDetailSurface applicationId="app_1" />);
+    view = await renderWithProvider(
+      <ClinicianApplicationDetailSurface
+        applicationId="app_1"
+        evidenceResult={{ status: 'error', message: 'Application evidence is temporarily unavailable.' }}
+      />,
+    );
     expect(trackOnceNames()).toContain('clinician.application_detail_viewed');
     await view.unmount();
   });

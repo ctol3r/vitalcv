@@ -133,6 +133,12 @@ const envSchema = z.object({
     (raw) => (raw === undefined ? '' : String(raw)),
     z.string(),
   ),
+  // G4: server-held key for salting publicly-exposed claim-leaf digests
+  // (routes/public.ts). Empty (default) = fail-closed, expose no digests.
+  CLAIM_DIGEST_HMAC_SECRET: z.preprocess(
+    (raw) => (raw === undefined ? '' : String(raw).trim()),
+    z.string(),
+  ),
   INTERNAL_DASH_PASSWORD: z.preprocess(
     (raw) => (raw === undefined ? '' : String(raw)),
     z.string(),
@@ -148,6 +154,40 @@ const envSchema = z.object({
   }, z.boolean()),
   SYSTEM_FROZEN: z.preprocess((raw) => parseBooleanEnvVar(raw, 'SYSTEM_FROZEN', false), z.boolean()),
   REAL_NURSYS_ENABLED: z.preprocess((raw) => parseBooleanEnvVar(raw, 'REAL_NURSYS_ENABLED', false), z.boolean()),
+  // Live SAM.gov exclusion checks (services/samGovAdapter.ts). Default false:
+  // the lane stays an honest gated stub until SAM_GOV_API_KEY is configured
+  // and a live fetcher is wired.
+  SAM_GOV_ENABLED: z.preprocess((raw) => parseBooleanEnvVar(raw, 'SAM_GOV_ENABLED', false), z.boolean()),
+  // RBAC rollout for employer-review mutations. false = shadow mode (log
+  // would-deny, never block); true = enforce (403 + denied-mutation audit).
+  // Deliberately NOT in the SYSTEM_FROZEN blocklist: freezing features must
+  // not switch a security control off.
+  VERIFIER_RBAC_ENFORCED: z.preprocess((raw) => parseBooleanEnvVar(raw, 'VERIFIER_RBAC_ENFORCED', false), z.boolean()),
+  // G1 header-trust closure — staged rollout of verified Clerk session JWTs
+  // (middleware/verifiedIdentity.ts). off = no-op; shadow = verify + log,
+  // never block; enforce = identity only from a verified token (401 on
+  // identity-header-without-token, role-bypass headers stripped when
+  // unverified). Same shadow-first pattern as VERIFIER_RBAC_ENFORCED, and
+  // likewise NOT in the SYSTEM_FROZEN blocklist.
+  CLERK_JWT_VERIFICATION: z.enum(['off', 'shadow', 'enforce']).default('off'),
+  // Clerk frontend-API origin, e.g. https://clerk.vitalcv.com — JWKS is fetched
+  // from `${CLERK_ISSUER}/.well-known/jwks.json`. Required for shadow/enforce
+  // (envValidation fails the boot on enforce-without-issuer).
+  CLERK_ISSUER: z.preprocess(
+    (raw) => (raw === undefined ? '' : String(raw).trim()),
+    z.string(),
+  ),
+  // Optional comma-separated `azp` allowlist (Clerk authorizedParties), e.g.
+  // "https://vitalcv.com,https://www.vitalcv.com". Empty = azp not checked.
+  CLERK_AUTHORIZED_PARTIES: z.preprocess(
+    (raw) => (raw === undefined ? '' : String(raw)),
+    z.string().transform((raw) =>
+      raw
+        .split(',')
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0),
+    ),
+  ),
 });
 
 export type Env = z.infer<typeof envSchema>;
@@ -236,6 +276,7 @@ export function loadEnv(): Env {
     const blockedFlags = {
       ENTERPRISE_MODE: result.data.ENTERPRISE_MODE,
       REAL_NURSYS_ENABLED: result.data.REAL_NURSYS_ENABLED,
+      SAM_GOV_ENABLED: result.data.SAM_GOV_ENABLED,
       LOW_FRICTION_MODE: result.data.LOW_FRICTION_MODE,
     } as const;
 
@@ -257,6 +298,7 @@ export function loadEnv(): Env {
       ...result.data,
       ENTERPRISE_MODE: false,
       REAL_NURSYS_ENABLED: false,
+      SAM_GOV_ENABLED: false,
       LOW_FRICTION_MODE: false,
     };
   }

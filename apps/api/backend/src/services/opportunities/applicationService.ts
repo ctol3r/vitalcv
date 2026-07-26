@@ -1,4 +1,5 @@
-// @ts-nocheck
+import { randomUUID } from 'node:crypto';
+
 import { processApplicationBilling } from '../billing/billingEngine';
 /**
  * applicationService.ts — Wave 229
@@ -13,8 +14,10 @@ import { processApplicationBilling } from '../billing/billingEngine';
 
 import {
   ApplicationStatus,
+  type PersonProfile,
   Prisma,
   PrismaClient,
+  type User,
 } from '@prisma/client';
 import { log } from '../../obs/logger';
 import { refreshActionRecommendations } from '../actions/actionEngineService';
@@ -31,6 +34,12 @@ import {
   type ClinicianTrustState,
 } from '../trust/trustStateEngine';
 import { HttpError } from '../../utils/httpError';
+import {
+  buildFieldEntriesFromTrustState,
+  sealPacket,
+  type ApplicationPacketContent,
+  type SealedApplicationPacket,
+} from './applicationPacketService';
 
 const prisma = new PrismaClient();
 const NPI_RE = /^\d{10}$/;
@@ -68,14 +77,11 @@ const applicationWithOpportunity = Prisma.validator<Prisma.ApplicationDefaultArg
   },
 });
 
-const userWithProfile = Prisma.validator<Prisma.UserDefaultArgs>()({
-  include: {
-    personProfile: true,
-  },
-});
-
 type ApplicationRecord = Prisma.ApplicationGetPayload<typeof applicationWithOpportunity>;
-type ApplicantUserRecord = Prisma.UserGetPayload<typeof userWithProfile>;
+// No User→PersonProfile relation exists in the schema, so the applicant
+// composite is stitched from the two tables (see loadApplicantMap) instead of
+// a Prisma `include`, which throws at runtime.
+type ApplicantUserRecord = User & { personProfile: PersonProfile | null };
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -84,7 +90,18 @@ export interface ApplyInput {
   clerkUserId: string;
   npi?: string;
   coverNote?: string;
+  /**
+   * Sections the clinician chose to disclose. Defaults to the full evidence
+   * set only because the field-level composer ships in Wave 3 — when it does,
+   * the caller always sends an explicit selection.
+   */
+  selectedSections?: string[];
+  /** Purpose recorded in the packet + consent receipt. */
+  purpose?: string;
 }
+
+/** Default disclosure until the Wave 3 composer supplies an explicit choice. */
+const DEFAULT_SECTIONS = ['identity', 'exclusions', 'licensure', 'enrollment'] as const;
 
 export interface ReviewInput {
   applicationId: string;
@@ -150,59 +167,294 @@ export interface MarketplaceApplication {
 
 // ── Create application ────────────────────────────────────────────────────────
 
+/**
+ * Seal the disclosure packet for a submission (Seal W0.2).
+ *
+ * Resolves nothing itself: it takes the ALREADY-resolved evidence set, applies
+ * the clinician's section selection, and freezes the result. Everything it
+ * writes is immutable data — the packet never rereads mutable state, so it
+ * replays forever.
+ *
+ * Runs INSIDE the submission transaction alongside the consent receipt and
+ * audit events, so an application can never exist without its packet, and a
+ * packet can never exist without recorded consent.
+ */
+async function sealSubmissionPacket(
+  tx: Prisma.TransactionClient,
+  args: {
+    applicationId: string;
+    packetVersion: number;
+    clerkUserId: string;
+    clinicianNpi: string;
+    opportunityId: string;
+    employerOrgId: string;
+    recipient: string;
+    purpose: string;
+    selectedSections: string[];
+    clinicianNote: string | null;
+    trustState: ClinicianTrustState;
+    consentAt: Date;
+    /** The opportunity's updatedAt (ISO) at seal time — what was applied to. */
+    opportunityVersion: string;
+  },
+): Promise<SealedApplicationPacket> {
+  const fields = buildFieldEntriesFromTrustState(args.trustState, args.selectedSections);
+  if (fields.length === 0) {
+    throw new HttpError(
+      409,
+      'No evidence is available to disclose yet. Run a readiness check before applying.',
+    );
+  }
+
+  // The consent receipt IS a durable audit row — its id becomes the packet's
+  // consentReceiptId, so consent can never be a claim with no record behind it.
+  const consentReceipt = await tx.auditEvent.create({
+    data: {
+      type: 'application_consent',
+      hash: randomUUID(),
+      referenceId: args.applicationId,
+      clinicianId: args.clerkUserId,
+      organizationId: args.employerOrgId,
+      createdAt: args.consentAt,
+      metadata: {
+        entity_type: 'application',
+        action: 'disclosure_consent',
+        npi: args.clinicianNpi,
+        opportunity_id: args.opportunityId,
+        purpose: args.purpose,
+        recipient: args.recipient,
+        selected_sections: args.selectedSections,
+        field_count: fields.length,
+      },
+    },
+  });
+
+  const content: ApplicationPacketContent = {
+    applicationId: args.applicationId,
+    packetVersion: args.packetVersion,
+    clerkUserId: args.clerkUserId,
+    clinicianNpi: args.clinicianNpi,
+    opportunityId: args.opportunityId,
+    employerOrgId: args.employerOrgId,
+    purpose: args.purpose,
+    recipient: args.recipient,
+    selectedSections: [...args.selectedSections].sort(),
+    fields,
+    clinicianNote: args.clinicianNote,
+    methodologyVersion: args.trustState.methodology_version,
+    consentAt: args.consentAt.toISOString(),
+    consentReceiptId: consentReceipt.id,
+    // What the clinician applied to. Always set for new packets, so it is
+    // always covered by the seal hash. (`?? undefined` is defensive: a null
+    // would hash differently from an omitted key — see ApplicationPacketContent.)
+    opportunityVersion: args.opportunityVersion ?? undefined,
+  };
+  const sealed = sealPacket(content);
+
+  await tx.applicationPacket.create({
+    data: {
+      applicationId: sealed.applicationId,
+      packetVersion: sealed.packetVersion,
+      clerkUserId: sealed.clerkUserId,
+      clinicianNpi: sealed.clinicianNpi,
+      opportunityId: sealed.opportunityId,
+      employerOrgId: sealed.employerOrgId,
+      purpose: sealed.purpose,
+      recipient: sealed.recipient,
+      selectedSections: sealed.selectedSections,
+      fields: sealed.fields as unknown as Prisma.InputJsonValue,
+      clinicianNote: sealed.clinicianNote,
+      methodologyVersion: sealed.methodologyVersion,
+      consentAt: new Date(sealed.consentAt),
+      consentReceiptId: sealed.consentReceiptId,
+      opportunityVersion: sealed.opportunityVersion ?? null,
+      packetHash: sealed.packetHash,
+    },
+  });
+
+  await tx.auditEvent.create({
+    data: {
+      type: 'application_packet_sealed',
+      hash: sealed.packetHash,
+      referenceId: args.applicationId,
+      clinicianId: args.clerkUserId,
+      organizationId: args.employerOrgId,
+      metadata: {
+        entity_type: 'application_packet',
+        action: 'sealed',
+        packet_version: sealed.packetVersion,
+        packet_hash: sealed.packetHash,
+        consent_receipt_id: sealed.consentReceiptId,
+        methodology_version: sealed.methodologyVersion,
+        field_count: sealed.fields.length,
+      },
+    },
+  });
+
+  return sealed;
+}
+
+/**
+ * Submit an application (Seal W0.2) — ONE transaction:
+ *
+ *   validate identity + opportunity → resolve the current evidence set →
+ *   apply the clinician's disclosure selection → build + hash the packet →
+ *   persist it immutably → create/attach the application at that packet
+ *   version → write the consent receipt → write the audit event →
+ *   return the sealed summary.
+ *
+ * IDEMPOTENT: a retry never produces a second packet. The DB enforces it —
+ * `applications(opportunityId, clerkUserId)` is unique, and
+ * `application_packets(applicationId, packetVersion)` is unique — so even a
+ * concurrent double-submit resolves to one sealed packet rather than relying
+ * on a read-then-write check that races.
+ *
+ * Evidence resolution happens BEFORE the transaction on purpose: it performs
+ * network I/O (NPPES et al.) and must not hold a DB transaction open. The
+ * resolved state is then frozen inside the transaction — the packet is built
+ * from that snapshot, never re-read.
+ */
 export async function applyToOpportunity(input: ApplyInput): Promise<MarketplaceApplication> {
   const { opportunityId, clerkUserId, npi, coverNote } = input;
+  const selectedSections = input.selectedSections?.length
+    ? [...input.selectedSections]
+    : [...DEFAULT_SECTIONS];
+  const purpose = input.purpose ?? 'application';
 
+  // The organization NAME is on the relation, not the opportunity row — and it
+  // is what the packet freezes as `recipient`, so the clinician's consent
+  // records who they actually disclosed to (a later org rename must never
+  // rewrite a sealed packet).
   const opp = await prisma.opportunity.findUnique({
     where: { id: opportunityId },
+    include: { organization: { select: { name: true } } },
   });
   if (!opp) throw new HttpError(404, 'Opportunity not found.');
   if (opp.status !== 'ACTIVE') {
     throw new HttpError(409, 'This opportunity is no longer accepting applications.');
   }
 
+  // No User→PersonProfile relation exists in the schema; `include` throws at
+  // runtime. Resolve the profile through its userId FK instead.
   const applicant = await prisma.user.findUnique({
     where: { clerkUserId },
-    include: { personProfile: true },
   });
-  const resolvedNpi = normalizeProvidedNpi(npi) ?? applicant?.personProfile?.npi ?? null;
+  const applicantProfile = applicant
+    ? await prisma.personProfile.findUnique({ where: { userId: applicant.id } })
+    : null;
+  const applicantRecord: ApplicantUserRecord | null = applicant
+    ? { ...applicant, personProfile: applicantProfile }
+    : null;
+  const resolvedNpi = normalizeProvidedNpi(npi) ?? applicantProfile?.npi ?? null;
   if (!resolvedNpi) {
     throw new HttpError(409, 'Complete clinician onboarding before applying with VitalCV.');
   }
 
+  // Fast path: an already-sealed live application is returned as-is. A retry
+  // must NEVER reseal — that would recompute evidence and silently replace
+  // what the clinician actually disclosed.
   const existing = await prisma.application.findUnique({
     where: { opportunityId_clerkUserId: { opportunityId, clerkUserId } },
     ...applicationWithOpportunity,
   }) as ApplicationRecord | null;
-  if (existing) {
-    if (existing.status === 'WITHDRAWN') {
-      const reactivated = await prisma.application.update({
-        where: { id: existing.id },
-        data: {
-          status: 'PENDING',
-          coverNote: coverNote ?? existing.coverNote,
-          npi: resolvedNpi,
-        },
-        ...applicationWithOpportunity,
-      }) as ApplicationRecord;
-      return hydrateApplication(reactivated, applicant ?? null);
-    }
-
-    return hydrateApplication(existing, applicant ?? null);
+  if (existing && existing.status !== 'WITHDRAWN' && existing.sealedPacketVersion !== null) {
+    return hydrateApplication(existing, applicantRecord);
   }
 
-  const created = await prisma.application.create({
-    data: {
-      opportunityId,
+  // Resolve the CURRENT evidence set outside the transaction (network I/O).
+  const trustState = await computeClinicianTrustState(resolvedNpi);
+  const consentAt = new Date();
+
+  const application = await prisma.$transaction(async (tx) => {
+    // Re-read inside the transaction: between the fast path and here, a
+    // concurrent submit may have sealed one.
+    const current = await tx.application.findUnique({
+      where: { opportunityId_clerkUserId: { opportunityId, clerkUserId } },
+    });
+    if (current && current.status !== 'WITHDRAWN' && current.sealedPacketVersion !== null) {
+      return current.id;
+    }
+
+    // Reapplying after a withdrawal is a NEW disclosure: the clinician
+    // re-consents and a new packet version seals. Prior versions are retained
+    // — history is never rewritten.
+    const nextVersion = current
+      ? (await tx.applicationPacket.count({ where: { applicationId: current.id } })) + 1
+      : 1;
+
+    const row = current
+      ? await tx.application.update({
+          where: { id: current.id },
+          data: {
+            status: 'PENDING',
+            coverNote: coverNote ?? current.coverNote,
+            npi: resolvedNpi,
+          },
+        })
+      : await tx.application.create({
+          data: {
+            opportunityId,
+            clerkUserId,
+            npi: resolvedNpi,
+            coverNote: coverNote ?? null,
+            status: 'PENDING',
+          },
+        });
+
+    const sealed = await sealSubmissionPacket(tx, {
+      applicationId: row.id,
+      packetVersion: nextVersion,
       clerkUserId,
-      npi: resolvedNpi,
-      coverNote: coverNote ?? null,
-      status: 'PENDING',
-    },
-    ...applicationWithOpportunity,
+      clinicianNpi: resolvedNpi,
+      opportunityId,
+      employerOrgId: opp.organizationId,
+      recipient: opp.organization?.name ?? opp.organizationId,
+      purpose,
+      selectedSections,
+      clinicianNote: coverNote ?? null,
+      trustState,
+      consentAt,
+      // The version the clinician applied against — the opportunity's updatedAt
+      // now, frozen into the seal so the packet records what was on screen even
+      // after the listing is later edited.
+      opportunityVersion: opp.updatedAt.toISOString(),
+    });
+
+    // The application points at the sealed version only after the packet
+    // exists — same transaction, so the two can never diverge.
+    await tx.application.update({
+      where: { id: row.id },
+      data: { sealedPacketVersion: sealed.packetVersion },
+    });
+
+    await tx.auditEvent.create({
+      data: {
+        type: 'application_submitted',
+        hash: randomUUID(),
+        referenceId: row.id,
+        clinicianId: clerkUserId,
+        organizationId: opp.organizationId,
+        metadata: {
+          entity_type: 'application',
+          action: 'submitted',
+          npi: resolvedNpi,
+          opportunity_id: opportunityId,
+          packet_version: sealed.packetVersion,
+          packet_hash: sealed.packetHash,
+          consent_receipt_id: sealed.consentReceiptId,
+        },
+      },
+    });
+
+    return row.id;
   });
 
-  return hydrateApplication(created, applicant ?? null);
+  const sealedRecord = await prisma.application.findUniqueOrThrow({
+    where: { id: application },
+    ...applicationWithOpportunity,
+  }) as ApplicationRecord;
+
+  return hydrateApplication(sealedRecord, applicantRecord);
 }
 
 // ── Clinician: list own applications ─────────────────────────────────────────
@@ -517,6 +769,8 @@ async function loadEmployerAcceptanceMap(
 
   const acceptanceMap = new Map<string, string>();
   for (const acceptance of acceptances) {
+    // The `in` filters above cannot match NULL; guards only narrow the types.
+    if (!acceptance.employerId || !acceptance.clinicianNpi) continue;
     const key = employerAcceptanceKey(acceptance.employerId, acceptance.clinicianNpi);
     if (!acceptanceMap.has(key)) {
       acceptanceMap.set(key, acceptance.acceptedAt.toISOString());
@@ -540,10 +794,18 @@ async function loadApplicantMap(
         in: clerkUserIds,
       },
     },
-    include: userWithProfile.include,
   });
+  const profiles = applicants.length > 0
+    ? await prisma.personProfile.findMany({
+        where: { userId: { in: applicants.map((applicant) => applicant.id) } },
+      })
+    : [];
+  const profileByUserId = new Map(profiles.map((profile) => [profile.userId, profile]));
 
-  return new Map(applicants.map((applicant) => [applicant.clerkUserId, applicant]));
+  return new Map(applicants.map((applicant) => [
+    applicant.clerkUserId,
+    { ...applicant, personProfile: profileByUserId.get(applicant.id) ?? null },
+  ]));
 }
 
 async function loadTrustStateMap(

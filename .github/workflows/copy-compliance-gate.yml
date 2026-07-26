@@ -1,0 +1,35 @@
+name: Copy Compliance Gate
+
+# M1-8 — makes the W17 copy discipline unregressable. Fails a PR if any
+# prohibited/over-claiming marketing phrase (CLAUDE.md banned strings + doctrine
+# prohibitions) appears in public copy across apps/web and apps/marketing.
+# Escape hatch for legitimate technical-doc usage: scripts/copy-audit-allowlist.json
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'apps/web/app/**'
+      - 'apps/web/components/**'
+      - 'apps/marketing/**'
+      - 'scripts/check-public-claims.ts'
+      - 'scripts/copy-audit-allowlist.json'
+      - '.github/workflows/copy-compliance-gate.yml'
+  push:
+    branches: [main]
+
+env:
+  NODE_VERSION: '22'
+
+jobs:
+  banned-phrases:
+    name: Public-copy claim guard
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Scan public copy for prohibited claims
+        # Node 22 strips TS types natively; no install needed (zero deps).
+        run: node --experimental-strip-types scripts/check-public-claims.ts

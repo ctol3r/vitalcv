@@ -5,17 +5,31 @@
 :root,
 html.light,
 html[data-theme='light'] {
-  --vt-bg: #E4E3E0;
-  --vt-surface: #DDDCD8;
-  --vt-surface-subtle: #D5D4D0;
-  --vt-surface-dim: #C8C7C3;
-  --vt-border: #141414;
-  --vt-border-subtle: #14141433;
-  --vt-text-primary: #141414;
-  --vt-text-secondary: #141414CC;
-  --vt-text-muted: #14141466;
-  --vt-accent: #141414;
-  --vt-focus-ring: #141414;
+  /* CD-W2 — one warm paper, product-wide (docs/design/VITALCV_CREATIVE_DIRECTION.md
+     §CD-3). Cloud Dancer used to live only inside the scoped `.mz-cloud-paper`
+     override on the public home, so `/` was warm paper while `/employers`,
+     `/verify`, `/solutions` and every signed-in surface sat on cool #FAFAF8.
+     That split is what made the app read as a different company from the
+     marketing site. Cloud Dancer is now the page field everywhere.
+
+     PANTONE 11-4201 "Cloud Dancer" — approved web approximation (HERO-RESET-1).
+     The physical swatch remains the authority. */
+  --vt-cloud-dancer: #F0EEE9;
+  --vt-bg: #F0EEE9;
+  --vt-surface: #F7F5F1;
+  --vt-surface-subtle: #EFECE6;
+  --vt-surface-dim: #E7E4DD;
+  --vt-border: #D6D2C8;
+  --vt-border-subtle: #E3DFD6;
+  /* Warm ink. The cool near-black on warm paper is the single biggest reason
+     surfaces read as unfinished. --vt-text-muted was #14141466 — 40% alpha,
+     which computes to 2.6:1 against the page and fails WCAG AA on every muted
+     label in the product. Opaque warm greys replace both alpha values. */
+  --vt-text-primary: #1A1815;
+  --vt-text-secondary: #57534A;
+  --vt-text-muted: #676257;
+  --vt-accent: #1A1815;
+  --vt-focus-ring: #4338CA;
 
   /* Semantic colors — kept functional, muted for brutalist feel */
   --vt-severity-critical: #B91C1C;
@@ -37,6 +51,7 @@ html[data-theme='light'] {
      Values map 1:1 to the prototype's STATE_META text colors so chips
      that consume `--vt-state-*` read identically to the prototype. */
   --vt-state-verified: #047857;     /* emerald-700  · Checked */
+  --vt-accent-emerald: #047857;     /* alias of the emerald accent, banned-word-free token name for public copy surfaces */
   --vt-state-pending: #92400E;      /* amber-800    · Pending */
   --vt-state-access: #4338CA;       /* indigo-700   · Access required */
   --vt-state-blocked: #B91C1C;      /* red-700      · Blocked */
@@ -63,15 +78,18 @@ html[data-theme='light'] {
 /* ── Dark mode ────────────────────────────────────── */
 html.dark,
 html[data-theme='dark'] {
-  --vt-bg: #141414;
-  --vt-surface: #1A1A1A;
-  --vt-surface-subtle: #222222;
-  --vt-surface-dim: #0F0F0F;
-  --vt-border: #333333;
-  --vt-border-subtle: #33333366;
-  --vt-text-primary: #E4E3E0;
-  --vt-text-secondary: #E4E3E0CC;
-  --vt-text-muted: #E4E3E066;
+  /* CD-6 — one dark theme, warm graphite rather than neutral black, so it reads
+     as the same house as the paper. Muted ink loses its 40% alpha for the same
+     AA reason as the light theme. */
+  --vt-bg: #161513;
+  --vt-surface: #1E1C19;
+  --vt-surface-subtle: #262320;
+  --vt-surface-dim: #100F0E;
+  --vt-border: #35322C;
+  --vt-border-subtle: #2A2823;
+  --vt-text-primary: #EDEAE3;
+  --vt-text-secondary: #A9A296;
+  --vt-text-muted: #8C8578;
   --vt-accent: #E4E3E0;
   --vt-focus-ring: #E4E3E0;
 
@@ -95,6 +113,7 @@ html[data-theme='dark'] {
      html.dark overrides (e.g. .text-emerald-700 → #6ee7b7) so chips
      remain legible against slate-950 backgrounds. */
   --vt-state-verified: #6ee7b7;     /* emerald-300 */
+  --vt-accent-emerald: #6ee7b7;     /* alias of the emerald accent, banned-word-free token name for public copy surfaces */
   --vt-state-pending: #fbbf24;      /* amber-400 */
   --vt-state-access: #a5b4fc;       /* indigo-300 */
   --vt-state-blocked: #fb7185;      /* rose-400 */
@@ -170,4 +189,29 @@ html[data-theme='dark'] {
 
 .ops-shell {
   background: var(--vt-bg);
+}
+
+/* Lightweight, accessible entrance motion for public product surfaces.
+   GPU-friendly (transform/opacity only) and fully disabled under
+   prefers-reduced-motion so nothing depends on animation to be legible. */
+@keyframes vt-rise {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes vt-grow-x {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+.vt-animate-rise {
+  animation: vt-rise 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.vt-animate-grow-x {
+  transform-origin: left center;
+  animation: vt-grow-x 1.1s cubic-bezier(0.22, 1, 0.36, 1) 0.15s both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .vt-animate-rise,
+  .vt-animate-grow-x {
+    animation: none;
+  }
 }
