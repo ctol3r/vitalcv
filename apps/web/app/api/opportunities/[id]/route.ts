@@ -16,7 +16,7 @@ export async function GET(
   try {
     const response = await fetch(`${getBackendBase()}/api/opportunities/${encodeURIComponent(id)}${qs ? `?${qs}` : ''}`, {
       cache: 'no-store',
-      headers: buildMarketplaceHeaders(session, { 'Content-Type': 'application/json' }),
+      headers: await buildMarketplaceHeaders(session, { 'Content-Type': 'application/json' }),
     });
     const data = await response.json().catch(() => ({}));
     return NextResponse.json(data, { status: response.status });

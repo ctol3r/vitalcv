@@ -1,0 +1,50 @@
+name: SCA (dependency audit)
+
+# Software Composition Analysis gate — enterprise-map B1 / ASVS G8.
+# Policy lives in scripts/security/audit-gate.mjs: FAIL ONLY ON CRITICAL.
+# High/moderate/low are reported (job summary) but non-blocking — the repo
+# carries a large pre-existing high backlog that is burned down separately in
+# docs/security/dependency-remediation.md. A high/moderate bar would be
+# permanently red and would train reviewers to ignore the signal.
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+    paths:
+      - '**/package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - 'scripts/security/**'
+      - '.github/workflows/security-audit.yml'
+  schedule:
+    # Weekly, Monday 06:17 UTC. Surfaces advisories newly disclosed against the
+    # current lockfile even when no dependency file changed this week.
+    - cron: '17 6 * * 1'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sca-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '22'
+
+jobs:
+  sca:
+    name: SCA — critical-only gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # pnpm version resolved from packageManager field in package.json (pnpm@10.6.1)
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      # `pnpm audit` reads pnpm-lock.yaml + the registry advisory DB directly;
+      # no install of the (potentially vulnerable) tree is required to audit it.
+      - name: Audit production dependencies (fails only on critical; high reported)
+        run: node scripts/security/audit-gate.mjs

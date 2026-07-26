@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { Prisma, type PrismaClient } from '@prisma/client';
 import prisma from '../../graphql/prisma_client';
 import { listInvestigatorFindings } from '../investigators/investigatorEngineService';
@@ -2231,6 +2231,10 @@ export async function createIntelligenceWatch(
       }),
     },
     create: {
+      // watchlists.id has no DB default despite the schema's
+      // dbgenerated(gen_random_uuid()) (verified in prod 2026-07-05) —
+      // supply the id client-side or the insert throws P2011.
+      id: randomUUID(),
       dedupeKey,
       name,
       ownerOrganizationId: input.ownerOrganizationId ?? null,

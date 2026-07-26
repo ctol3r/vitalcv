@@ -6,6 +6,12 @@ node_modules/
 # Testing
 coverage/
 .nyc_output/
+# Playwright CLI page snapshots — debug output, never source. 101 of these were
+# committed before this rule existed.
+.playwright-cli/
+# Screenshot dumps from local Playwright runs. `output/manual-audit-bundles/`
+# is deliberately NOT ignored — it backs docs/PILOT_PROOF_PACK.md.
+output/playwright/
 
 # Production
 dist/
@@ -97,3 +103,11 @@ dist/
 .worktrees/
 
 apps/web/lib/generated/
+
+# Env files: ignore ALL real env files; only *.example may be tracked (M0-3).
+.env
+.env.*
+!.env.example
+!.env.*.example
+# Local secret-scan raw output
+docs/security/gitleaks-report-*.json

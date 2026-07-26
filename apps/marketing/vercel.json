@@ -1,5 +1,0 @@
-{
-  "framework": "nextjs",
-  "installCommand": "npm install -g pnpm@10.6.1 && pnpm install --frozen-lockfile --ignore-scripts",
-  "buildCommand": "npm install -g pnpm@10.6.1 && pnpm --filter @vitalcv/marketing build"
-}

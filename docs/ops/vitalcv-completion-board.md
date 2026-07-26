@@ -1,28 +1,30 @@
 # VitalCV Full Scope Completion Board
 
-Last updated: **2026-05-28 21:46 PDT (San Jose / Pacific)** (🚢 Visual-system cascade complete: 🎨 #429 Passport + 🎨 #430 Homepage + 🔐 #434 Auth + 🎨 #435 Status/Attribution all merged through Local Claude Code audit; 🔴 SSE smoke AUTH BLOCKED — operator sign-in still the gate to "validated live")
-Latest PRs (all on `main`): #420 (open, superseded by #423 transplant), 🚢 #421 `fe9c6f9c1`, 🚢 #422 `801100c7f`, 🚢 #423 `9f272c80c` (DEPLOYED ACTIVE on `delightful-essence`), 🚢 #424 `50942ad1e`, 🚢 #425 `a368a1ffb` 🎨, 🚢 #426 `a88e014e4` 🎨, 🚢 #427 `f8721ff30`, 🚢 #428 `97971b578` 🤖, 🚢 #429 `5b0e78c7e` 🎨 (Passport calm degradation), 🚢 #430 `f7b5b367a` 🎨 (Homepage NPI-first + role doors), 🚢 #432 `5a6ac229f` (truth-contract copy restore — other agent flow), 🚢 #433 `f9049d258` (/passport + /status restore — other agent flow), 🚢 #434 `3f5afc622` 🔐 (Auth calm disclosure), 🚢 #435 `e7b4e7e6c` 🎨 (Status Connector Matrix + /trust/attribution receipt register)
-Source branch (this update): `docs/wave-g-to-k-tracking`
+Last updated: **2026-07-04 (BOARD-RECONCILE-1, docs-only)** (top tables reconciled to `origin/main` after 100 merges landed since the 2026-05-28 header — PRs #436–#544 plus late-merged #279; blockers section now defers to `docs/ops/launch-blockers.md`)
+Latest PRs (all on `main`): 🚢 #535 `329bf7964` (MATCHA GA, feature default-on), 🚢 #536 `ccef8a656` (Clerk custom-domain CSP — sign-in P0 fix), 🚢 #537 `f44fb229a`, 🚢 #538 `f7bdbe158` + 🚢 #539 `9d7b00f87` + 🚢 #542 `f11df24ff` (clinician signup gate PRs 1–3 of 4), 🚢 #541 `d1dbe7960` (Wave 0 re-baseline + NPPES v2.1 boot assertion), 🚢 #544 `0a90df985` (employer-review RBAC gate, shadow-first). Full #436–#544 window ledger: see **BOARD-RECONCILE-1** section at the end of this file.
+Source branch (this update): `claude/intelligent-goldberg-581ec7`
 
-`main` head: `97971b5780e7ccb0f58af19a5062796cc7f930a6`
-Active API: `git_sha:"9f272c80c…"` (= PR #423 merge commit, Browser-confirmed `PR423 LIVE`). 12 requests / 0 errors / p90 73 ms — fresh container.
+`main` head: `0a90df9856f4397b8c809d1d9ef15453d29207c3`
+Deploy target: **Railway** — Vercel deprecated 2026-06-28 (#466 `dca85c5ac`; `docs/deployment/railway-migration.md`). Live checks at this update: `api.vitalcv.com/health` returns `git_sha:"0a90df985…"` (= `main` tip, 0 error requests); `vitalcv.com/api/version` responds 200 (#508 release monitoring endpoint).
 
 ## Standing rule
 
 Update this board after every wave. Even a docs-only wave should bump the **Last updated** field and any state transitions for in-flight PRs. Move percentages only on **merge / deploy / live validation** — not on PR existence.
 
-## Current blockers (2026-05-27)
+## Current blockers — canonical list is `docs/ops/launch-blockers.md`
 
-1. ✅ ~~PR #423 redeploy to `delightful-essence`~~ — **resolved.** `/health` confirms `git_sha:"9f272c80c"`. Auto-deployed within ~6.4 hours of merge.
-2. **Authenticated SSE smoke for NPI 1699264564** — attempted Wave 22 (2026-05-27); **AUTH BLOCKED** per runbook. Browser session unauthenticated; `POST /api/ingest/1699264564` returned `HTTP 403 + x-cors-blocked:1`; runbook safety constraints prevented agent from initiating sign-in or entering credentials. Resume path: operator signs in to `vitalcv.com` themselves; agent then re-runs the POST + SSE stream and reports raw NPPES `source_complete` fields verbatim. Until this runs cleanly, NPPES truth-state is **merged + deployed but not validated live**. Useful side-finding: unauthenticated `/passport` page is **clean of banned phrases** and renders honest "Unavailable / not connected" copy across all four lanes.
-3. **PR #422** (Web Quality vitest exclude) — dependency on PR #421 cleared; CI can be re-triggered, audited, merged.
-4. **NPPES source operational reliability** (no-payload reads, OIG/PECOS not connected) — observability moat scoped in `docs/ops/nppes-source-health-next-wave.md`; not yet a `fix/` branch.
-5. **`Deploy health probe` / `Source Health Probe` workflows failing** every ~30 min due to missing `CRON_SECRET` repo secret — pre-existing CI config issue, **not a deployment failure**. Cosmetic.
-6. **Vercel account block** — operator-side cosmetic noise; not gating.
+As of 2026-07-04 the open-blocker list lives in **`docs/ops/launch-blockers.md`** (created by Wave 0, #541 `d1dbe7960`), with the verified-resolved history in `docs/ops/REBASELINE-2026-07-04.md`. This board no longer maintains its own blocker list. Dispositions of the six items the 2026-05-27 list carried:
+
+1. ✅ PR #423 redeploy to `delightful-essence` — resolved 2026-05-27 (recorded in the appendix history below).
+2. ➡️ Authenticated SSE smoke for NPI 1699264564 — never run as specced. The concern it guarded (live NPPES truth-state behind auth) has since been exercised by live source-backed readiness replacing the demo snapshot (#468 `8f68ef004`), the signed-in QA arc (`docs/product/signed-in-clinician-qa.md` + P0 fixes #503 `e1efaf04b`, #507 `d57196d71`, #536 `ccef8a656`), and synthetic post-deploy verification (#508 `042c44469`). The canonical list carries no open item for it.
+3. ✅ PR #422 — merged `801100c7f` 2026-05-27 (recorded in appendix history).
+4. ➡️ NPPES source operational reliability — folded into launch-blockers #9 (continuous monitoring off by default) and #10 (no bulk-file ingestion); NPPES API v2.1 pinning is now boot-asserted (#541 `d1dbe7960`).
+5. ✅ Failing scheduled probe workflows — workflow set has been rebuilt since: phantom gates and placeholder deploy steps removed (#473 `2622def4c`), deploy verification is webhook-driven (#508 `042c44469`).
+6. ✅ Vercel account block — mooted; Vercel deprecated, Railway canonical (#466 `dca85c5ac`).
 
 ## Next highest-leverage bottleneck
 
-**Database / Persistence Layer (16%, 40 waves left)** — TRUST-PERSIST-1 cutover from in-memory to real DB-backed writers is now the largest single board blocker. Every other infrastructure-grade dimension (DevOps, CI, API reliability, truth contract) has at least foundation status; persistence is still at *seed* and is the bottleneck for moving Trust / Proof / Receipts and Backend / API Reliability above their current ceilings.
+**Self-serve clinician signup gate completion (launch-blockers #1, Wave A)** — gate PRs 1–3 of 4 are merged (#538 `f7bdbe158` profession selector, #539 `9d7b00f87` attestation + audit, #542 `f11df24ff` email-OTP possession factor); wallet provisioning (4/4), the `accountCreationProductionReady` literal flip, and the e2e happy-path + fail-closed test (launch-blockers #4) remain. Two adjacent flag-flips are staged behind it: the issuer persistence writer is merged but default-off (`ISSUER_PERSISTENCE_ENABLED`), and employer-review RBAC is merged shadow-first (#544 `0a90df985`, `rbacEnforced` literal still `false`). TRUST-PERSIST-1 — the previous headline blocker here — landed its writer + surface wiring back in Wave B (#255–#258, reconciled into the tables below), and three 2026-07-04 Prisma migrations now await founder-gated `migrate deploy`.
 
 ## Full-Scope Coverage Rule
 
@@ -86,14 +88,14 @@ Every section uses this schema:
 | Issuer response intake | 70 | 70 | No action this wave. Intake surface + tests (#168). | 🚀 Hardening |
 | Receipt candidate | 85 | 85 | No action this wave. `receiptCandidate.ts` + literal `decisionGrade:false`/`proofTier:'receipt_candidate'` tests on main. | 🚀 Hardening |
 | Policy review decision | 85 | 85 | No action this wave. `policyReview.ts` 5-gate flow + tests. | 🚀 Hardening |
-| PSV receipt promotion | 70 | 70 | No action this wave. PSV receipt + reuse boundary (#172). | 🚀 Hardening |
-| Reuse / revocation / supersession boundary | 75 | 75 | No action this wave. (#172) tests. | 🚀 Hardening |
+| PSV receipt promotion | 70 | 80 | Reconciled from Wave B ledger: writer wired into `/issuer/psv-receipt` (#258 `5d28a95d3`), flag-gated. | 🚀 Hardening |
+| Reuse / revocation / supersession boundary | 75 | 80 | Reconciled from Wave A ledger: constraint tamper detection + cross-tenant reuse block (#235 `b61d60da6`). | 🚀 Hardening |
 | Consent / manual send / timeline | 70 | 70 | No action this wave. Consent + timeline (#174). | 🚀 Hardening |
 | Audit persistence boundary | 75 | 75 | No action this wave. (#175) `auditPersistence.ts` + tests. | 🚀 Hardening |
 | Persistence adapter decision | 75 | 75 | No action this wave. (#176). | 🚀 Hardening |
 | Backend writer boundary | 75 | 75 | No action this wave. (#180) `serverPsvReceiptWriter.ts` defensive downgrade + tests; deferred default writer only. | 🚀 Hardening |
 | Domain / core PSV receipt contract alignment | 80 | 80 | No action this wave. (#178) `packages/domain-core/psvReceipts.ts` + frozen mapper tests. | 🚀 Hardening |
-| Source health classifier | 65 | 65 | No action this wave. `SourceHealthState`, `LaneHealthBadge`, snapshot store, `runAllProbes`, 88-test suite (#186/#187). | 🛠️ Buildout |
+| Source health classifier | 65 | 75 | Reconciled from Wave A/H ledgers: post-deploy probe (#252 `08781510c`) + public `/status` panel (#261 `71a9d0682`) on the #186/#187 base. | 🚀 Hardening |
 
 ---
 
@@ -101,27 +103,28 @@ Every section uses this schema:
 
 | Area | Current % | After Wave % | Detail / Action Per Area | Status |
 |---|---:|---:|---|---|
-| Signup / account creation | 10 | 10 | No action this wave. Real auth (Clerk/NextAuth) wired; e2e signup test required. | 🌱 Seed |
-| Login / account recovery | 10 | 10 | No action this wave. Sign-in flow + recovery; Google OAuth currently broken in prod. | 🌱 Seed |
-| NPI check | 65 | 65 | No action this wave. NPPES proxy + ingest fallback in `apps/web/app/api/ingest/[npi]/route.ts`. | 🛠️ Buildout |
-| Rich clinician profile shell | 75 | 75 | PR-C (#207, ac58f6df): `profileTypes.ts` (163 lines) + `profileCompletion.ts` (253 lines) + profile/graph/onboarding/import routes + 22-test suite. | 🚀 Hardening |
-| Identity / contact / locations | 55 | 55 | PR-C (#207, ac58f6df): `ClinicianProfile` field schema with provenance + confidence axis in `profileTypes.ts`; user-entered only, no verified binding. | 🛠️ Buildout |
+| Signup / account creation | 10 | 45 | `/get-ready` NPI binding (#475 `804e66a69`); gate PRs 1–3/4 (#538 `f7bdbe158`, #539 `9d7b00f87`, #542 `f11df24ff`). `accountCreationProductionReady` still `false` — capped. | 🧱 Foundation |
+| Login / account recovery | 10 | 35 | Sign-in unbroken in prod via Clerk-domain CSP (#536 `ccef8a656`); role resolution P0s fixed (#503 `e1efaf04b`, #507 `d57196d71`); takeover block (#504 `1d996c49a`). No recovery flow; prod OAuth unconfirmed (launch-blockers #3). | 🧱 Foundation |
+| NPI check | 65 | 75 | NPPES v2.1 pinning boot-asserted, zero V1 refs (#541 `d1dbe7960`); `/get-ready` binding flow (#475 `804e66a69`). | 🚀 Hardening |
+| Rich clinician profile shell | 75 | 80 | Live profile on real workspace + passport data (#476 `73ea7baf4`); editing depth with provenance + save states (#496 `84ecd6bcc`). | 🚀 Hardening |
+| Identity / contact / locations | 55 | 65 | Provenance-honest identity surface (#495 `3dcc3c598`); profile editing depth (#496 `84ecd6bcc`). Still self-attested, no verified binding. | 🛠️ Buildout |
 | Medical school | 25 | 25 | No action this wave. Free-text capture; no source verification. | 🧱 Foundation |
 | Residency | 25 | 25 | No action this wave. Free-text capture; no source verification. | 🧱 Foundation |
 | Fellowship | 25 | 25 | No action this wave. Free-text capture; no source verification. | 🧱 Foundation |
-| Training programs | 20 | 20 | No action this wave. Free-text capture; no source verification. | 🌱 Seed |
+| Training programs | 20 | 30 | Training evidence modeled in the organization graph (#447 `aa3b8b825`). No source verification. | 🧱 Foundation |
 | Specialty / subspecialty | 30 | 30 | No action this wave. Capture + NPPES inference only. | 🧱 Foundation |
 | Current employer | 25 | 25 | No action this wave. User-entered, no employer-side verification. | 🧱 Foundation |
 | Employer history | 20 | 20 | No action this wave. User-entered only. | 🌱 Seed |
-| Affiliations | 20 | 20 | No action this wave. User-entered only. | 🌱 Seed |
+| Affiliations | 20 | 28 | Clinician organization graph (#447 `aa3b8b825`). User-entered basis unchanged. | 🧱 Foundation |
 | Work history | 20 | 20 | No action this wave. User-entered only. | 🌱 Seed |
 | Research / publications | 15 | 15 | No action this wave. Section exists, no live source binding. | 🌱 Seed |
-| PubMed layer | 30 | 30 | No action this wave. `publicationFoundation.ts` 5 source kinds; `pubmedCandidatesVerifiedByDefault: false` (#FOUNDATION-SWEEP-5). | 🧱 Foundation |
-| LinkedIn-style profile layer | 28 | 28 | No action this wave. `professionalProfileLayer.ts` linkedin_style as presentation concept; `verifiesCredentials: false` (#FOUNDATION-SWEEP-5). | 🧱 Foundation |
-| Doximity-style profile layer | 26 | 26 | No action this wave. Same `professionalProfileLayer.ts`; doximity_style; `verifiesCredentials: false` (#FOUNDATION-SWEEP-5). | 🧱 Foundation |
-| Career goals / preferences | 25 | 25 | No action this wave. Capture exists, no matching loop. | 🧱 Foundation |
-| Profile completion score | 40 | 40 | PR-C (#207, ac58f6df): `profileCompletion.ts` weighted score with `source-backed`/`self-attested`/`imported-candidate` tiers; 22 tests pass. | 🧱 Foundation |
-| Clinician-facing value dashboard | 30 | 30 | PR-C (#207, ac58f6df): `/clinician/graph` Knowledge Graph Preview route + clinician profile routes wired; no live personalization widget yet. | 🧱 Foundation |
+| PubMed layer | 30 | 30 | No action this wave. `pubmedCandidatesVerifiedByDefault: false` (#FOUNDATION-SWEEP-5). | 🧱 Foundation |
+| LinkedIn-style profile layer | 28 | 28 | No action this wave. `verifiesCredentials: false` (#FOUNDATION-SWEEP-5). | 🧱 Foundation |
+| Doximity-style profile layer | 26 | 26 | No action this wave. `verifiesCredentials: false` (#FOUNDATION-SWEEP-5). | 🧱 Foundation |
+| Career goals / preferences | 25 | 55 | Personal/Professional/Place match questions (#519 `222fe1ffb`); DB-persisted preferences keyed by user (#534 `5838348ca`, migration awaits `migrate deploy`); Career Compass (#533 `bbf5c4c71`). | 🛠️ Buildout |
+| Career intelligence layer (MATCHA) | 0 | 55 | New row (BOARD-RECONCILE-1). Engine + web surfaces (#518 `6e8e0a7dc`), honest livability (#520 `8953ccda3`), deterministic simulator (#532 `5c23ce2fb`), GA default-on (#535 `329bf7964`, `features.ts`). Truth-contract refusals: no interview-probability or salary claims. | 🛠️ Buildout |
+| Profile completion score | 40 | 50 | Completeness guidance tied to provenance tiers in the editing flow (#496 `84ecd6bcc`) on the PR-C base. | 🛠️ Buildout |
+| Clinician-facing value dashboard | 30 | 65 | Product-loop holder home (#516 `16fee8520`); clinician dashboard (#521 `7f219a552`); Career Scoreboard (#531 `449bdbae1`); daily brief + streak (#529 `532c81fab`). | 🛠️ Buildout |
 
 ---
 
@@ -129,14 +132,14 @@ Every section uses this schema:
 
 | Area | Current % | After Wave % | Detail / Action Per Area | Status |
 |---|---:|---:|---|---|
-| Mobile web / PWA | 35 | 42 | PR-F (#214, bae32c90): editorial homepage client + app-shell responsive layout (`HomePageClient.tsx`, `layout.tsx`) with mobile-first sections + Geist font system at the layout level; PWA installability + offline shell still not verified. | 🧱 Foundation |
-| Native iOS app | 25 | 25 | No action this wave. `nativeAppReadiness.ts` iOS capability set; all `isLive: false`; no native app is live (#FOUNDATION-SWEEP-4). | 🧱 Foundation |
-| Native Android app | 25 | 25 | No action this wave. Same `nativeAppReadiness.ts`; Android `isLive: false`; no native app is live (#FOUNDATION-SWEEP-4). | 🧱 Foundation |
-| Mobile document capture | 25 | 25 | No action this wave. `mobileCaptureFoundation.ts` web/PWA scope + 7-capability checklist; native camera not enabled yet (#FOUNDATION-SWEEP-3). | 🧱 Foundation |
+| Mobile web / PWA | 42 | 42 | No action this wave (settled at PR-F #214 value). PWA installability + offline shell still unconfirmed. | 🧱 Foundation |
+| Native iOS app | 25 | 30 | Wallet service layer + tests exist in `apps/mobile` (REBASELINE-confirmed on-disk, #541 `d1dbe7960`). No store app; `isLive: false`. | 🧱 Foundation |
+| Native Android app | 25 | 30 | Same `apps/mobile` service layer evidence (#541 `d1dbe7960`). No store app; `isLive: false`. | 🧱 Foundation |
+| Mobile document capture | 25 | 25 | No action this wave. Native camera not enabled (#FOUNDATION-SWEEP-3). | 🧱 Foundation |
 | Device trust / App Attest / Play Integrity | 0 | 0 | No action this wave. None shipped. | 🧊 Planned |
-| Biometric gating | 25 | 25 | No action this wave. `biometricGatingFoundation.ts` 5 planned capabilities; `biometricGatingLive: false`, `provesClinicianIdentity: false` (#FOUNDATION-SWEEP-4). | 🧱 Foundation |
-| Push notification readiness | 0 | 0 | No action this wave. None shipped. | 🧊 Planned |
-| Offline / degraded-state handling | 25 | 25 | No action this wave. 5xx fallbacks (#LIVE-100C/D) + `degradedStateFoundation.ts` 6-state policy; `offlineSyncImplemented: false` (#FOUNDATION-SWEEP-3). | 🧱 Foundation |
+| Biometric gating | 25 | 25 | No action this wave. `biometricGatingLive: false` (#FOUNDATION-SWEEP-4). | 🧱 Foundation |
+| Push notification readiness | 0 | 10 | `NotificationService.ts` in `apps/mobile` (REBASELINE-confirmed, #541 `d1dbe7960`); nothing shipped to devices. | 🌱 Seed |
+| Offline / degraded-state handling | 25 | 32 | `OfflinePresentationEngine` + BLE `OfflineRadar` path on main (REBASELINE §4, #541 `d1dbe7960`) atop 5xx fallbacks; `offlineSyncImplemented: false`. | 🧱 Foundation |
 
 ---
 
@@ -144,17 +147,17 @@ Every section uses this schema:
 
 | Area | Current % | After Wave % | Detail / Action Per Area | Status |
 |---|---:|---:|---|---|
-| Government ID verification | 25 | 25 | No action this wave. `identityVerificationControls.ts` 8-control foundation; `governmentIdLive: false`, `vendorSelected: false` (#FOUNDATION-SWEEP-4). | 🧱 Foundation |
-| Selfie / liveness | 25 | 25 | No action this wave. Same `identityVerificationControls.ts`; `selfieLivenessLive: false` (#FOUNDATION-SWEEP-4). | 🧱 Foundation |
-| Clinician-to-NPI binding | 28 | 28 | No action this wave. `evaluateClinicianNpiBindingReadiness` returns `foundation_ready`; no proven-person-to-NPI binding (#FOUNDATION-SWEEP-2). | 🧱 Foundation |
-| Identity proofing policy | 25 | 25 | No action this wave. `identityProofingPolicy.ts`; NPI-lookup + self-attested-name only `isLive: true`; no IAL2/IAL3 (#FOUNDATION-SWEEP-2). | 🧱 Foundation |
-| Account recovery | 25 | 25 | No action this wave. `accountRecoveryFoundation.ts` 5 methods all `isLive: false`; no production recovery flow (#FOUNDATION-SWEEP-3). | 🧱 Foundation |
-| Session security | 20 | 20 | No action this wave. Default Next/Clerk session handling, not hardened. | 🌱 Seed |
-| OWASP ASVS baseline | 15 | 15 | No action this wave. No published ASVS scorecard. | 🌱 Seed |
-| Security headers / secure defaults | 35 | 35 | No action this wave. Some headers via Next defaults; no audited CSP. | 🧱 Foundation |
-| Data classification | 20 | 33 | ENTERPRISE-VANGUARD-6A: `dataClassificationFoundation.ts` 4-tier vocab (public/pii/phi/internal); 6 REDACTION_RULES; maskValue(); redactionLive: false, piiTierDocLive: false. | 🧱 Foundation |
-| Retention / redaction | 10 | 25 | ENTERPRISE-VANGUARD-6A: `retentionFoundation.ts` 5-entity retention policy model; DEFAULT_RETENTION_POLICIES; retentionEnforced: false, autoDeleteLive: false. | 🧱 Foundation |
-| Secrets / env handling | 30 | 30 | No action this wave. `.env` patterns in repo; no zod env validation. | 🧱 Foundation |
+| Government ID verification | 25 | 25 | No action this wave. `governmentIdLive: false`, `vendorSelected: false` (#FOUNDATION-SWEEP-4). | 🧱 Foundation |
+| Selfie / liveness | 25 | 25 | No action this wave. `selfieLivenessLive: false` (#FOUNDATION-SWEEP-4). | 🧱 Foundation |
+| Clinician-to-NPI binding | 28 | 50 | `/get-ready` binding (#475 `804e66a69`); profession selector (#538 `f7bdbe158`); attestation + audit (#539 `9d7b00f87`); email-OTP possession factor (#542 `f11df24ff`). `identityProofingComplete` still `false` — capped. | 🛠️ Buildout |
+| Identity proofing policy | 25 | 35 | Attestation flow (#539 `9d7b00f87`) + work-email OTP trust anchor (#542 `f11df24ff`) added to the live set; still no IAL2/IAL3. | 🧱 Foundation |
+| Account recovery | 25 | 25 | No action this wave. All 5 methods `isLive: false`; no production recovery flow (#FOUNDATION-SWEEP-3). | 🧱 Foundation |
+| Session security | 20 | 35 | Header-driven account-takeover blocked in `ensureWorkspaceUser` (#504 `1d996c49a`); tenant-guard role-resolution fix (#503 `e1efaf04b`); Clerk custom-domain CSP (#536 `ccef8a656`). | 🧱 Foundation |
+| OWASP ASVS baseline | 15 | 40 | Reconciled: ASVS L1 scorecard published at `docs/security/asvs-scorecard.md` (#227 `52e0a111c`), on main today. L2 mapping open (launch-blockers #5). | 🧱 Foundation |
+| Security headers / secure defaults | 35 | 75 | Reconciled: strict header baseline CSP/HSTS/XCTO/Referrer/Permissions + tests (#226 `a27d4d522`, `apps/web/security-headers.mjs`); Clerk-domain CSP gap closed (#536 `ccef8a656`). | 🚀 Hardening |
+| Data classification | 33 | 33 | No action this wave (settled at ENTERPRISE-VANGUARD-6A value). `redactionLive: false`. | 🧱 Foundation |
+| Retention / redaction | 25 | 25 | No action this wave (settled at ENTERPRISE-VANGUARD-6A value). `retentionEnforced: false`. | 🧱 Foundation |
+| Secrets / env handling | 30 | 70 | Reconciled: typed env contract w/ build-time validation (#228 `e2a241117`, `apps/web/lib/env.ts`); backend Zod env (`envValidation.ts`, REBASELINE-confirmed). | 🚀 Hardening |
 
 ---
 
@@ -162,15 +165,15 @@ Every section uses this schema:
 
 | Area | Current % | After Wave % | Detail / Action Per Area | Status |
 |---|---:|---:|---|---|
-| WCAG 2.2 AA baseline | 25 | 25 | No action this wave. `accessibilityFoundation.ts` 9-category checklist; "not a WCAG 2.2 AA certification"; no axe gate in CI (#FOUNDATION-SWEEP-2). | 🧱 Foundation |
-| Keyboard navigation | 25 | 25 | No action this wave. Default browser behavior; no audited focus traps. | 🧱 Foundation |
-| Screen reader labels | 25 | 25 | No action this wave. `screen_reader_labels` category in accessibility foundation; `/clinician/identity` uses `aria-labelledby` (#FOUNDATION-SWEEP-2). | 🧱 Foundation |
-| Touch targets | 30 | 30 | No action this wave. Mobile clip fixes (Wave GOD-2); no 44×44 audit. | 🧱 Foundation |
+| WCAG 2.2 AA baseline | 25 | 60 | Reconciled: a11y baseline assertions (#229 `5cee8879d`) + axe-core gate on hero routes (#232 `92af696f8`), running in CI (`.github/workflows/a11y-gate.yml`). Scope is hero routes; known-violations register kept (`docs/security/a11y-known-violations.md`). | 🛠️ Buildout |
+| Keyboard navigation | 25 | 25 | No action this wave. No audited focus traps. | 🧱 Foundation |
+| Screen reader labels | 25 | 25 | No action this wave. `aria-labelledby` on identity surface only (#FOUNDATION-SWEEP-2). | 🧱 Foundation |
+| Touch targets | 30 | 30 | No action this wave. No 44×44 audit. | 🧱 Foundation |
 | Error-state accessibility | 15 | 15 | No action this wave. Error UIs not audited for screen readers. | 🌱 Seed |
-| Contrast | 35 | 35 | PR-E (#209, e1687cc2): design-system v2 tokens (colors, typography) + themes (dark/light/graphite/midnight) on main; no axe-based contrast audit yet. | 🧱 Foundation |
-| Reduced motion | 25 | 25 | No action this wave. `reduced_motion` category in accessibility foundation; no prefers-reduced-motion audited end-to-end (#FOUNDATION-SWEEP-2). | 🧱 Foundation |
+| Contrast | 35 | 45 | Axe gate includes contrast checks on hero routes (#232 `92af696f8`) atop PR-E tokens; no full-surface contrast audit. | 🧱 Foundation |
+| Reduced motion | 25 | 25 | No action this wave. Not audited end-to-end (#FOUNDATION-SWEEP-2). | 🧱 Foundation |
 | Form accessibility | 15 | 15 | No action this wave. No labeled-region audit. | 🌱 Seed |
-| Mobile accessibility | 15 | 15 | No action this wave. No labeled-region audit. | 🌱 Seed |
+| Mobile accessibility | 15 | 22 | Wallet credential a11y labels (#445 `187b24378`); a11y loading states on ecosystem surfaces (#452 `2280cb53e`). No labeled-region audit. | 🌱 Seed |
 
 ---
 
@@ -178,17 +181,17 @@ Every section uses this schema:
 
 | Area | Current % | After Wave % | Detail / Action Per Area | Status |
 |---|---:|---:|---|---|
-| CV upload | 25 | 25 | No action this wave. Knowledge Inbox foundation (#166) for free-text capture; binary CV upload not wired. | 🧱 Foundation |
-| Document upload | 32 | 32 | No action this wave. `document_upload` first-class `ImportEntryKind` in `importFoundation.ts` with `entry_only` status (#FOUNDATION-SWEEP-2). | 🧱 Foundation |
-| Drag/drop upload UX | 15 | 15 | No action this wave. No verified DnD surface. | 🌱 Seed |
-| LinkedIn import | 25 | 25 | No action this wave. `professionalImportFoundation.ts` defines `linkedin_profile` as `planned`, `isLive: false` (#FOUNDATION-SWEEP-5). | 🧱 Foundation |
-| Doximity import | 25 | 25 | No action this wave. Same foundation; `doximity_profile` as `planned`, `isLive: false` (#FOUNDATION-SWEEP-5). | 🧱 Foundation |
-| PubMed import | 30 | 30 | No action this wave. `pubmed_publications` as `candidate_ready`, `isLive: false`, `productionReady: false` (#FOUNDATION-SWEEP-5). | 🧱 Foundation |
-| CSV / roster import | 30 | 30 | No action this wave. Some CSV ingest; roster management is manual. | 🧱 Foundation |
-| Export bundle | 25 | 25 | No action this wave. `ARTIFACT_EXPORTED` event metadata exists; bundle UX in progress. | 🧱 Foundation |
-| Shareable passport | 35 | 35 | No action this wave. `/passport/[id]` route + provenance panel. | 🧱 Foundation |
-| Proof pack export | 20 | 20 | No action this wave. Conceptual shape; no audited bundle. | 🌱 Seed |
-| Import error handling | 25 | 25 | No action this wave. `buildImportErrorState` returns user-safe responses for 8 `ImportErrorKind` values (#FOUNDATION-SWEEP-2). | 🧱 Foundation |
+| CV upload | 25 | 25 | No action this wave. Binary CV upload not wired. | 🧱 Foundation |
+| Document upload | 32 | 32 | No action this wave. `entry_only` status (#FOUNDATION-SWEEP-2). | 🧱 Foundation |
+| Drag/drop upload UX | 15 | 15 | No action this wave. No confirmed DnD surface. | 🌱 Seed |
+| LinkedIn import | 25 | 25 | No action this wave. `linkedin_profile` `isLive: false` (#FOUNDATION-SWEEP-5). | 🧱 Foundation |
+| Doximity import | 25 | 25 | No action this wave. `doximity_profile` `isLive: false` (#FOUNDATION-SWEEP-5). | 🧱 Foundation |
+| PubMed import | 30 | 30 | No action this wave. `productionReady: false` (#FOUNDATION-SWEEP-5). | 🧱 Foundation |
+| CSV / roster import | 30 | 30 | No action this wave. Roster management is manual. | 🧱 Foundation |
+| Export bundle | 25 | 35 | Career Packet in the Career Evidence stack (#444 `c8df66f93`) + export-packet route/tests. | 🧱 Foundation |
+| Shareable passport | 35 | 55 | Recognition share panel → `/verify/[npi]` (#487 `2f967fb02`); public verifier surface restored with redacted trust-proof (#490 `ddf9c0141`); Wallet share/prove action (#511 `1b4038232`). | 🛠️ Buildout |
+| Proof pack export | 20 | 20 | No action this wave. JC survey-ready export absent (launch-blockers #12). | 🌱 Seed |
+| Import error handling | 25 | 25 | No action this wave. 8 `ImportErrorKind` values (#FOUNDATION-SWEEP-2). | 🧱 Foundation |
 | Import provenance labels | 40 | 40 | No action this wave. 5-tier provenance vocab enforced (Wave GOD-3S). | 🧱 Foundation |
 
 ---
@@ -197,14 +200,14 @@ Every section uses this schema:
 
 | Area | Current % | After Wave % | Detail / Action Per Area | Status |
 |---|---:|---:|---|---|
-| Data model | 75 | 75 | No action this wave. `docs/architecture/vitalcv-knowledge-trust-graph.{md,json}` boundaries 1–28. | 🚀 Hardening |
+| Data model | 75 | 80 | Canonical Professional Knowledge Graph — one graph, no duplicate state (#460 `4f790c128`). | 🚀 Hardening |
 | Claim / source / receipt navigation | 60 | 60 | No action this wave. TrustGraph panel mounts on `/passport/[id]`. | 🛠️ Buildout |
-| Roam/Obsidian-style visual graph UX | 22 | 22 | No action this wave. Static panel only; no graph layout engine. | 🌱 Seed |
-| Graph search | 10 | 10 | No action this wave. Not built. | 🌱 Seed |
-| Graph filtering | 10 | 10 | No action this wave. Not built. | 🌱 Seed |
+| Roam/Obsidian-style visual graph UX | 22 | 55 | Interactive Career Constellation with time scrub (#528 `c227c2b87`); personalized via daily brief loop (#529 `532c81fab`). | 🛠️ Buildout |
+| Graph search | 10 | 25 | Ecosystem search surface (#448 `781998c1b`). | 🧱 Foundation |
+| Graph filtering | 10 | 20 | Time-scrub filtering on the constellation (#528 `c227c2b87`); no facet filters. | 🌱 Seed |
 | Graph export | 30 | 30 | No action this wave. Underlying JSON exportable; no UI export. | 🧱 Foundation |
-| Clinician-facing graph explanation | 35 | 35 | No action this wave. Static explainer in panel. | 🧱 Foundation |
-| Verifier-facing graph explanation | 30 | 30 | No action this wave. Static explainer (same as clinician-facing). | 🧱 Foundation |
+| Clinician-facing graph explanation | 35 | 45 | Explainable reasoning layer (#461 `0540001b4`); constellation legend (#528 `c227c2b87`). | 🧱 Foundation |
+| Verifier-facing graph explanation | 30 | 30 | No action this wave. Static explainer. | 🧱 Foundation |
 | Graph-to-proof-pack path | 20 | 20 | No action this wave. Not connected end-to-end. | 🌱 Seed |
 
 ---
@@ -213,16 +216,16 @@ Every section uses this schema:
 
 | Area | Current % | After Wave % | Detail / Action Per Area | Status |
 |---|---:|---:|---|---|
-| Employer review | 60 | 60 | No action this wave. Issuer review surface (#168); demo render only (`recordedBy:'demo'`). | 🛠️ Buildout |
-| Request review | 55 | 55 | No action this wave. Same as employer review. | 🛠️ Buildout |
-| Verifier worklist | 30 | 48 | FOUNDATION-SWEEP-7: `worklist.ts` WorklistItem/filter/status-copy foundation; WorklistPanel component; /employer/worklist shell; dbBackedWorklist: false. | 🧱 Foundation |
+| Employer review | 60 | 70 | Audit-first in-transaction accept, BLOCKED fails closed (REBASELINE-confirmed); employer-notes leak fixed in public read (#498 `81722c1dd`); RBAC gate shadow-first (#544 `0a90df985`). | 🚀 Hardening |
+| Request review | 55 | 55 | No action this wave. Route-contract covered (#497 `5dde02695`). | 🛠️ Buildout |
+| Verifier worklist | 48 | 60 | Reconciled: DB-backed reads via `worklistRepo.ts` `prisma.receiptCandidate` (#253 `8e5b6f40d`); vocabulary foundation in `worklist.ts` still pins `dbBackedWorklist: false` (stale literal, tracked). | 🛠️ Buildout |
 | Evidence inspection | 50 | 50 | No action this wave. Receipt candidate viewer. | 🛠️ Buildout |
-| Reuse decision UX | 50 | 65 | FOUNDATION-SWEEP-7: `reuseDecisionFoundation.ts` 3-basis model; explainReuseBasis says 'previously assessed'; crossTenantReuseImplemented: false. | 🛠️ Buildout |
-| Policy decision UX | 60 | 75 | FOUNDATION-SWEEP-7: `policyDecisionFoundation.ts` 4-outcome model; no 'approved'/'rejected' language; automatedPolicyEngine: false; /employer/decision/[id] shell. | 🛠️ Buildout |
+| Reuse decision UX | 65 | 65 | No action this wave (settled at FOUNDATION-SWEEP-7 value). `crossTenantReuseImplemented: false`. | 🛠️ Buildout |
+| Policy decision UX | 75 | 75 | No action this wave (settled at FOUNDATION-SWEEP-7 value). `automatedPolicyEngine: false`. | 🚀 Hardening |
 | Exportable proof pack | 25 | 25 | No action this wave. Not bundled. | 🧱 Foundation |
-| Team / org roles | 10 | 28 | FOUNDATION-SWEEP-7: `orgRolesFoundation.ts` 3-role model; invitation lifecycle; invitationSystemLive: false, rbacEnforced: false. | 🧱 Foundation |
-| Review status tracking | 45 | 60 | FOUNDATION-SWEEP-7: `reviewStatusFoundation.ts` 6-state lifecycle; transitionAllowed() state machine; truth-safe copy for all states; productionWorkflowLive: false. | 🛠️ Buildout |
-| Employer CTA / conversion path | 40 | 40 | No action this wave. `/employers` redirect + `/pilot` CTA live. | 🧱 Foundation |
+| Team / org roles | 28 | 40 | Server-side RBAC gate on employer-review mutations, shadow-first (#544 `0a90df985`); `rbacEnforced` literal still `false` — enforce-mode flip is launch-blockers #2. | 🧱 Foundation |
+| Review status tracking | 60 | 60 | No action this wave (settled at FOUNDATION-SWEEP-7 value). `productionWorkflowLive: false`. | 🛠️ Buildout |
+| Employer CTA / conversion path | 40 | 55 | Employer candidate pool (#522 `412b5c262`); employer discoverability (#524 `6e9ab7a72`); Calm Wave buyer pages (#527 `c053c96d0`). | 🛠️ Buildout |
 
 ---
 
@@ -232,13 +235,13 @@ Every section uses this schema:
 |---|---:|---:|---|---|
 | Domain PSV receipt contract | 85 | 85 | No action this wave. (#178) frozen mapper tests. | 🚀 Hardening |
 | Server writer confirmation boundary | 80 | 80 | No action this wave. (#180) defensive downgrade + tests. | 🚀 Hardening |
-| Real persistence writer | 5 | 5 | No action this wave. Default writer is deferred-only; no Prisma table; no audit-event table; no client-safe RPC. | 🌱 Seed |
-| Audit replay | 18 | 18 | No action this wave. (#187) snapshot store + `getLaneSnapshots` fallback; read-side replay for source-health lanes. | 🌱 Seed |
-| Export API | 15 | 15 | No action this wave. None client-safe. | 🌱 Seed |
-| Backend test coverage | 42 | 42 | No action this wave. Issuer 321/321 vitest pass; source-health 88/88 (#187). | 🧱 Foundation |
-| API route hardening | 32 | 32 | No action this wave. (#187) source-health routes use dual-auth; no CORS/helmet/API key story for public routes. | 🧱 Foundation |
+| Real persistence writer | 5 | 70 | Reconciled from Wave A/B ledgers: Prisma scaffold w/ truth-contract CHECKs (#221 `ded7a0e1a`); flagged writer (#255 `3dfac77cc`); wired into 3 issuer surfaces (#256 `daf11c0dd`, #257 `184e94fe8`, #258 `5d28a95d3`). `ISSUER_PERSISTENCE_ENABLED` default-off. | 🚀 Hardening |
+| Audit replay | 18 | 30 | Audit-first employer actions write `AuditEvent` in-transaction (REBASELINE-confirmed); attestation audit events (#539 `9d7b00f87`). | 🧱 Foundation |
+| Export API | 15 | 25 | Versioned API contract + webhook core + typed SDK (#451 `6a1b484b0`). | 🧱 Foundation |
+| Backend test coverage | 42 | 55 | Reconciled +22 tests (#421 `fe9c6f9c1`, #423 `9f272c80c`); golden-path contract suites (#497 `5dde02695`); pure `otpCore` tests (#542 `f11df24ff`). | 🛠️ Buildout |
+| API route hardening | 32 | 65 | Reconciled: CORS allowlist + API key foundation (#234 `e92396d62`), tenant-isolation 403s (#421 `fe9c6f9c1`); new: UUID 404-gates on public dynamic routes (#500 `095e29ba5`, #501 `0215b1f2c`), takeover block (#504 `1d996c49a`). | 🛠️ Buildout |
 | Repository adapter | 70 | 70 | No action this wave. (#176/#177) decision boundaries. | 🚀 Hardening |
-| Database migration readiness | 5 | 5 | No action this wave. SQLite + in-memory; PostgreSQL migration is Phase 1.1 (no implementation yet). | 🌱 Seed |
+| Database migration readiness | 5 | 45 | Prisma migrations on main incl. the 2026-07-04 trio — matcha_preferences (#534 `5838348ca`), clinician_attestation (#539 `9d7b00f87`), email_otp_identity_binding (#542 `f11df24ff`); Railway Postgres runtime. The trio awaits founder-gated `migrate deploy`. | 🧱 Foundation |
 
 ---
 
@@ -246,16 +249,16 @@ Every section uses this schema:
 
 | Area | Current % | After Wave % | Detail / Action Per Area | Status |
 |---|---:|---:|---|---|
-| Pricing/paywall | 28 | 28 | No action this wave. `pricingFoundation.ts` 5 plan kinds; `collectsPayment: false`, `checkoutIntegrationLive: false` (#FOUNDATION-SWEEP-6A). | 🧱 Foundation |
-| Self-serve signup | 32 | 32 | No action this wave. `selfServeSignupFoundation.ts`; `accountCreationProductionReady: false`, `paymentCollectionLive: false` (#FOUNDATION-SWEEP-6A). | 🧱 Foundation |
-| Onboarding | 38 | 38 | No action this wave. `onboardingFoundation.ts` milestones; `productionOnboardingComplete: false`, `completesCredentialing: false` (#FOUNDATION-SWEEP-6A). | 🧱 Foundation |
-| Support / admin | 25 | 25 | No action this wave. `supportAdminFoundation.ts` 6-capability plan; `staffed: false`, `productionAdminEnabled: false` (#FOUNDATION-SWEEP-3). | 🧱 Foundation |
-| Pilot ops | 50 | 50 | No action this wave. `/pilot` CTA live; no funnel instrumentation. | 🛠️ Buildout |
-| Analytics | 40 | 40 | No action this wave. `analyticsFoundation.ts` 6-event privacy-safe vocabulary; no vendor wired; production pipeline not live (#FOUNDATION-SWEEP-6B). | 🧱 Foundation |
-| Docs / status page | 45 | 55 | ENTERPRISE-VANGUARD-6A: `apps/web/app/api/compliance/evidence/route.ts` compliance evidence shape route; superadminGateLive: false; reports planned controls, not enforced production policies. | 🛠️ Buildout |
-| Legal pages | 60 | 60 | No action this wave. `/privacy` and `/terms` live (#LIVE-100C). | 🛠️ Buildout |
-| Sales / pilot collateral | 25 | 25 | No action this wave. Some pilot pages; no proof-pack. | 🧱 Foundation |
-| Demo data / reset flow | 28 | 28 | No action this wave. `demoResetFoundation.ts` 5 reset scopes; `productionResetEnabled: false`, `destructive: false` (#FOUNDATION-SWEEP-3). | 🧱 Foundation |
+| Pricing/paywall | 28 | 28 | Percentage held; note refreshed: dead subscription billing code deleted (#502 `63d1db05a`); `collectsPayment` still `false`. | 🧱 Foundation |
+| Self-serve signup | 32 | 45 | Gate PRs 1–3/4 merged (#538 `f7bdbe158`, #539 `9d7b00f87`, #542 `f11df24ff`); production-readiness literals still `false` — completion is launch-blockers #1. | 🧱 Foundation |
+| Onboarding | 38 | 55 | `/get-ready` canonical binding entry (#475 `804e66a69`); MATCHA match questions (#519 `222fe1ffb`); Calm Wave signed-in onboarding (#526 `403c478af`). | 🛠️ Buildout |
+| Support / admin | 25 | 40 | `/admin/platform` Ops Center V1 — Deployment Integrity Check + Founder Dashboard (#469 `9c4c49c8d`). `staffed: false` unchanged. | 🧱 Foundation |
+| Pilot ops | 50 | 50 | No action this wave. No funnel instrumentation. | 🛠️ Buildout |
+| Analytics | 40 | 40 | No action this wave. No vendor wired (#FOUNDATION-SWEEP-6B). | 🧱 Foundation |
+| Docs / status page | 55 | 65 | Durable release monitoring + `/api/version` (#508 `042c44469`, endpoint live); HIPAA architecture evidence + SOC 2 readiness map (#279 `87b4f5a0a`). | 🛠️ Buildout |
+| Legal pages | 60 | 70 | Reconciled from Wave A ledger: DPA template + cookie policy pages + footer wiring (#242 `91f162b57`) atop `/privacy` + `/terms`. | 🚀 Hardening |
+| Sales / pilot collateral | 25 | 45 | Reconciled Wave H: pilot intake (#259 `f63b222f1`), persona pages (#260 `404cd8bd0`), pricing CTAs (#262 `c24ef7451`); new: buyer pages (#527 `c053c96d0`), buyer audiences (#515 `fa068e989`), demo tenant (#453 `e3a2d8381`). | 🧱 Foundation |
+| Demo data / reset flow | 28 | 40 | Decision-grade demo tenant + `/demo` (#453 `e3a2d8381`); demo activation/dossier pages 404-gated behind demo ids (#478 `e339fecb4`). | 🧱 Foundation |
 
 ---
 
@@ -263,14 +266,14 @@ Every section uses this schema:
 
 | Area | Current % | After Wave % | Detail / Action Per Area | Status |
 |---|---:|---:|---|---|
-| Web quality | 85 | 85 | No action this wave. TypeScript + ESLint enforced on build; 321/321 issuer tests; canonical build path fixed (#196 BUILD-CHAIN-1). | 🚀 Hardening |
-| Monorepo CI/CD | 65 | 65 | No action this wave. Turbo workflows; merge-protection requires Codex SAFE; root scripts expose deterministic build (#196 BUILD-CHAIN-1). | 🛠️ Buildout |
-| Railway deploy preflight | 40 | 40 | No action this wave. (#179) excluded db-dependent backend packages from preflight smoke. | 🧱 Foundation |
-| Vercel deploy health | 60 | 60 | No action this wave. vitalcv.com → `vcv-web` on `blockchaincv` team; Vercel linkage verified. | 🛠️ Buildout |
-| Regression test coverage | 55 | 55 | No action this wave. Heavy on issuer slice; source-health suite 88/88; thin in clinician/mobile/marketing surfaces. | 🛠️ Buildout |
-| Route map coverage | 30 | 30 | No action this wave. No published route map gate. | 🧱 Foundation |
-| Smoke tests | 55 | 55 | No action this wave. (#179) preflight smoke in progress; (#187) source-health cron; (#196) `check-web-build-chain.sh` executable smoke. | 🛠️ Buildout |
-| Release checklist | 20 | 20 | No action this wave. No published release checklist. | 🌱 Seed |
+| Web quality | 85 | 85 | No action this wave. TypeScript + ESLint enforced on build (#196 BUILD-CHAIN-1). | 🚀 Hardening |
+| Monorepo CI/CD | 65 | 70 | Web excluded from postgres-less test lane (#471 `d35ce5950`); Railway web deploys restored (#472 `24a0ed7a1`); phantom gates + placeholder deploy steps removed (#473 `2622def4c`). | 🚀 Hardening |
+| Railway deploy preflight | 40 | 65 | Railway canonical (#466 `dca85c5ac`); Docker deps stage installs full workspace graph (#470 `2280251b2`); startCommand override fix (#472 `24a0ed7a1`); Deployment Integrity Check (#469 `9c4c49c8d`). | 🛠️ Buildout |
+| Web deploy health (Railway) | 60 | 65 | Row renamed from "Vercel deploy health" — Vercel deprecated (#466 `dca85c5ac`; `docs/deployment/railway-migration.md`). Synthetic post-deploy verification → GH commit status (#508 `042c44469`); `vitalcv.com/api/version` live (200). | 🛠️ Buildout |
+| Regression test coverage | 55 | 70 | 4-layer golden-path route contract incl. negative controls (#497 `5dde02695`); holder route contract — every golden-path href must resolve (#482 `9fda87cf8`). | 🚀 Hardening |
+| Route map coverage | 30 | 65 | Auto-discovered link scan + repo-wide namespace sweep honoring `next.config` rewrites (#497 `5dde02695`); published inventory `docs/product/golden-path-route-inventory.md`. | 🛠️ Buildout |
+| Smoke tests | 55 | 65 | Railway-webhook synthetic-clinician deploy verification (#508 `042c44469`); self-auditing Deployment Integrity Check (#469 `9c4c49c8d`). | 🛠️ Buildout |
+| Release checklist | 20 | 45 | Release-manager routine — the standard verified merge loop (#492 `a2d03cac2`); `docs/deployment/release-monitoring.md`. | 🧱 Foundation |
 
 > **BUILD-CHAIN-1 evidence note (#196):** added deterministic web build commands (`build:web`, `build:web:direct`, `build:check-chain`), build-chain documentation (`docs/ops/vitalcv-build-chain.md`), and an executable build-chain check script (`scripts/check-web-build-chain.sh`). The canonical local web build path is now `pnpm run build:web` (or `pnpm turbo run build --filter @vitalcv/web`). `@vitalcv/shared` TS6059 remains tracked separately in **issue #195**.
 
@@ -300,16 +303,18 @@ Do not use qualitative maturity words ("very low", "low", "not started", "partia
 
 ## Low-Score-First Attack Order
 
-1. Signup / account creation
-2. Identity proofing + gov ID / liveness
-3. Mobile web / PWA onboarding
-4. Rich clinician profile
-5. Upload / import / export
-6. Knowledge Graph visual UX
-7. Accessibility / WCAG baseline
-8. Research / PubMed layer
-9. Verifier worklist / review UX
-10. Native app readiness
+Re-derived 2026-07-04 from the reconciled table lows plus the `docs/ops/launch-blockers.md` wave order:
+
+1. Signup gate 4/4 + e2e happy-path/fail-closed test (launch-blockers #1/#4)
+2. RBAC enforce-mode flip + prod OAuth confirmation (launch-blockers #2/#3)
+3. Device trust / push notification readiness (0–10%)
+4. Account recovery + gov ID / liveness (25%)
+5. Proof-pack export path (20–25%; feeds launch-blockers #12)
+6. Research / publications + PubMed live binding (15–30%)
+7. Form / error-state accessibility (15%)
+8. Graph search / filtering (20–25%)
+9. Native app shipping (30%)
+10. Pricing / paywall (28%)
 
 ## Notes on this revision
 
@@ -318,6 +323,7 @@ Do not use qualitative maturity words ("very low", "low", "not started", "partia
 - Live clinician product, identity proofing, accessibility, mobile, and import/export rows are conservatively scored per the brief.
 - All Expected/Actual Wave Deltas were +0 in the prior framework PR — that PR was docs-only.
 - BOARD-SCHEMA-3 (this revision): normalizes every section table to the 5-column schema (Area, Current %, After Wave %, Detail / Action Per Area, Status); adds Full-Scope Coverage Rule; preserves all canonical areas and statuses.
+- BOARD-RECONCILE-1 (2026-07-04, docs-only): re-syncs the section tables to `origin/main` `0a90df985` — applies the board's own recorded-but-never-applied pre-2026-05-28 wave deltas plus the #436–#544 merge window; renames "Vercel deploy health" → "Web deploy health (Railway)"; adds one row (Career intelligence layer (MATCHA)); replaces the local blockers list with a pointer to `docs/ops/launch-blockers.md`. Full ledger in the BOARD-RECONCILE-1 section at the end of this file.
 
 ## RELIABILITY-2 board delta (PR #187 evidence)
 
@@ -942,3 +948,102 @@ B) **Browser visual QA** of the freshly-merged Homepage / Passport / Auth / Stat
 C) **`fix/nppes-source-health-observability`** — first coding wave outside the visual-system arc; observability moat for NPPES (Wave D task 1 + task 3 bundle).
 D) **TRUST-PERSIST-1 scoping** — Database / Persistence Layer at 16% / 40 waves is the largest single board bottleneck.
 E) **Continue to next task / next wave batch.**
+
+## 2026-07-04 — BOARD-RECONCILE-1 (docs-only): tables re-synced to `origin/main`
+
+The board header had been frozen at 2026-05-28 (`main` head `97971b578`, ledger stop #435) while `main` advanced to `0a90df9856f4397b8c809d1d9ef15453d29207c3` (#544). This wave is **docs-only** — no product code — and moves numbers strictly per the standing rule: merged evidence only, PR # + SHA cited per row, no row above 90.
+
+**Evidence window:** `git log e7b4e7e6c..0a90df985` = 100 commits, PRs #436–#544 plus late-merged #279. Every SHA below resolved from `origin/main` at reconcile time. Live checks: `api.vitalcv.com/health` → `git_sha:"0a90df985…"` (main tip); `vitalcv.com/api/version` → 200.
+
+Two evidence classes were applied:
+
+### Class R — the board's own recorded-but-unapplied deltas (pre-2026-05-28)
+
+The Wave A / B/D/E/F/H appendix ledgers (2026-05-05 → 05-07, above) recorded these moves, but the BOARD-SCHEMA-3 top tables were never re-synced — leaving contradictions like "No published ASVS scorecard" while `docs/security/asvs-scorecard.md` sat on `main` since #227. Applied now:
+
+| Row | Before | After | Evidence |
+|---|---:|---:|---|
+| OWASP ASVS baseline | 15 | 40 | #227 `52e0a111c` — L1 scorecard at `docs/security/asvs-scorecard.md` (on main today; REBASELINE-confirmed). L2 open (launch-blockers #5). |
+| Security headers / secure defaults | 35 | 75 | #226 `a27d4d522` header baseline + tests; #536 `ccef8a656` closed the Clerk-domain CSP gap it missed. |
+| Secrets / env handling | 30 | 70 | #228 `e2a241117` typed env contract; backend Zod env REBASELINE-confirmed. |
+| WCAG 2.2 AA baseline | 25 | 60 | #229 `5cee8879d` + #232 `92af696f8`; `.github/workflows/a11y-gate.yml` in CI. Held below the ledger's 80: gate scope is hero routes; known-violations register open. |
+| Contrast | 35 | 45 | #232 `92af696f8` axe contrast checks on hero routes. |
+| Real persistence writer | 5 | 70 | #221 `ded7a0e1a`; #255 `3dfac77cc`; #256 `daf11c0dd`; #257 `184e94fe8`; #258 `5d28a95d3`. Flag default-off (`issuerPersistenceWriter.ts`). |
+| PSV receipt promotion | 70 | 80 | #258 `5d28a95d3` (per Wave B ledger). |
+| Reuse / revocation / supersession boundary | 75 | 80 | #235 `b61d60da6` (per Wave A ledger). |
+| Source health classifier | 65 | 75 | #252 `08781510c`; #261 `71a9d0682` (per Wave A/H ledgers). |
+| Verifier worklist | 48 | 60 | #253 `8e5b6f40d` — DB-backed reads confirmed in `worklistRepo.ts` (`prisma.receiptCandidate.findMany`); `worklist.ts` vocabulary literal `dbBackedWorklist: false` is stale and tracked. |
+| Legal pages | 60 | 70 | #242 `91f162b57` DPA + cookie policy + footer. |
+| API route hardening (R portion) | 32 | — | #234 `e92396d62`; #421 `fe9c6f9c1` (combined with Class N below → 65). |
+| Backend test coverage (R portion) | 42 | — | #421 `fe9c6f9c1` (+20), #423 `9f272c80c` (+2) (combined with Class N below → 55). |
+| Sales / pilot collateral (R portion) | 25 | — | #259 `f63b222f1`; #260 `404cd8bd0`; #262 `c24ef7451` (combined with Class N below → 45). |
+
+### Class N — the #436–#544 window
+
+| Row | Before | After | Evidence |
+|---|---:|---:|---|
+| Signup / account creation | 10 | 45 | #475 `804e66a69`; #538 `f7bdbe158`; #539 `9d7b00f87`; #542 `f11df24ff`. `accountCreationProductionReady: false` caps it. |
+| Login / account recovery | 10 | 35 | #536 `ccef8a656`; #503 `e1efaf04b`; #507 `d57196d71`; #504 `1d996c49a`. No recovery flow; OAuth unconfirmed (launch-blockers #3). |
+| NPI check | 65 | 75 | #541 `d1dbe7960` NPPES v2.1 boot assertion; #475 `804e66a69`. |
+| Rich clinician profile shell | 75 | 80 | #476 `73ea7baf4`; #496 `84ecd6bcc`. |
+| Identity / contact / locations | 55 | 65 | #495 `3dcc3c598`; #496 `84ecd6bcc`. |
+| Training programs | 20 | 30 | #447 `aa3b8b825`. |
+| Affiliations | 20 | 28 | #447 `aa3b8b825`. |
+| Career goals / preferences | 25 | 55 | #519 `222fe1ffb`; #534 `5838348ca` (migration pending deploy); #533 `bbf5c4c71`. |
+| Career intelligence layer (MATCHA) | — (new row) | 55 | #518 `6e8e0a7dc`; #520 `8953ccda3`; #532 `5c23ce2fb`; #535 `329bf7964` (GA default-on in `features.ts`). Truth-contract refusals preserved. |
+| Profile completion score | 40 | 50 | #496 `84ecd6bcc`. |
+| Clinician-facing value dashboard | 30 | 65 | #516 `16fee8520`; #521 `7f219a552`; #531 `449bdbae1`; #529 `532c81fab`. |
+| Native iOS app / Native Android app | 25 / 25 | 30 / 30 | `apps/mobile` wallet service layer + tests, REBASELINE-confirmed on-disk (#541 `d1dbe7960`). No store app. |
+| Push notification readiness | 0 | 10 | `NotificationService.ts` in `apps/mobile` (#541 `d1dbe7960` verification). |
+| Offline / degraded-state handling | 25 | 32 | `OfflinePresentationEngine` + BLE `OfflineRadar` (REBASELINE §4, #541 `d1dbe7960`). |
+| Clinician-to-NPI binding | 28 | 50 | #475 `804e66a69`; #538 `f7bdbe158`; #539 `9d7b00f87`; #542 `f11df24ff`. `identityProofingComplete: false` caps it. |
+| Identity proofing policy | 25 | 35 | #539 `9d7b00f87`; #542 `f11df24ff`. |
+| Session security | 20 | 35 | #504 `1d996c49a`; #503 `e1efaf04b`; #536 `ccef8a656`. |
+| Mobile accessibility | 15 | 22 | #445 `187b24378`; #452 `2280cb53e`. |
+| Export bundle | 25 | 35 | #444 `c8df66f93` Career Packet + export-packet route/tests. |
+| Shareable passport | 35 | 55 | #487 `2f967fb02`; #490 `ddf9c0141`; #511 `1b4038232`. |
+| Knowledge graph data model | 75 | 80 | #460 `4f790c128`. |
+| Roam/Obsidian-style visual graph UX | 22 | 55 | #528 `c227c2b87`; #529 `532c81fab`. |
+| Graph search | 10 | 25 | #448 `781998c1b`. |
+| Graph filtering | 10 | 20 | #528 `c227c2b87` (time scrub only). |
+| Clinician-facing graph explanation | 35 | 45 | #461 `0540001b4`; #528 `c227c2b87`. |
+| Employer review | 60 | 70 | REBASELINE-confirmed audit-first accept; #498 `81722c1dd`; #544 `0a90df985`. |
+| Team / org roles | 28 | 40 | #544 `0a90df985` shadow-first RBAC gate; `rbacEnforced: false` still pinned (launch-blockers #2). |
+| Employer CTA / conversion path | 40 | 55 | #522 `412b5c262`; #524 `6e9ab7a72`; #527 `c053c96d0`. |
+| Audit replay | 18 | 30 | REBASELINE-confirmed in-transaction `AuditEvent`; #539 `9d7b00f87`. |
+| Export API | 15 | 25 | #451 `6a1b484b0`. |
+| Backend test coverage | 42 | 55 | Class R + #497 `5dde02695`; #542 `f11df24ff` (otpCore). |
+| API route hardening | 32 | 65 | Class R + #500 `095e29ba5`; #501 `0215b1f2c`; #504 `1d996c49a`. |
+| Database migration readiness | 5 | 45 | Migrations on main incl. 2026-07-04 trio (#534 `5838348ca`, #539 `9d7b00f87`, #542 `f11df24ff`); Railway Postgres runtime. `migrate deploy` for the trio is founder-gated. |
+| Self-serve signup | 32 | 45 | #538 `f7bdbe158`; #539 `9d7b00f87`; #542 `f11df24ff`. Literals still `false`. |
+| Onboarding | 38 | 55 | #475 `804e66a69`; #519 `222fe1ffb`; #526 `403c478af`. |
+| Support / admin | 25 | 40 | #469 `9c4c49c8d` Ops Center V1. |
+| Docs / status page | 55 | 65 | #508 `042c44469`; #279 `87b4f5a0a`. |
+| Sales / pilot collateral | 25 | 45 | Class R + #527 `c053c96d0`; #515 `fa068e989`; #453 `e3a2d8381`. |
+| Demo data / reset flow | 28 | 40 | #453 `e3a2d8381`; #478 `e339fecb4`. |
+| Monorepo CI/CD | 65 | 70 | #471 `d35ce5950`; #472 `24a0ed7a1`; #473 `2622def4c`. |
+| Railway deploy preflight | 40 | 65 | #466 `dca85c5ac`; #470 `2280251b2`; #472 `24a0ed7a1`; #469 `9c4c49c8d`. |
+| Web deploy health (Railway) | 60 | 65 | Renamed row (was "Vercel deploy health"); #466 `dca85c5ac`; #508 `042c44469`; `/api/version` live. |
+| Regression test coverage | 55 | 70 | #497 `5dde02695`; #482 `9fda87cf8`. |
+| Route map coverage | 30 | 65 | #497 `5dde02695`; `docs/product/golden-path-route-inventory.md`. |
+| Smoke tests | 55 | 65 | #508 `042c44469`; #469 `9c4c49c8d`. |
+| Release checklist | 20 | 45 | #492 `a2d03cac2`; `docs/deployment/release-monitoring.md`. |
+
+### Normalizations, renames, structure
+
+- **Settled values normalized:** rows whose displayed transition belonged to an older wave (e.g. Data classification 20→33, Retention 10→25, Verifier worklist 30→48, Reuse decision 50→65, Policy decision 60→75, Team/org roles 10→28, Review status 45→60, Docs/status 45→55, Mobile web/PWA 35→42) now show the settled value as Current %; the transitions remain recorded in the appendix history above.
+- **Row renamed:** "Vercel deploy health" → "Web deploy health (Railway)" — Vercel deprecated 2026-06-28 (#466 `dca85c5ac`; `docs/deployment/railway-migration.md`).
+- **Row added:** "Career intelligence layer (MATCHA)" under Live Clinician Product (precedent: RELIABILITY-2 added Source health classifier).
+- **Blockers section replaced** with a pointer to `docs/ops/launch-blockers.md` (canonical open list, Wave 0 #541 `d1dbe7960`) + dispositions of the six 2026-05-27 items. Resolved history: `docs/ops/REBASELINE-2026-07-04.md`.
+- **Pricing/paywall** percentage held; detail text refreshed with #502 `63d1db05a` (dead billing code deleted) — a text correction, not a score move.
+
+### Deliberately NOT moved (evidence insufficient or literals still pinned)
+
+Medical school / Residency / Fellowship / Specialty / employer-history rows (no source verification landed); Gov ID / Selfie / Account recovery (`isLive: false` literals); Device trust (nothing shipped); Pricing/paywall (`collectsPayment: false`); Pilot ops / Analytics (no instrumentation or vendor); Proof pack export (launch-blockers #12 open); Web quality (no new CI gate class); every Trust Engine row not listed in Class R. Platform-layer PRs #454–#464 beyond those cited (org OS, growth, solutions, Trust Exchange/Cloud, Configurable Platform, Operations Engine) added capability surfaces that have **no corresponding board row**; they are intentionally not force-mapped onto existing rows.
+
+### Integrity statement
+
+- Docs-only: this wave touches `docs/ops/vitalcv-completion-board.md` and nothing else.
+- Every moved row cites merged PR # + SHA resolvable on `origin/main`; no row moved on open PRs (#540, #543 and the signup gate 4/4 are not counted).
+- No row above 90. Honest-foundation literals that remain `false` (`rbacEnforced`, `accountCreationProductionReady`, `identityProofingComplete`, `collectsPayment`, `dbBackedWorklist` vocabulary) are quoted in the row details and cap their rows.
+- Phase emoji re-derived from After Wave % per the Status Lexicon; no qualitative labels introduced.

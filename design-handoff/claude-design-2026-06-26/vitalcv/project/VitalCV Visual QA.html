@@ -1,0 +1,891 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Visual QA · VitalCV UI upgrade · D57</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="vitalcv-app/styles.css?v=7">
+<style>
+.page { max-width: 1180px; padding: 56px 32px 100px; }
+.qa-hd { padding: 48px 0 32px; border-bottom: 1px solid var(--hairline); margin-bottom: 56px; }
+.qa-status {
+  display: inline-flex; align-items: center; gap: 10px;
+  padding: 8px 14px; border-radius: 99px;
+  background: var(--src-pending-wash); color: var(--src-pending);
+  border: 1px solid color-mix(in oklch, var(--src-pending) 22%, var(--hairline));
+  font-family: var(--mono); font-size: 12px; letter-spacing: 0.06em;
+  text-transform: uppercase; font-weight: 500;
+  margin-bottom: 14px;
+}
+.qa-status .dot { width: 8px; height: 8px; border-radius: 99px; background: var(--src-pending); }
+
+.qa-section { margin-top: 72px; }
+.qa-section h2 { font: 500 28px/1.15 var(--sans); letter-spacing: -0.02em; margin: 0 0 14px; color: var(--ink-strong); }
+.qa-section .lede { margin-bottom: 24px; }
+
+.qa-card-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+.qa-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+
+.win-card, .gap-card {
+  border: 1px solid var(--hairline); border-radius: var(--r-4);
+  background: var(--paper); padding: 18px 20px;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.win-card { background: color-mix(in oklch, var(--src-backed-wash) 60%, var(--paper)); border-color: color-mix(in oklch, var(--src-backed) 18%, var(--hairline)); }
+.gap-card { background: color-mix(in oklch, var(--src-pending-wash) 50%, var(--paper)); border-color: color-mix(in oklch, var(--src-pending) 18%, var(--hairline)); }
+.win-card .num, .gap-card .num { font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em; color: var(--ink-subtle); }
+.win-card h4, .gap-card h4 { font: 500 16px/1.3 var(--sans); margin: 0; color: var(--ink-strong); letter-spacing: -0.01em; }
+.win-card p, .gap-card p { font-size: 13.5px; line-height: 1.55; color: var(--ink-mute); margin: 0; }
+
+.screen-qa {
+  border: 1px solid var(--hairline); border-radius: var(--r-4);
+  background: var(--paper); overflow: hidden;
+  margin-bottom: 22px;
+}
+.screen-qa-hd {
+  padding: 16px 22px; background: var(--paper-warm);
+  border-bottom: 1px solid var(--hairline);
+  display: flex; align-items: center; gap: 14px;
+}
+.screen-qa-hd .route { font-family: var(--mono); font-size: 12px; color: var(--ink-strong); font-weight: 500; padding: 3px 8px; background: var(--paper); border: 1px solid var(--hairline); border-radius: var(--r-2); }
+.screen-qa-hd h3 { margin: 0; font: 500 17px/1.2 var(--sans); letter-spacing: -0.01em; color: var(--ink-strong); }
+.screen-qa-hd .verdict {
+  margin-left: auto; font-family: var(--mono); font-size: 11px;
+  padding: 3px 8px; border-radius: 99px; border: 1px solid;
+  letter-spacing: 0.06em; text-transform: uppercase; font-weight: 500;
+}
+.screen-qa-hd .verdict.pass { color: var(--src-backed); background: var(--src-backed-wash); border-color: color-mix(in oklch, var(--src-backed) 22%, var(--hairline)); }
+.screen-qa-hd .verdict.limit { color: var(--src-pending); background: var(--src-pending-wash); border-color: color-mix(in oklch, var(--src-pending) 22%, var(--hairline)); }
+.screen-qa-bd { display: grid; grid-template-columns: 1.2fr 1fr; gap: 0; }
+.screen-qa-shot {
+  border-right: 1px solid var(--hairline);
+  background: oklch(94% 0.008 85);
+  padding: 18px;
+}
+.screen-qa-shot img { width: 100%; border: 1px solid var(--hairline); border-radius: var(--r-3); display: block; }
+.screen-qa-notes { padding: 22px 24px; }
+.screen-qa-notes h5 { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-mute); margin: 0 0 6px; }
+.screen-qa-notes ul { margin: 0 0 14px; padding-left: 18px; color: var(--ink); font-size: 13.5px; line-height: 1.65; }
+.screen-qa-notes ul li { margin-bottom: 3px; }
+.screen-qa-notes ul li.win::marker { color: var(--src-backed); }
+.screen-qa-notes ul li.gap::marker { color: var(--src-pending); }
+.screen-qa-notes ul li.req::marker { color: var(--accent); }
+
+.shot-stack { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 18px; background: oklch(94% 0.008 85); border-right: 1px solid var(--hairline); }
+.shot-stack img { width: 100%; border: 1px solid var(--hairline); border-radius: var(--r-3); display: block; }
+
+.component-tbl { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.component-tbl thead th { text-align: left; padding: 11px 12px; border-bottom: 1px solid var(--hairline); font: 500 10.5px/1 var(--mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-subtle); background: var(--paper-warm); }
+.component-tbl tbody td { padding: 13px 12px; border-bottom: 1px solid var(--hairline); vertical-align: top; }
+.component-tbl tbody tr:last-child td { border-bottom: 0; }
+.component-tbl .nm { font-weight: 500; color: var(--ink-strong); }
+.component-tbl .nm small { display: block; font-family: var(--mono); font-size: 11px; color: var(--ink-mute); margin-top: 2px; font-weight: 400; }
+.component-tbl .notes { color: var(--ink-mute); font-size: 13px; line-height: 1.55; }
+
+.risk-list {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 1px;
+  background: var(--hairline);
+  border: 1px solid var(--hairline); border-radius: var(--r-4); overflow: hidden;
+}
+.risk-list .risk { background: var(--paper); padding: 18px 20px; display: flex; flex-direction: column; gap: 6px; }
+.risk-list .risk .lvl { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-subtle); }
+.risk-list .risk .lvl.high { color: var(--sanction); }
+.risk-list .risk .lvl.med { color: var(--src-pending); }
+.risk-list .risk .lvl.low { color: var(--ink-subtle); }
+.risk-list .risk h5 { font: 500 14px/1.3 var(--sans); margin: 0; color: var(--ink-strong); }
+.risk-list .risk p { color: var(--ink-mute); font-size: 13px; line-height: 1.55; margin: 0; }
+
+.fix-list { border: 1px solid var(--hairline); border-radius: var(--r-4); overflow: hidden; }
+.fix-row {
+  display: grid; grid-template-columns: 60px 1.4fr 1fr 120px; gap: 18px;
+  padding: 14px 18px; border-bottom: 1px solid var(--hairline);
+  align-items: center; font-size: 14px;
+}
+.fix-row:last-child { border-bottom: 0; }
+.fix-row.head { background: var(--paper-warm); font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-mute); }
+.fix-row .pri { font-family: var(--mono); font-size: 11px; color: var(--ink-strong); font-weight: 500; }
+.fix-row .what { font-weight: 500; color: var(--ink-strong); }
+.fix-row .what small { display: block; font-weight: 400; font-size: 12.5px; color: var(--ink-mute); margin-top: 2px; line-height: 1.5; }
+.fix-row .where { font-family: var(--mono); font-size: 12px; color: var(--ink); }
+.fix-row .scope { font-family: var(--mono); font-size: 11px; color: var(--ink-mute); }
+
+.verdict-box {
+  padding: 48px 56px;
+  border-radius: var(--r-5);
+  background: var(--ink-strong); color: var(--paper);
+  position: relative; overflow: hidden;
+}
+.verdict-box::before {
+  content: ""; position: absolute; inset: 0;
+  background-image: radial-gradient(oklch(38% 0.04 274) 1px, transparent 1px);
+  background-size: 20px 20px; opacity: 0.35;
+}
+.verdict-box > * { position: relative; z-index: 1; }
+.verdict-box .eyebrow { color: color-mix(in oklch, var(--paper) 60%, transparent); }
+.verdict-box .eyebrow .ln { background: color-mix(in oklch, var(--paper) 30%, transparent); }
+.verdict-box h2 { font: 300 36px/1.12 var(--sans); letter-spacing: -0.026em; max-width: 26ch; margin: 16px 0 12px; color: var(--paper); }
+.verdict-box h2 em { font-family: var(--serif); font-style: italic; font-weight: 400; color: color-mix(in oklch, var(--paper) 92%, var(--accent)); }
+.verdict-box p { color: color-mix(in oklch, var(--paper) 80%, transparent); font-size: 15px; line-height: 1.65; max-width: 65ch; }
+.verdict-box .sig { margin-top: 32px; display: flex; align-items: center; gap: 12px; font-family: var(--mono); font-size: 11px; color: color-mix(in oklch, var(--paper) 60%, transparent); }
+.verdict-box .sig .av { width: 28px; height: 28px; border-radius: 99px; background: color-mix(in oklch, var(--paper) 12%, transparent); border: 1px solid color-mix(in oklch, var(--paper) 20%, transparent); display: grid; place-items: center; color: var(--paper); font: 500 11px/1 var(--sans); }
+
+.toc { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 28px; }
+.toc a { font-family: var(--mono); font-size: 11px; padding: 4px 8px; border: 1px solid var(--hairline); border-radius: var(--r-2); background: var(--paper); color: var(--ink-mute); }
+.toc a:hover { color: var(--ink); border-color: var(--hairline-strong); background: var(--paper-warm); }
+
+.scoreboard {
+  display: grid; grid-template-columns: repeat(5, 1fr);
+  gap: 1px; background: var(--hairline);
+  border: 1px solid var(--hairline); border-radius: var(--r-4); overflow: hidden;
+  margin: 24px 0 36px;
+}
+.scoreboard > div { background: var(--paper); padding: 16px 18px; display: flex; flex-direction: column; gap: 6px; }
+.scoreboard .k { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-subtle); }
+.scoreboard .v { font: 500 22px/1.05 var(--sans); letter-spacing: -0.014em; color: var(--ink-strong); }
+.scoreboard .v.pass { color: var(--src-backed); }
+.scoreboard .v.lim { color: var(--src-pending); }
+.scoreboard .v.gap { color: var(--sanction); }
+.scoreboard .sub { font-family: var(--mono); font-size: 11px; color: var(--ink-mute); }
+
+@media (max-width: 1100px) {
+  .qa-card-grid { grid-template-columns: 1fr; }
+  .qa-grid-3 { grid-template-columns: 1fr; }
+  .screen-qa-bd { grid-template-columns: 1fr; }
+  .screen-qa-shot { border-right: 0; border-bottom: 1px solid var(--hairline); }
+  .shot-stack { border-right: 0; border-bottom: 1px solid var(--hairline); }
+  .risk-list { grid-template-columns: 1fr; }
+  .fix-row { grid-template-columns: 60px 1.6fr 1fr; }
+  .fix-row .scope { display: none; }
+  .scoreboard { grid-template-columns: repeat(2, 1fr); }
+}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-in">
+    <a href="VitalCV Visual System.html" class="brand"><span class="glyph">V</span><span>VitalCV</span><span class="ver">VISUAL QA</span></a>
+    <div class="nav-links">
+      <a href="vitalcv-app/index.html">App ·  /</a>
+      <a href="vitalcv-app/passport.html?npi=1699264564">/passport</a>
+      <a href="vitalcv-app/sign-in.html">/sign-in</a>
+      <a href="vitalcv-app/trust.html">/trust</a>
+      <a href="vitalcv-app/status.html">/status</a>
+    </div>
+    <div class="nav-right">
+      <a href="VitalCV Visual System.html" class="btn">Design system</a>
+    </div>
+  </div>
+</nav>
+
+<main class="page">
+
+  <section class="qa-hd">
+    <div class="eyebrow">
+      <span class="tag">Visual QA · v1</span>
+      <span class="ln"></span>
+      <span>VitalCV UI upgrade · D57 · 8 routes · 2026·05·26</span>
+    </div>
+    <span class="qa-status" style="margin-top:20px"><span class="dot"></span>LIMITED PASS · ship after required fixes</span>
+    <h1 class="h-display" style="font-size:52px; margin-top:10px">The visual direction is right. The trust grammar is right. Two surfaces and three components are still drafted, not finished.</h1>
+    <p class="lede" style="margin-top:18px">Eight routes implemented and reviewed against the design brief: NPI-first hero, paper-substrate aesthetic, eight-state trust vocabulary, institution review boundary, source attribution, connector matrix, passwordless auth with disclosure. Premium and calm. Two routes (Receipt Drawer, Evidence Packet) are not yet present as surfaces; one (Audit Timeline) is partially rendered; one (Connector Health Matrix) needs a grid variant beside the table.</p>
+
+    <div class="scoreboard">
+      <div><span class="k">Routes built</span><span class="v pass">7 of 8</span><span class="sub">+ /contact bonus · /status reviewer flow partial</span></div>
+      <div><span class="k">Components shipped</span><span class="v lim">10 of 14</span><span class="sub">4 in spec, not yet rendered</span></div>
+      <div><span class="k">Trust states distinct</span><span class="v pass">8 of 8</span><span class="sub">all paired with source + time</span></div>
+      <div><span class="k">Banned phrases found</span><span class="v pass">0</span><span class="sub">no bare Verified · no Cleared · no HIPAA claim</span></div>
+      <div><span class="k">Required fixes</span><span class="v lim">9</span><span class="sub">3 visual · 6 component-completeness</span></div>
+    </div>
+
+    <div class="toc">
+      <a href="#wins">1 · Status</a>
+      <a href="#wins">2 · Wins</a>
+      <a href="#gaps">3 · Gaps</a>
+      <a href="#screens">4 · Screen-by-screen</a>
+      <a href="#components">5 · Components</a>
+      <a href="#motion">6 · Motion · interaction</a>
+      <a href="#mobile">7 · Mobile</a>
+      <a href="#risks">8 · Aesthetic risks</a>
+      <a href="#fixes">9 · Required fixes</a>
+      <a href="#verdict">10 · Final call</a>
+    </div>
+  </section>
+
+  <!-- ─────── 1 VISUAL QA STATUS ─────── -->
+  <section class="qa-section" id="status">
+    <div class="eyebrow"><span class="tag">01</span><span class="ln"></span><span>Visual QA status</span></div>
+    <h2 style="margin-top:14px">LIMITED PASS</h2>
+    <p class="lede">The design system holds. The paper substrate, ink, hairline, single accent, and eight-state truth grammar are consistently applied across all built routes. Hierarchy is calm, monospace metadata is used appropriately, and the institution review boundary is visible on every relevant surface. Three classes of work remain before this is unconditional <strong>PASS</strong>:</p>
+    <ul style="font-size:15px; line-height:1.7; max-width:70ch; color:var(--ink); padding-left:18px">
+      <li><strong>Component completeness</strong> — four primitives from the brief (Receipt Drawer, Audit Timeline, Connector Health Matrix as grid, Evidence Packet Preview) are spec'd or partially rendered but not yet finished surfaces.</li>
+      <li><strong>Responsive polish</strong> — between 980px and 1180px the nav-status pill crowds the auth buttons and a few labels wrap inside chips/tabs. Strict 1240+ enterprise width is clean.</li>
+      <li><strong>Interaction states</strong> — hover and focus are wired; loading, degraded-source, and auth-required states need explicit rendering so the engineering handoff is unambiguous.</li>
+    </ul>
+  </section>
+
+  <!-- ─────── 2 TOP VISUAL WINS ─────── -->
+  <section class="qa-section" id="wins">
+    <div class="eyebrow"><span class="tag">02</span><span class="ln"></span><span>Top visual wins</span></div>
+    <h2 style="margin-top:14px">What the implementation got right.</h2>
+    <p class="lede">Six things that earn the "state-of-the-art" descriptor and that the team should not regress on.</p>
+
+    <div class="qa-card-grid">
+      <div class="win-card">
+        <span class="num">W·01</span>
+        <h4>The Truth Chip — two-segment, never bare.</h4>
+        <p>Every state chip pairs an ink state ("SOURCE-BACKED") with its source and timestamp ("ABMS · 14d") inside one capsule, separated by a hairline rule. This is the single most important visual decision in the system — no fact ever floats without its citation.</p>
+      </div>
+      <div class="win-card">
+        <span class="num">W·02</span>
+        <h4>Paper substrate, ink content, hairline structure.</h4>
+        <p>Warm off-white substrate, near-black ink, 1px hairlines instead of cards-within-cards. The product reads like an issued document on every route — sign-in, passport, status, trust register all share the same visual vocabulary at the pixel level.</p>
+      </div>
+      <div class="win-card">
+        <span class="num">W·03</span>
+        <h4>The eight trust states are mutually distinct.</h4>
+        <p>Source-backed (cool green), Pending (warm amber), Source unavailable (neutral gray), Self-reported (cool blue), Institution must review (ink-indigo, the accent), Sanction (dampened red), Sources disagree (purple), Not asserted (dashed). Each is recognizable from across the room.</p>
+      </div>
+      <div class="win-card">
+        <span class="num">W·04</span>
+        <h4>The institution review boundary is loud without being alarming.</h4>
+        <p>An accent-washed banner on every passport, a dedicated step on the proof rail labeled "REVIEW BOUNDARY", a literal block in the right rail listing what institutions must read themselves. Calm, persistent, impossible to miss.</p>
+      </div>
+      <div class="win-card">
+        <span class="num">W·05</span>
+        <h4>Sign-in / sign-up explains the why before the form.</h4>
+        <p>The left panel of both auth pages is a disclosure stack — why sign-in matters, what it isn't, how authentication works — rather than a marketing hero. Restraint with substance.</p>
+      </div>
+      <div class="win-card">
+        <span class="num">W·06</span>
+        <h4>The /status connector matrix is genuinely enterprise-grade.</h4>
+        <p>Tabular layout with per-source truth chips, 24h sparkline, median latency, last-error column, per-row action. Reads like a Stripe API status page. The SAM.gov degraded row (503 · 02h · Force retry) demonstrates how degraded states render without blaming anyone.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────── 3 TOP VISUAL GAPS ─────── -->
+  <section class="qa-section" id="gaps">
+    <div class="eyebrow"><span class="tag">03</span><span class="ln"></span><span>Top visual gaps</span></div>
+    <h2 style="margin-top:14px">What's missing or unfinished.</h2>
+    <p class="lede">Six gaps between the brief and what's shipped — none break the system, all should land before this is unconditional PASS.</p>
+
+    <div class="qa-card-grid">
+      <div class="gap-card">
+        <span class="num">G·01</span>
+        <h4>No Receipt Drawer yet.</h4>
+        <p>Receipts render inline (on the passport aside and on the verdict block of /trust), but there's no slide-in drawer surface for replaying a full receipt with the signed payload, request/response codes, and the raw response trail. The brief lists this as a primary component.</p>
+      </div>
+      <div class="gap-card">
+        <span class="num">G·02</span>
+        <h4>No Evidence Packet Preview.</h4>
+        <p>The /passport CTA "Send to institution" jumps directly to send. The user should first see what fields, what scope, what TTL, and what receipt the recipient will see — as a preview panel before commit.</p>
+      </div>
+      <div class="gap-card">
+        <span class="num">G·03</span>
+        <h4>Audit Timeline is rendered as a list, not a timeline.</h4>
+        <p>The passport's "Source timeline" right-rail is a vertical text list. The brief asks for a true timeline component with scrubable nodes and a now-marker. Functional today, not the spec.</p>
+      </div>
+      <div class="gap-card">
+        <span class="num">G·04</span>
+        <h4>Connector Health Matrix needs a grid variant.</h4>
+        <p>/status renders the matrix as a tall table — excellent for detail. The brief also wants a compact source-by-state grid (rows = sources, cols = states / freshness buckets) for at-a-glance reading on the home page nav-status pill.</p>
+      </div>
+      <div class="gap-card">
+        <span class="num">G·05</span>
+        <h4>Role doors don't open into role-specific screens yet.</h4>
+        <p>The three doors on / point at the same passport URL with different query params. They should open into three distinct surfaces: clinician (add self-report), institution reviewer (with reconcile + attest controls disabled until evidence ready), operator (status dashboard). Sign-up has a role selector but no role-specific second step.</p>
+      </div>
+      <div class="gap-card">
+        <span class="num">G·06</span>
+        <h4>No designed loading or auth-required states.</h4>
+        <p>The system never spins. But when a passport is being read for the first time, or when a route requires sign-in, the user needs a calm rendered state — not a flash of empty page. These are not yet drawn.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────── 4 SCREEN-BY-SCREEN QA ─────── -->
+  <section class="qa-section" id="screens">
+    <div class="eyebrow"><span class="tag">04</span><span class="ln"></span><span>Screen-by-screen QA</span></div>
+    <h2 style="margin-top:14px">Eight routes · rendered &amp; reviewed.</h2>
+    <p class="lede">Each screen below pairs a live capture with its specific wins, gaps, and required fixes.</p>
+
+    <!-- / -->
+    <div class="screen-qa">
+      <div class="screen-qa-hd">
+        <span class="route">/</span>
+        <h3>Landing · NPI-first hero · role doors · passport preview · eight states</h3>
+        <span class="verdict pass">PASS</span>
+      </div>
+      <div class="screen-qa-bd">
+        <div class="shot-stack">
+          <img src="vitalcv-app/qa-shots/01-landing.png" alt="Landing hero">
+          <img src="vitalcv-app/qa-shots/02-landing.png" alt="Proofs + cmd pill">
+          <img src="vitalcv-app/qa-shots/03-landing.png" alt="Role doors + passport preview">
+          <img src="vitalcv-app/qa-shots/04-landing.png" alt="Eight states">
+        </div>
+        <div class="screen-qa-notes">
+          <h5>Wins</h5>
+          <ul>
+            <li class="win">NPI input is the unmistakable primary affordance — large mono input, accent CTA, eyebrow label "NPI · NPPES PUBLIC REGISTRY" floating off the card edge.</li>
+            <li class="win">The display headline uses Fraunces italic for "source-backed" — a single emotional accent in an otherwise restrained page.</li>
+            <li class="win">Role doors are three columns at desktop with role label, name, plain-prose description, three use cases as mono bullets, accent CTA below a hairline.</li>
+            <li class="win">Passport preview shows real Truth Chips with real sources — the user understands the product before clicking anything.</li>
+            <li class="win">Eight-state grid at the bottom is a designed glossary, not buried documentation.</li>
+          </ul>
+          <h5>Gaps</h5>
+          <ul>
+            <li class="gap">The four "proofs" tiles (Fields read · Public sources · Self-reported · Review boundary) repeat data shown two scrolls down. Either lift them above the hero or remove.</li>
+            <li class="gap">Role doors all point at the same passport URL — should differ.</li>
+          </ul>
+          <h5>Required fixes</h5>
+          <ul>
+            <li class="req">Tighten nav-status pill so it doesn't crowd auth buttons between 980–1180px.</li>
+            <li class="req">Resolve role doors to three distinct surfaces.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- /passport -->
+    <div class="screen-qa">
+      <div class="screen-qa-hd">
+        <span class="route">/passport?npi=1699264564</span>
+        <h3>Passport · header · proof rail · field rows · review boundary · receipt</h3>
+        <span class="verdict pass">PASS</span>
+      </div>
+      <div class="screen-qa-bd">
+        <div class="shot-stack">
+          <img src="vitalcv-app/qa-shots/01-passport.png" alt="Passport header">
+          <img src="vitalcv-app/qa-shots/02-passport.png" alt="Field rows with truth chips">
+          <img src="vitalcv-app/qa-shots/03-passport.png" alt="Sanction + review boundary">
+          <img src="vitalcv-app/qa-shots/04-passport.png" alt="Receipt + timeline">
+        </div>
+        <div class="screen-qa-notes">
+          <h5>Wins</h5>
+          <ul>
+            <li class="win">Header reads like a printed page: name, mono NPI, last-read timestamp, three actions (Print, Share scoped view, Send to institution) where Send is the only primary.</li>
+            <li class="win">The Proof Continuity Rail (Self-asserted → Public sources → Reconciled → Institution review) sits below the header with the current step accented and the institution-review step explicitly tagged "REVIEW BOUNDARY".</li>
+            <li class="win">Field rows are atomic: monospace label, sans value, monospace source line, trailing two-segment Truth Chip. <strong>Sources disagree</strong> chip surfaces real contradiction on the practice-address row.</li>
+            <li class="win">Sanction &amp; exclusion block is honest — OIG returns no record (literal), SAM.gov is unavailable (system-side calm), NPDB is institution-only (boundary visible).</li>
+            <li class="win">The right-aside Receipt panel reads as a printable document with subject, sources, time, ed25519 signature.</li>
+          </ul>
+          <h5>Gaps</h5>
+          <ul>
+            <li class="gap">Source timeline in right rail is a text list — should be a true Audit Timeline component with dots, lines, and a now-marker.</li>
+            <li class="gap">"Send to institution" jumps directly — needs an Evidence Packet Preview drawer between intent and commit.</li>
+            <li class="gap">No degraded-source banner at top when SAM.gov is offline; only the affected field row says so. Add a slim banner.</li>
+          </ul>
+          <h5>Required fixes</h5>
+          <ul>
+            <li class="req">Replace Source Timeline list with a real Audit Timeline component.</li>
+            <li class="req">Add Evidence Packet Preview drawer behind the Send CTA.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- /sign-in -->
+    <div class="screen-qa">
+      <div class="screen-qa-hd">
+        <span class="route">/sign-in</span>
+        <h3>Sign in · split-panel · disclosure left · passwordless right</h3>
+        <span class="verdict pass">PASS</span>
+      </div>
+      <div class="screen-qa-bd">
+        <div class="shot-stack">
+          <img src="vitalcv-app/qa-shots/01-signin.png" alt="Sign in top">
+          <img src="vitalcv-app/qa-shots/02-signin.png" alt="Sign in scrolled">
+        </div>
+        <div class="screen-qa-notes">
+          <h5>Wins</h5>
+          <ul>
+            <li class="win">Black left panel with Fraunces italic accent ("<em>source-backed</em>") and three plain-language disclosures: why sign in matters, what it is not, how authentication works.</li>
+            <li class="win">Role-aware segmented control selects Clinician/Reviewer/Operator before login — the role door extends into auth.</li>
+            <li class="win">Passwordless OTP code is shown mono with tracked letter-spacing — feels like a receipt, not a password field.</li>
+            <li class="win">Review-boundary banner is repeated in the right form, just above the submit — the user can't sign in without seeing it.</li>
+          </ul>
+          <h5>Gaps</h5>
+          <ul>
+            <li class="gap">Role tabs ("My passport") wrap to two lines at narrow viewport — labels should stay single-line.</li>
+            <li class="gap">No "code sent · waiting" state rendered between email and OTP — the form jumps both fields at once.</li>
+          </ul>
+          <h5>Required fixes</h5>
+          <ul>
+            <li class="req">Single-line role tab labels.</li>
+            <li class="req">Render a sent-OTP confirmation state.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- /sign-up -->
+    <div class="screen-qa">
+      <div class="screen-qa-hd">
+        <span class="route">/sign-up</span>
+        <h3>Sign up · "Three things a passport gives you. Nothing it claims about you."</h3>
+        <span class="verdict pass">PASS</span>
+      </div>
+      <div class="screen-qa-bd">
+        <div class="shot-stack">
+          <img src="vitalcv-app/qa-shots/01-signup.png" alt="Sign up top">
+          <img src="vitalcv-app/qa-shots/02-signup.png" alt="Sign up bottom">
+        </div>
+        <div class="screen-qa-notes">
+          <h5>Wins</h5>
+          <ul>
+            <li class="win">Headline does the disclosure work in two sentences: what a passport gives you, what it never claims. No marketing tone.</li>
+            <li class="win">Four-row Auth Disclosure Card: what you get, what you control, what it never claims, accreditation scope (explicit "no HIPAA / SOC 2 / NCQA" line).</li>
+            <li class="win">NPI is the first field — same affordance as the landing hero. Continuity.</li>
+            <li class="win">By-creating-this-passport confirmation block before submit, with the boundary banner inline.</li>
+          </ul>
+          <h5>Gaps</h5>
+          <ul>
+            <li class="gap">No second-step preview ("This is what your passport will look like in 60s") before commit.</li>
+            <li class="gap">"You are" segment has only two options — clinician / reviewer — but the role door triad on / lists three. Reconcile.</li>
+          </ul>
+          <h5>Required fixes</h5>
+          <ul>
+            <li class="req">Add Operator door OR remove the third door on / to match.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- /trust -->
+    <div class="screen-qa">
+      <div class="screen-qa-hd">
+        <span class="route">/trust</span>
+        <h3>Trust register · what VitalCV reads · what it doesn't · who reviews</h3>
+        <span class="verdict pass">PASS</span>
+      </div>
+      <div class="screen-qa-bd">
+        <div class="shot-stack">
+          <img src="vitalcv-app/qa-shots/01-trust.png" alt="Trust hero">
+          <img src="vitalcv-app/qa-shots/02-trust.png" alt="Trust register table">
+          <img src="vitalcv-app/qa-shots/03-trust.png" alt="Trust primitives">
+          <img src="vitalcv-app/qa-shots/04-trust.png" alt="Banned phrases">
+        </div>
+        <div class="screen-qa-notes">
+          <h5>Wins</h5>
+          <ul>
+            <li class="win">Display headline declares the architecture in one line: "A reusable reader. A visible boundary. A receipt for every fact."</li>
+            <li class="win">Trust register table has the bravest column in the product: <strong>"What it never does"</strong> — adjacent to "What VitalCV does", per category.</li>
+            <li class="win">Three trust primitives below (Source attribution · Review boundary · Read receipts) render the corresponding component live.</li>
+            <li class="win">Explicit banned-words section in two columns: never-on-a-clinician (Cleared, Approved, Verified-bare, Eligible to practice…) and never-about-VitalCV (HIPAA-certified, SOC 2 Type II, NCQA-accredited, real-time…).</li>
+          </ul>
+          <h5>Gaps</h5>
+          <ul>
+            <li class="gap">No anchor links from the register table rows to the matching /trust/attribution sections — should be clickable cross-references.</li>
+          </ul>
+          <h5>Required fixes</h5>
+          <ul>
+            <li class="req">Wire register-row category names as cross-links to attribution.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- /trust/attribution -->
+    <div class="screen-qa">
+      <div class="screen-qa-hd">
+        <span class="route">/trust/attribution</span>
+        <h3>Source attribution · per source · what we read · what we don't</h3>
+        <span class="verdict pass">PASS</span>
+      </div>
+      <div class="screen-qa-bd">
+        <div class="shot-stack">
+          <img src="vitalcv-app/qa-shots/01-attribution.png" alt="Attribution top">
+          <img src="vitalcv-app/qa-shots/02-attribution.png" alt="NPPES + ABMS blocks">
+          <img src="vitalcv-app/qa-shots/03-attribution.png" alt="State + OIG blocks">
+          <img src="vitalcv-app/qa-shots/04-attribution.png" alt="NPDB institution-only">
+        </div>
+        <div class="screen-qa-notes">
+          <h5>Wins</h5>
+          <ul>
+            <li class="win">Per source: logo + name + URL + truth chip (state + last read), 2×2 grid of Type/Auth/Refresh/Freshness, then dl-list of Fields read / Not read / What we do / What we never claim.</li>
+            <li class="win">NPDB block is treated as a deliberate exception — accent-washed callout, "we do not read this" stated literally, with the institution-must-read attribution chip.</li>
+            <li class="win">SAM.gov block surfaces current 503 status inline — the attribution page itself is honest about live source health.</li>
+          </ul>
+          <h5>Gaps</h5>
+          <ul>
+            <li class="gap">Left nav rail loses its sticky positioning at narrow viewport and collapses to a flat list — fine, but a single sticky table-of-contents row at the top would help scrolling.</li>
+          </ul>
+          <h5>Required fixes</h5>
+          <ul>
+            <li class="req">Add a sticky thin TOC bar that activates below 1100px width.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- /status -->
+    <div class="screen-qa">
+      <div class="screen-qa-hd">
+        <span class="route">/status</span>
+        <h3>Status · connector matrix · read history · operational scope</h3>
+        <span class="verdict pass">PASS</span>
+      </div>
+      <div class="screen-qa-bd">
+        <div class="shot-stack">
+          <img src="vitalcv-app/qa-shots/01-status.png" alt="Status top">
+          <img src="vitalcv-app/qa-shots/02-status.png" alt="Connector matrix">
+          <img src="vitalcv-app/qa-shots/03-status.png" alt="Read history">
+          <img src="vitalcv-app/qa-shots/04-status.png" alt="Operational scope">
+        </div>
+        <div class="screen-qa-notes">
+          <h5>Wins</h5>
+          <ul>
+            <li class="win">Sparkline-per-row, median latency, last-error column. SAM.gov degraded row shows diminishing sparkline ending in a stub — calm, legible degraded state.</li>
+            <li class="win">Read history log uses mono throughout: timestamp, response chip, source, action, latency. Reads like a tail of a healthy production log.</li>
+            <li class="win">Operational scope card explicitly states "None claimed" for HIPAA / SOC 2 / NCQA — and reserves space for citation if procured.</li>
+            <li class="win">A "Reading note" banner under the matrix repeats the system-side calm principle: source 503 ≠ clinician failure.</li>
+          </ul>
+          <h5>Gaps</h5>
+          <ul>
+            <li class="gap">No compact at-a-glance Connector Health Matrix grid variant — only the deep table.</li>
+            <li class="gap">No real-time refresh indicator — the "auto-refresh 30s" claim has no visible heartbeat.</li>
+          </ul>
+          <h5>Required fixes</h5>
+          <ul>
+            <li class="req">Add compact grid variant of the matrix above the table.</li>
+            <li class="req">Add a quiet auto-refresh tick (no animation; mono countdown).</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Nav / Footer -->
+    <div class="screen-qa">
+      <div class="screen-qa-hd">
+        <span class="route">nav · footer</span>
+        <h3>Global chrome · cross-route consistency</h3>
+        <span class="verdict limit">LIMITED PASS</span>
+      </div>
+      <div class="screen-qa-bd">
+        <div class="screen-qa-shot">
+          <img src="vitalcv-app/qa-shots/05-landing.png" alt="Footer + truth row">
+        </div>
+        <div class="screen-qa-notes">
+          <h5>Wins</h5>
+          <ul>
+            <li class="win">Footer carries the brand blob + scope note (public-source reader, review-bounded · not a credentialing body), product/account/sources columns, and a bottom row with current truth-state pill ("3 of 4 sources responding") and Receipt id.</li>
+            <li class="win">Disclaimer paragraph at the very bottom states no-HIPAA / no-SOC 2 / no-NCQA outright in mono.</li>
+          </ul>
+          <h5>Gaps</h5>
+          <ul>
+            <li class="gap">Nav crowds between 980–1180px: nav-status pill, two buttons, and nav links all compete for horizontal space.</li>
+            <li class="gap">No visible cmd palette (⌘K) on most pages — the cmd-pill on /passport implies it's there; needs to render on all routes.</li>
+          </ul>
+          <h5>Required fixes</h5>
+          <ul>
+            <li class="req">Tighten nav at intermediate widths; collapse nav-status to a single dot indicator that expands on hover.</li>
+            <li class="req">Make ⌘K palette globally available; render cmd-pill in nav on every route.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ─────── 5 COMPONENT QA ─────── -->
+  <section class="qa-section" id="components">
+    <div class="eyebrow"><span class="tag">05</span><span class="ln"></span><span>Component QA</span></div>
+    <h2 style="margin-top:14px">Fourteen components in the brief · ten shipped.</h2>
+    <p class="lede">Per-component status with notes on what's right and what's missing.</p>
+
+    <div class="card" style="margin-top:18px">
+      <table class="component-tbl">
+        <thead>
+          <tr>
+            <th>Component</th>
+            <th>Status</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="nm">NPI Lookup Hero<small>landing + sign-up</small></span></td>
+            <td><span class="truth t-backed"><span class="st"><span class="glyph"></span>Shipped</span></span></td>
+            <td class="notes">Floating "NPI · NPPES public registry" label, mono input, accent CTA, mono hint list of fields we read, disclaimer below dashed rule. Used twice with consistent treatment.</td>
+          </tr>
+          <tr>
+            <td><span class="nm">Role Door Card<small>landing</small></span></td>
+            <td><span class="truth t-backed"><span class="st"><span class="glyph"></span>Shipped</span></span></td>
+            <td class="notes">Three cards: serif-italic letter icon, mono role label, sans name, plain description, three use-case bullets, accented CTA with arrow on a hairline. Should resolve to distinct surfaces.</td>
+          </tr>
+          <tr>
+            <td><span class="nm">Passport Header<small>passport top</small></span></td>
+            <td><span class="truth t-backed"><span class="st"><span class="glyph"></span>Shipped</span></span></td>
+            <td class="notes">64px avatar, name + specialty, mono NPI / institution / passport-draft id, last-read tile + action row (Print · Share scoped view · Send to institution). Four-tile summary band below.</td>
+          </tr>
+          <tr>
+            <td><span class="nm">Truth-State Chip<small>everywhere</small></span></td>
+            <td><span class="truth t-backed"><span class="st"><span class="glyph"></span>Shipped</span></span></td>
+            <td class="notes">Two-segment compound: state + source/timestamp. Eight variants (source-backed, pending-source, source-unavailable, self-reported, review-needed, sanction, contradicted, not-asserted). Never bare.</td>
+          </tr>
+          <tr>
+            <td><span class="nm">Source Row<small>passport aside + attribution sticky</small></span></td>
+            <td><span class="truth t-backed"><span class="st"><span class="glyph"></span>Shipped</span></span></td>
+            <td class="notes">Serif-italic letter icon, source name + sub-line, status chip, age. Used in passport right rail and attribution left nav.</td>
+          </tr>
+          <tr>
+            <td><span class="nm">Connector Matrix<small>status</small></span></td>
+            <td><span class="truth t-pending"><span class="st"><span class="glyph"></span>Partial</span></span></td>
+            <td class="notes">Deep table variant is excellent. Needs a compact grid variant (rows = sources, cols = state buckets) for at-a-glance use on landing &amp; in nav.</td>
+          </tr>
+          <tr>
+            <td><span class="nm">Proof Continuity Rail<small>passport</small></span></td>
+            <td><span class="truth t-backed"><span class="st"><span class="glyph"></span>Shipped</span></span></td>
+            <td class="notes">Four-step rail: Self-asserted → Public sources → Reconciled → Institution review. Current step accent-topped; last step labeled "REVIEW BOUNDARY".</td>
+          </tr>
+          <tr>
+            <td><span class="nm">Institution Review Panel<small>passport</small></span></td>
+            <td><span class="truth t-backed"><span class="st"><span class="glyph"></span>Shipped</span></span></td>
+            <td class="notes">Accent-washed block listing items the institution must read or attest. Bulleted, not checkboxed (VitalCV never marks complete).</td>
+          </tr>
+          <tr>
+            <td><span class="nm">Auth Disclosure Card<small>sign-in + sign-up</small></span></td>
+            <td><span class="truth t-backed"><span class="st"><span class="glyph"></span>Shipped</span></span></td>
+            <td class="notes">Left-panel stacked disclosures with icon + key + value. Three to four entries per page, each one mono caption + sans body.</td>
+          </tr>
+          <tr>
+            <td><span class="nm">Trust Register Table<small>trust</small></span></td>
+            <td><span class="truth t-backed"><span class="st"><span class="glyph"></span>Shipped</span></span></td>
+            <td class="notes">Five-column table with what-we-do / what-we-never-do adjacency. Each row carries its own state chip.</td>
+          </tr>
+          <tr>
+            <td><span class="nm">Status Matrix<small>status</small></span></td>
+            <td><span class="truth t-backed"><span class="st"><span class="glyph"></span>Shipped</span></span></td>
+            <td class="notes">Per-source rows with sparkline, last-read, latency, last-error, action button. See gap on compact grid variant above.</td>
+          </tr>
+          <tr>
+            <td><span class="nm">Receipt Drawer<small>brief</small></span></td>
+            <td><span class="truth t-pending"><span class="st"><span class="glyph"></span>Not shipped</span></span></td>
+            <td class="notes">Inline Receipt component is shipped, but the slide-in drawer surface for replaying a full receipt with response trail is not. Brief requires.</td>
+          </tr>
+          <tr>
+            <td><span class="nm">Audit Timeline<small>brief</small></span></td>
+            <td><span class="truth t-pending"><span class="st"><span class="glyph"></span>Partial</span></span></td>
+            <td class="notes">Rendered as a vertical text list on the passport right rail. Brief asks for a proper timeline with dots, lines, now-marker, and (eventually) scrub.</td>
+          </tr>
+          <tr>
+            <td><span class="nm">Footer Trust Row<small>everywhere</small></span></td>
+            <td><span class="truth t-backed"><span class="st"><span class="glyph"></span>Shipped</span></span></td>
+            <td class="notes">Per-route truth-row pill ("3 of 4 sources responding · 09:14 UTC") + receipt id + disclaimer paragraph. Persistent and consistent.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ─────── 6 MOTION / INTERACTION QA ─────── -->
+  <section class="qa-section" id="motion">
+    <div class="eyebrow"><span class="tag">06</span><span class="ln"></span><span>Motion · interaction QA</span></div>
+    <h2 style="margin-top:14px">Motion is restrained on purpose. A few states still need to be drawn.</h2>
+
+    <div class="qa-card-grid">
+      <div class="win-card">
+        <span class="num">M·01</span>
+        <h4>Hover lifts the hairline, not a shadow.</h4>
+        <p>Buttons, doors, table rows, and source rows all transition border-color and background-warm on hover at 120ms ease — no shadow blooms, no card jumps. This is the right call.</p>
+      </div>
+      <div class="win-card">
+        <span class="num">M·02</span>
+        <h4>Focus reveals the accent wash.</h4>
+        <p>Inputs show a 4px outer ring at <code>oklch(94% .025 274)</code> on focus — a quiet halo, the only place the indigo accent appears outside of primary CTAs.</p>
+      </div>
+      <div class="gap-card">
+        <span class="num">M·03</span>
+        <h4>Loading is not drawn.</h4>
+        <p>No spinners (correct), but no skeleton or read-in-progress surface either. The passport should show a calm "Reading sources…" state on first load with progressive Truth Chips populating as each source returns.</p>
+      </div>
+      <div class="gap-card">
+        <span class="num">M·04</span>
+        <h4>Auth-required state is not drawn.</h4>
+        <p>When a deep link to /passport requires sign-in, the page should not redirect — it should render the read-only public view with an inline sign-in prompt over the protected fields. Not yet built.</p>
+      </div>
+      <div class="gap-card">
+        <span class="num">M·05</span>
+        <h4>Degraded-source needs a slim banner.</h4>
+        <p>Today the affected row says "Source unavailable" but the page header is silent. A slim hairline-bordered banner ("SAM.gov offline · 02h · 1 field affected") should sit just under the proof rail when any required source is down.</p>
+      </div>
+      <div class="win-card">
+        <span class="num">M·06</span>
+        <h4>Source-backed state reads at a glance.</h4>
+        <p>Cool green ink + cool green wash + green dot + mono source + age. Across all eight states the differentiation is high enough that a reviewer can scan a 30-row table in under five seconds.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────── 7 MOBILE QA ─────── -->
+  <section class="qa-section" id="mobile">
+    <div class="eyebrow"><span class="tag">07</span><span class="ln"></span><span>Mobile QA</span></div>
+    <h2 style="margin-top:14px">Mobile is functional but not yet designed.</h2>
+    <p class="lede">The current implementation collapses to single column below 860px and is readable. It is not yet optimized — and for an enterprise tool used primarily on desktop, that's defensible for v1. A short list of mobile-specific decisions to make before any mobile rollout:</p>
+
+    <div class="risk-list">
+      <div class="risk">
+        <span class="lvl med">Mobile · Med</span>
+        <h5>Field rows collapse to one column — Truth Chip ends up below the value.</h5>
+        <p>At &lt;860px the 200px label + value + meta grid stacks. The Truth Chip lands beneath its own value, which is OK, but the source line above it duplicates the chip's content. Pick one.</p>
+      </div>
+      <div class="risk">
+        <span class="lvl med">Mobile · Med</span>
+        <h5>Proof Continuity Rail wraps to 2×2 on mobile, loses linear motion.</h5>
+        <p>Acceptable; not great. A horizontal-scroll variant (with a 1px hairline guide) would preserve the metaphor.</p>
+      </div>
+      <div class="risk">
+        <span class="lvl low">Mobile · Low</span>
+        <h5>Nav links hide entirely on mobile; no hamburger.</h5>
+        <p>Brand + Sign-in button only at &lt;860px. Add a slide-down menu sheet (paper substrate, hairline borders) — not a dropdown.</p>
+      </div>
+      <div class="risk">
+        <span class="lvl high">Mobile · High</span>
+        <h5>Status connector matrix has horizontal overflow on mobile.</h5>
+        <p>7-column table is unscaled. Either accept horizontal scroll with a sticky first column, or render the compact grid variant (gap G·04 above) on mobile.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────── 8 AESTHETIC RISKS ─────── -->
+  <section class="qa-section" id="risks">
+    <div class="eyebrow"><span class="tag">08</span><span class="ln"></span><span>Aesthetic risk list</span></div>
+    <h2 style="margin-top:14px">What will degrade the system if left unattended.</h2>
+
+    <div class="risk-list">
+      <div class="risk">
+        <span class="lvl high">High</span>
+        <h5>Accent creep.</h5>
+        <p>Today ink-indigo accent is used only for primary CTAs and the review boundary. The day a future PR introduces an accent-colored chart, an accent-colored chip, or an accent-tinted nav, the system loses its weight. Keep the rule: <strong>one accent per screen, used surgically</strong>.</p>
+      </div>
+      <div class="risk">
+        <span class="lvl high">High</span>
+        <h5>Truth Chip dilution.</h5>
+        <p>If anyone ever ships a single-segment chip that says just "VERIFIED", we have lied to the user. The two-segment form (state + source/time) must be enforceable in code — make it impossible to render <code>&lt;TruthChip&gt;</code> without a source prop.</p>
+      </div>
+      <div class="risk">
+        <span class="lvl med">Med</span>
+        <h5>Density drift on dashboards.</h5>
+        <p>The /status table is dense in a calm way. Future "operator" surfaces will tempt the team toward Tailwind-default padding, larger radii, and softer shadows. Lock down spacing tokens; don't allow more than the 4–8–12–16–24–32 scale.</p>
+      </div>
+      <div class="risk">
+        <span class="lvl med">Med</span>
+        <h5>Serif italic overuse.</h5>
+        <p>Fraunces italic is used in three places: hero word ("source-backed"), passport name italic on the passport id chip, source-row icon glyph. If it shows up in body copy or button labels, it stops being an accent.</p>
+      </div>
+      <div class="risk">
+        <span class="lvl low">Low</span>
+        <h5>Receipt block decoration drift.</h5>
+        <p>The diagonal-stripe top border on the Receipt block is the only ornamental flourish in the system. Keep it; don't add more (no seals, no QR codes, no certificates).</p>
+      </div>
+      <div class="risk">
+        <span class="lvl low">Low</span>
+        <h5>Dark mode unplanned.</h5>
+        <p>Earlier wave 5 had dark-mode tokens. The new system is light-only. Decide explicitly: light-only forever, or build a paper-inverse dark mode that keeps the document feel.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────── 9 REQUIRED FIXES ─────── -->
+  <section class="qa-section" id="fixes">
+    <div class="eyebrow"><span class="tag">09</span><span class="ln"></span><span>Required fixes</span></div>
+    <h2 style="margin-top:14px">Nine items to clear before unconditional PASS.</h2>
+    <p class="lede">Priorities are sequenced — F·01 lands first, F·09 lands last. Each maps to a specific surface; no fix touches more than two files.</p>
+
+    <div class="fix-list">
+      <div class="fix-row head">
+        <span>Priority</span>
+        <span>What ships</span>
+        <span>Where</span>
+        <span>Scope</span>
+      </div>
+      <div class="fix-row">
+        <span class="pri">F·01 · P0</span>
+        <span class="what">Receipt Drawer<small>Slide-in panel for replaying a full receipt: subject, sources, response codes, signed payload, raw response trail.</small></span>
+        <span class="where">/passport · /trust · global ⌘K result</span>
+        <span class="scope">new component</span>
+      </div>
+      <div class="fix-row">
+        <span class="pri">F·02 · P0</span>
+        <span class="what">Evidence Packet Preview<small>Show fields · scope · TTL · recipient view before commit, behind "Send to institution".</small></span>
+        <span class="where">/passport → modal</span>
+        <span class="scope">new surface</span>
+      </div>
+      <div class="fix-row">
+        <span class="pri">F·03 · P0</span>
+        <span class="what">Audit Timeline as a real timeline<small>Replace the text-list with a left-rail timeline component (dots + lines + now-marker + scrub).</small></span>
+        <span class="where">/passport right rail</span>
+        <span class="scope">component upgrade</span>
+      </div>
+      <div class="fix-row">
+        <span class="pri">F·04 · P1</span>
+        <span class="what">Connector Health Matrix · compact grid<small>Rows = sources, columns = freshness buckets, cells colored by truth state. Lives above the deep table on /status and is summarized in the nav.</small></span>
+        <span class="where">/status · nav</span>
+        <span class="scope">new variant</span>
+      </div>
+      <div class="fix-row">
+        <span class="pri">F·05 · P1</span>
+        <span class="what">Loading + auth-required states<small>Read-in-progress passport (chips populate progressively). Auth-required overlay (read-only beneath, sign-in prompt over the protected fields).</small></span>
+        <span class="where">/passport · gated routes</span>
+        <span class="scope">interaction states</span>
+      </div>
+      <div class="fix-row">
+        <span class="pri">F·06 · P1</span>
+        <span class="what">Nav responsive polish<small>Collapse nav-status pill to a single dot indicator that expands on hover between 980–1180px. Render ⌘K cmd-pill in nav on every route.</small></span>
+        <span class="where">global nav</span>
+        <span class="scope">CSS polish</span>
+      </div>
+      <div class="fix-row">
+        <span class="pri">F·07 · P1</span>
+        <span class="what">Degraded-source banner<small>Slim hairline banner under the proof rail when any required source is down: "SAM.gov offline · 02h · 1 field affected · See /status".</small></span>
+        <span class="where">/passport</span>
+        <span class="scope">component</span>
+      </div>
+      <div class="fix-row">
+        <span class="pri">F·08 · P2</span>
+        <span class="what">Role doors resolve to distinct surfaces<small>Clinician (add self-report flow), Reviewer (reconcile + attest, disabled until evidence ready), Operator (status console).</small></span>
+        <span class="where">role-specific routes</span>
+        <span class="scope">routes</span>
+      </div>
+      <div class="fix-row">
+        <span class="pri">F·09 · P2</span>
+        <span class="what">Mobile pass<small>Hamburger nav sheet, horizontal-scroll proof rail, sticky-first-column status table or grid variant, dedupe field-row source line vs Truth Chip below 860px.</small></span>
+        <span class="where">global · &lt; 860px</span>
+        <span class="scope">responsive</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────── 10 FINAL CALL ─────── -->
+  <section class="qa-section" id="verdict">
+    <div class="eyebrow"><span class="tag">10</span><span class="ln"></span><span>Final design call</span></div>
+
+    <div class="verdict-box" style="margin-top:18px">
+      <div class="eyebrow"><span>Visual QA</span><span class="ln"></span><span>2026·05·26 · Design</span></div>
+      <h2><em>LIMITED PASS.</em> Ship after the nine required fixes.</h2>
+      <p>The visual system is right: paper substrate, ink, hairline, single accent, eight trust states, every fact paired with its source and time, institution review boundary visible on every relevant surface. None of the banned phrases appear. No source is paraphrased. No clinician is blamed for a source outage. The /status connector matrix and the /passport proof rail are state-of-the-art on their own.</p>
+      <p style="margin-top:14px">What remains is component completeness — Receipt Drawer, Evidence Packet Preview, real Audit Timeline, compact Connector Health Matrix — plus three interaction states (loading, auth-required, degraded banner) and a small responsive pass. None of it requires rethinking the system; all of it composes from the primitives already in tokens. <strong>Build in the order on §9. Hold the line on §08. Do not invent a second accent.</strong></p>
+      <div class="sig">
+        <span class="av">VQ</span>
+        <span>Visual QA v1 · D57 · Approved with fixes</span>
+        <span style="margin-left:auto">RECEIPT · VQ‑D57‑0001 · ed25519</span>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="footer" style="margin-top:80px">
+  <div class="footer-bottom">
+    <span class="truth-row"><span class="dot" style="background:var(--src-pending)"></span>Visual QA · LIMITED PASS · 9 required fixes</span>
+    <span class="sp"></span>
+    <span>VitalCV Visual QA · D57 · 2026·05·26 · QA receipt VQ‑D57‑0001</span>
+  </div>
+</footer>
+
+</body>
+</html>

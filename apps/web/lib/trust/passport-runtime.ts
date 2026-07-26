@@ -3,6 +3,7 @@ import { buildDegradedPassportStub } from '@/lib/trust/buildDegradedPassportStub
 import { buildPassportRuntimeMetadata } from '@/lib/trust/passport-runtime-metadata';
 import type { PassportData } from '@/lib/trust/passport-contract';
 import { resolvePassportTruthSet } from '@/lib/trust/passport-truth-set';
+import { buildDemoPassport, isDemoEntity } from '@/lib/demo/demo-passport';
 
 type PassportRuntimePayload = PassportData & {
   _degraded: boolean;
@@ -213,6 +214,12 @@ async function buildNpiPassport(npi: string): Promise<PassportRuntimePayload> {
  * degraded mode when source verification is incomplete.
  */
 export async function resolvePassportRuntimePassport(entityId: string): Promise<PassportRuntimePayload> {
+  // Wave 500 (C4): reserved demo tenant — curated, decision-grade snapshot for
+  // accelerator / investor / enterprise demos. Never collides with a real NPI/UUID.
+  if (isDemoEntity(entityId)) {
+    return buildDemoPassport() as PassportRuntimePayload;
+  }
+
   if (isNpi(entityId)) {
     return buildNpiPassport(entityId);
   }

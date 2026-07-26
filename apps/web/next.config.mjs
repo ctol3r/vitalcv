@@ -9,6 +9,7 @@ const nextConfig = {
     '@vitalcv/psv',
     '@vitalcv/ingest',
     '@vitalcv/trust-state',
+    '@vitalcv/domain-evidence',
   ],
   experimental: {
     externalDir: true,

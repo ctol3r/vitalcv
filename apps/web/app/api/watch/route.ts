@@ -1,17 +1,18 @@
 import { getApiBase } from '@/lib/api';
 import { auth } from '@clerk/nextjs/server';
 import { type NextRequest, NextResponse } from 'next/server';
+import { applyIdentityHeaders } from '@/lib/auth/forwardIdentity';
 
 export const runtime = 'nodejs';
 
 const BACKEND = getApiBase();
 
-function buildHeaders(session: Awaited<ReturnType<typeof auth>>): Headers {
+async function buildHeaders(session: Awaited<ReturnType<typeof auth>>): Promise<Headers> {
   const headers = new Headers();
   headers.set('Content-Type', 'application/json');
 
   if (session.userId) {
-    headers.set('x-clerk-user-id', session.userId);
+    await applyIdentityHeaders(headers, { userId: session.userId });
   }
 
   const orgId = typeof (session as { orgId?: unknown }).orgId === 'string'
@@ -42,7 +43,7 @@ export async function POST(req: NextRequest) {
     const body = await req.text();
     const res = await fetch(`${BACKEND}/api/watch`, {
       method: 'POST',
-      headers: buildHeaders(session),
+      headers: await buildHeaders(session),
       body,
       signal: AbortSignal.timeout(8000),
     });

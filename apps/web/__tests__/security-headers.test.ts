@@ -72,6 +72,23 @@ describe('security headers (SEC-HEADERS-1)', () => {
     expect(csp!.value).toContain('https://*.clerk.com');
   });
 
+  // Production sign-in regression guard: the pk_live Frontend API is the custom
+  // domain clerk.vitalcv.com, which does NOT match *.clerk.com. It must be in
+  // BOTH script-src and connect-src (ClerkJS + its FAPI/XHR/WebSocket), plus a
+  // worker-src for ClerkJS's blob worker, or sign-in silently breaks.
+  it('CSP allows the production Clerk custom domain in script-src, connect-src, and a worker-src', () => {
+    const csp = securityHeaders.find((h: { key: string }) => h.key === 'Content-Security-Policy');
+    const value = csp!.value;
+    const scriptSrc = value.match(/script-src[^;]*/)![0];
+    const connectSrc = value.match(/connect-src[^;]*/)![0];
+    expect(scriptSrc).toContain('https://clerk.vitalcv.com');
+    expect(connectSrc).toContain('https://clerk.vitalcv.com');
+    expect(value).toContain('worker-src');
+    expect(value).toContain('blob:');
+    // Clerk's default bot check (Cloudflare Turnstile).
+    expect(scriptSrc).toContain('https://challenges.cloudflare.com');
+  });
+
   // Hotfix wave-3m: PostHog ingestion + assets must be allow-listed in
   // both script-src (for posthog-js bundle load) and connect-src (for
   // event POSTs). Without these, analytics fail silently in production.

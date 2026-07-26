@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { Reveal } from '@/components/motion/Reveal';
 import { VerifierOnboardingGuide } from '@/components/verifier/VerifierOnboardingGuide';
 
 interface VerifyResult {
@@ -45,79 +46,80 @@ export default function VerifyPage() {
   }
 
   return (
-    <main className="mx-auto max-w-2xl px-6 py-16">
+    <main className="mz mz-paper mz-persona-verifier mz-ambient overflow-hidden mx-auto max-w-2xl px-6 py-16">
       {/* Verifier onboarding guide — collapsed by default */}
       <div className="mb-8">
         <VerifierOnboardingGuide collapsible compact={false} />
         <div className="mt-1.5 text-right">
           <Link
             href="/verify/guide"
-            className="text-[11px] text-blue-500 hover:text-blue-700 underline underline-offset-2"
+            className="text-[11px] text-[var(--accent)] hover:opacity-80 underline underline-offset-2"
           >
             Full guide + offline verification →
           </Link>
         </div>
       </div>
 
-      <h1 className="mb-2 text-3xl font-bold tracking-tight">Credential Verifier</h1>
-      <p className="mb-8 text-gray-500">
-        Paste a VitalCV JWT to verify its cryptographic signature and inspect its claims.
-      </p>
+      <Reveal variant="fade">
+        <h1 className="mz-display mb-3">Credential <span className="mz-accent">Verifier</span></h1>
+        <p className="mz-lede mb-8 max-w-xl">
+          Paste a VitalCV JWT to verify its cryptographic signature and inspect its claims.
+        </p>
+      </Reveal>
 
-      <div className="mb-4">
-        <label htmlFor="token-input" className="mb-2 block text-sm font-medium text-gray-700">
-          JWT Token
-        </label>
-        <textarea
-          id="token-input"
-          value={token}
-          onChange={(e) => setToken(e.target.value)}
-          rows={6}
-          placeholder="eyJhbGciOiJFUzI1NiIsImtpZCI6Ii4uLiJ9..."
-          className="w-full rounded-lg border border-gray-300 px-4 py-3 font-mono text-sm placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+      <Reveal delay={80}>
+        <div className="mb-4">
+          <label htmlFor="token-input" className="mb-2 block mz-mono text-[11px] font-medium uppercase tracking-[0.18em] text-[var(--ink-500)]">
+            JWT Token
+          </label>
+          <textarea
+            id="token-input"
+            value={token}
+            onChange={(e) => setToken(e.target.value)}
+            rows={6}
+            placeholder="eyJhbGciOiJFUzI1NiIsImtpZCI6Ii4uLiJ9..."
+            className="mz-input font-mono text-sm"
+          />
+        </div>
+
+        <button
+          onClick={handleVerify}
+          disabled={loading || !token.trim()}
+          className="mz-btn mb-8 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {loading ? 'Verifying…' : 'Verify'}
+        </button>
+      </Reveal>
+
+      <Reveal delay={120}>
+        <ReceiptReplaySection
+          receiptIdInput={receiptIdInput}
+          setReceiptIdInput={setReceiptIdInput}
+          onNavigate={() => {
+            const id = receiptIdInput.trim();
+            if (id) router.push(`/verify/receipt/${encodeURIComponent(id)}`);
+          }}
         />
-      </div>
-
-      <button
-        onClick={handleVerify}
-        disabled={loading || !token.trim()}
-        className="mb-8 inline-flex items-center rounded-md bg-blue-600 px-5 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
-      >
-        {loading ? 'Verifying…' : 'Verify'}
-      </button>
-
-      <ReceiptReplaySection
-        receiptIdInput={receiptIdInput}
-        setReceiptIdInput={setReceiptIdInput}
-        onNavigate={() => {
-          const id = receiptIdInput.trim();
-          if (id) router.push(`/verify/receipt/${encodeURIComponent(id)}`);
-        }}
-      />
+      </Reveal>
 
       {result !== null && (
-        <div
-          className={`rounded-lg border p-5 ${
-            result.verified
-              ? 'border-green-200 bg-green-50'
-              : 'border-red-200 bg-red-50'
-          }`}
-        >
-          <div className="mb-4 flex items-center gap-2">
+        <Reveal>
+        <div className="mz-glass mt-8 rounded-[12px] p-5">
+          <div className="mb-4 flex items-center gap-2.5">
             <span
-              className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-sm font-bold ${
-                result.verified ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
+              className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-sm font-bold text-white ${
+                result.verified ? 'bg-[var(--ok)]' : 'bg-[var(--p0)]'
               }`}
             >
               {result.verified ? '✓' : '✗'}
             </span>
-            <span className={`font-semibold ${result.verified ? 'text-green-800' : 'text-red-800'}`}>
+            <span className={`mz-chip ${result.verified ? 'mz-chip-ok' : 'mz-chip-p0'}`}>
               {result.verified ? 'Valid credential' : 'Invalid credential'}
             </span>
           </div>
 
           {result.error && (
-            <p className="mb-2 text-sm text-red-700">
+            <p className="mb-2 text-sm text-[var(--p0)]">
               <strong>Error:</strong> {result.error}
             </p>
           )}
@@ -147,8 +149,8 @@ export default function VerifyPage() {
               )}
               {result.vcv && (
                 <div>
-                  <dt className="font-medium text-gray-600">VCV Claims</dt>
-                  <dd className="mt-1 rounded bg-white p-3 font-mono text-xs">
+                  <dt className="font-medium text-[var(--ink-600)]">VCV Claims</dt>
+                  <dd className="mt-1 mz-inset p-3 font-mono text-xs text-[var(--ink-700)]">
                     <pre>{JSON.stringify(result.vcv, null, 2)}</pre>
                   </dd>
                 </div>
@@ -156,6 +158,7 @@ export default function VerifyPage() {
             </dl>
           )}
         </div>
+        </Reveal>
       )}
     </main>
   );
@@ -171,11 +174,11 @@ function ReceiptReplaySection({
   onNavigate: () => void;
 }) {
   return (
-    <div className="mt-10 border-t border-gray-200 pt-8">
-      <h2 className="mb-2 text-xl font-bold tracking-tight">Inspect Receipt Replay</h2>
-      <p className="mb-5 text-gray-500 text-sm">
-        Enter a VitalCV receipt ID (<code className="font-mono text-xs bg-gray-100 px-1 py-0.5 rounded">rcpt_…</code> or{' '}
-        <code className="font-mono text-xs bg-gray-100 px-1 py-0.5 rounded">rec-…</code>) to view its replay
+    <div className="mt-10 border-t border-[var(--rule)] pt-8">
+      <h2 className="mb-2 mz-h2 text-xl">Inspect Receipt Replay</h2>
+      <p className="mb-5 text-[var(--ink-500)] text-sm">
+        Enter a VitalCV receipt ID (<code className="mz-mono text-xs bg-[var(--ink-50)] border border-[var(--rule-soft)] px-1 py-0.5 rounded-[3px]">rcpt_…</code> or{' '}
+        <code className="mz-mono text-xs bg-[var(--ink-50)] border border-[var(--rule-soft)] px-1 py-0.5 rounded-[3px]">rec-…</code>) to view its replay
         chain, degradation ownership, and survivability score.
       </p>
       <div className="flex gap-3">
@@ -185,18 +188,18 @@ function ReceiptReplaySection({
           onChange={(e) => setReceiptIdInput(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && receiptIdInput.trim() && onNavigate()}
           placeholder="rcpt_1234567890_1234567890123"
-          className="flex-1 rounded-lg border border-gray-300 px-4 py-2.5 font-mono text-sm placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          className="mz-input flex-1 font-mono text-sm"
         />
         <button
           onClick={onNavigate}
           disabled={!receiptIdInput.trim()}
-          className="inline-flex items-center rounded-md bg-gray-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-gray-700 disabled:cursor-not-allowed disabled:opacity-40 transition-colors"
+          className="mz-btn disabled:cursor-not-allowed disabled:opacity-40"
         >
           Inspect
         </button>
       </div>
-      <p className="mt-2 text-[11px] text-gray-400">
-        Opens <code className="font-mono">/verify/receipt/{'{receiptId}'}</code> — public, no auth required.
+      <p className="mt-2 text-[11px] text-[var(--ink-400)]">
+        Opens <code className="mz-mono">/verify/receipt/{'{receiptId}'}</code> — public, no auth required.
       </p>
     </div>
   );
@@ -213,8 +216,8 @@ function Row({
 }) {
   return (
     <div className="flex items-start gap-2">
-      <dt className="min-w-[120px] font-medium text-gray-600">{label}</dt>
-      <dd className={mono ? 'break-all font-mono text-xs' : ''}>{value}</dd>
+      <dt className="min-w-[120px] font-medium text-[var(--ink-600)]">{label}</dt>
+      <dd className={mono ? 'break-all font-mono text-xs text-[var(--ink-800)]' : 'text-[var(--ink-800)]'}>{value}</dd>
     </div>
   );
 }

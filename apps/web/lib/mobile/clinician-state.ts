@@ -783,8 +783,8 @@ export function buildRecommendedAction(input: {
 
   return {
     kind: 'view_passport',
-    title: 'Review your your readiness',
-    description: 'Keep your verified identity and credential evidence ready to share.',
+    title: 'Review your readiness',
+    description: 'Keep your source-backed identity and credential evidence ready to share.',
     href: '/holder',
     ctaLabel: 'Open passport',
   };

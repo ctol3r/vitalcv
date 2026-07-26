@@ -14,6 +14,8 @@
  *   POST   /api/applications/:appId/workflow-action — verifier runs accept/request_info/reject
  */
 
+import prisma from '../graphql/prisma_client';
+import { requireIdentityTier } from '../services/identity/identityGate';
 import type { Express, NextFunction, Request, Response } from 'express';
 import {
   applyToOpportunity,
@@ -21,16 +23,22 @@ import {
   withdrawApplication,
   listAllOrgApplications,
   listApplicationsForOpportunity,
-  reviewApplication,
 } from '../services/opportunities/applicationService';
 import {
   getEmployerWorkflowApplication,
   listEmployerWorkflowDashboard,
   runEmployerWorkflowAction,
 } from '../services/opportunities/employerWorkflowService';
-import { capsuleEngine } from '../services/decision/capsuleEngine';
+import {
+  parseApplicationPacketApplicationId,
+  parseRequestedPacketVersion,
+  readApplicationPacket,
+  readApplicationEvidenceView,
+} from '../services/opportunities/applicationPacketReadService';
+import { getClinicianApplicationActivation } from '../services/activation/clinicianActivationService';
 import { HttpError } from '../utils/httpError';
-import { log } from '../obs/logger';
+import { requireOrgRole, VERIFIER_MUTATION_ROLES } from '../middleware/orgRoleGuard';
+import type { VerifiedAuth } from '../middleware/verifiedIdentity';
 
 function asyncHandler(fn: (req: Request, res: Response, next: NextFunction) => Promise<void>) {
   return (req: Request, res: Response, next: NextFunction) => fn(req, res, next).catch(next);
@@ -42,14 +50,41 @@ function requireClerkUserId(req: Request): string {
   return id;
 }
 
+function requireVerifiedClerkUserId(req: Request): string {
+  const verifiedUserId = (req as Request & { verifiedAuth?: VerifiedAuth })
+    .verifiedAuth?.verifiedUserId?.trim();
+  if (!verifiedUserId) {
+    throw new HttpError(401, 'Verified Clerk session required.');
+  }
+  return verifiedUserId;
+}
+
+// Opportunity.id and Application.id are Postgres uuid columns — querying them
+// with a non-uuid string makes Prisma throw (a 500) instead of returning null.
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function requireUuidParam(value: string | undefined, label: string): string {
+  const id = value?.trim();
+  if (!id || !UUID_RE.test(id)) {
+    throw new HttpError(404, `${label} not found.`);
+  }
+  return id;
+}
+
 export function registerApplicationRoutes(app: Express): void {
   /* ── Clinician: apply ── */
   app.post(
     '/api/opportunities/:id/apply',
     asyncHandler(async (req, res) => {
       const clerkUserId = requireClerkUserId(req);
-      const { id: opportunityId } = req.params;
+      const opportunityId = requireUuidParam(req.params.id, 'Opportunity');
       const { npi, coverNote } = req.body as { npi?: string; coverNote?: string };
+
+      // Applications carry the clinician's readiness snapshot to an employer —
+      // they unlock at the work_email_confirmed identity tier.
+      const applicant = await prisma.user.findUnique({ where: { clerkUserId } });
+      if (!applicant) throw new HttpError(404, 'User not found. Complete onboarding first.');
+      await requireIdentityTier(applicant.id, 'work_email_confirmed');
 
       const application = await applyToOpportunity({ opportunityId, clerkUserId, npi, coverNote });
       res.status(201).json(application);
@@ -71,9 +106,48 @@ export function registerApplicationRoutes(app: Express): void {
     '/api/applications/:appId/withdraw',
     asyncHandler(async (req, res) => {
       const clerkUserId = requireClerkUserId(req);
-      const { appId } = req.params;
+      const appId = requireUuidParam(req.params.appId, 'Application');
       const updated = await withdrawApplication(appId, clerkUserId);
       res.json(updated);
+    }),
+  );
+
+  /* ── Authorized immutable submission packet ── */
+  app.get(
+    '/api/applications/:applicationId/packet',
+    asyncHandler(async (req, res) => {
+      // This high-value read boundary requires a cryptographically verified
+      // Clerk JWT even while the repository-wide middleware remains in shadow
+      // rollout. A forgeable x-clerk-user-id header is never sufficient.
+      const clerkUserId = requireVerifiedClerkUserId(req);
+      const applicationId = parseApplicationPacketApplicationId(req.params.applicationId);
+      const packetVersion = parseRequestedPacketVersion(req.query.version);
+
+      const readInput = {
+        applicationId,
+        clerkUserId,
+        packetVersion,
+      };
+      const packet = req.query.includeCurrent === 'true'
+        ? await readApplicationEvidenceView(readInput)
+        : await readApplicationPacket(readInput);
+      res.json(packet);
+    }),
+  );
+
+  /* ── Clinician: own activation "path to start" (ACT-7.1 read) ── */
+  app.get(
+    '/api/applications/:appId/activation',
+    asyncHandler(async (req, res) => {
+      // Same verified-identity boundary as the packet read: a forgeable
+      // x-clerk-user-id header is never sufficient for a per-application
+      // personal read. Ownership authorizes (never org); a non-owned or
+      // unknown id returns a uniform 404 (getClinicianApplicationActivation),
+      // so this endpoint cannot enumerate other clinicians' applications.
+      const clerkUserId = requireVerifiedClerkUserId(req);
+      const appId = requireUuidParam(req.params.appId, 'Application');
+      const view = await getClinicianApplicationActivation(appId, clerkUserId);
+      res.json(view);
     }),
   );
 
@@ -102,7 +176,7 @@ export function registerApplicationRoutes(app: Express): void {
     '/api/opportunities/:id/applications',
     asyncHandler(async (req, res) => {
       const clerkUserId = requireClerkUserId(req);
-      const { id: opportunityId } = req.params;
+      const opportunityId = requireUuidParam(req.params.id, 'Opportunity');
       const applications = await listApplicationsForOpportunity(opportunityId, clerkUserId);
       res.json(applications);
     }),
@@ -111,45 +185,32 @@ export function registerApplicationRoutes(app: Express): void {
   /* ── Verifier: review application ── */
   app.patch(
     '/api/applications/:appId/review',
+    requireOrgRole(VERIFIER_MUTATION_ROLES),
     asyncHandler(async (req, res) => {
       const clerkUserId = requireClerkUserId(req);
-      const { appId: applicationId } = req.params;
+      const applicationId = requireUuidParam(req.params.appId, 'Application');
       const { status, reviewNote } = req.body as { status?: string; reviewNote?: string };
 
       if (!status || !['REVIEWED', 'ACCEPTED', 'DECLINED'].includes(status)) {
         throw new HttpError(400, 'status must be REVIEWED, ACCEPTED, or DECLINED.');
       }
 
-      const updated = await reviewApplication({
+      const action = status === 'ACCEPTED'
+        ? 'accept'
+        : status === 'DECLINED'
+          ? 'reject'
+          : 'start_review';
+      const result = await runEmployerWorkflowAction({
+        action,
         applicationId,
         reviewerClerkUserId: clerkUserId,
-        status: status as 'REVIEWED' | 'ACCEPTED' | 'DECLINED',
         reviewNote,
       });
 
-      // Wave 269: Persist verifier decision capsules for approve / reject / conditional approve.
-      const decisionAction = status === 'ACCEPTED'
-        ? 'APPROVE'
-        : status === 'DECLINED'
-          ? 'REJECT'
-          : 'CONDITIONAL_APPROVE';
-
-      if (status === 'REVIEWED' || status === 'ACCEPTED' || status === 'DECLINED') {
-        capsuleEngine.createDecisionFromApplication({
-          applicationId,
-          verifierClerkUserId: clerkUserId,
-          decisionType: 'HIRING',
-          decisionAction,
-        }).catch((err: unknown) => {
-          // Non-fatal: log but don't block the response
-          log('warn', 'applications: decision_capsule_creation_failed', {
-            applicationId,
-            error: String(err),
-          });
-        });
-      }
-
-      res.json(updated);
+      // Compatibility response: the legacy route still returns its original
+      // application-shaped result, while all mutations now pass through the
+      // canonical workflow command service.
+      res.json(result.application);
     }),
   );
 
@@ -158,7 +219,7 @@ export function registerApplicationRoutes(app: Express): void {
     '/api/applications/:appId/workflow',
     asyncHandler(async (req, res) => {
       const clerkUserId = requireClerkUserId(req);
-      const { appId } = req.params;
+      const appId = requireUuidParam(req.params.appId, 'Application');
       const workflowApplication = await getEmployerWorkflowApplication(appId, clerkUserId);
       res.json(workflowApplication);
     }),
@@ -167,9 +228,10 @@ export function registerApplicationRoutes(app: Express): void {
   /* ── Verifier: workflow action ── */
   app.post(
     '/api/applications/:appId/workflow-action',
+    requireOrgRole(VERIFIER_MUTATION_ROLES),
     asyncHandler(async (req, res) => {
       const clerkUserId = requireClerkUserId(req);
-      const { appId } = req.params;
+      const appId = requireUuidParam(req.params.appId, 'Application');
       const {
         action,
         requests,
@@ -194,23 +256,6 @@ export function registerApplicationRoutes(app: Express): void {
         })),
         reviewNote,
       });
-
-      if (action === 'accept' || action === 'reject') {
-        const decisionAction = action === 'accept' ? 'APPROVE' : 'REJECT';
-
-        capsuleEngine.createDecisionFromApplication({
-          applicationId: appId,
-          verifierClerkUserId: clerkUserId,
-          decisionType: 'HIRING',
-          decisionAction,
-        }).catch((err: unknown) => {
-          log('warn', 'applications: workflow_capsule_creation_failed', {
-            applicationId: appId,
-            action,
-            error: String(err),
-          });
-        });
-      }
 
       res.json(result);
     }),

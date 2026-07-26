@@ -28,13 +28,6 @@ const DECISION_OUTCOMES: PolicyDecisionOutcome[] = [
   'unable_to_assess',
 ];
 
-const OUTCOME_CLASSES: Record<PolicyDecisionOutcome, string> = {
-  acceptable_for_start: 'border-emerald-300 bg-emerald-50 text-emerald-900 hover:bg-emerald-100',
-  pending_additional_info: 'border-violet-300 bg-violet-50 text-violet-900 hover:bg-violet-100',
-  requires_committee_review: 'border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-100',
-  unable_to_assess: 'border-slate-300 bg-slate-100 text-slate-900 hover:bg-slate-200',
-};
-
 export function DecisionPanel({
   item,
   onDecision,
@@ -51,38 +44,38 @@ export function DecisionPanel({
   return (
     <section
       aria-label="Verifier decision foundation"
-      className="rounded-lg border border-slate-200 bg-white shadow-sm"
+      className="mz mz-glass overflow-hidden"
     >
-      <div className="border-b border-slate-200 p-5">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+      <div className="flex flex-col gap-2 border-b border-[var(--rule)] p-5">
+        <p className="mz-eyebrow">
           Internal assessment
         </p>
-        <h2 className="mt-1 text-xl font-semibold text-slate-950">
+        <h2 className="mz-h2">
           Decision foundation
         </h2>
-        <p className="mt-2 text-sm text-slate-600">
-          NPI <span className="font-mono">{item.clinicianNpi}</span> ·{' '}
+        <p className="text-sm text-[var(--ink-600)]">
+          NPI <span className="mz-mono">{item.clinicianNpi}</span> ·{' '}
           {explainWorklistStatus(item.status)}
         </p>
       </div>
 
       <div className="grid gap-5 p-5">
-        <div className="rounded-md border border-slate-200 bg-slate-50 p-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+        <div className="mz-inset p-4">
+          <p className="mz-eyebrow">
             Reuse basis
           </p>
-          <p className="mt-1 text-sm text-slate-700">
+          <p className="mt-2 text-sm text-[var(--ink-700)]">
             {explainReuseBasis(reuseBasis)}
           </p>
           {reuseWarning ? (
-            <p className="mt-3 rounded-md border border-orange-200 bg-orange-50 px-3 py-2 text-sm text-orange-900">
+            <p className="mt-3 rounded-[3px] border border-[var(--watch-rule)] bg-[var(--watch-bg)] px-3 py-2 text-sm text-[var(--watch)]">
               {reuseWarning}
             </p>
           ) : null}
         </div>
 
         <div>
-          <p className="text-sm font-semibold text-slate-950">
+          <p className="text-sm font-semibold text-[var(--ink-900)]">
             Record internal assessment outcome
           </p>
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
@@ -96,9 +89,7 @@ export function DecisionPanel({
                   type="button"
                   aria-pressed={isSelected}
                   onClick={() => handleDecision(outcome)}
-                  className={`rounded-md border px-4 py-3 text-left text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-slate-700 ${OUTCOME_CLASSES[outcome]} ${
-                    isSelected ? 'ring-2 ring-slate-700' : ''
-                  }`}
+                  className="mz-opt text-left focus:outline-none focus:ring-2 focus:ring-[var(--ink-900)]"
                 >
                   {copy.action}
                   <span className="mt-1 block text-xs font-normal">
@@ -110,11 +101,11 @@ export function DecisionPanel({
           </div>
         </div>
 
-        <div className="rounded-md border border-slate-200 p-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+        <div className="mz-inset p-4">
+          <p className="mz-eyebrow">
             Current shell state
           </p>
-          <p className="mt-1 text-sm text-slate-700">
+          <p className="mt-2 text-sm text-[var(--ink-700)]">
             {selectedOutcome
               ? getPolicyDecisionCopy(selectedOutcome).detail
               : 'No internal assessment outcome has been recorded in this shell.'}
@@ -122,7 +113,7 @@ export function DecisionPanel({
         </div>
       </div>
 
-      <p className="border-t border-slate-200 bg-slate-50 px-5 py-3 text-xs text-slate-600">
+      <p className="border-t border-[var(--rule)] bg-[var(--paper-2)] px-5 py-3 text-xs text-[var(--ink-600)]">
         Decisions recorded here are internal assessment records. VitalCV does
         not guarantee employment eligibility.
       </p>

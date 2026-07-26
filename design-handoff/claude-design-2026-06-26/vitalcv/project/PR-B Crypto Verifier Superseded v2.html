@@ -1,0 +1,510 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>VitalCV — PR-B · Crypto Verifier Superseded · v2</title>
+<link rel="preconnect" href="https://rsms.me/" />
+<link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --ink: #0a0a0a;
+    --ink-2: #1f1f1f;
+    --mute: #6b6b6b;
+    --hair: #d8d8d8;
+    --paper: #ffffff;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: #ececec; color: var(--ink); }
+  body {
+    font-family: 'Inter', system-ui, -apple-system, Segoe UI, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    min-height: 100vh;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 40px 24px 64px;
+  }
+  .mono { font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .tnum { font-variant-numeric: tabular-nums; }
+
+  .card {
+    width: 680px;
+    max-width: 100%;
+    background: var(--paper);
+    border: 1px solid var(--ink);
+    box-shadow: 0 24px 60px -30px rgba(0,0,0,0.25);
+  }
+
+  /* numbered ID column on left, content on right */
+  .layout {
+    display: grid;
+    grid-template-columns: 56px 1fr;
+  }
+  .gutter {
+    border-right: 1px solid var(--ink);
+    background: #fff;
+    padding: 14px 0 14px 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 9.5px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--mute);
+  }
+  .gutter .id-stack {
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    color: var(--ink);
+    letter-spacing: 0.32em;
+  }
+  .gutter .seg {
+    width: 24px;
+    height: 1px;
+    background: var(--ink);
+    opacity: 0.5;
+  }
+  .gutter .stamp {
+    border: 1px solid var(--ink);
+    color: var(--ink);
+    padding: 6px 4px;
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    letter-spacing: 0.28em;
+  }
+  .gutter .pn {
+    margin-top: auto;
+    color: var(--ink);
+  }
+
+  .body { display: flex; flex-direction: column; }
+
+  /* top strip */
+  .strip {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    padding: 9px 18px;
+    background: var(--ink);
+    color: #fff;
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+  }
+  .strip .l { color: #d8d8d8; }
+  .strip .r { text-align: right; }
+
+  /* header */
+  .head {
+    padding: 18px 20px 16px;
+    border-bottom: 1px solid var(--hair);
+  }
+  .eyebrow {
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--mute);
+  }
+  h1 {
+    margin: 8px 0 0;
+    font-family: ui-serif, Georgia, 'Times New Roman', serif;
+    font-weight: 600;
+    font-size: 26px;
+    line-height: 1.12;
+    letter-spacing: -0.018em;
+    color: var(--ink);
+  }
+  .deck {
+    margin-top: 8px;
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--ink-2);
+  }
+
+  /* meta row */
+  .meta {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    border-bottom: 1px solid var(--hair);
+  }
+  .meta > div {
+    padding: 9px 14px;
+    border-right: 1px solid var(--hair);
+  }
+  .meta > div:nth-child(2n) { border-right: 0; }
+  .meta > div:nth-child(-n+2) { border-bottom: 1px solid var(--hair); }
+  .meta .k {
+    font-size: 9.5px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--mute);
+  }
+  .meta .v {
+    margin-top: 3px;
+    font-size: 11.5px;
+    color: var(--ink);
+  }
+  .dot {
+    display: inline-block;
+    width: 6px; height: 6px;
+    background: var(--ink);
+    margin-right: 6px;
+    transform: translateY(-1px);
+  }
+  .dot.open { background: #fff; border: 1px solid var(--ink); }
+
+  /* section */
+  section.s {
+    padding: 14px 20px 16px;
+    border-bottom: 1px solid var(--hair);
+  }
+  section.s:last-of-type { border-bottom: 0; }
+  .s-eyebrow {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 10px;
+  }
+  .s-eyebrow .label {
+    font-size: 9.5px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--mute);
+  }
+  .s-eyebrow .tag {
+    font-size: 9.5px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink);
+  }
+
+  /* stacked paths */
+  .stack {
+    border: 1px solid var(--ink);
+  }
+  .row {
+    display: grid;
+    grid-template-columns: 90px 1fr 110px;
+    border-bottom: 1px solid var(--ink);
+  }
+  .row:last-child { border-bottom: 0; }
+  .row.accepted { background: var(--ink); color: #fff; }
+  .row .tag-cell {
+    padding: 12px 12px;
+    border-right: 1px solid var(--hair);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 3px;
+  }
+  .row.accepted .tag-cell { border-right: 1px solid #2a2a2a; }
+  .row .tag-cell .lab {
+    font-size: 9.5px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+  }
+  .row.accepted .tag-cell .lab { color: #d0d0d0; }
+  .row:not(.accepted) .tag-cell .lab { color: var(--mute); }
+  .row .tag-cell .id {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    color: currentColor;
+  }
+  .row .body-cell {
+    padding: 12px 14px;
+    border-right: 1px solid var(--hair);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .row.accepted .body-cell { border-right: 1px solid #2a2a2a; }
+  .row .body-cell .title {
+    font-size: 13.5px;
+    font-weight: 600;
+    line-height: 1.25;
+  }
+  .row .body-cell .chain {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 10.5px;
+    line-height: 1.5;
+    padding: 6px 8px;
+    border: 1px solid currentColor;
+    opacity: 0.95;
+  }
+  .row.accepted .body-cell .chain { background: #0f0f0f; border-color: #2a2a2a; }
+  .row .body-cell .why {
+    font-size: 9.5px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+  .row.accepted .body-cell .why { color: #d0d0d0; }
+  .row:not(.accepted) .body-cell .why { color: var(--mute); }
+  .row .state-cell {
+    padding: 12px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .row .state-cell .pill {
+    font-size: 9.5px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    border: 1px solid currentColor;
+    padding: 5px 8px;
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  /* rejected evidence */
+  .evidence {
+    display: grid;
+    grid-template-columns: 110px 1fr auto;
+    align-items: center;
+    gap: 12px;
+    border: 1px solid var(--ink);
+    padding: 10px 12px;
+    background: repeating-linear-gradient(
+      135deg,
+      #fff 0 6px,
+      #f4f4f4 6px 12px
+    );
+  }
+  .evidence .lab {
+    font-size: 9.5px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--ink);
+    border: 1px solid var(--ink);
+    padding: 4px 7px;
+    background: #fff;
+    text-align: center;
+  }
+  .evidence .body-text {
+    font-size: 11.5px;
+    line-height: 1.5;
+    color: var(--ink);
+  }
+  .evidence .body-text b { font-weight: 600; }
+  .evidence .tail {
+    font-size: 9.5px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--mute);
+  }
+
+  /* impact + decision */
+  .row2 {
+    display: grid;
+    grid-template-columns: 1fr 1.4fr;
+    border: 1px solid var(--ink);
+  }
+  .row2 > div {
+    padding: 12px 14px;
+    border-right: 1px solid var(--ink);
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  .row2 > div:last-child { border-right: 0; }
+  .row2 .k {
+    font-size: 9.5px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--mute);
+  }
+  .row2 .v {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ink);
+    line-height: 1.25;
+  }
+  .row2 .d {
+    font-size: 11px;
+    line-height: 1.5;
+    color: var(--ink-2);
+  }
+  .row2 .v .delta {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-weight: 500;
+    margin-right: 6px;
+  }
+  .row2 .decision {
+    background: var(--ink);
+    color: #fff;
+  }
+  .row2 .decision .k { color: #d8d8d8; }
+  .row2 .decision .v { color: #fff; }
+  .row2 .decision .d { color: #ececec; }
+
+  /* foot */
+  .foot {
+    padding: 9px 20px;
+    border-top: 1px solid var(--ink);
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    font-size: 9.5px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--mute);
+  }
+  .foot .center { text-align: center; }
+  .foot .right { text-align: right; color: var(--ink); }
+
+  @media (max-width: 640px) {
+    .layout { grid-template-columns: 1fr; }
+    .gutter { display: none; }
+    .meta { grid-template-columns: 1fr; }
+    .meta > div { border-right: 0; border-bottom: 1px solid var(--hair); }
+    .row { grid-template-columns: 1fr; }
+    .row > * { border-right: 0 !important; border-bottom: 1px solid var(--hair); }
+    .row2 { grid-template-columns: 1fr; }
+    .row2 > div { border-right: 0; border-bottom: 1px solid var(--ink); }
+    .row2 > div:last-child { border-bottom: 0; }
+  }
+</style>
+</head>
+<body>
+  <article class="card" aria-label="PR-B Crypto Verifier Superseded decision card v2">
+    <div class="layout">
+
+      <aside class="gutter" aria-hidden="true">
+        <div class="id-stack">ADR · 0008</div>
+        <div class="seg"></div>
+        <div class="stamp">Superseded</div>
+        <div class="seg"></div>
+        <div class="pn">v2</div>
+      </aside>
+
+      <div class="body">
+        <div class="strip mono">
+          <span class="l">VitalCV · Internal · Architecture decision</span>
+          <span class="r">PR-B · CRYPTO VERIFIER</span>
+        </div>
+
+        <header class="head">
+          <div class="eyebrow mono">Decision record · receipt verification</div>
+          <h1>PR-B Crypto Verifier Superseded</h1>
+          <p class="deck">
+            PR-B is superseded by the ES256 issuer/JWKS path tracked in
+            #203 and #204. Implementation files in PR-B will not be rescued.
+          </p>
+        </header>
+
+        <div class="meta">
+          <div>
+            <div class="k mono">Subject</div>
+            <div class="v">Receipt verifier path</div>
+          </div>
+          <div>
+            <div class="k mono">Status</div>
+            <div class="v">PR-B closed · superseded</div>
+          </div>
+          <div>
+            <div class="k mono">Accepted</div>
+            <div class="v"><span class="dot"></span>#203 · #204</div>
+          </div>
+          <div>
+            <div class="k mono">Rejected</div>
+            <div class="v"><span class="dot open"></span>HS256 · shared secret</div>
+          </div>
+        </div>
+
+        <section class="s" aria-label="Verifier paths">
+          <div class="s-eyebrow">
+            <span class="label mono">§1 · Verifier paths</span>
+            <span class="tag mono">Stacked compare</span>
+          </div>
+          <div class="stack">
+            <div class="row accepted">
+              <div class="tag-cell">
+                <span class="lab mono">Path A</span>
+                <span class="id mono">#203 · #204</span>
+              </div>
+              <div class="body-cell">
+                <div class="title">ES256 issuer / JWKS + ES256 verifier</div>
+                <div class="chain">issuer · sign(ES256) → JWKS · pubkey → verifier · verify(ES256)</div>
+                <div class="why mono">Trust held at issuer · key rotation at JWKS</div>
+              </div>
+              <div class="state-cell">
+                <span class="pill mono">Accepted</span>
+              </div>
+            </div>
+            <div class="row">
+              <div class="tag-cell">
+                <span class="lab mono">Path B</span>
+                <span class="id mono">PR-B</span>
+              </div>
+              <div class="body-cell">
+                <div class="title">HS256 / shared-secret verifier</div>
+                <div class="chain">issuer · hmac(secret) → verifier · hmac(secret)</div>
+                <div class="why mono">Symmetric · trust leaks to every verifier</div>
+              </div>
+              <div class="state-cell">
+                <span class="pill mono">Rejected</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="s" aria-label="Rejected evidence">
+          <div class="s-eyebrow">
+            <span class="label mono">§2 · Rejected evidence</span>
+            <span class="tag mono">Not production proof</span>
+          </div>
+          <div class="evidence">
+            <div class="lab mono">Rejected</div>
+            <div class="body-text">
+              <b>Stub JWKS as production verifier proof.</b> A stub JWKS is a
+              development fixture; passing the verifier against it is not
+              evidence the accepted path is wired end-to-end in production.
+            </div>
+            <div class="tail mono">Stub ≠ proof</div>
+          </div>
+        </section>
+
+        <section class="s" aria-label="Impact and decision">
+          <div class="s-eyebrow">
+            <span class="label mono">§3 · Impact &amp; decision</span>
+            <span class="tag mono">02 entries</span>
+          </div>
+          <div class="row2">
+            <div>
+              <div class="k mono">Score impact</div>
+              <div class="v"><span class="delta">±0</span>No board score movement</div>
+              <div class="d">
+                Closing PR-B does not change the board score. The accepted
+                path #203 + #204 carries its own tracking; this card records
+                the verifier decision only.
+              </div>
+            </div>
+            <div class="decision">
+              <div class="k mono">Decision</div>
+              <div class="v">Do not rescue PR-B implementation files</div>
+              <div class="d">
+                Close PR-B as superseded. Do not cherry-pick or port PR-B
+                implementation files into the ES256 path. Any future verifier
+                work proceeds from #203 + #204.
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <footer class="foot mono">
+          <span>VitalCV · internal use only</span>
+          <span class="center">ADR · 0008 · v2</span>
+          <span class="right tnum">01 / 01</span>
+        </footer>
+      </div>
+
+    </div>
+  </article>
+</body>
+</html>

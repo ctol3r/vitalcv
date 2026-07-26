@@ -46,7 +46,10 @@ export default function TrustAttributionPage() {
           </div>
           <Link
             href="/"
-            className="text-[10px] text-gray-500 underline underline-offset-2 hover:text-gray-300"
+            /* 10px type gave a 78x12 target on production — under the 24px
+               WCAG 2.5.8 floor. Transparent ::before overlay lifts the hit
+               area without changing the type scale or the header layout. */
+            className="relative text-[10px] text-gray-500 underline underline-offset-2 hover:text-gray-300 before:absolute before:left-0 before:top-1/2 before:h-6 before:w-full before:-translate-y-1/2 before:content-['']"
           >
             ← vitalcv.com
           </Link>

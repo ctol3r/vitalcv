@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>VitalCV · Recruiter OS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --bg:#eef0f3; --paper:#ffffff;
+  --s50:#f8fafc; --s100:#f1f5f9; --s200:#e2e8f0; --s300:#cbd5e1;
+  --s400:#94a3b8; --s500:#64748b; --s600:#475569; --s700:#334155;
+  --s800:#1e293b; --s900:#0f172a; --s950:#020617;
+  --rule:#e2e8f0; --rule-soft:#eef2f6;
+  --keep:#047857; --keep-bg:#ecfdf5; --keep-line:#a7f3d0;
+  --seam:#b45309; --seam-bg:#fffbeb; --seam-line:#fde68a;
+  --cut:#be123c;  --cut-bg:#fff1f2;  --cut-line:#fecdd3;
+  --blue:#4338ca; --blue-bg:#eef2ff; --blue-line:#c7d2fe;
+}
+*,*::before,*::after{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--s900);
+  font-family:'Geist',ui-sans-serif,system-ui,sans-serif;font-feature-settings:'ss01','cv11';
+  -webkit-font-smoothing:antialiased;font-size:14px;line-height:1.5;letter-spacing:-.004em}
+.mono{font-family:'Geist Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-feature-settings:'zero','tnum'}
+button{font-family:inherit;cursor:pointer;color:inherit}
+a{color:inherit;text-decoration:none}
+::selection{background:var(--s900);color:#fff}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-thumb{background:var(--s300);border-radius:10px}
+::-webkit-scrollbar-track{background:transparent}
+@keyframes blink{0%,100%{opacity:.32}50%{opacity:1}}
+.blink{animation:blink 2.6s ease-in-out infinite}
+@keyframes popScale{from{transform:scale(.97)}to{transform:none}}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+/* ── Op bar ──────────────────────────────────────── */
+.opbar{background:var(--s950);color:var(--s400);font-family:'Geist Mono',monospace;font-size:10.5px;position:sticky;top:0;z-index:60}
+.opbar .in{max-width:1340px;margin:0 auto;padding:0 28px;height:34px;display:flex;align-items:center;justify-content:space-between;gap:16px}
+.opbar .l{display:flex;align-items:center;gap:11px;min-width:0}
+.opbar .l strong{color:#fff;font-weight:600;letter-spacing:.02em}
+.opbar .l .sep{color:var(--s700)}
+.opbar .l .sub{color:var(--s400);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.opbar .l .sub b{color:#cbd5e1;font-weight:600}
+.opbar .r{display:flex;align-items:center;gap:12px;text-transform:uppercase;letter-spacing:.1em;font-size:9px;color:var(--s500)}
+.opbar .r .dot{width:5px;height:5px;background:#10b981;border-radius:50%;display:inline-block;margin-right:5px}
+.opbar .r .sep{color:var(--s700)}
+
+/* ── Global nav ──────────────────────────────────── */
+.topnav{background:rgba(255,255,255,.97);backdrop-filter:blur(8px);border-bottom:1px solid var(--s200);position:sticky;top:34px;z-index:55}
+.topnav .in{max-width:1340px;margin:0 auto;padding:0 28px;height:60px;display:flex;align-items:center;justify-content:space-between;gap:20px}
+.brand{display:flex;align-items:center;gap:11px;flex-shrink:0}
+.brand .glyph{position:relative;height:24px;width:24px}
+.brand .glyph .sq{position:absolute;inset:0;background:var(--s900);border-radius:6px}
+.brand .glyph svg{position:absolute;inset:0;color:#fff}
+.brand .wm{font-weight:600;letter-spacing:-.02em;font-size:16px}
+.brand .wm em{font-style:normal;color:var(--s400);font-weight:500}
+.gnav{display:flex;align-items:center;gap:2px;min-width:0}
+.gnav a{display:flex;align-items:center;gap:8px;height:38px;padding:0 13px;border-radius:9px;font-size:13.5px;font-weight:500;color:var(--s500);position:relative;transition:background .12s,color .12s}
+.gnav a svg{color:var(--s400)}
+.gnav a:hover{color:var(--s900);background:var(--s100)}
+.gnav a.on{color:var(--s900);background:var(--s100)}
+.gnav a.on svg{color:var(--s700)}
+.gnav a.home.on .hm{position:absolute;left:13px;right:13px;bottom:-1px;height:2px;border-radius:2px;background:var(--s900)}
+.topright{display:flex;align-items:center;gap:10px;flex-shrink:0}
+.searchbtn{height:34px;padding:0 12px;border:1px solid var(--s200);border-radius:9px;background:var(--s50);color:var(--s500);display:flex;align-items:center;gap:9px;font-size:13px;min-width:210px}
+.searchbtn:hover{border-color:var(--s300);background:#fff}
+.searchbtn svg{color:var(--s400)}
+.searchbtn .kbd{margin-left:auto;font-family:'Geist Mono',monospace;font-size:10px;color:var(--s400);background:#fff;border:1px solid var(--s200);border-radius:5px;padding:1px 5px}
+.seat{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--s500)}
+.seat .av{height:26px;width:26px;border-radius:50%;background:var(--s900);color:#fff;display:grid;place-items:center;font-size:10px;font-weight:600;font-family:'Geist Mono',monospace}
+
+/* ── Page frame ──────────────────────────────────── */
+.wrap{max-width:1340px;margin:0 auto;padding:26px 28px 80px}
+.pagehead{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;margin-bottom:20px;flex-wrap:wrap}
+.pagehead .lead{font-family:'Geist Mono',monospace;font-size:9.5px;text-transform:uppercase;letter-spacing:.16em;color:var(--s400);font-weight:600;margin-bottom:9px;display:flex;align-items:center;gap:8px}
+.pagehead h1{font-size:27px;line-height:1.05;letter-spacing:-.028em;font-weight:600;margin:0}
+.pagehead h1 em{font-style:normal;color:var(--s400);font-weight:400}
+.pagehead .sub{font-size:14px;color:var(--s600);margin-top:8px;max-width:64ch;line-height:1.55}
+.pagehead .ra{display:flex;align-items:center;gap:8px}
+
+/* ── primitives ──────────────────────────────────── */
+.card{background:var(--paper);border:1px solid var(--s200);border-radius:12px}
+.eyebrow{font-family:'Geist Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.16em;color:var(--s500);font-weight:600;display:flex;align-items:center;gap:9px;margin:0 0 12px}
+.eyebrow .num{color:var(--s400)}
+.eyebrow.rule::after{content:"";flex:1;height:1px;background:var(--rule-soft)}
+.chip{display:inline-flex;align-items:center;gap:5px;font-family:'Geist Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.07em;font-weight:600;padding:2px 7px;border-radius:4px;white-space:nowrap}
+.chip .cd{width:5px;height:5px;border-radius:50%}
+.st-keep{color:var(--keep);background:var(--keep-bg);box-shadow:inset 0 0 0 1px var(--keep-line)} .st-keep .cd{background:var(--keep)}
+.st-seam{color:var(--seam);background:var(--seam-bg);box-shadow:inset 0 0 0 1px var(--seam-line)} .st-seam .cd{background:var(--seam)}
+.st-cut{color:var(--cut);background:var(--cut-bg);box-shadow:inset 0 0 0 1px var(--cut-line)} .st-cut .cd{background:var(--cut)}
+.st-blue{color:var(--blue);background:var(--blue-bg);box-shadow:inset 0 0 0 1px var(--blue-line)} .st-blue .cd{background:var(--blue)}
+.st-ghost{color:var(--s500);background:var(--s100);box-shadow:inset 0 0 0 1px var(--s200)} .st-ghost .cd{background:var(--s400)}
+.tier{font-family:'Geist Mono',monospace;font-size:9px;font-weight:600;letter-spacing:.04em;padding:2px 5px;border-radius:4px;color:#fff}
+.tier-t4{background:var(--keep)} .tier-t3{background:var(--blue)} .tier-t2{background:var(--s500)} .tier-t1{background:var(--s400)}
+.muted{color:var(--s500)}
+.linkmore{font-family:'Geist Mono',monospace;font-size:9.5px;text-transform:uppercase;letter-spacing:.1em;color:var(--s500);display:inline-flex;align-items:center;gap:5px}
+.linkmore:hover{color:var(--s900)}
+.callbtn{display:inline-flex;align-items:center;gap:7px;border:0;border-radius:9px;padding:9px 13px;font-size:12.5px;font-weight:600}
+
+/* ── Search overlay ──────────────────────────────── */
+.scrim{position:fixed;inset:0;z-index:100;background:rgba(15,23,42,.42);backdrop-filter:blur(3px);display:flex;align-items:flex-start;justify-content:center;padding-top:11vh}
+@media (prefers-reduced-motion: no-preference){.searchpanel{animation:popScale .14s ease}}
+.searchpanel{width:min(680px,92vw);background:#fff;border-radius:16px;box-shadow:0 30px 80px -20px rgba(15,23,42,.5);overflow:hidden;display:flex;flex-direction:column;max-height:74vh}
+.searchpanel .shead{display:flex;align-items:center;gap:12px;padding:16px 18px;border-bottom:1px solid var(--s200)}
+.searchpanel .shead svg{color:var(--s400);flex-shrink:0}
+.searchpanel input{flex:1;border:0;outline:0;font-family:'Geist',sans-serif;font-size:17px;color:var(--s900);letter-spacing:-.01em;background:transparent}
+.searchpanel input::placeholder{color:var(--s400)}
+.searchpanel .esc{font-family:'Geist Mono',monospace;font-size:10px;color:var(--s400);border:1px solid var(--s200);border-radius:5px;padding:2px 6px}
+.searchscopes{display:flex;gap:5px;padding:10px 18px;border-bottom:1px solid var(--rule-soft);flex-wrap:wrap}
+.scope{font-size:11.5px;color:var(--s500);padding:4px 10px;border-radius:7px;border:1px solid transparent;display:flex;align-items:center;gap:6px}
+.scope:hover{background:var(--s100)}
+.scope.on{background:var(--s900);color:#fff}
+.scope .ct{font-family:'Geist Mono',monospace;font-size:9px;opacity:.7}
+.sresults{overflow-y:auto;padding:8px}
+.sgroup{padding:6px 10px 4px;font-family:'Geist Mono',monospace;font-size:8.5px;text-transform:uppercase;letter-spacing:.14em;color:var(--s400);font-weight:600}
+.sresult{display:flex;align-items:center;gap:12px;padding:10px 11px;border-radius:9px;cursor:pointer}
+.sresult:hover,.sresult.cursor{background:var(--s100)}
+.sresult .sic{height:32px;width:32px;border-radius:8px;background:var(--s100);display:grid;place-items:center;color:var(--s600);flex-shrink:0}
+.sresult.cursor .sic{background:var(--s900);color:#fff}
+.sresult .stx{min-width:0;flex:1}
+.sresult .stx .a{font-size:13.5px;font-weight:600;letter-spacing:-.01em;color:var(--s900)}
+.sresult .stx .b{font-size:11.5px;color:var(--s500)}
+.sresult .styp{font-family:'Geist Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--s400)}
+.sempty{padding:34px;text-align:center;color:var(--s400);font-size:13px}
+.searchpanel .sfoot{border-top:1px solid var(--s200);padding:9px 18px;display:flex;gap:16px;font-family:'Geist Mono',monospace;font-size:9.5px;color:var(--s400);text-transform:uppercase;letter-spacing:.08em}
+.searchpanel .sfoot b{color:var(--s600)}
+
+/* footer */
+.foot{max-width:1340px;margin:0 auto;padding:18px 28px 30px;display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;font-family:'Geist Mono',monospace;font-size:9.5px;text-transform:uppercase;letter-spacing:.12em;color:var(--s400)}
+.foot strong{color:var(--s700)}
+
+@media(max-width:1080px){.gnav a span{display:none}.gnav a{padding:0 11px}.searchbtn{min-width:0}.searchbtn .stxt,.searchbtn .kbd{display:none}.seat .nm{display:none}}
+@media(max-width:640px){.wrap{padding:18px 16px 70px}.opbar .l .sub{display:none}}
+</style>
+</head>
+<body>
+
+<div class="opbar">
+  <div class="in">
+    <div class="l">
+      <strong>VitalCV</strong>
+      <span class="sep">/</span>
+      <span class="sub">Recruiter OS · <b>Meridian Care Network</b> · Talent Acquisition</span>
+    </div>
+    <div class="r">
+      <span><span class="dot blink"></span>network live</span>
+      <span class="sep">|</span>
+      <span>evidence-ranked</span>
+      <span class="sep">|</span>
+      <span class="mono" style="letter-spacing:.04em">vc.2026.06.24 · w310</span>
+    </div>
+  </div>
+</div>
+
+<div class="topnav">
+  <div class="in">
+    <div style="display:flex;align-items:center;gap:26px;min-width:0">
+      <a class="brand" href="#/">
+        <span class="glyph"><span class="sq"></span>
+          <svg viewBox="0 0 20 20" width="24" height="24"><path d="M3 10h3l2-5 4 10 2-5h3" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </span>
+        <span class="wm">VitalCV <em>Recruiter</em></span>
+      </a>
+      <nav class="gnav" id="gnav"></nav>
+    </div>
+    <div class="topright">
+      <button class="searchbtn" id="searchOpen">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
+        <span class="stxt">Search the network</span>
+        <span class="kbd">⌘K</span>
+      </button>
+      <div class="seat"><span class="av">DW</span><span class="nm">Dana Whitfield</span></div>
+    </div>
+  </div>
+</div>
+
+<main id="app" class="wrap"></main>
+
+<footer class="foot">
+  <div>VitalCV · <strong>Recruiter OS</strong> · the talent operating system for healthcare hiring</div>
+  <div>Who should I call · who is ready · what stands in the way — <strong>in 30 seconds</strong></div>
+  <div class="mono">vc.2026.06.24 · w310</div>
+</footer>
+
+<div id="searchRoot"></div>
+
+<script src="rec-ui.js"></script>
+<script src="rec-data.js"></script>
+<script src="rec-cards.js"></script>
+<script src="rec-home.js"></script>
+<script src="rec-discovery.js"></script>
+<script src="rec-readiness.js"></script>
+<script src="rec-review.js"></script>
+<script src="rec-workspace.js"></script>
+<script src="rec-search.js"></script>
+<script>
+(function(){
+  const { el, icon } = window.UI;
+  const NAV = [
+    { id:'home',      route:'#/',          label:'Home',      icon:'home', home:true },
+    { id:'discovery', route:'#/discovery', label:'Discovery', icon:'discovery' },
+    { id:'readiness', route:'#/readiness', label:'Readiness', icon:'readiness' },
+    { id:'workspace', route:'#/workspace', label:'Workspace', icon:'workspace' },
+  ];
+  const gnav = document.getElementById('gnav');
+  NAV.forEach(n => {
+    const a = el('a', { href:n.route, class:'gnav-link'+(n.home?' home':''), data:{ id:n.id } },
+      icon(n.icon, 15), el('span', null, n.label), n.home ? el('span',{class:'hm'}) : null);
+    gnav.appendChild(a);
+  });
+
+  function route(){
+    const hash = window.location.hash || '#/';
+    const app = document.getElementById('app');
+    app.innerHTML = '';
+    let id = 'home', node;
+    if (hash === '#/' || hash === '') { id='home'; node = window.renderRecHome(); }
+    else if (hash === '#/discovery') { id='discovery'; node = window.renderRecDiscovery(); }
+    else if (hash === '#/readiness') { id='readiness'; node = window.renderRecReadiness(); }
+    else if (hash === '#/workspace') { id='workspace'; node = window.renderRecWorkspace(); }
+    else if (hash.startsWith('#/review/')) { id=''; node = window.renderRecReview(decodeURIComponent(hash.slice('#/review/'.length))); }
+    else { id='home'; node = window.renderRecHome(); }
+    document.querySelectorAll('.gnav-link').forEach(a => a.classList.toggle('on', a.dataset.id === id));
+    app.appendChild(node);
+    window.scrollTo({ top:0, behavior:'instant' });
+  }
+  window.addEventListener('hashchange', route);
+  document.getElementById('searchOpen').addEventListener('click', () => window.openRecSearch());
+  window.addEventListener('keydown', (e) => {
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); window.openRecSearch(); }
+    if (e.key === '/' && !/input|textarea/i.test(document.activeElement.tagName)) { e.preventDefault(); window.openRecSearch(); }
+  });
+  route();
+})();
+</script>
+
+<template id="__bundler_thumbnail">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+    <rect width="100" height="100" fill="#0f172a"/>
+    <circle cx="50" cy="42" r="13" fill="none" stroke="#34d399" stroke-width="3.4"/>
+    <path d="M30 78c0-11 9-18 20-18s20 7 20 18" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round"/>
+    <path d="M62 34l5 5 9-10" fill="none" stroke="#34d399" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>
+</template>
+</body>
+</html>

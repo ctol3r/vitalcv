@@ -98,7 +98,7 @@ VitalCV is not a place you go. VitalCV is the force that lets you go.
 - **Language:** TypeScript (strict mode throughout)
 - **DB:** PostgreSQL via Prisma ORM
 - **Auth:** Clerk (`NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`)
-- **Deploy:** Railway (API) + Vercel (Web)
+- **Deploy:** Railway (API + Web) — Vercel deprecated
 - **CSS tokens:** `vt-*` system (e.g., `bg-vt-surface-ops-base`)
 - **Typography classes:** `heading-sm`, `body-sm`, `heading-lg`
 
@@ -151,10 +151,10 @@ VitalCV is not a place you go. VitalCV is the force that lets you go.
 - `services/decision-engine` — Trust decision engine
 - `services/investigator-engine` — Research/investigator profile engine
 
-### Blockchain (`blockchain/`)
-- `blockchain/substrate/` — Substrate-based permissioned trust ledger
-- Status: **migrated** (architecture complete, production integration status TBD)
-- **Zero PHI on-chain** is a permanent non-negotiable
+### Anchoring (no `blockchain/` directory)
+- The Substrate pallet skeletons were **deleted on 2026-07-25** — nothing built, deployed, or imported them, and they carried 171 unaudited Rust advisories. See [the ADR](docs/architecture/adr-substrate-anchoring.md).
+- Tamper-evidence today = ES256-signed receipts + Merkle inclusion proofs (`merkleBatcher.ts`, `anchorWorker.ts`); the on-chain write remains simulated.
+- **Zero PHI on-chain** is a permanent non-negotiable, enforced at the anchor boundary by `assertHashOnlyAnchor` if a real ledger is ever wired.
 
 ---
 
@@ -320,7 +320,7 @@ OCR_PROVIDER=stub               # Set to 'openai' when OpenAI key available
 | **Cryptography** | ES256 (P-256), PKCE S256, DPoP token binding, SHA-256 Merkle roots, HAIP 1.0 |
 | **Trust ledger** | Substrate-based permissioned blockchain (off-chain data, on-chain anchors only) |
 | **Build** | Turborepo + pnpm monorepo |
-| **Deploy** | Railway (API), Vercel (Web) |
+| **Deploy** | Railway (API + Web) — Vercel deprecated |
 | **CI/CD** | `pnpm --filter @vitalcv/api build` + `pnpm --filter web build` + `pnpm lint` + `pnpm tsc --noEmit` |
 
 ---

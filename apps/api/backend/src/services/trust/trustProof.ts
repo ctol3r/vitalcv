@@ -539,17 +539,18 @@ function collectLimitationNotes(trustState: ClinicianTrustState): string[] {
 }
 
 function trustContainerEnvironment(
-  provider: 'mock' | 'dock',
+  provider: 'mock' | 'dock' | 'vitalcv',
   mock: boolean | undefined,
 ): TrustContainerExportEnvironment {
   if (mock || provider === 'mock') return 'mock-dev';
+  if (provider === 'vitalcv') return 'vitalcv-signed';
   return 'dock-scaffold';
 }
 
 function trustContainerLabel(environment: TrustContainerExportEnvironment): string {
-  return environment === 'mock-dev'
-    ? 'Mock/dev trust container credential reference'
-    : 'Dock scaffold trust container credential reference';
+  if (environment === 'mock-dev') return 'Mock/dev trust container credential reference';
+  if (environment === 'vitalcv-signed') return 'Signed trust container credential reference (VitalCV issuer)';
+  return 'Dock scaffold trust container credential reference';
 }
 
 async function issueTrustContainerCredential(params: {

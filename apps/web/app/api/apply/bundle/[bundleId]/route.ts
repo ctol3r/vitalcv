@@ -2,6 +2,7 @@
  * Wave 246: Apply-with-VitalCV — GET /api/apply/bundle/:bundleId proxy
  */
 import { NextRequest, NextResponse } from 'next/server';
+import { isValidBundleId } from '@/lib/apply/bundle-id';
 export const runtime = 'nodejs';
 
 const B =
@@ -15,6 +16,13 @@ export async function GET(
   { params }: { params: Promise<{ bundleId: string }> },
 ) {
   const { bundleId } = await params;
-  const res = await fetch(`${B}/api/apply/bundle/${bundleId}`);
-  return NextResponse.json(await res.json().catch(() => ({})), { status: res.status });
+  if (!isValidBundleId(bundleId)) {
+    return NextResponse.json({ error: 'Bundle not found.' }, { status: 404 });
+  }
+  try {
+    const res = await fetch(`${B}/api/apply/bundle/${bundleId}`);
+    return NextResponse.json(await res.json().catch(() => ({})), { status: res.status });
+  } catch {
+    return NextResponse.json({ error: 'Upstream unavailable.' }, { status: 502 });
+  }
 }

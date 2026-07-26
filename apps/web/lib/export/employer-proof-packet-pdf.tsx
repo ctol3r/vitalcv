@@ -10,6 +10,7 @@ import {
 } from '@react-pdf/renderer';
 import type { PassportData } from '@/lib/trust/passport-contract';
 import { findPassportSourceCoverageCheck } from '@/lib/trust/source-coverage';
+import { buildCareerPacket, type CareerPacketModel } from '@/lib/packet/career-packet';
 
 export interface EmployerProofPacketSourceRow {
   source: string;
@@ -25,6 +26,12 @@ export interface EmployerProofPacketPdfModel {
   generatedAt: string;
   generatedAtLabel: string;
   sourceRows: EmployerProofPacketSourceRow[];
+  /**
+   * Wave 205: the shared Career Packet derivation. The PDF renders its
+   * recruiter / readiness / missing-evidence / recommendations sections from
+   * this so the document and the /packet UI can never disagree.
+   */
+  careerPacket: CareerPacketModel;
   packetHash: string;
 }
 
@@ -192,6 +199,7 @@ export function buildEmployerProofPacketPdfModel(
     specialty,
     generatedAt,
     sourceRows,
+    careerPacket: buildCareerPacket(passport),
   };
 
   return {
@@ -409,8 +417,49 @@ function EmployerProofPacketDocument({ model }: { model: EmployerProofPacketPdfM
           ))}
         </View>
 
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Recruiter View</Text>
+          <Text style={styles.statusBadge}>{model.careerPacket.recruiter.label}</Text>
+          <Text style={[styles.sectionCopy, { marginTop: 8 }]}>{model.careerPacket.recruiter.headline}</Text>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Credential Readiness</Text>
+          <Text style={styles.sectionCopy}>
+            {model.careerPacket.readiness.statusLabel} — readiness score {model.careerPacket.readiness.score}
+            {model.careerPacket.readiness.estimatedStartDays != null
+              ? ` · est. time-to-start ${model.careerPacket.readiness.estimatedStartDays} day(s)`
+              : ''}
+          </Text>
+          {model.careerPacket.readiness.blockers.map((blocker) => (
+            <Text key={blocker} style={[styles.sectionCopy, { marginTop: 4 }]}>• {blocker}</Text>
+          ))}
+        </View>
+
+        {model.careerPacket.missingEvidence.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Missing Evidence</Text>
+            {model.careerPacket.missingEvidence.map((item, index) => (
+              <Text key={`${item.label}-${index}`} style={[styles.sectionCopy, { marginTop: 3 }]}>
+                • {item.label} — {item.stateLabel}
+              </Text>
+            ))}
+          </View>
+        )}
+
+        {model.careerPacket.recommendations.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Recommendations</Text>
+            {model.careerPacket.recommendations.map((rec, index) => (
+              <Text key={`${rec.title}-${index}`} style={[styles.sectionCopy, { marginTop: 3 }]}>
+                • {rec.title}
+              </Text>
+            ))}
+          </View>
+        )}
+
         <Text style={styles.footer} fixed>
-          Verified by VitalCV - Source of Truth Audit Log: {model.packetHash}
+          Source-backed by VitalCV - Audit Log: {model.packetHash}
         </Text>
       </Page>
     </Document>

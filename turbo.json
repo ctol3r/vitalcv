@@ -5,7 +5,8 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": ["dist/**", "build/**", ".next/**", "!.next/cache/**"]
+      "outputs": ["dist/**", "build/**", ".next/**", "!.next/cache/**"],
+      "env": ["NEXT_PUBLIC_*", "VITALCV_REQUIRE_AUTH_ENV"]
     },
     "build:packages": {
       "outputs": ["packages/**/dist/**", "build-info/**/*.tsbuildinfo"]

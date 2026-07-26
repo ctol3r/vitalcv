@@ -1,0 +1,93 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { describe, expect, it } from 'vitest';
+
+/**
+ * Self-test for the design-lint gate's regexes.
+ *
+ * A lint rule that silently matches the wrong thing is worse than no rule: it
+ * inflates its own baseline with false positives, so the ratchet holds a
+ * number that means nothing and real debt can hide underneath it.
+ *
+ * That happened. LINT-06 and LINT-09 were written as
+ * `/font-family\s*:\s*(?!var\()/`, which flags CORRECTLY tokenised code:
+ * the engine backtracks `\s*` to zero width, evaluates the lookahead against
+ * the leading space, finds no `var(` there, and matches. Both baselines were
+ * measured with that bug in place.
+ *
+ * These cases pin the behaviour of each rule against hand-written good and bad
+ * lines, so the next edit to a pattern has to keep meaning what it says.
+ */
+
+const SOURCE = readFileSync(
+  resolve(process.cwd(), '..', '..', 'scripts', 'check-design-lint.ts'),
+  'utf8',
+);
+
+/** Pull a rule's live pattern out of the gate rather than restating it here. */
+function patternFor(id: string): RegExp {
+  // Rules are object literals: { id: 'LINT-06', ... pattern: /..../, ... }
+  const block = SOURCE.split(`id: '${id}'`)[1];
+  expect(block, `rule ${id} not found in check-design-lint.ts`).toBeTruthy();
+  const match = /pattern:\s*(\/(?:[^/\\\n]|\\.)+\/[gimsuy]*)/.exec(block!);
+  expect(match, `rule ${id} has no pattern`).toBeTruthy();
+  const [, literal] = match!;
+  const lastSlash = literal!.lastIndexOf('/');
+  return new RegExp(literal!.slice(1, lastSlash), literal!.slice(lastSlash + 1));
+}
+
+describe('LINT-06 — box-shadow discipline', () => {
+  const re = patternFor('LINT-06');
+
+  it.each([
+    'box-shadow: var(--vt-lift);',
+    'box-shadow: var(--ag-shadow-1);',
+    'box-shadow:var(--vt-focus-ring);',
+    'box-shadow: none;',
+    'box-shadow:   var(--vt-lift);',
+  ])('accepts %s', (line) => {
+    expect(re.test(line)).toBe(false);
+  });
+
+  it.each([
+    'box-shadow: 0 16px 48px rgb(2 6 23 / 0.22);',
+    'box-shadow: 0 1px 2px #000;',
+  ])('rejects %s', (line) => {
+    expect(re.test(line)).toBe(true);
+  });
+});
+
+describe('LINT-09 — font-family discipline', () => {
+  const re = patternFor('LINT-09');
+
+  it.each([
+    'font-family: var(--font-body);',
+    'font-family: var(--ag-font-code);',
+    'font-family:var(--font-mono);',
+    'font-family:    var(--font-display);',
+  ])('accepts %s', (line) => {
+    expect(re.test(line)).toBe(false);
+  });
+
+  it.each([
+    'font-family: Georgia, serif;',
+    'font-family: -apple-system, sans-serif;',
+  ])('rejects %s', (line) => {
+    expect(re.test(line)).toBe(true);
+  });
+});
+
+describe('the backtracking trap itself', () => {
+  /**
+   * The generic form of the bug. Any rule written as `:\s*(?!token)` is
+   * broken; the `\s*` has to sit INSIDE the lookahead. This asserts the shape
+   * of every negative-lookahead pattern in the gate, so a new rule cannot
+   * reintroduce it.
+   */
+  it('no rule places \\s* outside a negative lookahead', () => {
+    const offenders = [...SOURCE.matchAll(/pattern:\s*\/(.+?)\/[gimsuy]*,?\s*$/gm)]
+      .map(([, body]) => body!)
+      .filter((body) => /\\s\*\(\?!(?!\\s\*)/.test(body));
+    expect(offenders).toEqual([]);
+  });
+});

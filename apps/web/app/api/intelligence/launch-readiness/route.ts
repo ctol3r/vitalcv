@@ -243,7 +243,7 @@ export async function GET(req: NextRequest) {
       ? loadJson<unknown[]>(
           `${MARKETPLACE_BACKEND}/api/employer/applications`,
           {
-            headers: buildMarketplaceHeaders(session),
+            headers: await buildMarketplaceHeaders(session),
           },
         )
       : Promise.resolve({

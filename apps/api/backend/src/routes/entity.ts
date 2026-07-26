@@ -173,19 +173,27 @@ export function registerEntityRoutes(app: Express): void {
         ...(typeList ? { relationshipType: { in: typeList } } : {}),
       };
 
+      // VcvEntityRelationship has NO subject/object Prisma relations (plain
+      // FK columns) — an include here throws P2009 at runtime; fetch the
+      // entity summaries by FK and stitch in JS.
       const rels = await prisma.vcvEntityRelationship.findMany({
         where: {
           ...(direction === 'outbound' ? whereSubject
             : direction === 'inbound'  ? whereObject
             : { OR: [whereSubject, whereObject] }),
         },
-        include: {
-          subject: { select: { id: true, displayName: true, entityType: true } },
-          object:  { select: { id: true, displayName: true, entityType: true } },
-        },
         orderBy: { createdAt: 'desc' },
         take: 100,
       });
+
+      const relatedEntityIds = [...new Set(rels.flatMap(r => [r.subjectId, r.objectId]))];
+      const relatedEntities = relatedEntityIds.length > 0
+        ? await prisma.vcvEntity.findMany({
+            where: { id: { in: relatedEntityIds } },
+            select: { id: true, displayName: true, entityType: true },
+          })
+        : [];
+      const entityById = new Map(relatedEntities.map(e => [e.id, e]));
 
       res.json({
         entityId: id,
@@ -193,8 +201,8 @@ export function registerEntityRoutes(app: Express): void {
           id:               r.id,
           relationshipType: r.relationshipType,
           direction:        r.subjectId === id ? 'outbound' : 'inbound',
-          subject:          r.subject,
-          object:           r.object,
+          subject:          entityById.get(r.subjectId) ?? null,
+          object:           entityById.get(r.objectId) ?? null,
           confidence:       r.confidence,
           tier:             r.tier,
           startDate:        r.startDate,

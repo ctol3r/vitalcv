@@ -1,0 +1,103 @@
+/* ============================================================
+   VitalCV · 02-semantic.css · Wave 1500 (DG-1.1 / DG-3.2)
+   ROLE TOKENS. Components consume ONLY these.
+
+   ┌────────────────────────── TOKEN SPEC ──────────────────────────┐
+   │ NAME                     ROLE                    USAGE RULE     │
+   │ --vt-surface-page        page background         every public   │
+   │ --vt-surface-card        raised paper card       cards, mocks   │
+   │ --vt-text / -secondary   body ink                4.5:1 on paper │
+   │ --vt-text-muted          captions ≥12px          NOT body text  │
+   │ --vt-brand               matcha 800              Recognition    │
+   │                                                  moments, brand │
+   │                                                  chips, primary │
+   │                                                  hover — never  │
+   │                                                  body text bg   │
+   │ --vt-accent-editorial    indigo                  italic Fraunces│
+   │                                                  display accent │
+   │                                                  ONLY, ≤1/section│
+   │ --vt-state-*             9 coverage states       StateChip only │
+   │ KILLED: Trust Blue oklch(.55 .2 255), teal #0a7b7f, --vt-glow-*,│
+   │ glass tokens on public surfaces.                                │
+   └────────────────────────────────────────────────────────────────┘
+   ============================================================ */
+
+:root {
+  /* Surfaces */
+  --vt-surface-page: var(--paper-100);
+  --vt-surface-card: var(--paper-0);
+  --vt-surface-sunken: var(--paper-200);
+  --vt-surface-inverse: var(--ink-900);
+
+  /* Ink roles */
+  --vt-text: var(--ink-900);
+  --vt-text-secondary: var(--ink-600);
+  --vt-text-muted: var(--ink-500);        /* DG-3.1: replaces 40%-alpha ink */
+  --vt-text-faint: var(--ink-400);        /* eyebrows / metadata ≥10px mono only */
+  --vt-text-inverse: var(--paper-50);
+
+  /* Rules & borders (paper uses rules, not shadows — DG-1.10) */
+  --vt-rule: var(--ink-200);
+  --vt-rule-soft: var(--ink-100);
+  --vt-rule-strong: var(--ink-900);
+  --vt-degraded-border: var(--ink-400);   /* dashed = degraded (DG-9.2) */
+
+  /* Brand */
+  --vt-brand: var(--matcha-800);
+  --vt-brand-strong: var(--matcha-900);
+  --vt-brand-soft: var(--matcha-50);
+  --vt-brand-rule: var(--matcha-300);
+  --vt-accent-editorial: var(--indigo-600);
+  --vt-color-brand-primary: var(--matcha-800); /* DG-1.2 re-point (was Trust Blue) */
+
+  /* Focus (DG-3.5): 2px ink ring + 2px paper offset, everywhere */
+  --vt-focus-ring: 0 0 0 2px var(--vt-surface-page), 0 0 0 4px var(--ink-900);
+
+  /* Hover lift — the ONE allowed shadow on paper */
+  --vt-lift: 0 1px 0 var(--ink-200), 0 6px 16px -8px rgba(20, 20, 20, 0.18);
+
+  /* ---- 9 COVERAGE STATES (DG-3.2) — text / bg / rule per state ---- */
+  /* checked · source-backed, fresh */
+  --vt-state-checked: var(--hue-ok);
+  --vt-state-checked-bg: var(--hue-ok-bg);
+  --vt-state-checked-rule: var(--hue-ok-rule);
+  /* stale · was checked, past freshness threshold */
+  --vt-state-stale: var(--hue-watch);
+  --vt-state-stale-bg: var(--hue-watch-bg);
+  --vt-state-stale-rule: var(--hue-watch-rule);
+  /* pending · check in flight */
+  --vt-state-pending: var(--hue-unknown);
+  --vt-state-pending-bg: var(--hue-unknown-bg);
+  --vt-state-pending-rule: var(--hue-unknown-rule);
+  /* gated · source requires enrollment/agreement */
+  --vt-state-gated: var(--hue-watch);
+  --vt-state-gated-bg: var(--hue-watch-bg);
+  --vt-state-gated-rule: var(--hue-watch-rule);
+  /* unavailable · source down or out of scope */
+  --vt-state-unavailable: var(--hue-unknown);
+  --vt-state-unavailable-bg: var(--hue-unknown-bg);
+  --vt-state-unavailable-rule: var(--hue-unknown-rule);
+  /* accessRequired · holder must grant access */
+  --vt-state-access: var(--hue-watch);
+  --vt-state-access-bg: var(--hue-watch-bg);
+  --vt-state-access-rule: var(--hue-watch-rule);
+  /* reviewRequired · human review before decision-grade */
+  --vt-state-review: var(--hue-watch);
+  --vt-state-review-bg: var(--paper-0);
+  --vt-state-review-rule: var(--hue-watch);
+  /* notDecisionGrade · informational only */
+  --vt-state-ndg: var(--hue-unknown);
+  --vt-state-ndg-bg: var(--paper-0);
+  --vt-state-ndg-rule: var(--hue-unknown-rule);
+  /* previewOnly · anonymous preview plane */
+  --vt-state-preview: var(--hue-info);
+  --vt-state-preview-bg: var(--hue-info-bg);
+  --vt-state-preview-rule: var(--hue-info-rule);
+  /* p0 blocker + contradiction (review surfaces) */
+  --vt-state-p0: var(--hue-p0);
+  --vt-state-p0-bg: var(--hue-p0-bg);
+  --vt-state-p0-rule: var(--hue-p0-rule);
+  --vt-state-contradicted: var(--hue-contra);
+  --vt-state-contradicted-bg: var(--hue-contra-bg);
+  --vt-state-contradicted-rule: var(--hue-contra-rule);
+}

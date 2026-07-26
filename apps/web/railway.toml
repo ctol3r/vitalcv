@@ -1,27 +1,28 @@
-# Railway service config for `apps/web`.
+# Railway service config for `apps/web` (config-as-code, applied via the
+# service's "config file path" = /apps/web/railway.toml).
 #
-# This is the canonical web-app deployment config. The root
-# `railway.toml` deploys `apps/api/backend`; this file deploys
-# `apps/web` and is consumed when the Railway service's root
-# directory is set to `apps/web` in the Railway dashboard.
+# The vitalcv-web service builds with apps/web/Dockerfile (multi-stage
+# deps → build → runtime). The runtime stage sets WORKDIR /app/apps/web
+# and CMD ["pnpm", "start"], which honors Railway's $PORT.
 #
-# Build chain: pnpm install (root) → pnpm turbo build --filter
-# @vitalcv/web. Turbo handles the workspace dep build order
-# (trust-state, ingest, etc.) before next build runs.
-#
-# Start: Next.js listens on $PORT provided by Railway, binds 0.0.0.0.
+# Do NOT set deploy.startCommand here. A startCommand overrides the
+# Docker CMD but keeps the image's WORKDIR (/app/apps/web) — the
+# previous "cd apps/web && pnpm start" resolved to the nonexistent
+# /app/apps/web/apps/web, so every container exited instantly with no
+# logs and the deployment FAILED (no web deploy succeeded after
+# 2026-05-25 / 1d1b81756, the last deploy before startCommand was
+# added). The Docker CMD is already correct on its own.
 #
 # Health check: /api/health returns JSON `{status:'ok'}`. The route
-# never throws; backend probe failures map to backend:'unreachable'
-# in the response body, not a 5xx.
+# never throws; backend probe failures map to backend:'degraded' or
+# 'unreachable' in the response body, not a 5xx.
 
 [build]
-builder = "NIXPACKS"
-buildCommand = "cd ../.. && pnpm install --frozen-lockfile && pnpm turbo run build --filter @vitalcv/web"
+builder = "DOCKERFILE"
+dockerfilePath = "/apps/web/Dockerfile"
 
 [deploy]
-startCommand = "cd apps/web && pnpm start"
 healthcheckPath = "/api/health"
-healthcheckTimeout = 60
+healthcheckTimeout = 120
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 3

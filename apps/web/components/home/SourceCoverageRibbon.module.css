@@ -1,0 +1,46 @@
+/* SourceCoverageRibbon (VHS-2.3) — a clipped, pausable provenance marquee.
+   The viewport clips so the belt never causes page-level horizontal overflow
+   (homepage-motion e2e guards this). Edges fade via a mask. */
+
+.viewport {
+  position: relative;
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent);
+          mask-image: linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent);
+}
+
+.belt {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: max-content;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  animation: ribbonScroll 46s linear infinite;
+  will-change: transform;
+}
+
+/* Pause on hover, keyboard focus, or the explicit control. */
+.viewport:hover .belt,
+.viewport:focus-within .belt,
+.belt[data-paused='true'] {
+  animation-play-state: paused;
+}
+
+@keyframes ribbonScroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); } /* one full (duplicated) set */
+}
+
+/* Reduced motion / no-JS: a static, wrapped list with no duplicate seam. */
+@media (prefers-reduced-motion: reduce) {
+  .belt {
+    animation: none;
+    flex-wrap: wrap;
+    width: auto;
+  }
+  .dupe {
+    display: none;
+  }
+}

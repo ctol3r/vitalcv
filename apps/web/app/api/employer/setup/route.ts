@@ -2,6 +2,7 @@ import { auth } from '@clerk/nextjs/server';
 import { NextRequest, NextResponse } from 'next/server';
 export const runtime = 'nodejs';
 import { BACKEND_URL as B } from '@/lib/backend-url';
+import { buildIdentityHeaders } from '@/lib/auth/forwardIdentity';
 
 const NPI_RE = /^\d{10}$/;
 
@@ -54,7 +55,7 @@ export async function POST(req: NextRequest) {
     method: 'POST',
     headers: {
       'content-type': 'application/json',
-      'x-clerk-user-id': session.userId,
+      ...(await buildIdentityHeaders({ userId: session.userId })),
     },
     body: JSON.stringify(nextPayload),
   });

@@ -1,37 +1,28 @@
-// @ts-nocheck
 import {
   ActivePersona,
   MembershipRole,
-  Prisma,
   SearchAclLevel,
 } from '@prisma/client';
 import type { Request } from 'express';
-import prisma from '../../graphql/prisma_client';
 import { getRequestOrganizationId } from '../../middleware/organizationContext';
 import { sha256Hex } from '../../utils/deterministic';
+import {
+  getHydratedWorkspaceUserByClerkUserId,
+  type HydratedWorkspaceMembership,
+  type WorkspaceUserRecord,
+} from '../workspace/workspaceService';
 
-const workspaceUserInclude = {
-  workspacePreference: true,
-  personProfile: {
-    include: {
-      memberships: {
-        where: { active: true },
-        include: {
-          organizationProfile: true,
-        },
-        orderBy: {
-          createdAt: 'asc',
-        },
-      },
-    },
-  },
-} satisfies Prisma.UserInclude;
+// The schema has no User→PersonProfile→membership relations, so this context
+// is hydrated through workspaceService's stitch helper instead of a Prisma
+// `include` (which fails at runtime). The old include filtered memberships to
+// `active: true` — activeMembershipsOf preserves that semantic.
+type WorkspaceUser = WorkspaceUserRecord;
 
-type WorkspaceUser = Prisma.UserGetPayload<{
-  include: typeof workspaceUserInclude;
-}>;
+type ActiveMembership = HydratedWorkspaceMembership;
 
-type ActiveMembership = NonNullable<WorkspaceUser['personProfile']>['memberships'][number];
+function activeMembershipsOf(user: WorkspaceUser | null): ActiveMembership[] {
+  return (user?.personProfile?.memberships ?? []).filter((membership) => membership.active);
+}
 
 export interface SearchRequestContext {
   aclLevel: SearchAclLevel;
@@ -132,7 +123,7 @@ function deriveOrganizationId(
   user: WorkspaceUser | null,
   requestedOrgId: string | undefined,
 ): string | undefined {
-  const memberships = user?.personProfile?.memberships ?? [];
+  const memberships = activeMembershipsOf(user);
   if (requestedOrgId) {
     const requestedMembership = pickRequestedMembership(memberships, requestedOrgId);
     if (requestedMembership) {
@@ -197,14 +188,11 @@ export async function resolveSearchRequestContext(
     };
   }
 
-  const user = await prisma.user.findUnique({
-    where: { clerkUserId },
-    include: workspaceUserInclude,
-  });
+  const user = await getHydratedWorkspaceUserByClerkUserId(clerkUserId);
 
   const requestedOrgId = getRequestOrganizationId(req);
   const resolvedOrganizationId = deriveOrganizationId(user, requestedOrgId);
-  const memberships = user?.personProfile?.memberships ?? [];
+  const memberships = activeMembershipsOf(user);
   const activeMembership = pickRequestedMembership(memberships, resolvedOrganizationId) ?? memberships[0];
   const activePersona = derivePersona(user, activeMembership);
   const aclLevel = deriveAclLevel({

@@ -24,6 +24,99 @@ model User {
   @@index([status])
 }
 
+/// MATCHA career preferences / Career DNA for a clinician.
+/// Keyed by the authenticated Clerk user id so preferences follow the provider
+/// across devices, not the browser. `data` holds the full MatchaPreferences bag
+/// (self-stated, editable preferences — never credentials or evidence),
+/// sanitized to known fields before write. One row per user.
+model MatchaPreference {
+  id          String   @id @default(cuid())
+  clerkUserId String   @unique
+  data        Json
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([clerkUserId])
+}
+
+/// Wave Q — durable commercial lead capture. One row per submitted pilot
+/// request / pilot intake (in addition to the existing Slack + stdout
+/// delivery, which stays). Operational CRM-lite, never evidence: rows carry
+/// buyer contact context only and are paired with an AuditEvent
+/// (`pilot.lead_captured`) at insert. Mirrored in apps/web/prisma/schema.prisma
+/// — the web app writes this table directly (deploy-order safe).
+model PilotLead {
+  id             String   @id @default(uuid()) @db.Uuid
+  source         String // pilot_request | pilot_intake
+  persona        String?
+  organization   String
+  contactName    String?
+  email          String
+  message        String?
+  workflowTarget String?
+  sourceContext  String?
+  payload        Json
+  slackDelivered Boolean  @default(false)
+  createdAt      DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([source, createdAt])
+  @@index([email])
+}
+
+/// Wave K — server-persisted clinician Save / Connect / Decline decisions on
+/// MATCHA opportunities. Append-only: every decision (including clearing one
+/// back to "new") is a NEW row; current state = latest row per
+/// (clerkUserId, opportunityId). Rows are never updated or deleted. Mirrored
+/// in apps/web/prisma/schema.prisma — the web app writes this table directly
+/// via an auth-scoped route (identity from Clerk auth(), never a header).
+///
+/// PR J2 — MATCHA Discover (the swipe deck) writes its decisions to THIS log
+/// too, so a role saved on the board is the same role the deck shows as
+/// decided; there is never a second competing "saved roles" list. Undo appends
+/// a `restored` row exactly as the board's un-toggle appends `cleared`.
+///
+/// action: saved | connected | declined | cleared        (board decisions)
+///       | interested | priority | passed | restored     (deck decisions)
+///       | viewed | details_opened                       (deck telemetry — NOT decisions)
+///       | application_started | application_submitted    (apply funnel, PR J5)
+/// The canonical vocabulary and the current-state derivation live in
+/// apps/web/lib/matcha/opportunitySignals.ts — read the log through it, never
+/// by casting `action` at a call site.
+///
+/// PRIVACY: these are the clinician's own private workflow decisions. Never
+/// credentials, never verification state, never an input to trust-state/CRS,
+/// and no employer-facing read path may expose them.
+model OpportunityAction {
+  id            String   @id @default(uuid()) @db.Uuid
+  clerkUserId   String
+  npi           String?
+  opportunityId String
+  action        String
+  source        String   @default("web")
+  createdAt     DateTime @default(now())
+  /// PR J2 fields — additive + nullable, so every pre-deck row stays valid.
+  /// Which surface produced the signal: board | deck.
+  surface            String   @default("board")
+  /// The opportunity version the clinician actually saw when deciding.
+  /// Carried through Apply so a packet replays against what was on screen.
+  opportunityVersion String?
+  /// The MATCHA recommendation this decision responded to (replay/audit).
+  recommendationId   String?
+  /// Deck session, so a run of decisions can be reconstructed.
+  sessionId          String?
+  /// Optional structured pass reason (PR J6). Private preference data.
+  reason             String?
+  /// Client-generated idempotency key: a retried or replayed emit of the SAME
+  /// user intent collapses onto one row instead of duplicating the event.
+  clientSignalId     String?  @unique
+
+  @@index([clerkUserId, opportunityId, createdAt])
+  @@index([opportunityId])
+  @@index([createdAt])
+  @@index([clerkUserId, surface, createdAt])
+}
+
 model Recognition {
   id              String       @id @default(uuid()) @db.Uuid
   recognitionId   String       @unique
@@ -277,6 +370,14 @@ model Opportunity {
   hiringType       String   @map("hiring_type")
   state            String
   payRange         String?  @map("pay_range")
+  // Structured matching inputs — the MATCHA engine scores comp (payMax vs the
+  // clinician's desired minimum), urgency (startUrgency), and employer-fit
+  // (employerType). Nullable so the mapper falls back to defaults for older
+  // postings that predate these columns.
+  payMin           Int?     @map("pay_min")
+  payMax           Int?     @map("pay_max")
+  employerType     String?  @map("employer_type")
+  startUrgency     String?  @map("start_urgency")
   requirementLevel String   @default("L1") @map("requirement_level")
   description      String?
   remote           Boolean  @default(false)
@@ -305,6 +406,22 @@ model PersonProfile {
   resumeUrl         String?            @map("resume_url")
   linkedinUrl       String?            @map("linkedin_url")
   portfolioUrl      String?            @map("portfolio_url")
+  // Self-attested onboarding claims — the clinician stated these; they are NOT
+  // source-verified. Kept distinct from source-checked facts (readiness lane).
+  profession          String?          @map("profession")
+  attestedAt          DateTime?        @map("attested_at")
+  attestationVersion  String?          @map("attestation_version")
+  // Identity-binding corroboration: a work/institutional email the clinician
+  // proved possession of via OTP. A possession SIGNAL that strengthens NPI→person
+  // binding — not a license or identity verification on its own.
+  verifiedEmail       String?          @map("verified_email")
+  verifiedEmailAt     DateTime?        @map("verified_email_at")
+  // Self-attested structured profile sections (contact, education, work
+  // history, affiliations, career goals, research). The clinician typed these;
+  // they are USER_ENTERED and NEVER source-verified. Stored as a single JSON
+  // document so the whole self-attested layer moves as one edit. Source-checked
+  // facts (NPPES / licensure / board) live elsewhere with their own receipts.
+  selfAttested        Json?            @map("self_attested")
   completeness      Int                @default(0)
   createdAt         DateTime           @default(now()) @map("created_at")
   updatedAt         DateTime           @updatedAt @map("updated_at")
@@ -313,6 +430,27 @@ model PersonProfile {
   @@index([npi])
   @@index([userId])
   @@map("person_profiles")
+}
+
+/// One-time email verification challenge (identity-binding possession factor).
+/// The code is never stored — only a salted hash. Short-lived, attempt-capped,
+/// single-use. A verified challenge records a possession signal on the
+/// PersonProfile (verified_email) and a hashed audit row.
+model EmailOtp {
+  id         String    @id @default(cuid())
+  userId     String    @map("user_id")
+  email      String
+  codeHash   String    @map("code_hash")
+  salt       String
+  purpose    String    @default("identity_email")
+  expiresAt  DateTime  @map("expires_at")
+  attempts   Int       @default(0)
+  consumedAt DateTime? @map("consumed_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@index([email])
+  @@map("email_otps")
 }
 
 /// Linked profile for an organization (Type 2 NPI or Org DID)
@@ -602,6 +740,31 @@ model VerifierAccessToken {
   @@index([verifierOrgId])
   @@index([token])
   @@index([expiresAt])
+}
+
+/// Wave M — persisted reusable readiness snapshot: the share-once /
+/// reuse-by-many artifact. `content` is the readiness + canonical
+/// source-coverage report exactly as issued at share time and is IMMUTABLE
+/// (contentHash pins it); freshness is recomputed at read time as an overlay,
+/// never written back. Revocation: a snapshot fails closed when its own
+/// revokedAt is set OR when any BundleShareEvent for its bundleId is revoked
+/// (the clinician's existing share-revoke control). Zero PHI: readiness
+/// states, source ids, and timestamps only.
+model ReadinessSnapshot {
+  id                   String    @id @default(uuid()) @db.Uuid
+  npi                  String
+  entityId             String?   @db.Uuid
+  bundleId             String?   @db.Uuid
+  contentHash          String
+  content              Json
+  scope                Json?
+  issuedAt             DateTime  @default(now())
+  revokedAt            DateTime?
+  revokedByClerkUserId String?
+
+  @@index([npi, issuedAt])
+  @@index([bundleId])
+  @@index([contentHash])
 }
 
 model VerificationArtifact {
@@ -1609,6 +1772,12 @@ model Application {
   reviewedBy    String?           @map("reviewed_by")
   reviewedAt    DateTime?         @map("reviewed_at")
   reviewNote    String?           @map("review_note")
+  /// Wave 0 (Seal): version of the immutable disclosure packet captured at
+  /// submission. NULL = legacy application submitted before packets existed —
+  /// rendered with an explicit legacy label, never a fabricated packet.
+  sealedPacketVersion Int?        @map("sealed_packet_version")
+  packets       ApplicationPacket[]
+  activationRequirements ActivationRequirement[]
   opportunity   Opportunity       @relation(fields: [opportunityId], references: [id])
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
@@ -1620,13 +1789,100 @@ model Application {
   @@map("applications")
 }
 
+/// Wave 0 (Seal): the immutable evidence disclosure a clinician shared at
+/// submission. NEVER updated after seal — refreshed disclosure creates a NEW
+/// version row; `supersededByPacketId` links forward and revocation is a
+/// state, not a deletion. Identifiers are FROZEN STRINGS (not relations to
+/// mutable rows) so the packet replays without rereading current state.
+model ApplicationPacket {
+  id                   String    @id @default(uuid()) @db.Uuid
+  applicationId        String    @map("application_id") @db.Uuid
+  packetVersion        Int       @map("packet_version")
+  clerkUserId          String    @map("clerk_user_id")
+  clinicianNpi         String    @map("clinician_npi")
+  opportunityId        String    @map("opportunity_id") @db.Uuid
+  employerOrgId        String    @map("employer_org_id")
+  purpose              String
+  recipient            String
+  /// string[] — section identifiers the clinician chose to disclose
+  selectedSections     Json      @map("selected_sections")
+  /// PacketFieldEntry[] — per-field value, evidence state, source id,
+  /// source observation time, freshness horizon, artifact/receipt ids
+  fields               Json
+  clinicianNote        String?   @map("clinician_note")
+  methodologyVersion   String    @map("methodology_version")
+  consentAt            DateTime  @map("consent_at")
+  consentReceiptId     String    @map("consent_receipt_id")
+  /// PR J5b — the opportunity version (updatedAt at seal time) the application
+  /// was sealed against. Additive + nullable: NULL = legacy packet sealed
+  /// before this column existed, which replays with the field OMITTED from the
+  /// canonical content so its original hash still verifies (never write NULL
+  /// for a new packet). Covered by the seal hash for new packets.
+  opportunityVersion   String?   @map("opportunity_version")
+  /// sha256 over the canonical (key-sorted) packet content — the seal
+  packetHash           String    @unique @map("packet_hash")
+  createdAt            DateTime  @default(now()) @map("created_at")
+  supersededByPacketId String?   @map("superseded_by_packet_id") @db.Uuid
+  revokedAt            DateTime? @map("revoked_at")
+  revokedReason        String?   @map("revoked_reason")
+
+  application Application @relation(fields: [applicationId], references: [id])
+
+  @@unique([applicationId, packetVersion])
+  @@index([clerkUserId])
+  @@index([opportunityId])
+  @@index([employerOrgId])
+  @@map("application_packets")
+}
+
+/// ACT-1.3 — the application-linked activation requirement ledger. One canonical
+/// record per remaining step to a qualified start; drives both the clinician and
+/// employer views. Instantiated only after an employer decision. Status/necessity
+/// vocabulary is enforced in the requirementLifecycle state machine, not the DB.
+model ActivationRequirement {
+  id                  String    @id @default(uuid()) @db.Uuid
+  applicationId       String    @map("application_id") @db.Uuid
+  organizationId      String    @map("organization_id")
+  sourceRequirementId String?   @map("source_requirement_id")
+  category            String
+  label               String
+  necessity           String    @default("required")
+  status              String    @default("not_started")
+  owner               String    @default("system")
+  evidenceRule        String?   @map("evidence_rule")
+  dependencyIds       String[]  @map("dependency_ids")
+  dueAt               DateTime? @map("due_at")
+  resolvedBy          String?   @map("resolved_by")
+  resolvedAt          DateTime? @map("resolved_at")
+  policyVersion       String?   @map("policy_version")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@index([applicationId])
+  @@index([organizationId])
+  @@index([status])
+  @@map("activation_requirements")
+}
+
 model EmployerAcceptance {
   id           String   @id @default(uuid()) @db.Uuid
-  entityId     String   @map("entity_id") @db.Uuid
-  organization String
+  // entityId/organization were NOT NULL, but the acceptance is keyed on
+  // (employerId, clinicianNpi) — the indexed business keys below. Of the four
+  // writers, only the review path has a real entityId; hiring.ts has none.
+  // Requiring them forced two @ts-nocheck writers to omit them and throw, and
+  // two others to fabricate a UUID. Nullable matches how the model is used.
+  entityId     String?  @map("entity_id") @db.Uuid
+  organization String?
   employerId   String?  @map("employer_id")
   clinicianNpi String?  @map("clinician_npi")
   artifactId   String?  @map("artifact_id")
+  // ACT-1.2 — traceable link to the exact sealed packet this acceptance
+  // accepted. Nullable + no FK (matching the model's convention); packetHash is
+  // the immutable content seal, applicationId the packet's application.
+  applicationId String? @map("application_id") @db.Uuid
+  packetHash    String? @map("packet_hash")
   status       String?  @default("ACCEPTED")
   acceptedAt   DateTime @map("accepted_at")
   acceptedBy   String?  @map("accepted_by")
@@ -1635,6 +1891,7 @@ model EmployerAcceptance {
   @@index([employerId])
   @@index([clinicianNpi])
   @@index([acceptedAt])
+  @@index([applicationId])
   @@map("employer_acceptances")
 }
 

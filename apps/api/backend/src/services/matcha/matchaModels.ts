@@ -83,10 +83,24 @@ export interface Opportunity {
 
 // ── Clinician profile ─────────────────────────────────────────────────────────
 
+/**
+ * Provenance of a ClinicianProfile.specialty value.
+ *   nppes_taxonomy — read from the clinician's NPPES primary taxonomy (a real
+ *                    source check; may be presented as "checked · NPPES").
+ *   self_reported  — supplied by the clinician; on file, not source-confirmed.
+ *   unknown        — no source (e.g. an unresolved default). Never checked.
+ * A specialty may be called source-checked ONLY when this is `nppes_taxonomy`;
+ * absent provenance is treated as `unknown`, so a caller that forgets to set it
+ * can never over-claim. See matchaEngine `specialtyCoverageLabel`.
+ */
+export type SpecialtySource = 'nppes_taxonomy' | 'self_reported' | 'unknown';
+
 export interface ClinicianProfile {
   npi: string;
   name: string;
   specialty: string;
+  /** Where `specialty` came from. Absent ⇒ treated as unverified ('unknown'). */
+  specialtySource?: SpecialtySource;
   states: string[];                      // licensed states
   workAuthStates?: string[];             // work auth regions
   credentials: HeldCredential[];

@@ -301,3 +301,20 @@ describe('NPI format validation', () => {
     expect(NPI_RE.test(npi)).toBe(false);
   });
 });
+
+// ── Malformed share id gate ───────────────────────────────────────────────────
+
+describe('revokeShare — malformed share id', () => {
+  it('rejects a non-uuid shareId before any database lookup', async () => {
+    // BundleShareEvent.id is a Postgres uuid column — an unguarded non-uuid
+    // string makes Prisma throw (a 500) instead of returning null. The guard
+    // must fail closed with the same "not found" validation error, without a
+    // live database in the loop.
+    const { revokeShare } = await import('../../services/distribution/applyShareService');
+
+    for (const bad of ['x', 'not-a-uuid', '../../etc/passwd', '550e8400-e29b-41d4-a716']) {
+      await expect(revokeShare(bad, 'user_123')).rejects.toThrow(ShareValidationError);
+      await expect(revokeShare(bad, 'user_123')).rejects.toThrow('Share not found.');
+    }
+  });
+});

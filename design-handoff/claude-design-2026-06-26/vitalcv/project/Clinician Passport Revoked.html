@@ -1,0 +1,463 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>VitalCV · passport · integrity broken</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --ink-0:#fff;--ink-50:#f8fafc;--ink-100:#f1f5f9;--ink-200:#e2e8f0;--ink-300:#cbd5e1;
+    --ink-400:#94a3b8;--ink-500:#64748b;--ink-600:#475569;--ink-700:#334155;
+    --ink-800:#1e293b;--ink-900:#0f172a;--ink-950:#020617;
+    --rule:#e2e8f0;
+    --crimson-900:#7f1d1d;
+    --crimson-800:#991b1b;
+    --crimson-700:#b91c1c;
+    --crimson-600:#dc2626;
+    --crimson-100:#fee2e2;
+    --crimson-50:#fef2f2;
+    --crimson-25:#fefcfa;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--crimson-25);color:var(--ink-900);font-family:'Geist Mono',ui-monospace,monospace;-webkit-font-smoothing:antialiased;font-size:12.5px;line-height:1.5;font-variant-numeric:tabular-nums;font-feature-settings:'zero','tnum';}
+  .sans{font-family:'Geist',ui-sans-serif,system-ui,sans-serif;}
+
+  /* ===== Op bar — revoked variant ===== */
+  .op{background:var(--ink-950);color:var(--ink-300);font-size:11px;border-bottom:1px solid #000;}
+  .op .in{max-width:1320px;margin:0 auto;padding:0 28px;height:28px;display:flex;align-items:center;justify-content:space-between;gap:12px;}
+  .op .sep{color:var(--ink-600);}
+  .op .pill{display:inline-flex;align-items:center;gap:6px;padding:1px 7px;border:1px solid var(--crimson-700);color:var(--crimson-600);text-transform:uppercase;letter-spacing:.14em;font-size:10px;font-weight:600;background:rgba(127,29,29,.18);}
+  .op .pill .d{width:6px;height:6px;background:var(--crimson-600);border-radius:50%;animation:dot-blink 1s steps(2,end) infinite;}
+  @keyframes dot-blink{50%{opacity:.3;}}
+
+  /* ===== HARD ALERT BAND — top of page ===== */
+  .alert{background:var(--crimson-900);color:#fff;border-bottom:2px solid var(--crimson-700);}
+  .alert .in{max-width:1320px;margin:0 auto;padding:14px 28px;display:flex;justify-content:space-between;align-items:center;gap:18px;flex-wrap:wrap;}
+  .alert .lhs{display:flex;align-items:center;gap:14px;font-family:'Geist Mono',monospace;}
+  .alert .lhs .stamp{display:inline-flex;align-items:center;gap:8px;padding:5px 10px;border:2px solid #fff;background:rgba(255,255,255,.06);font-size:11px;letter-spacing:.22em;text-transform:uppercase;font-weight:700;}
+  .alert .lhs .stamp .m{width:7px;height:7px;background:#fff;}
+  .alert .lhs .msg{font-size:13px;letter-spacing:.04em;line-height:1.4;}
+  .alert .lhs .msg strong{color:#fff;font-weight:700;letter-spacing:.06em;}
+  .alert .lhs .msg .g{color:#fca5a5;}
+  .alert .rhs{font-family:'Geist Mono',monospace;font-size:10px;color:#fca5a5;letter-spacing:.12em;text-transform:uppercase;display:flex;gap:14px;align-items:center;}
+  .alert .rhs strong{color:#fff;font-weight:500;letter-spacing:.06em;text-transform:none;}
+
+  /* ===== Document container ===== */
+  .doc{max-width:1320px;margin:0 auto;background:var(--ink-0);border-left:1px solid var(--rule);border-right:1px solid var(--rule);}
+
+  /* ===== Document header ===== */
+  .hd{padding:18px 28px 14px;border-bottom:2px solid var(--crimson-700);background:var(--ink-0);}
+  .hd .crumb{display:flex;justify-content:space-between;align-items:center;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-500);margin-bottom:10px;}
+  .hd .crumb .lhs{display:flex;gap:8px;align-items:center;}
+  .hd .crumb .lhs .g{width:18px;height:18px;background:var(--ink-900);color:#fff;display:grid;place-items:center;font-size:10px;font-weight:700;}
+  .hd .crumb .lhs .nm{color:var(--ink-900);font-weight:600;font-size:11px;letter-spacing:.06em;}
+  .hd .crumb .lhs .path{color:var(--ink-500);}
+  .hd .crumb .lhs .path strong{color:var(--crimson-800);font-weight:600;}
+  .hd .crumb .rhs{display:flex;gap:14px;align-items:center;}
+  .hd .crumb .rhs .v{color:var(--ink-900);font-weight:500;letter-spacing:.04em;}
+  .hd .ttl{display:flex;justify-content:space-between;align-items:flex-end;gap:28px;}
+  .hd h1{margin:0;font-size:22px;color:var(--ink-900);font-weight:600;letter-spacing:-.012em;line-height:1.15;font-family:'Geist Mono',monospace;}
+  .hd h1 .g{color:var(--ink-400);font-weight:500;}
+  .hd h1 .rev{color:var(--crimson-700);font-weight:700;}
+  .hd .seal{display:flex;flex-direction:column;align-items:flex-end;gap:3px;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-500);}
+  .hd .seal strong{color:var(--crimson-700);font-weight:700;font-size:11px;letter-spacing:.12em;}
+
+  /* ===== Subject card — crimson border ===== */
+  .subj{display:grid;grid-template-columns:1.3fr 1fr;background:var(--crimson-50);border-bottom:1px solid var(--rule);}
+  .subj .l{padding:18px 28px;border-right:1px solid var(--crimson-100);}
+  .subj .l .nm{font-family:'Geist',sans-serif;font-size:24px;letter-spacing:-.022em;font-weight:600;color:var(--ink-900);margin:0;}
+  .subj .l .nm .strike{text-decoration:line-through;text-decoration-thickness:2px;text-decoration-color:var(--crimson-700);}
+  .subj .l .id{font-size:11.5px;color:var(--ink-500);margin-top:4px;letter-spacing:.04em;}
+  .subj .l .id strong{color:var(--ink-900);font-weight:500;}
+  .subj .l .pill-row{margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;}
+  .subj .l .pill-row .b{display:inline-flex;align-items:center;gap:5px;font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;padding:3px 8px;border:1px solid var(--crimson-700);color:var(--crimson-800);font-weight:700;background:var(--ink-0);}
+  .subj .l .pill-row .b .m{width:5px;height:5px;background:var(--crimson-700);}
+  .subj .l .pill-row .b.muted{border-color:var(--ink-300);color:var(--ink-500);background:transparent;font-weight:500;}
+  .subj .l .pill-row .b.muted .m{background:var(--ink-400);}
+
+  .subj .r{padding:18px 28px;background:#fff;}
+  .subj .r .ttl{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--crimson-800);font-weight:700;margin-bottom:8px;}
+  .subj .r .reason{font-family:'Geist Mono',monospace;font-size:14px;color:var(--ink-900);font-weight:700;letter-spacing:.04em;text-transform:uppercase;margin-bottom:8px;line-height:1.4;}
+  .subj .r .legal{font-size:11.5px;color:var(--ink-700);line-height:1.55;font-family:'Geist',sans-serif;}
+  .subj .r .legal strong{color:var(--ink-900);font-weight:600;}
+
+  /* ===== Section heading ===== */
+  .sh{display:flex;align-items:baseline;gap:12px;padding:14px 28px 7px;border-bottom:1px solid var(--ink-900);margin:0;background:var(--ink-0);}
+  .sh .n{font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-300);font-weight:600;}
+  .sh h2{margin:0;font-size:13px;letter-spacing:.08em;color:var(--ink-900);font-weight:700;font-family:'Geist Mono',monospace;text-transform:uppercase;}
+  .sh .ey{margin-left:auto;font-size:10px;color:var(--ink-500);text-transform:uppercase;letter-spacing:.14em;}
+
+  /* ===== Exclusion details — high-density tabular ===== */
+  .findings{background:var(--ink-0);border-bottom:1px solid var(--rule);}
+  .findings .grid{display:grid;grid-template-columns:repeat(4,1fr);background:var(--ink-50);}
+  .findings .grid .c{padding:13px 16px;border-right:1px solid var(--rule);position:relative;}
+  .findings .grid .c:last-child{border-right:0;}
+  .findings .grid .k{font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-500);font-weight:600;margin-bottom:5px;}
+  .findings .grid .v{font-size:14px;color:var(--ink-900);font-weight:600;letter-spacing:-.005em;line-height:1.3;}
+  .findings .grid .v .g{color:var(--ink-500);font-weight:400;}
+  .findings .grid .v.rev{color:var(--crimson-800);}
+  .findings .grid .sub{font-size:10.5px;color:var(--ink-500);margin-top:3px;letter-spacing:.04em;}
+
+  .findings .extra{padding:13px 28px;border-top:1px solid var(--rule);background:var(--ink-0);}
+  .findings .extra .row{display:grid;grid-template-columns:140px 1fr;gap:14px;padding:6px 0;border-bottom:1px dashed var(--ink-200);font-size:11.5px;}
+  .findings .extra .row:last-child{border-bottom:0;}
+  .findings .extra .k{color:var(--ink-500);text-transform:uppercase;letter-spacing:.14em;font-size:9.5px;align-self:center;font-weight:600;}
+  .findings .extra .v{color:var(--ink-900);word-break:break-all;font-weight:500;}
+  .findings .extra .v .g{color:var(--ink-500);font-weight:400;}
+
+  /* ===== Tier ladder — broken state ===== */
+  .tiers{display:grid;grid-template-columns:repeat(4,1fr);border-bottom:1px solid var(--rule);background:var(--ink-0);}
+  .tier{padding:13px 16px;border-right:1px solid var(--rule);position:relative;}
+  .tier:last-child{border-right:0;}
+  .tier .lab{display:flex;justify-content:space-between;align-items:baseline;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-500);font-weight:600;}
+  .tier .lab .tag{color:var(--ink-900);font-weight:700;font-size:14px;letter-spacing:0;}
+  .tier .nm{font-size:12.5px;color:var(--ink-900);font-weight:500;margin-top:4px;letter-spacing:-.005em;font-family:'Geist',sans-serif;}
+  .tier .src{font-size:10.5px;color:var(--ink-500);margin-top:2px;}
+  .tier .bar{margin-top:9px;height:3px;background:var(--ink-200);position:relative;}
+  .tier .bar .fill{position:absolute;inset:0;background:var(--ink-900);}
+  .tier.t1 .fill{width:100%;}
+  .tier.t2 .fill{width:100%;}
+  .tier.t3{background:repeating-linear-gradient(135deg,var(--crimson-50) 0 6px,#fef0f0 6px 7px);}
+  .tier.t3 .fill{width:100%;background:var(--crimson-700);}
+  .tier.t4 .fill{width:0;background:var(--crimson-700);}
+  .tier .st{margin-top:8px;font-size:10px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;display:flex;gap:6px;align-items:center;}
+  .tier .st .m{width:5px;height:5px;}
+  .tier.t1 .st,.tier.t2 .st{color:var(--ink-900);}
+  .tier.t1 .st .m,.tier.t2 .st .m{background:var(--ink-900);}
+  .tier.t3 .st{color:var(--crimson-800);}
+  .tier.t3 .st .m{background:var(--crimson-700);}
+  .tier.t4 .st{color:var(--crimson-800);}
+  .tier.t4 .st .m{background:var(--crimson-700);border:1px solid var(--crimson-700);}
+
+  /* ===== Audit chain · revocation event ===== */
+  .chain{background:#000;color:#fca5a5;padding:14px 28px;border-bottom:1px solid var(--crimson-900);}
+  .chain .ch-hd{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:#fca5a5;font-weight:600;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;}
+  .chain .ch-hd strong{color:#fff;font-weight:600;}
+  .chain .ev{display:grid;grid-template-columns:90px 1fr auto;gap:14px;padding:8px 0;border-bottom:1px dashed #1e293b;font-size:11.5px;color:#cbd5e1;align-items:center;}
+  .chain .ev:last-child{border-bottom:0;}
+  .chain .ev .ts{font-size:10.5px;color:#94a3b8;letter-spacing:.04em;}
+  .chain .ev .body .what{color:#fff;font-weight:500;letter-spacing:-.005em;font-family:'Geist',sans-serif;font-size:12.5px;}
+  .chain .ev .body .h{font-size:10.5px;color:#94a3b8;margin-top:2px;letter-spacing:.04em;}
+  .chain .ev.rev{background:rgba(127,29,29,.22);margin:0 -28px;padding-left:28px;padding-right:28px;}
+  .chain .ev.rev .ts{color:#fca5a5;font-weight:600;}
+  .chain .ev.rev .body .what{color:#fff;font-weight:700;}
+  .chain .ev.rev .body .h{color:#fca5a5;}
+  .chain .ev .tag{display:inline-flex;align-items:center;gap:5px;padding:2px 7px;border:1px solid #334155;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:#94a3b8;font-weight:600;}
+  .chain .ev.rev .tag{border-color:#fca5a5;color:#fca5a5;}
+  .chain .ev.rev .tag .m{background:#fca5a5;width:5px;height:5px;display:inline-block;}
+
+  /* ===== Operator remediation panel ===== */
+  .remed{display:grid;grid-template-columns:1.4fr 1fr;background:var(--ink-0);border-bottom:1px solid var(--rule);}
+  .remed .l{padding:18px 28px;border-right:1px solid var(--rule);}
+  .remed .l h3{font-family:'Geist',sans-serif;font-size:14px;margin:0 0 8px;letter-spacing:-.005em;color:var(--ink-900);font-weight:600;}
+  .remed .l p{font-family:'Geist',sans-serif;font-size:13px;color:var(--ink-700);line-height:1.6;margin:0 0 10px;max-width:60ch;}
+  .remed .l p strong{color:var(--ink-900);font-weight:600;}
+  .remed .l ol{font-family:'Geist',sans-serif;font-size:13px;color:var(--ink-700);line-height:1.65;margin:6px 0 0;padding-left:0;list-style:none;counter-reset:step;}
+  .remed .l ol li{counter-increment:step;padding:7px 0 7px 36px;border-top:1px dashed var(--ink-200);position:relative;}
+  .remed .l ol li:first-child{border-top:0;}
+  .remed .l ol li::before{content:counter(step,decimal-leading-zero);position:absolute;left:0;top:8px;font-family:'Geist Mono',monospace;font-size:10px;color:var(--ink-500);letter-spacing:.14em;font-weight:600;}
+  .remed .l ol li strong{color:var(--ink-900);font-weight:600;}
+  .remed .r{padding:18px 28px;background:var(--ink-50);display:flex;flex-direction:column;gap:14px;}
+  .remed .r .ttl{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-700);font-weight:700;}
+  .remed .r .btn{display:flex;justify-content:space-between;align-items:center;padding:11px 14px;background:var(--ink-0);border:1px solid var(--ink-300);text-decoration:none;color:var(--ink-900);font-family:'Geist',sans-serif;font-size:13px;font-weight:500;letter-spacing:-.005em;transition:border-color .15s ease;}
+  .remed .r .btn:hover{border-color:var(--ink-900);}
+  .remed .r .btn.primary{background:var(--ink-900);color:#fff;border-color:var(--ink-900);}
+  .remed .r .btn.primary:hover{background:#000;}
+  .remed .r .btn .sub{display:block;font-family:'Geist Mono',monospace;font-size:10px;color:var(--ink-500);font-weight:400;margin-top:1px;letter-spacing:.04em;}
+  .remed .r .btn.primary .sub{color:#94a3b8;}
+
+  /* ===== Signature footer (dark) ===== */
+  .sig-foot{background:var(--ink-950);color:#fff;padding:14px 28px;display:grid;grid-template-columns:repeat(4,1fr);}
+  .sig-foot .cell{padding-right:18px;border-right:1px solid #1e293b;}
+  .sig-foot .cell:last-child{border-right:0;padding-right:0;}
+  .sig-foot .k{font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:#64748b;font-weight:600;margin-bottom:4px;}
+  .sig-foot .v{color:#fff;font-weight:500;word-break:break-all;line-height:1.3;font-size:11.5px;}
+  .sig-foot .v .g{color:#94a3b8;font-weight:400;}
+
+  .page-foot{max-width:1320px;margin:0 auto;padding:14px 28px 28px;display:flex;justify-content:space-between;font-size:10px;color:var(--ink-500);letter-spacing:.04em;flex-wrap:wrap;gap:8px;background:var(--crimson-25);}
+  .page-foot .v{color:var(--ink-900);font-weight:500;}
+
+  @media(max-width:1080px){
+    .subj{grid-template-columns:1fr;}
+    .subj .l{border-right:0;border-bottom:1px solid var(--crimson-100);}
+    .findings .grid{grid-template-columns:1fr 1fr;}
+    .findings .grid .c:nth-child(2n){border-right:0;}
+    .findings .grid .c{border-bottom:1px solid var(--rule);}
+    .tiers{grid-template-columns:1fr 1fr;}
+    .tier:nth-child(2n){border-right:0;}
+    .tier{border-bottom:1px solid var(--rule);}
+    .remed{grid-template-columns:1fr;}
+    .remed .l{border-right:0;border-bottom:1px solid var(--rule);}
+    .sig-foot{grid-template-columns:1fr 1fr;gap:12px 0;}
+    .sig-foot .cell:nth-child(2n){border-right:0;}
+  }
+</style>
+</head>
+<body data-screen-label="Passport · Integrity Broken">
+
+<div class="op">
+  <div class="in">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <span style="letter-spacing:.16em;text-transform:uppercase;color:#fff;font-weight:500;">Passport</span>
+      <span class="sep">/</span>
+      <span>passport.vitalcv.health/p/vcp_8c41…0d44</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:14px;">
+      <span class="pill"><span class="d"></span>Revoked</span>
+      <span class="sep">|</span>
+      <span>Build vc.2026.05.11-a</span>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Hard alert band ===== -->
+<section class="alert" role="alert" aria-live="assertive">
+  <div class="in">
+    <div class="lhs">
+      <span class="stamp"><span class="m"></span>Integrity broken</span>
+      <span class="msg"><strong>Continuous monitoring detected an exclusionary event.</strong> This passport has been <strong>revoked at the issuer</strong> and <strong>tombstoned on the public status list</strong> pending resolution. <span class="g">Downstream verifiers will receive a hard-fail on replay.</span></span>
+    </div>
+    <div class="rhs">
+      <span>detected</span><strong>2026-05-11 14:18:42Z</strong>
+      <span>·</span>
+      <span>passport</span><strong>vcp_8c41…0d44</strong>
+    </div>
+  </div>
+</section>
+
+<div class="doc">
+
+  <!-- ===== Document header ===== -->
+  <header class="hd">
+    <div class="crumb">
+      <div class="lhs">
+        <span class="g">V</span>
+        <span class="nm">VitalCV</span>
+        <span class="path">/ passport / <strong>REVOKED</strong> / cause <strong>OIG-LEIE-EXCL</strong></span>
+      </div>
+      <div class="rhs">
+        <span>Generated</span><span class="v">2026-05-11 14:18:42Z</span>
+        <span>·</span>
+        <span>Doc</span><span class="v">REV-2026-04412</span>
+      </div>
+    </div>
+    <div class="ttl">
+      <h1>PASSPORT_REVOKED <span class="g">·</span> vcp_8c41<span class="g">…0d44</span> <span class="rev">[INTEGRITY BROKEN]</span></h1>
+      <div class="seal">
+        <span>Status</span>
+        <strong>REVOKED · TOMBSTONED · NON-REPLAYABLE</strong>
+        <span>Action required by holder</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ===== Subject ===== -->
+  <section class="subj">
+    <div class="l">
+      <h2 class="nm"><span class="strike">G. Hollis, MD</span></h2>
+      <div class="id">NPI <strong>1801442398</strong> · subject did:vc:f733…91ee · Cedar Health applicant</div>
+      <div class="pill-row">
+        <span class="b"><span class="m"></span>Revoked</span>
+        <span class="b"><span class="m"></span>Exclusion present</span>
+        <span class="b"><span class="m"></span>Privileges withheld</span>
+        <span class="b muted"><span class="m"></span>Appeal window open</span>
+      </div>
+    </div>
+    <div class="r">
+      <div class="ttl">Cause &middot; legal finding</div>
+      <div class="reason">OIG / LEIE EXCLUSION DETECTED</div>
+      <div class="legal">An active exclusion record was returned by the U.S. Department of Health &amp; Human Services Office of Inspector General Exclusion Database (<strong>OIG/LEIE</strong>) corresponding to the subject's <strong>NPI 1801442398</strong>. Per <strong>42 USC §1320a-7</strong>, this exclusion precludes participation in federally funded healthcare programs. VitalCV cannot issue a positive credential while an active OIG exclusion is on file.</div>
+    </div>
+  </section>
+
+  <!-- ===== §1 Findings ===== -->
+  <div class="sh">
+    <span class="n">§1</span>
+    <h2>EXCLUSION FINDING &middot; OIG / LEIE</h2>
+    <span class="ey">primary source &middot; federal authority of record</span>
+  </div>
+
+  <section class="findings">
+    <div class="grid">
+      <div class="c">
+        <div class="k">exclusion type</div>
+        <div class="v rev">1128(a)(1)</div>
+        <div class="sub">Mandatory · conviction of program-related crime</div>
+      </div>
+      <div class="c">
+        <div class="k">effective date</div>
+        <div class="v">2026-04-30<span class="g"> · 11 d ago</span></div>
+        <div class="sub">Per OIG action notice · 2026-04-22</div>
+      </div>
+      <div class="c">
+        <div class="k">authority</div>
+        <div class="v">HHS-OIG</div>
+        <div class="sub">42 USC §1320a-7 · LEIE database</div>
+      </div>
+      <div class="c">
+        <div class="k">duration</div>
+        <div class="v">Minimum 5 yr</div>
+        <div class="sub">Reinstatement requires formal OIG petition</div>
+      </div>
+    </div>
+    <div class="extra">
+      <div class="row"><span class="k">leie record id</span><span class="v">LEIE-2026-04-30-1801442398-A <span class="g">· federal primary key</span></span></div>
+      <div class="row"><span class="k">subject name (oig)</span><span class="v">HOLLIS, GLEN R, MD <span class="g">· match · NPI 1801442398</span></span></div>
+      <div class="row"><span class="k">specialty (oig)</span><span class="v">General surgery <span class="g">· 208600000X · taxonomy match</span></span></div>
+      <div class="row"><span class="k">npi address</span><span class="v">1414 Pacific Ave, San Diego CA 92101 <span class="g">· last NPPES update 2024-08-12</span></span></div>
+      <div class="row"><span class="k">vitalcv check</span><span class="v">2026-05-11 14:18:38.044Z <span class="g">· run r-9d44-c712 · lane oig_leie · 268 ms</span></span></div>
+      <div class="row"><span class="k">prior credential</span><span class="v">vcp_8c41…0d44 <span class="g">· issued 2026-03-04 · tombstoned 2026-05-11 14:18:42.220Z</span></span></div>
+      <div class="row"><span class="k">downstream notice</span><span class="v">Cedar Health Credentialing <span class="g">· auto-notified · 14:18:43Z · ae_01HZG7M2K88P3</span></span></div>
+    </div>
+  </section>
+
+  <!-- ===== §2 Tier ladder — broken at T3 ===== -->
+  <div class="sh">
+    <span class="n">§2</span>
+    <h2>TIER LADDER &middot; STATE OF EVIDENCE</h2>
+    <span class="ey">T3 returned an exclusionary finding</span>
+  </div>
+
+  <section class="tiers">
+    <div class="tier t1">
+      <div class="lab"><span>self-asserted</span><span class="tag">T1</span></div>
+      <div class="nm">Applicant claim</div>
+      <div class="src">cedar applicant form · 2026-03-01</div>
+      <div class="bar"><div class="fill"></div></div>
+      <div class="st"><span class="m"></span>On file · superseded</div>
+    </div>
+    <div class="tier t2">
+      <div class="lab"><span>cross-referenced</span><span class="tag">T2</span></div>
+      <div class="nm">Employer + IdP match</div>
+      <div class="src">Cedar Okta · was matched · session expired</div>
+      <div class="bar"><div class="fill"></div></div>
+      <div class="st"><span class="m"></span>Matched · superseded</div>
+    </div>
+    <div class="tier t3">
+      <div class="lab"><span>federal source</span><span class="tag">T3</span></div>
+      <div class="nm">Primary registry · <strong style="color:var(--crimson-800);">exclusionary</strong></div>
+      <div class="src">OIG/LEIE returned an active exclusion</div>
+      <div class="bar"><div class="fill"></div></div>
+      <div class="st"><span class="m"></span>Hard fail · exclusion present</div>
+    </div>
+    <div class="tier t4">
+      <div class="lab"><span>PSV / board-direct</span><span class="tag">T4</span></div>
+      <div class="nm">Not invocable</div>
+      <div class="src">Gated below T3 fail · per policy</div>
+      <div class="bar"><div class="fill"></div></div>
+      <div class="st"><span class="m"></span>Blocked · cannot supersede T3 fail</div>
+    </div>
+  </section>
+
+  <!-- ===== §3 Chain / audit ===== -->
+  <div class="sh">
+    <span class="n">§3</span>
+    <h2>AUDIT CHAIN &middot; REVOCATION EVENT</h2>
+    <span class="ey">7 events · signed · re-derivable offline</span>
+  </div>
+
+  <section class="chain">
+    <div class="ch-hd">
+      <span><strong>isv-loop-209</strong> · run <strong>r-9d44-c712</strong> · 7 events · sealed</span>
+      <span>signed_by · did:web:vitalcv.health · key 4f2a</span>
+    </div>
+    <div class="ev">
+      <span class="ts">14:18:34Z</span>
+      <div class="body"><div class="what">Continuous monitor woke for vcp_8c41…0d44</div><div class="h">scheduled · 12 h interval · run r-9d44-c712 begun</div></div>
+      <span class="tag">monitor</span>
+    </div>
+    <div class="ev">
+      <span class="ts">14:18:35Z</span>
+      <div class="body"><div class="what">NPPES re-confirmed identity</div><div class="h">200 OK · 410 ms · prev_hash 2a81add…</div></div>
+      <span class="tag">T3 · ok</span>
+    </div>
+    <div class="ev rev">
+      <span class="ts">14:18:38Z</span>
+      <div class="body"><div class="what">OIG/LEIE returned ACTIVE EXCLUSION · LEIE-2026-04-30-1801442398-A</div><div class="h">268 ms · 1128(a)(1) · effective 2026-04-30 · this_hash 4d22e1b…0c91f3</div></div>
+      <span class="tag"><span class="m"></span>T3 · fail</span>
+    </div>
+    <div class="ev">
+      <span class="ts">14:18:39Z</span>
+      <div class="body"><div class="what">PECOS enrollment lookup</div><div class="h">200 OK · 392 ms · enrollment now ineligible per OIG finding</div></div>
+      <span class="tag">T3 · advisory</span>
+    </div>
+    <div class="ev rev">
+      <span class="ts">14:18:42Z</span>
+      <div class="body"><div class="what">Revocation issued · status list tombstone written</div><div class="h">StatusList2021 · index 4412 · receipt #048,229 · this_hash 8f01c44…7a2b91</div></div>
+      <span class="tag"><span class="m"></span>revoked</span>
+    </div>
+    <div class="ev">
+      <span class="ts">14:18:43Z</span>
+      <div class="body"><div class="what">Cedar Health Credentialing notified · webhook delivered</div><div class="h">ae_01HZG7M2K88P3 · 200 OK · downstream auto-quarantined in pipeline</div></div>
+      <span class="tag">downstream</span>
+    </div>
+    <div class="ev">
+      <span class="ts">14:18:44Z</span>
+      <div class="body"><div class="what">Holder notified · revocation email queued</div><div class="h">to glen.hollis@… · with appeal window timer (30 d) · ed25519-signed</div></div>
+      <span class="tag">holder</span>
+    </div>
+  </section>
+
+  <!-- ===== §4 Remediation ===== -->
+  <div class="sh">
+    <span class="n">§4</span>
+    <h2>REMEDIATION &middot; OPERATOR PATH</h2>
+    <span class="ey">cold path · legal · not auto-resolvable</span>
+  </div>
+
+  <section class="remed">
+    <div class="l">
+      <h3>This finding is not a software error.</h3>
+      <p>VitalCV did not produce this exclusion. The U.S. Department of Health &amp; Human Services Office of Inspector General did, on <strong>2026-04-30</strong>, and we read it from the public LEIE database on the next scheduled monitor cycle. The platform is doing exactly what it is designed to do: <strong>refuse to issue a positive credential against an authoritative negative finding</strong>.</p>
+      <ol>
+        <li>If you believe this is a <strong>name / NPI collision</strong>, contact VitalCV with proof of identity. We can re-run the match against the OIG record. <span style="color:var(--ink-500);">Typical turnaround: 24–72 h.</span></li>
+        <li>If the exclusion is correctly attributed to you and you believe it is <strong>in error</strong>, you must petition the <strong>HHS-OIG directly</strong>. VitalCV cannot rescind a federal exclusion; only OIG can. <span style="color:var(--ink-500);">Reinstatement process: oig.hhs.gov/exclusions/reinstatement.</span></li>
+        <li>While the exclusion is on file, this passport is <strong>tombstoned at the issuer</strong> and any downstream replay will hard-fail. Re-issuance is automatic upon OIG removing the record.</li>
+        <li>If you are <strong>not</strong> the subject of this record and your NPI has been spoofed, contact VitalCV security and CMS NPPES <strong>immediately</strong>.</li>
+      </ol>
+    </div>
+    <div class="r">
+      <div class="ttl">Holder actions</div>
+      <a class="btn primary" href="#"><span><span>Open appeal case<span class="sub">VitalCV · within 30 d · ed25519-signed</span></span></span><span>→</span></a>
+      <a class="btn" href="#"><span><span>Contact VitalCV security<span class="sub">security@vitalcv.health · for collision claims</span></span></span><span>→</span></a>
+      <a class="btn" href="#"><span><span>Open OIG reinstatement portal<span class="sub">oig.hhs.gov · external · federal</span></span></span><span>↗</span></a>
+      <a class="btn" href="Verifier Replay.html"><span><span>Audit replay<span class="sub">/replay · what downstream sees</span></span></span><span>→</span></a>
+    </div>
+  </section>
+
+  <!-- ===== Signature footer ===== -->
+  <section class="sig-foot">
+    <div class="cell">
+      <div class="k">issuer</div>
+      <div class="v">did:web:vitalcv.health<br><span class="g">key 4f2a · ed25519 · in service 190 d</span></div>
+    </div>
+    <div class="cell">
+      <div class="k">revocation event</div>
+      <div class="v">ae_01HZG7M2K88P3<br><span class="g">recorded 14:18:42.220Z · receipt #048,229</span></div>
+    </div>
+    <div class="cell">
+      <div class="k">status list</div>
+      <div class="v">StatusList2021 · idx 4412<br><span class="g">https://vitalcv.health/status/2026 · public</span></div>
+    </div>
+    <div class="cell">
+      <div class="k">authority of record</div>
+      <div class="v">HHS-OIG / LEIE<br><span class="g">42 USC §1320a-7 · LEIE-2026-04-30-1801442398-A</span></div>
+    </div>
+  </section>
+
+</div>
+
+<footer class="page-foot">
+  <div>VitalCV · passport revoked · <span class="v">tombstoned on status list · re-issuable upon OIG removal of record</span></div>
+  <div style="text-align:right;">
+    <div>Document <span class="v">REV-2026-04412</span> · Rendered <span class="v">2026-05-11 14:18:42.220Z</span></div>
+    <div style="color:var(--ink-400);margin-top:2px;">Signed · did:web:vitalcv.health · ed25519 · key 4f2a</div>
+  </div>
+</footer>
+
+<script src="telemetry.js"></script>
+</body>
+</html>

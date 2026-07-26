@@ -22,6 +22,7 @@ export type PilotIntakePersona =
   | 'staffing_exchange'
   | 'health_system'
   | 'individual_clinician'
+  | 'concierge'
   | 'other';
 
 export interface PilotIntakeInput {
@@ -48,6 +49,7 @@ const ALLOWED_PERSONAS: ReadonlySet<PilotIntakePersona> = new Set([
   'staffing_exchange',
   'health_system',
   'individual_clinician',
+  'concierge',
   'other',
 ]);
 

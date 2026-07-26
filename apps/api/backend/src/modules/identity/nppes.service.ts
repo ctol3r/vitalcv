@@ -4,7 +4,7 @@ import { sha256ForPayload } from '../../utils/deterministic';
 import { fetchWithRetry } from '../../utils/fetchWithRetry';
 import type { RawNppesResponse, NppesFetchResult } from './types';
 
-const CMS_NPPES_ENDPOINT =
+export const CMS_NPPES_ENDPOINT =
   'https://npiregistry.cms.hhs.gov/api/?version=2.1';
 
 /** In-memory NPPES response cache with TTL */

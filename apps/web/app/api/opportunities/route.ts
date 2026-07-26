@@ -34,7 +34,7 @@ export async function GET(req: NextRequest) {
   try {
     const res = await fetch(`${B}/api/opportunities${qs ? `?${qs}` : ''}`, {
       cache: 'no-store',
-      headers: buildMarketplaceHeaders(session),
+      headers: await buildMarketplaceHeaders(session),
       signal: AbortSignal.timeout(12_000),
     });
     const payload = await res.json().catch(() => ({})) as Record<string, unknown>;

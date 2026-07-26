@@ -174,6 +174,13 @@ export function TrustContainerPanel(props: TrustContainerPanelProps): React.Reac
           >
             Mock/dev credential container
           </p>
+        ) : entry.environment === 'vitalcv-signed' ? (
+          <p
+            className="text-[11px] uppercase tracking-[0.18em] text-foreground/60"
+            data-testid="trust-container-signed-label"
+          >
+            {sanitizeTrustContainerDisplayText(entry.label)}
+          </p>
         ) : null}
       </div>
 

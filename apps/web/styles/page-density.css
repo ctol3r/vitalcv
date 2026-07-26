@@ -1,0 +1,67 @@
+/*
+ * Intentional page density
+ *
+ * One layout vocabulary for public, product, workflow, and focused-form
+ * surfaces. Individual pages may still use narrower reading columns inside the
+ * frame, but they should not rebuild outer gutters and runway from scratch.
+ */
+.vcv-page-frame {
+  width: 100%;
+  max-width: var(--vcv-page-max);
+  margin-inline: auto;
+  padding-inline: var(--vcv-page-gutter);
+  padding-block: var(--vcv-page-block);
+}
+
+.vcv-page-frame[data-page-density='marketing'] {
+  --vcv-page-max: 82.5rem;
+  --vcv-page-gutter: clamp(1rem, 3vw, 2rem);
+  --vcv-page-block: clamp(2.5rem, 6vw, 5rem);
+  --vcv-page-section-gap: clamp(3rem, 7vw, 5.5rem);
+  --vcv-page-card-gap: clamp(0.75rem, 1.7vw, 1.25rem);
+}
+
+.vcv-page-frame[data-page-density='product'] {
+  --vcv-page-max: 75rem;
+  --vcv-page-gutter: clamp(1rem, 2.5vw, 2rem);
+  --vcv-page-block: clamp(1.5rem, 3vw, 2.5rem);
+  --vcv-page-section-gap: clamp(1.5rem, 3vw, 2.5rem);
+  --vcv-page-card-gap: clamp(0.75rem, 1.5vw, 1rem);
+}
+
+.vcv-page-frame[data-page-density='workflow'] {
+  --vcv-page-max: 70rem;
+  --vcv-page-gutter: clamp(1rem, 2.5vw, 2rem);
+  --vcv-page-block: clamp(1.5rem, 3vw, 2.25rem);
+  --vcv-page-section-gap: clamp(1.25rem, 2.5vw, 2rem);
+  --vcv-page-card-gap: clamp(0.75rem, 1.5vw, 1rem);
+}
+
+.vcv-page-frame[data-page-density='focused-form'] {
+  --vcv-page-max: 48rem;
+  --vcv-page-gutter: clamp(1rem, 3vw, 1.5rem);
+  --vcv-page-block: clamp(1.5rem, 4vw, 3rem);
+  --vcv-page-section-gap: clamp(1.25rem, 3vw, 2rem);
+  --vcv-page-card-gap: 0.75rem;
+}
+
+.vcv-page-stack {
+  display: grid;
+  gap: var(--vcv-page-section-gap, 2rem);
+}
+
+.vcv-page-frame.vcv-page-frame--mobile-nav {
+  padding-block-end: 7rem;
+}
+
+@media (min-width: 40rem) {
+  .vcv-page-frame.vcv-page-frame--mobile-nav {
+    padding-block-end: var(--vcv-page-block);
+  }
+}
+
+@media (max-width: 47.999rem) {
+  .vcv-page-frame {
+    padding-inline: max(1rem, env(safe-area-inset-left));
+  }
+}

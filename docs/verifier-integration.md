@@ -32,7 +32,7 @@ Notes:
 
 ## Verifier Acceptance Endpoint
 
-### `POST /api/verifier/accept`
+### `POST /api/pilot/acceptance`
 
 Posts a verifier acceptance marker from employer-side review.
 
@@ -88,5 +88,5 @@ Returns the same aggregate payload used for reporting and dashboarding.
 
 ## Safety and operations
 
-- `/api/verify/:shareId` and `/api/verifier/accept` are intentionally API-path-light and remain deterministic.
+- `/api/verify/:shareId` and `/api/pilot/acceptance` are intentionally API-path-light and remain deterministic.
 - All reads are synthetic-safe for pilot deployment where data persistence is expected to drive real-time reporting.

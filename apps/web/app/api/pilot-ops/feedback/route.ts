@@ -8,7 +8,7 @@ export const runtime = 'nodejs';
 export async function POST(req: NextRequest) {
   const session = await auth();
   const body = await req.text();
-  const headers = buildMarketplaceHeaders(session, {
+  const headers = await buildMarketplaceHeaders(session, {
     'Content-Type': 'application/json',
   });
 

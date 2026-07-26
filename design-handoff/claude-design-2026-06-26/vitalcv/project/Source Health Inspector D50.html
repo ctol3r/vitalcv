@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>VitalCV · Source Health · Friction Inspector</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --page:#000;--card:#080d18;--surface:#0a0f1c;
+    --rule:#1e293b;--muted:#334155;--dim:#475569;--sub:#64748b;
+    --txt:#94a3b8;--text:#cbd5e1;--bright:#fff;
+    --green:#10b981;--gd:#34d399;
+    --amber-border:#92400e;--amber-dim:#78350f;
+    --amber:#d97706;--amber-text:#fcd34d;--amber-bg:rgba(217,119,6,.06);
+    --red:#dc2626;--red-text:#fca5a5;--red-bg:rgba(220,38,38,.06);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--page);color:var(--text);font-family:'Geist Mono',ui-monospace,monospace;-webkit-font-smoothing:antialiased;font-size:12.5px;line-height:1.55;font-variant-numeric:tabular-nums;letter-spacing:.02em;}
+
+  /* Op bar */
+  .op{border-bottom:1px solid var(--rule);height:28px;}
+  .op .in{max-width:1280px;margin:0 auto;padding:0 28px;height:100%;display:flex;align-items:center;justify-content:space-between;gap:14px;font-size:10.5px;color:var(--sub);}
+  .op strong{color:var(--bright);font-weight:600;text-transform:uppercase;letter-spacing:.12em;}
+  .op .pill{display:inline-flex;align-items:center;gap:5px;padding:1px 7px;border:1px solid var(--muted);text-transform:uppercase;letter-spacing:.1em;font-size:9.5px;}
+  .op .pill .d{width:5px;height:5px;border-radius:50%;background:var(--amber);}
+
+  /* Header */
+  .hd{border-bottom:2px solid var(--bright);padding:18px 0 14px;}
+  .hd .in{max-width:1280px;margin:0 auto;padding:0 28px;}
+  .hd .crumb{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;font-size:10px;text-transform:uppercase;letter-spacing:.16em;color:var(--sub);flex-wrap:wrap;gap:8px;}
+  .hd .crumb .l{display:flex;align-items:center;gap:10px;}
+  .hd .crumb .g{width:18px;height:18px;background:var(--bright);color:var(--page);display:grid;place-items:center;font-size:10px;font-weight:700;}
+  .hd h1{margin:0;font-size:18px;color:var(--bright);font-weight:700;letter-spacing:.05em;text-transform:uppercase;}
+  .hd .sub{margin-top:5px;font-size:11px;color:var(--txt);max-width:72ch;line-height:1.55;}
+  .hd .sub strong{color:var(--text);}
+
+  /* Section header */
+  .sh{border-bottom:1px solid var(--bright);margin-top:0;}
+  .sh .in{max-width:1280px;margin:0 auto;padding:14px 28px 5px;display:flex;align-items:baseline;gap:12px;}
+  .sh .n{font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--dim);font-weight:600;}
+  .sh h2{margin:0;font-size:12px;color:var(--bright);font-weight:700;letter-spacing:.1em;text-transform:uppercase;}
+  .sh .ey{margin-left:auto;font-size:9.5px;color:var(--sub);text-transform:uppercase;letter-spacing:.12em;}
+
+  section{max-width:1280px;margin:0 auto;padding:0 28px;}
+
+  /* === Friction gap table === */
+  .friction-table{margin-top:14px;border:1px solid var(--rule);}
+  .friction-table .ft-head{display:grid;grid-template-columns:200px 80px 1.6fr 1fr;background:var(--surface);border-bottom:1px solid var(--rule);}
+  .friction-table .ft-head > div{padding:8px 14px;font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--sub);font-weight:600;border-right:1px solid var(--rule);}
+  .friction-table .ft-head > div:last-child{border-right:0;}
+  .friction-row{display:grid;grid-template-columns:200px 80px 1.6fr 1fr;border-bottom:1px solid var(--rule);background:var(--card);}
+  .friction-row:last-child{border-bottom:0;}
+  .friction-row > div{padding:14px;border-right:1px solid var(--rule);}
+  .friction-row > div:last-child{border-right:0;}
+
+  /* Risk label */
+  .risk-label{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--text);}
+  .risk-label .risk-sub{display:block;font-size:9px;letter-spacing:.14em;color:var(--sub);font-weight:400;margin-top:2px;}
+
+  /* Amber metric */
+  .amber-metric{font-size:32px;font-weight:700;line-height:1;letter-spacing:-.01em;color:var(--amber-text);font-variant-numeric:tabular-nums;}
+  .amber-metric .u{font-size:14px;font-weight:500;color:var(--amber);margin-left:2px;letter-spacing:.04em;}
+
+  /* Description */
+  .risk-desc{font-size:11.5px;color:var(--text);line-height:1.55;}
+  .risk-desc strong{color:var(--bright);}
+  .risk-desc .risk-tag{display:inline-block;padding:1px 6px;border:1px solid var(--amber-border);color:var(--amber-text);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;margin-bottom:5px;}
+
+  /* VitalCV buffer column */
+  .buffer-col{font-size:11px;color:var(--gd);line-height:1.55;}
+  .buffer-col .bk{font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--dim);font-weight:600;margin-bottom:4px;}
+
+  /* === Aggregate summary strip === */
+  .agg{margin-top:14px;display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--rule);background:var(--card);}
+  .agg .c{padding:12px 14px;border-right:1px solid var(--rule);}
+  .agg .c:last-child{border-right:0;}
+  .agg .ck{font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--sub);font-weight:600;margin-bottom:5px;}
+  .agg .cv{font-size:20px;color:var(--bright);font-weight:700;letter-spacing:-.01em;font-variant-numeric:tabular-nums;}
+  .agg .cv .u{font-size:11px;color:var(--sub);margin-left:3px;}
+  .agg .cpn{font-size:10px;color:var(--txt);margin-top:4px;line-height:1.4;}
+
+  /* === Technical brief === */
+  .brief{margin-top:14px;border:1px solid var(--rule);background:var(--card);}
+  .brief .bh{padding:9px 14px;background:var(--surface);border-bottom:1px solid var(--rule);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--sub);font-weight:600;display:flex;justify-content:space-between;}
+  .brief .bh strong{color:var(--bright);}
+  .brief .bt{padding:14px 18px;font-size:11.5px;color:var(--text);line-height:1.75;max-width:100ch;}
+  .brief .bt strong{color:var(--bright);}
+  .brief .bt .vcv{color:var(--gd);font-weight:600;}
+
+  /* === Source row === */
+  .sources{margin-top:14px;padding:10px 0;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);display:flex;gap:20px;flex-wrap:wrap;font-size:10px;color:var(--dim);letter-spacing:.04em;}
+  .sources strong{color:var(--sub);}
+
+  .pg-foot{max-width:1280px;margin:18px auto 0;padding:12px 28px 28px;display:flex;justify-content:space-between;font-size:10px;color:var(--dim);border-top:1px solid var(--rule);flex-wrap:wrap;gap:10px;}
+  .pg-foot a{color:var(--txt);text-decoration:underline;text-decoration-color:var(--muted);text-underline-offset:3px;}
+
+  @media(max-width:900px){
+    .friction-table .ft-head,.friction-row{grid-template-columns:160px 70px 1fr;}
+    .friction-row > div:last-child,.friction-table .ft-head > div:last-child{display:none;}
+    .agg{grid-template-columns:1fr 1fr;}
+    .agg .c:nth-child(2n){border-right:0;}
+    .agg .c:nth-child(n+3){border-top:1px solid var(--rule);}
+  }
+</style>
+</head>
+<body data-screen-label="Source Health Inspector D50">
+
+<div class="op">
+  <div class="in">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <strong>VitalCV · Source Health Panel</strong>
+      <span style="color:var(--dim);">·</span>
+      <span>Operator Diagnostic · Friction Inspector</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <span class="pill"><span class="d"></span>Operator View</span>
+      <span style="color:var(--dim);">·</span>
+      <span>Snapshot 2026-05-19T14:00Z</span>
+    </div>
+  </div>
+</div>
+
+<header class="hd">
+  <div class="in">
+    <div class="crumb">
+      <div class="l">
+        <span class="g">V</span>
+        <span style="color:var(--bright);font-weight:600;font-size:11px;letter-spacing:.06em;">VitalCV</span>
+        <span style="color:var(--sub);letter-spacing:.04em;">/ diagnostics / <strong style="color:var(--bright);">source-health</strong></span>
+      </div>
+      <span>For hospital operators · Not patient-facing</span>
+    </div>
+    <h1>Source Health · Friction Gap Inspector</h1>
+    <p class="sub">Read-only diagnostic view exposing known upstream registry failure modes. These are <strong>system-level delays</strong> that exist independent of VitalCV. This panel measures exposure and shows where the notarization buffer absorbs them.</p>
+  </div>
+</header>
+
+<!-- §1 Friction Gaps -->
+<div class="sh">
+  <div class="in">
+    <span class="n">§1</span>
+    <h2>Known Friction Gaps · Upstream Registry Failures</h2>
+    <span class="ey">read-only · measured · non-editable</span>
+  </div>
+</div>
+
+<section>
+  <div class="friction-table">
+    <div class="ft-head">
+      <div>Risk class</div>
+      <div>Rate</div>
+      <div>Description &amp; impact</div>
+      <div>VitalCV buffer</div>
+    </div>
+
+    <!-- Row 1: State Board Portability -->
+    <div class="friction-row" style="background:var(--amber-bg);">
+      <div>
+        <div class="risk-label">
+          State Board Portability Block
+          <span class="risk-sub">Document Loss / Resubmission</span>
+        </div>
+      </div>
+      <div>
+        <div class="amber-metric">79<span class="u">%</span></div>
+      </div>
+      <div>
+        <div class="risk-desc">
+          <span class="risk-tag">High friction</span><br/>
+          79% of multi-state credential applications require at least one <strong>document resubmission</strong> due to state-board format incompatibilities, expired notarizations, or upstream portability gaps. Each resubmission cycle adds 8–21 days to the primary source verification phase.
+        </div>
+      </div>
+      <div>
+        <div class="buffer-col">
+          <div class="bk">Buffer mechanism</div>
+          Federal evidence (NPPES, OIG/LEIE) is signed once and reused. Resubmission cycles at the state-board layer are isolated from payer enrollment by pre-atteStation — parallel tracks do not collapse.
+        </div>
+      </div>
+    </div>
+
+    <!-- Row 2: Manual Quality Audit -->
+    <div class="friction-row" style="background:rgba(217,119,6,.03);">
+      <div>
+        <div class="risk-label">
+          Manual Application Quality Audit
+          <span class="risk-sub">Rework Penalty · Admin overhead</span>
+        </div>
+      </div>
+      <div>
+        <div class="amber-metric" style="font-size:28px;">17<span class="u">%</span></div>
+      </div>
+      <div>
+        <div class="risk-desc">
+          <span class="risk-tag" style="border-color:#6b4c11;">Moderate friction</span><br/>
+          17% of credentialing applications require a <strong>manual quality review cycle</strong> due to incomplete or inconsistent self-reported data. Each rework event adds a median 12 days and escalates to senior credentialing staff, adding indirect labor cost estimated at $380–$640 per application.
+        </div>
+      </div>
+      <div>
+        <div class="buffer-col" style="color:var(--gd);">
+          <div class="bk">Buffer mechanism</div>
+          Self-reported intake is validated against NPPES schema at submission. Discrepancies are flagged before entering the pipeline — not discovered mid-cycle at the payer or board layer.
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- §2 Aggregate exposure -->
+<div class="sh" style="margin-top:18px;">
+  <div class="in">
+    <span class="n">§2</span>
+    <h2>Aggregate Exposure · Cohort Estimate</h2>
+    <span class="ey">based on 47-provider pilot · MGMA 2024</span>
+  </div>
+</div>
+
+<section>
+  <div class="agg">
+    <div class="c">
+      <div class="ck">State board block rate</div>
+      <div class="cv">79<span class="u">%</span></div>
+      <div class="cpn">Of multi-state applications hit resubmission. Median +14d per event.</div>
+    </div>
+    <div class="c">
+      <div class="ck">Manual rework penalty</div>
+      <div class="cv">17<span class="u">%</span></div>
+      <div class="cpn">Applications flagged for quality review. Median +12d, $380–640 labor.</div>
+    </div>
+    <div class="c">
+      <div class="ck">Combined delay floor</div>
+      <div class="cv">+26<span class="u">d</span></div>
+      <div class="cpn">Minimum added to traditional pipeline when both failure modes occur.</div>
+    </div>
+    <div class="c">
+      <div class="ck">CBP insulation rate</div>
+      <div class="cv">~94<span class="u">%</span></div>
+      <div class="cpn">Of cohort providers completed enrollment without hitting either failure mode.</div>
+    </div>
+  </div>
+
+  <div class="brief">
+    <div class="bh"><strong>Technical brief</strong> · System-level delay analysis</div>
+    <div class="bt">
+      System-level delay is dominated by <strong>upstream state-board latency</strong> and <strong>sequential manual verification cycles</strong>. These failure modes are not operator errors — they are structural properties of the existing credentialing infrastructure, documented independently by MGMA, AMA, and NCQA.
+      <br/><br/>
+      <span class="vcv">VitalCV</span> acts as an <strong>immutable notarization buffer</strong>: federal evidence is captured once, signed at source, and reused downstream. This prevents repetitive primary re-collection — the root cause of both friction modes described above. When NPPES, OIG/LEIE, and PECOS evidence is already attested, state-board resubmissions and manual quality audits operate on a pre-verified substrate, reducing their cascade impact from full pipeline stalls to isolated, parallel events.
+    </div>
+  </div>
+
+  <div class="sources">
+    <span>Sources <strong>·</strong></span>
+    <span>MGMA 2024 Physician Credentialing Survey</span>
+    <span>·</span>
+    <span>AMA 2024 Locum Bridge Report</span>
+    <span>·</span>
+    <span>NCQA Credentialing Standards 2025</span>
+    <span>·</span>
+    <span>VitalCV Q2 2026 Pilot · n=47</span>
+  </div>
+</section>
+
+<footer class="pg-foot">
+  <div>VitalCV · operator diagnostic · read-only · no PHI</div>
+  <div><a href="Trust Directory D46.html">/trust →</a> · <a href="Timeline Matrix D48.html">/timeline →</a></div>
+</footer>
+
+</body>
+</html>

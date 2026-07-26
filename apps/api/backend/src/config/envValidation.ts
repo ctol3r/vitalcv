@@ -74,11 +74,25 @@ export function validateEnv(): void {
     });
   }
 
+  // --- G1 verified-JWT rollout (middleware/verifiedIdentity.ts) ---
+  // enforce without an issuer would silently no-op a security control → fatal.
+  // shadow without an issuer is only lost telemetry → loud warning.
+  const jwtMode = process.env.CLERK_JWT_VERIFICATION;
+  if ((jwtMode === 'enforce' || jwtMode === 'shadow') && !process.env.CLERK_ISSUER?.trim()) {
+    if (jwtMode === 'enforce') {
+      log('error', 'env_validation_fatal', { missing: 'CLERK_ISSUER', note: 'CLERK_JWT_VERIFICATION=enforce requires CLERK_ISSUER' });
+      throw new Error('[EnvValidation] CLERK_ISSUER is required when CLERK_JWT_VERIFICATION=enforce');
+    }
+    log('warn', 'env_validation_missing', {
+      key: 'CLERK_ISSUER',
+      note: 'CLERK_JWT_VERIFICATION=shadow will no-op until CLERK_ISSUER is set',
+    });
+  }
+
   // --- Optional, warn if absent ---
   const optionalKeys: { key: string; note: string }[] = [
     { key: 'OPENAI_API_KEY',    note: 'LLM provider will use stub mode' },
     { key: 'CLERK_SECRET_KEY',  note: 'Auth will be degraded' },
-    { key: 'JWT_SECRET',        note: 'JWT signing will use fallback' },
     { key: 'ISSUER_BASE_URL',   note: 'OID4VC metadata will use default base URL' },
     { key: 'FSMB_API_URL',      note: 'FSMB PSV adapter will use stub' },
   ];

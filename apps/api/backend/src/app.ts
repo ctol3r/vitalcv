@@ -17,6 +17,7 @@ import { getRequestOrganizationId } from './middleware/organizationContext';
 import { apiKeyAuth, publicApiRateLimit, trustStateRateLimit } from './middleware/publicSafety';
 import { credentialStatusRateLimit, proofRateLimit, walletRateLimit } from './middleware/rateLimitFactory';
 import { requestObservability } from './middleware/requestObservability';
+import { verifiedIdentityMiddleware } from './middleware/verifiedIdentity';
 import {
     enforceOrganizationMatch,
     isSuperAdminRequest,
@@ -122,7 +123,7 @@ import { registerOID4VCIRoutes } from './routes/oid4vci';                  // Wa
 import { registerOID4VPRoutes } from './routes/oid4vp';                    // Wave 110: OID4VP Presentation
 import { registerFederationMetadataRoutes } from './routes/federationMetadata'; // Wave 113: OpenID Federation
 import { registerConformanceRoutes } from './routes/conformance';          // Wave 114: Conformance + Receipts
-import { registerSubscriptionRoutes } from './routes/subscriptions';       // Wave 115: Subscription Billing
+import { registerApiKeyRoutes } from './routes/apiKeys';                   // Wave 115: API Keys
 import { registerAnalyticsRoutes } from './routes/analytics';              // Wave 116: Analytics
 import { registerNetworkAnalyticsRoutes } from './routes/networkAnalytics'; // Wave 140: Network Telemetry
 import { registerDocsRoutes } from './routes/docs';                        // Wave 117: Developer Docs
@@ -141,6 +142,7 @@ import { registerMissionOpsRoutes } from './routes/missionOps';             // W
 import { registerWorkspaceRoutes } from './routes/workspace';               // Wave 180: Identity workspace graph
 import { registerClinicianRoutes } from './routes/clinician';             // Wave 287: Clinician activation
 import { registerIntakeRoutes } from './routes/intake';                     // Wave 183: Resume + NPI + Links + Work Auth ingestion
+import { registerEmailOtpRoutes } from './routes/identity';                 // Email-OTP identity-binding possession factor
 import { registerSearchRoutes } from './routes/search';                     // Wave 184: Unified Search Index & Content Graph
 import { registerRoleRoutes } from './routes/role';                         // Clerk auth: GET /api/me/role
 import { registerOwnershipRoutes } from './routes/ownership';               // Auth A1: NPI ownership claims
@@ -149,7 +151,9 @@ import { registerPassportEntityRoutes } from './routes/passportEntity';      // 
 import { registerIngestStreamRoutes }   from './routes/ingestStream';        // Real-time ingest SSE
 import { leieCacheStats }               from './services/identity/leieCache'; // OIG LEIE cache
 import { registerOpportunityRoutes } from './routes/opportunities';          // Wave 227: Opportunities + Candidates
+import { registerMatchaRoutes } from './routes/matcha';                      // Wave K: MATCHA demand-side engine
 import { registerApplicationRoutes } from './routes/applications';            // Wave 229: Application Flow
+import { registerActivationRoutes } from './routes/activation';               // ACT-7.3: Activation ledger + start-state HTTP surface
 import { registerAskRoutes } from './routes/ask';                           // Wave 185: Ask VitalCV answer engine
 import { registerCopilotRoutes } from './routes/copilot';                   // Waves C25-C28: Copilot query engine
 import { registerInvestigationRoutes } from './routes/investigation';        // Wave INV: Investigation engine
@@ -173,6 +177,7 @@ import { registerTrustStateEngineRoutes } from './routes/trustStateEngine';     
 import { registerAsyncTrustRoutes } from './routes/asyncTrust';                      // Wave 245: Async Trust Engine
 import { startMonitoringScheduler } from './services/async/monitoringScheduler';    // Wave 245: Monitoring Scheduler
 import { registerApplyRoutes } from './routes/apply';                                // Wave 246: Apply-with-VitalCV
+import { registerReadinessSnapshotRoutes } from './routes/readinessSnapshot';         // Wave M: reusable readiness snapshots
 import { registerTrustDecisionRoutes } from './routes/trustDecision';               // Shape-of-Truth: 6-class decision engine
 import { registerSystemHealthRoutes } from './routes/systemHealth';                    // Wave 249: Trust Spine Hardening
 import { registerVelocityRoutes } from './routes/velocity';                              // Wave 250: Time-to-Start Velocity Dashboard
@@ -214,6 +219,9 @@ import {
     getBundleExportBySnapshotId,
     getLatestArtifact,
 } from './services/artifactService';
+import { isDecisionGradeArtifact } from './services/artifactDecisionGrade';
+import { SourceAccessRequiredError } from './services/sourceRegistry';
+import { isProductionRuntime } from './utils/environment';
 import { generateAuditPacket } from './services/auditPacketGenerator';
 import {
     getMonitoringStatus,
@@ -1059,8 +1067,9 @@ function readVersionInfo(): VersionResponse {
   const commitHash =
     process.env.COMMIT_HASH ??
     process.env.GIT_COMMIT_HASH ??
+    process.env.RAILWAY_GIT_COMMIT_SHA ??
     process.env.GITHUB_SHA ??
-    process.env.VERCEL_GIT_COMMIT_SHA ??
+    process.env.VERCEL_GIT_COMMIT_SHA ?? // legacy fallback
     'unknown';
   const prismaVersion =
     readPackageValue<string>(readInstalledPrismaPackagePath(), 'version') ??
@@ -2627,6 +2636,10 @@ function registerPilotRoutes(app: Express): void {
       }
 
       let artifact = await getLatestArtifact(updated.npi, shareLinkOrgId);
+      if (artifact && isProductionRuntime() && !isDecisionGradeArtifact(artifact)) {
+        // Fabricated (stub-origin) rows confer nothing in production.
+        artifact = null;
+      }
       if (!artifact) {
         const issuanceStartMs = Date.now();
         try {
@@ -2636,6 +2649,27 @@ function registerPilotRoutes(app: Express): void {
           // Wave R: Record onboarding analytics (fire-and-forget)
           recordVerificationEvent(artifact.id, shareLinkOrgId ?? '').catch(() => {});
         } catch (issuanceError) {
+          if (issuanceError instanceof SourceAccessRequiredError) {
+            // Honest fail-closed state: the share link resolved, but no
+            // decision-grade verification exists and production must not
+            // fabricate one. Expected state, not a system failure.
+            return res.status(200).json({
+              trustState: 'needs_review',
+              source: `NPI:${updated.npi}`,
+              status: 'SOURCE_ACCESS_REQUIRED',
+              decisionGrade: false,
+              reason:
+                'License verification requires primary-source access that is not yet connected. No license status is available for this credential.',
+              verifiedAt: null,
+              expiresAt: null,
+              monitoring: 'STANDARD',
+              checksum: null,
+              crossCheckEligible: false,
+              signature: null,
+              hash: null,
+              timestamp: new Date().toISOString(),
+            });
+          }
           await logSystemFailure('vc_issuance', 'critical', issuanceError instanceof Error ? issuanceError.message : 'VC issuance failed', { organizationId: shareLinkOrgId });
           throw issuanceError;
         }
@@ -2653,6 +2687,7 @@ function registerPilotRoutes(app: Express): void {
         trustState,
         source: `NPI:${updated.npi}`,
         status,
+        decisionGrade: isDecisionGradeArtifact(artifact),
         verifiedAt: artifact.verifiedAt.toISOString(),
         expiresAt: artifact.expiresAt?.toISOString() ?? null,
         monitoring: isFirstView ? 'pending verifier confirmation' : monitoringStatus,
@@ -2672,7 +2707,13 @@ function registerPilotRoutes(app: Express): void {
     }
   });
 
-  app.post('/api/verifier/accept', walletRateLimit, async (req: Request, res: Response) => {
+  // Pilot KPI acceptance marker. This lived at /api/verifier/accept, where —
+  // by registering first — it silently shadowed the credential-presentation
+  // acceptance route (routes/verifier.ts), leaving that route's revocation
+  // fail-closed logic and org-role guard unreachable. The verifier namespace
+  // keeps verification semantics (didRegistry advertises it as
+  // PresentationVerification); the KPI marker lives with its pilot siblings.
+  app.post('/api/pilot/acceptance', walletRateLimit, async (req: Request, res: Response) => {
     const body = (req.body ?? {}) as Record<string, unknown>;
     let acceptedAt = new Date();
 
@@ -2889,7 +2930,13 @@ function registerPilotRoutes(app: Express): void {
         npi: req.params.npi,
         error: error instanceof Error ? error.message : 'unknown',
       });
+      if (error instanceof SourceAccessRequiredError) {
+        return res.status(404).json({ error: error.message, code: error.code });
+      }
       const message = error instanceof Error ? error.message : 'Unable to generate audit bundle';
+      if (message.includes('No verification artifacts found')) {
+        return res.status(404).json({ error: message });
+      }
       return res.status(500).json({ error: message });
     }
   });
@@ -2919,7 +2966,13 @@ function registerPilotRoutes(app: Express): void {
         npi: req.params.npi,
         error: error instanceof Error ? error.message : 'unknown',
       });
+      if (error instanceof SourceAccessRequiredError) {
+        return res.status(404).json({ error: error.message, code: error.code });
+      }
       const message = error instanceof Error ? error.message : 'Unable to generate bundle download';
+      if (message.includes('No verification artifacts found')) {
+        return res.status(404).json({ error: message });
+      }
       return res.status(500).json({ error: message });
     }
   });
@@ -3433,6 +3486,13 @@ validateEnv();
 
 const app = express();
 
+// Trust exactly one proxy hop (Railway's edge). Without this, Express leaves
+// `req.ip` as the proxy's address, so all anonymous callers collapse into a
+// single rate-limit bucket (ASVS gap G3). Trusting `1` (not `true`) means we
+// read the client IP from the last X-Forwarded-For hop only — a spoofed XFF from
+// the real client is overwritten by Railway, so it cannot forge a distinct IP.
+app.set('trust proxy', 1);
+
 // Security headers
 app.use(helmet());
 
@@ -3470,6 +3530,12 @@ app.use(
 // /api/replay/runs/:runId and /api/replay/runs/by-npi/:npi are public verifier surfaces.
 registerReplayRunRoutes(app);
 registerReplayByNpiRoute(app);
+
+// G1 verified identity (CLERK_JWT_VERIFICATION: off|shadow|enforce). Mounted
+// BEFORE the tenant guard so enforce mode rewrites x-clerk-user-id to the
+// verified JWT sub (and strips role-bypass headers on unverified requests)
+// before any downstream reader — including tenantGuard — consumes them.
+app.use(verifiedIdentityMiddleware);
 
 // Intelligence/investigation read routes bypass org requirement.
 // All other routes still require org context via requireTenantContext.
@@ -3557,7 +3623,7 @@ registerOID4VCIRoutes(app);           // Wave 109: OpenID4VCI Issuance Layer
 registerOID4VPRoutes(app);            // Wave 110: OpenID4VP Presentation Layer
 registerFederationMetadataRoutes(app); // Wave 113: OpenID Federation Trust Metadata
 registerConformanceRoutes(app);       // Wave 114: Conformance Suite + Audit Receipts
-registerSubscriptionRoutes(app);      // Wave 115: Subscription Billing & API Keys
+registerApiKeyRoutes(app);            // Wave 115: API Keys
 registerAnalyticsRoutes(app);         // Wave 116: Analytics Dashboard
 registerNetworkAnalyticsRoutes(app);  // Wave 140: Network Telemetry Intelligence
 registerDocsRoutes(app);              // Wave 117: Developer Docs & OpenAPI
@@ -3584,6 +3650,7 @@ registerMissionOpsRoutes(app);        // Wave 123 — Mission Ops + onboarding f
 registerWorkspaceRoutes(app);         // Wave 180 — Dual-Entity Identity + workspace switching
 registerClinicianRoutes(app);         // Wave 287 — Clinician activation
 registerIntakeRoutes(app);            // Wave 183 — Resume + NPI + Links + Work Auth ingestion
+registerEmailOtpRoutes(app);          // Email-OTP identity-binding possession factor
 registerSearchRoutes(app);            // Wave 184 — Unified Search Index + hybrid retrieval
 registerRoleRoutes(app);              // Clerk auth — GET /api/me/role (role resolution)
 registerOwnershipRoutes(app);         // Auth A1 — NPI ownership claim/revoke
@@ -3594,7 +3661,9 @@ registerIngestStreamRoutes(app);      // Real-time ingest — POST /api/ingest/:
 // GET /api/leie/status — OIG LEIE cache health
 app.get('/api/leie/status', (_req, res) => { res.json(leieCacheStats()); });
 registerOpportunityRoutes(app);       // Wave 227 — Opportunities + Candidates
+registerMatchaRoutes(app);            // Wave K — MATCHA demand-side engine (was built + tested but never mounted)
 registerApplicationRoutes(app);       // Wave 229 — Clinician Application Flow
+registerActivationRoutes(app);        // ACT-7.3 — mounts the activation requirement ledger + start-state services
 registerAskRoutes(app);               // Wave 185 — Ask VitalCV natural language answer engine
 registerCopilotRoutes(app);           // Waves C25-C28 — Copilot query engine
 registerInvestigationRoutes(app);    // Wave INV — Investigation engine
@@ -3623,6 +3692,7 @@ if (BACKGROUND_JOBS_ENABLED) {
   startStrategyAgentScheduler();         // FE21-A — Strategy agent scheduler heartbeat
 }
 registerApplyRoutes(app);                // Wave 246 — Apply-with-VitalCV Distribution Wedge
+registerReadinessSnapshotRoutes(app);    // Wave M — share-once / reuse-by-many readiness snapshots
 registerTrustDecisionRoutes(app);       // Shape-of-Truth — 6-class trust decision engine
 registerSystemHealthRoutes(app);         // Wave 249 — Trust Spine Hardening
 registerVelocityRoutes(app);             // Wave 250 — Time-to-Start Velocity Dashboard

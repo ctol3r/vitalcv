@@ -214,23 +214,43 @@ describe('clinician profile foundation — completion math', () => {
   });
 });
 
-const ROUTE_DIR = resolve(__dirname, '..', 'app', 'clinician');
+const APP_DIR = resolve(__dirname, '..', 'app');
+const ROUTE_DIR = resolve(APP_DIR, 'clinician');
 
 function readRoute(rel: string): string {
   return readFileSync(resolve(ROUTE_DIR, rel), 'utf-8');
 }
 
+function readAppRoute(rel: string): string {
+  return readFileSync(resolve(APP_DIR, rel), 'utf-8');
+}
+
 describe('clinician foundation — route copy invariants', () => {
-  it('onboarding page declares user-entered ≠ verified', () => {
-    const src = readRoute('onboarding/page.tsx');
-    expect(src).toContain('User-entered information is not verified until source-backed evidence is attached.');
+  it('canonical onboarding keeps self-attestation separate from verification', () => {
+    const alias = readRoute('onboarding/page.tsx');
+    const src = readAppRoute('get-ready/GetReadySurface.tsx');
+    expect(alias).toContain("redirect('/onboarding')");
+    expect(src).toContain('You&apos;re attesting to your role');
+    expect(src).toContain('VitalCV records this attestation; it does not verify it here.');
   });
 
   it('onboarding page does not claim government ID / liveness is live', () => {
-    const src = readRoute('onboarding/page.tsx');
+    const src = readAppRoute('get-ready/GetReadySurface.tsx');
     expect(src.toLowerCase()).not.toContain('government id verified');
     expect(src.toLowerCase()).not.toContain('liveness verified');
-    expect(src).toMatch(/government ID and liveness — is on the roadmap/);
+    expect(src).toContain('Government ID, liveness, and license verification are separate');
+  });
+
+  it('the no-NPI preview lane is honestly labelled preview / self-attested', () => {
+    const src = readAppRoute('get-ready/GetReadySurface.tsx');
+    // The lane exists and posts to the preview-only bootstrap.
+    expect(src).toContain('/api/profile/student/bootstrap');
+    expect(src).toContain('health-professions student');
+    // Honest labelling: preview, self-attested, not source-verified, not decision-grade.
+    expect(src).toContain('self-attested and not source-verified');
+    expect(src.toLowerCase()).toContain('not decision-grade');
+    // Reuses the attestation-is-not-verification pin.
+    expect(src).toContain('VitalCV records this attestation; it does not verify it here.');
   });
 
   it('profile page renders provenance vocabulary disclaimer', () => {
@@ -254,16 +274,16 @@ describe('clinician foundation — route copy invariants', () => {
     expect(src.toLowerCase()).not.toContain('publications verified');
   });
 
-  it('graph preview page says the graph does not verify by itself', () => {
+  it('graph page is quarantined (SHD-0.3): a redirect, not a public synthetic graph', () => {
+    // /clinician/graph carries no auth gate (roles.ts classes it as neither
+    // public nor protected, so middleware passes it through) yet it mounted the
+    // same synthetic force-directed clinician roster as the legacy public
+    // /evidence-network. SHD retires it: the route now redirects to the public
+    // Trust Center and imports no graph. A real clinician evidence graph lives
+    // only in the gated /holder workspace.
     const src = readRoute('graph/page.tsx');
-    expect(src).toContain('The graph explains provenance and gaps. It does not verify a claim by itself.');
-  });
-
-  it('graph preview includes the required node taxonomy labels', () => {
-    const src = readRoute('graph/page.tsx');
-    for (const label of ['Clinician', 'NPI', 'Claim', 'Source', 'Receipt', 'Unknown', 'User-entered']) {
-      expect(src).toContain(label);
-    }
+    expect(src).toMatch(/redirect\('\/trust'\)/);
+    expect(src).not.toMatch(/CareerGraph/);
   });
 
   it('no clinician foundation page contains forbidden truth-contract phrases', () => {

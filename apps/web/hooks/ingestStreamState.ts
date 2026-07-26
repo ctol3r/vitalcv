@@ -39,6 +39,20 @@ export interface StreamIdentity {
   lastUpdated?: string;
   taxonomies?: Array<{ code: string; desc: string; primary: boolean }>;
   address?: { line1: string; city: string; state: string; zip: string; country: string; phone?: string };
+  /**
+   * Source-backed NPPES practice location (VERIFIED) attached to the passport_ready
+   * event. Mirrors PassportData.practiceLocation. null / absent when NPPES carried
+   * no usable address — never fabricated.
+   */
+  practiceLocation?: {
+    city?: string;
+    state?: string;
+    postalCode?: string;
+    addressLine?: string;
+    provenance: 'VERIFIED';
+    sourceId: 'NPPES';
+    lastCheckedAt?: string;
+  } | null;
   entityType?: string;
   npiType?: string;
   status?: string;
@@ -197,6 +211,14 @@ function mergeIdentity(
     address = payload.address as { line1: string; city: string; state: string; zip: string; country: string; phone?: string };
   }
 
+  // Source-backed NPPES practice location. Only replace when the payload carries an
+  // object — a null payload (NPPES had no usable address) keeps prior state and is
+  // never treated as a verified value.
+  let practiceLocation = prev.practiceLocation;
+  if (payload.practiceLocation && typeof payload.practiceLocation === 'object') {
+    practiceLocation = payload.practiceLocation as StreamIdentity['practiceLocation'];
+  }
+
   return {
     entityId: readString(payload, 'entityId') ?? prev.entityId,
     displayName,
@@ -206,6 +228,7 @@ function mergeIdentity(
     lastUpdated: readString(payload, 'lastUpdated') ?? prev.lastUpdated,
     taxonomies,
     address,
+    practiceLocation,
     entityType: readString(payload, 'entityType') ?? prev.entityType,
     npiType: readString(payload, 'npiType') ?? prev.npiType,
     status: identityStatus,
