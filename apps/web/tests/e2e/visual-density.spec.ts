@@ -7,7 +7,13 @@ const viewports = [
 ] as const;
 
 const publicSurfaces = [
-  { name: 'employers', path: '/employers', mode: 'focused-form', action: true },
+  // `marketing`, not `focused-form`: /employers stopped being a form page.
+  // It opened with an NPI input and a disabled button — setup before the buyer
+  // had been given a reason — and now leads with the outcome beside the packet
+  // a buyer receives, with the claim form demoted to a step below. This entry
+  // records DECLARED INTENT, so it is the right thing to change when the intent
+  // genuinely changes; what it must never do is drift silently.
+  { name: 'employers', path: '/employers', mode: 'marketing', action: true },
   { name: 'cvo', path: '/for/cvo', mode: 'marketing', action: true },
   { name: 'trust', path: '/trust', mode: 'marketing', action: false },
   { name: 'status', path: '/status', mode: 'marketing', action: false },
@@ -52,11 +58,24 @@ test.describe('Intentional page density', () => {
     }
   }
 
+  /**
+   * Samples the mode the page ACTUALLY serves.
+   *
+   * This read `[data-page-density="focused-form"]` on `/employers`, which was
+   * the only route in that mode. When the page moved to `marketing` the
+   * selector matched nothing and the test failed with "element(s) not found" —
+   * not because the token contract broke, but because the guard was pinned to
+   * a route rather than to the thing it verifies.
+   *
+   * `focused-form` now has ZERO consumers. Its tokens are still defined in
+   * page-density.css, so the mode is dead code rather than a broken contract —
+   * worth deleting, but not silently inside a redesign PR.
+   */
   test('density modes expose deliberate width, gutter, and rhythm tokens', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 1000 });
     await page.goto('/employers', { waitUntil: 'networkidle' });
 
-    const tokens = await page.locator('[data-page-density="focused-form"]').evaluate((node) => {
+    const tokens = await page.locator('[data-page-density="marketing"]').evaluate((node) => {
       const style = getComputedStyle(node);
       return {
         maxWidth: style.maxWidth,
@@ -67,7 +86,8 @@ test.describe('Intentional page density', () => {
       };
     });
 
-    expect(tokens.maxWidth).toBe('768px');
+    // marketing: --vcv-page-max: 82.5rem
+    expect(tokens.maxWidth).toBe('1320px');
     expect(Number.parseFloat(tokens.paddingLeft)).toBeGreaterThanOrEqual(16);
     expect(tokens.block).not.toBe('');
     expect(tokens.sectionGap).not.toBe('');
