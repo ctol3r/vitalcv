@@ -117,6 +117,15 @@ async function expectResolved(page: Page) {
   await expect(hero(page).getByText(/located in NPPES/)).toBeVisible({ timeout: 15_000 });
 }
 
+/**
+ * The clear-exclusion line. Matched by pattern, not literal: the copy now
+ * carries the lane's cadence from the registry (`sourceLanes.ts`), because a
+ * monthly LEIE snapshot rendered under "Confirmed today" with no age was a
+ * freshness overclaim on the one fact where staleness is a liability.
+ * Pinning the literal would re-break every time the cadence label changes.
+ */
+const CLEAR_EXCLUSION = /No match in the current LEIE file/;
+
 test.describe('NPI truth engine — homepage hero', () => {
   test('a checksum-invalid NPI cannot start a lookup and says why', async ({ page }) => {
     await page.goto('/', { waitUntil: 'networkidle' });
@@ -147,7 +156,7 @@ test.describe('NPI truth engine — homepage hero', () => {
     // Confirmed lanes name their source and what the source actually returned.
     const confirmed = groupRows(page, 'Confirmed today');
     await expect(confirmed.getByText('Confirmed through the NPPES registry')).toBeVisible();
-    await expect(confirmed.getByText('No exclusion match returned')).toBeVisible();
+    await expect(confirmed.getByText(CLEAR_EXCLUSION)).toBeVisible();
 
     // Licensure was not read — it must sit in the gated group, not the confirmed one.
     const unavailable = groupRows(page, 'Unavailable without additional access');
@@ -185,7 +194,7 @@ test.describe('NPI truth engine — homepage hero', () => {
     // …but the confirmed group must not carry the NPPES-confirmed claim.
     await expect(hero(page).getByText('Confirmed through the NPPES registry')).not.toBeVisible();
     // Other genuinely-returned results still show, so absence above is not a render failure.
-    await expect(hero(page).getByText('No exclusion match returned')).toBeVisible();
+    await expect(hero(page).getByText(CLEAR_EXCLUSION)).toBeVisible();
   });
 
   test('PECOS NOT_FOUND is attention — not blocked, not confirmed', async ({ page }) => {
@@ -227,7 +236,7 @@ test.describe('NPI truth engine — homepage hero', () => {
       ),
     ).toBeVisible();
     // An EXCLUDED status must never render the clear-result line.
-    await expect(hero(page).getByText('No exclusion match returned')).not.toBeVisible();
+    await expect(hero(page).getByText(CLEAR_EXCLUSION)).not.toBeVisible();
   });
 
   test('unchecked sources stay unknown — never presented as clear', async ({ page }) => {
@@ -247,7 +256,7 @@ test.describe('NPI truth engine — homepage hero', () => {
     const unavailable = groupRows(page, 'Unavailable without additional access');
     await expect(unavailable.getByText('Check not yet run')).toBeVisible();
     await expect(unavailable.getByText('State-board source access required')).toBeVisible();
-    await expect(hero(page).getByText('No exclusion match returned')).not.toBeVisible();
+    await expect(hero(page).getByText(CLEAR_EXCLUSION)).not.toBeVisible();
   });
 
   test('trust-state outage degrades honestly: identity located, nothing claimed confirmed', async ({ page }) => {
