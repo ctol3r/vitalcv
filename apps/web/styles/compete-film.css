@@ -483,6 +483,28 @@
   flex: 1 1 32rem;
 }
 
+/**
+ * Vertical mode is a COLUMN, and that changes what `flex` means.
+ *
+ * The artifact rules above size a ROW: `flex: 1 1 32rem` gives the copy a
+ * 32rem-wide column beside the record. In vertical mode the same declaration
+ * is read along the column's main axis, so `flex-basis: 32rem` becomes 512px
+ * of HEIGHT and `flex-grow: 1` absorbs whatever height is left over.
+ *
+ * Measured at 390×844 before this reset: `.film-copy` was 512px tall for 297px
+ * of content, leaving ~180px of dead paper between the copy and the record.
+ * That is the "blank space" the founder reported on mobile — not a spacing
+ * choice, a unit being interpreted on the wrong axis.
+ *
+ * Row sizing therefore belongs to film mode only; in vertical mode every
+ * artifact block is simply as tall as its content.
+ */
+.film[data-film-mode='vertical'] .film-scene:has(.film-record) .film-copy,
+.film[data-film-mode='vertical'] .film-record,
+.film[data-film-mode='vertical'] .film-wide {
+  flex: 0 0 auto;
+}
+
 .film-record {
   flex: 0 1 30rem;
   min-width: 0;
