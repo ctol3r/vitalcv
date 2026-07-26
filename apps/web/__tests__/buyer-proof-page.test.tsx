@@ -74,11 +74,40 @@ describe('Wave 5 buyer proof surface', () => {
     const markup = renderToStaticMarkup(await EmployersPage());
 
     expect(markup).toContain('Claim your organization');
-    expect(markup).toContain('Enter your organization’s NPI');
+    // The claim entry itself, asserted by the field rather than by a heading
+    // string. The heading moved when the page stopped opening with setup, and
+    // the old assertion failed while the form was still perfectly present —
+    // it was pinning the wording, not the capability it meant to protect.
+    expect(markup).toContain('org-npi-input');
+    expect(markup).toContain('Organization NPI (Type 2)');
     expect(markup).toContain('it is not legal proof of authority');
     expect(findHrefByText(markup, 'Request a pilot')).toBe('/pilot');
     expect(findHrefByText(markup, 'Open your workspace')).toBe('/employer/dashboard');
     expectNoBuyerBannedStrings(markup);
+  });
+
+  it('leads with the buyer outcome, not with setup mechanics', async () => {
+    const { default: EmployersPage } = await import('../app/employers/page');
+    const markup = renderToStaticMarkup(await EmployersPage());
+
+    // The H1 is the promise, not the prerequisite. "Claim your organization"
+    // may appear on the page — it is a real step — but it may not be the first
+    // thing a buyer is asked to care about.
+    const h1 = /<h1[^>]*>([\s\S]*?)<\/h1>/.exec(markup)?.[1] ?? '';
+    expect(h1).toMatch(/start clinicians/i);
+    expect(h1).not.toMatch(/claim your organization/i);
+
+    // The boundary that must never drift: this page once promised "verify
+    // clinicians" while `/` promised the opposite. VitalCV assembles evidence;
+    // the institution decides. A public page may not claim otherwise.
+    expect(markup).not.toMatch(/verify clinicians/i);
+    expect(markup).toMatch(/does not credential, privilege, or clear anyone/i);
+
+    // The artifact shares the first screen with the argument.
+    expect(markup).toContain('data-employer-packet');
+    // …and it is unfilled, because a populated one would be a fabricated
+    // clinician.
+    expect(markup).toMatch(/Nothing is filled in until a clinician shares/i);
   });
 
   it('keeps the review landing CTA pointed at the live request route', async () => {
