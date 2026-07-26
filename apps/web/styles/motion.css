@@ -12,8 +12,10 @@
  * Keyframes for film surfaces therefore live here, not there.
  */
 
-/* Used by `.film-record` (COMPETE-2): the record settles onto the paper rather
- * than appearing. Opacity only — no transform — so it cannot shift layout. */
+/* Used by `.film-record` via `[data-film-record-live]` (COMPETE-2): the record
+ * settles onto the paper rather than appearing. It stays record-specific — only
+ * FilmRecord emits that attribute, even though the lane class is shared panel
+ * furniture. Opacity only — no transform — so it cannot shift layout. */
 @keyframes film-record-settle {
   from {
     opacity: 0;
