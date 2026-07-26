@@ -14,9 +14,9 @@
 
 .film {
   --film-paper: var(--vt-cloud-dancer, #f0eee9);
-  --film-ink: var(--vt-text-primary, #1e1c19);
-  --film-ink-soft: var(--vt-text-secondary, #55504a);
-  --film-ink-muted: var(--vt-text-muted, #86807a);
+  --film-ink: var(--vt-text-primary);
+  --film-ink-soft: var(--vt-text-secondary);
+  --film-ink-muted: var(--vt-text-muted);
   --film-rule: rgba(30, 28, 25, 0.14);
 
   position: relative;
@@ -60,10 +60,21 @@
    The runway's HEIGHT is set inline by the component (one viewport per
    transition, scaled to the scene count) so it cannot drift from the scene
    list. Everything else about film mode lives here. */
+/* The stage pins BELOW the site chrome, not under it.
+
+   `top: 0; height: 100vh` was wrong in both states. The nav is `sticky top-0`
+   at 78px, so it pinned on top of the first 78px of every scene; and at rest
+   the announcement bar puts the film 113px down the document, so a 100vh stage
+   overhung the fold by 113px — a band of empty paper under the opening frame,
+   which is the first thing a visitor saw.
+
+   `--film-chrome` is measured from the real header at runtime (the component
+   sets it, and re-measures on resize) so this holds at every breakpoint and
+   survives the announcement bar being dismissed. */
 .film[data-film-mode='film'] .film-stage {
   position: sticky;
-  top: 0;
-  height: 100vh;
+  top: var(--film-chrome, 0px);
+  height: calc(100svh - var(--film-chrome, 0px));
 }
 
 .film[data-film-mode='film'] .film-track {
@@ -133,9 +144,18 @@
 
    Stops are in `rem`, not `%`, so the fade lands the same distance past the
    text at every viewport width. */
-.film-copy {
+/* Scene content sits above the atmosphere canvas (z-index 1). Declared ONCE
+   for all three surfaces: `check-design-lint` LINT-05 is a ratchet that may
+   shrink but never grow, and three copies of the same stop was both debt and a
+   drift risk. */
+.film-copy,
+.film-wide,
+.film-record {
   position: relative;
   z-index: 3;
+}
+
+.film-copy {
   max-width: 34rem;
   padding: 2rem 7rem 2rem 0;
   background: linear-gradient(
@@ -288,8 +308,6 @@
 /* A real product surface that needs the full stage width — it sits beside the
    copy in film mode and below it in vertical mode. */
 .film-wide {
-  position: relative;
-  z-index: 3;
   flex: 1 1 auto;
   min-width: 0;
 }
@@ -439,4 +457,174 @@
   .film-readinglight {
     display: none;
   }
+}
+
+/* ------------------------------------------------- the record (Arrival)
+
+   COMPETE-2 asks each scene for "a large visual event, not a component". The
+   film shipped without one, which is why the opening frame read as a phrase
+   floating in empty paper. This is that event, and per CD-14 it is the only
+   image VitalCV publishes: its own artifact.
+
+   Built to the evidence-artifact rules — opaque paper, hairline rules, a 2px
+   ink top edge, 3px corners, mono for anything the system retrieved, and no
+   shadow at all. It should look like something you could print and file. */
+
+.film-scene:has(.film-record) {
+  justify-content: space-between;
+  gap: clamp(2rem, 5vw, 5rem);
+}
+
+.film-scene:has(.film-record) .film-copy {
+  /* The record now carries the right-hand weight, so the copy column no longer
+     needs the paper gradient that used to fade it into empty space. */
+  padding-right: 0;
+  background: none;
+  flex: 1 1 32rem;
+}
+
+.film-record {
+  flex: 0 1 30rem;
+  min-width: 0;
+  background: var(--vt-surface);
+  border: 1px solid var(--vt-border);
+  border-top: 2px solid var(--vt-text-primary);
+  border-radius: 3px;
+}
+
+.film-record-head {
+  padding: 1rem 1.125rem 0.875rem;
+  border-bottom: 1px solid var(--vt-border);
+}
+
+.film-record-kicker {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--vt-text-muted);
+}
+
+.film-record-note {
+  margin: 0.375rem 0 0;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  color: var(--vt-text-secondary);
+}
+
+.film-record-lanes {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.film-record-lane {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6875rem 1.125rem;
+  border-bottom: 1px solid var(--vt-border);
+}
+
+.film-record-lane:last-child {
+  border-bottom: 0;
+}
+
+.film-record-lane-name {
+  display: block;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--vt-text-primary);
+}
+
+.film-record-lane-src {
+  display: block;
+  margin-top: 0.125rem;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.02em;
+  color: var(--vt-text-muted);
+}
+
+/* A stamp, not a pill (CD-10) — a record carries stamps. The hue lives on the
+   glyph and the left rule only; the word itself is ink, so the state survives
+   grayscale and never depends on colour for contrast (CD-5). */
+.film-record-stamp {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4375rem;
+  padding: 0.25rem 0.5rem 0.25rem 0.4375rem;
+  border: 1px solid var(--vt-border);
+  border-left: 2px solid var(--vt-border);
+  border-radius: 3px;
+  background: var(--vt-bg);
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--vt-text-primary);
+}
+
+.film-record-stamp[data-reachable] {
+  border-left-color: var(--vt-border);
+}
+
+.film-record-stamp:not([data-reachable]) {
+  border-left-color: var(--vt-text-muted);
+}
+
+.film-record-glyph {
+  font-size: 0.6875rem;
+  line-height: 1;
+  color: var(--vt-text-muted);
+}
+
+.film-record-foot {
+  padding: 0.8125rem 1.125rem;
+  border-top: 1px solid var(--vt-border);
+  background: var(--vt-surface-dim);
+  font-size: 0.75rem;
+  line-height: 1.45;
+  color: var(--vt-text-secondary);
+}
+
+/* Source light gathering: one opacity pass per row, single-shot. */
+@media (prefers-reduced-motion: no-preference) {
+  .film-record-lane[data-film-record-live] {
+    animation: film-record-settle 420ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+}
+
+
+@media (max-width: 900px) {
+  .film-scene:has(.film-record) {
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: center;
+  }
+
+  .film-record {
+    flex: 0 0 auto;
+    margin-top: 2rem;
+  }
+}
+
+/* The verification stamp is a link — it has to look operable, because the
+   entire claim of that scene is that you can check it yourself. */
+.film-record-stamp-link {
+  text-decoration: none;
+  transition: border-color 160ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+.film-record-stamp-link:hover,
+.film-record-stamp-link:focus-visible {
+  border-color: var(--vt-text-primary);
+}
+
+.film-record-stamp-link:focus-visible {
+  outline: 2px solid var(--vt-focus-ring);
+  outline-offset: 2px;
 }

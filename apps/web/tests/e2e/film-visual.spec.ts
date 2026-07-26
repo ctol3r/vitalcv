@@ -58,7 +58,7 @@ import { requireHarness } from './film-harness';
  * a passing local visual run would be false comfort.
  */
 
-const ROUTE = '/dev/compete-film?filmFreeze=1';
+const ROUTE = '/?filmFreeze=1';
 
 /** DG-18.3 thresholds. */
 const SHOT = {
@@ -185,7 +185,7 @@ test.describe('DG-18.3 film visual regression', () => {
   });
 
   test('static tier — the poster carries the composition', async ({ page }) => {
-    await page.goto('/dev/compete-film?sceneTier=static');
+    await page.goto('/?sceneTier=static');
     await page.setViewportSize({ width: 1440, height: 900 });
     await settle(page);
     await expect(page.locator('.film-atmosphere-canvas')).toHaveCount(0);
@@ -211,7 +211,7 @@ test.describe('DG-18.3 film visual regression — reduced motion', () => {
       viewport: { width: 1440, height: 900 },
     });
     const page = await context.newPage();
-    const response = await page.goto(`${baseURL ?? ''}/dev/compete-film`);
+    const response = await page.goto(`${baseURL ?? ''}/`);
     requireHarness(response);
     await settle(page);
 

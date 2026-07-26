@@ -20,7 +20,7 @@ test.describe('homepage proof moment (W4.2)', () => {
     // section carrying a numbered eyebrow ("04 Why this is credible") and a
     // second display heading, both retired mechanisms (R4, R6). The inspector
     // itself, its illustrative label, and the employer boundary are unchanged.
-    const moment = page.locator('[data-film-scene="start"]');
+    const moment = page.locator('[data-film-scene="hiring"]');
     await moment.scrollIntoViewIfNeeded();
 
     const inspector = moment.locator('[data-proof-packet-inspector]');
@@ -70,7 +70,7 @@ test.describe('homepage proof moment (W4.2)', () => {
     const context = await browser.newContext({ javaScriptEnabled: false });
     const page = await context.newPage();
     await page.goto('/', { waitUntil: 'domcontentloaded' });
-    const moment = page.locator('[data-film-scene="start"]');
+    const moment = page.locator('[data-film-scene="hiring"]');
     await expect(moment.locator('[data-proof-packet-inspector]')).toBeAttached();
     // The default claim's chain is server-rendered (no selection JS needed).
     await expect(moment).toContainText('NPPES NPI Registry');

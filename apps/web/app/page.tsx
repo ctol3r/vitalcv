@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 
 import { HorizontalCareerFilm } from '@/components/home/film/HorizontalCareerFilm';
+import '@/styles/motion.css';
 import '@/styles/compete-film.css';
 
 // One consistent category statement (Sprint 1). The site previously mixed three
@@ -60,16 +61,24 @@ const STRUCTURED_DATA = {
 };
 
 /**
- * COMPETE-1: `/` serves the six-scene horizontal career film.
+ * COMPETE-1 — `/` is the six-scene horizontal career film.
  *
- * The film replaces the stacked-section composition (`HomePageClient`) that the
- * competitive mandate retires — `RailJourney`/`JourneyCard` (R2, R3) and
- * `MetricStrip`'s `00`–`03` counter grammar (R4). See
- * docs/strategy/competitive-mandate.md and the composition ownership record.
+ * The mandate (`VitalCV_Competitive_Mandate_and_Claude_Code_Waves_2026-07-21.md`,
+ * COMPETE-1) is the controlling authority here: "Replace the homepage
+ * `RailJourney` with `HorizontalCareerFilm`, keeping a linear semantic DOM
+ * order for fallback." The film has been production code since #835 and served
+ * only from the dev harness at `/dev/compete-film`; this switches the public
+ * route to it.
  *
- * `HomePageClient` stays on disk: it still owns the hero/NPI unit tests and is
- * the rollback target — reverting this file restores the previous homepage with
- * no other change.
+ * `HomePageClient` is intentionally no longer rendered. It is the composition
+ * the mandate retires — the four-chapter rail, the product carousel, the
+ * metric strip, the duplicate page-level outline. The film recomposes what
+ * survives that ruling: the NPI control and its real returned state, the proof
+ * packet inspector, and the two forward routes (`scenes.ts` maps each scene to
+ * the real product surface it carries). Nothing that asserted a fact was
+ * dropped; the sections that only repeated a claim were.
+ *
+ * Rollback is this file alone: restore the `HomePageClient` import and render.
  */
 export default function HomePage() {
   return (
