@@ -51,3 +51,49 @@ describe('global footer — tap targets meet WCAG 2.5.8', () => {
     ).toEqual([]);
   });
 });
+
+/**
+ * Sub-24px type used on real controls elsewhere on the public surface.
+ *
+ * These carry a transparent `::before` overlay instead of padding, because each
+ * sits in a baseline-aligned or tightly-laid-out row where padding would move
+ * neighbouring content. The overlay is invisible and affects no layout.
+ *
+ * Browser-verified: the /trust/attribution back-link measured a 12px box with a
+ * 24px hit area at 390×844. The two /verify controls use the identical utility
+ * string but could not be exercised locally — /verify renders empty without
+ * backend data — so this guard is what holds them.
+ */
+const OVERLAY = [
+  {
+    file: 'components/trust/CopyableDID.tsx',
+    what: 'DID [copy] button (33×9 on production)',
+  },
+  {
+    file: 'components/verifier/IssuerContinuityPanel.tsx',
+    what: 'JWKS "verify →" link (43×14 on production)',
+  },
+  {
+    file: 'app/trust/attribution/page.tsx',
+    what: '"← vitalcv.com" back-link (78×12 on production)',
+  },
+] as const;
+
+describe('sub-24px controls keep an expanded hit area', () => {
+  for (const { file, what } of OVERLAY) {
+    it(`${what} — ${file}`, () => {
+      const src = fs.readFileSync(path.join(process.cwd(), file), 'utf8');
+
+      // The control still uses small type (design intent preserved)...
+      expect(src).toMatch(/text-\[(9|10)px\]/);
+
+      // ...so it must carry the overlay. `relative` is load-bearing: without it
+      // the absolutely-positioned ::before escapes to the nearest positioned
+      // ancestor and stops covering the control.
+      expect(src, 'missing before:absolute overlay').toContain('before:absolute');
+      expect(src, 'overlay must be >= 24px tall').toMatch(/before:h-6|before:h-\[24px\]/);
+      expect(src, "overlay needs before:content-[''] to render").toMatch(/before:content-\[/);
+      expect(src, 'overlay needs a positioned ancestor').toMatch(/\brelative\b/);
+    });
+  }
+});
