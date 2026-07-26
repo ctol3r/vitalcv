@@ -107,19 +107,21 @@ describe('public surface truth guards — post-release drift prevention', () => 
     );
 
     expect(homepage?.entryFile).toBe('apps/web/app/page.tsx');
+    // These pinned a manifest that had gone stale, which is why it stayed
+    // stale: correcting it broke this test, so nobody did. The old list named
+    // HeroWithAuthPrompt, PublicTruthSections and HomeSections — all three dead
+    // code with zero importers, none of them rendered by `/` after the homepage
+    // became the film. Pin the surface's SHAPE, and let
+    // scripts/report-public-entry-copy-sources.js enforce that each entry is
+    // real and live; a hard-coded list here can only ever re-freeze whatever
+    // was true the day it was written.
+    expect(homepage?.copySources?.length ?? 0).toBeGreaterThan(0);
     expect(homepage?.copySources).toEqual(
-      expect.arrayContaining([
-        'apps/web/components/hero/HeroWithAuthPrompt.tsx',
-        'apps/web/components/home/PublicTruthSections.tsx',
-        'apps/web/components/marketing/HomeSections.tsx',
-      ]),
+      expect.arrayContaining(['apps/web/components/home/film/HorizontalCareerFilm.tsx']),
     );
-    expect(developerShell?.entryFile).toBe('apps/web/app/developers/page.tsx');
+    expect(developerShell?.entryFile).toBe('apps/web/app/docs/page.tsx');
     expect(developerShell?.copySources).toEqual(
-      expect.arrayContaining([
-        'apps/web/app/docs/page.tsx',
-        'apps/api/backend/src/services/search/searchIndex.ts',
-      ]),
+      expect.arrayContaining(['apps/api/backend/src/services/search/searchIndex.ts']),
     );
   });
 
