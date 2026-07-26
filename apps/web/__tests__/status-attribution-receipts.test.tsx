@@ -60,18 +60,27 @@ describe('ConnectorMatrix — receipt-document table', () => {
     );
   });
 
-  it('OIG / LEIE row uses the connector-not-live state', () => {
+  // Corrected 2026-07-25. These pinned `connector-not-live`, which was FALSE
+  // and was itself half of a public contradiction: /api/status published both
+  // lanes as operational while this matrix said no connector existed.
+  // OigLeieAdapter reads the real HHS LEIE CSV unless OIG_LEIE_ENABLED ===
+  // 'false' (unset on Railway, founder-confirmed) and fetchPecos calls CMS
+  // data.gov with no env gate. The real boundary is the session — the web
+  // proxy 401s unauthenticated — so the honest state is `auth-required`.
+  it('OIG / LEIE row is auth-required, not connector-not-live', () => {
     const oig = CONNECTOR_MATRIX_ROWS.find((r) =>
       r.connector.toLowerCase().includes('oig'),
     );
-    expect(oig?.state).toBe('connector-not-live');
+    expect(oig?.state).toBe('auth-required');
+    expect(oig?.observation).not.toMatch(/no live upstream/i);
   });
 
-  it('CMS PECOS row uses the connector-not-live state', () => {
+  it('CMS PECOS row is auth-required, not connector-not-live', () => {
     const pecos = CONNECTOR_MATRIX_ROWS.find((r) =>
       r.connector.toLowerCase().includes('pecos'),
     );
-    expect(pecos?.state).toBe('connector-not-live');
+    expect(pecos?.state).toBe('auth-required');
+    expect(pecos?.observation).not.toMatch(/no live upstream/i);
   });
 
   it('FSMB and Nursys rows use the connector-not-live state', () => {
@@ -123,18 +132,23 @@ describe('TrustAttributionRegister — per-field register', () => {
     }
   });
 
-  it('OIG / LEIE field is connector-not-live, not source-backed', () => {
+  // Same 2026-07-25 correction as the matrix rows above. The load-bearing
+  // half of these assertions was always "not source-backed" — that still
+  // holds, and is covered exhaustively by the non-NPPES test below.
+  it('OIG / LEIE field is auth-required, and never source-backed', () => {
     const oig = TRUST_ATTRIBUTION_ROWS.find((r) =>
       r.field.toLowerCase().includes('oig'),
     );
-    expect(oig?.state).toBe('connector-not-live');
+    expect(oig?.state).toBe('auth-required');
+    expect(oig?.retrievalTime).not.toMatch(/connector not live/i);
   });
 
-  it('CMS PECOS field is connector-not-live, not source-backed', () => {
+  it('CMS PECOS field is auth-required, and never source-backed', () => {
     const pecos = TRUST_ATTRIBUTION_ROWS.find((r) =>
       r.field.toLowerCase().includes('pecos'),
     );
-    expect(pecos?.state).toBe('connector-not-live');
+    expect(pecos?.state).toBe('auth-required');
+    expect(pecos?.retrievalTime).not.toMatch(/connector not live/i);
   });
 
   it('FSMB and Nursys fields are connector-not-live, not source-backed', () => {
