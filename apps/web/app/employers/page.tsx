@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { EmployerGetStartedClient } from './EmployerGetStartedClient';
+import { EmployerAudienceSection } from '@/components/employers/EmployerAudienceSection';
 import { EmployerWorkflowPreview } from '@/components/employers/EmployerWorkflowPreview';
 import { PageFrame } from '@/components/layout/PageFrame';
 import { SOURCE_LANE_OPS } from '@/lib/trust/sourceLanes';
@@ -81,6 +82,13 @@ export default function EmployersPage() {
         </header>
 
         <EmployerWorkflowPreview />
+
+        {/* MB1 — the teams who actually read this page, and the way in by org size.
+            Placed after the operating model has made the case and BEFORE the ask,
+            which is the order every credentialing vendor uses for its segmented
+            story (study §9.4). Small practices and groups route down to Step 1;
+            health systems route to /pilot. */}
+        <EmployerAudienceSection />
 
         <section
           id="claim-your-organization"
