@@ -181,7 +181,7 @@ export async function recordPilotServerEvent(input: {
 }): Promise<void> {
   try {
     const session = input.session ?? await auth();
-    const headers = buildMarketplaceHeaders(session, {
+    const headers = await buildMarketplaceHeaders(session, {
       'Content-Type': 'application/json',
     });
     const role = readRole(session);
@@ -230,7 +230,7 @@ export async function updatePilotSurfaceControl(input: {
     });
   }
 
-  const headers = buildMarketplaceHeaders(admin.session, {
+  const headers = await buildMarketplaceHeaders(admin.session, {
     'Content-Type': 'application/json',
   });
   headers.set('x-clerk-user-role', readRole(admin.session) ?? 'ADMIN');
@@ -264,7 +264,7 @@ export async function forwardPilotOpsRequest(
     });
   }
 
-  const headers = buildMarketplaceHeaders(admin.session, init?.headers);
+  const headers = await buildMarketplaceHeaders(admin.session, init?.headers);
   headers.set('x-monitoring-secret', MONITORING_SECRET);
   headers.set('x-clerk-user-role', readRole(admin.session) ?? 'ADMIN');
 

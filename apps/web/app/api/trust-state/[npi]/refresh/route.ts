@@ -4,6 +4,7 @@
  */
 import { auth } from '@clerk/nextjs/server';
 import { NextRequest, NextResponse } from 'next/server';
+import { buildIdentityHeaders } from '@/lib/auth/forwardIdentity';
 
 export const runtime = 'nodejs';
 
@@ -28,7 +29,7 @@ export async function POST(
     const res = await fetch(`${B}/api/trust-state/${npi}/refresh`, {
       method: 'POST',
       headers: {
-        'x-clerk-user-id': session.userId,
+        ...(await buildIdentityHeaders({ userId: session.userId })),
         'Content-Type': 'application/json',
       },
     });

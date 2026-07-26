@@ -1,0 +1,28 @@
+# gitleaks config for VitalCV — see docs/security/secret-scan-2026-07-06.md
+# Extends the default ruleset; allowlists known non-secrets (test fixtures,
+# docs examples, generated/backup dirs) so a clean run is CI-gateable.
+title = "VitalCV gitleaks"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Non-secret paths and placeholder values"
+paths = [
+  '''.*\.backup/.*''',
+  '''.*\.next/.*''',
+  '''.*/__tests__/.*''',
+  '''.*\.test\.(ts|tsx|js)$''',
+  '''.*\.spec\.(ts|tsx|js)$''',
+  '''tests/fixtures/.*''',
+  '''design-handoff/.*''',
+  '''docs/.*\.md$''',
+  '''apps/docs/.*''',
+  '''.*\.example$''',
+]
+regexes = [
+  '''sk_live_1234567890abcdef''',
+  '''TEST_PRIVATE_KEY_PEM''',
+  '''replace-with-.*''',
+  '''db\.example\.com''',
+]

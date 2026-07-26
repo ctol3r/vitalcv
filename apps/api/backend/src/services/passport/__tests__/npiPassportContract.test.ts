@@ -61,6 +61,14 @@ jest.mock('../../entity/passportService', () => ({
   })),
 }));
 
+// Profile enrichment reads the DB (NPPES practice-location claim + PersonProfile
+// self-attested). This suite is a pure contract-transform test, so stub both
+// readers to null — an unclaimed NPI with no self-attested data.
+jest.mock('../profileEnrichment', () => ({
+  loadPracticeLocationByNpi: jest.fn().mockResolvedValue(null),
+  loadSelfReportedByNpi: jest.fn().mockResolvedValue(null),
+}));
+
 import { loadPassportData } from '../../../routes/passport';
 import { buildPassportDataByNpi } from '../npiPassportContract';
 

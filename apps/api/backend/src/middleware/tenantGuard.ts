@@ -45,6 +45,7 @@ function normalizePath(path: string): string {
 
 export function shouldSkipTenantContext(path: string): boolean {
   const normalized = normalizePath(path);
+  const isAuthorizedPacketRead = /^\/api\/applications\/[^/]+\/packet$/.test(normalized);
 
   return (
     normalized === '/'
@@ -57,6 +58,25 @@ export function shouldSkipTenantContext(path: string): boolean {
     || normalized.startsWith('/psv')
     || normalized.startsWith('/identity')
     || normalized.startsWith('/api/identity')
+    // Role bootstrap: resolves a user by Clerk id alone (no org context yet).
+    // Same rationale as /api/identity — a first-time signed-in user has no org
+    // when the middleware asks "what role is this?", so requiring tenant
+    // context here 401s and dead-ends the entire signed-in experience.
+    || normalized === '/api/me/role'
+    // Clinician personal-profile intake family (npi/bootstrap, links,
+    // work-auth, resume, self-attested, completeness, identity/email-otp):
+    // every route here is scoped to the Clerk user alone and authenticates
+    // itself via x-clerk-user-id → internal User.id resolution. These are
+    // onboarding-time surfaces — a brand-new clinician has no org yet, so
+    // requiring org context 401s the signup golden path at its first write
+    // (launch blocker #4 e2e pins this). Same rationale as /api/me/role.
+    || normalized.startsWith('/api/profile/')
+    // Workspace bootstrap: resolves by Clerk user id alone (x-clerk-user-id
+    // header) and *produces* the persona/org context the rest of the app runs
+    // on. Requiring org context before the workspace lookup is a chicken-and-
+    // egg 401 that dead-ends /holder ("Couldn't load your profile").
+    || normalized === '/api/me/workspaces'
+    || normalized === '/api/workspaces/switch'
     || normalized.startsWith('/demo')
     || normalized.startsWith('/.well-known')
     || normalized.startsWith('/api/.well-known')
@@ -73,8 +93,12 @@ export function shouldSkipTenantContext(path: string): boolean {
     || normalized.startsWith('/api/passport/')
     || normalized.startsWith('/api/employer-review/')
     || normalized.startsWith('/api/apply/')
+    // Wave M: persisted readiness snapshots — public verifier reads by
+    // capability id (every access audited; revoked fails closed in-route).
+    || normalized.startsWith('/api/snapshot/')
     || normalized.startsWith('/api/trust-state/')
     || normalized.startsWith('/api/trust-decision/')
+    || normalized.startsWith('/api/trust-proof/')
     || normalized.startsWith('/api/verify')
     || normalized.startsWith('/api/verifier/accept')
     || normalized.startsWith('/api/pilot')
@@ -86,6 +110,17 @@ export function shouldSkipTenantContext(path: string): boolean {
     || normalized.startsWith('/api/watch')
     || normalized.startsWith('/api/search')
     || normalized.startsWith('/api/employers')
+    // Clinicians do not require an organization to read their own immutable
+    // submission. This exact read route performs verified-identity, ownership,
+    // employer-membership, and platform-admin authorization in its service.
+    // Other /api/applications routes remain tenant guarded.
+    || isAuthorizedPacketRead
+    // MATCHA clinician demand-side surfaces: NPI-keyed scoring reads plus
+    // Clerk-header-scoped intent/opportunity writes, called via the web
+    // proxies before any org context exists (same posture as
+    // /api/opportunities above). Marketplace routes (/api/marketplace/*)
+    // intentionally stay behind the tenant guard.
+    || normalized.startsWith('/api/matcha')
     || normalized.startsWith('/bundle')
     || normalized.startsWith('/api/issuer/')
     || normalized.startsWith('/api/poe/')

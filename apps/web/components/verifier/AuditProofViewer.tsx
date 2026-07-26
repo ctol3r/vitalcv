@@ -146,7 +146,7 @@ export function AuditProofViewer() {
                     <CheckCircle2 className="w-4 h-4 text-foreground" />
                   </div>
                   <h4 className="text-sm font-bold text-slate-900">Current Validation</h4>
-                  <p className="text-xs font-mono text-slate-500 mt-1">Zero-knowledge proof verified. Complete integrity confirmed.</p>
+                  <p className="text-xs font-mono text-slate-500 mt-1">Selective-disclosure proof verified. Signature integrity confirmed.</p>
                 </div>
 
                 <div className="relative z-10">

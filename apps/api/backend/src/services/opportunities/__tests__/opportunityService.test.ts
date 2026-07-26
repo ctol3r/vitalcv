@@ -21,12 +21,17 @@ jest.mock('../../../graphql/prisma_client', () => ({
       update: jest.fn(),
       findUnique: jest.fn(),
     },
+    opportunity: {
+      findUnique: jest.fn(),
+      update: jest.fn(),
+    },
   },
 }));
 
 import prisma from '../../../graphql/prisma_client';
 import {
   getOrgProfile,
+  updateOpportunity,
   upsertOrgProfile,
 } from '../opportunityService';
 
@@ -49,6 +54,10 @@ const prismaMock = prisma as unknown as {
     update: jest.Mock;
     findUnique: jest.Mock;
   };
+  opportunity: {
+    findUnique: jest.Mock;
+    update: jest.Mock;
+  };
 };
 
 describe('opportunityService org profile pilot policy', () => {
@@ -63,6 +72,8 @@ describe('opportunityService org profile pilot policy', () => {
     prismaMock.organization.create.mockReset();
     prismaMock.organizationProfile.update.mockReset();
     prismaMock.organizationProfile.findUnique.mockReset();
+    prismaMock.opportunity.findUnique.mockReset();
+    prismaMock.opportunity.update.mockReset();
   });
 
   it('reads pilot policy fields from the requirements envelope', async () => {
@@ -133,11 +144,11 @@ describe('opportunityService org profile pilot policy', () => {
     prismaMock.personProfile.findUnique.mockResolvedValue({ id: 'person-1' });
     prismaMock.workspaceMembership.findFirst.mockResolvedValue({
       organizationProfileId: 'org-profile-1',
-      organizationProfile: {
-        organizationId: 'org-1',
-        requirements: [{ label: 'Legacy requirement', level: 'L1' }],
-        organization: { name: 'General Hospital' },
-      },
+    });
+    prismaMock.organizationProfile.findUnique.mockResolvedValue({
+      id: 'org-profile-1',
+      organizationId: 'org-1',
+      requirements: [{ label: 'Legacy requirement', level: 'L1' }],
     });
     prismaMock.organization.findUnique.mockResolvedValue(null);
     prismaMock.organization.update.mockResolvedValue({});
@@ -207,7 +218,12 @@ describe('opportunityService org profile pilot policy', () => {
   });
 
   it('uses a canonical slug instead of a timestamped duplicate slug', async () => {
-    prismaMock.user.findUnique.mockResolvedValue({ id: 'user-1' });
+    // The create path grants admin membership, so it requires a work email at
+    // the organization's own domain — the account email must match the website.
+    prismaMock.user.findUnique.mockResolvedValue({
+      id: 'user-1',
+      email: 'director@mindbridgehealth.com',
+    });
     prismaMock.personProfile.findUnique.mockResolvedValue({ id: 'person-1' });
     prismaMock.workspaceMembership.findFirst.mockResolvedValue(null);
     prismaMock.organization.findUnique.mockResolvedValue(null);
@@ -228,16 +244,32 @@ describe('opportunityService org profile pilot policy', () => {
     }));
   });
 
+  it('refuses to create an organization without work-domain authority', async () => {
+    prismaMock.user.findUnique.mockResolvedValue({
+      id: 'user-1',
+      email: 'someone@gmail.com',
+    });
+    prismaMock.personProfile.findUnique.mockResolvedValue({ id: 'person-1' });
+    prismaMock.workspaceMembership.findFirst.mockResolvedValue(null);
+
+    await expect(upsertOrgProfile('clerk-user-1', {
+      name: 'MindBridge Health, LLC',
+      website: 'mindbridgehealth.com',
+    })).rejects.toThrow('personal email address');
+
+    expect(prismaMock.organization.create).not.toHaveBeenCalled();
+  });
+
   it('persists an organization NPI when employer setup includes one', async () => {
     prismaMock.user.findUnique.mockResolvedValue({ id: 'user-1' });
     prismaMock.personProfile.findUnique.mockResolvedValue({ id: 'person-1' });
     prismaMock.workspaceMembership.findFirst.mockResolvedValue({
       organizationProfileId: 'org-profile-1',
-      organizationProfile: {
-        organizationId: 'org-1',
-        requirements: [],
-        organization: { name: 'General Hospital' },
-      },
+    });
+    prismaMock.organizationProfile.findUnique.mockResolvedValue({
+      id: 'org-profile-1',
+      organizationId: 'org-1',
+      requirements: [],
     });
     prismaMock.organization.findUnique.mockResolvedValue(null);
     prismaMock.organization.update.mockResolvedValue({});
@@ -253,5 +285,98 @@ describe('opportunityService org profile pilot policy', () => {
         npi: '1999999999',
       }),
     }));
+  });
+});
+
+describe('updateOpportunity', () => {
+  const OPP_ID = '11111111-1111-1111-1111-111111111111';
+
+  function mockOrgResolution() {
+    // clerkUserId → user → personProfile → workspaceMembership → org profile → org-1
+    prismaMock.user.findUnique.mockResolvedValue({ id: 'user-1' });
+    prismaMock.personProfile.findUnique.mockResolvedValue({ id: 'person-1' });
+    prismaMock.workspaceMembership.findFirst.mockResolvedValue({
+      organizationProfileId: 'org-profile-1',
+    });
+    prismaMock.organizationProfile.findUnique.mockResolvedValue({
+      id: 'org-profile-1',
+      organizationId: 'org-1',
+    });
+  }
+
+  beforeEach(() => {
+    prismaMock.user.findUnique.mockReset();
+    prismaMock.personProfile.findUnique.mockReset();
+    prismaMock.workspaceMembership.findFirst.mockReset();
+    prismaMock.organizationProfile.findUnique.mockReset();
+    prismaMock.opportunity.findUnique.mockReset();
+    prismaMock.opportunity.update.mockReset();
+  });
+
+  it('404s when the opportunity does not exist', async () => {
+    mockOrgResolution();
+    prismaMock.opportunity.findUnique.mockResolvedValue(null);
+
+    await expect(
+      updateOpportunity('clerk-user-1', OPP_ID, { status: 'CLOSED' }),
+    ).rejects.toMatchObject({ status: 404 });
+    expect(prismaMock.opportunity.update).not.toHaveBeenCalled();
+  });
+
+  it('403s when the opportunity belongs to another organization', async () => {
+    mockOrgResolution();
+    prismaMock.opportunity.findUnique.mockResolvedValue({ organizationId: 'someone-elses-org' });
+
+    await expect(
+      updateOpportunity('clerk-user-1', OPP_ID, { status: 'CLOSED' }),
+    ).rejects.toMatchObject({ status: 403 });
+    expect(prismaMock.opportunity.update).not.toHaveBeenCalled();
+  });
+
+  it('writes only the provided fields and returns the updated truth', async () => {
+    mockOrgResolution();
+    prismaMock.opportunity.findUnique.mockResolvedValue({ organizationId: 'org-1' });
+    prismaMock.opportunity.update.mockResolvedValue({
+      id: OPP_ID,
+      organizationId: 'org-1',
+      title: 'Updated Cardiologist',
+      specialty: 'Cardiology',
+      hiringType: 'perm',
+      state: 'CA',
+      payRange: null,
+      payMin: null,
+      payMax: null,
+      employerType: null,
+      startUrgency: null,
+      requirementLevel: 'L1',
+      description: null,
+      remote: false,
+      status: 'CLOSED',
+      createdAt: new Date('2026-01-01T00:00:00.000Z'),
+      updatedAt: new Date('2026-07-10T00:00:00.000Z'),
+      organization: {
+        name: 'Bay Area Cardiac Group',
+        slug: 'bay-area-cardiac-group',
+        organizationProfile: null,
+      },
+    });
+
+    const result = await updateOpportunity('clerk-user-1', OPP_ID, {
+      title: 'Updated Cardiologist',
+      status: 'CLOSED',
+    });
+
+    // Ownership check ran against the org-scoped id.
+    expect(prismaMock.opportunity.findUnique).toHaveBeenCalledWith({
+      where: { id: OPP_ID },
+      select: { organizationId: true },
+    });
+    // Partial patch: only the two provided keys are written — nothing else.
+    expect(prismaMock.opportunity.update).toHaveBeenCalledWith(expect.objectContaining({
+      where: { id: OPP_ID },
+      data: { title: 'Updated Cardiologist', status: 'CLOSED' },
+    }));
+    expect(result.status).toBe('CLOSED');
+    expect(result.title).toBe('Updated Cardiologist');
   });
 });

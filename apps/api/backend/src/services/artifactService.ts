@@ -18,7 +18,8 @@ import { runIndependentCrossCheck } from './crossCheckEngine';
 import type { ArtifactEventType } from '../types/auditEventTypes';
 import { appendArtifactLifecycleEntry } from './transparencyLedger';
 import { assertMonitoringEngineEnabled } from './credentialMonitoringEngine';
-import { isStrictTransitionMode } from '../utils/environment';
+import { isDecisionGradeArtifact } from './artifactDecisionGrade';
+import { isProductionRuntime, isStrictTransitionMode } from '../utils/environment';
 import {
   AUDITSCRAPBOOK_COMPLIANCE_PROFILE,
   AUDITSCRAPBOOK_METHOD,
@@ -331,8 +332,14 @@ export async function generateAuditBundle(
   npi: string,
   options: GenerateAuditBundleOptions = {},
 ): Promise<AuditBundleResult> {
-  const artifact = await getLatestArtifact(npi, options.organizationId);
+  let artifact = await getLatestArtifact(npi, options.organizationId);
+  if (artifact && isProductionRuntime() && !isDecisionGradeArtifact(artifact)) {
+    // Fabricated (stub-origin) rows must never seed an audit bundle in
+    // production; treat them as absent so the fail-closed path below fires.
+    artifact = null;
+  }
   if (!artifact) {
+    // Production: throws SourceAccessRequiredError instead of fabricating.
     await createArtifactFromNursys(npi, options.organizationId);
   }
 

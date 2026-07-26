@@ -10,6 +10,7 @@
 import { createHash } from 'node:crypto';
 import { log } from '../../../obs/logger';
 import { recordProvenance } from '../providerSourceProvenance';
+import { createCaBreezeLiveLookup } from './caBreezeLiveLookup';
 import { getConnectorMode } from './connectorFactory';
 import { runConnectorWithReliability } from './connectorReliability';
 
@@ -25,7 +26,7 @@ export interface StateBoardResult {
   sourceUrl: string;
   sourceMode?: 'live' | 'sandbox';
   decisionGrade?: boolean;
-  degradationReason?: 'OUTAGE' | 'ACCESS_REQUIRED' | 'STALE' | 'PARSER_FAILURE' | 'NOT_IMPLEMENTED' | null;
+  degradationReason?: 'OUTAGE' | 'ACCESS_REQUIRED' | 'STALE' | 'PARSER_FAILURE' | 'NOT_IMPLEMENTED' | 'IDENTITY_UNRESOLVED' | null;
   sourceDisclaimer?: string | null;
 }
 
@@ -49,7 +50,14 @@ const STATE_BOARD_SCHEMA_POLICY = {
 // ── State Board Configs ─────────────────────────────────────────────
 
 const STATE_CONFIGS: Record<string, StateBoardAdapterConfig> = {
-  CA: { state: 'CA', boardName: 'Medical Board of California', sourceUrl: 'https://mbc.ca.gov/breeze/' },
+  CA: {
+    state: 'CA',
+    boardName: 'Medical Board of California',
+    sourceUrl: 'https://mbc.ca.gov/breeze/',
+    // Reachable only when STATE_BOARD_MODE=live; fail-closed parser, see
+    // caBreezeLiveLookup.ts for the go-live preconditions.
+    liveLookup: createCaBreezeLiveLookup(),
+  },
   NY: { state: 'NY', boardName: 'New York State Education Department', sourceUrl: 'http://www.op.nysed.gov/opsearches.htm' },
   TX: { state: 'TX', boardName: 'Texas Medical Board', sourceUrl: 'https://www.tmb.state.tx.us/page/look-up-a-license' },
   FL: { state: 'FL', boardName: 'Florida Department of Health', sourceUrl: 'https://mqa-internet.doh.state.fl.us/MQASearchServices/HealthCareProviders' },
@@ -140,11 +148,16 @@ export async function lookupStateBoard(
     schemaPolicy: STATE_BOARD_SCHEMA_POLICY,
     execute: async () => {
       if (mode === 'live' && config.liveLookup) {
+        const liveResult = await config.liveLookup(npi, licenseNumber);
+        // Respect the adapter's own degradation report: a degraded or
+        // unresolved live result must never be stamped decision-grade.
+        const degraded =
+          liveResult.degradationReason != null
+          || liveResult.licenseStatus === 'NOT_AVAILABLE';
         return {
-          ...(await config.liveLookup(npi, licenseNumber)),
+          ...liveResult,
           sourceMode: 'live',
-          decisionGrade: true,
-          degradationReason: null,
+          decisionGrade: degraded ? false : liveResult.decisionGrade ?? true,
         };
       }
 

@@ -7,6 +7,9 @@ jest.mock('../../../graphql/prisma_client', () => ({
       groupBy: jest.fn(),
       findFirst: jest.fn(),
     },
+    searchObjectACL: {
+      findMany: jest.fn(),
+    },
     searchIndexRun: {
       count: jest.fn(),
     },
@@ -43,11 +46,15 @@ const prismaMock = prisma as unknown as {
   searchObject: {
     findMany: jest.Mock;
   };
+  searchObjectACL: {
+    findMany: jest.Mock;
+  };
 };
 
 describe('querySearch', () => {
   beforeEach(() => {
     prismaMock.searchObject.findMany.mockReset();
+    prismaMock.searchObjectACL.findMany.mockReset();
   });
 
   it('enforces aclLevel, orgId, and roleRequired without leaking holder-only content to verifier queries', async () => {
@@ -64,7 +71,6 @@ describe('querySearch', () => {
         freshAt: new Date('2026-03-01T00:00:00Z'),
         indexedAt: new Date('2026-03-01T00:00:00Z'),
         active: true,
-        acl: [],
       },
       {
         id: 'verifier-1',
@@ -78,7 +84,6 @@ describe('querySearch', () => {
         freshAt: new Date('2026-03-02T00:00:00Z'),
         indexedAt: new Date('2026-03-02T00:00:00Z'),
         active: true,
-        acl: [{ orgId: 'org-1', roleRequired: 'VERIFIER' }],
       },
       {
         id: 'holder-1',
@@ -92,7 +97,6 @@ describe('querySearch', () => {
         freshAt: new Date('2026-03-03T00:00:00Z'),
         indexedAt: new Date('2026-03-03T00:00:00Z'),
         active: true,
-        acl: [],
       },
       {
         id: 'other-org-1',
@@ -106,8 +110,13 @@ describe('querySearch', () => {
         freshAt: new Date('2026-03-03T00:00:00Z'),
         indexedAt: new Date('2026-03-03T00:00:00Z'),
         active: true,
-        acl: [{ orgId: 'org-2', roleRequired: 'VERIFIER' }],
       },
+    ]);
+    // SearchObject has no `acl` relation — the service stitches these rows
+    // from the standalone SearchObjectACL table by searchObjectId.
+    prismaMock.searchObjectACL.findMany.mockResolvedValue([
+      { searchObjectId: 'verifier-1', orgId: 'org-1', roleRequired: 'VERIFIER' },
+      { searchObjectId: 'other-org-1', orgId: 'org-2', roleRequired: 'VERIFIER' },
     ]);
 
     const response = await querySearch({

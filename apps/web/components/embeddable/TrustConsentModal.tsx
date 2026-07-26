@@ -36,7 +36,7 @@ export function TrustConsentModal({ requestingParty = 'Acme Health', purposes = 
                {step === 'PROCESSING' && (
                  <motion.div key="processing" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="bg-white rounded-2xl max-w-sm w-full p-8 shadow-xl flex flex-col items-center justify-center">
                     <RefreshCw className="w-10 h-10 text-indigo-600 animate-spin mb-4" />
-                    <h3 className="text-lg font-bold text-slate-800">Generating Zero-Knowledge Proof...</h3>
+                    <h3 className="text-lg font-bold text-slate-800">Generating selective-disclosure proof...</h3>
                     <p className="text-xs text-slate-500 mt-2 text-center">Cryptographically signing your portable trust artifacts.</p>
                  </motion.div>
                )}

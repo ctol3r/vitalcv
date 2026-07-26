@@ -1,7 +1,9 @@
 'use client';
 
-import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
+import { useAuth } from '@clerk/nextjs';
+import { CLERK_PROVIDER_ENABLED } from '@/lib/auth/clerkConfig';
 import type { ActivePersona, WorkspaceList } from '@/types/workspace';
 
 export type MarketplaceRole = 'guest' | 'clinician' | 'employer';
@@ -69,27 +71,38 @@ function deriveRoleModel(
     landingRoute: !isSignedIn
       ? '/sign-in'
       : role === 'employer'
-        ? '/verifier/home'
+        ? '/employer/dashboard'
         : '/holder/home',
   };
 }
 
-export function RoleProvider({
+/**
+ * Wave 0.2 follow-up: the session is resolved on the CLIENT (Clerk's useAuth),
+ * never seeded by a root-layout `auth()` call. The old server seed forced
+ * every route — the whole public marketing site — into per-request dynamic
+ * rendering the moment Clerk was correctly enabled at build time, destroying
+ * the bounded shared caching (#680) on pages that must stay static. A static
+ * prerender can only ever carry the guest state anyway; the truth arrives at
+ * hydration and this provider converges to it.
+ */
+function RoleProviderInner({
   children,
-  initialUserId,
-  initialClerkRole,
+  userId,
+  clerkRole,
+  sessionLoaded,
 }: {
   children: ReactNode;
-  initialUserId: string | null;
-  initialClerkRole: string | null;
+  userId: string | null;
+  clerkRole: string | null;
+  sessionLoaded: boolean;
 }) {
   const [workspace, setWorkspace] = useState<WorkspaceList | null>(null);
-  const [isLoaded, setIsLoaded] = useState(!initialUserId);
+  const [workspaceLoaded, setWorkspaceLoaded] = useState(!userId);
 
-  async function loadWorkspace() {
-    if (!initialUserId) {
+  const loadWorkspace = useCallback(async () => {
+    if (!userId) {
       setWorkspace(null);
-      setIsLoaded(true);
+      setWorkspaceLoaded(true);
       return;
     }
 
@@ -108,21 +121,21 @@ export function RoleProvider({
     } catch {
       setWorkspace(null);
     } finally {
-      setIsLoaded(true);
+      setWorkspaceLoaded(true);
     }
-  }
+  }, [userId]);
 
   useEffect(() => {
     void loadWorkspace();
-  }, [initialUserId]);
+  }, [loadWorkspace]);
 
   const value = useMemo<RoleContextValue>(() => {
-    const derived = deriveRoleModel(initialUserId, initialClerkRole, workspace);
+    const derived = deriveRoleModel(userId, clerkRole, workspace);
 
     return {
-      isLoaded,
+      isLoaded: sessionLoaded && workspaceLoaded,
       isSignedIn: derived.isSignedIn,
-      clerkRole: initialClerkRole,
+      clerkRole,
       persona: derived.persona,
       role: derived.role,
       landingRoute: derived.landingRoute,
@@ -133,7 +146,7 @@ export function RoleProvider({
       workspace,
       refresh: loadWorkspace,
     };
-  }, [initialClerkRole, initialUserId, isLoaded, workspace]);
+  }, [clerkRole, loadWorkspace, sessionLoaded, userId, workspace, workspaceLoaded]);
 
   return (
     <RoleContext.Provider value={value}>
@@ -141,6 +154,41 @@ export function RoleProvider({
     </RoleContext.Provider>
   );
 }
+
+interface RoleProviderProps {
+  children: ReactNode;
+  /** Optional pre-hydration placeholder (dynamic trees may pass one); the
+   *  Clerk client session supersedes it the moment it loads. */
+  initialUserId: string | null;
+  initialClerkRole: string | null;
+}
+
+function ClerkRoleProvider({ children, initialUserId, initialClerkRole }: RoleProviderProps) {
+  // useAuth reads ClerkProvider's CLIENT context — it never touches request
+  // state, so statically-rendered pages stay static.
+  const { userId, isLoaded } = useAuth();
+  return (
+    <RoleProviderInner
+      userId={isLoaded ? (userId ?? null) : initialUserId}
+      clerkRole={initialClerkRole}
+      sessionLoaded={isLoaded}
+    >
+      {children}
+    </RoleProviderInner>
+  );
+}
+
+function StaticRoleProvider({ children, initialUserId, initialClerkRole }: RoleProviderProps) {
+  return (
+    <RoleProviderInner userId={initialUserId} clerkRole={initialClerkRole} sessionLoaded>
+      {children}
+    </RoleProviderInner>
+  );
+}
+
+// Build-time constant, so the choice is stable for the life of the bundle:
+// keyless builds (local prod builds, e2e) never call Clerk hooks at all.
+export const RoleProvider = CLERK_PROVIDER_ENABLED ? ClerkRoleProvider : StaticRoleProvider;
 
 export function useRoleContext(): RoleContextValue {
   const context = useContext(RoleContext);

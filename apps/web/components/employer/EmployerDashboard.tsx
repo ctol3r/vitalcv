@@ -25,6 +25,7 @@ import {
   Users,
 } from 'lucide-react';
 import Link from 'next/link';
+import { FEATURES } from '@/lib/features';
 import { type ReactNode, useEffect, useMemo, useState } from 'react';
 import {
   buildEmployerApplicationProofMoments,
@@ -549,6 +550,11 @@ export function EmployerDashboard() {
               <Link href="/verifier/opportunities" className="glue-btn border border-border bg-muted text-foreground hover:bg-muted">
                 Post opportunity
               </Link>
+              {FEATURES.MATCHA_V2 ? (
+                <Link href="/employer/candidates" className="glue-btn border border-emerald-400/30 bg-emerald-400/10 text-emerald-100 hover:bg-emerald-400/15">
+                  Browse credential-ready clinicians
+                </Link>
+              ) : null}
             </div>
           </div>
         </header>

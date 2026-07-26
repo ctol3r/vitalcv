@@ -39,6 +39,9 @@ function deriveExpirationDate(npi: string): Date {
 
 export class NursysStubAdapter implements VerificationSource {
   readonly name = 'NURSYS_STUB';
+  // Fabricates status from NPI digits — never decision-grade. Production
+  // must refuse this adapter rather than persist fabricated license states.
+  readonly decisionGrade = false;
 
   async verify(npi: string): Promise<VerificationResult> {
     const status = deriveStatus(npi);

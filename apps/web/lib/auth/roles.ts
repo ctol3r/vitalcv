@@ -19,7 +19,9 @@ export type UserRoleType = (typeof UserRole)[keyof typeof UserRole];
  */
 export const ROLE_LANDING: Record<UserRoleType, string> = {
   CLINICIAN: '/holder',
-  VERIFIER: '/verifier',
+  // Live employer workspace hub. The old `/verifier` tree is archived
+  // (app/_archive/verifier) — landing there 404s. See app/employer/*.
+  VERIFIER: '/employer/dashboard',
   ISSUER: '/issuer',
   ADMIN: '/internal/metrics',
   AUTHENTICATED: '/intelligence',
@@ -30,9 +32,12 @@ export const ROLE_LANDING: Record<UserRoleType, string> = {
  * Order matters: more specific prefixes must come first.
  *
  * Surface classification (VCV_UI_DOCTRINE §1):
- *   Public   — /explore, /get-ready, /p/:npi, /verify/:npi, /sign-in, /sign-up, etc.
+ *   Public   — /explore, /get-ready, /onboarding, /p/:npi, /verify/:npi, /sign-in, /sign-up, etc.
  *   Clinician — /holder/*, /passport/*, /onboarding/*     → CLINICIAN role
- *   Verifier  — /verifier/*, /employers/*, /issuer/*      → VERIFIER role
+ *   Verifier  — /verifier/*, /employer/*, /issuer/*       → VERIFIER role
+ *               NOTE: /employers (plural) is the PUBLIC acquisition page —
+ *               it is deliberately not in PROTECTED_ROUTES. The gated
+ *               employer workspace is /employer/* (singular).
  *   Ops/Intel — /intelligence/*, /findings/*, /graph/*, …  → AUTHENTICATED (any)
  *   Internal  — /internal/*, /analytics, /billing,
  *               /pilot-ops, /mission-ops, /command-center → ADMIN role
@@ -86,7 +91,8 @@ export const PUBLIC_ROUTE_PATTERNS = [
   /^\/partners(\/.*)?$/, // public partners page
   /^\/sign-in(\/.*)?$/,
   /^\/sign-up(\/.*)?$/,
-  /^\/get-ready(\/.*)?$/, // clinician onboarding
+  /^\/get-ready(\/.*)?$/, // legacy entry — redirects to /onboarding
+  /^\/onboarding(\/.*)?$/, // canonical clinician activation (anonymous NPI preview)
   /^\/explore(\/.*)?$/, // public opportunities board
   /^\/search(\/.*)?$/, // public search
   /^\/p(\/.*)?$/, // public clinician profiles — /p/:npi and subpaths
@@ -100,6 +106,7 @@ export const PUBLIC_ROUTE_PATTERNS = [
   /^\/clip(\/.*)?$/, // App Clip zero-install verification receipts
   /^\/\.well-known(\/.*)?$/, // OS association manifests (AASA, assetlinks)
   /^\/auth\/error$/,
+  /^\/auth\/resolving$/, // role-resolution interstitial (self-resolves via /api/auth/resolve-role)
   /^\/api(\/.*)?$/, // API routes handle their own auth
 ];
 

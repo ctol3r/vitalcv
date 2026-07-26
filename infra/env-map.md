@@ -7,7 +7,6 @@ This document describes which environment variables belong to which app/service 
 ### @vitalcv/api (Backend API)
 - `DATABASE_URL` - PostgreSQL connection string
 - `REDIS_URL` - Redis connection string
-- `JWT_SECRET` - JWT signing secret
 - `NODE_ENV` - Environment (development/production)
 - `PORT` - Server port (default: 4000 inside the container; Railway injects its own port at runtime)
 - `LOG_LEVEL` - Logging level

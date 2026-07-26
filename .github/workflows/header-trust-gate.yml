@@ -1,0 +1,45 @@
+name: Header Trust Gate
+
+# S5 — freezes the set of backend files that trust a caller-supplied identity
+# header (x-clerk-user-id / x-user-role / x-org-id). Fails if a NEW file reads
+# one and isn't on the reviewed baseline. The baseline may only shrink.
+#
+# Why this matters: G1 (#589) ships as a REWRITE, not a removal —
+# middleware/verifiedIdentity.ts overwrites x-clerk-user-id with the verified
+# subject, so downstream reads are safe *only while that middleware runs in
+# front of them*. This gate keeps that dependency set from growing silently
+# before CLERK_VERIFY_ENFORCED flips to enforce.
+#
+# NOTE — deliberately no `paths:` filter on pull_request, unlike the neighbouring
+# audit-coverage-gate.yml. A path-filtered required check never reports on PRs
+# that miss the filter, which blocks merge indefinitely (the failure #811 fixed
+# for Web E2E). This job is a grep over one directory and takes seconds, so it
+# runs everywhere and is safe to mark as a required check.
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: header-trust-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '22'
+
+jobs:
+  header-trust:
+    name: Identity-header trust ratchet
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Check header-trust baseline
+        run: node --experimental-strip-types scripts/check-header-trust-ratchet.ts

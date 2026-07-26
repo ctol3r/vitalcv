@@ -1,0 +1,547 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>VitalCV · /trust · public trust anchor directory</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --ink-0:#fff;--ink-50:#f8fafc;--ink-100:#f1f5f9;--ink-200:#e2e8f0;--ink-300:#cbd5e1;
+    --ink-400:#94a3b8;--ink-500:#64748b;--ink-600:#475569;--ink-700:#334155;
+    --ink-800:#1e293b;--ink-900:#0f172a;--ink-950:#020617;
+    --rule:#1e293b;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:#000;color:#cbd5e1;font-family:'Geist Mono',ui-monospace,monospace;-webkit-font-smoothing:antialiased;font-size:12.5px;line-height:1.5;font-variant-numeric:tabular-nums;font-feature-settings:'zero','tnum';letter-spacing:.02em;}
+  .sans{font-family:'Geist',ui-sans-serif,system-ui,sans-serif;}
+
+  /* ===== Op bar ===== */
+  .op{background:#000;color:#94a3b8;font-size:11px;border-bottom:1px solid var(--rule);}
+  .op .in{max-width:1320px;margin:0 auto;padding:0 28px;height:28px;display:flex;align-items:center;justify-content:space-between;gap:12px;}
+  .op strong{color:#fff;font-weight:500;letter-spacing:.16em;text-transform:uppercase;}
+  .op .sep{color:var(--ink-600);}
+  .op .pill{display:inline-flex;align-items:center;gap:6px;padding:1px 7px;border:1px solid #334155;text-transform:uppercase;letter-spacing:.12em;font-size:10px;}
+  .op .pill .d{width:6px;height:6px;background:#10b981;border-radius:50%;}
+
+  /* ===== Document header ===== */
+  .hd{background:#000;border-bottom:2px solid #fff;}
+  .hd .in{max-width:1320px;margin:0 auto;padding:20px 28px 16px;}
+  .hd .crumb{display:flex;justify-content:space-between;align-items:center;gap:14px;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:#64748b;margin-bottom:14px;}
+  .hd .crumb .lhs{display:flex;align-items:center;gap:10px;}
+  .hd .crumb .lhs .g{width:18px;height:18px;background:#fff;color:#000;display:grid;place-items:center;font-size:10px;font-weight:700;}
+  .hd .crumb .lhs .nm{color:#fff;font-weight:600;font-size:11px;letter-spacing:.06em;}
+  .hd .crumb .lhs .path{color:#64748b;letter-spacing:.06em;}
+  .hd .crumb .lhs .path strong{color:#fff;font-weight:600;}
+  .hd .crumb .rhs{display:flex;gap:14px;align-items:center;}
+  .hd .crumb .rhs .v{color:#fff;font-weight:500;letter-spacing:.04em;}
+  .hd h1{margin:0;font-size:22px;color:#fff;font-weight:600;letter-spacing:-.012em;line-height:1.2;font-family:'Geist Mono',monospace;}
+  .hd h1 .g{color:#64748b;font-weight:500;}
+  .hd .sub{margin-top:6px;font-size:11.5px;color:#94a3b8;max-width:74ch;line-height:1.55;}
+  .hd .sub strong{color:#fff;font-weight:500;}
+
+  /* ===== Manifest banner (top) ===== */
+  .manifest{background:#0a0f1c;border-bottom:1px solid var(--rule);}
+  .manifest .in{max-width:1320px;margin:0 auto;padding:0 28px;display:grid;grid-template-columns:repeat(6,1fr);}
+  .manifest .c{padding:11px 0 11px 14px;border-right:1px solid var(--rule);position:relative;}
+  .manifest .c:first-child{padding-left:0;}
+  .manifest .c:last-child{border-right:0;padding-right:0;}
+  .manifest .c .k{font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:#64748b;font-weight:600;margin-bottom:4px;}
+  .manifest .c .v{font-size:11.5px;color:#fff;font-weight:600;letter-spacing:.04em;word-break:break-all;line-height:1.35;}
+  .manifest .c .v .g{color:#64748b;font-weight:400;}
+  .manifest .c .v.ok{color:#34d399;}
+
+  /* ===== Section heading ===== */
+  .sh{max-width:1320px;margin:0 auto;padding:18px 28px 6px;display:flex;align-items:baseline;gap:14px;border-bottom:1px solid #fff;}
+  .sh .n{font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:#475569;font-weight:600;}
+  .sh h2{margin:0;font-size:13px;color:#fff;font-weight:700;letter-spacing:.08em;text-transform:uppercase;font-family:'Geist Mono',monospace;}
+  .sh .ey{margin-left:auto;font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.14em;}
+
+  /* ===== Sections ===== */
+  section{max-width:1320px;margin:0 auto;padding:0 28px;}
+
+  /* JSON blocks */
+  .jsonbox{margin:14px 0 0;background:#0a0f1c;border:1px solid var(--rule);position:relative;}
+  .jsonbox .jh{padding:8px 14px;border-bottom:1px solid var(--rule);background:#000;display:flex;justify-content:space-between;align-items:center;font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:#64748b;font-weight:600;}
+  .jsonbox .jh strong{color:#fff;font-weight:600;}
+  .jsonbox .jh .verb{padding:1px 6px;border:1px solid #334155;color:#cbd5e1;letter-spacing:.12em;font-size:9px;}
+  .jsonbox .jh .verb.get{color:#34d399;border-color:#047857;}
+  .jsonbox pre{margin:0;padding:14px 18px;font-family:'Geist Mono',monospace;font-size:11.5px;line-height:1.65;color:#cbd5e1;white-space:pre-wrap;word-break:break-word;letter-spacing:.02em;}
+  .jsonbox pre .k{color:#7dd3fc;}
+  .jsonbox pre .s{color:#86efac;}
+  .jsonbox pre .n{color:#fde047;}
+  .jsonbox pre .b{color:#fbbf24;}
+  .jsonbox pre .p{color:#64748b;}
+  .jsonbox pre .h{color:#fff;font-weight:600;}
+  .jsonbox pre .c{color:#475569;font-style:italic;}
+
+  /* ===== Key Ledger grid ===== */
+  .key-ledger{display:grid;grid-template-columns:1fr 1fr;gap:0;margin-top:14px;border:1px solid var(--rule);background:#0a0f1c;}
+  .key-ledger .col{padding:14px 18px;border-right:1px solid var(--rule);}
+  .key-ledger .col:last-child{border-right:0;}
+  .key-ledger .col .ttl{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:#fff;font-weight:700;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;}
+  .key-ledger .col .ttl .st{display:inline-flex;align-items:center;gap:5px;padding:1px 7px;border:1px solid #047857;color:#34d399;font-size:9px;letter-spacing:.14em;font-weight:600;}
+  .key-ledger .col .ttl .st .d{width:5px;height:5px;background:#34d399;}
+  .key-ledger .row{display:grid;grid-template-columns:120px 1fr;gap:10px;padding:5px 0;border-bottom:1px dashed #1e293b;font-size:11px;}
+  .key-ledger .row:last-child{border-bottom:0;}
+  .key-ledger .row .k{color:#64748b;text-transform:uppercase;letter-spacing:.14em;font-size:9.5px;align-self:center;font-weight:600;}
+  .key-ledger .row .v{color:#fff;word-break:break-all;font-weight:500;}
+  .key-ledger .row .v .g{color:#64748b;font-weight:400;}
+
+  /* ===== T1-T4 ladder ===== */
+  .ladder{margin-top:14px;border:1px solid var(--rule);background:#0a0f1c;}
+  .ladder .ltop{padding:9px 14px;border-bottom:1px solid var(--rule);background:#000;display:flex;justify-content:space-between;align-items:center;font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:#64748b;font-weight:600;}
+  .ladder .ltop strong{color:#fff;}
+  .ladder .grid{display:grid;grid-template-columns:60px 1fr 1.6fr 1.4fr 100px;}
+  .ladder .grid > div{padding:11px 14px;border-bottom:1px solid var(--rule);border-right:1px solid var(--rule);}
+  .ladder .grid > div:last-child{border-right:0;}
+  .ladder .grid .gh{background:#000;font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:#64748b;font-weight:600;}
+  .ladder .grid > div:nth-last-child(-n+5){border-bottom:0;}
+  .ladder .tier-tag{font-size:14px;color:#fff;font-weight:700;letter-spacing:.04em;}
+  .ladder .tier-nm{color:#fff;font-weight:500;letter-spacing:-.005em;font-family:'Geist',sans-serif;font-size:13px;}
+  .ladder .tier-nm .sub{display:block;color:#64748b;font-size:10px;margin-top:2px;font-family:'Geist Mono',monospace;letter-spacing:.04em;}
+  .ladder .tier-src{color:#cbd5e1;font-size:11px;line-height:1.45;}
+  .ladder .tier-src .g{color:#64748b;}
+  .ladder .tier-st{font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:#fff;font-weight:600;display:flex;align-items:center;gap:5px;}
+  .ladder .tier-st .m{width:5px;height:5px;background:#34d399;display:inline-block;}
+  .ladder .tier-st.live{color:#34d399;}
+  .ladder .tier-st.gate{color:#fbbf24;}
+  .ladder .tier-st.gate .m{background:#fbbf24;}
+
+  /* ===== Endpoints ===== */
+  .endpoints{margin-top:14px;border:1px solid var(--rule);background:#0a0f1c;}
+  .endpoints .row{display:grid;grid-template-columns:80px 1fr 110px 110px;border-bottom:1px solid var(--rule);}
+  .endpoints .row:last-child{border-bottom:0;}
+  .endpoints .head{background:#000;}
+  .endpoints .head > div{font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:#64748b;font-weight:600;padding:8px 14px;}
+  .endpoints .row > div{padding:9px 14px;border-right:1px solid var(--rule);font-size:11.5px;}
+  .endpoints .row > div:last-child{border-right:0;}
+  .endpoints .verb{font-weight:700;letter-spacing:.12em;}
+  .endpoints .verb.get{color:#34d399;}
+  .endpoints .verb.post{color:#7dd3fc;}
+  .endpoints .path{color:#fff;font-weight:500;letter-spacing:.04em;word-break:break-all;}
+  .endpoints .path .g{color:#64748b;font-weight:400;}
+  .endpoints .auth{color:#94a3b8;font-size:10.5px;letter-spacing:.06em;}
+  .endpoints .auth.public{color:#34d399;}
+  .endpoints .auth.bearer{color:#fbbf24;}
+  .endpoints .nm{color:#cbd5e1;font-family:'Geist',sans-serif;font-weight:500;letter-spacing:-.005em;}
+
+  /* ===== Conformance ===== */
+  .conform{margin-top:14px;display:grid;grid-template-columns:repeat(4,1fr);gap:0;border:1px solid var(--rule);background:#0a0f1c;}
+  .conform .c{padding:12px 14px;border-right:1px solid var(--rule);border-bottom:1px solid var(--rule);}
+  .conform .c:nth-child(4n){border-right:0;}
+  .conform .c:nth-last-child(-n+4){border-bottom:0;}
+  .conform .c .k{font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:#64748b;font-weight:600;margin-bottom:5px;}
+  .conform .c .v{font-size:12px;color:#fff;font-weight:600;letter-spacing:.04em;line-height:1.35;}
+  .conform .c .v .g{color:#64748b;font-weight:400;}
+  .conform .c .st{margin-top:6px;font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:#34d399;font-weight:600;display:flex;align-items:center;gap:5px;}
+  .conform .c .st.partial{color:#fbbf24;}
+  .conform .c .st .m{width:5px;height:5px;background:currentColor;}
+
+  /* ===== Footer signed-manifest ===== */
+  .sig-foot{background:#000;border-top:2px solid #fff;padding:14px 28px;}
+  .sig-foot .in{max-width:1320px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr);gap:0;}
+  .sig-foot .cell{padding-right:18px;border-right:1px solid var(--rule);}
+  .sig-foot .cell:last-child{border-right:0;padding-right:0;}
+  .sig-foot .k{font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:#64748b;font-weight:600;margin-bottom:4px;}
+  .sig-foot .v{color:#fff;font-weight:500;word-break:break-all;line-height:1.3;font-size:11.5px;}
+  .sig-foot .v .g{color:#94a3b8;font-weight:400;}
+  .sig-foot .integ{display:inline-grid;grid-template-columns:auto auto;border:2px solid #10b981;background:rgba(4,120,87,.08);margin-top:6px;}
+  .sig-foot .integ .blk{padding:5px 9px;}
+  .sig-foot .integ .blk + .blk{border-left:1px solid #10b981;}
+  .sig-foot .integ .blk .ik{font-size:8.5px;letter-spacing:.18em;text-transform:uppercase;color:#34d399;font-weight:600;}
+  .sig-foot .integ .blk .iv{font-size:10.5px;color:#fff;font-weight:700;letter-spacing:.06em;text-transform:uppercase;display:flex;align-items:center;gap:6px;margin-top:1px;}
+  .sig-foot .integ .blk .iv .tick{display:inline-grid;place-items:center;width:11px;height:11px;background:#10b981;color:#000;font-size:8px;font-weight:700;}
+
+  .page-foot{max-width:1320px;margin:0 auto;padding:18px 28px 28px;display:flex;justify-content:space-between;font-size:10px;color:#64748b;letter-spacing:.04em;flex-wrap:wrap;gap:10px;border-top:1px solid var(--rule);background:#000;}
+  .page-foot .v{color:#cbd5e1;font-weight:500;}
+  .page-foot a{color:#fff;text-decoration:underline;text-decoration-color:#334155;text-underline-offset:3px;}
+
+  @media(max-width:1080px){
+    .manifest .in{grid-template-columns:repeat(3,1fr);}
+    .manifest .c{border-bottom:1px solid var(--rule);}
+    .manifest .c:nth-child(3n){border-right:0;}
+    .key-ledger{grid-template-columns:1fr;}
+    .key-ledger .col{border-right:0;border-bottom:1px solid var(--rule);}
+    .key-ledger .col:last-child{border-bottom:0;}
+    .ladder .grid{grid-template-columns:50px 1fr 1fr;}
+    .ladder .grid > div:nth-child(5n+4),.ladder .grid > div:nth-child(5n+5){display:none;}
+    .endpoints .row{grid-template-columns:60px 1fr;}
+    .endpoints .row > div:nth-child(n+3){display:none;}
+    .conform{grid-template-columns:1fr 1fr;}
+    .conform .c:nth-child(2n){border-right:0;}
+    .sig-foot .in{grid-template-columns:1fr 1fr;gap:14px 0;}
+    .sig-foot .cell:nth-child(2n){border-right:0;}
+  }
+</style>
+</head>
+<body data-screen-label="Public Trust Anchor">
+
+<div class="op">
+  <div class="in">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <strong>Trust Anchor Directory</strong>
+      <span class="sep">/</span>
+      <span>vitalcv.health/trust</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:14px;">
+      <span class="pill"><span class="d"></span>Public</span>
+      <span class="sep">|</span>
+      <span>Updated 2026-05-11 14:00Z</span>
+    </div>
+  </div>
+</div>
+
+<header class="hd">
+  <div class="in">
+    <div class="crumb">
+      <div class="lhs">
+        <span class="g">V</span>
+        <span class="nm">VitalCV</span>
+        <span class="path">/ <strong>.well-known</strong> / <strong>trust</strong></span>
+      </div>
+      <div class="rhs">
+        <span>Manifest</span><span class="v">TRA-2026-05-11-A</span>
+        <span>·</span>
+        <span>Doc</span><span class="v">vitalcv.trust/v1</span>
+      </div>
+    </div>
+    <h1>VITALCV <span class="g">·</span> ISSUER TRUST ANCHOR <span class="g">·</span> v1</h1>
+    <p class="sub">Public, machine-readable directory of the cryptographic identity, public keys, supported tier ladder, endpoints, and conformance posture for <strong>did:web:vitalcv.health</strong>. Conforming verifiers (CVO, payer, downstream issuer) should resolve <code style="color:#fff;">/.well-known/did.json</code> and <code style="color:#fff;">/.well-known/jwks.json</code> directly. This page renders the same payload for humans.</p>
+  </div>
+</header>
+
+<!-- ===== Manifest banner ===== -->
+<section class="manifest">
+  <div class="in">
+    <div class="c">
+      <div class="k">issuer_did</div>
+      <div class="v">did:web<span class="g">:vitalcv.health</span></div>
+    </div>
+    <div class="c">
+      <div class="k">issuer_name</div>
+      <div class="v">VitalCV, Inc.<span class="g"> · DE</span></div>
+    </div>
+    <div class="c">
+      <div class="k">key · active</div>
+      <div class="v">4f2a<span class="g"> · ed25519</span></div>
+    </div>
+    <div class="c">
+      <div class="k">in service</div>
+      <div class="v">190 d<span class="g"> · rotates 2026-08-14</span></div>
+    </div>
+    <div class="c">
+      <div class="k">jwks</div>
+      <div class="v ok">/jwks.json<span class="g"> · live</span></div>
+    </div>
+    <div class="c">
+      <div class="k">openid4vci</div>
+      <div class="v ok">aligned<span class="g"> · v1.0</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== §1 Key Ledger ===== -->
+<div class="sh">
+  <span class="n">§1</span>
+  <h2>KEY LEDGER &middot; ACTIVE &amp; HISTORICAL</h2>
+  <span class="ey">did:web manifest · ed25519 · 2 keys on file</span>
+</div>
+
+<section>
+  <div class="key-ledger">
+    <div class="col">
+      <div class="ttl"><span>Active signing key</span><span class="st"><span class="d"></span>Live</span></div>
+      <div class="row"><span class="k">kid</span><span class="v">4f2a<span class="g"> · short form</span></span></div>
+      <div class="row"><span class="k">alg</span><span class="v">ed25519<span class="g"> · EdDSA over Curve25519</span></span></div>
+      <div class="row"><span class="k">use</span><span class="v">sig<span class="g"> · ED25519 SIGN · receipt issuance</span></span></div>
+      <div class="row"><span class="k">created</span><span class="v">2025-11-02T00:00:00Z</span></div>
+      <div class="row"><span class="k">rotates</span><span class="v">2026-08-14T00:00:00Z<span class="g"> · 95 d remaining</span></span></div>
+      <div class="row"><span class="k">x (base64url)</span><span class="v">Bm1c4Yfs9pX8nLqK_4f2aTHv-zNcQ8Lt2k0pYpDqW5o<span class="g"> · public</span></span></div>
+      <div class="row"><span class="k">controller</span><span class="v">did:web:vitalcv.health</span></div>
+      <div class="row"><span class="k">fingerprint</span><span class="v">sha256:9c41e8a2&hellip;a2f8b3d4</span></div>
+    </div>
+    <div class="col">
+      <div class="ttl"><span>Previous signing key</span><span class="st" style="color:#64748b;border-color:#334155;"><span class="d" style="background:#64748b;"></span>Retired</span></div>
+      <div class="row"><span class="k">kid</span><span class="v">3a91<span class="g"> · superseded</span></span></div>
+      <div class="row"><span class="k">alg</span><span class="v">ed25519</span></div>
+      <div class="row"><span class="k">use</span><span class="v">sig<span class="g"> · receipts pre-rotation remain verifiable</span></span></div>
+      <div class="row"><span class="k">created</span><span class="v">2025-04-15T00:00:00Z</span></div>
+      <div class="row"><span class="k">retired</span><span class="v">2025-11-02T00:00:00Z<span class="g"> · clean rotation</span></span></div>
+      <div class="row"><span class="k">x (base64url)</span><span class="v">aD8nL_3a91KcQfWvBm1c4Yfs9pX8oLpYpDqW5oTHv-z<span class="g"> · public</span></span></div>
+      <div class="row"><span class="k">controller</span><span class="v">did:web:vitalcv.health</span></div>
+      <div class="row"><span class="k">fingerprint</span><span class="v">sha256:46d2c711&hellip;f188a3c4</span></div>
+    </div>
+  </div>
+
+  <div class="jsonbox">
+    <div class="jh"><span><strong>GET</strong> https://vitalcv.health/.well-known/did.json</span><span class="verb get">200 OK</span></div>
+    <pre><span class="p">{</span>
+  <span class="k">"@context"</span><span class="p">: [</span><span class="s">"https://www.w3.org/ns/did/v1"</span><span class="p">,</span> <span class="s">"https://w3id.org/security/suites/ed25519-2020/v1"</span><span class="p">],</span>
+  <span class="k">"id"</span><span class="p">:</span> <span class="h">"did:web:vitalcv.health"</span><span class="p">,</span>
+  <span class="k">"controller"</span><span class="p">:</span> <span class="s">"did:web:vitalcv.health"</span><span class="p">,</span>
+  <span class="k">"verificationMethod"</span><span class="p">: [</span>
+    <span class="p">{</span>
+      <span class="k">"id"</span><span class="p">:</span> <span class="s">"did:web:vitalcv.health#4f2a"</span><span class="p">,</span>
+      <span class="k">"type"</span><span class="p">:</span> <span class="s">"Ed25519VerificationKey2020"</span><span class="p">,</span>
+      <span class="k">"controller"</span><span class="p">:</span> <span class="s">"did:web:vitalcv.health"</span><span class="p">,</span>
+      <span class="k">"publicKeyJwk"</span><span class="p">: {</span>
+        <span class="k">"kty"</span><span class="p">:</span> <span class="s">"OKP"</span><span class="p">,</span>
+        <span class="k">"crv"</span><span class="p">:</span> <span class="s">"Ed25519"</span><span class="p">,</span>
+        <span class="k">"x"</span><span class="p">:</span> <span class="s">"Bm1c4Yfs9pX8nLqK_4f2aTHv-zNcQ8Lt2k0pYpDqW5o"</span><span class="p">,</span>
+        <span class="k">"kid"</span><span class="p">:</span> <span class="s">"4f2a"</span><span class="p">,</span>
+        <span class="k">"alg"</span><span class="p">:</span> <span class="s">"EdDSA"</span><span class="p">,</span>
+        <span class="k">"use"</span><span class="p">:</span> <span class="s">"sig"</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+  <span class="p">],</span>
+  <span class="k">"assertionMethod"</span><span class="p">: [</span><span class="s">"did:web:vitalcv.health#4f2a"</span><span class="p">],</span>
+  <span class="k">"authentication"</span><span class="p">: [</span><span class="s">"did:web:vitalcv.health#4f2a"</span><span class="p">],</span>
+  <span class="k">"service"</span><span class="p">: [</span>
+    <span class="p">{</span> <span class="k">"id"</span><span class="p">:</span> <span class="s">"#jwks"</span><span class="p">,</span> <span class="k">"type"</span><span class="p">:</span> <span class="s">"OAuth-Authorization-Server"</span><span class="p">,</span> <span class="k">"serviceEndpoint"</span><span class="p">:</span> <span class="s">"https://vitalcv.health/.well-known/jwks.json"</span> <span class="p">},</span>
+    <span class="p">{</span> <span class="k">"id"</span><span class="p">:</span> <span class="s">"#oidc4vci"</span><span class="p">,</span> <span class="k">"type"</span><span class="p">:</span> <span class="s">"OpenID4VCI"</span><span class="p">,</span> <span class="k">"serviceEndpoint"</span><span class="p">:</span> <span class="s">"https://vitalcv.health/.well-known/openid-credential-issuer"</span> <span class="p">},</span>
+    <span class="p">{</span> <span class="k">"id"</span><span class="p">:</span> <span class="s">"#status"</span><span class="p">,</span> <span class="k">"type"</span><span class="p">:</span> <span class="s">"StatusList2021"</span><span class="p">,</span> <span class="k">"serviceEndpoint"</span><span class="p">:</span> <span class="s">"https://vitalcv.health/status/2026"</span> <span class="p">}</span>
+  <span class="p">]</span>
+<span class="p">}</span></pre>
+  </div>
+
+  <div class="jsonbox">
+    <div class="jh"><span><strong>GET</strong> https://vitalcv.health/.well-known/jwks.json</span><span class="verb get">200 OK · cache 3600s</span></div>
+    <pre><span class="p">{</span>
+  <span class="k">"keys"</span><span class="p">: [</span>
+    <span class="p">{</span>
+      <span class="k">"kty"</span><span class="p">:</span> <span class="s">"OKP"</span><span class="p">,</span> <span class="k">"crv"</span><span class="p">:</span> <span class="s">"Ed25519"</span><span class="p">,</span> <span class="k">"alg"</span><span class="p">:</span> <span class="s">"EdDSA"</span><span class="p">,</span> <span class="k">"use"</span><span class="p">:</span> <span class="s">"sig"</span><span class="p">,</span>
+      <span class="k">"kid"</span><span class="p">:</span> <span class="h">"4f2a"</span><span class="p">,</span>
+      <span class="k">"x"</span><span class="p">:</span> <span class="s">"Bm1c4Yfs9pX8nLqK_4f2aTHv-zNcQ8Lt2k0pYpDqW5o"</span><span class="p">,</span>
+      <span class="k">"x5t#S256"</span><span class="p">:</span> <span class="s">"9c41e8a2-7f3b-1d6e-4a8c-2b50_a2f8b3d4"</span>
+    <span class="p">},</span>
+    <span class="p">{</span>
+      <span class="k">"kty"</span><span class="p">:</span> <span class="s">"OKP"</span><span class="p">,</span> <span class="k">"crv"</span><span class="p">:</span> <span class="s">"Ed25519"</span><span class="p">,</span> <span class="k">"alg"</span><span class="p">:</span> <span class="s">"EdDSA"</span><span class="p">,</span> <span class="k">"use"</span><span class="p">:</span> <span class="s">"sig"</span><span class="p">,</span>
+      <span class="k">"kid"</span><span class="p">:</span> <span class="s">"3a91"</span><span class="p">,</span> <span class="c">// retired 2025-11-02 — kept for replay</span>
+      <span class="k">"x"</span><span class="p">:</span> <span class="s">"aD8nL_3a91KcQfWvBm1c4Yfs9pX8oLpYpDqW5oTHv-z"</span>
+    <span class="p">}</span>
+  <span class="p">]</span>
+<span class="p">}</span></pre>
+  </div>
+</section>
+
+<!-- ===== §2 T1-T4 ladder ===== -->
+<div class="sh">
+  <span class="n">§2</span>
+  <h2>TRUST TIER LADDER &middot; T1 &rarr; T4</h2>
+  <span class="ey">supported · per-claim · strongest answer that returns</span>
+</div>
+
+<section>
+  <div class="ladder">
+    <div class="ltop"><strong>Per-claim tier resolution</strong><span>VitalCV emits the strongest tier that returned within the run window. Downstream verifiers may set their own floor.</span></div>
+    <div class="grid">
+      <div class="gh">Tier</div>
+      <div class="gh">Name</div>
+      <div class="gh">Source class</div>
+      <div class="gh">Acceptable use</div>
+      <div class="gh">Status</div>
+
+      <div><span class="tier-tag">T1</span></div>
+      <div><span class="tier-nm">Self-asserted<span class="sub">subject claim</span></span></div>
+      <div class="tier-src">Applicant or holder asserts a fact through an authenticated VitalCV session. <span class="g">No external corroboration.</span></div>
+      <div class="tier-src">Intake hint &middot; pre-flight only &middot; not sufficient for privileging</div>
+      <div><span class="tier-st live"><span class="m"></span>Active</span></div>
+
+      <div><span class="tier-tag">T2</span></div>
+      <div><span class="tier-nm">Cross-referenced<span class="sub">IdP &times; HR</span></span></div>
+      <div class="tier-src">Self-assertion confirmed by a session-bound enterprise identity (Okta, Azure AD) and/or an employer HRIS record. <span class="g">Two non-correlated sources.</span></div>
+      <div class="tier-src">Identity binding &middot; session continuity &middot; eligibility hint</div>
+      <div><span class="tier-st live"><span class="m"></span>Active</span></div>
+
+      <div><span class="tier-tag">T3</span></div>
+      <div><span class="tier-nm">Federal source<span class="sub">primary registry</span></span></div>
+      <div class="tier-src">Direct lookup against a federal authority of record &mdash; NPPES (identity), OIG/LEIE (sanction), PECOS (enrollment), DEA Connect. <span class="g">No intermediary.</span></div>
+      <div class="tier-src">Credentialing &middot; payer enrollment &middot; routine privileging</div>
+      <div><span class="tier-st live"><span class="m"></span>Active</span></div>
+
+      <div><span class="tier-tag">T4</span></div>
+      <div><span class="tier-nm">PSV / board-direct<span class="sub">issuer-signed</span></span></div>
+      <div class="tier-src">Primary source verification from the issuing body itself &mdash; state medical board, ABMS, ECFMG. <span class="g">Returned as an issuer-signed credential or signed transcript.</span></div>
+      <div class="tier-src">High-stakes hospital privileging &middot; medico-legal record &middot; appeals</div>
+      <div><span class="tier-st gate"><span class="m"></span>On invocation</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== §3 Endpoints ===== -->
+<div class="sh">
+  <span class="n">§3</span>
+  <h2>PUBLIC ENDPOINTS &middot; WELL-KNOWN</h2>
+  <span class="ey">8 endpoints · all GET · CORS-enabled · signed</span>
+</div>
+
+<section>
+  <div class="endpoints">
+    <div class="row head">
+      <div>method</div>
+      <div>path</div>
+      <div>auth</div>
+      <div>purpose</div>
+    </div>
+    <div class="row">
+      <div><span class="verb get">GET</span></div>
+      <div class="path">vitalcv.health<span class="g">/.well-known/</span>did.json</div>
+      <div class="auth public">public</div>
+      <div class="nm">DID document (this page, as data)</div>
+    </div>
+    <div class="row">
+      <div><span class="verb get">GET</span></div>
+      <div class="path">vitalcv.health<span class="g">/.well-known/</span>jwks.json</div>
+      <div class="auth public">public</div>
+      <div class="nm">JWKS &middot; signing keys</div>
+    </div>
+    <div class="row">
+      <div><span class="verb get">GET</span></div>
+      <div class="path">vitalcv.health<span class="g">/.well-known/</span>openid-credential-issuer</div>
+      <div class="auth public">public</div>
+      <div class="nm">OpenID4VCI metadata</div>
+    </div>
+    <div class="row">
+      <div><span class="verb get">GET</span></div>
+      <div class="path">vitalcv.health<span class="g">/.well-known/</span>oauth-authorization-server</div>
+      <div class="auth public">public</div>
+      <div class="nm">OAuth 2.1 metadata</div>
+    </div>
+    <div class="row">
+      <div><span class="verb get">GET</span></div>
+      <div class="path">vitalcv.health<span class="g">/status/</span>2026</div>
+      <div class="auth public">public</div>
+      <div class="nm">StatusList 2021 &middot; revocation bitstring</div>
+    </div>
+    <div class="row">
+      <div><span class="verb get">GET</span></div>
+      <div class="path">vitalcv.health<span class="g">/trust/</span>policy.json</div>
+      <div class="auth public">public</div>
+      <div class="nm">Issuance policy &middot; what we sign and why</div>
+    </div>
+    <div class="row">
+      <div><span class="verb post">POST</span></div>
+      <div class="path">vitalcv.health<span class="g">/v1/</span>verify</div>
+      <div class="auth bearer">bearer</div>
+      <div class="nm">Verifier API &middot; replay a runId</div>
+    </div>
+    <div class="row">
+      <div><span class="verb post">POST</span></div>
+      <div class="path">vitalcv.health<span class="g">/v1/</span>revoke</div>
+      <div class="auth bearer">issuer-only</div>
+      <div class="nm">Holder-initiated revocation &middot; tombstones to StatusList</div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== §4 Conformance ===== -->
+<div class="sh">
+  <span class="n">§4</span>
+  <h2>CONFORMANCE &middot; STANDARDS</h2>
+  <span class="ey">read for compliance officers &middot; reviewable</span>
+</div>
+
+<section>
+  <div class="conform">
+    <div class="c">
+      <div class="k">Verifiable credentials</div>
+      <div class="v">W3C VC Data Model<span class="g"> 2.0</span></div>
+      <div class="st"><span class="m"></span>Conforming</div>
+    </div>
+    <div class="c">
+      <div class="k">Decentralized identifier</div>
+      <div class="v">did:web<span class="g"> · W3C DID Core 1.0</span></div>
+      <div class="st"><span class="m"></span>Conforming</div>
+    </div>
+    <div class="c">
+      <div class="k">Credential issuance</div>
+      <div class="v">OpenID4VCI<span class="g"> v1.0</span></div>
+      <div class="st"><span class="m"></span>Aligned</div>
+    </div>
+    <div class="c">
+      <div class="k">Verification</div>
+      <div class="v">OpenID4VP<span class="g"> draft 21</span></div>
+      <div class="st partial"><span class="m"></span>Partial · in flight</div>
+    </div>
+    <div class="c">
+      <div class="k">Signature suite</div>
+      <div class="v">Ed25519Signature2020<span class="g"> · EdDSA</span></div>
+      <div class="st"><span class="m"></span>Conforming</div>
+    </div>
+    <div class="c">
+      <div class="k">Status &amp; revocation</div>
+      <div class="v">StatusList2021<span class="g"> · W3C</span></div>
+      <div class="st"><span class="m"></span>Conforming</div>
+    </div>
+    <div class="c">
+      <div class="k">Time anchoring</div>
+      <div class="v">RFC 3161<span class="g"> · tsa.digicert</span></div>
+      <div class="st"><span class="m"></span>Conforming</div>
+    </div>
+    <div class="c">
+      <div class="k">Healthcare profile</div>
+      <div class="v">IDunion HC / VC-PRO<span class="g"> · draft</span></div>
+      <div class="st partial"><span class="m"></span>Reference impl · WG member</div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== §5 Signed manifest footer ===== -->
+<div class="sh">
+  <span class="n">§5</span>
+  <h2>SIGNED MANIFEST &middot; THIS DOCUMENT</h2>
+  <span class="ey">re-derivable &middot; offline-verifiable</span>
+</div>
+
+<section>
+  <div class="jsonbox" style="margin-bottom:18px;">
+    <div class="jh"><span><strong>manifest.signature</strong> &middot; this page is itself a signed artifact</span><span class="verb get">verified</span></div>
+    <pre><span class="p">{</span>
+  <span class="k">"manifestId"</span><span class="p">:</span> <span class="h">"TRA-2026-05-11-A"</span><span class="p">,</span>
+  <span class="k">"renderedAt"</span><span class="p">:</span> <span class="s">"2026-05-11T14:00:00Z"</span><span class="p">,</span>
+  <span class="k">"issuer"</span><span class="p">:</span> <span class="s">"did:web:vitalcv.health"</span><span class="p">,</span>
+  <span class="k">"contentHash"</span><span class="p">:</span> <span class="h">"sha256:d1f9c428…3b07e2a1"</span><span class="p">,</span>
+  <span class="k">"signature"</span><span class="p">:</span> <span class="h">"ed25519:88c1f3a2b9d4e07d1c44a18b3f2e9c5106dafc9e0b7e21f44e0bca3f78c19207e09"</span><span class="p">,</span>
+  <span class="k">"kid"</span><span class="p">:</span> <span class="s">"4f2a"</span>
+<span class="p">}</span></pre>
+  </div>
+</section>
+
+<div class="sig-foot">
+  <div class="in">
+    <div class="cell">
+      <div class="k">issuer</div>
+      <div class="v">did:web:vitalcv.health<br><span class="g">VitalCV, Inc. · DE · controller</span></div>
+    </div>
+    <div class="cell">
+      <div class="k">active key</div>
+      <div class="v">kid <strong>4f2a</strong> · ed25519<br><span class="g">in service 190 d · rotates 2026-08-14</span></div>
+    </div>
+    <div class="cell">
+      <div class="k">manifest hash</div>
+      <div class="v">d1f9c428<span class="g">…3b07e2a1</span><br><span class="g">sha256 of this rendered document</span></div>
+    </div>
+    <div class="cell">
+      <div class="k">integrity</div>
+      <span class="integ">
+        <span class="blk"><span class="ik">status</span><span class="iv"><span class="tick">✓</span>VALID</span></span>
+        <span class="blk"><span class="ik">verifies</span><span class="iv">offline</span></span>
+      </span>
+    </div>
+  </div>
+</div>
+
+<footer class="page-foot">
+  <div>VitalCV · public trust anchor · <span class="v">no PHI, no PII, no session state · cache-control: public, max-age=3600</span></div>
+  <div style="text-align:right;">
+    <div>Manifest <span class="v">TRA-2026-05-11-A</span> · Issuer <span class="v">did:web:vitalcv.health</span></div>
+    <div><a href="https://vitalcv.health/.well-known/did.json">did.json</a> · <a href="https://vitalcv.health/.well-known/jwks.json">jwks.json</a> · <a href="Verifier Replay.html">/replay example →</a></div>
+  </div>
+</footer>
+
+<script src="telemetry.js"></script>
+</body>
+</html>

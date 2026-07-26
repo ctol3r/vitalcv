@@ -4,6 +4,7 @@ import { NextResponse } from 'next/server';
 
 import { validatePilotIntake } from '@/lib/pilot-intake/validate';
 import { deliverPilotIntakeToSlack } from '@/lib/pilot-intake/slack';
+import { markPilotLeadSlackDelivered, persistPilotLead } from '@/lib/leads/pilotLeadPersistence';
 
 /**
  * POST /api/pilot-intake — pilot inquiry submission endpoint.
@@ -55,11 +56,30 @@ export async function POST(request: Request): Promise<NextResponse> {
     }),
   );
 
+  // Durable lead row FIRST (a crash mid-request can no longer lose the
+  // lead; slackDelivered is corrected after delivery). Degrades to
+  // persisted:false until the PilotLead migration deploys — Slack and the
+  // stdout paper trail keep working either way.
+  const lead = await persistPilotLead({
+    source: 'pilot_intake',
+    persona: intake.persona,
+    organization: intake.organization,
+    contactName: intake.fullName,
+    email: intake.email,
+    message: intake.description,
+    sourceContext: '/contact',
+    payload: intake,
+  });
+
   const slack = await deliverPilotIntakeToSlack(intake);
+  if (slack.delivered && lead.persisted && lead.leadId) {
+    await markPilotLeadSlackDelivered(lead.leadId);
+  }
 
   return NextResponse.json(
     {
       ok: true,
+      persisted: lead.persisted,
       slackDelivered: slack.delivered,
       slackReason: slack.delivered ? null : slack.reason,
     },

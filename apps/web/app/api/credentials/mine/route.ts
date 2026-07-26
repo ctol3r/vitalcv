@@ -6,6 +6,7 @@
 
 import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
+import { applyIdentityHeaders } from '@/lib/auth/forwardIdentity';
 
 export const runtime = 'nodejs';
 
@@ -16,7 +17,7 @@ export async function GET() {
 
   const headers = new Headers();
   if (session.userId) {
-    headers.set('x-clerk-user-id', session.userId);
+    await applyIdentityHeaders(headers, { userId: session.userId });
   }
 
   const res = await fetch(`${BACKEND_URL}/api/credentials/mine`, {

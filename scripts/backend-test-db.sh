@@ -16,18 +16,52 @@ LOCAL_SOCKET_DIR=""
 LOCAL_PORT=""
 LOCK_ROOT="${TMPDIR:-/tmp}/vitalcv-backend-test-locks"
 LOCK_DIR="${LOCK_ROOT}/backend-suite"
+LOCK_OWNER_FILE="${LOCK_DIR}/owner.pid"
+LOCK_ACQUIRED=0
 
 mkdir -p "${LOCK_ROOT}"
 
+docker_available() {
+  if ! command -v docker >/dev/null 2>&1; then
+    return 1
+  fi
+
+  docker info >/dev/null 2>&1 &
+  local docker_info_pid=$!
+
+  for _ in $(seq 1 50); do
+    if ! kill -0 "${docker_info_pid}" >/dev/null 2>&1; then
+      wait "${docker_info_pid}"
+      return $?
+    fi
+    sleep 0.1
+  done
+
+  kill "${docker_info_pid}" >/dev/null 2>&1 || true
+  wait "${docker_info_pid}" >/dev/null 2>&1 || true
+  return 1
+}
+
 for _ in $(seq 1 1800); do
   if mkdir "${LOCK_DIR}" 2>/dev/null; then
+    printf '%s\n' "$$" > "${LOCK_OWNER_FILE}"
+    LOCK_ACQUIRED=1
     break
+  fi
+
+  if [[ -f "${LOCK_OWNER_FILE}" ]]; then
+    LOCK_OWNER_PID="$(cat "${LOCK_OWNER_FILE}" 2>/dev/null || true)"
+    if [[ -n "${LOCK_OWNER_PID}" ]] && ! kill -0 "${LOCK_OWNER_PID}" >/dev/null 2>&1; then
+      rm -f "${LOCK_OWNER_FILE}" >/dev/null 2>&1 || true
+      rmdir "${LOCK_DIR}" >/dev/null 2>&1 || true
+      continue
+    fi
   fi
 
   sleep 0.2
 done
 
-if [[ ! -d "${LOCK_DIR}" ]]; then
+if [[ "${LOCK_ACQUIRED}" != "1" ]]; then
   echo "Timed out waiting for backend test lock" >&2
   exit 1
 fi
@@ -45,20 +79,30 @@ cleanup() {
     rm -rf "${LOCAL_DATA_DIR}" >/dev/null 2>&1 || true
   fi
 
-  if docker info >/dev/null 2>&1 && docker ps -a --format '{{.Names}}' | grep -qx "${CONTAINER_NAME}"; then
+  if docker_available && docker ps -a --format '{{.Names}}' | grep -qx "${CONTAINER_NAME}"; then
     docker rm -f "${CONTAINER_NAME}" >/dev/null 2>&1 || true
   fi
 
+  rm -f "${LOCK_OWNER_FILE}" >/dev/null 2>&1 || true
   rmdir "${LOCK_DIR}" >/dev/null 2>&1 || true
 
   return 0
 }
 
+cleanup_stale_container() {
+  if docker_available && docker ps -a --format '{{.Names}}' | grep -qx "${CONTAINER_NAME}"; then
+    docker rm -f "${CONTAINER_NAME}" >/dev/null 2>&1 || true
+  fi
+}
+
 trap cleanup EXIT
 
-cleanup
+# Do not call cleanup here: it also releases LOCK_DIR. The suite lock must
+# remain held until the EXIT trap runs or parallel worktrees can mutate the
+# shared Prisma client and test database at the same time.
+cleanup_stale_container
 
-if docker info >/dev/null 2>&1; then
+if docker_available; then
   docker run -d \
     --name "${CONTAINER_NAME}" \
     -e POSTGRES_USER="${POSTGRES_USER}" \

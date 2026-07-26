@@ -1,5 +1,6 @@
 import * as React from 'react';
 import type { Metadata } from 'next';
+import { notFound } from 'next/navigation';
 
 import {
   VERB_META,
@@ -32,11 +33,14 @@ const TONE_BADGE: Record<string, string> = {
 };
 
 export default async function DossierPage({ params }: PageProps) {
-  // The receiptId from the URL is intentionally unused in Phase 1 —
-  // the page always renders the demoDossier. A later phase wires
-  // this to a real DossierState row.
-  await params;
+  // Only receipt ids that exist inside the demo dossier render. Any other
+  // receiptId is a 404: a real receipt id in the URL must never display
+  // fabricated custody data. (Real receipts render at /receipt/[receiptId].)
+  const { receiptId } = await params;
   const d = demoDossier();
+  if (!d.ledger.some((row) => row.id === receiptId)) {
+    notFound();
+  }
   const counts = computeDossierCounts(d);
   const chainOk = isChainConsistent(d.ledger);
 

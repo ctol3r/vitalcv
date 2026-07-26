@@ -1,5 +1,6 @@
 import React from 'react';
 import type { Metadata } from 'next';
+import { LegalShell } from '@/components/legal/LegalShell';
 
 export const metadata: Metadata = {
   title: 'Cookie Policy · VitalCV',
@@ -71,19 +72,7 @@ function PurposePill({ purpose }: { purpose: CookiePurpose }) {
 
 export default function CookiesPage() {
   return (
-    <main className="mx-auto w-full max-w-3xl px-4 py-12 sm:px-6 lg:px-8">
-      <header className="mb-10">
-        <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-          Legal
-        </p>
-        <h1 className="mt-2 text-3xl font-semibold leading-tight sm:text-4xl">
-          Cookie Policy
-        </h1>
-        <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-          Last updated {EFFECTIVE_DATE}.
-        </p>
-      </header>
-
+    <LegalShell activeDoc="cookies" eyebrow="Legal" title="Cookie Policy" updated={EFFECTIVE_DATE}>
       <div className="space-y-8 text-sm leading-relaxed">
         <section>
           <h2 className="text-base font-semibold">What are cookies?</h2>
@@ -154,6 +143,6 @@ export default function CookiesPage() {
           </p>
         </section>
       </div>
-    </main>
+    </LegalShell>
   );
 }

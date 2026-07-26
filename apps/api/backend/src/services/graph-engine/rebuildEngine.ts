@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { Prisma, type GraphBuildRun as PrismaGraphBuildRun, type PrismaClient } from '@prisma/client';
 import prisma from '../../graphql/prisma_client';
 import { log } from '../../obs/logger';
@@ -605,6 +604,100 @@ async function resolveTargetedScopes(
   };
 }
 
+// WorkspaceMembership has NO Prisma relations to PersonProfile or
+// OrganizationProfile (plain FK columns), so relation-style filters/selects
+// throw P2009 at runtime. Resolve the npi/organization scopes to FK ids
+// first, filter on the FK columns, then stitch npi + organizationId back in
+// JS (same pattern as hydrateWorkspaceUser in workspaceService.ts).
+async function loadWorkspaceMembershipRows(
+  prismaClient: PrismaClient,
+  npiScope: string[],
+  organizationScope: string[],
+): Promise<Array<{
+  role: string;
+  active: boolean;
+  createdAt: Date;
+  personProfile: { npi: string | null };
+  organizationProfile: { organizationId: string | null };
+}>> {
+  let scopedPersonProfiles: Array<{ id: string; npi: string | null }> | null = null;
+  let scopedOrgProfiles: Array<{ id: string; organizationId: string }> | null = null;
+
+  if (npiScope.length > 0) {
+    scopedPersonProfiles = await prismaClient.personProfile.findMany({
+      where: { npi: { in: npiScope } },
+      select: { id: true, npi: true },
+    });
+  } else if (organizationScope.length > 0) {
+    scopedOrgProfiles = await prismaClient.organizationProfile.findMany({
+      where: { organizationId: { in: organizationScope } },
+      select: { id: true, organizationId: true },
+    });
+  }
+
+  const memberships = await prismaClient.workspaceMembership.findMany({
+    where: scopedPersonProfiles
+      ? { personProfileId: { in: scopedPersonProfiles.map((profile) => profile.id) } }
+      : scopedOrgProfiles
+        ? { organizationProfileId: { in: scopedOrgProfiles.map((profile) => profile.id) } }
+        : undefined,
+    select: {
+      role: true,
+      active: true,
+      createdAt: true,
+      personProfileId: true,
+      organizationProfileId: true,
+    },
+  });
+
+  if (memberships.length === 0) {
+    return [];
+  }
+
+  const npiByProfileId = new Map<string, string | null>(
+    (scopedPersonProfiles ?? []).map((profile) => [profile.id, profile.npi]),
+  );
+  const orgIdByProfileId = new Map<string, string>(
+    (scopedOrgProfiles ?? []).map((profile) => [profile.id, profile.organizationId]),
+  );
+
+  const missingPersonProfileIds = [
+    ...new Set(memberships.map((membership) => membership.personProfileId)),
+  ].filter((id) => !npiByProfileId.has(id));
+  const missingOrgProfileIds = [
+    ...new Set(memberships.map((membership) => membership.organizationProfileId)),
+  ].filter((id) => !orgIdByProfileId.has(id));
+
+  const [personProfiles, orgProfiles] = await Promise.all([
+    missingPersonProfileIds.length > 0
+      ? prismaClient.personProfile.findMany({
+          where: { id: { in: missingPersonProfileIds } },
+          select: { id: true, npi: true },
+        })
+      : Promise.resolve([]),
+    missingOrgProfileIds.length > 0
+      ? prismaClient.organizationProfile.findMany({
+          where: { id: { in: missingOrgProfileIds } },
+          select: { id: true, organizationId: true },
+        })
+      : Promise.resolve([]),
+  ]);
+  personProfiles.forEach((profile) => npiByProfileId.set(profile.id, profile.npi));
+  orgProfiles.forEach((profile) => orgIdByProfileId.set(profile.id, profile.organizationId));
+
+  // A dangling FK resolves to null npi/organizationId; the projection loop
+  // skips memberships it cannot link to both nodes.
+  return memberships.map((membership) => ({
+    role: membership.role,
+    active: membership.active,
+    createdAt: membership.createdAt,
+    personProfile: { npi: npiByProfileId.get(membership.personProfileId) ?? null },
+    organizationProfile: {
+      organizationId: orgIdByProfileId.get(membership.organizationProfileId) ?? null,
+    },
+  }));
+}
+
 async function buildProjection(
   prismaClient: PrismaClient,
   input: GraphRebuildInput,
@@ -667,26 +760,7 @@ async function buildProjection(
         },
       },
     }),
-    prismaClient.workspaceMembership.findMany({
-      where: npiScope.length > 0
-        ? { personProfile: { npi: { in: npiScope } } }
-        : organizationScope.length > 0
-          ? { organizationProfile: { organizationId: { in: organizationScope } } }
-          : undefined,
-      select: {
-        role: true,
-        active: true,
-        createdAt: true,
-        personProfile: {
-          select: { npi: true },
-        },
-        organizationProfile: {
-          select: {
-            organizationId: true,
-          },
-        },
-      },
-    }),
+    loadWorkspaceMembershipRows(prismaClient, npiScope, organizationScope),
     safeOptionalFindMany('Opportunity', () =>
       prismaClient.opportunity.findMany({
         where: organizationScope.length > 0 ? { organizationId: { in: organizationScope } } : undefined,
@@ -897,7 +971,9 @@ async function buildProjection(
     const clinicianNode = membership.personProfile.npi
       ? clinicianNodeByNpi.get(membership.personProfile.npi)
       : undefined;
-    const orgNode = organizationNodeById.get(membership.organizationProfile.organizationId);
+    const orgNode = membership.organizationProfile.organizationId
+      ? organizationNodeById.get(membership.organizationProfile.organizationId)
+      : undefined;
     if (!clinicianNode || !orgNode) continue;
 
     addEdge(context, buildEdge({

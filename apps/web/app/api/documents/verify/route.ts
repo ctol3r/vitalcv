@@ -7,6 +7,7 @@
 
 import { auth } from '@clerk/nextjs/server';
 import { type NextRequest, NextResponse } from 'next/server';
+import { applyIdentityHeaders } from '@/lib/auth/forwardIdentity';
 
 export const runtime = 'nodejs';
 
@@ -19,7 +20,7 @@ export async function POST(req: NextRequest) {
   const headers = new Headers();
   headers.set('content-type', 'application/json');
   if (session.userId) {
-    headers.set('x-clerk-user-id', session.userId);
+    await applyIdentityHeaders(headers, { userId: session.userId });
   }
 
   const res = await fetch(`${BACKEND_URL}/api/documents/verify`, {

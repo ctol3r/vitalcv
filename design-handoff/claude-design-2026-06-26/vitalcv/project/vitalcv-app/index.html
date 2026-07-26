@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>VitalCV · Reusable, source-backed clinician readiness</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css?v=7">
+<script>
+(function(){
+  function apply(){
+    var hide = window.innerWidth < 1180;
+    var nodes = document.getElementsByClassName('hide-narrow');
+    for (var i = 0; i < nodes.length; i++) {
+      nodes[i].style.display = hide ? 'none' : '';
+    }
+  }
+  if (document.readyState !== 'loading') apply();
+  else document.addEventListener('DOMContentLoaded', apply);
+  window.addEventListener('resize', apply);
+})();
+</script>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-in">
+    <a href="index.html" class="brand"><span class="glyph">V</span><span>VitalCV</span><span class="ver">PREVIEW</span></a>
+    <div class="nav-links">
+      <a href="index.html" class="active">Overview</a>
+      <a href="trust.html">Trust</a>
+      <a href="trust-attribution.html">Attribution</a>
+      <a href="status.html">Status</a>
+      <a href="contact.html">Contact</a>
+    </div>
+    <div class="nav-right">
+      <span class="nav-status hide-narrow"><span class="dot"></span>3 of 4 connectors responding</span>
+      <a href="sign-in.html" class="btn">Sign in</a>
+      <a href="sign-up.html" class="btn primary">Get a passport</a>
+    </div>
+  </div>
+</nav>
+
+<main class="page">
+
+  <section class="hero">
+    <div class="hero-grid">
+      <div class="hero-meta">
+        <div class="eyebrow">
+          <span class="tag">VitalCV · D57</span>
+          <span class="ln"></span>
+          <span>Reusable · source-backed · institution-reviewed</span>
+        </div>
+        <h1 class="h-display">Look up a clinician by NPI. Read what is <em>source-backed</em>, what is pending, what an institution still has to review.</h1>
+        <p class="lede">VitalCV is a reusable readiness layer for healthcare credentialing. Every field cites its source and the time it was last read. Nothing on this page implies final credentialing — that boundary belongs to the institution.</p>
+
+        <div class="proofs">
+          <div><span class="k">Fields read</span><span class="v">28 <small>of 32 possible</small></span></div>
+          <div><span class="k">Public sources</span><span class="v">3 responding <small>1 unavailable · NPDB</small></span></div>
+          <div><span class="k">Self-reported</span><span class="v">4 fields <small>not yet source-backed</small></span></div>
+          <div><span class="k">Review boundary</span><span class="v">Institution <small>VitalCV does not credential</small></span></div>
+        </div>
+
+        <div class="row" style="margin-top:20px">
+          <span class="cmd-pill"><span class="kbd">⌘K</span> Find clinician, NPI, source</span>
+          <a href="trust.html" class="btn ghost">How VitalCV reads sources →</a>
+        </div>
+      </div>
+
+      <aside class="npi-card">
+        <div class="field-grp">
+          <label>NPI · 10-digit identifier</label>
+          <div class="npi-input-row">
+            <input class="input mono lg" placeholder="1699264564" value="1699264564" maxlength="10">
+            <a href="passport.html?npi=1699264564" class="btn accent lg">Read passport</a>
+          </div>
+          <div class="hint"><span>NPI is public on the NPPES registry.</span><a href="trust-attribution.html">What we read</a></div>
+        </div>
+
+        <div class="hint-list">
+          <span>NPPES — name, taxonomy, practice address</span>
+          <span>ABMS — board certification, recert window</span>
+          <span>State boards — license + expiration</span>
+          <span>OIG LEIE / SAM.gov — sanction record</span>
+        </div>
+
+        <div class="disclaimer">VitalCV is not a credentialing body. We read public sources, show what is source-backed and what is not, and surface what an institution must review on its own.</div>
+      </aside>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="sec-head">
+      <span class="sec-num">01</span>
+      <h2 class="sec-title">Three ways to read a passport</h2>
+      <span class="sec-aside">Same data · different defaults</span>
+    </div>
+
+    <div class="doors">
+      <a href="passport.html?npi=1699264564" class="door">
+        <div class="door-hd">
+          <span class="door-ic">C</span>
+          <div>
+            <div class="door-role">For clinicians</div>
+            <div class="door-nm">Read your own passport</div>
+          </div>
+        </div>
+        <p class="door-desc">See what is source-backed about you today. Add what's missing. Export a receipt to share with an institution.</p>
+        <div class="door-uses">
+          <span>Onboarding at a new institution</span>
+          <span>Recert &amp; renewal preparation</span>
+          <span>Sharing scope-bound evidence</span>
+        </div>
+        <div class="door-cta">Enter your NPI</div>
+      </a>
+
+      <a href="passport.html?npi=1699264564&amp;role=verifier" class="door">
+        <div class="door-hd">
+          <span class="door-ic">I</span>
+          <div>
+            <div class="door-role">For institutions</div>
+            <div class="door-nm">Read a clinician for review</div>
+          </div>
+        </div>
+        <p class="door-desc">Read a clinician's passport with verifier context — what is source-backed, what your team still has to review. VitalCV never marks review complete.</p>
+        <div class="door-uses">
+          <span>Pre-onboarding read</span>
+          <span>Reconcile contradicting sources</span>
+          <span>Build an evidence packet</span>
+        </div>
+        <div class="door-cta">Sign in as reviewer</div>
+      </a>
+
+      <a href="status.html" class="door">
+        <div class="door-hd">
+          <span class="door-ic">O</span>
+          <div>
+            <div class="door-role">For operators</div>
+            <div class="door-nm">Watch connector health</div>
+          </div>
+        </div>
+        <p class="door-desc">Source reachability and last-read times for every public registry VitalCV consults. Degraded states are explained by the source, not the clinician.</p>
+        <div class="door-uses">
+          <span>Connector matrix · 4 sources</span>
+          <span>Last-read freshness · per source</span>
+          <span>Replay any read</span>
+        </div>
+        <div class="door-cta">View status</div>
+      </a>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="sec-head">
+      <span class="sec-num">02</span>
+      <h2 class="sec-title">What a passport actually contains</h2>
+      <span class="sec-aside">Live preview · NPI 1699264564</span>
+    </div>
+
+    <div class="card">
+      <div class="card-hd">
+        <span class="ttl">Passport · sample</span>
+        <span class="sp"></span>
+        <span class="aside">Read 09:14 UTC · 3 of 4 sources responding</span>
+      </div>
+      <div class="card-bd">
+        <div class="field">
+          <span class="label">Legal name</span>
+          <span class="value">Asha N. Bhatt, MD<small class="source">NPPES · read 09:14 UTC · agreed by ABMS</small></span>
+          <span class="meta"><span class="truth t-backed"><span class="st"><span class="glyph"></span>Source-backed</span><span class="src">NPPES + ABMS · 14m</span></span></span>
+        </div>
+        <div class="field">
+          <span class="label">Board certification</span>
+          <span class="value">Internal Medicine<small class="source">ABMS · read 2026·05·12 · recert window 2028·12·31</small></span>
+          <span class="meta"><span class="truth t-backed"><span class="st"><span class="glyph"></span>Source-backed</span><span class="src">ABMS · 14d</span></span></span>
+        </div>
+        <div class="field">
+          <span class="label">State license · CA</span>
+          <span class="value mono-val">A‑88142<small class="source">CA Medical Board · last read 2026·05·14 · expires 2027·03·31</small></span>
+          <span class="meta"><span class="truth t-backed"><span class="st"><span class="glyph"></span>Source-backed</span><span class="src">CA Med Board · 12d</span></span></span>
+        </div>
+        <div class="field">
+          <span class="label">Sanction record</span>
+          <span class="value">No sanction found in OIG LEIE<small class="source">OIG LEIE · read 2026·05·26 · SAM.gov · unavailable</small></span>
+          <span class="meta"><span class="truth t-pending"><span class="st"><span class="glyph"></span>Partial read</span><span class="src">1 of 2 · SAM offline</span></span></span>
+        </div>
+        <div class="field">
+          <span class="label">Malpractice history</span>
+          <span class="value">Not asserted in any public source we read.<small class="source">NPDB requires institution access — VitalCV cannot read this on your behalf.</small></span>
+          <span class="meta"><span class="truth t-review"><span class="st"><span class="glyph"></span>Institution must review</span><span class="src">NPDB · institution-only</span></span></span>
+        </div>
+        <div class="field">
+          <span class="label">Hospital privileges</span>
+          <span class="value">Self-reported: UCSF Medical Center, active<small class="source">Clinician self-report · 2026·04·22 · not yet source-backed</small></span>
+          <span class="meta"><span class="truth t-self"><span class="st"><span class="glyph"></span>Self-reported</span><span class="src">awaiting MSO attestation</span></span></span>
+        </div>
+      </div>
+      <div class="card-ft">
+        <span>↳ 22 more fields in the passport · open to read</span>
+        <span class="sp"></span>
+        <a href="passport.html?npi=1699264564" class="row" style="color:var(--accent-ink); font-family:var(--sans); font-weight:500; font-size:13px">Open full passport →</a>
+      </div>
+    </div>
+
+    <div class="boundary-banner" style="margin-top:18px">
+      <span class="ic">i</span>
+      <div>
+        <span class="k">Review boundary</span>
+        <span class="v">VitalCV reads public registries and shows their state. <strong>Final credentialing is the institution's decision</strong> — VitalCV never marks a clinician cleared, approved, or eligible to practice.</span>
+      </div>
+      <a href="trust.html" class="btn">Read trust model</a>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="sec-head">
+      <span class="sec-num">03</span>
+      <h2 class="sec-title">The states VitalCV uses</h2>
+      <span class="sec-aside">Eight · paired with source &amp; time</span>
+    </div>
+    <p class="lede" style="margin-bottom:24px">Every field in VitalCV resolves to one of eight states. Each pairs an ink color with a source name and a timestamp — never a bare word, never a score.</p>
+
+    <div class="grid-4">
+      <div class="card"><div class="card-bd tight"><span class="truth t-backed"><span class="st"><span class="glyph"></span>Source-backed</span><span class="src">ABMS · 14d</span></span><p class="small muted" style="margin:10px 0 0; line-height:1.5">Two or more public sources agree within freshness window.</p></div></div>
+      <div class="card"><div class="card-bd tight"><span class="truth t-pending"><span class="st"><span class="glyph"></span>Pending source</span><span class="src">CA Board · retry 02:14</span></span><p class="small muted" style="margin:10px 0 0; line-height:1.5">Source queued for read or temporarily unreachable.</p></div></div>
+      <div class="card"><div class="card-bd tight"><span class="truth t-unavail"><span class="st"><span class="glyph"></span>Source unavailable</span><span class="src">SAM.gov · offline 02h</span></span><p class="small muted" style="margin:10px 0 0; line-height:1.5">A source we usually consult is offline. Not the clinician's failure.</p></div></div>
+      <div class="card"><div class="card-bd tight"><span class="truth t-self"><span class="st"><span class="glyph"></span>Self-reported</span><span class="src">clinician · 2026·04·22</span></span><p class="small muted" style="margin:10px 0 0; line-height:1.5">Stated by the clinician — not yet backed by an external source.</p></div></div>
+      <div class="card"><div class="card-bd tight"><span class="truth t-review"><span class="st"><span class="glyph"></span>Institution must review</span><span class="src">NPDB · institution-only</span></span><p class="small muted" style="margin:10px 0 0; line-height:1.5">Source is institution-gated. Outside VitalCV's read scope.</p></div></div>
+      <div class="card"><div class="card-bd tight"><span class="truth t-sanction"><span class="st"><span class="glyph"></span>Sanction recorded</span><span class="src">OIG LEIE · 2026·05·26</span></span><p class="small muted" style="margin:10px 0 0; line-height:1.5">Public sanction record exists. Surfaced literally, never softened.</p></div></div>
+      <div class="card"><div class="card-bd tight"><span class="chip" data-state="contradicted"><span class="glyph"></span>Sources disagree</span><p class="small muted" style="margin:10px 0 0; line-height:1.5">Two sources return different values. Reconcile, never auto-merge.</p></div></div>
+      <div class="card"><div class="card-bd tight"><span class="chip" data-state="not-asserted"><span class="glyph"></span>Not asserted</span><p class="small muted" style="margin:10px 0 0; line-height:1.5">No source has been asked yet. Gray, not red. Suggests next read.</p></div></div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="footer">
+  <div class="footer-in">
+    <div class="brand-blob">
+      <a href="index.html" class="brand"><span class="glyph">V</span><span>VitalCV</span></a>
+      <p>Reusable, source-backed clinician readiness. VitalCV reads public registries and shows their state — the institution decides.</p>
+      <div class="scope">
+        <span><b>Scope</b> · public-source reader · review-bounded</span>
+        <span><b>Not</b> · a credentialing body · not final approval</span>
+      </div>
+    </div>
+    <div class="col">
+      <span class="ttl">Product</span>
+      <a href="passport.html?npi=1699264564">Passport</a>
+      <a href="trust.html">Trust register</a>
+      <a href="trust-attribution.html">Source attribution</a>
+      <a href="status.html">Connector status</a>
+    </div>
+    <div class="col">
+      <span class="ttl">Account</span>
+      <a href="sign-in.html">Sign in</a>
+      <a href="sign-up.html">Get a passport</a>
+      <a href="contact.html">Talk to us</a>
+    </div>
+    <div class="col">
+      <span class="ttl">Sources read</span>
+      <a href="trust-attribution.html#nppes">NPPES · CMS</a>
+      <a href="trust-attribution.html#abms">ABMS</a>
+      <a href="trust-attribution.html#oig">OIG LEIE</a>
+      <a href="trust-attribution.html#state">State boards</a>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span class="truth-row"><span class="dot"></span>Last read 09:14 UTC · 3 of 4 sources responding</span>
+    <span class="sp"></span>
+    <span>© 2026 VitalCV · Preview build D57</span>
+    <span>Receipt VS‑D57‑0001 · ed25519</span>
+  </div>
+  <div class="footer-in" style="grid-template-columns:1fr; padding-top:0; padding-bottom:18px">
+    <p class="disclaimer">VitalCV does not credential clinicians and does not assert HIPAA, SOC 2, or NCQA accreditation status. Source reads reflect public registries at the times shown. Institutions retain full authority over hiring, privileging, and renewal decisions.</p>
+  </div>
+</footer>
+
+
+<script>
+(function(){
+  function syncResponsive(){
+    var w = window.innerWidth;
+    document.querySelectorAll('.nav-status').forEach(function(el){
+      el.classList.toggle('no-on-narrow', w < 1180);
+    });
+    document.querySelectorAll('.nav-right .muted').forEach(function(el){
+      el.classList.toggle('no-on-narrow', w < 1180);
+    });
+  }
+  syncResponsive();
+  window.addEventListener('resize', syncResponsive);
+})();
+</script>
+</body>
+</html>

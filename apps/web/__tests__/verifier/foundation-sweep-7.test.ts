@@ -464,10 +464,14 @@ describe('verifier component and page copy invariants', () => {
     expect(src).toContain('WorklistPanel');
   });
 
-  it('employer decision shell carries the planned recording copy and read-only area', () => {
+  it('employer decision page is driven by the real sealed application, not a mock (ACT-1.1)', () => {
     const src = readWebFile('app/employer/decision/[applicationId]/page.tsx');
-    expect(src).toContain('Decision recording is planned for the production workflow.');
-    expect(src).toContain('Read-only outcome area');
+    // The mock shell was retired: real data via the authorized evidence loader.
+    expect(src).not.toContain('MOCK_DECISION_ITEM');
+    expect(src).toContain('loadApplicationEvidenceView');
+    expect(src).toContain('deriveDecisionContext');
+    // Head-start acceptance stays scoped; final institutional review is separate.
+    expect(src).toContain('final institutional review is separate');
   });
 
   it('new verifier files do not contain banned truth-drift phrases', () => {

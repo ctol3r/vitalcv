@@ -2,27 +2,35 @@
 
 import { cn } from '@/lib/utils';
 import { AnimatePresence, motion } from 'framer-motion';
-import { ArrowRight, Box, Building2, ChevronRight, FileText, Globe, Search, Shield, Sparkles, Terminal, User } from 'lucide-react';
+import { ArrowRight, Award, Box, Building2, ChevronRight, Compass, FileText, Fingerprint, Globe, Search, Shield, ShieldCheck, Sparkles, User, Wallet } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { CommandParamsModal } from './CommandParamsModal';
 
-// Maps backend entity types to UI groups
+// Maps backend entity types to UI groups.
+// Calm Wave D56 light: paper + ink + one ink-indigo accent, no jade/teal/coral. Icon chips
+// are a light paper fill (var(--paper-2)) with muted ink; the selected row's icon is
+// recolored to ink-indigo (var(--accent)) in the row itself.
+const ICON_CHIP = 'text-[var(--ink-600)] bg-[var(--paper-2)]';
 const TYPE_MAPPING: Record<string, { group: string, icon: any, color: string }> = {
-  PUBLIC_PAGE: { group: 'Policy & Docs', icon: Globe, color: 'text-vt-neutral-200 bg-vt-neutral-800/30' },
-  FAQ_DOC: { group: 'Policy & Docs', icon: FileText, color: 'text-vt-neutral-200 bg-vt-neutral-800/30' },
-  EMPLOYER_PROFILE: { group: 'Employer', icon: Building2, color: 'text-vt-info bg-vt-info/10' },
-  OPPORTUNITY: { group: 'Opportunity', icon: Sparkles, color: 'text-vt-success bg-vt-success/10' },
-  ISSUER_PROFILE: { group: 'Issuer', icon: Shield, color: 'text-purple-400 bg-purple-400/10' },
-  TRUST_STATE_SUMMARY: { group: 'Clinician', icon: User, color: 'text-blue-400 bg-blue-400/10' },
-  CONNECTED_RECORD: { group: 'Artifact', icon: Box, color: 'text-orange-400 bg-orange-400/10' },
-  DEFAULT: { group: 'Other', icon: FileText, color: 'text-vt-neutral-400 bg-vt-neutral-800/30' }
+  PUBLIC_PAGE: { group: 'Policy & Docs', icon: Globe, color: ICON_CHIP },
+  FAQ_DOC: { group: 'Policy & Docs', icon: FileText, color: ICON_CHIP },
+  EMPLOYER_PROFILE: { group: 'Employer', icon: Building2, color: ICON_CHIP },
+  OPPORTUNITY: { group: 'Opportunity', icon: Sparkles, color: ICON_CHIP },
+  ISSUER_PROFILE: { group: 'Issuer', icon: Shield, color: ICON_CHIP },
+  TRUST_STATE_SUMMARY: { group: 'Clinician', icon: User, color: ICON_CHIP },
+  CONNECTED_RECORD: { group: 'Artifact', icon: Box, color: ICON_CHIP },
+  DEFAULT: { group: 'Other', icon: FileText, color: ICON_CHIP }
 };
 
 const QUICK_ACTIONS = [
-  { id: 'AskVitalCV', label: 'Ask VitalCV AI', desc: 'Ask complex questions about compliance', icon: Sparkles, action: 'ask' },
-  { id: 'VerifyNpiCommand', label: 'Verify a Clinician', desc: 'Lookup and verify NPI credentials', icon: Search, action: 'cmd' },
-  { id: 'MissionOps', label: 'Mission Ops', desc: 'Control plane operations', icon: Terminal, action: 'nav', href: '/mission-ops/v2' },
+  { id: 'GetReady', label: 'Confirm my NPI', desc: 'Start your source-backed wallet', icon: Fingerprint, action: 'nav', href: '/onboarding' },
+  { id: 'Wallet', label: 'Open my wallet', desc: 'Your credentials, readiness, and proof', icon: Wallet, action: 'nav', href: '/holder' },
+  { id: 'Readiness', label: 'Check my readiness', desc: 'Live source coverage and blockers', icon: ShieldCheck, action: 'nav', href: '/holder/readiness' },
+  { id: 'Recognition', label: 'My Recognition', desc: 'Employer-accepted head starts', icon: Award, action: 'nav', href: '/holder/recognition' },
+  { id: 'Opportunities', label: 'Find opportunities', desc: 'Roles matched to your evidence', icon: Compass, action: 'nav', href: '/holder/opportunities' },
+  { id: 'VerifyNpiCommand', label: 'Look up a clinician', desc: 'See what is source-backed about an NPI', icon: Search, action: 'cmd' },
+  { id: 'AskVitalCV', label: 'Ask VitalCV', desc: 'Ask about your readiness or the process', icon: Sparkles, action: 'ask' },
 ];
 
 export function CommandPalette() {
@@ -220,41 +228,46 @@ export function CommandPalette() {
     <>
       <AnimatePresence>
         {open && !activeCommand && (
-          <div className="fixed inset-0 z-[100] flex items-start justify-center pt-[10vh] sm:pt-[15vh]">
+          <div className="mz fixed inset-0 z-[100] flex items-start justify-center pt-[10vh] sm:pt-[15vh]">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.15 }}
-              className="fixed inset-0 bg-slate-950/80 backdrop-blur-md"
+              transition={{ duration: 0.2, ease: 'easeOut' }}
+              className="fixed inset-0 bg-[color-mix(in_oklch,var(--ink-900)_28%,transparent)] backdrop-blur-sm"
               onClick={() => setOpen(false)}
             />
 
             <motion.div
-              initial={{ opacity: 0, scale: 0.98, y: -10 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.98, y: -10 }}
-              transition={{ duration: 0.2, ease: "easeOut" }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2, ease: 'easeOut' }}
+              style={{
+                background: 'var(--card)',
+                border: '1px solid var(--rule)',
+                boxShadow: '0 24px 60px -30px oklch(20% 0.02 265 / 0.28)',
+              }}
               className={cn(
-                "relative flex flex-col w-full max-w-3xl overflow-hidden rounded-2xl bg-[#0a0a0f] border border-border shadow-[0_0_50px_rgba(0,0,0,0.8)] transition-all duration-300",
+                "mz relative flex flex-col w-full max-w-2xl overflow-hidden rounded-[8px]",
                 isResultsMode ? "h-[80vh] max-h-[800px]" : "h-auto"
               )}
             >
               {/* Sticky Search Header */}
-              <div className="flex-none p-4 pb-2 border-b border-border shrink-0 bg-[#0a0a0f] z-10 sticky top-0">
-                <div className="flex items-center gap-3 bg-muted border border-border rounded-xl px-4 py-3 focus-within:ring-2 focus-within:ring-vt-info/40 focus-within:border-vt-info transition-all">
-                  <Search className="w-5 h-5 text-foreground/70 shrink-0" />
+              <div className="flex-none p-4 pb-2 border-b border-[var(--rule)] shrink-0 bg-transparent z-10 sticky top-0">
+                <div className="flex items-center gap-3 bg-[var(--ink-50)] border border-[var(--rule)] rounded-[6px] px-4 py-3 focus-within:border-[var(--accent)] transition-colors">
+                  <Search className="w-5 h-5 text-[var(--ink-500)] shrink-0" />
                   <input
                     ref={inputRef}
-                    className="flex-1 bg-transparent border-none outline-none text-lg text-foreground placeholder:text-muted-foreground/60"
-                    placeholder="Search clinicians, employers, opportunities, or Ask AI..."
+                    className="flex-1 bg-transparent border-none outline-none text-lg text-[var(--ink-900)] placeholder:text-[var(--ink-400)] placeholder:font-[family-name:var(--font-geist-mono)]"
+                    placeholder="Jump to your wallet, readiness, or Recognition — or ask VitalCV"
                     value={search}
                     onChange={(e) => { setSearch(e.target.value); setSelectedIndex(0); }}
                     onKeyDown={handleKeyDown}
                   />
-                  {loading && <div className="w-4 h-4 rounded-full border-2 border-vt-info border-t-transparent animate-spin shrink-0" />}
+                  {loading && <div className="w-4 h-4 rounded-full border-2 border-[var(--accent)] border-t-transparent animate-spin shrink-0" />}
                   <div className="flex gap-1 shrink-0 ml-2">
-                    <kbd className="hidden sm:inline-flex items-center justify-center h-6 px-2 text-[10px] font-mono text-muted-foreground bg-muted rounded border border-border">ESC</kbd>
+                    <kbd className="hidden sm:inline-flex items-center justify-center h-6 px-2 text-[10px] uppercase font-[family-name:var(--font-geist-mono)] text-[var(--ink-500)] bg-[var(--card)] rounded-[4px] border border-[var(--rule)]">ESC</kbd>
                   </div>
                 </div>
 
@@ -262,7 +275,12 @@ export function CommandPalette() {
                   <div className="flex gap-2 mt-4 px-1 overflow-x-auto no-scrollbar">
                     <button
                       onClick={() => { setActiveFilter(null); setSelectedIndex(0); }}
-                      className={cn("px-3 py-1 text-xs rounded-full whitespace-nowrap transition-colors", activeFilter === null ? "bg-white text-black font-medium" : "bg-muted text-foreground hover:bg-muted hover:text-foreground")}
+                      className={cn(
+                        "px-3 py-1 text-[11px] uppercase tracking-wide font-[family-name:var(--font-geist-mono)] rounded-[4px] whitespace-nowrap border transition-colors",
+                        activeFilter === null
+                          ? "bg-[color-mix(in_oklch,var(--accent)_12%,transparent)] border-[var(--accent)] text-[var(--accent)]"
+                          : "bg-transparent border-[var(--rule)] text-[var(--ink-500)] hover:text-[var(--ink-900)] hover:border-[var(--ink-400)]"
+                      )}
                     >
                       All Results
                     </button>
@@ -270,7 +288,12 @@ export function CommandPalette() {
                       <button
                         key={g}
                         onClick={() => { setActiveFilter(g); setSelectedIndex(0); }}
-                        className={cn("px-3 py-1 text-xs rounded-full whitespace-nowrap flex items-center gap-1.5 transition-colors", activeFilter === g ? "bg-white text-black font-medium" : "bg-muted text-foreground hover:bg-muted hover:text-foreground")}
+                        className={cn(
+                          "px-3 py-1 text-[11px] uppercase tracking-wide font-[family-name:var(--font-geist-mono)] rounded-[4px] whitespace-nowrap flex items-center gap-1.5 border transition-colors",
+                          activeFilter === g
+                            ? "bg-[color-mix(in_oklch,var(--accent)_12%,transparent)] border-[var(--accent)] text-[var(--accent)]"
+                            : "bg-transparent border-[var(--rule)] text-[var(--ink-500)] hover:text-[var(--ink-900)] hover:border-[var(--ink-400)]"
+                        )}
                       >
                         {g} <span className="text-[10px] opacity-60">({groupedResults[g].length})</span>
                       </button>
@@ -284,9 +307,9 @@ export function CommandPalette() {
                 {!isResultsMode ? (
                   <div className="px-2 py-4">
                     <div className="flex items-center justify-between px-2 mb-3">
-                      <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Suggested Actions</h3>
-                      <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground/60 bg-muted px-2 py-1 rounded-sm border border-white/5">
-                        <Globe className="w-3 h-3" /> ACL-Safe Search Active
+                      <h3 className="text-[11px] font-[family-name:var(--font-geist-mono)] font-medium uppercase tracking-[0.14em] text-[var(--ink-500)]">Quick actions</h3>
+                      <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wide font-[family-name:var(--font-geist-mono)] text-[var(--ink-500)] bg-[var(--paper-2)] px-2.5 py-1 rounded-[4px] border border-[var(--rule)]">
+                        ↑↓ move · ↵ open · esc close
                       </div>
                     </div>
 
@@ -301,32 +324,34 @@ export function CommandPalette() {
                             onClick={() => handleQuickAction(action)}
                             onMouseEnter={() => setSelectedIndex(i)}
                             className={cn(
-                              "flex flex-col items-start p-4 rounded-xl text-left transition-all border",
+                              "relative flex flex-col items-start p-4 pl-5 rounded-[6px] text-left border transition-colors",
+                              // left indigo accent bar on the selected row
+                              "before:absolute before:left-0 before:top-2 before:bottom-2 before:w-[3px] before:rounded-full before:transition-colors",
                               selected
-                                ? "bg-muted border-border shadow-[0_0_15px_rgba(255,255,255,0.05)]"
-                                : "bg-transparent border-transparent hover:bg-muted"
+                                ? "bg-[color-mix(in_oklch,var(--accent)_10%,transparent)] border-[var(--accent)] before:bg-[var(--accent)]"
+                                : "bg-transparent border-[var(--rule)] hover:bg-[var(--ink-50)] before:bg-transparent"
                             )}
                           >
                             <div className="flex items-center gap-3 mb-2 w-full">
-                              <div className={cn("p-2 rounded-lg", selected ? "bg-vt-info/20 text-vt-info" : "bg-muted text-foreground")}>
+                              <div className={cn("p-2 rounded-[4px] transition-colors", selected ? "bg-[color-mix(in_oklch,var(--accent)_15%,transparent)] text-[var(--accent)]" : "bg-[var(--paper-2)] text-[var(--ink-600)]")}>
                                 <Icon className="w-5 h-5" />
                               </div>
-                              <div className="font-medium text-foreground flex-1">{action.label}</div>
-                              {selected && <ArrowRight className="w-4 h-4 text-muted-foreground" />}
+                              <div className="font-medium text-[var(--ink-900)] flex-1">{action.label}</div>
+                              {selected && <ArrowRight className="w-4 h-4 text-[var(--accent)]" />}
                             </div>
-                            <div className="text-xs text-foreground/70 line-clamp-2">{action.desc}</div>
+                            <div className="text-xs font-[family-name:var(--font-geist-mono)] text-[var(--ink-500)] line-clamp-2">{action.desc}</div>
                           </button>
                         );
                       })}
                     </div>
 
                     <div className="mt-8 px-2">
-                      <div className="p-4 rounded-xl bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border border-indigo-500/20 flex gap-4 items-start">
-                        <Sparkles className="w-6 h-6 text-indigo-400 shrink-0 mt-1" />
+                      <div className="p-4 rounded-[6px] bg-[var(--paper-2)] border border-[var(--rule)] flex gap-4 items-start">
+                        <Sparkles className="w-6 h-6 text-[var(--accent)] shrink-0 mt-1" />
                         <div>
-                          <h4 className="text-sm font-medium text-indigo-300 mb-1">Try Natural Language</h4>
-                          <p className="text-xs text-foreground">
-                            "What are the onboarding requirements for Kaiser ICU?" or "Show me all telemetry events from the last 24 hours."
+                          <h4 className="text-sm font-medium text-[var(--ink-900)] mb-1">Ask in plain language</h4>
+                          <p className="text-xs text-[var(--ink-600)]">
+                            &ldquo;What&rsquo;s blocking my readiness?&rdquo; or &ldquo;Which sources are still gated for my NPI?&rdquo;
                           </p>
                         </div>
                       </div>
@@ -336,25 +361,25 @@ export function CommandPalette() {
                   <div className="space-y-6 pt-2">
                     {groups.length === 0 && !loading && (
                       <div className="py-12 text-center flex flex-col items-center">
-                        <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4">
-                          <Search className="w-5 h-5 text-muted-foreground/60" />
+                        <div className="w-12 h-12 rounded-full bg-[var(--paper-2)] border border-[var(--rule)] flex items-center justify-center mb-4">
+                          <Search className="w-5 h-5 text-[var(--ink-400)]" />
                         </div>
-                        <p className="text-sm text-foreground mb-4">No specific entities found.</p>
+                        <p className="text-sm text-[var(--ink-900)] mb-4">No specific entities found.</p>
                         <button
                           onClick={() => { setOpen(false); router.push(`/ask?q=${encodeURIComponent(search)}`); }}
-                          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-500 text-foreground text-sm font-medium hover:bg-indigo-600 transition-colors"
+                          className="flex items-center gap-2 px-4 py-2 rounded-[6px] bg-[var(--accent)] text-[var(--card)] text-sm font-medium hover:bg-[color-mix(in_oklch,var(--accent)_85%,var(--ink-900))] transition-colors"
                         >
                           <Sparkles className="w-4 h-4" />
-                          Ask the swarm instead
+                          Ask VitalCV instead
                         </button>
                       </div>
                     )}
 
                     {groups.map(group => (
                       <div key={group} className="px-2">
-                        <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 px-2 flex justify-between items-center">
+                        <h3 className="text-[11px] font-[family-name:var(--font-geist-mono)] font-medium uppercase tracking-[0.14em] text-[var(--ink-500)] mb-2 px-2 flex justify-between items-center">
                           {group}
-                          <span className="text-muted-foreground/40 text-[10px]">Source earmark active</span>
+                          <span className="text-[var(--ink-400)] opacity-70 text-[10px]">Source earmark active</span>
                         </h3>
                         <div className="space-y-1">
                           {groupedResults[group].map((item: any) => {
@@ -368,25 +393,28 @@ export function CommandPalette() {
                                 onClick={() => navigateToResult(item)}
                                 onMouseEnter={() => setSelectedIndex(globalIndex)}
                                 className={cn(
-                                  "w-full flex items-start gap-3 p-3 rounded-lg text-left transition-all group",
-                                  selected ? "bg-muted" : "hover:bg-muted"
+                                  "relative w-full flex items-start gap-3 p-3 pl-4 rounded-[6px] text-left border transition-colors group",
+                                  "before:absolute before:left-0 before:top-2 before:bottom-2 before:w-[3px] before:rounded-full before:transition-colors",
+                                  selected
+                                    ? "bg-[color-mix(in_oklch,var(--accent)_10%,transparent)] border-[var(--accent)] before:bg-[var(--accent)]"
+                                    : "bg-transparent border-transparent hover:bg-[var(--ink-50)] before:bg-transparent"
                                 )}
                               >
-                                <div className={cn("p-1.5 rounded-md shrink-0 mt-0.5", item._meta.color)}>
+                                <div className={cn("p-1.5 rounded-[4px] shrink-0 mt-0.5 transition-colors", selected ? "bg-[color-mix(in_oklch,var(--accent)_15%,transparent)] text-[var(--accent)]" : item._meta.color)}>
                                   <Icon className="w-4 h-4" />
                                 </div>
                                 <div className="flex-1 min-w-0">
                                   <div className="flex items-center justify-between gap-2 mb-0.5">
-                                    <span className={cn("font-medium truncate transition-colors", selected ? "text-white" : "text-foreground/80")}>
+                                    <span className={cn("font-medium truncate transition-colors", selected ? "text-[var(--ink-900)]" : "text-[var(--ink-700)]")}>
                                       {item.title}
                                     </span>
                                   </div>
-                                  <p className="text-xs text-foreground/70 line-clamp-1 group-hover:text-foreground/70 transition-colors">
+                                  <p className="text-xs font-[family-name:var(--font-geist-mono)] text-[var(--ink-500)] line-clamp-1 transition-colors">
                                     {item.snippet}
                                   </p>
                                 </div>
                                 {selected && (
-                                  <div className="shrink-0 flex items-center justify-center h-full text-muted-foreground mt-1">
+                                  <div className="shrink-0 flex items-center justify-center h-full text-[var(--accent)] mt-1">
                                     <ChevronRight className="w-4 h-4" />
                                   </div>
                                 )}
@@ -401,12 +429,12 @@ export function CommandPalette() {
               </div>
 
               {/* Footer */}
-              <div className="flex-none p-2 border-t border-border bg-card text-[10px] text-muted-foreground/60 flex items-center justify-between px-4">
+              <div className="flex-none p-2 border-t border-[var(--rule)] bg-transparent text-[10px] uppercase tracking-wide font-[family-name:var(--font-geist-mono)] text-[var(--ink-500)] flex items-center justify-between px-4">
                 <div className="flex items-center gap-3">
-                  <span className="flex items-center gap-1"><kbd className="bg-muted px-1 rounded">↑↓</kbd> to navigate</span>
-                  <span className="flex items-center gap-1"><kbd className="bg-muted px-1 rounded">↵</kbd> to select</span>
+                  <span className="flex items-center gap-1"><kbd className="bg-[var(--paper-2)] border border-[var(--rule)] px-1 rounded-[3px]">↑↓</kbd> to navigate</span>
+                  <span className="flex items-center gap-1"><kbd className="bg-[var(--paper-2)] border border-[var(--rule)] px-1 rounded-[3px]">↵</kbd> to select</span>
                 </div>
-                <div>Global Control Plane Access</div>
+                <div className="flex items-center gap-1.5"><span className="inline-block w-1.5 h-1.5 rounded-full bg-[var(--accent)]" /> VitalCV · your career wallet</div>
               </div>
             </motion.div>
           </div>

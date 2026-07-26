@@ -46,11 +46,29 @@ async function assertOrganizationAccess(
     throw new HttpError(403, 'You do not have access to this organization.');
   }
 
+  // No relations exist between these models in the schema, so the membership
+  // check resolves each FK hop explicitly (a relation filter throws at
+  // runtime). Any missing hop fails closed to 403.
+  const [profile, orgProfile] = await Promise.all([
+    prisma.personProfile.findUnique({
+      where: { userId: user.id },
+      select: { id: true },
+    }),
+    prisma.organizationProfile.findUnique({
+      where: { organizationId },
+      select: { id: true },
+    }),
+  ]);
+
+  if (!profile || !orgProfile) {
+    throw new HttpError(403, 'You do not have access to this organization.');
+  }
+
   const membership = await prisma.workspaceMembership.findFirst({
     where: {
       active: true,
-      personProfile: { userId: user.id },
-      organizationProfile: { organizationId },
+      personProfileId: profile.id,
+      organizationProfileId: orgProfile.id,
     },
     select: { id: true },
   });

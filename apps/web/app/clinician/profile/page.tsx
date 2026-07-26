@@ -1,6 +1,14 @@
 import * as React from 'react';
 import type { Metadata } from 'next';
 import { PROVENANCE_META, type ProfileProvenance } from '@/lib/profile/provenance';
+import { ProfileHeader } from '@/components/clinician/ProfileHeader';
+import { InstitutionAutocomplete } from '@/components/clinician/InstitutionAutocomplete';
+import type { InstitutionKind } from '@/lib/institutions/curated';
+
+// The header renders a Clerk-backed avatar/name (useUser), so this page can't
+// be statically prerendered (no ClerkProvider runtime at build time). Render at
+// request time, inside the root ClerkProvider.
+export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
   title: 'Clinician Profile · VitalCV',
@@ -11,7 +19,14 @@ export const metadata: Metadata = {
 interface SectionDef {
   key: string;
   title: string;
-  fields: ReadonlyArray<{ label: string; provenance: ProfileProvenance; placeholder: string }>;
+  fields: ReadonlyArray<{
+    label: string;
+    provenance: ProfileProvenance;
+    placeholder: string;
+    // When set, the field is a typeahead over the curated institution directory
+    // (lib/institutions/curated.ts), scoped to these kinds.
+    kinds?: InstitutionKind[];
+  }>;
 }
 
 const SECTIONS: ReadonlyArray<SectionDef> = [
@@ -29,7 +44,7 @@ const SECTIONS: ReadonlyArray<SectionDef> = [
     key: 'medical_school',
     title: 'Medical school',
     fields: [
-      { label: 'Institution', provenance: 'USER_ENTERED', placeholder: 'School name' },
+      { label: 'Institution', provenance: 'USER_ENTERED', placeholder: 'Search medical schools…', kinds: ['med_school_md', 'med_school_do'] },
       { label: 'Degree', provenance: 'USER_ENTERED', placeholder: 'MD, DO, MBBS, …' },
       { label: 'Graduation year', provenance: 'USER_ENTERED', placeholder: 'YYYY' },
     ],
@@ -70,6 +85,20 @@ const SECTIONS: ReadonlyArray<SectionDef> = [
     ],
   },
   {
+    key: 'state_licensure',
+    // State licensure: numbers are self-attested until a state-board source
+    // confirms them. Those lanes are not yet source-integrated, so the status
+    // field stays UNKNOWN (never VERIFIED) — honest by construction. Add one
+    // row per state; the shell shows a single template row.
+    title: 'State licensure',
+    fields: [
+      { label: 'License state', provenance: 'USER_ENTERED', placeholder: 'e.g., California (add one row per state)' },
+      { label: 'License number', provenance: 'USER_ENTERED', placeholder: 'State-issued license #' },
+      { label: 'License status', provenance: 'UNKNOWN', placeholder: 'Pending state-board source access' },
+      { label: 'Expiration', provenance: 'USER_ENTERED', placeholder: 'YYYY-MM-DD' },
+    ],
+  },
+  {
     key: 'current_employer',
     title: 'Current employer',
     fields: [
@@ -91,7 +120,7 @@ const SECTIONS: ReadonlyArray<SectionDef> = [
     key: 'affiliations',
     title: 'Affiliations',
     fields: [
-      { label: 'Organization', provenance: 'USER_ENTERED', placeholder: 'Hospital, society, etc.' },
+      { label: 'Organization', provenance: 'USER_ENTERED', placeholder: 'Search societies, boards, associations…', kinds: ['society', 'association', 'board', 'honor_society'] },
       { label: 'Type', provenance: 'USER_ENTERED', placeholder: 'Privileges, member, …' },
       { label: 'Years', provenance: 'USER_ENTERED', placeholder: 'YYYY–YYYY' },
     ],
@@ -138,23 +167,20 @@ export default function ClinicianProfilePage() {
   const completionPercent = totalFields === 0 ? 0 : Math.round((filledFields / totalFields) * 100);
 
   return (
-    <main className="mx-auto w-full max-w-3xl px-4 py-8 sm:py-12">
-      <header className="mb-8 sm:mb-10">
-        <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-          Clinician profile
-        </p>
-        <h1 className="mt-2 text-2xl font-semibold leading-tight sm:text-3xl">
-          Your credential record
-        </h1>
-        <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-          <strong>User-entered information is not verified until source-backed
-          evidence is attached.</strong> Provenance badges show where each field
-          stands today.
-        </p>
+    <div className="mz mz-paper mz-persona-holder min-h-screen">
+      <main className="mx-auto w-full max-w-3xl space-y-5 px-4 py-8 sm:py-12">
+      <ProfileHeader />
 
+      <p className="text-sm leading-relaxed text-muted-foreground">
+        <strong>User-entered information is not verified until source-backed
+        evidence is attached.</strong> Provenance badges show where each field
+        stands today.
+      </p>
+
+      <div className="space-y-5">
         <section
           aria-labelledby="completion-summary-heading"
-          className="mt-5 rounded-xl border border-[var(--vt-border,_rgba(0,0,0,0.08))] bg-[var(--vt-surface,_white)] p-4 sm:p-5"
+          className="rounded-[3px] border border-[var(--vt-border)] bg-[var(--vt-surface)] p-4 sm:p-5"
         >
           <h2 id="completion-summary-heading" className="text-sm font-semibold">
             Profile completion summary
@@ -176,16 +202,14 @@ export default function ClinicianProfilePage() {
             </div>
           </dl>
         </section>
-      </header>
 
-      <div className="space-y-5">
         {SECTIONS.map((section) => (
           <section
             key={section.key}
             aria-labelledby={`section-${section.key}-heading`}
-            className="rounded-xl border border-[var(--vt-border,_rgba(0,0,0,0.08))] bg-[var(--vt-surface,_white)] p-4 sm:p-5"
+            className="rounded-[3px] border border-[var(--vt-border)] bg-[var(--vt-surface)] p-4 sm:p-5"
           >
-            <h2 id={`section-${section.key}-heading`} className="text-base font-semibold sm:text-lg">
+            <h2 id={`section-${section.key}-heading`} className="mz-h2">
               {section.title}
             </h2>
             <dl className="mt-3 space-y-3">
@@ -202,14 +226,23 @@ export default function ClinicianProfilePage() {
                       <ProvenanceBadge provenance={field.provenance} />
                     </div>
                     <dd className="flex-1">
-                      <input
-                        id={fieldId}
-                        type="text"
-                        readOnly
-                        placeholder={field.placeholder}
-                        aria-describedby={`${fieldId}-help`}
-                        className="w-full rounded-lg border border-[var(--vt-border,_rgba(0,0,0,0.12))] bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-offset-2"
-                      />
+                      {field.kinds ? (
+                        <InstitutionAutocomplete
+                          id={fieldId}
+                          kinds={field.kinds}
+                          placeholder={field.placeholder}
+                          ariaDescribedBy={`${fieldId}-help`}
+                        />
+                      ) : (
+                        <input
+                          id={fieldId}
+                          type="text"
+                          readOnly
+                          placeholder={field.placeholder}
+                          aria-describedby={`${fieldId}-help`}
+                          className="w-full rounded-[3px] border border-[var(--vt-border)] bg-transparent px-3 py-2 text-sm placeholder:text-[var(--vt-text-muted)] focus:outline-none focus:ring-2 focus:ring-offset-2"
+                        />
+                      )}
                       <p id={`${fieldId}-help`} className="mt-1 text-[11px] text-muted-foreground">
                         {PROVENANCE_META[field.provenance].description}
                       </p>
@@ -227,6 +260,7 @@ export default function ClinicianProfilePage() {
         and verification gating ship in subsequent waves. <strong>User-entered
         information is not verified until source-backed evidence is attached.</strong>
       </p>
-    </main>
+      </main>
+    </div>
   );
 }

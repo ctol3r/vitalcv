@@ -123,7 +123,11 @@ export function AcceptancePanel({ className = '', defaultPresentationId = '' }: 
     setAcceptError(null);
     setReport(null);
     try {
-      const r = await fetch(`${base}/api/verifier/accept`, {
+      // Same-origin Next proxy (app/api/verifier/accept) — routes server-side so
+      // the verifier's org-role reaches the backend guard from the verified Clerk
+      // session (x-org-role), not a spoofable client header. Do NOT point this at
+      // the backend directly.
+      const r = await fetch('/api/verifier/accept', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ presentationId: presentationId.trim() }),
@@ -136,7 +140,7 @@ export function AcceptancePanel({ className = '', defaultPresentationId = '' }: 
     } finally {
       setLoading(false);
     }
-  }, [base, presentationId]);
+  }, [presentationId]);
 
   // ── OID4VP Request handler (Wave 110) ────────────────────────────
 

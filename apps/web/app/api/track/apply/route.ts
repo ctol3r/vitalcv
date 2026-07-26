@@ -76,7 +76,7 @@ export async function POST(req: NextRequest) {
     },
   };
 
-  const headers = buildMarketplaceHeaders(session, {
+  const headers = await buildMarketplaceHeaders(session, {
     'Content-Type': 'application/json',
   });
 

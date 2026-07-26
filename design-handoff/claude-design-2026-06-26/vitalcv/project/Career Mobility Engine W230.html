@@ -1,0 +1,721 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>VitalCV · Career Mobility Engine · Wave 230</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --ink-0:#fff;--ink-50:#f8fafc;--ink-100:#f1f5f9;--ink-200:#e2e8f0;--ink-300:#cbd5e1;
+  --ink-400:#94a3b8;--ink-500:#64748b;--ink-600:#475569;--ink-700:#334155;--ink-800:#1e293b;
+  --ink-900:#0f172a;--ink-950:#020617;--rule:#e2e8f0;--rule-soft:#eef2f6;--paper:#f8f6f1;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:64px}
+html,body{margin:0;padding:0}
+body{
+  background:var(--ink-100);color:var(--ink-900);
+  font-family:'Geist',ui-sans-serif,system-ui,sans-serif;
+  font-feature-settings:'ss01','cv11';-webkit-font-smoothing:antialiased;
+  font-size:13.5px;line-height:1.55;letter-spacing:-.003em;
+}
+.mono,code{font-family:'Geist Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums}
+h1,h2,h3,h4{margin:0;font-weight:600}
+a{color:inherit}
+
+/* ── Op bar ─────────────────────────────────────── */
+.opbar{background:var(--ink-950);color:var(--ink-300);font-family:'Geist Mono',monospace;font-size:10px;position:sticky;top:0;z-index:80}
+.opbar .in{max-width:1340px;margin:0 auto;padding:0 32px;height:32px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.opbar .l{display:flex;align-items:center;gap:12px}
+.opbar .g{width:17px;height:17px;background:#fff;color:#000;display:grid;place-items:center;font-size:9px;font-weight:700}
+.opbar strong{color:#fff;font-weight:600;letter-spacing:.12em;text-transform:uppercase}
+.opbar .sep{color:var(--ink-700)}
+.opbar .r{display:flex;gap:14px;align-items:center;color:var(--ink-500);text-transform:uppercase;letter-spacing:.13em;font-size:9px}
+.opbar .pill{display:inline-flex;align-items:center;gap:5px;padding:2px 7px;border:1px solid var(--ink-700);color:var(--ink-300)}
+.opbar .dot{width:5px;height:5px;background:#10b981;border-radius:50%;animation:blink 2.6s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:.32}50%{opacity:1}}
+
+.doc{max-width:1340px;margin:0 auto;background:var(--ink-0);box-shadow:0 1px 0 rgba(2,6,23,.04),0 18px 56px -22px rgba(2,6,23,.22)}
+
+/* ── Masthead ───────────────────────────────────── */
+.mast{padding:34px 40px 26px;border-bottom:1px solid var(--ink-900)}
+.crumb{font-family:'Geist Mono',monospace;font-size:9.5px;text-transform:uppercase;letter-spacing:.2em;color:var(--ink-500);display:flex;align-items:center;gap:9px;margin-bottom:18px}
+.crumb .r{display:inline-block;width:20px;height:1px;background:var(--ink-300)}
+.crumb b{color:var(--ink-900);font-weight:600}
+.mast h1{font-size:31px;line-height:1.08;letter-spacing:-.028em;max-width:26ch}
+.mast h1 em{font-style:normal;color:var(--ink-400);font-weight:400}
+.mast .lede{font-size:14px;color:var(--ink-600);line-height:1.62;max-width:84ch;margin:14px 0 0}
+.mast .lede strong{color:var(--ink-900);font-weight:600}
+.meta-h{display:flex;gap:26px;margin-top:20px;flex-wrap:wrap;font-family:'Geist Mono',monospace;font-size:10px;color:var(--ink-500);text-transform:uppercase;letter-spacing:.14em}
+.meta-h span b{color:var(--ink-900);font-weight:600;display:block;margin-top:3px;letter-spacing:.04em}
+
+/* ── Arc ────────────────────────────────────────── */
+.arc{margin:24px 40px 0;border:1px solid var(--ink-900)}
+.arc .hd{background:var(--ink-950);color:#fff;padding:10px 18px;font-family:'Geist Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.18em;display:flex;justify-content:space-between;align-items:center}
+.arc .hd b{color:#fff;font-weight:500}
+.arc .row{display:grid;grid-template-columns:repeat(5,1fr)}
+.arc .cell{padding:16px 15px 15px;border-right:1px solid var(--rule);position:relative}
+.arc .cell:last-child{border-right:0}
+.arc .ord{font-family:'Geist Mono',monospace;font-size:9.5px;letter-spacing:.16em;color:var(--ink-400);margin-bottom:9px}
+.arc .nm{font-family:'Geist Mono',monospace;font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-900);margin-bottom:7px;line-height:1.2}
+.arc .q{font-size:11px;color:var(--ink-600);line-height:1.42}
+.arc .arrow{position:absolute;right:-7px;top:30px;width:12px;height:12px;background:var(--ink-0);border-top:1px solid var(--rule);border-right:1px solid var(--rule);transform:rotate(45deg);z-index:3}
+.arc .cell:last-child .arrow{display:none}
+.arc .foot{border-top:1px solid var(--rule);background:var(--ink-50);padding:9px 18px;font-family:'Geist Mono',monospace;font-size:9.5px;text-transform:uppercase;letter-spacing:.14em;color:var(--ink-600)}
+.arc .foot b{color:var(--ink-900);font-weight:600}
+
+/* ── TOC ────────────────────────────────────────── */
+.toc{margin:24px 40px 0;border:1px solid var(--rule);display:grid;grid-template-columns:repeat(6,1fr)}
+.toc a{padding:12px 14px;border-right:1px solid var(--rule);text-decoration:none;display:block;transition:background .12s}
+.toc a:last-child{border-right:0}
+.toc a:hover{background:var(--ink-50)}
+.toc .n{font-family:'Geist Mono',monospace;font-size:9px;letter-spacing:.14em;color:var(--ink-400);display:block;margin-bottom:5px}
+.toc .t{font-size:11.5px;font-weight:500;color:var(--ink-900);line-height:1.3}
+
+/* ── Section scaffold ───────────────────────────── */
+main{padding:8px 40px 40px}
+.sec{margin-top:42px;scroll-margin-top:56px}
+.sh{display:flex;align-items:baseline;gap:14px;border-bottom:1px solid var(--ink-900);padding-bottom:9px;margin-bottom:18px}
+.sh .n{font-family:'Geist Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-300);font-weight:600}
+.sh h2{font-size:19px;letter-spacing:-.018em;color:var(--ink-900)}
+.sh .ey{font-family:'Geist Mono',monospace;font-size:9.5px;text-transform:uppercase;letter-spacing:.15em;color:var(--ink-500);margin-left:auto}
+.lead{font-size:13.5px;color:var(--ink-600);line-height:1.62;max-width:94ch;margin:0 0 18px}
+.lead strong{color:var(--ink-900);font-weight:600}
+
+.kicker{font-family:'Geist Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-400);font-weight:600;margin:22px 0 9px}
+
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+
+.card{border:1px solid var(--ink-300);background:var(--ink-0)}
+.card .ph{padding:9px 15px;background:var(--ink-50);border-bottom:1px solid var(--rule);font-family:'Geist Mono',monospace;font-size:9.5px;text-transform:uppercase;letter-spacing:.15em;color:var(--ink-500);display:flex;justify-content:space-between;align-items:center}
+.card .ph b{color:var(--ink-900);font-weight:600}
+.card .bd{padding:14px 16px}
+.card .bd p{margin:0 0 10px;font-size:12.5px;color:var(--ink-600);line-height:1.55}
+.card .bd p:last-child{margin-bottom:0}
+.card .bd strong{color:var(--ink-900);font-weight:600}
+
+.tier{font-family:'Geist Mono',monospace;font-size:10px;font-weight:600;color:#fff;background:var(--ink-900);padding:2px 6px;letter-spacing:.05em;display:inline-block}
+.tier[data-t="T1"]{background:var(--ink-400)}.tier[data-t="T2"]{background:var(--ink-600)}
+.tier[data-t="T3"]{background:var(--ink-800)}.tier[data-t="T4"]{background:var(--ink-950)}
+.mn{font-family:'Geist Mono',monospace;font-size:11px;color:var(--ink-900);background:var(--ink-50);border:1px solid var(--rule);padding:1px 5px}
+
+/* tables */
+.tbl{width:100%;border-collapse:collapse;font-size:12px;border:1px solid var(--ink-300);background:var(--ink-0)}
+.tbl thead th{position:sticky;background:var(--ink-50);border-bottom:1px solid var(--ink-900);padding:10px 12px;text-align:left;font-family:'Geist Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.14em;color:var(--ink-500);font-weight:600;border-right:1px solid var(--rule);vertical-align:bottom}
+.tbl thead th:last-child{border-right:0}
+.tbl tbody td{padding:9px 12px;border-bottom:1px solid var(--rule);border-right:1px solid var(--rule);vertical-align:top;color:var(--ink-600);line-height:1.45}
+.tbl tbody td:last-child{border-right:0}
+.tbl tbody tr:last-child td{border-bottom:0}
+.tbl tbody td strong{color:var(--ink-900);font-weight:600}
+.tbl tbody td.nm{font-family:'Geist Mono',monospace;font-size:10.5px;letter-spacing:.04em;color:var(--ink-900);background:var(--ink-50);font-weight:500;white-space:nowrap}
+.tbl tbody td code{font-family:'Geist Mono',monospace;font-size:10.5px;color:var(--ink-900)}
+.tbl .scroll{display:block;overflow-x:auto}
+.yes{font-family:'Geist Mono',monospace;font-size:10px;font-weight:600;color:var(--ink-950)}
+.no{font-family:'Geist Mono',monospace;font-size:10px;color:var(--ink-300)}
+
+/* note / callout */
+.note{border-left:2px solid var(--ink-900);padding:3px 0 3px 16px;margin:16px 0;font-size:12.5px;color:var(--ink-600);line-height:1.55}
+.note b{color:var(--ink-900);font-weight:600}
+.note .lb{font-family:'Geist Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-400);display:block;margin-bottom:4px}
+
+/* footer */
+.foot-page{padding:22px 40px;border-top:1px solid var(--rule);background:var(--ink-50);display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;font-family:'Geist Mono',monospace;font-size:10px;color:var(--ink-500);text-transform:uppercase;letter-spacing:.12em}
+.foot-page b{color:var(--ink-900);font-weight:600}
+
+/* ── Primitive triad (reused) ───────────────────── */
+.triad{display:grid;grid-template-columns:1fr 1fr 1fr;border:1px solid var(--ink-900);background:var(--ink-0)}
+.triad .tp{padding:16px 18px;border-right:1px solid var(--rule)}
+.triad .tp:last-child{border-right:0}
+.triad .tp .gly{width:34px;height:26px;display:flex;align-items:center;margin-bottom:11px}
+.triad .tp h4{font-family:'Geist Mono',monospace;font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-900);margin-bottom:7px}
+.triad .tp p{font-size:12px;color:var(--ink-600);line-height:1.5;margin:0}
+.triad .tp p b{color:var(--ink-900);font-weight:600}
+/* glyphs: create / block / accelerate */
+.gly-key{width:18px;height:18px;border-radius:50%;border:2px solid var(--ink-950);position:relative}
+.gly-key::after{content:"";position:absolute;left:50%;top:50%;width:0;height:0;border-left:7px solid var(--ink-950);border-top:5px solid transparent;border-bottom:5px solid transparent;transform:translate(-40%,-50%)}
+.gly-block{width:18px;height:18px;border-radius:50%;border:2px solid var(--ink-950);position:relative}
+.gly-block::after{content:"";position:absolute;left:50%;top:50%;width:18px;height:2px;background:var(--ink-950);transform:translate(-50%,-50%) rotate(45deg)}
+.gly-accel{display:flex;align-items:center;gap:2px}
+.gly-accel i{width:0;height:0;border-left:7px solid var(--ink-950);border-top:6px solid transparent;border-bottom:6px solid transparent}
+.gly-accel i:nth-child(2){opacity:.6}.gly-accel i:nth-child(3){opacity:.3}
+
+/* ── Bench / lanes (reused) ─────────────────────── */
+.bench{border:1px solid var(--ink-900);background:var(--ink-0)}
+.benchhd{background:var(--ink-950);color:#fff;padding:9px 16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;font-family:'Geist Mono',monospace;font-size:10.5px;letter-spacing:.04em}
+.benchhd b{color:#fff;font-weight:500}
+.benchgrid{display:grid;grid-template-columns:268px 70px 1fr}
+.atomcol{padding:16px;background:var(--ink-50);border-right:1px solid var(--rule);display:flex;flex-direction:column;justify-content:center}
+.atomcol .acl{font-family:'Geist Mono',monospace;font-size:8.5px;text-transform:uppercase;letter-spacing:.14em;color:var(--ink-400);font-weight:600;margin-bottom:8px}
+.atom{border:1.5px solid var(--ink-950);background:#fff}
+.atom .ah{background:var(--ink-950);color:#fff;padding:7px 11px;font-family:'Geist Mono',monospace;font-size:9.5px;letter-spacing:.04em;display:flex;justify-content:space-between;align-items:center}
+.atom .ah b{color:#fff;font-weight:500}
+.atom .ab{padding:10px 11px;display:flex;flex-direction:column;gap:5px}
+.atom .kv{display:flex;justify-content:space-between;gap:10px;font-family:'Geist Mono',monospace;font-size:9.5px;color:var(--ink-500);letter-spacing:.01em}
+.atom .kv b{color:var(--ink-900);font-weight:600}
+.projarrow{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;border-right:1px solid var(--rule);background:var(--ink-0)}
+.projarrow .pf{font-family:'Geist Mono',monospace;font-size:8px;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-400);writing-mode:vertical-rl;transform:rotate(180deg)}
+.projarrow .pa{width:0;height:0;border-left:10px solid var(--ink-950);border-top:7px solid transparent;border-bottom:7px solid transparent}
+.lanes{display:flex;flex-direction:column}
+.lane{display:grid;grid-template-columns:148px 1fr;border-bottom:1px solid var(--rule)}
+.lane:last-child{border-bottom:0}
+.lane .ll{padding:12px 14px;border-right:1px solid var(--rule);display:flex;flex-direction:column;gap:5px;justify-content:center}
+.lane .ll b{font-family:'Geist Mono',monospace;font-size:10.5px;font-weight:600;letter-spacing:.03em;text-transform:uppercase;color:var(--ink-900);line-height:1.15}
+.lane .ll span{font-family:'Geist Mono',monospace;font-size:8px;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-400)}
+.lane .lr{padding:12px 14px;display:flex;flex-wrap:wrap;gap:6px;align-content:center;align-items:center}
+.pchip{font-family:'Geist Mono',monospace;font-size:9.5px;letter-spacing:.01em;color:var(--ink-800);background:var(--ink-50);border:1px solid var(--rule);padding:3px 8px;white-space:nowrap}
+.pchip.req{border-color:var(--ink-950);color:var(--ink-950);font-weight:600;background:#fff}
+.pchip.met{background:var(--ink-950);color:#fff;border-color:var(--ink-950);font-weight:600}
+.pchip.gap{border-style:dashed;color:var(--ink-500)}
+.pgain{font-family:'Geist Mono',monospace;font-size:9.5px;color:var(--ink-950);font-weight:600}
+.pgain em{color:var(--ink-400);font-style:normal}
+
+/* ── OpportunityObject spec (D2) ────────────────── */
+.spec{border:1px solid var(--ink-900);background:var(--ink-0)}
+.spechd{background:var(--ink-950);color:#fff;padding:9px 16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;font-family:'Geist Mono',monospace;font-size:10.5px;letter-spacing:.04em}
+.spechd b{color:#fff;font-weight:500}
+.specprop{display:grid;grid-template-columns:172px 1fr;border-bottom:1px solid var(--rule)}
+.specprop:last-child{border-bottom:0}
+.specprop .spl{padding:13px 15px;border-right:1px solid var(--rule);background:var(--ink-50);display:flex;flex-direction:column;gap:4px;justify-content:center}
+.specprop .spl b{font-family:'Geist Mono',monospace;font-size:11px;font-weight:600;color:var(--ink-900);letter-spacing:.02em;text-transform:uppercase;line-height:1.2}
+.specprop .spl span{font-family:'Geist Mono',monospace;font-size:8px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-400)}
+.specprop .spv{padding:13px 15px;display:flex;flex-direction:column;gap:7px}
+.specprop .spv .spd{font-size:11.5px;color:var(--ink-600);line-height:1.45}
+.specprop .spv .spd b{color:var(--ink-900);font-weight:600}
+.specprop .spv .spc{display:flex;flex-wrap:wrap;gap:6px}
+
+/* ── Gap state register (D3) ────────────────────── */
+.gapreg{border:1px solid var(--ink-900);background:var(--ink-0)}
+.gaphd{background:var(--ink-950);color:#fff;padding:9px 16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;font-family:'Geist Mono',monospace;font-size:10.5px;letter-spacing:.04em}
+.gaphd b{color:#fff;font-weight:500}
+.gaprow{display:grid;grid-template-columns:54px 158px 1fr 188px;border-bottom:1px solid var(--rule);align-items:stretch}
+.gaprow:last-child{border-bottom:0}
+.gaprow .gst{display:flex;align-items:center;justify-content:center;background:var(--ink-50);border-right:1px solid var(--rule)}
+.gaprow .gnm{padding:13px 14px;border-right:1px solid var(--rule);display:flex;flex-direction:column;gap:3px;justify-content:center}
+.gaprow .gnm b{font-size:13px;color:var(--ink-900);letter-spacing:-.01em;font-weight:600}
+.gaprow .gnm span{font-family:'Geist Mono',monospace;font-size:8px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-400)}
+.gaprow .gdf{padding:13px 14px;border-right:1px solid var(--rule);font-size:11.5px;color:var(--ink-600);line-height:1.45;display:flex;align-items:center}
+.gaprow .gdf b{color:var(--ink-900);font-weight:600}
+.gaprow .grs{padding:13px 14px;font-size:11px;color:var(--ink-600);line-height:1.4;display:flex;align-items:center}
+.gaprow .grs b{color:var(--ink-900);font-weight:600}
+/* status glyphs */
+.gs{width:16px;height:16px;flex:none}
+.gs.ready{background:var(--ink-950)}
+.gs.near{background:linear-gradient(135deg,var(--ink-950) 0 50%,#fff 50% 100%);border:1.5px solid var(--ink-950)}
+.gs.blocked{border:2px solid var(--ink-950);background:#fff;position:relative}
+.gs.blocked::after{content:"";position:absolute;left:50%;top:50%;width:16px;height:2px;background:var(--ink-950);transform:translate(-50%,-50%) rotate(45deg)}
+.gs.miss{border:2px dashed var(--ink-500);background:#fff}
+
+/* gap badges (worked readout) */
+.gbadge{font-family:'Geist Mono',monospace;font-size:8.5px;font-weight:600;letter-spacing:.05em;padding:2px 6px;text-transform:uppercase;white-space:nowrap}
+.gbadge.ready{background:var(--ink-950);color:#fff}
+.gbadge.near{background:var(--ink-500);color:#fff}
+.gbadge.blocked{border:1px solid var(--ink-950);color:var(--ink-950);background:#fff}
+.gbadge.miss{border:1px dashed var(--ink-500);color:var(--ink-500);background:#fff}
+
+/* ── Field zones (reused: topo) ─────────────────── */
+.topo{border:1px solid var(--ink-900);background:var(--ink-0)}
+.topohd{background:var(--ink-950);color:#fff;padding:9px 16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;font-family:'Geist Mono',monospace;font-size:10.5px;letter-spacing:.04em}
+.topohd b{color:#fff;font-weight:500}
+.topozones{display:grid;grid-template-columns:1fr 1fr 1fr}
+.tz{padding:15px 16px;border-right:1px solid var(--rule);display:flex;flex-direction:column}
+.tz:last-child{border-right:0}
+.tz .tzi{font-family:'Geist Mono',monospace;font-size:8.5px;letter-spacing:.14em;color:var(--ink-400);margin-bottom:4px}
+.tz .tzt{font-family:'Geist Mono',monospace;font-size:13px;font-weight:600;letter-spacing:.03em;text-transform:uppercase;color:var(--ink-900);margin-bottom:12px}
+.tzfig{height:96px;border:1px solid var(--rule);background:var(--ink-50);position:relative;margin-bottom:12px;overflow:hidden}
+.tz p{margin:0;font-size:11.5px;color:var(--ink-600);line-height:1.5}
+.tz p b{color:var(--ink-900);font-weight:600}
+.ttag{position:absolute;font-family:'Geist Mono',monospace;font-size:7.5px;letter-spacing:.06em;color:var(--ink-500);text-transform:uppercase}
+/* fig: creates — trust unlocks a door */
+.door{position:absolute;right:20px;top:50%;transform:translateY(-50%);width:30px;height:48px;border:2px solid var(--ink-950);background:#fff}
+.door::after{content:"";position:absolute;right:5px;top:50%;width:4px;height:4px;border-radius:50%;background:var(--ink-950);transform:translateY(-50%)}
+.keydot{position:absolute;left:18px;top:50%;width:12px;height:12px;border-radius:50%;background:var(--ink-950);transform:translateY(-50%)}
+.keyline{position:absolute;left:30px;right:54px;top:50%;height:2px;background:repeating-linear-gradient(90deg,var(--ink-900) 0 5px,transparent 5px 9px);transform:translateY(-50%)}
+/* fig: blocks — barrier */
+.barr{position:absolute;left:50%;top:8px;bottom:8px;width:4px;background:var(--ink-950);transform:translateX(-50%)}
+.barr::before,.barr::after{content:"";position:absolute;left:50%;width:22px;height:2px;background:var(--ink-950);transform:translateX(-50%)}
+.barr::before{top:18px}.barr::after{bottom:18px}
+.bdotL{position:absolute;left:20px;top:50%;width:11px;height:11px;border-radius:50%;background:var(--ink-950);transform:translateY(-50%)}
+.bdotR{position:absolute;right:20px;top:50%;width:10px;height:10px;border-radius:50%;border:2px solid var(--ink-400);background:#fff;transform:translateY(-50%)}
+/* fig: accelerate — fast lane */
+.flane{position:absolute;left:14px;right:14px;top:50%;height:14px;transform:translateY(-50%);border:1px solid var(--rule);background:#fff;overflow:hidden}
+.flane i{position:absolute;top:0;bottom:0;width:14px;background:var(--ink-900);transform:skewX(-24deg)}
+.fcar{position:absolute;top:50%;width:12px;height:12px;border-radius:50%;background:var(--ink-950);transform:translateY(-50%);z-index:2}
+
+/* laws (reused) */
+.laws{border:1px solid var(--ink-900);background:var(--ink-0)}
+.law{display:grid;grid-template-columns:46px 1fr;border-bottom:1px solid var(--rule)}
+.law:last-child{border-bottom:0}
+.law .ln{padding:13px 0;text-align:center;font-family:'Geist Mono',monospace;font-size:13px;font-weight:600;color:var(--ink-300);background:var(--ink-50);border-right:1px solid var(--rule)}
+.law .lc{padding:12px 16px}
+.law .lc b{font-size:12.5px;color:var(--ink-900);font-weight:600;display:block;margin-bottom:3px;letter-spacing:-.01em}
+.law .lc p{margin:0;font-size:12px;color:var(--ink-600);line-height:1.5}
+.law .lc code{font-family:'Geist Mono',monospace;font-size:11px;color:var(--ink-900);background:var(--ink-50);border:1px solid var(--rule);padding:1px 5px}
+
+/* ── Career pathways (D4) ───────────────────────── */
+.pathways{border:1px solid var(--ink-900);background:var(--ink-0)}
+.pathhd{background:var(--ink-950);color:#fff;padding:9px 16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;font-family:'Geist Mono',monospace;font-size:10.5px;letter-spacing:.04em}
+.pathhd b{color:#fff;font-weight:500}
+.pway{display:grid;grid-template-columns:172px 1fr 172px;border-bottom:1px solid var(--rule);align-items:stretch}
+.pway:last-child{border-bottom:0}
+.pnode{padding:14px 15px;display:flex;flex-direction:column;gap:4px;justify-content:center}
+.pnode .pk{font-family:'Geist Mono',monospace;font-size:8px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-400)}
+.pnode b{font-size:14px;color:var(--ink-900);letter-spacing:-.01em;font-weight:600}
+.pnode.from{background:var(--ink-50);border-right:1px solid var(--rule)}
+.pnode.to{background:var(--ink-950);border-left:1px solid var(--rule)}
+.pnode.to .pk{color:var(--ink-600)}.pnode.to b{color:#fff}
+.pgates{padding:13px 16px;display:flex;flex-direction:column;gap:6px;justify-content:center}
+.pgates .pgl{font-family:'Geist Mono',monospace;font-size:8px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-400);display:flex;align-items:center;gap:8px}
+.pgates .pgl::before,.pgates .pgl::after{content:"";flex:1;height:1px;background:var(--rule)}
+.pgaterow{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
+.pgate{font-family:'Geist Mono',monospace;font-size:9px;letter-spacing:.01em;color:var(--ink-800);background:var(--ink-50);border:1px solid var(--rule);padding:3px 8px;white-space:nowrap;display:inline-flex;align-items:center;gap:5px}
+.pgate::before{content:"";width:7px;height:7px;background:var(--ink-950);flex:none}
+.pgate.dim::before{background:#fff;border:1.5px solid var(--ink-400)}
+
+/* emergence triad (reused) */
+.emerg{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid var(--ink-900);background:var(--ink-0)}
+.emerg .ec{padding:15px 16px;border-right:1px solid var(--rule)}
+.emerg .ec:last-child{border-right:0}
+.emerg .ec .ei{font-family:'Geist Mono',monospace;font-size:9px;letter-spacing:.14em;color:var(--ink-400);margin-bottom:8px}
+.emerg .ec h4{font-size:13px;letter-spacing:-.01em;color:var(--ink-900);margin-bottom:7px}
+.emerg .ec p{margin:0;font-size:11.5px;color:var(--ink-600);line-height:1.5}
+.emerg .ec p b{color:var(--ink-900);font-weight:600}
+
+/* matching triad glyphs (D5) */
+.gly-fit{width:20px;height:18px;position:relative}
+.gly-fit::before{content:"";position:absolute;left:0;top:50%;width:9px;height:9px;border:2px solid var(--ink-950);transform:translateY(-50%)}
+.gly-fit::after{content:"";position:absolute;right:0;top:50%;width:9px;height:9px;background:var(--ink-950);transform:translateY(-50%)}
+.gly-ready{width:18px;height:18px;border:2px solid var(--ink-950);background:var(--ink-950);position:relative}
+.gly-ready::after{content:"";position:absolute;left:4px;top:7px;width:7px;height:4px;border-left:2px solid #fff;border-bottom:2px solid #fff;transform:rotate(-45deg)}
+.gly-future{display:flex;align-items:center;gap:3px}
+.gly-future i{width:5px;height:5px;border-radius:50%;background:var(--ink-950)}
+.gly-future i:nth-child(2){opacity:.55}.gly-future i:nth-child(3){opacity:.25;border:1px solid var(--ink-400);background:#fff}
+
+/* synthesis answers (reused) */
+.ans{border:1px solid var(--ink-900);background:var(--ink-0)}
+.arow{display:grid;grid-template-columns:0.9fr 1.4fr;border-bottom:1px solid var(--rule)}
+.arow.last{border-bottom:0}
+.arow .aq{padding:14px 18px;border-right:1px solid var(--rule);background:var(--ink-50);font-size:13.5px;font-weight:600;color:var(--ink-900);letter-spacing:-.01em;display:flex;gap:11px;align-items:baseline;line-height:1.35}
+.arow .aq .an{font-family:'Geist Mono',monospace;font-size:10px;color:var(--ink-400);letter-spacing:.1em;flex:none}
+.arow .aa{padding:14px 18px;font-size:12.5px;color:var(--ink-600);line-height:1.55}
+.arow .aa b{color:var(--ink-900);font-weight:600}
+.arow .aa code{font-family:'Geist Mono',monospace;font-size:11px;color:var(--ink-900);background:var(--ink-50);border:1px solid var(--rule);padding:1px 5px}
+
+@media (max-width:1080px){
+  .arc .row{grid-template-columns:1fr 1fr}.arc .arrow{display:none}
+  .toc{grid-template-columns:1fr 1fr 1fr}
+  .grid2,.grid3,.grid4{grid-template-columns:1fr}
+  .triad{grid-template-columns:1fr}.triad .tp{border-right:0;border-bottom:1px solid var(--rule)}
+  .benchgrid{grid-template-columns:1fr}.atomcol,.projarrow{border-right:0;border-bottom:1px solid var(--rule)}
+  .projarrow{flex-direction:row;padding:8px}.projarrow .pf{writing-mode:horizontal-tb;transform:none}.projarrow .pa{transform:rotate(90deg)}
+  .specprop{grid-template-columns:1fr}.specprop .spl{border-right:0;border-bottom:1px solid var(--rule)}
+  .topozones{grid-template-columns:1fr}.tz{border-right:0;border-bottom:1px solid var(--rule)}
+  .gaprow{grid-template-columns:1fr}.gaprow .gst{padding:8px;border-right:0;border-bottom:1px solid var(--rule)}.gaprow .gnm,.gaprow .gdf{border-right:0;border-bottom:1px solid var(--rule)}
+  .pway{grid-template-columns:1fr}.pnode.from{border-right:0;border-bottom:1px solid var(--rule)}.pnode.to{border-left:0;border-top:1px solid var(--rule)}
+  .emerg{grid-template-columns:1fr}.emerg .ec{border-right:0;border-bottom:1px solid var(--rule)}
+  .arow{grid-template-columns:1fr}.arow .aq{border-right:0;border-bottom:1px solid var(--rule)}
+}
+</style>
+</head>
+<body>
+
+<div class="opbar">
+  <div class="in">
+    <div class="l">
+      <span class="g">V</span>
+      <strong>Wave 230</strong>
+      <span class="sep">/</span>
+      <span>Career Mobility Engine</span>
+      <span class="sep">·</span>
+      <span>role: claude design</span>
+    </div>
+    <div class="r">
+      <span class="pill"><span class="dot"></span>Mobility model</span>
+      <span class="sep">|</span>
+      <span>vc.2026.06.21 · w230 · v1</span>
+    </div>
+  </div>
+</div>
+
+<div class="doc">
+
+  <!-- ════ MASTHEAD ════ -->
+  <header class="mast" data-screen-label="Masthead">
+    <div class="crumb"><span class="r"></span>VitalCV <span style="color:var(--ink-300)">/</span> Value Layer <span style="color:var(--ink-300)">/</span> <b>W230 · Career Mobility Engine</b></div>
+    <h1>VitalCV stops measuring careers. <em>The Mobility Engine starts advancing them — converting verified trust into real professional opportunity.</em></h1>
+    <p class="lede">Wave 222 ended at a promise: trust compounds into reputation, and reputation into <strong>mobility</strong>. This wave builds the engine that delivers it — the system that turns a clinician's verified evidence into the next position, appointment, or privilege. It defines what <strong>career mobility</strong> actually is and what creates, blocks, and accelerates it; invents the <strong>OpportunityObject</strong> so any opening can be compared against any career; runs a <strong>gap analysis</strong> that says exactly why someone is ready, near, or blocked; models the <strong>pathways</strong> a career climbs; and matches evidence to requirements to produce <strong>fit, readiness, and future readiness</strong>. Five deliverables answer one question: how does trust become opportunity?</p>
+    <div class="meta-h">
+      <span>Doctrine<b>trust → opportunity</b></span>
+      <span>Object<b>OpportunityObject</b></span>
+      <span>Gap engine<b>ready · near · blocked</b></span>
+      <span>Pathways<b>modeled progression</b></span>
+      <span>Matching<b>fit · readiness · future</b></span>
+      <span>Success<b>careers advanced</b></span>
+    </div>
+  </header>
+
+  <!-- ════ ARC ════ -->
+  <section class="arc">
+    <div class="hd"><span>The engine in five moves · doctrine → object → gap → pathways → matching</span><b>measure less · advance more</b></div>
+    <div class="row">
+      <div class="cell"><div class="ord">D1</div><div class="nm">Mobility<br/>Doctrine</div><div class="q">What career mobility is — and what creates it, what blocks it, and what accelerates it.</div><div class="arrow"></div></div>
+      <div class="cell"><div class="ord">D2</div><div class="nm">Opportunity<br/>Object</div><div class="q">The OpportunityObject — a structured opening with requirements, thresholds, and signals, comparable to any career.</div><div class="arrow"></div></div>
+      <div class="cell"><div class="ord">D3</div><div class="nm">Career Gap<br/>Model</div><div class="q">The gap engine — six states from Ready to Blocked, each naming exactly what stands between career and opportunity.</div><div class="arrow"></div></div>
+      <div class="cell"><div class="ord">D4</div><div class="nm">Career<br/>Pathways</div><div class="q">How VitalCV models growth — the progressions a career climbs and the gates between each rung.</div><div class="arrow"></div></div>
+      <div class="cell"><div class="ord">D5</div><div class="nm">Opportunity<br/>Matching</div><div class="q">Evidence against requirements — what creates fit, what creates readiness, and what creates future readiness.</div><div class="arrow"></div></div>
+    </div>
+    <div class="foot">Reading rule · <b>the engine advances; it never invents.</b> Mobility is computed only from evidence already projected and trust already minted — the engine matches, ranks, and routes what a career has actually earned. It can tell a clinician what stands between them and an opportunity; it cannot, and does not, manufacture the credential that closes the gap.</div>
+  </section>
+
+  <!-- ════ TOC ════ -->
+  <nav class="toc">
+    <a href="#d1"><span class="n">D1</span><span class="t">Mobility Doctrine</span></a>
+    <a href="#d2"><span class="n">D2</span><span class="t">Opportunity Object</span></a>
+    <a href="#d3"><span class="n">D3</span><span class="t">Career Gap Model</span></a>
+    <a href="#d4"><span class="n">D4</span><span class="t">Career Pathways</span></a>
+    <a href="#d5"><span class="n">D5</span><span class="t">Opportunity Matching</span></a>
+    <a href="#synth"><span class="n">06</span><span class="t">Trust → Opportunity</span></a>
+  </nav>
+
+  <main>
+
+  <!-- ════════════ D1 ════════════ -->
+  <section class="sec" id="d1" data-screen-label="D1 Mobility Doctrine">
+    <div class="sh"><span class="n">D1</span><h2>Mobility Doctrine</h2><span class="ey">what career mobility is</span></div>
+    <p class="lead"><strong>Career mobility is the rate at which a clinician can move to a more valuable position — and be believed on arrival.</strong> Every mobility event is the same shape: a clinician crosses a threshold into a new role — new employment, a leadership promotion, a faculty appointment, medical-staff privileges, a locums assignment, a research seat, a board appointment. Each crossing has a <strong>gate</strong>: a set of trust dimensions and evidence the destination requires. Mobility is high when a career clears those gates with verification already in hand and low when it must stop to re-prove itself. The doctrine names the three forces that govern every crossing — what <strong>creates</strong> mobility, what <strong>blocks</strong> it, and what <strong>accelerates</strong> it.</p>
+
+    <div class="kicker">The three forces of mobility</div>
+    <div class="topo">
+      <div class="topohd"><span>What creates · what blocks · what accelerates a career crossing</span><b>trust opens · gaps close · proof pre-clears</b></div>
+      <div class="topozones">
+        <div class="tz">
+          <div class="tzi">Force 01</div>
+          <div class="tzt">Creates</div>
+          <div class="tzfig">
+            <span class="keydot"></span><span class="keyline"></span><span class="door"></span>
+            <span class="ttag" style="left:8px;top:8px">verified trust</span>
+            <span class="ttag" style="right:8px;bottom:8px">opens role</span>
+          </div>
+          <p><b>Verified trust that clears a gate.</b> Mobility is created when a career's trust dimensions already satisfy what a role requires — the right authority, current standing, corroborated evidence. The opportunity opens because the proof is in hand, not promised. Trust is the key; the role is the door.</p>
+        </div>
+        <div class="tz">
+          <div class="tzi">Force 02</div>
+          <div class="tzt">Blocks</div>
+          <div class="tzfig">
+            <span class="bdotL"></span><span class="barr"></span><span class="bdotR"></span>
+            <span class="ttag" style="left:8px;top:8px">career</span>
+            <span class="ttag" style="right:8px;top:8px">role</span>
+            <span class="ttag" style="left:50%;bottom:8px;transform:translateX(-50%)">missing gate</span>
+          </div>
+          <p><b>A missing or stale gate.</b> Mobility is blocked by a gap the role demands and the career cannot show — missing authority, missing experience, missing or expired evidence. A single unmet gate stops the crossing entirely; advancement is gated by its weakest required dimension, not its average.</p>
+        </div>
+        <div class="tz">
+          <div class="tzi">Force 03</div>
+          <div class="tzt">Accelerates</div>
+          <div class="tzfig">
+            <span class="flane"><i style="left:18%"></i><i style="left:42%"></i><i style="left:66%"></i><i style="left:90%"></i></span>
+            <span class="fcar" style="left:74%"></span>
+            <span class="ttag" style="left:8px;top:8px">pre-cleared proof</span>
+            <span class="ttag" style="right:8px;bottom:8px">fast lane</span>
+          </div>
+          <p><b>Pre-cleared, portable proof.</b> Mobility accelerates when verification is reusable — corroborated, current, and already legible to the destination's credentialing system. The work was done once; every subsequent crossing skips the line. Portability turns months of re-proving into days.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="kicker">Mobility architecture · the events and the gates they cross</div>
+    <div class="tbl scroll">
+    <table class="tbl">
+      <thead><tr><th style="width:188px">Mobility event</th><th style="width:150px">Crossing</th><th>Gate · what the role requires</th><th style="width:128px">Primary gate dim</th></tr></thead>
+      <tbody>
+        <tr><td class="nm">New Employment</td><td>lateral / upward</td><td>Active authority, clean continuity, institutional reference</td><td><strong>Authority + Institutional</strong></td></tr>
+        <tr><td class="nm">Leadership Promotion</td><td>upward</td><td>Tenure, attestations, leadership signal, no open actions</td><td><strong>Leadership</strong></td></tr>
+        <tr><td class="nm">Faculty Appointment</td><td>cross-track</td><td>Research record, teaching, terminal degree, sponsorship</td><td><strong>Academic + Research</strong></td></tr>
+        <tr><td class="nm">Medical Staff Privileges</td><td>access</td><td>Primary-source license, board cert, NPDB clear, references</td><td><strong>Authority + Identity</strong></td></tr>
+        <tr><td class="nm">Locums Opportunity</td><td>rapid / temporary</td><td>Multi-state authority, fast re-credentialing, current evidence</td><td><strong>Mobility</strong></td></tr>
+        <tr><td class="nm">Research Opportunity</td><td>cross-track</td><td>Publication depth, funding history, methods, collaborators</td><td><strong>Research</strong></td></tr>
+        <tr><td class="nm">Board Appointment</td><td>recognition</td><td>Reputation, recognition, leadership tenure, peer standing</td><td><strong>Leadership + Recognition</strong></td></tr>
+      </tbody>
+    </table>
+    </div>
+
+    <div class="kicker">The four laws of mobility</div>
+    <div class="laws">
+      <div class="law"><div class="ln">01</div><div class="lc"><b>Mobility is gated, not scored.</b><p>A crossing succeeds or fails on whether specific required gates are met — not on a high overall average. A brilliant record with one missing authority does not "mostly" cross; it is blocked. The engine reasons in gates met and unmet, never in a single number.</p></div></div>
+      <div class="law"><div class="ln">02</div><div class="lc"><b>The weakest required gate governs.</b><p>Advancement is limited by the lowest-cleared dimension the destination demands. <code>mobility = min(required gates)</code>. Strength elsewhere cannot compensate for an unmet requirement — you cross at the level of your weakest gate, not your strongest credential.</p></div></div>
+      <div class="law"><div class="ln">03</div><div class="lc"><b>Portability is the multiplier.</b><p>The same verified evidence, reused, accelerates every future crossing. A career whose proof is corroborated and current moves at a fraction of the cost of one that must re-verify each time. Mobility compounds with how reusable a record already is.</p></div></div>
+      <div class="law"><div class="ln">04</div><div class="lc"><b>The engine advances, never invents.</b><p>Mobility is computed only from earned evidence. The engine can match a career to an opportunity and name the exact gap, but it cannot conjure the missing credential — it shows the path and the price, and the clinician walks it.</p></div></div>
+    </div>
+    <div class="note"><span class="lb">Deliverable · Mobility Architecture</span><b>Career mobility is the rate at which verified trust clears the gates of more valuable roles. It is created by trust that already satisfies a gate, blocked by any unmet gate, and accelerated by portable, pre-cleared proof.</b> Every mobility event is a gated crossing; the engine's job is to know each gate, read each career against it, and route the clinician to the opening they can actually cross — or to the gap they must close first.</div>
+  </section>
+
+  <!-- ════════════ D2 ════════════ -->
+  <section class="sec" id="d2" data-screen-label="D2 Opportunity Object">
+    <div class="sh"><span class="n">D2</span><h2>OpportunityObject</h2><span class="ey">the opening as a structured object</span></div>
+    <p class="lead"><strong>If a career is a graph of evidence, an opportunity must be an object of requirements — symmetric, so the two can be compared directly.</strong> The <span class="mn">OpportunityObject</span> is the invented primitive of this wave: a structured, machine-readable description of any opening that states exactly what it demands in the same vocabulary a VitalCV career is built from — dimensions, evidence, trust tiers. Where the EvidenceObject (W215) is one observed fact, the OpportunityObject is one <em>required</em> set of facts. Representing openings this way is what lets the engine compare any role to any career without a human re-reading either: requirements meet evidence, thresholds meet dimensions, and a verdict falls out.</p>
+
+    <div class="kicker">The OpportunityObject · five property groups</div>
+    <div class="spec">
+      <div class="spechd"><span>OpportunityObject · Attending Cardiologist · Mercy Health</span><b>id: opp_4471 · status: open</b></div>
+      <div class="specprop">
+        <div class="spl"><b>Requirements</b><span>what the role is</span></div>
+        <div class="spv"><div class="spd">The structural facts of the opening — <b>title, specialty, setting, FTE, scope, start window</b>. The frame every other property is measured inside.</div><div class="spc"><span class="pchip req">Cardiology · interventional</span><span class="pchip req">inpatient + cath lab</span><span class="pchip req">1.0 FTE</span><span class="pchip req">start ≤ 90 d</span></div></div>
+      </div>
+      <div class="specprop">
+        <div class="spl"><b>Trust Thresholds</b><span>minimum dimensions</span></div>
+        <div class="spv"><div class="spd">The <b>floor each trust dimension must clear</b>, by tier. The role does not ask for "trustworthy" — it asks for specific dimensions at specific levels.</div><div class="spc"><span class="pchip req">Identity ≥ T4</span><span class="pchip req">Authority ≥ T4</span><span class="pchip req">Professional ≥ T3</span><span class="pchip req">Institutional ≥ T3</span></div></div>
+      </div>
+      <div class="specprop">
+        <div class="spl"><b>Evidence Requirements</b><span>specific artifacts</span></div>
+        <div class="spv"><div class="spd">The <b>named evidence that must exist and verify</b> — the concrete credentials credentialing will demand, each resolvable to a primary source.</div><div class="spc"><span class="pchip req">State license · active</span><span class="pchip req">ABMS Cardiology</span><span class="pchip req">DEA current</span><span class="pchip req">NPDB clear</span><span class="pchip req">3 references</span></div></div>
+      </div>
+      <div class="specprop">
+        <div class="spl"><b>Readiness Requirements</b><span>currency &amp; continuity</span></div>
+        <div class="spv"><div class="spd">The <b>freshness and continuity conditions</b> — how recent evidence must be, what gaps are disqualifying, how fast the record must clear. Mobility-shaped, not just presence.</div><div class="spc"><span class="pchip req">no unexplained gap &gt; 90 d</span><span class="pchip req">license read ≤ 90 d</span><span class="pchip req">clearable ≤ 30 d</span></div></div>
+      </div>
+      <div class="specprop">
+        <div class="spl"><b>Mobility Signals</b><span>fit &amp; intent hints</span></div>
+        <div class="spv"><div class="spd">The <b>soft, ranking-level signals</b> — preferred trajectory, geography, sub-specialty emphasis, growth direction. Not gates; they sort candidates who already clear the gates.</div><div class="spc"><span class="pchip gap">prefers academic-affiliated</span><span class="pchip gap">structural heart focus</span><span class="pchip gap">upward trajectory</span></div></div>
+      </div>
+    </div>
+
+    <div class="kicker">Worked comparison · OpportunityObject meets a career</div>
+    <div class="bench">
+      <div class="benchhd"><span>Compare · opp_4471 requirements projected against Dr. A's career graph</span><b>requirements ↔ evidence → verdict</b></div>
+      <div class="benchgrid">
+        <div class="atomcol">
+          <div class="acl">Input · the opportunity's gate</div>
+          <div class="atom">
+            <div class="ah"><span>OPP · ATTENDING CARDIO</span><b>open</b></div>
+            <div class="ab">
+              <div class="kv"><span>Identity</span><b>≥ T4</b></div>
+              <div class="kv"><span>Authority</span><b>≥ T4</b></div>
+              <div class="kv"><span>Professional</span><b>≥ T3</b></div>
+              <div class="kv"><span>Institutional</span><b>≥ T3</b></div>
+              <div class="kv"><span>NPDB</span><b>clear</b></div>
+              <div class="kv"><span>references</span><b>3 required</b></div>
+            </div>
+          </div>
+        </div>
+        <div class="projarrow"><span class="pf">match()</span><span class="pa"></span></div>
+        <div class="lanes">
+          <div class="lane">
+            <div class="ll"><b>Met</b><span>gate cleared</span></div>
+            <div class="lr"><span class="pchip met">Identity T4 ✓</span><span class="pchip met">Authority T4 ✓</span><span class="pchip met">Professional T4 ✓</span><span class="pchip met">NPDB clear ✓</span></div>
+          </div>
+          <div class="lane">
+            <div class="ll"><b>Partial</b><span>met, decaying</span></div>
+            <div class="lr"><span class="pchip">Institutional T3 · read 84 d ago</span></div>
+          </div>
+          <div class="lane">
+            <div class="ll"><b>Gap</b><span>unmet</span></div>
+            <div class="lr"><span class="pchip gap">references · 2 of 3</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p style="font-family:'Geist Mono',monospace;font-size:9.5px;text-transform:uppercase;letter-spacing:.13em;color:var(--ink-500);margin:10px 0 0">Symmetry is the point · <b style="color:var(--ink-900)">the opportunity speaks the career's own vocabulary</b>, so <b style="color:var(--ink-900)">comparison is mechanical, not editorial</b> — one missing reference is the entire distance between this career and this role.</p>
+
+    <div class="grid3" style="margin-top:16px">
+      <div class="card"><div class="ph"><span>How opportunities are represented</span><b>symmetric to evidence</b></div><div class="bd"><p>As a <strong>structured object in the same vocabulary as a career</strong> — dimensions, evidence, tiers, currency. An opening stops being prose a human interprets and becomes a gate a machine can test a record against, identically every time.</p></div></div>
+      <div class="card"><div class="ph"><span>How they compare to careers</span><b>requirements ↔ evidence</b></div><div class="bd"><p>By <strong>projecting requirements onto the career graph</strong> and resolving each: met, partial, or gap. Thresholds test dimensions; evidence requirements test artifacts; readiness tests currency. The verdict is the set of unmet gates, named precisely.</p></div></div>
+      <div class="card"><div class="ph"><span>Why gates beat signals</span><b>hard floors vs soft sort</b></div><div class="bd"><p>Thresholds and evidence are <strong>hard gates — fail one and you cannot cross</strong>. Mobility signals are soft: they rank candidates who already clear the gates. Separating the two keeps fit honest and stops a strong "signal" from masking a missing requirement.</p></div></div>
+    </div>
+    <div class="note"><span class="lb">Deliverable · Opportunity Model</span><b>The OpportunityObject represents any opening as five property groups — requirements, trust thresholds, evidence requirements, readiness requirements, and mobility signals — in the same vocabulary a career is built from.</b> Because opportunity and career are symmetric, matching is a mechanical projection of one onto the other: gates resolve to met, partial, or gap, and the distance to a role becomes an exact, addressable list.</div>
+  </section>
+
+  <!-- ════════════ D3 ════════════ -->
+  <section class="sec" id="d3" data-screen-label="D3 Career Gap Model">
+    <div class="sh"><span class="n">D3</span><h2>Career Gap Model</h2><span class="ey">naming the distance to a role</span></div>
+    <p class="lead"><strong>The gap engine turns a comparison into a verdict a clinician can act on.</strong> Matching a career to an OpportunityObject produces a set of resolved gates; the gap engine reads that set and assigns a single, honest state — and, when a gap exists, names exactly what kind it is. The crucial design choice is that "not ready" is never a dead end: the engine distinguishes <strong>missing evidence</strong> (you have it, prove it) from <strong>missing experience</strong> (you must do it) from <strong>missing authority</strong> (you must earn it), because each implies a completely different next action and a completely different timeline. A gap that is named is a gap that can be closed.</p>
+
+    <div class="kicker">Career gap framework · the six states</div>
+    <div class="gapreg">
+      <div class="gaphd"><span>Six states · from cleared to blocked, each with its resolution</span><b>state = f( resolved gates )</b></div>
+      <div class="gaprow">
+        <div class="gst"><span class="gs ready"></span></div>
+        <div class="gnm"><b>Ready</b><span>state · cross now</span></div>
+        <div class="gdf">Every required gate is <b>met and current</b>. The career clears the opportunity today with verification already in hand.</div>
+        <div class="grs"><b>Resolution ·</b>&nbsp;apply / pre-clear — nothing stands in the way.</div>
+      </div>
+      <div class="gaprow">
+        <div class="gst"><span class="gs near"></span></div>
+        <div class="gnm"><b>Near Ready</b><span>state · days away</span></div>
+        <div class="gdf">All gates met, but one is <b>decaying or pending a refresh</b> — a stale read, a reference in flight. Closeable fast.</div>
+        <div class="grs"><b>Resolution ·</b>&nbsp;re-verify the stale credential; chase the pending item.</div>
+      </div>
+      <div class="gaprow">
+        <div class="gst"><span class="gs miss"></span></div>
+        <div class="gnm"><b>Missing Evidence</b><span>gap · prove it</span></div>
+        <div class="gdf">The career <b>likely has the qualification but has not verified it</b> — an unproven license, an uncorroborated role.</div>
+        <div class="grs"><b>Resolution ·</b>&nbsp;collect a primary-source read. Timeline: days.</div>
+      </div>
+      <div class="gaprow">
+        <div class="gst"><span class="gs miss"></span></div>
+        <div class="gnm"><b>Missing Experience</b><span>gap · do it</span></div>
+        <div class="gdf">A required <b>tenure, volume, or role has not yet been lived</b> — years as attending, case count, a leadership term.</div>
+        <div class="grs"><b>Resolution ·</b>&nbsp;accrue it on a pathway. Timeline: months–years.</div>
+      </div>
+      <div class="gaprow">
+        <div class="gst"><span class="gs miss"></span></div>
+        <div class="gnm"><b>Missing Authority</b><span>gap · earn it</span></div>
+        <div class="gdf">A <b>credential or legal standing does not exist</b> — an unheld license, an unearned board certification, no privileges.</div>
+        <div class="grs"><b>Resolution ·</b>&nbsp;sit the exam / obtain the license. Timeline: months.</div>
+      </div>
+      <div class="gaprow">
+        <div class="gst"><span class="gs blocked"></span></div>
+        <div class="gnm"><b>Blocked</b><span>state · disqualified</span></div>
+        <div class="gdf">A <b>hard disqualifier is present</b> — an open board action, an NPDB flag, an unexplained gap the role forbids.</div>
+        <div class="grs"><b>Resolution ·</b>&nbsp;resolve the action first; no other gate matters until then.</div>
+      </div>
+    </div>
+
+    <div class="kicker">Worked gap analysis · Dr. A vs three openings</div>
+    <div class="tbl scroll">
+    <table class="tbl">
+      <thead><tr><th style="width:196px">Opportunity</th><th style="width:120px">Verdict</th><th>Cleared gates</th><th style="width:188px">The deciding gap</th></tr></thead>
+      <tbody>
+        <tr><td class="nm">Locums · Cardiology (multi-state)</td><td><span class="gbadge ready">Ready</span></td><td>Identity · Authority · Mobility · currency all met</td><td>— none · cross today</td></tr>
+        <tr><td class="nm">Attending · Mercy Health</td><td><span class="gbadge near">Near Ready</span></td><td>Identity · Authority · Professional · NPDB met</td><td><span class="gbadge miss">missing evidence</span> 1 of 3 references</td></tr>
+        <tr><td class="nm">Medical Director · Cardiology</td><td><span class="gbadge miss">Missing Exp.</span></td><td>All clinical + authority gates met</td><td><span class="gbadge miss">missing experience</span> leadership tenure &lt; 2 yr</td></tr>
+        <tr><td class="nm">Faculty · Interventional</td><td><span class="gbadge blocked">Blocked</span></td><td>Clinical gates met</td><td><span class="gbadge blocked">missing authority</span> no terminal research record</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p style="font-family:'Geist Mono',monospace;font-size:9.5px;text-transform:uppercase;letter-spacing:.13em;color:var(--ink-500);margin:10px 0 0">Same career, four verdicts · <b style="color:var(--ink-900)">the state is a property of the pairing</b>, not the person — Dr. A is <em style="font-style:normal;color:var(--ink-900)">Ready</em> for one role and <em style="font-style:normal;color:var(--ink-900)">months away</em> from another, and the engine says precisely which and why.</p>
+
+    <div class="grid3" style="margin-top:16px">
+      <div class="card"><div class="ph"><span>Why name the gap type</span><b>action, not verdict</b></div><div class="bd"><p>"Not ready" is useless; <strong>"missing one reference, 3 days"</strong> is a plan. Naming whether a gap is evidence, experience, or authority converts a rejection into a next step with a timeline — the difference between a wall and a door.</p></div></div>
+      <div class="card"><div class="ph"><span>Why Blocked is separate</span><b>a gate before the gates</b></div><div class="bd"><p>A disqualifier is not a gap to fill — it is a <strong>condition that voids every other gate</strong>. The engine surfaces it first and alone, because no amount of evidence or experience matters while an open action stands.</p></div></div>
+      <div class="card"><div class="ph"><span>Why state is per-pairing</span><b>relative, never absolute</b></div><div class="bd"><p>A career is never "ready" in the abstract — only <strong>ready for a specific opportunity</strong>. The same record is Ready, Near, or Blocked depending on the gate it is read against, which is why the engine always evaluates the pair, not the person.</p></div></div>
+    </div>
+    <div class="note"><span class="lb">Deliverable · Career Gap Framework</span><b>The gap engine assigns one of six states — Ready, Near Ready, Missing Evidence, Missing Experience, Missing Authority, Blocked — to each career-opportunity pairing, and names the deciding gap.</b> By separating gaps you can prove from gaps you must live and gaps you must earn, it turns "no" into a dated, addressable path — and keeps a hard disqualifier from hiding behind an otherwise strong record.</div>
+  </section>
+
+  <!-- ════════════ D4 ════════════ -->
+  <section class="sec" id="d4" data-screen-label="D4 Career Pathways">
+    <div class="sh"><span class="n">D4</span><h2>Career Pathways</h2><span class="ey">how growth is modeled</span></div>
+    <p class="lead"><strong>Individual crossings add up to a trajectory — and VitalCV models that trajectory as a pathway: a sequence of roles connected by the gates between them.</strong> A pathway is not a prediction or a prescription; it is the <em>structure of progression</em> a specialty already contains, made explicit. Resident becomes attending; attending becomes medical director; clinician branches to faculty or to researcher. Each transition is an OpportunityObject gate, so a pathway is just gates chained end to end — which means the gap engine can run against a destination several steps away and tell a clinician not only their next move but the whole staircase, and exactly which step they are standing on.</p>
+
+    <div class="kicker">Career pathway architecture · four canonical progressions</div>
+    <div class="pathways">
+      <div class="pathhd"><span>From → gate → to · each transition is an OpportunityObject in the chain</span><b>pathways = chained gates</b></div>
+      <div class="pway">
+        <div class="pnode from"><span class="pk">stage · entry</span><b>Resident</b></div>
+        <div class="pgates"><div class="pgl">gate to cross</div><div class="pgaterow"><span class="pgate">Board eligible</span><span class="pgate">State license</span><span class="pgate">Training complete</span><span class="pgate dim">References</span></div></div>
+        <div class="pnode to"><span class="pk">stage · independent</span><b>Attending</b></div>
+      </div>
+      <div class="pway">
+        <div class="pnode from"><span class="pk">stage · independent</span><b>Attending</b></div>
+        <div class="pgates"><div class="pgl">gate to cross</div><div class="pgaterow"><span class="pgate">Leadership tenure</span><span class="pgate">Attestations</span><span class="pgate">Program signal</span><span class="pgate dim">Peer standing</span></div></div>
+        <div class="pnode to"><span class="pk">stage · leadership</span><b>Medical Director</b></div>
+      </div>
+      <div class="pway">
+        <div class="pnode from"><span class="pk">stage · clinical</span><b>Clinician</b></div>
+        <div class="pgates"><div class="pgl">gate to cross · branch</div><div class="pgaterow"><span class="pgate">Terminal degree</span><span class="pgate">Teaching record</span><span class="pgate">Sponsorship</span><span class="pgate dim">Academic affil.</span></div></div>
+        <div class="pnode to"><span class="pk">branch · academic</span><b>Faculty</b></div>
+      </div>
+      <div class="pway">
+        <div class="pnode from"><span class="pk">stage · clinical</span><b>Clinician</b></div>
+        <div class="pgates"><div class="pgl">gate to cross · branch</div><div class="pgaterow"><span class="pgate">Publication depth</span><span class="pgate">Funding history</span><span class="pgate">Methods record</span><span class="pgate dim">Collaborators</span></div></div>
+        <div class="pnode to"><span class="pk">branch · research</span><b>Researcher</b></div>
+      </div>
+    </div>
+    <p style="font-family:'Geist Mono',monospace;font-size:9.5px;text-transform:uppercase;letter-spacing:.13em;color:var(--ink-500);margin:10px 0 0">A pathway is addressable · <b style="color:var(--ink-900)">run the gap engine against a node two steps ahead</b> and it returns the gates at each rung — <b style="color:var(--ink-900)">the clinician sees the whole staircase</b>, not just the next step.</p>
+
+    <div class="kicker">How VitalCV models growth · three properties of a pathway</div>
+    <div class="emerg">
+      <div class="ec"><div class="ei">Property A</div><h4>Descriptive, not prescriptive</h4><p><b>A pathway maps what exists, it does not dictate.</b> VitalCV reads the gates a specialty already imposes and makes them legible; it never tells a clinician they <em>should</em> become a director. The structure is the field's, surfaced — the choice of route stays entirely the clinician's.</p></div>
+      <div class="ec"><div class="ei">Property B</div><h4>Branching, not linear</h4><p><b>Growth forks.</b> A clinician can branch toward leadership, academia, or research, and the same evidence carries different weight on each branch. Modeling growth as a graph of gates — not a single ladder — lets the engine show every viable direction, with its distinct gate at each fork.</p></div>
+      <div class="ec"><div class="ei">Property C</div><h4>Computed from the same gates</h4><p><b>Pathways reuse the OpportunityObject.</b> Nothing new is invented — each transition is the same gated crossing as any single opportunity. That is why the gap engine runs unchanged against a destination three rungs away, returning a dated plan for the whole climb, not just the next door.</p></div>
+    </div>
+    <div class="note"><span class="lb">Deliverable · Career Pathway Architecture</span><b>VitalCV models growth as pathways — sequences of roles connected by OpportunityObject gates, branching rather than linear, descriptive rather than prescriptive.</b> Because every transition reuses the same gate machinery, the gap engine can evaluate any destination on the pathway and return the full staircase: where the clinician stands, what each next rung requires, and how far each branch reaches.</div>
+  </section>
+
+  <!-- ════════════ D5 ════════════ -->
+  <section class="sec" id="d5" data-screen-label="D5 Opportunity Matching">
+    <div class="sh"><span class="n">D5</span><h2>Opportunity Matching</h2><span class="ey">evidence against requirements</span></div>
+    <p class="lead"><strong>Matching is the engine's output — the moment career evidence and opportunity requirements resolve into a decision.</strong> It is not one verdict but three, on different time horizons. <strong>Fit</strong> asks whether the career is the right shape for the role at all. <strong>Readiness</strong> asks whether it can cross the gate today. <strong>Future readiness</strong> asks how far away it is if not, and on which pathway. Separating the three is what makes the match useful to everyone at once: a recruiter sees fit, a credentialer sees readiness, and the clinician sees the path to future readiness — all from the same projection of evidence onto requirements.</p>
+
+    <div class="kicker">Mobility matching framework · three horizons of a match</div>
+    <div class="triad">
+      <div class="tp"><div class="gly"><i class="gly-fit"></i></div><h4>Fit — right shape?</h4><p>Whether the career's <b>dimensions and trajectory align with the role's shape</b> — specialty, setting, signals. Fit is about direction, not currency: a strong interventional cardiologist <b>fits</b> a cath-lab role even if a credential is momentarily stale. Fit answers "is this the right kind of career for this opening?"</p></div>
+      <div class="tp"><div class="gly"><i class="gly-ready"></i></div><h4>Readiness — cross today?</h4><p>Whether <b>every hard gate is met and current right now</b>. Readiness is binary and unforgiving — one unmet threshold or stale read drops it. It answers "can this clinician be credentialed into this role this week?" and is exactly the Ready / Near / Blocked state from the gap engine.</p></div>
+      <div class="tp"><div class="gly"><i class="gly-future"></i></div><h4>Future readiness — how far?</h4><p>If not ready, <b>the distance and the pathway to becoming ready</b> — which gaps, what kind, how long. Future readiness turns a "no" into a trajectory: collect one reference (days), accrue tenure (years). It answers "if not now, when, and by what route?"</p></div>
+    </div>
+
+    <div class="kicker">Worked match · one career, three horizons, one opportunity</div>
+    <div class="bench">
+      <div class="benchhd"><span>Dr. A × Attending Cardiologist · evidence projected onto requirements</span><b>fit · readiness · future</b></div>
+      <div class="benchgrid">
+        <div class="atomcol">
+          <div class="acl">Output · the match verdict</div>
+          <div class="atom">
+            <div class="ah"><span>MATCH · opp_4471</span><b>Dr. A</b></div>
+            <div class="ab">
+              <div class="kv"><span>fit</span><b>strong · 0.91</b></div>
+              <div class="kv"><span>readiness</span><b>Near Ready</b></div>
+              <div class="kv"><span>future</span><b>+3 days</b></div>
+              <div class="kv"><span>blocker</span><b>none</b></div>
+              <div class="kv"><span>gap</span><b>1 reference</b></div>
+              <div class="kv"><span>pathway</span><b>on-track</b></div>
+            </div>
+          </div>
+        </div>
+        <div class="projarrow"><span class="pf">resolve()</span><span class="pa"></span></div>
+        <div class="lanes">
+          <div class="lane">
+            <div class="ll"><b>Fit</b><span>shape match</span></div>
+            <div class="lr"><span class="pchip met">specialty ✓</span><span class="pchip met">setting ✓</span><span class="pchip met">trajectory ✓</span><span class="pchip">signal · structural-heart</span></div>
+          </div>
+          <div class="lane">
+            <div class="ll"><b>Readiness</b><span>today</span></div>
+            <div class="lr"><span class="pchip met">4 gates met</span><span class="pchip">1 decaying</span><span class="pchip gap">1 gap · references</span></div>
+          </div>
+          <div class="lane">
+            <div class="ll"><b>Future readiness</b><span>the path</span></div>
+            <div class="lr"><span class="pchip met">collect 1 reference → Ready</span><span class="pgain">ETA 3 d · <em>no pathway step needed</em></span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid3" style="margin-top:16px">
+      <div class="card"><div class="ph"><span>What creates fit</span><b>shape &amp; direction</b></div><div class="bd"><p><strong>Alignment of the career's dimensions and trajectory with the role's shape.</strong> Fit is generous and directional — it tolerates a stale credential because it asks whether the career is pointed the right way, not whether it is cleared today.</p></div></div>
+      <div class="card"><div class="ph"><span>What creates readiness</span><b>every gate, now</b></div><div class="bd"><p><strong>All hard gates met and current.</strong> Readiness is strict and present-tense: verified evidence, cleared thresholds, no stale reads, no disqualifiers. It is the difference between a good candidate and one who can start.</p></div></div>
+      <div class="card"><div class="ph"><span>What creates future readiness</span><b>a closeable path</b></div><div class="bd"><p><strong>Named gaps on a real pathway, each with a timeline.</strong> Future readiness exists when every gap is the kind that <em>can</em> be closed — evidence, experience, or authority — and the engine can route the clinician to close it.</p></div></div>
+    </div>
+    <div class="note"><span class="lb">Deliverable · Mobility Matching Framework</span><b>Matching projects evidence onto requirements and returns three horizons — fit (right shape), readiness (cross today), and future readiness (the dated path if not).</b> One projection serves every reader: the recruiter ranks on fit, the credentialer acts on readiness, the clinician follows future readiness. That is the engine's whole purpose realized — trust, resolved into a decision and a next step.</div>
+  </section>
+
+  <!-- ════════════ 06 · SYNTHESIS ════════════ -->
+  <section class="sec" id="synth" data-screen-label="Synthesis">
+    <div class="sh"><span class="n">06</span><h2>Trust → Opportunity</h2><span class="ey">the success criteria</span></div>
+    <p class="lead">The five deliverables compose into one engine. The doctrine defines mobility as gated crossings; the OpportunityObject makes openings comparable; the gap engine names the distance; pathways chain the gates into a trajectory; and matching resolves it all into fit, readiness, and future readiness. Read together they answer the wave's question: <strong>how does trust become opportunity?</strong></p>
+
+    <div class="ans">
+      <div class="arow"><div class="aq"><span class="an">Q1</span>What is career mobility?</div><div class="aa"><b>The rate at which verified trust clears the gates of more valuable roles</b> — and the clinician is believed on arrival. Every mobility event, from new employment to a board appointment, is a gated crossing; mobility is high when a career meets the gate with proof in hand and low when it must stop to re-prove itself.</div></div>
+      <div class="arow"><div class="aq"><span class="an">Q2</span>What creates opportunity?</div><div class="aa">A <b>representable opening — the OpportunityObject</b> — meeting a career that clears its gates. Opportunity is created when an opening's trust thresholds, evidence, and readiness requirements are all satisfied by evidence the career has already earned. The object makes the opening comparable; the cleared gate makes it real.</div></div>
+      <div class="arow"><div class="aq"><span class="an">Q3</span>What creates readiness?</div><div class="aa"><b>Every hard gate met and current, with no disqualifier.</b> Readiness is strict and present-tense — verified evidence, cleared thresholds, fresh reads. It is the gap engine's <code>Ready</code> state: not the right shape (that is fit) and not a closeable path (that is future readiness), but the ability to be credentialed in <i>today</i>.</div></div>
+      <div class="arow"><div class="aq"><span class="an">Q4</span>What blocks advancement?</div><div class="aa"><b>Any unmet required gate — and a disqualifier above all.</b> Because <code>mobility = min(required gates)</code>, a single missing authority, missing experience, or stale evidence stops a crossing regardless of strength elsewhere. A hard disqualifier — an open action, an NPDB flag — voids every other gate until it is resolved.</div></div>
+      <div class="arow"><div class="aq"><span class="an">Q5</span>How does trust become opportunity?</div><div class="aa">By <b>projection and matching</b>. The same verified trust dimensions that compounded in W222 are projected onto an OpportunityObject's gates; where they clear, the opportunity opens; where they fall short, the gap engine names the exact, dated distance. Trust becomes opportunity the instant it is read against a gate it satisfies.</div></div>
+      <div class="arow last"><div class="aq"><span class="an">Q6</span>How does VitalCV help a clinician grow over a career?</div><div class="aa">By making the whole staircase <b>visible and addressable</b>. It models progression as branching pathways of chained gates, runs the gap engine against any destination, and returns fit, readiness, and future readiness — so a clinician always sees where they stand, what the next rung costs, and which branch reaches furthest. <b>VitalCV stops measuring the career and starts advancing it.</b></div></div>
+    </div>
+    <div class="note"><span class="lb">Determination</span><b>Mobility is a gated crossing; the OpportunityObject is the gate; the gap engine is the distance; pathways are the staircase; matching is the decision.</b> Project a career's earned trust onto an opening's requirements and opportunity falls out — named, dated, and addressable. Run it across a career and verified evidence stops being a record of where a clinician has been and becomes the engine of where they can go next.</div>
+  </section>
+
+  </main>
+
+  <footer class="foot-page">
+    <span>VitalCV · Wave 230 · Career Mobility Engine</span>
+    <span>role: claude design · <b>D1–D5 + synthesis</b></span>
+    <span>vc.2026.06.21 · w230 · v1 · <b>trust → opportunity</b></span>
+  </footer>
+
+</div>
+</body>
+</html>

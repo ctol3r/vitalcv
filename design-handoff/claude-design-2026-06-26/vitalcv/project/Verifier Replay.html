@@ -1,0 +1,740 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>VitalCV · /replay/r-7a2c-b8d3 · auditor view</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --ink-0:#fff;--ink-50:#f8fafc;--ink-100:#f1f5f9;--ink-200:#e2e8f0;--ink-300:#cbd5e1;
+    --ink-400:#94a3b8;--ink-500:#64748b;--ink-600:#475569;--ink-700:#334155;
+    --ink-800:#1e293b;--ink-900:#0f172a;--ink-950:#020617;
+    --rule:#e2e8f0;
+    --rule-hard:#0f172a;
+    --amber:#92400e;
+    --hash-bg:#0f172a;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--ink-100);color:var(--ink-900);font-family:'Geist Mono',ui-monospace,monospace;-webkit-font-smoothing:antialiased;font-size:12.5px;line-height:1.4;font-variant-numeric:tabular-nums;font-feature-settings:'zero','tnum';}
+  .sans{font-family:'Geist',ui-sans-serif,system-ui,sans-serif;}
+
+  /* ===== Op bar — keep narrow, no decoration ===== */
+  .op{background:var(--ink-950);color:var(--ink-300);font-size:11px;border-bottom:1px solid #000;}
+  .op .in{max-width:1320px;margin:0 auto;padding:0 28px;height:28px;display:flex;align-items:center;justify-content:space-between;gap:12px;}
+  .op .sep{color:var(--ink-600);}
+  .op .pill{display:inline-flex;align-items:center;gap:6px;padding:1px 7px;border:1px solid var(--ink-700);text-transform:uppercase;letter-spacing:.12em;font-size:10px;}
+  .op .pill .d{width:6px;height:6px;background:#10b981;border-radius:50%;}
+
+  /* ===== Document scope: compliance PDF feeling ===== */
+  .doc{max-width:1320px;margin:0 auto;background:var(--ink-0);border-left:1px solid var(--rule);border-right:1px solid var(--rule);}
+
+  /* ===== Document header ===== */
+  .doc-hd{padding:18px 28px 14px;border-bottom:2px solid var(--ink-900);background:var(--ink-0);}
+  .doc-hd .crumb{display:flex;justify-content:space-between;align-items:center;gap:14px;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-500);margin-bottom:10px;}
+  .doc-hd .crumb .l{display:flex;gap:8px;align-items:center;}
+  .doc-hd .crumb .l .g{width:18px;height:18px;background:var(--ink-900);color:#fff;display:grid;place-items:center;font-size:10px;font-weight:700;}
+  .doc-hd .crumb .l .nm{color:var(--ink-900);font-weight:600;font-size:11px;letter-spacing:.06em;}
+  .doc-hd .crumb .l .path{color:var(--ink-500);}
+  .doc-hd .crumb .l .path strong{color:var(--ink-900);font-weight:600;}
+  .doc-hd .crumb .r{display:flex;gap:14px;align-items:center;}
+  .doc-hd .crumb .r .v{color:var(--ink-900);font-weight:500;letter-spacing:.04em;}
+  .doc-hd .ttl{display:flex;justify-content:space-between;align-items:flex-end;gap:28px;}
+  .doc-hd .ttl h1{margin:0;font-size:22px;letter-spacing:-.012em;font-weight:600;color:var(--ink-900);font-family:'Geist Mono',monospace;line-height:1.15;}
+  .doc-hd .ttl h1 .g{color:var(--ink-400);font-weight:500;}
+  .doc-hd .ttl .seal{display:flex;flex-direction:column;align-items:flex-end;gap:3px;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-500);}
+  .doc-hd .ttl .seal strong{color:var(--ink-900);font-weight:600;font-size:11px;letter-spacing:.08em;}
+
+  /* ===== 6-PILLAR audit field grid — the centerpiece ===== */
+  .pillars{display:grid;grid-template-columns:repeat(6,1fr);border-bottom:1px solid var(--rule);background:var(--ink-50);}
+  .pillars .p{padding:12px 14px;border-right:1px solid var(--rule);position:relative;}
+  .pillars .p:last-child{border-right:0;}
+  .pillars .p .ord{position:absolute;top:8px;right:10px;font-size:9px;letter-spacing:.14em;color:var(--ink-300);font-weight:600;}
+  .pillars .p .k{font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-500);font-weight:600;margin-bottom:6px;display:flex;align-items:center;gap:6px;}
+  .pillars .p .k::before{content:"";width:5px;height:5px;background:var(--ink-900);display:inline-block;}
+  .pillars .p .v{font-size:12.5px;color:var(--ink-900);font-weight:500;word-break:break-all;line-height:1.3;}
+  .pillars .p .v .g{color:var(--ink-500);font-weight:400;}
+  .pillars .p .v.big{font-size:14px;letter-spacing:-.005em;}
+  .pillars .p .sub{font-size:10px;color:var(--ink-500);margin-top:3px;letter-spacing:.04em;}
+
+  /* ===== Section heading ===== */
+  .sh{display:flex;align-items:baseline;gap:12px;padding:14px 28px 6px;border-bottom:1px solid var(--ink-900);margin:0;background:var(--ink-0);}
+  .sh .n{font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-300);font-weight:600;}
+  .sh h2{margin:0;font-size:13px;letter-spacing:-.005em;color:var(--ink-900);font-weight:600;font-family:'Geist Mono',monospace;text-transform:uppercase;letter-spacing:.08em;}
+  .sh .ey{margin-left:auto;font-size:10px;color:var(--ink-500);text-transform:uppercase;letter-spacing:.14em;}
+
+  /* ===== Subject + ownership attestation ===== */
+  .subj{display:grid;grid-template-columns:1.4fr 1fr;border-bottom:1px solid var(--rule);background:var(--ink-0);}
+  .subj .l{padding:14px 28px;border-right:1px solid var(--rule);}
+  .subj .l .nm{font-size:20px;letter-spacing:-.018em;font-weight:600;color:var(--ink-900);margin:0;font-family:'Geist',sans-serif;}
+  .subj .l .id{font-size:11.5px;color:var(--ink-500);margin-top:3px;letter-spacing:.04em;}
+  .subj .l .id strong{color:var(--ink-900);font-weight:500;}
+  .subj .l .row{margin-top:10px;display:grid;grid-template-columns:repeat(3,1fr);gap:0;border:1px solid var(--rule);}
+  .subj .l .row .c{padding:8px 12px;border-right:1px solid var(--rule);}
+  .subj .l .row .c:last-child{border-right:0;}
+  .subj .l .row .k{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-500);font-weight:600;margin-bottom:2px;}
+  .subj .l .row .v{font-size:11.5px;color:var(--ink-900);font-weight:500;}
+  .subj .l .row .v .g{color:var(--ink-500);font-weight:400;}
+
+  .subj .r{padding:14px 28px;background:var(--ink-50);}
+  .subj .r .ttl{font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-500);font-weight:600;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;}
+  .subj .r .ttl strong{color:var(--ink-900);font-weight:700;}
+  .subj .r .stmt{font-size:12px;color:var(--ink-900);line-height:1.5;letter-spacing:-.005em;font-family:'Geist',sans-serif;}
+  .subj .r .stmt em{font-style:normal;font-weight:600;}
+  .subj .r .att{margin-top:10px;display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:10.5px;color:var(--ink-700);}
+  .subj .r .att .ak{color:var(--ink-500);text-transform:uppercase;letter-spacing:.12em;font-size:9.5px;}
+  .subj .r .att .av{color:var(--ink-900);font-weight:500;word-break:break-all;}
+
+  /* ===== Tier ladder ===== */
+  .tiers{display:grid;grid-template-columns:repeat(4,1fr);border-bottom:1px solid var(--rule);background:var(--ink-0);}
+  .tier{padding:12px 16px;border-right:1px solid var(--rule);position:relative;}
+  .tier:last-child{border-right:0;}
+  .tier .lab{display:flex;justify-content:space-between;align-items:baseline;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-500);font-weight:600;}
+  .tier .lab .tag{color:var(--ink-900);font-weight:700;font-size:14px;letter-spacing:0;}
+  .tier .nm{font-size:12.5px;color:var(--ink-900);font-weight:500;margin-top:4px;letter-spacing:-.005em;font-family:'Geist',sans-serif;}
+  .tier .src{font-size:10.5px;color:var(--ink-500);margin-top:2px;}
+  .tier .bar{margin-top:9px;height:3px;background:var(--ink-200);position:relative;}
+  .tier .bar .fill{position:absolute;inset:0;background:var(--ink-900);}
+  .tier.t1 .fill{width:100%;}
+  .tier.t2 .fill{width:100%;}
+  .tier.t3 .fill{width:66%;}
+  .tier.t4 .fill{width:0;}
+  .tier .st{margin-top:8px;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-900);font-weight:600;display:flex;gap:6px;align-items:center;}
+  .tier .st .m{width:5px;height:5px;background:var(--ink-900);}
+  .tier.t4 .st{color:var(--amber);}
+  .tier.t4 .st .m{background:var(--amber);border:1px solid var(--amber);}
+
+  /* ===== Source-lane evidence table — high density ===== */
+  .lanes{background:var(--ink-0);border-bottom:1px solid var(--rule);}
+  .lanes table{width:100%;border-collapse:collapse;}
+  .lanes thead th{background:var(--ink-50);font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-500);text-align:left;padding:8px 14px;border-bottom:1px solid var(--ink-900);font-weight:600;}
+  .lanes thead th:first-child{padding-left:28px;}
+  .lanes thead th:last-child{padding-right:28px;}
+  .lanes tbody td{padding:8px 14px;border-bottom:1px solid var(--rule);font-size:11.5px;color:var(--ink-700);vertical-align:middle;}
+  .lanes tbody td:first-child{padding-left:28px;}
+  .lanes tbody td:last-child{padding-right:28px;}
+  .lanes tbody tr:last-child td{border-bottom:0;}
+  .lanes tbody td.nm{color:var(--ink-900);font-weight:500;letter-spacing:-.005em;font-family:'Geist',sans-serif;font-size:12.5px;}
+  .lanes tbody td.nm .sub{display:block;font-family:'Geist Mono',monospace;font-size:10px;color:var(--ink-500);font-weight:400;margin-top:1px;letter-spacing:.04em;}
+  .lanes tbody td .age{display:block;font-size:10px;color:var(--ink-500);margin-top:1px;}
+  .lanes tbody td .hash{color:var(--ink-900);font-weight:500;letter-spacing:.02em;}
+  .lanes tbody td .hash .g{color:var(--ink-400);}
+
+  .chip{display:inline-flex;align-items:center;gap:5px;padding:2px 7px;border:1px solid var(--ink-900);font-size:9.5px;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-900);font-weight:600;width:max-content;background:var(--ink-0);}
+  .chip .d{width:5px;height:5px;background:var(--ink-900);}
+  .chip.amber{border-color:var(--amber);color:var(--amber);}
+  .chip.amber .d{background:var(--amber);}
+  .chip.gate{border-color:var(--ink-700);color:var(--ink-700);border-style:dashed;}
+  .chip.gate .d{background:transparent;border:1px solid var(--ink-700);width:4px;height:4px;}
+
+  /* ===== EVENT CHAIN — block-explorer aesthetic ===== */
+  .chain-shell{background:var(--hash-bg);color:var(--ink-100);font-family:'Geist Mono',monospace;border-bottom:1px solid var(--rule-hard);}
+  .chain-shell .ch-hd{padding:11px 28px;border-bottom:1px solid #1e293b;background:#000;display:flex;justify-content:space-between;align-items:center;gap:18px;flex-wrap:wrap;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#94a3b8;}
+  .chain-shell .ch-hd .ttl{color:#fff;font-weight:600;}
+  .chain-shell .ch-hd .loop{display:flex;gap:14px;align-items:center;font-size:11px;letter-spacing:.04em;text-transform:none;color:#94a3b8;}
+  .chain-shell .ch-hd .loop .v{color:#fff;font-weight:500;}
+  .chain-shell .ch-hd .loop .sep{color:#475569;}
+
+  /* root hash banner — like an Etherscan top block */
+  .root{padding:14px 28px;border-bottom:1px solid #1e293b;display:grid;grid-template-columns:1fr 1fr;gap:0;}
+  .root .col{display:flex;flex-direction:column;gap:5px;padding-right:24px;border-right:1px dashed #334155;}
+  .root .col:last-child{border-right:0;padding-right:0;padding-left:24px;}
+  .root .k{font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:#64748b;font-weight:600;}
+  .root .v{font-size:13.5px;color:#fff;font-weight:500;letter-spacing:.02em;word-break:break-all;}
+  .root .v .g{color:#64748b;font-weight:400;}
+  .root .v .sig{display:inline-block;padding:1px 6px;border:1px solid #10b981;color:#34d399;font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;margin-left:6px;vertical-align:middle;}
+
+  /* the blocks — horizontal chain */
+  .blocks{padding:18px 28px 22px;overflow-x:auto;}
+  .blocks .strip{display:flex;align-items:stretch;gap:0;min-width:max-content;}
+  .blocks .blk{flex:0 0 230px;background:#0a0f1c;border:1px solid #1e293b;display:flex;flex-direction:column;position:relative;}
+  .blocks .blk + .blk{margin-left:18px;}
+  .blocks .blk::before{content:"";display:none;}
+  /* arrow between blocks */
+  .blocks .blk + .blk::before{display:block;content:"";position:absolute;left:-18px;top:50%;transform:translateY(-50%);width:18px;height:1px;background:#475569;}
+  .blocks .blk + .blk::after{content:"▸";position:absolute;left:-9px;top:50%;transform:translateY(-50%);color:#475569;font-size:11px;font-family:'Geist Mono',monospace;background:var(--hash-bg);padding:0 1px;}
+
+  .blocks .blk .bt{padding:7px 11px;background:#000;border-bottom:1px solid #1e293b;display:flex;justify-content:space-between;align-items:center;}
+  .blocks .blk .bt .ord{font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:#64748b;font-weight:600;}
+  .blocks .blk .bt .ord strong{color:#fff;font-weight:600;}
+  .blocks .blk .bt .ts{font-size:9.5px;color:#94a3b8;letter-spacing:.04em;}
+  .blocks .blk .bb{padding:10px 11px;display:flex;flex-direction:column;gap:7px;flex:1;}
+  .blocks .blk .ev{font-size:11.5px;color:#fff;font-weight:500;font-family:'Geist',sans-serif;letter-spacing:-.005em;line-height:1.3;}
+  .blocks .blk .src{font-size:10px;color:#64748b;letter-spacing:.04em;}
+  .blocks .blk .hash-row{margin-top:auto;display:flex;flex-direction:column;gap:5px;padding-top:7px;border-top:1px dashed #1e293b;}
+  .blocks .blk .hash-row .hk{font-size:8.5px;letter-spacing:.14em;text-transform:uppercase;color:#475569;font-weight:600;}
+  .blocks .blk .hash-row .hv{font-size:10.5px;color:#cbd5e1;letter-spacing:.02em;word-break:break-all;line-height:1.3;}
+  .blocks .blk .hash-row .hv.this{color:#fff;font-weight:500;}
+  .blocks .blk .hash-row .hv .g{color:#475569;}
+  .blocks .blk.genesis{border-color:#334155;}
+  .blocks .blk.genesis .bt{background:#0a0f1c;}
+  .blocks .blk.head{border-color:#10b981;}
+  .blocks .blk.head .bt{background:#022c22;}
+  .blocks .blk.head .bt .ord strong{color:#34d399;}
+  .blocks .blk.gate{border-color:#92400e;border-style:dashed;}
+  .blocks .blk.gate .ev,.blocks .blk.gate .src{color:#fbbf24;}
+  .blocks .blk.gate .bt .ord strong{color:#fbbf24;}
+
+  .blocks .scrub{margin-top:14px;display:flex;justify-content:space-between;align-items:center;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#64748b;}
+  .blocks .scrub strong{color:#fff;font-weight:600;}
+
+  /* ===== Signature footer — compliance PDF feel ===== */
+  .sig-foot{background:var(--ink-950);color:#fff;padding:14px 28px;display:grid;grid-template-columns:repeat(4,1fr);gap:0;font-size:11px;}
+  .sig-foot .cell{padding-right:18px;border-right:1px solid #1e293b;}
+  .sig-foot .cell:last-child{border-right:0;padding-right:0;}
+  .sig-foot .k{font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:#64748b;font-weight:600;margin-bottom:4px;}
+  .sig-foot .v{color:#fff;font-weight:500;word-break:break-all;line-height:1.3;}
+  .sig-foot .v .g{color:#94a3b8;font-weight:400;}
+  .sig-foot .v a{color:#fff;text-decoration:underline;text-decoration-color:#475569;text-underline-offset:3px;}
+
+  .legal{background:var(--ink-0);padding:9px 28px;font-size:10px;color:var(--ink-500);display:flex;justify-content:space-between;align-items:center;gap:14px;border-bottom:1px solid var(--rule);letter-spacing:.04em;}
+  .legal strong{color:var(--ink-900);font-weight:600;letter-spacing:.06em;text-transform:uppercase;}
+
+  .page-foot{max-width:1320px;margin:0 auto;padding:14px 28px 28px;display:flex;justify-content:space-between;font-size:10px;color:var(--ink-500);letter-spacing:.04em;flex-wrap:wrap;gap:8px;}
+  .page-foot .v{color:var(--ink-900);font-weight:500;}
+
+  /* ===== Click-to-open lineage triggers (D35) ===== */
+  .lineage-open{cursor:pointer;text-decoration:underline;text-decoration-color:rgba(255,255,255,.3);text-underline-offset:3px;transition:text-decoration-color .12s ease;}
+  .lineage-open:hover{text-decoration-color:#fff;}
+  .lineage-open .arr{font-family:'Geist Mono',monospace;font-size:.82em;color:#94a3b8;margin-left:6px;letter-spacing:.04em;}
+  .doc-hd .ttl h1 .lineage-open{color:inherit;text-decoration-color:rgba(15,23,42,.25);}
+  .doc-hd .ttl h1 .lineage-open:hover{text-decoration-color:var(--ink-900);}
+  .doc-hd .ttl h1 .lineage-open .arr{color:var(--ink-500);}
+  .sig-foot .lineage-open{color:#fff;text-decoration-color:rgba(255,255,255,.3);}
+  .sig-foot .lineage-open .arr{color:#94a3b8;}
+
+  /* ===== INTEGRITY VALID stamp (D29) ===== */
+  .integrity{display:inline-grid;grid-template-columns:auto auto;gap:0;border:2px solid #10b981;background:rgba(4,120,87,.08);font-family:'Geist Mono',monospace;vertical-align:middle;}
+  .integrity .blk{padding:5px 9px;display:flex;flex-direction:column;justify-content:center;gap:1px;}
+  .integrity .blk + .blk{border-left:1px solid #10b981;}
+  .integrity .blk .k{font-size:8.5px;letter-spacing:.18em;text-transform:uppercase;color:#34d399;font-weight:600;}
+  .integrity .blk .v{font-size:11px;color:#fff;font-weight:700;letter-spacing:.06em;text-transform:uppercase;display:flex;align-items:center;gap:6px;}
+  .integrity .blk .v .tick{display:inline-grid;place-items:center;width:13px;height:13px;background:#10b981;color:#000;font-size:9px;font-weight:700;}
+  .integrity .blk.sm .v{font-size:10px;color:#cbd5e1;font-weight:500;letter-spacing:.06em;text-transform:none;}
+  .integrity .blk.sm .v .g{color:#64748b;}
+
+  /* ===== Lineage drawer (D35) ===== */
+  .lineage-mask{position:fixed;inset:0;background:rgba(0,0,0,.62);opacity:0;pointer-events:none;transition:opacity .18s ease;z-index:90;}
+  .lineage-mask.open{opacity:1;pointer-events:auto;}
+  .lineage-dw{position:fixed;top:0;right:0;bottom:0;width:min(560px,92vw);background:#000;color:#cbd5e1;border-left:1px solid #1e293b;transform:translateX(100%);transition:transform .22s ease-out;z-index:91;display:flex;flex-direction:column;font-family:'Geist Mono',monospace;font-size:12px;}
+  .lineage-dw.open{transform:translateX(0);}
+  .lineage-dw .dh{padding:12px 18px;background:#000;border-bottom:1px solid #1e293b;display:flex;justify-content:space-between;align-items:center;gap:14px;}
+  .lineage-dw .dh .ttl{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:#fff;font-weight:700;}
+  .lineage-dw .dh .sub{font-size:10px;color:#64748b;letter-spacing:.04em;margin-top:2px;}
+  .lineage-dw .dh .x{background:transparent;border:1px solid #334155;color:#fff;width:26px;height:26px;display:grid;place-items:center;cursor:pointer;font-family:inherit;font-size:14px;line-height:1;}
+  .lineage-dw .dh .x:hover{border-color:#fff;}
+
+  .lineage-dw .dseal{padding:14px 18px;border-bottom:1px solid #1e293b;background:#0a0f1c;display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;position:relative;overflow:hidden;}
+  .lineage-dw .dseal::after{content:"";position:absolute;right:-30px;top:50%;transform:translateY(-50%) rotate(-12deg);width:240px;height:62px;border:2px solid #047857;opacity:.18;pointer-events:none;}
+  .lineage-dw .dseal::before{content:"VITALCV · ISV-LOOP-177 · SEALED";position:absolute;right:-2px;top:50%;transform:translateY(-50%) rotate(-12deg);font-size:9px;letter-spacing:.32em;color:#10b981;opacity:.32;font-weight:700;pointer-events:none;text-align:center;width:240px;}
+  .lineage-dw .dseal .lhs{display:flex;flex-direction:column;gap:3px;z-index:1;position:relative;}
+  .lineage-dw .dseal .k{font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:#64748b;font-weight:600;}
+  .lineage-dw .dseal .v{font-size:12.5px;color:#fff;font-weight:600;letter-spacing:.04em;}
+  .lineage-dw .dseal .integrity{position:relative;z-index:1;}
+
+  .lineage-dw .dbody{flex:1;overflow:auto;padding:0;background:#000;}
+  .lineage-dw .dbody .sec{padding:10px 18px;border-bottom:1px solid #1e293b;display:flex;justify-content:space-between;align-items:center;font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;color:#64748b;font-weight:600;}
+  .lineage-dw .dbody .sec strong{color:#fff;font-weight:600;}
+  .lineage-dw pre.json{margin:0;padding:14px 18px;font-family:'Geist Mono',monospace;font-size:11.5px;line-height:1.65;color:#cbd5e1;white-space:pre-wrap;word-break:break-word;letter-spacing:.02em;}
+  .lineage-dw pre.json .k{color:#7dd3fc;}
+  .lineage-dw pre.json .s{color:#86efac;}
+  .lineage-dw pre.json .n{color:#fde047;}
+  .lineage-dw pre.json .b{color:#fbbf24;}
+  .lineage-dw pre.json .p{color:#64748b;}
+  .lineage-dw pre.json .h{color:#fff;font-weight:600;}
+
+  .lineage-dw .dfoot{padding:11px 18px;border-top:1px solid #1e293b;background:#000;font-size:10px;color:#64748b;letter-spacing:.04em;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;}
+  .lineage-dw .dfoot strong{color:#fff;font-weight:500;}
+  .lineage-dw .dfoot button{background:transparent;color:#fff;border:1px solid #334155;padding:6px 10px;font-family:inherit;font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;cursor:pointer;font-weight:600;}
+  .lineage-dw .dfoot button:hover{border-color:#fff;}
+
+  @media(max-width:1080px){
+    .pillars{grid-template-columns:repeat(3,1fr);}
+    .pillars .p:nth-child(3n){border-right:0;}
+    .pillars .p{border-bottom:1px solid var(--rule);}
+    .subj{grid-template-columns:1fr;}
+    .subj .l{border-right:0;border-bottom:1px solid var(--rule);}
+    .tiers{grid-template-columns:repeat(2,1fr);}
+    .tier:nth-child(2n){border-right:0;}
+    .tier{border-bottom:1px solid var(--rule);}
+    .sig-foot{grid-template-columns:1fr 1fr;gap:12px 0;}
+    .sig-foot .cell:nth-child(2n){border-right:0;}
+  }
+  @media(max-width:680px){
+    .pillars{grid-template-columns:1fr 1fr;}
+    .pillars .p:nth-child(2n){border-right:0;}
+    .lanes thead{display:none;}
+    .lanes tbody td{display:block;padding:6px 28px;border-bottom:0;}
+    .lanes tbody tr{display:block;border-bottom:1px solid var(--rule);padding:8px 0;}
+  }
+</style>
+</head>
+<body data-screen-label="03 Verifier Replay">
+
+<div class="op">
+  <div class="in">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <span style="letter-spacing:.16em;text-transform:uppercase;color:#fff;font-weight:500;">Auditor view</span>
+      <span class="sep">/</span>
+      <span>employer.vitalcv.health/replay/r-7a2c-b8d3</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:14px;">
+      <span class="pill"><span class="d"></span>Sealed</span>
+      <span class="sep">|</span>
+      <span>Build vc.2026.05.11-a</span>
+    </div>
+  </div>
+</div>
+
+<div class="doc">
+
+  <!-- ===== Document header ===== -->
+  <header class="doc-hd">
+    <div class="crumb">
+      <div class="l">
+        <span class="g">V</span>
+        <span class="nm">VitalCV</span>
+        <span class="path">/ replay / run <strong>r-7a2c-b8d3</strong> / chain <strong>isv-loop-177</strong></span>
+      </div>
+      <div class="r">
+        <span>Generated</span><span class="v">2026-05-11 14:32:08.214Z</span>
+        <span>·</span>
+        <span>Doc</span><span class="v">RPL-2026-048214</span>
+      </div>
+    </div>
+    <div class="ttl">
+      <h1>RUN_REPLAY <span class="g">·</span> <span class="lineage-open" data-lineage="run" role="button" tabindex="0">r-7a2c-b8d3<span class="g">-e91f-04a2</span><span class="arr">[↗ INSPECT]</span></span></h1>
+      <div class="seal">
+        <span>Status</span>
+        <strong>SEALED · SIGNED · IMMUTABLE</strong>
+        <span>Replayable through 2033-05-11</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ===== 6 PILLARS ===== -->
+  <section class="pillars" aria-label="Six required audit fields">
+    <div class="p">
+      <span class="ord">01</span>
+      <div class="k">checkedAt</div>
+      <div class="v big">2026-05-11<br>14:31:58.412Z</div>
+      <div class="sub">RFC 3161 timestamp · tsa.digicert</div>
+    </div>
+    <div class="p">
+      <span class="ord">02</span>
+      <div class="k">runId</div>
+      <div class="v">r-7a2c-b8d3<br><span class="g">-e91f-04a2</span></div>
+      <div class="sub">Unique per provider × snapshot</div>
+    </div>
+    <div class="p">
+      <span class="ord">03</span>
+      <div class="k">lineageKey</div>
+      <div class="v">lk-ced-mil<br>-2026-04</div>
+      <div class="sub">Stable across re-runs · joins replays</div>
+    </div>
+    <div class="p">
+      <span class="ord">04</span>
+      <div class="k">ownership</div>
+      <div class="v">subject-bound</div>
+      <div class="sub">did:key:z6Mki…MillerPA · holder-signed</div>
+    </div>
+    <div class="p">
+      <span class="ord">05</span>
+      <div class="k">tier reached</div>
+      <div class="v big">T3<span class="g"> / T4</span></div>
+      <div class="sub">2 of 3 federal · T4 on invocation</div>
+    </div>
+    <div class="p">
+      <span class="ord">06</span>
+      <div class="k">event_chain_hash</div>
+      <div class="v">sha256:9c41<br>…a2f8b3d4</div>
+      <div class="sub">5 blocks · isv-loop-177 · ed25519</div>
+    </div>
+  </section>
+
+  <!-- ===== SECTION 1: SUBJECT ===== -->
+  <div class="sh">
+    <span class="n">§1</span>
+    <h2>SUBJECT &amp; OWNERSHIP ATTESTATION</h2>
+    <span class="ey">5 fields · subject-bound · holder-signed</span>
+  </div>
+  <section class="subj">
+    <div class="l">
+      <div class="nm">Macie E. Miller, PA-C</div>
+      <div class="id">NPI <strong>1346053246</strong> · subject did:vc:8c91…0d44 · Cedar Health applicant</div>
+      <div class="row">
+        <div class="c"><div class="k">NPI type</div><div class="v">Type 1 <span class="g">· individual</span></div></div>
+        <div class="c"><div class="k">Taxonomy</div><div class="v">363A00000X <span class="g">· PA</span></div></div>
+        <div class="c"><div class="k">Enumerated</div><div class="v">2025-01-14 <span class="g">· 16 mo</span></div></div>
+      </div>
+    </div>
+    <div class="r">
+      <div class="ttl"><span>Ownership attestation</span><strong>SIGNED</strong></div>
+      <div class="stmt"><em>Macie E. Miller</em> asserted ownership of NPI&nbsp;1346053246 from an authenticated Cedar Health session and signed the bind challenge.</div>
+      <div class="att">
+        <span class="ak">asserted_at</span><span class="av">2026-05-11 09:42:18.044Z</span>
+        <span class="ak">via</span><span class="av">clinician.vitalcv.health</span>
+        <span class="ak">method</span><span class="av">WebAuthn + holder-key sig</span>
+        <span class="ak">holder_did</span><span class="av">did:key:z6Mki…MillerPA</span>
+        <span class="ak">challenge</span><span class="av">chl_01HZ8KP4Q9 · 32 bytes · nonce burnt</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== SECTION 2: TIER LADDER ===== -->
+  <div class="sh">
+    <span class="n">§2</span>
+    <h2>VERIFICATION TIER LADDER · T1 → T4</h2>
+    <span class="ey">strongest answer that returned</span>
+  </div>
+  <section class="tiers">
+    <div class="tier t1">
+      <div class="lab"><span>self-asserted</span><span class="tag">T1</span></div>
+      <div class="nm">Applicant claim</div>
+      <div class="src">cedar applicant form · 2026-04-22</div>
+      <div class="bar"><div class="fill"></div></div>
+      <div class="st"><span class="m"></span>On file</div>
+    </div>
+    <div class="tier t2">
+      <div class="lab"><span>cross-referenced</span><span class="tag">T2</span></div>
+      <div class="nm">Employer + IdP match</div>
+      <div class="src">Cedar Okta · SSO · session-bound</div>
+      <div class="bar"><div class="fill"></div></div>
+      <div class="st"><span class="m"></span>Matched</div>
+    </div>
+    <div class="tier t3">
+      <div class="lab"><span>federal source</span><span class="tag">T3</span></div>
+      <div class="nm">Primary registry confirmed</div>
+      <div class="src">NPPES · OIG/LEIE · PECOS</div>
+      <div class="bar"><div class="fill"></div></div>
+      <div class="st"><span class="m"></span>2 of 3 live</div>
+    </div>
+    <div class="tier t4">
+      <div class="lab"><span>PSV / board-direct</span><span class="tag">T4</span></div>
+      <div class="nm">State PA Board PSV</div>
+      <div class="src">CA Physician Assistant Board</div>
+      <div class="bar"><div class="fill"></div></div>
+      <div class="st"><span class="m"></span>Available on invocation</div>
+    </div>
+  </section>
+
+  <!-- ===== SECTION 3: SOURCE LANES ===== -->
+  <div class="sh">
+    <span class="n">§3</span>
+    <h2>SOURCE LANES · EVIDENCE ROWS</h2>
+    <span class="ey">5 lanes · checkedAt · tier · status · per-row hash</span>
+  </div>
+  <section class="lanes">
+    <table>
+      <thead>
+        <tr>
+          <th>Lane</th>
+          <th>checkedAt</th>
+          <th>tier</th>
+          <th>status</th>
+          <th>runId / lineageKey</th>
+          <th>row hash</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="nm">NPI identity<span class="sub">NPPES · federal registry</span></td>
+          <td>14:31:58.412Z<span class="age">10s ago · 412 ms</span></td>
+          <td>T3<span class="age">federal source</span></td>
+          <td><span class="chip"><span class="d"></span>Confirmed</span></td>
+          <td><span class="hash">r-7a2c-b8d3</span><span class="age">lk-ced-mil-2026-04</span></td>
+          <td><span class="hash">sha256:7a2c<span class="g">…b8d3</span></span></td>
+        </tr>
+        <tr>
+          <td class="nm">Sanction screen<span class="sub">OIG/LEIE</span></td>
+          <td>14:32:01.108Z<span class="age">3s ago · 280 ms</span></td>
+          <td>T3<span class="age">federal source</span></td>
+          <td><span class="chip"><span class="d"></span>No exclusions</span></td>
+          <td><span class="hash">r-7a2c-b8d3</span><span class="age">lk-ced-mil-2026-04</span></td>
+          <td><span class="hash">sha256:c041<span class="g">…6e22</span></span></td>
+        </tr>
+        <tr>
+          <td class="nm">Medicare enrollment<span class="sub">PECOS</span></td>
+          <td>14:30:14.000Z<span class="age">1m 54s ago · degraded</span></td>
+          <td>T3<span class="age">federal source</span></td>
+          <td><span class="chip amber"><span class="d"></span>Pending · finishes</span></td>
+          <td><span class="hash">r-7a2c-b8d3</span><span class="age">lk-ced-mil-2026-04</span></td>
+          <td><span class="hash">sha256:1e9f<span class="g">…0a3b</span></span></td>
+        </tr>
+        <tr>
+          <td class="nm">State PA Board (CA)<span class="sub">primary source verification</span></td>
+          <td>—<span class="age">awaiting invocation</span></td>
+          <td>T4<span class="age">board-direct PSV</span></td>
+          <td><span class="chip gate"><span class="d"></span>Gated · employer invokes</span></td>
+          <td><span class="hash">r-7a2c-b8d3</span><span class="age">lk-ced-mil-2026-04</span></td>
+          <td><span class="hash"><span class="g">—</span></span></td>
+        </tr>
+        <tr>
+          <td class="nm">Identity binding<span class="sub">VitalCV · subject session</span></td>
+          <td>09:42:18.044Z<span class="age">applicant session</span></td>
+          <td>T2<span class="age">cross-referenced</span></td>
+          <td><span class="chip"><span class="d"></span>Holder-signed</span></td>
+          <td><span class="hash">r-7a2c-b8d3</span><span class="age">lk-ced-mil-2026-04</span></td>
+          <td><span class="hash">sha256:46d2<span class="g">…f188</span></span></td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ===== SECTION 4: EVENT CHAIN — block explorer ===== -->
+  <div class="sh">
+    <span class="n">§4</span>
+    <h2>EVENT CHAIN · isv-loop-177</h2>
+    <span class="ey">5 blocks · ed25519-signed · prev_hash linked</span>
+  </div>
+
+  <section class="chain-shell">
+    <div class="ch-hd">
+      <span class="ttl">event_chain_hash · block explorer</span>
+      <div class="loop">
+        <span>loop_id</span><span class="v">isv-loop-177-r-7a2c-b8d3</span>
+        <span class="sep">·</span>
+        <span>blocks</span><span class="v">5 / 5 sealed</span>
+        <span class="sep">·</span>
+        <span>height</span><span class="v">0x05</span>
+      </div>
+    </div>
+
+    <!-- Root hash banner -->
+    <div class="root">
+      <div class="col">
+        <div class="k">event_chain_hash (root)</div>
+        <div class="v">sha256:9c41e8a2 7f3b1d6e 4a8c2b50 6f9e1d3a c4b2a87f 02195e1c <span class="g">a2f8b3d4</span></div>
+        <div style="margin-top:8px;">
+          <span class="integrity">
+            <span class="blk"><span class="k">status</span><span class="v"><span class="tick">✓</span>INTEGRITY VALID</span></span>
+            <span class="blk sm"><span class="k">verifies</span><span class="v">re-derivable <span class="g">offline</span></span></span>
+            <span class="blk sm"><span class="k">merkle</span><span class="v">depth <span class="g">3</span></span></span>
+          </span>
+        </div>
+      </div>
+      <div class="col">
+        <div class="k">signed by · did:web:vitalcv.health</div>
+        <div class="v">ed25519 · key <strong style="color:#fff;font-weight:600;">4f2a</strong> <span class="g">· sig 88c1…7e09 · in-service 190d · rotates 2026-08-14</span></div>
+      </div>
+    </div>
+
+    <!-- The blocks: prev_hash → this_hash chain -->
+    <div class="blocks">
+      <div class="strip">
+
+        <div class="blk genesis">
+          <div class="bt"><span class="ord">block <strong>#00</strong> · genesis</span><span class="ts">09:42:18Z</span></div>
+          <div class="bb">
+            <div class="ev">Applicant bound NPI</div>
+            <div class="src">subject session · WebAuthn + holder-key</div>
+            <div class="hash-row">
+              <span class="hk">prev_hash</span>
+              <span class="hv"><span class="g">0x0000…0000 · null (genesis)</span></span>
+              <span class="hk">this_hash</span>
+              <span class="hv this">46d2c711<span class="g">…f188a3</span></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="blk">
+          <div class="bt"><span class="ord">block <strong>#01</strong></span><span class="ts">14:31:58Z</span></div>
+          <div class="bb">
+            <div class="ev">NPPES returned identity</div>
+            <div class="src">federal registry · 412 ms · 200 OK</div>
+            <div class="hash-row">
+              <span class="hk">prev_hash</span>
+              <span class="hv">46d2c711<span class="g">…f188a3</span></span>
+              <span class="hk">this_hash</span>
+              <span class="hv this">7a2cb8d3<span class="g">…e91f04</span></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="blk">
+          <div class="bt"><span class="ord">block <strong>#02</strong></span><span class="ts">14:32:01Z</span></div>
+          <div class="bb">
+            <div class="ev">OIG/LEIE — no exclusions</div>
+            <div class="src">sanction screen · 280 ms · 200 OK</div>
+            <div class="hash-row">
+              <span class="hk">prev_hash</span>
+              <span class="hv">7a2cb8d3<span class="g">…e91f04</span></span>
+              <span class="hk">this_hash</span>
+              <span class="hv this">c0410e22<span class="g">…6e2271</span></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="blk gate">
+          <div class="bt"><span class="ord">block <strong>#03</strong> · degraded</span><span class="ts">14:32:04Z</span></div>
+          <div class="bb">
+            <div class="ev">PECOS lane in flight</div>
+            <div class="src">2.4× normal latency · finishes on its own</div>
+            <div class="hash-row">
+              <span class="hk">prev_hash</span>
+              <span class="hv">c0410e22<span class="g">…6e2271</span></span>
+              <span class="hk">this_hash</span>
+              <span class="hv this">1e9f0a3b<span class="g">…d77c44</span></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="blk head">
+          <div class="bt"><span class="ord">block <strong>#04</strong> · head · accepted</span><span class="ts">14:32:08Z</span></div>
+          <div class="bb">
+            <div class="ev">Employer accepted &amp; signed</div>
+            <div class="src">ae_01HZF8K9C4QM2P · jen.alvarez@cedarhealth.org</div>
+            <div class="hash-row">
+              <span class="hk">prev_hash</span>
+              <span class="hv">1e9f0a3b<span class="g">…d77c44</span></span>
+              <span class="hk">this_hash · root</span>
+              <span class="hv this">9c41e8a2<span class="g">…a2f8b3d4</span></span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+      <div class="scrub">
+        <span>scroll →</span>
+        <span><strong>5</strong> blocks · <strong>sha256</strong> + <strong>ed25519</strong> · merkle depth <strong>3</strong></span>
+        <span>height <strong>0x05</strong></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== SIGNATURE FOOTER ===== -->
+  <section class="sig-foot">
+    <div class="cell">
+      <div class="k">issuer</div>
+      <div class="v">did:web:vitalcv.health<br><span class="g">key 4f2a · ed25519 · in service 190 d</span></div>
+    </div>
+    <div class="cell">
+      <div class="k">audit event</div>
+      <div class="v"><span class="lineage-open" data-lineage="audit" role="button" tabindex="0">ae_01HZF8K9C4QM2P<span class="arr">[↗ INSPECT]</span></span><br><span class="g">recorded 14:32:08.214Z · receipt #048,214</span></div>
+    </div>
+    <div class="cell">
+      <div class="k">timestamp authority</div>
+      <div class="v">tsa.digicert.com<br><span class="g">RFC 3161 · token tst_8c41…0d44</span></div>
+    </div>
+    <div class="cell">
+      <div class="k">verification</div>
+      <div class="v"><a href="#">Verify offline →</a><br><span class="g">Re-derive root from blocks #00 – #04</span></div>
+    </div>
+  </section>
+
+  <!-- ===== Legal / scope strip ===== -->
+  <div class="legal">
+    <span><strong>Scope</strong> · This document is the canonical replay of run <span style="color:var(--ink-900);font-weight:500;">r-7a2c-b8d3</span>. Federal-source results below are mirrored from public NPPES/OIG/PECOS endpoints. No PHI is included in this payload.</span>
+    <span><strong>Retention</strong> · 7 years · <strong>Replayable</strong> · yes · <strong>Mutable</strong> · no</span>
+  </div>
+
+</div>
+
+<footer class="page-foot">
+  <div>VitalCV · /replay · <span class="v">subject-bound · signed · replayable through 2033-05-11</span></div>
+  <div style="text-align:right;">
+    <div>Document <span class="v">RPL-2026-048214</span> · Rendered <span class="v">2026-05-11 14:32:08.214Z</span></div>
+    <div style="color:var(--ink-400);margin-top:2px;">Signed · did:web:vitalcv.health · ed25519 · key 4f2a</div>
+  </div>
+</footer>
+
+<!-- ===== Lineage drawer (D35) ===== -->
+<div class="lineage-mask" id="lin-mask"></div>
+<aside class="lineage-dw" id="lin-dw" aria-hidden="true" aria-labelledby="lin-title">
+  <header class="dh">
+    <div>
+      <div class="ttl" id="lin-title">Cryptographic lineage · raw proof</div>
+      <div class="sub">isv-loop-177 · 5 blocks · ed25519-signed · re-derivable offline</div>
+    </div>
+    <button class="x" id="lin-x" aria-label="Close">×</button>
+  </header>
+  <div class="dseal">
+    <div class="lhs">
+      <div class="k">event_chain_hash · root</div>
+      <div class="v">9c41e8a2…a2f8b3d4</div>
+    </div>
+    <span class="integrity">
+      <span class="blk"><span class="k">status</span><span class="v"><span class="tick">✓</span>INTEGRITY VALID</span></span>
+      <span class="blk sm"><span class="k">sealed</span><span class="v">14:32:08.214Z</span></span>
+    </span>
+  </div>
+  <div class="dbody">
+    <div class="sec"><span>audit_event · <strong>ae_01HZF8K9C4QM2P</strong></span><span>signed_payload</span></div>
+    <pre class="json"><span class="p">{</span>
+  <span class="k">"auditEventId"</span><span class="p">:</span> <span class="h">"ae_01HZF8K9C4QM2P"</span><span class="p">,</span>
+  <span class="k">"runId"</span><span class="p">:</span> <span class="s">"r-7a2c-b8d3-e91f-04a2"</span><span class="p">,</span>
+  <span class="k">"lineageKey"</span><span class="p">:</span> <span class="s">"lk-ced-mil-2026-04"</span><span class="p">,</span>
+  <span class="k">"checkedAt"</span><span class="p">:</span> <span class="s">"2026-05-11T14:31:58.412Z"</span><span class="p">,</span>
+  <span class="k">"recordedAt"</span><span class="p">:</span> <span class="s">"2026-05-11T14:32:08.214Z"</span><span class="p">,</span>
+  <span class="k">"tierReached"</span><span class="p">:</span> <span class="s">"T3"</span><span class="p">,</span>
+  <span class="k">"ownership"</span><span class="p">: {</span>
+    <span class="k">"mode"</span><span class="p">:</span> <span class="s">"subject-bound"</span><span class="p">,</span>
+    <span class="k">"holder_did"</span><span class="p">:</span> <span class="s">"did:key:z6Mki…MillerPA"</span><span class="p">,</span>
+    <span class="k">"signed"</span><span class="p">:</span> <span class="b">true</span><span class="p">,</span>
+    <span class="k">"method"</span><span class="p">:</span> <span class="s">"webauthn+holder-key"</span><span class="p">,</span>
+    <span class="k">"challenge"</span><span class="p">:</span> <span class="s">"chl_01HZ8KP4Q9"</span>
+  <span class="p">},</span>
+  <span class="k">"subject"</span><span class="p">: {</span>
+    <span class="k">"did"</span><span class="p">:</span> <span class="s">"did:vc:8c91…0d44"</span><span class="p">,</span>
+    <span class="k">"npi"</span><span class="p">:</span> <span class="n">1346053246</span><span class="p">,</span>
+    <span class="k">"taxonomy"</span><span class="p">:</span> <span class="s">"363A00000X"</span>
+  <span class="p">},</span>
+  <span class="k">"lanes"</span><span class="p">: [</span>
+    <span class="p">{</span><span class="k">"id"</span><span class="p">:</span><span class="s">"nppes"</span><span class="p">,</span> <span class="k">"checkedAt"</span><span class="p">:</span><span class="s">"2026-05-11T14:31:58.412Z"</span><span class="p">,</span> <span class="k">"tier"</span><span class="p">:</span><span class="s">"T3"</span><span class="p">,</span> <span class="k">"status"</span><span class="p">:</span><span class="s">"confirmed"</span><span class="p">,</span> <span class="k">"latencyMs"</span><span class="p">:</span><span class="n">412</span><span class="p">,</span> <span class="k">"rowHash"</span><span class="p">:</span><span class="s">"sha256:7a2c…b8d3"</span><span class="p">},</span>
+    <span class="p">{</span><span class="k">"id"</span><span class="p">:</span><span class="s">"oig_leie"</span><span class="p">,</span> <span class="k">"checkedAt"</span><span class="p">:</span><span class="s">"2026-05-11T14:32:01.108Z"</span><span class="p">,</span> <span class="k">"tier"</span><span class="p">:</span><span class="s">"T3"</span><span class="p">,</span> <span class="k">"status"</span><span class="p">:</span><span class="s">"no_exclusions"</span><span class="p">,</span> <span class="k">"latencyMs"</span><span class="p">:</span><span class="n">280</span><span class="p">,</span> <span class="k">"rowHash"</span><span class="p">:</span><span class="s">"sha256:c041…6e22"</span><span class="p">},</span>
+    <span class="p">{</span><span class="k">"id"</span><span class="p">:</span><span class="s">"pecos"</span><span class="p">,</span> <span class="k">"checkedAt"</span><span class="p">:</span><span class="s">"2026-05-11T14:30:14.000Z"</span><span class="p">,</span> <span class="k">"tier"</span><span class="p">:</span><span class="s">"T3"</span><span class="p">,</span> <span class="k">"status"</span><span class="p">:</span><span class="s">"degraded_in_flight"</span><span class="p">,</span> <span class="k">"latencyMs"</span><span class="p">:</span><span class="n">2410</span><span class="p">,</span> <span class="k">"rowHash"</span><span class="p">:</span><span class="s">"sha256:1e9f…0a3b"</span><span class="p">},</span>
+    <span class="p">{</span><span class="k">"id"</span><span class="p">:</span><span class="s">"ca_pa_board"</span><span class="p">,</span> <span class="k">"checkedAt"</span><span class="p">:</span><span class="b">null</span><span class="p">,</span> <span class="k">"tier"</span><span class="p">:</span><span class="s">"T4"</span><span class="p">,</span> <span class="k">"status"</span><span class="p">:</span><span class="s">"gated_on_invocation"</span><span class="p">,</span> <span class="k">"rowHash"</span><span class="p">:</span><span class="b">null</span><span class="p">},</span>
+    <span class="p">{</span><span class="k">"id"</span><span class="p">:</span><span class="s">"identity_bind"</span><span class="p">,</span> <span class="k">"checkedAt"</span><span class="p">:</span><span class="s">"2026-05-11T09:42:18.044Z"</span><span class="p">,</span> <span class="k">"tier"</span><span class="p">:</span><span class="s">"T2"</span><span class="p">,</span> <span class="k">"status"</span><span class="p">:</span><span class="s">"holder_signed"</span><span class="p">,</span> <span class="k">"rowHash"</span><span class="p">:</span><span class="s">"sha256:46d2…f188"</span><span class="p">}</span>
+  <span class="p">],</span>
+  <span class="k">"chain"</span><span class="p">: {</span>
+    <span class="k">"loopId"</span><span class="p">:</span> <span class="s">"isv-loop-177-r-7a2c-b8d3"</span><span class="p">,</span>
+    <span class="k">"height"</span><span class="p">:</span> <span class="n">5</span><span class="p">,</span>
+    <span class="k">"event_chain_hash"</span><span class="p">:</span> <span class="h">"sha256:9c41e8a2…a2f8b3d4"</span><span class="p">,</span>
+    <span class="k">"merkleDepth"</span><span class="p">:</span> <span class="n">3</span><span class="p">,</span>
+    <span class="k">"sealed"</span><span class="p">:</span> <span class="b">true</span>
+  <span class="p">},</span>
+  <span class="k">"issuer"</span><span class="p">: {</span>
+    <span class="k">"did"</span><span class="p">:</span> <span class="s">"did:web:vitalcv.health"</span><span class="p">,</span>
+    <span class="k">"kid"</span><span class="p">:</span> <span class="s">"4f2a"</span><span class="p">,</span>
+    <span class="k">"alg"</span><span class="p">:</span> <span class="s">"ed25519"</span><span class="p">,</span>
+    <span class="k">"jwks"</span><span class="p">:</span> <span class="s">"https://vitalcv.health/.well-known/jwks.json"</span>
+  <span class="p">},</span>
+  <span class="k">"signature"</span><span class="p">:</span> <span class="h">"88c1f3a2b9d4e07d1c44a18b3f2e9c5106dafc9e0b7e21f44e0bca3f78c19207e09"</span>
+<span class="p">}</span></pre>
+  </div>
+  <div class="dfoot">
+    <span><strong>Re-derive root</strong> from blocks #00–#04 · <strong>verify</strong> with did:web jwks</span>
+    <button id="lin-copy">Copy JSON</button>
+  </div>
+</aside>
+
+<script>
+(function(){
+  const mask = document.getElementById('lin-mask');
+  const dw   = document.getElementById('lin-dw');
+  const close = document.getElementById('lin-x');
+  const copyBtn = document.getElementById('lin-copy');
+  const jsonEl = dw.querySelector('pre.json');
+  function open(){ mask.classList.add('open'); dw.classList.add('open'); dw.setAttribute('aria-hidden','false'); document.body.style.overflow='hidden'; }
+  function shut(){ mask.classList.remove('open'); dw.classList.remove('open'); dw.setAttribute('aria-hidden','true'); document.body.style.overflow=''; }
+  document.querySelectorAll('.lineage-open').forEach(el => {
+    el.addEventListener('click', open);
+    el.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } });
+  });
+  mask.addEventListener('click', shut);
+  close.addEventListener('click', shut);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') shut(); });
+  copyBtn.addEventListener('click', () => {
+    const text = jsonEl.innerText;
+    if (navigator.clipboard) navigator.clipboard.writeText(text);
+    copyBtn.textContent = 'Copied';
+    setTimeout(() => copyBtn.textContent = 'Copy JSON', 1400);
+  });
+})();
+</script>
+
+<script src="telemetry.js"></script>
+</body>
+</html>

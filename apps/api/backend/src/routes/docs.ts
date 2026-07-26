@@ -157,28 +157,6 @@ export const OPENAPI_SPEC = {
         responses: { '200': { description: 'KPI metrics' } },
       },
     },
-    '/api/subscriptions': {
-      post: {
-        summary: 'Create or upgrade subscription',
-        tags: ['Billing'],
-        requestBody: {
-          required: true,
-          content: {
-            'application/json': {
-              schema: {
-                type: 'object',
-                required: ['clinicianId', 'tier'],
-                properties: {
-                  clinicianId: { type: 'string' },
-                  tier: { type: 'string', enum: ['STARTER', 'GROWTH', 'ENTERPRISE'] },
-                },
-              },
-            },
-          },
-        },
-        responses: { '201': { description: 'Subscription created' } },
-      },
-    },
     '/api/feedback': {
       post: {
         summary: 'Submit user feedback or NPS score',
@@ -227,7 +205,6 @@ export const ENDPOINTS_SUMMARY = [
   { method: 'GET',  path: '/api/analytics/overview', description: 'Platform KPI overview', tags: ['Analytics'] },
   { method: 'GET',  path: '/api/analytics/credentials', description: 'Credential issuance stats by day', tags: ['Analytics'] },
   { method: 'GET',  path: '/api/analytics/network', description: 'Network growth and top issuers', tags: ['Analytics'] },
-  { method: 'POST', path: '/api/subscriptions', description: 'Create/upgrade subscription tier', tags: ['Billing'] },
   { method: 'POST', path: '/api/api-keys', description: 'Generate API key', tags: ['Billing'] },
   { method: 'GET',  path: '/api/federation/metadata', description: 'OpenID Federation entity statement', tags: ['Federation'] },
   { method: 'POST', path: '/api/feedback', description: 'Submit NPS score or feedback', tags: ['Feedback'] },

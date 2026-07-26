@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Source attribution · VitalCV</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css?v=7">
+<style>
+.attr-grid { display: grid; grid-template-columns: 240px 1fr; gap: 24px; align-items: start; }
+.attr-nav { position: sticky; top: 80px; }
+.attr-nav .grp { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-subtle); margin: 14px 4px 6px; }
+.attr-nav a { display: flex; align-items: center; justify-content: space-between; padding: 7px 10px; border-radius: var(--r-2); font-size: 13px; color: var(--ink); }
+.attr-nav a:hover { background: var(--paper-warm); }
+.attr-nav a.active { background: var(--paper-warm); box-shadow: var(--shadow-press); color: var(--ink-strong); font-weight: 500; }
+.attr-nav a .ag { font-family: var(--mono); font-size: 11px; color: var(--ink-subtle); }
+.src-block { padding-bottom: 36px; border-bottom: 1px solid var(--hairline); margin-bottom: 36px; }
+.src-block:last-child { border-bottom: 0; }
+.src-hd { display: grid; grid-template-columns: 56px 1fr auto; gap: 18px; align-items: start; margin-bottom: 18px; }
+.src-hd .logo { width: 56px; height: 56px; border-radius: var(--r-3); background: var(--paper-warm); border: 1px solid var(--hairline); display: grid; place-items: center; font: 400 26px/1 var(--serif); font-style: italic; color: var(--ink-strong); }
+.src-hd h2 { margin: 0 0 4px; }
+.src-hd .url { font-family: var(--mono); font-size: 11.5px; color: var(--ink-mute); }
+.src-meta-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--hairline); border: 1px solid var(--hairline); border-radius: var(--r-3); overflow: hidden; margin-bottom: 18px; }
+.src-meta-grid > div { background: var(--paper); padding: 12px 16px; }
+.src-meta-grid .k { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-subtle); }
+.src-meta-grid .v { font: 500 14px/1.3 var(--sans); color: var(--ink-strong); margin-top: 4px; }
+.kv-list { display: grid; grid-template-columns: 180px 1fr; gap: 8px 18px; font-size: 13.5px; line-height: 1.6; }
+.kv-list dt { font-family: var(--mono); font-size: 10.5px; color: var(--ink-subtle); letter-spacing: 0.06em; text-transform: uppercase; padding-top: 2px; }
+.kv-list dd { margin: 0; color: var(--ink); }
+
+@media (max-width: 980px) {
+  .attr-grid { grid-template-columns: 1fr; }
+  .attr-nav { position: static; }
+  .src-meta-grid { grid-template-columns: repeat(2, 1fr); }
+  .kv-list { grid-template-columns: 1fr; gap: 4px 0; }
+  .kv-list dd { margin-bottom: 10px; }
+}
+</style>
+<script>
+(function(){
+  function apply(){
+    var hide = window.innerWidth < 1180;
+    var nodes = document.getElementsByClassName('hide-narrow');
+    for (var i = 0; i < nodes.length; i++) {
+      nodes[i].style.display = hide ? 'none' : '';
+    }
+  }
+  if (document.readyState !== 'loading') apply();
+  else document.addEventListener('DOMContentLoaded', apply);
+  window.addEventListener('resize', apply);
+})();
+</script>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-in">
+    <a href="index.html" class="brand"><span class="glyph">V</span><span>VitalCV</span><span class="ver">PREVIEW</span></a>
+    <div class="nav-links">
+      <a href="index.html">Overview</a>
+      <a href="passport.html?npi=1699264564">Passport</a>
+      <a href="trust.html">Trust</a>
+      <a href="trust-attribution.html" class="active">Attribution</a>
+      <a href="status.html">Status</a>
+    </div>
+    <div class="nav-right">
+      <span class="nav-status hide-narrow"><span class="dot"></span>3 of 4 responding</span>
+      <a href="sign-in.html" class="btn">Sign in</a>
+    </div>
+  </div>
+</nav>
+
+<main class="page">
+
+  <section style="padding: 24px 0 24px;">
+    <div class="eyebrow"><a href="trust.html" style="color:var(--ink-mute)">Trust</a><span class="ln"></span><span>Source attribution · per source</span></div>
+    <h1 class="h1" style="margin-top:12px">Every source VitalCV reads — and exactly what we read from it.</h1>
+    <p class="lede" style="margin-top:10px">No source is paraphrased. Each block below lists the source, what fields we extract, how often we re-read, the freshness budget, and the public URL. If a source is institution-gated, we say so and stop.</p>
+  </section>
+
+  <section class="attr-grid">
+
+    <aside class="attr-nav">
+      <span class="grp">Public registries</span>
+      <a href="#nppes" class="active">NPPES <span class="ag">14m</span></a>
+      <a href="#abms">ABMS <span class="ag">14d</span></a>
+      <a href="#state">State boards <span class="ag">12d</span></a>
+      <span class="grp">Sanction lists</span>
+      <a href="#oig">OIG LEIE <span class="ag">14m</span></a>
+      <a href="#sam">SAM.gov <span class="ag">02h</span></a>
+      <a href="#dea">DEA <span class="ag">02:14</span></a>
+      <span class="grp">Institution-gated · we do not read</span>
+      <a href="#npdb">NPDB <span class="ag">—</span></a>
+      <a href="#mso">MSO attestations <span class="ag">—</span></a>
+    </aside>
+
+    <div>
+
+      <article id="nppes" class="src-block">
+        <div class="src-hd">
+          <span class="logo">N</span>
+          <div>
+            <h2 class="h1">NPPES · CMS public registry</h2>
+            <div class="url">npiregistry.cms.hhs.gov · NPI Registry public API · keyed by 10-digit NPI</div>
+          </div>
+          <span class="truth t-backed"><span class="st"><span class="glyph"></span>Reading</span><span class="src">read 14m ago</span></span>
+        </div>
+        <div class="src-meta-grid">
+          <div><div class="k">Type</div><div class="v">Federal public</div></div>
+          <div><div class="k">Auth</div><div class="v">None · public</div></div>
+          <div><div class="k">Refresh</div><div class="v">Every 12h · on demand</div></div>
+          <div><div class="k">Freshness budget</div><div class="v">24h</div></div>
+        </div>
+        <dl class="kv-list">
+          <dt>Fields read</dt><dd>Legal name · NPI · taxonomy code · primary &amp; secondary practice address · enumeration date · deactivation reason if present.</dd>
+          <dt>Not read</dt><dd>Anything not present in the public NPPES record. We do not infer.</dd>
+          <dt>What we do</dt><dd>Compare NPPES against ABMS and self-report. Surface contradictions; never auto-merge.</dd>
+          <dt>What we never claim</dt><dd>That NPPES presence implies licensure, board certification, or fitness to practice.</dd>
+        </dl>
+      </article>
+
+      <article id="abms" class="src-block">
+        <div class="src-hd">
+          <span class="logo">A</span>
+          <div>
+            <h2 class="h1">ABMS · American Board of Medical Specialties</h2>
+            <div class="url">certificationmatters.org · ABMS Solutions partner API · keyed by NPI + name</div>
+          </div>
+          <span class="truth t-backed"><span class="st"><span class="glyph"></span>Reading</span><span class="src">read 14d ago</span></span>
+        </div>
+        <div class="src-meta-grid">
+          <div><div class="k">Type</div><div class="v">Industry registry</div></div>
+          <div><div class="k">Auth</div><div class="v">Partner key</div></div>
+          <div><div class="k">Refresh</div><div class="v">Every 30d · on demand</div></div>
+          <div><div class="k">Freshness budget</div><div class="v">60d</div></div>
+        </div>
+        <dl class="kv-list">
+          <dt>Fields read</dt><dd>Board · subspecialty · initial cert date · recert window expiration · MOC status.</dd>
+          <dt>Not read</dt><dd>Score history, examination details, or any restricted data.</dd>
+          <dt>What we do</dt><dd>Show recert date and remaining window. Surface "approaching recert" in the institution review panel.</dd>
+          <dt>What we never claim</dt><dd>That ABMS certification implies hospital privileges or current state licensure.</dd>
+        </dl>
+      </article>
+
+      <article id="state" class="src-block">
+        <div class="src-hd">
+          <span class="logo">S</span>
+          <div>
+            <h2 class="h1">State medical boards</h2>
+            <div class="url">Per-state public lookup · CA · NY · TX · IL · WA · MA — others on request</div>
+          </div>
+          <span class="truth t-pending"><span class="st"><span class="glyph"></span>Partial</span><span class="src">2 of 50 states</span></span>
+        </div>
+        <div class="src-meta-grid">
+          <div><div class="k">Type</div><div class="v">State public</div></div>
+          <div><div class="k">Auth</div><div class="v">None · public</div></div>
+          <div><div class="k">Refresh</div><div class="v">Per state policy</div></div>
+          <div><div class="k">Freshness budget</div><div class="v">30d</div></div>
+        </div>
+        <dl class="kv-list">
+          <dt>Fields read</dt><dd>License number · status · issue date · expiration · disciplinary actions where the board publishes them.</dd>
+          <dt>Not read</dt><dd>Closed cases, sealed records, or any state-specific protected content.</dd>
+          <dt>What we do</dt><dd>Currently read CA and NY directly. Other states are queued — surfaced as "Pending source" until reachable.</dd>
+          <dt>What we never claim</dt><dd>That an active state license implies fitness to practice or absence of malpractice history.</dd>
+        </dl>
+      </article>
+
+      <article id="oig" class="src-block">
+        <div class="src-hd">
+          <span class="logo">O</span>
+          <div>
+            <h2 class="h1">OIG LEIE · List of Excluded Individuals and Entities</h2>
+            <div class="url">oig.hhs.gov/exclusions · monthly database · keyed by NPI + name</div>
+          </div>
+          <span class="truth t-backed"><span class="st"><span class="glyph"></span>Reading</span><span class="src">read 14m ago</span></span>
+        </div>
+        <div class="src-meta-grid">
+          <div><div class="k">Type</div><div class="v">Federal public</div></div>
+          <div><div class="k">Auth</div><div class="v">None · public</div></div>
+          <div><div class="k">Refresh</div><div class="v">Monthly database snapshot</div></div>
+          <div><div class="k">Freshness budget</div><div class="v">30d</div></div>
+        </div>
+        <dl class="kv-list">
+          <dt>Fields read</dt><dd>Exclusion type · exclusion date · reinstatement date if any · the verbatim record.</dd>
+          <dt>Not read</dt><dd>Anything not in the published exclusion record.</dd>
+          <dt>What we do</dt><dd>Surface the literal OIG record. Empty result is itself a result and is reported as "no record returned, read on YYYY·MM·DD".</dd>
+          <dt>What we never claim</dt><dd>That absence of an OIG record clears a clinician of past conduct.</dd>
+        </dl>
+      </article>
+
+      <article id="sam" class="src-block">
+        <div class="src-hd">
+          <span class="logo">$</span>
+          <div>
+            <h2 class="h1">SAM.gov · System for Award Management</h2>
+            <div class="url">sam.gov · exclusion API · keyed by NPI + name + tax id</div>
+          </div>
+          <span class="truth t-unavail"><span class="st"><span class="glyph"></span>Unavailable</span><span class="src">503 · 02h ago</span></span>
+        </div>
+        <div class="src-meta-grid">
+          <div><div class="k">Type</div><div class="v">Federal public</div></div>
+          <div><div class="k">Auth</div><div class="v">API key</div></div>
+          <div><div class="k">Refresh</div><div class="v">On demand · circuit-broken</div></div>
+          <div><div class="k">Freshness budget</div><div class="v">14d</div></div>
+        </div>
+        <dl class="kv-list">
+          <dt>Status now</dt><dd>SAM.gov returned 503 at 09:12 UTC; VitalCV is retrying every 30 minutes. The clinician has not failed — the source is offline.</dd>
+          <dt>Fields read</dt><dd>Exclusion type, debarment dates, awarding agency, the verbatim record.</dd>
+          <dt>What we do</dt><dd>Show "Source unavailable · 02h" until a 200 returns. Never block the clinician for a source outage.</dd>
+        </dl>
+      </article>
+
+      <article id="dea" class="src-block">
+        <div class="src-hd">
+          <span class="logo">D</span>
+          <div>
+            <h2 class="h1">DEA Diversion Control</h2>
+            <div class="url">apps.deadiversion.usdoj.gov · controlled-substance registration · keyed by DEA number</div>
+          </div>
+          <span class="truth t-pending"><span class="st"><span class="glyph"></span>Pending source</span><span class="src">retry 02:14</span></span>
+        </div>
+        <div class="src-meta-grid">
+          <div><div class="k">Type</div><div class="v">Federal public</div></div>
+          <div><div class="k">Auth</div><div class="v">None · public</div></div>
+          <div><div class="k">Refresh</div><div class="v">Every 30d</div></div>
+          <div><div class="k">Freshness budget</div><div class="v">60d</div></div>
+        </div>
+        <dl class="kv-list">
+          <dt>Fields read</dt><dd>DEA registration number · schedule authority · expiration · suspension status.</dd>
+          <dt>Status now</dt><dd>Queued for read after clinician self-reports a DEA number. VitalCV does not search for DEA numbers without the clinician's claim.</dd>
+        </dl>
+      </article>
+
+      <article id="npdb" class="src-block" style="background: var(--accent-wash); border: 1px solid color-mix(in oklch, var(--accent) 18%, var(--hairline)); border-radius: var(--r-4); padding: 22px; margin-bottom: 36px;">
+        <div class="src-hd">
+          <span class="logo" style="background:var(--paper); color:var(--accent)">!</span>
+          <div>
+            <h2 class="h1" style="color:var(--accent-ink)">NPDB · National Practitioner Data Bank</h2>
+            <div class="url">npdb.hrsa.gov · institution-gated · we do not read this on a clinician's behalf</div>
+          </div>
+          <span class="truth t-review"><span class="st"><span class="glyph"></span>Institution-only</span><span class="src">out of scope</span></span>
+        </div>
+        <p style="margin: 0; color: var(--ink); font-size: 14px; line-height: 1.6"><strong>VitalCV does not read NPDB.</strong> The Healthcare Quality Improvement Act restricts who may query the data bank. The institution itself must perform this read directly. VitalCV surfaces "Institution must read" on every passport — never an empty checkmark.</p>
+      </article>
+
+      <article id="mso" class="src-block">
+        <div class="src-hd">
+          <span class="logo">M</span>
+          <div>
+            <h2 class="h1">MSO attestations · Hospital medical staff offices</h2>
+            <div class="url">Per-institution · not a public registry · institution-gated</div>
+          </div>
+          <span class="truth t-review"><span class="st"><span class="glyph"></span>Institution-only</span><span class="src">attestation</span></span>
+        </div>
+        <p class="muted" style="font-size: 14px; line-height: 1.6">VitalCV accepts an institution's signed attestation as a source, when the institution chooses to attest. We never paraphrase the attestation, and we never solicit one without the clinician's explicit consent.</p>
+      </article>
+
+    </div>
+  </section>
+
+</main>
+
+<footer class="footer">
+  <div class="footer-bottom">
+    <span class="truth-row"><span class="dot"></span>Attribution register · 8 sources documented · D57</span>
+    <span class="sp"></span>
+    <span>VitalCV does not credential clinicians. Institutions retain full authority.</span>
+  </div>
+</footer>
+
+
+<script>
+(function(){
+  function syncResponsive(){
+    var w = window.innerWidth;
+    document.querySelectorAll('.nav-status').forEach(function(el){
+      el.classList.toggle('no-on-narrow', w < 1180);
+    });
+    document.querySelectorAll('.nav-right .muted').forEach(function(el){
+      el.classList.toggle('no-on-narrow', w < 1180);
+    });
+  }
+  syncResponsive();
+  window.addEventListener('resize', syncResponsive);
+})();
+</script>
+</body>
+</html>

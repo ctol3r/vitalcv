@@ -34,7 +34,10 @@ import { setRevoked } from '../services/ledger/statusListManager';
 import { propagateCredentialLifecycleChange } from '../services/revocation/propagationEngine';
 import { emitMonitoringAlert, type MonitoringAlertKind } from '../services/alerts/trustAlerts';
 import { checkExclusion, type ExclusionResult } from '../services/psv/oigLeieChecker';
-import { getNotificationProvider } from '../services/providers/notificationProvider';
+import {
+  getNotificationProvider,
+  isEmailDeliveryConfigured,
+} from '../services/providers/notificationProvider';
 import { computeTrustState } from '../services/trust-state/trustStateService';
 import { getBindingByNpi } from '../services/identity/npiDidBinding';
 import { sha256ForPayload } from '../utils/deterministic';
@@ -118,6 +121,40 @@ async function writeMonitoringAuditEvent(input: {
 
 // ── Alert + notification dispatch ──────────────────────────────────────────
 
+const EMPLOYER_ID_UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Resolve the employers that accepted this clinician to real contact emails.
+ * Acceptance.employerId is a plain string; only UUID-shaped ids can be
+ * VerifierOrg rows, and only rows that resolve get an email. Anything that
+ * does not resolve is skipped (never invent a recipient).
+ */
+async function resolveEmployerAlertEmails(npi: string): Promise<string[]> {
+  const acceptances = await prisma.acceptance.findMany({
+    where: { subjectId: npi },
+    select: { employerId: true },
+  });
+
+  const uniqueEmployerIds = [...new Set(acceptances.map((a) => a.employerId))].filter((id) =>
+    EMPLOYER_ID_UUID_RE.test(id),
+  );
+  if (uniqueEmployerIds.length === 0) return [];
+
+  const orgs = await prisma.verifierOrg.findMany({
+    where: { id: { in: uniqueEmployerIds } },
+    select: { contactEmail: true },
+  });
+
+  return [
+    ...new Set(
+      orgs
+        .map((org) => org.contactEmail.trim())
+        .filter((email) => email.includes('@')),
+    ),
+  ];
+}
+
 async function dispatchMonitoringAlert(input: {
   kind: MonitoringAlertKind;
   npi: string;
@@ -129,27 +166,66 @@ async function dispatchMonitoringAlert(input: {
   // Emit in-app alert (persisted + cached)
   await emitMonitoringAlert(input);
 
-  // Dispatch email/notification to stakeholders
-  const provider = getNotificationProvider();
-  try {
-    // Notify affected employers
-    const acceptances = await prisma.acceptance.findMany({
-      where: { subjectId: input.npi },
-      select: { employerId: true },
-    });
+  const maskedNpi = `${input.npi.slice(0, 4)}****`;
 
-    const uniqueEmployerIds = [...new Set(acceptances.map((a) => a.employerId))];
-    for (const employerId of uniqueEmployerIds) {
-      await provider.send(
-        `employer:${employerId}`,
-        `[VitalCV Alert] ${input.title}`,
-        `${input.description}\n\nRecommended action: ${input.recommendedAction}`,
-      );
+  try {
+    const employerEmails = await resolveEmployerAlertEmails(input.npi);
+    const opsInbox = process.env.MONITORING_ALERT_EMAIL?.trim();
+    const recipients = [
+      ...new Set([...(opsInbox && opsInbox.includes('@') ? [opsInbox] : []), ...employerEmails]),
+    ];
+
+    if (recipients.length === 0) {
+      log('warn', 'monitoring_alert_no_deliverable_recipients', {
+        kind: input.kind,
+        npi: maskedNpi,
+        opsInboxConfigured: Boolean(opsInbox),
+      });
+      return;
     }
+
+    if (!isEmailDeliveryConfigured()) {
+      // Stub provider only logs; make the delivery gap explicit rather than
+      // letting the alert look sent.
+      log('warn', 'monitoring_alert_delivery_unconfigured', {
+        kind: input.kind,
+        npi: maskedNpi,
+        recipientCount: recipients.length,
+      });
+    }
+
+    const provider = getNotificationProvider();
+    const subject = `[VitalCV Alert] ${input.title}`;
+    const body = `${input.description}\n\nRecommended action: ${input.recommendedAction}`;
+
+    let delivered = 0;
+    let failed = 0;
+    for (const to of recipients) {
+      try {
+        await provider.send(to, subject, body);
+        delivered += 1;
+      } catch (err) {
+        failed += 1;
+        log('warn', 'monitoring_alert_send_failed', {
+          kind: input.kind,
+          npi: maskedNpi,
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
+    }
+
+    log('info', 'monitoring_alert_dispatch_summary', {
+      kind: input.kind,
+      npi: maskedNpi,
+      recipientCount: recipients.length,
+      delivered,
+      failed,
+      emailDeliveryConfigured: isEmailDeliveryConfigured(),
+    });
   } catch (err) {
     log('warn', 'monitoring_notification_dispatch_error', {
       kind: input.kind,
-      npi: `${input.npi.slice(0, 4)}****`,
+      npi: maskedNpi,
       error: err instanceof Error ? err.message : String(err),
     });
   }
@@ -747,4 +823,6 @@ export const _testing = {
   runOigLeieSweep,
   handleAdverseAction,
   recomputeCrsForNpi,
+  resolveEmployerAlertEmails,
+  dispatchMonitoringAlert,
 };

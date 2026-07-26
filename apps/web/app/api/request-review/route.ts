@@ -30,6 +30,7 @@ import {
 export const runtime = 'nodejs';
 
 import { BACKEND_URL as B } from '@/lib/backend-url';
+import { buildIdentityHeaders } from '@/lib/auth/forwardIdentity';
 
 const NPI_RE = /^\d{10}$/;
 
@@ -103,7 +104,7 @@ export async function POST(req: NextRequest) {
   // Create organization context
   const orgHeaders = new Headers({
     'Content-Type': 'application/json',
-    'x-clerk-user-id': userId,
+    ...(await buildIdentityHeaders({ userId })),
     'x-org-id': activeOrg.organizationId,
   });
   if (email) {

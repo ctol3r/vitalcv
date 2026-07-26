@@ -5,7 +5,7 @@
 import type { ProviderType } from "../types/psv";
 import type { PsvAdapter, NormalizedCredentialPayload } from "./types";
 
-const NPPES_ENDPOINT =
+export const NPPES_ENDPOINT =
   "https://npiregistry.cms.hhs.gov/api/?version=2.1&number=";
 
 // ── Taxonomy → ProviderType mapping ─────────────────────────

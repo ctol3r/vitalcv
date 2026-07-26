@@ -1,0 +1,928 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>VitalCV · Employer Pipeline · ROI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --ink-0:#fff;--ink-50:#f8fafc;--ink-100:#f1f5f9;--ink-200:#e2e8f0;--ink-300:#cbd5e1;
+    --ink-400:#94a3b8;--ink-500:#64748b;--ink-600:#475569;--ink-700:#334155;
+    --ink-800:#1e293b;--ink-900:#0f172a;--ink-950:#020617;
+    --rule:#e2e8f0;
+    --amber:#92400e;
+    --paper:#f8f6f1;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--ink-50);color:var(--ink-900);font-family:'Geist',ui-sans-serif,system-ui,sans-serif;font-feature-settings:'ss01','cv11';-webkit-font-smoothing:antialiased;font-size:13px;line-height:1.45;}
+  code,.mono,time{font-family:'Geist Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-feature-settings:'zero','tnum';}
+
+  /* Op bar — operator strip */
+  .op{background:var(--ink-950);color:var(--ink-300);font-family:'Geist Mono',monospace;font-size:11px;}
+  .op .in{max-width:1380px;margin:0 auto;padding:0 32px;height:30px;display:flex;align-items:center;justify-content:space-between;gap:12px;}
+  .op .pill{display:inline-flex;align-items:center;gap:6px;padding:2px 7px;border:1px solid var(--ink-700);text-transform:uppercase;letter-spacing:.12em;font-size:10px;}
+  .op .pill .d{width:6px;height:6px;background:#10b981;border-radius:50%;}
+  .op .sep{color:var(--ink-600);}
+
+  /* Demo Mode strip — sits under op bar, subtle pulse, monochrome */
+  .demo-strip{background:var(--ink-0);border-bottom:1px solid var(--rule);font-family:'Geist Mono',monospace;font-size:10.5px;color:var(--ink-600);}
+  .demo-strip .in{max-width:1380px;margin:0 auto;padding:7px 32px;display:flex;justify-content:space-between;align-items:center;gap:12px;}
+  .demo-strip .lhs{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  .demo-strip .tag{display:inline-flex;align-items:center;gap:6px;padding:1px 7px;border:1px solid var(--ink-900);color:var(--ink-900);text-transform:uppercase;letter-spacing:.14em;font-size:9.5px;font-weight:600;}
+  .demo-strip .tag .d{width:5px;height:5px;background:var(--ink-900);display:inline-block;animation:demo-pulse 2.4s ease-in-out infinite;}
+  @keyframes demo-pulse{0%,100%{opacity:.35;}50%{opacity:1;}}
+  .demo-strip .lhs em{font-style:normal;color:var(--ink-900);font-weight:500;}
+  .demo-strip .rhs{color:var(--ink-500);text-transform:uppercase;letter-spacing:.12em;font-size:9.5px;}
+  .demo-strip .rhs a{color:var(--ink-900);text-decoration:underline;text-decoration-color:var(--ink-300);text-underline-offset:3px;}
+
+  /* Mobile-stacked clinician cards (replace table on small viewports) */
+  .pipe-cards{display:none;}
+  .pipe-card{background:var(--ink-0);border:1px solid var(--rule);padding:14px 16px;display:flex;flex-direction:column;gap:10px;}
+  .pipe-card + .pipe-card{border-top:0;}
+  .pipe-card .hd{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;}
+  .pipe-card .hd .nm{font-size:15px;font-weight:600;letter-spacing:-.012em;color:var(--ink-900);line-height:1.2;}
+  .pipe-card .hd .nm .sub{display:block;font-family:'Geist Mono',monospace;font-size:10.5px;color:var(--ink-500);font-weight:400;margin-top:2px;letter-spacing:.04em;}
+  .pipe-card .hero{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid var(--rule);}
+  .pipe-card .hero .cell{padding:9px 12px;border-right:1px solid var(--rule);}
+  .pipe-card .hero .cell:last-child{border-right:0;}
+  .pipe-card .hero .k{font-family:'Geist Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.14em;color:var(--ink-500);margin-bottom:3px;}
+  .pipe-card .hero .v{font-family:'Geist Mono',monospace;font-size:18px;color:var(--ink-900);font-weight:500;letter-spacing:-.01em;font-variant-numeric:tabular-nums;}
+  .pipe-card .hero .v .u{font-size:11px;color:var(--ink-500);margin-left:4px;letter-spacing:0;}
+  .pipe-card details.more{font-family:'Geist Mono',monospace;font-size:10.5px;color:var(--ink-500);}
+  .pipe-card details.more summary{cursor:pointer;list-style:none;text-transform:uppercase;letter-spacing:.14em;color:var(--ink-700);padding:6px 0;border-top:1px dashed var(--ink-200);display:flex;justify-content:space-between;align-items:center;}
+  .pipe-card details.more summary::-webkit-details-marker{display:none;}
+  .pipe-card details.more summary::after{content:"+";font-size:14px;color:var(--ink-500);}
+  .pipe-card details.more[open] summary::after{content:"−";}
+  .pipe-card details.more .body{padding:6px 0 2px;display:grid;grid-template-columns:auto 1fr;gap:5px 14px;}
+  .pipe-card details.more .body .k{color:var(--ink-500);}
+  .pipe-card details.more .body .v{color:var(--ink-900);text-align:right;font-size:11px;}
+
+  /* Bottom-anchored mobile CTA — thumb-friendly */
+  .mobile-cta{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--ink-0);border-top:1px solid var(--ink-900);padding:10px 16px calc(10px + env(safe-area-inset-bottom,0));gap:8px;z-index:50;}
+  .mobile-cta a{flex:1;min-height:48px;padding:0 14px;font-family:'Geist',sans-serif;font-weight:500;font-size:13.5px;letter-spacing:-.005em;display:flex;align-items:center;justify-content:center;text-decoration:none;}
+  .mobile-cta .primary{background:var(--ink-900);color:#fff;flex:2;}
+  .mobile-cta .secondary{background:var(--ink-0);color:var(--ink-900);border:1px solid var(--ink-300);}
+
+  /* ROI footnote */
+  .footnote{padding:11px 18px;border-top:1px dashed var(--ink-200);font-family:'Geist Mono',monospace;font-size:10.5px;color:var(--ink-500);line-height:1.5;background:var(--ink-50);}
+  .footnote strong{color:var(--ink-900);font-weight:500;}
+
+  /* Masthead — terminal-leaning, dense */
+  header.mh{background:var(--ink-0);border-bottom:1px solid var(--rule);}
+  .mh .in{max-width:1380px;margin:0 auto;padding:20px 32px;}
+  .brand{display:flex;align-items:center;gap:11px;margin-bottom:12px;}
+  .brand .g{width:22px;height:22px;background:var(--ink-900);color:#fff;display:grid;place-items:center;font-family:'Geist Mono',monospace;font-size:11px;font-weight:600;}
+  .brand .nm{font-weight:600;letter-spacing:-.01em;font-size:15px;}
+  .brand .nm .sl{color:var(--ink-400);font-weight:400;}
+  .brand .nm .sub{color:var(--ink-500);font-weight:400;}
+  .eyebrow{font-family:'Geist Mono',monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-500);display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+  .eyebrow .r{display:inline-block;width:22px;height:1px;background:var(--ink-300);}
+  h1{font-size:24px;line-height:1.18;letter-spacing:-.02em;font-weight:600;margin:0;max-width:48ch;}
+  h1 .muted{color:var(--ink-500);font-weight:500;}
+  .meta-h{display:flex;gap:0;margin-top:14px;flex-wrap:wrap;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);}
+  .meta-h .c{padding:9px 16px 9px 0;border-right:1px solid var(--rule);margin-right:16px;font-family:'Geist Mono',monospace;font-size:10.5px;color:var(--ink-500);text-transform:uppercase;letter-spacing:.14em;display:flex;flex-direction:column;gap:1px;}
+  .meta-h .c:last-child{border-right:0;margin-right:0;}
+  .meta-h .c strong{color:var(--ink-900);font-weight:500;font-size:12px;letter-spacing:.06em;text-transform:none;}
+  .meta-h .c.up strong{color:var(--ink-900);}
+  .meta-h .c.dn strong{color:var(--amber);}
+
+  main{max-width:1380px;margin:0 auto;padding:24px 32px 56px;display:flex;flex-direction:column;gap:24px;}
+
+  /* === Section header === */
+  .sh{display:flex;align-items:baseline;gap:14px;border-bottom:1px solid var(--ink-900);padding-bottom:7px;margin-bottom:14px;}
+  .sh .n{font-family:'Geist Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-300);font-weight:600;}
+  .sh h2{font-size:16px;margin:0;font-weight:600;letter-spacing:-.012em;color:var(--ink-900);}
+  .sh .ey{font-family:'Geist Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.14em;color:var(--ink-500);margin-left:auto;}
+
+  /* === FRICTION DROP visual: 103 → 36 === */
+  .friction{background:var(--ink-0);border:1px solid var(--rule);padding:0;}
+  .friction .lede{display:grid;grid-template-columns:auto 1fr;gap:24px;padding:18px 22px;border-bottom:1px solid var(--rule);align-items:end;}
+  .friction .lede .big{font-family:'Geist Mono',monospace;font-size:44px;line-height:.95;letter-spacing:-.04em;color:var(--ink-900);font-weight:500;font-variant-numeric:tabular-nums;}
+  .friction .lede .big .delta{display:block;font-size:13px;letter-spacing:.04em;color:var(--ink-500);margin-top:6px;font-weight:400;}
+  .friction .lede .big .delta strong{color:var(--ink-900);font-weight:500;}
+  .friction .lede .copy{font-size:13.5px;color:var(--ink-700);line-height:1.55;max-width:62ch;}
+  .friction .lede .copy strong{color:var(--ink-900);font-weight:500;}
+
+  .gantt{padding:16px 22px 18px;display:flex;flex-direction:column;gap:14px;}
+  .gantt .row{display:grid;grid-template-columns:160px 1fr 110px;gap:14px;align-items:center;}
+  .gantt .row .lbl{font-family:'Geist Mono',monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:.14em;color:var(--ink-700);}
+  .gantt .row .lbl strong{color:var(--ink-900);font-weight:600;display:block;letter-spacing:.06em;text-transform:none;font-family:'Geist',sans-serif;font-size:13px;margin-bottom:1px;}
+  .gantt .row .lbl .sub{font-size:10px;color:var(--ink-500);letter-spacing:.12em;}
+  .gantt .row .bar{height:22px;background:var(--ink-100);position:relative;}
+  .gantt .row .bar .fill{position:absolute;left:0;top:0;bottom:0;background:repeating-linear-gradient(135deg,var(--ink-900) 0 2px,var(--ink-800) 2px 4px);}
+  .gantt .row.cbp .bar .fill{background:var(--ink-900);}
+  .gantt .row .bar .lbl-inside{position:absolute;top:50%;transform:translateY(-50%);right:8px;font-family:'Geist Mono',monospace;font-size:10.5px;color:#fff;font-weight:500;letter-spacing:.05em;}
+  .gantt .row .days{font-family:'Geist Mono',monospace;font-size:14.5px;color:var(--ink-900);font-weight:500;letter-spacing:-.01em;text-align:right;}
+  .gantt .row .days .u{font-size:10.5px;color:var(--ink-500);text-transform:uppercase;letter-spacing:.12em;margin-left:4px;font-weight:400;}
+
+  /* Axis under the gantt */
+  .axis{padding:0 22px 14px;}
+  .axis .ticks{display:grid;grid-template-columns:160px 1fr 110px;gap:14px;}
+  .axis .ticks .scale{position:relative;height:18px;border-top:1px solid var(--rule);}
+  .axis .ticks .scale .t{position:absolute;top:0;font-family:'Geist Mono',monospace;font-size:9.5px;color:var(--ink-500);letter-spacing:.12em;padding-top:4px;text-transform:uppercase;}
+  .axis .ticks .scale .t::before{content:"";position:absolute;left:0;top:0;width:1px;height:5px;background:var(--ink-300);}
+
+  /* Stage breakdown rows */
+  .stages{padding:0 22px 18px;}
+  .stages .row{display:grid;grid-template-columns:160px 1fr 110px;gap:14px;align-items:start;padding:9px 0;border-top:1px dashed var(--ink-200);font-family:'Geist Mono',monospace;font-size:10.5px;color:var(--ink-600);}
+  .stages .row:last-child{}
+  .stages .row .stage{color:var(--ink-900);font-weight:500;text-transform:uppercase;letter-spacing:.12em;font-size:10px;}
+  .stages .row .bars{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:center;}
+  .stages .row .b{height:6px;background:var(--ink-100);position:relative;}
+  .stages .row .b .f{position:absolute;inset:0 auto 0 0;background:var(--ink-800);}
+  .stages .row .b.cbp .f{background:var(--ink-900);}
+  .stages .row .b .v{position:absolute;right:6px;top:-13px;font-size:9.5px;color:var(--ink-500);}
+  .stages .row .delta{font-family:'Geist Mono',monospace;font-size:11px;color:var(--ink-900);text-align:right;font-weight:500;letter-spacing:-.005em;}
+  .stages .row .delta .arr{color:var(--ink-500);font-weight:400;}
+
+  /* === ROI quiet math === */
+  .roi{background:var(--ink-0);border:1px solid var(--rule);}
+  .roi .top{padding:10px 16px;border-bottom:1px solid var(--rule);background:var(--ink-50);display:flex;justify-content:space-between;align-items:center;}
+  .roi .top .ttl{font-family:'Geist Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-700);font-weight:600;}
+  .roi .top .src{font-family:'Geist Mono',monospace;font-size:10px;color:var(--ink-500);text-transform:uppercase;letter-spacing:.12em;}
+  .roi .grid{display:grid;grid-template-columns:1.2fr 1fr 1fr 1fr;}
+  .roi .grid .cell{padding:16px 18px;border-right:1px solid var(--rule);}
+  .roi .grid .cell:last-child{border-right:0;}
+  .roi .grid .k{font-family:'Geist Mono',monospace;font-size:9.5px;text-transform:uppercase;letter-spacing:.14em;color:var(--ink-500);margin-bottom:6px;}
+  .roi .grid .v{font-family:'Geist Mono',monospace;font-size:22px;color:var(--ink-900);font-weight:500;letter-spacing:-.01em;line-height:1;font-variant-numeric:tabular-nums;}
+  .roi .grid .v .small{font-size:13px;color:var(--ink-500);font-weight:400;letter-spacing:0;}
+  .roi .grid .v .pn{display:block;font-size:11px;color:var(--ink-500);font-family:'Geist',sans-serif;letter-spacing:0;text-transform:none;margin-top:6px;line-height:1.4;font-weight:400;}
+  .roi .formula{padding:11px 18px;border-top:1px solid var(--rule);background:var(--ink-50);font-family:'Geist Mono',monospace;font-size:10.5px;color:var(--ink-600);display:flex;justify-content:space-between;flex-wrap:wrap;gap:14px;}
+  .roi .formula strong{color:var(--ink-900);font-weight:500;}
+  .roi .formula .eq{color:var(--ink-900);}
+
+  /* === Pipeline table === */
+  .pipe{background:var(--ink-0);border:1px solid var(--rule);}
+  .pipe .top{padding:10px 16px;border-bottom:1px solid var(--rule);background:var(--ink-50);display:flex;justify-content:space-between;align-items:center;}
+  .pipe .top .ttl{font-family:'Geist Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-700);font-weight:600;}
+  .pipe .top .sub{font-family:'Geist Mono',monospace;font-size:10px;color:var(--ink-500);text-transform:uppercase;letter-spacing:.12em;}
+  .pipe table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums;}
+  .pipe thead th{font-family:'Geist Mono',monospace;font-size:9.5px;text-transform:uppercase;letter-spacing:.14em;color:var(--ink-500);font-weight:500;text-align:left;padding:9px 14px;border-bottom:1px solid var(--ink-900);background:var(--ink-0);}
+  .pipe thead th.r{text-align:right;}
+  .pipe tbody td{padding:10px 14px;border-bottom:1px solid var(--rule);font-size:12px;color:var(--ink-700);vertical-align:middle;}
+  .pipe tbody tr:last-child td{border-bottom:0;}
+  .pipe tbody td.nm{color:var(--ink-900);font-weight:500;letter-spacing:-.005em;}
+  .pipe tbody td.nm .sub{display:block;font-family:'Geist Mono',monospace;font-size:10px;color:var(--ink-500);font-weight:400;margin-top:1px;letter-spacing:.04em;}
+  .pipe tbody td.mono{font-family:'Geist Mono',monospace;font-size:11.5px;color:var(--ink-900);}
+  .pipe tbody td.mono.g{color:var(--ink-500);}
+  .pipe tbody td.r{text-align:right;}
+  .pipe tbody td.delta-up{color:var(--ink-900);font-family:'Geist Mono',monospace;font-size:11.5px;font-weight:500;}
+  .pipe tbody td.delta-dn{color:var(--amber);font-family:'Geist Mono',monospace;font-size:11.5px;font-weight:500;}
+  .pipe tbody tr.persona-rural{background:var(--paper);}
+  .pipe tbody tr.persona-subspecialty{background:#fffaf0;}
+
+  .badge{display:inline-flex;align-items:center;gap:5px;padding:1px 6px;border:1px solid var(--ink-300);font-family:'Geist Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.12em;color:var(--ink-700);font-weight:500;background:var(--ink-0);white-space:nowrap;}
+  .badge.cbp{border-color:var(--ink-900);color:var(--ink-900);}
+  .badge.cbp .m{width:4px;height:4px;background:var(--ink-900);display:inline-block;}
+  .badge.trad{color:var(--ink-500);}
+  .badge.trad .m{width:4px;height:4px;background:var(--ink-300);display:inline-block;}
+
+  /* === Persona tiles === */
+  .personas{display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px;}
+  .persona{background:var(--ink-0);border:1px solid var(--rule);display:flex;flex-direction:column;}
+  .persona.high{border-color:var(--ink-900);}
+  .persona .hd{padding:10px 14px;border-bottom:1px solid var(--rule);background:var(--ink-50);display:flex;justify-content:space-between;align-items:center;}
+  .persona.high .hd{background:var(--ink-900);color:#fff;border-bottom-color:var(--ink-900);}
+  .persona.high .hd .ttl{color:#fff;}
+  .persona.high .hd .pri{color:#fff;border-color:rgba(255,255,255,.3);}
+  .persona .hd .ttl{font-family:'Geist Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-700);font-weight:600;}
+  .persona .hd .pri{font-family:'Geist Mono',monospace;font-size:9.5px;text-transform:uppercase;letter-spacing:.14em;color:var(--ink-500);border:1px solid var(--ink-300);padding:1px 6px;}
+  .persona .body{padding:14px 16px 16px;flex:1;display:flex;flex-direction:column;gap:10px;}
+  .persona .nm{font-size:15.5px;font-weight:600;letter-spacing:-.012em;color:var(--ink-900);}
+  .persona .pain{font-size:12.5px;color:var(--ink-700);line-height:1.5;}
+  .persona .pain strong{color:var(--ink-900);font-weight:600;}
+  .persona .stats{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid var(--rule);margin-top:auto;}
+  .persona .stats .cell{padding:9px 11px;border-right:1px solid var(--rule);font-family:'Geist Mono',monospace;}
+  .persona .stats .cell:last-child{border-right:0;}
+  .persona .stats .k{font-size:9px;text-transform:uppercase;letter-spacing:.14em;color:var(--ink-500);margin-bottom:3px;}
+  .persona .stats .v{font-size:14px;color:var(--ink-900);font-weight:500;letter-spacing:-.005em;}
+  .persona .stats .v .sm{font-size:10px;color:var(--ink-500);font-weight:400;letter-spacing:0;}
+
+  /* === Reserved enterprise scaffolding === */
+  .reserved{background:var(--ink-0);border:1px solid var(--rule);}
+  .reserved .head{padding:11px 18px;border-bottom:1px solid var(--rule);background:var(--ink-50);display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;}
+  .reserved .head .lhs{display:flex;gap:14px;align-items:baseline;flex-wrap:wrap;}
+  .reserved .head .ttl{font-family:'Geist Mono',monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:.18em;color:var(--ink-900);font-weight:600;display:flex;align-items:center;gap:8px;}
+  .reserved .head .ttl::before{content:"";width:6px;height:6px;background:var(--ink-900);display:inline-block;}
+  .reserved .head .sub{font-family:'Geist Mono',monospace;font-size:10.5px;color:var(--ink-500);letter-spacing:.04em;}
+  .reserved .head .count{font-family:'Geist Mono',monospace;font-size:10px;color:var(--ink-500);text-transform:uppercase;letter-spacing:.14em;}
+  .reserved .head .count strong{color:var(--ink-900);font-weight:600;}
+  .reserved .slots{display:grid;grid-template-columns:repeat(6,1fr);}
+  .reserved .slot{padding:14px 14px;border-right:1px solid var(--rule);border-bottom:1px solid var(--rule);min-height:104px;display:flex;flex-direction:column;justify-content:space-between;background:repeating-linear-gradient(135deg,transparent 0 6px,#f8fafc 6px 7px);}
+  .reserved .slot:nth-child(6n){border-right:0;}
+  .reserved .slot .ord{font-family:'Geist Mono',monospace;font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-400);font-weight:600;}
+  .reserved .slot .glyph{margin:6px 0;height:22px;display:flex;align-items:center;}
+  .reserved .slot .glyph .bar{height:8px;width:62%;background:var(--ink-200);position:relative;}
+  .reserved .slot .glyph .bar::after{content:"";position:absolute;left:0;top:0;width:18px;height:8px;background:var(--ink-300);}
+  .reserved .slot .glyph .bar.short{width:36%;}
+  .reserved .slot .label{font-family:'Geist Mono',monospace;font-size:9.5px;text-transform:uppercase;letter-spacing:.14em;color:var(--ink-700);font-weight:600;}
+  .reserved .slot .kind{font-family:'Geist Mono',monospace;font-size:10px;color:var(--ink-500);margin-top:2px;letter-spacing:.04em;line-height:1.4;}
+  .reserved .metrics{display:grid;grid-template-columns:repeat(3,1fr);}
+  .reserved .m{padding:14px 18px;border-right:1px solid var(--rule);}
+  .reserved .m:last-child{border-right:0;}
+  .reserved .m .k{font-family:'Geist Mono',monospace;font-size:9.5px;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-500);font-weight:600;margin-bottom:5px;}
+  .reserved .m .v{font-family:'Geist Mono',monospace;font-size:26px;font-weight:500;color:var(--ink-300);letter-spacing:-.02em;line-height:1;font-variant-numeric:tabular-nums;}
+  .reserved .m .u{display:block;margin-top:5px;font-family:'Geist Mono',monospace;font-size:10px;color:var(--ink-500);letter-spacing:.04em;line-height:1.4;}
+  .reserved .m .u strong{color:var(--ink-900);font-weight:500;}
+
+  /* === Quarantine row treatment (D30) === */
+  tr.quarantine td{background:repeating-linear-gradient(135deg,#fefcfa 0 7px,#fdf2f2 7px 8px) !important;}
+  tr.quarantine td.nm{color:var(--ink-900) !important;}
+  tr.quarantine td.nm .sub{color:#991b1b !important;}
+  .badge.revoked{border-color:#991b1b;color:#991b1b;background:#fef2f2;}
+  .badge.revoked .m{background:#991b1b;}
+  td.r.delta-rev{color:#991b1b;font-family:'Geist Mono',monospace;font-size:11.5px;font-weight:600;}
+
+  /* === Tenant boundary strip (D34) === */
+  .tenant-bar{background:var(--ink-900);color:#cbd5e1;font-family:'Geist Mono',monospace;font-size:10.5px;border-bottom:1px solid #000;}
+  .tenant-bar .in{max-width:1380px;margin:0 auto;padding:0 32px;height:30px;display:flex;align-items:stretch;}
+  .tenant-bar .cell{display:flex;align-items:center;gap:8px;padding:0 14px;border-right:1px solid #1e293b;color:#94a3b8;letter-spacing:.04em;white-space:nowrap;}
+  .tenant-bar .cell:first-child{padding-left:0;}
+  .tenant-bar .cell:last-child{border-right:0;}
+  .tenant-bar .cell .k{font-size:9.5px;text-transform:uppercase;letter-spacing:.16em;color:#64748b;font-weight:600;}
+  .tenant-bar .cell .v{color:#fff;font-weight:500;letter-spacing:.04em;}
+  .tenant-bar .cell.boundary{padding-left:0;padding-right:14px;}
+  .tenant-bar .badge-tenant{display:inline-flex;align-items:center;gap:8px;padding:4px 10px;border:1px solid #fff;background:transparent;color:#fff;font-size:10px;letter-spacing:.18em;text-transform:uppercase;font-weight:700;}
+  .tenant-bar .badge-tenant .m{width:6px;height:6px;background:#fff;display:inline-block;}
+  .tenant-bar .toggle{display:inline-flex;align-items:center;gap:6px;padding:3px 8px;border:1px solid #334155;background:#0a0f1c;color:#94a3b8;font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;font-weight:600;cursor:not-allowed;user-select:none;}
+  .tenant-bar .toggle.on{color:#34d399;border-color:#047857;background:#022c22;}
+  .tenant-bar .toggle .lock{display:inline-block;width:9px;height:9px;border:1px solid currentColor;position:relative;}
+  .tenant-bar .toggle .lock::before{content:"";position:absolute;left:50%;top:-4px;transform:translateX(-50%);width:5px;height:4px;border:1px solid currentColor;border-bottom:0;}
+  .tenant-bar .toggle .sw{display:inline-block;width:22px;height:10px;border:1px solid currentColor;position:relative;}
+  .tenant-bar .toggle .sw::after{content:"";position:absolute;right:1px;top:1px;bottom:1px;width:8px;background:currentColor;}
+  .tenant-bar .more{margin-left:auto;display:flex;align-items:center;gap:8px;}
+  @media(max-width:1100px){.tenant-bar .x-mid{display:none;}}
+  @media(max-width:720px){.tenant-bar .x-md{display:none;}.tenant-bar .in{padding:0 16px;}}
+
+  /* === Soft authenticity · "What remains manual" (D37) === */
+  .manual{background:var(--ink-0);border:1px solid var(--rule);}
+  .manual .top{padding:10px 18px;border-bottom:1px solid var(--rule);background:var(--ink-50);font-family:'Geist Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-500);font-weight:600;display:flex;justify-content:space-between;align-items:center;}
+  .manual .top .ttl{color:var(--ink-900);}
+  .manual .grid{display:grid;grid-template-columns:repeat(4,1fr);}
+  .manual .item{padding:14px 16px;border-right:1px solid var(--rule);border-bottom:1px solid var(--rule);display:flex;flex-direction:column;gap:6px;}
+  .manual .item:nth-child(4n){border-right:0;}
+  .manual .item:nth-last-child(-n+4){border-bottom:0;}
+  .manual .item .ord{font-family:'Geist Mono',monospace;font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-400);font-weight:600;}
+  .manual .item .what{font-size:13px;font-weight:500;letter-spacing:-.005em;color:var(--ink-900);font-family:'Geist',sans-serif;line-height:1.35;}
+  .manual .item .who{font-family:'Geist Mono',monospace;font-size:10.5px;color:var(--ink-500);letter-spacing:.04em;}
+  .manual .impl{padding:11px 18px;background:var(--ink-50);border-top:1px solid var(--rule);font-family:'Geist Mono',monospace;font-size:10.5px;color:var(--ink-400);line-height:1.65;letter-spacing:.02em;display:flex;gap:14px;align-items:flex-start;}
+  .manual .impl::before{content:"IMPL";flex-shrink:0;font-weight:600;color:var(--ink-500);letter-spacing:.16em;font-size:9.5px;padding:2px 6px;border:1px solid var(--ink-300);text-transform:uppercase;}
+  .manual .impl strong{color:var(--ink-700);font-weight:500;}
+
+  footer.foot-page{max-width:1380px;margin:8px auto 0;padding:18px 32px;font-family:'Geist Mono',monospace;font-size:10.5px;color:var(--ink-500);display:flex;justify-content:space-between;border-top:1px solid var(--rule);background:var(--ink-0);}
+  footer .v{color:var(--ink-700);}
+
+  @media(max-width:1100px){
+    .reserved .slots{grid-template-columns:repeat(3,1fr);}
+    .reserved .slot:nth-child(3n){border-right:0;}
+    .reserved .slot:nth-child(6n){border-right:1px solid var(--rule);}
+    .reserved .metrics{grid-template-columns:1fr;}
+    .reserved .m{border-right:0;border-bottom:1px solid var(--rule);}
+    .reserved .m:last-child{border-bottom:0;}
+    .personas{grid-template-columns:1fr;}
+    .roi .grid{grid-template-columns:1fr 1fr;}
+    .roi .grid .cell{border-right:0;border-bottom:1px solid var(--rule);}
+    .gantt .row,.axis .ticks,.stages .row{grid-template-columns:120px 1fr 80px;}
+  }
+  @media(max-width:760px){
+    .op .in{padding:0 16px;}
+    .demo-strip .in{padding:7px 16px;}
+    .demo-strip .rhs{display:none;}
+    .mh .in{padding:18px 16px;}
+    main{padding:20px 16px 110px;gap:20px;}
+    h1{font-size:21px;}
+    .meta-h{flex-direction:column;}
+    .meta-h .c{border-right:0;border-bottom:1px dashed var(--ink-200);margin-right:0;padding:7px 0;}
+    .meta-h .c:last-child{border-bottom:0;}
+
+    .sh h2{font-size:14px;}
+    .sh .ey{display:none;}
+
+    .friction .lede{grid-template-columns:1fr;padding:14px 16px;gap:10px;}
+    .friction .lede .big{font-size:34px;}
+    .gantt{padding:14px 16px 12px;}
+    .gantt .row{grid-template-columns:1fr;gap:6px;}
+    .gantt .row .bar{height:18px;}
+    .gantt .row .days{text-align:left;font-size:13px;}
+    .axis{display:none;}
+    .stages{padding:0 16px 14px;}
+    .stages .row{grid-template-columns:1fr;gap:4px;}
+    .stages .row .delta{text-align:left;}
+
+    .roi .grid{grid-template-columns:1fr 1fr;}
+    .roi .grid .cell{padding:12px 14px;border-right:1px solid var(--rule);}
+    .roi .grid .cell:nth-child(2n){border-right:0;}
+    .roi .grid .v{font-size:18px;}
+    .roi .grid .v .small{font-size:11px;}
+    .roi .formula{flex-direction:column;gap:6px;}
+
+    /* Replace pipe table with stacked cards on mobile */
+    .pipe table{display:none;}
+    .pipe-cards{display:flex;flex-direction:column;}
+
+    /* Surface bottom CTA on mobile */
+    .mobile-cta{display:flex;}
+  }
+</style>
+</head>
+<body data-screen-label="Employer Pipeline">
+
+<div class="op">
+  <div class="in">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <span style="letter-spacing:.16em;text-transform:uppercase;color:#fff;font-weight:500;">Employer · Pipeline &amp; ROI</span>
+      <span class="sep">/</span>
+      <span>employer.vitalcv.health/pipeline</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:14px;">
+      <span class="pill"><span class="d"></span>Live</span>
+      <span class="sep">|</span>
+      <span>Q2 2026 cohort · 47 providers</span>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Tenant boundary strip (D34) ===== -->
+<div class="tenant-bar" aria-label="Tenant context">
+  <div class="in">
+    <div class="cell boundary">
+      <span class="badge-tenant"><span class="m"></span>Tenant · Cedar Health Ops</span>
+    </div>
+    <div class="cell x-md">
+      <span class="k">Policy</span><span class="v">cedar-ops / v3.2</span>
+    </div>
+    <div class="cell x-mid">
+      <span class="k">Residency</span><span class="v">us-west-2 · SOC 2</span>
+    </div>
+    <div class="cell x-mid">
+      <span class="k">RBAC</span><span class="v">v3 · you = credentialing.admin</span>
+    </div>
+    <div class="more">
+      <span class="toggle on" title="Locked by IT — contact admin to disable" aria-disabled="true">
+        <span class="lock"></span><span>Strict Mode</span><span class="sw"></span><span class="v" style="color:#34d399;">ON</span>
+      </span>
+      <span style="color:#475569;letter-spacing:.16em;text-transform:uppercase;font-size:9.5px;">locked by IT</span>
+    </div>
+  </div>
+</div>
+
+<!-- Demo Mode strip — quiet, monochrome, persistent -->
+<div class="demo-strip">
+  <div class="in">
+    <div class="lhs">
+      <span class="tag"><span class="d"></span>Demo</span>
+      <span><em>Synthetic data.</em> Provider names, NPIs, and dollar figures below are illustrative — drawn from public benchmarks, not from a live employer.</span>
+    </div>
+    <div class="rhs">Sandbox build · <a href="Pilot Intake.html">run on your own NPIs →</a></div>
+  </div>
+</div>
+
+<header class="mh">
+  <div class="in">
+    <div class="brand">
+      <span class="g">V</span>
+      <span class="nm">VitalCV<span class="sl">/</span><span class="sub">trust</span></span>
+    </div>
+    <div class="eyebrow"><span class="r"></span>Operations &middot; credentialing pipeline &middot; Q2 2026</div>
+    <h1>Time-to-bill, by physician. <span class="muted">Plus the carrying cost of the days between hire and first claim.</span></h1>
+    <div class="meta-h">
+      <div class="c">Median time-to-bill · trad<strong>103 days</strong></div>
+      <div class="c up">Median · CBP<strong>36 days</strong></div>
+      <div class="c up">Δ days · per provider<strong>−67</strong></div>
+      <div class="c up">Lost revenue avoided<strong>$278k – $556k</strong></div>
+      <div class="c">Cohort<strong>47 providers · Q2 2026</strong></div>
+    </div>
+  </div>
+</header>
+
+<main>
+
+  <!-- 01 FRICTION DROP -->
+  <section>
+    <div class="sh">
+      <span class="n">01</span>
+      <h2>Friction drop — 103 days, traditional vs Credentialing-by-Proxy</h2>
+      <span class="ey">cohort median · n=47</span>
+    </div>
+
+    <div class="friction">
+      <div class="lede">
+        <div class="big">
+          103 → 36
+          <span class="delta"><strong>−67 days</strong> · median across the cohort</span>
+        </div>
+        <div class="copy">Traditional credentialing keeps a physician off the schedule for <strong>~14 weeks</strong> after hire. <strong>Credentialing-by-Proxy</strong> reuses the federal evidence VitalCV already has on file — the same dataset every payer eventually asks for — so practice privileging, payer enrollment, and DEA verification advance <em>in parallel</em> instead of in series.</div>
+      </div>
+
+      <div class="gantt">
+        <div class="row trad">
+          <div class="lbl"><strong>Traditional</strong><span class="sub">document re-collection · serial</span></div>
+          <div class="bar"><div class="fill" style="width:100%;"><span class="lbl-inside">103 days</span></div></div>
+          <div class="days">103<span class="u">d</span></div>
+        </div>
+        <div class="row cbp">
+          <div class="lbl"><strong>Credentialing-by-Proxy</strong><span class="sub">VitalCV evidence · parallel</span></div>
+          <div class="bar"><div class="fill" style="width:34.9%;"><span class="lbl-inside">36 days</span></div></div>
+          <div class="days">36<span class="u">d</span></div>
+        </div>
+      </div>
+
+      <div class="axis">
+        <div class="ticks">
+          <div></div>
+          <div class="scale">
+            <span class="t" style="left:0;">D0</span>
+            <span class="t" style="left:20%;">21d</span>
+            <span class="t" style="left:40%;">42d</span>
+            <span class="t" style="left:60%;">63d</span>
+            <span class="t" style="left:80%;">84d</span>
+            <span class="t" style="left:99%;">105d</span>
+          </div>
+          <div></div>
+        </div>
+      </div>
+
+      <div class="stages">
+        <div class="row">
+          <div class="stage">Primary source verification</div>
+          <div class="bars">
+            <div class="b"><div class="f" style="width:90%;"></div><span class="v">28d</span></div>
+            <div class="b cbp"><div class="f" style="width:18%;"></div><span class="v">4d</span></div>
+          </div>
+          <div class="delta">−24d <span class="arr">·</span> trad → cbp</div>
+        </div>
+        <div class="row">
+          <div class="stage">Payer enrollment</div>
+          <div class="bars">
+            <div class="b"><div class="f" style="width:78%;"></div><span class="v">42d</span></div>
+            <div class="b cbp"><div class="f" style="width:32%;"></div><span class="v">18d</span></div>
+          </div>
+          <div class="delta">−24d <span class="arr">·</span> trad → cbp</div>
+        </div>
+        <div class="row">
+          <div class="stage">Practice privileging</div>
+          <div class="bars">
+            <div class="b"><div class="f" style="width:55%;"></div><span class="v">23d</span></div>
+            <div class="b cbp"><div class="f" style="width:24%;"></div><span class="v">10d</span></div>
+          </div>
+          <div class="delta">−13d <span class="arr">·</span> trad → cbp</div>
+        </div>
+        <div class="row">
+          <div class="stage">DEA · state board</div>
+          <div class="bars">
+            <div class="b"><div class="f" style="width:22%;"></div><span class="v">10d</span></div>
+            <div class="b cbp"><div class="f" style="width:9%;"></div><span class="v">4d</span></div>
+          </div>
+          <div class="delta">−6d <span class="arr">·</span> trad → cbp</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 02 ROI QUIET MATH -->
+  <section>
+    <div class="sh">
+      <span class="n">02</span>
+      <h2>Carrying cost per physician — quiet math</h2>
+      <span class="ey">per provider · MGMA benchmark + locum offset</span>
+    </div>
+
+    <div class="roi">
+      <div class="top">
+        <span class="ttl">Per-physician cost of the days between hire and first claim</span>
+        <span class="src">MGMA 2024 + AMA locum bridge · methodology v3</span>
+      </div>
+      <div class="grid">
+        <div class="cell">
+          <div class="k">Days off-schedule (median)</div>
+          <div class="v">67<span class="small"> d</span>
+            <span class="pn">Traditional 103 d → CBP 36 d. Each day is a physician on payroll without a billable claim.</span>
+          </div>
+        </div>
+        <div class="cell">
+          <div class="k">Lost revenue · per day</div>
+          <div class="v">$4,150<span class="small"> – $8,300</span>
+            <span class="pn">PCP floor → procedural subspecialty ceiling. Avg wRVU × payer mix × Medicare conversion.</span>
+          </div>
+        </div>
+        <div class="cell">
+          <div class="k">Locum bridge · per day</div>
+          <div class="v">$2,100<span class="small"> – $3,000</span>
+            <span class="pn">Where coverage is required for safety or contracts. Net of locum gross margin to agency.</span>
+          </div>
+        </div>
+        <div class="cell">
+          <div class="k">Total · per physician</div>
+          <div class="v">$278k<span class="small"> – $556k</span>
+            <span class="pn">Lost revenue + locum offset over the 67-day delta. 47-provider cohort: <strong style="color:var(--ink-900);">$13.1M – $26.1M</strong>.</span>
+          </div>
+        </div>
+      </div>
+      <div class="formula">
+        <span><strong>Formula</strong> <span class="eq">(103d − 36d) × ($4,150–$8,300 lost rev/d + $2,100–$3,000 locum/d)</span></span>
+        <span>Inputs editable in <strong>admin · ROI model</strong></span>
+      </div>
+      <div class="footnote">
+        <strong>Illustrative figures.</strong> Range derived from MGMA 2024 productivity benchmarks and AMA locum-bridge data, applied to a 47-provider synthetic cohort. <strong>Not a guaranteed outcome.</strong> Carrying-cost math is reviewable in the admin model; the audit ledger remains the source of truth for any decision.
+      </div>
+    </div>
+  </section>
+
+  <!-- 03 PIPELINE TABLE -->
+  <section>
+    <div class="sh">
+      <span class="n">03</span>
+      <h2>Active pipeline · per-provider days &amp; carrying cost</h2>
+      <span class="ey">live · sorted by carrying cost desc</span>
+    </div>
+
+    <div class="pipe">
+      <div class="top">
+        <span class="ttl">Q2 2026 cohort · 12 of 47 shown</span>
+        <span class="sub">CBP = Credentialing-by-Proxy · TRAD = traditional</span>
+      </div>
+
+      <!-- Mobile-stacked clinician cards: Name · Status · Time Saved up front -->
+      <div class="pipe-cards">
+        <div class="pipe-card">
+          <div class="hd">
+            <div class="nm">A. Okafor, MD<span class="sub">interventional cardiology · hired Apr 03</span></div>
+            <span class="badge cbp"><span class="m"></span>CBP</span>
+          </div>
+          <div class="hero">
+            <div class="cell"><div class="k">Time saved</div><div class="v">−71<span class="u">d</span></div></div>
+            <div class="cell"><div class="k">Avoided cost</div><div class="v">$589k</div></div>
+          </div>
+          <details class="more"><summary>Details</summary><div class="body"><span class="k">Persona</span><span class="v">Procedural subspecialty</span><span class="k">Days to bill</span><span class="v">34</span><span class="k">Carrying cost</span><span class="v">$282k</span></div></details>
+        </div>
+        <div class="pipe-card">
+          <div class="hd">
+            <div class="nm">S. Begay, MD<span class="sub">family medicine · FQHC · hired Mar 28</span></div>
+            <span class="badge cbp"><span class="m"></span>CBP</span>
+          </div>
+          <div class="hero">
+            <div class="cell"><div class="k">Time saved</div><div class="v">−72<span class="u">d</span></div></div>
+            <div class="cell"><div class="k">Avoided cost</div><div class="v">$298k</div></div>
+          </div>
+          <details class="more"><summary>Details</summary><div class="body"><span class="k">Persona</span><span class="v">Rural · FQHC</span><span class="k">Days to bill</span><span class="v">31</span><span class="k">Carrying cost</span><span class="v">$165k</span></div></details>
+        </div>
+        <div class="pipe-card">
+          <div class="hd">
+            <div class="nm">M. Miller, PA-C<span class="sub">internal medicine · hired May 01</span></div>
+            <span class="badge cbp"><span class="m"></span>CBP</span>
+          </div>
+          <div class="hero">
+            <div class="cell"><div class="k">Time saved</div><div class="v">−67<span class="u">d</span></div></div>
+            <div class="cell"><div class="k">Avoided cost</div><div class="v">$278k</div></div>
+          </div>
+          <details class="more"><summary>Details</summary><div class="body"><span class="k">Persona</span><span class="v">General · employed</span><span class="k">Days to bill</span><span class="v">36</span><span class="k">Carrying cost</span><span class="v">$152k</span></div></details>
+        </div>
+        <div class="pipe-card">
+          <div class="hd">
+            <div class="nm" style="color:var(--ink-500);">K. Bauer, MD<span class="sub" style="color:var(--ink-400);">orthopedics · pre-VitalCV</span></div>
+            <span class="badge trad"><span class="m"></span>TRAD</span>
+          </div>
+          <div class="hero">
+            <div class="cell"><div class="k">Time saved</div><div class="v" style="color:var(--amber);">−5<span class="u">d</span></div></div>
+            <div class="cell"><div class="k">Carrying cost</div><div class="v" style="color:var(--amber);">$554k</div></div>
+          </div>
+          <details class="more"><summary>Details</summary><div class="body"><span class="k">Persona</span><span class="v">Procedural subspecialty</span><span class="k">Days to bill</span><span class="v">98</span><span class="k">Avoided</span><span class="v">—</span></div></details>
+        </div>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Provider</th>
+            <th>Persona</th>
+            <th>Hired</th>
+            <th>Track</th>
+            <th class="r">Days to bill</th>
+            <th class="r">Δ vs trad</th>
+            <th class="r">Carrying cost</th>
+            <th class="r">Avoided</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="persona-subspecialty">
+            <td class="nm">A. Okafor, MD<span class="sub">interventional cardiology</span></td>
+            <td><span class="badge"><span class="m"></span>Procedural subspecialty</span></td>
+            <td class="mono g">Apr 03</td>
+            <td><span class="badge cbp"><span class="m"></span>CBP</span></td>
+            <td class="r mono">34</td>
+            <td class="r delta-up">−71</td>
+            <td class="r mono">$282k</td>
+            <td class="r delta-up">$589k</td>
+          </tr>
+          <tr class="persona-subspecialty">
+            <td class="nm">R. Patel, MD<span class="sub">gastroenterology · endoscopy</span></td>
+            <td><span class="badge"><span class="m"></span>Procedural subspecialty</span></td>
+            <td class="mono g">Apr 10</td>
+            <td><span class="badge cbp"><span class="m"></span>CBP</span></td>
+            <td class="r mono">38</td>
+            <td class="r delta-up">−65</td>
+            <td class="r mono">$258k</td>
+            <td class="r delta-up">$540k</td>
+          </tr>
+          <tr class="persona-rural">
+            <td class="nm">S. Begay, MD<span class="sub">family medicine · FQHC</span></td>
+            <td><span class="badge"><span class="m"></span>Rural · FQHC</span></td>
+            <td class="mono g">Mar 28</td>
+            <td><span class="badge cbp"><span class="m"></span>CBP</span></td>
+            <td class="r mono">31</td>
+            <td class="r delta-up">−72</td>
+            <td class="r mono">$165k</td>
+            <td class="r delta-up">$298k</td>
+          </tr>
+          <tr class="persona-rural">
+            <td class="nm">L. Tran, FNP-BC<span class="sub">rural primary care</span></td>
+            <td><span class="badge"><span class="m"></span>Rural · FQHC</span></td>
+            <td class="mono g">Apr 02</td>
+            <td><span class="badge cbp"><span class="m"></span>CBP</span></td>
+            <td class="r mono">29</td>
+            <td class="r delta-up">−74</td>
+            <td class="r mono">$148k</td>
+            <td class="r delta-up">$285k</td>
+          </tr>
+          <tr>
+            <td class="nm">M. Miller, PA-C<span class="sub">internal medicine · Cedar</span></td>
+            <td><span class="badge"><span class="m"></span>General · employed</span></td>
+            <td class="mono g">May 01</td>
+            <td><span class="badge cbp"><span class="m"></span>CBP</span></td>
+            <td class="r mono">36</td>
+            <td class="r delta-up">−67</td>
+            <td class="r mono">$152k</td>
+            <td class="r delta-up">$278k</td>
+          </tr>
+          <tr>
+            <td class="nm">J. Hwang, MD<span class="sub">hospitalist</span></td>
+            <td><span class="badge"><span class="m"></span>General · employed</span></td>
+            <td class="mono g">Apr 18</td>
+            <td><span class="badge cbp"><span class="m"></span>CBP</span></td>
+            <td class="r mono">41</td>
+            <td class="r delta-up">−62</td>
+            <td class="r mono">$210k</td>
+            <td class="r delta-up">$316k</td>
+          </tr>
+          <tr class="quarantine">
+            <td class="nm">G. Hollis, MD<span class="sub">general surgery · OIG/LEIE exclusion detected 2026-05-09</span></td>
+            <td><span class="badge revoked"><span class="m"></span>Quarantined</span></td>
+            <td class="mono g">Apr 27</td>
+            <td><span class="badge revoked"><span class="m"></span>HOLD</span></td>
+            <td class="r mono">—</td>
+            <td class="r delta-rev">· blocked</td>
+            <td class="r mono" style="color:#991b1b;">—</td>
+            <td class="r delta-rev">avoided hire</td>
+          </tr>
+          <tr style="background:var(--ink-50);">
+            <td class="nm" style="color:var(--ink-500);">D. Whitehorse, MD<span class="sub" style="color:var(--ink-400);">rural surgery · pre-VitalCV</span></td>
+            <td><span class="badge trad"><span class="m"></span>Rural · FQHC</span></td>
+            <td class="mono g">Jan 15</td>
+            <td><span class="badge trad"><span class="m"></span>TRAD</span></td>
+            <td class="r mono" style="color:var(--ink-500);">109</td>
+            <td class="r delta-dn">+6</td>
+            <td class="r mono" style="color:var(--amber);">$498k</td>
+            <td class="r mono" style="color:var(--ink-400);">—</td>
+          </tr>
+          <tr style="background:var(--ink-50);">
+            <td class="nm" style="color:var(--ink-500);">K. Bauer, MD<span class="sub" style="color:var(--ink-400);">orthopedics · pre-VitalCV</span></td>
+            <td><span class="badge trad"><span class="m"></span>Procedural subspecialty</span></td>
+            <td class="mono g">Feb 02</td>
+            <td><span class="badge trad"><span class="m"></span>TRAD</span></td>
+            <td class="r mono" style="color:var(--ink-500);">98</td>
+            <td class="r delta-dn">−5</td>
+            <td class="r mono" style="color:var(--amber);">$554k</td>
+            <td class="r mono" style="color:var(--ink-400);">—</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 04 PERSONA PAIN POINTS -->
+  <section>
+    <div class="sh">
+      <span class="n">04</span>
+      <h2>Where the savings concentrate</h2>
+      <span class="ey">three personas · two with disproportionate relief</span>
+    </div>
+
+    <div class="personas">
+
+      <div class="persona high">
+        <div class="hd">
+          <span class="ttl">Persona 01 · High relief</span>
+          <span class="pri">Cost ceiling</span>
+        </div>
+        <div class="body">
+          <div class="nm">Procedural subspecialists</div>
+          <div class="pain">Every day a <strong>cardiologist or endoscopist</strong> isn't billing carries an $8k+ revenue hit and a high probability of a locum bridge. Multi-state DEA + payer enrollment is the chokepoint — exactly the chain VitalCV runs in parallel.</div>
+          <div class="stats">
+            <div class="cell"><div class="k">Δ days</div><div class="v">−68<span class="sm"> median</span></div></div>
+            <div class="cell"><div class="k">Per-provider</div><div class="v">$540k<span class="sm"> typical</span></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="persona high">
+        <div class="hd">
+          <span class="ttl">Persona 02 · High relief</span>
+          <span class="pri">Coverage risk</span>
+        </div>
+        <div class="body">
+          <div class="nm">Rural &amp; FQHC practitioners</div>
+          <div class="pain">A single delayed credentialing event closes a panel and triggers <strong>HRSA reporting risk</strong> for an FQHC. There's rarely a locum to bridge — patients reroute hours away. VitalCV's reusable evidence is the difference between an open clinic and a closed one.</div>
+          <div class="stats">
+            <div class="cell"><div class="k">Δ days</div><div class="v">−73<span class="sm"> median</span></div></div>
+            <div class="cell"><div class="k">Per-provider</div><div class="v">$285k<span class="sm"> + access risk</span></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="persona">
+        <div class="hd">
+          <span class="ttl">Persona 03 · Baseline</span>
+          <span class="pri">Standard relief</span>
+        </div>
+        <div class="body">
+          <div class="nm">General · employed</div>
+          <div class="pain">Hospitalists, internists, PAs on hospital salary. Recovery is real but bounded — payroll continues regardless, and locum is often optional. Still: a hospitalist credentialed two months earlier is a hospitalist accreting <strong>~$150k</strong> in lost-revenue avoidance.</div>
+          <div class="stats">
+            <div class="cell"><div class="k">Δ days</div><div class="v">−65<span class="sm"> median</span></div></div>
+            <div class="cell"><div class="k">Per-provider</div><div class="v">$278k<span class="sm"> typical</span></div></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ===== Initial pilots / reserved enterprise primitives ===== -->
+  <section>
+    <div class="sh">
+      <span class="n">05</span>
+      <h2>Initial pilots · reserved structurally</h2>
+      <span class="ey">no placeholder logos · enterprise slots open</span>
+    </div>
+
+    <div class="reserved">
+      <div class="head">
+        <div class="lhs">
+          <span class="ttl">Early-adopter cohort</span>
+          <span class="sub">Q3 2026 · partner logos drop in here at signature — zero layout shift</span>
+        </div>
+        <span class="count"><strong>0 of 6</strong> seated · <strong>6</strong> open</span>
+      </div>
+      <div class="slots">
+        <div class="slot">
+          <span class="ord">Seat 01</span>
+          <div class="glyph"><span class="bar"></span></div>
+          <div>
+            <div class="label">Reserved · Q3 '26</div>
+            <div class="kind">Health system<br>≥ 500 providers</div>
+          </div>
+        </div>
+        <div class="slot">
+          <span class="ord">Seat 02</span>
+          <div class="glyph"><span class="bar short"></span></div>
+          <div>
+            <div class="label">Reserved · Q3 '26</div>
+            <div class="kind">Multi-state group<br>≥ 200 providers</div>
+          </div>
+        </div>
+        <div class="slot">
+          <span class="ord">Seat 03</span>
+          <div class="glyph"><span class="bar"></span></div>
+          <div>
+            <div class="label">Reserved · Q3 '26</div>
+            <div class="kind">FQHC network<br>federal reporting</div>
+          </div>
+        </div>
+        <div class="slot">
+          <span class="ord">Seat 04</span>
+          <div class="glyph"><span class="bar short"></span></div>
+          <div>
+            <div class="label">Open · Q4 '26</div>
+            <div class="kind">Locum / staffing<br>cycle-time focus</div>
+          </div>
+        </div>
+        <div class="slot">
+          <span class="ord">Seat 05</span>
+          <div class="glyph"><span class="bar"></span></div>
+          <div>
+            <div class="label">Open · Q4 '26</div>
+            <div class="kind">Payer ops<br>downstream verifier</div>
+          </div>
+        </div>
+        <div class="slot">
+          <span class="ord">Seat 06</span>
+          <div class="glyph"><span class="bar short"></span></div>
+          <div>
+            <div class="label">Open · Q4 '26</div>
+            <div class="kind">Specialty group<br>multi-state DEA</div>
+          </div>
+        </div>
+      </div>
+      <div class="metrics">
+        <div class="m">
+          <div class="k">Credentials processed (cohort)</div>
+          <div class="v">— — —</div>
+          <div class="u">Counter increments on first pilot signature · <strong>target Q3 2026</strong></div>
+        </div>
+        <div class="m">
+          <div class="k">Hours saved (cohort)</div>
+          <div class="v">— — —</div>
+          <div class="u">Modeled: <strong>67 d × 6 h/d × cohort size</strong> · realized at pilot end</div>
+        </div>
+        <div class="m">
+          <div class="k">Median time-to-bill (realized)</div>
+          <div class="v">— —<span style="font-size:13px;color:var(--ink-500);"> d</span></div>
+          <div class="u">Modeled <strong>36 d</strong> · trad baseline <strong>103 d</strong></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Soft authenticity · D37 ===== -->
+  <section>
+    <div class="sh">
+      <span class="n">06</span>
+      <h2>What remains manual</h2>
+      <span class="ey">explicit limits · institutional maturity</span>
+    </div>
+
+    <div class="manual">
+      <div class="top">
+        <span class="ttl">VitalCV does <strong>not</strong> automate these (yet) · they are humans on the other end</span>
+        <span>v3.2 · reviewed 2026-04-30</span>
+      </div>
+      <div class="grid">
+        <div class="item">
+          <span class="ord">01</span>
+          <div class="what">State Board outreach</div>
+          <div class="who">PSV requests to non-API state boards — still email/phone</div>
+        </div>
+        <div class="item">
+          <span class="ord">02</span>
+          <div class="what">Malpractice carrier confirmations</div>
+          <div class="who">No standard API — carrier-by-carrier human follow-up</div>
+        </div>
+        <div class="item">
+          <span class="ord">03</span>
+          <div class="what">Hospital committee scheduling</div>
+          <div class="who">CVO writes the dossier; cadence is owned by the hospital</div>
+        </div>
+        <div class="item">
+          <span class="ord">04</span>
+          <div class="what">Reference letter back-and-forth</div>
+          <div class="who">VitalCV stores returned letters; the chase is still email-on-email</div>
+        </div>
+        <div class="item">
+          <span class="ord">05</span>
+          <div class="what">DEA modifications</div>
+          <div class="who">Federal form submission — we track status, we don't file for you</div>
+        </div>
+        <div class="item">
+          <span class="ord">06</span>
+          <div class="what">Privileging committee minutes / appeals</div>
+          <div class="who">Governance artifact — outside the credentialing pipeline by design</div>
+        </div>
+        <div class="item">
+          <span class="ord">07</span>
+          <div class="what">Out-of-network payer enrollments</div>
+          <div class="who">In-network covered via PECOS reuse — OON is a manual lane</div>
+        </div>
+        <div class="item">
+          <span class="ord">08</span>
+          <div class="what">CME audit reconciliation</div>
+          <div class="who">We surface gaps; we do not generate certificates retroactively</div>
+        </div>
+      </div>
+      <div class="impl">
+        <span><strong>Implementation note.</strong> The boundary above is intentional. VitalCV replaces the busywork around credentialing — not the human function itself. Anything that needs judgment, scheduling, or non-API negotiation stays where the relationships already live: with your CVO, your committee chairs, and your payer reps. We surface state and write the audit row when the human work completes.</span>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- Mobile-only bottom-anchored CTA bar -->
+<div class="mobile-cta">
+  <a class="secondary" href="#" onclick="navigator.clipboard&amp;&amp;navigator.clipboard.writeText(location.href);this.textContent='Link copied';return false;">Copy link</a>
+  <a class="primary" href="Pilot Intake.html">Request pilot →</a>
+</div>
+
+<footer class="foot-page">
+  <div>VitalCV · Employer pipeline · <span class="v">103 → 36 · $278k – $556k per physician · 47-provider Q2 cohort</span></div>
+  <div style="text-align:right;">
+    <div>Model <span class="v">methodology v3</span> · inputs editable</div>
+    <div style="color:var(--ink-400);margin-top:2px;">Carrying-cost figures are not contractual. Audit ledger remains the source of truth.</div>
+  </div>
+</footer>
+
+<script src="telemetry.js"></script>
+</body>
+</html>

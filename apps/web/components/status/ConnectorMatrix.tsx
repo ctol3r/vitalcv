@@ -20,12 +20,18 @@ import type { TruthStateKind } from '@/design-system/components/TruthStateChip';
  *    The chip never claims NPPES is "Live" or "Source-backed" — that
  *    requires an authenticated SSE payload, which is a per-request
  *    behavior, not a matrix state.
- *  - OIG / LEIE / PECOS / STATE_BOARD / FSMB / NURSYS all render
- *    "connector-not-live" — none are wired to live upstream services
- *    in the current build.
+ *  - OIG / LEIE and CMS PECOS render "auth-required": both DO reach
+ *    live upstream sources (HHS LEIE CSV; CMS data.gov), but the web
+ *    proxy returns 401 without a session. Corrected 2026-07-25 — they
+ *    previously said "connector-not-live", which contradicted
+ *    /api/status and understated real capability.
+ *  - STATE_BOARD is "access-required" (per-jurisdiction agreements);
+ *    FSMB and NURSYS remain "connector-not-live" — genuinely unwired.
  *  - The matrix MUST NOT claim a connector is live unless the build
  *    has evidence. Any future row that flips to "source-backed" needs
- *    a backend-confirmed adapter, not a copy change.
+ *    a backend-confirmed adapter, not a copy change. The inverse is
+ *    equally binding: do not say "not live" about an adapter that runs.
+ *    Understating is not a safe default — it published a contradiction.
  */
 
 export interface ConnectorRow {
@@ -47,16 +53,22 @@ export const CONNECTOR_MATRIX_ROWS: ReadonlyArray<ConnectorRow> = Object.freeze(
       'When NPPES returns a payload with displayName, identityStatus, and entityId, the row promotes to source-backed for that specific run. The matrix state reflects the gateway, not a single ingest call.',
   },
   {
+    // Corrected 2026-07-25: "no live upstream wiring" was false. The adapter
+    // reads the real HHS LEIE CSV unless OIG_LEIE_ENABLED === 'false', which
+    // is unset on Railway (founder-confirmed). The true boundary is the
+    // session: the web proxy returns 401 unauthenticated.
     connector: 'OIG / LEIE (Federal Exclusion Lane)',
-    state: 'connector-not-live',
-    observation: 'Adapter exists in code; no live upstream wiring in this build.',
+    state: 'auth-required',
+    observation:
+      'Adapter reads the HHS LEIE list upstream. Results require an authenticated session.',
     interpretation:
       'Do not treat the absence of an exclusion result as a clearance. Institution review still applies.',
   },
   {
     connector: 'CMS PECOS (Medicare Enrollment Lane)',
-    state: 'connector-not-live',
-    observation: 'Adapter exists in code; no live upstream wiring in this build.',
+    state: 'auth-required',
+    observation:
+      'Pipeline calls the CMS data.gov dataset upstream. Results require an authenticated session.',
     interpretation:
       'Institution review may require separate enrollment evidence; this lane does not assert it.',
   },

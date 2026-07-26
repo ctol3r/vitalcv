@@ -1,0 +1,505 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>VitalCV · Receipt Reading Doctrine</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink-0:#fff; --ink-50:#f7f7f5; --ink-100:#eeede9; --ink-200:#dcdbd5;
+  --ink-300:#c0bfb8; --ink-400:#9a998f; --ink-500:#6e6d66; --ink-600:#4d4c47;
+  --ink-700:#33322e; --ink-800:#1f1e1c; --ink-900:#121110; --ink-950:#000;
+  --rule:#dcdbd5; --paper:#f4f1ea;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{font-family:"Geist",ui-sans-serif,system-ui,sans-serif;font-feature-settings:"ss01","cv11";-webkit-font-smoothing:antialiased;background:var(--ink-50);color:var(--ink-900);font-size:13px;line-height:1.45}
+.mono,code{font-family:"Geist Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums}
+
+/* ---- Document chrome ---- */
+.t-doc{background:var(--ink-0);border-top:2px solid var(--ink-950);border-bottom:1px solid var(--ink-900)}
+.t-doc .in{max-width:1400px;margin:0 auto;padding:16px 28px;display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr 1fr 1.1fr;gap:20px;align-items:end}
+.t-doc .cell{border-left:1px solid var(--rule);padding-left:16px}
+.t-doc .cell:first-child{border-left:0;padding-left:0}
+.t-doc .k{font-family:"Geist Mono",monospace;font-size:9.5px;letter-spacing:0.18em;text-transform:uppercase;color:var(--ink-500);margin-bottom:4px;font-weight:500}
+.t-doc .v{font-family:"Geist Mono",monospace;font-size:11.5px;color:var(--ink-900);font-weight:500;letter-spacing:0.04em;line-height:1.25}
+.t-doc .v .sub{display:block;font-family:"Geist",sans-serif;font-size:10.5px;color:var(--ink-500);margin-top:3px;font-weight:400;letter-spacing:0;text-transform:none}
+.t-doc .form .g{display:flex;align-items:center;gap:8px}
+.t-doc .form .glyph{width:24px;height:24px;background:var(--ink-950);color:#fff;display:grid;place-items:center;font-family:"Geist Mono",monospace;font-size:10px;font-weight:600}
+.t-doc .form .nm{font-family:"Geist Mono",monospace;font-size:11.5px;letter-spacing:0.16em;text-transform:uppercase;color:var(--ink-950);font-weight:600}
+.t-doc .form .title{font-family:"Geist Mono",monospace;font-size:9.5px;letter-spacing:0.14em;color:var(--ink-500);text-transform:uppercase;margin-top:6px}
+.stamp{display:inline-flex;flex-direction:column;gap:2px;padding:8px 11px;border:1.5px solid var(--ink-950);font-family:"Geist Mono",monospace;min-width:110px}
+.stamp .lb{font-size:8.5px;letter-spacing:0.22em;text-transform:uppercase;color:var(--ink-500)}
+.stamp .v{font-size:13px;letter-spacing:0.18em;text-transform:uppercase;color:var(--ink-950);font-weight:600}
+.stamp[data-state="signed"]{background:var(--ink-950);border-color:var(--ink-950)}
+.stamp[data-state="signed"] .lb{color:var(--ink-400)}
+.stamp[data-state="signed"] .v{color:#fff}
+.stamp[data-state="doctrine"] .v{letter-spacing:0.14em}
+
+/* Masthead */
+.mast{background:var(--ink-0);border-top:2px solid var(--ink-950);border-bottom:1px solid var(--ink-900);padding:24px 28px;max-width:1400px;margin:0 auto}
+.mast .l1{font-family:"Geist Mono",monospace;font-size:9.5px;letter-spacing:0.18em;text-transform:uppercase;color:var(--ink-500);font-weight:500}
+.mast h1{font-size:22px;margin:6px 0;font-weight:600;letter-spacing:-0.02em;color:var(--ink-900)}
+.mast .l2{font-family:"Geist",sans-serif;font-size:13px;color:var(--ink-600);max-width:1100px}
+.mast .l2 strong{color:var(--ink-900);font-weight:500}
+
+.wrap{max-width:1400px;margin:0 auto;padding:20px 28px 32px}
+.sh{display:flex;align-items:baseline;gap:12px;border-bottom:1px solid var(--ink-900);padding-bottom:8px;margin:28px 0 14px}
+.sh .n{font-family:"Geist Mono",monospace;font-size:10.5px;letter-spacing:0.18em;text-transform:uppercase;color:var(--ink-300);font-weight:600}
+.sh h2{font-size:15px;margin:0;font-weight:600;letter-spacing:-0.015em;color:var(--ink-900)}
+.sh .ey{font-family:"Geist Mono",monospace;font-size:10.5px;letter-spacing:0.18em;text-transform:uppercase;color:var(--ink-500);margin-left:auto}
+
+/* ============== Doctrine list ============== */
+.doctrine{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+@media (max-width:1100px){.doctrine{grid-template-columns:1fr 1fr}}
+.rule{background:var(--ink-0);border:1px solid var(--ink-900);padding:16px 18px;display:grid;gap:8px;position:relative}
+.rule .n{font-family:"Geist Mono",monospace;font-size:9.5px;letter-spacing:0.18em;text-transform:uppercase;color:var(--ink-500);font-weight:600}
+.rule h3{font-size:13px;margin:0;font-weight:600;color:var(--ink-900);line-height:1.3;letter-spacing:-0.01em}
+.rule p{margin:0;font-size:11.5px;color:var(--ink-700);line-height:1.5}
+.rule code{font-size:10.5px;background:var(--ink-50);padding:1px 5px;border:1px solid var(--rule)}
+.rule .out{font-family:"Geist Mono",monospace;font-size:9.5px;letter-spacing:0.18em;text-transform:uppercase;color:var(--ink-400);padding-top:6px;border-top:1px dashed var(--rule);font-weight:500}
+
+/* ============== Scan-order trace ============== */
+.trace{border:1px solid var(--ink-900);background:var(--ink-0)}
+.trace .cap{background:var(--ink-950);color:#fff;padding:10px 18px;font-family:"Geist Mono",monospace;font-size:9.5px;letter-spacing:0.18em;text-transform:uppercase;display:flex;justify-content:space-between}
+.trace .cap strong{color:#fff;font-weight:500}
+.trace .cap .meta{color:var(--ink-400)}
+.trace table{width:100%;border-collapse:collapse;font-family:"Geist Mono",monospace}
+.trace th{background:var(--ink-50);text-align:left;padding:10px 14px;font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:var(--ink-500);font-weight:500;border-bottom:1px solid var(--rule);border-right:1px solid var(--rule);vertical-align:bottom}
+.trace th:last-child{border-right:0}
+.trace td{padding:11px 14px;border-bottom:1px solid var(--rule);border-right:1px solid var(--rule);font-size:11.5px;color:var(--ink-900);font-weight:500;letter-spacing:0.04em;vertical-align:top;line-height:1.35}
+.trace tr:last-child td{border-bottom:0}
+.trace td:last-child{border-right:0}
+.trace td.ix{background:var(--ink-50);width:48px;text-align:center;color:var(--ink-900);font-weight:600;letter-spacing:0.12em}
+.trace td .sub{display:block;font-family:"Geist",sans-serif;font-size:10.5px;color:var(--ink-500);margin-top:3px;font-weight:400;letter-spacing:0}
+
+/* ============== Receipt mock (compact) ============== */
+.rcpt{border:1.5px solid var(--ink-950);background:var(--ink-0);overflow:hidden}
+.rcpt .hd{display:grid;grid-template-columns:1.6fr 1fr 1.1fr 0.9fr;border-bottom:2px solid var(--ink-950)}
+.rcpt .hd .cell{padding:14px 16px;border-right:1px solid var(--rule)}
+.rcpt .hd .cell:last-child{border-right:0;background:var(--ink-950);color:#fff}
+.rcpt .hd .k{font-family:"Geist Mono",monospace;font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:var(--ink-500);margin-bottom:4px}
+.rcpt .hd .cell:last-child .k{color:var(--ink-400)}
+.rcpt .hd .v{font-family:"Geist Mono",monospace;font-size:13px;font-weight:600;letter-spacing:0.04em;color:var(--ink-900)}
+.rcpt .hd .cell:last-child .v{color:#fff;letter-spacing:0.16em;text-transform:uppercase;font-size:14px}
+.rcpt .hd .sub{display:block;font-family:"Geist",sans-serif;font-size:10.5px;color:var(--ink-500);margin-top:3px;font-weight:400}
+.rcpt .hd .cell:last-child .sub{color:var(--ink-400)}
+.rcpt .verd{padding:11px 16px;display:flex;justify-content:space-between;align-items:center;font-family:"Geist Mono",monospace;font-size:10.5px;letter-spacing:0.12em;text-transform:uppercase;border-bottom:1px solid var(--rule)}
+.rcpt .verd .lead{display:flex;align-items:center;gap:14px}
+.rcpt .verd .pill{padding:4px 10px;background:var(--ink-950);color:#fff;letter-spacing:0.16em;font-weight:600}
+.rcpt .verd .meta{color:var(--ink-500);letter-spacing:0.06em}
+
+.rcpt .lin{display:grid;grid-template-columns:repeat(6,1fr);border-bottom:1px solid var(--rule)}
+.rcpt .lin .c{padding:11px 14px;border-right:1px solid var(--rule)}
+.rcpt .lin .c:last-child{border-right:0}
+.rcpt .lin .k{font-family:"Geist Mono",monospace;font-size:8.5px;letter-spacing:0.18em;text-transform:uppercase;color:var(--ink-500);margin-bottom:4px}
+.rcpt .lin .v{font-family:"Geist Mono",monospace;font-size:10.5px;color:var(--ink-900);font-weight:500;letter-spacing:0.04em;line-height:1.25}
+.rcpt .lin .v .sub{display:block;font-family:"Geist",sans-serif;font-size:9.5px;color:var(--ink-500);margin-top:2px;font-weight:400}
+.own-c{font-family:"Geist Mono",monospace;font-size:9px;text-transform:uppercase;letter-spacing:0.10em;display:inline-flex;align-items:center;gap:4px;padding:2px 6px;font-weight:500;background:var(--ink-900);color:#fff}
+.own-c .d{width:4px;height:4px;background:#fff;border-radius:50%}
+.chip-s{display:inline-flex;align-items:center;gap:4px;padding:2px 6px;border:1px solid var(--ink-900);font-family:"Geist Mono",monospace;font-size:9px;text-transform:uppercase;letter-spacing:0.10em;color:var(--ink-900);font-weight:500}
+.chip-s .d{width:4px;height:4px;background:var(--ink-900);border-radius:50%}
+
+.rcpt .crypto{display:grid;grid-template-columns:repeat(4,1fr);border-bottom:1px solid var(--rule);background:var(--ink-50)}
+.rcpt .crypto .c{padding:10px 14px;border-right:1px solid var(--rule)}
+.rcpt .crypto .c:last-child{border-right:0}
+.rcpt .crypto .k{font-family:"Geist Mono",monospace;font-size:8.5px;letter-spacing:0.18em;text-transform:uppercase;color:var(--ink-500);margin-bottom:3px}
+.rcpt .crypto .v{font-family:"Geist Mono",monospace;font-size:10.5px;color:var(--ink-900);font-weight:500;letter-spacing:0.04em}
+.rcpt .crypto .ok{display:inline-block;margin-top:5px;padding:1px 5px;background:var(--ink-900);color:#fff;font-size:8.5px;letter-spacing:0.10em;text-transform:uppercase;font-weight:600}
+.rcpt .crypto .defer{background:transparent;color:var(--ink-500);border:1px dashed var(--ink-400);font-weight:500}
+
+.rcpt .claim{padding:14px 16px;border-bottom:1px solid var(--rule)}
+.rcpt .claim .ey{font-family:"Geist Mono",monospace;font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:var(--ink-500);margin-bottom:5px;font-weight:500}
+.rcpt .claim .body{font-size:12.5px;color:var(--ink-900);line-height:1.5}
+.rcpt .claim .body strong{font-weight:500;color:var(--ink-950)}
+.rcpt .claim .kv{display:grid;grid-template-columns:repeat(4,1fr);gap:0;margin-top:10px;border-top:1px solid var(--rule);padding-top:10px}
+.rcpt .claim .kv .c{padding:0 12px;border-right:1px solid var(--rule)}
+.rcpt .claim .kv .c:first-child{padding-left:0}
+.rcpt .claim .kv .c:last-child{border-right:0}
+.rcpt .claim .kv .k{font-family:"Geist Mono",monospace;font-size:8.5px;letter-spacing:0.18em;text-transform:uppercase;color:var(--ink-500);margin-bottom:3px;font-weight:500}
+.rcpt .claim .kv .v{font-family:"Geist Mono",monospace;font-size:10.5px;color:var(--ink-900);font-weight:500;letter-spacing:0.04em;line-height:1.25}
+.rcpt .claim .kv .v .sub{display:block;font-family:"Geist",sans-serif;font-size:9.5px;color:var(--ink-500);margin-top:2px;font-weight:400}
+
+.rcpt .cust{background:var(--ink-950);color:#fff;padding:14px 16px}
+.rcpt .cust .ey{font-family:"Geist Mono",monospace;font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:var(--ink-400);margin-bottom:8px;display:flex;justify-content:space-between}
+.rcpt .cust .ey strong{color:#fff;font-weight:500}
+.rcpt .cust .chain{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-family:"Geist Mono",monospace;font-size:10.5px}
+.rcpt .cust .tok{padding:3px 7px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.20);color:#fff}
+.rcpt .cust .tok.head{background:#fff;color:var(--ink-950);border-color:#fff;font-weight:600}
+.rcpt .cust .tok.gap{background:transparent;border-style:dashed;color:var(--ink-400)}
+.rcpt .cust .arr{color:var(--ink-500)}
+
+.rcpt .ft{padding:10px 16px;background:var(--ink-0);font-family:"Geist Mono",monospace;font-size:9.5px;letter-spacing:0.04em;color:var(--ink-500);display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;border-top:1px solid var(--ink-900)}
+.rcpt .ft strong{color:var(--ink-900);font-weight:500}
+
+/* ----- Degraded variants ----- */
+.rcpt[data-mode="A"]{border-color:var(--ink-400);border-style:dashed}
+.rcpt[data-mode="A"] .verd .pill{background:transparent;color:var(--ink-900);border:1px dashed var(--ink-400);font-weight:500}
+.rcpt[data-mode="A"] .hd .cell:last-child{background:var(--paper);color:var(--ink-900);border-left:1px dashed var(--ink-400)}
+.rcpt[data-mode="A"] .hd .cell:last-child .v{color:var(--ink-900);font-weight:500}
+.rcpt[data-mode="A"] .hd .cell:last-child .k,.rcpt[data-mode="A"] .hd .cell:last-child .sub{color:var(--ink-500)}
+
+.rcpt[data-mode="B"] .verd .pill{background:transparent;color:var(--ink-900);border:1px solid var(--ink-700)}
+.rcpt[data-mode="B"] .hd .cell:last-child{background:var(--ink-0);color:var(--ink-900);border-left:1px solid var(--ink-700)}
+.rcpt[data-mode="B"] .hd .cell:last-child .v{color:var(--ink-900)}
+.rcpt[data-mode="B"] .hd .cell:last-child .k,.rcpt[data-mode="B"] .hd .cell:last-child .sub{color:var(--ink-500)}
+
+.rcpt[data-mode="C"] .verd{background:var(--ink-900);color:#fff}
+.rcpt[data-mode="C"] .verd .pill{background:#fff;color:var(--ink-950)}
+.rcpt[data-mode="C"] .verd .meta{color:var(--ink-400)}
+.rcpt[data-mode="C"] .hd .cell:last-child{background:var(--ink-900)}
+
+.rcpt[data-mode="D"]{border-width:2px}
+.rcpt[data-mode="D"] .verd .pill{background:var(--ink-950);color:#fff}
+
+.rcpt[data-mode="E"]{border-color:var(--ink-950)}
+.rcpt[data-mode="E"] .verd{background:var(--ink-950);color:#fff}
+.rcpt[data-mode="E"] .verd .pill{background:transparent;color:#fff;border:1px solid #fff}
+.rcpt[data-mode="E"] .verd .meta{color:var(--ink-400)}
+.rcpt[data-mode="E"] .hd .cell:last-child{background:var(--ink-950)}
+.rcpt[data-mode="E"] .crypto .ok{background:transparent;color:var(--ink-500);border:1px dashed var(--ink-400);font-weight:500}
+
+/* Mode label strip above each variant */
+.mlabel{display:flex;align-items:center;gap:10px;padding:8px 12px;font-family:"Geist Mono",monospace;font-size:9.5px;letter-spacing:0.18em;text-transform:uppercase;color:var(--ink-500);border:1px solid var(--rule);background:var(--ink-50);border-bottom:0}
+.mlabel strong{color:var(--ink-900);font-weight:600;letter-spacing:0.18em}
+.mlabel .glyph{display:inline-grid;place-items:center;width:18px;height:18px;font-size:10px;letter-spacing:0;font-weight:600;background:var(--ink-950);color:#fff}
+.mlabel[data-mode="A"] .glyph{background:transparent;color:var(--ink-700);border:1.5px dashed var(--ink-400)}
+.mlabel[data-mode="B"] .glyph{background:transparent;color:var(--ink-900);border:1.5px solid var(--ink-700)}
+.mlabel[data-mode="C"] .glyph{background:var(--ink-900);color:#fff}
+.mlabel[data-mode="D"] .glyph{background:var(--ink-950);color:#fff}
+.mlabel[data-mode="E"] .glyph{background:var(--ink-950);color:#fff;border:1px solid #fff;outline:1px solid var(--ink-950)}
+
+.variants{display:grid;gap:18px}
+
+/* Score */
+.score{border:1px solid var(--ink-900);background:var(--ink-0);display:grid;grid-template-columns:220px 1fr 240px}
+.score .head{background:var(--ink-950);color:#fff;padding:16px 20px}
+.score .head .lb{font-family:"Geist Mono",monospace;font-size:9.5px;letter-spacing:0.18em;text-transform:uppercase;color:var(--ink-400)}
+.score .head .val{font-family:"Geist Mono",monospace;font-size:38px;font-weight:600;margin-top:4px;line-height:1}
+.score .head .val .of{font-size:18px;color:var(--ink-400)}
+.score .head .sub{font-size:10.5px;color:var(--ink-300);margin-top:6px;font-family:"Geist Mono",monospace}
+.score .body{padding:14px 16px;display:grid;grid-template-columns:repeat(3,1fr);border-right:1px solid var(--rule)}
+.score .ax{border-right:1px solid var(--rule);padding:0 14px}
+.score .ax:last-child{border-right:0}
+.score .ax .k{font-family:"Geist Mono",monospace;font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:var(--ink-500);margin-bottom:6px}
+.score .ax .v{font-family:"Geist Mono",monospace;font-size:20px;font-weight:600;color:var(--ink-900);line-height:1}
+.score .ax .v .of{font-size:11px;color:var(--ink-400)}
+.score .ax .nm{font-size:11px;color:var(--ink-700);margin-top:8px}
+.score .verdict{padding:14px 18px;background:var(--ink-50)}
+.score .verdict .k{font-family:"Geist Mono",monospace;font-size:9.5px;letter-spacing:0.18em;text-transform:uppercase;color:var(--ink-500)}
+.score .verdict .v{font-family:"Geist Mono",monospace;font-size:13px;letter-spacing:0.12em;text-transform:uppercase;color:var(--ink-900);margin-top:4px;font-weight:600}
+.score .verdict .sub{font-size:11px;color:var(--ink-600);margin-top:8px;line-height:1.4}
+
+.note{border:1px solid var(--rule);background:var(--ink-0);padding:16px 20px;font-size:12.5px;line-height:1.55;color:var(--ink-700)}
+.note .h{font-family:"Geist Mono",monospace;font-size:9.5px;letter-spacing:0.18em;text-transform:uppercase;color:var(--ink-900);font-weight:600;margin-bottom:6px}
+.note ul{margin:0;padding-left:1.1em}
+.note li{margin-bottom:5px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media (max-width:1100px){.two{grid-template-columns:1fr}}
+
+.foot{max-width:1400px;margin:32px auto 0;padding:16px 28px;border-top:2px solid var(--ink-950);border-bottom:1px solid var(--ink-900);background:var(--ink-0);font-family:"Geist Mono",monospace;font-size:10.5px;color:var(--ink-500);display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap}
+.foot strong{color:var(--ink-900);font-weight:500}
+</style>
+</head>
+<body>
+
+<!-- Document control -->
+<div class="t-doc">
+  <div class="in">
+    <div class="cell form">
+      <div class="g"><span class="glyph">D</span><span class="nm">VitalCV · Doctrine</span></div>
+      <div class="title">Receipt reading doctrine</div>
+    </div>
+    <div class="cell"><div class="k">Form</div><div class="v">VCV-DOC-002<span class="sub">controlled doctrine</span></div></div>
+    <div class="cell"><div class="k">Revision</div><div class="v">r.1.0<span class="sub">effective 2026-05-12</span></div></div>
+    <div class="cell"><div class="k">Controller</div><div class="v">did:web:vitalcv.health<span class="sub">signer of record</span></div></div>
+    <div class="cell"><div class="k">Audience</div><div class="v">Reviewers · auditors<span class="sub">non-engineer</span></div></div>
+    <div class="cell" style="border-left:0;">
+      <div class="stamp" data-state="doctrine"><span class="lb">document class</span><span class="v">doctrine</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- Masthead -->
+<div class="mast">
+  <div class="l1">Receipt reading doctrine · audit-grade artifact contract</div>
+  <h1>A VitalCV receipt is a signed operational manifest — not a confirmation page.</h1>
+  <div class="l2">This document codifies how a VitalCV receipt must read to a credentialing director, an NCQA file reviewer, or an auditor in cryptographic verification. Twelve rules. One scan-order trace. Five degraded receipt variants. The rules govern application; the canon (<strong>Trust Primitives</strong>) governs vocabulary.</div>
+</div>
+
+<div class="wrap">
+
+<!-- ============================ -->
+<!-- 01 · TWELVE RULES               -->
+<!-- ============================ -->
+<div class="sh"><span class="n">01 ·</span><h2>Twelve rules of receipt reading</h2><span class="ey">doctrine · binding on every receipt surface</span></div>
+<div class="doctrine">
+
+  <div class="rule"><div class="n">R-01 · Verdict before content</div><h3>Trust must establish before claim prose renders.</h3><p>The verdict pill, receipt-ID, and state stamp occupy the head row. No subject content reads above them. A reviewer who stops reading at the head row must still leave with a defensible verdict.</p><div class="out">outcome · 0.8 s to verdict</div></div>
+
+  <div class="rule"><div class="n">R-02 · Identity is triplicated</div><h3>Receipt-ID renders three times — head, lineage, chain.</h3><p>Receipt-ID renders at the head row, again on the lineage rail as <code>run_id</code>, and again on the chain-of-custody as the head node. Three independent confirmations of the same evidentiary anchor.</p><div class="out">outcome · re-derivation possible from any one</div></div>
+
+  <div class="rule"><div class="n">R-03 · Issuer ≠ authority</div><h3>VitalCV signs the attestation. It does not own the underlying facts.</h3><p>The sealed-attestation paragraph names the issuer in monospace and the sources in separated KV cells. The distinction is stated in plain English on the artifact, not in a footnote.</p><div class="out">outcome · provenance unambiguous</div></div>
+
+  <div class="rule"><div class="n">R-04 · Cryptographic plane is inverted</div><h3>Signed-tone surfaces render ink-950 with white identifiers.</h3><p>Chain-of-custody, state stamp, verdict pill on a signed receipt — all render inverted. Holder-side and source-side surfaces render on paper. Tone signals trust plane, not aesthetic.</p><div class="out">outcome · plane legible at 1 m</div></div>
+
+  <div class="rule"><div class="n">R-05 · Six slots, fixed order</div><h3>OBJECT → OWNERSHIP → CHECKED_AT → CHANNEL → REPLAY → RUN_ID.</h3><p>Every lineage rail renders these six in this order. A reviewer learns the order once, applies it everywhere. The tick rail beneath the cells (01–06) teaches the order without explanation.</p><div class="out">outcome · taught surface · learned once</div></div>
+
+  <div class="rule"><div class="n">R-06 · Timestamps are ISO 8601 UTC</div><h3>Z-suffix on the artifact. Sans "X ago" beneath, for humans.</h3><p>Monospace ISO 8601 with Z is the auditable form. Sans relative time is the reviewer's aid. Both render. Neither replaces the other.</p><div class="out">outcome · forensic + human in one cell</div></div>
+
+  <div class="rule"><div class="n">R-07 · Gaps are named, never elided</div><h3>A missing record is a dashed empty record with named cause and owner.</h3><p>Continuity is asserted by rendering what is absent, not by skipping over it. Every gap carries an upstream owner (CMS, OIG, board) and a recovery anchor (next σ-ok node).</p><div class="out">outcome · degradation auditable</div></div>
+
+  <div class="rule"><div class="n">R-08 · σ is per-node, not per-receipt</div><h3>Every evidentiary record carries its own σ verdict.</h3><p>A receipt with one σ-defer node and thirteen σ-ok nodes is not "signed." It is "13 of 14 signed · 1 deferred." σ is per-node so degradation cannot hide inside a summary.</p><div class="out">outcome · σ-defer cannot collapse into success</div></div>
+
+  <div class="rule"><div class="n">R-09 · Re-verification on the artifact</div><h3>Every receipt names its offline re-derivation path.</h3><p>The footer carries the verify URL <em>and</em> the CLI invocation. <code>vitalcv-verify --offline</code>. The artifact survives skepticism without VitalCV in the room.</p><div class="out">outcome · re-derivable offline</div></div>
+
+  <div class="rule"><div class="n">R-10 · No celebratory affordances</div><h3>"Verified" is a fact, not a milestone.</h3><p>No check-mark icons in paper register. No green. No animation. No "Success!" toast. The state stamp's typographic weight does the work. Celebration breaks the audit register.</p><div class="out">outcome · no SaaS confirmation chrome</div></div>
+
+  <div class="rule"><div class="n">R-11 · Mode D is success, not absence</div><h3>"0 records · no adverse findings" reads as <strong>affirmative negative</strong>.</h3><p>Heavy 2 px border. Filled check glyph. Inline count pill (<code>0 RECORDS</code>). Success token in the eyebrow. A reviewer cannot mistake Mode D for Mode A.</p><div class="out">outcome · D ≠ A under speed</div></div>
+
+  <div class="rule"><div class="n">R-12 · Document control before content</div><h3>Form number, revision, effective date, controller, classification render first.</h3><p>The artifact is under document control before it is in use. NCQA · Federal Register · FAA logbook precedent. Reviewer establishes regulated-artifact register in the first 2 seconds.</p><div class="out">outcome · institutional register · 2 s</div></div>
+
+</div>
+
+<!-- ============================ -->
+<!-- 02 · SCAN ORDER TRACE           -->
+<!-- ============================ -->
+<div class="sh"><span class="n">02 ·</span><h2>Scan-order trace</h2><span class="ey">cold first read · credentialing director · 30 s target</span></div>
+<div class="trace">
+  <header class="cap"><span><strong>Receipt scan order</strong> · 11 fixations · 30 s budget</span><span class="meta">target met at fixation 11 · 28.4 s</span></header>
+  <table>
+    <thead>
+      <tr><th style="width:48px;">#</th><th style="width:140px;">elapsed</th><th style="width:200px;">fixation target</th><th>what the reviewer learns</th><th style="width:100px;">rule</th></tr>
+    </thead>
+    <tbody>
+      <tr><td class="ix">01</td><td>0.8 s</td><td>Verdict pill</td><td>Receipt is verifiable. Outcome state established.</td><td>R-01</td></tr>
+      <tr><td class="ix">02</td><td>1.4 s</td><td>State stamp</td><td>Document under control. Signed plane.</td><td>R-12</td></tr>
+      <tr><td class="ix">03</td><td>2.1 s</td><td>Receipt-ID (head)</td><td>This evidence record has an identifier. Re-derivation feasible.</td><td>R-02</td></tr>
+      <tr><td class="ix">04</td><td>3.2 s</td><td>Document-control band</td><td>Form VCV-RCPT-001 · revision · controller. Regulated artifact register.</td><td>R-12</td></tr>
+      <tr><td class="ix">05</td><td>6.9 s</td><td>Lineage rail · 6 cells</td><td>OBJECT · OWNERSHIP · CHECKED_AT · CHANNEL · REPLAY · RUN_ID.</td><td>R-05</td></tr>
+      <tr><td class="ix">06</td><td>10.2 s</td><td>Cryptographic block</td><td>DID · kid · hash · status. Issuer continuity confirmed.</td><td>R-04</td></tr>
+      <tr><td class="ix">07</td><td>14.6 s</td><td>Sealed-attestation prose</td><td>Issuer ≠ authority. Sources named separately.</td><td>R-03</td></tr>
+      <tr><td class="ix">08</td><td>18.4 s</td><td>Source KV cells</td><td>CA Medical Board · OIG · DEA · UCSF. Each source by domain.</td><td>R-03</td></tr>
+      <tr><td class="ix">09</td><td>21.0 s</td><td>Chain-of-custody</td><td>Hash-linked. Every node σ-ok. TSA-anchored.</td><td>R-08</td></tr>
+      <tr><td class="ix">10</td><td>24.3 s</td><td>TSA anchor</td><td>did:web:tsa.vitalcv.health · RFC 3161. Independent timestamping.</td><td>R-09</td></tr>
+      <tr><td class="ix">11</td><td>28.4 s</td><td>Verify CLI · footer</td><td>vitalcv-verify --offline. Re-derivable without VitalCV.</td><td>R-09</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ============================ -->
+<!-- 03 · DEGRADED RECEIPT VARIANTS  -->
+<!-- ============================ -->
+<div class="sh"><span class="n">03 ·</span><h2>Five degraded receipt variants</h2><span class="ey">A · B · C · D · E · same artifact under each failure mode</span></div>
+
+<div class="variants">
+
+  <!-- Mode A · source unreachable -->
+  <div>
+    <div class="mlabel" data-mode="A"><span class="glyph">A</span><span><strong>Mode A · source unreachable</strong> — upstream timeout · stale-but-signed · cause attributed</span></div>
+    <div class="rcpt" data-mode="A">
+      <div class="hd">
+        <div class="cell"><div class="k">Receipt</div><div class="v">cb2f…7a90<span class="sub">VCV-RCPT-001 · stale-but-signed</span></div></div>
+        <div class="cell"><div class="k">Subject</div><div class="v">NPI 1356428912<span class="sub">Mira Chen, MD</span></div></div>
+        <div class="cell"><div class="k">checked_at</div><div class="v">2026-05-10T08:14:02Z<span class="sub">stale · last fresh 5 m 12 s</span></div></div>
+        <div class="cell"><div class="k">State</div><div class="v">SNAPSHOT<span class="sub">σ defer · 1 source</span></div></div>
+      </div>
+      <div class="verd"><span class="lead"><span class="pill">Stale-but-signed</span><span class="meta">σ 3 of 4 · 1 deferred · chain intact</span></span><span class="meta">cause · CMS PECOS timeout 5.8 s</span></div>
+      <div class="lin">
+        <div class="c"><div class="k">Object</div><div class="v">Credentialing<span class="sub">3 of 4 fresh</span></div></div>
+        <div class="c"><div class="k">Ownership</div><div class="v" style="padding-top:1px;"><span class="own-c"><span class="d"></span>Subject</span></div></div>
+        <div class="c"><div class="k">checked_at</div><div class="v">08:14:02Z<span class="sub">2026-05-10</span></div></div>
+        <div class="c"><div class="k">Channel</div><div class="v">verify<span class="sub">vitalcv.health</span></div></div>
+        <div class="c"><div class="k">Replay</div><div class="v" style="padding-top:1px;"><span class="chip-s" style="border-style:dashed;color:var(--ink-700);"><span class="d" style="background:var(--ink-500);"></span>deferred</span></div></div>
+        <div class="c"><div class="k">run_id</div><div class="v">cb2f…7a90</div></div>
+      </div>
+      <div class="crypto">
+        <div class="c"><div class="k">issuer</div><div class="v">did:web:vitalcv.health</div><span class="ok">continuous</span></div>
+        <div class="c"><div class="k">kid</div><div class="v">6f0e…1d22</div><span class="ok">σ ok</span></div>
+        <div class="c"><div class="k">PECOS · DEA</div><div class="v" style="color:var(--ink-700);">— timeout —</div><span class="ok defer">σ defer</span></div>
+        <div class="c"><div class="k">status-list</div><div class="v">not revoked</div><span class="ok">200 OK</span></div>
+      </div>
+      <div class="claim">
+        <div class="ey">Sealed attestation · degraded</div>
+        <div class="body">VitalCV attests, under its issuer signature, to the freshness of <strong>3 of 4</strong> credentialing claims for NPI 1356428912 as of <strong>2026-05-10T08:14:02Z</strong>. The DEA registration claim could not be refreshed from <strong>CMS PECOS</strong> within the policy window (5.8 s timeout); the last-known-fresh value is rendered with σ-defer until upstream recovery. <strong>VitalCV is the signer; CMS PECOS is the source of record</strong> for the deferred claim.</div>
+      </div>
+      <div class="cust">
+        <div class="ey"><strong>Chain · σ defer at #11</strong><span>head 7a2c…b8d3 · TSA anchored</span></div>
+        <div class="chain"><span class="tok head">cb2f…7a90 head</span><span class="arr">←</span><span class="tok">2a17…0e8b</span><span class="arr">←</span><span class="tok">f10c…3b44</span><span class="arr">←</span><span class="tok">e004…51c9 origin</span></div>
+      </div>
+      <div class="ft"><span><strong>Owner of degradation</strong> · CMS PECOS</span><span><strong>Recovery</strong> · refresh at #10 · 09:01:14Z · 47 m 12 s</span><span><strong>Verify</strong> · vitalcv-verify --subject 1356428912 --offline</span></div>
+    </div>
+  </div>
+
+  <!-- Mode B · auth restricted -->
+  <div>
+    <div class="mlabel" data-mode="B"><span class="glyph">B</span><span><strong>Mode B · auth restricted</strong> — anonymous channel · policy gate · no claim assertion</span></div>
+    <div class="rcpt" data-mode="B">
+      <div class="hd">
+        <div class="cell"><div class="k">Receipt</div><div class="v">f4a9…8c11<span class="sub">VCV-RCPT-001 · restricted</span></div></div>
+        <div class="cell"><div class="k">Subject</div><div class="v">NPI 1356428912<span class="sub">name withheld · anonymous</span></div></div>
+        <div class="cell"><div class="k">checked_at</div><div class="v">2026-05-12T14:31:58Z<span class="sub">12 s ago</span></div></div>
+        <div class="cell"><div class="k">State</div><div class="v">PREVIEW<span class="sub">policy gate</span></div></div>
+      </div>
+      <div class="verd"><span class="lead"><span class="pill">Restricted</span><span class="meta">σ n/a · no claim asserted · public channel</span></span><span class="meta">policy · subject not authenticated</span></div>
+      <div class="lin">
+        <div class="c"><div class="k">Object</div><div class="v">Preview<span class="sub">unbound exploratory</span></div></div>
+        <div class="c"><div class="k">Ownership</div><div class="v" style="padding-top:1px;"><span class="chip-s" style="border-style:dashed;color:var(--ink-700);"><span class="d" style="background:transparent;border:1px solid var(--ink-500);"></span>unbound</span></div></div>
+        <div class="c"><div class="k">checked_at</div><div class="v">14:31:58Z<span class="sub">2026-05-12</span></div></div>
+        <div class="c"><div class="k">Channel</div><div class="v">public<span class="sub">unauthenticated</span></div></div>
+        <div class="c"><div class="k">Replay</div><div class="v" style="padding-top:1px;color:var(--ink-500);font-family:'Geist',sans-serif;">none</div></div>
+        <div class="c"><div class="k">run_id</div><div class="v">f4a9…8c11</div></div>
+      </div>
+      <div class="claim">
+        <div class="ey">Sealed attestation · restricted</div>
+        <div class="body">VitalCV makes <strong>no attestation</strong> regarding subject NPI 1356428912 on this preview receipt. The public channel does not authenticate the requester; per policy <code>VCV-POL-003</code>, no signed claim renders. <strong>This is not a degraded signed receipt — it is a non-receipt</strong> issued to make the policy gate visible.</div>
+      </div>
+      <div class="ft"><span><strong>Policy gate</strong> · VCV-POL-003 · subject not authenticated</span><span><strong>Path forward</strong> · subject signs in at clinician.vitalcv.health</span><span><strong>Verify</strong> · n/a — no claim asserted</span></div>
+    </div>
+  </div>
+
+  <!-- Mode C · infrastructure outage -->
+  <div>
+    <div class="mlabel" data-mode="C"><span class="glyph">C</span><span><strong>Mode C · infrastructure outage</strong> — VitalCV-side · no receipt issued · status page link</span></div>
+    <div class="rcpt" data-mode="C">
+      <div class="hd">
+        <div class="cell"><div class="k">Receipt</div><div class="v" style="color:var(--ink-500);">— not issued —<span class="sub">VCV-RCPT-001 · suppressed</span></div></div>
+        <div class="cell"><div class="k">Subject</div><div class="v">NPI 1356428912<span class="sub">request received</span></div></div>
+        <div class="cell"><div class="k">attempted_at</div><div class="v">2026-05-12T14:31:58Z<span class="sub">12 s ago</span></div></div>
+        <div class="cell"><div class="k">State</div><div class="v">SUPPRESSED<span class="sub">VitalCV-side</span></div></div>
+      </div>
+      <div class="verd"><span class="lead"><span class="pill">Outage</span><span class="meta">no receipt · vitalcv signing pool unavailable</span></span><span class="meta">status.vitalcv.health · incident INC-2026-0512-07</span></div>
+      <div class="claim">
+        <div class="ey">Sealed attestation · outage</div>
+        <div class="body">VitalCV's signing pool is currently unavailable. <strong>No receipt was issued</strong> for the request to NPI 1356428912 at 14:31:58Z. The verifier should re-request after incident <code>INC-2026-0512-07</code> closes. <strong>This page is itself not signed</strong> — it is an operational notification, not an attestation. Distinguish from Mode E, where the issuer's <em>cryptographic identity</em> is in question.</div>
+      </div>
+      <div class="ft"><span><strong>Owner</strong> · VitalCV operations</span><span><strong>Status</strong> · status.vitalcv.health/INC-2026-0512-07</span><span><strong>Re-request</strong> · after incident close</span></div>
+    </div>
+  </div>
+
+  <!-- Mode D · no adverse findings -->
+  <div>
+    <div class="mlabel" data-mode="D"><span class="glyph">D</span><span><strong>Mode D · no adverse findings</strong> — 0 records is a verified outcome, not a failure</span></div>
+    <div class="rcpt" data-mode="D">
+      <div class="hd">
+        <div class="cell"><div class="k">Receipt</div><div class="v">3b88…04d7<span class="sub">VCV-RCPT-001 · OIG sweep</span></div></div>
+        <div class="cell"><div class="k">Subject</div><div class="v">NPI 1356428912<span class="sub">Mira Chen, MD</span></div></div>
+        <div class="cell"><div class="k">checked_at</div><div class="v">2026-05-12T14:31:58Z<span class="sub">12 s ago</span></div></div>
+        <div class="cell"><div class="k">State</div><div class="v">SIGNED<span class="sub">affirmative negative</span></div></div>
+      </div>
+      <div class="verd" style="background:var(--ink-0);"><span class="lead"><span class="pill">Verifiable · 0 records</span><span class="meta">σ ok · OIG LEIE · affirmative negative · success</span></span><span class="meta" style="font-weight:600;color:var(--ink-900);">D ≠ A — this is a success outcome</span></div>
+      <div class="lin">
+        <div class="c"><div class="k">Object</div><div class="v">OIG LEIE<span class="sub">exclusions registry</span></div></div>
+        <div class="c"><div class="k">Ownership</div><div class="v" style="padding-top:1px;"><span class="own-c"><span class="d"></span>Subject</span></div></div>
+        <div class="c"><div class="k">checked_at</div><div class="v">14:31:58Z<span class="sub">2026-05-12</span></div></div>
+        <div class="c"><div class="k">Channel</div><div class="v">verify<span class="sub">vitalcv.health</span></div></div>
+        <div class="c"><div class="k">Replay</div><div class="v" style="padding-top:1px;"><span class="chip-s"><span class="d"></span>anchored</span></div></div>
+        <div class="c"><div class="k">run_id</div><div class="v">3b88…04d7</div></div>
+      </div>
+      <div class="crypto">
+        <div class="c"><div class="k">issuer</div><div class="v">did:web:vitalcv.health</div><span class="ok">continuous</span></div>
+        <div class="c"><div class="k">kid</div><div class="v">6f0e…1d22</div><span class="ok">σ ok</span></div>
+        <div class="c"><div class="k">OIG · query</div><div class="v">0 records returned</div><span class="ok">200 OK · fresh</span></div>
+        <div class="c"><div class="k">status-list</div><div class="v">not revoked</div><span class="ok">200 OK</span></div>
+      </div>
+      <div class="claim">
+        <div class="ey">Sealed attestation · affirmative negative</div>
+        <div class="body">VitalCV attests, under its issuer signature, that <strong>0 exclusion records</strong> were returned for NPI 1356428912 from the OIG LEIE registry at 2026-05-12T14:31:58Z. <strong>This is not absence of data. This is verified absence of adverse findings.</strong> The registry was queried, responded fresh, and returned no matches. <strong>VitalCV is the signer; OIG is the source of record.</strong></div>
+      </div>
+      <div class="ft"><span><strong>Outcome</strong> · 0 records · no adverse findings</span><span><strong>Source</strong> · oig.hhs.gov/exclusions</span><span><strong>Verify</strong> · vitalcv-verify --offline · expect σ ok · expect count 0</span></div>
+    </div>
+  </div>
+
+  <!-- Mode E · issuer cryptographic outage -->
+  <div>
+    <div class="mlabel" data-mode="E"><span class="glyph">E</span><span><strong>Mode E · issuer cryptographic outage</strong> — signing identity in question · σ-pool unreachable</span></div>
+    <div class="rcpt" data-mode="E">
+      <div class="hd">
+        <div class="cell"><div class="k">Receipt</div><div class="v" style="color:var(--ink-700);">— not signable —<span class="sub">VCV-RCPT-001 · σ withheld</span></div></div>
+        <div class="cell"><div class="k">Subject</div><div class="v">NPI 1356428912<span class="sub">request received</span></div></div>
+        <div class="cell"><div class="k">attempted_at</div><div class="v">2026-05-12T14:31:58Z<span class="sub">12 s ago</span></div></div>
+        <div class="cell"><div class="k">State</div><div class="v">UNSIGNED<span class="sub">cryptographic plane</span></div></div>
+      </div>
+      <div class="verd"><span class="lead"><span class="pill">σ unavailable</span><span class="meta">issuer signing key did not produce signature · backup quorum dispatched</span></span><span class="meta">distinct from C — issuer identity, not infra</span></div>
+      <div class="crypto" style="background:var(--ink-900);color:#fff;">
+        <div class="c" style="border-right-color:rgba(255,255,255,0.15);"><div class="k" style="color:var(--ink-400);">issuer</div><div class="v" style="color:#fff;">did:web:vitalcv.health</div><span class="ok defer">unresolved</span></div>
+        <div class="c" style="border-right-color:rgba(255,255,255,0.15);"><div class="k" style="color:var(--ink-400);">kid · primary</div><div class="v" style="color:#fff;">6f0e…1d22</div><span class="ok defer">σ withheld</span></div>
+        <div class="c" style="border-right-color:rgba(255,255,255,0.15);"><div class="k" style="color:var(--ink-400);">kid · backup</div><div class="v" style="color:#fff;">9b3d…2f08</div><span class="ok defer">arming · 2 of 3</span></div>
+        <div class="c"><div class="k" style="color:var(--ink-400);">status-list</div><div class="v" style="color:#fff;">not revoked</div><span class="ok defer">200 OK</span></div>
+      </div>
+      <div class="claim">
+        <div class="ey">Sealed attestation · σ withheld</div>
+        <div class="body">VitalCV's primary signing key did not produce a signature for the request to NPI 1356428912 at 14:31:58Z. <strong>No receipt may be issued under primary σ.</strong> The backup quorum (2 of 3) has been dispatched per <code>VCV-OP-007</code>. <strong>Distinct from Mode C</strong>: VitalCV's general operational plane is reachable; only the cryptographic plane is degraded. Verifiers should treat this as <strong>do-not-trust-pending-σ</strong>, not as <strong>infrastructure outage</strong>.</div>
+      </div>
+      <div class="ft"><span><strong>Owner</strong> · VitalCV cryptographic plane</span><span><strong>Path</strong> · backup quorum 9b3d…2f08 · ETA 90 s</span><span><strong>Recovery</strong> · re-request after σ recovery</span></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ============================ -->
+<!-- 04 · VERDICT                    -->
+<!-- ============================ -->
+<div class="sh"><span class="n">04 ·</span><h2>Receipt visual maturity verdict</h2><span class="ey">comparator alignment · audit-grade artifact register</span></div>
+
+<div class="two">
+  <div class="note">
+    <div class="h">Comparator alignment · where this register sits</div>
+    <ul>
+      <li><strong>Regulated audit artifacts (NCQA HC-1, Joint Commission file review)</strong> — form-numbered, revision-stamped, controller named, attestation paragraph, sources separately attributed. ✓ matched: document-control band + sealed-attestation prose + source KV cells.</li>
+      <li><strong>Chain-of-custody records (DEA Form 41)</strong> — every transfer signed, no record elision, named recipient. ✓ matched: chain-of-custody render at every receipt, σ pill at every node, gap-named with named owner.</li>
+      <li><strong>Signed operational manifests (Sigstore Cosign, SLSA provenance docs)</strong> — issuer DID, signing key fingerprint, content hash, status, re-derivation invocation. ✓ matched: cryptographic 4-column block + verify CLI on footer.</li>
+      <li><strong>Cryptographic trust documents (RFC 3161 tokens, transparency-log inclusion proofs)</strong> — TSA anchor, inclusion path, head hash, offline re-verification. ✓ matched: TSA anchor on footer, chain-of-custody as inclusion proof, --offline flag exposed.</li>
+    </ul>
+    <p><strong>Verdict</strong>: a VitalCV receipt now reads as the <em>intersection</em> of these four artifact classes — not as any one of them, but as the class that subsumes their evidentiary contracts.</p>
+  </div>
+  <div class="note">
+    <div class="h">Remaining SaaS-like receipt patterns</div>
+    <ul>
+      <li><strong>Three buttons on the live verify-foot</strong> (Verify now · Download VC · Print) — confirmation-page pattern. Reduce to <code>Verify now</code> + <code>Copy CLI</code>. The CLI is the actual audit affordance.</li>
+      <li><strong>"≈ 30 s read time" annotation on the verdict bar</strong> — UX metric in evidentiary chrome. Pedagogy belongs on doctrine; not on the artifact itself. Remove from production receipt.</li>
+      <li><strong>State-stamp duplication</strong> — currently renders in document-control band <em>and</em> in head row. Head-row is canonical (pairs with verdict). Remove from document-control band.</li>
+      <li><strong>"V" glyph on document-control band</strong> — the only piece of decorative branding on otherwise regulated chrome. Replace with form number rendered as 24×24 monospace cell.</li>
+      <li><strong>Inset double-border + perforation strip on the live receipt frame</strong> — printed-certificate ornament. Remove both. Single 1.5 px outer perimeter; single hairline section breaks.</li>
+      <li><strong>"Verifiable" rendered at 18 px monospace bold</strong> — celebratory size jump. Drop to 15 px matching state-stamp weight. Federal Register equivalents render verdict and state stamp at the same scale.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="score">
+  <div class="head">
+    <div class="lb">Receipt maturity</div>
+    <div class="val">92<span class="of">/100</span></div>
+    <div class="sub">audit-grade artifact register · doctrine binding</div>
+  </div>
+  <div class="body">
+    <div class="ax"><div class="k">Provenance</div><div class="v">19<span class="of">/20</span></div><div class="nm">issuer/authority distinction stated in prose · sources separately named</div></div>
+    <div class="ax"><div class="k">Continuity</div><div class="v">18<span class="of">/20</span></div><div class="nm">σ per-node · chain-linked · TSA-anchored · gaps named</div></div>
+    <div class="ax"><div class="k">Degradation</div><div class="v">18<span class="of">/20</span></div><div class="nm">5 modes rendered distinctly · D ≠ A under speed</div></div>
+  </div>
+  <div class="verdict">
+    <div class="k">Verdict</div>
+    <div class="v">Audit-grade</div>
+    <div class="sub">A VitalCV receipt is a signed operational manifest. Strongest surface: Mode D — the only register in this comparator set that renders verified absence of adverse findings as a first-class success, not as null state.</div>
+  </div>
+</div>
+
+<div class="note" style="margin-top:14px;">
+  <div class="h">Strongest audit-grade surface</div>
+  <p>§03 · <strong>Mode D · no adverse findings</strong>. The doctrine's hardest test is whether 0 records reads as a <em>verified outcome</em> rather than as <em>absence of data</em>. NCQA reviewers, OIG auditors, and credentialing directors all know the difference; most SaaS dashboards do not. Mode D renders the affirmative negative with: heavy 2 px artifact border · "Verifiable · 0 records" verdict pill · ink-900 σ-ok pills against the OIG query line · sealed-attestation prose that states <em>"this is not absence of data. this is verified absence of adverse findings"</em> in plain English on the artifact · and a footer that names the expected re-verification outcome (<code>--offline · expect σ ok · expect count 0</code>). A reviewer cannot mistake Mode D for Mode A. The contract is held at the pixel level. <strong>This is the receipt class that proves VitalCV reads as audit infrastructure, not as a verification SaaS.</strong></p>
+</div>
+
+</div>
+
+<div class="foot">
+  <span>VCV-DOC-002 · r.1.0 · effective 2026-05-12 · controlled by did:web:vitalcv.health</span>
+  <span>Doctrine binding · all receipt surfaces</span>
+  <span>Companion · VCV-RCPT-001 (Institutional Receipt) · VCV-LDG-001 (Replay Ledger)</span>
+  <span>page 1 of 1</span>
+</div>
+
+</body>
+</html>

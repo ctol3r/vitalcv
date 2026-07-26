@@ -2,11 +2,15 @@
  * Wave 246: Apply-with-VitalCV — Public Bundle View Page
  *
  * Server component. Fetches the bundle from the backend and renders
- * ApplyBundleView. Shows an expiry/error message if the bundle is invalid.
+ * ApplyBundleView. Malformed or unresolvable bundle ids 404 via notFound()
+ * (see not-found.tsx); expired links and backend failures render
+ * contextual error states.
  */
 
 import type { Metadata } from 'next';
+import { notFound } from 'next/navigation';
 import { ApplyBundleView } from '@/components/apply/ApplyBundleView';
+import { isValidBundleId } from '@/lib/apply/bundle-id';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -95,10 +99,17 @@ async function fetchBundle(bundleId: string): Promise<BundleResult> {
 
 export default async function ApplyBundlePage({ params }: Props) {
   const { bundleId } = await params;
+  if (!isValidBundleId(bundleId)) {
+    notFound();
+  }
+
   const result = await fetchBundle(bundleId);
 
   if (!result.ok) {
-    return <BundleErrorView reason={result.reason} />;
+    if (result.reason === 'not_found') {
+      notFound();
+    }
+    return <BundleErrorView reason={result.reason} retryHref={`/apply/${bundleId}`} />;
   }
 
   return <ApplyBundleView bundle={result.bundle} />;
@@ -106,7 +117,9 @@ export default async function ApplyBundlePage({ params }: Props) {
 
 // ── Error states ──────────────────────────────────────────────────────────────
 
-function BundleErrorView({ reason }: { reason: 'expired' | 'not_found' | 'error' }) {
+function BundleErrorView({ reason, retryHref }: { reason: 'expired' | 'error'; retryHref: string }) {
+  // This is a server component: anchors only, no event handlers. An onClick
+  // here crashes the RSC render and turns every error state into a 500.
   const messages = {
     expired: {
       emoji: '⏱',
@@ -117,21 +130,12 @@ function BundleErrorView({ reason }: { reason: 'expired' | 'not_found' | 'error'
       secondaryLabel: 'Start a new NPI lookup',
       secondaryHref: '/passport',
     },
-    not_found: {
-      emoji: '🔍',
-      title: 'Link not found',
-      body: 'This link is invalid or has been revoked.',
-      primaryLabel: 'Start a new NPI lookup',
-      primaryHref: '/passport',
-      secondaryLabel: null,
-      secondaryHref: null,
-    },
     error: {
       emoji: '⚠️',
       title: 'Connection interrupted',
       body: 'We could not load this passport right now. Try again in a moment.',
       primaryLabel: 'Try again',
-      primaryHref: null, // reload
+      primaryHref: retryHref,
       secondaryLabel: 'Start a new NPI lookup',
       secondaryHref: '/passport',
     },
@@ -146,29 +150,18 @@ function BundleErrorView({ reason }: { reason: 'expired' | 'not_found' | 'error'
         <h1 className="text-xl font-bold text-foreground">{msg.title}</h1>
         <p className="text-sm text-muted-foreground">{msg.body}</p>
         <div className="flex flex-col gap-2 pt-2">
-          {msg.primaryHref ? (
-            <a
-              href={msg.primaryHref}
-              className="inline-flex h-11 w-full items-center justify-center rounded-xl bg-muted border border-border px-6 text-sm font-semibold text-foreground transition-colors hover:bg-muted"
-            >
-              {msg.primaryLabel}
-            </a>
-          ) : (
-            <button
-              onClick={() => window.location.reload()}
-              className="inline-flex h-11 w-full items-center justify-center rounded-xl bg-muted border border-border px-6 text-sm font-semibold text-foreground transition-colors hover:bg-muted"
-            >
-              {msg.primaryLabel}
-            </button>
-          )}
-          {msg.secondaryHref && (
-            <a
-              href={msg.secondaryHref}
-              className="inline-flex h-11 w-full items-center justify-center rounded-xl border border-white/6 px-6 text-sm text-foreground/70 transition-colors hover:text-foreground"
-            >
-              {msg.secondaryLabel}
-            </a>
-          )}
+          <a
+            href={msg.primaryHref}
+            className="inline-flex h-11 w-full items-center justify-center rounded-xl bg-muted border border-border px-6 text-sm font-semibold text-foreground transition-colors hover:bg-muted"
+          >
+            {msg.primaryLabel}
+          </a>
+          <a
+            href={msg.secondaryHref}
+            className="inline-flex h-11 w-full items-center justify-center rounded-xl border border-white/6 px-6 text-sm text-foreground/70 transition-colors hover:text-foreground"
+          >
+            {msg.secondaryLabel}
+          </a>
         </div>
       </div>
     </div>

@@ -18,7 +18,7 @@ export async function GET(
 
   const { appId } = await params;
   const res = await fetch(`${MARKETPLACE_BACKEND}/api/applications/${appId}/workflow`, {
-    headers: buildMarketplaceHeaders(session),
+    headers: await buildMarketplaceHeaders(session),
     cache: 'no-store',
     signal: AbortSignal.timeout(12_000),
   });
@@ -39,7 +39,7 @@ export async function POST(
   const body = await req.text();
   const res = await fetch(`${MARKETPLACE_BACKEND}/api/applications/${appId}/workflow-action`, {
     method: 'POST',
-    headers: buildMarketplaceHeaders(session, { 'Content-Type': 'application/json' }),
+    headers: await buildMarketplaceHeaders(session, { 'Content-Type': 'application/json' }),
     body,
     cache: 'no-store',
     signal: AbortSignal.timeout(12_000),

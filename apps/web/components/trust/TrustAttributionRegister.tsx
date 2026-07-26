@@ -25,12 +25,35 @@ export const TRUST_ATTRIBUTION_DISCLAIMER =
  * here is what state it is in, here is who decides."
  *
  * Truth-contract guarantees (enforced by
- * `apps/web/__tests__/trust-attribution-register.test.tsx`):
+ * `apps/web/__tests__/status-attribution-receipts.test.tsx`):
  *  - Every "Review boundary" cell either says "institution review" or
  *    "n/a" — never "verified", never "cleared", never "approved".
- *  - NPPES rows say `temporarily-unavailable` or `source-backed`
- *    depending on the typical state; OIG / PECOS / STATE_BOARD /
- *    FSMB / NURSYS rows never claim `source-backed`.
+ *  - NPPES rows say `source-backed`; OIG / PECOS / STATE_BOARD /
+ *    FSMB / NURSYS rows never claim `source-backed`. That guarantee is
+ *    unchanged by the 2026-07-25 correction below: `auth-required` is
+ *    still not a claim that anything was retrieved.
+ *
+ *    2026-07-26: the three NPPES rows previously said
+ *    `temporarily-unavailable`, whose meaning is "the source did not
+ *    return a payload on this attempt". That was false and it
+ *    UNDERSTATED a lane that works. Production returns a usable NPPES
+ *    payload on every attempt — `GET /api/passport/npi/<npi>` yields
+ *    `nppes_identity state=checked` with a `checkedAt` in the same
+ *    second as the request, reproducible across NPIs — and the
+ *    registry agrees (`sourceLanes.ts`: lifecycle `active`,
+ *    readCadence `per_request`, "Live NPPES registry lookups").
+ *    `source-backed` means exactly "a primary source returned a usable
+ *    payload for this field", which is the true statement.
+ *
+ *    Note the deliberate asymmetry with `ConnectorMatrix`, which still
+ *    asserts the NPPES row is NOT `source-backed`: that surface is
+ *    connector-level (does a connector exist and run), this one is
+ *    field-level (did we read this field on this request). Both are
+ *    correct at their own altitude; do not "reconcile" them.
+ *  - A row may only say `connector-not-live` when no live upstream
+ *    adapter exists. "Live but gated" is `auth-required` or
+ *    `access-required`. Understating capability is not a safe default
+ *    here — it published a contradiction against `/api/status`.
  *  - The opening disclaimer is the contracted phrase: "We publish the
  *    source of every field. We do not claim HIPAA, SOC 2, or NCQA
  *    certification."
@@ -49,7 +72,7 @@ export const TRUST_ATTRIBUTION_ROWS: ReadonlyArray<AttributionRow> = Object.free
     field: 'Display name',
     source: 'NPPES',
     retrievalTime: 'on Passport read; per request',
-    state: 'temporarily-unavailable',
+    state: 'source-backed',
     reviewBoundary: 'institution review',
   },
   {
@@ -63,28 +86,38 @@ export const TRUST_ATTRIBUTION_ROWS: ReadonlyArray<AttributionRow> = Object.free
     field: 'Identity status',
     source: 'NPPES',
     retrievalTime: 'on Passport read; per request',
-    state: 'temporarily-unavailable',
+    state: 'source-backed',
     reviewBoundary: 'institution review',
   },
   {
     field: 'Taxonomy / specialty',
     source: 'NPPES',
     retrievalTime: 'on Passport read; per request',
-    state: 'temporarily-unavailable',
+    state: 'source-backed',
     reviewBoundary: 'institution review',
   },
   {
+    // Corrected 2026-07-25. These two said `connector not live`, which was
+    // FALSE: `OigLeieAdapter.ts:79` reads the real HHS LEIE CSV unless
+    // `OIG_LEIE_ENABLED === 'false'` (founder-confirmed unset on Railway), and
+    // `fetchPecos` calls the CMS data.gov dataset with no env gate at all. The
+    // connectors ARE live. What is true is that this surface cannot show a
+    // result without a session: `/api/psv/oig/check/[npi]` proxies to the
+    // backend and returns 401 unauthenticated (verified on production).
+    // `auth-required`, not `connector-not-live` — the distinction matters
+    // because "no connector" reads as a capability VitalCV lacks, when the
+    // real boundary is consent and authentication.
     field: 'OIG / LEIE exclusion result',
     source: 'OIG / LEIE',
-    retrievalTime: 'not retrieved (connector not live)',
-    state: 'connector-not-live',
+    retrievalTime: 'not retrieved without sign-in (connector live)',
+    state: 'auth-required',
     reviewBoundary: 'institution review',
   },
   {
     field: 'CMS PECOS enrollment',
     source: 'CMS PECOS',
-    retrievalTime: 'not retrieved (connector not live)',
-    state: 'connector-not-live',
+    retrievalTime: 'not retrieved without sign-in (connector live)',
+    state: 'auth-required',
     reviewBoundary: 'institution review',
   },
   {

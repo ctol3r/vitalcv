@@ -1,6 +1,6 @@
 export type TrustContainerIssuanceStatus = 'issued' | 'not_issued' | 'failed';
-export type TrustContainerProviderKind = 'mock' | 'dock';
-export type TrustContainerEnvironment = 'mock-dev' | 'dock-scaffold';
+export type TrustContainerProviderKind = 'mock' | 'dock' | 'vitalcv';
+export type TrustContainerEnvironment = 'mock-dev' | 'dock-scaffold' | 'vitalcv-signed';
 export type TrustContainerProofTier = 'DECISION_GRADE' | 'PARTIAL' | 'SNAPSHOT' | 'NONE';
 export type TrustContainerProofStatus = 'DECISION_GRADE' | 'PARTIAL' | 'BLOCKED';
 
@@ -75,7 +75,7 @@ function isStringArray(value: unknown): value is string[] {
 }
 
 function isProvider(value: unknown): value is TrustContainerProviderKind {
-  return value === 'mock' || value === 'dock';
+  return value === 'mock' || value === 'dock' || value === 'vitalcv';
 }
 
 function isNullableProvider(value: unknown): value is TrustContainerProviderKind | null | undefined {
@@ -83,7 +83,7 @@ function isNullableProvider(value: unknown): value is TrustContainerProviderKind
 }
 
 function isEnvironment(value: unknown): value is TrustContainerEnvironment {
-  return value === 'mock-dev' || value === 'dock-scaffold';
+  return value === 'mock-dev' || value === 'dock-scaffold' || value === 'vitalcv-signed';
 }
 
 function isNullableEnvironment(value: unknown): value is TrustContainerEnvironment | null | undefined {

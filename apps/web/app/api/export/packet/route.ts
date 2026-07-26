@@ -10,6 +10,7 @@ import {
 } from '@/lib/export/employer-proof-packet';
 import { renderEmployerProofPacketPdf } from '@/lib/export/employer-proof-packet-pdf';
 import { assertPassportData } from '@/lib/trust/passport-contract';
+import { buildIdentityHeaders } from '@/lib/auth/forwardIdentity';
 
 export const runtime = 'nodejs';
 
@@ -77,7 +78,7 @@ export async function GET(req: NextRequest) {
       cache: 'no-store',
       headers: {
         Accept: 'application/json',
-        'x-clerk-user-id': userId,
+        ...(await buildIdentityHeaders({ userId })),
       },
       signal: AbortSignal.timeout(8_000),
     });

@@ -34,6 +34,7 @@ import {
 } from '../../routes/passport';
 import prisma from '../../graphql/prisma_client';
 import { unacknowledgedCount } from '../alerts/trustAlerts';
+import { loadPracticeLocationByNpi, loadSelfReportedByNpi } from './profileEnrichment';
 
 type PassportCredentialSummary = {
   id: string;
@@ -44,8 +45,23 @@ type PassportCredentialSummary = {
   timestamp: string;
 };
 
+/**
+ * Revocation summary for the public passport (additive). `checked: true` means
+ * the artifact ledger was really queried at `checkedAt`; `revokedCount` is the
+ * number of this NPI's verification artifacts that were revoked at the source.
+ * The public verify surface renders this as a VISIBLE step — "None found ·
+ * checked <ts>" or a fail-closed revoked state — instead of the old silent
+ * omission (revoked artifacts used to be filtered out upstream with no trace).
+ */
+export type PassportRevocationSummary = {
+  checked: boolean;
+  revokedCount: number;
+  checkedAt: string | null;
+};
+
 export type PassportDataContract = TrustPassport & {
   credentials: PassportCredentialSummary[];
+  revocation: PassportRevocationSummary;
 };
 
 function dedupeStrings(values: readonly string[]): string[] {
@@ -584,6 +600,32 @@ async function buildMonitoringStatus(npi: string): Promise<MonitoringStatus> {
   };
 }
 
+/**
+ * Count this NPI's revoked verification artifacts — the real check behind the
+ * public verify page's revocation step. Revocation is recorded two ways
+ * (revocationService sets both, but historical rows may carry either):
+ * `lifecycleState: 'revoked'` and/or a non-null `revokedAt`.
+ *
+ * Fail-OPEN on error (`checked: false`): a ledger hiccup must never 500 the
+ * public passport; the verify surface then renders the honest "Not checked"
+ * state rather than inventing a clean result.
+ */
+async function loadRevocationSummaryByNpi(
+  npi: string,
+): Promise<PassportRevocationSummary> {
+  try {
+    const revokedCount = await prisma.verificationArtifact.count({
+      where: {
+        npi,
+        OR: [{ lifecycleState: 'revoked' }, { revokedAt: { not: null } }],
+      },
+    });
+    return { checked: true, revokedCount, checkedAt: new Date().toISOString() };
+  } catch {
+    return { checked: false, revokedCount: 0, checkedAt: null };
+  }
+}
+
 export async function buildPassportDataByNpi(
   npi: string,
 ): Promise<PassportDataContract | null> {
@@ -647,11 +689,22 @@ export async function buildPassportDataByNpi(
   // Wave 245: Build monitoring status
   const monitoring = await buildMonitoringStatus(npi);
 
+  // Profile enrichment — provenance-honest, both fail closed to null:
+  //   practiceLocation = source-backed NPPES claim (VERIFIED)
+  //   selfReported     = clinician-typed education/affiliations (USER_ENTERED)
+  const [practiceLocation, selfReported, revocation] = await Promise.all([
+    loadPracticeLocationByNpi(npi),
+    loadSelfReportedByNpi(npi),
+    loadRevocationSummaryByNpi(npi),
+  ]);
+
   return {
     entityId,
     npi,
     credentials,
     identity,
+    practiceLocation,
+    selfReported,
     authority,
     training,
     standing,
@@ -663,5 +716,6 @@ export async function buildPassportDataByNpi(
     decisionPosture,
     lastCheckedAt: computedLastCheckedAt,
     monitoring,
+    revocation,
   };
 }

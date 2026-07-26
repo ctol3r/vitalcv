@@ -216,6 +216,13 @@ describe('nppes api wrapper', () => {
       factCount: 3,
       rawResponseHash: 'npi-hash-1',
       rawResponse: { results: [] },
+      practiceAddress: null,
+      mailingAddress: null,
+      otherNames: [],
+      endpoints: [],
+      identifiers: [],
+      lastVerifiedAt: '2026-04-06T12:00:00.000Z',
+      provenance: 'https://npiregistry.cms.hhs.gov/api/?version=2.1&number=1234567893',
     });
 
     expect(prismaMock.provider.upsert).toHaveBeenCalledWith({

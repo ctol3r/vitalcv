@@ -5,17 +5,19 @@ import type {
 } from './trustContainerContract';
 import { DockTrustContainer } from './dockTrustContainer';
 import { MockTrustContainer } from './mockTrustContainer';
+import { VitalCvTrustContainer } from './vitalcvTrustContainer';
 
 export * from './trustContainerContract';
 export * from './trustContainerManifest';
 export { DockTrustContainer } from './dockTrustContainer';
 export { MockTrustContainer } from './mockTrustContainer';
+export { VitalCvTrustContainer } from './vitalcvTrustContainer';
 
 function resolveProviderKind(value: string | undefined): TrustContainerProviderKind {
   if (!value) {
     return 'mock';
   }
-  if (value === 'dock' || value === 'mock') {
+  if (value === 'dock' || value === 'mock' || value === 'vitalcv') {
     return value;
   }
   throw new Error(`Unsupported trust container provider: ${value}`);
@@ -33,6 +35,15 @@ export function createTrustContainer(
       apiKey: config?.apiKey ?? process.env.DOCK_API_KEY,
       issuerDid: config?.issuerDid ?? process.env.DOCK_ISSUER_DID,
       network: config?.network ?? process.env.DOCK_NETWORK,
+    });
+  }
+
+  if (providerType === 'vitalcv') {
+    // Missing signing config throws MISSING_CONFIG here; the issuance
+    // path converts that into an explicit `failed` manifest entry —
+    // never a silent mock fallback.
+    return new VitalCvTrustContainer({
+      issuerDid: config?.issuerDid,
     });
   }
 
