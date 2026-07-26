@@ -1,5 +1,5 @@
 import type { NextFunction, Request, Response } from 'express';
-import { SignJWT, generateKeyPair, jwtVerify, type KeyLike } from 'jose';
+import { SignJWT, generateKeyPair, jwtVerify, type CryptoKey } from 'jose';
 import { createVerifiedIdentityMiddleware, type TokenVerifier, type VerifiedAuth } from '../verifiedIdentity';
 
 // G1 header-trust closure (ASVS 14.5.4 / gap register G1,
@@ -24,8 +24,8 @@ jest.mock('../../obs/logger', () => ({
   log: jest.fn(),
 }));
 
-let privateKey: KeyLike;
-let publicKey: KeyLike;
+let privateKey: CryptoKey;
+let publicKey: CryptoKey;
 let verifier: TokenVerifier;
 
 beforeAll(async () => {
