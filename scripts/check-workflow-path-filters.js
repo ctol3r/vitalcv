@@ -52,6 +52,11 @@ const REQUIRED_CHECKS = [
   'Web E2E (Playwright)',
   'Web Quality',
   'check-design-lint',
+  // Promoted to required 2026-07-26, after each ran green on unrelated PRs.
+  // Names are the literal check-run names GitHub recorded on #881 — branch
+  // protection matches on the exact string, and a typo blocks every PR forever.
+  'check-copy-source-liveness',
+  'check-workflow-contract',
 ];
 
 const indentOf = (line) => line.match(/^\s*/)[0].length;
