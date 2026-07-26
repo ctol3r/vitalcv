@@ -182,6 +182,13 @@ export function EvidenceAtmosphere({
         // A record fragment: a thin horizontal strip. Height is fixed and
         // small so it reads as a ruled line from a record, not as a bar chart.
         ctx.fillRect(x, y, pose.width * w, 1.5);
+
+        // The leading tick — a filled rect, never a stroke or path, so the R1
+        // no-graph guard still holds. This is what makes a row read as a
+        // ledger entry instead of a skeleton bar.
+        if (pose.marked) {
+          ctx.fillRect(x, y - 2.5, 1.5, 6.5);
+        }
       }
 
       if (animated) raf = window.requestAnimationFrame(draw);
@@ -222,15 +229,23 @@ export function EvidenceAtmosphere({
         <rect width="1000" height="600" fill="url(#film-core)" />
         {fragments.map((fragment, i) => {
           const pose = fragmentPose(fragment, progress, i, fragments.length, 0);
+          const ink = `rgba(${LANE_INK[pose.lane]}, ${pose.opacity})`;
           return (
-            <rect
-              key={fragment.id}
-              x={pose.x * 1000}
-              y={pose.y * 600}
-              width={pose.width * 1000}
-              height={1.5}
-              fill={`rgba(${LANE_INK[pose.lane]}, ${pose.opacity})`}
-            />
+            <React.Fragment key={fragment.id}>
+              <rect
+                x={pose.x * 1000}
+                y={pose.y * 600}
+                width={pose.width * 1000}
+                height={1.5}
+                fill={ink}
+              />
+              {/* The poster must draw the same tick as the canvas, or the
+                  static tier and the canvas tier are different compositions
+                  and hydration visibly jumps between them. */}
+              {pose.marked ? (
+                <rect x={pose.x * 1000} y={pose.y * 600 - 2.5} width={1.5} height={6.5} fill={ink} />
+              ) : null}
+            </React.Fragment>
           );
         })}
       </svg>

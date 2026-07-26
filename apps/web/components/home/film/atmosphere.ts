@@ -40,6 +40,20 @@ export interface Fragment {
   /** Per-fragment drift phase so the field never pulses in unison. */
   readonly phase: number;
   readonly lane: FragmentLane;
+  /**
+   * Whether this row carries a leading tick — a short mark at its start.
+   *
+   * This is the strongest single cue that separates "record row" from "grey
+   * bar". A bare strip is the loading-skeleton idiom; a strip with a mark at
+   * its head is a ledger entry. Only a MINORITY are marked, because a tick on
+   * every row is just a heavier texture — a few marked entries among plain
+   * rules is what a register actually looks like.
+   *
+   * Deliberately NOT colour. The lanes are ink-only (see LANE_INK): spending
+   * the state palette on decoration devalues the one place green is allowed to
+   * mean that a source returned something (CD-4).
+   */
+  readonly marked: boolean;
 }
 
 export interface FragmentPose {
@@ -48,6 +62,8 @@ export interface FragmentPose {
   readonly width: number;
   readonly opacity: number;
   readonly lane: FragmentLane;
+  /** See `Fragment.marked` — the renderer draws a leading tick when true. */
+  readonly marked: boolean;
 }
 
 /**
@@ -79,7 +95,32 @@ const LANES: readonly FragmentLane[] = Object.freeze([
   'attention',
 ]);
 
-export const DEFAULT_FRAGMENT_COUNT = 64;
+/**
+ * The measures a record row may take, as a fraction of stage width.
+ *
+ * DISCRETE, not continuous — and this is the single most important line in the
+ * file for how the page reads.
+ *
+ * The field previously drew `0.05 + rand() * 0.22`: every strip a different
+ * ragged length. That is precisely the loading-skeleton idiom, and the founder
+ * read the live page exactly as it was drawn — as a page that had failed to
+ * load rather than one that was finished. Ragged reads as broken; ruled reads
+ * as intentional. Real record matter repeats its measures because real records
+ * have columns.
+ */
+const RULED_MEASURES = Object.freeze([0.05, 0.09, 0.14, 0.21]);
+
+/** The rhythm scattered rows snap to, so even the unsettled field looks ruled. */
+const SCATTER_ROWS = 15;
+
+/**
+ * Lowered from 64. With every scene now carrying a real product artifact
+ * (FilmRecord / FilmFit / ProofPacketInspector / FilmSignature), the atmosphere
+ * no longer has to carry a frame on its own — so it can afford to be quieter
+ * and leave more paper. Negative space is only "empty" when nothing else is
+ * there; beside an artifact it reads as composure.
+ */
+export const DEFAULT_FRAGMENT_COUNT = 44;
 export const DEFAULT_SEED = 0x5f1741;
 
 /**
@@ -104,9 +145,11 @@ export function createFragments(
     const toY = 0.16 + (band / (bands - 1)) * 0.68;
     const toX = 0.08 + rand() * 0.06;
     // Scattered: anywhere across the stage, biased right so the field
-    // *travels* leftward into the core as progress advances.
+    // *travels* leftward into the core as progress advances. The Y is SNAPPED
+    // to a rhythm rather than sprayed — scattered evidence is still evidence,
+    // and rows that share baselines read as a record even before they align.
     const fromX = 0.18 + rand() * 0.78;
-    const fromY = rand();
+    const fromY = Math.round(rand() * (SCATTER_ROWS - 1)) / (SCATTER_ROWS - 1);
 
     fragments.push({
       id,
@@ -114,9 +157,12 @@ export function createFragments(
       fromY,
       toX,
       toY,
-      width: 0.05 + rand() * 0.22,
+      width: RULED_MEASURES[Math.floor(rand() * RULED_MEASURES.length)] ?? 0.09,
       phase: rand() * Math.PI * 2,
       lane: LANES[Math.floor(rand() * LANES.length)] ?? 'neutral',
+      // Roughly three rows in ten carry a tick — enough to read as a register,
+      // sparse enough that the marks stay incidents rather than a pattern.
+      marked: rand() < 0.3,
     });
   }
 
@@ -174,6 +220,7 @@ export function fragmentPose(
     // same time. Atmosphere is support for the composition, never its subject.
     opacity: 0.06 + 0.2 * t,
     lane: fragment.lane,
+    marked: fragment.marked,
   };
 }
 
