@@ -12,15 +12,27 @@ name: Design Lint Gate
 # test and runs in the normal vitest suite, not here.
 
 on:
+  # Deliberately NOT path-filtered — `check-design-lint` is a REQUIRED status
+  # check on main, and the two are incompatible.
+  #
+  # A path-filtered workflow is skipped ENTIRELY on a PR touching none of its
+  # paths, so the required check run is never created. A required check that
+  # never reports leaves the PR permanently blocked: `mergeable` stays
+  # MERGEABLE while `mergeStateStatus` is BLOCKED and `gh pr merge` refuses
+  # with "the base branch policy prohibits the merge". `ci.yml` carries the
+  # same comment — that gate hit this on #806 and was de-filtered in #811.
+  # Every backend-only or docs-only PR would hit it here.
+  #
+  # Do NOT "fix" this with a companion workflow on `paths-ignore` reporting the
+  # same job name: `paths` and `paths-ignore` are not exact complements, so a
+  # PR touching both web and non-web files satisfies BOTH and produces two
+  # check runs with one name — which can mask a real failure behind an
+  # always-green stub. (Reasoning copied from ci.yml, same trap.)
+  #
+  # The cost is negligible: this script uses only Node built-ins, needs no
+  # dependency install, and completes in ~8s.
   pull_request:
     branches: [main]
-    paths:
-      - 'apps/web/app/**'
-      - 'apps/web/components/**'
-      - 'apps/web/styles/**'
-      - 'scripts/check-design-lint.ts'
-      - 'scripts/design-lint-baseline.json'
-      - '.github/workflows/design-lint-gate.yml'
 
 env:
   NODE_VERSION: '22'
