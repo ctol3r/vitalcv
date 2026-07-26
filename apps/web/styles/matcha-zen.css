@@ -74,12 +74,44 @@
   --vt-border-subtle: var(--rule-soft);
   --vt-text-primary: var(--ink-900);
   --vt-text-secondary: var(--ink-600);
-  --vt-text-muted: var(--ink-400);
+  /* AUD-2.1: muted TEXT must meet WCAG AA (4.5:1). --ink-400 (oklch 72%) was
+     only ~2.4:1 on paper — unusable for body text, and even below large-text
+     AA. The semantic text token is pinned to an AA-legible ink here; --ink-400
+     itself is unchanged for decorative (aria-hidden) use like dot separators. */
+  --vt-text-muted: oklch(53% 0.008 265);
   --vt-status-resolved: var(--ok);
   --vt-state-verified: var(--ok);
   --vt-risk-high: var(--p0);
   --vt-risk-medium: var(--watch);
   --vt-accent-strong: var(--ink-900);
+}
+
+/**
+ * ── Cloud Dancer public paper (HERO-RESET-1) ─────────────────────────────────
+ * Opt-in paper override for PUBLIC marketing/home surfaces: the page paper is
+ * --vt-cloud-dancer (PANTONE 11-4201 "Cloud Dancer" web approximation — the
+ * physical swatch is the authority; this is a deliberate on-screen match, not
+ * a claimed Pantone conversion). Raised cards get a slightly lighter warm
+ * surface so they never camouflage white-on-off-white, and rules step up in
+ * contrast against the deeper paper. Add `mz-cloud-paper` next to `mz
+ * mz-paper` on a surface root to opt in.
+ *
+ * Scope discipline: `.mz-cloud-paper .mz` re-covers nested `.mz` elements
+ * (the base `.mz` rule re-declares --paper on every one of them), and this
+ * block sits BEFORE the `.dark .mz` block on purpose — equal specificity, so
+ * source order keeps dark mode's own paper authoritative. Signed-in, dark,
+ * admin, and verification surfaces are untouched.
+ */
+.mz-cloud-paper,
+.mz-cloud-paper .mz {
+  --paper: var(--vt-cloud-dancer, #F0EEE9);
+  --paper-2: #E8E5DC;
+  --card: #FBFAF6;
+  --rule: #C9C3B6;
+  --rule-soft: #DAD5C9;
+  /* AA on the deeper paper: the bridge's oklch(53%) muted ink measures ~4.5:1
+     against Cloud Dancer — too thin. One step darker holds ≥4.9:1. */
+  --vt-text-muted: oklch(50% 0.008 265);
 }
 
 /**
@@ -112,6 +144,10 @@
   --rule: #322f29;
   --rule-soft: #262420;
 
+  /* Keep muted TEXT mode-appropriate on dark paper (the light .mz literal above
+     would otherwise leak in). --ink-500 is a legible warm grey on charcoal. */
+  --vt-text-muted: var(--ink-500);
+
   /* Truth states — same hues, lifted foregrounds on deep backgrounds. */
   --ok: #6cc79a;        --ok-bg: #10241a;      --ok-rule: #245c3d;
   --watch: #dab662;     --watch-bg: #241d0f;   --watch-rule: #6b5620;
@@ -136,13 +172,33 @@
   letter-spacing: -0.021em;
   color: var(--ink-950);
 }
+/* The homepage hero only. A modifier rather than a bump to `.mz-display`,
+   which seven other surfaces share at the current scale. The first screen is
+   now single-purpose — one headline, one control, one visual — and at 68px the
+   headline could not carry a full viewport on its own. */
+.mz-display-hero {
+  font-size: clamp(2.75rem, 6.6vw, 5.75rem);
+  letter-spacing: -0.028em;
+}
+
 .mz-accent { font-style: italic; color: var(--accent); }
 
 .mz-h1 { margin: 0; font-family: var(--mz-serif); font-weight: 500; font-size: clamp(1.6rem, 3vw, 2.1rem); line-height: 1.12; letter-spacing: -0.02em; color: var(--ink-950); }
 .mz-h2 { margin: 0; font-weight: 600; font-size: 1.05rem; line-height: 1.25; letter-spacing: -0.01em; color: var(--ink-900); }
 .mz-lede { margin: 0; font-size: 1.0625rem; line-height: 1.55; color: var(--ink-600); }
 .mz-body { margin: 0; font-size: 0.9375rem; line-height: 1.55; color: var(--ink-700); }
-.mz-small { font-size: 0.8125rem; color: var(--ink-500); }
+/* --vt-text-muted, not the raw --ink-500. The raw ramp value is oklch(62%),
+   which measures 3.64:1 on white, 3.49:1 on --card, and 3.14:1 on Cloud
+   Dancer — all below WCAG AA's 4.5:1 for body-size text. The bridge token is
+   the AA-corrected one (53%, and 50% under .mz-cloud-paper): 5.27 / 5.04 /
+   5.19 respectively. This was live on production; CI could not see it because
+   the axe gate whitelists `color-contrast`.
+
+   No var() fallback: --vt-text-muted is scoped to .mz, and every file using
+   .mz-small was checked to carry a .mz root, so it is always in scope. A
+   literal fallback here would also be a raw colour outside the token files,
+   which design-lint LINT-01 correctly rejects. */
+.mz-small { font-size: 0.8125rem; color: var(--vt-text-muted); }
 .mz-mono { font-family: var(--mz-mono); font-variant-numeric: tabular-nums; }
 
 .mz-eyebrow {
@@ -154,9 +210,24 @@
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.22em;
-  color: var(--ink-400);
+  /* AUD-2.1: eyebrows are small (9.5px) informational labels and must meet AA.
+     --ink-400 (oklch 72%) was 2.37:1; the AA-legible muted text token is
+     ~5:1 and stays mode-aware (light/dark). */
+  color: var(--vt-text-muted);
 }
 .mz-eyebrow::after { content: ''; width: 40px; height: 1px; background: var(--rule); }
+
+/* RETIRED 2026-07-25 — do not reintroduce a chapter index here.
+   A numbered 01–06 eyebrow sequence was added on 07-21 to give the body one
+   spine instead of five competing theses. It worked for that, but the
+   competitive mandate (docs/strategy/competitive-mandate.md) had already
+   forbidden it the same day, on two counts:
+     · guardrail 5 — "No visible section taxonomy or generic feature headers."
+     · guardrail 6 — "No marketing-number theatre. No giant counters,
+       steps `01–06`, percentage rings…"
+   The real fix for a body that argues five times is the six-scene horizontal
+   film, where a scene IS the sequence and needs no printed number. Numbering
+   was a symptom-level patch on a composition the mandate retires outright. */
 
 /* ── Buttons ──────────────────────────────────────────────────────────────── */
 
@@ -256,7 +327,9 @@
 .mz-input::placeholder { color: var(--ink-400); }
 
 .mz-field { display: flex; border: 1px solid var(--ink-900); background: var(--card); border-radius: 3px; overflow: hidden; }
-.mz-field .mz-prefix { padding: 0 14px; display: flex; align-items: center; font-family: var(--mz-mono); font-size: 10px; color: var(--ink-500); text-transform: uppercase; letter-spacing: 0.14em; border-right: 1px solid var(--rule); background: var(--ink-50); }
+/* Same AA correction as .mz-small above — and this one is 10px, where the
+   4.5:1 floor applies with no large-text exemption at all. */
+.mz-field .mz-prefix { padding: 0 14px; display: flex; align-items: center; font-family: var(--mz-mono); font-size: 10px; color: var(--vt-text-muted); text-transform: uppercase; letter-spacing: 0.14em; border-right: 1px solid var(--rule); background: var(--ink-50); }
 .mz-field input { flex: 1; border: 0; padding: 13px 15px; font: inherit; font-size: 15px; color: var(--ink-900); background: transparent; outline: none; font-variant-numeric: tabular-nums; }
 
 /* ── Selectable chips (options) ───────────────────────────────────────────── */
@@ -377,6 +450,12 @@
 .mz-reveal { opacity: 0; }
 .mz-reveal.is-in {
   animation: mz-rise var(--mz-rise-dur, 720ms) var(--mz-ease) var(--mz-delay, 0ms) both;
+}
+/* No-JS safety: without scripting the IntersectionObserver never adds .is-in,
+   so reveal content would stay at opacity:0 forever. Force it visible — every
+   chapter must be readable with JS disabled (a homepage fallback requirement). */
+@media (scripting: none) {
+  .mz-reveal { opacity: 1 !important; animation: none !important; }
 }
 .mz-reveal-fade.is-in { animation-name: mz-fade; }
 

@@ -1,0 +1,96 @@
+name: Visual Baselines
+
+# DG-18.3 — regenerate the film's visual-regression baselines ON THE CI
+# PLATFORM and hand them back as an artifact.
+#
+# Why a manual workflow rather than local generation: Playwright names
+# baselines per platform, and font rasterisation on macOS differs enough from
+# ubuntu that a locally-generated set fails every diff on CI. Until this has
+# run once, `film-visual.spec.ts` SKIPS on Linux instead of failing (see
+# `requireBaseline`), so the e2e job stays honest rather than red.
+#
+# Run it from the Actions tab, download `visual-baselines`, unzip into
+# apps/web/tests/e2e/film-visual.spec.ts-snapshots/, and commit. Committing
+# from CI is deliberately not automated: a baseline update is a claim that a
+# visual change was INTENDED, and that claim needs a human and a PR.
+
+on:
+  workflow_dispatch:
+    inputs:
+      spec:
+        description: 'Spec to regenerate baselines for'
+        required: false
+        default: 'tests/e2e/film-visual.spec.ts'
+
+env:
+  NODE_VERSION: '22'
+
+jobs:
+  regenerate:
+    name: regenerate baselines (ubuntu)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # @vitalcv/web's build runs inside playwright's webServer (`preview:e2e`)
+      # and resolves workspace deps from their dist/, so those must exist
+      # first. Without this the build dies on "Can't resolve
+      # '@vitalcv/trust-state'" and the webServer never starts. Mirrors the
+      # e2e job in ci.yml.
+      - name: Build workspace package dependencies
+        run: pnpm turbo build --filter='!@vitalcv/web'
+
+      - name: Install Chromium
+        run: pnpm --filter @vitalcv/web exec playwright install --with-deps chromium
+
+      # Start from nothing so the artifact cannot contain baselines that were
+      # merely checked out. The first run of this workflow reported "6 skipped"
+      # and still uploaded 11 stale files, which looked exactly like success.
+      - name: Clear existing baselines
+        run: rm -rf apps/web/tests/e2e/*.spec.ts-snapshots
+
+      - name: Regenerate baselines
+        env:
+          CI: 'true'
+        run: pnpm --filter @vitalcv/web exec playwright test "${{ inputs.spec }}" --project=chromium --update-snapshots
+
+      # A skipped test writes nothing. Without this the job is green, the
+      # artifact is empty or stale, and the failure is only discovered when the
+      # baselines are committed and enforce nothing.
+      - name: Verify baselines were actually written
+        run: |
+          shopt -s nullglob
+          files=(apps/web/tests/e2e/*.spec.ts-snapshots/*.png)
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "::error::No baselines were written — the specs almost certainly SKIPPED."
+            echo "Check that requireBaseline() stands down when --update-snapshots is set,"
+            echo "and that the harness route is reachable (COMPETE_FILM_PREVIEW=1)."
+            exit 1
+          fi
+          echo "wrote ${#files[@]} baselines:"
+          printf '  %s\n' "${files[@]##*/}"
+          # These must be Linux baselines; a darwin suffix means the platform
+          # tag is not what we think it is and the set would be wrong for CI.
+          for f in "${files[@]}"; do
+            case "$f" in
+              *-darwin.png) echo "::error::$f is a darwin baseline on an ubuntu runner"; exit 1;;
+            esac
+          done
+
+      - name: Upload baselines
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-baselines
+          path: apps/web/tests/e2e/*.spec.ts-snapshots/
+          if-no-files-found: error
+          retention-days: 14

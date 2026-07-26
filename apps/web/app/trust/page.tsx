@@ -119,7 +119,7 @@ export default async function TrustCenterPage() {
             </p>
             <ul className="mt-4 space-y-2 text-[14px] leading-relaxed text-[var(--vt-text-secondary)]">
               <li>• A source-backed identity is not a completed credentialing decision.</li>
-              <li>• &ldquo;No exclusion match returned&rdquo; is not a guarantee of good standing.</li>
+              <li>• &ldquo;No match in the current LEIE file&rdquo; is not a guarantee of good standing — the file is published monthly, so a recent exclusion may not be in it yet.</li>
               <li>• Readiness is a picture of what sources return today — not employer approval.</li>
               <li>• The institution&rsquo;s review remains the final step, always.</li>
             </ul>

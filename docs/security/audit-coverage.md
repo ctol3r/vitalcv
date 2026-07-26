@@ -26,6 +26,13 @@ before 2xx — no exceptions, ever."*
    transaction before 2xx (see its header contract). The grep missed it because it
    uses the direct Prisma call, not the helper. `employerActions.ts` is the
    reference pattern for correct auditing.
+4. **Service-delegated audit** (`activation.ts`, ACT-7.3). On the baseline, but its
+   mutations **are** audited — they delegate to `services/activation/*`, whose
+   `writeActivationAudit` / `writeStartEvent` call `prisma.auditEvent.create` before
+   success. The static gate sees no *inline* durable write, so the file sits on the
+   baseline; it is **not** a genuine gap. Adding a second inline audit in the route
+   would double-write. Same shape as nuance 3, but the durable write is one call
+   deeper (in the service the route invokes).
 
 ## Confirmed genuine gaps (state mutations that SHOULD audit)
 

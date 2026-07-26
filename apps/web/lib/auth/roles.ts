@@ -34,7 +34,10 @@ export const ROLE_LANDING: Record<UserRoleType, string> = {
  * Surface classification (VCV_UI_DOCTRINE §1):
  *   Public   — /explore, /get-ready, /onboarding, /p/:npi, /verify/:npi, /sign-in, /sign-up, etc.
  *   Clinician — /holder/*, /passport/*, /onboarding/*     → CLINICIAN role
- *   Verifier  — /verifier/*, /employers/*, /issuer/*      → VERIFIER role
+ *   Verifier  — /verifier/*, /employer/*, /issuer/*       → VERIFIER role
+ *               NOTE: /employers (plural) is the PUBLIC acquisition page —
+ *               it is deliberately not in PROTECTED_ROUTES. The gated
+ *               employer workspace is /employer/* (singular).
  *   Ops/Intel — /intelligence/*, /findings/*, /graph/*, …  → AUTHENTICATED (any)
  *   Internal  — /internal/*, /analytics, /billing,
  *               /pilot-ops, /mission-ops, /command-center → ADMIN role

@@ -45,6 +45,28 @@ export interface SelfAttestedProfile {
   affiliations?: SelfAttestedAffiliation[];
   careerGoals?: string;
   researchSummary?: string;
+  /** Clinician-provided Doximity profile URL. Host-validated (doximity.com, https). */
+  doximityUrl?: string;
+}
+
+/**
+ * Accept only a well-formed https doximity.com profile URL. Mirrors the
+ * backend `cleanDoximityUrl` so the surface never stores or renders a link
+ * that points somewhere other than Doximity.
+ */
+export function cleanDoximityUrl(value: unknown): string | undefined {
+  const raw = str(value);
+  if (!raw) return undefined;
+  let url: URL;
+  try {
+    url = new URL(raw);
+  } catch {
+    return undefined;
+  }
+  if (url.protocol !== 'https:') return undefined;
+  const host = url.hostname.toLowerCase();
+  if (host !== 'doximity.com' && host !== 'www.doximity.com') return undefined;
+  return url.toString();
 }
 
 function str(v: unknown): string | undefined {
@@ -130,6 +152,9 @@ export function parseSelfAttested(payload: unknown): SelfAttestedProfile {
 
   const researchSummary = str(p.researchSummary);
   if (researchSummary) out.researchSummary = researchSummary;
+
+  const doximityUrl = cleanDoximityUrl(p.doximityUrl);
+  if (doximityUrl) out.doximityUrl = doximityUrl;
 
   return out;
 }

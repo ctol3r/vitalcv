@@ -39,6 +39,7 @@ import {
   type PublicWedgeSurfaceState,
 } from '@/lib/trust/public-wedge-parity';
 import { trackPilotEvent } from '@/lib/pilot-ops/client';
+import { FUNNEL_EVENTS, trackFunnelEvent } from '@/lib/analytics/funnel';
 import { UX_EVENTS } from '@/lib/analytics/ux-events';
 import { resolveLivePathReadinessStatus } from '@/lib/live-path/contracts';
 
@@ -433,6 +434,36 @@ function PassportPageContent({
     : displayEmployer
       ? `Checking readiness for ${displayEmployer}.`
       : null;
+
+  // NUM-1.6: the funnel's conversion point. RESULTS_DISPLAYED was declared but
+  // never fired, so the funnel ended at NPI_SUBMITTED and no completion rate was
+  // computable — a run that died here was indistinguishable from one that
+  // succeeded. Fires once per terminal state, resolving to the outcome the user
+  // actually saw. No NPI is attached: a SHA-256 of a 10-digit number is
+  // brute-forceable in seconds, so hashing it would not make it anonymous.
+  const funnelOutcomeRef = useRef(false);
+  useEffect(() => {
+    if (!hasTerminalState || funnelOutcomeRef.current) return;
+    funnelOutcomeRef.current = true;
+
+    if (canViewPassport) {
+      trackFunnelEvent(FUNNEL_EVENTS.RESULTS_DISPLAYED, { outcome: 'passport' });
+      return;
+    }
+
+    const outcome = noProfileYet
+      ? 'no_profile'
+      : disconnected
+        ? 'disconnected'
+        : runCompletedWithoutAnchor
+          ? 'no_anchor'
+          : 'error';
+    trackFunnelEvent(FUNNEL_EVENTS.DROPOFF_DETECTED, {
+      last_step: FUNNEL_EVENTS.NPI_SUBMITTED,
+      dropoff_reason: 'error',
+      outcome,
+    });
+  }, [hasTerminalState, canViewPassport, noProfileYet, disconnected, runCompletedWithoutAnchor]);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

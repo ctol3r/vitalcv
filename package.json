@@ -17,6 +17,7 @@
     "build": "pnpm turbo build",
     "check:deploy": "node --experimental-strip-types scripts/deployment-integrity-check.ts",
     "check:claims": "node --experimental-strip-types --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/check-public-claims.ts",
+    "check:design": "node --experimental-strip-types --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/check-design-lint.ts",
     "verify:release": "node --experimental-strip-types --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --import ./scripts/release-monitor/register-ts-resolver.mjs scripts/release-verify.ts",
     "report:public-copy": "node scripts/report-public-entry-copy-sources.js",
     "audit:active-routes": "node scripts/audit-active-routes.mjs",
@@ -25,7 +26,8 @@
     "verify:passport-runtime": "node --experimental-strip-types scripts/runtime/verify-passport-runtime.ts",
     "release:readiness": "node --experimental-strip-types scripts/release/release-readiness.ts",
     "runtime:kill-shadow-runtimes": "bash scripts/runtime/kill-shadow-runtimes.sh",
-    "smoke:deploy": "node scripts/deploy-smoke.mjs"
+    "smoke:deploy": "node scripts/deploy-smoke.mjs",
+    "check:workflow-contract": "node scripts/check-workflow-path-filters.js"
   },
   "devDependencies": {
     "@types/node": "^20",
@@ -34,6 +36,11 @@
     "typescript": "5.9.3"
   },
   "pnpm": {
+    "auditConfig": {
+      "ignoreGhsas": [
+        "GHSA-23hp-3jrh-7fpw"
+      ]
+    },
     "overrides": {
       "@types/react": "^19",
       "@types/react-dom": "^19",

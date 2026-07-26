@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { ScrollScrubHeading } from '@/components/motion/ScrollScrubHeading';
+import { TruthBoundary } from '@/components/home/TruthBoundary';
 
 /**
  * EvidenceTruthPanel — the fusion of Anyscale's "code → evidence proof" panel
@@ -33,13 +34,8 @@ const TRACE_ROWS: ReadonlyArray<{ k: string; v: string }> = [
   { k: 'Receipt', v: 'vcv_rcpt_8F21A09D' },
 ];
 
-const BOUNDARY: ReadonlyArray<{ label: string; tone: Tone; items: string[] }> = [
-  { label: 'Source-backed', tone: 'confirmed', items: ['NPI identity', 'Practice taxonomy', 'Practice location'] },
-  { label: 'Checked', tone: 'confirmed', items: ['Federal exclusion source (OIG / LEIE)'] },
-  { label: 'Access required', tone: 'gated', items: ['State license status'] },
-  { label: 'Self-attested', tone: 'attested', items: ['Preferred location', 'Compensation expectations'] },
-  { label: 'Not yet known', tone: 'unknown', items: ['Current employer standing', 'Institution credentialing decision'] },
-];
+/* BOUNDARY moved to components/home/TruthBoundary.tsx together with the markup
+   that consumed it — see the import above. */
 
 function Dot({ tone }: { tone: Tone }) {
   return (
@@ -88,7 +84,7 @@ export function EvidenceTruthPanel() {
             <span className="text-[11px] font-semibold uppercase tracking-[0.16em]" style={{ color: 'rgba(255,255,255,0.55)' }}>
               Evidence trace
             </span>
-            <span className="font-mono text-[10px] uppercase tracking-[0.14em]" style={{ color: 'rgba(255,255,255,0.4)' }}>
+            <span className="font-mono text-[10px] uppercase tracking-[0.14em]" style={{ color: 'rgba(255,255,255,0.62)' }}>
               example
             </span>
           </div>
@@ -110,7 +106,7 @@ export function EvidenceTruthPanel() {
             </dl>
             <div className="mt-5 space-y-3 border-t pt-4" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
               <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: 'rgba(255,255,255,0.62)' }}>
                   Why this matters
                 </p>
                 <p className="mt-1 text-[13px] leading-relaxed" style={{ color: 'rgba(255,255,255,0.72)' }}>
@@ -118,7 +114,7 @@ export function EvidenceTruthPanel() {
                 </p>
               </div>
               <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: 'rgba(255,255,255,0.62)' }}>
                   What this does not decide
                 </p>
                 <p className="mt-1 text-[13px] leading-relaxed" style={{ color: 'rgba(255,255,255,0.72)' }}>
@@ -129,39 +125,12 @@ export function EvidenceTruthPanel() {
           </div>
         </div>
 
-        {/* RIGHT — truth boundary (paper) */}
-        <div
-          data-home-truth-boundary=""
-          className="rounded-[12px] border border-[var(--vt-border)] bg-[var(--vt-surface)] px-6 py-6"
-        >
-          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--vt-text-muted)]">
-            What VitalCV knows
-          </p>
-          <ul className="mt-4 space-y-3.5">
-            {BOUNDARY.map((g) => (
-              <li key={g.label}>
-                <div className="flex items-center gap-2">
-                  <Dot tone={g.tone} />
-                  <span className="text-[12px] font-semibold uppercase tracking-[0.08em] text-[var(--vt-text-secondary)]">
-                    {g.label}
-                  </span>
-                </div>
-                <p className="mt-1 pl-4 text-[14px] leading-relaxed text-[var(--vt-text-primary)]">
-                  {g.items.join(' · ')}
-                </p>
-              </li>
-            ))}
-          </ul>
-          <div className="mt-5 rounded-[8px] border border-[var(--vt-border)] bg-[var(--vt-surface-subtle)] px-4 py-3">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--vt-text-muted)]">
-              What this does not mean
-            </p>
-            <p className="mt-1 text-[13px] leading-relaxed text-[var(--vt-text-secondary)]">
-              This is not a completed credentialing, privileging, or employer clearance decision.
-              Institution review remains the final step.
-            </p>
-          </div>
-        </div>
+        {/* RIGHT — truth boundary (paper).
+            Now the shared component. This panel is no longer mounted on the
+            homepage (HomeProofMoment carries that beat), but the boundary it
+            used to own still ships there — so the markup lives in ONE place and
+            the two copies cannot drift apart. */}
+        <TruthBoundary />
       </div>
     </section>
   );

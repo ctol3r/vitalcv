@@ -9,7 +9,10 @@
 import { buildIdentityHeaders } from '@/lib/auth/forwardIdentity';
 import { getApiBase } from '@/lib/api';
 
-export type IdentityTier = 'account' | 'npi_bound' | 'work_email_confirmed';
+// Mirrors the backend ladder in services/identity/identityTier.ts. `preview` is
+// a no-NPI, self-attested trainee state — the same trust floor as `account`, so
+// it never satisfies an npi_bound-or-above gate. Keep both in sync.
+export type IdentityTier = 'account' | 'preview' | 'npi_bound' | 'work_email_confirmed';
 
 export interface IdentityStatePayload {
   tier: IdentityTier;
@@ -18,12 +21,15 @@ export interface IdentityStatePayload {
     emailConfirmed: boolean;
     emailDomain: string | null;
     emailDomainClass: 'institutional' | 'free' | 'disposable' | 'unknown' | null;
+    /** A self-attested, no-NPI preview profile — never source-backed. */
+    previewProfile: boolean;
     licenseSourceVerified: false;
   };
 }
 
 const TIER_ORDER: Record<IdentityTier, number> = {
   account: 0,
+  preview: 0,
   npi_bound: 1,
   work_email_confirmed: 2,
 };

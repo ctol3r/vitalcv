@@ -1,6 +1,21 @@
 # ADR — Substrate Anchoring: Park it; rely on signed receipts + Merkle proofs
 
-**Status:** Proposed (M8-6) · **Date:** 2026-07-06
+**Status:** Accepted (M8-6) · **Date:** 2026-07-06 · **Updated:** 2026-07-25
+
+> **2026-07-25 — the parked pallet skeletons were deleted.** This decision is
+> unchanged; only the dead code backing it is gone. `blockchain/`,
+> `apps/api/substrate/`, `apps/api/pallets/`, `apps/api/identity-governance-pallet/`,
+> `backend/src/blockchain/multi_token_pallet.rs`, and `k8s/substrate/` were
+> removed (~30k lines) after the new [Rust SCA gate](../security/dependency-remediation.md#rust--cargo-sca)
+> showed they carried 171 unaudited advisories — one of them a CVSS 9.9
+> unfixable critical — while nothing built, deployed, or imported them.
+>
+> **The revisit path below is unaffected.** It never depended on these
+> skeletons: it rests on `assertHashOnlyAnchor`, `merkleBatcher.ts`, and
+> `anchorWorker.ts`, all of which remain. Wiring a real anchor was already "a
+> wiring task, not a redesign", and it still is — against whatever ledger is
+> chosen at that point, rather than against 2022-era Substrate skeletons that
+> would have needed a full rewrite anyway.
 
 ## Context
 

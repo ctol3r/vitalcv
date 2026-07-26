@@ -1,3 +1,4 @@
+export * from './AcceptanceDiff';
 export * from './ActionCard';
 export * from './Badge';
 export * from './Button';
@@ -7,6 +8,7 @@ export * from './ConfidenceTierBadge';
 export * from './Dropdown';
 export * from './EvidenceTable';
 export * from './FreshnessIndicator';
+export * from './FreshnessMeter';
 export * from './IdentityField';
 export * from './IdentityFieldsCard';
 export * from './LaneStateBadge';
@@ -33,3 +35,5 @@ export * from './TruthStateChip';
 export * from './TruthStateLegend';
 export * from './ProvenanceChip';
 export * from './ProvenanceChipLegend';
+export * from './VerdictSplit';
+export * from './VerificationTranscript';

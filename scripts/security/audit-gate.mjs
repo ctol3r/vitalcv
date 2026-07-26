@@ -12,6 +12,16 @@
  *                     docs/security/dependency-remediation.md); a high/moderate
  *                     bar would be permanently red and train everyone to ignore it.
  *
+ * Accepted-risk exceptions: `pnpm.auditConfig.ignoreGhsas` in the root
+ * package.json suppresses a specific advisory that (a) reaches only a
+ * build-time / non-deploy-path surface and (b) cannot be safely remediated by
+ * an upgrade or override. Each entry MUST be justified in
+ * docs/security/dependency-remediation.md with an owner sign-off. The blocking
+ * critical count below is read from the (ignore-aware) advisory list — pnpm
+ * drops ignored advisories from `data.advisories` but does NOT decrement
+ * `data.metadata.vulnerabilities`, so counting metadata would never honour a
+ * documented ignore.
+ *
  * Fails CLOSED: if the audit can't run or its output can't be parsed, exit 2
  * (a gate that cannot evaluate must not report "clean").
  *
@@ -52,8 +62,25 @@ try {
 }
 
 const v = data?.metadata?.vulnerabilities ?? {};
+
+// The BLOCKING critical count is derived from `data.advisories` (which honours
+// `pnpm.auditConfig.ignoreGhsas`), not from `data.metadata.vulnerabilities`
+// (which does not). Fail CLOSED: if the advisory list is missing or not an
+// object, fall back to the metadata critical count so a malformed audit can
+// never slip past as "clean". high/moderate/low remain metadata-sourced —
+// they are non-blocking reporting only.
+const advisoryList =
+  data && typeof data.advisories === 'object' && data.advisories !== null
+    ? Object.values(data.advisories)
+    : null;
+const metaCritical = v.critical ?? 0;
+const activeCritical = advisoryList
+  ? advisoryList.filter((a) => a && a.severity === 'critical').length
+  : metaCritical;
+const suppressedCritical = Math.max(0, metaCritical - activeCritical);
+
 const counts = {
-  critical: v.critical ?? 0,
+  critical: activeCritical,
   high: v.high ?? 0,
   moderate: v.moderate ?? 0,
   low: v.low ?? 0,
@@ -66,6 +93,12 @@ console.log(
     `critical=${counts.critical}  high=${counts.high}  ` +
     `moderate=${counts.moderate}  low=${counts.low}  (total ${total})\n`
 );
+if (suppressedCritical > 0) {
+  console.log(
+    `  Note: ${suppressedCritical} critical advisory(ies) suppressed via ` +
+      `pnpm.auditConfig.ignoreGhsas (accepted risk — see docs/security/dependency-remediation.md).\n`
+  );
+}
 
 // GitHub Actions step summary (markdown) when available.
 const summaryPath = process.env.GITHUB_STEP_SUMMARY;
@@ -83,6 +116,9 @@ if (summaryPath) {
     counts.critical > 0
       ? '**A critical advisory is present in the production dependency tree. This is blocked until it is remediated (upgrade the package or add a `pnpm.overrides` entry).**'
       : '_No critical advisories. The high-severity backlog is tracked separately and burned down over time._',
+    suppressedCritical > 0
+      ? `> ℹ️ ${suppressedCritical} critical advisory(ies) suppressed via \`pnpm.auditConfig.ignoreGhsas\` (accepted risk — see \`docs/security/dependency-remediation.md\`).`
+      : '',
     '',
   ].join('\n');
   try {
@@ -99,6 +135,13 @@ if (counts.critical > 0) {
   console.error(
     '  Remediate with a version upgrade or a pnpm.overrides entry in the root package.json, then re-run.'
   );
+  console.error(
+    '  If (and only if) it reaches a build-time / non-deploy-path surface and cannot be safely'
+  );
+  console.error(
+    '  upgraded, a documented pnpm.auditConfig.ignoreGhsas entry (owner sign-off + a row in'
+  );
+  console.error('  docs/security/dependency-remediation.md) is the accepted-risk escape hatch.');
   console.error('  Details: pnpm audit --prod');
   process.exit(1);
 }

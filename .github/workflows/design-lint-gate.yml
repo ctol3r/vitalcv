@@ -1,0 +1,50 @@
+name: Design Lint Gate
+
+# DG-18.4 design-lint rules + the COMPETE composition rules (R1-R8).
+#
+# Two kinds of rule run here (see docs/design/DESIGN_LINT.md):
+#   error   - must be zero; blocks merge.
+#   ratchet - a measured baseline in scripts/design-lint-baseline.json that may
+#             shrink but never grow.
+#
+# The script uses only Node built-ins, so this gate needs no dependency install
+# and stays fast. LINT-07 (gated states never render a check) is a component
+# test and runs in the normal vitest suite, not here.
+
+on:
+  # Deliberately NOT path-filtered — `check-design-lint` is a REQUIRED status
+  # check on main, and the two are incompatible.
+  #
+  # A path-filtered workflow is skipped ENTIRELY on a PR touching none of its
+  # paths, so the required check run is never created. A required check that
+  # never reports leaves the PR permanently blocked: `mergeable` stays
+  # MERGEABLE while `mergeStateStatus` is BLOCKED and `gh pr merge` refuses
+  # with "the base branch policy prohibits the merge". `ci.yml` carries the
+  # same comment — that gate hit this on #806 and was de-filtered in #811.
+  # Every backend-only or docs-only PR would hit it here.
+  #
+  # Do NOT "fix" this with a companion workflow on `paths-ignore` reporting the
+  # same job name: `paths` and `paths-ignore` are not exact complements, so a
+  # PR touching both web and non-web files satisfies BOTH and produces two
+  # check runs with one name — which can mask a real failure behind an
+  # always-green stub. (Reasoning copied from ci.yml, same trap.)
+  #
+  # The cost is negligible: this script uses only Node built-ins, needs no
+  # dependency install, and completes in ~8s.
+  pull_request:
+    branches: [main]
+
+env:
+  NODE_VERSION: '22'
+
+jobs:
+  check-design-lint:
+    name: check-design-lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Enforce design-lint rules and ratchets
+        run: node --experimental-strip-types --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/check-design-lint.ts

@@ -1,15 +1,14 @@
 name: A11Y Gate
 
 on:
+  # Deliberately NOT path-filtered — `axe WCAG 2.2 AA` is a REQUIRED status
+  # check on main, and the two are incompatible: a filtered workflow is
+  # skipped, its check run is never created, and a required check that
+  # never reports blocks the PR forever. This gate is diff-independent
+  # anyway (it scans the whole tree / fixed fixtures), so the filter
+  # saved nothing. Enforced by scripts/check-workflow-path-filters.js.
   pull_request:
     branches: [main]
-    paths:
-      - 'apps/web/app/**/page.tsx'
-      - 'apps/web/app/**/layout.tsx'
-      - 'apps/web/components/**'
-      - 'apps/web/design-system/**'
-      - 'apps/web/__tests__/a11y/**'
-      - '.github/workflows/a11y-gate.yml'
 
 env:
   NODE_VERSION: '22'

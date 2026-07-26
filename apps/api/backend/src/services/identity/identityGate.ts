@@ -20,7 +20,7 @@ import {
 export async function identityStateForUser(userId: string): Promise<IdentityState> {
   const profile = await prisma.personProfile.findFirst({
     where: { userId },
-    select: { npi: true, verifiedEmail: true },
+    select: { npi: true, verifiedEmail: true, profession: true },
   });
   return deriveIdentityState(profile);
 }

@@ -151,10 +151,10 @@ VitalCV is not a place you go. VitalCV is the force that lets you go.
 - `services/decision-engine` — Trust decision engine
 - `services/investigator-engine` — Research/investigator profile engine
 
-### Blockchain (`blockchain/`)
-- `blockchain/substrate/` — Substrate-based permissioned trust ledger
-- Status: **migrated** (architecture complete, production integration status TBD)
-- **Zero PHI on-chain** is a permanent non-negotiable
+### Anchoring (no `blockchain/` directory)
+- The Substrate pallet skeletons were **deleted on 2026-07-25** — nothing built, deployed, or imported them, and they carried 171 unaudited Rust advisories. See [the ADR](docs/architecture/adr-substrate-anchoring.md).
+- Tamper-evidence today = ES256-signed receipts + Merkle inclusion proofs (`merkleBatcher.ts`, `anchorWorker.ts`); the on-chain write remains simulated.
+- **Zero PHI on-chain** is a permanent non-negotiable, enforced at the anchor boundary by `assertHashOnlyAnchor` if a real ledger is ever wired.
 
 ---
 

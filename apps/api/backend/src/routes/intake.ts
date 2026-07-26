@@ -11,6 +11,7 @@
 import type { Express, NextFunction, Request, Response } from 'express';
 import {
   bootstrapNpiIntake,
+  bootstrapStudentIntake,
   clearResume,
   getProfileCompleteness,
   getProfileSharing,
@@ -195,6 +196,27 @@ export function registerIntakeRoutes(app: Express): void {
         attested,
         attestationVersion,
       });
+      res.status(201).json(result);
+    }),
+  );
+
+  /**
+   * POST /api/profile/student/bootstrap
+   * Student / no-NPI lane — starts a PREVIEW-ONLY profile (self-attested, no
+   * NPI). Body: { attested?: boolean, attestationVersion?: string }.
+   * Tenant-guard exempt via the `/api/profile/` skip-list (onboarding-time,
+   * Clerk-user-scoped, no org yet — same rationale as NPI bootstrap).
+   */
+  app.post(
+    '/api/profile/student/bootstrap',
+    asyncHandler(async (req, res) => {
+      requireUserId(req); // 401 before any row work
+      const { attested, attestationVersion } = req.body as {
+        attested?: boolean;
+        attestationVersion?: string;
+      };
+      const userId = await requireInternalUserId(req);
+      const result = await bootstrapStudentIntake(userId, { attested, attestationVersion });
       res.status(201).json(result);
     }),
   );

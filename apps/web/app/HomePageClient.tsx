@@ -1,76 +1,42 @@
 'use client';
 
 import * as React from 'react';
-import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { SignedIn } from '@clerk/nextjs';
 import {
   ArrowRight,
   CheckCircle2,
+  ChevronDown,
   Fingerprint,
-  Wallet,
   Zap,
 } from 'lucide-react';
 
-import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { DualAudienceCta } from '@/components/home/DualAudienceCta';
-import { EvidenceTruthPanel } from '@/components/home/EvidenceTruthPanel';
-import { HomepageSectionRail } from '@/components/home/HomepageSectionRail';
 import { LiveNpiResult } from '@/components/home/LiveNpiResult';
 import { MetricStrip } from '@/components/home/MetricStrip';
-import { ProblemStatBand } from '@/components/home/ProblemStatBand';
-import { ProductCarousel } from '@/components/home/ProductCarousel';
-import { ResumeToProof } from '@/components/home/ResumeToProof';
-import { ScrollTypeNarrative } from '@/components/home/ScrollTypeNarrative';
-import { StickyProductStory } from '@/components/home/StickyProductStory';
+import { SourceCoverageRibbon } from '@/components/home/SourceCoverageRibbon';
+import { TruthBoundary } from '@/components/home/TruthBoundary';
+import { RailJourney } from '@/components/home/rail/RailJourney';
+import { HomeProofMoment } from '@/components/home/HomeProofMoment';
 import { TimeToStartComparison } from '@/components/home/TimeToStartComparison';
+import { Reveal } from '@/components/motion/Reveal';
+import { ChapterProgressProvider } from '@/components/home/scene/ChapterProgress';
+import { GrainOverlay } from '@/components/home/scene/GrainOverlay';
+import { SceneCursor } from '@/components/home/scene/SceneCursor';
+import { SceneProvider } from '@/components/home/scene/SceneProvider';
+import { getChapterScene } from '@/components/home/scene/registry';
 import { CLERK_PROVIDER_ENABLED } from '@/lib/auth/clerkConfig';
+import { FUNNEL_EVENTS, trackFunnelEvent } from '@/lib/analytics/funnel';
 import { checkNpi } from '@/lib/vital/npi';
 import { cn } from '@/lib/utils';
 
-/**
- * The Career Evidence Network graph, in the hero.
- *
- * It reads window/matchMedia/canvas at mount, so ssr:false keeps it off the
- * server render path (same contract as /evidence-network). It renders its own
- * "N nodes · M links · illustrative structure" footer, so the honesty label
- * travels with the canvas even though the control panel is closed here — the
- * hero is a first impression, not an exploration surface. /evidence-network
- * remains the full explorable version.
- */
-const CareerGraph = dynamic(() => import('@/components/career-graph/CareerGraph'), {
-  ssr: false,
-  loading: () => (
-    <div aria-hidden="true" className="h-full w-full rounded-[14px] border border-[var(--vt-border-subtle)] bg-[var(--vt-surface-subtle)]" />
-  ),
-});
-
-const SOURCE_REGISTRY_STRIP = [
-  'NPPES NPI Registry',
-  'OIG LEIE Exclusions',
-  'CMS PECOS Enrollment',
-  'State license boards',
-] as const;
-
-const WALLET_PREVIEW_ROWS = [
-  { source: 'NPPES', field: 'Identity', state: 'Source-backed', tone: 'ok' as const },
-  { source: 'OIG / LEIE', field: 'Exclusions', state: 'Checked', tone: 'ok' as const },
-  { source: 'State board', field: 'Licensure', state: 'Access required', tone: 'pending' as const },
-] as const;
 
 const TRUST_FOOTER_LINKS = [
   { label: 'Status', href: '/status' },
   { label: 'Source attribution', href: '/trust/attribution' },
+  { label: 'Evidence network', href: '/evidence-network' },
   { label: 'Trust', href: '/trust' },
-] as const;
-
-const HERO_PHRASES = [
-  'recognizes your identity',
-  'checks the primary sources',
-  'shows what still needs review',
-  'matches the right opportunity',
-  'carries your evidence forward',
 ] as const;
 
 function formatNpi(value: string): string {
@@ -85,6 +51,14 @@ export default function HomePageClient() {
   const [error, setError] = React.useState<string | null>(null);
   const [focused, setFocused] = React.useState(false);
   const [submittedNpi, setSubmittedNpi] = React.useState<string | null>(null);
+
+  // NUM-1.6: the funnel's denominator. HOMEPAGE_VIEWED has been declared in
+  // FUNNEL_EVENTS since the funnel was built but never fired from anywhere, so
+  // every downstream rate (focus rate, submit rate, completion rate) had no
+  // base to divide by. Fires once per mount, before any interaction.
+  React.useEffect(() => {
+    trackFunnelEvent(FUNNEL_EVENTS.HOMEPAGE_VIEWED);
+  }, []);
 
   const digits = raw.replace(/\D/g, '').slice(0, 10);
   // Canonical validation (lib/vital/npi): the hero previously enabled submit on
@@ -111,8 +85,37 @@ export default function HomePageClient() {
   }, [isValid, npiCheck.npi, npiCheck.reason]);
 
   return (
-    <div className="mz mz-paper relative overflow-x-clip text-[var(--vt-text-primary)]">
+    <SceneProvider>
+    {/* SHD-1.3: ONE scroll model. The dot rail and the ambient field both
+        consume this driver; neither owns a private scroll listener. */}
+    <ChapterProgressProvider>
+    <div className="mz mz-paper mz-cloud-paper relative overflow-x-clip text-[var(--vt-text-primary)]">
+      {/* Route-scoped paper: the PUBLIC homepage sits on Cloud Dancer
+          (PANTONE 11-4201 web approximation, --vt-cloud-dancer). A page-level
+          style tag keeps the document body behind overscroll on the same
+          paper; it unmounts with the route, so signed-in, dark, and
+          verification surfaces never inherit it. */}
+      <style>{'body{background:var(--vt-cloud-dancer,#F0EEE9)}'}</style>
       <div aria-hidden="true" className="mz-dotgrid pointer-events-none absolute inset-x-0 top-0 h-[26rem] opacity-20" />
+
+      {/* Scene layer — grain ONLY (homepage rebuild).
+          The ambient colour field is retired here. It painted emerald at 12%
+          and indigo at 10% as radial gradients on a `position: fixed` layer,
+          so the tint stayed welded to the viewport while content scrolled past
+          it: the top-left corner was permanently green-grey and the wash never
+          travelled with a section. On a page whose paper is a single deliberate
+          Cloud Dancer (--vt-cloud-dancer, #F0EEE9, uniform at every scroll
+          offset), a fixed coloured veil is the one thing that can make that
+          paper look inconsistent — so it goes.
+
+          Atmosphere is now earned by CONTENT motion (the evidence graph, the
+          horizontal journey) rather than by tinting the page. The grain stays:
+          it is a baked SVG texture, not a colour, and it is what keeps a flat
+          Cloud Dancer reading as paper instead of as a blank div. */}
+      <div aria-hidden="true" data-home-scene="" className="pointer-events-none fixed inset-0">
+        <GrainOverlay opacity={getChapterScene('wallet').grain} />
+      </div>
+      <SceneCursor />
 
       {CLERK_PROVIDER_ENABLED && (
         <SignedIn>
@@ -126,7 +129,12 @@ export default function HomePageClient() {
         </SignedIn>
       )}
 
-      <HomepageSectionRail />
+      {/* The right-edge dot rail is the sole page-level in-page navigator
+          (AUD-1.2 → W2.3). The former left-floating "Page outline" and the
+          right-edge dot rail are both retired: the horizontal journey rail's
+          own chapter navigator is now the ONE page-level in-page navigator
+          (composition manifest + gate test). The header covers site
+          destinations; vertical fallbacks navigate by document order. */}
 
       <main className="mz-scale-lg relative mx-auto w-full max-w-[1320px] px-4 pb-14 pt-4 sm:px-6 sm:pt-6">
         {/* The NPI action belongs in the first viewport. Hero motion is a
@@ -139,32 +147,44 @@ export default function HomePageClient() {
         >
           <div
             data-home-hero-stage=""
-            className="hero-stage relative isolate grid min-h-[min(46rem,calc(100svh-11rem))] items-center gap-8 py-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,29rem)] lg:py-6"
+            /* Sized to its content, not to the viewport. A full-height stage
+               centred a ~300px text column in 780px and left 239px of dead air
+               above the headline — the first screen read as having sunk. This
+               lands the headline in the upper third and lets the next section
+               crest the fold, which is the invitation to scroll. */
+            className="hero-stage relative isolate min-h-[min(38rem,calc(100svh-9rem))] py-2"
           >
-          <div className="max-w-3xl">
-            <div className="space-y-4">
-              <p data-home-eyebrow="" className="mz-eyebrow">The clinician career evidence network</p>
-              {/* Typing effect reverted (Chris, 2026-07-17 pm): the H1 is
-                  static ink again and the sentence below scrubs with scroll. */}
-              <h1 className="mz-display">
-                Find the opportunity. Prove your career <em className="mz-accent">once.</em> Start faster.
+          <div className="max-w-2xl">
+            <div className="space-y-5">
+              {/* HERO-RESET-1: outcome first. The category eyebrow and the
+                  scroll-scrubbed system sentence are gone — a clinician must
+                  answer "what do I get?" and "what do I do?" at a glance,
+                  before any category language. Category framing now lives in
+                  the product story below the fold. */}
+              <h1 className="mz-display mz-display-hero">
+                Get hired <em className="mz-accent">faster.</em>
               </h1>
-              <ScrollTypeNarrative
+              <p
                 data-home-hero-subhead=""
-                className="max-w-2xl text-[21px] leading-[1.5] text-[var(--vt-text-secondary)]"
-                prefix="VitalCV "
-                phrases={HERO_PHRASES}
-                staticSentence="VitalCV recognizes your identity, checks the primary sources, shows what still needs review, matches the right opportunity, and carries your evidence forward."
-                scrollContainerId="wallet"
-              />
+                className="max-w-xl text-[21px] leading-[1.5] text-[var(--vt-text-secondary)]"
+              >
+                Start with your NPI. See what employers can confirm, fix what is
+                missing, and reuse your career profile for every job.
+              </p>
             </div>
 
-            <div className="mz-glass mz-glass-interactive mt-5 max-w-2xl rounded-[12px]">
-              <Card id="npi" className="scroll-mt-36 rounded-[12px] border-0 bg-transparent shadow-none">
-                <CardContent className="space-y-5 px-5 py-5 sm:px-6 sm:py-6">
+            {/* One screen, one action. The NPI control is the ONLY interactive
+                element in the first viewport — the wallet pill and the employer
+                link moved down to DualAudienceCta, which already carries both
+                entrances, and "For Employers" is in the site nav besides. The
+                glass card around the field is gone for the same reason the
+                evidence panel lost its fill: a box on paper competing with the
+                thing inside it. */}
+            <div id="npi" className="mt-8 max-w-xl scroll-mt-36">
+              <div className="space-y-4">
                   <form className="space-y-2" onSubmit={(event) => { event.preventDefault(); handleSubmit(); }}>
                     <label htmlFor="npi-input" className="text-[11px] font-medium uppercase tracking-[0.2em] text-[var(--vt-text-muted)]">
-                      Start free — enter your NPI
+                      Start with your NPI
                     </label>
                     <div className={cn(
                       'flex flex-col overflow-hidden rounded-[8px] border bg-[var(--vt-bg)] transition-colors sm:flex-row',
@@ -198,12 +218,15 @@ export default function HomePageClient() {
                           isValid ? 'bg-[var(--vt-text-primary)] text-[var(--vt-bg)]' : 'cursor-not-allowed bg-[var(--vt-surface-subtle)] text-[var(--vt-text-muted)]',
                         )}
                       >
-                        Check readiness <ArrowRight size={16} aria-hidden="true" />
+                        Check what&rsquo;s ready <ArrowRight size={16} aria-hidden="true" />
                       </button>
                     </div>
                   </form>
 
-                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[var(--vt-text-secondary)]">
+                  {/* One quiet line, not three. The Sign in link left with it —
+                      the site header already carries it, and the first screen
+                      earns its calm by having exactly one thing to do. */}
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-[var(--vt-text-secondary)]">
                     <span className={error ? 'text-[var(--vt-state-blocked)]' : undefined} role={error ? 'alert' : undefined} id={error ? 'home-npi-error' : undefined}>
                       {error ??
                         (isValid
@@ -213,85 +236,109 @@ export default function HomePageClient() {
                             : `${digits.length}/10 digits`)}
                     </span>
                     <span aria-hidden="true" className="text-[var(--vt-border)]">·</span>
-                    <span>No account required</span>
-                    <span aria-hidden="true" className="text-[var(--vt-border)]">·</span>
-                    <Link href="/sign-in" data-home-secondary-cta="" className="font-medium underline underline-offset-4">Sign in</Link>
+                    <span>Free for clinicians · No account required</span>
                   </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            <div className="mt-4 flex flex-wrap items-center gap-3 text-[13px]">
-              <Link href="/onboarding" className="inline-flex items-center gap-1.5 rounded-full bg-[var(--vt-text-primary)] px-4 py-2 font-semibold text-[var(--vt-bg)]">
-                <Wallet size={14} aria-hidden="true" /> Get your free CV Wallet
-              </Link>
-              <span className="text-[var(--vt-text-muted)]">Free for clinicians · No card required</span>
-            </div>
-          </div>
-
-          {/* The hero's living panel. Before a lookup it is the Career Evidence
-              Network itself — the graph that was accidentally dropped from the
-              homepage in the motion-convergence rewrite (#679), restored here as
-              the first thing a visitor sees moving. After an NPI is entered it
-              becomes that provider's live result. The static wallet mockup it
-              replaced said nothing the copy didn't already say. */}
-          {/* Light graph (Chris, 2026-07-17: "light like the background").
-              transparentBg lets the paper surface show through the canvas and
-              dissolves the edges into the card; the light theme's violet
-              (issuer) + green (verifier) nodes carry the primary palette
-              against paper. */}
-          <div className={submittedNpi ? 'flex justify-center' : 'hidden lg:block'}>
-            {submittedNpi ? (
-              <LiveNpiResult npi={submittedNpi} onReset={() => { setSubmittedNpi(null); setRaw(''); }} />
-            ) : (
-              <div
-                data-home-hero-graph=""
-                className="relative h-[clamp(30rem,58vh,40rem)] w-full overflow-hidden rounded-[16px] border border-[var(--vt-border)] bg-[var(--vt-surface)] shadow-[0_30px_70px_-55px_rgba(20,20,20,0.4)]"
-              >
-                <CareerGraph initialTheme="light" initialPanelOpen={false} transparentBg narratedIntro />
-                <Link
-                  href="/evidence-network"
-                  className="absolute bottom-3 left-3 z-[6] inline-flex items-center gap-1.5 rounded-full border border-[var(--vt-border)] bg-[var(--vt-surface)]/85 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--vt-text-secondary)] backdrop-blur-sm hover:bg-[var(--vt-surface)]"
-                >
-                  Explore the network <ArrowRight size={12} aria-hidden="true" />
-                </Link>
               </div>
-            )}
+            </div>
+
           </div>
+
+          {/* The homepage makes no public graph claim. Before a lookup, the
+              source strip below the hero names available lanes. After one, the
+              real result is shown here in place — source state and the next
+              action, not a speculative map of a clinician's career. */}
+          {submittedNpi ? (
+            <div className="mx-auto mt-8 max-w-sm lg:mx-0">
+              <LiveNpiResult npi={submittedNpi} onReset={() => { setSubmittedNpi(null); setRaw(''); }} />
+            </div>
+          ) : null}
+          </div>
+
+          {/* The one thing the first screen asks for after the NPI field: a
+              reason to keep going. Decorative and aria-hidden — the page is
+              navigable by document order without it. */}
+          <div
+            data-home-scroll-cue=""
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-x-0 bottom-1 flex justify-center"
+          >
+            <span className="mz-scroll-cue text-[var(--vt-text-muted)]">
+              <ChevronDown size={18} />
+            </span>
           </div>
         </section>
 
-        <section aria-label="Primary sources VitalCV reads" data-home-source-strip="" className="border-y border-[var(--vt-border-subtle)] py-3.5">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:gap-5">
-            <p className="mz-eyebrow shrink-0">Reads primary sources</p>
-            <ul className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
-              {SOURCE_REGISTRY_STRIP.map((name) => (
-                <li key={name} className="inline-flex items-center gap-2 rounded-full border border-[var(--vt-border)] bg-[var(--vt-surface)] px-3 py-1.5 text-[12px] font-medium text-[var(--vt-text-secondary)]">
-                  <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-[var(--vt-accent-emerald)]" />{name}
-                </li>
-              ))}
-            </ul>
-            <p className="shrink-0 text-[11px] text-[var(--vt-text-muted)]">Every field shows its state.</p>
-          </div>
-        </section>
+        <SourceCoverageRibbon />
 
-        <ProblemStatBand />
+        {/* Visible uplift: static sections rise+fade as they enter view (the
+            template's reveal grammar via the platform Reveal primitive —
+            reduced-motion-safe, shows content if JS/IO is unavailable). The
+            scroll-coupled sections (the source ribbon) keep their own
+            motion and are deliberately not wrapped. */}
 
-        <TimeToStartComparison />
+        {/* THE PROBLEM — stated once.
+            ProblemStatBand ("Healthcare hiring has a trust-liquidity problem")
+            ran ~610px immediately above this section, which then argued the
+            same point again with a sharper line and an actual comparison
+            visual. Two H2s and ~1,000px to make one argument is the redundancy
+            that made this page feel long without feeling full. The band is
+            retired from the composition; the component stays on disk. */}
+        <Reveal><TimeToStartComparison /></Reveal>
 
-        <StickyProductStory />
+        {/* THE career journey — four direct, linkable chapters in ordinary
+            document flow. The former pinned horizontal rail read as a carousel
+            and interrupted scrolling, so the same evidence-backed story now
+            stays visible in a responsive grid. */}
+        <RailJourney />
 
-        <div className="pt-8" data-home-experience="evidence-trace">
-          <EvidenceTruthPanel />
-        </div>
+        {/* W4.2: the one tangible proof moment — the interactive proof-packet
+            inspector (claim → source → retrieval/receipt → state → limitation),
+            explicitly illustrative, linking the real clinician flow. Placed as
+            the "why this is credible" beat right after the journey. */}
+        {/* fade, NOT rise — this section now carries the scrub-coupled heading.
+            mz-rise's scale(0.985) changes the heading's measured box while the
+            reveal settles, which breaks the scrub contract "the text is laid
+            out from the start, only its ink changes" (the scrub-headings CLS
+            guard). Opacity-only keeps the uplift with stable geometry. This
+            constraint travelled here with the heading from EvidenceTruthPanel,
+            which carried the same comment for the same reason. */}
+        <Reveal variant="fade"><HomeProofMoment /></Reveal>
 
-        <ProductCarousel />
+        {/* The limitation that came off EvidenceTruthPanel when that section was
+            retired. Redundant ARGUMENT is worth cutting; a redundant-looking
+            DISCLAIMER is not — this names what VitalCV does and does not know,
+            and it is the page's only enumerated statement that a packet is not
+            a credentialing, privileging, or clearance decision. */}
+        <Reveal delay={90} className="pt-6">
+          <TruthBoundary />
+        </Reveal>
 
-        <ResumeToProof />
+        {/* THE PROOF — also stated once.
+            EvidenceTruthPanel ("Every claim shows its source", ~811px) sat
+            directly below HomeProofMoment ("Inspect the proof, claim by
+            claim"), making the same argument twice in a row — the second and
+            larger instance of the page's redundancy problem. HomeProofMoment
+            wins the slot because it is the INTERACTIVE one: a real proof-packet
+            inspector (claim → source → retrieval → state → limitation) instead
+            of a static restatement. EvidenceTruthPanel stays on disk.
+
+            ProductCarousel ("One career record. Six reusable surfaces.")
+            is retired here too — a six-panel feature carousel is a product-tour
+            device, and it was the third pass at "look what the record can do"
+            after the journey rail had already walked through it in four
+            chapters. Its evidence-state glyph grammar is a real contract, so
+            that guard moves rather than disappears (see homepage-truth-pass).
+
+            ResumeToProof was retired earlier for the same reason: 25 words and
+            200px restating the old-way / new-way contrast the rail carries. */}
 
         <section id="employers" data-home-experience="metrics-and-cta" className="pt-14">
-          <MetricStrip />
-          <DualAudienceCta />
+          <Reveal><MetricStrip /></Reveal>
+          <Reveal delay={90}>
+            <DualAudienceCta
+              onEmployerClick={() => trackFunnelEvent(FUNNEL_EVENTS.EMPLOYER_ENTRY_CLICKED)}
+            />
+          </Reveal>
         </section>
 
         <nav aria-label="Trust footer" data-home-trust-footer="" className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-[var(--vt-border-subtle)] pt-6 text-[12px] text-[var(--vt-text-muted)]">
@@ -305,5 +352,7 @@ export default function HomePageClient() {
         </nav>
       </main>
     </div>
+    </ChapterProgressProvider>
+    </SceneProvider>
   );
 }

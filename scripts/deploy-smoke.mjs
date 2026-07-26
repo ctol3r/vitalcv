@@ -20,7 +20,7 @@
  *    web Prisma product routes are fail-open; retried so one transient blip
  *    cannot paint a healthy deploy red; --allow-missing-db-health tolerates
  *    404 until the endpoint is deployed)
- *  - / : current-release homepage marker (data-narrative-words), bounded
+ *  - / : current-release homepage marker (data-home-hero), bounded
  *    shared cache (s-maxage ≤ 300)
  *  - /onboarding: HTTP 200 AND private/no-store with no s-maxage (Wave 0.2)
  *  - /employers /trust /status: HTTP 200
@@ -112,7 +112,7 @@ try {
   // 3. Homepage — release marker + bounded shared caching.
   const home = await get('/');
   record('home: HTTP 200', home.status === 200, `HTTP ${home.status}`);
-  record('home: current release marker', home.body.includes('data-narrative-words'), 'data-narrative-words');
+  record('home: current release marker', home.body.includes('data-home-hero'), 'data-home-hero');
   const homeCache = (home.headers.get('cache-control') || '').toLowerCase();
   const maxAge = homeCache.match(/s-maxage=(\d+)/);
   record('home: bounded shared cache', Boolean(maxAge) && Number(maxAge[1]) <= 300, homeCache || 'no cache-control');

@@ -18,6 +18,10 @@ import {
   resolveEmployerReviewAttribution,
 } from './employerReviewAttribution';
 import {
+  buildEmployerAcceptanceMetadata,
+  type AcceptanceSourceSnapshotCheck,
+} from './acceptanceSourceSnapshot';
+import {
   buildRuntimeMutationMetadata,
   type RuntimeTrustActor,
   type RuntimeTrustMetadata,
@@ -848,6 +852,16 @@ export async function recordEmployerReviewAcceptance(input: {
   notes?: unknown;
   acceptanceScope?: unknown;
   acceptanceReason?: unknown;
+  organizationName?: string | null;
+  // ACT-1.2 — link this acceptance to the exact sealed packet it accepted. Both
+  // optional: the NPI-keyed accept path (no application in hand) omits them and
+  // is unaffected. The route verifies the hash against the live packet first.
+  applicationId?: string | null;
+  packetHash?: string | null;
+  // Accept-time source-coverage snapshot ({sourceId,label,state,checkedAt}[]),
+  // frozen into EmployerAcceptance.metadata so the W6 "what changed since you
+  // accepted" diff has an accepted side to replay against.
+  acceptedSourceSnapshot?: readonly AcceptanceSourceSnapshotCheck[] | null;
 }): Promise<EmployerReviewActionState> {
   const now = new Date();
   const requestId = randomUUID();
@@ -899,6 +913,16 @@ export async function recordEmployerReviewAcceptance(input: {
     reviewItemCreated: false,
   };
 
+  // Accept-time coverage snapshot, stored on the acceptance row itself (not
+  // only in audit metadata) — this is the durable "accepted" side the re-share
+  // diff reads. Null when the caller had no coverage in hand: the column stays
+  // NULL rather than recording an empty snapshot that would diff as "every
+  // current source is new".
+  const acceptanceRowMetadata = buildEmployerAcceptanceMetadata({
+    capturedAt: now.toISOString(),
+    checks: input.acceptedSourceSnapshot ?? [],
+  });
+
   const { auditEvent, metadata } = await prisma.$transaction(async (tx) => {
     const acceptanceRow = await tx.employerAcceptance.create({
       data: {
@@ -911,6 +935,11 @@ export async function recordEmployerReviewAcceptance(input: {
         employerId: input.employerId,
         clinicianNpi: input.clinicianNpi,
         artifactId: null,
+        // ACT-1.2 linkage — the exact packet this acceptance accepted (null on
+        // the NPI-keyed path that has no application in hand).
+        applicationId: input.applicationId ?? null,
+        packetHash: input.packetHash ?? null,
+        metadata: acceptanceRowMetadata ? toJsonValue(acceptanceRowMetadata) : undefined,
         status: 'ACCEPTED',
         acceptedAt: now,
       },
@@ -930,6 +959,8 @@ export async function recordEmployerReviewAcceptance(input: {
           employerId: input.employerId,
           entityId: input.entityId,
           clinicianNpi: input.clinicianNpi,
+          applicationId: input.applicationId ?? null,
+          packetHash: input.packetHash ?? null,
           requestId,
           ...runtimeTrust,
           persistence: seededPersistence,

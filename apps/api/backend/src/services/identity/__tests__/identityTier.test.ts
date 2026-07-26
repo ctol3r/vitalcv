@@ -82,6 +82,35 @@ describe('deriveIdentityState', () => {
     const s = deriveIdentityState({ npi: '1234567890', verifiedEmail: 'a@b.org' });
     expect(s.signals.licenseSourceVerified).toBe(false);
   });
+
+  it('preview tier for a no-NPI, self-attested student profile', () => {
+    const s = deriveIdentityState({ npi: null, verifiedEmail: null, profession: 'student' });
+    expect(s.tier).toBe('preview');
+    expect(s.signals.previewProfile).toBe(true);
+    // A preview is never a completed identity/license check.
+    expect(s.signals.npiBound).toBe(false);
+    expect(s.signals.licenseSourceVerified).toBe(false);
+  });
+
+  it('a no-NPI, non-student profession stays account (not a preview)', () => {
+    const s = deriveIdentityState({ npi: null, verifiedEmail: null, profession: 'physician' });
+    expect(s.tier).toBe('account');
+    expect(s.signals.previewProfile).toBe(false);
+  });
+
+  it('binding an NPI overrides a leftover student profession — upgrades out of preview', () => {
+    const s = deriveIdentityState({ npi: '1234567890', verifiedEmail: null, profession: 'student' });
+    expect(s.tier).toBe('npi_bound');
+    expect(s.signals.previewProfile).toBe(false);
+  });
+
+  it('previewProfile is false for every NPI-bound state', () => {
+    expect(deriveIdentityState({ npi: '1234567890', verifiedEmail: null }).signals.previewProfile).toBe(false);
+    expect(
+      deriveIdentityState({ npi: '1234567890', verifiedEmail: 'm.miller@cedarhealth.org' }).signals.previewProfile,
+    ).toBe(false);
+    expect(deriveIdentityState(null).signals.previewProfile).toBe(false);
+  });
 });
 
 describe('tierAtLeast + gate copy', () => {
@@ -90,6 +119,16 @@ describe('tierAtLeast + gate copy', () => {
     expect(tierAtLeast('npi_bound', 'work_email_confirmed')).toBe(false);
     expect(tierAtLeast('account', 'npi_bound')).toBe(false);
     expect(tierAtLeast('npi_bound', 'npi_bound')).toBe(true);
+  });
+
+  it('preview never satisfies a clinician-power gate (slots in, does not bypass)', () => {
+    // The whole point: a preview profile can never unlock publish / apply / AI,
+    // all of which gate at npi_bound or above.
+    expect(tierAtLeast('preview', 'npi_bound')).toBe(false);
+    expect(tierAtLeast('preview', 'work_email_confirmed')).toBe(false);
+    // Same trust floor as a bare account — neither is a verification rung.
+    expect(tierAtLeast('preview', 'account')).toBe(true);
+    expect(tierAtLeast('account', 'preview')).toBe(true);
   });
 
   it('gate copy never claims verification of the person', () => {

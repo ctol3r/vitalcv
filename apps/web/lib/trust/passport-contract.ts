@@ -115,9 +115,16 @@ export interface PassportData {
     lastCheckedAt?: string;
   } | null;
   /** Self-reported profile — USER_ENTERED only; present only when the clinician provided it. */
+  /**
+   * License numbers on file with NPPES (self-reported at enumeration).
+   * Identity-grade only — never carries a status. Present only when NPPES has one.
+   */
+  nppesLicensure?: Array<{ state: string | null; licenseNumber: string }>;
   selfReported?: {
     education?: Array<{ institution: string; degree?: string; graduationYear?: number }>;
     affiliations?: Array<{ organization: string; role?: string }>;
+    /** Clinician-provided Doximity profile URL (USER_ENTERED, host-validated upstream). */
+    doximityUrl?: string;
   } | null;
   authority: {
     credentials: Array<{
@@ -224,6 +231,17 @@ export interface PassportData {
   divergence?: PassportDivergence;
   /** Wave 245: Continuous monitoring status */
   monitoring?: PassportMonitoringStatus;
+  /**
+   * Revocation summary (additive; older backends omit it). `checked: true`
+   * means the artifact ledger was really queried at `checkedAt`;
+   * `revokedCount` counts artifacts revoked at the source. The verify surface
+   * renders this as a visible step — never a silent omission.
+   */
+  revocation?: {
+    checked: boolean;
+    revokedCount: number;
+    checkedAt: string | null;
+  };
   /**
    * Wave 4: Verifier-visible trust-container manifest entry. Optional —
    * present only when the backend attaches a trust-container issuance

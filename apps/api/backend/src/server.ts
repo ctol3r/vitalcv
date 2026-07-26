@@ -190,6 +190,7 @@ async function bootstrapApp() {
   const { isGeospatialPipelineEnabled, runGeospatialPipelineCycle } = await import('../jobs/geospatialJob');
   const { startQaAutomationRuntime } = await import('./qa/qaRuntime');
   const Sentry = await import('@sentry/node');
+  const { scrubEvent, resolveSentryRelease } = await import('@vitalcv/shared/observability');
   const cronMod = await import('node-cron');
 
   const config = loadEnv();
@@ -251,17 +252,30 @@ async function bootstrapApp() {
   initializeTelemetry('vitalcv-agent');
   await initializeWave126Persistence();
 
-  // Initialize Sentry if DSN is configured
+  // Initialize Sentry if DSN is configured.
+  //
+  // MS-1: `beforeSend`/`beforeSendTransaction` are NOT optional here. This API
+  // routes NPIs in the path (`/api/passport/1234567890`), so error events carry
+  // PII in `request.url` and in the Express transaction name before any body is
+  // considered. The scrubber is shared with the web app (`@vitalcv/shared/
+  // observability`) so there is exactly one reviewed redaction list — see
+  // `docs/ops/observability.md`.
   const sentryDsn = process.env.SENTRY_DSN;
   if (sentryDsn) {
+    const release = resolveSentryRelease();
     Sentry.init({
       dsn: sentryDsn,
       environment: config.NODE_ENV,
-      tracesSampleRate: config.NODE_ENV === 'production' ? 0.2 : 1.0,
+      release,
+      sendDefaultPii: false,
+      tracesSampleRate: config.NODE_ENV === 'production' ? 0.1 : 1.0,
+      beforeSend: scrubEvent,
+      beforeSendTransaction: scrubEvent,
     });
     log('info', 'Sentry initialized', {
       event: 'sentry_initialized',
       environment: config.NODE_ENV,
+      release: release ?? 'unknown',
     });
   }
 

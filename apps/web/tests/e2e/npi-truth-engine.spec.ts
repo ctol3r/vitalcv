@@ -89,12 +89,43 @@ async function mockNpiApis(
   );
 }
 
-const hero = (page: Page) => page.locator('[data-home-hero]');
+/**
+ * Where the clinician's own returned state renders.
+ *
+ * This moved twice. COMPETE-1 took it out of `[data-home-hero]` and into a
+ * scene of its own; COMPETE-3 folded it back into ARRIVAL, because a scene that
+ * exists only to hold a result is blank for every visitor who has not asked for
+ * one — it was the emptiest frame on the site. The answer now replaces the
+ * empty record in the frame where the NPI was typed. Every truth assertion
+ * below is unchanged and still applies — only the container moved.
+ */
+const hero = (page: Page) => page.locator('[data-film-scene="arrival"]');
+
+/**
+ * The hero's primary action (HERO-RESET-1: was "Check readiness"). The dot
+ * tolerates either apostrophe form, so a straight/curly swap in the copy
+ * cannot silently break every lookup test in this file.
+ */
+const HERO_CTA = /check what.s ready/i;
+
+/**
+ * The NPI field's accessible name.
+ *
+ * COMPETE-1: the film labels this field with a VISIBLE `<label>` reading
+ * "Start with your NPI", where the retired stacked composition used an
+ * invisible `aria-label="NPI number"`. The visible label is the better markup
+ * — and it is why this could not simply be aliased back: adding
+ * `aria-label="NPI number"` over visible text that says something else breaks
+ * WCAG 2.5.3 (Label in Name) for voice-control users, who speak what they see.
+ *
+ * Declared once so the next composition change edits one line, not four.
+ */
+const NPI_FIELD = { name: /start with your npi/i };
 
 async function submitNpi(page: Page, npi: string) {
   await page.goto('/', { waitUntil: 'networkidle' });
-  await page.getByLabel('NPI number').fill(npi);
-  const cta = page.getByRole('button', { name: /check readiness/i });
+  await page.getByRole('textbox', NPI_FIELD).fill(npi);
+  const cta = page.getByRole('button', { name: HERO_CTA });
   // Enablement requires hydration + a checksum-valid NPI; waiting here keeps
   // the click from racing a pre-hydration (native, no-op) form submit.
   await expect(cta).toBeEnabled();
@@ -110,20 +141,29 @@ async function expectResolved(page: Page) {
   await expect(hero(page).getByText(/located in NPPES/)).toBeVisible({ timeout: 15_000 });
 }
 
+/**
+ * The clear-exclusion line. Matched by pattern, not literal: the copy now
+ * carries the lane's cadence from the registry (`sourceLanes.ts`), because a
+ * monthly LEIE snapshot rendered under "Confirmed today" with no age was a
+ * freshness overclaim on the one fact where staleness is a liability.
+ * Pinning the literal would re-break every time the cadence label changes.
+ */
+const CLEAR_EXCLUSION = /No match in the current LEIE file/;
+
 test.describe('NPI truth engine — homepage hero', () => {
   test('a checksum-invalid NPI cannot start a lookup and says why', async ({ page }) => {
     await page.goto('/', { waitUntil: 'networkidle' });
 
-    await page.getByLabel('NPI number').fill(BAD_CHECKSUM_NPI);
+    await page.getByRole('textbox', NPI_FIELD).fill(BAD_CHECKSUM_NPI);
     await expect(
       page.getByText('That is 10 digits but not a valid NPI — check for a typo.'),
     ).toBeVisible();
-    await expect(page.getByRole('button', { name: /check readiness/i })).toBeDisabled();
+    await expect(page.getByRole('button', { name: HERO_CTA })).toBeDisabled();
 
     // The same field with a checksum-valid NPI unlocks the lookup.
-    await page.getByLabel('NPI number').fill(VALID_NPI);
+    await page.getByRole('textbox', NPI_FIELD).fill(VALID_NPI);
     await expect(page.getByText('Press Enter to continue')).toBeVisible();
-    await expect(page.getByRole('button', { name: /check readiness/i })).toBeEnabled();
+    await expect(page.getByRole('button', { name: HERO_CTA })).toBeEnabled();
   });
 
   test('clean clinician: confirmed sources are named, gated licensure stays unavailable', async ({ page }) => {
@@ -140,7 +180,7 @@ test.describe('NPI truth engine — homepage hero', () => {
     // Confirmed lanes name their source and what the source actually returned.
     const confirmed = groupRows(page, 'Confirmed today');
     await expect(confirmed.getByText('Confirmed through the NPPES registry')).toBeVisible();
-    await expect(confirmed.getByText('No exclusion match returned')).toBeVisible();
+    await expect(confirmed.getByText(CLEAR_EXCLUSION)).toBeVisible();
 
     // Licensure was not read — it must sit in the gated group, not the confirmed one.
     const unavailable = groupRows(page, 'Unavailable without additional access');
@@ -178,7 +218,7 @@ test.describe('NPI truth engine — homepage hero', () => {
     // …but the confirmed group must not carry the NPPES-confirmed claim.
     await expect(hero(page).getByText('Confirmed through the NPPES registry')).not.toBeVisible();
     // Other genuinely-returned results still show, so absence above is not a render failure.
-    await expect(hero(page).getByText('No exclusion match returned')).toBeVisible();
+    await expect(hero(page).getByText(CLEAR_EXCLUSION)).toBeVisible();
   });
 
   test('PECOS NOT_FOUND is attention — not blocked, not confirmed', async ({ page }) => {
@@ -220,7 +260,7 @@ test.describe('NPI truth engine — homepage hero', () => {
       ),
     ).toBeVisible();
     // An EXCLUDED status must never render the clear-result line.
-    await expect(hero(page).getByText('No exclusion match returned')).not.toBeVisible();
+    await expect(hero(page).getByText(CLEAR_EXCLUSION)).not.toBeVisible();
   });
 
   test('unchecked sources stay unknown — never presented as clear', async ({ page }) => {
@@ -240,7 +280,7 @@ test.describe('NPI truth engine — homepage hero', () => {
     const unavailable = groupRows(page, 'Unavailable without additional access');
     await expect(unavailable.getByText('Check not yet run')).toBeVisible();
     await expect(unavailable.getByText('State-board source access required')).toBeVisible();
-    await expect(hero(page).getByText('No exclusion match returned')).not.toBeVisible();
+    await expect(hero(page).getByText(CLEAR_EXCLUSION)).not.toBeVisible();
   });
 
   test('trust-state outage degrades honestly: identity located, nothing claimed confirmed', async ({ page }) => {
@@ -273,18 +313,20 @@ test.describe('NPI truth engine — homepage hero', () => {
     await expect(hero(page).getByRole('button', { name: /try another npi/i })).toBeVisible();
   });
 
-  test('reset returns to the illustrative preview with a cleared field', async ({ page }) => {
+  test('reset returns to the NPI action with a cleared field', async ({ page }) => {
     await mockNpiApis(page, {});
     await submitNpi(page, VALID_NPI);
     await expectResolved(page);
 
     await page.getByRole('button', { name: /check another npi/i }).click();
-    // The pre-lookup panel is now the Career Evidence Network graph (it replaced
-    // the static wallet mockup). It carries its own honesty label, so reset
-    // still returns to an explicitly-illustrative preview — not a fabricated one.
-    await expect(hero(page).locator('[data-home-hero-graph]')).toBeVisible();
-    await expect(hero(page).getByText(/illustrative structure/i)).toBeVisible();
-    await expect(page.getByLabel('NPI number')).toHaveValue('');
+    await expect(hero(page).locator('[data-home-evidence-field]')).toHaveCount(0);
+    // COMPETE-1: the reset control and the NPI action now live in DIFFERENT
+    // scenes, so the CTA is addressed at page level rather than within the
+    // result container. The contract is unchanged — cleared field, disabled
+    // action — and `film-npi-response.spec.ts` pins that reset also carries the
+    // reader back to the field it just cleared.
+    await expect(page.getByRole('button', { name: HERO_CTA })).toBeDisabled();
+    await expect(page.getByRole('textbox', NPI_FIELD)).toHaveValue('');
   });
 });
 
