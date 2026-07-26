@@ -61,7 +61,6 @@ export interface FilmScene {
   /** Internal id. Never rendered as visible text. */
   readonly id:
     | 'arrival'
-    | 'recognition'
     | 'opportunities'
     | 'hiring'
     | 'verification'
@@ -83,14 +82,18 @@ export const FILM_SCENES: readonly FilmScene[] = Object.freeze([
     phrase: 'Get hired faster.',
     // Permitted here because it explains the only primary action.
     support: 'Start with your NPI.',
+    // 'npi' AND 'state': the field and its answer are one scene now. The answer
+    // used to live in a scene of its own ('recognition'), which meant the
+    // reader was carried to a different frame to be told a result — and, for
+    // every visitor who had not typed an NPI, that frame was a sentence of
+    // apology on blank paper. It was the emptiest thing on the site.
+    //
+    // An answer belongs where the question was asked. `LiveNpiResult` now
+    // replaces the empty record in place, so the record a visitor is looking at
+    // becomes their record. Nothing is fabricated before a lookup: until one
+    // returns, this scene shows the six sources stamped "Not checked", which is
+    // the literal truth for someone who has entered nothing.
     artifact: 'npi',
-  }),
-  Object.freeze<FilmScene>({
-    id: 'recognition',
-    // No product nouns, no taxonomy, no claim about a specific clinician.
-    label: 'What is already true',
-    phrase: 'Your record is already out there.',
-    artifact: 'state',
   }),
   Object.freeze<FilmScene>({
     id: 'opportunities',
@@ -109,7 +112,13 @@ export const FILM_SCENES: readonly FilmScene[] = Object.freeze([
   Object.freeze<FilmScene>({
     id: 'verification',
     label: 'Checkable without trusting us',
-    phrase: 'Check it without asking us.',
+    // Reframed from "Check it without asking us." — true, but it sold the
+    // MECHANISM (verification) rather than the THING THE MECHANISM BUYS
+    // (throughput). VitalCV is not a credentialing platform and must not read
+    // as one: the reason a checkable receipt matters is that nobody has to run
+    // the check again, which is where a 90–120 day queue actually goes. Lead
+    // with what the clinician gets; let the artifact below show how.
+    phrase: 'Prove it once.',
     // The industry figure, as ink. It is an INDUSTRY benchmark, never a VitalCV
     // result, and it is worded so it cannot be read as one. Trimmed to the
     // 8-word support ceiling; "industry" carries the attribution, and the

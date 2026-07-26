@@ -75,7 +75,7 @@ async function resultIsOnScreen(page: Page) {
 }
 
 test.describe('COMPETE-1 — submitting an NPI answers visibly', () => {
-  test('film mode (desktop) carries the reader to the recognition scene', async ({ page }) => {
+  test('film mode (desktop) answers in the frame the question was asked in', async ({ page }) => {
     await mockLookup(page);
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto('/', { waitUntil: 'networkidle' });
@@ -87,11 +87,14 @@ test.describe('COMPETE-1 — submitting an NPI answers visibly', () => {
       .poll(async () => (await resultIsOnScreen(page)).onScreen, { timeout: 10_000 })
       .toBe(true);
 
-    // The scene the reader was carried to is the one holding their answer.
+    // The answer renders in ARRIVAL now, not one scene on. Being carried to a
+    // second frame to be told your own result is what left that frame blank for
+    // every visitor who had not typed yet; the result replaces the empty record
+    // in place instead. The reader should not have travelled at all.
     const left = await page
-      .locator('[data-film-scene="recognition"]')
+      .locator('[data-film-scene="arrival"]')
       .evaluate((el) => Math.round(el.getBoundingClientRect().left));
-    expect(Math.abs(left), 'recognition scene should settle in frame').toBeLessThan(80);
+    expect(Math.abs(left), 'arrival should still hold the frame').toBeLessThan(80);
   });
 
   test('vertical mode (mobile) scrolls the result into view', async ({ page }) => {
