@@ -189,6 +189,38 @@ test.describe('COMPETE-2 horizontal film', () => {
     expect(scrollY).toBe(max);
   });
 
+  /**
+   * Vertical mode must not inherit ROW sizing.
+   *
+   * The artifact rules size a row: `.film-copy { flex: 1 1 32rem }` gives the
+   * copy a column beside the record. Read along a COLUMN's main axis the same
+   * declaration means 512px of HEIGHT plus grow-to-fill — which put ~180px of
+   * dead paper between the copy and the record at 390px wide, and pushed the
+   * record almost entirely below the first screen.
+   *
+   * That is invisible to every other guard here: the DOM order is right, the
+   * scene is vertical, nothing overflows, and a screenshot diff just shows
+   * more cream. So assert the thing that was actually wrong — a copy block
+   * must be about as tall as its own content, never stretched by leftover
+   * column height.
+   */
+  test('mobile: no artifact block is stretched by leftover column height', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(ROUTE);
+    await page.waitForTimeout(300);
+
+    const slack = await page.evaluate(() => {
+      const copy = document.querySelector('[data-film-scene="arrival"] .film-copy') as HTMLElement;
+      const box = copy.getBoundingClientRect();
+      const last = copy.lastElementChild!.getBoundingClientRect();
+      const padBottom = parseFloat(getComputedStyle(copy).paddingBottom);
+      // How much taller the box is than (content + its own bottom padding).
+      return Math.round(box.bottom - last.bottom - padBottom);
+    });
+
+    expect(slack, '.film-copy is stretched past its content in vertical mode').toBeLessThanOrEqual(8);
+  });
+
   test('mobile: an ordinary vertical document, no horizontal travel', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.waitForTimeout(300);
