@@ -25,7 +25,7 @@ vi.mock('@clerk/nextjs', () => ({
   SignedIn: ({ children }: { children: React.ReactNode }) => null,
 }));
 
-import HomePageClient from '@/app/HomePageClient';
+import { renderHomepageHtml } from './helpers/render-homepage';
 
 /**
  * Every marker that constitutes a PAGE-LEVEL in-page navigator. The homepage
@@ -39,7 +39,7 @@ const PAGE_LEVEL_NAV_MARKERS = [
 
 describe('homepage composition gate (W0.2)', () => {
   it('renders no page-level in-page navigation rail', () => {
-    const html = renderToStaticMarkup(<HomePageClient />);
+    const html = renderHomepageHtml();
     const present = PAGE_LEVEL_NAV_MARKERS.filter((marker) => html.includes(marker));
     expect(
       present.length,
@@ -59,7 +59,7 @@ describe('homepage composition gate (W0.2)', () => {
    * review. The composition answer is the six-scene film, not a printed index.
    */
   it('prints no chapter index on any homepage section eyebrow', () => {
-    const html = renderToStaticMarkup(<HomePageClient />);
+    const html = renderHomepageHtml();
     expect(html).not.toContain('mz-eyebrow-index');
     // Catch a hand-rolled equivalent: a 2-digit index opening an eyebrow.
     const numberedEyebrow = /class="[^"]*mz-eyebrow[^"]*"[^>]*>\s*(?:<[^>]+>\s*)?0[1-9]\b/;

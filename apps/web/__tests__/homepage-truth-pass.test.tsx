@@ -22,12 +22,12 @@ vi.mock('@clerk/nextjs', () => ({
   SignedIn: () => null,
 }));
 
-import HomePageClient from '@/app/HomePageClient';
+import { renderHomepageHtml } from './helpers/render-homepage';
 import { ProductCarousel } from '@/components/home/ProductCarousel';
 
 describe('Hero — no fabricated readiness score', () => {
   it('renders no invented readiness percentage on the homepage', () => {
-    const html = renderToStaticMarkup(<HomePageClient />);
+    const html = renderHomepageHtml();
     // The hero previously shipped a static wallet mockup; guard that no
     // fabricated readiness percentage ever reaches the homepage.
     expect(html).not.toContain('72%');
@@ -65,7 +65,7 @@ describe('ProductCarousel — evidence-state glyph grammar', () => {
 
 describe('Hero NPI input — honest microcopy intact', () => {
   it('renders the digit count at rest', () => {
-    const html = renderToStaticMarkup(<HomePageClient />);
+    const html = renderHomepageHtml();
     expect(html).toContain('0/10 digits');
   });
 });

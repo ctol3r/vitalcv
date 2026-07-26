@@ -341,7 +341,14 @@ const GOLDEN_SCAN_ROOTS = [
 ];
 
 /** Entry CTA surfaces outside the roots that feed the Golden Path. */
-const EXTRA_FULL_SCAN_FILES = ['app/HomePageClient.tsx'];
+// The homepage composition, whatever currently serves `/`. Both are listed on
+// purpose: the film is what `/` renders (#859), and HomePageClient remains on
+// disk as the documented rollback target — an unresolvable href in either one
+// is a broken link waiting to happen.
+const EXTRA_FULL_SCAN_FILES = [
+  'components/home/film/HorizontalCareerFilm.tsx',
+  'app/HomePageClient.tsx',
+];
 
 /**
  * Coverage floor: these load-bearing surfaces must exist AND be inside the
