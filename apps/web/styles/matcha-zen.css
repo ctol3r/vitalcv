@@ -192,8 +192,13 @@
    Dancer — all below WCAG AA's 4.5:1 for body-size text. The bridge token is
    the AA-corrected one (53%, and 50% under .mz-cloud-paper): 5.27 / 5.04 /
    5.19 respectively. This was live on production; CI could not see it because
-   the axe gate whitelists `color-contrast`. */
-.mz-small { font-size: 0.8125rem; color: var(--vt-text-muted, oklch(53% 0.008 265)); }
+   the axe gate whitelists `color-contrast`.
+
+   No var() fallback: --vt-text-muted is scoped to .mz, and every file using
+   .mz-small was checked to carry a .mz root, so it is always in scope. A
+   literal fallback here would also be a raw colour outside the token files,
+   which design-lint LINT-01 correctly rejects. */
+.mz-small { font-size: 0.8125rem; color: var(--vt-text-muted); }
 .mz-mono { font-family: var(--mz-mono); font-variant-numeric: tabular-nums; }
 
 .mz-eyebrow {
@@ -324,7 +329,7 @@
 .mz-field { display: flex; border: 1px solid var(--ink-900); background: var(--card); border-radius: 3px; overflow: hidden; }
 /* Same AA correction as .mz-small above — and this one is 10px, where the
    4.5:1 floor applies with no large-text exemption at all. */
-.mz-field .mz-prefix { padding: 0 14px; display: flex; align-items: center; font-family: var(--mz-mono); font-size: 10px; color: var(--vt-text-muted, oklch(53% 0.008 265)); text-transform: uppercase; letter-spacing: 0.14em; border-right: 1px solid var(--rule); background: var(--ink-50); }
+.mz-field .mz-prefix { padding: 0 14px; display: flex; align-items: center; font-family: var(--mz-mono); font-size: 10px; color: var(--vt-text-muted); text-transform: uppercase; letter-spacing: 0.14em; border-right: 1px solid var(--rule); background: var(--ink-50); }
 .mz-field input { flex: 1; border: 0; padding: 13px 15px; font: inherit; font-size: 15px; color: var(--ink-900); background: transparent; outline: none; font-variant-numeric: tabular-nums; }
 
 /* ── Selectable chips (options) ───────────────────────────────────────────── */
