@@ -7,12 +7,12 @@ persists cross-session learnings; read it before assuming context.
 ## Operating stack
 
 When dispatched as part of a wave, roles are explicit:
-- **Claude Code Desktop** = supervisor / merge gate (issues GO/NO-GO, never builds, never merges without Codex)
-- **Claude Code Terminal** = primary builder (writes code, opens PRs, runs `gh pr merge` after Codex)
-- **Codex** (`codex exec` v0.125+) = surgical verifier (mandatory before merge; subagent stand-ins do not satisfy the merge hook)
+- **Claude Code Desktop** = supervisor / merge gate (issues GO/NO-GO, never builds)
+- **Claude Code Terminal** = primary builder (writes code, opens PRs, runs `gh pr merge`)
+- **Codex** (`codex exec` v0.125+) = optional surgical verifier. Useful for a second opinion on a risky diff; **not** required before merge.
 - Do NOT use OpenClaw, Browser, or Cowork for build/verify work.
 
-The merge-protection hook on `gh pr merge` requires a real Codex SAFE verdict to be visible in the transcript. Run Codex with `codex exec` and three audits (implementation / diff / copy) before any merge call.
+**Merge gate (settled 2026-07-25):** green CI **plus real verification** — you must actually exercise the change (run the suite, hit the route, load the page, execute the script) and show the evidence. Green CI on its own is not enough: shell scripts, GPU paths, and dev-gated e2e specs run in no PR check. Codex is not a merge gate, and no verifier verdict substitutes for having exercised the change yourself.
 
 ## Branch cutting (worktree fleet caveat)
 
@@ -69,7 +69,7 @@ The issuer verification chain (`apps/web/lib/issuer-verification/`) enforces har
 
 ## Gotchas
 
-- PR merge hook requires Codex SAFE verdict in transcript. A `feature-dev:code-reviewer` subagent stand-in does NOT satisfy the hook — use `codex exec`.
+- Green CI is not evidence the code works. Anything CI does not execute — shell scripts, GPU/WebGPU paths, dev-gated e2e specs that 404 under a production build — must be run by hand before merge.
 - When a build complains `Module not found: Can't resolve '@vitalcv/trust-state'` in a fresh worktree, run `pnpm turbo run build --filter @vitalcv/web` (not just `pnpm --filter @vitalcv/web build`) — turbo prebuilds the workspace dep's `dist/`.
 - Local `main` is often stale relative to `origin/main` because of the worktree fleet. Always diff against `origin/main`, not `main`, when checking PR scope.
 - `next.config.mjs` enforces TypeScript and ESLint checks on build (no ignore flags); typecheck failures break deploys.
