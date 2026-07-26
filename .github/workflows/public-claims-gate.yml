@@ -6,13 +6,14 @@ name: Public Claims Gate
 # gate needs no dependency install and stays fast.
 
 on:
+  # Deliberately NOT path-filtered — `check-public-claims` is a REQUIRED status
+  # check on main, and the two are incompatible: a filtered workflow is
+  # skipped, its check run is never created, and a required check that
+  # never reports blocks the PR forever. This gate is diff-independent
+  # anyway (it scans the whole tree / fixed fixtures), so the filter
+  # saved nothing. Enforced by scripts/check-workflow-path-filters.js.
   pull_request:
     branches: [main]
-    paths:
-      - 'apps/web/app/**'
-      - 'apps/web/components/**'
-      - 'scripts/check-public-claims.ts'
-      - '.github/workflows/public-claims-gate.yml'
 
 env:
   NODE_VERSION: '22'

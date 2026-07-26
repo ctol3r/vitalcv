@@ -76,6 +76,43 @@ describe('evidence atmosphere — the model', () => {
     }
   });
 
+  /**
+   * The regression that shipped: fragments settled at x≈0.08–0.14 across
+   * y 0.16–0.84 — the left column, where the headline and body copy live. Once
+   * the rows were snapped to a baseline rhythm they stopped missing the type,
+   * and every scene rendered its own sentences with rules through them. A line
+   * through text is strikethrough; the claims read as retracted.
+   *
+   * The whole suite passed while that was live, which is why this test exists:
+   * "inside the stage" was asserted, "not on top of the words" never was.
+   */
+  it('never draws in the reading zone, at any progress (copy keep-out)', () => {
+    const fragments = createFragments();
+    // The band the copy column occupies in stage space, with margin.
+    const READING_TOP = 0.22;
+    const READING_BOTTOM = 0.8;
+
+    for (const p of [0, 0.15, 0.3, 0.45, 0.6, 0.75, 0.9, 1]) {
+      fragments.forEach((fragment, i) => {
+        const pose = fragmentPose(fragment, p, i, fragments.length, 0);
+        const inReadingZone = pose.y > READING_TOP && pose.y < READING_BOTTOM;
+        expect(
+          inReadingZone,
+          `fragment ${fragment.id} sits at y=${pose.y.toFixed(3)} at progress ${p} — inside the reading zone`,
+        ).toBe(false);
+      });
+    }
+  });
+
+  it('populates both margins so neither band reads as empty', () => {
+    const fragments = createFragments();
+    const settled = fragments.map((f, i) => fragmentPose(f, 1, i, fragments.length, 0));
+    const top = settled.filter((pose) => pose.y < 0.5).length;
+    const bottom = settled.length - top;
+    expect(top).toBeGreaterThan(fragments.length * 0.3);
+    expect(bottom).toBeGreaterThan(fragments.length * 0.3);
+  });
+
   it('lights the career core without ever leaving it dark', () => {
     // An unlit core still reads as composed; a zero core is a hole.
     expect(coreLight(0)).toBeGreaterThan(0);
