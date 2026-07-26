@@ -1,0 +1,14 @@
+{
+  "$comment": "Accepted-risk suppressions for the Rust SCA gate (scripts/security/cargo-audit-gate.mjs). Same bar as pnpm.auditConfig.ignoreGhsas: a critical that reaches only a non-deploy-path surface AND cannot be fixed by an upgrade. Every entry must also appear in docs/security/dependency-remediation.md. Adding an entry here is the ONLY way a critical stops blocking.",
+  "ignore": [
+    {
+      "id": "RUSTSEC-2023-0090",
+      "aliases": ["GHSA-ff4p-7xrq-q5r8", "CVE-2023-26489"],
+      "package": "wasmtime@1.0.2",
+      "reason": "Guest-controlled OOB read/write in the wasmtime JIT (CVSS 9.9), reached only through the dormant Substrate pallet lockfiles. Nothing builds or deploys them: no cargo step exists in any workflow, no Dockerfile compiles Rust, and k8s/substrate/vitalcv-chain.yaml still points at the placeholder image ghcr.io/YOURORG/vitalcv-node:latest. Not fixable in place — sp-wasm-interface@8.0.0 pins wasmtime ^1.0.0, so `cargo update -p wasmtime --precise 4.0.1` fails to resolve; clearing it requires upgrading the whole frame-support 4.0 / sp-runtime 7.0 stack.",
+      "owner": "UNSIGNED — pending founder sign-off",
+      "added": "2026-07-25",
+      "revisit": "(a) any Substrate pallet gains a real build or deploy path, or (b) the pallets are upgraded off frame-support 4.0 / sp-runtime 7.0 so wasmtime >= 4.0.1 resolves, or (c) the dormant pallet trees are deleted from the repo — in which case delete this entry rather than carrying it."
+    }
+  ]
+}
