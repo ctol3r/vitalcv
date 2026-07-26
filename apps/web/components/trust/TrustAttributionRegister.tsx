@@ -25,12 +25,18 @@ export const TRUST_ATTRIBUTION_DISCLAIMER =
  * here is what state it is in, here is who decides."
  *
  * Truth-contract guarantees (enforced by
- * `apps/web/__tests__/trust-attribution-register.test.tsx`):
+ * `apps/web/__tests__/status-attribution-receipts.test.tsx`):
  *  - Every "Review boundary" cell either says "institution review" or
  *    "n/a" — never "verified", never "cleared", never "approved".
  *  - NPPES rows say `temporarily-unavailable` or `source-backed`
  *    depending on the typical state; OIG / PECOS / STATE_BOARD /
- *    FSMB / NURSYS rows never claim `source-backed`.
+ *    FSMB / NURSYS rows never claim `source-backed`. That guarantee is
+ *    unchanged by the 2026-07-25 correction below: `auth-required` is
+ *    still not a claim that anything was retrieved.
+ *  - A row may only say `connector-not-live` when no live upstream
+ *    adapter exists. "Live but gated" is `auth-required` or
+ *    `access-required`. Understating capability is not a safe default
+ *    here — it published a contradiction against `/api/status`.
  *  - The opening disclaimer is the contracted phrase: "We publish the
  *    source of every field. We do not claim HIPAA, SOC 2, or NCQA
  *    certification."
@@ -74,17 +80,27 @@ export const TRUST_ATTRIBUTION_ROWS: ReadonlyArray<AttributionRow> = Object.free
     reviewBoundary: 'institution review',
   },
   {
+    // Corrected 2026-07-25. These two said `connector not live`, which was
+    // FALSE: `OigLeieAdapter.ts:79` reads the real HHS LEIE CSV unless
+    // `OIG_LEIE_ENABLED === 'false'` (founder-confirmed unset on Railway), and
+    // `fetchPecos` calls the CMS data.gov dataset with no env gate at all. The
+    // connectors ARE live. What is true is that this surface cannot show a
+    // result without a session: `/api/psv/oig/check/[npi]` proxies to the
+    // backend and returns 401 unauthenticated (verified on production).
+    // `auth-required`, not `connector-not-live` — the distinction matters
+    // because "no connector" reads as a capability VitalCV lacks, when the
+    // real boundary is consent and authentication.
     field: 'OIG / LEIE exclusion result',
     source: 'OIG / LEIE',
-    retrievalTime: 'not retrieved (connector not live)',
-    state: 'connector-not-live',
+    retrievalTime: 'not retrieved without sign-in (connector live)',
+    state: 'auth-required',
     reviewBoundary: 'institution review',
   },
   {
     field: 'CMS PECOS enrollment',
     source: 'CMS PECOS',
-    retrievalTime: 'not retrieved (connector not live)',
-    state: 'connector-not-live',
+    retrievalTime: 'not retrieved without sign-in (connector live)',
+    state: 'auth-required',
     reviewBoundary: 'institution review',
   },
   {
