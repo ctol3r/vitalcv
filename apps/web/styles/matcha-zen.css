@@ -187,7 +187,13 @@
 .mz-h2 { margin: 0; font-weight: 600; font-size: 1.05rem; line-height: 1.25; letter-spacing: -0.01em; color: var(--ink-900); }
 .mz-lede { margin: 0; font-size: 1.0625rem; line-height: 1.55; color: var(--ink-600); }
 .mz-body { margin: 0; font-size: 0.9375rem; line-height: 1.55; color: var(--ink-700); }
-.mz-small { font-size: 0.8125rem; color: var(--ink-500); }
+/* --vt-text-muted, not the raw --ink-500. The raw ramp value is oklch(62%),
+   which measures 3.64:1 on white, 3.49:1 on --card, and 3.14:1 on Cloud
+   Dancer — all below WCAG AA's 4.5:1 for body-size text. The bridge token is
+   the AA-corrected one (53%, and 50% under .mz-cloud-paper): 5.27 / 5.04 /
+   5.19 respectively. This was live on production; CI could not see it because
+   the axe gate whitelists `color-contrast`. */
+.mz-small { font-size: 0.8125rem; color: var(--vt-text-muted, oklch(53% 0.008 265)); }
 .mz-mono { font-family: var(--mz-mono); font-variant-numeric: tabular-nums; }
 
 .mz-eyebrow {
@@ -316,7 +322,9 @@
 .mz-input::placeholder { color: var(--ink-400); }
 
 .mz-field { display: flex; border: 1px solid var(--ink-900); background: var(--card); border-radius: 3px; overflow: hidden; }
-.mz-field .mz-prefix { padding: 0 14px; display: flex; align-items: center; font-family: var(--mz-mono); font-size: 10px; color: var(--ink-500); text-transform: uppercase; letter-spacing: 0.14em; border-right: 1px solid var(--rule); background: var(--ink-50); }
+/* Same AA correction as .mz-small above — and this one is 10px, where the
+   4.5:1 floor applies with no large-text exemption at all. */
+.mz-field .mz-prefix { padding: 0 14px; display: flex; align-items: center; font-family: var(--mz-mono); font-size: 10px; color: var(--vt-text-muted, oklch(53% 0.008 265)); text-transform: uppercase; letter-spacing: 0.14em; border-right: 1px solid var(--rule); background: var(--ink-50); }
 .mz-field input { flex: 1; border: 0; padding: 13px 15px; font: inherit; font-size: 15px; color: var(--ink-900); background: transparent; outline: none; font-variant-numeric: tabular-nums; }
 
 /* ── Selectable chips (options) ───────────────────────────────────────────── */
