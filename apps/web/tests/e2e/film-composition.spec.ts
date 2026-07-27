@@ -168,11 +168,29 @@ test.describe('homepage composition contracts (COMPETE-1)', () => {
       // pinned track is the thing most likely to overflow — so wait for the
       // mode to be decided rather than for a fixed interval.
       await page.locator('.film[data-film-mode]').first().waitFor({ state: 'attached' });
-      await page.waitForTimeout(300);
-      const overflow = await page.evaluate(
-        () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
-      );
-      expect(overflow, `horizontal overflow at ${vp.width}px`).toBeLessThanOrEqual(1);
+      // ...and then POLL rather than sleep-then-sample (#893). Dropping
+      // `networkidle` above removed the dominant race; this removes the other
+      // half of it. A single read at a fixed 300ms measures one instant of a
+      // page that may still be settling, so it can only ever be a bet on how
+      // fast the runner is. Polling asserts the settled state instead, which is
+      // what the contract actually means, and reports the last value it saw on
+      // failure rather than a bare number.
+      //
+      // The threshold is unchanged, so this cannot hide a real regression: the
+      // page measures 0px of overflow at all three of these viewports (36
+      // direct samples), meaning a genuine overflow has the full budget to
+      // cross and will still fail here.
+      await expect
+        .poll(
+          () =>
+            page.evaluate(
+              () =>
+                document.documentElement.scrollWidth -
+                document.documentElement.clientWidth,
+            ),
+          { message: `horizontal overflow at ${vp.width}px`, timeout: 5_000 },
+        )
+        .toBeLessThanOrEqual(1);
     }
   });
 
