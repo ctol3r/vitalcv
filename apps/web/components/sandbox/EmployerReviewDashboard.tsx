@@ -91,7 +91,7 @@ const EmployerReviewDashboard: React.FC<EmployerReviewProps> = (props) => {
   // Mock packets if none provided in list mode (for demonstration)
   const defaultPackets: ClinicianPacket[] = [
     {
-      clinicianName: props.clinicianName || "Dr. John Smith, MD",
+      clinicianName: props.clinicianName || "Example Clinician A, MD",
       npi: props.npi || "1234567890",
       specialty: "Internal Medicine",
       status: "PARTIAL" as const,
@@ -112,8 +112,8 @@ const EmployerReviewDashboard: React.FC<EmployerReviewProps> = (props) => {
       ],
     },
     {
-      clinicianName: "Dr. Sarah Chen, DO",
-      npi: "1003000126",
+      clinicianName: "Example Clinician B, DO",
+      npi: "0000000000",
       specialty: "Emergency Medicine",
       status: "READY" as const,
       submissionDate: new Date(Date.now() - 86400000 * 2).toISOString(), // 2 days ago
@@ -133,7 +133,7 @@ const EmployerReviewDashboard: React.FC<EmployerReviewProps> = (props) => {
       ],
     },
     {
-      clinicianName: "Dr. Emily Davis, MD",
+      clinicianName: "Example Clinician C, MD",
       npi: "9876543210",
       specialty: "Cardiology",
       status: "BLOCKED" as const,
@@ -264,7 +264,7 @@ const EmployerReviewDashboard: React.FC<EmployerReviewProps> = (props) => {
   const simulateNewSubmission = () => {
     const newNpi = Math.floor(1000000000 + Math.random() * 9000000000).toString();
     const newPacket: ClinicianPacket = {
-      clinicianName: `Dr. New Applicant, MD`,
+      clinicianName: `Example New Applicant, MD`,
       npi: newNpi,
       specialty: "Family Medicine",
       status: "PARTIAL",

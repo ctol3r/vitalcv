@@ -115,7 +115,7 @@ export default function App() {
 
   const mockEmployerPackets = [
     {
-      clinicianName: "Dr. John Smith, MD",
+      clinicianName: "Example Clinician A, MD",
       npi: "1234567890",
       specialty: "Internal Medicine",
       status: "PARTIAL" as const,
@@ -135,8 +135,8 @@ export default function App() {
       ],
     },
     {
-      clinicianName: "Dr. Sarah Chen, DO",
-      npi: "1003000126",
+      clinicianName: "Example Clinician B, DO",
+      npi: "0000000000",
       specialty: "Emergency Medicine",
       status: "PARTIAL" as const,
       submissionDate: new Date(Date.now() - 86400000 * 2).toISOString(), // 2 days ago
@@ -153,7 +153,7 @@ export default function App() {
       ],
     },
     {
-      clinicianName: "Dr. Emily Davis, MD",
+      clinicianName: "Example Clinician C, MD",
       npi: "9876543210",
       specialty: "Cardiology",
       status: "BLOCKED" as const,
@@ -250,7 +250,7 @@ export default function App() {
     return baseState;
   };
 
-  const demoNpis = ["1234567890", "1003000126", "9876543210"];
+  const demoNpis = ["1234567890", "0000000000", "9876543210"];
   const allSuggestions = Array.from(new Set([...recentSearches, ...demoNpis]));
   const filteredSuggestions = allSuggestions.filter(s => s.includes(npi));
 
@@ -364,7 +364,7 @@ export default function App() {
               <ReadinessPreview 
                 npi={npi} 
                 onClick={() => {
-                  const targetNpi = npi.length === 10 ? npi : "1003000126";
+                  const targetNpi = npi.length === 10 ? npi : "0000000000";
                   setNpi(targetNpi);
                   handleSearch(null, targetNpi);
                 }} 

@@ -10,10 +10,10 @@ import { Shield, CheckCircle2, Clock, AlertCircle } from 'lucide-react';
 // ── Mock data rows ────────────────────────────────────────────────────────
 
 const MOCK_ROWS = [
-  { name: 'Dr. Sarah Chen',    specialty: 'Cardiology',       score: 95, band: 'GREEN',  status: 'Issuer-confirmed' },
-  { name: 'Dr. Marcus Webb',   specialty: 'Emergency Med.',   score: 88, band: 'GREEN',  status: 'Monitoring' },
-  { name: 'Dr. Priya Nair',    specialty: 'Internal Med.',    score: 80, band: 'YELLOW', status: 'Expiring' },
-  { name: 'Dr. James Okafor',  specialty: 'Neurology',        score: 95, band: 'GREEN',  status: 'Issuer-confirmed' },
+  { name: 'Example Clinician A',    specialty: 'Cardiology',       score: 95, band: 'GREEN',  status: 'Issuer-confirmed' },
+  { name: 'Example Clinician B',   specialty: 'Emergency Med.',   score: 88, band: 'GREEN',  status: 'Monitoring' },
+  { name: 'Example Clinician C',    specialty: 'Internal Med.',    score: 80, band: 'YELLOW', status: 'Expiring' },
+  { name: 'Example Clinician D',  specialty: 'Neurology',        score: 95, band: 'GREEN',  status: 'Issuer-confirmed' },
 ] as const;
 
 const BAND_COLORS = {

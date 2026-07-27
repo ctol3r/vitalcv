@@ -1,5 +1,16 @@
 # VitalCV — Demo Script (2–4 minutes)
 
+> **Status: do not run as written (2026-07-27).** Two things are stale.
+>
+> 1. **The clinician walkthrough is deferred.** There is no NPI we are permitted to demo. Do
+>    not improvise a subject, and do not point any step at a real clinician's NPI. It returns
+>    only with an explicitly consented, founder-controlled fixture — see
+>    [`DEMO_RUNBOOK.md`](DEMO_RUNBOOK.md), which is authoritative for what may be shown.
+> 2. **The UI described below no longer exists.** The "Try a sample" buttons have been
+>    removed from `/demo`, so the Step 1 click-path does not match the current page.
+>
+> Kept as a record of the intended narrative arc, not as an executable script.
+
 ## Setup
 
 - Open `https://vitalcv.com/demo` in a browser tab
@@ -14,7 +25,10 @@
 
 ## 0:30 — Step 1: Identify (45s)
 
-Click one of the **"Try a sample"** buttons (e.g., "Robert Smith — Internal Medicine").
+*(Superseded — these buttons no longer exist on `/demo`.)* This step used to click a
+**"Try a sample"** button. The sample was labelled "Robert Smith — Internal Medicine", a
+fabricated name attached to NPI `1003000126`, which is really ARDALAN ENKESHAFI, M.D. No
+replacement sample is offered here: a sample identity must not be a real clinician's NPI.
 
 > This just called the CMS NPPES registry — the federal source of truth for provider identities in the US. We pulled the raw data, normalized it into a clean provider record, and displayed it here.
 

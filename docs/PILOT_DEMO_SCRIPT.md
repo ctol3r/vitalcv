@@ -1,26 +1,47 @@
 # VitalCV Pilot Demo Script
 
-> Canonical step-by-step demo for a live pilot conversation.
-> Use this script for buyer demos. All steps map to real routes and real behavior.
+> **The live walkthrough below is deferred.** There is currently no subject we are
+> permitted to demo. Steps 1–3 require looking up a specific clinician, and we do not
+> have an explicitly consented, founder-controlled clinician fixture. Until we do, use
+> the founder-only video and the honest product narrative in
+> [DEMO_SCRIPT_2026.md](DEMO_SCRIPT_2026.md).
+>
+> The step-by-step content is retained as the specification of what the walkthrough
+> covers once a consented subject exists.
 
-## Demo NPIs
+## Demo subjects — the rule
 
-| NPI | Name | Expected State | Use For |
-|---|---|---|---|
-| `1003000126` | Sarah Chen MD | READY (L3) | Happy path — all sources checked |
-| `1558395519` | (varies) | PARTIAL or READY | Alternate demo NPI |
-| `1942788324` | Marcus Williams DO | PARTIAL (L2) | PECOS gap scenario |
-| `1841498016` | Priya Nair MD | BLOCKED (L1) | OIG exclusion scenario |
+**There is no list of demo NPIs, by design.**
+
+Every number in the NPI registry belongs to a real registrant. A demo may only look up a
+clinician who has **explicitly consented** to their own record being shown — in practice,
+a founder-controlled fixture or a pilot organization's own clinician who has agreed.
+
+Two things that are never acceptable, both of which this document previously did:
+
+- **Real NPIs presented as demo characters.** `1003000126` was listed as "Sarah Chen MD —
+  READY (L3)". It is ARDALAN ENKESHAFI, M.D., a real physician who never consented. Nine
+  other real NPIs were seeded the same way. Two of them (`1003000209`, `1003000217`) are
+  Type-2 *organization* NPIs that had fabricated person profiles attached — an
+  organization NPI is not a clinician identity at all.
+- **Fabricated NPIs presented as real lookups.** `1942788324` ("Marcus Williams DO"),
+  `1841498016` ("Priya Nair MD") and `1558395519` do not exist in NPPES. A live lookup of
+  any of them resolves to nothing.
+
+The seeded profiles have been removed from production and the seed script now refuses to
+run against a non-local database.
 
 ---
 
 ## Step 1 — Enter NPI
 
+> Requires a consented subject. Do not perform this step against an arbitrary real NPI.
+
 **URL:** https://vitalcv.com
 
 **What to say:** "Let's look up a clinician. I'll enter their NPI — this is the only input needed."
 
-**What to do:** Enter NPI `1003000126` (or a real NPI for a live pilot) in the lookup field and submit.
+**What to do:** Enter the consented subject's NPI in the lookup field and submit.
 
 **What this proves:** A single identifier triggers resolution against multiple federal sources — no manual data entry, no forms to fill.
 
@@ -157,3 +178,4 @@ curl -X POST https://delightful-essence-production.up.railway.app/api/internal/p
 | "Head start on your credentialing process" | "Replaces your credentialing team" |
 | "Transparent — you see exactly what resolved" | "Board certification verified" (state board is access-required) |
 | "Measures Time to Start" | "Guarantees faster starts" |
+| "This clinician consented to being shown" | "Here's a demo clinician" (while showing a real, non-consenting registrant) |

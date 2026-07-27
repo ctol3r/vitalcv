@@ -71,8 +71,8 @@ export const SpecialtyStrategyPanel: React.FC<SpecialtyStrategyPanelProps> = ({
             summary="Identified high-velocity researchers operating in this severe shortage specialty, presenting strategic early recruitment targets."
             confidence={90}
             linkedEntities={[
-              { id: '3', name: 'Dr. Sarah Chen', type: 'provider' },
-              { id: '4', name: 'Dr. Michael Roberts', type: 'provider' }
+              { id: '3', name: 'Example Clinician A', type: 'provider' },
+              { id: '4', name: 'Example Clinician B', type: 'provider' }
             ]}
             icon={<Users className="w-4 h-4 text-foreground/80" />}
           />

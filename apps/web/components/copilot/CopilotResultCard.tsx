@@ -16,7 +16,7 @@ interface ContentProp {
 }
 
 export function CopilotResultCard({ 
-  name = "Dr. Sarah Chen", 
+  name = "Example Clinician A", 
   specialty = "Oncologist, MD", 
   trustScore = 99, 
   institution = "MD Anderson", 
