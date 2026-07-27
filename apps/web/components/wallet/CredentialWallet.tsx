@@ -66,7 +66,8 @@ interface WalletResponse {
 }
 
 interface CredentialWalletProps {
-  subject?: string;
+  /** Required: this component must never guess whose wallet it is rendering. */
+  subject: string;
   className?: string;
   pollIntervalMs?: number;
 }
@@ -87,55 +88,15 @@ const EXPIRY_STYLE: Record<ExpiryWarning, { bar: string; text: string; icon?: ty
   expired: { bar: 'bg-zinc-300', text: 'text-zinc-500', icon: Clock },
 };
 
-// Demo data for when API is unavailable
-const DEMO_ROWS: WalletCredentialRow[] = [
-  {
-    credential: {
-      credentialId: 'demo-001-0000-0000-0000',
-      issuer: 'did:vitalcv:issuer:ca-medical-board',
-      subject: '1003000126',
-      claims: { licenseNumber: 'CA-8821', state: 'CA', specialty: 'Internal Medicine', npi: '1003000126' },
-      status: 'ACTIVE',
-      issuedAt: '2024-01-15T00:00:00Z',
-      expiresAt: new Date(Date.now() + 25 * 86_400_000).toISOString(),
-      schemaVersion: '1.0',
-    },
-    daysUntilExpiry: 25,
-    expiryWarning: 'warning',
-  },
-  {
-    credential: {
-      credentialId: 'demo-002-0000-0000-0000',
-      issuer: 'did:vitalcv:issuer:abim',
-      subject: '1003000126',
-      claims: { certificationId: 'ABIM-4422', specialty: 'Internal Medicine', boardName: 'ABIM' },
-      status: 'ACTIVE',
-      issuedAt: '2023-06-01T00:00:00Z',
-      expiresAt: new Date(Date.now() + 400 * 86_400_000).toISOString(),
-      schemaVersion: '1.0',
-    },
-    daysUntilExpiry: 400,
-    expiryWarning: 'none',
-  },
-  {
-    credential: {
-      credentialId: 'demo-003-0000-0000-0000',
-      issuer: 'did:vitalcv:issuer:dea',
-      subject: '1003000126',
-      claims: { deaNumber: 'BD1234567', schedules: 'II-V', state: 'CA' },
-      status: 'REVOKED',
-      issuedAt: '2022-03-01T00:00:00Z',
-      schemaVersion: '1.0',
-    },
-    daysUntilExpiry: null,
-    expiryWarning: 'none',
-  },
-];
+// This wallet renders on an authenticated clinician's own workspace. It shows
+// credentials the API returns for them and nothing else — there is no demo or
+// placeholder fallback, because a substituted credential here reads as the
+// clinician's own. When the API is unavailable, say so instead.
 
 // ── Component ─────────────────────────────────────────────────────────
 
 export function CredentialWallet({
-  subject = '1003000126',
+  subject,
   className = '',
   pollIntervalMs = 60_000,
 }: CredentialWalletProps) {
@@ -148,6 +109,13 @@ export function CredentialWallet({
   const base = getApiBase();
 
   const fetchWallet = useCallback(async () => {
+    if (!subject) {
+      setData(null);
+      setError('A clinician NPI is required to load the credential wallet.');
+      setLoading(false);
+      return;
+    }
+
     try {
       const r = await fetch(walletFetchPath(base, subject));
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
@@ -156,26 +124,21 @@ export function CredentialWallet({
       setLastUpdated(new Date());
       setError(null);
     } catch {
-      // Fall back to demo data in dev/preview
-      if (!data) {
-        setData({
-          subject,
-          credentials: DEMO_ROWS,
-          summary: { subject, total: 3, active: 2, expiring: 1, expired: 0, revoked: 1 },
-        });
-      }
-      setError(null); // Suppress error when demo data available
+      // Never substitute stand-in credentials here — an unreachable wallet is
+      // reported as unreachable. Credentials already fetched for this subject
+      // are the clinician's own, so they stay on screen and are marked stale
+      // rather than being replaced or silently refreshed.
+      setError('Credential wallet is unavailable right now.');
     } finally {
       setLoading(false);
     }
-  }, [base, subject, data]);
+  }, [base, subject]);
 
   useEffect(() => {
     void fetchWallet();
     const iv = setInterval(() => void fetchWallet(), pollIntervalMs);
     return () => clearInterval(iv);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pollIntervalMs, subject]);
+  }, [fetchWallet, pollIntervalMs]);
 
   const handleRemove = useCallback(async (credentialId: string) => {
     setRemoving((prev) => new Set(prev).add(credentialId));
@@ -245,9 +208,21 @@ export function CredentialWallet({
         </div>
       )}
 
+      {/* Refresh failed, but real credentials from an earlier load are still shown */}
+      {error && credentials.length > 0 && (
+        <div className="flex items-start gap-2 border-b border-amber-200 bg-amber-50 px-5 py-3">
+          <AlertTriangle className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-amber-600" />
+          <p className="text-xs leading-5 text-amber-800">
+            Could not refresh
+            {lastUpdated ? ` — showing your wallet as of ${lastUpdated.toLocaleTimeString()}` : ''}
+            . This view may be out of date.
+          </p>
+        </div>
+      )}
+
       {/* Credential list */}
       <div className="divide-y divide-infra-border/60">
-        {loading && credentials.length === 0 && (
+        {loading && credentials.length === 0 && !error && (
           <div className="space-y-2 p-4">
             {[1, 2, 3].map((i) => (
               <div key={i} className="h-20 rounded-xl bg-muted animate-pulse" />
@@ -255,7 +230,27 @@ export function CredentialWallet({
           </div>
         )}
 
-        {!loading && credentials.length === 0 && (
+        {!loading && error && credentials.length === 0 && (
+          <div className="flex flex-col items-center gap-3 px-5 py-12 text-center">
+            <AlertTriangle className="h-8 w-8 text-amber-500" />
+            <div>
+              <p className="text-sm font-semibold text-foreground">Credential wallet unavailable</p>
+              <p className="mx-auto mt-1 max-w-sm text-xs leading-5 text-muted-foreground">
+                {error} Nothing is shown here until it can be reached again.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => void fetchWallet()}
+              className="inline-flex min-h-[36px] items-center gap-1.5 rounded-lg border border-infra-border px-3 text-xs font-semibold text-foreground transition-colors hover:bg-secondary"
+            >
+              <RefreshCw className="h-3 w-3" />
+              Retry
+            </button>
+          </div>
+        )}
+
+        {!loading && !error && credentials.length === 0 && (
           <div className="flex flex-col items-center gap-2 py-12">
             <FileKey2 className="h-8 w-8 text-muted-foreground/40" />
             <p className="text-sm text-muted-foreground">No credentials in wallet</p>
