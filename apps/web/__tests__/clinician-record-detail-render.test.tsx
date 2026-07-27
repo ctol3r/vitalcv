@@ -77,14 +77,21 @@ const CMS_PAYLOAD = {
   ],
 };
 
-function render(mode: 'public' | 'owner' = 'public'): string {
+const RETRIEVED_AT = '2026-07-26T12:00:00.000Z';
+const NOW = new Date('2026-07-26T12:00:00.000Z');
+
+/** Build the record straight from the captured CMS payload. */
+function buildFromPayload(overrides: Record<string, unknown> = {}) {
   const reading = mapNppesResult(CMS_PAYLOAD as unknown as Record<string, unknown>);
-  const record = buildClinicianRecord(reading, {
-    retrievedAt: '2026-07-26T12:00:00.000Z',
-    now: new Date('2026-07-26T12:00:00.000Z'),
-  });
+  return buildClinicianRecord(
+    { ...reading, ...overrides } as typeof reading,
+    { retrievedAt: RETRIEVED_AT, now: NOW },
+  );
+}
+
+function render(mode: 'public' | 'owner' = 'public'): string {
   return renderToStaticMarkup(
-    <ClinicianRecordDetail record={record} mode={mode} />,
+    <ClinicianRecordDetail record={buildFromPayload()} mode={mode} />,
   );
 }
 
@@ -212,10 +219,60 @@ describe('honesty guardrails in the rendered output', () => {
 describe('absent values', () => {
   const html = render();
 
-  it('states that an unreported field was not reported, rather than leaving a blank', () => {
-    // This record has no middle name, prefix or suffix. A blank cell reads as
-    // "nothing to report"; the explicit phrasing does not.
+  it('states that a decision-relevant field was not reported', () => {
+    // This record files no licence number or state. A blank cell reads as
+    // "nothing to report"; the explicit phrasing does not. A reviewer acts on
+    // this, so it must never be silently omitted.
     expect(html).toContain('Not reported to CMS');
+    expect(html).toContain('Licence number as filed');
+  });
+
+  it('omits optional name parts instead of announcing their absence', () => {
+    // A missing middle name says nothing about a provider. Announcing it four
+    // times turns the honest-absence signal into noise, which is how the
+    // signal stops being read at all.
+    expect(html).not.toContain('Middle name');
+    expect(html).not.toContain('Name prefix');
+    expect(html).not.toContain('Name suffix');
+  });
+
+  it('still shows an optional name part when it is present', () => {
+    const withMiddle = renderToStaticMarkup(
+      <ClinicianRecordDetail
+        record={buildFromPayload({ middle_name: 'RENEE' })}
+      />,
+    );
+    expect(withMiddle).toContain('Middle name');
+    expect(withMiddle).toContain('RENEE');
+  });
+});
+
+describe('provenance strip placement', () => {
+  it('hoists to one banner while every section shares a provenance', () => {
+    const html = render();
+    // All of this record is one NPPES read, so the strip must not repeat
+    // verbatim above each section — a badge shown five identical times stops
+    // being read, and this is the one badge that must not become wallpaper.
+    const occurrences = html.split('Self-reported to CMS').length - 1;
+    expect(occurrences).toBe(1);
+    expect(html).toContain('Every field below comes from this one reading');
+  });
+
+  it('falls back to per-section strips once a section disagrees', () => {
+    // Simulate what happens when a federal connector attaches a section with
+    // different freshness: the differences become the informative thing, so
+    // the labels move back down to the sections.
+    const record = buildFromPayload();
+    const diverged = {
+      ...record,
+      taxonomies: {
+        ...record.taxonomies,
+        freshness: { ...record.taxonomies.freshness, status: 'current' as const },
+      },
+    };
+    const html = renderToStaticMarkup(<ClinicianRecordDetail record={diverged} />);
+    expect(html).not.toContain('Every field below comes from this one reading');
+    expect(html.split('Self-reported to CMS').length - 1).toBeGreaterThan(1);
   });
 });
 
@@ -223,5 +280,31 @@ describe('owner mode', () => {
   it('tells the clinician that employers see the same gaps', () => {
     const html = render('owner');
     expect(html).toMatch(/Employers reviewing your profile will see these gaps/);
+  });
+});
+
+describe('repeated taxonomy codes', () => {
+  /**
+   * A physician licensed in several states files one taxonomy row per
+   * licence. NPI 1003000126 files Internal Medicine three times (MD, MD, VA).
+   */
+  const multiLicence = buildFromPayload({
+    taxonomies: [
+      { code: '208M00000X', taxonomy_group: '', desc: 'Hospitalist', state: 'DC', license: 'MD600003480', primary: true },
+      { code: '207R00000X', taxonomy_group: '', desc: 'Internal Medicine', state: 'MD', license: 'D0000290', primary: false },
+      { code: '207R00000X', taxonomy_group: '', desc: 'Internal Medicine', state: 'VA', license: '0101254037', primary: false },
+    ],
+  });
+  const html = renderToStaticMarkup(<ClinicianRecordDetail record={multiLicence} />);
+
+  it('shows every licence row, since that is what differs between them', () => {
+    expect(html).toContain('D0000290');
+    expect(html).toContain('0101254037');
+    expect(html).toContain('MD600003480');
+  });
+
+  it('prints a repeated code’s definition once, not once per licence', () => {
+    const definitionOpening = 'A physician who provides long-term, comprehensive care';
+    expect(html.split(definitionOpening).length - 1).toBe(1);
   });
 });

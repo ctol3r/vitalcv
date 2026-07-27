@@ -16,11 +16,30 @@
  *     footnote below the fold
  *   - what is NOT covered gets its own section with equal visual weight
  *
+ * STYLING
+ * -------
+ * Calm Wave (D56) tokens throughout — this renders inside the `.mz` island.
+ * Notes on two deliberate choices:
+ *
+ *   - Small labels use `--vt-text-muted`, not `--ink-400`. matcha-zen.css
+ *     documents --ink-400 at small sizes as 2.37:1, below WCAG AA; the muted
+ *     bridge token is the AA-corrected one. Neighbouring code still uses the
+ *     raw ramp value, but matching it would knowingly ship a contrast failure.
+ *
+ *   - No check glyph appears anywhere, on any state. LINT-07 reserves it for
+ *     affirmative evidence, and nothing on this record is affirmative
+ *     evidence — it is a registry filing. State chips carry the `.mz-gl`
+ *     shape cue instead, which is also the non-colour cue for the a11y
+ *     baseline.
+ *
  * Server component: pure render, no client state. No icon library (LINT-02).
  */
 
-import type { ClinicianRecord } from '@/lib/clinician-record/types';
-import type { RecordAddress, RecordSection } from '@/lib/clinician-record/types';
+import type {
+  ClinicianRecord,
+  RecordAddress,
+  RecordSection,
+} from '@/lib/clinician-record/types';
 import { CREDENTIAL_PROVENANCE_NOTE } from '@/lib/reference/credentials';
 import { TAXONOMY_LICENSE_PROVENANCE_NOTE } from '@/lib/reference/taxonomy';
 
@@ -28,7 +47,8 @@ export type RecordMode = 'public' | 'owner';
 
 // ── Small presentational primitives ────────────────────────────────────────
 
-function Section({
+/** A sub-section inside the page's own Section, so one level quieter. */
+function Group({
   title,
   subtitle,
   children,
@@ -38,13 +58,15 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section className="space-y-3">
+    <section className="space-y-2.5">
       <div className="space-y-1">
-        <h2 className="text-[11px] font-semibold uppercase tracking-widest text-gray-500">
+        <h3 className="mz-mono text-[10px] uppercase tracking-[0.14em] text-[var(--vt-text-muted)]">
           {title}
-        </h2>
+        </h3>
         {subtitle ? (
-          <p className="text-[11px] leading-relaxed text-gray-500">{subtitle}</p>
+          <p className="text-[11px] leading-relaxed text-[var(--ink-600)]">
+            {subtitle}
+          </p>
         ) : null}
       </div>
       {children}
@@ -57,42 +79,63 @@ function Field({
   value,
   mono,
   hint,
+  optional,
 }: {
   label: string;
   value: React.ReactNode;
   mono?: boolean;
   hint?: string;
+  /**
+   * Set for fields whose absence carries no meaning — a missing middle name
+   * or name suffix says nothing about a provider. Those rows disappear when
+   * empty instead of announcing themselves.
+   *
+   * Deliberately NOT set for anything a reviewer would act on. A missing
+   * licence number, state or address is decision-relevant, and hiding it
+   * would turn "we don't know" into "nothing to see", which is the exact
+   * silent-completeness failure this component exists to prevent.
+   */
+  optional?: boolean;
 }) {
   const empty =
     value === null || value === undefined || value === '' || value === false;
 
+  if (empty && optional) return null;
+
   return (
     <div className="flex flex-col gap-0.5 py-1.5">
-      <dt className="text-[10px] uppercase tracking-wide text-gray-400">{label}</dt>
+      <dt className="mz-mono text-[9.5px] uppercase tracking-[0.12em] text-[var(--vt-text-muted)]">
+        {label}
+      </dt>
       <dd
         className={
           empty
-            ? 'text-sm text-gray-400 italic'
-            : mono
-              ? 'text-sm font-mono text-gray-800 break-words'
-              : 'text-sm text-gray-800 break-words'
+            ? 'text-sm italic text-[var(--vt-text-muted)]'
+            : `text-sm break-words text-[var(--ink-800)]${mono ? ' mz-mono' : ''}`
         }
       >
         {/* An absent value is stated, never left as blank space that could
             read as "nothing to report". */}
         {empty ? 'Not reported to CMS' : value}
       </dd>
-      {hint ? <p className="text-[10px] leading-snug text-gray-400">{hint}</p> : null}
+      {hint ? (
+        <p className="text-[10px] leading-snug text-[var(--vt-text-muted)]">{hint}</p>
+      ) : null}
     </div>
   );
 }
 
 /**
- * The provenance strip that rides above every section.
+ * The provenance strip that rides above every group.
  *
  * This is the component that keeps the page honest, so it is deliberately
  * not subtle: source, what that source does and does not establish, and how
  * old the reading is.
+ *
+ * The confirmation chip is always `mz-chip-unknown` for registry data — a
+ * neutral chip, never the affirmative one. Registry data being present is not
+ * a positive finding, and colouring it as one is the exact misread this
+ * component exists to prevent.
  */
 function SourceStrip({ section }: { section: RecordSection<unknown> }) {
   const { provenance, freshness } = section;
@@ -107,6 +150,9 @@ function SourceStrip({ section }: { section: RecordSection<unknown> }) {
           ? 'Derived by VitalCV'
           : 'Entered by the clinician';
 
+  const confirmationChip =
+    provenance.confirmation === 'source_confirmed' ? 'mz-chip-ok' : 'mz-chip-unknown';
+
   const freshnessLabel =
     freshness.status === 'current'
       ? 'Within refresh window'
@@ -114,30 +160,44 @@ function SourceStrip({ section }: { section: RecordSection<unknown> }) {
         ? 'Older than refresh window'
         : 'Age unknown';
 
-  const freshnessTone =
+  const freshnessChip =
     freshness.status === 'current'
-      ? 'border-emerald-300 bg-emerald-50 text-emerald-800'
+      ? 'mz-chip-ok'
       : freshness.status === 'stale'
-        ? 'border-amber-300 bg-amber-50 text-amber-800'
-        : 'border-gray-300 bg-gray-50 text-gray-600';
+        ? 'mz-chip-watch'
+        : 'mz-chip-unknown';
 
   return (
-    <div className="flex flex-wrap items-center gap-2 text-[10px]">
-      <span className="inline-flex items-center rounded border border-gray-300 bg-gray-50 px-1.5 py-0.5 font-mono text-gray-700">
+    <div className="flex flex-wrap items-center gap-1.5">
+      <span className="mz-chip mz-chip-unknown">
+        <span className="mz-gl" aria-hidden="true" />
         {source.label}
       </span>
-      <span className="inline-flex items-center rounded border border-gray-300 bg-white px-1.5 py-0.5 text-gray-700">
+      <span className={`mz-chip ${confirmationChip}`}>
+        <span className="mz-gl" aria-hidden="true" />
         {confirmationLabel}
       </span>
-      <span
-        className={`inline-flex items-center rounded border px-1.5 py-0.5 ${freshnessTone}`}
-      >
-        {/* Non-colour cue alongside the colour, per the a11y baseline. */}
+      <span className={`mz-chip ${freshnessChip}`}>
+        <span className="mz-gl" aria-hidden="true" />
         {freshnessLabel}
         {freshness.ageDays !== null ? ` · ${formatAge(freshness.ageDays)}` : ''}
       </span>
     </div>
   );
+}
+
+/**
+ * Identity of a section's provenance, for deciding whether the strip has to
+ * repeat. Two sections read from the same source, at the same confirmation
+ * level, with the same freshness are making the same claim about themselves.
+ */
+function provenanceKey(section: RecordSection<unknown>): string {
+  return [
+    section.provenance.source.id,
+    section.provenance.confirmation,
+    section.freshness.status,
+    section.freshness.ageDays ?? '',
+  ].join('|');
 }
 
 /** "3 days ago" / "over 1 year ago" — the age a reader actually wants. */
@@ -154,7 +214,7 @@ function formatAge(days: number): string {
 function AddressBlock({ address }: { address: RecordAddress }) {
   const zip = address.postalCodeFormatted || address.postalCode;
   return (
-    <div className="space-y-0.5 text-sm text-gray-800">
+    <div className="space-y-0.5 text-sm text-[var(--ink-800)]">
       <div>{address.line1}</div>
       {address.line2 ? <div>{address.line2}</div> : null}
       <div>
@@ -162,20 +222,29 @@ function AddressBlock({ address }: { address: RecordAddress }) {
         {zip ? ` ${zip}` : ''}
       </div>
       {address.countryName && address.countryCode !== 'US' ? (
-        <div className="text-gray-600">{address.countryName}</div>
+        <div className="text-[var(--ink-600)]">{address.countryName}</div>
       ) : null}
-      <div className="flex flex-wrap gap-x-4 pt-1 text-xs text-gray-600">
+      <div className="flex flex-wrap gap-x-4 pt-1 text-xs text-[var(--ink-600)]">
         {address.telephone ? (
           <span>
-            Phone <span className="font-mono text-gray-800">{address.telephone}</span>
+            Phone{' '}
+            <span className="mz-mono text-[var(--ink-800)]">{address.telephone}</span>
           </span>
         ) : null}
         {address.fax ? (
           <span>
-            Fax <span className="font-mono text-gray-800">{address.fax}</span>
+            Fax <span className="mz-mono text-[var(--ink-800)]">{address.fax}</span>
           </span>
         ) : null}
       </div>
+    </div>
+  );
+}
+
+function EmptyBlock({ message }: { message: string }) {
+  return (
+    <div className="mz-inset px-3 py-4 text-center text-sm text-[var(--vt-text-muted)]">
+      {message}
     </div>
   );
 }
@@ -193,42 +262,69 @@ export function ClinicianRecordDetail({
   const status = record.status.data;
   const audit = record.audit.data;
 
+  /**
+   * Today every section comes from one NPPES read, so the strip would render
+   * identically five times. A badge repeated verbatim five times stops being
+   * read — it becomes wallpaper, and the honesty signal is the one thing on
+   * this page that must not become wallpaper. So it is hoisted to a single
+   * banner while the sections agree.
+   *
+   * The moment a federal connector attaches a section with different
+   * provenance or freshness, this flips back to per-section strips, and the
+   * differences are then the thing that stands out. Same rule, opposite
+   * rendering, because the informative thing changed.
+   */
+  const allSections: RecordSection<unknown>[] = [
+    record.identity,
+    record.taxonomies,
+    record.practiceAddress,
+    record.identifiers,
+    record.audit,
+  ];
+  const uniform = new Set(allSections.map(provenanceKey)).size === 1;
+  const strip = (section: RecordSection<unknown>) =>
+    uniform ? null : <SourceStrip section={section} />;
+
   return (
-    <div className="space-y-8">
+    <div className="space-y-7">
+      {uniform ? (
+        <div className="space-y-1.5">
+          <SourceStrip section={record.identity} />
+          <p className="text-[11px] leading-relaxed text-[var(--ink-600)]">
+            Every field below comes from this one reading. Sections will carry
+            their own labels once a source disagrees with it.
+          </p>
+        </div>
+      ) : null}
       {/* ── Identity ──────────────────────────────────────────────────── */}
-      <Section title="Provider record">
-        <SourceStrip section={record.identity} />
-        <div className="rounded-lg border border-gray-200 p-4">
+      <Group title="Provider record">
+        {strip(record.identity)}
+        <div className="mz-card mz-card-pad">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <h3 className="text-lg font-semibold text-gray-900">
-                {identity.displayName || `NPI ${record.npi}`}
-              </h3>
-              <p className="mt-0.5 text-sm text-gray-500">
+              <h4 className="mz-h2">{identity.displayName || `NPI ${record.npi}`}</h4>
+              <p className="mt-0.5 text-sm text-[var(--ink-600)]">
                 {record.entityTypeLabel}
                 {' · NPI '}
-                <span className="font-mono text-gray-700">{record.npi}</span>
+                <span className="mz-mono text-[var(--ink-700)]">{record.npi}</span>
               </p>
             </div>
             <span
-              className={`inline-flex items-center rounded border px-2 py-0.5 text-[11px] font-mono ${
-                status.isActive
-                  ? 'border-emerald-300 bg-emerald-50 text-emerald-800'
-                  : 'border-amber-300 bg-amber-50 text-amber-800'
-              }`}
+              className={`mz-chip ${status.isActive ? 'mz-chip-ok' : 'mz-chip-p0'}`}
             >
+              <span className="mz-gl" aria-hidden="true" />
               {status.label}
             </span>
           </div>
 
-          <dl className="mt-3 grid grid-cols-1 gap-x-6 border-t border-gray-100 pt-3 sm:grid-cols-2 lg:grid-cols-3">
+          <dl className="mt-3 grid grid-cols-1 gap-x-6 border-t border-[var(--rule-soft)] pt-3 sm:grid-cols-2 lg:grid-cols-3">
             {record.entityType === 'individual' ? (
               <>
                 <Field label="First name" value={identity.firstName} />
-                <Field label="Middle name" value={identity.middleName} />
                 <Field label="Last name" value={identity.lastName} />
-                <Field label="Name prefix" value={identity.namePrefix} />
-                <Field label="Name suffix" value={identity.nameSuffix} />
+                <Field label="Middle name" value={identity.middleName} optional />
+                <Field label="Name prefix" value={identity.namePrefix} optional />
+                <Field label="Name suffix" value={identity.nameSuffix} optional />
                 <Field
                   label="Sole proprietor"
                   value={identity.soleProprietor}
@@ -258,77 +354,83 @@ export function ClinicianRecordDetail({
           {/* Credential decode — the single most misreadable field on the
               page, so its limitation sits directly under it. */}
           {identity.credential.raw ? (
-            <div className="mt-3 border-t border-gray-100 pt-3">
-              <div className="text-[10px] uppercase tracking-wide text-gray-400">
+            <div className="mt-3 border-t border-[var(--rule-soft)] pt-3">
+              <div className="mz-mono text-[9.5px] uppercase tracking-[0.12em] text-[var(--vt-text-muted)]">
                 Credential as filed
               </div>
-              <div className="mt-1 flex flex-wrap gap-1.5">
+              <div className="mt-1.5 flex flex-wrap gap-1.5">
                 {identity.credential.tokens.map((token, i) => (
                   <span
                     key={`${token.raw}-${i}`}
-                    className="inline-flex items-baseline gap-1.5 rounded border border-gray-200 bg-gray-50 px-2 py-0.5"
+                    className="mz-inset inline-flex items-baseline gap-1.5 px-2 py-1"
                   >
-                    <span className="font-mono text-sm text-gray-800">{token.raw}</span>
-                    <span className="text-xs text-gray-500">
+                    <span className="mz-mono text-sm text-[var(--ink-800)]">
+                      {token.raw}
+                    </span>
+                    <span className="text-xs text-[var(--ink-600)]">
                       {token.expansion ?? 'meaning not recognised'}
                     </span>
                   </span>
                 ))}
               </div>
-              <p className="mt-1.5 text-[10px] leading-snug text-gray-500">
+              <p className="mt-2 text-[10px] leading-snug text-[var(--vt-text-muted)]">
                 {CREDENTIAL_PROVENANCE_NOTE}
               </p>
             </div>
           ) : null}
         </div>
-      </Section>
+      </Group>
 
       {/* ── Specialty ─────────────────────────────────────────────────── */}
-      <Section
+      <Group
         title="Specialty and taxonomy"
         subtitle="Every taxonomy on the NPI record, resolved against the NUCC code set and the CMS Medicare crosswalk."
       >
-        <SourceStrip section={record.taxonomies} />
+        {strip(record.taxonomies)}
         {record.taxonomies.data.length === 0 ? (
           <EmptyBlock message="This NPI record lists no taxonomy." />
         ) : (
           <div className="space-y-2">
-            {record.taxonomies.data.map((t, i) => (
+            {record.taxonomies.data.map((t, i, all) => {
+              // A provider licensed in several states files one taxonomy row
+              // per licence, so the same code repeats. Print the NUCC
+              // definition on its first appearance only — three identical
+              // paragraphs of boilerplate bury the licence rows, which are
+              // the part that actually differs between them.
+              const firstOfCode = all.findIndex((o) => o.code === t.code) === i;
+              return (
               <div
                 key={`${t.code}-${t.state}-${t.license}-${i}`}
-                className="rounded-lg border border-gray-200 p-3"
+                className="mz-card px-4 py-3"
               >
                 <div className="flex flex-wrap items-baseline gap-2">
-                  <span className="text-sm font-semibold text-gray-900">
+                  <span className="text-sm font-semibold text-[var(--ink-900)]">
                     {t.displayName}
                   </span>
                   {t.primary ? (
-                    <span className="rounded border border-gray-900 bg-gray-900 px-1.5 py-0.5 text-[10px] font-mono text-white">
+                    <span className="mz-chip mz-chip-unknown">
+                      <span className="mz-gl" aria-hidden="true" />
                       Primary
                     </span>
                   ) : null}
-                  <span className="font-mono text-xs text-gray-500">{t.code}</span>
+                  <span className="mz-mono text-xs text-[var(--ink-600)]">{t.code}</span>
                 </div>
 
                 {t.grouping ? (
-                  <p className="mt-1 text-xs text-gray-600">
+                  <p className="mt-1 text-xs text-[var(--ink-600)]">
                     {t.grouping}
                     {t.classification ? ` › ${t.classification}` : ''}
                     {t.specialization ? ` › ${t.specialization}` : ''}
                   </p>
                 ) : (
-                  <p className="mt-1 text-xs italic text-gray-400">
+                  <p className="mt-1 text-xs italic text-[var(--vt-text-muted)]">
                     This code is not in the current NUCC code set, so no hierarchy
                     is available.
                   </p>
                 )}
 
-                <dl className="mt-2 grid grid-cols-1 gap-x-6 border-t border-gray-100 pt-2 sm:grid-cols-3">
-                  <Field
-                    label="Licence number as filed"
-                    value={t.license}
-                    mono
-                  />
+                <dl className="mt-2 grid grid-cols-1 gap-x-6 border-t border-[var(--rule-soft)] pt-2 sm:grid-cols-3">
+                  <Field label="Licence number as filed" value={t.license} mono />
                   <Field label="Licence state as filed" value={t.state} />
                   <Field
                     label="Medicare specialty"
@@ -347,48 +449,49 @@ export function ClinicianRecordDetail({
                   />
                 </dl>
 
-                {t.definition ? (
-                  <p className="mt-2 border-t border-gray-100 pt-2 text-[11px] leading-relaxed text-gray-500">
+                {t.definition && firstOfCode ? (
+                  <p className="mt-2 border-t border-[var(--rule-soft)] pt-2 text-[11px] leading-relaxed text-[var(--ink-600)]">
                     {t.definition}
                   </p>
                 ) : null}
               </div>
-            ))}
-            <p className="text-[10px] leading-snug text-gray-500">
+              );
+            })}
+            <p className="text-[10px] leading-snug text-[var(--vt-text-muted)]">
               {TAXONOMY_LICENSE_PROVENANCE_NOTE}
             </p>
           </div>
         )}
-      </Section>
+      </Group>
 
       {/* ── Locations ─────────────────────────────────────────────────── */}
-      <Section title="Locations">
-        <SourceStrip section={record.practiceAddress} />
+      <Group title="Locations">
+        {strip(record.practiceAddress)}
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <div className="rounded-lg border border-gray-200 p-3">
-            <div className="text-[10px] uppercase tracking-wide text-gray-400">
+          <div className="mz-card px-4 py-3">
+            <div className="mz-mono text-[9.5px] uppercase tracking-[0.12em] text-[var(--vt-text-muted)]">
               Practice location
             </div>
             <div className="mt-1.5">
               {record.practiceAddress.data ? (
                 <AddressBlock address={record.practiceAddress.data} />
               ) : (
-                <p className="text-sm italic text-gray-400">
+                <p className="text-sm italic text-[var(--vt-text-muted)]">
                   No practice address on the NPI record.
                 </p>
               )}
             </div>
           </div>
 
-          <div className="rounded-lg border border-gray-200 p-3">
-            <div className="text-[10px] uppercase tracking-wide text-gray-400">
+          <div className="mz-card px-4 py-3">
+            <div className="mz-mono text-[9.5px] uppercase tracking-[0.12em] text-[var(--vt-text-muted)]">
               Mailing address
             </div>
             <div className="mt-1.5">
               {record.mailingAddress.data ? (
                 <AddressBlock address={record.mailingAddress.data} />
               ) : (
-                <p className="text-sm italic text-gray-400">
+                <p className="text-sm italic text-[var(--vt-text-muted)]">
                   No mailing address on the NPI record.
                 </p>
               )}
@@ -398,91 +501,97 @@ export function ClinicianRecordDetail({
 
         {record.secondaryLocations.data.length > 0 ? (
           <div className="space-y-2">
-            <div className="text-[10px] uppercase tracking-wide text-gray-400">
+            <div className="mz-mono text-[9.5px] uppercase tracking-[0.12em] text-[var(--vt-text-muted)]">
               Additional practice locations ({record.secondaryLocations.data.length})
             </div>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               {record.secondaryLocations.data.map((addr, i) => (
-                <div
-                  key={`${addr.line1}-${addr.city}-${i}`}
-                  className="rounded-lg border border-gray-200 p-3"
-                >
+                <div key={`${addr.line1}-${addr.city}-${i}`} className="mz-card px-4 py-3">
                   <AddressBlock address={addr} />
                 </div>
               ))}
             </div>
           </div>
         ) : null}
-      </Section>
+      </Group>
 
-      {/* ── Other identifiers and names ───────────────────────────────── */}
-      <Section
+      {/* ── Other identifiers ─────────────────────────────────────────── */}
+      <Group
         title="Other identifiers"
         subtitle="Medicaid numbers and other identifiers the provider listed alongside their NPI."
       >
-        <SourceStrip section={record.identifiers} />
+        {strip(record.identifiers)}
         {record.identifiers.data.length === 0 ? (
           <EmptyBlock message="No additional identifiers on the NPI record." />
         ) : (
-          <div className="overflow-x-auto">
+          <div className="mz-card overflow-x-auto">
             <table className="w-full min-w-[32rem] text-sm">
               <thead>
-                <tr className="border-b border-gray-200 text-left text-[10px] uppercase tracking-wide text-gray-400">
-                  <th className="py-1.5 pr-3 font-medium">Identifier</th>
-                  <th className="py-1.5 pr-3 font-medium">Type</th>
-                  <th className="py-1.5 pr-3 font-medium">Issuer</th>
-                  <th className="py-1.5 font-medium">State</th>
+                <tr className="border-b border-[var(--rule)] text-left">
+                  {['Identifier', 'Type', 'Issuer', 'State'].map((h) => (
+                    <th
+                      key={h}
+                      className="mz-mono px-3 py-2 text-[9.5px] font-medium uppercase tracking-[0.12em] text-[var(--vt-text-muted)]"
+                    >
+                      {h}
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
                 {record.identifiers.data.map((id, i) => (
-                  <tr key={`${id.identifier}-${i}`} className="border-b border-gray-100">
-                    <td className="py-1.5 pr-3 font-mono text-gray-800">
+                  <tr
+                    key={`${id.identifier}-${i}`}
+                    className="border-b border-[var(--rule-soft)] last:border-0"
+                  >
+                    <td className="mz-mono px-3 py-2 text-[var(--ink-800)]">
                       {id.identifier}
                     </td>
-                    <td className="py-1.5 pr-3 text-gray-700">{id.description || id.code}</td>
-                    <td className="py-1.5 pr-3 text-gray-700">{id.issuer || '—'}</td>
-                    <td className="py-1.5 text-gray-700">{id.state || '—'}</td>
+                    <td className="px-3 py-2 text-[var(--ink-700)]">
+                      {id.description || id.code}
+                    </td>
+                    <td className="px-3 py-2 text-[var(--ink-700)]">{id.issuer || '—'}</td>
+                    <td className="px-3 py-2 text-[var(--ink-700)]">{id.state || '—'}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
         )}
-      </Section>
+      </Group>
 
       {record.otherNames.data.length > 0 ? (
-        <Section
+        <Group
           title="Other names on record"
           subtitle="Former or alternate names. Useful when matching this provider to records filed under a different name."
         >
-          <SourceStrip section={record.otherNames} />
-          <ul className="space-y-1">
+          {strip(record.otherNames)}
+          <ul className="space-y-0.5">
             {record.otherNames.data.map((n, i) => (
-              <li key={`${n.displayName}-${i}`} className="text-sm text-gray-800">
+              <li key={`${n.displayName}-${i}`} className="text-sm text-[var(--ink-800)]">
                 {n.displayName}
                 {n.type ? (
-                  <span className="ml-2 text-xs text-gray-500">({n.type})</span>
+                  <span className="ml-2 text-xs text-[var(--ink-600)]">({n.type})</span>
                 ) : null}
               </li>
             ))}
           </ul>
-        </Section>
+        </Group>
       ) : null}
 
       {record.endpoints.data.length > 0 ? (
-        <Section
+        <Group
           title="Health information exchange endpoints"
           subtitle="Direct secure messaging and FHIR endpoints the provider published to CMS."
         >
-          <SourceStrip section={record.endpoints} />
+          {strip(record.endpoints)}
           <ul className="space-y-2">
             {record.endpoints.data.map((e, i) => (
-              <li key={`${e.endpoint}-${i}`} className="rounded border border-gray-200 p-2">
-                <div className="font-mono text-xs break-all text-gray-800">
+              <li key={`${e.endpoint}-${i}`} className="mz-card px-3 py-2">
+                <div className="mz-mono break-all text-xs text-[var(--ink-800)]">
                   {e.endpoint}
                 </div>
-                <div className="mt-0.5 text-[11px] text-gray-500">
+                <div className="mt-0.5 text-[11px] text-[var(--ink-600)]">
                   {[e.endpointType, e.endpointTypeDescription, e.affiliation]
                     .filter(Boolean)
                     .join(' · ')}
@@ -490,16 +599,16 @@ export function ClinicianRecordDetail({
               </li>
             ))}
           </ul>
-        </Section>
+        </Group>
       ) : null}
 
       {record.authorizedOfficial.data ? (
-        <Section
+        <Group
           title="Authorized official"
           subtitle="The person CMS holds accountable for this organization's NPI record."
         >
-          <SourceStrip section={record.authorizedOfficial} />
-          <div className="rounded-lg border border-gray-200 p-3">
+          {strip(record.authorizedOfficial)}
+          <div className="mz-card px-4 py-3">
             <dl className="grid grid-cols-1 gap-x-6 sm:grid-cols-3">
               <Field label="Name" value={record.authorizedOfficial.data.displayName} />
               <Field
@@ -513,16 +622,16 @@ export function ClinicianRecordDetail({
               />
             </dl>
           </div>
-        </Section>
+        </Group>
       ) : null}
 
       {/* ── Registry audit trail ──────────────────────────────────────── */}
-      <Section
+      <Group
         title="Registry history"
         subtitle="When this record was created, last changed, and last certified as accurate by the provider."
       >
-        <SourceStrip section={record.audit} />
-        <div className="rounded-lg border border-gray-200 p-3">
+        {strip(record.audit)}
+        <div className="mz-card px-4 py-3">
           <dl className="grid grid-cols-1 gap-x-6 sm:grid-cols-2 lg:grid-cols-4">
             <Field label="NPI enumerated" value={audit.enumerationDate} mono />
             <Field label="Last updated" value={audit.lastUpdated} mono />
@@ -541,10 +650,10 @@ export function ClinicianRecordDetail({
             ) : null}
           </dl>
         </div>
-      </Section>
+      </Group>
 
       {/* ── What this record does NOT cover ───────────────────────────── */}
-      <Section
+      <Group
         title="Not covered by this record"
         subtitle={
           mode === 'owner'
@@ -552,35 +661,41 @@ export function ClinicianRecordDetail({
             : 'These checks are not attached to this record. Do not read their absence as a pass.'
         }
       >
-        <div className="rounded-lg border border-amber-200 bg-amber-50/50 p-3">
+        <div
+          className="mz-card px-4 py-3"
+          style={{
+            background: 'var(--watch-bg)',
+            borderColor: 'var(--watch-rule)',
+          }}
+        >
           <ul className="space-y-2">
             {record.gaps.map((gap) => (
               <li key={gap.label} className="text-sm">
-                <span className="font-medium text-gray-900">{gap.label}</span>
-                <span className="text-gray-400"> — </span>
-                <span className="text-gray-700">{gap.reason}</span>
+                <span className="font-semibold text-[var(--ink-900)]">{gap.label}</span>
+                <span className="text-[var(--vt-text-muted)]"> — </span>
+                <span className="text-[var(--ink-700)]">{gap.reason}</span>
               </li>
             ))}
           </ul>
         </div>
-      </Section>
+      </Group>
 
       {/* ── Provenance footer ─────────────────────────────────────────── */}
-      <Section title="Sources">
+      <Group title="Sources">
         <div className="space-y-2">
           {record.citedSources.map((source) => (
-            <div key={source.id} className="rounded border border-gray-200 p-3">
+            <div key={source.id} className="mz-card px-4 py-3">
               <div className="flex flex-wrap items-baseline gap-2">
-                <span className="text-sm font-medium text-gray-900">
+                <span className="text-sm font-semibold text-[var(--ink-900)]">
                   {source.label}
                 </span>
-                <span className="font-mono text-[10px] text-gray-500">
+                <span className="mz-mono text-[10px] text-[var(--vt-text-muted)]">
                   {source.tier}
                 </span>
                 {source.url ? (
                   <a
                     href={source.url}
-                    className="text-xs text-gray-600 underline"
+                    className="text-xs text-[var(--ink-600)] underline"
                     rel="noopener noreferrer"
                     target="_blank"
                   >
@@ -588,21 +703,13 @@ export function ClinicianRecordDetail({
                   </a>
                 ) : null}
               </div>
-              <p className="mt-1 text-[11px] leading-relaxed text-gray-600">
+              <p className="mt-1 text-[11px] leading-relaxed text-[var(--ink-600)]">
                 {source.note}
               </p>
             </div>
           ))}
         </div>
-      </Section>
-    </div>
-  );
-}
-
-function EmptyBlock({ message }: { message: string }) {
-  return (
-    <div className="rounded border border-dashed border-gray-200 px-3 py-4 text-center text-sm text-gray-400">
-      {message}
+      </Group>
     </div>
   );
 }
