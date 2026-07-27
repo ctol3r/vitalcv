@@ -70,6 +70,23 @@ export default function EmployersPage() {
               acceptance is not a credentialing decision, and the hiring decision stays yours.
             </p>
             <p style={{ marginTop: 6 }}>{cadenceSentence()}</p>
+            {/* Diligence route. The per-field register at /trust/attribution is the
+                honest substitute for the compliance badges this market runs on and
+                our truth contract forbids — it opens by disclaiming HIPAA, SOC 2 and
+                NCQA certification, then names the source, read time and state of
+                every field. It was reachable from the clinician homepage but not
+                from the procurement surface, which is where the reader with a
+                diligence question actually lands. */}
+            <p style={{ marginTop: 6 }}>
+              Checking us out?{' '}
+              <Link
+                href="/trust/attribution"
+                className="underline underline-offset-2 hover:text-[var(--vt-text-primary)]"
+              >
+                Read the per-field source register
+              </Link>{' '}
+              — every field, its source, when we read it, and what it does not establish.
+            </p>
           </div>
           {/* The opening viewport keeps one honest action. It ASKS for nothing —
               it jumps to Step 1 below, after the operating model has made the
