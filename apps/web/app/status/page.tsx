@@ -56,10 +56,36 @@ async function probeBackend(): Promise<{ label: string; tone: RowTone }> {
   }
 }
 
-function StatusRow({ name, note, state, tone }: { name: string; note: string; state: string; tone: RowTone }) {
+function StatusRow({
+  name,
+  note,
+  state,
+  tone,
+  laneKey,
+  laneLifecycle,
+}: {
+  name: string;
+  note: string;
+  state: string;
+  tone: RowTone;
+  /**
+   * W0.5 parity contract. Source-lane rows publish the key they carry in
+   * /api/status plus their rendered lifecycle, so the post-deploy prober can
+   * assert the two public surfaces agree about every lane. A page that claims
+   * a lane is available while /api/status calls it planned (the drift this
+   * file's register comment records) then fails the deploy instead of
+   * shipping. Non-lane rows omit both and are skipped by the prober.
+   */
+  laneKey?: string;
+  laneLifecycle?: string;
+}) {
   const color = toneColor(tone);
   return (
-    <div className="flex items-start justify-between gap-4 px-5 py-4">
+    <div
+      className="flex items-start justify-between gap-4 px-5 py-4"
+      data-lane-key={laneKey}
+      data-lane-lifecycle={laneLifecycle}
+    >
       <div className="min-w-0">
         <p className="text-[14px] font-semibold text-[var(--vt-text-primary)]">{name}</p>
         <p className="mt-0.5 text-[13px] text-[var(--vt-text-secondary)]">{note}</p>
@@ -133,6 +159,8 @@ export default async function StatusPage() {
                   }
                   state={row.label}
                   tone={row.tone}
+                  laneKey={s.statusApiKey}
+                  laneLifecycle={s.lifecycle}
                 />
               );
             })}
