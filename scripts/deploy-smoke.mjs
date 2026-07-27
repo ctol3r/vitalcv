@@ -7,12 +7,15 @@
  * every deploy even when the signed-in monitor is not wired.
  *
  *   node scripts/deploy-smoke.mjs [--base https://vitalcv.com] [--sha <expected>]
+ *                                 [--wait-for-sha <seconds>]
  *                                 [--allow-missing-auth-health]
  *                                 [--allow-missing-db-health] [--json]
  *
  * Checks:
  *  - /api/version: service=web, platform=railway, environment=production,
  *    branch=main, commit matches --sha when given
+ *  - source-lane parity: every lane in /api/status agrees with the lane
+ *    rendered on /status about whether it is available (W0.5)
  *  - /api/health/auth: HTTP 200 + status "ok" (fail-closed auth config;
  *    --allow-missing-auth-health tolerates 404 until Wave 0.1 is deployed)
  *  - /api/health/db: HTTP 200 + db "ok" (web→database connectivity — the
@@ -29,6 +32,8 @@
  * no-cache`, so a stale shared cache cannot fake a pass.
  */
 
+import { compareLaneParity, parseApiLanes, parseRenderedLanes } from './lib/lane-parity.mjs';
+
 const args = process.argv.slice(2);
 const flag = (name) => args.includes(name);
 const opt = (name, fallback) => {
@@ -38,6 +43,13 @@ const opt = (name, fallback) => {
 
 const BASE = (opt('--base', process.env.RELEASE_PROBE_BASE || 'https://vitalcv.com')).replace(/\/$/, '');
 const EXPECTED_SHA = opt('--sha', process.env.EXPECTED_SHA || '').toLowerCase();
+/**
+ * Seconds to wait for the expected SHA to start being served before judging
+ * anything (W0.5). Railway auto-deploys on push and a merge→live cycle was
+ * measured at ~4.5 min, so a deploy job that probes immediately would always
+ * see the previous release. 0 disables waiting (the old behaviour).
+ */
+const WAIT_FOR_SHA_SECONDS = Number(opt('--wait-for-sha', process.env.WAIT_FOR_SHA || '0')) || 0;
 const ALLOW_MISSING_AUTH_HEALTH = flag('--allow-missing-auth-health');
 const ALLOW_MISSING_DB_HEALTH = flag('--allow-missing-db-health');
 
@@ -60,7 +72,37 @@ async function get(path) {
   return { status: response.status, headers: response.headers, body };
 }
 
+/** True when the container is already serving `EXPECTED_SHA`. */
+async function servingExpectedSha() {
+  try {
+    const res = await get('/api/version');
+    const commit = String(JSON.parse(res.body).commit || '').toLowerCase();
+    if (!commit) return false;
+    return commit.startsWith(EXPECTED_SHA) || EXPECTED_SHA.startsWith(commit.slice(0, 7));
+  } catch {
+    return false;
+  }
+}
+
 try {
+  // 0. Wait for the expected release to actually be serving before judging it.
+  //    Without this a post-deploy job probes the PREVIOUS container and passes
+  //    — which is exactly why the old /api/health-only smoke could not detect
+  //    a deploy that never landed.
+  if (EXPECTED_SHA && WAIT_FOR_SHA_SECONDS > 0) {
+    const deadline = Date.now() + WAIT_FOR_SHA_SECONDS * 1000;
+    let arrived = await servingExpectedSha();
+    while (!arrived && Date.now() < deadline) {
+      await sleep(10_000);
+      arrived = await servingExpectedSha();
+    }
+    record(
+      `version: ${EXPECTED_SHA.slice(0, 12)} began serving within ${WAIT_FOR_SHA_SECONDS}s`,
+      arrived,
+      arrived ? 'deploy landed' : 'timed out waiting for the deploy',
+    );
+  }
+
   // 1. /api/version — platform / environment / branch / SHA.
   const version = await get('/api/version');
   let versionInfo = {};
@@ -132,13 +174,49 @@ try {
     const page = await get(path);
     record(`${path}: HTTP 200`, page.status === 200, `HTTP ${page.status}`);
   }
+
+  // 6. Source-lane parity between /status and /api/status (W0.5).
+  //    Both derive from lib/trust/sourceLanes.ts, so they agree at build time.
+  //    This asserts the DEPLOYED surfaces still agree — the case a unit test
+  //    cannot reach, e.g. a half-deployed release serving one new surface and
+  //    one stale one.
+  const [statusPage, statusApi] = await Promise.all([get('/status'), get('/api/status')]);
+  let apiPayload = null;
+  try { apiPayload = JSON.parse(statusApi.body); } catch { /* reported below */ }
+  record('api-status: HTTP 200 + JSON', statusApi.status === 200 && apiPayload !== null, `HTTP ${statusApi.status}`);
+
+  const renderedLanes = parseRenderedLanes(statusPage.body);
+  const apiLanes = parseApiLanes(apiPayload);
+  const parity = compareLaneParity(renderedLanes, apiLanes);
+  record(
+    'source lanes: /status agrees with /api/status',
+    parity.ok,
+    parity.ok
+      ? `${parity.checked} lanes agree`
+      : parity.problems.join('; '),
+  );
 } catch (error) {
   record('smoke: network', false, String(error && error.message ? error.message : error));
 }
 
 const failed = results.filter((r) => !r.ok);
+const receipt = {
+  base: BASE,
+  expectedSha: EXPECTED_SHA || null,
+  checkedAt: new Date().toISOString(),
+  overall: failed.length === 0 ? 'pass' : 'fail',
+  results,
+};
 if (flag('--json')) {
-  console.log(JSON.stringify({ base: BASE, expectedSha: EXPECTED_SHA || null, overall: failed.length === 0 ? 'pass' : 'fail', results }, null, 2));
+  console.log(JSON.stringify(receipt, null, 2));
+}
+// Deploy receipt (W0.5): a durable artifact the release can be judged on, so
+// "it deployed fine" is a file someone can read rather than a recollection.
+const receiptPath = opt('--receipt', process.env.DEPLOY_RECEIPT_OUT || '');
+if (receiptPath) {
+  const { writeFileSync } = await import('node:fs');
+  writeFileSync(receiptPath, `${JSON.stringify(receipt, null, 2)}\n`);
+  console.log(`receipt → ${receiptPath}`);
 }
 console.log(`\n${failed.length === 0 ? 'SMOKE PASS' : `SMOKE FAIL (${failed.length}/${results.length} checks failed)`} — ${BASE}`);
 process.exit(failed.length === 0 ? 0 : 1);

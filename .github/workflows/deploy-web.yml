@@ -36,43 +36,62 @@ jobs:
   smoke-test:
     name: Post-deploy smoke test
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    # 10 min of SHA-wait budget + the remaining probes (db-health alone retries
+    # 3× at 5 s). A 10-minute job timeout would let the wait consume the whole
+    # budget and kill the job before it judged anything.
+    timeout-minutes: 15
 
     steps:
-      - name: Wait for Railway deploy to propagate
-        run: sleep 120
+      # W0.5. This job used to sleep 120s and poll /api/health for a 200. That
+      # can only prove SOMETHING is answering — never that THIS commit is the
+      # thing answering. A deploy that never ran, or one still building, passed
+      # it: on 2026-07-27 the job went green ~2 min after #914 merged while
+      # production was demonstrably still serving the previous commit. The SHA
+      # check that makes the job meaningful already existed in
+      # scripts/deploy-smoke.mjs — it was simply never wired into the deploy
+      # path, only into the every-30-minutes release-verify cron.
+      - name: Check out the deployed commit
+        uses: actions/checkout@v4
 
-      - name: Smoke test /api/health
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Verify the deploy is live, honest, and self-consistent
         env:
+          # The domain secret is an override, not a requirement. It previously
+          # gated the whole job behind `exit 0`, so an unset secret silently
+          # disabled the only post-deploy check.
           WEB_DOMAIN: ${{ secrets.RAILWAY_WEB_DOMAIN }}
         run: |
-          if [ -z "$WEB_DOMAIN" ]; then
-            echo "RAILWAY_WEB_DOMAIN secret not set. Skipping smoke test."
-            exit 0
-          fi
+          BASE="https://${WEB_DOMAIN:-vitalcv.com}"
+          echo "Verifying $BASE is serving ${GITHUB_SHA}"
+          node scripts/deploy-smoke.mjs \
+            --base "$BASE" \
+            --sha "$GITHUB_SHA" \
+            --wait-for-sha 600 \
+            --receipt deploy-receipt.json \
+            | tee smoke-output.txt
 
-          HEALTH_URL="https://${WEB_DOMAIN}/api/health"
-          echo "Testing: $HEALTH_URL"
+      - name: Publish the deploy receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deploy-receipt-${{ github.sha }}
+          path: |
+            deploy-receipt.json
+            smoke-output.txt
+          if-no-files-found: warn
 
-          MAX_ATTEMPTS=12
-          INTERVAL=15
-          ATTEMPT=0
-
-          while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
-            HTTP_CODE=$(curl -s -o /tmp/health_body -w '%{http_code}' "$HEALTH_URL" 2>/dev/null || echo "000")
-
-            if [ "$HTTP_CODE" = "200" ]; then
-              echo "Health check passed (HTTP 200)"
-              cat /tmp/health_body
-              echo ""
-              exit 0
-            fi
-
-            ATTEMPT=$((ATTEMPT + 1))
-            echo "Attempt $ATTEMPT/$MAX_ATTEMPTS: HTTP $HTTP_CODE. Retrying in ${INTERVAL}s..."
-            sleep "$INTERVAL"
-          done
-
-          echo "Health check failed after $MAX_ATTEMPTS attempts"
-          cat /tmp/health_body 2>/dev/null || true
-          exit 1
+      - name: Summarise
+        if: always()
+        run: |
+          {
+            echo "### Deploy verification"
+            echo ""
+            echo "Commit: \`${GITHUB_SHA}\`"
+            echo ""
+            echo '```'
+            cat smoke-output.txt 2>/dev/null || echo "no smoke output captured"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
