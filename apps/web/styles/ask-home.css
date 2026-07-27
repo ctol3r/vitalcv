@@ -54,6 +54,17 @@
   text-align: center;
 }
 
+/* The audience line. Mono, small, above the question — frames who the page is
+   for without competing with the H1 (one dominant question per screen). */
+.ask-eyebrow {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.66rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ask-faint);
+  margin: 0 0 1.1rem;
+}
+
 /* Smaller than the field on purpose. The promise is short; the ACT is large. */
 .ask-title {
   font-family: var(--font-display, Georgia, serif);
@@ -233,6 +244,128 @@
   }
 }
 
+/* ── the ledger — the record schema at full scale ──────────── */
+
+/* An evidence artifact per CD-14: mono data, hairline rules, no motion in its
+   resting state. Deliberately NOT a card grid (CD-13 retires product-card
+   grids) — it is one ruled ledger, the way the record itself would print. */
+.ask-ledger {
+  max-width: 62rem;
+  margin: 0 auto;
+  padding: clamp(3.5rem, 9vw, 7rem) clamp(1.25rem, 5vw, 4rem);
+  border-top: 1px solid var(--ask-rule);
+}
+
+.ask-ledger-copy {
+  max-width: 44rem;
+  margin-bottom: clamp(1.75rem, 4vw, 2.75rem);
+}
+
+.ask-ledger-rows {
+  border-top: 1px solid var(--ask-ink);
+}
+
+.ask-ledger-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding: 0.95rem 0;
+  border-bottom: 1px solid var(--ask-rule);
+}
+
+.ask-ledger-main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.ask-ledger-name {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ask-ink);
+}
+
+.ask-ledger-what {
+  font-size: 0.88rem;
+  line-height: 1.55;
+  color: var(--ask-soft);
+  max-width: 52ch;
+}
+
+.ask-ledger-state {
+  flex-shrink: 0;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.66rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+/* Signal vs state (CD-4): the accent marks only the defined "available" lane
+   state — never decoration. Gated and unconnected stay ink-faint. */
+.ask-ledger-state--ok {
+  color: var(--ask-accent);
+}
+.ask-ledger-state--gated {
+  color: var(--ask-soft);
+}
+.ask-ledger-state--off {
+  color: var(--ask-faint);
+}
+
+.ask-ledger-foot {
+  margin: 1.1rem 0 0;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.63rem;
+  letter-spacing: 0.05em;
+  color: var(--ask-faint);
+}
+.ask-ledger-foot a {
+  color: var(--ask-soft);
+  text-decoration: none;
+  border-bottom: 1px solid var(--ask-rule);
+}
+.ask-ledger-foot a:hover {
+  color: var(--ask-ink);
+  border-bottom-color: var(--ask-ink);
+}
+
+@media (max-width: 640px) {
+  .ask-ledger-row {
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+}
+
+/* ── the employer door ─────────────────────────────────────── */
+
+.ask-door {
+  max-width: 62rem;
+  margin: 0 auto;
+  padding: clamp(3.5rem, 9vw, 7rem) clamp(1.25rem, 5vw, 4rem);
+  border-top: 1px solid var(--ask-rule);
+}
+.ask-door-cta {
+  margin: 1.4rem 0 0;
+}
+.ask-door-cta a {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ask-ink);
+  text-decoration: none;
+  border-bottom: 1px solid var(--ask-ink);
+  padding-bottom: 2px;
+}
+.ask-door-cta a:hover {
+  color: var(--ask-accent);
+  border-bottom-color: var(--ask-accent);
+}
+
 /* ── the beats ─────────────────────────────────────────────── */
 
 .ask-beat {
@@ -376,8 +509,8 @@
 
 /* ── diagram motion: explain on entry, then rest ───────────── */
 
-/* Small mono words that name the parts of the diagram — "role",
-   "your record", "you", "employer", "your permission". Never a state, a
+/* Small mono words that name the parts of the diagram — "ER role",
+   "your record", "you", "the hospital", "your permission". Never a state, a
    source, or a freshness word: those would be claims, and these drawings are
    labelled illustrative. */
 .ask-art-label {
@@ -416,6 +549,15 @@
   .ask-art-play .ask-art-flow {
     stroke-dasharray: 32;
     animation: ask-art-draw 520ms cubic-bezier(0.2, 0.8, 0.2, 1) 480ms both;
+  }
+
+  /* The ledger writes itself in row by row, reading order, once — the same
+     explain-on-entry contract as the diagrams. `--i` is set inline per row.
+     The resting composition (all rows visible) is the base CSS above, so
+     no-JS and reduced-motion readers get the complete ledger. */
+  .ask-ledger-rows.ask-art-play .ask-ledger-row {
+    animation: ask-art-appear 420ms cubic-bezier(0.2, 0.8, 0.2, 1)
+      calc(var(--i, 0) * 110ms) both;
   }
 }
 

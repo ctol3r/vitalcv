@@ -375,4 +375,86 @@ test.describe('homepage ask', () => {
     });
     expect(clear, 'the source-cadence line must render with real area').toBe(true);
   });
+
+  // ── added: the ledger (the record schema, derived from the registry) ──
+
+  test('the ledger renders every registry lane, honestly', async ({ page }) => {
+    const rows = page.locator('[data-home-lane-ledger] .ask-ledger-row');
+    // Six lanes today; the exact count pins "rows derive from the registry" —
+    // if SOURCE_LANE_OPS gains a lane without an explanation, the row silently
+    // disappears, and this count catches it.
+    await expect(rows).toHaveCount(6);
+
+    const text = (await page.locator('[data-home-lane-ledger]').innerText()).toLowerCase();
+    // Healthcare-legibility contract: the federal sources are named.
+    for (const source of ['nppes', 'oig', 'pecos', 'state licensure']) {
+      expect(text, `the ledger must name ${source}`).toContain(source);
+    }
+    // Honesty: the gated and unconnected lanes say so, in /status vocabulary.
+    expect(text).toContain('access required');
+    expect(text).toContain('not yet connected');
+    // No lane may claim liveness the registry does not grant: "available"
+    // appears exactly as many times as there are active lanes (3 today).
+    expect(text.match(/available/g)?.length ?? 0).toBe(3);
+  });
+
+  test('the ledger carries no fabricated clinician and no percentages', async ({ page }) => {
+    // The same truth guard the hero honors, applied to the new section.
+    const text = await page.locator('.ask-ledger').innerText();
+    expect(text).not.toMatch(/\bDr\.\s|\bMD\b|\bRN\b/);
+    expect(text).not.toMatch(/\d+\s*%/);
+  });
+
+  test('the audience is named on the first screen', async ({ page }) => {
+    // "I can't tell this is for clinicians" — the eyebrow is the fix, and it
+    // must sit above the fold with the H1, not below it.
+    const eyebrow = page.locator('.ask-eyebrow');
+    await expect(eyebrow).toContainText(/clinician/i);
+    const above = await page.evaluate(() => {
+      const e = document.querySelector('.ask-eyebrow');
+      const h = document.querySelector('#ask-title');
+      if (!e || !h) return false;
+      return (
+        e.getBoundingClientRect().bottom <= h.getBoundingClientRect().top &&
+        e.getBoundingClientRect().top >= 0
+      );
+    });
+    expect(above, 'the eyebrow sits directly above the H1, on screen').toBe(true);
+  });
+
+  test('the employer door section exists and stays subordinate', async ({ page }) => {
+    const door = page.locator('[data-home-employer-door]');
+    await expect(door).toHaveAttribute('href', '/employers');
+    // Subordination: the door's heading may not out-size the clinician H1.
+    const sizes = await page.evaluate(() => {
+      const h1 = document.querySelector('#ask-title');
+      const h2 = document.querySelector('#door-title');
+      if (!h1 || !h2) return null;
+      return {
+        h1: parseFloat(getComputedStyle(h1).fontSize),
+        h2: parseFloat(getComputedStyle(h2).fontSize),
+      };
+    });
+    expect(sizes).not.toBeNull();
+    expect(sizes!.h2).toBeLessThan(sizes!.h1);
+  });
+
+  test('ledger rows rest after their entry animation completes', async ({ page }) => {
+    // CD-11: explain on entry, then rest. Scroll the ledger into view, let the
+    // stagger play out, then assert nothing is still running.
+    await page.locator('[data-home-lane-ledger]').scrollIntoViewIfNeeded();
+    await page.waitForTimeout(1600); // 6 rows × 110ms stagger + 420ms + slack
+    const running = await page.evaluate(
+      () =>
+        document
+          .getAnimations()
+          .filter(
+            (a) =>
+              'animationName' in a &&
+              String((a as CSSAnimation).animationName).startsWith('ask-art') &&
+              a.playState === 'running',
+          ).length,
+    );
+    expect(running, 'no ledger animation may idle after entry').toBe(0);
+  });
 });

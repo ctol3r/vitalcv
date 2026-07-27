@@ -49,8 +49,12 @@ describe('diagrams are understandable without motion or sight', () => {
     }
   });
 
-  it('names the parts of each diagram', () => {
-    for (const label of ['role', 'your record', 'you', 'employer', 'your permission']) {
+  it('names the parts of each diagram, in clinical vocabulary', () => {
+    // "ER role" and "the hospital" rather than "role" and "employer" — the
+    // founder's 2026-07-27 review of the generic labels was "I can't tell
+    // this is for clinicians". The parts must be named AND the names must
+    // say healthcare.
+    for (const label of ['er role', 'your record', 'you', 'the hospital', 'your permission']) {
       expect(html.toLowerCase()).toContain(`>${label}<`);
     }
   });

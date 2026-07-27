@@ -52,6 +52,66 @@ function sourceCadenceSentence(): string {
 }
 
 /**
+ * THE LEDGER — the record itself, rendered at full scale.
+ *
+ * This is the page's product artifact, in the Medallion sense of "show the
+ * product immediately" — but where a competitor ships a screenshot, this IS
+ * the live schema: rows derive from SOURCE_LANE_OPS, the same registry that
+ * powers /status and /api/status, which the deploy parity gate already keeps
+ * honest. No screenshot can drift; this cannot.
+ *
+ * What is hand-written here is only the plain-language explanation of each
+ * source — the sentence that makes the row legible to a clinician who has
+ * never heard "PECOS". Explanations are keyed by laneId and rows derive FROM
+ * the registry, so a lane the registry drops disappears rather than surviving
+ * as stale copy, and a lane it adds shows up unexplained (caught by the e2e
+ * count) rather than silently missing.
+ *
+ * NOT a fabricated sample record on purpose. The truth guard in
+ * ask-home.spec.ts bans any fabricated clinician on this surface (`Dr.`,
+ * `MD`, `RN`) — the schema with real availability states is what we can show
+ * without inventing a person.
+ */
+const LANE_EXPLANATIONS: Record<string, { name: string; what: string }> = {
+  nppes_identity: {
+    name: 'NPPES identity',
+    what: 'The federal registry of every licensed provider — who you are, your taxonomy, where you practice.',
+  },
+  oig_exclusions: {
+    name: 'OIG/LEIE exclusions',
+    what: 'The exclusion list every hospital and medical group must screen before a hire can bill.',
+  },
+  pecos_enrollment: {
+    name: 'CMS PECOS enrollment',
+    what: 'Medicare enrollment standing — whether you can see and bill Medicare patients.',
+  },
+  state_license: {
+    name: 'State licensure',
+    what: 'Your license standing with state medical and nursing boards.',
+  },
+  employment_history: {
+    name: 'Employment history',
+    what: 'Where you have practiced, confirmed by the organizations themselves.',
+  },
+  board_cert: {
+    name: 'Board certification',
+    what: 'Specialty certification from the relevant board.',
+  },
+};
+
+/** The /status page's lifecycle → public label mapping, kept to the same
+ * vocabulary so the two surfaces can never disagree about a word. */
+function laneAvailability(lifecycle: string, cadenceLabel: string): { label: string; tone: 'ok' | 'gated' | 'off' } {
+  if (lifecycle === 'active' || lifecycle === 'partial') {
+    return { label: `Available · ${cadenceLabel}`, tone: 'ok' };
+  }
+  if (lifecycle === 'planned') {
+    return { label: 'Access required', tone: 'gated' };
+  }
+  return { label: 'Not yet connected', tone: 'off' };
+}
+
+/**
  * The three beats below the fold. One artifact each, at close-up scale.
  *
  * Deliberately NOT a feature grid and NOT a state table — the mandate bans
@@ -68,13 +128,13 @@ const BEATS = [
   {
     id: 'fit',
     phrase: 'See what actually fits.',
-    line: 'Roles measured against the record you already have — and the gaps you do not.',
+    line: 'Roles measured against the license, enrollment, and history you already hold — and the gaps you do not.',
     artifact: 'fit',
   },
   {
     id: 'consent',
     phrase: 'Your evidence. Your permission.',
-    line: 'You choose who sees it. The institution still makes the decision.',
+    line: 'You choose which hospital sees it. Their credentialing committee still makes the decision.',
     artifact: 'consent',
   },
 ] as const;
@@ -100,7 +160,7 @@ export function AskHome() {
   const rootRef = React.useRef<HTMLDivElement | null>(null);
   React.useEffect(() => {
     if (typeof IntersectionObserver === 'undefined') return;
-    const figures = rootRef.current?.querySelectorAll('.ask-beat-art') ?? [];
+    const figures = rootRef.current?.querySelectorAll('.ask-beat-art, [data-ask-stagger]') ?? [];
     if (figures.length === 0) return;
     const observer = new IntersectionObserver(
       (entries) => {
@@ -151,6 +211,13 @@ export function AskHome() {
               promise ships before a pilot has measured one. This is also the
               phrase the page's own <title> and OG cards already carry — the tab
               said "your career evidence" while the H1 promised speed. */}
+          {/* The audience, named before anything else. A visitor could read the
+              whole previous page without learning it was for healthcare — the
+              only clinical word above the fold was the acronym NPI. Small and
+              mono so it frames the question without competing with it. */}
+          <p className="ask-eyebrow">
+            For physicians, nurses, PAs — every licensed clinician
+          </p>
           <h1 id="ask-title" className="ask-title">
             Your career evidence, ready before your next job.
           </h1>
@@ -238,9 +305,15 @@ export function AskHome() {
                 </button>
               </form>
 
+              {/* Healthcare-specific on purpose: "employers" said nothing about
+                  the domain. Naming the actors (hospitals, credentialing teams)
+                  and the checks (identity, exclusions, Medicare enrollment) is
+                  what makes the page unmistakably clinical without a single
+                  stock photo — CD-13 retires those; vocabulary does the work. */}
               <p className="ask-promise">
-                See what employers can already confirm about you — and what still needs
-                attention.
+                See what hospitals and credentialing teams can already confirm about
+                you — identity, exclusions, Medicare enrollment — and what still
+                needs attention.
               </p>
 
               {/* The employer door. One artifact serves both audiences — the
@@ -261,6 +334,56 @@ export function AskHome() {
             Derived from the registry — never hand-written. */}
         <p className="ask-cadence" data-home-source-cadence="">
           {sourceCadenceSentence()}
+        </p>
+      </section>
+
+      {/* THE LEDGER — the record schema at full scale, before the beats explain
+          what to do with it. Rows derive from the registry (see LANE_EXPLANATIONS
+          note); `data-ask-stagger` opts it into the same play-once entry the
+          diagrams use. Threshold note: the section is tall, so the observer
+          fires on partial visibility rather than 45%. */}
+      <section className="ask-ledger" aria-labelledby="ledger-title">
+        <div className="ask-ledger-copy">
+          <h2 id="ledger-title" className="ask-beat-title">
+            Six checks stand between a clinician and a start date.
+          </h2>
+          <p className="ask-beat-line">
+            Every hospital, medical group, and staffing agency runs the same screens.
+            VitalCV runs the federal ones today — and tells you exactly how fresh each
+            answer is.
+          </p>
+        </div>
+        <div className="ask-ledger-rows" data-ask-stagger="" data-home-lane-ledger="">
+          {SOURCE_LANE_OPS.map((lane, i) => {
+            const copy = LANE_EXPLANATIONS[lane.laneId];
+            if (!copy) return null;
+            const state = laneAvailability(lane.lifecycle, lane.cadenceLabel);
+            return (
+              <div
+                key={lane.laneId}
+                className="ask-ledger-row"
+                style={{ ['--i' as string]: i }}
+                data-lane-key={lane.statusApiKey}
+                data-lane-lifecycle={lane.lifecycle}
+              >
+                <div className="ask-ledger-main">
+                  <span className="ask-ledger-name">{copy.name}</span>
+                  <span className="ask-ledger-what">{copy.what}</span>
+                </div>
+                <span className={`ask-ledger-state ask-ledger-state--${state.tone}`}>
+                  {state.label}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+        {/* No freshness adjective here on purpose — "live" outrunning a lane is
+            on the kill list, and each row already states its own cadence. */}
+        <p className="ask-ledger-foot">
+          Lane states are drawn from the same registry behind{' '}
+          <Link href="/status">status</Link> and{' '}
+          <Link href="/trust/attribution">source attribution</Link> — inspect them
+          any time.
         </p>
       </section>
 
@@ -302,6 +425,31 @@ export function AskHome() {
         </section>
       ))}
 
+      {/* THE EMPLOYER DOOR — the buyer gets a real section, not only the quiet
+          line under the hero CTA. Carefam puts its two audiences in the nav;
+          the dual-audience doctrine here is one shared artifact with the
+          clinician acting first — so this door sits AFTER every clinician beat
+          and speaks about the same record the clinician just saw. Distinct
+          attr from the hero's `data-home-employer-cta`: the e2e guard locates
+          that one uniquely. */}
+      <section className="ask-door" aria-labelledby="door-title">
+        <div className="ask-beat-copy">
+          <h2 id="door-title" className="ask-beat-title">
+            Hiring? Start from evidence, not an empty application.
+          </h2>
+          <p className="ask-beat-line">
+            Hospitals, medical groups, and staffing teams receive the same record the
+            clinician carries — each claim with its source, its freshness, and what
+            still needs your review. Your credentialing decision stays yours.
+          </p>
+          <p className="ask-door-cta">
+            <Link href="/employers" data-home-employer-door="">
+              See the employer workflow →
+            </Link>
+          </p>
+        </div>
+      </section>
+
       {/* The boundary lands LAST and small — after the positive, once, specific.
           Placement is evidence-led: communicating uncertainty costs little when
           it is concrete and follows the benefit, and costs a great deal when it
@@ -325,10 +473,12 @@ export function AskHome() {
  *
  * These are illustrations of a real product surface, not live state — which is
  * why they carry no source names, no freshness stamps and no state chips. A
- * STATE label here would be a claim; the words that do appear ("role",
- * "your record", "you", "employer", "your permission") name the parts of the
- * diagram, not the state of any data — the difference between a caption and a
- * claim.
+ * STATE label here would be a claim; the words that do appear ("ER role",
+ * "your record", "you", "the hospital", "your permission") name the parts of
+ * the diagram, not the state of any data — the difference between a caption
+ * and a claim. The parts are named in clinical vocabulary on purpose: a
+ * generic "role"/"employer" diagram could belong to any industry, and the
+ * founder's review said exactly that ("I can't tell this is for clinicians").
  *
  * Motion: each diagram plays its state sequence ONCE when scrolled into view,
  * then rests (CD-11: nothing idles). The RESTING composition is the base CSS —
@@ -364,7 +514,7 @@ function BeatArtifact({ kind }: { kind: string }) {
         viewBox="0 0 240 180"
         className="ask-art"
         role="img"
-        aria-label="A role's requirements laid over your career record — the overlapping band is what your record already answers"
+        aria-label="An ER role's requirements laid over your career record — the overlapping band is what your record already answers"
       >
         <rect x="34" y="46" width="104" height="94" rx="3" className="ask-art-paper ask-art-step-1" />
         <rect x="102" y="40" width="104" height="94" rx="3" className="ask-art-paper-2 ask-art-step-2" />
@@ -373,7 +523,7 @@ function BeatArtifact({ kind }: { kind: string }) {
         <line x1="112" y1="106" x2="188" y2="106" className="ask-art-line ask-art-step-2" />
         <rect x="102" y="40" width="36" height="94" className="ask-art-overlap ask-art-step-3" />
         <text x="42" y="36" className="ask-art-label ask-art-step-1">
-          role
+          ER role
         </text>
         <text x="146" y="152" className="ask-art-label ask-art-step-2">
           your record
@@ -387,7 +537,7 @@ function BeatArtifact({ kind }: { kind: string }) {
       viewBox="0 0 240 180"
       className="ask-art"
       role="img"
-      aria-label="Your record on one side of a boundary, an employer on the other — evidence crosses only through your permission"
+      aria-label="Your record on one side of a boundary, the hospital on the other — evidence crosses only through your permission"
     >
       {/* The boundary yields where the seal and its label sit — dashes running
           through the words made the one sentence the diagram speaks harder to
@@ -402,7 +552,7 @@ function BeatArtifact({ kind }: { kind: string }) {
         you
       </text>
       <text x="171" y="54" className="ask-art-label ask-art-step-3" textAnchor="middle">
-        employer
+        the hospital
       </text>
       <text x="120" y="115" className="ask-art-label ask-art-step-2" textAnchor="middle">
         your permission
