@@ -17,17 +17,15 @@
   height: 36px;
   border-radius: 50%;
   pointer-events: none;
-  z-index: 2147483000;
+  z-index: var(--vt-z-cursor);
   opacity: 0;
   transform: translate3d(-100px, -100px, 0);
   transition: opacity 240ms ease;
   backdrop-filter: blur(6px) saturate(1.6);
   -webkit-backdrop-filter: blur(6px) saturate(1.6);
-  background: color-mix(in oklab, var(--vt-cloud-dancer, #f2f0eb) 16%, transparent);
-  border: 1px solid color-mix(in oklab, var(--vt-text-primary, #1c1a17) 22%, transparent);
-  box-shadow:
-    inset 0 1px 0 0 color-mix(in oklab, white 55%, transparent),
-    0 4px 14px -8px color-mix(in oklab, var(--vt-text-primary, #1c1a17) 45%, transparent);
+  background: color-mix(in oklab, var(--vt-cloud-dancer) 16%, transparent);
+  border: 1px solid color-mix(in oklab, var(--vt-text-primary) 22%, transparent);
+  box-shadow: var(--vt-shadow-glass-lens);
 }
 
 .vt-cursor[data-on] {
@@ -37,10 +35,8 @@
 /* Over an interactive element the edge takes the accent — affordance, not
    decoration: the lens is answering "can I act here?". */
 .vt-cursor[data-hover] {
-  border-color: color-mix(in oklab, var(--vt-accent-emerald, #2f6f4f) 55%, transparent);
-  box-shadow:
-    inset 0 1px 0 0 color-mix(in oklab, white 65%, transparent),
-    0 4px 16px -8px color-mix(in oklab, var(--vt-accent-emerald, #2f6f4f) 50%, transparent);
+  border-color: color-mix(in oklab, var(--vt-accent-emerald) 55%, transparent);
+  box-shadow: var(--vt-shadow-glass-lens-active);
 }
 
 /* Touch and reduced-motion get nothing — the component never sets data-on,
