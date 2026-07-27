@@ -49,6 +49,15 @@ export const ROLE_LANDING: Record<UserRoleType, string> = {
 export const PROTECTED_ROUTES: Array<{ pattern: RegExp; role: UserRoleType }> = [
   { pattern: /^\/holder(\/.*)?$/, role: UserRole.CLINICIAN },
   { pattern: /^\/verifier(\/.*)?$/, role: UserRole.VERIFIER },
+  // W0.3: the LIVE employer workspace. This guard was missing while the
+  // `/verifier` guard above protected an archived tree — so every real
+  // employer surface (dashboard, worklist, candidates, applications,
+  // review-queue, profile, post) answered 200 to anonymous requests in
+  // production. The tables happened to be empty, so nothing leaked; the
+  // first real pilot record would have been world-readable.
+  // `/employers` (plural, public acquisition page) does NOT match: the
+  // pattern requires end-of-string or `/` immediately after "employer".
+  { pattern: /^\/employer(\/.*)?$/, role: UserRole.VERIFIER },
   { pattern: /^\/issuer(\/.*)?$/, role: UserRole.ISSUER },
   { pattern: /^\/internal(\/.*)?$/, role: UserRole.ADMIN },
   // Internal / operator surfaces — admin only

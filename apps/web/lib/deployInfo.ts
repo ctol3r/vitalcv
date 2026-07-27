@@ -25,7 +25,19 @@ export interface DeployInfo {
   shaFull: string;       // full SHA
   message: string;       // commit message (first line)
   branch: string;        // git branch or ref
-  deployedAt: string;    // ISO timestamp (build time)
+  /**
+   * ISO build timestamp, or null when unknown.
+   *
+   * Only BUILD_TIMESTAMP can answer this. Railway does not inject a build
+   * time (it injects commit/branch/deployment-id only), so on the live
+   * deployment this is null. It previously fell back to
+   * `new Date().toISOString()`, which meant /api/version reported the CURRENT
+   * REQUEST TIME as the build time — two calls two seconds apart returned two
+   * different "build" timestamps, and the footer badge read "just now"
+   * forever. Same rule as `commit` below: an honest null, never a fabricated
+   * value.
+   */
+  deployedAt: string | null;
   platform: DeployPlatform;
   isRailway: boolean;
   /** @deprecated Vercel is legacy; retained for backwards compatibility. */
@@ -66,8 +78,9 @@ export function getDeployInfo(): DeployInfo {
     process.env.VERCEL_GIT_COMMIT_REF ??
     process.env.GIT_BRANCH ??
     'main';
-  // BUILD_TIMESTAMP is set by the CI/build step if available; fallback to now
-  const deployedAt = process.env.BUILD_TIMESTAMP ?? new Date().toISOString();
+  // BUILD_TIMESTAMP is set by the CI/build step if available. There is NO
+  // fallback: a request-time clock is not a build time. Null means unknown.
+  const deployedAt = process.env.BUILD_TIMESTAMP?.trim() || null;
 
   return { env, url, sha, shaFull, message, branch, deployedAt, platform, isRailway, isVercel };
 }
@@ -78,7 +91,8 @@ export interface PublicDeployInfo {
   sha: string;
   message: string;
   branch: string;
-  deployedAt: string;
+  /** ISO build timestamp, or null when unknown. Never a request-time clock. */
+  deployedAt: string | null;
   platform: DeployPlatform;
   isRailway: boolean;
   /** @deprecated Vercel is legacy; retained for backwards compatibility. */
@@ -110,7 +124,11 @@ export interface VersionInfo {
   platform: DeployPlatform;
   /** Railway deployment id (RAILWAY_DEPLOYMENT_ID) for webhook correlation. */
   deploymentId: string | null;
-  builtAt: string;
+  /**
+   * ISO build timestamp, or null when unknown — same honesty rule as `commit`.
+   * Release monitoring must treat null as "unknown", never as "just deployed".
+   */
+  builtAt: string | null;
 }
 
 export function getVersionInfo(): VersionInfo {
