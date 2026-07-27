@@ -89,6 +89,34 @@ export function AskHome() {
     trackFunnelEvent(FUNNEL_EVENTS.HOMEPAGE_VIEWED);
   }, []);
 
+  /**
+   * Plays each diagram's state sequence once when it scrolls into view
+   * (adds `.ask-art-play`, never removes it — CD-11: explain on entry, then
+   * rest). The observer is progressive enhancement three times over: without
+   * JS the class is never added and the base CSS already IS the final
+   * composition; under `prefers-reduced-motion` the keyframes are disabled in
+   * CSS; and if IntersectionObserver is missing the diagrams simply stand.
+   */
+  const rootRef = React.useRef<HTMLDivElement | null>(null);
+  React.useEffect(() => {
+    if (typeof IntersectionObserver === 'undefined') return;
+    const figures = rootRef.current?.querySelectorAll('.ask-beat-art') ?? [];
+    if (figures.length === 0) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('ask-art-play');
+            observer.unobserve(entry.target);
+          }
+        }
+      },
+      { threshold: 0.45 },
+    );
+    figures.forEach((f) => observer.observe(f));
+    return () => observer.disconnect();
+  }, []);
+
   const digits = raw.replace(/\D/g, '').slice(0, 10);
   const check = checkNpi(digits);
   const valid = check.validity === 'valid';
@@ -109,7 +137,7 @@ export function AskHome() {
   }, [valid, check.npi, check.reason]);
 
   return (
-    <div className="ask">
+    <div className="ask" ref={rootRef}>
       {/* Route-scoped paper. Unmounts with the page, so no other surface
           inherits Cloud Dancer. */}
       <style>{'body{background:var(--vt-cloud-dancer)}'}</style>
@@ -119,8 +147,12 @@ export function AskHome() {
           the production response; do not remove without re-pointing it. */}
       <section className="ask-stage" data-home-hero="" aria-labelledby="ask-title">
         <div className="ask-inner">
+          {/* Evidence-led, per the settled 2026-07-26 brand decision: no speed
+              promise ships before a pilot has measured one. This is also the
+              phrase the page's own <title> and OG cards already carry — the tab
+              said "your career evidence" while the H1 promised speed. */}
           <h1 id="ask-title" className="ask-title">
-            Get hired faster.
+            Your career evidence, ready before your next job.
           </h1>
 
           {submitted ? (
@@ -293,13 +325,27 @@ export function AskHome() {
  *
  * These are illustrations of a real product surface, not live state — which is
  * why they carry no source names, no freshness stamps and no state chips. A
- * label here would be a claim; a shape is not.
+ * STATE label here would be a claim; the words that do appear ("role",
+ * "your record", "you", "employer", "your permission") name the parts of the
+ * diagram, not the state of any data — the difference between a caption and a
+ * claim.
+ *
+ * Motion: each diagram plays its state sequence ONCE when scrolled into view,
+ * then rests (CD-11: nothing idles). The RESTING composition is the base CSS —
+ * the keyframes only replay how it came to be — so no-JS and reduced-motion
+ * readers get the complete final picture, not a blank stage. The class that
+ * starts the play is added by the IntersectionObserver in AskHome.
  */
 function BeatArtifact({ kind }: { kind: string }) {
   if (kind === 'once') {
     // One packet, sealed — the "do it once" object.
     return (
-      <svg viewBox="0 0 240 180" className="ask-art" role="presentation">
+      <svg
+        viewBox="0 0 240 180"
+        className="ask-art"
+        role="img"
+        aria-label="A single career evidence packet with a seal of completed checks"
+      >
         <rect x="28" y="24" width="184" height="132" rx="3" className="ask-art-paper" />
         <line x1="28" y1="58" x2="212" y2="58" className="ask-art-rule" />
         {[78, 96, 114].map((y) => (
@@ -311,26 +357,56 @@ function BeatArtifact({ kind }: { kind: string }) {
     );
   }
   if (kind === 'fit') {
-    // A role outline and a record outline, overlapping.
+    // A role's requirements laid over your record; the overlap is what the
+    // record already answers.
     return (
-      <svg viewBox="0 0 240 180" className="ask-art" role="presentation">
-        <rect x="34" y="46" width="104" height="94" rx="3" className="ask-art-paper" />
-        <rect x="102" y="40" width="104" height="94" rx="3" className="ask-art-paper-2" />
-        <line x1="112" y1="70" x2="196" y2="70" className="ask-art-line" />
-        <line x1="112" y1="88" x2="176" y2="88" className="ask-art-line" />
-        <line x1="112" y1="106" x2="188" y2="106" className="ask-art-line" />
-        <rect x="102" y="40" width="36" height="94" className="ask-art-overlap" />
+      <svg
+        viewBox="0 0 240 180"
+        className="ask-art"
+        role="img"
+        aria-label="A role's requirements laid over your career record — the overlapping band is what your record already answers"
+      >
+        <rect x="34" y="46" width="104" height="94" rx="3" className="ask-art-paper ask-art-step-1" />
+        <rect x="102" y="40" width="104" height="94" rx="3" className="ask-art-paper-2 ask-art-step-2" />
+        <line x1="112" y1="70" x2="196" y2="70" className="ask-art-line ask-art-step-2" />
+        <line x1="112" y1="88" x2="176" y2="88" className="ask-art-line ask-art-step-2" />
+        <line x1="112" y1="106" x2="188" y2="106" className="ask-art-line ask-art-step-2" />
+        <rect x="102" y="40" width="36" height="94" className="ask-art-overlap ask-art-step-3" />
+        <text x="42" y="36" className="ask-art-label ask-art-step-1">
+          role
+        </text>
+        <text x="146" y="152" className="ask-art-label ask-art-step-2">
+          your record
+        </text>
       </svg>
     );
   }
-  // consent — a key line crossing a boundary.
+  // consent — your record crosses to an employer only through your permission.
   return (
-    <svg viewBox="0 0 240 180" className="ask-art" role="presentation">
-      <line x1="120" y1="18" x2="120" y2="162" className="ask-art-boundary" />
-      <rect x="34" y="62" width="70" height="56" rx="3" className="ask-art-paper" />
-      <rect x="136" y="62" width="70" height="56" rx="3" className="ask-art-paper-2" />
-      <path d="M104 90 H136" className="ask-art-rule" />
-      <circle cx="120" cy="90" r="9" className="ask-art-seal" />
+    <svg
+      viewBox="0 0 240 180"
+      className="ask-art"
+      role="img"
+      aria-label="Your record on one side of a boundary, an employer on the other — evidence crosses only through your permission"
+    >
+      {/* The boundary yields where the seal and its label sit — dashes running
+          through the words made the one sentence the diagram speaks harder to
+          read than the shapes around it. */}
+      <line x1="120" y1="18" x2="120" y2="74" className="ask-art-boundary ask-art-step-1" />
+      <line x1="120" y1="124" x2="120" y2="162" className="ask-art-boundary ask-art-step-1" />
+      <rect x="34" y="62" width="70" height="56" rx="3" className="ask-art-paper ask-art-step-1" />
+      <rect x="136" y="62" width="70" height="56" rx="3" className="ask-art-paper-2 ask-art-step-3" />
+      <path d="M104 90 H136" className="ask-art-rule ask-art-flow ask-art-step-2" />
+      <circle cx="120" cy="90" r="9" className="ask-art-seal ask-art-step-2" />
+      <text x="69" y="54" className="ask-art-label ask-art-step-1" textAnchor="middle">
+        you
+      </text>
+      <text x="171" y="54" className="ask-art-label ask-art-step-3" textAnchor="middle">
+        employer
+      </text>
+      <text x="120" y="115" className="ask-art-label ask-art-step-2" textAnchor="middle">
+        your permission
+      </text>
     </svg>
   );
 }

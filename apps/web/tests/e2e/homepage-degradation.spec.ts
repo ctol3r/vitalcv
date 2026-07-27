@@ -123,7 +123,9 @@ test.describe('hero reset — clinician sell and field visibility (HERO-RESET-1)
     // per-word animation — so textContent legitimately reads it twice. The
     // accessible name is the single copy a screen reader announces, which is the
     // thing this contract is actually about.
-    await expect(page.locator('h1').first()).toHaveAccessibleName('Get hired faster.');
+    await expect(page.locator('h1').first()).toHaveAccessibleName(
+      'Your career evidence, ready before your next job.',
+    );
     // The mandate's copy ceiling is ONE short editorial phrase per scene, so the
     // old two-sentence subhead is now just "Start with your NPI." The contract
     // that matters — the action is explained in plain words — is unchanged.
