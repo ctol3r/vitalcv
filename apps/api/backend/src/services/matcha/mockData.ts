@@ -16,9 +16,17 @@ import { resolveEmployerSlugFromName } from '../employers/employerCatalog';
 /*  Clinician Profile                                                  */
 /* ------------------------------------------------------------------ */
 
+/**
+ * The demo NPI must FAIL the NPI check digit (Luhn over "80840" + the first 9
+ * digits) so it cannot collide with a registrant, and the name must be obviously
+ * synthetic. `1003000126` / "Dr. Sarah Chen" sat here until 2026-07-27: that NPI
+ * belongs to a real physician, and this profile asserted an active DEA
+ * registration, a California licence and a board certification for him that no
+ * source had reported.
+ */
 const DEFAULT_PROFILE: ClinicianProfile = {
-  npi: '1003000126',
-  name: 'Dr. Sarah Chen',
+  npi: '1558395516',
+  name: 'Example Clinician A, MD',
   specialty: 'Internal Medicine',
   states: ['CA'],
   credentials: [
@@ -60,9 +68,17 @@ const DEFAULT_PROFILE: ClinicianProfile = {
   ],
 };
 
-/** Returns mock profile with the requested NPI stamped in. */
-export function getMockProfile(npi: string): ClinicianProfile {
-  return { ...DEFAULT_PROFILE, npi };
+/**
+ * Returns the demo profile for the known demo NPI, or null.
+ *
+ * This deliberately does NOT stamp the requested NPI onto the profile. Until
+ * 2026-07-27 it did (`{ ...DEFAULT_PROFILE, npi }`), which turned any NPI handed
+ * to it — including a real registrant's — into a fabricated set of active
+ * credentials attributed to that person. An unknown NPI is a not-found, not a cue
+ * to relabel someone else's profile.
+ */
+export function getMockProfile(npi: string): ClinicianProfile | null {
+  return npi === DEFAULT_PROFILE.npi ? { ...DEFAULT_PROFILE } : null;
 }
 
 /* ------------------------------------------------------------------ */

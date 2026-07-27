@@ -11,8 +11,20 @@ import { checkOIGExclusion } from '../services/providers/connectors/oigConnector
  * (sandbox or live depending on env).
  */
 
+/**
+ * Every NPI here must FAIL the NPI check digit (Luhn over "80840" + the first 9
+ * digits) so it cannot collide with a registrant. This agent sends each entry to
+ * a live third-party registry every cycle, so a real NPI here polls an actual
+ * person's exclusion status forever without their consent and stamps a receipt
+ * hash asserting it.
+ *
+ * `1003000126` sat at the head of this list until 2026-07-27 — it is a real
+ * physician. The replacement keeps the final digit (6), because the sandbox
+ * connectors branch on it. The other four entries were already
+ * check-digit-invalid.
+ */
 const NPI_WATCHLIST = [
-  '1003000126',
+  '1558395516',
   '1234567890',
   '9876543210',
   '1112223334',

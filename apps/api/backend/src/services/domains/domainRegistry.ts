@@ -81,7 +81,7 @@ const HEALTHCARE: DomainDefinition = {
   id: 'healthcare', name: 'Healthcare / Medicine',
   description: 'Physicians, nurses, allied health — clinical workforce authority verification.',
   status: 'ACTIVE', version: '1.0.0',
-  subjectIdLabel: 'NPI', subjectIdPattern: /^\d{10}$/, subjectIdExample: '1003000126',
+  subjectIdLabel: 'NPI', subjectIdPattern: /^\d{10}$/, subjectIdExample: '1558395516',
   authorityBody: 'State Medical Boards / NPPES / OIG', regulatoryRef: 'HIPAA § 164, Joint Commission',
   credentialTypes: [
     { id: 'NPI_IDENTITY',        label: 'NPI Registration',       description: 'Active NPI in NPPES',                     required: true,  requiredForL3: true,  scoreContribution: 20 },

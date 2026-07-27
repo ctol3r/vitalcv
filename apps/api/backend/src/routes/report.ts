@@ -43,7 +43,7 @@ export function registerReportRoutes(app: Express): void {
   //
   // Body:
   //   {
-  //     "npi": "1003000126",
+  //     "npi": "1558395516",
   //     "orgRequirements": ["State medical license", "DEA registration"],  // optional
   //     "requestingOrg": "Memorial Hospital"                                // optional, audit only
   //   }
@@ -53,7 +53,7 @@ export function registerReportRoutes(app: Express): void {
     if (!npi || !NPI_RE.test(String(npi))) {
       res.status(400).json({
         error: 'Invalid or missing NPI. Must be a 10-digit string.',
-        example: { npi: '1003000126' },
+        example: { npi: '1558395516' },
       });
       return;
     }
