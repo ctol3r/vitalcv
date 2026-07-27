@@ -5,9 +5,27 @@
  *
  * Per-lane lifecycle + operational status table.
  * Dense font-mono table. No color on "not implemented".
+ *
+ * DERIVED, NOT DECLARED (W0.1). This table used to carry its own
+ * `LANE_LIFECYCLE` literal, and it had drifted: it published OIG Exclusions
+ * and PECOS Enrollment as `planned / PENDING INTEGRATION` while
+ * `SOURCE_LANE_OPS` — the registry `/api/status` serves from — has both as
+ * `active / operational`. So this page contradicted the API it links to,
+ * two tables apart.
+ *
+ * It also carried a seventh row, `dea_registration`, that exists in this file
+ * and nowhere else in the product: DEA appears only in demo, sandbox and
+ * simulation fixtures. A public technical-status page was publishing the
+ * operational state of a lane VitalCV does not have.
+ *
+ * Rendering from `SOURCE_LANE_OPS` makes that class of drift unrepresentable —
+ * one registry, and a lane cannot appear here without appearing in
+ * `/api/status` too. Pinned by `__tests__/source-lane-telemetry.test.tsx`.
  */
 
 import * as React from 'react';
+
+import { SOURCE_LANE_OPS, getLaneDisplayName } from '@/lib/trust/sourceLanes';
 
 export interface SourceLaneStatus {
   laneId: string;
@@ -20,50 +38,17 @@ export interface SourceLaneTelemetryProps {
   lanes?: SourceLaneStatus[];
 }
 
-const LANE_LIFECYCLE: SourceLaneStatus[] = [
-  {
-    laneId: 'nppes_identity',
-    displayName: 'NPPES Identity',
-    lifecycle: 'active',
-    status: 'operational',
-  },
-  {
-    laneId: 'oig_exclusions',
-    displayName: 'OIG Exclusions',
-    lifecycle: 'planned',
-    status: 'pending_integration',
-  },
-  {
-    laneId: 'state_license',
-    displayName: 'State License',
-    lifecycle: 'planned',
-    status: 'pending_integration',
-  },
-  {
-    laneId: 'employment_history',
-    displayName: 'Employment History',
-    lifecycle: 'demo_only',
-    status: 'non_production',
-  },
-  {
-    laneId: 'board_certification',
-    displayName: 'Board Certification',
-    lifecycle: 'unintegrated',
-    status: 'not_implemented',
-  },
-  {
-    laneId: 'pecos_enrollment',
-    displayName: 'PECOS Enrollment',
-    lifecycle: 'planned',
-    status: 'pending_integration',
-  },
-  {
-    laneId: 'dea_registration',
-    displayName: 'DEA Registration',
-    lifecycle: 'unintegrated',
-    status: 'not_implemented',
-  },
-];
+/**
+ * The canonical registry, projected onto this table's row shape. Ordered by
+ * the registry, so the four readiness dimensions lead — the same order
+ * `/api/status` publishes.
+ */
+export const LANE_LIFECYCLE: SourceLaneStatus[] = SOURCE_LANE_OPS.map((lane) => ({
+  laneId: lane.statusApiKey,
+  displayName: getLaneDisplayName(lane.laneId),
+  lifecycle: lane.lifecycle,
+  status: lane.statusApiStatus,
+}));
 
 function lifecycleLabel(lc: SourceLaneStatus['lifecycle']): string {
   switch (lc) {
