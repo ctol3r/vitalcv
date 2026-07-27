@@ -64,6 +64,19 @@ export const CANONICAL_TRUTH_STATUSES = [
   'CLEAR',
   'ENROLLED',
   'PENDING',
+  /**
+   * The settled-negative sibling of PENDING: the source answered, and the
+   * answer was no.
+   *
+   * PENDING is the honest word for "we have not got an answer yet" — not yet
+   * run, stale, or run but unsatisfied. Resolving a `notFound` coverage to
+   * PENDING failed closed (it can never mint VERIFIED/CLEAR/ENROLLED) but
+   * repeated the original defect one layer up: it told a reader "we are still
+   * checking" about a question that has a settled answer.
+   *
+   * Never positive, never decision-grade. See GATED_TRUTH_STATUSES.
+   */
+  'NOT_FOUND',
   'REVIEW_REQUIRED',
   'UNAVAILABLE',
   'ACCESS_REQUIRED',
@@ -194,6 +207,8 @@ export const CANONICAL_TRUTH_RENDER_RULES: Readonly<
     'Only a checked source result may render ENROLLED, and only when that checked result confirms enrollment.',
   PENDING:
     'Stale, pending, or unsatisfied checked source results must render as PENDING.',
+  NOT_FOUND:
+    'Only a source that was read successfully and returned no record backing this subject may render NOT_FOUND. It is a finding, not missing evidence — never render it as PENDING, and never count it as a source that confirmed this provider.',
   UNAVAILABLE:
     'Only sources that were actually attempted but unavailable may render UNAVAILABLE.',
   ACCESS_REQUIRED:
@@ -500,6 +515,13 @@ export function resolveCanonicalTruthStatus(input: {
   ) {
     return 'NOT_DECISION_GRADE';
   }
+  // Ranked below the states above, which all mean we never got a usable answer,
+  // and above the PENDING fallthrough, which means we do not have one yet.
+  // `satisfied` is deliberately ignored: an upstream that claims the dimension
+  // is satisfied cannot outvote a source that did not find the subject.
+  if (input.coverage.state === 'notFound') {
+    return 'NOT_FOUND';
+  }
   if (input.coverage.state !== 'checked' || !input.satisfied) {
     return 'PENDING';
   }
@@ -535,13 +557,20 @@ export function isDecisionGradePositiveTruthStatus(
 }
 
 /**
- * Gated/non-decision-grade truth statuses.
- * Sources with these statuses must NEVER appear as VERIFIED or CLEAR
- * and must NEVER contribute positively to readiness scoring.
+ * Truth statuses that must NEVER appear as VERIFIED or CLEAR and must NEVER
+ * contribute positively to readiness scoring.
+ *
+ * The name predates NOT_FOUND and reads narrower than the contract: NOT_FOUND
+ * is not "gated" — we were not held out of the source, we read it and it had
+ * nothing for this subject. It belongs here on the behavioural axis this set
+ * actually governs, which is "may this ever count in our favour" (no).
+ * Membership is belt-and-braces for NOT_FOUND, which `isReadinessPositive`
+ * already excludes via `decisionGrade`; the second lock is deliberate.
  */
 export const GATED_TRUTH_STATUSES = [
   'ACCESS_REQUIRED',
   'NOT_DECISION_GRADE',
+  'NOT_FOUND',
 ] as const;
 
 export type GatedTruthStatus = (typeof GATED_TRUTH_STATUSES)[number];
@@ -549,7 +578,9 @@ export type GatedTruthStatus = (typeof GATED_TRUTH_STATUSES)[number];
 export function isGatedTruthStatus(
   status: CanonicalTruthStatus,
 ): status is GatedTruthStatus {
-  return status === 'ACCESS_REQUIRED' || status === 'NOT_DECISION_GRADE';
+  return status === 'ACCESS_REQUIRED'
+    || status === 'NOT_DECISION_GRADE'
+    || status === 'NOT_FOUND';
 }
 
 /**
@@ -566,7 +597,11 @@ export function assertNonGatedIfPositive(
     && (coverageState === 'gated'
       || coverageState === 'accessRequired'
       || coverageState === 'notDecisionGrade'
-      || coverageState === 'previewOnly')
+      || coverageState === 'previewOnly'
+      // A source that answered "no record for this subject" is the one case
+      // here where we DID get a clean read. It is listed for the same reason
+      // as the rest: whatever an upstream believes, it cannot mint a positive.
+      || coverageState === 'notFound')
   ) {
     throw new Error(
       `Trust parity violation: status '${status}' is not allowed for coverage state '${coverageState}'. `

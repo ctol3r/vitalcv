@@ -102,6 +102,12 @@ function dimensionStateFromTruthStatus(
     case 'notDecisionGrade':
     case 'unavailable':
       return 'unavailable';
+    // A source that answered "no record for this subject" is not pending — the
+    // question has a settled answer, and it is one a reviewer has to weigh.
+    // This union has no not-found member, and 'pending' would repeat the defect
+    // this state exists to fix, so it reads as review_required.
+    case 'notFound':
+      return 'review_required';
     default:
       break;
   }
@@ -114,6 +120,7 @@ function dimensionStateFromTruthStatus(
     case 'ACCESS_REQUIRED':
       return 'gated';
     case 'REVIEW_REQUIRED':
+    case 'NOT_FOUND':
       return 'review_required';
     case 'UNAVAILABLE':
     case 'NOT_DECISION_GRADE':
@@ -136,6 +143,12 @@ function bucketForTruth(
     case 'gated':
     case 'accessRequired':
       return 'missingOrAccessRequired';
+    // Not 'missingOrAccessRequired': nothing is missing and nothing is gating
+    // us. We hold the answer, it is negative, and that is a finding a reviewer
+    // must act on — the same call trustCore makes when it keeps a not-found
+    // reason as a readiness blocker rather than a soft gap.
+    case 'notFound':
+      return 'needsReview';
     default:
       break;
   }
@@ -148,6 +161,7 @@ function bucketForTruth(
     case 'NOT_DECISION_GRADE':
       return 'contextualOnly';
     case 'REVIEW_REQUIRED':
+    case 'NOT_FOUND':
       return 'needsReview';
     case 'PENDING':
     case 'UNAVAILABLE':
