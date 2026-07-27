@@ -91,6 +91,29 @@
   --vt-shadow-card: 0 14px 32px rgb(26 34 40 / 0.05), 0 2px 10px rgb(26 34 40 / 0.03);
   --vt-shadow-pill: 0 1px 2px rgb(26 34 40 / 0.04);
 
+  /* ── Glass materials (CD-12: glass on chrome, solid on evidence) ──
+     The frosted surfaces are chrome — the nav rail, the eyebrow plates, the
+     packet housing, the pointer lens. Their sheen and float live here rather
+     than inline so the design-lint ratchets (LINT-01/05/06) stay meaningful:
+     a raw shadow or colour in a stylesheet is drift, a token is a decision. */
+  --vt-glass-sheen: inset 0 1px 0 0 color-mix(in oklab, white 60%, transparent);
+  /* The packet housing: sheen, a faint bottom seat, and a float a fraction of
+     the nav rail's so the one reserved float shadow keeps its rank. */
+  --vt-shadow-glass-panel:
+    inset 0 1px 0 0 color-mix(in oklab, white 72%, transparent),
+    inset 0 -1px 0 0 color-mix(in oklab, var(--vt-text-primary) 6%, transparent),
+    0 14px 34px -22px color-mix(in oklab, var(--vt-text-primary) 60%, transparent);
+  /* The pointer lens, at rest and over an interactive element. */
+  --vt-shadow-glass-lens:
+    inset 0 1px 0 0 color-mix(in oklab, white 55%, transparent),
+    0 4px 14px -8px color-mix(in oklab, var(--vt-text-primary) 45%, transparent);
+  --vt-shadow-glass-lens-active:
+    inset 0 1px 0 0 color-mix(in oklab, white 65%, transparent),
+    0 4px 16px -8px color-mix(in oklab, var(--vt-accent-emerald) 50%, transparent);
+  /* The lens sits above every product surface but is inert — see
+     components/chrome/GlassCursor.tsx. */
+  --vt-z-cursor: 2147483000;
+
   /* ── Neutral (zinc) ──────────────────────────── */
   --palette-neutral-50:  oklch(0.985 0 0);
   --palette-neutral-100: oklch(0.965 0 0);

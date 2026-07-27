@@ -55,13 +55,29 @@
 }
 
 /* The audience line. Mono, small, above the question — frames who the page is
-   for without competing with the H1 (one dominant question per screen). */
-.ask-eyebrow {
+   for without competing with the H1 (one dominant question per screen).
+   Rendered as a frosted glass plate (founder direction, 2026-07-27): real
+   backdrop-filter with a hairline edge and top sheen. A soft 10px radius, not
+   a full pill — CD-13 retires pill badges, and the flat radius keeps this
+   reading as a plate of glass over the paper rather than a badge ON it. */
+.ask-eyebrow,
+.ask-chapter-eyebrow {
+  display: inline-flex;
+  align-items: center;
   font-family: var(--font-mono, ui-monospace, monospace);
   font-size: 0.66rem;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: var(--ask-faint);
+  color: var(--ask-soft);
+  padding: 0.42rem 0.85rem;
+  border-radius: 10px;
+  border: 1px solid color-mix(in oklab, var(--ask-ink) 10%, transparent);
+  background: color-mix(in oklab, white 36%, transparent);
+  backdrop-filter: blur(14px) saturate(1.35);
+  -webkit-backdrop-filter: blur(14px) saturate(1.35);
+  box-shadow: var(--vt-glass-sheen);
+}
+.ask-eyebrow {
   margin: 0 0 1.1rem;
 }
 
@@ -351,14 +367,27 @@
   border-top: 1px solid var(--ask-rule);
 }
 
+/* Shares the glass-plate treatment with .ask-eyebrow (defined together in
+   the hero block above); only the margin differs. */
 .ask-chapter-eyebrow {
-  font-family: var(--font-mono, ui-monospace, monospace);
-  font-size: 0.66rem;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--ask-faint);
   margin: 0 0 1rem;
 }
+
+/* The spine markers. The product is one sequence — NPI → source evidence →
+   the packet you choose → hospital review — and labelling each moment makes
+   a scroller read a path instead of a stack of unrelated sections. The step
+   number is the quietest thing on the plate: it orders, it does not shout. */
+.ask-spine {
+  gap: 0.6rem;
+}
+.ask-spine::before {
+  content: '';
+  width: 0.5rem;
+  height: 1.5px;
+  background: var(--ask-accent);
+  flex: none;
+}
+
 
 .ask-chapter-title {
   font-family: var(--font-display, Georgia, serif);

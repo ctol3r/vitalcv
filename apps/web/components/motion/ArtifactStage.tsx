@@ -28,6 +28,11 @@ export interface ArtifactStageProps {
   className?: string;
   /** How much of the figure must be visible before the sequence plays. */
   threshold?: number;
+  /** Frosted glass housing. OFF by default and reserved for the PACKET —
+   * glass is the material that makes the packet feel tactile and valuable, and
+   * spending it on every drawing is what turns it into wallpaper. Never true
+   * for a REAL evidence surface (CD-12). */
+  glass?: boolean;
 }
 
 export function ArtifactStage({
@@ -35,6 +40,7 @@ export function ArtifactStage({
   caption = 'Illustrative — not a live result',
   className = '',
   threshold = 0.45,
+  glass = false,
 }: ArtifactStageProps) {
   const ref = React.useRef<HTMLElement | null>(null);
 
@@ -58,7 +64,10 @@ export function ArtifactStage({
   }, [threshold]);
 
   return (
-    <figure ref={ref} className={`vt-artifact ${className}`.trim()}>
+    <figure
+      ref={ref}
+      className={`vt-artifact ${glass ? 'vt-artifact--glass' : ''} ${className}`.trim().replace(/\s+/g, ' ')}
+    >
       {children}
       {caption ? <figcaption className="ask-art-cap">{caption}</figcaption> : null}
     </figure>

@@ -32,6 +32,29 @@
   width: 100%;
 }
 
+/* Glass housing for artifacts.
+ *
+ * Founder correction, 2026-07-27: "Glass should make the packet feel tactile
+ * and valuable — not become the story." My first pass glassed every
+ * illustrative artifact, which is exactly how the material stops meaning
+ * anything: if the whole page is glass, glass is wallpaper. So the housing is
+ * OPT-IN and reserved for the PACKET — the object the product asks a clinician
+ * to own and an employer to receive. Every other drawing sits on bare paper.
+ *
+ * REAL evidence surfaces (the lane ledger, the proof inspector) never take it
+ * either way: glass on chrome, solid on evidence (CD-12). The shadow stays a
+ * fraction of the nav rail's so the one reserved float shadow keeps its rank.
+ */
+.vt-artifact--glass {
+  border-radius: 16px;
+  border: 1px solid color-mix(in oklab, var(--ask-ink) 12%, transparent);
+  background: color-mix(in oklab, white 44%, transparent);
+  backdrop-filter: blur(22px) saturate(1.45);
+  -webkit-backdrop-filter: blur(22px) saturate(1.45);
+  box-shadow: var(--vt-shadow-glass-panel);
+  padding: clamp(1.1rem, 3vw, 2.1rem);
+}
+
 .ask-art {
   width: 100%;
   max-width: 22rem;

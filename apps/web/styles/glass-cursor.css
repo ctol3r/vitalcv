@@ -1,0 +1,48 @@
+/* ============================================================
+   GlassCursor — the frosted pointer lens (chrome, per CD-12).
+
+   The native arrow stays. This is a lens that follows it: real
+   backdrop-filter glass, hairline edge, inset top sheen. It brightens and
+   swells over interactive elements (data-hover, set by the component) and
+   contracts on press. Invisible until the first pointer move (data-on), and
+   never mounted for touch or reduced-motion readers — the component gates
+   its listeners, and the transition below is the only motion this file owns.
+   ============================================================ */
+
+.vt-cursor {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: var(--vt-z-cursor);
+  opacity: 0;
+  transform: translate3d(-100px, -100px, 0);
+  transition: opacity 240ms ease;
+  backdrop-filter: blur(6px) saturate(1.6);
+  -webkit-backdrop-filter: blur(6px) saturate(1.6);
+  background: color-mix(in oklab, var(--vt-cloud-dancer) 16%, transparent);
+  border: 1px solid color-mix(in oklab, var(--vt-text-primary) 22%, transparent);
+  box-shadow: var(--vt-shadow-glass-lens);
+}
+
+.vt-cursor[data-on] {
+  opacity: 1;
+}
+
+/* Over an interactive element the edge takes the accent — affordance, not
+   decoration: the lens is answering "can I act here?". */
+.vt-cursor[data-hover] {
+  border-color: color-mix(in oklab, var(--vt-accent-emerald) 55%, transparent);
+  box-shadow: var(--vt-shadow-glass-lens-active);
+}
+
+/* Touch and reduced-motion get nothing — the component never sets data-on,
+   and this keeps even a stray mount invisible. */
+@media (pointer: coarse), (prefers-reduced-motion: reduce) {
+  .vt-cursor {
+    display: none;
+  }
+}
