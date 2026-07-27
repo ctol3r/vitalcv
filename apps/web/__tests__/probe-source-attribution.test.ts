@@ -55,4 +55,46 @@ describe('D4 — probe callers attribute their source', () => {
       ).toBe(true);
     });
   }
+
+  it('the probe response echoes the source it stored under', async () => {
+    // Closes the last inference gap in D4. The callers above are asserted to
+    // SEND `?source=`, and readProbeSource is asserted to parse it — but
+    // nothing proved the two meet, so the stored label stayed unobservable
+    // from outside the database. One curl should settle it.
+    const { __handleForTests } = await import(
+      '../app/api/internal/source-health/probe/_handler'
+    );
+
+    const seen: string[] = [];
+    const deps = {
+      authEnv: { cronSecret: 's', monitoringSecret: null },
+      runProbes: async () => ({ snapshots: [], durationMs: 1, errors: [] }),
+      recordSamples: async (_snaps: unknown, source: string) => {
+        seen.push(source);            // what the ledger was actually told
+        return { written: 0, failed: false };
+      },
+    } as unknown as Parameters<typeof __handleForTests>[1];
+
+    for (const [query, expected] of [
+      ['?source=cron', 'cron'],
+      ['?source=deploy', 'deploy'],
+      ['', 'manual'],               // no param -> honest default
+      ['?source=bogus', 'manual'],  // unrecognised -> honest default, not the raw value
+    ] as const) {
+      const res = await __handleForTests(
+        new Request(`https://x/api/internal/source-health/probe${query}`, {
+          method: 'POST',
+          headers: { authorization: 'Bearer s' },
+        }),
+        deps,
+      );
+      const body = await res.json();
+      expect(res.status).toBe(200);
+      // The echo must equal what was handed to the ledger — otherwise the
+      // field would be decorative and could drift from the stored value.
+      expect(body.ledger.source).toBe(expected);
+      expect(seen.at(-1)).toBe(expected);
+    }
+  });
 });
+
