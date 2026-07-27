@@ -92,4 +92,29 @@ describe('time-to-start projections are labelled as projections', () => {
     // The surface states the comparison is against an assumption, in prose.
     expect(html).toContain('not measured');
   });
+
+  it('renders the disclosure in a surface-following colour, not hardcoded white', () => {
+    const estimate = estimatePilotTimeToStart({
+      readinessScore: 55,
+      missingSources: 1,
+      blockedStates: 0,
+    });
+    const html = renderToStaticMarkup(<TimeToStartEstimateSummary estimate={estimate} />);
+
+    // Found by visual pass 2026-07-27: the disclosure was `text-white/34`, a
+    // dark-surface idiom, while ReviewClient renders on `bg-background` (light
+    // paper). It painted white-on-white — roughly 1:1 contrast, invisible — and
+    // it is the sentence that says the number is not a measurement. Measured
+    // 9.42:1 after moving to a theme token.
+    //
+    // SSR cannot compute contrast, so this asserts the cause: no hardcoded
+    // white on the element carrying the disclosure text.
+    const disclosureTag = html
+      .split('<')
+      .find((chunk) => chunk.includes('Projection from an assumed baseline'));
+
+    expect(disclosureTag).toBeDefined();
+    expect(disclosureTag).not.toMatch(/text-white/);
+    expect(html).toContain('text-muted-foreground');
+  });
 });

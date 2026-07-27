@@ -42,7 +42,14 @@ export function TimeToStartEstimateSummary({
         </div>
       </div>
 
-      <p className="text-[11px] text-white/34">{estimate.disclosureLabel}</p>
+      {/* Was `text-white/34` — a dark-surface idiom inherited from this
+          component's origins. ReviewClient renders on `bg-background`, which is
+          light paper, so the disclosure painted white-on-white at a contrast
+          ratio of roughly 1:1 and was literally invisible. It is the sentence
+          that says the number is not a measurement, so it is the last line in
+          the component that may go unread. Theme token instead of a hardcoded
+          white, so it follows the surface rather than assuming one. */}
+      <p className="text-[11px] text-muted-foreground">{estimate.disclosureLabel}</p>
     </div>
   );
 }
