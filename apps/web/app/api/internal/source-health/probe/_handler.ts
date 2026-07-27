@@ -14,10 +14,28 @@ import {
 } from '../_auth';
 import { runAllProbes } from '@/lib/source-health/runner/runAllProbes';
 import type { RunAllProbesDeps } from '@/lib/source-health/runner/runAllProbes';
+import { recordAvailabilitySamples } from '@/lib/source-health/recordAvailabilitySamples';
+import type { ProbeSource } from '@/lib/source-health/recordAvailabilitySamples';
 
 export interface ProbeRouteDeps {
   runProbes?: (deps?: RunAllProbesDeps) => ReturnType<typeof runAllProbes>;
   authEnv?: ReturnType<typeof readAuthEnv>;
+  recordSamples?: typeof recordAvailabilitySamples;
+}
+
+/**
+ * D4 — which caller produced this tick.
+ *
+ * Read from an explicit `?source=` rather than inferred, because the
+ * distinction is load-bearing: a night of ten merges produces a burst of
+ * `deploy` probes, and counting those as steady scheduled observation would
+ * quietly bias every availability figure derived from the ledger. Unknown or
+ * absent values fall back to `manual`, which is the honest label for "a human
+ * or something we cannot attribute".
+ */
+function readProbeSource(req: Request): ProbeSource {
+  const raw = new URL(req.url).searchParams.get('source');
+  return raw === 'cron' || raw === 'deploy' ? raw : 'manual';
 }
 
 export async function handleProbe(
@@ -33,11 +51,21 @@ export async function handleProbe(
   const runner = deps.runProbes ?? runAllProbes;
   const result = await runner();
 
+  // D4: persist this tick. Best-effort by contract — `recordAvailabilitySamples`
+  // swallows its own failures, so a ledger outage degrades to "no new samples"
+  // rather than a failed probe. The probe's job is reporting source health; a
+  // storage problem must not masquerade as a source problem.
+  const record = deps.recordSamples ?? recordAvailabilitySamples;
+  const ledger = await record(result.snapshots, readProbeSource(req));
+
   return NextResponse.json(
     {
       snapshots: result.snapshots,
       durationMs: result.durationMs,
       errors: result.errors,
+      // Surfaced so a silently-failing ledger is visible in the probe's own
+      // output instead of only discoverable by noticing missing rows weeks later.
+      ledger: { written: ledger.written, failed: ledger.failed, ...(ledger.reason ? { reason: ledger.reason } : {}) },
     },
     { status: 200 },
   );
