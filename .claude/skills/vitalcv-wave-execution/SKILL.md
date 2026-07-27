@@ -147,9 +147,22 @@ Answer three questions in the visible transcript before merging:
 
 Only after: (a) checks green/neutral/skipping, (b) the real-verification evidence from step 5 in the visible transcript, (c) explicit user approval if the wave brief did not pre-authorize merging.
 
+**Do not pass `--delete-branch`** — it makes `gh` do local git work, and local `main` is held by `/Users/christoler/vitalcv-omega4f-trigger`, so it dies with:
+
+```
+failed to run git: fatal: 'main' is already used by worktree at '/Users/christoler/vitalcv-omega4f-trigger'
+```
+
+**That error is not a merge failure.** The merge has already landed on GitHub by the time it prints; only the local cleanup failed. Re-running the merge is wrong — check state first, then delete the branch as a pure remote operation:
+
 ```bash
-gh pr merge <N> --squash --delete-branch \
+gh pr merge <N> --squash \
   --subject "<type>(<scope>): <summary>"
+
+gh pr view <N> --json state,mergeCommit \
+  --jq '"state: \(.state) | commit: \(.mergeCommit.oid // "none")"'   # expect MERGED
+
+git push origin --delete <feature-branch>    # remote-only; never touches the fleet
 ```
 
 Never use `--admin`, `--no-verify`, or force-push. If a required check blocks, investigate the root cause — do not bypass.
@@ -160,6 +173,12 @@ After merge:
 git fetch origin main
 git log --oneline -5 origin/main          # confirm squash commit landed
 git grep -n "<key truth literal>" origin/main -- <touched file>   # spot-check evidence
+```
+
+**Re-check mergeability immediately before each merge.** `main` moves under you — parallel lanes land while your checks run — so a green read from ten minutes ago is stale. If `mergeStateStatus` comes back `UNKNOWN`, GitHub is still recomputing; wait for it to settle rather than merging blind:
+
+```bash
+until [ "$(gh pr view <N> --json mergeStateStatus --jq '.mergeStateStatus')" != "UNKNOWN" ]; do sleep 3; done
 ```
 
 ### 7. Completion-board update only on merged evidence
@@ -242,11 +261,13 @@ git diff --stat origin/main...HEAD
 git log --oneline origin/main..HEAD
 ```
 
-Merge (only after green checks + real verification evidence):
+Merge (only after green checks + real verification evidence). Never `--delete-branch` — see step 6:
 
 ```bash
-gh pr merge <N> --squash --delete-branch \
-  --subject "<type>(<scope>): <summary>"
+until [ "$(gh pr view <N> --json mergeStateStatus --jq '.mergeStateStatus')" != "UNKNOWN" ]; do sleep 3; done
+gh pr merge <N> --squash --subject "<type>(<scope>): <summary>"
+gh pr view <N> --json state,mergeCommit --jq '"state: \(.state) | commit: \(.mergeCommit.oid // "none")"'
+git push origin --delete <feature-branch>
 ```
 
 ## 3-wave-per-request operating pattern
@@ -293,6 +314,8 @@ When a single user request bundles multiple waves (the most common shape), execu
 - **Bare-Verified label.** `label: 'Verified'` in any badge component. Required fix: change to a compound label like `Source-verified` that does not match the bare-word ban.
 - **Mixed-bucket diff.** Crypto + issuer + clinician changes in one PR. Split into separate buckets and ask for re-triage.
 - **Merge on green CI alone.** No hook will stop you — that is exactly why it must not happen. Report what you actually exercised, or say plainly that you could not and let the user decide.
+- **Retrying a merge that already succeeded.** `gh pr merge --delete-branch` prints a fleet worktree error *after* the merge lands. Read the PR state before reacting to any merge-command error — see step 6.
+- **Stacked PR that overstates its diff.** A branch cut from another PR's branch does not contain that PR's squash commit, so after the parent merges the child's diff still shows the parent's lines. It stays `MERGEABLE` — identical changes 3-way merge cleanly — so nothing flags it. Merge `origin/main` into the child and confirm `git diff origin/main HEAD` is only your bucket. Do not force-push to fix this.
 
 ## Output format for the user
 
