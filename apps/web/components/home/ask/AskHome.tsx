@@ -34,6 +34,7 @@ import { checkNpi } from '@/lib/vital/npi';
 import { FUNNEL_EVENTS, trackFunnelEvent } from '@/lib/analytics/funnel';
 import { LiveNpiResult } from '@/components/home/LiveNpiResult';
 import { TruthBoundary } from '@/components/home/TruthBoundary';
+import { ProofPacketInspector } from '@/components/proof/ProofPacketInspector';
 import { SOURCE_LANE_OPS } from '@/lib/trust/sourceLanes';
 
 /**
@@ -160,7 +161,12 @@ export function AskHome() {
                        as a filled-in value rather than a prompt — the loudest
                        thing on the screen was fake data. The ruled line and the
                        digit counter carry the affordance instead. */
-                    aria-label="NPI number"
+                    /* No `aria-label` here on purpose. One overriding the
+                       visible <label> made the accessible name "NPI number"
+                       while the screen read "Start with your NPI" — a WCAG
+                       2.5.3 Label-in-Name failure, and it means a voice-control
+                       user saying what they can SEE cannot address the field.
+                       The <label for="npi-input"> above is the only name. */
                     aria-invalid={Boolean(error)}
                     aria-describedby="ask-hint"
                     onChange={(e) => {
@@ -169,9 +175,16 @@ export function AskHome() {
                     }}
                   />
                 </div>
-                <p id="ask-hint" className="ask-hint">
-                  {error ? (
-                    <span className="ask-error">{error}</span>
+                <p id="ask-hint" className="ask-hint" aria-live="polite">
+                  {/* A full-length number that fails the checksum explains
+                      ITSELF, without waiting for a submit that the disabled
+                      button will never allow. Silently greying the action out
+                      leaves someone who mistyped one digit staring at a dead
+                      button with nothing to correct. Shorter, fixable failures
+                      keep the plain counter — a nag on every keystroke would be
+                      worse than none. */}
+                  {error || (digits.length === 10 && !valid) ? (
+                    <span className="ask-error">{error ?? check.reason}</span>
                   ) : (
                     <>
                       {digits.length}/10 digits · Free for clinicians · No account required
@@ -233,7 +246,18 @@ export function AskHome() {
               says so — a viewer should never have to infer which pixels are a
               claim. */}
           <figure className="ask-beat-art" data-ask-artifact={beat.artifact}>
-            <BeatArtifact kind={beat.artifact} />
+            {beat.artifact === 'once' ? (
+              /* The real close-up, not a drawing of one. Guardrail 7 asks for
+                 proof as a CLOSE-UP rather than a wall of labels — and my first
+                 cut at this page threw out both, replacing the inspector with an
+                 abstract shape. A shape cannot show that a claim traces to a
+                 named source, so this beat carries the actual inspector: one
+                 claim at a time, its source chain beside it, keyboard-operable
+                 and complete without JavaScript. */
+              <ProofPacketInspector className="ask-beat-inspector" />
+            ) : (
+              <BeatArtifact kind={beat.artifact} />
+            )}
             <figcaption className="ask-beat-cap">Illustrative — not a live result</figcaption>
           </figure>
         </section>

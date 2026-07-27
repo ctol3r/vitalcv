@@ -155,10 +155,13 @@
   margin-top: 0.5rem;
 }
 
-/* The buyer door: present, findable, and quieter than the clinician's act. */
+/* The buyer door: present, findable, and quieter than the clinician's act.
+   0.92rem rendered LARGER than the primary CTA's 0.9rem — the secondary door
+   was literally out-sizing the action it sits under. The e2e guard measures
+   this rather than trusting the intent. */
 .ask-secondary {
   margin: 1.25rem 0 0;
-  font-size: 0.92rem;
+  font-size: 0.82rem;
 }
 .ask-secondary a {
   color: var(--ask-faint);
@@ -259,6 +262,11 @@
   width: 100%;
   max-width: 22rem;
   height: auto;
+}
+
+/* The inspector is a real surface, not a 22rem drawing — give it the column. */
+.ask-beat-inspector {
+  width: 100%;
 }
 
 .ask-art-paper {
