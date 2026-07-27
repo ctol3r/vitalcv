@@ -61,8 +61,14 @@ describe('Wave 5 buyer proof surface', () => {
     expect(markup).toContain('Limitation honesty');
     expect(markup).toContain('does not replace Primary Source Verification');
     expect(markup).toContain('A partial proof stays partial');
-    expect(markup).toContain('Mock/dev containers are not production credentials');
-    expect(markup).toContain('production-provider scaffold');
+    // The limitation, not the wording that used to carry it. These previously
+    // pinned 'Mock/dev containers are not production credentials' and
+    // 'production-provider scaffold' — implementation vocabulary the YC audit
+    // flagged as unfit for a buyer page ("mock" reads to a credentialing lead
+    // as "the evidence is fake"). Removing those words must not remove the
+    // disclosure, so the disclosure itself is what is asserted now.
+    expect(markup).toContain('does not issue production credentials');
+    expect(markup).not.toMatch(/mock/i);
     expect(formSource).toContain("fetch('/api/pilot-request'");
     expect(markup).not.toContain('final credentialing decision');
     expectNoBuyerBannedStrings(markup);
