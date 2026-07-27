@@ -3991,3 +3991,34 @@ model ReceiptCandidate {
   @@index([reviewState])
   @@index([createdAt])
 }
+
+/// D4 — probe-observed availability ledger.
+///
+/// One row per source lane per probe tick. Exists because the source-health
+/// store is an in-memory Map that empties on every cold start, so the platform
+/// forgot its own health on each deploy and `/status` could only say "we do not
+/// publish uptime figures we have not measured".
+///
+/// The honesty grammar this table encodes:
+///   - The denominator is SAMPLES TAKEN, never wall-clock. A gap between probe
+///     ticks is unmeasured time; it counts neither for nor against a lane.
+///   - `probeSource` distinguishes a scheduled tick from a post-deploy or manual
+///     one, so a burst of deploy probes can never be mistaken for steady
+///     observation.
+///   - Per lane only. There is deliberately no global "uptime" column: a blanket
+///     figure would repeat the lane-flattening that produced the "read live"
+///     overclaim.
+model AvailabilitySample {
+  id          String   @id @default(uuid()) @db.Uuid
+  laneId      String   @map("lane_id")
+  ok          Boolean
+  state       String
+  latencyMs   Int?     @map("latency_ms")
+  probeSource String   @map("probe_source")
+  observedAt  DateTime @map("observed_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([laneId, observedAt])
+  @@index([observedAt])
+  @@map("availability_samples")
+}
