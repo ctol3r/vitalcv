@@ -120,17 +120,29 @@ test.describe('glass cursor', () => {
 });
 
 test.describe('glass surfaces', () => {
-  test('eyebrow plates and artifact housings are real glass', async ({ page }) => {
+  test('eyebrows are plain type — no plate, per the Palantir reference', async ({ page }) => {
+    // Measured from palantir.com: 10px, ~0.5px tracking, weight 400, and NO
+    // container — no background, border, radius, padding or backdrop-filter.
+    // Their restraint IS the absence of a plate; a frosted one here reads as a
+    // badge, which CD-13 retires. Glass stays where it earns its keep.
     await page.goto('/', { waitUntil: 'domcontentloaded' });
     for (const selector of ['.ask-eyebrow', '.ask-chapter-eyebrow']) {
-      const backdrop = await page
+      const style = await page
         .locator(selector)
         .first()
         .evaluate((el) => {
           const cs = getComputedStyle(el);
-          return cs.backdropFilter || (cs as unknown as { webkitBackdropFilter?: string }).webkitBackdropFilter || '';
+          return {
+            backdrop: cs.backdropFilter || 'none',
+            bg: cs.backgroundColor,
+            borderWidth: cs.borderTopWidth,
+            radius: cs.borderTopLeftRadius,
+          };
         });
-      expect(backdrop, `${selector} must carry backdrop-filter glass`).toContain('blur');
+      expect(style.backdrop, `${selector} must carry no glass`).toBe('none');
+      expect(style.bg, `${selector} must have no plate`).toMatch(/rgba\(0, 0, 0, 0\)|transparent/);
+      expect(style.borderWidth).toBe('0px');
+      expect(style.radius).toBe('0px');
     }
   });
 
