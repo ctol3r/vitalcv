@@ -251,12 +251,27 @@ describe('buildPassportDataByNpi', () => {
     ]));
 
     expect(result?.sourceCoverage.checks).toHaveLength(4);
+
+    // STATE_BOARD is NOT in `checked`, and this assertion changed on purpose.
+    // It previously asserted the opposite, which pinned the defect: the lane
+    // read `checked` whenever a licence ROW existed, even though no state
+    // board is ever queried (catalog: `liveAvailable: false`, env flag
+    // STATE_BOARD_ENABLED unset in production). /verify then aged that
+    // `checkedAt` through a freshness window and rendered **Stale** — telling
+    // a reader the board was checked and merely went out of date.
     expect(result?.sourceCoverage.summary.checked).toEqual(expect.arrayContaining([
       'NPPES_API',
       'OIG_LEIE',
-      'STATE_BOARD',
       'PECOS_PUBLIC',
     ]));
+    expect(result?.sourceCoverage.summary.checked).not.toContain('STATE_BOARD');
+
+    const stateBoard = result?.sourceCoverage.checks.find((c) => c.sourceId === 'STATE_BOARD');
+    expect(stateBoard?.state).toBe('gated');
+    // No timestamp when nothing was checked — the date is what let the surface
+    // imply a check had happened.
+    expect(stateBoard?.checkedAt).toBeNull();
+    expect(stateBoard?.reason).toMatch(/self-reported to NPPES/i);
 
     for (const credential of result?.credentials ?? []) {
       expect(credential.id).toBeTruthy();

@@ -26,7 +26,7 @@ import { ClinicianRecordDetail } from '@/components/clinician-record/ClinicianRe
 import { fetchNppesRecord } from '@/lib/clinician-record/nppes';
 import { buildClinicianRecord, attachMedicareEnrollment } from '@/lib/clinician-record/build';
 import { fetchCmsClinicianRows } from '@/lib/clinician-record/cmsClinicians';
-import type { LaneSnapshot } from '@/components/proof/trust-types';
+import { checksToLaneSnapshots } from '@/lib/verify/laneSnapshots';
 import { VerdictSplit, type VerdictItem } from '@/design-system/components';
 import type { PassportData } from '@/lib/trust/passport-contract';
 import {
@@ -120,50 +120,6 @@ const TIER_CONFIG: Record<string, { label: string; cls: string }> = {
     cls: 'bg-gray-100 text-gray-600 border border-gray-200',
   },
 };
-
-/**
- * Map passport sourceCoverage checks → LaneSnapshot[] compatible with
- * the verifier components (which use trust-types.ts LaneSnapshot shape).
- */
-function checksToLaneSnapshots(
-  checks: PassportData['sourceCoverage']['checks'],
-): LaneSnapshot[] {
-  return checks.map((c) => {
-    const checkedAtMs = c.checkedAt ? new Date(c.checkedAt).getTime() : null;
-    const receiptId = c.proof?.receiptIds?.[0] ?? null;
-
-    // Map canonical state → SourceStatus (best-effort)
-    const statusMap: Record<string, LaneSnapshot['status']> = {
-      checked: 'verified',
-      stale: 'stale',
-      pending: 'in_progress',
-      gated: 'access_required',
-      unavailable: 'unavailable',
-      accessRequired: 'access_required',
-      reviewRequired: 'review_required',
-      notDecisionGrade: 'not_checked',
-      previewOnly: 'not_checked',
-    };
-
-    // The source's own refresh SLA (sourceCatalog.refreshSlaHours), carried on
-    // the passport. Without it the strip can only show an absolute timestamp,
-    // which reads as "just checked" for a periodic source — the over-claim the
-    // freshness line repairs.
-    const freshnessWindowMs =
-      typeof c.freshnessWindowHours === 'number' && c.freshnessWindowHours > 0
-        ? c.freshnessWindowHours * 60 * 60 * 1000
-        : undefined;
-
-    return {
-      laneId: c.sourceId,
-      status: statusMap[c.state] ?? 'not_checked',
-      checkedAt: isNaN(checkedAtMs as number) ? null : checkedAtMs,
-      source: c.sourceUrl ?? undefined,
-      receiptId,
-      freshnessWindowMs,
-    };
-  });
-}
 
 // ── Data fetching ──────────────────────────────────────────────────────────────
 
