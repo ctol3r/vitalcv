@@ -156,12 +156,18 @@ export default function PilotPage() {
             <p className="mz-lede max-w-3xl" data-testid="pilot-value-prop">
               {/* Was the literal word "four" — the same overclaim as the metric
                   strip, in the first sentence a buyer reads. Counted from the
-                  registry so the lede can never outrun the lanes. */}
-              VitalCV turns {AUTOMATED_LANES.length} source-backed lanes of
-              clinician evidence into a deterministic proof pack and an auditable
-              trust container, so your reviewers can see what is ready, what is
-              missing, and what must wait for primary source verification —
-              without changing your existing compliance stack.
+                  registry so the lede can never outrun the lanes.
+
+                  "deterministic proof pack" and "auditable trust container" were
+                  also here. Both are accurate and both are OUR words, not the
+                  buyer's: a credentialing lead does not arrive looking for a
+                  container. The mechanism is unchanged and still stated below —
+                  it just no longer occupies the first sentence. */}
+              VitalCV gives your reviewers {AUTOMATED_LANES.length} source-backed
+              lanes of clinician evidence with the gaps named, so a file arrives
+              at committee review with the routine checks already done and the
+              open items listed — without changing your existing compliance
+              stack.
             </p>
           </Reveal>
         </header>
