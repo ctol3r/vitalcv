@@ -10,6 +10,7 @@ import '@/styles/artifact-motion.css';
 import { StateChip } from '@/components/vital/StateChip';
 import { EVIDENCE_STATE, type EvidenceState } from '@/lib/vital/evidenceState';
 import { PageFrame } from '@/components/layout/PageFrame';
+import { SourceCoverageDiagram } from '@/components/trust/SourceCoverageDiagram';
 
 export const dynamic = 'force-dynamic';
 
@@ -79,7 +80,10 @@ export default async function TrustCenterPage() {
 
         {/* 1 — What VitalCV checks + current availability */}
         <Section id="checks" eyebrow="What we check" title="The sources VitalCV reads, and whether they're available today">
-          <div className="overflow-hidden rounded-[12px] border border-[var(--vt-border)]">
+          {/* The same lane state the table below prints, drawn. Both read
+              SOURCE_LANE_OPS, so the picture cannot disagree with the rows. */}
+          <SourceCoverageDiagram />
+          <div className="mt-8 overflow-hidden rounded-[12px] border border-[var(--vt-border)]">
             {snapshot.sources.map((s, i) => {
               const meta = LIFECYCLE_LABEL[s.lifecycle] ?? LIFECYCLE_LABEL.unintegrated;
               return (
