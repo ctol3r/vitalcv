@@ -1,0 +1,175 @@
+/* ============================================================
+   Artifact motion — the house grammar for animated evidence drawings.
+
+   Extracted from ask-home.css when the founder's mandate ("nearly all pages
+   should have an animated visual") took the pattern beyond the homepage.
+   One vocabulary everywhere: shape classes for the drawing, step classes for
+   the entry sequence, and a play class an IntersectionObserver adds once.
+
+   The contract (CD-11, pinned by ask-home-diagrams.test.tsx):
+   - The BASE composition is the final frame. No-JS and reduced-motion
+     readers get the complete picture; the keyframes only replay how it came
+     to be.
+   - Motion plays once on entry, then rests. No loops, no idling.
+   - Keyframe DEFINITIONS live in styles/motion.css (LINT-03's one permitted
+     home); this file only references them, inside the no-preference guard.
+
+   `.vt-artifact` is the portable wrapper: it maps the drawing's tokens from
+   the global --vt-* set, so an artifact renders identically inside `.ask`,
+   `.mz`, or any future surface.
+   ============================================================ */
+
+.vt-artifact {
+  --ask-ink: var(--vt-text-primary);
+  --ask-soft: var(--vt-text-secondary);
+  --ask-faint: var(--vt-text-muted);
+  --ask-rule: var(--vt-border);
+  --ask-accent: var(--vt-accent-emerald);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 0;
+  width: 100%;
+}
+
+.ask-art {
+  width: 100%;
+  max-width: 22rem;
+  height: auto;
+}
+
+/* Compound selector on purpose: plain `.ask-art--wide` ties at specificity
+   and source order decides — that dependence once shipped the "big" artifacts
+   at 352px. */
+.ask-art.ask-art--wide {
+  max-width: 56rem;
+  width: 100%;
+}
+
+/* Caption for any artifact figure outside the homepage's beat layout. */
+.ask-art-cap {
+  margin: 0.85rem 0 0;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.58rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ask-faint);
+  text-align: center;
+}
+
+/* ── shape vocabulary ──────────────────────────────────────── */
+
+.ask-art-paper {
+  fill: color-mix(in oklab, var(--vt-cloud-dancer) 30%, white);
+  stroke: var(--ask-rule);
+  stroke-width: 1.5;
+}
+.ask-art-paper-2 {
+  fill: color-mix(in oklab, var(--ask-accent) 5%, var(--vt-cloud-dancer));
+  stroke: var(--ask-rule);
+  stroke-width: 1.5;
+}
+.ask-art-overlap {
+  fill: color-mix(in oklab, var(--ask-accent) 12%, transparent);
+  stroke: none;
+}
+.ask-art-rule {
+  stroke: var(--ask-ink);
+  stroke-width: 1.5;
+}
+.ask-art-line {
+  stroke: var(--ask-rule);
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+.ask-art-boundary {
+  stroke: var(--ask-rule);
+  stroke-width: 1.5;
+  stroke-dasharray: 4 5;
+}
+.ask-art-seal {
+  fill: none;
+  stroke: var(--ask-accent);
+  stroke-width: 1.75;
+}
+.ask-art-tick {
+  fill: none;
+  stroke: var(--ask-accent);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.ask-art-slot {
+  fill: color-mix(in oklab, var(--ask-faint) 18%, transparent);
+  stroke: var(--ask-rule);
+  stroke-width: 1;
+}
+.ask-art-chip {
+  fill: color-mix(in oklab, var(--ask-accent) 10%, transparent);
+  stroke: color-mix(in oklab, var(--ask-accent) 45%, transparent);
+  stroke-width: 1.25;
+}
+.ask-art-meta {
+  stroke: color-mix(in oklab, var(--ask-faint) 45%, transparent);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+.ask-art-gap {
+  fill: none;
+  stroke: var(--ask-soft);
+  stroke-width: 1.25;
+  stroke-dasharray: 5 4;
+}
+
+/* Small mono words that name the PARTS of a drawing. Never a state, a
+   source, or a freshness word — those are claims, and these drawings are
+   labelled illustrative. */
+.ask-art-label {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 8.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  fill: var(--ask-faint);
+}
+.ask-art-note {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  fill: var(--ask-soft);
+}
+
+/* ── entry motion: explain once, then rest ─────────────────── */
+
+@media (prefers-reduced-motion: no-preference) {
+  .ask-art-play .ask-art-step-1 {
+    animation: ask-art-appear 480ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+  .ask-art-play .ask-art-step-2 {
+    animation: ask-art-appear 480ms cubic-bezier(0.2, 0.8, 0.2, 1) 420ms both;
+  }
+  .ask-art-play .ask-art-step-3 {
+    animation: ask-art-appear 480ms cubic-bezier(0.2, 0.8, 0.2, 1) 860ms both;
+  }
+  .ask-art-play .ask-art-step-4 {
+    animation: ask-art-appear 480ms cubic-bezier(0.2, 0.8, 0.2, 1) 1300ms both;
+  }
+  .ask-art-play .ask-art-step-5 {
+    animation: ask-art-appear 480ms cubic-bezier(0.2, 0.8, 0.2, 1) 1760ms both;
+  }
+  .ask-art-play .ask-art-step-6 {
+    animation: ask-art-appear 480ms cubic-bezier(0.2, 0.8, 0.2, 1) 2220ms both;
+  }
+  /* A rule that DRAWS across a boundary rather than fading — the one meaning
+     motion carries is direction. Dash length must be ≥ the path length. */
+  .ask-art-play .ask-art-flow {
+    stroke-dasharray: 32;
+    animation: ask-art-draw 520ms cubic-bezier(0.2, 0.8, 0.2, 1) 480ms both;
+  }
+  /* Staggered row entry for ledger-style artifacts; `--i` set inline. */
+  .ask-art-play .ask-ledger-row,
+  .ask-ledger-rows.ask-art-play .ask-ledger-row {
+    animation: ask-art-appear 420ms cubic-bezier(0.2, 0.8, 0.2, 1)
+      calc(var(--i, 0) * 110ms) both;
+  }
+}

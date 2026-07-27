@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 
 import { AskHome } from '@/components/home/ask/AskHome';
 import '@/styles/motion.css';
+import '@/styles/artifact-motion.css';
 import '@/styles/ask-home.css';
 
 // One consistent category statement (Sprint 1). The site previously mixed three

@@ -406,46 +406,9 @@
 .ask-beat-art--big {
   width: 100%;
 }
-/* Compound selector on purpose: `.ask-art` (max-width 22rem) is defined
-   LATER in this file, and at equal specificity later wins — a bare
-   `.ask-art--wide` silently lost, and the "big" artifacts rendered at
-   352px. The e2e width assertion caught it; eyeballing a screenshot did
-   not. */
-.ask-art.ask-art--wide {
-  max-width: 56rem;
-  width: 100%;
-}
-
-/* New shape vocabulary for the wide artifacts. All value-shaped marks are
-   redacted bars/slots — the shape of an answer without fabricating one. */
-.ask-art-slot {
-  fill: color-mix(in oklab, var(--ask-faint) 18%, transparent);
-  stroke: var(--ask-rule);
-  stroke-width: 1;
-}
-.ask-art-chip {
-  fill: color-mix(in oklab, var(--ask-accent) 10%, transparent);
-  stroke: color-mix(in oklab, var(--ask-accent) 45%, transparent);
-  stroke-width: 1.25;
-}
-.ask-art-meta {
-  stroke: color-mix(in oklab, var(--ask-faint) 45%, transparent);
-  stroke-width: 2;
-  stroke-linecap: round;
-}
-.ask-art-gap {
-  fill: none;
-  stroke: var(--ask-soft);
-  stroke-width: 1.25;
-  stroke-dasharray: 5 4;
-}
-.ask-art-note {
-  font-family: var(--font-mono, ui-monospace, monospace);
-  font-size: 10px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  fill: var(--ask-soft);
-}
+/* The wide sizing, shape vocabulary (slot/chip/meta/gap/note), and entry
+   motion all live in styles/artifact-motion.css — the shared grammar since
+   the pattern went site-wide. page.tsx imports both files. */
 
 /* ── the employer door CTA (inside the chapter) ────────────── */
 .ask-door-cta {
@@ -526,57 +489,11 @@
   margin: 0;
 }
 
-.ask-art {
-  width: 100%;
-  max-width: 22rem;
-  height: auto;
-}
-
 /* The inspector is a real surface, not a 22rem drawing — give it the column. */
 .ask-beat-inspector {
   width: 100%;
 }
 
-.ask-art-paper {
-  fill: color-mix(in oklab, var(--vt-cloud-dancer) 30%, white);
-  stroke: var(--ask-rule);
-  stroke-width: 1.5;
-}
-.ask-art-paper-2 {
-  fill: color-mix(in oklab, var(--ask-accent) 5%, var(--vt-cloud-dancer));
-  stroke: var(--ask-rule);
-  stroke-width: 1.5;
-}
-.ask-art-overlap {
-  fill: color-mix(in oklab, var(--ask-accent) 12%, transparent);
-  stroke: none;
-}
-.ask-art-rule {
-  stroke: var(--ask-ink);
-  stroke-width: 1.5;
-}
-.ask-art-line {
-  stroke: var(--ask-rule);
-  stroke-width: 3;
-  stroke-linecap: round;
-}
-.ask-art-boundary {
-  stroke: var(--ask-rule);
-  stroke-width: 1.5;
-  stroke-dasharray: 4 5;
-}
-.ask-art-seal {
-  fill: none;
-  stroke: var(--ask-accent);
-  stroke-width: 1.75;
-}
-.ask-art-tick {
-  fill: none;
-  stroke: var(--ask-accent);
-  stroke-width: 2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
 
 /* ── boundary + footer ─────────────────────────────────────── */
 
@@ -609,69 +526,10 @@
 
 /* ── diagram motion: explain on entry, then rest ───────────── */
 
-/* Small mono words that name the parts of the diagram — "ER role",
-   "your record", "you", "the hospital", "your permission". Never a state, a
-   source, or a freshness word: those would be claims, and these drawings are
-   labelled illustrative. */
-.ask-art-label {
-  font-family: var(--font-mono, ui-monospace, monospace);
-  font-size: 8.5px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  fill: var(--ask-faint);
-}
 
-/* The base composition above is the FINAL frame — a no-JS or reduced-motion
-   reader gets the complete picture with nothing withheld (CD-2 law 3: meaning
-   never lives in motion). When AskHome's observer adds `.ask-art-play`, the
-   three steps replay how that frame came to be, once, then rest (CD-11:
-   nothing idles — there is no loop and no idle state to return to).
-
-   The sequence IS the explanation:
-     fit      role appears → your record lands on it → the overlap shows
-     consent  you + the boundary → your permission crosses it → the employer
-              receives
-   Steps are staggered starts, not synchronized fades, so the eye is led
-   through the diagram in reading order. */
-@media (prefers-reduced-motion: no-preference) {
-  .ask-art-play .ask-art-step-1 {
-    animation: ask-art-appear 480ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
-  }
-  .ask-art-play .ask-art-step-2 {
-    animation: ask-art-appear 480ms cubic-bezier(0.2, 0.8, 0.2, 1) 420ms both;
-  }
-  .ask-art-play .ask-art-step-3 {
-    animation: ask-art-appear 480ms cubic-bezier(0.2, 0.8, 0.2, 1) 860ms both;
-  }
-  /* Steps 4–6 exist for the wide chapter artifacts, whose sequences are
-     longer (check rows resolving one after another, then the receipt, then
-     the annotations). Same contract: once, then rest. */
-  .ask-art-play .ask-art-step-4 {
-    animation: ask-art-appear 480ms cubic-bezier(0.2, 0.8, 0.2, 1) 1300ms both;
-  }
-  .ask-art-play .ask-art-step-5 {
-    animation: ask-art-appear 480ms cubic-bezier(0.2, 0.8, 0.2, 1) 1760ms both;
-  }
-  .ask-art-play .ask-art-step-6 {
-    animation: ask-art-appear 480ms cubic-bezier(0.2, 0.8, 0.2, 1) 2220ms both;
-  }
-  /* The permission rule DRAWS across the boundary rather than fading — the
-     one meaning motion carries here is direction: evidence moves from you,
-     through your permission, to the employer. 32 ≥ the path's 32px length. */
-  .ask-art-play .ask-art-flow {
-    stroke-dasharray: 32;
-    animation: ask-art-draw 520ms cubic-bezier(0.2, 0.8, 0.2, 1) 480ms both;
-  }
-
-  /* The ledger writes itself in row by row, reading order, once — the same
-     explain-on-entry contract as the diagrams. `--i` is set inline per row.
-     The resting composition (all rows visible) is the base CSS above, so
-     no-JS and reduced-motion readers get the complete ledger. */
-  .ask-ledger-rows.ask-art-play .ask-ledger-row {
-    animation: ask-art-appear 420ms cubic-bezier(0.2, 0.8, 0.2, 1)
-      calc(var(--i, 0) * 110ms) both;
-  }
-}
+/* The entry-motion references (steps, flow, ledger stagger) live in
+   styles/artifact-motion.css. The base composition in THIS file remains the
+   final frame — that contract did not move. */
 
 /* `ask-art-appear` and `ask-art-draw` are DEFINED in styles/motion.css — the
    house motion file, the one place LINT-03 permits keyframe definitions.

@@ -11,6 +11,10 @@ import {
 } from 'lucide-react';
 import { PilotRequestForm } from './PilotRequestForm';
 import { Reveal } from '@/components/motion/Reveal';
+import { ArtifactStage } from '@/components/motion/ArtifactStage';
+import { MeasureArtifact } from '@/components/artifacts/PageArtifacts';
+import '@/styles/motion.css';
+import '@/styles/artifact-motion.css';
 import { SOURCE_LANE_OPS, getLaneDisplayName } from '@/lib/trust/sourceLanes';
 
 /**
@@ -161,6 +165,16 @@ export default function PilotPage() {
             </p>
           </Reveal>
         </header>
+
+        {/* The page's animated artifact: the span the pilot exists to measure —
+            offer to first day, at-risk days bracketed, and deliberately no
+            numbers anywhere (projection-vs-measurement rule: the drawing must
+            not pre-announce a result nothing has measured). */}
+        <section aria-label="What the pilot measures" data-testid="pilot-measure-artifact">
+          <ArtifactStage>
+            <MeasureArtifact />
+          </ArtifactStage>
+        </section>
 
         {/* KPI snapshot — honest labels only */}
         <section

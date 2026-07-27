@@ -3,6 +3,10 @@ import Link from 'next/link';
 import { ArrowRight, ShieldCheck, FileCode2, Activity } from 'lucide-react';
 
 import { getTrustRegisterSnapshot } from '@/lib/trust/register';
+import { ArtifactStage } from '@/components/motion/ArtifactStage';
+import { ReceiptArtifact } from '@/components/artifacts/PageArtifacts';
+import '@/styles/motion.css';
+import '@/styles/artifact-motion.css';
 import { StateChip } from '@/components/vital/StateChip';
 import { EVIDENCE_STATE, type EvidenceState } from '@/lib/vital/evidenceState';
 import { PageFrame } from '@/components/layout/PageFrame';
@@ -63,6 +67,15 @@ export default async function TrustCenterPage() {
           VitalCV never asks anyone to take a claim on faith. Every field names its source and shows its state, every
           unknown stays visibly unknown, and the final credentialing decision always belongs to the employer.
         </p>
+
+        {/* The page's animated artifact: the provenance chain itself — a claim,
+            its source and read time, the receipt, and the open door at the end.
+            Plays once on entry, then rests (CD-11). */}
+        <section aria-label="How a claim carries its provenance" className="mt-10">
+          <ArtifactStage>
+            <ReceiptArtifact />
+          </ArtifactStage>
+        </section>
 
         {/* 1 — What VitalCV checks + current availability */}
         <Section id="checks" eyebrow="What we check" title="The sources VitalCV reads, and whether they're available today">
