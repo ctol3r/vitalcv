@@ -11,6 +11,39 @@ import {
 } from 'lucide-react';
 import { PilotRequestForm } from './PilotRequestForm';
 import { Reveal } from '@/components/motion/Reveal';
+import { SOURCE_LANE_OPS, getLaneDisplayName } from '@/lib/trust/sourceLanes';
+
+/**
+ * Automated lanes, counted from the canonical registry rather than typed by
+ * hand.
+ *
+ * This page published `Automated source lanes: 4` with the note
+ * "NPPES · OIG LEIE · PECOS public · state-board adapter" while, forty lines
+ * lower, listing "Configured state-board PSV adapters" under what remains
+ * PARTIAL — and while /api/status, /status and /status/technical all published
+ * state_license as `pending_integration`. The buyer-facing headline counted a
+ * lane the rest of the product calls unavailable.
+ *
+ * Counting `operational` lanes from SOURCE_LANE_OPS makes that overclaim
+ * unrepresentable: a lane appears here only once the registry says it answers.
+ */
+const AUTOMATED_LANES = SOURCE_LANE_OPS.filter(
+  (lane) => lane.statusApiStatus === 'operational',
+);
+const AUTOMATED_LANE_NAMES = AUTOMATED_LANES.map((lane) =>
+  getLaneDisplayName(lane.laneId),
+).join(' · ');
+
+/**
+ * Export formats, stated once. The page said `JSON · ZIP · PDF` in the metric
+ * strip and "(JSON and ZIP)" in the live-capability list — a self-contradiction
+ * in one view. PDF is real (`/api/export/packet` renders one via
+ * `renderEmployerProofPacketPdf` and returns `application/pdf`), so the
+ * capability list was the stale half. One constant now feeds both.
+ */
+const EXPORT_FORMATS = ['JSON', 'ZIP', 'PDF'] as const;
+const EXPORT_FORMATS_LABEL = EXPORT_FORMATS.join(' · ');
+const EXPORT_FORMATS_PROSE = `${EXPORT_FORMATS.slice(0, -1).join(', ')} and ${EXPORT_FORMATS.at(-1)}`;
 
 export const metadata: Metadata = {
   title: 'Start a Pilot',
@@ -62,12 +95,12 @@ const PILOT_KPI_SAMPLES = [
   },
   {
     label: 'Automated source lanes',
-    value: '4',
-    note: 'NPPES · OIG LEIE · PECOS public · state-board adapter',
+    value: String(AUTOMATED_LANES.length),
+    note: AUTOMATED_LANE_NAMES,
   },
   {
     label: 'Proof-pack export formats',
-    value: 'JSON · ZIP · PDF',
+    value: EXPORT_FORMATS_LABEL,
     note: 'Manifest references in every export',
     token: true,
   },
@@ -81,7 +114,7 @@ const PILOT_KPI_SAMPLES = [
 
 const PROOF_OBJECT_LIVE = [
   'NPPES, OIG LEIE, and PECOS public checks with canonical source coverage',
-  'Proof-pack exports (JSON and ZIP) with deterministic artifact hashing',
+  `Proof-pack exports (${EXPORT_FORMATS_PROSE}) with deterministic artifact hashing`,
   'ARTIFACT_EXPORTED audit event every time a packet leaves the platform',
   'Partial-proof limitation notes preserved verbatim through every export',
 ] as const;
@@ -97,7 +130,7 @@ const TRUST_CONTAINER_SAFE_COPY = [
   'Records the evidence packet’s credential envelope and artifact status.',
   'Does not replace primary source verification.',
   'Does not upgrade partial evidence to decision-grade.',
-  'Mock/dev containers are not production credentials.',
+  'The pilot does not issue production credentials.',
   'Limitations shown in the packet remain controlling.',
 ] as const;
 
@@ -117,11 +150,14 @@ export default function PilotPage() {
               <span className="mz-accent">before the start date slips.</span>
             </h1>
             <p className="mz-lede max-w-3xl" data-testid="pilot-value-prop">
-              VitalCV turns four source-backed lanes of clinician evidence into a
-              deterministic proof pack and an auditable trust container, so your
-              reviewers can see what is ready, what is missing, and what must
-              wait for primary source verification — without changing your
-              existing compliance stack.
+              {/* Was the literal word "four" — the same overclaim as the metric
+                  strip, in the first sentence a buyer reads. Counted from the
+                  registry so the lede can never outrun the lanes. */}
+              VitalCV turns {AUTOMATED_LANES.length} source-backed lanes of
+              clinician evidence into a deterministic proof pack and an auditable
+              trust container, so your reviewers can see what is ready, what is
+              missing, and what must wait for primary source verification —
+              without changing your existing compliance stack.
             </p>
           </Reveal>
         </header>
@@ -240,10 +276,16 @@ export default function PilotPage() {
             </h2>
           </div>
           <p className="mz-body max-w-3xl mb-4">
-            The trust container is a hidden backend record that binds the
-            credential envelope id, artifact status, and issuer metadata to the
-            proof pack. It is provider-pluggable — a deterministic mock today
-            and a production-provider scaffold ready for future wiring.
+            {/* Was: "provider-pluggable — a deterministic mock today and a
+                production-provider scaffold ready for future wiring." That is
+                implementation vocabulary on a buyer page, and "mock" reads to a
+                credentialing lead as "the evidence is fake" rather than what it
+                means (issuance is not wired). The limitation is unchanged and
+                stated more plainly. */}
+            The trust container is a backend record that binds the credential
+            envelope id, artifact status, and issuer metadata to the proof pack.
+            During the pilot it records and references evidence; it does not
+            issue production credentials.
           </p>
           <ul
             className="mz-body list-disc pl-5 space-y-1.5"
