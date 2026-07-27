@@ -108,7 +108,7 @@ gh pr create --base main --head <feature-branch> \
 
 ## Validation
 - targeted tests passing X/X
-- pnpm turbo run build --filter @vitalcv/web: 13/13
+- pnpm turbo run build --filter @vitalcv/web: X/Y tasks, exit 0
 EOF
 )"
 ```
@@ -291,7 +291,7 @@ End every wave with a compact summary table:
 |------|--------|
 | Diff scope | `<paths>` only |
 | Targeted tests | X/X passing |
-| Build | 13/13 |
+| Build | X/Y tasks, exit 0 |
 | Truth scan | CLEAN / N hits (listed) |
 | CI | green / pending / failed (which) |
 | Codex SAFE | YES / MISSING |
