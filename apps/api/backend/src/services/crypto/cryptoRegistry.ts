@@ -131,8 +131,21 @@ export const keyStore = new KeyStore();
 
 // ── PQC module loader (lazy, handles pnpm resolution) ─────────────────────────
 
-let _mlDsa65: typeof import('@noble/post-quantum/ml-dsa')['ml_dsa65'] | null = null;
-let _slhDsa128s: typeof import('@noble/post-quantum/slh-dsa')['slh_dsa_shake_128s'] | null = null;
+/**
+ * Subpaths MUST carry the `.js` suffix.
+ *
+ * `@noble/post-quantum@0.5.x` declares its `exports` map with explicit file
+ * names — `./ml-dsa.js`, `./slh-dsa.js` — and Node's exports resolution is a
+ * literal match, so the extensionless `@noble/post-quantum/ml-dsa` is not a
+ * key and throws `ERR_PACKAGE_PATH_NOT_EXPORTED`. The catch below then
+ * downgraded every signature to classical, in production, with only a WARN.
+ * Found in the Railway log 2026-07-27; the suffix is the entire fix.
+ *
+ * Verify against the installed package rather than the docs before changing:
+ *   node -e "console.log(Object.keys(require('@noble/post-quantum/package.json').exports))"
+ */
+let _mlDsa65: typeof import('@noble/post-quantum/ml-dsa.js')['ml_dsa65'] | null = null;
+let _slhDsa128s: typeof import('@noble/post-quantum/slh-dsa.js')['slh_dsa_shake_128s'] | null = null;
 let _pqcLoadAttempted = false;
 
 function loadPQC(): void {
@@ -140,9 +153,9 @@ function loadPQC(): void {
   _pqcLoadAttempted = true;
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const mlDsaMod  = require('@noble/post-quantum/ml-dsa')  as { ml_dsa65: typeof _mlDsa65 };
+    const mlDsaMod  = require('@noble/post-quantum/ml-dsa.js')  as { ml_dsa65: typeof _mlDsa65 };
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const slhDsaMod = require('@noble/post-quantum/slh-dsa') as { slh_dsa_shake_128s: typeof _slhDsa128s };
+    const slhDsaMod = require('@noble/post-quantum/slh-dsa.js') as { slh_dsa_shake_128s: typeof _slhDsa128s };
     _mlDsa65    = mlDsaMod.ml_dsa65;
     _slhDsa128s = slhDsaMod.slh_dsa_shake_128s;
     log('info', 'cryptoRegistry: PQC algorithms loaded (ML-DSA-65, SLH-DSA-128s)');
