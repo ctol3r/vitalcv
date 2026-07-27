@@ -32,11 +32,20 @@
   opacity: 1;
 }
 
-/* Over an interactive element the edge takes the accent — affordance, not
-   decoration: the lens is answering "can I act here?". */
-.vt-cursor[data-hover] {
-  border-color: color-mix(in oklab, var(--vt-accent-emerald) 55%, transparent);
-  box-shadow: var(--vt-shadow-glass-lens-active);
+/* Over anything actionable — the NPI field, any button or link, the live
+   result card — the lens GOES AWAY. It previously swelled and tinted here,
+   which is a decoration reacting to a control instead of getting out of its
+   way. On the conversion path that is a liability, so the rule is absolute:
+   the lens decorates empty canvas and yields everywhere else. Declared after
+   [data-on] so it wins at equal specificity. */
+.vt-cursor[data-yield] {
+  opacity: 0;
+  /* Leaves fast, returns slowly. On the 240ms fade the lens was still
+     half-visible as the pointer crossed onto a control — retreating in the
+     reader's peripheral vision at exactly the moment they are aiming at
+     something. Out in 90ms is below notice; the slower return keeps the
+     re-entry from popping. */
+  transition: opacity 90ms ease-out;
 }
 
 /* Touch and reduced-motion get nothing — the component never sets data-on,

@@ -21,7 +21,17 @@
 
 import * as React from 'react';
 
-const INTERACTIVE = 'a,button,input,textarea,select,summary,[role="button"],[role="link"],label';
+/**
+ * Anywhere the reader is meant to ACT. Over any of these the lens hides
+ * outright — it does not swell, tint, or linger. Founder call, and the right
+ * one: on the conversion path a decoration that reacts to a control is
+ * competing with it. The lens decorates empty canvas and yields everywhere
+ * else. `.ask-answer` is the live NPI result card — the moment the product
+ * actually delivers, and the last place a flourish belongs.
+ */
+const YIELD_TO =
+  'a,button,input,textarea,select,summary,label,[role="button"],[role="link"],' +
+  '.ask-answer,.ask-answer *,[data-home-lane-ledger],[data-home-lane-ledger] *';
 
 export function GlassCursor() {
   const ref = React.useRef<HTMLDivElement | null>(null);
@@ -63,23 +73,29 @@ export function GlassCursor() {
       }
     };
 
+    /** True when the pointer is over anything the reader might act on. */
+    const yielding = (e: PointerEvent) =>
+      Boolean((e.target as Element | null)?.closest?.(YIELD_TO));
+
     const onMove = (e: PointerEvent) => {
       targetX = e.clientX;
       targetY = e.clientY;
       el.dataset.on = '';
-      const over = (e.target as Element | null)?.closest?.(INTERACTIVE) ?? null;
-      targetScale = over ? 1.45 : 1;
-      el.dataset.hover = over ? '' : undefined as unknown as string;
-      if (!over) delete el.dataset.hover;
+      if (yielding(e)) {
+        el.dataset.yield = '';
+      } else {
+        delete el.dataset.yield;
+      }
       wake();
     };
-    const onDown = () => {
-      targetScale = 0.8;
+    const onDown = (e: PointerEvent) => {
+      // Only meaningful on empty canvas; over a control the lens is already
+      // hidden and the press does nothing visible.
+      if (!yielding(e)) targetScale = 0.85;
       wake();
     };
-    const onUp = (e: PointerEvent) => {
-      const over = (e.target as Element | null)?.closest?.(INTERACTIVE) ?? null;
-      targetScale = over ? 1.45 : 1;
+    const onUp = () => {
+      targetScale = 1;
       wake();
     };
     const onLeave = () => {
