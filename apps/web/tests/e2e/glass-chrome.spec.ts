@@ -55,6 +55,56 @@ test.describe('glass cursor', () => {
     await expect(page.locator('#npi-input')).toBeFocused();
   });
 
+  test('the lens yields over every actionable surface, not merely swells', async ({ page }) => {
+    // Founder call: on the conversion path a decoration that REACTS to a
+    // control competes with it. The lens must disappear over the NPI field,
+    // buttons, links, and the live result card — decorate empty canvas only.
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    const lens = page.locator('[data-vt-cursor]');
+
+    // Wake it on empty canvas first (polled — listeners attach after hydration).
+    await expect
+      .poll(async () => {
+        await page.mouse.move(60 + Math.random() * 10, 620 + Math.random() * 10);
+        return lens.getAttribute('data-on');
+      }, { timeout: 10_000, message: 'lens never activated' })
+      .toBe('');
+
+    for (const target of ['#npi-input', '[data-home-primary-cta]', '[data-home-employer-cta]']) {
+      const box = await page.locator(target).boundingBox();
+      if (!box) throw new Error(`no box for ${target}`);
+      await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+      await expect(lens, `${target} must make the lens yield`).toHaveAttribute('data-yield', '');
+      await expect(lens).toHaveCSS('opacity', '0');
+    }
+  });
+
+  test('the lens yields over the live result card', async ({ page }) => {
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    const lens = page.locator('[data-vt-cursor]');
+    // Drive a real lookup so the answer card exists, then hover it.
+    const input = page.locator('#npi-input');
+    await expect
+      .poll(async () => {
+        await input.fill('');
+        await input.fill('1003000126');
+        return (await page.locator('#ask-hint').innerText()).includes('10/10');
+      }, { timeout: 15_000, message: 'NPI field never became interactive' })
+      .toBe(true);
+    await page.locator('[data-home-primary-cta]').click();
+    const card = page.locator('.ask-answer');
+    await expect(card).toBeVisible({ timeout: 20_000 });
+
+    const box = await card.boundingBox();
+    if (!box) throw new Error('no result card box');
+    await page.mouse.move(box.x + box.width / 2, box.y + 24);
+    await expect(lens, 'the result card is where the product delivers — no flourish').toHaveAttribute(
+      'data-yield',
+      '',
+    );
+    await expect(lens).toHaveCSS('opacity', '0');
+  });
+
   test('reduced motion: the lens is display:none and never activates', async ({ page }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto('/', { waitUntil: 'domcontentloaded' });
