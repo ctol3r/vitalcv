@@ -90,6 +90,11 @@
   font-variant-numeric: tabular-nums;
 }
 
+.ask-input::placeholder {
+  color: color-mix(in oklab, var(--ask-faint) 30%, transparent);
+  letter-spacing: 0.16em;
+}
+
 .ask-input:focus-visible {
   outline: none;
 }
@@ -232,6 +237,18 @@
   .ask-beat:nth-child(even) .ask-beat-copy {
     order: 2;
   }
+  /* ...except the proof beat, which carries a real two-pane surface. */
+  .ask-beat--wide {
+    grid-template-columns: 1fr;
+  }
+  .ask-beat--wide .ask-beat-copy {
+    order: 0;
+    max-width: 44rem;
+  }
+}
+
+.ask-beat--wide .ask-beat-art {
+  width: 100%;
 }
 
 .ask-beat-title {
