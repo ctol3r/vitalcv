@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
 
-import { HorizontalCareerFilm } from '@/components/home/film/HorizontalCareerFilm';
+import { AskHome } from '@/components/home/ask/AskHome';
 import '@/styles/motion.css';
-import '@/styles/compete-film.css';
+import '@/styles/ask-home.css';
 
 // One consistent category statement (Sprint 1). The site previously mixed three
 // taglines — "Professional identity that moves clinicians forward",
@@ -88,7 +88,7 @@ export default function HomePage() {
         // schema.org markup is static + trusted (no user input), safe to inline.
         dangerouslySetInnerHTML={{ __html: JSON.stringify(STRUCTURED_DATA) }}
       />
-      <HorizontalCareerFilm />
+      <AskHome />
     </>
   );
 }
