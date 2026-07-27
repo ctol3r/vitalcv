@@ -406,7 +406,12 @@
 .ask-beat-art--big {
   width: 100%;
 }
-.ask-art--wide {
+/* Compound selector on purpose: `.ask-art` (max-width 22rem) is defined
+   LATER in this file, and at equal specificity later wins — a bare
+   `.ask-art--wide` silently lost, and the "big" artifacts rendered at
+   352px. The e2e width assertion caught it; eyeballing a screenshot did
+   not. */
+.ask-art.ask-art--wide {
   max-width: 56rem;
   width: 100%;
 }
