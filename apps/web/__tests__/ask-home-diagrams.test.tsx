@@ -88,8 +88,9 @@ describe('motion is explain-on-entry, then rest', () => {
     const { readFileSync } = await import('node:fs');
     const { join } = await import('node:path');
     const css = readFileSync(join(__dirname, '..', 'styles', 'ask-home.css'), 'utf8');
+    const motion = readFileSync(join(__dirname, '..', 'styles', 'motion.css'), 'utf8');
 
-    // Every ask-art keyframe reference must sit inside the no-preference
+    // Every ask-art animation REFERENCE must sit inside the no-preference
     // media block, so reduced-motion readers get the final frame instantly.
     const noPref = css.split('@media (prefers-reduced-motion: no-preference)')[1] ?? '';
     expect(noPref).toContain('ask-art-appear');
@@ -97,7 +98,15 @@ describe('motion is explain-on-entry, then rest', () => {
     const outside = css.replace(noPref, '');
     expect(outside).not.toMatch(/animation:.*ask-art/);
 
-    // CD-11: nothing idles. One play, no loop.
+    // The DEFINITIONS live in the house motion file — the one place LINT-03
+    // permits keyframe definitions — and only there. Both are loaded by
+    // app/page.tsx, so a reference here always has its definition.
+    expect(css).not.toMatch(/@keyframes/);
+    expect(motion).toContain('@keyframes ask-art-appear');
+    expect(motion).toContain('@keyframes ask-art-draw');
+
+    // CD-11: nothing idles. One play, no loop, in either file.
     expect(css).not.toMatch(/ask-art[^}]*animation[^;]*infinite/);
+    expect(motion).not.toMatch(/ask-art[^}]*infinite/);
   });
 });

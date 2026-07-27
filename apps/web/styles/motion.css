@@ -24,3 +24,32 @@
     opacity: 1;
   }
 }
+
+/* Used by the homepage ask diagrams (`.ask-art-step-*` / `.ask-art-flow` in
+ * ask-home.css) when AskHome's IntersectionObserver adds `.ask-art-play`:
+ * each diagram replays its state sequence once on entry, then rests (CD-11).
+ * Both references sit inside ask-home.css's reduced-motion guard, and the
+ * resting composition is the base CSS there — these keyframes only replay how
+ * it came to be. `appear` uses `translate`, not `transform`, so it cannot
+ * collide with any transform a diagram element already carries. */
+@keyframes ask-art-appear {
+  from {
+    opacity: 0;
+    translate: 0 6px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+/* The consent diagram's permission rule DRAWS across the boundary — direction
+ * is the one meaning this motion carries. 32 matches the path's 32px length. */
+@keyframes ask-art-draw {
+  from {
+    stroke-dashoffset: 32;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
