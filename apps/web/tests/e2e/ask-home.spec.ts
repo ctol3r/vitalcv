@@ -213,6 +213,28 @@ test.describe('homepage ask', () => {
     ).toBeGreaterThan(sizes.title);
   });
 
+  test('the action sits on the composition axis', async ({ page }) => {
+    // The CTA inherited the form's left alignment and shipped −198px
+    // off-centre on desktop (−78px mobile): a flush-left button under a
+    // centred headline, the one element breaking the page's single centred
+    // act. Geometry, not class names — a different centring mechanism must
+    // keep this green.
+    await page.waitForTimeout(300);
+    const offsets = await page.evaluate(() => {
+      const mid = document.documentElement.clientWidth / 2;
+      const centerOf = (sel: string) => {
+        const r = document.querySelector(sel)!.getBoundingClientRect();
+        return r.left + r.width / 2 - mid;
+      };
+      return { title: centerOf('#ask-title'), go: centerOf('.ask-go') };
+    });
+    expect(Math.abs(offsets.title)).toBeLessThanOrEqual(2);
+    expect(
+      Math.abs(offsets.go),
+      'the primary action must sit on the same centre axis as the headline',
+    ).toBeLessThanOrEqual(2);
+  });
+
   test('the employer door is present, real, and secondary to the clinician act', async ({
     page,
   }) => {
