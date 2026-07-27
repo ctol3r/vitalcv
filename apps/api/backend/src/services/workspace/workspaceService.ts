@@ -14,6 +14,7 @@ import {
 import { randomUUID } from 'node:crypto';
 import prisma from '../../graphql/prisma_client';
 import { fetchNpiFromCMS, normalizeProvider } from '../../modules/identity';
+import type { NormalizedProvider } from '../../modules/identity';
 import { AVAILABILITY_PLACEHOLDER_PREFIX } from '../matcha/availabilityRegistry';
 import { log } from '../../obs/logger';
 import { sha256ForPayload } from '../../utils/deterministic';
@@ -110,6 +111,13 @@ export interface NpiBootstrapResult {
   npi: string;
   npiType: 'TYPE_1' | 'TYPE_2';
   inferredPersona: 'CLINICIAN' | 'VERIFIER' | 'UNKNOWN';
+  /**
+   * Provenance of the identity fields below. Consumers render these under
+   * registry framing ("located in NPPES"), so they are ALWAYS NPPES-derived —
+   * never an account's self-entered profile values. When the registry cannot
+   * be read this is 'UNAVAILABLE' and the identity fields are absent.
+   */
+  identitySource: 'NPPES_API' | 'UNAVAILABLE';
   firstName?: string;
   lastName?: string;
   specialty?: string;
@@ -311,57 +319,53 @@ export async function bootstrapFromNpi(
 
   const alreadyRegistered = Boolean(existingPerson || existingOrg);
 
-  if (existingPerson) {
-    return {
-      npi,
-      npiType: 'TYPE_1',
-      inferredPersona: 'CLINICIAN',
-      firstName: existingPerson.firstName ?? undefined,
-      lastName: existingPerson.lastName ?? undefined,
-      specialty: existingPerson.specialty ?? undefined,
-      state: existingPerson.stateOfPractice ?? undefined,
-      alreadyRegistered,
-    };
-  }
-
-  if (existingOrg) {
-    return {
-      npi,
-      npiType: 'TYPE_2',
-      inferredPersona: 'VERIFIER',
-      alreadyRegistered,
-    };
-  }
-
+  // The identity fields of this result render under registry framing
+  // ("located in NPPES"), so they must come from the registry and only the
+  // registry — a registered account's self-entered profile values must never
+  // ride in them. Account existence informs only `alreadyRegistered`,
+  // `inferredPersona`, and the npiType fallback.
+  let registry: NormalizedProvider | null = null;
   try {
     const { rawPayload } = await fetchNpiFromCMS(npi);
-    const provider = normalizeProvider(rawPayload);
-    const npiType = provider.enumeration_type === 'NPI-2' ? 'TYPE_2' : 'TYPE_1';
-
-    return {
-      npi,
-      npiType,
-      inferredPersona: npiType === 'TYPE_1' ? 'CLINICIAN' : 'VERIFIER',
-      firstName: provider.first_name || undefined,
-      lastName: provider.last_name || undefined,
-      specialty: provider.primary_taxonomy ?? undefined,
-      state: provider.practice_address?.state || undefined,
-      alreadyRegistered,
-    };
+    registry = normalizeProvider(rawPayload);
   } catch (error) {
-    log('warn', 'workspace_bootstrap_npi_stub', {
-      event: 'workspace_bootstrap_npi_stub',
+    log('warn', 'workspace_bootstrap_npi_registry_unavailable', {
+      event: 'workspace_bootstrap_npi_registry_unavailable',
       npi,
+      alreadyRegistered,
       message: error instanceof Error ? error.message : String(error),
     });
-
-    return {
-      npi,
-      npiType: 'TYPE_1',
-      inferredPersona: 'UNKNOWN',
-      alreadyRegistered,
-    };
   }
+
+  const registryNpiType = registry
+    ? registry.enumeration_type === 'NPI-2'
+      ? 'TYPE_2'
+      : 'TYPE_1'
+    : undefined;
+  const npiType: NpiBootstrapResult['npiType'] =
+    registryNpiType ?? (existingOrg && !existingPerson ? 'TYPE_2' : 'TYPE_1');
+
+  const inferredPersona: NpiBootstrapResult['inferredPersona'] = existingPerson
+    ? 'CLINICIAN'
+    : existingOrg
+      ? 'VERIFIER'
+      : registry
+        ? npiType === 'TYPE_1'
+          ? 'CLINICIAN'
+          : 'VERIFIER'
+        : 'UNKNOWN';
+
+  return {
+    npi,
+    npiType,
+    inferredPersona,
+    identitySource: registry ? 'NPPES_API' : 'UNAVAILABLE',
+    firstName: registry?.first_name || undefined,
+    lastName: registry?.last_name || undefined,
+    specialty: registry?.primary_taxonomy ?? undefined,
+    state: registry?.practice_address?.state || undefined,
+    alreadyRegistered,
+  };
 }
 
 export async function createPersonProfile(
