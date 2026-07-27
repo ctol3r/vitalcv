@@ -75,34 +75,39 @@ async function resultIsOnScreen(page: Page) {
 }
 
 test.describe('COMPETE-1 — submitting an NPI answers visibly', () => {
-  test('film mode (desktop) answers in the frame the question was asked in', async ({ page }) => {
+  test('desktop: the answer arrives in the frame the question was asked in', async ({ page }) => {
     await mockLookup(page);
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto('/', { waitUntil: 'networkidle' });
     await page.waitForTimeout(400);
-    await expect(page.locator('.film')).toHaveAttribute('data-film-mode', 'film');
 
     await submit(page);
     await expect
       .poll(async () => (await resultIsOnScreen(page)).onScreen, { timeout: 10_000 })
       .toBe(true);
 
-    // The answer renders in ARRIVAL now, not one scene on. Being carried to a
-    // second frame to be told your own result is what left that frame blank for
-    // every visitor who had not typed yet; the result replaces the empty record
-    // in place instead. The reader should not have travelled at all.
+    // The answer replaces the question IN PLACE — the reader is never carried
+    // somewhere else to be told their own result. Assert they did not travel:
+    // the first screen still holds the frame and the page has not scrolled.
     const left = await page
-      .locator('[data-film-scene="arrival"]')
+      .locator('[data-home-hero]')
       .evaluate((el) => Math.round(el.getBoundingClientRect().left));
-    expect(Math.abs(left), 'arrival should still hold the frame').toBeLessThan(80);
+    expect(Math.abs(left), 'the first screen should still hold the frame').toBeLessThan(80);
+    expect(
+      await page.evaluate(() => window.scrollY),
+      'answering must not scroll the reader away from where they asked',
+    ).toBeLessThan(120);
   });
 
-  test('vertical mode (mobile) scrolls the result into view', async ({ page }) => {
+  // The old pair of these asserted `data-film-mode` was 'film' on desktop and
+  // 'vertical' on mobile — the retired composition's own switch. The guarantee
+  // worth keeping is not which mode rendered but that the reader is SHOWN the
+  // answer without hunting for it, which is why both now assert visibility.
+  test('mobile: the answer is brought into view', async ({ page }) => {
     await mockLookup(page);
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto('/', { waitUntil: 'networkidle' });
     await page.waitForTimeout(400);
-    await expect(page.locator('.film')).toHaveAttribute('data-film-mode', 'vertical');
 
     await submit(page);
     await expect

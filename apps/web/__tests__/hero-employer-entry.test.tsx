@@ -23,12 +23,23 @@ describe('hero employer entry (SHD-2.2)', () => {
     const html = render();
     expect(html).toContain('data-home-employer-cta');
     expect(html).toContain('href="/employers"');
-    // The label was "For employers — start review from evidence" on the retired
-    // vertical page. The film's closing scene is CTAs-only by mandate (guardrail
-    // 5, "almost no copy"), so the entry now reads "For employers". What this
-    // test protects is the CONTRACT — a distinct, labelled, real employer route
-    // that is not the primary action — not the retired sentence.
-    expect(html).toMatch(/For employers/i);
+
+    // This used to assert the literal phrase "For employers" while its own
+    // comment said it protected "the CONTRACT ... not the retired sentence".
+    // Those disagreed, and the phrase won: rewording the door to something
+    // better turned it red for no defect. Assert the properties that make an
+    // employer entry real instead — the marker sits on an anchor pointing at
+    // /employers, and that anchor carries meaningful visible text rather than
+    // an icon or an empty box.
+    const anchor = html.match(/<a\b[^>]*data-home-employer-cta[^>]*>([\s\S]*?)<\/a>/i);
+    expect(anchor, 'employer marker must sit on an <a>, not a bare element').not.toBeNull();
+    expect(anchor?.[0]).toContain('href="/employers"');
+
+    const label = (anchor?.[1] ?? '').replace(/<[^>]+>/g, '').trim();
+    expect(label.length, `employer entry needs a readable label, got "${label}"`)
+      .toBeGreaterThanOrEqual(10);
+    // It must read as an invitation to the buyer, not a bare nav word.
+    expect(label).toMatch(/employer|hiring|evidence|review/i);
   });
 
   it('keeps the clinician NPI action primary and separate', () => {

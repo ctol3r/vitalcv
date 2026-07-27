@@ -99,7 +99,10 @@ async function mockNpiApis(
  * empty record in the frame where the NPI was typed. Every truth assertion
  * below is unchanged and still applies — only the container moved.
  */
-const hero = (page: Page) => page.locator('[data-film-scene="arrival"]');
+// The homepage's first screen, addressed by the composition-agnostic marker
+// rather than by whichever scene/section currently serves it. This spec's ten
+// truth assertions have now outlived two compositions; the marker is why.
+const hero = (page: Page) => page.locator('[data-home-hero]');
 
 /**
  * The hero's primary action (HERO-RESET-1: was "Check readiness"). The dot
@@ -111,7 +114,7 @@ const HERO_CTA = /check what.s ready/i;
 /**
  * The NPI field's accessible name.
  *
- * COMPETE-1: the film labels this field with a VISIBLE `<label>` reading
+ * COMPETE-1: the homepage labels this field with a VISIBLE `<label>` reading
  * "Start with your NPI", where the retired stacked composition used an
  * invisible `aria-label="NPI number"`. The visible label is the better markup
  * — and it is why this could not simply be aliased back: adding
@@ -162,7 +165,14 @@ test.describe('NPI truth engine — homepage hero', () => {
 
     // The same field with a checksum-valid NPI unlocks the lookup.
     await page.getByRole('textbox', NPI_FIELD).fill(VALID_NPI);
-    await expect(page.getByText('Press Enter to continue')).toBeVisible();
+    // This used to assert the literal hint "Press Enter to continue" — the
+    // retired composition's way of saying the field was ready. The durable
+    // guarantee is that correcting the number CLEARS the complaint and opens
+    // the action, which the next line already proves; asserting the retraction
+    // is stronger than asserting one wording of the invitation.
+    await expect(
+      page.getByText('That is 10 digits but not a valid NPI — check for a typo.'),
+    ).toBeHidden();
     await expect(page.getByRole('button', { name: HERO_CTA })).toBeEnabled();
   });
 
@@ -323,7 +333,7 @@ test.describe('NPI truth engine — homepage hero', () => {
     // COMPETE-1: the reset control and the NPI action now live in DIFFERENT
     // scenes, so the CTA is addressed at page level rather than within the
     // result container. The contract is unchanged — cleared field, disabled
-    // action — and `film-npi-response.spec.ts` pins that reset also carries the
+    // action — and `ask-npi-response.spec.ts` pins that reset also carries the
     // reader back to the field it just cleared.
     await expect(page.getByRole('button', { name: HERO_CTA })).toBeDisabled();
     await expect(page.getByRole('textbox', NPI_FIELD)).toHaveValue('');

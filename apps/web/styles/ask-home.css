@@ -1,0 +1,346 @@
+/* ============================================================
+   The homepage ask — Cloud Dancer paper, one action.
+
+   Scoped under `.ask`. The app already ships a global `--vt-*` set, so this
+   file defines NO tokens of its own and consumes the app's; the previous
+   homepage system had to be scoped precisely because it imported a foreign
+   token vocabulary. There is nothing to collide with here.
+
+   The composition rule that fixes what was wrong: exactly ONE element on the
+   first screen is at display scale, and it is the input. The headline is
+   deliberately smaller than the field it introduces — the page is an act, not
+   an announcement.
+   ============================================================ */
+
+.ask {
+  --ask-ink: var(--vt-text-primary);
+  --ask-soft: var(--vt-text-secondary);
+  --ask-faint: var(--vt-text-muted);
+  --ask-rule: var(--vt-border);
+  --ask-accent: var(--vt-accent-emerald);
+  color: var(--ask-ink);
+}
+
+/* ── the ask ───────────────────────────────────────────────── */
+
+/* Anchored slightly ABOVE centre. A `justify-content: center` box with little
+   content pools it in the middle and leaves matching voids top and bottom,
+   which reads as "unfinished" rather than "calm". 42vh puts the headline where
+   the eye lands. */
+.ask-stage {
+  min-height: calc(100svh - var(--ask-chrome, 96px));
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  padding: clamp(3rem, 14vh, 8rem) clamp(1.25rem, 5vw, 4rem) 1.5rem;
+  position: relative;
+}
+
+/* Centred. The composition is a single question addressed to one person —
+   left-aligning it inside a wide viewport stranded everything in a strip with
+   an empty right half. One centred act needs no counterweight. */
+.ask-inner {
+  width: 100%;
+  max-width: 48rem;
+  margin: 0 auto;
+  text-align: center;
+}
+
+/* Smaller than the field on purpose. The promise is short; the ACT is large. */
+.ask-title {
+  font-family: var(--font-display, Georgia, serif);
+  font-size: clamp(2.1rem, 5vw, 3.5rem);
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  margin: 0 0 clamp(2.25rem, 5vw, 3.5rem);
+  font-weight: 560;
+}
+
+.ask-label {
+  display: block;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.62rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ask-faint);
+  margin-bottom: 0.9rem;
+}
+
+/* A ruled line on paper. No box, no card — the page is the form. */
+.ask-field {
+  display: block;
+  border-bottom: 2px solid var(--ask-ink);
+  padding-bottom: 0.5rem;
+}
+
+.ask-input {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--ask-ink);
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: clamp(2.25rem, 6.5vw, 3.75rem);
+  line-height: 1.15;
+  letter-spacing: 0.08em;
+  padding: 0;
+  text-align: left;
+  font-variant-numeric: tabular-nums;
+}
+
+.ask-input:focus-visible {
+  outline: none;
+}
+.ask-field:focus-within {
+  border-bottom-color: var(--ask-accent);
+}
+
+.ask-go {
+  display: inline-block;
+  margin-top: 1.35rem;
+  border: 0;
+  border-radius: 2px;
+  background: var(--ask-ink);
+  color: var(--vt-cloud-dancer);
+  font-family: var(--font-body, system-ui, sans-serif);
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding: 0.72rem 1.35rem;
+  cursor: pointer;
+  transition: background 160ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.ask-go:hover:not(:disabled) {
+  background: var(--ask-accent);
+}
+.ask-go:disabled {
+  background: color-mix(in oklab, var(--ask-ink) 22%, transparent);
+  cursor: not-allowed;
+}
+.ask-go:focus-visible {
+  outline: 2px solid var(--ask-accent);
+  outline-offset: 3px;
+}
+
+.ask-hint {
+  margin: 0.85rem 0 0;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  color: var(--ask-faint);
+}
+.ask-error {
+  color: var(--vt-color-danger);
+}
+
+.ask-promise {
+  margin: clamp(1.75rem, 4vw, 2.5rem) auto 0;
+  font-size: clamp(1rem, 1.5vw, 1.15rem);
+  line-height: 1.6;
+  color: var(--ask-soft);
+  max-width: 42ch;
+}
+
+/* The form keeps its own left-aligned reading order inside the centred block:
+   a label, the digits you type, then the counter beneath them. Centring the
+   digits themselves would make them jump sideways on every keystroke. */
+.ask-form {
+  text-align: left;
+  max-width: 36rem;
+  margin: 0 auto;
+}
+
+.ask-answer {
+  margin-top: 0.5rem;
+}
+
+/* The buyer door: present, findable, and quieter than the clinician's act.
+   0.92rem rendered LARGER than the primary CTA's 0.9rem — the secondary door
+   was literally out-sizing the action it sits under. The e2e guard measures
+   this rather than trusting the intent. */
+.ask-secondary {
+  margin: 1.25rem 0 0;
+  font-size: 0.82rem;
+}
+.ask-secondary a {
+  color: var(--ask-faint);
+  text-decoration: none;
+  border-bottom: 1px solid var(--ask-rule);
+  padding-bottom: 1px;
+  transition: color 140ms ease, border-color 140ms ease;
+}
+.ask-secondary a:hover {
+  color: var(--ask-ink);
+  border-bottom-color: var(--ask-ink);
+}
+
+.ask-beat-cap {
+  margin: 0.85rem 0 0;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.58rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ask-faint);
+  text-align: center;
+}
+
+/* Pinned to the foot of the first screen by `margin-top: auto` rather than
+   absolute positioning. Absolutely positioned, it sat underneath the floating
+   Feedback and chat widgets on a phone and was unreadable — the widgets are
+   fixed chrome this page does not own, so the copy has to clear them.
+   `padding-right` keeps the last line out from under the launcher. */
+.ask-cadence {
+  margin: auto auto 0;
+  max-width: 62rem;
+  width: 100%;
+  padding: 2.5rem 0 0;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.63rem;
+  letter-spacing: 0.05em;
+  line-height: 1.6;
+  color: var(--ask-faint);
+  text-align: left;
+}
+
+@media (max-width: 720px) {
+  .ask-cadence {
+    padding-right: 5.5rem;
+    padding-bottom: 3.5rem;
+  }
+}
+
+/* ── the beats ─────────────────────────────────────────────── */
+
+.ask-beat {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: clamp(1.5rem, 4vw, 3rem);
+  align-items: center;
+  max-width: 62rem;
+  margin: 0 auto;
+  padding: clamp(3.5rem, 9vw, 7rem) clamp(1.25rem, 5vw, 4rem);
+  border-top: 1px solid var(--ask-rule);
+}
+
+/* Alternating sides: the previous page put copy left and a panel right FIVE
+   times, which read as one slide repeated. Here the rhythm changes. */
+@media (min-width: 860px) {
+  .ask-beat {
+    grid-template-columns: 1fr 1fr;
+  }
+  .ask-beat:nth-child(even) .ask-beat-copy {
+    order: 2;
+  }
+}
+
+.ask-beat-title {
+  font-family: var(--font-display, Georgia, serif);
+  font-size: clamp(1.65rem, 3.4vw, 2.5rem);
+  line-height: 1.1;
+  letter-spacing: -0.015em;
+  margin: 0 0 0.85rem;
+  font-weight: 560;
+}
+
+.ask-beat-line {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.65;
+  color: var(--ask-soft);
+  max-width: 38ch;
+}
+
+.ask-beat-art {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 0;
+}
+
+.ask-art {
+  width: 100%;
+  max-width: 22rem;
+  height: auto;
+}
+
+/* The inspector is a real surface, not a 22rem drawing — give it the column. */
+.ask-beat-inspector {
+  width: 100%;
+}
+
+.ask-art-paper {
+  fill: color-mix(in oklab, var(--vt-cloud-dancer) 30%, white);
+  stroke: var(--ask-rule);
+  stroke-width: 1.5;
+}
+.ask-art-paper-2 {
+  fill: color-mix(in oklab, var(--ask-accent) 5%, var(--vt-cloud-dancer));
+  stroke: var(--ask-rule);
+  stroke-width: 1.5;
+}
+.ask-art-overlap {
+  fill: color-mix(in oklab, var(--ask-accent) 12%, transparent);
+  stroke: none;
+}
+.ask-art-rule {
+  stroke: var(--ask-ink);
+  stroke-width: 1.5;
+}
+.ask-art-line {
+  stroke: var(--ask-rule);
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+.ask-art-boundary {
+  stroke: var(--ask-rule);
+  stroke-width: 1.5;
+  stroke-dasharray: 4 5;
+}
+.ask-art-seal {
+  fill: none;
+  stroke: var(--ask-accent);
+  stroke-width: 1.75;
+}
+.ask-art-tick {
+  fill: none;
+  stroke: var(--ask-accent);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* ── boundary + footer ─────────────────────────────────────── */
+
+.ask-boundary {
+  max-width: 62rem;
+  margin: 0 auto;
+  padding: clamp(2rem, 5vw, 3.5rem) clamp(1.25rem, 5vw, 4rem);
+  border-top: 1px solid var(--ask-rule);
+}
+
+.ask-foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+  max-width: 62rem;
+  margin: 0 auto;
+  padding: 1.5rem clamp(1.25rem, 5vw, 4rem) 3rem;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.ask-foot a {
+  color: var(--ask-faint);
+  text-decoration: none;
+}
+.ask-foot a:hover {
+  color: var(--ask-ink);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ask-go {
+    transition: none;
+  }
+}

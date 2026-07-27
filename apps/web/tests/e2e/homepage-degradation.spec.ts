@@ -96,7 +96,7 @@ test.describe('scene degradation matrix (SHD-6.1)', () => {
       await page.keyboard.press('Tab');
       const isNpi = await page.evaluate(() => {
         const el = document.activeElement as HTMLElement | null;
-        return !!el && el.id === 'film-npi-input';
+        return !!el && el.id === 'npi-input';
       });
       if (isNpi) { reached = true; break; }
     }
@@ -127,11 +127,11 @@ test.describe('hero reset — clinician sell and field visibility (HERO-RESET-1)
     // The mandate's copy ceiling is ONE short editorial phrase per scene, so the
     // old two-sentence subhead is now just "Start with your NPI." The contract
     // that matters — the action is explained in plain words — is unchanged.
-    await expect(page.getByText('Start with your NPI.', { exact: false }).first()).toBeVisible();
+    await expect(page.getByText('Start with your NPI', { exact: false }).first()).toBeVisible();
     await expect(page.getByRole('button', { name: /check what’s ready/i })).toBeVisible();
     await expect(page.getByText('Free for clinicians · No account required')).toBeVisible();
 
-    const heroText = (await page.locator('[data-film-scene="arrival"]').innerText()).toLowerCase();
+    const heroText = (await page.locator('[data-home-hero]').innerText()).toLowerCase();
     for (const jargon of ['career evidence network', 'matcha', 'proof packet', 'recognition']) {
       expect(heroText, `category jargon "${jargon}" leaked above the fold`).not.toContain(jargon);
     }
@@ -144,16 +144,17 @@ test.describe('hero reset — clinician sell and field visibility (HERO-RESET-1)
     await page.goto('/', { waitUntil: 'networkidle' });
 
     const home = await page.evaluate(() => {
-      const film = document.querySelector('.film') as HTMLElement;
+      const root = document.querySelector('.ask') as HTMLElement;
       return {
         body: getComputedStyle(document.body).backgroundColor,
-        token: getComputedStyle(film).getPropertyValue('--vt-cloud-dancer').trim(),
-        paper: getComputedStyle(film).getPropertyValue('--film-paper').trim(),
+        token: getComputedStyle(root).getPropertyValue('--vt-cloud-dancer').trim(),
       };
     });
     // CSS minification lowercases hex — compare case-insensitively.
     expect(home.token.toLowerCase()).toBe('#f0eee9');
-    expect(home.paper.toLowerCase()).toMatch(/#f0eee9|var\(--vt-cloud-dancer/);
+    // `--film-paper` was a token of the retired composition; the page now
+    // consumes `--vt-cloud-dancer` directly, so there is no intermediate alias
+    // left to assert. The body colour below is the outcome either way.
     expect(home.body).toBe('rgb(240, 238, 233)');
 
     // The paper style is rendered INSIDE the film, so it must unmount with it.
@@ -173,16 +174,16 @@ test.describe('hero reset — clinician sell and field visibility (HERO-RESET-1)
         ).length,
       );
 
-    expect(await paperRuleCount(), 'the film owns the paper rule while it is mounted').toBe(1);
+    expect(await paperRuleCount(), 'the homepage owns the paper rule while it is mounted').toBe(1);
 
     await page.goto('/trust', { waitUntil: 'networkidle' });
     const elsewhere = await page.evaluate(() => ({
-      film: document.querySelectorAll('.film').length,
+      home: document.querySelectorAll('.ask').length,
     }));
-    expect(elsewhere.film, 'the film must not render outside /').toBe(0);
+    expect(elsewhere.home, 'the homepage composition must not render outside /').toBe(0);
     expect(
       await paperRuleCount(),
-      'the film paper rule must unmount with the route, not follow the reader',
+      'the paper rule must unmount with the route, not follow the reader',
     ).toBe(0);
   });
 
