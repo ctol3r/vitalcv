@@ -157,7 +157,8 @@ export function AskHome() {
                     inputMode="numeric"
                     pattern="[0-9]*"
                     autoComplete="off"
-                    /* No placeholder digits. `0000000000` at display scale read
+                    placeholder="··········"
+                    /* Slot dots, not digits. `0000000000` at display scale read
                        as a filled-in value rather than a prompt — the loudest
                        thing on the screen was fake data. The ruled line and the
                        digit counter carry the affordance instead. */
@@ -233,7 +234,11 @@ export function AskHome() {
 
       {/* THE BEATS — for readers who scroll instead of typing. */}
       {BEATS.map((beat) => (
-        <section key={beat.id} className="ask-beat" aria-labelledby={`beat-${beat.id}`}>
+        <section
+          key={beat.id}
+          className={beat.artifact === 'once' ? 'ask-beat ask-beat--wide' : 'ask-beat'}
+          aria-labelledby={`beat-${beat.id}`}
+        >
           <div className="ask-beat-copy">
             <h2 id={`beat-${beat.id}`} className="ask-beat-title">
               {beat.phrase}
@@ -258,7 +263,9 @@ export function AskHome() {
             ) : (
               <BeatArtifact kind={beat.artifact} />
             )}
-            <figcaption className="ask-beat-cap">Illustrative — not a live result</figcaption>
+            {beat.artifact !== 'once' && (
+              <figcaption className="ask-beat-cap">Illustrative — not a live result</figcaption>
+            )}
           </figure>
         </section>
       ))}
