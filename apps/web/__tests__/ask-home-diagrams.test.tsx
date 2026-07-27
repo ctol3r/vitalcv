@@ -57,6 +57,11 @@ describe('diagrams are understandable without motion or sight', () => {
     for (const label of ['er role', 'your record', 'you', 'the hospital', 'your permission']) {
       expect(html.toLowerCase()).toContain(`>${label}<`);
     }
+    // The wide chapter artifacts speak the same grammar: check categories and
+    // regions, never sources or states (the ban below still applies to them).
+    for (const label of ['your npi', 'identity', 'exclusions', 'enrollment', 'receipt', 'the packet', 'what is missing']) {
+      expect(html.toLowerCase()).toContain(`>${label}<`);
+    }
   });
 
   it('labels caption the drawing, never the state of data', () => {

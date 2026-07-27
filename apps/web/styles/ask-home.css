@@ -340,14 +340,109 @@
   }
 }
 
-/* ── the employer door ─────────────────────────────────────── */
+/* ── the audience chapters ─────────────────────────────────── */
 
-.ask-door {
+/* One chapter per audience, each carrying ONE big artifact. The copy is a
+   short list of concrete stakes — never a feature grid (CD-13). */
+.ask-chapter {
   max-width: 62rem;
   margin: 0 auto;
   padding: clamp(3.5rem, 9vw, 7rem) clamp(1.25rem, 5vw, 4rem);
   border-top: 1px solid var(--ask-rule);
 }
+
+.ask-chapter-eyebrow {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.66rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ask-faint);
+  margin: 0 0 1rem;
+}
+
+.ask-chapter-title {
+  font-family: var(--font-display, Georgia, serif);
+  font-size: clamp(1.9rem, 4vw, 3rem);
+  line-height: 1.08;
+  letter-spacing: -0.018em;
+  margin: 0 0 1.1rem;
+  font-weight: 560;
+}
+
+.ask-chapter-copy {
+  max-width: 44rem;
+  margin-bottom: clamp(2rem, 5vw, 3.25rem);
+}
+
+.ask-chapter-points {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+.ask-chapter-points li {
+  font-size: 1.02rem;
+  line-height: 1.6;
+  color: var(--ask-soft);
+  max-width: 56ch;
+  padding-left: 1.15rem;
+  position: relative;
+}
+/* A ruled tick, not a bullet — the page's own grammar. */
+.ask-chapter-points li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.72em;
+  width: 0.55rem;
+  height: 1.5px;
+  background: var(--ask-accent);
+}
+
+/* The big artifacts get the full column — "bigger visuals" is the founder's
+   direct instruction, and 22rem drawings could not carry a chapter. */
+.ask-beat-art--big {
+  width: 100%;
+}
+.ask-art--wide {
+  max-width: 56rem;
+  width: 100%;
+}
+
+/* New shape vocabulary for the wide artifacts. All value-shaped marks are
+   redacted bars/slots — the shape of an answer without fabricating one. */
+.ask-art-slot {
+  fill: color-mix(in oklab, var(--ask-faint) 18%, transparent);
+  stroke: var(--ask-rule);
+  stroke-width: 1;
+}
+.ask-art-chip {
+  fill: color-mix(in oklab, var(--ask-accent) 10%, transparent);
+  stroke: color-mix(in oklab, var(--ask-accent) 45%, transparent);
+  stroke-width: 1.25;
+}
+.ask-art-meta {
+  stroke: color-mix(in oklab, var(--ask-faint) 45%, transparent);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+.ask-art-gap {
+  fill: none;
+  stroke: var(--ask-soft);
+  stroke-width: 1.25;
+  stroke-dasharray: 5 4;
+}
+.ask-art-note {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  fill: var(--ask-soft);
+}
+
+/* ── the employer door CTA (inside the chapter) ────────────── */
 .ask-door-cta {
   margin: 1.4rem 0 0;
 }
@@ -542,6 +637,18 @@
   }
   .ask-art-play .ask-art-step-3 {
     animation: ask-art-appear 480ms cubic-bezier(0.2, 0.8, 0.2, 1) 860ms both;
+  }
+  /* Steps 4–6 exist for the wide chapter artifacts, whose sequences are
+     longer (check rows resolving one after another, then the receipt, then
+     the annotations). Same contract: once, then rest. */
+  .ask-art-play .ask-art-step-4 {
+    animation: ask-art-appear 480ms cubic-bezier(0.2, 0.8, 0.2, 1) 1300ms both;
+  }
+  .ask-art-play .ask-art-step-5 {
+    animation: ask-art-appear 480ms cubic-bezier(0.2, 0.8, 0.2, 1) 1760ms both;
+  }
+  .ask-art-play .ask-art-step-6 {
+    animation: ask-art-appear 480ms cubic-bezier(0.2, 0.8, 0.2, 1) 2220ms both;
   }
   /* The permission rule DRAWS across the boundary rather than fading — the
      one meaning motion carries here is direction: evidence moves from you,
