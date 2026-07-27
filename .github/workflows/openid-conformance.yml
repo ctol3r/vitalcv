@@ -25,8 +25,24 @@ permissions:
 env:
   NODE_VERSION: '20.11.1'
   PNPM_VERSION: '10.6.1'
-  # Conformance suite image
-  CONFORMANCE_IMAGE: ghcr.io/openid-certification/conformance-suite:latest
+  # Conformance suite image.
+  #
+  # Published by the OpenID Foundation to the GitLab registry — the suite is
+  # developed at gitlab.com/openid/conformance-suite, and the GitHub org
+  # `openid-certification` is a SOURCE MIRROR that publishes no container. The
+  # previous value (ghcr.io/openid-certification/conformance-suite:latest) does
+  # not exist, so every run died with "manifest unknown" at the pull step —
+  # before a single test executed. Because this job is not a required check,
+  # nothing surfaced it.
+  #
+  # Verified against the live registries with an anonymous pull token:
+  #   registry.gitlab.com/openid/conformance-suite:latest   -> HTTP 200
+  #   ghcr.io/openid-certification/conformance-suite:latest -> manifest unknown
+  #
+  # `:latest` is not a preference — it is the ONLY tag upstream publishes, so
+  # this job cannot be version-pinned. Read a sudden conformance behaviour
+  # change as a possible upstream image bump, not only as a regression here.
+  CONFORMANCE_IMAGE: registry.gitlab.com/openid/conformance-suite:latest
   # Service ports (internal Docker network)
   AUTHZ_PORT: 4003
   VERIFIER_PORT: 4004
@@ -123,9 +139,11 @@ jobs:
           done
 
       # ── Conformance Suite ──────────────────────────────────────
-      - name: Login to GitHub Container Registry
-        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
-
+      # No registry login: the GitLab-hosted conformance image is anonymously
+      # pullable (verified with an anonymous pull token). The previous
+      # `docker login ghcr.io` step existed only for the ghcr path that never
+      # had a manifest, and it would not have helped — the image was absent,
+      # not private.
       - name: Pull conformance suite image
         run: docker pull "$CONFORMANCE_IMAGE"
 
