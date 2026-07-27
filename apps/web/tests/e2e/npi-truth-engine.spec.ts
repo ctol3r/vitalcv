@@ -30,6 +30,9 @@ interface MockBootstrap {
   lastName?: string;
   specialty?: string;
   state?: string;
+  alreadyRegistered?: boolean;
+  /** Provenance label on the identity fields — 'NPPES_API' when registry-derived. */
+  identitySource?: string;
 }
 interface MockTrustState {
   identityVerified?: boolean;
@@ -229,6 +232,54 @@ test.describe('NPI truth engine — homepage hero', () => {
     await expect(hero(page).getByText('Confirmed through the NPPES registry')).not.toBeVisible();
     // Other genuinely-returned results still show, so absence above is not a render failure.
     await expect(hero(page).getByText(CLEAR_EXCLUSION)).toBeVisible();
+  });
+
+  test('a registered account name never renders under registry framing', async ({ page }) => {
+    // The exact legacy payload shape production served for the Sarah Chen
+    // misattribution: a registered NPI's bootstrap echoing the account's
+    // self-entered profile fields, with no provenance label. Rendering that
+    // name under "located in NPPES" presented an account display name as the
+    // registry record of a real provider's NPI — the header must fall back to
+    // the neutral NPI identity instead.
+    await mockNpiApis(page, {
+      bootstrap: {
+        firstName: 'Sarah',
+        lastName: 'Chen',
+        specialty: 'Internal Medicine',
+        state: 'CA',
+        alreadyRegistered: true,
+      },
+      trust: CLEAN_TRUST,
+    });
+    await submitNpi(page, VALID_NPI);
+
+    // Cannot key resolution on "located in NPPES" here — that caption is
+    // exactly what an unlabeled registered payload must NOT receive.
+    await expect(hero(page).getByText(`NPI ${VALID_NPI}`, { exact: true }).first()).toBeVisible({
+      timeout: 15_000,
+    });
+    await expect(hero(page).getByText('Sarah Chen')).not.toBeVisible();
+    await expect(hero(page).getByText(/located in NPPES/)).not.toBeVisible();
+    await expect(hero(page).getByText('Registry identity unavailable right now')).toBeVisible();
+  });
+
+  test('registry-labeled identity renders for a registered NPI — the registry record, not the account name', async ({ page }) => {
+    await mockNpiApis(page, {
+      bootstrap: {
+        firstName: 'ARDALAN',
+        lastName: 'ENKESHAFI',
+        specialty: 'Hospitalist',
+        state: 'MD',
+        alreadyRegistered: true,
+        identitySource: 'NPPES_API',
+      },
+      trust: CLEAN_TRUST,
+    });
+    await submitNpi(page, VALID_NPI);
+    await expectResolved(page);
+
+    await expect(hero(page).getByText('Ardalan Enkeshafi')).toBeVisible();
+    await expect(hero(page).getByText(`NPI ${VALID_NPI} · located in NPPES`)).toBeVisible();
   });
 
   test('PECOS NOT_FOUND is attention — not blocked, not confirmed', async ({ page }) => {

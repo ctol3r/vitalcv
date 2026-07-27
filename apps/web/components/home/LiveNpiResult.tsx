@@ -13,6 +13,9 @@
  * Nothing is fabricated, and — per the truth contract — no bare "Verified":
  * identity is "confirmed through NPPES", an OIG clear is "no match returned",
  * PECOS not-found and licensure are named as attention / access-required.
+ * The identity header additionally renders only registry-derived values
+ * (`registryIdentity`) — a registered account's self-entered display name
+ * never appears under the "located in NPPES" framing.
  */
 
 import * as React from 'react';
@@ -30,19 +33,46 @@ import { SOURCE_LANE_OPS } from '@/lib/trust/sourceLanes';
 const OIG_CADENCE =
   SOURCE_LANE_OPS.find((l) => l.laneId === 'oig_exclusions')?.cadenceLabel ?? 'monthly snapshot';
 
-interface Bootstrap {
+export interface Bootstrap {
   firstName?: string;
   lastName?: string;
   specialty?: string;
   state?: string;
   npiType?: string;
+  alreadyRegistered?: boolean;
+  /** Provenance label on the identity fields — 'NPPES_API' when registry-derived. */
+  identitySource?: string;
 }
 type Row = { label: string; detail: string };
 
-function titleCaseName(b: Bootstrap): string {
-  const raw = [b.firstName, b.lastName].filter(Boolean).join(' ').trim();
-  if (!raw) return 'NPI identity located';
-  return raw.replace(/\S+/g, (w) => w[0].toUpperCase() + w.slice(1).toLowerCase());
+/**
+ * The card's identity header is registry-framed ("located in NPPES"), so it may
+ * carry only registry-derived values — never a registered account's self-entered
+ * display name (truth contract: no registry framing around self-attested values).
+ *
+ * The backend labels provenance via `identitySource`. A payload WITHOUT that
+ * label is the legacy shape, which echoed the account's own profile fields for
+ * an already-registered NPI — that one combination must fall back to the
+ * neutral header instead of presenting an account name as the registry record
+ * (how a seeded "Sarah Chen" profile rendered as the NPPES identity of a real
+ * provider's NPI in production).
+ */
+export function registryIdentity(
+  boot: Bootstrap | null,
+): { name: string | null; detail: string | null; fromRegistry: boolean } {
+  const fromRegistry = boot
+    ? boot.identitySource
+      ? boot.identitySource === 'NPPES_API'
+      : !boot.alreadyRegistered
+    : false;
+  if (!boot || !fromRegistry) return { name: null, detail: null, fromRegistry: false };
+
+  const raw = [boot.firstName, boot.lastName].filter(Boolean).join(' ').trim();
+  return {
+    name: raw ? raw.replace(/\S+/g, (w) => w[0].toUpperCase() + w.slice(1).toLowerCase()) : null,
+    detail: [boot.specialty, boot.state].filter(Boolean).join(' · ') || null,
+    fromRegistry: true,
+  };
 }
 
 export function LiveNpiResult({ npi, onReset }: { npi: string; onReset: () => void }) {
@@ -102,6 +132,7 @@ export function LiveNpiResult({ npi, onReset }: { npi: string; onReset: () => vo
   }
 
   // ── Resolved: real identity + honest breakdown ──
+  const identity = registryIdentity(boot);
   const confirmed: Row[] = [];
   const attention: Row[] = [];
   const unavailable: Row[] = [];
@@ -143,12 +174,15 @@ export function LiveNpiResult({ npi, onReset }: { npi: string; onReset: () => vo
         </span>
         <div className="min-w-0">
           <p className="truncate text-[15px] font-semibold text-[var(--vt-text-primary)]">
-            {boot ? titleCaseName(boot) : `NPI ${npi}`}
+            {identity.name ?? `NPI ${npi}`}
           </p>
           <p className="truncate text-[12px] text-[var(--vt-text-secondary)]">
-            {[boot?.specialty, boot?.state].filter(Boolean).join(' · ') || 'NPI identity located'}
+            {identity.detail ??
+              (identity.fromRegistry ? 'NPI identity located' : 'Registry identity unavailable right now')}
           </p>
-          <p className="mt-0.5 font-mono text-[11px] text-[var(--vt-text-muted)]">NPI {npi} · located in NPPES</p>
+          <p className="mt-0.5 font-mono text-[11px] text-[var(--vt-text-muted)]">
+            {identity.fromRegistry ? `NPI ${npi} · located in NPPES` : `NPI ${npi}`}
+          </p>
         </div>
       </div>
 

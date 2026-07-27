@@ -553,6 +553,23 @@ async function seedGraphNodes(providers: SeedProvider[]): Promise<{ nodes: numbe
 /* ── Main ───────────────────────────────────────────────────────────────────── */
 
 async function main() {
+  // Production tripwire. PROVIDERS uses REAL NPIs (the sequential 10030001xx
+  // block belongs to real registrants — 1003000126 is ARDALAN ENKESHAFI in
+  // NPPES) with fabricated names attached. Registering "Dr. Sarah Chen" on a
+  // real provider's NPI in the production database made the public identity
+  // surfaces misattribute that NPI. Demo data with real NPIs may only be
+  // seeded into local/dev databases.
+  const dbUrl = process.env.DATABASE_URL ?? '';
+  const looksLocal = /localhost|127\.0\.0\.1|@db:|@postgres:/i.test(dbUrl);
+  if (!looksLocal && process.env.ALLOW_SEED_AGAINST_REMOTE_DB !== '1') {
+    console.error(
+      '[Seed] Refusing to run: DATABASE_URL does not look local, and this script ' +
+        'attaches fabricated identities to REAL NPIs. Set ALLOW_SEED_AGAINST_REMOTE_DB=1 ' +
+        'only for a disposable non-production database.',
+    );
+    process.exit(1);
+  }
+
   console.log('╔══════════════════════════════════════════════════════╗');
   console.log('║  VitalCV Intelligence Seed — Provider + Signals     ║');
   console.log('╚══════════════════════════════════════════════════════╝');
