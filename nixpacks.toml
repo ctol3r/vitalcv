@@ -1,7 +1,16 @@
 # Force Nixpacks builder for Railway — do not use Railpack.
 # Explicit phases prevent Railway from improvising install/build steps.
 
-# Node 22, and it must stay >= 22.12.
+# Node 22. NOTE: `nodejs_22` in this nixpkgs channel resolves BELOW 22.12 —
+# proven in production 2026-07-27, when @noble/post-quantum threw
+# ERR_REQUIRE_ESM at startup, which cannot happen on >= 22.12 (require(esm)).
+# An earlier revision of this comment asserted ">= 22.12"; that was aspiration,
+# not fact, and jose v6 was pinned back to v5 because of it.
+#
+# Practical consequence: any ESM-only dependency needs either a CJS-shipping
+# version, or the require-then-import fallback in
+# `src/services/crypto/cryptoRegistry.ts`. Read the live value rather than
+# trusting this comment:  curl -s https://api.vitalcv.com/health | jq -r .node_version
 #
 # The backend compiles to CommonJS ("type": "commonjs", tsconfig
 # "module": "CommonJS"), so every `import ... from 'jose'` emits `require("jose")`.
