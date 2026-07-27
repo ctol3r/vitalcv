@@ -2,96 +2,105 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 /**
- * Runtime contract: the API's deploy Node must be able to `require()` an
- * ES-module dependency.
+ * Deploy runtime contract for the API.
  *
- * This exists because the failure it guards is invisible everywhere except a
- * real deploy. The backend is CommonJS, so `import ... from 'jose'` compiles to
- * `require("jose")`. jose v6 is ESM-only. Requiring ESM from CJS works only on
- * Node >= 22.12; on Node 20 it throws ERR_REQUIRE_ESM as the server starts, the
- * healthcheck never passes, and Railway fails the deploy.
+ * The failure this guards is invisible to every PR check and only appears in a
+ * real Railway build:
  *
- * On 2026-07-27 that combination stranded seven commits — a security dependency
- * patch and a database migration among them — while every PR check stayed
- * green, because CI runs Node 22 and the backend suite runs under ts-jest,
- * neither of which is the production `require()` path.
+ *   require() of ES Module .../jose/dist/webapi/index.js
+ *   from apps/api/backend/src/middleware/verifiedIdentity.ts not supported.
  *
- * The assertions are deliberately about the DEPLOY CONFIG rather than about
- * `process.version`: the test must fail in CI (any Node) when someone edits
- * nixpacks.toml, not merely on the machine that happens to be too old.
+ * The backend is CommonJS, so `import ... from 'jose'` compiles to
+ * `require("jose")`. jose v6 dropped its CJS build (`"type": "module"`, no
+ * `require` condition in `exports`), and requiring ESM from CJS works only on
+ * Node >= 22.12. Railway's pinned nixpkgs resolves `nodejs_22` to 22.11.0 —
+ * one patch below the threshold — so the backend build step
+ * (`tsc && ts-node src/qa/runQaSuite.ts`, which EXECUTES the code) died, and
+ * every deploy from #894 onward failed regardless of content. Seven commits
+ * were stranded, including a security patch (#898) and a migration (#900).
+ *
+ * The load-bearing invariant is therefore about MODULE FORMAT, not Node
+ * version: while the backend is CommonJS, its runtime dependencies must offer a
+ * CJS entry point. Pinning Node alone is not enough and was not what fixed it.
+ *
+ * Assertions read the repo's own files rather than `process.version`, so they
+ * fail in CI on any Node when someone reintroduces the hazard.
  */
 
 const REPO_ROOT = path.resolve(__dirname, '../../../..');
+const BACKEND_PKG = path.join(REPO_ROOT, 'apps/api/backend/package.json');
 
-/** Minimum Node with `require(esm)` support, per Node's release notes. */
-const MIN_MAJOR = 22;
-const MIN_MINOR_ON_22 = 12;
-
-function readNixpacks(): string {
-  return fs.readFileSync(path.join(REPO_ROOT, 'nixpacks.toml'), 'utf8');
+function readJson<T>(p: string): T {
+  return JSON.parse(fs.readFileSync(p, 'utf8')) as T;
 }
 
-/**
- * `nodejs_22` / `nodejs_22_x` / `nodejs-22_x` → 22, read from the actual
- * `nixPkgs` assignment.
- *
- * Comments are stripped first, deliberately: the surrounding explanation in
- * nixpacks.toml names the broken `nodejs_20` pin as history, and a naive
- * whole-file regex matches that prose instead of the live value. This test
- * caught exactly that on its first run.
- */
-function pinnedMajor(source: string): number | null {
-  const configOnly = source
-    .split('\n')
-    .filter((line) => !line.trimStart().startsWith('#'))
-    .join('\n');
-  const nixPkgs = configOnly.match(/nixPkgs\s*=\s*\[([^\]]*)\]/);
-  if (!nixPkgs) return null;
-  const m = nixPkgs[1].match(/nodejs[_-]?(\d+)/);
-  return m ? Number(m[1]) : null;
+/** Resolve a dependency's installed package.json through the backend. */
+function resolveDepManifest(name: string): Record<string, unknown> | null {
+  try {
+    return readJson<Record<string, unknown>>(
+      require.resolve(`${name}/package.json`, { paths: [path.dirname(BACKEND_PKG)] }),
+    );
+  } catch {
+    return null;
+  }
+}
+
+/** True when CommonJS can `require()` this package without Node >= 22.12. */
+function isCjsRequirable(manifest: Record<string, unknown>): boolean {
+  if (manifest.type !== 'module') return true; // CJS or dual, plain require works
+  const exp = manifest.exports as Record<string, unknown> | undefined;
+  const root = exp?.['.'] as Record<string, unknown> | undefined;
+  return Boolean(root?.require);
 }
 
 describe('API deploy runtime contract', () => {
-  it('nixpacks.toml exists and pins an explicit Node version', () => {
-    const src = readNixpacks();
-    expect(src).toMatch(/\[phases\.setup\]/);
-    expect(pinnedMajor(src)).not.toBeNull();
+  const backendPkg = readJson<{ type?: string; dependencies?: Record<string, string> }>(BACKEND_PKG);
+
+  it('the backend is CommonJS — the premise of this guard', () => {
+    // If this ever becomes "module", the require(esm) hazard disappears and
+    // this file should be revisited rather than silently kept.
+    expect(backendPkg.type).toBe('commonjs');
   });
 
-  it('pins Node >= 22, so the CJS backend can require ESM-only deps like jose', () => {
-    const major = pinnedMajor(readNixpacks());
-    expect(major).toBeGreaterThanOrEqual(MIN_MAJOR);
+  it('jose resolves to a build CommonJS can require', () => {
+    const manifest = resolveDepManifest('jose');
+    expect(manifest).not.toBeNull();
+    expect(isCjsRequirable(manifest as Record<string, unknown>)).toBe(true);
   });
 
-  it('the backend is still CommonJS — the premise of this guard', () => {
-    const pkg = JSON.parse(
-      fs.readFileSync(path.join(REPO_ROOT, 'apps/api/backend/package.json'), 'utf8'),
-    ) as { type?: string; dependencies?: Record<string, string> };
-    // If this ever flips to "module", the require(esm) constraint disappears
-    // and this whole guard can be reconsidered.
-    expect(pkg.type).toBe('commonjs');
+  it('every backend runtime dependency is requirable from CommonJS', () => {
+    const offenders = Object.keys(backendPkg.dependencies ?? {})
+      .map((name) => ({ name, manifest: resolveDepManifest(name) }))
+      .filter(({ manifest }) => manifest !== null)
+      .filter(({ manifest }) => !isCjsRequirable(manifest as Record<string, unknown>))
+      .map(({ name }) => name);
+
+    // jest's expect() takes no message argument, so surface the explanation by
+    // throwing — otherwise a failure prints a bare array with no clue why.
+    if (offenders.length > 0) {
+      throw new Error(
+        `ESM-only dependencies cannot be require()d by this CommonJS backend on ` +
+          `Node < 22.12, which is what Railway runs (nixpkgs nodejs_22 -> 22.11.0). ` +
+          `They break the BUILD, not just startup: ${offenders.join(', ')}`,
+      );
+    }
+    expect(offenders).toEqual([]);
   });
 
-  it('jose is still a backend dependency at a major that is ESM-only', () => {
-    const pkg = JSON.parse(
-      fs.readFileSync(path.join(REPO_ROOT, 'apps/api/backend/package.json'), 'utf8'),
-    ) as { dependencies?: Record<string, string> };
-    const range = pkg.dependencies?.jose;
-    expect(range).toBeDefined();
-    const major = Number(String(range).replace(/[^\d.]/g, '').split('.')[0]);
-    // jose >= 5 dropped the CJS build. Below that, the constraint would not apply.
-    expect(major).toBeGreaterThanOrEqual(5);
-  });
-
-  it('documents why the pin matters, so a future edit reads the reason first', () => {
-    const src = readNixpacks();
-    expect(src).toMatch(/ERR_REQUIRE_ESM/);
-    expect(src).toMatch(/22\.12/);
-  });
-
-  it('Node 22.12 is the documented floor for require(esm)', () => {
-    // Guards the constant itself against a careless edit.
-    expect(MIN_MAJOR).toBe(22);
-    expect(MIN_MINOR_ON_22).toBe(12);
+  it('nixpacks still pins an explicit Node major (EOL hygiene, not the fix)', () => {
+    // Node 20 reached end-of-life in April 2026. This is worth holding, but it
+    // is NOT what unblocked the deploy — module format was. Comments are
+    // stripped because the surrounding explanation names the old `nodejs_20`
+    // pin as history, and a naive whole-file regex matches that prose instead
+    // of the live value. An earlier version of this test did exactly that.
+    const src = fs.readFileSync(path.join(REPO_ROOT, 'nixpacks.toml'), 'utf8');
+    const configOnly = src
+      .split('\n')
+      .filter((line) => !line.trimStart().startsWith('#'))
+      .join('\n');
+    const nixPkgs = configOnly.match(/nixPkgs\s*=\s*\[([^\]]*)\]/);
+    expect(nixPkgs).not.toBeNull();
+    const major = Number((nixPkgs as RegExpMatchArray)[1].match(/nodejs[_-]?(\d+)/)?.[1]);
+    expect(major).toBeGreaterThanOrEqual(22);
   });
 });
