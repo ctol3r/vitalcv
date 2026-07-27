@@ -105,6 +105,11 @@ export const PUBLIC_ROUTE_PATTERNS = [
   /^\/explore(\/.*)?$/, // public opportunities board
   /^\/search(\/.*)?$/, // public search
   /^\/p(\/.*)?$/, // public clinician profiles — /p/:npi and subpaths
+  // Public provider directory — /directory/:npi. Deliberately anonymous and
+  // indexable: it renders only the federal registry filing for an NPI, which
+  // is already public record at npiregistry.cms.hhs.gov. It carries no
+  // VitalCV-held data about the clinician and no employer-side signal.
+  /^\/directory(\/.*)?$/,
   /^\/updates(\/.*)?$/, // public updates / changelog
   /^\/apply(\/.*)?$/, // public apply flow
   /^\/intake(\/.*)?$/,

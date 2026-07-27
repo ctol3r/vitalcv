@@ -57,6 +57,7 @@ function startsWithAny(route, prefixes) {
 function classify(route) {
   if (
     PUBLIC_MARKETING.has(route) ||
+    route.startsWith('/directory/') ||
     route.startsWith('/for/') ||
     route.startsWith('/legal/') ||
     route.startsWith('/p/') ||

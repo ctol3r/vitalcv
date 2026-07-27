@@ -7,13 +7,16 @@ import type { NormalizedProvider, IdentityArtifact } from '../identity/types';
 
 const EMPTY_ADDRESS = {
   purpose: 'LOCATION' as const,
+  address_type: '',
   address_1: '',
   address_2: '',
   city: '',
   state: '',
   postal_code: '',
   country_code: 'US',
+  country_name: '',
   telephone_number: '',
+  fax_number: '',
 };
 
 function makeProvider(
@@ -37,17 +40,32 @@ function makeProvider(
     name_suffix: '',
     organization_name: '',
     display_name: `${first_name} ${last_name}, MD`,
+    // Demographics are left blank rather than invented — this is an
+    // offline fallback, and a fabricated sex or sole-proprietor election
+    // would be indistinguishable from a real CMS value downstream.
+    sex: '',
+    sole_proprietor: '',
     primary_taxonomy,
     primary_taxonomy_code,
     taxonomies: [{ code: primary_taxonomy_code, taxonomy_group: '', desc: primary_taxonomy, state, license, primary: true }],
     practice_address: { ...EMPTY_ADDRESS, state },
     addresses: [{ ...EMPTY_ADDRESS, state }],
+    practice_locations: [],
     identifiers: [],
     enumeration_date: '2010-01-01',
     last_updated: '2024-01-01',
-    mailing_address: null as any,
+    certification_date: '',
+    deactivation_date: '',
+    deactivation_reason_code: '',
+    reactivation_date: '',
+    created_epoch: '',
+    last_updated_epoch: '',
+    mailing_address: null,
     endpoints: [],
     other_names: [],
+    organizational_subpart: '',
+    parent_organization_legal_business_name: '',
+    authorized_official: null,
   };
 }
 

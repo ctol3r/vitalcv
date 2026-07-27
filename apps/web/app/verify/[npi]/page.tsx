@@ -22,6 +22,10 @@ import { ProvenanceStrip } from '@/components/verifier/ProvenanceStrip';
 import { ReceiptVerificationPane } from '@/components/verifier/ReceiptVerificationPane';
 import { IssuerContinuityPanel } from '@/components/verifier/IssuerContinuityPanel';
 import { ReplayChronologyPanel } from '@/components/verifier/ReplayChronologyPanel';
+import { ClinicianRecordDetail } from '@/components/clinician-record/ClinicianRecordDetail';
+import { fetchNppesRecord } from '@/lib/clinician-record/nppes';
+import { buildClinicianRecord, attachMedicareEnrollment } from '@/lib/clinician-record/build';
+import { fetchCmsClinicianRows } from '@/lib/clinician-record/cmsClinicians';
 import type { LaneSnapshot } from '@/components/proof/trust-types';
 import { VerdictSplit, type VerdictItem } from '@/design-system/components';
 import type { PassportData } from '@/lib/trust/passport-contract';
@@ -238,14 +242,31 @@ export default async function VerifierPage({
   if (!/^\d{10}$/.test(npi)) {
     notFound();
   }
-  const [passport, acceptanceHistory] = await Promise.all([
+  // The CMS read runs alongside the passport fetch rather than after it —
+  // they are independent, and serialising them would add a round trip to a
+  // page whose whole point is being readable in under 30 seconds.
+  const [passport, acceptanceHistory, nppes, cmsClinicians] = await Promise.all([
     fetchPassport(npi),
     fetchAcceptanceHistory(npi),
+    fetchNppesRecord(npi),
+    fetchCmsClinicianRows(npi),
   ]);
 
   if (!passport) {
     return <NotFound npi={npi} />;
   }
+
+  // Null when CMS was unreachable or the NPI is unknown. The section is then
+  // omitted entirely rather than rendered empty — an empty registry block on
+  // a credentialing page reads as "this provider filed nothing", which is a
+  // different and much worse claim than "we could not read CMS".
+  const clinicianRecord = nppes
+    ? attachMedicareEnrollment(
+        buildClinicianRecord(nppes.reading, { retrievedAt: nppes.retrievedAt }),
+        cmsClinicians,
+        nppes.reading,
+      )
+    : null;
 
   // Derive lane snapshots from source coverage
   const lanes = checksToLaneSnapshots(passport.sourceCoverage?.checks ?? []);
@@ -458,6 +479,22 @@ export default async function VerifierPage({
           <ProvenanceStrip lanes={lanes} now={renderedAt} />
         </Section>
         </Reveal>
+
+        {/* ── Section: Full registry record ───────────────────────────────
+            The complete NPPES filing, resolved against the NUCC code set and
+            the CMS Medicare crosswalk. Sits BELOW source coverage on purpose:
+            the verdict and what was actually checked come first, and this is
+            reference detail underneath it, not evidence.
+
+            Renders only when the CMS read succeeded. A partial record here
+            would read as a thin filing rather than a failed fetch. */}
+        {clinicianRecord && (
+          <Reveal delay={60}>
+          <Section title="Full registry record">
+            <ClinicianRecordDetail record={clinicianRecord} mode="public" />
+          </Section>
+          </Reveal>
+        )}
 
         {/* ── Section: Employer acceptances (Recognition) ────────────────── */}
         <Reveal delay={80}>
