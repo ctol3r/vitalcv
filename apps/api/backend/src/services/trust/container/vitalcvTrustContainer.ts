@@ -20,7 +20,12 @@
  *     'vitalcv-signed'.
  */
 
-import { SignJWT, importJWK, jwtVerify, type CryptoKey, type JWK } from 'jose';
+// `CryptoKey` is intentionally NOT imported from jose. v6 exports the type and
+// v5 does not, so importing it pins this file to a single major. The global
+// WebCrypto `CryptoKey` (Node 18+) is structurally what `importJWK` returns for
+// an asymmetric key and is what `SignJWT.sign()` accepts, so using the global
+// keeps this file compiling against either.
+import { SignJWT, importJWK, jwtVerify, type JWK } from 'jose';
 import { sha256Hex, stableStringify } from '../../../utils/deterministic';
 import type {
   AnchorReceiptResult,
