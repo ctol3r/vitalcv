@@ -19,7 +19,31 @@
  * solved the same problem a different way (a version bump that restores the
  * extensionless alias, say), while this one keeps testing the thing we care
  * about: post-quantum signing works.
+ *
+ * ── Why one guard below IS a mechanism check ──────────────────────────────
+ *
+ * Fixing the suffix exposed a second failure the outcome tests structurally
+ * CANNOT see:
+ *
+ *   ERR_REQUIRE_ESM: require() of ES Module .../ml-dsa.js not supported
+ *
+ * @noble/post-quantum is `"type": "module"`. `require()` of ESM works on Node
+ * >= 22.12 (`require(esm)`) and fails below it. Railway runs 22.11.0; local
+ * dev and CI run newer. So every behavioural test above passes locally while
+ * production silently falls back to classical — the first fix shipped green
+ * for exactly that reason.
+ *
+ * The honest outcome test would be "boot under Node 22.11 and check the log",
+ * which jest cannot do in-process. So the loader is guarded by asserting the
+ * mechanism that survives BOTH Node versions: a genuine dynamic `import()`,
+ * never `require()`. Verified out-of-band by running the compiled output with
+ * `node --no-experimental-require-module`, which reproduces 22.11 exactly:
+ *
+ *   SUITES: ["ml-dsa-65","slh-dsa-128s","ed25519"]   PQC ACTIVE
  */
+
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 
 import {
   initializeCryptoKeys,
@@ -72,5 +96,26 @@ describe('PQC subpath contract — post-quantum signing is actually available', 
     const tampered = new TextEncoder().encode('vitalcv pqc subpath contracT');
     const verified = await verifyWithSuite(tampered, signed.signatureHex, signed.keyId);
     expect(verified.valid).toBe(false);
+  });
+
+  it('the loader can fall back to dynamic import when require() cannot load ESM', () => {
+    // Mechanism guard, deliberately — see the header. On this Node `require()`
+    // of an ES module succeeds, so every behavioural test above passes whether
+    // or not the fallback exists. Only Railway's older Node exercises it, and
+    // jest cannot host that. So assert the fallback is present.
+    const src = readFileSync(
+      join(__dirname, '../src/services/crypto/cryptoRegistry.ts'),
+      'utf8',
+    );
+
+    // ERR_REQUIRE_ESM must be handled, not swallowed into the generic catch
+    // that downgrades to classical.
+    expect(src).toMatch(/ERR_REQUIRE_ESM/);
+
+    // The fallback must be a genuine dynamic import. A bare `await import()`
+    // is rewritten to require() by tsc under `module: CommonJS`, so it has to
+    // go through the Function-constructor indirection to survive compilation.
+    expect(src).toMatch(/new Function\(\s*\n?\s*['"]specifier['"]/);
+    expect(src).toMatch(/nativeImport\(specifier\)/);
   });
 });
