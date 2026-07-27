@@ -30,12 +30,12 @@ export function SandboxHero() {
   };
 
   const handlePreviewClick = () => {
-    const targetNpi = npi.length === 10 ? npi : '1003000126';
+    const targetNpi = npi.length === 10 ? npi : '0000000000';
     router.push(`/passport/${targetNpi}`);
   };
 
   const isPlaceholder = !npi || npi.length !== 10;
-  const displayNpi = isPlaceholder ? '1003000126' : npi;
+  const displayNpi = isPlaceholder ? '0000000000' : npi;
 
   return (
     <section className="flex flex-col items-center justify-center min-h-[60vh] text-center px-6 md:px-12 py-16 md:py-24 max-w-5xl w-full mx-auto">
@@ -167,7 +167,7 @@ export function SandboxHero() {
               Generate your portable passport from federal sources. Share it once, and get hired in days instead of months.
             </p>
           </div>
-          <Link href="/review/1003000126" className="border border-[var(--vt-border)] p-6 hover:bg-white/10 dark:hover:bg-white/5 transition-colors group block">
+          <Link href="/review/0000000000" className="border border-[var(--vt-border)] p-6 hover:bg-white/10 dark:hover:bg-white/5 transition-colors group block">
             <div className="text-[10px] font-bold uppercase tracking-widest opacity-40 mb-4 border border-[var(--vt-border)] inline-block px-2 py-1">For Employers</div>
             <h4 className="text-sm font-bold uppercase tracking-widest mb-2 group-hover:underline underline-offset-4">Make faster decisions</h4>
             <p className="text-[10px] opacity-60 font-mono leading-relaxed">

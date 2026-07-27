@@ -4,7 +4,7 @@ import { useState, useCallback } from 'react';
 import { Copy, Check, Play } from 'lucide-react';
 
 export function TryItSection({ publicApiBase }: { publicApiBase: string }) {
-  const [npi, setNpi] = useState('1003000126');
+  const [npi, setNpi] = useState('0000000000');
   const [copied, setCopied] = useState(false);
 
   const curlCommand = `curl -s '${publicApiBase}/api/passport/npi/${npi}' | python3 -m json.tool`;
