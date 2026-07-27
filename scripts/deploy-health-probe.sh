@@ -30,7 +30,12 @@ fi
 
 BASE_URL="${BASE_URL%/}"
 URL="${BASE_URL}/api/internal/source-health/snapshots"
-REFRESH_URL="${BASE_URL}/api/internal/source-health/probe"
+# `?source=deploy` attributes the availability samples this refresh writes (D4).
+# It matters: this script runs after EVERY deploy, so on a busy day it produces
+# a burst of ticks. Left unattributed they default to `manual` and become
+# indistinguishable from steady scheduled observation, which would bias every
+# availability figure derived from the ledger.
+REFRESH_URL="${BASE_URL}/api/internal/source-health/probe?source=deploy"
 
 # Refresh before asserting.
 #
