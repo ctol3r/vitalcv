@@ -8,9 +8,9 @@ describe('time-to-start estimate helpers', () => {
   it('defaults to believable range-based copy', () => {
     const estimate = buildTimeToStartEstimate();
 
-    expect(estimate.withoutVitalCvLabel).toBe('~90 days');
-    expect(estimate.withVitalCvLabel).toBe('~45-60 days');
-    expect(estimate.timeSavedLabel).toBe('~30-45 days');
+    expect(estimate.withoutVitalCvLabel).toBe('~90 days (assumed)');
+    expect(estimate.withVitalCvLabel).toBe('~45-60 days (projected)');
+    expect(estimate.timeSavedLabel).toBe('~30-45 days (projected)');
   });
 
   it('maps explicit licensure, enrollment, and stale signals to penalties', () => {
@@ -36,8 +36,8 @@ describe('time-to-start estimate helpers', () => {
     });
 
     expect(estimate.penaltyDays).toBe(30);
-    expect(estimate.withVitalCvLabel).toBe('~75-90 days');
-    expect(estimate.timeSavedLabel).toBe('~0-15 days');
+    expect(estimate.withVitalCvLabel).toBe('~75-90 days (projected)');
+    expect(estimate.timeSavedLabel).toBe('~0-15 days (projected)');
   });
 
   it('clamps the adjusted range so it never exceeds the baseline', () => {
@@ -49,7 +49,7 @@ describe('time-to-start estimate helpers', () => {
       gaps: ['PECOS enrollment verification stale'],
     });
 
-    expect(estimate.withVitalCvLabel).toBe('~90 days');
-    expect(estimate.timeSavedLabel).toBe('~0 days');
+    expect(estimate.withVitalCvLabel).toBe('~90 days (projected)');
+    expect(estimate.timeSavedLabel).toBe('~0 days (projected)');
   });
 });

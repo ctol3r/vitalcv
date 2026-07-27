@@ -14,9 +14,11 @@ describe('time-to-start estimate', () => {
     });
 
     expect(estimate.estimatedStartLabel).toBe('45–60 days');
-    expect(estimate.baselineLabel).toBe('~90 days');
-    expect(estimate.timeSavedLabel).toBe('~30–45 days');
-    expect(estimate.disclosureLabel).toBe('Pilot estimate — based on current credential readiness');
+    expect(estimate.baselineLabel).toBe('~90 days (assumed)');
+    expect(estimate.timeSavedLabel).toBe('~30–45 days (projected)');
+    expect(estimate.disclosureLabel).toBe(
+      'Projection from an assumed baseline — not a measured result. VitalCV has not measured this start.',
+    );
   });
 
   it('deduplicates incomplete source lanes across coverage buckets', () => {
@@ -62,6 +64,6 @@ describe('time-to-start estimate', () => {
 
     expect(estimate.blockedStates).toBe(1);
     expect(estimate.estimatedStartLabel).toBe('55–70 days');
-    expect(estimate.timeSavedLabel).toBe('~20–35 days');
+    expect(estimate.timeSavedLabel).toBe('~20–35 days (projected)');
   });
 });
