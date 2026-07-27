@@ -1,4 +1,9 @@
-# VitalCV Demo Script — 2026-03-24
+# VitalCV Demo Script — updated 2026-07-27
+
+> **Live product demo is unavailable.** Do not demo against a real clinician's NPI.
+> Use the founder-only video plus the narrative below for this submission. A live
+> walkthrough returns once there is an explicitly consented, founder-controlled
+> clinician fixture. See [Demo posture](#demo-posture).
 
 ## The Wedge (60-second version)
 
@@ -8,76 +13,49 @@ of rebuilding from scratch.
 
 ---
 
-## Live Demo Flow (3-4 minutes)
+## Demo posture
 
-### Step 1 — Enter an NPI (15s)
-Go to https://vitalcv.com
-Enter NPI: `1003000126` (Sarah Chen MD — pre-seeded demo, READY)
+**What we use right now:** a founder-only recorded video, plus the honest product
+narrative in this document.
 
-Shows in the hero:
-- NPPES identity resolves in ~10s
-- OIG/LEIE exclusion check runs
-- PECOS enrollment check runs
-- Readiness state computed: READY / PARTIAL / BLOCKED
+**What we do not do:**
 
-**What to say**: "This is the entire trust stack for a clinician — 3 federal sources, live. No
-uploads, no forms, no committee. NPI is the identity anchor."
+- ❌ Do not type a real clinician's NPI into a buyer-facing or recorded demo. Every NPI
+  in the public registry belongs to a real registrant who has not consented to being a
+  demo subject.
+- ❌ Do not seed fabricated identities to stand in for one. Ten fabricated profiles were
+  previously seeded onto real NPIs (`1003000126` and nine others); they misattributed
+  those NPIs and blocked the real registrants from claiming them. They have been removed,
+  and `seed-provider-intelligence.ts` now refuses to run against a non-local database.
+- ❌ Do not describe a demo record as "pre-seeded" and "READY". That framing is what made
+  fabricated data read as verified.
 
----
-
-### Step 2 — Open the Passport (30s)
-After ingestion completes → click "View Passport" or navigate to `/passport/[entityId]`
-
-Show the clinician:
-- Identity section: name, NPI, specialty
-- Readiness items: ✓ verified / ✕ missing
-- **Trust Posture card**: score + band (L0–L3) + dimension breakdown + gaps
-- Details accordion: Identity / Authority / Training / Safety / Eligibility
-
-**What to say**: "This is the clinician's portable trust record. Trust posture is computed from
-verified primary sources — not an AI score. L3 = Verified, L2 = Credentialed, L1 = Partial.
-Every dimension is explainable, every source is named."
-
-Demo NPI 2 (PARTIAL): `1942788324` — Marcus Williams DO, PECOS gap
-Demo NPI 3 (BLOCKED): `1841498016` — Priya Nair MD, OIG exclusion pending
+**What unblocks a live demo:** an explicitly consented, founder-controlled clinician
+fixture — a real person who has agreed, in writing, to their record being shown. Until
+that exists, the product walkthrough stays deferred.
 
 ---
 
-### Step 3 — Share with employer (20s)
-Click "Share with employer" in Passport
+## Narrative (what the product does)
 
-Generates a shareable packet → `/interview?entityId=...`
+Describe the flow; do not perform it against a real registrant.
 
-**What to say**: "The clinician owns this profile. They share a packet link — the employer
-doesn't need to request documents. The packet inherits everything from the passport."
+1. **NPI is the identity anchor.** The clinician enters their own NPI. NPPES resolves
+   identity; the OIG/LEIE exclusion check and PECOS enrollment check run against federal
+   primary sources.
+2. **The passport is the portable record.** Identity, readiness items, trust posture
+   (score + band L0–L3 with a dimension breakdown), and a source-by-source detail view.
+   Trust posture is computed from verified primary sources — not an AI score.
+3. **The clinician shares, the employer receives.** One packet link; the employer does
+   not request documents.
+4. **The employer reviews a record, not a document pile.** Same posture the clinician
+   sees, plus accept-as-head-start / request-refresh / route-to-review.
+5. **Workforce context is enrichment.** Shortage geography and institutional coverage
+   inform; they never gate readiness.
 
----
-
-### Step 4 — Employer review (30s)
-Navigate to `/review/[entityId]`
-
-Show:
-- Trust Posture card (compact) — employer sees the same posture the clinician sees
-- Readiness status: READY / PARTIAL / BLOCKED
-- Verified vs. contextual distinction
-- Accept as head start / Request refresh / Route to review
-
-**What to say**: "The employer reviews the trust record, not a document pile. Trust posture
-tells them what's verified, what's missing, and what action to take. Accept as head start —
-that means: use this as your starting point, don't rebuild from scratch."
-
----
-
-### Step 5 — Global Map (optional, 30s)
-Navigate to `/intelligence?view=map`
-
-Show:
-- Shortage choropleth (HRSA HPSA)
-- Institution markers (readiness breakdown)
-- Toggle layers
-
-**What to say**: "Workforce context — shortage areas, institutional coverage, trust posture
-by geography. This is enrichment — it informs, it doesn't gate readiness."
+**What to say**: "This is the entire trust stack for a clinician — federal primary
+sources, no uploads, no forms, no committee. Every dimension is explainable and every
+source is named."
 
 ---
 
@@ -100,6 +78,8 @@ by geography. This is enrichment — it informs, it doesn't gate readiness."
 
 ## What to Avoid Saying
 
+- ❌ "Here's a demo clinician" while showing a real registrant's NPI — they did not consent
+- ❌ "Pre-seeded demo, READY" — seeded data must never be presented as a verified record
 - ❌ "AI-powered credentialing" — it's primary-source verification, not AI
 - ❌ "Fully automated credentialing" — trust posture informs, employers decide
 - ❌ "Board certification verified" — ABMS not yet integrated

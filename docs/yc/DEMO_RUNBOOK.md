@@ -65,13 +65,27 @@ node scripts/deploy-smoke.mjs --base https://vitalcv.com --sha "$(git rev-parse 
 | Employer boundary | Authorized test employer can access its packet; signed-out and cross-org attempts are denied without disclosure | ✅ anonymous half: all `/employer/*` routes 307 to sign-in (verified in prod 2026-07-27); authorized half ⬜ founder rehearsal |
 | Decision boundary | Employer sees a named remaining blocker and no copy claims credentialing is complete | ⬜ founder rehearsal |
 | Revocation/withdrawal | If demoed: the authorized actor can revoke or withdraw and prior history remains intact | ⬜ founder rehearsal |
-| Recording fallback | An unlisted, labeled, non-PHI walkthrough plays in a clean browser | ⬜ founder |
+| Founder recording (primary) | An unlisted, labeled, non-PHI founder-only walkthrough plays in a clean browser | ⬜ founder — this is the submission vehicle, not a fallback |
 
-**Open item — the fixture NPI.** The demo needs one designated non-PHI test NPI with predictable lane behavior. Prior pilot material used NPI `1003000126` (public NPPES data, a real provider); prefer a purpose-made test fixture if one exists, and record whichever identifier is used in the table above. This is a founder decision — do not improvise one on camera.
+**Resolved 2026-07-27 — the fixture NPI.** The product walkthrough is **deferred**. There is
+no NPI we are permitted to demo, so this submission uses a **founder-only recording** plus the
+honest product narrative in [`DEMO_SCRIPT_2026.md`](../DEMO_SCRIPT_2026.md).
+
+`1003000126` is not available and must not be used: it is ARDALAN ENKESHAFI, M.D., a real
+physician who never consented to being a demo subject. Prior material additionally attached
+three *different* fabricated names to that one NPI ("Sarah Chen", "Robert Smith", and a seeded
+production profile). Nine other real NPIs were seeded the same way, two of them Type-2
+*organization* NPIs given fabricated person identities.
+
+A live walkthrough returns only when there is an **explicitly consented, founder-controlled
+clinician fixture** — a real person who has agreed in writing. Do not improvise a subject on
+camera, and do not substitute another real NPI.
 
 ## If the authenticated rehearsal cannot pass
 
-Do not improvise a workaround or weaken authorization. Submit with the truthful public NPI walkthrough and the labeled fallback recording. State that VitalCV is validating the clinician-to-employer pilot transaction; do not imply a completed commercial deployment.
+Do not improvise a workaround or weaken authorization. Submit with the founder-only recording
+and the honest product narrative. State that VitalCV is validating the clinician-to-employer
+pilot transaction; do not imply a completed commercial deployment.
 
 ## Claims to avoid on camera
 

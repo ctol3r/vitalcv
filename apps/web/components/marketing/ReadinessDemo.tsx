@@ -19,7 +19,7 @@ import Link from 'next/link';
 
 const PROFILES = [
   {
-    name: 'Dr. Sarah Chen',
+    name: 'Example Clinician A',
     title: 'Emergency Medicine · MD · California',
     npi: '1234567890',
     score: 84,
@@ -39,7 +39,7 @@ const PROFILES = [
     ring: 'ring-emerald-500/30',
   },
   {
-    name: 'Dr. Marcus Williams',
+    name: 'Example Clinician B',
     title: 'Internal Medicine · MD · Texas',
     npi: '9876543210',
     score: 71,
@@ -58,7 +58,7 @@ const PROFILES = [
     ring: 'ring-amber-500/30',
   },
   {
-    name: 'Dr. Priya Nair',
+    name: 'Example Clinician C',
     title: 'Anesthesiology · MD · New York',
     npi: '1111111111',
     score: 96,

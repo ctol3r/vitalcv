@@ -85,7 +85,7 @@ export function WidgetDemoFlow() {
             </div>
 
             <ApplyWithVitalCVResult 
-              candidateName="Dr. Sarah Chen"
+              candidateName="Example Clinician A"
               readinessScore={98}
               trustLevel="L3"
             />
