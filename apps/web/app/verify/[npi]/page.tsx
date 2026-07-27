@@ -24,7 +24,8 @@ import { IssuerContinuityPanel } from '@/components/verifier/IssuerContinuityPan
 import { ReplayChronologyPanel } from '@/components/verifier/ReplayChronologyPanel';
 import { ClinicianRecordDetail } from '@/components/clinician-record/ClinicianRecordDetail';
 import { fetchNppesRecord } from '@/lib/clinician-record/nppes';
-import { buildClinicianRecord } from '@/lib/clinician-record/build';
+import { buildClinicianRecord, attachMedicareEnrollment } from '@/lib/clinician-record/build';
+import { fetchCmsClinicianRows } from '@/lib/clinician-record/cmsClinicians';
 import type { LaneSnapshot } from '@/components/proof/trust-types';
 import { VerdictSplit, type VerdictItem } from '@/design-system/components';
 import type { PassportData } from '@/lib/trust/passport-contract';
@@ -244,10 +245,11 @@ export default async function VerifierPage({
   // The CMS read runs alongside the passport fetch rather than after it —
   // they are independent, and serialising them would add a round trip to a
   // page whose whole point is being readable in under 30 seconds.
-  const [passport, acceptanceHistory, nppes] = await Promise.all([
+  const [passport, acceptanceHistory, nppes, cmsClinicians] = await Promise.all([
     fetchPassport(npi),
     fetchAcceptanceHistory(npi),
     fetchNppesRecord(npi),
+    fetchCmsClinicianRows(npi),
   ]);
 
   if (!passport) {
@@ -259,7 +261,11 @@ export default async function VerifierPage({
   // a credentialing page reads as "this provider filed nothing", which is a
   // different and much worse claim than "we could not read CMS".
   const clinicianRecord = nppes
-    ? buildClinicianRecord(nppes.reading, { retrievedAt: nppes.retrievedAt })
+    ? attachMedicareEnrollment(
+        buildClinicianRecord(nppes.reading, { retrievedAt: nppes.retrievedAt }),
+        cmsClinicians,
+        nppes.reading,
+      )
     : null;
 
   // Derive lane snapshots from source coverage

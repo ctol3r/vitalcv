@@ -73,6 +73,21 @@ export const NPPES_SOURCE: SourceDescriptor = {
   note: 'NPPES republishes what the provider submitted to CMS. CMS does not check these details against a licensing board, so this establishes what was filed, not that it is accurate.',
 };
 
+export const CMS_CLINICIANS_SOURCE: SourceDescriptor = {
+  id: 'DOCTORS_CLINICIANS',
+  label: 'CMS Doctors & Clinicians (Medicare enrollment)',
+  url: 'https://data.cms.gov/provider-data/dataset/mj5m-pzi6',
+  tier: 'GOLD',
+  freshnessWindowHours: 744,
+  // The catalog rules this enrichment-only. It may be shown; it may not gate
+  // a readiness decision.
+  decisionGrade: false,
+  // Unlike NPPES, this is CMS reporting from its own enrollment records
+  // rather than republishing a provider's submission.
+  maxConfirmation: 'source_confirmed',
+  note: 'CMS publishes this from its Medicare enrollment records, so listing here is evidence of Medicare enrollment. It is not a licence check and says nothing about exclusions. A clinician who does not bill Medicare is legitimately absent.',
+};
+
 export const VITALCV_DERIVED_SOURCE: SourceDescriptor = {
   id: 'VITALCV_DERIVED',
   label: 'Derived by VitalCV',
@@ -95,5 +110,6 @@ export const VITALCV_DERIVED_SOURCE: SourceDescriptor = {
 export const CLINICIAN_RECORD_SOURCES: Readonly<Record<string, SourceDescriptor>> =
   Object.freeze({
     [NPPES_SOURCE.id]: NPPES_SOURCE,
+    [CMS_CLINICIANS_SOURCE.id]: CMS_CLINICIANS_SOURCE,
     [VITALCV_DERIVED_SOURCE.id]: VITALCV_DERIVED_SOURCE,
   });

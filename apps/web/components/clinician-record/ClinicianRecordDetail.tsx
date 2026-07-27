@@ -280,6 +280,7 @@ export function ClinicianRecordDetail({
     record.practiceAddress,
     record.identifiers,
     record.audit,
+    ...(record.medicareEnrollment ? [record.medicareEnrollment] : []),
   ];
   const uniform = new Set(allSections.map(provenanceKey)).size === 1;
   const strip = (section: RecordSection<unknown>) =>
@@ -463,6 +464,104 @@ export function ClinicianRecordDetail({
           </div>
         )}
       </Group>
+
+      {/* ── Medicare enrollment (CMS Doctors & Clinicians) ─────────────
+          The one section on this record sourced from CMS's own enrollment
+          records rather than a provider submission, so it is the only place
+          the confirmation chip reads 'Confirmed by source'. */}
+      {record.medicareEnrollment ? (
+        <Group
+          title="Medicare enrollment"
+          subtitle="Published by CMS from its Medicare enrollment records. Enrollment is not licensure, and this says nothing about exclusions."
+        >
+          <SourceStrip section={record.medicareEnrollment} />
+          {record.medicareEnrollment.data.state === 'enrolled' ? (
+            <div className="mz-card px-4 py-3">
+              <dl className="grid grid-cols-1 gap-x-6 sm:grid-cols-2 lg:grid-cols-3">
+                <Field
+                  label="Medical school"
+                  value={record.medicareEnrollment.data.medicalSchool}
+                  hint="As recorded by CMS at enrollment."
+                />
+                <Field
+                  label="Graduation year"
+                  value={record.medicareEnrollment.data.graduationYear}
+                  mono
+                />
+                <Field
+                  label="Accepts Medicare assignment"
+                  value={
+                    record.medicareEnrollment.data.acceptsAssignment === null
+                      ? ''
+                      : record.medicareEnrollment.data.acceptsAssignment
+                        ? 'Yes'
+                        : 'No'
+                  }
+                />
+                <Field
+                  label="CMS primary specialty"
+                  value={record.medicareEnrollment.data.primarySpecialty}
+                  hint="CMS's own classification, which may differ from the NPPES taxonomy above."
+                />
+                <Field
+                  label="CMS secondary specialties"
+                  value={record.medicareEnrollment.data.secondarySpecialties.join(', ')}
+                  optional
+                />
+                <Field
+                  label="PECOS enrollment ID"
+                  value={record.medicareEnrollment.data.individualEnrollmentId}
+                  mono
+                  optional
+                />
+              </dl>
+
+              {record.medicareEnrollment.data.affiliations.length > 0 ? (
+                <div className="mt-3 border-t border-[var(--rule-soft)] pt-3">
+                  <div className="mz-mono text-[9.5px] uppercase tracking-[0.12em] text-[var(--vt-text-muted)]">
+                    Group practices billed under
+                  </div>
+                  <ul className="mt-1.5 space-y-1">
+                    {record.medicareEnrollment.data.affiliations.map((a) => (
+                      <li key={a.organizationPacId || a.facilityName} className="text-sm text-[var(--ink-800)]">
+                        {a.facilityName}
+                        <span className="ml-2 text-xs text-[var(--ink-600)]">
+                          {[
+                            a.memberCount ? `${a.memberCount} clinicians` : '',
+                            a.locations > 1 ? `${a.locations} locations` : '',
+                          ]
+                            .filter(Boolean)
+                            .join(' · ')}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+
+              {record.medicareEnrollment.data.surnameAgreesWithNppes === false ? (
+                <p
+                  className="mt-3 rounded-[3px] border px-3 py-2 text-[12px] leading-relaxed text-[var(--ink-800)]"
+                  style={{ background: 'var(--watch-bg)', borderColor: 'var(--watch-rule)' }}
+                >
+                  The surname CMS holds for this NPI in its Medicare enrollment
+                  file does not match the NPPES filing. That usually means a name
+                  change or a stale enrollment record, but it is worth resolving
+                  before relying on either.
+                </p>
+              ) : null}
+            </div>
+          ) : (
+            <EmptyBlock
+              message={
+                record.medicareEnrollment.data.state === 'not_listed'
+                  ? 'Not listed in the CMS Medicare enrollment file. This is not a negative finding — clinicians who do not bill Medicare are legitimately absent.'
+                  : 'The CMS enrollment file could not be read just now. This is not a finding about the clinician.'
+              }
+            />
+          )}
+        </Group>
+      ) : null}
 
       {/* ── Locations ─────────────────────────────────────────────────── */}
       <Group title="Locations">

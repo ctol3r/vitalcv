@@ -151,6 +151,38 @@ export interface RecordGap {
   fillable: boolean;
 }
 
+/** Medicare enrollment as CMS publishes it, when the clinician is listed. */
+export interface RecordMedicareEnrollment {
+  /**
+   * 'enrolled' | 'not_listed' | 'unavailable'.
+   *
+   * `not_listed` is NOT a negative finding — clinicians who do not bill
+   * Medicare are legitimately absent — and `unavailable` means we could not
+   * ask, which is different again.
+   */
+  state: 'enrolled' | 'not_listed' | 'unavailable';
+  medicalSchool: string;
+  graduationYear: string;
+  primarySpecialty: string;
+  secondarySpecialties: string[];
+  /** Distinct group practices, deduplicated across practice addresses. */
+  affiliations: Array<{
+    facilityName: string;
+    organizationPacId: string;
+    memberCount: string;
+    locations: number;
+  }>;
+  /** Null when CMS reported no assignment flag either way. */
+  acceptsAssignment: boolean | null;
+  individualPacId: string;
+  individualEnrollmentId: string;
+  /**
+   * Whether the surname CMS holds matches the NPPES filing. Null when either
+   * side has no surname to compare. False is worth a reader's attention.
+   */
+  surnameAgreesWithNppes: boolean | null;
+}
+
 export interface ClinicianRecord {
   npi: string;
   /** NPI-1 => individual, NPI-2 => organization. */
@@ -196,6 +228,12 @@ export interface ClinicianRecord {
    * the false impression to avoid.
    */
   gaps: RecordGap[];
+
+  /**
+   * Medicare enrollment, when the CMS Doctors & Clinicians connector ran.
+   * Null when it was never attempted.
+   */
+  medicareEnrollment: RecordSection<RecordMedicareEnrollment> | null;
 
   /** Every source cited anywhere on this record, for a provenance footer. */
   citedSources: SourceDescriptor[];

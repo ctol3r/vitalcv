@@ -14,7 +14,8 @@
 
 import { headers } from 'next/headers';
 import { fetchNppesRecord } from './nppes';
-import { buildClinicianRecord } from './build';
+import { buildClinicianRecord, attachMedicareEnrollment } from './build';
+import { fetchCmsClinicianRows } from './cmsClinicians';
 import type { ClinicianRecord } from './types';
 
 const BACKEND =
@@ -72,11 +73,15 @@ export async function loadOwnerRecord(): Promise<OwnerRecordResult> {
   const nppes = await fetchNppesRecord(npi);
   if (!nppes) return { state: 'registry_unavailable', npi };
 
+  const cms = await fetchCmsClinicianRows(npi);
+
   return {
     state: 'ready',
     npi,
-    record: buildClinicianRecord(nppes.reading, {
-      retrievedAt: nppes.retrievedAt,
-    }),
+    record: attachMedicareEnrollment(
+      buildClinicianRecord(nppes.reading, { retrievedAt: nppes.retrievedAt }),
+      cms,
+      nppes.reading,
+    ),
   };
 }

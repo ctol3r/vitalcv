@@ -25,7 +25,8 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ClinicianRecordDetail } from '@/components/clinician-record/ClinicianRecordDetail';
 import { fetchNppesRecord } from '@/lib/clinician-record/nppes';
-import { buildClinicianRecord } from '@/lib/clinician-record/build';
+import { buildClinicianRecord, attachMedicareEnrollment } from '@/lib/clinician-record/build';
+import { fetchCmsClinicianRows } from '@/lib/clinician-record/cmsClinicians';
 import { DIRECTORY_CONTEXT_NOTE } from '@/lib/clinician-record/copy';
 
 /**
@@ -79,9 +80,16 @@ export default async function ProviderDirectoryPage({ params }: PageProps) {
   const nppes = await fetchNppesRecord(npi);
   if (!nppes) notFound();
 
-  const record = buildClinicianRecord(nppes.reading, {
-    retrievedAt: nppes.retrievedAt,
-  });
+  // The Medicare lookup runs alongside nothing else here, but is deliberately
+  // attached AFTER the base record exists: a slow or failed second federal
+  // source must never be able to take the primary record off the page.
+  const cms = await fetchCmsClinicianRows(npi);
+
+  const record = attachMedicareEnrollment(
+    buildClinicianRecord(nppes.reading, { retrievedAt: nppes.retrievedAt }),
+    cms,
+    nppes.reading,
+  );
 
   const primary = record.taxonomies.data[0];
   const address = record.practiceAddress.data;

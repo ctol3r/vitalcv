@@ -13,7 +13,19 @@
 import { buildCanonicalSourceCoverageFreshness } from '@vitalcv/trust-state';
 import { describeTaxonomies, selfReportedLicenseStates } from '@/lib/reference/taxonomy';
 import { decodeCredential } from '@/lib/reference/credentials';
-import { NPPES_SOURCE, VITALCV_DERIVED_SOURCE, type SourceDescriptor } from './sources';
+import {
+  NPPES_SOURCE,
+  VITALCV_DERIVED_SOURCE,
+  CMS_CLINICIANS_SOURCE,
+  type SourceDescriptor,
+} from './sources';
+import {
+  acceptsMedicareAssignment,
+  distinctAffiliations,
+  surnameAgreesWithNppes,
+  trainingFromRows,
+  type CmsCliniciansResult,
+} from './cmsClinicians';
 import type {
   ClinicianRecord,
   FieldProvenance,
@@ -415,10 +427,83 @@ export function buildClinicianRecord(
 
     gaps: detectGaps(reading, taxonomies.length),
 
+    // Attached separately by attachMedicareEnrollment; null means the
+    // connector was never run, which is different from it running and
+    // finding nothing.
+    medicareEnrollment: null,
+
     // Medicare specialty codes are derived, so the derived source is cited
     // whenever any taxonomy resolved to one.
     citedSources: taxonomies.some((t) => t.medicareSpecialties.length > 0)
       ? [NPPES_SOURCE, VITALCV_DERIVED_SOURCE]
       : [NPPES_SOURCE],
+  };
+}
+
+/**
+ * Attach a CMS Doctors & Clinicians reading to a record.
+ *
+ * Separate from buildClinicianRecord so the NPPES record still renders when
+ * this source is slow or down — a second federal lookup must never be able to
+ * take the primary record off the page.
+ *
+ * The Medicare-enrollment gap is removed only on a definitive `enrolled`
+ * answer. `not_listed` and `unavailable` both leave it in place, for opposite
+ * reasons: one means the clinician genuinely is not in the file, the other
+ * means we could not ask, and neither is coverage.
+ */
+export function attachMedicareEnrollment(
+  record: ClinicianRecord,
+  result: CmsCliniciansResult,
+  reading: Pick<NppesReading, 'last_name'>,
+  now: Date = new Date(),
+): ClinicianRecord {
+  const provenance = provenanceFor(
+    CMS_CLINICIANS_SOURCE,
+    // CMS publishes this file monthly and does not stamp a per-row
+    // observation date, so the retrieval time is the only date we can
+    // honestly claim.
+    null,
+    result.retrievedAt,
+  );
+  const freshness = freshnessFor(
+    CMS_CLINICIANS_SOURCE,
+    null,
+    result.retrievedAt,
+    now,
+  );
+
+  const training = trainingFromRows(result.rows);
+  const first = result.rows[0];
+
+  const section = {
+    data: {
+      state: result.state,
+      medicalSchool: training.medicalSchool,
+      graduationYear: training.graduationYear,
+      primarySpecialty: first?.primarySpecialty ?? '',
+      secondarySpecialties: [
+        ...new Set(result.rows.flatMap((r) => r.secondarySpecialties)),
+      ],
+      affiliations: distinctAffiliations(result.rows),
+      acceptsAssignment: acceptsMedicareAssignment(result.rows),
+      individualPacId: first?.individualPacId ?? '',
+      individualEnrollmentId: first?.individualEnrollmentId ?? '',
+      surnameAgreesWithNppes: surnameAgreesWithNppes(result.rows, reading),
+    },
+    provenance,
+    freshness,
+  };
+
+  const gaps =
+    result.state === 'enrolled'
+      ? record.gaps.filter((g) => g.label !== 'Medicare enrollment')
+      : record.gaps;
+
+  return {
+    ...record,
+    medicareEnrollment: section,
+    gaps,
+    citedSources: [...record.citedSources, CMS_CLINICIANS_SOURCE],
   };
 }

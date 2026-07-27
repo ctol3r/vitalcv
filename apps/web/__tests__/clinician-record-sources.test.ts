@@ -20,6 +20,7 @@ import { join } from 'node:path';
 import {
   CLINICIAN_RECORD_SOURCES,
   NPPES_SOURCE,
+  CMS_CLINICIANS_SOURCE,
 } from '@/lib/clinician-record/sources';
 
 const CATALOG_PATH = join(
@@ -72,6 +73,20 @@ describe('clinician-record source mirror', () => {
     expect(NPPES_SOURCE.decisionGrade).toBe(catalog.decisionGrade);
   });
 
+  it('matches the backend catalog for CMS Doctors & Clinicians', () => {
+    const catalog = readCatalogEntry('DOCTORS_CLINICIANS');
+    expect(CMS_CLINICIANS_SOURCE.tier).toBe(catalog.tier);
+    expect(CMS_CLINICIANS_SOURCE.freshnessWindowHours).toBe(catalog.refreshSlaHours);
+    expect(CMS_CLINICIANS_SOURCE.decisionGrade).toBe(catalog.decisionGrade);
+  });
+
+  it('keeps CMS Doctors & Clinicians out of decision grade', () => {
+    // The catalog rules this enrichment-only. If it ever flips true here
+    // without the catalog agreeing, an enrollment listing starts gating
+    // readiness -- and enrollment is not licensure.
+    expect(CMS_CLINICIANS_SOURCE.decisionGrade).toBe(false);
+  });
+
   it('only mirrors sources that exist in the catalog', () => {
     const src = readFileSync(CATALOG_PATH, 'utf8');
     for (const source of Object.values(CLINICIAN_RECORD_SOURCES)) {
@@ -103,6 +118,7 @@ describe('clinician-record source mirror', () => {
     // Federal connectors get added here only when they actually run. An
     // entry with no connector would render as coverage we do not have.
     expect(Object.keys(CLINICIAN_RECORD_SOURCES).sort()).toEqual([
+      'DOCTORS_CLINICIANS',
       'NPPES_API',
       'VITALCV_DERIVED',
     ]);
