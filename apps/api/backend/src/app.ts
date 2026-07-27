@@ -1783,6 +1783,14 @@ function registerHealthRoutes(app: Express): void {
       metrics: requestLatencyMetrics.snapshot(),
       git_branch: process.env.RAILWAY_GIT_BRANCH ?? null,
       git_sha: process.env.RAILWAY_GIT_COMMIT_SHA ?? null,
+      // The container's Node version decides whether a CommonJS `require()`
+      // can load an ESM-only dependency: `require(esm)` exists from 22.12.
+      // Two outages on 2026-07-27 (jose v6, @noble/post-quantum) turned on
+      // this exact number, and both times it had to be INFERRED from an
+      // ERR_REQUIRE_ESM in the logs because nothing reported it. `nixpacks.toml`
+      // pins `nodejs_22` while its own comment claims ">= 22.12" — publishing
+      // the real value is how that claim stops being unfalsifiable.
+      node_version: process.version,
     });
   });
 
