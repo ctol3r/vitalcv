@@ -157,7 +157,24 @@ export default function StatusPage() {
           </div>
         </section>
 
-        {/* Connector matrix — per-source state, observation, and operator interpretation */}
+        {/*
+          Two tables on this page describe sources, on two different axes, and
+          a reader who does not know that will read them as contradicting each
+          other. The connector matrix answers "what can an anonymous visitor
+          get"; the source-lane telemetry further down answers "is the lane
+          wired and returning data", and is derived from the same registry
+          /api/status serves. OIG can legitimately be a monthly snapshot in one
+          and `active / operational` in the other. Each is labelled.
+        */}
+        <p className="text-[10px] leading-relaxed text-gray-500">
+          <strong className="text-gray-400">Access boundary.</strong>{' '}
+          The matrix below describes what an <em>anonymous</em> visitor can obtain from each
+          connector. Whether a lane is wired and returning data at all is a different question,
+          answered by <span className="font-mono">source lane operational telemetry</span> further
+          down this page and by{' '}
+          <Link href="/api/status" className="underline hover:text-gray-300">/api/status</Link>.
+          A lane can be fully operational here and still require something of the caller.
+        </p>
         <ConnectorMatrix />
 
         <section
@@ -200,7 +217,16 @@ export default function StatusPage() {
         {/* Live status board */}
         <LiveTrustStatusBoard />
 
-        {/* Source lane telemetry */}
+        {/* Source lane telemetry — derived from SOURCE_LANE_OPS, the same
+            registry /api/status serves. See the axis note above the connector
+            matrix for why the two tables can differ without contradicting. */}
+        <p className="text-[10px] leading-relaxed text-gray-500">
+          <strong className="text-gray-400">Lane capability.</strong>{' '}
+          Derived from the same source registry{' '}
+          <Link href="/api/status" className="underline hover:text-gray-300">/api/status</Link>{' '}
+          publishes, so the two always agree. This is whether a lane is wired and returning data —
+          not what an anonymous visitor can retrieve, which is the connector matrix above.
+        </p>
         <SourceLaneTelemetry />
 
         {/* Chronology integrity */}
