@@ -4,6 +4,17 @@ import { DEMO_ENTITY_ID } from '@/lib/demo/demo-passport';
 export const metadata = {
   title: 'Live Demo · VitalCV',
   description: 'Explore the VitalCV Provider Career Evidence Network with a source-backed sample clinician — ecosystem, recruiter review, career intelligence, and proof packet.',
+  /**
+   * W0.4: demo surfaces are not indexable.
+   *
+   * The page is honest on its face — it says the clinician is a curated
+   * example and that sample data is demo data. But it shipped `index, follow`,
+   * so a search engine could surface a sample clinician's ecosystem, recruiter
+   * review, or proof packet as a VitalCV result, stripped of the surrounding
+   * "this is a demo" framing. The /design/* prototypes already set this;
+   * /demo was the one that did not.
+   */
+  robots: { index: false, follow: false },
 };
 
 const id = encodeURIComponent(DEMO_ENTITY_ID);

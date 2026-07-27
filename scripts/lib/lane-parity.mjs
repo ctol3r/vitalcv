@@ -30,12 +30,22 @@ const API_AVAILABLE = new Set(['operational']);
 /** Rendered /status lifecycles that mean "this lane returns real data". */
 const PAGE_AVAILABLE = new Set(['active', 'partial']);
 
-/** Every lifecycle the register may render. Anything else is a contract break. */
+/**
+ * Every lifecycle a public surface may render. Anything else is a contract
+ * break and fails closed rather than being guessed at.
+ *
+ * Two surfaces render lanes and they use slightly different vocabularies:
+ * `/status` goes through `register.ts`, which folds `demo_only` into
+ * `unintegrated`; `/status/technical` renders `SOURCE_LANE_OPS.lifecycle`
+ * verbatim and so can emit `demo_only`. Both are unavailable, so both are
+ * accepted here and neither is in PAGE_AVAILABLE.
+ */
 const KNOWN_PAGE_LIFECYCLES = new Set([
   'active',
   'partial',
   'planned',
   'unintegrated',
+  'demo_only',
 ]);
 
 /** Every status /api/status may publish. Anything else is a contract break. */
@@ -82,9 +92,13 @@ export function parseApiLanes(payload) {
 /**
  * Compare the two surfaces.
  *
+ * `surface` only names the page in problem messages — two surfaces render
+ * lanes, and a failure that says "/status" while /status/technical is the
+ * broken one sends whoever is unblocking the release to the wrong file.
+ *
  * @returns {{ok: boolean, checked: number, problems: string[]}}
  */
-export function compareLaneParity(renderedLanes, apiLanes) {
+export function compareLaneParity(renderedLanes, apiLanes, surface = '/status') {
   const problems = [];
   const apiKeys = Object.keys(apiLanes);
   const renderedKeys = Object.keys(renderedLanes);
@@ -94,7 +108,7 @@ export function compareLaneParity(renderedLanes, apiLanes) {
   }
   if (renderedKeys.length === 0) {
     problems.push(
-      '/status rendered no data-lane-key rows (page did not deploy, or the parity contract was removed)',
+      `${surface} rendered no data-lane-key rows (page did not deploy, or the parity contract was removed)`,
     );
   }
 
@@ -102,12 +116,12 @@ export function compareLaneParity(renderedLanes, apiLanes) {
   // that is precisely how PECOS went missing from /status historically.
   for (const key of apiKeys) {
     if (!(key in renderedLanes)) {
-      problems.push(`${key}: in /api/status but not rendered on /status`);
+      problems.push(`${key}: in /api/status but not rendered on ${surface}`);
     }
   }
   for (const key of renderedKeys) {
     if (!(key in apiLanes)) {
-      problems.push(`${key}: rendered on /status but absent from /api/status`);
+      problems.push(`${key}: rendered on ${surface} but absent from /api/status`);
     }
   }
 

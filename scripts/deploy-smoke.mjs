@@ -14,8 +14,9 @@
  * Checks:
  *  - /api/version: service=web, platform=railway, environment=production,
  *    branch=main, commit matches --sha when given
- *  - source-lane parity: every lane in /api/status agrees with the lane
- *    rendered on /status about whether it is available (W0.5)
+ *  - source-lane parity: every lane in /api/status agrees with the lanes
+ *    rendered on BOTH /status and /status/technical about whether it is
+ *    available (W0.5)
  *  - /api/health/auth: HTTP 200 + status "ok" (fail-closed auth config;
  *    --allow-missing-auth-health tolerates 404 until Wave 0.1 is deployed)
  *  - /api/health/db: HTTP 200 + db "ok" (web→database connectivity — the
@@ -185,15 +186,35 @@ try {
   try { apiPayload = JSON.parse(statusApi.body); } catch { /* reported below */ }
   record('api-status: HTTP 200 + JSON', statusApi.status === 200 && apiPayload !== null, `HTTP ${statusApi.status}`);
 
-  const renderedLanes = parseRenderedLanes(statusPage.body);
   const apiLanes = parseApiLanes(apiPayload);
-  const parity = compareLaneParity(renderedLanes, apiLanes);
+  const parity = compareLaneParity(parseRenderedLanes(statusPage.body), apiLanes);
   record(
     'source lanes: /status agrees with /api/status',
     parity.ok,
     parity.ok
       ? `${parity.checked} lanes agree`
       : parity.problems.join('; '),
+  );
+
+  // 6b. /status/technical publishes the SAME lanes to a technical buyer, from
+  //     a different component. It is where the drift actually survived: it
+  //     rendered OIG and PECOS as "PENDING INTEGRATION" while the registry,
+  //     /api/status and /status all had them operational, plus a seventh
+  //     `dea_registration` lane that existed nowhere else (fixed in #917).
+  //     Checking only /status would have missed every bit of that.
+  const technicalPage = await get('/status/technical');
+  record('/status/technical: HTTP 200', technicalPage.status === 200, `HTTP ${technicalPage.status}`);
+  const technicalParity = compareLaneParity(
+    parseRenderedLanes(technicalPage.body),
+    apiLanes,
+    '/status/technical',
+  );
+  record(
+    'source lanes: /status/technical agrees with /api/status',
+    technicalParity.ok,
+    technicalParity.ok
+      ? `${technicalParity.checked} lanes agree`
+      : technicalParity.problems.join('; '),
   );
 } catch (error) {
   record('smoke: network', false, String(error && error.message ? error.message : error));

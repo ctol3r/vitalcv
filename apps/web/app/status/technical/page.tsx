@@ -17,9 +17,21 @@ import { ConnectorMatrix } from '@/components/status/ConnectorMatrix';
 import { buildAdapterMatrix } from '@/lib/authority/adapterMatrix';
 import { buildDataClassificationFoundation } from '@/lib/security/dataClassificationFoundation';
 import { buildRetentionFoundation } from '@/lib/security/retentionFoundation';
+import { getVersionInfo } from '@/lib/deployInfo';
 
-// Bound external shared-cache staleness to 5 min (see app/page.tsx note).
-export const revalidate = 300;
+/**
+ * W0.2: rendered per request, like /status.
+ *
+ * This was `revalidate = 300`, which a CDN served as
+ * `s-maxage=300, stale-while-revalidate=31535700`. That was tolerable while
+ * the page showed no build provenance. It is not tolerable now that it prints
+ * `build <sha>`: a cached copy would attribute the running release's telemetry
+ * to whatever commit happened to be live when the page was generated — a
+ * stale-but-confident answer on the one surface that promises independent
+ * verifiability. The page renders pure in-process foundation builders, so
+ * per-request rendering costs a few function calls, not a fetch.
+ */
+export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
   title: 'Technical Status · VitalCV',
@@ -99,6 +111,7 @@ export default function StatusPage() {
   const dataClassification = buildDataClassificationFoundation();
   const retention = buildRetentionFoundation();
   const authority = buildAdapterMatrix();
+  const version = getVersionInfo();
 
   return (
     <div className="min-h-screen bg-gray-950 text-gray-100 font-mono">
@@ -111,6 +124,18 @@ export default function StatusPage() {
             </h1>
             <p className="mt-1 text-[10px] text-gray-500">
               External observability surface — independently verifiable
+            </p>
+            {/*
+              W0.2 build provenance. This page carried no build marker at all,
+              so a reader could not tell whether its telemetry described the
+              running release or a cached older one — on a page whose entire
+              claim is "independently verifiable". /status has published
+              `build <sha>` from runtime all along; this is the same value from
+              the same source, never a literal.
+            */}
+            <p className="mt-1 text-[10px] text-gray-600">
+              build {version.commitShort ?? 'unknown'}
+              {version.builtAt ? ` · built ${version.builtAt}` : ''}
             </p>
           </div>
           <Link

@@ -98,7 +98,18 @@ export function SourceLaneTelemetry({ lanes = LANE_LIFECYCLE }: SourceLaneTeleme
           {lanes.map((lane) => {
             const { label, cls } = statusDisplay(lane.status);
             return (
-              <tr key={lane.laneId} className="hover:bg-gray-900/40">
+              // data-lane-* is the W0.5 parity contract: it lets the
+              // post-deploy prober join this table to /api/status and fail the
+              // deploy if the two disagree. #917 made that drift
+              // unrepresentable in source; this makes it detectable in the
+              // DEPLOYED artifact too, which is the case a unit test cannot
+              // reach (a half-deployed release serving one stale surface).
+              <tr
+                key={lane.laneId}
+                className="hover:bg-gray-900/40"
+                data-lane-key={lane.laneId}
+                data-lane-lifecycle={lane.lifecycle}
+              >
                 <td className="px-4 py-1.5 text-[11px] text-gray-200">{lane.displayName}</td>
                 <td className="px-4 py-1.5 text-[10px] text-gray-500">
                   {lifecycleLabel(lane.lifecycle)}
