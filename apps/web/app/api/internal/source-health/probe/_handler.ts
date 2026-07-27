@@ -56,7 +56,8 @@ export async function handleProbe(
   // rather than a failed probe. The probe's job is reporting source health; a
   // storage problem must not masquerade as a source problem.
   const record = deps.recordSamples ?? recordAvailabilitySamples;
-  const ledger = await record(result.snapshots, readProbeSource(req));
+  const probeSource = readProbeSource(req);
+  const ledger = await record(result.snapshots, probeSource);
 
   return NextResponse.json(
     {
@@ -65,7 +66,20 @@ export async function handleProbe(
       errors: result.errors,
       // Surfaced so a silently-failing ledger is visible in the probe's own
       // output instead of only discoverable by noticing missing rows weeks later.
-      ledger: { written: ledger.written, failed: ledger.failed, ...(ledger.reason ? { reason: ledger.reason } : {}) },
+      //
+      // `source` echoes the label these rows were STORED under. Without it the
+      // attribution is unobservable from outside the database: a caller that
+      // forgets `?source=` silently writes `manual`, and the mistake only shows
+      // up when the 30-day availability figure is computed off a ledger that
+      // cannot tell scheduled observation from a burst of deploy probes.
+      // Echoing it means one curl proves the wiring, instead of reading the
+      // workflow, the script and the parser and trusting they agree.
+      ledger: {
+        written: ledger.written,
+        failed: ledger.failed,
+        source: probeSource,
+        ...(ledger.reason ? { reason: ledger.reason } : {}),
+      },
     },
     { status: 200 },
   );
