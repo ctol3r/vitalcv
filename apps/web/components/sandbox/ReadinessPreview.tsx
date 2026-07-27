@@ -10,7 +10,7 @@ interface ReadinessPreviewProps {
 
 export default function ReadinessPreview({ npi, onClick }: ReadinessPreviewProps) {
   const isPlaceholder = !npi || npi.length !== 10;
-  const displayNpi = isPlaceholder ? "1003000126" : npi;
+  const displayNpi = isPlaceholder ? "0000000000" : npi;
 
   return (
     <div
