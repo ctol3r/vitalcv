@@ -177,3 +177,28 @@ model AuditEvent {
   @@index([anchored])
   @@index([merkleRoot])
 }
+
+/// D4 — probe-observed availability ledger. MIRROR of the backend model.
+///
+/// apps/web/prisma/schema.prisma has NO migrations directory: railway.toml runs
+/// `prisma migrate deploy` against apps/api/backend ONLY. Both schemas point at
+/// the same DATABASE_URL, so every model here is a client-side VIEW of a table
+/// the backend migration created. Adding a model here alone would generate a
+/// client for a table that does not exist.
+///
+/// Keep in sync with apps/api/backend/prisma/schema.prisma → AvailabilitySample
+/// and migration 20260727000000_availability_samples.
+model AvailabilitySample {
+  id          String   @id @default(uuid()) @db.Uuid
+  laneId      String   @map("lane_id")
+  ok          Boolean
+  state       String
+  latencyMs   Int?     @map("latency_ms")
+  probeSource String   @map("probe_source")
+  observedAt  DateTime @map("observed_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([laneId, observedAt])
+  @@index([observedAt])
+  @@map("availability_samples")
+}
