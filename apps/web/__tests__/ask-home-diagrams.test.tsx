@@ -96,7 +96,11 @@ describe('motion is explain-on-entry, then rest', () => {
   it('the stylesheet animates only under prefers-reduced-motion: no-preference', async () => {
     const { readFileSync } = await import('node:fs');
     const { join } = await import('node:path');
-    const css = readFileSync(join(__dirname, '..', 'styles', 'ask-home.css'), 'utf8');
+    // The animation references moved from ask-home.css to the shared
+    // artifact-motion.css when the pattern went site-wide (employers, trust,
+    // pilot). The contract is unchanged; only the file carrying it moved.
+    const css = readFileSync(join(__dirname, '..', 'styles', 'artifact-motion.css'), 'utf8');
+    const askCss = readFileSync(join(__dirname, '..', 'styles', 'ask-home.css'), 'utf8');
     const motion = readFileSync(join(__dirname, '..', 'styles', 'motion.css'), 'utf8');
 
     // Every ask-art animation REFERENCE must sit inside the no-preference
@@ -106,16 +110,20 @@ describe('motion is explain-on-entry, then rest', () => {
     expect(noPref).toContain('ask-art-draw');
     const outside = css.replace(noPref, '');
     expect(outside).not.toMatch(/animation:.*ask-art/);
+    // ...and ask-home.css may no longer carry ANY animation reference — a
+    // rule reintroduced there would dodge the guard above.
+    expect(askCss).not.toMatch(/animation:.*ask-art/);
 
     // The DEFINITIONS live in the house motion file — the one place LINT-03
-    // permits keyframe definitions — and only there. Both are loaded by
-    // app/page.tsx, so a reference here always has its definition.
+    // permits keyframe definitions — and only there.
     expect(css).not.toMatch(/@keyframes/);
+    expect(askCss).not.toMatch(/@keyframes/);
     expect(motion).toContain('@keyframes ask-art-appear');
     expect(motion).toContain('@keyframes ask-art-draw');
 
-    // CD-11: nothing idles. One play, no loop, in either file.
+    // CD-11: nothing idles. One play, no loop, in any of the three files.
     expect(css).not.toMatch(/ask-art[^}]*animation[^;]*infinite/);
+    expect(askCss).not.toMatch(/ask-art[^}]*animation[^;]*infinite/);
     expect(motion).not.toMatch(/ask-art[^}]*infinite/);
   });
 });

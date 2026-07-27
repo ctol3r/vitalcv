@@ -1,6 +1,10 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { EmployerGetStartedClient } from './EmployerGetStartedClient';
+import { ArtifactStage } from '@/components/motion/ArtifactStage';
+import { DecisionArtifact } from '@/components/artifacts/PageArtifacts';
+import '@/styles/motion.css';
+import '@/styles/artifact-motion.css';
 import { EmployerAudienceSection } from '@/components/employers/EmployerAudienceSection';
 import { EmployerWorkflowPreview } from '@/components/employers/EmployerWorkflowPreview';
 import { PageFrame } from '@/components/layout/PageFrame';
@@ -97,6 +101,16 @@ export default function EmployersPage() {
             </a>
           </p>
         </header>
+
+        {/* The page's animated artifact (founder mandate: nearly every page
+            carries one). The reviewer's decision surface at full width — a
+            packet arrives, claims carry their sources, and the three actions
+            stay visibly the reviewer's. Plays once on entry, then rests. */}
+        <section aria-label="What a reviewer receives" className="mt-8">
+          <ArtifactStage>
+            <DecisionArtifact />
+          </ArtifactStage>
+        </section>
 
         <EmployerWorkflowPreview />
 
