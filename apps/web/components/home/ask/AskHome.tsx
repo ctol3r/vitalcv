@@ -387,6 +387,38 @@ export function AskHome() {
         </p>
       </section>
 
+      {/* THE CLINICIAN CHAPTER — why you, personally, would care.
+          The founder's review of the previous composition: "I don't know why
+          I would be interested if I was a clinician." The answer has to be
+          concrete, so the copy names the three real stakes (day-one screens,
+          gaps that delay start dates, re-typing the same file) and the
+          artifact is BIG — a full check-run playing out once at close-up
+          scale. Research note: across eleven competitor sites, only one
+          (NurseDash) addresses the worker first; the lane is open. */}
+      <section className="ask-chapter" aria-labelledby="chapter-clin-title">
+        <p className="ask-chapter-eyebrow">For clinicians</p>
+        <div className="ask-beat-copy ask-chapter-copy">
+          <h2 id="chapter-clin-title" className="ask-chapter-title">
+            Check yourself before they do.
+          </h2>
+          <ul className="ask-chapter-points">
+            <li>
+              The screens a hospital runs on day one — run them on yourself first.
+              Free, in seconds.
+            </li>
+            <li>See the gap while it is fixable — not after it delays a start date.</li>
+            <li>
+              Keep the record. Carry it into the next application instead of starting
+              over.
+            </li>
+          </ul>
+        </div>
+        <figure className="ask-beat-art ask-beat-art--big" data-ask-artifact="checkrun">
+          <CheckRunArtifact />
+          <figcaption className="ask-beat-cap">Illustrative — not a live result</figcaption>
+        </figure>
+      </section>
+
       {/* THE BEATS — for readers who scroll instead of typing. */}
       {BEATS.map((beat) => (
         <section
@@ -425,29 +457,41 @@ export function AskHome() {
         </section>
       ))}
 
-      {/* THE EMPLOYER DOOR — the buyer gets a real section, not only the quiet
-          line under the hero CTA. Carefam puts its two audiences in the nav;
-          the dual-audience doctrine here is one shared artifact with the
-          clinician acting first — so this door sits AFTER every clinician beat
-          and speaks about the same record the clinician just saw. Distinct
-          attr from the hero's `data-home-employer-cta`: the e2e guard locates
-          that one uniquely. */}
-      <section className="ask-door" aria-labelledby="door-title">
-        <div className="ask-beat-copy">
-          <h2 id="door-title" className="ask-beat-title">
-            Hiring? Start from evidence, not an empty application.
+      {/* THE EMPLOYER CHAPTER — what, concretely, you are buying.
+          Upgraded from a copy-only door after the founder's review ("I still
+          don't understand what I am buying if I am an employer"). The device
+          is the strongest one in the reference set — an annotated artifact of
+          the thing you receive (Abridge's move, done with a live-schema
+          drawing instead of a screenshot) — plus an itemized list in the
+          OpenLoop grammar. Keeps #door-title and data-home-employer-door:
+          the e2e guards pin both. */}
+      <section className="ask-chapter" aria-labelledby="door-title">
+        <p className="ask-chapter-eyebrow">For hospitals, medical groups &amp; staffing teams</p>
+        <div className="ask-beat-copy ask-chapter-copy">
+          <h2 id="door-title" className="ask-chapter-title">
+            What your team receives.
           </h2>
-          <p className="ask-beat-line">
-            Hospitals, medical groups, and staffing teams receive the same record the
-            clinician carries — each claim with its source, its freshness, and what
-            still needs your review. Your credentialing decision stays yours.
-          </p>
+          <ul className="ask-chapter-points">
+            <li>
+              The federal screens already run — a named source and a timestamp on
+              every claim.
+            </li>
+            <li>Gaps and stale answers stated plainly. Nothing reads as done until it is.</li>
+            <li>
+              A packet your reviewers inspect claim by claim — and your credentialing
+              committee still decides.
+            </li>
+          </ul>
           <p className="ask-door-cta">
             <Link href="/employers" data-home-employer-door="">
               See the employer workflow →
             </Link>
           </p>
         </div>
+        <figure className="ask-beat-art ask-beat-art--big" data-ask-artifact="packet">
+          <PacketArtifact />
+          <figcaption className="ask-beat-cap">Illustrative — not a live result</figcaption>
+        </figure>
       </section>
 
       {/* The boundary lands LAST and small — after the positive, once, specific.
@@ -465,6 +509,143 @@ export function AskHome() {
         <Link href="/trust">Trust</Link>
       </nav>
     </div>
+  );
+}
+
+/**
+ * THE CHECK RUN — the clinician chapter's artifact, at full width.
+ *
+ * One NPI goes in; three check rows resolve in reading order; a receipt
+ * stamps. Same honesty grammar as the small diagrams: every word is a part
+ * name ("identity", "exclusions", "enrollment", "receipt", "your record") —
+ * never a source name, a state, or a freshness word, all of which the
+ * diagram truth test bans inside <text>. Redacted bars stand in for values:
+ * the SHAPE of an answer without fabricating one.
+ */
+function CheckRunArtifact() {
+  const rows = [
+    { y: 96, label: 'identity', step: 2 },
+    { y: 156, label: 'exclusions', step: 3 },
+    { y: 216, label: 'enrollment', step: 4 },
+  ];
+  return (
+    <svg
+      viewBox="0 0 720 400"
+      className="ask-art ask-art--wide"
+      role="img"
+      aria-label="One NPI entered; identity, exclusion, and enrollment checks resolving one after another into a record that ends with a receipt"
+    >
+      <rect x="40" y="24" width="640" height="344" rx="4" className="ask-art-paper" />
+      {/* the NPI slot row */}
+      <text x="72" y="62" className="ask-art-label ask-art-step-1">
+        your npi
+      </text>
+      {Array.from({ length: 10 }, (_, i) => (
+        <rect
+          key={i}
+          x={150 + i * 30}
+          y={48}
+          width={18}
+          height={18}
+          rx={2}
+          className="ask-art-slot ask-art-step-1"
+        />
+      ))}
+      <line x1="72" y1="80" x2="648" y2="80" className="ask-art-rule ask-art-step-1" />
+      {/* three check rows, resolving in sequence */}
+      {rows.map((r) => (
+        <g key={r.label}>
+          <text x="72" y={r.y + 22} className={`ask-art-label ask-art-step-${r.step}`}>
+            {r.label}
+          </text>
+          <line
+            x1="210"
+            y1={r.y + 18}
+            x2="470"
+            y2={r.y + 18}
+            className={`ask-art-line ask-art-step-${r.step}`}
+          />
+          <rect
+            x="520"
+            y={r.y + 2}
+            width="128"
+            height="26"
+            rx="13"
+            className={`ask-art-chip ask-art-step-${r.step}`}
+          />
+        </g>
+      ))}
+      {/* the receipt stamps last */}
+      <circle cx="600" cy="312" r="24" className="ask-art-seal ask-art-step-5" />
+      <path d="M588 312 l9 9 l16 -19" className="ask-art-tick ask-art-step-5" />
+      <text x="72" y="320" className="ask-art-label ask-art-step-5">
+        your record
+      </text>
+      <line x1="210" y1="314" x2="470" y2="314" className="ask-art-line ask-art-step-5" />
+      <text x="565" y="356" className="ask-art-label ask-art-step-5">
+        receipt
+      </text>
+    </svg>
+  );
+}
+
+/**
+ * THE PACKET — the employer chapter's artifact, annotated like a product
+ * screenshot would be (the Abridge device), but drawn from the same live
+ * schema grammar as everything else. Annotations name product properties
+ * ("source + time", "what is missing", "your decision") — captions for
+ * regions of the surface, not states of data.
+ */
+function PacketArtifact() {
+  return (
+    <svg
+      viewBox="0 0 720 400"
+      className="ask-art ask-art--wide"
+      role="img"
+      aria-label="A consented packet arriving on a reviewer's desk: rows of claims each carrying source and time, one gap stated plainly, and the decision left to the committee"
+    >
+      {/* the packet arrives */}
+      <rect x="40" y="60" width="200" height="260" rx="4" className="ask-art-paper ask-art-step-1" />
+      <line x1="64" y1="100" x2="216" y2="100" className="ask-art-rule ask-art-step-1" />
+      {[128, 152, 176].map((y) => (
+        <line key={y} x1="64" y1={y} x2={y === 176 ? 160 : 216} y2={y} className="ask-art-line ask-art-step-1" />
+      ))}
+      <circle cx="196" cy="284" r="16" className="ask-art-seal ask-art-step-1" />
+      <text x="64" y="52" className="ask-art-label ask-art-step-1">
+        the packet
+      </text>
+      {/* crosses to the review surface */}
+      <path d="M240 190 H300" className="ask-art-rule ask-art-flow ask-art-step-2" />
+      {/* the review surface */}
+      <rect x="300" y="36" width="380" height="308" rx="4" className="ask-art-paper-2 ask-art-step-2" />
+      <text x="324" y="28" className="ask-art-label ask-art-step-2">
+        your review
+      </text>
+      {/* claim rows with meta lines (source + time live here) */}
+      {[
+        { y: 76, step: 3 },
+        { y: 140, step: 3 },
+        { y: 204, step: 4 },
+      ].map((r, i) => (
+        <g key={i}>
+          <line x1="324" y1={r.y} x2="580" y2={r.y} className={`ask-art-line ask-art-step-${r.step}`} />
+          <line x1="324" y1={r.y + 20} x2="480" y2={r.y + 20} className={`ask-art-meta ask-art-step-${r.step}`} />
+          <circle cx="636" cy={r.y + 8} r="12" className={`ask-art-seal ask-art-step-${r.step}`} />
+        </g>
+      ))}
+      {/* the gap — dashed, stated, unresolved on purpose */}
+      <rect x="318" y="252" width="280" height="34" rx="3" className="ask-art-gap ask-art-step-5" />
+      <text x="330" y="273" className="ask-art-label ask-art-step-5">
+        what is missing
+      </text>
+      {/* annotations, last */}
+      <text x="324" y="122" className="ask-art-note ask-art-step-6">
+        source + time on every claim
+      </text>
+      <text x="324" y="330" className="ask-art-note ask-art-step-6">
+        your decision, your committee
+      </text>
+    </svg>
   );
 }
 

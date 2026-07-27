@@ -439,11 +439,33 @@ test.describe('homepage ask', () => {
     expect(sizes!.h2).toBeLessThan(sizes!.h1);
   });
 
+  test('each audience chapter answers its question with a big artifact', async ({ page }) => {
+    // "I still don't understand what I am buying if I am an employer and I
+    // don't know why I would be interested if I was a clinician" — the two
+    // chapters are the answer, and each must carry concrete points plus a
+    // full-width artifact, not copy alone.
+    const chapters = page.locator('.ask-chapter');
+    await expect(chapters).toHaveCount(2);
+    for (const chapter of await chapters.all()) {
+      await expect(chapter.locator('.ask-chapter-points li')).toHaveCount(3);
+      await expect(chapter.locator('.ask-art--wide')).toHaveCount(1);
+      await expect(chapter.locator('.ask-beat-cap')).toContainText('Illustrative');
+    }
+    // The wide artifacts are genuinely big — at least half the content column.
+    const width = await page
+      .locator('[data-ask-artifact="checkrun"] svg')
+      .evaluate((el) => el.getBoundingClientRect().width);
+    expect(width).toBeGreaterThan(600);
+  });
+
   test('ledger rows rest after their entry animation completes', async ({ page }) => {
     // CD-11: explain on entry, then rest. Scroll the ledger into view, let the
     // stagger play out, then assert nothing is still running.
     await page.locator('[data-home-lane-ledger]').scrollIntoViewIfNeeded();
-    await page.waitForTimeout(1600); // 6 rows × 110ms stagger + 420ms + slack
+    // 6 rows × 110ms stagger + 420ms, PLUS slack for the clinician chapter's
+    // wide artifact, which can enter the viewport at the same scroll position
+    // and runs a 6-step sequence ending at ~2.7s.
+    await page.waitForTimeout(3400);
     const running = await page.evaluate(
       () =>
         document
