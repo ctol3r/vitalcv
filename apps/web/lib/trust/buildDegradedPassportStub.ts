@@ -133,6 +133,7 @@ export function buildDegradedPassportStub(
         accessRequired: [],
         reviewRequired: [],
         notDecisionGrade: [],
+        notFound: [],
         previewOnly: [],
       },
     },

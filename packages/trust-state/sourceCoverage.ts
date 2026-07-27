@@ -7,6 +7,23 @@ export const CANONICAL_SOURCE_COVERAGE_STATES = [
   'accessRequired',
   'reviewRequired',
   'notDecisionGrade',
+  /**
+   * The source was read successfully and returned no record backing this
+   * subject — an NPI the registry does not list, an enrollment file with no
+   * row for it.
+   *
+   * This exists because 'checked' was carrying two different claims: "we ran
+   * the query" and "the source affirmed this provider". Folding a not-found
+   * result into 'checked' rendered it as source-backed on the public verifier
+   * (#934 era defect: NPI 1234567893 read "SOURCE-BACKED" for both NPPES and
+   * PECOS while the registry returned result_count 0).
+   *
+   * Distinct from 'unavailable' (we could not read the source at all) and from
+   * 'pending' (we have not read it yet). Here we DID read it, and the answer
+   * was no. Never decision-grade — DECISION_GRADE_SOURCE_COVERAGE_STATES is
+   * 'checked' only.
+   */
+  'notFound',
   // Synthetic/demo payloads are allowed only for explicit preview surfaces.
   'previewOnly',
 ] as const;
@@ -158,6 +175,7 @@ export const TRUST_UI_STATUSES = [
   'unavailable',
   'access_required',
   'review_required',
+  'not_found',
   'demo',
 ] as const;
 
@@ -196,6 +214,8 @@ type CreateCanonicalSourceCoverageInput = {
   gated?: boolean;
   reviewRequired?: boolean;
   notDecisionGrade?: boolean;
+  /** Source answered and returned no record backing this subject. */
+  notFound?: boolean;
   pending?: boolean;
   partial?: boolean;
   accessRequired?: boolean;
@@ -277,6 +297,10 @@ const CANONICAL_SOURCE_COVERAGE_STATE_ALIASES: Readonly<
   humanrequired: 'reviewRequired',
   notdecisiongrade: 'notDecisionGrade',
   unsupported: 'notDecisionGrade',
+  notfound: 'notFound',
+  norecord: 'notFound',
+  nomatch: 'notFound',
+  notenrolled: 'notFound',
   previewonly: 'previewOnly',
   preview: 'previewOnly',
   demo: 'previewOnly',
@@ -306,6 +330,7 @@ export function resolveCanonicalSourceCoverageState(input: {
   gated?: boolean;
   reviewRequired?: boolean;
   notDecisionGrade?: boolean;
+  notFound?: boolean;
   pending?: boolean;
   partial?: boolean;
   accessRequired?: boolean;
@@ -329,6 +354,13 @@ export function resolveCanonicalSourceCoverageState(input: {
   }
   if (input.gated) {
     return 'gated';
+  }
+  // Ranked above pending/stale/checked: a definitive negative is a stronger
+  // statement than "not yet read" or "read a while ago", and must never be
+  // allowed to fall through to 'checked'. Ranked below unavailable/gated
+  // because those mean we never got an answer to begin with.
+  if (input.notFound) {
+    return 'notFound';
   }
   if (input.pending || input.partial) {
     return 'pending';
@@ -563,6 +595,11 @@ const SOURCE_COVERAGE_STATE_LABELS: Readonly<
   accessRequired: 'Access required',
   reviewRequired: 'Review required',
   notDecisionGrade: 'Not decision-grade',
+  // True for every case routed here: an NPI the registry does not list, an NPI
+  // it lists as deactivated, and an enrollment file with no row. "No record
+  // found" would be false for the deactivated case (there IS a record) — the
+  // per-check `reason` carries the source-specific sentence.
+  notFound: 'No active record',
   previewOnly: 'Preview only',
 });
 
@@ -575,6 +612,7 @@ const TRUST_UI_STATUS_LABELS: Readonly<Record<TrustUiStatus, string>> = Object.f
   unavailable: 'Unavailable',
   access_required: 'Access required',
   review_required: 'Review required',
+  not_found: 'No active record',
   demo: 'Preview only',
 });
 
@@ -609,6 +647,10 @@ export function sourceCoveragePosture(
     case 'gated':
     case 'accessRequired':
     case 'notDecisionGrade':
+    // Not 'degraded': the read succeeded and coverage is complete. The answer
+    // is negative, which is a finding about the subject, not about our pipeline
+    // health — calling it degraded would page the wrong team.
+    case 'notFound':
     case 'previewOnly':
       return 'partial';
   }
@@ -639,6 +681,8 @@ export function mapSourceCoverageStateToTrustStatus(
       return 'access_required';
     case 'reviewRequired':
       return 'review_required';
+    case 'notFound':
+      return 'not_found';
     case 'checked':
       if (!satisfied) {
         return kind === 'generic' ? 'checked' : 'pending';
@@ -744,6 +788,7 @@ export function summarizeCanonicalSourceCoverage(
     accessRequired: [],
     reviewRequired: [],
     notDecisionGrade: [],
+    notFound: [],
     previewOnly: [],
   };
 
@@ -768,6 +813,7 @@ export function summarizeCanonicalSourceCoverage(
     accessRequired: Object.freeze(buckets.accessRequired),
     reviewRequired: Object.freeze(buckets.reviewRequired),
     notDecisionGrade: Object.freeze(buckets.notDecisionGrade),
+    notFound: Object.freeze(buckets.notFound),
     previewOnly: Object.freeze(buckets.previewOnly),
   });
 }

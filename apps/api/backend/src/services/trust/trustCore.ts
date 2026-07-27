@@ -95,6 +95,8 @@ export function resolveSourceCoverageState(input: {
   gated?: boolean;
   reviewRequired?: boolean;
   notDecisionGrade?: boolean;
+  /** Source answered and returned no record backing this subject. */
+  notFound?: boolean;
   pending?: boolean;
   partial?: boolean;
   accessRequired?: boolean;
@@ -113,6 +115,7 @@ export function resolveSourceCoverageState(input: {
     accessRequired: input.accessRequired ?? (defaultState === 'accessRequired' && !input.checked),
     reviewRequired: input.reviewRequired ?? input.humanRequired,
     notDecisionGrade: input.notDecisionGrade || isUnsupported,
+    notFound: input.notFound,
     pending: input.pending,
     partial: input.partial,
     previewOnly: input.previewOnly,
@@ -162,6 +165,32 @@ function normalizeAssessmentForCoverage(
       confidence: Math.min(dimension.confidence, 0.55),
       blocker: dimension.blocker ?? reviewCoverage.reason,
       gap: dimension.gap ?? reviewCoverage.reason,
+      sourceCoverage,
+    };
+  }
+
+  /**
+   * A source that answered "no record for this subject" is a FINDING, not
+   * missing evidence. The generic fallback below nulls `blocker` because it
+   * assumes we simply have nothing decisive to say yet — true for pending or
+   * gated coverage, wrong here. Without this branch, moving PECOS NOT_FOUND
+   * off the 'checked' state silently dropped "PECOS quarterly enrollment not
+   * found" out of readiness.blockers.
+   *
+   * The dimension keeps its own verdict (BLOCKED stays BLOCKED) with one
+   * exception: MET cannot survive a source that did not find the subject.
+   */
+  const notFoundCoverage = findPriorityCanonicalSourceCoverage(
+    sourceCoverage,
+    ['notFound'],
+  );
+  if (notFoundCoverage) {
+    return {
+      ...dimension,
+      status: dimension.status === 'MET' ? 'UNMET' : dimension.status,
+      confidence: Math.min(dimension.confidence, 0.25),
+      blocker: dimension.blocker ?? notFoundCoverage.reason,
+      gap: dimension.gap ?? notFoundCoverage.reason,
       sourceCoverage,
     };
   }

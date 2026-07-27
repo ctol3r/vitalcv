@@ -270,13 +270,21 @@ export default async function VerifierPage({
   // "Not checked" beats a silent omission; wiring the live status list is
   // the backend follow-up.
   const checkedLanes = lanes.filter((l) => l.status === 'verified');
+  const notFoundLanes = lanes.filter((l) => l.status === 'not_found');
   const receiptLanes = lanes.filter((l) => l.receiptId);
   const tierKey = String(proofTier).toLowerCase();
   const integrityItems: VerdictItem[] = [
     {
-      label: 'Source checks recorded',
+      // "checked" was doing two jobs here — "we ran a check" and "the source
+      // confirmed them" — and a reviewer reads the second. Count and name only
+      // the lanes a source actually confirmed, and say separately when a lane
+      // was read and came back with no active record.
+      label: 'Sources confirming this provider',
       status: checkedLanes.length > 0 ? 'pass' : 'pending',
-      detail: `${checkedLanes.length} of ${lanes.length} lanes checked`,
+      detail:
+        notFoundLanes.length > 0
+          ? `${checkedLanes.length} of ${lanes.length} lanes confirmed · ${notFoundLanes.length} found no active record`
+          : `${checkedLanes.length} of ${lanes.length} lanes confirmed`,
       provenance: passport.lastCheckedAt ? `checked ${formatUtc(passport.lastCheckedAt)}` : undefined,
     },
     {

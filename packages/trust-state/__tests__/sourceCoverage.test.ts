@@ -399,3 +399,70 @@ describe('Wave 2 — Canonical Trust Parity', () => {
     }
   });
 });
+
+/**
+ * 'notFound' exists because 'checked' was carrying two different claims — "we
+ * ran the query" and "the source affirmed this subject". Folding a not-found
+ * answer into 'checked' put the Source-backed tier next to an NPI that does not
+ * exist on the public verifier (prod, 2026-07-27, NPI 1234567893).
+ */
+describe('notFound — a source that answered, with no record for the subject', () => {
+  it('is never decision-grade and never reaches a positive truth status', () => {
+    const coverage = createCanonicalSourceCoverage({
+      sourceId: 'NPPES_API',
+      state: 'notFound',
+      reason: 'NPPES checked but did not return an active identity record',
+    });
+
+    // `satisfied: true` is the hostile case: even if an upstream claims the
+    // dimension is satisfied, a not-found source must not mint VERIFIED.
+    const truth = createCanonicalTruth({ kind: 'verification', satisfied: true, coverage });
+    expect(truth.decisionGrade).toBe(false);
+    expect(truth.status).not.toBe('VERIFIED');
+    expect(isReadinessPositive(truth)).toBe(false);
+  });
+
+  it('never renders the source-backed badge', () => {
+    expect(sourceCoverageBadgeLabel({ state: 'notFound', decisionGrade: false })).toBe('No active record');
+    // The badge helper only mints 'Source-backed' from 'checked'.
+    expect(sourceCoverageBadgeLabel({ state: 'notFound', decisionGrade: true })).not.toBe('Source-backed');
+  });
+
+  it('stays distinct from unavailable and pending — we DID get an answer', () => {
+    expect(mapSourceCoverageStateToTrustStatus('notFound')).toBe('not_found');
+    expect(mapSourceCoverageStateToTrustStatus('notFound')).not.toBe(
+      mapSourceCoverageStateToTrustStatus('unavailable'),
+    );
+    expect(mapSourceCoverageStateToTrustStatus('notFound')).not.toBe(
+      mapSourceCoverageStateToTrustStatus('pending'),
+    );
+    // Coverage is complete, so this is not a pipeline-health problem.
+    expect(sourceCoveragePosture('notFound')).toBe('partial');
+  });
+
+  it('is reachable from the boolean resolver and from upstream spellings', () => {
+    const coverage = createCanonicalSourceCoverage({
+      sourceId: 'PECOS_PUBLIC',
+      notFound: true,
+      // The bug shape: an artifact existed, so `checked` was true.
+      checked: true,
+      fresh: true,
+      reason: 'PECOS quarterly release does not show Medicare enrollment for this NPI',
+    });
+    expect(coverage.state).toBe('notFound');
+
+    expect(normalizeCanonicalSourceCoverageState('NOT_FOUND')).toBe('notFound');
+    expect(normalizeCanonicalSourceCoverageState('no_record')).toBe('notFound');
+  });
+
+  it('is counted in its own summary bucket, not among checked sources', () => {
+    const summary = summarizeCanonicalSourceCoverage([
+      { sourceId: 'NPPES_API', state: 'notFound' },
+      { sourceId: 'PECOS_PUBLIC', state: 'notFound' },
+      { sourceId: 'OIG_LEIE', state: 'checked' },
+    ]);
+
+    expect(summary.notFound).toEqual(['NPPES_API', 'PECOS_PUBLIC']);
+    expect(summary.checked).toEqual(['OIG_LEIE']);
+  });
+});
