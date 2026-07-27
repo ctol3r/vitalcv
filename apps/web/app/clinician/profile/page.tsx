@@ -5,6 +5,7 @@ import { PROVENANCE_META, type ProfileProvenance } from '@/lib/profile/provenanc
 import { ProfileHeader } from '@/components/clinician/ProfileHeader';
 import { ClinicianRecordDetail } from '@/components/clinician-record/ClinicianRecordDetail';
 import { loadOwnerRecord } from '@/lib/clinician-record/ownerRecord';
+import { OWNER_CONTEXT_NOTE } from '@/lib/clinician-record/copy';
 import { InstitutionAutocomplete } from '@/components/clinician/InstitutionAutocomplete';
 import type { InstitutionKind } from '@/lib/institutions/curated';
 
@@ -201,8 +202,7 @@ async function OwnRegistryRecord() {
             What employers read about you
           </h2>
           <p className="text-[12px] leading-relaxed text-[var(--ink-600)]">
-            Your CMS filing, shown as it appears on your public record.
-            Anything wrong here is corrected at CMS, not on this page.
+            {OWNER_CONTEXT_NOTE}
           </p>
         </div>
         <ClinicianRecordDetail record={result.record} mode="owner" />
