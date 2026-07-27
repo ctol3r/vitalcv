@@ -80,6 +80,18 @@ export interface LaneDefinition {
   aliases: string[];
 }
 
+/**
+ * `freshnessWindowLabel` is the fallback shown when the passport carries no
+ * `freshnessWindowHours`. Every live lane's label must match its catalog
+ * `refreshSlaHours` — `lane-freshness-window-labels.test.ts` asserts that, after
+ * #830 found NPPES and OIG transposed here.
+ *
+ * One deliberate exception, ruled by the founder 2026-07-26: `state_license`
+ * stays `30 days` although STATE_BOARD/NURSYS sit at 168h. That number is a
+ * policy tolerance (how stale a board check may be before re-pulling), not the
+ * upstream's publish interval, and the lane is access-gated so it renders no
+ * age today. Do not "fix" it to 7 days — see the test for the full reasoning.
+ */
 export const KNOWN_LANES: LaneDefinition[] = [
   { laneId: 'nppes_identity',   displayName: 'NPPES Identity',     shortName: 'NPPES',  source: 'CMS Registry',             isRequired: true,  freshnessWindowLabel: '7 days',   aliases: ['NPPES_API', 'NPPES_BULK', 'NPPES', 'NPI_REGISTRY'] },
   { laneId: 'oig_exclusions',   displayName: 'OIG Exclusions',     shortName: 'OIG',    source: 'OIG LEIE',                 isRequired: true,  freshnessWindowLabel: '24 hours', aliases: ['OIG_LEIE', 'OIG'] },
