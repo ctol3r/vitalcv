@@ -40,6 +40,13 @@ Do not remove worktrees you didn't create — they are load-bearing.
 ## Commands
 
 ```bash
+# Build workspace deps ONCE per fresh worktree before running any vitest.
+# Vitest resolves @vitalcv/* through package.json main/exports, which point at
+# dist/. Skip this and 25 suites fail with "Cannot find module" errors that
+# blame the packages, not the missing build. A globalSetup check now says so
+# outright instead of letting you debug phantom failures.
+pnpm turbo build --filter='!@vitalcv/web'
+
 # Run a focused vitest suite in apps/web
 pnpm --filter @vitalcv/web exec vitest run __tests__/<file>.test.ts
 
