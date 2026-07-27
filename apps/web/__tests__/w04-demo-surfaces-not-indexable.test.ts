@@ -8,6 +8,9 @@
  * prototypes already set noindex; /demo was the one that did not.
  */
 
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
+
 import { describe, expect, it } from 'vitest';
 
 import { metadata as demoMetadata } from '@/app/demo/page';
@@ -22,6 +25,27 @@ describe('W0.4 — /demo is not indexable', () => {
     // Not indexable is not the same as hidden — the page stays reachable and
     // still says what it is.
     expect(demoMetadata.title).toMatch(/demo/i);
+  });
+});
+
+describe('W0.4 — app/robots.ts is the file actually served', () => {
+  /**
+   * `public/robots.txt` beats `app/robots.ts` for the same path in Next.js.
+   * One existed, committed in #122, publishing only /api/ and /internal/ — so
+   * `app/robots.ts` was dead code and every rule anyone added to it
+   * (/review/, /mission-ops/, /pilot-ops/, /holder/, /workspace/, then /demo
+   * and /design/) was silently never served. Production served two rules while
+   * the repo read as if it served nine.
+   *
+   * The assertions below read the route's return value, which is only
+   * meaningful while nothing shadows it — a green suite proved nothing before.
+   * This is the tripwire that keeps them honest: re-adding any static robots
+   * file under public/ fails here.
+   */
+  it('has no static robots file shadowing the route', () => {
+    for (const name of ['robots.txt', 'robots.TXT']) {
+      expect(existsSync(join(__dirname, '..', 'public', name))).toBe(false);
+    }
   });
 });
 
