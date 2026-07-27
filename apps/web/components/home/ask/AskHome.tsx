@@ -211,13 +211,12 @@ export function AskHome() {
               promise ships before a pilot has measured one. This is also the
               phrase the page's own <title> and OG cards already carry — the tab
               said "your career evidence" while the H1 promised speed. */}
-          {/* The audience, named before anything else. A visitor could read the
-              whole previous page without learning it was for healthcare — the
-              only clinical word above the fold was the acronym NPI. Small and
-              mono so it frames the question without competing with it. */}
-          <p className="ask-eyebrow">
-            For physicians, nurses, PAs — every licensed clinician
-          </p>
+          {/* Small, and only that. The first version listed every licensed
+              role — accurate, but category labeling rather than a promise, and
+              it made the eyebrow compete with the line that actually carries
+              the offer. Two words place the reader; the headline does the
+              work. */}
+          <p className="ask-eyebrow">For clinicians</p>
           <h1 id="ask-title" className="ask-title">
             Your career evidence, ready before your next job.
           </h1>
@@ -244,8 +243,12 @@ export function AskHome() {
                   submit();
                 }}
               >
-                <label className="ask-label" htmlFor="npi-input">
-                  Start with your NPI
+                {/* Step 1 lives ON the field's label. A separate spine line
+                    under the promise repeated this phrase word for word, two
+                    lines apart — the step marker and the instruction are the
+                    same sentence, so they are one element. */}
+                <label className="ask-label ask-spine-step" htmlFor="npi-input">
+                  Step 1 · Start with your NPI
                 </label>
                 <div className="ask-field">
                   <input
@@ -343,6 +346,11 @@ export function AskHome() {
           diagrams use. Threshold note: the section is tall, so the observer
           fires on partial visibility rather than 45%. */}
       <section className="ask-ledger" aria-labelledby="ledger-title">
+        {/* SPINE 2 of 4 — source evidence. The product reads as one sequence:
+            NPI → source evidence → the packet you choose → hospital review.
+            Each moment names its place so a scroller sees a path, not a pile
+            of sections. */}
+        <p className="ask-chapter-eyebrow ask-spine">Step 2 · Source evidence</p>
         <div className="ask-ledger-copy">
           <h2 id="ledger-title" className="ask-beat-title">
             Six checks stand between a clinician and a start date.
@@ -396,7 +404,7 @@ export function AskHome() {
           scale. Research note: across eleven competitor sites, only one
           (NurseDash) addresses the worker first; the lane is open. */}
       <section className="ask-chapter" aria-labelledby="chapter-clin-title">
-        <p className="ask-chapter-eyebrow">For clinicians</p>
+        <p className="ask-chapter-eyebrow ask-spine">Step 3 · The packet you choose</p>
         <div className="ask-beat-copy ask-chapter-copy">
           <h2 id="chapter-clin-title" className="ask-chapter-title">
             Check yourself before they do.
@@ -466,7 +474,7 @@ export function AskHome() {
           OpenLoop grammar. Keeps #door-title and data-home-employer-door:
           the e2e guards pin both. */}
       <section className="ask-chapter" aria-labelledby="door-title">
-        <p className="ask-chapter-eyebrow">For hospitals, medical groups &amp; staffing teams</p>
+        <p className="ask-chapter-eyebrow ask-spine">Step 4 · Hospital review</p>
         <div className="ask-beat-copy ask-chapter-copy">
           <h2 id="door-title" className="ask-chapter-title">
             What your team receives.
@@ -488,7 +496,7 @@ export function AskHome() {
             </Link>
           </p>
         </div>
-        <figure className="ask-beat-art ask-beat-art--big" data-ask-artifact="packet">
+        <figure className="ask-beat-art ask-beat-art--big vt-artifact--glass" data-ask-artifact="packet">
           <PacketArtifact />
           <figcaption className="ask-beat-cap">Illustrative — not a live result</figcaption>
         </figure>

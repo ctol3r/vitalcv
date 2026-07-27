@@ -107,7 +107,7 @@ export default function EmployersPage() {
             packet arrives, claims carry their sources, and the three actions
             stay visibly the reviewer's. Plays once on entry, then rests. */}
         <section aria-label="What a reviewer receives" className="mt-8">
-          <ArtifactStage>
+          <ArtifactStage glass>
             <DecisionArtifact />
           </ArtifactStage>
         </section>
