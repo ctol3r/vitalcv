@@ -1,8 +1,24 @@
 import React from 'react';
 import Link from 'next/link';
 
+import { EmployerWorkflowDashboard } from '@/components/employer/EmployerWorkflowDashboard';
 import { LaneHealthMount } from '@/components/source-health/LaneHealthMount';
 
+export const dynamic = 'force-dynamic';
+
+/**
+ * Employer workspace landing (`ROLE_LANDING.VERIFIER`).
+ *
+ * W0.3: this route previously rendered hard-coded application counts, a
+ * "4.2 days avg" time-to-credential figure, and invented application IDs
+ * (#1029/#1030) — to anonymous visitors, because `/employer/*` carried no
+ * route guard. Simulated operations presented as live customer data is the
+ * exact trust failure the product sells against.
+ *
+ * Every number below now comes from `/api/employer/applications/dashboard`,
+ * which is session-authorized and 401s without one. Zero applications render
+ * as an empty state, never as sample data.
+ */
 export default function EmployerDashboardPage() {
   return (
     <div className="p-8 text-foreground bg-background">
@@ -20,40 +36,7 @@ export default function EmployerDashboardPage() {
         <LaneHealthMount heading="Source operational state (employer view)" />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="p-6 border rounded-lg shadow-sm">
-          <h2 className="text-xl font-semibold mb-4">Applications by State</h2>
-          <ul className="space-y-2">
-            <li className="flex justify-between"><span>New</span> <span className="font-bold">12</span></li>
-            <li className="flex justify-between"><span>Under Review</span> <span className="font-bold">5</span></li>
-            <li className="flex justify-between"><span>Waiting for Docs</span> <span className="font-bold">3</span></li>
-            <li className="flex justify-between"><span>Approved</span> <span className="font-bold">8</span></li>
-            <li className="flex justify-between"><span>Rejected</span> <span className="font-bold">2</span></li>
-          </ul>
-        </div>
-
-        <div className="p-6 border rounded-lg shadow-sm">
-          <h2 className="text-xl font-semibold mb-4">Workflow Bottlenecks</h2>
-          <div className="p-4 bg-amber-500/10 text-amber-600 rounded">
-            <strong>Time to Credential:</strong> 4.2 days avg
-          </div>
-          <div className="p-4 bg-destructive/10 text-destructive rounded mt-4">
-            <strong>OIG Checks Delayed:</strong> 2 applications stuck
-          </div>
-        </div>
-
-        <div className="p-6 border rounded-lg shadow-sm">
-          <h2 className="text-xl font-semibold mb-4">Missing Data Requests</h2>
-          <ul className="space-y-3">
-            <li className="p-3 border rounded text-sm">
-              <strong>App #1029</strong> - License copy missing (Pending 2 days)
-            </li>
-            <li className="p-3 border rounded text-sm">
-              <strong>App #1030</strong> - Missing NPI state (Pending 1 day)
-            </li>
-          </ul>
-        </div>
-      </div>
+      <EmployerWorkflowDashboard />
     </div>
   );
 }

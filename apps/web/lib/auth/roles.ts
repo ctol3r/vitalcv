@@ -49,6 +49,13 @@ export const ROLE_LANDING: Record<UserRoleType, string> = {
 export const PROTECTED_ROUTES: Array<{ pattern: RegExp; role: UserRoleType }> = [
   { pattern: /^\/holder(\/.*)?$/, role: UserRole.CLINICIAN },
   { pattern: /^\/verifier(\/.*)?$/, role: UserRole.VERIFIER },
+  // W0.3: the doctrine above has always classified /employer/* (singular) as a
+  // VERIFIER surface, but the pattern was never added here — so the entire
+  // employer workspace (dashboard, worklist, review-queue, candidates,
+  // profile) answered 200 to anonymous visitors while /verifier/*, an archived
+  // tree that 404s, stayed guarded. The trailing `(\/.*)?$` keeps the public
+  // acquisition page /employers (plural) out of the match.
+  { pattern: /^\/employer(\/.*)?$/, role: UserRole.VERIFIER },
   { pattern: /^\/issuer(\/.*)?$/, role: UserRole.ISSUER },
   { pattern: /^\/internal(\/.*)?$/, role: UserRole.ADMIN },
   // Internal / operator surfaces — admin only
