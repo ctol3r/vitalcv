@@ -109,10 +109,11 @@ function trustIcon(level: ReadinessLevel) {
 }
 
 export function WalletPassport({
-  npi = '1003000126',
+  npi,
   pollIntervalMs = 30_000,
 }: {
-  npi?: string;
+  /** Required: this component must never guess whose passport it is rendering. */
+  npi: string;
   pollIntervalMs?: number;
 }) {
   const [trustState, setTrustState] = useState<TrustStateResponse | null>(null);
