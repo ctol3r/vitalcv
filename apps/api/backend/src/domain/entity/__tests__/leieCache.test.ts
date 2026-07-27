@@ -157,6 +157,92 @@ describe('leieCache', () => {
   });
 });
 
+/**
+ * Name-match monotonicity.
+ *
+ * A screen that returns CLEAR for someone who IS excluded is the worst
+ * outcome this module can produce, and it was reachable: both strong scoring
+ * branches require a specialty, and the partial-name branch was gated on
+ * `!firstExact`. An exact first+last+state match with no specialty therefore
+ * scored nothing and reported CLEAR, while a strictly WORSE partial-name
+ * match returned POSSIBLE_MATCH.
+ *
+ * This matters at scale rather than in the corner: 72,037 of the 80,233 named
+ * individuals on the live LEIE list (89.8%) carry no NPI, so name matching is
+ * the only route to them, and `routes/oig.ts` supplies neither state nor
+ * specialty.
+ *
+ * The invariant pinned here is ordering, not a specific number: adding
+ * information about a provider must never weaken the verdict.
+ */
+describe('leieCache — name-match monotonicity', () => {
+  const EXCLUDED_ROW = makeRow('0000000000', 'DOE', '1128a1', '20200101', 'PHYSICIAN');
+
+  it('does not report CLEAR on an exact first+last match lacking a specialty', async () => {
+    mockCsvResponse(EXCLUDED_ROW);
+    const result = await lookupProvider({
+      npi: '',
+      firstName: 'JOHN', // exact — matches the fixture row
+      lastName: 'DOE',
+      state: 'CA',
+    });
+
+    // The regression: this returned CLEAR/NONE before the fallback branch existed.
+    expect(result.verdict).toBe('POSSIBLE_MATCH');
+    expect(result.matchType).not.toBe('NONE');
+  });
+
+  it('never scores an exact first name below a partial one', async () => {
+    mockCsvResponse(EXCLUDED_ROW);
+    const exact = await lookupProvider({
+      npi: '', firstName: 'JOHN', lastName: 'DOE', state: 'CA',
+    });
+
+    resetLeieCacheForTests();
+    mockCsvResponse(EXCLUDED_ROW);
+    const partial = await lookupProvider({
+      npi: '', firstName: 'J', lastName: 'DOE', state: 'CA',
+    });
+
+    expect(exact.matchScore ?? 0).toBeGreaterThanOrEqual(partial.matchScore ?? 0);
+  });
+
+  it('routes an uncorroborated name match to review rather than auto-blocking', async () => {
+    // POSSIBLE_MATCH must not set excluded=true. A name alone is not proof of
+    // identity, and auto-excluding on it would bar the wrong person from work.
+    mockCsvResponse(EXCLUDED_ROW);
+    const result = await lookupProvider({
+      npi: '', firstName: 'JOHN', lastName: 'DOE', state: 'CA',
+    });
+
+    expect(result.verdict).toBe('POSSIBLE_MATCH');
+    expect(result.excluded).toBe(false);
+  });
+
+  it('still reports CLEAR when the surname does not match', async () => {
+    // The widened branch must not turn the matcher into one that says yes to
+    // everyone — surname equality is still required.
+    mockCsvResponse(EXCLUDED_ROW);
+    const result = await lookupProvider({
+      npi: '', firstName: 'JOHN', lastName: 'BNMQXZPTR', state: 'CA',
+    });
+
+    expect(result.verdict).toBe('CLEAR');
+    expect(result.excluded).toBe(false);
+  });
+
+  it('keeps an exact NPI hit as a definitive exclusion', async () => {
+    // The NPI path is the one that can assert exclusion outright; widening the
+    // name branch must leave it untouched.
+    mockCsvResponse(makeRow('1234567890'));
+    const result = await lookupNpi('1234567890');
+
+    expect(result.excluded).toBe(true);
+    expect(result.verdict).toBe('EXCLUDED');
+    expect(result.matchType).toBe('EXACT');
+  });
+});
+
 describe('PECOS URL encoding', () => {
   it('verified: PECOS endpoint responds when filter[NPI] is URL-encoded', async () => {
     // Unit test: confirm the encoded URL string is correct
