@@ -8,7 +8,6 @@
     "routes/applications.ts",
     "routes/apply.ts",
     "routes/asyncTrust.ts",
-    "routes/capacity.ts",
     "routes/clinician.ts",
     "routes/credentials.ts",
     "routes/decisionCapsules.ts",
