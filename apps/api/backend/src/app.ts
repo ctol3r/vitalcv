@@ -142,6 +142,7 @@ import { registerMissionOpsRoutes } from './routes/missionOps';             // W
 import { registerWorkspaceRoutes } from './routes/workspace';               // Wave 180: Identity workspace graph
 import { registerClinicianRoutes } from './routes/clinician';             // Wave 287: Clinician activation
 import { registerIntakeRoutes } from './routes/intake';                     // Wave 183: Resume + NPI + Links + Work Auth ingestion
+import { registerGardenRoutes } from './routes/gardenNotes';                 // Career Garden: private notes + Living CV lines
 import { registerEmailOtpRoutes } from './routes/identity';                 // Email-OTP identity-binding possession factor
 import { registerSearchRoutes } from './routes/search';                     // Wave 184: Unified Search Index & Content Graph
 import { registerRoleRoutes } from './routes/role';                         // Clerk auth: GET /api/me/role
@@ -3661,6 +3662,7 @@ registerMissionOpsRoutes(app);        // Wave 123 — Mission Ops + onboarding f
 registerWorkspaceRoutes(app);         // Wave 180 — Dual-Entity Identity + workspace switching
 registerClinicianRoutes(app);         // Wave 287 — Clinician activation
 registerIntakeRoutes(app);            // Wave 183 — Resume + NPI + Links + Work Auth ingestion
+registerGardenRoutes(app);            // Career Garden — private notes + explicit Living CV promotion
 registerEmailOtpRoutes(app);          // Email-OTP identity-binding possession factor
 registerSearchRoutes(app);            // Wave 184 — Unified Search Index + hybrid retrieval
 registerRoleRoutes(app);              // Clerk auth — GET /api/me/role (role resolution)

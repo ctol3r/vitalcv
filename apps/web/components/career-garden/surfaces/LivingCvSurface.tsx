@@ -1,29 +1,35 @@
 import Link from 'next/link';
 
-import {
-  CV_SECTION_LABEL,
-  DEMO_CV_ENTRIES,
-  branchName,
-  type CvSection,
-} from '@/lib/career-garden/demoData';
+import { CV_SECTION_LABEL, type CvSection } from '@/lib/career-garden/demoData';
+import type { GardenData } from '@/lib/career-garden/gardenViews';
 import { GARDEN_HREF_FOR, type GardenMount } from '@/lib/career-garden/nav';
 
 import { GardenStamp } from '../GardenStamp';
 import { CursorContextBinding } from '../GardenWorkspaceProvider';
-import { SessionCvAdditions } from '../SessionState';
+import { RemoveCvEntryButton, SessionCvAdditions } from '../SessionState';
 
 const SECTION_ORDER: CvSection[] = ['experience', 'teaching', 'research', 'publications', 'service'];
 
 /**
  * The Living CV — blooms with visible provenance. Every line says where it
  * came from in plain language under "Show origin" (a details element, so it
- * works with JS off). Lines approved from notes this session appear inline,
- * labeled and removable. Editing the durable profile stays on the existing
- * surface at /clinician/profile — this page never forks that record.
+ * works with JS off). In the live mount these are durable lines you grew
+ * from notes, and removing one reopens its seed. Editing the durable
+ * profile stays on /clinician/profile — this page never forks that record.
  */
-export function LivingCvSurface({ selectedId, mount }: { selectedId?: string; mount: GardenMount }) {
+export function LivingCvSurface({
+  data,
+  selectedId,
+  mount,
+}: {
+  data: GardenData;
+  selectedId?: string;
+  mount: GardenMount;
+}) {
   const hrefFor = GARDEN_HREF_FOR[mount];
-  const selected = DEMO_CV_ENTRIES.find((e) => e.id === selectedId);
+  const selected = data.cvEntries.find((e) => e.id === selectedId);
+  const live = data.mode === 'live';
+  const empty = data.cvEntries.length === 0;
 
   return (
     <div className="space-y-8">
@@ -34,8 +40,8 @@ export function LivingCvSurface({ selectedId, mount }: { selectedId?: string; mo
       <header>
         <h2 className="mz-h2">Living CV</h2>
         <p className="mz-body mt-2" style={{ color: 'var(--ink-600)' }}>
-          A CV that grows with you instead of being rewritten the night before a deadline. Every line carries its
-          provenance; nothing is added without your say-so.
+          A CV that grows with you instead of being rewritten the night before a deadline. Every line carries
+          its provenance; nothing is added without your say-so.
         </p>
         <p className="mz-small mt-2" style={{ color: 'var(--vt-text-muted)' }}>
           Your durable profile lives in{' '}
@@ -46,12 +52,39 @@ export function LivingCvSurface({ selectedId, mount }: { selectedId?: string; mo
           <Link href="/holder" className="underline underline-offset-4">
             Wallet
           </Link>
-          . This garden view drafts lines for them — it never replaces them.
+          . This garden view drafts lines alongside them — it never replaces them.
         </p>
       </header>
 
+      {data.mode === 'unavailable' ? (
+        <p className="mz-inset mz-small p-3" role="status">
+          Garden storage is temporarily unavailable — your lines are safe and will show here again shortly.
+        </p>
+      ) : null}
+
+      {empty && data.mode === 'live' ? (
+        <div className="mz-card p-5">
+          <p className="mz-body font-medium" style={{ color: 'var(--ink-900)' }}>
+            No lines yet — and that is the honest starting point.
+          </p>
+          <p className="mz-body mt-2">
+            Your living CV grows one approved line at a time.{' '}
+            <Link href={hrefFor('notes')} className="underline underline-offset-4">
+              Start from a note
+            </Link>{' '}
+            — capture something true, then grow it when it feels ready.
+          </p>
+        </div>
+      ) : null}
+
       {SECTION_ORDER.map((section) => {
-        const entries = DEMO_CV_ENTRIES.filter((e) => e.section === section);
+        const entries = data.cvEntries.filter((e) => e.section === section);
+        const showEmptyHint = entries.length === 0 && !live;
+        if (entries.length === 0 && live) {
+          // Live mount: quiet — only sections with content render, plus the
+          // fixture-only session additions below never apply here.
+          return null;
+        }
         return (
           <section key={section} aria-labelledby={`cv-${section}`}>
             <h3 id={`cv-${section}`} className="mz-eyebrow">
@@ -59,11 +92,7 @@ export function LivingCvSurface({ selectedId, mount }: { selectedId?: string; mo
             </h3>
             <ul className="mt-2">
               {entries.map((entry) => (
-                <li
-                  key={entry.id}
-                  id={entry.id}
-                  className="border-b border-[var(--rule-soft)] py-4 last:border-0"
-                >
+                <li key={entry.id} id={entry.id} className="border-b border-[var(--rule-soft)] py-4 last:border-0">
                   <div className="flex flex-wrap items-start justify-between gap-2">
                     <p className="mz-body font-medium" style={{ color: 'var(--ink-900)' }}>
                       {entry.headline}
@@ -77,6 +106,7 @@ export function LivingCvSurface({ selectedId, mount }: { selectedId?: string; mo
                       >
                         Focus
                       </Link>
+                      <RemoveCvEntryButton entryId={entry.id} />
                     </div>
                   </div>
                   <p className="mz-body mt-1">{entry.detail}</p>
@@ -90,17 +120,15 @@ export function LivingCvSurface({ selectedId, mount }: { selectedId?: string; mo
                           {line}
                         </li>
                       ))}
-                      {entry.branchIds.length > 0 ? (
-                        <li className="mz-small" style={{ color: 'var(--vt-text-muted)' }}>
-                          Branch: {entry.branchIds.map(branchName).join(', ')}
-                        </li>
-                      ) : null}
+                      <li className="mz-small" style={{ color: 'var(--vt-text-muted)' }}>
+                        Approved {entry.approvedAt}.
+                      </li>
                     </ul>
                   </details>
                 </li>
               ))}
               <SessionCvAdditions section={section} />
-              {entries.length === 0 ? (
+              {showEmptyHint ? (
                 <li className="mz-small py-4" style={{ color: 'var(--vt-text-muted)' }}>
                   Nothing here yet — grow a seed from your notes when one is ready.
                 </li>
@@ -116,7 +144,8 @@ export function LivingCvSurface({ selectedId, mount }: { selectedId?: string; mo
           <Link href={hrefFor('notes')} className="underline underline-offset-4">
             Grow one from your notes
           </Link>{' '}
-          — you review and approve every draft before it appears here.
+          — you review and approve every draft before it appears here
+          {live ? ', and removing a line reopens its seed' : ''}.
         </p>
       </footer>
     </div>

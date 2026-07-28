@@ -3,22 +3,30 @@ import Link from 'next/link';
 import { Reveal } from '@/components/motion/Reveal';
 import {
   DEMO_BRANCHES,
-  DEMO_CV_ENTRIES,
   DEMO_ROOTS,
   DEMO_SEASON_EVENTS,
-  DEMO_SEEDS,
   DEMO_TEND_ITEMS,
   DEMO_TODAY_TASKS,
 } from '@/lib/career-garden/demoData';
+import {
+  deriveActivity,
+  deriveTodayTasks,
+  type GardenData,
+} from '@/lib/career-garden/gardenViews';
 import { GARDEN_HREF_FOR, type GardenHrefFor, type GardenMount } from '@/lib/career-garden/nav';
 
 /**
  * Garden home: a calm review surface, not a dashboard. Today's few tasks,
- * the five beds of the garden as quiet structure, recent activity as a
- * timeline, and the weekly tend card. No scores, no meters, no theatre.
+ * the five beds as quiet structure, recent activity as a timeline, and the
+ * weekly tend card. No scores, no meters, no theatre.
+ *
+ * Live mount: Seeds and Blooms are your durable workspace; Roots, Branches,
+ * and Harvests stay explicitly sample-labeled until their own waves land.
  */
-export function GardenHomeSurface({ mount }: { mount: GardenMount }) {
+export function GardenHomeSurface({ data, mount }: { data: GardenData; mount: GardenMount }) {
   const hrefFor = GARDEN_HREF_FOR[mount];
+  const live = data.mode !== 'fixture';
+
   const beds: Array<{
     key: string;
     name: string;
@@ -26,14 +34,19 @@ export function GardenHomeSurface({ mount }: { mount: GardenMount }) {
     count: string;
     items: string[];
     href: string;
+    sample: boolean;
   }> = [
     {
       key: 'seeds',
       name: 'Seeds',
       meaning: 'Private notes and captures',
-      count: `${DEMO_SEEDS.length}`,
-      items: DEMO_SEEDS.slice(0, 2).map((s) => s.title),
+      count: `${data.notes.length}`,
+      items:
+        data.notes.length > 0
+          ? data.notes.slice(0, 2).map((s) => s.title)
+          : ['None yet — press ⌘K to capture the first.'],
       href: hrefFor('notes'),
+      sample: false,
     },
     {
       key: 'roots',
@@ -42,6 +55,7 @@ export function GardenHomeSurface({ mount }: { mount: GardenMount }) {
       count: `${DEMO_ROOTS.filter((r) => r.state !== 'not-connected').length}`,
       items: DEMO_ROOTS.filter((r) => r.state !== 'not-connected').map((r) => r.provider),
       href: hrefFor('privacy'),
+      sample: true,
     },
     {
       key: 'branches',
@@ -50,24 +64,34 @@ export function GardenHomeSurface({ mount }: { mount: GardenMount }) {
       count: `${DEMO_BRANCHES.length}`,
       items: DEMO_BRANCHES.slice(0, 3).map((b) => b.name),
       href: hrefFor('notes'),
+      sample: true,
     },
     {
       key: 'blooms',
       name: 'Blooms',
-      meaning: 'Living CV lines and drafts',
-      count: `${DEMO_CV_ENTRIES.length}`,
-      items: DEMO_CV_ENTRIES.slice(0, 2).map((e) => e.headline),
+      meaning: 'Living CV lines you approved',
+      count: `${data.cvEntries.length}`,
+      items:
+        data.cvEntries.length > 0
+          ? data.cvEntries.slice(0, 2).map((e) => e.headline)
+          : ['None yet — grow a seed when one is ready.'],
       href: hrefFor('cv'),
+      sample: false,
     },
     {
       key: 'harvests',
       name: 'Harvests',
       meaning: 'Packets you explicitly share',
       count: '0',
-      items: ['None in this prototype — sharing stays off here.'],
+      items: ['None here — sharing stays off in the garden.'],
       href: hrefFor('privacy'),
+      sample: true,
     },
   ];
+
+  const todayTasks = live ? deriveTodayTasks(data) : null;
+  const activity = live ? deriveActivity(data) : null;
+  const tendItems = live ? deriveTendItems(data) : DEMO_TEND_ITEMS;
 
   return (
     <div className="space-y-10">
@@ -77,22 +101,30 @@ export function GardenHomeSurface({ mount }: { mount: GardenMount }) {
           <h2 id="garden-today" className="mz-h2">
             Today
           </h2>
-          <span className="mz-chip mz-chip-watch">
+          <span className={`mz-chip ${live ? 'mz-chip-unknown' : 'mz-chip-watch'}`}>
             <span className="mz-gl" aria-hidden="true" />
-            Sample tasks
+            {live ? 'From your workspace' : 'Sample tasks'}
           </span>
         </div>
         <ul className="mt-4 grid gap-3 md:grid-cols-3">
-          {DEMO_TODAY_TASKS.map((task, i) => (
-            <Reveal key={task.id} as="li" delay={i * 60}>
-              <Link href={rewriteTodayHref(task.href, hrefFor)} className="mz-card mz-interactive block h-full p-4">
-                <p className="mz-body font-medium" style={{ color: 'var(--ink-900)' }}>
-                  {task.label}
-                </p>
-                <p className="mz-small mt-1.5">{task.detail}</p>
-              </Link>
-            </Reveal>
-          ))}
+          {(todayTasks ?? DEMO_TODAY_TASKS).map((task, i) => {
+            const href =
+              'noteId' in task && task.noteId
+                ? hrefFor('notes', { note: task.noteId })
+                : 'href' in task
+                  ? rewriteTodayHref((task as { href: string }).href, hrefFor)
+                  : hrefFor('notes');
+            return (
+              <Reveal key={task.id} as="li" delay={i * 60}>
+                <Link href={href} className="mz-card mz-interactive block h-full p-4">
+                  <p className="mz-body font-medium" style={{ color: 'var(--ink-900)' }}>
+                    {task.label}
+                  </p>
+                  <p className="mz-small mt-1.5">{task.detail}</p>
+                </Link>
+              </Reveal>
+            );
+          })}
         </ul>
       </section>
 
@@ -124,6 +156,11 @@ export function GardenHomeSurface({ mount }: { mount: GardenMount }) {
                     </li>
                   ))}
                 </ul>
+                {live && bed.sample ? (
+                  <p className="mz-mono mt-2 text-[10px] uppercase tracking-[0.12em]" style={{ color: 'var(--ink-500)' }}>
+                    Sample — its wave is next
+                  </p>
+                ) : null}
               </Link>
             </Reveal>
           ))}
@@ -135,21 +172,27 @@ export function GardenHomeSurface({ mount }: { mount: GardenMount }) {
         <h2 id="garden-seasons" className="mz-h2">
           Recent activity
         </h2>
-        <ol className="mt-4 space-y-0">
-          {DEMO_SEASON_EVENTS.map((event) => (
-            <li key={event.id} className="flex gap-4 border-b border-[var(--rule-soft)] py-3 last:border-0">
-              <span className="mz-mono shrink-0 pt-0.5 text-[12px]" style={{ color: 'var(--ink-500)' }}>
-                {event.at}
-              </span>
-              <div className="min-w-0">
-                <p className="mz-body font-medium" style={{ color: 'var(--ink-900)' }}>
-                  {event.label}
-                </p>
-                <p className="mz-small mt-0.5">{event.detail}</p>
-              </div>
-            </li>
-          ))}
-        </ol>
+        {activity && activity.length === 0 ? (
+          <p className="mz-small mt-3" style={{ color: 'var(--vt-text-muted)' }}>
+            Quiet so far — activity appears here as you capture and grow.
+          </p>
+        ) : (
+          <ol className="mt-4 space-y-0">
+            {(activity ?? DEMO_SEASON_EVENTS).map((event) => (
+              <li key={event.id} className="flex gap-4 border-b border-[var(--rule-soft)] py-3 last:border-0">
+                <span className="mz-mono shrink-0 pt-0.5 text-[12px]" style={{ color: 'var(--ink-500)' }}>
+                  {event.at}
+                </span>
+                <div className="min-w-0">
+                  <p className="mz-body font-medium" style={{ color: 'var(--ink-900)' }}>
+                    {event.label}
+                  </p>
+                  <p className="mz-small mt-0.5">{event.detail}</p>
+                </div>
+              </li>
+            ))}
+          </ol>
+        )}
       </section>
 
       {/* Tend your garden */}
@@ -158,10 +201,10 @@ export function GardenHomeSurface({ mount }: { mount: GardenMount }) {
           Tend your garden
         </h2>
         <p className="mz-small mt-1" style={{ color: 'var(--vt-text-muted)' }}>
-          A quiet weekly review — three small things, nothing urgent.
+          A quiet weekly review — a few small things, nothing urgent.
         </p>
         <ul className="mt-3 space-y-2">
-          {DEMO_TEND_ITEMS.map((item) => (
+          {tendItems.map((item) => (
             <li key={item} className="mz-body flex gap-2">
               <span aria-hidden="true" style={{ color: 'var(--ink-400)' }}>
                 ○
@@ -183,7 +226,29 @@ export function GardenHomeSurface({ mount }: { mount: GardenMount }) {
   );
 }
 
-/** Today-task hrefs are stored against the holder mount; remap for the harness. */
+/** Deterministic, count-grounded tend list for the live mount. */
+function deriveTendItems(data: GardenData): readonly string[] {
+  const items: string[] = [];
+  const unfiled = data.notes.filter((n) => n.status === 'unfiled').length;
+  if (unfiled > 0) {
+    items.push(
+      `${unfiled} seed${unfiled === 1 ? ' is' : 's are'} unfiled — read ${unfiled === 1 ? 'it' : 'them'} again, tag ${unfiled === 1 ? 'it' : 'them'}, or let ${unfiled === 1 ? 'it' : 'them'} rest.`,
+    );
+  }
+  const growing = data.notes.filter((n) => n.status === 'growing').length;
+  if (growing > 0) {
+    items.push(`${growing} draft${growing === 1 ? '' : 's'} await${growing === 1 ? 's' : ''} your review before blooming.`);
+  }
+  if (data.cvEntries.length > 0) {
+    items.push('Reread one Living CV line — does its wording still sound like you?');
+  }
+  if (items.length === 0) {
+    items.push('Capture one true thing from this week — a thought is enough.');
+  }
+  return items.slice(0, 3);
+}
+
+/** Fixture Today-task hrefs are stored against the holder mount; remap for the harness. */
 function rewriteTodayHref(href: string, hrefFor: GardenHrefFor): string {
   const [path, query] = href.split('?');
   const params = Object.fromEntries(new URLSearchParams(query ?? ''));

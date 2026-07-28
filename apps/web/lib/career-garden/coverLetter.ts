@@ -1,4 +1,11 @@
-import type { CvEntry, GardenOpportunity } from './demoData';
+import type { GardenOpportunity } from './demoData';
+
+/** The only thing a letter may rest on: a line the clinician approved. */
+export interface CoverLetterFact {
+  id: string;
+  headline: string;
+  detail: string;
+}
 
 /**
  * Deterministic cover-letter assembly for the Prepare flow. A pure template
@@ -8,7 +15,7 @@ import type { CvEntry, GardenOpportunity } from './demoData';
  */
 export function buildCoverLetterDraft(
   opportunity: GardenOpportunity,
-  selectedFacts: CvEntry[],
+  selectedFacts: CoverLetterFact[],
 ): string {
   const opening = `Dear hiring team at ${opportunity.org},\n\nI am writing about the ${opportunity.title.replace(' (sample posting)', '')} role.`;
 

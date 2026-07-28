@@ -5,7 +5,15 @@ import {
   GARDEN_PRIVACY_LINE,
   GARDEN_SAMPLE_NOTICE,
 } from '@/lib/career-garden/demoData';
+import type { GardenDataMode } from '@/lib/career-garden/gardenViews';
 import { navLinksFor, type GardenMount, type GardenSection } from '@/lib/career-garden/nav';
+
+const MODE_NOTICE: Record<GardenDataMode, string> = {
+  fixture: GARDEN_SAMPLE_NOTICE,
+  live: 'Your notes and CV lines here are saved to your private workspace. Research, connections, and postings are still samples — their waves come next.',
+  unavailable:
+    'Garden storage is temporarily unavailable — nothing you write can be saved right now, so the garden is read-only until it returns.',
+};
 
 /**
  * The Career Garden frame: header with the persistent privacy line, the
@@ -20,10 +28,12 @@ import { navLinksFor, type GardenMount, type GardenSection } from '@/lib/career-
 export function GardenShell({
   active,
   mount,
+  mode = 'fixture',
   children,
 }: {
   active: GardenSection;
   mount: GardenMount;
+  mode?: GardenDataMode;
   children: React.ReactNode;
 }) {
   const links = navLinksFor(mount);
@@ -42,7 +52,7 @@ export function GardenShell({
           {GARDEN_PRIVACY_LINE}
         </p>
         <p className="mz-small mt-2 pl-3" style={{ color: 'var(--vt-text-muted)' }}>
-          {GARDEN_SAMPLE_NOTICE}
+          {MODE_NOTICE[mode]}
         </p>
 
         <p className="mz-mono mt-5 text-[11px] uppercase tracking-[0.12em]" style={{ color: 'var(--ink-500)' }} aria-label="Where this workspace sits">

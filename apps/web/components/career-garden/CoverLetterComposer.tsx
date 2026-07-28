@@ -6,12 +6,11 @@ import { buildCoverLetterDraft } from '@/lib/career-garden/coverLetter';
 import {
   AI_DRAFT_LINE,
   DRAFT_ONLY_LINE,
-  type CvEntry,
   type GardenOpportunity,
 } from '@/lib/career-garden/demoData';
+import type { GardenCvView } from '@/lib/career-garden/gardenViews';
 
 import { GardenStamp } from './GardenStamp';
-import { useGardenWorkspace } from './GardenWorkspaceProvider';
 
 /**
  * The cover-letter drafting desk. A pure template over the facts the
@@ -24,21 +23,12 @@ import { useGardenWorkspace } from './GardenWorkspaceProvider';
  */
 export function CoverLetterComposer({
   opportunity,
-  baseFacts,
+  facts,
 }: {
   opportunity: GardenOpportunity;
-  baseFacts: CvEntry[];
+  facts: GardenCvView[];
 }) {
-  const { approvedEntries } = useGardenWorkspace();
-  const facts = React.useMemo(() => {
-    const merged = [...baseFacts];
-    for (const e of approvedEntries) {
-      if (!merged.some((m) => m.id === e.id)) merged.push(e);
-    }
-    return merged;
-  }, [baseFacts, approvedEntries]);
-
-  const [selectedIds, setSelectedIds] = React.useState<string[]>(() => baseFacts.map((f) => f.id));
+  const [selectedIds, setSelectedIds] = React.useState<string[]>(() => facts.map((f) => f.id));
   const [copied, setCopied] = React.useState(false);
 
   const selectedFacts = facts.filter((f) => selectedIds.includes(f.id));
@@ -58,6 +48,11 @@ export function CoverLetterComposer({
         <p className="mz-small mt-1" style={{ color: 'var(--vt-text-muted)' }}>
           The letter is assembled only from the lines you tick. Untick a line and it leaves the draft.
         </p>
+        {facts.length === 0 ? (
+          <p className="mz-small mt-3" style={{ color: 'var(--vt-text-muted)' }}>
+            No Living CV lines yet — grow one from a note first; drafts only rest on lines you approved.
+          </p>
+        ) : null}
         <ul className="mt-3 space-y-2">
           {facts.map((fact) => (
             <li key={fact.id} className="mz-card p-3">
