@@ -28,6 +28,7 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { name: 'Home', href: '/holder/home', matchPrefix: false },
+  { name: 'Garden', href: '/holder/garden', matchPrefix: true },
   { name: 'Wallet', href: '/holder', matchPrefix: false },
   { name: 'Readiness', href: '/holder/readiness', matchPrefix: true },
   { name: 'Roles', href: '/holder/opportunities', matchPrefix: true },
