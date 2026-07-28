@@ -5,7 +5,6 @@
     "middleware/authMiddleware.ts",
     "middleware/rateLimitFactory.ts",
     "middleware/verifiedIdentity.ts",
-    "routes/activation.ts",
     "routes/applications.ts",
     "routes/apply.ts",
     "routes/asyncTrust.ts",
