@@ -539,7 +539,7 @@ export function AskHome() {
  * diagram truth test bans inside <text>. Redacted bars stand in for values:
  * the SHAPE of an answer without fabricating one.
  */
-function CheckRunArtifact() {
+export function CheckRunArtifact() {
   const rows = [
     { y: 96, label: 'identity', step: 2 },
     { y: 156, label: 'exclusions', step: 3 },
@@ -613,7 +613,7 @@ function CheckRunArtifact() {
  * ("source + time", "what is missing", "your decision") — captions for
  * regions of the surface, not states of data.
  */
-function PacketArtifact() {
+export function PacketArtifact() {
   return (
     <svg
       viewBox="0 0 720 400"
