@@ -165,7 +165,10 @@ import { registerDetailAgentRoutes } from './routes/detailAgents';           // 
 import { registerPollingRoutes } from './routes/polling';                    // Wave POLL: Polling scheduler
 import { registerEmployerRoutes } from './routes/employers';                 // Wave 186: Employer Knowledge Layer
 import { registerPrequalificationRoutes } from './routes/prequalification';  // Wave 189: AI Interview, Assessments, Prequalification
-import { registerVerifierPipelineRoutes } from './routes/verifierPipeline';  // Wave 190: Apply with VitalCV + ATS + Verifier Pipeline
+// Wave 190 (verifierPipeline) is deliberately NOT imported — the routes are
+// unauthenticated and org-scoped by a caller-supplied header. See the header of
+// routes/verifierPipeline.ts and the guard in
+// routes/__tests__/verifierPipelineNotWired.test.ts before re-adding this.
 import { registerReferralRoutes } from './routes/referrals';                 // Wave 191: Referral Engine with Compliance Guardrails
 import { registerAmbassadorRoutes } from './routes/ambassador';              // Wave 192: Ambassador Program
 import { registerGrowthRoutes } from './routes/growth';                      // Wave 193: Instant Offers + Growth Loops
@@ -3684,7 +3687,10 @@ registerDetailAgentRoutes(app);      // Wave DT — Detail agents + system healt
 registerPollingRoutes(app);          // Wave POLL — Polling scheduler
 registerEmployerRoutes(app);          // Wave 186 — Employer Knowledge Layer
 registerPrequalificationRoutes(app);  // Wave 189 — AI Interview, Assessments, Prequalification
-registerVerifierPipelineRoutes(app);  // Wave 190 — Apply with VitalCV + ATS + Verifier Pipeline
+// Wave 190 — Apply with VitalCV + ATS + Verifier Pipeline: NOT WIRED.
+// Unauthenticated writes on any NPI and a cross-tenant read gated only on the
+// x-verifier-org-id request header. No caller exists (the embed it backed 404s).
+// Restoring it requires real auth first — routes/verifierPipeline.ts explains what.
 registerReferralRoutes(app);          // Wave 191 — Referral Engine with Compliance Guardrails
 registerAmbassadorRoutes(app);        // Wave 192 — Ambassador Program
 registerGrowthRoutes(app);            // Wave 193 — Instant Offers + Growth Loops
