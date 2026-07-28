@@ -10,32 +10,52 @@ import { expect, test } from '@playwright/test';
  * moves under prefers-reduced-motion.
  */
 
+/**
+ * A page may carry MORE than one artifact — /employers opens on the hospital
+ * elevation and then shows the reviewer's decision surface. So each entry names
+ * the artifact it is asserting by aria-label rather than assuming the page has
+ * exactly one, and the rest-check below covers every artifact on the page.
+ */
 const PAGES = [
+  { path: '/employers', artifact: 'An elevation drawing of a hospital' },
   { path: '/employers', artifact: 'A consented packet arriving' },
   { path: '/trust', artifact: 'One claim connected to its named source' },
   { path: '/pilot', artifact: 'A timeline from accepted offer' },
+  { path: '/matcha/experience', artifact: 'A drawn clinician beside the record' },
+  { path: '/matcha/experience', artifact: 'Six medical specialties drawn at equal weight' },
 ] as const;
 
+/**
+ * The longest sequence. Step 10 starts at 4060ms and runs 480ms; the clinician's
+ * travel trace starts at 3050ms and runs 900ms. 5600ms clears both with room —
+ * a too-short wait here reads as "an animation is idling" when in fact it had
+ * simply not finished, which is the kind of flake that gets a gate disabled.
+ */
+const REST_AFTER_MS = 5600;
+
 for (const { path, artifact } of PAGES) {
-  test(`${path}: carries its animated artifact, which rests after entry`, async ({ page }) => {
+  test(`${path}: ${artifact.slice(0, 32)}… plays, then rests`, async ({ page }) => {
     await page.goto(path, { waitUntil: 'domcontentloaded' });
 
-    const figure = page.locator('.vt-artifact');
-    await expect(figure).toHaveCount(1);
-    const svg = figure.locator('svg.ask-art--wide');
+    const svg = page.locator(
+      `svg.ask-art--wide[aria-label*="${artifact.slice(0, 24)}"]`,
+    );
+    await expect(svg).toHaveCount(1);
     await expect(svg).toHaveAttribute('role', 'img');
-    await expect(svg).toHaveAttribute('aria-label', new RegExp(artifact.slice(0, 24)));
+    const figure = page.locator('.vt-artifact').filter({ has: svg });
 
     // The artifact is genuinely big — over half the content column.
+    await svg.scrollIntoViewIfNeeded();
     const width = await svg.evaluate((el) => el.getBoundingClientRect().width);
     expect(width, `${path} artifact width`).toBeGreaterThan(500);
 
     // Entry: scrolling it into view starts the sequence...
-    await figure.scrollIntoViewIfNeeded();
-    await expect(figure).toHaveClass(/ask-art-play/);
+    await expect(figure.first()).toHaveClass(/ask-art-play/);
 
-    // ...and after the longest sequence (step 6 ends ~2.7s) everything rests.
-    await page.waitForTimeout(3400);
+    // ...and once the longest sequence has run, EVERY artifact on the page
+    // rests. Checked page-wide, not just for this one: a second artifact that
+    // idled would be just as much a CD-11 breach.
+    await page.waitForTimeout(REST_AFTER_MS);
     const running = await page.evaluate(
       () =>
         document
@@ -50,16 +70,17 @@ for (const { path, artifact } of PAGES) {
     expect(running, `${path}: no artifact animation may idle`).toBe(0);
   });
 
-  test(`${path}: reduced motion keeps the complete artifact, still`, async ({ page }) => {
+  test(`${path}: ${artifact.slice(0, 32)}… stays complete under reduced motion`, async ({ page }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto(path, { waitUntil: 'domcontentloaded' });
 
-    const figure = page.locator('.vt-artifact');
-    await figure.scrollIntoViewIfNeeded();
+    const svg = page.locator(
+      `svg.ask-art--wide[aria-label*="${artifact.slice(0, 24)}"]`,
+    );
+    await svg.scrollIntoViewIfNeeded();
     await page.waitForTimeout(400);
 
     // The full drawing is present (base CSS is the final frame)...
-    const svg = figure.locator('svg.ask-art--wide');
     const box = await svg.boundingBox();
     expect(box?.width ?? 0).toBeGreaterThan(500);
 

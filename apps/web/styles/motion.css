@@ -53,3 +53,31 @@
     stroke-dashoffset: 0;
   }
 }
+
+/* Variable-length trace. `ask-art-draw` hard-codes a 32px path, which is why it
+ * could only ever serve the one consent rule; a cardiac trace, a corridor, or a
+ * building outline are each a different length. The consumer sets --trace-len
+ * to the path length (SVG `pathLength` normalises it if you would rather not
+ * measure). Still single-shot: it draws itself once and rests (CD-11). */
+@keyframes ask-art-trace {
+  from {
+    stroke-dashoffset: var(--trace-len, 300);
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* A pane of glass catching the light as it settles in. Opacity and a small
+ * rise only — no shimmer, no sweep, no loop: CD-13 retires glow and shimmer,
+ * and this must come to rest like every other artifact step. */
+@keyframes ask-art-glass-in {
+  from {
+    opacity: 0;
+    translate: 0 10px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}

@@ -73,7 +73,7 @@ export default async function TrustCenterPage() {
             its source and read time, the receipt, and the open door at the end.
             Plays once on entry, then rests (CD-11). */}
         <section aria-label="How a claim carries its provenance" className="mt-10">
-          <ArtifactStage>
+          <ArtifactStage glass>
             <ReceiptArtifact />
           </ArtifactStage>
         </section>
