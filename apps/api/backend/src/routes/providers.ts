@@ -78,7 +78,19 @@ function uniqueStrings(values: Array<string | null | undefined>): string[] {
   return ordered;
 }
 
+/**
+ * Reachable unauthenticated on the backend's own public domain, so the web
+ * proxy's headers do not cover it. Without an explicit directive an
+ * intermediary may cache heuristically and keep serving a stale payload.
+ */
+function noStore(_req: Request, res: Response, next: () => void): void {
+  res.set('Cache-Control', 'no-store');
+  next();
+}
+
 export function registerProviderRoutes(app: Express): void {
+  app.use('/api/providers', noStore);
+
   app.get('/api/providers', async (req: Request, res: Response) => {
     const limit = readPositiveInt(req.query.limit, 50, 100);
     const offset = readPositiveInt(req.query.offset, 0, 10_000);

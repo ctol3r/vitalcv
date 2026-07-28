@@ -47,6 +47,24 @@ const nextConfig = {
         source: '/(.*)',
         headers: getSecurityHeadersForNext(),
       },
+      // Public provider surfaces must not be cached by any intermediary.
+      // These routes send no Cache-Control today, so a CDN or proxy is free to
+      // apply heuristic caching — which would keep serving a payload after a
+      // correction ships. Declared here rather than per-response because each
+      // proxy has several exit paths (upstream error, timeout, catch) and a
+      // header added by hand would be missed on at least one of them.
+      {
+        source: '/api/providers',
+        headers: [{ key: 'Cache-Control', value: 'no-store' }],
+      },
+      {
+        source: '/api/directory',
+        headers: [{ key: 'Cache-Control', value: 'no-store' }],
+      },
+      {
+        source: '/api/directory/:path*',
+        headers: [{ key: 'Cache-Control', value: 'no-store' }],
+      },
     ];
   },
   webpack: (config, { isServer }) => {
