@@ -28,7 +28,7 @@
 | --- | --- | --- |
 | W1 | The only launch wedge is `/onboarding` -> `/passport/[id]` -> `/review/[entityId]` -> `/pilot-ops` / start capture | Product walkthrough recorded on the live environment |
 | W2 | No archived `/demo/*` route or off-wedge operator backdoor is required to complete the flow | Walkthrough does not touch `_archive` routes |
-| W3 | NPI input at `/onboarding` resolves identity and begins launch-spine checks | Live NPI test (approved pilot NPI or `1003000126`) |
+| W3 | NPI input at `/onboarding` resolves identity and begins launch-spine checks | Live NPI test using an NPI selected per [`vitalcv-pilot-runbook.md` §4.1](./vitalcv-pilot-runbook.md) — a check-digit-invalid fixture, or the pilot customer's own NPI |
 | W4 | `/passport/[id]` shows identity + sanctions + enrollment + source coverage with per-source status | Screenshot evidence |
 | W5 | `/review/[entityId]` loads employer review with readiness snapshot + action buttons | Screenshot evidence |
 | W6 | Shared surfaces (`/p/[slug]`, `/interview`) point back to the same packet truth, not separate data | Route inspection |

@@ -11,7 +11,7 @@ This demo proves one thing: a credentialing / onboarding operator can move from 
 ## Pre-Demo Checklist
 
 - [ ] Use the live wedge only: `/onboarding` -> `/passport/[id]` -> `/review/[entityId]`.
-- [ ] Use an approved pilot NPI. Default demo NPI: `1003000126` unless a live pilot NPI has been approved for the session.
+- [ ] Select the NPI per [`vitalcv-pilot-runbook.md` §4.1](./vitalcv-pilot-runbook.md). For simulation use a check-digit-invalid fixture (`1558395519`, `1942788324`, `1841498016`); for a live pilot use the NPI the customer provides. Never a real NPI that is not the customer's own.
 - [ ] Have a stopwatch ready for first-value and packet-to-decision timing.
 - [ ] Confirm backend is reachable: `GET https://delightful-essence-production.up.railway.app/api/health`
 - [ ] Confirm packet export is available from the live review surface.
@@ -54,7 +54,7 @@ Say:
 
 **What operator does:**
 1. Navigate to `/onboarding`.
-2. Enter the approved pilot NPI (`1003000126` for demo, or a real NPI for live pilot).
+2. Enter the NPI selected in the pre-demo checklist (a check-digit-invalid fixture for simulation, or the customer's own NPI for a live pilot).
 3. Submit and start the stopwatch.
 
 **Say:**
