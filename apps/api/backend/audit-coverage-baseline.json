@@ -49,7 +49,6 @@
     "investigators.ts",
     "issuer.ts",
     "issuerOnboarding.ts",
-    "learningAnalytics.ts",
     "learningTrack.ts",
     "marketplaceAnalytics.ts",
     "matcha.ts",
