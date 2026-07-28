@@ -66,7 +66,7 @@ export async function buildDashboard(npis: string[]): Promise<DashboardEntry[]> 
 // Example usage
 async function main() {
   const dashboard = await buildDashboard([
-    '1003000126',
+    '0000000000',
     '1234567890',
     '9876543210',
   ]);

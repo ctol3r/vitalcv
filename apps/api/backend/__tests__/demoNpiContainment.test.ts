@@ -67,6 +67,7 @@ import { applyToOpportunity, getCandidateQueue } from '../src/services/verifier/
 import { CONFORMANCE_TESTS } from '../src/services/protocol/protocolSpec';
 import { listDomains } from '../src/services/domains/domainRegistry';
 import { listAlerts } from '../src/services/alerts/trustAlerts';
+import { CREDENTIAL_INGESTION_EXAMPLE_FIXTURES } from '../prisma/credentialIngestionSeedExamples';
 
 // ── The check-digit test ──────────────────────────────────────────────
 
@@ -292,6 +293,19 @@ describe('seed trust alerts', () => {
       ...issuableNpisIn(alert.description),
       ...issuableNpisIn(alert.title),
     ]);
+
+    expect(offenders).toEqual([]);
+  });
+});
+
+describe('credential-ingestion seed fixtures', () => {
+  it('names no issuable NPI anywhere in a fixture', () => {
+    // Whole-fixture scan rather than a field list: these carry the NPI in the
+    // provider block, in raw connector payloads and inside an NPPES source_url,
+    // and a field-by-field assertion would miss whichever one is added next.
+    const offenders = CREDENTIAL_INGESTION_EXAMPLE_FIXTURES.flatMap((fixture) =>
+      issuableNpisIn(fixture),
+    );
 
     expect(offenders).toEqual([]);
   });
