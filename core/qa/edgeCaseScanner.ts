@@ -25,12 +25,18 @@ export interface EdgeCaseScanResult {
   findings: QaFinding[];
 }
 
+/**
+ * Values substituted into path/query params when probing endpoints. The NPI must
+ * fail the NPI check digit (Luhn over "80840" + the first 9 digits) so the
+ * scanner never probes live endpoints with a real registrant's identifier.
+ * `1003000126` — ARDALAN ENKESHAFI, M.D. — was used here until 2026-07-27.
+ */
 const PARAM_SAMPLES: Record<string, string> = {
-  npi: '1003000126',
-  clinician_id: '1003000126',
-  clinicianId: '1003000126',
-  subject: '1003000126',
-  subjectId: '1003000126',
+  npi: '0000000000',
+  clinician_id: '0000000000',
+  clinicianId: '0000000000',
+  subject: '0000000000',
+  subjectId: '0000000000',
   shareId: 'qa-share-id',
   bundleId: '00000000-0000-0000-0000-000000000001',
   artifactId: '00000000-0000-0000-0000-000000000001',
