@@ -41,7 +41,10 @@ describe('page density system', () => {
     // its application-detail route.
     // 142 = 141 + the COMPETE-2 /dev/compete-film harness (dev-gated, noindex).
     // 143 = 142 + the public, indexable provider record at /directory/[npi].
-    expect(inventory).toHaveLength(143);
+    // 150 = 143 + the six Career Garden workspace pages under /holder/garden
+    // (home, cv, notes, research, opportunities, privacy) + the
+    // /dev/career-garden harness (dev-gated, noindex).
+    expect(inventory).toHaveLength(150);
     expect(inventory.every((item) => !item.source.includes('/_archive/'))).toBe(true);
     expect(inventory.every((item) => !item.route.startsWith('/api/'))).toBe(true);
     expect(new Set(inventory.map((item) => item.density))).toEqual(
