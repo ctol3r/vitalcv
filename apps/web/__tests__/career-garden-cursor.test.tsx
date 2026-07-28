@@ -2,7 +2,7 @@
 import * as React from 'react';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { GardenCursor } from '@/components/career-garden/GardenCursor';
 import {
@@ -11,6 +11,12 @@ import {
 } from '@/components/career-garden/GardenWorkspaceProvider';
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+
+// The provider calls useRouter() for live-mode refreshes; the fixture-mode
+// tests only need it to exist.
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ refresh: () => {} }),
+}));
 
 /**
  * Interaction contract for the VitalCV Cursor: it owns ⌘K inside the garden

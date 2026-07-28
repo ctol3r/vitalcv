@@ -10,6 +10,7 @@ import { OpportunitiesSurface } from '@/components/career-garden/surfaces/Opport
 import { PrivacySurface } from '@/components/career-garden/surfaces/PrivacySurface';
 import { ResearchSurface } from '@/components/career-garden/surfaces/ResearchSurface';
 import { HolderWorkspaceFrame } from '@/components/holder/HolderWorkspaceFrame';
+import { fixtureGardenData } from '@/lib/career-garden/gardenViews';
 import { isCareerGardenPreviewAllowed } from '@/lib/career-garden/preview';
 import type { GardenSection } from '@/lib/career-garden/nav';
 import { buildClinicianMobileData } from '@/lib/mobile/clinician-state';
@@ -59,25 +60,27 @@ export default async function CareerGardenDevHarness({
     rawTrustHistory: [],
   });
 
+  const data = fixtureGardenData();
+
   const surface =
     view === 'home' ? (
-      <GardenHomeSurface mount="harness" />
+      <GardenHomeSurface data={data} mount="harness" />
     ) : view === 'cv' ? (
-      <LivingCvSurface selectedId={sp.entry} mount="harness" />
+      <LivingCvSurface data={data} selectedId={sp.entry} mount="harness" />
     ) : view === 'research' ? (
       <ResearchSurface selectedId={sp.item} mount="harness" />
     ) : view === 'notes' ? (
-      <NotesSurface selectedId={sp.note} grow={sp.grow === '1'} mount="harness" />
+      <NotesSurface data={data} selectedId={sp.note} grow={sp.grow === '1'} mount="harness" />
     ) : view === 'opportunities' ? (
-      <OpportunitiesSurface selectedId={sp.op} compose={sp.compose === '1'} mount="harness" />
+      <OpportunitiesSurface data={data} selectedId={sp.op} compose={sp.compose === '1'} mount="harness" />
     ) : (
       <PrivacySurface mount="harness" />
     );
 
   return (
     <HolderWorkspaceFrame initialData={initialData} showClerkAccount={false}>
-      <GardenWorkspaceProvider>
-        <GardenShell active={view} mount="harness">
+      <GardenWorkspaceProvider initial={data}>
+        <GardenShell active={view} mount="harness" mode="fixture">
           {surface}
         </GardenShell>
         <GardenCursor mount="harness" />

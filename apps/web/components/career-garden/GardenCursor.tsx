@@ -6,15 +6,14 @@ import Link from 'next/link';
 import {
   AI_DRAFT_LINE,
   CURSOR_HONESTY_LINE,
-  DEMO_CV_ENTRIES,
   DEMO_OPPORTUNITIES,
   DEMO_RESEARCH_ITEMS,
-  DEMO_SEEDS,
   NOTE_PRIVACY_LINE,
   branchName,
   findOpportunity,
   findSeed,
 } from '@/lib/career-garden/demoData';
+import type { GardenData } from '@/lib/career-garden/gardenViews';
 import { GARDEN_HREF_FOR, type GardenHrefFor, type GardenMount } from '@/lib/career-garden/nav';
 
 import { type CursorMode, useGardenWorkspace } from './GardenWorkspaceProvider';
@@ -47,16 +46,16 @@ interface SearchHit {
   href: string;
 }
 
-function searchWorkspace(query: string, hrefFor: GardenHrefFor): SearchHit[] {
+function searchWorkspace(query: string, hrefFor: GardenHrefFor, data: GardenData): SearchHit[] {
   const q = query.trim().toLowerCase();
   if (!q) return [];
   const hits: SearchHit[] = [];
-  for (const s of DEMO_SEEDS) {
+  for (const s of data.notes) {
     if (`${s.title} ${s.body} ${s.tags.join(' ')}`.toLowerCase().includes(q)) {
       hits.push({ group: 'Notes', title: s.title, href: hrefFor('notes', { note: s.id }) });
     }
   }
-  for (const e of DEMO_CV_ENTRIES) {
+  for (const e of data.cvEntries) {
     if (`${e.headline} ${e.detail}`.toLowerCase().includes(q)) {
       hits.push({ group: 'Living CV', title: e.headline, href: hrefFor('cv') });
     }
@@ -74,11 +73,14 @@ function searchWorkspace(query: string, hrefFor: GardenHrefFor): SearchHit[] {
   return hits.slice(0, 8);
 }
 
-function groundedAnswer(query: string, approvedCount: number): string | null {
+function groundedAnswer(query: string, data: GardenData): string | null {
   const q = query.toLowerCase();
   if (/seed|note|unfiled|captur/.test(q)) {
-    const unfiled = DEMO_SEEDS.filter((s) => s.status === 'unfiled').length;
-    return `You have ${DEMO_SEEDS.length} seeds; ${unfiled} are unfiled. The newest is “${DEMO_SEEDS[0].title}”.`;
+    if (data.notes.length === 0) {
+      return 'You have no seeds yet. Press Capture and plant the first one — a thought is enough.';
+    }
+    const unfiled = data.notes.filter((s) => s.status === 'unfiled').length;
+    return `You have ${data.notes.length} seed${data.notes.length === 1 ? '' : 's'}; ${unfiled} ${unfiled === 1 ? 'is' : 'are'} unfiled. The newest is “${data.notes[0].title}”.`;
   }
   if (/candidate|publication|scholar|author|review/.test(q)) {
     return 'Two publication candidates from your saved Scholar link are waiting for your review. A name match never becomes authorship until you confirm it.';
@@ -87,7 +89,10 @@ function groundedAnswer(query: string, approvedCount: number): string | null {
     return 'Two sample postings sit in your preparation studio. Real roles live in MATCHA under Roles.';
   }
   if (/\bcv\b|living|bloom/.test(q)) {
-    return `Your living CV holds ${DEMO_CV_ENTRIES.length} lines${approvedCount > 0 ? ` plus ${approvedCount} approved this session` : ''}. Every line carries its provenance.`;
+    if (data.cvEntries.length === 0) {
+      return 'Your living CV has no lines yet — grow one from a note when it feels ready.';
+    }
+    return `Your living CV holds ${data.cvEntries.length} line${data.cvEntries.length === 1 ? '' : 's'}. Every line carries its provenance.`;
   }
   if (/privacy|private|share|\bsee\b/.test(q)) {
     return 'This workspace is private — only you can see notes until you choose to share. Connections and sharing rules are on the Privacy page.';
@@ -107,6 +112,7 @@ export function GardenCursor({ mount }: { mount: GardenMount }) {
   const [captureTitle, setCaptureTitle] = React.useState('');
   const [captureBody, setCaptureBody] = React.useState('');
   const [savedCaptureId, setSavedCaptureId] = React.useState<string | null>(null);
+  const [savedLiveNoteId, setSavedLiveNoteId] = React.useState<string | null>(null);
   const [selection, setSelection] = React.useState<{ x: number; y: number; text: string } | null>(null);
 
   const { cursorOpen, cursorMode, context } = ws;
@@ -176,6 +182,7 @@ export function GardenCursor({ mount }: { mount: GardenMount }) {
       previousFocus.current?.focus?.();
       setQuery('');
       setSavedCaptureId(null);
+      setSavedLiveNoteId(null);
     }
   }, [cursorOpen, cursorMode]);
 
@@ -208,24 +215,43 @@ export function GardenCursor({ mount }: { mount: GardenMount }) {
     ? `${context.type === 'cv' ? 'CV line' : context.type === 'note' ? 'Note' : context.type === 'research' ? 'Research' : 'Opportunity'} — ${context.label}`
     : 'Whole workspace';
 
-  const saveCapture = () => {
+  const live = ws.data.mode === 'live';
+
+  const saveCapture = async () => {
     const body = captureBody.trim();
     if (!body) return;
     const title = captureTitle.trim() || `${body.slice(0, 48)}${body.length > 48 ? '…' : ''}`;
+    if (live) {
+      const noteId = await ws.captureLiveNote(title, body);
+      if (noteId) {
+        setSavedLiveNoteId(noteId);
+        setCaptureBody('');
+        setCaptureTitle('');
+      }
+      return;
+    }
     ws.addCapture(title, body);
     setSavedCaptureId(`session-capture-${ws.captures.length + 1}`);
     setCaptureBody('');
     setCaptureTitle('');
   };
 
-  const undoCapture = () => {
+  const undoCapture = async () => {
+    if (live) {
+      if (savedLiveNoteId && (await ws.deleteLiveNote(savedLiveNoteId))) {
+        setSavedLiveNoteId(null);
+      }
+      return;
+    }
     if (ws.captures.length === 0) return;
     ws.removeCapture(ws.captures[ws.captures.length - 1].id);
     setSavedCaptureId(null);
   };
 
-  const hits = React.useMemo(() => searchWorkspace(query, hrefFor), [query, hrefFor]);
-  const answer = cursorMode === 'ask' && query.trim() ? groundedAnswer(query, ws.approvedEntries.length) : null;
+  const captureSaved = live ? savedLiveNoteId !== null : savedCaptureId !== null;
+
+  const hits = React.useMemo(() => searchWorkspace(query, hrefFor, ws.data), [query, hrefFor, ws.data]);
+  const answer = cursorMode === 'ask' && query.trim() ? groundedAnswer(query, ws.data) : null;
 
   return (
     <>
@@ -446,22 +472,32 @@ export function GardenCursor({ mount }: { mount: GardenMount }) {
                     aria-label="Capture body"
                   />
                   <div className="mt-2 flex flex-wrap items-center gap-2">
-                    <button type="button" className="mz-btn mz-btn-sm" onClick={saveCapture} disabled={!captureBody.trim()}>
-                      Save as a private seed
+                    <button
+                      type="button"
+                      className="mz-btn mz-btn-sm"
+                      onClick={() => void saveCapture()}
+                      disabled={!captureBody.trim() || ws.pending}
+                    >
+                      {ws.pending ? 'Saving…' : 'Save as a private seed'}
                     </button>
                     <span className="mz-small" style={{ color: 'var(--vt-text-muted)' }}>
-                      {NOTE_PRIVACY_LINE} Session-only in this prototype.
+                      {NOTE_PRIVACY_LINE}{live ? '' : ' Session-only in this prototype.'}
                     </span>
                   </div>
-                  {savedCaptureId ? (
+                  {ws.lastError ? (
+                    <p className="mz-small mt-2" role="alert" style={{ color: 'var(--watch)' }}>
+                      {ws.lastError}
+                    </p>
+                  ) : null}
+                  {captureSaved ? (
                     <div className="mz-inset mt-3 flex flex-wrap items-center justify-between gap-2 p-3">
                       <p className="mz-body">
-                        Saved to your notes for this session.{' '}
+                        {live ? 'Saved to your notes.' : 'Saved to your notes for this session.'}{' '}
                         <Link href={hrefFor('notes')} onClick={() => ws.closeCursor()} className="underline underline-offset-4">
                           See it in Notes
                         </Link>
                       </p>
-                      <button type="button" className="mz-btn-ghost mz-btn-sm" onClick={undoCapture}>
+                      <button type="button" className="mz-btn-ghost mz-btn-sm" onClick={() => void undoCapture()} disabled={ws.pending}>
                         Undo
                       </button>
                     </div>
@@ -470,11 +506,11 @@ export function GardenCursor({ mount }: { mount: GardenMount }) {
               ) : null}
 
               {cursorMode === 'organize' ? (
-                <OrganizePane contextId={context?.id} contextType={context?.type} hrefFor={hrefFor} onNavigate={() => ws.closeCursor()} />
+                <OrganizePane contextId={context?.id} contextType={context?.type} hrefFor={hrefFor} onNavigate={() => ws.closeCursor()} data={ws.data} />
               ) : null}
 
               {cursorMode === 'prepare' ? (
-                <PreparePane contextId={context?.id} contextType={context?.type} hrefFor={hrefFor} onNavigate={() => ws.closeCursor()} />
+                <PreparePane contextId={context?.id} contextType={context?.type} hrefFor={hrefFor} onNavigate={() => ws.closeCursor()} data={ws.data} />
               ) : null}
             </div>
 
@@ -493,14 +529,19 @@ function OrganizePane({
   contextType,
   hrefFor,
   onNavigate,
+  data,
 }: {
   contextId?: string;
   contextType?: string;
   hrefFor: GardenHrefFor;
   onNavigate: () => void;
+  data: GardenData;
 }) {
   if (contextType === 'note') {
-    const seed = findSeed(contextId);
+    const live = data.notes.find((n) => n.id === contextId);
+    const seed = findSeed(contextId) ?? (live
+      ? { title: live.title, tags: live.tags, branchIds: [] as string[] }
+      : undefined);
     if (seed) {
       return (
         <div className="mz-inset p-3">
@@ -508,10 +549,14 @@ function OrganizePane({
             Suggestions for “{seed.title}”
           </p>
           <ul className="mt-2 space-y-1.5">
-            <li className="mz-body">Tags it already carries: {seed.tags.join(', ')}.</li>
             <li className="mz-body">
-              Linked project{seed.branchIds.length === 1 ? '' : 's'}: {seed.branchIds.map(branchName).join(', ')}.
+              {seed.tags.length > 0 ? `Tags it already carries: ${seed.tags.join(', ')}.` : 'No tags yet — two or three short ones help future you.'}
             </li>
+            {seed.branchIds.length > 0 ? (
+              <li className="mz-body">
+                Linked project{seed.branchIds.length === 1 ? '' : 's'}: {seed.branchIds.map(branchName).join(', ')}.
+              </li>
+            ) : null}
             <li className="mz-body">No duplicates found among your seeds.</li>
           </ul>
           <p className="mz-small mt-3" style={{ color: 'var(--vt-text-muted)' }}>
@@ -521,11 +566,11 @@ function OrganizePane({
       );
     }
   }
-  const unfiled = DEMO_SEEDS.filter((s) => s.status === 'unfiled').length;
+  const unfiled = data.notes.filter((s) => s.status === 'unfiled').length;
   return (
     <div className="mz-inset p-3">
       <p className="mz-body">
-        {unfiled} of your {DEMO_SEEDS.length} seeds are unfiled.{' '}
+        {unfiled} of your {data.notes.length} seeds are unfiled.{' '}
         <Link href={hrefFor('notes')} onClick={onNavigate} className="underline underline-offset-4">
           Open Notes
         </Link>{' '}
@@ -543,11 +588,13 @@ function PreparePane({
   contextType,
   hrefFor,
   onNavigate,
+  data,
 }: {
   contextId?: string;
   contextType?: string;
   hrefFor: GardenHrefFor;
   onNavigate: () => void;
+  data: GardenData;
 }) {
   if (contextType === 'opportunity') {
     const opp = findOpportunity(contextId);
@@ -586,7 +633,7 @@ function PreparePane({
     }
   }
   if (contextType === 'cv') {
-    const entry = DEMO_CV_ENTRIES.find((e) => e.id === contextId);
+    const entry = data.cvEntries.find((e) => e.id === contextId);
     if (entry) {
       return (
         <div className="mz-inset p-3">

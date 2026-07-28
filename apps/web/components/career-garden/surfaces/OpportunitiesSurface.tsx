@@ -2,10 +2,10 @@ import Link from 'next/link';
 
 import { StateChip } from '@/components/vital/StateChip';
 import {
-  DEMO_CV_ENTRIES,
   DEMO_OPPORTUNITIES,
   findOpportunity,
 } from '@/lib/career-garden/demoData';
+import type { GardenData } from '@/lib/career-garden/gardenViews';
 import { GARDEN_HREF_FOR, type GardenMount } from '@/lib/career-garden/nav';
 
 import { CoverLetterComposer } from '../CoverLetterComposer';
@@ -18,10 +18,12 @@ import { CursorContextBinding } from '../GardenWorkspaceProvider';
  * live in MATCHA; this studio links there and never duplicates it.
  */
 export function OpportunitiesSurface({
+  data,
   selectedId,
   compose,
   mount,
 }: {
+  data: GardenData;
   selectedId?: string;
   compose?: boolean;
   mount: GardenMount;
@@ -179,7 +181,7 @@ export function OpportunitiesSurface({
           </div>
 
           {compose ? (
-            <CoverLetterComposer opportunity={selected} baseFacts={DEMO_CV_ENTRIES} />
+            <CoverLetterComposer opportunity={selected} facts={data.cvEntries} />
           ) : null}
         </article>
       ) : (

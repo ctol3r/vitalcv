@@ -39,6 +39,50 @@ model MatchaPreference {
   @@index([clerkUserId])
 }
 
+/// Career Garden private note ("seed"). Clinician-personal workspace prose,
+/// keyed by the internal User.id (pre-NPI accounts included). Never evidence,
+/// never source-checked, never shared by any backend path: rows leave this
+/// table only when the clinician explicitly promotes one into a
+/// GardenCvEntry. Professional-development content only — the UI reminds
+/// clinicians to keep patient details out.
+model GardenNote {
+  id         String    @id @default(uuid()) @db.Uuid
+  userId     String    @db.Uuid
+  title      String
+  body       String
+  tags       String[]  @default([])
+  /// unfiled | growing | grown — workspace state, enforced in the route layer.
+  status     String    @default("unfiled")
+  promotedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([userId, createdAt])
+  @@map("garden_notes")
+}
+
+/// A Living CV line grown from the Career Garden. Always clinician-authored:
+/// `provenance` is the literal string "self_attested" and the route layer
+/// rejects anything else — promotion can never mint a source-backed claim.
+/// Distinct from PersonProfile.selfAttested (structured intake sections) and
+/// from credential evidence: these are prose CV lines with a recorded origin.
+model GardenCvEntry {
+  id         String   @id @default(uuid()) @db.Uuid
+  userId     String   @db.Uuid
+  /// experience | research | teaching | service | publications
+  section    String
+  headline   String
+  detail     String
+  provenance String   @default("self_attested")
+  /// Plain-language origin ("Grown from your note …"), shown under the line.
+  origin     String
+  fromNoteId String?  @db.Uuid
+  createdAt  DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@map("garden_cv_entries")
+}
+
 /// Wave Q — durable commercial lead capture. One row per submitted pilot
 /// request / pilot intake (in addition to the existing Slack + stdout
 /// delivery, which stays). Operational CRM-lite, never evidence: rows carry
