@@ -16,6 +16,8 @@
  * three pass. What must never pass is a real registrant's number reappearing.
  */
 
+import express from 'express';
+import request from 'supertest';
 import type { Request, Response } from 'express';
 
 // ── Connector mocks (no network in tests) ─────────────────────────────
@@ -53,6 +55,7 @@ jest.mock('../src/services/providers/connectors/npdbConnector', () => ({
 }));
 
 import { handleDemoSampleNpis } from '../src/modules/demo/demo.controller';
+import { registerDemoRoutes } from '../src/modules/demo';
 import { SanctionsAgent } from '../src/agents/SanctionsAgent';
 import { StateBoardAgent } from '../src/agents/StateBoardAgent';
 import { checkOIGExclusion } from '../src/services/providers/connectors/oigConnector';
@@ -139,6 +142,21 @@ describe('GET /demo/sample-npis', () => {
 
     expect(issuableNpisIn(body())).toEqual([]);
     expect(JSON.stringify(body())).not.toContain(INCIDENT_NPI);
+  });
+
+  // Through the real route registration, not just the handler: this exercises the
+  // actual path string and the rate-limit middleware the public endpoint runs
+  // behind, which is what an unauthenticated caller actually reaches.
+  it('serves no clinician over the wire on the registered route', async () => {
+    const app = express();
+    registerDemoRoutes(app);
+
+    const response = await request(app).get('/demo/sample-npis');
+
+    expect(response.status).toBe(200);
+    expect(response.body.samples).toEqual([]);
+    expect(issuableNpisIn(response.body)).toEqual([]);
+    expect(response.text).not.toContain(INCIDENT_NPI);
   });
 });
 
