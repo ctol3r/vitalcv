@@ -8,7 +8,7 @@ import { EMPLOYER_STAGES } from './employerWorkflow';
  * head-start acceptance → start-ready — with each stage's honesty boundary
  * stated inline, and no fabricated people, candidates, metrics, or outcomes.
  *
- * Calm Wave, employer persona: paper/ink, source-green accent, single-shot
+ * Calm Wave, employer persona: paper/ink, editorial indigo accent, single-shot
  * Reveal entrance (reduced-motion-safe; full content renders without JS).
  */
 export function EmployerWorkflowPreview() {
@@ -33,7 +33,7 @@ export function EmployerWorkflowPreview() {
           >
             <span
               aria-hidden="true"
-              className="mz-mono text-[11px] font-semibold tracking-[0.14em] text-[var(--vt-accent-emerald)]"
+              className="mz-mono text-[11px] font-semibold tracking-[0.14em] text-[var(--vt-accent-editorial)]"
             >
               {stage.ordinal}
             </span>
@@ -46,7 +46,7 @@ export function EmployerWorkflowPreview() {
             {stage.boundary ? (
               <p
                 data-stage-boundary=""
-                className="mz-mono mt-3 border-l-2 border-[var(--vt-accent-emerald)] pl-2.5 text-[11px] leading-relaxed text-[var(--vt-text-muted)]"
+                className="mz-mono mt-3 border-l-2 border-[var(--vt-accent-editorial)] pl-2.5 text-[11px] leading-relaxed text-[var(--vt-text-muted)]"
               >
                 {stage.boundary}
               </p>

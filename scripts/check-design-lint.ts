@@ -70,6 +70,30 @@ const TOKEN_FILES = [
 const isTokenFile = (f: string) => TOKEN_FILES.some((t) => f === t);
 
 /**
+ * OKLCH hue + chroma of the first colour literal on a line, or null when there
+ * isn't one (a `var()`, `color-mix()`, or bare keyword). Used by CD-3/4, which
+ * has to make a NUMERIC judgement — "is this token green?" — that a regex
+ * cannot make. Node built-ins only, in keeping with the rest of this script.
+ */
+function colorOf(line: string): { C: number; H: number } | null {
+  const ok = /oklch\(\s*([\d.]+)%?\s+([\d.]+)\s+([\d.]+)/.exec(line);
+  if (ok) return { C: Number(ok[2]), H: Number(ok[3]) };
+
+  const hex = /#([0-9a-fA-F]{6})\b/.exec(line);
+  if (!hex) return null;
+  const n = hex[1];
+  const lin = (v: number) => (v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4);
+  const [r, g, b] = [0, 2, 4].map((i) => lin(parseInt(n.slice(i, i + 2), 16) / 255));
+  const l = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b);
+  const m = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b);
+  const s = Math.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b);
+  const A = 1.9779984951 * l - 2.4285922050 * m + 0.4505937099 * s;
+  const B = 0.0259040371 * l + 0.7827717662 * m - 0.8086757660 * s;
+  const H = (Math.atan2(B, A) * 180) / Math.PI;
+  return { C: Math.hypot(A, B), H: H < 0 ? H + 360 : H };
+}
+
+/**
  * The COMPETE composition rules (R1–R8) from
  * docs/strategy/competitive-mandate.md. These are NEW contract, scoped to the
  * homepage surfaces, so they are hard errors rather than ratchets.
@@ -186,6 +210,40 @@ const RULES: Rule[] = [
     // `\s*` inside the lookahead — same backtracking trap as LINT-06.
     pattern: /font-family\s*:\s*(?!\s*var\()/,
     allow: (f) => isTokenFile(f) || f.endsWith('fonts.css'),
+  },
+  {
+    id: 'CD-3/4',
+    mode: 'error',
+    what: 'Cool ink/paper token, or an accent borrowed from a state hue',
+    fix: 'Ink, paper and rule are WARM (CD-4). The accent is indigo and is never a state colour (CD-3) — green means one thing: a named source returned a match.',
+    roots: [join(web, 'styles')],
+    exts: CSS,
+    // Comments in these files quote the retired cool values in order to explain
+    // why they are retired; stripping keeps the documentation from tripping it.
+    stripComments: true,
+    pattern:
+      /--(?:ink|paper|rule|accent)[a-z0-9-]*\s*:[^;]*(?:#[0-9a-fA-F]{3,8}\b|oklch\()/,
+    allow: (_f, line) => {
+      const c = colorOf(line);
+      if (!c) return true; // var()/color-mix() — indirection, not a literal
+
+      // The neutral exemptions are tight ON PURPOSE. The retired cool ink ramp
+      // ran from C 0.005 (--ink-100) to C 0.012 (--ink-950), so any threshold
+      // at or above 0.012 lets the exact palette this wave removed walk back
+      // in — verified by re-adding `--ink-900: oklch(18% 0.012 265)` and
+      // watching a loose threshold pass it.
+      const isAccent = /--accent/.test(line);
+      // Accent tolerates slightly more neutrality than ink: ink IS the action
+      // colour, which is what lets the dark theme's `--accent: #E4E3E0` pass
+      // without a named exemption.
+      if (c.C <= (isAccent ? 0.006 : 0.004)) return true;
+
+      // A chromatic --accent* must sit in the indigo/violet arc. A chromatic
+      // ink/paper/rule must sit in the warm arc. Both bands deliberately
+      // EXCLUDE green (~120–190), where --ok / --vt-state-source-confirmed live and
+      // where nothing decorative may go.
+      return isAccent ? c.H >= 255 && c.H <= 310 : c.H >= 30 && c.H <= 110;
+    },
   },
 
   // ------------------------------------------- COMPETE composition rules (R1–R8)

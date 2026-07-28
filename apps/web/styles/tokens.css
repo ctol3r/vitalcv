@@ -24,37 +24,25 @@
  */
 
 :root {
-  --vt-bg: #F4F6F5;
-  --vt-surface: #FFFFFF;
-  --vt-surface-subtle: #EDF2F0;
-  --vt-surface-dim: #E3E9E6;
-  --vt-border: #D6DEDA;
-  --vt-border-subtle: rgb(26 34 40 / 0.08);
-  --vt-text-primary: #1A2228;
-  --vt-text-secondary: #38424D;
-  --vt-text-muted: #5A6472;
-  --vt-accent: #0A7B7F;
-  --vt-accent-hover: #095F63;
-  --vt-focus-ring: rgb(10 123 127 / 0.24);
-  --vt-severity-critical: #8C2A2A;
-  --vt-severity-high: #A05C00;
-  --vt-severity-medium: #6B6F75;
-  --vt-severity-low: #6B6F75;
-  --vt-status-new: #0A7B7F;
-  --vt-status-acknowledged: #6B6F75;
-  --vt-status-investigating: #A05C00;
-  --vt-status-resolved: #2E7D45;
-  --vt-status-dismissed: #6B6F75;
-  --vt-risk-low: #2E7D45;
-  --vt-risk-medium: #A05C00;
-  --vt-risk-high: #8C2A2A;
-  --vt-node-provider: #0A7B7F;
-  --vt-node-institution: #5A6472;
-  --vt-node-publication: #8C97A3;
-  --vt-node-trial: #8C97A3;
-  --vt-node-company: #1A2228;
-  --vt-node-alert: #8C2A2A;
-  --vt-overlay: rgb(244 246 245 / 0.88);
+  /* CD-W2 — the retired teal/slate palette that used to live here has been
+     deleted. It was NOT dead code: every one of those 30 declarations is also
+     declared in styles/themes/index.css, which globals.css imports at line 15
+     — BEFORE this file at line 20. Both sat at `:root`, so equal specificity
+     meant source order decided and THIS file won.
+
+     themes/index.css only regained control through its second, more specific
+     `html.light` block (0,1,1) — and `light` is added by next-themes from
+     client JS. app/layout.tsx server-renders <html> with font classes only.
+     So the SSR/no-JS paint of every route was --vt-bg #F4F6F5 with
+     --vt-text-primary #1A2228 (cool slate, hue 241) and a teal --vt-accent,
+     flipping to warm Cloud Dancer on hydration. The homepage escaped it only
+     because AskHome injects its own <style>body{...}</style>.
+
+     One paper and one ink (CD-4) cannot be true while a second `:root`
+     palette outranks the first. themes/index.css owns these tokens now.
+     Kept below: the two font tokens and --vt-accent-hover, which
+     themes/index.css does not declare. */
+  --vt-accent-hover: #0E0D0B;   /* ink-strong — --vt-accent is ink #1A1815, so its hover is deeper ink, not teal */
 
   --vt-font-body: 'DM Sans', system-ui, sans-serif;
   --vt-font-display: 'Instrument Serif', Georgia, serif;
@@ -109,7 +97,7 @@
     0 4px 14px -8px color-mix(in oklab, var(--vt-text-primary) 45%, transparent);
   --vt-shadow-glass-lens-active:
     inset 0 1px 0 0 color-mix(in oklab, white 65%, transparent),
-    0 4px 16px -8px color-mix(in oklab, var(--vt-accent-emerald) 50%, transparent);
+    0 4px 16px -8px color-mix(in oklab, var(--vt-accent-editorial) 50%, transparent);
   /* The lens sits above every product surface but is inert — see
      components/chrome/GlassCursor.tsx. */
   --vt-z-cursor: 2147483000;

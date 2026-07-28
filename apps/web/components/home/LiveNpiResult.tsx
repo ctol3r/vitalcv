@@ -187,7 +187,7 @@ export function LiveNpiResult({ npi, onReset }: { npi: string; onReset: () => vo
       </div>
 
       {confirmed.length > 0 && (
-        <Group icon={<CheckCircle2 size={13} className="text-[var(--vt-accent-emerald)]" />} title="Confirmed today" rows={confirmed} />
+        <Group icon={<CheckCircle2 size={13} className="text-[var(--vt-state-source-confirmed)]" />} title="Confirmed today" rows={confirmed} />
       )}
       {attention.length > 0 && (
         <Group icon={<AlertTriangle size={13} className="text-[var(--vt-state-stale,#7d5a1e)]" />} title="Needs your attention" rows={attention} />
@@ -197,8 +197,8 @@ export function LiveNpiResult({ npi, onReset }: { npi: string; onReset: () => vo
       )}
 
       {/* One next-best action */}
-      <div className="mt-4 rounded-[6px] border border-[color-mix(in_oklab,var(--vt-accent-emerald)_28%,transparent)] bg-[color-mix(in_oklab,var(--vt-accent-emerald)_8%,transparent)] p-3">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--vt-accent-emerald)]">Best next step</p>
+      <div className="mt-4 rounded-[6px] border border-[color-mix(in_oklab,var(--vt-accent-editorial)_28%,transparent)] bg-[color-mix(in_oklab,var(--vt-accent-editorial)_8%,transparent)] p-3">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--vt-accent-editorial)]">Best next step</p>
         <p className="mt-1 text-[13px] leading-relaxed text-[var(--vt-text-primary)]">
           {nextAction
             ? `${nextAction} — claim your free CV Wallet to preserve this snapshot and keep it moving.`

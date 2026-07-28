@@ -25,7 +25,7 @@
   --vh-mint: #17c39a;
   --vh-amber: #d97706;
   --vh-coral: #f2895f;
-  --vt-accent-emerald: var(--vh-emerald);
+  --vt-state-source-confirmed: var(--vh-emerald);
 
   --vh-pulse: var(--vh-emerald);
   --vh-pulse-soft: color-mix(in oklab, var(--vh-mint) 42%, transparent);
@@ -48,7 +48,7 @@
   --vh-mint: #7af0cf;
   --vh-amber: #fbbf24;
   --vh-coral: #ff9e7a;
-  --vt-accent-emerald: var(--vh-emerald);
+  --vt-state-source-confirmed: var(--vh-emerald);
 }
 
 /* Reusable scope for the clinical-monitor components (meter, EKG,
@@ -73,7 +73,7 @@
   --vt-border-subtle: rgba(150, 240, 216, 0.14);
   --vt-text-primary: #ecfdf7;
   --vt-text-muted: rgba(236, 253, 247, 0.55);
-  --vt-accent-emerald: var(--vh-mint);
+  --vt-state-source-confirmed: var(--vh-mint);
 }
 
 /* ------------------------------------------------------------
@@ -819,7 +819,7 @@
   --vt-text-secondary: rgba(236, 253, 247, 0.82);
   --vt-text-muted: rgba(236, 253, 247, 0.55);
   --vt-focus-ring: var(--vh-mint);
-  --vt-accent-emerald: var(--vh-mint);
+  --vt-state-source-confirmed: var(--vh-mint);
   color: var(--vt-text-primary);
 }
 /* On the dark stage the hero EKG hairline is not needed (the device

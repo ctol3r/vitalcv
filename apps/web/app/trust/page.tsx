@@ -25,7 +25,7 @@ export const metadata: Metadata = {
 // per-clinician result. "Available" means the lane is wired and returns data;
 // it does not mean any specific clinician has been checked.
 const LIFECYCLE_LABEL: Record<string, { label: string; tone: string; note: string }> = {
-  active: { label: 'Available', tone: 'var(--vt-accent-emerald)', note: 'Wired and returning data.' },
+  active: { label: 'Available', tone: 'var(--vt-state-source-confirmed)', note: 'Wired and returning data.' },
   partial: { label: 'Partial', tone: 'var(--vt-state-stale, #a2670b)', note: 'Available for some records; being expanded.' },
   planned: { label: 'Access required', tone: 'var(--vt-state-stale, #a2670b)', note: 'A source exists; access is not yet in place.' },
   unintegrated: { label: 'Not yet connected', tone: 'var(--vt-text-muted)', note: 'On the roadmap; not connected today.' },

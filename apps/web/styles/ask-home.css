@@ -17,7 +17,7 @@
   --ask-soft: var(--vt-text-secondary);
   --ask-faint: var(--vt-text-muted);
   --ask-rule: var(--vt-border);
-  --ask-accent: var(--vt-accent-emerald);
+  --ask-accent: var(--vt-accent-editorial);
   /* One vertical rhythm for the hero. The gaps used to be per-element
      one-offs — measured on prod as 56 → 40 → 20 → 2px on desktop and a
      DIFFERENT ladder (36 → 28 → 20 → 54px) on mobile: no scale, inverting
@@ -314,10 +314,17 @@
   text-transform: uppercase;
   white-space: nowrap;
 }
-/* Signal vs state (CD-4): the accent marks only the defined "available" lane
-   state — never decoration. Gated and unconnected stay ink-faint. */
+/* Signal vs state (CD-3). This rule used to read `var(--ask-accent)`, and the
+   comment above it claimed the accent "marks only the available lane state —
+   never decoration." That was not true of the token: --ask-accent also paints
+   the NPI focus underline, the CTA hover fill, the focus ring and the spine
+   ticks, every one of them decoration. One token was doing both jobs, which is
+   how the confirmed-source green became the homepage's de-facto brand colour.
+
+   Split: an available lane IS a named source returning a match, so it takes
+   the state colour. Everything decorative keeps --ask-accent (indigo). */
 .ask-ledger-state--ok {
-  color: var(--ask-accent);
+  color: var(--vt-state-source-confirmed);
 }
 .ask-ledger-state--gated {
   color: var(--ask-soft);

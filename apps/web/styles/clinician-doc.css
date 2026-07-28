@@ -24,14 +24,14 @@
   --paper-edge: oklch(92% 0.008 85);
 
   /* Ink scale */
-  --ink: oklch(18% 0.012 265);
-  --ink-strong: oklch(12% 0.012 265);
-  --ink-mute: oklch(46% 0.010 265);
-  --ink-subtle: oklch(62% 0.008 265);
-  --ink-ghost: oklch(78% 0.006 265);
+  --ink: oklch(21% 0.007 85);
+  --ink-strong: oklch(16% 0.005 85);
+  --ink-mute: oklch(46% 0.010 85);
+  --ink-subtle: oklch(62% 0.008 85);
+  --ink-ghost: oklch(78% 0.006 85);
 
   /* One accent, used surgically */
-  --accent: oklch(38% 0.14 274);
+  --accent: #4338CA;
   --accent-ink: oklch(28% 0.10 274);
   --accent-wash: oklch(94% 0.025 274);
   --accent-edge: oklch(82% 0.06 274);
@@ -45,8 +45,8 @@
   --state-blocked-wash: oklch(94% 0.04 25);
   --state-contradicted: oklch(42% 0.14 305);
   --state-contradicted-wash: oklch(94% 0.03 305);
-  --state-unknown: oklch(58% 0.008 265);
-  --state-unknown-wash: oklch(94% 0.005 265);
+  --state-unknown: oklch(58% 0.008 85);
+  --state-unknown-wash: oklch(94% 0.005 85);
 
   /* Document-grade radii — nothing over 10px */
   --r-2: 4px;

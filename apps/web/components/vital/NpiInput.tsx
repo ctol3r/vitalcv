@@ -95,7 +95,7 @@ export function NpiInput({
           ))}
         </div>
         {check.validity === 'valid' && (
-          <CheckCircle2 size={20} aria-hidden="true" className="shrink-0 text-[var(--vt-accent-emerald)]" />
+          <CheckCircle2 size={20} aria-hidden="true" className="shrink-0 text-[var(--vt-state-source-confirmed)]" />
         )}
         {/* One accessible input, visually transparent, over the cells. */}
         <input

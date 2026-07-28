@@ -132,11 +132,11 @@ export function TimeToStartComparison() {
                 style={{
                   borderColor:
                     seg.state === 'live'
-                      ? 'color-mix(in oklab, var(--vt-accent-emerald) 45%, var(--vt-border))'
+                      ? 'color-mix(in oklab, var(--vt-state-source-confirmed) 45%, var(--vt-border))'
                       : 'color-mix(in oklab, var(--vt-state-stale, #a2670b) 45%, var(--vt-border))',
                   background:
                     seg.state === 'live'
-                      ? 'color-mix(in oklab, var(--vt-accent-emerald) 9%, var(--vt-surface))'
+                      ? 'color-mix(in oklab, var(--vt-state-source-confirmed) 9%, var(--vt-surface))'
                       : 'repeating-linear-gradient(-45deg, color-mix(in oklab, var(--vt-state-stale, #a2670b) 7%, var(--vt-surface)), color-mix(in oklab, var(--vt-state-stale, #a2670b) 7%, var(--vt-surface)) 6px, var(--vt-surface) 6px, var(--vt-surface) 12px)',
                   opacity: isVisible ? 1 : 0,
                   transform: isVisible ? 'none' : 'translateY(6px)',

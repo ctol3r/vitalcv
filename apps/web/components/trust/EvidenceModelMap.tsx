@@ -15,7 +15,7 @@ import * as React from 'react';
  */
 
 const C = {
-  source: 'var(--vt-accent-emerald)',
+  source: 'var(--vt-state-source-confirmed)',
   gated: 'var(--vt-state-stale, #a2670b)',
   // Issuer/proof violet (art direction) — explicit so it stays distinct from ink
   // in both themes rather than resolving to a near-black --accent.

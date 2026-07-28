@@ -48,7 +48,7 @@ function cadenceSentence(): string {
 
 export default function EmployersPage() {
   return (
-    // Calm Wave, employer persona (source-green accent) on full-width paper — the
+    // Calm Wave, employer surface on full-width paper (one editorial accent, CD-3) — the
     // same design language as the homepage, so the acquisition page reads as one
     // system instead of a plainer offshoot.
     <div className="mz mz-paper mz-persona-employer min-h-screen">

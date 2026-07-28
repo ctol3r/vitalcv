@@ -96,7 +96,7 @@ const laneStateBadgeVariants = cva(
     variants: {
       state: {
         verified:
-          'bg-[color-mix(in_oklab,var(--vt-state-verified)_14%,transparent)] text-[var(--vt-state-verified)] ring-[color-mix(in_oklab,var(--vt-state-verified)_28%,transparent)]',
+          'bg-[color-mix(in_oklab,var(--vt-state-source-confirmed)_14%,transparent)] text-[var(--vt-state-source-confirmed)] ring-[color-mix(in_oklab,var(--vt-state-source-confirmed)_28%,transparent)]',
         pending:
           'bg-[color-mix(in_oklab,var(--vt-state-pending)_14%,transparent)] text-[var(--vt-state-pending)] ring-[color-mix(in_oklab,var(--vt-state-pending)_28%,transparent)]',
         access:

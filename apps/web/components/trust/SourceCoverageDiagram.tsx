@@ -32,7 +32,7 @@ type Tone = { fill: string; label: string };
 
 /** Lifecycle → how the bar reads. `demo_only` deliberately reads as NOT connected. */
 const TONE: Record<SourceLaneOps['lifecycle'], Tone> = {
-  active: { fill: 'var(--vt-accent-emerald)', label: 'Available' },
+  active: { fill: 'var(--vt-state-source-confirmed)', label: 'Available' },
   planned: { fill: 'var(--vt-state-stale, #a2670b)', label: 'Access required' },
   demo_only: { fill: 'var(--vt-text-muted)', label: 'Not connected' },
   unintegrated: { fill: 'var(--vt-text-muted)', label: 'Not connected' },

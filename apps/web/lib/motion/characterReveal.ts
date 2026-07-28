@@ -15,7 +15,7 @@ export type HeadingWord = {
   text: string;
   /** Grapheme-safe characters. Never re-split for layout. */
   characters: string[];
-  /** Finishes in source-green rather than primary ink. */
+  /** Finishes in the editorial accent rather than primary ink. */
   accent: boolean;
   /** Index of this word's first character in the heading-wide sequence. */
   characterOffset: number;

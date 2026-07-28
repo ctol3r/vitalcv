@@ -24,7 +24,7 @@
   --ask-soft: var(--vt-text-secondary);
   --ask-faint: var(--vt-text-muted);
   --ask-rule: var(--vt-border);
-  --ask-accent: var(--vt-accent-emerald);
+  --ask-accent: var(--vt-accent-editorial);
   display: flex;
   flex-direction: column;
   align-items: center;

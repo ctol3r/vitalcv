@@ -11,34 +11,63 @@
  */
 
 .mz {
-  /* Paper & ink — Calm Wave D56 exact tokens. Warm near-white paper (hue 85),
-     cool blue-black ink (hue 265). oklch, as the source design authored them. */
-  /* Lighter off-white palette (Homepage Motion Convergence Wave) — exact hexes. */
-  --paper:   #FAFAF8;
-  --paper-2: #F5F5F2;
-  --card:    #FFFFFF;
-  --ink-950: oklch(12% 0.012 265);
-  --ink-900: oklch(18% 0.012 265);
-  --ink-800: oklch(26% 0.012 265);
-  --ink-700: oklch(34% 0.011 265);
-  --ink-600: oklch(46% 0.010 265);
-  --ink-500: oklch(62% 0.008 265);
-  --ink-400: oklch(72% 0.007 265);
-  --ink-300: oklch(82% 0.007 265);
-  --ink-200: oklch(88% 0.007 265);
-  --ink-100: oklch(93% 0.006 265);
-  --ink-50:  oklch(96.5% 0.005 85);
-  --rule:      #E2E1DC;
-  --rule-soft: #EBEAE5;
+  /* Paper & ink — CD-4. One paper product-wide: Cloud Dancer #F0EEE9 (PANTONE
+     11-4201 web approximation; the physical swatch is the authority). The
+     earlier #FAFAF8 paper is retired — it sat 2% off the app's own --background
+     and rendered as a seam between <body> and <main>, not as a decision.
 
-  /* Truth states — paired ink + wash + rule (design values, never neon) */
+     Ink is WARM. The ramp was authored at hue 265 (cool blue-black) by the
+     source design, which CD-4 overruled: cool ink on warm paper is what made
+     these surfaces read unfinished.
+
+     Hue 85. Not 78 — although #1A1815 measures h78, that reading is unstable
+     at its chroma of 0.007, where hue barely exists. Converting the doctrine's
+     whole warm family gives a tight cluster: #0E0D0B h85, #57534A h87,
+     #676257 h86, #F0EEE9 h89, #F7F5F1 h85. 85 sits in that cluster AND is
+     already this file's --ink-50, which had been the one warm stop in an
+     otherwise cool ramp. Every other stop is a pure L/C-preserving rotation,
+     so contrast is unchanged to three decimals (measured: oklch(53% 0.008 h)
+     is 4.554:1 on Cloud Dancer at h265 and 4.553:1 at h85).
+
+     The top two stops are anchored rather than rotated so they land byte-exact
+     on the two ink values CD-4 names:
+       oklch(21% 0.007 85) === #1A1815  (--ink, body)
+       oklch(16% 0.005 85) === #0E0D0B  (--ink-strong, display) */
+  --paper:   var(--vt-cloud-dancer, #F0EEE9);
+  --paper-2: #E8E5DC;
+  --card:    #FBFAF6;
+  --ink-950: oklch(16%   0.005 85);   /* #0E0D0B — CD-4 --ink-strong */
+  --ink-900: oklch(21%   0.007 85);   /* #1A1815 — CD-4 --ink        */
+  --ink-800: oklch(26%   0.012 85);
+  --ink-700: oklch(34%   0.011 85);
+  --ink-600: oklch(46%   0.010 85);
+  --ink-500: oklch(62%   0.008 85);
+  --ink-400: oklch(72%   0.007 85);
+  --ink-300: oklch(82%   0.007 85);
+  --ink-200: oklch(88%   0.007 85);
+  --ink-100: oklch(93%   0.006 85);
+  --ink-50:  oklch(96.5% 0.005 85);
+  --rule:      #C9C3B6;
+  --rule-soft: #DAD5C9;
+
+  /* Truth states — paired ink + wash + rule (design values, never neon).
+     --unknown follows the ink rotation: "not checked" is the DEFAULT state
+     (CD-5), so rendering it in cool grey on warm paper reproduced the exact
+     unfinished quality this wave removes. Its hue is now the ink's. */
   --ok: oklch(46% 0.10 152);        --ok-bg: oklch(94% 0.03 152);       --ok-rule: oklch(80% 0.06 152);
   --watch: oklch(54% 0.10 78);      --watch-bg: oklch(95% 0.04 78);     --watch-rule: oklch(82% 0.07 78);
-  --unknown: oklch(48% 0.008 265);  --unknown-bg: oklch(94% 0.005 265); --unknown-rule: oklch(85% 0.006 265);
+  --unknown: oklch(48% 0.008 85);   --unknown-bg: oklch(94% 0.005 85);  --unknown-rule: oklch(85% 0.006 85);
   --p0: oklch(48% 0.16 25);         --p0-bg: oklch(94% 0.04 25);        --p0-rule: oklch(82% 0.09 25);
 
-  /* Single accent — ink-indigo (deep, muted — not the old bright #4f46e5) */
-  --accent: oklch(38% 0.14 274);
+  /* The ONE accent — CD-4's named indigo. Was oklch(38% 0.14 274), a deeper
+     muted indigo chosen over "the old bright #4f46e5"; that instinct was right
+     but it produced a third value. #4338CA is what the doctrine names and
+     measures 6.82:1 on Cloud Dancer / 7.57:1 on card.
+
+     Ink, not indigo, remains the action colour — the primary button stays
+     var(--ink-900). Indigo is the editorial accent: links, focus rings, the
+     accent word. It is never green (CD-3). */
+  --accent: #4338CA;
 
   /* Fonts — reuse the app's exposed variables (Geist/serif/mono → system fallbacks) */
   --mz-sans: var(--font-geist, var(--vt-font-body, ui-sans-serif, system-ui, sans-serif));
@@ -66,7 +95,11 @@
  */
 .mz {
   --vt-accent: var(--accent);
-  --vt-accent-emerald: var(--ok);
+  /* CD-3: the editorial accent resolves to the .mz indigo, never to --ok. This
+     line used to read `--vt-accent-emerald: var(--ok)` — a SECOND alias closing
+     the loop that made the confirmed-source green the de-facto brand accent
+     inside every .mz surface. --vt-state-source-confirmed below is where --ok belongs. */
+  --vt-accent-editorial: var(--accent);
   --vt-surface: var(--card);
   --vt-surface-subtle: var(--paper-2);
   --vt-bg: var(--paper);
@@ -77,42 +110,37 @@
   /* AUD-2.1: muted TEXT must meet WCAG AA (4.5:1). --ink-400 (oklch 72%) was
      only ~2.4:1 on paper — unusable for body text, and even below large-text
      AA. The semantic text token is pinned to an AA-legible ink here; --ink-400
-     itself is unchanged for decorative (aria-hidden) use like dot separators. */
-  --vt-text-muted: oklch(53% 0.008 265);
+     itself is unchanged for decorative (aria-hidden) use like dot separators.
+
+     CD-W2: this was oklch(53%), which measures 4.55:1 on Cloud Dancer — over
+     the AA floor by 0.05, which is not a margin worth shipping. The old
+     .mz-cloud-paper block had already found this and stepped one darker; now
+     that Cloud Dancer IS the base paper, that value is promoted here. 50%
+     measures 5.18:1. */
+  --vt-text-muted: oklch(50% 0.008 85);
   --vt-status-resolved: var(--ok);
-  --vt-state-verified: var(--ok);
+  --vt-state-source-confirmed: var(--ok);
   --vt-risk-high: var(--p0);
   --vt-risk-medium: var(--watch);
   --vt-accent-strong: var(--ink-900);
 }
 
 /**
- * ── Cloud Dancer public paper (HERO-RESET-1) ─────────────────────────────────
- * Opt-in paper override for PUBLIC marketing/home surfaces: the page paper is
- * --vt-cloud-dancer (PANTONE 11-4201 "Cloud Dancer" web approximation — the
- * physical swatch is the authority; this is a deliberate on-screen match, not
- * a claimed Pantone conversion). Raised cards get a slightly lighter warm
- * surface so they never camouflage white-on-off-white, and rules step up in
- * contrast against the deeper paper. Add `mz-cloud-paper` next to `mz
- * mz-paper` on a surface root to opt in.
+ * ── Cloud Dancer public paper (HERO-RESET-1) — REMOVED ───────────────────────
+ * `.mz-cloud-paper` was the opt-in that gave PUBLIC marketing surfaces Cloud
+ * Dancer paper while every other .mz surface stayed on #FAFAF8. That is what
+ * produced the seam: on /trust, <main> painted #FAFAF8 over a <body> already
+ * at #F0EEE9 — two papers 2% apart, which reads as a rendering artifact rather
+ * than a decision. CD-4 rules there is ONE paper product-wide, so every value
+ * this block set has been promoted into the base `.mz` block above and the
+ * class is gone (it had exactly one call site).
  *
- * Scope discipline: `.mz-cloud-paper .mz` re-covers nested `.mz` elements
- * (the base `.mz` rule re-declares --paper on every one of them), and this
- * block sits BEFORE the `.dark .mz` block on purpose — equal specificity, so
- * source order keeps dark mode's own paper authoritative. Signed-in, dark,
- * admin, and verification surfaces are untouched.
+ * Note for whoever edits the dark block below: the old comment here warned
+ * that `.mz-cloud-paper .mz` (0,2,0) TIED `.dark .mz` (0,2,0), so only source
+ * order kept dark mode authoritative. That hazard is gone — base `.mz` is
+ * (0,1,0), so `.dark .mz` now wins on specificity and no longer depends on
+ * where it sits in the file.
  */
-.mz-cloud-paper,
-.mz-cloud-paper .mz {
-  --paper: var(--vt-cloud-dancer, #F0EEE9);
-  --paper-2: #E8E5DC;
-  --card: #FBFAF6;
-  --rule: #C9C3B6;
-  --rule-soft: #DAD5C9;
-  /* AA on the deeper paper: the bridge's oklch(53%) muted ink measures ~4.5:1
-     against Cloud Dancer — too thin. One step darker holds ≥4.9:1. */
-  --vt-text-muted: oklch(50% 0.008 265);
-}
 
 /**
  * ── Dark mode ─────────────────────────────────────────────────────────────────
@@ -468,15 +496,32 @@
 }
 .mz-settle { animation: mz-settle 560ms var(--mz-ease) both; }
 
-/* ── Per-persona accent identity — one system, four voices ─────────────────
-   Each persona surface sets --accent (the single accent the whole .mz layer
-   already threads through chips, links, glass rims, selected states). Distinct
-   hue per audience, all at the same calm depth/chroma so they read as siblings. */
-.mz-persona-holder   { --accent: oklch(38% 0.14 274); } /* indigo — the clinician's home */
-.mz-persona-verifier { --accent: oklch(44% 0.11 235); } /* trust-blue — the reader */
-.mz-persona-issuer   { --accent: oklch(46% 0.13 300); } /* violet — the attester */
-.mz-persona-employer { --accent: oklch(46% 0.10 152); } /* source-green — the hirer / start */
-.mz-persona-admin    { --accent: oklch(46% 0.03 250); } /* steel-graphite — internal control room, not a customer surface */
+/* ── Per-persona accent identity — RETIRED (CD-3) ──────────────────────────
+   These five classes used to give each audience its own accent hue: indigo
+   (holder), trust-blue (verifier), violet (issuer), green (employer),
+   graphite (admin). CD-3 allows exactly one accent, and the employer value
+   was oklch(46% 0.10 152) — byte-identical to --ok, the source-confirmed
+   state colour. That is the specific thing CD-3 forbids: signal and state are
+   separate systems that may never borrow from each other. On /employers a
+   reader saw the same green in a decorative hero italic and in a "source
+   confirmed" stamp, so the hue had stopped meaning anything.
+
+   All five now inherit the single --accent from `.mz`. The class names are
+   kept as no-op selectors so the 22 call sites across 20 files need no churn
+   in this wave; a later mechanical pass can remove them. Reviving a
+   per-audience palette is a CD-3 amendment, not a stylesheet edit.
+
+   Deliberately NOT written as `--accent: var(--accent)` — a custom property
+   that references itself is a cycle, which makes it invalid at computed-value
+   time and would leave these surfaces with NO accent at all. Inheriting by
+   declaring nothing is the correct no-op. */
+.mz-persona-holder,
+.mz-persona-verifier,
+.mz-persona-issuer,
+.mz-persona-employer,
+.mz-persona-admin {
+  /* intentionally empty — inherits --accent from .mz */
+}
 
 /* ── Micro-interactions — icons + small elements answer the hand ──────────── */
 
