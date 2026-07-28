@@ -10,25 +10,44 @@ import type { ClinicianProfile } from './matchaModels';
 import type { JobPosting } from './eligibility';
 import { log } from '../../obs/logger';
 
-const FALLBACK_NPI = '1003000126';
-
 // In-memory override store (keyed by NPI)
 const profileOverrides = new Map<string, ClinicianProfile>();
 
+/** Thrown when no profile exists for the requested NPI. */
+export class MatchaProfileNotFoundError extends Error {
+  readonly npi: string;
+
+  constructor(npi: string) {
+    super(`No MATCHA profile for NPI ${npi}`);
+    this.name = 'MatchaProfileNotFoundError';
+    this.npi = npi;
+  }
+}
+
 /**
  * Returns the clinician profile for a given NPI.
- * Checks in-memory overrides first, then falls back to mock data.
+ * Checks in-memory overrides first, then demo data.
  * Production: replace with a Prisma query against PersonProfile once DB is migrated.
+ *
+ * `npi` is required and an unknown NPI throws. Until 2026-07-27 the signature was
+ * `getMatchaProfile(npi?: string)` over a `FALLBACK_NPI` of '1003000126', so a
+ * caller that lost its NPI silently received the profile of a real physician.
+ * Absent input is a caller bug and an unknown NPI is a not-found; neither is a
+ * licence to answer with somebody else's identity. Throwing rather than returning
+ * null keeps that impossible to swallow with a `??` or a `!`.
  */
-export function getMatchaProfile(npi?: string): ClinicianProfile {
-  if (npi && profileOverrides.has(npi)) {
-    return profileOverrides.get(npi)!;
+export function getMatchaProfile(npi: string): ClinicianProfile {
+  const override = profileOverrides.get(npi);
+  if (override) {
+    return override;
   }
-  const lookupNpi = npi ?? FALLBACK_NPI;
-  const profile = getMockProfile(lookupNpi);
-  if (npi && profile.npi !== npi) {
-    log('warn', 'matcha_storage_profile_not_found', { npi, fallback: 'mock_default' });
+
+  const profile = getMockProfile(npi);
+  if (!profile) {
+    log('warn', 'matcha_storage_profile_not_found', { npi });
+    throw new MatchaProfileNotFoundError(npi);
   }
+
   return profile;
 }
 
