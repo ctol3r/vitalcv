@@ -60,9 +60,16 @@ async function resolveCallerOrganizationId(clerkUserId: string): Promise<string 
 export function registerCapacityRoutes(app: Express): void {
   /**
    * GET /api/capacity/system
-   * System-wide capacity snapshot — public. Aggregate only; it names no
-   * organization. Registered before the parameterised route so the literal
-   * "system" segment cannot be captured as an organizationId.
+   * System-wide capacity snapshot. Aggregate only — it names no organization,
+   * so it needs no membership check of its own.
+   *
+   * Not world-reachable despite the "public, no auth" the original header
+   * claimed: the global tenant guard answers 401 before routing when there is
+   * no org context, so a bare request never reaches this handler. Measured, not
+   * assumed — bare 401, with an org header 200.
+   *
+   * Registered before the parameterised route so the literal "system" segment
+   * cannot be captured as an organizationId.
    */
   app.get(
     '/api/capacity/system',
