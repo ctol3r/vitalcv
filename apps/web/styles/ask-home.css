@@ -26,6 +26,13 @@
   --ask-gap-1: clamp(2.25rem, 5vw, 3.5rem);  /* title → form */
   --ask-gap-2: clamp(1.4rem, 3.1vw, 2.2rem); /* form → promise, CTA */
   --ask-gap-3: clamp(0.85rem, 1.9vw, 1.35rem); /* promise → secondary */
+  /* One vertical step between every below-fold section (ledger, chapters,
+     beats). Was clamp(3.5rem, 9vw, 7rem) per section, repeated three times:
+     at 1440px that is 7rem top AND bottom on each, so consecutive sections
+     sat 224px apart and the page ran ~6,360px — about seven screens for an
+     argument that is four steps long. 4.5rem keeps the sections clearly
+     separate without the void. */
+  --ask-section-y: clamp(2.75rem, 6vw, 4.5rem);
   color: var(--ask-ink);
 }
 
@@ -167,6 +174,15 @@
   outline-offset: 3px;
 }
 
+/* Each fact stays whole; only the separators may break. Prevents the
+   "No account / required" orphan at 390px. */
+.ask-hint-part {
+  white-space: nowrap;
+}
+.ask-hint-sep {
+  white-space: normal;
+}
+
 .ask-hint {
   margin: 0.85rem 0 0;
   font-family: var(--font-mono, ui-monospace, monospace);
@@ -262,7 +278,7 @@
 .ask-ledger {
   max-width: 62rem;
   margin: 0 auto;
-  padding: clamp(3.5rem, 9vw, 7rem) clamp(1.25rem, 5vw, 4rem);
+  padding: var(--ask-section-y) clamp(1.25rem, 5vw, 4rem);
   border-top: 1px solid var(--ask-rule);
 }
 
@@ -357,7 +373,7 @@
 .ask-chapter {
   max-width: 62rem;
   margin: 0 auto;
-  padding: clamp(3.5rem, 9vw, 7rem) clamp(1.25rem, 5vw, 4rem);
+  padding: var(--ask-section-y) clamp(1.25rem, 5vw, 4rem);
   border-top: 1px solid var(--ask-rule);
 }
 
@@ -461,7 +477,7 @@
   align-items: center;
   max-width: 62rem;
   margin: 0 auto;
-  padding: clamp(3.5rem, 9vw, 7rem) clamp(1.25rem, 5vw, 4rem);
+  padding: var(--ask-section-y) clamp(1.25rem, 5vw, 4rem);
   border-top: 1px solid var(--ask-rule);
 }
 
