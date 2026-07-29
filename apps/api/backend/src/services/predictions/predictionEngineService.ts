@@ -117,7 +117,7 @@ type ResidencyProgramSpecialtyBucket = {
 };
 
 type ResidencyProgramInstitutionBucket = {
-  hospital_affiliation: string;
+  hospitalAffiliation: string | null;
   _count: { _all: number };
 };
 
@@ -187,7 +187,7 @@ async function loadResidencyProgramsByInstitution(
 ): Promise<ResidencyProgramInstitutionBucket[]> {
   try {
     const rows = await prismaClient.residencyProgram.groupBy({
-      by: ['hospital_affiliation'],
+      by: ['hospitalAffiliation'],
       _count: { _all: true },
     });
     return rows as ResidencyProgramInstitutionBucket[];
@@ -955,7 +955,9 @@ async function loadInstitutionMomentumSignals(
 
   const trainingByInstitution = new Map<string, number>();
   for (const row of residencyPrograms) {
-    trainingByInstitution.set(slugify(row.hospital_affiliation), row._count._all);
+    if (row.hospitalAffiliation) {
+      trainingByInstitution.set(slugify(row.hospitalAffiliation), row._count._all);
+    }
   }
 
   const recentCutoff = daysAgo(nowIso, 180);
