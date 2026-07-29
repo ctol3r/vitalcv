@@ -1,0 +1,315 @@
+/* ============================================================
+   The spine, as one operable section.
+
+   Prototype for collapsing the homepage's four-step argument — NPI → source
+   evidence → the packet you choose → hospital review — from ~4,900px of
+   scattered sections into a single pane the reader operates.
+
+   Two references, and the distinction between them matters:
+
+   - dock.io drives one persistent visual pane from a list of topics. Nothing
+     auto-advances and only one thing is ever on screen. That is NOT the
+     "card carousel / horizontal Rolodex" CD-13 retires — a Rolodex slides a
+     STACK past you; this swaps the contents of a stable frame, which is
+     closer to the mandate's "one artifact at close-up scale" than the
+     current stacked layout is.
+   - Abridge annotates a staged workflow and puts real product surface in
+     each stage. We take the structure. We do NOT take its customer-metric
+     cards or logo wall: those are earned with customers and measured
+     numbers, and inventing either is the one thing this product cannot do.
+
+   DEGRADATION IS THE DESIGN, not a fallback bolted on:
+   - No JS → every panel renders stacked and readable, each under its own
+     heading. The tablist is hidden because tabs without a controller are a
+     lie. This is the `.spine[data-enhanced]` gate: the CSS that HIDES panels
+     only applies once the component says it is interactive.
+   - Reduced motion → panels swap instantly; no cross-fade, no slide.
+   ============================================================ */
+
+.spine {
+  /* The artifact grammar resolves --ask-* (see artifact-motion.css). Those
+     tokens live on `.ask` and `.vt-artifact`; a drawing dropped into any
+     other container renders `color-mix(in oklab, var(--ask-faint) 18%, …)`
+     against an UNDEFINED custom property, which is invalid and paints black.
+     The check-run artifact rendered as solid black bars here before this
+     line existed. Any surface hosting an artifact must map them. */
+  --ask-ink: var(--vt-text-primary);
+  --ask-soft: var(--vt-text-secondary);
+  --ask-faint: var(--vt-text-muted);
+  --ask-rule: var(--vt-border);
+  --ask-accent: var(--vt-accent-emerald);
+
+  --spine-ink: var(--vt-text-primary);
+  --spine-soft: var(--vt-text-secondary);
+  --spine-faint: var(--vt-text-muted);
+  --spine-rule: var(--vt-border);
+  --spine-accent: var(--vt-accent-emerald);
+  max-width: 62rem;
+  margin: 0 auto;
+  padding: clamp(2.75rem, 6vw, 4.5rem) clamp(1.25rem, 5vw, 4rem);
+  color: var(--spine-ink);
+}
+
+.spine-head {
+  max-width: 44rem;
+  margin-bottom: clamp(1.75rem, 4vw, 2.75rem);
+}
+
+.spine-eyebrow {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.66rem;
+  letter-spacing: 0.16em;
+  font-weight: 400;
+  text-transform: uppercase;
+  color: var(--spine-faint);
+  margin: 0 0 1rem;
+}
+
+.spine-title {
+  font-family: var(--font-display, Georgia, serif);
+  font-size: clamp(1.9rem, 4vw, 3rem);
+  line-height: 1.08;
+  letter-spacing: -0.018em;
+  margin: 0 0 1.1rem;
+  font-weight: 560;
+}
+
+.spine-lede {
+  margin: 0;
+  font-size: 1.02rem;
+  line-height: 1.6;
+  color: var(--spine-soft);
+  max-width: 56ch;
+}
+
+/* ── the layout: topics left, one pane right ───────────────── */
+
+.spine-body {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: clamp(1.5rem, 3vw, 2.5rem);
+}
+
+@media (min-width: 900px) {
+  .spine-body {
+    grid-template-columns: 19rem 1fr;
+    align-items: start;
+  }
+
+  /* Without JS the tablist is display:none, but the two-column track
+     survives — so the panels auto-placed into the 19rem column and the
+     ledger wrapped to roughly one word per line. The stacked composition
+     needs the full width it is stacking into. */
+  .spine:not([data-enhanced]) .spine-body {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── the topic list ────────────────────────────────────────── */
+
+.spine-tabs {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border-top: 1px solid var(--spine-rule);
+}
+
+/* Without JS the list is not a control — hide it rather than render dead
+   affordances. The panels below stand on their own. */
+.spine:not([data-enhanced]) .spine-tabs {
+  display: none;
+}
+
+.spine-tab {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: 0;
+  border-bottom: 1px solid var(--spine-rule);
+  border-left: 2px solid transparent;
+  padding: 0.95rem 0.9rem;
+  cursor: pointer;
+  transition:
+    border-left-color 160ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    background-color 160ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.spine-tab:hover {
+  background: color-mix(in oklab, var(--spine-ink) 3%, transparent);
+}
+
+.spine-tab[aria-selected='true'] {
+  border-left-color: var(--spine-accent);
+  background: color-mix(in oklab, var(--spine-accent) 5%, transparent);
+}
+
+.spine-tab:focus-visible {
+  outline: 2px solid var(--spine-accent);
+  outline-offset: -2px;
+}
+
+.spine-tab-step {
+  display: block;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.6rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--spine-faint);
+  margin-bottom: 0.3rem;
+}
+
+.spine-tab-name {
+  display: block;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--spine-ink);
+  margin-bottom: 0.2rem;
+}
+
+.spine-tab-line {
+  display: block;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: var(--spine-soft);
+}
+
+/* ── the pane ──────────────────────────────────────────────── */
+
+.spine-panels {
+  min-width: 0;
+}
+
+/* Only an ENHANCED spine hides panels. Without JS all four render stacked. */
+.spine[data-enhanced] .spine-panel[hidden] {
+  display: none;
+}
+
+.spine-panel {
+  min-width: 0;
+}
+
+/* The stacked (no-JS) reading order needs its own heading per panel; the
+   enhanced version gets it from the selected tab, so it is visually hidden
+   there rather than duplicated. */
+.spine[data-enhanced] .spine-panel-heading {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.spine-panel-heading {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.66rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--spine-faint);
+  margin: 0 0 1rem;
+  font-weight: 400;
+}
+
+.spine-panel + .spine-panel {
+  margin-top: clamp(2rem, 5vw, 3.5rem);
+  padding-top: clamp(2rem, 5vw, 3.5rem);
+  border-top: 1px solid var(--spine-rule);
+}
+
+.spine[data-enhanced] .spine-panel + .spine-panel {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+
+.spine-panel-note {
+  margin: 1rem 0 0;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.58rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--spine-faint);
+}
+
+/* ── the live ledger panel ─────────────────────────────────── */
+
+/* The ledger's presentation lives in ask-home.css, which this surface does
+   NOT import — importing a whole page's stylesheet to borrow six rows drags
+   `.ask-stage`'s viewport sizing along with it. The rows arrived here
+   unstyled (names running into descriptions, no rules, no chips) until these
+   existed. Scoped to `.spine` so the prototype is self-contained; if the
+   spine graduates to the homepage, these and ask-home's copy should collapse
+   into one shared block. */
+.spine .ask-ledger-rows {
+  border-top: 1px solid var(--spine-ink);
+}
+
+.spine .ask-ledger-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding: 0.95rem 0;
+  border-bottom: 1px solid var(--spine-rule);
+}
+
+.spine .ask-ledger-main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.spine .ask-ledger-name {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--spine-ink);
+}
+
+.spine .ask-ledger-what {
+  font-size: 0.88rem;
+  line-height: 1.55;
+  color: var(--spine-soft);
+  max-width: 52ch;
+}
+
+.spine .ask-ledger-state {
+  flex-shrink: 0;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.66rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+/* Signal versus state (CD-4): matcha marks only the defined "available"
+   state. Gated and unconnected stay ink-faint — never decoration. */
+.spine .ask-ledger-state--ok {
+  color: var(--spine-accent);
+}
+.spine .ask-ledger-state--gated {
+  color: var(--spine-soft);
+}
+.spine .ask-ledger-state--off {
+  color: var(--spine-faint);
+}
+
+@media (max-width: 640px) {
+  .spine .ask-ledger-row {
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+}
+
+/* ── motion: the pane settles, once ────────────────────────── */
+
+@media (prefers-reduced-motion: no-preference) {
+  .spine[data-enhanced] .spine-panel:not([hidden]) {
+    animation: ask-art-appear 260ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+}

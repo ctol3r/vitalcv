@@ -44,7 +44,9 @@ describe('page density system', () => {
     // 150 = 143 + the six Career Garden workspace pages under /holder/garden
     // (home, cv, notes, research, opportunities, privacy) + the
     // /dev/career-garden harness (dev-gated, noindex).
-    expect(inventory).toHaveLength(150);
+    // 151 = 150 + /design/spine, the four-step-spine prototype (noindex,
+    // design-reference tree, not linked from product navigation).
+    expect(inventory).toHaveLength(151);
     expect(inventory.every((item) => !item.source.includes('/_archive/'))).toBe(true);
     expect(inventory.every((item) => !item.route.startsWith('/api/'))).toBe(true);
     expect(new Set(inventory.map((item) => item.density))).toEqual(
