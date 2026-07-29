@@ -64,4 +64,11 @@ describe('buildMarketplaceHeaders — enforce readiness', () => {
     expect(headers.get('x-clerk-user-id')).toBeNull();
     expect(headers.get('authorization')).toBeNull();
   });
+
+  it('keeps a public proxy anonymous when Clerk is unavailable', async () => {
+    const headers = await buildMarketplaceHeaders(null);
+    expect(headers.get('x-clerk-user-id')).toBeNull();
+    expect(headers.get('authorization')).toBeNull();
+    expect(headers.get('accept')).toBe('application/json');
+  });
 });

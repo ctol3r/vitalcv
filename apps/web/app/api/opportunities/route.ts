@@ -21,7 +21,10 @@ export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl;
   const qs = searchParams.toString();
   const control = await getPilotSurfaceControl('explore_board');
-  const session = await auth();
+  // The board is deliberately public. Clerk enriches a signed-in request for
+  // the private MATCHA comparison, but a missing or locally unavailable Clerk
+  // middleware must never turn anonymous browsing into a 500.
+  const session = await auth().catch(() => null);
 
   if (control && (control.mode === 'disabled' || control.mode === 'hidden')) {
     return NextResponse.json({
