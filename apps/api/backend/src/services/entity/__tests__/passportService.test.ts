@@ -514,6 +514,53 @@ describe('passportService', () => {
     );
   });
 
+  it('does not mistake a legacy gated Nursys placeholder for a stale state-board check', async () => {
+    (getCachedTrustState as jest.Mock).mockResolvedValue({
+      licensureStatus: 'expired',
+      exclusionStatus: 'CLEAR',
+      pecosStatus: 'ENROLLED',
+      readiness_level: 'L1',
+      readiness_score: 20,
+      gap_summary: [],
+      blockers: [],
+      sourceCoverage: [
+        createCanonicalSourceCoverage({
+          sourceId: 'STATE_BOARD',
+          state: 'stale',
+          reason: 'Licensure source reports an expired or inactive credential',
+          checkedAt: '2026-04-03T09:35:11.800Z',
+          observedAt: '2026-04-03T09:35:11.800Z',
+          expiresAt: '2026-04-10T09:35:11.800Z',
+          artifactId: 'legacy-gated-artifact',
+          sourceUrl: 'GATED_NURSYS_CONFIG_REQUIRED',
+          rawArtifactRef: 'legacy-gated-artifact',
+          checksum: 'legacy-checksum',
+          parserVersion: 'v1.0.0',
+          freshnessWindowHours: 168,
+          proof: { artifactIds: ['legacy-gated-artifact'], receiptIds: [] },
+        }),
+      ],
+    });
+
+    const passport = await buildPassport('entity-1');
+    const stateBoard = passport?.sourceCoverage.checks.find((check) => check.sourceId === 'STATE_BOARD');
+
+    expect(stateBoard).toMatchObject({
+      state: 'accessRequired',
+      reason: 'State-board access is required; VitalCV has not checked this license.',
+      checkedAt: null,
+      observedAt: null,
+      expiresAt: null,
+      artifactId: null,
+      sourceUrl: null,
+      rawArtifactRef: null,
+      checksum: null,
+    });
+    expect(stateBoard?.provenance).toMatchObject({ artifactIds: [], receiptIds: [] });
+    expect(passport?.sourceCoverage.summary.stale).not.toContain('STATE_BOARD');
+    expect(passport?.sourceCoverage.summary.accessRequired).toContain('STATE_BOARD');
+  });
+
   it('downgrades optimistic NPPES checked coverage when no NPPES artifact is attached', async () => {
     prismaMock.verificationArtifact.findFirst.mockResolvedValue(null);
     (getCachedTrustState as jest.Mock).mockResolvedValue({

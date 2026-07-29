@@ -711,6 +711,20 @@ type SourceProofArtifact = {
   expiresAt: Date | null;
 };
 
+/**
+ * A previous ingestion path attached a gated Nursys placeholder artifact to
+ * the STATE_BOARD lane. Its timestamp was the time the placeholder was
+ * created, not a state-board observation, but downstream freshness logic
+ * rendered it as an expired licence check. Keep that historical artifact in
+ * storage, while making the current public truth explicit: no state-board
+ * check occurred and access is required.
+ */
+function isLegacyGatedStateBoardPlaceholder(check: CanonicalSourceCoverage): boolean {
+  return check.sourceId === 'STATE_BOARD'
+    && typeof check.sourceUrl === 'string'
+    && check.sourceUrl.startsWith('GATED_');
+}
+
 function buildProofRefsBySource(input: {
   credentials: readonly Pick<PassportCredential, 'id' | 'sourceId'>[];
   credentialEvidence: ReadonlyMap<string, CredentialEvidenceResolution>;
@@ -954,6 +968,7 @@ function buildPassportSourceCoverage(input: {
 
   const checks = baseChecks
     .map((check) => {
+      const legacyGatedStateBoard = isLegacyGatedStateBoardPlaceholder(check);
       const latestArtifact = latestArtifactForSource(check.sourceId);
       const proof = input.proofBySource.get(check.sourceId)
         ?? (
@@ -986,20 +1001,26 @@ function buildPassportSourceCoverage(input: {
 
       return createCanonicalSourceCoverage({
         sourceId: check.sourceId,
-        state: shouldDowngradeUncheckedIdentity ? 'pending' : check.state,
+        state: legacyGatedStateBoard
+          ? 'accessRequired'
+          : shouldDowngradeUncheckedIdentity
+            ? 'pending'
+            : check.state,
         reason: shouldDowngradeUncheckedIdentity
           ? 'NPPES identity source not yet checked'
-          : check.reason,
-        checkedAt: shouldDowngradeUncheckedIdentity ? null : checkedAt,
-        observedAt: shouldDowngradeUncheckedIdentity ? null : observedAt,
-        expiresAt,
-        artifactId,
-        sourceUrl: check.sourceUrl ?? latestArtifact?.sourceUrl ?? null,
-        rawArtifactRef: check.rawArtifactRef ?? artifactId,
-        checksum: check.checksum ?? latestArtifact?.checksum ?? null,
-        parserVersion: check.parserVersion ?? latestArtifact?.parserVersion ?? null,
+          : legacyGatedStateBoard
+            ? 'State-board access is required; VitalCV has not checked this license.'
+            : check.reason,
+        checkedAt: shouldDowngradeUncheckedIdentity || legacyGatedStateBoard ? null : checkedAt,
+        observedAt: shouldDowngradeUncheckedIdentity || legacyGatedStateBoard ? null : observedAt,
+        expiresAt: legacyGatedStateBoard ? null : expiresAt,
+        artifactId: legacyGatedStateBoard ? null : artifactId,
+        sourceUrl: legacyGatedStateBoard ? null : check.sourceUrl ?? latestArtifact?.sourceUrl ?? null,
+        rawArtifactRef: legacyGatedStateBoard ? null : check.rawArtifactRef ?? artifactId,
+        checksum: legacyGatedStateBoard ? null : check.checksum ?? latestArtifact?.checksum ?? null,
+        parserVersion: legacyGatedStateBoard ? null : check.parserVersion ?? latestArtifact?.parserVersion ?? null,
         freshnessWindowHours: check.freshnessWindowHours ?? null,
-        proof,
+        proof: legacyGatedStateBoard ? null : proof,
       });
     })
     .sort((left, right) => left.sourceId.localeCompare(right.sourceId));
