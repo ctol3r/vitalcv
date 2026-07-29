@@ -3,20 +3,6 @@
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  ArrowUpRight,
-  Building2,
-  CheckCircle2,
-  ChevronDown,
-  CircleAlert,
-  Clock3,
-  MapPin,
-  Search,
-  SlidersHorizontal,
-  Sparkles,
-  Stethoscope,
-  X,
-} from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -200,7 +186,6 @@ export function PublicOpportunityBoard() {
         <div className="mx-auto max-w-7xl px-5 py-14 sm:px-8 sm:py-20">
           <div className="max-w-3xl">
             <div className="mb-5 flex items-center gap-2 text-sm font-medium text-emerald-800">
-              <Sparkles className="size-4" aria-hidden="true" />
               Clinical opportunities, with the signal left visible
             </div>
             <h1 className="font-serif text-4xl tracking-tight sm:text-6xl">Find a role worth preparing for.</h1>
@@ -213,7 +198,6 @@ export function PublicOpportunityBoard() {
             <label className="sr-only" htmlFor="opportunity-search">Search clinical roles</label>
             <div className="flex flex-col gap-3 md:flex-row">
               <div className="relative flex-1">
-                <Search className="pointer-events-none absolute left-3 top-1/2 size-5 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
                 <Input
                   id="opportunity-search"
                   value={query}
@@ -223,7 +207,6 @@ export function PublicOpportunityBoard() {
                 />
               </div>
               <Button type="button" variant="outline" className="h-12" onClick={() => setShowFilters((visible) => !visible)} aria-expanded={showFilters}>
-                <SlidersHorizontal className="size-4" aria-hidden="true" />
                 Filters{activeFilterCount ? ` · ${activeFilterCount}` : ''}
               </Button>
               <label className="sr-only" htmlFor="opportunity-sort">Sort opportunities</label>
@@ -272,14 +255,14 @@ export function PublicOpportunityBoard() {
           </p>
           {(query || activeFilterCount || sort !== 'recent') && (
             <Button type="button" variant="ghost" size="sm" onClick={clearFilters}>
-              <X className="size-4" aria-hidden="true" /> Clear search and filters
+              Clear search and filters
             </Button>
           )}
         </div>
 
         {failed ? (
           <Card className="border-amber-200 bg-amber-50">
-            <CardContent className="flex gap-3 pt-6 text-amber-950"><CircleAlert className="mt-0.5 size-5 shrink-0" /> The opportunity feed is temporarily unavailable. Please try again.</CardContent>
+            <CardContent className="pt-6 text-amber-950">The opportunity feed is temporarily unavailable. Please try again.</CardContent>
           </Card>
         ) : loading ? (
           <div className="grid gap-4" aria-label="Loading opportunities">
@@ -288,7 +271,6 @@ export function PublicOpportunityBoard() {
         ) : opportunities.length === 0 ? (
           <Card className="border-dashed border-zinc-300 bg-white text-zinc-950">
             <CardContent className="py-12 text-center">
-              <Stethoscope className="mx-auto size-8 text-muted-foreground" aria-hidden="true" />
               <h2 className="mt-4 text-xl font-semibold">No roles match this search.</h2>
               <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-muted-foreground">Try a broader specialty or clear a filter. We show only currently active opportunities in VitalCV’s source data.</p>
               <Button type="button" variant="outline" className="mt-5" onClick={clearFilters}>Clear filters</Button>
@@ -311,12 +293,12 @@ export function PublicOpportunityBoard() {
                       </div>
                       <CardTitle className="text-xl sm:text-2xl">{opportunity.title}</CardTitle>
                       <div className="mt-2 flex flex-wrap gap-x-4 gap-y-2 text-sm text-muted-foreground">
-                        <span className="inline-flex items-center gap-1.5"><Building2 className="size-4" aria-hidden="true" />{opportunity.organizationName}</span>
-                        <span className="inline-flex items-center gap-1.5"><MapPin className="size-4" aria-hidden="true" />{formatLocation(opportunity)}</span>
+                        <span>{opportunity.organizationName}</span>
+                        <span>{formatLocation(opportunity)}</span>
                       </div>
                     </div>
                     <div className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium ${freshness.tone}`} title={freshness.detail}>
-                      <Clock3 className="size-3.5" aria-hidden="true" />{freshness.label}
+                      {freshness.label}
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-5">
@@ -333,7 +315,7 @@ export function PublicOpportunityBoard() {
                           <h3 className="font-semibold">Listed requirements</h3>
                           {requirements.length ? (
                             <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
-                              {requirements.map((requirement) => <li key={`${opportunity.id}-${requirement.label}`} className="flex gap-2"><CheckCircle2 className="mt-0.5 size-4 shrink-0 text-emerald-700" aria-hidden="true" /><span><strong className="font-medium text-foreground">{requirement.label}</strong>{requirement.priority === 'preferred' ? ' · Preferred' : ' · Required'}{requirement.note ? ` · ${requirement.note}` : ''}</span></li>)}
+                              {requirements.map((requirement) => <li key={`${opportunity.id}-${requirement.label}`}><strong className="font-medium text-foreground">{requirement.label}</strong>{requirement.priority === 'preferred' ? ' · Preferred' : ' · Required'}{requirement.note ? ` · ${requirement.note}` : ''}</li>)}
                             </ul>
                           ) : <p className="mt-2 text-sm text-muted-foreground">The employer has not listed structured requirements for this role.</p>}
                         </div>
@@ -350,9 +332,9 @@ export function PublicOpportunityBoard() {
                   </CardContent>
                   <CardFooter className="flex flex-wrap justify-between gap-3 border-t">
                     <Button type="button" variant="ghost" size="sm" onClick={() => setExpandedId(expanded ? null : opportunity.id)} aria-expanded={expanded}>
-                      {expanded ? 'Hide details' : 'View requirements'} <ChevronDown className={`size-4 transition-transform ${expanded ? 'rotate-180' : ''}`} aria-hidden="true" />
+                      {expanded ? 'Hide details' : 'View requirements'}
                     </Button>
-                    <Button asChild size="sm" className="bg-emerald-700 text-white hover:bg-emerald-800"><Link href={buildSignInHref(opportunity)}>Sign in to compare and apply <ArrowUpRight className="size-4" aria-hidden="true" /></Link></Button>
+                    <Button asChild size="sm" className="bg-emerald-700 text-white hover:bg-emerald-800"><Link href={buildSignInHref(opportunity)}>Sign in to compare and apply</Link></Button>
                   </CardFooter>
                 </Card>
               );
