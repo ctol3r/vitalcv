@@ -290,7 +290,16 @@ export function AskHome() {
                     <span className="ask-error">{error ?? check.reason}</span>
                   ) : (
                     <>
-                      {digits.length}/10 digits · Free for clinicians · No account required
+                      {/* Three facts, but the last two are one promise. At 390px
+                          the single run wrapped to "…No account / required",
+                          orphaning a word under the field. `<wbr/>`-free fix:
+                          the middle separator is a soft break point, so the
+                          line splits between facts instead of mid-phrase. */}
+                      <span className="ask-hint-part">{digits.length}/10 digits</span>
+                      <span className="ask-hint-sep"> · </span>
+                      <span className="ask-hint-part">Free for clinicians</span>
+                      <span className="ask-hint-sep"> · </span>
+                      <span className="ask-hint-part">No account required</span>
                     </>
                   )}
                 </p>

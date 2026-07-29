@@ -1,0 +1,17 @@
+-- Remove the fabricated seed alert about a real physician.
+--
+-- `seed-alert-license-expiring` asserted "California Medical License for NPI
+-- 1003000126 expires on 2026-03-19." NPI 1003000126 is ARDALAN ENKESHAFI, M.D.,
+-- a real registrant; no source ever reported that license or that date. The row
+-- was written to production by TrustAlertsRepository.seedDefaults and served
+-- from GET /api/alerts.
+--
+-- The seed has been rewritten in trustAlerts.ts against the check-digit-invalid
+-- placeholder NPI 0000000000 under a new alertId, because seedDefaults skips
+-- any alertId that already exists and would otherwise leave this row in place.
+--
+-- Scoped by the exact seeded alertId, never by NPI: alerts legitimately emitted
+-- about this NPI (source-freshness SLA breaches, which describe our own lanes
+-- rather than the clinician) must survive.
+DELETE FROM "TrustAlertRecord"
+WHERE "alertId" = 'seed-alert-license-expiring';

@@ -87,7 +87,7 @@ export const CREDENTIAL_INGESTION_EXAMPLE_FIXTURES: readonly ExampleClinicianFix
   {
     slug: 'seeded-clinician-clear',
     provider: {
-      npi: '1003000126',
+      npi: '0000000000',
       fullName: 'Dr. Jane Doe',
       providerType: 'INDIVIDUAL',
       taxonomyCode: '207Q00000X',
@@ -146,7 +146,7 @@ export const CREDENTIAL_INGESTION_EXAMPLE_FIXTURES: readonly ExampleClinicianFix
           practice_state: 'CA',
           practice_states: ['CA'],
           source_status: 'ACTIVE',
-          source_url: 'https://npiregistry.cms.hhs.gov/api/?version=2.1&number=1003000126',
+          source_url: 'https://npiregistry.cms.hhs.gov/api/?version=2.1&number=0000000000',
           fact_count: 3,
         },
       },
@@ -154,7 +154,7 @@ export const CREDENTIAL_INGESTION_EXAMPLE_FIXTURES: readonly ExampleClinicianFix
         sourceName: 'oig',
         retrievedAt: '2099-01-11T08:00:00.000Z',
         rawPayload: {
-          npi: '1003000126',
+          npi: '0000000000',
           excluded: false,
           exclusionType: null,
           exclusionDate: null,
@@ -190,7 +190,7 @@ export const CREDENTIAL_INGESTION_EXAMPLE_FIXTURES: readonly ExampleClinicianFix
         sourceName: 'state-board',
         retrievedAt: '2099-01-12T09:30:00.000Z',
         rawPayload: {
-          npi: '1003000126',
+          npi: '0000000000',
           state: 'CA',
           licenseNumber: 'CA-MD-300012',
           licenseStatus: 'ACTIVE',
