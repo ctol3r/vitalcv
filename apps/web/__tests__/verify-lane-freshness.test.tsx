@@ -25,6 +25,7 @@ import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import VerifierPage from '../app/verify/[npi]/page';
 import {
   ProvenanceStrip,
   describeLaneFreshness,
@@ -155,7 +156,6 @@ describe('/verify/[npi] — the passport freshness window reaches the strip', ()
       }),
     );
 
-    const { default: VerifierPage } = await import('../app/verify/[npi]/page');
     const html = renderToStaticMarkup(
       (await VerifierPage({ params: Promise.resolve({ npi: '1234567890' }) })) as React.ReactElement,
     );
