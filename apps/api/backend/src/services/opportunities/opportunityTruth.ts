@@ -23,6 +23,7 @@ export type OpportunityStartUrgency = 'immediate' | 'within_2_weeks' | 'within_m
 export type OpportunityFreshness = 'fresh' | 'aging' | 'stale';
 export type OpportunityDataStatus = 'complete' | 'partial' | 'limited';
 export type OpportunityReadinessStatus = 'ready_now' | 'needs_review' | 'requirements_missing';
+export type OpportunityListSort = 'recent' | 'oldest' | 'pay_high' | 'pay_low';
 
 interface OrganizationRequirementRecord {
   label: string;
@@ -154,6 +155,9 @@ export interface OpportunityTruth {
 }
 
 export interface OpportunityTruthFilters {
+  /** Public search terms are limited to fields published with the listing. */
+  query?: string;
+  sort?: OpportunityListSort;
   specialty?: string;
   state?: string;
   hiringType?: string;

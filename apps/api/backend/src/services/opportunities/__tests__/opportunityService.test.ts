@@ -23,6 +23,8 @@ jest.mock('../../../graphql/prisma_client', () => ({
     },
     opportunity: {
       findUnique: jest.fn(),
+      findMany: jest.fn(),
+      count: jest.fn(),
       update: jest.fn(),
     },
   },
@@ -31,6 +33,7 @@ jest.mock('../../../graphql/prisma_client', () => ({
 import prisma from '../../../graphql/prisma_client';
 import {
   getOrgProfile,
+  listPublicOpportunities,
   updateOpportunity,
   upsertOrgProfile,
 } from '../opportunityService';
@@ -56,6 +59,8 @@ const prismaMock = prisma as unknown as {
   };
   opportunity: {
     findUnique: jest.Mock;
+    findMany: jest.Mock;
+    count: jest.Mock;
     update: jest.Mock;
   };
 };
@@ -73,6 +78,8 @@ describe('opportunityService org profile pilot policy', () => {
     prismaMock.organizationProfile.update.mockReset();
     prismaMock.organizationProfile.findUnique.mockReset();
     prismaMock.opportunity.findUnique.mockReset();
+    prismaMock.opportunity.findMany.mockReset();
+    prismaMock.opportunity.count.mockReset();
     prismaMock.opportunity.update.mockReset();
   });
 
@@ -284,6 +291,43 @@ describe('opportunityService org profile pilot policy', () => {
       data: expect.objectContaining({
         npi: '1999999999',
       }),
+    }));
+  });
+});
+
+describe('listPublicOpportunities public search', () => {
+  beforeEach(() => {
+    prismaMock.opportunity.findMany.mockReset();
+    prismaMock.opportunity.count.mockReset();
+  });
+
+  it('uses database search fields and deterministic pay sorting before building public truth', async () => {
+    prismaMock.opportunity.findMany.mockResolvedValue([]);
+    prismaMock.opportunity.count.mockResolvedValue(0);
+
+    await expect(listPublicOpportunities({
+      query: 'cardiology',
+      sort: 'pay_high',
+    })).resolves.toEqual({ opportunities: [], total: 0 });
+
+    expect(prismaMock.opportunity.findMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({
+        status: 'ACTIVE',
+        OR: expect.arrayContaining([
+          { title: { contains: 'cardiology', mode: 'insensitive' } },
+          { specialty: { contains: 'cardiology', mode: 'insensitive' } },
+          { description: { contains: 'cardiology', mode: 'insensitive' } },
+        ]),
+      }),
+      orderBy: [
+        { payMax: { sort: 'desc', nulls: 'last' } },
+        { updatedAt: 'desc' },
+      ],
+      skip: 0,
+      take: 20,
+    }));
+    expect(prismaMock.opportunity.count).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({ status: 'ACTIVE' }),
     }));
   });
 });

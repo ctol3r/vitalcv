@@ -517,8 +517,30 @@ export async function listPublicOpportunities(filters: OpportunityTruthFilters &
   clinicianNpi?: string;
   clerkUserId?: string | null;
 }): Promise<{ opportunities: OpportunityResult[]; total: number }> {
+  const query = filters.query?.trim();
+  const offset = filters.offset ?? 0;
+  const limit = filters.limit ?? 20;
+  const requiresDerivedTruthFilter = Boolean(
+    filters.payModel
+    || filters.payMin !== undefined
+    || filters.payMax !== undefined
+    || filters.visaSponsorship
+    || filters.benefits
+    || filters.employerType
+    || filters.startUrgency
+    || filters.readinessStatus
+    || filters.missingRequirement,
+  );
   const where: Prisma.OpportunityWhereInput = {
     status: 'ACTIVE',
+    ...(query ? {
+      OR: [
+        { title: { contains: query, mode: 'insensitive' as const } },
+        { specialty: { contains: query, mode: 'insensitive' as const } },
+        { description: { contains: query, mode: 'insensitive' as const } },
+        { organization: { name: { contains: query, mode: 'insensitive' as const } } },
+      ],
+    } : {}),
     ...(filters.specialty ? { specialty: { contains: filters.specialty, mode: 'insensitive' as const } } : {}),
     ...(filters.state ? { state: filters.state } : {}),
     ...(filters.hiringType ? { hiringType: filters.hiringType } : {}),
@@ -533,7 +555,21 @@ export async function listPublicOpportunities(filters: OpportunityTruthFilters &
     where.AND = [listSeedExclusion];
   }
 
-  const [clinicianProfile, opportunities] = await Promise.all([
+  const orderBy: Prisma.OpportunityOrderByWithRelationInput[] = (() => {
+    switch (filters.sort) {
+      case 'oldest':
+        return [{ createdAt: 'asc' }];
+      case 'pay_high':
+        return [{ payMax: { sort: 'desc', nulls: 'last' } }, { updatedAt: 'desc' }];
+      case 'pay_low':
+        return [{ payMin: { sort: 'asc', nulls: 'last' } }, { updatedAt: 'desc' }];
+      case 'recent':
+      default:
+        return [{ updatedAt: 'desc' }, { createdAt: 'desc' }];
+    }
+  })();
+
+  const [clinicianProfile, opportunities, databaseTotal] = await Promise.all([
     resolveClinicianProfile({
       clerkUserId: filters.clerkUserId,
       clinicianNpi: filters.clinicianNpi,
@@ -547,11 +583,14 @@ export async function listPublicOpportunities(filters: OpportunityTruthFilters &
           },
         },
       },
-      orderBy: [
-        { updatedAt: 'desc' },
-        { createdAt: 'desc' },
-      ],
+      orderBy,
+      // Public board filters map directly to indexed listing fields. Let the
+      // database paginate those reads rather than building truth for every
+      // active role. Filters that depend on derived evidence state still need
+      // the full candidate set below.
+      ...(!requiresDerivedTruthFilter ? { skip: offset, take: limit } : {}),
     }),
+    !requiresDerivedTruthFilter ? prisma.opportunity.count({ where }) : Promise.resolve(null),
   ]);
 
   const normalized = opportunities
@@ -561,8 +600,12 @@ export async function listPublicOpportunities(filters: OpportunityTruthFilters &
     }))
     .filter((opportunity) => matchesOpportunityTruthFilters(opportunity, filters));
 
-  const offset = filters.offset ?? 0;
-  const limit = filters.limit ?? 20;
+  if (!requiresDerivedTruthFilter) {
+    return {
+      opportunities: normalized,
+      total: databaseTotal ?? normalized.length,
+    };
+  }
 
   return {
     opportunities: normalized.slice(offset, offset + limit),

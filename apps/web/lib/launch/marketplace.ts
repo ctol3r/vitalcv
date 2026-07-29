@@ -157,6 +157,8 @@ export async function fetchLaunchEmployer(slug: string): Promise<EmployerDetail 
 }
 
 export async function fetchLaunchOpportunities(filters: {
+  query?: string;
+  sort?: 'recent' | 'oldest' | 'pay_high' | 'pay_low';
   specialty?: string;
   state?: string;
   hiringType?: string;
@@ -175,6 +177,13 @@ export async function fetchLaunchOpportunities(filters: {
   limit?: number;
 } = {}): Promise<OpportunityListPayload> {
   const params = new URLSearchParams();
+
+  if (filters.query) {
+    params.set('q', filters.query);
+  }
+  if (filters.sort) {
+    params.set('sort', filters.sort);
+  }
 
   if (filters.specialty) {
     params.set('specialty', filters.specialty);
