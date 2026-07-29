@@ -4,7 +4,6 @@
  * GET  /api/directory            — Structured JSON directory
  * GET  /api/directory/fhir       — FHIR R4 Bundle export
  * GET  /api/directory/csv        — CSV download
- * POST /api/directory/publish    — Publish a snapshot (Wave 149)
  * GET  /api/directory/snapshot/:id — Retrieve snapshot (Wave 149)
  * GET  /api/directory/snapshots  — List all snapshots (Wave 149)
  * GET  /api/directory/verify/:id — Verify snapshot integrity (Wave 149)
@@ -16,7 +15,6 @@ import {
   generateDirectory,
   exportFHIRDirectory,
   exportCSVDirectory,
-  publishDirectorySnapshot,
   getDirectorySnapshot,
   listDirectorySnapshots,
   verifyDirectoryIntegrity,
@@ -96,21 +94,6 @@ export function registerProviderDirectoryRoutes(app: Express): void {
   });
 
   // ── Wave 149: Directory Network Distribution ────────────────────────────────
-
-  /**
-   * POST /api/directory/publish
-   * Publish a point-in-time directory snapshot.
-   */
-  app.post('/api/directory/publish', async (req: Request, res: Response) => {
-    try {
-      const publishedBy = (req.body as Record<string, string>)?.publishedBy ?? 'system';
-      const result = await publishDirectorySnapshot(publishedBy, parseDirectoryQuery(req));
-      res.status(201).json(result);
-    } catch (err) {
-      log('error', 'directory_publish_route_error', { error: String(err) });
-      res.status(500).json({ error: 'Directory publish failed' });
-    }
-  });
 
   /**
    * GET /api/directory/snapshots
