@@ -28,6 +28,19 @@ const AFFILIATION_EDGE_TYPES = [
   'credentialed_at',
 ] as const;
 
+type ProviderListRow = {
+  npi: string;
+  fullName: string;
+  providerType: string;
+  taxonomyCode: string;
+  stateOfPractice: string;
+};
+
+type ProviderGraphNode = {
+  id: string;
+  metadata: unknown;
+};
+
 function readQueryValue(value: unknown): string | null {
   if (typeof value !== 'string') {
     return null;
@@ -78,7 +91,19 @@ function uniqueStrings(values: Array<string | null | undefined>): string[] {
   return ordered;
 }
 
+/**
+ * Reachable unauthenticated on the backend's own public domain, so the web
+ * proxy's headers do not cover it. Without an explicit directive an
+ * intermediary may cache heuristically and keep serving a stale payload.
+ */
+function noStore(_req: Request, res: Response, next: () => void): void {
+  res.set('Cache-Control', 'no-store');
+  next();
+}
+
 export function registerProviderRoutes(app: Express): void {
+  app.use('/api/providers', noStore);
+
   app.get('/api/providers', async (req: Request, res: Response) => {
     const limit = readPositiveInt(req.query.limit, 50, 100);
     const offset = readPositiveInt(req.query.offset, 0, 10_000);
@@ -117,7 +142,7 @@ export function registerProviderRoutes(app: Express): void {
         ? []
         : await prisma.graphNode.findMany({
             where: {
-              OR: providerRows.map((provider) => ({
+              OR: (providerRows as ProviderListRow[]).map((provider) => ({
                 type: 'clinician',
                 metadata: {
                   path: ['npi'],
@@ -147,7 +172,7 @@ export function registerProviderRoutes(app: Express): void {
         ? []
         : await prisma.graphEdge.findMany({
             where: {
-              sourceNodeId: { in: graphNodes.map((node) => node.id) },
+              sourceNodeId: { in: (graphNodes as ProviderGraphNode[]).map((node) => node.id) },
               edgeType: { in: [...AFFILIATION_EDGE_TYPES] },
             },
             orderBy: { createdAt: 'asc' },
@@ -168,7 +193,7 @@ export function registerProviderRoutes(app: Express): void {
         affiliationsByNodeId.set(edge.sourceNodeId, current);
       }
 
-      const providers = providerRows.map((provider) => {
+      const providers = (providerRows as ProviderListRow[]).map((provider) => {
         const graphNode = nodeByNpi.get(provider.npi);
         const specialty = (
           typeof graphNode?.metadata.specialty === 'string' && graphNode.metadata.specialty.trim().length > 0
