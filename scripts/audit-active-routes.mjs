@@ -8,7 +8,7 @@ const appRoot = join(repoRoot, 'apps/web/app');
 
 const PUBLIC_MARKETING = new Set([
   '/', '/concierge', '/contact', '/docs', '/evidence-network',
-  '/matcha/experience', '/matcha/hospitals', '/matcha/investors',
+  '/explore', '/matcha/experience', '/matcha/hospitals', '/matcha/investors',
   '/matcha/recruiters', '/pilot', '/pricing', '/privacy', '/solutions',
   '/status', '/support', '/terms', '/trust', '/verify/guide',
 ]);

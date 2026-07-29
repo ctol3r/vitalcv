@@ -7,10 +7,12 @@ import type { MetadataRoute } from 'next';
 // health-system page that implied a partnership. Only real, public, polished
 // routes are listed here.
 const RELEASE = new Date('2026-07-15T00:00:00Z');
+const OPPORTUNITY_BOARD_RELEASE = new Date('2026-07-29T00:00:00Z');
 
 export default function sitemap(): MetadataRoute.Sitemap {
   return [
     { url: 'https://vitalcv.com', lastModified: RELEASE, changeFrequency: 'weekly', priority: 1 },
+    { url: 'https://vitalcv.com/explore', lastModified: OPPORTUNITY_BOARD_RELEASE, changeFrequency: 'daily', priority: 0.9 },
     { url: 'https://vitalcv.com/onboarding', lastModified: RELEASE, changeFrequency: 'weekly', priority: 0.9 },
     { url: 'https://vitalcv.com/passport', lastModified: RELEASE, changeFrequency: 'weekly', priority: 0.9 },
     { url: 'https://vitalcv.com/employers', lastModified: RELEASE, changeFrequency: 'weekly', priority: 0.8 },

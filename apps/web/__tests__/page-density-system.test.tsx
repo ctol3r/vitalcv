@@ -46,7 +46,8 @@ describe('page density system', () => {
     // /dev/career-garden harness (dev-gated, noindex).
     // 151 = 150 + /design/spine, the four-step-spine prototype (noindex,
     // design-reference tree, not linked from product navigation).
-    expect(inventory).toHaveLength(151);
+    // 152 = 151 + the restored public /explore opportunity board.
+    expect(inventory).toHaveLength(152);
     expect(inventory.every((item) => !item.source.includes('/_archive/'))).toBe(true);
     expect(inventory.every((item) => !item.route.startsWith('/api/'))).toBe(true);
     expect(new Set(inventory.map((item) => item.density))).toEqual(

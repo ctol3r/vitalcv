@@ -28,6 +28,7 @@ import { emitLearningEvent } from '../services/feedback/prismaEventStore';
 import prisma from '../graphql/prisma_client';
 import { sha256ForPayload } from '../utils/deterministic';
 import type { EmployerRequirementSpec } from '../services/employers/employerCatalog';
+import type { OpportunityListSort } from '../services/opportunities/opportunityTruth';
 import type {
   AutomationRules,
   OrganizationAcceptanceRules,
@@ -60,6 +61,12 @@ function parseOptionalNumber(value: unknown): number | undefined {
 
   const parsed = Number.parseFloat(value);
   return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function parseOpportunitySort(value: unknown): OpportunityListSort | undefined {
+  return value === 'recent' || value === 'oldest' || value === 'pay_high' || value === 'pay_low'
+    ? value
+    : undefined;
 }
 
 export function registerOpportunityRoutes(app: Express): void {
@@ -201,8 +208,10 @@ export function registerOpportunityRoutes(app: Express): void {
   app.get(
     '/api/opportunities',
     asyncHandler(async (req, res) => {
-      const { specialty, state, hiringType, organizationSlug, payModel, visaSponsorship, benefits, employerType, startUrgency, readinessStatus, missingRequirement, npi, remote } = req.query;
+      const { q, specialty, state, hiringType, organizationSlug, payModel, visaSponsorship, benefits, employerType, startUrgency, readinessStatus, missingRequirement, npi, remote } = req.query;
       const result = await listPublicOpportunities({
+        query: typeof q === 'string' ? q : undefined,
+        sort: parseOpportunitySort(req.query.sort),
         specialty: typeof specialty === 'string' ? specialty : undefined,
         state: typeof state === 'string' ? state : undefined,
         hiringType: typeof hiringType === 'string' ? hiringType : undefined,
