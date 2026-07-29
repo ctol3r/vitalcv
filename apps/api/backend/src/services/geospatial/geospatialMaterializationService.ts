@@ -869,8 +869,8 @@ export async function syncInstitutions(
     prismaClient.residencyProgram.findMany({
       take: sourceLimit,
       select: {
-        acgme_code: true,
-        hospital_affiliation: true,
+        acgmeCode: true,
+        hospitalAffiliation: true,
         specialty: true,
       },
     }),
@@ -971,7 +971,7 @@ export async function syncInstitutions(
   }
 
   for (const row of residencies) {
-    const canonicalName = row.hospital_affiliation.trim();
+    const canonicalName = row.hospitalAffiliation?.trim() ?? '';
     if (!canonicalName) {
       continue;
     }
@@ -993,7 +993,7 @@ export async function syncInstitutions(
       longitude: null,
       metadata: {
         sourceCandidates: ['residency'],
-        acgmeCode: row.acgme_code,
+        acgmeCode: row.acgmeCode,
         specialty: row.specialty,
       },
     };

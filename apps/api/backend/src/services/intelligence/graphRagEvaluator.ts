@@ -119,13 +119,13 @@ export class ReadinessEvaluator {
     const residencyMatch = await prisma.residencyProgram.findMany({
       where: { specialty: specialty.description },
       take: 5,
-      select: { name: true, acgme_code: true, hospital_affiliation: true },
+      select: { name: true, acgmeCode: true, hospitalAffiliation: true },
     });
 
     if (residencyMatch.length > 0) {
       trace.push(`[ACGME] Found ${residencyMatch.length} matching residency program(s)`);
       for (const prog of residencyMatch) {
-        trace.push(`[ACGME]   → ${prog.name} (${prog.acgme_code}) at ${prog.hospital_affiliation}`);
+        trace.push(`[ACGME]   → ${prog.name} (${prog.acgmeCode ?? 'code unavailable'}) at ${prog.hospitalAffiliation ?? 'institution unavailable'}`);
       }
     } else {
       trace.push(`[ACGME] No residency programs found for specialty — skipping residency check`);
