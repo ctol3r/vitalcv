@@ -49,9 +49,9 @@ function requireClerkUserId(req: Request): string {
 // string makes Prisma throw (a 500) instead of returning null.
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-function parsePositiveInt(value: unknown, fallback: number): number {
+function parsePositiveInt(value: unknown, fallback: number, maximum = Number.MAX_SAFE_INTEGER): number {
   const n = typeof value === 'string' ? parseInt(value, 10) : Number(value);
-  return Number.isFinite(n) && n >= 0 ? n : fallback;
+  return Number.isFinite(n) && n >= 0 ? Math.min(n, maximum) : fallback;
 }
 
 function parseOptionalNumber(value: unknown): number | undefined {
@@ -236,7 +236,10 @@ export function registerOpportunityRoutes(app: Express): void {
         missingRequirement: typeof missingRequirement === 'string' ? missingRequirement : undefined,
         clinicianNpi: typeof npi === 'string' ? npi : undefined,
         clerkUserId: (req.headers['x-clerk-user-id'] as string | undefined)?.trim() ?? null,
-        limit: parsePositiveInt(req.query.limit, 20),
+        // Keep the public feed responsive even if a client requests an
+        // unbounded page. Large exports belong in an authenticated workflow,
+        // not in the browse endpoint.
+        limit: parsePositiveInt(req.query.limit, 20, 50),
         offset: parsePositiveInt(req.query.offset, 0),
       });
       res.json(result);

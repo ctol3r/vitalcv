@@ -5,9 +5,10 @@ import { applyIdentityHeaders } from '@/lib/auth/forwardIdentity';
 export const MARKETPLACE_BACKEND = getBackendBase();
 
 type SessionClaims = Record<string, unknown> | undefined;
+type MarketplaceSession = Awaited<ReturnType<typeof auth>> | null;
 
-function sessionClaims(session: Awaited<ReturnType<typeof auth>>): SessionClaims {
-  return session.sessionClaims as SessionClaims;
+function sessionClaims(session: MarketplaceSession): SessionClaims {
+  return session?.sessionClaims as SessionClaims;
 }
 
 /**
@@ -53,7 +54,7 @@ function parseSessionOrgRole(claims: SessionClaims): string | null {
 }
 
 export async function buildMarketplaceHeaders(
-  session: Awaited<ReturnType<typeof auth>>,
+  session: MarketplaceSession,
   init?: HeadersInit,
 ): Promise<Headers> {
   const headers = new Headers(init);
@@ -63,7 +64,7 @@ export async function buildMarketplaceHeaders(
   // proxies survive the backend's CLERK_JWT_VERIFICATION=enforce flip (which
   // 401s an identity header without a verified token). Additive and safe in
   // off/shadow today. Mirrors the 40 routes already on forwardIdentity.
-  if (session.userId) {
+  if (session?.userId) {
     await applyIdentityHeaders(headers, { userId: session.userId });
   }
 

@@ -30,6 +30,8 @@ type OpportunityPayload = {
   total?: number;
 };
 
+const PAGE_SIZE = 20;
+
 const HIRING_TYPES: Record<string, string> = {
   perm: 'Permanent',
   locums: 'Locums',
@@ -98,6 +100,7 @@ export function PublicOpportunityBoard() {
   const [hiringType, setHiringType] = useState(searchParams.get('hiringType') ?? '');
   const [remote, setRemote] = useState(searchParams.get('remote') === '1');
   const [sort, setSort] = useState<Sort>((searchParams.get('sort') as Sort) ?? 'recent');
+  const [offset, setOffset] = useState(0);
   const [opportunities, setOpportunities] = useState<OpportunitySummary[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -113,13 +116,16 @@ export function PublicOpportunityBoard() {
     if (hiringType) params.set('hiringType', hiringType);
     if (remote) params.set('remote', '1');
     if (sort !== 'recent') params.set('sort', sort);
-    params.set('limit', '50');
+    params.set('limit', String(PAGE_SIZE));
+    if (offset) params.set('offset', String(offset));
     return params;
-  }, [hiringType, query, remote, sort, specialty, state]);
+  }, [hiringType, offset, query, remote, sort, specialty, state]);
 
   const fetchOpportunities = useCallback(async (signal: AbortSignal) => {
-    setLoading(true);
-    setFailed(false);
+    if (!offset) {
+      setLoading(true);
+      setFailed(false);
+    }
     try {
       const response = await fetch(`/api/opportunities?${request.toString()}`, {
         cache: 'no-store',
@@ -128,16 +134,23 @@ export function PublicOpportunityBoard() {
       });
       if (!response.ok) throw new Error('Opportunity feed unavailable');
       const payload = await response.json() as OpportunityPayload;
-      setOpportunities(payload.opportunities ?? []);
+      const next = payload.opportunities ?? [];
+      setOpportunities((current) => {
+        if (!offset) return next;
+        const seen = new Set(current.map((opportunity) => opportunity.id));
+        return [...current, ...next.filter((opportunity) => !seen.has(opportunity.id))];
+      });
       setTotal(payload.total ?? payload.opportunities?.length ?? 0);
     } catch (error) {
       if ((error as { name?: string }).name !== 'AbortError') {
-        setOpportunities([]);
-        setTotal(0);
+        if (!offset) {
+          setOpportunities([]);
+          setTotal(0);
+        }
         setFailed(true);
       }
     } finally {
-      if (!signal.aborted) setLoading(false);
+      if (!signal.aborted && !offset) setLoading(false);
     }
   }, [request]);
 
@@ -153,6 +166,7 @@ export function PublicOpportunityBoard() {
   useEffect(() => {
     const publicQuery = new URLSearchParams(request);
     publicQuery.delete('limit');
+    publicQuery.delete('offset');
     const next = publicQuery.toString();
     const target = `/explore${next ? `?${next}` : ''}`;
     window.history.replaceState(null, '', target);
@@ -164,8 +178,14 @@ export function PublicOpportunityBoard() {
   );
   const states = useMemo(() => distinct(opportunities.map((opportunity) => opportunity.state)), [opportunities]);
   const activeFilterCount = [specialty, state, hiringType, remote ? 'remote' : ''].filter(Boolean).length;
+  const hasMore = opportunities.length < total;
+
+  function resetToFirstPage() {
+    setOffset(0);
+  }
 
   function clearFilters() {
+    resetToFirstPage();
     setQuery('');
     setSpecialty('');
     setState('');
@@ -175,11 +195,11 @@ export function PublicOpportunityBoard() {
   }
 
   return (
-    <main className="bg-background text-foreground">
-      <section className="border-b bg-[linear-gradient(135deg,rgba(11,92,72,0.12),transparent_48%),linear-gradient(180deg,var(--background),var(--muted)/35)]">
+    <main className="min-h-screen bg-[#fcfcf9] text-zinc-950">
+      <section className="border-b border-zinc-200 bg-[linear-gradient(135deg,rgba(11,92,72,0.12),transparent_48%),linear-gradient(180deg,#fcfcf9,#f1f5ef)]">
         <div className="mx-auto max-w-7xl px-5 py-14 sm:px-8 sm:py-20">
           <div className="max-w-3xl">
-            <div className="mb-5 flex items-center gap-2 text-sm font-medium text-emerald-800 dark:text-emerald-300">
+            <div className="mb-5 flex items-center gap-2 text-sm font-medium text-emerald-800">
               <Sparkles className="size-4" aria-hidden="true" />
               Clinical opportunities, with the signal left visible
             </div>
@@ -189,7 +209,7 @@ export function PublicOpportunityBoard() {
             </p>
           </div>
 
-          <div className="mt-9 rounded-2xl border bg-card p-3 shadow-sm">
+          <div className="mt-9 rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm">
             <label className="sr-only" htmlFor="opportunity-search">Search clinical roles</label>
             <div className="flex flex-col gap-3 md:flex-row">
               <div className="relative flex-1">
@@ -197,9 +217,9 @@ export function PublicOpportunityBoard() {
                 <Input
                   id="opportunity-search"
                   value={query}
-                  onChange={(event) => setQuery(event.target.value)}
+                  onChange={(event) => { resetToFirstPage(); setQuery(event.target.value); }}
                   placeholder="Specialty, role, employer, or keyword"
-                  className="h-12 pl-11 text-base"
+                  className="h-12 border-zinc-300 bg-white pl-11 text-base text-zinc-950"
                 />
               </div>
               <Button type="button" variant="outline" className="h-12" onClick={() => setShowFilters((visible) => !visible)} aria-expanded={showFilters}>
@@ -207,7 +227,7 @@ export function PublicOpportunityBoard() {
                 Filters{activeFilterCount ? ` · ${activeFilterCount}` : ''}
               </Button>
               <label className="sr-only" htmlFor="opportunity-sort">Sort opportunities</label>
-              <select id="opportunity-sort" value={sort} onChange={(event) => setSort(event.target.value as Sort)} className="h-12 rounded-lg border bg-background px-3 text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring">
+              <select id="opportunity-sort" value={sort} onChange={(event) => { resetToFirstPage(); setSort(event.target.value as Sort); }} className="h-12 rounded-lg border border-zinc-300 bg-white px-3 text-sm font-medium text-zinc-950 outline-none focus-visible:ring-2 focus-visible:ring-emerald-700">
                 <option value="recent">Most recently updated</option>
                 <option value="oldest">Oldest listed</option>
                 <option value="pay_high">Highest stated pay</option>
@@ -218,25 +238,25 @@ export function PublicOpportunityBoard() {
             {showFilters && (
               <div className="mt-3 grid gap-3 border-t pt-3 sm:grid-cols-2 lg:grid-cols-4">
                 <label className="grid gap-1.5 text-sm font-medium">Specialty
-                  <select value={specialty} onChange={(event) => setSpecialty(event.target.value)} className="h-10 rounded-lg border bg-background px-3 font-normal outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                  <select value={specialty} onChange={(event) => { resetToFirstPage(); setSpecialty(event.target.value); }} className="h-10 rounded-lg border border-zinc-300 bg-white px-3 font-normal text-zinc-950 outline-none focus-visible:ring-2 focus-visible:ring-emerald-700">
                     <option value="">All specialties</option>
                     {specialties.map((option) => <option key={option} value={option}>{option}</option>)}
                   </select>
                 </label>
                 <label className="grid gap-1.5 text-sm font-medium">State
-                  <select value={state} onChange={(event) => setState(event.target.value)} className="h-10 rounded-lg border bg-background px-3 font-normal outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                  <select value={state} onChange={(event) => { resetToFirstPage(); setState(event.target.value); }} className="h-10 rounded-lg border border-zinc-300 bg-white px-3 font-normal text-zinc-950 outline-none focus-visible:ring-2 focus-visible:ring-emerald-700">
                     <option value="">All states</option>
                     {states.map((option) => <option key={option} value={option}>{option}</option>)}
                   </select>
                 </label>
                 <label className="grid gap-1.5 text-sm font-medium">Engagement
-                  <select value={hiringType} onChange={(event) => setHiringType(event.target.value)} className="h-10 rounded-lg border bg-background px-3 font-normal outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                  <select value={hiringType} onChange={(event) => { resetToFirstPage(); setHiringType(event.target.value); }} className="h-10 rounded-lg border border-zinc-300 bg-white px-3 font-normal text-zinc-950 outline-none focus-visible:ring-2 focus-visible:ring-emerald-700">
                     <option value="">All engagement types</option>
                     {Object.entries(HIRING_TYPES).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
                   </select>
                 </label>
                 <label className="flex items-end gap-3 rounded-lg border px-3 py-2 text-sm font-medium">
-                  <input type="checkbox" checked={remote} onChange={(event) => setRemote(event.target.checked)} className="size-4 accent-emerald-700" />
+                  <input type="checkbox" checked={remote} onChange={(event) => { resetToFirstPage(); setRemote(event.target.checked); }} className="size-4 accent-emerald-700" />
                   Remote friendly
                 </label>
               </div>
@@ -263,10 +283,10 @@ export function PublicOpportunityBoard() {
           </Card>
         ) : loading ? (
           <div className="grid gap-4" aria-label="Loading opportunities">
-            {[0, 1, 2].map((index) => <div key={index} className="h-52 animate-pulse rounded-2xl border bg-muted/50" />)}
+            {[0, 1, 2].map((index) => <div key={index} className="h-52 animate-pulse rounded-2xl border border-zinc-200 bg-zinc-100/70" />)}
           </div>
         ) : opportunities.length === 0 ? (
-          <Card className="border-dashed">
+          <Card className="border-dashed border-zinc-300 bg-white text-zinc-950">
             <CardContent className="py-12 text-center">
               <Stethoscope className="mx-auto size-8 text-muted-foreground" aria-hidden="true" />
               <h2 className="mt-4 text-xl font-semibold">No roles match this search.</h2>
@@ -281,7 +301,7 @@ export function PublicOpportunityBoard() {
               const expanded = expandedId === opportunity.id;
               const requirements = opportunity.credentialRequirements ?? [];
               return (
-                <Card key={opportunity.id} interactive className="overflow-hidden">
+                <Card key={opportunity.id} interactive className="overflow-hidden border-zinc-200 bg-white text-zinc-950">
                   <CardHeader className="gap-3 sm:flex sm:flex-row sm:items-start sm:justify-between">
                     <div className="min-w-0">
                       <div className="mb-3 flex flex-wrap gap-2">
@@ -332,7 +352,7 @@ export function PublicOpportunityBoard() {
                     <Button type="button" variant="ghost" size="sm" onClick={() => setExpandedId(expanded ? null : opportunity.id)} aria-expanded={expanded}>
                       {expanded ? 'Hide details' : 'View requirements'} <ChevronDown className={`size-4 transition-transform ${expanded ? 'rotate-180' : ''}`} aria-hidden="true" />
                     </Button>
-                    <Button asChild size="sm"><Link href={buildSignInHref(opportunity)}>Sign in to compare and apply <ArrowUpRight className="size-4" aria-hidden="true" /></Link></Button>
+                    <Button asChild size="sm" className="bg-emerald-700 text-white hover:bg-emerald-800"><Link href={buildSignInHref(opportunity)}>Sign in to compare and apply <ArrowUpRight className="size-4" aria-hidden="true" /></Link></Button>
                   </CardFooter>
                 </Card>
               );
@@ -340,7 +360,15 @@ export function PublicOpportunityBoard() {
           </div>
         )}
 
-        <aside className="mt-10 rounded-2xl border bg-muted/35 p-5 text-sm text-muted-foreground">
+        {!loading && !failed && hasMore && (
+          <div className="mt-7 flex justify-center">
+            <Button type="button" variant="outline" className="border-zinc-300 bg-white text-zinc-950 hover:bg-zinc-100" onClick={() => setOffset(opportunities.length)}>
+              Show more opportunities
+            </Button>
+          </div>
+        )}
+
+        <aside className="mt-10 rounded-2xl border border-zinc-200 bg-white p-5 text-sm text-muted-foreground">
           <p className="font-medium text-foreground">A useful match is more than a title and location.</p>
           <p className="mt-1 leading-6">After you sign in, MATCHA can compare a role’s stated requirements against your current evidence. That comparison is personal, explainable, and never shown as a public claim.</p>
         </aside>

@@ -84,7 +84,30 @@ describe('PublicOpportunityBoard', () => {
     currentParams = new URLSearchParams('q=cardio');
     await renderBoard();
     expect(fetch).toHaveBeenCalledWith(
-      '/api/opportunities?q=cardio&limit=50',
+      '/api/opportunities?q=cardio&limit=20',
+      expect.objectContaining({ cache: 'no-store' }),
+    );
+  });
+
+  it('loads another bounded page without replacing the roles already shown', async () => {
+    const laterOpportunity = { ...opportunity, id: 'opportunity-2', title: 'Interventional Cardiologist' };
+    vi.stubGlobal('fetch', vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ opportunities: [opportunity], total: 2 }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ opportunities: [laterOpportunity], total: 2 }), { status: 200 })));
+
+    await renderBoard();
+    const loadMore = [...container.querySelectorAll('button')].find((button) => button.textContent?.includes('Show more opportunities'));
+    expect(loadMore).toBeTruthy();
+
+    await act(async () => {
+      loadMore?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      await vi.runAllTimersAsync();
+    });
+
+    expect(container.textContent).toContain('General Cardiologist');
+    expect(container.textContent).toContain('Interventional Cardiologist');
+    expect(fetch).toHaveBeenLastCalledWith(
+      '/api/opportunities?limit=20&offset=1',
       expect.objectContaining({ cache: 'no-store' }),
     );
   });
