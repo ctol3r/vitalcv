@@ -267,11 +267,38 @@ describe('computeClinicianTrustState authority readiness', () => {
       expect.arrayContaining([
         expect.objectContaining({
           sourceId: 'STATE_BOARD',
-          state: 'unavailable',
-          reason: 'Licensure source is unavailable or gated and requires a manual path',
+          state: 'gated',
+          reason: 'State-board access is required; VitalCV has not checked this license.',
         }),
       ]),
     );
+  });
+
+  it('does not turn a stored state-board placeholder into stale or expired coverage', async () => {
+    const artifacts = baseArtifacts();
+    artifacts.push({
+      source: 'STATE_BOARD',
+      status: 'EXPIRED',
+      verifiedAt: new Date('2026-03-01T12:00:00.000Z'),
+      expiresAt: new Date('2026-03-10T00:00:00.000Z'),
+      psvWindowDeadline: new Date('2026-03-10T00:00:00.000Z'),
+      rawPayload: { source: 'GATED_NURSYS_CONFIG_REQUIRED' },
+    });
+    prismaMock.verificationArtifact.findMany.mockResolvedValue(artifacts);
+
+    const state = await computeClinicianTrustState('1234567890');
+    const coverage = state.sourceCoverage?.find((item) => item.sourceId === 'STATE_BOARD');
+
+    expect(state.licensureStatus).toBe('pending');
+    expect(coverage).toMatchObject({
+      state: 'gated',
+      reason: 'State-board access is required; VitalCV has not checked this license.',
+      checkedAt: null,
+      artifactId: null,
+      sourceUrl: null,
+      rawArtifactRef: null,
+      checksum: null,
+    });
   });
 
   it('does not let unsupported physician states drag readiness into the launch lane', async () => {

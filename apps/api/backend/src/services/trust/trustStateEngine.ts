@@ -38,7 +38,11 @@ import {
   resolvePecosCurrentStatus,
   type PecosEnrollmentStatus,
 } from '../identity/pecosContract';
-import { getSourceFreshnessWindowHours } from '../identity/sourceCatalog';
+import {
+  getSource,
+  getSourceFreshnessWindowHours,
+  isSourceFlagEnabled,
+} from '../identity/sourceCatalog';
 import { isProductionEnabledPhysicianLicensureState } from '../identity/physicianLicensureLaunchLane';
 import {
   boardOrderSeverityBlocksReadiness,
@@ -630,6 +634,30 @@ function artifactLooksMock(
   return Boolean(artifact && payloadLooksMock(artifact.rawPayload));
 }
 
+function stateBoardAccessIsUnavailable(sourceId: string): boolean {
+  if (sourceId !== 'STATE_BOARD') {
+    return false;
+  }
+
+  const source = getSource(sourceId);
+  return Boolean(source && !source.liveAvailable && !isSourceFlagEnabled(source));
+}
+
+function gatedStateBoardCoverage(): TrustSourceCoverage {
+  return {
+    sourceId: 'STATE_BOARD',
+    state: 'gated',
+    reason: 'State-board access is required; VitalCV has not checked this license.',
+    checkedAt: null,
+    artifactId: null,
+    sourceUrl: null,
+    rawArtifactRef: null,
+    checksum: null,
+    parserVersion: null,
+    freshnessWindowHours: getSourceFreshnessWindowHours('STATE_BOARD'),
+  };
+}
+
 function artifactCoverage(
   sourceId: string,
   artifact: IngestedArtifactRecord | undefined,
@@ -643,6 +671,13 @@ function artifactCoverage(
     reason: string;
   },
 ): TrustSourceCoverage {
+  // A stored STATE_BOARD artifact can be a self-reported or gated placeholder.
+  // Its timestamp is not proof that a board was queried. Do not age that row
+  // into a false "stale" check while the catalog says the lane is unavailable.
+  if (stateBoardAccessIsUnavailable(sourceId)) {
+    return gatedStateBoardCoverage();
+  }
+
   return {
     sourceId,
     state: resolveSourceCoverageState({
@@ -1007,6 +1042,18 @@ async function computeClinicianTrustStateFromIngestedArtifacts(
   const licensureGated =
     unresolvedAuthorityLicensure
     && defaultCoverageStateForSource(licensureSourceId) === 'gated';
+  const stateBoardAccessUnavailable = stateBoardAccessIsUnavailable(licensureSourceId);
+
+  if (
+    stateBoardAccessUnavailable
+    && !authoritySignals.licensureVerified
+    && !authoritySignals.expiredLicense
+    && !authoritySignals.disciplinedLicense
+    && !authoritySignals.boardOrderBlocks
+    && !authoritySignals.boardOrderRequiresReview
+  ) {
+    licensureStatus = 'pending';
+  }
 
   const identityCoverage = artifactCoverage('NPPES_API', nppesArtifact, {
     fresh: nppesFresh,
@@ -1037,49 +1084,51 @@ async function computeClinicianTrustStateFromIngestedArtifacts(
               : 'OIG LEIE check clear',
     mock: oigMock,
   });
-  const licensureCoverage: TrustSourceCoverage = {
-    sourceId: licensureSourceId,
-    state: resolveSourceCoverageState({
+  const licensureCoverage: TrustSourceCoverage = stateBoardAccessUnavailable
+    ? gatedStateBoardCoverage()
+    : {
       sourceId: licensureSourceId,
-      checked:
-        Boolean(licenseArtifact)
-        || authoritySignals.licensureVerified
-        || authoritySignals.expiredLicense
-        || authoritySignals.disciplinedLicense
-        || authoritySignals.boardOrderBlocks
-        || authoritySignals.boardOrderRequiresReview,
-      fresh: licenseArtifact ? licenseFresh : true,
-      unavailable: unresolvedAuthorityLicensure && !licensureGated,
-      gated: licensureGated,
-      humanRequired: authoritySignals.boardOrderRequiresReview,
-      mock: licenseMock,
-    }),
-    reason:
-      licenseMock
-        ? 'Licensure evidence is mock and excluded from decision-grade trust'
-        : authoritySignals.disciplinedLicense
-        ? 'Licensure source returned a disciplinary action'
-        : authoritySignals.boardOrderBlocks
-          ? 'Licensure source returned a board order that blocks readiness'
-          : authoritySignals.boardOrderRequiresReview
-            ? 'Licensure source returned a board order that requires review'
-            : unresolvedAuthorityLicensure
-              ? 'Licensure source is unavailable or gated and requires a manual path'
-              : !licenseArtifact && !authoritySignals.licensureVerified
-                ? 'Licensure source not yet checked'
-                : licenseArtifact && !licenseFresh
-                  ? 'Licensure evidence is stale and must be refreshed'
-                  : 'Licensure checked',
-    checkedAt:
-      licenseArtifact?.verifiedAt?.toISOString()
-      ?? licensureAuthorityCredential?.verifiedAt?.toISOString()
-      ?? licensureAuthorityCredential?.observedAt?.toISOString()
-      ?? null,
-    artifactId: licenseArtifact?.id ?? null,
-    sourceUrl: licenseArtifact?.sourceUrl ?? null,
-    rawArtifactRef: licenseArtifact?.id ?? null,
-    checksum: licenseArtifact?.checksum ?? null,
-  };
+      state: resolveSourceCoverageState({
+        sourceId: licensureSourceId,
+        checked:
+          Boolean(licenseArtifact)
+          || authoritySignals.licensureVerified
+          || authoritySignals.expiredLicense
+          || authoritySignals.disciplinedLicense
+          || authoritySignals.boardOrderBlocks
+          || authoritySignals.boardOrderRequiresReview,
+        fresh: licenseArtifact ? licenseFresh : true,
+        unavailable: unresolvedAuthorityLicensure && !licensureGated,
+        gated: licensureGated,
+        humanRequired: authoritySignals.boardOrderRequiresReview,
+        mock: licenseMock,
+      }),
+      reason:
+        licenseMock
+          ? 'Licensure evidence is mock and excluded from decision-grade trust'
+          : authoritySignals.disciplinedLicense
+          ? 'Licensure source returned a disciplinary action'
+          : authoritySignals.boardOrderBlocks
+            ? 'Licensure source returned a board order that blocks readiness'
+            : authoritySignals.boardOrderRequiresReview
+              ? 'Licensure source returned a board order that requires review'
+              : unresolvedAuthorityLicensure
+                ? 'Licensure source is unavailable or gated and requires a manual path'
+                : !licenseArtifact && !authoritySignals.licensureVerified
+                  ? 'Licensure source not yet checked'
+                  : licenseArtifact && !licenseFresh
+                    ? 'Licensure evidence is stale and must be refreshed'
+                    : 'Licensure checked',
+      checkedAt:
+        licenseArtifact?.verifiedAt?.toISOString()
+        ?? licensureAuthorityCredential?.verifiedAt?.toISOString()
+        ?? licensureAuthorityCredential?.observedAt?.toISOString()
+        ?? null,
+      artifactId: licenseArtifact?.id ?? null,
+      sourceUrl: licenseArtifact?.sourceUrl ?? null,
+      rawArtifactRef: licenseArtifact?.id ?? null,
+      checksum: licenseArtifact?.checksum ?? null,
+    };
   const enrollmentCoverage = artifactCoverage('PECOS_PUBLIC', pecosArtifact, {
     fresh: pecosFresh,
     reason:
@@ -1453,6 +1502,13 @@ export async function computeClinicianTrustState(npi: string): Promise<Clinician
     ) {
       licensureStatus = 'verified';
     }
+  }
+
+  if (stateBoardAccessIsUnavailable('STATE_BOARD')) {
+    // A legacy STATE_BOARD artifact is not a board response while the source
+    // catalog marks the lane unavailable. Keep the clinician's record, but do
+    // not label it as an expired or verified board check.
+    licensureStatus = 'pending';
   }
 
   const pecosStatus: PecosStatus = resolvePecosCurrentStatus({
