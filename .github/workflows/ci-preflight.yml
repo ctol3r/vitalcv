@@ -113,6 +113,21 @@ jobs:
           cd apps/api/backend
           npx prisma migrate deploy
 
+      # The QA sweep exercises the fully compiled backend against the same
+      # ephemeral Postgres used for migration and deploy smoke checks. It is a
+      # required CI action, not a build side effect: builds must remain safe
+      # for Railway and local environments that intentionally do not provide a
+      # disposable database.
+      - name: Run backend QA sweep
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/vitalcv_preflight
+          NODE_ENV: test
+          DISABLE_BACKGROUND_JOBS: '1'
+          CORS_ORIGIN: https://ci-test.example.com
+          ISSUER_KEY_ENCRYPTION_SECRET: ci-test-issuer-key-encryption-secret-000000000000
+          QA_FAIL_ON_CRITICAL: '1'
+        run: pnpm --filter @vitalcv/api run qa:ci
+
       - name: Smoke tests
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/vitalcv_preflight

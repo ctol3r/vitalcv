@@ -10,6 +10,7 @@
     "start": "npm --prefix backend run start",
     "db:migrate:deploy": "pnpm exec prisma migrate deploy --schema backend/prisma/schema.prisma",
     "graph:bench": "npm --prefix backend run graph:bench",
+    "qa:ci": "npm --prefix backend run qa:ci",
     "seed": "npm --prefix backend run seed",
     "watchtower": "pnpm exec ts-node backend/src/tools/watchtower.ts",
     "test": "npm --prefix backend test",
