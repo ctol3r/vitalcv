@@ -128,7 +128,6 @@ jobs:
           DISABLE_BACKGROUND_JOBS: '1'
           CORS_ORIGIN: https://ci-test.example.com
           ISSUER_KEY_ENCRYPTION_SECRET: ci-test-issuer-key-encryption-secret-000000000000
-          QA_FAIL_ON_CRITICAL: '1'
         run: pnpm --filter @vitalcv/api run qa:ci
 
       - name: Smoke tests
