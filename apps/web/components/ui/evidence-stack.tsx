@@ -30,12 +30,12 @@ export const EvidenceStack = React.forwardRef<HTMLDivElement, EvidenceStackProps
     // assuming they come pre-sorted from the backend mostly, but we just render.
 
     return (
-      <div 
-        ref={ref} 
-        className={cn('flex flex-col border border-white/5 rounded-2xl bg-black/20 overflow-hidden', className)} 
+      <div
+        ref={ref}
+        className={cn('flex flex-col border border-[var(--vt-border)] rounded-2xl bg-[var(--vt-surface)] overflow-hidden', className)}
         {...props}
       >
-        <div className="px-4 py-3 border-b border-white/5 bg-white/[0.01]">
+        <div className="px-4 py-3 border-b border-[var(--vt-border)] bg-[var(--vt-surface-subtle)]">
           <h4 className="text-xs uppercase tracking-widest text-foreground/70 font-semibold">Evidence Log</h4>
         </div>
         <ScrollArea 
@@ -57,7 +57,7 @@ export const EvidenceStack = React.forwardRef<HTMLDivElement, EvidenceStackProps
                     timestamp={item.timestamp}
                     note={item.note}
                     explanation={item.explanation}
-                    className="shadow-md bg-black/60 border-border"
+                    className="shadow-md bg-[var(--vt-surface-subtle)] border-border"
                   />
                 </div>
               ))}

@@ -72,7 +72,7 @@ export function HoverCard({
               'absolute z-50 min-w-[200px] max-w-[340px]',
               sideClass,
               alignClass,
-              'rounded-xl border border-zinc-800 bg-zinc-900/95 backdrop-blur-sm shadow-xl p-3',
+              'rounded-xl border border-[var(--vt-border)] bg-[var(--vt-surface)]/95 backdrop-blur-sm shadow-xl shadow-stone-950/10 p-3',
               className
             )}
             onMouseEnter={handleEnter}

@@ -38,7 +38,7 @@ function GlassModal({ open, onClose, children, className }: GlassModalProps) {
       aria-modal="true"
     >
       {/* Backdrop blur overlay */}
-      <div className="absolute inset-0 bg-black/20 backdrop-blur-sm animate-glass-fade-in" />
+      <div className="absolute inset-0 bg-[rgba(240,238,233,0.82)] backdrop-blur-sm animate-glass-fade-in" />
 
       {/* Modal content */}
       <div

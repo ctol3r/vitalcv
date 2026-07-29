@@ -134,7 +134,7 @@ export const ReceiptViewer = React.forwardRef<HTMLDivElement, ReceiptViewerProps
         {...props}
       >
         {/* ── MASTHEAD ─────────────────────────────────────────────────────── */}
-        <div className="bg-gray-900 text-white px-4 py-3 vcv-receipt-section border-t border-gray-200">
+        <div className="bg-[var(--vt-surface-subtle)] text-[var(--vt-text-primary)] px-4 py-3 vcv-receipt-section border-t border-[var(--vt-border)]">
           <div className="flex flex-wrap items-baseline justify-between gap-3">
             <div className="flex flex-col gap-0.5">
               <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-gray-400">

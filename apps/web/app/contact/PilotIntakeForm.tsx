@@ -53,8 +53,8 @@ const FORM_CSS = `
 .wv-form .err-text { font-family: var(--font-mono, ui-monospace, monospace); font-size: 11px; color: #7a1414; margin: 0; }
 .wv-form .submit { width: 100%; min-height: 46px; display: inline-flex; align-items: center; justify-content: center;
   font-family: var(--font-body, ui-sans-serif, system-ui, sans-serif); font-size: 13.5px; font-weight: 500;
-  color: #f4f2ec; background: #141414; border: 1px solid transparent; border-radius: 2px; cursor: pointer; }
-.wv-form .submit:hover { background: #1f2c22; }
+  color: #ffffff; background: #047857; border: 1px solid transparent; border-radius: 2px; cursor: pointer; }
+.wv-form .submit:hover { background: #059669; }
 .wv-form .submit:disabled { background: #dddbd3; color: #6b6860; cursor: not-allowed; }
 .wv-form .neterr { margin: 0; padding: 10px 12px; border: 1px dashed #b98a1e; background: #faf3e2;
   border-radius: 2px; font-size: 12.5px; color: #7d5a1e; }

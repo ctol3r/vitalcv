@@ -1,0 +1,35 @@
+/* Public replay receipts use the same paper field as the rest of VitalCV.
+   The evidence-state hues are intentionally pale surfaces with dark text so
+   the page never switches into a second, dark visual system. */
+.replay-inspection {
+  background: var(--vt-bg);
+  color: var(--vt-text-primary);
+}
+
+.replay-inspection [class*='bg-gray-950'] { background-color: var(--vt-bg) !important; }
+.replay-inspection [class*='bg-gray-900'] { background-color: var(--vt-surface) !important; }
+.replay-inspection [class*='bg-gray-800'] { background-color: var(--vt-surface-subtle) !important; }
+.replay-inspection [class*='bg-green-900'] { background-color: #e8f4ec !important; }
+.replay-inspection [class*='bg-amber-900'] { background-color: #faf1df !important; }
+.replay-inspection [class*='bg-blue-900'] { background-color: #eaf1fb !important; }
+.replay-inspection [class*='bg-red-900'] { background-color: #fbeaea !important; }
+
+.replay-inspection [class*='border-gray-8'],
+.replay-inspection [class*='border-gray-7'],
+.replay-inspection [class*='border-gray-6'] { border-color: var(--vt-border) !important; }
+.replay-inspection [class*='divide-gray-8'] { --tw-divide-opacity: 1; border-color: var(--vt-border) !important; }
+
+.replay-inspection [class*='text-white'],
+.replay-inspection [class*='text-gray-2'],
+.replay-inspection [class*='text-gray-3'] { color: var(--vt-text-primary) !important; }
+.replay-inspection [class*='text-gray-4'],
+.replay-inspection [class*='text-gray-5'],
+.replay-inspection [class*='text-gray-6'] { color: var(--vt-text-secondary) !important; }
+.replay-inspection [class*='text-green-3'],
+.replay-inspection [class*='text-green-4'] { color: #065f46 !important; }
+.replay-inspection [class*='text-amber-2'],
+.replay-inspection [class*='text-amber-3'] { color: #92400e !important; }
+.replay-inspection [class*='text-blue-3'] { color: #1e3a5f !important; }
+.replay-inspection [class*='text-red-3'] { color: #b91c1c !important; }
+
+.replay-inspection tr:hover { background-color: var(--vt-surface-subtle) !important; }

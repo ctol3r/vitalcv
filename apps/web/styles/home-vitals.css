@@ -41,38 +41,20 @@
   );
   --vh-glow: 0 0 22px color-mix(in oklab, var(--vh-teal) 40%, transparent);
 }
-.dark .vh-root {
-  --vh-emerald: #34e6b0;
-  --vh-teal: #23d6b0;
-  --vh-cyan: #5fe6cf;
-  --vh-mint: #7af0cf;
-  --vh-amber: #fbbf24;
-  --vh-coral: #ff9e7a;
-  --vt-accent-emerald: var(--vh-emerald);
-}
-
-/* Reusable scope for the clinical-monitor components (meter, EKG,
-   glow) on ANY dark surface outside the homepage — e.g. the signed-in
-   /holder readiness card. Self-contained: bright signal palette +
-   dark --vt tokens so .vh-bar / .vh-monitor render correctly without
-   a .vh-root ancestor. Animations still require .vh-js; without it the
-   finished (filled / static-trace) state shows. */
+/* Reusable scope for the clinical-monitor components (meter, EKG and glow)
+   on signed-in surfaces. It stays on the same paper palette as the rest of
+   the product, so a readiness card never introduces a dark island. */
 .vh-scope {
-  --vh-emerald: #34d399;
-  --vh-teal: #2dd4bf;
-  --vh-cyan: #38bdf8;
-  --vh-mint: #6ee7b7;
-  --vh-amber: #fbbf24;
+  --vh-emerald: #047857;
+  --vh-teal: #0f766e;
+  --vh-cyan: #0f766e;
+  --vh-mint: #059669;
+  --vh-amber: #b45309;
   --vh-pulse: var(--vh-emerald);
   --vh-pulse-soft: color-mix(in oklab, var(--vh-mint) 42%, transparent);
-  --vh-ink: #ecfdf7;
+  --vh-ink: var(--vt-text-primary);
   --vh-signal: linear-gradient(100deg, var(--vh-emerald), var(--vh-teal) 52%, var(--vh-cyan));
   --vh-glow: 0 0 22px color-mix(in oklab, var(--vh-teal) 40%, transparent);
-  --vt-surface-subtle: rgba(255, 255, 255, 0.10);
-  --vt-bg: rgba(4, 20, 17, 0.5);
-  --vt-border-subtle: rgba(150, 240, 216, 0.14);
-  --vt-text-primary: #ecfdf7;
-  --vt-text-muted: rgba(236, 253, 247, 0.55);
   --vt-accent-emerald: var(--vh-mint);
 }
 
@@ -804,37 +786,6 @@
   position: relative;
   z-index: 3;
 }
-
-/* Token override: everything inside the device reads light-on-dark.
-   Child components (Card, Input, pills, wallet) resolve --vt-* to
-   these, so they adapt with no per-component edits. */
-.vh-dark {
-  --vt-bg: rgba(4, 20, 17, 0.55);
-  --vt-surface: rgba(216, 255, 246, 0.055);
-  --vt-surface-subtle: rgba(216, 255, 246, 0.035);
-  --vt-surface-dim: rgba(4, 20, 17, 0.5);
-  --vt-border: rgba(150, 240, 216, 0.22);
-  --vt-border-subtle: rgba(150, 240, 216, 0.12);
-  --vt-text-primary: #ecfdf7;
-  --vt-text-secondary: rgba(236, 253, 247, 0.82);
-  --vt-text-muted: rgba(236, 253, 247, 0.55);
-  --vt-focus-ring: var(--vh-mint);
-  --vt-accent-emerald: var(--vh-mint);
-  color: var(--vt-text-primary);
-}
-/* On the dark stage the hero EKG hairline is not needed (the device
-   header carries the trace) — hide it to avoid a double heartbeat. */
-.vh-dark .vh-ekg-line { display: none; }
-/* Wallet on the dark stage: a lit device, brighter edge + deeper aura. */
-.vh-dark .vh-wallet {
-  background: rgba(214, 255, 245, 0.05) !important;
-  border-color: rgba(150, 240, 216, 0.24) !important;
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.12) inset,
-    0 40px 90px -24px rgba(0, 0, 0, 0.6),
-    0 0 60px -12px color-mix(in oklab, var(--vh-teal) 40%, transparent);
-}
-.vh-dark .vh-wallet-halo { opacity: 0.9; }
 
 /* Live instrument readout in the bezel — signal bars + a cycling
    "READING <source>…" ticker + a LIVE lamp. Honest: it names the real

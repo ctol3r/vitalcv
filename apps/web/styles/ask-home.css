@@ -153,8 +153,8 @@
   margin-top: var(--ask-gap-2);
   border: 0;
   border-radius: 2px;
-  background: var(--ask-ink);
-  color: var(--vt-cloud-dancer);
+  background: var(--ask-accent);
+  color: white;
   font-family: var(--font-body, system-ui, sans-serif);
   font-size: 0.9rem;
   font-weight: 600;
@@ -163,10 +163,11 @@
   transition: background 160ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 .ask-go:hover:not(:disabled) {
-  background: var(--ask-accent);
+  background: color-mix(in oklab, var(--ask-accent) 82%, white);
 }
 .ask-go:disabled {
-  background: color-mix(in oklab, var(--ask-ink) 22%, transparent);
+  background: color-mix(in oklab, var(--ask-accent) 24%, var(--vt-surface));
+  color: var(--ask-faint);
   cursor: not-allowed;
 }
 .ask-go:focus-visible {

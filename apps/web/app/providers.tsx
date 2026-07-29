@@ -2,7 +2,6 @@
 
 import { RoleProvider } from '@/components/auth/RoleContext';
 import { captureUtmParams } from '@/lib/analytics/funnel';
-import { ThemeProvider } from 'next-themes';
 import type React from 'react';
 import posthog from 'posthog-js';
 import { PostHogProvider } from 'posthog-js/react';
@@ -39,18 +38,7 @@ export default function Providers({
   return (
     <PostHogProvider client={posthog}>
       <RoleProvider initialUserId={initialUserId} initialClerkRole={initialClerkRole}>
-        {/* VitalCV is light-only (Chris, 2026-07-15). forcedTheme pins every
-            surface to light and makes the toggle a no-op, so no `.dark` variant
-            ever applies. Dark CSS is now dead and can be pruned in a follow-up. */}
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="light"
-          forcedTheme="light"
-          enableSystem={false}
-          themes={['light']}
-        >
-          {children}
-        </ThemeProvider>
+        {children}
       </RoleProvider>
     </PostHogProvider>
   );

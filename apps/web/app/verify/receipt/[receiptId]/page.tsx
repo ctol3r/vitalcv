@@ -13,6 +13,7 @@ import type { ReplayInspection, DegradationOwnership, ContinuityGap } from '@/li
 import { TrustTierBadge } from '@/components/proof/TrustTierBadge';
 import type { TrustTier } from '@/components/proof/TrustTierBadge';
 import { IssuerContinuityPanel } from '@/components/verifier/IssuerContinuityPanel';
+import '@/styles/replay-inspection.css';
 
 // ─── Metadata ─────────────────────────────────────────────────────────────────
 
@@ -41,7 +42,7 @@ export default async function ReplayInspectionPage({ params }: PageProps) {
   if (!inspection) notFound();
 
   return (
-    <main className="min-h-screen bg-gray-950 text-white">
+    <main className="replay-inspection min-h-screen">
       {/* LINEAGE HEADER */}
       <LineageHeader inspection={inspection} />
 

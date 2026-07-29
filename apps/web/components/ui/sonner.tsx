@@ -1,13 +1,11 @@
 'use client'
-
-import { useTheme } from 'next-themes'
 import { Toaster as Sonner, type ToasterProps } from 'sonner'
 
 const TOAST_OPTIONS: ToasterProps['toastOptions'] = {
   classNames: {
     toast:
-      'group border border-border bg-[#0f1522] text-foreground shadow-[0_20px_60px_rgba(8,14,26,0.45)]',
-    title: 'text-sm font-medium text-white',
+      'group border border-[var(--vt-border)] bg-[var(--vt-surface)] text-[var(--vt-text-primary)] shadow-[0_20px_60px_rgba(26,24,21,0.16)]',
+    title: 'text-sm font-medium text-[var(--vt-text-primary)]',
     description: 'text-xs text-foreground',
     actionButton:
       'bg-[var(--vt-success)] text-foreground hover:bg-[var(--vt-success)]/90',
@@ -19,11 +17,9 @@ const TOAST_OPTIONS: ToasterProps['toastOptions'] = {
 }
 
 function Toaster(props: ToasterProps) {
-  const { resolvedTheme } = useTheme()
-
   return (
     <Sonner
-      theme={resolvedTheme === 'light' ? 'light' : 'dark'}
+      theme="light"
       toastOptions={TOAST_OPTIONS}
       {...props}
     />

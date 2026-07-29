@@ -114,50 +114,6 @@
   --vt-text-muted: oklch(50% 0.008 265);
 }
 
-/**
- * ── Dark mode ─────────────────────────────────────────────────────────────────
- * A dark Calm Wave: warm charcoal "paper", warm off-white "ink", indigo accent
- * brightened for contrast. Only the BASE tokens are redefined here — the --vt-*
- * bridge above resolves through them, so every `.mz` surface (homepage included)
- * flips together with no per-component changes. Activated by next-themes adding
- * `.dark` on <html>.
- */
-.dark .mz {
-  /* Warm charcoal paper */
-  --paper: #15140f;
-  --paper-2: #1d1b15;
-  --card: #1b1915;
-
-  /* Ink ramp inverted: 950/900 = brightest (primary text on dark),
-     low numbers sit nearest the paper (subtle borders / raised fills). */
-  --ink-950: #faf9f4;
-  --ink-900: #f1efe8;
-  --ink-800: #e2dfd6;
-  --ink-700: #c9c5bb;
-  --ink-600: #a6a297;
-  --ink-500: #89857b;
-  --ink-400: #6e6a61;
-  --ink-300: #514e46;
-  --ink-200: #3a3830;
-  --ink-100: #2a2822;
-  --ink-50: #201e19;
-  --rule: #322f29;
-  --rule-soft: #262420;
-
-  /* Keep muted TEXT mode-appropriate on dark paper (the light .mz literal above
-     would otherwise leak in). --ink-500 is a legible warm grey on charcoal. */
-  --vt-text-muted: var(--ink-500);
-
-  /* Truth states — same hues, lifted foregrounds on deep backgrounds. */
-  --ok: #6cc79a;        --ok-bg: #10241a;      --ok-rule: #245c3d;
-  --watch: #dab662;     --watch-bg: #241d0f;   --watch-rule: #6b5620;
-  --unknown: #c7c3b9;   --unknown-bg: #201e1a; --unknown-rule: #423f38;
-  --p0: #f0a2a2;        --p0-bg: #2a1414;      --p0-rule: #6b2222;
-
-  /* Brighten the italic-display accent so it reads on charcoal. */
-  --accent: #8f88f6;
-}
-
 /* ── Typography ───────────────────────────────────────────────────────────── */
 
 .mz-display {

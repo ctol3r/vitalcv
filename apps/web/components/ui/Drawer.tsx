@@ -44,7 +44,7 @@ export function Drawer({ open, onClose, title, width = 'md', children, actions, 
           {overlay ? (
             <motion.div
               aria-hidden
-              className="fixed inset-0 z-40 bg-slate-950/60 backdrop-blur-sm"
+              className="fixed inset-0 z-40 bg-[rgba(240,238,233,0.82)] backdrop-blur-sm"
               initial="initial"
               animate="enter"
               exit="exit"
@@ -59,7 +59,7 @@ export function Drawer({ open, onClose, title, width = 'md', children, actions, 
             aria-label={typeof title === 'string' ? title : 'Drawer'}
             ref={ref}
             className={cn(
-              'fixed right-0 top-0 z-50 flex h-full flex-col border-l shadow-[0_0_60px_rgba(0,0,0,0.8)]',
+              'fixed right-0 top-0 z-50 flex h-full flex-col border-l shadow-[0_0_60px_rgba(26,24,21,0.16)]',
               WIDTHS[width],
             )}
             initial="initial"

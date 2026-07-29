@@ -53,7 +53,7 @@ export const RelationshipExplainer = React.forwardRef<HTMLDivElement, Relationsh
 
         {/* Connector */}
         <div className={cn("flex flex-col items-center gap-1 min-w-[100px]", confidenceOpacities[confidence])}>
-          <span className="text-[10px] uppercase tracking-wider text-foreground/70 text-center px-2 bg-black z-10 font-bold">
+          <span className="text-[10px] uppercase tracking-wider text-foreground/70 text-center px-2 bg-[var(--vt-surface)] z-10 font-bold">
             {relationLabel}
           </span>
           <div className="w-full flex items-center justify-center -mt-2">

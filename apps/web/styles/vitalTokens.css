@@ -29,19 +29,19 @@
   --vt-surface-overlay:       oklch(1 0 0 / 0.8);
   --vt-surface-brand:         oklch(0.97 0.03 255);
 
-  --vt-surface-ops-base:      oklch(0.08 0.005 255);
-  --vt-surface-ops-raised:    oklch(0.12 0.008 255);
+  --vt-surface-ops-base:      var(--vt-surface-base);
+  --vt-surface-ops-raised:    var(--vt-surface-raised);
 
   /* ── Operator Gradient Stops (Wave 177) ────────────────────── */
   /* Replaces hardcoded from-slate-950 via-slate-900 to-slate-950 */
-  --vt-ops-from:              oklch(0.05 0.008 255);  /* slate-950 equiv */
-  --vt-ops-via:               oklch(0.08 0.006 255);  /* slate-900 equiv */
-  --vt-ops-to:                oklch(0.05 0.008 255);  /* slate-950 equiv */
+  --vt-ops-from:              var(--vt-surface-base);
+  --vt-ops-via:               var(--vt-surface-sunken);
+  --vt-ops-to:                var(--vt-surface-base);
 
   /* Passport gradient stops (gray-950 → gray-900 → slate-900) */
-  --vt-passport-from:         oklch(0.045 0.004 255);
-  --vt-passport-via:          oklch(0.07 0.005 255);
-  --vt-passport-to:           oklch(0.075 0.008 255);
+  --vt-passport-from:         var(--vt-surface-base);
+  --vt-passport-via:          var(--vt-surface-sunken);
+  --vt-passport-to:           var(--vt-surface-raised);
 
   /* ── Glass Surface Tokens (Wave 177) ───────────────────────── */
   /* Replaces bg-white/5 ring-1 ring-white/10 patterns */
@@ -85,16 +85,16 @@
   --vt-shadow-glow:           0 0 30px oklch(0.55 0.20 255 / 0.3);
 
   /* ── Control Feel — Semantic Tokens (3-color discipline) ──── */
-  --control-surface:          oklch(0.06 0.005 255);   /* near-black */
-  --control-surface-raised:   oklch(0.09 0.006 255);   /* panels */
-  --control-text:             oklch(0.92 0 0);          /* primary text: near-white */
-  --control-text-muted:       oklch(0.50 0 0);          /* secondary text */
-  --control-text-subtle:      oklch(0.35 0 0);          /* tertiary / labels */
+  --control-surface:          var(--vt-surface-base);
+  --control-surface-raised:   var(--vt-surface-raised);
+  --control-text:             var(--vt-color-neutral-900);
+  --control-text-muted:       var(--vt-color-neutral-600);
+  --control-text-subtle:      var(--vt-color-neutral-500);
   --control-accent:           oklch(0.55 0.20 255);     /* trust blue — the one accent */
   --control-accent-muted:     oklch(0.40 0.12 255);     /* accent dimmed */
   --control-success:          oklch(0.68 0.18 155);     /* green — sparingly */
-  --control-border:           oklch(0.20 0.008 255);    /* default border */
-  --control-border-hover:     oklch(0.30 0.010 255);    /* hover border */
+  --control-border:           var(--vt-color-neutral-200);
+  --control-border-hover:     var(--vt-color-neutral-300);
 
   /* ── Metric Display Typography ───────────────────────────── */
   --type-metric-xl-size:      clamp(2.5rem, 4vw, 4rem);
@@ -114,25 +114,4 @@
   --type-metric-sm-weight:    600;
   --type-metric-sm-tracking:  -0.02em;
   --type-metric-sm-font:      var(--font-display);
-}
-
-/* ── Dark Mode Support (Prepared for later) ──────────────────── */
-.dark {
-  --vt-color-brand-primary:   oklch(0.66 0.18 255);
-  --vt-color-neutral-100:     oklch(0.210 0 0);
-  --vt-color-neutral-200:     oklch(0.274 0 0);
-  --vt-color-neutral-300:     oklch(0.320 0 0);
-  --vt-color-neutral-400:     oklch(0.400 0 0);
-  --vt-color-neutral-500:     oklch(0.550 0 0);
-  --vt-color-neutral-600:     oklch(0.700 0 0);
-  --vt-color-neutral-700:     oklch(0.870 0 0);
-  --vt-color-neutral-800:     oklch(0.922 0 0);
-  --vt-color-neutral-900:     oklch(0.965 0 0);
-
-  --vt-surface-base:          oklch(0.12 0.008 255);
-  --vt-surface-sunken:        oklch(0.08 0.005 255);
-  --vt-surface-raised:        oklch(0.18 0.008 255);
-
-  --vt-outline-thin:          1px solid var(--vt-color-neutral-800);
-  --vt-outline-default:       1px solid var(--vt-color-neutral-200);
 }

@@ -115,8 +115,8 @@ export default async function PilotProofPage({
   return (
     <div className="min-h-screen bg-white">
       {/* Top bar */}
-      <div className="bg-slate-900 text-slate-400 text-xs px-6 py-2 flex items-center justify-between">
-        <Link href="/" className="text-slate-400 hover:text-white transition-colors">← VitalCV</Link>
+      <div className="border-b border-[var(--vt-border)] bg-[var(--vt-surface)] text-xs px-6 py-2 flex items-center justify-between">
+        <Link href="/" className="text-[var(--vt-text-secondary)] hover:text-[var(--vt-text-primary)] transition-colors">← VitalCV</Link>
         <div className="flex items-center gap-3">
             <span className={`font-bold uppercase tracking-widest ${
               snapshot.validationStatus === 'valid' ? 'text-green-400' :
@@ -125,7 +125,7 @@ export default async function PilotProofPage({
               {snapshot.validationStatus === 'valid' ? '✔ Integrity Valid' :
                snapshot.validationStatus === 'warning' ? '⚠ Warnings' : '✗ Invalid'}
             </span>
-            <span className="font-mono text-slate-500">v{snapshot.version} · {snapshot.eventChainHash}</span>
+            <span className="font-mono text-[var(--vt-text-muted)]">v{snapshot.version} · {snapshot.eventChainHash}</span>
           </div>
       </div>
 
@@ -149,32 +149,32 @@ export default async function PilotProofPage({
         </section>
 
         {/* Key Metric */}
-        <section className="bg-slate-900 text-white rounded-2xl p-8">
+        <section className="border border-emerald-200 bg-emerald-50 text-[var(--vt-text-primary)] rounded-2xl p-8">
           <div className="flex items-center justify-between mb-4">
-            <p className="text-xs font-bold uppercase tracking-widest text-slate-400">Key Metric</p>
+            <p className="text-xs font-bold uppercase tracking-widest text-[var(--vt-text-muted)]">Key Metric</p>
             <div className="flex items-center gap-2">
-              <span className="text-[10px] font-bold uppercase tracking-widest bg-green-900 text-green-400 px-2 py-0.5 rounded">
+              <span className="text-[10px] font-bold uppercase tracking-widest bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded">
                 [{ttaLabel}]
               </span>
-              <span className="text-[10px] text-slate-500">
+              <span className="text-[10px] text-[var(--vt-text-muted)]">
                 Based on {chainEvents.length} real events
               </span>
             </div>
           </div>
           <div className="flex items-end gap-3 mb-2">
-            <span className="text-6xl font-black text-green-400">{readinessToActionMin}</span>
-            <span className="text-xl text-slate-300 mb-2">minutes</span>
+            <span className="text-6xl font-black text-emerald-700">{readinessToActionMin}</span>
+            <span className="text-xl text-[var(--vt-text-secondary)] mb-2">minutes</span>
           </div>
-          <p className="text-slate-300 text-sm">From readiness view to employer head-start action</p>
+          <p className="text-[var(--vt-text-secondary)] text-sm">From readiness view to employer head-start action</p>
           {anomalyReport.hasAnomalies && (
-            <div className="mt-3 bg-yellow-900/30 border border-yellow-600/30 rounded-lg p-3">
-              <p className="text-xs font-bold text-yellow-400 mb-1">⚠ Anomalies detected</p>
+            <div className="mt-3 bg-amber-50 border border-amber-300 rounded-lg p-3">
+              <p className="text-xs font-bold text-amber-800 mb-1">⚠ Anomalies detected</p>
               {anomalyReport.anomalies.map((a, i) => (
-                <p key={i} className="text-xs text-yellow-300">{a.description}</p>
+                <p key={i} className="text-xs text-amber-700">{a.description}</p>
               ))}
             </div>
           )}
-          <p className="text-slate-500 text-xs mt-3">
+          <p className="text-[var(--vt-text-muted)] text-xs mt-3">
             Compared to self-reported 14-day manual baseline (identity step only) — estimated, not controlled
           </p>
         </section>
@@ -186,7 +186,7 @@ export default async function PilotProofPage({
             {e.isvEvents.map((ev, i) => (
               <div key={ev.event} className="flex items-start gap-4">
                 <div className="flex flex-col items-center">
-                  <div className="w-3 h-3 rounded-full bg-slate-900 flex-shrink-0 mt-0.5" />
+                  <div className="w-3 h-3 rounded-full bg-emerald-700 flex-shrink-0 mt-0.5" />
                   {i < e.isvEvents.length - 1 && (
                     <div className="w-px flex-1 bg-slate-200 my-1 min-h-[24px]" />
                   )}
@@ -302,7 +302,7 @@ export default async function PilotProofPage({
         <section className="space-y-3 pt-2">
           <Link
             href="/pilot"
-            className="block w-full text-center bg-slate-900 hover:bg-slate-700 text-white font-bold py-4 rounded-xl transition-colors text-sm uppercase tracking-wider"
+            className="block w-full text-center bg-emerald-700 hover:bg-emerald-600 text-white font-bold py-4 rounded-xl transition-colors text-sm uppercase tracking-wider"
           >
             Run this for your team
           </Link>
