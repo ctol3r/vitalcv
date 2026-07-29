@@ -47,6 +47,7 @@ const EMPLOYER = 'user_employer';
 const OUTSIDER = 'user_outsider';
 const OWNING_ORG = 'org_owning';
 const OTHER_ORG = 'org_other';
+const originalRbacMode = process.env.VERIFIER_RBAC_MODE;
 
 const findUnique = (prisma as unknown as { application: { findUnique: jest.Mock } }).application.findUnique;
 const userFindUnique = (prisma as unknown as { user: { findUnique: jest.Mock } }).user.findUnique;
@@ -89,9 +90,21 @@ function mockCallerOrg(organizationId: string | null) {
 }
 
 beforeEach(() => {
+  // This suite exercises the verified-identity and membership boundaries. The
+  // role guard has its own mode-specific coverage, so keep this suite stable
+  // when a developer shell or CI job enables RBAC enforcement globally.
+  process.env.VERIFIER_RBAC_MODE = 'off';
   jest.clearAllMocks();
   mockApplication();
   mockCallerOrg(OWNING_ORG);
+});
+
+afterAll(() => {
+  if (originalRbacMode === undefined) {
+    delete process.env.VERIFIER_RBAC_MODE;
+  } else {
+    process.env.VERIFIER_RBAC_MODE = originalRbacMode;
+  }
 });
 
 // ── The regression this file exists for (#951) ───────────────────────────────
