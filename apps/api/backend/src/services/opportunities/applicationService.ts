@@ -40,6 +40,7 @@ import {
   type ApplicationPacketContent,
   type SealedApplicationPacket,
 } from './applicationPacketService';
+import { resolveDisclosureSections } from './applicationDisclosure';
 
 const prisma = new PrismaClient();
 const NPI_RE = /^\d{10}$/;
@@ -90,18 +91,11 @@ export interface ApplyInput {
   clerkUserId: string;
   npi?: string;
   coverNote?: string;
-  /**
-   * Sections the clinician chose to disclose. Defaults to the full evidence
-   * set only because the field-level composer ships in Wave 3 — when it does,
-   * the caller always sends an explicit selection.
-   */
+  /** Sections the clinician chose to disclose. */
   selectedSections?: string[];
   /** Purpose recorded in the packet + consent receipt. */
   purpose?: string;
 }
-
-/** Default disclosure until the Wave 3 composer supplies an explicit choice. */
-const DEFAULT_SECTIONS = ['identity', 'exclusions', 'licensure', 'enrollment'] as const;
 
 export interface ReviewInput {
   applicationId: string;
@@ -316,9 +310,7 @@ async function sealSubmissionPacket(
  */
 export async function applyToOpportunity(input: ApplyInput): Promise<MarketplaceApplication> {
   const { opportunityId, clerkUserId, npi, coverNote } = input;
-  const selectedSections = input.selectedSections?.length
-    ? [...input.selectedSections]
-    : [...DEFAULT_SECTIONS];
+  const selectedSections = resolveDisclosureSections(input.selectedSections);
   const purpose = input.purpose ?? 'application';
 
   // The organization NAME is on the relation, not the opportunity row — and it
