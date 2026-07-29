@@ -36,19 +36,19 @@ interface TrustStateResponse {
 }
 
 const LEVEL_STYLES: Record<ReadinessLevel, string> = {
-  L3: 'border-emerald-500/25 bg-emerald-500/12 text-emerald-200',
-  L2: 'border-sky-500/25 bg-sky-500/12 text-sky-200',
-  L1: 'border-amber-500/25 bg-amber-500/12 text-amber-200',
-  L0: 'border-rose-500/25 bg-rose-500/12 text-rose-200',
+  L3: 'border-emerald-700/25 bg-emerald-50 text-emerald-800',
+  L2: 'border-sky-700/25 bg-sky-50 text-sky-800',
+  L1: 'border-amber-700/25 bg-amber-50 text-amber-800',
+  L0: 'border-rose-700/25 bg-rose-50 text-rose-800',
 };
 
 const FACT_STATUS_STYLES: Record<string, string> = {
-  VERIFIED: 'border-emerald-500/20 bg-emerald-500/10 text-emerald-200',
-  ACTIVE: 'border-emerald-500/20 bg-emerald-500/10 text-emerald-200',
-  CLEAR: 'border-emerald-500/20 bg-emerald-500/10 text-emerald-200',
-  PENDING: 'border-amber-500/20 bg-amber-500/10 text-amber-200',
-  EXPIRED: 'border-rose-500/20 bg-rose-500/10 text-rose-200',
-  EXCLUDED: 'border-rose-500/20 bg-rose-500/10 text-rose-200',
+  VERIFIED: 'border-emerald-700/20 bg-emerald-50 text-emerald-800',
+  ACTIVE: 'border-emerald-700/20 bg-emerald-50 text-emerald-800',
+  CLEAR: 'border-emerald-700/20 bg-emerald-50 text-emerald-800',
+  PENDING: 'border-amber-700/20 bg-amber-50 text-amber-800',
+  EXPIRED: 'border-rose-700/20 bg-rose-50 text-rose-800',
+  EXCLUDED: 'border-rose-700/20 bg-rose-50 text-rose-800',
 };
 
 function formatDateTime(value?: string): string {
@@ -189,9 +189,9 @@ export function WalletPassport({
 
   if (loading && !trustState) {
     return (
-      <div className="rounded-[28px] border border-zinc-800 bg-zinc-900/75 p-5 text-foreground">
-        <div className="flex items-center gap-3 text-sm text-zinc-300">
-          <Loader2 className="h-4 w-4 animate-spin text-emerald-400" />
+      <div className="rounded-[28px] border border-[var(--vt-border)] bg-[var(--vt-surface)] p-5 text-foreground">
+        <div className="flex items-center gap-3 text-sm text-[var(--vt-text-secondary)]">
+          <Loader2 className="h-4 w-4 animate-spin text-[var(--vt-accent-emerald)]" />
           Loading your live wallet passport...
         </div>
       </div>
@@ -208,17 +208,17 @@ export function WalletPassport({
           dedupeKey={`wallet-passport:${npi}:${error}`}
         />
         <div className="flex items-start gap-3">
-          <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-rose-200" />
+          <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-rose-700" />
           <div className="min-w-0">
             <p className="text-sm font-semibold text-foreground">Passport sync interrupted</p>
-            <p className="mt-1 text-sm leading-6 text-rose-100/80">The connection to the trust engine was interrupted. Your passport is safe and will retry shortly.</p>
+            <p className="mt-1 text-sm leading-6 text-rose-800/80">The connection to the trust engine was interrupted. Your passport is safe and will retry shortly.</p>
           </div>
         </div>
         <div className="mt-4 flex flex-col gap-3 sm:flex-row">
           <button
             type="button"
             onClick={() => void loadTrustState(true)}
-            className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-2xl bg-white px-4 text-sm font-semibold text-zinc-950 transition hover:bg-zinc-200 active:scale-[0.98]"
+            className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-2xl bg-[var(--vt-accent-emerald)] px-4 text-sm font-semibold text-[var(--vt-bg)] transition hover:opacity-90 active:scale-[0.98]"
           >
             Retry
             <RefreshCw className="h-4 w-4" />
@@ -248,17 +248,17 @@ export function WalletPassport({
   const TrustIcon = trustIcon(trustState.readiness_level);
 
   return (
-    <div className="space-y-4 rounded-[28px] border border-zinc-800 bg-zinc-900/75 p-5 text-foreground shadow-sm">
+    <div className="space-y-4 rounded-[28px] border border-[var(--vt-border)] bg-[var(--vt-surface)] p-5 text-foreground shadow-sm">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--vt-text-secondary)]">
             Your readiness
           </p>
           <h2 className="mt-2 text-2xl font-semibold tracking-tight text-foreground">
             Source-backed credential state
           </h2>
-          <p className="mt-1 text-sm text-zinc-400">
-            NPI <span className="font-mono text-zinc-200">{trustState.npi}</span> - Updated {formatDateTime(trustState.computed_at)}
+          <p className="mt-1 text-sm text-[var(--vt-text-secondary)]">
+            NPI <span className="font-mono text-foreground">{trustState.npi}</span> - Updated {formatDateTime(trustState.computed_at)}
           </p>
         </div>
 
@@ -272,7 +272,7 @@ export function WalletPassport({
             type="button"
             onClick={() => void loadTrustState(true)}
             disabled={refreshing}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-zinc-700 bg-zinc-950/60 text-zinc-300 transition hover:border-zinc-500 hover:text-foreground disabled:opacity-50"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-[var(--vt-border)] bg-[var(--vt-surface-subtle)] text-[var(--vt-text-secondary)] transition hover:border-[var(--vt-accent-emerald)] hover:text-foreground disabled:opacity-50"
             aria-label="Refresh wallet passport"
           >
             {refreshing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
@@ -280,15 +280,15 @@ export function WalletPassport({
         </div>
       </div>
 
-      <section className="rounded-[24px] border border-zinc-800 bg-zinc-950/70 p-4">
+      <section className="rounded-[24px] border border-[var(--vt-border)] bg-[var(--vt-surface-subtle)] p-4">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
             <div className="flex items-center gap-3">
               <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-muted">
-                <TrustIcon className="h-5 w-5 text-emerald-300" />
+                <TrustIcon className="h-5 w-5 text-[var(--vt-accent-emerald)]" />
               </div>
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--vt-text-secondary)]">
                   Live trust state
                 </p>
                 <p className="mt-1 text-lg font-semibold text-foreground">{trustState.readiness_status}</p>
@@ -302,10 +302,10 @@ export function WalletPassport({
 
         <div className="mt-5 flex items-end gap-2">
           <span className="text-4xl font-semibold tracking-tight text-foreground">{trustState.readiness_score}</span>
-          <span className="pb-1 text-lg text-zinc-500">/100</span>
+          <span className="pb-1 text-lg text-[var(--vt-text-secondary)]">/100</span>
         </div>
 
-        <div className="mt-4 h-2.5 overflow-hidden rounded-full bg-zinc-800">
+        <div className="mt-4 h-2.5 overflow-hidden rounded-full bg-[var(--vt-surface-dim)]">
           <div
             className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-emerald-300 transition-all duration-700"
             style={{ width: `${Math.max(6, Math.min(100, trustState.readiness_score))}%` }}
@@ -313,27 +313,27 @@ export function WalletPassport({
         </div>
 
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
-          <div className="rounded-2xl border border-white/8 bg-black/20 px-4 py-3">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500">Identity</p>
+          <div className="rounded-2xl border border-[var(--vt-border)] bg-[var(--vt-surface)] px-4 py-3">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--vt-text-secondary)]">Identity</p>
             <p className="mt-2 text-sm text-foreground">{trustState.identityVerified ? 'Identity confirmed by issuer' : 'Identity needs review'}</p>
           </div>
-          <div className="rounded-2xl border border-white/8 bg-black/20 px-4 py-3">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500">Licensure</p>
+          <div className="rounded-2xl border border-[var(--vt-border)] bg-[var(--vt-surface)] px-4 py-3">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--vt-text-secondary)]">Licensure</p>
             <p className="mt-2 text-sm text-foreground">{licensureLabel(trustState.licensureStatus)}</p>
           </div>
-          <div className="rounded-2xl border border-white/8 bg-black/20 px-4 py-3">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500">Credential artifacts</p>
+          <div className="rounded-2xl border border-[var(--vt-border)] bg-[var(--vt-surface)] px-4 py-3">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--vt-text-secondary)]">Credential artifacts</p>
             <p className="mt-2 text-sm text-foreground">{trustState.credentialCount}</p>
           </div>
-          <div className="rounded-2xl border border-white/8 bg-black/20 px-4 py-3">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500">Top blocker</p>
+          <div className="rounded-2xl border border-[var(--vt-border)] bg-[var(--vt-surface)] px-4 py-3">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--vt-text-secondary)]">Top blocker</p>
             <p className="mt-2 text-sm text-foreground">{trustState.gap_summary[0] ?? 'No blocking gaps detected'}</p>
           </div>
         </div>
       </section>
 
-      <section className="rounded-[24px] border border-zinc-800 bg-zinc-950/70 p-4">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500">
+      <section className="rounded-[24px] border border-[var(--vt-border)] bg-[var(--vt-surface-subtle)] p-4">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--vt-text-secondary)]">
           Source-backed facts
         </p>
         {topFacts.length > 0 ? (
@@ -345,36 +345,36 @@ export function WalletPassport({
               return (
                 <div
                   key={`${fact.factType}-${fact.source}-${fact.verifiedAt ?? fact.expiresAt ?? fact.status}`}
-                  className="rounded-2xl border border-white/8 bg-black/20 px-4 py-4"
+                  className="rounded-2xl border border-[var(--vt-border)] bg-[var(--vt-surface)] px-4 py-4"
                 >
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div className="min-w-0">
                       <p className="text-sm font-semibold text-foreground">{formatFactLabel(fact.factType)}</p>
-                      <p className="mt-1 text-xs text-zinc-400">{fact.source}</p>
+                      <p className="mt-1 text-xs text-[var(--vt-text-secondary)]">{fact.source}</p>
                     </div>
                     <span className={`inline-flex w-fit items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold ${factStatusStyle}`}>
                       {formatStatusLabel(fact.status)}
                     </span>
                   </div>
-                  <div className="mt-3 grid gap-3 text-xs text-zinc-300 sm:grid-cols-2">
+                  <div className="mt-3 grid gap-3 text-xs text-[var(--vt-text-secondary)] sm:grid-cols-2">
                     <div>
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-500">Last confirmed</p>
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--vt-text-secondary)]">Last confirmed</p>
                       <p className="mt-1">{formatDateTime(fact.verifiedAt)}</p>
                     </div>
                     <div>
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-500">Expires</p>
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--vt-text-secondary)]">Expires</p>
                       <p className="mt-1">{fact.expiresAt ? formatDateTime(fact.expiresAt) : 'Not provided'}</p>
                     </div>
                   </div>
                   {fact.details ? (
-                    <p className="mt-3 text-xs leading-6 text-zinc-400">{fact.details}</p>
+                    <p className="mt-3 text-xs leading-6 text-[var(--vt-text-secondary)]">{fact.details}</p>
                   ) : null}
                 </div>
               );
             })}
           </div>
         ) : (
-          <p className="mt-3 text-sm leading-6 text-zinc-300">
+          <p className="mt-3 text-sm leading-6 text-[var(--vt-text-secondary)]">
             Source-confirmed facts will populate here as your credentials are corroborated.
           </p>
         )}
@@ -383,7 +383,7 @@ export function WalletPassport({
       <div className="flex flex-col gap-3 sm:flex-row">
         <Link
           href="/holder/readiness"
-          className="inline-flex min-h-[48px] flex-1 items-center justify-center gap-2 rounded-2xl bg-white px-4 text-sm font-semibold text-zinc-950 transition hover:bg-zinc-200 active:scale-[0.98]"
+          className="inline-flex min-h-[48px] flex-1 items-center justify-center gap-2 rounded-2xl bg-[var(--vt-accent-emerald)] px-4 text-sm font-semibold text-[var(--vt-bg)] transition hover:opacity-90 active:scale-[0.98]"
         >
           Open readiness
           <ArrowRight className="h-4 w-4" />

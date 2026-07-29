@@ -60,10 +60,10 @@ export default function HolderPage() {
   /* ── Loading ── */
   if (phase === 'loading') {
     return (
-      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
+      <div className="min-h-screen bg-[var(--vt-bg)] flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">
-          <Loader2 className="h-7 w-7 text-zinc-500 animate-spin" />
-          <p className="text-sm text-zinc-600">Loading your profile…</p>
+          <Loader2 className="h-7 w-7 text-[var(--vt-accent-emerald)] animate-spin" />
+          <p className="text-sm text-[var(--vt-text-secondary)]">Loading your profile…</p>
         </div>
       </div>
     );
@@ -72,21 +72,21 @@ export default function HolderPage() {
   /* ── No NPI — prompt setup ── */
   if (phase === 'no_npi') {
     return (
-      <div className="min-h-screen bg-zinc-950 flex items-center justify-center px-6">
+      <div className="min-h-screen bg-[var(--vt-bg)] flex items-center justify-center px-6">
         <div className="max-w-md w-full text-center space-y-6">
-          <div className="inline-flex items-center justify-center h-14 w-14 rounded-2xl bg-zinc-900 border border-zinc-800 mx-auto">
-            <ShieldCheck className="h-7 w-7 text-emerald-400" />
+          <div className="inline-flex items-center justify-center h-14 w-14 rounded-2xl border border-[var(--vt-border)] bg-[var(--vt-surface)] mx-auto">
+            <ShieldCheck className="h-7 w-7 text-[var(--vt-accent-emerald)]" />
           </div>
           <div>
             <h1 className="text-2xl font-bold text-foreground mb-2">Set up your readiness</h1>
-            <p className="text-zinc-400 leading-relaxed text-sm">
+            <p className="text-[var(--vt-text-secondary)] leading-relaxed text-sm">
               Verify your NPI to activate your clinician profile. Takes 2 minutes.
               VitalCV pulls your credentials directly from public registries — no document uploads required to get started.
             </p>
           </div>
           <Link
             href="/onboarding"
-            className="inline-flex items-center gap-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 px-7 py-3.5 text-sm font-semibold text-black transition w-full justify-center"
+            className="inline-flex items-center gap-2 rounded-xl bg-[var(--vt-accent-emerald)] hover:opacity-90 px-7 py-3.5 text-sm font-semibold text-[var(--vt-bg)] transition w-full justify-center"
           >
             Verify my NPI <ChevronRight className="h-4 w-4" />
           </Link>
@@ -96,7 +96,7 @@ export default function HolderPage() {
             primaryHref="/onboarding"
             primaryLabel="Verify NPI"
           />
-          <p className="text-xs text-zinc-700">Free. No credit card. Your data stays yours.</p>
+          <p className="text-xs text-[var(--vt-text-secondary)]">Free. No credit card. Your data stays yours.</p>
         </div>
       </div>
     );
@@ -105,14 +105,14 @@ export default function HolderPage() {
   /* ── Error ── */
   if (phase === 'error') {
     return (
-      <div className="min-h-screen bg-zinc-950 flex items-center justify-center px-6">
+      <div className="min-h-screen bg-[var(--vt-bg)] flex items-center justify-center px-6">
         <div className="max-w-sm text-center space-y-4">
-          <AlertCircle className="h-8 w-8 text-red-400 mx-auto" />
+          <AlertCircle className="h-8 w-8 text-[var(--vt-severity-critical)] mx-auto" />
           <p className="text-foreground font-medium">Couldn&apos;t load your profile</p>
-          <p className="text-sm text-zinc-400">Try refreshing the page. If it keeps happening, check your connection.</p>
+          <p className="text-sm text-[var(--vt-text-secondary)]">Try refreshing the page. If it keeps happening, check your connection.</p>
           <button
             onClick={() => { setPhase('loading'); }}
-            className="rounded-lg border border-zinc-700 px-5 py-2 text-sm text-zinc-300 hover:text-foreground transition"
+            className="rounded-lg border border-[var(--vt-border)] bg-[var(--vt-surface)] px-5 py-2 text-sm text-foreground hover:bg-[var(--vt-surface-subtle)] transition"
           >
             Try again
           </button>
@@ -129,25 +129,25 @@ export default function HolderPage() {
 
   /* ── Has NPI — full passport ── */
   return (
-    <div className="min-h-screen bg-zinc-950 text-foreground">
+    <div className="min-h-screen bg-[var(--vt-bg)] text-foreground">
       {/* Greeting + Upload CTA */}
       <div className="mx-auto flex max-w-3xl flex-col gap-4 px-4 pb-0 pt-6 sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:pt-8">
         {profile?.firstName && (
-          <p className="text-sm text-zinc-500">
-            Welcome back, <span className="text-zinc-300 font-medium">{profile.firstName}</span>
+          <p className="text-sm text-[var(--vt-text-secondary)]">
+            Welcome back, <span className="text-foreground font-medium">{profile.firstName}</span>
           </p>
         )}
         <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
           <Link
             href="/clinician/profile"
-            className="inline-flex min-h-[44px] w-full items-center justify-center gap-1.5 rounded-xl border border-zinc-700 px-4 py-2 text-sm font-semibold text-zinc-300 transition hover:border-emerald-700 hover:bg-emerald-950/30 hover:text-emerald-300 sm:w-auto"
+            className="inline-flex min-h-[44px] w-full items-center justify-center gap-1.5 rounded-xl border border-[var(--vt-border)] bg-[var(--vt-surface)] px-4 py-2 text-sm font-semibold text-foreground transition hover:border-[var(--vt-accent-emerald)] hover:bg-emerald-50 hover:text-[var(--vt-accent-emerald)] sm:w-auto"
           >
             <UserRound className="h-3.5 w-3.5" />
             Professional profile
           </Link>
           <a
             href="#evidence-upload"
-            className="inline-flex min-h-[44px] w-full items-center justify-center gap-1.5 rounded-xl border border-zinc-700 px-4 py-2 text-sm font-semibold text-zinc-300 transition hover:border-emerald-700 hover:bg-emerald-950/30 hover:text-emerald-300 sm:w-auto"
+            className="inline-flex min-h-[44px] w-full items-center justify-center gap-1.5 rounded-xl border border-[var(--vt-border)] bg-[var(--vt-surface)] px-4 py-2 text-sm font-semibold text-foreground transition hover:border-[var(--vt-accent-emerald)] hover:bg-emerald-50 hover:text-[var(--vt-accent-emerald)] sm:w-auto"
           >
             <Upload className="h-3.5 w-3.5" />
             Upload Credential
@@ -173,7 +173,7 @@ export default function HolderPage() {
       {/* Detailed credential view */}
       <div className="mx-auto max-w-5xl px-4 py-4 sm:px-6">
         <details className="group">
-          <summary className="flex min-h-[44px] items-center text-xs uppercase tracking-wider text-zinc-500 cursor-pointer transition-colors hover:text-zinc-300">
+          <summary className="flex min-h-[44px] items-center text-xs uppercase tracking-wider text-[var(--vt-text-secondary)] cursor-pointer transition-colors hover:text-foreground">
             Detailed Credential View
           </summary>
           <div className="mt-4">

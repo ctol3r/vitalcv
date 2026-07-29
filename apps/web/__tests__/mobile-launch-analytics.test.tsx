@@ -419,6 +419,8 @@ describe('mobile launch analytics', () => {
     view = await renderNode(<WalletPassport npi="1234567890" pollIntervalMs={0} />);
     await flush();
     expect(trackOnceNames()).toContain('clinician.wallet_viewed');
+    expect(view.container.firstElementChild?.className).toContain('bg-[var(--vt-surface)]');
+    expect(view.container.firstElementChild?.className).not.toContain('bg-zinc-900');
     await view.unmount();
 
     view = await renderWithProvider(
