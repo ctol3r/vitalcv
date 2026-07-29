@@ -113,6 +113,9 @@ jobs:
           cd apps/api/backend
           npx prisma migrate deploy
 
+      - name: Build QA dependencies
+        run: pnpm turbo build --filter='chai-vc-platform-backend...'
+
       # The QA sweep exercises the fully compiled backend against the same
       # ephemeral Postgres used for migration and deploy smoke checks. It is a
       # required CI action, not a build side effect: builds must remain safe
