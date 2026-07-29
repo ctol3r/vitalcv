@@ -154,55 +154,33 @@ describe('provider routes', () => {
     expect(response.body.providerId).toBe('1234567890');
   });
 
-  it('returns the structured provider list with affiliations', async () => {
+  it('returns the structured provider list with NPI and name only', async () => {
     prismaMock.provider.count.mockResolvedValue(1);
     prismaMock.provider.findMany.mockResolvedValue([{
       npi: '1234567890',
       fullName: 'Ada Lovelace',
-      providerType: 'Physician',
-      taxonomyCode: '207RC0000X',
-      stateOfPractice: 'TX',
     }]);
-    prismaMock.graphNode.findMany.mockResolvedValue([{
-      id: 'graph-provider-1',
-      metadata: {
-        npi: '1234567890',
-        specialty: 'Cardiology',
-        institution: 'Mayo Clinic',
-      },
-    }]);
-    prismaMock.graphEdge.findMany.mockResolvedValue([
-      {
-        sourceNodeId: 'graph-provider-1',
-        targetNode: {
-          label: 'Mayo Clinic',
-        },
-      },
-      {
-        sourceNodeId: 'graph-provider-1',
-        targetNode: {
-          label: 'Cleveland Clinic',
-        },
-      },
-    ]);
 
     const response = await request(buildApp())
       .get('/api/providers?limit=10')
       .expect(200);
 
     expect(response.body).toEqual({
-      schema: 'https://vitalcv.com/providers/v1',
+      schema: 'https://vitalcv.com/providers/v2',
       count: 1,
       total: 1,
       providers: [{
         npi: '1234567890',
         fullName: 'Ada Lovelace',
-        providerType: 'Physician',
-        specialty: 'Cardiology',
-        taxonomyCode: '207RC0000X',
-        stateOfPractice: 'TX',
-        affiliations: ['Mayo Clinic', 'Cleveland Clinic'],
       }],
+      fieldsWithheld: [
+        'providerType',
+        'specialty',
+        'taxonomyCode',
+        'stateOfPractice',
+        'affiliations',
+      ],
+      disclosure: expect.stringContaining('NPI and name only'),
     });
   });
 
@@ -256,5 +234,148 @@ describe('provider routes', () => {
       connector: 'NPDB',
       severity: 'CRITICAL',
     });
+  });
+});
+
+/**
+ * P0.1 containment — GET /api/providers must not publicly assert provider type,
+ * specialty/taxonomy or practice location when their provenance is unknown.
+ *
+ * The fixture deliberately uses synthetic identities while retaining the
+ * conflicting stored-field shape that triggered this containment work. Two
+ * rows represent organizations that a stale row labels `Individual`, all rows
+ * share one taxonomy code, and the state values are unproven.
+ *
+ * These tests assert the outcome (no fabricated value reaches a public caller),
+ * not the mechanism, so a later provenance-carrying rewrite is free to change
+ * how the fields are suppressed as long as unsourced values stay unpublished.
+ */
+const SYNTHETIC_ROWS = [
+  { npi: '9000000001', fullName: 'Synthetic Clinician 01', stored: { providerType: 'Individual', taxonomyCode: '207R00000X', stateOfPractice: 'CA' }, source: { type: 'NPI-1' } },
+  { npi: '9000000002', fullName: 'Synthetic Clinician 02', stored: { providerType: 'Individual', taxonomyCode: '207R00000X', stateOfPractice: 'TX' }, source: { type: 'NPI-1' } },
+  { npi: '9000000003', fullName: 'Synthetic Clinician 03', stored: { providerType: 'Individual', taxonomyCode: '207R00000X', stateOfPractice: 'NY' }, source: { type: 'NPI-1' } },
+  { npi: '9000000004', fullName: 'Synthetic Clinician 04', stored: { providerType: 'Individual', taxonomyCode: '207R00000X', stateOfPractice: 'IL' }, source: { type: 'NPI-1' } },
+  { npi: '9000000005', fullName: 'Synthetic Clinician 05', stored: { providerType: 'Individual', taxonomyCode: '207R00000X', stateOfPractice: 'MA' }, source: { type: 'NPI-1' } },
+  { npi: '9000000006', fullName: 'Synthetic Clinician 06', stored: { providerType: 'Individual', taxonomyCode: '207R00000X', stateOfPractice: 'FL' }, source: { type: 'NPI-1' } },
+  { npi: '9000000007', fullName: 'Synthetic Clinician 07', stored: { providerType: 'Individual', taxonomyCode: '207R00000X', stateOfPractice: 'WA' }, source: { type: 'NPI-1' } },
+  { npi: '9000000008', fullName: 'Synthetic Clinician 08', stored: { providerType: 'Individual', taxonomyCode: '207R00000X', stateOfPractice: 'GA' }, source: { type: 'NPI-1' } },
+  { npi: '9000000009', fullName: 'Synthetic Organization 01', stored: { providerType: 'Individual', taxonomyCode: '207R00000X', stateOfPractice: 'AZ' }, source: { type: 'NPI-2' } },
+  { npi: '9000000010', fullName: 'Synthetic Organization 02', stored: { providerType: 'Individual', taxonomyCode: '207R00000X', stateOfPractice: 'CO' }, source: { type: 'NPI-2' } },
+] as const;
+
+describe('GET /api/providers — P0.1 truth containment', () => {
+  beforeEach(() => {
+    prismaMock.provider.count.mockReset();
+    prismaMock.provider.findMany.mockReset();
+    prismaMock.graphNode.findMany.mockReset();
+    prismaMock.graphEdge.findMany.mockReset();
+
+    prismaMock.provider.count.mockResolvedValue(SYNTHETIC_ROWS.length);
+    // The mock hands back the FULL stored row, fabricated columns included, and
+    // ignores `select` on purpose. If the fixture returned only the safe columns
+    // the withheld values would be `undefined`, JSON.stringify would drop them,
+    // and every content assertion below would pass even against a route that
+    // happily forwards them. Returning the fabricated values means these tests
+    // fail the moment the route maps one into the response.
+    prismaMock.provider.findMany.mockResolvedValue(
+      SYNTHETIC_ROWS.map((row) => ({
+        npi: row.npi,
+        fullName: row.fullName,
+        providerType: row.stored.providerType,
+        taxonomyCode: row.stored.taxonomyCode,
+        stateOfPractice: row.stored.stateOfPractice,
+      })),
+    );
+    prismaMock.graphNode.findMany.mockResolvedValue([]);
+    prismaMock.graphEdge.findMany.mockResolvedValue([]);
+  });
+
+  it('publishes NPI and name for every affected record', async () => {
+    const response = await request(buildApp()).get('/api/providers?limit=100').expect(200);
+
+    expect(response.body.providers).toHaveLength(SYNTHETIC_ROWS.length);
+    for (const row of SYNTHETIC_ROWS) {
+      expect(response.body.providers).toContainEqual({ npi: row.npi, fullName: row.fullName });
+    }
+  });
+
+  it('omits every withheld key from each published record', async () => {
+    const response = await request(buildApp()).get('/api/providers?limit=100').expect(200);
+
+    for (const provider of response.body.providers) {
+      expect(Object.keys(provider).sort()).toEqual(['fullName', 'npi']);
+    }
+  });
+
+  it('never emits a stored provider type, taxonomy or state anywhere in the response', async () => {
+    const response = await request(buildApp()).get('/api/providers?limit=100').expect(200);
+    const serialized = JSON.stringify(response.body.providers);
+
+    for (const row of SYNTHETIC_ROWS) {
+      expect(serialized).not.toContain(row.stored.providerType);
+      expect(serialized).not.toContain(row.stored.taxonomyCode);
+      // A bare two-letter state would collide with substrings of real names, so
+      // assert on the field's absence rather than on the literal value.
+      expect(serialized).not.toContain(`"stateOfPractice"`);
+    }
+  });
+
+  it('does not label an NPPES organization as an individual', async () => {
+    const response = await request(buildApp()).get('/api/providers?limit=100').expect(200);
+
+    const organizations = SYNTHETIC_ROWS.filter((row) => row.source.type === 'NPI-2');
+    expect(organizations.length).toBeGreaterThan(0);
+
+    for (const org of organizations) {
+      const published = response.body.providers.find((p: { npi: string }) => p.npi === org.npi);
+      expect(published).toBeDefined();
+      expect(JSON.stringify(published)).not.toContain('Individual');
+    }
+  });
+
+  it('never publishes the shared 207R00000X taxonomy the rows all carried', async () => {
+    const response = await request(buildApp()).get('/api/providers?limit=100').expect(200);
+
+    expect(JSON.stringify(response.body)).not.toContain('207R00000X');
+    expect(JSON.stringify(response.body)).not.toContain('Internal Medicine');
+  });
+
+  it('does not read withheld columns from the database', async () => {
+    await request(buildApp()).get('/api/providers?limit=100').expect(200);
+
+    const select = prismaMock.provider.findMany.mock.calls[0][0].select;
+    expect(Object.keys(select).sort()).toEqual(['fullName', 'npi']);
+  });
+
+  it('does not consult graph metadata for a specialty substitute', async () => {
+    await request(buildApp()).get('/api/providers?limit=100').expect(200);
+
+    expect(prismaMock.graphNode.findMany).not.toHaveBeenCalled();
+    expect(prismaMock.graphEdge.findMany).not.toHaveBeenCalled();
+  });
+
+  it('does not let ?q= act as an oracle for a withheld field', async () => {
+    await request(buildApp()).get('/api/providers?q=207R00000X').expect(200);
+
+    const where = prismaMock.provider.findMany.mock.calls[0][0].where;
+    const searchedColumns = (where.OR as Array<Record<string, unknown>>).flatMap(Object.keys);
+
+    expect(searchedColumns.sort()).toEqual(['fullName', 'npi']);
+    for (const withheld of ['providerType', 'taxonomyCode', 'stateOfPractice']) {
+      expect(searchedColumns).not.toContain(withheld);
+    }
+  });
+
+  it('marks the withheld fields so a caller can tell withheld from empty', async () => {
+    const response = await request(buildApp()).get('/api/providers?limit=100').expect(200);
+
+    expect(response.body.fieldsWithheld).toEqual([
+      'providerType',
+      'specialty',
+      'taxonomyCode',
+      'stateOfPractice',
+      'affiliations',
+    ]);
+    expect(response.body.disclosure).toContain('not source-backed');
   });
 });
