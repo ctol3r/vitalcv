@@ -38,8 +38,20 @@ import { isValidBundleId } from '../lib/apply/bundle-id';
 
 const VALID_ID = '123e4567-e89b-42d3-a456-426614174000';
 
-function renderPage(requestUri: string) {
-  return ApplyPage({ params: Promise.resolve({ requestUri }) });
+/**
+ * Next resolves async server-component children for us. The legacy static
+ * renderer used by this unit suite does not, so explicitly resolve the one
+ * dispatched child before rendering or asserting its notFound boundary.
+ */
+async function resolvePage(requestUri: string): Promise<React.ReactElement> {
+  const dispatched = await ApplyPage({ params: Promise.resolve({ requestUri }) });
+  if (React.isValidElement(dispatched) && typeof dispatched.type === 'function') {
+    const component = dispatched.type as (
+      props: Record<string, unknown>,
+    ) => React.ReactElement | Promise<React.ReactElement>;
+    return await component(dispatched.props as Record<string, unknown>);
+  }
+  return dispatched as React.ReactElement;
 }
 
 describe('isValidBundleId', () => {
@@ -65,7 +77,7 @@ describe('/apply/[requestUri] — legacy bundle path', () => {
     const fetchMock = vi.fn();
     vi.stubGlobal('fetch', fetchMock);
 
-    await expect(renderPage('x')).rejects.toThrow('NEXT_NOT_FOUND');
+    await expect(resolvePage('x')).rejects.toThrow('NEXT_NOT_FOUND');
     expect(notFoundMock).toHaveBeenCalledTimes(1);
     expect(fetchMock).not.toHaveBeenCalled();
   });
@@ -73,14 +85,14 @@ describe('/apply/[requestUri] — legacy bundle path', () => {
   it('404s a well-formed bundle identifier the backend does not know', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('{}', { status: 404 })));
 
-    await expect(renderPage(VALID_ID)).rejects.toThrow('NEXT_NOT_FOUND');
+    await expect(resolvePage(VALID_ID)).rejects.toThrow('NEXT_NOT_FOUND');
     expect(notFoundMock).toHaveBeenCalledTimes(1);
   });
 
   it('renders the expired state without a 404 or server-component event handler', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('{}', { status: 410 })));
 
-    const html = renderToStaticMarkup((await renderPage(VALID_ID)) as React.ReactElement);
+    const html = renderToStaticMarkup(await resolvePage(VALID_ID));
     expect(notFoundMock).not.toHaveBeenCalled();
     expect(html).toContain('This link has expired');
   });
@@ -88,7 +100,7 @@ describe('/apply/[requestUri] — legacy bundle path', () => {
   it('renders the anchor-only error state when the backend is unreachable', async () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('backend down')));
 
-    const html = renderToStaticMarkup((await renderPage(VALID_ID)) as React.ReactElement);
+    const html = renderToStaticMarkup(await resolvePage(VALID_ID));
     expect(notFoundMock).not.toHaveBeenCalled();
     expect(html).toContain('Connection interrupted');
     expect(html).toContain(`href="/apply/${VALID_ID}"`);
@@ -106,7 +118,7 @@ describe('/apply/[requestUri] — legacy bundle path', () => {
       ),
     );
 
-    const html = renderToStaticMarkup((await renderPage(VALID_ID)) as React.ReactElement);
+    const html = renderToStaticMarkup(await resolvePage(VALID_ID));
     expect(notFoundMock).not.toHaveBeenCalled();
     expect(html).toContain('data-testid="apply-bundle-view"');
     expect(html).toContain(VALID_ID);
