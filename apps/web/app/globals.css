@@ -1122,7 +1122,7 @@ time, code, kbd, samp {
   border: 1px solid color-mix(in oklab, var(--foreground) 16%, transparent);
   color: var(--muted-foreground, var(--foreground));
 }
-.liquid-menu__cta-primary { background: oklch(18% 0.012 265); color: #fff; }
+.liquid-menu__cta-primary { background: var(--vt-accent); color: var(--vt-bg); } /* CD-4: ink is the action colour; was a hand-written cool oklch(18% 0.012 265) */
 
 @media (prefers-reduced-motion: reduce) {
   .liquid-menu__panel { clip-path: none; animation: none; }

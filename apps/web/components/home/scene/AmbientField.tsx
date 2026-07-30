@@ -79,7 +79,7 @@ function readAmbientPalette(el: HTMLElement): AmbientPalette {
   const s = getComputedStyle(el);
   const v = (name: string, fallback: string) => s.getPropertyValue(name).trim() || fallback;
   return {
-    emerald: v('--vt-accent-emerald', '#1c7c54'),
+    emerald: v('--vt-accent-editorial', '#4338CA'),
     indigo: v('--accent', '#4f46e5'),
     amber: v('--vt-state-stale', '#a2670b'),
     neutral: v('--vt-border', '#d6ded9'),

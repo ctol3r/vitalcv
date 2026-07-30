@@ -190,7 +190,7 @@ export function EmployerProfileSurface() {
           className="h-24 w-full sm:h-28"
           style={{
             background:
-              'linear-gradient(120deg, color-mix(in oklab, var(--vt-accent-emerald, #1c7c54) 18%, transparent), color-mix(in oklab, var(--vt-accent-emerald, #1c7c54) 6%, transparent))',
+              'linear-gradient(120deg, color-mix(in oklab, var(--vt-accent-editorial, #4338CA) 18%, transparent), color-mix(in oklab, var(--vt-accent-editorial, #4338CA) 6%, transparent))',
           }}
           aria-hidden="true"
         />
@@ -232,7 +232,7 @@ export function EmployerProfileSurface() {
           </div>
 
           {hiringStatus ? (
-            <span className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-[color-mix(in_oklab,var(--vt-accent-emerald,#1c7c54)_30%,transparent)] bg-[color-mix(in_oklab,var(--vt-accent-emerald,#1c7c54)_10%,transparent)] px-3 py-1 text-[12px] font-medium text-[var(--vt-accent-emerald,#1c7c54)]">
+            <span className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-[color-mix(in_oklab,var(--vt-accent-editorial,#4338CA)_30%,transparent)] bg-[color-mix(in_oklab,var(--vt-accent-editorial,#4338CA)_10%,transparent)] px-3 py-1 text-[12px] font-medium text-[var(--vt-accent-editorial,#4338CA)]">
               <Briefcase size={12} aria-hidden="true" />
               {titleCase(hiringStatus)}
             </span>

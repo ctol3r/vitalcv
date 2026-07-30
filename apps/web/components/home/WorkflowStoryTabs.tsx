@@ -154,7 +154,7 @@ const STEPS: readonly Step[] = [
 
 const STATE_STYLE: Record<StateKind, { chip: string; icon: React.ReactNode }> = {
   ok: {
-    chip: 'border-transparent bg-[color-mix(in_oklab,var(--vt-accent-emerald)_14%,transparent)] text-[var(--vt-accent-emerald)]',
+    chip: 'border-transparent bg-[color-mix(in_oklab,var(--vt-state-source-confirmed)_14%,transparent)] text-[var(--vt-state-source-confirmed)]',
     icon: <CheckCircle2 size={12} aria-hidden="true" />,
   },
   checked: {
@@ -290,7 +290,7 @@ export function WorkflowStoryTabs() {
               <li key={b} className="flex items-start gap-2 text-[13px] text-[var(--vt-text-primary)]">
                 <CheckCircle2
                   size={14}
-                  className="mt-0.5 shrink-0 text-[var(--vt-accent-emerald)]"
+                  className="mt-0.5 shrink-0 text-[var(--vt-state-source-confirmed)]"
                   aria-hidden="true"
                 />
                 {b}

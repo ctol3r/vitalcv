@@ -139,7 +139,7 @@ export default function Navbar() {
           </Link>
           <Link
             href="/passport"
-            style={{ backgroundColor: 'oklch(18% 0.012 265)' }}
+            style={{ backgroundColor: 'var(--vt-accent)' }}
             className="rounded-full px-4 py-1.5 text-sm font-semibold text-white hover:opacity-90 transition"
           >
             Check Readiness

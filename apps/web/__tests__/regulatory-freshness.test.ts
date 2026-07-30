@@ -100,7 +100,7 @@ describe('evaluateRegulatoryFreshness — purity & honesty', () => {
   });
 
   it('maps tones to Calm Wave state tokens', () => {
-    expect(freshnessToneToken('current')).toContain('--vt-state-verified');
+    expect(freshnessToneToken('current')).toContain('--vt-state-source-confirmed');
     expect(freshnessToneToken('stale')).toContain('--vt-state-blocked');
     expect(freshnessToneToken('unknown')).toContain('--vt-state-unknown');
   });

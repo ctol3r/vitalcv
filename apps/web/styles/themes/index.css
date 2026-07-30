@@ -50,13 +50,33 @@ html[data-theme='light'] {
   /* Lane state palette — credential-readiness vocabulary (Bundle B17).
      Values map 1:1 to the prototype's STATE_META text colors so chips
      that consume `--vt-state-*` read identically to the prototype. */
-  --vt-state-verified: #047857;     /* emerald-700  · Checked */
-  --vt-accent-emerald: #047857;     /* alias of the emerald accent, banned-word-free token name for public copy surfaces */
+  /* Renamed from --vt-state-verified. That name put the banned bare word
+     "Verified" into every inline style and Tailwind arbitrary value that
+     referenced it, so the moment the token reached a public component the
+     truth-contract tests (/\bverified\b/i over the server render) went red —
+     which is precisely what happened when this wave first repointed the
+     confirmed-source sites here. Aliasing around the banned word is the
+     mistake CD-W2 exists to remove, so the name itself had to change.
+     `source-confirmed` is the state's real name in CD-5. */
+  --vt-state-source-confirmed: #047857; /* emerald-700 · a named source returned a match */
   --vt-state-pending: #92400E;      /* amber-800    · Pending */
   --vt-state-access: #4338CA;       /* indigo-700   · Access required */
   --vt-state-blocked: #B91C1C;      /* red-700      · Blocked */
   --vt-state-contradicted: #6B21A8; /* purple-700   · Contradicted */
   --vt-state-unknown: #475569;      /* slate-600    · Not checked */
+
+  /* The editorial accent — CD-3. This replaces `--vt-accent-emerald`, which was
+     defined as `#047857`: byte-identical to --vt-state-source-confirmed above, with a
+     comment explaining that the alias existed to give the confirmed-source
+     green "a banned-word-free token name for public copy surfaces."
+
+     That alias is exactly what CD-3 forbids. Signal and state are separate
+     systems that may never borrow from each other: green means one thing —
+     a named source returned a match — and spending it on a hero italic, a step
+     number or a focus ring destroys that meaning. The token was consumed 53
+     times, roughly half as genuine state and half as decoration; those call
+     sites are now split between --vt-state-source-confirmed and this. */
+  --vt-accent-editorial: #4338CA;   /* indigo-700   · the one editorial accent */
 
   /* Node colors */
   --vt-node-provider: #141414;
@@ -112,8 +132,8 @@ html[data-theme='dark'] {
   /* Lane state palette (Command Center) — values mirror the prototype's
      html.dark overrides (e.g. .text-emerald-700 → #6ee7b7) so chips
      remain legible against slate-950 backgrounds. */
-  --vt-state-verified: #6ee7b7;     /* emerald-300 */
-  --vt-accent-emerald: #6ee7b7;     /* alias of the emerald accent, banned-word-free token name for public copy surfaces */
+  --vt-state-source-confirmed: #6ee7b7;     /* emerald-300 */
+  --vt-accent-editorial: #a5b4fc;   /* indigo-300 · lifted for contrast on dark */
   --vt-state-pending: #fbbf24;      /* amber-400 */
   --vt-state-access: #a5b4fc;       /* indigo-300 */
   --vt-state-blocked: #fb7185;      /* rose-400 */
@@ -147,7 +167,6 @@ html[data-theme='dark'] {
   --vt-text-2: var(--vt-text-secondary);
   --vt-text-3: var(--vt-text-muted);
   --vt-surface-2: var(--vt-surface-subtle);
-  --vt-surface-dim: var(--vt-surface-dim);
   --vt-border-2: var(--vt-border-subtle);
   --vt-critical: var(--vt-severity-critical);
   --vt-warning: var(--vt-severity-medium);

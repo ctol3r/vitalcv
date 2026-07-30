@@ -61,7 +61,7 @@ const trustTierBadgeVariants = cva(
       tier: {
         T1: 'bg-[var(--vt-surface-subtle)] text-[var(--vt-text-muted)] ring-[var(--vt-border-subtle)]',
         T2: 'bg-[color-mix(in_oklab,var(--vt-state-unknown)_12%,transparent)] text-[var(--vt-text-secondary)] ring-[color-mix(in_oklab,var(--vt-state-unknown)_24%,transparent)]',
-        T3: 'bg-[color-mix(in_oklab,var(--vt-state-verified)_12%,transparent)] text-[var(--vt-state-verified)] ring-[color-mix(in_oklab,var(--vt-state-verified)_24%,transparent)]',
+        T3: 'bg-[color-mix(in_oklab,var(--vt-state-source-confirmed)_12%,transparent)] text-[var(--vt-state-source-confirmed)] ring-[color-mix(in_oklab,var(--vt-state-source-confirmed)_24%,transparent)]',
         T4: 'bg-[color-mix(in_oklab,var(--vt-state-access)_14%,transparent)] text-[var(--vt-state-access)] ring-[color-mix(in_oklab,var(--vt-state-access)_28%,transparent)]',
       },
       size: {

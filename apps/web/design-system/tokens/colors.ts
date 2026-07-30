@@ -69,7 +69,7 @@ export const semanticColorCssVariables: Record<SemanticColorTokenName, `--${stri
   riskLow: '--vt-risk-low',
   riskMedium: '--vt-risk-medium',
   riskHigh: '--vt-risk-high',
-  stateVerified: '--vt-state-verified',
+  stateVerified: '--vt-state-source-confirmed',
   statePending: '--vt-state-pending',
   stateAccess: '--vt-state-access',
   stateBlocked: '--vt-state-blocked',

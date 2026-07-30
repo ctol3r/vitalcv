@@ -11,7 +11,7 @@ import {
  * competitive study. See `employerAudience.ts` for the evidence behind the copy.
  *
  * Calm Wave, employer persona: paper/ink, 3px document radius, hairline rules,
- * source-green accent, mono for job titles (they are facts about the reader, not
+ * editorial indigo accent, mono for job titles (they are facts about the reader, not
  * prose), single-shot Reveal. Renders fully without JS and carries no metric,
  * no logo, and no outcome claim.
  */
@@ -71,7 +71,7 @@ export function EmployerAudienceSection() {
               {size.band}
             </h4>
             <p
-              className="mz-mono mt-2 border-l-2 border-[var(--vt-accent-emerald)] pl-2.5 text-[11px] leading-relaxed text-[var(--vt-text-muted)]"
+              className="mz-mono mt-2 border-l-2 border-[var(--vt-accent-editorial)] pl-2.5 text-[11px] leading-relaxed text-[var(--vt-text-muted)]"
             >
               {size.situation}
             </p>

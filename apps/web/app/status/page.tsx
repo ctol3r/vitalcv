@@ -28,7 +28,7 @@ export const metadata: Metadata = {
 type RowTone = 'ok' | 'warn' | 'muted';
 
 function toneColor(tone: RowTone): string {
-  if (tone === 'ok') return 'var(--vt-accent-emerald)';
+  if (tone === 'ok') return 'var(--vt-state-source-confirmed)';
   if (tone === 'warn') return 'var(--vt-state-stale, #a2670b)';
   return 'var(--vt-text-muted)';
 }

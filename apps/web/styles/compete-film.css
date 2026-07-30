@@ -124,7 +124,7 @@
   pointer-events: none;
   background: radial-gradient(
     circle,
-    color-mix(in oklab, var(--vt-accent-emerald, #126a54) 9%, transparent) 0%,
+    color-mix(in oklab, var(--vt-accent-editorial, #4338CA) 9%, transparent) 0%,
     transparent 68%
   );
   transition: opacity 220ms ease;
@@ -405,7 +405,7 @@
   top: 0.62em;
   width: 0.4rem;
   height: 1.5px;
-  background: var(--vt-accent-emerald, #126a54);
+  background: var(--vt-accent-editorial, #4338CA);
 }
 
 .film-trust {

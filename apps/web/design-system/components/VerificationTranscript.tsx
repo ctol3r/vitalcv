@@ -24,7 +24,7 @@ export interface VerificationTranscriptProps {
 }
 
 const MARKER: Record<TranscriptStep['status'], { glyph: string; color: string }> = {
-  ok: { glyph: '✓', color: 'var(--vt-state-verified)' },
+  ok: { glyph: '✓', color: 'var(--vt-state-source-confirmed)' },
   fail: { glyph: '✗', color: 'var(--vt-severity-critical)' },
   info: { glyph: '→', color: 'var(--vt-text-muted)' },
 };
@@ -36,7 +36,7 @@ const RESULT_META: Record<
   verified: {
     label: 'Inclusion verified',
     meaning: 'The leaf is proven to belong to the signed checkpoint. This is not a completed credentialing decision.',
-    color: 'var(--vt-state-verified)',
+    color: 'var(--vt-state-source-confirmed)',
   },
   failed: {
     label: 'Fails closed — integrity failure located',

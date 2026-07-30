@@ -14,7 +14,7 @@
   background:
     radial-gradient(
       48% 44% at 16% 20%,
-      color-mix(in oklab, var(--vt-accent-emerald) 12%, transparent),
+      color-mix(in oklab, var(--vt-accent-editorial) 12%, transparent),
       transparent 70%
     ),
     radial-gradient(
@@ -24,7 +24,7 @@
     ),
     radial-gradient(
       56% 48% at 55% 86%,
-      color-mix(in oklab, var(--vt-accent-emerald) 8%, transparent),
+      color-mix(in oklab, var(--vt-accent-editorial) 8%, transparent),
       transparent 75%
     );
 }

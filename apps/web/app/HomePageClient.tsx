@@ -89,7 +89,7 @@ export default function HomePageClient() {
     {/* SHD-1.3: ONE scroll model. The dot rail and the ambient field both
         consume this driver; neither owns a private scroll listener. */}
     <ChapterProgressProvider>
-    <div className="mz mz-paper mz-cloud-paper relative overflow-x-clip text-[var(--vt-text-primary)]">
+    <div className="mz mz-paper relative overflow-x-clip text-[var(--vt-text-primary)]">
       {/* Route-scoped paper: the PUBLIC homepage sits on Cloud Dancer
           (PANTONE 11-4201 web approximation, --vt-cloud-dancer). A page-level
           style tag keeps the document body behind overscroll on the same
@@ -119,8 +119,8 @@ export default function HomePageClient() {
 
       {CLERK_PROVIDER_ENABLED && (
         <SignedIn>
-          <div className="relative border-b border-[var(--vt-border-subtle)] bg-[color-mix(in_oklab,var(--vt-accent-emerald)_10%,transparent)] px-4 py-2.5 text-center">
-            <p className="flex items-center justify-center gap-2 text-[12px] font-medium text-[var(--vt-accent-emerald)]">
+          <div className="relative border-b border-[var(--vt-border-subtle)] bg-[color-mix(in_oklab,var(--vt-accent-editorial)_10%,transparent)] px-4 py-2.5 text-center">
+            <p className="flex items-center justify-center gap-2 text-[12px] font-medium text-[var(--vt-accent-editorial)]">
               <Zap className="h-3.5 w-3.5" aria-hidden="true" />
               You are signed in securely.
               <Link href="/holder/home" className="ml-1 font-semibold underline underline-offset-4">Go to your wallet</Link>
@@ -207,7 +207,7 @@ export default function HomePageClient() {
                         className="h-14 flex-1 border-0 bg-transparent px-4 text-[18px] font-medium tracking-[0.14em] text-[var(--vt-text-primary)] shadow-none placeholder:text-[var(--vt-text-muted)]/40 focus-visible:ring-0"
                       />
                       <span aria-hidden="true" className={cn('flex items-center justify-center pb-4 px-4 transition-opacity sm:pb-0 sm:pl-0 sm:pr-2', isValid ? 'opacity-100' : 'opacity-0')}>
-                        <CheckCircle2 size={22} className="text-[var(--vt-accent-emerald)]" />
+                        <CheckCircle2 size={22} className="text-[var(--vt-state-source-confirmed)]" />
                       </span>
                       <button
                         type="submit"

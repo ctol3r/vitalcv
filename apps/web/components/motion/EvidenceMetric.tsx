@@ -200,7 +200,7 @@ export function MetricSourceTag({
         style={{
           background:
             sourceClass === 'live-system-fact'
-              ? 'var(--vt-accent-emerald)'
+              ? 'var(--vt-state-source-confirmed)'
               : sourceClass === 'pilot-metric'
                 ? 'var(--accent)'
                 : 'var(--vt-text-muted)',

@@ -176,7 +176,7 @@ export function readPalette(el: HTMLElement): Palette {
     return raw || fallback;
   };
   return {
-    source: v('--vt-accent-emerald', '#1c7c54'),
+    source: v('--vt-state-source-confirmed', '#1c7c54'),
     proof: v('--accent', '#4f46e5'),
     opportunity: v('--vt-field-opportunity', '#2f6fb0'),
     attention: v('--vt-state-stale', '#a2670b'),
