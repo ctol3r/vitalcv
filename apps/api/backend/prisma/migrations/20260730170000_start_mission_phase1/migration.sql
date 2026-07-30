@@ -16,7 +16,9 @@ ALTER TYPE "VerificationRequestStatus" ADD VALUE IF NOT EXISTS 'PARTIALLY_SATISF
 ALTER TYPE "VerificationRequestStatus" ADD VALUE IF NOT EXISTS 'UNABLE_TO_VERIFY';
 ALTER TYPE "VerificationRequestStatus" ADD VALUE IF NOT EXISTS 'CANCELLED';
 
-ALTER TABLE "verification_requests"
+-- VerificationRequest is a legacy, unmapped Prisma model, so the real table is
+-- quoted PascalCase. New fields use their explicit @map snake_case names.
+ALTER TABLE "VerificationRequest"
   ADD COLUMN IF NOT EXISTS "application_id" UUID,
   ADD COLUMN IF NOT EXISTS "start_activation_id" UUID,
   ADD COLUMN IF NOT EXISTS "activation_requirement_id" UUID,
@@ -33,18 +35,18 @@ ALTER TABLE "verification_requests"
   ADD COLUMN IF NOT EXISTS "idempotency_key" TEXT,
   ADD COLUMN IF NOT EXISTS "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;
 
-CREATE UNIQUE INDEX IF NOT EXISTS "verification_requests_idempotency_key_key"
-  ON "verification_requests"("idempotency_key");
-CREATE INDEX IF NOT EXISTS "verification_requests_application_id_status_idx"
-  ON "verification_requests"("application_id", "status");
-CREATE INDEX IF NOT EXISTS "verification_requests_start_activation_id_status_idx"
-  ON "verification_requests"("start_activation_id", "status");
-CREATE INDEX IF NOT EXISTS "verification_requests_activation_requirement_id_idx"
-  ON "verification_requests"("activation_requirement_id");
-CREATE INDEX IF NOT EXISTS "verification_requests_issuer_id_status_idx"
-  ON "verification_requests"("issuer_id", "status");
-CREATE INDEX IF NOT EXISTS "verification_requests_next_follow_up_at_status_idx"
-  ON "verification_requests"("next_follow_up_at", "status");
+CREATE UNIQUE INDEX IF NOT EXISTS "VerificationRequest_idempotency_key_key"
+  ON "VerificationRequest"("idempotency_key");
+CREATE INDEX IF NOT EXISTS "VerificationRequest_application_id_status_idx"
+  ON "VerificationRequest"("application_id", "status");
+CREATE INDEX IF NOT EXISTS "VerificationRequest_start_activation_id_status_idx"
+  ON "VerificationRequest"("start_activation_id", "status");
+CREATE INDEX IF NOT EXISTS "VerificationRequest_activation_requirement_id_idx"
+  ON "VerificationRequest"("activation_requirement_id");
+CREATE INDEX IF NOT EXISTS "VerificationRequest_issuer_id_status_idx"
+  ON "VerificationRequest"("issuer_id", "status");
+CREATE INDEX IF NOT EXISTS "VerificationRequest_next_follow_up_at_status_idx"
+  ON "VerificationRequest"("next_follow_up_at", "status");
 
 -- Nullable and omitted from canonical packet bytes for legacy rows.
 ALTER TABLE "application_packets"
