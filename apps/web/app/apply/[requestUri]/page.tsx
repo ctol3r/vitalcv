@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { ArrowRight, Building2, Clock3, FileKey2, ShieldCheck } from 'lucide-react';
 
+import { Icon } from '@/components/Icon';
 import { ApplyIntentComposer } from '@/components/apply/ApplyIntentComposer';
 import { loadApplyIntent } from '@/lib/server/applyIntent';
 
@@ -40,7 +40,7 @@ export default async function ApplyIntentPage({
               : result.message}
           </p>
           <Link href="/explore" className="mt-6 inline-flex items-center gap-2 font-semibold text-indigo-700">
-            Explore opportunities <ArrowRight className="h-4 w-4" aria-hidden="true" />
+            Explore opportunities <Icon name="arrow-right" className="h-4 w-4" aria-hidden="true" />
           </Link>
         </div>
       </main>
@@ -59,14 +59,14 @@ export default async function ApplyIntentPage({
             <div className="flex flex-wrap items-center justify-between gap-3">
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-indigo-700">Apply with VitalCV</p>
               <p className="flex items-center gap-2 text-xs text-slate-600">
-                <Clock3 className="h-4 w-4" aria-hidden="true" /> Expires {new Date(intent.expiresAt).toLocaleString()}
+                <Icon name="clock" className="h-4 w-4" aria-hidden="true" /> Expires {new Date(intent.expiresAt).toLocaleString()}
               </p>
             </div>
           </div>
           <div className="grid gap-8 px-6 py-8 sm:px-8 lg:grid-cols-[1.35fr_0.65fr]">
             <div>
               <div className="flex items-center gap-2 text-sm font-medium text-slate-600">
-                <Building2 className="h-4 w-4" aria-hidden="true" /> {intent.organization.name}
+                <Icon name="building" className="h-4 w-4" aria-hidden="true" /> {intent.organization.name}
               </div>
               <h1 className="mt-3 text-4xl font-semibold tracking-[-0.03em] text-slate-950 sm:text-5xl">
                 {intent.opportunity.title}
@@ -79,7 +79,7 @@ export default async function ApplyIntentPage({
               </p>
             </div>
             <aside className="rounded-[26px] border border-indigo-200 bg-indigo-50 p-5">
-              <ShieldCheck className="h-6 w-6 text-indigo-700" aria-hidden="true" />
+              <Icon name="shield" className="h-6 w-6 text-indigo-700" aria-hidden="true" />
               <h2 className="mt-3 text-lg font-semibold">One consented packet</h2>
               <p className="mt-2 text-sm leading-6 text-slate-700">
                 Your packet is sealed to this employer, this opportunity version, and your first-class consent grant. Delivery is recorded separately from employer review.
@@ -105,7 +105,7 @@ export default async function ApplyIntentPage({
         {unavailable ? (
           <section className="rounded-[28px] border border-amber-300 bg-amber-50 p-6 text-amber-950">
             <div className="flex items-start gap-3">
-              <FileKey2 className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
+              <Icon name="file-key" className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
               <div>
                 <h2 className="font-semibold">This request is no longer open</h2>
                 <p className="mt-2 text-sm leading-6">{statusMessage(intent.status as 'used' | 'expired')}</p>
@@ -125,7 +125,7 @@ export default async function ApplyIntentPage({
               href={`/sign-in?redirect_url=${encodeURIComponent(redirectPath)}`}
               className="mt-6 inline-flex items-center gap-2 rounded-full bg-indigo-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-indigo-800"
             >
-              Sign in and review <ArrowRight className="h-4 w-4" aria-hidden="true" />
+              Sign in and review <Icon name="arrow-right" className="h-4 w-4" aria-hidden="true" />
             </Link>
           </section>
         )}
