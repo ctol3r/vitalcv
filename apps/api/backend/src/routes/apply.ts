@@ -1,13 +1,9 @@
 /**
  * apply.ts — Apply-with-VitalCV Routes
  *
- * Routes:
- *   POST   /api/apply/bundle           — generate bundle (clinician-auth)
- *   GET    /api/apply/bundle/:bundleId — retrieve bundle (public, employer-consumable)
- *   POST   /api/apply/verify           — verify bundle integrity (public)
- *   POST   /api/apply/share            — Sign & Share with org context (clinician-auth)
- *   GET    /api/apply/shares/:npi      — list shares for a clinician (clinician-auth)
- *   DELETE /api/apply/share/:shareId   — revoke a share (clinician-auth)
+ * Legacy bundle/share routes remain available. Phase 2 also registers the
+ * canonical ParRequest-backed Apply Intent transaction routes through this
+ * module so the application bootstrap has one Apply registration point.
  */
 
 import type { Express, NextFunction, Request, Response } from 'express';
@@ -22,6 +18,7 @@ import {
 import { HttpError } from '../utils/httpError';
 import { log } from '../obs/logger';
 import { emitLearningEvent } from '../services/feedback/prismaEventStore';
+import { registerApplyIntentRoutes } from './applyIntents';
 
 function asyncHandler(fn: (req: Request, res: Response, next: NextFunction) => Promise<void>) {
   return (req: Request, res: Response, next: NextFunction) => fn(req, res, next).catch(next);
@@ -34,8 +31,8 @@ function requireClerkUserId(req: Request): string {
 }
 
 export function registerApplyRoutes(app: Express): void {
+  registerApplyIntentRoutes(app);
 
-  // ── POST /api/apply/bundle ─────────────────────────────────────────────────
   app.post(
     '/api/apply/bundle',
     asyncHandler(async (req, res) => {
@@ -52,7 +49,6 @@ export function registerApplyRoutes(app: Express): void {
     }),
   );
 
-  // ── GET /api/apply/bundle/:bundleId ────────────────────────────────────────
   app.get(
     '/api/apply/bundle/:bundleId',
     asyncHandler(async (req, res) => {
@@ -67,7 +63,6 @@ export function registerApplyRoutes(app: Express): void {
     }),
   );
 
-  // ── POST /api/apply/verify ─────────────────────────────────────────────────
   app.post(
     '/api/apply/verify',
     asyncHandler(async (req, res) => {
@@ -83,25 +78,6 @@ export function registerApplyRoutes(app: Express): void {
     }),
   );
 
-  // ── POST /api/apply/share ──────────────────────────────────────────────────
-  /**
-   * Sign & Share a bundle to a specific organization.
-   *
-   * Body: {
-   *   npi: string,
-   *   organization_context: {
-   *     organization_id: string,
-   *     name: string,
-   *     callback_url?: string,
-   *     purpose_of_use: string,
-   *   },
-   *   selectiveClaims?: string[],
-   * }
-   *
-   * Returns: ShareResult — { success, shareId, bundleId, recipient, status,
-   *                          sharedAt, expiresAt, bundleUrl,
-   *                          webhookDelivered, emailSent }
-   */
   app.post(
     '/api/apply/share',
     asyncHandler(async (req, res) => {
@@ -128,7 +104,6 @@ export function registerApplyRoutes(app: Express): void {
 
       const result = await shareBundle(npi, clerkUserId, orgCtx, { selectiveClaims });
 
-      // Learning: track application submitted (fire-and-forget)
       emitLearningEvent({
         type: 'APPLICATION_SUBMITTED',
         providerId: npi,
@@ -141,11 +116,6 @@ export function registerApplyRoutes(app: Express): void {
     }),
   );
 
-  // ── GET /api/apply/shares/:npi ─────────────────────────────────────────────
-  /**
-   * List all shares for a clinician.
-   * Returns array of ShareListEntry — summary of each share event.
-   */
   app.get(
     '/api/apply/shares/:npi',
     asyncHandler(async (req, res) => {
@@ -159,12 +129,6 @@ export function registerApplyRoutes(app: Express): void {
     }),
   );
 
-  // ── DELETE /api/apply/share/:shareId ──────────────────────────────────────
-  /**
-   * Revoke a specific share. Only the original sharer (by clerkUserId) can revoke.
-   * The bundle itself is not deleted — it simply becomes marked revoked.
-   * The public /apply/[bundleId] page should check share revocation status.
-   */
   app.delete(
     '/api/apply/share/:shareId',
     asyncHandler(async (req, res) => {
@@ -191,6 +155,11 @@ export function registerApplyRoutes(app: Express): void {
 
   log('info', 'apply_routes_registered', {
     routes: [
+      'POST   /api/apply/intents',
+      'GET    /api/apply/intents/:requestUri',
+      'POST   /api/apply/intents/:requestUri/submit',
+      'GET    /api/applications/:applicationId/handoff',
+      'GET    /api/handoffs/:handoffId/receipts',
       'POST   /api/apply/bundle',
       'GET    /api/apply/bundle/:bundleId',
       'POST   /api/apply/verify',
