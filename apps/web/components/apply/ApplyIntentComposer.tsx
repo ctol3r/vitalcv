@@ -2,8 +2,8 @@
 
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowRight, CheckCircle2, FileCheck2, Loader2, ShieldCheck } from 'lucide-react';
 
+import { Icon } from '@/components/Icon';
 import type {
   ApplyIntentField,
   ApplyIntentSubmissionResult,
@@ -144,7 +144,7 @@ export function ApplyIntentComposer({
     return (
       <section className="rounded-[28px] border border-emerald-600/20 bg-emerald-50 p-6 shadow-sm" aria-live="polite">
         <div className="flex items-start gap-3">
-          <CheckCircle2 className="mt-0.5 h-6 w-6 shrink-0 text-emerald-700" aria-hidden="true" />
+          <Icon name="file-check" className="mt-0.5 h-6 w-6 shrink-0 text-emerald-700" aria-hidden="true" />
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.16em] text-emerald-800">Application handed off</p>
             <h2 className="mt-2 text-2xl font-semibold text-slate-950">Your exact packet is sealed and recorded.</h2>
@@ -172,7 +172,7 @@ export function ApplyIntentComposer({
           href={result.returnUrl}
           className="mt-6 inline-flex items-center gap-2 rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
         >
-          Return to employer <ArrowRight className="h-4 w-4" aria-hidden="true" />
+          Return to employer <Icon name="arrow-right" className="h-4 w-4" aria-hidden="true" />
         </a>
       </section>
     );
@@ -181,7 +181,7 @@ export function ApplyIntentComposer({
   return (
     <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
       <div className="flex items-start gap-3">
-        <FileCheck2 className="mt-1 h-5 w-5 shrink-0 text-indigo-700" aria-hidden="true" />
+        <Icon name="file-check" className="mt-1 h-5 w-5 shrink-0 text-indigo-700" aria-hidden="true" />
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-indigo-700">The packet you choose</p>
           <h2 className="mt-2 text-2xl font-semibold text-slate-950">Review each disclosure section</h2>
@@ -193,7 +193,7 @@ export function ApplyIntentComposer({
 
       {loading ? (
         <div className="mt-6 flex items-center gap-2 rounded-2xl bg-slate-50 p-4 text-sm text-slate-600">
-          <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> Loading your evidence preview…
+          <Icon name="loader" className="h-4 w-4 animate-spin" aria-hidden="true" /> Loading your evidence preview…
         </div>
       ) : null}
 
@@ -276,7 +276,7 @@ export function ApplyIntentComposer({
         disabled={!preview || !consented || submitting || selectedSections.size === 0}
         className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-full bg-indigo-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-indigo-800 disabled:cursor-not-allowed disabled:bg-slate-300 sm:w-auto"
       >
-        {submitting ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <ShieldCheck className="h-4 w-4" aria-hidden="true" />}
+        {submitting ? <Icon name="loader" className="h-4 w-4 animate-spin" aria-hidden="true" /> : <Icon name="shield" className="h-4 w-4" aria-hidden="true" />}
         {submitting ? 'Sealing and handing off…' : 'Authorize and apply'}
       </button>
     </section>
