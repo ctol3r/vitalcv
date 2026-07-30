@@ -1,10 +1,10 @@
 /**
  * Homepage artifact contracts after the four-step-spine promotion.
  *
- * The homepage now carries three illustrative surfaces — NPI resolution, the
- * chosen packet, and hospital review — plus one live source ledger. Drawings
- * name their parts, never pretend to be source results, and ship their complete
- * resting frame for no-JS and reduced-motion readers.
+ * The homepage carries two illustrative SVGs — NPI resolution and the packet
+ * handoff — plus a real interactive proof inspector and one live source ledger.
+ * Drawings name their parts, never pretend to be source results, and ship their
+ * complete resting frame for no-JS and reduced-motion readers.
  */
 
 import React from 'react';
@@ -32,7 +32,7 @@ describe('the hero is evidence-led', () => {
 
   it('renders one four-step spine instead of the retired section stack', () => {
     expect(html).toContain('data-home-spine');
-    expect(html.match(/role="tab"/g)).toHaveLength(4);
+    expect(html.match(/role="tab"/g)).toHaveLength(9); // four spine tabs + five inspector claims
     expect(html).not.toContain('class="ask-chapter"');
     expect(html).not.toContain('class="ask-beat"');
   });
@@ -43,14 +43,14 @@ describe('artifacts are understandable without motion or sight', () => {
     const svgs = (html.match(/<svg[^>]*>/g) ?? []).filter((tag) =>
       /class="ask-art[ "]/.test(tag),
     );
-    expect(svgs.length).toBeGreaterThanOrEqual(3);
+    expect(svgs.length).toBeGreaterThanOrEqual(2);
     for (const tag of svgs) {
       expect(tag).toContain('role="img"');
       expect(tag).toContain('aria-label=');
     }
   });
 
-  it('names the parts of the NPI, packet, and hospital-review surfaces', () => {
+  it('names the parts of the NPI and packet-handoff drawings', () => {
     const labels = [
       'your npi',
       'identity',
@@ -61,11 +61,8 @@ describe('artifacts are understandable without motion or sight', () => {
       'the packet',
       'your review',
       'what is missing',
-      'one packet',
-      'your worklist',
-      'recognize',
-      'request',
-      'advance',
+      'source + time on every claim',
+      'your decision, your committee',
     ];
     const lower = html.toLowerCase();
     for (const label of labels) expect(lower).toContain(`>${label}<`);
@@ -83,16 +80,27 @@ describe('artifacts are understandable without motion or sight', () => {
     }
   });
 
-  it('keeps an illustrative caption on every drawn figure', () => {
+  it('labels both drawings and the proof inspector as illustrative', () => {
     expect(html.match(/Illustrative — not a live result/g)?.length ?? 0).toBeGreaterThanOrEqual(3);
   });
 
-  it('keeps the live source ledger outside glass and without an illustrative caption', () => {
+  it('keeps the proof inspector and live source ledger outside glass', () => {
     const ledgerStart = html.indexOf('data-home-lane-ledger');
     expect(ledgerStart).toBeGreaterThan(0);
-    const ledgerPanel = html.slice(html.lastIndexOf('<div id="spine-panel-evidence"', ledgerStart), html.indexOf('</div><div id="spine-panel-packet"', ledgerStart));
+    const ledgerPanel = html.slice(
+      html.lastIndexOf('<div id="spine-panel-evidence"', ledgerStart),
+      html.indexOf('</div><div id="spine-panel-packet"', ledgerStart),
+    );
     expect(ledgerPanel).not.toContain('vt-artifact--glass');
     expect(ledgerPanel).not.toContain('Illustrative — not a live result');
+
+    const inspectorStart = html.indexOf('data-proof-packet-inspector');
+    expect(inspectorStart).toBeGreaterThan(0);
+    const inspectorWrapper = html.slice(
+      html.lastIndexOf('<div data-ask-artifact="once"', inspectorStart),
+      inspectorStart,
+    );
+    expect(inspectorWrapper).not.toContain('vt-artifact--glass');
   });
 });
 
