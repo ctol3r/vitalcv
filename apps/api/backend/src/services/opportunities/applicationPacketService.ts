@@ -65,6 +65,11 @@ export interface ApplicationPacketContent {
   consentAt: string;
   consentReceiptId: string;
   /**
+   * First-class grant binding. Omitted for legacy packets so their canonical
+   * bytes and stored hashes remain exactly unchanged.
+   */
+  consentGrantId?: string;
+  /**
    * The opportunity version the application was sealed against (its updatedAt at
    * seal time) — "what the clinician applied to". OPTIONAL, and covered by the
    * hash when present. Legacy packets sealed before this field existed omit it
