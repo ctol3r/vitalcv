@@ -1,3 +1,5 @@
+import { randomUUID } from 'node:crypto';
+
 import { Prisma, type PrismaClient } from '@prisma/client';
 
 import prisma from '../../graphql/prisma_client';
@@ -6,6 +8,13 @@ import { sha256ForPayload } from '../../utils/deterministic';
 export type ConsentScope = Readonly<Record<string, unknown>> | readonly unknown[];
 
 export interface CreateConsentGrantInput {
+  /**
+   * Optional preallocated identifier used by the atomic application transaction.
+   * The packet can bind this id before either record is written.
+   */
+  grantId?: string;
+  /** Optional preallocated audit id used as the packet's legacy consentReceiptId. */
+  auditEventId?: string;
   clinicianUserId: string;
   clinicianNpi: string;
   organizationId: string;
@@ -61,9 +70,10 @@ function asJson(value: unknown): Prisma.InputJsonValue {
   return value as Prisma.InputJsonValue;
 }
 
-function canonicalGrant(input: CreateConsentGrantInput, grantedAt: Date) {
+function canonicalGrant(input: CreateConsentGrantInput & { grantId: string }, grantedAt: Date) {
   return {
     version: '1',
+    grantId: requireText(input.grantId, 'grantId'),
     clinicianUserId: requireText(input.clinicianUserId, 'clinicianUserId'),
     clinicianNpi: requireNpi(input.clinicianNpi),
     organizationId: requireText(input.organizationId, 'organizationId'),
@@ -92,21 +102,25 @@ export async function createConsentGrantInTransaction(
   input: CreateConsentGrantInput,
 ): Promise<ConsentGrantRecord> {
   const grantedAt = input.grantedAt ?? new Date();
-  const canonical = canonicalGrant(input, grantedAt);
+  const grantId = input.grantId ?? randomUUID();
+  const auditEventId = input.auditEventId ?? randomUUID();
+  const canonical = canonicalGrant({ ...input, grantId }, grantedAt);
   const grantHash = sha256ForPayload(canonical);
 
   const audit = await tx.auditEvent.create({
     data: {
+      id: auditEventId,
       type: 'consent_grant_created',
       hash: grantHash,
       referenceId: canonical.applicationId
         ?? canonical.verificationRequestId
         ?? canonical.startActivationId
-        ?? grantHash,
+        ?? canonical.grantId,
       clinicianId: canonical.clinicianUserId,
       organizationId: canonical.organizationId,
       metadata: asJson({
         entity_type: 'consent_grant',
+        consent_grant_id: canonical.grantId,
         action: canonical.action,
         recipient: canonical.recipient,
         purpose: canonical.purpose,
@@ -125,6 +139,7 @@ export async function createConsentGrantInTransaction(
 
   return tx.consentGrant.create({
     data: {
+      id: canonical.grantId,
       clinicianUserId: canonical.clinicianUserId,
       clinicianNpi: canonical.clinicianNpi,
       organizationId: canonical.organizationId,
@@ -153,7 +168,10 @@ export async function createConsentGrant(
   client: PrismaClient = prisma,
 ): Promise<ConsentGrantRecord> {
   const grantedAt = input.grantedAt ?? new Date();
-  const grantHash = sha256ForPayload(canonicalGrant(input, grantedAt));
+  const grantId = input.grantId ?? randomUUID();
+  const auditEventId = input.auditEventId ?? randomUUID();
+  const stableInput = { ...input, grantId, auditEventId, grantedAt };
+  const grantHash = sha256ForPayload(canonicalGrant(stableInput, grantedAt));
   const existing = await client.consentGrant.findUnique({
     where: { grantHash },
     select: {
@@ -170,7 +188,7 @@ export async function createConsentGrant(
   try {
     return await client.$transaction((tx) => createConsentGrantInTransaction(
       tx as unknown as ConsentGrantTransaction,
-      { ...input, grantedAt },
+      stableInput,
     ));
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
