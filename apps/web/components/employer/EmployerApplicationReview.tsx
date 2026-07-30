@@ -36,10 +36,12 @@ export function EmployerApplicationReview({
 }: {
   workflowResult: EmployerWorkflowLoadResult;
   evidenceResult: ApplicationEvidenceLoadResult;
-  handoffResult: EmployerHandoffLoadResult;
+  /** Optional only for retained pre-Phase-2 render fixtures. Runtime pages supply it. */
+  handoffResult?: EmployerHandoffLoadResult;
 }) {
   const workflow = workflowResult.status === 'ok' ? workflowResult.data : null;
   const error = workflowError(workflowResult);
+  const resolvedHandoffResult: EmployerHandoffLoadResult = handoffResult ?? { status: 'not_found' };
 
   return (
     <main className="min-h-screen bg-[#08101d] px-4 py-8 text-white sm:px-6 lg:px-8">
@@ -90,7 +92,7 @@ export function EmployerApplicationReview({
           </Card>
         )}
 
-        <EmployerHandoffReceiptCard result={handoffResult} />
+        <EmployerHandoffReceiptCard result={resolvedHandoffResult} />
 
         <section className="rounded-[28px] border border-white/10 bg-white/[0.04] p-4 sm:p-6">
           <div className="mb-5 flex items-start gap-3 rounded-2xl border border-emerald-400/20 bg-emerald-400/10 p-4 text-emerald-50">
