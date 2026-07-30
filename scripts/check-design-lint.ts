@@ -116,7 +116,6 @@ const LEGACY_HOME_ROOTS = [
 const HOMEPAGE_ROOTS = [...FILM_ROOTS, ...LEGACY_HOME_ROOTS];
 
 const RULES: Rule[] = [
-  // ---------------------------------------------------------------- design system
   {
     id: 'LINT-01',
     mode: 'ratchet',
@@ -210,23 +209,22 @@ const RULES: Rule[] = [
     roots: [join(web, 'styles')],
     exts: CSS,
     stripComments: true,
-    // Guard the settled semantic names and the concrete global product tokens.
-    // Scoped legacy islands (`--ag-*`, `--vh-*`, etc.) remain separate ratchet
-    // debt; treating every token that merely contains "accent" or "ink" as a
-    // new hard error turned the gate red on pre-existing code and obscured the
-    // regression this rule exists to stop.
+    // Guard the settled local names and the actual global light-theme tokens.
+    // Do not sweep every legacy `--vt-surface-*` island: ops/base/sunken tokens
+    // intentionally live in other palettes and are separate consolidation debt.
     pattern:
-      /--(?:(?:ink|paper|rule|accent)[a-z0-9-]*|vt-(?:cloud-dancer|bg|surface(?:-[a-z0-9-]+)?|border(?:-[a-z0-9-]+)?|accent(?:-[a-z0-9-]+)?))\s*:[^;]*(?:#[0-9a-fA-F]{3,8}\b|oklch\()/,
+      /--(?:(?:ink|paper|rule|accent)[a-z0-9-]*|vt-(?:cloud-dancer|bg|surface(?:-(?:subtle|dim))?|border(?:-subtle)?|accent(?:-(?:editorial|hover))?))\s*:[^;]*(?:#[0-9a-fA-F]{3,8}\b|oklch\()/,
     allow: (_f, line) => {
       const c = colorOf(line);
       if (!c) return true;
-      const isAccent = /--[a-z0-9-]*accent(?:-|:)/.test(line);
+      // `--vt-accent` and `--vt-accent-hover` are the ink action pair in the
+      // current system. The chromatic editorial signal is explicitly named;
+      // unprefixed --accent* tokens remain governed as editorial accents too.
+      const isAccent = /--(?:accent[a-z0-9-]*|vt-accent-editorial)\s*:/.test(line);
       if (c.C <= (isAccent ? 0.006 : 0.004)) return true;
       return isAccent ? c.H >= 255 && c.H <= 310 : c.H >= 30 && c.H <= 110;
     },
   },
-
-  // ------------------------------------------- COMPETE composition rules (R1–R8)
   {
     id: 'R1',
     mode: 'error',
