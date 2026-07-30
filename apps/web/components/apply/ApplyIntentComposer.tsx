@@ -117,17 +117,21 @@ export function ApplyIntentComposer({
       if (!response.ok) throw new Error(body.message ?? body.error ?? 'The application could not be submitted.');
       setResult(body);
       const parentOrigin = safeParentOrigin();
+      const message = {
+        type: 'VITALCV_APPLICATION_SUBMITTED',
+        payload: {
+          applicationId: body.applicationId,
+          opportunityId: body.opportunityId,
+          handoffId: body.handoffId,
+          packetHash: body.packet.hash,
+          receiptStatus: body.handoffReceipt.status,
+        },
+      } as const;
       if (parentOrigin && window.parent !== window) {
-        window.parent.postMessage({
-          type: 'VITALCV_APPLICATION_SUBMITTED',
-          payload: {
-            applicationId: body.applicationId,
-            opportunityId: body.opportunityId,
-            handoffId: body.handoffId,
-            packetHash: body.packet.hash,
-            receiptStatus: body.handoffReceipt.status,
-          },
-        }, parentOrigin);
+        window.parent.postMessage(message, parentOrigin);
+      }
+      if (parentOrigin && window.opener && window.opener !== window) {
+        window.opener.postMessage(message, parentOrigin);
       }
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'The application could not be submitted.');
