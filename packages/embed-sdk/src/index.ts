@@ -1,6 +1,11 @@
 export interface VitalCVWidgetConfig {
   clientId: string;
   baseUrl?: string;
+  /**
+   * Opaque ParRequest-backed Apply Intent. When present, the SDK mounts the
+   * canonical /apply/[requestUri] flow instead of the legacy widget route.
+   */
+  requestUri?: string;
   jobId?: string;
   role?: string;
   creds?: string | string[];
@@ -9,6 +14,7 @@ export interface VitalCVWidgetConfig {
   height?: number | string;
   title?: string;
   onVerified?: (message: VitalCVVerifiedMessage) => void;
+  onSubmitted?: (message: VitalCVApplicationSubmittedMessage) => void;
   onError?: (message: VitalCVErrorMessage) => void;
   onClose?: () => void;
 }
@@ -16,6 +22,18 @@ export interface VitalCVWidgetConfig {
 export interface VitalCVVerifiedMessage {
   type: 'VITALCV_VERIFIED';
   payload?: Record<string, unknown>;
+}
+
+export interface VitalCVApplicationSubmittedMessage {
+  type: 'VITALCV_APPLICATION_SUBMITTED';
+  payload?: {
+    applicationId?: string;
+    opportunityId?: string;
+    handoffId?: string;
+    packetHash?: string;
+    receiptStatus?: string;
+    [key: string]: unknown;
+  };
 }
 
 export interface VitalCVErrorMessage {
@@ -30,6 +48,7 @@ export interface VitalCVCloseMessage {
 
 type VitalCVIncomingMessage =
   | VitalCVVerifiedMessage
+  | VitalCVApplicationSubmittedMessage
   | VitalCVErrorMessage
   | VitalCVCloseMessage;
 
@@ -66,6 +85,15 @@ function serializeCreds(creds: string | string[] | undefined): string | null {
   return creds ?? null;
 }
 
+function normalizeRequestUri(requestUri: string | undefined): string | null {
+  const normalized = requestUri?.trim();
+  if (!normalized) return null;
+  if (!/^vai_[A-Za-z0-9_-]{20,80}$/.test(normalized)) {
+    throw new Error('VitalCV requestUri is malformed.');
+  }
+  return normalized;
+}
+
 function isWidgetMessage(data: unknown): data is VitalCVIncomingMessage {
   if (typeof data !== 'object' || data === null) {
     return false;
@@ -74,6 +102,7 @@ function isWidgetMessage(data: unknown): data is VitalCVIncomingMessage {
   const candidate = data as { type?: unknown };
   return (
     candidate.type === 'VITALCV_VERIFIED'
+    || candidate.type === 'VITALCV_APPLICATION_SUBMITTED'
     || candidate.type === 'VITALCV_ERROR'
     || candidate.type === 'VITALCV_CLOSE'
   );
@@ -88,6 +117,7 @@ export class VitalCVWidget {
   constructor(config: VitalCVWidgetConfig) {
     this.config = {
       baseUrl: normalizeBaseUrl(config.baseUrl),
+      requestUri: undefined,
       jobId: '',
       role: '',
       creds: undefined,
@@ -96,6 +126,7 @@ export class VitalCVWidget {
       height: 320,
       title: 'Apply with VitalCV',
       onVerified: undefined,
+      onSubmitted: undefined,
       onError: undefined,
       onClose: undefined,
       ...config,
@@ -148,11 +179,15 @@ export class VitalCVWidget {
   }
 
   private buildIframeSrc(): string {
-    const url = new URL('/widget/apply', this.config.baseUrl);
+    const requestUri = normalizeRequestUri(this.config.requestUri);
+    const url = requestUri
+      ? new URL(`/apply/${encodeURIComponent(requestUri)}`, this.config.baseUrl)
+      : new URL('/widget/apply', this.config.baseUrl);
     const creds = serializeCreds(this.config.creds);
 
     url.searchParams.set('clientId', this.config.clientId);
     url.searchParams.set('org', this.config.clientId);
+    if (requestUri) url.searchParams.set('embed', '1');
 
     if (this.config.jobId) {
       url.searchParams.set('jobId', this.config.jobId);
@@ -188,11 +223,12 @@ export class VitalCVWidget {
       case 'VITALCV_VERIFIED':
         this.config.onVerified?.(event.data);
         return;
-
+      case 'VITALCV_APPLICATION_SUBMITTED':
+        this.config.onSubmitted?.(event.data);
+        return;
       case 'VITALCV_ERROR':
         this.config.onError?.(event.data);
         return;
-
       case 'VITALCV_CLOSE':
         this.config.onClose?.();
         this.unmount();
