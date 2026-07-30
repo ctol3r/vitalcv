@@ -46,6 +46,12 @@ function requireUuid(value: string | undefined): string {
   return id;
 }
 
+/**
+ * Durable-audit delegation: createApplyIntent and submitApplyIntent execute
+ * tx.auditEvent.create before their domain writes in the same Prisma transaction.
+ * Their real-PostgreSQL contract test proves that no 2xx result exists without
+ * the paired durable audit, consent, packet, application and handoff records.
+ */
 export function registerApplyIntentRoutes(app: Express): void {
   app.post(
     '/api/apply/intents',
