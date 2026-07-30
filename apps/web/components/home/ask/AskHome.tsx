@@ -11,10 +11,10 @@
 import Link from 'next/link';
 import * as React from 'react';
 
-import { DecisionArtifact } from '@/components/artifacts/PageArtifacts';
 import { LiveNpiResult } from '@/components/home/LiveNpiResult';
 import { SpineTabs, type SpineStep } from '@/components/home/spine/SpineTabs';
 import { TruthBoundary } from '@/components/home/TruthBoundary';
+import { ProofPacketInspector } from '@/components/proof/ProofPacketInspector';
 import { FUNNEL_EVENTS, trackFunnelEvent } from '@/lib/analytics/funnel';
 import { SOURCE_LANE_OPS } from '@/lib/trust/sourceLanes';
 import { checkNpi } from '@/lib/vital/npi';
@@ -40,7 +40,7 @@ const LANE_EXPLANATIONS: Record<string, { name: string; what: string }> = {
   },
   pecos_enrollment: {
     name: 'CMS PECOS enrollment',
-    what: 'Medicare enrollment evidence from the available CMS snapshot.',
+    what: 'Medicare enrollment evidence from the CMS snapshot.',
   },
   state_license: {
     name: 'State licensure',
@@ -95,15 +95,41 @@ function HomeLaneLedger() {
   );
 }
 
-function ArtifactPanel({ children }: { children: React.ReactNode }) {
-  return <figure className="vt-artifact vt-artifact--glass">{children}</figure>;
+function ArtifactPanel({
+  children,
+  kind,
+  glass = false,
+}: {
+  children: React.ReactNode;
+  kind: string;
+  glass?: boolean;
+}) {
+  return (
+    <figure
+      className={glass ? 'vt-artifact vt-artifact--glass' : 'vt-artifact'}
+      data-ask-artifact={kind}
+    >
+      {children}
+    </figure>
+  );
+}
+
+function PacketChoicePanel() {
+  return (
+    <div data-ask-artifact="once">
+      <ProofPacketInspector className="ask-beat-inspector" />
+      <p className="ask-door-cta">
+        <Link href="/onboarding">Build your CV Wallet →</Link>
+      </p>
+    </div>
+  );
 }
 
 function ReviewPanel() {
   return (
     <div>
-      <ArtifactPanel>
-        <DecisionArtifact />
+      <ArtifactPanel kind="packet" glass>
+        <PacketArtifact />
       </ArtifactPanel>
       <p className="ask-door-cta">
         <Link href="/employers" data-home-employer-door="">
@@ -122,7 +148,7 @@ function HomeSpine() {
       name: 'Start with your NPI',
       line: 'One number opens a recognizable public identity record — no blank intake wall.',
       panel: (
-        <ArtifactPanel>
+        <ArtifactPanel kind="checkrun">
           <CheckRunArtifact />
         </ArtifactPanel>
       ),
@@ -131,21 +157,16 @@ function HomeSpine() {
     {
       id: 'evidence',
       step: 'Step 2',
-      name: 'See source evidence',
+      name: 'Source evidence',
       line: 'Each lane names what can be read, its cadence, and where access is still required.',
       panel: <HomeLaneLedger />,
     },
     {
       id: 'packet',
       step: 'Step 3',
-      name: 'Choose the packet',
-      line: 'You choose what this employer receives. Omitted sections stay omitted.',
-      panel: (
-        <ArtifactPanel>
-          <PacketArtifact />
-        </ArtifactPanel>
-      ),
-      illustrative: true,
+      name: 'The packet you choose',
+      line: 'Inspect the exact claim, source, receipt, limitation, and permission boundary.',
+      panel: <PacketChoicePanel />,
     },
     {
       id: 'review',
