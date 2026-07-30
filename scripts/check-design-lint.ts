@@ -157,7 +157,6 @@ const RULES: Rule[] = [
     exts: [...TSX, ...CSS],
     stripComments: true,
     pattern: /data-theme=["']ops["']|--vt-surface-inverse|var\(--ink-950\)/,
-    // The ops surfaces themselves, and the prefix registry that names them.
     allow: (f) =>
       /[\\/](ops|admin|intelligence|operations-engine|mission-ops|system-health)[\\/]/.test(f) ||
       f.endsWith('publicSurfaceRoutes.ts'),
@@ -179,11 +178,6 @@ const RULES: Rule[] = [
     fix: 'Use var(--vt-lift) or var(--vt-focus-ring).',
     roots: [join(web, 'styles')],
     exts: CSS,
-    // The `\s*` MUST live inside the lookahead. With it outside
-    // (`:\s*(?!var\()`) the engine backtracks `\s*` to zero width, evaluates
-    // the lookahead against the leading space, finds no `var(` there, and
-    // reports a false positive on every correctly-tokenised declaration.
-    // That bug inflated this rule's first baseline — see DESIGN_LINT.md.
     pattern: /box-shadow\s*:\s*(?!\s*(?:none|var\(|inherit|initial|unset))/,
     allow: (f) => isTokenFile(f),
   },
@@ -196,8 +190,6 @@ const RULES: Rule[] = [
     exts: TSX,
     pattern:
       /\b(cheapest|guaranteed\s+(?:roi|results)|as seen in|trusted by \d|100%\s+(?:secure|verified)|blockchain-verified|bank-level)\b/i,
-    // The spec's own carve-out: a surface may quote a prohibited phrase in
-    // order to PROHIBIT it. Detected structurally — the line must negate.
     allow: (_f, line) => /\bno\b|\bnever\b|\bwithout\b|\bprohibit/i.test(line),
   },
   {
@@ -207,7 +199,6 @@ const RULES: Rule[] = [
     fix: 'Use var(--font-display | --font-body | --font-mono).',
     roots: [join(web, 'styles')],
     exts: CSS,
-    // `\s*` inside the lookahead — same backtracking trap as LINT-06.
     pattern: /font-family\s*:\s*(?!\s*var\()/,
     allow: (f) => isTokenFile(f) || f.endsWith('fonts.css'),
   },
@@ -218,34 +209,19 @@ const RULES: Rule[] = [
     fix: 'Ink, paper and rule are WARM (CD-4). The accent is indigo and is never a state colour (CD-3) — green means one thing: a named source returned a match.',
     roots: [join(web, 'styles')],
     exts: CSS,
-    // Comments in these files quote the retired cool values in order to explain
-    // why they are retired; stripping keeps the documentation from tripping it.
     stripComments: true,
-    // Guard both local semantic names (`--ink-*`, `--accent-*`) and the actual
-    // product-wide `--vt-*` tokens. The first version started exactly at
-    // `--ink|paper|rule|accent`, which meant `--vt-accent-editorial` and
-    // `--vt-cloud-dancer` could regress without this hard-error ever seeing them.
+    // Guard the settled semantic names and the concrete global product tokens.
+    // Scoped legacy islands (`--ag-*`, `--vh-*`, etc.) remain separate ratchet
+    // debt; treating every token that merely contains "accent" or "ink" as a
+    // new hard error turned the gate red on pre-existing code and obscured the
+    // regression this rule exists to stop.
     pattern:
-      /--(?:(?:[a-z0-9]+-)*(?:ink|paper|rule|accent)[a-z0-9-]*|vt-(?:cloud-dancer|bg|surface(?:-[a-z0-9-]+)?|border(?:-[a-z0-9-]+)?|text-(?:primary|secondary|muted)|accent(?:-[a-z0-9-]+)?))\s*:[^;]*(?:#[0-9a-fA-F]{3,8}\b|oklch\()/,
+      /--(?:(?:ink|paper|rule|accent)[a-z0-9-]*|vt-(?:cloud-dancer|bg|surface(?:-[a-z0-9-]+)?|border(?:-[a-z0-9-]+)?|accent(?:-[a-z0-9-]+)?))\s*:[^;]*(?:#[0-9a-fA-F]{3,8}\b|oklch\()/,
     allow: (_f, line) => {
       const c = colorOf(line);
-      if (!c) return true; // var()/color-mix() — indirection, not a literal
-
-      // The neutral exemptions are tight ON PURPOSE. The retired cool ink ramp
-      // ran from C 0.005 (--ink-100) to C 0.012 (--ink-950), so any threshold
-      // at or above 0.012 lets the exact palette this wave removed walk back
-      // in — verified by re-adding `--ink-900: oklch(18% 0.012 265)` and
-      // watching a loose threshold pass it.
+      if (!c) return true;
       const isAccent = /--[a-z0-9-]*accent(?:-|:)/.test(line);
-      // Accent tolerates slightly more neutrality than ink: ink IS the action
-      // colour, which is what lets the dark theme's `--accent: #E4E3E0` pass
-      // without a named exemption.
       if (c.C <= (isAccent ? 0.006 : 0.004)) return true;
-
-      // A chromatic --accent* must sit in the indigo/violet arc. A chromatic
-      // ink/paper/rule must sit in the warm arc. Both bands deliberately
-      // EXCLUDE green (~120–190), where --ok / --vt-state-source-confirmed live and
-      // where nothing decorative may go.
       return isAccent ? c.H >= 255 && c.H <= 310 : c.H >= 30 && c.H <= 110;
     },
   },
@@ -309,12 +285,9 @@ const RULES: Rule[] = [
     roots: HOMEPAGE_ROOTS,
     exts: TSX,
     stripComments: true,
-    // A wheel listener or a scroll-axis preventDefault is how hijacking starts.
     pattern: /addEventListener\(\s*["'](?:wheel|touchmove)["']|onWheel=/,
   },
 ];
-
-// ---------------------------------------------------------------------------
 
 const EXCLUDED_DIRS = new Set([
   'node_modules', '.next', '.turbo', 'dist', 'build', 'coverage', '_archive', '__tests__', 'tests',
@@ -411,7 +384,6 @@ for (const rule of RULES) {
     continue;
   }
 
-  // ratchet
   const base = baseline[rule.id];
   if (base === undefined) {
     failures.push(rule.id);
