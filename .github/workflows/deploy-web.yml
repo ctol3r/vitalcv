@@ -56,7 +56,7 @@ jobs:
           node-version: 22
 
       - name: Audit Railway service and custom-domain binding
-        id: railway-audit
+        id: railway_audit
         env:
           RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN }}
         run: |
@@ -127,9 +127,13 @@ jobs:
             exit 1
           fi
 
-          jq -e --arg id "$RAILWAY_WEB_SERVICE_ID" \
-            '.data.service.id == $id and .data.service.projectId == env.RAILWAY_PROJECT_ID' \
-            railway-audit.json >/dev/null
+          jq -e --arg id "$RAILWAY_WEB_SERVICE_ID" --arg project "$RAILWAY_PROJECT_ID" \
+            '.data.service.id == $id and .data.service.projectId == $project' \
+            railway-audit.json >/dev/null || {
+              echo "::error::The Railway token did not resolve the pinned vitalcv-web service/project."
+              jq '.data.service' railway-audit.json
+              exit 1
+            }
           jq -e --arg domain "$RAILWAY_EXPECTED_DOMAIN" \
             '.data.domains.customDomains | any(.domain == $domain)' \
             railway-audit.json >/dev/null || {
@@ -145,7 +149,7 @@ jobs:
           jq '.data.domains' railway-audit.json
 
       - name: Request the exact main SHA from Railway
-        id: railway-deploy
+        id: railway_deploy
         env:
           RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN }}
         run: |
@@ -219,9 +223,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           REPO: ${{ github.repository }}
-          DEPLOY_OUTCOME: ${{ steps.railway-deploy.outcome }}
+          DEPLOY_OUTCOME: ${{ steps.railway_deploy.outcome }}
           SMOKE_OUTCOME: ${{ steps.smoke.outcome }}
-          DEPLOYMENT_ID: ${{ steps.railway-deploy.outputs.deployment_id }}
+          DEPLOYMENT_ID: ${{ steps.railway_deploy.outputs.deployment_id }}
         run: |
           if [ "$DEPLOY_OUTCOME" = "success" ] && [ "$SMOKE_OUTCOME" = "success" ]; then
             STATE=success
