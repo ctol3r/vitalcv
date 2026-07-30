@@ -112,15 +112,13 @@ export function HospitalArtifact() {
         className="ask-art-boundary ask-art-step-3"
       />
 
-      {/* BEAT 5 — the consequence. One room lights up, and it lights up AFTER
-          the packet reaches the door (step 7 lands as the trace finishes). The
-          first cut had this at step 4, so the reviewer was reading the packet
-          before it arrived — the drawing looked assembled but told the story
-          backwards, which is the failure mode of sequencing by z-order instead
-          of by narrative. */}
-      <rect x="316" y="114" width="46" height="55" className="ask-art-window--lit ask-art-step-7" />
-      {/* BEAT 6 — and someone is in it. */}
-      <g className="ask-art-step-8">
+      {/* The consequence begins only after the 1900ms + 900ms delivery trace
+          has finished. Step 8 starts at 3140ms, leaving a deliberate 340ms
+          pause before the room lights. The first cut used step 4; the previous
+          correction used step 7 at 2680ms and was still 120ms early. */}
+      <rect x="316" y="114" width="46" height="55" className="ask-art-window--lit ask-art-step-8" />
+      {/* Someone appears only after the room itself has lit. */}
+      <g className="ask-art-step-9">
         <circle cx="339" cy="132" r="5" className="ask-art-figure-soft" />
         <path d="M331 148 q8 -9 16 0" className="ask-art-figure-soft" />
       </g>
@@ -164,13 +162,13 @@ export function HospitalArtifact() {
       <text x="48" y="140" className="ask-art-label ask-art-step-1">
         the hospital
       </text>
-      <text x="316" y="106" className="ask-art-label ask-art-step-7">
+      <text x="316" y="106" className="ask-art-label ask-art-step-8">
         review room
       </text>
       <text x="596" y="256" className="ask-art-label ask-art-step-4">
         one packet
       </text>
-      <text x="48" y="364" className="ask-art-note ask-art-step-9">
+      <text x="48" y="364" className="ask-art-note ask-art-step-10">
         the committee still decides
       </text>
     </svg>
