@@ -1,14 +1,9 @@
 /**
- * /apply/[bundleId] — invalid-id 404 gate (Wave 2F route-contract hardening).
+ * /apply/[requestUri] — legacy bundle compatibility and invalid-id 404 gate.
  *
- * Production regression: /apply/x returned HTTP 500. Two causes:
- *   1. A non-uuid bundleId reached the backend, whose Postgres uuid column
- *      query throws → backend 500 → page fell into its 'error' branch.
- *   2. The 'error' branch rendered a <button onClick> inside a server
- *      component, crashing the RSC render into a 500 of its own.
- *
- * Contract: malformed or unresolvable bundle ids call notFound() (→ 404 via
- * not-found.tsx) and never fetch; expired/error states render anchors only.
+ * The route is now a dispatcher: `vai_...` identifiers use Apply Intent while
+ * UUID identifiers preserve the historical bundle contract. Malformed or
+ * unresolvable bundle ids call notFound() and never leak backend errors.
  */
 import { renderToStaticMarkup } from 'react-dom/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -30,14 +25,14 @@ vi.mock('@/components/apply/ApplyBundleView', () => ({
   ),
 }));
 
-import ApplyBundlePage from '../app/apply/[bundleId]/page';
-import ApplyBundleNotFound from '../app/apply/[bundleId]/not-found';
+import ApplyPage from '../app/apply/[requestUri]/page';
+import ApplyLinkNotFound from '../app/apply/[requestUri]/not-found';
 import { isValidBundleId } from '../lib/apply/bundle-id';
 
 const VALID_ID = '123e4567-e89b-42d3-a456-426614174000';
 
-function renderPage(bundleId: string) {
-  return ApplyBundlePage({ params: Promise.resolve({ bundleId }) });
+function renderPage(requestUri: string) {
+  return ApplyPage({ params: Promise.resolve({ requestUri }) });
 }
 
 describe('isValidBundleId', () => {
@@ -53,13 +48,13 @@ describe('isValidBundleId', () => {
   });
 });
 
-describe('/apply/[bundleId] — invalid-id path', () => {
+describe('/apply/[requestUri] — legacy bundle path', () => {
   beforeEach(() => {
     vi.unstubAllGlobals();
     notFoundMock.mockClear();
   });
 
-  it('404s a malformed bundleId without hitting the backend', async () => {
+  it('404s a malformed bundle identifier without hitting the backend', async () => {
     const fetchMock = vi.fn();
     vi.stubGlobal('fetch', fetchMock);
 
@@ -68,14 +63,14 @@ describe('/apply/[bundleId] — invalid-id path', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it('404s a well-formed bundleId the backend does not know', async () => {
+  it('404s a well-formed bundle identifier the backend does not know', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('{}', { status: 404 })));
 
     await expect(renderPage(VALID_ID)).rejects.toThrow('NEXT_NOT_FOUND');
     expect(notFoundMock).toHaveBeenCalledTimes(1);
   });
 
-  it('renders the expired state (not a 404, not a crash) on backend 410', async () => {
+  it('renders the expired state without a 404 or server-component event handler', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('{}', { status: 410 })));
 
     const html = renderToStaticMarkup((await renderPage(VALID_ID)) as React.ReactElement);
@@ -89,13 +84,11 @@ describe('/apply/[bundleId] — invalid-id path', () => {
     const html = renderToStaticMarkup((await renderPage(VALID_ID)) as React.ReactElement);
     expect(notFoundMock).not.toHaveBeenCalled();
     expect(html).toContain('Connection interrupted');
-    // Retry must be a plain anchor — a <button onClick> here is an RSC
-    // render crash (the original production 500).
     expect(html).toContain(`href="/apply/${VALID_ID}"`);
     expect(html).not.toContain('<button');
   });
 
-  it('renders the bundle view for a resolvable bundle', async () => {
+  it('renders the bundle view for a resolvable historical bundle', async () => {
     vi.stubGlobal(
       'fetch',
       vi.fn().mockResolvedValue(
@@ -113,9 +106,9 @@ describe('/apply/[bundleId] — invalid-id path', () => {
   });
 });
 
-describe('/apply/[bundleId] — not-found boundary', () => {
-  it('renders contextual copy with a recovery path and no bundle data', () => {
-    const html = renderToStaticMarkup(<ApplyBundleNotFound />);
+describe('/apply/[requestUri] — not-found boundary', () => {
+  it('renders contextual copy with a recovery path and no application data', () => {
+    const html = renderToStaticMarkup(<ApplyLinkNotFound />);
     expect(html).toContain('Link not found');
     expect(html).toContain('This link is invalid or has been revoked.');
     expect(html).toContain('href="/passport"');
