@@ -13,6 +13,8 @@
  *    CD-13: the only images VitalCV publishes are its own artifacts.
  */
 
+import { readFileSync } from 'node:fs';
+
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
@@ -31,6 +33,8 @@ const ARTIFACTS = [
 
 /** The claim words a drawing may never make. Identical to the page artifacts. */
 const BANNED = ['verified', 'checked', 'live', 'nppes', 'oig', 'pecos', 'fresh', 'clear', 'complete'];
+
+const MOTION_CSS = readFileSync(new URL('../styles/artifact-motion.css', import.meta.url), 'utf8');
 
 describe('scene artifacts honour the artifact grammar', () => {
   for (const { name, el } of ARTIFACTS) {
@@ -109,16 +113,6 @@ describe('scene artifacts honour the artifact grammar', () => {
   });
 
   /**
-   * Narrative order. These drawings are meant to tell a story, and a story is
-   * an ORDER, not a set of parts — the first cut of the hospital lit the review
-   * room at step 4 and delivered the packet at step 6, so the reviewer was
-   * reading a packet that had not arrived yet. It looked completely fine as a
-   * still frame, which is exactly why it needs a test.
-   *
-   * Asserted as a relation between beats, not as specific step numbers, so
-   * retiming the sequence does not break it — only reversing it does.
-   */
-  /**
    * The step number on the <text> element whose own content is `label`.
    * Read from that element's own class attribute — an earlier version scanned a
    * ±400-character window around the text and picked up whichever step class
@@ -134,14 +128,35 @@ describe('scene artifacts honour the artifact grammar', () => {
     return Number(m![1]);
   };
 
-  it('the hospital lights the review room AFTER the packet arrives', () => {
+  const stepStartMs = (step: number): number => {
+    const block = new RegExp(
+      `\\.ask-art-play \\.ask-art-step-${step}\\s*\\{([\\s\\S]*?)\\n\\s*\\}`,
+    ).exec(MOTION_CSS)?.[1];
+    expect(block, `motion CSS has no step ${step} block`).toBeDefined();
+    const delay = /animation:[\s\S]*?\s(\d+)ms\s+both;/.exec(block!)?.[1];
+    expect(delay, `step ${step} has no explicit start delay`).toBeDefined();
+    return Number(delay);
+  };
+
+  const traceDurationMs = (): number => {
+    const duration = /\.ask-art-play \.ask-art-traced\s*\{[\s\S]*?animation:\s*ask-art-trace\s+(\d+)ms/.exec(
+      MOTION_CSS,
+    )?.[1];
+    expect(duration, 'the traced-path motion has no explicit duration').toBeDefined();
+    return Number(duration);
+  };
+
+  it('the hospital lights the review room only AFTER packet delivery completes', () => {
     const html = renderToStaticMarkup(<HospitalArtifact />);
-    const packet = stepOf(html, 'one packet');
-    const room = stepOf(html, 'review room');
+    const roomStep = stepOf(html, 'review room');
+    const traceDelay = /--trace-delay:\s*(\d+)ms/.exec(html)?.[1];
+    expect(traceDelay, 'the hospital delivery trace has no explicit delay').toBeDefined();
+
+    const deliveryFinishedAt = Number(traceDelay) + traceDurationMs();
     expect(
-      room,
-      'the reviewer cannot be reading a packet that has not arrived',
-    ).toBeGreaterThan(packet);
+      stepStartMs(roomStep),
+      'the review room cannot begin lighting while the packet is still travelling',
+    ).toBeGreaterThanOrEqual(deliveryFinishedAt);
   });
 
   it('the clinician gains sources after the rows, and travels only once sealed', () => {
