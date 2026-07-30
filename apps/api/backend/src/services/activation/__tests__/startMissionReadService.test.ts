@@ -105,7 +105,7 @@ describe('readStartMission', () => {
     };
 
     await expect(readStartMission({ applicationId: IDS.app, clerkUserId: 'foreign_user' }, dependencies))
-      .rejects.toMatchObject({ statusCode: 404 });
+      .rejects.toMatchObject({ status: 404, code: 'NOT_FOUND' });
     expect(loadCalled).toBe(false);
   });
 
@@ -129,7 +129,7 @@ describe('readStartMission', () => {
     };
 
     await expect(readStartMission({ applicationId: IDS.app, clerkUserId: 'user_clinician' }, dependencies))
-      .rejects.toMatchObject({ statusCode: 409, code: 'START_MISSION_BINDING_FAILED' });
+      .rejects.toMatchObject({ status: 409, code: 'START_MISSION_BINDING_FAILED' });
   });
 
   it('returns one bound mission with blockers and a clinician next action', async () => {
