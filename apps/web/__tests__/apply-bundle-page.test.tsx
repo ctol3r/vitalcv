@@ -19,6 +19,13 @@ vi.mock('next/navigation', () => ({
   notFound: notFoundMock,
 }));
 
+// This suite exercises the retained UUID bundle branch only. Isolate the
+// server-only clinician-intent loader that the unified dispatcher imports for
+// `vai_...` identifiers so Vitest does not execute Next's server-only sentinel.
+vi.mock('@/lib/server/applyIntent', () => ({
+  loadApplyIntent: vi.fn(),
+}));
+
 vi.mock('@/components/apply/ApplyBundleView', () => ({
   ApplyBundleView: ({ bundle }: { bundle: { bundleId: string } }) => (
     <div data-testid="apply-bundle-view">{bundle.bundleId}</div>
