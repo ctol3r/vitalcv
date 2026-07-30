@@ -45,11 +45,15 @@ jobs:
   deploy-and-verify:
     name: Exact-SHA web deployment
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
 
     steps:
       - name: Check out the release commit
         uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.6.1
 
       - uses: actions/setup-node@v4
         with:
@@ -205,6 +209,85 @@ jobs:
             --receipt deploy-receipt.json \
             | tee smoke-output.txt
 
+      - name: Install production-audit browser
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm --filter @vitalcv/web exec playwright install --with-deps chromium
+
+      - name: Run the homepage interaction contract against production
+        id: homepage_audit
+        env:
+          # Empty CI makes Playwright reuse the reachable production base URL
+          # instead of starting the repository's local preview webServer.
+          CI: ''
+          PLAYWRIGHT_BASE_URL: https://vitalcv.com
+        run: |
+          pnpm --filter @vitalcv/web exec playwright test \
+            tests/e2e/ask-home.spec.ts \
+            --project=chromium \
+            --workers=1 \
+            --reporter=list \
+            | tee production-home-audit.txt
+
+      - name: Capture production audit frames
+        env:
+          AUDIT_BASE: https://vitalcv.com
+        working-directory: apps/web
+        run: |
+          mkdir -p ../../production-home-audit
+          node <<'NODE'
+          const { chromium } = require('@playwright/test');
+          const path = require('node:path');
+
+          const base = process.env.AUDIT_BASE;
+          const output = (name) => path.resolve('../../production-home-audit', `${name}.png`);
+
+          (async () => {
+            const browser = await chromium.launch({ headless: true });
+
+            const capture = async (name, contextOptions, viewport, prepare) => {
+              const context = await browser.newContext(contextOptions);
+              const page = await context.newPage();
+              await page.setViewportSize(viewport);
+              await page.goto(base, { waitUntil: 'networkidle' });
+              await page.locator('[data-home-hero]').waitFor();
+              if (prepare) await prepare(page);
+              await page.screenshot({ path: output(name), fullPage: true });
+              await context.close();
+            };
+
+            await capture('desktop-1440', {}, { width: 1440, height: 1000 });
+            await capture('mobile-390', {}, { width: 390, height: 844 });
+            await capture(
+              'reduced-motion',
+              { reducedMotion: 'reduce' },
+              { width: 1440, height: 1000 },
+              async (page) => page.waitForTimeout(1000),
+            );
+            await capture(
+              'keyboard-focus',
+              {},
+              { width: 1440, height: 1000 },
+              async (page) => {
+                for (let stop = 0; stop < 12; stop += 1) {
+                  await page.keyboard.press('Tab');
+                  if (await page.evaluate(() => document.activeElement?.id === 'npi-input')) break;
+                }
+              },
+            );
+            await capture(
+              'no-javascript',
+              { javaScriptEnabled: false },
+              { width: 1440, height: 1000 },
+            );
+
+            await browser.close();
+          })().catch((error) => {
+            console.error(error);
+            process.exit(1);
+          });
+          NODE
+
       - name: Publish the convergence receipt
         if: always()
         uses: actions/upload-artifact@v4
@@ -215,6 +298,8 @@ jobs:
             railway-deploy.json
             deploy-receipt.json
             smoke-output.txt
+            production-home-audit.txt
+            production-home-audit/*.png
           if-no-files-found: warn
 
       - name: Record exact-SHA convergence status
@@ -225,14 +310,15 @@ jobs:
           REPO: ${{ github.repository }}
           DEPLOY_OUTCOME: ${{ steps.railway_deploy.outcome }}
           SMOKE_OUTCOME: ${{ steps.smoke.outcome }}
+          AUDIT_OUTCOME: ${{ steps.homepage_audit.outcome }}
           DEPLOYMENT_ID: ${{ steps.railway_deploy.outputs.deployment_id }}
         run: |
-          if [ "$DEPLOY_OUTCOME" = "success" ] && [ "$SMOKE_OUTCOME" = "success" ]; then
+          if [ "$DEPLOY_OUTCOME" = "success" ] && [ "$SMOKE_OUTCOME" = "success" ] && [ "$AUDIT_OUTCOME" = "success" ]; then
             STATE=success
-            DESC="vitalcv.com serves this exact main SHA"
+            DESC="exact main SHA live; production homepage audit passed"
           else
             STATE=failure
-            DESC="web deploy did not converge to this exact main SHA"
+            DESC="web deploy or production homepage audit did not converge"
           fi
 
           gh api -X POST "repos/${REPO}/statuses/${GITHUB_SHA}" \
@@ -250,5 +336,9 @@ jobs:
             echo ""
             echo '```'
             cat smoke-output.txt 2>/dev/null || echo "no smoke output captured"
+            echo '```'
+            echo ""
+            echo '```'
+            cat production-home-audit.txt 2>/dev/null || echo "no production homepage audit captured"
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
