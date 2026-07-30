@@ -221,8 +221,12 @@ const RULES: Rule[] = [
     // Comments in these files quote the retired cool values in order to explain
     // why they are retired; stripping keeps the documentation from tripping it.
     stripComments: true,
+    // Guard both local semantic names (`--ink-*`, `--accent-*`) and the actual
+    // product-wide `--vt-*` tokens. The first version started exactly at
+    // `--ink|paper|rule|accent`, which meant `--vt-accent-editorial` and
+    // `--vt-cloud-dancer` could regress without this hard-error ever seeing them.
     pattern:
-      /--(?:ink|paper|rule|accent)[a-z0-9-]*\s*:[^;]*(?:#[0-9a-fA-F]{3,8}\b|oklch\()/,
+      /--(?:(?:[a-z0-9]+-)*(?:ink|paper|rule|accent)[a-z0-9-]*|vt-(?:cloud-dancer|bg|surface(?:-[a-z0-9-]+)?|border(?:-[a-z0-9-]+)?|text-(?:primary|secondary|muted)|accent(?:-[a-z0-9-]+)?))\s*:[^;]*(?:#[0-9a-fA-F]{3,8}\b|oklch\()/,
     allow: (_f, line) => {
       const c = colorOf(line);
       if (!c) return true; // var()/color-mix() — indirection, not a literal
@@ -232,7 +236,7 @@ const RULES: Rule[] = [
       // at or above 0.012 lets the exact palette this wave removed walk back
       // in — verified by re-adding `--ink-900: oklch(18% 0.012 265)` and
       // watching a loose threshold pass it.
-      const isAccent = /--accent/.test(line);
+      const isAccent = /--[a-z0-9-]*accent(?:-|:)/.test(line);
       // Accent tolerates slightly more neutrality than ink: ink IS the action
       // colour, which is what lets the dark theme's `--accent: #E4E3E0` pass
       // without a named exemption.
@@ -306,7 +310,7 @@ const RULES: Rule[] = [
     exts: TSX,
     stripComments: true,
     // A wheel listener or a scroll-axis preventDefault is how hijacking starts.
-    pattern: /addEventListener\(\s*['"](?:wheel|touchmove)['"]|onWheel=/,
+    pattern: /addEventListener\(\s*["'](?:wheel|touchmove)["']|onWheel=/,
   },
 ];
 
