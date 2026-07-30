@@ -5,6 +5,7 @@
  * POST /api/profile/links
  * POST /api/profile/work-auth
  * POST /api/profile/npi/bootstrap
+ * POST /api/profile/npi/compose
  * GET  /api/profile/completeness
  */
 
@@ -23,6 +24,7 @@ import {
   updateSelfAttested,
   type ClearableLinkField,
 } from '../services/intake/intakeService';
+import { composeNpiProfileDraft } from '../services/profile/npiProfileComposer';
 import { ensureWorkspaceUser } from '../services/workspace/workspaceService';
 import { identityStateForUser, requireIdentityTier } from '../services/identity/identityGate';
 import { publicApiRateLimit } from '../middleware/publicSafety';
@@ -201,6 +203,21 @@ export function registerIntakeRoutes(app: Express): void {
         attestationVersion,
       });
       res.status(201).json(result);
+    }),
+  );
+
+  /**
+   * POST /api/profile/npi/compose
+   * Refreshes the signed-in clinician's Type-1 NPI from CMS NPPES and returns a
+   * provenance-aware AI draft. This endpoint does not save, publish, or share
+   * the draft; approval is deliberately a separate mutation.
+   */
+  app.post(
+    '/api/profile/npi/compose',
+    asyncHandler(async (req, res) => {
+      const userId = await requireInternalUserId(req);
+      const result = await composeNpiProfileDraft(userId);
+      res.json(result);
     }),
   );
 
