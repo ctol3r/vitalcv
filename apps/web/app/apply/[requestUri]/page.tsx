@@ -1,16 +1,150 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { notFound } from 'next/navigation';
 
 import { Icon } from '@/components/Icon';
+import { ApplyBundleView } from '@/components/apply/ApplyBundleView';
 import { ApplyIntentComposer } from '@/components/apply/ApplyIntentComposer';
+import { isValidBundleId } from '@/lib/apply/bundle-id';
 import { loadApplyIntent } from '@/lib/server/applyIntent';
 
-export const metadata: Metadata = {
-  title: 'Apply with VitalCV',
-  description: 'Review an employer request, choose the career evidence to disclose, and hand off an immutable application packet.',
-};
-
 export const dynamic = 'force-dynamic';
+
+interface BundleCredential {
+  type: string;
+  issuer: string;
+  status: string;
+  verifiedAt: string | null;
+  expiresAt: string | null;
+}
+
+interface IssuerProvenance {
+  issuerId: string;
+  name: string;
+  trustScore: number;
+}
+
+interface ApplyBundle {
+  bundleId: string;
+  entityId?: string | null;
+  npi: string;
+  clinicianName: string;
+  trustState: {
+    readiness_level: string;
+    readiness_score: number;
+    readiness_status: string;
+    computed_at: string;
+  };
+  credentials: BundleCredential[];
+  issuerProvenance: IssuerProvenance[];
+  monitoringStatus: 'active' | 'inactive' | 'partial';
+  profileUrl: string;
+  generatedAt: string;
+  expiresAt: string;
+  signature: string;
+}
+
+interface Props {
+  params: Promise<{ requestUri: string }>;
+}
+
+const BACKEND = (
+  process.env.BACKEND_URL
+  || process.env.NEXT_PUBLIC_API_BASE
+  || process.env.NEXT_PUBLIC_BACKEND_URL
+  || 'http://localhost:4000'
+).replace(/\/$/, '');
+
+function isApplyIntent(value: string): boolean {
+  return /^vai_[A-Za-z0-9_-]{20,80}$/.test(value);
+}
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { requestUri } = await params;
+  if (isApplyIntent(requestUri)) {
+    return {
+      title: 'Apply with VitalCV',
+      description: 'Review an employer request, choose the career evidence to disclose, and hand off an immutable application packet.',
+      robots: { index: false },
+    };
+  }
+  return {
+    title: 'Credential Bundle',
+    description: `Credential bundle ${requestUri} — powered by VitalCV.`,
+    robots: { index: false },
+  };
+}
+
+type BundleResult =
+  | { ok: true; bundle: ApplyBundle }
+  | { ok: false; reason: 'expired' | 'not_found' | 'error' };
+
+async function fetchBundle(bundleId: string): Promise<BundleResult> {
+  try {
+    const response = await fetch(`${BACKEND}/api/apply/bundle/${bundleId}`, {
+      cache: 'no-store',
+    });
+    if (response.status === 410) return { ok: false, reason: 'expired' };
+    if (response.status === 404) return { ok: false, reason: 'not_found' };
+    if (!response.ok) return { ok: false, reason: 'error' };
+    const bundle = await response.json() as ApplyBundle;
+    if (new Date(bundle.expiresAt) < new Date()) return { ok: false, reason: 'expired' };
+    return { ok: true, bundle };
+  } catch {
+    return { ok: false, reason: 'error' };
+  }
+}
+
+function BundleErrorView({ reason, retryHref }: { reason: 'expired' | 'error'; retryHref: string }) {
+  const messages = {
+    expired: {
+      symbol: '⏱',
+      title: 'This link has expired',
+      body: 'Passport links are valid for 24 hours.',
+      primaryLabel: 'Return to your passport',
+      primaryHref: '/holder',
+      secondaryLabel: 'Start a new NPI lookup',
+      secondaryHref: '/passport',
+    },
+    error: {
+      symbol: '!',
+      title: 'Connection interrupted',
+      body: 'We could not load this passport right now. Try again in a moment.',
+      primaryLabel: 'Try again',
+      primaryHref: retryHref,
+      secondaryLabel: 'Start a new NPI lookup',
+      secondaryHref: '/passport',
+    },
+  } as const;
+  const message = messages[reason];
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-ops-gradient px-4 text-foreground">
+      <div className="w-full max-w-sm space-y-4 text-center">
+        <div className="text-5xl" aria-hidden="true">{message.symbol}</div>
+        <h1 className="text-xl font-bold text-foreground">{message.title}</h1>
+        <p className="text-sm text-muted-foreground">{message.body}</p>
+        <div className="flex flex-col gap-2 pt-2">
+          <a href={message.primaryHref} className="inline-flex h-11 w-full items-center justify-center rounded-xl border border-border bg-muted px-6 text-sm font-semibold text-foreground transition-colors hover:bg-muted">
+            {message.primaryLabel}
+          </a>
+          <a href={message.secondaryHref} className="inline-flex h-11 w-full items-center justify-center rounded-xl border border-white/6 px-6 text-sm text-foreground/70 transition-colors hover:text-foreground">
+            {message.secondaryLabel}
+          </a>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+async function LegacyBundlePage({ bundleId }: { bundleId: string }) {
+  if (!isValidBundleId(bundleId)) notFound();
+  const result = await fetchBundle(bundleId);
+  if (!result.ok) {
+    if (result.reason === 'not_found') notFound();
+    return <BundleErrorView reason={result.reason} retryHref={`/apply/${bundleId}`} />;
+  }
+  return <ApplyBundleView bundle={result.bundle} />;
+}
 
 function statusMessage(status: 'used' | 'expired') {
   return status === 'used'
@@ -18,12 +152,7 @@ function statusMessage(status: 'used' | 'expired') {
     : 'This application request has expired. Ask the employer for a fresh Apply with VitalCV link.';
 }
 
-export default async function ApplyIntentPage({
-  params,
-}: {
-  params: Promise<{ requestUri: string }>;
-}) {
-  const { requestUri } = await params;
+async function ApplyIntentPage({ requestUri }: { requestUri: string }) {
   const result = await loadApplyIntent(requestUri);
 
   if (result.status !== 'ok') {
@@ -39,8 +168,8 @@ export default async function ApplyIntentPage({
               ? 'The link may be incomplete, revoked, or no longer available.'
               : result.message}
           </p>
-          <Link href="/explore" className="mt-6 inline-flex items-center gap-2 font-semibold text-indigo-700">
-            Explore opportunities <Icon name="arrow-right" className="h-4 w-4" aria-hidden="true" />
+          <Link href="/" className="mt-6 inline-flex items-center gap-2 font-semibold text-indigo-700">
+            Return to VitalCV <Icon name="arrow-right" className="h-4 w-4" aria-hidden="true" />
           </Link>
         </div>
       </main>
@@ -121,10 +250,7 @@ export default async function ApplyIntentPage({
             <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
               The employer request is public to anyone holding this opaque link. Your clinician profile and evidence remain private until a verified session loads your preview.
             </p>
-            <Link
-              href={`/sign-in?redirect_url=${encodeURIComponent(redirectPath)}`}
-              className="mt-6 inline-flex items-center gap-2 rounded-full bg-indigo-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-indigo-800"
-            >
+            <Link href={`/sign-in?redirect_url=${encodeURIComponent(redirectPath)}`} className="mt-6 inline-flex items-center gap-2 rounded-full bg-indigo-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-indigo-800">
               Sign in and review <Icon name="arrow-right" className="h-4 w-4" aria-hidden="true" />
             </Link>
           </section>
@@ -136,4 +262,11 @@ export default async function ApplyIntentPage({
       </div>
     </main>
   );
+}
+
+export default async function ApplyPage({ params }: Props) {
+  const { requestUri } = await params;
+  return isApplyIntent(requestUri)
+    ? <ApplyIntentPage requestUri={requestUri} />
+    : <LegacyBundlePage bundleId={requestUri} />;
 }
