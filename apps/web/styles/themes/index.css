@@ -167,7 +167,6 @@ html[data-theme='dark'] {
   --vt-text-2: var(--vt-text-secondary);
   --vt-text-3: var(--vt-text-muted);
   --vt-surface-2: var(--vt-surface-subtle);
-  --vt-surface-dim: var(--vt-surface-dim);
   --vt-border-2: var(--vt-border-subtle);
   --vt-critical: var(--vt-severity-critical);
   --vt-warning: var(--vt-severity-medium);
