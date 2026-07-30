@@ -1,9 +1,9 @@
-vi.mock('../../../graphql/prisma_client', () => ({
+jest.mock('../../../graphql/prisma_client', () => ({
   default: {
-    verificationArtifact: { findMany: vi.fn() },
-    npiDidBinding: { findUnique: vi.fn() },
-    candidateCredential: { findMany: vi.fn() },
-    issuedCredentialRecord: { findMany: vi.fn() },
+    verificationArtifact: { findMany: jest.fn() },
+    npiDidBinding: { findUnique: jest.fn() },
+    candidateCredential: { findMany: jest.fn() },
+    issuedCredentialRecord: { findMany: jest.fn() },
   },
 }));
 
@@ -14,15 +14,15 @@ const NOW = new Date('2026-07-30T12:00:00.000Z');
 
 describe('projectCredentials', () => {
   beforeEach(() => {
-    vi.resetAllMocks();
-    vi.mocked(prisma.verificationArtifact.findMany).mockResolvedValue([]);
-    vi.mocked(prisma.npiDidBinding.findUnique).mockResolvedValue(null);
-    vi.mocked(prisma.candidateCredential.findMany).mockResolvedValue([]);
-    vi.mocked(prisma.issuedCredentialRecord.findMany).mockResolvedValue([]);
+    jest.resetAllMocks();
+    jest.mocked(prisma.verificationArtifact.findMany).mockResolvedValue([]);
+    jest.mocked(prisma.npiDidBinding.findUnique).mockResolvedValue(null);
+    jest.mocked(prisma.candidateCredential.findMany).mockResolvedValue([]);
+    jest.mocked(prisma.issuedCredentialRecord.findMany).mockResolvedValue([]);
   });
 
   it('keeps source artifacts source-backed and carries claims, receipts and limitations', async () => {
-    vi.mocked(prisma.verificationArtifact.findMany).mockResolvedValue([{
+    jest.mocked(prisma.verificationArtifact.findMany).mockResolvedValue([{
       id: '4b6f0000-0000-4000-8000-000000000001',
       npi: '1558302470',
       source: 'NPPES',
@@ -62,7 +62,7 @@ describe('projectCredentials', () => {
   });
 
   it('never promotes a CandidateCredential into source-backed output', async () => {
-    vi.mocked(prisma.candidateCredential.findMany).mockResolvedValue([{
+    jest.mocked(prisma.candidateCredential.findMany).mockResolvedValue([{
       id: '4b6f0000-0000-4000-8000-000000000003',
       candidateCredentialId: 'candidate-1',
       clinicianId: 'clinician-1',
@@ -82,8 +82,8 @@ describe('projectCredentials', () => {
   });
 
   it('projects signed records only through the NPI-to-DID binding', async () => {
-    vi.mocked(prisma.npiDidBinding.findUnique).mockResolvedValue({ did: 'did:vcv:npi:1558302470' } as never);
-    vi.mocked(prisma.issuedCredentialRecord.findMany).mockResolvedValue([{
+    jest.mocked(prisma.npiDidBinding.findUnique).mockResolvedValue({ did: 'did:vcv:npi:1558302470' } as never);
+    jest.mocked(prisma.issuedCredentialRecord.findMany).mockResolvedValue([{
       id: '4b6f0000-0000-4000-8000-000000000004',
       credentialId: 'credential-1',
       issuerDid: 'did:example:board',
