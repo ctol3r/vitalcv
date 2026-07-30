@@ -1,4 +1,5 @@
 jest.mock('../../../graphql/prisma_client', () => ({
+  __esModule: true,
   default: {
     verificationArtifact: { findMany: jest.fn() },
     npiDidBinding: { findUnique: jest.fn() },
@@ -10,19 +11,26 @@ jest.mock('../../../graphql/prisma_client', () => ({
 import prisma from '../../../graphql/prisma_client';
 import { projectCredentials } from '../credentialProjectionService';
 
+const prismaMock = prisma as unknown as {
+  verificationArtifact: { findMany: jest.Mock };
+  npiDidBinding: { findUnique: jest.Mock };
+  candidateCredential: { findMany: jest.Mock };
+  issuedCredentialRecord: { findMany: jest.Mock };
+};
+
 const NOW = new Date('2026-07-30T12:00:00.000Z');
 
 describe('projectCredentials', () => {
   beforeEach(() => {
     jest.resetAllMocks();
-    jest.mocked(prisma.verificationArtifact.findMany).mockResolvedValue([]);
-    jest.mocked(prisma.npiDidBinding.findUnique).mockResolvedValue(null);
-    jest.mocked(prisma.candidateCredential.findMany).mockResolvedValue([]);
-    jest.mocked(prisma.issuedCredentialRecord.findMany).mockResolvedValue([]);
+    prismaMock.verificationArtifact.findMany.mockResolvedValue([]);
+    prismaMock.npiDidBinding.findUnique.mockResolvedValue(null);
+    prismaMock.candidateCredential.findMany.mockResolvedValue([]);
+    prismaMock.issuedCredentialRecord.findMany.mockResolvedValue([]);
   });
 
   it('keeps source artifacts source-backed and carries claims, receipts and limitations', async () => {
-    jest.mocked(prisma.verificationArtifact.findMany).mockResolvedValue([{
+    prismaMock.verificationArtifact.findMany.mockResolvedValue([{
       id: '4b6f0000-0000-4000-8000-000000000001',
       npi: '1558302470',
       source: 'NPPES',
@@ -46,7 +54,7 @@ describe('projectCredentials', () => {
         reviewReason: null,
       }],
       verificationReceiptRecords: [{ receiptId: 'receipt-1' }],
-    }] as never);
+    }]);
 
     const projected = await projectCredentials({ npi: '1558302470' }, NOW);
     expect(projected).toHaveLength(1);
@@ -62,14 +70,14 @@ describe('projectCredentials', () => {
   });
 
   it('never promotes a CandidateCredential into source-backed output', async () => {
-    jest.mocked(prisma.candidateCredential.findMany).mockResolvedValue([{
+    prismaMock.candidateCredential.findMany.mockResolvedValue([{
       id: '4b6f0000-0000-4000-8000-000000000003',
       candidateCredentialId: 'candidate-1',
       clinicianId: 'clinician-1',
       data: { credentialType: 'BOARD_CERT', provenance: 'clinician_approved', npi: '1558302470' },
       status: 'VERIFIED',
       createdAt: NOW,
-    }] as never);
+    }]);
 
     const projected = await projectCredentials({ npi: '1558302470', clinicianId: 'clinician-1' }, NOW);
     expect(projected).toHaveLength(1);
@@ -82,8 +90,8 @@ describe('projectCredentials', () => {
   });
 
   it('projects signed records only through the NPI-to-DID binding', async () => {
-    jest.mocked(prisma.npiDidBinding.findUnique).mockResolvedValue({ did: 'did:vcv:npi:1558302470' } as never);
-    jest.mocked(prisma.issuedCredentialRecord.findMany).mockResolvedValue([{
+    prismaMock.npiDidBinding.findUnique.mockResolvedValue({ did: 'did:vcv:npi:1558302470' });
+    prismaMock.issuedCredentialRecord.findMany.mockResolvedValue([{
       id: '4b6f0000-0000-4000-8000-000000000004',
       credentialId: 'credential-1',
       issuerDid: 'did:example:board',
@@ -96,10 +104,10 @@ describe('projectCredentials', () => {
       expiresAt: new Date('2027-07-30T12:00:00.000Z'),
       revokedAt: null,
       status: 'ACTIVE',
-    }] as never);
+    }]);
 
     const projected = await projectCredentials({ npi: '1558302470' }, NOW);
-    expect(prisma.issuedCredentialRecord.findMany).toHaveBeenCalledWith(expect.objectContaining({
+    expect(prismaMock.issuedCredentialRecord.findMany).toHaveBeenCalledWith(expect.objectContaining({
       where: { holderDid: 'did:vcv:npi:1558302470' },
     }));
     expect(projected[0]).toMatchObject({
@@ -111,6 +119,6 @@ describe('projectCredentials', () => {
 
   it('rejects invalid NPI input rather than guessing a subject', async () => {
     await expect(projectCredentials({ npi: '123' }, NOW)).rejects.toThrow(/10 digits/);
-    expect(prisma.verificationArtifact.findMany).not.toHaveBeenCalled();
+    expect(prismaMock.verificationArtifact.findMany).not.toHaveBeenCalled();
   });
 });
