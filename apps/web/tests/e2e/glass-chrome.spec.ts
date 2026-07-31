@@ -10,7 +10,7 @@ test.describe('native cursor', () => {
   test('mounts no decorative pointer follower and keeps controls directly operable', async ({ page }) => {
     await page.goto('/', { waitUntil: 'domcontentloaded' });
 
-    await expect(page.locator('[data-vt-cursor]')).toHaveCount(0);
+    await expect(page.locator('[data-vt-cursor], .vt-cursor')).toHaveCount(0);
 
     const input = page.locator('#npi-input');
     await input.click();
@@ -23,7 +23,7 @@ test.describe('native cursor', () => {
     await expect(primaryAction).toBeEnabled();
   });
 
-  test('pointer movement creates no tracking element or cursor state', async ({ page }) => {
+  test('pointer movement creates no tracking element', async ({ page }) => {
     await page.goto('/', { waitUntil: 'domcontentloaded' });
 
     for (const point of [
@@ -34,8 +34,7 @@ test.describe('native cursor', () => {
       await page.mouse.move(point[0], point[1]);
     }
 
-    await expect(page.locator('[data-vt-cursor]')).toHaveCount(0);
-    await expect(page.locator('[data-on], [data-yield]')).not.toHaveAttribute('data-vt-cursor', '');
+    await expect(page.locator('[data-vt-cursor], .vt-cursor')).toHaveCount(0);
   });
 
   test('reduced motion needs no alternate cursor implementation', async ({ page }) => {
@@ -44,7 +43,7 @@ test.describe('native cursor', () => {
 
     await page.mouse.move(400, 300);
     await page.mouse.move(420, 320);
-    await expect(page.locator('[data-vt-cursor]')).toHaveCount(0);
+    await expect(page.locator('[data-vt-cursor], .vt-cursor')).toHaveCount(0);
     await expect(page.locator('#npi-input')).toBeVisible();
   });
 });
