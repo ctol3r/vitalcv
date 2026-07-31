@@ -2,8 +2,8 @@ import { expect, test } from '@playwright/test';
 
 /**
  * Chrome contract — VitalCV uses the native operating-system/browser cursor.
- * Restrained glass is reserved for editorial eyebrows and one illustrative
- * packet surface; real evidence remains solid.
+ * Palantir-inspired transparent glass is reserved for editorial eyebrows and
+ * one illustrative packet surface; real evidence remains solid.
  */
 
 test.describe('native cursor', () => {
@@ -49,7 +49,7 @@ test.describe('native cursor', () => {
 });
 
 test.describe('glass surfaces', () => {
-  test('editorial eyebrows use the restrained glass plate without becoming pills', async ({ page }) => {
+  test('editorial eyebrows are transparent refractive glass, not pale badges or pills', async ({ page }) => {
     await page.goto('/', { waitUntil: 'domcontentloaded' });
     for (const selector of ['.ask-eyebrow', '.spine-eyebrow']) {
       const style = await page
@@ -57,19 +57,26 @@ test.describe('glass surfaces', () => {
         .first()
         .evaluate((el) => {
           const cs = getComputedStyle(el);
+          const background = cs.backgroundColor.replace(/\s/g, '');
+          const rgbaAlpha = background.match(/^rgba\([^,]+,[^,]+,[^,]+,([0-9.]+)\)$/)?.[1];
+          const modernAlpha = background.match(/\/([0-9.]+)\)$/)?.[1];
           return {
             display: cs.display,
             backdrop: cs.backdropFilter ||
               (cs as CSSStyleDeclaration & { webkitBackdropFilter?: string }).webkitBackdropFilter ||
               'none',
-            bg: cs.backgroundColor,
+            background,
+            backgroundImage: cs.backgroundImage,
+            alpha: Number(rgbaAlpha ?? modernAlpha ?? 1),
             borderWidth: cs.borderTopWidth,
             radius: cs.borderTopLeftRadius,
           };
         });
       expect(style.display).toBe('inline-flex');
-      expect(style.backdrop, `${selector} must retain the glass material`).toContain('blur(14px)');
-      expect(style.bg, `${selector} must render a visible plate`).not.toMatch(/rgba\(0, 0, 0, 0\)|transparent/);
+      expect(style.backdrop, `${selector} must refract the page beneath it`).toContain('blur(18px)');
+      expect(style.backgroundImage, `${selector} must retain the internal glass reflection`).toContain('linear-gradient');
+      expect(style.alpha, `${selector} must remain genuinely see-through`).toBeLessThanOrEqual(0.16);
+      expect(style.alpha, `${selector} must retain a faint material tint`).toBeGreaterThan(0);
       expect(style.borderWidth).toBe('1px');
       expect(style.radius).toBe('10px');
     }
