@@ -30,9 +30,9 @@ export function registerSourceRuntimeRoutes(
   const getState = dependencies.getState ?? ((sourceId: string) => getSourceRuntimeState(sourceId));
 
   app.get('/api/system/source-runtime', async (_req: Request, res: Response) => {
+    res.setHeader('Cache-Control', 'no-store');
     try {
       const sources = await listStates();
-      res.setHeader('Cache-Control', 'no-store');
       res.json({
         computedAt: new Date().toISOString(),
         liveDefinition: 'canonical adapter + enabled configuration + required access + successful fresh persisted run and artifact',
@@ -48,6 +48,7 @@ export function registerSourceRuntimeRoutes(
   });
 
   app.get('/api/system/source-runtime/:sourceId', async (req: Request, res: Response) => {
+    res.setHeader('Cache-Control', 'no-store');
     const sourceId = normalizeSourceId(req.params.sourceId ?? '');
     if (!sourceId) {
       res.status(400).json({ error: 'source_id_required' });
@@ -64,7 +65,6 @@ export function registerSourceRuntimeRoutes(
         return;
       }
 
-      res.setHeader('Cache-Control', 'no-store');
       res.json(source);
     } catch (error) {
       log('error', 'source_runtime: source_failed', { sourceId, error: String(error) });

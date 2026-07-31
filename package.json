@@ -19,6 +19,7 @@
     "check:claims": "node --experimental-strip-types --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/check-public-claims.ts",
     "check:design": "node --experimental-strip-types --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/check-design-lint.ts",
     "check:routes": "node --experimental-strip-types --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/check-route-guards.ts",
+    "check:canonical-source-adapters": "node scripts/check-canonical-source-adapter-imports.mjs",
     "verify:release": "node --experimental-strip-types --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --import ./scripts/release-monitor/register-ts-resolver.mjs scripts/release-verify.ts",
     "report:public-copy": "node scripts/report-public-entry-copy-sources.js",
     "audit:active-routes": "node scripts/audit-active-routes.mjs",

@@ -130,6 +130,13 @@ export const CANONICAL_SOURCE_ADAPTERS: Record<
     deprecatedAlternateModuleFragments: [],
     notes: 'Silver-tier literature enrichment; identity resolution requires corroboration.',
   },
+  OFAC_SDN: {
+    sourceId: 'OFAC_SDN',
+    canonicalEntryPoint: 'identityIngestionPipeline.handlers.OFAC_SDN',
+    requiredEnvironmentVariables: [],
+    deprecatedAlternateModuleFragments: [],
+    notes: 'Name-based sanctions candidate lane. Catalog availability remains false until production activation is deliberately proven.',
+  },
 };
 
 export const CANONICAL_SOURCE_ADAPTER_IDS = Object.freeze(

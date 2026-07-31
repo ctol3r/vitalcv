@@ -242,6 +242,7 @@ export type ClaimValue =
   | PracticeLocationValue
   | EndpointValue
   | EnrollmentValue
+  | ReportedLicenseValue
   | LicenseValue
   | BoardCertValue
   | TrainingCompletionValue
@@ -341,6 +342,19 @@ export interface EnrollmentValue {
   sourceLatency?: string | null;
   dataFreshness?: string | null;
   sourceDisclaimer?: string | null;
+}
+
+/** License data reported by a non-authority source. Discovery only. */
+export interface ReportedLicenseValue {
+  _type: 'LICENSE_REPORTED';
+  state: string;
+  licenseNumber: string;
+  taxonomyCode: string | null;
+  taxonomyDescription: string | null;
+  source: string;
+  authorityConfirmed: false;
+  sourceDisclaimer: string;
+  usageRestrictions: string[];
 }
 
 export interface LicenseValue {
