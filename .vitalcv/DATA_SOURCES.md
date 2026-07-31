@@ -1,6 +1,12 @@
 # DATA_SOURCES.md — VitalCV Data Source Registry
 _Last updated: 2026-03-12._
 
+> **Historical planning document — not a production coverage contract.**
+>
+> This file predates the canonical runtime source catalog and contains stale labels such as “Live Today” for integrations that may be adapter-only, gated, unconfigured, or never successfully run in production. Do not use this document to claim live coverage.
+>
+> Runtime truth must be derived from `apps/api/backend/src/services/identity/sourceCatalog.ts`, canonical handler registration in `identityIngestionPipeline.ts`, required configuration/credentials, and the latest successful production `SourceRun` inside its freshness window. The build contract for consolidating those states is `docs/product/clinician-enrichment-graph.md`.
+
 **Principle:** Sequence interoperability strategically. Prioritize by trust + leverage + feasibility.
 
 ---
