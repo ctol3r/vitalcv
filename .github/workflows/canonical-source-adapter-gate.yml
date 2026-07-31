@@ -1,0 +1,23 @@
+name: Canonical Source Adapter Gate
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  canonical-source-adapters:
+    name: Canonical Source Adapter Gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Reject deprecated adapter imports from routes and UI
+        run: node scripts/check-canonical-source-adapter-imports.mjs
