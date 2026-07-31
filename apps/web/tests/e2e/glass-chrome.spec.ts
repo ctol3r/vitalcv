@@ -1,101 +1,50 @@
 import { expect, test } from '@playwright/test';
 
 /**
- * Glass chrome — the frosted pointer lens and the single illustrative packet
- * housing. The lens is inert; eyebrows remain plain type; real evidence stays
- * solid. Glass makes the packet tactile without becoming the story.
+ * Chrome contract — VitalCV uses the native operating-system/browser cursor.
+ * Glass is reserved for one illustrative packet surface; eyebrows and real
+ * evidence remain solid.
  */
 
-test.describe('glass cursor', () => {
-  test('rides with the pointer, inert and accessible-invisible', async ({ page }) => {
+test.describe('native cursor', () => {
+  test('mounts no decorative pointer follower and keeps controls directly operable', async ({ page }) => {
     await page.goto('/', { waitUntil: 'domcontentloaded' });
-    const lens = page.locator('[data-vt-cursor]');
-    await expect(lens).toHaveCount(1);
-    await expect(lens).toHaveAttribute('aria-hidden', 'true');
 
-    const style = await lens.evaluate((el) => {
-      const cs = getComputedStyle(el);
-      return {
-        pointerEvents: cs.pointerEvents,
-        backdrop: cs.backdropFilter || (cs as unknown as { webkitBackdropFilter?: string }).webkitBackdropFilter,
-        opacity: cs.opacity,
-      };
-    });
-    expect(style.pointerEvents).toBe('none');
-    expect(style.backdrop).toContain('blur');
-    expect(style.opacity).toBe('0');
+    await expect(page.locator('[data-vt-cursor], .vt-cursor')).toHaveCount(0);
 
-    await expect
-      .poll(
-        async () => {
-          await page.mouse.move(400 + Math.random() * 20, 300 + Math.random() * 20);
-          return lens.getAttribute('data-on');
-        },
-        { timeout: 10_000, message: 'the lens never activated after a pointer move' },
-      )
-      .toBe('');
-
-    await page.mouse.click(640, 400);
-    await page.locator('#npi-input').click();
-    await expect(page.locator('#npi-input')).toBeFocused();
-  });
-
-  test('the lens yields over every actionable surface, not merely swells', async ({ page }) => {
-    await page.goto('/', { waitUntil: 'domcontentloaded' });
-    const lens = page.locator('[data-vt-cursor]');
-
-    await expect
-      .poll(async () => {
-        await page.mouse.move(60 + Math.random() * 10, 620 + Math.random() * 10);
-        return lens.getAttribute('data-on');
-      }, { timeout: 10_000, message: 'lens never activated' })
-      .toBe('');
-
-    for (const target of ['#npi-input', '[data-home-primary-cta]', '[data-home-employer-cta]']) {
-      const box = await page.locator(target).boundingBox();
-      if (!box) throw new Error(`no box for ${target}`);
-      await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
-      await expect(lens, `${target} must make the lens yield`).toHaveAttribute('data-yield', '');
-      await expect(lens).toHaveCSS('opacity', '0');
-    }
-  });
-
-  test('the lens yields over the live result card', async ({ page }) => {
-    await page.goto('/', { waitUntil: 'domcontentloaded' });
-    const lens = page.locator('[data-vt-cursor]');
     const input = page.locator('#npi-input');
-    await expect
-      .poll(async () => {
-        await input.fill('');
-        await input.fill('1003000126');
-        return (await page.locator('#ask-hint').innerText()).includes('10/10');
-      }, { timeout: 15_000, message: 'NPI field never became interactive' })
-      .toBe(true);
-    await page.locator('[data-home-primary-cta]').click();
-    const card = page.locator('.ask-answer');
-    await expect(card).toBeVisible({ timeout: 20_000 });
+    await input.click();
+    await expect(input).toBeFocused();
+    await input.fill('1003000126');
+    await expect(input).toHaveValue('1003000126');
 
-    const box = await card.boundingBox();
-    if (!box) throw new Error('no result card box');
-    await page.mouse.move(box.x + box.width / 2, box.y + 24);
-    await expect(lens, 'the result card is where the product delivers — no flourish').toHaveAttribute(
-      'data-yield',
-      '',
-    );
-    await expect(lens).toHaveCSS('opacity', '0');
+    const primaryAction = page.locator('[data-home-primary-cta]');
+    await expect(primaryAction).toBeVisible();
+    await expect(primaryAction).toBeEnabled();
   });
 
-  test('reduced motion: the lens is display:none and never activates', async ({ page }) => {
+  test('pointer movement creates no tracking element', async ({ page }) => {
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+
+    for (const point of [
+      [40, 40],
+      [400, 300],
+      [900, 600],
+    ] as const) {
+      await page.mouse.move(point[0], point[1]);
+    }
+
+    await expect(page.locator('[data-vt-cursor], .vt-cursor')).toHaveCount(0);
+  });
+
+  test('reduced motion needs no alternate cursor implementation', async ({ page }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto('/', { waitUntil: 'domcontentloaded' });
-    const lens = page.locator('[data-vt-cursor]');
-    await expect(lens).toHaveCount(1);
-    await expect(lens).toBeHidden();
+
     await page.mouse.move(400, 300);
     await page.mouse.move(420, 320);
-    await page.waitForTimeout(200);
-    await expect(lens).toBeHidden();
-    expect(await lens.getAttribute('data-on')).toBeNull();
+    await expect(page.locator('[data-vt-cursor], .vt-cursor')).toHaveCount(0);
+    await expect(page.locator('#npi-input')).toBeVisible();
   });
 });
 
