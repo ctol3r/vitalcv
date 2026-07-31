@@ -1,0 +1,123 @@
+name: E0 Branch Author V2
+
+on:
+  push:
+    branches:
+      - feat/e0-source-runtime-truth
+    paths:
+      - .github/e0-author-trigger
+
+permissions:
+  contents: write
+
+jobs:
+  author:
+    if: github.ref == 'refs/heads/feat/e0-source-runtime-truth'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/e0-source-runtime-truth
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Apply additive claim patch
+        run: python .github/e0-patch/patch_claims.py
+
+      - name: Apply source-boundary patch
+        shell: bash
+        run: |
+          python <<'PY'
+          from pathlib import Path
+
+          def replace_once(path: str, old: str, new: str) -> None:
+              p = Path(path)
+              text = p.read_text()
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'{path}: expected one match, found {count}')
+              p.write_text(text.replace(old, new, 1))
+
+          pipeline = 'apps/api/backend/src/services/identity/identityIngestionPipeline.ts'
+          text = Path(pipeline).read_text()
+          if "sourceId: 'NPPES_API',\n      parserVersion: 'v1.2.0'," in text:
+              replace_once(pipeline, "sourceId: 'NPPES_API',\n      parserVersion: 'v1.2.0',", "sourceId: 'NPPES_API',\n      parserVersion: 'v1.3.0',")
+          if 'export const IDENTITY_INGESTION_HANDLER_IDS' not in Path(pipeline).read_text():
+              replace_once(pipeline, "};\n\nexport type IngestionSources =", "};\n\nexport const IDENTITY_INGESTION_HANDLER_IDS = Object.freeze(Object.keys(handlers));\n\nexport type IngestionSources =")
+
+          catalog = 'apps/api/backend/src/services/identity/sourceCatalog.ts'
+          if "  'OFAC_SDN',\n] as const;" not in Path(catalog).read_text():
+              replace_once(catalog, "  'PUBMED',\n] as const;", "  'PUBMED',\n  'OFAC_SDN',\n] as const;")
+
+          registry = 'apps/api/backend/src/services/identity/canonicalSourceAdapters.ts'
+          if '  OFAC_SDN: {' not in Path(registry).read_text():
+              replace_once(
+                  registry,
+                  """  PUBMED: {
+              sourceId: 'PUBMED',
+              canonicalEntryPoint: 'identityIngestionPipeline.handlers.PUBMED',
+              requiredEnvironmentVariables: [],
+              deprecatedAlternateModuleFragments: [],
+              notes: 'Silver-tier literature enrichment; identity resolution requires corroboration.',
+            },
+          };""",
+                  """  PUBMED: {
+              sourceId: 'PUBMED',
+              canonicalEntryPoint: 'identityIngestionPipeline.handlers.PUBMED',
+              requiredEnvironmentVariables: [],
+              deprecatedAlternateModuleFragments: [],
+              notes: 'Silver-tier literature enrichment; identity resolution requires corroboration.',
+            },
+            OFAC_SDN: {
+              sourceId: 'OFAC_SDN',
+              canonicalEntryPoint: 'identityIngestionPipeline.handlers.OFAC_SDN',
+              requiredEnvironmentVariables: [],
+              deprecatedAlternateModuleFragments: [],
+              notes: 'Name-based sanctions candidate lane. Catalog availability remains false until production activation is deliberately proven.',
+            },
+          };""",
+              )
+
+          route = 'apps/api/backend/src/routes/sourceRuntime.ts'
+          if "res.setHeader('Cache-Control', 'no-store');\n    try" not in Path(route).read_text():
+              replace_once(route, "app.get('/api/system/source-runtime', async (_req: Request, res: Response) => {\n    try {", "app.get('/api/system/source-runtime', async (_req: Request, res: Response) => {\n    res.setHeader('Cache-Control', 'no-store');\n    try {")
+              replace_once(route, "      res.setHeader('Cache-Control', 'no-store');\n      res.json({", "      res.json({")
+              replace_once(route, "app.get('/api/system/source-runtime/:sourceId', async (req: Request, res: Response) => {\n    const sourceId", "app.get('/api/system/source-runtime/:sourceId', async (req: Request, res: Response) => {\n    res.setHeader('Cache-Control', 'no-store');\n    const sourceId")
+              replace_once(route, "      res.setHeader('Cache-Control', 'no-store');\n      res.json(source);", "      res.json(source);")
+
+          for filename, reason in {
+              'apps/api/backend/adapters/NursysAdapter.ts': 'Use identityIngestionPipeline.handlers.NURSYS for production ingestion.',
+              'apps/api/backend/src/services/nursysAdapter.ts': 'Use identityIngestionPipeline.handlers.NURSYS for production ingestion.',
+              'apps/api/backend/src/services/samGovAdapter.ts': 'Use identityIngestionPipeline.handlers.SAM_GOV for production ingestion.',
+              'packages/psv-adapters/adapters/NursysENotifyAdapter.ts': 'Compatibility/PSV adapter only; do not import directly from API routes or user interfaces.',
+          }.items():
+              p = Path(filename)
+              marker = f'/** @deprecated {reason} */\n'
+              text = p.read_text()
+              if not text.startswith(marker):
+                  p.write_text(marker + text)
+
+          package = 'package.json'
+          if '"check:canonical-source-adapters"' not in Path(package).read_text():
+              replace_once(package, '    "check:routes": "node --experimental-strip-types --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/check-route-guards.ts",\n', '    "check:routes": "node --experimental-strip-types --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/check-route-guards.ts",\n    "check:canonical-source-adapters": "node scripts/check-canonical-source-adapter-imports.mjs",\n')
+          PY
+
+      - name: Static validation
+        run: |
+          python -m py_compile .github/e0-patch/patch_claims.py
+          node scripts/check-canonical-source-adapter-imports.mjs
+          node -e "JSON.parse(require('node:fs').readFileSync('package.json','utf8'))"
+          git diff --check
+
+      - name: Commit bounded E0 changes
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No E0 patch changes remained."
+            exit 0
+          fi
+          git commit -m "feat(identity): complete E0 source truth contract"
+          git push origin HEAD:feat/e0-source-runtime-truth
