@@ -1,0 +1,42 @@
+/*
+ * VitalCV glass eyebrow
+ *
+ * A restrained glass plate for small editorial audience/section labels.
+ * This is brand chrome, not evidence: no credential, source, or status surface
+ * should inherit this treatment. The native browser cursor remains untouched.
+ */
+.ask-eyebrow,
+.ask-chapter-eyebrow,
+.spine-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.66rem;
+  letter-spacing: 0.18em;
+  font-weight: 400;
+  text-transform: uppercase;
+  color: var(--vt-text-secondary);
+  padding: 0.42rem 0.85rem;
+  border-radius: 10px;
+  border: 1px solid color-mix(in oklab, var(--vt-text-primary) 10%, transparent);
+  background: color-mix(in oklab, var(--vt-cloud-dancer) 44%, transparent);
+  backdrop-filter: blur(14px) saturate(1.35);
+  -webkit-backdrop-filter: blur(14px) saturate(1.35);
+  box-shadow: var(--vt-glass-sheen);
+}
+
+.ask-eyebrow,
+.spine-eyebrow {
+  margin-bottom: 1rem;
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .ask-eyebrow,
+  .ask-chapter-eyebrow,
+  .spine-eyebrow {
+    background: var(--vt-surface);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}

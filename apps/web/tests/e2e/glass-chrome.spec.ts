@@ -2,8 +2,8 @@ import { expect, test } from '@playwright/test';
 
 /**
  * Chrome contract — VitalCV uses the native operating-system/browser cursor.
- * Glass is reserved for one illustrative packet surface; eyebrows and real
- * evidence remain solid.
+ * Restrained glass is reserved for editorial eyebrows and one illustrative
+ * packet surface; real evidence remains solid.
  */
 
 test.describe('native cursor', () => {
@@ -49,7 +49,7 @@ test.describe('native cursor', () => {
 });
 
 test.describe('glass surfaces', () => {
-  test('eyebrows are plain type — no plate, per the Palantir reference', async ({ page }) => {
+  test('editorial eyebrows use the restrained glass plate without becoming pills', async ({ page }) => {
     await page.goto('/', { waitUntil: 'domcontentloaded' });
     for (const selector of ['.ask-eyebrow', '.spine-eyebrow']) {
       const style = await page
@@ -58,16 +58,20 @@ test.describe('glass surfaces', () => {
         .evaluate((el) => {
           const cs = getComputedStyle(el);
           return {
-            backdrop: cs.backdropFilter || 'none',
+            display: cs.display,
+            backdrop: cs.backdropFilter ||
+              (cs as CSSStyleDeclaration & { webkitBackdropFilter?: string }).webkitBackdropFilter ||
+              'none',
             bg: cs.backgroundColor,
             borderWidth: cs.borderTopWidth,
             radius: cs.borderTopLeftRadius,
           };
         });
-      expect(style.backdrop, `${selector} must carry no glass`).toBe('none');
-      expect(style.bg, `${selector} must have no plate`).toMatch(/rgba\(0, 0, 0, 0\)|transparent/);
-      expect(style.borderWidth).toBe('0px');
-      expect(style.radius).toBe('0px');
+      expect(style.display).toBe('inline-flex');
+      expect(style.backdrop, `${selector} must retain the glass material`).toContain('blur(14px)');
+      expect(style.bg, `${selector} must render a visible plate`).not.toMatch(/rgba\(0, 0, 0, 0\)|transparent/);
+      expect(style.borderWidth).toBe('1px');
+      expect(style.radius).toBe('10px');
     }
   });
 
