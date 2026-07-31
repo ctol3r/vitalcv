@@ -33,8 +33,10 @@ describe('NPPES reported license evidence', () => {
       (claim) => claim.claimType === 'LICENSE_REPORTED',
     );
 
+    // This is the deterministic ID emitted by the pre-E0 SPECIALTY claim for
+    // this exact fixture. LICENSE_REPORTED must be additive and may not alter it.
     expect(specialty?.claimId).toBe(
-      'claim_cd6f29eea23c08d92e00992c39b4a2c4',
+      'claim_697dd5f103aa56f9930e0f8fc3245065',
     );
     expect(reported).toMatchObject({
       claimType: 'LICENSE_REPORTED',
