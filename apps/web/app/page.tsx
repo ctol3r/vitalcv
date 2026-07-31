@@ -5,6 +5,7 @@ import '@/styles/motion.css';
 import '@/styles/artifact-motion.css';
 import '@/styles/ask-home.css';
 import '@/styles/spine-tabs.css';
+import '@/styles/glass-eyebrow.css';
 
 const TAGLINE = 'VitalCV — Your career evidence, ready before your next job.';
 const DESCRIPTION =
