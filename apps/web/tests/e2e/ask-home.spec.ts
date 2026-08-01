@@ -263,4 +263,74 @@ test.describe('homepage Ask + four-step spine', () => {
     });
     expect(covered).toEqual([]);
   });
+
+  // ── the decorative field may not sit on the live hero ────────────
+
+  test('the decorative field paints nothing over the hero copy', async ({ page }) => {
+    // The cinematic evidence field is an absolutely-positioned layer BEHIND
+    // the hero. Behind is fine for shapes; it is not fine for words. #988
+    // shipped "YOUR"/"RECORD" (27px display serif) across the NPI field and a
+    // caption through the promise paragraph — measured on production at
+    // opacity 1. Decorative shapes behind copy read as atmosphere; decorative
+    // WORDS behind copy read as a rendering fault, on the one surface that
+    // converts.
+    //
+    // Asserting GEOMETRY would be wrong twice over: the elements still occupy
+    // overlapping rectangles after the fix (a mask changes what is painted,
+    // not what is laid out), and a fix that moved the card instead would also
+    // pass. So this compares what is actually PAINTED over the copy.
+    //
+    // It decodes the PNGs rather than diffing their bytes: PNG is DEFLATE-
+    // compressed, so a single changed pixel cascades through the whole stream
+    // and a byte diff reports ~99% for any change at all — noise, not ink.
+    const { PNG } = await import('pngjs');
+
+    await page.goto(HOME, { waitUntil: 'domcontentloaded' });
+    await page.waitForSelector('#ask-title');
+    // Let the field's entry motion settle — CD-11 means it rests, so this
+    // converges rather than sampling mid-animation.
+    await page.waitForTimeout(2200);
+
+    const band = await page.evaluate(() => {
+      const title = document.querySelector('#ask-title')!.getBoundingClientRect();
+      const promise = document.querySelector('.ask-promise')!.getBoundingClientRect();
+      return {
+        x: Math.floor(title.left),
+        y: Math.floor(title.top),
+        width: Math.ceil(title.width),
+        height: Math.ceil(promise.bottom - title.top),
+      };
+    });
+
+    const before = PNG.sync.read(await page.screenshot({ clip: band }));
+    await page.evaluate(() => {
+      document
+        .querySelectorAll<HTMLElement>('[data-home-cinematic-field]')
+        .forEach((el) => {
+          el.style.display = 'none';
+        });
+    });
+    await page.waitForTimeout(150);
+    const after = PNG.sync.read(await page.screenshot({ clip: band }));
+
+    expect(before.width).toBe(after.width);
+    expect(before.height).toBe(after.height);
+
+    // Count pixels the decorative layer visibly changes. A faint ambient wash
+    // shifts a channel by a step or two; a painted glyph shifts it far more,
+    // so the per-pixel threshold separates atmosphere from ink rather than
+    // banning the layer from the hero altogether.
+    let inked = 0;
+    for (let i = 0; i < before.data.length; i += 4) {
+      const dr = Math.abs(before.data[i] - after.data[i]);
+      const dg = Math.abs(before.data[i + 1] - after.data[i + 1]);
+      const db = Math.abs(before.data[i + 2] - after.data[i + 2]);
+      if (Math.max(dr, dg, db) > 12) inked += 1;
+    }
+    const ratio = inked / (before.width * before.height);
+    expect(
+      ratio,
+      `decorative layer paints ink over the hero copy (${(ratio * 100).toFixed(2)}% of pixels)`,
+    ).toBeLessThan(0.01);
+  });
 });
