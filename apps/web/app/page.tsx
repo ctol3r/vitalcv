@@ -1,11 +1,13 @@
 import type { Metadata } from 'next';
 
 import { AskHome } from '@/components/home/ask/AskHome';
+import { CinematicEvidenceField } from '@/components/home/cinematic/CinematicEvidenceField';
 import '@/styles/motion.css';
 import '@/styles/artifact-motion.css';
 import '@/styles/ask-home.css';
 import '@/styles/spine-tabs.css';
 import '@/styles/glass-eyebrow.css';
+import '@/styles/cinematic-home.css';
 
 const TAGLINE = 'VitalCV — Your career evidence, ready before your next job.';
 const DESCRIPTION =
@@ -60,8 +62,8 @@ const STRUCTURED_DATA = {
  * 2. Let a reader who does not type operate the same product argument in one
  *    four-step pane: NPI → source evidence → chosen packet → hospital review.
  *
- * AskHome owns both. The retired horizontal film and the long stack of ledger,
- * chapter, and beat sections no longer compete for page-level authority.
+ * The cinematic evidence field is decorative and source-honest. AskHome still
+ * owns every action, truth state, accessible explanation and conversion path.
  */
 export default function HomePage() {
   return (
@@ -70,6 +72,7 @@ export default function HomePage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(STRUCTURED_DATA) }}
       />
+      <CinematicEvidenceField />
       <AskHome />
     </>
   );

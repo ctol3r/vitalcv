@@ -1,0 +1,425 @@
+/* ============================================================
+   Cinematic evidence journey
+
+   Immersive product-story principles translated into VitalCV's design system:
+   depth, progressive reveal, a recurring evidence-capsule silhouette and calm
+   finite motion. The SVG is decorative; real source states and actions remain
+   in AskHome and SpineTabs.
+   ============================================================ */
+
+.cinematic-evidence-field {
+  --cinematic-accent: var(--vt-accent-editorial);
+  --cinematic-rule: color-mix(in oklab, var(--vt-text-primary) 16%, transparent);
+
+  position: absolute;
+  inset: 0 0 auto;
+  height: min(96svh, 64rem);
+  overflow: hidden;
+  pointer-events: none;
+  color: var(--cinematic-accent);
+  opacity: 0.62;
+  contain: paint;
+}
+
+.cinematic-evidence-field::before,
+.cinematic-evidence-field::after {
+  content: '';
+  position: absolute;
+  border-radius: 999px;
+  filter: blur(1px);
+}
+
+.cinematic-evidence-field::before {
+  width: min(46vw, 42rem);
+  aspect-ratio: 1;
+  top: -18%;
+  right: -12%;
+  background: radial-gradient(
+    circle,
+    color-mix(in oklab, var(--cinematic-accent) 14%, transparent),
+    transparent 68%
+  );
+}
+
+.cinematic-evidence-field::after {
+  width: min(38vw, 34rem);
+  aspect-ratio: 1;
+  left: -12%;
+  bottom: -22%;
+  background: radial-gradient(
+    circle,
+    color-mix(in oklab, var(--vt-state-source-confirmed) 10%, transparent),
+    transparent 70%
+  );
+}
+
+.cinematic-evidence-field__svg {
+  position: absolute;
+  width: min(74rem, 92vw);
+  height: auto;
+  left: 50%;
+  top: clamp(3.5rem, 7vh, 6rem);
+  transform: translateX(-50%);
+  overflow: visible;
+}
+
+.cinematic-evidence-field__glow {
+  color: var(--cinematic-accent);
+}
+
+.cinematic-evidence-field__path {
+  fill: none;
+  stroke: var(--cinematic-rule);
+  stroke-width: 1.25;
+  stroke-dasharray: 5 10;
+  vector-effect: non-scaling-stroke;
+}
+
+.cinematic-evidence-field__node-ring {
+  fill: color-mix(in oklab, var(--vt-surface) 72%, transparent);
+  stroke: var(--cinematic-rule);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.cinematic-evidence-field__node {
+  fill: color-mix(in oklab, var(--cinematic-accent) 54%, var(--vt-surface));
+}
+
+.cinematic-evidence-field__label,
+.cinematic-evidence-field__record-kicker,
+.cinematic-evidence-field__caption {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+}
+
+.cinematic-evidence-field__label {
+  fill: color-mix(in oklab, var(--vt-text-muted) 68%, transparent);
+  font-size: 10px;
+}
+
+.cinematic-evidence-field__record-shadow {
+  fill: color-mix(in oklab, var(--vt-text-primary) 6%, transparent);
+  filter: blur(16px);
+}
+
+.cinematic-evidence-field__record-shell {
+  stroke: color-mix(in oklab, var(--cinematic-accent) 32%, var(--vt-border));
+  stroke-width: 1.2;
+  vector-effect: non-scaling-stroke;
+}
+
+.cinematic-evidence-field__record-notch,
+.cinematic-evidence-field__record-rule {
+  fill: none;
+  stroke: color-mix(in oklab, var(--vt-text-primary) 24%, transparent);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.cinematic-evidence-field__record-kicker {
+  fill: color-mix(in oklab, var(--vt-text-muted) 72%, transparent);
+  font-size: 9px;
+}
+
+.cinematic-evidence-field__record-title {
+  fill: color-mix(in oklab, var(--vt-text-primary) 46%, transparent);
+  font-family: var(--font-display, Georgia, serif);
+  font-size: 27px;
+  font-weight: 560;
+  letter-spacing: -0.02em;
+}
+
+.cinematic-evidence-field__seal {
+  fill: color-mix(in oklab, var(--vt-state-source-confirmed) 13%, var(--vt-surface));
+  stroke: color-mix(in oklab, var(--vt-state-source-confirmed) 42%, transparent);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.cinematic-evidence-field__tick {
+  fill: none;
+  stroke: color-mix(in oklab, var(--vt-state-source-confirmed) 62%, var(--vt-text-primary));
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+
+.cinematic-evidence-field__caption {
+  fill: color-mix(in oklab, var(--vt-text-muted) 46%, transparent);
+  font-size: 8px;
+}
+
+/* DOM order keeps the real page above the decorative atmosphere. */
+.ask {
+  position: relative;
+}
+
+.ask-stage {
+  isolation: isolate;
+  background:
+    linear-gradient(to bottom, color-mix(in oklab, var(--vt-surface) 26%, transparent), transparent 38%),
+    radial-gradient(
+      circle at 50% 36%,
+      color-mix(in oklab, var(--vt-surface) 78%, transparent),
+      color-mix(in oklab, var(--vt-surface) 42%, transparent) 42%,
+      transparent 72%
+    );
+}
+
+.ask-inner,
+.ask-field {
+  position: relative;
+}
+
+.ask-title {
+  text-shadow: 0 1px 28px color-mix(in oklab, var(--vt-surface) 76%, transparent);
+}
+
+.ask-field::after {
+  content: '';
+  position: absolute;
+  inset: auto 0 -2px;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in oklab, var(--vt-accent-editorial) 62%, var(--vt-text-primary)),
+    transparent
+  );
+  transform: scaleX(0);
+  transform-origin: center;
+  transition: transform var(--duration-fast) var(--vt-ease-system);
+}
+
+.ask-field:focus-within::after {
+  transform: scaleX(1);
+}
+
+/* Evidence-capsule silhouette: soft frame plus one provenance notch. */
+.ask-go,
+.vt-artifact,
+.spine {
+  border-radius: 1.65rem 1.65rem 1.65rem 0.55rem;
+}
+
+.ask-go {
+  box-shadow: var(--vt-shadow-pill);
+  transition:
+    transform var(--duration-fast) var(--vt-ease-system),
+    background var(--duration-fast) var(--vt-ease-system),
+    box-shadow var(--duration-fast) var(--vt-ease-system);
+}
+
+.ask-go:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: var(--vt-lift);
+}
+
+/* The existing four-step spine becomes the cinematic product chapter. */
+.spine {
+  max-width: 76rem;
+  margin-bottom: clamp(2rem, 5vw, 5rem);
+  border: 1px solid color-mix(in oklab, var(--vt-border) 74%, transparent);
+  background:
+    linear-gradient(
+      135deg,
+      color-mix(in oklab, var(--vt-surface) 96%, var(--vt-accent-editorial) 4%),
+      color-mix(in oklab, var(--vt-surface) 86%, transparent)
+    );
+  box-shadow: var(--vt-shadow-soft);
+  overflow: clip;
+}
+
+.spine-head {
+  position: relative;
+}
+
+.spine-head::after {
+  content: 'NPI  →  SOURCES  →  PERMISSION  →  REVIEW';
+  display: block;
+  margin-top: 1.25rem;
+  color: var(--spine-faint);
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.58rem;
+  letter-spacing: 0.14em;
+  white-space: normal;
+}
+
+.spine-tabs {
+  position: relative;
+  border-top-color: color-mix(in oklab, var(--spine-rule) 72%, transparent);
+}
+
+.spine-tabs::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 2px;
+  background: linear-gradient(
+    to bottom,
+    color-mix(in oklab, var(--spine-accent) 52%, transparent),
+    color-mix(in oklab, var(--spine-rule) 50%, transparent)
+  );
+  opacity: 0.45;
+}
+
+.spine-tab {
+  position: relative;
+  border-left: 0;
+  padding-left: 1.3rem;
+}
+
+.spine-tab::before {
+  content: '';
+  position: absolute;
+  left: -4px;
+  top: 1.25rem;
+  width: 10px;
+  height: 10px;
+  border: 2px solid var(--vt-surface);
+  border-radius: 999px;
+  background: var(--spine-rule);
+  box-shadow: var(--vt-shadow-pill);
+  transition:
+    transform var(--duration-fast) var(--vt-ease-system),
+    background var(--duration-fast) var(--vt-ease-system),
+    box-shadow var(--duration-fast) var(--vt-ease-system);
+}
+
+.spine-tab[aria-selected='true'] {
+  border-left-color: transparent;
+  background: linear-gradient(
+    90deg,
+    color-mix(in oklab, var(--spine-accent) 8%, transparent),
+    transparent 78%
+  );
+}
+
+.spine-tab[aria-selected='true']::before {
+  background: var(--spine-accent);
+  transform: scale(1.2);
+  box-shadow: var(--vt-lift);
+}
+
+.spine-panels {
+  position: relative;
+  min-height: 31rem;
+}
+
+.spine[data-enhanced] .spine-panel:not([hidden]) {
+  min-height: 31rem;
+  display: grid;
+  align-content: center;
+}
+
+.spine .vt-artifact {
+  position: relative;
+  border: 1px solid color-mix(in oklab, var(--spine-rule) 82%, transparent);
+  box-shadow: var(--vt-shadow-glass-panel);
+  overflow: hidden;
+}
+
+.spine .vt-artifact::after {
+  content: 'SOURCE · TIME · LIMITATION · PERMISSION';
+  position: absolute;
+  right: 1rem;
+  bottom: 0.72rem;
+  color: var(--spine-faint);
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.48rem;
+  letter-spacing: 0.12em;
+  pointer-events: none;
+}
+
+/* Reuse house motion: finite, one-shot and already governed in motion.css. */
+@media (prefers-reduced-motion: no-preference) {
+  .cinematic-evidence-field__svg,
+  .cinematic-evidence-field__record,
+  .spine[data-enhanced] .spine-panel:not([hidden]) {
+    animation: ask-art-glass-in var(--duration-slow) var(--vt-ease-system) both;
+  }
+
+  .cinematic-evidence-field__source {
+    animation: ask-art-appear var(--duration-normal) var(--vt-ease-system) both;
+    animation-delay: calc(var(--duration-fast) + var(--cinematic-order) * 70ms);
+  }
+
+  .cinematic-evidence-field__path {
+    animation: ask-art-draw var(--duration-slow) var(--vt-ease-system) both;
+    animation-delay: calc(var(--duration-fast) + var(--cinematic-order) * 70ms);
+  }
+}
+
+@media (max-width: 899px) {
+  .cinematic-evidence-field {
+    opacity: 0.42;
+  }
+
+  .cinematic-evidence-field__svg {
+    width: 70rem;
+    top: 4rem;
+  }
+
+  .spine {
+    margin-inline: clamp(0.75rem, 3vw, 1.25rem);
+  }
+
+  .spine-panels,
+  .spine[data-enhanced] .spine-panel:not([hidden]) {
+    min-height: 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .cinematic-evidence-field {
+    height: 88svh;
+    opacity: 0.32;
+  }
+
+  .cinematic-evidence-field__svg {
+    width: 58rem;
+    left: 53%;
+    top: 5.5rem;
+  }
+
+  .cinematic-evidence-field__label,
+  .cinematic-evidence-field__caption {
+    display: none;
+  }
+
+  .spine {
+    border-radius: 1.2rem 1.2rem 1.2rem 0.45rem;
+  }
+
+  .spine-head::after {
+    line-height: 1.65;
+  }
+
+  .spine .vt-artifact::after {
+    position: static;
+    display: block;
+    padding: 0 1rem 0.8rem;
+    line-height: 1.5;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cinematic-evidence-field *,
+  .ask-go,
+  .ask-field::after,
+  .spine-tab,
+  .spine-tab::before,
+  .spine-panel {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .cinematic-evidence-field__svg {
+    transform: translateX(-50%);
+  }
+}
