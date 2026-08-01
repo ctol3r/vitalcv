@@ -87,21 +87,61 @@ test.describe('rendered doctrine', () => {
 
       // Warm ink: every near-neutral dark text colour must sit in the warm arc.
       // Cool slate (blue-leaning) is the regression — it was the shipped state.
+      //
+      // Two traps, both of which this check got wrong first time round:
+      //
+      //  1. getComputedStyle returns the AUTHORED colour space. Ink authored in
+      //     oklch serialises as `oklch(0.21 0.007 85)`, and a naive rgb regex
+      //     reads those three numbers as r/g/b — so 85 becomes "blue", and the
+      //     correctly-warm ink reads as a violation. Everything is normalised
+      //     through a canvas, which resolves any CSS colour to sRGB bytes.
+      //
+      //  2. "Near-neutral" needs a chroma CEILING, not just a floor. Without
+      //     one, a saturated state green (rgb(4,120,87)) counts as ink because
+      //     its blue channel exceeds its red. State colours are not ink and are
+      //     governed by CD-3, not the ink ramp.
       const coolInk = await page.evaluate(() => {
+        const canvas = document.createElement('canvas');
+        canvas.width = canvas.height = 1;
+        const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
+
+        /** Resolve any CSS colour (rgb, oklch, color-mix, …) to sRGB bytes. */
+        const toRgb = (css: string): [number, number, number] | null => {
+          ctx.clearRect(0, 0, 1, 1);
+          ctx.fillStyle = '#000';
+          ctx.fillStyle = css;
+          // An unparseable value leaves fillStyle at the previous colour; that
+          // is fine — it just resolves to black and fails no assertion.
+          ctx.fillRect(0, 0, 1, 1);
+          const [r, g, b, a] = ctx.getImageData(0, 0, 1, 1).data;
+          return a === 0 ? null : [r, g, b];
+        };
+
         const offenders: string[] = [];
         const nodes = document.querySelectorAll('h1, h2, h3, h4, p, li, span, a, strong');
         for (const el of Array.from(nodes).slice(0, 600)) {
-          const colour = getComputedStyle(el).color;
-          const parts = colour.match(/\d+(\.\d+)?/g);
-          if (!parts || parts.length < 3) continue;
-          const [r, g, b] = parts.map(Number);
+          const authored = getComputedStyle(el).color;
+          const rgb = toRgb(authored);
+          if (!rgb) continue;
+          const [r, g, b] = rgb;
           const max = Math.max(r, g, b);
           const min = Math.min(r, g, b);
-          // Near-neutral (low chroma) AND dark — i.e. ink, not decoration.
-          if (max >= 140 || max - min < 4) continue;
-          if (b > r) offenders.push(`${el.tagName.toLowerCase()} ${colour}`);
+          const spread = max - min;
+          // Ink = dark AND near-neutral. Anything more saturated is a state or
+          // accent colour, governed by CD-3 rather than the ink ramp.
+          //
+          // Measured as an ABSOLUTE spread, deliberately. A relative ratio
+          // (spread/max) is meaningless at near-black: the cool slate that
+          // actually shipped resolves to rgb(4, 6, 10), whose ratio is 0.60 —
+          // indistinguishable from a vivid colour, so a relative ceiling
+          // silently excluded the one regression this check exists to catch.
+          // In absolute terms the separation is wide and stable: cool ink
+          // spreads 6, the source-confirmed greens spread 79 and 116.
+          if (max >= 140) continue;
+          if (spread < 2 || spread > 30) continue;
+          if (b > r) offenders.push(`<${el.tagName.toLowerCase()}> ${authored} → rgb(${r}, ${g}, ${b})`);
         }
-        return offenders.slice(0, 5);
+        return [...new Set(offenders)].slice(0, 5);
       });
 
       expect(coolInk, `${route} has blue-leaning ink — CD-4 requires a warm ramp`).toEqual([]);
@@ -115,9 +155,19 @@ test.describe('rendered doctrine', () => {
       await page.goto(route, { waitUntil: 'domcontentloaded' });
       await page.waitForTimeout(300);
 
+      // Normalised through a canvas for the same reason as the ink check: an
+      // accent authored in oklch would otherwise be parsed as nonsense rgb.
       const accent = await page.evaluate(() => {
         const el = document.querySelector('.mz-accent, .type-accent');
-        return el ? getComputedStyle(el).color : null;
+        if (!el) return null;
+        const canvas = document.createElement('canvas');
+        canvas.width = canvas.height = 1;
+        const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
+        ctx.fillStyle = '#000';
+        ctx.fillStyle = getComputedStyle(el).color;
+        ctx.fillRect(0, 0, 1, 1);
+        const [r, g, b] = ctx.getImageData(0, 0, 1, 1).data;
+        return `rgb(${r}, ${g}, ${b})`;
       });
 
       if (accent) seen.set(route, accent);
