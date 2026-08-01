@@ -1,23 +1,18 @@
 /* ============================================================
    Cinematic evidence journey
 
-   This layer borrows the useful interaction principles of immersive product
-   sites—depth, progressive reveal, a recurring product silhouette and calm
-   motion—without obscuring the homepage action or inventing evidence states.
-
-   The composition settles once, then rests. Reduced-motion readers receive the
-   complete final frame with no animation. The SVG is decorative; the real
-   source states and product explanation remain in AskHome and SpineTabs.
+   Immersive product-story principles translated into VitalCV's design system:
+   depth, progressive reveal, a recurring evidence-capsule silhouette and calm
+   finite motion. The SVG is decorative; real source states and actions remain
+   in AskHome and SpineTabs.
    ============================================================ */
 
 .cinematic-evidence-field {
-  --cinematic-ink: var(--vt-text-primary);
   --cinematic-accent: var(--vt-accent-editorial);
   --cinematic-rule: color-mix(in oklab, var(--vt-text-primary) 16%, transparent);
 
   position: absolute;
   inset: 0 0 auto;
-  z-index: 0;
   height: min(96svh, 64rem);
   overflow: hidden;
   pointer-events: none;
@@ -157,10 +152,9 @@
   font-size: 8px;
 }
 
-/* Keep the real page above the decorative atmosphere. */
+/* DOM order keeps the real page above the decorative atmosphere. */
 .ask {
   position: relative;
-  z-index: 1;
 }
 
 .ask-stage {
@@ -175,16 +169,13 @@
     );
 }
 
-.ask-inner {
+.ask-inner,
+.ask-field {
   position: relative;
 }
 
 .ask-title {
   text-shadow: 0 1px 28px color-mix(in oklab, var(--vt-surface) 76%, transparent);
-}
-
-.ask-field {
-  position: relative;
 }
 
 .ask-field::after {
@@ -200,14 +191,14 @@
   );
   transform: scaleX(0);
   transform-origin: center;
-  transition: transform 240ms cubic-bezier(0.2, 0.7, 0.2, 1);
+  transition: transform var(--duration-fast) var(--vt-ease-system);
 }
 
 .ask-field:focus-within::after {
   transform: scaleX(1);
 }
 
-/* Evidence-capsule silhouette: mostly soft, with one provenance notch. */
+/* Evidence-capsule silhouette: soft frame plus one provenance notch. */
 .ask-go,
 .vt-artifact,
 .spine {
@@ -215,16 +206,16 @@
 }
 
 .ask-go {
-  box-shadow: 0 12px 36px color-mix(in oklab, var(--vt-text-primary) 12%, transparent);
+  box-shadow: var(--vt-shadow-pill);
   transition:
-    transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1),
-    background 160ms cubic-bezier(0.2, 0.8, 0.2, 1),
-    box-shadow 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    transform var(--duration-fast) var(--vt-ease-system),
+    background var(--duration-fast) var(--vt-ease-system),
+    box-shadow var(--duration-fast) var(--vt-ease-system);
 }
 
 .ask-go:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 18px 44px color-mix(in oklab, var(--vt-text-primary) 16%, transparent);
+  box-shadow: var(--vt-lift);
 }
 
 /* The existing four-step spine becomes the cinematic product chapter. */
@@ -238,9 +229,7 @@
       color-mix(in oklab, var(--vt-surface) 96%, var(--vt-accent-editorial) 4%),
       color-mix(in oklab, var(--vt-surface) 86%, transparent)
     );
-  box-shadow:
-    0 42px 100px color-mix(in oklab, var(--vt-text-primary) 8%, transparent),
-    inset 0 1px 0 color-mix(in oklab, white 48%, transparent);
+  box-shadow: var(--vt-shadow-soft);
   overflow: clip;
 }
 
@@ -295,11 +284,11 @@
   border: 2px solid var(--vt-surface);
   border-radius: 999px;
   background: var(--spine-rule);
-  box-shadow: 0 0 0 1px color-mix(in oklab, var(--spine-rule) 80%, transparent);
+  box-shadow: var(--vt-shadow-pill);
   transition:
-    transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1),
-    background 180ms ease,
-    box-shadow 180ms ease;
+    transform var(--duration-fast) var(--vt-ease-system),
+    background var(--duration-fast) var(--vt-ease-system),
+    box-shadow var(--duration-fast) var(--vt-ease-system);
 }
 
 .spine-tab[aria-selected='true'] {
@@ -314,9 +303,7 @@
 .spine-tab[aria-selected='true']::before {
   background: var(--spine-accent);
   transform: scale(1.2);
-  box-shadow:
-    0 0 0 1px color-mix(in oklab, var(--spine-accent) 52%, transparent),
-    0 0 22px color-mix(in oklab, var(--spine-accent) 36%, transparent);
+  box-shadow: var(--vt-lift);
 }
 
 .spine-panels {
@@ -333,9 +320,7 @@
 .spine .vt-artifact {
   position: relative;
   border: 1px solid color-mix(in oklab, var(--spine-rule) 82%, transparent);
-  box-shadow:
-    0 24px 64px color-mix(in oklab, var(--vt-text-primary) 8%, transparent),
-    inset 0 1px 0 color-mix(in oklab, white 50%, transparent);
+  box-shadow: var(--vt-shadow-glass-panel);
   overflow: hidden;
 }
 
@@ -351,84 +336,22 @@
   pointer-events: none;
 }
 
+/* Reuse house motion: finite, one-shot and already governed in motion.css. */
 @media (prefers-reduced-motion: no-preference) {
-  .cinematic-evidence-field__svg {
-    animation: cinematic-field-arrive 1200ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  .cinematic-evidence-field__svg,
+  .cinematic-evidence-field__record,
+  .spine[data-enhanced] .spine-panel:not([hidden]) {
+    animation: ask-art-glass-in var(--duration-slow) var(--vt-ease-system) both;
   }
 
   .cinematic-evidence-field__source {
-    animation: cinematic-source-arrive 720ms cubic-bezier(0.16, 1, 0.3, 1) both;
-    animation-delay: calc(320ms + var(--cinematic-order) * 110ms);
+    animation: ask-art-appear var(--duration-normal) var(--vt-ease-system) both;
+    animation-delay: calc(var(--duration-fast) + var(--cinematic-order) * 70ms);
   }
 
   .cinematic-evidence-field__path {
-    stroke-dasharray: 4 10;
-    stroke-dashoffset: 84;
-    animation: cinematic-path-resolve 1100ms cubic-bezier(0.16, 1, 0.3, 1) both;
-    animation-delay: calc(400ms + var(--cinematic-order) * 110ms);
-  }
-
-  .cinematic-evidence-field__record {
-    transform-box: fill-box;
-    transform-origin: center;
-    animation: cinematic-record-arrive 900ms cubic-bezier(0.16, 1, 0.3, 1) 140ms both;
-  }
-
-  .spine[data-enhanced] .spine-panel:not([hidden]) {
-    animation: cinematic-panel-settle 320ms cubic-bezier(0.16, 1, 0.3, 1) both;
-  }
-}
-
-@keyframes cinematic-field-arrive {
-  from {
-    opacity: 0;
-    transform: translateX(-50%) translateY(26px) scale(0.985);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0) scale(1);
-  }
-}
-
-@keyframes cinematic-source-arrive {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes cinematic-path-resolve {
-  from {
-    opacity: 0;
-    stroke-dashoffset: 84;
-  }
-  to {
-    opacity: 1;
-    stroke-dashoffset: 0;
-  }
-}
-
-@keyframes cinematic-record-arrive {
-  from {
-    opacity: 0;
-    transform: translateY(18px) scale(0.94);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-@keyframes cinematic-panel-settle {
-  from {
-    opacity: 0;
-    transform: translateY(10px) scale(0.992);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
+    animation: ask-art-draw var(--duration-slow) var(--vt-ease-system) both;
+    animation-delay: calc(var(--duration-fast) + var(--cinematic-order) * 70ms);
   }
 }
 
