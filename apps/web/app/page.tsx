@@ -6,6 +6,9 @@ import '@/styles/motion.css';
 import '@/styles/artifact-motion.css';
 import '@/styles/home-surfaces.css';
 import '@/styles/ask-home.css';
+// After ask-home.css: the evidence capsule raises the field from that file's
+// ruled underline, so it must win on equal specificity.
+import '@/styles/evidence-input.css';
 import '@/styles/spine-tabs.css';
 import '@/styles/glass-eyebrow.css';
 import '@/styles/cinematic-home.css';
