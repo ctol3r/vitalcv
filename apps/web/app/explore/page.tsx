@@ -29,8 +29,10 @@ export const metadata: Metadata = {
 export default function ExplorePage() {
   return (
     // data-surface-tier="public": CD-14 fixes the public acquisition tier as
-    // paper, light only. The attribute opts this surface out of the `.dark .mz`
-    // repaint (see styles/matcha-zen.css) so the board never renders on dark.
+    // paper, light only. The app currently pins forcedTheme="light" in
+    // providers.tsx, so `.dark` never lands today — this attribute is the guard
+    // for if that is ever relaxed, since a dark `.mz` repaint would otherwise
+    // take this surface with it. See styles/matcha-zen.css.
     <div className="mz mz-paper mz-persona-holder min-h-screen" data-surface-tier="public">
       <PageFrame as="main" mode="marketing">
         <header style={{ marginBottom: 22 }}>

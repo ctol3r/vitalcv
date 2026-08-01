@@ -56,6 +56,8 @@ export function BoardClient() {
   const [queryDraft, setQueryDraft] = useState(filters.q);
   useEffect(() => { setQueryDraft(filters.q); }, [filters.q]);
 
+  const [filtersOpen, setFiltersOpen] = useState(false);
+
   // Once readiness has ever resolved we keep the facet available, so narrowing
   // to zero results doesn't make the control vanish mid-session.
   const readinessSeen = useRef(false);
@@ -121,14 +123,36 @@ export function BoardClient() {
   );
 
   const active = activeFilterSummary(filters);
+  const activeCount = active.length;
   const readinessAvailable = readinessSeen.current;
 
   return (
-    <div className="grid gap-8 lg:grid-cols-[240px_minmax(0,1fr)]">
+    <>
+      {/* One search field for every breakpoint. Rendering a mobile copy and a
+          desktop copy would put two searchboxes with the same accessible name
+          into the DOM, which is a real problem for a screen reader even when
+          one of them is visually hidden. */}
+      <div style={{ marginBottom: 18, maxWidth: 520 }}>
+        <KeywordInput value={queryDraft} onChange={setQueryDraft} />
+      </div>
+
+      <div className="grid gap-8 lg:grid-cols-[240px_minmax(0,1fr)]">
       <div>
-        <div className="lg:hidden" style={{ marginBottom: 16 }}>
-          <KeywordInput value={queryDraft} onChange={setQueryDraft} />
-        </div>
+        {/* On a phone the full facet rail would push the first role about a
+            screen and a half down, so it collapses behind a control. Desktop
+            always shows it. */}
+        <button
+          type="button"
+          onClick={() => setFiltersOpen((open) => !open)}
+          aria-expanded={filtersOpen}
+          className="mz-small lg:hidden w-full border px-3 py-2 text-left"
+          style={{ borderRadius: 3, borderColor: RULE, color: 'var(--vt-text-primary)', marginBottom: 12 }}
+        >
+          {filtersOpen ? 'Hide filters' : 'Filters'}
+          {activeCount > 0 ? ` · ${activeCount}` : ''}
+        </button>
+
+        <div className={filtersOpen ? 'block' : 'hidden lg:block'}>
         <BoardFilterPanel
           filters={filters}
           onChange={update}
@@ -144,13 +168,10 @@ export function BoardClient() {
             Clear all filters
           </button>
         )}
+        </div>
       </div>
 
       <div>
-        <div className="hidden lg:block" style={{ marginBottom: 14 }}>
-          <KeywordInput value={queryDraft} onChange={setQueryDraft} />
-        </div>
-
         <div
           className="flex flex-wrap items-baseline justify-between gap-3 border-b pb-3"
           style={{ borderColor: RULE }}
@@ -223,7 +244,8 @@ export function BoardClient() {
           />
         )}
       </div>
-    </div>
+      </div>
+    </>
   );
 }
 

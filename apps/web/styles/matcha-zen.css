@@ -152,9 +152,11 @@
  *
  * Opt-out: `data-surface-tier="public"` keeps a surface on the light base
  * tokens whatever the theme. CD-14 fixes the public acquisition tier as paper,
- * light only. Because the --vt-* bridge resolves through these base tokens,
- * excluding them here IS the whole opt-out — no per-component work, and no
- * duplicated palette to drift.
+ * light only. Note this whole dark block is dormant today — providers.tsx pins
+ * forcedTheme="light" — so the opt-out is a guard for if that is relaxed, not a
+ * fix for current behaviour. Because the --vt-* bridge resolves through these
+ * base tokens, excluding them here IS the whole opt-out: no per-component work,
+ * and no duplicated palette to drift.
  */
 .dark .mz:not([data-surface-tier='public']) {
   /* Warm charcoal paper */
