@@ -149,8 +149,14 @@
  * bridge above resolves through them, so every `.mz` surface (homepage included)
  * flips together with no per-component changes. Activated by next-themes adding
  * `.dark` on <html>.
+ *
+ * Opt-out: `data-surface-tier="public"` keeps a surface on the light base
+ * tokens whatever the theme. CD-14 fixes the public acquisition tier as paper,
+ * light only. Because the --vt-* bridge resolves through these base tokens,
+ * excluding them here IS the whole opt-out — no per-component work, and no
+ * duplicated palette to drift.
  */
-.dark .mz {
+.dark .mz:not([data-surface-tier='public']) {
   /* Warm charcoal paper */
   --paper: #15140f;
   --paper-2: #1d1b15;
