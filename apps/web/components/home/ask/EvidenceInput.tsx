@@ -178,6 +178,19 @@ export function EvidenceInput({
           />
 
           {/*
+            A decorative guide showing how many digits the field expects. It is
+            NOT a placeholder-label: the real <label> above says what the field
+            is, and this is aria-hidden, inert, and absolutely positioned so it
+            occupies no layout of its own. Without it the empty capsule reads as
+            a textarea — a 60px line with nothing on it.
+          */}
+          {digits.length === 0 ? (
+            <span className="evidence-field__guide" aria-hidden="true">
+              ··········
+            </span>
+          ) : null}
+
+          {/*
             Fixed-width slot. It is present in every state — an empty box when
             there is nothing to say — so a mark appearing cannot reflow the
             digits beside it.

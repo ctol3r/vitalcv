@@ -123,6 +123,17 @@ describe('evidence input markup', () => {
     expect(html).not.toContain('placeholder=');
   });
 
+  it('shows an inert digit guide while empty, and never mistakes it for the label', () => {
+    const empty = render();
+    expect(empty).toContain('evidence-field__guide');
+    // The guide sits inside an aria-hidden span, so it reaches no screen reader.
+    expect(empty).toMatch(/evidence-field__guide"[^>]*aria-hidden="true"/);
+    // …and it goes away the moment there are real digits to show.
+    expect(render({ value: '1' })).not.toContain('evidence-field__guide');
+    // The real label is still the accessible name in both states.
+    expect(empty).toContain('Enter your 10-digit NPI');
+  });
+
   it('exposes its state through stable attributes, not through CSS inference', () => {
     expect(render()).toContain('data-evidence-input-state="idle"');
     expect(render({ value: VALID })).toContain('data-evidence-input-state="valid"');

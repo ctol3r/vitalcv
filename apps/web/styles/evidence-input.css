@@ -115,10 +115,34 @@
 
 /* ── The digits row ───────────────────────────────────────────────────────── */
 .evidence-field__row {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 0.5rem;
   margin-top: 0.2rem;
+}
+
+/* Decorative digit guide, shown only while the field is empty. Absolutely
+ * positioned and inert: it contributes no layout, so the digits that replace it
+ * do not move, and it can never be read as the field's label. */
+.evidence-field__guide {
+  position: absolute;
+  inset-block: 0;
+  /* Bounded on BOTH sides and clipped. Being out of flow, an unbounded guide
+     could otherwise run past the capsule at 320px and give the document a
+     horizontal scrollbar — which ask-home.spec.ts checks at five widths. */
+  left: 0;
+  right: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: clamp(2.25rem, 6.5vw, 3.75rem);
+  line-height: 1.15;
+  letter-spacing: 0.16em;
+  color: color-mix(in oklab, var(--home-text-muted) 24%, transparent);
 }
 
 /* Same clamp as the rule it replaces: the field stays the largest thing on the
