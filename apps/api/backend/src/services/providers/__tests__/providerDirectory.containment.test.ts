@@ -1,13 +1,18 @@
 /**
  * P0.1 containment — GET /api/directory must not publicly assert a specialty
- * or taxonomy for a real NPI.
+ * or taxonomy whose provenance is unknown.
  *
  * `/api/directory` is unauthenticated (tenantGuard intelligence-read prefix)
- * and served `specialties: ['207R00000X']` for ten real NPIs. That code came
- * straight from `Provider.taxonomyCode`, which NPPES contradicts on all ten
- * rows (checked 2026-07-27). The same value reached three output formats:
- * the structured JSON, the FHIR PractitionerRole `specialty` coding, and the
- * CSV `Specialties` column.
+ * and served one stored `Provider.taxonomyCode` as every provider's specialty.
+ * The registry contradicted it on every row (checked 2026-07-27). The same
+ * value reached three output formats: the structured JSON, the FHIR
+ * PractitionerRole `specialty` coding, and the CSV `Specialties` column.
+ *
+ * Identities below are synthetic. Per demoNpiContainment.test.ts, a
+ * check-digit-VALID NPI is issued or issuable to a person, so only
+ * check-digit-INVALID numbers are safe to hardcode; every NPI here fails Luhn
+ * over "80840" + its first 9 digits. `sourceTaxonomy` keeps the real registry
+ * codes so the "nothing is substituted" assertion still has something to bite.
  *
  * These tests assert the outcome — no stored taxonomy code reaches a public
  * caller in any format — rather than the mechanism, so a later
@@ -50,18 +55,18 @@ const prismaMock = prisma as unknown as {
   provider: { findMany: jest.Mock };
 };
 
-/** The ten rows production served, with the NPPES value each one contradicts. */
-const PRODUCTION_ROWS = [
-  { npi: '1003000126', fullName: 'ARDALAN ENKESHAFI, M.D.', storedTaxonomy: '207R00000X', nppesTaxonomy: '208M00000X' },
-  { npi: '1003000134', fullName: 'Dr. THOMAS LEE CIBULL, M.D.', storedTaxonomy: '207R00000X', nppesTaxonomy: '207ZP0102X' },
-  { npi: '1003000142', fullName: 'RASHID KHALIL, M.D.', storedTaxonomy: '207R00000X', nppesTaxonomy: '207L00000X' },
-  { npi: '1003000159', fullName: 'MARSHA SUSAN VOGES, FNP', storedTaxonomy: '207R00000X', nppesTaxonomy: '363LF0000X' },
-  { npi: '1003000167', fullName: 'Dr. JULIO EDGARDO ESCOBAR, DDS', storedTaxonomy: '207R00000X', nppesTaxonomy: '122300000X' },
-  { npi: '1003000175', fullName: 'Dr. BELINDA REYES-VASQUEZ, D.D.S.', storedTaxonomy: '207R00000X', nppesTaxonomy: '122300000X' },
-  { npi: '1003000183', fullName: 'Mr. DENNIS JAMES CYPHERS, L.M.P', storedTaxonomy: '207R00000X', nppesTaxonomy: '225700000X' },
-  { npi: '1003000191', fullName: 'ALYSSA WELTMAN', storedTaxonomy: '207R00000X', nppesTaxonomy: '235Z00000X' },
-  { npi: '1003000209', fullName: 'KOPELMAN FAMILY CHIROPRACTIC INC', storedTaxonomy: '207R00000X', nppesTaxonomy: '111N00000X' },
-  { npi: '1003000217', fullName: 'TRI-STATE EYE CARE CENTER, LTD.', storedTaxonomy: '207R00000X', nppesTaxonomy: '152W00000X' },
+/** The stored-field shape production served, against synthetic identities. */
+const SYNTHETIC_ROWS = [
+  { npi: '9000000001', fullName: 'Synthetic Clinician 01', storedTaxonomy: '207R00000X', sourceTaxonomy: '208M00000X' },
+  { npi: '9000000002', fullName: 'Synthetic Clinician 02', storedTaxonomy: '207R00000X', sourceTaxonomy: '207ZP0102X' },
+  { npi: '9000000003', fullName: 'Synthetic Clinician 03', storedTaxonomy: '207R00000X', sourceTaxonomy: '207L00000X' },
+  { npi: '9000000004', fullName: 'Synthetic Clinician 04', storedTaxonomy: '207R00000X', sourceTaxonomy: '363LF0000X' },
+  { npi: '9000000005', fullName: 'Synthetic Clinician 05', storedTaxonomy: '207R00000X', sourceTaxonomy: '122300000X' },
+  { npi: '9000000006', fullName: 'Synthetic Clinician 06', storedTaxonomy: '207R00000X', sourceTaxonomy: '122300000X' },
+  { npi: '9000000008', fullName: 'Synthetic Clinician 07', storedTaxonomy: '207R00000X', sourceTaxonomy: '225700000X' },
+  { npi: '9000000009', fullName: 'Synthetic Clinician 08', storedTaxonomy: '207R00000X', sourceTaxonomy: '235Z00000X' },
+  { npi: '9000000010', fullName: 'Synthetic Organization 01', storedTaxonomy: '207R00000X', sourceTaxonomy: '111N00000X' },
+  { npi: '9000000011', fullName: 'Synthetic Organization 02', storedTaxonomy: '207R00000X', sourceTaxonomy: '152W00000X' },
 ] as const;
 
 describe('provider directory — P0.1 truth containment', () => {
@@ -72,7 +77,7 @@ describe('provider directory — P0.1 truth containment', () => {
     // undefined, and every assertion below would pass even against a service
     // that forwards it.
     prismaMock.provider.findMany.mockResolvedValue(
-      PRODUCTION_ROWS.map((row) => ({
+      SYNTHETIC_ROWS.map((row) => ({
         npi: row.npi,
         fullName: row.fullName,
         taxonomyCode: row.storedTaxonomy,
@@ -84,8 +89,8 @@ describe('provider directory — P0.1 truth containment', () => {
   it('still lists every provider by NPI and name', async () => {
     const directory = await generateDirectory({ pageSize: 100 });
 
-    expect(directory.entries).toHaveLength(PRODUCTION_ROWS.length);
-    for (const row of PRODUCTION_ROWS) {
+    expect(directory.entries).toHaveLength(SYNTHETIC_ROWS.length);
+    for (const row of SYNTHETIC_ROWS) {
       const entry = directory.entries.find((e) => e.npi === row.npi);
       expect(entry).toBeDefined();
       expect(entry?.fullName).toBe(row.fullName);
@@ -104,7 +109,7 @@ describe('provider directory — P0.1 truth containment', () => {
   it('publishes no taxonomy coding in the FHIR export', async () => {
     const bundle = await exportFHIRDirectory({ pageSize: 100 });
 
-    expect(bundle.entry).toHaveLength(PRODUCTION_ROWS.length);
+    expect(bundle.entry).toHaveLength(SYNTHETIC_ROWS.length);
     for (const item of bundle.entry) {
       expect(item.resource.specialty).toEqual([]);
     }
@@ -136,12 +141,12 @@ describe('provider directory — P0.1 truth containment', () => {
     expect(directory.disclosure).toContain('not source-backed');
   });
 
-  it('never emits any NPPES taxonomy either — nothing is substituted', async () => {
+  it('never emits any registry taxonomy either — nothing is substituted', async () => {
     const directory = await generateDirectory({ pageSize: 100 });
     const serialized = JSON.stringify(directory);
 
-    for (const row of PRODUCTION_ROWS) {
-      expect(serialized).not.toContain(row.nppesTaxonomy);
+    for (const row of SYNTHETIC_ROWS) {
+      expect(serialized).not.toContain(row.sourceTaxonomy);
     }
   });
 
@@ -155,7 +160,7 @@ describe('provider directory — P0.1 truth containment', () => {
   it('publishes no taxonomy in the signed federation envelope', async () => {
     const signed = await generateSignedDirectory({ pageSize: 100 });
 
-    expect(signed.entries).toHaveLength(PRODUCTION_ROWS.length);
+    expect(signed.entries).toHaveLength(SYNTHETIC_ROWS.length);
     for (const entry of signed.entries) {
       expect(entry.specialties).toEqual([]);
     }
@@ -167,7 +172,7 @@ describe('provider directory — P0.1 truth containment', () => {
     const snapshot = getDirectorySnapshot(snapshotId);
 
     expect(snapshot).not.toBeNull();
-    expect(snapshot?.entries).toHaveLength(PRODUCTION_ROWS.length);
+    expect(snapshot?.entries).toHaveLength(SYNTHETIC_ROWS.length);
     for (const entry of snapshot?.entries ?? []) {
       expect(entry.specialties).toEqual([]);
     }
