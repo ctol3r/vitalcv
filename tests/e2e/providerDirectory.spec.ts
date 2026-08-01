@@ -171,7 +171,7 @@ describe('Wave CX-145 provider directory', () => {
     }));
   });
 
-  test('exports FHIR PractitionerRole bundles with taxonomy and organization references', async () => {
+  test('exports FHIR PractitionerRole bundles with organization references and no taxonomy', async () => {
     const response = await request(app)
       .get('/api/directory/fhir')
       .set('x-org-id', TEST_ORG_ID)
@@ -208,16 +208,15 @@ describe('Wave CX-145 provider directory', () => {
         value: '8100000001',
       }),
     ]));
-    expect(role.code[0]?.coding[0]).toEqual(expect.objectContaining({
-      system: 'http://nucc.org/provider-taxonomy',
-      code: '207R00000X',
-      display: '207R00000X',
-    }));
-    expect(role.specialty[0]?.coding[0]).toEqual(expect.objectContaining({
-      system: 'http://nucc.org/provider-taxonomy',
-      code: '207R00000X',
-      display: '207R00000X',
-    }));
+    // P0.1 containment — the directory no longer publishes a NUCC taxonomy.
+    // `Provider.taxonomyCode` is not source-backed, and both `code` and
+    // `specialty` derive from it, so both are empty. FHIR treats an absent
+    // element as "not stated", which is the honest reading; the previous
+    // expectation pinned the fabricated code as the contract.
+    expect(role.code).toEqual([]);
+    expect(role.specialty).toEqual([]);
+    expect(JSON.stringify(body)).not.toContain('http://nucc.org/provider-taxonomy');
+    expect(JSON.stringify(body)).not.toContain('207R00000X');
 
     const { integrityHash, ...unsignedPayload } = body;
     expect(integrityHash).toBe(sha256ForPayload(unsignedPayload));
