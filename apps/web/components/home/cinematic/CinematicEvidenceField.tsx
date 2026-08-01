@@ -44,8 +44,10 @@ export function CinematicEvidenceField() {
         />
 
         {sources.map((source, index) => {
-          const startX = source.side === 'left' ? source.x + 74 : source.x - 74;
-          const controlX = source.side === 'left' ? 340 : 684;
+          const isLeft = source.side === 'left';
+          const startX = isLeft ? source.x + 74 : source.x - 74;
+          const controlX = isLeft ? 340 : 684;
+          const endX = isLeft ? 424 : 600;
           return (
             <g
               key={source.id}
@@ -54,7 +56,7 @@ export function CinematicEvidenceField() {
             >
               <path
                 className="cinematic-evidence-field__path"
-                d={`M ${startX} ${source.y} C ${controlX} ${source.y}, ${controlX} 306, 430 306`}
+                d={`M ${startX} ${source.y} C ${controlX} ${source.y}, ${controlX} 306, ${endX} 306`}
               />
               <circle
                 className="cinematic-evidence-field__node-ring"
