@@ -56,7 +56,7 @@ jobs:
           --health-timeout 5s
           --health-retries 5
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       # pnpm version resolved from packageManager field in package.json (pnpm@10.6.1)
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
@@ -100,7 +100,7 @@ jobs:
     name: Web E2E (Playwright)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
@@ -171,7 +171,7 @@ jobs:
             echo "present=false" >> "$GITHUB_OUTPUT"
             echo "::notice::E2E_CLERK_* secrets not configured — real-auth e2e skipped"
           fi
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         if: steps.keys.outputs.present == 'true'
       - uses: pnpm/action-setup@v4
         if: steps.keys.outputs.present == 'true'
