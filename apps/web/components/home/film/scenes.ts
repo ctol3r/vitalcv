@@ -79,7 +79,7 @@ export const FILM_SCENES: readonly FilmScene[] = Object.freeze([
   Object.freeze<FilmScene>({
     id: 'arrival',
     label: 'Start with your NPI',
-    phrase: 'Get hired faster.',
+    phrase: 'Get hired on evidence.',
     // Permitted here because it explains the only primary action.
     support: 'Start with your NPI.',
     // 'npi' AND 'state': the field and its answer are one scene now. The answer
