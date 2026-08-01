@@ -239,29 +239,38 @@ describe('provider routes', () => {
 
 /**
  * P0.1 containment — GET /api/providers must not publicly assert provider type,
- * specialty/taxonomy or practice location for a real NPI.
+ * specialty/taxonomy or practice location whose provenance is unknown.
  *
- * The fixture below is the literal payload production served on 2026-07-27 for
- * the ten NPIs seeded from the head of the NPI registry. `stored` is what sat
- * in the `Provider` row; `nppes` is what the free NPPES registry actually says.
- * Two rows are NPPES NPI-2 organizations that the row labelled `Individual`,
- * all ten shared one taxonomy code, and nine of ten named the wrong state.
+ * The fixture reproduces the exact stored-field *shape* production served on
+ * 2026-07-27 — every row sharing one taxonomy code, every row labelled
+ * `Individual` including two organizations, and a state that disagrees with the
+ * registry — against synthetic identities. `stored` is what sat in the
+ * `Provider` row; `source` is what the registry says the answer should have
+ * been. Only the shape is load-bearing: the assertions turn on the stored
+ * values, never on who the row names.
+ *
+ * Identities are synthetic by the rule `demoNpiContainment.test.ts` states: a
+ * check-digit-VALID NPI is issued or issuable to a person, so only
+ * check-digit-INVALID numbers are safe to hardcode. Every NPI below fails Luhn
+ * over "80840" + its first 9 digits and can never be issued. Recording a
+ * fabricated attribution against a real registrant is the defect under repair —
+ * a fixture must not commit one permanently.
  *
  * These tests assert the outcome (no fabricated value reaches a public caller),
  * not the mechanism, so a later provenance-carrying rewrite is free to change
  * how the fields are suppressed as long as unsourced values stay unpublished.
  */
-const PRODUCTION_ROWS = [
-  { npi: '1003000126', fullName: 'ARDALAN ENKESHAFI, M.D.', stored: { providerType: 'Individual', taxonomyCode: '207R00000X', stateOfPractice: 'CA' }, nppes: { type: 'NPI-1', taxonomyCode: '208M00000X', state: 'MD' } },
-  { npi: '1003000134', fullName: 'Dr. THOMAS LEE CIBULL, M.D.', stored: { providerType: 'Individual', taxonomyCode: '207R00000X', stateOfPractice: 'TX' }, nppes: { type: 'NPI-1', taxonomyCode: '207ZP0102X', state: 'IL' } },
-  { npi: '1003000142', fullName: 'RASHID KHALIL, M.D.', stored: { providerType: 'Individual', taxonomyCode: '207R00000X', stateOfPractice: 'NY' }, nppes: { type: 'NPI-1', taxonomyCode: '207L00000X', state: 'OH' } },
-  { npi: '1003000159', fullName: 'MARSHA SUSAN VOGES, FNP', stored: { providerType: 'Individual', taxonomyCode: '207R00000X', stateOfPractice: 'IL' }, nppes: { type: 'NPI-1', taxonomyCode: '363LF0000X', state: 'SC' } },
-  { npi: '1003000167', fullName: 'Dr. JULIO EDGARDO ESCOBAR, DDS', stored: { providerType: 'Individual', taxonomyCode: '207R00000X', stateOfPractice: 'MA' }, nppes: { type: 'NPI-1', taxonomyCode: '122300000X', state: 'NV' } },
-  { npi: '1003000175', fullName: 'Dr. BELINDA REYES-VASQUEZ, D.D.S.', stored: { providerType: 'Individual', taxonomyCode: '207R00000X', stateOfPractice: 'FL' }, nppes: { type: 'NPI-1', taxonomyCode: '122300000X', state: 'CA' } },
-  { npi: '1003000183', fullName: 'Mr. DENNIS JAMES CYPHERS, L.M.P', stored: { providerType: 'Individual', taxonomyCode: '207R00000X', stateOfPractice: 'WA' }, nppes: { type: 'NPI-1', taxonomyCode: '225700000X', state: 'WA' } },
-  { npi: '1003000191', fullName: 'ALYSSA WELTMAN', stored: { providerType: 'Individual', taxonomyCode: '207R00000X', stateOfPractice: 'GA' }, nppes: { type: 'NPI-1', taxonomyCode: '235Z00000X', state: 'NC' } },
-  { npi: '1003000209', fullName: 'KOPELMAN FAMILY CHIROPRACTIC INC', stored: { providerType: 'Individual', taxonomyCode: '207R00000X', stateOfPractice: 'AZ' }, nppes: { type: 'NPI-2', taxonomyCode: '111N00000X', state: 'MA' } },
-  { npi: '1003000217', fullName: 'TRI-STATE EYE CARE CENTER, LTD.', stored: { providerType: 'Individual', taxonomyCode: '207R00000X', stateOfPractice: 'CO' }, nppes: { type: 'NPI-2', taxonomyCode: '152W00000X', state: 'WV' } },
+const SYNTHETIC_ROWS = [
+  { npi: '9000000001', fullName: 'Synthetic Clinician 01', stored: { providerType: 'Individual', taxonomyCode: '207R00000X', stateOfPractice: 'CA' }, source: { type: 'NPI-1', taxonomyCode: '208M00000X', state: 'MD' } },
+  { npi: '9000000002', fullName: 'Synthetic Clinician 02', stored: { providerType: 'Individual', taxonomyCode: '207R00000X', stateOfPractice: 'TX' }, source: { type: 'NPI-1', taxonomyCode: '207ZP0102X', state: 'IL' } },
+  { npi: '9000000003', fullName: 'Synthetic Clinician 03', stored: { providerType: 'Individual', taxonomyCode: '207R00000X', stateOfPractice: 'NY' }, source: { type: 'NPI-1', taxonomyCode: '207L00000X', state: 'OH' } },
+  { npi: '9000000004', fullName: 'Synthetic Clinician 04', stored: { providerType: 'Individual', taxonomyCode: '207R00000X', stateOfPractice: 'IL' }, source: { type: 'NPI-1', taxonomyCode: '363LF0000X', state: 'SC' } },
+  { npi: '9000000005', fullName: 'Synthetic Clinician 05', stored: { providerType: 'Individual', taxonomyCode: '207R00000X', stateOfPractice: 'MA' }, source: { type: 'NPI-1', taxonomyCode: '122300000X', state: 'NV' } },
+  { npi: '9000000006', fullName: 'Synthetic Clinician 06', stored: { providerType: 'Individual', taxonomyCode: '207R00000X', stateOfPractice: 'FL' }, source: { type: 'NPI-1', taxonomyCode: '122300000X', state: 'CA' } },
+  { npi: '9000000008', fullName: 'Synthetic Clinician 07', stored: { providerType: 'Individual', taxonomyCode: '207R00000X', stateOfPractice: 'WA' }, source: { type: 'NPI-1', taxonomyCode: '225700000X', state: 'WA' } },
+  { npi: '9000000009', fullName: 'Synthetic Clinician 08', stored: { providerType: 'Individual', taxonomyCode: '207R00000X', stateOfPractice: 'GA' }, source: { type: 'NPI-1', taxonomyCode: '235Z00000X', state: 'NC' } },
+  { npi: '9000000010', fullName: 'Synthetic Organization 01', stored: { providerType: 'Individual', taxonomyCode: '207R00000X', stateOfPractice: 'AZ' }, source: { type: 'NPI-2', taxonomyCode: '111N00000X', state: 'MA' } },
+  { npi: '9000000011', fullName: 'Synthetic Organization 02', stored: { providerType: 'Individual', taxonomyCode: '207R00000X', stateOfPractice: 'CO' }, source: { type: 'NPI-2', taxonomyCode: '152W00000X', state: 'WV' } },
 ] as const;
 
 describe('GET /api/providers — P0.1 truth containment', () => {
@@ -271,7 +280,7 @@ describe('GET /api/providers — P0.1 truth containment', () => {
     prismaMock.graphNode.findMany.mockReset();
     prismaMock.graphEdge.findMany.mockReset();
 
-    prismaMock.provider.count.mockResolvedValue(PRODUCTION_ROWS.length);
+    prismaMock.provider.count.mockResolvedValue(SYNTHETIC_ROWS.length);
     // The mock hands back the FULL stored row, fabricated columns included, and
     // ignores `select` on purpose. If the fixture returned only the safe columns
     // the withheld values would be `undefined`, JSON.stringify would drop them,
@@ -279,7 +288,7 @@ describe('GET /api/providers — P0.1 truth containment', () => {
     // happily forwards them. Returning the fabricated values means these tests
     // fail the moment the route maps one into the response.
     prismaMock.provider.findMany.mockResolvedValue(
-      PRODUCTION_ROWS.map((row) => ({
+      SYNTHETIC_ROWS.map((row) => ({
         npi: row.npi,
         fullName: row.fullName,
         providerType: row.stored.providerType,
@@ -294,8 +303,8 @@ describe('GET /api/providers — P0.1 truth containment', () => {
   it('publishes NPI and name for every affected record', async () => {
     const response = await request(buildApp()).get('/api/providers?limit=100').expect(200);
 
-    expect(response.body.providers).toHaveLength(PRODUCTION_ROWS.length);
-    for (const row of PRODUCTION_ROWS) {
+    expect(response.body.providers).toHaveLength(SYNTHETIC_ROWS.length);
+    for (const row of SYNTHETIC_ROWS) {
       expect(response.body.providers).toContainEqual({ npi: row.npi, fullName: row.fullName });
     }
   });
@@ -312,7 +321,7 @@ describe('GET /api/providers — P0.1 truth containment', () => {
     const response = await request(buildApp()).get('/api/providers?limit=100').expect(200);
     const serialized = JSON.stringify(response.body.providers);
 
-    for (const row of PRODUCTION_ROWS) {
+    for (const row of SYNTHETIC_ROWS) {
       expect(serialized).not.toContain(row.stored.providerType);
       expect(serialized).not.toContain(row.stored.taxonomyCode);
       // A bare two-letter state would collide with substrings of real names, so
@@ -321,10 +330,10 @@ describe('GET /api/providers — P0.1 truth containment', () => {
     }
   });
 
-  it('does not label an NPPES organization as an individual', async () => {
+  it('does not label a registry organization as an individual', async () => {
     const response = await request(buildApp()).get('/api/providers?limit=100').expect(200);
 
-    const organizations = PRODUCTION_ROWS.filter((row) => row.nppes.type === 'NPI-2');
+    const organizations = SYNTHETIC_ROWS.filter((row) => row.source.type === 'NPI-2');
     expect(organizations.length).toBeGreaterThan(0);
 
     for (const org of organizations) {
