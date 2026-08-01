@@ -80,8 +80,11 @@ describe('Wave 5 buyer proof surface', () => {
     const markup = renderToStaticMarkup(await EmployersPage());
 
     // Wave 6: the doorway leads with the buyer outcome, not setup mechanics.
-    expect(markup).toContain('Start clinicians faster');
+    // The outcome is stated WITHOUT a speed claim — "faster" was retired by the
+    // brand split (2026-07-26) until a pilot measures time-to-start.
+    expect(markup).toContain('Start clinicians from');
     expect(markup).toContain('source-backed evidence');
+    expect(markup).not.toContain('Start clinicians faster');
     // D3: limits are stated plainly and EARLY on employer surfaces, and the
     // cadence line derives from the source-lane registry.
     expect(markup).toContain('data-employer-limits');

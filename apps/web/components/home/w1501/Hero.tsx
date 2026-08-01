@@ -237,7 +237,7 @@ export const HeroSection = ({
         <Reveal delay={60}>
           <h1>
             Find the opportunity. Prove your career once.{' '}
-            <span className="vt-accent-i">Start faster.</span>
+            <span className="vt-accent-i">Start from evidence.</span>
           </h1>
         </Reveal>
         <Reveal delay={120}>

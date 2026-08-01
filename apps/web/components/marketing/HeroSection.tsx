@@ -89,7 +89,7 @@ export function HeroSection() {
               style={{ fontFamily: 'var(--font-fraunces, var(--font-sans), Georgia, serif)' }}
               className="text-[clamp(2.2rem,4.8vw,4.5rem)] font-semibold leading-[1.02] tracking-tight text-[var(--warm-charcoal)]"
             >
-              Start clinicians faster.
+              Start clinicians from source-backed evidence.
             </h1>
 
             <p className="max-w-2xl text-lg leading-relaxed text-[var(--warm-charcoal)]/75">
