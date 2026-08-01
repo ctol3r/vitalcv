@@ -10,14 +10,18 @@ import { buildDegradedPassportStub } from '@/lib/trust/buildDegradedPassportStub
  * people, and it read `taxonomies[0]` as *the* specialty even when NPPES marks
  * a different row primary.
  *
- * The fixtures below are trimmed from live NPPES responses (2026-07-27). They
- * are the shape `fetchNppesIdentityProbe` hands the stub: `results[0]` verbatim.
+ * The fixtures below reproduce the shape `fetchNppesIdentityProbe` hands the
+ * stub (`results[0]` verbatim), including the real taxonomy orderings that
+ * caused the defect — three non-primary rows ahead of the primary. Identities
+ * are synthetic: per demoNpiContainment.test.ts only check-digit-INVALID NPIs
+ * are safe to hardcode, and every NPI here fails Luhn over "80840" + its first
+ * 9 digits, so none can ever be issued to a person.
  */
 
 /** NPI-1. NPPES lists three non-primary Internal Medicine rows before the primary. */
 const INDIVIDUAL_WITH_NON_PRIMARY_FIRST = {
   enumeration_type: 'NPI-1',
-  basic: { first_name: 'ARDALAN', last_name: 'ENKESHAFI', status: 'A' },
+  basic: { first_name: 'SYNTHETIC', last_name: 'CLINICIAN', status: 'A' },
   taxonomies: [
     { code: '207R00000X', desc: 'Internal Medicine', primary: false },
     { code: '207R00000X', desc: 'Internal Medicine', primary: false },
@@ -29,33 +33,33 @@ const INDIVIDUAL_WITH_NON_PRIMARY_FIRST = {
 /** NPI-2 — an organization the stub used to publish as an individual. */
 const ORGANIZATION = {
   enumeration_type: 'NPI-2',
-  basic: { organization_name: 'KOPELMAN FAMILY CHIROPRACTIC INC', status: 'A' },
+  basic: { organization_name: 'SYNTHETIC CHIROPRACTIC INC', status: 'A' },
   taxonomies: [{ code: '111N00000X', desc: 'Chiropractor', primary: true }],
 };
 
 describe('buildDegradedPassportStub — identity is read, not assumed', () => {
   it('reports an NPPES organization as an organization', () => {
-    const passport = buildDegradedPassportStub('1003000209', ORGANIZATION);
+    const passport = buildDegradedPassportStub('9000000010', ORGANIZATION);
 
     expect(passport.identity.entityType).toBe('organization');
     expect(passport.identity.entityType).not.toBe('individual');
   });
 
   it('uses the organization name NPPES supplies instead of an NPI placeholder', () => {
-    const passport = buildDegradedPassportStub('1003000209', ORGANIZATION);
+    const passport = buildDegradedPassportStub('9000000010', ORGANIZATION);
 
-    expect(passport.identity.displayName).toBe('KOPELMAN FAMILY CHIROPRACTIC INC');
+    expect(passport.identity.displayName).toBe('SYNTHETIC CHIROPRACTIC INC');
   });
 
   it('reports an NPPES individual as an individual', () => {
-    const passport = buildDegradedPassportStub('1003000126', INDIVIDUAL_WITH_NON_PRIMARY_FIRST);
+    const passport = buildDegradedPassportStub('9000000001', INDIVIDUAL_WITH_NON_PRIMARY_FIRST);
 
     expect(passport.identity.entityType).toBe('individual');
-    expect(passport.identity.displayName).toBe('ARDALAN ENKESHAFI');
+    expect(passport.identity.displayName).toBe('SYNTHETIC CLINICIAN');
   });
 
   it('publishes the primary taxonomy, not whichever row NPPES returned first', () => {
-    const passport = buildDegradedPassportStub('1003000126', INDIVIDUAL_WITH_NON_PRIMARY_FIRST);
+    const passport = buildDegradedPassportStub('9000000001', INDIVIDUAL_WITH_NON_PRIMARY_FIRST);
 
     expect(passport.identity.specialty).toBe('Hospitalist');
     expect(passport.identity.specialty).not.toBe('Internal Medicine');
@@ -71,17 +75,17 @@ describe('buildDegradedPassportStub — identity is read, not assumed', () => {
       ],
     };
 
-    const passport = buildDegradedPassportStub('1003000191', noPrimary);
+    const passport = buildDegradedPassportStub('9000000009', noPrimary);
 
     // Guessing a row is the defect being fixed, so absent beats arbitrary.
     expect(passport.identity.specialty).toBeUndefined();
   });
 
   it('claims no entity type when NPPES returned nothing to read', () => {
-    const passport = buildDegradedPassportStub('1003000126', null);
+    const passport = buildDegradedPassportStub('9000000001', null);
 
     expect(passport.identity.entityType).toBe('unknown');
     expect(passport.identity.specialty).toBeUndefined();
-    expect(passport.identity.displayName).toBe('NPI 1003000126');
+    expect(passport.identity.displayName).toBe('NPI 9000000001');
   });
 });
