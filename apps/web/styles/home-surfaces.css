@@ -1,0 +1,189 @@
+/**
+ * home-surfaces.css — the homepage's semantic surface and motion contract.
+ *
+ * WHY THIS EXISTS. Before this file the homepage expressed every surface
+ * decision twice: once in `ask-home.css` and again as Tailwind arbitrary values
+ * inside `LiveNpiResult.tsx` (`bg-[var(--vt-surface)]`,
+ * `border-[var(--vt-border-subtle)]`, a hand-rolled `shadow-[...]`). Two
+ * spellings of one idea drift — which is how a resolved capsule and the field
+ * that produced it ended up with different borders and different radii.
+ *
+ * SCOPE. This is NOT a global theme. Every declaration hangs off
+ * `[data-home-tone]`, an attribute only homepage components emit, so no other
+ * route can inherit it. There is deliberately no `:root` block here.
+ *
+ * TOKEN DISCIPLINE. Every colour resolves through an existing `--vt-*` token.
+ * `check-design-lint.ts` runs LINT-01 (raw colour), LINT-05 (literal z-index),
+ * LINT-06 (raw box-shadow) and LINT-09 (font literal) as RATCHETS over
+ * `apps/web/styles/**`, so a single raw value here would fail the gate rather
+ * than quietly add debt. That constraint is the point: a raw value in a
+ * stylesheet is drift, a token is a decision.
+ */
+
+/* ── Tone-independent product constants ───────────────────────────────────
+ * Declared on the tone carrier rather than `:root` so they cannot leak to a
+ * route that never opts in.
+ */
+[data-home-tone] {
+  /* The product curve. Deliberately NOT `--vt-ease-system`
+     (cubic-bezier(0.2, 0.8, 0.2, 1)), which governs the rest of the app and is
+     not this program's to redefine. This one leaves immediately and settles
+     long — the shape of something arriving under its own weight rather than
+     being eased in by a machine. One curve, one place. */
+  --home-ease-product: cubic-bezier(0.2, 0, 0, 1);
+
+  /* Two durations, both inside the house 280–420ms band (tokens.css §3).
+     `enter` is a thing appearing; `state` is a thing changing what it says. */
+  --home-duration-enter: var(--duration-slow);
+  --home-duration-state: var(--duration-fast);
+
+  /* The evidence capsule's corner. The resolved card, the resolving card and
+     the error card are one object in three states — they share this radius so
+     they cannot drift apart. */
+  --home-capsule-radius: var(--vt-radius-md);
+
+  /* The evidence field is the most important actionable object on the page and
+     is sized as one. Not a newsletter input. */
+  --home-field-height: 4.75rem;
+  --home-field-radius: var(--vt-radius-md);
+}
+
+/* ── paper — the opening surface ───────────────────────────────────────────
+ * The hero at rest. Warm paper, ink type, a rule you can see.
+ */
+[data-home-tone='paper'] {
+  --home-surface: var(--vt-bg);
+  --home-surface-raised: var(--vt-surface);
+  --home-text: var(--vt-text-primary);
+  --home-text-muted: var(--vt-text-muted);
+  --home-border: var(--vt-border);
+  --home-border-strong: var(--vt-text-primary);
+  --home-accent: var(--vt-accent-editorial);
+  --home-focus: var(--vt-focus-ring);
+  --home-error: var(--vt-state-blocked);
+}
+
+/* ── mist — evidence mist ──────────────────────────────────────────────────
+ * A half-step back from paper. Used where atmosphere sits behind content and
+ * must recede without becoming a second colour.
+ */
+[data-home-tone='mist'] {
+  --home-surface: var(--vt-surface-subtle);
+  --home-surface-raised: var(--vt-surface);
+  --home-text: var(--vt-text-primary);
+  --home-text-muted: var(--vt-text-muted);
+  --home-border: var(--vt-border-subtle);
+  --home-border-strong: var(--vt-border);
+  --home-accent: var(--vt-accent-editorial);
+  --home-focus: var(--vt-focus-ring);
+  --home-error: var(--vt-state-blocked);
+}
+
+/* ── trust — resolved proof ────────────────────────────────────────────────
+ * One step deeper than paper, for the surface that carries a real source
+ * response. Deeper, NOT darker: the public route stays paper (CD-4, LINT-04).
+ * Text stays `--vt-text-primary` on `--vt-surface-dim`, which is the same ink
+ * on a slightly denser ground — contrast rises rather than falls.
+ */
+[data-home-tone='trust'] {
+  --home-surface: var(--vt-surface-dim);
+  --home-surface-raised: var(--vt-surface);
+  --home-text: var(--vt-text-primary);
+  --home-text-muted: var(--vt-text-secondary);
+  --home-border: var(--vt-border);
+  --home-border-strong: var(--vt-text-primary);
+  --home-accent: var(--vt-accent-editorial);
+  --home-focus: var(--vt-focus-ring);
+  --home-error: var(--vt-state-blocked);
+}
+
+/* ── ink — the deliberate quiet ────────────────────────────────────────────
+ * Reserved for a BOUNDED element that ends the page, never for a full route.
+ * This is not an ops surface: it borrows no `--ops-*` / `--vital-ops-*` token
+ * and sets no `data-theme`, both of which LINT-04 forbids on a public route.
+ * It is simply the page's own ink used as a ground, with the page's own paper
+ * as type — #1A1815 against #F0EEE9, comfortably past AA at every size.
+ */
+[data-home-tone='ink'] {
+  --home-surface: var(--vt-text-primary);
+  --home-surface-raised: var(--vt-text-secondary);
+  --home-text: var(--vt-bg);
+  --home-text-muted: var(--vt-surface-dim);
+  --home-border: var(--vt-text-secondary);
+  --home-border-strong: var(--vt-bg);
+  /* The indigo editorial accent does not survive on ink at AA, so on this tone
+     the accent IS the paper. Meaning never rides on the accent alone. */
+  --home-accent: var(--vt-bg);
+  --home-focus: var(--vt-bg);
+  --home-error: var(--vt-badge-critical-bg);
+}
+
+/* ── The surface primitive ─────────────────────────────────────────────────
+ * Opt-in. A tone alone only DECLARES variables; this class spends them. Kept
+ * separate so a component can carry a tone for its children without repainting
+ * itself (the hero does exactly that).
+ */
+.home-surface {
+  background-color: var(--home-surface);
+  color: var(--home-text);
+}
+
+.home-surface-raised {
+  background-color: var(--home-surface-raised);
+  color: var(--home-text);
+  border: 1px solid var(--home-border);
+  border-radius: var(--home-capsule-radius);
+}
+
+/* ── Focus ─────────────────────────────────────────────────────────────────
+ * One ring, tokenised, never removed. `:focus-visible` so a pointer user does
+ * not get a ring they did not ask for, with a `:focus` fallback for engines
+ * that do not support it.
+ */
+.home-focusable:focus-visible {
+  outline: 2px solid var(--home-focus);
+  outline-offset: 2px;
+}
+
+/* ── Motion ────────────────────────────────────────────────────────────────
+ * ALL content is visible by default. Motion is an enhancement gated twice:
+ * once on `prefers-reduced-motion: no-preference`, and once on
+ * `[data-motion-ready]`, which components set only after hydration. Nothing
+ * here can hide content, and nothing here loops.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  [data-motion-ready] .home-enter {
+    animation: ask-art-appear var(--home-duration-enter) var(--home-ease-product) both;
+  }
+
+  [data-motion-ready] .home-capsule-reveal {
+    animation: home-capsule-reveal var(--home-duration-enter) var(--home-ease-product) both;
+  }
+
+  [data-motion-ready] .home-state-in {
+    animation: home-state-in var(--home-duration-state) var(--home-ease-product) both;
+  }
+
+  [data-motion-ready] .home-glyph-swap {
+    animation: home-glyph-swap var(--home-duration-state) var(--home-ease-product) both;
+  }
+
+  [data-motion-ready] .home-line-draw {
+    animation: ask-art-trace var(--home-duration-enter) var(--home-ease-product) both;
+  }
+}
+
+/* Reduced motion resolves to the FINAL state immediately — it never hides,
+ * never reorders, and never changes what the page means. */
+@media (prefers-reduced-motion: reduce) {
+  .home-enter,
+  .home-capsule-reveal,
+  .home-state-in,
+  .home-glyph-swap,
+  .home-line-draw {
+    animation: none !important;
+    opacity: 1 !important;
+    clip-path: none !important;
+    translate: none !important;
+  }
+}

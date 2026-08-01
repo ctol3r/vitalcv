@@ -4,6 +4,7 @@ import { AskHome } from '@/components/home/ask/AskHome';
 import { CinematicEvidenceField } from '@/components/home/cinematic/CinematicEvidenceField';
 import '@/styles/motion.css';
 import '@/styles/artifact-motion.css';
+import '@/styles/home-surfaces.css';
 import '@/styles/ask-home.css';
 import '@/styles/spine-tabs.css';
 import '@/styles/glass-eyebrow.css';

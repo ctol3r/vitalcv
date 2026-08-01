@@ -240,7 +240,11 @@ export function AskHome() {
   }, [valid, check.npi, check.reason]);
 
   return (
-    <div className="ask" ref={rootRef}>
+    // `data-home-tone` only DECLARES the semantic surface variables for this
+    // subtree (styles/home-surfaces.css) — spending them is opt-in per element,
+    // so carrying the tone here changes no paint. Contract:
+    // docs/design/home-evidence-experience-v2.md §4.
+    <div className="ask" ref={rootRef} data-home-tone="paper">
       <section className="ask-stage" data-home-hero="" aria-labelledby="ask-title">
         <div className="ask-inner">
           <p className="ask-eyebrow">For clinicians</p>
