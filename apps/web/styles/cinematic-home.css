@@ -19,6 +19,29 @@
   color: var(--cinematic-accent);
   opacity: 0.62;
   contain: paint;
+
+  /* Legibility floor. This layer is decorative and sits BEHIND the hero —
+     behind is fine for shapes, but its record card is centred under centred
+     copy, so its words landed on live copy: "YOUR"/"RECORD" (27px display
+     serif) across the NPI field and the caption through the promise
+     paragraph. Measured on production at opacity 1, three overlaps.
+     Decorative shapes behind copy read as atmosphere; decorative WORDS
+     behind copy read as a rendering fault, on the one surface that converts.
+
+     The mask fades the layer out through the centre column the hero
+     occupies and leaves the margins at full strength, so the perimeter
+     labels and the ambient glows are untouched and nothing in the
+     composition had to be deleted or moved. Two axes multiplied: the
+     horizontal band clears the copy column, the vertical one keeps the
+     field present above and below it. */
+  -webkit-mask-image:
+    linear-gradient(to right, #000 0%, #000 18%, transparent 38%, transparent 62%, #000 82%, #000 100%),
+    linear-gradient(to bottom, #000 0%, #000 8%, transparent 26%, transparent 74%, #000 92%, #000 100%);
+  -webkit-mask-composite: source-over;
+  mask-image:
+    linear-gradient(to right, #000 0%, #000 18%, transparent 38%, transparent 62%, #000 82%, #000 100%),
+    linear-gradient(to bottom, #000 0%, #000 8%, transparent 26%, transparent 74%, #000 92%, #000 100%);
+  mask-composite: add;
 }
 
 .cinematic-evidence-field::before,
