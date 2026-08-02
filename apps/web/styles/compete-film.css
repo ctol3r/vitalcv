@@ -122,28 +122,17 @@
   margin: -11rem 0 0 -11rem;
   border-radius: 50%;
   pointer-events: none;
-  background: radial-gradient(
-    circle,
-    color-mix(in oklab, var(--vt-accent-editorial, #4338CA) 9%, transparent) 0%,
-    transparent 68%
-  );
+  /* A cursor-led reading light should stay atmospheric, not become a painted
+     gradient surface on the paper. A nearly transparent solid disc plus a
+     diffuse shadow keeps the cue quiet while preserving the visual doctrine. */
+  background: color-mix(in oklab, var(--vt-accent-editorial, #4338CA) 6%, transparent);
+  box-shadow: 0 0 4rem 2rem
+    color-mix(in oklab, var(--vt-accent-editorial, #4338CA) 5%, transparent);
   transition: opacity 220ms ease;
 }
 
 /* ------------------------------------------------------------------ copy */
 
-/* SCENE_SCRIM_FLOOR: text never sits on unscrimmed animated pixels.
-   A flat rectangle of scrim reads as a CARD, which the mandate retires
-   (R2/R3), so the scrim fades out on BOTH sides and has no visible edge.
-
-   Deliberately a background on the element itself, NOT a `z-index: -1`
-   pseudo-element: in film mode `.film-track` carries `will-change: transform`,
-   which makes it a stacking context, and a negative-z-index child inside it
-   renders behind the whole scene — which blanked the copy entirely. Keeping
-   the scrim in the normal paint order removes that class of bug.
-
-   Stops are in `rem`, not `%`, so the fade lands the same distance past the
-   text at every viewport width. */
 /* Scene content sits above the atmosphere canvas (z-index 1). Declared ONCE
    for all three surfaces: `check-design-lint` LINT-05 is a ratchet that may
    shrink but never grow, and three copies of the same stop was both debt and a
@@ -158,13 +147,10 @@
 .film-copy {
   max-width: 34rem;
   padding: 2rem 7rem 2rem 0;
-  background: linear-gradient(
-    to right,
-    var(--film-paper) 0,
-    var(--film-paper) calc(100% - 14rem),
-    color-mix(in oklab, var(--film-paper) 55%, transparent) calc(100% - 5rem),
-    transparent 100%
-  );
+  /* Copy is intentionally on the open paper. The transparent eyebrow and the
+     cursor reading light carry the interaction; a gradient scrim here made
+     the content look like another opaque pane. */
+  text-shadow: 0 1px 1.125rem color-mix(in oklab, var(--film-paper) 82%, transparent);
 }
 
 /* The opening control is chrome, never evidence: a transparent reading cue
@@ -347,23 +333,10 @@
 
 .film[data-film-mode='film'] .film-scene:has(.film-wide) .film-copy {
   /* The left bleed is for full-width scenes; in a two-column frame it would
-     drag the scrim across the artifact. */
+     drag the copy column across the artifact. */
   margin-left: 0;
   padding-left: 0;
   max-width: none;
-  /* A radial scrim, not the linear one: a linear gradient still has hard top
-     and bottom edges, which read as a card behind the phrase. Sized
-     `farthest-corner` (the default) with the fade completing at 72%, so the
-     scrim is provably transparent before it reaches any edge of the box —
-     an explicit 120%/90% radius left the left edge fully opaque and put the
-     card back. */
-  background: radial-gradient(
-    ellipse at 32% 50%,
-    var(--film-paper) 0%,
-    var(--film-paper) 34%,
-    color-mix(in oklab, var(--film-paper) 60%, transparent) 55%,
-    transparent 72%
-  );
 }
 
 /* Dense artifacts are given a smaller type scale inside a pinned stage so the
