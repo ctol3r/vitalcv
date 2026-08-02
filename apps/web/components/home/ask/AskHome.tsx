@@ -12,7 +12,9 @@ import Link from 'next/link';
 import * as React from 'react';
 
 import { EvidenceInput } from '@/components/home/ask/EvidenceInput';
+import type { EvidenceInputState } from '@/components/home/ask/evidenceInputState';
 import { LiveNpiResult } from '@/components/home/LiveNpiResult';
+import type { SequencePhase } from '@/components/readiness/sourceCheckNarration';
 import { SpineTabs, type SpineStep } from '@/components/home/spine/SpineTabs';
 import { TruthBoundary } from '@/components/home/TruthBoundary';
 import { ProofPacketInspector } from '@/components/proof/ProofPacketInspector';
@@ -191,10 +193,42 @@ function HomeSpine() {
   );
 }
 
+/**
+ * The hero's phase — the one marker the whole first screen choreographs around
+ * (contract §7). Derived here because AskHome is the only place that can see
+ * both halves: the field's own state before submit, and the result's phase
+ * after it.
+ *
+ * It is a STYLING coordinate and nothing else. It carries no NPI, no identity,
+ * and no source outcome, so the decorative atmosphere that reads it cannot
+ * describe a real person or imply a source answered before one did (RISK 1).
+ */
+export type HomePhase = 'idle' | 'active' | 'resolving' | 'resolved' | 'system-error';
+
+export function deriveHomePhase(args: {
+  submitted: boolean;
+  resultPhase: SequencePhase | null;
+  inputState: EvidenceInputState;
+}): HomePhase {
+  if (args.submitted) {
+    // `error` is renamed at this boundary: the hero calls it `system-error` to
+    // keep saying, in the markup itself, that a failed lookup is a state of the
+    // system and not a finding about the clinician.
+    if (args.resultPhase === 'error') return 'system-error';
+    if (args.resultPhase === 'resolved') return 'resolved';
+    return 'resolving';
+  }
+  // Anything other than an untouched field means the visitor is engaging. A
+  // disabled field has not been engaged with, so it stays idle.
+  return args.inputState === 'idle' || args.inputState === 'disabled' ? 'idle' : 'active';
+}
+
 export function AskHome() {
   const [raw, setRaw] = React.useState('');
   const [submitted, setSubmitted] = React.useState<string | null>(null);
   const [error, setError] = React.useState<string | null>(null);
+  const [resultPhase, setResultPhase] = React.useState<SequencePhase | null>(null);
+  const [inputState, setInputState] = React.useState<EvidenceInputState>('idle');
   const inputRef = React.useRef<HTMLInputElement | null>(null);
   const rootRef = React.useRef<HTMLDivElement | null>(null);
 
@@ -247,7 +281,12 @@ export function AskHome() {
     // subtree (styles/home-surfaces.css) — spending them is opt-in per element,
     // so carrying the tone here changes no paint. Contract:
     // docs/design/home-evidence-experience-v2.md §4.
-    <div className="ask" ref={rootRef} data-home-tone="paper">
+    <div
+      className="ask"
+      ref={rootRef}
+      data-home-tone="paper"
+      data-home-phase={deriveHomePhase({ submitted: submitted !== null, resultPhase, inputState })}
+    >
       <section className="ask-stage" data-home-hero="" aria-labelledby="ask-title">
         <div className="ask-inner">
           <p className="ask-eyebrow">For clinicians</p>
@@ -259,9 +298,15 @@ export function AskHome() {
             <div className="ask-answer">
               <LiveNpiResult
                 npi={submitted}
+                onPhaseChange={setResultPhase}
                 onReset={() => {
                   setSubmitted(null);
                   setRaw('');
+                  // Without this the hero would stay in `resolved`/`system-error`
+                  // while showing an empty field — the phase has to be released
+                  // with the result that produced it.
+                  setResultPhase(null);
+                  setInputState('idle');
                   inputRef.current?.focus();
                 }}
               />
@@ -282,6 +327,7 @@ export function AskHome() {
                   setError(null);
                 }}
                 onSubmit={submit}
+                onStatusChange={(status) => setInputState(status.state)}
                 externalError={error}
                 inputRef={inputRef}
               />

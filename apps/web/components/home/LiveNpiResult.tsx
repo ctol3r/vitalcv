@@ -34,6 +34,7 @@ import {
   CHECK_SEQUENCE,
   SourceCheckNarration,
   useSourceCheckSequence,
+  type SequencePhase,
   type TrustState,
 } from '@/components/readiness/sourceCheckNarration';
 
@@ -42,10 +43,29 @@ export type { Bootstrap } from '@/components/home/evidence/evidenceCapsuleModel'
 
 import type { Bootstrap } from '@/components/home/evidence/evidenceCapsuleModel';
 
-export function LiveNpiResult({ npi, onReset }: { npi: string; onReset: () => void }) {
+export function LiveNpiResult({
+  npi,
+  onReset,
+  onPhaseChange,
+}: {
+  npi: string;
+  onReset: () => void;
+  /**
+   * Reports the result phase so the hero can choreograph around it (Wave 4,
+   * `data-home-phase`). Deliberately carries the PHASE ONLY — never the
+   * identity, the lanes, or anything else the response returned. The hero's
+   * atmosphere is decorative and must stay incapable of describing a real
+   * person. Contract: docs/design/home-evidence-experience-v2.md §7.
+   */
+  onPhaseChange?: (phase: SequencePhase) => void;
+}) {
   const [boot, setBoot] = React.useState<Bootstrap | null>(null);
   const [trust, setTrust] = React.useState<TrustState | null>(null);
   const { step, phase, finish } = useSourceCheckSequence({ stepCount: CHECK_SEQUENCE.length });
+
+  React.useEffect(() => {
+    onPhaseChange?.(phase);
+  }, [phase, onPhaseChange]);
 
   React.useEffect(() => {
     let alive = true;
