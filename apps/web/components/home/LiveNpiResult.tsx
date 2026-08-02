@@ -167,8 +167,15 @@ export function LiveNpiResult({ npi, onReset }: { npi: string; onReset: () => vo
 
   return (
     <div className={shell}>
-      {/* Identity reveal */}
-      <div className="flex items-start gap-3 border-b border-[var(--vt-border-subtle)] pb-4">
+      {/* Identity reveal.
+
+          `text-left` is load-bearing, not decorative. This card inherits
+          `text-align: center` from `.ask-inner` on the homepage, which read
+          fine while the shell was capped at `max-w-sm`, but leaves the name
+          cluster-centered against full-width ledger rows once the resolved
+          answer takes its measure. The film and HomePageClient do not centre
+          their subtree, so this is a no-op at those two render sites. */}
+      <div className="flex items-start gap-3 border-b border-[var(--vt-border-subtle)] pb-4 text-left">
         <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-[6px] bg-[var(--vt-surface-subtle)] text-[var(--vt-text-primary)]">
           <Fingerprint size={17} aria-hidden="true" />
         </span>

@@ -215,6 +215,67 @@
   margin-top: 0.5rem;
 }
 
+/* ── The resolve moment (CD-20) ──────────────────────────────────────────────
+   "VitalCV spends its entire visual budget in one place: the moment an NPI
+   resolves." Before this, it did not spend it anywhere: the h1 held full size
+   while the record rendered as a ~530px card inside the same 48rem column, so
+   the headline out-weighed the only real evidence on the page.
+
+   The ask has done its job by the time an answer exists, so it yields. The
+   title drops to a standfirst, the column opens to the record's own measure,
+   and the answer becomes the thing the composition is about. This is
+   typography and measure only — no new colour, no gradient, no glow, no
+   elevation. CD-2 law 4 holds: the record stays opaque paper on a hairline. */
+.ask-stage[data-home-resolved] .ask-inner {
+  max-width: 54rem;
+}
+
+/* The packet carries `max-w-sm` (24rem) from Tailwind inside LiveNpiResult —
+   the "spelled twice" problem the v2 contract calls out. That component also
+   renders in the film and in HomePageClient, so its own cap stays put; the
+   homepage answer overrides it HERE, which is where this page's geometry is
+   supposed to live. `.ask-answer > *` (0,1,1) already outranks `.max-w-sm`
+   (0,1,0), so this needs no `!important`.
+
+   Opening the column without opening the record is worse than leaving both
+   shut: at 62rem the 24rem card stranded itself against the left edge with an
+   empty right half — exactly what the `.ask-inner` note above warns about.
+   The record fills the measure it is given. */
+.ask-stage[data-home-resolved] .ask-answer > * {
+  max-width: 100%;
+}
+
+.ask-stage[data-home-resolved] .ask-title {
+  /* Not hidden — the promise still frames the record, it just stops competing
+     with it. Screen readers keep it as the labelling h1 either way. */
+  font-size: clamp(1.05rem, 1.9vw, 1.35rem);
+  line-height: 1.3;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  color: var(--ask-soft);
+  margin-bottom: clamp(1.5rem, 3.2vw, 2.25rem);
+  text-wrap: balance;
+}
+
+.ask-stage[data-home-resolved] .ask-eyebrow {
+  margin-bottom: 0.7rem;
+}
+
+/* The measure and type changes are the composition; easing them keeps the
+   transition legible as ONE move rather than a jump. CD-11: it moves once.
+   Reuses PR A's product curve and state duration — no new token. */
+@media (prefers-reduced-motion: no-preference) {
+  .ask-inner {
+    transition: max-width var(--home-duration-state) var(--home-ease-product);
+  }
+  .ask-title {
+    transition:
+      font-size var(--home-duration-state) var(--home-ease-product),
+      color var(--home-duration-state) var(--home-ease-product),
+      margin-bottom var(--home-duration-state) var(--home-ease-product);
+  }
+}
+
 /* The buyer door: present, findable, and quieter than the clinician's act.
    0.92rem rendered LARGER than the primary CTA's 0.9rem — the secondary door
    was literally out-sizing the action it sits under. The e2e guard measures

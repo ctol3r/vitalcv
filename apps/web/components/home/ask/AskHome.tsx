@@ -248,7 +248,19 @@ export function AskHome() {
     // so carrying the tone here changes no paint. Contract:
     // docs/design/home-evidence-experience-v2.md §4.
     <div className="ask" ref={rootRef} data-home-tone="paper">
-      <section className="ask-stage" data-home-hero="" aria-labelledby="ask-title">
+      {/*
+        CD-20: the page spends its entire visual budget on the moment an NPI
+        resolves. Before that it is an invitation; after it, the record IS the
+        page. `data-home-resolved` is the single hook the stylesheet reads to
+        make the hero yield — the ask recedes to a standfirst and the answer
+        takes the measure. No second composition, no route change, no remount.
+      */}
+      <section
+        className="ask-stage"
+        data-home-hero=""
+        data-home-resolved={submitted ? '' : undefined}
+        aria-labelledby="ask-title"
+      >
         <div className="ask-inner">
           <p className="ask-eyebrow">For clinicians</p>
           <h1 id="ask-title" className="ask-title">
