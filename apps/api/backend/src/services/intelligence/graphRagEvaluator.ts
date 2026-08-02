@@ -1,5 +1,18 @@
-// @ts-nocheck
 import prisma from '../../graphql/prisma_client';
+
+/**
+ * `requiredCredentialTypes` is a `Json` column, not `String[]`.
+ *
+ * The previous code called `.join(', ')` straight on it. That was never
+ * type-safe — it only compiled because this file carried `@ts-nocheck` — and it
+ * would have thrown on any row whose JSON was an object, a string, or null.
+ * Narrow to the array-of-strings case the callers actually want, and treat
+ * everything else as "no types listed" rather than crashing a compliance trace.
+ */
+function credentialTypeList(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((entry): entry is string => typeof entry === 'string');
+}
 
 export interface EvaluationResult {
   isEligible: boolean;
@@ -37,13 +50,20 @@ export class ReadinessEvaluator {
       return { isEligible: false, missingRequirements: [`Unknown specialty code: ${targetSpecialtyCode}`], reasoningTrace: trace };
     }
 
-    trace.push(`[ONTOLOGY] Resolved specialty: ${specialty.description} (board: ${specialty.board_name})`);
+    trace.push(`[ONTOLOGY] Resolved specialty: ${specialty.description} (board: ${specialty.boardName})`);
 
     // ── Step 2: Fetch state compliance rules ─────────────────────
     trace.push(`[COMPLIANCE] Querying ${targetState} rules for specialty: ${specialty.description}`);
 
-    const stateRule = await prisma.stateComplianceRule.findUnique({
-      where: { state_code_specialty: { state_code: targetState, specialty: specialty.description } },
+    // `findFirst`, not `findUnique`. This read used to ask for a compound unique
+    // called `state_code_specialty` over fields `state_code` and `specialty`.
+    // None of those exist: the model's only compound unique is
+    // `@@unique([state, ruleType])`, and the column is `state`, not `state_code`.
+    // So there is no unique index on (state, specialty) to look up by, and the
+    // call could never have run — Prisma rejects the argument before touching
+    // the database.
+    const stateRule = await prisma.stateComplianceRule.findFirst({
+      where: { state: targetState, specialty: specialty.description },
     });
 
     if (!stateRule) {
@@ -52,7 +72,7 @@ export class ReadinessEvaluator {
 
       // Try a broader match — state without specialty-specific rule.
       const generalRules = await prisma.stateComplianceRule.findMany({
-        where: { state_code: targetState },
+        where: { state: targetState },
         take: 1,
       });
 
@@ -61,12 +81,14 @@ export class ReadinessEvaluator {
         return { isEligible: false, missingRequirements: [`No compliance rules for state: ${targetState}`], reasoningTrace: trace };
       }
 
-      trace.push(`[COMPLIANCE] Using general rule: ${generalRules[0].required_credential_types.join(', ')}`);
+      trace.push(
+        `[COMPLIANCE] Using general rule: ${credentialTypeList(generalRules[0].requiredCredentialTypes).join(', ')}`,
+      );
     }
 
-    const requiredTypes = stateRule?.required_credential_types ?? [];
+    const requiredTypes = credentialTypeList(stateRule?.requiredCredentialTypes);
     trace.push(`[COMPLIANCE] Required credential types: [${requiredTypes.join(', ')}]`);
-    trace.push(`[COMPLIANCE] Renewal window: ${stateRule?.renewal_window_days ?? 365} days`);
+    trace.push(`[COMPLIANCE] Renewal window: ${stateRule?.renewalWindowDays ?? 365} days`);
 
     // ── Step 3: Fetch clinician's verified artifacts ──────────────
     trace.push(`[VERIFICATION] Querying verified artifacts for NPI: ${npi}`);
@@ -119,13 +141,13 @@ export class ReadinessEvaluator {
     const residencyMatch = await prisma.residencyProgram.findMany({
       where: { specialty: specialty.description },
       take: 5,
-      select: { name: true, acgme_code: true, hospital_affiliation: true },
+      select: { name: true, acgmeCode: true, hospitalAffiliation: true },
     });
 
     if (residencyMatch.length > 0) {
       trace.push(`[ACGME] Found ${residencyMatch.length} matching residency program(s)`);
       for (const prog of residencyMatch) {
-        trace.push(`[ACGME]   → ${prog.name} (${prog.acgme_code}) at ${prog.hospital_affiliation}`);
+        trace.push(`[ACGME]   → ${prog.name} (${prog.acgmeCode}) at ${prog.hospitalAffiliation}`);
       }
     } else {
       trace.push(`[ACGME] No residency programs found for specialty — skipping residency check`);
