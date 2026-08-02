@@ -4,7 +4,7 @@ import { expect, test } from '@playwright/test';
  * SHD-6.1 — the scene degradation matrix.
  *
  * The old GPU scene system is retired. These tests preserve the useful floor it
- * represented: the NPI action, source cadence, and four-step explanation remain
+ * represented: the NPI action, source cadence, and complete evidence film remain
  * complete under static, no-JS, reduced-motion, and mobile conditions.
  */
 
@@ -58,7 +58,7 @@ test.describe('scene degradation matrix (SHD-6.1)', () => {
     expect(errors).toEqual([]);
   });
 
-  test('no-JS SSR floor: heading, NPI form, source cadence, and spine are served', async ({ browser }) => {
+  test('no-JS SSR floor: heading, NPI form, source cadence, and every film pane are served', async ({ browser }) => {
     const context = await browser.newContext({ javaScriptEnabled: false, viewport: DESKTOP });
     const page = await context.newPage();
     await page.goto('/', { waitUntil: 'domcontentloaded' });
@@ -66,8 +66,7 @@ test.describe('scene degradation matrix (SHD-6.1)', () => {
     await expect(page.locator('h1').first()).toBeVisible();
     await expect(page.getByRole('textbox', NPI_FIELD)).toBeAttached();
     await expect(page.locator('[data-home-source-cadence]')).toBeAttached();
-    await expect(page.locator('[data-home-spine] .spine-panel')).toHaveCount(4);
-    await expect(page.locator('[data-home-spine] .spine-panel[hidden]')).toHaveCount(0);
+    await expect(page.locator('[data-film-scene]')).toHaveCount(5);
     await expect(
       page.locator('[data-home-evidence-field], [data-field-poster], [data-field-edges]'),
     ).toHaveCount(0);
@@ -84,7 +83,7 @@ test.describe('scene degradation matrix (SHD-6.1)', () => {
       await page.keyboard.press('Tab');
       const isNpi = await page.evaluate(() => {
         const element = document.activeElement as HTMLElement | null;
-        return Boolean(element && element.id === 'npi-input');
+        return Boolean(element && element.id === 'film-npi-input');
       });
       if (isNpi) {
         reached = true;
@@ -104,7 +103,7 @@ test.describe('hero reset — clinician sell and field visibility (HERO-RESET-1)
     await page.goto('/', { waitUntil: 'networkidle' });
 
     await expect(page.locator('h1').first()).toHaveAccessibleName(
-      'Your career evidence, ready before your next job.',
+      'Get hired on evidence.',
     );
     await expect(page.getByText('Start with your NPI', { exact: false }).first()).toBeVisible();
     await expect(page.getByRole('button', { name: /check what’s ready/i })).toBeVisible();
@@ -125,7 +124,7 @@ test.describe('hero reset — clinician sell and field visibility (HERO-RESET-1)
     await page.goto('/', { waitUntil: 'networkidle' });
 
     const home = await page.evaluate(() => {
-      const root = document.querySelector('.ask') as HTMLElement;
+      const root = document.querySelector('.film') as HTMLElement;
       return {
         body: getComputedStyle(document.body).backgroundColor,
         token: getComputedStyle(root).getPropertyValue('--vt-cloud-dancer').trim(),
@@ -140,7 +139,7 @@ test.describe('hero reset — clinician sell and field visibility (HERO-RESET-1)
 
     await page.goto('/trust', { waitUntil: 'networkidle' });
     const trust = await page.evaluate(() => ({
-      homeComposition: document.querySelectorAll('.ask').length,
+      homeComposition: document.querySelectorAll('.film').length,
       body: getComputedStyle(document.body).backgroundColor,
       token: getComputedStyle(document.documentElement).getPropertyValue('--vt-cloud-dancer').trim(),
       routeScopedRules: [...document.querySelectorAll('style')].filter((style) =>

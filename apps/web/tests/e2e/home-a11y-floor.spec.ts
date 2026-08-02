@@ -54,7 +54,7 @@ test('reset returns FOCUS to the field, not just the field to the screen', async
     .poll(() => page.evaluate(() => (document.activeElement as HTMLElement | null)?.id ?? null), {
       timeout: 5_000,
     })
-    .toBe('npi-input');
+    .toBe('film-npi-input');
 });
 
 test('the primary action meets the 44px touch floor', async ({ page }) => {
@@ -65,7 +65,7 @@ test('the primary action meets the 44px touch floor', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/', { waitUntil: 'networkidle' });
 
-  const cta = page.locator('.ask-go').first();
+  const cta = page.locator('.film-npi-submit').first();
   const box = await cta.boundingBox();
   expect(box).not.toBeNull();
   expect(Math.round(box!.height)).toBeGreaterThanOrEqual(44);
@@ -73,7 +73,7 @@ test('the primary action meets the 44px touch floor', async ({ page }) => {
   // The field is the other thing a thumb has to hit, and iOS zooms any input
   // under 16px on focus.
   const fontPx = await page
-    .locator('#npi-input')
+    .locator('#film-npi-input')
     .evaluate((el) => Number.parseFloat(getComputedStyle(el).fontSize));
   expect(fontPx).toBeGreaterThanOrEqual(16);
 });
