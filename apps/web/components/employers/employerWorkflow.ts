@@ -26,9 +26,9 @@ export interface EmployerStage {
 export const EMPLOYER_STAGES: readonly EmployerStage[] = [
   {
     ordinal: '01',
-    title: 'Claim your organization',
-    body: 'Confirm your Type 2 NPI against NPPES — the same 30-second flow a clinician uses.',
-    boundary: 'Identity only. Claiming an organization is not legal proof of authority over it.',
+    title: 'Request organization access',
+    body: 'Find your organization by its Type 2 NPI against NPPES, then request access for your account.',
+    boundary: 'Identity only. Resolving an organization in NPPES is not authority to act for it — access is granted separately.',
   },
   {
     ordinal: '02',

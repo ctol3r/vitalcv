@@ -16,7 +16,7 @@ export function EmployerWorkflowPreview() {
     <section aria-label="How the employer workflow works" data-employer-workflow="" className="mt-10">
       <p className="mz-eyebrow">The workflow</p>
       <h2 className="mz-h2" style={{ marginTop: 8, maxWidth: 620 }}>
-        From claiming your organization to a clinician&rsquo;s <span className="mz-accent">first day</span>.
+        From requesting access to a clinician&rsquo;s <span className="mz-accent">first day</span>.
       </h2>
       <p className="mz-small" style={{ marginTop: 8, marginBottom: 20, maxWidth: 620 }}>
         The same source-backed record a clinician carries becomes your review, your decision, and an

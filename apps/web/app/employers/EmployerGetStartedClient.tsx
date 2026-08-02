@@ -1,26 +1,35 @@
 'use client';
 
 /**
- * EmployerGetStartedClient — employer onboarding, as simple as the clinician
- * flow (mirrors app/get-ready/GetReadyClient). An employer verifies OWNERSHIP of
- * its organization the same efficient way a clinician verifies their NPI:
+ * EmployerGetStartedClient — employer onboarding:
  *
- *   enter org NPI → NPPES lookup → confirm the org → claim it (sign in) → done.
+ *   enter org NPI → NPPES lookup → confirm the org + its website
+ *     → REQUEST access (sign in) → granted, or refused with the reason.
  *
  * Employers carry an organizational **Type-2 NPI** (NPPES enumerates orgs as
  * Type 2, individuals as Type 1). We reuse the same public lookup the clinician
  * flow uses (`/api/identity/bootstrap/{npi}`) and require Type 2 — a Type-1
- * (individual) NPI is redirected to the clinician flow. The claim binds the org
- * NPI to the employer/verifier workspace via `/api/employer/setup`.
+ * (individual) NPI is redirected to the clinician flow.
  *
- * Truth contract: NPPES lookup resolves the organization identifier — it is not
- * legal proof of authority. Stated honestly, exactly like the clinician flow.
+ * Truth contract: resolving a Type 2 NPI in NPPES establishes WHICH
+ * organization is meant. It is never authority to act for it, so this surface
+ * asks for access rather than announcing a claim, and the server decides
+ * (`resolveOrganizationAuthority`: a work email at the organization's own
+ * domain, else manual review).
+ *
+ * The website field is REQUIRED for that reason, not for decoration. The
+ * authority check compares the account's email domain against the
+ * organization's domain, which is derived from the website — so a payload
+ * without one resolved `no_org_domain` and this flow refused EVERY new
+ * organization with "add the organization's website", a field it never asked
+ * for. NPPES does not publish organization websites, so the operator supplies
+ * it and the server, not this form, decides whether it grants anything.
  */
 
 import { useState } from 'react';
 import { Loader2, ShieldCheck, AlertCircle, CheckCircle2, Building2 } from 'lucide-react';
 
-type Phase = 'idle' | 'looking_up' | 'confirm' | 'claiming' | 'done' | 'error';
+type Phase = 'idle' | 'looking_up' | 'confirm' | 'requesting' | 'done' | 'error';
 
 interface NpiLookupResult {
   npi: string;
@@ -39,6 +48,7 @@ function orgNameOf(r: NpiLookupResult): string {
 
 export function EmployerGetStartedClient() {
   const [npi, setNpi] = useState('');
+  const [website, setWebsite] = useState('');
   const [phase, setPhase] = useState<Phase>('idle');
   const [result, setResult] = useState<NpiLookupResult | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
@@ -80,14 +90,24 @@ export function EmployerGetStartedClient() {
     }
   }
 
-  async function handleClaim() {
+  async function handleRequestAccess() {
     if (!result) return;
-    setPhase('claiming');
+    const trimmedWebsite = website.trim();
+    if (!trimmedWebsite) {
+      setErrorMsg('Enter the organization’s website so we can check it against your work email.');
+      return;
+    }
+    setErrorMsg('');
+    setPhase('requesting');
     try {
       const res = await fetch('/api/employer/setup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: orgNameOf(result) || `Organization ${result.npi}`, npi: result.npi }),
+        body: JSON.stringify({
+          name: orgNameOf(result) || `Organization ${result.npi}`,
+          npi: result.npi,
+          website: trimmedWebsite,
+        }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({})) as { error?: string };
@@ -111,6 +131,7 @@ export function EmployerGetStartedClient() {
 
   function reset() {
     setNpi('');
+    setWebsite('');
     setPhase('idle');
     setResult(null);
     setErrorMsg('');
@@ -124,12 +145,18 @@ export function EmployerGetStartedClient() {
           <CheckCircle2 className="h-6 w-6 text-emerald-500" />
         </div>
         <div>
-          <h2 className="text-base font-semibold">{orgNameOf(result) || `Organization ${result.npi}`} claimed</h2>
-          <p className="mt-1 text-sm text-muted-foreground">Your employer workspace is linked to org NPI {result.npi}.</p>
+          <h2 className="text-base font-semibold">
+            Access granted — {orgNameOf(result) || `Organization ${result.npi}`}
+          </h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Your work email matched this organization&rsquo;s domain, so your workspace is linked to org NPI{' '}
+            {result.npi}.
+          </p>
         </div>
         <p className="text-xs text-muted-foreground">
-          NPPES resolves the organization identifier — it is not legal proof of authority. Your workspace can now review
-          clinician passports.
+          A domain match establishes that you control an address at that domain. NPPES resolves the organization
+          identifier. Neither is legal proof of authority over the organization. Your workspace can now review clinician
+          passports.
         </p>
         <a
           href="/employer/dashboard"
@@ -149,8 +176,8 @@ export function EmployerGetStartedClient() {
         <div>
           <h2 className="text-base font-semibold">Confirm your organization</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            NPPES returned the following for NPI {result.npi}. Confirm this is your organization to claim it. NPI lookup
-            resolves the organization identifier — it is not legal proof of authority.
+            NPPES returned the following for NPI {result.npi}. Confirm this is the organization you mean, then request
+            access. The NPI lookup resolves which organization this is — it is not authority to act for it.
           </p>
         </div>
 
@@ -178,6 +205,29 @@ export function EmployerGetStartedClient() {
           </p>
         )}
 
+        {/* The website is what the server's authority check actually compares
+            against the account's email domain. Without it the request resolves
+            `no_org_domain` and is refused every time — which is precisely what
+            this flow did before, while never asking for it. */}
+        <div>
+          <label htmlFor="org-website-input" className="mb-1.5 block text-sm font-medium">
+            Organization website
+          </label>
+          <input
+            id="org-website-input"
+            type="text"
+            inputMode="url"
+            autoComplete="url"
+            value={website}
+            onChange={(e) => setWebsite(e.target.value)}
+            placeholder="example-health.org"
+            className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+          />
+          <p className="mt-1.5 text-xs text-muted-foreground">
+            NPPES does not publish websites, so we ask. Your work email is checked against this domain.
+          </p>
+        </div>
+
         {/* Honest framing: this is a REQUEST, not a grant. Finding an
             organization in NPPES proves it exists — never that you may act for
             it. Access is granted only on a work email at the organization's own
@@ -187,9 +237,11 @@ export function EmployerGetStartedClient() {
           verifies your authority first.
         </p>
 
+        {errorMsg && <p className="text-xs text-destructive">{errorMsg}</p>}
+
         <div className="flex gap-3 pt-1">
           <button
-            onClick={() => void handleClaim()}
+            onClick={() => void handleRequestAccess()}
             className="inline-flex h-10 flex-1 items-center justify-center rounded-lg bg-foreground text-sm font-medium text-background hover:opacity-90"
           >
             <ShieldCheck className="mr-1.5 h-4 w-4" />
@@ -203,8 +255,8 @@ export function EmployerGetStartedClient() {
     );
   }
 
-  /* ── Claiming ── */
-  if (phase === 'claiming') {
+  /* ── Requesting ── */
+  if (phase === 'requesting') {
     return (
       <div className="flex flex-col items-center gap-3 py-6">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -251,8 +303,9 @@ export function EmployerGetStartedClient() {
       </div>
 
       <p className="text-xs leading-relaxed text-muted-foreground">
-        We look up your organization&rsquo;s Type 2 NPI in NPPES (the federal source of record) and link it to your
-        employer workspace. This resolves the organization identifier — it is not legal proof of authority.
+        We look up your organization&rsquo;s Type 2 NPI in NPPES (the federal source of record) to establish which
+        organization you mean. That resolves the organization identifier — it is not authority to act for it, so the
+        next step is a request for access, not a claim.
       </p>
 
       <button
