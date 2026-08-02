@@ -1,0 +1,247 @@
+/**
+ * evidence-capsule.css — the lookup result.
+ *
+ * The resolving, resolved and error states are ONE object in three states. They
+ * share `--home-capsule-radius` with the field that produced them, so the
+ * answer looks like it came out of the question rather than arriving from
+ * somewhere else.
+ *
+ * The card previously carried its styling as Tailwind arbitrary values inside
+ * LiveNpiResult (`bg-[var(--vt-surface)]`, a hand-written `shadow-[0_1px_0...]`,
+ * `rounded-[6px]`), which is why its radius and border had already drifted from
+ * the field's. Token-only here: LINT-01/05/06/09 are ratchets over
+ * `apps/web/styles/**`, so a raw value fails the gate.
+ */
+
+.evidence-capsule {
+  width: 100%;
+  max-width: 26rem;
+  margin-inline: auto;
+  text-align: left;
+  background-color: var(--home-surface-raised);
+  border: 1px solid var(--home-border);
+  border-radius: var(--home-capsule-radius);
+  padding: clamp(1rem, 2.6vw, 1.35rem);
+  color: var(--home-text);
+}
+
+/* Resolving carries the same frame at the same width, so the container does
+ * not jump when the rows arrive. */
+.evidence-capsule--resolving {
+  min-height: 11rem;
+}
+
+/* ── Identity header ─────────────────────────────────────────────────────── */
+.evidence-capsule__identity {
+  padding-bottom: 0.85rem;
+  border-bottom: 1px solid var(--home-border);
+}
+
+.evidence-capsule__name {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--home-text);
+}
+
+.evidence-capsule__detail {
+  margin: 0.15rem 0 0;
+  font-size: 0.8rem;
+  color: var(--home-text-muted);
+}
+
+.evidence-capsule__npi {
+  margin: 0.25rem 0 0;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.7rem;
+  letter-spacing: 0.02em;
+  color: var(--home-text-muted);
+}
+
+/* ── Groups ──────────────────────────────────────────────────────────────── */
+.evidence-capsule__group {
+  margin-top: 1.05rem;
+}
+
+.evidence-capsule__group-title {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0 0 0.5rem;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--home-text-muted);
+}
+
+.evidence-capsule__mark {
+  width: 0.85rem;
+  height: 0.85rem;
+  flex: 0 0 auto;
+}
+
+/* The mark tints, the text does not: meaning must survive without colour.
+ * `returned` is the ONE place green is earned — a named source answered. */
+[data-evidence-group='returned'] .evidence-capsule__mark {
+  color: var(--vt-state-source-confirmed);
+}
+[data-evidence-group='attention'] .evidence-capsule__mark {
+  color: var(--vt-state-pending);
+}
+[data-evidence-group='unavailable'] .evidence-capsule__mark {
+  color: var(--vt-state-access);
+}
+
+.evidence-capsule__rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.7rem;
+}
+
+/* A stacked row, not a label/value pair pushed to opposite edges. The old
+ * two-column layout wrapped the detail onto three ragged lines at 390px and
+ * left the claim stranded beside it. */
+.evidence-capsule__row {
+  display: grid;
+  gap: 0.1rem;
+}
+
+.evidence-capsule__claim {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--home-text);
+}
+
+.evidence-capsule__returned {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: var(--home-text-muted);
+}
+
+/* SOURCE · CADENCE · LIMITATION. Quiet, but never hidden and never truncated —
+ * the limitation is the part an employer needs most. */
+.evidence-capsule__provenance {
+  margin: 0.15rem 0 0;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.64rem;
+  line-height: 1.5;
+  letter-spacing: 0.02em;
+  color: var(--home-text-muted);
+}
+
+/* ── Next step ───────────────────────────────────────────────────────────── */
+.evidence-capsule__next {
+  margin-top: 1.1rem;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid color-mix(in oklab, var(--home-accent) 28%, transparent);
+  border-radius: var(--home-capsule-radius);
+  background-color: color-mix(in oklab, var(--home-accent) 7%, transparent);
+}
+
+.evidence-capsule__next-label {
+  margin: 0;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--home-accent);
+}
+
+.evidence-capsule__next-line {
+  margin: 0.3rem 0 0;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: var(--home-text);
+}
+
+.evidence-capsule__cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.7rem;
+  padding: 0.5rem 0.85rem;
+  border-radius: var(--vt-radius-sm);
+  background-color: var(--home-text);
+  color: var(--home-surface-raised);
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.evidence-capsule__arrow {
+  width: 0.85rem;
+  height: 0.85rem;
+  flex: 0 0 auto;
+}
+
+/* ── Reset / retry ───────────────────────────────────────────────────────── */
+.evidence-capsule__reset,
+.evidence-capsule__retry {
+  display: inline-block;
+  margin-top: 0.8rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  /* `inherit` would be the natural choice, but LINT-09 requires a token: a
+     bare `font-family` value in a stylesheet is exactly the drift it ratchets. */
+  font-family: var(--font-body, system-ui, sans-serif);
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--home-text-muted);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.evidence-capsule__reset:hover,
+.evidence-capsule__retry:hover {
+  color: var(--home-text);
+}
+
+.evidence-capsule__reset:focus-visible,
+.evidence-capsule__retry:focus-visible,
+.evidence-capsule__cta:focus-visible {
+  outline: 2px solid var(--home-focus);
+  outline-offset: 2px;
+}
+
+/* ── Truth limitation ────────────────────────────────────────────────────── */
+.evidence-capsule__limit {
+  margin: 0.9rem 0 0;
+  padding-top: 0.8rem;
+  border-top: 1px solid var(--home-border);
+  font-size: 0.7rem;
+  line-height: 1.55;
+  color: var(--home-text-muted);
+}
+
+/* ── Motion ──────────────────────────────────────────────────────────────
+ * The capsule arrives once and rests. Gated on reduced motion; the resolved
+ * composition is the base CSS, so nothing here is required to read it.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  [data-motion-ready] [data-evidence-capsule='resolved'] {
+    animation: home-capsule-reveal var(--home-duration-enter) var(--home-ease-product) both;
+  }
+
+  [data-motion-ready] .evidence-capsule__group {
+    animation: home-state-in var(--home-duration-state) var(--home-ease-product) both;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-evidence-capsule],
+  .evidence-capsule__group {
+    animation: none !important;
+    opacity: 1 !important;
+    clip-path: none !important;
+  }
+}

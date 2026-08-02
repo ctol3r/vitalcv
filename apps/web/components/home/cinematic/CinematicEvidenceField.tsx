@@ -20,6 +20,10 @@ export function CinematicEvidenceField() {
     <div
       className="cinematic-evidence-field"
       data-home-cinematic-field=""
+      // Opts this layer into the phase contract (home-surfaces.css). It is a
+      // PRECEDING sibling of the phase carrier, so it is reached with `:has()`
+      // rather than by inheritance — this attribute is the handle.
+      data-home-atmosphere=""
       aria-hidden="true"
     >
       <svg className="cinematic-evidence-field__svg" viewBox="0 0 1024 640">

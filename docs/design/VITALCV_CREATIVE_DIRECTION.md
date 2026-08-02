@@ -307,22 +307,31 @@ Every product PR continues to carry a **Design Handoff References** section nami
 
 ### CD-20. The competitive standard — how this beats Medallion and Carefam
 
-Two companies are the named bar. Both captured 2026-07-25.
+Two companies are the named bar. **Medallion captured 2026-07-25; Carefam re-captured 2026-08-01** — see the amendment note below.
 
 **Medallion** (`medallion.co`) — *"Better outcomes for credentialing. Faster paths to billable providers."* An illustrated mascot, a customer logo wall, dashboard screenshots, award badges, four headline metrics (*2x faster enrollment*, *66% reduction to administrative costs*, *1 day credentialing file readiness*, *300+ healthcare organizations*), and one primary action: **Get in touch.**
 
-**Carefam** (`carefam.com`) — *"Hire Clinicians with AI Built for Healthcare."* A workflow diagram (sourcing & screening → matching & scheduling → offer & onboarding), a client logo grid, stock healthcare photography, four metrics (*20 scheduled interviews*, *60+ hours saved*, *90% phone time saved*, *200 engaged candidates*), white-and-navy with gradient overlays, and one primary action: **Book a demo.** *(This closes the July 21 mandate's open item — Carefam is no longer an unverified research entry; canonical URL and product claim are captured here.)*
+**Carefam** (`carefam.com`, URL verified 2026-08-01) — *"Healthcare Hiring Powered by AI."* The page is now a **three-day onboarding narrative** rather than a workflow diagram: **Day 1** *Get Started Instantly* — sign up, see the AI, name who you're hiring, "no integrations or IT needed"; **Day 2** *Our AI Goes to Work* — outreach, résumé screening and interview scheduling handled by AI assistants; **Day 3** *Hire top talent 3X faster*. One headline claim (**3X faster**), a newsletter capture, and one primary action: **Book a demo.** Navy ink on white, Poppins, no product screenshot in the acquisition path. Measured alongside it: an **empty `<h1>` and nine empty headings** — the page ships no readable document outline at all.
 
-They are the same page with different nouns: **employer-first, demo-gated, unauditable metrics, logo wall, generic healthtech gradient.** Carefam is the closer competitor because it sells hiring speed directly — but it automates the *recruiter's* labour (sourcing, screening, scheduling calls). It has no answer for the clinician's existing evidence, because that is not something an AI can manufacture. That gap is the wedge.
+> **Amendment 2026-08-01 (per CD-19).** The Carefam entry above **replaces** the 2026-07-25 capture, which recorded a three-stage workflow diagram (sourcing & screening → matching & scheduling → offer & onboarding), a client logo grid, stock healthcare photography, gradient overlays, and four metrics — *20 scheduled interviews*, *60+ hours saved*, *90% phone time saved*, *200 engaged candidates*. **None of that copy is on the page as of 2026-08-01.**
+>
+> *Rationale:* doctrine that cites a competitor artifact must cite one that exists. A clause arguing against a page nobody can load trains the team to answer the wrong thing, and it quietly discredits the clause when someone checks.
+>
+> *What survives unchanged:* Carefam is demo-gated, automates recruiter labour, and leads on speed.
+> *What is deliberately **not** claimed:* whether a logo grid or stock photography still appear. 33 images remain on the page and their content was not inspected, so their absence is not asserted here.
+>
+> *The conclusion below is unaffected — arguably strengthened.* A competitor who rewrites their hero inside eight days is not a stable bar to design against, which is exactly why CD-20's asymmetries are stated **structurally** (gated vs. operable, claimed vs. readable, back-office vs. clinician) rather than as a response to any one page. Full measurement: [`reference-experience-atlas.md`](reference-experience-atlas.md) §5 R14 and §7 C12.
+
+They are the same page with different nouns: **employer-first, demo-gated, unauditable claims, and a hero that sells speed.** (The 2026-07-25 capture had both leaning on a logo wall and a generic healthtech gradient. That still holds for Medallion; for Carefam it is unverified after the redesign — see the amendment above.) Carefam is the closer competitor because it sells hiring speed directly — but it automates the *recruiter's* labour (sourcing, screening, scheduling calls). It has no answer for the clinician's existing evidence, because that is not something an AI can manufacture. That gap is the wedge.
 
 **We do not beat either by out-glossing them.** Out-glossing well-funded marketing teams is a race we lose, and CD-13 already retires every device they lean on. We beat them on four asymmetries, and the design exists to make them land:
 
 | They do | We do | Why it wins |
 | --- | --- | --- |
 | **Gate the product.** *Get in touch.* *Book a demo.* The only action is a sales conversation. | **Give the product away in the first viewport.** An NPI field that returns real state in seconds, no account. | The most enticing thing any of these sites can offer is *use*. Neither competitor lets a visitor operate the product before a call. |
-| **Claim numbers.** *66% reduction*, *90% phone time saved* — none auditable by the reader. | **Show one artifact.** A real proof packet: source, timestamp, scope, and what it does not decide. | A hospital cannot verify their percentage. It can read our packet. CD-14 exists for this. |
+| **Claim numbers.** *66% reduction*, *3X faster* — none auditable by the reader. | **Show one artifact.** A real proof packet: source, timestamp, scope, and what it does not decide. | A hospital cannot verify their percentage. It can read our packet. CD-14 exists for this. |
 | **Speak to the back office.** Both heroes address a credentialing team or a recruiter. | **Speak to the clinician.** It is their career, and they arrive first. | It is the only door in this market nobody is standing in. |
-| **Say "AI-powered."** Advancement asserted in copy, illustrated with a workflow diagram. | **Demonstrate it.** Live resolution, real optical sizing, a packet that exports, honest degradation. | Asserted sophistication reads as marketing. Demonstrated sophistication reads as capability. |
+| **Say "AI-powered."** Advancement asserted in copy, illustrated with a workflow diagram or a three-day timeline. | **Demonstrate it.** Live resolution, real optical sizing, a packet that exports, honest degradation. | Asserted sophistication reads as marketing. Demonstrated sophistication reads as capability. |
 
 **Where the boldness goes.** A quiet system is not a timid one. VitalCV spends its entire visual budget in **one place: the moment an NPI resolves.** That moment should be genuinely arresting — evidence arriving, state landing, the next action appearing. Everything around it stays near-silent *so that it lands*. A page that is loud everywhere has nothing left to spend when something real finally happens.
 

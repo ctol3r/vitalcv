@@ -12,7 +12,9 @@ import Link from 'next/link';
 import * as React from 'react';
 
 import { EvidenceInput } from '@/components/home/ask/EvidenceInput';
+import type { EvidenceInputState } from '@/components/home/ask/evidenceInputState';
 import { LiveNpiResult } from '@/components/home/LiveNpiResult';
+import type { SequencePhase } from '@/components/readiness/sourceCheckNarration';
 import { SpineTabs, type SpineStep } from '@/components/home/spine/SpineTabs';
 import { TruthBoundary } from '@/components/home/TruthBoundary';
 import { ProofPacketInspector } from '@/components/proof/ProofPacketInspector';
@@ -115,10 +117,35 @@ function ArtifactPanel({
   );
 }
 
+/**
+ * Step 3. The step's own line promises "the exact claim, source, receipt,
+ * limitation, and permission boundary" — but `ProofPacketInspector` renders a
+ * CLAIM: claim → source → retrieval/receipt → state → limitation, and nothing
+ * about permission. Walking all five of its tabs on the live page, the words
+ * permission, consent, share and revoke appeared in none of them. The step was
+ * named "the packet you choose" and then never said what choosing meant.
+ *
+ * So the boundary is stated here, beside the packet it governs, rather than as
+ * a sixth row inside the inspector: permission is a property of the SHARE, not
+ * of any one claim, and that component is also mounted by HomeProofMoment,
+ * HorizontalCareerFilm and /design/proof-packet, none of which are about
+ * sharing.
+ *
+ * The wording is taken verbatim from /trust ("Sharing is explicit"), which is
+ * the settled public claim — this repeats it, it does not author a second one.
+ * Deliberately NOT said: anything about revoking, and anything about a consent
+ * receipt. `POST /api/apply/share` is real and packet consent receipts exist in
+ * the backend, but neither is what this illustration shows, and "every share
+ * leaves a consent receipt" is a stronger promise than this page needs.
+ */
 function PacketChoicePanel() {
   return (
     <div data-ask-artifact="once">
       <ProofPacketInspector className="ask-beat-inspector" />
+      <p className="ask-permission" data-home-permission-boundary="">
+        Nothing is shared until you share it. A shared proof packet names exactly
+        what the recipient can see.
+      </p>
       <p className="ask-door-cta">
         <Link href="/onboarding">Build your CV Wallet →</Link>
       </p>
@@ -191,16 +218,69 @@ function HomeSpine() {
   );
 }
 
+/**
+ * The hero's phase — the one marker the whole first screen choreographs around
+ * (contract §7). Derived here because AskHome is the only place that can see
+ * both halves: the field's own state before submit, and the result's phase
+ * after it.
+ *
+ * It is a STYLING coordinate and nothing else. It carries no NPI, no identity,
+ * and no source outcome, so the decorative atmosphere that reads it cannot
+ * describe a real person or imply a source answered before one did (RISK 1).
+ */
+export type HomePhase = 'idle' | 'active' | 'resolving' | 'resolved' | 'system-error';
+
+export function deriveHomePhase(args: {
+  submitted: boolean;
+  resultPhase: SequencePhase | null;
+  inputState: EvidenceInputState;
+}): HomePhase {
+  if (args.submitted) {
+    // `error` is renamed at this boundary: the hero calls it `system-error` to
+    // keep saying, in the markup itself, that a failed lookup is a state of the
+    // system and not a finding about the clinician.
+    if (args.resultPhase === 'error') return 'system-error';
+    if (args.resultPhase === 'resolved') return 'resolved';
+    return 'resolving';
+  }
+  // Anything other than an untouched field means the visitor is engaging. A
+  // disabled field has not been engaged with, so it stays idle.
+  return args.inputState === 'idle' || args.inputState === 'disabled' ? 'idle' : 'active';
+}
+
 export function AskHome() {
   const [raw, setRaw] = React.useState('');
   const [submitted, setSubmitted] = React.useState<string | null>(null);
   const [error, setError] = React.useState<string | null>(null);
+  const [resultPhase, setResultPhase] = React.useState<SequencePhase | null>(null);
+  const [inputState, setInputState] = React.useState<EvidenceInputState>('idle');
+  const [pendingFieldFocus, setPendingFieldFocus] = React.useState(false);
   const inputRef = React.useRef<HTMLInputElement | null>(null);
   const rootRef = React.useRef<HTMLDivElement | null>(null);
 
   React.useEffect(() => {
     trackFunnelEvent(FUNNEL_EVENTS.HOMEPAGE_VIEWED);
   }, []);
+
+  /**
+   * Return focus to the field after a reset — once it exists.
+   *
+   * `onReset` cannot do this itself. At the moment it fires, `LiveNpiResult` is
+   * still the mounted branch and the input is not, so `inputRef.current` is
+   * null and `.focus()` is a silent no-op. Measured before this: focus sat on
+   * `<body>` at 0, 100, 500 and 1500ms after reset, which drops a keyboard or
+   * screen-reader user back to the top of the document and makes them tab
+   * through the whole header to try again.
+   *
+   * The existing reset guard checks the field is visible and cleared, which it
+   * always was — visible is not the same as focused, and that gap is why this
+   * survived.
+   */
+  React.useEffect(() => {
+    if (!pendingFieldFocus || submitted !== null) return;
+    inputRef.current?.focus();
+    setPendingFieldFocus(false);
+  }, [pendingFieldFocus, submitted]);
 
   React.useEffect(() => {
     if (typeof IntersectionObserver === 'undefined') return;
@@ -247,7 +327,12 @@ export function AskHome() {
     // subtree (styles/home-surfaces.css) — spending them is opt-in per element,
     // so carrying the tone here changes no paint. Contract:
     // docs/design/home-evidence-experience-v2.md §4.
-    <div className="ask" ref={rootRef} data-home-tone="paper">
+    <div
+      className="ask"
+      ref={rootRef}
+      data-home-tone="paper"
+      data-home-phase={deriveHomePhase({ submitted: submitted !== null, resultPhase, inputState })}
+    >
       <section className="ask-stage" data-home-hero="" aria-labelledby="ask-title">
         <div className="ask-inner">
           <p className="ask-eyebrow">For clinicians</p>
@@ -259,10 +344,18 @@ export function AskHome() {
             <div className="ask-answer">
               <LiveNpiResult
                 npi={submitted}
+                onPhaseChange={setResultPhase}
                 onReset={() => {
                   setSubmitted(null);
                   setRaw('');
-                  inputRef.current?.focus();
+                  // Without this the hero would stay in `resolved`/`system-error`
+                  // while showing an empty field — the phase has to be released
+                  // with the result that produced it.
+                  setResultPhase(null);
+                  setInputState('idle');
+                  // Claimed here, applied in the effect above once the field
+                  // has actually mounted.
+                  setPendingFieldFocus(true);
                 }}
               />
             </div>
@@ -282,6 +375,7 @@ export function AskHome() {
                   setError(null);
                 }}
                 onSubmit={submit}
+                onStatusChange={(status) => setInputState(status.state)}
                 externalError={error}
                 inputRef={inputRef}
               />

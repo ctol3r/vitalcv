@@ -2,6 +2,7 @@ import express from 'express';
 import request from 'supertest';
 import {
   registerSourceRuntimeRoutes,
+  __resetSourceRuntimeCache,
   type SourceRuntimeRouteDependencies,
 } from '../sourceRuntime';
 import type { SourceRuntimeState } from '../../services/identity/sourceRuntimeState';
@@ -36,6 +37,13 @@ function appWith(dependencies: SourceRuntimeRouteDependencies) {
   registerSourceRuntimeRoutes(app, dependencies);
   return app;
 }
+
+// The list cache is module-level state, which is correct in production and a
+// hazard in a test file: a cached 200 from one case was served to the case that
+// asserts a failure returns 503. Reset before every test, not just the new ones.
+beforeEach(() => {
+  __resetSourceRuntimeCache();
+});
 
 describe('source runtime transparency routes', () => {
   test('lists runtime state with a no-store response', async () => {
@@ -88,5 +96,80 @@ describe('source runtime transparency routes', () => {
     expect(response.body.error_description).toContain(
       'No source should be inferred live or clear',
     );
+  });
+});
+
+describe('what an anonymous caller receives', () => {
+  // `findLatestArtifact` is scoped by SOURCE with no NPI scoping, so
+  // `lastArtifactId` is a real clinician's artifact id. Six routes dereference
+  // an `:artifactId`; all six are tenant-guarded today. Publishing the id would
+  // make that containment load-bearing for a field nothing consumes.
+  it('never publishes lastArtifactId in the list', async () => {
+    const app = express();
+    registerSourceRuntimeRoutes(app, {
+      listStates: async () => [runtime({ lastArtifactId: 'artifact-belonging-to-a-person' })],
+    });
+
+    const res = await request(app).get('/api/system/source-runtime').expect(200);
+
+    expect(res.body.sources).toHaveLength(1);
+    expect(res.body.sources[0]).not.toHaveProperty('lastArtifactId');
+    expect(JSON.stringify(res.body)).not.toContain('artifact-belonging-to-a-person');
+    // The liveness signal the id was never needed for.
+    expect(res.body.sources[0].lastSuccessfulAt).toBe('2026-07-31T07:00:00.000Z');
+    expect(res.body.sources[0].freshnessStatus).toBe('current');
+  });
+
+  it('never publishes lastArtifactId on the single-source route', async () => {
+    const app = express();
+    registerSourceRuntimeRoutes(app, {
+      getState: async () => runtime({ lastArtifactId: 'artifact-belonging-to-a-person' }),
+    });
+
+    const res = await request(app).get('/api/system/source-runtime/NPPES_API').expect(200);
+
+    expect(res.body).not.toHaveProperty('lastArtifactId');
+    expect(JSON.stringify(res.body)).not.toContain('artifact-belonging-to-a-person');
+    expect(res.body.sourceId).toBe('NPPES_API');
+  });
+
+  // A list response costs three queries per registered source. Unauthenticated
+  // and uncached that is a denial-of-service surface, so repeated reads must
+  // not each reach the database.
+  it('serves repeat reads from cache instead of re-querying', async () => {
+    let calls = 0;
+    const app = express();
+    registerSourceRuntimeRoutes(app, {
+      listStates: async () => {
+        calls += 1;
+        return [runtime()];
+      },
+    });
+
+    const first = await request(app).get('/api/system/source-runtime').expect(200);
+    const second = await request(app).get('/api/system/source-runtime').expect(200);
+
+    expect(calls).toBe(1);
+    expect(first.headers['x-cache']).toBe('MISS');
+    expect(second.headers['x-cache']).toBe('HIT');
+    // A cached body must still say when it was computed, so age is readable
+    // rather than inferred.
+    expect(second.body.computedAt).toBe(first.body.computedAt);
+  });
+
+  it('does not cache a failure', async () => {
+    let calls = 0;
+    const app = express();
+    registerSourceRuntimeRoutes(app, {
+      listStates: async () => {
+        calls += 1;
+        throw new Error('database unavailable');
+      },
+    });
+
+    await request(app).get('/api/system/source-runtime').expect(503);
+    await request(app).get('/api/system/source-runtime').expect(503);
+
+    expect(calls).toBe(2);
   });
 });

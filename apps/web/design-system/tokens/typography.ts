@@ -1,6 +1,26 @@
+// CD-7 — the three faces. These MUST agree with `sansStack`/`monoStack` in
+// `apps/web/app/layout.tsx`, because both reach `<html>` and only source order
+// decided which won.
+//
+// Until now these read `var(--font-nunito-sans), 'Nunito Sans', …` and
+// `var(--font-jetbrains), 'JetBrains Mono', …` — neither of which is a face
+// this product loads. They flowed into eight variables (`--font-sans`,
+// `--font-mono`, `--font-body`, `--font-heading`, `--vt-font-sans`,
+// `--vt-font-mono`, `--ui-font-*`) via `styles/variables.ts`, and were saved
+// only by `layout.tsx` spreading `...vdsCssVariables` FIRST and re-declaring
+// the same keys after. Reorder that object literal — or apply
+// `vdsCssVariables` to any subtree layout.tsx does not own — and the whole
+// product silently reverts to Nunito Sans / JetBrains Mono.
+//
+// That is regression #3 waiting to happen: CD-W1's faces have already been
+// lost twice, once to a `next/font/google` build fetch and once to an
+// `@theme inline` literal family name. Making the default correct removes the
+// ordering dependency instead of documenting it.
 export const typographyTokens = {
-  fontSans: "var(--font-nunito-sans), 'Nunito Sans', system-ui, sans-serif",
-  fontMono: "var(--font-jetbrains), 'JetBrains Mono', 'SFMono-Regular', ui-monospace, monospace",
+  fontSans:
+    "var(--font-geist-loaded, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif)",
+  fontMono:
+    "var(--font-geist-mono-loaded, ui-monospace, 'SFMono-Regular', Menlo, Monaco, Consolas, 'Liberation Mono', monospace)",
   size: {
     display: '3rem',
     h1: '2.25rem',

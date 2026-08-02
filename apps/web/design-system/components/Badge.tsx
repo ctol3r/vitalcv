@@ -5,7 +5,9 @@ import { cn } from '@/lib/utils';
 const badgeVariants = cva(
   [
     'inline-flex items-center gap-1',
-    'rounded-[var(--vt-radius-pill)] border',
+    // CD-10 — a badge asserts a fact, so it is a document: 3px. "A record
+    // carries stamps, not pills." This was `--vt-radius-pill` (9999px).
+    'rounded-[3px] border',
     'px-[var(--vt-space-12)] py-[var(--vt-space-4)]',
     'text-[length:var(--vt-type-caption-size)] leading-[var(--vt-line-tight)]',
     'font-[var(--vt-font-weight-semibold)] uppercase tracking-[0.16em]',

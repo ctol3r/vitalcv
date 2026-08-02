@@ -159,6 +159,12 @@
   font-size: 0.9rem;
   font-weight: 600;
   padding: 0.72rem 1.35rem;
+  /* CD-15 sets a 44px minimum touch target. `0.72rem` of padding around a
+     0.9rem label resolved to 40px — inside WCAG 2.2 AA's 24px floor, but under
+     the floor this product actually commits to, on the one control the entire
+     homepage exists to get pressed. Stated as a minimum rather than a fixed
+     height so the button still grows with the label at larger text sizes. */
+  min-height: 44px;
   cursor: pointer;
   transition: background 160ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
@@ -267,6 +273,29 @@
   .ask-cadence {
     padding-right: 5.5rem;
     padding-bottom: 3.5rem;
+  }
+}
+
+/* `margin-top: auto` above pins the cadence to the foot of a stage that is a
+   whole viewport tall, which means it pools ALL the leftover height into one
+   gap. The gap is therefore a function of how the hero copy happens to wrap,
+   not a decision — measured on a 1000px-tall window it ran 174px at 768,
+   98px at 1080 and 77px at 1440. Widest at the MIDDLE width, because that is
+   where the promise paragraph wraps shortest. That inversion is the tell: it
+   is leftover space, not rhythm.
+
+   Above the phone breakpoint the stage stops reserving a full screen and the
+   gap becomes a stated interval. The pin still holds on phones, where the
+   slack is small and a first screen that ends on the cadence line is worth
+   keeping. Nothing moves horizontally and no content is removed. */
+@media (min-width: 721px) {
+  .ask-stage {
+    min-height: 0;
+    padding-bottom: clamp(2rem, 5vh, 3.5rem);
+  }
+
+  .ask-cadence {
+    margin-top: clamp(2.5rem, 6vh, 4.5rem);
   }
 }
 
@@ -455,6 +484,24 @@
 /* The wide sizing, shape vocabulary (slot/chip/meta/gap/note), and entry
    motion all live in styles/artifact-motion.css — the shared grammar since
    the pattern went site-wide. page.tsx imports both files. */
+
+/* ── the permission boundary (step 3) ──────────────────────────
+ * Sits between the packet and the CTA that builds one, because a rule about
+ * what travels is only useful beside the thing it governs. Quiet: it is a
+ * standing guarantee, not an alert, and it must not out-shout the claim rows
+ * above it. A left rule rather than a box — the ledger and the inspector own
+ * the boxed language on this page, and a second bordered card here would read
+ * as another artifact instead of as a note about them.
+ */
+.ask-permission {
+  margin: 1.1rem 0 0;
+  padding-left: 0.85rem;
+  border-left: 1px solid var(--ask-rule);
+  max-width: 34rem;
+  font-size: 0.88rem;
+  line-height: 1.55;
+  color: var(--ask-soft);
+}
 
 /* ── the employer door CTA (inside the chapter) ────────────── */
 .ask-door-cta {

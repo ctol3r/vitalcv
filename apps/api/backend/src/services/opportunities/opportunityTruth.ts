@@ -170,6 +170,65 @@ export interface OpportunityTruthFilters {
   missingRequirement?: string;
 }
 
+/**
+ * The structured columns win over the text derivations.
+ *
+ * createOpportunity writes pay_min/pay_max/employer_type/start_urgency and the
+ * MATCHA engine scores on them, but the public read path used to re-derive all
+ * four by regex over prose and never look at the columns. A role posted with a
+ * structured pay range and no prose one therefore reported payRangeMin/Max as
+ * null — and matchesOpportunityTruthFilters DROPS a row whose payRangeMax is
+ * null, so filtering by pay hid exactly the roles with the best pay data.
+ *
+ * These resolvers read the column first and fall back to the derivation, so
+ * rows written before the columns existed keep working unchanged.
+ */
+function resolveStructuredPay(
+  opportunity: Pick<OpportunityTruthRecord, 'payMin' | 'payMax'>,
+): { min: number | null; max: number | null } {
+  const clean = (value: number | null | undefined): number | null =>
+    typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : null;
+
+  const min = clean(opportunity.payMin);
+  const max = clean(opportunity.payMax);
+
+  // A reversed pair is employer data entry, not a reason to publish nonsense.
+  if (min !== null && max !== null && min > max) {
+    return { min: max, max: min };
+  }
+
+  return { min, max };
+}
+
+function resolveEmployerType(
+  opportunity: Pick<OpportunityTruthRecord, 'employerType'>,
+  organizationProfile: { facilityType?: string | null } | null | undefined,
+): string | null {
+  const own = normalizeEmployerType(opportunity.employerType ?? null);
+  return own ?? normalizeEmployerType(organizationProfile?.facilityType ?? null);
+}
+
+function resolveStartUrgency(
+  opportunity: Pick<OpportunityTruthRecord, 'startUrgency'>,
+  startTimeline: string | null,
+): OpportunityStartUrgency {
+  const own = (opportunity.startUrgency ?? '').trim();
+  // Validated against the known set — an unrecognised column value must not
+  // leak into the API as if it were a real state.
+  if ((SUPPORTED_START_URGENCIES as readonly string[]).includes(own)) {
+    return own as OpportunityStartUrgency;
+  }
+  return deriveStartUrgency(startTimeline);
+}
+
+const SUPPORTED_START_URGENCIES: readonly OpportunityStartUrgency[] = [
+  'immediate',
+  'within_2_weeks',
+  'within_month',
+  'flexible',
+  'unknown',
+];
+
 export interface OpportunityTruthRecord {
   id: string;
   organizationId: string;
@@ -178,6 +237,16 @@ export interface OpportunityTruthRecord {
   hiringType: string;
   state: string;
   payRange: string | null;
+  /**
+   * Structured columns on Opportunity, written by createOpportunity and scored
+   * by the MATCHA engine. AUTHORITATIVE where present — the free-text
+   * derivations are the fallback for rows posted before these columns existed.
+   * Optional because several call sites build partial records.
+   */
+  payMin?: number | null;
+  payMax?: number | null;
+  employerType?: string | null;
+  startUrgency?: string | null;
   requirementLevel: string;
   description: string | null;
   remote: boolean;
@@ -1087,6 +1156,76 @@ function buildCandidateCredentialRecord(raw: unknown): CandidateCredentialRecord
   };
 }
 
+/**
+ * NPPES identity lookup, cached per NPI for a few minutes.
+ *
+ * The public board resolves the viewer's profile on EVERY request, and the
+ * board refetches on every filter change — so without this, one signed-in
+ * clinician adjusting filters issued an external call each time, each able to
+ * block for the full 6s timeout before the page could render.
+ *
+ * Only the registry response is cached. The clinician's own credentials are
+ * read from the database on every call, so adding a licence is reflected
+ * immediately rather than sitting behind a TTL — a readiness answer must never
+ * be stale in the direction of "you still don't qualify".
+ *
+ * A failure is NOT cached: an outage should recover on the next request, not
+ * persist for the TTL.
+ */
+const NPPES_CACHE_TTL_MS = 5 * 60 * 1000;
+const nppesIdentityCache = new Map<string, {
+  expiresAt: number;
+  value: { specialty: string | null; stateOfPractice: string | null };
+}>();
+
+async function fetchNppesIdentity(npi: string): Promise<{
+  specialty: string | null;
+  stateOfPractice: string | null;
+}> {
+  const now = Date.now();
+  const cached = nppesIdentityCache.get(npi);
+  if (cached && cached.expiresAt > now) {
+    return cached.value;
+  }
+
+  const empty = { specialty: null, stateOfPractice: null };
+
+  try {
+    const response = await fetch(
+      `https://npiregistry.cms.hhs.gov/api/?number=${npi}&version=2.1`,
+      { signal: AbortSignal.timeout(6_000) },
+    );
+    if (!response.ok) {
+      return empty;
+    }
+
+    const payload = await response.json() as NppesResponse;
+    const result = payload.results?.[0];
+    const taxonomy = result?.taxonomies?.find((entry) => entry.primary) ?? result?.taxonomies?.[0];
+    const location = result?.addresses?.find((entry) => entry.address_purpose === 'LOCATION') ?? result?.addresses?.[0];
+
+    const value = {
+      specialty: asString(taxonomy?.desc),
+      stateOfPractice: asString(location?.state) ?? asString(taxonomy?.state),
+    };
+
+    // Bound the map so a long-lived process cannot grow one entry per NPI seen.
+    if (nppesIdentityCache.size > 5_000) {
+      nppesIdentityCache.clear();
+    }
+    nppesIdentityCache.set(npi, { expiresAt: now + NPPES_CACHE_TTL_MS, value });
+    return value;
+  } catch {
+    // Best effort only; the caller keeps its local profile values.
+    return empty;
+  }
+}
+
+/** Test seam — the cache is process-wide and would otherwise leak between cases. */
+export function __resetNppesIdentityCache(): void {
+  nppesIdentityCache.clear();
+}
+
 export async function buildClinicianOpportunityProfile(input: {
   npi: string;
 }): Promise<ClinicianOpportunityProfile | null> {
@@ -1118,23 +1257,9 @@ export async function buildClinicianOpportunityProfile(input: {
   let stateOfPractice = personProfile?.stateOfPractice ?? null;
   const states = new Set<string>();
 
-  const nppesUrl = `https://npiregistry.cms.hhs.gov/api/?number=${npi}&version=2.1`;
-  try {
-    const response = await fetch(nppesUrl, {
-      signal: AbortSignal.timeout(6_000),
-    });
-    if (response.ok) {
-      const payload = await response.json() as NppesResponse;
-      const result = payload.results?.[0];
-      const taxonomy = result?.taxonomies?.find((entry) => entry.primary) ?? result?.taxonomies?.[0];
-      const location = result?.addresses?.find((entry) => entry.address_purpose === 'LOCATION') ?? result?.addresses?.[0];
-
-      specialty = specialty ?? asString(taxonomy?.desc);
-      stateOfPractice = stateOfPractice ?? asString(location?.state) ?? asString(taxonomy?.state);
-    }
-  } catch {
-    // Best effort only; keep local profile values if the registry is unavailable.
-  }
+  const nppes = await fetchNppesIdentity(npi);
+  specialty = specialty ?? nppes.specialty;
+  stateOfPractice = stateOfPractice ?? nppes.stateOfPractice;
 
   if (stateOfPractice) {
     states.add(stateOfPractice);
@@ -1251,6 +1376,7 @@ export function buildOpportunityTruth(input: {
     clearToStartThreshold: organizationProfile?.clearToStartThreshold ?? null,
   });
   const startTimeline = organizationProfile?.timeToStart ?? null;
+  const structuredPay = resolveStructuredPay(opportunity);
   const freshness = buildFreshness({
     opportunityUpdatedAt: opportunity.updatedAt.toISOString(),
     employerUpdatedAt: organizationProfile?.updatedAt ? isoString(organizationProfile.updatedAt) : null,
@@ -1284,18 +1410,18 @@ export function buildOpportunityTruth(input: {
     status: opportunity.status,
     createdAt: opportunity.createdAt.toISOString(),
     updatedAt: opportunity.updatedAt.toISOString(),
-    employerType: normalizeEmployerType(organizationProfile?.facilityType ?? null),
+    employerType: resolveEmployerType(opportunity, organizationProfile),
     payModel,
     payUnit: parsedPayRange.unit,
-    payRangeMin: parsedPayRange.min,
-    payRangeMax: parsedPayRange.max,
+    payRangeMin: structuredPay.min ?? parsedPayRange.min,
+    payRangeMax: structuredPay.max ?? parsedPayRange.max,
     visaSponsorshipStatus: visa.status,
     visaSponsorshipSummary: visa.summary,
     benefitsAvailability: benefits.availability,
     benefitsSummary: benefits.summary,
     benefitsItems: benefits.items,
     startTimeline,
-    startUrgency: deriveStartUrgency(startTimeline),
+    startUrgency: resolveStartUrgency(opportunity, startTimeline),
     speedToStartDays: deriveSpeedToStartDays(startTimeline),
     credentialRequirements: requirements,
     trustIndicators,

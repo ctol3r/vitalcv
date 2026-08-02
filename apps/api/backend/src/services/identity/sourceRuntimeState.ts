@@ -6,6 +6,7 @@
  * a successful persisted SourceRun and a fresh persisted artifact.
  */
 
+import type { SourceRunStatus } from '@prisma/client';
 import prisma from '../../graphql/prisma_client';
 import {
   getSource,
@@ -106,21 +107,49 @@ type RuntimePrisma = {
 
 const runtimePrisma = prisma as unknown as RuntimePrisma;
 
-const SUCCESS_RUN_STATUSES = new Set(['VERIFIED', 'ALERTED', 'SUCCESS', 'COMPLETED']);
-const FAILED_RUN_STATUSES = new Set(['FAILED', 'QUARANTINED', 'CANCELLED']);
-const PARTIAL_RUN_STATUSES = new Set([
+/**
+ * Run statuses, classified — and every member is checked against the generated
+ * `SourceRunStatus` enum at compile time.
+ *
+ * These sets used to be bare `Set<string>` holding five values the enum has
+ * never contained: `SUCCESS`, `COMPLETED`, `CANCELLED`, `PARSING`, `RUNNING`.
+ * Four were merely dead, because they are only ever compared against a status
+ * already read out of the database. `SUCCESS` and `COMPLETED` were not: they go
+ * into `where.status.in`, and Prisma validates that argument against the enum
+ * before it will run the query.
+ *
+ * So every call threw `PrismaClientValidationError: Invalid value for argument
+ * 'in'. Expected SourceRunStatus`, was caught, and was returned as a 503 —
+ * meaning E0 answered "source runtime state could not be computed" for every
+ * source, on every request, for its entire life. Nothing caught it because the
+ * unit tests inject a fake store and never build a real Prisma query, and the
+ * tenant guard 401'd the route before anyone could see the 503 behind it.
+ *
+ * Typing them as `SourceRunStatus[]` is the actual fix. A future rename in
+ * `schema.prisma` now fails `tsc` instead of failing silently in production.
+ */
+const SUCCESS_RUN_STATUSES: readonly SourceRunStatus[] = ['VERIFIED', 'ALERTED'];
+const FAILED_RUN_STATUSES: readonly SourceRunStatus[] = ['FAILED', 'QUARANTINED'];
+const PARTIAL_RUN_STATUSES: readonly SourceRunStatus[] = [
   'QUEUED',
   'FETCHING',
   'FETCHED',
-  'PARSING',
   'PARSED',
   'NORMALIZED',
-  'RUNNING',
-]);
+];
 
-export const prismaSourceRuntimeStore: SourceRuntimeStore = {
+/**
+ * The real store, over an injectable client.
+ *
+ * It used to close directly over the module-level `runtimePrisma`, so there was
+ * no seam at which a test could observe the arguments it builds — and the
+ * argument it built was invalid for E0's entire life. Taking the client as a
+ * parameter is what makes the query itself assertable.
+ */
+export function buildPrismaSourceRuntimeStore(client: RuntimePrisma): SourceRuntimeStore {
+  return {
   async findLatestRun(sourceId) {
-    return runtimePrisma.sourceRun.findFirst({
+    return client.sourceRun.findFirst({
       where: { sourceId },
       orderBy: { createdAt: 'desc' },
       select: {
@@ -133,7 +162,7 @@ export const prismaSourceRuntimeStore: SourceRuntimeStore = {
   },
 
   async findLatestSuccessfulRun(sourceId) {
-    return runtimePrisma.sourceRun.findFirst({
+    return client.sourceRun.findFirst({
       where: {
         sourceId,
         status: { in: [...SUCCESS_RUN_STATUSES] },
@@ -152,7 +181,7 @@ export const prismaSourceRuntimeStore: SourceRuntimeStore = {
   },
 
   async findLatestArtifact(sourceId) {
-    return runtimePrisma.verificationArtifact.findFirst({
+    return client.verificationArtifact.findFirst({
       where: { source: sourceId },
       orderBy: [
         { observedAt: 'desc' },
@@ -166,7 +195,11 @@ export const prismaSourceRuntimeStore: SourceRuntimeStore = {
       },
     });
   },
-};
+  };
+}
+
+export const prismaSourceRuntimeStore: SourceRuntimeStore =
+  buildPrismaSourceRuntimeStore(runtimePrisma);
 
 function isTruthyEnvironmentFlag(value: string | undefined): boolean {
   return value?.trim().toLowerCase() === 'true';
@@ -188,12 +221,12 @@ function requiredCredentialsPresent(
   return adapter.requiredEnvironmentVariables.every((key) => hasEnvironmentValue(environment[key]));
 }
 
-function classifyLatestRun(status: string | null): SourceLastRunStatus {
+export function classifyLatestRunStatus(status: string | null): SourceLastRunStatus {
   if (!status) return 'never';
-  const normalized = status.toUpperCase();
-  if (SUCCESS_RUN_STATUSES.has(normalized)) return 'success';
-  if (FAILED_RUN_STATUSES.has(normalized)) return 'failed';
-  if (PARTIAL_RUN_STATUSES.has(normalized)) return 'partial';
+  const normalized = status.toUpperCase() as SourceRunStatus;
+  if (SUCCESS_RUN_STATUSES.includes(normalized)) return 'success';
+  if (FAILED_RUN_STATUSES.includes(normalized)) return 'failed';
+  if (PARTIAL_RUN_STATUSES.includes(normalized)) return 'partial';
   return 'partial';
 }
 
@@ -260,7 +293,7 @@ export function buildSourceRuntimeState(
   const enabled = isTruthyEnvironmentFlag(environment[source.envFlag]);
   const credentialsPresent = requiredCredentialsPresent(source.id, environment);
   const latestRunRawStatus = observation.latestRun?.status ?? null;
-  const classifiedLatestRun = classifyLatestRun(latestRunRawStatus);
+  const classifiedLatestRun = classifyLatestRunStatus(latestRunRawStatus);
   const freshnessStatus = computeFreshness(source, observation, now);
 
   let runtimeState: SourceRuntimeTruthState;

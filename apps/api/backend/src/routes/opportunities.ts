@@ -201,8 +201,12 @@ export function registerOpportunityRoutes(app: Express): void {
   app.get(
     '/api/opportunities',
     asyncHandler(async (req, res) => {
-      const { specialty, state, hiringType, organizationSlug, payModel, visaSponsorship, benefits, employerType, startUrgency, readinessStatus, missingRequirement, npi, remote } = req.query;
+      const { q, specialty, state, hiringType, organizationSlug, payModel, visaSponsorship, benefits, employerType, startUrgency, readinessStatus, missingRequirement, npi, remote } = req.query;
       const result = await listPublicOpportunities({
+        // Free-text keyword, matched against the Postgres tsvector. Length-capped
+        // so a pathological query cannot make the text-search parser do
+        // unbounded work on an unauthenticated route.
+        q: typeof q === 'string' ? q.slice(0, 200) : undefined,
         specialty: typeof specialty === 'string' ? specialty : undefined,
         state: typeof state === 'string' ? state : undefined,
         hiringType: typeof hiringType === 'string' ? hiringType : undefined,
