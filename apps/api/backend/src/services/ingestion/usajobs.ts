@@ -19,7 +19,7 @@
  * never look the same to an operator.
  */
 
-import type { FeedConnector, FeedListing } from './types';
+import type { FeedConnector, FeedFetchResult, FeedListing } from './types';
 
 const USAJOBS_HOST = 'data.usajobs.gov';
 const SEARCH_URL = `https://${USAJOBS_HOST}/api/search`;
@@ -67,6 +67,10 @@ export interface UsaJobsDescriptor {
 
 export interface UsaJobsSearchResponse {
   SearchResult?: {
+    /** Items on THIS page. */
+    SearchResultCount?: number;
+    /** Items matching the whole query, across all pages. */
+    SearchResultCountAll?: number;
     SearchResultItems?: Array<{ MatchedObjectDescriptor?: UsaJobsDescriptor }>;
   };
 }
@@ -223,7 +227,7 @@ export class UsaJobsConnector implements FeedConnector {
       : '';
   }
 
-  async fetch({ limit }: { limit: number }): Promise<FeedListing[]> {
+  async fetch({ limit }: { limit: number }): Promise<FeedFetchResult> {
     if (!this.isConfigured()) {
       // Fail loudly. An empty array here would be indistinguishable from a feed
       // that genuinely returned nothing.
@@ -252,8 +256,22 @@ export class UsaJobsConnector implements FeedConnector {
     const payload = await response.json() as UsaJobsSearchResponse;
     const items = payload.SearchResult?.SearchResultItems ?? [];
 
-    return items
+    const listings = items
       .map((item) => normalizeUsaJobsItem(item.MatchedObjectDescriptor))
       .filter((listing): listing is FeedListing => listing !== null);
+
+    /**
+     * This run saw the whole feed only if USAJOBS says the total matching the
+     * query is no larger than the page we asked for. This connector reads a
+     * single page, so anything beyond `limit` is unseen and expiry must not
+     * conclude those postings are gone.
+     *
+     * `SearchResultCountAll` missing is treated as incomplete: an absent count
+     * is not evidence of a small result set.
+     */
+    const totalMatching = payload.SearchResult?.SearchResultCountAll;
+    const complete = typeof totalMatching === 'number' && totalMatching <= items.length;
+
+    return { listings, complete };
   }
 }

@@ -74,10 +74,83 @@ async function resolveFeedOrganizationId(feed: string, organizationName: string)
   return created.id;
 }
 
+/**
+ * Close listings the feed no longer carries.
+ *
+ * The mechanism is simple — any ACTIVE row for this feed whose `fetchedAt` is
+ * older than the run start was not seen this time — and it is only SAFE under
+ * conditions that must all hold:
+ *
+ *   1. The sweep was complete. After a partial page, "not seen" means "not on
+ *      page one", and closing on that basis would wipe out every listing the
+ *      page did not reach.
+ *   2. Nothing errored. A failed upsert leaves a live listing with an old
+ *      `fetchedAt`, indistinguishable from a withdrawn one.
+ *   3. The feed returned something. An empty complete sweep is far more often a
+ *      silently broken query than an employer withdrawing every vacancy at
+ *      once, and treating it as truth would close the entire feed in one pass.
+ *
+ * Rows are CLOSED, never deleted: applications reference them, and a vacancy
+ * that existed is a fact about the past.
+ */
+async function expireUnseenListings(
+  feed: string,
+  context: {
+    runStartedAt: Date;
+    sweepWasComplete: boolean;
+    hadErrors: boolean;
+    report: IngestionReport;
+  },
+): Promise<void> {
+  const { runStartedAt, sweepWasComplete, hadErrors, report } = context;
+
+  if (!sweepWasComplete) {
+    report.expirySkippedReason =
+      'Sweep was partial — cannot conclude an unseen listing was withdrawn.';
+    return;
+  }
+
+  if (hadErrors) {
+    report.expirySkippedReason =
+      'Run had errors — a failed write looks identical to a withdrawn listing.';
+    return;
+  }
+
+  if (report.created + report.updated === 0) {
+    report.expirySkippedReason =
+      'Sweep persisted no listings — treated as a broken query, not an empty feed.';
+    return;
+  }
+
+  const result = await prisma.opportunity.updateMany({
+    where: {
+      sourceFeed: feed,
+      listingSource: 'public_feed',
+      status: 'ACTIVE',
+      fetchedAt: { lt: runStartedAt },
+    },
+    data: { status: 'CLOSED' },
+  });
+
+  report.expired = result.count;
+
+  if (result.count > 0) {
+    log('info', 'ingestion expired withdrawn listings', {
+      event: 'ingestion_expired',
+      feed,
+      expired: result.count,
+    });
+  }
+}
+
 export async function ingestFeed(
   connector: FeedConnector,
   options: { limit?: number } = {},
 ): Promise<IngestionReport> {
+  // Stamped before the fetch. Rows touched by this run get fetchedAt >= this,
+  // so anything still older afterwards is exactly what the feed no longer lists.
+  const runStartedAt = new Date();
+
   const report: IngestionReport = {
     feed: connector.feed,
     ran: false,
@@ -87,6 +160,8 @@ export async function ingestFeed(
     rejectedIncomplete: 0,
     created: 0,
     updated: 0,
+    expired: 0,
+    expirySkippedReason: null,
     errors: [],
   };
 
@@ -104,8 +179,11 @@ export async function ingestFeed(
   report.ran = true;
 
   let listings: FeedListing[];
+  let sweepWasComplete = false;
   try {
-    listings = await connector.fetch({ limit: options.limit ?? DEFAULT_LIMIT });
+    const result = await connector.fetch({ limit: options.limit ?? DEFAULT_LIMIT });
+    listings = result.listings;
+    sweepWasComplete = result.complete;
   } catch (error) {
     report.errors.push(error instanceof Error ? error.message : String(error));
     log('error', 'ingestion feed fetch failed', {
@@ -176,6 +254,13 @@ export async function ingestFeed(
       );
     }
   }
+
+  await expireUnseenListings(connector.feed, {
+    runStartedAt,
+    sweepWasComplete,
+    hadErrors: report.errors.length > 0,
+    report,
+  });
 
   log('info', 'ingestion feed complete', {
     event: 'ingestion_complete',
