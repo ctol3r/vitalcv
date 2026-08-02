@@ -62,6 +62,18 @@ ENV GIT_SHA=${GIT_COMMIT_SHA}
 COPY --from=build --chown=node:node /app/apps/web/.next ./apps/web/.next
 COPY --from=build /app/apps/web/public ./apps/web/public
 COPY --from=build /app/apps/web/package.json ./apps/web/
+# next.config.mjs is a RUNTIME read, not only a build input.
+#
+# `headers()`, `redirects()` and `rewrites()` are resolved during `next build`
+# and baked into .next/routes-manifest.json, so they kept working without this
+# file and hid its absence completely — the security headers and the /api
+# no-store rules all ship from the manifest. Server OPTIONS are different:
+# `next start` reads them from the config at boot, and with no config file it
+# falls back to DEFAULTS. `poweredByHeader` defaults to true, which is why
+# production kept sending `x-powered-by: Next.js` after #1048 set it to false:
+# merged, deployed, SHA-confirmed — and inert, because the setting never
+# reached the running server.
+COPY --from=build /app/apps/web/next.config.mjs ./apps/web/
 COPY --from=build /app/apps/web/prisma ./apps/web/prisma
 COPY --from=build /app/apps/web/lib/generated ./apps/web/lib/generated
 # pnpm workspaces: copy BOTH the root + per-workspace node_modules
