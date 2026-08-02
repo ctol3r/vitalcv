@@ -117,10 +117,35 @@ function ArtifactPanel({
   );
 }
 
+/**
+ * Step 3. The step's own line promises "the exact claim, source, receipt,
+ * limitation, and permission boundary" — but `ProofPacketInspector` renders a
+ * CLAIM: claim → source → retrieval/receipt → state → limitation, and nothing
+ * about permission. Walking all five of its tabs on the live page, the words
+ * permission, consent, share and revoke appeared in none of them. The step was
+ * named "the packet you choose" and then never said what choosing meant.
+ *
+ * So the boundary is stated here, beside the packet it governs, rather than as
+ * a sixth row inside the inspector: permission is a property of the SHARE, not
+ * of any one claim, and that component is also mounted by HomeProofMoment,
+ * HorizontalCareerFilm and /design/proof-packet, none of which are about
+ * sharing.
+ *
+ * The wording is taken verbatim from /trust ("Sharing is explicit"), which is
+ * the settled public claim — this repeats it, it does not author a second one.
+ * Deliberately NOT said: anything about revoking, and anything about a consent
+ * receipt. `POST /api/apply/share` is real and packet consent receipts exist in
+ * the backend, but neither is what this illustration shows, and "every share
+ * leaves a consent receipt" is a stronger promise than this page needs.
+ */
 function PacketChoicePanel() {
   return (
     <div data-ask-artifact="once">
       <ProofPacketInspector className="ask-beat-inspector" />
+      <p className="ask-permission" data-home-permission-boundary="">
+        Nothing is shared until you share it. A shared proof packet names exactly
+        what the recipient can see.
+      </p>
       <p className="ask-door-cta">
         <Link href="/onboarding">Build your CV Wallet →</Link>
       </p>

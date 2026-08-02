@@ -134,3 +134,49 @@ describe('motion is explain-on-entry, then rest', () => {
     expect(motion).not.toMatch(/ask-art[^}]*infinite/);
   });
 });
+
+/**
+ * A step that names something in its own line has to render it. Step 3's line
+ * promises "the exact claim, source, receipt, limitation, and permission
+ * boundary", and `ProofPacketInspector` delivers four of those five: it is a
+ * CLAIM inspector — claim → source → retrieval/receipt → state → limitation.
+ *
+ * Walking all five of its tabs on the live page, the words permission, consent,
+ * share and revoke appeared in none of them. Spine-wide, "permission", "you
+ * choose" and "travels" occurred exactly three times: the tab label, the tab's
+ * line, and the section lede. The vocabulary existed only in the promise.
+ */
+describe('step 3 delivers the permission boundary it promises', () => {
+  /** Step 3's panel alone — the promise lives in the tab, not in here. */
+  const packetPanel = () => {
+    const after = html.split('id="spine-panel-packet"')[1];
+    expect(after, 'step 3 panel not found — did the step id change?').toBeTruthy();
+    return after!.split('id="spine-panel-review"')[0];
+  };
+
+  it('promises a permission boundary and then states one', () => {
+    // The promise, from the step's own line.
+    expect(html).toContain('permission boundary');
+    // The delivery, beside the packet it governs rather than somewhere else.
+    expect(packetPanel()).toContain('data-home-permission-boundary');
+  });
+
+  it('says what choosing means, in the words /trust already uses', () => {
+    // Asserts the guarantee, not the sentence: rewording it stays green,
+    // deleting it does not.
+    const panel = packetPanel().toLowerCase();
+    expect(panel).toContain('nothing is shared until you share it');
+    expect(panel).toMatch(/what the recipient can see/);
+  });
+
+  it('claims no revocation and no consent receipt it is not showing', () => {
+    // Both exist in the product — `POST /api/apply/share` is real, and packet
+    // consent receipts exist in the backend. Neither is what this illustration
+    // shows, so neither may be promised here.
+    const panel = packetPanel().toLowerCase();
+    expect(panel).not.toContain('revoke');
+    expect(panel).not.toContain('consent receipt');
+    // And it must not imply the employer already has it.
+    expect(panel).not.toMatch(/automatically (shared|sent|available)/);
+  });
+});

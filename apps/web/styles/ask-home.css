@@ -485,6 +485,24 @@
    motion all live in styles/artifact-motion.css — the shared grammar since
    the pattern went site-wide. page.tsx imports both files. */
 
+/* ── the permission boundary (step 3) ──────────────────────────
+ * Sits between the packet and the CTA that builds one, because a rule about
+ * what travels is only useful beside the thing it governs. Quiet: it is a
+ * standing guarantee, not an alert, and it must not out-shout the claim rows
+ * above it. A left rule rather than a box — the ledger and the inspector own
+ * the boxed language on this page, and a second bordered card here would read
+ * as another artifact instead of as a note about them.
+ */
+.ask-permission {
+  margin: 1.1rem 0 0;
+  padding-left: 0.85rem;
+  border-left: 1px solid var(--ask-rule);
+  max-width: 34rem;
+  font-size: 0.88rem;
+  line-height: 1.55;
+  color: var(--ask-soft);
+}
+
 /* ── the employer door CTA (inside the chapter) ────────────── */
 .ask-door-cta {
   margin: 1.4rem 0 0;
