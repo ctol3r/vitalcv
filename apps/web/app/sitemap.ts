@@ -45,7 +45,11 @@ export const SITEMAP_ROUTES: readonly SitemapRoute[] = [
   { path: '/employers', source: 'app/employers', lastModified: '2026-08-02', changeFrequency: 'weekly', priority: 0.8 },
   { path: '/solutions', source: 'app/solutions', lastModified: '2026-07-15', changeFrequency: 'weekly', priority: 0.8 },
   { path: '/pilot', source: 'app/pilot', lastModified: '2026-07-30', changeFrequency: 'monthly', priority: 0.7 },
-  { path: '/trust', source: 'app/trust', lastModified: '2026-07-30', changeFrequency: 'monthly', priority: 0.7 },
+  // Bumped to match `app/trust`'s real last commit (c3934e95c, 2026-08-02),
+  // which changed app/trust/attribution/page.tsx without moving this date.
+  // Inherited drift, not from this branch — but sitemap-freshness.test.ts is a
+  // required check, so it blocks anything downstream until the date is true.
+  { path: '/trust', source: 'app/trust', lastModified: '2026-08-02', changeFrequency: 'monthly', priority: 0.7 },
   { path: '/pricing', source: 'app/pricing', lastModified: '2026-07-16', changeFrequency: 'monthly', priority: 0.6 },
   { path: '/contact', source: 'app/contact', lastModified: '2026-07-16', changeFrequency: 'monthly', priority: 0.6 },
   { path: '/for/cvo', source: 'app/for/cvo', lastModified: '2026-05-06', changeFrequency: 'monthly', priority: 0.5 },

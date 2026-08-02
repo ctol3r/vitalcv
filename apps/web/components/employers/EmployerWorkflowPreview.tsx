@@ -26,18 +26,18 @@ export function EmployerWorkflowPreview() {
       <ol className="grid list-none grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {EMPLOYER_STAGES.map((stage, i) => (
           <Reveal
-            key={stage.ordinal}
+            key={stage.id}
             as="li"
             delay={i * 70}
             className="flex flex-col rounded-[3px] border border-[var(--vt-border)] bg-[var(--vt-surface)] p-4"
           >
-            <span
-              aria-hidden="true"
-              className="mz-mono text-[11px] font-semibold tracking-[0.14em] text-[var(--vt-accent-editorial)]"
-            >
-              {stage.ordinal}
-            </span>
-            <h3 className="mt-1.5 text-sm font-semibold leading-snug text-[var(--vt-text-primary)]">
+            {/* A two-digit `01`–`06` label sat here. CD-13 retires that
+                numbering, and nothing is lost by removing it: this is an <ol>,
+                so ordinality is already carried semantically, and the span was
+                aria-hidden — it was a picture of a number that assistive tech
+                was explicitly told to ignore, duplicating what the list markup
+                states properly. */}
+            <h3 className="text-sm font-semibold leading-snug text-[var(--vt-text-primary)]">
               {stage.title}
             </h3>
             <p className="mt-1.5 text-[13px] leading-relaxed text-[var(--vt-text-secondary)]">
