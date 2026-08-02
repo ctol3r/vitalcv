@@ -189,7 +189,10 @@ describe('evidence input markup', () => {
 
   it('keeps the settled primary label and invents no stronger claim', () => {
     const html = render({ value: VALID });
-    expect(html).toContain("Check what&#x27;s ready");
+    // The CURLY apostrophe (U+2019), rendered literally — React escapes ASCII
+    // quotes but not this one. homepage-degradation.spec.ts matches the
+    // character literally, so a straight-quote swap silently breaks it.
+    expect(html).toContain('Check what\u2019s ready');
     const lower = html.toLowerCase();
     for (const forbidden of [
       'verified',
