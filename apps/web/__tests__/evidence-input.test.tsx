@@ -148,8 +148,17 @@ describe('evidence input markup', () => {
     ];
 
     expect(new Set(names).size, `accessible name drifted: ${JSON.stringify(names)}`).toBe(1);
+
     // The half of the e2e locator contract that lives in this component.
-    expect(names[0]).toMatch(/npi/i);
+    //
+    // The three homepage specs now find this field by its FULL name rather
+    // than by `/npi/i`, so renaming the label breaks them. Pinned here too so
+    // that failure arrives in milliseconds with the fix written down, instead
+    // of as three red Playwright suites several minutes later.
+    expect(
+      names[0],
+      'Renaming this label breaks the NPI_FIELD locator in tests/e2e/{ask-npi-response,homepage-degradation,npi-truth-engine}.spec.ts — update all four together.',
+    ).toBe('Your 10-digit NPI');
   });
 
   it('never uses a placeholder as the label', () => {

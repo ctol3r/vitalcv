@@ -25,12 +25,15 @@ async function expectNoHorizontalOverflow(page: import('@playwright/test').Page)
 }
 
 /**
- * The field's visible label floats (Home Evidence v2, Wave 2C): "Enter your
- * 10-digit NPI" at rest, compressing to "NPI number" once focused or holding
- * digits. Match the part stable across both states so the locator keeps
- * testing the field rather than the wording.
+ * The field's accessible name, in full. The label still floats, but only
+ * typographically — its text is one string in every state (#1006), so this can
+ * name the field instead of matching the three letters `/npi/i` found.
+ *
+ * This spec also renders with JavaScript disabled. The name is identical
+ * there: it is a server-rendered `<label for>`, and the float that used to
+ * change the wording was removed, so SSR and hydrated markup now agree.
  */
-const NPI_FIELD = { name: /npi/i };
+const NPI_FIELD = { name: 'Your 10-digit NPI', exact: true };
 
 async function expectNpiActionUsable(page: import('@playwright/test').Page) {
   const input = page.getByRole('textbox', NPI_FIELD);
