@@ -123,3 +123,84 @@ describe('opportunityTruth', () => {
     expect(matchesOpportunityTruthFilters(truth, { missingRequirement: 'state_license' })).toBe(true);
   });
 });
+
+/**
+ * The Opportunity table carries STRUCTURED columns — pay_min, pay_max,
+ * employer_type, start_urgency — written by createOpportunity and scored by the
+ * MATCHA engine. The public read path derived all four from free text instead
+ * and never read the columns, so a role posted with a structured pay range and
+ * no prose one surfaced payRangeMin/Max = null. The pay filter then DROPPED
+ * that role, because it rejects any row whose payRangeMax is null.
+ *
+ * These cases pin the columns as authoritative, with the text derivation kept
+ * as the fallback for rows that predate them.
+ */
+describe('structured opportunity columns are authoritative', () => {
+  function makeStructuredRecord(): OpportunityTruthRecord {
+    const record = makeOpportunityRecord();
+    return {
+      ...record,
+      // No prose pay anywhere — the structured columns are the only source.
+      payRange: null,
+      payMin: 320000,
+      payMax: 355000,
+      employerType: 'hospital',
+      startUrgency: 'immediate',
+      organization: {
+        ...record.organization,
+        organizationProfile: {
+          ...record.organization.organizationProfile!,
+          payRange: null,
+          facilityType: 'staffing_agency',
+          timeToStart: '7-10 days',
+        },
+      },
+    };
+  }
+
+  it('surfaces a structured pay range when no prose pay range exists', () => {
+    const truth = buildOpportunityTruth({
+      opportunity: makeStructuredRecord(),
+      now: new Date('2026-03-20T00:00:00.000Z'),
+    });
+
+    expect(truth.payRangeMin).toBe(320000);
+    expect(truth.payRangeMax).toBe(355000);
+  });
+
+  it('keeps a structured role inside its own pay filter', () => {
+    const truth = buildOpportunityTruth({
+      opportunity: makeStructuredRecord(),
+      now: new Date('2026-03-20T00:00:00.000Z'),
+    });
+
+    // The regression: with payRangeMax null, both of these returned false and
+    // the role vanished from a filtered board.
+    expect(matchesOpportunityTruthFilters(truth, { payMin: 300000 })).toBe(true);
+    expect(matchesOpportunityTruthFilters(truth, { payMax: 400000 })).toBe(true);
+    expect(matchesOpportunityTruthFilters(truth, { payMin: 400000 })).toBe(false);
+  });
+
+  it('prefers the opportunity column over the organization-level derivation', () => {
+    const truth = buildOpportunityTruth({
+      opportunity: makeStructuredRecord(),
+      now: new Date('2026-03-20T00:00:00.000Z'),
+    });
+
+    // facilityType is 'staffing_agency' and timeToStart is '7-10 days'; the
+    // per-role columns say otherwise and must win.
+    expect(truth.employerType).toBe('hospital');
+    expect(truth.startUrgency).toBe('immediate');
+  });
+
+  it('still derives from text for rows that predate the columns', () => {
+    const truth = buildOpportunityTruth({
+      opportunity: makeOpportunityRecord(),
+      now: new Date('2026-03-20T00:00:00.000Z'),
+    });
+
+    expect(truth.payRangeMin).toBe(180);
+    expect(truth.payRangeMax).toBe(220);
+    expect(truth.employerType).toBe('staffing agency');
+  });
+});

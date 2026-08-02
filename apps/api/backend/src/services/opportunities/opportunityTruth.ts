@@ -170,6 +170,65 @@ export interface OpportunityTruthFilters {
   missingRequirement?: string;
 }
 
+/**
+ * The structured columns win over the text derivations.
+ *
+ * createOpportunity writes pay_min/pay_max/employer_type/start_urgency and the
+ * MATCHA engine scores on them, but the public read path used to re-derive all
+ * four by regex over prose and never look at the columns. A role posted with a
+ * structured pay range and no prose one therefore reported payRangeMin/Max as
+ * null — and matchesOpportunityTruthFilters DROPS a row whose payRangeMax is
+ * null, so filtering by pay hid exactly the roles with the best pay data.
+ *
+ * These resolvers read the column first and fall back to the derivation, so
+ * rows written before the columns existed keep working unchanged.
+ */
+function resolveStructuredPay(
+  opportunity: Pick<OpportunityTruthRecord, 'payMin' | 'payMax'>,
+): { min: number | null; max: number | null } {
+  const clean = (value: number | null | undefined): number | null =>
+    typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : null;
+
+  const min = clean(opportunity.payMin);
+  const max = clean(opportunity.payMax);
+
+  // A reversed pair is employer data entry, not a reason to publish nonsense.
+  if (min !== null && max !== null && min > max) {
+    return { min: max, max: min };
+  }
+
+  return { min, max };
+}
+
+function resolveEmployerType(
+  opportunity: Pick<OpportunityTruthRecord, 'employerType'>,
+  organizationProfile: { facilityType?: string | null } | null | undefined,
+): string | null {
+  const own = normalizeEmployerType(opportunity.employerType ?? null);
+  return own ?? normalizeEmployerType(organizationProfile?.facilityType ?? null);
+}
+
+function resolveStartUrgency(
+  opportunity: Pick<OpportunityTruthRecord, 'startUrgency'>,
+  startTimeline: string | null,
+): OpportunityStartUrgency {
+  const own = (opportunity.startUrgency ?? '').trim();
+  // Validated against the known set — an unrecognised column value must not
+  // leak into the API as if it were a real state.
+  if ((SUPPORTED_START_URGENCIES as readonly string[]).includes(own)) {
+    return own as OpportunityStartUrgency;
+  }
+  return deriveStartUrgency(startTimeline);
+}
+
+const SUPPORTED_START_URGENCIES: readonly OpportunityStartUrgency[] = [
+  'immediate',
+  'within_2_weeks',
+  'within_month',
+  'flexible',
+  'unknown',
+];
+
 export interface OpportunityTruthRecord {
   id: string;
   organizationId: string;
@@ -178,6 +237,16 @@ export interface OpportunityTruthRecord {
   hiringType: string;
   state: string;
   payRange: string | null;
+  /**
+   * Structured columns on Opportunity, written by createOpportunity and scored
+   * by the MATCHA engine. AUTHORITATIVE where present — the free-text
+   * derivations are the fallback for rows posted before these columns existed.
+   * Optional because several call sites build partial records.
+   */
+  payMin?: number | null;
+  payMax?: number | null;
+  employerType?: string | null;
+  startUrgency?: string | null;
   requirementLevel: string;
   description: string | null;
   remote: boolean;
@@ -1251,6 +1320,7 @@ export function buildOpportunityTruth(input: {
     clearToStartThreshold: organizationProfile?.clearToStartThreshold ?? null,
   });
   const startTimeline = organizationProfile?.timeToStart ?? null;
+  const structuredPay = resolveStructuredPay(opportunity);
   const freshness = buildFreshness({
     opportunityUpdatedAt: opportunity.updatedAt.toISOString(),
     employerUpdatedAt: organizationProfile?.updatedAt ? isoString(organizationProfile.updatedAt) : null,
@@ -1284,18 +1354,18 @@ export function buildOpportunityTruth(input: {
     status: opportunity.status,
     createdAt: opportunity.createdAt.toISOString(),
     updatedAt: opportunity.updatedAt.toISOString(),
-    employerType: normalizeEmployerType(organizationProfile?.facilityType ?? null),
+    employerType: resolveEmployerType(opportunity, organizationProfile),
     payModel,
     payUnit: parsedPayRange.unit,
-    payRangeMin: parsedPayRange.min,
-    payRangeMax: parsedPayRange.max,
+    payRangeMin: structuredPay.min ?? parsedPayRange.min,
+    payRangeMax: structuredPay.max ?? parsedPayRange.max,
     visaSponsorshipStatus: visa.status,
     visaSponsorshipSummary: visa.summary,
     benefitsAvailability: benefits.availability,
     benefitsSummary: benefits.summary,
     benefitsItems: benefits.items,
     startTimeline,
-    startUrgency: deriveStartUrgency(startTimeline),
+    startUrgency: resolveStartUrgency(opportunity, startTimeline),
     speedToStartDays: deriveSpeedToStartDays(startTimeline),
     credentialRequirements: requirements,
     trustIndicators,
