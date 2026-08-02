@@ -184,16 +184,28 @@
 }
 
 .ask-stage {
+  /* Load-bearing: creates the stacking context that keeps the real page above
+     the decorative atmosphere (see the note on `.ask`). Not decoration. */
   isolation: isolate;
-  background:
-    linear-gradient(to bottom, color-mix(in oklab, var(--vt-surface) 26%, transparent), transparent 38%),
-    radial-gradient(
-      circle at 50% 36%,
-      color-mix(in oklab, var(--vt-surface) 78%, transparent),
-      color-mix(in oklab, var(--vt-surface) 42%, transparent) 42%,
-      transparent 72%
-    );
 }
+
+/* The stage carried a linear wash plus a radial spotlight at 50% 36%, both
+   color-mixed from --vt-surface. Measured on production it was the ONLY
+   gradient-on-paper left on any public route — CD-13 retires "gradients as
+   surface (any linear-/radial-gradient on paper)", and a radial lightening
+   centred behind the hero is also the "glow" the same clause retires.
+
+   It was doing a little legibility work as well as decoration — it lifted the
+   paper directly behind the title, where EvidenceAtmosphere is busiest — so
+   removing it was measured rather than assumed. Sampling the composited pixels
+   in the title's own box on a production build:
+
+     with wash     paper luminance 0.8860   glyph-vs-paper 15.79:1
+     without       paper luminance 0.8525   glyph-vs-paper 15.23:1
+
+   Real but immaterial: 15.23:1 against a 4.5:1 AA floor. No replacement scrim
+   is needed, and none was added. `.ask-title` keeps its existing text-shadow,
+   which is the legibility floor for this hero and is not a gradient surface. */
 
 .ask-inner,
 .ask-field {
