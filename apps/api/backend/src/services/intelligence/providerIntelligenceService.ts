@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { SpanStatusCode, trace } from '@opentelemetry/api';
 import { Prisma, type PrismaClient } from '@prisma/client';
 import prisma from '../../graphql/prisma_client';
@@ -108,8 +107,8 @@ type GraphEdgeRow = {
 type ResidencyProgramRow = {
   name: string;
   specialty: string;
-  acgme_code: string;
-  hospital_affiliation: string;
+  acgmeCode: string;
+  hospitalAffiliation: string;
 };
 
 type OrganizationRow = {
@@ -525,15 +524,25 @@ async function loadResidencyPrograms(
   prismaClient: PrismaClient,
 ): Promise<ResidencyProgramRow[]> {
   try {
-    return await prismaClient.residencyProgram.findMany({
+    const rows = await prismaClient.residencyProgram.findMany({
       select: {
         name: true,
         specialty: true,
-        acgme_code: true,
-        hospital_affiliation: true,
+        acgmeCode: true,
+        hospitalAffiliation: true,
       },
       take: 1_000,
     });
+
+    // `specialty`, `acgmeCode` and `hospitalAffiliation` are all nullable in the
+    // schema, and every consumer below turns them into graph entity ids — a
+    // training node keyed on a null ACGME code, or hosted by a null
+    // institution, is not a node. Rows that cannot name themselves are dropped
+    // here rather than pushed into the graph as `"null"` strings.
+    return rows.filter(
+      (row): row is ResidencyProgramRow =>
+        Boolean(row.specialty) && Boolean(row.acgmeCode) && Boolean(row.hospitalAffiliation),
+    );
   } catch (error) {
     if (isMissingTableError(error)) {
       return [];
@@ -1121,15 +1130,15 @@ function buildIdentityLayer(input: {
   };
 
   const ensureTraining = (program: ResidencyProgramRow) => {
-    const entityId = trainingEntityId(program.acgme_code);
+    const entityId = trainingEntityId(program.acgmeCode);
     if (!entities.has(entityId)) {
       entities.set(entityId, createIdentityEntity({
         entityId,
         entityType: 'training',
         label: program.name,
         metadata: {
-          acgmeCode: program.acgme_code,
-          hospitalAffiliation: program.hospital_affiliation,
+          acgmeCode: program.acgmeCode,
+          hospitalAffiliation: program.hospitalAffiliation,
           specialty: program.specialty,
         },
       }));
@@ -1159,7 +1168,7 @@ function buildIdentityLayer(input: {
   }
 
   for (const residency of input.residencies) {
-    const institutionId = ensureInstitution(residency.hospital_affiliation);
+    const institutionId = ensureInstitution(residency.hospitalAffiliation);
     const trainingId = ensureTraining(residency);
     const specialtyId = ensureSpecialty(residency.specialty);
     relations.set(`${trainingId}->${institutionId}`, createIdentityRelation({
@@ -1167,14 +1176,14 @@ function buildIdentityLayer(input: {
       targetEntityId: institutionId,
       relationType: 'hosted_by',
       directed: true,
-      metadata: { acgmeCode: residency.acgme_code },
+      metadata: { acgmeCode: residency.acgmeCode },
     }));
     relations.set(`${trainingId}->${specialtyId}`, createIdentityRelation({
       sourceEntityId: trainingId,
       targetEntityId: specialtyId,
       relationType: 'trains_for',
       directed: true,
-      metadata: { acgmeCode: residency.acgme_code },
+      metadata: { acgmeCode: residency.acgmeCode },
     }));
   }
 
