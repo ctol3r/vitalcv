@@ -163,3 +163,35 @@ describe('tenantGuard', () => {
     });
   });
 });
+
+describe('E0 source-runtime transparency is reachable without an organization', () => {
+  // The regression this locks: the route file called itself "public source-
+  // runtime transparency endpoints" while the guard returned 401
+  // `organization_context_required` to every anonymous caller. A comment is
+  // not an authorization decision.
+  it('skips the tenant guard for the source-runtime routes', () => {
+    expect(shouldSkipTenantContext('/api/system/source-runtime')).toBe(true);
+    expect(shouldSkipTenantContext('/api/system/source-runtime/NPPES_API')).toBe(true);
+    expect(shouldSkipTenantContext('/api/system/source-runtime/OIG_LEIE')).toBe(true);
+  });
+
+  // The reason the fix is two exact matches and not
+  // `startsWith('/api/system/')`. That prefix reads as the obvious one-liner
+  // and would silently publish seven unrelated operational endpoints.
+  it.each([
+    '/api/system/telemetry',
+    '/api/system/telemetry/pilot',
+    '/api/system/trust-health',
+    '/api/system/trust-health/graph',
+    '/api/system/trust-health/orphans',
+    '/api/system/pulse',
+    '/api/system/status',
+  ])('does NOT open the neighbouring operational route %s', (path) => {
+    expect(shouldSkipTenantContext(path)).toBe(false);
+  });
+
+  it('does not open a lookalike prefix', () => {
+    expect(shouldSkipTenantContext('/api/system/source-runtime-internal')).toBe(false);
+    expect(shouldSkipTenantContext('/api/system/source-runtimes')).toBe(false);
+  });
+});
