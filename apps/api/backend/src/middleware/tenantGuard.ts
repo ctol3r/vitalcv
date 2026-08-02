@@ -156,6 +156,17 @@ export function shouldSkipTenantContext(path: string): boolean {
     || normalized.startsWith('/api/storylines')
     || normalized.startsWith('/api/directory')
     || normalized === '/api/system-health'
+    // E0 source-runtime transparency. Anyone may ask whether a source is
+    // actually live — that is the whole point of publishing it, and the
+    // homepage states per-lane cadence to visitors who have no account.
+    //
+    // Listed as two exact matches, NOT `startsWith('/api/system/')`. That
+    // prefix would also open `/api/system/telemetry`, `/telemetry/pilot`,
+    // `/pulse`, `/status` and the three `/trust-health` routes, none of which
+    // are transparency surfaces. The near-miss above — `/api/system-health`
+    // with a hyphen — is a different route and is why this gap existed.
+    || normalized === '/api/system/source-runtime'
+    || normalized.startsWith('/api/system/source-runtime/')
     || normalized.startsWith('/api/graph/')
     || normalized.startsWith('/api/investigation/')
     || normalized.startsWith('/api/provider-intelligence/')

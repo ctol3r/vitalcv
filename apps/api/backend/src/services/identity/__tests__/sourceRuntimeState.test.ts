@@ -1,5 +1,8 @@
+import { SourceRunStatus as SourceRunStatusEnum } from '@prisma/client';
 import {
+  buildPrismaSourceRuntimeStore,
   buildSourceRuntimeState,
+  classifyLatestRunStatus,
   canPresentSourceAsLive,
   canPresentSourceOutcomeAsClear,
   type SourceOutcomeState,
@@ -170,5 +173,49 @@ describe('source runtime truth matrix', () => {
         canPresentSourceOutcomeAsClear({ isLive: true }, outcome),
       ).toBe(outcome === 'clear');
     }
+  });
+});
+
+describe('the real Prisma store — the layer the injected fakes never reach', () => {
+  /**
+   * E0 returned 503 for every source on every request for its entire life.
+   * `SUCCESS_RUN_STATUSES` contained 'SUCCESS' and 'COMPLETED', which are not
+   * members of the `SourceRunStatus` enum, and Prisma validates `where.in`
+   * against the enum before running the query. The error was caught and
+   * reported as "source runtime state could not be computed".
+   *
+   * Every existing test in this file injects a store, so none of them ever
+   * built a Prisma argument. These do.
+   */
+  const ENUM_MEMBERS = new Set(Object.keys(SourceRunStatusEnum));
+
+  it('only filters on statuses the SourceRunStatus enum actually declares', async () => {
+    const seen: unknown[] = [];
+    const fakePrisma = {
+      sourceRun: {
+        findFirst: async (args: { where?: { status?: { in?: unknown[] } } }) => {
+          if (args.where?.status?.in) seen.push(...args.where.status.in);
+          return null;
+        },
+      },
+      verificationArtifact: { findFirst: async () => null },
+    };
+
+    await buildPrismaSourceRuntimeStore(fakePrisma).findLatestSuccessfulRun('NPPES_API');
+
+    expect(seen.length).toBeGreaterThan(0);
+    for (const status of seen) {
+      expect(ENUM_MEMBERS.has(String(status))).toBe(true);
+    }
+  });
+
+  it('classifies only real enum members, and never invents one', () => {
+    // Guards the other direction: a status the enum declares must classify to
+    // something, and a value it does not declare must not be treated as success.
+    for (const member of ENUM_MEMBERS) {
+      expect(['success', 'failed', 'partial']).toContain(classifyLatestRunStatus(member));
+    }
+    expect(classifyLatestRunStatus('SUCCESS')).not.toBe('success');
+    expect(classifyLatestRunStatus('COMPLETED')).not.toBe('success');
   });
 });
