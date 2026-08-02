@@ -590,11 +590,28 @@
 
 /* ── boundary + footer ─────────────────────────────────────── */
 
+/*
+ * ── The tone sequence, SPENT ─────────────────────────────────────────────
+ *
+ * `[data-home-tone]` only DECLARES `--home-*` (styles/home-surfaces.css).
+ * Until something reads those variables the contract is inert — which is
+ * precisely what it was: four tones defined in Wave 1, zero pixels changed.
+ * These rules are where the sequence becomes visible: paper (hero) → mist
+ * (journey) → trust (boundary) → paper (footer).
+ *
+ * Each spends the tone's OWN variables rather than re-deriving a colour, so a
+ * change in home-surfaces.css moves the page and nothing here needs editing.
+ */
+[data-home-spine] {
+  background-color: var(--home-surface);
+  border-block: 1px solid var(--home-border);
+}
+
 .ask-boundary {
   max-width: 62rem;
   margin: 0 auto;
   padding: clamp(2rem, 5vw, 3.5rem) clamp(1.25rem, 5vw, 4rem);
-  border-top: 1px solid var(--ask-rule);
+  border-top: 1px solid var(--home-border);
 }
 
 .ask-foot {
