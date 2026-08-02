@@ -44,6 +44,23 @@ const INPUT_ID = 'npi-input';
 const HINT_ID = 'ask-hint';
 const ERROR_ID = 'ask-npi-error';
 
+/**
+ * The field's accessible name — ONE string for every state.
+ *
+ * An earlier revision of this component reworded the label as it floated
+ * ("Enter your 10-digit NPI" → "NPI number"). Because this is a real
+ * `<label for>`, that text IS the accessible name, so the control renamed
+ * itself the instant it took focus: a screen reader announced one field while
+ * describing another, and a voice-control user lost the words they could see.
+ * The float is typographic only — see `[data-label-floating]` in
+ * evidence-input.css, which compresses these same words to a tracked mono caps
+ * line. `__tests__/evidence-input.test.tsx` guards the drift from returning.
+ *
+ * PINNED: the three homepage e2e specs locate this field by role + name, so
+ * this must keep containing "NPI".
+ */
+const NPI_LABEL = 'Your 10-digit NPI';
+
 /** A resolved value. Bounded, never a claim about a source. */
 function MarkValid() {
   return (
@@ -137,13 +154,13 @@ export function EvidenceInput({
       >
         {/*
           One real <label>, present and associated in EVERY state — never a
-          placeholder standing in for one. Its text compresses rather than
-          disappearing, so the field always says what it wants. The band it
-          occupies is a fixed height in CSS, so nothing below it moves when the
-          text swaps.
+          placeholder standing in for one, and never REWORDED between states
+          (see NPI_LABEL). It compresses typographically rather than changing
+          what it says. The band it occupies is a fixed height in CSS, so
+          nothing below it moves when the type shrinks.
         */}
         <label className="evidence-field__label" htmlFor={INPUT_ID}>
-          {floating ? 'NPI number' : 'Enter your 10-digit NPI'}
+          {NPI_LABEL}
         </label>
 
         <div className="evidence-field__row">
