@@ -7,17 +7,13 @@ name: Backend Tests
 # docs/ops/backend-test-quarantine.md — this gate protects everything else.
 
 on:
+  # No `paths:` on pull_request — "Backend Tests (Postgres)" is a REQUIRED
+  # status check, and a path-filtered required check never reports on PRs
+  # outside its paths, blocking them forever (the #806/#811/#871 trap that
+  # scripts/check-workflow-path-filters.js exists to prevent). Push filtering
+  # below is fine: it cannot affect a PR's check runs.
   pull_request:
     branches: [main]
-    paths:
-      - 'apps/api/backend/**'
-      - 'packages/**'
-      - 'core/graph/**'
-      - 'tests/**'
-      - 'package.json'
-      - 'pnpm-lock.yaml'
-      - 'pnpm-workspace.yaml'
-      - '.github/workflows/backend-tests.yml'
   push:
     branches: [main]
     paths:

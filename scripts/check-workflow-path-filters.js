@@ -72,6 +72,17 @@ const REQUIRED_CHECKS = [
   // path-filtered to begin with.
   'axe WCAG 2.2 AA',
   'check-public-claims',
+  // 2026-08-02 hardening: live branch protection had silently drifted BEHIND
+  // this list (only 5 of the 9 entries above were actually required on main).
+  // Live protection was re-synced and extended to every gate that runs on ALL
+  // PRs; names are the literal check-run names GitHub recorded on #1029.
+  'Web E2E (real auth)',
+  'Identity-header trust ratchet',
+  'Canonical Source Adapter Gate',
+  'check-route-guards',
+  // Requires the de-filtered pull_request trigger this PR ships in
+  // backend-tests.yml. Added to live protection only after this merges.
+  'Backend Tests (Postgres)',
 ];
 
 const indentOf = (line) => line.match(/^\s*/)[0].length;
