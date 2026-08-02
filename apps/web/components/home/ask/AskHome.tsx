@@ -11,6 +11,7 @@
 import Link from 'next/link';
 import * as React from 'react';
 
+import { EvidenceInput } from '@/components/home/ask/EvidenceInput';
 import { LiveNpiResult } from '@/components/home/LiveNpiResult';
 import { SpineTabs, type SpineStep } from '@/components/home/spine/SpineTabs';
 import { TruthBoundary } from '@/components/home/TruthBoundary';
@@ -220,8 +221,10 @@ export function AskHome() {
     return () => observer.disconnect();
   }, []);
 
-  const digits = raw.replace(/\D/g, '').slice(0, 10);
-  const check = checkNpi(digits);
+  // `checkNpi` normalises its own input, so the digit-stripping that used to
+  // happen here first is redundant — and having two normalisers was how the
+  // field and the submit could disagree about what had been typed.
+  const check = checkNpi(raw);
   const valid = check.validity === 'valid';
 
   const submit = React.useCallback(() => {
@@ -265,56 +268,23 @@ export function AskHome() {
             </div>
           ) : (
             <>
-              <form
-                className="ask-form"
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  submit();
+              {/*
+                The field's presentation and focus moved to EvidenceInput; every
+                other behavior stayed here. AskHome still owns the value, the
+                submit, the storage writes, the analytics and the reset —
+                deliberately, so there is exactly one place that knows what
+                submitting an NPI means.
+              */}
+              <EvidenceInput
+                value={raw}
+                onValueChange={(next) => {
+                  setRaw(next);
+                  setError(null);
                 }}
-              >
-                <label className="ask-label ask-spine-step" htmlFor="npi-input">
-                  Step 1 · Start with your NPI
-                </label>
-                <div className="ask-field">
-                  <input
-                    id="npi-input"
-                    ref={inputRef}
-                    className="ask-input"
-                    value={digits}
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    autoComplete="off"
-                    placeholder="··········"
-                    aria-invalid={Boolean(error)}
-                    aria-describedby="ask-hint"
-                    onChange={(event) => {
-                      setRaw(event.target.value);
-                      setError(null);
-                    }}
-                  />
-                </div>
-                <p id="ask-hint" className="ask-hint" aria-live="polite">
-                  {error || (digits.length === 10 && !valid) ? (
-                    <span className="ask-error">{error ?? check.reason}</span>
-                  ) : (
-                    <>
-                      <span className="ask-hint-part">{digits.length}/10 digits</span>
-                      <span className="ask-hint-sep"> · </span>
-                      <span className="ask-hint-part">Free for clinicians</span>
-                      <span className="ask-hint-sep"> · </span>
-                      <span className="ask-hint-part">No account required</span>
-                    </>
-                  )}
-                </p>
-                <button
-                  type="submit"
-                  className="ask-go"
-                  data-home-primary-cta=""
-                  disabled={!valid}
-                >
-                  Check what&rsquo;s ready
-                </button>
-              </form>
+                onSubmit={submit}
+                externalError={error}
+                inputRef={inputRef}
+              />
 
               <p className="ask-promise">
                 See what hospitals and credentialing teams can already confirm about

@@ -1,0 +1,275 @@
+/**
+ * evidence-input.css — the hero field's proportions.
+ *
+ * Loaded AFTER ask-home.css so it can raise the field from a ruled underline to
+ * a capsule. The composition rule it inherits is unchanged and load-bearing:
+ * exactly ONE element on the first screen is at display scale, and it is the
+ * input. `tests/e2e/ask-home.spec.ts` asserts the input's computed font-size
+ * stays LARGER than `#ask-title`, so the clamps below deliberately match the
+ * ones they replace.
+ *
+ * TWO THINGS THAT MUST NOT MOVE.
+ *   1. The label band is a FIXED height. The label compresses in place when it
+ *      floats; it does not change how much room it occupies, so the digits
+ *      below it never shift while typing.
+ *   2. The status slot is a FIXED width and is always rendered. A mark
+ *      appearing cannot reflow the digits beside it.
+ *
+ * COLOUR. Everything resolves to a token. Note what is NOT here: the valid mark
+ * does not use `--vt-state-source-confirmed`. Under CD-3 green means exactly one
+ * thing — a named source returned a match — and a number passing a check digit
+ * is arithmetic, not evidence. Claiming that green here would be the first lie
+ * on the page.
+ */
+
+/* ── The capsule ──────────────────────────────────────────────────────────
+ * `.ask-field` supplied a 2px bottom rule and nothing else; both borders are
+ * restated here so the shorthand cannot leave a stray edge behind.
+ */
+.evidence-field {
+  display: block;
+  text-align: left;
+  border: 1px solid var(--home-border);
+  border-radius: var(--home-field-radius);
+  background-color: var(--home-surface-raised);
+  padding: clamp(0.8rem, 1.9vw, 1.1rem) clamp(0.95rem, 2.4vw, 1.35rem);
+  min-height: var(--home-field-height);
+  padding-bottom: clamp(0.8rem, 1.9vw, 1.1rem);
+  transition:
+    border-color var(--home-duration-state) var(--home-ease-product),
+    background-color var(--home-duration-state) var(--home-ease-product);
+}
+
+/* Hover states the field as reachable without implying it has been actioned. */
+.evidence-field:hover {
+  border-color: var(--home-border-strong);
+}
+
+/* Unmistakable, and it does not resize the capsule: the ring is drawn OUTSIDE
+ * the border box. `border-bottom-color` is restated because ask-home.css's
+ * `.ask-field:focus-within` sets it and a half-toned bottom edge would survive.
+ */
+.ask-field.evidence-field:focus-within {
+  border-color: var(--home-focus);
+  border-bottom-color: var(--home-focus);
+  outline: 2px solid var(--home-focus);
+  outline-offset: 2px;
+}
+
+.evidence-field[data-evidence-input-state='invalid'] {
+  border-color: var(--home-error);
+  border-bottom-color: var(--home-error);
+}
+
+/* Focus must stay visible on an invalid field, but it must not REPLACE the
+ * error — `:focus-within` above out-specifies the plain invalid rule, so a
+ * corrected field would ring indigo while the message underneath said it was
+ * wrong. The ring stays; it just adopts the error colour. */
+.ask-field.evidence-field[data-evidence-input-state='invalid']:focus-within {
+  border-color: var(--home-error);
+  border-bottom-color: var(--home-error);
+  outline-color: var(--home-error);
+}
+
+.evidence-field[data-evidence-input-state='disabled'],
+.evidence-field[data-evidence-input-state='submitting'] {
+  background-color: var(--home-surface);
+}
+
+/* ── The label band ───────────────────────────────────────────────────────
+ * Fixed height. The text inside it changes size; the band never does.
+ */
+.evidence-field__label {
+  display: block;
+  height: 1.15rem;
+  line-height: 1.15rem;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.78rem;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  color: var(--home-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition:
+    font-size var(--home-duration-state) var(--home-ease-product),
+    letter-spacing var(--home-duration-state) var(--home-ease-product),
+    color var(--home-duration-state) var(--home-ease-product);
+}
+
+/* Compressed: smaller, tracked out, uppercase — the shape of a field name
+ * rather than an instruction, because by now the field is answering it. */
+.evidence-field[data-label-floating] .evidence-field__label {
+  /* Matches `.ask-eyebrow` — the size this system already uses for a tracked
+     mono caps line. 0.6rem measured 9.6px, small enough to read as decoration
+     rather than as the field's name. */
+  font-size: 0.66rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--home-accent);
+}
+
+.evidence-field[data-evidence-input-state='invalid'][data-label-floating] .evidence-field__label {
+  color: var(--home-error);
+}
+
+/* ── The digits row ───────────────────────────────────────────────────────── */
+.evidence-field__row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.2rem;
+}
+
+/* Decorative digit guide, shown only while the field is empty. Absolutely
+ * positioned and inert: it contributes no layout, so the digits that replace it
+ * do not move, and it can never be read as the field's label. */
+.evidence-field__guide {
+  position: absolute;
+  inset-block: 0;
+  /* Bounded on BOTH sides and clipped. Being out of flow, an unbounded guide
+     could otherwise run past the capsule at 320px and give the document a
+     horizontal scrollbar — which ask-home.spec.ts checks at five widths. */
+  left: 0;
+  right: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: clamp(2.25rem, 6.5vw, 3.75rem);
+  line-height: 1.15;
+  letter-spacing: 0.16em;
+  color: color-mix(in oklab, var(--home-text-muted) 24%, transparent);
+}
+
+/* Same clamp as the rule it replaces: the field stays the largest thing on the
+ * first screen, and comfortably above the 16px floor that stops iOS Safari
+ * zooming on focus. */
+.evidence-field__input {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: clamp(2.25rem, 6.5vw, 3.75rem);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.08em;
+}
+
+/* Reserved whether or not there is a mark to put in it. */
+.evidence-field__status {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.9rem;
+  height: 1.9rem;
+  color: var(--home-text-muted);
+}
+
+/* Ink, not green — see the note at the top of this file. */
+.evidence-field__status[data-mark='valid'] {
+  color: var(--home-text);
+}
+
+.evidence-field__mark {
+  width: 1.15rem;
+  height: 1.15rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.evidence-field__mark circle {
+  fill: currentColor;
+  stroke: none;
+}
+
+/* ── The message band ─────────────────────────────────────────────────────
+ * `min-height` reserves the taller of the two states, so swapping the counter
+ * for a correction cannot push the CTA down the page.
+ */
+.evidence-field__message {
+  min-height: 1.6rem;
+}
+
+.evidence-field__error {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--home-error);
+}
+
+.evidence-field__error .evidence-field__mark {
+  width: 0.95rem;
+  height: 0.95rem;
+  flex: 0 0 auto;
+}
+
+/* ── The action ───────────────────────────────────────────────────────────
+ * `.ask-go` is `display: block; margin-inline: auto`, and ask-home.spec.ts
+ * pins it centred within ±2px. `flex` + `width: fit-content` keeps the auto
+ * margins working while letting the label and cue sit on one line.
+ */
+.evidence-cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: fit-content;
+}
+
+.evidence-cta__arrow {
+  width: 0.95rem;
+  height: 0.95rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex: 0 0 auto;
+}
+
+/* ── Motion ───────────────────────────────────────────────────────────────
+ * Enhancement only, gated on reduced motion. The cue travels 3px — enough to
+ * read as direction, not enough to be a displacement. It moves INSIDE the
+ * button, so nothing on the page can shift.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  .evidence-cta__arrow {
+    transition: translate var(--home-duration-state) var(--home-ease-product);
+  }
+
+  .evidence-cta:hover:not(:disabled) .evidence-cta__arrow,
+  .evidence-cta:focus-visible .evidence-cta__arrow {
+    translate: 3px 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .evidence-field,
+  .evidence-field__label,
+  .evidence-cta__arrow {
+    transition: none !important;
+  }
+
+  .evidence-cta:hover:not(:disabled) .evidence-cta__arrow {
+    translate: none !important;
+  }
+}
+
+/* ── Narrow screens ───────────────────────────────────────────────────────
+ * Below 380px the capsule's own padding is the difference between a field and
+ * a slot, so it tightens rather than letting the digits reach the edge.
+ */
+@media (max-width: 380px) {
+  .evidence-field {
+    padding-inline: 0.8rem;
+  }
+
+  .evidence-field__status {
+    width: 1.5rem;
+  }
+}

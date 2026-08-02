@@ -24,7 +24,13 @@ async function expectNoHorizontalOverflow(page: import('@playwright/test').Page)
   expect(overflow).toBeLessThanOrEqual(1);
 }
 
-const NPI_FIELD = { name: /start with your npi/i };
+/**
+ * The field's visible label floats (Home Evidence v2, Wave 2C): "Enter your
+ * 10-digit NPI" at rest, compressing to "NPI number" once focused or holding
+ * digits. Match the part stable across both states so the locator keeps
+ * testing the field rather than the wording.
+ */
+const NPI_FIELD = { name: /npi/i };
 
 async function expectNpiActionUsable(page: import('@playwright/test').Page) {
   const input = page.getByRole('textbox', NPI_FIELD);

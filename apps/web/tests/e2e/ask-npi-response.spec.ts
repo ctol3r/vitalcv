@@ -17,7 +17,14 @@ import { expect, test, type Page } from '@playwright/test';
  * exactly the regression this exists to catch.
  */
 
-const NPI_FIELD = { name: /start with your npi/i };
+/**
+ * The field's accessible name CHANGES by design: the floating label reads
+ * "Enter your 10-digit NPI" at rest and compresses to "NPI number" once the
+ * field is focused or holding digits (Home Evidence v2, Wave 2C). This matches
+ * the part that is stable across both, so the locator keeps testing the field
+ * rather than the wording. Supersedes `/start with your npi/i`.
+ */
+const NPI_FIELD = { name: /npi/i };
 const CTA = { name: /check what.s ready/i };
 const VALID_NPI = '1234567893';
 
