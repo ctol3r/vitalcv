@@ -76,9 +76,14 @@
   aspect-ratio: 1;
   left: -12%;
   bottom: -22%;
+  /*
+   * Was a wash of `--vt-state-source-confirmed`. Even at 10% that spends the
+   * "a named source returned a match" colour on atmosphere; the accent carries
+   * the same warmth without claiming an outcome.
+   */
   background: radial-gradient(
     circle,
-    color-mix(in oklab, var(--vt-state-source-confirmed) 10%, transparent),
+    color-mix(in oklab, var(--vt-accent-editorial) 10%, transparent),
     transparent 70%
   );
 }
@@ -161,21 +166,12 @@
   letter-spacing: -0.02em;
 }
 
-.cinematic-evidence-field__seal {
-  fill: color-mix(in oklab, var(--vt-state-source-confirmed) 13%, var(--vt-surface));
-  stroke: color-mix(in oklab, var(--vt-state-source-confirmed) 42%, transparent);
-  stroke-width: 1;
-  vector-effect: non-scaling-stroke;
-}
-
-.cinematic-evidence-field__tick {
-  fill: none;
-  stroke: color-mix(in oklab, var(--vt-state-source-confirmed) 62%, var(--vt-text-primary));
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-width: 2;
-  vector-effect: non-scaling-stroke;
-}
+/*
+ * `__seal` and `__tick` were deleted here, not restyled. They drew a green
+ * checkmark on the decorative record permanently — a source outcome asserted
+ * by atmosphere, before any lookup. See CinematicEvidenceField.tsx for why
+ * phase-gating would not have fixed it.
+ */
 
 .cinematic-evidence-field__caption {
   fill: color-mix(in oklab, var(--vt-text-muted) 46%, transparent);
