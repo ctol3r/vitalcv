@@ -3,6 +3,12 @@ import { getSecurityHeadersForNext } from './security-headers.mjs';
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Next sends `X-Powered-By: Next.js` on every response by default, naming
+  // the framework (and, with it, the CVE list worth trying) to anyone
+  // enumerating the origin, in exchange for nothing. The `headers()` block
+  // below cannot remove it — that only ADDS headers — so it is turned off at
+  // the framework level. Asserted absent by __tests__/security-headers.test.ts.
+  poweredByHeader: false,
   transpilePackages: [
     '@vitalcv/shared',
     '@vitalcv/crs',
