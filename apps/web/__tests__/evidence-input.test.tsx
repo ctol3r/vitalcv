@@ -110,12 +110,46 @@ describe('evidence input markup', () => {
     const idle = render();
     expect(idle).toContain('<label');
     expect(idle).toContain('for="npi-input"');
-    expect(idle).toContain('Enter your 10-digit NPI');
+    expect(idle).toContain('Your 10-digit NPI');
 
-    // Floating: still a real label, still associated, different words.
+    // Floating: still a real label, still associated — and the same words.
     const filled = render({ value: '12345' });
     expect(filled).toContain('for="npi-input"');
-    expect(filled).toContain('NPI number');
+    expect(filled).toContain('Your 10-digit NPI');
+  });
+
+  /**
+   * The label IS the accessible name. Rewording it per state renames the
+   * control on focus, so a screen reader announces a different field than the
+   * one it just described, and a voice-control user's spoken label stops
+   * matching what they see. An earlier revision floated "Enter your 10-digit
+   * NPI" into "NPI number"; it also broke all three homepage e2e specs, which
+   * find this field by role + name — the relaxed `/npi/i` locators there are
+   * only half the contract, and this is the other half.
+   *
+   * Asserts the outcome (one name) rather than the CSS that achieves the
+   * visual compression, so a better float implementation stays green.
+   */
+  it('never renames itself between states', () => {
+    const labelOf = (html: string) => {
+      const match = html.match(/<label[^>]*for="npi-input"[^>]*>([\s\S]*?)<\/label>/);
+      expect(match, 'expected an associated <label> for #npi-input').toBeTruthy();
+      return match![1].replace(/<[^>]*>/g, '').trim();
+    };
+
+    const names = [
+      labelOf(render()), // idle / empty
+      labelOf(render({ value: '1' })), // editing
+      labelOf(render({ value: VALID })), // valid
+      labelOf(render({ value: BAD_CHECKSUM })), // invalid
+      labelOf(render({ value: VALID, submitting: true })), // submitting
+      labelOf(render({ value: '', disabled: true })), // disabled
+      labelOf(render({ value: '', externalError: 'Something went wrong.' })), // external error
+    ];
+
+    expect(new Set(names).size, `accessible name drifted: ${JSON.stringify(names)}`).toBe(1);
+    // The half of the e2e locator contract that lives in this component.
+    expect(names[0]).toMatch(/npi/i);
   });
 
   it('never uses a placeholder as the label', () => {
@@ -131,7 +165,7 @@ describe('evidence input markup', () => {
     // …and it goes away the moment there are real digits to show.
     expect(render({ value: '1' })).not.toContain('evidence-field__guide');
     // The real label is still the accessible name in both states.
-    expect(empty).toContain('Enter your 10-digit NPI');
+    expect(empty).toContain('Your 10-digit NPI');
   });
 
   it('exposes its state through stable attributes, not through CSS inference', () => {
