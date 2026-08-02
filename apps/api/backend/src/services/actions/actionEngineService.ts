@@ -39,6 +39,18 @@ function toJsonValue(value: unknown): Prisma.InputJsonValue {
   return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
 }
 
+/**
+ * P2002 — "Unique constraint failed". Matched on the documented error code
+ * rather than the message, which is not part of Prisma's stable contract.
+ */
+function isUniqueConstraintViolation(error: unknown): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    (error as { code?: unknown }).code === 'P2002'
+  );
+}
+
 function asRecord(value: Prisma.JsonValue | Record<string, unknown> | undefined | null): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value)
     ? value as Record<string, unknown>
@@ -420,6 +432,20 @@ async function persistActionRecommendations(
     return [];
   }
 
+  // `actionId` is `@unique`. The read below is NOT a existence check — it exists
+  // only to carry `existing.metadata` into the merge below, because Prisma cannot
+  // reference the current row from inside an `update` payload.
+  //
+  // It used to be an existence check, and that was a live race: two concurrent
+  // refreshes both missed in `findMany`, both called `create`, and the loser hit
+  // a P2002 unique violation on `action_id` and threw. The engine refresh runs on
+  // a schedule AND on demand, so overlapping invocations are the normal case, not
+  // an edge case.
+  //
+  // `upsert` closes it at the database rather than in application logic. For a row
+  // lost to the race, `existing` is undefined and the update branch merges against
+  // `{}` — byte-identical to what the create branch would have written, so the
+  // metadata merge survives the fix.
   const existingRows = await prismaClient.actionRecommendation.findMany({
     where: {
       actionId: { in: actions.map((action) => action.actionId) },
@@ -430,37 +456,58 @@ async function persistActionRecommendations(
 
   for (const action of actions) {
     const existing = existingByActionId.get(action.actionId);
-    if (!existing) {
-      const created = await prismaClient.actionRecommendation.create({
-        data: actionCreateData(action),
+
+    const updateData = {
+      actionType: action.actionType,
+      storylineKey: action.storylineKey ?? null,
+      sourceFindingIds: action.sourceFindingIds,
+      predictionIds: action.predictionIds,
+      targetEntityType: action.targetEntity.entityType,
+      targetEntityId: action.targetEntity.entityId,
+      targetEntityLabel: action.targetEntity.entityLabel ?? null,
+      recommendedAction: action.recommendedAction,
+      priority: action.priority,
+      priorityScore: action.priorityScore,
+      confidence: action.confidence,
+      explanation: action.explanation,
+      evidence: toJsonValue(action.evidence),
+      metadata: toJsonValue({
+        ...asRecord(existing?.metadata),
+        ...action.metadata,
+      }),
+    };
+
+    let row;
+    try {
+      row = await prismaClient.actionRecommendation.upsert({
+        where: { actionId: action.actionId },
+        create: actionCreateData(action),
+        update: updateData,
       });
-      persisted.push(mapActionRow(created));
-      continue;
+    } catch (error) {
+      // `upsert` is NOT sufficient on its own here, which is worth stating
+      // plainly because it looks like it should be.
+      //
+      // Prisma only compiles upsert to a single atomic `INSERT … ON CONFLICT DO
+      // UPDATE` when the create payload is flat. `actionCreateData` carries a
+      // nested `statusEvents.create`, so Prisma falls back to a read-then-write
+      // inside a transaction — which still races, and still raises P2002. This
+      // was observed, not assumed: the regression test below failed against the
+      // upsert-only version with `Unique constraint failed on (action_id)`.
+      //
+      // Losing the insert race is not an error condition. It means a concurrent
+      // refresh already created the row, so the correct response is to apply the
+      // update we were going to apply anyway. Any other error still propagates.
+      if (!isUniqueConstraintViolation(error)) {
+        throw error;
+      }
+      row = await prismaClient.actionRecommendation.update({
+        where: { actionId: action.actionId },
+        data: updateData,
+      });
     }
 
-    const updated = await prismaClient.actionRecommendation.update({
-      where: { actionId: action.actionId },
-      data: {
-        actionType: action.actionType,
-        storylineKey: action.storylineKey ?? null,
-        sourceFindingIds: action.sourceFindingIds,
-        predictionIds: action.predictionIds,
-        targetEntityType: action.targetEntity.entityType,
-        targetEntityId: action.targetEntity.entityId,
-        targetEntityLabel: action.targetEntity.entityLabel ?? null,
-        recommendedAction: action.recommendedAction,
-        priority: action.priority,
-        priorityScore: action.priorityScore,
-        confidence: action.confidence,
-        explanation: action.explanation,
-        evidence: toJsonValue(action.evidence),
-        metadata: toJsonValue({
-          ...asRecord(existing.metadata),
-          ...action.metadata,
-        }),
-      },
-    });
-    persisted.push(mapActionRow(updated));
+    persisted.push(mapActionRow(row));
   }
 
   return persisted.sort((left, right) => right.priorityScore - left.priorityScore || left.actionId.localeCompare(right.actionId));
