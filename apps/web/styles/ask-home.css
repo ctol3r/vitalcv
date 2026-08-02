@@ -270,6 +270,29 @@
   }
 }
 
+/* `margin-top: auto` above pins the cadence to the foot of a stage that is a
+   whole viewport tall, which means it pools ALL the leftover height into one
+   gap. The gap is therefore a function of how the hero copy happens to wrap,
+   not a decision — measured on a 1000px-tall window it ran 174px at 768,
+   98px at 1080 and 77px at 1440. Widest at the MIDDLE width, because that is
+   where the promise paragraph wraps shortest. That inversion is the tell: it
+   is leftover space, not rhythm.
+
+   Above the phone breakpoint the stage stops reserving a full screen and the
+   gap becomes a stated interval. The pin still holds on phones, where the
+   slack is small and a first screen that ends on the cadence line is worth
+   keeping. Nothing moves horizontally and no content is removed. */
+@media (min-width: 721px) {
+  .ask-stage {
+    min-height: 0;
+    padding-bottom: clamp(2rem, 5vh, 3.5rem);
+  }
+
+  .ask-cadence {
+    margin-top: clamp(2.5rem, 6vh, 4.5rem);
+  }
+}
+
 /* ── the ledger — the record schema at full scale ──────────── */
 
 /* An evidence artifact per CD-14: mono data, hairline rules, no motion in its

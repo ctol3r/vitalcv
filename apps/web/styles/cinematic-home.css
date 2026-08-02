@@ -17,7 +17,14 @@
   overflow: hidden;
   pointer-events: none;
   color: var(--cinematic-accent);
-  opacity: 0.62;
+
+  /* Base presence × the phase multiplier (home-surfaces.css). The base is the
+     composition's own weight; the multiplier is how far the page has receded
+     behind the act. Every responsive override below sets the BASE only, so the
+     phase keeps applying at every width. */
+  --cinematic-presence: 0.62;
+  opacity: calc(var(--cinematic-presence) * var(--home-atmosphere, 1));
+  transition: opacity var(--home-duration-enter, 320ms) var(--home-ease-product, ease);
   contain: paint;
 
   /* Legibility floor. This layer is decorative and sits BEHIND the hero —
@@ -380,12 +387,30 @@
 
 @media (max-width: 899px) {
   .cinematic-evidence-field {
-    opacity: 0.42;
+    --cinematic-presence: 0.42;
   }
 
   .cinematic-evidence-field__svg {
     width: 70rem;
     top: 4rem;
+  }
+
+  /* The composition is deliberately over-scaled here — 70rem of artwork on a
+     narrower viewport — so the perimeter WORDS no longer fit. Measured at
+     768px: `identity` began at x=-41 and `licensure` ended at x=800, i.e. all
+     four were sliced by the viewport edge, and the caption ran straight
+     through the employer link. The layer's own comment already rules that
+     decorative words landing on live copy "read as a rendering fault"; a
+     decorative word sawn in half is the same fault. Below 640px these are
+     already dropped for the same reason — this extends that band to cover
+     every width where the artwork is wider than the screen.
+
+     The words are decoration: the real lane names, their cadence and their
+     access state are Step 2 of the spine, which is unaffected. Nothing
+     semantic is lost, and the atmosphere, glows and record all remain. */
+  .cinematic-evidence-field__label,
+  .cinematic-evidence-field__caption {
+    display: none;
   }
 
   .spine {
@@ -401,18 +426,13 @@
 @media (max-width: 640px) {
   .cinematic-evidence-field {
     height: 88svh;
-    opacity: 0.32;
+    --cinematic-presence: 0.32;
   }
 
   .cinematic-evidence-field__svg {
     width: 58rem;
     left: 53%;
     top: 5.5rem;
-  }
-
-  .cinematic-evidence-field__label,
-  .cinematic-evidence-field__caption {
-    display: none;
   }
 
   .spine {
@@ -432,6 +452,11 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  /* The FIELD ITSELF is listed alongside its children so the phase recession
+     lands instantly instead of fading. The end state is identical either way —
+     opacity is computed from the same variables — so reduced motion loses the
+     transition and keeps every meaning. */
+  .cinematic-evidence-field,
   .cinematic-evidence-field *,
   .ask-go,
   .ask-field::after,
