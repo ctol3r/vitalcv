@@ -428,12 +428,20 @@ model Opportunity {
   status           String   @default("ACTIVE")
   createdAt        DateTime @default(now()) @map("created_at")
   updatedAt        DateTime @updatedAt @map("updated_at")
+  /// Weighted tsvector over title/specialty/description, GENERATED ALWAYS by
+  /// Postgres (migration 20260802000000_opportunity_search). Prisma cannot
+  /// express a generated column, so it is Unsupported and never written from
+  /// application code — read via $queryRaw with websearch_to_tsquery.
+  searchVector     Unsupported("tsvector")? @map("search_vector")
   applications     Application[]
   organization     Organization @relation(fields: [organizationId], references: [id])
 
   @@index([organizationId])
   @@index([specialty, state])
   @@index([status])
+  /// The public board's real access path: WHERE status = 'ACTIVE'
+  /// ORDER BY updated_at DESC, created_at DESC.
+  @@index([status, updatedAt(sort: Desc), createdAt(sort: Desc)], map: "Opportunity_status_updated_at_idx")
 }
 
 /// Linked profile for an individual clinician (Type 1 NPI)
