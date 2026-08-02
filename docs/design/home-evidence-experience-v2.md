@@ -1,6 +1,6 @@
 # Home Evidence Experience v2 — implementation contract
 
-**Status:** locked at Wave 0.
+**Status:** locked at Wave 0. **Superseded for *progression* as of 2026-08-02** — see the note below.
 **Baseline commit:** `8ea5e6c6f7422be5221ab7ab1ec2b4d52a3a0003` (`feat(home): add cinematic evidence journey (#988)`), which is `origin/main` HEAD at the time of writing.
 **Program branch series:** `feat/home-evidence-v2-foundation` → `-input` → `-live-result` → `-journey` → `chore/home-evidence-v2-release`.
 
@@ -8,6 +8,22 @@ This document freezes *who owns what* before any production UI changes. It is th
 reference the later waves are measured against; where this document and a wave
 prompt disagree, this document is the record of what was actually true in the
 codebase on the baseline commit.
+
+> **Amendment 2026-08-02.** Waves A, B and C of this contract **shipped** — PR #994
+> (foundation), #998 (stateful input) and #1002 (source-honest capsule) are on
+> `main`. Their ownership boundaries below remain accurate and binding.
+>
+> **Page-level progression is no longer governed here.** It moves to
+> [`VITALCV_EXPERIENCE_SYSTEM_2026.md`](VITALCV_EXPERIENCE_SYSTEM_2026.md) under
+> [`founder-rulings-2026-08.md`](founder-rulings-2026-08.md). The `-journey` wave
+> named in the branch series above is superseded by that program; do not build it
+> from this document.
+>
+> **Still authoritative here:** the ownership table, the source-truth boundaries,
+> and the rollback target. `EvidenceInput` still owns presentation and focus,
+> `checkNpi` is still the only validator, and `AskHome` still owns value, submit,
+> storage, analytics and reset. XS-10 restates the rule that outranks the journey:
+> the NPI field must be usable before any cinematic mechanism initialises.
 
 ---
 

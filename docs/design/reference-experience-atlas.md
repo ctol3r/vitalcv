@@ -7,6 +7,17 @@ This document supplies **external evidence**; the creative direction supplies **
 reference pattern and a CD clause disagree, the clause wins and the pattern is recorded under PATTERN
 TO REJECT with the number that killed it.
 
+> **Amendment 2026-08-02.** Some patterns recorded below as PATTERN TO REJECT were rejected on the
+> **pre-amendment** readings of CD-11 and CD-13 — specifically the flat 8px displacement cap and the
+> literal reading of the carousel line. Both clauses were amended on 2026-08-02 (see
+> [`founder-rulings-2026-08.md`](founder-rulings-2026-08.md) FR-1 and FR-2), so a rejection here that
+> rests *only* on "horizontal movement" or *only* on ">8px displacement" no longer stands by itself.
+> Re-read it against the amended clause before citing it in review.
+>
+> **Nothing is reinstated.** Rejections citing the carousel *format*, wheel/touch-driven scrolling,
+> auto-advance, scroll snap, stock clinician imagery, metric theatre, or glass-on-evidence are
+> unaffected and remain binding. Only those two readings narrowed.
+
 **Supersedes:** the prior instruction naming Zoox the sole external design authority. That instruction
 was conversational and left no repo artifact (`grep -ril zoox` over the tree returns nothing).
 
