@@ -701,6 +701,70 @@ model WorkspaceMembership {
 }
 
 /// Per-user workspace preferences and active persona state
+/// Durable record of a request for administrative access to an organization.
+///
+/// The refusal copy has always promised that "a VitalCV reviewer will verify
+/// your authority" — but nothing was ever written down. `upsertOrgProfile`
+/// threw a 403 and the request evaporated, so there was no queue, no history,
+/// and no way for a legitimate operator whose email is at a different domain to
+/// ever get access. This is the record that makes the promise true.
+///
+/// It is also the audit trail for the grants that DO happen: every decision,
+/// including the automatic ones, records the basis it was decided on.
+model OrganizationAccessRequest {
+  id String @id @default(uuid()) @db.Uuid
+
+  /// Requesting account. Not a relation: the request outlives any profile row
+  /// it might reference, and must remain readable after cleanup.
+  clerkUserId  String  @map("clerk_user_id")
+  accountEmail String? @map("account_email")
+
+  /// What was asked for, as asked for. Recorded verbatim so a reviewer sees
+  /// the actual request rather than a normalized summary of it.
+  requestedName    String  @map("requested_name")
+  requestedNpi     String? @map("requested_npi")
+  requestedWebsite String? @map("requested_website")
+  requestedDomain  String? @map("requested_domain")
+
+  /// The server's decision and the basis for it. `authorityReason` is the
+  /// OrganizationAuthorityReason discriminant (work_domain_match,
+  /// domain_mismatch, public_email_provider, …).
+  status          OrganizationAccessStatus @default(PENDING_REVIEW)
+  authorityReason String                   @map("authority_reason")
+  emailDomain     String?                  @map("email_domain")
+
+  /// Set only once access actually exists.
+  organizationId String? @map("organization_id") @db.Uuid
+
+  /// NPI binding is decided SEPARATELY from access. A work-domain match proves
+  /// control of that domain — never that the domain owns that Type 2 NPI — so
+  /// an automatic grant leaves this false and the NPI unbound.
+  npiBindingGranted Boolean @default(false) @map("npi_binding_granted")
+
+  /// Human review, when it happens.
+  reviewedBy    String?   @map("reviewed_by")
+  reviewedAt    DateTime? @map("reviewed_at")
+  reviewerNote  String?   @map("reviewer_note")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@index([status, createdAt], map: "org_access_requests_status_idx")
+  @@index([clerkUserId], map: "org_access_requests_user_idx")
+  @@index([requestedNpi], map: "org_access_requests_npi_idx")
+  @@index([organizationId], map: "org_access_requests_org_idx")
+  @@map("organization_access_requests")
+}
+
+enum OrganizationAccessStatus {
+  /// Refused automatic grant; waiting on a human.
+  PENDING_REVIEW
+  /// Access exists. Automatic (work-domain match) or reviewer-approved.
+  GRANTED
+  /// A reviewer said no.
+  DENIED
+}
+
 model WorkspacePreference {
   id               String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   userId           String        @unique @map("user_id") @db.Uuid
