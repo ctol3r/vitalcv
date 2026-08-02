@@ -74,6 +74,21 @@ COPY --from=build /app/apps/web/package.json ./apps/web/
 # merged, deployed, SHA-confirmed — and inert, because the setting never
 # reached the running server.
 COPY --from=build /app/apps/web/next.config.mjs ./apps/web/
+# next.config.mjs is not self-contained — it does
+#   import { getSecurityHeadersForNext } from './security-headers.mjs';
+# so shipping the config WITHOUT its import made `next start` die at boot with
+#   Cannot find module '/app/apps/web/security-headers.mjs'
+# The container then never answered /api/health, the healthcheck burned its full
+# two-minute retry window, and the deploy was marked FAILED. Every web deploy
+# after that failed identically, so production silently froze on the last image
+# that still booted while `main` kept moving — six commits, none of them live.
+#
+# The build stage never caught it: `next build` runs with the repo checked out,
+# where the sibling file is present. Only the runtime image is missing it, so
+# this is invisible to CI and visible only as a healthcheck timeout.
+#
+# If next.config.mjs grows another local import, it must be copied here too.
+COPY --from=build /app/apps/web/security-headers.mjs ./apps/web/
 COPY --from=build /app/apps/web/prisma ./apps/web/prisma
 COPY --from=build /app/apps/web/lib/generated ./apps/web/lib/generated
 # pnpm workspaces: copy BOTH the root + per-workspace node_modules
