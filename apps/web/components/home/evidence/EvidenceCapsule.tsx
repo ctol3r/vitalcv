@@ -112,19 +112,32 @@ export function EvidenceCapsuleResolved({
   onReset: () => void;
 }) {
   const { identity, npi, nextAction } = model;
-  const counts = {
-    returned: rowsOfKind(model, 'returned').length,
-    attention: rowsOfKind(model, 'attention').length,
-    unavailable: rowsOfKind(model, 'unavailable').length,
-  };
+
+  /*
+    Only non-empty groups are announced. Reading "0 returned by source, 0
+    needing attention" aloud is noise, and — worse — it puts the words
+    "returned by source" into the page on a lookup where no source returned
+    anything, which is the one thing this capsule must never imply.
+  */
+  const spoken = (['returned', 'attention', 'unavailable'] as const)
+    .map((kind) => ({ kind, n: rowsOfKind(model, kind).length }))
+    .filter(({ n }) => n > 0)
+    .map(({ kind, n }) =>
+      kind === 'returned'
+        ? `${n} returned by a named source`
+        : kind === 'attention'
+          ? `${n} needing attention`
+          : `${n} unavailable without additional access`,
+    );
 
   return (
     <div className="evidence-capsule" data-evidence-capsule="resolved" data-home-tone="trust">
       {/* A concise announcement. The card itself is not a live region — reading
           every row aloud on arrival buries the part that matters. */}
       <p className="sr-only" role="status">
-        {`Lookup complete for NPI ${npi}. ${counts.returned} returned by source, ` +
-          `${counts.attention} needing attention, ${counts.unavailable} unavailable without additional access.`}
+        {spoken.length > 0
+          ? `Lookup complete for NPI ${npi}. ${spoken.join(', ')}.`
+          : `Lookup complete for NPI ${npi}. No source returned a result.`}
       </p>
 
       <header className="evidence-capsule__identity">

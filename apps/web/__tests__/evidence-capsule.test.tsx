@@ -291,6 +291,13 @@ describe('evidence capsule — accessibility and governance', () => {
     const html = renderResolved(REGISTRY_BOOT, FULL_TRUST);
     expect(html).toContain('role="status"');
     expect(html).toMatch(/Lookup complete for NPI/);
+    // Only NON-EMPTY groups are named. Announcing "0 returned by source" would
+    // put those words on a page where no source returned anything at all —
+    // which is exactly the trust-state-outage case below.
+    const noSources = renderResolved(REGISTRY_BOOT, null);
+    expect(noSources).not.toMatch(/0 returned/);
+    expect(noSources).not.toMatch(/returned by a named source/);
+    expect(noSources).toMatch(/1 unavailable without additional access/);
   });
 
   it('never communicates a group by glyph or colour alone', () => {

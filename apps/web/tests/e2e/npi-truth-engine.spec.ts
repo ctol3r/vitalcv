@@ -11,11 +11,18 @@ import { test, expect, type Page } from '@playwright/test';
  * asserts how each truth state RENDERS.
  *
  * The contract under guard, in current copy:
- *   - a source the registry confirmed today  → "Confirmed today"
- *   - a source needing review                → "Needs your attention" (never "Blocked")
- *   - a source we cannot read yet            → "Unavailable without additional access"
- *   - a system failure                       → an explicit system state, not a finding
+ *   - a named source answered  → "Returned by source"
+ *   - a source needing review  → "Needs your attention" (never "Blocked")
+ *   - a source we cannot read  → "Unavailable without additional access"
+ *   - a system failure         → an explicit system state, not a finding
  *   - no bare "Verified", no fabricated readiness score
+ *
+ * The first label read "Confirmed today" until Home Evidence v2 Wave 3E. It had
+ * to go: the OIG lane answers from a MONTHLY LEIE file, so a same-day exclusion
+ * cannot be in it, and a heading claiming same-day confirmation over a monthly
+ * snapshot out-claims its own rows. "Returned by source" says what happened and
+ * nothing more. Every row now also carries SOURCE · CADENCE · LIMITATION.
+ *
  * Do not weaken these assertions to make a copy change pass; change the copy
  * back or bring the new copy here deliberately (see tests/e2e/README.md).
  */
@@ -129,6 +136,7 @@ const HERO_CTA = /check what.s ready/i;
  * focused or holding digits. Since `fill()` focuses the field, a locator tied
  * to either wording alone would break mid-interaction. Match the part stable
  * across both states, so this keeps testing the field rather than the copy.
+ * Supersedes `/start with your npi/i`.
  *
  * Declared once so the next composition change edits one line, not four.
  */
@@ -144,9 +152,17 @@ async function submitNpi(page: Page, npi: string) {
   await cta.click();
 }
 
-/** Rows inside one truth group, addressed by its rendered heading. */
-function groupRows(page: Page, title: string) {
-  return hero(page).locator(`p:has-text("${title}") + ul`);
+/**
+ * Rows inside one truth group.
+ *
+ * Addressed by the group's own data attribute rather than by its heading text.
+ * Wave 3E moved the headings into `<h3>` and renamed the first one, and a
+ * locator keyed to heading COPY has now broken twice for reasons that had
+ * nothing to do with truth. The attribute is the stable contract; the heading
+ * wording is asserted separately, where it is the thing under test.
+ */
+function groupRows(page: Page, kind: 'returned' | 'attention' | 'unavailable') {
+  return hero(page).locator(`[data-evidence-group="${kind}"] ul`);
 }
 
 async function expectResolved(page: Page) {
@@ -197,14 +213,14 @@ test.describe('NPI truth engine — homepage hero', () => {
     await expect(hero(page).getByText(`NPI ${VALID_NPI} · located in NPPES`)).toBeVisible();
 
     // Confirmed lanes name their source and what the source actually returned.
-    const confirmed = groupRows(page, 'Confirmed today');
-    await expect(confirmed.getByText('Confirmed through the NPPES registry')).toBeVisible();
+    const confirmed = groupRows(page, 'returned');
+    await expect(confirmed.getByText('Located in the NPPES registry')).toBeVisible();
     await expect(confirmed.getByText(CLEAR_EXCLUSION)).toBeVisible();
 
     // Licensure was not read — it must sit in the gated group, not the confirmed one.
-    const unavailable = groupRows(page, 'Unavailable without additional access');
+    const unavailable = groupRows(page, 'unavailable');
     await expect(unavailable.getByText('State licensure')).toBeVisible();
-    await expect(unavailable.getByText('State-board source access required')).toBeVisible();
+    await expect(unavailable.getByText('Not read — state-board access required')).toBeVisible();
     await expect(confirmed.getByText('State licensure')).not.toBeVisible();
 
     // One next step, and the snapshot names its own limits. /onboarding is the
@@ -235,7 +251,7 @@ test.describe('NPI truth engine — homepage hero', () => {
     // The located identity may render as fact…
     await expect(hero(page).getByText('John Doe')).toBeVisible();
     // …but the confirmed group must not carry the NPPES-confirmed claim.
-    await expect(hero(page).getByText('Confirmed through the NPPES registry')).not.toBeVisible();
+    await expect(hero(page).getByText('Located in the NPPES registry')).not.toBeVisible();
     // Other genuinely-returned results still show, so absence above is not a render failure.
     await expect(hero(page).getByText(CLEAR_EXCLUSION)).toBeVisible();
   });
@@ -295,14 +311,14 @@ test.describe('NPI truth engine — homepage hero', () => {
     await submitNpi(page, VALID_NPI);
     await expectResolved(page);
 
-    const attention = groupRows(page, 'Needs your attention');
+    const attention = groupRows(page, 'attention');
     await expect(attention.getByText('Medicare enrollment (PECOS)')).toBeVisible();
     await expect(attention.getByText('No active enrollment found')).toBeVisible();
 
     const heroText = await hero(page).innerText();
     expect(heroText).not.toMatch(/blocked/i);
     await expect(
-      groupRows(page, 'Confirmed today').getByText('Medicare enrollment (PECOS)'),
+      groupRows(page, 'returned').getByText('Medicare enrollment (PECOS)'),
     ).not.toBeVisible();
   });
 
@@ -322,7 +338,7 @@ test.describe('NPI truth engine — homepage hero', () => {
     await expectResolved(page);
 
     await expect(
-      groupRows(page, 'Needs your attention').getByText(
+      groupRows(page, 'attention').getByText(
         'OIG / LEIE exclusion recorded — review required before staffing',
       ),
     ).toBeVisible();
@@ -344,9 +360,9 @@ test.describe('NPI truth engine — homepage hero', () => {
     await submitNpi(page, VALID_NPI);
     await expectResolved(page);
 
-    const unavailable = groupRows(page, 'Unavailable without additional access');
+    const unavailable = groupRows(page, 'unavailable');
     await expect(unavailable.getByText('Check not yet run')).toBeVisible();
-    await expect(unavailable.getByText('State-board source access required')).toBeVisible();
+    await expect(unavailable.getByText('Not read — state-board access required')).toBeVisible();
     await expect(hero(page).getByText(CLEAR_EXCLUSION)).not.toBeVisible();
   });
 
@@ -356,12 +372,10 @@ test.describe('NPI truth engine — homepage hero', () => {
     await expectResolved(page);
 
     await expect(hero(page).getByText('Macie Miller')).toBeVisible();
-    await expect(hero(page).getByText('Confirmed today')).not.toBeVisible();
+    await expect(hero(page).getByText('Returned by source')).not.toBeVisible();
     await expect(hero(page).getByText('Needs your attention')).not.toBeVisible();
     await expect(
-      groupRows(page, 'Unavailable without additional access').getByText(
-        'State-board source access required',
-      ),
+      groupRows(page, 'unavailable').getByText('Not read — state-board access required'),
     ).toBeVisible();
   });
 
@@ -375,7 +389,7 @@ test.describe('NPI truth engine — homepage hero', () => {
     await expect(
       hero(page).getByText(`This is a system state, not a finding about NPI ${VALID_NPI}.`),
     ).toBeVisible();
-    await expect(hero(page).getByText('Confirmed today')).not.toBeVisible();
+    await expect(hero(page).getByText('Returned by source')).not.toBeVisible();
     await expect(hero(page).getByRole('link', { name: /claim your wallet/i })).not.toBeVisible();
     await expect(hero(page).getByRole('button', { name: /try another npi/i })).toBeVisible();
   });
