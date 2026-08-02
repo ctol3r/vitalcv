@@ -24,6 +24,30 @@ substitutes for having exercised the change yourself. There is no
 merge-protection hook in this repository; do not write instructions that assume
 one exists.
 
+## Founder visual gate (active 2026-08-02)
+
+Public-facing visual work is also governed by
+[`docs/ops/FOUNDER_VISUAL_GATE.md`](docs/ops/FOUNDER_VISUAL_GATE.md).
+
+For `/`, `/employers`, `/trust`, `/pilot`, `/onboarding`, `/explore`, shared
+public chrome, and public experience components:
+
+- name one creative owner;
+- attach desktop and mobile before/after evidence;
+- attach recordings for motion or scroll-controlled behavior;
+- document duplicate-intent searches before creating a component;
+- do not describe an unmounted design-system component as a customer-facing
+  improvement;
+- keep the PR in draft until the founder comments
+  `FOUNDER VISUAL DECISION: GO`;
+- do not begin a parallel homepage composition while the recovery freeze is
+  active.
+
+Green CI, design lint, accessibility checks, and source-truth checks do not
+prove visual quality. Founder approval is required in addition to the normal
+merge gate. Security, privacy, outage, source-truth, and data-loss fixes may
+proceed without visual approval when they avoid unrelated visual recomposition.
+
 ## Lane coordination (two fleets share this repo)
 
 Two agent fleets work `origin/main` concurrently: a **Claude lane** (branches
