@@ -35,6 +35,21 @@ export interface FeedListing {
   postedAt: Date | null;
 }
 
+export interface FeedFetchResult {
+  listings: FeedListing[];
+  /**
+   * True ONLY when these listings are the complete current set for the feed.
+   *
+   * This gates expiry, and getting it wrong destroys live inventory: expiry
+   * closes rows the run did not see, so reporting `complete` after fetching
+   * page one of a five-thousand-job feed would close every listing on pages
+   * two onward. A connector that cannot prove it saw everything must report
+   * false — the cost is listings lingering slightly longer, which is by far
+   * the cheaper mistake.
+   */
+  complete: boolean;
+}
+
 export interface FeedConnector {
   /** Stable key, stored in Opportunity.sourceFeed. */
   readonly feed: string;
@@ -46,7 +61,7 @@ export interface FeedConnector {
   isConfigured(): boolean;
   /** Human-readable reason it cannot run, for the operator report. */
   configurationHint(): string;
-  fetch(options: { limit: number }): Promise<FeedListing[]>;
+  fetch(options: { limit: number }): Promise<FeedFetchResult>;
 }
 
 export interface IngestionReport {
@@ -61,5 +76,13 @@ export interface IngestionReport {
   rejectedIncomplete: number;
   created: number;
   updated: number;
+  /** Rows closed because the feed no longer lists them. */
+  expired: number;
+  /**
+   * Why expiry did not run. Non-null whenever `expired` is 0 for a reason other
+   * than "nothing was stale" — an operator must be able to tell a clean sweep
+   * from a sweep that was not allowed to conclude anything.
+   */
+  expirySkippedReason: string | null;
   errors: string[];
 }

@@ -40,6 +40,7 @@ import { registerAuthorityRoutes } from './routes/authority';
 import { registerAuditRoutes } from './routes/audit';
 import { startAnchorWorker } from './workers/anchorWorker';
 import { startRevocationOutboxWorker } from './workers/revocationOutboxWorker';
+import { startIngestionWorker } from './workers/ingestionWorker';
 // Wave 37: Superbrain GraphRAG intelligence endpoint — now superseded by Intelligence Engine
 // Wave 40: Continuous Trust & Revocation Engine
 import { registerStatusListRoutes } from './routes/statusList';
@@ -3757,6 +3758,9 @@ if (BACKGROUND_JOBS_ENABLED) {
   startAnchorWorker();
   startContinuousMonitor();
   startRevocationOutboxWorker();
+  // No-ops unless a feed's credentials are set, so an unconfigured deployment
+  // stays silent instead of failing every interval.
+  startIngestionWorker();
 }
 
 if (ENTERPRISE_MODE) {
