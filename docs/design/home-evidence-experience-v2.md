@@ -227,6 +227,60 @@ stylesheet in that directory that uses a raw colour, a literal z-index, a raw
 `box-shadow`, or a literal font stack **fails the gate**. Baselines may not be
 raised (hard stop condition 3).
 
+## 11b. Rulings taken in PR D (Waves 4–6)
+
+**R4-1 — The decorative field asserts nothing, at any phase.**
+`CinematicEvidenceField` shipped `__seal` + `__tick`: a checkmark in a circle,
+painted in `--vt-state-source-confirmed`, rendered permanently on a card
+reading "YOUR RECORD" — before any NPI was entered. Both elements are
+**deleted**, not restyled and not deferred to `resolved`. Deferring would not
+have fixed it: `resolved` includes OIG exclusions, PECOS not-found and
+access-gated licensure, so a generic success mark is dishonest at every phase.
+The rule already existed one component away in `evidence-input.css` — green
+means exactly one thing, a named source returned a match — and PR B refused it
+for a merely checksum-valid NPI. The decoration was held to a weaker standard
+than the input in front of it. Guard:
+`__tests__/cinematic-field-asserts-nothing.test.tsx` asserts the OUTCOME (no
+evidence-state token anywhere in the decorative stylesheet) rather than the
+names of the two removed elements.
+
+**R4-2 — `data-home-phase` renames `error` to `system-error`.**
+`LiveNpiResult` calls a failed fetch `error`. The hero renames it at the
+boundary so the markup itself keeps saying the SYSTEM failed rather than that
+something is wrong with the clinician — a stylesheet reaching for
+`[data-home-phase]` cannot find a state that reads as an adverse finding. The
+marker carries the phase and nothing else: no NPI, no identity, no source
+outcome, asserted in `tests/e2e/home-phase.spec.ts`.
+
+**R4-3 — The atmosphere is a SIBLING of the phase owner.**
+`CinematicEvidenceField` is mounted before `AskHome` in `page.tsx`, so
+`data-home-phase` on the AskHome root is not an ancestor of it and no CSS
+selector — descendant or sibling — can reach it. Phase-coupled styling of the
+atmosphere would silently never match. Any future work that wants it must
+introduce a shared wrapper first; it was **not** added here, because after R4-1
+the atmosphere has nothing phase-dependent left to say.
+
+**R6-1 — Mobile keeps the tablist.**
+The directive prefers linear document order on mobile "unless existing behavior
+already offers a better accessible result". It does: each tab renders its step,
+name **and full description** inline, so all four moments are present in
+document order at 320px — only the illustration swaps. Measured 4 tabs / 4
+panels; a probe finding 9 tabs inside the spine is counting
+`ProofPacketInspector`'s own nested claim tabs in step 3's panel.
+
+**R6-2 — Focus names the focus token; geometry may still differ.**
+The CTA and spine tabs named `--ask-accent` / `--spine-accent` (the EDITORIAL
+accent) for their focus rings. All resolve to the same indigo today, so the
+divergence is invisible until the editorial accent is retoned. Colour is now
+converged on `--home-focus` everywhere; offsets are not, because the spine tab
+sits flush against its neighbour and needs an inset ring.
+
+**R6-3 — `trust` paints a band, not a column.**
+`.ask-boundary` is a centred 62rem column; filling it read as a floating slab,
+so D3 initially spent only the border. It is now a full-bleed band with a
+centred column inside — the shape the journey already uses. Measured 4.78:1
+against its text.
+
 ## 12. Rollback path
 
 - **Rollback target: `8ea5e6c6f7422be5221ab7ab1ec2b4d52a3a0003`.**
