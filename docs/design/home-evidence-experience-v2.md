@@ -252,13 +252,31 @@ something is wrong with the clinician — a stylesheet reaching for
 marker carries the phase and nothing else: no NPI, no identity, no source
 outcome, asserted in `tests/e2e/home-phase.spec.ts`.
 
-**R4-3 — The atmosphere is a SIBLING of the phase owner.**
-`CinematicEvidenceField` is mounted before `AskHome` in `page.tsx`, so
-`data-home-phase` on the AskHome root is not an ancestor of it and no CSS
-selector — descendant or sibling — can reach it. Phase-coupled styling of the
-atmosphere would silently never match. Any future work that wants it must
-introduce a shared wrapper first; it was **not** added here, because after R4-1
-the atmosphere has nothing phase-dependent left to say.
+**R4-3 — The atmosphere is a SIBLING of the phase owner; `:has(~ …)` is how it
+is reached.**
+`CinematicEvidenceField` is mounted *before* `AskHome` in `page.tsx`, so
+`data-home-phase` on the AskHome root is neither an ancestor nor a preceding
+sibling of it. A descendant selector cannot reach it, and neither can `~`,
+which only looks forward.
+
+The working form is in `home-surfaces.css`:
+
+```css
+[data-home-atmosphere]:has(~ [data-home-phase='active']) { … }
+```
+
+— the atmosphere selects *itself* on the condition that a later sibling holds
+the phase. Written down because the naive attempts both fail **silently**: a
+descendant rule and a plain `~` rule each compile, ship, and simply never
+match, which reads as "the phase isn't wired" rather than "the selector is
+backwards".
+
+Two consequences to keep in view. This is the newest CSS the homepage depends
+on, and the release receipt already lists cross-browser as skipped — if `:has()`
+is unsupported the recession stops and the atmosphere holds its rest state,
+which is legible and loses no meaning. And it is a *recession* only: after R4-1
+the atmosphere asserts nothing at any phase, so no rule here may reintroduce a
+state colour or a success glyph on the strength of `resolved`.
 
 **R6-1 — Mobile keeps the tablist.**
 The directive prefers linear document order on mobile "unless existing behavior
