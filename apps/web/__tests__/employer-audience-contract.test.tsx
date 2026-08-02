@@ -75,8 +75,8 @@ describe('W11 — organization size is segmented, and each band has a way in', (
     expect(text.toLowerCase()).toContain('the office manager is the credentialing team');
   });
 
-  it('routes self-serve bands to the claim step and systems to the pilot', () => {
-    expect(markup).toContain('href="#claim-your-organization"');
+  it('routes self-serve bands to the access-request step and systems to the pilot', () => {
+    expect(markup).toContain('href="#request-organization-access"');
     expect(markup).toContain('href="/pilot"');
   });
 });
