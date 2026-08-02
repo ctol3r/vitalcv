@@ -132,6 +132,17 @@
   stroke: var(--ask-rule);
   stroke-width: 1;
 }
+/* An OPEN slot — a projection rather than a recorded fact. Unfilled and dashed
+   so the difference is carried by geometry, not by a caption (CD-10). Pairs
+   with `.ask-art-rule`: a recorded row sits on a drawn line, a projected row
+   never gains one, and the missing line is the whole statement. `fill: none`
+   is explicit because SVG's default fill is black, not transparent. */
+.ask-art-slot-open {
+  fill: none;
+  stroke: var(--ask-rule);
+  stroke-width: 1;
+  stroke-dasharray: 4 5;
+}
 .ask-art-chip {
   fill: color-mix(in oklab, var(--ask-accent) 10%, transparent);
   stroke: color-mix(in oklab, var(--ask-accent) 45%, transparent);
