@@ -6,7 +6,12 @@ import { cn } from '@/lib/utils';
 const buttonVariants = cva(
   [
     'inline-flex items-center justify-center gap-2 whitespace-nowrap',
-    'rounded-[var(--vt-radius-pill)] border',
+    // CD-10 — radius is semantic: 0 structure / 3px document / 10px software /
+    // 999px NOTHING. A button is software, so it is 10px. This was
+    // `--vt-radius-pill` (9999px, declared in design-system/styles/variables.ts
+    // and spread onto <html>), which made every canonical button a pill —
+    // the single loudest "SaaS, not record" tell on the product.
+    'rounded-[10px] border',
     'px-[var(--vt-space-16)] py-[var(--vt-space-8)]',
     'text-[length:var(--vt-type-body-size)] leading-[var(--vt-line-normal)]',
     'font-[var(--vt-font-weight-medium)]',

@@ -32,7 +32,10 @@
 @import '../styles/scene.css';
 @import '../styles/story-rail.css';
 @import '../styles/matcha-deck.css';
-/* glue.css superseded by antigravity.css (imported in layout.tsx) */
+/* glue.css, graph-foundry.css and trust-register.css were deleted here (745
+   lines, zero importers between them). graph-foundry.css also carried a live
+   `@import url('https://fonts.googleapis.com/…Nunito+Sans…')` — the exact CDN
+   font load CD-7 forbids, shipping in the repo behind a file nobody loaded. */
 
 @custom-variant dark (&:is(.dark *));
 
