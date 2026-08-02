@@ -43,6 +43,7 @@ import {
 const INPUT_ID = 'npi-input';
 const HINT_ID = 'ask-hint';
 const ERROR_ID = 'ask-npi-error';
+const INSTRUCTIONS_ID = 'npi-instructions';
 
 /** A resolved value. Bounded, never a claim about a source. */
 function MarkValid() {
@@ -137,14 +138,41 @@ export function EvidenceInput({
       >
         {/*
           One real <label>, present and associated in EVERY state — never a
-          placeholder standing in for one. Its text compresses rather than
-          disappearing, so the field always says what it wants. The band it
-          occupies is a fixed height in CSS, so nothing below it moves when the
-          text swaps.
+          placeholder standing in for one. The band it occupies is a fixed
+          height in CSS, so nothing below it moves.
+
+          The text is CONSTANT. It used to swap — "Enter your 10-digit NPI" at
+          rest, "NPI number" once floating — which meant the field's ACCESSIBLE
+          NAME changed on focus. Two things went wrong with that:
+
+            - a voice-control user speaks the name they can see, and the name
+              they spoke stopped existing the moment the field took focus;
+            - no test could name the field. Three e2e specs had to match a bare
+              /npi/i because there was no stable name to assert.
+
+          The float is now purely visual — size, tracking, case and colour, all
+          in CSS off `data-label-floating`. The instruction the old at-rest text
+          carried moved to a real description below, which is where a format
+          instruction belongs (W3C WAI forms tutorial: label names the field,
+          instructions describe what to put in it). Nothing is lost visually:
+          the ten-dot guide and the "N/10 digits" counter both state the length
+          on screen, and both are already there.
         */}
         <label className="evidence-field__label" htmlFor={INPUT_ID}>
-          {floating ? 'NPI number' : 'Enter your 10-digit NPI'}
+          NPI number
         </label>
+
+        {/*
+          The format instruction. Visually hidden because the field already
+          shows its length twice — ten dots inside the empty control and a live
+          "N/10 digits" counter under it — so rendering a third statement of the
+          same fact would be clutter, not help. It is a real node in the
+          accessibility tree, referenced by `aria-describedby`, so a screen
+          reader gets the full sentence the visual affordances imply.
+        */}
+        <p className="evidence-field__instructions" id={INSTRUCTIONS_ID}>
+          Enter your 10-digit National Provider Identifier.
+        </p>
 
         <div className="evidence-field__row">
           <input
@@ -164,10 +192,12 @@ export function EvidenceInput({
             spellCheck={false}
             disabled={disabled || submitting}
             aria-invalid={Boolean(errorMessage)}
-            // Always the one message band. Referencing the error span as well
-            // would read the correction twice — once as the description and
-            // again as the alert.
-            aria-describedby={HINT_ID}
+            // The standing instruction, then the one message band. The band is
+            // `#ask-hint` in BOTH states, so the id never disappears. The error
+            // SPAN inside it is deliberately not listed: it already carries
+            // role="alert", and naming it here would read the correction twice
+            // — once as the description and again as the alert.
+            aria-describedby={`${INSTRUCTIONS_ID} ${HINT_ID}`}
             onChange={(event) => {
               // Resuming typing retracts the correction. Being told you are
               // wrong while actively fixing it is the nag this avoids — and it

@@ -18,13 +18,13 @@ import { expect, test, type Page } from '@playwright/test';
  */
 
 /**
- * The field's accessible name CHANGES by design: the floating label reads
- * "Enter your 10-digit NPI" at rest and compresses to "NPI number" once the
- * field is focused or holding digits (Home Evidence v2, Wave 2C). This matches
- * the part that is stable across both, so the locator keeps testing the field
- * rather than the wording. Supersedes `/start with your npi/i`.
+ * The field's accessible name is CONSTANT across every state, so this names it
+ * exactly. The label used to swap wording as it floated, which changed the
+ * accessible name on focus and forced this locator down to a bare `/npi/i` —
+ * a locator that could not say what it was looking for. The float is now
+ * purely visual and the name holds still, so the assertion is exact again.
  */
-const NPI_FIELD = { name: /npi/i };
+const NPI_FIELD = { name: 'NPI number', exact: true };
 const CTA = { name: /check what.s ready/i };
 const VALID_NPI = '1234567893';
 

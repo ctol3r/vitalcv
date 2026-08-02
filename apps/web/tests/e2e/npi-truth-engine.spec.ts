@@ -131,16 +131,17 @@ const HERO_CTA = /check what.s ready/i;
  * breaks WCAG 2.5.3 (Label in Name) for voice-control users, who speak what
  * they see.
  *
- * That visible label now FLOATS (Home Evidence v2, Wave 2C): it reads "Enter
- * your 10-digit NPI" at rest and compresses to "NPI number" once the field is
- * focused or holding digits. Since `fill()` focuses the field, a locator tied
- * to either wording alone would break mid-interaction. Match the part stable
- * across both states, so this keeps testing the field rather than the copy.
- * Supersedes `/start with your npi/i`.
+ * That visible label floats, but the float is purely visual — size, tracking,
+ * case and colour. Its TEXT is constant, so the accessible name is stable in
+ * every state, including mid-`fill()` when the field takes focus. It briefly
+ * was not: the label swapped wording as it floated, which is the same WCAG
+ * 2.5.3 problem in a new costume — the name a voice-control user just spoke
+ * stopped existing when they used it — and it forced this locator down to a
+ * bare `/npi/i`. Fixed at the source, so this names the field exactly.
  *
  * Declared once so the next composition change edits one line, not four.
  */
-const NPI_FIELD = { name: /npi/i };
+const NPI_FIELD = { name: 'NPI number', exact: true };
 
 async function submitNpi(page: Page, npi: string) {
   await page.goto('/', { waitUntil: 'networkidle' });

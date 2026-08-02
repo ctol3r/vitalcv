@@ -97,8 +97,28 @@
     color var(--home-duration-state) var(--home-ease-product);
 }
 
-/* Compressed: smaller, tracked out, uppercase — the shape of a field name
- * rather than an instruction, because by now the field is answering it. */
+/* The format instruction, referenced by `aria-describedby`.
+ *
+ * Visually hidden, NOT `display: none` — the latter drops it from the
+ * accessibility tree, which would defeat the point of having it. The field
+ * already states its length on screen twice (the ten-dot guide and the
+ * "N/10 digits" counter); this exists to give a screen reader the sentence
+ * those affordances only imply. */
+.evidence-field__instructions {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Compressed: smaller, tracked out — the shape of a field name rather than an
+ * instruction, because by now the field is answering it. The TEXT no longer
+ * changes here; only its treatment does. */
 .evidence-field[data-label-floating] .evidence-field__label {
   /* Matches `.ask-eyebrow` — the size this system already uses for a tracked
      mono caps line. 0.6rem measured 9.6px, small enough to read as decoration

@@ -110,12 +110,51 @@ describe('evidence input markup', () => {
     const idle = render();
     expect(idle).toContain('<label');
     expect(idle).toContain('for="npi-input"');
-    expect(idle).toContain('Enter your 10-digit NPI');
+    expect(idle).toContain('NPI number');
 
-    // Floating: still a real label, still associated, different words.
+    // Floating: still a real label, still associated, SAME words.
     const filled = render({ value: '12345' });
     expect(filled).toContain('for="npi-input"');
     expect(filled).toContain('NPI number');
+  });
+
+  it('keeps the accessible name identical across every state', () => {
+    // The regression this pins: the label used to read "Enter your 10-digit
+    // NPI" at rest and "NPI number" once floating, so the field's accessible
+    // NAME changed on focus. A voice-control user speaks the name they can
+    // see, and that name stopped existing the moment they used it.
+    //
+    // Asserted as an invariant ACROSS states rather than as one expected
+    // string, so a future rename still passes as long as it stays consistent —
+    // but re-introducing a swap in any single branch fails.
+    const labelOf = (html: string) => {
+      const m = html.match(/<label[^>]*for="npi-input"[^>]*>([\s\S]*?)<\/label>/);
+      return m ? m[1].replace(/<[^>]*>/g, '').trim() : null;
+    };
+
+    const names = [
+      render(),
+      render({ value: '1' }),
+      render({ value: '12345' }),
+      render({ value: VALID }),
+      render({ value: BAD_CHECKSUM }),
+      render({ value: VALID, submitting: true }),
+      render({ value: VALID, disabled: true }),
+    ].map(labelOf);
+
+    expect(names[0]).toBeTruthy();
+    expect(new Set(names).size).toBe(1);
+  });
+
+  it('describes the format in a real instructions node, not in the label', () => {
+    const html = render();
+    // The instruction the label used to carry now lives where a format
+    // instruction belongs: a description, associated by id.
+    expect(html).toContain('id="npi-instructions"');
+    expect(html).toContain('Enter your 10-digit National Provider Identifier.');
+    expect(html).toContain('aria-describedby="npi-instructions ask-hint"');
+    // Hidden visually, never removed from the accessibility tree.
+    expect(html).not.toMatch(/id="npi-instructions"[^>]*aria-hidden/);
   });
 
   it('never uses a placeholder as the label', () => {
@@ -131,7 +170,7 @@ describe('evidence input markup', () => {
     // …and it goes away the moment there are real digits to show.
     expect(render({ value: '1' })).not.toContain('evidence-field__guide');
     // The real label is still the accessible name in both states.
-    expect(empty).toContain('Enter your 10-digit NPI');
+    expect(empty).toContain('NPI number');
   });
 
   it('exposes its state through stable attributes, not through CSS inference', () => {
@@ -157,10 +196,22 @@ describe('evidence input markup', () => {
   });
 
   it('keeps the message band present in both states so the description never dangles', () => {
-    expect(render()).toContain('id="ask-hint"');
-    expect(render({ value: BAD_CHECKSUM })).toContain('id="ask-hint"');
-    expect(render()).toContain('aria-describedby="ask-hint"');
-    expect(render({ value: BAD_CHECKSUM })).toContain('aria-describedby="ask-hint"');
+    // Asserted as the property that matters — every id the input points at
+    // actually resolves — rather than as one literal attribute value. The
+    // literal broke the moment a second description was added, which told us
+    // nothing about whether the description still worked.
+    const describedIdsResolve = (html: string) => {
+      const ref = html.match(/aria-describedby="([^"]+)"/);
+      if (!ref) return false;
+      const ids = ref[1].split(/\s+/).filter(Boolean);
+      // The band must be among them in every state, error or not.
+      if (!ids.includes('ask-hint')) return false;
+      return ids.every((id) => html.includes(`id="${id}"`));
+    };
+
+    expect(describedIdsResolve(render())).toBe(true);
+    expect(describedIdsResolve(render({ value: BAD_CHECKSUM }))).toBe(true);
+    expect(describedIdsResolve(render({ value: VALID, submitting: true }))).toBe(true);
   });
 
   it('announces a correction and marks the field invalid', () => {

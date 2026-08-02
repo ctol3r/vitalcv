@@ -25,12 +25,12 @@ async function expectNoHorizontalOverflow(page: import('@playwright/test').Page)
 }
 
 /**
- * The field's visible label floats (Home Evidence v2, Wave 2C): "Enter your
- * 10-digit NPI" at rest, compressing to "NPI number" once focused or holding
- * digits. Match the part stable across both states so the locator keeps
- * testing the field rather than the wording.
+ * The field's visible label still floats, but only visually — size, tracking,
+ * case and colour. Its TEXT is constant, so the accessible name no longer
+ * changes on focus and this can name the field exactly rather than matching a
+ * bare `/npi/i`.
  */
-const NPI_FIELD = { name: /npi/i };
+const NPI_FIELD = { name: 'NPI number', exact: true };
 
 async function expectNpiActionUsable(page: import('@playwright/test').Page) {
   const input = page.getByRole('textbox', NPI_FIELD);
