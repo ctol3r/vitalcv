@@ -53,20 +53,20 @@ export function ConsentSeal({
         className,
       )}
     >
-      <p className="m-0 font-[var(--vt-font-mono,ui-monospace)] text-[0.6875rem] uppercase tracking-[0.08em] text-[var(--vt-text-muted)]">
+      <p className="m-0 font-[family-name:var(--vt-font-mono)] text-[0.6875rem] uppercase tracking-[0.08em] text-[var(--vt-text-muted)]">
         Consent
       </p>
 
       <p className="mt-[var(--vt-space-8)] mb-0 text-[0.9375rem] leading-[1.55] text-[var(--vt-text-primary)]">
         Shared with{' '}
-        <span className="font-[var(--vt-font-mono,ui-monospace)]">{grantedTo}</span>
+        <span className="font-[family-name:var(--vt-font-mono)]">{grantedTo}</span>
       </p>
 
       <ul className="mt-[var(--vt-space-12)] mb-0 list-none border-t border-[var(--vt-border)] p-0">
         {scope.map((item) => (
           <li
             key={item}
-            className="border-b border-[var(--vt-border)] py-[var(--vt-space-8)] font-[var(--vt-font-mono,ui-monospace)] text-[0.8125rem] leading-[1.5] text-[var(--vt-text-primary)]"
+            className="border-b border-[var(--vt-border)] py-[var(--vt-space-8)] font-[family-name:var(--vt-font-mono)] text-[0.8125rem] leading-[1.5] text-[var(--vt-text-primary)]"
           >
             {item}
           </li>
@@ -75,12 +75,12 @@ export function ConsentSeal({
 
       <dl className="mt-[var(--vt-space-12)] mb-0 grid grid-cols-[minmax(0,12ch)_1fr] gap-x-[var(--vt-space-12)] gap-y-[var(--vt-space-4)]">
         <dt className="text-[0.75rem] text-[var(--vt-text-secondary)]">Granted</dt>
-        <dd className="m-0 font-[var(--vt-font-mono,ui-monospace)] text-[0.75rem] tabular-nums text-[var(--vt-text-primary)]">
+        <dd className="m-0 font-[family-name:var(--vt-font-mono)] text-[0.75rem] tabular-nums text-[var(--vt-text-primary)]">
           {grantedAt}
         </dd>
 
         <dt className="text-[0.75rem] text-[var(--vt-text-secondary)]">Expires</dt>
-        <dd className="m-0 font-[var(--vt-font-mono,ui-monospace)] text-[0.75rem] tabular-nums text-[var(--vt-text-primary)]">
+        <dd className="m-0 font-[family-name:var(--vt-font-mono)] text-[0.75rem] tabular-nums text-[var(--vt-text-primary)]">
           {/* An absent expiry is stated, never left blank. A blank field reads
               as "unknown"; this is a known, deliberate "no expiry". */}
           {expiresAt ?? 'Does not expire'}

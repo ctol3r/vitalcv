@@ -231,3 +231,48 @@ describe('experience components — CD conformance', () => {
     expect(markup).toContain('2026-08-01 14:06');
   });
 });
+
+/**
+ * CD-8 regression — the mono law must actually fire.
+ *
+ * Caught on a production build 2026-08-02: every machine fact in these
+ * components was written `font-[var(--vt-font-mono,ui-monospace)]`, and Tailwind
+ * did NOT apply it as a font-family. The computed family resolved to
+ * **geistSans**, so 22 mono sites across 8 components silently rendered in the
+ * sans face. The token was correct the whole time; the class never fired.
+ *
+ * The bare `font-[var(…)]` form is ambiguous — Tailwind's `font-` prefix serves
+ * both font-family and font-weight — so it needs the explicit
+ * `family-name:` data-type hint.
+ *
+ * This is the third time CD-W1's faces have been lost to a silent mechanism (a
+ * `next/font/google` build fetch; an `@theme inline` literal family name; now
+ * this). Note the markup suite above CANNOT catch it: a class that does nothing
+ * still appears in the HTML string. Only a computed style or a source-shape
+ * assertion can. This is the source-shape half; the computed half is verified by
+ * hand on a production build.
+ */
+describe('CD-8 — the mono law fires', () => {
+  it('no component uses the ambiguous font-[var(...)] form', async () => {
+    const { readdirSync, readFileSync } = await import('node:fs');
+    const { join } = await import('node:path');
+    const dir = join(process.cwd(), 'design-system', 'components');
+    const offenders: string[] = [];
+
+    for (const file of readdirSync(dir)) {
+      if (!file.endsWith('.tsx')) continue;
+      const src = readFileSync(join(dir, file), 'utf8');
+      // Narrow deliberately. `font-[var(--vt-font-weight-*)]` is CORRECT — the
+      // bare form is exactly right for a weight, and 17 sites across the library
+      // use it that way. Only a FAMILY token passed without the `family-name:`
+      // hint is the bug, because that is the one Tailwind resolves as a weight
+      // and silently drops. A guard that flagged both would have condemned
+      // working code, which is its own failure mode.
+      if (/font-\[var\(--(?:vt-)?font-(?:mono|sans|display|serif|body)\b/.test(src)) {
+        offenders.push(file);
+      }
+    }
+
+    expect(offenders).toEqual([]);
+  });
+});
