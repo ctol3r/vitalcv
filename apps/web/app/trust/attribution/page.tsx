@@ -26,6 +26,17 @@ import {
   TrustAttributionRegister,
 } from '@/components/trust/TrustAttributionRegister';
 
+// Shared caches must converge quickly after a release. Railway busts its edge on
+// deploy, but external caches do not; five minutes bounds stale public copy.
+//
+// This is the source ATTRIBUTION register — the page whose entire job is to say
+// which source said what, and under what limitation. Those claims are compiled
+// into the build rather than fetched, so with no bound a shared cache serves a
+// year-old attribution answer after the register has changed. Of every public
+// route, this is the one where stale is least acceptable. It was serving
+// `s-maxage=31536000` because it never declared a revalidate at all.
+export const revalidate = 300;
+
 export const metadata: Metadata = {
   title: 'Source Attribution · VitalCV',
   description: TRUST_ATTRIBUTION_DISCLAIMER,
