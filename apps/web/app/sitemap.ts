@@ -15,9 +15,12 @@ import type { MetadataRoute } from 'next';
  * Dates below are `git log -1 --format=%cs` for each route's source directory,
  * and `__tests__/sitemap-freshness.test.ts` recomputes them from git and fails
  * on drift — so a route edited without updating its stamp is caught here
- * rather than shipped as a false freshness signal. Update the stamp in the
- * same commit that changes the page (the test failure names the route and the
- * date to use).
+ * rather than shipped as a false freshness signal.
+ *
+ * THE RULE when you change a route: set its stamp to **today's UTC date**, in
+ * the same commit. Not the date git currently reports — that is the *previous*
+ * commit, and your commit is about to replace it. (Getting this backwards is
+ * what the drift test catches; it caught it on the commit that introduced it.)
  *
  * Only real, public, polished routes are listed. Absent on purpose: routes
  * that 404 (/explore, /developers, /compliance, /updates, /about), the
@@ -39,7 +42,7 @@ export const SITEMAP_ROUTES: readonly SitemapRoute[] = [
   { path: '', source: 'app/page.tsx', lastModified: '2026-08-02', changeFrequency: 'weekly', priority: 1 },
   { path: '/onboarding', source: 'app/onboarding', lastModified: '2026-07-16', changeFrequency: 'weekly', priority: 0.9 },
   { path: '/passport', source: 'app/passport', lastModified: '2026-07-21', changeFrequency: 'weekly', priority: 0.9 },
-  { path: '/employers', source: 'app/employers', lastModified: '2026-08-01', changeFrequency: 'weekly', priority: 0.8 },
+  { path: '/employers', source: 'app/employers', lastModified: '2026-08-02', changeFrequency: 'weekly', priority: 0.8 },
   { path: '/solutions', source: 'app/solutions', lastModified: '2026-07-15', changeFrequency: 'weekly', priority: 0.8 },
   { path: '/pilot', source: 'app/pilot', lastModified: '2026-07-30', changeFrequency: 'monthly', priority: 0.7 },
   { path: '/trust', source: 'app/trust', lastModified: '2026-07-30', changeFrequency: 'monthly', priority: 0.7 },
