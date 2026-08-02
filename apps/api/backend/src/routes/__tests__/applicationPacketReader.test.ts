@@ -51,6 +51,7 @@ function responseFixture() {
       consentAt: '2026-07-16T12:05:00.000Z',
       consentReceiptId: 'consent-1',
       selectedSections: ['identity'],
+      withheldFieldIds: [],
       fields: [],
       methodologyVersion: '243.3',
       clinicianNote: null,
