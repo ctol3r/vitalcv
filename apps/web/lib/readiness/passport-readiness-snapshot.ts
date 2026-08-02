@@ -47,6 +47,9 @@ const STATE_TO_STATUS: Record<PassportSourceCoverageState, SourceStatus> = {
   accessRequired: 'access_required',
   reviewRequired: 'review_required',
   notDecisionGrade: 'not_checked',
+  // Not 'not_checked': we DID check. The lane keeps its own status so this
+  // snapshot cannot imply the work is still outstanding.
+  notFound: 'not_found',
   previewOnly: 'not_checked',
 };
 
@@ -129,6 +132,7 @@ const STATUS_LIMITATION_LABEL: Record<SourceStatus, string> = {
   unavailable: 'source temporarily unreachable',
   access_required: 'requires institutional access not yet configured',
   review_required: 'returned data that requires human review',
+  not_found: 'was checked and holds no active record for this NPI',
   adverse: 'returned an adverse finding (blocker)',
 };
 

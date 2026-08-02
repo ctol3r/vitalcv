@@ -106,6 +106,14 @@ export const PROVENANCE_META: Record<ProvenanceState, ProvenanceMeta> = {
     register: 'unknown',
     dot: 'hollow',
   },
+  notFound: {
+    label: 'No active record',
+    // Deliberately the mirror of `unavailable` above: there the source gave us
+    // nothing, here the source gave us an answer and the answer was no.
+    description: 'The source answered and holds no active record for this subject. A finding, not a system condition — and never a confirmation.',
+    register: 'unknown',
+    dot: 'hollow',
+  },
   notDecisionGrade: {
     label: 'Not decision-grade',
     description: 'Present but not sufficient to decide on. Treated as absence for any decision.',
@@ -294,6 +302,7 @@ export const PROVENANCE_ORDER: ReadonlyArray<ProvenanceState> = Object.freeze([
   'pending',
   'reviewRequired',
   'unavailable',
+  'notFound',
   'notDecisionGrade',
   'previewOnly',
   'revoked',

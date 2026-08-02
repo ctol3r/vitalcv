@@ -87,6 +87,12 @@ function shortId(id: string | null | undefined): string {
   return id.slice(0, 12) + '…';
 }
 
+/**
+ * 'Source-backed' is reserved for `verified` and nothing else — it is the only
+ * tier that tells an employer a source stood behind this provider. `not_found`
+ * is deliberately its own row rather than a shade of verified or unavailable:
+ * the source answered, and the answer was no.
+ */
 const TIER_BADGE: Record<string, { label: string; chip: string; dot: string }> = {
   verified:        { label: 'Source-backed', chip: 'mz-chip-ok',      dot: 'bg-[var(--ok)]' },
   in_progress:     { label: 'In Progress',   chip: 'mz-chip-watch',   dot: 'bg-[var(--watch)]' },
@@ -95,6 +101,7 @@ const TIER_BADGE: Record<string, { label: string; chip: string; dot: string }> =
   unavailable:     { label: 'Unavailable',   chip: 'mz-chip-unknown', dot: 'bg-[var(--unknown)]' },
   access_required: { label: 'Access Req.',   chip: 'mz-chip-watch',   dot: 'bg-[var(--watch)]' },
   review_required: { label: 'Review Req.',   chip: 'mz-chip-watch',   dot: 'bg-[var(--watch)]' },
+  not_found:       { label: 'No active record', chip: 'mz-chip-unknown', dot: 'bg-[var(--unknown)]' },
   adverse:         { label: 'Adverse',       chip: 'mz-chip-p0',      dot: 'bg-[var(--p0)]' },
 };
 
@@ -141,7 +148,11 @@ export function ProvenanceStrip({ lanes, now = Date.now() }: ProvenanceStripProp
           <div
             key={lane.laneId}
             data-lane-freshness={freshness.state}
-            className="grid grid-cols-4 gap-2 items-center px-3 min-h-[36px] hover:bg-[var(--paper-2)] transition-colors"
+            data-lane-status={lane.status}
+            className="hover:bg-[var(--paper-2)] transition-colors"
+          >
+          <div
+            className="grid grid-cols-4 gap-2 items-center px-3 min-h-[36px]"
           >
             {/* Source — left-align, max-w constrained */}
             <div className="flex flex-col min-w-0 max-w-[160px]">
@@ -188,6 +199,20 @@ export function ProvenanceStrip({ lanes, now = Date.now() }: ProvenanceStripProp
                 {tier.label}
               </span>
             </div>
+            </div>
+
+            {/* The lane's own outcome sentence, straight from the passport
+                (`sourceCoverage.checks[].reason`). A tier chip alone cannot
+                distinguish "no Medicare enrollment on file" from "we have not
+                looked yet" — this is where the reviewer reads which it is. */}
+            {lane.reason && (
+              <p
+                data-lane-reason=""
+                className="px-3 pb-2 -mt-0.5 text-[11px] leading-4 text-[var(--ink-500)]"
+              >
+                {lane.reason}
+              </p>
+            )}
           </div>
         );
       })}

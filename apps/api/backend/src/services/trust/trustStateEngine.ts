@@ -653,6 +653,14 @@ export function artifactCoverage(
     gated?: boolean;
     mock?: boolean;
     partial?: boolean;
+    /**
+     * The artifact records a definitive negative — the source answered and had
+     * no record backing this subject. An artifact ROW existing only means we
+     * stored an answer; it says nothing about what that answer was, so callers
+     * that can read the outcome must pass it here or a not-found result gets
+     * reported as 'checked'.
+     */
+    notFound?: boolean;
     reason: string;
   },
 ): TrustSourceCoverage {
@@ -665,6 +673,7 @@ export function artifactCoverage(
     humanRequired: options.humanRequired,
     mock: options.mock,
     partial: options.partial,
+    notFound: options.notFound,
   });
   return {
     sourceId,
@@ -968,6 +977,17 @@ async function computeClinicianTrustStateFromIngestedArtifacts(
     (nppesArtifact.status === 'ACTIVE' || nppesArtifact.status === 'VERIFIED') &&
     nppesFresh,
   );
+  /**
+   * We stored an NPPES answer and it does not affirm this NPI (NOT_FOUND, or a
+   * record the registry lists as deactivated). Deliberately independent of
+   * freshness: a stale-but-affirming artifact is 'stale', while a fresh
+   * not-found one is 'notFound'.
+   */
+  const nppesIdentityNotFound = Boolean(
+    nppesArtifact &&
+    nppesArtifact.status !== 'ACTIVE' &&
+    nppesArtifact.status !== 'VERIFIED',
+  );
 
   let licensureStatus: LicensureStatus = 'unknown';
   if (licenseArtifact) {
@@ -1036,9 +1056,14 @@ async function computeClinicianTrustStateFromIngestedArtifacts(
         ? 'NPPES identity evidence is mock and excluded from decision-grade trust'
         : !nppesArtifact
         ? 'NPPES identity source not yet checked'
+        : nppesIdentityNotFound
+          ? 'NPPES checked but did not return an active identity record'
         : !nppesFresh
           ? 'NPPES identity evidence is stale and must be refreshed'
           : 'NPPES identity checked',
+    // A stored artifact whose status is not ACTIVE/VERIFIED is the registry
+    // declining to affirm this NPI, not evidence for it.
+    notFound: nppesIdentityNotFound,
     mock: nppesMock,
   });
   const exclusionCoverage = artifactCoverage('OIG_LEIE', oigArtifact, {
@@ -1112,6 +1137,10 @@ async function computeClinicianTrustStateFromIngestedArtifacts(
           fresh: pecosFresh,
           daysRemaining: pecosDaysRemaining,
         }),
+    // NOT_FOUND means the quarterly release carries no enrollment row for this
+    // NPI. That is an answer, not a confirmation — it must not render as
+    // source-backed alongside a genuinely ENROLLED provider.
+    notFound: pecosStatus === 'NOT_FOUND',
     mock: pecosMock,
   });
 
@@ -1545,6 +1574,11 @@ export async function computeClinicianTrustState(npi: string): Promise<Clinician
       checked: nppes.checked,
       fresh: nppes.checked,
       unavailable: nppes.unavailable,
+      // Running the query is not the same claim as the registry affirming this
+      // provider. Without this, an NPI the registry does not list still landed
+      // on 'checked' and rendered "Source-backed" to employers — the reason
+      // line below already said otherwise.
+      notFound: nppes.checked && !nppes.unavailable && !identityVerified,
     }),
     reason:
       nppes.unavailable
@@ -1638,6 +1672,10 @@ export async function computeClinicianTrustState(npi: string): Promise<Clinician
           fresh: pecosFresh,
           daysRemaining: pecosDaysRemaining,
         }),
+    // NOT_FOUND means the quarterly release carries no enrollment row for this
+    // NPI. That is an answer, not a confirmation — it must not render as
+    // source-backed alongside a genuinely ENROLLED provider.
+    notFound: pecosStatus === 'NOT_FOUND',
     mock: pecosMock,
   });
 

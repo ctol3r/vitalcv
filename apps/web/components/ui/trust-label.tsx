@@ -38,6 +38,8 @@ const STATUS_STYLE: Record<TrustStatus, { glyph: string; text: string; glyph_opa
   stale: { glyph: '⚠', text: 'text-foreground', glyph_opacity: 'text-muted-foreground/60' },
   access_required: { glyph: '○', text: 'text-muted-foreground', glyph_opacity: 'text-white/22' },
   unavailable: { glyph: '○', text: 'text-muted-foreground/60', glyph_opacity: 'text-muted-foreground/40' },
+  // Hollow, like the other absence states — never the ✔ that reads as confirmed.
+  not_found: { glyph: '○', text: 'text-muted-foreground', glyph_opacity: 'text-muted-foreground/40' },
   review_required: { glyph: '⚠', text: 'text-foreground', glyph_opacity: 'text-muted-foreground/60' },
   preview_only: { glyph: '·', text: 'text-muted-foreground', glyph_opacity: 'text-muted-foreground/40' },
   blocked: { glyph: '✕', text: 'text-foreground', glyph_opacity: 'text-muted-foreground/30' },

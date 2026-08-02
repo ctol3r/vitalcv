@@ -111,7 +111,10 @@ describe('/verify/[npi] — invalid-id path', () => {
     // The verdict is split — never one green banner.
     expect(html).toContain('Integrity');
     expect(html).toContain('Issuer legitimacy');
-    expect(html).toContain('Source checks recorded');
+    // Renamed from 'Source checks recorded': "checks recorded" counts queries
+    // we ran, but a reviewer reads it as sources that vouched for the provider.
+    // The row counts confirmations only — do not restore the older wording.
+    expect(html).toContain('Sources confirming this provider');
     expect(html).toContain('Issuer record published');
     // Revocation is a VISIBLE step even though this snapshot cannot check it.
     expect(html).toContain('Revocation');
