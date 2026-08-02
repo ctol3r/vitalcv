@@ -115,8 +115,13 @@
   background: color-mix(in oklab, var(--spine-accent) 5%, transparent);
 }
 
+/*
+ * D7 — see ask-home.css: focus names the FOCUS token, not the editorial accent.
+ * The INSET offset is deliberate and stays: the tab sits flush against its
+ * neighbour in the rail, so an outset ring would be clipped.
+ */
 .spine-tab:focus-visible {
-  outline: 2px solid var(--spine-accent);
+  outline: 2px solid var(--home-focus, var(--spine-accent));
   outline-offset: -2px;
 }
 
