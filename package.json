@@ -40,9 +40,7 @@
   },
   "pnpm": {
     "auditConfig": {
-      "ignoreGhsas": [
-        "GHSA-23hp-3jrh-7fpw"
-      ]
+      "ignoreGhsas": []
     },
     "overrides": {
       "@types/react": "^19",
