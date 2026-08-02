@@ -70,8 +70,18 @@ test.describe('hero phase choreography', () => {
 
     // Reset must release the phase with the result that produced it — a hero
     // still claiming `resolved` over an empty field is the bug this catches.
+    //
+    // The released phase is `active`, not `idle`, and that is correct. Reset
+    // now returns FOCUS to the field; before Wave 5 it called `.focus()` on a
+    // ref that was still null, so focus silently stayed on `<body>` and the
+    // phase fell to `idle` as a side effect of that defect. A focused field is
+    // engagement by this derivation's own rule, so pinning the literal `idle`
+    // would re-assert the bug. What this test means is that no POST-SUBMIT
+    // phase survives the reset — so that is what it now asserts.
     await page.getByRole('button', { name: /check another|reset|start over/i }).first().click();
-    await expect(root(page)).toHaveAttribute('data-home-phase', 'idle');
+    await expect
+      .poll(() => root(page).getAttribute('data-home-phase'), { timeout: 5_000 })
+      .toMatch(/^(idle|active)$/);
   });
 
   /**

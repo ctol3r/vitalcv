@@ -50,6 +50,16 @@ lost to `<body>` after reset, and the primary CTA was 40px against CD-15's 44px
 floor. Both are detailed in the acceptance checklist's evidence section, and both
 new guards were proven by reverting the fix and watching them go red.
 
+**The focus fix collided with the phase contract, and CI caught it.** Returning
+focus to the field makes `EvidenceInput` report `focused-empty`, which
+`deriveHomePhase` maps to `active` — so `home-phase.spec.ts` failed asserting
+`idle` after reset. The literal `idle` was only ever true *because* the focus
+call was a no-op: that expectation had encoded the defect. The test's own
+comment says what it means ("a hero still claiming `resolved` over an empty
+field is the bug this catches"), and `active` satisfies it, so the assertion now
+pins the intent — no post-submit phase survives a reset — rather than the
+incidental value. Re-verified three times with `--retries=0`.
+
 ---
 
 ## 3. FAILED
