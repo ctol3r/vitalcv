@@ -207,7 +207,10 @@ function HomeSpine() {
   ];
 
   return (
-    <div data-home-spine="">
+    // mist — the second movement of the tone sequence (contract §4). The
+    // journey is where the page stops being a hero and starts being an
+    // explanation, so it earns its own surface rather than a heading change.
+    <div data-home-spine="" data-home-tone="mist">
       <SpineTabs
         eyebrow="The path"
         title="One record. Four moments."
@@ -402,7 +405,14 @@ export function AskHome() {
 
       <HomeSpine />
 
-      <section className="ask-boundary">
+      {/*
+        trust — the third movement. This is the page's most load-bearing
+        paragraph (what VitalCV will not claim), so it is deliberately the
+        quietest surface rather than the loudest: depth, not drama.
+        D6: it stays a plain always-mounted section — never a tab panel,
+        never behind a disclosure.
+      */}
+      <section className="ask-boundary" data-home-tone="trust">
         <TruthBoundary />
       </section>
 

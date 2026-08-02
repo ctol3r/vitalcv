@@ -175,8 +175,15 @@
   background: color-mix(in oklab, var(--ask-ink) 22%, transparent);
   cursor: not-allowed;
 }
+/*
+ * D7 — focus names the FOCUS token, not the editorial accent. Both resolve to
+ * the same indigo today, which is exactly why this drifted: it is invisible
+ * until someone retones the editorial accent and the rings on the CTA and the
+ * spine tabs move while the evidence field's stays put. The offset stays 3px —
+ * geometry, not colour, is allowed to differ per control.
+ */
 .ask-go:focus-visible {
-  outline: 2px solid var(--ask-accent);
+  outline: 2px solid var(--home-focus, var(--ask-accent));
   outline-offset: 3px;
 }
 
@@ -590,11 +597,38 @@
 
 /* ── boundary + footer ─────────────────────────────────────── */
 
+/*
+ * ── The tone sequence, SPENT ─────────────────────────────────────────────
+ *
+ * `[data-home-tone]` only DECLARES `--home-*` (styles/home-surfaces.css).
+ * Until something reads those variables the contract is inert — which is
+ * precisely what it was: four tones defined in Wave 1, zero pixels changed.
+ * These rules are where the sequence becomes visible: paper (hero) → mist
+ * (journey) → trust (boundary) → paper (footer).
+ *
+ * Each spends the tone's OWN variables rather than re-deriving a colour, so a
+ * change in home-surfaces.css moves the page and nothing here needs editing.
+ */
+[data-home-spine] {
+  background-color: var(--home-surface);
+  border-block: 1px solid var(--home-border);
+}
+
+/*
+ * The boundary is a full-bleed BAND with a centred column inside it — the same
+ * shape the journey uses one section above. Painting the 62rem column directly
+ * would have made a floating slab; painting the band makes the tone read as
+ * depth, which is what `trust` is for.
+ */
 .ask-boundary {
+  background-color: var(--home-surface);
+  border-top: 1px solid var(--home-border);
+}
+
+.ask-boundary > * {
   max-width: 62rem;
   margin: 0 auto;
   padding: clamp(2rem, 5vw, 3.5rem) clamp(1.25rem, 5vw, 4rem);
-  border-top: 1px solid var(--ask-rule);
 }
 
 .ask-foot {

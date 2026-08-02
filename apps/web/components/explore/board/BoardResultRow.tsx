@@ -64,6 +64,8 @@ export function BoardResultRow({ opportunity }: { opportunity: OpportunitySummar
   const comparison = opportunity.comparison ?? null;
   const freshness = opportunity.freshness ?? null;
   const sourceLabel = opportunity.source?.label ?? null;
+  const isFeedListing = opportunity.isFeedListing === true;
+  const sourceUrl = opportunity.source?.url ?? null;
   const updated = formatDate(freshness?.lastUpdatedAt ?? opportunity.updatedAt ?? opportunity.createdAt);
 
   // Machine facts, in one mono line. Nulls are dropped rather than rendered as
@@ -78,13 +80,28 @@ export function BoardResultRow({ opportunity }: { opportunity: OpportunitySummar
     >
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
         <h3 className="mz-h2" style={{ margin: 0, fontSize: 19, lineHeight: 1.3 }}>
-          <Link
-            href={`/explore/${opportunity.id}`}
-            className="no-underline hover:underline"
-            style={{ color: 'var(--vt-text-primary)' }}
-          >
-            {opportunity.title}
-          </Link>
+          {/* A feed listing is applied to at its source. Pointing it at a
+              VitalCV detail page would imply we can carry an application to an
+              employer who has never heard of us. */}
+          {isFeedListing && sourceUrl ? (
+            <a
+              href={sourceUrl}
+              target="_blank"
+              rel="noopener noreferrer nofollow"
+              className="no-underline hover:underline"
+              style={{ color: 'var(--vt-text-primary)' }}
+            >
+              {opportunity.title}
+            </a>
+          ) : (
+            <Link
+              href={`/explore/${opportunity.id}`}
+              className="no-underline hover:underline"
+              style={{ color: 'var(--vt-text-primary)' }}
+            >
+              {opportunity.title}
+            </Link>
+          )}
         </h3>
         <p className="mz-small" style={{ margin: 0 }}>
           {opportunity.organizationName}
@@ -148,6 +165,16 @@ export function BoardResultRow({ opportunity }: { opportunity: OpportunitySummar
           {sourceLabel && updated ? ' · ' : ''}
           {updated ? `updated ${updated}` : ''}
           {freshness?.isStale ? ' · may be out of date' : ''}
+        </p>
+      )}
+
+      {/* Says plainly that this one is not an employer we have a relationship
+          with, so a reader never assumes the requirements/readiness machinery
+          applies to it. */}
+      {isFeedListing && (
+        <p className="mz-small" style={{ margin: '6px 0 0', color: 'var(--vt-text-muted)' }}>
+          Copied from a public job feed. This employer has not published
+          requirements to VitalCV — apply at the original posting.
         </p>
       )}
     </article>

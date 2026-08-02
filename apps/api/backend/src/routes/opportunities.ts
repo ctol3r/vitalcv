@@ -12,6 +12,7 @@
 
 import type { Express, NextFunction, Request, Response } from 'express';
 import { seedLaunchOpportunities } from '../services/opportunities/launchOpportunitySeed';
+import { ingestAllFeeds } from '../services/ingestion/ingestionRunner';
 import {
   createOpportunity,
   getPublicOpportunityById,
@@ -381,6 +382,38 @@ export function registerOpportunityRoutes(app: Express): void {
         (level, message) => { logs.push(`[${level}] ${message}`); },
       );
       res.json({ ...summary, logs });
+    }),
+  );
+
+  /**
+   * Run the job-feed ingestion.
+   *
+   * Admin-token gated and manually triggered rather than on a timer: the first
+   * runs of a new feed should be looked at by a person before anything is put
+   * on a schedule. A connector whose credentials are unset reports itself
+   * skipped with the variables it needs, so an unconfigured feed is visible in
+   * the response instead of looking like a feed with no jobs.
+   */
+  app.post(
+    '/api/admin/ingest-opportunities',
+    asyncHandler(async (req, res) => {
+      const authHeader = req.headers.authorization ?? '';
+      const expected = process.env.ADMIN_SEED_TOKEN;
+      if (!expected || authHeader !== `Bearer ${expected}`) {
+        res.status(401).json({ error: 'unauthorized' });
+        return;
+      }
+
+      const limit = parsePositiveInt(req.query.limit, 200);
+      const reports = await ingestAllFeeds({ limit });
+
+      res.json({
+        reports,
+        configured: reports.filter((report) => report.ran).map((report) => report.feed),
+        skipped: reports
+          .filter((report) => !report.ran)
+          .map((report) => ({ feed: report.feed, reason: report.skippedReason })),
+      });
     }),
   );
 }

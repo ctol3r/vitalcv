@@ -136,10 +136,20 @@ export interface OpportunityTruth {
     visaVerifiedAt: string | null;
   };
   source: {
-    kind: 'employer_profile' | 'opportunity';
+    kind: 'employer_profile' | 'opportunity' | 'public_feed';
     label: string;
     updatedAt: string;
+    /** Feed listings only: the original posting, so a reader can check it. */
+    url: string | null;
+    /** Feed listings only: when the feed was read. A fetch, not a verification. */
+    fetchedAt: string | null;
   };
+  /**
+   * True when this row was copied from a public feed rather than posted by an
+   * employer who claimed a Type 2 NPI. Consumers must not render employer-stated
+   * language, a readiness comparison, or a VitalCV apply path for these.
+   */
+  isFeedListing: boolean;
   transparency: {
     hiringState: string;
     speedToStartEstimate: string;
@@ -221,6 +231,15 @@ function resolveStartUrgency(
   return deriveStartUrgency(startTimeline);
 }
 
+/**
+ * Display names for the feeds we ingest. The label names the FEED, never the
+ * employer — "Listed on USAJOBS" is a fact we can stand behind; anything
+ * phrased as the employer speaking to VitalCV would not be.
+ */
+const FEED_LABEL: Record<string, string> = {
+  usajobs: 'USAJOBS',
+};
+
 const SUPPORTED_START_URGENCIES: readonly OpportunityStartUrgency[] = [
   'immediate',
   'within_2_weeks',
@@ -247,6 +266,12 @@ export interface OpportunityTruthRecord {
   payMax?: number | null;
   employerType?: string | null;
   startUrgency?: string | null;
+  /** 'employer_posted' (default) or 'public_feed'. See the Prisma model. */
+  listingSource?: string | null;
+  sourceFeed?: string | null;
+  sourceRef?: string | null;
+  sourceUrl?: string | null;
+  fetchedAt?: Date | null;
   requirementLevel: string;
   description: string | null;
   remote: boolean;
@@ -1360,7 +1385,19 @@ export function buildOpportunityTruth(input: {
   const now = input.now ?? new Date();
   const opportunity = input.opportunity;
   const organizationProfile = opportunity.organization.organizationProfile;
-  const requirements = buildRequirementList(opportunity);
+  const isFeedListing = opportunity.listingSource === 'public_feed';
+  /**
+   * Feed listings carry NO requirements.
+   *
+   * buildRequirementList falls back to buildFallbackRequirements() — NPI, a
+   * "{state} Medical License", sanctions-clear — which are VitalCV's inference
+   * from the state and requirement level, not anything an employer told us. For
+   * an employer-posted row that inference is a reasonable floor, because that
+   * employer did claim their organization here. For a row copied off a public
+   * feed, publishing it would put our own guesses behind the words "Employer
+   * requires". An empty list is the honest answer: nobody stated anything.
+   */
+  const requirements = isFeedListing ? [] : buildRequirementList(opportunity);
   const compensationText = opportunity.payRange ?? organizationProfile?.payRange ?? null;
   const parsedPayRange = parsePayRange(compensationText);
   const payModel = inferPayModel(opportunity.hiringType, compensationText);
@@ -1388,7 +1425,9 @@ export function buildOpportunityTruth(input: {
   const trustIndicators = buildTrustIndicators({
     payRange: compensationText,
     requirements,
-    verified: organizationProfile?.verified === true,
+    // A feed listing has no claimed employer behind it, so it can never carry
+    // the verified-employer indicator no matter what the org row happens to say.
+    verified: !isFeedListing && organizationProfile?.verified === true,
     startTimeline,
     benefitsAvailability: benefits.availability,
     visaStatus: visa.status,
@@ -1426,11 +1465,25 @@ export function buildOpportunityTruth(input: {
     credentialRequirements: requirements,
     trustIndicators,
     freshness,
-    source: {
-      kind: organizationProfile ? 'employer_profile' : 'opportunity',
-      label: organizationProfile ? 'Employer profile + public opportunity record' : 'Public opportunity record',
-      updatedAt: freshness.lastUpdatedAt,
-    },
+    source: isFeedListing
+      ? {
+        kind: 'public_feed' as const,
+        // Names the feed, never the employer — the employer told us nothing.
+        label: opportunity.sourceFeed
+          ? `Listed on ${FEED_LABEL[opportunity.sourceFeed] ?? opportunity.sourceFeed}`
+          : 'Listed on a public job feed',
+        updatedAt: freshness.lastUpdatedAt,
+        url: opportunity.sourceUrl ?? null,
+        fetchedAt: opportunity.fetchedAt ? isoString(opportunity.fetchedAt) : null,
+      }
+      : {
+        kind: (organizationProfile ? 'employer_profile' : 'opportunity') as 'employer_profile' | 'opportunity',
+        label: organizationProfile ? 'Employer profile + public opportunity record' : 'Public opportunity record',
+        updatedAt: freshness.lastUpdatedAt,
+        url: null,
+        fetchedAt: null,
+      },
+    isFeedListing,
     transparency: buildTransparency({
       hiringStatus: organizationProfile?.hiringStatus ?? opportunity.status,
       startTimeline,
@@ -1448,7 +1501,16 @@ export function buildOpportunityTruth(input: {
     },
   };
 
-  const comparison = input.clinicianProfile
+  /**
+   * No readiness comparison for a feed listing.
+   *
+   * A comparison answers "do you meet THIS employer's requirements". A feed
+   * listing has no employer-stated requirements, so any verdict would be
+   * measuring the clinician against requirements VitalCV made up — including a
+   * "Ready now" that nobody has agreed to. Withholding the answer is the only
+   * honest option, and it keeps the readiness facet meaning one thing.
+   */
+  const comparison = input.clinicianProfile && !isFeedListing
     ? buildClinicianComparison(baseTruth, input.clinicianProfile)
     : null;
   const explanation = buildExplanation(baseTruth, comparison);
