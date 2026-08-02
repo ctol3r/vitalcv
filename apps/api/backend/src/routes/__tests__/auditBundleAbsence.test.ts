@@ -40,13 +40,15 @@ describe('GET /api/audit/bundle/:npi — absence is not a server fault', () => {
 
   it('returns 404 when the bundle has no artifacts', async () => {
     mockedBuild.mockRejectedValueOnce(
-      new HttpError(404, 'Audit bundle not found for 1234567893'),
+      new HttpError(404, 'Audit bundle missing credential artifacts for 1234567893'),
     );
 
     const res = await request(makeApp()).get('/api/audit/bundle/1234567893');
 
+    // The wording deliberately does NOT contain "not found" — that is the whole
+    // point. The old route sniffed for that substring and so returned 500 here.
     expect(res.status).toBe(404);
-    expect(res.body.error).toContain('not found');
+    expect(res.body.error).not.toContain('not found');
   });
 
   it('still returns 500 for a genuine fault', async () => {

@@ -62,15 +62,17 @@ function assertArtifactCompleteness(
   artifacts: CanonicalArtifacts,
 ): void {
   // An NPI with no artifacts has no bundle — that is absence, not a server
-  // fault. Typed as HttpError(404) so the route can map it by type. These were
-  // bare Errors, and the route's `message.includes('not found')` sniff did not
-  // match this wording, so every absent bundle surfaced as a 500.
+  // fault. Only the error *type* changes here: these were bare Errors, and the
+  // route decided 404-vs-500 by sniffing the message for "not found", which
+  // this wording never matched, so absence surfaced as a 500. The route now
+  // maps HttpError by type, so the messages stay exactly as they were —
+  // they carry the credential-vs-verification distinction a caller needs.
   if (artifacts.credentialArtifacts.length === 0) {
-    throw new HttpError(404, `Audit bundle not found for ${npi}`);
+    throw new HttpError(404, `Audit bundle missing credential artifacts for ${npi}`);
   }
 
   if (artifacts.verificationArtifacts.length === 0) {
-    throw new HttpError(404, `Audit bundle not found for ${npi}`);
+    throw new HttpError(404, `Audit bundle missing verification artifacts for ${npi}`);
   }
 }
 
