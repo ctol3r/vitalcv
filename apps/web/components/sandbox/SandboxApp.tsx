@@ -55,22 +55,6 @@ export default function App() {
   });
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [manualReviews, setManualReviews] = useState<string[]>([]);
-  const [theme, setTheme] = useState<"light" | "dark">(() => {
-    if (typeof window !== "undefined") {
-      return (localStorage.getItem("theme") as "light" | "dark") || "light";
-    }
-    return "light";
-  });
-
-  useEffect(() => {
-    if (theme === "dark") {
-      document.documentElement.classList.add("dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-    }
-    localStorage.setItem("theme", theme);
-  }, [theme]);
-
   // Configure axios with organization context if in employer mode
   useEffect(() => {
     if (viewMode === "employer" || showDemoEmployer || showReviewRequest) {

@@ -3,7 +3,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { Activity, Bot, Command, Network, RefreshCw, ShieldCheck } from 'lucide-react';
 import type { IntelligenceGraphStats, IntelligenceTone } from '@/lib/intelligence/contracts';
-import { ThemePicker } from '@/components/ui/ThemeToggle';
 import { ToneBadge } from './shared';
 
 interface IntelligenceTopNavProps {
@@ -78,7 +77,6 @@ export function IntelligenceTopNav({
         <MetricPill icon={<Network className="h-3.5 w-3.5" />} label="Storylines" value={storylineCount} />
         <MetricPill icon={<Network className="h-3.5 w-3.5" />} label="Actions" value={actionCount} />
         {graphStats ? <MetricPill icon={<Network className="h-3.5 w-3.5" />} label="Graph" value={graphStats.totalNodes} suffix="nodes" /> : null}
-        <ThemePicker />
         <button
           type="button"
           onClick={onRefreshAll}

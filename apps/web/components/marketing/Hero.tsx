@@ -2,7 +2,7 @@
 
 import { useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowRight, Search, Moon, Sun, Shield, Terminal } from 'lucide-react';
+import { ArrowRight, Search, Shield, Terminal } from 'lucide-react';
 import Link from 'next/link';
 import { buildPassportLookupHref } from '@/lib/trust/public-wedge-parity';
 
@@ -10,19 +10,8 @@ import { buildPassportLookupHref } from '@/lib/trust/public-wedge-parity';
 
 export function Hero() {
   const router = useRouter();
-  const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [npi, setNpi] = useState('');
   const [error, setError] = useState<string | null>(null);
-
-  const toggleTheme = () => {
-    const newTheme = theme === 'light' ? 'dark' : 'light';
-    setTheme(newTheme);
-    if (newTheme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  };
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -38,15 +27,6 @@ export function Hero() {
 
   return (
     <section className="min-h-[60vh] flex items-center justify-center px-6 relative">
-      {/* Theme Toggle */}
-      <button
-        onClick={toggleTheme}
-        className="absolute top-6 right-6 p-2 hover:bg-ink/5 rounded-full transition-colors"
-        aria-label="Toggle theme"
-      >
-        {theme === 'light' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
-      </button>
-
       <div className="max-w-5xl w-full text-center space-y-12">
         {/* Header */}
         <h1 className="text-4xl md:text-6xl font-bold tracking-tighter mb-6 uppercase">
