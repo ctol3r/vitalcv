@@ -25,7 +25,17 @@ export type PacketEvidenceState =
   | 'needs_review'
   | 'access_required'
   | 'unavailable'
-  | 'employer_decided';
+  | 'employer_decided'
+  /**
+   * The clinician had this evidence and chose not to disclose it.
+   *
+   * A withheld field stays PRESENT in the packet with a null value; it is
+   * never dropped. Omitting it would make "I chose not to share this" and
+   * "no such evidence exists" indistinguishable to the reviewer — opposite
+   * facts. A packet whose shape hides that difference misleads by
+   * construction, which is the one thing a disclosure artifact must not do.
+   */
+  | 'withheld';
 
 export interface PacketFieldEntry {
   /** Disclosure section this field belongs to (e.g. "identity"). */
@@ -47,6 +57,73 @@ export interface PacketFieldEntry {
   artifactId: string | null;
   /** Verification receipt backing the value, when one exists. */
   receiptId: string | null;
+}
+
+/**
+ * What the clinician chose to disclose — the ONE input preview and sealing
+ * both consume.
+ *
+ * Disclosure used to be section-level only (`selectedSections: string[]`), and
+ * preview and seal each took that list as a bare positional argument. Two call
+ * sites reading two separately-passed arguments is how a preview and a sealed
+ * packet drift apart: the clinician approves one thing and discloses another,
+ * with no type error and nothing to notice. One object, passed to both, makes
+ * that drift a compile error instead of a disclosure incident.
+ *
+ * The decision is recorded per FIELD in the sealed `fields` array (see
+ * `PacketEvidenceState.withheld`), which the seal hash already covers — so
+ * what was withheld is as immutable as what was shared, recoverable via
+ * `withheldFieldIdsOf`, and never a second list that can disagree.
+ */
+export interface DisclosureSelection {
+  /** Sections the clinician opted into. */
+  sections: readonly string[];
+  /**
+   * Field ids inside those sections the clinician withheld. The fields still
+   * appear in the packet, valueless and marked `withheld` — see
+   * `PacketEvidenceState`.
+   */
+  withheldFieldIds?: readonly string[];
+}
+
+/**
+ * Accepts the shared object or a bare section list.
+ *
+ * The positional-array form is the legacy shape and stays supported so
+ * previously sealed packets keep verifying — a packet sealed with no
+ * `disclosureSelection` must hash exactly as it did when written.
+ */
+export function normalizeDisclosureSelection(
+  selection: DisclosureSelection | readonly string[],
+): { sections: string[]; withheldFieldIds: string[] } {
+  if (Array.isArray(selection)) {
+    return { sections: [...(selection as readonly string[])].sort(), withheldFieldIds: [] };
+  }
+  const value = selection as DisclosureSelection;
+  return {
+    sections: [...value.sections].sort(),
+    // Sorted + de-duplicated: this is hashed, so two equivalent selections
+    // must produce one canonical form.
+    withheldFieldIds: [...new Set(value.withheldFieldIds ?? [])].sort(),
+  };
+}
+
+/**
+ * Which fields a sealed packet withheld — derived from the packet itself.
+ *
+ * Deliberately NOT a stored parallel list. `fields` already encodes the
+ * decision per entry (`evidenceState: 'withheld'`) and is already covered by
+ * the seal hash; a second hashed list of the same fact would be one more thing
+ * that can disagree with it, and the disagreement would be unresolvable after
+ * sealing. One source of truth, derived on read.
+ */
+export function withheldFieldIdsOf(
+  content: Pick<ApplicationPacketContent, 'fields'>,
+): string[] {
+  return content.fields
+    .filter((field) => field.evidenceState === 'withheld')
+    .map((field) => field.fieldId)
+    .sort();
 }
 
 export interface ApplicationPacketContent {
@@ -176,24 +253,36 @@ function factStatusToEvidenceState(status: string): PacketEvidenceState {
  */
 export function buildFieldEntriesFromTrustState(
   trustState: Pick<ClinicianTrustState, 'facts' | 'npi'>,
-  selectedSections: readonly string[],
+  selection: DisclosureSelection | readonly string[],
 ): PacketFieldEntry[] {
-  const selected = new Set(selectedSections);
+  const { sections, withheldFieldIds } = normalizeDisclosureSelection(selection);
+  const selected = new Set(sections);
+  const withheld = new Set(withheldFieldIds);
   const entries: PacketFieldEntry[] = [];
 
   for (const fact of trustState.facts) {
     const sectionId =
       FACT_SECTION_BY_TYPE[fact.factType.toLowerCase()] ?? fact.factType.toLowerCase();
     if (!selected.has(sectionId)) continue;
+
+    const fieldId = `${sectionId}.${fact.factType.toLowerCase()}.${fact.source.toLowerCase()}`;
+    // Field-level disclosure. The field stays in the packet either way — only
+    // its value and evidence state change — so the reviewer can always tell a
+    // withheld field from one that never existed.
+    const isWithheld = withheld.has(fieldId);
+
     entries.push({
       sectionId,
-      fieldId: `${sectionId}.${fact.factType.toLowerCase()}.${fact.source.toLowerCase()}`,
+      fieldId,
       label: fact.factType,
-      value: fact.details ?? null,
-      evidenceState: factStatusToEvidenceState(fact.status),
+      value: isWithheld ? null : fact.details ?? null,
+      evidenceState: isWithheld ? 'withheld' : factStatusToEvidenceState(fact.status),
       sourceId: fact.source.toLowerCase(),
-      sourceObservedAt: fact.verifiedAt ?? null,
-      freshUntil: fact.expiresAt ?? null,
+      // Provenance is suppressed with the value. Leaving the observation time
+      // and freshness horizon on a withheld field would leak the shape of the
+      // evidence the clinician declined to share.
+      sourceObservedAt: isWithheld ? null : fact.verifiedAt ?? null,
+      freshUntil: isWithheld ? null : fact.expiresAt ?? null,
       artifactId: null,
       receiptId: null,
     });
