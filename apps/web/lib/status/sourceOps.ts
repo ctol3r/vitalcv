@@ -64,11 +64,15 @@ const FALLBACK_SOURCE_SEEDS: readonly SourceFallbackSeed[] = [
   },
   {
     sourceId: 'STATE_BOARD',
-    name: 'Configured state board lane',
+    // Scope-aware rather than a nationwide binary label: 69 boards across 55
+    // jurisdictions are catalogued in @vitalcv/licensure, and zero have a live
+    // route. Naming the lane "state board lane" implied one switch gates them
+    // all. See docs/licensure/national-coverage-matrix.md.
+    name: 'Physician licensure — national source access pending',
     isSpine: true,
     decisionGrade: false,
     coverageState: 'accessRequired',
-    coverageReason: 'State-board authority remains access-controlled until the launch-state adapter is configured.',
+    coverageReason: '69 licensing authorities across 55 jurisdictions are catalogued, and no route to any of them has completed a production run. Physician licensure needs FSMB institutional access or a per-board adapter before any board record can be read.',
     operatorStatus: 'HEALTHY',
     featureFlag: { key: 'STATE_BOARD_ENABLED', enabled: false },
     freshnessSlaHours: 72,

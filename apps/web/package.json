@@ -44,6 +44,7 @@
     "@vitalcv/domain-evidence": "workspace:*",
     "@vitalcv/ingest": "workspace:*",
     "@vitalcv/issuer-sdk": "workspace:*",
+    "@vitalcv/licensure": "workspace:*",
     "@vitalcv/psv": "workspace:*",
     "@vitalcv/shared": "workspace:*",
     "@vitalcv/trust-state": "workspace:*",
