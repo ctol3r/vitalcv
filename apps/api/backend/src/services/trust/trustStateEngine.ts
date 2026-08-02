@@ -38,7 +38,11 @@ import {
   resolvePecosCurrentStatus,
   type PecosEnrollmentStatus,
 } from '../identity/pecosContract';
-import { getSourceFreshnessWindowHours } from '../identity/sourceCatalog';
+import {
+  getSource,
+  getSourceFreshnessWindowHours,
+  isSourceFlagEnabled,
+} from '../identity/sourceCatalog';
 import { isProductionEnabledPhysicianLicensureState } from '../identity/physicianLicensureLaunchLane';
 import {
   boardOrderSeverityBlocksReadiness,
@@ -630,7 +634,16 @@ function artifactLooksMock(
   return Boolean(artifact && payloadLooksMock(artifact.rawPayload));
 }
 
-function artifactCoverage(
+/**
+ * States that mean "nothing reached this source". A lane in one of these has
+ * no check, so it must carry no check TIME and no source link — see the note
+ * in artifactCoverage for what shipped when it did.
+ */
+export function isUnreachedState(state: string): boolean {
+  return state === 'gated' || state === 'accessRequired' || state === 'unavailable';
+}
+
+export function artifactCoverage(
   sourceId: string,
   artifact: IngestedArtifactRecord | undefined,
   options: {
@@ -643,22 +656,30 @@ function artifactCoverage(
     reason: string;
   },
 ): TrustSourceCoverage {
+  const state = resolveSourceCoverageState({
+    sourceId,
+    checked: Boolean(artifact),
+    fresh: options.fresh,
+    unavailable: options.unavailable,
+    gated: options.gated,
+    humanRequired: options.humanRequired,
+    mock: options.mock,
+    partial: options.partial,
+  });
   return {
     sourceId,
-    state: resolveSourceCoverageState({
-      sourceId,
-      checked: Boolean(artifact),
-      fresh: options.fresh,
-      unavailable: options.unavailable,
-      gated: options.gated,
-      humanRequired: options.humanRequired,
-      mock: options.mock,
-      partial: options.partial,
-    }),
+    state,
     reason: options.reason,
-    checkedAt: artifact?.verifiedAt?.toISOString() ?? null,
+    // A lane nothing can reach has no check, so it has no check TIME and no
+    // source link. Without this the placeholder artifact a gated fetch stores
+    // still supplied `verifiedAt` and `sourceUrl`, and /verify aged that date
+    // through a freshness window and rendered **Stale** — which tells a reader
+    // the source WAS consulted and merely went out of date. Never-checked and
+    // checked-then-aged are different facts. `artifactId`/`rawArtifactRef` stay
+    // so the placeholder is still traceable in support.
+    checkedAt: isUnreachedState(state) ? null : artifact?.verifiedAt?.toISOString() ?? null,
     artifactId: artifact?.id ?? null,
-    sourceUrl: artifact?.sourceUrl ?? null,
+    sourceUrl: isUnreachedState(state) ? null : artifact?.sourceUrl ?? null,
     rawArtifactRef: artifact?.id ?? null,
     checksum: artifact?.checksum ?? null,
     parserVersion: artifact?.parserVersion ?? null,
@@ -1567,10 +1588,35 @@ export async function computeClinicianTrustState(npi: string): Promise<Clinician
     rawArtifactRef: null,
     checksum: null,
   };
+  /**
+   * Can a state board actually be reached? Derived from the source catalog,
+   * never from whether a licence artifact happens to exist.
+   *
+   * STATE_BOARD ships `liveAvailable: false` behind `STATE_BOARD_ENABLED`
+   * (unset in production, alongside FSMB_API_KEY), and FSMB DocInfo is a paid
+   * aggregator the cost policy rules out — so nothing queries a board. The
+   * artifact that made this lane look checked is a placeholder a gated fetch
+   * stores, with `sourceUrl: 'GATED_NURSYS_CONFIG_REQUIRED'`.
+   *
+   * `resolveSourceCoverageState` already self-gates a lane whose governance
+   * marks it inaccessible — but only `&& !checked`, and the placeholder
+   * satisfies `checked`. STATE_BOARD's governance also records
+   * `accessBoundary: 'public'`, which describes the PORTAL (a member of the
+   * public may look a licence up by hand) and not VitalCV's automated access.
+   * Both routes to the honest state were therefore closed. This states it
+   * outright.
+   */
+  const stateBoardSource = getSource('STATE_BOARD');
+  const stateBoardReachable = Boolean(
+    stateBoardSource
+      && (stateBoardSource.liveAvailable || isSourceFlagEnabled(stateBoardSource)),
+  );
   const licensureCoverage = artifactCoverage('STATE_BOARD', licenseArtifact, {
     fresh: licenseFresh,
-    reason:
-      licenseMock
+    gated: !stateBoardReachable,
+    reason: !stateBoardReachable
+      ? 'State board verification requires access VitalCV does not have yet. Any licence number shown is self-reported to NPPES by the provider and has not been confirmed with a board.'
+      : licenseMock
         ? 'Licensure evidence is mock and excluded from decision-grade trust'
         : !licenseArtifact
         ? 'Licensure source not yet checked'
