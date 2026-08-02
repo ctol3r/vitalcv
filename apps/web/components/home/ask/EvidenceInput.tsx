@@ -86,7 +86,9 @@ export function EvidenceInput({
   externalError = null,
   submitting = false,
   disabled = false,
-  ctaLabel = "Check what's ready",
+  // Typographic apostrophe (U+2019), not ASCII — this is editorial copy set in
+  // the serif, and it is what main shipped. A guard asserts the exact string.
+  ctaLabel = 'Check what’s ready',
   inputRef,
   onStatusChange,
 }: EvidenceInputProps) {
