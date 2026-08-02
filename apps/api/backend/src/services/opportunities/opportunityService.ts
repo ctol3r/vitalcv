@@ -511,12 +511,58 @@ export async function listOpportunitiesForOrg(clerkUserId: string): Promise<Oppo
   return opps.map((opportunity) => buildOpportunityTruth({ opportunity }));
 }
 
+/**
+ * Ceiling on rows pulled into memory when a request needs work SQL cannot do —
+ * a keyword rank set, or a filter still derived at read time. It exists so one
+ * request can never scan the whole table; when it bites, `truncated` says so
+ * rather than letting a partial count read as a total.
+ */
+const SCAN_CAP = 500;
+
+/** Filters computed by buildOpportunityTruth, so they cannot be a SQL predicate. */
+function usesDerivedFilters(filters: OpportunityTruthFilters): boolean {
+  return Boolean(
+    filters.payModel
+    || filters.payMin !== undefined
+    || filters.payMax !== undefined
+    || filters.visaSponsorship
+    || filters.benefits
+    || filters.employerType
+    || filters.startUrgency
+    || filters.readinessStatus
+    || filters.missingRequirement,
+  );
+}
+
+/**
+ * Keyword match, ranked, straight off the GIN index.
+ *
+ * websearch_to_tsquery is deliberate: it accepts what people already type into
+ * a search box — "quoted phrases", OR, and -exclusion — and it never throws on
+ * malformed input, unlike to_tsquery. The query text is parameterised, so it is
+ * a value and not SQL.
+ */
+async function keywordRankedIds(query: string, cap: number): Promise<string[]> {
+  const rows = await prisma.$queryRaw<Array<{ id: string }>>`
+    SELECT "id"
+    FROM "Opportunity"
+    WHERE "status" = 'ACTIVE'
+      AND "search_vector" @@ websearch_to_tsquery('english', ${query})
+    ORDER BY
+      ts_rank("search_vector", websearch_to_tsquery('english', ${query})) DESC,
+      "updated_at" DESC
+    LIMIT ${cap}
+  `;
+  return rows.map((row) => row.id);
+}
+
 export async function listPublicOpportunities(filters: OpportunityTruthFilters & {
+  q?: string;
   limit?: number;
   offset?: number;
   clinicianNpi?: string;
   clerkUserId?: string | null;
-}): Promise<{ opportunities: OpportunityResult[]; total: number }> {
+}): Promise<{ opportunities: OpportunityResult[]; total: number; truncated: boolean }> {
   const where: Prisma.OpportunityWhereInput = {
     status: 'ACTIVE',
     ...(filters.specialty ? { specialty: { contains: filters.specialty, mode: 'insensitive' as const } } : {}),
@@ -533,40 +579,83 @@ export async function listPublicOpportunities(filters: OpportunityTruthFilters &
     where.AND = [listSeedExclusion];
   }
 
-  const [clinicianProfile, opportunities] = await Promise.all([
-    resolveClinicianProfile({
-      clerkUserId: filters.clerkUserId,
-      clinicianNpi: filters.clinicianNpi,
-    }),
-    prisma.opportunity.findMany({
-      where,
-      include: {
-        organization: {
-          include: {
-            organizationProfile: true,
-          },
-        },
-      },
-      orderBy: [
-        { updatedAt: 'desc' },
-        { createdAt: 'desc' },
-      ],
-    }),
-  ]);
-
-  const normalized = opportunities
-    .map((opportunity) => buildOpportunityTruth({
-      opportunity,
-      clinicianProfile,
-    }))
-    .filter((opportunity) => matchesOpportunityTruthFilters(opportunity, filters));
-
   const offset = filters.offset ?? 0;
   const limit = filters.limit ?? 20;
+  const query = filters.q?.trim() ?? '';
+
+  const include = {
+    organization: {
+      include: {
+        organizationProfile: true,
+      },
+    },
+  } as const;
+  const orderBy = [
+    { updatedAt: 'desc' as const },
+    { createdAt: 'desc' as const },
+  ];
+
+  let rankedIds: string[] | null = null;
+  if (query) {
+    rankedIds = await keywordRankedIds(query, SCAN_CAP);
+    if (rankedIds.length === 0) {
+      return { opportunities: [], total: 0, truncated: false };
+    }
+    where.id = { in: rankedIds };
+  }
+
+  const clinicianProfile = await resolveClinicianProfile({
+    clerkUserId: filters.clerkUserId,
+    clinicianNpi: filters.clinicianNpi,
+  });
+
+  // ── Fast path ──────────────────────────────────────────────────────────────
+  // No keyword and no derived filter: every predicate is a SQL predicate, so
+  // the database does the paging and the counting. This is the path that has to
+  // hold up when ingestion takes this table past 100k rows — nothing is read
+  // into memory beyond the page being returned.
+  if (!rankedIds && !usesDerivedFilters(filters)) {
+    const [total, rows] = await Promise.all([
+      prisma.opportunity.count({ where }),
+      prisma.opportunity.findMany({ where, include, orderBy, skip: offset, take: limit }),
+    ]);
+
+    return {
+      opportunities: rows.map((opportunity) => buildOpportunityTruth({ opportunity, clinicianProfile })),
+      total,
+      truncated: false,
+    };
+  }
+
+  // ── Bounded path ───────────────────────────────────────────────────────────
+  // Either the ordering comes from ts_rank, or a filter is still derived at read
+  // time (pay model, benefits, visa, readiness…). Both need rows in memory, so
+  // the read is capped and the caller is told when the cap bit.
+  const rows = await prisma.opportunity.findMany({
+    where,
+    include,
+    orderBy,
+    take: SCAN_CAP,
+  });
+
+  let normalized = rows
+    .map((opportunity) => buildOpportunityTruth({ opportunity, clinicianProfile }))
+    .filter((opportunity) => matchesOpportunityTruthFilters(opportunity, filters));
+
+  if (rankedIds) {
+    // findMany returned the rows in updatedAt order; restore relevance order.
+    const rankPosition = new Map(rankedIds.map((id, index) => [id, index]));
+    normalized = normalized.sort(
+      (left, right) => (rankPosition.get(left.id) ?? Number.MAX_SAFE_INTEGER)
+        - (rankPosition.get(right.id) ?? Number.MAX_SAFE_INTEGER),
+    );
+  }
 
   return {
     opportunities: normalized.slice(offset, offset + limit),
     total: normalized.length,
+    // The cap bit, so `total` is a floor rather than a count.
+    truncated: rows.length >= SCAN_CAP,
   };
 }
 
