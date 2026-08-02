@@ -60,8 +60,28 @@ const atmosphere = (page: Page) =>
     return el ? Number.parseFloat(getComputedStyle(el).opacity) : null;
   });
 
+/**
+ * Type into the field in a way React actually observes.
+ *
+ * On the server-rendered input, `fill()` sets the DOM value without React ever
+ * seeing an `onChange`, so `onStatusChange` never fires and the phase stays
+ * `idle` — legitimately. Clicking first both focuses the field and gives
+ * hydration a turn, which is the same reason the repo's other helpers wait on
+ * the CTA before clicking it.
+ *
+ * Caught against production: an identical fill-then-assert raced hydration and
+ * read `idle` where the browser was, a moment later, correctly `active`. The
+ * local run passed, which is exactly how this would have become an
+ * only-fails-in-CI flake.
+ */
+async function typeNpi(page: Page, value: string) {
+  const field = page.getByRole('textbox', { name: /npi/i });
+  await field.click();
+  await field.fill(value);
+}
+
 async function submit(page: Page, npi = VALID_NPI) {
-  await page.getByRole('textbox', { name: /npi/i }).fill(npi);
+  await typeNpi(page, npi);
   const cta = page.getByRole('button', { name: /check what.s ready/i });
   await expect(cta).toBeEnabled();
   await cta.click();
@@ -73,7 +93,10 @@ test.describe('home atmosphere', () => {
     await page.goto('/', { waitUntil: 'domcontentloaded' });
     const idle = await atmosphere(page);
 
-    await page.getByRole('textbox', { name: /npi/i }).fill('12345');
+    await typeNpi(page, '12345');
+    await expect
+      .poll(() => phaseOf(page), { timeout: 5_000 })
+      .toBe('active');
     await page.waitForTimeout(500);
     const active = await atmosphere(page);
 
