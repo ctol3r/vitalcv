@@ -33,8 +33,8 @@ const KIND_META: Record<
   AcceptanceChangeKind,
   { glyph: string; label: string; color: string }
 > = {
-  refreshed: { glyph: '↻', label: 'Refreshed', color: 'var(--vt-state-verified)' },
-  added: { glyph: '+', label: 'New', color: 'var(--vt-state-verified)' },
+  refreshed: { glyph: '↻', label: 'Refreshed', color: 'var(--vt-state-source-confirmed)' },
+  added: { glyph: '+', label: 'New', color: 'var(--vt-state-source-confirmed)' },
   stale: { glyph: '○', label: 'Now stale', color: 'var(--vt-state-pending)' },
   revoked: { glyph: '✗', label: 'Revoked', color: 'var(--vt-severity-critical)' },
   removed: { glyph: '−', label: 'Withdrawn', color: 'var(--vt-text-muted)' },
@@ -119,9 +119,9 @@ export function AcceptanceDiff({ acceptedAt, accepted, current, className }: Acc
         className="flex items-center gap-2 px-4 py-2 text-[12.5px]"
         style={{
           background: diff.nothingRevoked
-            ? 'color-mix(in oklab, var(--vt-state-verified) 8%, transparent)'
+            ? 'color-mix(in oklab, var(--vt-state-source-confirmed) 8%, transparent)'
             : 'color-mix(in oklab, var(--vt-severity-critical) 12%, transparent)',
-          color: diff.nothingRevoked ? 'var(--vt-state-verified)' : 'var(--vt-severity-critical)',
+          color: diff.nothingRevoked ? 'var(--vt-state-source-confirmed)' : 'var(--vt-severity-critical)',
         }}
       >
         <span aria-hidden="true" className="font-mono">{diff.nothingRevoked ? '✓' : '✗'}</span>

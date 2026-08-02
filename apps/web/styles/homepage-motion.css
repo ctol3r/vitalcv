@@ -272,7 +272,7 @@
   font-weight: 540;
   text-align: right;
 }
-.story-state-source { border-color: color-mix(in oklab, var(--vt-accent-emerald) 25%, var(--vt-border)); color: var(--vt-accent-emerald); }
+.story-state-source { border-color: color-mix(in oklab, var(--vt-state-source-confirmed) 25%, var(--vt-border)); color: var(--vt-state-source-confirmed); }
 .story-state-gated,
 .story-state-attention { color: #8a5a05; }
 .story-product-action {
@@ -348,7 +348,7 @@
   font-size: 0.72rem;
 }
 .product-carousel-ui li:last-child { border-bottom: 0; }
-.product-carousel-ui li svg { flex: none; color: var(--vt-accent-emerald); }
+.product-carousel-ui li svg { flex: none; color: var(--vt-accent-editorial); }
 
 @media (max-width: 1023px) {
   .story-card-shell { grid-template-columns: 1fr; min-height: 28rem; }
@@ -433,7 +433,7 @@
    typed characters arrive at their final color, they do not interpolate. */
 .type-accent {
   font-style: italic;
-  color: var(--accent, var(--vt-accent-emerald));
+  color: var(--accent, var(--vt-accent-editorial));
 }
 
 @media (prefers-reduced-motion: reduce) {

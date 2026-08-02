@@ -47,7 +47,7 @@ const ITEM_META: Record<
   VerdictStatus,
   { glyph: string; color: string; sr: string }
 > = {
-  pass: { glyph: '✓', color: 'var(--vt-state-verified)', sr: 'pass' },
+  pass: { glyph: '✓', color: 'var(--vt-state-source-confirmed)', sr: 'pass' },
   mixed: { glyph: '◐', color: 'var(--vt-state-pending)', sr: 'mixed' },
   fail: { glyph: '✗', color: 'var(--vt-severity-critical)', sr: 'fail' },
   pending: { glyph: '○', color: 'var(--vt-state-unknown)', sr: 'pending' },
@@ -141,7 +141,7 @@ function VerdictHalf({ title, items }: { title: string; items: ReadonlyArray<Ver
 }
 
 const OVERALL_COLOR: Record<string, string> = {
-  pass: 'var(--vt-state-verified)',
+  pass: 'var(--vt-state-source-confirmed)',
   mixed: 'var(--vt-state-pending)',
   pending: 'var(--vt-state-unknown)',
   fail: 'var(--vt-severity-critical)',

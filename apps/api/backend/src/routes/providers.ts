@@ -1,7 +1,7 @@
 /**
  * providers.ts — Wave 119: Provider Data Integrity Fabric
  *
- * GET /api/providers                        — Structured provider listing
+ * GET /api/providers                        — Structured provider listing (NPI + name only)
  * GET /api/providers/health                 — Smoke test all connectors
  * GET /api/providers/health/diagnostics     — Connector diagnostics + recommendations
  * GET /api/providers/health/alerts          — Recent connector alerts
@@ -19,14 +19,34 @@ import { buildProviderInvestigationPayload } from '../services/investigation/inv
 import prisma from '../graphql/prisma_client';
 
 const VALID_CONNECTORS: ConnectorId[] = ['NPPES', 'STATE_BOARD', 'OIG', 'ABMS', 'CAQH', 'NPDB'];
-const AFFILIATION_EDGE_TYPES = [
-  'affiliated_with',
-  'employed_by',
-  'member_of',
-  'practices_at',
-  'works_at',
-  'credentialed_at',
+
+/**
+ * P0.1 containment — the public listing publishes NPI and name only.
+ *
+ * `Provider` rows carry no provenance columns, so the route cannot show which
+ * stored value came from a source. For the rows currently in production the
+ * stored values are demonstrably not source-backed: every row shares
+ * taxonomyCode `207R00000X` and providerType `Individual` (including two NPPES
+ * NPI-2 organizations), and stateOfPractice disagrees with the NPPES practice
+ * location on 9 of 10 rows. Publishing those fields asserts facts about real,
+ * named clinicians that VitalCV cannot stand behind, so they are withheld
+ * until a provenance-carrying read path exists.
+ *
+ * Nothing is substituted in their place — a withheld field is absent, and
+ * `fieldsWithheld` names it so a caller can tell "withheld" from "empty".
+ */
+const WITHHELD_PROVIDER_FIELDS = [
+  'providerType',
+  'specialty',
+  'taxonomyCode',
+  'stateOfPractice',
+  'affiliations',
 ] as const;
+
+const WITHHELD_DISCLOSURE =
+  'This listing publishes NPI and name only. Provider type, specialty, taxonomy and practice '
+  + 'location are withheld because the stored values are not source-backed. Absent fields are '
+  + 'withheld, not empty.';
 
 function readQueryValue(value: unknown): string | null {
   if (typeof value !== 'string') {
@@ -51,33 +71,6 @@ function readPositiveInt(value: unknown, fallback: number, max: number): number 
   return Math.min(parsed, max);
 }
 
-function asRecord(value: unknown): Record<string, unknown> {
-  return value !== null && typeof value === 'object' && !Array.isArray(value)
-    ? value as Record<string, unknown>
-    : {};
-}
-
-function uniqueStrings(values: Array<string | null | undefined>): string[] {
-  const seen = new Set<string>();
-  const ordered: string[] = [];
-
-  for (const value of values) {
-    if (typeof value !== 'string') {
-      continue;
-    }
-
-    const trimmed = value.trim();
-    if (trimmed.length === 0 || seen.has(trimmed)) {
-      continue;
-    }
-
-    seen.add(trimmed);
-    ordered.push(trimmed);
-  }
-
-  return ordered;
-}
-
 /**
  * Reachable unauthenticated on the backend's own public domain, so the web
  * proxy's headers do not cover it. Without an explicit directive an
@@ -95,14 +88,14 @@ export function registerProviderRoutes(app: Express): void {
     const limit = readPositiveInt(req.query.limit, 50, 100);
     const offset = readPositiveInt(req.query.offset, 0, 10_000);
     const query = readQueryValue(req.query.q);
+    // Search only spans the published fields. Matching on a withheld column
+    // would turn `?q=` into an oracle that recovers the value we refuse to
+    // print — narrowing the filter is part of the containment, not a UX tweak.
     const providerWhere = query
       ? {
           OR: [
             { npi: { contains: query } },
             { fullName: { contains: query, mode: 'insensitive' as const } },
-            { providerType: { contains: query, mode: 'insensitive' as const } },
-            { taxonomyCode: { contains: query, mode: 'insensitive' as const } },
-            { stateOfPractice: { contains: query, mode: 'insensitive' as const } },
           ],
         }
       : undefined;
@@ -118,96 +111,22 @@ export function registerProviderRoutes(app: Express): void {
           select: {
             npi: true,
             fullName: true,
-            providerType: true,
-            taxonomyCode: true,
-            stateOfPractice: true,
           },
         }),
       ]);
 
-      const graphNodes = providerRows.length === 0
-        ? []
-        : await prisma.graphNode.findMany({
-            where: {
-              OR: providerRows.map((provider) => ({
-                type: 'clinician',
-                metadata: {
-                  path: ['npi'],
-                  equals: provider.npi,
-                },
-              })),
-            },
-            select: {
-              id: true,
-              metadata: true,
-            },
-          });
-
-      const nodeByNpi = new Map<string, { id: string; metadata: Record<string, unknown> }>();
-      for (const node of graphNodes) {
-        const metadata = asRecord(node.metadata);
-        const npi = typeof metadata.npi === 'string' ? metadata.npi : null;
-        if (npi) {
-          nodeByNpi.set(npi, {
-            id: node.id,
-            metadata,
-          });
-        }
-      }
-
-      const affiliationEdges = graphNodes.length === 0
-        ? []
-        : await prisma.graphEdge.findMany({
-            where: {
-              sourceNodeId: { in: graphNodes.map((node) => node.id) },
-              edgeType: { in: [...AFFILIATION_EDGE_TYPES] },
-            },
-            orderBy: { createdAt: 'asc' },
-            select: {
-              sourceNodeId: true,
-              targetNode: {
-                select: {
-                  label: true,
-                },
-              },
-            },
-          });
-
-      const affiliationsByNodeId = new Map<string, string[]>();
-      for (const edge of affiliationEdges) {
-        const current = affiliationsByNodeId.get(edge.sourceNodeId) ?? [];
-        current.push(edge.targetNode.label);
-        affiliationsByNodeId.set(edge.sourceNodeId, current);
-      }
-
-      const providers = providerRows.map((provider) => {
-        const graphNode = nodeByNpi.get(provider.npi);
-        const specialty = (
-          typeof graphNode?.metadata.specialty === 'string' && graphNode.metadata.specialty.trim().length > 0
-            ? graphNode.metadata.specialty.trim()
-            : provider.taxonomyCode
-        );
-        const affiliations = uniqueStrings([
-          ...(graphNode ? affiliationsByNodeId.get(graphNode.id) ?? [] : []),
-          typeof graphNode?.metadata.institution === 'string' ? graphNode.metadata.institution : null,
-        ]);
-
-        return {
-          npi: provider.npi,
-          fullName: provider.fullName,
-          providerType: provider.providerType,
-          specialty,
-          taxonomyCode: provider.taxonomyCode,
-          stateOfPractice: provider.stateOfPractice,
-          affiliations,
-        };
-      });
+      const providers = providerRows.map((provider) => ({
+        npi: provider.npi,
+        fullName: provider.fullName,
+      }));
 
       res.json({
-        schema: 'https://vitalcv.com/providers/v1',
+        schema: 'https://vitalcv.com/providers/v2',
         count: providers.length,
         total,
         providers,
+        fieldsWithheld: [...WITHHELD_PROVIDER_FIELDS],
+        disclosure: WITHHELD_DISCLOSURE,
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';

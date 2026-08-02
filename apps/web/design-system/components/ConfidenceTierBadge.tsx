@@ -56,7 +56,7 @@ const confidenceTierBadgeVariants = cva(
     variants: {
       tier: {
         verified:
-          'bg-[color-mix(in_oklab,var(--vt-state-verified)_12%,transparent)] text-[var(--vt-state-verified)] ring-[color-mix(in_oklab,var(--vt-state-verified)_24%,transparent)]',
+          'bg-[color-mix(in_oklab,var(--vt-state-source-confirmed)_12%,transparent)] text-[var(--vt-state-source-confirmed)] ring-[color-mix(in_oklab,var(--vt-state-source-confirmed)_24%,transparent)]',
         inferred:
           'bg-[color-mix(in_oklab,var(--vt-state-unknown)_10%,transparent)] text-[var(--vt-text-secondary)] ring-[color-mix(in_oklab,var(--vt-state-unknown)_22%,transparent)]',
         unknown:

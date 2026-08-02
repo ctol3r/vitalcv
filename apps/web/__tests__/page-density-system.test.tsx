@@ -44,6 +44,9 @@ describe('page density system', () => {
     // 150 = 143 + the six Career Garden workspace pages under /holder/garden
     // (home, cv, notes, research, opportunities, privacy) + the
     // /dev/career-garden harness (dev-gated, noindex).
+    // Back to 150: /design/spine was a prototype for the four-step spine.
+    // The spine shipped into the homepage itself (#973), so the reference
+    // route was removed rather than left as a second, drifting copy.
     expect(inventory).toHaveLength(150);
     expect(inventory.every((item) => !item.source.includes('/_archive/'))).toBe(true);
     expect(inventory.every((item) => !item.route.startsWith('/api/'))).toBe(true);

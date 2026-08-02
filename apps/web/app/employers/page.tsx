@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { EmployerGetStartedClient } from './EmployerGetStartedClient';
 import { ArtifactStage } from '@/components/motion/ArtifactStage';
 import { DecisionArtifact } from '@/components/artifacts/PageArtifacts';
+import { HospitalArtifact } from '@/components/artifacts/SceneArtifacts';
 import '@/styles/motion.css';
 import '@/styles/artifact-motion.css';
 import { EmployerAudienceSection } from '@/components/employers/EmployerAudienceSection';
@@ -14,10 +15,16 @@ import { SOURCE_LANE_OPS } from '@/lib/trust/sourceLanes';
  * /employers — the employer landing + onboarding.
  *
  * Wave 6 (deep-audit 2026-07-21) + D3 (one-platform synthesis): the doorway
- * leads with the BUYER OUTCOME — "Start clinicians faster from source-backed
+ * leads with the BUYER OUTCOME — "Start clinicians from source-backed
  * evidence" — not with setup mechanics. The Type 2 NPI claim is real and
  * necessary, but it is Step 1 of the workflow, so it renders after the buyer
  * has seen the job-to-start operating model, not as the page's thesis.
+ *
+ * The outcome is stated WITHOUT a speed claim. The brand split (2026-07-26)
+ * retired the speed hero — "faster" is a promise about time-to-start, and no
+ * pilot has measured it yet. The buyer outcome survives; the unearned
+ * comparative does not. Re-add it only when a pilot produces the number, and
+ * then state the number, not the adjective. See check-public-claims.ts.
  *
  * D3 (high-effort readers): limits are stated plainly and EARLY on this
  * surface — the blemishing effect that lets the clinician film defer limits
@@ -32,7 +39,7 @@ export const revalidate = 300;
 export const metadata: Metadata = {
   title: 'For Employers · VitalCV',
   description:
-    'Start clinicians faster from source-backed evidence — review consented, attributable packets, see remaining requirements up front, and keep the final decision. Claim your organization’s Type 2 NPI to begin.',
+    'Start clinicians from source-backed evidence — review consented, attributable packets, see remaining requirements up front, and keep the final decision. Claim your organization’s Type 2 NPI to begin.',
 };
 
 /** Lane-truth cadences, from the registry — never hand-typed on this page. */
@@ -48,7 +55,7 @@ function cadenceSentence(): string {
 
 export default function EmployersPage() {
   return (
-    // Calm Wave, employer persona (source-green accent) on full-width paper — the
+    // Calm Wave, employer surface on full-width paper (one editorial accent, CD-3) — the
     // same design language as the homepage, so the acquisition page reads as one
     // system instead of a plainer offshoot.
     <div className="mz mz-paper mz-persona-employer min-h-screen">
@@ -56,7 +63,7 @@ export default function EmployersPage() {
         <header className="mb-5">
           <p className="mz-eyebrow">For employers &amp; verifiers</p>
           <h1 className="mz-h1" style={{ marginTop: 12, maxWidth: 680 }}>
-            Start clinicians faster from <span className="mz-accent">source-backed evidence</span>.
+            Start clinicians from <span className="mz-accent">source-backed evidence</span>.
           </h1>
           <p className="mz-lede" style={{ marginTop: 12, maxWidth: 620 }}>
             A clinician arrives with a consented, attributable evidence packet — identity,
@@ -102,11 +109,22 @@ export default function EmployersPage() {
           </p>
         </header>
 
-        {/* The page's animated artifact (founder mandate: nearly every page
-            carries one). The reviewer's decision surface at full width — a
-            packet arrives, claims carry their sources, and the three actions
-            stay visibly the reviewer's. Plays once on entry, then rests. */}
-        <section aria-label="What a reviewer receives" className="mt-8">
+        {/* The hero artifact: the employer as somewhere REAL. This page used to
+            open on an abstract worklist rectangle, which made the buyer surface
+            read like every other B2B diagram. An elevation of the hospital —
+            packet arriving at the door, one lit room where it is being read —
+            says who the page is for before a word of copy is. */}
+        <section aria-label="Where the packet arrives" className="mt-8">
+          <ArtifactStage glass>
+            <HospitalArtifact />
+          </ArtifactStage>
+        </section>
+
+        {/* Then what the reviewer actually receives: claims carrying their
+            sources, and the three actions that stay visibly the reviewer's.
+            Ordered after the hospital on purpose — the place, then the work.
+            Both play once on entry, then rest. */}
+        <section aria-label="What a reviewer receives" className="mt-10">
           <ArtifactStage glass>
             <DecisionArtifact />
           </ArtifactStage>

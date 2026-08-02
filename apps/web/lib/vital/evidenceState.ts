@@ -77,7 +77,7 @@ export const EVIDENCE_STATE: Record<EvidenceState, EvidenceStateMeta> = {
 
 /** The CSS color a tone resolves to (existing --vt-* tokens; theme-aware). */
 export const TONE_COLOR: Record<EvidenceTone, string> = {
-  positive: 'var(--vt-accent-emerald)',
+  positive: 'var(--vt-state-source-confirmed)',
   neutral: 'var(--vt-text-secondary)',
   attention: 'var(--vt-state-stale, #a2670b)',
   gated: 'var(--vt-state-stale, #a2670b)',

@@ -65,9 +65,11 @@ export type ScrollScrubHeadingProps = {
   /** One phrase that finishes in the accent colour instead of primary ink. */
   accentWords?: string[];
   /**
-   * The accent colour for accentWords. Defaults to source-green
-   * (`--vt-accent-emerald`); pass `'var(--accent)'` for the persona indigo/
-   * violet. Used to spread the purple/green primary palette across headings.
+   * The accent colour for accentWords. Defaults to the one editorial accent
+   * (`--vt-accent-editorial`, indigo). This used to default to the
+   * confirmed-source green in order to "spread the purple/green primary
+   * palette across headings" — CD-3 forbids precisely that: green is state,
+   * an accent word is decoration, and the two may not share a hue.
    */
   accentColor?: string;
   /** Hero/manifesto mode: taller runway + sticky stage. Use once per page. */
@@ -273,7 +275,7 @@ export function ScrollScrubHeading({
   startOffset = '85%',
   endOffset = '35%',
   accentWords,
-  accentColor = 'var(--vt-accent-emerald)',
+  accentColor = 'var(--vt-accent-editorial)',
   pin = false,
   stageFooter,
   ...rest

@@ -61,13 +61,13 @@ export function FreshnessIndicator({
     remaining <= 0 ? 'stale' : remaining / windowDays < 0.5 ? 'aging' : 'fresh';
 
   const toneText = {
-    fresh: 'text-[var(--vt-state-verified)]',
+    fresh: 'text-[var(--vt-state-source-confirmed)]',
     aging: 'text-[var(--vt-state-pending)]',
     stale: 'text-[var(--vt-state-blocked)]',
   }[tone];
 
   const toneBar = {
-    fresh: 'bg-[var(--vt-state-verified)]',
+    fresh: 'bg-[var(--vt-state-source-confirmed)]',
     aging: 'bg-[var(--vt-state-pending)]',
     stale: 'bg-[var(--vt-state-blocked)]',
   }[tone];

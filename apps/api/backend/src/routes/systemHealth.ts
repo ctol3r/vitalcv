@@ -9,6 +9,7 @@
  *   GET /api/system/trust-health         — full pipeline integrity report
  *   GET /api/system/trust-health/orphans — orphaned credential report
  *   GET /api/system/trust-health/graph   — graph integrity report
+ *   GET /api/system/source-runtime       — source liveness truth registry
  */
 
 import type { Express, Request, Response } from 'express';
@@ -21,6 +22,7 @@ import {
   type GraphIntegrityReport,
 } from '../services/integrity/trustSpine';
 import { log } from '../obs/logger';
+import { registerSourceRuntimeRoutes } from './sourceRuntime';
 
 // ── In-process cache ──────────────────────────────────────────────────────────
 
@@ -112,12 +114,15 @@ export function registerSystemHealthRoutes(app: Express): void {
   app.get('/api/system/trust-health/orphans', handleOrphans);
   app.get('/api/system/trust-health/graph', handleGraph);
   app.get('/api/system/trust-health', handleTrustHealth);
+  registerSourceRuntimeRoutes(app);
 
   log('info', 'system_health: routes_registered', {
     routes: [
       'GET /api/system/trust-health',
       'GET /api/system/trust-health/orphans',
       'GET /api/system/trust-health/graph',
+      'GET /api/system/source-runtime',
+      'GET /api/system/source-runtime/:sourceId',
     ],
   });
 }

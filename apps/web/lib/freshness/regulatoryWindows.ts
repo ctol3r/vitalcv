@@ -190,7 +190,7 @@ export function evaluateRegulatoryFreshness(input: {
 export function freshnessToneToken(tone: FreshnessTone): string {
   switch (tone) {
     case 'current':
-      return 'var(--vt-state-verified)';
+      return 'var(--vt-state-source-confirmed)';
     case 'aging':
       return 'var(--vt-state-pending)';
     case 'stale':

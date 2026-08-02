@@ -24,7 +24,7 @@
   --ask-soft: var(--vt-text-secondary);
   --ask-faint: var(--vt-text-muted);
   --ask-rule: var(--vt-border);
-  --ask-accent: var(--vt-accent-emerald);
+  --ask-accent: var(--vt-accent-editorial);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -34,16 +34,21 @@
 
 /* Glass housing for artifacts.
  *
- * Founder correction, 2026-07-27: "Glass should make the packet feel tactile
- * and valuable — not become the story." My first pass glassed every
- * illustrative artifact, which is exactly how the material stops meaning
- * anything: if the whole page is glass, glass is wallpaper. So the housing is
- * OPT-IN and reserved for the PACKET — the object the product asks a clinician
- * to own and an employer to receive. Every other drawing sits on bare paper.
+ * This line has moved twice; the reasoning matters more than the position.
+ *   2026-07-27 — founder correction: "Glass should make the packet feel
+ *     tactile and valuable — not become the story." A pass that glassed every
+ *     artifact was pulled back to the PACKET alone.
+ *   2026-07-28 — founder ruling, asked directly against that earlier
+ *     correction: glass extends to the ILLUSTRATIVE artifacts — the hospital,
+ *     the specialties, the clinician, the packet.
  *
- * REAL evidence surfaces (the lane ledger, the proof inspector) never take it
- * either way: glass on chrome, solid on evidence (CD-12). The shadow stays a
- * fraction of the nav rail's so the one reserved float shadow keeps its rank.
+ * The boundary that did NOT move, and must not: REAL evidence surfaces — the
+ * lane ledger, the proof inspector, receipt rows, anything carrying a source
+ * and a timestamp — stay solid. Glass on chrome, solid on evidence (CD-2). An
+ * illustration may be a beautiful object; a claim has to be a legible one.
+ *
+ * The shadow stays a fraction of the nav rail's so the one reserved float
+ * shadow keeps its rank.
  */
 .vt-artifact--glass {
   border-radius: 16px;
@@ -144,6 +149,110 @@
   stroke-dasharray: 5 4;
 }
 
+/* ── glass, architecture, figures ──────────────────────────────
+   Added 2026-07-28 for the illustrative artifacts. The abstract set above
+   (paper/rule/seal/slot) can describe a document but cannot draw a PLACE or a
+   PERSON, which is why every drawing read as the same grey rectangle.
+
+   Note these are SVG-side glass: backdrop-filter does not apply to SVG child
+   elements, so a pane here is a translucent fill plus a bright top edge, which
+   is what actually reads as glass at this scale. The real backdrop blur lives
+   on the .vt-artifact--glass housing around the drawing. */
+
+.ask-art-glass {
+  fill: color-mix(in oklab, white 55%, transparent);
+  stroke: color-mix(in oklab, var(--ask-ink) 14%, transparent);
+  stroke-width: 1;
+}
+/* The lit edge. A single 1px highlight along the top of a pane does more for
+   "this is glass" than any amount of blur, and costs nothing to paint. */
+.ask-art-glass-edge {
+  fill: none;
+  stroke: color-mix(in oklab, white 85%, transparent);
+  stroke-width: 1.25;
+  stroke-linecap: round;
+}
+/* A tinted pane — used where a glass surface sits over the accent, e.g. the
+   wing a packet is being read in. Kept under 10% so type stays legible. */
+.ask-art-glass-tint {
+  fill: color-mix(in oklab, var(--ask-accent) 8%, transparent);
+  stroke: color-mix(in oklab, var(--ask-accent) 22%, transparent);
+  stroke-width: 1;
+}
+
+/* Building mass. Solid, quiet, and deliberately the least interesting thing in
+   the frame — the hospital is the SETTING, not the subject. */
+.ask-art-wall {
+  fill: color-mix(in oklab, var(--ask-faint) 12%, var(--vt-cloud-dancer));
+  stroke: var(--ask-rule);
+  stroke-width: 1.5;
+}
+.ask-art-wall-2 {
+  fill: color-mix(in oklab, var(--ask-faint) 20%, var(--vt-cloud-dancer));
+  stroke: var(--ask-rule);
+  stroke-width: 1.5;
+}
+.ask-art-window {
+  fill: color-mix(in oklab, var(--ask-ink) 8%, transparent);
+  stroke: none;
+}
+/* A window with someone behind it. The accent here is doing illustrative work,
+   not signalling a state — it is a lit room, not a confirmed source. */
+.ask-art-window--lit {
+  fill: color-mix(in oklab, var(--ask-accent) 22%, transparent);
+  stroke: none;
+}
+.ask-art-ground {
+  stroke: var(--ask-rule);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+}
+
+/* A drawn person. Stroke-only, no fill, no face — a figure, never a portrait,
+   and never photography (CD-13: the only images VitalCV publishes are its own
+   artifacts). */
+.ask-art-figure {
+  fill: none;
+  stroke: var(--ask-ink);
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.ask-art-figure-soft {
+  fill: none;
+  stroke: color-mix(in oklab, var(--ask-ink) 45%, transparent);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Specialty glyphs — one stroke weight for the whole set so no specialty
+   outranks another. */
+.ask-art-glyph {
+  fill: none;
+  stroke: var(--ask-ink);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.ask-art-glyph-accent {
+  fill: none;
+  stroke: var(--ask-accent);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* A long traced path (cardiac line, corridor, outline). Pair with
+   .ask-art-traced and set --trace-len to the path length. */
+.ask-art-trace {
+  fill: none;
+  stroke: var(--ask-accent);
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 /* Small mono words that name the PARTS of a drawing. Never a state, a
    source, or a freshness word — those are claims, and these drawings are
    labelled illustrative. */
@@ -183,11 +292,47 @@
   .ask-art-play .ask-art-step-6 {
     animation: ask-art-appear 480ms cubic-bezier(0.2, 0.8, 0.2, 1) 2220ms both;
   }
+  .ask-art-play .ask-art-step-7 {
+    animation: ask-art-appear 480ms cubic-bezier(0.2, 0.8, 0.2, 1) 2680ms both;
+  }
+  .ask-art-play .ask-art-step-8 {
+    animation: ask-art-appear 480ms cubic-bezier(0.2, 0.8, 0.2, 1) 3140ms both;
+  }
+  /* Steps 9–10 exist so a drawing can finish its SENTENCE. A story needs a
+     consequence after the action, and the consequence cannot share a beat with
+     the thing that caused it — on the hospital, the review room lighting up has
+     to land after the packet reaches the door, not with it. */
+  .ask-art-play .ask-art-step-9 {
+    animation: ask-art-appear 480ms cubic-bezier(0.2, 0.8, 0.2, 1) 3600ms both;
+  }
+  .ask-art-play .ask-art-step-10 {
+    animation: ask-art-appear 480ms cubic-bezier(0.2, 0.8, 0.2, 1) 4060ms both;
+  }
   /* A rule that DRAWS across a boundary rather than fading — the one meaning
      motion carries is direction. Dash length must be ≥ the path length. */
   .ask-art-play .ask-art-flow {
     stroke-dasharray: 32;
     animation: ask-art-draw 520ms cubic-bezier(0.2, 0.8, 0.2, 1) 480ms both;
+  }
+  /* Variable-length trace. Set --trace-len (path length) and optionally
+     --trace-delay inline. Used for the cardiac line, the corridor, and the
+     building outline — paths far longer than ask-art-flow's fixed 32. */
+  .ask-art-play .ask-art-traced {
+    stroke-dasharray: var(--trace-len, 300);
+    animation: ask-art-trace 900ms cubic-bezier(0.3, 0.7, 0.2, 1)
+      var(--trace-delay, 600ms) both;
+  }
+  /* A glass pane settling in — slightly longer and softer than a shape appear,
+     because a pane is a bigger object and should feel like it has weight. */
+  .ask-art-play .ask-art-glass-in {
+    animation: ask-art-glass-in 620ms cubic-bezier(0.2, 0.8, 0.2, 1)
+      var(--glass-delay, 0ms) both;
+  }
+  /* Per-item stagger inside a SET (specialty glyphs, department rows). `--i`
+     is set inline on each item; one shared rule rather than a class per index. */
+  .ask-art-play .ask-art-item {
+    animation: ask-art-appear 420ms cubic-bezier(0.2, 0.8, 0.2, 1)
+      calc(var(--set-delay, 0ms) + var(--i, 0) * 90ms) both;
   }
   /* Staggered row entry for ledger-style artifacts; `--i` set inline. */
   .ask-art-play .ask-ledger-row,

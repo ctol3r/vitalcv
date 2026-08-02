@@ -1,3 +1,4 @@
+/** @deprecated Use identityIngestionPipeline.handlers.NURSYS for production ingestion. */
 import type { ProviderType } from '../types/psv';
 import type { NormalizedCredentialPayload, PsvAdapter } from './types';
 

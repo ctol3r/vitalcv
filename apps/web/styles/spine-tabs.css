@@ -1,0 +1,263 @@
+/* ============================================================
+   The four-step homepage spine.
+
+   One vertical topic list drives one persistent pane. Nothing auto-advances.
+   No JS renders all four panels as an ordinary stacked document and hides the
+   inert tablist. Reduced motion swaps panels without animation.
+   ============================================================ */
+
+.spine {
+  --ask-ink: var(--vt-text-primary);
+  --ask-soft: var(--vt-text-secondary);
+  --ask-faint: var(--vt-text-muted);
+  --ask-rule: var(--vt-border);
+  --ask-accent: var(--vt-accent-editorial);
+
+  --spine-ink: var(--vt-text-primary);
+  --spine-soft: var(--vt-text-secondary);
+  --spine-faint: var(--vt-text-muted);
+  --spine-rule: var(--vt-border);
+  --spine-accent: var(--vt-accent-editorial);
+
+  max-width: 62rem;
+  margin: 0 auto;
+  padding: clamp(2.75rem, 6vw, 4.5rem) clamp(1.25rem, 5vw, 4rem);
+  color: var(--spine-ink);
+  border-top: 1px solid var(--spine-rule);
+}
+
+.spine-head {
+  max-width: 44rem;
+  margin-bottom: clamp(1.75rem, 4vw, 2.75rem);
+}
+
+.spine-eyebrow,
+.spine-panel-heading {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.66rem;
+  letter-spacing: 0.14em;
+  font-weight: 400;
+  text-transform: uppercase;
+  color: var(--spine-faint);
+}
+
+.spine-eyebrow {
+  margin: 0 0 1rem;
+}
+
+.spine-title {
+  font-family: var(--font-display, Georgia, serif);
+  font-size: clamp(1.9rem, 4vw, 3rem);
+  line-height: 1.08;
+  letter-spacing: -0.018em;
+  margin: 0 0 1.1rem;
+  font-weight: 560;
+}
+
+.spine-lede {
+  margin: 0;
+  font-size: 1.02rem;
+  line-height: 1.6;
+  color: var(--spine-soft);
+  max-width: 58ch;
+}
+
+.spine-body {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: clamp(1.5rem, 3vw, 2.5rem);
+}
+
+@media (min-width: 900px) {
+  .spine-body {
+    grid-template-columns: 19rem 1fr;
+    align-items: start;
+  }
+
+  .spine:not([data-enhanced]) .spine-body {
+    grid-template-columns: 1fr;
+  }
+}
+
+.spine-tabs {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border-top: 1px solid var(--spine-rule);
+}
+
+.spine:not([data-enhanced]) .spine-tabs {
+  display: none;
+}
+
+.spine-tab {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  text-align: left;
+  background: none;
+  border: 0;
+  border-bottom: 1px solid var(--spine-rule);
+  border-left: 2px solid transparent;
+  padding: 0.95rem 0.9rem;
+  cursor: pointer;
+  transition:
+    border-left-color 120ms cubic-bezier(0.2, 0.7, 0.2, 1),
+    background-color 120ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+.spine-tab:hover {
+  background: color-mix(in oklab, var(--spine-ink) 3%, transparent);
+}
+
+.spine-tab[aria-selected='true'] {
+  border-left-color: var(--spine-accent);
+  background: color-mix(in oklab, var(--spine-accent) 5%, transparent);
+}
+
+.spine-tab:focus-visible {
+  outline: 2px solid var(--spine-accent);
+  outline-offset: -2px;
+}
+
+.spine-tab-step {
+  display: block;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.6rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--spine-faint);
+  margin-bottom: 0.3rem;
+}
+
+.spine-tab-name {
+  display: block;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--spine-ink);
+  margin-bottom: 0.2rem;
+}
+
+.spine-tab-line {
+  display: block;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: var(--spine-soft);
+}
+
+.spine-panels,
+.spine-panel {
+  min-width: 0;
+}
+
+.spine[data-enhanced] .spine-panel[hidden] {
+  display: none;
+}
+
+.spine[data-enhanced] .spine-panel-heading {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.spine-panel-heading {
+  margin: 0 0 1rem;
+}
+
+.spine-panel + .spine-panel {
+  margin-top: clamp(2rem, 5vw, 3.5rem);
+  padding-top: clamp(2rem, 5vw, 3.5rem);
+  border-top: 1px solid var(--spine-rule);
+}
+
+.spine[data-enhanced] .spine-panel + .spine-panel {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+
+.spine-panel-note {
+  margin: 1rem 0 0;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.58rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--spine-faint);
+}
+
+/* The evidence panel is solid and ruled. It uses the source-state green only
+   for an actually available lane; indigo remains interaction, never evidence. */
+.spine .ask-ledger-rows {
+  border-top: 1px solid var(--spine-ink);
+}
+
+.spine .ask-ledger-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding: 0.95rem 0;
+  border-bottom: 1px solid var(--spine-rule);
+}
+
+.spine .ask-ledger-main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.spine .ask-ledger-name {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--spine-ink);
+}
+
+.spine .ask-ledger-what {
+  font-size: 0.88rem;
+  line-height: 1.55;
+  color: var(--spine-soft);
+  max-width: 52ch;
+}
+
+.spine .ask-ledger-state {
+  flex-shrink: 0;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.66rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.spine .ask-ledger-state--ok {
+  color: var(--vt-state-source-confirmed);
+}
+
+.spine .ask-ledger-state--gated {
+  color: var(--spine-soft);
+}
+
+.spine .ask-ledger-state--off {
+  color: var(--spine-faint);
+}
+
+@media (max-width: 640px) {
+  .spine .ask-ledger-row {
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .spine[data-enhanced] .spine-panel:not([hidden]) {
+    animation: ask-art-appear 240ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+}

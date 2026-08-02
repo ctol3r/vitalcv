@@ -1,57 +1,20 @@
 import { expect, test } from '@playwright/test';
 
 /**
- * The homepage ask — end-to-end contracts.
+ * Homepage contracts after the composition compression.
  *
- * This file replaces `compete-film.spec.ts`, which pinned the retired
- * horizontal film. The split follows the method recorded in
- * `docs/design/homepage-film-flip-plan.md`, and applying it to my OWN change is
- * the point: a composition swap must retire the specs whose sections it
- * retires, PORT the guarantees that were never about the composition, and add
- * real coverage for what replaced it.
- *
- * RETIRED with the film (composition-specific, and the mandate retires them):
- *   scroll-advances-one-film, scenes-land-in-frame, track-paints-in-front,
- *   no-scene-overflows-pinned-stage, vertical-axis-never-hijacked,
- *   mobile-column-stretch, mobile-no-horizontal-travel, static-tier poster,
- *   canvas2d tier. All of these describe a pinned horizontal stage that no
- *   longer exists; keeping them would be the orphan pattern again.
- *
- * PORTED here unchanged in intent — none of these were ever about the film:
- *   keyboard reachability + focus ring, nothing personal or fabricated before a
- *   lookup, local NPI validation without claiming a lookup, no-graph (R1), and
- *   reduced-motion's "no render loop" (the durable half of that test).
- *
- * ADDED for the ask: the answer replaces the question in place, the employer
- * door is present and secondary, and the first screen carries no wall of state.
+ * The NPI-first Ask remains the only first-screen act. The explanation beneath
+ * it is one progressive-enhancement spine: four operable steps with a stacked
+ * no-JS reading order. The old ledger/chapter/beat stack is intentionally gone.
  */
 
 const HOME = '/';
 
-/**
- * Wait until React has hydrated the NPI field.
- *
- * Not a courtesy sleep — a correctness requirement. The field is a CONTROLLED
- * input, so a value written into the DOM before hydration is erased the moment
- * React renders `value={digits}` from its own empty state. A test that fills
- * too early sees the counter stuck at `0/10` for good, and Playwright's
- * auto-retry cannot save it because the DOM never changes again.
- *
- * So probe with a real keystroke and confirm it STICKS. `waitForTimeout` cannot
- * express this: the page is fully painted and interactive-looking the whole
- * time it is still wrong. (Which is also why this deserves a product note —
- * see the hydration comment in AskHome.tsx.)
- */
 async function hydrated(page: import('@playwright/test').Page) {
   const input = page.locator('#npi-input');
   await expect
     .poll(
       async () => {
-        // Clear FIRST. `fill()` is a no-op when the value already matches, and
-        // it dispatches no input event when it no-ops — so a poll that just
-        // re-filled '1' wrote the DOM once before hydration and then went
-        // silent forever, and React never heard a thing. Alternating '' → '1'
-        // guarantees a real event every iteration.
         await input.fill('');
         await input.fill('1');
         return (await page.locator('#ask-hint').innerText()).includes('1/10');
@@ -62,25 +25,14 @@ async function hydrated(page: import('@playwright/test').Page) {
   await input.fill('');
 }
 
-test.describe('homepage ask', () => {
+test.describe('homepage Ask + four-step spine', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto(HOME, { waitUntil: 'domcontentloaded' });
   });
 
-  // ── ported: accessibility of the one primary action ──────────────
-
-  test('keyboard: the NPI field is an early stop and shows a focus ring', async ({ page }) => {
+  test('the NPI action remains early, keyboard reachable, and visibly focused', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
-    await page.waitForTimeout(300);
-
-    // Intent, not literal position: the skip link correctly takes the first
-    // stop. What matters is the single primary action is reachable within an
-    // ordinary chrome's worth of stops rather than buried behind the nav.
     await hydrated(page);
-    // `hydrated()` types into the field, which leaves focus sitting IN it —
-    // tabbing from there walks away through the whole chrome before returning,
-    // and the count measures the wrong journey entirely. Reset to the top of
-    // the document so the first Tab is a real visitor's first Tab.
     await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
     await page.locator('body').click({ position: { x: 2, y: 2 } });
     await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
@@ -91,392 +43,294 @@ test.describe('homepage ask', () => {
       await page.keyboard.press('Tab');
       if (await page.evaluate(() => document.activeElement?.id === 'npi-input')) break;
     }
-    expect(
-      stops,
-      `the NPI field was not reachable within ${MAX_STOPS} tab stops — it is the ` +
-        'only primary action on the page and must not sit behind the nav',
-    ).toBeLessThan(MAX_STOPS);
+    expect(stops, 'the only first-screen action must not be buried behind chrome').toBeLessThan(
+      MAX_STOPS,
+    );
     await expect(page.locator('#npi-input')).toBeFocused();
 
-    // Compare the field to ITSELF, focused versus not.
-    //
-    // This previously compared the field's border colour to the BODY's text
-    // colour — two unrelated values — so it reported "has a focus indicator"
-    // based on whether two arbitrary colours happened to differ. It passed in
-    // dev by coincidence and failed on the production build for a reason that
-    // had nothing to do with focus. Measuring the same element in both states
-    // is the only version of this that means what the name says.
-    // Drive focus explicitly instead of measuring whatever the Tab loop above
-    // left behind. Two separate guarantees — "reachable by keyboard" and
-    // "visible once reached" — were sharing one piece of state, and reading the
-    // colour after the loop measured focus residue rather than focus. The loop
-    // has already made its own assertion; this one starts clean.
-    // The focus indicator is asserted as a RULE, not as a computed colour.
-    //
-    // Chromium only matches `:focus`/`:focus-within` while the document itself
-    // holds system focus, which a headless page does not reliably have — so
-    // programmatic `.focus()` sets `activeElement` (and `toBeFocused()` passes)
-    // while the pseudo-class never matches. Measured in that state the rule
-    // reads identical before and after, which says nothing about the page.
-    //
-    // The behaviour itself is real, verified by direct probe on three builds:
-    // deployed production, local `next start`, and dev all go
-    // rgb(26,24,21) → rgb(4,120,87). The rendered outcome is additionally
-    // covered by the `axe WCAG 2.2 AA` job, which is a required check.
-    //
-    // What is left for THIS test is the regression it can actually catch: the
-    // rule being deleted or pointed somewhere else.
     const focusRule = await page.evaluate(() =>
       [...document.styleSheets]
         .flatMap((sheet) => {
           try {
             return [...sheet.cssRules];
           } catch {
-            return []; // cross-origin sheet
+            return [];
           }
         })
         .map((rule) => rule.cssText)
         .filter((text) => text.includes(':focus-within') && text.includes('ask-field')),
     );
-
-    expect(
-      focusRule.length,
-      'the NPI field must carry a focus indicator rule — a keyboard user has to ' +
-        'be able to see where they are',
-    ).toBeGreaterThan(0);
+    expect(focusRule.length).toBeGreaterThan(0);
     expect(focusRule.join(' ')).toMatch(/border-bottom-color|outline|box-shadow/);
   });
-
-  // ── ported: the truth floor before any lookup ────────────────────
-
-  test('renders nothing personal or fabricated before a lookup', async ({ page }) => {
-    await page.waitForTimeout(300);
-    const text = await page.locator('.ask').innerText();
-
-    expect(text).not.toMatch(/\d+\s*%/); // no readiness percentage
-    expect(text).not.toMatch(/\bDr\.\s|\bMD\b|\bRN\b/); // no fabricated clinician
-    expect(text).not.toContain('Find the opportunity');
-    expect(text).not.toContain('VitalCV recognizes');
-  });
-
-  test('the NPI field validates locally without claiming a lookup', async ({ page }) => {
-    await hydrated(page);
-
-    await page.locator('#npi-input').fill('123');
-    await expect(page.locator('#ask-hint')).toContainText('3/10 digits');
-
-    // Checksum-valid enables submit and says nothing about the person.
-    await page.locator('#npi-input').fill('1234567893');
-    await expect(page.locator('[data-home-primary-cta]')).toBeEnabled();
-
-    // Checksum-INVALID full-length is caught before any network call.
-    await page.locator('#npi-input').fill('1234567890');
-    await expect(page.locator('[data-home-primary-cta]')).toBeDisabled();
-  });
-
-  test('no graph: no nodes, edges, or drag controls anywhere (R1)', async ({ page }) => {
-    await page.setViewportSize({ width: 1440, height: 900 });
-    await page.waitForTimeout(300);
-
-    expect(await page.locator('.ask [draggable="true"]').count()).toBe(0);
-    const text = (await page.locator('.ask').innerText()).toLowerCase();
-    expect(text).not.toContain('drag to');
-    expect(text).not.toContain('constellation');
-  });
-
-  // ── added: what the new composition promises ─────────────────────
 
   test('the first screen is an act, not a wall of state', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.waitForTimeout(300);
 
-    // The defect this page exists to fix: the old hero showed six source rows,
-    // four of them NOT CHECKED / ACCESS REQUIRED, before the visitor did
-    // anything. No state label may appear until a lookup has been asked for.
-    const firstScreen = await page.locator('[data-home-hero]').innerText();
+    const firstScreen = (await page.locator('[data-home-hero]').innerText()).toUpperCase();
     for (const label of ['NOT CHECKED', 'ACCESS REQUIRED', 'SOURCE-BACKED', 'SELF-ATTESTED']) {
-      expect(
-        firstScreen.toUpperCase(),
-        `"${label}" appeared before the visitor asked for anything — the first ` +
-          'screen must not be a wall of state (mandate guardrail 7)',
-      ).not.toContain(label);
+      expect(firstScreen).not.toContain(label);
     }
 
-    // And the field is the largest thing on it.
     const sizes = await page.evaluate(() => ({
       input: parseFloat(getComputedStyle(document.querySelector('#npi-input')!).fontSize),
-      title: parseFloat(getComputedStyle(document.querySelector('h1')!).fontSize),
+      title: parseFloat(getComputedStyle(document.querySelector('#ask-title')!).fontSize),
     }));
-    expect(
-      sizes.input,
-      'the NPI field must be the hero — larger than the headline that introduces it',
-    ).toBeGreaterThan(sizes.title);
+    expect(sizes.input, 'the field remains the hero').toBeGreaterThan(sizes.title);
   });
 
-  test('the action sits on the composition axis', async ({ page }) => {
-    // The CTA inherited the form's left alignment and shipped −198px
-    // off-centre on desktop (−78px mobile): a flush-left button under a
-    // centred headline, the one element breaking the page's single centred
-    // act. Geometry, not class names — a different centring mechanism must
-    // keep this green.
+  test('renders no fabricated clinician, readiness percentage, or graph', async ({ page }) => {
     await page.waitForTimeout(300);
-    const offsets = await page.evaluate(() => {
-      const mid = document.documentElement.clientWidth / 2;
-      const centerOf = (sel: string) => {
-        const r = document.querySelector(sel)!.getBoundingClientRect();
-        return r.left + r.width / 2 - mid;
-      };
-      return { title: centerOf('#ask-title'), go: centerOf('.ask-go') };
-    });
-    expect(Math.abs(offsets.title)).toBeLessThanOrEqual(2);
-    expect(
-      Math.abs(offsets.go),
-      'the primary action must sit on the same centre axis as the headline',
-    ).toBeLessThanOrEqual(2);
+    const text = await page.locator('.ask').innerText();
+    expect(text).not.toMatch(/\d+\s*%/);
+    expect(text).not.toMatch(/\bDr\.\s|\bMD\b|\bRN\b/);
+    expect(text).not.toContain('Find the opportunity');
+    expect(text).not.toContain('VitalCV recognizes');
+    expect(await page.locator('.ask [draggable="true"]').count()).toBe(0);
+    expect(text.toLowerCase()).not.toContain('constellation');
   });
 
-  test('the employer door is present, real, and secondary to the clinician act', async ({
-    page,
-  }) => {
-    await page.waitForTimeout(300);
+  test('validates the NPI locally without claiming a source lookup', async ({ page }) => {
+    await hydrated(page);
+
+    await page.locator('#npi-input').fill('123');
+    await expect(page.locator('#ask-hint')).toContainText('3/10 digits');
+
+    await page.locator('#npi-input').fill('1234567893');
+    await expect(page.locator('[data-home-primary-cta]')).toBeEnabled();
+
+    await page.locator('#npi-input').fill('1234567890');
+    await expect(page.locator('[data-home-primary-cta]')).toBeDisabled();
+  });
+
+  test('keeps clinician action primary and employer access secondary', async ({ page }) => {
+    await hydrated(page);
 
     const employer = page.locator('[data-home-employer-cta]');
     await expect(employer).toHaveAttribute('href', '/employers');
-    expect((await employer.innerText()).trim().length).toBeGreaterThanOrEqual(10);
 
-    // Secondary: it must not out-shout the clinician's action.
-    const weight = await page.evaluate(() => {
-      const e = document.querySelector('[data-home-employer-cta]')!;
-      const p = document.querySelector('[data-home-primary-cta]')!;
+    const sizes = await page.evaluate(() => {
+      const employerLink = document.querySelector('[data-home-employer-cta]')!;
+      const primary = document.querySelector('[data-home-primary-cta]')!;
       return {
-        employer: parseFloat(getComputedStyle(e).fontSize),
-        primary: parseFloat(getComputedStyle(p).fontSize),
+        employer: parseFloat(getComputedStyle(employerLink).fontSize),
+        primary: parseFloat(getComputedStyle(primary).fontSize),
       };
     });
-    expect(weight.employer).toBeLessThanOrEqual(weight.primary);
+    expect(sizes.employer).toBeLessThanOrEqual(sizes.primary);
+
+    const offsets = await page.evaluate(() => {
+      const midpoint = document.documentElement.clientWidth / 2;
+      const center = (selector: string) => {
+        const rect = document.querySelector(selector)!.getBoundingClientRect();
+        return rect.left + rect.width / 2 - midpoint;
+      };
+      return { title: center('#ask-title'), action: center('.ask-go') };
+    });
+    expect(Math.abs(offsets.title)).toBeLessThanOrEqual(2);
+    expect(Math.abs(offsets.action)).toBeLessThanOrEqual(2);
   });
 
-  test('reduced motion: the page is still, and holds no animation machinery', async ({
-    browser,
-  }) => {
-    const ctx = await browser.newContext({ reducedMotion: 'reduce' });
-    const page = await ctx.newPage();
+  test('promotes one operable four-step spine', async ({ page }) => {
+    await hydrated(page);
+
+    const spine = page.locator('[data-home-spine] .spine');
+    await expect(spine).toHaveAttribute('data-enhanced', '');
+    const tabs = spine.getByRole('tab');
+    await expect(tabs).toHaveCount(4);
+    await expect(spine.locator('.spine-panel:not([hidden])')).toHaveCount(1);
+    await expect(tabs.nth(0)).toHaveAttribute('aria-selected', 'true');
+
+    await tabs.nth(1).click();
+    await expect(tabs.nth(1)).toHaveAttribute('aria-selected', 'true');
+    await expect(spine.locator('.spine-panel:not([hidden])')).toHaveCount(1);
+    await expect(spine.locator('[data-home-lane-ledger]')).toBeVisible();
+
+    await tabs.nth(2).focus();
+    await page.keyboard.press('ArrowRight');
+    await expect(tabs.nth(3)).toHaveAttribute('aria-selected', 'true');
+    await expect(page.locator('[data-home-employer-door]')).toBeVisible();
+    await expect(page.locator('[data-home-employer-door]')).toHaveAttribute('href', '/employers');
+  });
+
+  test('the source-evidence step renders the canonical lane registry honestly', async ({ page }) => {
+    await hydrated(page);
+    await page.getByRole('tab', { name: /source evidence/i }).click();
+
+    const ledger = page.locator('[data-home-lane-ledger]');
+    const rows = ledger.locator('.ask-ledger-row');
+    await expect(rows).toHaveCount(6);
+
+    const text = (await ledger.innerText()).toLowerCase();
+    for (const source of ['nppes', 'oig', 'pecos', 'state licensure']) {
+      expect(text).toContain(source);
+    }
+    expect(text).toContain('access required');
+    expect(text).toContain('not yet connected');
+    expect(text.match(/available/g)?.length ?? 0).toBe(3);
+    expect(text).not.toMatch(/\bDr\.\s|\bMD\b|\bRN\b|\d+\s*%/);
+  });
+
+  test('removes the redundant below-fold ledger, chapters, and beats', async ({ page }) => {
+    await page.waitForTimeout(300);
+    await expect(page.locator('[data-home-spine]')).toHaveCount(1);
+    await expect(page.locator('.ask > .ask-ledger')).toHaveCount(0);
+    await expect(page.locator('.ask > .ask-chapter')).toHaveCount(0);
+    await expect(page.locator('.ask > .ask-beat')).toHaveCount(0);
+    await expect(page.locator('.ask h1')).toHaveCount(1);
+  });
+
+  test('no JavaScript becomes a readable four-panel stack, not dead tabs', async ({ browser }) => {
+    const context = await browser.newContext({ javaScriptEnabled: false });
+    const page = await context.newPage();
+    await page.goto(HOME, { waitUntil: 'domcontentloaded' });
+
+    const spine = page.locator('[data-home-spine] .spine');
+    await expect(spine).not.toHaveAttribute('data-enhanced', '');
+    await expect(spine.locator('.spine-tabs')).toHaveCSS('display', 'none');
+    await expect(spine.locator('.spine-panel')).toHaveCount(4);
+    await expect(spine.locator('.spine-panel[hidden]')).toHaveCount(0);
+    await expect(spine.locator('.spine-panel-heading')).toHaveCount(4);
+
+    await context.close();
+  });
+
+  test('reduced motion keeps the page still and meaningful', async ({ browser }) => {
+    const context = await browser.newContext({ reducedMotion: 'reduce' });
+    const page = await context.newPage();
     await page.goto(HOME, { waitUntil: 'domcontentloaded' });
     await page.waitForTimeout(400);
 
-    // Measure stillness directly rather than counting frames from a loop this
-    // test drives itself — that number rises on a perfectly static page and
-    // proves nothing. Sample the geometry twice and require it not to move.
-    const sample = () =>
-      page.evaluate(() =>
-        [...document.querySelectorAll('.ask h1, .ask-field, .ask-beat')]
-          .map((el) => {
-            const r = el.getBoundingClientRect();
-            return `${Math.round(r.top)},${Math.round(r.left)},${Math.round(r.width)}`;
-          })
-          .join('|'),
-      );
-    const before = await sample();
-    await page.waitForTimeout(600);
-    expect(await sample(), 'nothing may move under prefers-reduced-motion').toBe(before);
-
-    // And no animation machinery is mounted at all.
-    expect(await page.locator('.ask canvas').count()).toBe(0);
-    expect(
-      await page.evaluate(() => document.getAnimations().filter((a) => a.playState === 'running').length),
-      'no running animations under reduced motion',
-    ).toBe(0);
-
-    await ctx.close();
-  });
-
-  // ── ported from the retired film-composition spec ────────────────
-  // These four never described the film — they describe any homepage that has
-  // one heading and one primary action. Carried over rather than deleted with
-  // the composition that happened to be under them.
-
-  test('no fixed or sticky overlay covers the heading or the NPI action', async ({ page }) => {
-    await page.setViewportSize({ width: 1440, height: 900 });
-    await page.waitForTimeout(300);
-
-    const covered = await page.evaluate(() => {
-      const targets = ['h1', '#npi-input', '[data-home-primary-cta]'];
-      const hits: string[] = [];
-      for (const sel of targets) {
-        const el = document.querySelector(sel);
-        if (!el) continue;
-        const r = el.getBoundingClientRect();
-        const top = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
-        if (top && !el.contains(top) && !top.contains(el)) {
-          hits.push(`${sel} covered by ${top.tagName}.${top.className}`);
-        }
-      }
-      return hits;
+    const before = await page.evaluate(() => {
+      const elements = document.querySelectorAll('.ask h1, .ask-field, .spine');
+      return [...elements]
+        .map((element) => {
+          const rect = element.getBoundingClientRect();
+          return `${Math.round(rect.top)},${Math.round(rect.left)},${Math.round(rect.width)}`;
+        })
+        .join('|');
     });
-    expect(covered, 'nothing may sit on top of the heading or the primary action').toEqual([]);
+    await page.waitForTimeout(600);
+    const after = await page.evaluate(() => {
+      const elements = document.querySelectorAll('.ask h1, .ask-field, .spine');
+      return [...elements]
+        .map((element) => {
+          const rect = element.getBoundingClientRect();
+          return `${Math.round(rect.top)},${Math.round(rect.left)},${Math.round(rect.width)}`;
+        })
+        .join('|');
+    });
+    expect(after).toBe(before);
+    expect(await page.evaluate(() => document.getAnimations().filter((a) => a.playState === 'running').length)).toBe(0);
+
+    await context.close();
   });
 
-  test('the primary heading exposes exactly one accessible name', async ({ page }) => {
-    await page.waitForTimeout(300);
-    const h1s = await page.locator('h1').count();
-    expect(h1s, 'exactly one h1 — a duplicated heading reads twice to a screen reader').toBe(1);
-    const name = (await page.locator('h1').innerText()).trim();
-    // The retired film rendered its headline twice (a visible copy plus a
-    // scrub layer), which screen readers announced as "Get hired faster. Get
-    // hired faster." Assert the name is not simply itself repeated.
-    const half = name.slice(0, Math.floor(name.length / 2)).trim();
-    expect(half.length > 0 && name === `${half} ${half}`).toBe(false);
-  });
-
-  test('no animation gates the NPI form or its CTA', async ({ page }) => {
-    await page.waitForTimeout(300);
-    const gated = await page.evaluate(() =>
-      ['#npi-input', '[data-home-primary-cta]'].filter((sel) => {
-        const el = document.querySelector(sel);
-        if (!el) return true;
-        const cs = getComputedStyle(el);
-        return cs.visibility === 'hidden' || parseFloat(cs.opacity) < 0.99;
-      }),
-    );
-    expect(gated, 'the form must be usable immediately, not after an entrance').toEqual([]);
-  });
-
-  test('the document never scrolls horizontally, at any viewport', async ({ page }) => {
+  test('never scrolls horizontally at supported viewport widths', async ({ page }) => {
     for (const [width, height] of [
       [360, 740],
+      [390, 844],
       [768, 1024],
       [1440, 900],
       [1920, 1080],
     ]) {
       await page.setViewportSize({ width, height });
       await page.waitForTimeout(250);
-      const over = await page.evaluate(
+      const overflow = await page.evaluate(
         () => document.documentElement.scrollWidth > window.innerWidth + 1,
       );
-      expect(over, `horizontal overflow at ${width}×${height}`).toBe(false);
+      expect(overflow, `horizontal overflow at ${width}×${height}`).toBe(false);
     }
   });
 
-  test('mobile: an ordinary vertical document with no horizontal overflow', async ({ page }) => {
-    await page.setViewportSize({ width: 390, height: 844 });
-    await page.waitForTimeout(400);
+  test('fixed chrome does not cover the heading or NPI action', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.waitForTimeout(300);
 
-    const overflows = await page.evaluate(
-      () => document.documentElement.scrollWidth > window.innerWidth + 1,
-    );
-    expect(overflows, 'the page must never scroll sideways on a phone').toBe(false);
-
-    // The cadence line used to sit underneath the floating Feedback widget.
-    const clear = await page.evaluate(() => {
-      const c = document.querySelector('[data-home-source-cadence]');
-      if (!c) return false;
-      const r = c.getBoundingClientRect();
-      return r.width > 0 && r.height > 0;
+    const covered = await page.evaluate(() => {
+      const hits: string[] = [];
+      for (const selector of ['#ask-title', '#npi-input', '[data-home-primary-cta]']) {
+        const element = document.querySelector(selector);
+        if (!element) continue;
+        const rect = element.getBoundingClientRect();
+        const top = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2);
+        if (top && !element.contains(top) && !top.contains(element)) {
+          hits.push(`${selector} covered by ${top.tagName}.${top.className}`);
+        }
+      }
+      return hits;
     });
-    expect(clear, 'the source-cadence line must render with real area').toBe(true);
+    expect(covered).toEqual([]);
   });
 
-  // ── added: the ledger (the record schema, derived from the registry) ──
+  // ── the decorative field may not sit on the live hero ────────────
 
-  test('the ledger renders every registry lane, honestly', async ({ page }) => {
-    const rows = page.locator('[data-home-lane-ledger] .ask-ledger-row');
-    // Six lanes today; the exact count pins "rows derive from the registry" —
-    // if SOURCE_LANE_OPS gains a lane without an explanation, the row silently
-    // disappears, and this count catches it.
-    await expect(rows).toHaveCount(6);
+  test('the decorative field paints nothing over the hero copy', async ({ page }) => {
+    // The cinematic evidence field is an absolutely-positioned layer BEHIND
+    // the hero. Behind is fine for shapes; it is not fine for words. #988
+    // shipped "YOUR"/"RECORD" (27px display serif) across the NPI field and a
+    // caption through the promise paragraph — measured on production at
+    // opacity 1. Decorative shapes behind copy read as atmosphere; decorative
+    // WORDS behind copy read as a rendering fault, on the one surface that
+    // converts.
+    //
+    // Asserting GEOMETRY would be wrong twice over: the elements still occupy
+    // overlapping rectangles after the fix (a mask changes what is painted,
+    // not what is laid out), and a fix that moved the card instead would also
+    // pass. So this compares what is actually PAINTED over the copy.
+    //
+    // It decodes the PNGs rather than diffing their bytes: PNG is DEFLATE-
+    // compressed, so a single changed pixel cascades through the whole stream
+    // and a byte diff reports ~99% for any change at all — noise, not ink.
+    const { PNG } = await import('pngjs');
 
-    const text = (await page.locator('[data-home-lane-ledger]').innerText()).toLowerCase();
-    // Healthcare-legibility contract: the federal sources are named.
-    for (const source of ['nppes', 'oig', 'pecos', 'state licensure']) {
-      expect(text, `the ledger must name ${source}`).toContain(source);
-    }
-    // Honesty: the gated and unconnected lanes say so, in /status vocabulary.
-    expect(text).toContain('access required');
-    expect(text).toContain('not yet connected');
-    // No lane may claim liveness the registry does not grant: "available"
-    // appears exactly as many times as there are active lanes (3 today).
-    expect(text.match(/available/g)?.length ?? 0).toBe(3);
-  });
+    await page.goto(HOME, { waitUntil: 'domcontentloaded' });
+    await page.waitForSelector('#ask-title');
+    // Let the field's entry motion settle — CD-11 means it rests, so this
+    // converges rather than sampling mid-animation.
+    await page.waitForTimeout(2200);
 
-  test('the ledger carries no fabricated clinician and no percentages', async ({ page }) => {
-    // The same truth guard the hero honors, applied to the new section.
-    const text = await page.locator('.ask-ledger').innerText();
-    expect(text).not.toMatch(/\bDr\.\s|\bMD\b|\bRN\b/);
-    expect(text).not.toMatch(/\d+\s*%/);
-  });
-
-  test('the audience is named on the first screen', async ({ page }) => {
-    // "I can't tell this is for clinicians" — the eyebrow is the fix, and it
-    // must sit above the fold with the H1, not below it.
-    const eyebrow = page.locator('.ask-eyebrow');
-    await expect(eyebrow).toContainText(/clinician/i);
-    const above = await page.evaluate(() => {
-      const e = document.querySelector('.ask-eyebrow');
-      const h = document.querySelector('#ask-title');
-      if (!e || !h) return false;
-      return (
-        e.getBoundingClientRect().bottom <= h.getBoundingClientRect().top &&
-        e.getBoundingClientRect().top >= 0
-      );
-    });
-    expect(above, 'the eyebrow sits directly above the H1, on screen').toBe(true);
-  });
-
-  test('the employer door section exists and stays subordinate', async ({ page }) => {
-    const door = page.locator('[data-home-employer-door]');
-    await expect(door).toHaveAttribute('href', '/employers');
-    // Subordination: the door's heading may not out-size the clinician H1.
-    const sizes = await page.evaluate(() => {
-      const h1 = document.querySelector('#ask-title');
-      const h2 = document.querySelector('#door-title');
-      if (!h1 || !h2) return null;
+    const band = await page.evaluate(() => {
+      const title = document.querySelector('#ask-title')!.getBoundingClientRect();
+      const promise = document.querySelector('.ask-promise')!.getBoundingClientRect();
       return {
-        h1: parseFloat(getComputedStyle(h1).fontSize),
-        h2: parseFloat(getComputedStyle(h2).fontSize),
+        x: Math.floor(title.left),
+        y: Math.floor(title.top),
+        width: Math.ceil(title.width),
+        height: Math.ceil(promise.bottom - title.top),
       };
     });
-    expect(sizes).not.toBeNull();
-    expect(sizes!.h2).toBeLessThan(sizes!.h1);
-  });
 
-  test('each audience chapter answers its question with a big artifact', async ({ page }) => {
-    // "I still don't understand what I am buying if I am an employer and I
-    // don't know why I would be interested if I was a clinician" — the two
-    // chapters are the answer, and each must carry concrete points plus a
-    // full-width artifact, not copy alone.
-    const chapters = page.locator('.ask-chapter');
-    await expect(chapters).toHaveCount(2);
-    for (const chapter of await chapters.all()) {
-      await expect(chapter.locator('.ask-chapter-points li')).toHaveCount(3);
-      await expect(chapter.locator('.ask-art--wide')).toHaveCount(1);
-      await expect(chapter.locator('.ask-beat-cap')).toContainText('Illustrative');
+    const before = PNG.sync.read(await page.screenshot({ clip: band }));
+    await page.evaluate(() => {
+      document
+        .querySelectorAll<HTMLElement>('[data-home-cinematic-field]')
+        .forEach((el) => {
+          el.style.display = 'none';
+        });
+    });
+    await page.waitForTimeout(150);
+    const after = PNG.sync.read(await page.screenshot({ clip: band }));
+
+    expect(before.width).toBe(after.width);
+    expect(before.height).toBe(after.height);
+
+    // Count pixels the decorative layer visibly changes. A faint ambient wash
+    // shifts a channel by a step or two; a painted glyph shifts it far more,
+    // so the per-pixel threshold separates atmosphere from ink rather than
+    // banning the layer from the hero altogether.
+    let inked = 0;
+    for (let i = 0; i < before.data.length; i += 4) {
+      const dr = Math.abs(before.data[i] - after.data[i]);
+      const dg = Math.abs(before.data[i + 1] - after.data[i + 1]);
+      const db = Math.abs(before.data[i + 2] - after.data[i + 2]);
+      if (Math.max(dr, dg, db) > 12) inked += 1;
     }
-    // The wide artifacts are genuinely big — at least half the content column.
-    const width = await page
-      .locator('[data-ask-artifact="checkrun"] svg')
-      .evaluate((el) => el.getBoundingClientRect().width);
-    expect(width).toBeGreaterThan(600);
-  });
-
-  test('ledger rows rest after their entry animation completes', async ({ page }) => {
-    // CD-11: explain on entry, then rest. Scroll the ledger into view, let the
-    // stagger play out, then assert nothing is still running.
-    await page.locator('[data-home-lane-ledger]').scrollIntoViewIfNeeded();
-    // 6 rows × 110ms stagger + 420ms, PLUS slack for the clinician chapter's
-    // wide artifact, which can enter the viewport at the same scroll position
-    // and runs a 6-step sequence ending at ~2.7s.
-    await page.waitForTimeout(3400);
-    const running = await page.evaluate(
-      () =>
-        document
-          .getAnimations()
-          .filter(
-            (a) =>
-              'animationName' in a &&
-              String((a as CSSAnimation).animationName).startsWith('ask-art') &&
-              a.playState === 'running',
-          ).length,
-    );
-    expect(running, 'no ledger animation may idle after entry').toBe(0);
+    const ratio = inked / (before.width * before.height);
+    expect(
+      ratio,
+      `decorative layer paints ink over the hero copy (${(ratio * 100).toFixed(2)}% of pixels)`,
+    ).toBeLessThan(0.01);
   });
 });

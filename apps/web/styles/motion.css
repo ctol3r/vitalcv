@@ -53,3 +53,83 @@
     stroke-dashoffset: 0;
   }
 }
+
+/* Variable-length trace. `ask-art-draw` hard-codes a 32px path, which is why it
+ * could only ever serve the one consent rule; a cardiac trace, a corridor, or a
+ * building outline are each a different length. The consumer sets --trace-len
+ * to the path length (SVG `pathLength` normalises it if you would rather not
+ * measure). Still single-shot: it draws itself once and rests (CD-11). */
+@keyframes ask-art-trace {
+  from {
+    stroke-dashoffset: var(--trace-len, 300);
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* A pane of glass catching the light as it settles in. Opacity and a small
+ * rise only — no shimmer, no sweep, no loop: CD-13 retires glow and shimmer,
+ * and this must come to rest like every other artifact step. */
+@keyframes ask-art-glass-in {
+  from {
+    opacity: 0;
+    translate: 0 10px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+/* ── Home Evidence Experience v2 ──────────────────────────────────────────
+ * Consumed by styles/home-surfaces.css. Three additions only; the product
+ * entrance reuses `ask-art-appear` and the evidence line reuses
+ * `ask-art-trace` rather than restating them (docs/design/
+ * home-evidence-experience-v2.md §5). All three are single-shot and animate
+ * only composited properties — no layout property appears in any of them. */
+
+/* The evidence capsule arrives as a capsule: the shell is revealed from its
+ * own top edge rather than fading in as a rectangle. `inset()` with the
+ * capsule's own radius keeps the corner correct through the whole sweep, so it
+ * never reads as a square becoming round. Paired with opacity so a browser
+ * that cannot animate clip-path still shows a clean fade. */
+@keyframes home-capsule-reveal {
+  from {
+    opacity: 0;
+    clip-path: inset(0 0 100% 0 round var(--home-capsule-radius, 0));
+  }
+  to {
+    opacity: 1;
+    clip-path: inset(0 0 0 0 round var(--home-capsule-radius, 0));
+  }
+}
+
+/* One state replacing another inside a container that must NOT resize —
+ * resolving → resolved, or an error message swapping its text. Opacity plus a
+ * 4px rise; nothing that can move a neighbour. */
+@keyframes home-state-in {
+  from {
+    opacity: 0;
+    translate: 0 4px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+/* A small glyph exchanged for another (the CTA's arrow on hover, a status
+ * glyph resolving). Scale is bounded at 0.94 so the swap reads as an exchange
+ * rather than a pop, and it starts visible: the glyph is never absent, which
+ * is what would make the swap feel like a flicker. */
+@keyframes home-glyph-swap {
+  from {
+    opacity: 0.4;
+    scale: 0.94;
+  }
+  to {
+    opacity: 1;
+    scale: 1;
+  }
+}

@@ -70,6 +70,30 @@ const TOKEN_FILES = [
 const isTokenFile = (f: string) => TOKEN_FILES.some((t) => f === t);
 
 /**
+ * OKLCH hue + chroma of the first colour literal on a line, or null when there
+ * isn't one (a `var()`, `color-mix()`, or bare keyword). Used by CD-3/4, which
+ * has to make a NUMERIC judgement — "is this token green?" — that a regex
+ * cannot make. Node built-ins only, in keeping with the rest of this script.
+ */
+function colorOf(line: string): { C: number; H: number } | null {
+  const ok = /oklch\(\s*([\d.]+)%?\s+([\d.]+)\s+([\d.]+)/.exec(line);
+  if (ok) return { C: Number(ok[2]), H: Number(ok[3]) };
+
+  const hex = /#([0-9a-fA-F]{6})\b/.exec(line);
+  if (!hex) return null;
+  const n = hex[1];
+  const lin = (v: number) => (v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4);
+  const [r, g, b] = [0, 2, 4].map((i) => lin(parseInt(n.slice(i, i + 2), 16) / 255));
+  const l = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b);
+  const m = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b);
+  const s = Math.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b);
+  const A = 1.9779984951 * l - 2.4285922050 * m + 0.4505937099 * s;
+  const B = 0.0259040371 * l + 0.7827717662 * m - 0.8086757660 * s;
+  const H = (Math.atan2(B, A) * 180) / Math.PI;
+  return { C: Math.hypot(A, B), H: H < 0 ? H + 360 : H };
+}
+
+/**
  * The COMPETE composition rules (R1–R8) from
  * docs/strategy/competitive-mandate.md. These are NEW contract, scoped to the
  * homepage surfaces, so they are hard errors rather than ratchets.
@@ -92,7 +116,6 @@ const LEGACY_HOME_ROOTS = [
 const HOMEPAGE_ROOTS = [...FILM_ROOTS, ...LEGACY_HOME_ROOTS];
 
 const RULES: Rule[] = [
-  // ---------------------------------------------------------------- design system
   {
     id: 'LINT-01',
     mode: 'ratchet',
@@ -133,7 +156,6 @@ const RULES: Rule[] = [
     exts: [...TSX, ...CSS],
     stripComments: true,
     pattern: /data-theme=["']ops["']|--vt-surface-inverse|var\(--ink-950\)/,
-    // The ops surfaces themselves, and the prefix registry that names them.
     allow: (f) =>
       /[\\/](ops|admin|intelligence|operations-engine|mission-ops|system-health)[\\/]/.test(f) ||
       f.endsWith('publicSurfaceRoutes.ts'),
@@ -155,11 +177,6 @@ const RULES: Rule[] = [
     fix: 'Use var(--vt-lift) or var(--vt-focus-ring).',
     roots: [join(web, 'styles')],
     exts: CSS,
-    // The `\s*` MUST live inside the lookahead. With it outside
-    // (`:\s*(?!var\()`) the engine backtracks `\s*` to zero width, evaluates
-    // the lookahead against the leading space, finds no `var(` there, and
-    // reports a false positive on every correctly-tokenised declaration.
-    // That bug inflated this rule's first baseline — see DESIGN_LINT.md.
     pattern: /box-shadow\s*:\s*(?!\s*(?:none|var\(|inherit|initial|unset))/,
     allow: (f) => isTokenFile(f),
   },
@@ -172,8 +189,6 @@ const RULES: Rule[] = [
     exts: TSX,
     pattern:
       /\b(cheapest|guaranteed\s+(?:roi|results)|as seen in|trusted by \d|100%\s+(?:secure|verified)|blockchain-verified|bank-level)\b/i,
-    // The spec's own carve-out: a surface may quote a prohibited phrase in
-    // order to PROHIBIT it. Detected structurally — the line must negate.
     allow: (_f, line) => /\bno\b|\bnever\b|\bwithout\b|\bprohibit/i.test(line),
   },
   {
@@ -183,12 +198,33 @@ const RULES: Rule[] = [
     fix: 'Use var(--font-display | --font-body | --font-mono).',
     roots: [join(web, 'styles')],
     exts: CSS,
-    // `\s*` inside the lookahead — same backtracking trap as LINT-06.
     pattern: /font-family\s*:\s*(?!\s*var\()/,
     allow: (f) => isTokenFile(f) || f.endsWith('fonts.css'),
   },
-
-  // ------------------------------------------- COMPETE composition rules (R1–R8)
+  {
+    id: 'CD-3/4',
+    mode: 'error',
+    what: 'Cool ink/paper token, or an accent borrowed from a state hue',
+    fix: 'Ink, paper and rule are WARM (CD-4). The accent is indigo and is never a state colour (CD-3) — green means one thing: a named source returned a match.',
+    roots: [join(web, 'styles')],
+    exts: CSS,
+    stripComments: true,
+    // Guard the settled local names and the actual global light-theme tokens.
+    // Do not sweep every legacy `--vt-surface-*` island: ops/base/sunken tokens
+    // intentionally live in other palettes and are separate consolidation debt.
+    pattern:
+      /--(?:(?:ink|paper|rule|accent)[a-z0-9-]*|vt-(?:cloud-dancer|bg|surface(?:-(?:subtle|dim))?|border(?:-subtle)?|accent(?:-(?:editorial|hover))?))\s*:[^;]*(?:#[0-9a-fA-F]{3,8}\b|oklch\()/,
+    allow: (_f, line) => {
+      const c = colorOf(line);
+      if (!c) return true;
+      // `--vt-accent` and `--vt-accent-hover` are the ink action pair in the
+      // current system. The chromatic editorial signal is explicitly named;
+      // unprefixed --accent* tokens remain governed as editorial accents too.
+      const isAccent = /--(?:accent[a-z0-9-]*|vt-accent-editorial)\s*:/.test(line);
+      if (c.C <= (isAccent ? 0.006 : 0.004)) return true;
+      return isAccent ? c.H >= 255 && c.H <= 310 : c.H >= 30 && c.H <= 110;
+    },
+  },
   {
     id: 'R1',
     mode: 'error',
@@ -247,12 +283,9 @@ const RULES: Rule[] = [
     roots: HOMEPAGE_ROOTS,
     exts: TSX,
     stripComments: true,
-    // A wheel listener or a scroll-axis preventDefault is how hijacking starts.
-    pattern: /addEventListener\(\s*['"](?:wheel|touchmove)['"]|onWheel=/,
+    pattern: /addEventListener\(\s*["'](?:wheel|touchmove)["']|onWheel=/,
   },
 ];
-
-// ---------------------------------------------------------------------------
 
 const EXCLUDED_DIRS = new Set([
   'node_modules', '.next', '.turbo', 'dist', 'build', 'coverage', '_archive', '__tests__', 'tests',
@@ -349,7 +382,6 @@ for (const rule of RULES) {
     continue;
   }
 
-  // ratchet
   const base = baseline[rule.id];
   if (base === undefined) {
     failures.push(rule.id);

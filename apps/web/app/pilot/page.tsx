@@ -177,7 +177,7 @@ export default function PilotPage() {
             numbers anywhere (projection-vs-measurement rule: the drawing must
             not pre-announce a result nothing has measured). */}
         <section aria-label="What the pilot measures" data-testid="pilot-measure-artifact">
-          <ArtifactStage>
+          <ArtifactStage glass>
             <MeasureArtifact />
           </ArtifactStage>
         </section>
