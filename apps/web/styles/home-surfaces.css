@@ -118,6 +118,54 @@
   --home-error: var(--vt-badge-critical-bg);
 }
 
+/* ── phase — where the reader is in the act ────────────────────────────────
+ * `data-home-phase` is published once on the AskHome root
+ * (`components/home/ask/homePhase.ts`) and read here. It describes the READER's
+ * progress — nothing typed, something typed, a lookup running, finished, or
+ * failed. It is never a source state and never a claim about a clinician.
+ *
+ * WHAT IT SPENDS. Exactly one value: how present the decorative atmosphere is.
+ * CD-20 puts the entire visual budget on the moment an NPI resolves and keeps
+ * everything around it near-silent so that it lands. Before this, the field
+ * behind an empty page and the field behind a returned federal result were
+ * painted identically, so the arrival had nothing to arrive *out of*.
+ *
+ * Opacity only, on a decorative `aria-hidden` layer. No content moves, no
+ * meaning changes, nothing is hidden, and every phase is legible with the
+ * atmosphere removed entirely.
+ */
+/* REACHING THE ATMOSPHERE. The decorative layer is a PRECEDING SIBLING of the
+ * phase carrier (page.tsx renders `CinematicEvidenceField` then `AskHome`), so
+ * it inherits nothing from it. It opts in by carrying `data-home-atmosphere`
+ * and is selected here with `:has()` plus a sibling combinator — forward-
+ * looking, so DOM order does not have to change to make the page coherent.
+ *
+ * The mapping lives only here. The consumer spends `--home-atmosphere` without
+ * knowing which phase produced it, so there is one place to change how loud
+ * each moment is.
+ */
+[data-home-atmosphere] {
+  /* A MULTIPLIER, not an opacity. The layer keeps its own responsive
+     step-downs (cinematic-home.css thins it on small screens) and this scales
+     whatever those resolve to, rather than overriding them. */
+  --home-atmosphere: 1;
+}
+
+/* Typing is intent. A small step: the reader has not committed yet, and a large
+   one here would read as the page flinching at every keystroke. */
+[data-home-atmosphere]:has(~ [data-home-phase='active']) {
+  --home-atmosphere: 0.72;
+}
+
+/* Committed. These three are one destination reached three ways, and they share
+   a value deliberately — a failed lookup is exactly as quiet as a successful
+   one, so quietness can never be read as a result. */
+[data-home-atmosphere]:has(~ [data-home-phase='resolving']),
+[data-home-atmosphere]:has(~ [data-home-phase='resolved']),
+[data-home-atmosphere]:has(~ [data-home-phase='system-error']) {
+  --home-atmosphere: 0.3;
+}
+
 /* ── The surface primitive ─────────────────────────────────────────────────
  * Opt-in. A tone alone only DECLARES variables; this class spends them. Kept
  * separate so a component can carry a tone for its children without repainting
