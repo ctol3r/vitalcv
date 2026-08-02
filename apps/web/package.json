@@ -21,12 +21,11 @@
     "analyze:browser": "cross-env BUNDLE_ANALYZE=browser next build"
   },
   "dependencies": {
-    "@prisma/client": "^6.19.2",
     "@blueprintjs/core": "^6.10.0",
     "@blueprintjs/icons": "^6.7.0",
     "@blueprintjs/table": "^6.0.19",
     "@clerk/nextjs": "^6.37.3",
-    "@vitalcv/domain-evidence": "workspace:*",
+    "@prisma/client": "^6.19.2",
     "@radix-ui/react-accordion": "^1.2.12",
     "@radix-ui/react-checkbox": "^1.3.3",
     "@radix-ui/react-label": "latest",
@@ -42,7 +41,9 @@
     "@trustgraph/react-provider": "^1.4.0",
     "@trustgraph/react-state": "^1.6.1",
     "@vitalcv/crs": "workspace:*",
+    "@vitalcv/domain-evidence": "workspace:*",
     "@vitalcv/ingest": "workspace:*",
+    "@vitalcv/licensure": "workspace:*",
     "@vitalcv/psv": "workspace:*",
     "@vitalcv/shared": "workspace:*",
     "@vitalcv/trust-state": "workspace:*",
