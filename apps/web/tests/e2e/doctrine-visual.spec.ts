@@ -266,4 +266,58 @@ test.describe('rendered doctrine', () => {
       ).toEqual([]);
     });
   }
+
+  /**
+   * CD-13 also retires "gradients as surface (any linear-/radial-gradient on
+   * paper)".
+   *
+   * Measured as what PAINTS, not what the stylesheets say. A source grep found
+   * 112 gradient references across live files and exactly ONE of them reached
+   * paper on a public route — the rest sit in dead code, non-paper islands,
+   * masks (a fade is not a surface) and OG images. Grepping this rule would
+   * mean triaging 112 hits by hand on every change; rendering it costs one
+   * pass and cannot be wrong about which ones actually land on paper.
+   */
+  for (const route of ROUTES) {
+    test(`${route} — no gradient used as surface on paper`, async ({ page }) => {
+      await page.goto(route, { waitUntil: 'domcontentloaded' });
+      await page.waitForTimeout(500);
+
+      const offenders = await page.evaluate((CLOUD_DANCER) => {
+        const hits: string[] = [];
+        for (const el of Array.from(document.querySelectorAll('*'))) {
+          const cs = getComputedStyle(el);
+          if (!/gradient\(/.test(cs.backgroundImage)) continue;
+
+          const rect = el.getBoundingClientRect();
+          // Sub-pixel slivers are not surfaces.
+          if (rect.width < 4 || rect.height < 4) continue;
+
+          // On paper = the nearest ANCESTOR that actually paints a background
+          // is Cloud Dancer. A gradient inside a deliberately dark island is
+          // not "on paper" and CD-13 does not reach it.
+          let context: string | null = null;
+          let node = el.parentElement;
+          while (node) {
+            const bg = getComputedStyle(node).backgroundColor;
+            if (bg && !/rgba\(0, 0, 0, 0\)/.test(bg)) {
+              context = bg;
+              break;
+            }
+            node = node.parentElement;
+          }
+          if (context !== CLOUD_DANCER) continue;
+
+          const cls = (el.className?.toString() ?? '').trim().split(/\s+/)[0] ?? '';
+          hits.push(`${el.tagName.toLowerCase()}${cls ? `.${cls}` : ''}`);
+        }
+        return [...new Set(hits)];
+      }, CLOUD_DANCER);
+
+      expect(
+        offenders,
+        `${route} paints a gradient as surface on paper — CD-13 retires gradients on paper`,
+      ).toEqual([]);
+    });
+  }
 });
