@@ -58,7 +58,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       # pnpm version resolved from packageManager field in package.json (pnpm@10.6.1)
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
@@ -101,7 +101,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
@@ -173,7 +173,7 @@ jobs:
           fi
       - uses: actions/checkout@v7
         if: steps.keys.outputs.present == 'true'
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         if: steps.keys.outputs.present == 'true'
       - uses: actions/setup-node@v4
         if: steps.keys.outputs.present == 'true'
