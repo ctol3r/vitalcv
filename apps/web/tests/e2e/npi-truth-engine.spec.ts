@@ -117,16 +117,22 @@ const HERO_CTA = /check what.s ready/i;
 /**
  * The NPI field's accessible name.
  *
- * COMPETE-1: the homepage labels this field with a VISIBLE `<label>` reading
- * "Start with your NPI", where the retired stacked composition used an
- * invisible `aria-label="NPI number"`. The visible label is the better markup
- * — and it is why this could not simply be aliased back: adding
- * `aria-label="NPI number"` over visible text that says something else breaks
- * WCAG 2.5.3 (Label in Name) for voice-control users, who speak what they see.
+ * COMPETE-1: the homepage labels this field with a VISIBLE `<label>`, where the
+ * retired stacked composition used an invisible `aria-label="NPI number"`. The
+ * visible label is the better markup — and it is why this could not simply be
+ * aliased back: adding `aria-label` over visible text that says something else
+ * breaks WCAG 2.5.3 (Label in Name) for voice-control users, who speak what
+ * they see.
+ *
+ * That visible label now FLOATS (Home Evidence v2, Wave 2C): it reads "Enter
+ * your 10-digit NPI" at rest and compresses to "NPI number" once the field is
+ * focused or holding digits. Since `fill()` focuses the field, a locator tied
+ * to either wording alone would break mid-interaction. Match the part stable
+ * across both states, so this keeps testing the field rather than the copy.
  *
  * Declared once so the next composition change edits one line, not four.
  */
-const NPI_FIELD = { name: /start with your npi/i };
+const NPI_FIELD = { name: /npi/i };
 
 async function submitNpi(page: Page, npi: string) {
   await page.goto('/', { waitUntil: 'networkidle' });
