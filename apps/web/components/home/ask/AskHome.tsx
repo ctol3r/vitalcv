@@ -229,12 +229,33 @@ export function AskHome() {
   const [error, setError] = React.useState<string | null>(null);
   const [resultPhase, setResultPhase] = React.useState<SequencePhase | null>(null);
   const [inputState, setInputState] = React.useState<EvidenceInputState>('idle');
+  const [pendingFieldFocus, setPendingFieldFocus] = React.useState(false);
   const inputRef = React.useRef<HTMLInputElement | null>(null);
   const rootRef = React.useRef<HTMLDivElement | null>(null);
 
   React.useEffect(() => {
     trackFunnelEvent(FUNNEL_EVENTS.HOMEPAGE_VIEWED);
   }, []);
+
+  /**
+   * Return focus to the field after a reset — once it exists.
+   *
+   * `onReset` cannot do this itself. At the moment it fires, `LiveNpiResult` is
+   * still the mounted branch and the input is not, so `inputRef.current` is
+   * null and `.focus()` is a silent no-op. Measured before this: focus sat on
+   * `<body>` at 0, 100, 500 and 1500ms after reset, which drops a keyboard or
+   * screen-reader user back to the top of the document and makes them tab
+   * through the whole header to try again.
+   *
+   * The existing reset guard checks the field is visible and cleared, which it
+   * always was — visible is not the same as focused, and that gap is why this
+   * survived.
+   */
+  React.useEffect(() => {
+    if (!pendingFieldFocus || submitted !== null) return;
+    inputRef.current?.focus();
+    setPendingFieldFocus(false);
+  }, [pendingFieldFocus, submitted]);
 
   React.useEffect(() => {
     if (typeof IntersectionObserver === 'undefined') return;
@@ -307,7 +328,9 @@ export function AskHome() {
                   // with the result that produced it.
                   setResultPhase(null);
                   setInputState('idle');
-                  inputRef.current?.focus();
+                  // Claimed here, applied in the effect above once the field
+                  // has actually mounted.
+                  setPendingFieldFocus(true);
                 }}
               />
             </div>

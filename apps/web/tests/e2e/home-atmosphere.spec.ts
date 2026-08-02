@@ -65,14 +65,16 @@ const atmosphere = (page: Page) =>
  *
  * On the server-rendered input, `fill()` sets the DOM value without React ever
  * seeing an `onChange`, so `onStatusChange` never fires and the phase stays
- * `idle` — legitimately. Clicking first both focuses the field and gives
- * hydration a turn, which is the same reason the repo's other helpers wait on
- * the CTA before clicking it.
+ * `idle` — legitimately.
  *
- * Caught against production: an identical fill-then-assert raced hydration and
- * read `idle` where the browser was, a moment later, correctly `active`. The
- * local run passed, which is exactly how this would have become an
- * only-fails-in-CI flake.
+ * This took two attempts, and the second is why every `goto` in this file waits
+ * on `networkidle` rather than `domcontentloaded`. Clicking first is enough
+ * against a PRODUCTION build, where hydration is quick — that is the form this
+ * shipped in, and it passed CI. Against the dev server the suite runs on
+ * locally, hydration lands later still: the click landed on a control with no
+ * handler attached, the fill bypassed React again, and all three cases failed
+ * while CI stayed green. `networkidle` is what the sibling `home-phase.spec.ts`
+ * uses and the only wait here that survives both servers.
  */
 async function typeNpi(page: Page, value: string) {
   const field = page.getByRole('textbox', { name: /npi/i });
@@ -90,7 +92,7 @@ async function submit(page: Page, npi = VALID_NPI) {
 test.describe('home atmosphere', () => {
   test('recedes as the reader commits', async ({ page }) => {
     await mockClean(page);
-    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await page.goto('/', { waitUntil: 'networkidle' });
     const idle = await atmosphere(page);
 
     await typeNpi(page, '12345');
@@ -118,14 +120,14 @@ test.describe('home atmosphere', () => {
     // brighter or darker than a success, the decoration would be reporting an
     // outcome no source returned.
     await mockClean(page);
-    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await page.goto('/', { waitUntil: 'networkidle' });
     await submit(page);
     await expect(page.locator('[data-evidence-group]').first()).toBeVisible({ timeout: 20_000 });
     await page.waitForTimeout(600);
     const onSuccess = await atmosphere(page);
 
     await mockDown(page);
-    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await page.goto('/', { waitUntil: 'networkidle' });
     await submit(page);
     await expect.poll(() => phaseOf(page), { timeout: 20_000 }).toBe('system-error');
     await page.waitForTimeout(600);
@@ -137,7 +139,7 @@ test.describe('home atmosphere', () => {
   test('reduced motion lands on the same end state, with nothing animating', async ({ page }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await mockClean(page);
-    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await page.goto('/', { waitUntil: 'networkidle' });
     await submit(page);
     await expect(page.locator('[data-evidence-group]').first()).toBeVisible({ timeout: 20_000 });
     await expect.poll(() => phaseOf(page), { timeout: 5_000 }).toBe('resolved');
@@ -155,7 +157,7 @@ test.describe('decorative words are never rendered clipped', () => {
   for (const width of [360, 390, 768, 899, 1080, 1440]) {
     test(`no clipped decoration at ${width}px`, async ({ page }) => {
       await page.setViewportSize({ width, height: 1000 });
-      await page.goto('/', { waitUntil: 'domcontentloaded' });
+      await page.goto('/', { waitUntil: 'networkidle' });
       await page.waitForTimeout(600);
 
       const clipped = await page.evaluate(() =>
