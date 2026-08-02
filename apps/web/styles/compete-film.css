@@ -123,11 +123,10 @@
   border-radius: 50%;
   pointer-events: none;
   /* A cursor-led reading light should stay atmospheric, not become a painted
-     gradient surface on the paper. A nearly transparent solid disc plus a
-     diffuse shadow keeps the cue quiet while preserving the visual doctrine. */
-  background: color-mix(in oklab, var(--vt-accent-editorial, #4338CA) 6%, transparent);
-  box-shadow: 0 0 4rem 2rem
-    color-mix(in oklab, var(--vt-accent-editorial, #4338CA) 5%, transparent);
+     gradient surface on the paper. A token-derived, softly blurred disc keeps
+     the cue quiet without adding a shadow or a second surface. */
+  background: color-mix(in oklab, var(--vt-accent-editorial) 6%, transparent);
+  filter: blur(1.75rem);
   transition: opacity 220ms ease;
 }
 
