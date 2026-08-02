@@ -43,9 +43,33 @@ function normalizePath(path: string): string {
   return normalized.replace(/\/+$/, '');
 }
 
+/**
+ * Paths that must never skip tenant context, checked before any allow rule.
+ *
+ * The allow list below is a *read* list — its own header says write routes
+ * under these prefixes "must enforce org separately". `/api/directory/publish`
+ * never did: it mints an integrity-hashed, federation-ready snapshot, and it
+ * was reachable unauthenticated on the backend's public domain because
+ * `/api/directory` is matched both by the explicit prefix rule and by
+ * `isIntelligenceReadRoute`. Excluding it from one matcher would leave the
+ * other open, so the deny rule runs first and covers both.
+ *
+ * This is a deny list, not a blanket "writes never skip" rule, because several
+ * prefixes here (`/api/identity`, `/api/profile/`, `/api/apply/`, `/api/ingest`)
+ * carry onboarding writes that legitimately have no org context yet — blocking
+ * those would dead-end the signup golden path.
+ */
+const NEVER_SKIP_TENANT_CONTEXT = [
+  '/api/directory/publish',
+] as const;
+
 export function shouldSkipTenantContext(path: string): boolean {
   const normalized = normalizePath(path);
   const isAuthorizedPacketRead = /^\/api\/applications\/[^/]+\/packet$/.test(normalized);
+
+  if (NEVER_SKIP_TENANT_CONTEXT.includes(normalized as typeof NEVER_SKIP_TENANT_CONTEXT[number])) {
+    return false;
+  }
 
   return (
     normalized === '/'

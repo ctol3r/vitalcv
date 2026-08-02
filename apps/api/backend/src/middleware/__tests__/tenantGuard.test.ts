@@ -52,6 +52,36 @@ describe('tenantGuard', () => {
     )).toBe(false);
   });
 
+  it('never skips tenant context for the directory publish write', () => {
+    // /api/directory/publish mints an integrity-hashed, federation-ready
+    // snapshot and was reachable unauthenticated on the backend's public
+    // domain. The reads beside it stay public; only the write is closed.
+    expect(shouldSkipTenantContext('/api/directory/publish')).toBe(false);
+    expect(shouldSkipTenantContext('/api/directory/publish/')).toBe(false);
+    expect(shouldSkipTenantContext('/API/Directory/Publish')).toBe(false);
+
+    expect(shouldSkipTenantContext('/api/directory')).toBe(true);
+    expect(shouldSkipTenantContext('/api/directory/csv')).toBe(true);
+    expect(shouldSkipTenantContext('/api/directory/fhir')).toBe(true);
+    expect(shouldSkipTenantContext('/api/directory/signed')).toBe(true);
+    expect(shouldSkipTenantContext('/api/directory/snapshots')).toBe(true);
+  });
+
+  it('rejects an unauthenticated directory publish through the middleware', () => {
+    const req = createRequest('/api/directory/publish');
+    const res = createResponse();
+    const next = jest.fn();
+
+    requireTenantContextOrReadAccess(req, res, next);
+
+    expect(next).not.toHaveBeenCalled();
+    expect(res.status).toHaveBeenCalledWith(401);
+    expect(res.json).toHaveBeenCalledWith({
+      error: 'organization_context_required',
+      error_description: 'Organization context is required.',
+    });
+  });
+
   it('skips tenant context for clerk-scoped workspace bootstrap routes', () => {
     expect(shouldSkipTenantContext('/api/me/workspaces')).toBe(true);
     expect(shouldSkipTenantContext('/api/workspaces/switch')).toBe(true);
