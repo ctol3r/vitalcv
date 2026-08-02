@@ -1,0 +1,237 @@
+/* ==========================================================================
+   Homepage recovery concepts — shared base.
+   Every value here is CD-doctrine (docs/design/VITALCV_CREATIVE_DIRECTION.md).
+   The three concept files share this so the founder compares COMPOSITION and
+   INTERACTION SYSTEMS, not palettes.
+   ========================================================================== */
+
+@font-face {
+  font-family: 'Fraunces';
+  src: url('./fonts/Fraunces-Variable.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: block;
+}
+@font-face {
+  font-family: 'Fraunces';
+  src: url('./fonts/Fraunces-Variable-Italic.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: italic;
+  font-display: block;
+}
+@font-face {
+  font-family: 'Geist';
+  src: url('./fonts/Geist-Variable.woff2') format('woff2');
+  font-weight: 100 900;
+  font-display: block;
+}
+@font-face {
+  font-family: 'Geist Mono';
+  src: url('./fonts/GeistMono-Variable.woff2') format('woff2');
+  font-weight: 100 900;
+  font-display: block;
+}
+
+:root {
+  /* CD-3 paper + ink */
+  --paper: #F0EEE9;
+  --paper-raised: #F7F5F1;
+  --paper-inset: #E7E4DD;
+  --rule: #D6D2C8;
+  --rule-strong: #B9B3A6;
+  --ink: #1A1815;
+  --ink-strong: #0E0D0B;
+  --ink-muted: #57534A;
+  --ink-subtle: #676257;
+  /* CD-4 signal */
+  --accent: #4338CA;
+  --accent-press: #322BA6;
+  --accent-wash: #ECEBF8;
+  /* CD-5 state hues (glyph + 2px left rule only; word is always --ink) */
+  --state-confirmed: #1C5C38;
+  --state-snapshot: #3D5A6C;
+  --state-access: #676257;
+  --state-attention: #7D5A1E;
+  --state-adverse: #7A1414;
+  /* CD-6 amendment: the one Ink chapter (warm graphite, not blue-black) */
+  --graphite: #161513;
+  --graphite-raised: #1E1C19;
+  --graphite-ink: #EDEAE3;
+  --graphite-ink-muted: #A9A395;
+  --graphite-rule: #35322C;
+
+  --font-display: 'Fraunces', ui-serif, Georgia, serif;
+  --font-text: 'Geist', system-ui, -apple-system, sans-serif;
+  --font-data: 'Geist Mono', ui-monospace, 'SF Mono', monospace;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { font-size: 16px; }
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-text);
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* CD-9 scale */
+.display-xl {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: clamp(2.75rem, 6vw, 4.5rem);
+  line-height: 1.02;
+  letter-spacing: -0.02em;
+  color: var(--ink-strong);
+  font-variation-settings: 'opsz' 144, 'SOFT' 0, 'WONK' 0;
+}
+.display-lg {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: clamp(2rem, 4vw, 3rem);
+  line-height: 1.08;
+  letter-spacing: -0.015em;
+  color: var(--ink-strong);
+  font-variation-settings: 'opsz' 96, 'SOFT' 0, 'WONK' 0;
+}
+.display-md {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 1.5rem;
+  line-height: 1.15;
+  font-variation-settings: 'opsz' 40, 'SOFT' 0, 'WONK' 0;
+}
+.accent-word { font-style: italic; color: var(--accent); font-weight: 480; }
+.title { font-weight: 600; font-size: 1.125rem; line-height: 1.3; }
+.body-lg { font-size: 1.0625rem; line-height: 1.6; max-width: 68ch; }
+.label { font-weight: 500; font-size: 0.8125rem; line-height: 1.4; }
+.data { font-family: var(--font-data); font-size: 0.8125rem; line-height: 1.5; font-variant-numeric: tabular-nums; }
+.eyebrow {
+  font-family: var(--font-data);
+  font-weight: 500;
+  font-size: 0.6875rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-subtle);
+}
+.muted { color: var(--ink-muted); }
+.subtle { color: var(--ink-subtle); }
+
+/* CD-5 stamps: 3px rectangles, never pills. Glyph carries hue; word is ink. */
+.stamp {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  font-family: var(--font-data);
+  font-size: 0.6875rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ink);
+  background: var(--paper-raised);
+  border: 1px solid var(--rule);
+  border-left-width: 2px;
+  border-radius: 3px;
+  padding: 0.25em 0.6em;
+  white-space: nowrap;
+}
+.stamp .glyph { font-size: 0.9em; }
+.stamp-confirmed { border-left-color: var(--state-confirmed); }
+.stamp-confirmed .glyph { color: var(--state-confirmed); }
+.stamp-snapshot { border-left-color: var(--state-snapshot); }
+.stamp-snapshot .glyph { color: var(--state-snapshot); }
+.stamp-access { border-left-color: var(--state-access); }
+.stamp-access .glyph { color: var(--state-access); }
+.stamp-attention { border-left-color: var(--state-attention); }
+.stamp-attention .glyph { color: var(--state-attention); }
+.stamp-notchecked { border-left-color: var(--rule-strong); }
+.stamp-notchecked .glyph { color: var(--ink-subtle); }
+
+/* Evidence artifact surface: CD-12/CD-14 — opaque paper, hairline, no shadow */
+.artifact {
+  background: var(--paper-raised);
+  border: 1px solid var(--rule);
+  border-top: 2px solid var(--ink-strong);
+  border-radius: 3px;
+}
+.artifact-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.8rem 1.1rem;
+  border-top: 1px solid var(--rule);
+}
+.artifact-row:first-child { border-top: none; }
+.artifact-head { padding: 0.9rem 1.1rem; border-bottom: 1px solid var(--rule); }
+.artifact-foot {
+  padding: 0.8rem 1.1rem;
+  border-top: 1px solid var(--rule);
+  background: var(--paper-inset);
+  font-size: 0.8125rem;
+  color: var(--ink-muted);
+  border-radius: 0 0 3px 3px;
+}
+
+/* CD-10 buttons: 10px radius, 44px min target */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  padding: 0 1.4rem;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  font-family: var(--font-text);
+  font-weight: 500;
+  font-size: 0.9375rem;
+  cursor: pointer;
+  text-decoration: none;
+  color: var(--ink);
+}
+.btn-primary { background: var(--ink-strong); color: var(--paper-raised); }
+.btn-accent { background: var(--accent); color: #fff; }
+.btn-quiet { border-color: var(--rule-strong); background: transparent; }
+.btn .arrow { font-family: var(--font-data); }
+
+.hairline { border: none; border-top: 1px solid var(--rule); }
+
+/* Illustrative labeling — program requirement */
+.illustrative {
+  font-family: var(--font-data);
+  font-size: 0.625rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-subtle);
+}
+
+/* Frame harness: each .frame is one full-viewport composition for capture */
+.frame { width: 100vw; min-height: 100vh; position: relative; overflow: hidden; }
+
+/* Shared chrome: glass nav (CD-12 — glass on chrome only) */
+.nav {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  right: 12px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.7rem 1.25rem;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--paper-raised) 60%, transparent);
+  backdrop-filter: blur(24px) saturate(1.5);
+  border: 1px solid color-mix(in srgb, var(--rule) 70%, transparent);
+  box-shadow: 0 8px 30px rgba(26, 24, 21, 0.07);
+}
+.nav .wordmark { font-family: var(--font-display); font-weight: 600; font-size: 1.2rem; color: var(--ink-strong); text-decoration: none; }
+.nav .links { display: flex; gap: 1.5rem; font-size: 0.875rem; color: var(--ink-muted); }
+.nav .links span { cursor: pointer; }
+.nav .cta-group { display: flex; gap: 0.6rem; align-items: center; }
+.nav .btn { min-height: 38px; padding: 0 1.1rem; font-size: 0.875rem; }
+
+@media (max-width: 640px) {
+  .nav .links { display: none; }
+}
