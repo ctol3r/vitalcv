@@ -3,6 +3,7 @@ import {
   validateVerificationArtifact,
 } from '@vitalcv/trust-state';
 import prisma from '../../graphql/prisma_client';
+import { HttpError } from '../../utils/httpError';
 import { capsuleEngine } from '../decision/capsuleEngine';
 import {
   buildCredentialHash,
@@ -60,12 +61,16 @@ function assertArtifactCompleteness(
   npi: string,
   artifacts: CanonicalArtifacts,
 ): void {
+  // An NPI with no artifacts has no bundle — that is absence, not a server
+  // fault. Typed as HttpError(404) so the route can map it by type. These were
+  // bare Errors, and the route's `message.includes('not found')` sniff did not
+  // match this wording, so every absent bundle surfaced as a 500.
   if (artifacts.credentialArtifacts.length === 0) {
-    throw new Error(`Audit bundle missing credential artifacts for ${npi}`);
+    throw new HttpError(404, `Audit bundle not found for ${npi}`);
   }
 
   if (artifacts.verificationArtifacts.length === 0) {
-    throw new Error(`Audit bundle missing verification artifacts for ${npi}`);
+    throw new HttpError(404, `Audit bundle not found for ${npi}`);
   }
 }
 
