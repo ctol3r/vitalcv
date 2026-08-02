@@ -227,18 +227,36 @@ test.describe('rendered doctrine', () => {
       await page.waitForTimeout(300);
 
       const found = await page.evaluate(() => {
+        const TERMS = ['constellation', 'force-graph', 'force-simulation', 'node-link'];
         const hits: string[] = [];
+
         // The mechanism, as it actually reaches a reader: an accessible name
         // or a class that says constellation/force-graph/node-link.
         for (const el of Array.from(document.querySelectorAll('canvas, svg, [class]'))) {
           const label = (el.getAttribute('aria-label') ?? '').toLowerCase();
           const cls = (el.getAttribute('class') ?? '').toLowerCase();
-          for (const term of ['constellation', 'force-graph', 'force-simulation', 'node-link']) {
+          for (const term of TERMS) {
             if (label.includes(term) || cls.includes(term)) {
               hits.push(`<${el.tagName.toLowerCase()}> ${term}`);
             }
           }
         }
+
+        // …and as it reaches a reader who never loads the page at all. The
+        // first version of this check read only elements, so when #1020
+        // deleted the constellation canvas it went green while
+        // /matcha/experience kept advertising "your career constellation" in
+        // its public meta description — a promise of a mechanism that no
+        // longer existed. Description copy outlives the thing it describes.
+        for (const meta of Array.from(document.querySelectorAll('meta[name], meta[property]'))) {
+          const name = (meta.getAttribute('name') ?? meta.getAttribute('property') ?? '').toLowerCase();
+          if (!/description|title/.test(name)) continue;
+          const content = (meta.getAttribute('content') ?? '').toLowerCase();
+          for (const term of TERMS) {
+            if (content.includes(term)) hits.push(`<meta ${name}> ${term}`);
+          }
+        }
+
         return [...new Set(hits)];
       });
 
