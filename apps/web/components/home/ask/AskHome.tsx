@@ -11,6 +11,7 @@
 import Link from 'next/link';
 import * as React from 'react';
 
+import { ExpandingEyebrow } from '@/components/home/ExpandingEyebrow';
 import { EvidenceInput } from '@/components/home/ask/EvidenceInput';
 import type { EvidenceInputState } from '@/components/home/ask/evidenceInputState';
 import { LiveNpiResult } from '@/components/home/LiveNpiResult';
@@ -338,7 +339,7 @@ export function AskHome() {
     >
       <section className="ask-stage" data-home-hero="" aria-labelledby="ask-title">
         <div className="ask-inner">
-          <p className="ask-eyebrow">For clinicians</p>
+          <ExpandingEyebrow label="For clinicians" detail="Start with one NPI." />
           <h1 id="ask-title" className="ask-title">
             Your career evidence, ready before your next job.
           </h1>

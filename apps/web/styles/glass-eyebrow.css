@@ -31,6 +31,87 @@
   margin-bottom: 1rem;
 }
 
+/*
+ * The hero's eyebrow is the one place where the editorial label is also a
+ * small control. It expands a non-essential orientation cue on pointer or
+ * keyboard intent; the cue is still rendered in the server document, and no
+ * evidence state or primary action depends on this motion.
+ */
+.ask-eyebrow--expandable {
+  gap: 0;
+  max-width: min(100%, 26rem);
+  transition:
+    background-color var(--vt-duration-interact) var(--vt-ease-system),
+    border-color var(--vt-duration-interact) var(--vt-ease-system),
+    box-shadow var(--vt-duration-interact) var(--vt-ease-system);
+}
+
+.ask-eyebrow--expandable:is(:hover, :focus-within, [data-expanded='true']) {
+  background: color-mix(in oklab, var(--vt-surface) 68%, transparent);
+  border-color: color-mix(in oklab, var(--vt-accent-editorial) 34%, var(--vt-border));
+  box-shadow: var(--vt-shadow-raised, var(--vt-glass-sheen));
+}
+
+.ask-eyebrow__trigger {
+  display: inline-flex;
+  min-height: 1.25rem;
+  align-items: center;
+  gap: 0.45rem;
+  border: 0;
+  padding: 0;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  cursor: pointer;
+}
+
+.ask-eyebrow__trigger:focus-visible {
+  outline: 2px solid var(--vt-focus-ring);
+  outline-offset: 4px;
+}
+
+.ask-eyebrow__cue {
+  color: var(--vt-accent-editorial);
+  font-size: 0.95rem;
+  line-height: 1;
+  transition: rotate var(--vt-duration-interact) var(--vt-ease-system);
+}
+
+.ask-eyebrow--expandable:is(:hover, :focus-within, [data-expanded='true']) .ask-eyebrow__cue {
+  rotate: 45deg;
+}
+
+.ask-eyebrow__detail {
+  display: inline-block;
+  max-width: 0;
+  margin-left: 0;
+  overflow: hidden;
+  color: var(--vt-text-secondary);
+  opacity: 0;
+  text-transform: none;
+  white-space: nowrap;
+  transition:
+    max-width var(--vt-duration-interact) var(--vt-ease-system),
+    margin-left var(--vt-duration-interact) var(--vt-ease-system),
+    opacity var(--vt-duration-interact) var(--vt-ease-system);
+}
+
+.ask-eyebrow--expandable:is(:hover, :focus-within, [data-expanded='true']) .ask-eyebrow__detail {
+  max-width: 16rem;
+  margin-left: 0.55rem;
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ask-eyebrow--expandable,
+  .ask-eyebrow__cue,
+  .ask-eyebrow__detail {
+    transition: none;
+  }
+}
+
 @media (prefers-reduced-transparency: reduce) {
   .ask-eyebrow,
   .ask-chapter-eyebrow,
