@@ -217,10 +217,24 @@ const RULES: Rule[] = [
     allow: (_f, line) => {
       const c = colorOf(line);
       if (!c) return true;
-      // `--vt-accent` and `--vt-accent-hover` are the ink action pair in the
-      // current system. The chromatic editorial signal is explicitly named;
-      // unprefixed --accent* tokens remain governed as editorial accents too.
-      const isAccent = /--(?:accent[a-z0-9-]*|vt-accent-editorial)\s*:/.test(line);
+      // Every accent token is governed as an accent — including bare
+      // `--vt-accent`.
+      //
+      // This previously read `--(?:accent[a-z0-9-]*|vt-accent-editorial)`, which
+      // did NOT match `--vt-accent`. That token was therefore governed by the
+      // INK arc (hue 30–110, warm), and the comment here recorded the reason:
+      // "`--vt-accent` and `--vt-accent-hover` are the ink action pair in the
+      // current system."
+      //
+      // That was the CD-2.5 failure in miniature. CD-4 says the accent is
+      // indigo and carries links, primary action, focus ring and the accent
+      // word. Shipping `--vt-accent: #1A1815` made every primary action ink,
+      // put the real indigo behind `--vt-accent-editorial` and inside the `.mz`
+      // island, and left the public surfaces monochrome — and this rule
+      // enforced that, so correcting the token would have failed CI as an "ink"
+      // violation. A gate defending retired doctrine makes the right fix look
+      // like a broken build.
+      const isAccent = /--(?:accent[a-z0-9-]*|vt-accent(?:-[a-z0-9-]+)?)\s*:/.test(line);
       if (c.C <= (isAccent ? 0.006 : 0.004)) return true;
       return isAccent ? c.H >= 255 && c.H <= 310 : c.H >= 30 && c.H <= 110;
     },

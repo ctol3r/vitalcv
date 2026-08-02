@@ -117,7 +117,9 @@ export default function Navbar() {
                 key={item.href}
                 href={item.href}
                 onClick={() => handleNavItemClick(item.label)}
-                className={`rounded-full px-3 py-1.5 text-sm font-medium transition ${
+                // CD-10 chrome is 10px, never a pill. CD-15 sets a 44px floor:
+                // `py-1.5` computed to 32px, so every nav control failed it.
+                className={`inline-flex items-center rounded-[10px] px-3 min-h-11 text-sm font-medium transition ${
                   active
                     ? 'bg-foreground/10 text-foreground'
                     : 'text-muted-foreground hover:bg-foreground/5 hover:text-foreground'
@@ -133,14 +135,14 @@ export default function Navbar() {
         <div className="hidden md:flex items-center gap-2 shrink-0">
           <Link
             href="/sign-in"
-            className="rounded-full border border-border px-4 py-1.5 text-sm font-medium text-muted-foreground hover:border-foreground/30 hover:text-foreground transition"
+            className="inline-flex items-center rounded-[10px] border border-border px-4 min-h-11 text-sm font-medium text-muted-foreground hover:border-foreground/30 hover:text-foreground transition"
           >
             Sign In
           </Link>
           <Link
             href="/passport"
             style={{ backgroundColor: 'var(--vt-accent)' }}
-            className="rounded-full px-4 py-1.5 text-sm font-semibold text-white hover:opacity-90 transition"
+            className="inline-flex items-center rounded-[10px] px-4 min-h-11 text-sm font-semibold text-white hover:opacity-90 transition"
           >
             Check Readiness
           </Link>

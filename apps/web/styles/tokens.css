@@ -42,10 +42,19 @@
      palette outranks the first. themes/index.css owns these tokens now.
      Kept below: the two font tokens and --vt-accent-hover, which
      themes/index.css does not declare. */
-  --vt-accent-hover: #0E0D0B;   /* ink-strong — --vt-accent is ink #1A1815, so its hover is deeper ink, not teal */
+  /* CD-4 — the pressed state of the indigo accent. This was #0E0D0B
+     ("ink-strong"), correct only while --vt-accent was itself ink. Left alone,
+     it turns every accent hover near-black the moment the accent becomes
+     indigo — a silent, ugly regression. */
+  --vt-accent-hover: #322BA6;
 
-  --vt-font-body: 'DM Sans', system-ui, sans-serif;
-  --vt-font-display: 'Instrument Serif', Georgia, serif;
+  /* CD-7 — these must name the faces this product actually loads. They read
+     'DM Sans' and 'Instrument Serif', neither of which is loaded anywhere in
+     the repo, and were saved only because app/layout.tsx re-declares both as
+     inline style on <html>, which outranks :root. Same silent-revert class as
+     the Nunito Sans default in design-system/tokens/typography.ts. */
+  --vt-font-body: var(--font-geist-loaded, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif);
+  --vt-font-display: var(--font-fraunces-loaded, Georgia, 'Times New Roman', serif);
 
   --vt-badge-checked-bg: #E8F5EE;
   --vt-badge-checked-text: #2E7D45;
