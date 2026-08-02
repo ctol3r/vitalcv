@@ -71,6 +71,43 @@ Written into [`AGENTS.md`](../../AGENTS.md) and pointed to from the SOP:
    `main` absorbed other merges may be superseded rather than merely conflicted.
    Classify every file LANDED / UNIQUE / CONFLICTED-STALE against current `main`.
 
+## Codex triage of its own three stale PRs
+
+Run read-only via `codex exec` against `ed1f523b1`, then spot-checked by the
+Claude lane (four claims re-read directly on `main`; all four confirmed). This
+supersedes the "Keep — active" rows for #968/#970/#971 in
+`open-pr-disposition-2026-08-02.md`, which snapshotted at 14:55 UTC — before the
+15:00–16:18 UTC merge wave that dirtied them.
+
+| PR | Verdict | Reason |
+|---|---|---|
+| #968 `codex/light-only-web` | **RE-CUT** | All-light cleanup is still needed, but #966/#1014/#999 rewrote its token and board CSS underneath it. Merging as-is would overwrite CD-W1/CD-W2 token work and revive a state-color-as-primary-action treatment settled away by #1014. |
+| #970 `codex/public-opportunity-board-r1` | **SUPERSEDED — close** | #999 (`b4c7e2c98`) shipped the `/explore` board; #1005 (`26a06cca5`) replaced its search path with Postgres FTS. Merging would swap the landed ruled-list board for a second card-grid implementation. |
+| #971 `codex/ci-required-checks` | **RE-CUT** | #1035 (`9aeb86e7f`) already runs Jest against ephemeral Postgres. The unique remainder is that `apps/api/backend/package.json` still invokes `runQaSuite.ts` inside `build` rather than as an explicit post-migration `qa:ci` step. |
+
+Smallest next actions, each its own small PR off current `main`:
+
+- **#968** → all-light enabler touching exactly `apps/web/app/providers.tsx`,
+  `components/ui/ThemeToggle.tsx`, `components/marketing/Hero.tsx`,
+  `components/sandbox/SandboxApp.tsx`, `app/globals.css`,
+  `styles/themes/index.css`, `styles/vitalTokens.css`. Confirmed still live on
+  `main`: `Hero.tsx:21` and `SandboxApp.tsx:67` both call
+  `document.documentElement.classList.add('dark')`. Run `check-design-lint`
+  after re-cut rather than assuming it passes — the gate is deliberately not
+  path-filtered and the branch adds raw-color rules.
+- **#970** → close. If Clerk-unavailable anonymous browsing reproduces, a
+  separate two-file fix for `app/api/opportunities/route.ts` and
+  `lib/server/marketplace-proxy.ts` carries the only surviving behavior.
+- **#971** → QA-only change in `.github/workflows/ci-preflight.yml`,
+  `apps/api/backend/package.json`, `apps/api/package.json`,
+  `docs/ops/backend-test-quarantine.md`. Do **not** carry forward the
+  `activation.test.ts` change that globally disables `VERIFIER_RBAC_MODE`; it
+  weakens enforce-mode coverage.
+
+The triage also surfaced a fourth collision this document had missed: **#971's
+four ResidencyProgram / `hospitalAffiliation` Prisma-field repairs versus
+#1022** (`a51051a83`) — the same fix landed through the other lane.
+
 ## Why `AGENTS.md` did not exist before
 
 Codex reads `AGENTS.md` from the repository root; Claude Code reads `CLAUDE.md`.

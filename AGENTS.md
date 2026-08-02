@@ -65,6 +65,7 @@ They have repeatedly built the same directive twice. Before you build anything:
 | Four P0 truth-containment fixes (directory, providers, passport identity, public `no-store`) | `fix/p0-*` → #989, #990, #991, #993, all merged | `codex/p0-*`, four branches pushed 2026-07-29, **no PR ever opened** | Codex work built and abandoned; total waste |
 | Public opportunities board | `wave/explore-board` → #999, merged | `codex/public-opportunity-board-r1` → #970, open since 2026-07-29, DIRTY | Two independent implementations |
 | Home hero eyebrow (glass chrome) | `fix/palantir-transparent-eyebrow` → #985, open, DIRTY | `codex/home-expandable-eyebrow` → #1039, merged | Same surface, both lanes; #985 now conflicts with the merged result |
+| ResidencyProgram / `hospitalAffiliation` Prisma-field repair | `fix/prisma-field-names-residency` → #1022, merged | bundled inside `codex/ci-required-checks` → #971, open | Same repair, two lanes |
 
 Rule that would have prevented all three: **claim-check the intent against
 `gh pr list` (open *and* merged) before building, and open a PR as soon as the
