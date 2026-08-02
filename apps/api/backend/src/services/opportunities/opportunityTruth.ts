@@ -1156,6 +1156,76 @@ function buildCandidateCredentialRecord(raw: unknown): CandidateCredentialRecord
   };
 }
 
+/**
+ * NPPES identity lookup, cached per NPI for a few minutes.
+ *
+ * The public board resolves the viewer's profile on EVERY request, and the
+ * board refetches on every filter change — so without this, one signed-in
+ * clinician adjusting filters issued an external call each time, each able to
+ * block for the full 6s timeout before the page could render.
+ *
+ * Only the registry response is cached. The clinician's own credentials are
+ * read from the database on every call, so adding a licence is reflected
+ * immediately rather than sitting behind a TTL — a readiness answer must never
+ * be stale in the direction of "you still don't qualify".
+ *
+ * A failure is NOT cached: an outage should recover on the next request, not
+ * persist for the TTL.
+ */
+const NPPES_CACHE_TTL_MS = 5 * 60 * 1000;
+const nppesIdentityCache = new Map<string, {
+  expiresAt: number;
+  value: { specialty: string | null; stateOfPractice: string | null };
+}>();
+
+async function fetchNppesIdentity(npi: string): Promise<{
+  specialty: string | null;
+  stateOfPractice: string | null;
+}> {
+  const now = Date.now();
+  const cached = nppesIdentityCache.get(npi);
+  if (cached && cached.expiresAt > now) {
+    return cached.value;
+  }
+
+  const empty = { specialty: null, stateOfPractice: null };
+
+  try {
+    const response = await fetch(
+      `https://npiregistry.cms.hhs.gov/api/?number=${npi}&version=2.1`,
+      { signal: AbortSignal.timeout(6_000) },
+    );
+    if (!response.ok) {
+      return empty;
+    }
+
+    const payload = await response.json() as NppesResponse;
+    const result = payload.results?.[0];
+    const taxonomy = result?.taxonomies?.find((entry) => entry.primary) ?? result?.taxonomies?.[0];
+    const location = result?.addresses?.find((entry) => entry.address_purpose === 'LOCATION') ?? result?.addresses?.[0];
+
+    const value = {
+      specialty: asString(taxonomy?.desc),
+      stateOfPractice: asString(location?.state) ?? asString(taxonomy?.state),
+    };
+
+    // Bound the map so a long-lived process cannot grow one entry per NPI seen.
+    if (nppesIdentityCache.size > 5_000) {
+      nppesIdentityCache.clear();
+    }
+    nppesIdentityCache.set(npi, { expiresAt: now + NPPES_CACHE_TTL_MS, value });
+    return value;
+  } catch {
+    // Best effort only; the caller keeps its local profile values.
+    return empty;
+  }
+}
+
+/** Test seam — the cache is process-wide and would otherwise leak between cases. */
+export function __resetNppesIdentityCache(): void {
+  nppesIdentityCache.clear();
+}
+
 export async function buildClinicianOpportunityProfile(input: {
   npi: string;
 }): Promise<ClinicianOpportunityProfile | null> {
@@ -1187,23 +1257,9 @@ export async function buildClinicianOpportunityProfile(input: {
   let stateOfPractice = personProfile?.stateOfPractice ?? null;
   const states = new Set<string>();
 
-  const nppesUrl = `https://npiregistry.cms.hhs.gov/api/?number=${npi}&version=2.1`;
-  try {
-    const response = await fetch(nppesUrl, {
-      signal: AbortSignal.timeout(6_000),
-    });
-    if (response.ok) {
-      const payload = await response.json() as NppesResponse;
-      const result = payload.results?.[0];
-      const taxonomy = result?.taxonomies?.find((entry) => entry.primary) ?? result?.taxonomies?.[0];
-      const location = result?.addresses?.find((entry) => entry.address_purpose === 'LOCATION') ?? result?.addresses?.[0];
-
-      specialty = specialty ?? asString(taxonomy?.desc);
-      stateOfPractice = stateOfPractice ?? asString(location?.state) ?? asString(taxonomy?.state);
-    }
-  } catch {
-    // Best effort only; keep local profile values if the registry is unavailable.
-  }
+  const nppes = await fetchNppesIdentity(npi);
+  specialty = specialty ?? nppes.specialty;
+  stateOfPractice = stateOfPractice ?? nppes.stateOfPractice;
 
   if (stateOfPractice) {
     states.add(stateOfPractice);
