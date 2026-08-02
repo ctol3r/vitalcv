@@ -1,18 +1,9 @@
 import type { Metadata } from 'next';
 
-import { AskHome } from '@/components/home/ask/AskHome';
-import { CinematicEvidenceField } from '@/components/home/cinematic/CinematicEvidenceField';
+import { HorizontalCareerFilm } from '@/components/home/film/HorizontalCareerFilm';
 import '@/styles/motion.css';
-import '@/styles/artifact-motion.css';
-import '@/styles/home-surfaces.css';
-import '@/styles/ask-home.css';
-// After ask-home.css: the evidence capsule raises the field from that file's
-// ruled underline, so it must win on equal specificity.
-import '@/styles/evidence-input.css';
-import '@/styles/evidence-capsule.css';
-import '@/styles/spine-tabs.css';
 import '@/styles/glass-eyebrow.css';
-import '@/styles/cinematic-home.css';
+import '@/styles/compete-film.css';
 
 const TAGLINE = 'VitalCV — Your career evidence, ready before your next job.';
 const DESCRIPTION =
@@ -61,14 +52,14 @@ const STRUCTURED_DATA = {
 };
 
 /**
- * The homepage has two jobs and no competing composition:
+ * The homepage is one source-honest evidence film:
  *
- * 1. Let a clinician act immediately through the NPI-first Ask.
- * 2. Let a reader who does not type operate the same product argument in one
- *    four-step pane: NPI → source evidence → chosen packet → hospital review.
+ * 1. Let a clinician act immediately through the NPI-first opening pane.
+ * 2. Carry the same evidence story through native scroll rather than a static
+ *    stack of sections.
  *
- * The cinematic evidence field is decorative and source-honest. AskHome still
- * owns every action, truth state, accessible explanation and conversion path.
+ * The film has one passive scroll owner and a complete vertical fallback for
+ * no-JavaScript, reduced-motion, touch, and narrow viewports.
  */
 export default function HomePage() {
   return (
@@ -77,8 +68,7 @@ export default function HomePage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(STRUCTURED_DATA) }}
       />
-      <CinematicEvidenceField />
-      <AskHome />
+      <HorizontalCareerFilm />
     </>
   );
 }

@@ -16,6 +16,7 @@ import { FilmSignature } from './FilmSignature';
 import { FILM_SCENES, sceneAt } from './scenes';
 import { useFilmProgress } from './useFilmProgress';
 import { SOURCE_LANE_OPS } from '@/lib/trust/sourceLanes';
+import { ExpandingEyebrow } from '@/components/home/ExpandingEyebrow';
 
 /**
  * HorizontalCareerFilm (COMPETE-1).
@@ -136,6 +137,7 @@ export function HorizontalCareerFilm() {
   const runwayRef = React.useRef<HTMLDivElement | null>(null);
   const arrivalRef = React.useRef<HTMLElement | null>(null);
   const stageRef = React.useRef<HTMLDivElement | null>(null);
+  const npiInputRef = React.useRef<HTMLInputElement | null>(null);
   const tier = useSceneTier();
 
   /**
@@ -173,14 +175,18 @@ export function HorizontalCareerFilm() {
     };
   }, []);
 
-  // Reduced motion resolves to the 'static' tier, which is also the signal to
-  // stop driving the film — one condition, not two that can disagree.
-  const { progress, eligible, ready } = useFilmProgress(runwayRef, tier !== 'static');
-
   const [pointer, setPointer] = React.useState<{ x: number; y: number } | null>(null);
   const [raw, setRaw] = React.useState('');
   const [error, setError] = React.useState<string | null>(null);
   const [submittedNpi, setSubmittedNpi] = React.useState<string | null>(null);
+
+  // The evidence film is a marketing explanation, not a container for a
+  // returned clinician record. Once someone submits an NPI, release the sticky
+  // stage into the complete vertical composition so their real answer is never
+  // clipped by a pane or stranded below the fold. Resetting re-enables the
+  // film; the normal first-frame story then continues to use its one driver.
+  const filmEnabled = tier !== 'static' && submittedNpi === null;
+  const { progress, eligible, ready } = useFilmProgress(runwayRef, filmEnabled);
 
   // The funnel's denominator.
   React.useEffect(() => {
@@ -188,7 +194,7 @@ export function HorizontalCareerFilm() {
   }, []);
 
   // Layout mode follows ELIGIBILITY, never `pinned` — see useFilmProgress.
-  const isFilm = ready && eligible && tier !== 'static';
+  const isFilm = ready && eligible && filmEnabled;
   const { index, local } = sceneAt(progress);
 
   const onPointerMove = React.useCallback((event: React.PointerEvent<HTMLDivElement>) => {
@@ -253,7 +259,14 @@ export function HorizontalCareerFilm() {
   React.useEffect(() => {
     const had = previousNpi.current;
     previousNpi.current = submittedNpi;
-    if (had && !submittedNpi) scrollToScene(0, arrivalRef);
+    if (had && !submittedNpi) {
+      scrollToScene(0, arrivalRef);
+      // Reset restores the question, so it must restore the keyboard position
+      // too. The input remounts in the same render; defer one frame until its
+      // ref is available rather than leaving focus on the reset control.
+      const frame = window.requestAnimationFrame(() => npiInputRef.current?.focus());
+      return () => window.cancelAnimationFrame(frame);
+    }
   }, [submittedNpi, scrollToScene]);
 
   const handleSubmit = React.useCallback(() => {
@@ -278,10 +291,6 @@ export function HorizontalCareerFilm() {
       data-film-mode={isFilm ? 'film' : 'vertical'}
       data-film-tier={tier}
     >
-      {/* Route-scoped paper. Cloud Dancer is the unifying field; it unmounts
-          with the route so no other surface inherits it. */}
-      <style>{'body{background:var(--vt-cloud-dancer,#F0EEE9)}'}</style>
-
       {/* Runway height scales with the scene count so travel stays one
           viewport per transition. Inline rather than in CSS precisely so it
           cannot drift out of sync when a scene is added or removed. */}
@@ -351,6 +360,12 @@ export function HorizontalCareerFilm() {
                   aria-label={scene.label}
                 >
                   <div className="film-copy">
+                    {scene.id === 'arrival' ? (
+                      <ExpandingEyebrow
+                        label="For clinicians"
+                        detail="Scroll to move through the evidence."
+                      />
+                    ) : null}
                     {/* The opening phrase is the page's H1. Every scene rendering
                         an <h2> left the homepage with NO top-level heading at
                         all — a document-outline and SEO regression against the
@@ -378,12 +393,13 @@ export function HorizontalCareerFilm() {
                         }}
                       >
                         <label htmlFor="film-npi-input" className="film-npi-label">
-                          Start with your NPI
+                          Your 10-digit NPI
                         </label>
                         {/* A designed object inside the scene — a ruled line on
                             paper, not a boxed form card beside a visual. */}
                         <div className="film-npi-row">
                           <input
+                            ref={npiInputRef}
                             id="film-npi-input"
                             className="film-npi-input"
                             type="text"

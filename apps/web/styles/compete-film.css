@@ -167,6 +167,24 @@
   );
 }
 
+/* The opening control is chrome, never evidence: a transparent reading cue
+   that opens on click or focus while native vertical scroll moves the film's
+   panes. Keeping it on the opening frame preserves one primary action. */
+.film .ask-eyebrow--expandable {
+  margin: 0 0 1.5rem;
+  background: color-mix(in oklab, var(--film-paper) 18%, transparent);
+  border-color: color-mix(in oklab, var(--film-ink) 18%, transparent);
+  box-shadow: none;
+}
+
+.film .ask-eyebrow--expandable:hover,
+.film .ask-eyebrow--expandable:focus-within,
+.film .ask-eyebrow--expandable[data-expanded='true'] {
+  background: color-mix(in oklab, var(--film-paper) 42%, transparent);
+  border-color: color-mix(in oklab, var(--vt-accent-editorial) 40%, var(--vt-border));
+  box-shadow: var(--vt-glass-sheen);
+}
+
 /* The bleed is film-only: it carries the scrim off the left edge of the
    viewport so there is no vertical seam beside the headline. In vertical mode
    the gutter is only 1.5rem, so the same offset would push copy off-screen. */
@@ -271,6 +289,7 @@
 
 .film-npi-submit {
   flex: 0 0 auto;
+  min-height: 44px;
   margin-bottom: 0.35rem;
   padding: 0.65rem 1.25rem;
   border: 0;
