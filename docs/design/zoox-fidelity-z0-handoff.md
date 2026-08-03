@@ -9,26 +9,26 @@ Z0 PR:              (draft — see issue #1069 for the link)
 ISSUE:              #1069  VitalCV Zoox-fidelity cinematic experience
 ```
 
-## Measurement passes
+## Measurement passes — COMPLETE
 
-**COMPLETED AND SYNTHESISED:** Pass 2 — mobile 390x844 (`/`, `/how-to-ride`)
-plus desktop `/community` and `/support`. Written into
-`zoox-fidelity-measurement.md` at commit `504012f7b`.
+Both synthesised into `zoox-fidelity-measurement.md`. **No measurement work is
+outstanding. Do not re-measure Zoox.**
 
-**DISPATCHED, RESULTS NOT YET INCORPORATED:**
-1. Desktop 1440×900 — `zoox.com/`, `/how-to-ride`, `/where-to-ride`,
-   `/know-your-ride`. Brief: nav rest/scrolled geometry, sticky ranges,
-   horizontal rails, clip/mask reveals, button + icon hover choreography,
-   surface transitions, measured radii, reduced-motion handling.
-2. Mobile 390×844 — `zoox.com/`, `/how-to-ride`; plus desktop `/community`,
-   `/support`. Brief: nav overlay behaviour, which sticky elements survive at
-   390px, whether rails stack, media switching (`srcset`/`currentSrc`), type
-   scale, sub-44px touch targets, page height in viewport multiples.
+- **Pass 1** — desktop 1440x900: `/`, `/how-to-ride`, `/where-to-ride`,
+  `/know-your-ride`.
+- **Pass 2** — mobile 390x844: `/`, `/how-to-ride`; plus desktop `/community`,
+  `/support`.
 
-**COMPLETED AND SYNTHESISED:** Pass 1 — desktop 1440x900, all four routes.
-Written into `zoox-fidelity-measurement.md`. **Both passes are now in the
-repository; no measurement work is outstanding.** If the passes are gone, re-dispatch with the same
-briefs — they are reproduced in full in the issue thread and above.
+### The five durable conclusions
+
+1. Horizontal scroll-linked translation **is present** on current live Zoox
+   (up to 1,800px / 125vw, three of four routes).
+2. Product pinning is achieved visually through **fixed + spacer** — a
+   reference implementation detail, **not** a mandate.
+3. Mobile uses **genuine recomposition** (separate component and media paths).
+4. **Reduced-motion support is absent in the reference and must not be copied.**
+5. **Horizontal motion remains available to VitalCV** when it explains the
+   product. No founder decision outstanding.
 
 ## Files
 
@@ -64,26 +64,29 @@ outstanding piece of Z0.
 - Restraint is the mechanism: a 12.6-viewport effect from almost no scroll
   machinery
 
-## Unresolved reference questions
+## Settled decisions — do not reopen
 
-1. **Does scroll-linked / horizontal movement exist on current Zoox?**
-   **RESOLVED: YES — it exists and is extensive.** Up to 1,800px (125vw) of
-   scroll-scrubbed horizontal translation on three of four routes. My earlier
-   "no horizontal rails" was wrong in substance, not only in epistemics. Prior
-   status was — an earlier revision wrongly wrote "resolved: no". The
-   method sampled section-level transforms at six depths and found none; that
-   does not establish absence. Portrait scrub canvases measured at 390 are
-   themselves evidence of scroll-linked media progression outside that method.
-   **VitalCV's horizontal evidence rails STAY**, justified by VitalCV's own
-   product story (formation, inspection, permission, handoff) — not by a
-   reference inventory match. No founder decision is outstanding on this.
-2. ~~Media radii unanchored?~~ **RESOLVED.** Measured ladder: media 36px ·
-   buttons/cards 16px · nav capsule 18px · qualifier tag 12px · media frames
-   0px. Radius is a **clip variable**, not a border property.
-3. Button/icon hover choreography — **captured** on the desktop secondary
-   routes (two-arrow relay, 30px out / 20px in, 334ms in / 500ms out).
-4. Whether interior media on `/how-to-ride` is scroll-scrubbed — **partially**:
-   portrait scrub canvases confirmed at 390. Desktop scrub timing awaits Pass 1.
+- **Horizontal movement: APPROVED**, gated on a four-purpose test — FORMATION
+  (fragments converge) · INSPECTION (record moves beneath a stable lens) ·
+  PERMISSION (subset separates) · HANDOFF (subset crosses to the recipient).
+  Never horizontal movement merely because Zoox has it. Motion expressed
+  **proportionally** (fraction of own width / media height / one icon-box).
+- **No next-frame evidence preview.** The 8–14vw peek-ahead is removed. Each
+  evidence state fully arrives, stabilises, reads, then transitions. A
+  half-visible evidence record is an unreadable claim.
+- **Keep VitalCV's sticky-stage architecture.** Do not rewrite it to fixed +
+  spacer for code-level similarity. Target perceptual parity only.
+- **Radius findings are MEDIA heuristics, not doctrine.** Radius may decrease
+  as a cinematic frame expands; in two-up media, radius may equal the gap; clip
+  geometry may carry the roundness. **Do not apply these to factual evidence
+  surfaces.** Preserve: evidence facts 0–3px · controls 10px · nav chrome
+  12–24px · media apertures ~24–56px · consent seal circular.
+- **Reduced motion belongs in the DRIVER.** Any JS mapping scroll progress into
+  transform, clip, scale, canvas frame or video time must check the preference
+  **before publishing per-frame values** — CSS alone is not an acceptable
+  fallback when JS continuously writes the property. Render the **settled,
+  complete** state, never the closed start state. Respond to preference changes
+  while the page is open.
 
 ## Storyboard status by scene
 
@@ -131,10 +134,8 @@ git fetch origin && git checkout design/zoox-fidelity-z0 && git pull --rebase
    them.** Label every behaviour `CURRENT LIVE — MEASURED` / `CURRENT LIVE —
    OBSERVED` / `HISTORICAL EXPERIENCE — DOCUMENTED` / `HISTORICAL EXPERIENCE —
    INFERRED` / `NOT CONFIRMED`.
-3. Improve movement detection only where still inconclusive (the major question
-   is now answered; residual gaps are the `/know-your-ride` tab-switch timing
-   and mobile-vs-desktop nav being a genuine component swap).
-   *Original method note retained:* At
+3. **STOP RESEARCHING ZOOX.** Measurement is accepted as complete.
+   *(Method note retained only for reference:* At
    each sample inspect *all visible descendants* — not just sections — for
    bounding-box movement relative to the viewport, transform matrices, opacity,
    clip-path, mask properties, sticky/fixed state, canvas presence and size,

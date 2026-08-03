@@ -13,19 +13,32 @@ program.
 harvest. **This document does not repeat it.** The atlas's own stated gaps are
 precisely what a cinematic program needs, and they are what Z0 exists to fill:
 
-| Atlas field | Atlas result | Z0 obligation |
-| --- | --- | --- |
-| SLIDING ELEMENTS | *"Not observed"* — 0 transformed sections at six scroll depths | Measure whether horizontal travel exists at all, and if so its distance, driver and easing |
-| BUTTON / ICON INTERACTIONS | *"Not observed — requires pointer choreography"* | Hover a primary button and an icon; record distance, duration, easing, finite vs looping |
-| MOBILE RECOMPOSITION | *"Not observed"* | Full 390×844 pass: nav overlay, which sticky elements survive, whether rails stack, media switching, type scale, touch targets |
-| Media radii | not captured | Measured radii on media containers, scene frames, buttons, nav chrome — Z1 defines a 24–56px aperture hierarchy and it must be anchored to real numbers |
-| REDUCED MOTION | *"0 blocks, 0 sheets blocked"* | Confirm or correct |
+**Z0 MEASUREMENT IS COMPLETE.** Both passes are synthesised below. Every atlas
+gap listed here has been closed, and three atlas statements are **SUPERSEDED**:
 
-Atlas findings that already stand and are **not** re-litigated: one shared
-stylesheet ~3,338–3,532 rules; 9–13 `@keyframes`; exactly one `scroll-snap`
-rule sitewide; **exactly one sticky element per page**; nav fixed at 51px and
-transparent at every sampled scroll depth; home autoplays, interior pages do
+| Atlas statement | Status | Replaced by |
+| --- | --- | --- |
+| *"SLIDING ELEMENTS: not observed"* | **SUPERSEDED — WRONG** | Horizontal scroll-linked translation is present on 3 of 4 routes, up to 1,800px (125vw). See Pass 1 |
+| *"exactly one sticky element per page"* | **SUPERSEDED — ARTEFACT** | The only `position: sticky` node on any route is a 0×0 element in the consent-manager shadow host. Zoox uses **zero sticky for product layout**; pinning is `fixed` + tall spacer |
+| *"BUTTON / ICON INTERACTIONS: not observed"* | **CLOSED** | Measured: 334ms arrow travel of 100% own box; 500ms duplicate-slide icon swap. See Pass 1 P6/P7 |
+| *"MOBILE RECOMPOSITION: not observed"* | **CLOSED** | Total recomposition — separate component trees. See Pass 2 |
+| Media radii not captured | **CLOSED** | Full census, plus two radius laws. See Pass 1 P10 |
+| *"0 reduced-motion blocks"* | **CONFIRMED, and strengthened** | 0 in CSS **and** 0 in JS; verified behaviourally pixel-for-pixel |
+
+Atlas findings that still stand: one shared stylesheet ~3,338–3,532 rules;
+9–13 `@keyframes`; one `scroll-snap` rule sitewide (unused by the rails); nav
+fixed and transparent at every sampled depth; home autoplays, interior pages do
 not; single type family; zero metrics or proof furniture anywhere.
+
+## The five durable conclusions
+
+1. **Horizontal scroll-linked translation is present on current live Zoox.**
+2. **Product pinning is achieved visually through fixed positioning plus a
+   spacer** — a reference implementation detail, *not* a mandate for VitalCV.
+3. **Mobile uses genuine recomposition** — separate component and media paths.
+4. **Reduced-motion support is absent in the reference and must not be copied.**
+5. **Horizontal motion remains available to VitalCV** when it explains the
+   product. No founder decision is outstanding on this.
 
 The single most useful thing the atlas already establishes: **restraint is the
 mechanism.** One sticky element and ~9 keyframes produce a 12.6-viewport
@@ -52,34 +65,21 @@ range checks, scripted scroll sampling. Nothing eyeballed.
 JS-driven tweens (overlay clip, button reveals, accordion height) are marked
 **OBSERVED BUT NOT PRECISELY MEASURABLE** rather than guessed.
 
-### CORRECTED 2026-08-03 — an over-claim, and what the evidence actually supports
+### CORRECTED 2026-08-03 — an over-claim, and how it resolved
 
-An earlier revision of this document asserted **"Zoox has NO horizontal rails,
-at any width, on any route."** That was wrong, and it is corrected here rather
-than quietly edited, because a fresh session would otherwise act on it.
+An earlier revision asserted **"Zoox has NO horizontal rails, at any width, on
+any route."** That was wrong, and the desktop pass has since refuted it
+positively: **up to 1,800px (125vw) of scroll-scrubbed horizontal translation
+on three of four routes.**
 
-**What the measurement supports:**
-
-> No `overflow-x: auto|scroll` container whose `scrollWidth` exceeded its
-> `clientWidth` was found, and no scroll-snap container was found, at the
-> sampled viewports and the sampled scroll positions.
-
-**What it does NOT support:**
-
-> Zoox contains no horizontal movement.
-> Zoox contains no scroll-linked visual choreography.
-
-Those are different claims, and only the first was measured. Perceived movement
-can arise through routes this method never inspected: nested descendants rather
-than sampled sections · WebGL or canvas rendering · video or image-sequence
-progression · clip-path and mask animation · opacity and state replacement ·
-sticky positioning · transforms occurring *between* sample points ·
-interaction-triggered states · browser animations invisible to a computed-style
-snapshot. Note that this same pass separately measured portrait **scrub
-canvases** at 390 — which is scroll-linked media progression, and is itself
-evidence that choreography exists outside the transform-sampling method.
-
-The honest status is **NOT CONFIRMED**, not "absent".
+The error is recorded rather than deleted because the reasoning failure is
+reusable: a null result from one detection method (section-level transform
+sampling at six depths) was converted into a claim about the world. Movement
+can arise through nested descendants, WebGL or canvas, video and image-sequence
+progression, clip-path and masks, opacity state replacement, sticky
+positioning, transforms *between* sample points, and interaction-triggered
+states — none of which that method inspects. **A null result from one method is
+not absence.**
 
 ### Two references, never blended
 
@@ -98,21 +98,55 @@ Reference B is evidence about the historical award-winning experience. It is
 **not** automatic proof of what the 2026 production site does, and it must not
 be cited as though it were.
 
-### What this means for VitalCV's horizontal rails — SETTLED, they stay
+### VitalCV's horizontal movement — APPROVED, with a four-purpose test
 
-The rails are **not** removed because a measurement failed to find the same
-device on someone else's site. The governing principle:
+> The document scrolls vertically. Individual media, evidence layers, record
+> states, and navigation elements may travel horizontally **inside a scene**.
 
-> The page remains vertically navigated. Internal evidence media may move
-> horizontally when that movement clearly explains **formation, inspection,
-> permission, or handoff.**
+Horizontal movement must explain exactly one of four things, or it does not
+ship:
 
-Each rail must earn its place from VitalCV's own product story — source
-fragments converging · the record progressing through states · selected
-evidence separating · the recipient packet arriving · the next frame staying
-partially visible. The target is Zoox-level visual storytelling and coherence,
-**not a literal inventory match** in which VitalCV may only use an interaction
-that Zoox also uses.
+| Purpose | What travels |
+| --- | --- |
+| **FORMATION** | Source fragments converge into the record |
+| **INSPECTION** | The record moves beneath a stable review lens |
+| **PERMISSION** | The travelling subset separates from held evidence |
+| **HANDOFF** | The permitted subset crosses into the recipient frame |
+
+**No horizontal movement merely because Zoox uses horizontal movement.**
+
+Motion is expressed **proportionally**, never as arbitrary pixels — travel as a
+fraction of the moving object's own width; parallax as a fraction of media
+height; control-icon exchange as exactly one icon-box width. This is measured
+Zoox discipline (gallery halves travel exactly 50% of their own width; parallax
+is 9.1% of element height everywhere) and it is what survives responsive
+resizing without a token per breakpoint.
+
+### FOUNDER DECISION — no next-frame evidence preview
+
+**The proposed 8–14vw preview of the next evidence frame is REMOVED.** Zoox's
+measured completion-first behaviour is the right answer here, for a
+VitalCV-specific reason: a half-visible media image creates curiosity, but **a
+half-visible evidence record creates an unreadable claim** and implies
+incomplete information.
+
+Each evidence state must fully arrive, become stable and legible, communicate
+its meaning, and only then transition.
+
+Momentum is carried instead by: chapter-label movement · a neutral progress
+hairline · aperture sequencing · the current object beginning its exit · masks
+and clipping · source fragments converging · a recipient frame entering *after*
+the record settles.
+
+### Sticky vs fixed — do NOT rewrite the working system
+
+Zoox's `fixed` + tall spacer is a reference implementation detail. **VitalCV's
+existing sticky-stage architecture is preserved** unless a visual prototype
+demonstrates it cannot produce the selected behaviour. The target is
+*perceptual* parity: the scene appears pinned · the object progresses with
+vertical scroll · the browser retains native scrolling · no horizontal overflow
+· reduced motion can bypass the driver · mobile can stack the frames. Prefer
+the simplest robust implementation that produces that result.
 
 ### What was measured, stated at its true strength
 
@@ -366,25 +400,18 @@ than one that opens instantly.
   0s` — either a **linear 334ms tween** (nav) or a **critically-damped
   exponential lerp, τ ≈ 175ms, ~95% at 520ms, ~99.9% at 630ms** (menu, hero).
 
-Nothing overshoots. Nothing loops. Two measurement passes were dispatched (desktop across
-`/`, `/how-to-ride`, `/where-to-ride`, `/know-your-ride`; mobile 390×844 plus
-`/community` and `/support` on desktop), instructed to measure via
-`getComputedStyle` and scroll sampling rather than by eye. **Their results are
-not yet synthesised into this document.**
+Nothing overshoots. Nothing loops.
 
-Per-interaction records will use the full field set:
+---
 
-```
-REFERENCE ROUTE / VIEWPORT / INTERACTION / USER PURPOSE / TRIGGER /
-INITIAL STATE / ACTIVE STATE / FINAL STATE / ELEMENT WIDTH / ELEMENT HEIGHT /
-BORDER RADIUS / TRANSLATION / SCALE / OPACITY / DURATION / EASING /
-STICKY OFFSET / STICKY DISTANCE / NEXT-ELEMENT PREVIEW /
-MOBILE RECOMPOSITION / LOW-MOTION RESULT / VITALCV TRANSLATION /
-DETAILS NOT COPIED / CONFIDENCE
-```
+## Measurement status: COMPLETE
 
-See `zoox-fidelity-z0-handoff.md` for exactly what is outstanding and how to
-resume.
+Both passes are synthesised above. No measurement work is outstanding. Residual
+items, recorded honestly and deliberately not chased — they do not gate the
+storyboard: `/know-your-ride` tab-switch choreography was not timed; desktop
+scrub-canvas frame timing was not captured under rAF throttling; home page
+height varies 8.6k–13.6k px with media load (9,536px / 10.6vp is a settled
+load).
 
 ## Reference-to-product matrix
 
@@ -397,8 +424,8 @@ pending the measurement passes and are marked as such rather than invented.**
 | Full-width menu expansion | Edge-to-edge surface reads as the bar unfolding, not a dropdown | Global nav | Shipped; Z3 adds group crossfade + featured preview | None | Low — opacity/height only |
 | Group switching | One panel, contents swap | Nav panel | Crossfade between group contents; never two panels | None | Low |
 | Product-dominated hero | The object is the argument | Hero | Living Evidence Record at 55–75vw with the NPI field embedded in it | **Medium** — typing must never assert a source result | Low |
-| Sticky media chapter | One idea per pin, no wasted scroll | Source responses | Shipped; Z6 expands to four states, 240–320svh spacer | Low | Medium — must stay transform/opacity |
-| Partially visible next frame | Signals more without a control | Source rail | 8–14vw preview of the next frame | None | Low |
+| Sticky media chapter | One idea per pin, no wasted scroll. Measured ratio: 4 viewports of runway buys 1 viewport of pin; the quietest route spends none | Source responses | Shipped; Z6 expands to four states. **Keep VitalCV's sticky architecture** — Zoox's fixed+spacer is an implementation detail, not a mandate. Target perceptual parity | Low | Medium — must stay transform/opacity |
+| ~~Partially visible next frame~~ | **REJECTED.** Measured: Zoox shows no peek-ahead anywhere. Completion-first is correct here | Source rail | **No partial next card.** Momentum via chapter-label movement, a neutral progress hairline, aperture sequencing, the current object exiting, and the recipient frame entering *after* the record settles | **Would be high** — a half-visible evidence record is an unreadable claim | Low |
 | Mask / clip reveal | Content arrives as if uncovered | Recognition | Clip reveal on the record's apertures | **Medium** — a fact must not be readable before it is true | Low |
 | Object continuity across scenes | The eye tracks one thing | All | The eleven faces; same silhouette, edge, spine | None | None |
 | Surface transition between sections | Tonal shift carries argument | Human review | One full-bleed Ink chapter; evidence inside stays paper | Low | None |
