@@ -11,7 +11,9 @@ ISSUE:              #1069  VitalCV Zoox-fidelity cinematic experience
 
 ## Measurement passes
 
-**COMPLETED:** none synthesised into the repository yet.
+**COMPLETED AND SYNTHESISED:** Pass 2 — mobile 390x844 (`/`, `/how-to-ride`)
+plus desktop `/community` and `/support`. Written into
+`zoox-fidelity-measurement.md` at commit `504012f7b`.
 
 **DISPATCHED, RESULTS NOT YET INCORPORATED:**
 1. Desktop 1440×900 — `zoox.com/`, `/how-to-ride`, `/where-to-ride`,
@@ -23,7 +25,8 @@ ISSUE:              #1069  VitalCV Zoox-fidelity cinematic experience
    390px, whether rails stack, media switching (`srcset`/`currentSrc`), type
    scale, sub-44px touch targets, page height in viewport multiples.
 
-**MISSING:** both syntheses. If the passes are gone, re-dispatch with the same
+**MISSING:** Pass 1 synthesis (desktop `/`, `/how-to-ride`, `/where-to-ride`,
+`/know-your-ride`) — dispatched, result not yet returned. If the passes are gone, re-dispatch with the same
 briefs — they are reproduced in full in the issue thread and above.
 
 ## Files
@@ -62,19 +65,18 @@ outstanding piece of Z0.
 
 ## Unresolved reference questions
 
-1. Does horizontal travel exist at all? The atlas found **zero** transformed
-   sections at six scroll depths, which would mean the "sliding imagery" this
-   program wants is **not** actually a Zoox behaviour and must be justified on
-   VitalCV's own terms.
-2. Real measured radii on media containers — Z1's 24–56px hierarchy is
-   currently unanchored.
-3. Button/icon hover choreography — never captured.
-4. Whether interior media is scroll-scrubbed (5 canvases across 46 viewports on
-   `/how-to-ride` is the signature, unconfirmed headlessly).
-
-Question 1 is the important one: if it resolves to "no horizontal travel," the
-honest move is to say so and defend VitalCV's rails independently, not to
-attribute them to a reference that does not do it.
+1. ~~Does horizontal travel exist?~~ **RESOLVED: NO.** Measured — zero
+   `overflow-x` containers exceeding their client width at 390 or 1440, zero
+   scroll-snap, on every route. Horizontal sliding is **not** a Zoox behaviour.
+   It must stand on VitalCV's own argument or be dropped. **This is the open
+   founder decision.**
+2. ~~Media radii unanchored?~~ **RESOLVED.** Measured ladder: media 36px ·
+   buttons/cards 16px · nav capsule 18px · qualifier tag 12px · media frames
+   0px. Radius is a **clip variable**, not a border property.
+3. Button/icon hover choreography — **captured** on the desktop secondary
+   routes (two-arrow relay, 30px out / 20px in, 334ms in / 500ms out).
+4. Whether interior media on `/how-to-ride` is scroll-scrubbed — **partially**:
+   portrait scrub canvases confirmed at 390. Desktop scrub timing awaits Pass 1.
 
 ## Storyboard status by scene
 
