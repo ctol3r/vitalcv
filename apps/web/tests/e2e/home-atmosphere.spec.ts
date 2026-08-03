@@ -17,7 +17,12 @@ test.describe('home evidence-film atmosphere', () => {
   test('adds no cursor follower and stamps every lane in the opening record', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto('/', { waitUntil: 'networkidle' });
-    await expect(page.locator('.film')).toHaveAttribute('data-film-mode', 'film');
+    // Page-wide horizontal travel is RETIRED (founder directive, 2026-08-03):
+    // the document scrolls vertically and horizontal movement happens inside a
+    // sticky chapter stage instead. `vertical` is therefore the correct and
+    // only mode. Asserting 'film' here would be a guard enforcing doctrine that
+    // was deliberately withdrawn.
+    await expect(page.locator('.film')).toHaveAttribute('data-film-mode', 'vertical');
 
     await page.locator('.film-stage').hover({ position: { x: 980, y: 430 } });
     // RETIRED: `.film-readinglight` visible — the reading light was removed in

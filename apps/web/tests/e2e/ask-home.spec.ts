@@ -84,7 +84,12 @@ test.describe('homepage evidence film', () => {
 
   test('translates panes from ordinary vertical scroll without intercepting it', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
-    await expect(page.locator('.film')).toHaveAttribute('data-film-mode', 'film');
+    // Page-wide horizontal travel is RETIRED (founder directive, 2026-08-03):
+    // the document scrolls vertically and horizontal movement happens inside a
+    // sticky chapter stage instead. `vertical` is therefore the correct and
+    // only mode. Asserting 'film' here would be a guard enforcing doctrine that
+    // was deliberately withdrawn.
+    await expect(page.locator('.film')).toHaveAttribute('data-film-mode', 'vertical');
 
     const track = page.locator('.film-track');
     const before = await track.evaluate((element) => getComputedStyle(element).transform);

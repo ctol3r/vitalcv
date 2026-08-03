@@ -503,7 +503,38 @@ export function HorizontalCareerFilm() {
                       </div>
 
                       <div className="film-stage-frame">
-                        <ProofPacketInspector />
+                        {/* The third frame continues the SAME record's
+                            lifecycle rather than repeating the packet
+                            inspector, which lives in HUMAN REVIEW. Two copies
+                            of one artifact on a page is the duplicate-intent
+                            problem this whole recovery existed to remove — and
+                            Playwright caught it as a strict-mode violation
+                            before it shipped. */}
+                        <CapsuleShell face="deciding">
+                          <CapsuleHead
+                            eyebrow="Evidence record"
+                            illustrative={ILLUSTRATIVE_WORKFLOW}
+                            name={ILLUSTRATIVE_MODEL.identity.name}
+                            npi={`NPI ${ILLUSTRATIVE_MODEL.npi}`}
+                          />
+                          <CapsuleRows>
+                            {TRAVEL_LEDGER.map((entry) => (
+                              <CapsuleRow
+                                key={entry.id}
+                                claim={entry.claim}
+                                returned={entry.detail}
+                                trailing={
+                                  <span
+                                    className="evidence-capsule__mark"
+                                    data-travel={entry.travels ? 'travels' : 'held'}
+                                  >
+                                    {entry.travels ? '→ Travels' : '■ Held'}
+                                  </span>
+                                }
+                              />
+                            ))}
+                          </CapsuleRows>
+                        </CapsuleShell>
                       </div>
                     </div>
                   </div>

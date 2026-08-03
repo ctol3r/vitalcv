@@ -16,7 +16,12 @@ test.describe('native cursor', () => {
     await page.goto('/', { waitUntil: 'domcontentloaded' });
 
     await expect(page.locator('[data-vt-cursor], .vt-cursor')).toHaveCount(0);
-    await expect(page.locator('.film')).toHaveAttribute('data-film-mode', 'film');
+    // Page-wide horizontal travel is RETIRED (founder directive, 2026-08-03):
+    // the document scrolls vertically and horizontal movement happens inside a
+    // sticky chapter stage instead. `vertical` is therefore the correct and
+    // only mode. Asserting 'film' here would be a guard enforcing doctrine that
+    // was deliberately withdrawn.
+    await expect(page.locator('.film')).toHaveAttribute('data-film-mode', 'vertical');
 
     const input = page.locator('#film-npi-input');
     await input.click();
@@ -32,7 +37,12 @@ test.describe('native cursor', () => {
   test('pointer movement never replaces the native cursor', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto('/', { waitUntil: 'networkidle' });
-    await expect(page.locator('.film')).toHaveAttribute('data-film-mode', 'film');
+    // Page-wide horizontal travel is RETIRED (founder directive, 2026-08-03):
+    // the document scrolls vertically and horizontal movement happens inside a
+    // sticky chapter stage instead. `vertical` is therefore the correct and
+    // only mode. Asserting 'film' here would be a guard enforcing doctrine that
+    // was deliberately withdrawn.
+    await expect(page.locator('.film')).toHaveAttribute('data-film-mode', 'vertical');
 
     await page.locator('.film-stage').hover({ position: { x: 900, y: 480 } });
 
@@ -100,7 +110,7 @@ test.describe('glass surfaces and movement', () => {
     await page.goto('/', { waitUntil: 'networkidle' });
 
     const film = page.locator('.film');
-    await expect(film).toHaveAttribute('data-film-mode', 'film');
+    await expect(film).toHaveAttribute('data-film-mode', 'vertical'); // page-wide travel retired 2026-08-03
 
     const track = page.locator('.film-track');
     const firstTransform = await track.evaluate((element) => getComputedStyle(element).transform);
