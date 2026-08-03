@@ -12,6 +12,7 @@
  */
 import { chromium } from '@playwright/test';
 import { fileURLToPath } from 'node:url';
+import { existsSync } from 'node:fs';
 import path from 'node:path';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -199,6 +200,37 @@ console.log(`\nCLAIM/PROVENANCE SEPARATION — ${concat.length ? 'VIOLATIONS' : 
 concat.slice(0, 5).forEach((c) => console.log('  ' + c));
 if (concat.length) fail(`${concat.length} rows merge retrieval and provenance`);
 
+/* ---- nothing inside the record may overprint anything else --------------
+ *
+ * General, and it is the assertion that catches placement bugs the eye would
+ * otherwise have to. INSPECTED's opened claim reuses .evr-row, so it inherited
+ * the hero grid and all SEVEN of its provenance lines were placed at
+ * column 2 / row 1 — overprinted into an illegible block while every
+ * whole-record and per-row measurement still read clean. */
+const overprint = await page.evaluate(() => {
+  const bad = [];
+  for (const evr of document.querySelectorAll('.evr')) {
+    const items = [...evr.querySelectorAll('.evr-prov, .evr-claim, .evr-ret, .stamp, .evr-perm')]
+      .map((el) => ({ el, r: el.getBoundingClientRect() }))
+      .filter((x) => x.r.width > 0 && x.r.height > 0);
+    for (let i = 0; i < items.length; i++) {
+      for (let j = i + 1; j < items.length; j++) {
+        const a = items[i], b = items[j];
+        if (a.el.contains(b.el) || b.el.contains(a.el)) continue;
+        const ox = Math.min(a.r.right, b.r.right) - Math.max(a.r.left, b.r.left);
+        const oy = Math.min(a.r.bottom, b.r.bottom) - Math.max(a.r.top, b.r.top);
+        if (ox > 1 && oy > 1) {
+          bad.push(`${a.el.className.split(' ')[0]} over ${b.el.className.split(' ')[0]}: "${a.el.textContent.trim().slice(0, 26)}"`);
+        }
+      }
+    }
+  }
+  return bad;
+});
+console.log(`\nOVERPRINT — ${overprint.length ? `${overprint.length} COLLISIONS` : 'nothing inside the record overlaps anything else'}`);
+overprint.slice(0, 4).forEach((o) => console.log('  ' + o));
+if (overprint.length) fail(`${overprint.length} elements overprint inside the record`);
+
 /* ---- the recognition test must actually cover every word ----------------
  *
  * The strip is only evidence if nothing is readable. INSPECTED's detail rows
@@ -245,6 +277,53 @@ if (sealed && returned) {
 }
 
 await page.screenshot({ path: path.resolve(HERE, '../../../artifacts/zoox-fidelity-z0/treatments/b-scale.png'), fullPage: true });
+
+/* ---- structural sweep across EVERY sheet --------------------------------
+ *
+ * The proof sheet carries only four faces, so checking it alone left INSPECTED
+ * and TRAVELLING unverified — and INSPECTED was the one that was broken. The
+ * structural rules are properties of the object, not of one sheet, so they run
+ * everywhere the object is rendered. */
+const SHEETS = ['b-scale.html', 'b-storyboard-desktop.html', 'b-storyboard-mobile.html', 'b-faces.html', 'b-refinements.html'];
+console.log('\nSTRUCTURAL SWEEP');
+for (const name of SHEETS) {
+  const file = path.resolve(HERE, '../../../artifacts/zoox-fidelity-z0/treatments', name);
+  if (!existsSync(file)) { console.log(`  ${name.padEnd(30)} not built — skipped`); continue; }
+  const sp = await (await browser.newContext({ viewport: { width: 1400, height: 1000 } })).newPage();
+  await sp.goto(`file://${file}`, { waitUntil: 'load' });
+  await sp.evaluate(() => document.fonts.ready);
+  await sp.waitForTimeout(500);
+  const r = await sp.evaluate(() => {
+    const out = { records: 0, overprint: 0, intraRow: 0, concat: 0, stretched: 0 };
+    for (const evr of document.querySelectorAll('.evr')) {
+      out.records++;
+      const items = [...evr.querySelectorAll('.evr-prov, .evr-claim, .evr-ret, .stamp, .evr-perm')]
+        .map((el) => ({ el, r: el.getBoundingClientRect() })).filter((x) => x.r.width > 0 && x.r.height > 0);
+      for (let i = 0; i < items.length; i++) for (let j = i + 1; j < items.length; j++) {
+        const a = items[i], b = items[j];
+        if (a.el.contains(b.el) || b.el.contains(a.el)) continue;
+        if (Math.min(a.r.right, b.r.right) - Math.max(a.r.left, b.r.left) > 1
+         && Math.min(a.r.bottom, b.r.bottom) - Math.max(a.r.top, b.r.top) > 1) out.overprint++;
+      }
+      for (const row of evr.querySelectorAll('.evr-row:not(.evr-row--opened)')) {
+        const ret = row.querySelector('.evr-ret'), prov = row.querySelector('.evr-prov');
+        if (ret && prov) {
+          const a = ret.getBoundingClientRect(), b = prov.getBoundingClientRect();
+          if (a.left < b.right - 0.5 && b.left < a.right - 0.5 && a.top < b.bottom - 0.5 && b.top < a.bottom - 0.5) out.concat++;
+        }
+        if (!evr.matches('[data-scale="hero"]')) continue;
+        const top = row.getBoundingClientRect().top + parseFloat(getComputedStyle(row).paddingTop);
+        for (const child of row.children) if (child.getBoundingClientRect().top - top > 3) out.intraRow++;
+      }
+    }
+    return out;
+  });
+  const bad = r.overprint + r.intraRow + r.concat + r.stretched;
+  console.log(`  ${name.padEnd(30)} ${String(r.records).padStart(3)} records · overprint ${r.overprint} · intra-row ${r.intraRow} · concat ${r.concat}`);
+  if (bad) fail(`${name}: ${r.overprint} overprint, ${r.intraRow} intra-row gaps, ${r.concat} concatenations`);
+  await sp.context().close();
+}
+
 await browser.close();
 
 console.log('\n' + '─'.repeat(64));

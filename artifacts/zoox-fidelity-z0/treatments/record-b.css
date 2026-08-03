@@ -293,3 +293,16 @@ body{background:var(--paper);color:var(--ink);font-family:var(--sans);-webkit-fo
 .evr[data-scale="hero"] .evr-ret{margin-top:calc(3px * var(--u))}
 .evr[data-scale="hero"] .evr-prov{grid-column:2;grid-row:1;margin-top:0;max-width:none}
 .evr[data-scale="hero"] .stamp{grid-column:3;grid-row:1}
+
+/*
+ * The OPENED claim is a detail panel, not a three-part row: it stacks
+ * key/value pairs across the full width.
+ *
+ * Without this it inherits the hero row grid, which places EVERY .evr-prov at
+ * column 2 / row 1 — so all seven of its lines landed in one cell and
+ * overprinted into an illegible block. A row-level rule must not reach into a
+ * panel that happens to reuse the same class.
+ */
+.evr-row--opened{flex-direction:column;align-items:stretch}
+.evr[data-scale="hero"] .evr-row--opened{display:flex;flex-direction:column;align-items:stretch}
+.evr[data-scale="hero"] .evr-row--opened .evr-prov{grid-column:auto;grid-row:auto;max-width:none}

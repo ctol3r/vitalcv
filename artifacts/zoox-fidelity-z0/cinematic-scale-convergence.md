@@ -153,19 +153,25 @@ the correction is the finding:
 
 An assertion that contradicts approved doctrine is a defect in the assertion.
 
-## 7. Open question for the founder
+## 7. SEALED is landscape — settled
 
-**SEALED is landscape at hero width.** At 680px the sealed face is 680×430
-(ratio 0.63), so it reads as a wide closed panel rather than the portrait
-silhouette named in B's identity. It cannot be both content-driven and portrait
-at hero width without padding, which refinement 7 forbids.
+At 680px the sealed face is 680×430 (ratio 0.63): a wide closed panel rather
+than the portrait silhouette named in B's identity. It cannot be both
+content-driven and portrait at hero width without padding, which refinement 7
+forbids.
 
-Options: accept landscape-when-sealed as the closed form; enlarge the seal at
-hero so the face is taller for a real reason; or narrow the record for SEALED
-only, which breaks the fixed top edge and same-width rule. **Recommendation:
-accept it.** Same width, same top edge, same aperture band, same receipt edge —
-the object is unmistakably itself, and a closed record being wider than it is
-tall is not a contradiction.
+**Founder ruling, 2026-08-03: accepted.** The landscape proportion is a
+consequence of state, not an exception to hide. Refinement 7 outranks the
+portrait description — the record must stay content-driven and must not be
+padded to resemble RETURNED. SEALED remains unmistakably the same object
+because it keeps the identity anchors: same width, same fixed top edge, same
+aperture band, same material and border system, same receipt edge, same
+closure logic. The change in silhouette *means* something — the evidence has
+collapsed and the record has closed.
+
+Portrait is therefore removed as an invariant of the object. The invariants are
+the anchors listed above, plus the source structure and the
+claim/retrieval/provenance separation.
 
 ## 8. Evidence set
 

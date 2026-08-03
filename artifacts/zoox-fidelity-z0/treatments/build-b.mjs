@@ -75,7 +75,7 @@ F.RETURNED = (w, scale) => `<div class="evr"${scale?` data-scale="${scale}"`:''}
 F.INSPECTED = (w, scale) => `<div class="evr"${scale?` data-scale="${scale}"`:''} style="--wn:${w}">${spine}${head({tag:ILLUS, name:HOLDER, npi:NPI})}${band(S.returned)}
   <div class="evr-body"><ul class="evr-rows">
   <li class="evr-row"><span class="evr-assert"><span class="evr-claim">Identity</span><span class="evr-ret">Located in the NPPES registry</span></span>${stamp(ROWS[0])}</li>
-  <li class="evr-row" style="background:var(--paper);border-top:2px solid var(--ink-strong);flex-direction:column;align-items:stretch">
+  <li class="evr-row evr-row--opened" style="background:var(--paper);border-top:2px solid var(--ink-strong)">
     <span class="evr-claim" style="margin-bottom:calc(6px * var(--u))">Identity — opened</span>
     ${[['State','Checked'],['Source','NPPES NPI Registry'],['Observation','2026-08-02 14:02Z'],['Retrieval','Read from the registry at the moment of this request'],['Receipt','rcpt:nppes:8f2a…c41'],['Limitation','Identity and taxonomy only. A registry match is not a licence status.'],['Permitted use','Employer review. Not a credentialing decision.']]
       .map(([k,v])=>`<span class="evr-prov" style="display:grid;grid-template-columns:calc(84px * var(--u)) 1fr;gap:calc(8px * var(--u))"><span style="text-transform:uppercase;letter-spacing:.08em">${k}</span><span style="color:var(--ink)">${v}</span></span>`).join('')}

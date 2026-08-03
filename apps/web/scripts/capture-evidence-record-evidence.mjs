@@ -95,7 +95,10 @@ console.table({
 console.log(`  band as share of record height: ${(before.footBand / before.recH * 100).toFixed(1)}% → ${(after.footBand / after.recH * 100).toFixed(1)}%`);
 
 /* ------------------------------------------------ 2. scale transition ---- */
-const anchors = [[1366, 620], [1440, 680], [1536, 720], [1728, 810]];
+/* Anchors come from the shared module, never a second copy of the numbers —
+   a hard-coded list here would silently disagree with the frames the moment a
+   viewport is retuned, which is precisely the drift this package forbids. */
+const anchors = [1366, 1440, 1536, 1728].map((w) => [w, mod.V[w].rec]);
 const recAt = (w) => {
   if (w <= anchors[0][0]) return anchors[0][1];
   if (w >= anchors.at(-1)[0]) return anchors.at(-1)[1];
