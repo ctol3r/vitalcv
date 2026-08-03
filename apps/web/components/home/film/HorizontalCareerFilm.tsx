@@ -166,8 +166,26 @@ export function HorizontalCareerFilm() {
     trackFunnelEvent(FUNNEL_EVENTS.HOMEPAGE_VIEWED);
   }, []);
 
-  // Layout mode follows ELIGIBILITY, never `pinned` — see useFilmProgress.
-  const isFilm = ready && eligible && filmEnabled;
+  /**
+   * PAGE-WIDE HORIZONTAL TRAVEL IS RETIRED.
+   *
+   * The whole document used to translate sideways as one strip, so scrolling
+   * moved the entire website left. That was never the intent: horizontal
+   * movement belongs to menus, media rails and evidence artifacts INSIDE a
+   * chapter — not to the page.
+   *
+   * The page is now an ordinary vertical document with the five chapters
+   * stacked, which is the composition that already shipped to touch, tablet
+   * and reduced-motion users and is therefore the best-tested path in the file.
+   * The driver below is deliberately kept: it still publishes `--film-progress`
+   * and the active chapter, which is what a sticky stage needs in order to
+   * drive horizontal movement within itself. Re-enabling page-wide travel is
+   * not a matter of flipping this back — it was removed on purpose.
+   */
+  const isFilm = false;
+  void ready;
+  void eligible;
+  void filmEnabled;
 
   /**
    * Chapters that have been reached stay revealed. A single-shot reveal (CD-11)
