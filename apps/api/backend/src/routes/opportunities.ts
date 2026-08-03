@@ -352,19 +352,31 @@ export function registerOpportunityRoutes(app: Express): void {
 
   /* ── Candidates ── */
 
-  app.get(
-    '/api/candidates',
-    asyncHandler(async (req, res) => {
-      const { specialty, state } = req.query;
-      const result = await listCandidates({
-        specialty: typeof specialty === 'string' ? specialty : undefined,
-        state: typeof state === 'string' ? state : undefined,
-        limit: parsePositiveInt(req.query.limit, 20),
-        offset: parsePositiveInt(req.query.offset, 0),
-      });
-      res.json(result);
-    }),
-  );
+  /**
+   * DISABLED — fail closed.
+   *
+   * This handler served clinician records to any caller. It performed no
+   * identity check at all: every sibling route in this file calls
+   * `requireClerkUserId(req)` first, and this one did not, so the API origin
+   * answered anonymous requests directly. The Next.js proxy in front of it
+   * does require a session, which is why the gap was invisible from the app —
+   * the proxy was the only thing enforcing anything, and it can be bypassed by
+   * addressing the API host.
+   *
+   * It is disabled rather than merely guarded because `requireClerkUserId`
+   * only asserts that an unsigned `x-clerk-user-id` header is PRESENT. Adding
+   * it here would have turned an anonymous read into a forged-header read,
+   * which is not containment.
+   *
+   * Nothing live depends on this route: its only consumer is an archived page.
+   * It stays disabled until the permanent fix lands — verified bearer identity,
+   * authorized organization membership, an explicitly permitted role,
+   * tenant-scoped queries, and a minimum-necessary response that carries no
+   * internal identifiers.
+   */
+  app.all('/api/candidates', (_req, res) => {
+    res.status(401).json({ error: 'unauthorized' });
+  });
 
   /* ── Admin: Seed launch opportunities ── */
   app.post(
