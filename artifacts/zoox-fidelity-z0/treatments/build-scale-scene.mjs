@@ -149,11 +149,11 @@ const HEAD = `<meta charset="utf-8"><link rel="stylesheet" href="./record-b.css"
 
 /** One scene alone, at true viewport size, for founder frame capture. */
 export const frameDoc = (vw, face, opts = {}) =>
-  `<!doctype html><html><head>${HEAD}<title>${vw} ${face}</title></head><body>${scene(vw, face, opts)}</body></html>`;
+  `<!doctype html><html><head>${HEAD}<title>${vw} ${face}</title></head><body class="evr-scene">${scene(vw, face, opts)}</body></html>`;
 
 /** The recognition strip: all eight faces at 120px with every word covered. */
 export const thumbDoc = () => `<!doctype html><html><head>${HEAD}
-<style>body{background:var(--paper);padding:26px}</style></head><body>
+<style>body{background:var(--paper);padding:26px}</style></head><body class="evr-scene">
 <div class="grid">${['BLANK','WRITING','RESOLVING','RETURNED','INSPECTED','DECIDING','TRAVELLING','SEALED']
   .map((f) => `<div class="covered thumb"><p class="cap">${f}</p><div class="scaler">${FACES[f](420)}</div></div>`).join('')}</div>
 </body></html>`;

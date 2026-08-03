@@ -35,5 +35,5 @@ ${framed(1728,'RETURNED')}${framed(1728,'DECIDING')}
 
 writeFileSync(`${OUT}b-scale.html`, `<!doctype html><html><head><meta charset="utf-8">
 <title>B — cinematic scale convergence</title><link rel="stylesheet" href="./record-b.css">
-<style>.stage{overflow:hidden}</style></head><body><div class="sheet">${body}</div></body></html>`);
+<style>.stage{overflow:hidden}</style></head><body class="evr-scene"><div class="sheet">${body}</div></body></html>`);
 console.log('built b-scale.html');

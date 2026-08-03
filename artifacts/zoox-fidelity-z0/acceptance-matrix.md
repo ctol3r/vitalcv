@@ -18,8 +18,8 @@ node apps/web/scripts/evidence-record-acceptance-matrix.mjs
 | D7 | Cropping is intentional and state-dependent | PASS | cropped: 1366 RETURNED, 1440 RETURNED, 1440 DECIDING, 1536 RETURNED, 1728 RETURNED, 1728 DECIDING, 390 RETURNED; uncropped: 1366 BLANK, 1440 BLANK, 1440 SEALED, 390 BLANK |
 | D8 | Reduced motion preserves the complete argument | PASS | all 8 states present as hard cuts, no travel; 3/3 animatics built |
 | D9 | No new content or unsupported truth claims | PASS | 18 distinct claims, 10 retrieval lines, 13 provenance lines, 5 state stamps; 0 banned strings across 5 sheets |
-| D10 | No production changes | PASS | no change under any app or package source path since 78e9aea10 |
-| D11 | No Z1 work | PASS | homepage film components and route stylesheet untouched by this work |
+| D10 | Public production homepage unchanged | PASS | app/page.tsx, components/home, styles/home.css and the root layout have no diff from the merge base |
+| D11 | Z1 work stays inside its allowed paths | PASS | 0 app files changed, all inside the Z1 slice boundary |
 | D12 | No change to the security lane | PASS | backend routes and workflows untouched; advisory GHSA-f9xv-h5c5-x537 remains draft and unpublished |
 
 ## Composed scenes

@@ -169,13 +169,22 @@ add('D8', 'Reduced motion preserves the complete argument', missing.length === 0
 add('D9', 'No new content or unsupported truth claims', bannedHits.length === 0,
   `${claims.size} distinct claims, ${retrievals.size} retrieval lines, ${provenances.size} provenance lines, ${stamps.size} state stamps; 0 banned strings across ${SHEETS.length} sheets`);
 
-const prodDiff = introduced('apps/web/app apps/web/components apps/web/lib apps/web/styles apps/api/backend/src apps/marketing packages');
-add('D10', 'No production changes', prodDiff === '',
-  prodDiff === '' ? `no change under any app or package source path since ${BASE.slice(0, 9)}` : `CHANGED: ${prodDiff.split('\n').join(', ')}`);
+/*
+ * Z1 UPDATE (founder-approved 2026-08-03): the slice legitimately adds app
+ * code — the /design/z1-home preview, the evidence-record components, and the
+ * chrome-registry exemption. The boundary that must still hold is narrower
+ * and absolute: the PUBLIC PRODUCTION HOMEPAGE is untouched. D10 now asserts
+ * exactly that, and D11 asserts Z1 work stayed inside its allowed paths.
+ */
+const homepage = introduced('apps/web/app/page.tsx apps/web/components/home apps/web/styles/home.css apps/web/app/layout.tsx');
+add('D10', 'Public production homepage unchanged', homepage === '',
+  homepage === '' ? 'app/page.tsx, components/home, styles/home.css and the root layout have no diff from the merge base' : `CHANGED: ${homepage.split('\n').join(', ')}`);
 
-const z1 = introduced('apps/web/components/home apps/web/styles/home.css');
-add('D11', 'No Z1 work', z1 === '',
-  z1 === '' ? 'homepage film components and route stylesheet untouched by this work' : `CHANGED: ${z1}`);
+const appDiff = introduced('apps/web/app apps/web/components apps/web/styles').split('\n').filter(Boolean);
+const Z1_ALLOWED = /^apps\/web\/(app\/design\/z1-home\/|components\/evidence-record\/|styles\/z1-home\.css$|components\/layout\/(RootChrome\.tsx|publicSurfaceRoutes\.ts)$|__tests__\/)/;
+const outside = appDiff.filter((f) => !Z1_ALLOWED.test(f));
+add('D11', 'Z1 work stays inside its allowed paths', outside.length === 0,
+  outside.length === 0 ? `${appDiff.length} app files changed, all inside the Z1 slice boundary` : `OUTSIDE THE BOUNDARY: ${outside.join(', ')}`);
 
 const sec = introduced('apps/api/backend/src/routes .github');
 add('D12', 'No change to the security lane', sec === '',

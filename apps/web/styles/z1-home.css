@@ -1,0 +1,151 @@
+/* ==========================================================================
+   Z1 first visible slice — /design/z1-home composition.
+
+   Scene values carry over from the approved Z0 cinematic-scale system
+   (artifacts/zoox-fidelity-z0/treatments/build-scale-scene.mjs): at 1440 the
+   record is 680px with a ~100px top offset, the argument field sits left, and
+   populated faces CROP at the stage's bottom edge — the record continuing is
+   the point. The OBJECT's rules live in components/evidence-record/record.css
+   (the canonical stylesheet this file must never duplicate); this file only
+   composes the page around it.
+
+   The record's width is steered through --z1-rec because the faces set --wn
+   as an inline style: the face is rendered once on the server, and inline
+   beats any media query, so the indirection is what lets one server render
+   recompose responsively.
+   ========================================================================== */
+
+.z1-page{background:var(--paper);min-height:100svh}
+
+/* ---- hero stage ----------------------------------------------------------
+   The record sits ON the stage, absolutely positioned and cropped by the
+   hero's overflow — it does not participate in the argument column's layout.
+   It previously spanned the hero's grid rows, and a grid distributes a
+   spanning item's height across the tracks it spans: when the face swapped
+   from BLANK to the much taller RETURNED, the rows grew and the headline
+   MOVED. That is the Z0 spanning-track failure at scene scale. The argument
+   is page flow; the object is staged; states change the record, never the
+   argument's position. */
+.z1-hero{
+  --z1-rec:680;
+  --z1-gap:clamp(32px,4vw,56px);
+  position:relative;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  gap:clamp(14px,1.6vw,20px);
+  max-width:1440px;
+  margin:0 auto;
+  padding:96px clamp(24px,4.5vw,64px) 48px;
+  min-height:calc(100svh - 1px);
+  overflow:hidden;
+}
+/* The argument column never extends under the staged record. */
+.z1-intro,.z1-npi,.z1-demo-note{
+  width:min(560px, calc(100% - var(--z1-rec) * 1px - var(--z1-gap)));
+}
+.z1-intro{display:flex;flex-direction:column;gap:clamp(14px,1.6vw,20px)}
+.z1-eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-subtle)}
+.z1-headline{
+  font-family:var(--serif);font-weight:500;
+  font-size:clamp(34px,3.6vw,52px);line-height:1.04;letter-spacing:-.02em;
+  color:var(--ink-strong);max-width:15ch;margin:0;
+}
+.z1-headline em{font-style:italic;color:var(--accent)}
+.z1-support{font-size:clamp(15px,1.15vw,17px);color:var(--ink-muted);max-width:44ch;line-height:1.55;margin:0}
+
+/* The activation island dissolves into the hero so its form joins the
+   argument flow while its record takes the stage. */
+.z1-activation{display:contents}
+.z1-npi{margin-top:clamp(10px,1.4vw,18px);max-width:460px}
+.z1-npi-label{display:block;font-weight:500;font-size:14px;color:var(--ink-strong);margin-bottom:8px}
+.z1-npi-row{
+  display:flex;align-items:flex-end;gap:14px;
+  border-bottom:2px solid var(--ink-strong);padding-bottom:10px;
+}
+.z1-npi-input{
+  flex:1;min-width:0;border:0;background:transparent;outline:none;
+  font-family:var(--mono);font-size:clamp(19px,1.6vw,23px);color:var(--ink-strong);
+  font-variant-numeric:tabular-nums;letter-spacing:.04em;
+}
+.z1-npi-input::placeholder{color:var(--ink-subtle)}
+.z1-npi-submit{
+  flex:none;border:0;cursor:pointer;
+  background:var(--ink-strong);color:var(--raised);
+  border-radius:10px;padding:11px 18px;
+  font-family:var(--sans);font-size:14px;font-weight:500;white-space:nowrap;
+}
+.z1-npi-submit:disabled{opacity:.7;cursor:default}
+.z1-npi-submit:focus-visible,.z1-npi-input:focus-visible,.z1-chip:focus-visible{
+  outline:2px solid var(--accent);outline-offset:2px;
+}
+.z1-npi-hint{font-size:12px;color:var(--ink-subtle);margin-top:8px}
+.z1-npi-message{font-size:13px;color:var(--ink-muted);margin-top:10px;max-width:46ch;line-height:1.5}
+.z1-npi-message strong{color:var(--ink-strong);font-weight:600}
+
+.z1-demo-note{
+  font-family:var(--mono);font-size:11px;color:var(--ink-subtle);
+  margin-top:10px;max-width:52ch;line-height:1.7;
+}
+.z1-chip{
+  border:1px solid var(--rule-strong);background:var(--raised);color:var(--ink-muted);
+  border-radius:3px;padding:2px 8px;cursor:pointer;
+  font-family:var(--mono);font-size:10px;letter-spacing:.04em;text-transform:uppercase;
+}
+.z1-chip:hover{border-color:var(--ink-strong);color:var(--ink-strong)}
+
+/* ---- the record on its stage --------------------------------------------
+   Populated faces are TALLER than the stage on purpose; the hero's
+   overflow:hidden is the crop (Z0: the record continuing is the point).
+   The record never resizes between states — only the face changes. */
+.z1-record{
+  position:absolute;
+  top:clamp(48px,11vh,100px);
+  right:clamp(24px,4.5vw,64px);
+  width:calc(var(--z1-rec) * 1px);
+}
+
+/* ---- career loop --------------------------------------------------------- */
+.z1-loop{border-top:1px solid var(--rule);background:var(--paper)}
+.z1-loop-inner{max-width:1440px;margin:0 auto;padding:clamp(36px,5vh,56px) clamp(24px,4.5vw,64px)}
+.z1-loop-title{font-family:var(--mono);font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-subtle);margin-bottom:22px}
+.z1-loop-track{display:flex;align-items:stretch;gap:0;list-style:none;margin:0;padding:0;flex-wrap:wrap}
+.z1-stage-item{flex:1 1 0;min-width:150px;display:flex;align-items:flex-start;gap:14px;padding-right:18px}
+.z1-stage-item + .z1-stage-item{border-left:1px solid var(--rule);padding-left:18px}
+.z1-stage-n{font-family:var(--mono);font-size:11px;color:var(--ink-subtle);padding-top:3px}
+.z1-stage-name{font-weight:600;font-size:15px;color:var(--ink-strong);display:block}
+.z1-stage-desc{font-size:12.5px;color:var(--ink-muted);line-height:1.5;margin-top:4px;display:block;max-width:24ch}
+/* The loop closes: the last stage feeds the first. Stated, not animated. */
+.z1-loop-return{font-family:var(--mono);font-size:11px;color:var(--ink-subtle);margin-top:18px}
+
+/* ---- responsive ---------------------------------------------------------- */
+@media (max-width:1280px){ .z1-hero{--z1-rec:560} }
+@media (max-width:1024px){ .z1-hero{--z1-rec:470} }
+@media (max-width:880px){
+  /* MOBILE IS COMPOSED, NOT COMPRESSED (Z0 rule): single column, argument
+     above, record entering from below at its mobile width — type inside the
+     record holds at design size via the object's own --ut floor. */
+  .z1-hero{--z1-rec:350;min-height:auto;padding-top:84px;justify-content:flex-start}
+  .z1-intro,.z1-npi,.z1-demo-note{width:100%}
+  .z1-record{
+    position:static;
+    width:auto;
+    margin:28px auto 0;
+    max-height:520px;overflow:hidden;
+    align-self:center;
+  }
+  .z1-npi-row{flex-wrap:wrap}
+  .z1-npi-submit{width:100%}
+  .z1-stage-item{flex:1 1 100%;padding:10px 0}
+  .z1-stage-item + .z1-stage-item{border-left:0;border-top:1px solid var(--rule);padding-left:0;padding-top:14px}
+}
+
+/* ---- motion --------------------------------------------------------------
+   The face swap is a crossfade of the record container only; the object
+   itself never tweens. Under reduced motion the swap is a hard cut and every
+   state remains reachable — the argument is complete without animation. */
+.z1-record{transition:opacity .28s ease}
+.z1-activation[data-state="resolving"] .z1-record{opacity:.92}
+@media (prefers-reduced-motion:reduce){
+  .z1-record{transition:none}
+}

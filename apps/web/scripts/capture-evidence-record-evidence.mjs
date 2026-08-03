@@ -49,7 +49,7 @@ const shot = async (label, extraCss, recWidth) => {
   const v = { ...mod.V[1440], rec: recWidth };
   const html = `<!doctype html><html><head><meta charset="utf-8">
 <link rel="stylesheet" href="./record-b.css"><style>*{box-sizing:border-box}body{margin:0}
-.stage{overflow:hidden;border:0}${extraCss}</style></head><body>
+.stage{overflow:hidden;border:0}${extraCss}</style></head><body class="evr-scene">
 <div class="stage" data-vw="1440" data-face="RETURNED"
   style="width:1440px;height:900px;display:flex;align-items:stretch;gap:56px;padding:0 ${v.padX}px">
   <div class="arg" style="flex:1"></div>
@@ -125,7 +125,7 @@ for (const w of widths) {
   const k = (w / 1440).toFixed(3);
   writeFileSync(path.join(T, '_seq.html'), `<!doctype html><html><head><meta charset="utf-8">
 <link rel="stylesheet" href="./record-b.css"><style>*{box-sizing:border-box}body{margin:0}
-.stage{overflow:hidden;border:0}</style></head><body>
+.stage{overflow:hidden;border:0}</style></head><body class="evr-scene">
 <div class="stage" style="width:${w}px;height:${H}px;display:flex;align-items:stretch;gap:calc(56px * ${k});padding:0 ${v.padX}px">
   <div style="flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:calc(20px * ${k})">
     <p style="font-family:var(--mono);font-size:calc(11px * ${k});letter-spacing:.09em;text-transform:uppercase;color:var(--ink-subtle)">For clinicians</p>

@@ -63,7 +63,7 @@ const sheet = (board, cols, target, title, blurb) => {
   }).join('');
   return `<!doctype html><html><head><meta charset="utf-8"><title>${title}</title>
 <link rel="stylesheet" href="./record-b.css"><style>.stage{overflow:hidden;border:0}</style></head>
-<body><div class="sheet"><h2>${title}</h2><p class="sub">${blurb}</p>
+<body class="evr-scene"><div class="sheet"><h2>${title}</h2><p class="sub">${blurb}</p>
 <div style="display:grid;grid-template-columns:repeat(${cols},max-content);gap:34px 30px">${cells}</div>
 </div></body></html>`;
 };
