@@ -226,9 +226,147 @@ most damaging possible bug.
 
 ---
 
-## New measurements — PASS 1 (desktop /, /how-to-ride, /where-to-ride, /know-your-ride)
+## New measurements — PASS 1 (desktop 1440x900: /, /how-to-ride, /where-to-ride, /know-your-ride)
 
-**STATUS: DISPATCHED, NOT YET SYNTHESISED.** Two measurement passes were dispatched (desktop across
+**STATUS: SYNTHESISED.** Local Playwright/Chromium harness (the browser pane
+kept reverting to a 390px viewport and was not trustworthy for desktop).
+Machine-read `getComputedStyle` / `getBoundingClientRect` with per-frame rAF
+recordings. All labels below are **CURRENT LIVE — MEASURED** unless stated.
+
+### The over-claim is now positively refuted, not merely withdrawn
+
+**Horizontal scroll-scrubbed translation EXISTS on three of the four routes**,
+up to **1,800px = 125vw** of travel. My earlier "Zoox has no horizontal rails"
+was wrong in substance, not only in epistemics. Measured:
+
+| Element | Frame | Travel | % viewport width | Driving scroll |
+| --- | --- | --- | --- | --- |
+| Home travelling block | 1440x900 | 0 → +1,040px | **72.2vw** | ~1,800px (2.0vp), 0.58 px/px |
+| how-to-ride incoming panel | 1440x900 | +1,800 → 0 | **125.0vw** | across a 36vp runway |
+| how-to-ride outgoing panel | 1440x900 | 0 → −452px | 31.4vw | same |
+| know-your-ride middle panel | 730x900 | −730 → −440 → −730 | 20.1vw each way | in-and-out |
+| know-your-ride gallery halves | 682x770 | +341 → 0 | **23.7vw = exactly half their own width** | converge |
+
+**Travel distance is a fixed fraction of the element's own width** — the
+gallery halves move exactly 50% of their width. That is the discipline to take.
+
+### Three atlas corrections
+
+1. **"One sticky element per page" was an artefact.** The only `position:
+   sticky` on any route is a 0x0 node inside the consent-manager shadow host.
+   **Zoox uses zero sticky positioning for product layout** — pinning is
+   `position: fixed` plus a tall spacer.
+2. **"Sliding elements not observed" — wrong**, see above.
+3. **"Nav transparent at every depth" — true but incomplete.** The bar never
+   gains a plate or backdrop-filter, but it **clips itself down to a solid
+   64x64px pill** on scroll.
+
+### P1 — Navigation clips away rather than shrinking
+
+Start: 1360x64 bar, 40px insets, 20px below viewport top, fully transparent.
+End: clipped to `inset(0 calc(50% − 32px) round 16px)` — a centred 64px window
+revealing a solid 64x64 logo plate; bar rises to 10px. **~830ms as four
+staggered 334ms linear stages.** Menu button +100px out, control −100px, links
+±30px. **Bar radius 24px, clip radius 16px — the chrome tightens as it
+shrinks.** Nothing is hidden; the chrome is *masked away* to one identity token.
+
+### P2 — The menu is a two-stage clip wipe with a live preview
+
+Panel 738x880 at 16px radius, clipped to `inset(0 100% 0 0)`. Stage 1 settles
+at 50% → 369px, the link column only. Stage 2, **on hover intent**, settles at
+0% → 738px, revealing a **331x804 video preview, one per primary link, four
+stacked in one slot**, paused at rest and user-initiated. Exponential decay,
+**τ ≈ 175ms** (90% by ~250ms, settled ~615ms). **Radius held at 16px
+throughout** — the corners never square off mid-wipe, which is what makes it
+read as one object widening.
+
+### P3 — Pinned scenes: the ratio, not the technique
+
+Home: 3,600px section = 4.00 viewports of runway buying **exactly 1.00 viewport
+of pin** — a 4:1 spend. `/how-to-ride` spends 37vp; **`/where-to-ride` has no
+pin at all**. The restraint is route-scoped and deliberate.
+
+### P4 — No next-frame preview anywhere
+
+**Zero peek-ahead affordance on any of the four routes.** Frames are full-bleed
+or exactly two-up. Grid is consistent: gutter 20px · two-up frames 682px
+(47.4vw) · **gap 36px** · media radius **36px**.
+
+⚠ **This contradicts the program brief**, which specifies an 8–14vw next-frame
+preview for the source stage. Zoox does the opposite: each arrival completes
+before the next begins. Worth a decision — a half-visible evidence card is an
+unreadable claim.
+
+### P10 — Two radius laws, both currently unstated in CD
+
+1. **Radius is inversely proportional to frame size.** The same component
+   measured **56px radius clipped small → 26px expanded to 1400px wide**; nav
+   tightens 24 → 16px as it condenses.
+2. **Radius equals gap.** Two-up frames sit at a 36px gap with a 36px radius —
+   the negative space between two frames is exactly the corner they present to
+   each other.
+
+Census: 36px media/scene frames (dominant) · 24px nav chrome · 20px chips ·
+18px inputs · **16px buttons and controls (30 occurrences, the most common)** ·
+12px icon buttons · 0px on video elements themselves (the *container* carries
+the radius).
+
+### P6/P7 — Interaction tokens
+
+Button hover: arrow travels **+20px = 100% of its own box**, 334ms, symmetric
+on unhover (~320ms), `cubic-bezier(0.2, 0, 0, 1)`. Fill swells 2–3px via
+**clip, not transform**, so the radius stays geometrically exact.
+Icon hover: two identical icons one box-width apart both translate **+22px =
+100% of own width** over 500ms — a duplicate-slide swap, never a cross-fade.
+During a cross-fade both glyphs are simultaneously half-true, which on a trust
+surface is the wrong reading. **Nothing loops anywhere.**
+
+### P9 — Surface transitions: there are none
+
+Across every sampled depth on every route, **zero elements animated
+`background-color`.** Chapters are hard cuts on flat opaque fills. A 37-viewport
+page with 125vw of horizontal travel spends *nothing* on surface interpolation.
+
+**This settles a live VitalCV question:** an interpolating background leaves the
+surface's semantic state undefined at every intermediate scroll position — a
+reader who screenshots mid-transition captures a surface that means nothing.
+Hard boundaries also keep CD-6's dark-surface confinement enforceable, because
+you cannot half-enter a dark chapter.
+
+### P8 — One parallax ratio for everything
+
+Images held at `scale(1.1)` with translateY swinging **−45.6px on a 502px frame
+and −33.8px on a 372px frame — both exactly 9.1% of the element's own height.**
+One ratio, no per-component tuning, expressible as a single custom property.
+Text rise ladder 10/20/30px by weight. **Reject** the display-word
+`scaleY(0.174)` unfold on evidence surfaces: distorting a numeral or a date
+mid-animation makes a machine-returned value momentarily unreadable.
+
+### P11 — Reduced motion, confirmed behaviourally
+
+Two contexts side by side, `no-preference` vs `reduce`, five scroll depths.
+**Every value identical to the pixel.** Rail translate 0 / 119.6 / 585.9 /
+1039.3 / 1040px in both; clip strings byte-identical. 0 media-query blocks,
+0 blocked sheets — authoritative.
+
+**The transferable warning:** because the scene motion runs through JS
+per-frame writes, a reduced-motion path here *could not be added in CSS at
+all*. Any VitalCV port of P1–P5 must put the check **in the driver, where the
+scroll value is mapped to a transform or clip** — a stylesheet guard would be
+orphaned by construction. And the correct reduced-motion end state is the
+**settled** state, never the start state: a record that never opens is worse
+than one that opens instantly.
+
+### Two motion engines, running side by side
+
+- **Chrome and controls:** declared CSS transitions, **334ms and 500ms on
+  `cubic-bezier(0.2, 0, 0, 1)`**, plus 300ms `cubic-bezier(1, 0, 1, 0.6)` for
+  colour only.
+- **Scenes, nav morph, menu:** JS per-frame writes with `transition-duration:
+  0s` — either a **linear 334ms tween** (nav) or a **critically-damped
+  exponential lerp, τ ≈ 175ms, ~95% at 520ms, ~99.9% at 630ms** (menu, hero).
+
+Nothing overshoots. Nothing loops. Two measurement passes were dispatched (desktop across
 `/`, `/how-to-ride`, `/where-to-ride`, `/know-your-ride`; mobile 390×844 plus
 `/community` and `/support` on desktop), instructed to measure via
 `getComputedStyle` and scroll sampling rather than by eye. **Their results are

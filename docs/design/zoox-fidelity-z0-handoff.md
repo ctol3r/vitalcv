@@ -25,8 +25,9 @@ plus desktop `/community` and `/support`. Written into
    390px, whether rails stack, media switching (`srcset`/`currentSrc`), type
    scale, sub-44px touch targets, page height in viewport multiples.
 
-**MISSING:** Pass 1 synthesis (desktop `/`, `/how-to-ride`, `/where-to-ride`,
-`/know-your-ride`) — dispatched, result not yet returned. If the passes are gone, re-dispatch with the same
+**COMPLETED AND SYNTHESISED:** Pass 1 — desktop 1440x900, all four routes.
+Written into `zoox-fidelity-measurement.md`. **Both passes are now in the
+repository; no measurement work is outstanding.** If the passes are gone, re-dispatch with the same
 briefs — they are reproduced in full in the issue thread and above.
 
 ## Files
@@ -66,7 +67,10 @@ outstanding piece of Z0.
 ## Unresolved reference questions
 
 1. **Does scroll-linked / horizontal movement exist on current Zoox?**
-   **NOT CONFIRMED** — an earlier revision wrongly wrote "resolved: no". The
+   **RESOLVED: YES — it exists and is extensive.** Up to 1,800px (125vw) of
+   scroll-scrubbed horizontal translation on three of four routes. My earlier
+   "no horizontal rails" was wrong in substance, not only in epistemics. Prior
+   status was — an earlier revision wrongly wrote "resolved: no". The
    method sampled section-level transforms at six depths and found none; that
    does not establish absence. Portrait scrub canvases measured at 390 are
    themselves evidence of scroll-linked media progression outside that method.
@@ -121,13 +125,16 @@ git fetch origin && git checkout design/zoox-fidelity-z0 && git pull --rebase
 
 **Do not create a new Z0 branch or PR.** Continue on this one, in this order:
 
-1. Collect both measurement-agent outputs (Pass 2 is already synthesised).
+1. ~~Collect both measurement-agent outputs.~~ **DONE — both synthesised.**
 2. **Separate REFERENCE A (current live) from REFERENCE B (historical
    award-winning experience, per Dogstudio and reliable records). Never blend
    them.** Label every behaviour `CURRENT LIVE — MEASURED` / `CURRENT LIVE —
    OBSERVED` / `HISTORICAL EXPERIENCE — DOCUMENTED` / `HISTORICAL EXPERIENCE —
    INFERRED` / `NOT CONFIRMED`.
-3. **Improve movement detection wherever the first pass was inconclusive.** At
+3. Improve movement detection only where still inconclusive (the major question
+   is now answered; residual gaps are the `/know-your-ride` tab-switch timing
+   and mobile-vs-desktop nav being a genuine component swap).
+   *Original method note retained:* At
    each sample inspect *all visible descendants* — not just sections — for
    bounding-box movement relative to the viewport, transform matrices, opacity,
    clip-path, mask properties, sticky/fixed state, canvas presence and size,
