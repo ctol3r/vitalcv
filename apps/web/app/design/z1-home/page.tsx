@@ -22,7 +22,6 @@
  */
 
 import type { Metadata } from 'next';
-import { Archive, BadgeCheck, CalendarClock, Compass, Send } from 'lucide-react';
 
 import { NpiActivation } from '@/components/evidence-record/NpiActivation';
 import { StoryChapters } from '@/components/evidence-record/StoryChapters';
@@ -41,14 +40,6 @@ export const metadata: Metadata = {
 
 /* One short label + one short line per stage — the loop is a picture of the
  * same profile moving, not five paragraphs. */
-const LOOP = [
-  { name: 'Discover', desc: 'A better opportunity finds your profile.', Icon: Compass },
-  { name: 'Apply', desc: 'Your profile travels with permission.', Icon: Send },
-  { name: 'Get hired', desc: 'Decided on source-backed information.', Icon: BadgeCheck },
-  { name: 'Start sooner', desc: 'Less re-collection before day one.', Icon: CalendarClock },
-  { name: 'Keep your record', desc: 'It stays yours for the next move.', Icon: Archive },
-] as const;
-
 export default function Z1HomePreviewPage() {
   // SEALED at packet scale: the employer receives permissioned information —
   // which is exactly what the sealed record states.
@@ -77,21 +68,6 @@ export default function Z1HomePreviewPage() {
         </section>
 
         <StoryChapters decidingFace={decidingFace} returnedFace={returnedFace} />
-
-        <section className="z1-loop" aria-label="The VitalCV career loop">
-          <div className="z1-loop-inner">
-            <h2 className="z1-loop-title">One profile, the whole loop</h2>
-            <ol className="z1-loop-track">
-              {LOOP.map(({ name, desc, Icon }) => (
-                <li key={name} className="z1-stage-item">
-                  <span className="z1-stage-glyph" aria-hidden="true"><Icon /></span>
-                  <span className="z1-stage-name">{name}</span>
-                  <span className="z1-stage-desc">{desc}</span>
-                </li>
-              ))}
-            </ol>
-          </div>
-        </section>
       </main>
     </div>
   );

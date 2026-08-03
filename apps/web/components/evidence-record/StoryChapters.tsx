@@ -30,6 +30,7 @@
 import { useEffect, useRef, useState } from 'react';
 
 import { ProfileCard, PROFILE } from '@/components/evidence-record/ProfileCard';
+import { ROWS } from '@/components/evidence-record/faces.mjs';
 
 interface Opportunity {
   id: string;
@@ -72,8 +73,16 @@ interface Props {
   returnedFace: string;
 }
 
+const START_STEPS = [
+  { id: 'received', label: 'Received' },
+  { id: 'review', label: 'Review focused' },
+  { id: 'headstart', label: 'Accepted as a head start' },
+  { id: 'confirmed', label: 'Start confirmed' },
+] as const;
+
 export function StoryChapters({ decidingFace, returnedFace }: Props) {
   const [picked, setPicked] = useState(OPPORTUNITIES[0]);
+  const [step, setStep] = useState(0);
   const rootRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -153,7 +162,9 @@ export function StoryChapters({ decidingFace, returnedFace }: Props) {
         </header>
 
         <div className="z1-handoff" data-reveal>
-          {/* clinician side: the chosen opportunity, the action, the review */}
+          {/* clinician side: the chosen opportunity INITIATES the transfer —
+              the directional connector leaves this card's row, not the column
+              midpoint — then the review of what travels. */}
           <div className="z1-handoff-side z1-handoff-clinician">
             <p className="z1-side-tag">You</p>
             <div className="z1-node z1-opp z1-opp--chosen" data-on>
@@ -167,14 +178,16 @@ export function StoryChapters({ decidingFace, returnedFace }: Props) {
               </div>
               <span className="z1-apply">Apply with VitalCV →</span>
             </div>
-            <p className="z1-handoff-caption">Review what will be shared</p>
+            <p className="z1-handoff-caption">Review what will be shared — rows travel or stay held</p>
             <div className="z1-handoff-record" dangerouslySetInnerHTML={{ __html: decidingFace }} />
           </div>
 
           <div className="z1-handoff-arrow" aria-hidden="true"><span>the employer receives</span></div>
 
-          {/* employer side: the permissioned packet — the record IS the answer
-              to "available / needs review / where it came from" */}
+          {/* employer side: outcome first, then the permissioned packet. The
+              record is deliberately deeper than the clinician's review — the
+              employer receives MORE context — and it is capped with an
+              explicit continuation edge rather than scrolling the page. */}
           <div className="z1-handoff-side z1-handoff-employer">
             <p className="z1-side-tag">The employer</p>
             <div className="z1-packet-frame z1-packet-frame--deep">
@@ -182,11 +195,125 @@ export function StoryChapters({ decidingFace, returnedFace }: Props) {
                 <span className="z1-avatar z1-avatar--mini" aria-hidden="true">{PROFILE.monogram}</span>
                 Employer view · {PROFILE.name} · permissioned
               </p>
-              <div className="z1-handoff-record" dangerouslySetInnerHTML={{ __html: returnedFace }} />
+              <div className="z1-handoff-record z1-handoff-record--capped" dangerouslySetInnerHTML={{ __html: returnedFace }} />
+              <p className="z1-record-continues">the record continues — six sources, every claim with its origin</p>
             </div>
             <p className="z1-handoff-caption z1-handoff-caption--outcome">
               <strong>Hired — and starting without rebuilding the record.</strong>
             </p>
+          </div>
+        </div>
+      </section>
+
+      {/* ================= chapter 4 · START SOONER ================= */}
+      <section className="z1-chapter z1-start-ch" aria-label="Move from hired to ready sooner">
+        <header className="z1-ch-head" data-reveal>
+          <p className="z1-eyebrow">After the offer</p>
+          <h2 className="z1-ch-headline">Move from hired to ready sooner.</h2>
+          <p className="z1-ch-support">
+            The record organizes what&rsquo;s ready and focuses what&rsquo;s left — review
+            starts ahead, not from zero.
+          </p>
+        </header>
+
+        {/* four interface states, one object — never four feature cards */}
+        <div className="z1-start-stage" data-reveal>
+          <div className="z1-steps" role="tablist" aria-label="From hired to ready">
+            {START_STEPS.map((st, i) => (
+              <button
+                key={st.id}
+                type="button"
+                role="tab"
+                aria-selected={i === step}
+                className="z1-step"
+                data-on={i <= step ? '' : undefined}
+                data-active={i === step ? '' : undefined}
+                onClick={() => setStep(i)}
+              >
+                <span className="z1-step-n">{String(i + 1).padStart(2, '0')}</span>
+                {st.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="z1-node z1-start-pane" data-on>
+            {step === 0 && (
+              <div className="z1-start-received">
+                <span className="z1-avatar" aria-hidden="true">{PROFILE.monogram}</span>
+                <div>
+                  <p className="z1-start-line"><strong>{PROFILE.name}</strong> · permissioned record received</p>
+                  <p className="z1-start-sub">{PROFILE.lanesFilled} of {PROFILE.lanesTotal} evidence lanes answered · every claim with its retrieval and origin</p>
+                </div>
+              </div>
+            )}
+            {step === 1 && (
+              <ul className="z1-review-list">
+                {ROWS.filter((r) => r.s === 's-acc' || r.s === 's-pend').map((r) => (
+                  <li key={r.c} className="z1-review-row">
+                    <span className="z1-review-claim">{r.c}</span>
+                    <span className="z1-review-state">{r.r}</span>
+                  </li>
+                ))}
+                <li className="z1-review-row z1-review-row--note">Remaining review is already identified — nothing is rediscovered from zero.</li>
+              </ul>
+            )}
+            {step === 2 && (
+              <div className="z1-start-received">
+                <span className="z1-headstart-mark" aria-hidden="true">→</span>
+                <div>
+                  <p className="z1-start-line"><strong>Accepted as a head start.</strong></p>
+                  <p className="z1-start-sub">Available evidence is organized for the employer&rsquo;s own review — a head start, not completed credentialing and not an automatic decision.</p>
+                </div>
+              </div>
+            )}
+            {step === 3 && (
+              <div className="z1-start-received">
+                <span className="z1-day-chip" aria-hidden="true">Day one</span>
+                <div>
+                  <p className="z1-start-line"><strong>Start confirmed.</strong></p>
+                  <p className="z1-start-sub">{PROFILE.name} moves toward a confirmed start — the remaining review ran alongside, not in front.</p>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* ================= chapter 5 · KEEP YOUR RECORD ================= */}
+      <section className="z1-chapter z1-keep-ch" aria-label="Keep your record">
+        <header className="z1-ch-head" data-reveal>
+          <p className="z1-eyebrow">After the start</p>
+          <h2 className="z1-ch-headline">Your career record keeps moving with you.</h2>
+          <p className="z1-ch-support">
+            The employer interaction ends; the profile stays yours — with the
+            outcome carried as continuity, ready for the next opportunity.
+          </p>
+        </header>
+
+        <div className="z1-keep-stage" data-reveal>
+          {/* the persistent object returns to the clinician */}
+          <div className="z1-keep-profile">
+            <ProfileCard lit badge="Still yours" />
+            <ul className="z1-continuity">
+              <li className="z1-continuity-row">
+                <span className="z1-continuity-mark" aria-hidden="true" />
+                {picked.org} · application completed · kept on your record
+              </li>
+              <li className="z1-continuity-row">
+                <span className="z1-continuity-mark" aria-hidden="true" />
+                Evidence lanes stay answered — nothing is rebuilt next time
+              </li>
+            </ul>
+          </div>
+
+          {/* the loop closes: the kept record is what discovers the next
+              opportunity — a ghost of the NEXT match, not a feature strip */}
+          <div className="z1-loop-close" aria-hidden="true">
+            <span className="z1-loop-close-word">the loop begins again</span>
+            <div className="z1-node z1-opp z1-opp--secondary z1-opp--next">
+              <span className="z1-opp-role">Your next opportunity</span>
+              <span className="z1-opp-org">MATCHA keeps reading the record you keep</span>
+            </div>
           </div>
         </div>
       </section>

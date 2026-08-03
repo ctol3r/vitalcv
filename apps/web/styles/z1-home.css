@@ -361,7 +361,10 @@ body:has(.z1-page) header.sticky.top-0.z-50 a{font-size:17px}
 .z1-handoff-record{max-width:100%}
 .z1-handoff-record .evr{max-width:100%}
 .z1-handoff-arrow{
-  align-self:center;
+  /* the transfer leaves the CHOSEN OPPORTUNITY's row — one continuous event,
+     not a connector floating between two unrelated columns */
+  align-self:start;
+  margin-top:74px;
   display:flex;flex-direction:column;align-items:center;gap:8px;
   font-family:var(--mono);font-size:11px;letter-spacing:.06em;
   text-transform:uppercase;color:var(--ink-subtle);
@@ -375,6 +378,116 @@ body:has(.z1-page) header.sticky.top-0.z-50 a{font-size:17px}
   display:flex;align-items:center;gap:9px;font-size:12px;margin-bottom:10px;
 }
 .z1-packet-frame--deep .z1-avatar--mini{background:var(--ink-strong);color:var(--raised)}
+
+/* the employer record is deliberately deeper — capped with an EXPLICIT
+   continuation edge so the outcome stays in view and the crop cannot read
+   as accidental */
+.z1-handoff-record--capped{
+  max-height:560px;overflow:hidden;
+  border-bottom:2px solid var(--ink-strong);
+}
+.z1-record-continues{
+  font-family:var(--mono);font-size:11.5px;color:var(--ink-subtle);
+  margin:8px 0 0;letter-spacing:.03em;
+}
+
+/* rows travel, arrive, or stay — restrained spatial behaviour, once, on
+   reveal. Travelling rows step toward the employer; arriving rows settle in,
+   staggered; held rows do not move, which is the point. */
+@keyframes z1-travel{from{transform:translateX(-10px)}to{transform:none}}
+@keyframes z1-arrive{from{opacity:.25;transform:translateX(10px)}to{opacity:1;transform:none}}
+.z1-handoff[data-seen] .z1-handoff-clinician .evr-row[data-travel="travels"]{animation:z1-travel .55s ease both}
+.z1-handoff[data-seen] .z1-handoff-employer .evr-row{animation:z1-arrive .5s ease both}
+.z1-handoff[data-seen] .z1-handoff-employer .evr-row:nth-child(2){animation-delay:.1s}
+.z1-handoff[data-seen] .z1-handoff-employer .evr-row:nth-child(3){animation-delay:.2s}
+.z1-handoff[data-seen] .z1-handoff-employer .evr-row:nth-child(4){animation-delay:.3s}
+.z1-handoff[data-seen] .z1-handoff-employer .evr-row:nth-child(5){animation-delay:.4s}
+.z1-handoff[data-seen] .z1-handoff-employer .evr-row:nth-child(6){animation-delay:.5s}
+@media (prefers-reduced-motion:reduce){
+  .z1-handoff[data-seen] .evr-row{animation:none !important}
+}
+
+/* ---- chapter 4 · start sooner --------------------------------------------
+   Four interface STATES of one pane; the steps are the object's own
+   progression, not four feature cards. */
+.z1-start-stage{margin-top:clamp(24px,4vh,44px);max-width:980px}
+.z1-steps{display:flex;gap:10px;flex-wrap:wrap}
+.z1-step{
+  display:inline-flex;align-items:center;gap:10px;
+  border:1px solid var(--rule-strong);border-radius:8px;
+  background:var(--raised);color:var(--ink-subtle);
+  padding:12px 18px;cursor:pointer;
+  font-size:clamp(14.5px,1.15vw,17px);font-weight:500;
+  opacity:.65;
+}
+.z1-step[data-on]{opacity:1;color:var(--ink)}
+.z1-step[data-active]{border-color:var(--ink-strong);color:var(--ink-strong);background:var(--paper)}
+.z1-step-n{font-family:var(--mono);font-size:11px;color:var(--ink-subtle)}
+.z1-start-pane{margin-top:16px;min-height:150px;display:flex;align-items:center}
+.z1-start-received{display:flex;align-items:center;gap:20px}
+.z1-start-line{font-size:clamp(18px,1.55vw,23px);color:var(--ink);margin:0}
+.z1-start-line strong{color:var(--ink-strong);font-weight:600}
+.z1-start-sub{font-size:clamp(14.5px,1.2vw,17px);color:var(--ink-muted);margin:6px 0 0;max-width:56ch;line-height:1.5}
+.z1-headstart-mark{
+  flex:none;width:46px;height:46px;border-radius:50%;
+  display:inline-flex;align-items:center;justify-content:center;
+  border:2px solid var(--ink-strong);color:var(--ink-strong);
+  font-size:20px;
+}
+.z1-day-chip{
+  flex:none;
+  font-family:var(--mono);font-size:13px;letter-spacing:.08em;text-transform:uppercase;
+  border:2px solid var(--ink-strong);border-radius:8px;color:var(--ink-strong);
+  padding:12px 14px;
+}
+.z1-review-list{list-style:none;margin:0;padding:0;width:100%;display:flex;flex-direction:column}
+.z1-review-row{
+  display:flex;justify-content:space-between;gap:18px;flex-wrap:wrap;
+  padding:12px 2px;border-top:1px solid var(--rule);
+  font-size:clamp(15px,1.2vw,17.5px);
+}
+.z1-review-row:first-child{border-top:0}
+.z1-review-claim{font-weight:600;color:var(--ink-strong)}
+.z1-review-state{color:var(--ink-muted)}
+.z1-review-row--note{color:var(--ink-subtle);font-size:14px;border-top:1px dashed var(--rule-strong)}
+
+/* ---- chapter 5 · keep your record ----------------------------------------
+   The persistent object returns; continuity rows carry the outcome; the loop
+   closes into the ghost of the NEXT discovery. */
+.z1-keep-stage{
+  display:grid;
+  grid-template-columns:minmax(320px,520px) minmax(0,1fr);
+  column-gap:clamp(36px,5vw,80px);
+  align-items:start;
+  margin-top:clamp(24px,4vh,44px);
+}
+.z1-continuity{list-style:none;margin:14px 0 0;padding:0;display:flex;flex-direction:column;gap:10px}
+.z1-continuity-row{
+  display:flex;align-items:center;gap:12px;
+  font-size:clamp(15px,1.2vw,17.5px);color:var(--ink);
+}
+.z1-continuity-mark{
+  flex:none;width:10px;height:10px;border-radius:50%;
+  background:var(--ink-strong);
+}
+.z1-loop-close{
+  display:flex;flex-direction:column;gap:12px;align-self:center;
+  position:relative;padding-left:clamp(28px,3vw,52px);
+}
+.z1-loop-close::before{
+  content:'↻';position:absolute;left:0;top:2px;
+  font-size:clamp(22px,2vw,30px);color:var(--ink-strong);
+}
+.z1-loop-close-word{
+  font-family:var(--mono);font-size:12px;letter-spacing:.07em;
+  text-transform:uppercase;color:var(--ink-subtle);
+}
+.z1-opp--next{opacity:.6;max-width:420px;cursor:default}
+
+@media (max-width:1080px){
+  .z1-keep-stage{grid-template-columns:minmax(0,1fr);row-gap:26px}
+  .z1-handoff-arrow{margin-top:0}
+}
 
 /* ---- reveal --------------------------------------------------------------
    One observer, one attribute. Motion is a small rise; reduced motion gets
