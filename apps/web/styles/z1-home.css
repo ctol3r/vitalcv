@@ -241,6 +241,170 @@ body:has(.z1-page) header.sticky.top-0.z-50 a{font-size:17px}
 }
 .z1-outcome strong{display:block;color:var(--ink-strong);font-weight:600;font-size:clamp(21px,1.9vw,27px)}
 
+/* ==========================================================================
+   CHAPTERS 2 + 3 — Discover (MATCHA) and Apply with VitalCV.
+   One large idea per chapter: a short headline, at most one supporting
+   sentence, one dominant product composition. The persistent profile
+   continues; indigo stays reserved for the travel action.
+   ========================================================================== */
+.z1-chapter{
+  max-width:1520px;margin:0 auto;
+  padding:clamp(40px,7vh,84px) clamp(24px,4vw,64px) clamp(28px,4vh,48px);
+}
+/* The hero hands off directly into Discover — one continuous narrative, so
+   the first chapter begins at the hero's seam rather than after a band of
+   dead space. */
+.z1-discover{padding-top:clamp(8px,2vh,24px);border-top:1px solid var(--rule)}
+.z1-ch-head{max-width:64ch}
+.z1-ch-headline{
+  font-family:var(--serif);font-weight:500;
+  font-size:clamp(34px,3.9vw,58px);
+  line-height:1.05;letter-spacing:-.02em;color:var(--ink-strong);
+  max-width:22ch;margin:6px 0 0;
+}
+.z1-ch-support{
+  font-size:clamp(17px,1.5vw,22px);color:var(--ink-muted);
+  max-width:52ch;line-height:1.5;margin:clamp(10px,1.6vh,16px) 0 0;
+}
+.z1-ch-note{
+  font-family:var(--mono);font-size:12.5px;color:var(--ink-subtle);
+  margin:14px 0 0;
+}
+
+/* ---- discover stage ------------------------------------------------------
+   The profile at the centre of discovery; ONE dominant opportunity anchored
+   to why-it-fits rows; two secondary possibilities as quiet, real buttons.
+   Never a grid of equal cards. */
+.z1-discover-stage{
+  display:grid;
+  grid-template-columns:minmax(320px,460px) minmax(0,1fr);
+  grid-template-areas:
+    "profile dominant"
+    "secondary dominant"
+    "note note";
+  column-gap:clamp(32px,4vw,72px);
+  row-gap:clamp(16px,2.4vh,26px);
+  align-items:start;
+  margin-top:clamp(24px,4vh,44px);
+  position:relative;
+}
+.z1-discover-profile{grid-area:profile;position:relative}
+/* the tie between profile and dominant match — the reading line of the scene */
+.z1-discover-profile::after{
+  content:'';position:absolute;top:50%;right:calc(-1 * clamp(32px,4vw,72px));
+  width:clamp(32px,4vw,72px);height:2px;background:var(--rule-strong);
+}
+.z1-opp--dominant{
+  grid-area:dominant;
+  display:flex;align-items:flex-start;gap:20px;flex-wrap:wrap;
+  padding:clamp(20px,2.4vh,28px) clamp(20px,2vw,30px);
+}
+.z1-opp--dominant .z1-opp-role{font-size:clamp(23px,2.1vw,30px)}
+.z1-opp--dominant .z1-opp-org{font-size:clamp(15px,1.25vw,18px)}
+.z1-fit-list{list-style:none;margin:14px 0 0;padding:0;display:flex;flex-direction:column;gap:9px}
+.z1-fit{
+  display:flex;align-items:center;gap:10px;
+  font-size:clamp(14.5px,1.15vw,17px);color:var(--ink);
+}
+/* the tie mark: the fit row POINTS BACK at the profile — ink, never a green
+   tick, because fit is a match statement, not a verification claim */
+.z1-fit-tie{
+  flex:none;width:18px;height:2px;background:var(--ink-strong);
+  position:relative;
+}
+.z1-fit-tie::before{
+  content:'';position:absolute;left:-4px;top:-3px;
+  width:8px;height:8px;border-radius:50%;background:var(--ink-strong);
+}
+.z1-discover-secondary{
+  grid-area:secondary;
+  display:flex;flex-direction:column;gap:12px;
+}
+.z1-opp--secondary{
+  display:flex;flex-direction:column;gap:3px;align-items:flex-start;
+  text-align:left;cursor:pointer;opacity:.75;
+  padding:12px 16px;
+  /* a quiet possibility is content-sized — it must not inherit the hero
+     opportunity's min-height and read as a half-empty card */
+  min-height:0;
+}
+.z1-opp--secondary:hover{opacity:1;border-color:var(--ink-strong)}
+.z1-opp--secondary .z1-opp-role{font-size:16.5px}
+.z1-opp--secondary .z1-opp-org{font-size:13.5px;margin:0}
+.z1-discover-stage .z1-ch-note{grid-area:note;margin:0}
+
+/* ---- the handoff ---------------------------------------------------------
+   Clinician side and employer side of one application. The records ARE the
+   content: DECIDING = review what travels; RETURNED = what is available,
+   what still needs review, where each item came from. */
+.z1-apply-ch{padding-top:clamp(28px,5vh,56px)}
+.z1-handoff{
+  --z1-review:430;
+  --z1-packet2:470;
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);
+  column-gap:clamp(18px,2vw,36px);
+  align-items:start;
+  margin-top:clamp(24px,4vh,44px);
+}
+.z1-handoff-side{min-width:0;display:flex;flex-direction:column;gap:14px}
+.z1-side-tag{
+  font-family:var(--mono);font-size:12px;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--ink-subtle);margin:0;
+}
+.z1-opp--chosen{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.z1-handoff-caption{
+  font-size:clamp(15px,1.2vw,17.5px);color:var(--ink-muted);margin:4px 0 0;
+}
+.z1-handoff-caption--outcome{font-size:clamp(17px,1.45vw,21px)}
+.z1-handoff-caption--outcome strong{color:var(--ink-strong);font-weight:600}
+.z1-handoff-record{max-width:100%}
+.z1-handoff-record .evr{max-width:100%}
+.z1-handoff-arrow{
+  align-self:center;
+  display:flex;flex-direction:column;align-items:center;gap:8px;
+  font-family:var(--mono);font-size:11px;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--ink-subtle);
+  white-space:nowrap;
+}
+.z1-handoff-arrow::after{
+  content:'→';font-size:26px;color:var(--ink-strong);font-family:var(--sans);
+}
+.z1-packet-frame--deep{padding:14px 16px 16px}
+.z1-packet-frame--deep .z1-packet-head{
+  display:flex;align-items:center;gap:9px;font-size:12px;margin-bottom:10px;
+}
+.z1-packet-frame--deep .z1-avatar--mini{background:var(--ink-strong);color:var(--raised)}
+
+/* ---- reveal --------------------------------------------------------------
+   One observer, one attribute. Motion is a small rise; reduced motion gets
+   the complete argument with no movement at all. */
+[data-reveal]{opacity:0;transform:translateY(14px);transition:opacity .5s ease,transform .5s ease}
+[data-reveal][data-seen]{opacity:1;transform:none}
+@media (prefers-reduced-motion:reduce){
+  [data-reveal]{opacity:1;transform:none;transition:none}
+}
+
+/* ---- chapters responsive ------------------------------------------------- */
+@media (max-width:1080px){
+  .z1-discover-stage{
+    grid-template-columns:minmax(0,1fr);
+    grid-template-areas:"profile" "dominant" "secondary" "note";
+  }
+  .z1-discover-profile::after{display:none}
+  .z1-handoff{grid-template-columns:minmax(0,1fr);row-gap:22px}
+  .z1-handoff-arrow{flex-direction:row;justify-self:start}
+  .z1-handoff-arrow::after{content:'↓'}
+}
+@media (max-width:880px){
+  .z1-handoff{--z1-review:350;--z1-packet2:350}
+  .z1-opp--dominant .z1-apply{width:100%;text-align:center}
+}
+@media (max-height:820px){
+  .z1-discover{padding-top:6px}
+  .z1-ch-headline{font-size:40px}
+}
+
 /* ---- career loop ---------------------------------------------------------
    Five stages, one visual each, one short line each. The connecting rule is
    the same profile moving — continuity, not five unrelated cards. */

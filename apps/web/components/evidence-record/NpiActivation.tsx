@@ -29,6 +29,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 
+import { ProfileCard, PROFILE } from '@/components/evidence-record/ProfileCard';
+
 export type ActivationState =
   | 'empty' | 'focused' | 'resolving' | 'found' | 'invalid' | 'organization' | 'unavailable';
 
@@ -152,38 +154,9 @@ export function NpiActivation({ sealedFace }: Props) {
 
         <div className="z1-link" aria-hidden="true">becomes</div>
 
-        {/* 2 · the reusable clinician profile — THE persistent object.
-            Dormant, it is a profile-shaped silhouette assembling: dashed
-            identity mark, unresolved name bars, six hollow evidence lanes —
-            "ready to become a profile", never an empty box. */}
-        <div className="z1-node z1-profile" data-on={lit ? '' : undefined}>
-          <div className="z1-profile-head">
-            <span className="z1-avatar" aria-hidden="true">{lit ? 'KO' : ''}</span>
-            <div className="z1-profile-id">
-              {lit ? (
-                <>
-                  <p className="z1-profile-name">K. Osei, PA-C</p>
-                  <p className="z1-profile-meta">Emergency medicine · 8 years</p>
-                </>
-              ) : (
-                <>
-                  <span className="z1-sil z1-sil--name" />
-                  <span className="z1-sil z1-sil--meta" />
-                </>
-              )}
-            </div>
-            <span className="z1-profile-badge">{lit ? 'Reusable profile' : 'Your profile'}</span>
-          </div>
-          <div className="z1-lanes" role="img" aria-label={lit ? 'Evidence: 4 of 6 sources answered' : 'Six evidence lanes, none read yet'}>
-            {[0, 1, 2, 3, 4, 5].map((i) => (
-              <span key={i} className="z1-lane" data-f={lit && i < 4 ? '' : undefined} />
-            ))}
-          </div>
-          <p className="z1-profile-evidence">
-            {lit ? 'Evidence record attached · 4 of 6 sources answered · Illustrative — not a live result'
-                 : 'Six evidence lanes · filled as sources answer'}
-          </p>
-        </div>
+        {/* 2 · the reusable clinician profile — THE persistent object,
+            shared with the Discover and Apply chapters (ProfileCard). */}
+        <ProfileCard lit={lit} />
 
         <div className="z1-link" aria-hidden="true">travels to</div>
 
@@ -194,7 +167,7 @@ export function NpiActivation({ sealedFace }: Props) {
             <p className="z1-opp-role">Emergency Medicine PA</p>
             <p className="z1-opp-org">Cascade Regional Medical Center · Full-time</p>
             <span className="z1-opp-attach">
-              <span className="z1-avatar z1-avatar--mini" aria-hidden="true">{lit ? 'KO' : ''}</span>
+              <span className="z1-avatar z1-avatar--mini" aria-hidden="true">{lit ? PROFILE.monogram : ''}</span>
               {lit ? 'Your profile is attached' : 'Applies with your profile'}
             </span>
           </div>

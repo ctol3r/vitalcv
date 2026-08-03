@@ -25,6 +25,7 @@ import type { Metadata } from 'next';
 import { Archive, BadgeCheck, CalendarClock, Compass, Send } from 'lucide-react';
 
 import { NpiActivation } from '@/components/evidence-record/NpiActivation';
+import { StoryChapters } from '@/components/evidence-record/StoryChapters';
 // Canonical object stylesheet + this route's composition. Order matters:
 // composition may steer the object but never restate its rules.
 import '@/components/evidence-record/record.css';
@@ -52,6 +53,10 @@ export default function Z1HomePreviewPage() {
   // SEALED at packet scale: the employer receives permissioned information —
   // which is exactly what the sealed record states.
   const sealedFace = FACES.SEALED('var(--z1-packet, 340)', 'hero');
+  /* Chapter three's two sides, from the same canonical module: the clinician's
+   * review of what travels, and what the employer can actually see. */
+  const decidingFace = FACES.DECIDING('var(--z1-review, 430)', 'hero');
+  const returnedFace = FACES.RETURNED('var(--z1-packet2, 470)', 'hero');
 
   // The navigation shell is the REAL global chrome: RootChrome renders the
   // production Navbar because this route is registered as a public surface.
@@ -70,6 +75,8 @@ export default function Z1HomePreviewPage() {
             <NpiActivation sealedFace={sealedFace} />
           </div>
         </section>
+
+        <StoryChapters decidingFace={decidingFace} returnedFace={returnedFace} />
 
         <section className="z1-loop" aria-label="The VitalCV career loop">
           <div className="z1-loop-inner">
