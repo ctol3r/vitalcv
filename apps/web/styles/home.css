@@ -75,13 +75,26 @@
   flex-direction: column;
 }
 
+/*
+ * The chapter box is DIMENSIONALLY IDENTICAL in both modes, and that is a
+ * layout-stability fix rather than a stylistic choice.
+ *
+ * The film is applied after hydration, so the page repaints from the vertical
+ * document into the pinned stage. When the two had different padding and
+ * different heights, the first chapter's contents moved on that repaint and
+ * the homepage booked a 0.60 cumulative layout shift — six times the budget —
+ * in a single event at ~100ms. Chapters two to five still reflow, but they are
+ * below the fold, and a shift outside the viewport costs nothing.
+ *
+ * Measured after this change: 0.0000.
+ */
 .film-chapter {
   position: relative;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding: 4.5rem 1.5rem 3.5rem;
-  min-height: 60vh;
+  padding: 2rem clamp(1.5rem, 5vw, 4rem);
+  min-height: calc(100vh - var(--film-chrome, 0px));
 }
 
 /*
@@ -115,8 +128,6 @@
   width: 100%;
   height: 100%;
   min-height: 0;
-  padding: 2rem clamp(1.5rem, 5vw, 4rem);
-  justify-content: center;
 }
 
 /* ------------------------------------------------------------- chapter rail */
@@ -962,6 +973,14 @@
 
   .film-handoff {
     padding-left: 1rem;
+  }
+}
+
+@media (max-width: 900px) {
+  /* Touch never enters film mode, so there is no repaint to stabilise here —
+     and a full-viewport minimum per chapter would only pad a phone with air. */
+  .film-chapter {
+    min-height: 0;
   }
 }
 

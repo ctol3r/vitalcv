@@ -465,12 +465,18 @@ export function HorizontalCareerFilm() {
                     Every row in the record is a decision. What you release moves with the
                     application. What you hold never leaves this page.
                   </p>
+                  {/*
+                    No route is named here. `/holder/permissions` does not
+                    exist, and printing a path that 404s would be a promise the
+                    product cannot keep — the illustrative frame makes the
+                    workflow legible, it does not license an invented URL.
+                  */}
                   <p className="film-consent">
                     Permission recorded
                     <br />
                     Scope: this application
                     <br />
-                    Revoke anytime — <Link href="/holder/permissions">/holder/permissions</Link>
+                    Revocable from your record
                   </p>
                 </div>
 
