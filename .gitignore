@@ -120,3 +120,10 @@ apps/web/artifacts/
 # Generated review captures. Visual evidence lives in PR comments and CI
 # artifacts, not in the repository.
 artifacts/
+
+# Z0 review prototype SOURCE is tracked (small, reproducible); its rendered
+# PNGs are not - they live on the never-merged review branch.
+!artifacts/zoox-fidelity-z0/
+!artifacts/zoox-fidelity-z0/**
+artifacts/zoox-fidelity-z0/**/*.png
+artifacts/zoox-fidelity-z0/**/*.woff2
