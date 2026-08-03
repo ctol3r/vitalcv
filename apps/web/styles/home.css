@@ -79,9 +79,18 @@
   position: relative;
 }
 
+/*
+ * NOT `overflow: hidden`.
+ *
+ * It was, to clip the retired page-wide horizontal track. But `position:
+ * sticky` cannot stick inside a clipping ancestor — it scrolls away with that
+ * ancestor's box instead — so the moment a chapter got a sticky stage, the
+ * stage rendered blank. The clipping that is still needed is the stage's own
+ * `.film-stage-viewport`, which is exactly as wide as the frame it must hide
+ * the rail behind.
+ */
 .film-stage {
   position: relative;
-  overflow: hidden;
 }
 
 .film-track {
@@ -1107,5 +1116,98 @@
   .film-reveal {
     opacity: 1;
     transform: none;
+  }
+}
+
+
+/* ------------------------------------------------------- the sticky stage */
+
+/*
+ * ONE chapter pins while the evidence record travels horizontally inside it.
+ *
+ * This is what replaced page-wide horizontal travel. The document scrolls
+ * vertically and never translates sideways; a reader passing through this
+ * chapter watches a single object move across a fixed frame. The scroll is
+ * READ, never captured — the spacer is a plain tall element, so the browser
+ * keeps ownership and scrolling past behaves normally.
+ *
+ * `--stage-progress` (0→1) is published by the one rAF in `useFilmProgress`,
+ * from the same measurement pass as everything else. There is no second
+ * scroll owner, which CD-11 forbids and `experience-doctrine` enforces.
+ */
+.film-chapter--staged {
+  display: block;
+  padding-left: 0;
+  padding-right: 0;
+  min-height: 0;
+}
+
+.film-stage-spacer {
+  position: relative;
+  height: 300vh;
+}
+
+.film-stage-pin {
+  position: sticky;
+  top: var(--film-chrome, 0px);
+  height: calc(100vh - var(--film-chrome, 0px));
+  display: grid;
+  grid-template-columns: minmax(0, 34fr) minmax(0, 52fr);
+  gap: clamp(2rem, 5vw, 4.5rem);
+  align-items: center;
+  width: min(1240px, 100%);
+  margin: 0 auto;
+  padding: 2rem clamp(1.5rem, 5vw, 4rem);
+}
+
+/* The viewport clips the rail; the argument column beside it never moves. */
+.film-stage-viewport {
+  overflow: hidden;
+}
+
+.film-stage-rail {
+  display: flex;
+  gap: clamp(2rem, 4vw, 3.5rem);
+  will-change: transform;
+  /* Two gaps of travel for three frames. The multiplier is expressed against
+     the FRAME width so adding a frame does not silently change the distance
+     each one gets. */
+  transform: translate3d(calc(var(--stage-progress, 0) * -200%), 0, 0);
+}
+
+.film-stage-frame {
+  flex: 0 0 100%;
+  min-width: 0;
+}
+
+/*
+ * Without the pin the argument still has to land. The frames stack, the rail
+ * stops translating, and the chapter becomes an ordinary vertical block — the
+ * same content in the same order, which is the whole fallback contract.
+ */
+@media (max-width: 1023px), (prefers-reduced-motion: reduce) {
+  .film-stage-spacer {
+    height: auto;
+  }
+
+  .film-stage-pin {
+    position: static;
+    height: auto;
+    grid-template-columns: minmax(0, 1fr);
+    padding: 3rem 1.25rem;
+  }
+
+  .film-stage-viewport {
+    overflow: visible;
+  }
+
+  .film-stage-rail {
+    flex-direction: column;
+    gap: 1.5rem;
+    transform: none;
+  }
+
+  .film-stage-frame {
+    flex: none;
   }
 }

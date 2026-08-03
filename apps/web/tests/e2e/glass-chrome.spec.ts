@@ -16,23 +16,43 @@ test.describe('native cursor', () => {
     await page.goto('/', { waitUntil: 'domcontentloaded' });
 
     await expect(page.locator('[data-vt-cursor], .vt-cursor')).toHaveCount(0);
-    await expect(page.locator('.film')).toHaveAttribute('data-film-mode', 'film');
+    // Page-wide horizontal travel is RETIRED (founder directive, 2026-08-03):
+    // the document scrolls vertically and horizontal movement happens inside a
+    // sticky chapter stage instead. `vertical` is therefore the correct and
+    // only mode. Asserting 'film' here would be a guard enforcing doctrine that
+    // was deliberately withdrawn.
+    await expect(page.locator('.film')).toHaveAttribute('data-film-mode', 'vertical');
 
     const input = page.locator('#film-npi-input');
     await input.click();
     await expect(input).toBeFocused();
-    await input.fill('1234567893');
+    // `pressSequentially`, not `fill`. `fill` sets the DOM value in one shot;
+    // on a controlled SSR React input that can land before hydration has
+    // attached the change handler, so the DOM shows the digits while React's
+    // state stays empty and the submit button stays disabled. Typing produces
+    // real key events and cannot get ahead of the component that way.
+    await input.pressSequentially('1234567893', { delay: 20 });
     await expect(input).toHaveValue('1234567893');
 
     const primaryAction = page.locator('[data-home-primary-cta]');
     await expect(primaryAction).toBeVisible();
-    await expect(primaryAction).toBeEnabled();
+    // Polled, not asserted instantaneously. The control is disabled until the
+    // component's own validity state catches up with what was typed, and that
+    // handoff happens after hydration — asserting on the very next tick tests
+    // the machine's speed rather than the page's behaviour. The assertion is
+    // unchanged: a full valid NPI must leave the primary action operable.
+    await expect(primaryAction).toBeEnabled({ timeout: 10_000 });
   });
 
   test('pointer movement never replaces the native cursor', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto('/', { waitUntil: 'networkidle' });
-    await expect(page.locator('.film')).toHaveAttribute('data-film-mode', 'film');
+    // Page-wide horizontal travel is RETIRED (founder directive, 2026-08-03):
+    // the document scrolls vertically and horizontal movement happens inside a
+    // sticky chapter stage instead. `vertical` is therefore the correct and
+    // only mode. Asserting 'film' here would be a guard enforcing doctrine that
+    // was deliberately withdrawn.
+    await expect(page.locator('.film')).toHaveAttribute('data-film-mode', 'vertical');
 
     await page.locator('.film-stage').hover({ position: { x: 900, y: 480 } });
 
@@ -100,11 +120,16 @@ test.describe('glass surfaces and movement', () => {
     await page.goto('/', { waitUntil: 'networkidle' });
 
     const film = page.locator('.film');
-    await expect(film).toHaveAttribute('data-film-mode', 'film');
+    await expect(film).toHaveAttribute('data-film-mode', 'vertical'); // page-wide travel retired 2026-08-03
 
-    const track = page.locator('.film-track');
+    const track = page.locator('.film-stage-rail');
     const firstTransform = await track.evaluate((element) => getComputedStyle(element).transform);
-    await page.evaluate(() => window.scrollTo({ top: window.innerHeight * 2 }));
+    // Scroll INTO the sticky stage — that is where the rail travels now.
+    await page.evaluate(() => {
+      const spacer = document.querySelector('.film-stage-spacer');
+      const top = (spacer?.getBoundingClientRect().top ?? 0) + window.scrollY;
+      window.scrollTo(0, top + window.innerHeight);
+    });
     await expect.poll(() => track.evaluate((element) => getComputedStyle(element).transform)).not.toBe(firstTransform);
 
     // `.film-record` is gone; the evidence artifacts are now the `.film-summon`
