@@ -41,9 +41,143 @@ is invented. Where the reference cannot be reliably measured, the field says so
 rather than guessing — a fabricated easing curve would be worse than an absent
 one, because it would be built on and never questioned.
 
-## New measurements
+## New measurements — PASS 2 (mobile 390x844 + desktop /community, /support)
 
-**STATUS: IN PROGRESS.** Two measurement passes were dispatched (desktop across
+**STATUS: SYNTHESISED.** Method: live `getComputedStyle` /
+`getBoundingClientRect`, stylesheet rule enumeration, resource timing, HTTP
+range checks, scripted scroll sampling. Nothing eyeballed.
+
+**Standing caveat, applied honestly:** the automation pane throttles rAF to
+~1.5fps. Durations declared in CSS are exact and marked MEASURED. Durations of
+JS-driven tweens (overlay clip, button reveals, accordion height) are marked
+**OBSERVED BUT NOT PRECISELY MEASURABLE** rather than guessed.
+
+### The finding that changes this program's brief
+
+**Zoox has NO horizontal rails. At any width. On any route measured.**
+CONFIDENCE: **MEASURED** — zero elements with `overflow-x: auto|scroll` whose
+`scrollWidth` exceeds `clientWidth` at 390 or 1440; zero scroll-snap
+containers. The earlier atlas finding ("sliding elements: not observed") was
+not a gap in observation. It is the truth.
+
+What exists instead is a **10% overscale reserve with VERTICAL travel only** —
+image held at `scale(1.10)` inside `overflow: hidden`, translated ~34px
+vertically, container/content ratio 1.05, *identical at both breakpoints*.
+
+Consequence for VitalCV, stated plainly: the horizontal sliding this program
+asks for is **not** a Zoox behaviour and cannot be justified by reference to
+it. It must stand on VitalCV's own argument — that one record travels from
+holder to recipient — or be dropped. This is a founder decision, not an
+implementation detail.
+
+### M2 — The menu is a clip dilation from the nav capsule's own footprint
+
+The most transferable mechanic measured.
+
+| Field | Value |
+| --- | --- |
+| INTERACTION | Mobile menu open |
+| TRIGGER | 48x48 button, `aria-expanded` false→true |
+| INITIAL STATE | Overlay already full-viewport, opacity 0, clipped to inset **top 12px / right 30% / bottom 90% / left 30%, radius 36px** — resolving to ~156x84px centred: the exact footprint of the nav capsule |
+| FINAL STATE | Inset 0 all sides, radius 0, opacity 1 |
+| TRANSLATION | **Zero.** `transform: none` throughout. All motion is clip geometry |
+| DURATION / EASING | OBSERVED BUT NOT PRECISELY MEASURABLE (JS tween on custom properties) |
+| MASK-CLIP | Four independently animated inset vars + animated radius. A second, independently clipped media panel inside starts at `scaleY(0.5)` from a top origin |
+| LOW-MOTION RESULT | **None. Runs at full amplitude.** |
+| CONFIDENCE | MEASURED (states), INFERRED (timing) |
+
+**VITALCV TRANSLATION:** this is the grammar the Living Evidence Record needs
+on mobile. A claim tapped in a list should **dilate from its own footprint**
+into inspection and collapse back to it — not push a route in from the right.
+Because the destination layout is final at frame 0, nothing reflows, and the
+reduced-motion variant is a one-line branch to an instant swap.
+
+### Mobile recomposition — the atlas gap, closed
+
+**CONFIDENCE: MEASURED.** Not media queries: **separate component trees**
+selected at runtime, with the desktop tree entirely absent from the mobile DOM.
+
+| /how-to-ride | @1440 | @390 |
+| --- | --- | --- |
+| Document height | 33,308px = **37.0x** viewport | 11,089px = **13.1x** |
+| Pinned stages | 1 (spacer 34.2 viewports) | 1 (spacer 1.0 viewport) |
+| Masked sequence sections | 1 | **3** |
+| Scrub canvas | 1728x1080 landscape | 231x500 + 331x500 **portrait** |
+| Hero video | 3,755KB | 1,897KB (different encode) |
+
+The homepage splits at **section** granularity — hero shared, content body
+recomposed — so the boundary is drawn per-section, not per-page. Length parity
+on block-composed pages (10.6x vs 10.8x) is expected; the pinned narrative
+collapsing to 35% is the signature of real recomposition rather than squeezing.
+
+### Radius is a CLIP variable, not a border property
+
+**CONFIDENCE: MEASURED.** Buttons and tags have `border-radius: 0`; the 16px
+and 12px roundness lives on an inner clipped wrapper — which is why it can be
+animated at all. Measured ladder: large media **36px** · buttons/cards **16px**
+· nav capsule **18px** · metadata tag **12px** · large media *frames* **0px**
+(roundness applied to the media element, not the frame).
+
+This anchors Z1's radius hierarchy to real numbers instead of invention.
+
+### Motion tokens
+
+**CONFIDENCE: MEASURED** (declaration counts across ~500KB CSS).
+One curve carries half of all declarations: **cubic-bezier(0.2, 0, 0, 1)** (54
+of ~110). Durations: 200ms (36), 500ms (36), 300ms (28), 100ms (14), **334ms**
+(14), 667ms (4). Buttons are **334ms in, 500ms out** — faster in, slower out.
+Image load fades 0→1 over **100ms**: a flash-guard, not a reveal.
+
+### Two reveal geometries carry two meanings
+
+**CONFIDENCE: MEASURED.**
+- **Clip from centre** (`inset(50%)` → `inset(-1%+2px)`, with a deliberate 2–3px
+  negative overshoot so the edge never grazes a subpixel boundary) = **arrival**.
+- **Clip from a 12px corner seed**, growing diagonally = **qualifier attaching**.
+- **Height + `overflow: hidden`** (no clip) = **disclosure**.
+
+Three mechanics, three meanings, learnable without instruction. VitalCV should
+adopt the split and make it lint-enforceable: a claim resolves from its centre,
+a tier/freshness qualifier grows from a corner, expanding to show sources is a
+height tween.
+
+### Type scale
+
+**CONFIDENCE: MEASURED.** **Zero `clamp()` in ~500KB of CSS.** Fixed steps at
+768/1080. h1 40→32px, section 36→30px, sub-head 30→24px — a consistent 17–20%
+step down. **The 12px uppercase eyebrow never scales.**
+
+That last detail is the valuable one: a constant metadata voice means the
+qualifier does not shrink relative to the claim it qualifies — exactly what a
+truth surface needs, and testable at one size.
+
+### Where the reference is the NEGATIVE example
+
+| Finding | Measured | VitalCV response |
+| --- | --- | --- |
+| `prefers-reduced-motion` | **0 in CSS and 0 in JS**, across two independently bundled routes. Nothing anywhere queries the preference | Full designed linear composition, mandatory |
+| `forced-colors` / `prefers-contrast` | 0 / 0 | Honour both |
+| Touch targets @390 | **17 of 36 under 44px** — every secondary/tertiary control; social buttons 24px; footer legal 13px | Provenance controls are the ones that matter most; >=44px floor with padded hit areas |
+| Media weight @390 | **~12.9MB**; homepage `-mobile-`/`-desktop-` files are **byte-identical** (matching Content-Length 7,797,664 and mid-file checksum) | Take the render-time source-selection mechanism; reject the budget |
+| Footer canvas | Perpetually animating, every route, no escape | Reuse the existing engine, gate on reduced-motion AND intersection-observer pause |
+
+The byte-identical asset pair is worth remembering: a naming convention that
+*looks* like responsive discipline while shipping the same file twice is
+exactly the class of thing that passes review and fails users.
+
+### Scroll lock technique — worth adopting wholesale
+
+**CONFIDENCE: MEASURED.** Root element `overflow: hidden` **plus** pausing the
+scroll engine. `<body>` untouched — no `position: fixed`, no top offset, no
+padding compensation. Scroll offset preserved exactly (verified at 800px).
+For a record that "travels and arrives", losing scroll position on close is the
+most damaging possible bug.
+
+---
+
+## New measurements — PASS 1 (desktop /, /how-to-ride, /where-to-ride, /know-your-ride)
+
+**STATUS: DISPATCHED, NOT YET SYNTHESISED.** Two measurement passes were dispatched (desktop across
 `/`, `/how-to-ride`, `/where-to-ride`, `/know-your-ride`; mobile 390×844 plus
 `/community` and `/support` on desktop), instructed to measure via
 `getComputedStyle` and scroll sampling rather than by eye. **Their results are
