@@ -54,8 +54,11 @@ test.describe('homepage evidence film', () => {
   test('opens with a truthful empty source record, not a fabricated clinician', async ({ page }) => {
     const hero = page.locator('[data-home-hero]');
     await expect(hero.getByRole('heading', { level: 1 })).toHaveAccessibleName('Get hired on evidence.');
-    await expect(hero.locator('.film-record')).toBeVisible();
-    await expect(hero.locator('.film-panel-lane')).toHaveCount(6);
+    // The #1060 recovery replaced `.film-record` / `.film-panel-lane` with the
+    // `.film-summon` record and its six `.film-strip` lane cards. Same six
+    // lanes, same pre-lookup truth — only the markup moved.
+    await expect(hero.locator('.film-summon')).toBeVisible();
+    await expect(hero.locator('.film-strip')).toHaveCount(6);
 
     const text = (await hero.innerText()).toLowerCase();
     expect(text).toContain('not checked');
