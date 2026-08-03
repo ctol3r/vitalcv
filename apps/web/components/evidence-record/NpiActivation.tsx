@@ -1,24 +1,30 @@
 'use client';
 
 /**
- * Z1 first slice — the primary NPI activation control.
+ * Z1 hero — the NPI activation instrument and the product story it drives.
  *
- * A real product interaction over a SIMULATED resolution: the input, the
- * states and the record swap are genuine UI, but no lookup leaves the page and
- * the surface says so. Demo data is never represented as live verification —
- * the record face itself carries "Illustrative — not a live result", and the
- * chips are labelled "Simulated".
+ * The five-second test governs this component: a first-time visitor should
+ * understand "an NPI becomes a reusable clinician profile, the profile applies
+ * to an opportunity, the employer receives the information, the clinician
+ * starts sooner" from the VISUALS alone. So the right side of the hero is not
+ * a paragraph and not a lone evidence record — it is the transformation
+ * itself, four connected product objects on one spine:
  *
+ *   NPI → clinician profile → opportunity + Apply with VitalCV
+ *       → employer receives the packet → start sooner
+ *
+ * The story reacts to the real control: it sits ghosted until a number
+ * resolves, then populates. The evidence layer appears where it truthfully
+ * belongs — the employer-packet stage renders the canonical SEALED face
+ * ("Permission recorded · scope: this application"), passed in as a
+ * pre-rendered string from the canonical faces module. This island never
+ * builds record markup of its own.
+ *
+ * Resolution is SIMULATED and labelled: no lookup leaves the page, the
+ * profile is a fictional clinician, and the surface says so. Validity is the
+ * real NPI check digit, so a mistyped number gets the product's true answer.
  * States: empty · focused · resolving · found · invalid · organization ·
- * unavailable. Validity is the real NPI check digit (Luhn over 80840 + 9),
- * so a mistyped number gets the same answer the product would give. What is
- * simulated is only what happens AFTER a well-formed number: resolution
- * always lands on the fictional demo clinician, or on the state a chip chose.
- *
- * The record faces arrive as pre-rendered HTML strings from the server page —
- * the canonical faces module renders them, this island only swaps them. It
- * never builds record markup of its own, so it cannot drift from the approved
- * object.
+ * unavailable.
  */
 
 import { useEffect, useRef, useState } from 'react';
@@ -27,7 +33,8 @@ export type ActivationState =
   | 'empty' | 'focused' | 'resolving' | 'found' | 'invalid' | 'organization' | 'unavailable';
 
 interface Props {
-  faces: { blank: string; writing: string; resolving: string; returned: string };
+  /** Canonical SEALED face at packet scale — the employer-handoff proof. */
+  sealedFace: string;
 }
 
 /** Real NPI check digit: Luhn over the 80840 issuer prefix + 9 digits. */
@@ -46,19 +53,19 @@ export function isValidNpi(npi: string): boolean {
 const MESSAGES: Partial<Record<ActivationState, { title: string; body: string }>> = {
   invalid: {
     title: 'That number fails the NPI check digit.',
-    body: 'NPIs are ten digits with a checksum. Re-enter the number as it appears on your CMS letter or in the NPPES registry.',
+    body: 'Re-enter it as it appears in the NPPES registry.',
   },
   organization: {
     title: 'That looks like an organization NPI.',
-    body: 'A Type 2 NPI names a practice or facility. VitalCV records are for individual clinicians — enter your personal Type 1 NPI.',
+    body: 'Enter your personal Type 1 NPI — records are for individual clinicians.',
   },
   unavailable: {
     title: 'Sources are temporarily unavailable.',
-    body: 'Nothing was checked and nothing was recorded. Try again shortly — an unread lane stays marked exactly as unread.',
+    body: 'Nothing was checked and nothing was recorded. Try again shortly.',
   },
 };
 
-export function NpiActivation({ faces }: Props) {
+export function NpiActivation({ sealedFace }: Props) {
   const [state, setState] = useState<ActivationState>('empty');
   const [raw, setRaw] = useState('');
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -74,8 +81,6 @@ export function NpiActivation({ faces }: Props) {
   const resolve = (outcome: 'found' | 'organization' | 'unavailable') => {
     if (timer.current) clearTimeout(timer.current);
     setState('resolving');
-    // Reduced motion still sees RESOLVING — the state is part of the argument,
-    // so it holds long enough to read instead of animating through.
     timer.current = setTimeout(() => setState(outcome), reduced.current ? 700 : 1100);
   };
 
@@ -85,40 +90,35 @@ export function NpiActivation({ faces }: Props) {
     resolve('found');
   };
 
-  const face =
-    state === 'resolving' ? faces.resolving
-    : state === 'found' ? faces.returned
-    : digits.length > 0 ? faces.writing
-    : faces.blank;
-
   const message = MESSAGES[state];
+  const lit = state === 'found';
+  const busy = state === 'resolving';
+  /* The NPI node echoes the typed number, masked the way the record masks. */
+  const echo = digits.length
+    ? `${digits.slice(0, 2)}${'•'.repeat(Math.max(0, digits.length - 2))}`
+    : '··········';
 
   return (
     <div className="z1-activation" data-state={state}>
-      <form
-        className="z1-npi"
-        onSubmit={(e) => { e.preventDefault(); submit(); }}
-      >
-        <label className="z1-npi-label" htmlFor="z1-npi-input">Start with your NPI</label>
-        <div className="z1-npi-row">
+      <form className="z1-npi" onSubmit={(e) => { e.preventDefault(); submit(); }}>
+        <div className="z1-npi-bar">
+          <label className="sr-only" htmlFor="z1-npi-input">Your 10-digit NPI</label>
           <input
             id="z1-npi-input"
             className="z1-npi-input"
             inputMode="numeric"
             autoComplete="off"
-            placeholder="10-digit NPI"
+            placeholder="Your 10-digit NPI"
             value={digits}
             onFocus={() => { if (state === 'empty') setState('focused'); }}
             onChange={(e) => {
               setRaw(e.target.value);
-              if (state === 'invalid' || state === 'organization' || state === 'unavailable' || state === 'found') {
-                setState('focused');
-              }
+              if (['invalid', 'organization', 'unavailable', 'found'].includes(state)) setState('focused');
             }}
             aria-describedby={message ? 'z1-npi-message' : undefined}
           />
-          <button className="z1-npi-submit" type="submit" disabled={state === 'resolving'}>
-            {state === 'resolving' ? 'Checking…' : 'Start with your NPI'}
+          <button className="z1-npi-submit" type="submit" disabled={busy}>
+            {busy ? 'Checking…' : 'Start with your NPI'}
           </button>
         </div>
         {message ? (
@@ -130,21 +130,57 @@ export function NpiActivation({ faces }: Props) {
         )}
       </form>
 
-      {/* The demo boundary, stated on the surface — not buried in a tooltip. */}
       <p className="z1-demo-note" role="note">
-        Simulated resolution — this preview queries no source and shows a fictional
-        record. Try:{' '}
+        Simulated preview · fictional data · no source is queried. Try:{' '}
         <button type="button" className="z1-chip" onClick={() => { setRaw('1234567893'); resolve('found'); }}>clinician found</button>{' '}
         <button type="button" className="z1-chip" onClick={() => submit('organization')}>organization NPI</button>{' '}
         <button type="button" className="z1-chip" onClick={() => submit('unavailable')}>source unavailable</button>
       </p>
 
-      <div
-        className="z1-record"
-        data-face={state === 'resolving' ? 'resolving' : state === 'found' ? 'returned' : digits.length > 0 ? 'writing' : 'blank'}
-        // The canonical faces module is the only producer of this markup.
-        dangerouslySetInnerHTML={{ __html: face }}
-      />
+      {/* ---- the story: one object moving through the product ------------- */}
+      <div className="z1-story" data-lit={lit ? '' : undefined} aria-label="How VitalCV works">
+
+        <div className="z1-node z1-node--npi" data-on={digits.length > 0 || lit ? '' : undefined}>
+          <span className="z1-node-tag">NPI</span>
+          <span className="z1-npi-echo">{busy ? 'Querying sources…' : echo}</span>
+        </div>
+
+        <div className="z1-link" aria-hidden="true"><span>becomes</span></div>
+
+        <div className="z1-node z1-profile" data-on={lit ? '' : undefined}>
+          <span className="z1-node-tag">Reusable clinician profile</span>
+          {lit ? (
+            <>
+              <p className="z1-profile-name">K. Osei, PA-C</p>
+              <p className="z1-profile-meta">Emergency medicine · 8 years · Illustrative — not a live result</p>
+              <p className="z1-profile-evidence">Evidence record attached · 4 of 6 sources answered</p>
+            </>
+          ) : (
+            <>
+              <p className="z1-profile-name z1-ghost-line">Your name and credential</p>
+              <p className="z1-profile-meta">Built from your number — yours to reuse</p>
+            </>
+          )}
+        </div>
+
+        <div className="z1-link" aria-hidden="true"><span>travels to</span></div>
+
+        <div className="z1-node z1-opp" data-on={lit ? '' : undefined}>
+          <span className="z1-node-tag">Matched opportunity</span>
+          <p className="z1-opp-role">Emergency Medicine PA</p>
+          <p className="z1-opp-org">Cascade Regional Medical Center · Full-time</p>
+          <span className="z1-apply" data-t="travels">→ Apply with VitalCV</span>
+        </div>
+
+        <div className="z1-link" aria-hidden="true"><span>the employer receives</span></div>
+
+        <div className="z1-node z1-packet" data-on={lit ? '' : undefined}>
+          {/* The proof layer: the canonical SEALED face — permission recorded,
+              scoped to this application. Rendered by the shared module. */}
+          <div className="z1-packet-record" dangerouslySetInnerHTML={{ __html: sealedFace }} />
+          <p className="z1-outcome"><strong>Start sooner.</strong> The record stays yours.</p>
+        </div>
+      </div>
     </div>
   );
 }
