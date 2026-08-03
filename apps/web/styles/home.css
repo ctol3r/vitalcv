@@ -1,0 +1,1037 @@
+/**
+ * home.css — THE homepage stylesheet.
+ *
+ * One route, one style owner. Before the recovery (#1060) `/` pulled 27
+ * stylesheets: `compete-film.css` styled the composition, `glass-eyebrow.css`
+ * styled a duplicate eyebrow, four more sheets styled components that no longer
+ * rendered at all, and the ONE surface the primary action produces — the
+ * evidence capsule — had no reachable stylesheet whatsoever, because both files
+ * defining `.evidence-capsule*` were orphaned by a direct push. The lookup
+ * worked, the answer arrived, and it painted as unstyled text in production.
+ *
+ * That is why the capsule lives HERE, in the same file as the composition it
+ * appears inside, imported by the same route. A capsule cannot be orphaned from
+ * its own page.
+ *
+ * SCOPE. Every rule is under `.film`. Nothing publishes a token to `:root`,
+ * `html`, or `body` — the homepage may not move a value another surface reads.
+ * Values are read FROM the canonical `--vt-*` layer (CD-3/CD-4), never
+ * redefined with new names (CD-2.5 forbids a new prefix).
+ *
+ * WHY THE NAMESPACE IS STILL `film`. The composition is scroll-driven scenes,
+ * so the name is accurate — but the binding reason is that four ERROR-mode
+ * rules in `check-design-lint` (R1, R2, R7, R8) are scoped to
+ * `components/home/film`, and nine e2e specs assert `.film`, `data-film-mode`
+ * and `data-film-scene`. Moving the homepage to a fresh prefix would have
+ * silently removed the homepage from its own guards — the exact failure mode
+ * where a rule keeps passing because the thing it watches walked away.
+ *
+ * FALLBACK ORDER. The vertical document is what the browser applies first, and
+ * it is complete. Film rules are additive under `[data-film-mode='film']`,
+ * which only ever appears after hydration proves the device eligible. With no
+ * JS, reduced motion, a coarse pointer, or a narrow viewport, what remains is
+ * an ordinary readable page in chapter order — not a degraded one.
+ */
+
+.film {
+  --film-paper: var(--vt-bg);
+  --film-raised: var(--vt-surface);
+  --film-inset: var(--vt-surface-dim);
+  --film-rule: var(--vt-border);
+  --film-rule-strong: #b9b3a6;
+  --film-ink: var(--vt-text-primary);
+  --film-ink-strong: #0e0d0b;
+  --film-ink-muted: var(--vt-text-secondary);
+  --film-ink-subtle: var(--vt-text-muted);
+  --film-accent: var(--vt-accent);
+
+  /* CD-11 motion vocabulary. Four durations, two easings, no local variants. */
+  --film-dur-state: 120ms;
+  --film-dur-enter: 240ms;
+  --film-dur-scene: 400ms;
+  --film-ease-enter: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --film-ease-exit: cubic-bezier(0.4, 0, 1, 1);
+
+  position: relative;
+  background: var(--film-paper);
+  color: var(--film-ink);
+}
+
+/* ------------------------------------------------------------------ stage */
+
+.film-runway {
+  position: relative;
+}
+
+.film-stage {
+  position: relative;
+  overflow: hidden;
+}
+
+.film-track {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+}
+
+.film-chapter {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 4.5rem 1.5rem 3.5rem;
+  min-height: 60vh;
+}
+
+/*
+ * Film mode. The runway is a tall spacer, the stage sticks inside it, and
+ * ordinary vertical scroll is TRANSLATED into horizontal travel — never
+ * captured. `--film-chrome` is the measured height of the pinned site header,
+ * published by the component so the stage never stands taller than the space
+ * actually available beneath the nav.
+ */
+.film[data-film-mode='film'] .film-stage {
+  position: sticky;
+  top: var(--film-chrome, 0px);
+  height: calc(100vh - var(--film-chrome, 0px));
+}
+
+/*
+ * The travel is CSS, driven by `--film-progress` (0→1), which the one rAF in
+ * `useFilmProgress` writes onto `.film`. React is never involved in a frame:
+ * the compositor moves the track. `--film-spans` is chapters−1, set inline so
+ * it cannot drift when a chapter is added or removed.
+ */
+.film[data-film-mode='film'] .film-track {
+  flex-direction: row;
+  height: 100%;
+  will-change: transform;
+  transform: translate3d(calc(var(--film-progress, 0) * var(--film-spans, 4) * -100%), 0, 0);
+}
+
+.film[data-film-mode='film'] .film-chapter {
+  flex: 0 0 100%;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  padding: 2rem clamp(1.5rem, 5vw, 4rem);
+  justify-content: center;
+}
+
+/* ------------------------------------------------------------- chapter rail */
+
+/*
+ * The chapter menu. One continuous mono track inside a clipped window: the
+ * active chapter is ink and larger, its neighbours stay legible at the edges,
+ * so a reader can always see where they are and what is adjacent.
+ *
+ * These are ANCHOR LINKS, not scroll handlers. Clicking navigates, Tab reaches
+ * every chapter, and with no JS the list is an ordinary in-page nav. It cannot
+ * become a second scroll owner because it does not own scroll at all.
+ */
+.film-rail {
+  margin-top: 2.5rem;
+}
+
+.film-rail-label {
+  display: block;
+  margin-bottom: 0.6rem;
+  color: var(--film-ink-subtle);
+}
+
+.film-rail-window {
+  border-top: 1px solid var(--film-rule);
+  padding-top: 0.75rem;
+  overflow: hidden;
+}
+
+.film-rail-track {
+  display: flex;
+  gap: 2rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  transition: transform var(--film-dur-scene) var(--film-ease-enter);
+}
+
+.film-rail-item {
+  flex: none;
+}
+
+.film-rail-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6em;
+  min-height: 44px;
+  font-family: var(--vt-font-mono, ui-monospace, monospace);
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-decoration: none;
+  white-space: nowrap;
+  color: var(--film-ink-subtle);
+  transition: color var(--film-dur-state) var(--film-ease-enter);
+}
+
+.film-rail-index {
+  color: var(--film-rule-strong);
+}
+
+.film-rail-item[data-active] .film-rail-link {
+  color: var(--film-ink-strong);
+  font-size: 0.8125rem;
+}
+
+.film-rail-item[data-active] .film-rail-index {
+  color: var(--film-accent);
+}
+
+.film-rail-link:focus-visible {
+  outline: 2px solid var(--vt-focus-ring);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* -------------------------------------------------------------- chapter 1 */
+
+.film-ask {
+  width: min(880px, 100%);
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+/*
+ * The canonical eyebrow carries a left hairline rule, which is right for a
+ * left-aligned section label and wrong here: in a centred composition it reads
+ * as a stray vertical stroke beside the headline. The component keeps its
+ * structure and behaviour; only the rule and the alignment are overridden, so
+ * this stays one component rather than becoming a second one.
+ */
+.film-ask-eyebrow {
+  border-left: none;
+  padding-left: 0;
+  align-items: center;
+  text-align: center;
+}
+
+.film-h1 {
+  font-family: var(--vt-font-display, ui-serif, Georgia, serif);
+  font-weight: 500;
+  font-size: clamp(2.5rem, 6vw, 4.5rem);
+  line-height: 1.02;
+  letter-spacing: -0.02em;
+  color: var(--film-ink-strong);
+  max-width: 15ch;
+  margin: 0;
+  font-variation-settings: 'opsz' 144, 'SOFT' 0, 'WONK' 0;
+}
+
+/* CD-9: one phrase per headline may carry the accent, in display italic. */
+.film-h1 em {
+  font-style: italic;
+  font-weight: 480;
+  color: var(--film-accent);
+}
+
+.film-ask-support {
+  font-size: 1.0625rem;
+  color: var(--film-ink-muted);
+  margin: 0.9rem 0 0;
+}
+
+/*
+ * The ask is a ruled writing line, not a boxed form control beside a picture.
+ * The 2px rule is the document's own line — the visitor writes their number on
+ * the record rather than into a widget parked next to it.
+ */
+.film-writing-line {
+  width: 100%;
+  margin-top: 2.2rem;
+  text-align: left;
+}
+
+.film-npi-label {
+  display: block;
+  margin-bottom: 0.55rem;
+  font-family: var(--vt-font-mono, ui-monospace, monospace);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--film-ink-subtle);
+}
+
+.film-line-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 1.25rem;
+  border-bottom: 2px solid var(--film-ink-strong);
+  padding-bottom: 0.7rem;
+}
+
+.film-npi-input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  font-family: var(--vt-font-mono, ui-monospace, monospace);
+  font-size: clamp(1.25rem, 3vw, 1.6rem);
+  letter-spacing: 0.06em;
+  color: var(--film-ink-strong);
+  padding: 0.35rem 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.film-npi-input::placeholder {
+  color: var(--film-ink-subtle);
+  opacity: 1;
+}
+
+.film-npi-input:focus-visible {
+  outline: 2px solid var(--vt-focus-ring);
+  outline-offset: 4px;
+  border-radius: 2px;
+}
+
+.film-line-row > :last-child {
+  flex-shrink: 0;
+}
+
+.film-ask-meta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 0.8rem;
+  flex-wrap: wrap;
+}
+
+.film-ask-hint {
+  font-size: 0.8125rem;
+  color: var(--film-ink-subtle);
+  margin: 0;
+}
+
+.film-ask-hint[data-invalid] {
+  color: var(--film-ink);
+}
+
+.film-employer-path {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  min-height: 44px;
+  font-size: 0.8125rem;
+  color: var(--film-ink-muted);
+  text-decoration: none;
+  border-bottom: 1px solid var(--film-rule-strong);
+}
+
+.film-employer-path:focus-visible {
+  outline: 2px solid var(--vt-focus-ring);
+  outline-offset: 2px;
+}
+
+/*
+ * The summoning: six source strips gathered beneath the line.
+ *
+ * They are the SAME six rows the capsule will show once a number is entered,
+ * in their true state for a visitor who has entered nothing — which is why
+ * they may be shown at all. Nothing here is invented, and no identity appears.
+ */
+.film-summon {
+  width: min(1080px, 100%);
+  margin: 1.6rem auto 0;
+  text-align: center;
+}
+
+.film-summon-eyebrow {
+  display: block;
+  font-family: var(--vt-font-mono, ui-monospace, monospace);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--film-ink-subtle);
+}
+
+/*
+ * A grid, not wrapped flex: six strips of equal height in three columns, so
+ * the arc below reads as a deliberate settle rather than as rows that failed
+ * to line up. Each cell is one lane of the record.
+ */
+.film-fan {
+  margin: 1.4rem 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.9rem;
+}
+
+.film-strip {
+  background: var(--film-raised);
+  border: 1px solid var(--film-rule);
+  border-radius: 3px;
+  padding: 0.7rem 0.95rem;
+  text-align: left;
+}
+
+.film-strip-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.film-strip-name {
+  font-weight: 500;
+  font-size: 0.875rem;
+}
+
+.film-strip-meta {
+  margin: 0.2rem 0 0;
+  font-family: var(--vt-font-mono, ui-monospace, monospace);
+  font-size: 0.75rem;
+  color: var(--film-ink-subtle);
+}
+
+/*
+ * The shallow arc. Six strips settle toward the point where the capsule
+ * assembles, so the record reads as gathering rather than as a grid of cards.
+ * Rotation is capped at 1deg: these carry facts, and a fact that looks askew
+ * reads as decoration. Straightened entirely under reduced motion, below.
+ */
+.film-strip:nth-child(1) { transform: rotate(-0.6deg) translateY(6px); }
+.film-strip:nth-child(2) { transform: rotate(-0.2deg) translateY(0); }
+.film-strip:nth-child(3) { transform: rotate(0.5deg) translateY(7px); }
+.film-strip:nth-child(4) { transform: rotate(0.4deg) translateY(2px); }
+.film-strip:nth-child(5) { transform: rotate(-0.3deg) translateY(-3px); }
+.film-strip:nth-child(6) { transform: rotate(0.3deg) translateY(3px); }
+
+/* ------------------------------------------------------- the capsule object */
+
+/*
+ * ONE grammar, five faces. The forming strips above, the resolved record, the
+ * permission ledger, the travelling subset and the closing seal are the same
+ * object in different states — same shell, same header, same row, same rules.
+ * The live lookup renders through these exact classes, which is the whole
+ * point: what a visitor sees demonstrated is what their own number produces.
+ */
+.evidence-capsule {
+  background: var(--film-raised);
+  border: 1px solid var(--film-rule);
+  border-top: 2px solid var(--film-ink-strong);
+  border-radius: 3px;
+  text-align: left;
+}
+
+.evidence-capsule__head {
+  padding: 0.9rem 1.1rem;
+  border-bottom: 1px solid var(--film-rule);
+}
+
+.evidence-capsule__head-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.evidence-capsule__eyebrow {
+  font-family: var(--vt-font-mono, ui-monospace, monospace);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--film-ink-subtle);
+}
+
+/*
+ * The illustrative label. It is never optional on a surface showing returned
+ * data that did not come from this visitor's own lookup, and it is set in the
+ * same mono as the facts it qualifies so it reads as part of the record rather
+ * than as a disclaimer bolted underneath.
+ */
+.evidence-capsule__illustrative {
+  font-family: var(--vt-font-mono, ui-monospace, monospace);
+  font-size: 0.625rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--film-ink-subtle);
+}
+
+.evidence-capsule__identity {
+  display: flex;
+  align-items: baseline;
+  gap: 0.9rem;
+  flex-wrap: wrap;
+  margin-top: 0.45rem;
+}
+
+.evidence-capsule__name {
+  font-weight: 600;
+  font-size: 1.0625rem;
+  color: var(--film-ink-strong);
+  margin: 0;
+}
+
+.evidence-capsule__npi {
+  font-family: var(--vt-font-mono, ui-monospace, monospace);
+  font-size: 0.8125rem;
+  color: var(--film-ink-muted);
+  font-variant-numeric: tabular-nums;
+  margin: 0;
+}
+
+.evidence-capsule__detail {
+  font-size: 0.8125rem;
+  color: var(--film-ink-muted);
+  margin: 0;
+}
+
+.evidence-capsule__group {
+  border-top: 1px solid var(--film-rule);
+}
+
+/*
+ * The group label is METADATA about a set of rows, not a claim over them —
+ * so it is set in the same quiet mono as every other piece of metadata on the
+ * record, and never at a weight that could outrank the rows beneath it.
+ */
+.evidence-capsule__group-title {
+  margin: 0;
+  padding: 0.7rem 1.1rem 0;
+  font-family: var(--vt-font-mono, ui-monospace, monospace);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--film-ink-subtle);
+}
+
+.evidence-capsule__rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.evidence-capsule__group .evidence-capsule__row {
+  border-top: none;
+}
+
+.evidence-capsule__group .evidence-capsule__row + .evidence-capsule__row {
+  border-top: 1px solid var(--film-rule);
+}
+
+.evidence-capsule__row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.8rem 1.1rem;
+  border-top: 1px solid var(--film-rule);
+}
+
+.evidence-capsule__rows > .evidence-capsule__row:first-child {
+  border-top: none;
+}
+
+.evidence-capsule__row-main {
+  min-width: 0;
+}
+
+.evidence-capsule__claim {
+  display: block;
+  font-weight: 500;
+  font-size: 0.9375rem;
+  margin: 0;
+}
+
+.evidence-capsule__returned {
+  margin: 0.15rem 0 0;
+  font-size: 0.875rem;
+  color: var(--film-ink-muted);
+}
+
+/*
+ * SOURCE · CADENCE · LIMITATION, in mono because every part of it came from a
+ * machine (CD-8). Absent parts are dropped by the model, never defaulted — an
+ * omitted cadence would read as "current", which is the claim this line exists
+ * to prevent.
+ */
+.evidence-capsule__provenance {
+  margin: 0.25rem 0 0;
+  font-family: var(--vt-font-mono, ui-monospace, monospace);
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--film-ink-subtle);
+}
+
+.evidence-capsule__foot {
+  padding: 0.8rem 1.1rem;
+  border-top: 1px solid var(--film-rule);
+  background: var(--film-inset);
+  font-size: 0.8125rem;
+  color: var(--film-ink-muted);
+  border-radius: 0 0 2px 2px;
+}
+
+.evidence-capsule__foot-data {
+  font-family: var(--vt-font-mono, ui-monospace, monospace);
+  font-size: 0.75rem;
+  color: var(--film-ink-subtle);
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.evidence-capsule__limit {
+  margin: 0.4rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--film-ink-muted);
+}
+
+.evidence-capsule__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.9rem 1.1rem;
+  border-top: 1px solid var(--film-rule);
+}
+
+.evidence-capsule__reset {
+  min-height: 44px;
+  padding: 0 1rem;
+  border: 1px solid var(--film-rule-strong);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--film-ink);
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.evidence-capsule__reset:focus-visible {
+  outline: 2px solid var(--vt-focus-ring);
+  outline-offset: 2px;
+}
+
+/* The resolving face. Same shell, same width — the object does not resize
+   while it is thinking, so nothing on the page jumps when the answer lands. */
+.evidence-capsule--resolving {
+  padding: 1.1rem;
+}
+
+/* A system state is NOT a finding. No red, no danger surface, no failed-
+   credential vocabulary: the registry did not answer, which says nothing at
+   all about the provider. */
+.evidence-capsule--system {
+  border-top-color: var(--film-rule-strong);
+}
+
+/* ------------------------------------ the travel ledger (permission chapter) */
+
+.evidence-capsule__mark {
+  font-family: var(--vt-font-mono, ui-monospace, monospace);
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.evidence-capsule__mark[data-travel='travels'] {
+  color: var(--film-accent);
+}
+
+.evidence-capsule__mark[data-travel='held'] {
+  color: var(--film-ink);
+}
+
+/* -------------------------------------------------------------- chapter 2 */
+
+.film-two-col {
+  width: min(1240px, 100%);
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: minmax(0, 52fr) minmax(0, 34fr);
+  gap: clamp(2rem, 5vw, 4.5rem);
+  align-items: center;
+}
+
+.film-phrase {
+  font-family: var(--vt-font-display, ui-serif, Georgia, serif);
+  font-weight: 500;
+  font-size: clamp(2rem, 4vw, 3rem);
+  line-height: 1.08;
+  letter-spacing: -0.015em;
+  color: var(--film-ink-strong);
+  margin: 0;
+  max-width: 13ch;
+  font-variation-settings: 'opsz' 96, 'SOFT' 0, 'WONK' 0;
+}
+
+.film-phrase em {
+  font-style: italic;
+  font-weight: 480;
+  color: var(--film-accent);
+}
+
+.film-support {
+  margin: 1rem 0 0;
+  font-size: 1.0625rem;
+  color: var(--film-ink-muted);
+  max-width: 46ch;
+}
+
+.film-narration {
+  margin-top: 2rem;
+  border-left: 1px solid var(--film-rule-strong);
+  padding-left: 1.25rem;
+}
+
+.film-narration-line {
+  margin: 0.65rem 0 0;
+  font-family: var(--vt-font-mono, ui-monospace, monospace);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--film-ink-subtle);
+}
+
+.film-narration-line strong {
+  color: var(--film-ink);
+  font-weight: 500;
+}
+
+.film-narration-mark {
+  color: var(--film-accent);
+  margin-right: 0.5em;
+}
+
+/* -------------------------------------------------------------- chapter 3 */
+
+.film-consent {
+  margin-top: 1.6rem;
+  border: 1px solid var(--film-rule);
+  border-left: 2px solid var(--film-ink-strong);
+  border-radius: 3px;
+  padding: 0.85rem 1rem;
+  font-family: var(--vt-font-mono, ui-monospace, monospace);
+  font-size: 0.75rem;
+  line-height: 1.7;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--film-ink);
+  max-width: 32ch;
+}
+
+.film-consent a {
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--film-accent);
+}
+
+/*
+ * The handoff. A hairline runs from the record to the employer's frame, and
+ * the frame beneath it holds ONLY the rows marked to travel — the held rows
+ * are not greyed out there, they are simply absent, which is the actual
+ * behaviour being described.
+ */
+.film-handoff {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  margin: 1.1rem 0 0 auto;
+  padding-left: 2.5rem;
+}
+
+.film-handoff-line {
+  flex: none;
+  width: 1px;
+  height: 46px;
+  background: var(--film-rule-strong);
+}
+
+.film-handoff-label {
+  font-family: var(--vt-font-mono, ui-monospace, monospace);
+  font-size: 0.6875rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--film-ink-subtle);
+}
+
+.film-employer-frame {
+  margin-left: auto;
+  width: min(420px, 100%);
+}
+
+.film-employer-frame .evidence-capsule__row {
+  padding-top: 0.6rem;
+  padding-bottom: 0.6rem;
+}
+
+.film-arrives {
+  font-family: var(--vt-font-mono, ui-monospace, monospace);
+  font-size: 0.75rem;
+  color: var(--film-ink-subtle);
+}
+
+/* -------------------------------------------------------------- chapter 4 */
+
+/* The boundary is the one sentence that must never be skimmed past, so it is
+   set apart between two rules and given the display face — the only piece of
+   doctrine on this page that is typeset as argument rather than as metadata. */
+.film-boundary {
+  margin: 1.4rem 0 0;
+  padding: 1.1rem 0;
+  border-top: 1px solid var(--film-rule);
+  border-bottom: 1px solid var(--film-rule);
+  font-family: var(--vt-font-display, ui-serif, Georgia, serif);
+  font-size: 1.0625rem;
+  line-height: 1.5;
+  color: var(--film-ink);
+  max-width: 46ch;
+}
+
+.film-checkpoint {
+  margin-top: 1.1rem;
+  border: 1px solid var(--film-rule);
+  border-left: 2px solid #7d5a1e;
+  border-radius: 3px;
+  background: var(--film-raised);
+  padding: 0.9rem 1.1rem;
+}
+
+.film-checkpoint-title {
+  display: flex;
+  align-items: center;
+  gap: 0.6em;
+  font-family: var(--vt-font-mono, ui-monospace, monospace);
+  font-size: 0.8125rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--film-ink-strong);
+  margin: 0;
+}
+
+.film-checkpoint-body {
+  margin: 0.5rem 0 0;
+  font-size: 0.875rem;
+  color: var(--film-ink-muted);
+}
+
+/* -------------------------------------------------------------- chapter 5 */
+
+.film-closing {
+  width: min(900px, 100%);
+  margin: 0 auto;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.film-closing-line {
+  font-family: var(--vt-font-display, ui-serif, Georgia, serif);
+  font-weight: 500;
+  font-size: clamp(2rem, 5vw, 3.5rem);
+  line-height: 1.06;
+  letter-spacing: -0.02em;
+  color: var(--film-ink-strong);
+  margin: 0;
+  font-variation-settings: 'opsz' 120, 'SOFT' 0, 'WONK' 0;
+}
+
+.film-closing-line em {
+  font-style: italic;
+  font-weight: 480;
+  color: var(--film-accent);
+}
+
+.film-seal {
+  width: min(340px, 100%);
+  margin: 1.6rem 0;
+}
+
+.film-routes {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.9rem;
+  margin-top: 1.4rem;
+}
+
+.film-trust {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1.6rem;
+  margin-top: 2rem;
+  padding-top: 1.2rem;
+  border-top: 1px solid var(--film-rule);
+  width: 100%;
+}
+
+.film-trust a {
+  font-family: var(--vt-font-mono, ui-monospace, monospace);
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--film-ink-muted);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}
+
+.film-trust a:hover {
+  color: var(--film-ink);
+}
+
+.film-trust a:focus-visible {
+  outline: 2px solid var(--vt-focus-ring);
+  outline-offset: 2px;
+}
+
+/* ------------------------------------------------------------- reveal once */
+
+/*
+ * The single-shot reveal (CD-11). An element arrives once and stays; there is
+ * no scrub, no reverse, and no replay on scroll-up. `data-film-seen` is set by
+ * the composition when a chapter first becomes active and is never unset.
+ */
+.film-reveal {
+  opacity: 1;
+}
+
+.film[data-film-mode='film'] .film-reveal {
+  opacity: 0;
+  transform: translate3d(0, 8px, 0);
+  transition:
+    opacity var(--film-dur-enter) var(--film-ease-enter),
+    transform var(--film-dur-enter) var(--film-ease-enter);
+}
+
+.film[data-film-mode='film'] [data-film-seen] .film-reveal {
+  opacity: 1;
+  transform: none;
+}
+
+/* --------------------------------------------------------------- responsive */
+
+/*
+ * Mobile is a RECOMPOSITION, not the desktop column order at a smaller size.
+ * The ask keeps the whole first screen; the strips become a single legible
+ * column; the two-column chapters stack with the artifact first, because on a
+ * phone the object is the argument and the sentence is the caption.
+ */
+@media (max-width: 900px) {
+  .film-two-col {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1.75rem;
+  }
+
+  .film-two-col > :first-child {
+    order: 2;
+  }
+
+  .film-two-col > :last-child {
+    order: 1;
+  }
+
+  .film-phrase {
+    max-width: 18ch;
+  }
+
+  .film-employer-frame,
+  .film-handoff {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .film-handoff {
+    padding-left: 1rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .film-chapter {
+    padding: 3rem 1.25rem 2.5rem;
+    min-height: 0;
+  }
+
+  .film-ask {
+    align-items: stretch;
+    text-align: left;
+  }
+
+  .film-h1 {
+    max-width: none;
+  }
+
+  .film-line-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.9rem;
+  }
+
+  /* Full-width control at the bottom of the line: on a phone the thumb is at
+     the bottom of the screen, and a 44px target crammed beside a 10-digit
+     field is not a target, it is a hazard. */
+  .film-line-row > :last-child,
+  .film-line-row > :last-child > * {
+    width: 100%;
+  }
+
+  .film-fan {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.5rem;
+  }
+
+  .film-strip {
+    transform: none;
+  }
+
+  .film-rail-track {
+    gap: 1.25rem;
+  }
+
+  .film-trust {
+    gap: 0.75rem 1.25rem;
+  }
+}
+
+/* ------------------------------------------------------ reduced motion / print */
+
+/*
+ * A designed composition, not a stripped one. Everything that carried meaning
+ * is still here and still complete: the strips straighten, the rail becomes a
+ * plain list of anchors, reveals are already-arrived, and the film transform
+ * never applies because the component does not enter film mode at all.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .film *,
+  .film *::before,
+  .film *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+
+  .film-strip {
+    transform: none;
+  }
+
+  .film-rail-track {
+    flex-wrap: wrap;
+    transform: none !important;
+  }
+
+  .film-reveal {
+    opacity: 1;
+    transform: none;
+  }
+}

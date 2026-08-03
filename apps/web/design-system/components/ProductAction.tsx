@@ -36,7 +36,26 @@ export interface ProductActionProps {
   onClick?: () => void;
   href?: string;
   type?: 'button' | 'submit';
+  /**
+   * Render the trailing arrow that exchanges on hover and focus.
+   *
+   * The exchange is FINITE — one arrow leaves to the right as its replacement
+   * arrives from the left, and then it is over. CD-11 forbids idle motion, so
+   * this may never loop, and under `prefers-reduced-motion` the glyph simply
+   * sits still: the arrow is decoration on a control that already says what it
+   * does in words, so losing the movement costs no meaning.
+   */
+  arrow?: boolean;
   className?: string;
+  /**
+   * Data attributes are forwarded to the rendered control.
+   *
+   * Not a convenience: `data-home-primary-cta` is read by the homepage truth
+   * tests and by `hero-employer-entry`, and a canonical action component that
+   * cannot carry a marker forces callers back to a hand-rolled `<button>` —
+   * which is exactly how a codebase ends up with thirteen CTA implementations.
+   */
+  [dataAttribute: `data-${string}`]: unknown;
 }
 
 export function ProductAction({
@@ -49,12 +68,17 @@ export function ProductAction({
   onClick,
   href,
   type = 'button',
+  arrow = false,
   className,
+  ...rest
 }: ProductActionProps) {
   const isDisabled = disabled || pending;
+  const dataProps = Object.fromEntries(
+    Object.entries(rest).filter(([key]) => key.startsWith('data-')),
+  );
 
   const classes = cn(
-    'inline-flex min-h-11 items-center justify-center gap-[var(--vt-space-8)]',
+    'group inline-flex min-h-11 items-center justify-center gap-[var(--vt-space-8)]',
     // CD-10: software → 10px.
     'rounded-[10px] px-[var(--vt-space-16)]',
     'text-[0.9375rem] font-[var(--vt-font-weight-medium)] leading-[1.4]',
@@ -69,23 +93,57 @@ export function ProductAction({
 
   const label = pending ? pendingLabel : children;
 
+  /**
+   * Two glyphs in a clipped track: the resting one leaves to the right, its
+   * replacement arrives from the left. `aria-hidden` because the control's own
+   * words carry the meaning — a screen reader must not hear "right arrow".
+   */
+  const arrowGlyph = arrow ? (
+    <span
+      aria-hidden="true"
+      className="relative inline-block h-[1em] w-[0.9em] overflow-hidden align-middle"
+    >
+      <span
+        className={cn(
+          'absolute inset-0 transition-transform duration-[120ms] ease-[cubic-bezier(0.4,0,1,1)]',
+          'group-hover:translate-x-full group-focus-visible:translate-x-full',
+          'motion-reduce:transition-none motion-reduce:transform-none',
+        )}
+      >
+        →
+      </span>
+      <span
+        className={cn(
+          '-translate-x-full absolute inset-0 transition-transform duration-[120ms] ease-[cubic-bezier(0.2,0.7,0.2,1)]',
+          'group-hover:translate-x-0 group-focus-visible:translate-x-0',
+          'motion-reduce:hidden',
+        )}
+      >
+        →
+      </span>
+    </span>
+  ) : null;
+
   return (
     <span className="inline-flex flex-col items-start gap-[var(--vt-space-4)]">
       {href && !isDisabled ? (
-        <a href={href} className={classes}>
+        <a href={href} className={classes} {...dataProps}>
           {label}
+          {arrowGlyph}
         </a>
       ) : (
         <button
           type={type}
           onClick={onClick}
           disabled={isDisabled}
+          {...dataProps}
           // The word changes; assistive tech is told the region is busy. No
           // spinner: idle motion on an evidence surface is forbidden (CD-11).
           aria-busy={pending || undefined}
           className={classes}
         >
           {label}
+          {arrowGlyph}
         </button>
       )}
 

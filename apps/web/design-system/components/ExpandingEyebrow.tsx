@@ -1,6 +1,6 @@
 'use client';
 
-import { useId, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 
 /**
@@ -29,6 +29,20 @@ import { cn } from '@/lib/utils';
  * meaning and drops the transition. The detail is always in the DOM and always
  * reachable by keyboard and screen reader — the expansion is enrichment, never
  * the carrier of meaning (CD-2.3).
+ *
+ * ---------------------------------------------------------------------------
+ * 2026-08-02 — CANONICAL. This is now the only eyebrow in the product.
+ *
+ * `components/home/ExpandingEyebrow.tsx` was a second, independent
+ * implementation of the same intent — a frosted-glass pill whose trigger stood
+ * 20px against CD-15's 44px floor, and whose detail was a `nowrap` strip capped
+ * at 16rem. It shipped on `/` while this one was reachable only from a test.
+ * The homepage recovery (#1060) resolved the duplicate here, in the direction
+ * the accessibility floor demanded, and ported the two behaviours the home
+ * version had that this one lacked:
+ *
+ *   1. Escape closes and returns the trigger to a resting state.
+ *   2. A hydration guard, which is load-bearing rather than cosmetic — see below.
  */
 export interface ExpandingEyebrowProps {
   /** The label. Rendered mono + uppercase per CD-9's `eyebrow` token. */
@@ -53,7 +67,22 @@ export function ExpandingEyebrow({
   className,
 }: ExpandingEyebrowProps) {
   const [open, setOpen] = useState(false);
+  /**
+   * Until JS runs, the detail renders PLAINLY VISIBLE.
+   *
+   * The collapsed state is `opacity-0`, and `open` can only ever become true
+   * through a client event — so without this guard the server render, and every
+   * no-JS visitor, got a detail that was present in the DOM and invisible on
+   * screen. CD-2.3 requires meaning to survive with JS off, and the recovery
+   * program requires that no required content start at opacity zero. Gating the
+   * collapse on hydration is what makes the disclosure genuinely progressive:
+   * enrichment when JS is available, plain text when it is not.
+   */
+  const [hydrated, setHydrated] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
   const detailId = useId();
+
+  useEffect(() => setHydrated(true), []);
 
   return (
     <div
@@ -66,6 +95,7 @@ export function ExpandingEyebrow({
         className,
       )}
       style={sticky ? { top: stickyOffset } : undefined}
+      data-hydrated={hydrated ? '' : undefined}
       onMouseEnter={detail ? () => setOpen(true) : undefined}
       onMouseLeave={detail ? () => setOpen(false) : undefined}
     >
@@ -79,11 +109,21 @@ export function ExpandingEyebrow({
       >
         {detail ? (
           <button
+            ref={triggerRef}
             type="button"
             aria-expanded={open}
             aria-controls={detailId}
             onClick={() => setOpen((v) => !v)}
             onFocus={() => setOpen(true)}
+            // Escape is the expected exit from any disclosure. Blurring as well
+            // stops focus-reopen from immediately undoing the close.
+            onKeyDown={(event) => {
+              if (event.key === 'Escape' && open) {
+                event.stopPropagation();
+                setOpen(false);
+                triggerRef.current?.blur();
+              }
+            }}
             className={cn(
               // CD-15: 44px minimum target, visible focus, never `outline: none`.
               'inline-flex min-h-11 items-center gap-[var(--vt-space-8)] text-left uppercase tracking-[0.08em]',
@@ -119,7 +159,9 @@ export function ExpandingEyebrow({
             'transition-[opacity,transform] duration-[240ms] ease-[cubic-bezier(0.2,0.7,0.2,1)]',
             // Displacement capped at 8px (CD-11). Opacity-only under reduced motion.
             'motion-reduce:transition-none motion-reduce:transform-none',
-            open ? 'translate-y-0 opacity-100' : '-translate-y-1 opacity-0 motion-reduce:opacity-100',
+            hydrated && !open
+              ? '-translate-y-1 opacity-0 motion-reduce:opacity-100'
+              : 'translate-y-0 opacity-100',
           )}
         >
           {detail}
