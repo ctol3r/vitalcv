@@ -137,47 +137,79 @@ export function NpiActivation({ sealedFace }: Props) {
         <button type="button" className="z1-chip" onClick={() => submit('unavailable')}>source unavailable</button>
       </p>
 
-      {/* ---- the story: one object moving through the product ------------- */}
+      {/* ---- the story: one persistent object moving through the product --
+          Interface objects carry the meaning; connector words are 11px mono
+          subordinates. The SAME profile object recurs: it forms from the NPI,
+          rides inside the opportunity card as an attached token, becomes the
+          employer's sealed packet, and stays with the clinician at the end. */}
       <div className="z1-story" data-lit={lit ? '' : undefined} aria-label="How VitalCV works">
 
-        <div className="z1-node z1-node--npi" data-on={digits.length > 0 || lit ? '' : undefined}>
-          <span className="z1-node-tag">NPI</span>
+        {/* 1 · the number, as a real field echo */}
+        <div className="z1-node z1-npi-node" data-on={digits.length > 0 || lit ? '' : undefined}>
+          <span className="z1-field-label">NPI</span>
           <span className="z1-npi-echo">{busy ? 'Querying sources…' : echo}</span>
         </div>
 
-        <div className="z1-link" aria-hidden="true"><span>becomes</span></div>
+        <div className="z1-link" aria-hidden="true">becomes</div>
 
+        {/* 2 · the reusable clinician profile — THE persistent object.
+            Dormant, it is a profile-shaped silhouette assembling: dashed
+            identity mark, unresolved name bars, six hollow evidence lanes —
+            "ready to become a profile", never an empty box. */}
         <div className="z1-node z1-profile" data-on={lit ? '' : undefined}>
-          <span className="z1-node-tag">Reusable clinician profile</span>
-          {lit ? (
-            <>
-              <p className="z1-profile-name">K. Osei, PA-C</p>
-              <p className="z1-profile-meta">Emergency medicine · 8 years · Illustrative — not a live result</p>
-              <p className="z1-profile-evidence">Evidence record attached · 4 of 6 sources answered</p>
-            </>
-          ) : (
-            <>
-              <p className="z1-profile-name z1-ghost-line">Your name and credential</p>
-              <p className="z1-profile-meta">Built from your number — yours to reuse</p>
-            </>
-          )}
+          <div className="z1-profile-head">
+            <span className="z1-avatar" aria-hidden="true">{lit ? 'KO' : ''}</span>
+            <div className="z1-profile-id">
+              {lit ? (
+                <>
+                  <p className="z1-profile-name">K. Osei, PA-C</p>
+                  <p className="z1-profile-meta">Emergency medicine · 8 years</p>
+                </>
+              ) : (
+                <>
+                  <span className="z1-sil z1-sil--name" />
+                  <span className="z1-sil z1-sil--meta" />
+                </>
+              )}
+            </div>
+            <span className="z1-profile-badge">{lit ? 'Reusable profile' : 'Your profile'}</span>
+          </div>
+          <div className="z1-lanes" role="img" aria-label={lit ? 'Evidence: 4 of 6 sources answered' : 'Six evidence lanes, none read yet'}>
+            {[0, 1, 2, 3, 4, 5].map((i) => (
+              <span key={i} className="z1-lane" data-f={lit && i < 4 ? '' : undefined} />
+            ))}
+          </div>
+          <p className="z1-profile-evidence">
+            {lit ? 'Evidence record attached · 4 of 6 sources answered · Illustrative — not a live result'
+                 : 'Six evidence lanes · filled as sources answer'}
+          </p>
         </div>
 
-        <div className="z1-link" aria-hidden="true"><span>travels to</span></div>
+        <div className="z1-link" aria-hidden="true">travels to</div>
 
+        {/* 3 · the opportunity, with the SAME profile riding along and the
+            travel action prominent. */}
         <div className="z1-node z1-opp" data-on={lit ? '' : undefined}>
-          <span className="z1-node-tag">Matched opportunity</span>
-          <p className="z1-opp-role">Emergency Medicine PA</p>
-          <p className="z1-opp-org">Cascade Regional Medical Center · Full-time</p>
-          <span className="z1-apply" data-t="travels">→ Apply with VitalCV</span>
+          <div className="z1-opp-main">
+            <p className="z1-opp-role">Emergency Medicine PA</p>
+            <p className="z1-opp-org">Cascade Regional Medical Center · Full-time</p>
+            <span className="z1-opp-attach">
+              <span className="z1-avatar z1-avatar--mini" aria-hidden="true">{lit ? 'KO' : ''}</span>
+              {lit ? 'Your profile is attached' : 'Applies with your profile'}
+            </span>
+          </div>
+          <span className="z1-apply">Apply with VitalCV →</span>
         </div>
 
-        <div className="z1-link" aria-hidden="true"><span>the employer receives</span></div>
+        <div className="z1-link" aria-hidden="true">the employer receives</div>
 
+        {/* 4 · the sealed packet (the canonical record — the proof layer) and
+            the outcome the whole page argues for. */}
         <div className="z1-node z1-packet" data-on={lit ? '' : undefined}>
-          {/* The proof layer: the canonical SEALED face — permission recorded,
-              scoped to this application. Rendered by the shared module. */}
-          <div className="z1-packet-record" dangerouslySetInnerHTML={{ __html: sealedFace }} />
+          <div className="z1-packet-frame">
+            <p className="z1-packet-head">Employer view · permissioned</p>
+            <div className="z1-packet-record" dangerouslySetInnerHTML={{ __html: sealedFace }} />
+          </div>
           <p className="z1-outcome"><strong>Start sooner.</strong> The record stays yours.</p>
         </div>
       </div>

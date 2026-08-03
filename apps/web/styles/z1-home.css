@@ -49,14 +49,14 @@ body:has(.z1-page) header.sticky.top-0.z-50 a{font-size:17px}
   grid-area:head;
   font-family:var(--serif);font-weight:500;
   /* 72–96px at 1440+, founder direction. 5.6vw → 80px at 1440, 96px capped. */
-  font-size:clamp(46px,5.6vw,96px);
+  font-size:clamp(46px,6.1vw,96px);
   line-height:1.02;letter-spacing:-.025em;
   color:var(--ink-strong);max-width:14ch;margin:0;
 }
 .z1-headline em{font-style:italic;color:var(--accent)}
 .z1-support{
   grid-area:sup;
-  font-size:clamp(19px,1.8vw,27px);
+  font-size:clamp(19px,1.95vw,28px);
   color:var(--ink-muted);max-width:34ch;line-height:1.45;
   margin:clamp(16px,2.2vh,24px) 0 0;
 }
@@ -64,17 +64,17 @@ body:has(.z1-page) header.sticky.top-0.z-50 a{font-size:17px}
 /* ---- the activation instrument ------------------------------------------
    One broad bar: input + action joined, ~64px tall. The primary product
    action, not a newsletter field. */
-.z1-npi{grid-area:npi;margin-top:clamp(20px,3vh,32px);max-width:640px}
+.z1-npi{grid-area:npi;margin-top:clamp(20px,3.4vh,36px);max-width:680px}
 .z1-npi-bar{
   display:flex;align-items:stretch;
   border:2px solid var(--ink-strong);border-radius:12px;
   background:var(--raised);overflow:hidden;
-  height:clamp(58px,6.5vh,66px);
+  height:clamp(60px,7.2vh,72px);
 }
 .z1-npi-input{
   flex:1;min-width:0;border:0;background:transparent;outline:none;
   padding:0 clamp(16px,1.6vw,22px);
-  font-family:var(--mono);font-size:clamp(18px,1.5vw,21px);color:var(--ink-strong);
+  font-family:var(--mono);font-size:clamp(18px,1.65vw,23px);color:var(--ink-strong);
   font-variant-numeric:tabular-nums;letter-spacing:.05em;
 }
 .z1-npi-input::placeholder{color:var(--ink-subtle)}
@@ -82,7 +82,7 @@ body:has(.z1-page) header.sticky.top-0.z-50 a{font-size:17px}
   flex:none;border:0;cursor:pointer;
   background:var(--ink-strong);color:var(--raised);
   padding:0 clamp(20px,2vw,30px);
-  font-family:var(--sans);font-size:clamp(16px,1.35vw,19px);font-weight:600;
+  font-family:var(--sans);font-size:clamp(16px,1.5vw,21px);font-weight:600;
   white-space:nowrap;
 }
 .z1-npi-submit:hover{background:var(--ink)}
@@ -97,7 +97,7 @@ body:has(.z1-page) header.sticky.top-0.z-50 a{font-size:17px}
 /* Present, honest, visually secondary. */
 .z1-demo-note{
   grid-area:note;align-self:start;
-  font-family:var(--mono);font-size:12.5px;color:var(--ink-subtle);
+  font-family:var(--mono);font-size:13.5px;color:var(--ink-subtle);
   margin-top:clamp(14px,2vh,22px);max-width:56ch;line-height:1.9;
 }
 .z1-chip{
@@ -108,17 +108,16 @@ body:has(.z1-page) header.sticky.top-0.z-50 a{font-size:17px}
 .z1-chip:hover{border-color:var(--ink-strong);color:var(--ink-strong)}
 
 /* ---- the story ----------------------------------------------------------
-   One object moving through the product. A single ink spine threads the
-   stages; each node is a real interface object. Unlit = the future shown
-   quietly; resolving a number lights it. Indigo appears only on the travel
-   action, per the approved permission doctrine. */
+   One persistent object moving through the product. Interface objects carry
+   the meaning; connector words are small mono subordinates on the spine.
+   Indigo appears only on the travel action (Apply), per the approved
+   permission doctrine. */
 .z1-story{
   grid-area:story;
   position:relative;
   display:flex;flex-direction:column;
   padding-left:26px;
 }
-/* the spine the profile travels along */
 .z1-story::before{
   content:'';position:absolute;left:7px;top:10px;bottom:14px;
   width:2px;background:var(--rule-strong);
@@ -129,12 +128,12 @@ body:has(.z1-page) header.sticky.top-0.z-50 a{font-size:17px}
   position:relative;
   background:var(--raised);
   border:1px solid var(--rule-strong);
-  border-radius:6px;
+  border-radius:8px;
   padding:clamp(14px,1.6vh,18px) clamp(16px,1.5vw,22px);
-  opacity:.55;
+  opacity:.6;
   transition:opacity .3s ease,border-color .3s ease;
 }
-.z1-node::before{ /* node marker on the spine */
+.z1-node::before{
   content:'';position:absolute;left:-24px;top:22px;
   width:12px;height:12px;border-radius:50%;
   background:var(--paper);border:2px solid var(--rule-strong);
@@ -142,63 +141,105 @@ body:has(.z1-page) header.sticky.top-0.z-50 a{font-size:17px}
 .z1-node[data-on]{opacity:1;border-color:var(--ink-strong)}
 .z1-node[data-on]::before{background:var(--ink-strong);border-color:var(--ink-strong)}
 
-.z1-node-tag{
-  display:block;
-  font-family:var(--mono);font-size:12px;letter-spacing:.08em;
-  text-transform:uppercase;color:var(--ink-subtle);margin-bottom:6px;
-}
-
+/* connector words: subordinate, on the spine */
 .z1-link{
-  display:flex;align-items:center;gap:10px;
-  padding:clamp(6px,0.9vh,10px) 0 clamp(6px,0.9vh,10px) 2px;
-  font-size:14px;color:var(--ink-subtle);font-style:italic;
+  padding:clamp(4px,0.8vh,8px) 0 clamp(4px,0.8vh,8px) 2px;
+  font-family:var(--mono);font-size:11px;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--ink-subtle);
 }
-.z1-link::before{content:'↓';font-style:normal;color:var(--ink-muted)}
+.z1-link::before{content:'↓  ';color:var(--ink-muted)}
 
-.z1-node--npi{display:flex;align-items:baseline;gap:16px}
-.z1-node--npi .z1-node-tag{margin:0}
+/* 1 · the NPI as a field object */
+.z1-npi-node{display:flex;align-items:center;gap:16px}
+.z1-field-label{
+  font-family:var(--mono);font-size:12px;letter-spacing:.08em;color:var(--ink-subtle);
+  border:1px solid var(--rule-strong);border-radius:4px;padding:4px 8px;
+}
 .z1-npi-echo{
-  font-family:var(--mono);font-size:clamp(19px,1.6vw,23px);
+  font-family:var(--mono);font-size:clamp(20px,1.7vw,24px);
   color:var(--ink-strong);letter-spacing:.14em;font-variant-numeric:tabular-nums;
 }
 
-/* State-constant: the lit profile carries three lines, the ghost two. The
-   min-height covers the LIT face so resolving a number never grows the story
-   — measured 688→707px hero drift before this rule. */
-.z1-profile{min-height:136px}
-.z1-profile-name{font-weight:600;font-size:clamp(20px,1.7vw,24px);color:var(--ink-strong);margin:0}
-.z1-profile-meta{font-size:15px;color:var(--ink-muted);margin:4px 0 0}
+/* 2 · the profile — the persistent object. Dormant = assembling silhouette. */
+.z1-profile{min-height:150px}
+.z1-profile-head{display:flex;align-items:center;gap:14px}
+.z1-avatar{
+  flex:none;width:46px;height:46px;border-radius:50%;
+  display:inline-flex;align-items:center;justify-content:center;
+  background:var(--ink-strong);color:var(--raised);
+  font-weight:600;font-size:16px;letter-spacing:.02em;
+}
+/* dormant: a dashed identity mark waiting for a person */
+.z1-node:not([data-on]) .z1-avatar{
+  background:transparent;border:2px dashed var(--rule-strong);color:transparent;
+}
+.z1-avatar--mini{width:26px;height:26px;font-size:11px}
+.z1-node:not([data-on]) .z1-avatar--mini{border-width:1.5px}
+.z1-profile-id{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
+.z1-profile-name{font-weight:600;font-size:clamp(21px,1.8vw,25px);color:var(--ink-strong);margin:0;line-height:1.1}
+.z1-profile-meta{font-size:16px;color:var(--ink-muted);margin:0}
+.z1-profile-badge{
+  align-self:flex-start;flex:none;
+  font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--ink-subtle);border:1px solid var(--rule-strong);border-radius:4px;padding:4px 8px;
+}
+.z1-node[data-on] .z1-profile-badge{color:var(--ink);border-color:var(--ink-strong)}
+/* unresolved identity: name-shaped bars, not an empty box */
+.z1-sil{display:block;border-radius:3px;background:var(--inset);border:1px solid var(--rule)}
+.z1-sil--name{width:64%;height:20px}
+.z1-sil--meta{width:42%;height:13px}
+/* six evidence lanes — hollow until sources answer */
+.z1-lanes{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-top:14px}
+.z1-lane{
+  height:12px;border-radius:2px;
+  background:var(--paper);border:1px solid var(--rule-strong);
+}
+.z1-lane[data-f]{background:var(--ink-strong);border-color:var(--ink-strong)}
 .z1-profile-evidence{
   font-family:var(--mono);font-size:12.5px;color:var(--ink-subtle);
-  border-top:1px dashed var(--rule-strong);margin-top:10px;padding-top:8px;
+  margin:10px 0 0;line-height:1.5;
 }
-.z1-ghost-line{color:var(--ink-subtle);font-weight:500}
 
-.z1-opp{min-height:104px}
-.z1-opp-role{font-weight:600;font-size:clamp(18px,1.5vw,21px);color:var(--ink-strong);margin:0}
-.z1-opp-org{font-size:15px;color:var(--ink-muted);margin:3px 0 0}
+/* 3 · the opportunity, the profile riding along, the travel action */
+.z1-opp{display:flex;align-items:center;gap:18px;flex-wrap:wrap;min-height:118px}
+.z1-opp-main{flex:1;min-width:220px}
+.z1-opp-role{font-weight:600;font-size:clamp(19px,1.6vw,22px);color:var(--ink-strong);margin:0}
+.z1-opp-org{font-size:15.5px;color:var(--ink-muted);margin:4px 0 0}
+.z1-opp-attach{
+  display:flex;align-items:center;gap:9px;margin-top:12px;
+  font-size:14px;color:var(--ink-muted);
+}
+/* the travel action is a real button-weight object; indigo = travel */
 .z1-apply{
-  display:inline-block;margin-top:10px;
-  font-family:var(--mono);font-size:14px;font-weight:500;
-  letter-spacing:.03em;text-transform:uppercase;color:var(--accent);
+  flex:none;display:inline-block;
+  background:var(--accent);color:#fff;
+  border-radius:10px;padding:14px 20px;
+  font-size:clamp(15px,1.25vw,17px);font-weight:600;white-space:nowrap;
 }
+.z1-node:not([data-on]) .z1-apply{background:var(--ink-subtle)}
 
-/* The packet keeps the object at its OWN width — stretching the record to
-   the column with width:100% broke its proportional unit (structure computed
-   for 340 inside an 800px box: a wide, sparse face with an empty middle, the
-   exact Z0 failure) and silently resized the approved object. The record
-   arrives at natural size; the outcome sits beside it, so the row is full. */
+/* 4 · the employer's frame around the sealed record, and the outcome */
 .z1-packet{
   display:flex;align-items:center;gap:clamp(16px,1.6vw,26px);flex-wrap:wrap;
   padding:0;border:0;background:transparent;
 }
 .z1-packet::before{top:30px}
+.z1-packet-frame{
+  flex:none;
+  border:1px solid var(--rule-strong);border-radius:8px;
+  background:var(--inset);padding:10px 12px 12px;
+}
+.z1-node[data-on] .z1-packet-frame{border-color:var(--ink-strong)}
+.z1-packet-head{
+  font-family:var(--mono);font-size:11px;letter-spacing:.07em;text-transform:uppercase;
+  color:var(--ink-subtle);margin:0 0 8px;
+}
 .z1-packet-record{flex:none}
 .z1-outcome{
   flex:1;min-width:150px;
   font-size:clamp(17px,1.5vw,21px);color:var(--ink-muted);margin:0;line-height:1.4;
 }
-.z1-outcome strong{display:block;color:var(--ink-strong);font-weight:600;font-size:clamp(20px,1.8vw,26px)}
+.z1-outcome strong{display:block;color:var(--ink-strong);font-weight:600;font-size:clamp(21px,1.9vw,27px)}
 
 /* ---- career loop ---------------------------------------------------------
    Five stages, one visual each, one short line each. The connecting rule is
@@ -236,14 +277,43 @@ body:has(.z1-page) header.sticky.top-0.z-50 a{font-size:17px}
    career loop's start is visible inside the first viewport — momentum comes
    from tighter spacing, not smaller type. */
 @media (max-height:820px){
-  .z1-hero{padding-top:18px;padding-bottom:10px}
+  .z1-hero{padding-top:10px;padding-bottom:0}
+  /* 1366×768-class laptops: still editorial, sized to keep the loop's start
+     inside the frame — 64px headline, 58px instrument. */
+  /* Content larger before container larger: at 1366 the headline holds
+     editorial scale so the argument column FILLS its height; the trims that
+     protect the fold all land in the story's rhythm, not in type. */
+  .z1-headline{font-size:76px}
+  .z1-support{font-size:23px;margin-top:10px}
+  .z1-loop-inner{padding-top:16px}
+  .z1-loop-title{margin-bottom:14px}
+  .z1-npi-bar{height:58px}
+  .z1-npi-input{font-size:19px}
+  .z1-npi-submit{font-size:17px}
+  .z1-node{padding:10px 15px}
+  .z1-story{--z1-packet:270}
+  .z1-profile{min-height:124px}
+  .z1-opp{min-height:0}
+  .z1-avatar{width:38px;height:38px;font-size:14px}
+  .z1-lane{height:10px}
+  .z1-apply{padding:10px 15px}
+  .z1-link{padding:1px 0 1px 2px;font-size:10px}
+  .z1-opp-attach{margin-top:7px}
+  .z1-packet-head{margin-bottom:5px}
+  .z1-profile-evidence{margin-top:7px}
+  .z1-lanes{margin-top:9px}
+  .z1-npi-node{padding-top:8px;padding-bottom:8px}
+  .z1-packet-frame{padding:8px 9px 9px}
   .z1-support{margin-top:12px}
   .z1-npi{margin-top:16px}
   .z1-demo-note{margin-top:12px;line-height:1.7}
   .z1-link{padding:3px 0 3px 2px}
   .z1-node{padding:11px 16px}
-  .z1-profile{min-height:118px}
-  .z1-profile-name{font-size:20px}
+  .z1-profile{min-height:132px}
+  .z1-profile-name{font-size:21px}
+  .z1-lanes{margin-top:10px}
+  .z1-apply{padding:11px 16px}
+  .z1-avatar{width:40px;height:40px}
   .z1-story{--z1-packet:300}
   .z1-outcome{margin-top:8px}
 }
