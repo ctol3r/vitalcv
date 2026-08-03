@@ -276,6 +276,9 @@
 .film-npi-input {
   flex: 1;
   min-width: 0;
+  /* CD-15's floor applies to the field as much as to the button beside it —
+     measured at 41px before this line. */
+  min-height: 44px;
   border: none;
   background: transparent;
   font-family: var(--vt-font-mono, ui-monospace, monospace);
@@ -728,7 +731,12 @@
   max-width: 32ch;
 }
 
+/* The revocation route is the one actionable thing in the consent block, so it
+   is a real target rather than an inline run of text at 16px. */
 .film-consent a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
   text-transform: none;
   letter-spacing: 0;
   color: var(--film-accent);
