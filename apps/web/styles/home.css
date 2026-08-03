@@ -871,8 +871,24 @@
 }
 
 .film-seal {
-  width: min(340px, 100%);
-  margin: 1.6rem 0;
+  width: min(440px, 100%);
+  margin: 1.4rem 0;
+}
+
+/* The closing carries the most objects of any chapter, so its rhythm is set
+   explicitly rather than inherited — the trust block and the record seal each
+   need air to read as separate statements rather than as a stack. */
+.film-truth-boundary {
+  margin-top: 1.6rem;
+  width: 100%;
+}
+
+.film-cadence {
+  margin: 1.4rem 0 0;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--film-ink-subtle);
+  max-width: 52ch;
 }
 
 .film-routes {
@@ -880,7 +896,7 @@
   flex-wrap: wrap;
   justify-content: center;
   gap: 0.9rem;
-  margin-top: 1.4rem;
+  margin-top: 1.6rem;
 }
 
 .film-trust {
@@ -888,8 +904,8 @@
   flex-wrap: wrap;
   justify-content: center;
   gap: 1.6rem;
-  margin-top: 2rem;
-  padding-top: 1.2rem;
+  margin-top: 1.6rem;
+  padding-top: 1rem;
   border-top: 1px solid var(--film-rule);
   width: 100%;
 }

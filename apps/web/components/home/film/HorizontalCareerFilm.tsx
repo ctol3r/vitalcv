@@ -446,6 +446,13 @@ export function HorizontalCareerFilm() {
                       receipt signed · <strong>rcpt:nppes:8f2a…c41</strong>
                     </p>
                   </div>
+
+                  {/* Cadence belongs with the chapter about what came back —
+                      each lane's own refresh window, next to the claims it
+                      qualifies, rather than parked in the footer. */}
+                  <p className="film-cadence" data-home-source-cadence="">
+                    {sourceCadenceSentence()}
+                  </p>
                 </div>
               </div>
             </section>
@@ -616,10 +623,6 @@ export function HorizontalCareerFilm() {
                     For employers
                   </ProductAction>
                 </div>
-
-                <p className="film-ask-hint" data-home-source-cadence="">
-                  {sourceCadenceSentence()}
-                </p>
 
                 <TruthBoundary className="film-truth-boundary" />
 
