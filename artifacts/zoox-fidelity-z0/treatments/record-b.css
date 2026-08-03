@@ -31,11 +31,28 @@
 body{background:var(--paper);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased}
 
 /* ---------------------------------------------------------------- object --
- * Everything scales from --w, so the object is one design at 120px and at
- * 70vw rather than a small design enlarged (refinement 8).
+ * Everything scales from the record's own width, so the object is one design
+ * at 120px and at 70vw rather than a small design enlarged (refinement 8).
+ *
+ * The width arrives UNITLESS as --wn, and both the pixel width and the
+ * proportional unit are derived from it. This is not a style preference.
+ * --u was previously `calc(var(--w) / 420)` with --w a length, which yields a
+ * LENGTH (2.14px at 900px wide), so every `calc(15px * var(--u))` multiplied
+ * px by px, was invalid, and was dropped by the browser — all 37 of them.
+ * The object rendered at fixed base sizes and never scaled at all. Dividing a
+ * unitless number keeps --u a number, which is what a multiplier must be.
  */
 .evr{
-  --u:calc(var(--w) / 420);           /* proportional unit */
+  --w:calc(var(--wn, 420) * 1px);     /* pixel width, derived */
+  --u:calc(var(--wn, 420) / 420);     /* proportional unit, UNITLESS */
+  /* TYPE unit. Structure scales in both directions; text only scales UP.
+     The object may be rendered narrower than its 420px design size — on
+     mobile, and for the recipient subset — and proportional scaling would
+     take the claim line to 12.5px there, below the CD-15 readable floor and
+     failing the rule that mobile must be composed rather than shrunk. So
+     type holds at design size and grows from there; only the object's
+     structure gets smaller. */
+  --ut:max(1, var(--u));
   position:relative;
   width:var(--w);
   min-height:calc(var(--w) * 0.72);
@@ -45,7 +62,7 @@ body{background:var(--paper);color:var(--ink);font-family:var(--sans);-webkit-fo
   border-radius:calc(3px * var(--u));
   display:flex;flex-direction:column;
   overflow:hidden;
-  font-size:calc(15px * var(--u));
+  font-size:calc(15px * var(--ut));
   /*
    * REFINEMENT 5 — no backing layer.
    *
@@ -72,13 +89,13 @@ body{background:var(--paper);color:var(--ink);font-family:var(--sans);-webkit-fo
 
 .evr-head{padding:calc(14px * var(--u)) calc(16px * var(--u)) calc(12px * var(--u));background:var(--inset);border-bottom:1px solid var(--rule-strong)}
 .evr-eyebrow{
-  font-family:var(--mono);font-size:calc(10px * var(--u));letter-spacing:.09em;
+  font-family:var(--mono);font-size:calc(10px * var(--ut));letter-spacing:.09em;
   text-transform:uppercase;color:var(--ink-subtle);
   display:flex;justify-content:space-between;gap:calc(12px * var(--u));
 }
 /* REFINEMENT 9 — identity outranks metadata. */
-.evr-name{font-weight:600;font-size:calc(17px * var(--u));color:var(--ink-strong);margin-top:calc(6px * var(--u))}
-.evr-npi{font-family:var(--mono);font-size:calc(12px * var(--u));color:var(--ink-muted);font-variant-numeric:tabular-nums}
+.evr-name{font-weight:600;font-size:calc(17px * var(--ut));color:var(--ink-strong);margin-top:calc(6px * var(--u))}
+.evr-npi{font-family:var(--mono);font-size:calc(12px * var(--ut));color:var(--ink-muted);font-variant-numeric:tabular-nums}
 
 /* ---- REFINEMENT 6 — the aperture band, five semantic states ---------------
  * Not six status lights. At thumbnail scale the band communicates record
@@ -114,25 +131,30 @@ body{background:var(--paper);color:var(--ink);font-family:var(--sans);-webkit-fo
 
 .evr-body{flex:1;display:flex;flex-direction:column;min-height:0}
 .evr-rows{list-style:none;flex:1}
+/* Compact row: assertion and stamp share the first line, provenance takes the
+   next. Provenance is a SIBLING of the assertion, not a child of it, so the
+   hero grid can place it in its own column without a spanning track. */
 .evr-row{
-  display:flex;align-items:flex-start;justify-content:space-between;
-  gap:calc(10px * var(--u));
+  display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;
+  column-gap:calc(10px * var(--u));row-gap:calc(3px * var(--u));
   padding:calc(9px * var(--u)) calc(16px * var(--u));
   border-top:1px solid var(--rule);
 }
+.evr-assert{display:block;flex:1 1 auto;min-width:0}
+.evr-row > .evr-prov{flex:1 1 100%}
 .evr-rows > .evr-row:first-child{border-top:none}
 /* REFINEMENT 9 — facts are sharp; radius 0–3px never softens. */
-.evr-claim{font-weight:500;font-size:calc(13px * var(--u));display:block}
+.evr-claim{font-weight:500;font-size:calc(13px * var(--ut));display:block}
 /* display:block, not inline. As inline spans these concatenated — the row
    read "Located in the NPPES registryNPPES · read live ·", welding a claim
    to its own provenance. On an evidence surface that is not a layout bug,
    it is a sentence the product never wrote. */
-.evr-ret{display:block;font-size:calc(12px * var(--u));color:var(--ink-muted);margin-top:calc(2px * var(--u))}
-.evr-prov{display:block;font-family:var(--mono);font-size:calc(10px * var(--u));color:var(--ink-subtle);margin-top:calc(4px * var(--u));line-height:1.5;max-width:64ch}
+.evr-ret{display:block;font-size:calc(12px * var(--ut));color:var(--ink-muted);margin-top:calc(2px * var(--u))}
+.evr-prov{display:block;font-family:var(--mono);font-size:calc(10px * var(--ut));color:var(--ink-subtle);margin-top:calc(4px * var(--u));line-height:1.5;max-width:64ch}
 
 .stamp{
   display:inline-flex;align-items:center;gap:.35em;flex:none;
-  font-family:var(--mono);font-size:calc(9px * var(--u));letter-spacing:.05em;text-transform:uppercase;
+  font-family:var(--mono);font-size:calc(9px * var(--ut));letter-spacing:.05em;text-transform:uppercase;
   color:var(--ink);background:var(--raised);
   border:1px solid var(--rule);border-left-width:calc(2px * var(--u));border-radius:calc(3px * var(--u));
   padding:calc(2px * var(--u)) calc(6px * var(--u));white-space:nowrap;
@@ -145,7 +167,7 @@ body{background:var(--paper);color:var(--ink);font-family:var(--sans);-webkit-fo
 /* RECEIPT EDGE — restrained. C's heavier edge is deliberately not carried. */
 .evr-receipt{
   padding:calc(8px * var(--u)) calc(16px * var(--u));background:var(--inset);
-  font-family:var(--mono);font-size:calc(9.5px * var(--u));color:var(--ink-subtle);
+  font-family:var(--mono);font-size:calc(9.5px * var(--ut));color:var(--ink-subtle);
   border-top:1px dashed var(--rule-strong);
 }
 
@@ -158,7 +180,7 @@ body{background:var(--paper);color:var(--ink);font-family:var(--sans);-webkit-fo
 .evr-row[data-travel="travels"]{box-shadow:inset calc(3px * var(--u)) 0 0 var(--accent)}
 .evr-row[data-travel="held"]{opacity:.82}
 .evr-perm{
-  font-family:var(--mono);font-size:calc(10px * var(--u));letter-spacing:.04em;
+  font-family:var(--mono);font-size:calc(10px * var(--ut));letter-spacing:.04em;
   text-transform:uppercase;white-space:nowrap;flex:none;
 }
 .evr-perm[data-t="travels"]{color:var(--accent);font-weight:500}
@@ -173,7 +195,7 @@ body{background:var(--paper);color:var(--ink);font-family:var(--sans);-webkit-fo
   width:calc(68px * var(--u));height:calc(68px * var(--u));border-radius:50%;
   border:calc(2px * var(--u)) solid var(--ink-strong);
   display:flex;align-items:center;justify-content:center;text-align:center;
-  font-family:var(--mono);font-size:calc(8px * var(--u));letter-spacing:.08em;
+  font-family:var(--mono);font-size:calc(8px * var(--ut));letter-spacing:.08em;
   text-transform:uppercase;color:var(--ink-strong);line-height:1.35;
   margin:0 auto;flex:none;
 }
@@ -188,7 +210,7 @@ body{background:var(--paper);color:var(--ink);font-family:var(--sans);-webkit-fo
 /* The recipient frame: the same record with fewer rows. Never a new card. */
 .evr--recipient{opacity:.97}
 
-.illus{font-family:var(--mono);font-size:calc(9px * var(--u));letter-spacing:.1em;text-transform:uppercase;color:var(--ink-subtle)}
+.illus{font-family:var(--mono);font-size:calc(9px * var(--ut));letter-spacing:.1em;text-transform:uppercase;color:var(--ink-subtle)}
 
 /* ---- review harness (not the object) ------------------------------------ */
 .sheet{padding:30px 34px}
@@ -197,9 +219,15 @@ body{background:var(--paper);color:var(--ink);font-family:var(--sans);-webkit-fo
 .cap{font-family:var(--mono);font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-subtle);margin-bottom:9px}
 .grid{display:flex;gap:28px;align-items:flex-start;flex-wrap:wrap}
 .stage{background:var(--paper);border:1px solid var(--rule);padding:0;position:relative;overflow:hidden}
+/* The covered test must blank DESCENDANTS too, not just the labelled element.
+   INSPECTED's detail rows carry an inline `color:var(--ink)` on nested spans,
+   which outranks a class rule — so the one face with the most copy on it was
+   the one face the recognition test left legible, and the test read as passed. */
 .covered .evr-name,.covered .evr-npi,.covered .evr-claim,.covered .evr-ret,
 .covered .evr-prov,.covered .evr-eyebrow,.covered .stamp,.covered .evr-receipt,
-.covered .evr-perm,.covered .evr-seal,.covered .illus{color:transparent!important}
+.covered .evr-perm,.covered .evr-seal,.covered .illus,
+.covered .evr-prov *,.covered .evr-receipt *,.covered .stamp *,
+.covered .evr-eyebrow *{color:transparent!important}
 .covered .evr-name,.covered .evr-claim,.covered .evr-ret,.covered .evr-prov,
 .covered .evr-npi,.covered .evr-eyebrow span,.covered .evr-receipt,
 .covered .evr-perm,.covered .illus{background:var(--rule);border-radius:1px}
@@ -217,21 +245,51 @@ body{background:var(--paper);color:var(--ink);font-family:var(--sans);-webkit-fo
  * up — which is the failure mode refinement 8 exists to catch, and which the
  * first render of this sheet demonstrated.
  */
+/*
+ * HEIGHT-LED, NOT WIDTH-LED.
+ *
+ * Measured at 1440x900: the record was 1008x726 with a 1008x273 empty band
+ * INSIDE it — 37.6% of the record's height, 30.3% of the viewport. Cause:
+ * `min-height: calc(var(--w) * 0.72)` sized the object from its WIDTH, forcing
+ * 726px when its content needed 453px, and `flex:1` on the body and rows then
+ * stretched to fill the difference and pushed the receipt to the bottom.
+ *
+ * A record is content-driven. Cinematic scale comes from the SCENE — placement,
+ * overlap, crop of non-factual framing, surrounding type — never from inflating
+ * an evidence document into a tall empty rectangle. So at hero scale the
+ * width-derived floor is removed and the body no longer grows.
+ */
 .evr[data-scale="hero"]{min-height:0}
+.evr[data-scale="hero"] .evr-body,
+.evr[data-scale="hero"] .evr-rows{flex:0 0 auto}
 .evr[data-scale="hero"] .evr-apertures{
   padding:calc(18px * var(--u)) calc(20px * var(--u));
   gap:calc(8px * var(--u));
 }
 .evr[data-scale="hero"] .evr-ap{height:calc(22px * var(--u))}
+/*
+ * Assertion, provenance and stamp sit side by side in ONE grid row, each
+ * top-aligned.
+ *
+ * They previously occupied two rows with provenance spanning both. Because a
+ * spanning item's height is distributed across the auto tracks it spans, six
+ * lines of provenance stretched both rows, and the retrieval line — alone in
+ * row two — was pushed to the bottom of a track it did not fill. Measured at
+ * 1440: a ~90px void between "Identity" and "Located in the NPPES registry",
+ * in every row. That is the same empty-band failure as before, relocated from
+ * the foot of the record into each individual row, where a whole-record
+ * measurement does not see it. One row and `align-items:start` remove the
+ * mechanism rather than tuning around it.
+ */
 .evr[data-scale="hero"] .evr-row{
   display:grid;
-  grid-template-columns:minmax(0,42%) minmax(0,1fr) auto;
+  grid-template-columns:minmax(0,34%) minmax(0,1fr) auto;
   gap:calc(20px * var(--u));
-  align-items:baseline;
+  align-items:start;
   padding:calc(16px * var(--u)) calc(20px * var(--u));
 }
-.evr[data-scale="hero"] .evr-row > span:first-child{display:contents}
-.evr[data-scale="hero"] .evr-claim{font-size:calc(15px * var(--u));grid-column:1}
-.evr[data-scale="hero"] .evr-ret{grid-column:1;margin-top:calc(3px * var(--u))}
-.evr[data-scale="hero"] .evr-prov{grid-column:2;grid-row:1 / span 2;margin-top:0;max-width:56ch}
+.evr[data-scale="hero"] .evr-assert{grid-column:1;grid-row:1}
+.evr[data-scale="hero"] .evr-claim{font-size:calc(15px * var(--ut))}
+.evr[data-scale="hero"] .evr-ret{margin-top:calc(3px * var(--u))}
+.evr[data-scale="hero"] .evr-prov{grid-column:2;grid-row:1;margin-top:0;max-width:none}
 .evr[data-scale="hero"] .stamp{grid-column:3;grid-row:1}
