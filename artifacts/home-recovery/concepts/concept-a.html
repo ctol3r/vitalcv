@@ -1,0 +1,904 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VitalCV — Concept A · Record in Motion</title>
+<link rel="stylesheet" href="./base.css">
+<style>
+/* ==========================================================================
+   CONCEPT A — "RECORD IN MOTION" (Zoox-led)
+   One product object — the clinician's evidence record — examined
+   continuously across five full-viewport stages. One visual event per scene.
+   Static storyboard: motion intent lives in data-motion attributes only.
+   ========================================================================== */
+
+html, body { overflow-x: clip; }
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+.frame { display: block; }
+@media (min-width: 1200px) {
+  .frame { height: 100vh; }
+}
+
+/* ---- Sliding chapter rail (bottom-left, mono) --------------------------- */
+.rail {
+  position: absolute;
+  left: 72px;
+  bottom: 40px;
+  z-index: 6;
+  overflow: hidden;
+  max-width: calc(100vw - 32px);
+}
+.rail-cap {
+  display: block;
+  margin-bottom: 0.6rem;
+  padding-bottom: 0.45rem;
+  border-bottom: 1px solid var(--rule);
+}
+.rail-track {
+  display: flex;
+  gap: 1.6rem;
+  align-items: baseline;
+  white-space: nowrap;
+  width: max-content;
+}
+.rail .ch {
+  font-family: var(--font-data);
+  font-weight: 500;
+  font-size: 0.6875rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-subtle);
+}
+.rail .ch .idx { color: var(--rule-strong); margin-right: 0.5em; }
+.rail .ch.active {
+  font-size: 0.875rem;
+  color: var(--ink-strong);
+}
+.rail .ch.active .idx { color: var(--accent); }
+
+/* Per-frame rail positions — the same track, caught mid-slide */
+.rail-pos-opening    { width: 548px; }
+.rail-pos-opening    .rail-track { transform: translateX(0); }
+.rail-pos-sources    { width: 320px; }
+.rail-pos-sources    .rail-track { transform: translateX(-48px); }
+.rail-pos-permission { width: 300px; }
+.rail-pos-permission .rail-track { transform: translateX(-230px); }
+.rail-pos-review     { width: 300px; }
+.rail-pos-review     .rail-track { transform: translateX(-380px); }
+
+/* ---- Scene header grammar ----------------------------------------------- */
+.scene-head { max-width: 720px; }
+.scene-head .eyebrow { display: block; margin-bottom: 0.9rem; }
+.scene-note {
+  position: absolute;
+  top: 100px;
+  right: 72px;
+  text-align: right;
+}
+
+/* ==========================================================================
+   FRAME 1 — #opening
+   ========================================================================== */
+#opening { background: var(--paper); }
+#opening .copy {
+  position: absolute;
+  left: 72px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 440px;
+  z-index: 3;
+}
+
+.clinician-tag {
+  display: inline-block;
+  font-family: var(--font-data);
+  font-weight: 500;
+  font-size: 0.6875rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink);
+  border: 1px solid var(--rule-strong);
+  border-radius: 3px;
+  padding: 0.45em 0.85em;
+  margin-bottom: 1.6rem;
+}
+.clinician-tag .plus { color: var(--accent); margin-left: 0.4em; }
+
+#opening h1 { margin-bottom: 1.1rem; }
+#opening .support { margin-bottom: 1.5rem; color: var(--ink-muted); }
+#opening .hint { display: block; margin-bottom: 2.2rem; }
+
+.employer-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  color: var(--ink-muted);
+  text-decoration: none;
+  font-size: 0.9375rem;
+  border-top: 1px solid var(--rule);
+  padding-top: 0.9rem;
+}
+.employer-link strong { color: var(--ink); font-weight: 500; }
+.employer-link .arrow { font-family: var(--font-data); color: var(--accent); }
+
+/* The record at scale: 840px on a 1440 stage (~58%), cropped off the right */
+.record-stack {
+  position: absolute;
+  top: 50%;
+  right: -120px;
+  transform: translateY(-50%);
+  width: 840px;
+  z-index: 2;
+}
+.record-stack .record { position: relative; z-index: 3; }
+/* 120px of the sheet runs off the right edge — the paper is cropped, the
+   facts are not: content keeps clear of the cropped strip */
+.record .record-head,
+.record .npi-row,
+.record .artifact-row { padding-right: 156px; }
+
+/* Layered paper fragments behind the record — opaque, hairline, rotated */
+.fragment {
+  position: absolute;
+  background: var(--paper-raised);
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  padding: 0.85rem 1rem;
+  z-index: 1;
+}
+.fragment .eyebrow { display: block; margin-bottom: 0.5rem; }
+.fragment .data { display: block; }
+.fragment .illustrative { display: block; margin-top: 0.55rem; }
+.fragment-response {
+  width: 264px;
+  top: -46px;
+  left: -158px;
+  transform: rotate(1deg);
+}
+.fragment-receipt {
+  width: 276px;
+  bottom: -40px;
+  left: -148px;
+  transform: rotate(-1.3deg);
+  z-index: 2;
+}
+
+.record-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+/* The ask sits ON the record: row one of the document is the input row */
+.npi-row {
+  padding: 1.15rem 1.1rem 1.25rem;
+  border-bottom: 1px solid var(--rule);
+}
+.npi-row .label { display: block; margin-bottom: 0.55rem; }
+.npi-controls { display: flex; gap: 0.9rem; align-items: stretch; }
+.npi-input {
+  flex: 1;
+  min-height: 44px;
+  min-width: 0;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--rule-strong);
+  border-radius: 0;
+  color: var(--ink-strong);
+  font-size: 1rem;
+  padding: 0 0.1rem;
+}
+.npi-input::placeholder { color: var(--ink-subtle); }
+.npi-input:focus { border-bottom-color: var(--accent); }
+
+.src { display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; }
+.src-name { font-weight: 500; font-size: 0.9375rem; color: var(--ink); }
+
+/* ==========================================================================
+   FRAME 2 — #sources
+   ========================================================================== */
+#sources { background: var(--paper); padding: 96px 72px 128px; }
+#sources .scene-head { margin-bottom: 1.8rem; }
+
+.hero-row {
+  max-width: 1160px;
+  padding: 2.4rem 2.6rem 2.2rem;
+  margin-bottom: 1.25rem;
+}
+.hero-row-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  margin-bottom: 1.4rem;
+  padding-bottom: 0.9rem;
+  border-bottom: 1px solid var(--rule);
+}
+.hero-row-main {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 2.5rem;
+  flex-wrap: wrap;
+}
+.hero-src-name {
+  font-family: var(--font-text);
+  font-weight: 600;
+  font-size: 3rem;
+  line-height: 1.05;
+  letter-spacing: -0.015em;
+  color: var(--ink-strong);
+  margin-bottom: 0.9rem;
+}
+.hero-facts .data { display: block; font-size: 1.0625rem; }
+.hero-facts .data + .data { margin-top: 0.35rem; }
+.stamp-xl {
+  font-size: 1.125rem;
+  border-left-width: 3px;
+  padding: 0.45em 0.85em;
+}
+
+.minor-rows { max-width: 1160px; }
+.minor-rows .artifact-row { padding: 0.6rem 1.1rem; }
+.minor-rows .src { flex-direction: row; align-items: baseline; gap: 1rem; }
+.minor-rows .src-name { font-size: 0.875rem; min-width: 168px; }
+.minor-rows .artifact-foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: baseline;
+}
+
+/* ==========================================================================
+   FRAME 3 — #permission
+   ========================================================================== */
+#permission { background: var(--paper); padding: 116px 72px 140px; }
+#permission .scene-head { margin-bottom: 2.6rem; }
+
+.split-stage {
+  display: flex;
+  gap: 3.5rem;
+  align-items: flex-start;
+  max-width: 1160px;
+}
+.stack { min-width: 0; }
+.split-stage .artifact-row { padding: 1.3rem 1.5rem; }
+.split-stage .src-name { font-size: 1.0625rem; }
+.stack-heading {
+  font-family: var(--font-data);
+  font-weight: 500;
+  font-size: 1.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-strong);
+  margin-bottom: 0.9rem;
+}
+.stack-heading .glyph-travels { color: var(--accent); }
+.stack-heading .glyph-held { color: var(--ink); }
+.stack-travels {
+  flex: 1.15;
+  transform: translate(-8px, -10px);
+}
+.stack-held {
+  flex: 1;
+  transform: translate(14px, 52px) scale(0.965);
+  transform-origin: top left;
+}
+#permission .scene-head { margin-bottom: 3.2rem; }
+.stack-held .stack-heading { color: var(--ink-muted); }
+.mark {
+  font-family: var(--font-data);
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+.mark-travels { color: var(--accent); }
+.mark-held { color: var(--ink); }
+.split-note { margin-top: 2rem; max-width: 52ch; color: var(--ink-muted); }
+
+/* ==========================================================================
+   FRAME 4 — #review
+   ========================================================================== */
+#review { background: var(--paper); padding: 116px 72px 140px; }
+#review .scene-head { margin-bottom: 2.4rem; }
+
+.review-stage {
+  display: grid;
+  grid-template-columns: 560px 1fr;
+  gap: 4rem;
+  max-width: 1160px;
+  align-items: start;
+}
+.packet-head { display: flex; flex-direction: column; gap: 0.35rem; }
+.packet-seal {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  padding: 0.55rem 1.1rem;
+  border-bottom: 1px solid var(--rule);
+  background: var(--paper-inset);
+}
+.checkpoint {
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--rule-strong);
+  border-radius: 3px;
+  background: var(--paper-raised);
+  padding: 1.5rem 1.7rem;
+  margin-bottom: 1.6rem;
+}
+.checkpoint-word {
+  display: block;
+  font-family: var(--font-data);
+  font-weight: 500;
+  font-size: 1.3125rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-strong);
+  margin-bottom: 0.8rem;
+}
+.checkpoint-word .glyph { color: var(--ink-subtle); margin-right: 0.4em; }
+.checkpoint p { color: var(--ink); max-width: 44ch; }
+.truth-boundary {
+  border-top: 1px solid var(--rule);
+  padding-top: 1.1rem;
+  color: var(--ink-muted);
+  max-width: 52ch;
+}
+
+/* ==========================================================================
+   FRAME 5 — #closing
+   ========================================================================== */
+#closing {
+  background: var(--paper);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 96px 24px;
+}
+.closing-col { max-width: 760px; margin: 0 auto; }
+.closing-lines { margin-bottom: 2.6rem; }
+.closing-lines .display-lg + .display-lg { margin-top: 0.2em; }
+
+.record-mini {
+  width: 400px;
+  max-width: 100%;
+  margin: 0 auto 2.6rem;
+  text-align: left;
+}
+.record-mini .artifact-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  padding: 0.7rem 0.9rem;
+}
+.record-mini .artifact-row { padding: 0.5rem 0.9rem; gap: 0.75rem; }
+.record-mini .src-name { font-size: 0.75rem; }
+.record-mini .mini-state {
+  font-family: var(--font-data);
+  font-size: 0.625rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ink);
+  white-space: nowrap;
+}
+.record-mini .g-confirmed { color: var(--state-confirmed); }
+.record-mini .g-snapshot { color: var(--state-snapshot); }
+.record-mini .g-access { color: var(--state-access); }
+
+.closing-ctas {
+  display: flex;
+  gap: 0.9rem;
+  justify-content: center;
+  margin-bottom: 1.1rem;
+  flex-wrap: wrap;
+}
+.closing-hint { display: block; margin-bottom: 2.4rem; }
+.trust-links {
+  display: inline-flex;
+  gap: 0.4rem;
+  align-items: center;
+  border-top: 1px solid var(--rule);
+  padding-top: 0.4rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.trust-links a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 0.6rem;
+  font-family: var(--font-data);
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  text-decoration: none;
+}
+.trust-links .sep { color: var(--rule-strong); }
+
+/* ==========================================================================
+   MOBILE — 390px recomposition (single column, no crop, no overflow)
+   ========================================================================== */
+@media (max-width: 900px) {
+  .nav .cta-group .btn-quiet { display: none; }
+  .nav .btn { white-space: nowrap; }
+  .hero-row-top { flex-direction: column; gap: 0.3rem; }
+
+  #opening .copy {
+    position: static;
+    transform: none;
+    width: auto;
+    padding: 108px 20px 0;
+  }
+  .record-stack {
+    position: static;
+    transform: none;
+    width: auto;
+    margin: 2rem 16px 96px;
+    right: auto;
+  }
+  .fragment { display: none; } /* layered fragments collapse to one clean record */
+  .record .record-head,
+  .record .npi-row,
+  .record .artifact-row { padding-right: 1.1rem; } /* no crop on mobile */
+  .npi-controls { flex-direction: column; }
+  .npi-controls .btn { width: 100%; }
+  .artifact-row { flex-wrap: wrap; }
+
+  .rail {
+    left: 16px;
+    right: 16px;
+    bottom: 24px;
+  }
+  .rail-pos-opening, .rail-pos-sources, .rail-pos-permission, .rail-pos-review {
+    width: auto;
+    max-width: calc(100vw - 32px);
+  }
+
+  .scene-note { position: static; text-align: left; margin-bottom: 1.2rem; }
+
+  #sources, #permission, #review { padding: 104px 20px 128px; }
+  #sources .scene-head, #permission .scene-head, #review .scene-head { margin-bottom: 1.6rem; }
+  .hero-row { padding: 1.4rem 1.2rem 1.3rem; }
+  .hero-src-name { font-size: 1.75rem; }
+  .hero-facts .data { font-size: 0.875rem; }
+  .stamp-xl { font-size: 0.875rem; }
+  .minor-rows .src { flex-direction: column; gap: 0.1rem; }
+  .minor-rows .src-name { min-width: 0; }
+  .minor-rows .artifact-foot { flex-direction: column; gap: 0.3rem; }
+
+  .split-stage { flex-direction: column; gap: 2rem; }
+  .stack-travels, .stack-held { transform: none; flex: none; width: 100%; }
+
+  .review-stage { grid-template-columns: 1fr; gap: 2.2rem; }
+
+  #closing { padding: 96px 20px 72px; }
+  .record-mini { width: 100%; }
+  .closing-ctas { flex-direction: column; align-items: stretch; }
+}
+</style>
+</head>
+<body>
+
+<!-- ======================================================================
+     FRAME 1 — #opening · YOUR NUMBER
+     The record is the hero: 58% of the stage, cropped off the right edge,
+     two paper layers behind it. The NPI ask is row one OF the document.
+     ====================================================================== -->
+<section class="frame" id="opening" data-motion="scene 1 of 5; the record is examined continuously across all five stages">
+
+  <header class="nav">
+    <a class="wordmark" href="#opening">VitalCV</a>
+    <nav class="links" aria-label="Site">
+      <span>Status</span>
+      <span>Source attribution</span>
+      <span>Evidence network</span>
+      <span>Trust</span>
+    </nav>
+    <div class="cta-group">
+      <a class="btn btn-quiet" href="#closing">For employers</a>
+      <a class="btn btn-primary" href="#opening" data-motion="arrow exchanges: out right, in from left, 120ms">Check my readiness <span class="arrow">&#8594;</span></a>
+    </div>
+  </header>
+
+  <div class="copy">
+    <span class="clinician-tag" data-motion="clip-reveal: expands from a 3px sliver to full width, left to right, 240ms ease-enter">FOR CLINICIANS<span class="plus">+</span></span>
+    <h1 class="display-xl">Get hired on <em class="accent-word">evidence</em>.</h1>
+    <p class="body-lg support">Start with your NPI.</p>
+    <span class="data subtle hint">Free for clinicians &middot; No account required</span>
+    <a class="employer-link" href="#closing">Hiring clinicians? <strong>For employers</strong> <span class="arrow">&#8594;</span></a>
+  </div>
+
+  <div class="record-stack" data-motion="record arrives from 24px right, settles once, 400ms ease-enter; layers settle 60ms staggered">
+
+    <div class="fragment fragment-response" aria-hidden="true" data-motion="static layer; implies the response that will surface in scene 2">
+      <span class="eyebrow">Source response</span>
+      <span class="data">NPPES NPI Registry</span>
+      <span class="data">2026-08-02 14:02Z</span>
+      <span class="illustrative">Illustrative &mdash; not a live result</span>
+    </div>
+
+    <div class="fragment fragment-receipt" aria-hidden="true" data-motion="static layer; implies the signed receipt that seals scene 4">
+      <span class="eyebrow">Signed receipt</span>
+      <span class="data">rcpt:nppes:8f2a&hellip;c41</span>
+      <span class="data">ES256 &middot; P-256</span>
+      <span class="data">vcv-es256-prod-1</span>
+      <span class="illustrative">Illustrative &mdash; not a live result</span>
+    </div>
+
+    <div class="record artifact">
+      <div class="artifact-head record-head">
+        <span class="eyebrow">Evidence record</span>
+        <span class="data subtle">awaiting your number</span>
+      </div>
+
+      <!-- Row one of the record IS the ask -->
+      <div class="npi-row">
+        <label class="label" for="npi">Your 10-digit NPI</label>
+        <div class="npi-controls">
+          <input class="data npi-input" id="npi" name="npi" inputmode="numeric" autocomplete="off" maxlength="10" placeholder="10-digit NPI">
+          <button class="btn btn-primary" type="button" data-motion="arrow exchanges: out right, in from left, 120ms">Check what&#8217;s ready <span class="arrow">&#8594;</span></button>
+        </div>
+      </div>
+
+      <div class="artifact-row">
+        <div class="src">
+          <span class="src-name">NPPES Identity</span>
+          <span class="data subtle">CMS Registry &middot; read per request</span>
+        </div>
+        <span class="stamp stamp-notchecked"><span class="glyph">&#9675;</span> NOT CHECKED</span>
+      </div>
+      <div class="artifact-row">
+        <div class="src">
+          <span class="src-name">OIG Exclusions</span>
+          <span class="data subtle">OIG LEIE &middot; monthly snapshot</span>
+        </div>
+        <span class="stamp stamp-notchecked"><span class="glyph">&#9675;</span> NOT CHECKED</span>
+      </div>
+      <div class="artifact-row">
+        <div class="src">
+          <span class="src-name">State License</span>
+          <span class="data subtle">State Medical Board &middot; access required</span>
+        </div>
+        <span class="stamp stamp-access"><span class="glyph">&#8856;</span> ACCESS REQUIRED</span>
+      </div>
+      <div class="artifact-row">
+        <div class="src">
+          <span class="src-name">PECOS Enrollment</span>
+          <span class="data subtle">CMS PECOS &middot; quarterly snapshot</span>
+        </div>
+        <span class="stamp stamp-notchecked"><span class="glyph">&#9675;</span> NOT CHECKED</span>
+      </div>
+      <div class="artifact-row">
+        <div class="src">
+          <span class="src-name">Employment History</span>
+          <span class="data subtle">The Work Number &middot; access required</span>
+        </div>
+        <span class="stamp stamp-access"><span class="glyph">&#8856;</span> ACCESS REQUIRED</span>
+      </div>
+      <div class="artifact-row">
+        <div class="src">
+          <span class="src-name">Board Certification</span>
+          <span class="data subtle">ABMS / Specialty Board &middot; access required</span>
+        </div>
+        <span class="stamp stamp-access"><span class="glyph">&#8856;</span> ACCESS REQUIRED</span>
+      </div>
+    </div>
+  </div>
+
+  <nav class="rail rail-pos-opening" aria-label="Chapters">
+    <span class="eyebrow rail-cap">Chapters</span>
+    <div class="rail-track" data-motion="track slides left one chapter per scene, 400ms ease-enter, single-shot">
+      <span class="ch active"><span class="idx">01</span>Your number</span>
+      <span class="ch"><span class="idx">02</span>Source responses</span>
+      <span class="ch"><span class="idx">03</span>Your permission</span>
+      <span class="ch"><span class="idx">04</span>Human review</span>
+    </div>
+  </nav>
+</section>
+
+<!-- ======================================================================
+     FRAME 2 — #sources · SOURCE RESPONSES
+     One visual event: the NPPES row blown up to display scale.
+     ====================================================================== -->
+<section class="frame" id="sources">
+
+  <div class="scene-head">
+    <span class="eyebrow">Chapter 02 &middot; Source responses</span>
+    <h2 class="display-lg">What came back.</h2>
+  </div>
+
+  <div class="scene-note">
+    <span class="illustrative">Illustrative &mdash; not a live result</span>
+  </div>
+
+  <div class="artifact hero-row" data-motion="the NPPES row expands from record scale to display scale, single-shot, 400ms ease-enter">
+    <div class="hero-row-top">
+      <span class="eyebrow">Row 01 of 06 &middot; read per request</span>
+      <span class="illustrative">Illustrative &mdash; not a live result</span>
+    </div>
+    <div class="hero-row-main">
+      <div class="hero-facts">
+        <div class="hero-src-name">NPPES Identity</div>
+        <span class="data">NPPES NPI Registry &middot; 2026-08-02 14:02Z</span>
+        <span class="data">K. Osei, PA-C &middot; NPI &middot;&middot;&middot;&middot;&middot; 4821</span>
+      </div>
+      <span class="stamp stamp-confirmed stamp-xl" data-motion="stamp resolves once on arrival, 240ms opacity, then static"><span class="glyph">&#9679;</span> CONFIRMED</span>
+    </div>
+  </div>
+
+  <div class="artifact minor-rows" data-motion="remaining rows settle beneath, 60ms staggered opacity, single-shot">
+    <div class="artifact-row">
+      <div class="src">
+        <span class="src-name">OIG Exclusions</span>
+        <span class="data subtle">OIG LEIE &middot; 2026-07 monthly file &middot; no match</span>
+      </div>
+      <span class="stamp stamp-snapshot"><span class="glyph">&#9684;</span> SNAPSHOT</span>
+    </div>
+    <div class="artifact-row">
+      <div class="src">
+        <span class="src-name">State License</span>
+        <span class="data subtle">board access not yet open &mdash; shown as exactly that</span>
+      </div>
+      <span class="stamp stamp-access"><span class="glyph">&#8856;</span> ACCESS REQUIRED</span>
+    </div>
+    <div class="artifact-row">
+      <div class="src">
+        <span class="src-name">PECOS Enrollment</span>
+        <span class="data subtle">CMS PECOS &middot; 2026-Q3 file &middot; enrolled</span>
+      </div>
+      <span class="stamp stamp-snapshot"><span class="glyph">&#9684;</span> SNAPSHOT</span>
+    </div>
+    <div class="artifact-row">
+      <div class="src">
+        <span class="src-name">Employment History</span>
+        <span class="data subtle">The Work Number &middot; access required</span>
+      </div>
+      <span class="stamp stamp-access"><span class="glyph">&#8856;</span> ACCESS REQUIRED</span>
+    </div>
+    <div class="artifact-row">
+      <div class="src">
+        <span class="src-name">Board Certification</span>
+        <span class="data subtle">ABMS / Specialty Board &middot; access required</span>
+      </div>
+      <span class="stamp stamp-access"><span class="glyph">&#8856;</span> ACCESS REQUIRED</span>
+    </div>
+    <div class="artifact-foot">
+      <span>Each source answers for itself &mdash; named, dated, kept in its own words.</span>
+      <span class="illustrative">Illustrative &mdash; not a live result</span>
+    </div>
+  </div>
+
+  <nav class="rail rail-pos-sources" aria-label="Chapters">
+    <span class="eyebrow rail-cap">Chapters</span>
+    <div class="rail-track" data-motion="caught mid-slide: YOUR NUMBER exiting left, YOUR PERMISSION peeking right, 400ms ease-enter">
+      <span class="ch"><span class="idx">01</span>Your number</span>
+      <span class="ch active"><span class="idx">02</span>Source responses</span>
+      <span class="ch"><span class="idx">03</span>Your permission</span>
+      <span class="ch"><span class="idx">04</span>Human review</span>
+    </div>
+  </nav>
+</section>
+
+<!-- ======================================================================
+     FRAME 3 — #permission · YOUR PERMISSION
+     One visual event: the record splits into two stacks.
+     ====================================================================== -->
+<section class="frame" id="permission">
+
+  <div class="scene-head">
+    <span class="eyebrow">Chapter 03 &middot; Your permission</span>
+    <h2 class="display-lg">You decide what travels.</h2>
+  </div>
+
+  <div class="scene-note">
+    <span class="illustrative">Illustrative workflow</span>
+  </div>
+
+  <div class="split-stage" data-motion="the record splits: TRAVELS stack advances left-forward 16px, HELD stack recedes right 16px, 400ms ease-enter, single-shot">
+
+    <div class="stack stack-travels">
+      <div class="stack-heading"><span class="glyph-travels">&#8594;</span> TRAVELS</div>
+      <div class="artifact">
+        <div class="artifact-row">
+          <div class="src">
+            <span class="src-name">Identity &amp; taxonomy</span>
+            <span class="data subtle">from NPPES Identity &middot; read per request</span>
+          </div>
+          <span class="mark mark-travels">&#8594; TRAVELS</span>
+        </div>
+        <div class="artifact-row">
+          <div class="src">
+            <span class="src-name">Federal exclusion result</span>
+            <span class="data subtle">from OIG LEIE &middot; 2026-07 monthly file</span>
+          </div>
+          <span class="mark mark-travels">&#8594; TRAVELS</span>
+        </div>
+        <div class="artifact-row">
+          <div class="src">
+            <span class="src-name">License claim</span>
+            <span class="data subtle">board access not yet open &mdash; travels as exactly that</span>
+          </div>
+          <span class="mark mark-travels">&#8594; TRAVELS</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="stack stack-held">
+      <div class="stack-heading"><span class="glyph-held">&#9632;</span> HELD</div>
+      <div class="artifact">
+        <div class="artifact-row">
+          <div class="src">
+            <span class="src-name">Compensation expectations</span>
+            <span class="data subtle">never included by default</span>
+          </div>
+          <span class="mark mark-held">&#9632; HELD</span>
+        </div>
+        <div class="artifact-row">
+          <div class="src">
+            <span class="src-name">Current employer standing</span>
+            <span class="data subtle">The Work Number &middot; not queried</span>
+          </div>
+          <span class="mark mark-held">&#9632; HELD</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <p class="split-note">A decided ledger, not a default. Nothing moves until you mark it.</p>
+
+  <nav class="rail rail-pos-permission" aria-label="Chapters">
+    <span class="eyebrow rail-cap">Chapters</span>
+    <div class="rail-track" data-motion="track slides left one chapter per scene, 400ms ease-enter, single-shot">
+      <span class="ch"><span class="idx">01</span>Your number</span>
+      <span class="ch"><span class="idx">02</span>Source responses</span>
+      <span class="ch active"><span class="idx">03</span>Your permission</span>
+      <span class="ch"><span class="idx">04</span>Human review</span>
+    </div>
+  </nav>
+</section>
+
+<!-- ======================================================================
+     FRAME 4 — #review · HUMAN REVIEW
+     One visual event: the sealed packet + the reviewer checkpoint at scale.
+     ====================================================================== -->
+<section class="frame" id="review">
+
+  <div class="scene-head">
+    <span class="eyebrow">Chapter 04 &middot; Human review</span>
+    <h2 class="display-lg">They start from evidence.</h2>
+  </div>
+
+  <div class="scene-note">
+    <span class="illustrative">Illustrative workflow</span>
+  </div>
+
+  <div class="review-stage">
+
+    <div class="artifact packet" data-motion="packet seals once on arrival: signature band settles last, 400ms ease-enter, single-shot">
+      <div class="artifact-head packet-head">
+        <span class="title">Evidence packet &middot; K. Osei, PA-C</span>
+        <span class="data subtle">rcpt:nppes:8f2a&hellip;c41</span>
+        <span class="illustrative">Illustrative workflow</span>
+      </div>
+      <div class="packet-seal">
+        <span class="eyebrow">Contents &middot; 3 claims travel &middot; 2 held by K. Osei</span>
+      </div>
+      <div class="artifact-row">
+        <div class="src">
+          <span class="src-name">Identity &amp; taxonomy</span>
+          <span class="data subtle">NPPES NPI Registry &middot; 2026-08-02 14:02Z</span>
+        </div>
+        <span class="stamp stamp-confirmed"><span class="glyph">&#9679;</span> CONFIRMED</span>
+      </div>
+      <div class="artifact-row">
+        <div class="src">
+          <span class="src-name">Federal exclusion result</span>
+          <span class="data subtle">OIG LEIE &middot; 2026-07 monthly file &middot; no match</span>
+        </div>
+        <span class="stamp stamp-snapshot"><span class="glyph">&#9684;</span> SNAPSHOT</span>
+      </div>
+      <div class="artifact-row">
+        <div class="src">
+          <span class="src-name">License claim</span>
+          <span class="data subtle">board access not yet open &mdash; shown as exactly that</span>
+        </div>
+        <span class="stamp stamp-access"><span class="glyph">&#8856;</span> ACCESS REQUIRED</span>
+      </div>
+      <div class="artifact-foot">
+        <span class="data">Signed ES256 &middot; P-256 &middot; key vcv-es256-prod-1 &middot; /.well-known/jwks.json</span>
+      </div>
+    </div>
+
+    <div class="review-side">
+      <div class="checkpoint" data-motion="checkpoint reveals after the packet, 240ms opacity, single-shot">
+        <span class="checkpoint-word"><span class="glyph">&#9208;</span> AWAITING INSTITUTION REVIEW</span>
+        <p>Final credentialing, privileging, and hiring authority remain with the institution.</p>
+      </div>
+      <p class="truth-boundary">VitalCV assembles what these sources return. It does not credential, privilege, or clear anyone &mdash; the institution keeps that decision.</p>
+    </div>
+  </div>
+
+  <nav class="rail rail-pos-review" aria-label="Chapters">
+    <span class="eyebrow rail-cap">Chapters</span>
+    <div class="rail-track" data-motion="track slides left one chapter per scene, 400ms ease-enter, single-shot">
+      <span class="ch"><span class="idx">01</span>Your number</span>
+      <span class="ch"><span class="idx">02</span>Source responses</span>
+      <span class="ch"><span class="idx">03</span>Your permission</span>
+      <span class="ch active"><span class="idx">04</span>Human review</span>
+    </div>
+  </nav>
+</section>
+
+<!-- ======================================================================
+     FRAME 5 — #closing · conversion
+     The record returns to rest: small, centered, closed.
+     ====================================================================== -->
+<section class="frame" id="closing">
+  <div class="closing-col">
+
+    <div class="closing-lines">
+      <h2 class="display-lg">The evidence can move.</h2>
+      <h2 class="display-lg">The decision stays human.</h2>
+    </div>
+
+    <div class="artifact record-mini" data-motion="the record returns to record scale, settles centered, single-shot, 400ms ease-enter">
+      <div class="artifact-head">
+        <span class="eyebrow">Evidence record &middot; K. Osei, PA-C</span>
+        <span class="illustrative">Illustrative</span>
+      </div>
+      <div class="artifact-row">
+        <span class="src-name">NPPES Identity</span>
+        <span class="mini-state"><span class="g-confirmed">&#9679;</span> CONFIRMED &middot; NPPES 14:02Z</span>
+      </div>
+      <div class="artifact-row">
+        <span class="src-name">OIG Exclusions</span>
+        <span class="mini-state"><span class="g-snapshot">&#9684;</span> SNAPSHOT &middot; LEIE 2026-07</span>
+      </div>
+      <div class="artifact-row">
+        <span class="src-name">State License</span>
+        <span class="mini-state"><span class="g-access">&#8856;</span> ACCESS REQUIRED</span>
+      </div>
+      <div class="artifact-row">
+        <span class="src-name">PECOS Enrollment</span>
+        <span class="mini-state"><span class="g-snapshot">&#9684;</span> SNAPSHOT &middot; PECOS 2026-Q3</span>
+      </div>
+      <div class="artifact-row">
+        <span class="src-name">Employment History</span>
+        <span class="mini-state"><span class="g-access">&#8856;</span> ACCESS REQUIRED</span>
+      </div>
+      <div class="artifact-row">
+        <span class="src-name">Board Certification</span>
+        <span class="mini-state"><span class="g-access">&#8856;</span> ACCESS REQUIRED</span>
+      </div>
+    </div>
+
+    <div class="closing-ctas">
+      <a class="btn btn-primary" href="#opening" data-motion="arrow exchanges: out right, in from left, 120ms">Check my readiness <span class="arrow">&#8594;</span></a>
+      <a class="btn btn-quiet" href="#opening" data-motion="arrow exchanges: out right, in from left, 120ms">For employers <span class="arrow">&#8594;</span></a>
+    </div>
+    <span class="data subtle closing-hint">Free for clinicians &middot; No account required</span>
+
+    <nav class="trust-links" aria-label="Trust">
+      <a href="#opening">Status</a><span class="sep">&middot;</span>
+      <a href="#opening">Source attribution</a><span class="sep">&middot;</span>
+      <a href="#opening">Evidence network</a><span class="sep">&middot;</span>
+      <a href="#opening">Trust</a>
+    </nav>
+  </div>
+</section>
+
+</body>
+</html>

@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VitalCV — Concept B: Evidence Operating System</title>
+<link rel="stylesheet" href="./base.css">
+<style>
+/* ==========================================================================
+   CONCEPT B — "EVIDENCE OPERATING SYSTEM"
+   Palantir-scale editorial gravity + Medallion-grade product depth.
+   Less horizontal travel, more product per scene. The record belongs to
+   K. Osei; institutions RECEIVE her evidence.
+   ========================================================================== */
+
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.shell { width: 100%; max-width: 1360px; margin: 0 auto; padding-left: 48px; padding-right: 48px; }
+
+/* ---------- #opening ------------------------------------------------------ */
+#opening { height: 100vh; display: flex; flex-direction: column; }
+.opening-head { padding-top: 118px; }
+.opening-head .display-xl { max-width: 22ch; }
+.opening-head .support {
+  margin-top: 0.9rem;
+  font-size: 1.0625rem;
+  color: var(--ink-muted);
+  display: flex; align-items: baseline; gap: 1.25rem; flex-wrap: wrap;
+}
+.employer-quiet {
+  color: var(--ink-subtle);
+  font-size: 0.875rem;
+  text-decoration: none;
+  border-bottom: 1px solid var(--rule-strong);
+  padding-bottom: 1px;
+}
+.employer-quiet:hover { color: var(--ink); border-bottom-color: var(--ink); }
+
+/* Commanding ruled NPI band */
+.npi-band {
+  margin-top: 2rem;
+  border-top: 1px solid var(--rule-strong);
+  border-bottom: 1px solid var(--rule-strong);
+  background: transparent;
+}
+.npi-band-inner {
+  display: flex; align-items: center; gap: 1.25rem;
+  padding: 1.05rem 0;
+  flex-wrap: wrap;
+}
+.npi-band label.label { color: var(--ink); white-space: nowrap; }
+.npi-input {
+  font-family: var(--font-data);
+  font-size: 1rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-strong);
+  background: var(--paper-raised);
+  border: 1px solid var(--rule-strong);
+  border-radius: 10px;
+  min-height: 44px;
+  padding: 0 1rem;
+  width: 240px;
+}
+.npi-input::placeholder { color: var(--ink-subtle); }
+.npi-input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.npi-hint { font-size: 0.8125rem; color: var(--ink-subtle); margin-left: auto; }
+
+/* Wide evidence workspace band, cropped by the fold */
+.workspace-crop {
+  flex: 1 1 auto; min-height: 0;
+  overflow: hidden;
+  margin-top: 2.25rem;
+}
+.workspace {
+  min-height: 560px;
+}
+.ws-head {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 1rem;
+  padding: 0.9rem 1.25rem;
+  border-bottom: 1px solid var(--rule);
+  flex-wrap: wrap;
+}
+.ws-head .id-group { display: flex; align-items: baseline; gap: 1rem; flex-wrap: wrap; }
+.ws-body {
+  display: grid;
+  grid-template-columns: 1fr 372px;
+}
+.ws-table { border-right: 1px solid var(--rule); }
+.ws-cols {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr auto;
+  gap: 1rem;
+  padding: 0.55rem 1.25rem;
+  border-bottom: 1px solid var(--rule);
+  background: var(--paper-inset);
+}
+.src-row {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr auto;
+  gap: 1rem;
+  align-items: center;
+  padding: 0.72rem 1.25rem;
+  border-bottom: 1px solid var(--rule);
+}
+.src-row .name { font-weight: 500; font-size: 0.9375rem; }
+.src-row .meta { color: var(--ink-muted); }
+.src-row .stamp { justify-self: end; }
+.src-row.is-selected {
+  background: var(--accent-wash);
+  border-left: 2px solid var(--accent);
+  padding-left: calc(1.25rem - 2px);
+}
+
+/* Inspector column (mono ledger) */
+.inspector { display: flex; flex-direction: column; }
+.inspector-head {
+  padding: 0.55rem 1.25rem;
+  border-bottom: 1px solid var(--rule);
+  background: var(--paper-inset);
+  display: flex; justify-content: space-between; align-items: baseline; gap: 0.75rem;
+}
+.ledger { list-style: none; }
+.ledger li {
+  display: grid;
+  grid-template-columns: 108px 1fr;
+  gap: 0.75rem;
+  padding: 0.6rem 1.25rem;
+  border-bottom: 1px solid var(--rule);
+  align-items: baseline;
+}
+.ledger .k {
+  font-family: var(--font-data);
+  font-size: 0.6875rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-subtle);
+}
+.ledger .v { font-family: var(--font-data); font-size: 0.8125rem; line-height: 1.55; color: var(--ink); overflow-wrap: anywhere; }
+.ledger .v.prose-lim { font-family: var(--font-text); font-size: 0.8125rem; color: var(--ink-muted); }
+
+/* ---------- shared scene head --------------------------------------------- */
+.scene-head { padding-top: 5.5rem; }
+.scene-head .display-lg { margin-top: 0.7rem; max-width: 24ch; }
+.scene-head .lede { margin-top: 0.9rem; color: var(--ink-muted); }
+
+/* ---------- #sources ------------------------------------------------------ */
+.tabrail {
+  margin-top: 2.25rem;
+  display: flex; gap: 2.25rem; flex-wrap: wrap;
+  border-bottom: 1px solid var(--rule-strong);
+}
+.tab {
+  font-family: var(--font-data);
+  font-size: 0.6875rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-subtle);
+  background: none; border: none; cursor: pointer;
+  min-height: 44px;
+  padding: 0 0.15rem;
+  display: inline-flex; align-items: center;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+.tab[aria-selected="true"] {
+  color: var(--ink-strong);
+  border-bottom-color: var(--ink-strong);
+}
+.two-pane {
+  display: grid;
+  grid-template-columns: 1fr 460px;
+  border: 1px solid var(--rule);
+  border-top: 2px solid var(--ink-strong);
+  border-radius: 3px;
+  background: var(--paper-raised);
+  margin-top: 0;
+}
+.pane-left { border-right: 1px solid var(--rule); }
+.pane-right { display: flex; flex-direction: column; }
+.pane-right .panel + .panel { border-top: 1px solid var(--rule-strong); }
+.panel-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 0.75rem;
+  padding: 0.8rem 1.25rem;
+  border-bottom: 1px solid var(--rule);
+  flex-wrap: wrap;
+}
+.panel-head .title { font-size: 1rem; }
+.honest {
+  padding: 0.8rem 1.25rem;
+  border-bottom: 1px solid var(--rule);
+  color: var(--ink-muted);
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+
+/* ---------- #permission — THE INK CHAPTER --------------------------------- */
+#permission {
+  background: var(--graphite);
+  color: var(--graphite-ink);
+  display: flex; flex-direction: column; justify-content: center;
+}
+#permission .eyebrow { color: var(--graphite-ink-muted); }
+#permission .display-lg { color: var(--graphite-ink); }
+#permission .lede { color: var(--graphite-ink-muted); max-width: 58ch; }
+#permission .illustrative { color: var(--graphite-ink-muted); }
+.ledger-pair {
+  margin-top: 2.5rem;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  align-items: start;
+}
+.perm-panel .artifact-head { display: flex; justify-content: space-between; align-items: baseline; gap: 0.75rem; }
+.perm-row {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 1rem;
+  padding: 0.85rem 1.1rem;
+  border-top: 1px solid var(--rule);
+}
+.perm-row:first-of-type { border-top: none; }
+.perm-row .what { min-width: 0; }
+.perm-row .what .name { font-weight: 500; font-size: 0.9375rem; color: var(--ink); }
+.perm-row .what .src { color: var(--ink-muted); margin-top: 0.15rem; }
+.perm-mark { font-family: var(--font-data); font-size: 0.75rem; letter-spacing: 0.06em; white-space: nowrap; }
+.perm-mark.travels { color: var(--accent); }
+.perm-mark.held { color: var(--ink); }
+#permission .footline {
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--graphite-rule);
+  color: var(--graphite-ink-muted);
+  font-size: 0.875rem;
+  display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap;
+}
+
+/* ---------- #review ------------------------------------------------------- */
+.review-grid {
+  margin-top: 2.25rem;
+  display: grid;
+  grid-template-columns: 1fr 1.1fr;
+  gap: 2rem;
+  align-items: start;
+}
+.timeline { list-style: none; }
+.timeline li {
+  display: grid;
+  grid-template-columns: 224px 1fr;
+  gap: 1rem;
+  padding: 0.95rem 1.1rem;
+  border-top: 1px solid var(--rule);
+  align-items: baseline;
+}
+.timeline li:first-child { border-top: none; }
+.timeline .age { font-family: var(--font-data); font-size: 0.8125rem; color: var(--ink); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.timeline .what .step { font-weight: 500; font-size: 0.9375rem; }
+.timeline .what .note { color: var(--ink-muted); font-size: 0.875rem; margin-top: 0.15rem; line-height: 1.55; }
+.stamp-checkpoint { border-left-color: var(--rule-strong); }
+.stamp-checkpoint .glyph { color: var(--ink-subtle); }
+.packet-row {
+  display: grid;
+  grid-template-columns: 1.15fr 1fr auto;
+  gap: 1rem; align-items: center;
+  padding: 0.75rem 1.1rem;
+  border-top: 1px solid var(--rule);
+}
+.packet-row .name { font-weight: 500; font-size: 0.9375rem; }
+.packet-row .meta { color: var(--ink-muted); }
+.packet-row .stamp { justify-self: end; }
+.truth-note {
+  margin-top: 2rem;
+  border-top: 1px solid var(--rule-strong);
+  padding-top: 1rem;
+  color: var(--ink-muted);
+  font-size: 0.9375rem;
+  max-width: 78ch;
+}
+
+/* ---------- #closing ------------------------------------------------------ */
+#closing { display: flex; flex-direction: column; justify-content: center; }
+.close-split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border-top: 1px solid var(--rule-strong);
+  border-bottom: 1px solid var(--rule-strong);
+}
+.close-half { padding: 4.5rem 0; }
+.close-half.right { border-left: 1px solid var(--rule-strong); padding-left: 4rem; }
+.close-half.left { padding-right: 4rem; }
+.close-half .display-lg { max-width: 14ch; }
+.close-half p { margin-top: 1rem; color: var(--ink-muted); max-width: 44ch; }
+.close-half .btn { margin-top: 1.75rem; }
+.trust-links {
+  display: flex; gap: 2rem; flex-wrap: wrap;
+  padding-top: 1.1rem;
+  margin-top: 0;
+}
+.trust-links a {
+  font-family: var(--font-data);
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-subtle);
+  text-decoration: none;
+}
+.trust-links a:hover { color: var(--ink); }
+
+/* ---------- mobile: 390×844 — recomposed, not shrunk ---------------------- */
+@media (max-width: 640px) {
+  .shell { padding-left: 20px; padding-right: 20px; }
+  .nav .btn-quiet { display: none; }
+
+  #opening { height: auto; min-height: 100vh; }
+  .opening-head { padding-top: 96px; }
+  .npi-band-inner { flex-direction: column; align-items: stretch; gap: 0.75rem; padding: 1.1rem 0; }
+  .npi-input { width: 100%; }
+  .npi-band .btn { width: 100%; }
+  .npi-hint { margin-left: 0; }
+  .workspace-crop { flex: none; height: 380px; margin-top: 1.75rem; }
+  .ws-body { grid-template-columns: 1fr; }
+  .ws-table { border-right: none; border-bottom: 1px solid var(--rule-strong); }
+  .ws-cols { display: none; }
+  .src-row { grid-template-columns: 1fr auto; }
+  .src-row .meta { grid-column: 1 / -1; order: 3; }
+
+  .scene-head { padding-top: 4.5rem; }
+  .tabrail { gap: 0.25rem 1.5rem; }
+  .two-pane { grid-template-columns: 1fr; }
+  .pane-left { border-right: none; border-bottom: 1px solid var(--rule-strong); }
+  .ledger li { grid-template-columns: 96px 1fr; padding: 0.6rem 1rem; }
+
+  .ledger-pair { grid-template-columns: 1fr; gap: 1.25rem; }
+  #permission { padding-top: 4.5rem; padding-bottom: 3rem; }
+
+  .review-grid { grid-template-columns: 1fr; gap: 1.5rem; }
+  .timeline li { grid-template-columns: 1fr; gap: 0.25rem; }
+  .packet-row { grid-template-columns: 1fr auto; }
+  .packet-row .meta { grid-column: 1 / -1; order: 3; }
+
+  .close-split { grid-template-columns: 1fr; }
+  .close-half { padding: 2.75rem 0; }
+  .close-half.left { padding-right: 0; }
+  .close-half.right { border-left: none; border-top: 1px solid var(--rule-strong); padding-left: 0; }
+  .close-half .btn { width: 100%; }
+}
+</style>
+</head>
+<body>
+
+<!-- ======================================================================
+     FRAME 1 — #opening · YOUR NUMBER
+     Palantir-scale headline over a wide product close-up cropped by the fold.
+     ====================================================================== -->
+<section class="frame" id="opening">
+
+  <nav class="nav" aria-label="Primary">
+    <a class="wordmark" href="#opening">VitalCV</a>
+    <div class="links">
+      <span>Evidence network</span>
+      <span>Source attribution</span>
+      <span>Status</span>
+      <span>For employers</span>
+    </div>
+    <div class="cta-group">
+      <a class="btn btn-quiet" href="#closing">For employers</a>
+      <a class="btn btn-primary" href="#closing">Check my readiness</a>
+    </div>
+  </nav>
+
+  <div class="shell opening-head">
+    <p class="eyebrow">Your number</p>
+    <h1 class="display-xl" style="margin-top:0.7rem" data-motion="reveals once on load, 240ms opacity">
+      Get hired on <em class="accent-word">evidence</em>.
+    </h1>
+    <p class="support">
+      <span>Start with your NPI.</span>
+      <a class="employer-quiet" href="#review">Hiring or credentialing? See what your institution receives</a>
+    </p>
+  </div>
+
+  <div class="shell">
+    <form class="npi-band" data-motion="field underline sharpens on focus, 120ms">
+      <div class="npi-band-inner">
+        <label class="label" for="npi">Your 10-digit NPI</label>
+        <input class="npi-input" id="npi" name="npi" type="text" inputmode="numeric" maxlength="10" placeholder="10-digit NPI" autocomplete="off">
+        <button class="btn btn-accent" type="submit">Check what's ready <span class="arrow">→</span></button>
+        <span class="npi-hint">Free for clinicians · No account required</span>
+      </div>
+    </form>
+  </div>
+
+  <div class="shell workspace-crop">
+    <div class="artifact workspace" data-motion="rises 8px and fades in once, 240ms; rows resolve top-down, 80ms stagger">
+      <div class="ws-head">
+        <div class="id-group">
+          <span class="eyebrow">Evidence workspace</span>
+          <span class="title" style="font-size:1rem">K. Osei, PA-C</span>
+          <span class="data">NPI ····· 4821</span>
+        </div>
+        <span class="illustrative">Illustrative — not a live result</span>
+      </div>
+      <div class="ws-body">
+
+        <div class="ws-table">
+          <div class="ws-cols">
+            <span class="eyebrow">Source</span>
+            <span class="eyebrow">Registry · cadence</span>
+            <span class="eyebrow">Status</span>
+          </div>
+          <div class="src-row">
+            <span class="name">NPPES Identity</span>
+            <span class="meta data">NPPES NPI Registry · 2026-08-02 14:02Z</span>
+            <span class="stamp stamp-confirmed"><span class="glyph">●</span> CONFIRMED</span>
+          </div>
+          <div class="src-row">
+            <span class="name">OIG Exclusions</span>
+            <span class="meta data">OIG LEIE · 2026-07 monthly file · no match</span>
+            <span class="stamp stamp-snapshot"><span class="glyph">◐</span> SNAPSHOT</span>
+          </div>
+          <div class="src-row">
+            <span class="name">State License</span>
+            <span class="meta data">State Medical Board · access required</span>
+            <span class="stamp stamp-access"><span class="glyph">⊘</span> ACCESS REQUIRED</span>
+          </div>
+          <div class="src-row">
+            <span class="name">PECOS Enrollment</span>
+            <span class="meta data">CMS PECOS · 2026-Q3 file · enrolled</span>
+            <span class="stamp stamp-snapshot"><span class="glyph">◐</span> SNAPSHOT</span>
+          </div>
+          <div class="src-row">
+            <span class="name">Employment History</span>
+            <span class="meta data">The Work Number · access required</span>
+            <span class="stamp stamp-access"><span class="glyph">⊘</span> ACCESS REQUIRED</span>
+          </div>
+          <div class="src-row">
+            <span class="name">Board Certification</span>
+            <span class="meta data">ABMS / Specialty Board · access required</span>
+            <span class="stamp stamp-access"><span class="glyph">⊘</span> ACCESS REQUIRED</span>
+          </div>
+        </div>
+
+        <div class="inspector" data-motion="receipt rows ink in once after table resolves, 240ms opacity">
+          <div class="inspector-head">
+            <span class="eyebrow">Claim inspector — NPPES Identity</span>
+          </div>
+          <ul class="ledger">
+            <li><span class="k">State</span><span class="v"><span class="stamp stamp-confirmed"><span class="glyph">●</span> CONFIRMED</span></span></li>
+            <li><span class="k">Source</span><span class="v">NPPES NPI Registry · 2026-08-02 14:02Z</span></li>
+            <li><span class="k">Retrieval</span><span class="v">read per request</span></li>
+            <li><span class="k">Receipt</span><span class="v">rcpt:nppes:8f2a…c41</span></li>
+            <li><span class="k">Signature</span><span class="v">ES256 · P-256 · vcv-es256-prod-1</span></li>
+            <li><span class="k">Keys</span><span class="v">/.well-known/jwks.json</span></li>
+            <li><span class="k">Limitation</span><span class="v prose-lim">Identity and taxonomy only. A registry match is not a license status and clears no one.</span></li>
+          </ul>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================================================================
+     FRAME 2 — #sources · SOURCE RESPONSES
+     Workflow tabs over a two-pane inspector: rows left, expanded claim right.
+     ====================================================================== -->
+<section class="frame" id="sources">
+  <div class="shell scene-head">
+    <p class="eyebrow">Source responses</p>
+    <h2 class="display-lg">Every claim shows its work.</h2>
+    <p class="lede body-lg">Six named sources. Each answer arrives with its source, its timestamp, and its limits — including the sources we cannot reach yet, shown as exactly that.</p>
+  </div>
+
+  <div class="shell">
+    <div class="tabrail" role="tablist" aria-label="Evidence workflow" data-motion="2px ink underline slides to active tab, 240ms ease-enter">
+      <button class="tab" role="tab" aria-selected="false">Your number</button>
+      <button class="tab" role="tab" aria-selected="true">Source responses</button>
+      <button class="tab" role="tab" aria-selected="false">Your permission</button>
+      <button class="tab" role="tab" aria-selected="false">Human review</button>
+    </div>
+
+    <div class="two-pane">
+
+      <div class="pane-left">
+        <div class="panel-head">
+          <span class="eyebrow">What returned</span>
+          <span class="illustrative">Illustrative — not a live result</span>
+        </div>
+        <div class="src-row is-selected" data-motion="selection wash fades in, 120ms">
+          <span class="name">NPPES Identity</span>
+          <span class="meta data">NPPES NPI Registry · 2026-08-02 14:02Z</span>
+          <span class="stamp stamp-confirmed"><span class="glyph">●</span> CONFIRMED</span>
+        </div>
+        <div class="src-row">
+          <span class="name">OIG Exclusions</span>
+          <span class="meta data">OIG LEIE · 2026-07 monthly file · no match</span>
+          <span class="stamp stamp-snapshot"><span class="glyph">◐</span> SNAPSHOT</span>
+        </div>
+        <div class="src-row">
+          <span class="name">State License</span>
+          <span class="meta data">State Medical Board · access required</span>
+          <span class="stamp stamp-access"><span class="glyph">⊘</span> ACCESS REQUIRED</span>
+        </div>
+        <div class="src-row">
+          <span class="name">PECOS Enrollment</span>
+          <span class="meta data">CMS PECOS · 2026-Q3 file · enrolled</span>
+          <span class="stamp stamp-snapshot"><span class="glyph">◐</span> SNAPSHOT</span>
+        </div>
+        <div class="src-row">
+          <span class="name">Employment History</span>
+          <span class="meta data">The Work Number · access required</span>
+          <span class="stamp stamp-access"><span class="glyph">⊘</span> ACCESS REQUIRED</span>
+        </div>
+        <div class="src-row" style="border-bottom:none">
+          <span class="name">Board Certification</span>
+          <span class="meta data">ABMS / Specialty Board · access required</span>
+          <span class="stamp stamp-access"><span class="glyph">⊘</span> ACCESS REQUIRED</span>
+        </div>
+      </div>
+
+      <div class="pane-right">
+
+        <div class="panel" data-motion="panel content fades once on row select, 240ms opacity">
+          <div class="panel-head">
+            <span class="title">NPPES Identity — expanded claim</span>
+            <span class="stamp stamp-confirmed"><span class="glyph">●</span> CONFIRMED</span>
+          </div>
+          <ul class="ledger">
+            <li><span class="k">Holder</span><span class="v">K. Osei, PA-C · NPI ····· 4821</span></li>
+            <li><span class="k">Source</span><span class="v">NPPES NPI Registry · 2026-08-02 14:02Z</span></li>
+            <li><span class="k">Retrieval</span><span class="v prose-lim">Read from the CMS registry at the moment of this request — not from a stored copy.</span></li>
+            <li><span class="k">Receipt</span><span class="v">rcpt:nppes:8f2a…c41</span></li>
+            <li><span class="k">Signature</span><span class="v">ES256 · P-256 · vcv-es256-prod-1 · /.well-known/jwks.json</span></li>
+            <li><span class="k">Limitation</span><span class="v prose-lim">Identity and taxonomy only. A registry match is not a license status and clears no one.</span></li>
+          </ul>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <span class="title">State License — expanded claim</span>
+            <span class="stamp stamp-access"><span class="glyph">⊘</span> ACCESS REQUIRED</span>
+          </div>
+          <p class="honest">Board access is not yet open — shown as exactly that. Not a judgment about the clinician.</p>
+          <ul class="ledger">
+            <li><span class="k">Source</span><span class="v">State Medical Board</span></li>
+            <li style="border-bottom:none"><span class="k">Who acts next</span><span class="v">VITALCV</span></li>
+          </ul>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================================================================
+     FRAME 3 — #permission · YOUR PERMISSION
+     THE INK CHAPTER — the one full-bleed warm-graphite chapter (CD-6
+     amendment). Evidence stays paper ON the graphite.
+     ====================================================================== -->
+<section class="frame" id="permission" data-motion="graphite field fades in on entry, 400ms; ledger panels reveal once, opacity only">
+  <div class="shell">
+    <p class="eyebrow">Your permission</p>
+    <h2 class="display-lg">You decide what travels.</h2>
+    <p class="lede body-lg">Nothing in this record moves without your release. What you hold stays yours — invisible to every institution, and never marked as missing.</p>
+
+    <div class="ledger-pair">
+
+      <div class="artifact perm-panel">
+        <div class="artifact-head">
+          <span class="eyebrow">Travels with the packet</span>
+          <span class="illustrative" style="color:var(--ink-subtle)">Illustrative workflow</span>
+        </div>
+        <div class="perm-row">
+          <span class="what">
+            <span class="name">Identity &amp; taxonomy</span>
+            <div class="src data">NPPES NPI Registry</div>
+          </span>
+          <span class="perm-mark travels">→ TRAVELS</span>
+        </div>
+        <div class="perm-row">
+          <span class="what">
+            <span class="name">Federal exclusion result</span>
+            <div class="src data">OIG LEIE · monthly snapshot</div>
+          </span>
+          <span class="perm-mark travels">→ TRAVELS</span>
+        </div>
+        <div class="perm-row">
+          <span class="what">
+            <span class="name">License claim</span>
+            <div class="src data">State Medical Board · access required</div>
+          </span>
+          <span class="perm-mark travels">→ TRAVELS</span>
+        </div>
+        <div class="artifact-foot">Each released claim carries its own signed receipt.</div>
+      </div>
+
+      <div class="artifact perm-panel">
+        <div class="artifact-head">
+          <span class="eyebrow">Held by K. Osei</span>
+          <span class="illustrative" style="color:var(--ink-subtle)">Illustrative workflow</span>
+        </div>
+        <div class="perm-row">
+          <span class="what">
+            <span class="name">Compensation expectations</span>
+            <div class="src data">entered by the clinician · never sourced</div>
+          </span>
+          <span class="perm-mark held">■ HELD</span>
+        </div>
+        <div class="perm-row">
+          <span class="what">
+            <span class="name">Current employer standing</span>
+            <div class="src data">The Work Number · access required</div>
+          </span>
+          <span class="perm-mark held">■ HELD</span>
+        </div>
+        <div class="artifact-foot">Held claims do not appear in any packet — and their absence is not flagged.</div>
+      </div>
+
+    </div>
+
+    <div class="footline">
+      <span>The record belongs to the clinician. Institutions receive what she releases — nothing else.</span>
+      <span class="illustrative">Illustrative workflow</span>
+    </div>
+  </div>
+</section>
+
+<!-- ======================================================================
+     FRAME 4 — #review · HUMAN REVIEW
+     Operational timeline beside the packet the institution receives.
+     ====================================================================== -->
+<section class="frame" id="review">
+  <div class="shell scene-head">
+    <p class="eyebrow">Human review</p>
+    <h2 class="display-lg">Review starts ahead, not from scratch.</h2>
+    <p class="lede body-lg">The institution receives inspected claims with receipts attached — and keeps every decision that matters.</p>
+  </div>
+
+  <div class="shell">
+    <div class="review-grid">
+
+      <div class="artifact" data-motion="rows reveal once in order, 240ms opacity, 80ms stagger; checkpoint reveals last and stays">
+        <div class="artifact-head" style="display:flex;justify-content:space-between;gap:0.75rem;align-items:baseline;flex-wrap:wrap">
+          <span class="eyebrow">Institution workspace · intake timeline</span>
+          <span class="illustrative">Illustrative workflow</span>
+        </div>
+        <ol class="timeline">
+          <li>
+            <span class="age">0 min · packet received</span>
+            <span class="what">
+              <span class="step">Signed evidence packet arrives</span>
+              <div class="note">Released claims land with source, timestamp, and receipt already attached.</div>
+            </span>
+          </li>
+          <li>
+            <span class="age">2 min · three claims inspected</span>
+            <span class="what">
+              <span class="step">Each claim opened against its source response</span>
+              <div class="note">Limitations read as written — including the source that could not be reached.</div>
+            </span>
+          </li>
+          <li>
+            <span class="age">— · institution review</span>
+            <span class="what">
+              <span class="stamp stamp-checkpoint"><span class="glyph">⏸</span> AWAITING INSTITUTION REVIEW</span>
+              <div class="note" style="margin-top:0.5rem">Final credentialing, privileging, and hiring authority remain with the institution.</div>
+            </span>
+          </li>
+        </ol>
+      </div>
+
+      <div class="artifact">
+        <div class="artifact-head" style="display:flex;justify-content:space-between;gap:0.75rem;align-items:baseline;flex-wrap:wrap">
+          <div>
+            <span class="title" style="display:block">Evidence packet · K. Osei, PA-C</span>
+            <span class="data muted">rcpt:nppes:8f2a…c41 · NPI ····· 4821</span>
+          </div>
+          <span class="illustrative">Illustrative workflow</span>
+        </div>
+        <div class="packet-row" style="border-top:none">
+          <span class="name">NPPES Identity</span>
+          <span class="meta data">NPPES NPI Registry · 2026-08-02 14:02Z</span>
+          <span class="stamp stamp-confirmed"><span class="glyph">●</span> CONFIRMED</span>
+        </div>
+        <div class="packet-row">
+          <span class="name">OIG Exclusions</span>
+          <span class="meta data">OIG LEIE · 2026-07 monthly file · no match</span>
+          <span class="stamp stamp-snapshot"><span class="glyph">◐</span> SNAPSHOT</span>
+        </div>
+        <div class="packet-row">
+          <span class="name">State License</span>
+          <span class="meta data">board access not yet open — shown as exactly that</span>
+          <span class="stamp stamp-access"><span class="glyph">⊘</span> ACCESS REQUIRED</span>
+        </div>
+        <div class="artifact-foot">
+          <span class="data">SIGNED · ES256 · P-256 · vcv-es256-prod-1 · /.well-known/jwks.json</span><br>
+          Two claims held by K. Osei do not appear here — and are not marked as missing.
+        </div>
+      </div>
+
+    </div>
+
+    <p class="truth-note">VitalCV assembles what these sources return. It does not credential, privilege, or clear anyone — the institution keeps that decision.</p>
+  </div>
+</section>
+
+<!-- ======================================================================
+     FRAME 5 — #closing
+     Back on paper: a decisive split. Evidence moves; the decision stays human.
+     ====================================================================== -->
+<section class="frame" id="closing">
+  <div class="shell">
+
+    <div class="close-split">
+      <div class="close-half left">
+        <p class="eyebrow">For clinicians</p>
+        <h2 class="display-lg" style="margin-top:0.7rem">The evidence can move.</h2>
+        <p>Your record, assembled from named sources, signed claim by claim, released only on your say-so.</p>
+        <a class="btn btn-accent" href="#opening">Check my readiness <span class="arrow">→</span></a>
+      </div>
+      <div class="close-half right">
+        <p class="eyebrow">For institutions</p>
+        <h2 class="display-lg" style="margin-top:0.7rem">The decision stays human.</h2>
+        <p>Receive inspected claims with receipts attached. Your reviewers keep credentialing, privileging, and hiring authority — start ahead, not from scratch.</p>
+        <a class="btn btn-quiet" href="#review">For employers</a>
+      </div>
+    </div>
+
+    <nav class="trust-links" aria-label="Trust">
+      <a href="#">Status</a>
+      <a href="#">Source attribution</a>
+      <a href="#">Evidence network</a>
+      <a href="#">Trust</a>
+    </nav>
+
+  </div>
+</section>
+
+</body>
+</html>

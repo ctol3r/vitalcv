@@ -1,0 +1,787 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VitalCV — Concept C: Cinematic Ask + Evidence OS</title>
+<link rel="stylesheet" href="./base.css">
+<style>
+/* ==========================================================================
+   CONCEPT C — "Cinematic Ask + Evidence OS"
+   The NPI Ask is the object. One Evidence Capsule persists across all five
+   frames: forming → resolved → deciding → traveling subset → sealed mark.
+   Motion is storyboarded in data-motion attributes only. No JS.
+   ========================================================================== */
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+.frame { display: flex; flex-direction: column; }
+
+.chapter { margin-bottom: 1.1rem; }
+.chapter .tick { color: var(--rule-strong); margin-right: 0.5em; }
+
+/* ------------------------------------------------------------------ */
+/* FRAME 1 — #opening: the ask as the object                           */
+/* ------------------------------------------------------------------ */
+
+#opening { align-items: center; justify-content: flex-start; }
+
+.ask-stage {
+  width: min(880px, calc(100vw - 3rem));
+  margin: 0 auto;
+  padding-top: clamp(96px, 15vh, 138px);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.ask-stage h1 { max-width: 14ch; }
+.ask-support {
+  font-size: 1.0625rem;
+  color: var(--ink-muted);
+  margin-top: 0.9rem;
+}
+
+/* The ruled writing line — the product awaiting your number */
+.writing-line {
+  width: 100%;
+  margin-top: 2.4rem;
+  text-align: left;
+}
+.writing-line > label { display: block; margin-bottom: 0.55rem; }
+.line-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 1.25rem;
+  border-bottom: 2px solid var(--ink-strong);
+  padding-bottom: 0.7rem;
+}
+.npi-input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  font-family: var(--font-data);
+  font-size: 1.6rem;
+  letter-spacing: 0.06em;
+  color: var(--ink-strong);
+  padding: 0.35rem 0;
+  font-variant-numeric: tabular-nums;
+}
+.npi-input::placeholder { color: var(--ink-subtle); opacity: 1; }
+.line-row .btn { flex-shrink: 0; margin-bottom: 0.1rem; }
+
+.ask-meta {
+  width: 100%;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 0.8rem;
+}
+.ask-hint { font-size: 0.8125rem; color: var(--ink-subtle); }
+.employer-path {
+  font-size: 0.8125rem;
+  color: var(--ink-muted);
+  text-decoration: none;
+  border-bottom: 1px solid var(--rule-strong);
+  padding: 0.35rem 0;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+}
+.employer-path .arrow { font-family: var(--font-data); margin-left: 0.35em; }
+
+/* The summoning — six source strips fanning beneath the line */
+.summon {
+  width: min(1080px, calc(100vw - 3rem));
+  margin: 1.5rem auto 0;
+  padding-bottom: 2rem;
+  text-align: center;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.summon-eyebrow { color: var(--ink-subtle); }
+.summon-eyebrow .tick { color: var(--rule-strong); }
+.fan {
+  margin-top: 1.4rem;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.7rem 0.9rem;
+  width: 100%;
+}
+.strip {
+  background: var(--paper-raised);
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  padding: 0.65rem 0.9rem;
+  width: 312px;
+  text-align: left;
+}
+.strip-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+.strip .data { margin-top: 0.2rem; font-size: 0.75rem; }
+/* shallow arc: outer strips lift and tilt, inner strips settle toward the
+   point where the capsule assembles */
+.strip.s1 { transform: rotate(-1deg)   translate(-10px, 10px); }
+.strip.s2 { transform: rotate(-0.4deg) translate(-3px, 2px); }
+.strip.s3 { transform: rotate(0.7deg)  translate(9px, 12px); }
+.strip.s4 { transform: rotate(0.9deg)  translate(-14px, -2px); margin-top: 0.15rem; }
+.strip.s5 { transform: rotate(-0.6deg) translate(2px, -8px);  margin-top: 0.15rem; }
+.strip.s6 { transform: rotate(0.5deg)  translate(12px, 0);    margin-top: 0.15rem; }
+
+/* ------------------------------------------------------------------ */
+/* Shared capsule grammar — one document object, every frame           */
+/* ------------------------------------------------------------------ */
+
+.capsule { width: 100%; }
+.capsule-head-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.capsule-head-id {
+  display: flex;
+  align-items: baseline;
+  gap: 0.9rem;
+  margin-top: 0.45rem;
+  flex-wrap: wrap;
+}
+.capsule-row-main { min-width: 0; }
+.capsule-row-main .label { display: block; }
+.capsule-row-main .data { color: var(--ink-muted); font-size: 0.75rem; margin-top: 0.1rem; }
+.capsule .artifact-foot .data { font-size: 0.75rem; color: var(--ink-muted); }
+
+/* ------------------------------------------------------------------ */
+/* FRAME 2 — #sources: the resolve moment                              */
+/* ------------------------------------------------------------------ */
+
+#sources { justify-content: center; }
+.sources-grid {
+  width: min(1240px, calc(100vw - 4rem));
+  margin: 0 auto;
+  padding-top: 84px;
+  display: grid;
+  grid-template-columns: minmax(0, 52fr) minmax(0, 34fr);
+  gap: clamp(2rem, 5vw, 4.5rem);
+  align-items: center;
+}
+.sources-right h2 { max-width: 12ch; }
+.narration {
+  margin-top: 2.2rem;
+  border-left: 1px solid var(--rule-strong);
+  padding-left: 1.25rem;
+}
+.narration .eyebrow { display: block; margin-bottom: 0.8rem; }
+.narration-line {
+  font-family: var(--font-data);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--ink-muted);
+  margin-top: 0.65rem;
+}
+.narration-line .mark { color: var(--accent); margin-right: 0.5em; }
+.narration-line strong { color: var(--ink); font-weight: 500; }
+
+/* ------------------------------------------------------------------ */
+/* FRAME 3 — #permission: consent sequence + handoff path              */
+/* ------------------------------------------------------------------ */
+
+#permission { justify-content: center; }
+.perm-grid {
+  width: min(1240px, calc(100vw - 4rem));
+  margin: 0 auto;
+  padding-top: 84px;
+  display: grid;
+  grid-template-columns: minmax(0, 30fr) minmax(0, 58fr);
+  gap: clamp(2rem, 4vw, 4rem);
+  align-items: start;
+}
+.perm-left { padding-top: 1.5rem; }
+.perm-left h2 { max-width: 11ch; }
+.perm-left .perm-prose {
+  margin-top: 1.1rem;
+  max-width: 34ch;
+  color: var(--ink-muted);
+}
+.consent-seal {
+  display: inline-block;
+  margin-top: 2rem;
+  border: 1px solid var(--rule-strong);
+  border-left: 2px solid var(--ink-strong);
+  border-radius: 3px;
+  background: var(--paper-raised);
+  padding: 0.7rem 0.95rem;
+  font-family: var(--font-data);
+  font-size: 0.6875rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ink);
+  line-height: 1.7;
+  max-width: 30ch;
+}
+.consent-seal .path-ref { color: var(--ink-muted); text-transform: none; letter-spacing: 0.02em; }
+
+.perm-stage .capsule { width: min(560px, 100%); }
+.ledger-mark { font-family: var(--font-data); font-size: 0.75rem; letter-spacing: 0.05em; white-space: nowrap; }
+.ledger-mark.travels { color: var(--accent); }
+.ledger-mark.held { color: var(--ink); }
+
+/* handoff path: capsule → down/right → employer view (hairline, drawn once) */
+.handoff {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  margin: 0.85rem 0 0.85rem min(440px, 60%);
+}
+.handoff-line {
+  width: 1px;
+  height: 60px;
+  background: var(--rule-strong);
+  flex-shrink: 0;
+}
+.employer-view {
+  width: min(380px, 100%);
+  margin-left: min(300px, 42%);
+}
+.employer-view .artifact-row { padding: 0.6rem 1rem; }
+.employer-view .data { font-size: 0.7rem; }
+
+/* ------------------------------------------------------------------ */
+/* FRAME 4 — #review: what the employer receives                       */
+/* ------------------------------------------------------------------ */
+
+#review { justify-content: center; }
+.chapter-strip {
+  width: min(1240px, calc(100vw - 4rem));
+  margin: 0 auto;
+  padding-top: 96px;
+  display: flex;
+  gap: 2.25rem;
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: 0.8rem;
+  flex-wrap: wrap;
+}
+.chapter-strip span {
+  font-family: var(--font-data);
+  font-size: 0.6875rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-subtle);
+  padding-bottom: 0.8rem;
+  margin-bottom: -0.85rem;
+}
+.chapter-strip span.active {
+  color: var(--ink-strong);
+  border-bottom: 2px solid var(--ink-strong);
+}
+.review-grid {
+  width: min(1240px, calc(100vw - 4rem));
+  margin: 0 auto;
+  padding-top: clamp(1.6rem, 4vh, 3rem);
+  display: grid;
+  grid-template-columns: minmax(0, 34fr) minmax(0, 52fr);
+  gap: clamp(2rem, 5vw, 4.5rem);
+  align-items: start;
+}
+.review-left h2 { max-width: 13ch; }
+.truth-boundary {
+  margin-top: 2.4rem;
+  border-top: 1px solid var(--rule-strong);
+  border-bottom: 1px solid var(--rule-strong);
+  padding: 1.3rem 0;
+  font-family: var(--font-display);
+  font-size: 1.0625rem;
+  line-height: 1.5;
+  color: var(--ink);
+  max-width: 42ch;
+  font-variation-settings: 'opsz' 24, 'SOFT' 0, 'WONK' 0;
+}
+.review-right .capsule { width: min(560px, 100%); }
+.checkpoint {
+  width: min(560px, 100%);
+  margin-top: 1.1rem;
+  border: 1px solid var(--rule);
+  border-left: 2px solid var(--state-attention);
+  border-radius: 3px;
+  background: var(--paper-raised);
+  padding: 0.95rem 1.1rem;
+}
+.checkpoint .cp-state {
+  font-family: var(--font-data);
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+.checkpoint .cp-state .glyph { color: var(--state-attention); margin-right: 0.4em; }
+.checkpoint p { margin-top: 0.4rem; font-size: 0.875rem; color: var(--ink-muted); max-width: 52ch; }
+
+/* ------------------------------------------------------------------ */
+/* FRAME 5 — #closing: conversion                                      */
+/* ------------------------------------------------------------------ */
+
+#closing { align-items: center; justify-content: center; text-align: center; }
+.closing-stack {
+  width: min(980px, calc(100vw - 3rem));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 60px;
+}
+.sealed-mark {
+  margin: clamp(1.4rem, 3.5vh, 2.2rem) 0;
+  width: 300px;
+  text-align: left;
+}
+.sealed-mark .artifact-head { padding: 0.7rem 0.95rem; border-bottom: none; }
+.sealed-mark .artifact-foot { padding: 0.55rem 0.95rem; font-size: 0.7rem; }
+.sealed-mark .data { font-size: 0.75rem; margin-top: 0.25rem; }
+.closing-ctas {
+  display: flex;
+  gap: 0.9rem;
+  margin-top: clamp(1.8rem, 4.5vh, 2.8rem);
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.closing-rule {
+  width: min(980px, calc(100vw - 3rem));
+  margin: clamp(2.2rem, 6vh, 4rem) auto 0;
+  border-top: 1px solid var(--rule);
+  padding: 1.1rem 0 2rem;
+  display: flex;
+  justify-content: center;
+  gap: 2.25rem;
+  flex-wrap: wrap;
+}
+.closing-rule a {
+  font-family: var(--font-data);
+  font-size: 0.6875rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-subtle);
+  text-decoration: none;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+}
+.closing-rule a:hover { color: var(--ink); }
+
+/* ------------------------------------------------------------------ */
+/* Tablet: collapse the two-column scenes                              */
+/* ------------------------------------------------------------------ */
+@media (max-width: 960px) {
+  .frame { min-height: auto; padding-bottom: 3.5rem; }
+  #opening { min-height: 100vh; }
+  .sources-grid, .perm-grid, .review-grid {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+  .sources-grid { padding-top: 96px; }
+  .sources-right { order: -1; }
+  .perm-left { padding-top: 0; }
+
+  /* handoff path turns vertical: capsule above, employer view below */
+  .perm-stage .capsule { width: 100%; }
+  .handoff { margin: 0.85rem 0; justify-content: center; }
+  .employer-view { width: min(420px, 100%); margin: 0 auto; }
+  .review-right .capsule, .checkpoint { width: 100%; }
+}
+
+/* ------------------------------------------------------------------ */
+/* Mobile 390px: the ask stays dominant and above the fold             */
+/* ------------------------------------------------------------------ */
+@media (max-width: 640px) {
+  .nav .btn { min-height: 44px; }
+  .nav .cta-group .btn-quiet { display: none; }
+  .ask-stage { padding-top: 88px; }
+  .ask-stage h1 { font-size: 2.5rem; }
+  .writing-line { margin-top: 1.6rem; }
+  .line-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+  .npi-input {
+    font-size: 1.35rem;
+    border-bottom: 2px solid var(--ink-strong);
+    padding-bottom: 0.55rem;
+    min-height: 44px;
+  }
+  .line-row .btn { width: 100%; margin-top: 0.8rem; }
+  .ask-meta { flex-direction: column; align-items: center; gap: 0; margin-top: 0.7rem; }
+  .summon { margin-top: 1.6rem; }
+  .fan { gap: 0.55rem; margin-top: 1rem; }
+  .strip { width: 100%; }
+  .strip.s1 { transform: rotate(-0.5deg); }
+  .strip.s2 { transform: rotate(0.35deg); }
+  .strip.s3 { transform: rotate(-0.3deg); }
+  .strip.s4 { transform: rotate(0.4deg); margin-top: 0; }
+  .strip.s5 { transform: rotate(-0.35deg); margin-top: 0; }
+  .strip.s6 { transform: rotate(0.3deg); margin-top: 0; }
+  .sources-grid, .perm-grid, .review-grid, .chapter-strip {
+    width: calc(100vw - 2.5rem);
+  }
+  .capsule-head-id { gap: 0.5rem; }
+  .artifact-row { flex-wrap: wrap; gap: 0.45rem; padding: 0.75rem 0.9rem; }
+  .chapter-strip { gap: 1.1rem; padding-top: 88px; }
+  .closing-stack h2 { font-size: 2.3rem; }
+  .closing-rule { gap: 1.25rem; }
+}
+</style>
+</head>
+<body>
+
+<!-- ================================================================ -->
+<!-- FRAME 1 · #opening — THE ASK AS THE OBJECT                        -->
+<!-- ================================================================ -->
+<section class="frame" id="opening">
+
+  <nav class="nav" aria-label="Primary">
+    <a class="wordmark" href="#opening">VitalCV</a>
+    <div class="links">
+      <span>Clinicians</span>
+      <span>Employers</span>
+      <span>Status</span>
+      <span>Trust</span>
+    </div>
+    <div class="cta-group">
+      <a class="btn btn-quiet" href="#review">For employers</a>
+      <a class="btn btn-primary" href="#opening">Check my readiness</a>
+    </div>
+  </nav>
+
+  <div class="ask-stage">
+    <p class="eyebrow chapter"><span class="tick">·</span>YOUR NUMBER<span class="tick">·</span></p>
+    <h1 class="display-xl" data-motion="reveals once on load, opacity 240ms ease-enter">Get hired on <em class="accent-word">evidence</em>.</h1>
+    <p class="ask-support">Start with your NPI.</p>
+
+    <div class="writing-line" data-motion="the ruled line draws in once, left to right, 400ms ease-enter; single-shot">
+      <label class="eyebrow" for="npi">Your 10-digit NPI</label>
+      <div class="line-row">
+        <input class="npi-input" id="npi" type="text" inputmode="numeric" placeholder="10-digit NPI" autocomplete="off" aria-describedby="npi-hint">
+        <button class="btn btn-primary" type="button">Check what&rsquo;s ready <span class="arrow">&rarr;</span></button>
+      </div>
+    </div>
+
+    <div class="ask-meta">
+      <p class="ask-hint" id="npi-hint">Free for clinicians &middot; No account required</p>
+      <a class="employer-path" href="#review">For employers &mdash; see what arrives <span class="arrow">&rarr;</span></a>
+    </div>
+  </div>
+
+  <div class="summon">
+    <p class="eyebrow summon-eyebrow">EVIDENCE RECORD <span class="tick">&middot;</span> AWAITING YOUR NUMBER</p>
+    <div class="fan" data-motion="rows gather into the capsule as the NPI resolves; strips straighten, stack, and rise toward the line — single-shot, 400ms ease-enter, 60ms stagger">
+      <div class="strip s1">
+        <div class="strip-top"><span class="label">NPPES Identity</span><span class="stamp stamp-notchecked"><span class="glyph">&#9675;</span>NOT CHECKED</span></div>
+        <p class="data subtle">CMS Registry &middot; read per request</p>
+      </div>
+      <div class="strip s2">
+        <div class="strip-top"><span class="label">OIG Exclusions</span><span class="stamp stamp-notchecked"><span class="glyph">&#9675;</span>NOT CHECKED</span></div>
+        <p class="data subtle">OIG LEIE &middot; monthly snapshot</p>
+      </div>
+      <div class="strip s3">
+        <div class="strip-top"><span class="label">State License</span><span class="stamp stamp-access"><span class="glyph">&#8856;</span>ACCESS REQUIRED</span></div>
+        <p class="data subtle">State Medical Board &middot; access required</p>
+      </div>
+      <div class="strip s4">
+        <div class="strip-top"><span class="label">PECOS Enrollment</span><span class="stamp stamp-notchecked"><span class="glyph">&#9675;</span>NOT CHECKED</span></div>
+        <p class="data subtle">CMS PECOS &middot; quarterly snapshot</p>
+      </div>
+      <div class="strip s5">
+        <div class="strip-top"><span class="label">Employment History</span><span class="stamp stamp-access"><span class="glyph">&#8856;</span>ACCESS REQUIRED</span></div>
+        <p class="data subtle">The Work Number &middot; access required</p>
+      </div>
+      <div class="strip s6">
+        <div class="strip-top"><span class="label">Board Certification</span><span class="stamp stamp-access"><span class="glyph">&#8856;</span>ACCESS REQUIRED</span></div>
+        <p class="data subtle">ABMS / Specialty Board &middot; access required</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================ -->
+<!-- FRAME 2 · #sources — THE RESOLVE MOMENT                           -->
+<!-- ================================================================ -->
+<section class="frame" id="sources">
+  <div class="sources-grid">
+
+    <div class="sources-left">
+      <div class="artifact capsule" data-motion="the fanned strips have assembled: rows resolve top-to-bottom once, opacity 240ms each, stamps land last; single-shot">
+        <div class="artifact-head">
+          <div class="capsule-head-top">
+            <span class="eyebrow">EVIDENCE RECORD</span>
+            <span class="illustrative">ILLUSTRATIVE &mdash; NOT A LIVE RESULT</span>
+          </div>
+          <div class="capsule-head-id">
+            <span class="title">K. Osei, PA-C</span>
+            <span class="data">NPI &middot;&middot;&middot;&middot;&middot; 4821</span>
+          </div>
+        </div>
+
+        <div class="artifact-row">
+          <div class="capsule-row-main">
+            <span class="label">NPPES Identity</span>
+            <span class="data">NPPES NPI Registry &middot; 2026-08-02 14:02Z</span>
+          </div>
+          <span class="stamp stamp-confirmed"><span class="glyph">&#9679;</span>CONFIRMED</span>
+        </div>
+        <div class="artifact-row">
+          <div class="capsule-row-main">
+            <span class="label">OIG Exclusions</span>
+            <span class="data">OIG LEIE &middot; 2026-07 monthly file &middot; no match</span>
+          </div>
+          <span class="stamp stamp-snapshot"><span class="glyph">&#9684;</span>SNAPSHOT</span>
+        </div>
+        <div class="artifact-row">
+          <div class="capsule-row-main">
+            <span class="label">PECOS Enrollment</span>
+            <span class="data">CMS PECOS &middot; 2026-Q3 file &middot; enrolled</span>
+          </div>
+          <span class="stamp stamp-snapshot"><span class="glyph">&#9684;</span>SNAPSHOT</span>
+        </div>
+        <div class="artifact-row">
+          <div class="capsule-row-main">
+            <span class="label">State License</span>
+            <span class="data">board access not yet open &mdash; shown as exactly that</span>
+          </div>
+          <span class="stamp stamp-access"><span class="glyph">&#8856;</span>ACCESS REQUIRED</span>
+        </div>
+        <div class="artifact-row">
+          <div class="capsule-row-main">
+            <span class="label">Employment History</span>
+            <span class="data">The Work Number &middot; access required</span>
+          </div>
+          <span class="stamp stamp-access"><span class="glyph">&#8856;</span>ACCESS REQUIRED</span>
+        </div>
+        <div class="artifact-row">
+          <div class="capsule-row-main">
+            <span class="label">Board Certification</span>
+            <span class="data">ABMS / Specialty Board &middot; access required</span>
+          </div>
+          <span class="stamp stamp-access"><span class="glyph">&#8856;</span>ACCESS REQUIRED</span>
+        </div>
+
+        <div class="artifact-foot">
+          <span class="data">rcpt:nppes:8f2a&hellip;c41 &middot; ES256 &middot; P-256 &middot; vcv-es256-prod-1 &middot; /.well-known/jwks.json</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="sources-right">
+      <p class="eyebrow chapter"><span class="tick">&middot;</span>SOURCE RESPONSES</p>
+      <h2 class="display-lg" data-motion="reveals once after the capsule settles, opacity 240ms">This is what came back.</h2>
+      <div class="narration" data-motion="lines reveal once, top to bottom, 240ms each, 120ms stagger; single-shot">
+        <span class="eyebrow">WHAT JUST HAPPENED</span>
+        <p class="narration-line"><span class="mark">&rarr;</span>queried <strong>NPPES NPI Registry</strong> &middot; read per request</p>
+        <p class="narration-line"><span class="mark">&rarr;</span>matched exactly &middot; <strong>1 record returned</strong></p>
+        <p class="narration-line"><span class="mark">&rarr;</span>receipt signed &middot; <strong>rcpt:nppes:8f2a&hellip;c41</strong></p>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ================================================================ -->
+<!-- FRAME 3 · #permission — DOCK-STYLE CONSENT SEQUENCE               -->
+<!-- ================================================================ -->
+<section class="frame" id="permission">
+  <div class="perm-grid">
+
+    <div class="perm-left">
+      <p class="eyebrow chapter"><span class="tick">&middot;</span>YOUR PERMISSION</p>
+      <h2 class="display-lg">You decide what travels.</h2>
+      <p class="perm-prose">Every row in the record is a decision. What you release moves with the application. What you hold never leaves this page.</p>
+      <div class="consent-seal" data-motion="seal stamps once after the last decision, opacity 240ms; single-shot">
+        PERMISSION RECORDED<br>
+        scope: this application<br>
+        revoke anytime &mdash; <span class="path-ref">/holder/permissions</span>
+      </div>
+    </div>
+
+    <div class="perm-stage">
+      <div class="artifact capsule" data-motion="the same capsule carries over from the previous scene; decision marks settle one row at a time, 120ms each; single-shot">
+        <div class="artifact-head">
+          <div class="capsule-head-top">
+            <span class="eyebrow">EVIDENCE RECORD</span>
+            <span class="illustrative">ILLUSTRATIVE WORKFLOW</span>
+          </div>
+          <div class="capsule-head-id">
+            <span class="title">K. Osei, PA-C</span>
+            <span class="data">NPI &middot;&middot;&middot;&middot;&middot; 4821</span>
+          </div>
+        </div>
+        <div class="artifact-row">
+          <span class="label">Identity &amp; taxonomy</span>
+          <span class="ledger-mark travels">&rarr; TRAVELS</span>
+        </div>
+        <div class="artifact-row">
+          <span class="label">Federal exclusion result</span>
+          <span class="ledger-mark travels">&rarr; TRAVELS</span>
+        </div>
+        <div class="artifact-row">
+          <span class="label">License claim</span>
+          <span class="ledger-mark travels">&rarr; TRAVELS</span>
+        </div>
+        <div class="artifact-row">
+          <span class="label">Compensation expectations</span>
+          <span class="ledger-mark held">&#9632; HELD</span>
+        </div>
+        <div class="artifact-row">
+          <span class="label">Current employer standing</span>
+          <span class="ledger-mark held">&#9632; HELD</span>
+        </div>
+        <div class="artifact-foot">
+          <span class="data">3 rows travel &middot; 2 rows held with you</span>
+        </div>
+      </div>
+
+      <div class="handoff" data-motion="hairline draws downward once when the seal lands, 400ms ease-enter; single-shot">
+        <div class="handoff-line" aria-hidden="true"></div>
+        <span class="eyebrow">ONLY WHAT TRAVELS</span>
+      </div>
+
+      <div class="artifact employer-view" data-motion="receiving frame reveals once after the path completes, opacity 240ms; the traveling rows arrive with a 60ms stagger">
+        <div class="artifact-head">
+          <span class="eyebrow">EMPLOYER VIEW</span>
+        </div>
+        <div class="artifact-row">
+          <span class="label">Identity &amp; taxonomy</span>
+          <span class="data subtle">arrives</span>
+        </div>
+        <div class="artifact-row">
+          <span class="label">Federal exclusion result</span>
+          <span class="data subtle">arrives</span>
+        </div>
+        <div class="artifact-row">
+          <span class="label">License claim</span>
+          <span class="data subtle">arrives</span>
+        </div>
+        <div class="artifact-foot">
+          <span class="data">held rows are not in this frame</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ================================================================ -->
+<!-- FRAME 4 · #review — THE EMPLOYER RECEIVES                         -->
+<!-- ================================================================ -->
+<section class="frame" id="review">
+
+  <div class="chapter-strip" aria-label="Chapters">
+    <span>YOUR NUMBER</span>
+    <span>SOURCE RESPONSES</span>
+    <span>YOUR PERMISSION</span>
+    <span class="active">HUMAN REVIEW</span>
+  </div>
+
+  <div class="review-grid">
+
+    <div class="review-left">
+      <h2 class="display-lg">They start from evidence, not from scratch.</h2>
+      <aside class="truth-boundary">
+        VitalCV assembles what these sources return. It does not credential, privilege, or clear anyone &mdash; the institution keeps that decision.
+      </aside>
+    </div>
+
+    <div class="review-right">
+      <div class="artifact capsule" data-motion="the traveling subset arrives as the packet, opacity 240ms; single-shot">
+        <div class="artifact-head">
+          <div class="capsule-head-top">
+            <span class="eyebrow">EVIDENCE RECORD</span>
+            <span class="illustrative">ILLUSTRATIVE WORKFLOW</span>
+          </div>
+          <div class="capsule-head-id">
+            <span class="title">Evidence packet &middot; K. Osei, PA-C</span>
+            <span class="data">rcpt:nppes:8f2a&hellip;c41</span>
+          </div>
+        </div>
+        <div class="artifact-row">
+          <div class="capsule-row-main">
+            <span class="label">Identity &amp; taxonomy</span>
+            <span class="data">NPPES NPI Registry &middot; 2026-08-02 14:02Z</span>
+          </div>
+          <span class="stamp stamp-confirmed"><span class="glyph">&#9679;</span>CONFIRMED</span>
+        </div>
+        <div class="artifact-row">
+          <div class="capsule-row-main">
+            <span class="label">Federal exclusion result</span>
+            <span class="data">OIG LEIE &middot; 2026-07 monthly file &middot; no match</span>
+          </div>
+          <span class="stamp stamp-snapshot"><span class="glyph">&#9684;</span>SNAPSHOT</span>
+        </div>
+        <div class="artifact-row">
+          <div class="capsule-row-main">
+            <span class="label">License claim</span>
+            <span class="data">board access not yet open &mdash; shown as exactly that</span>
+          </div>
+          <span class="stamp stamp-access"><span class="glyph">&#8856;</span>ACCESS REQUIRED</span>
+        </div>
+        <div class="artifact-foot">
+          <span class="data">ES256 &middot; P-256 &middot; vcv-es256-prod-1 &middot; /.well-known/jwks.json</span>
+        </div>
+      </div>
+
+      <div class="checkpoint" data-motion="checkpoint reveals once after the packet, opacity 240ms; nothing pulses">
+        <span class="cp-state"><span class="glyph">&#9208;</span>AWAITING INSTITUTION REVIEW</span>
+        <p>Final credentialing, privileging, and hiring authority remain with the institution.</p>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ================================================================ -->
+<!-- FRAME 5 · #closing — CONVERSION                                   -->
+<!-- ================================================================ -->
+<section class="frame" id="closing">
+  <div class="closing-stack">
+    <h2 class="display-xl" data-motion="reveals once, opacity 240ms">The evidence can move.</h2>
+
+    <div class="artifact sealed-mark" data-motion="the capsule, reduced to its sealed mark, settles between the two lines; opacity 240ms, single-shot">
+      <div class="artifact-head">
+        <span class="eyebrow">EVIDENCE RECORD</span>
+        <span class="data" style="display:block;">K. Osei, PA-C &middot; NPI &middot;&middot;&middot;&middot;&middot; 4821</span>
+      </div>
+      <div class="artifact-foot">
+        <span class="data">rcpt:nppes:8f2a&hellip;c41 &middot; ES256 signed</span>
+      </div>
+    </div>
+
+    <h2 class="display-xl" data-motion="reveals once, 240ms after the first line">The decision stays <em class="accent-word">human</em>.</h2>
+
+    <div class="closing-ctas">
+      <a class="btn btn-primary" href="#opening">Check my readiness</a>
+      <a class="btn btn-quiet" href="#review">For employers</a>
+    </div>
+  </div>
+
+  <div class="closing-rule">
+    <a href="#closing">Status</a>
+    <a href="#closing">Source attribution</a>
+    <a href="#closing">Evidence network</a>
+    <a href="#closing">Trust</a>
+  </div>
+</section>
+
+</body>
+</html>
