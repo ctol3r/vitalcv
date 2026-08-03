@@ -39,7 +39,7 @@ interface SitemapRoute {
 }
 
 export const SITEMAP_ROUTES: readonly SitemapRoute[] = [
-  { path: '', source: 'app/page.tsx', lastModified: '2026-08-02', changeFrequency: 'weekly', priority: 1 },
+  { path: '', source: 'app/page.tsx', lastModified: '2026-08-03', changeFrequency: 'weekly', priority: 1 },
   { path: '/onboarding', source: 'app/onboarding', lastModified: '2026-07-16', changeFrequency: 'weekly', priority: 0.9 },
   { path: '/passport', source: 'app/passport', lastModified: '2026-07-21', changeFrequency: 'weekly', priority: 0.9 },
   { path: '/employers', source: 'app/employers', lastModified: '2026-08-02', changeFrequency: 'weekly', priority: 0.8 },

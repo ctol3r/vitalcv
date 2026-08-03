@@ -280,6 +280,13 @@ export function EvidenceCapsuleError({ npi, onReset }: { npi: string; onReset: (
         no red mark, no failed-credential vocabulary: the registry did not
         answer, which says nothing whatsoever about this provider.
       */}
+      {/* Same announcement pattern as the resolved face: one concise sentence in
+          a live region, so a screen-reader user learns the lookup ended without
+          having to go find the card. The card itself is not the live region. */}
+      <p className="sr-only" role="status">
+        Lookup could not complete for NPI {npi}. No source answered, so there is no result to read.
+      </p>
+
       <CapsuleHead eyebrow="Evidence record" name="We couldn't reach the registry" />
       <CapsuleFoot>
         <p className="evidence-capsule__limit">

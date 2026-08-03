@@ -473,10 +473,16 @@ export function HorizontalCareerFilm() {
                     application. What you hold never leaves this page.
                   </p>
                   {/*
-                    No route is named here. `/holder/permissions` does not
-                    exist, and printing a path that 404s would be a promise the
-                    product cannot keep — the illustrative frame makes the
+                    No route is named here. The path this panel used to print
+                    does not exist, and printing one that 404s would be a promise
+                    the product cannot keep — the illustrative frame makes the
                     workflow legible, it does not license an invented URL.
+
+                    The path itself is deliberately not written out even in this
+                    comment: `holder-route-contract` scans this file's raw source
+                    for internal hrefs, so a dead path quoted in prose fails the
+                    same guard as a live one. That is the guard working, not a
+                    false positive — a URL in a source file is a URL.
                   */}
                   <p className="film-consent">
                     Permission recorded
