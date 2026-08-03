@@ -116,3 +116,7 @@ docs/security/gitleaks-report-*.json
 # `tests/e2e/home-layout-stability.spec.ts`; the numbers are quoted in
 # docs/design/home-evidence-v2-performance-report.md, which IS committed.
 apps/web/artifacts/
+
+# Generated review captures. Visual evidence lives in PR comments and CI
+# artifacts, not in the repository.
+artifacts/

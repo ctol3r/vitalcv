@@ -25,8 +25,6 @@ import * as React from 'react';
 export interface Chapter {
   /** The in-page anchor id, which is also the chapter section's `id`. */
   readonly id: string;
-  /** Two-digit index shown in the rail. */
-  readonly index: string;
   /** The rail label. */
   readonly label: string;
 }
@@ -37,11 +35,11 @@ export interface Chapter {
  * names a sighted reader sees in the rail.
  */
 export const CHAPTERS: ReadonlyArray<Chapter> = Object.freeze([
-  Object.freeze({ id: 'your-number', index: '01', label: 'Your number' }),
-  Object.freeze({ id: 'source-responses', index: '02', label: 'Source responses' }),
-  Object.freeze({ id: 'your-permission', index: '03', label: 'Your permission' }),
-  Object.freeze({ id: 'human-review', index: '04', label: 'Human review' }),
-  Object.freeze({ id: 'closing', index: '05', label: 'What happens next' }),
+  Object.freeze({ id: 'your-number', label: 'Your number' }),
+  Object.freeze({ id: 'source-responses', label: 'Source responses' }),
+  Object.freeze({ id: 'your-permission', label: 'Your permission' }),
+  Object.freeze({ id: 'human-review', label: 'Human review' }),
+  Object.freeze({ id: 'closing', label: 'What happens next' }),
 ]);
 
 /**
@@ -72,11 +70,25 @@ export function ChapterRail({ activeIndex }: { activeIndex: number | null }) {
               className="film-rail-item"
               data-active={activeIndex === i ? '' : undefined}
             >
-              <a className="film-rail-link" href={`#${chapter.id}`}>
-                <span className="film-rail-index" aria-hidden="true">
-                  {chapter.index}
-                </span>
+              <a
+                className="film-rail-link"
+                href={`#${chapter.id}`}
+                aria-current={activeIndex === i ? 'true' : undefined}
+              >
                 {chapter.label}
+                {/*
+                  Position is announced, never printed.
+
+                  A visible `01`–`05` is the numbered-step grammar CD-13 retires,
+                  and `doctrine-visual` enforces that on the rendered page — it
+                  caught this exact rail. Ordering is carried visually by the
+                  active label's weight, its ink, and the hairline beneath it;
+                  a screen-reader user gets the count in words instead, which is
+                  the one audience a purely visual indicator would fail.
+                */}
+                <span className="sr-only">
+                  {` — chapter ${i + 1} of ${CHAPTERS.length}`}
+                </span>
               </a>
             </li>
           ))}

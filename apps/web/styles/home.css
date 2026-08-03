@@ -52,6 +52,22 @@
   --film-ease-enter: cubic-bezier(0.2, 0.7, 0.2, 1);
   --film-ease-exit: cubic-bezier(0.4, 0, 1, 1);
 
+  /*
+   * CD-4 correction, deliberately scoped to this route.
+   *
+   * `--vt-badge-access-text` ships as #6B6F75 — a blue-leaning grey — and
+   * `ProvenanceChip`'s `gated` register renders it. Three "Access required"
+   * chips therefore put cool ink on the warmest surface in the product, and
+   * `doctrine-visual` caught it the moment the homepage adopted the canonical
+   * chip. #676257 is the warm grey CD-5 already assigns to the access state.
+   *
+   * The token itself is wrong product-wide and should be corrected at source,
+   * but doing that here would silently restyle five other mounted surfaces
+   * inside a homepage PR. This override fixes what this page renders; the
+   * global correction is its own reviewable change.
+   */
+  --vt-badge-access-text: #676257;
+
   position: relative;
   background: var(--film-paper);
   color: var(--film-ink);
@@ -171,6 +187,7 @@
 }
 
 .film-rail-link {
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: 0.6em;
@@ -185,17 +202,31 @@
   transition: color var(--film-dur-state) var(--film-ease-enter);
 }
 
-.film-rail-index {
-  color: var(--film-rule-strong);
+/*
+ * The active chapter is marked by a hairline beneath it, not by a printed
+ * ordinal. CD-13 retires `01`–`06` numbering, and `doctrine-visual` enforces
+ * that against the rendered page — so progression is carried by weight, ink,
+ * and this rule, with the count announced to assistive tech instead.
+ */
+.film-rail-link::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background: var(--film-ink-strong);
+  opacity: 0;
+  transition: opacity var(--film-dur-state) var(--film-ease-enter);
+}
+
+.film-rail-item[data-active] .film-rail-link::after {
+  opacity: 1;
 }
 
 .film-rail-item[data-active] .film-rail-link {
   color: var(--film-ink-strong);
   font-size: 0.8125rem;
-}
-
-.film-rail-item[data-active] .film-rail-index {
-  color: var(--film-accent);
 }
 
 .film-rail-link:focus-visible {

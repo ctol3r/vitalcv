@@ -79,7 +79,7 @@ test.describe('glass surfaces and movement', () => {
     await eyebrow.hover();
     await expect(eyebrow).toHaveAttribute('aria-expanded', 'true');
     await expect(detail).toHaveText(
-      'Four chapters: your number, what the sources returned, what you release, and who decides.',
+      'Your number, what the sources returned, what you release, and who decides.',
     );
     await expect(detail).toHaveCSS('opacity', '1');
 

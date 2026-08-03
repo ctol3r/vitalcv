@@ -260,7 +260,7 @@ export function HorizontalCareerFilm() {
             >
               <div className="film-ask">
                 <ExpandingEyebrow
-                  detail="Four chapters: your number, what the sources returned, what you release, and who decides."
+                  detail="Your number, what the sources returned, what you release, and who decides."
                   className="film-ask-eyebrow"
                 >
                   For clinicians
