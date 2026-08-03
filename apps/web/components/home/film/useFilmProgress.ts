@@ -114,19 +114,31 @@ export function useFilmProgress(
   rootRef: React.RefObject<HTMLElement | null>,
   chapters: number,
   enabled = true,
+  /**
+   * A chapter's own scroll spacer. Its 0-1 progress is published as
+   * `--stage-progress`, which is what drives horizontal movement INSIDE a
+   * sticky stage.
+   *
+   * It is measured here, in the same rAF as everything else, rather than by a
+   * second hook: the page gets exactly one scroll listener and one rAF, and
+   * `experience-doctrine.test.ts` enforces that across every module reachable
+   * from `app/page.tsx`. A per-stage hook would be the second owner CD-11
+   * forbids, and would be the easy mistake to make here.
+   */
+  stageRef?: React.RefObject<HTMLElement | null>,
 ): FilmProgress {
   const [state, setState] = React.useState<FilmProgress>(INITIAL);
   const frame = React.useRef<number | null>(null);
   const latest = React.useRef<FilmProgress>(INITIAL);
 
   React.useEffect(() => {
-    if (!enabled) {
-      const next = { index: 0, eligible: false, pinned: false, ready: true };
-      latest.current = next;
-      setState(next);
-      rootRef.current?.style.setProperty('--film-progress', '0');
-      return;
-    }
+    /*
+      Page-wide travel is retired, so `enabled` is false — but the STAGE still
+      needs driving, because horizontal movement inside a sticky chapter is
+      exactly what replaced it. This branch therefore keeps the listener and
+      the rAF and simply stops publishing page progress.
+    */
+    const pageEnabled = enabled;
 
     let cancelled = false;
 
@@ -144,11 +156,32 @@ export function useFilmProgress(
 
     const measure = () => {
       frame.current = null;
+      const root = rootRef.current;
+
+      /*
+        The stage is measured FIRST and unconditionally.
+
+        It is not gated on `filmEligible`, because a sticky stage is not the
+        retired page-wide travel: it works on a phone, and it is the feature
+        that replaced sideways page movement. What reduced motion does to it is
+        a CSS decision (the track simply does not translate), not a reason to
+        stop measuring — stopping here would leave `--stage-progress` frozen at
+        whatever value it last held.
+      */
+      const stage = stageRef?.current;
+      if (stage && root) {
+        const s = stage.getBoundingClientRect();
+        root.style.setProperty(
+          '--stage-progress',
+          progressFromRect(s.top, s.height, window.innerHeight).toFixed(4),
+        );
+      }
+
       const el = runwayRef.current;
       if (!el) return;
 
-      if (!filmEligible(window)) {
-        rootRef.current?.style.setProperty('--film-progress', '0');
+      if (!pageEnabled || !filmEligible(window)) {
+        root?.style.setProperty('--film-progress', '0');
         commit({ index: 0, eligible: false, pinned: false, ready: true });
         return;
       }
@@ -158,7 +191,7 @@ export function useFilmProgress(
 
       // The continuous value goes straight to CSS. No render, no reconciliation
       // — the compositor moves the track and React never hears about it.
-      rootRef.current?.style.setProperty('--film-progress', progress.toFixed(4));
+      root?.style.setProperty('--film-progress', progress.toFixed(4));
 
       // "Pinned" means the stage is genuinely stuck: the spacer straddles the
       // viewport. Outside that window the film holds its end state rather than
@@ -188,7 +221,7 @@ export function useFilmProgress(
       if (frame.current !== null) window.cancelAnimationFrame(frame.current);
       frame.current = null;
     };
-  }, [runwayRef, rootRef, chapters, enabled]);
+  }, [runwayRef, rootRef, chapters, enabled, stageRef]);
 
   return state;
 }
