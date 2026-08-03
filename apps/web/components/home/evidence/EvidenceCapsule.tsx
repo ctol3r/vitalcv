@@ -1,108 +1,167 @@
 'use client';
 
 /**
- * EvidenceCapsule — the three faces of one object.
+ * EvidenceCapsule — ONE document object, in every state the homepage shows it.
  *
- * Resolving, resolved and system-error are the SAME capsule in three states,
- * not three cards. They share a shell, a radius and a width so the container
- * does not resize as the lookup progresses.
+ * The recovery direction (#1060, Concept C) is built on a single persistent
+ * artifact: the same record forms while a visitor is typing, resolves when a
+ * source answers, carries their travel decisions, arrives at an employer as a
+ * subset, and closes as a seal. Those are FACES OF ONE OBJECT, not five cards
+ * that happen to sit on the same page — so the shell, the header, the row and
+ * the rules below are exported and shared, and the live lookup renders through
+ * exactly the same parts as the illustrative chapters.
  *
- * WHAT THIS COMPONENT MAY SAY is decided entirely by `evidenceCapsuleModel`.
- * This file renders rows; it does not invent them, does not group them by any
- * rule of its own, and does not know which source answered.
+ * WHAT THIS COMPONENT MAY SAY is still decided entirely by
+ * `evidenceCapsuleModel`. This file renders rows; it does not invent them and
+ * does not decide what state a row is in — the model sets that explicitly at
+ * the point where it knows what a source actually returned.
  *
- * NO LUCIDE. `check-design-lint` LINT-02 ratchets raw `lucide-react` imports
- * and there is no `components/Icon.tsx` in this repo. `TrustGlyph` maps an
- * `EvidenceState` — a claim about a source — and these marks label a GROUP, not
- * a claim, so the two are not interchangeable. The marks below are inline,
- * `aria-hidden`, and always accompanied by the group's text: state never rides
- * on a glyph or on colour. `LiveNpiResult` dropped its own lucide import in the
- * same change, so the ratchet moves DOWN.
+ * STYLE OWNER: `styles/home.css`, imported by `app/page.tsx`. This is the fix
+ * for the defect that motivated the recovery — the capsule's classes lived only
+ * in two stylesheets that a direct push orphaned, so the surface produced by
+ * the site's primary action rendered unstyled in production while CI stayed
+ * green (the tests read the CSS off disk instead of asserting the route imports
+ * it). The capsule is now styled by the page it appears on.
+ *
+ * NO LUCIDE. `check-design-lint` LINT-02 ratchets raw `lucide-react` imports.
+ * State marks come from `ProvenanceChip`, the canonical provenance atom, which
+ * renders a dot SHAPE as well as a hue so state never rides on colour alone.
  */
 
 import Link from 'next/link';
 import * as React from 'react';
+
+import { ProvenanceChip } from '@/design-system/components/ProvenanceChip';
 
 import {
   GROUP_LABEL,
   provenanceParts,
   rowsOfKind,
   type EvidenceCapsuleModel,
-  type EvidenceRowKind,
+  type EvidenceRow,
 } from './evidenceCapsuleModel';
 
-const STROKE = {
-  fill: 'none',
-  stroke: 'currentColor',
-  strokeWidth: 1.6,
-  strokeLinecap: 'round' as const,
-  strokeLinejoin: 'round' as const,
-};
-
-function Mark({ kind }: { kind: EvidenceRowKind }) {
+/** The shared shell. `face` is a data attribute only — styling, never meaning. */
+export function CapsuleShell({
+  face,
+  className,
+  children,
+  ...rest
+}: {
+  face: 'forming' | 'resolved' | 'resolving' | 'system' | 'deciding' | 'traveling' | 'sealed';
+  className?: string;
+  children: React.ReactNode;
+} & React.HTMLAttributes<HTMLDivElement>) {
   return (
-    <svg viewBox="0 0 16 16" className="evidence-capsule__mark" aria-hidden="true" focusable="false" {...STROKE}>
-      {kind === 'returned' ? (
-        <>
-          <circle cx="8" cy="8" r="6" />
-          <path d="M5.2 8.2 L7.1 10.1 L10.8 6" />
-        </>
-      ) : kind === 'attention' ? (
-        <>
-          <path d="M8 2.6 L14.4 13.4 H1.6 Z" />
-          <path d="M8 6.6 V9.4" />
-          <circle cx="8" cy="11.4" r="0.75" fill="currentColor" stroke="none" />
-        </>
-      ) : (
-        <>
-          <rect x="3.4" y="7.2" width="9.2" height="6.4" rx="1.2" />
-          <path d="M5.8 7.2 V5.4 a2.2 2.2 0 0 1 4.4 0 V7.2" />
-        </>
-      )}
-    </svg>
+    <div
+      className={['evidence-capsule', face === 'resolving' ? 'evidence-capsule--resolving' : '', face === 'system' ? 'evidence-capsule--system' : '', className ?? '']
+        .filter(Boolean)
+        .join(' ')}
+      data-evidence-capsule={face}
+      {...rest}
+    >
+      {children}
+    </div>
   );
 }
 
-function Group({ kind, model }: { kind: EvidenceRowKind; model: EvidenceCapsuleModel }) {
-  const rows = rowsOfKind(model, kind);
-  if (rows.length === 0) return null;
-
+/**
+ * The header. `illustrative` is not decoration and not optional: any capsule
+ * showing returned data that did not come from THIS visitor's own lookup must
+ * say so, in the same mono as the facts, above the facts.
+ */
+export function CapsuleHead({
+  eyebrow,
+  illustrative,
+  name,
+  npi,
+  detail,
+}: {
+  eyebrow: string;
+  illustrative?: string;
+  name?: string | null;
+  npi?: string | null;
+  detail?: string | null;
+}) {
   return (
-    <section className="evidence-capsule__group" data-evidence-group={kind}>
-      <h3 className="evidence-capsule__group-title">
-        <Mark kind={kind} />
-        {GROUP_LABEL[kind]}
-      </h3>
-      <ul className="evidence-capsule__rows">
-        {rows.map((row) => {
-          const parts = provenanceParts(row);
-          return (
-            <li key={row.id} className="evidence-capsule__row" data-evidence-row={row.id}>
-              <p className="evidence-capsule__claim">{row.claim}</p>
-              <p className="evidence-capsule__returned">{row.returned}</p>
-              {/*
-                SOURCE · CADENCE · LIMITATION. Absent parts are DROPPED, never
-                filled in with a plausible default — an omitted cadence would
-                read as "current", which is the claim this footer exists to
-                prevent.
-              */}
-              {parts.length > 0 ? (
-                <p className="evidence-capsule__provenance">
-                  {parts.map((part, index) => (
-                    <React.Fragment key={part}>
-                      {index > 0 ? <span aria-hidden="true"> · </span> : null}
-                      <span>{part}</span>
-                    </React.Fragment>
-                  ))}
-                </p>
-              ) : null}
-            </li>
-          );
-        })}
-      </ul>
-    </section>
+    <header className="evidence-capsule__head">
+      <div className="evidence-capsule__head-top">
+        <span className="evidence-capsule__eyebrow">{eyebrow}</span>
+        {illustrative ? (
+          <span className="evidence-capsule__illustrative">{illustrative}</span>
+        ) : null}
+      </div>
+      {name || npi || detail ? (
+        <div className="evidence-capsule__identity">
+          {name ? <p className="evidence-capsule__name">{name}</p> : null}
+          {npi ? <p className="evidence-capsule__npi">{npi}</p> : null}
+          {detail ? <p className="evidence-capsule__detail">{detail}</p> : null}
+        </div>
+      ) : null}
+    </header>
   );
 }
+
+/**
+ * One row of the record.
+ *
+ * `trailing` is the row's state. It is a `ProvenanceChip` on every evidence
+ * face and a travel mark on the permission face — the same slot either way, so
+ * the eye learns one place to look for "what is true about this line".
+ */
+export function CapsuleRow({
+  claim,
+  returned,
+  provenance,
+  trailing,
+}: {
+  claim: string;
+  returned?: string | null;
+  provenance?: string[] | null;
+  trailing?: React.ReactNode;
+}) {
+  return (
+    <li className="evidence-capsule__row">
+      <div className="evidence-capsule__row-main">
+        <p className="evidence-capsule__claim">{claim}</p>
+        {returned ? <p className="evidence-capsule__returned">{returned}</p> : null}
+        {provenance && provenance.length > 0 ? (
+          <p className="evidence-capsule__provenance">
+            {provenance.map((part, index) => (
+              <React.Fragment key={part}>
+                {index > 0 ? <span aria-hidden="true"> · </span> : null}
+                <span>{part}</span>
+              </React.Fragment>
+            ))}
+          </p>
+        ) : null}
+      </div>
+      {trailing}
+    </li>
+  );
+}
+
+/** A row built from the model. The state comes from the model, never from here. */
+export function CapsuleModelRow({ row }: { row: EvidenceRow }) {
+  return (
+    <CapsuleRow
+      claim={row.claim}
+      returned={row.returned}
+      provenance={provenanceParts(row)}
+      trailing={<ProvenanceChip state={row.state} shape="stamp" size="sm" />}
+    />
+  );
+}
+
+export function CapsuleRows({ children }: { children: React.ReactNode }) {
+  return <ul className="evidence-capsule__rows">{children}</ul>;
+}
+
+export function CapsuleFoot({ children }: { children: React.ReactNode }) {
+  return <div className="evidence-capsule__foot">{children}</div>;
+}
+
+/* -------------------------------------------------------------- live faces */
 
 export function EvidenceCapsuleResolved({
   model,
@@ -131,7 +190,7 @@ export function EvidenceCapsuleResolved({
     );
 
   return (
-    <div className="evidence-capsule" data-evidence-capsule="resolved" data-home-tone="trust">
+    <CapsuleShell face="resolved" data-home-tone="trust">
       {/* A concise announcement. The card itself is not a live region — reading
           every row aloud on arrival buries the part that matters. */}
       <p className="sr-only" role="status">
@@ -140,87 +199,106 @@ export function EvidenceCapsuleResolved({
           : `Lookup complete for NPI ${npi}. No source returned a result.`}
       </p>
 
-      <header className="evidence-capsule__identity">
-        <p className="evidence-capsule__name">{identity.name ?? `NPI ${npi}`}</p>
-        {identity.detail ? <p className="evidence-capsule__detail">{identity.detail}</p> : null}
-        <p className="evidence-capsule__npi">
-          {identity.fromRegistry ? `NPI ${npi} · located in NPPES` : `NPI ${npi}`}
-        </p>
-        {!identity.fromRegistry ? (
-          <p className="evidence-capsule__detail">Registry identity unavailable right now</p>
-        ) : null}
-      </header>
-
-      <Group kind="returned" model={model} />
-      <Group kind="attention" model={model} />
-      <Group kind="unavailable" model={model} />
-
-      <div className="evidence-capsule__next">
-        <p className="evidence-capsule__next-label">Best next step</p>
-        <p className="evidence-capsule__next-line">
-          {nextAction
-            ? `${nextAction} — claim your free CV Wallet to keep this snapshot with you.`
-            : 'Claim your free CV Wallet to keep this snapshot with you and complete the missing evidence.'}
-        </p>
-        <Link href="/onboarding" className="evidence-capsule__cta">
-          Claim your Wallet
-          <svg viewBox="0 0 16 16" className="evidence-capsule__arrow" aria-hidden="true" focusable="false" {...STROKE}>
-            <path d="M2.5 8 H12" />
-            <path d="M8.4 4.4 L12 8 L8.4 11.6" />
-          </svg>
-        </Link>
-      </div>
-
-      <button type="button" onClick={onReset} className="evidence-capsule__reset">
-        Check another NPI
-      </button>
+      <CapsuleHead
+        eyebrow="Evidence record"
+        name={identity.name ?? `NPI ${npi}`}
+        npi={identity.fromRegistry ? `NPI ${npi} · located in NPPES` : `NPI ${npi}`}
+        detail={
+          identity.detail ?? (identity.fromRegistry ? null : 'Registry identity unavailable right now')
+        }
+      />
 
       {/*
-        The limitation stays attached to the evidence, not parked in a footer
-        three sections away. It also states what the capsule does NOT show — a
-        per-check observation time — because the trust-state payload carries
-        none, and silence there would read as "just now".
+        Rows stay GROUPED by kind, and each row also carries its own state chip.
+        The grouping is what a screen-reader user navigates by and what the
+        truth e2e reads; the per-row chip is what stops a heading from being the
+        only thing a sighted reader sees. Both, not either — the group label was
+        never the problem, an unqualified group label was.
       */}
-      <p className="evidence-capsule__limit">
-        A public snapshot of what primary sources return, each at its own cadence shown above. No
-        per-check observation time is available from these sources. This is not a completed
-        credentialing decision — the reviewing institution makes that call.
-      </p>
-    </div>
+      {(['returned', 'attention', 'unavailable'] as const).map((kind) => {
+        const rows = rowsOfKind(model, kind);
+        if (rows.length === 0) return null;
+        return (
+          <section key={kind} className="evidence-capsule__group" data-evidence-group={kind}>
+            <h3 className="evidence-capsule__group-title">{GROUP_LABEL[kind]}</h3>
+            <CapsuleRows>
+              {rows.map((row) => (
+                <CapsuleModelRow key={row.id} row={row} />
+              ))}
+            </CapsuleRows>
+          </section>
+        );
+      })}
+
+      <div className="evidence-capsule__actions">
+        <Link href="/onboarding" className="evidence-capsule__reset" data-home-next-step="">
+          {/*
+            Was "Claim your free CV Wallet". CD-13 retires wallet, crypto and
+            DID vocabulary from the entire acquisition path, and `wallet` is in
+            the shipped BUYER_BANNED_STRINGS list — so the homepage's own
+            success state was carrying a term the product bans everywhere else.
+            The honest next step is the one the route actually performs.
+          */}
+          Keep this record
+        </Link>
+        <button type="button" onClick={onReset} className="evidence-capsule__reset">
+          Check another NPI
+        </button>
+      </div>
+
+      <CapsuleFoot>
+        {nextAction ? <p className="evidence-capsule__limit">{nextAction}</p> : null}
+        {/*
+          The limitation stays attached to the evidence, not parked in a footer
+          three sections away. It also states what the capsule does NOT show — a
+          per-check observation time — because the trust-state payload carries
+          none, and silence there would read as "just now".
+        */}
+        <p className="evidence-capsule__limit">
+          A public snapshot of what primary sources return, each at its own cadence shown above. No
+          per-check observation time is available from these sources. This is not a completed
+          credentialing decision — the reviewing institution makes that call.
+        </p>
+      </CapsuleFoot>
+    </CapsuleShell>
   );
 }
 
 export function EvidenceCapsuleResolving({ children }: { children: React.ReactNode }) {
   return (
-    <div
-      className="evidence-capsule evidence-capsule--resolving"
-      data-evidence-capsule="resolving"
-      data-home-tone="paper"
-      aria-live="polite"
-    >
+    <CapsuleShell face="resolving" data-home-tone="paper" aria-live="polite">
       {children}
-    </div>
+    </CapsuleShell>
   );
 }
 
 export function EvidenceCapsuleError({ npi, onReset }: { npi: string; onReset: () => void }) {
   return (
-    <div className="evidence-capsule" data-evidence-capsule="system-error" data-home-tone="paper">
+    <CapsuleShell face="system" data-home-tone="paper">
       {/*
         A SYSTEM state, deliberately not styled as a finding. No danger surface,
         no red mark, no failed-credential vocabulary: the registry did not
         answer, which says nothing whatsoever about this provider.
       */}
-      <p className="evidence-capsule__name" role="status">
-        We couldn&rsquo;t reach the registry
+      {/* Same announcement pattern as the resolved face: one concise sentence in
+          a live region, so a screen-reader user learns the lookup ended without
+          having to go find the card. The card itself is not the live region. */}
+      <p className="sr-only" role="status">
+        Lookup could not complete for NPI {npi}. No source answered, so there is no result to read.
       </p>
-      <p className="evidence-capsule__returned">
-        This is a system state, not a finding about NPI {npi}. No source answered, so there is no
-        result to read in either direction. Check the number and try again.
-      </p>
-      <button type="button" onClick={onReset} className="evidence-capsule__retry">
-        Try another NPI
-      </button>
-    </div>
+
+      <CapsuleHead eyebrow="Evidence record" name="We couldn't reach the registry" />
+      <CapsuleFoot>
+        <p className="evidence-capsule__limit">
+          This is a system state, not a finding about NPI {npi}. No source answered, so there is no
+          result to read in either direction. Check the number and try again.
+        </p>
+      </CapsuleFoot>
+      <div className="evidence-capsule__actions">
+        <button type="button" onClick={onReset} className="evidence-capsule__reset">
+          Try another NPI
+        </button>
+      </div>
+    </CapsuleShell>
   );
 }

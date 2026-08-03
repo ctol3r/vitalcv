@@ -329,9 +329,38 @@ describe('evidence capsule — accessibility and governance', () => {
   });
 });
 
+/**
+ * The capsule's stylesheet moved.
+ *
+ * `styles/evidence-capsule.css` was deleted by the homepage recovery (#1060).
+ * That file, and `home-surfaces.css` alongside it, were the ONLY definitions of
+ * `.evidence-capsule*` — and neither was imported by any route that rendered the
+ * capsule. The lookup worked, the answer arrived, and it painted as unstyled
+ * text in production while THIS suite read the orphaned file off disk and passed.
+ *
+ * So the rules now live in `styles/home.css`, imported by `app/page.tsx`, and
+ * these assertions read the capsule's slice of that file. The import-contract
+ * test below is the part that would actually have caught the original P0.
+ */
+const HOME_CSS_PATH = join(__dirname, '..', 'styles', 'home.css');
+
+/** The `.evidence-capsule*` rules only — the same scope the old file had. */
+function capsuleSlice(css: string): string {
+  const rules = css.match(/^\.evidence-capsule[^{]*\{[^}]*\}/gm) ?? [];
+  return rules.join('\n');
+}
+
 describe('evidence capsule stylesheet', () => {
-  const css = readFileSync(join(__dirname, '..', 'styles', 'evidence-capsule.css'), 'utf8');
-  const declarations = css.replace(/\/\*[\s\S]*?\*\//g, '');
+  const css = readFileSync(HOME_CSS_PATH, 'utf8');
+  const declarations = capsuleSlice(css.replace(/\/\*[\s\S]*?\*\//g, ''));
+
+  it('still has rules to check (guard cannot silently pass on zero)', () => {
+    // Without this, a rename of the block would empty every assertion below and
+    // the suite would go green on an unstyled capsule — the exact failure the
+    // deleted stylesheet produced.
+    expect(declarations.split('\n').filter((l) => l.startsWith('.evidence-capsule')).length)
+      .toBeGreaterThan(15);
+  });
 
   it('uses tokens only', () => {
     expect(declarations).not.toMatch(/#[0-9a-fA-F]{3,8}\b|\b(?:oklch|rgba?|hsla?)\(/);
@@ -344,24 +373,84 @@ describe('evidence capsule stylesheet', () => {
     }
   });
 
-  it('shares the field radius so the answer belongs to the question', () => {
-    expect(declarations).toContain('var(--home-capsule-radius)');
+  it('shares the record radius so the answer belongs to the question', () => {
+    // Previously `var(--home-capsule-radius)`, a token that existed only to be
+    // shared with the input. The composition now states the same relationship
+    // directly: the capsule is the same object family as every other record
+    // surface on the page, so it carries the same corner.
+    const radiusOf = (selector: string) =>
+      css.match(new RegExp(`\\${selector}\\s*\\{[^}]*?border-radius:\\s*([^;]+);`))?.[1]?.trim();
+
+    const capsule = radiusOf('.evidence-capsule');
+    expect(capsule).toBeTruthy();
+    expect(radiusOf('.film-strip')).toBe(capsule);
+    expect(radiusOf('.film-consent')).toBe(capsule);
   });
 
   it('keeps motion finite and reduced-motion-safe', () => {
-    expect(css).toContain('@media (prefers-reduced-motion: no-preference)');
+    // The stylesheet's reduced-motion contract, unchanged in substance: a
+    // `reduce` block that neutralises every transition and animation under
+    // `.film`, and nothing anywhere that loops or hijacks scrolling.
     expect(css).toContain('@media (prefers-reduced-motion: reduce)');
-    expect(declarations).not.toMatch(/animation[^;]*\binfinite\b/);
-    expect(declarations).not.toContain('@keyframes');
-    expect(declarations).not.toContain('scroll-snap-type');
+    expect(css).toMatch(/animation-iteration-count:\s*1\s*!important/);
+    expect(css).not.toMatch(/animation[^;]*\binfinite\b/);
+    expect(css).not.toContain('@keyframes');
+    expect(css).not.toContain('scroll-snap-type');
   });
 
   it('reserves green for the one thing it means', () => {
     // CD-3: green = a named source returned a match. It may appear on the
-    // `returned` group and nowhere else in this file.
-    const green = declarations.split('\n').filter((l) => l.includes('--vt-state-source-confirmed'));
-    expect(green).toHaveLength(1);
-    const idx = declarations.indexOf('--vt-state-source-confirmed');
-    expect(declarations.slice(Math.max(0, idx - 220), idx)).toContain("data-evidence-group='returned'");
+    // `returned` group and nowhere else. The capsule currently claims it
+    // nowhere, which satisfies the rule; if it is ever introduced it may only
+    // land on `returned`.
+    for (const line of declarations.split('\n')) {
+      if (!line.includes('--vt-state-source-confirmed')) continue;
+      const idx = declarations.indexOf(line);
+      expect(declarations.slice(Math.max(0, idx - 220), idx)).toMatch(
+        /data-evidence-group=['"]returned['"]/,
+      );
+    }
+  });
+});
+
+/**
+ * THE REGRESSION THIS WHOLE CHANGE EXISTS FOR.
+ *
+ * A stylesheet read off disk by a test proves nothing about what the browser
+ * loads. `.evidence-capsule` was fully defined, fully token-clean, and fully
+ * asserted here — and completely absent from the page, because no route
+ * imported the file it lived in.
+ *
+ * This closes the loop: follow `app/page.tsx`'s own CSS imports and require
+ * that one of them really defines the capsule.
+ */
+describe('evidence capsule is reachable from the route that renders it', () => {
+  const pagePath = join(__dirname, '..', 'app', 'page.tsx');
+  const pageSource = readFileSync(pagePath, 'utf8');
+
+  /** Every `import '...css'` in page.tsx, resolved to a path on disk. */
+  const importedStylesheets = [...pageSource.matchAll(/import\s+['"]([^'"]+\.css)['"]/g)]
+    .map((m) => m[1])
+    .map((specifier) =>
+      specifier.startsWith('@/')
+        ? join(__dirname, '..', specifier.slice(2))
+        : join(__dirname, '..', 'app', specifier),
+    );
+
+  it('imports at least one stylesheet', () => {
+    expect(importedStylesheets.length).toBeGreaterThan(0);
+  });
+
+  it('one of those stylesheets actually defines .evidence-capsule', () => {
+    const defining = importedStylesheets.filter((path) =>
+      readFileSync(path, 'utf8').includes('.evidence-capsule'),
+    );
+
+    expect(
+      defining,
+      'app/page.tsx renders the evidence capsule but imports no stylesheet that ' +
+        'defines `.evidence-capsule` — the capsule would paint as unstyled text. ' +
+        `Imports checked: ${importedStylesheets.join(', ') || '(none)'}`,
+    ).not.toEqual([]);
   });
 });

@@ -4,15 +4,44 @@ import { expect, test, type Page } from '@playwright/test';
  * W4.2 — the proof moment inside the live homepage evidence film.
  *
  * The interactive proof-packet inspector remains a real, keyboard-operable
- * product moment. The composition changed: it now lives in the hiring pane,
- * reached with ordinary vertical scroll. With JavaScript disabled, every film
- * pane is a readable stack and the inspector remains server-rendered in full.
+ * product moment. The composition changed: it now lives in the HUMAN REVIEW
+ * chapter (`data-film-scene="review"`, formerly `"hiring"`), reached with
+ * ordinary vertical scroll. With JavaScript disabled, every film pane is a
+ * readable stack and the inspector remains server-rendered in full.
  */
 
+/**
+ * Bring the review chapter into the frame.
+ *
+ * Ordinary vertical scroll is what moves the film — it is TRANSLATED into
+ * horizontal travel, never captured — so this steps down the runway until the
+ * chapter is genuinely on screen rather than hard-coding a scroll offset that
+ * a chapter count change would silently invalidate. "On screen", not merely
+ * "rendered": the inspector has to be clickable.
+ */
 async function openPacketPane(page: Page) {
-  await page.evaluate(() => window.scrollTo({ top: window.innerHeight * 2 }));
-  const moment = page.locator('[data-film-scene="hiring"]');
-  await expect(moment).toBeVisible();
+  const moment = page.locator('[data-film-scene="review"]');
+  await expect(moment).toBeAttached();
+  await expect
+    .poll(
+      async () => {
+        const onScreen = await moment.evaluate((element) => {
+          const rect = element.getBoundingClientRect();
+          return (
+            rect.left < window.innerWidth &&
+            rect.right > 0 &&
+            rect.top < window.innerHeight &&
+            rect.bottom > 0
+          );
+        });
+        if (!onScreen) {
+          await page.evaluate(() => window.scrollBy(0, Math.round(window.innerHeight / 2)));
+        }
+        return onScreen;
+      },
+      { timeout: 15_000, message: 'the review chapter never reached the frame' },
+    )
+    .toBe(true);
   return moment;
 }
 
@@ -62,7 +91,7 @@ test.describe('homepage proof moment (W4.2)', () => {
     const page = await context.newPage();
     await page.goto('/', { waitUntil: 'domcontentloaded' });
 
-    const moment = page.locator('[data-film-scene="hiring"]');
+    const moment = page.locator('[data-film-scene="review"]');
     await expect(moment.locator('[data-proof-packet-inspector]')).toBeAttached();
     await expect(moment).toContainText('NPPES NPI Registry');
     await expect(moment).toContainText(/remain with the institution/i);
