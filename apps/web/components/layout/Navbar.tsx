@@ -39,7 +39,11 @@ const NAV_GROUPS = [
   {
     id: 'clinicians',
     label: 'Clinicians',
-    blurb: 'Start with your NPI and see what employers can confirm today.',
+    // Deliberately does NOT repeat the hero's "Start with your NPI". The panel
+    // sits before the page content in DOM order and is hidden while collapsed,
+    // so a shared phrase makes `getByText(...).first()` resolve to an invisible
+    // node — which is exactly how this broke the homepage's own copy assertion.
+    blurb: 'Your record, assembled from the sources employers already trust.',
     links: [
       { href: '/onboarding', label: 'Check your readiness', detail: 'Begin with your NPI' },
       { href: '/passport', label: 'Your evidence record', detail: 'What travels, and what you hold' },

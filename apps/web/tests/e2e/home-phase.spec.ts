@@ -32,10 +32,15 @@ test.describe('evidence-film progression', () => {
     await page.goto('/', { waitUntil: 'networkidle' });
 
     const film = page.locator('.film');
-    const track = page.locator('.film-track');
+    const track = page.locator('.film-stage-rail');
     await expect(film).toHaveAttribute('data-film-mode', 'vertical'); // page-wide travel retired 2026-08-03
     const before = await track.evaluate((element) => getComputedStyle(element).transform);
-    await page.evaluate(() => window.scrollTo({ top: window.innerHeight * 3 }));
+    // Scroll INTO the sticky stage — that is where the rail travels now.
+    await page.evaluate(() => {
+      const spacer = document.querySelector('.film-stage-spacer');
+      const top = (spacer?.getBoundingClientRect().top ?? 0) + window.scrollY;
+      window.scrollTo(0, top + window.innerHeight);
+    });
     await expect.poll(() => track.evaluate((element) => getComputedStyle(element).transform)).not.toBe(before);
   });
 

@@ -91,9 +91,14 @@ test.describe('homepage evidence film', () => {
     // was deliberately withdrawn.
     await expect(page.locator('.film')).toHaveAttribute('data-film-mode', 'vertical');
 
-    const track = page.locator('.film-track');
+    const track = page.locator('.film-stage-rail');
     const before = await track.evaluate((element) => getComputedStyle(element).transform);
-    await page.evaluate(() => window.scrollTo({ top: window.innerHeight * 2 }));
+    // Scroll INTO the sticky stage — that is where the rail travels now.
+    await page.evaluate(() => {
+      const spacer = document.querySelector('.film-stage-spacer');
+      const top = (spacer?.getBoundingClientRect().top ?? 0) + window.scrollY;
+      window.scrollTo(0, top + window.innerHeight);
+    });
     await expect
       .poll(() => track.evaluate((element) => getComputedStyle(element).transform))
       .not.toBe(before);

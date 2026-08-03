@@ -164,6 +164,23 @@ export function HorizontalCareerFilm() {
     stageRef,
   );
 
+  /**
+   * Adopt anything typed before hydration.
+   *
+   * The field is server-rendered and focusable immediately, so a fast visitor
+   * can type a full NPI before React attaches its change handler. The digits
+   * land in the DOM, `raw` stays empty, and the submit button sits disabled on
+   * a field that visibly contains a valid number — the input is stranded.
+   *
+   * Reading the live value once on mount closes that window. It is not a test
+   * accommodation: it is the only path by which a real person's first
+   * keystrokes can otherwise be silently discarded.
+   */
+  React.useEffect(() => {
+    const typed = npiInputRef.current?.value ?? '';
+    if (typed) setRaw((current) => (current ? current : typed));
+  }, []);
+
   // The funnel's denominator.
   React.useEffect(() => {
     trackFunnelEvent(FUNNEL_EVENTS.HOMEPAGE_VIEWED);
