@@ -145,6 +145,7 @@ export function NpiActivation({ sealedFace }: Props) {
           rides inside the opportunity card as an attached token, becomes the
           employer's sealed packet, and stays with the clinician at the end. */}
       <div className="z1-story" data-lit={lit ? '' : undefined} aria-label="How VitalCV works">
+        <span className="z1-live-chip"><span className="z1-live-dot" aria-hidden="true" />Live preview · reacts to your typing</span>
 
         {/* 1 · the number, as a real field echo */}
         <div className="z1-node z1-npi-node" data-on={digits.length > 0 || lit ? '' : undefined}>

@@ -15,13 +15,36 @@
 
 .z1-page{background:var(--paper)}
 
-/* Page-scoped navigation scale. The GLOBAL Navbar ships at text-sm and is
-   used by the public homepage, which this slice must not alter — so the
-   16→17px direction is applied only while this preview is on screen. If the
-   founder approves this scale, the global bump is a separate, deliberate
-   change. */
+/* Page-scoped navigation treatment. The GLOBAL Navbar is shared with the
+   public homepage, which this slice must not alter — every rule here applies
+   only while this preview is on screen (body:has). If the founder approves,
+   the global change is a separate, deliberate PR.
+
+   GLASS ON CHROME is doctrine (CD-12): the bar frosts over the page while
+   evidence stays solid. The ANIMATED OUTLINE is a slow indigo current along
+   the bar's lower edge — alive, never flashing; gone under reduced motion. */
 body:has(.z1-page) header.sticky.top-0.z-50 nav button,
 body:has(.z1-page) header.sticky.top-0.z-50 a{font-size:17px}
+
+body:has(.z1-page) header.sticky.top-0.z-50 > div,
+body:has(.z1-page) header.sticky.top-0.z-50{
+  background:color-mix(in oklab, #F0EEE9 62%, transparent);
+  -webkit-backdrop-filter:blur(14px) saturate(1.5);
+  backdrop-filter:blur(14px) saturate(1.5);
+}
+body:has(.z1-page) header.sticky.top-0.z-50{position:sticky}
+body:has(.z1-page) header.sticky.top-0.z-50::after{
+  content:'';position:absolute;left:0;right:0;bottom:0;height:2px;
+  background:linear-gradient(90deg,
+    transparent 0%, #B9B3A6 18%, #4338CA 38%, #0E0D0B 52%, #4338CA 66%, #B9B3A6 82%, transparent 100%);
+  background-size:220% 100%;
+  animation:z1-nav-current 9s linear infinite;
+  opacity:.85;
+}
+@keyframes z1-nav-current{from{background-position:0% 0}to{background-position:220% 0}}
+@media (prefers-reduced-motion:reduce){
+  body:has(.z1-page) header.sticky.top-0.z-50::after{animation:none;background-size:100% 100%}
+}
 
 /* ---- hero ----------------------------------------------------------------
    Left: one headline, one support line, one activation instrument, the demo
@@ -487,6 +510,107 @@ body:has(.z1-page) header.sticky.top-0.z-50 a{font-size:17px}
 @media (max-width:1080px){
   .z1-keep-stage{grid-template-columns:minmax(0,1fr);row-gap:26px}
   .z1-handoff-arrow{margin-top:0}
+}
+
+/* ---- explainer motion + medical theme ------------------------------------
+   Ambient, looping, GIF-like explainers built in CSS: the profile token
+   travels the hero spine, MATCHA's tie-line flows toward the match, panes
+   slide between interface states, and an EKG pulse line divides chapters.
+   Every loop dies under prefers-reduced-motion; nothing meaningful is only
+   in the motion. */
+
+/* the KO token travels the lit story spine — the record moving through the
+   product, on loop */
+.z1-story[data-lit]::after{
+  content:'KO';
+  position:absolute;left:8px;top:0;
+  width:22px;height:22px;margin-left:-10px;border-radius:50%;
+  background:var(--ink-strong);color:var(--raised);
+  font-family:var(--sans);font-size:9px;font-weight:600;
+  display:flex;align-items:center;justify-content:center;
+  animation:z1-spine-travel 7s ease-in-out infinite;
+}
+@keyframes z1-spine-travel{
+  0%{top:2%;opacity:0}6%{opacity:1}
+  30%{top:34%}55%{top:62%}82%{top:90%;opacity:1}
+  92%,100%{top:94%;opacity:0}
+}
+
+/* MATCHA's tie flows FROM the profile INTO the dominant match */
+.z1-discover-profile::after{
+  background:repeating-linear-gradient(90deg,
+    var(--rule-strong) 0 10px, var(--ink-strong) 10px 16px);
+  background-size:26px 100%;
+  animation:z1-tie-flow 1.6s linear infinite;
+}
+@keyframes z1-tie-flow{from{background-position:0 0}to{background-position:26px 0}}
+
+/* sliding panes: content keyed by state slides in from the right */
+@keyframes z1-slide-in{from{opacity:0;transform:translateX(22px)}to{opacity:1;transform:none}}
+.z1-pane-slide{animation:z1-slide-in .32s ease both}
+
+/* the loop-closure mark slowly turns — the loop is alive */
+.z1-loop-close::before{
+  display:inline-block;
+  animation:z1-loop-turn 8s linear infinite;
+}
+@keyframes z1-loop-turn{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+
+/* EKG pulse divider — the page's medical signature. Drawn stroke on loop. */
+.z1-pulse{
+  display:block;width:100%;height:34px;margin:0;
+  color:var(--rule-strong);
+}
+.z1-pulse path{
+  stroke:currentColor;stroke-width:1.6;fill:none;
+  stroke-dasharray:640;stroke-dashoffset:640;
+  animation:z1-pulse-draw 5.5s linear infinite;
+}
+.z1-pulse-beat{color:var(--accent);opacity:.9}
+@keyframes z1-pulse-draw{
+  0%{stroke-dashoffset:640}55%{stroke-dashoffset:0}
+  80%{stroke-dashoffset:0;opacity:1}100%{stroke-dashoffset:0;opacity:0}
+}
+
+/* interactive weight on every control: lift on hover, seat on press */
+.z1-apply,.z1-npi-submit,.z1-step,.z1-chip,.z1-opp--secondary{
+  transition:transform .16s ease,border-color .2s ease,background-color .2s ease,opacity .2s ease;
+}
+.z1-apply:hover,.z1-npi-submit:hover{transform:translateY(-1px)}
+.z1-apply:active,.z1-npi-submit:active,.z1-step:active,.z1-chip:active{transform:translateY(1px)}
+.z1-step:hover{border-color:var(--ink-strong);opacity:1}
+.z1-opp--secondary:hover{transform:translateX(3px)}
+
+/* the story column announces that it is a live preview of the control */
+.z1-live-chip{
+  align-self:flex-start;
+  display:inline-flex;align-items:center;gap:8px;
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--ink-subtle);border:1px solid var(--rule-strong);border-radius:4px;
+  padding:4px 9px;margin:0 0 10px;
+}
+.z1-live-dot{
+  width:7px;height:7px;border-radius:50%;background:var(--accent);
+  animation:z1-live-blink 2.2s ease-in-out infinite;
+}
+@keyframes z1-live-blink{0%,100%{opacity:.35}50%{opacity:1}}
+
+/* chapter eyebrow icons — clinician iconography, ink, 1.5px strokes */
+.z1-eyebrow{display:flex;align-items:center;gap:9px}
+.z1-eyebrow svg{width:17px;height:17px;stroke-width:1.75;color:var(--ink-muted)}
+.z1-opp-org{display:flex;align-items:center;gap:7px}
+.z1-opp-org svg{width:15px;height:15px;stroke-width:1.75;color:var(--ink-subtle);flex:none}
+.z1-step svg{width:17px;height:17px;stroke-width:1.75}
+
+@media (prefers-reduced-motion:reduce){
+  .z1-story[data-lit]::after,
+  .z1-discover-profile::after,
+  .z1-loop-close::before,
+  .z1-pulse path,
+  .z1-live-dot{animation:none}
+  .z1-pulse path{stroke-dashoffset:0}
+  .z1-pane-slide{animation:none}
+  .z1-apply,.z1-npi-submit,.z1-step,.z1-chip,.z1-opp--secondary{transition:none}
 }
 
 /* ---- reveal --------------------------------------------------------------
