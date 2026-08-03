@@ -52,23 +52,74 @@ range checks, scripted scroll sampling. Nothing eyeballed.
 JS-driven tweens (overlay clip, button reveals, accordion height) are marked
 **OBSERVED BUT NOT PRECISELY MEASURABLE** rather than guessed.
 
-### The finding that changes this program's brief
+### CORRECTED 2026-08-03 — an over-claim, and what the evidence actually supports
 
-**Zoox has NO horizontal rails. At any width. On any route measured.**
-CONFIDENCE: **MEASURED** — zero elements with `overflow-x: auto|scroll` whose
-`scrollWidth` exceeds `clientWidth` at 390 or 1440; zero scroll-snap
-containers. The earlier atlas finding ("sliding elements: not observed") was
-not a gap in observation. It is the truth.
+An earlier revision of this document asserted **"Zoox has NO horizontal rails,
+at any width, on any route."** That was wrong, and it is corrected here rather
+than quietly edited, because a fresh session would otherwise act on it.
 
-What exists instead is a **10% overscale reserve with VERTICAL travel only** —
-image held at `scale(1.10)` inside `overflow: hidden`, translated ~34px
-vertically, container/content ratio 1.05, *identical at both breakpoints*.
+**What the measurement supports:**
 
-Consequence for VitalCV, stated plainly: the horizontal sliding this program
-asks for is **not** a Zoox behaviour and cannot be justified by reference to
-it. It must stand on VitalCV's own argument — that one record travels from
-holder to recipient — or be dropped. This is a founder decision, not an
-implementation detail.
+> No `overflow-x: auto|scroll` container whose `scrollWidth` exceeded its
+> `clientWidth` was found, and no scroll-snap container was found, at the
+> sampled viewports and the sampled scroll positions.
+
+**What it does NOT support:**
+
+> Zoox contains no horizontal movement.
+> Zoox contains no scroll-linked visual choreography.
+
+Those are different claims, and only the first was measured. Perceived movement
+can arise through routes this method never inspected: nested descendants rather
+than sampled sections · WebGL or canvas rendering · video or image-sequence
+progression · clip-path and mask animation · opacity and state replacement ·
+sticky positioning · transforms occurring *between* sample points ·
+interaction-triggered states · browser animations invisible to a computed-style
+snapshot. Note that this same pass separately measured portrait **scrub
+canvases** at 390 — which is scroll-linked media progression, and is itself
+evidence that choreography exists outside the transform-sampling method.
+
+The honest status is **NOT CONFIRMED**, not "absent".
+
+### Two references, never blended
+
+The fresh session must keep these apart and label every behaviour:
+
+| Source | Definition |
+| --- | --- |
+| **REFERENCE A — CURRENT LIVE ZOOX** | What zoox.com visibly and measurably does today |
+| **REFERENCE B — AWARD-WINNING ZOOX EXPERIENCE** | What Dogstudio and reliable historical records describe of the original immersive implementation (3D assets, real-time WebGL, scroll mechanics) |
+
+Labels: `CURRENT LIVE — MEASURED` · `CURRENT LIVE — OBSERVED` ·
+`HISTORICAL EXPERIENCE — DOCUMENTED` · `HISTORICAL EXPERIENCE — INFERRED` ·
+`NOT CONFIRMED`.
+
+Reference B is evidence about the historical award-winning experience. It is
+**not** automatic proof of what the 2026 production site does, and it must not
+be cited as though it were.
+
+### What this means for VitalCV's horizontal rails — SETTLED, they stay
+
+The rails are **not** removed because a measurement failed to find the same
+device on someone else's site. The governing principle:
+
+> The page remains vertically navigated. Internal evidence media may move
+> horizontally when that movement clearly explains **formation, inspection,
+> permission, or handoff.**
+
+Each rail must earn its place from VitalCV's own product story — source
+fragments converging · the record progressing through states · selected
+evidence separating · the recipient packet arriving · the next frame staying
+partially visible. The target is Zoox-level visual storytelling and coherence,
+**not a literal inventory match** in which VitalCV may only use an interaction
+that Zoox also uses.
+
+### What was measured, stated at its true strength
+
+A **10% overscale reserve with vertical travel** — image at `scale(1.10)`
+inside `overflow: hidden`, ~34px of vertical movement, container/content ratio
+1.05, identical at both breakpoints.
+CONFIDENCE: **CURRENT LIVE — MEASURED.**
 
 ### M2 — The menu is a clip dilation from the nav capsule's own footprint
 

@@ -65,11 +65,14 @@ outstanding piece of Z0.
 
 ## Unresolved reference questions
 
-1. ~~Does horizontal travel exist?~~ **RESOLVED: NO.** Measured — zero
-   `overflow-x` containers exceeding their client width at 390 or 1440, zero
-   scroll-snap, on every route. Horizontal sliding is **not** a Zoox behaviour.
-   It must stand on VitalCV's own argument or be dropped. **This is the open
-   founder decision.**
+1. **Does scroll-linked / horizontal movement exist on current Zoox?**
+   **NOT CONFIRMED** — an earlier revision wrongly wrote "resolved: no". The
+   method sampled section-level transforms at six depths and found none; that
+   does not establish absence. Portrait scrub canvases measured at 390 are
+   themselves evidence of scroll-linked media progression outside that method.
+   **VitalCV's horizontal evidence rails STAY**, justified by VitalCV's own
+   product story (formation, inspection, permission, handoff) — not by a
+   reference inventory match. No founder decision is outstanding on this.
 2. ~~Media radii unanchored?~~ **RESOLVED.** Measured ladder: media 36px ·
    buttons/cards 16px · nav capsule 18px · qualifier tag 12px · media frames
    0px. Radius is a **clip variable**, not a border property.
@@ -81,8 +84,10 @@ outstanding piece of Z0.
 ## Storyboard status by scene
 
 Desktop 01–13: **all pending**. Mobile 01–09: **all pending**.
-Living Evidence Record anatomy and eleven faces: **COMPLETE** — this is the
-part a fresh session should not redo.
+Living Evidence Record anatomy and eleven faces: **PROVISIONALLY ACCEPTED by
+the founder — do not restart them.** Explicitly *not* visually approved: the
+written concept may still render badly, and it is not approved until the
+founder sees the object.
 
 ## Media shot-list status
 
@@ -114,14 +119,35 @@ cd /tmp/vitalcv-homepage-recovery-approved 2>/dev/null || \
 git fetch origin && git checkout design/zoox-fidelity-z0 && git pull --rebase
 ```
 
-Then, in order:
-1. Re-dispatch the two measurement passes and synthesise them into
-   `zoox-fidelity-measurement.md` with confidence labels.
-2. Build the storyboard as an **isolated HTML prototype** under
-   `artifacts/zoox-fidelity-z0/` — not a public route — rendering the eleven
-   faces and the 22 frames, then capture stills and an animatic (GIF/MP4, not
-   `.webm`).
-3. Post the package to #1069 and stop.
+**Do not create a new Z0 branch or PR.** Continue on this one, in this order:
+
+1. Collect both measurement-agent outputs (Pass 2 is already synthesised).
+2. **Separate REFERENCE A (current live) from REFERENCE B (historical
+   award-winning experience, per Dogstudio and reliable records). Never blend
+   them.** Label every behaviour `CURRENT LIVE — MEASURED` / `CURRENT LIVE —
+   OBSERVED` / `HISTORICAL EXPERIENCE — DOCUMENTED` / `HISTORICAL EXPERIENCE —
+   INFERRED` / `NOT CONFIRMED`.
+3. **Improve movement detection wherever the first pass was inconclusive.** At
+   each sample inspect *all visible descendants* — not just sections — for
+   bounding-box movement relative to the viewport, transform matrices, opacity,
+   clip-path, mask properties, sticky/fixed state, canvas presence and size,
+   video currentTime, image source changes, active classes and data
+   attributes, and screenshot/frame differences. Sample continuously or at
+   much smaller increments through the major sections, not six page depths.
+   Also exercise: normal scroll · slow scroll · reverse scroll · pointer hover
+   · button hover · keyboard focus · mobile touch · nav open and group change.
+   **The goal is what the visitor perceives, not which implementation is used.**
+4. Synthesise the measurement document.
+5. Draw the thirteen desktop frames.
+6. Draw the nine **independently composed** mobile frames.
+7. Produce the playable animatic (GIF/MP4 — never a `.webm` the founder must
+   download).
+8. Complete the production-ready media shot list.
+9. Post everything **inline** to #1070 and #1069.
+10. Stop for founder approval.
+
+Build the storyboard as an isolated HTML prototype under
+`artifacts/zoox-fidelity-z0/` — never a public application route.
 
 ## HARD STOP
 
