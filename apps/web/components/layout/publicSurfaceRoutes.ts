@@ -24,6 +24,13 @@ export const PUBLIC_SURFACE_PATHS = new Set([
   '/terms',
   '/contact',
   '/trust',
+  // The Z1 homepage story preview. It must be judged WITH the real global
+  // Navbar — the nav shell is part of the composition — so this one route is
+  // exempt from the /design self-chrome rule below, mirroring how
+  // /dev/compete-film is scoped against the /dev blanket. The /design layout
+  // gate still 404s it in canonical production.
+  '/design/z1-home',
+  '/design/reset',
 ]);
 
 export function isPublicSafe(route: string): boolean {
@@ -62,6 +69,24 @@ export const OPS_SURFACE_PREFIXES = [
   // static transparency page (SHD-0.3 quarantine) rendered with standard site
   // chrome; the explorable graph lives on signed-in surfaces only.
 ] as const;
+
+/**
+ * Routes exempt from an OPS_SURFACE_PREFIXES match. The Z1 homepage story
+ * must be reviewed with the real public chrome — the nav shell is part of the
+ * composition — while every other /design reference keeps its self-chrome.
+ * Scope the exception to ONE route, never widen the rule (the
+ * /dev/compete-film pattern).
+ */
+export const OPS_SURFACE_EXEMPTIONS = new Set<string>(['/design/z1-home', '/design/reset']);
+
+/** The single chrome decision: ops shell, or public Navbar+Footer. */
+export function isOpsSurfacePath(pathname: string | null): boolean {
+  if (!pathname) return false;
+  if (OPS_SURFACE_EXEMPTIONS.has(pathname)) return false;
+  return OPS_SURFACE_PREFIXES.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+  );
+}
 
 const PREFIX_MATCHERS = [
   '/demo',
