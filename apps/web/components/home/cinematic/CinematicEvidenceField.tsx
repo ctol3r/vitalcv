@@ -124,16 +124,21 @@ export function CinematicEvidenceField() {
             x2="570"
             y2="336"
           />
-          <circle
-            className="cinematic-evidence-field__seal"
-            cx="548"
-            cy="382"
-            r="18"
-          />
-          <path
-            className="cinematic-evidence-field__tick"
-            d="M 539 382 l 6 6 l 12 -14"
-          />
+          {/*
+            NO SEAL, NO TICK. This card used to carry a checkmark in a circle,
+            painted in `--vt-state-source-confirmed` — so the homepage showed a
+            green confirmed mark on "YOUR RECORD" permanently, before anyone
+            had typed an NPI.
+
+            Phase-gating it does not rescue it: `resolved` includes exclusions
+            and attention states, so a generic success mark is dishonest at
+            EVERY phase, not just at rest. The atmosphere is decorative and
+            therefore may never assert a source outcome at all (RISK 1).
+
+            One component away, `evidence-input.css` already refuses green for a
+            checksum-valid NPI: "green means exactly one thing — a named source
+            returned a match". The same rule has to bind the decoration.
+          */}
         </g>
 
         <text className="cinematic-evidence-field__caption" x="512" y="514" textAnchor="middle">

@@ -108,6 +108,27 @@ Every asserted fact in VitalCV resolves to exactly one of these. There are no ot
 
 One dark theme exists. It is **warm graphite, not blue-black** — `#161513` field, `#1E1C19` raised, `#EDEAE3` ink — and it applies to signed-in workspace surfaces only. **Public and marketing surfaces are paper-only and do not flip.** State hues re-anchor lightness only; hue and chroma hold within ΔE 2.
 
+> **Amendment 2026-08-02 (per CD-19). One public Ink chapter.**
+>
+> The public experience remains **predominantly Paper**. One — and only one —
+> full-bleed warm-graphite chapter is permitted within the homepage journey, as a
+> tonal shift in the argument.
+>
+> **Conditions, all required:**
+> - **Full-bleed.** It spans the viewport edge to edge. It is a *chapter*, not a card.
+> - **Evidence inside it stays Paper.** Any artifact asserting a fact renders as
+>   opaque paper on a hairline, exactly as CD-12 requires. Ink is the ground behind
+>   the evidence, never the evidence itself.
+> - **One per page.** A second Ink chapter is a rejection.
+> - **Contrast floor unchanged.** CD-15's AA minimum applies identically.
+> - **Not a theme flip.** No `data-theme` on a public route, no `--ops-*` token
+>   borrowing. The chapter declares its own surface; the page does not change mode.
+>
+> **This is not permission for dark dashboard cards on marketing routes.** CD-13
+> retires "dark boxes on the marketing page" and that stays retired — the whole
+> point of requiring full-bleed is that a dark *box* and a dark *chapter* are
+> different objects. A dark card island is still a rejection.
+
 ---
 
 ## Part IV — Typography
@@ -187,10 +208,48 @@ State stamps are 3px rectangles. A record carries stamps, not pills — and that
 
 Rules:
 - **Single-shot.** An element reveals once and stays. No scrub-reverse, no replay on scroll-up, no loops.
-- **Opacity-preferred.** Opacity-only reveals are CLS-safe and fall outside WCAG 2.3.3. Displacement, when used, is capped at **8px**.
-- **Nothing idles.** No shimmer, no pulse, no breathing glow, no animated checkmark, no confetti, no count-up theatre.
+- **Opacity-preferred.** Opacity-only reveals are CLS-safe and fall outside WCAG 2.3.3.
+- **Displacement is capped at 8px — for anything a reader must read.** One narrow class of object is exempt; see the amendment below.
+- **Nothing idles.** No shimmer, no pulse, no breathing glow, no animated checkmark, no confetti, no count-up theatre. Motion ends when scrolling ends.
 - **The truth rule:** a number may animate only from a real returned value to a real returned value. Illustrative and benchmark figures are static and labeled.
 - `prefers-reduced-motion` removes all transform and duration, keeps all meaning, and is reviewed as a first-class composition — not an afterthought.
+
+> **Amendment 2026-08-02 (per CD-19). Scroll-driven marketing media.**
+>
+> The 8px cap was written against *evidence*: a fact that slides while someone reads
+> it is a legibility failure, and that stays true without exception. It was never
+> argued against **illustrative or navigational** objects — but as written it
+> forbade them, which put the clause in conflict with the founder-approved
+> cinematic journey. This amendment separates the two cases rather than raising the
+> cap.
+>
+> **Unchanged and still mandatory:**
+> - **One page-level scroll owner.** Exactly one. This is the load-bearing half of
+>   CD-11 and the amendment does not touch it. A second progression scroller is a
+>   rejection.
+> - **Factual evidence does not move while it is readable.** A resolved capsule, a
+>   source result, a receipt, a requirement row: static once on screen.
+> - **No meaning depends on scroll progress.** Progress may sequence; it may never
+>   inform.
+> - **Nothing idles.** Motion is a consequence of scrolling and stops with it.
+>
+> **Now permitted, for illustrative or navigational objects only:**
+> - Displacement beyond 8px where the moving object is a product artifact in a media
+>   rail, a chapter menu, or a stage transition — never prose, never a fact.
+> - Native vertical scroll mapped to a horizontal transform.
+> - Sticky full-viewport stages.
+>
+> **Forbidden regardless:** `preventDefault` on `wheel` or `touchmove`, scroll
+> hijacking, scroll-snap page progression, nested progression scrollers, autoplay,
+> infinite animation, and any composition where reduced motion loses content. Under
+> `prefers-reduced-motion` the journey renders as one complete linear document —
+> a *required deliverable*, not a fallback.
+>
+> *Rationale:* the clause conflated "do not move what someone is reading" with "do
+> not move anything." The first is a legibility law. The second was an accident of
+> phrasing, and enforcing it would have meant rejecting a founder directive on the
+> authority of a rule that never intended to forbid it. Full mechanism list:
+> [`VITALCV_EXPERIENCE_SYSTEM_2026.md`](VITALCV_EXPERIENCE_SYSTEM_2026.md).
 
 ### CD-12. Glass on chrome, solid on evidence
 
@@ -218,6 +277,37 @@ Permanently retired. Not "avoid" — retired. Their presence in a PR is a reject
 - Emoji as UI, pill badges, dual page-level navigation rails, dark boxes on the marketing page
 - Blockchain, wallet, crypto, DID/VC iconography anywhere in the acquisition path
 
+> **Amendment 2026-08-02 (per CD-19). The carousel line, said precisely.**
+>
+> "Horizontal Rolodex, card carousel, chapter cards, wide card queues, product-card
+> grids" retired a **format** — a queue of unrelated cards a visitor pages through.
+> Read literally it also retired *any* horizontal movement, which is not what the
+> clause was defending and which conflicts with the founder-approved media rail.
+> The distinction is **what is moving and who drives it**, not which axis it moves on.
+>
+> **STILL RETIRED — no exceptions:**
+> - Card carousel; Rolodex; a queue of unrelated product cards
+> - Horizontal scrolling driven *directly* by wheel or touch
+> - Auto-advancing slides; autoplay of any kind
+> - Scroll snap as page progression
+> - Nested carousel navigation; a second page-level progression scroller
+>
+> **NOW ALLOWED:**
+> - **One** continuous evidence-object media rail — a single artifact examined across
+>   a chapter, not a deck of cards
+> - Native vertical scroll mapped to a horizontal visual transform
+> - A sticky chapter stage
+> - A chapter menu that is clickable and keyboard-operable
+> - A product-artifact transition tied to the evidence narrative
+>
+> *The test:* if a visitor could shuffle the panels and lose nothing, it is a
+> carousel and it is retired. If the panels are one object under continuous
+> examination and their order carries the argument, it is a rail and it is allowed.
+>
+> *Unchanged:* every panel must be a **product artifact**, never a generic card, and
+> CD-13's imagery clause still stands — the only images VitalCV publishes are its
+> own artifacts. This amendment grants no licence for stock photography.
+
 **Copy in the interface**
 - The bare word `Verified` as a status; the CLAUDE.md banned-string list in full
 - Generic section headers ("How it works", "Features", "Why VitalCV")
@@ -233,7 +323,7 @@ Permanently retired. Not "avoid" — retired. Their presence in a PR is a reject
 
 | Tier | Routes | Character |
 | --- | --- | --- |
-| **Public / acquisition** | `/`, `/employers`, `/trust`, `/verify/*`, `/status` | Paper, editorial, near-silent. One argument, five beats. Light only. Composition governed by the competitive mandate's six-scene film. |
+| **Public / acquisition** | `/`, `/employers`, `/trust`, `/verify/*`, `/status` | Paper, editorial, near-silent. One argument, staged in chapters. Predominantly Paper, with at most one full-bleed Ink chapter under the CD-6 amendment. Composition governed by [`VITALCV_EXPERIENCE_SYSTEM_2026.md`](VITALCV_EXPERIENCE_SYSTEM_2026.md). |
 | **Workspace** | `/holder/*`, `/employer/*`, `/admin/*` | Same paper, same ink, higher density. Rules do the work. Light and dark. One primary action per screen. |
 | **Evidence artifact** | Proof packet, receipt, source result, requirement ledger, audit row | The most disciplined surface in the product. Mono data, hairline rules, stamps, no color that isn't a state, no motion at all. **It should read as if it could be printed and filed.** |
 

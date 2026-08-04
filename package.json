@@ -34,19 +34,19 @@
   },
   "devDependencies": {
     "@types/node": "^20",
-    "next": "15.2.8",
-    "turbo": "^2.9.6",
+    "next": "15.5.22",
+    "turbo": "^2.9.14",
     "typescript": "5.9.3"
   },
   "pnpm": {
     "auditConfig": {
-      "ignoreGhsas": [
-        "GHSA-23hp-3jrh-7fpw"
-      ]
+      "ignoreGhsas": []
     },
     "overrides": {
       "@types/react": "^19",
       "@types/react-dom": "^19",
+      "cheerio>undici": "^7.28.0",
+      "handlebars": "^4.7.9",
       "protobufjs": "^7.5.5",
       "shell-quote": "^1.8.4"
     }

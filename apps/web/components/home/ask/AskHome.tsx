@@ -11,6 +11,7 @@
 import Link from 'next/link';
 import * as React from 'react';
 
+import { ExpandingEyebrow } from '@/components/home/ExpandingEyebrow';
 import { EvidenceInput } from '@/components/home/ask/EvidenceInput';
 import type { EvidenceInputState } from '@/components/home/ask/evidenceInputState';
 import { LiveNpiResult } from '@/components/home/LiveNpiResult';
@@ -207,7 +208,10 @@ function HomeSpine() {
   ];
 
   return (
-    <div data-home-spine="">
+    // mist — the second movement of the tone sequence (contract §4). The
+    // journey is where the page stops being a hero and starts being an
+    // explanation, so it earns its own surface rather than a heading change.
+    <div data-home-spine="" data-home-tone="mist">
       <SpineTabs
         eyebrow="The path"
         title="One record. Four moments."
@@ -335,7 +339,7 @@ export function AskHome() {
     >
       <section className="ask-stage" data-home-hero="" aria-labelledby="ask-title">
         <div className="ask-inner">
-          <p className="ask-eyebrow">For clinicians</p>
+          <ExpandingEyebrow label="For clinicians" detail="Start with one NPI." />
           <h1 id="ask-title" className="ask-title">
             Your career evidence, ready before your next job.
           </h1>
@@ -402,7 +406,14 @@ export function AskHome() {
 
       <HomeSpine />
 
-      <section className="ask-boundary">
+      {/*
+        trust — the third movement. This is the page's most load-bearing
+        paragraph (what VitalCV will not claim), so it is deliberately the
+        quietest surface rather than the loudest: depth, not drama.
+        D6: it stays a plain always-mounted section — never a tab panel,
+        never behind a disclosure.
+      */}
+      <section className="ask-boundary" data-home-tone="trust">
         <TruthBoundary />
       </section>
 

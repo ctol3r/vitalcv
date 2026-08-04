@@ -49,6 +49,22 @@ test.describe('native cursor', () => {
 });
 
 test.describe('glass surfaces', () => {
+  test('the hero eyebrow expands its orientation cue when explicitly opened', async ({ page }) => {
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+
+    const eyebrow = page.getByRole('button', { name: /for clinicians/i });
+    const detail = page.locator('.ask-eyebrow__detail');
+    await expect(page.locator('.ask-eyebrow--expandable')).toHaveAttribute('data-hydrated', 'true');
+    await expect(eyebrow).toHaveAttribute('aria-expanded', 'false');
+    await expect(detail).toHaveCSS('opacity', '0');
+
+    await eyebrow.click();
+
+    await expect(eyebrow).toHaveAttribute('aria-expanded', 'true');
+    await expect(detail).toHaveText('Start with one NPI.');
+    await expect(detail).toHaveCSS('opacity', '1');
+  });
+
   test('editorial eyebrows use the restrained glass plate without becoming pills', async ({ page }) => {
     await page.goto('/', { waitUntil: 'domcontentloaded' });
     for (const selector of ['.ask-eyebrow', '.spine-eyebrow']) {

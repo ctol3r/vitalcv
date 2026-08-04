@@ -22,6 +22,17 @@ import Link from 'next/link';
 import { ProvenanceChipLegend } from '@/design-system/components';
 import { EvidenceModelMap } from '@/components/trust/EvidenceModelMap';
 
+// Shared caches must converge quickly after a release. Railway busts its edge on
+// deploy, but external caches do not; five minutes bounds stale public copy.
+//
+// This page carries SOURCE CLAIMS — which sources VitalCV reads, their honest
+// availability, and their states. Those claims are compiled into the build rather
+// than fetched, so with no bound a shared cache keeps answering questions about
+// source availability with a year-old build long after the underlying truth
+// moved. The homepage already carries this reasoning; this route was serving
+// `s-maxage=31536000` because it never declared a revalidate at all.
+export const revalidate = 300;
+
 export const metadata: Metadata = {
   title: 'The Evidence Network — how career evidence moves',
   description:

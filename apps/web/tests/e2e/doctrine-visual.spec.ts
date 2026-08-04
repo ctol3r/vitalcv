@@ -34,6 +34,15 @@ const CLOUD_DANCER = 'rgb(240, 238, 233)';
 /** Routes that must obey the doctrine. Public, no auth, no seeded data. */
 const ROUTES = ['/', '/employers', '/trust', '/pilot', '/verify', '/solutions'] as const;
 
+/**
+ * Routes checked for retired MECHANISMS rather than palette. Wider than
+ * ROUTES because a retired mechanism is retired everywhere it is reachable,
+ * not only where the paper is checked — `/matcha/experience` shipped an
+ * interactive constellation canvas for weeks precisely because no gate looked
+ * at it.
+ */
+const MECHANISM_ROUTES = [...ROUTES, '/matcha', '/matcha/experience'] as const;
+
 type Rgb = { r: number; g: number; b: number };
 
 function parseRgb(value: string): Rgb | null {
@@ -198,4 +207,63 @@ test.describe('rendered doctrine', () => {
         'the brand accent must never alias the source-confirmed state colour (CD-3)',
     ).toBe(false);
   });
+
+  /**
+   * CD-13 retires "public knowledge graph, constellation, force simulation,
+   * node-link people diagram, physics controls" outright.
+   *
+   * Asserted against the RENDERED page rather than the source, deliberately.
+   * A source grep cannot tell a live constellation from a comment recording
+   * that one was removed — and this codebase is now full of the latter, so a
+   * static rule would either go permanently red or need an allowlist that
+   * quietly re-admits the real thing. What ships is what matters.
+   */
+  for (const route of MECHANISM_ROUTES) {
+    test(`${route} — no retired physics mechanism`, async ({ page }) => {
+      const res = await page.goto(route, { waitUntil: 'domcontentloaded' });
+      // A route that does not exist cannot violate CD-13; skip rather than
+      // fail, so adding a route here is cheap and never falsely red.
+      if (!res || res.status() >= 400) test.skip();
+      await page.waitForTimeout(300);
+
+      const found = await page.evaluate(() => {
+        const TERMS = ['constellation', 'force-graph', 'force-simulation', 'node-link'];
+        const hits: string[] = [];
+
+        // The mechanism, as it actually reaches a reader: an accessible name
+        // or a class that says constellation/force-graph/node-link.
+        for (const el of Array.from(document.querySelectorAll('canvas, svg, [class]'))) {
+          const label = (el.getAttribute('aria-label') ?? '').toLowerCase();
+          const cls = (el.getAttribute('class') ?? '').toLowerCase();
+          for (const term of TERMS) {
+            if (label.includes(term) || cls.includes(term)) {
+              hits.push(`<${el.tagName.toLowerCase()}> ${term}`);
+            }
+          }
+        }
+
+        // …and as it reaches a reader who never loads the page at all. The
+        // first version of this check read only elements, so when #1020
+        // deleted the constellation canvas it went green while
+        // /matcha/experience kept advertising "your career constellation" in
+        // its public meta description — a promise of a mechanism that no
+        // longer existed. Description copy outlives the thing it describes.
+        for (const meta of Array.from(document.querySelectorAll('meta[name], meta[property]'))) {
+          const name = (meta.getAttribute('name') ?? meta.getAttribute('property') ?? '').toLowerCase();
+          if (!/description|title/.test(name)) continue;
+          const content = (meta.getAttribute('content') ?? '').toLowerCase();
+          for (const term of TERMS) {
+            if (content.includes(term)) hits.push(`<meta ${name}> ${term}`);
+          }
+        }
+
+        return [...new Set(hits)];
+      });
+
+      expect(
+        found,
+        `${route} renders a mechanism CD-13 retired (constellation / force simulation / node-link)`,
+      ).toEqual([]);
+    });
+  }
 });
