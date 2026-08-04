@@ -230,6 +230,9 @@
   to {
     background: var(--ink-strong);
     border-color: var(--ink-strong);
+  }
+}
+
 /* ── Operations Engine (W1400) ──────────────────────────────────────────────
  *
  * The `.w14` console is a scoped island: it ships its own chrome in a <style>
