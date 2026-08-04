@@ -30,6 +30,7 @@ export const PUBLIC_SURFACE_PATHS = new Set([
   // /dev/compete-film is scoped against the /dev blanket. The /design layout
   // gate still 404s it in canonical production.
   '/design/z1-home',
+  '/design/reset',
 ]);
 
 export function isPublicSafe(route: string): boolean {
@@ -76,7 +77,7 @@ export const OPS_SURFACE_PREFIXES = [
  * Scope the exception to ONE route, never widen the rule (the
  * /dev/compete-film pattern).
  */
-export const OPS_SURFACE_EXEMPTIONS = new Set<string>(['/design/z1-home']);
+export const OPS_SURFACE_EXEMPTIONS = new Set<string>(['/design/z1-home', '/design/reset']);
 
 /** The single chrome decision: ops shell, or public Navbar+Footer. */
 export function isOpsSurfacePath(pathname: string | null): boolean {

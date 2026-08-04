@@ -52,7 +52,9 @@ describe('page density system', () => {
     // had been archived — so /explore 404'd while four surfaces linked to it.
     // 152 = 151 + the Z1 homepage-story preview at /design/z1-home (noindex;
     // 404s in canonical production via the /design layout gate).
-    expect(inventory).toHaveLength(152);
+    // 153 = 152 + /design/reset, the design-reset preview shown beside
+    // /design/z1-home for founder comparison (noindex, gated).
+    expect(inventory).toHaveLength(153);
     expect(inventory.every((item) => !item.source.includes('/_archive/'))).toBe(true);
     expect(inventory.every((item) => !item.route.startsWith('/api/'))).toBe(true);
     expect(new Set(inventory.map((item) => item.density))).toEqual(

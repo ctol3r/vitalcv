@@ -1,0 +1,364 @@
+/* ==========================================================================
+   DESIGN RESET — /design/reset
+
+   A new visual grammar, not an adjustment of the Z1 one. What is deliberately
+   NOT here: the hero grid, the left-copy/right-card arrangement, the story
+   column, the repeated bordered-card language, section templates, medical
+   icons, the EKG divider, the glass nav treatment, ambient loops.
+
+   THE CONCEPT: one clinician identity at poster scale, carried through four
+   full-bleed environments. Chapters are ROOMS with their own material —
+   ivory, ink, indigo — not pale panels holding rectangles. Type is display
+   scale. Objects overlap and crop. Almost nothing has a border around it.
+
+   Motion is limited to the identity transforming or moving.
+   ========================================================================== */
+
+.rst{
+  --ivory:#F4F2ED;
+  --ivory-deep:#E8E4DA;
+  --ink:#12100D;
+  --ink-soft:#2A2621;
+  --indigo:#3A30C4;
+  --indigo-deep:#221C7A;
+  --paper-on-ink:#F4F2ED;
+
+  --serif:var(--font-fraunces-loaded,'Fraunces'),ui-serif,Georgia,serif;
+  --sans:var(--font-geist-loaded,'Geist'),system-ui,sans-serif;
+  --mono:var(--font-geist-mono-loaded,'Geist Mono'),ui-monospace,monospace;
+
+  background:var(--ivory);
+  color:var(--ink);
+  font-family:var(--sans);
+  overflow-x:hidden;
+}
+.rst *{box-sizing:border-box}
+.rst p,.rst h1,.rst h2,.rst h3,.rst ul,.rst li{margin:0;padding:0;list-style:none}
+
+/* Development chrome must not contaminate a design review. Scoped to this
+   page only — the global component is untouched. */
+body:has(.rst) [class*="FeedbackButton"],
+body:has(.rst) button[aria-label*="Feedback" i],
+body:has(.rst) a[aria-label*="Feedback" i],
+body:has(.rst) [data-feedback-button]{display:none !important}
+
+/* ---- ROOM: the shared full-bleed environment ---------------------------- */
+.rst-room{
+  position:relative;
+  width:100%;
+  padding:clamp(64px,9vh,120px) clamp(24px,5vw,90px);
+  overflow:hidden;
+}
+.rst-room--ink{background:var(--ink);color:var(--paper-on-ink)}
+.rst-room--indigo{background:var(--indigo);color:var(--paper-on-ink)}
+.rst-room--ivory{background:var(--ivory)}
+.rst-room--deep{background:var(--ivory-deep)}
+
+/* Chapter mark: a number at display scale, set into the material rather than
+   a label sitting on top of it. */
+.rst-mark{
+  font-family:var(--serif);font-weight:500;
+  font-size:clamp(90px,13vw,220px);line-height:.8;
+  letter-spacing:-.04em;
+  opacity:.11;
+  position:absolute;top:clamp(10px,2vh,28px);right:clamp(10px,3vw,54px);
+  pointer-events:none;user-select:none;
+}
+
+/* One headline per room, at poster scale. */
+.rst-h{
+  font-family:var(--serif);font-weight:500;
+  font-size:clamp(44px,6.2vw,104px);
+  line-height:.98;letter-spacing:-.03em;
+  max-width:16ch;
+}
+.rst-h em{font-style:italic;color:var(--indigo)}
+.rst-room--ink .rst-h em,.rst-room--indigo .rst-h em{color:var(--ivory);font-style:italic}
+/* At most one supporting sentence, never longer than ~18 words. */
+.rst-sub{
+  font-size:clamp(17px,1.5vw,23px);line-height:1.45;
+  max-width:42ch;margin-top:clamp(14px,2vh,22px);
+  opacity:.72;
+}
+
+/* ==========================================================================
+   OPENING — one unified scene. Centred headline, one line, the NPI bar as
+   the centrepiece, and beneath it ONE wide transformation.
+   ========================================================================== */
+.rst-open{
+  min-height:100svh;max-height:none;
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  gap:clamp(14px,2.1vh,28px);
+  padding:clamp(70px,8vh,104px) clamp(20px,4vw,64px) clamp(22px,3vh,44px);
+  text-align:center;
+}
+.rst-open .rst-h{
+  max-width:19ch;
+  font-size:clamp(42px,6.4vw,116px);
+}
+.rst-open .rst-sub{max-width:52ch;opacity:.66;margin-top:0}
+
+/* THE INSTRUMENT — the visual centrepiece, spanning the scene. */
+.rst-bar{
+  width:min(1000px,92vw);
+  display:flex;align-items:stretch;
+  background:var(--ivory);
+  border:3px solid var(--ink);
+  border-radius:0;                      /* no soft product-card language */
+  height:clamp(76px,9.5vh,104px);
+  margin-top:clamp(6px,1vh,14px);
+}
+.rst-bar input{
+  flex:1;min-width:0;border:0;outline:none;background:transparent;
+  padding:0 clamp(20px,2.4vw,34px);
+  font-family:var(--mono);
+  font-size:clamp(22px,2.3vw,34px);
+  letter-spacing:.12em;color:var(--ink);
+  font-variant-numeric:tabular-nums;
+}
+.rst-bar input::placeholder{color:#8C8578;letter-spacing:.06em}
+.rst-bar button{
+  flex:none;border:0;cursor:pointer;
+  background:var(--ink);color:var(--ivory);
+  padding:0 clamp(24px,3vw,46px);
+  font-family:var(--sans);font-size:clamp(16px,1.5vw,22px);font-weight:600;
+  white-space:nowrap;
+}
+.rst-bar button:hover{background:var(--indigo)}
+.rst-bar button:disabled{opacity:.75;cursor:default}
+.rst-bar input:focus-visible,.rst-bar button:focus-visible{outline:3px solid var(--indigo);outline-offset:3px}
+
+/* ---- THE TRANSFORMATION — one continuous cinematic band ------------------
+   Six moments on ONE rail. Not cards: the identity is a solid plate that
+   moves along the rail, and the moments ahead of it are ghosted. Nothing is
+   boxed except the identity itself. */
+.rst-track{
+  width:min(1360px,96vw);
+  margin-top:clamp(14px,2.4vh,32px);
+  position:relative;
+  display:grid;
+  grid-template-columns:repeat(6,1fr);
+  align-items:end;
+  gap:clamp(6px,1vw,18px);
+  padding-bottom:30px;
+}
+.rst-track::after{                       /* the rail itself */
+  content:'';position:absolute;left:0;right:0;bottom:22px;height:2px;
+  background:linear-gradient(90deg,var(--ink) 0%,var(--ink) var(--rst-progress,16%),#C9C2B4 var(--rst-progress,16%),#C9C2B4 100%);
+  transition:background .5s ease;
+}
+.rst-step{
+  position:relative;
+  display:flex;flex-direction:column;align-items:center;gap:10px;
+  padding-bottom:26px;
+  opacity:.34;
+  transition:opacity .45s ease;
+}
+.rst-step[data-on]{opacity:1}
+.rst-step::after{                        /* the node on the rail */
+  content:'';position:absolute;bottom:16px;left:50%;
+  width:13px;height:13px;margin-left:-6.5px;border-radius:50%;
+  background:var(--ivory);border:2px solid #B8B0A0;
+  transition:background .35s ease,border-color .35s ease;
+}
+.rst-step[data-on]::after{background:var(--ink);border-color:var(--ink)}
+.rst-step-name{
+  font-family:var(--sans);font-weight:600;
+  font-size:clamp(13px,1.05vw,17px);
+  letter-spacing:-.01em;text-align:center;
+}
+
+/* The moving identity plate — solid, never outlined, poster-weight. */
+.rst-plate{
+  width:100%;max-width:200px;
+  background:var(--ink);color:var(--ivory);
+  padding:14px 12px 13px;
+  display:flex;flex-direction:column;align-items:center;gap:7px;
+  min-height:clamp(74px,9vh,96px);justify-content:center;
+  text-align:center;
+}
+.rst-plate--ghost{
+  background:transparent;color:#9C9484;
+  border:2px dashed #C4BCAB;
+}
+.rst-mono-lg{
+  font-family:var(--mono);font-size:clamp(15px,1.3vw,19px);
+  letter-spacing:.1em;font-variant-numeric:tabular-nums;
+}
+.rst-plate-name{font-family:var(--sans);font-weight:600;font-size:clamp(12.5px,1.05vw,15px);line-height:1.15;text-align:center}
+.rst-plate-sub{font-family:var(--mono);font-size:10.5px;opacity:.7;letter-spacing:.05em}
+
+/* the identity monogram — the one shape that recurs everywhere */
+.rst-mono{
+  width:54px;height:54px;border-radius:50%;flex:none;
+  background:var(--ink);color:var(--ivory);
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--sans);font-weight:600;font-size:19px;letter-spacing:.01em;
+}
+.rst-room--ink .rst-mono,.rst-room--indigo .rst-mono{background:var(--ivory);color:var(--ink)}
+.rst-mono--xl{width:clamp(96px,10vw,150px);height:clamp(96px,10vw,150px);font-size:clamp(34px,3.4vw,52px)}
+.rst-mono--sm{width:38px;height:38px;font-size:14px}
+.rst-mono--ghost{background:transparent;border:2px dashed #B8B0A0;color:transparent}
+
+/* the truth line — present, never in the primary hierarchy */
+.rst-fine{
+  font-family:var(--mono);font-size:11.5px;letter-spacing:.03em;
+  opacity:.5;margin-top:clamp(10px,1.6vh,18px);
+}
+.rst-room--ink .rst-fine,.rst-room--indigo .rst-fine{opacity:.55}
+.rst-msg{
+  font-size:15.5px;margin-top:14px;max-width:46ch;opacity:.8;
+}
+
+/* ==========================================================================
+   CHAPTER 1 · CREATE — ink room. The number becomes a person, at poster scale.
+   ========================================================================== */
+.rst-create{
+  display:flex;align-items:center;justify-content:center;
+  gap:clamp(30px,5vw,90px);flex-wrap:wrap;
+  min-height:78vh;
+}
+.rst-create-id{display:flex;flex-direction:column;align-items:center;gap:18px;text-align:center}
+.rst-name-xl{
+  font-family:var(--serif);font-weight:500;
+  font-size:clamp(40px,5.4vw,86px);line-height:.98;letter-spacing:-.03em;
+}
+.rst-role{font-size:clamp(17px,1.5vw,23px);opacity:.66}
+/* the six lanes, wide and quiet — the only evidence detail in this room */
+.rst-lanes{display:flex;gap:7px;margin-top:6px}
+.rst-lane{width:clamp(38px,4vw,64px);height:9px;background:rgba(244,242,237,.22)}
+.rst-lane[data-f]{background:var(--ivory)}
+.rst-room--ivory .rst-lane{background:#D6CFC0}
+.rst-room--ivory .rst-lane[data-f]{background:var(--ink)}
+
+/* ==========================================================================
+   CHAPTER 2 · DISCOVER — ivory room. ONE opportunity, at headline scale.
+   ========================================================================== */
+.rst-discover{min-height:78vh;display:flex;flex-direction:column;justify-content:center}
+.rst-opp{
+  margin-top:clamp(26px,4vh,52px);
+  display:flex;align-items:flex-start;gap:clamp(20px,3vw,48px);flex-wrap:wrap;
+}
+.rst-opp-role{
+  font-family:var(--serif);font-weight:500;
+  font-size:clamp(34px,4.6vw,74px);line-height:1;letter-spacing:-.025em;
+  max-width:14ch;
+}
+.rst-opp-org{font-size:clamp(16px,1.4vw,21px);opacity:.62;margin-top:12px}
+/* why it fits — large enough to read as content, not metadata */
+.rst-why{display:flex;flex-direction:column;gap:12px;margin-top:clamp(18px,2.6vh,30px)}
+.rst-why li{
+  font-size:clamp(16px,1.35vw,21px);
+  display:flex;align-items:baseline;gap:14px;
+}
+.rst-why li::before{content:'';width:26px;height:2px;background:var(--ink);flex:none;transform:translateY(-5px)}
+.rst-act{
+  display:inline-block;margin-top:clamp(22px,3vh,36px);
+  background:var(--indigo);color:#fff;
+  padding:clamp(15px,1.8vh,20px) clamp(26px,2.6vw,40px);
+  font-size:clamp(16px,1.4vw,21px);font-weight:600;
+  border:0;cursor:pointer;
+}
+.rst-act:hover{background:var(--indigo-deep)}
+
+/* ==========================================================================
+   CHAPTER 3 · APPLY — indigo room. The plate crosses, and it overlaps.
+   ========================================================================== */
+.rst-apply{min-height:78vh;display:flex;flex-direction:column;justify-content:center}
+.rst-cross{
+  margin-top:clamp(26px,4vh,54px);
+  display:grid;grid-template-columns:1fr auto 1fr;align-items:center;
+  gap:clamp(16px,2.4vw,40px);
+}
+.rst-side{display:flex;flex-direction:column;gap:14px}
+.rst-side--to{align-items:flex-end;text-align:right}
+.rst-who{font-family:var(--mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;opacity:.6}
+.rst-carry{
+  display:flex;align-items:center;gap:16px;
+  background:rgba(244,242,237,.1);
+  padding:clamp(14px,1.8vh,20px) clamp(16px,1.8vw,26px);
+}
+.rst-side--to .rst-carry{flex-direction:row-reverse}
+.rst-carry-name{font-weight:600;font-size:clamp(16px,1.4vw,21px)}
+.rst-carry-sub{font-family:var(--mono);font-size:11.5px;opacity:.65;margin-top:3px}
+.rst-arrow{
+  font-size:clamp(40px,5vw,86px);line-height:1;opacity:.9;
+  font-family:var(--sans);
+}
+/* the record: proof-sized, cropped, NOT the identity of the page */
+.rst-proof{
+  margin-top:clamp(20px,3vh,36px);
+  max-height:clamp(150px,20vh,210px);
+  overflow:hidden;
+  width:min(520px,100%);
+  -webkit-mask-image:linear-gradient(180deg,#000 62%,transparent 100%);
+  mask-image:linear-gradient(180deg,#000 62%,transparent 100%);
+}
+
+/* ==========================================================================
+   CHAPTER 4 · CONTINUE — ivory room. The outcome, big; the profile returns.
+   ========================================================================== */
+.rst-continue{min-height:74vh;display:flex;flex-direction:column;justify-content:center}
+.rst-outcome{
+  font-family:var(--serif);font-weight:500;
+  font-size:clamp(56px,9vw,168px);line-height:.86;letter-spacing:-.04em;
+  margin-top:clamp(10px,2vh,26px);
+}
+.rst-keep{
+  margin-top:clamp(26px,4vh,50px);
+  display:flex;align-items:center;gap:clamp(18px,2.4vw,34px);flex-wrap:wrap;
+}
+.rst-keep-line{font-size:clamp(17px,1.5vw,23px);max-width:30ch;opacity:.72}
+
+/* ---- motion: only the identity moves ------------------------------------ */
+@keyframes rst-plate-in{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.rst-anim{animation:rst-plate-in .4s ease both}
+[data-rst-reveal]{opacity:0;transform:translateY(20px);transition:opacity .6s ease,transform .6s ease}
+[data-rst-reveal][data-seen]{opacity:1;transform:none}
+@media (prefers-reduced-motion:reduce){
+  [data-rst-reveal]{opacity:1;transform:none;transition:none}
+  .rst-anim{animation:none}
+  .rst-track::after{transition:none}
+  .rst-step{transition:none}
+}
+
+/* ---- mobile: composed for the viewport, not stacked from desktop -------- */
+@media (max-width:820px){
+  .rst-open{min-height:auto;padding-top:96px;padding-bottom:44px;gap:20px}
+  .rst-open .rst-h{font-size:clamp(38px,10.5vw,52px);max-width:16ch}
+  .rst-open .rst-sub{font-size:17px}
+  .rst-bar{flex-direction:column;height:auto;width:100%}
+  .rst-bar input{padding:20px 18px;font-size:24px;text-align:center;border-bottom:3px solid var(--ink)}
+  .rst-bar button{padding:19px 20px;font-size:18px}
+  /* the rail becomes a vertical spine — the identity still travels it */
+  .rst-track{
+    grid-template-columns:1fr;gap:0;padding-bottom:0;
+    width:100%;margin-top:26px;
+  }
+  .rst-track::after{
+    left:26px;right:auto;top:8px;bottom:8px;width:2px;height:auto;
+    background:linear-gradient(180deg,var(--ink) 0%,var(--ink) var(--rst-progress,16%),#C9C2B4 var(--rst-progress,16%),#C9C2B4 100%);
+  }
+  .rst-step{
+    flex-direction:row;align-items:center;gap:20px;
+    padding:11px 0 11px 58px;text-align:left;
+  }
+  .rst-step::after{left:26px;bottom:auto;top:50%;margin:-6.5px 0 0 -6.5px}
+  .rst-step-name{text-align:left;font-size:16px}
+  .rst-plate{max-width:none;width:100%;min-height:0;flex-direction:row;justify-content:flex-start;gap:12px;padding:12px 14px}
+  .rst-h{font-size:clamp(36px,9.5vw,50px)}
+  .rst-room{padding:clamp(52px,7vh,72px) 22px}
+  .rst-create{min-height:auto;gap:26px}
+  .rst-name-xl{font-size:clamp(34px,9vw,46px)}
+  .rst-mono--xl{width:88px;height:88px;font-size:32px}
+  .rst-discover,.rst-apply,.rst-continue{min-height:auto}
+  .rst-opp{flex-direction:column;gap:18px}
+  .rst-opp-role{font-size:clamp(30px,8vw,42px);max-width:none}
+  .rst-cross{grid-template-columns:1fr;gap:16px}
+  .rst-side--to{align-items:flex-start;text-align:left}
+  .rst-side--to .rst-carry{flex-direction:row}
+  .rst-arrow{transform:rotate(90deg);font-size:44px;justify-self:start}
+  .rst-outcome{font-size:clamp(52px,15vw,76px)}
+  .rst-lane{width:34px}
+}
