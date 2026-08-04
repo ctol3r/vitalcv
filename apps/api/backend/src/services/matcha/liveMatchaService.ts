@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * liveMatchaService.ts — Wave 235
  *
@@ -11,13 +10,22 @@
  *   matchOpportunities() → scored, ranked results
  */
 
-import { PrismaClient } from '@prisma/client';
+import type { Prisma } from '@prisma/client';
 
+// The SHARED client, not a private `new PrismaClient()`. The shared instance
+// carries the `$use` middleware that invalidates graph snapshots, the
+// geospatial cache and the trust-state cache on every write, and records query
+// samples for the perf watchers. A private client speaks to the same database
+// but skips all of that silently, so reads here would go on serving state the
+// rest of the process has already invalidated.
+import prisma from '../../graphql/prisma_client';
 import { matchOpportunities, scoreOpportunity } from './matchaEngine';
 import { simulateCredentialImpact } from './matchaSimulator';
 import type {
   CandidateIntent,
+  ClaimLevel,
   ClinicianProfile,
+  CredentialKey,
   HeldCredential,
   HiringType,
   Opportunity as MatchaOpportunity,
@@ -28,12 +36,30 @@ import {
   seededOrgExclusionFilter,
 } from '../opportunities/launchOpportunitySeed';
 
-const prisma = new PrismaClient();
-
 // seededOrgExclusionFilter (shared): when SEED_DEMO_OPPORTUNITIES is off (the
 // prod default) it excludes opportunities belonging to the demo/launch seed
 // organizations so live matching sees only real postings; on (dev/demo) it's a
 // no-op. The same helper gates the public opportunity list/detail.
+
+// ── Authoritative store for this path ─────────────────────────────────────────
+//
+// Every opportunity returned by this module is read from the Postgres
+// `Opportunity` table via `prisma.opportunity`. That table is the ONLY
+// authoritative store on this path.
+//
+// This module must never read `./opportunityRegistry`. That registry is a
+// process-local in-memory array: it is not shared between instances, it resets
+// on every deploy, and nothing in it can be applied to. It legitimately backs
+// the registry route (`GET /api/matcha/opportunities`, no NPI) and must keep
+// doing so — but the live match path behind
+// `GET /api/matcha/opportunities/:npi` is the real career loop, and a role that
+// vanishes on restart cannot be part of it. There is deliberately no import of
+// it below, and no catch-block here substitutes registry data for a failed
+// query: a DB failure propagates so the route answers 500 rather than quietly
+// serving ephemeral rows as if they were real postings.
+//
+// The `durable` stamp on every returned opportunity (see ProvenancedOpportunity)
+// is the runtime half of that guarantee.
 
 // ── NPPES taxonomy → specialty string ─────────────────────────────────────────
 
@@ -69,6 +95,69 @@ function mapTaxonomy(code: string): string {
   return TAXONOMY_MAP[code] ?? 'Medicine';
 }
 
+// ── NPPES response shape ──────────────────────────────────────────────────────
+//
+// NPPES is an external API: its JSON is untrusted input, so every field is
+// `unknown` and is narrowed before use. The previous `as any` on the parsed
+// body meant this whole block typechecked vacuously — a renamed NPPES field
+// would have produced `undefined` at runtime with no compile-time signal.
+
+interface NppesBasic {
+  first_name?: unknown;
+  last_name?: unknown;
+  authorized_official_first_name?: unknown;
+  authorized_official_last_name?: unknown;
+}
+
+interface NppesTaxonomy {
+  code?: unknown;
+  primary?: unknown;
+  state?: unknown;
+}
+
+interface NppesAddress {
+  address_purpose?: unknown;
+  state?: unknown;
+}
+
+interface NppesResult {
+  basic?: NppesBasic;
+  taxonomies?: NppesTaxonomy[];
+  addresses?: NppesAddress[];
+}
+
+interface NppesResponse {
+  results?: NppesResult[];
+}
+
+/** Non-empty string or ''. Keeps the original `a || b || ''` fallback chains. */
+function readString(value: unknown): string {
+  return typeof value === 'string' ? value : '';
+}
+
+function readArray<T>(value: T[] | undefined): T[] {
+  return Array.isArray(value) ? value : [];
+}
+
+function readNumber(value: unknown): number {
+  return typeof value === 'number' && Number.isFinite(value) ? value : 0;
+}
+
+/**
+ * Narrows a Prisma `Json` column to a plain object. `JsonValue` is legally a
+ * string, number, boolean, null or array too, so casting it straight to
+ * `Record<string, unknown>` (as this file used to) makes `data.documentType`
+ * a runtime crash away on any row whose `data` is not an object.
+ */
+function readJsonRecord(value: unknown): Record<string, unknown> | null {
+  return value !== null && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
+/** Ascending claim strength. Index order is the comparison. */
+const CLAIM_LEVEL_ORDER: readonly ClaimLevel[] = ['L0', 'L1', 'L2', 'L3'];
+
 // ── Build ClinicianProfile from NPPES data ───────────────────────────────────
 
 async function buildClinicianProfile(npi: string): Promise<ClinicianProfile> {
@@ -85,29 +174,34 @@ async function buildClinicianProfile(npi: string): Promise<ClinicianProfile> {
   try {
     const res = await fetch(url, { signal: AbortSignal.timeout(6000) });
     if (res.ok) {
-      const data = await res.json() as any;
-      const result = data?.results?.[0];
+      const data = await res.json() as NppesResponse;
+      const result = readArray(data?.results)[0];
       if (result) {
-        const basic = result.basic ?? {};
-        const givenName = basic.first_name || basic.authorized_official_first_name || '';
-        const lastName = basic.last_name || basic.authorized_official_last_name || '';
+        const basic: NppesBasic = result.basic ?? {};
+        const givenName = readString(basic.first_name)
+          || readString(basic.authorized_official_first_name);
+        const lastName = readString(basic.last_name)
+          || readString(basic.authorized_official_last_name);
         name = [givenName, lastName].filter(Boolean).join(' ') || name;
 
         // Primary taxonomy
-        const taxonomies: any[] = result.taxonomies ?? [];
-        const primary = taxonomies.find((t: any) => t.primary) ?? taxonomies[0];
-        if (primary?.code) {
-          specialty = mapTaxonomy(primary.code);
+        const taxonomies = readArray(result.taxonomies);
+        const primary = taxonomies.find((t) => Boolean(t.primary)) ?? taxonomies[0];
+        const primaryCode = readString(primary?.code);
+        if (primaryCode) {
+          specialty = mapTaxonomy(primaryCode);
           // A code we recognize is a genuine NPPES source check for specialty;
           // an unmapped code falls back to 'Medicine' and stays unverified.
-          if (TAXONOMY_MAP[primary.code]) specialtySource = 'nppes_taxonomy';
+          if (TAXONOMY_MAP[primaryCode]) specialtySource = 'nppes_taxonomy';
         }
-        if (primary?.state) state = primary.state;
+        const primaryState = readString(primary?.state);
+        if (primaryState) state = primaryState;
 
         // Address-based state fallback
-        const addresses: any[] = result.addresses ?? [];
-        const practice = addresses.find((a: any) => a.address_purpose === 'LOCATION') ?? addresses[0];
-        if (practice?.state) state = practice.state;
+        const addresses = readArray(result.addresses);
+        const practice = addresses.find((a) => a.address_purpose === 'LOCATION') ?? addresses[0];
+        const practiceState = readString(practice?.state);
+        if (practiceState) state = practiceState;
       }
     }
   } catch {
@@ -163,25 +257,25 @@ async function buildClinicianProfile(npi: string): Promise<ClinicianProfile> {
       orderBy: { createdAt: 'desc' },
     });
 
-    for (const cc of candidateCreds) {
-      const data = cc.data as Record<string, unknown> | null;
-      if (!data) continue;
-      const docType = (data.documentType as string) ?? '';
-      const confidence = (data.overallConfidence as number) ?? 0;
-      const ccStatus = cc.status; // UNVERIFIED, PENDING_VERIFICATION, VERIFIED
+    // Map document type to credential key
+    const typeToKey: Record<string, CredentialKey> = {
+      MEDICAL_LICENSE: 'state_license',
+      DEA_CERTIFICATE: 'dea',
+      BOARD_CERTIFICATION: 'board_cert',
+    };
 
-      // Map document type to credential key
-      const typeToKey: Record<string, string> = {
-        MEDICAL_LICENSE: 'state_license',
-        DEA_CERTIFICATE: 'dea',
-        BOARD_CERTIFICATION: 'board_cert',
-      };
+    for (const cc of candidateCreds) {
+      const data = readJsonRecord(cc.data);
+      if (!data) continue;
+      const docType = readString(data.documentType);
+      const confidence = readNumber(data.overallConfidence);
+      const ccStatus = cc.status; // UNVERIFIED, PENDING_VERIFICATION, VERIFIED
 
       const credKey = typeToKey[docType];
       if (!credKey) continue;
 
       // Determine claim level based on verification status + confidence
-      let upgradedLevel: string;
+      let upgradedLevel: ClaimLevel;
       if (ccStatus === 'VERIFIED' || (ccStatus === 'PENDING_VERIFICATION' && confidence > 0.9)) {
         upgradedLevel = 'L3'; // Document verified or high-confidence confirmed
       } else if (ccStatus === 'PENDING_VERIFICATION') {
@@ -195,12 +289,14 @@ async function buildClinicianProfile(npi: string): Promise<ClinicianProfile> {
       if (idx >= 0) {
         const existing = credentials[idx];
         // Only upgrade, never downgrade
-        const levelOrder = ['L1', 'L2', 'L3'];
-        if (levelOrder.indexOf(upgradedLevel) > levelOrder.indexOf(existing.claimLevel)) {
+        if (
+          CLAIM_LEVEL_ORDER.indexOf(upgradedLevel)
+          > CLAIM_LEVEL_ORDER.indexOf(existing.claimLevel)
+        ) {
           credentials[idx] = {
             ...existing,
             status: 'active',
-            claimLevel: upgradedLevel as 'L1' | 'L2' | 'L3',
+            claimLevel: upgradedLevel,
           };
         }
       }
@@ -254,24 +350,48 @@ function normalizeStartUrgency(v: string | null | undefined): MatchaOpportunity[
   return v && START_URGENCIES.has(v) ? (v as MatchaOpportunity['startUrgency']) : 'flexible';
 }
 
-function dbOppToMatcha(opp: {
-  id: string;
-  title: string;
-  specialty: string;
-  hiringType: string;
-  state: string;
-  payRange: string | null;
-  payMin?: number | null;
-  payMax?: number | null;
-  employerType?: string | null;
-  startUrgency?: string | null;
-  requirementLevel: string;
-  remote: boolean;
+/**
+ * The exact row shape this module reads: an `Opportunity` row plus the minimal
+ * organization projection requested by every query below.
+ *
+ * Derived from the generated Prisma types instead of hand-written, so a schema
+ * change that renames, drops or retypes a column fails the build here rather
+ * than silently yielding `undefined` at runtime. (The previous hand-written
+ * structural type could drift from the schema indefinitely without complaint.)
+ */
+type DbOpportunityWithOrg = Prisma.OpportunityGetPayload<{
+  include: { organization: { select: { id: true; name: true } } };
+}>;
+
+/**
+ * A MATCHA opportunity that carries its own provenance.
+ *
+ * `durable`  — true iff this row was read from the Postgres `Opportunity`
+ *              table on this request. A caller may only present a
+ *              `durable: true` role as a real, applyable posting. Anything
+ *              else is process-local and will not survive a restart, so it
+ *              must not be shown as something a clinician can act on.
+ * `status`   — the row's own lifecycle column, copied verbatim ('ACTIVE',
+ *              'CLOSED', …). The pre-existing `active` boolean stays exactly
+ *              as it was (`status === 'ACTIVE'`); `status` is additive and
+ *              lets a caller distinguish *why* something is inactive.
+ *
+ * Both fields are additive — no existing field changes name, type or meaning.
+ */
+export type ProvenancedOpportunity = MatchaOpportunity & {
+  durable: boolean;
   status: string;
-  createdAt: Date;
-  organization?: { id: string; name: string } | null;
-}): MatchaOpportunity {
+};
+
+/** A ProvenancedOpportunity known to be DB-backed. */
+export type DurableOpportunity = ProvenancedOpportunity & { durable: true };
+
+function dbOppToMatcha(opp: DbOpportunityWithOrg): DurableOpportunity {
   return {
+    // Read from the `Opportunity` table in this request — durable by
+    // construction. This is the only place the stamp is set to true.
+    durable: true,
+    status: opp.status,
     id: opp.id,
     title: opp.title,
     organization: opp.organization?.name ?? 'Healthcare Organization',
@@ -333,6 +453,18 @@ export async function getLiveMatchesForNpi(
   ]);
 
   const matchaOpps = dbOpportunities.map(dbOppToMatcha);
+
+  // Keyed by id so the DB-backed object (and its `durable: true` stamp) can be
+  // recovered after the engine has filtered and re-sorted the list. The engine
+  // passes objects through by reference, so this is a type-level recovery of a
+  // fact that is already true at runtime — AND a tripwire: if an opportunity
+  // ever reaches this point from anywhere other than the query above (an
+  // in-memory registry fallback, a merged demo list), the lookup misses and it
+  // is stamped `durable: false` instead of silently passing as a real posting.
+  const durableById = new Map<string, DurableOpportunity>(
+    matchaOpps.map((opp) => [opp.id, opp]),
+  );
+
   const matches = matchOpportunities(profile, intent ?? null, matchaOpps);
 
   return {
@@ -340,17 +472,33 @@ export async function getLiveMatchesForNpi(
     clinicianName: profile.name,
     specialty: profile.specialty,
     state: profile.states[0],
-    matches: matches.map(m => ({
-      opportunityId: m.opportunity.id,
-      band: m.explanation.matchBand,
-      score: m.explanation.matchScore,
-      blockers: m.explanation.blockers.map(b => ({ label: b.label, action: b.actionLabel })),
-      fitReasons: m.explanation.fitReasons.map(f => f.label),
-      // Full objects for the clinician surfaces (cards + detail view). The slim
-      // fields above are kept for existing consumers — additive only.
-      opportunity: m.opportunity,
-      explanation: m.explanation,
-    })),
+    // Every opportunity in this list came from the Postgres `Opportunity`
+    // table. Callers can assert on the per-item `durable` flag rather than
+    // trusting this comment.
+    opportunitySource: 'database' as const,
+    matches: matches.map(m => {
+      const opportunity: ProvenancedOpportunity = durableById.get(m.opportunity.id) ?? {
+        ...m.opportunity,
+        durable: false,
+        status: 'UNKNOWN',
+      };
+
+      return {
+        opportunityId: m.opportunity.id,
+        band: m.explanation.matchBand,
+        score: m.explanation.matchScore,
+        blockers: m.explanation.blockers.map(b => ({ label: b.label, action: b.actionLabel })),
+        fitReasons: m.explanation.fitReasons.map(f => f.label),
+        // Additive provenance, also lifted to the match level so a consumer
+        // that only reads the slim fields can still tell.
+        durable: opportunity.durable,
+        status: opportunity.status,
+        // Full objects for the clinician surfaces (cards + detail view). The slim
+        // fields above are kept for existing consumers — additive only.
+        opportunity,
+        explanation: m.explanation,
+      };
+    }),
     profileCompleteness: {
       level: profile.credentials.some(c => c.claimLevel === 'L1') ? 'partial' : 'full',
       missingForHigherMatches: profile.credentials
@@ -387,11 +535,20 @@ export async function simulateForNpi(npi: string) {
   };
 }
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export async function scoreOpportunityForNpi(
   npi: string,
   opportunityId: string,
   intent?: CandidateIntent | null,
 ) {
+  // `Opportunity.id` is `@db.Uuid`. Postgres rejects a malformed uuid at the
+  // driver, so passing an arbitrary caller-supplied string into findUnique
+  // throws rather than returning null — turning "no such opportunity" into a
+  // 500. A value that cannot be a uuid cannot name a row, so answer the same
+  // way a missing row does and let the route return 404.
+  if (!UUID_RE.test(opportunityId)) return null;
+
   const [profile, dbOpp] = await Promise.all([
     buildClinicianProfile(npi),
     prisma.opportunity.findUnique({
@@ -411,5 +568,8 @@ export async function scoreOpportunityForNpi(
     score: explanation.matchScore,
     blockers: explanation.blockers.map(b => ({ label: b.label, action: b.actionLabel })),
     fitReasons: explanation.fitReasons.map(f => f.label),
+    // Additive provenance — this scored a real DB row, not a registry entry.
+    durable: matchaOpp.durable,
+    status: matchaOpp.status,
   };
 }

@@ -38,11 +38,29 @@ export async function fetchNpiFromCMS(npi: string): Promise<NppesFetchResult> {
       label: 'nppes',
     });
   } catch (err) {
+    // fetchWithRetry THROWS on a non-ok response (it never returns one), so the
+    // `!response.ok` branch below cannot see the upstream status — this catch is
+    // the only place it exists. Echo it into the message using the same wording
+    // that branch uses, so callers can tell a rate limit (429) from a registry
+    // that could not be reached at all. The thrown status and code are
+    // unchanged (502 / SOURCE_UNAVAILABLE): no route's response code moves.
+    const upstreamStatus =
+      err && typeof err === 'object' && 'status' in err &&
+      typeof (err as { status: unknown }).status === 'number'
+        ? (err as { status: number }).status
+        : undefined;
+
     log('error', 'nppes_fetch_failed', {
       npi,
+      upstreamStatus,
       error: err instanceof Error ? err.message : 'unknown',
     });
-    throw new HttpError(502, 'Failed to reach CMS NPPES Registry');
+    throw new HttpError(
+      502,
+      upstreamStatus !== undefined
+        ? `CMS NPPES returned status ${upstreamStatus}`
+        : 'Failed to reach CMS NPPES Registry',
+    );
   }
 
   if (!response.ok) {

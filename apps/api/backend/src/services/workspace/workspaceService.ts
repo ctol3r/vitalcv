@@ -107,6 +107,30 @@ export interface WorkspaceList {
   canSwitchTo: ActivePersona[];
 }
 
+/**
+ * Why the registry identity could not be resolved.
+ *
+ * `identitySource: 'UNAVAILABLE'` says only "we are not showing you registry
+ * identity"; it collapses four materially different upstream outcomes. This
+ * type carries the distinction the caller can actually act on:
+ *
+ * - `not_found`          — CMS answered, and this NPI is not in the registry.
+ *                          A finding about the NPI, NOT an outage. Nothing to
+ *                          retry.
+ * - `rate_limited`       — CMS answered 429. The same request later succeeds.
+ * - `invalid_response`   — CMS answered with a body we cannot use (not JSON,
+ *                          not an NPPES envelope, or missing the fields a
+ *                          provider record requires). Retrying rarely helps;
+ *                          this is a source-contract break worth alerting on.
+ * - `source_unavailable` — the registry could not be read at all (network
+ *                          failure, timeout, or a non-429 upstream status).
+ */
+export type IdentityResolutionFailure =
+  | 'not_found'
+  | 'source_unavailable'
+  | 'rate_limited'
+  | 'invalid_response';
+
 export interface NpiBootstrapResult {
   npi: string;
   npiType: 'TYPE_1' | 'TYPE_2';
@@ -118,6 +142,13 @@ export interface NpiBootstrapResult {
    * be read this is 'UNAVAILABLE' and the identity fields are absent.
    */
   identitySource: 'NPPES_API' | 'UNAVAILABLE';
+  /**
+   * Set if and only if `identitySource === 'UNAVAILABLE'`. `identitySource`
+   * deliberately stays coarse so every existing consumer keeps working
+   * unchanged; new consumers read this field to tell "this NPI does not exist"
+   * apart from "we could not reach CMS".
+   */
+  identityFailure?: IdentityResolutionFailure;
   firstName?: string;
   lastName?: string;
   specialty?: string;
@@ -305,6 +336,79 @@ export async function switchWorkspace(
   return updatedPreference;
 }
 
+/**
+ * The upstream HTTP status, echoed by `nppes.service` into the message of the
+ * HttpError(502) it raises when CMS answers with an error status. It is the
+ * only place that status survives — `fetchWithRetry` throws (never returns) on
+ * a non-ok response, so `nppes.service` has no Response object left to read.
+ */
+const NPPES_UPSTREAM_STATUS_RE = /returned status (\d{3})/i;
+
+/**
+ * The two payload-level failures `nppes.service` raises as HttpError(502):
+ * "Invalid JSON from CMS NPPES Registry" and "Invalid NPPES response shape
+ * from CMS registry". Both carry status 502, so the wording is the only
+ * discriminator available for them.
+ */
+const NPPES_INVALID_PAYLOAD_RE = /invalid (json|nppes response shape)/i;
+
+function readNumericStatus(error: unknown): number | undefined {
+  if (error instanceof HttpError) return error.status;
+  if (error && typeof error === 'object' && 'status' in error) {
+    const raw = (error as { status: unknown }).status;
+    if (typeof raw === 'number') return raw;
+  }
+  return undefined;
+}
+
+/**
+ * Map a failure thrown by the NPPES read path onto the narrowest kind the
+ * upstream contract genuinely supports.
+ *
+ * Classified by the error's own status wherever the status survives (404 from
+ * `fetchNpiFromCMS`/`normalizeProvider`, 422 from `normalizeProvider`) and by
+ * the upstream status `nppes.service` echoes into its message otherwise.
+ * Anything unrecognised falls through to `source_unavailable` — the coarse,
+ * always-true answer — so an unfamiliar error shape can never be reported as a
+ * specific claim about the NPI.
+ */
+export function classifyIdentityResolutionFailure(
+  error: unknown,
+): IdentityResolutionFailure {
+  const status = readNumericStatus(error);
+  const message = error instanceof Error ? error.message : String(error ?? '');
+
+  const upstreamMatch = NPPES_UPSTREAM_STATUS_RE.exec(message);
+  const upstreamStatus = upstreamMatch ? Number(upstreamMatch[1]) : undefined;
+
+  // Rate limiting, wherever the 429 survived: on the error itself, or echoed
+  // into the message by nppes.service after fetchWithRetry exhausted its
+  // backoff.
+  if (status === 429 || upstreamStatus === 429) return 'rate_limited';
+
+  // The registry answered and this NPI is absent: fetchNpiFromCMS raises 404
+  // on result_count === 0, normalizeProvider raises 404 on an empty results
+  // array. Note this is deliberately keyed on the *thrown* status, not on an
+  // upstream HTTP 404 — NPPES answers 200/result_count:0 for an unknown NPI,
+  // so an HTTP 404 from the endpoint means the endpoint moved, which is an
+  // outage (below), not a statement about the NPI.
+  if (status === 404) return 'not_found';
+
+  // The registry answered with a body we cannot use: 422 from normalizeProvider
+  // (missing basic block / status / enumeration_type), or the JSON-parse and
+  // envelope-shape guards in nppes.service.
+  if (status === 422 || NPPES_INVALID_PAYLOAD_RE.test(message)) {
+    return 'invalid_response';
+  }
+
+  // DELIBERATELY COMBINED. A DNS failure, a connection reset, a 10s timeout and
+  // a non-429 upstream error status (500/503/403…) all arrive here as
+  // HttpError(502) and are not separable any further without inventing a
+  // distinction the source does not make — and the caller's move is identical
+  // for all of them: the registry could not be read, try later.
+  return 'source_unavailable';
+}
+
 export async function bootstrapFromNpi(
   npi: string,
 ): Promise<NpiBootstrapResult> {
@@ -325,14 +429,17 @@ export async function bootstrapFromNpi(
   // ride in them. Account existence informs only `alreadyRegistered`,
   // `inferredPersona`, and the npiType fallback.
   let registry: NormalizedProvider | null = null;
+  let identityFailure: IdentityResolutionFailure | undefined;
   try {
     const { rawPayload } = await fetchNpiFromCMS(npi);
     registry = normalizeProvider(rawPayload);
   } catch (error) {
+    identityFailure = classifyIdentityResolutionFailure(error);
     log('warn', 'workspace_bootstrap_npi_registry_unavailable', {
       event: 'workspace_bootstrap_npi_registry_unavailable',
       npi,
       alreadyRegistered,
+      identityFailure,
       message: error instanceof Error ? error.message : String(error),
     });
   }
@@ -360,6 +467,8 @@ export async function bootstrapFromNpi(
     npiType,
     inferredPersona,
     identitySource: registry ? 'NPPES_API' : 'UNAVAILABLE',
+    // Unset whenever the registry resolved — the catch above is the only writer.
+    identityFailure,
     firstName: registry?.first_name || undefined,
     lastName: registry?.last_name || undefined,
     specialty: registry?.primary_taxonomy ?? undefined,

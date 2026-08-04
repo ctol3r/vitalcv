@@ -239,16 +239,35 @@ export function ApplyWithVitalCV({ npi, label = 'Apply with VitalCV', initialOrg
     if (!isOpen || trustState) return;
     setIsLoading(true);
     setError(null);
-    fetch(`/api/trust-state/${npi}`)
-      .then((r) => r.json())
-      .then((data: TrustStateResponse) => {
+    /*
+     * C1 — credential holdings come from the VERIFIED, NPI-bound route.
+     * The anonymous trust-state endpoint (which the production homepage
+     * capsule uses) would have handed a credential list to anyone who opened
+     * this modal for any NPI. A 401 here is the honest boundary, not a
+     * failure: the surface says what it cannot show and offers sign-in.
+     */
+    fetch(`/api/apply/credentials/${npi}`, { cache: 'no-store' })
+      .then(async (r) => {
+        if (r.status === 401 || r.status === 403) {
+          setAuthRequired(true);
+          setError(r.status === 403
+            ? 'This NPI is not linked to your account.'
+            : 'Sign in to see and choose what you share.');
+          return null;
+        }
+        return r.json();
+      })
+      .then((payload: { trustState?: TrustStateResponse; credentials?: BundleCredential[] } | null) => {
+        if (!payload) return;
+        const data = (payload.trustState ?? {}) as TrustStateResponse;
         setTrustState({
           readiness_level: data.readiness_level ?? 'L0',
           readiness_score: data.readiness_score ?? 0,
           readiness_status: data.readiness_status ?? 'Unknown',
           computed_at: data.computed_at ?? new Date().toISOString(),
         });
-        const creds: BundleCredential[] = data.credentials
+        const creds: BundleCredential[] = payload.credentials
+          ?? data.credentials
           ?? (data.facts ?? []).map((f) => ({
             type: f.factType ?? f.source,
             issuer: f.source,
@@ -500,16 +519,25 @@ export function ApplyWithVitalCV({ npi, label = 'Apply with VitalCV', initialOrg
                     {trustState.readiness_level}
                   </span>
                   <div>
-                    <p className="text-sm font-semibold text-foreground">{trustState.readiness_status}</p>
-                    <p className="text-xs text-zinc-500">Score: {trustState.readiness_score}/100</p>
+                    <p className={cx('text-sm font-semibold', careerLoop ? 'text-[color:var(--ink-strong,#0E0D0B)]' : 'text-foreground')}>
+                      {trustState.readiness_status}
+                    </p>
+                    {/* A numeric readiness score is a compiled metric about a
+                        person. It stays in the signed-in product, and is not
+                        rendered on the acquisition surface. */}
+                    {!careerLoop && (
+                      <p className="text-xs text-zinc-500">Score: {trustState.readiness_score}/100</p>
+                    )}
                   </div>
                 </div>
-                <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
-                  <div
-                    className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-emerald-400 transition-all duration-700"
-                    style={{ width: `${trustState.readiness_score}%` }}
-                  />
-                </div>
+                {!careerLoop && (
+                  <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-emerald-400 transition-all duration-700"
+                      style={{ width: `${trustState.readiness_score}%` }}
+                    />
+                  </div>
+                )}
               </div>
 
               {/* Selective disclosure */}

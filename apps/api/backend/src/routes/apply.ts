@@ -178,6 +178,39 @@ export function registerApplyRoutes(app: Express): void {
     }),
   );
 
+  // ── GET /api/apply/credentials/:npi ───────────────────────────────────────
+  /**
+   * C1 — the credential list the Apply modal selects from.
+   *
+   * The modal previously read `/api/trust-state/:npi`, which is anonymous
+   * because the production homepage capsule needs it. But the modal renders
+   * CREDENTIAL HOLDINGS — issuer, status, expiry — which is exactly the
+   * compiled private state C2 exists to protect, so reaching it required no
+   * session at all.
+   *
+   * This route serves the same shape behind the verified-and-bound contract.
+   * The homepage's anonymous capsule route is deliberately left untouched:
+   * changing it would alter production, and its payload is the capsule's
+   * lane summary rather than a credential list.
+   */
+  app.get(
+    '/api/apply/credentials/:npi',
+    asyncHandler(async (req, res) => {
+      const clerkUserId = requireVerifiedClerkUserId(req);
+      const { npi } = req.params;
+      if (!/^\d{10}$/.test(npi)) {
+        throw new HttpError(400, 'npi must be a 10-digit NPI.');
+      }
+      await requireNpiAuthorization(clerkUserId, npi);
+      const bundle = await generateApplyBundle(npi, {});
+      res.json({
+        npi,
+        credentials: bundle.credentials ?? [],
+        trustState: bundle.trustState ?? null,
+      });
+    }),
+  );
+
   // ── GET /api/apply/shares/:npi ─────────────────────────────────────────────
   /**
    * List all shares for a clinician.
