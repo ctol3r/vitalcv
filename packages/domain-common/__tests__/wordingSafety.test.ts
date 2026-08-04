@@ -94,7 +94,15 @@ describe('public surface truth guards — post-release drift prevention', () => 
   const candidatePublicSurfaces = Array.from(new Set([
     'apps/web/components/layout/Navbar.tsx',
     'apps/web/components/hero/ReadinessPreview.tsx',
-    'apps/web/components/explore/ExploreClient.tsx',
+    // The public opportunities board. `ExploreClient.tsx` used to stand here;
+    // #999 retired it and split the surface across a page and three components,
+    // so the entry is REPLACED rather than dropped — dropping it would shrink
+    // this scan by one public surface, which is exactly the silent erosion the
+    // assertion below exists to catch.
+    'apps/web/app/explore/page.tsx',
+    'apps/web/components/explore/board/BoardClient.tsx',
+    'apps/web/components/explore/board/BoardResultRow.tsx',
+    'apps/web/components/explore/board/BoardFilterPanel.tsx',
     ...publicEntryCopyFiles,
   ]));
 

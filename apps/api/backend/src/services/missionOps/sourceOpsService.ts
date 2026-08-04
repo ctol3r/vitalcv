@@ -134,6 +134,11 @@ function describeCoverageState(input: {
       return `${source.name} produced a result that requires operator review.`;
     case 'notDecisionGrade':
       return `${source.name} is outside the decision-grade launch lane.`;
+    // Deliberately phrased as a result, not a fault: the connector did its job
+    // and the subject simply is not in the source. Operators should not chase
+    // this as an outage (readOperatorStatus leaves it HEALTHY).
+    case 'notFound':
+      return `${source.name} returned a successful lookup with no matching record for the subject.`;
     case 'previewOnly':
       return `${source.name} is preview-only and excluded from monitoring decisions.`;
     case 'pending':

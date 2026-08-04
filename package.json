@@ -19,6 +19,7 @@
     "check:claims": "node --experimental-strip-types --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/check-public-claims.ts",
     "check:design": "node --experimental-strip-types --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/check-design-lint.ts",
     "check:routes": "node --experimental-strip-types --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/check-route-guards.ts",
+    "check:canonical-source-adapters": "node scripts/check-canonical-source-adapter-imports.mjs",
     "verify:release": "node --experimental-strip-types --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --import ./scripts/release-monitor/register-ts-resolver.mjs scripts/release-verify.ts",
     "report:public-copy": "node scripts/report-public-entry-copy-sources.js",
     "audit:active-routes": "node scripts/audit-active-routes.mjs",
@@ -33,19 +34,19 @@
   },
   "devDependencies": {
     "@types/node": "^20",
-    "next": "15.2.8",
-    "turbo": "^2.9.6",
+    "next": "15.5.22",
+    "turbo": "^2.9.14",
     "typescript": "5.9.3"
   },
   "pnpm": {
     "auditConfig": {
-      "ignoreGhsas": [
-        "GHSA-23hp-3jrh-7fpw"
-      ]
+      "ignoreGhsas": []
     },
     "overrides": {
       "@types/react": "^19",
       "@types/react-dom": "^19",
+      "cheerio>undici": "^7.28.0",
+      "handlebars": "^4.7.9",
       "protobufjs": "^7.5.5",
       "shell-quote": "^1.8.4"
     }

@@ -25,6 +25,7 @@ describe('sourceOpsService', () => {
     process.env.PECOS_ENABLED = 'true';
     process.env.STATE_BOARD_ENABLED = 'true';
     process.env.REAL_NURSYS_ENABLED = 'true';
+    delete process.env.NPPES_BULK_ENABLED;
     delete process.env.OFAC_SDN_ENABLED;
     mockIntegrationHealth();
   });
@@ -36,6 +37,7 @@ describe('sourceOpsService', () => {
     delete process.env.PECOS_ENABLED;
     delete process.env.STATE_BOARD_ENABLED;
     delete process.env.REAL_NURSYS_ENABLED;
+    delete process.env.NPPES_BULK_ENABLED;
     delete process.env.OFAC_SDN_ENABLED;
   });
 
@@ -126,19 +128,19 @@ describe('sourceOpsService', () => {
 
   it('treats flag-enabled but unimplemented sources as unavailable and alerts operators', () => {
     (getConnectorHealth as jest.Mock).mockReturnValue({ connectors: [] });
-    process.env.OFAC_SDN_ENABLED = 'true';
+    process.env.NPPES_BULK_ENABLED = 'true';
 
     const report = computeSourceOpsReport();
-    const ofac = report.sources.find((entry) => entry.sourceId === 'OFAC_SDN');
+    const nppesBulk = report.sources.find((entry) => entry.sourceId === 'NPPES_BULK');
 
-    expect(ofac?.featureFlag.enabled).toBe(true);
-    expect(ofac?.supported).toBe(false);
-    expect(ofac?.coverageState).toBe('unavailable');
-    expect(ofac?.coverageReason).toContain('flag-enabled but has no ingestion handler');
-    expect(ofac?.operatorStatus).toBe('CRITICAL');
-    expect(ofac?.decisionGrade).toBe(false);
+    expect(nppesBulk?.featureFlag.enabled).toBe(true);
+    expect(nppesBulk?.supported).toBe(false);
+    expect(nppesBulk?.coverageState).toBe('unavailable');
+    expect(nppesBulk?.coverageReason).toContain('flag-enabled but has no ingestion handler');
+    expect(nppesBulk?.operatorStatus).toBe('CRITICAL');
+    expect(nppesBulk?.decisionGrade).toBe(false);
     expect(report.alerts).toContain(
-      'UNIMPLEMENTED: Source OFAC Specially Designated Nationals (SDN) List is flag-enabled but has no ingestion handler in the launch lane.',
+      'UNIMPLEMENTED: Source CMS NPPES Monthly Bulk File V2 is flag-enabled but has no ingestion handler in the launch lane.',
     );
   });
 

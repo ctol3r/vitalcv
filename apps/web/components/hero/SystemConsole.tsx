@@ -158,7 +158,8 @@ export function SystemConsole() {
             <p className="max-w-xl body-lg text-muted-foreground">
               VitalCV automates primary source verification, captures each step
               as audit-boundary metadata, and continuously monitors freshness — so
-              clinicians start faster. Data freshness varies by source (daily to quarterly).
+              clinicians arrive with their evidence already read. Data freshness varies
+              by source (daily to quarterly).
             </p>
 
             {/* CTAs */}

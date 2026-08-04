@@ -1494,7 +1494,7 @@ const handlers: Record<string, SourceHandler> = {
       npi,
       observedAt,
       sourceId: 'NPPES_API',
-      parserVersion: 'v1.2.0',
+      parserVersion: 'v1.3.0',
       matchingStrategy: 'NPI_EXACT',
       fetchSource: fetchNppes,
       parseSource: ({ raw, artifactId, checksum, observedAt: parsedObservedAt, sourceUrl, retrievedAt }) => {
@@ -1876,6 +1876,8 @@ const handlers: Record<string, SourceHandler> = {
       },
     }),
 };
+
+export const IDENTITY_INGESTION_HANDLER_IDS = Object.freeze(Object.keys(handlers));
 
 export type IngestionSources = 'NPPES_API' | 'OIG_LEIE' | 'PECOS_PUBLIC' | 'OPEN_PAYMENTS' | 'SAM_GOV' | 'DOCTORS_CLINICIANS' | 'NURSYS' | 'STATE_BOARD' | 'OPENALEX' | 'CLINICAL_TRIALS' | 'PUBMED' | 'OFAC_SDN' | 'ALL';
 

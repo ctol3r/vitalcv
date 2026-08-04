@@ -18,7 +18,8 @@ describe('journey model (W2.1)', () => {
       'See what is ready',
       'Find roles that fit',
       'Apply with proof',
-      'Start faster',
+      // Was 'Start faster' — retired with the speed hero (brand split 2026-07-26).
+      'Start from evidence',
     ]);
     for (const chapter of JOURNEY_CHAPTERS) {
       expect(chapter.href.startsWith('/') || chapter.href.startsWith('#'), `${chapter.id} href`).toBe(

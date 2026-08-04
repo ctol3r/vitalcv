@@ -26,8 +26,19 @@ describe('/employers is a page, not a redirect', () => {
     expect(markup).toContain('data-employer-audience');
   });
 
-  it('still leads with the employer speed promise', () => {
-    expect(text).toContain('Start clinicians faster');
+  it('leads with the buyer outcome, stated without a speed claim', () => {
+    expect(text).toContain('Start clinicians from source-backed evidence');
+  });
+
+  // This assertion replaces one named "still leads with the employer speed
+  // promise", which required the H1 to read "Start clinicians faster". The
+  // brand split (2026-07-26) retired that claim — "faster" is a promise about
+  // time-to-start and no pilot has measured it — so the test was holding the
+  // page to a rule the doctrine had already withdrawn. A guard that outlives
+  // its ruling stops protecting the product and starts protecting the bug.
+  it('does not promise speed anywhere on the buyer doorway', () => {
+    expect(text).not.toContain('Start clinicians faster');
+    expect(text).not.toContain('faster');
   });
 });
 
@@ -64,8 +75,8 @@ describe('W11 — organization size is segmented, and each band has a way in', (
     expect(text.toLowerCase()).toContain('the office manager is the credentialing team');
   });
 
-  it('routes self-serve bands to the claim step and systems to the pilot', () => {
-    expect(markup).toContain('href="#claim-your-organization"');
+  it('routes self-serve bands to the access-request step and systems to the pilot', () => {
+    expect(markup).toContain('href="#request-organization-access"');
     expect(markup).toContain('href="/pilot"');
   });
 });

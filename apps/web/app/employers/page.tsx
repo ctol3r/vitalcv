@@ -7,6 +7,7 @@ import { HospitalArtifact } from '@/components/artifacts/SceneArtifacts';
 import '@/styles/motion.css';
 import '@/styles/artifact-motion.css';
 import { EmployerAudienceSection } from '@/components/employers/EmployerAudienceSection';
+import { EmployerEvidenceSection } from '@/components/employers/EmployerEvidenceSection';
 import { EmployerWorkflowPreview } from '@/components/employers/EmployerWorkflowPreview';
 import { PageFrame } from '@/components/layout/PageFrame';
 import { SOURCE_LANE_OPS } from '@/lib/trust/sourceLanes';
@@ -15,10 +16,23 @@ import { SOURCE_LANE_OPS } from '@/lib/trust/sourceLanes';
  * /employers — the employer landing + onboarding.
  *
  * Wave 6 (deep-audit 2026-07-21) + D3 (one-platform synthesis): the doorway
- * leads with the BUYER OUTCOME — "Start clinicians faster from source-backed
- * evidence" — not with setup mechanics. The Type 2 NPI claim is real and
- * necessary, but it is Step 1 of the workflow, so it renders after the buyer
- * has seen the job-to-start operating model, not as the page's thesis.
+ * leads with the BUYER OUTCOME — "Start clinicians from source-backed
+ * evidence" — not with setup mechanics. Step 1 is real and necessary, but it
+ * renders after the buyer has seen the job-to-start operating model, not as
+ * the page's thesis.
+ *
+ * Step 1 is a REQUEST for organization access, never a claim. Resolving a
+ * Type 2 NPI against NPPES establishes which organization is meant; it is not
+ * authority to act for it, and the server refuses on that basis
+ * (resolveOrganizationAuthority). The page used to say "Claim your
+ * organization", which promised an entitlement the platform will not grant on
+ * an NPI alone.
+ *
+ * The outcome is stated WITHOUT a speed claim. The brand split (2026-07-26)
+ * retired the speed hero — "faster" is a promise about time-to-start, and no
+ * pilot has measured it yet. The buyer outcome survives; the unearned
+ * comparative does not. Re-add it only when a pilot produces the number, and
+ * then state the number, not the adjective. See check-public-claims.ts.
  *
  * D3 (high-effort readers): limits are stated plainly and EARLY on this
  * surface — the blemishing effect that lets the clinician film defer limits
@@ -33,7 +47,7 @@ export const revalidate = 300;
 export const metadata: Metadata = {
   title: 'For Employers · VitalCV',
   description:
-    'Start clinicians faster from source-backed evidence — review consented, attributable packets, see remaining requirements up front, and keep the final decision. Claim your organization’s Type 2 NPI to begin.',
+    'Start clinicians from source-backed evidence — review consented, attributable packets, see remaining requirements up front, and keep the final decision. Request access to your organization to begin.',
 };
 
 /** Lane-truth cadences, from the registry — never hand-typed on this page. */
@@ -57,7 +71,7 @@ export default function EmployersPage() {
         <header className="mb-5">
           <p className="mz-eyebrow">For employers &amp; verifiers</p>
           <h1 className="mz-h1" style={{ marginTop: 12, maxWidth: 680 }}>
-            Start clinicians faster from <span className="mz-accent">source-backed evidence</span>.
+            Start clinicians from <span className="mz-accent">source-backed evidence</span>.
           </h1>
           <p className="mz-lede" style={{ marginTop: 12, maxWidth: 620 }}>
             A clinician arrives with a consented, attributable evidence packet — identity,
@@ -97,8 +111,8 @@ export default function EmployersPage() {
               it jumps to Step 1 below, after the operating model has made the
               case. Returning buyers skip straight to the claim flow. */}
           <p style={{ marginTop: 20 }}>
-            <a href="#claim-your-organization" className="mz-btn">
-              Claim your organization
+            <a href="#request-organization-access" className="mz-btn">
+              Request organization access
             </a>
           </p>
         </header>
@@ -126,6 +140,17 @@ export default function EmployersPage() {
 
         <EmployerWorkflowPreview />
 
+        {/* The operating model has made the case; this is the evidence itself.
+            CD-20's buyer asymmetry is "they claim numbers, we show one artifact"
+            — and CD-14 says the evidence artifact IS the brand, the thing an
+            employer screenshots and forwards. Until now this page described the
+            packet and never showed it.
+
+            The lane register is read from SOURCE_LANE_OPS, so it cannot drift
+            from lane truth; the packet beneath it is explicitly illustrative.
+            That split is the point — see the component's header. */}
+        <EmployerEvidenceSection />
+
         {/* MB1 — the teams who actually read this page, and the way in by org size.
             Placed after the operating model has made the case and BEFORE the ask,
             which is the order every credentialing vendor uses for its segmented
@@ -134,17 +159,19 @@ export default function EmployersPage() {
         <EmployerAudienceSection />
 
         <section
-          id="claim-your-organization"
+          id="request-organization-access"
           className="mz-card mt-10 scroll-mt-24 p-5 sm:p-6"
-          aria-label="Step 1 — claim your organization"
+          aria-label="Step 1 — request organization access"
         >
-          <p className="mz-eyebrow">Step 1 — Claim your organization</p>
+          <p className="mz-eyebrow">Step 1 — Request organization access</p>
           <h2 className="mz-h2" style={{ marginTop: 8 }}>
-            Enter your organization&rsquo;s NPI
+            Find your organization, then request access
           </h2>
           <p className="mz-small" style={{ marginTop: 4, marginBottom: 16 }}>
-            The same 30-second flow a clinician uses — your organization has a Type 2 NPI in the
-            same federal registry, resolved against NPPES, the federal source of record.
+            Your organization has a Type 2 NPI in the same federal registry a clinician uses,
+            resolved against NPPES, the federal source of record. That resolves{' '}
+            <em>which</em> organization you mean — never that you may act for it, so access is a
+            request that has to be granted.
           </p>
           <EmployerGetStartedClient />
         </section>

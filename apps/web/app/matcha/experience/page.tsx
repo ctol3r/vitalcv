@@ -3,7 +3,11 @@ import { MatchaExperienceShowcase } from '@/components/matcha/MatchaExperienceSh
 
 export const metadata: Metadata = {
   title: 'MATCHA — a preview of your signed-in experience — VitalCV',
-  description: 'See the MATCHA intelligence layer: your career constellation, a daily brief, and explained opportunity matches. Sample data.',
+  // Was "your career constellation" — the mechanism CD-13 retired, and removed
+  // from this page in #1020. The description outlived the thing it described,
+  // so the public meta tag went on advertising a canvas that no longer exists.
+  description:
+    'See the MATCHA intelligence layer: your career end to end, a daily brief, and explained opportunity matches. Sample data.',
 };
 
 export default function MatchaExperiencePage() {

@@ -18,6 +18,8 @@ import { sha256ForPayload } from '../../utils/deterministic';
 import { HttpError } from '../../utils/httpError';
 import {
   buildFieldEntriesFromTrustState,
+  withheldFieldIdsOf,
+  type DisclosureSelection,
   type ApplicationPacketContent,
   type PacketEvidenceState,
   type PacketFieldEntry,
@@ -47,6 +49,8 @@ export interface ApplicationPacketReadResponse {
     consentReceiptId: string;
     consentGrantId: string | null;
     selectedSections: string[];
+    /** Field ids the clinician withheld at consent time (field-level disclosure). */
+    withheldFieldIds: string[];
     fields: SubmittedPacketField[];
     methodologyVersion: string;
     clinicianNote: string | null;
@@ -432,6 +436,8 @@ export async function readApplicationPacket(
       consentReceiptId: packet.consentReceiptId,
       consentGrantId: packet.consentGrantId ?? null,
       selectedSections: packet.selectedSections,
+      // Derived from the sealed fields, never a stored parallel list.
+      withheldFieldIds: withheldFieldIdsOf(packet),
       fields: packet.fields,
       methodologyVersion: packet.methodologyVersion,
       clinicianNote: packet.clinicianNote,
@@ -495,8 +501,16 @@ export async function readApplicationEvidenceView(
     select: { npi: true },
   });
   const clinicianNpi = packet.submittedPacket?.clinicianNpi ?? application?.npi ?? null;
-  const selectedSections = packet.submittedPacket?.selectedSections
-    ?? ['identity', 'exclusions', 'licensure', 'enrollment'];
+  // The current-evidence panel recomputes from LIVE trust state, so it must
+  // apply the same disclosure the clinician consented to. Passing only the
+  // sections would recompute withheld fields with their real values and show
+  // the employer exactly what the clinician declined to share — the packet
+  // would be honest and the panel beside it would leak.
+  const disclosure: DisclosureSelection = {
+    sections: packet.submittedPacket?.selectedSections
+      ?? ['identity', 'exclusions', 'licensure', 'enrollment'],
+    withheldFieldIds: packet.submittedPacket?.withheldFieldIds ?? [],
+  };
 
   if (!clinicianNpi) {
     return {
@@ -514,7 +528,7 @@ export async function readApplicationEvidenceView(
 
   try {
     const trustState = await computeClinicianTrustState(clinicianNpi);
-    const fields = buildFieldEntriesFromTrustState(trustState, selectedSections);
+    const fields = buildFieldEntriesFromTrustState(trustState, disclosure);
     return {
       ...packet,
       currentEvidence: {

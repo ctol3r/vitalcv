@@ -436,6 +436,7 @@ function buildTrustExplanations(passport: TrustPassport): Record<string, string>
     CLEAR:              (dim) => `${dim} check returned clear — no adverse findings.`,
     ENROLLED:           (dim) => `${dim} enrollment confirmed in source system.`,
     PENDING:            (dim) => `${dim} has not been checked yet or data is stale.`,
+    NOT_FOUND:          (dim) => `${dim} was checked — the source returned no record for this provider.`,
     REVIEW_REQUIRED:    (dim) => `${dim} result requires manual review before a decision.`,
     UNAVAILABLE:        (dim) => `${dim} source was unavailable at time of check.`,
     ACCESS_REQUIRED:    (dim) => `${dim} source is access-restricted — additional credentials needed.`,

@@ -450,12 +450,37 @@ model Opportunity {
   status           String   @default("ACTIVE")
   createdAt        DateTime @default(now()) @map("created_at")
   updatedAt        DateTime @updatedAt @map("updated_at")
+  /// Where this listing came from. 'employer_posted' means an employer who
+  /// claimed a Type 2 NPI wrote it; 'public_feed' means it was copied from a
+  /// public feed and NOBODY at that employer has stated anything to VitalCV.
+  /// The read path branches on this so feed rows never claim employer-backed
+  /// provenance, and never publish derived guesses as employer requirements.
+  listingSource    String    @default("employer_posted") @map("listing_source")
+  sourceFeed       String?   @map("source_feed")
+  sourceRef        String?   @map("source_ref")
+  sourceUrl        String?   @map("source_url")
+  /// When the feed was last read. A fetch time, never a verification time.
+  fetchedAt        DateTime? @map("fetched_at")
+  /// Weighted tsvector over title/specialty/description, GENERATED ALWAYS by
+  /// Postgres (migration 20260802000000_opportunity_search). Prisma cannot
+  /// express a generated column, so it is Unsupported and never written from
+  /// application code — read via $queryRaw with websearch_to_tsquery.
+  searchVector     Unsupported("tsvector")? @map("search_vector")
   applications     Application[]
   organization     Organization @relation(fields: [organizationId], references: [id])
 
   @@index([organizationId])
   @@index([specialty, state])
   @@index([status])
+  /// The public board's real access path: WHERE status = 'ACTIVE'
+  /// ORDER BY updated_at DESC, created_at DESC.
+  @@index([status, updatedAt(sort: Desc), createdAt(sort: Desc)], map: "Opportunity_status_updated_at_idx")
+  /// Idempotency key for ingestion — re-running a feed updates, never duplicates.
+  /// Not partial: a partial unique index cannot serve Prisma's ON CONFLICT
+  /// target (Postgres 42P10). Employer-posted rows hold (NULL, NULL) and NULLs
+  /// are distinct in a unique index, so they never collide regardless.
+  @@unique([sourceFeed, sourceRef], map: "Opportunity_source_feed_ref_key")
+  @@index([status, listingSource], map: "Opportunity_status_listing_source_idx")
 }
 
 /// Linked profile for an individual clinician (Type 1 NPI)
@@ -698,6 +723,70 @@ model WorkspaceMembership {
 }
 
 /// Per-user workspace preferences and active persona state
+/// Durable record of a request for administrative access to an organization.
+///
+/// The refusal copy has always promised that "a VitalCV reviewer will verify
+/// your authority" — but nothing was ever written down. `upsertOrgProfile`
+/// threw a 403 and the request evaporated, so there was no queue, no history,
+/// and no way for a legitimate operator whose email is at a different domain to
+/// ever get access. This is the record that makes the promise true.
+///
+/// It is also the audit trail for the grants that DO happen: every decision,
+/// including the automatic ones, records the basis it was decided on.
+model OrganizationAccessRequest {
+  id String @id @default(uuid()) @db.Uuid
+
+  /// Requesting account. Not a relation: the request outlives any profile row
+  /// it might reference, and must remain readable after cleanup.
+  clerkUserId  String  @map("clerk_user_id")
+  accountEmail String? @map("account_email")
+
+  /// What was asked for, as asked for. Recorded verbatim so a reviewer sees
+  /// the actual request rather than a normalized summary of it.
+  requestedName    String  @map("requested_name")
+  requestedNpi     String? @map("requested_npi")
+  requestedWebsite String? @map("requested_website")
+  requestedDomain  String? @map("requested_domain")
+
+  /// The server's decision and the basis for it. `authorityReason` is the
+  /// OrganizationAuthorityReason discriminant (work_domain_match,
+  /// domain_mismatch, public_email_provider, …).
+  status          OrganizationAccessStatus @default(PENDING_REVIEW)
+  authorityReason String                   @map("authority_reason")
+  emailDomain     String?                  @map("email_domain")
+
+  /// Set only once access actually exists.
+  organizationId String? @map("organization_id") @db.Uuid
+
+  /// NPI binding is decided SEPARATELY from access. A work-domain match proves
+  /// control of that domain — never that the domain owns that Type 2 NPI — so
+  /// an automatic grant leaves this false and the NPI unbound.
+  npiBindingGranted Boolean @default(false) @map("npi_binding_granted")
+
+  /// Human review, when it happens.
+  reviewedBy    String?   @map("reviewed_by")
+  reviewedAt    DateTime? @map("reviewed_at")
+  reviewerNote  String?   @map("reviewer_note")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@index([status, createdAt], map: "org_access_requests_status_idx")
+  @@index([clerkUserId], map: "org_access_requests_user_idx")
+  @@index([requestedNpi], map: "org_access_requests_npi_idx")
+  @@index([organizationId], map: "org_access_requests_org_idx")
+  @@map("organization_access_requests")
+}
+
+enum OrganizationAccessStatus {
+  /// Refused automatic grant; waiting on a human.
+  PENDING_REVIEW
+  /// Access exists. Automatic (work-domain match) or reviewer-approved.
+  GRANTED
+  /// A reviewer said no.
+  DENIED
+}
+
 model WorkspacePreference {
   id               String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   userId           String        @unique @map("user_id") @db.Uuid

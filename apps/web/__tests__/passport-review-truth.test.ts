@@ -453,4 +453,61 @@ describe('passport review truth', () => {
     expect(truth.posture.dimensions.find((item) => item.label === 'Exclusion check (OIG/LEIE)')?.state).toBe('stale');
     expect(truth.posture.dimensions.find((item) => item.label === 'Medicare enrollment (PECOS)')?.state).toBe('unavailable');
   });
+
+  /**
+   * A source that answered "no record for this subject" used to reach this
+   * surface as PENDING, and rendered under the heading "Missing or access
+   * required" as "Pending". Both are false: nothing is missing, nothing is
+   * gating us, and we are not still looking. Same family as the defect that
+   * put "Source-backed" next to an NPI the registry does not list.
+   */
+  it('reads a not-found source as a finding, not as pending or missing', () => {
+    const notFoundEligibilityCoverage = createCanonicalSourceCoverage({
+      sourceId: 'PECOS_PUBLIC',
+      state: 'notFound',
+      reason: 'PECOS quarterly release does not show Medicare enrollment for this NPI',
+      checkedAt: '2026-03-20T00:00:00.000Z',
+    });
+    const passport = buildPassport({
+      truth: {
+        ...buildPassport().truth,
+        eligibility: {
+          ...buildPassport().truth.eligibility,
+          status: 'NOT_FOUND',
+          // The hostile case: an upstream still claiming the dimension is met.
+          satisfied: true,
+          decisionGrade: false,
+          coverage: notFoundEligibilityCoverage,
+        },
+      },
+      sourceCoverage: {
+        checks: [
+          buildPassport().truth.identity.coverage,
+          buildPassport().truth.safety.coverage,
+          buildPassport().truth.authority.coverage,
+          notFoundEligibilityCoverage,
+        ],
+        summary: summarizeCanonicalSourceCoverage([
+          buildPassport().truth.identity.coverage,
+          buildPassport().truth.safety.coverage,
+          buildPassport().truth.authority.coverage,
+          notFoundEligibilityCoverage,
+        ]),
+      },
+    });
+
+    const truth = buildPassportReviewTruthModel(passport);
+
+    expect(truth.buckets.needsReview.map((item) => item.label)).toContain('Enrollment / Eligibility');
+    expect(truth.buckets.missingOrAccessRequired.map((item) => item.label)).not.toContain('Enrollment / Eligibility');
+    expect(truth.buckets.sourceBackedNow.map((item) => item.label)).not.toContain('Enrollment / Eligibility');
+
+    const pecos = truth.posture.dimensions.find((item) => item.label === 'Medicare enrollment (PECOS)');
+    expect(pecos?.state).toBe('review_required');
+    expect(pecos?.state).not.toBe('pending');
+    // The honest per-source sentence survives to the reader.
+    expect(pecos?.note).toBe(
+      'PECOS quarterly release does not show Medicare enrollment for this NPI',
+    );
+  });
 });

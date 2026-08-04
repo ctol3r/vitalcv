@@ -8,7 +8,8 @@
   "scripts": {
     "db:migrate:deploy": "pnpm exec prisma migrate deploy",
     "dev": "bash ../../../scripts/prisma-generate-locked.sh --schema prisma/schema.prisma && ts-node src/server.ts",
-    "build": "bash ../../../scripts/prisma-generate-locked.sh --schema prisma/schema.prisma && tsc && pnpm exec ts-node src/qa/runQaSuite.ts",
+    "build": "bash ../../../scripts/prisma-generate-locked.sh --schema prisma/schema.prisma && tsc",
+    "qa:ci": "pnpm exec ts-node src/qa/runQaSuite.ts",
     "graph:bench": "pnpm exec ts-node src/tools/graphBench.ts",
     "manual:audit-bundle": "pnpm exec ts-node src/tools/generateManualAuditBundle.ts",
     "ncqa:validate": "pnpm exec ts-node src/tools/runNcqaValidationGate.ts",
@@ -63,7 +64,7 @@
     "jose": "^5.10.0",
     "key-did-resolver": "^4.0.0",
     "lru-cache": "^10.4.3",
-    "multer": "^2.1.1",
+    "multer": "^2.2.0",
     "node-cron": "^4.2.1",
     "prisma": "^6.19.2",
     "stripe": "^20.4.0",

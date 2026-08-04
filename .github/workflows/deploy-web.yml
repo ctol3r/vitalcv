@@ -49,13 +49,13 @@ jobs:
 
     steps:
       - name: Check out the release commit
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         with:
           version: 10.6.1
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
 
@@ -63,11 +63,18 @@ jobs:
         id: railway_audit
         env:
           RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN }}
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
         run: |
           set -euo pipefail
 
-          if [ -z "${RAILWAY_API_TOKEN}" ]; then
-            echo "::error::RAILWAY_API_TOKEN is required for exact-SHA deployment convergence."
+          if [ -n "${RAILWAY_API_TOKEN}" ]; then
+            RAILWAY_AUTH_HEADER="Authorization: Bearer ${RAILWAY_API_TOKEN}"
+            echo "Using Railway workspace/account token authentication."
+          elif [ -n "${RAILWAY_TOKEN}" ]; then
+            RAILWAY_AUTH_HEADER="Project-Access-Token: ${RAILWAY_TOKEN}"
+            echo "Using Railway project token authentication."
+          else
+            echo "::error::RAILWAY_API_TOKEN or RAILWAY_TOKEN is required for exact-SHA deployment convergence."
             exit 1
           fi
 
@@ -120,7 +127,7 @@ jobs:
 
           curl --fail-with-body --silent --show-error \
             https://backboard.railway.com/graphql/v2 \
-            -H "Authorization: Bearer ${RAILWAY_API_TOKEN}" \
+            -H "${RAILWAY_AUTH_HEADER}" \
             -H 'Content-Type: application/json' \
             --data-binary @railway-audit-request.json \
             > railway-audit.json
@@ -156,8 +163,18 @@ jobs:
         id: railway_deploy
         env:
           RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN }}
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
         run: |
           set -euo pipefail
+
+          if [ -n "${RAILWAY_API_TOKEN}" ]; then
+            RAILWAY_AUTH_HEADER="Authorization: Bearer ${RAILWAY_API_TOKEN}"
+          elif [ -n "${RAILWAY_TOKEN}" ]; then
+            RAILWAY_AUTH_HEADER="Project-Access-Token: ${RAILWAY_TOKEN}"
+          else
+            echo "::error::Railway credential disappeared after the audit step."
+            exit 1
+          fi
 
           MUTATION='mutation DeployExactWebCommit($serviceId: String!, $environmentId: String!, $commitSha: String!) {
             serviceInstanceDeployV2(serviceId: $serviceId, environmentId: $environmentId, commitSha: $commitSha)
@@ -173,7 +190,7 @@ jobs:
 
           curl --fail-with-body --silent --show-error \
             https://backboard.railway.com/graphql/v2 \
-            -H "Authorization: Bearer ${RAILWAY_API_TOKEN}" \
+            -H "${RAILWAY_AUTH_HEADER}" \
             -H 'Content-Type: application/json' \
             --data-binary @railway-deploy-request.json \
             > railway-deploy.json
@@ -290,7 +307,7 @@ jobs:
 
       - name: Publish the convergence receipt
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: web-deploy-receipt-${{ github.sha }}
           path: |

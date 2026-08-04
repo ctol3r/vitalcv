@@ -80,26 +80,32 @@ describe('Wave 5 buyer proof surface', () => {
     const markup = renderToStaticMarkup(await EmployersPage());
 
     // Wave 6: the doorway leads with the buyer outcome, not setup mechanics.
-    expect(markup).toContain('Start clinicians faster');
+    // The outcome is stated WITHOUT a speed claim — "faster" was retired by the
+    // brand split (2026-07-26) until a pilot measures time-to-start.
+    expect(markup).toContain('Start clinicians from');
     expect(markup).toContain('source-backed evidence');
+    expect(markup).not.toContain('Start clinicians faster');
     // D3: limits are stated plainly and EARLY on employer surfaces, and the
     // cadence line derives from the source-lane registry.
     expect(markup).toContain('data-employer-limits');
     expect(markup).toContain('not a credentialing service');
     expect(markup).toContain('monthly snapshot');
     expect(markup).toContain('quarterly snapshot');
-    // The Type 2 claim is real and necessary — but it is Step 1 of the
+    // The Type 2 step is real and necessary — but it is Step 1 of the
     // workflow, rendered AFTER the operating model, never the page's thesis.
-    expect(markup).toContain('Claim your organization');
-    expect(markup).toContain('Enter your organization’s NPI');
-    expect(markup).toContain('it is not legal proof of authority');
+    // It ASKS for access rather than offering a claim: an NPI resolves WHICH
+    // organization is meant, never authority to act for it (the substance is
+    // guarded in organization-access-copy.test.tsx).
+    expect(markup).toContain('Request organization access');
+    expect(markup).toContain('Find your organization, then request access');
+    expect(markup).toContain('it is not authority to act for it');
     const workflowAt = markup.indexOf('data-employer-workflow');
-    const claimAt = markup.indexOf('Enter your organization’s NPI');
+    const stepOneAt = markup.indexOf('Find your organization, then request access');
     expect(workflowAt, 'workflow section renders').toBeGreaterThan(-1);
     expect(
       workflowAt,
-      'the operating model must precede the claim step (outcome before mechanics)',
-    ).toBeLessThan(claimAt);
+      'the operating model must precede the access-request step (outcome before mechanics)',
+    ).toBeLessThan(stepOneAt);
     expect(findHrefByText(markup, 'Request a pilot')).toBe('/pilot');
     expect(findHrefByText(markup, 'Open your workspace')).toBe('/employer/dashboard');
     expectNoBuyerBannedStrings(markup);

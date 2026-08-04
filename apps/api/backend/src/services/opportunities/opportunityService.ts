@@ -33,10 +33,12 @@ import {
 } from './opportunityTruth';
 import {
   buildCanonicalOrganizationIdentity,
-  describeOrganizationAuthorityRefusal,
   isPlaceholderOrganizationDomain,
-  resolveOrganizationAuthority,
 } from '../employers/employerIntegrity';
+import {
+  attachOrganizationToAccessRequest,
+  recordOrganizationAccessRequest,
+} from '../employers/organizationAccessGovernance';
 
 /* ── Types ─────────────────────────────────────────────────── */
 
@@ -222,17 +224,31 @@ export async function upsertOrgProfile(
 
   // ── Authority gate ───────────────────────────────────────────────────────
   // Creating an organization GRANTS the caller administrative membership over
-  // it, so it needs an authority signal. Previously this path required only a
+  // it, so it needs an authority signal. This path once required only a
   // signed-in account plus a self-typed name: an NPPES lookup proves the
   // organization EXISTS, never that this person may act for it, so anyone could
-  // take over any employer name. Self-serve now requires a work email at the
+  // take over any employer name. Self-serve requires a work email at the
   // organization's own domain; everything else routes to manual review.
-  const authority = resolveOrganizationAuthority({
+  //
+  // The decision is server-side and reads server-held facts: `user.email` comes
+  // from the User row keyed by the Clerk id, never from the request body.
+  //
+  // Every outcome is now DURABLE. A refusal used to throw a 403 and vanish,
+  // which made the refusal copy ("a VitalCV reviewer will verify your
+  // authority") a promise nothing kept — there was no queue to land in and no
+  // route to access for a legitimate operator at a different domain. Refusals
+  // become PENDING_REVIEW rows; grants are recorded with the basis they were
+  // granted on. Both emit an audit event and an outbox event.
+  const decision = await recordOrganizationAccessRequest({
+    clerkUserId,
     accountEmail: user.email,
+    requestedName: canonicalIdentity.displayName,
+    requestedNpi: normalizedNpi || null,
+    requestedWebsite: canonicalIdentity.website,
     organizationDomain: canonicalIdentity.domain,
   });
-  if (!authority.authorized) {
-    throw new HttpError(403, describeOrganizationAuthorityRefusal(authority.reason));
+  if (!decision.authorized) {
+    throw new HttpError(403, decision.refusal ?? 'Access request submitted for review.');
   }
 
   // An organization NPI identifies exactly one organization. Without this, the
@@ -250,6 +266,15 @@ export async function upsertOrgProfile(
     }
   }
 
+  // The website is caller-supplied, so a domain match proves the caller
+  // controls an address at a domain THEY named. That is a real signal about
+  // the domain and none at all about a Type 2 NPI — otherwise anyone with a
+  // work address at their own domain could send a hospital's real NPI and walk
+  // away with the hospital's federal identifier bound to their organization.
+  // The automatic grant therefore creates the organization WITHOUT the NPI;
+  // binding it is a separate reviewed decision (npiBindingGranted).
+  const npiToBind = decision.npiBindingGranted ? normalizedNpi : '';
+
   // Create new org + profile + membership
   const existingOrganization = await prisma.organization.findUnique({
     where: { slug: canonicalIdentity.slug },
@@ -265,7 +290,7 @@ export async function upsertOrgProfile(
       slug: canonicalIdentity.slug,
       organizationProfile: {
         create: {
-          ...(normalizedNpi ? { npi: normalizedNpi } : {}),
+          ...(npiToBind ? { npi: npiToBind } : {}),
           facilityType: input.facilityType ?? 'hospital',
           specialties: input.specialties ?? [],
           statesCovered: input.statesCovered ?? [],
@@ -313,6 +338,10 @@ export async function upsertOrgProfile(
       active: true,
     },
   });
+
+  // Close the loop: the access request now points at the organization it
+  // produced, so the record is a usable history rather than a loose intent.
+  await attachOrganizationToAccessRequest(decision.requestId, org.id);
 
   return { organizationId: org.id };
 }
@@ -511,12 +540,58 @@ export async function listOpportunitiesForOrg(clerkUserId: string): Promise<Oppo
   return opps.map((opportunity) => buildOpportunityTruth({ opportunity }));
 }
 
+/**
+ * Ceiling on rows pulled into memory when a request needs work SQL cannot do —
+ * a keyword rank set, or a filter still derived at read time. It exists so one
+ * request can never scan the whole table; when it bites, `truncated` says so
+ * rather than letting a partial count read as a total.
+ */
+const SCAN_CAP = 500;
+
+/** Filters computed by buildOpportunityTruth, so they cannot be a SQL predicate. */
+function usesDerivedFilters(filters: OpportunityTruthFilters): boolean {
+  return Boolean(
+    filters.payModel
+    || filters.payMin !== undefined
+    || filters.payMax !== undefined
+    || filters.visaSponsorship
+    || filters.benefits
+    || filters.employerType
+    || filters.startUrgency
+    || filters.readinessStatus
+    || filters.missingRequirement,
+  );
+}
+
+/**
+ * Keyword match, ranked, straight off the GIN index.
+ *
+ * websearch_to_tsquery is deliberate: it accepts what people already type into
+ * a search box — "quoted phrases", OR, and -exclusion — and it never throws on
+ * malformed input, unlike to_tsquery. The query text is parameterised, so it is
+ * a value and not SQL.
+ */
+async function keywordRankedIds(query: string, cap: number): Promise<string[]> {
+  const rows = await prisma.$queryRaw<Array<{ id: string }>>`
+    SELECT "id"
+    FROM "Opportunity"
+    WHERE "status" = 'ACTIVE'
+      AND "search_vector" @@ websearch_to_tsquery('english', ${query})
+    ORDER BY
+      ts_rank("search_vector", websearch_to_tsquery('english', ${query})) DESC,
+      "updated_at" DESC
+    LIMIT ${cap}
+  `;
+  return rows.map((row) => row.id);
+}
+
 export async function listPublicOpportunities(filters: OpportunityTruthFilters & {
+  q?: string;
   limit?: number;
   offset?: number;
   clinicianNpi?: string;
   clerkUserId?: string | null;
-}): Promise<{ opportunities: OpportunityResult[]; total: number }> {
+}): Promise<{ opportunities: OpportunityResult[]; total: number; truncated: boolean }> {
   const where: Prisma.OpportunityWhereInput = {
     status: 'ACTIVE',
     ...(filters.specialty ? { specialty: { contains: filters.specialty, mode: 'insensitive' as const } } : {}),
@@ -533,40 +608,83 @@ export async function listPublicOpportunities(filters: OpportunityTruthFilters &
     where.AND = [listSeedExclusion];
   }
 
-  const [clinicianProfile, opportunities] = await Promise.all([
-    resolveClinicianProfile({
-      clerkUserId: filters.clerkUserId,
-      clinicianNpi: filters.clinicianNpi,
-    }),
-    prisma.opportunity.findMany({
-      where,
-      include: {
-        organization: {
-          include: {
-            organizationProfile: true,
-          },
-        },
-      },
-      orderBy: [
-        { updatedAt: 'desc' },
-        { createdAt: 'desc' },
-      ],
-    }),
-  ]);
-
-  const normalized = opportunities
-    .map((opportunity) => buildOpportunityTruth({
-      opportunity,
-      clinicianProfile,
-    }))
-    .filter((opportunity) => matchesOpportunityTruthFilters(opportunity, filters));
-
   const offset = filters.offset ?? 0;
   const limit = filters.limit ?? 20;
+  const query = filters.q?.trim() ?? '';
+
+  const include = {
+    organization: {
+      include: {
+        organizationProfile: true,
+      },
+    },
+  } as const;
+  const orderBy = [
+    { updatedAt: 'desc' as const },
+    { createdAt: 'desc' as const },
+  ];
+
+  let rankedIds: string[] | null = null;
+  if (query) {
+    rankedIds = await keywordRankedIds(query, SCAN_CAP);
+    if (rankedIds.length === 0) {
+      return { opportunities: [], total: 0, truncated: false };
+    }
+    where.id = { in: rankedIds };
+  }
+
+  const clinicianProfile = await resolveClinicianProfile({
+    clerkUserId: filters.clerkUserId,
+    clinicianNpi: filters.clinicianNpi,
+  });
+
+  // ── Fast path ──────────────────────────────────────────────────────────────
+  // No keyword and no derived filter: every predicate is a SQL predicate, so
+  // the database does the paging and the counting. This is the path that has to
+  // hold up when ingestion takes this table past 100k rows — nothing is read
+  // into memory beyond the page being returned.
+  if (!rankedIds && !usesDerivedFilters(filters)) {
+    const [total, rows] = await Promise.all([
+      prisma.opportunity.count({ where }),
+      prisma.opportunity.findMany({ where, include, orderBy, skip: offset, take: limit }),
+    ]);
+
+    return {
+      opportunities: rows.map((opportunity) => buildOpportunityTruth({ opportunity, clinicianProfile })),
+      total,
+      truncated: false,
+    };
+  }
+
+  // ── Bounded path ───────────────────────────────────────────────────────────
+  // Either the ordering comes from ts_rank, or a filter is still derived at read
+  // time (pay model, benefits, visa, readiness…). Both need rows in memory, so
+  // the read is capped and the caller is told when the cap bit.
+  const rows = await prisma.opportunity.findMany({
+    where,
+    include,
+    orderBy,
+    take: SCAN_CAP,
+  });
+
+  let normalized = rows
+    .map((opportunity) => buildOpportunityTruth({ opportunity, clinicianProfile }))
+    .filter((opportunity) => matchesOpportunityTruthFilters(opportunity, filters));
+
+  if (rankedIds) {
+    // findMany returned the rows in updatedAt order; restore relevance order.
+    const rankPosition = new Map(rankedIds.map((id, index) => [id, index]));
+    normalized = normalized.sort(
+      (left, right) => (rankPosition.get(left.id) ?? Number.MAX_SAFE_INTEGER)
+        - (rankPosition.get(right.id) ?? Number.MAX_SAFE_INTEGER),
+    );
+  }
 
   return {
     opportunities: normalized.slice(offset, offset + limit),
     total: normalized.length,
+    // The cap bit, so `total` is a floor rather than a count.
+    truncated: rows.length >= SCAN_CAP,
   };
 }
 

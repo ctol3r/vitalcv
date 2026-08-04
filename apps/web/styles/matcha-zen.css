@@ -149,8 +149,16 @@
  * bridge above resolves through them, so every `.mz` surface (homepage included)
  * flips together with no per-component changes. Activated by next-themes adding
  * `.dark` on <html>.
+ *
+ * Opt-out: `data-surface-tier="public"` keeps a surface on the light base
+ * tokens whatever the theme. CD-14 fixes the public acquisition tier as paper,
+ * light only. Note this whole dark block is dormant today — providers.tsx pins
+ * forcedTheme="light" — so the opt-out is a guard for if that is relaxed, not a
+ * fix for current behaviour. Because the --vt-* bridge resolves through these
+ * base tokens, excluding them here IS the whole opt-out: no per-component work,
+ * and no duplicated palette to drift.
  */
-.dark .mz {
+.dark .mz:not([data-surface-tier='public']) {
   /* Warm charcoal paper */
   --paper: #15140f;
   --paper-2: #1d1b15;
@@ -259,15 +267,25 @@
 
 /* ── Buttons ──────────────────────────────────────────────────────────────── */
 
+/* CD-4: the primary action is the ACCENT, never ink. This rule hardcoded
+   `var(--ink-900)`, so /employers rendered a black primary while the global
+   navbar action rendered indigo — two different primary colours in one product,
+   which is the one-system failure CD-2.5 describes. The island already defines
+   `--accent: #4338CA` (line 70) and aliases `--vt-accent` to it; the button just
+   never used it.
+   CD-10: a button is software -> 10px. 3px is the DOCUMENT radius and belongs to
+   evidence artifacts, not controls.
+   CD-15: 10px padding at 13.5px text computed to ~38px. The floor is 44px. */
 .mz-btn {
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  min-height: 44px;
   padding: 10px 18px;
-  border: 1px solid var(--ink-900);
-  background: var(--ink-900);
-  color: var(--paper); /* contrast vs ink-900; flips correctly in dark (paper=charcoal, ink=light) */
-  border-radius: 3px;
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: var(--paper); /* contrast vs the indigo accent; flips correctly in dark */
+  border-radius: 10px;
   font-family: var(--mz-sans);
   font-size: 13.5px;
   font-weight: 500;
@@ -276,7 +294,7 @@
   cursor: pointer;
   transition: background var(--mz-dur) var(--mz-ease), transform 80ms var(--mz-ease);
 }
-.mz-btn:hover { background: var(--ink-700); }
+.mz-btn:hover { background: var(--vt-accent-hover, var(--ink-700)); }
 .mz-btn:active { transform: translateY(1px); }
 
 .mz-btn-ghost {

@@ -1,10 +1,10 @@
 import type { Metadata } from 'next';
 
-import { AskHome } from '@/components/home/ask/AskHome';
-import '@/styles/motion.css';
-import '@/styles/artifact-motion.css';
-import '@/styles/ask-home.css';
-import '@/styles/spine-tabs.css';
+import { HorizontalCareerFilm } from '@/components/home/film/HorizontalCareerFilm';
+// ONE route stylesheet. It owns the composition AND the evidence capsule, so
+// the surface the primary action produces can never again be orphaned from the
+// page it renders on — see the header of `styles/home.css`.
+import '@/styles/home.css';
 
 const TAGLINE = 'VitalCV — Your career evidence, ready before your next job.';
 const DESCRIPTION =
@@ -53,14 +53,14 @@ const STRUCTURED_DATA = {
 };
 
 /**
- * The homepage has two jobs and no competing composition:
+ * The homepage is one source-honest evidence film:
  *
- * 1. Let a clinician act immediately through the NPI-first Ask.
- * 2. Let a reader who does not type operate the same product argument in one
- *    four-step pane: NPI → source evidence → chosen packet → hospital review.
+ * 1. Let a clinician act immediately through the NPI-first opening pane.
+ * 2. Carry the same evidence story through native scroll rather than a static
+ *    stack of sections.
  *
- * AskHome owns both. The retired horizontal film and the long stack of ledger,
- * chapter, and beat sections no longer compete for page-level authority.
+ * The film has one passive scroll owner and a complete vertical fallback for
+ * no-JavaScript, reduced-motion, touch, and narrow viewports.
  */
 export default function HomePage() {
   return (
@@ -69,7 +69,7 @@ export default function HomePage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(STRUCTURED_DATA) }}
       />
-      <AskHome />
+      <HorizontalCareerFilm />
     </>
   );
 }

@@ -105,6 +105,9 @@ describe('public wedge parity helpers', () => {
       ['stale', 'Stale'],
       ['access_required', 'Access required'],
       ['unavailable', 'Unavailable'],
+      // Distinct from 'Unavailable' on purpose: there the source never
+      // answered; here it answered and holds nothing for this subject.
+      ['not_found', 'No active record'],
       ['review_required', 'Review required'],
       ['preview_only', 'Preview'],
     ]);

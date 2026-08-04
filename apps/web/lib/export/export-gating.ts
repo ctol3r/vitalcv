@@ -23,7 +23,10 @@ export type ExportGateBlockerCode =
   | 'SOURCE_GATED'
   | 'SOURCE_REVIEW_REQUIRED'
   | 'SOURCE_PREVIEW_ONLY'
-  | 'SOURCE_UNAVAILABLE';
+  | 'SOURCE_UNAVAILABLE'
+  /** Source answered; no active record for the subject. Distinct from
+   *  SOURCE_UNAVAILABLE, where we never got an answer at all. */
+  | 'SOURCE_NOT_FOUND';
 
 export interface ExportGateBlocker {
   code: ExportGateBlockerCode;
@@ -71,6 +74,9 @@ const NON_EXPORTABLE_SOURCE_BLOCKERS: Record<
   accessRequired: 'SOURCE_GATED',
   reviewRequired: 'SOURCE_REVIEW_REQUIRED',
   notDecisionGrade: 'SOURCE_NOT_DECISION_GRADE',
+  // Fails closed like every other non-checked state: a packet must not be
+  // exportable on a lane where the source found no record for this provider.
+  notFound: 'SOURCE_NOT_FOUND',
   previewOnly: 'SOURCE_PREVIEW_ONLY',
 };
 
@@ -116,6 +122,8 @@ function sourceBlockerMessage(
       return `${sourceId} is preview-only; export would imply fake readiness.`;
     case 'unavailable':
       return `${sourceId} is unavailable, so export fails closed.`;
+    case 'notFound':
+      return `${sourceId} returned no active record for this NPI, so export fails closed.`;
     case 'pending':
     case 'notDecisionGrade':
       return `${sourceId} is not decision-grade for export.`;

@@ -37,6 +37,31 @@ export async function POST(req: NextRequest) {
       console.error('[matcha/score proxy] preference load failed:', prefErr);
     }
 
+    /*
+
+     * C2 — a score carries per-clinician blockers and coverage: private state with no public-safe form. The web tier
+
+     * refuses without a session so the preview cannot leak against a
+
+     * backend that predates the guard; the backend refuses again and also
+
+     * checks the NPI binding, which only it can do.
+
+     */
+
+    if (!req.headers.get('authorization')) {
+
+      return NextResponse.json(
+
+        { error: 'Sign in to see readiness detail for your own NPI.' },
+
+        { status: 401 },
+
+      );
+
+    }
+
+
     const res = await fetch(`${BACKEND}/api/matcha/explain`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
