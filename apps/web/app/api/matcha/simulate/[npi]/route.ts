@@ -27,6 +27,31 @@ export async function GET(
       return NextResponse.json({ error: 'Invalid NPI — expected 10 digits' }, { status: 400 });
     }
 
+    /*
+
+     * C2 — simulation enumerates which credentials block this clinician: private state with no public-safe form. The web tier
+
+     * refuses without a session so the preview cannot leak against a
+
+     * backend that predates the guard; the backend refuses again and also
+
+     * checks the NPI binding, which only it can do.
+
+     */
+
+    if (!_req.headers.get('authorization')) {
+
+      return NextResponse.json(
+
+        { error: 'Sign in to see readiness detail for your own NPI.' },
+
+        { status: 401 },
+
+      );
+
+    }
+
+
     const res = await fetch(`${BACKEND}/api/matcha/simulate/${npi}`, {
       signal: AbortSignal.timeout(15_000),
     });

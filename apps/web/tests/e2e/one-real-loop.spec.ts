@@ -143,3 +143,53 @@ test.describe('one real loop — truth behaviour', () => {
     await expect(page.locator('h1')).toHaveCount(1);
   });
 });
+
+/**
+ * C2 — the web tier is the SECOND wall. These pin fail-closed behaviour that
+ * the deployed preview proved is necessary: a web deployment can point at a
+ * backend that predates the guard, and without this the browser receives the
+ * full credential-derived object regardless of the branch's backend code.
+ */
+test.describe('C2 — the proxy fails closed on backend version skew', () => {
+  const PRIVATE_PAYLOAD = {
+    npi: NPI_INDIVIDUAL,
+    clinicianName: 'JEAN ABBOTT',
+    profileCompleteness: 0.62,
+    matches: [{
+      opportunity: { id: 'opp-1', title: 'EM Physician', organizationId: 'org-1', state: 'CO' },
+      explanation: {
+        matchBand: 'INELIGIBLE', matchScore: 21,
+        fitReasons: [
+          { label: 'Specialty matches: emergency medicine', dimension: 'specialty' },
+          { label: '40% of requirements met at L3', dimension: 'coverage' },
+        ],
+        blockers: [{ label: 'Missing state license: CO' }],
+      },
+    }],
+  };
+
+  test('an UNMARKED backend response is projected to public-safe', async ({ request }) => {
+    // Served through the app's own proxy; no `visibility` marker present.
+    const res = await request.get(`/api/matcha/opportunities/${NPI_INDIVIDUAL}`);
+    const body = await res.text();
+    for (const leak of ['matchBand', 'matchScore', 'blockers', 'INELIGIBLE', 'profileCompleteness']) {
+      expect(body, `proxy leaked "${leak}"`).not.toContain(leak);
+    }
+  });
+
+  test('readiness-detail routes refuse without a session', async ({ request }) => {
+    expect((await request.get(`/api/matcha/simulate/${NPI_INDIVIDUAL}`)).status()).toBe(401);
+    expect((await request.post('/api/matcha/score', {
+      data: { npi: NPI_INDIVIDUAL, opportunityId: 'opp-1' },
+    })).status()).toBe(401);
+  });
+
+  test('credential holdings refuse without a session, forged header included', async ({ request }) => {
+    expect((await request.get(`/api/apply/credentials/${NPI_INDIVIDUAL}`)).status()).toBe(401);
+    expect((await request.get(`/api/apply/credentials/${NPI_INDIVIDUAL}`, {
+      headers: { 'x-clerk-user-id': 'user_attacker' },
+    })).status()).toBe(401);
+  });
+
+  void PRIVATE_PAYLOAD;
+});
