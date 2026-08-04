@@ -32,6 +32,13 @@ import prisma from '../graphql/prisma_client';
  * an NPI-keyed denial stream is itself an enumeration record. What is kept is
  * the shape of the refusal — where, why, and whether a session existed at all
  * — which is what an operator needs to spot probing.
+ *
+ * An earlier version also recorded whether an `x-clerk-user-id` header was
+ * PRESENT (never its value). The header-trust ratchet flags any backend file
+ * that reads that header, and it cannot distinguish "derives identity from
+ * this" from "counts it". Baselining an exception here would weaken the one
+ * gate that polices the exact defect this hotfix closes, so the signal is
+ * dropped rather than the rule bent.
  */
 function auditDenial(
   req: Request,
@@ -46,9 +53,6 @@ function auditDenial(
     hadVerifiedSession: Boolean(
       (req as Request & { verifiedAuth?: VerifiedAuth }).verifiedAuth?.verifiedUserId,
     ),
-    // The presence of a forgeable header on a denied request is the signal
-    // worth keeping; its VALUE is attacker-controlled and is not recorded.
-    presentedIdentityHeader: Boolean(req.headers['x-clerk-user-id']),
   });
 }
 
