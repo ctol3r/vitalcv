@@ -7,16 +7,15 @@
  *   POST   /api/opportunities           — post a new opportunity
  *   GET    /api/opportunities           — list public active opportunities
  *   GET    /api/employer/opportunities  — list my org's opportunities
- *   GET    /api/candidates              — list verified clinicians (for verifiers)
  */
 
 import type { Express, NextFunction, Request, Response } from 'express';
 import { seedLaunchOpportunities } from '../services/opportunities/launchOpportunitySeed';
+import { ingestAllFeeds } from '../services/ingestion/ingestionRunner';
 import {
   createOpportunity,
   getPublicOpportunityById,
   getOrgProfile,
-  listCandidates,
   listOpportunitiesForOrg,
   listPublicOpportunities,
   updateOpportunity,
@@ -201,8 +200,12 @@ export function registerOpportunityRoutes(app: Express): void {
   app.get(
     '/api/opportunities',
     asyncHandler(async (req, res) => {
-      const { specialty, state, hiringType, organizationSlug, payModel, visaSponsorship, benefits, employerType, startUrgency, readinessStatus, missingRequirement, npi, remote } = req.query;
+      const { q, specialty, state, hiringType, organizationSlug, payModel, visaSponsorship, benefits, employerType, startUrgency, readinessStatus, missingRequirement, npi, remote } = req.query;
       const result = await listPublicOpportunities({
+        // Free-text keyword, matched against the Postgres tsvector. Length-capped
+        // so a pathological query cannot make the text-search parser do
+        // unbounded work on an unauthenticated route.
+        q: typeof q === 'string' ? q.slice(0, 200) : undefined,
         specialty: typeof specialty === 'string' ? specialty : undefined,
         state: typeof state === 'string' ? state : undefined,
         hiringType: typeof hiringType === 'string' ? hiringType : undefined,
@@ -347,19 +350,23 @@ export function registerOpportunityRoutes(app: Express): void {
 
   /* ── Candidates ── */
 
-  app.get(
-    '/api/candidates',
-    asyncHandler(async (req, res) => {
-      const { specialty, state } = req.query;
-      const result = await listCandidates({
-        specialty: typeof specialty === 'string' ? specialty : undefined,
-        state: typeof state === 'string' ? state : undefined,
-        limit: parsePositiveInt(req.query.limit, 20),
-        offset: parsePositiveInt(req.query.offset, 0),
-      });
-      res.json(result);
-    }),
-  );
+  /*
+   * `/api/candidates` is REMOVED, not merely guarded.
+   *
+   * The handler served clinician records to any caller: it performed no
+   * identity check, while every sibling route in this file calls
+   * `requireClerkUserId` first. The Next.js proxy in front of it did require a
+   * session, which is why the gap was invisible from inside the app — the
+   * proxy was the only enforcement, and it is bypassable by addressing the API
+   * host directly.
+   *
+   * It is deleted rather than rebuilt behind authorization because its only
+   * consumer was an archived page. Re-adding an authorized candidate listing
+   * would restore attack surface that no shipping surface asks for. A future
+   * candidate-list API needs its own security and product review.
+   *
+   * `candidates-route-removed.test.ts` asserts this route stays absent.
+   */
 
   /* ── Admin: Seed launch opportunities ── */
   app.post(
@@ -377,6 +384,38 @@ export function registerOpportunityRoutes(app: Express): void {
         (level, message) => { logs.push(`[${level}] ${message}`); },
       );
       res.json({ ...summary, logs });
+    }),
+  );
+
+  /**
+   * Run the job-feed ingestion.
+   *
+   * Admin-token gated and manually triggered rather than on a timer: the first
+   * runs of a new feed should be looked at by a person before anything is put
+   * on a schedule. A connector whose credentials are unset reports itself
+   * skipped with the variables it needs, so an unconfigured feed is visible in
+   * the response instead of looking like a feed with no jobs.
+   */
+  app.post(
+    '/api/admin/ingest-opportunities',
+    asyncHandler(async (req, res) => {
+      const authHeader = req.headers.authorization ?? '';
+      const expected = process.env.ADMIN_SEED_TOKEN;
+      if (!expected || authHeader !== `Bearer ${expected}`) {
+        res.status(401).json({ error: 'unauthorized' });
+        return;
+      }
+
+      const limit = parsePositiveInt(req.query.limit, 200);
+      const reports = await ingestAllFeeds({ limit });
+
+      res.json({
+        reports,
+        configured: reports.filter((report) => report.ran).map((report) => report.feed),
+        skipped: reports
+          .filter((report) => !report.ran)
+          .map((report) => ({ feed: report.feed, reason: report.skippedReason })),
+      });
     }),
   );
 }

@@ -40,6 +40,7 @@ import { registerAuthorityRoutes } from './routes/authority';
 import { registerAuditRoutes } from './routes/audit';
 import { startAnchorWorker } from './workers/anchorWorker';
 import { startRevocationOutboxWorker } from './workers/revocationOutboxWorker';
+import { startIngestionWorker } from './workers/ingestionWorker';
 // Wave 37: Superbrain GraphRAG intelligence endpoint — now superseded by Intelligence Engine
 // Wave 40: Continuous Trust & Revocation Engine
 import { registerStatusListRoutes } from './routes/statusList';
@@ -1339,6 +1340,12 @@ const AVERAGE_DELAY_REDUCTION_DAYS = 7;
 const REVENUE_RECOVERY_PER_DAY_USD = 1000;
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
+// Share ids are `@db.Uuid` columns; anything else must be rejected before it
+// reaches Prisma. Same shape as the guards in routes/passportEntity.ts and
+// routes/auditDecision.ts.
+const SHARE_ID_UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 function parseRequiredString(value: unknown, field: string): string {
   if (typeof value !== 'string' || value.trim().length === 0) {
     throw new Error(`${field} is required`);
@@ -2590,6 +2597,15 @@ function registerPilotRoutes(app: Express): void {
     const organizationFilter = buildOrganizationFilter(organizationId);
     const ref = normalizeFunnelRef(req.query.ref);
 
+    // ShareLink.id is `@db.Uuid`, so a malformed id makes Prisma throw at the
+    // driver ("Error creating UUID") before the not-found branch below is ever
+    // reached — a public endpoint returning 500 for any non-UUID path segment.
+    // Guard the exact value the query receives, and answer exactly as we answer
+    // an id that simply does not exist, so the two are indistinguishable.
+    if (!SHARE_ID_UUID_RE.test(shareId)) {
+      return res.status(404).json({ error: 'Share link not found' });
+    }
+
     try {
       const existing = await prisma.shareLink.findFirst({
         where: {
@@ -3757,6 +3773,9 @@ if (BACKGROUND_JOBS_ENABLED) {
   startAnchorWorker();
   startContinuousMonitor();
   startRevocationOutboxWorker();
+  // No-ops unless a feed's credentials are set, so an unconfigured deployment
+  // stays silent instead of failing every interval.
+  startIngestionWorker();
 }
 
 if (ENTERPRISE_MODE) {

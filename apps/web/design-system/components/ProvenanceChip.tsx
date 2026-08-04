@@ -106,6 +106,14 @@ export const PROVENANCE_META: Record<ProvenanceState, ProvenanceMeta> = {
     register: 'unknown',
     dot: 'hollow',
   },
+  notFound: {
+    label: 'No active record',
+    // Deliberately the mirror of `unavailable` above: there the source gave us
+    // nothing, here the source gave us an answer and the answer was no.
+    description: 'The source answered and holds no active record for this subject. A finding, not a system condition — and never a confirmation.',
+    register: 'unknown',
+    dot: 'hollow',
+  },
   notDecisionGrade: {
     label: 'Not decision-grade',
     description: 'Present but not sufficient to decide on. Treated as absence for any decision.',
@@ -141,7 +149,7 @@ export const PROVENANCE_META: Record<ProvenanceState, ProvenanceMeta> = {
 const chipVariants = cva(
   [
     'inline-flex items-center gap-1.5 w-fit',
-    'rounded-[var(--vt-radius-pill,9999px)] border',
+    'border',
     'px-[var(--vt-space-8,8px)] py-[var(--vt-space-2,2px)]',
     'text-[11px] leading-[var(--vt-line-tight,1.15)]',
     'font-[var(--vt-font-weight-semibold,600)] uppercase tracking-[0.1em]',
@@ -149,6 +157,22 @@ const chipVariants = cva(
   ].join(' '),
   {
     variants: {
+      /**
+       * Geometry. CD-10 makes radius semantic and retires the pill outright:
+       * "State stamps are 3px rectangles. A record carries stamps, not pills."
+       *
+       * `stamp` is therefore the doctrinally correct shape, and the homepage
+       * ships it. `pill` remains the DEFAULT only because five other mounted
+       * surfaces (`/verify/[npi]`, `/evidence-network`, `/status/technical`,
+       * `/trust/attribution`, `/passport`) currently render the old geometry,
+       * and silently restyling them inside a homepage change would put pixels
+       * in front of users that no one reviewed. Migrating them is CD-W3 work,
+       * and when the last caller moves, this variant collapses to `stamp`.
+       */
+      shape: {
+        pill: 'rounded-[var(--vt-radius-pill,9999px)]',
+        stamp: 'rounded-[3px]',
+      },
       register: {
         checked: 'border-transparent bg-[var(--vt-badge-checked-bg)] text-[var(--vt-badge-checked-text)]',
         aging: 'border-transparent bg-[var(--vt-badge-pending-bg)] text-[var(--vt-badge-pending-text)]',
@@ -165,7 +189,7 @@ const chipVariants = cva(
         md: '',
       },
     },
-    defaultVariants: { register: 'unknown', size: 'md' },
+    defaultVariants: { register: 'unknown', size: 'md', shape: 'pill' },
   },
 );
 
@@ -212,6 +236,8 @@ export interface ProvenanceChipProps
   /** Override the visible label (caller owns banned-strings review). */
   label?: string;
   size?: 'sm' | 'md';
+  /** Geometry. `stamp` is CD-10's 3px rectangle; see `chipVariants`. */
+  shape?: 'pill' | 'stamp';
   /**
    * Force the provenance line on/off. Defaults to showing it whenever a
    * `source`, `timestamp`, or `detail` is provided.
@@ -230,6 +256,7 @@ export function ProvenanceChip({
   detail,
   label,
   size,
+  shape,
   showProvenance,
   className,
   ...rest
@@ -263,7 +290,7 @@ export function ProvenanceChip({
       className={cn('inline-flex flex-col items-start gap-1', className)}
       {...rest}
     >
-      <span className={cn(chipVariants({ register: meta.register, size }))}>
+      <span className={cn(chipVariants({ register: meta.register, size, shape }))}>
         <Dot shape={meta.dot} />
         <span>{visibleLabel}</span>
       </span>
@@ -294,6 +321,7 @@ export const PROVENANCE_ORDER: ReadonlyArray<ProvenanceState> = Object.freeze([
   'pending',
   'reviewRequired',
   'unavailable',
+  'notFound',
   'notDecisionGrade',
   'previewOnly',
   'revoked',

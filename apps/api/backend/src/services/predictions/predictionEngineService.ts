@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { SpanStatusCode, trace } from '@opentelemetry/api';
 import { Prisma, type PrismaClient } from '@prisma/client';
 import prisma from '../../graphql/prisma_client';
@@ -117,7 +116,11 @@ type ResidencyProgramSpecialtyBucket = {
 };
 
 type ResidencyProgramInstitutionBucket = {
-  hospital_affiliation: string;
+  // Nullable, because the column is. `groupBy` over a nullable column returns a
+  // null bucket, and the consumer slugifies this value — the old
+  // `hospitalAffiliation: string` was a second, quieter lie sitting behind the
+  // same `as` cast that hid the invalid `by` argument.
+  hospitalAffiliation: string | null;
   _count: { _all: number };
 };
 
@@ -186,11 +189,18 @@ async function loadResidencyProgramsByInstitution(
   prismaClient: PrismaClient,
 ): Promise<ResidencyProgramInstitutionBucket[]> {
   try {
+    // Mapped explicitly rather than cast. The previous `as
+    // ResidencyProgramInstitutionBucket[]` asserted this result matched a type
+    // whose key was the DATABASE column name — which is precisely how an
+    // argument Prisma rejects outright survived review and shipped.
     const rows = await prismaClient.residencyProgram.groupBy({
-      by: ['hospital_affiliation'],
+      by: ['hospitalAffiliation'],
       _count: { _all: true },
     });
-    return rows as ResidencyProgramInstitutionBucket[];
+    return rows.map((row) => ({
+      hospitalAffiliation: row.hospitalAffiliation,
+      _count: { _all: row._count._all },
+    }));
   } catch (error) {
     if (isMissingTableError(error)) {
       return [];
@@ -955,7 +965,12 @@ async function loadInstitutionMomentumSignals(
 
   const trainingByInstitution = new Map<string, number>();
   for (const row of residencyPrograms) {
-    trainingByInstitution.set(slugify(row.hospital_affiliation), row._count._all);
+    // The null bucket names no institution, so it cannot key one. Skipping it
+    // is the difference between "no programs recorded for this hospital" and a
+    // bucket keyed on the empty slug that silently absorbs every unaffiliated
+    // program in the table.
+    if (!row.hospitalAffiliation) continue;
+    trainingByInstitution.set(slugify(row.hospitalAffiliation), row._count._all);
   }
 
   const recentCutoff = daysAgo(nowIso, 180);

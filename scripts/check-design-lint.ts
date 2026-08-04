@@ -201,6 +201,52 @@ const RULES: Rule[] = [
     pattern: /font-family\s*:\s*(?!\s*var\()/,
     allow: (f) => isTokenFile(f) || f.endsWith('fonts.css'),
   },
+  // ── XS-1: the one scroll owner ──────────────────────────────────────────────
+  // Added 2026-08-02 with the founder cinematic rulings. All three are `error`,
+  // not `ratchet`: the tree was grepped first and carries ZERO violations, so
+  // there is no debt to grandfather. A ratchet here would silently permit the
+  // first offence, which is exactly the offence that is hardest to remove later.
+  //
+  // What these CANNOT check is "exactly one scroll owner" — that is a semantic
+  // property of the component tree, not a token. It is asserted in
+  // __tests__/experience-doctrine.test.ts instead. These rules cover the
+  // mechanisms that are textually detectable.
+  {
+    id: 'XS-1a',
+    mode: 'error',
+    what: 'Scroll interception (preventDefault on wheel/touchmove)',
+    fix: 'The browser scrolls; we observe. Use a passive listener + rAF, or one top-level useScroll owner. See VITALCV_EXPERIENCE_SYSTEM_2026.md XS-1.',
+    roots: [join(web, 'app'), join(web, 'components')],
+    exts: TSX,
+    stripComments: true,
+    // Matches a wheel/touchmove handler that calls preventDefault, and the
+    // `{ passive: false }` opt-out that exists only to enable it.
+    pattern:
+      /(?:wheel|touchmove)[\s\S]{0,200}?preventDefault|preventDefault[\s\S]{0,200}?(?:wheel|touchmove)|passive\s*:\s*false/,
+  },
+  {
+    id: 'XS-1b',
+    mode: 'error',
+    what: 'Third-party scroll or 3D engine',
+    fix: 'XS-1 names the permitted implementations. Framer Motion already in the tree may be used; these may not.',
+    roots: [join(web, 'app'), join(web, 'components'), join(web, 'lib')],
+    exts: TSX,
+    stripComments: true,
+    pattern:
+      /from\s+['"](?:lenis|@studio-freight\/lenis|locomotive-scroll|gsap(?:\/.*)?|swiper(?:\/.*)?|three(?:\/.*)?)['"]/,
+  },
+  {
+    id: 'XS-1c',
+    mode: 'error',
+    what: 'scroll-snap as page progression',
+    fix: 'Scroll snap is retired as progression (CD-13 amendment). A sticky stage plus native scroll achieves the same staging without seizing the scrollbar.',
+    roots: [join(web, 'styles')],
+    exts: CSS,
+    // stripComments matters: homepage-motion.css documents "No scroll-snap" in
+    // prose, and a rule that fails on its own prohibition is a false positive.
+    stripComments: true,
+    pattern: /scroll-snap-type\s*:\s*(?!\s*none)/,
+  },
   {
     id: 'CD-3/4',
     mode: 'error',
@@ -217,10 +263,24 @@ const RULES: Rule[] = [
     allow: (_f, line) => {
       const c = colorOf(line);
       if (!c) return true;
-      // `--vt-accent` and `--vt-accent-hover` are the ink action pair in the
-      // current system. The chromatic editorial signal is explicitly named;
-      // unprefixed --accent* tokens remain governed as editorial accents too.
-      const isAccent = /--(?:accent[a-z0-9-]*|vt-accent-editorial)\s*:/.test(line);
+      // Every accent token is governed as an accent — including bare
+      // `--vt-accent`.
+      //
+      // This previously read `--(?:accent[a-z0-9-]*|vt-accent-editorial)`, which
+      // did NOT match `--vt-accent`. That token was therefore governed by the
+      // INK arc (hue 30–110, warm), and the comment here recorded the reason:
+      // "`--vt-accent` and `--vt-accent-hover` are the ink action pair in the
+      // current system."
+      //
+      // That was the CD-2.5 failure in miniature. CD-4 says the accent is
+      // indigo and carries links, primary action, focus ring and the accent
+      // word. Shipping `--vt-accent: #1A1815` made every primary action ink,
+      // put the real indigo behind `--vt-accent-editorial` and inside the `.mz`
+      // island, and left the public surfaces monochrome — and this rule
+      // enforced that, so correcting the token would have failed CI as an "ink"
+      // violation. A gate defending retired doctrine makes the right fix look
+      // like a broken build.
+      const isAccent = /--(?:accent[a-z0-9-]*|vt-accent(?:-[a-z0-9-]+)?)\s*:/.test(line);
       if (c.C <= (isAccent ? 0.006 : 0.004)) return true;
       return isAccent ? c.H >= 255 && c.H <= 310 : c.H >= 30 && c.H <= 110;
     },
@@ -239,11 +299,22 @@ const RULES: Rule[] = [
     id: 'R2',
     mode: 'error',
     what: 'Rolodex, carousel, or wide card queue on a homepage surface',
-    fix: 'The scene itself must change. A card deck is a product tour, not a film.',
+    fix: 'A card deck is a product tour, not a film. One continuous evidence-object rail IS permitted (CD-13 amendment 2026-08-02, FR-2) — the test is whether shuffling the panels loses anything. If it does not, it is a carousel.',
     roots: HOMEPAGE_ROOTS,
     exts: TSX,
     stripComments: true,
-    pattern: /\bRolodex\b|\bCarousel\b|scroll-snap-type|\bJourneyCard\b|HorizontalStoryRail/i,
+    // `HorizontalStoryRail` was removed from this pattern on 2026-08-02.
+    //
+    // It was banned by NAME, and FR-2 now permits exactly that mechanism: one
+    // continuous evidence-object rail driven by native vertical scroll. Leaving
+    // it here would have made the founder-approved implementation fail CI as a
+    // "carousel" — a gate defending doctrine that had just been retired, which
+    // is the failure mode where the correct fix looks like a broken build.
+    //
+    // What survives is the FORMAT ban, which FR-2 explicitly preserves: a
+    // Rolodex, a Carousel, a JourneyCard deck, and scroll-snap progression.
+    // Those are retired regardless of what the component is called.
+    pattern: /\bRolodex\b|\bCarousel\b|scroll-snap-type|\bJourneyCard\b/i,
   },
   {
     id: 'R4',
@@ -276,10 +347,19 @@ const RULES: Rule[] = [
     pattern: /Find the opportunity|VitalCV recognizes/i,
   },
   {
+    // Renamed 2026-08-02. This rule matches `wheel`/`touchmove` handlers, which
+    // is scroll INTERCEPTION — it never detected a second scroll *owner*, and a
+    // second `addEventListener('scroll')` passes it cleanly. The old name
+    // claimed a guarantee the pattern does not provide, so a reviewer citing
+    // "R8 is green" would have been citing the wrong thing.
+    //
+    // Ownership is a property of the component tree, not a token, so it is
+    // asserted in __tests__/experience-doctrine.test.ts instead — that test
+    // counts the scroll owners and fails on two.
     id: 'R8',
     mode: 'error',
-    what: 'A second page-level scroll owner on a homepage surface',
-    fix: 'Exactly one scroll listener and one rAF drive the film. Consumers READ progress.',
+    what: 'Wheel/touch scroll interception on a homepage surface',
+    fix: 'The browser scrolls; we observe (XS-1). Ownership itself is asserted by __tests__/experience-doctrine.test.ts.',
     roots: HOMEPAGE_ROOTS,
     exts: TSX,
     stripComments: true,

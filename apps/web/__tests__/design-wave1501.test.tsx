@@ -72,7 +72,8 @@ describe('wave1501 reference surface', () => {
     // If this design is ever promoted to `/`, the homepage must clear a no-JS
     // SSR floor. Proving it here is the cheap version of that test.
     expect(html).toContain('Find the opportunity. Prove your career once.');
-    expect(html).toContain('Start faster.');
+    // Was 'Start faster.' — retired with the speed hero (brand split 2026-07-26).
+    expect(html).toContain('Start from evidence.');
     for (const anchor of ['id="top"', 'id="how"', 'id="why"', 'id="matcha"', 'id="sky"', 'id="roles"', 'id="who"']) {
       expect(html).toContain(anchor);
     }

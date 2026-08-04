@@ -83,6 +83,7 @@ export const PUBLIC_WEDGE_SURFACE_STATES = [
   'stale',
   'access_required',
   'unavailable',
+  'not_found',
   'review_required',
   'preview_only',
 ] as const;
@@ -129,6 +130,10 @@ const PUBLIC_WEDGE_BADGE_META: Readonly<
     status: 'review_required',
     label: getTrustStatusLabel('review_required'),
   }),
+  not_found: Object.freeze({
+    status: 'not_found',
+    label: getTrustStatusLabel('not_found'),
+  }),
   preview_only: Object.freeze({
     status: 'preview_only',
     label: getStatusDisplayLabel('preview_only', 'Preview'),
@@ -164,6 +169,8 @@ export function resolvePublicWedgeSurfaceStateFromCoverage(
       return 'unavailable';
     case 'reviewRequired':
       return 'review_required';
+    case 'notFound':
+      return 'not_found';
     case 'notDecisionGrade':
     case 'previewOnly':
       return 'preview_only';

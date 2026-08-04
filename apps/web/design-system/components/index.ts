@@ -37,3 +37,18 @@ export * from './ProvenanceChip';
 export * from './ProvenanceChipLegend';
 export * from './VerdictSplit';
 export * from './VerificationTranscript';
+
+// Experience system — the founder directive's component set, built to the
+// creative direction and the reference atlas. See
+// docs/design/reference-experience-atlas.md for the measured provenance of each.
+export * from './ExpandingEyebrow';
+export * from './InteractiveIcon';
+export * from './ProductAction';
+export * from './SourceWorkflowTabs';
+export * from './EvidenceInspector';
+export * from './ConsentSeal';
+export * from './PacketHandoff';
+export * from './HumanReviewCheckpoint';
+export * from './ApplicationEvidenceTimeline';
+export * from './EnterpriseWorkflowCloseup';
+export * from './EvidenceCapsule';

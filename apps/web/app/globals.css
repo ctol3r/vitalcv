@@ -16,7 +16,8 @@
 @import '../styles/vds.css';
 @import '../styles/design-tokens.css';
 @import '../styles/utilities.css';
-@import '../styles/typography.css';
+/* typography.css is imported by app/layout.tsx. Importing it here as well
+   emitted the same 10.7KB twice into every route's CSS. */
 @import '../styles/tokens.css';
 @import '../styles/vitalTokens.css';
 @import '../styles/blueprint-overrides.css';
@@ -27,12 +28,14 @@
 @import '../styles/graph.css';
 @import '../styles/intelligence.css';
 @import '../styles/clinician-doc.css';
-@import '../styles/home-vitals.css';
 @import '../styles/homepage-motion.css';
 @import '../styles/scene.css';
 @import '../styles/story-rail.css';
 @import '../styles/matcha-deck.css';
-/* glue.css superseded by antigravity.css (imported in layout.tsx) */
+/* glue.css, graph-foundry.css and trust-register.css were deleted here (745
+   lines, zero importers between them). graph-foundry.css also carried a live
+   `@import url('https://fonts.googleapis.com/…Nunito+Sans…')` — the exact CDN
+   font load CD-7 forbids, shipping in the repo behind a file nobody loaded. */
 
 @custom-variant dark (&:is(.dark *));
 

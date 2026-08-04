@@ -91,10 +91,21 @@ export interface OpportunitySummary {
     visaVerifiedAt?: string | null;
   };
   source?: {
-    kind: 'employer_profile' | 'opportunity';
+    kind: 'employer_profile' | 'opportunity' | 'public_feed';
     label: string;
     updatedAt: string;
+    /** Feed listings only: the original posting. */
+    url?: string | null;
+    /** Feed listings only: when the feed was read — a fetch, not a check. */
+    fetchedAt?: string | null;
   };
+  /**
+   * True when the row was copied from a public job feed rather than posted by
+   * an employer who claimed a Type 2 NPI. Such a listing carries no
+   * employer-stated requirements and no readiness comparison, and applying
+   * means going to the original posting rather than through VitalCV.
+   */
+  isFeedListing?: boolean;
   transparency?: {
     hiringState: string;
     speedToStartEstimate: string;

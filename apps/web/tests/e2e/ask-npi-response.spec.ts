@@ -17,7 +17,17 @@ import { expect, test, type Page } from '@playwright/test';
  * exactly the regression this exists to catch.
  */
 
-const NPI_FIELD = { name: /start with your npi/i };
+/**
+ * The field's accessible name, in full. #1006 made the label ONE string for
+ * every state, so this no longer has to settle for `/npi/i` — a locator that
+ * matched three letters and could not say what it was looking for.
+ *
+ * `exact: true` is safe even though the floated label renders in caps: the
+ * uppercase is `text-transform`, and the name is computed from the DOM text.
+ * Verified against production with the field focused and holding digits —
+ * the accessibility tree reports `textbox "Your 10-digit NPI"`, mixed case.
+ */
+const NPI_FIELD = { name: 'Your 10-digit NPI', exact: true };
 const CTA = { name: /check what.s ready/i };
 const VALID_NPI = '1234567893';
 

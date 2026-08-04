@@ -15,9 +15,13 @@ Tool roles, in priority order:
 | 🌐 **Claude Browser** | Live verification only. Read-only against deployed services. Cannot create accounts, cannot enter credentials, cannot click mutating buttons unless explicitly authorized. Used for: `/health` polling, Railway active-deployment confirmation, post-deploy SSE smoke (within operator-signed-in browser session). | active for verification |
 | 🖥 **Claude Desktop** | Strategic planning + cross-tool orchestration. Use for: deciding next wave, reading docs across files, drafting roadmaps, picking modes. | active for planning |
 | 🟧 **OpenClaw** | Specialized tool. Only when **explicitly requested** by operator. Never default. | **disabled by default** |
-| ⏸ **Codex** | Originally the merge-gate auditor. **Currently disabled** per operator instruction (account quota / cost). Local Claude Code audit replaces the merge gate. Re-enable only on explicit operator direction. | **disabled by default** |
+| 🟩 **Codex** | Second builder lane and optional independent verifier. Builds on `codex/*` branches; useful for a surgical read on a risky diff. **Not a merge gate** (settled 2026-07-25, #1000) — a SAFE verdict neither authorizes a merge nor substitutes for exercising the change yourself. Reads [`AGENTS.md`](../../AGENTS.md). | **active** |
 
-When Codex is disabled, every PR's merge gate is **Local Claude Code audit**. The audit checklist mirrors the constraints in §8 and lives in §6 of the per-wave template (`docs/ops/wave-batch-template.md`).
+**The merge gate is green CI plus real verification** — you exercise the change (run the suite, hit the route, load the page, execute the script) and show the evidence. Green CI alone is not enough: shell scripts, GPU paths, and dev-gated e2e specs run in no PR check.
+
+**There is no merge-protection hook.** Nothing mechanically blocks `gh pr merge` — not a Claude Code hook, not a git hook. Skipping the gate is therefore silent, which is a reason to be stricter rather than looser. Do not write instructions that assume a hook will catch you.
+
+Codex and Claude Code work `origin/main` concurrently and have repeatedly built the same directive twice. Before building, claim-check the intent against both open **and merged** PRs; see the lane-coordination protocol and the collision register in [`AGENTS.md`](../../AGENTS.md).
 
 ## 2. 20-task wave batch format
 
@@ -127,9 +131,9 @@ E) Continue to next task / next wave batch.
 | Visual QA on rendered pages | Claude Browser | Claude Design (review screenshots) | Claude Code (cannot render visuals) |
 | Strategic planning across multiple files | Claude Desktop | Claude Code (file reading) | — |
 | Specialized one-off task | OpenClaw (only when explicitly requested) | — | OpenClaw as default |
-| Merge-gate audit | Local Claude Code audit | — | **Codex (disabled)** |
+| Merge gate | Claude Code: green CI **plus** real verification it performed itself | `codex exec` for an independent read on a risky diff | Treating any verifier verdict as the gate |
 
-The merge-protection hook (per CLAUDE.md) expects a real audit verdict in the transcript. With Codex disabled, that verdict is a **Local Claude Code audit** following the checklist in `docs/ops/wave-batch-template.md`.
+The merge gate is green CI plus verification you actually performed — the evidence goes in the transcript. `codex exec` can add an independent read, but it is a second opinion, not the gate. No hook enforces this; see §1.
 
 ## 8. Safety rules (binding)
 

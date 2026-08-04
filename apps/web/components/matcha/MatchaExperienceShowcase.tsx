@@ -8,7 +8,7 @@
  */
 
 import { DailyBriefView } from './MatchaDailyBrief';
-import { MatchaConstellation } from './MatchaConstellation';
+import { CareerEvidenceTimeline } from '@/components/artifacts/CareerEvidenceTimeline';
 import { OpportunityIntelligenceCard, type IntelligenceExplanation, type IntelligenceOpportunity } from './OpportunityIntelligenceCard';
 import { buildBriefItems, gapNudge } from '@/lib/matcha/daily';
 import { ArtifactStage } from '@/components/motion/ArtifactStage';
@@ -76,13 +76,13 @@ export function MatchaExperienceShowcase() {
       {/* Daily brief — presentational, sample data, shown in its "new day" state */}
       <DailyBriefView streak={5} items={SAMPLE_ITEMS} isNewDay />
 
-      {/* The personal constellation */}
+      {/* The career, as a ruled document. Was a drag-to-rotate constellation
+          canvas until CD-13 retired the mechanism; the drawing carries its own
+          "illustrative" note, so this surface cannot present sample data as a
+          record even by accident. */}
       <div>
-        <p className="mz-eyebrow" style={{ marginBottom: 10 }}>Your career, in motion</p>
-        <MatchaConstellation height={440} profile={{ specialty: 'Cardiology', readinessScore: 78, matchCount: 4 }} />
-        <p className="mz-mono" style={{ marginTop: 8, fontSize: 10, color: 'var(--ink-400)' }}>
-          Drag to rotate · pull the slider to travel your career. Past &amp; future are projected; your real evidence lives in your wallet.
-        </p>
+        <p className="mz-eyebrow" style={{ marginBottom: 10 }}>Your career, end to end</p>
+        <CareerEvidenceTimeline />
       </div>
 
       {/* An opportunity intelligence card */}

@@ -28,7 +28,16 @@ html[data-theme='light'] {
   --vt-text-primary: #1A1815;
   --vt-text-secondary: #57534A;
   --vt-text-muted: #676257;
-  --vt-accent: #1A1815;
+  /* CD-4 — signal. Indigo, and never borrowed from a state hue.
+     This was #1A1815: the accent WAS the ink, so `--primary` and `--accent`
+     (globals.css) resolved to near-black and every primary action on every
+     public route rendered monochrome. The real indigo existed only as
+     --vt-accent-editorial below and inside the `.mz` island, which is why
+     /employers had a brand colour and / did not. CD-4 gives the accent links,
+     primary action, focus ring and the accent word — so it lives here. */
+  --vt-accent: #4338CA;
+  --vt-accent-press: #322BA6;
+  --vt-accent-wash: #ECEBF8;
   --vt-focus-ring: #4338CA;
 
   /* Semantic colors — kept functional, muted for brutalist feel */

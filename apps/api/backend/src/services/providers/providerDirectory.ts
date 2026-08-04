@@ -28,6 +28,15 @@ export type CredentialHealth = 'VERIFIED' | 'EXPIRED' | 'REVOKED' | 'PENDING';
 export interface DirectoryEntry {
   npi: string;
   fullName: string;
+  /**
+   * P0.1 containment — always empty.
+   *
+   * This used to carry `Provider.taxonomyCode`, which is not source-backed:
+   * every production row shares `207R00000X` while NPPES disagrees on all of
+   * them. The field stays on the type so the FHIR and CSV exports keep their
+   * shape, but nothing populates it until a provenance-carrying read path
+   * exists. `ProviderDirectory.fieldsWithheld` says so out loud.
+   */
   specialties: string[];
   credentialCount: number;
   activeCredentials: number;
@@ -53,8 +62,22 @@ export interface ProviderDirectory {
   exportedAt: string;
   format: 'structured' | 'fhir' | 'csv';
   pageInfo: DirectoryPageInfo;
+  fieldsWithheld: readonly string[];
+  disclosure: string;
   integrityHash: string;
 }
+
+/**
+ * P0.1 containment — fields the directory refuses to assert publicly.
+ *
+ * Named explicitly so an empty `specialties` array reads as "withheld" rather
+ * than "this provider has no specialty".
+ */
+const WITHHELD_DIRECTORY_FIELDS = ['specialties'] as const;
+
+const WITHHELD_DIRECTORY_DISCLOSURE =
+  'Specialty and taxonomy are withheld because the stored values are not source-backed. '
+  + 'An empty specialties list means withheld, not none.';
 
 export interface FHIRPractitionerRole {
   resourceType: 'PractitionerRole';
@@ -94,8 +117,6 @@ export interface DirectoryQueryOptions {
 interface ProviderDirectoryRow {
   npi: string;
   fullName: string;
-  taxonomyCode: string;
-  stateOfPractice: string;
 }
 
 interface NormalizedDirectoryQueryOptions {
@@ -333,13 +354,14 @@ function buildDirectoryLinks(basePath: string, pageInfo: DirectoryPageInfo, minT
 
 async function fetchProviderRows(): Promise<ProviderDirectoryRow[]> {
   try {
+    // Only the columns the directory publishes are read. `taxonomyCode` and
+    // `stateOfPractice` are not source-backed, and `stateOfPractice` was never
+    // emitted at all — reading neither keeps them out of reach of this surface.
     const providers = await prisma.provider.findMany({
       orderBy: { npi: 'asc' },
       select: {
         npi: true,
         fullName: true,
-        taxonomyCode: true,
-        stateOfPractice: true,
       },
     });
 
@@ -368,7 +390,10 @@ async function buildDirectoryPage(opts?: DirectoryQueryOptions): Promise<Directo
       return {
         npi: provider.npi,
         fullName: provider.fullName,
-        specialties: provider.taxonomyCode ? [provider.taxonomyCode] : [],
+        // P0.1 — withheld, never populated from the unsourced taxonomy column.
+        // The FHIR and CSV exports both read this, so emptying it here contains
+        // all three output formats at once.
+        specialties: [],
         credentialCount: credentials.length,
         activeCredentials: activeCredentials.length,
         primaryIssuer: derivePrimaryIssuer(
@@ -416,6 +441,8 @@ export async function generateDirectory(opts?: DirectoryQueryOptions): Promise<P
     exportedAt: page.exportedAt,
     format: 'structured' as const,
     pageInfo: page.pageInfo,
+    fieldsWithheld: [...WITHHELD_DIRECTORY_FIELDS],
+    disclosure: WITHHELD_DIRECTORY_DISCLOSURE,
   };
   const integrityHash = sha256ForPayload(payload);
 

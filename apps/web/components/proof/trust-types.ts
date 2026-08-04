@@ -17,6 +17,13 @@ export type SourceStatus =
   | 'unavailable'
   | 'access_required'
   | 'review_required'
+  /**
+   * The source was read and returned no record backing this provider. Kept
+   * distinct from `verified` (source confirmed them), `unavailable` (we could
+   * not reach the source) and `not_checked` (we have not looked yet) — folding
+   * it into `verified` is what rendered a non-existent NPI as "Source-backed".
+   */
+  | 'not_found'
   | 'adverse';
 
 export type ReadinessPosture =
@@ -37,6 +44,7 @@ export const STATUS_COLORS: Record<SourceStatus, { dot: string; text: string; bg
   unavailable:     { dot: 'bg-gray-400',   text: 'text-gray-600',   bg: 'bg-gray-50',   border: 'border-gray-200' },
   access_required: { dot: 'bg-amber-400',  text: 'text-amber-700',  bg: 'bg-amber-50',  border: 'border-amber-200' },
   review_required: { dot: 'bg-amber-500',  text: 'text-amber-800',  bg: 'bg-amber-50',  border: 'border-amber-300' },
+  not_found:       { dot: 'bg-gray-400',   text: 'text-gray-700',   bg: 'bg-gray-50',   border: 'border-gray-300' },
   adverse:         { dot: 'bg-red-500',    text: 'text-red-700',    bg: 'bg-red-50',    border: 'border-red-200' },
 };
 
@@ -59,6 +67,7 @@ export const STATUS_EXPLANATIONS: Record<SourceStatus, string> = {
   unavailable:     'This source is temporarily unreachable. This is a system state — not a finding about the clinician.',
   access_required: 'This source requires institutional credentials or access that has not yet been configured.',
   review_required: 'This source returned data that requires human review before a determination can be made.',
+  not_found:       'This source was checked and holds no active record for this provider. This is a finding about the record, not a system error — and it is not a confirmation.',
   adverse:         'This source returned explicit adverse evidence (exclusion, revocation, or sanction). This is a blocker.',
 };
 
@@ -133,6 +142,14 @@ export interface LaneSnapshot {
   source?: string;
   receiptId?: string | null;
   freshnessWindowMs?: number;
+  /**
+   * The backend's own sentence for this lane's outcome
+   * (`sourceCoverage.checks[].reason`), e.g. "PECOS quarterly release does not
+   * show Medicare enrollment for this NPI". Carried so a reviewer reads WHY a
+   * lane landed where it did instead of a bare tier chip — dropping it was half
+   * of why a not-found lane read as source-confirmed.
+   */
+  reason?: string | null;
 }
 
 export interface ReadinessSnapshot {

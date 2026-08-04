@@ -52,6 +52,7 @@ function responseFixture() {
       consentReceiptId: 'consent-1',
       consentGrantId: null,
       selectedSections: ['identity'],
+      withheldFieldIds: [],
       fields: [],
       methodologyVersion: '243.3',
       clinicianNote: null,

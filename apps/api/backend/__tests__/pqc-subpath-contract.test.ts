@@ -54,11 +54,12 @@ import {
 
 type PqcSuite = 'ml-dsa-65' | 'slh-dsa-128s';
 const PQC_SUITES: PqcSuite[] = ['ml-dsa-65', 'slh-dsa-128s'];
+const PQC_KEY_INITIALIZATION_TIMEOUT_MS = 30_000;
 
 describe('PQC subpath contract — post-quantum signing is actually available', () => {
   beforeAll(async () => {
     await initializeCryptoKeys();
-  });
+  }, PQC_KEY_INITIALIZATION_TIMEOUT_MS);
 
   it('the installed package resolves the .js subpaths (diagnostic, not the guard)', () => {
     // Deliberately hardcodes the suffix rather than reading the source, so it

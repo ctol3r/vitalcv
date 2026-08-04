@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { coverageLabel } from '@vitalcv/licensure';
 
 /**
  * PassportWallet.tsx — The Your readiness
@@ -234,13 +235,16 @@ function buildAuthoritySection(passport: PassportData): AccordionItem {
           />
         ))}
 
-        {/* Gap: no licensure credentials attached — show access-required state */}
+        {/* Gap: no licensure credentials attached.
+            The label is derived from the licensure coverage projection rather
+            than hardcoded, so it cannot drift into claiming nationwide board
+            coverage that no live route backs. See @vitalcv/licensure. */}
         {!hasLicensure && (
           <AuthorityRow
-            title="License verification"
+            title="Physician licensure"
             status="access_required"
-            sourceLabel="Configured state board lane"
-            note="Access required. Authority remains incomplete until a connected state board lane runs."
+            sourceLabel={coverageLabel('PHYSICIAN_MD')}
+            note="No licensure source has completed a production run, so no board record can be read. This is a gap in VitalCV's sources, not a finding about this clinician."
           />
         )}
 

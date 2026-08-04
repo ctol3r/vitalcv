@@ -5,23 +5,27 @@
  *
  * Projects the clinician's REAL professional-memory timeline (Wave 225
  * /api/timeline/[npi]: evidence checks, licensure, screening, recognition,
- * acceptances) into the constellation sky, replacing the illustrative demo
- * stars used on marketing surfaces. Every lit star traces to an evidence-backed
- * career event; the "future" era renders open roles and projections and is
- * always labeled as projected, never asserted.
+ * acceptances) into `CareerEvidenceTimeline`. Every recorded row traces to an
+ * evidence-backed career event; the "headed" band renders open roles and
+ * projections and is always labelled projected, never asserted.
+ *
+ * This was a constellation until CD-13 retired that mechanism. The projection
+ * lost nothing in the move: a ruled layout needs strictly less than a polar one
+ * (no angle, no ring, no orbital time), and the band split is the same split
+ * the old `era` field encoded.
  *
  * Degrades honestly: while the timeline loads — or when no dated evidence
- * exists yet — the sky falls back to the illustrative layout and says so.
+ * exists yet — no entries are passed, and the drawing states on its own face
+ * that it is illustrative.
  */
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { ArrowRight, Sparkles, Waypoints } from 'lucide-react';
 import {
-  MatchaConstellation,
-  type ConstellationStarDef,
-  type Kind,
-} from '@/components/matcha/MatchaConstellation';
+  CareerEvidenceTimeline,
+  type CareerEvidenceEntry,
+} from '@/components/artifacts/CareerEvidenceTimeline';
 import { useClinicianMobile } from '@/components/mobile/ClinicianMobileProvider';
 import { Reveal } from '@/components/motion/Reveal';
 import { FEATURES } from '@/lib/features';
@@ -51,21 +55,25 @@ const CREDENTIAL_TYPES = new Set([
   'enrollment',
 ]);
 
-function kindForEvent(event: TimelineEventSlice): Kind {
-  if (event.recognitionImpact !== 'none') return 'recognition';
-  if (CREDENTIAL_TYPES.has(event.type)) return 'credential';
-  return 'origin';
-}
+/* `kindForEvent` lived here, mapping an event to one of the constellation's
+   seven star colours. A ruled row has two states — recorded or projected — and
+   both are carried by geometry, so the colour taxonomy has no counterpart and
+   is not reintroduced. CREDENTIAL_TYPES survives: it still ranks which twelve
+   events get picked. */
 
 /**
- * Project dated career events onto the constellation's temporal axis.
- * Real events span t ∈ [0.08, 0.58] (origin → now); the future era
- * (t > 0.62) is reserved for clearly-projected entries.
+ * Project dated career events onto the timeline's three bands.
+ *
+ * Was a projection onto a constellation's polar axis (t ∈ [0.08, 0.58] plus a
+ * reserved future arc) until CD-13 retired that mechanism. A ruled layout needs
+ * strictly less: no `t`, no ring, no kind — only which band an event belongs to
+ * and whether it is recorded or projected. The band split is the same one the
+ * era split encoded, so no information is lost in the move.
  */
-function projectStars(
+function projectEntries(
   timeline: TimelineSlice,
   opts: { readinessScore: number | null; specialty?: string; openRoles: number },
-): ConstellationStarDef[] | null {
+): CareerEvidenceEntry[] | null {
   const dated = timeline.events.filter(
     (e) => e.occurredAt && Number.isFinite(Date.parse(e.occurredAt)),
   );
@@ -92,43 +100,55 @@ function projectStars(
   const maxT = Math.max(Date.now(), ...times);
   const span = Math.max(1, maxT - minT);
 
-  const rings: Array<2 | 3> = [2, 3, 3, 2];
-  const stars: ConstellationStarDef[] = picked.map((event, i) => {
-    const at = Date.parse(event.occurredAt!);
-    const t = 0.08 + ((at - minT) / span) * 0.5;
-    return {
-      id: event.eventId,
-      label: event.label,
-      kind: kindForEvent(event),
-      era: t < 0.35 ? 'origin' : 'now',
-      t,
-      ring: rings[i % rings.length],
-    };
-  });
+  // Same split the polar `t` encoded: the earlier third of a career is where it
+  // began, the rest is where it stands. Sorted oldest-first WITHIN a band —
+  // `picked` is ordered by significance for selection, which is right for
+  // choosing twelve out of many and wrong for reading left to right.
+  const entries: CareerEvidenceEntry[] = picked
+    .slice()
+    .sort((a, b) => (a.occurredAt ?? '').localeCompare(b.occurredAt ?? ''))
+    .map((event) => {
+      const at = Date.parse(event.occurredAt!);
+      const t = 0.08 + ((at - minT) / span) * 0.5;
+      return {
+        id: event.eventId,
+        label: event.label,
+        band: t < 0.35 ? ('began' as const) : ('now' as const),
+      };
+    });
 
-  // "Now" anchors from live wallet state.
+  // "Now" anchors from live wallet state. These are recorded facts the wallet
+  // already holds, so they are rows, not projections.
   if (opts.readinessScore != null) {
-    stars.push({ id: 'readiness', label: `Readiness ${opts.readinessScore}`, kind: 'readiness', era: 'now', t: 0.5, ring: 1 });
+    entries.push({ id: 'readiness', label: `Readiness ${opts.readinessScore}`, band: 'now' });
   }
   if (opts.specialty) {
-    stars.push({ id: 'specialty', label: opts.specialty, kind: 'readiness', era: 'now', t: 0.54, ring: 3 });
+    entries.push({ id: 'specialty', label: opts.specialty, band: 'now' });
   }
 
-  // Future era — projected, and labeled as such.
+  // Headed — projected, and marked as such on every entry. `projected` is set
+  // per-row rather than inferred from the band so that moving a row between
+  // bands can never quietly promote a projection into a fact.
   if (opts.openRoles > 0) {
-    stars.push({
+    entries.push({
       id: 'open-roles',
       label: `${opts.openRoles} open role${opts.openRoles === 1 ? '' : 's'}`,
-      kind: 'future',
-      era: 'future',
-      t: 0.74,
-      ring: 2,
+      band: 'headed',
+      projected: true,
     });
   }
-  stars.push({ id: 'projected-role', label: 'Projected: next role', kind: 'future', era: 'future', t: 0.84, ring: 3 });
-  stars.push({ id: 'projected-growth', label: 'Projected: what compounds next', kind: 'future', era: 'future', t: 0.92, ring: 2 });
+  // The word stays INSIDE the label, not delegated to the dashed outline or the
+  // column heading. Geometry and headings are read by people looking at the
+  // whole drawing; a label is what survives being read on its own.
+  entries.push({ id: 'projected-role', label: 'Projected: next role', band: 'headed', projected: true });
+  entries.push({
+    id: 'projected-growth',
+    label: 'Projected: what compounds next',
+    band: 'headed',
+    projected: true,
+  });
 
-  return stars;
+  return entries;
 }
 
 export function CareerEvidenceGraph() {
@@ -165,22 +185,20 @@ export function CareerEvidenceGraph() {
     return () => controller.abort();
   }, [npi]);
 
-  const starDefs = useMemo(() => {
+  const entries = useMemo(() => {
     if (!timeline) return undefined;
-    return projectStars(timeline, { readinessScore, specialty, openRoles }) ?? undefined;
+    return projectEntries(timeline, { readinessScore, specialty, openRoles }) ?? undefined;
   }, [timeline, readinessScore, specialty, openRoles]);
 
-  // Stable identity: an inline object would invalidate the constellation's
-  // useMemo/useEffect chain on every provider re-render and visibly restart
-  // the canvas animation.
-  const profile = useMemo(
-    () => ({ specialty, readinessScore, matchCount: openRoles }),
-    [specialty, readinessScore, openRoles],
-  );
+  const live = state === 'live' && entries !== undefined && entries.length > 0;
 
-  const live = state === 'live' && starDefs && starDefs.length > 0;
+  // Counts RECORDED events only — the two wallet anchors are state rather than
+  // dated events, and projections are not evidence at all. Miscounting here
+  // would put a number next to the word "evidence-backed" that includes rows
+  // which are neither.
   const evidenceCount = live
-    ? starDefs.filter((s) => s.era !== 'future' && s.id !== 'readiness' && s.id !== 'specialty').length
+    ? entries.filter((e) => !e.projected && e.band !== 'headed' && e.id !== 'readiness' && e.id !== 'specialty')
+        .length
     : 0;
 
   return (
@@ -195,23 +213,23 @@ export function CareerEvidenceGraph() {
             {live
               ? `${evidenceCount} evidence-backed event${evidenceCount === 1 ? '' : 's'}`
               : state === 'loading'
-                ? 'Projecting your evidence…'
-                : 'Illustrative sky — evidence lights up as checks complete'}
+                ? 'Reading your evidence…'
+                : 'Illustrative — your entries appear as checks complete'}
           </span>
         </div>
 
         <div className="px-2 sm:px-4">
-          <MatchaConstellation
-            height={400}
-            starDefs={live ? starDefs : undefined}
-            profile={profile}
-          />
+          {/* When the timeline is live these are the clinician's real events;
+              otherwise no entries are passed and the drawing states that it is
+              illustrative on its own face. */}
+          <CareerEvidenceTimeline entries={live ? entries ?? undefined : undefined} />
         </div>
 
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--rule)] px-5 py-4">
           <p className="mz-small max-w-xl">
-            Each lit star traces to a career event in your wallet — checks, licensure,
-            recognition. The future era is projected, never asserted. Scrub time to travel it.
+            Each recorded row traces to a career event in your wallet — checks, licensure,
+            recognition — and sits on its own line. What you are headed toward is projected,
+            never asserted, and never gains that line.
           </p>
           <div className="flex shrink-0 items-center gap-2">
             <Link href="/holder/timeline" className="mz-btn mz-btn-ghost mz-btn-sm">

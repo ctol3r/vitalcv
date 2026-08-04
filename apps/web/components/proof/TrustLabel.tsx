@@ -106,6 +106,7 @@ function formatStatus(status: SourceStatus): string {
     unavailable:     'Unavailable',
     access_required: 'Access Required',
     review_required: 'Review Required',
+    not_found:       'No Active Record',
     adverse:         'Adverse Finding',
   }[status];
 }

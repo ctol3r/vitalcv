@@ -25,7 +25,11 @@ export function checksToLaneSnapshots(
     const checkedAtMs = c.checkedAt ? new Date(c.checkedAt).getTime() : null;
     const receiptId = c.proof?.receiptIds?.[0] ?? null;
 
-    // Map canonical state → SourceStatus (best-effort)
+    // Map canonical state → SourceStatus. 'checked' is the ONLY state that may
+    // reach 'verified' (the source-backed tier); every other state must keep
+    // its own meaning. 'notFound' in particular is a source that answered and
+    // had no active record for this subject — mapping it anywhere near
+    // 'verified' is the defect this table exists to prevent.
     const statusMap: Record<string, LaneSnapshot['status']> = {
       checked: 'verified',
       stale: 'stale',
@@ -34,6 +38,7 @@ export function checksToLaneSnapshots(
       unavailable: 'unavailable',
       accessRequired: 'access_required',
       reviewRequired: 'review_required',
+      notFound: 'not_found',
       notDecisionGrade: 'not_checked',
       previewOnly: 'not_checked',
     };
@@ -59,6 +64,10 @@ export function checksToLaneSnapshots(
       // to an unchecked lane is what lets a downstream "age" calculation turn
       // an absence into a staleness claim.
       freshnessWindowMs: status === 'access_required' ? undefined : freshnessWindowMs,
+      // The backend already writes an honest sentence per lane; this surface
+      // used to drop it, leaving the reviewer with a tier chip and no way to
+      // tell "confirmed" from "looked and found nothing".
+      reason: typeof c.reason === 'string' && c.reason.trim() ? c.reason : null,
     };
   });
 }

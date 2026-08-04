@@ -94,7 +94,7 @@ const ATTESTATION_VERSION = 'v1';
 const BENEFITS: ReadonlyArray<{ icon: React.ReactNode; text: string }> = [
   { icon: <Stethoscope className="h-4 w-4" aria-hidden />, text: 'Source-backed career evidence that follows you across every role' },
   { icon: <Wallet className="h-4 w-4" aria-hidden />, text: 'A clinician-owned career wallet — free to start, and yours to keep' },
-  { icon: <FileCheck2 className="h-4 w-4" aria-hidden />, text: 'An employer-ready readiness packet that shortens Time-to-Start' },
+  { icon: <FileCheck2 className="h-4 w-4" aria-hidden />, text: 'An employer-ready readiness packet a hospital can review claim by claim' },
   { icon: <ShieldCheck className="h-4 w-4" aria-hidden />, text: 'Your evidence, your control — no credit card, no document uploads to start' },
 ];
 

@@ -19,7 +19,7 @@ const STORAGE_KEY = `vcv-announce-dismissed-${ANNOUNCE_VERSION}`;
 
 /**
  * Buyer surfaces where the clinician-wallet pitch must not render. The
- * employer doorway (Wave 6) opens with "Start clinicians faster from
+ * employer doorway (Wave 6) opens with "Start clinicians from
  * source-backed evidence" — a strip above it addressing a different audience
  * ("The VitalCV Wallet is free for clinicians → Check your NPI") undercuts the
  * page's one argument, and "wallet" is on the buyer-surface banned list that

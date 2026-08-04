@@ -9,33 +9,58 @@ import { detectCapabilities, resolveTier, type SceneTier } from '@/components/ho
 import { LiveNpiResult } from '@/components/home/LiveNpiResult';
 import { TruthBoundary } from '@/components/home/TruthBoundary';
 import { ProofPacketInspector } from '@/components/proof/ProofPacketInspector';
-import { EvidenceAtmosphere } from './EvidenceAtmosphere';
-import { FilmRecord } from './FilmRecord';
-import { FilmFit } from './FilmFit';
-import { FilmSignature } from './FilmSignature';
-import { FILM_SCENES, sceneAt } from './scenes';
-import { useFilmProgress } from './useFilmProgress';
+import { ProductAction } from '@/design-system/components/ProductAction';
+import { ProvenanceChip } from '@/design-system/components/ProvenanceChip';
+import { ExpandingEyebrow } from '@/design-system/components/ExpandingEyebrow';
+import {
+  CapsuleFoot,
+  CapsuleHead,
+  CapsuleModelRow,
+  CapsuleRow,
+  CapsuleRows,
+  CapsuleShell,
+} from '@/components/home/evidence/EvidenceCapsule';
 import { SOURCE_LANE_OPS } from '@/lib/trust/sourceLanes';
 
+import { CHAPTERS, ChapterRail } from './ChapterRail';
+import {
+  AWAITING_ROWS,
+  ILLUSTRATIVE_LABEL,
+  ILLUSTRATIVE_MODEL,
+  ILLUSTRATIVE_WORKFLOW,
+  SIGNING,
+  TRAVEL_LEDGER,
+} from './illustrative';
+import { useFilmProgress } from './useFilmProgress';
+
 /**
- * HorizontalCareerFilm (COMPETE-1).
+ * The VitalCV homepage — the founder-approved recovery direction (#1060,
+ * Concept C: "Cinematic Ask + Evidence OS").
  *
- * The homepage acquisition experience as ONE continuous left-to-right
- * composition driven by ordinary vertical scroll. Six scenes; no card deck, no
- * carousel, no graph, no section taxonomy.
+ * ONE DOCUMENT OBJECT carries the whole argument. The evidence record forms
+ * under the ask while a visitor is typing, resolves when sources answer,
+ * carries their travel decisions, arrives at an employer as a smaller subset,
+ * and closes as a seal. Those are five faces of one artifact, rendered through
+ * one set of shared parts and one stylesheet — so what a visitor watches being
+ * explained is literally the component their own number produces.
  *
- * This RECOMPOSES existing capability rather than layering over it — the NPI
- * lookup, `LiveNpiResult`, `HomeProofMoment`, `TruthBoundary`, and
- * `DualAudienceCta` are the same real surfaces the current homepage ships. What
- * changes is that they are scene events instead of stacked sections. Retired
- * here: `RailJourney`/`HorizontalStoryRail` (R2) and `MetricStrip` (R4, see the
- * C5 ruling in docs/design/homepage-composition-ownership.md).
+ * WHAT THIS REPLACES. A five-scene film whose scenes shared a single visual
+ * grammar (a serif phrase left, a beige table right, four times over), whose
+ * arrival artifact was a 480px card floating in a 1440px stage, and whose real
+ * returned state — the surface the primary action produces — rendered with no
+ * stylesheet at all in production. See
+ * `docs/design/home-recovery/current-state-inventory.md`.
  *
- * Fallback contract (composition-ownership §3): the DOM below is a linear,
- * SSR-complete vertical document. The film is a TRANSFORM applied to it after
- * hydration on eligible desktop — never a different document. With no JS, a
- * coarse pointer, reduced motion, or a narrow viewport, what remains is an
- * ordinary readable page in the same order.
+ * FALLBACK CONTRACT. The DOM below is a linear, SSR-complete vertical document
+ * in chapter order. The film is a TRANSFORM applied to it after hydration on
+ * eligible desktop — never a different document. With no JS, a coarse pointer,
+ * reduced motion, or a narrow viewport, what remains is an ordinary readable
+ * page, and every chapter's argument survives intact.
+ *
+ * ONE SCROLL OWNER. `useFilmProgress` holds the only scroll listener and the
+ * only rAF on this route, and it publishes continuous progress as a CSS
+ * variable rather than as React state — so scrolling the film re-renders
+ * nothing. The chapter rail navigates by anchor, never by handler.
  */
 
 const TRUST_FOOTER_LINKS = [
@@ -46,30 +71,12 @@ const TRUST_FOOTER_LINKS = [
 ] as const;
 
 /**
- * The four facts that survive `MetricStrip`'s retirement (C5). They are live
- * system facts, so they render as quiet ink — never as animated counters, and
- * never with the banned two-digit step grammar.
- */
-const CHOICE_FACTS = [
-  'Three federal source lanes',
-  'Four readiness dimensions',
-  'One record you own',
-  'No account required to look',
-] as const;
-
-/**
  * The homepage's source-freshness statement, in one sentence of ink.
  *
- * Retiring `MetricStrip` and `SourceCoverageRibbon` from the composition also
- * removed every cadence claim from `/` — the corrected labels from the
- * freshness work (#822/#817/#824) stopped appearing at all. Nothing false was
- * left behind, but "three federal source lanes" without cadence invites exactly
- * the reading that work existed to prevent: that all three are read live.
- *
- * R4 retires counter THEATRE, not source honesty, so the fact returns as a
- * sentence rather than a marquee or a numbered strip. It is DERIVED from
- * `lib/trust/sourceLanes.ts` — the same registry behind /status and
- * /api/status — so a lane's cadence cannot drift from what the homepage says.
+ * DERIVED from `lib/trust/sourceLanes.ts` — the same registry behind /status
+ * and /api/status — so a lane's cadence cannot drift from what the homepage
+ * says about it. This is also why the sentence never says "live" as a blanket:
+ * one lane is read per request and three are not.
  */
 function sourceCadenceSentence(): string {
   const label = (id: string) =>
@@ -97,55 +104,27 @@ function useSceneTier(): SceneTier {
   return tier;
 }
 
-/**
- * Kinetic editorial type. Each word carries its own delay off the scene's local
- * progress, so the phrase assembles rather than fading in as a block.
- *
- * The full phrase is always in the DOM as one text node for assistive tech (the
- * animated spans are aria-hidden), so the treatment can never cost a screen
- * reader the sentence.
- */
-function KineticPhrase({ text, local, live }: { text: string; local: number; live: boolean }) {
-  const words = React.useMemo(() => text.split(' '), [text]);
-
-  return (
-    <span className="film-kinetic">
-      <span className="sr-only">{text}</span>
-      <span aria-hidden="true" className="film-kinetic-words">
-        {words.map((word, i) => {
-          const start = (i / Math.max(1, words.length)) * 0.45;
-          const t = live ? Math.min(1, Math.max(0, (local - start) / 0.55)) : 1;
-          return (
-            <span
-              key={`${word}-${i}`}
-              className="film-kinetic-word"
-              style={{ opacity: t, transform: `translate3d(0, ${(1 - t) * 0.42}em, 0)` }}
-            >
-              {word}
-              {i < words.length - 1 ? ' ' : ''}
-            </span>
-          );
-        })}
-      </span>
-    </span>
-  );
-}
-
 export function HorizontalCareerFilm() {
   const rootRef = React.useRef<HTMLDivElement | null>(null);
   const runwayRef = React.useRef<HTMLDivElement | null>(null);
   const arrivalRef = React.useRef<HTMLElement | null>(null);
+  const npiInputRef = React.useRef<HTMLInputElement | null>(null);
+  /** The SOURCE RESPONSES chapter's own scroll spacer — see `.film-stage-*`. */
   const stageRef = React.useRef<HTMLDivElement | null>(null);
   const tier = useSceneTier();
+
+  const [raw, setRaw] = React.useState('');
+  const [error, setError] = React.useState<string | null>(null);
+  const [submittedNpi, setSubmittedNpi] = React.useState<string | null>(null);
 
   /**
    * Publish the height of the pinned site chrome as `--film-chrome`.
    *
-   * The stage is sticky, and the nav above it is `sticky top-0` too. Without
+   * The stage is sticky and the nav above it is `sticky top-0` too. Without
    * this the stage pinned at 0 and stood a full 100vh, so the nav sat on top of
-   * every scene's first 78px and the opening frame overhung the fold by the
-   * height of the announcement bar. Measuring the real element is what makes it
-   * correct at every breakpoint, and correct again after the bar is dismissed.
+   * every chapter's first 78px. Measuring the real element is what makes it
+   * correct at every breakpoint, and correct again after the announcement bar
+   * is dismissed.
    */
   React.useLayoutEffect(() => {
     const root = rootRef.current;
@@ -173,88 +152,98 @@ export function HorizontalCareerFilm() {
     };
   }, []);
 
-  // Reduced motion resolves to the 'static' tier, which is also the signal to
-  // stop driving the film — one condition, not two that can disagree.
-  const { progress, eligible, ready } = useFilmProgress(runwayRef, tier !== 'static');
+  // The film explains the product. Once someone submits an NPI, release the
+  // sticky stage into the complete vertical composition so their real answer is
+  // never clipped by a pane or stranded off-screen. Resetting re-enables it.
+  const filmEnabled = tier !== 'static' && submittedNpi === null;
+  const { index, eligible, ready } = useFilmProgress(
+    runwayRef,
+    rootRef,
+    CHAPTERS.length,
+    filmEnabled,
+    stageRef,
+  );
 
-  const [pointer, setPointer] = React.useState<{ x: number; y: number } | null>(null);
-  const [raw, setRaw] = React.useState('');
-  const [error, setError] = React.useState<string | null>(null);
-  const [submittedNpi, setSubmittedNpi] = React.useState<string | null>(null);
+  /**
+   * Adopt anything typed before hydration.
+   *
+   * The field is server-rendered and focusable immediately, so a fast visitor
+   * can type a full NPI before React attaches its change handler. The digits
+   * land in the DOM, `raw` stays empty, and the submit button sits disabled on
+   * a field that visibly contains a valid number — the input is stranded.
+   *
+   * Reading the live value once on mount closes that window. It is not a test
+   * accommodation: it is the only path by which a real person's first
+   * keystrokes can otherwise be silently discarded.
+   */
+  React.useEffect(() => {
+    const typed = npiInputRef.current?.value ?? '';
+    if (typed) setRaw((current) => (current ? current : typed));
+  }, []);
 
   // The funnel's denominator.
   React.useEffect(() => {
     trackFunnelEvent(FUNNEL_EVENTS.HOMEPAGE_VIEWED);
   }, []);
 
-  // Layout mode follows ELIGIBILITY, never `pinned` — see useFilmProgress.
-  const isFilm = ready && eligible && tier !== 'static';
-  const { index, local } = sceneAt(progress);
+  /**
+   * PAGE-WIDE HORIZONTAL TRAVEL IS RETIRED.
+   *
+   * The whole document used to translate sideways as one strip, so scrolling
+   * moved the entire website left. That was never the intent: horizontal
+   * movement belongs to menus, media rails and evidence artifacts INSIDE a
+   * chapter — not to the page.
+   *
+   * The page is now an ordinary vertical document with the five chapters
+   * stacked, which is the composition that already shipped to touch, tablet
+   * and reduced-motion users and is therefore the best-tested path in the file.
+   * The driver below is deliberately kept: it still publishes `--film-progress`
+   * and the active chapter, which is what a sticky stage needs in order to
+   * drive horizontal movement within itself. Re-enabling page-wide travel is
+   * not a matter of flipping this back — it was removed on purpose.
+   */
+  const isFilm = false;
+  void ready;
+  void eligible;
+  void filmEnabled;
 
-  const onPointerMove = React.useCallback((event: React.PointerEvent<HTMLDivElement>) => {
-    if (event.pointerType !== 'mouse') return;
-    const el = stageRef.current;
-    if (!el) return;
-    const rect = el.getBoundingClientRect();
-    setPointer({
-      x: (event.clientX - rect.left) / rect.width,
-      y: (event.clientY - rect.top) / rect.height,
-    });
-  }, []);
+  /**
+   * Chapters that have been reached stay revealed. A single-shot reveal (CD-11)
+   * must never play backwards, so this only ever grows.
+   */
+  const [seen, setSeen] = React.useState(0);
+  React.useEffect(() => {
+    setSeen((prev) => (index > prev ? index : prev));
+  }, [index]);
 
   const digits = raw.replace(/\D/g, '').slice(0, 10);
   const npiCheck = checkNpi(raw);
   const isValid = npiCheck.validity === 'valid';
 
   /**
-   * Carry the reader between the question and their answer.
+   * Reset returns the reader to the question.
    *
-   * The lookup renders in the RECOGNITION scene, which in film mode sits one
-   * full viewport to the right of the arrival scene. Without this, submitting
-   * an NPI rendered the result off-screen with the page unmoved — the primary
-   * action of the page appeared to do nothing. (Measured: result in the DOM,
-   * `left = 1440`, `scrollY = 0`.) Reset has the same problem mirrored: it
-   * clears the field the reader can no longer see.
-   *
-   * The film is driven by ordinary scroll position, so both directions move the
-   * SCROLL — never the track transform directly, which would desynchronise the
-   * driver from the window and break rule 4 in useFilmProgress.
+   * The film is driven by ordinary scroll position, so this moves the SCROLL —
+   * never the track transform directly, which would desynchronise the driver
+   * from the window and break rule 4 in useFilmProgress.
    */
-  const scrollToScene = React.useCallback(
-    (sceneIndex: number, fallback: React.RefObject<HTMLElement | null>) => {
-      const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      const behavior: ScrollBehavior = reduced ? 'auto' : 'smooth';
-
-      if (isFilm && runwayRef.current) {
-        const rect = runwayRef.current.getBoundingClientRect();
-        const travel = rect.height - window.innerHeight;
-        if (travel > 0) {
-          const target = sceneIndex / Math.max(1, FILM_SCENES.length - 1);
-          window.scrollTo({ top: rect.top + window.scrollY + target * travel, behavior });
-          return;
-        }
-      }
-      // Vertical composition: scenes are ordinary blocks in document flow.
-      fallback.current?.scrollIntoView({ behavior, block: 'start' });
-    },
-    [isFilm],
-  );
-
-  // Only a TRANSITION should move the reader — not the initial mount, and not
-  // an unrelated re-render.
-  //
-  // Submitting no longer travels anywhere: the result renders in the arrival
-  // scene, in place of the empty record, so the reader stays exactly where they
-  // typed. Carrying someone to a second frame to be told their own answer was
-  // the reason that frame existed, and the reason it was blank for everyone who
-  // had not typed yet. Reset still returns to arrival, because a reset from
-  // deeper in the film should bring the field back into view.
   const previousNpi = React.useRef<string | null>(null);
   React.useEffect(() => {
     const had = previousNpi.current;
     previousNpi.current = submittedNpi;
-    if (had && !submittedNpi) scrollToScene(0, arrivalRef);
-  }, [submittedNpi, scrollToScene]);
+    if (had && !submittedNpi) {
+      const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      arrivalRef.current?.scrollIntoView({
+        behavior: reduced ? 'auto' : 'smooth',
+        block: 'start',
+      });
+      // Reset restores the question, so it must restore the keyboard position
+      // too. The input remounts in the same render; defer one frame until its
+      // ref is available rather than leaving focus on the reset control.
+      const frame = window.requestAnimationFrame(() => npiInputRef.current?.focus());
+      return () => window.cancelAnimationFrame(frame);
+    }
+  }, [submittedNpi]);
 
   const handleSubmit = React.useCallback(() => {
     if (!isValid || !npiCheck.npi) {
@@ -277,275 +266,490 @@ export function HorizontalCareerFilm() {
       className="film"
       data-film-mode={isFilm ? 'film' : 'vertical'}
       data-film-tier={tier}
+      style={{ ['--film-spans' as string]: String(CHAPTERS.length - 1) }}
     >
-      {/* Route-scoped paper. Cloud Dancer is the unifying field; it unmounts
-          with the route so no other surface inherits it. */}
-      <style>{'body{background:var(--vt-cloud-dancer,#F0EEE9)}'}</style>
-
-      {/* Runway height scales with the scene count so travel stays one
+      {/* Runway height scales with the chapter count so travel stays one
           viewport per transition. Inline rather than in CSS precisely so it
-          cannot drift out of sync when a scene is added or removed. */}
+          cannot drift out of sync when a chapter is added or removed. */}
       <div
         ref={runwayRef}
         className="film-runway"
-        style={isFilm ? { height: `${FILM_SCENES.length * 100}vh` } : undefined}
+        style={isFilm ? { height: `${CHAPTERS.length * 100}vh` } : undefined}
       >
-        <div
-          ref={stageRef}
-          className="film-stage"
-          onPointerMove={onPointerMove}
-          onPointerLeave={() => setPointer(null)}
-        >
-          <EvidenceAtmosphere progress={progress} tier={tier} pointer={pointer} />
-
-          {/* The cursor as a reading light. Decorative, pointer-events-none,
-              and absent entirely unless a mouse is present. */}
-          {pointer && tier !== 'static' ? (
-            <div
-              aria-hidden="true"
-              className="film-readinglight"
-              style={{ left: `${pointer.x * 100}%`, top: `${pointer.y * 100}%` }}
-            />
-          ) : null}
-
-          <div
-            className="film-track"
-            style={
-              isFilm
-                ? { transform: `translate3d(-${progress * (FILM_SCENES.length - 1) * 100}%, 0, 0)` }
-                : undefined
-            }
-          >
-            {FILM_SCENES.map((scene, i) => {
-              // In vertical mode every scene is fully seated; in film mode only
-              // the active pair is animating.
-              const sceneLocal = !isFilm
-                ? 1
-                : i === index
-                  ? 1 - local
-                  : i === index + 1
-                    ? local
-                    : 0;
-              const isActive = isFilm && (i === index || (i === index + 1 && local > 0));
-
-              return (
-                <section
-                  key={scene.id}
-                  // Scroll targets for the vertical composition, where scenes are
-                  // ordinary blocks rather than positions along the runway.
-                  ref={scene.id === 'arrival' ? arrivalRef : undefined}
-                  className="film-scene"
-                  /* `data-home-hero` on the arrival scene is the release marker
-                     `scripts/deploy-smoke.mjs:115` greps out of the raw
-                     production response to prove `/` actually rendered. It is
-                     deliberately composition-agnostic — it rode the old vertical
-                     hero and it rides the arrival scene now — because a deploy
-                     check that must be rewritten for every redesign is one that
-                     silently stops working. It did: between #859 and this commit
-                     the film carried no such marker and the homepage smoke
-                     assertion was failing against production. Do not remove
-                     without re-pointing deploy-smoke.mjs in the same change. */
-                  data-film-scene={scene.id}
-                  data-film-active={isActive ? '' : undefined}
-                  {...(scene.id === 'arrival' ? { 'data-home-hero': '' } : null)}
-                  aria-label={scene.label}
+        <div className="film-stage">
+          <div className="film-track">
+            {/* ---------------------------------------------- 01 YOUR NUMBER */}
+            <section
+              ref={arrivalRef}
+              id="your-number"
+              className="film-chapter"
+              /* `data-home-hero` is the release marker `scripts/deploy-smoke.mjs`
+                 greps out of the raw production response to prove `/` actually
+                 rendered. It is deliberately composition-agnostic — it rode the
+                 old vertical hero, it rode the previous film, and it rides this
+                 chapter — because a deploy check that must be rewritten for
+                 every redesign is one that silently stops working. It did once.
+                 Do not remove without re-pointing deploy-smoke.mjs in the same
+                 change. */
+              data-home-hero=""
+              data-film-scene="arrival"
+              data-film-seen=""
+              aria-label={CHAPTERS[0].label}
+            >
+              <div className="film-ask">
+                <ExpandingEyebrow
+                  detail="Your number, what the sources returned, what you release, and who decides."
+                  className="film-ask-eyebrow"
                 >
-                  <div className="film-copy">
-                    {/* The opening phrase is the page's H1. Every scene rendering
-                        an <h2> left the homepage with NO top-level heading at
-                        all — a document-outline and SEO regression against the
-                        composition this replaces, which had one. The heading
-                        LEVEL is structural; `.film-phrase` sets margin and
-                        font-size explicitly, so the visual is unchanged. */}
-                    {React.createElement(
-                      i === 0 ? 'h1' : 'h2',
-                      { className: 'film-phrase' },
-                      <KineticPhrase text={scene.phrase} local={sceneLocal} live={isFilm} />,
-                    )}
-                    {scene.support ? <p className="film-support">{scene.support}</p> : null}
+                  For clinicians
+                </ExpandingEyebrow>
 
-                    {/* ---- Arrival: the ONE primary action ----
-                         Hidden once a lookup returns. Leaving the field sitting
-                         above the answer invites re-entry of a number that has
-                         already been answered; `LiveNpiResult` owns the reset
-                         that brings it back. */}
-                    {scene.id === 'arrival' && !submittedNpi ? (
-                      <form
-                        className="film-npi"
-                        onSubmit={(event) => {
-                          event.preventDefault();
-                          handleSubmit();
+                <h1 className="film-h1">
+                  Get hired on <em>evidence</em>.
+                </h1>
+                <p className="film-ask-support">Start with your NPI.</p>
+
+                {/* The ask is a ruled line on the record itself. Hidden once a
+                    lookup returns — leaving the field above the answer invites
+                    re-entry of a number that has already been answered, and
+                    the result owns the control that brings it back. */}
+                {!submittedNpi ? (
+                  <form
+                    className="film-writing-line"
+                    onSubmit={(event) => {
+                      event.preventDefault();
+                      handleSubmit();
+                    }}
+                  >
+                    <label htmlFor="film-npi-input" className="film-npi-label">
+                      Your 10-digit NPI
+                    </label>
+                    <div className="film-line-row">
+                      <input
+                        ref={npiInputRef}
+                        id="film-npi-input"
+                        className="film-npi-input"
+                        type="text"
+                        inputMode="numeric"
+                        autoComplete="off"
+                        placeholder="10-digit NPI"
+                        value={raw}
+                        onChange={(event) => {
+                          setRaw(event.target.value);
+                          setError(null);
                         }}
+                        aria-invalid={Boolean(error)}
+                        aria-describedby="film-npi-hint"
+                      />
+                      <ProductAction
+                        type="submit"
+                        arrow
+                        disabled={!isValid}
+                        className="film-npi-submit"
+                        data-home-primary-cta=""
                       >
-                        <label htmlFor="film-npi-input" className="film-npi-label">
-                          Start with your NPI
-                        </label>
-                        {/* A designed object inside the scene — a ruled line on
-                            paper, not a boxed form card beside a visual. */}
-                        <div className="film-npi-row">
-                          <input
-                            id="film-npi-input"
-                            className="film-npi-input"
-                            type="text"
-                            inputMode="numeric"
-                            autoComplete="off"
-                            placeholder="10-digit NPI"
-                            value={raw}
-                            onChange={(event) => {
-                              setRaw(event.target.value);
-                              setError(null);
-                            }}
-                            aria-invalid={Boolean(error)}
-                            aria-describedby="film-npi-hint"
-                          />
-                          <button
-                            type="submit"
-                            className="film-npi-submit"
-                            data-home-primary-cta=""
-                            disabled={!isValid}
-                          >
-                            Check what&rsquo;s ready
-                          </button>
-                        </div>
-                        <p
-                          id="film-npi-hint"
-                          className="film-npi-hint"
-                          role={error ? 'alert' : undefined}
-                        >
-                          {error ??
-                            (digits.length === 10
-                              ? isValid
-                                ? 'Press Enter to continue'
-                                : (npiCheck.reason ?? 'Check the number for a typo.')
-                              : `${digits.length}/10 digits`)}
-                          <span aria-hidden="true"> · </span>
-                          Free for clinicians · No account required
-                        </p>
-                      </form>
-                    ) : null}
-
-                    {/* ---- Arrival: the REAL returned state, in place ----
-                         The answer to the question the reader just asked, in the
-                         frame they asked it in. Still the same hard rule as
-                         before — this renders only when a real lookup has
-                         returned, and nothing personal is invented to fill the
-                         frame beforehand. What fills it beforehand is the empty
-                         six-source record, which is true for that visitor. */}
-                    {scene.id === 'arrival' && submittedNpi ? (
-                      <div className="film-artifact">
-                        <LiveNpiResult
-                          npi={submittedNpi}
-                          onReset={() => {
-                            setSubmittedNpi(null);
-                            setRaw('');
-                          }}
-                        />
-                      </div>
-                    ) : null}
-
-                    {/* ---- Verification: the industry cost of NOT being
-                         checkable. An industry benchmark, never a VitalCV
-                         result, and worded so it cannot be read as one. ---- */}
-                    {scene.id === 'verification' ? (
-                      <p className="film-note">
-                        VitalCV has not yet published a measured time-to-start
-                        of its own. The first pilot will, and it will say so.
+                        Check what&rsquo;s ready
+                      </ProductAction>
+                    </div>
+                    <div className="film-ask-meta">
+                      <p
+                        id="film-npi-hint"
+                        className="film-ask-hint"
+                        data-invalid={error ? '' : undefined}
+                        role={error ? 'alert' : undefined}
+                      >
+                        {error ??
+                          (digits.length === 10
+                            ? isValid
+                              ? 'Press Enter to continue'
+                              : (npiCheck.reason ?? 'Check the number for a typo.')
+                            : `${digits.length}/10 digits`)}
+                        <span aria-hidden="true"> · </span>
+                        Free for clinicians · No account required
                       </p>
-                    ) : null}
+                      {/* The employer door. After the clinician's action in DOM
+                          order, always — this page belongs to the clinician. */}
+                      <Link
+                        href="/employers"
+                        className="film-employer-path"
+                        data-home-employer-cta=""
+                        onClick={() => trackFunnelEvent(FUNNEL_EVENTS.EMPLOYER_ENTRY_CLICKED)}
+                      >
+                        For employers — see what arrives
+                      </Link>
+                    </div>
+                  </form>
+                ) : null}
 
-                    {/* ---- Choice: the four surviving facts, as quiet ink ---- */}
-                    {scene.id === 'choice' ? (
-                      <>
-                        <ul className="film-facts">
-                          {CHOICE_FACTS.map((fact) => (
-                            <li key={fact}>{fact}</li>
-                          ))}
-                        </ul>
-                        <p className="film-note" data-home-source-cadence="">
-                          {sourceCadenceSentence()}
-                        </p>
-                      </>
-                    ) : null}
+                {/* ---- The real returned state, in place ----
+                     The answer to the question the reader just asked, in the
+                     frame they asked it in. This renders only when a real
+                     lookup has returned, and nothing personal is invented to
+                     fill the frame beforehand. */}
+                {submittedNpi ? (
+                  <div className="film-writing-line">
+                    <LiveNpiResult
+                      npi={submittedNpi}
+                      onReset={() => {
+                        setSubmittedNpi(null);
+                        setRaw('');
+                      }}
+                    />
+                  </div>
+                ) : null}
+              </div>
+
+              {/* ---- The record gathering ----
+                   The same six lanes the capsule will show, in their true state
+                   for a visitor who has entered nothing. Every row is
+                   registry-derived; none of it is a claim about anyone. */}
+              {!submittedNpi ? (
+                <div className="film-summon">
+                  <p className="film-summon-eyebrow">Evidence record · awaiting your number</p>
+                  <ul className="film-fan">
+                    {AWAITING_ROWS.map((lane) => (
+                      <li key={lane.id} className="film-strip">
+                        <div className="film-strip-top">
+                          <span className="film-strip-name">{lane.claim}</span>
+                          <ProvenanceChip
+                            state={lane.state}
+                            label={lane.stateLabel}
+                            shape="stamp"
+                            size="sm"
+                          />
+                        </div>
+                        <p className="film-strip-meta">{lane.meta}</p>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+            </section>
+
+            {/* ----------------------------------------- 02 SOURCE RESPONSES
+
+                THE STICKY STAGE.
+
+                The page scrolls vertically. This one chapter pins for three
+                viewports while the evidence record travels HORIZONTALLY through
+                its own lifecycle beside a fixed argument column — the record
+                gathering, resolving, and then showing what stands behind a
+                single claim.
+
+                This is the shape that replaced page-wide travel: the document
+                never moves sideways, but a reader who scrolls through this
+                chapter watches one object move across the frame. Ordinary
+                vertical scroll is read, never captured — the spacer is a plain
+                tall element and the browser keeps the scroll.
+
+                On touch, narrow viewports and reduced motion the spacer
+                collapses and the frames stack vertically (see home.css), so the
+                argument survives without the pin. */}
+            <section
+              id="source-responses"
+              className="film-chapter film-chapter--staged"
+              data-film-scene="sources"
+              data-film-seen={!isFilm || seen >= 1 ? '' : undefined}
+              aria-label={CHAPTERS[1].label}
+            >
+              <div ref={stageRef} className="film-stage-spacer">
+                <div className="film-stage-pin">
+                  <div className="film-stage-argument film-reveal">
+                    <h2 className="film-phrase">This is what came back.</h2>
+                    <p className="film-support">
+                      Every claim arrives with the source that answered, that source&rsquo;s own
+                      refresh cadence, and the limit of what it can settle — including the lane
+                      VitalCV cannot read yet.
+                    </p>
+                    <p className="film-cadence" data-home-source-cadence="">
+                      {sourceCadenceSentence()}
+                    </p>
                   </div>
 
-                  {/* ---- Arrival: the empty record, gathering source light ----
-
-                       COMPETE-2 asks each scene for "a large visual event, not
-                       a component", and the mandate's brief for Arrival is
-                       exactly this: an empty career core. Without it the
-                       opening frame was a phrase in a narrow column beside
-                       ~800px of blank paper, which reads as unfinished and
-                       leaves the visitor with no idea what they are being
-                       offered. The record answers that in one look, and it
-                       fabricates nothing: it shows which sources exist and
-                       stamps every one of them "Not checked", because for this
-                       visitor none of them have been. */}
-                  {scene.id === 'arrival' ? <FilmRecord live={isFilm} /> : null}
-
-                  {/* ---- Better opportunities: the mechanism, not a match ----
-                       The mandate forbids a fake role or employer before a
-                       lookup, so this shows the SHAPE of the answer: every
-                       requirement resolves to your record, to a gap, or to the
-                       employer. The third row is the boundary that makes the
-                       first two believable. */}
-                  {scene.id === 'opportunities' ? <FilmFit /> : null}
-
-                  {/* ---- Check it without asking us ----
-                       The one thing neither Medallion nor Carefam can answer.
-                       Real, live, and checkable in a click: ES256 signatures
-                       and a published key. Plain words only — no chain, wallet,
-                       or DID vocabulary in the acquisition path. */}
-                  {scene.id === 'verification' ? <FilmSignature /> : null}
-
-                  {/* ---- Wide artifacts sit beside the copy, not inside it ----
-
-                       Deliberately `ProofPacketInspector`, NOT its
-                       `HomeProofMoment` wrapper: that wrapper is a vertical
-                       PAGE SECTION and brings its own numbered eyebrow ("04
-                       Why this is credible" — R4 + R6) and a second display
-                       H2 that competes with the scene's phrase. The film wants
-                       the artifact, not the section around it. Same reason
-                       `DualAudienceCta` is not used below — it is a two-card
-                       grid (R3) whose clinician CTA points at `/#npi`, an
-                       anchor this composition does not have. */}
-                  {scene.id === 'hiring' ? (
-                    <div className="film-wide">
-                      <ProofPacketInspector />
-                      <TruthBoundary className="film-boundary" />
-                    </div>
-                  ) : null}
-
-                  {scene.id === 'choice' ? (
-                    <div className="film-wide">
-                      {/* "CTAs only" — clinician primary, employer secondary. */}
-                      <div className="film-routes">
-                        <Link href="/onboarding" className="film-route film-route-primary">
-                          Check my readiness
-                        </Link>
-                        <Link
-                          href="/employers"
-                          className="film-route"
-                          data-home-employer-cta=""
-                          onClick={() => trackFunnelEvent(FUNNEL_EVENTS.EMPLOYER_ENTRY_CLICKED)}
-                        >
-                          For employers
-                        </Link>
+                  {/* The rail. Three frames of ONE record, not three cards:
+                      same shell, same header, same rows — a document being
+                      examined, which is the distinction CD-13 draws between a
+                      media rail and a retired carousel. */}
+                  <div className="film-stage-viewport">
+                    <div className="film-stage-rail" data-film-stage-rail="">
+                      <div className="film-stage-frame">
+                        <CapsuleShell face="forming">
+                          <CapsuleHead
+                            eyebrow="Evidence record"
+                            illustrative="Awaiting your number"
+                          />
+                          <CapsuleRows>
+                            {AWAITING_ROWS.map((lane) => (
+                              <CapsuleRow
+                                key={lane.id}
+                                claim={lane.claim}
+                                returned={lane.meta}
+                                trailing={
+                                  <ProvenanceChip
+                                    state={lane.state}
+                                    label={lane.stateLabel}
+                                    shape="stamp"
+                                    size="sm"
+                                  />
+                                }
+                              />
+                            ))}
+                          </CapsuleRows>
+                        </CapsuleShell>
                       </div>
-                      <nav aria-label="Trust footer" className="film-trust">
-                        {TRUST_FOOTER_LINKS.map((link) => (
-                          <Link key={link.href} href={link.href}>
-                            {link.label}
-                          </Link>
-                        ))}
-                      </nav>
+
+                      <div className="film-stage-frame">
+                        <CapsuleShell face="resolved">
+                          <CapsuleHead
+                            eyebrow="Evidence record"
+                            illustrative={ILLUSTRATIVE_LABEL}
+                            name={ILLUSTRATIVE_MODEL.identity.name}
+                            npi={`NPI ${ILLUSTRATIVE_MODEL.npi}`}
+                          />
+                          <CapsuleRows>
+                            {ILLUSTRATIVE_MODEL.rows.map((row) => (
+                              <CapsuleModelRow key={row.id} row={row} />
+                            ))}
+                          </CapsuleRows>
+                          <CapsuleFoot>
+                            <p className="evidence-capsule__foot-data">
+                              {SIGNING.algorithm} · {SIGNING.keyId} · {SIGNING.keyPath}
+                            </p>
+                          </CapsuleFoot>
+                        </CapsuleShell>
+                      </div>
+
+                      <div className="film-stage-frame">
+                        {/* The third frame continues the SAME record's
+                            lifecycle rather than repeating the packet
+                            inspector, which lives in HUMAN REVIEW. Two copies
+                            of one artifact on a page is the duplicate-intent
+                            problem this whole recovery existed to remove — and
+                            Playwright caught it as a strict-mode violation
+                            before it shipped. */}
+                        <CapsuleShell face="deciding">
+                          <CapsuleHead
+                            eyebrow="Evidence record"
+                            illustrative={ILLUSTRATIVE_WORKFLOW}
+                            name={ILLUSTRATIVE_MODEL.identity.name}
+                            npi={`NPI ${ILLUSTRATIVE_MODEL.npi}`}
+                          />
+                          <CapsuleRows>
+                            {TRAVEL_LEDGER.map((entry) => (
+                              <CapsuleRow
+                                key={entry.id}
+                                claim={entry.claim}
+                                returned={entry.detail}
+                                trailing={
+                                  <span
+                                    className="evidence-capsule__mark"
+                                    data-travel={entry.travels ? 'travels' : 'held'}
+                                  >
+                                    {entry.travels ? '→ Travels' : '■ Held'}
+                                  </span>
+                                }
+                              />
+                            ))}
+                          </CapsuleRows>
+                        </CapsuleShell>
+                      </div>
                     </div>
-                  ) : null}
-                </section>
-              );
-            })}
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* ------------------------------------------ 03 YOUR PERMISSION */}
+            <section
+              id="your-permission"
+              className="film-chapter"
+              data-film-scene="permission"
+              data-film-seen={!isFilm || seen >= 2 ? '' : undefined}
+              aria-label={CHAPTERS[2].label}
+            >
+              <div className="film-two-col">
+                <div className="film-reveal">
+                  <h2 className="film-phrase">You decide what travels.</h2>
+                  <p className="film-support">
+                    Every row in the record is a decision. What you release moves with the
+                    application. What you hold never leaves this page.
+                  </p>
+                  {/*
+                    No route is named here. The path this panel used to print
+                    does not exist, and printing one that 404s would be a promise
+                    the product cannot keep — the illustrative frame makes the
+                    workflow legible, it does not license an invented URL.
+
+                    The path itself is deliberately not written out even in this
+                    comment: `holder-route-contract` scans this file's raw source
+                    for internal hrefs, so a dead path quoted in prose fails the
+                    same guard as a live one. That is the guard working, not a
+                    false positive — a URL in a source file is a URL.
+                  */}
+                  <p className="film-consent">
+                    Permission recorded
+                    <br />
+                    Scope: this application
+                    <br />
+                    Revocable from your record
+                  </p>
+                </div>
+
+                <div className="film-reveal">
+                  <CapsuleShell face="deciding">
+                    <CapsuleHead
+                      eyebrow="Evidence record"
+                      illustrative={ILLUSTRATIVE_WORKFLOW}
+                      name={ILLUSTRATIVE_MODEL.identity.name}
+                      npi={`NPI ${ILLUSTRATIVE_MODEL.npi}`}
+                    />
+                    <CapsuleRows>
+                      {TRAVEL_LEDGER.map((entry) => (
+                        <CapsuleRow
+                          key={entry.id}
+                          claim={entry.claim}
+                          returned={entry.detail}
+                          trailing={
+                            <span
+                              className="evidence-capsule__mark"
+                              data-travel={entry.travels ? 'travels' : 'held'}
+                            >
+                              {entry.travels ? '→ Travels' : '■ Held'}
+                            </span>
+                          }
+                        />
+                      ))}
+                    </CapsuleRows>
+                    <CapsuleFoot>
+                      <p className="evidence-capsule__foot-data">
+                        {TRAVEL_LEDGER.filter((e) => e.travels).length} rows travel ·{' '}
+                        {TRAVEL_LEDGER.filter((e) => !e.travels).length} rows held with you
+                      </p>
+                    </CapsuleFoot>
+                  </CapsuleShell>
+
+                  <div className="film-handoff" aria-hidden="true">
+                    <span className="film-handoff-line" />
+                    <span className="film-handoff-label">Only what travels</span>
+                  </div>
+
+                  <div className="film-employer-frame">
+                    <CapsuleShell face="traveling">
+                      <CapsuleHead eyebrow="Employer view" illustrative={ILLUSTRATIVE_WORKFLOW} />
+                      <CapsuleRows>
+                        {TRAVEL_LEDGER.filter((entry) => entry.travels).map((entry) => (
+                          <CapsuleRow
+                            key={entry.id}
+                            claim={entry.claim}
+                            trailing={<span className="film-arrives">arrives</span>}
+                          />
+                        ))}
+                      </CapsuleRows>
+                      <CapsuleFoot>
+                        <p className="evidence-capsule__foot-data">
+                          held rows are not in this frame — and their absence is not flagged
+                        </p>
+                      </CapsuleFoot>
+                    </CapsuleShell>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* --------------------------------------------- 04 HUMAN REVIEW */}
+            <section
+              id="human-review"
+              className="film-chapter"
+              data-film-scene="review"
+              data-film-seen={!isFilm || seen >= 3 ? '' : undefined}
+              aria-label={CHAPTERS[3].label}
+            >
+              <div className="film-two-col">
+                <div className="film-reveal">
+                  <h2 className="film-phrase">They start from evidence, not from scratch.</h2>
+                  <p className="film-boundary">
+                    VitalCV assembles what these sources return. It does not credential,
+                    privilege, or clear anyone — the institution keeps that decision.
+                  </p>
+                  <div className="film-checkpoint">
+                    <p className="film-checkpoint-title">
+                      <span aria-hidden="true">‖</span> Awaiting institution review
+                    </p>
+                    <p className="film-checkpoint-body">
+                      Final credentialing, privileging, and hiring authority remain with the
+                      institution.
+                    </p>
+                  </div>
+                </div>
+
+                {/* The packet an employer actually opens, claim by claim. This
+                    is `ProofPacketInspector` rather than a picture of one: the
+                    same component, the same illustrative labelling, and the
+                    same SOURCE / RETRIEVAL / RECEIPT / LIMITATION ledger a
+                    reviewer reads inside the product. */}
+                <div className="film-reveal">
+                  <ProofPacketInspector />
+                </div>
+              </div>
+            </section>
+
+            {/* -------------------------------------------------- 05 CLOSING */}
+            <section
+              id="closing"
+              className="film-chapter"
+              data-film-scene="closing"
+              data-film-seen={!isFilm || seen >= 4 ? '' : undefined}
+              aria-label={CHAPTERS[4].label}
+            >
+              <div className="film-closing film-reveal">
+                <p className="film-closing-line">The evidence can move.</p>
+
+                <div className="film-seal">
+                  <CapsuleShell face="sealed">
+                    <CapsuleHead
+                      eyebrow="Evidence record"
+                      illustrative={ILLUSTRATIVE_LABEL}
+                      npi={`NPI ${ILLUSTRATIVE_MODEL.npi}`}
+                    />
+                    <CapsuleFoot>
+                      <p className="evidence-capsule__foot-data">
+                        rcpt:nppes:8f2a…c41 · {SIGNING.algorithm} signed
+                      </p>
+                    </CapsuleFoot>
+                  </CapsuleShell>
+                </div>
+
+                <p className="film-closing-line">
+                  The decision stays <em>human</em>.
+                </p>
+
+                <div className="film-routes">
+                  <ProductAction href="/onboarding" arrow>
+                    Check my readiness
+                  </ProductAction>
+                  <ProductAction href="/employers" variant="secondary" arrow>
+                    For employers
+                  </ProductAction>
+                </div>
+
+                <TruthBoundary className="film-truth-boundary" />
+
+                <nav aria-label="Trust footer" className="film-trust">
+                  {TRUST_FOOTER_LINKS.map((link) => (
+                    <Link key={link.href} href={link.href}>
+                      {link.label}
+                    </Link>
+                  ))}
+                </nav>
+              </div>
+            </section>
           </div>
         </div>
       </div>
+
+      {/* The chapter menu sits OUTSIDE the track so it does not travel with it.
+          In the vertical composition it is an ordinary in-page nav. */}
+      <ChapterRail activeIndex={isFilm ? index : null} />
     </div>
   );
 }

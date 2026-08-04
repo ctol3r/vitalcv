@@ -560,6 +560,11 @@ function isReadinessBlockingFinding(finding: string): boolean {
 
 type NppesIdentityArtifact = {
   id: string;
+  /**
+   * Registry outcome recorded on the artifact. Load-bearing for coverage: an
+   * artifact row proves we stored an answer, `status` is what the answer was.
+   */
+  status: string;
   rawPayload: unknown;
   checksum: string | null;
   sourceUrl: string | null;
@@ -582,6 +587,7 @@ async function findLatestNppesIdentityArtifact(
     },
     select: {
       id: true,
+      status: true,
       rawPayload: true,
       checksum: true,
       sourceUrl: true,
@@ -802,9 +808,14 @@ function buildFallbackPassportSourceCoverage(input: {
     ? 'pending'
     : !pecosFresh
       ? 'stale'
+      // NOT_FOUND used to sit in this same 'checked' bucket as ENROLLED, which
+      // rendered "no Medicare enrollment on file" identically to a confirmed
+      // enrollment on the public verifier. OPTED_OUT stays: the release carries
+      // a real row for that provider, it just records an opt-out.
+      : input.standing.pecosEnrollmentStatus === 'NOT_FOUND'
+        ? 'notFound'
       : (
         input.standing.pecosEnrollmentStatus === 'ENROLLED'
-        || input.standing.pecosEnrollmentStatus === 'NOT_FOUND'
         || input.standing.pecosEnrollmentStatus === 'OPTED_OUT'
       )
         ? 'checked'
@@ -814,14 +825,29 @@ function buildFallbackPassportSourceCoverage(input: {
     ?? input.nppesIdentityArtifact?.verifiedAt?.toISOString()
     ?? null;
   const hasNppesIdentityArtifact = input.nppesIdentityArtifact != null;
+  // An artifact row only proves we stored a registry answer. Reading `!= null`
+  // as "the registry affirmed this provider" is what let a non-existent NPI
+  // render as source-backed on /verify/[npi]; the outcome lives in `status`.
+  const nppesIdentityAffirmed =
+    input.nppesIdentityArtifact != null
+    && (
+      input.nppesIdentityArtifact.status === 'ACTIVE'
+      || input.nppesIdentityArtifact.status === 'VERIFIED'
+    );
 
   return [
     createCanonicalSourceCoverage({
       sourceId: 'NPPES_API',
-      state: hasNppesIdentityArtifact ? 'checked' : 'pending',
-      reason: hasNppesIdentityArtifact
-        ? 'NPPES identity checked'
-        : 'NPPES identity source not yet checked',
+      state: !hasNppesIdentityArtifact
+        ? 'pending'
+        : nppesIdentityAffirmed
+          ? 'checked'
+          : 'notFound',
+      reason: !hasNppesIdentityArtifact
+        ? 'NPPES identity source not yet checked'
+        : nppesIdentityAffirmed
+          ? 'NPPES identity checked'
+          : 'NPPES checked but did not return an active identity record',
       checkedAt: nppesCheckedAt,
       observedAt: nppesCheckedAt,
       expiresAt: input.nppesIdentityArtifact?.expiresAt?.toISOString() ?? null,
@@ -972,6 +998,19 @@ function buildPassportSourceCoverage(input: {
       const shouldDowngradeUncheckedIdentity = isNppesCoverage
         && check.state === 'checked'
         && input.nppesIdentityArtifact == null;
+      /**
+       * Last line of defence for the same class one step further along: an
+       * upstream that hands us 'checked' for an NPPES artifact the registry
+       * never affirmed. The upstream builders now emit 'notFound' themselves,
+       * so this should be unreachable — it stays because 'checked' is the one
+       * decision-grade state, and reaching it by accident is what put
+       * "Source-backed" next to a non-existent NPI in the first place.
+       */
+      const shouldDowngradeUnaffirmedIdentity = isNppesCoverage
+        && check.state === 'checked'
+        && input.nppesIdentityArtifact != null
+        && input.nppesIdentityArtifact.status !== 'ACTIVE'
+        && input.nppesIdentityArtifact.status !== 'VERIFIED';
       const checkedAt = check.checkedAt
         ?? latestArtifact?.observedAt?.toISOString()
         ?? latestArtifact?.fetchedAt?.toISOString()
@@ -986,10 +1025,16 @@ function buildPassportSourceCoverage(input: {
 
       return createCanonicalSourceCoverage({
         sourceId: check.sourceId,
-        state: shouldDowngradeUncheckedIdentity ? 'pending' : check.state,
+        state: shouldDowngradeUncheckedIdentity
+          ? 'pending'
+          : shouldDowngradeUnaffirmedIdentity
+            ? 'notFound'
+            : check.state,
         reason: shouldDowngradeUncheckedIdentity
           ? 'NPPES identity source not yet checked'
-          : check.reason,
+          : shouldDowngradeUnaffirmedIdentity
+            ? 'NPPES checked but did not return an active identity record'
+            : check.reason,
         checkedAt: shouldDowngradeUncheckedIdentity ? null : checkedAt,
         observedAt: shouldDowngradeUncheckedIdentity ? null : observedAt,
         expiresAt,
@@ -1024,13 +1069,21 @@ const COVERAGE_REASON_PRIORITY: Record<CanonicalSourceCoverageState, number> = {
   gated: 3,
   notDecisionGrade: 4,
   unavailable: 5,
-  previewOnly: 6,
-  pending: 7,
-  checked: 8,
+  // Ahead of previewOnly/pending: "the registry has no active record for this
+  // NPI" is the most useful sentence a reviewer can be handed, and ahead of
+  // 'checked' because it is never the reassuring one.
+  notFound: 6,
+  previewOnly: 7,
+  pending: 8,
+  checked: 9,
 };
 
 const COVERAGE_GATED_STATES: readonly CanonicalSourceCoverageState[] = ['gated', 'accessRequired'];
 const COVERAGE_MISSING_STATES: readonly CanonicalSourceCoverageState[] = [
+  // First: this list picks WHICH reason the reviewer reads, and "the registry
+  // holds no active record for this NPI" beats falling through to a generic
+  // "has not been confirmed yet", which implies the work is still in flight.
+  'notFound',
   'notDecisionGrade',
   'pending',
   'unavailable',
