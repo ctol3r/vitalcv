@@ -7,6 +7,7 @@ import { HospitalArtifact } from '@/components/artifacts/SceneArtifacts';
 import '@/styles/motion.css';
 import '@/styles/artifact-motion.css';
 import { EmployerAudienceSection } from '@/components/employers/EmployerAudienceSection';
+import { EmployerEvidenceSection } from '@/components/employers/EmployerEvidenceSection';
 import { EmployerWorkflowPreview } from '@/components/employers/EmployerWorkflowPreview';
 import { PageFrame } from '@/components/layout/PageFrame';
 import { SOURCE_LANE_OPS } from '@/lib/trust/sourceLanes';
@@ -138,6 +139,17 @@ export default function EmployersPage() {
         </section>
 
         <EmployerWorkflowPreview />
+
+        {/* The operating model has made the case; this is the evidence itself.
+            CD-20's buyer asymmetry is "they claim numbers, we show one artifact"
+            — and CD-14 says the evidence artifact IS the brand, the thing an
+            employer screenshots and forwards. Until now this page described the
+            packet and never showed it.
+
+            The lane register is read from SOURCE_LANE_OPS, so it cannot drift
+            from lane truth; the packet beneath it is explicitly illustrative.
+            That split is the point — see the component's header. */}
+        <EmployerEvidenceSection />
 
         {/* MB1 — the teams who actually read this page, and the way in by org size.
             Placed after the operating model has made the case and BEFORE the ask,

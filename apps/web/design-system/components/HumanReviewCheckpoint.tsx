@@ -69,7 +69,7 @@ export function HumanReviewCheckpoint({
           {meta.glyph}
         </span>
         {/* The word is ink, always (CD-5). */}
-        <span className="font-[var(--vt-font-mono,ui-monospace)] text-[0.75rem] uppercase tracking-[0.06em] text-[var(--vt-text-primary)]">
+        <span className="font-[family-name:var(--vt-font-mono)] text-[0.75rem] uppercase tracking-[0.06em] text-[var(--vt-text-primary)]">
           {meta.word}
         </span>
       </p>
@@ -78,7 +78,7 @@ export function HumanReviewCheckpoint({
         {decision}
       </p>
 
-      <p className="mt-[var(--vt-space-8)] mb-0 font-[var(--vt-font-mono,ui-monospace)] text-[0.6875rem] leading-[1.4] tracking-[0.04em] text-[var(--vt-text-muted)]">
+      <p className="mt-[var(--vt-space-8)] mb-0 font-[family-name:var(--vt-font-mono)] text-[0.6875rem] leading-[1.4] tracking-[0.04em] text-[var(--vt-text-muted)]">
         {awaitingWhom} · {asOf}
       </p>
 
