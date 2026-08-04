@@ -16,6 +16,10 @@ import type { Express, Request, Response } from 'express';
 
 import prisma from '../graphql/prisma_client';
 import { log } from '../obs/logger';
+import { requireVerifiedClerkUserId, requireNpiAuthorization } from '../middleware/verifiedActor';
+import { toPublicSafeMatches } from '../services/matcha/publicSafeMatches';
+import { publicApiRateLimit } from '../middleware/publicSafety';
+import { HttpError } from '../utils/httpError';
 import { capsuleEngine } from '../services/decision/capsuleEngine';
 import {
   getAvailability,
@@ -628,12 +632,35 @@ export function registerMatchaRoutes(app: Express): void {
    * Returns ranked matched opportunities for a clinician via live DB + NPPES.
    * Query: specialty, state, hiringType
    */
-  app.get('/api/matcha/opportunities/:npi', async (req: Request, res: Response) => {
+  app.get('/api/matcha/opportunities/:npi', publicApiRateLimit, async (req: Request, res: Response) => {
     try {
       const { npi } = req.params;
       if (!npi || !NPI_RE.test(npi)) {
         res.status(400).json({ error: 'Invalid NPI — expected 10 digits' });
         return;
+      }
+
+      /*
+       * C2 — two response levels on one route.
+       *
+       * An NPI is public; a clinician's COMPILED readiness is not. Anonymous
+       * callers previously received credential-derived bands, blockers and
+       * gap detail for ANY NPI, which is enumeration of private state keyed
+       * by a public identifier.
+       *
+       * Full credential-aware output now requires BOTH a verified Clerk
+       * session AND an NpiOwnership binding for the requested NPI. Everyone
+       * else receives the public-safe projection, which is built up from
+       * public facts rather than filtered down from the private object.
+       */
+      let authorized = false;
+      let verifiedUserId: string | null = null;
+      try {
+        verifiedUserId = requireVerifiedClerkUserId(req);
+        await requireNpiAuthorization(verifiedUserId, npi, req);
+        authorized = true;
+      } catch {
+        authorized = false;
       }
 
       const { specialty, state, hiringType } = req.query;
@@ -643,17 +670,24 @@ export function registerMatchaRoutes(app: Express): void {
         hiringType: hiringType as string | undefined,
       };
 
-      // The web proxy forwards the signed-in clinician's stated preferences
-      // (from the durable, Clerk-scoped preference store) as a CandidateIntent
-      // JSON header, so ranking reflects preference + credentials rather than
-      // credentials alone. Malformed or NPI-mismatched headers are ignored —
-      // the feed degrades to credential-only, never errors.
-      const intent = parseIntentHeader(req.headers['x-matcha-intent'], npi);
+      // Stated preferences only ever shape a caller's OWN feed — an
+      // unauthorized caller's intent header is ignored outright, so it cannot
+      // be used to probe another clinician's ranking.
+      const intent = authorized
+        ? parseIntentHeader(req.headers['x-matcha-intent'], npi)
+        : null;
 
       const result = await getLiveMatchesForNpi(npi, filters, intent);
 
+      if (!authorized) {
+        log('info', 'matcha: public_safe_projection', { hasSession: Boolean(verifiedUserId) });
+        res.json(toPublicSafeMatches(npi, result as { matches?: unknown[] }));
+        return;
+      }
+
       res.json({
         ...result,
+        visibility: 'authenticated',
         generatedAt: new Date().toISOString(),
       });
     } catch (error) {
@@ -674,11 +708,33 @@ export function registerMatchaRoutes(app: Express): void {
    * reports how many roles would become cleared to apply. No estimates — every
    * number is the engine's own recomputed output.
    */
-  app.get('/api/matcha/simulate/:npi', async (req: Request, res: Response) => {
+  app.get('/api/matcha/simulate/:npi', publicApiRateLimit, async (req: Request, res: Response) => {
     try {
       const { npi } = req.params;
       if (!npi || !NPI_RE.test(npi)) {
         res.status(400).json({ error: 'Invalid NPI — expected 10 digits' });
+        return;
+      }
+
+      // Simulation enumerates which credentials currently BLOCK this
+      // clinician — private state by definition. No public-safe projection
+      // exists for it, so it is authenticated-and-bound or nothing.
+      //
+      // The refusal is caught HERE rather than by the handler's outer catch.
+      // That catch reports every failure as 500, which turned a deliberate
+      // 401/403 into "the server broke" — a denial a client cannot act on,
+      // and one that reads as an outage in the logs. The web proxy's own 401
+      // hid this from the outside, so only a route-level test could see it.
+      try {
+        const simUserId = requireVerifiedClerkUserId(req);
+        await requireNpiAuthorization(simUserId, npi, req);
+      } catch (authError) {
+        const status = authError instanceof HttpError ? authError.status : 401;
+        res.status(status).json({
+          error: authError instanceof HttpError
+            ? authError.message
+            : 'Verified Clerk session required.',
+        });
         return;
       }
 
@@ -699,10 +755,25 @@ export function registerMatchaRoutes(app: Express): void {
    * Body: { npi, opportunityId }
    * Returns MatchExplanation for a specific opportunity using live scoring.
    */
-  app.post('/api/matcha/explain', async (req: Request, res: Response) => {
+  app.post('/api/matcha/explain', publicApiRateLimit, async (req: Request, res: Response) => {
     const { npi, opportunityId, intent } = req.body ?? {};
     if (!npi || !opportunityId) {
       res.status(400).json({ error: 'npi and opportunityId required' });
+      return;
+    }
+
+    // A MatchExplanation carries per-clinician blockers and credential
+    // coverage — private state. Authenticated and NPI-bound only.
+    try {
+      const explainUserId = requireVerifiedClerkUserId(req);
+      await requireNpiAuthorization(explainUserId, npi, req);
+    } catch (authError) {
+      const status = authError instanceof HttpError ? authError.status : 401;
+      res.status(status).json({
+        error: status === 403
+          ? 'This NPI is not linked to your account.'
+          : 'Sign in to see match explanations for your own NPI.',
+      });
       return;
     }
 
