@@ -28,7 +28,7 @@ body:has(.z1-page) header.sticky.top-0.z-50 a{font-size:17px}
 
 body:has(.z1-page) header.sticky.top-0.z-50 > div,
 body:has(.z1-page) header.sticky.top-0.z-50{
-  background:color-mix(in oklab, #F0EEE9 62%, transparent);
+  background:color-mix(in oklab, var(--vt-cloud-dancer) 62%, transparent);
   -webkit-backdrop-filter:blur(14px) saturate(1.5);
   backdrop-filter:blur(14px) saturate(1.5);
 }
@@ -42,7 +42,7 @@ body:has(.z1-page) header.sticky.top-0.z-50::after{
   /* quiet: the visitor notices the navigation, not the animation technique */
   opacity:.4;
 }
-@keyframes z1-nav-current{from{background-position:0% 0}to{background-position:220% 0}}
+/* z1-nav-current keyframes live in styles/motion.css (LINT-03's one permitted home). */
 @media (prefers-reduced-motion:reduce){
   body:has(.z1-page) header.sticky.top-0.z-50::after{animation:none;background-size:100% 100%}
 }
@@ -84,6 +84,11 @@ body:has(.z1-page) header.sticky.top-0.z-50::after{
   color:var(--ink-muted);max-width:34ch;line-height:1.45;
   margin:clamp(16px,2.2vh,24px) 0 0;
 }
+
+/* the employer side entry: present, distinct, never competing with the NPI */
+.z1-employer-entry{grid-area:note;align-self:end;font-size:15px;color:var(--ink-subtle);margin:8px 0 0}
+.z1-employer-entry a{color:var(--ink-muted);text-decoration:underline;text-underline-offset:3px}
+.z1-employer-entry a:hover{color:var(--ink-strong)}
 
 /* ---- the activation instrument ------------------------------------------
    One broad bar: input + action joined, ~64px tall. The primary product
@@ -236,7 +241,7 @@ body:has(.z1-page) header.sticky.top-0.z-50::after{
 /* the travel action is a real button-weight object; indigo = travel */
 .z1-apply{
   flex:none;display:inline-block;
-  background:var(--accent);color:#fff;
+  background:var(--accent);color:var(--raised);
   border-radius:10px;padding:14px 20px;
   font-size:clamp(15px,1.25vw,17px);font-weight:600;white-space:nowrap;
 }
@@ -417,9 +422,8 @@ body:has(.z1-page) header.sticky.top-0.z-50::after{
 
 /* rows travel, arrive, or stay — restrained spatial behaviour, once, on
    reveal. Travelling rows step toward the employer; arriving rows settle in,
-   staggered; held rows do not move, which is the point. */
-@keyframes z1-travel{from{transform:translateX(-10px)}to{transform:none}}
-@keyframes z1-arrive{from{opacity:.25;transform:translateX(10px)}to{opacity:1;transform:none}}
+   staggered; held rows do not move, which is the point. Keyframes
+   (z1-travel / z1-arrive) live in styles/motion.css. */
 .z1-handoff[data-seen] .z1-handoff-clinician .evr-row[data-travel="travels"]{animation:z1-travel .55s ease both}
 .z1-handoff[data-seen] .z1-handoff-employer .evr-row{animation:z1-arrive .5s ease both}
 .z1-handoff[data-seen] .z1-handoff-employer .evr-row:nth-child(2){animation-delay:.1s}
@@ -537,11 +541,7 @@ body:has(.z1-page) header.sticky.top-0.z-50::after{
 }
 .z1-story:hover::after,
 .z1-story:focus-within::after{animation-play-state:paused}
-@keyframes z1-spine-travel{
-  0%{top:2%;opacity:0}6%{opacity:1}
-  30%{top:34%}55%{top:62%}82%{top:90%;opacity:1}
-  92%,100%{top:94%;opacity:0}
-}
+/* z1-spine-travel keyframes live in styles/motion.css. */
 
 /* MATCHA's tie flows FROM the profile INTO the match — but only when the
    connection ACTIVATES (reveal, or a new selection); it then settles into a
@@ -552,10 +552,9 @@ body:has(.z1-page) header.sticky.top-0.z-50::after{
   background-size:26px 100%;
   animation:z1-tie-flow 1.6s linear 2;
 }
-@keyframes z1-tie-flow{from{background-position:0 0}to{background-position:26px 0}}
 
-/* sliding panes: content keyed by state slides in from the right */
-@keyframes z1-slide-in{from{opacity:0;transform:translateX(12px)}to{opacity:1;transform:none}}
+/* sliding panes: content keyed by state slides in from the right.
+   z1-tie-flow and z1-slide-in keyframes live in styles/motion.css. */
 .z1-pane-slide{animation:z1-slide-in .22s ease both}
 
 /* the loop-closure mark is static; the RETURN is an interaction (the ghost
@@ -584,7 +583,7 @@ body:has(.z1-page) header.sticky.top-0.z-50::after{
 .z1-flowline[data-seen] .z1-flowline-lane:nth-child(4){animation-delay:.36s}
 .z1-flowline[data-seen] .z1-flowline-lane:nth-child(5){animation-delay:.48s}
 .z1-flowline[data-seen] .z1-flowline-lane:nth-child(6){animation-delay:.6s}
-@keyframes z1-lane-fill{to{background:var(--ink-strong);border-color:var(--ink-strong)}}
+/* z1-lane-fill keyframes live in styles/motion.css. */
 
 /* interactive weight on every control: lift on hover, seat on press */
 .z1-apply,.z1-npi-submit,.z1-step,.z1-chip,.z1-opp--secondary{
@@ -624,6 +623,11 @@ body:has(.z1-page) header.sticky.top-0.z-50::after{
   .z1-pane-slide{animation:none}
   .z1-apply,.z1-npi-submit,.z1-step,.z1-chip,.z1-opp--secondary{transition:none}
 }
+
+.z1-truth-boundary{
+  font-size:14px;color:var(--ink-subtle);line-height:1.5;margin:6px 0 0;max-width:44ch;
+}
+.z1-npi-count{font-variant-numeric:tabular-nums}
 
 /* ---- reveal --------------------------------------------------------------
    One observer, one attribute. Motion is a small rise; reduced motion gets

@@ -5,15 +5,11 @@
       "label": "Homepage",
       "entryFile": "apps/web/app/page.tsx",
       "copySources": [
-        "apps/web/components/home/film/HorizontalCareerFilm.tsx",
-        "apps/web/components/home/film/ChapterRail.tsx",
-        "apps/web/components/home/film/illustrative.ts",
-        "apps/web/components/home/evidence/EvidenceCapsule.tsx",
-        "apps/web/components/home/evidence/evidenceCapsuleModel.ts",
-        "apps/web/components/home/LiveNpiResult.tsx",
-        "apps/web/components/home/TruthBoundary.tsx",
-        "apps/web/components/proof/ProofPacketInspector.tsx",
-        "apps/web/lib/trust/sourceLanes.ts"
+        "apps/web/components/evidence-record/Z1Home.tsx",
+        "apps/web/components/evidence-record/NpiActivation.tsx",
+        "apps/web/components/evidence-record/StoryChapters.tsx",
+        "apps/web/components/evidence-record/ProfileCard.tsx",
+        "apps/web/components/evidence-record/faces.mjs"
       ]
     },
     {

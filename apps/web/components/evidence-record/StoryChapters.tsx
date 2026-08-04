@@ -27,11 +27,85 @@
  * chapter is fully readable with no motion at all.
  */
 
-import { useEffect, useRef, useState } from 'react';
-import { Building2, CalendarCheck, ClipboardCheck, Inbox, SearchCheck } from 'lucide-react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 
 import { ProfileCard, PROFILE } from '@/components/evidence-record/ProfileCard';
 import { ROWS } from '@/components/evidence-record/faces.mjs';
+
+/* Decorative stage glyphs — pure inline SVG on the StoryIcon pattern
+ * (components/home/StoryIcon.tsx): currentColor line work, sized and
+ * stroke-weighted by the surface's CSS, always aria-hidden. The lucide set is
+ * closed behind LINT-02, and these are story furniture, not state
+ * iconography — TrustGlyph remains the only state iconography. */
+function glyph(paths: ReactNode) {
+  return function StageGlyph() {
+    return (
+      <svg
+        viewBox="0 0 24 24"
+        width={24}
+        height={24}
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+      >
+        {paths}
+      </svg>
+    );
+  };
+}
+
+/** An inbox tray — the packet received. */
+const InboxGlyph = glyph(
+  <>
+    <polyline points="22 12 16 12 14 15 10 15 8 12 2 12" />
+    <path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" />
+  </>
+);
+
+/** A magnifier over a check — review focused on what is already answered. */
+const SearchCheckGlyph = glyph(
+  <>
+    <path d="m8 11 2 2 4-4" />
+    <circle cx="11" cy="11" r="8" />
+    <path d="m21 21-4.3-4.3" />
+  </>
+);
+
+/** A clipboard with a check — accepted as a head start. */
+const ClipboardCheckGlyph = glyph(
+  <>
+    <rect width="8" height="4" x="8" y="2" rx="1" ry="1" />
+    <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+    <path d="m9 14 2 2 4-4" />
+  </>
+);
+
+/** A calendar with a check — the start date confirmed. */
+const CalendarCheckGlyph = glyph(
+  <>
+    <path d="M8 2v4" />
+    <path d="M16 2v4" />
+    <rect width="18" height="18" x="3" y="4" rx="2" />
+    <path d="M3 10h18" />
+    <path d="m9 16 2 2 4-4" />
+  </>
+);
+
+/** An employer building — the organisation behind the opportunity. */
+const BuildingGlyph = glyph(
+  <>
+    <path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z" />
+    <path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2" />
+    <path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2" />
+    <path d="M10 6h4" />
+    <path d="M10 10h4" />
+    <path d="M10 14h4" />
+    <path d="M10 18h4" />
+  </>
+);
 
 /**
  * Continuity rail — the VitalCV-owned chapter divider. The aperture-band
@@ -88,10 +162,10 @@ interface Props {
 }
 
 const START_STEPS = [
-  { id: 'received', label: 'Received', Icon: Inbox },
-  { id: 'review', label: 'Review focused', Icon: SearchCheck },
-  { id: 'headstart', label: 'Accepted as a head start', Icon: ClipboardCheck },
-  { id: 'confirmed', label: 'Start confirmed', Icon: CalendarCheck },
+  { id: 'received', label: 'Received', Icon: InboxGlyph },
+  { id: 'review', label: 'Review focused', Icon: SearchCheckGlyph },
+  { id: 'headstart', label: 'Accepted as a head start', Icon: ClipboardCheckGlyph },
+  { id: 'confirmed', label: 'Start confirmed', Icon: CalendarCheckGlyph },
 ] as const;
 
 export function StoryChapters({ decidingFace, returnedFace }: Props) {
@@ -155,7 +229,7 @@ export function StoryChapters({ decidingFace, returnedFace }: Props) {
           <article className="z1-node z1-opp z1-opp--dominant" data-on aria-label={`Matched opportunity: ${picked.role}`}>
             <div className="z1-opp-main z1-pane-slide" key={picked.id}>
               <p className="z1-opp-role">{picked.role}</p>
-              <p className="z1-opp-org"><Building2 aria-hidden="true" />{picked.org} · {picked.meta}</p>
+              <p className="z1-opp-org"><BuildingGlyph />{picked.org} · {picked.meta}</p>
               <ul className="z1-fit-list">
                 {picked.fits.map((f) => (
                   <li key={f} className="z1-fit"><span className="z1-fit-tie" aria-hidden="true" />{f}</li>
@@ -227,7 +301,7 @@ export function StoryChapters({ decidingFace, returnedFace }: Props) {
               explicit continuation edge rather than scrolling the page. */}
           <div className="z1-handoff-side z1-handoff-employer">
             <p className="z1-side-tag">The employer</p>
-            <div className="z1-packet-frame z1-packet-frame--deep">
+            <div className="z1-packet-frame z1-packet-frame--deep" data-home-source-cadence>
               <p className="z1-packet-head">
                 <span className="z1-avatar z1-avatar--mini" aria-hidden="true">{PROFILE.monogram}</span>
                 Employer view · {PROFILE.name} · permissioned
@@ -237,6 +311,13 @@ export function StoryChapters({ decidingFace, returnedFace }: Props) {
             </div>
             <p className="z1-handoff-caption z1-handoff-caption--outcome">
               <strong>Hired — and starting without rebuilding the record.</strong>
+            </p>
+            {/* The one non-negotiable boundary, retained through every
+                homepage rewrite: whatever the page shows, the hiring
+                institution still decides. */}
+            <p className="z1-truth-boundary" data-home-truth-boundary>
+              Every packet is a head start for institution review — the hiring
+              institution makes the decision.
             </p>
           </div>
         </div>
@@ -276,7 +357,7 @@ export function StoryChapters({ decidingFace, returnedFace }: Props) {
                 onClick={() => { setAutoPlay(false); setStep(i); }}
               >
                 <span className="z1-step-n">{String(i + 1).padStart(2, '0')}</span>
-                <st.Icon aria-hidden="true" />
+                <st.Icon />
                 {st.label}
               </button>
             ))}

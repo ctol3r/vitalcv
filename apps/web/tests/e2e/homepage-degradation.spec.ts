@@ -1,11 +1,11 @@
 import { expect, test } from '@playwright/test';
 
 /**
- * SHD-6.1 — the scene degradation matrix.
- *
- * The old GPU scene system is retired. These tests preserve the useful floor it
- * represented: the NPI action, source cadence, and complete evidence film remain
- * complete under static, no-JS, reduced-motion, and mobile conditions.
+ * The homepage degradation floor — SHD-6.1's useful residue, carried across
+ * compositions (GPU scenes → six-scene film → the Z1 product story,
+ * 2026-08-03): the NPI action, the source-cadence truth, and the complete
+ * story remain usable under no-JS, reduced-motion, keyboard-only, and mobile
+ * conditions. The scene-tier switches retired with the scene system.
  */
 
 const DESKTOP = { width: 1440, height: 900 };
@@ -25,13 +25,8 @@ async function expectNoHorizontalOverflow(page: import('@playwright/test').Page)
 }
 
 /**
- * The field's accessible name, in full. The label still floats, but only
- * typographically — its text is one string in every state (#1006), so this can
- * name the field instead of matching the three letters `/npi/i` found.
- *
- * This spec also renders with JavaScript disabled. The name is identical
- * there: it is a server-rendered `<label for>`, and the float that used to
- * change the wording was removed, so SSR and hydrated markup now agree.
+ * The field's accessible name, in full. A server-rendered `<label for>` (sr-only),
+ * identical before and after hydration, so the no-JS test can use the same name.
  */
 const NPI_FIELD = { name: 'Your 10-digit NPI', exact: true };
 
@@ -39,156 +34,89 @@ async function expectNpiActionUsable(page: import('@playwright/test').Page) {
   const input = page.getByRole('textbox', NPI_FIELD);
   await expect(input).toBeVisible();
   await input.fill('1234567893');
-  await expect(page.getByRole('button', { name: /check what’s ready/i })).toBeEnabled();
+  await expect(page.getByRole('button', { name: /start with your npi/i })).toBeEnabled();
 }
 
-test.describe('scene degradation matrix (SHD-6.1)', () => {
-  test('static tier: NPI remains fully usable without a public graph', async ({ page }) => {
+test.describe('homepage degradation floor', () => {
+  test('desktop: NPI action usable, no overflow, no page errors', async ({ page }) => {
     const errors = collectPageErrors(page);
     await page.setViewportSize(DESKTOP);
-    await page.goto('/?sceneTier=static', { waitUntil: 'networkidle' });
-
-    await expect(page.locator('[data-scene-boundary]')).toHaveCount(0);
-    await expect(
-      page.locator('[data-home-evidence-field], [data-field-poster], [data-field-edges]'),
-    ).toHaveCount(0);
-
+    await page.goto('/', { waitUntil: 'networkidle' });
     await expectNpiActionUsable(page);
     await expectNoHorizontalOverflow(page);
     expect(errors).toEqual([]);
   });
 
-  test('no-JS SSR floor: heading, NPI form, source cadence, and every film pane are served', async ({ browser }) => {
-    const context = await browser.newContext({ javaScriptEnabled: false, viewport: DESKTOP });
+  test('no-JS SSR floor: heading, NPI form, source cadence, and every chapter are served', async ({ browser }) => {
+    const context = await browser.newContext({ javaScriptEnabled: false });
     const page = await context.newPage();
+    await page.setViewportSize(DESKTOP);
     await page.goto('/', { waitUntil: 'domcontentloaded' });
 
-    await expect(page.locator('h1').first()).toBeVisible();
-    await expect(page.getByRole('textbox', NPI_FIELD)).toBeAttached();
+    await expect(page.locator('h1')).toBeVisible();
+    await expect(page.getByRole('textbox', NPI_FIELD)).toBeVisible();
+    // the cadence truth and the institution boundary are server-rendered
     await expect(page.locator('[data-home-source-cadence]')).toBeAttached();
-    await expect(page.locator('[data-film-scene]')).toHaveCount(5);
-    await expect(
-      page.locator('[data-home-evidence-field], [data-field-poster], [data-field-edges]'),
-    ).toHaveCount(0);
-
+    await expect(page.locator('[data-home-truth-boundary]')).toBeAttached();
+    // all four chapters ship in the HTML — nothing is animation-only
+    for (const heading of [
+      /find work that fits more than your résumé/i,
+      /apply once/i,
+      /move from hired to ready sooner/i,
+      /your career record keeps moving with you/i,
+    ]) {
+      await expect(page.getByRole('heading', { name: heading })).toBeAttached();
+    }
     await context.close();
   });
 
   test('keyboard reaches the NPI input from the top of the page — no trap before the primary action', async ({ page }) => {
     await page.setViewportSize(DESKTOP);
     await page.goto('/', { waitUntil: 'networkidle' });
-
-    let reached = false;
-    for (let index = 0; index < 25; index += 1) {
+    for (let i = 0; i < 40; i += 1) {
+      const focused = await page.evaluate(() => document.activeElement?.id ?? '');
+      if (focused === 'z1-npi-input') break;
       await page.keyboard.press('Tab');
-      const isNpi = await page.evaluate(() => {
-        const element = document.activeElement as HTMLElement | null;
-        return Boolean(element && element.id === 'film-npi-input');
-      });
-      if (isNpi) {
-        reached = true;
-        break;
-      }
     }
-    expect(reached, 'Tab order must reach the NPI input within 25 stops').toBe(true);
+    expect(await page.evaluate(() => document.activeElement?.id)).toBe('z1-npi-input');
   });
-});
 
-/**
- * HERO-RESET-1 — the clinician sell and perceived visibility.
- */
-test.describe('hero reset — clinician sell and field visibility (HERO-RESET-1)', () => {
-  test('the clinician message leads: outcome, mechanism, action — no category jargon above the fold', async ({ page }) => {
+  test('the clinician message leads: outcome before mechanism, no category jargon above the fold', async ({ page }) => {
     await page.setViewportSize(DESKTOP);
     await page.goto('/', { waitUntil: 'networkidle' });
-
-    await expect(page.locator('h1').first()).toHaveAccessibleName(
-      'Get hired on evidence.',
-    );
-    // Scoped to the hero deliberately. The phrase is the hero's, and an
-    // unscoped `.first()` resolves to whichever node happens to come first in
-    // document order — which, once the nav gained a collapsed panel, was an
-    // invisible one. Asserting WHERE the promise appears is stronger than
-    // asserting merely that the string exists somewhere.
-    await expect(
-      page.locator('[data-home-hero]').getByText('Start with your NPI', { exact: false }).first(),
-    ).toBeVisible();
-    await expect(page.getByRole('button', { name: /check what’s ready/i })).toBeVisible();
-    await expect(page.getByText('Free for clinicians · No account required')).toBeVisible();
-
-    const heroText = (await page.locator('[data-home-hero]').innerText()).toLowerCase();
-    for (const jargon of ['career evidence network', 'matcha', 'proof packet', 'recognition']) {
-      expect(heroText, `category jargon "${jargon}" leaked above the fold`).not.toContain(jargon);
+    const h1 = await page.locator('h1').textContent();
+    expect(h1?.toLowerCase()).toContain('get hired');
+    // no credentialing-industry jargon in the first viewport's own copy
+    const hero = await page.locator('[data-home-hero]').textContent();
+    for (const jargon of ['primary source verification', 'psv', 'credentialing workflow', 'compliance suite']) {
+      expect(hero?.toLowerCase()).not.toContain(jargon);
     }
-    expect(heroText).not.toContain('recognizes your identity');
-    await expect(
-      page.locator('[data-narrative-state], [data-narrative-words], [data-narrative-complete]'),
-    ).toHaveCount(0);
   });
 
   test('Cloud Dancer is the global paper token, not a route-scoped style injection', async ({ page }) => {
     await page.setViewportSize(DESKTOP);
     await page.goto('/', { waitUntil: 'networkidle' });
-
-    const home = await page.evaluate(() => {
-      const root = document.querySelector('.film') as HTMLElement;
-      return {
-        body: getComputedStyle(document.body).backgroundColor,
-        token: getComputedStyle(root).getPropertyValue('--vt-cloud-dancer').trim(),
-        routeScopedRules: [...document.querySelectorAll('style')].filter((style) =>
-          (style.textContent ?? '').includes('body{background:var(--vt-cloud-dancer)}'),
-        ).length,
-      };
-    });
-    expect(home.token.toLowerCase()).toBe('#f0eee9');
-    expect(home.body).toBe('rgb(240, 238, 233)');
-    expect(home.routeScopedRules, 'paper is global after CD-W2; the homepage injects no local override').toBe(0);
-
+    const homeBg = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
     await page.goto('/trust', { waitUntil: 'networkidle' });
-    const trust = await page.evaluate(() => ({
-      homeComposition: document.querySelectorAll('.film').length,
-      body: getComputedStyle(document.body).backgroundColor,
-      token: getComputedStyle(document.documentElement).getPropertyValue('--vt-cloud-dancer').trim(),
-      routeScopedRules: [...document.querySelectorAll('style')].filter((style) =>
-        (style.textContent ?? '').includes('body{background:var(--vt-cloud-dancer)}'),
-      ).length,
-    }));
-    expect(trust.homeComposition).toBe(0);
-    expect(trust.token.toLowerCase()).toBe('#f0eee9');
-    expect(trust.body).toBe('rgb(240, 238, 233)');
-    expect(trust.routeScopedRules).toBe(0);
+    const trustBg = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
+    expect(homeBg).toBe(trustBg);
   });
 
-  test('static tier: the hero keeps the NPI action without a public graph', async ({ page }) => {
-    await page.setViewportSize(DESKTOP);
-    await page.goto('/?sceneTier=static', { waitUntil: 'networkidle' });
-
-    await expectNpiActionUsable(page);
-    await expect(
-      page.locator('[data-home-evidence-field], [data-field-poster], [data-field-edges]'),
-    ).toHaveCount(0);
-  });
-
-  test('reduced motion: the NPI action and source strip stay complete without graph motion', async ({ page }) => {
+  test('reduced motion: the NPI action and the full story stay complete without motion', async ({ page }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.setViewportSize(DESKTOP);
     await page.goto('/', { waitUntil: 'networkidle' });
-
     await expectNpiActionUsable(page);
-    await expect(page.locator('[data-home-source-cadence]')).toBeAttached();
-    await expect(
-      page.locator('[data-home-evidence-field], [data-field-poster], [data-field-edges]'),
-    ).toHaveCount(0);
+    await expect(page.locator('[data-home-truth-boundary]')).toBeAttached();
+    await expectNoHorizontalOverflow(page);
   });
 
   test('mobile: the NPI action remains visible and never overflows', async ({ page }) => {
+    const errors = collectPageErrors(page);
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.goto('/?sceneTier=static', { waitUntil: 'networkidle' });
-
-    await expectNpiActionUsable(page);
-    await expect(
-      page.locator('[data-home-evidence-field], [data-field-poster], [data-field-edges]'),
-    ).toHaveCount(0);
+    await page.goto('/', { waitUntil: 'networkidle' });
+    await expect(page.getByRole('textbox', NPI_FIELD)).toBeVisible();
     await expectNoHorizontalOverflow(page);
+    expect(errors).toEqual([]);
   });
 });

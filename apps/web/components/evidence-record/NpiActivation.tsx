@@ -29,6 +29,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 
+import { FUNNEL_EVENTS, trackFunnelEvent } from '@/lib/analytics/funnel';
 import { ProfileCard, PROFILE } from '@/components/evidence-record/ProfileCard';
 
 export type ActivationState =
@@ -70,11 +71,26 @@ const MESSAGES: Partial<Record<ActivationState, { title: string; body: string }>
 export function NpiActivation({ sealedFace }: Props) {
   const [state, setState] = useState<ActivationState>('empty');
   const [raw, setRaw] = useState('');
+  const [hydrated, setHydrated] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
   const reduced = useRef(false);
 
   useEffect(() => {
     reduced.current = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    // ADOPT what was typed before hydration. The input is controlled, so
+    // React would otherwise blank a value the visitor already entered — the
+    // same real-user bug the film homepage had to fix (a fast typist, or a
+    // test, loses their digits when the bundle lands).
+    const typed = inputRef.current?.value ?? '';
+    if (typed) {
+      setRaw((current) => (current ? current : typed));
+      setState((current) => (current === 'empty' ? 'focused' : current));
+    }
+    setHydrated(true);
+    // The funnel's denominator rides the homepage hero, whatever the hero is
+    // (NUM-1.6). No NPI value — hashed or otherwise — ever enters analytics.
+    trackFunnelEvent(FUNNEL_EVENTS.HOMEPAGE_VIEWED);
     return () => { if (timer.current) clearTimeout(timer.current); };
   }, []);
 
@@ -101,11 +117,12 @@ export function NpiActivation({ sealedFace }: Props) {
     : '··········';
 
   return (
-    <div className="z1-activation" data-state={state}>
+    <div className="z1-activation" data-state={state} data-hydrated={hydrated ? '' : undefined}>
       <form className="z1-npi" onSubmit={(e) => { e.preventDefault(); submit(); }}>
         <div className="z1-npi-bar">
           <label className="sr-only" htmlFor="z1-npi-input">Your 10-digit NPI</label>
           <input
+            ref={inputRef}
             id="z1-npi-input"
             className="z1-npi-input"
             inputMode="numeric"
@@ -119,7 +136,7 @@ export function NpiActivation({ sealedFace }: Props) {
             }}
             aria-describedby={message ? 'z1-npi-message' : undefined}
           />
-          <button className="z1-npi-submit" type="submit" disabled={busy}>
+          <button className="z1-npi-submit" data-home-primary-cta type="submit" disabled={busy}>
             {busy ? 'Checking…' : 'Start with your NPI'}
           </button>
         </div>
@@ -128,7 +145,7 @@ export function NpiActivation({ sealedFace }: Props) {
             <strong>{message.title}</strong> {message.body}
           </p>
         ) : (
-          <p className="z1-npi-hint">Free for clinicians · No account required</p>
+          <p className="z1-npi-hint"><span className="z1-npi-count">{digits.length}/10 digits</span> · Free for clinicians · No account required</p>
         )}
       </form>
 
