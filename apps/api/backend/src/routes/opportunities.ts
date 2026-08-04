@@ -7,7 +7,6 @@
  *   POST   /api/opportunities           — post a new opportunity
  *   GET    /api/opportunities           — list public active opportunities
  *   GET    /api/employer/opportunities  — list my org's opportunities
- *   GET    /api/candidates              — list verified clinicians (for verifiers)
  */
 
 import type { Express, NextFunction, Request, Response } from 'express';
@@ -17,7 +16,6 @@ import {
   createOpportunity,
   getPublicOpportunityById,
   getOrgProfile,
-  listCandidates,
   listOpportunitiesForOrg,
   listPublicOpportunities,
   updateOpportunity,
@@ -352,31 +350,23 @@ export function registerOpportunityRoutes(app: Express): void {
 
   /* ── Candidates ── */
 
-  /**
-   * DISABLED — fail closed.
+  /*
+   * `/api/candidates` is REMOVED, not merely guarded.
    *
-   * This handler served clinician records to any caller. It performed no
-   * identity check at all: every sibling route in this file calls
-   * `requireClerkUserId(req)` first, and this one did not, so the API origin
-   * answered anonymous requests directly. The Next.js proxy in front of it
-   * does require a session, which is why the gap was invisible from the app —
-   * the proxy was the only thing enforcing anything, and it can be bypassed by
-   * addressing the API host.
+   * The handler served clinician records to any caller: it performed no
+   * identity check, while every sibling route in this file calls
+   * `requireClerkUserId` first. The Next.js proxy in front of it did require a
+   * session, which is why the gap was invisible from inside the app — the
+   * proxy was the only enforcement, and it is bypassable by addressing the API
+   * host directly.
    *
-   * It is disabled rather than merely guarded because `requireClerkUserId`
-   * only asserts that an unsigned `x-clerk-user-id` header is PRESENT. Adding
-   * it here would have turned an anonymous read into a forged-header read,
-   * which is not containment.
+   * It is deleted rather than rebuilt behind authorization because its only
+   * consumer was an archived page. Re-adding an authorized candidate listing
+   * would restore attack surface that no shipping surface asks for. A future
+   * candidate-list API needs its own security and product review.
    *
-   * Nothing live depends on this route: its only consumer is an archived page.
-   * It stays disabled until the permanent fix lands — verified bearer identity,
-   * authorized organization membership, an explicitly permitted role,
-   * tenant-scoped queries, and a minimum-necessary response that carries no
-   * internal identifiers.
+   * `candidates-route-removed.test.ts` asserts this route stays absent.
    */
-  app.all('/api/candidates', (_req, res) => {
-    res.status(401).json({ error: 'unauthorized' });
-  });
 
   /* ── Admin: Seed launch opportunities ── */
   app.post(

@@ -230,5 +230,62 @@
   to {
     background: var(--ink-strong);
     border-color: var(--ink-strong);
+/* ── Operations Engine (W1400) ──────────────────────────────────────────────
+ *
+ * The `.w14` console is a scoped island: it ships its own chrome in a <style>
+ * block inside OpsEngineClient. LINT-03 permits keyframe DEFINITIONS in this
+ * file only, so the four the console needs live here while their .w14-scoped
+ * consumers stay in the component.
+ *
+ * NOTE: this file is imported per-page, not from globals.css — /ops/engine
+ * imports it explicitly. Moving a keyframe here without that import satisfies
+ * the linter and silently kills the animation.
+ */
+
+/* A live indicator drawing attention without motion: opacity only, so it costs
+ * no layout and cannot shift the row it sits in. */
+@keyframes w14blink {
+  0%,
+  100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* The softer sibling of w14blink, for "work in progress" rather than "live". */
+@keyframes w14pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+/* A row entering the worklist. Gated behind prefers-reduced-motion at the call
+ * site, since it does translate. */
+@keyframes w14rise {
+  from {
+    transform: translateY(8px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+/* A detail pane arriving from the right. */
+@keyframes w14slide {
+  from {
+    transform: translateX(24px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
   }
 }
