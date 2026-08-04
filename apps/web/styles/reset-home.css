@@ -22,6 +22,14 @@
   --indigo:#3A30C4;
   --indigo-deep:#221C7A;
   --paper-on-ink:#F4F2ED;
+  --hairline:#DDD7C9;
+  --stone:#C9C2B4;
+  --stone-deep:#B8B0A0;
+  --stone-dim:#9C9484;
+  --stone-dash:#C4BCAB;
+  --stone-lane:#D6CFC0;
+  --placeholder:#8C8578;
+  --pure-white:#FFFFFF;
 
   --serif:var(--font-fraunces-loaded,'Fraunces'),ui-serif,Georgia,serif;
   --sans:var(--font-geist-loaded,'Geist'),system-ui,sans-serif;
@@ -40,11 +48,12 @@
    type and rounded indigo pill belong to the previous visual language and sit
    badly above a poster-scale headline, so on this page it becomes flat ivory,
    larger type, and square ink actions in the reset's own grammar. */
+body:has(.rst){--rst-ivory:#F4F2ED;--rst-ink:#12100D;--rst-hairline:#DDD7C9;--rst-stone:#C9C2B4}
 body:has(.rst) header.sticky.top-0.z-50,
 body:has(.rst) header.sticky.top-0.z-50 > div{
-  background:#F4F2ED !important;
+  background:var(--rst-ivory) !important;
   backdrop-filter:none !important;-webkit-backdrop-filter:none !important;
-  border-bottom:1px solid #DDD7C9;box-shadow:none !important;
+  border-bottom:1px solid var(--rst-hairline);box-shadow:none !important;
 }
 body:has(.rst) header.sticky.top-0.z-50::after{display:none !important}
 body:has(.rst) header.sticky.top-0.z-50 nav button,
@@ -55,9 +64,9 @@ body:has(.rst) header.sticky.top-0.z-50 a[href="/passport"]{
   border-radius:0 !important;font-size:16px;
 }
 body:has(.rst) header.sticky.top-0.z-50 a[href="/passport"]{
-  background:#12100D !important;color:#F4F2ED !important;border-color:#12100D !important;
+  background:var(--rst-ink) !important;color:var(--rst-ivory) !important;border-color:var(--rst-ink) !important;
 }
-body:has(.rst) header.sticky.top-0.z-50 a[href="/sign-in"]{border-color:#C9C2B4 !important}
+body:has(.rst) header.sticky.top-0.z-50 a[href="/sign-in"]{border-color:var(--rst-stone) !important}
 /* the wordmark carries the page's serif, not the old sans lockup */
 body:has(.rst) header.sticky.top-0.z-50 a[href="/"]{
   font-family:var(--font-fraunces-loaded,'Fraunces'),ui-serif,Georgia,serif;
@@ -149,7 +158,7 @@ body:has(.rst) [data-feedback-button]{display:none !important}
   letter-spacing:.12em;color:var(--ink);
   font-variant-numeric:tabular-nums;
 }
-.rst-bar input::placeholder{color:#8C8578;letter-spacing:.06em}
+.rst-bar input::placeholder{color:var(--placeholder);letter-spacing:.06em}
 .rst-bar button{
   flex:none;border:0;cursor:pointer;
   background:var(--ink);color:var(--ivory);
@@ -181,7 +190,7 @@ body:has(.rst) [data-feedback-button]{display:none !important}
 }
 .rst-track::after{                       /* the rail, running off both edges */
   content:'';position:absolute;left:0;right:0;bottom:22px;height:2px;
-  background:linear-gradient(90deg,var(--ink) 0%,var(--ink) var(--rst-progress,16%),#C9C2B4 var(--rst-progress,16%),#C9C2B4 100%);
+  background:linear-gradient(90deg,var(--ink) 0%,var(--ink) var(--rst-progress,16%),var(--stone) var(--rst-progress,16%),var(--stone) 100%);
   transition:background .5s ease;
 }
 .rst-step{
@@ -195,7 +204,7 @@ body:has(.rst) [data-feedback-button]{display:none !important}
 .rst-step::after{                        /* the node on the rail */
   content:'';position:absolute;bottom:16px;left:50%;
   width:13px;height:13px;margin-left:-6.5px;border-radius:50%;
-  background:var(--ivory);border:2px solid #B8B0A0;
+  background:var(--ivory);border:2px solid var(--stone-deep);
   transition:background .35s ease,border-color .35s ease,transform .35s ease;
 }
 .rst-step[data-on]::after{background:var(--ink);border-color:var(--ink)}
@@ -226,13 +235,13 @@ body:has(.rst) [data-feedback-button]{display:none !important}
   min-height:clamp(104px,13vh,150px);
   padding:16px 14px;
   gap:9px;
-  box-shadow:0 0 0 3px var(--ivory), 0 0 0 6px var(--ink);
+  outline:3px solid var(--ink);outline-offset:3px;
 }
 /* the monogram inside a passed plate flips to ink-on-ivory */
 .rst-step[data-on]:not([data-active]) .rst-plate .rst-mono{background:var(--ink);color:var(--ivory)}
 .rst-plate--ghost{
-  background:transparent;color:#9C9484;
-  border:2px dashed #C4BCAB;
+  background:transparent;color:var(--stone-dim);
+  border:2px dashed var(--stone-dash);
 }
 .rst-mono-lg{
   font-family:var(--mono);font-size:clamp(13px,1.15vw,17px);
@@ -253,7 +262,7 @@ body:has(.rst) [data-feedback-button]{display:none !important}
 .rst-room--ink .rst-mono,.rst-room--indigo .rst-mono{background:var(--ivory);color:var(--ink)}
 .rst-mono--xl{width:clamp(96px,10vw,150px);height:clamp(96px,10vw,150px);font-size:clamp(34px,3.4vw,52px)}
 .rst-mono--sm{width:38px;height:38px;font-size:14px}
-.rst-mono--ghost{background:transparent;border:2px dashed #B8B0A0;color:transparent}
+.rst-mono--ghost{background:transparent;border:2px dashed var(--stone-deep);color:transparent}
 
 /* the truth line — present, never in the primary hierarchy */
 .rst-fine{
@@ -281,9 +290,9 @@ body:has(.rst) [data-feedback-button]{display:none !important}
 .rst-role{font-size:clamp(17px,1.5vw,23px);opacity:.66}
 /* the six lanes, wide and quiet — the only evidence detail in this room */
 .rst-lanes{display:flex;gap:7px;margin-top:6px}
-.rst-lane{width:clamp(38px,4vw,64px);height:9px;background:rgba(244,242,237,.22)}
+.rst-lane{width:clamp(38px,4vw,64px);height:9px;background:color-mix(in srgb, var(--ivory) 22%, transparent)}
 .rst-lane[data-f]{background:var(--ivory)}
-.rst-room--ivory .rst-lane{background:#D6CFC0}
+.rst-room--ivory .rst-lane{background:var(--stone-lane)}
 .rst-room--ivory .rst-lane[data-f]{background:var(--ink)}
 
 /* ==========================================================================
@@ -309,7 +318,7 @@ body:has(.rst) [data-feedback-button]{display:none !important}
 .rst-why li::before{content:'';width:26px;height:2px;background:var(--ink);flex:none;transform:translateY(-5px)}
 .rst-act{
   display:inline-block;margin-top:clamp(22px,3vh,36px);
-  background:var(--indigo);color:#fff;
+  background:var(--indigo);color:var(--pure-white);
   padding:clamp(15px,1.8vh,20px) clamp(26px,2.6vw,40px);
   font-size:clamp(16px,1.4vw,21px);font-weight:600;
   border:0;cursor:pointer;
@@ -330,7 +339,7 @@ body:has(.rst) [data-feedback-button]{display:none !important}
 .rst-who{font-family:var(--mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;opacity:.6}
 .rst-carry{
   display:flex;align-items:center;gap:16px;
-  background:rgba(244,242,237,.1);
+  background:color-mix(in srgb, var(--ivory) 10%, transparent);
   padding:clamp(14px,1.8vh,20px) clamp(16px,1.8vw,26px);
 }
 .rst-side--to .rst-carry{flex-direction:row-reverse}
@@ -355,7 +364,7 @@ body:has(.rst) [data-feedback-button]{display:none !important}
   -webkit-mask-image:linear-gradient(180deg,#000 68%,transparent 100%);
   mask-image:linear-gradient(180deg,#000 68%,transparent 100%);
 }
-.rst-side--to .rst-carry{position:relative;z-index:2}
+.rst-side--to .rst-carry{position:relative}
 
 /* ==========================================================================
    CHAPTER 4 · CONTINUE — ivory room. The outcome, big; the profile returns.
@@ -372,14 +381,12 @@ body:has(.rst) [data-feedback-button]{display:none !important}
 }
 .rst-keep-line{font-size:clamp(17px,1.5vw,23px);max-width:30ch;opacity:.72}
 
-/* ---- motion: only the identity moves ------------------------------------ */
-@keyframes rst-plate-in{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
-.rst-anim{animation:rst-plate-in .4s ease both}
+/* ---- motion: only the identity moves. Transitions only — keyframe
+   animations live in the house motion file, and this page needs none. ---- */
 [data-rst-reveal]{opacity:0;transform:translateY(20px);transition:opacity .6s ease,transform .6s ease}
 [data-rst-reveal][data-seen]{opacity:1;transform:none}
 @media (prefers-reduced-motion:reduce){
   [data-rst-reveal]{opacity:1;transform:none;transition:none}
-  .rst-anim{animation:none}
   .rst-track::after{transition:none}
   .rst-step{transition:none}
 }
@@ -399,7 +406,7 @@ body:has(.rst) [data-feedback-button]{display:none !important}
   }
   .rst-track::after{
     left:26px;right:auto;top:8px;bottom:8px;width:2px;height:auto;
-    background:linear-gradient(180deg,var(--ink) 0%,var(--ink) var(--rst-progress,16%),#C9C2B4 var(--rst-progress,16%),#C9C2B4 100%);
+    background:linear-gradient(180deg,var(--ink) 0%,var(--ink) var(--rst-progress,16%),var(--stone) var(--rst-progress,16%),var(--stone) 100%);
   }
   .rst-step{
     flex-direction:row;align-items:center;gap:20px;
@@ -408,7 +415,7 @@ body:has(.rst) [data-feedback-button]{display:none !important}
   .rst-step::after{left:26px;bottom:auto;top:50%;margin:-6.5px 0 0 -6.5px}
   .rst-step-name{text-align:left;font-size:16px}
   .rst-plate{width:100%;min-height:0;flex-direction:row;justify-content:flex-start;gap:12px;padding:12px 14px}
-  .rst-step[data-active] .rst-plate{background:var(--ink);color:var(--ivory);min-height:0;padding:16px 16px;box-shadow:none;border-left:4px solid var(--ink)}
+  .rst-step[data-active] .rst-plate{background:var(--ink);color:var(--ivory);min-height:0;padding:16px 16px;outline:none;border-left:4px solid var(--ink)}
   .rst-track{width:100%;margin-left:0;padding:0}
   .rst-h{font-size:clamp(36px,9.5vw,50px)}
   .rst-room{padding:clamp(52px,7vh,72px) 22px}

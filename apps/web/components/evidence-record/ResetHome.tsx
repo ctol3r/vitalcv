@@ -137,7 +137,7 @@ export function ResetHome({ sealedFace }: Props) {
             const active = i === Math.max(0, reached - 1);
             return (
               <div className="rst-step" key={name} data-on={on ? '' : undefined} data-active={active ? '' : undefined}>
-                <div className={`rst-plate${on ? '' : ' rst-plate--ghost'}${on && live ? ' rst-anim' : ''}`}>
+                <div className={`rst-plate${on ? '' : ' rst-plate--ghost'}`}>
                   {i === 0 && (
                     <span className="rst-mono-lg">
                       {digits.length ? `${digits.slice(0, 2)}${'•'.repeat(digits.length - 2)}` : '··········'}
