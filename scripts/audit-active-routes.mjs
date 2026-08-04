@@ -25,7 +25,8 @@ const WORKFLOW_PREFIXES = [
   '/activation', '/activity', '/admin', '/analytics-foundation', '/autopilot',
   '/career-intelligence', '/career-map', '/demo', '/design', '/dev', '/dossier',
   '/ecosystem', '/employer', '/file', '/inbox', '/investigate', '/issuer',
-  '/mobile', '/network', '/ops', '/professional-growth', '/recruiter', '/roi',
+  '/mobile', '/network', '/operations-engine', '/ops', '/professional-growth',
+  '/recruiter', '/roi',
   '/search', '/status/technical',
 ];
 

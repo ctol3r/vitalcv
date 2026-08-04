@@ -50,7 +50,11 @@ describe('page density system', () => {
     // 151 = 150 + the restored public opportunities board at /explore. The route
     // was already public in roles.ts and monitored by launch-ops, but its page
     // had been archived — so /explore 404'd while four surfaces linked to it.
-    expect(inventory).toHaveLength(151);
+    // 153 = 151 + the two Operations Engine surfaces: the static shell at
+    // /operations-engine and the live, org-scoped worklist at /ops/engine.
+    // The W1400 data layer (lib/operations/*) landed in #464; the UI on top of
+    // it never reached main until now.
+    expect(inventory).toHaveLength(153);
     expect(inventory.every((item) => !item.source.includes('/_archive/'))).toBe(true);
     expect(inventory.every((item) => !item.route.startsWith('/api/'))).toBe(true);
     expect(new Set(inventory.map((item) => item.density))).toEqual(
