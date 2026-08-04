@@ -24,6 +24,11 @@ export const PUBLIC_SURFACE_PATHS = new Set([
   '/terms',
   '/contact',
   '/trust',
+  // The wave-1072 product-loop preview. It must be judged WITH the real
+  // global Navbar, so this one route is exempt from the /design self-chrome
+  // rule (the /dev/compete-film scoping pattern). The /design layout gate
+  // still 404s it in canonical production.
+  '/design/reset',
 ]);
 
 export function isPublicSafe(route: string): boolean {
@@ -38,6 +43,21 @@ export function isPublicSafe(route: string): boolean {
 
 // Ops-only paths: these get the AppShell (ops chrome), not Navbar+Footer.
 // Keep in sync with VCV_UI_DOCTRINE.md §1 Surface Classification.
+/**
+ * Routes exempt from an OPS_SURFACE_PREFIXES match — ONE route gets the
+ * public chrome without widening the rule.
+ */
+export const OPS_SURFACE_EXEMPTIONS = new Set<string>(['/design/reset']);
+
+/** The single chrome decision: ops shell, or public Navbar+Footer. */
+export function isOpsSurfacePath(pathname: string | null): boolean {
+  if (!pathname) return false;
+  if (OPS_SURFACE_EXEMPTIONS.has(pathname)) return false;
+  return OPS_SURFACE_PREFIXES.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+  );
+}
+
 export const OPS_SURFACE_PREFIXES = [
   '/intelligence',
   '/graph',

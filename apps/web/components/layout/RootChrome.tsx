@@ -12,15 +12,11 @@ import { PilotSignInTracker } from '@/components/pilot-ops/PilotSignInTracker';
 import PrequalifyBar from '@/components/prequalify/PrequalifyBar';
 import { WorkspaceSwitcher } from '@/components/workspace/WorkspaceSwitcher';
 import VCommandBar from '@/components/ops/VCommandBar';
-import { OPS_SURFACE_PREFIXES } from '@/components/layout/publicSurfaceRoutes';
+import { isOpsSurfacePath } from '@/components/layout/publicSurfaceRoutes';
 
-// Single source of truth lives in publicSurfaceRoutes.ts — do not maintain a local copy here.
-function isOperationalRoute(pathname: string | null): boolean {
-  if (!pathname) return false;
-  return OPS_SURFACE_PREFIXES.some(
-    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
-  );
-}
+// Single source of truth lives in publicSurfaceRoutes.ts — isOpsSurfacePath
+// also owns the per-route exemptions (/design/reset gets public chrome).
+const isOperationalRoute = isOpsSurfacePath;
 
 interface RootChromeProps {
   children: ReactNode;

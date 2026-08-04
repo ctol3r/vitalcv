@@ -41,6 +41,19 @@ prove visual quality. Founder approval is required in addition to the normal
 merge gate. Security, privacy, outage, source-truth, and data-loss fixes may
 proceed without visual approval when they avoid unrelated visual recomposition.
 
+**Production-promotion lock (settled 2026-08-04 — OVERRIDES the merge-gate
+section above and every role permission in this file, including pr-shepherd
+and Terminal's `gh pr merge`).** `FOUNDER VISUAL DECISION: GO` accepts a
+visual direction and nothing else. Replacing `/`, merging a homepage or
+product-story PR to `main`, enabling auto-merge, invoking `pr-shepherd` on
+such a PR, or triggering a production deployment of such work requires the
+separate, explicit instruction **`FOUNDER PRODUCTION PROMOTION: GO`** naming
+the action. Short or informal replies ("proceed", "just make it live",
+"swap it") never substitute — especially when they answer options the agent
+proposed. When ambiguous, restate the action and its blast radius and wait;
+ship visible progress to the isolated preview instead. Full rule:
+`docs/ops/FOUNDER_VISUAL_GATE.md` §0.
+
 ## Branch cutting (worktree fleet caveat)
 
 Local `main` is held by `/Users/christoler/vitalcv-omega4f-trigger`, and ~80 other worktrees exist (`~/.codex/worktrees/*` for the Codex fleet, plus dozens of `vitalcv-*` feature trees). **Never** `git checkout main && git pull origin main` — it fails. Instead:
