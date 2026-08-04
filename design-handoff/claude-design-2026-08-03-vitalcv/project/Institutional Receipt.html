@@ -1,0 +1,491 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>VitalCV · Signed Receipt · evidentiary document</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink-0:#fff; --ink-50:#f7f7f5; --ink-100:#eeede9; --ink-200:#dcdbd5;
+  --ink-300:#c0bfb8; --ink-400:#9a998f; --ink-500:#6e6d66; --ink-600:#4d4c47;
+  --ink-700:#33322e; --ink-800:#1f1e1c; --ink-900:#121110; --ink-950:#000;
+  --rule:#dcdbd5; --paper:#f4f1ea;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{font-family:"Geist",ui-sans-serif,system-ui,sans-serif;font-feature-settings:"ss01","cv11";-webkit-font-smoothing:antialiased;background:var(--ink-50);color:var(--ink-900);font-size:13px;line-height:1.45}
+.mono,code{font-family:"Geist Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums}
+
+/* runtime band */
+.t-runtime{background:var(--ink-950);color:var(--ink-300);font-family:"Geist Mono",monospace;font-size:9.5px;letter-spacing:0.18em;text-transform:uppercase}
+.t-runtime .in{max-width:1400px;margin:0 auto;min-height:30px;padding:6px 28px;display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap}
+.t-runtime .grp{display:flex;align-items:center;gap:10px}
+.t-runtime .k{color:var(--ink-500)}
+.t-runtime .v{color:#fff;font-weight:500;letter-spacing:0.04em}
+.t-runtime .sep{color:var(--ink-700)}
+
+/* document control */
+.t-doc{background:var(--ink-0);border-top:2px solid var(--ink-950);border-bottom:1px solid var(--ink-900)}
+.t-doc .in{max-width:1400px;margin:0 auto;padding:16px 28px;display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr 1fr 1.1fr;gap:20px;align-items:end}
+.t-doc .cell{border-left:1px solid var(--rule);padding-left:16px}
+.t-doc .cell:first-child{border-left:0;padding-left:0}
+.t-doc .k{font-family:"Geist Mono",monospace;font-size:9.5px;letter-spacing:0.18em;text-transform:uppercase;color:var(--ink-500);margin-bottom:4px;font-weight:500}
+.t-doc .v{font-family:"Geist Mono",monospace;font-size:11.5px;color:var(--ink-900);font-weight:500;letter-spacing:0.04em;line-height:1.25}
+.t-doc .v .sub{display:block;font-family:"Geist",sans-serif;font-size:10.5px;color:var(--ink-500);margin-top:3px;font-weight:400;letter-spacing:0;text-transform:none}
+.t-doc .form .g{display:flex;align-items:center;gap:8px}
+.t-doc .form .glyph{width:24px;height:24px;background:var(--ink-950);color:#fff;display:grid;place-items:center;font-family:"Geist Mono",monospace;font-size:11px;font-weight:600}
+.t-doc .form .nm{font-family:"Geist Mono",monospace;font-size:11.5px;letter-spacing:0.16em;text-transform:uppercase;color:var(--ink-950);font-weight:600}
+.t-doc .form .title{font-family:"Geist Mono",monospace;font-size:9.5px;letter-spacing:0.14em;color:var(--ink-500);text-transform:uppercase;margin-top:6px}
+
+/* state stamp */
+.stamp{display:inline-flex;flex-direction:column;gap:2px;padding:8px 11px;border:1.5px solid var(--ink-950);font-family:"Geist Mono",monospace;min-width:110px}
+.stamp .lb{font-size:8.5px;letter-spacing:0.22em;text-transform:uppercase;color:var(--ink-500)}
+.stamp .v{font-size:13px;letter-spacing:0.18em;text-transform:uppercase;color:var(--ink-950);font-weight:600}
+.stamp[data-state="signed"]{background:var(--ink-950);border-color:var(--ink-950)}
+.stamp[data-state="signed"] .lb{color:var(--ink-400)}
+.stamp[data-state="signed"] .v{color:#fff}
+
+/* masthead */
+.mast{background:var(--ink-0);border-top:2px solid var(--ink-950);border-bottom:1px solid var(--ink-900);padding:24px 28px;max-width:1400px;margin:0 auto}
+.mast .l1{font-family:"Geist Mono",monospace;font-size:9.5px;letter-spacing:0.18em;text-transform:uppercase;color:var(--ink-500);font-weight:500}
+.mast h1{font-size:22px;margin:6px 0;font-weight:600;letter-spacing:-0.02em;color:var(--ink-900)}
+.mast .l2{font-family:"Geist Mono",monospace;font-size:10.5px;color:var(--ink-600);letter-spacing:0.02em}
+.mast .l2 strong{color:var(--ink-900);font-weight:500}
+
+.wrap{max-width:1400px;margin:0 auto;padding:20px 28px 32px}
+.sh{display:flex;align-items:baseline;gap:12px;border-bottom:1px solid var(--ink-900);padding-bottom:8px;margin:28px 0 14px}
+.sh .n{font-family:"Geist Mono",monospace;font-size:10.5px;letter-spacing:0.18em;text-transform:uppercase;color:var(--ink-300);font-weight:600}
+.sh h2{font-size:15px;margin:0;font-weight:600;letter-spacing:-0.015em;color:var(--ink-900)}
+.sh .ey{font-family:"Geist Mono",monospace;font-size:10.5px;letter-spacing:0.18em;text-transform:uppercase;color:var(--ink-500);margin-left:auto}
+
+/* ====================================================================== */
+/* THE RECEIPT — primary deliverable                                        */
+/* ====================================================================== */
+.receipt{border:1.5px solid var(--ink-950);background:var(--ink-0);position:relative}
+.receipt::before{content:"";position:absolute;inset:6px;border:1px solid var(--ink-900);pointer-events:none}
+
+/* receipt masthead — verdict + receipt id + state stamp */
+.r-head{position:relative;z-index:1;display:grid;grid-template-columns:auto 1fr auto;gap:0;align-items:stretch;border-bottom:1.5px solid var(--ink-950)}
+.r-head .lh{background:var(--ink-950);color:#fff;padding:18px 22px;display:flex;flex-direction:column;justify-content:center;min-width:240px}
+.r-head .lh .vd{display:flex;align-items:center;gap:10px;font-family:"Geist Mono",monospace;font-size:18px;letter-spacing:0.10em;text-transform:uppercase;font-weight:600}
+.r-head .lh .vd .d{width:12px;height:12px;background:#fff}
+.r-head .lh .sub{font-family:"Geist Mono",monospace;font-size:10px;letter-spacing:0.16em;text-transform:uppercase;color:var(--ink-400);margin-top:6px}
+.r-head .mid{padding:18px 22px;background:var(--ink-0);display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:center}
+.r-head .mid .k{font-family:"Geist Mono",monospace;font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:var(--ink-500);margin-bottom:4px}
+.r-head .mid .v{font-family:"Geist Mono",monospace;font-size:15px;color:var(--ink-900);font-weight:500;letter-spacing:0.04em;line-height:1.2}
+.r-head .mid .v .sub{display:block;font-family:"Geist",sans-serif;font-size:11px;color:var(--ink-500);margin-top:4px;font-weight:400;letter-spacing:0;text-transform:none}
+.r-head .rh{padding:18px 22px;border-left:1px solid var(--rule);display:flex;align-items:center;justify-content:center}
+
+/* lineage rail — 6 cells with numbered ticks */
+.r-lineage{position:relative;z-index:1;border-bottom:1px solid var(--ink-900)}
+.r-lineage .cap{background:var(--ink-900);color:#fff;padding:8px 16px;font-family:"Geist Mono",monospace;font-size:9.5px;letter-spacing:0.18em;text-transform:uppercase;display:flex;justify-content:space-between;align-items:center}
+.r-lineage .cap .ord{color:var(--ink-400)}
+.r-lineage .cap .ord b{color:#fff}
+.r-lineage .row{display:grid;grid-template-columns:1.4fr 0.85fr 1fr 1fr 0.85fr 0.95fr}
+.r-lineage .c{padding:12px 16px 6px;border-right:1px solid var(--rule);display:flex;flex-direction:column}
+.r-lineage .c:last-child{border-right:0}
+.r-lineage .k{font-family:"Geist Mono",monospace;font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:var(--ink-500);margin-bottom:4px}
+.r-lineage .v{font-family:"Geist Mono",monospace;font-size:11.5px;color:var(--ink-900);font-weight:500;letter-spacing:0.04em;line-height:1.25}
+.r-lineage .v .sub{display:block;font-family:"Geist",sans-serif;font-size:10.5px;color:var(--ink-500);margin-top:3px;font-weight:400;letter-spacing:0;text-transform:none}
+.r-lineage .ticks{display:grid;grid-template-columns:1.4fr 0.85fr 1fr 1fr 0.85fr 0.95fr;border-top:1px solid var(--rule);background:var(--ink-50)}
+.r-lineage .ticks .tk{padding:6px 16px 7px;border-right:1px solid var(--rule);display:flex;align-items:center;gap:8px;font-family:"Geist Mono",monospace}
+.r-lineage .ticks .tk:last-child{border-right:0}
+.r-lineage .ticks .ix{font-size:9px;letter-spacing:0.12em;color:#fff;background:var(--ink-950);padding:1px 5px;font-weight:600}
+.r-lineage .ticks .nm{font-size:9.5px;letter-spacing:0.18em;text-transform:uppercase;color:var(--ink-600)}
+.r-lineage .ticks .ar{color:var(--ink-300);font-size:11px;margin-left:auto}
+
+/* atomic chips */
+.own{font-family:"Geist Mono",monospace;font-size:10px;text-transform:uppercase;letter-spacing:0.10em;display:inline-flex;align-items:center;gap:5px;padding:3px 7px;font-weight:500}
+.own[data-s="subject"]{background:var(--ink-900);color:#fff}
+.own[data-s="subject"] .d{width:5px;height:5px;background:#fff;border-radius:50%}
+.chip{display:inline-flex;align-items:center;gap:5px;padding:3px 7px;border:1px solid var(--ink-900);font-family:"Geist Mono",monospace;font-size:10px;text-transform:uppercase;letter-spacing:0.10em;color:var(--ink-900);font-weight:500}
+.chip .d{width:5px;height:5px;background:var(--ink-900);border-radius:50%}
+
+/* cryptographic block — issuer, key, alg, hash, status */
+.crypto{position:relative;z-index:1;display:grid;grid-template-columns:1.3fr 1fr 1fr 1fr;border-bottom:1px solid var(--ink-900)}
+.crypto .col{padding:16px 18px;border-right:1px solid var(--rule)}
+.crypto .col:last-child{border-right:0}
+.crypto .k{font-family:"Geist Mono",monospace;font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:var(--ink-500);margin-bottom:5px;font-weight:500}
+.crypto .v{font-family:"Geist Mono",monospace;font-size:12px;color:var(--ink-900);font-weight:500;letter-spacing:0.04em;line-height:1.3}
+.crypto .v .sub{display:block;font-family:"Geist",sans-serif;font-size:11px;color:var(--ink-600);margin-top:4px;font-weight:400;letter-spacing:0;text-transform:none}
+.crypto .v .alg{display:inline-block;margin-top:6px;padding:2px 6px;background:var(--ink-900);color:#fff;font-size:9.5px;letter-spacing:0.10em;text-transform:uppercase;font-weight:600}
+.crypto .v .ok{display:inline-flex;align-items:center;gap:5px;margin-top:6px;font-size:10px;letter-spacing:0.10em;text-transform:uppercase;color:var(--ink-900);font-weight:600}
+.crypto .v .ok .d{width:7px;height:7px;background:var(--ink-900)}
+
+/* sealed attestation — the claim itself */
+.seal{position:relative;z-index:1;padding:22px 24px;border-bottom:1px solid var(--ink-900);background:var(--ink-0)}
+.seal .ey{font-family:"Geist Mono",monospace;font-size:9.5px;letter-spacing:0.18em;text-transform:uppercase;color:var(--ink-500);margin-bottom:8px}
+.seal .claim{font-size:18px;line-height:1.35;color:var(--ink-900);font-weight:500;letter-spacing:-0.005em;max-width:980px}
+.seal .claim strong{font-weight:600}
+.seal .meta{display:flex;gap:16px;flex-wrap:wrap;margin-top:14px;font-family:"Geist Mono",monospace;font-size:11px;letter-spacing:0.04em}
+.seal .meta .kv{display:flex;flex-direction:column;gap:2px;padding-right:16px;border-right:1px solid var(--rule)}
+.seal .meta .kv:last-child{border-right:0;padding-right:0}
+.seal .meta .kv .k{font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:var(--ink-500)}
+.seal .meta .kv .v{font-size:11.5px;color:var(--ink-900);font-weight:500}
+
+/* chain-of-custody */
+.cust{position:relative;z-index:1;background:var(--ink-950);color:#fff;border-bottom:1px solid var(--ink-950)}
+.cust .cap{padding:8px 16px;font-family:"Geist Mono",monospace;font-size:9.5px;letter-spacing:0.18em;text-transform:uppercase;color:var(--ink-400);display:grid;grid-template-columns:1fr auto auto;gap:16px;align-items:center;border-bottom:1px solid rgba(255,255,255,0.1)}
+.cust .cap strong{color:#fff;font-weight:500}
+.cust .cap .meta{color:var(--ink-300)}
+.cust .body{padding:16px 16px 12px;display:grid;grid-auto-flow:column;grid-auto-columns:1fr;position:relative}
+.cust .body::before{content:"";position:absolute;left:16px;right:16px;top:32px;border-top:1px solid rgba(255,255,255,0.15)}
+.cust .ev{padding:0 12px;border-right:1px solid rgba(255,255,255,0.10);position:relative}
+.cust .ev:last-child{border-right:0}
+.cust .ev .ix{display:inline-flex;align-items:center;gap:6px;font-family:"Geist Mono",monospace;font-size:9.5px;letter-spacing:0.18em;text-transform:uppercase;color:var(--ink-400)}
+.cust .ev .dot{width:11px;height:11px;background:var(--ink-950);border:1.5px solid #fff;border-radius:50%;position:relative;z-index:1}
+.cust .ev[data-head="true"] .dot{background:#fff}
+.cust .ev .tok{display:inline-block;margin-top:12px;font-family:"Geist Mono",monospace;font-size:11.5px;color:#fff;font-weight:500;padding:4px 7px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.18)}
+.cust .ev[data-head="true"] .tok{background:#fff;color:var(--ink-950);border-color:#fff}
+.cust .ev .when{display:block;font-family:"Geist Mono",monospace;font-size:10.5px;color:var(--ink-300);margin-top:6px}
+.cust .ev .who{display:block;font-family:"Geist Mono",monospace;font-size:9.5px;letter-spacing:0.18em;text-transform:uppercase;color:var(--ink-400);margin-top:3px}
+.cust .ev .sig{display:inline-block;margin-top:6px;font-family:"Geist Mono",monospace;font-size:9.5px;letter-spacing:0.10em;text-transform:uppercase;padding:1px 5px;background:#fff;color:var(--ink-950);font-weight:600}
+.cust .ft{padding:8px 16px;font-family:"Geist Mono",monospace;font-size:10px;color:var(--ink-400);display:flex;justify-content:space-between;gap:14px;border-top:1px solid rgba(255,255,255,0.1)}
+.cust .ft strong{color:#fff;font-weight:500}
+
+/* verify foot — CTA + offline instructions */
+.r-foot{position:relative;z-index:1;display:grid;grid-template-columns:1fr auto;align-items:stretch}
+.r-foot .inst{padding:18px 22px}
+.r-foot .inst .k{font-family:"Geist Mono",monospace;font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:var(--ink-500);margin-bottom:6px;font-weight:500}
+.r-foot .inst .url{font-family:"Geist Mono",monospace;font-size:14px;color:var(--ink-900);font-weight:500;letter-spacing:0.04em}
+.r-foot .inst .help{font-size:11.5px;color:var(--ink-600);margin-top:6px;max-width:600px}
+.r-foot .cta{padding:18px 22px;border-left:1px solid var(--rule);display:flex;align-items:center;gap:10px}
+.r-foot .cta .btn{font-family:"Geist Mono",monospace;font-size:10.5px;letter-spacing:0.14em;text-transform:uppercase;padding:9px 14px;border:1px solid var(--ink-900);color:var(--ink-900);font-weight:500;background:transparent;text-decoration:none}
+.r-foot .cta .btn.f{background:var(--ink-900);color:#fff}
+
+/* perforation / tear effect — institutional permanence */
+.perf{position:relative;z-index:1;height:6px;background:repeating-linear-gradient(90deg,var(--ink-300) 0 4px,transparent 4px 8px);border-top:1px solid var(--rule);border-bottom:1px solid var(--rule)}
+
+/* analysis blocks */
+.note{border:1px solid var(--rule);background:var(--ink-0);padding:16px 20px;display:grid;gap:8px;font-size:12.5px;line-height:1.55;color:var(--ink-700)}
+.note .h{font-family:"Geist Mono",monospace;font-size:9.5px;letter-spacing:0.18em;text-transform:uppercase;color:var(--ink-900);font-weight:600}
+.note ul{margin:0;padding-left:1.1em}
+.note li{margin-bottom:4px}
+.note code{font-size:11px;background:var(--ink-50);padding:1px 5px;border:1px solid var(--rule)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media (max-width:1100px){.two{grid-template-columns:1fr}}
+
+/* scan-flow map */
+.scan{border:1px solid var(--ink-900);background:var(--ink-0);display:grid;grid-template-columns:repeat(6,1fr);font-family:"Geist Mono",monospace}
+.scan .s{padding:14px 14px;border-right:1px solid var(--rule);position:relative}
+.scan .s:last-child{border-right:0}
+.scan .s .t{font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:var(--ink-400)}
+.scan .s .nm{font-size:13px;color:var(--ink-950);font-weight:600;letter-spacing:0.04em;margin-top:4px;text-transform:uppercase}
+.scan .s .ex{display:block;font-family:"Geist",sans-serif;font-size:11px;color:var(--ink-500);margin-top:4px;letter-spacing:0;text-transform:none}
+.scan .s::after{content:"→";position:absolute;right:-7px;top:50%;transform:translateY(-50%);color:var(--ink-300);font-size:14px;background:var(--ink-0);padding:0 2px;z-index:1}
+.scan .s:last-child::after{content:""}
+
+/* legibility score */
+.score{margin:0 auto;background:var(--ink-0);border:1px solid var(--ink-900);display:grid;grid-template-columns:220px 1fr 240px}
+.score .head{background:var(--ink-950);color:#fff;padding:16px 20px}
+.score .head .lb{font-family:"Geist Mono",monospace;font-size:9.5px;letter-spacing:0.18em;text-transform:uppercase;color:var(--ink-400)}
+.score .head .val{font-family:"Geist Mono",monospace;font-size:38px;font-weight:600;margin-top:4px;line-height:1}
+.score .head .val .of{font-size:18px;color:var(--ink-400);font-weight:500}
+.score .head .sub{font-size:10.5px;color:var(--ink-300);margin-top:6px;font-family:"Geist Mono",monospace}
+.score .body{padding:14px 16px;display:grid;grid-template-columns:repeat(4,1fr);gap:0;border-right:1px solid var(--rule)}
+.score .body .ax{border-right:1px solid var(--rule);padding:0 14px}
+.score .body .ax:last-child{border-right:0}
+.score .body .ax .k{font-family:"Geist Mono",monospace;font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:var(--ink-500);margin-bottom:6px}
+.score .body .ax .v{font-family:"Geist Mono",monospace;font-size:20px;font-weight:600;color:var(--ink-900);line-height:1}
+.score .body .ax .v .of{font-size:11px;color:var(--ink-400)}
+.score .body .ax .nm{font-size:11px;color:var(--ink-700);margin-top:8px;line-height:1.35}
+.score .verdict{padding:14px 18px;background:var(--ink-50)}
+.score .verdict .k{font-family:"Geist Mono",monospace;font-size:9.5px;letter-spacing:0.18em;text-transform:uppercase;color:var(--ink-500)}
+.score .verdict .v{font-family:"Geist Mono",monospace;font-size:13px;letter-spacing:0.12em;text-transform:uppercase;color:var(--ink-900);margin-top:4px;font-weight:600}
+.score .verdict .sub{font-size:11px;color:var(--ink-600);margin-top:8px;line-height:1.4}
+
+.foot{max-width:1400px;margin:32px auto 0;padding:16px 28px;border-top:2px solid var(--ink-950);border-bottom:1px solid var(--ink-900);background:var(--ink-0);font-family:"Geist Mono",monospace;font-size:10.5px;color:var(--ink-500);display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap}
+.foot strong{color:var(--ink-900);font-weight:500}
+</style>
+</head>
+<body>
+
+<!-- Runtime band -->
+<div class="t-runtime">
+  <div class="in">
+    <div class="grp">
+      <span class="k">Runtime</span><span class="v">vc.2026.05.12-a</span>
+      <span class="sep">|</span><span class="k">Origin</span><span class="v">verify.vitalcv.health</span>
+      <span class="sep">|</span><span class="k">Issuer</span><span class="v">did:web:vitalcv.health</span>
+    </div>
+    <div class="grp">
+      <span class="k">Standards</span><span class="v">W3C VC 2.0</span>
+      <span class="sep">|</span><span class="v">OpenID4VCI</span>
+      <span class="sep">|</span><span class="v">StatusList2021</span>
+      <span class="sep">|</span><span class="v">RFC 3161</span>
+    </div>
+  </div>
+</div>
+
+<!-- Document control -->
+<div class="t-doc">
+  <div class="in">
+    <div class="cell form">
+      <div class="g"><span class="glyph">V</span><span class="nm">VitalCV · Receipt</span></div>
+      <div class="title">Signed receipt · evidentiary artifact</div>
+    </div>
+    <div class="cell"><div class="k">Form</div><div class="v">VCV-RCPT-001<span class="sub">controlled artifact</span></div></div>
+    <div class="cell"><div class="k">Classification</div><div class="v">PUBLIC · SIGNED<span class="sub">issuer-signed VC</span></div></div>
+    <div class="cell"><div class="k">Effective</div><div class="v">2026-05-12T14:31:58Z<span class="sub">12 s ago</span></div></div>
+    <div class="cell"><div class="k">Controlled by</div><div class="v">did:web:vitalcv.health<span class="sub">signer of record</span></div></div>
+    <div class="cell" style="border-left:0;">
+      <div class="stamp" data-state="signed"><span class="lb">trust state</span><span class="v">signed</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- Masthead -->
+<div class="mast">
+  <div class="l1">Lane C · final signed-receipt surface</div>
+  <h1>A verifier trusts the receipt before reading the explanation.</h1>
+  <div class="l2">Evidentiary register, not a notification card. <strong>Verdict + receipt ID + issuer</strong> are the first three reading anchors. <strong>Lineage + cryptographic block + chain of custody</strong> follow. Every claim is preceded by its provenance. Every identifier is monospace. The artifact reads as a controlled document — visible permanence, no marketing flourish.</div>
+</div>
+
+<div class="wrap">
+
+  <!-- ============================================================ -->
+  <!-- THE RECEIPT                                                   -->
+  <!-- ============================================================ -->
+  <div class="sh"><span class="n">01 ·</span><h2>Signed receipt</h2><span class="ey">re-verifiable offline against did:web:vitalcv.health</span></div>
+
+  <div class="receipt">
+
+    <!-- Verdict head + receipt id + state stamp -->
+    <header class="r-head">
+      <div class="lh">
+        <div class="vd"><span class="d"></span>Verifiable</div>
+        <div class="sub">σ ok · 4 of 4 signed · chain continuous</div>
+      </div>
+      <div class="mid">
+        <div>
+          <div class="k">Receipt ID</div>
+          <div class="v">7a2c b8d3 9d11 3e4a<span class="sub">BLAKE3-256 head · batch-anchored</span></div>
+        </div>
+        <div>
+          <div class="k">Subject</div>
+          <div class="v">NPI 1356428912<span class="sub">Mira Chen, MD · CA · Internal Medicine</span></div>
+        </div>
+      </div>
+      <div class="rh">
+        <div class="stamp" data-state="signed"><span class="lb">trust state</span><span class="v">signed</span></div>
+      </div>
+    </header>
+
+    <!-- 6-cell lineage with tick rail -->
+    <div class="r-lineage">
+      <header class="cap">
+        <span><strong>Lineage</strong> · subject-bound · re-verifiable offline</span>
+        <span class="ord">read <b>01</b> → <b>02</b> → <b>03</b> → <b>04</b> → <b>05</b> → <b>06</b></span>
+      </header>
+      <div class="row">
+        <div class="c"><div class="k">Object</div><div class="v">Receipt · 7a2c…b8d3<span class="sub">credentialing assertion bundle · 4 claims</span></div></div>
+        <div class="c"><div class="k">Ownership</div><div class="v" style="padding-top:2px;"><span class="own" data-s="subject"><span class="d"></span>Subject</span></div></div>
+        <div class="c"><div class="k">checked_at</div><div class="v">2026-05-12T14:31:58Z<span class="sub">12 s ago</span></div></div>
+        <div class="c"><div class="k">Channel</div><div class="v">verify.vitalcv.health<span class="sub">public verifier zone</span></div></div>
+        <div class="c"><div class="k">Replay</div><div class="v" style="padding-top:2px;"><span class="chip"><span class="d"></span>anchored</span></div></div>
+        <div class="c"><div class="k">run_id</div><div class="v">7a2c…b8d3<span class="sub">batch · TSA anchored</span></div></div>
+      </div>
+      <div class="ticks">
+        <div class="tk"><span class="ix">01</span><span class="nm">Object</span><span class="ar">→</span></div>
+        <div class="tk"><span class="ix">02</span><span class="nm">Ownership</span><span class="ar">→</span></div>
+        <div class="tk"><span class="ix">03</span><span class="nm">checked_at</span><span class="ar">→</span></div>
+        <div class="tk"><span class="ix">04</span><span class="nm">Channel</span><span class="ar">→</span></div>
+        <div class="tk"><span class="ix">05</span><span class="nm">Replay</span><span class="ar">→</span></div>
+        <div class="tk"><span class="ix">06</span><span class="nm">run_id</span></div>
+      </div>
+    </div>
+
+    <!-- Cryptographic block — 4 columns -->
+    <div class="crypto">
+      <div class="col">
+        <div class="k">Issuer · DID</div>
+        <div class="v">did:web:vitalcv.health<span class="sub">DID document · /.well-known/did.json · 200 OK · 14 s ago</span><span class="ok"><span class="d"></span>continuous</span></div>
+      </div>
+      <div class="col">
+        <div class="k">Signing key · kid</div>
+        <div class="v">6f0e 1d22<span class="sub">in service 41 d · HSM-resident · attested</span><span class="alg">Ed25519 · EdDSA</span></div>
+      </div>
+      <div class="col">
+        <div class="k">Receipt hash</div>
+        <div class="v">7a2c b8d3 9d11 3e4a<span class="sub">BLAKE3-256 · chain head</span><span class="ok"><span class="d"></span>σ ok</span></div>
+      </div>
+      <div class="col">
+        <div class="k">Status · revocation</div>
+        <div class="v">bit 0 = active<span class="sub">StatusList2021 · /credentials/status/1 · 200 OK</span><span class="ok"><span class="d"></span>not revoked</span></div>
+      </div>
+    </div>
+
+    <!-- Sealed attestation — the claim -->
+    <div class="seal">
+      <div class="ey">Attested claim · what the issuer signs</div>
+      <div class="claim">On <strong>2026-05-12T14:31:58Z</strong>, <strong>did:web:vitalcv.health</strong> attests that subject <strong>NPI 1356428912</strong> holds an <strong>active California medical license</strong> (#A123456), an <strong>active DEA registration</strong> (BC4567890, sched II–V), <strong>no records on the HHS-OIG exclusion list</strong>, and <strong>active hospital privileges at UCSF Medical Center</strong>. Sources were consulted directly. <strong>VitalCV is the signer of this attestation, not the authority over the underlying facts.</strong></div>
+      <div class="meta">
+        <div class="kv"><span class="k">Source · medical board</span><span class="v">California Medical Board</span></div>
+        <div class="kv"><span class="k">Source · DEA</span><span class="v">DEA · CSOS</span></div>
+        <div class="kv"><span class="k">Source · exclusions</span><span class="v">HHS-OIG · LEIE</span></div>
+        <div class="kv"><span class="k">Source · privileges</span><span class="v">UCSF Medical Center</span></div>
+      </div>
+    </div>
+
+    <!-- Chain of custody — inverted -->
+    <div class="cust">
+      <header class="cap">
+        <span><strong>Chain of custody</strong> · sequential · ledger height 4 · 0 gaps</span>
+        <span class="meta">head · 7a2c…b8d3</span>
+        <span class="meta">σ chain · ok</span>
+      </header>
+      <div class="body">
+        <div class="ev" data-head="true">
+          <div class="ix"><span class="dot"></span>#04 · head</div>
+          <span class="tok">7a2c…b8d3</span>
+          <span class="when">14:31:58Z</span>
+          <span class="who">σ kid 6f0e…1d22</span>
+          <span class="sig">σ ok</span>
+        </div>
+        <div class="ev">
+          <div class="ix"><span class="dot"></span>#03</div>
+          <span class="tok">9d11…3e4a</span>
+          <span class="when">13:02:14Z</span>
+          <span class="who">σ kid 6f0e…1d22</span>
+          <span class="sig">σ ok</span>
+        </div>
+        <div class="ev">
+          <div class="ix"><span class="dot"></span>#02</div>
+          <span class="tok">4b00…f1c2</span>
+          <span class="when">2026-05-11T22:48Z</span>
+          <span class="who">σ kid 6f0e…1d22</span>
+          <span class="sig">σ ok</span>
+        </div>
+        <div class="ev">
+          <div class="ix"><span class="dot"></span>#01 · origin</div>
+          <span class="tok">2a17…0e8b</span>
+          <span class="when">2026-05-09T09:11Z</span>
+          <span class="who">σ kid 6f0e…1d22</span>
+          <span class="sig">σ ok</span>
+        </div>
+      </div>
+      <div class="ft">
+        <span><strong>Anchor</strong> · TSA: did:web:tsa.vitalcv.health · RFC 3161 token attached</span>
+        <span><strong>Independent verifier</strong> · vitalcv-verify@offline</span>
+      </div>
+    </div>
+
+    <!-- Perforation -->
+    <div class="perf"></div>
+
+    <!-- Verify foot -->
+    <div class="r-foot">
+      <div class="inst">
+        <div class="k">Verify offline</div>
+        <div class="url">verify.vitalcv.health / r / 7a2cb8d3</div>
+        <div class="help">Receipt is re-verifiable without network. Fetch <code>did.json</code> + StatusList2021 once; re-derive σ over canonical bytes. CLI: <code>vitalcv-verify --receipt 7a2cb8d3 --offline</code></div>
+      </div>
+      <div class="cta">
+        <a class="btn f" href="#">Verify now</a>
+        <a class="btn" href="#">Download VC</a>
+        <a class="btn" href="#">Print</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- Scan-flow map                                                 -->
+  <!-- ============================================================ -->
+  <div class="sh"><span class="n">02 ·</span><h2>Verifier scan flow — 30 seconds</h2><span class="ey">six anchors · ordered top-to-bottom</span></div>
+
+  <div class="scan">
+    <div class="s"><div class="t">0–3 s</div><div class="nm">Verdict</div><span class="ex">"Verifiable · 4 of 4 signed" + state stamp</span></div>
+    <div class="s"><div class="t">3–8 s</div><div class="nm">Lineage</div><span class="ex">6-cell rail · numbered ticks teach reading order</span></div>
+    <div class="s"><div class="t">8–14 s</div><div class="nm">Cryptography</div><span class="ex">DID · kid · hash · status — all monospace, all signed</span></div>
+    <div class="s"><div class="t">14–20 s</div><div class="nm">Claim</div><span class="ex">Sealed attestation in prose · sources named separately</span></div>
+    <div class="s"><div class="t">20–27 s</div><div class="nm">Custody</div><span class="ex">4-link chain · σ ok at every node · TSA anchor</span></div>
+    <div class="s"><div class="t">27–30 s</div><div class="nm">Verify</div><span class="ex">Offline URL + CLI · re-derive without trusting this page</span></div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- Hierarchy + typography rationale                              -->
+  <!-- ============================================================ -->
+  <div class="sh"><span class="n">03 ·</span><h2>Hierarchy + typography rationale</h2><span class="ey">why this reads as evidence, not a card</span></div>
+
+  <div class="two">
+    <div class="note">
+      <div class="h">Hierarchy</div>
+      <ul>
+        <li><strong>Verdict before content.</strong> A verifier should not have to read the claim to know whether to trust the receipt. The verdict pill (<code>Verifiable</code>) and the state stamp (<code>SIGNED</code>) are the first and last reading anchors of the head row.</li>
+        <li><strong>Receipt ID is co-equal with subject.</strong> The institutional identity of the artifact is the hash, not the person. Both render in 15 px monospace; the subject's human name is the <em>sub-label</em>, not the title.</li>
+        <li><strong>Lineage before claim.</strong> Provenance precedes assertion. The 6-cell lineage rail is between verdict and content — a reviewer cannot reach the claim without crossing it.</li>
+        <li><strong>Cryptography before prose.</strong> DID / kid / hash / status occupy a full-width 4-column block above the attested claim. Cryptographic continuity is a precondition for reading, not a footnote.</li>
+        <li><strong>Sources separated from issuer.</strong> Each source is named in its own KV cell under the claim. The page never permits a reader to conflate "issuer" with "authority."</li>
+        <li><strong>Custody in inverted register.</strong> The chain of custody renders dark — visually reserved for the cryptographic plane. A reviewer learns once that "dark = signed" and applies the rule everywhere.</li>
+        <li><strong>Verify URL on the artifact.</strong> The receipt names its own re-derivation path. Trust is portable to a reviewer's own tooling.</li>
+      </ul>
+    </div>
+    <div class="note">
+      <div class="h">Typography</div>
+      <ul>
+        <li><strong>Every machine identifier is monospace, tabular-nums.</strong> Hashes, DIDs, key IDs, timestamps, NPIs, license numbers. The reader never has to disambiguate <code>0</code> from <code>O</code>.</li>
+        <li><strong>Geist Mono in four sizes only.</strong> 9.5 px (keys), 11.5 px (values), 13 px (verdict facts), 18 px (verdict / claim). No fifth identifier size.</li>
+        <li><strong>Geist Sans for prose only.</strong> The attested-claim sentence is sans because it is meant to be read, not pattern-matched. Everything around it is monospace because it is meant to be verified.</li>
+        <li><strong>Eyebrow tracking 0.18 em uppercase.</strong> Marks every "this is a label, not a value." Reviewer learns the eyebrow on first encounter; the rule applies on every surface.</li>
+        <li><strong>No accent colour.</strong> Single ink axis (paper → ink-50 → ink-900 → ink-950). Emphasis comes from weight (500 → 600), background (paper → ink), or border thickness (1 px → 2 px). Never from hue.</li>
+        <li><strong>No animation. No shadow. No gradient.</strong> The artifact is permanent. The page never apologises for being still.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- Verifier readability analysis                                 -->
+  <!-- ============================================================ -->
+  <div class="sh"><span class="n">04 ·</span><h2>Verifier readability — pre-explanation trust</h2><span class="ey">"trust before reading"</span></div>
+
+  <div class="note">
+    <div class="h">Success condition · "A verifier trusts the receipt before reading the explanation text."</div>
+    <ul>
+      <li><strong>First fixation</strong> · the verdict pill <code>Verifiable</code> on ink-950 with the σ-ok sub-line. Reads in &lt; 1 s. No prose required.</li>
+      <li><strong>Second fixation</strong> · the receipt hash on the same row. A reviewer who already trusts the issuer DID can verify the hash against their own ledger before reading anything else.</li>
+      <li><strong>Third fixation</strong> · the state stamp <code>SIGNED</code> (inverted). Three independent confirmations of the same fact: verdict, σ-ok, stamp. <strong>Trust is established in triplicate before the claim sentence renders.</strong></li>
+      <li><strong>Fourth fixation</strong> · the cryptographic block. Key fingerprint, DID document status, status-list status — all 200 OK, all monospace, all in one row. A reviewer sees that the signing apparatus is operationally continuous.</li>
+      <li><strong>The attested claim itself is the fifth thing on the page.</strong> By the time the reviewer reaches it, they have already decided whether to trust the artifact. The prose is confirmation, not foundation.</li>
+    </ul>
+    <p><strong>Verdict</strong>: success condition met. The receipt establishes its own trustworthiness through machine-verifiable anchors (verdict, hash, σ, stamp, cryptography) before any human-readable narrative is presented. Reviewers who choose to skip the prose lose nothing operationally — the artifact is still verifiable. Reviewers who read the prose find it consistent with what the anchors already asserted.</p>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- Trust-legibility score                                        -->
+  <!-- ============================================================ -->
+  <div class="sh"><span class="n">05 ·</span><h2>Trust-legibility score</h2><span class="ey">receipt artifact · institutional axes</span></div>
+
+  <div class="score">
+    <div class="head">
+      <div class="lb">Receipt legibility</div>
+      <div class="val">91<span class="of">/100</span></div>
+      <div class="sub">+5 over canon · evidentiary register applied</div>
+    </div>
+    <div class="body">
+      <div class="ax"><div class="k">Verdict-first</div><div class="v">20<span class="of">/20</span></div><div class="nm">Verifiable + σ ok + stamp visible &lt; 1 s</div></div>
+      <div class="ax"><div class="k">Provenance</div><div class="v">19<span class="of">/20</span></div><div class="nm">Lineage above claim; sources separated from issuer</div></div>
+      <div class="ax"><div class="k">Cryptography</div><div class="v">19<span class="of">/20</span></div><div class="nm">DID + kid + hash + status in one row</div></div>
+      <div class="ax"><div class="k">Re-verifiability</div><div class="v">18<span class="of">/20</span></div><div class="nm">CLI named · offline URL on artifact</div></div>
+    </div>
+    <div class="verdict">
+      <div class="k">Verdict</div>
+      <div class="v">Evidentiary document</div>
+      <div class="sub">The receipt does not ask to be trusted. It carries its own re-derivation path and survives skepticism. Open coherence debts: status-list freshness window not visualised at artifact level (−4); revocation history not yet linked (−5).</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Footer -->
+<div class="foot">
+  <span>VCV-RCPT-001 · rev 1 · effective 2026-05-12 · controlled by did:web:vitalcv.health</span>
+  <span>Signed-by · <strong>kid 6f0e…1d22</strong> · TSA anchor 7a2c…b8d3</span>
+  <span>verify · <strong>verify.vitalcv.health/r/7a2cb8d3</strong></span>
+  <span>page 1 of 1</span>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,530 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>VitalCV · Clinician Activation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --ink-0:#fff; --ink-50:#f8fafc; --ink-100:#f1f5f9; --ink-200:#e2e8f0;
+    --ink-300:#cbd5e1; --ink-400:#94a3b8; --ink-500:#64748b; --ink-600:#475569;
+    --ink-700:#334155; --ink-800:#1e293b; --ink-900:#0f172a; --ink-950:#020617;
+    --ok:#0f172a;          /* badges resolve to ink, not green/amber, per doctrine */
+    --ok-mark:#0f766e;     /* tiny mark accents only */
+    --pend-mark:#92400e;
+    --gate-mark:#3730a3;
+    --fail:#b91c1c;
+    --rule:#e2e8f0;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--ink-50);color:var(--ink-900);}
+  body{font-family:'Geist',ui-sans-serif,system-ui,sans-serif;font-feature-settings:'ss01','cv11';-webkit-font-smoothing:antialiased;font-size:14px;line-height:1.5;}
+  .mono,code,time{font-family:'Geist Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-feature-settings:'zero';}
+
+  /* Op bar — operator strip stays terse. No protocol acronyms. */
+  .op{background:var(--ink-950);color:var(--ink-300);font-family:'Geist Mono',monospace;font-size:11px;}
+  .op .in{max-width:1240px;margin:0 auto;padding:0 32px;height:30px;display:flex;align-items:center;justify-content:space-between;}
+  .op .pill{display:inline-flex;align-items:center;gap:6px;padding:2px 7px;border:1px solid var(--ink-700);text-transform:uppercase;letter-spacing:.12em;font-size:10px;color:var(--ink-300);}
+  .op .pill .d{width:6px;height:6px;background:#10b981;border-radius:50%;}
+  .op .sep{color:var(--ink-600);}
+
+  /* Demo Mode strip — quiet, monochrome */
+  .demo-strip{background:var(--ink-0);border-bottom:1px solid var(--rule);font-family:'Geist Mono',monospace;font-size:10.5px;color:var(--ink-600);}
+  .demo-strip .in{max-width:1240px;margin:0 auto;padding:7px 32px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;}
+  .demo-strip .lhs{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  .demo-strip .tag{display:inline-flex;align-items:center;gap:6px;padding:1px 7px;border:1px solid var(--ink-900);color:var(--ink-900);text-transform:uppercase;letter-spacing:.14em;font-size:9.5px;font-weight:600;}
+  .demo-strip .tag .d{width:5px;height:5px;background:var(--ink-900);display:inline-block;animation:demo-pulse 2.4s ease-in-out infinite;}
+  @keyframes demo-pulse{0%,100%{opacity:.35;}50%{opacity:1;}}
+  .demo-strip em{font-style:normal;color:var(--ink-900);font-weight:500;}
+  .demo-strip .rhs{color:var(--ink-500);text-transform:uppercase;letter-spacing:.12em;font-size:9.5px;}
+  .demo-strip .rhs a{color:var(--ink-900);text-decoration:underline;text-decoration-color:var(--ink-300);text-underline-offset:3px;}
+
+  /* Degraded state band — calm, monochrome, no orange shouting */
+  .degraded{background:var(--ink-0);border-bottom:1px solid var(--rule);font-family:'Geist Mono',monospace;font-size:11.5px;color:var(--ink-700);}
+  .degraded .in{max-width:1240px;margin:0 auto;padding:10px 32px;display:flex;align-items:center;justify-content:space-between;gap:16px;}
+  .degraded .lhs{display:flex;align-items:center;gap:12px;}
+  .degraded .dot{width:7px;height:7px;background:var(--pend-mark);display:inline-block;border-radius:50%;}
+  .degraded .key{text-transform:uppercase;letter-spacing:.14em;color:var(--ink-900);font-weight:600;font-size:10.5px;}
+  .degraded em{font-style:normal;color:var(--ink-900);font-weight:500;}
+  .degraded .rhs{color:var(--ink-500);display:flex;gap:14px;align-items:center;}
+
+  /* Masthead */
+  header.mh{background:var(--ink-0);border-bottom:1px solid var(--rule);}
+  .mh .in{max-width:1240px;margin:0 auto;padding:18px 32px;display:flex;align-items:center;justify-content:space-between;}
+  .brand{display:flex;align-items:center;gap:11px;}
+  .brand .g{width:22px;height:22px;background:var(--ink-900);color:#fff;display:grid;place-items:center;font-family:'Geist Mono',monospace;font-size:11px;font-weight:600;}
+  .brand .nm{font-weight:600;letter-spacing:-.01em;font-size:15px;}
+  .brand .nm .sl{color:var(--ink-400);font-weight:400;}
+  .brand .nm .sub{color:var(--ink-500);font-weight:400;}
+  .mh-rt{font-family:'Geist Mono',monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:.14em;color:var(--ink-500);display:flex;gap:14px;align-items:center;}
+  .mh-rt .v{color:var(--ink-900);text-transform:none;letter-spacing:0;}
+
+  /* Page shell */
+  main{max-width:1240px;margin:0 auto;padding:36px 32px 64px;display:grid;grid-template-columns:1fr 400px;gap:48px;align-items:start;}
+
+  /* LEFT — Activation flow */
+  .lede{margin-bottom:28px;}
+  .lede .eyebrow{font-family:'Geist Mono',monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-500);display:flex;align-items:center;gap:10px;margin-bottom:14px;}
+  .lede .eyebrow .r{display:inline-block;width:22px;height:1px;background:var(--ink-300);}
+  .lede h1{font-size:34px;line-height:1.08;letter-spacing:-.028em;font-weight:600;margin:0 0 12px;max-width:22ch;}
+  .lede h1 .muted{color:var(--ink-500);font-weight:500;}
+  .lede p.sub{font-size:15px;color:var(--ink-700);line-height:1.6;margin:0;max-width:58ch;}
+  .lede p.sub .pin{color:var(--ink-900);font-weight:500;}
+
+  /* Progress strip — humane labels, subdued mechanics */
+  .prog{display:grid;grid-template-columns:1fr 1fr 1fr;border:1px solid var(--rule);background:var(--ink-0);margin-bottom:24px;position:relative;}
+  .prog .c{padding:13px 16px;border-right:1px solid var(--rule);display:flex;flex-direction:column;gap:4px;position:relative;transition:background .2s ease;}
+  .prog .c:last-child{border-right:0;}
+  .prog .c .n{font-family:'Geist Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.14em;color:var(--ink-400);display:flex;align-items:center;gap:6px;}
+  .prog .c .t{font-size:13.5px;font-weight:600;color:var(--ink-900);letter-spacing:-.005em;}
+  .prog .c .est{font-family:'Geist Mono',monospace;font-size:10.5px;color:var(--ink-500);}
+  .prog .c.done .n{color:var(--ink-900);}
+  .prog .c.done .n .tick{display:inline-grid;place-items:center;width:11px;height:11px;background:var(--ink-900);color:#fff;font-size:8px;line-height:1;}
+  .prog .c.active{background:var(--ink-50);}
+  .prog .c.active::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;background:var(--ink-900);}
+  .prog .c.active .n{color:var(--ink-900);}
+  .prog .c.active .n .pulse{width:6px;height:6px;background:var(--ink-900);display:inline-block;animation:pulse 1.8s ease-in-out infinite;}
+  @keyframes pulse{0%,100%{opacity:.25;}50%{opacity:1;}}
+
+  /* Step card */
+  .step{background:var(--ink-0);border:1px solid var(--ink-300);transition:border-color .2s ease, opacity .2s ease;}
+  .step.done{border-color:var(--rule);}
+  .step.future{border-color:var(--rule);opacity:.58;}
+  .step .hd{padding:14px 18px;border-bottom:1px solid var(--rule);display:flex;align-items:center;justify-content:space-between;gap:16px;background:var(--ink-50);}
+  .step .hd .lhs{display:flex;align-items:center;gap:12px;}
+  .step .hd .num{font-family:'Geist Mono',monospace;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-500);}
+  .step .hd .ttl{font-size:15.5px;font-weight:600;letter-spacing:-.012em;}
+  .step .hd .right{font-family:'Geist Mono',monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:.12em;color:var(--ink-500);display:flex;align-items:center;gap:8px;}
+  .step .bd{padding:20px 22px 22px;}
+  .step + .step{margin-top:16px;}
+
+  /* Badges — enterprise-safe ink palette, single visual system */
+  .badge{display:inline-flex;align-items:center;gap:6px;font-family:'Geist Mono',monospace;font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;padding:2px 7px;border:1px solid var(--ink-300);color:var(--ink-700);background:var(--ink-0);font-weight:500;}
+  .badge .m{width:5px;height:5px;display:inline-block;}
+  .badge.cleared{border-color:var(--ink-900);color:var(--ink-900);}
+  .badge.cleared .m{background:var(--ink-900);}
+  .badge.pending .m{background:var(--pend-mark);}
+  .badge.degraded .m{background:var(--pend-mark);}
+  .badge.gated .m{background:var(--gate-mark);}
+  .badge.live{border-color:var(--ink-300);color:var(--ink-700);}
+  .badge.live .m{background:var(--ink-900);animation:pulse 1.8s ease-in-out infinite;}
+
+  /* Step 01 — show identity, no protocol acronyms */
+  .signin-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  .signin-grid .k{font-family:'Geist Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.14em;color:var(--ink-500);margin-bottom:5px;}
+  .signin-grid .v{font-size:14px;font-weight:500;color:var(--ink-900);}
+  .signin-grid .vsub{font-family:'Geist Mono',monospace;font-size:11px;color:var(--ink-500);margin-top:3px;}
+
+  /* Step 02 — NPI field */
+  .field-wrap{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:stretch;}
+  .field{position:relative;background:var(--ink-0);border:1px solid var(--ink-300);padding:14px 16px 12px;transition:border-color .15s ease;}
+  .field.focused{border-color:var(--ink-900);}
+  .field .lbl{font-family:'Geist Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-500);margin-bottom:6px;}
+  .field input{width:100%;border:0;outline:none;background:transparent;font-family:'Geist Mono',monospace;font-size:22px;letter-spacing:.04em;color:var(--ink-900);font-variant-numeric:tabular-nums;}
+  .field input::placeholder{color:var(--ink-300);}
+  .field-cta{background:var(--ink-900);color:#fff;border:0;padding:0 22px;font-weight:500;font-size:13px;cursor:pointer;letter-spacing:-.005em;display:flex;align-items:center;gap:8px;transition:background .15s ease;}
+  .field-cta:hover{background:#000;}
+  .field-cta .k{font-family:'Geist Mono',monospace;font-size:10px;color:var(--ink-400);border:1px solid var(--ink-700);padding:1px 5px;letter-spacing:.06em;}
+  .npi-help{margin-top:10px;font-family:'Geist Mono',monospace;font-size:11px;color:var(--ink-500);display:flex;justify-content:space-between;gap:14px;align-items:center;}
+  .npi-help .ok{color:var(--ink-900);display:inline-flex;align-items:center;gap:6px;}
+  .npi-help .ok::before{content:"";width:5px;height:5px;background:var(--ink-900);display:inline-block;}
+
+  /* Authoritative preview — hierarchy: identity facts loud, audit row quiet */
+  .preview{margin-top:18px;border:1px solid var(--rule);background:var(--ink-0);}
+  .preview .ph{padding:10px 16px;border-bottom:1px solid var(--rule);background:var(--ink-50);font-family:'Geist Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.14em;color:var(--ink-500);display:flex;justify-content:space-between;align-items:center;gap:14px;}
+  .preview .ph .auth{color:var(--ink-700);text-transform:none;letter-spacing:0;}
+
+  /* The identity block — large, scannable */
+  .id-block{padding:18px 18px 14px;border-bottom:1px solid var(--rule);}
+  .id-block .name{font-size:22px;font-weight:600;letter-spacing:-.018em;color:var(--ink-900);line-height:1.1;}
+  .id-block .taxo{margin-top:6px;font-size:14.5px;color:var(--ink-700);font-weight:500;}
+  .id-block .taxo .code{font-family:'Geist Mono',monospace;font-size:11px;color:var(--ink-500);margin-left:6px;letter-spacing:.04em;}
+  .id-block .status-row{margin-top:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+
+  /* Secondary facts: compact, lower weight */
+  .id-meta{display:grid;grid-template-columns:1fr 1fr 1fr;border-bottom:1px solid var(--rule);}
+  .id-meta > div{padding:11px 18px;border-right:1px solid var(--rule);}
+  .id-meta > div:last-child{border-right:0;}
+  .id-meta .k{font-family:'Geist Mono',monospace;font-size:9.5px;text-transform:uppercase;letter-spacing:.14em;color:var(--ink-500);margin-bottom:3px;}
+  .id-meta .v{font-size:12.5px;color:var(--ink-900);font-weight:500;}
+  .id-meta .v .g{color:var(--ink-500);font-weight:400;font-family:'Geist Mono',monospace;font-size:11px;margin-left:2px;}
+
+  /* Audit trail — quiet, technical, present but subordinated */
+  .audit{padding:9px 18px;background:var(--ink-50);display:flex;justify-content:space-between;align-items:center;gap:14px;font-family:'Geist Mono',monospace;font-size:10.5px;color:var(--ink-500);}
+  .audit .lbl{text-transform:uppercase;letter-spacing:.14em;font-size:9.5px;}
+  .audit .ref{color:var(--ink-700);}
+  .audit .toggle{color:var(--ink-700);text-decoration:underline;text-decoration-color:var(--ink-300);text-underline-offset:3px;cursor:pointer;background:none;border:0;font-family:inherit;font-size:inherit;padding:0;}
+
+  /* Step 03 review — outcome-led, mechanics in tiny audit row */
+  .summary{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid var(--rule);}
+  .summary > div{padding:12px 14px;border-right:1px solid var(--rule);border-bottom:1px solid var(--rule);}
+  .summary > div:nth-child(2n){border-right:0;}
+  .summary > div:nth-last-child(-n+2){border-bottom:0;}
+  .summary .k{font-family:'Geist Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.14em;color:var(--ink-500);margin-bottom:4px;}
+  .summary .v{font-size:14px;font-weight:500;color:var(--ink-900);letter-spacing:-.005em;}
+  .summary .vsub{font-family:'Geist Mono',monospace;font-size:10.5px;color:var(--ink-500);margin-top:2px;}
+
+  .bind-row{margin-top:18px;display:flex;justify-content:space-between;align-items:center;gap:16px;}
+  .bind-row .note{font-size:12.5px;color:var(--ink-600);max-width:42ch;line-height:1.5;}
+  .bind-row .note strong{color:var(--ink-900);font-weight:500;}
+  .bind-row button{background:var(--ink-900);color:#fff;border:0;padding:13px 22px;font-weight:500;font-size:13.5px;cursor:pointer;letter-spacing:-.005em;display:flex;align-items:center;gap:10px;transition:background .15s ease;}
+  .bind-row button:hover{background:#000;}
+  .bind-row .k{font-family:'Geist Mono',monospace;font-size:10px;color:var(--ink-400);border:1px solid var(--ink-700);padding:1px 5px;letter-spacing:.06em;}
+
+  /* RIGHT — Trust ledger sidebar, reframed */
+  aside.ledger{background:var(--ink-0);border:1px solid var(--rule);position:sticky;top:18px;}
+
+  .promise{padding:18px 18px 16px;border-bottom:1px solid var(--rule);}
+  .promise .ey{font-family:'Geist Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-500);margin-bottom:8px;}
+  .promise h3{font-size:16.5px;line-height:1.22;letter-spacing:-.015em;font-weight:600;margin:0 0 8px;color:var(--ink-900);}
+  .promise p{margin:0;font-size:12.5px;color:var(--ink-600);line-height:1.55;}
+
+  .ledger .hd{padding:11px 16px;border-bottom:1px solid var(--rule);background:var(--ink-50);display:flex;align-items:center;justify-content:space-between;}
+  .ledger .hd .ttl{font-family:'Geist Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-700);font-weight:600;}
+
+  .ledger .ev{padding:11px 16px;border-bottom:1px solid var(--rule);display:grid;grid-template-columns:14px 1fr auto;gap:10px;align-items:start;font-size:12.5px;}
+  .ledger .ev:last-of-type{border-bottom:0;}
+  .ledger .ev .m{width:7px;height:7px;margin-top:6px;display:inline-block;}
+  .ledger .ev.ok .m{background:var(--ink-900);}
+  .ledger .ev.pend .m{background:var(--pend-mark);}
+  .ledger .ev.future .m{background:var(--ink-300);}
+  .ledger .ev .body .t{font-weight:500;color:var(--ink-900);letter-spacing:-.005em;}
+  .ledger .ev .body .h{font-size:11.5px;color:var(--ink-500);margin-top:2px;line-height:1.4;}
+  .ledger .ev .ts{font-family:'Geist Mono',monospace;font-size:10px;color:var(--ink-400);text-transform:uppercase;letter-spacing:.1em;white-space:nowrap;}
+
+  /* Boundary panel — plainspoken */
+  .boundary{border-top:1px solid var(--rule);padding:14px 16px;background:var(--ink-0);}
+  .boundary .ttl{font-family:'Geist Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-700);font-weight:600;margin-bottom:10px;}
+  .boundary .row{display:grid;grid-template-columns:14px 1fr;gap:10px;padding:5px 0;font-size:12px;color:var(--ink-700);line-height:1.5;}
+  .boundary .row .ic{font-family:'Geist Mono',monospace;font-size:10px;color:var(--ink-900);font-weight:600;margin-top:4px;}
+  .boundary .row.yes .ic::before{content:"";width:7px;height:7px;background:var(--ink-900);display:inline-block;}
+  .boundary .row.no .ic::before{content:"";width:7px;height:7px;border:1.5px solid var(--ink-900);display:inline-block;box-sizing:border-box;}
+  .boundary .row strong{color:var(--ink-900);font-weight:600;}
+
+  /* Source health — calm, premium infra */
+  .health{border-top:1px solid var(--rule);padding:12px 16px;background:var(--ink-50);}
+  .health .ttl{font-family:'Geist Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-700);font-weight:600;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;}
+  .health .ttl .now{color:var(--ink-500);text-transform:none;letter-spacing:0;font-weight:400;}
+  .health .row{display:grid;grid-template-columns:1fr auto;gap:10px;padding:6px 0;font-size:12px;color:var(--ink-700);border-bottom:1px dashed var(--ink-200);}
+  .health .row:last-child{border-bottom:0;}
+  .health .row .name{color:var(--ink-900);font-weight:500;letter-spacing:-.005em;}
+  .health .row .name .sub{font-family:'Geist Mono',monospace;font-size:10.5px;color:var(--ink-500);font-weight:400;margin-top:1px;display:block;letter-spacing:0;}
+
+  /* Skeleton loaders for federal-resolution wait state */
+  .sk{display:inline-block;background:linear-gradient(90deg,var(--ink-100) 0%,var(--ink-200) 50%,var(--ink-100) 100%);background-size:200% 100%;animation:shimmer 1.4s ease-in-out infinite;height:1em;vertical-align:middle;border-radius:1px;}
+  @keyframes shimmer{0%{background-position:200% 0;}100%{background-position:-200% 0;}}
+
+  /* Footer */
+  footer.foot{max-width:1240px;margin:0 auto;padding:24px 32px;font-family:'Geist Mono',monospace;font-size:10.5px;color:var(--ink-500);display:flex;justify-content:space-between;border-top:1px solid var(--rule);background:var(--ink-0);}
+  footer .v{color:var(--ink-700);}
+
+  /* Responsive */
+  @media (max-width: 1000px){
+    main{grid-template-columns:1fr;}
+    aside.ledger{position:static;}
+    .id-meta{grid-template-columns:1fr 1fr;}
+  }
+</style>
+</head>
+<body data-screen-label="Clinician Activation">
+
+<div class="op">
+  <div class="in">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <span style="letter-spacing:.16em;text-transform:uppercase;color:var(--ink-400);font-weight:500;">Activation</span>
+      <span class="sep">/</span>
+      <span>clinician.vitalcv.health/start</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:14px;">
+      <span class="pill"><span class="d"></span>Live</span>
+      <span class="sep">|</span>
+      <span>Env <span style="color:var(--ink-200)">sandbox</span></span>
+      <span class="sep">|</span>
+      <span>Build <span style="color:var(--ink-200)">vc.2026.05.11-a</span></span>
+    </div>
+  </div>
+</div>
+
+<!-- Demo Mode strip — quiet, monochrome -->
+<div class="demo-strip">
+  <div class="in">
+    <div class="lhs">
+      <span class="tag"><span class="d"></span>Demo</span>
+      <span><em>Synthetic clinician.</em> Real backend flow — the NPI below resolves against a mirrored federal registry, not a live person.</span>
+    </div>
+    <div class="rhs">Sandbox · <a href="Pilot Intake.html">run with your NPI →</a></div>
+  </div>
+</div>
+
+<!-- Degraded-state band: calm, monochrome, plain-language for the clinician. -->
+<div class="degraded">
+  <div class="in">
+    <div class="lhs">
+      <span class="dot"></span>
+      <span class="key">One source slower than usual</span>
+      <span>Medicare enrollment is taking longer to respond. Your activation will still complete — that lane finishes <em>on its own</em> in the background.</span>
+    </div>
+    <div class="rhs">
+      <span>status.vitalcv.health</span>
+      <span>·</span>
+      <span>09:41:58 UTC</span>
+    </div>
+  </div>
+</div>
+
+<header class="mh">
+  <div class="in">
+    <div class="brand">
+      <span class="g">V</span>
+      <span class="nm">VitalCV<span class="sl">/</span><span class="sub">trust</span></span>
+    </div>
+    <div class="mh-rt">
+      <span>For <span class="v">Cedar Health clinicians</span></span>
+      <span style="color:var(--ink-300)">|</span>
+      <span>Step <span class="v">2 of 3</span></span>
+    </div>
+  </div>
+</header>
+
+<main>
+
+  <!-- LEFT: flow -->
+  <section>
+    <div class="lede">
+      <div class="eyebrow"><span class="r"></span>Activation · three steps · under three minutes</div>
+      <h1>Source-backed clinician readiness. <span class="muted">Reusable from the first shift.</span></h1>
+      <p class="sub">Sign in with your hospital identity, claim your NPI, and confirm. VitalCV verifies your license, taxonomy, and standing <span class="pin">directly with the federal registry</span> while you watch — and turns it into a credential you can reuse, instead of a folder you re-upload.</p>
+    </div>
+
+    <div class="prog">
+      <div class="c done">
+        <div class="n"><span class="tick">✓</span> 01 · Hospital sign-in</div>
+        <div class="t">Identity verified</div>
+        <div class="est">9s · cleared 09:42:08</div>
+      </div>
+      <div class="c active">
+        <div class="n"><span class="pulse"></span> 02 · Claim your NPI</div>
+        <div class="t">Confirming with federal registry</div>
+        <div class="est">in progress · ~30s</div>
+      </div>
+      <div class="c">
+        <div class="n">03 · Confirm</div>
+        <div class="t">Activate professional identity</div>
+        <div class="est">~10s</div>
+      </div>
+    </div>
+
+    <!-- STEP 01 — done -->
+    <div class="step done">
+      <div class="hd">
+        <div class="lhs">
+          <span class="num">01 / 03</span>
+          <span class="ttl">Hospital sign-in</span>
+        </div>
+        <span class="right"><span class="badge cleared"><span class="m"></span>Cleared</span> 09:42:08 UTC</span>
+      </div>
+      <div class="bd" style="padding:14px 22px 18px;">
+        <div class="signin-grid">
+          <div>
+            <div class="k">Identity provider</div>
+            <div class="v">Cedar Health</div>
+            <div class="vsub">cedarhealth.okta.com · security key verified</div>
+          </div>
+          <div>
+            <div class="k">Signed in as</div>
+            <div class="v">Macie Miller, PA-C</div>
+            <div class="vsub">mmiller@cedarhealth.org · session active · 15 min</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 02 — active -->
+    <div class="step">
+      <div class="hd">
+        <div class="lhs">
+          <span class="num">02 / 03</span>
+          <span class="ttl">Claim your NPI</span>
+        </div>
+        <span class="right"><span class="badge live"><span class="m"></span>Live · federal registry</span></span>
+      </div>
+      <div class="bd">
+        <div class="field-wrap">
+          <div class="field focused">
+            <div class="lbl">NPI · 10 digits</div>
+            <input type="text" value="1346053246" inputmode="numeric" autocomplete="off" />
+          </div>
+          <button class="field-cta">Confirm <span class="k">↵</span></button>
+        </div>
+        <div class="npi-help">
+          <span>We confirm this against the federal NPI registry — usually under half a second.</span>
+          <span class="ok">Format valid</span>
+        </div>
+
+        <!-- Live preview — identity facts up top, audit row below -->
+        <div class="preview">
+          <div class="ph">
+            <span>Confirmed with NPPES · federal registry</span>
+            <span class="auth">Returned 09:42:11 · 412 ms</span>
+          </div>
+
+          <!-- HERO: name + taxonomy + status — highest weight -->
+          <div class="id-block">
+            <div class="name">Macie E. Miller</div>
+            <div class="taxo">Physician Assistant <span class="code">363A00000X</span></div>
+            <div class="status-row">
+              <span class="badge cleared"><span class="m"></span>Active</span>
+              <span class="badge cleared"><span class="m"></span>Individual provider</span>
+              <span class="badge"><span class="m"></span>License in good standing</span>
+            </div>
+          </div>
+
+          <!-- Secondary: dates, location -->
+          <div class="id-meta">
+            <div>
+              <div class="k">Enumerated</div>
+              <div class="v">Jan 14, 2025 <span class="g">· 16 mo ago</span></div>
+            </div>
+            <div>
+              <div class="k">Practice state</div>
+              <div class="v">California <span class="g">· Irvine 92614</span></div>
+            </div>
+            <div>
+              <div class="k">Sanction screen</div>
+              <div class="v">No exclusions <span class="g">· OIG/LEIE</span></div>
+            </div>
+          </div>
+
+          <!-- Audit row — quiet, present, technical -->
+          <div class="audit">
+            <span class="lbl">Audit ref</span>
+            <span class="ref">nppes · 2026-05-11T09:42:11Z</span>
+            <button class="toggle" type="button">Show technical receipt →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 03 — future, with skeleton -->
+    <div class="step future">
+      <div class="hd">
+        <div class="lhs">
+          <span class="num">03 / 03</span>
+          <span class="ttl">Confirm professional identity</span>
+        </div>
+        <span class="right"><span class="badge"><span class="m"></span>Ready in ~10s</span></span>
+      </div>
+      <div class="bd">
+        <div class="summary">
+          <div>
+            <div class="k">Signed in as</div>
+            <div class="v">Macie Miller, PA-C</div>
+            <div class="vsub">mmiller@cedarhealth.org</div>
+          </div>
+          <div>
+            <div class="k">Federal NPI</div>
+            <div class="v">1346053246 · PA-C</div>
+            <div class="vsub">Confirmed with NPPES</div>
+          </div>
+          <div>
+            <div class="k">Sanction screen</div>
+            <div class="v">Clear</div>
+            <div class="vsub">OIG/LEIE · 09:42:13</div>
+          </div>
+          <div>
+            <div class="k">Portable credential</div>
+            <div class="v">Will issue on confirm</div>
+            <div class="vsub">Reusable across employers</div>
+          </div>
+        </div>
+        <div class="bind-row">
+          <div class="note"><strong>One tap activates your VitalCV.</strong> Nothing is stored before this step — and no documents, passwords, or PHI ever are.</div>
+          <button>Activate identity <span class="k">⌘ ↵</span></button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- RIGHT: trust sidebar -->
+  <aside class="ledger">
+
+    <!-- Reframed promise block — instant value, not infra -->
+    <div class="promise">
+      <div class="ey">Why this works</div>
+      <h3>Your professional identity, instantly portable.</h3>
+      <p>You don't upload your license. We confirm it at the source — once — and turn the answer into a credential your next employer can verify in seconds, without re-asking you.</p>
+    </div>
+
+    <div class="hd">
+      <span class="ttl">This session</span>
+      <span class="badge live"><span class="m"></span>Live</span>
+    </div>
+    <div class="ev ok">
+      <span class="m"></span>
+      <div class="body">
+        <div class="t">Signed in through Cedar Health</div>
+        <div class="h">Hospital identity verified · security key</div>
+      </div>
+      <span class="ts">09:42:08</span>
+    </div>
+    <div class="ev ok">
+      <span class="m"></span>
+      <div class="body">
+        <div class="t">NPI confirmed at the federal registry</div>
+        <div class="h">NPPES returned a match · 412 ms</div>
+      </div>
+      <span class="ts">09:42:11</span>
+    </div>
+    <div class="ev future">
+      <span class="m"></span>
+      <div class="body">
+        <div class="t">Awaiting your confirmation</div>
+        <div class="h">Activates the credential — you stay in control</div>
+      </div>
+      <span class="ts">—</span>
+    </div>
+
+    <div class="boundary">
+      <div class="ttl">What VitalCV does &amp; doesn't</div>
+      <div class="row no"><span class="ic"></span><span><strong>Doesn't</strong> store your password, MFA secrets, or any documents.</span></div>
+      <div class="row yes"><span class="ic"></span><span><strong>Does</strong> record what the federal registry returned for your NPI.</span></div>
+      <div class="row no"><span class="ic"></span><span><strong>Leave any time before Step 3</strong> — nothing is kept until you confirm.</span></div>
+    </div>
+
+    <div class="health">
+      <div class="ttl"><span>Sources we check</span><span class="now">09:42:14 UTC</span></div>
+      <div class="row">
+        <div class="name">Federal NPI registry<span class="sub">NPPES · 410 ms · uptime 99.98%</span></div>
+        <span class="badge cleared"><span class="m"></span>Cleared</span>
+      </div>
+      <div class="row">
+        <div class="name">Sanction screening<span class="sub">OIG/LEIE · 280 ms · uptime 100%</span></div>
+        <span class="badge cleared"><span class="m"></span>Cleared</span>
+      </div>
+      <div class="row">
+        <div class="name">Medicare enrollment<span class="sub">PECOS · slower than usual · finishes on its own</span></div>
+        <span class="badge pending"><span class="m"></span>Pending</span>
+      </div>
+      <div class="row">
+        <div class="name">State PA Board<span class="sub">California · confirmed when an employer requests</span></div>
+        <span class="badge gated"><span class="m"></span>On request</span>
+      </div>
+    </div>
+  </aside>
+
+</main>
+
+<footer class="foot">
+  <div>VitalCV · Trusted-professional activation · <span class="v">Three steps · under three minutes</span></div>
+  <div style="text-align:right;">
+    <div>Verified at the source · <span class="v">Receipted and reusable</span></div>
+    <div style="color:var(--ink-400);margin-top:2px;">Signed by VitalCV · technical receipt available on request</div>
+  </div>
+</footer>
+
+<script src="telemetry.js"></script>
+</body>
+</html>

@@ -1,0 +1,820 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>VitalCV · Career Evidence Graph · Wave 220</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --ink-0:#fff;--ink-50:#f8fafc;--ink-100:#f1f5f9;--ink-200:#e2e8f0;--ink-300:#cbd5e1;
+  --ink-400:#94a3b8;--ink-500:#64748b;--ink-600:#475569;--ink-700:#334155;--ink-800:#1e293b;
+  --ink-900:#0f172a;--ink-950:#020617;--rule:#e2e8f0;--rule-soft:#eef2f6;--paper:#f8f6f1;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:64px}
+html,body{margin:0;padding:0}
+body{
+  background:var(--ink-100);color:var(--ink-900);
+  font-family:'Geist',ui-sans-serif,system-ui,sans-serif;
+  font-feature-settings:'ss01','cv11';-webkit-font-smoothing:antialiased;
+  font-size:13.5px;line-height:1.55;letter-spacing:-.003em;
+}
+.mono,code{font-family:'Geist Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums}
+h1,h2,h3,h4{margin:0;font-weight:600}
+a{color:inherit}
+
+/* ── Op bar ─────────────────────────────────────── */
+.opbar{background:var(--ink-950);color:var(--ink-300);font-family:'Geist Mono',monospace;font-size:10px;position:sticky;top:0;z-index:80}
+.opbar .in{max-width:1340px;margin:0 auto;padding:0 32px;height:32px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.opbar .l{display:flex;align-items:center;gap:12px}
+.opbar .g{width:17px;height:17px;background:#fff;color:#000;display:grid;place-items:center;font-size:9px;font-weight:700}
+.opbar strong{color:#fff;font-weight:600;letter-spacing:.12em;text-transform:uppercase}
+.opbar .sep{color:var(--ink-700)}
+.opbar .r{display:flex;gap:14px;align-items:center;color:var(--ink-500);text-transform:uppercase;letter-spacing:.13em;font-size:9px}
+.opbar .pill{display:inline-flex;align-items:center;gap:5px;padding:2px 7px;border:1px solid var(--ink-700);color:var(--ink-300)}
+.opbar .dot{width:5px;height:5px;background:#10b981;border-radius:50%;animation:blink 2.6s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:.32}50%{opacity:1}}
+
+.doc{max-width:1340px;margin:0 auto;background:var(--ink-0);box-shadow:0 1px 0 rgba(2,6,23,.04),0 18px 56px -22px rgba(2,6,23,.22)}
+
+/* ── Masthead ───────────────────────────────────── */
+.mast{padding:34px 40px 26px;border-bottom:1px solid var(--ink-900)}
+.crumb{font-family:'Geist Mono',monospace;font-size:9.5px;text-transform:uppercase;letter-spacing:.2em;color:var(--ink-500);display:flex;align-items:center;gap:9px;margin-bottom:18px}
+.crumb .r{display:inline-block;width:20px;height:1px;background:var(--ink-300)}
+.crumb b{color:var(--ink-900);font-weight:600}
+.mast h1{font-size:31px;line-height:1.08;letter-spacing:-.028em;max-width:24ch}
+.mast h1 em{font-style:normal;color:var(--ink-400);font-weight:400}
+.mast .lede{font-size:14px;color:var(--ink-600);line-height:1.62;max-width:80ch;margin:14px 0 0}
+.mast .lede strong{color:var(--ink-900);font-weight:600}
+.meta-h{display:flex;gap:26px;margin-top:20px;flex-wrap:wrap;font-family:'Geist Mono',monospace;font-size:10px;color:var(--ink-500);text-transform:uppercase;letter-spacing:.14em}
+.meta-h span b{color:var(--ink-900);font-weight:600;display:block;margin-top:3px;letter-spacing:.04em}
+
+/* ── Arc ────────────────────────────────────────── */
+.arc{margin:24px 40px 0;border:1px solid var(--ink-900)}
+.arc .hd{background:var(--ink-950);color:#fff;padding:10px 18px;font-family:'Geist Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.18em;display:flex;justify-content:space-between;align-items:center}
+.arc .hd b{color:#fff;font-weight:500}
+.arc .row{display:grid;grid-template-columns:repeat(5,1fr)}
+.arc .cell{padding:16px 16px 15px;border-right:1px solid var(--rule);position:relative}
+.arc .cell:last-child{border-right:0}
+.arc .ord{font-family:'Geist Mono',monospace;font-size:9.5px;letter-spacing:.16em;color:var(--ink-400);margin-bottom:9px}
+.arc .nm{font-family:'Geist Mono',monospace;font-size:12.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-900);margin-bottom:7px;line-height:1.2}
+.arc .q{font-size:11.5px;color:var(--ink-600);line-height:1.45}
+.arc .arrow{position:absolute;right:-7px;top:30px;width:12px;height:12px;background:var(--ink-0);border-top:1px solid var(--rule);border-right:1px solid var(--rule);transform:rotate(45deg);z-index:3}
+.arc .cell:last-child .arrow{display:none}
+.arc .foot{border-top:1px solid var(--rule);background:var(--ink-50);padding:9px 18px;font-family:'Geist Mono',monospace;font-size:9.5px;text-transform:uppercase;letter-spacing:.14em;color:var(--ink-600)}
+.arc .foot b{color:var(--ink-900);font-weight:600}
+
+/* ── TOC ────────────────────────────────────────── */
+.toc{margin:24px 40px 0;border:1px solid var(--rule);display:grid;grid-template-columns:repeat(6,1fr)}
+.toc a{padding:12px 14px;border-right:1px solid var(--rule);text-decoration:none;display:block;transition:background .12s}
+.toc a:last-child{border-right:0}
+.toc a:hover{background:var(--ink-50)}
+.toc .n{font-family:'Geist Mono',monospace;font-size:9px;letter-spacing:.14em;color:var(--ink-400);display:block;margin-bottom:5px}
+.toc .t{font-size:11.5px;font-weight:500;color:var(--ink-900);line-height:1.3}
+
+/* ── Section scaffold ───────────────────────────── */
+main{padding:8px 40px 40px}
+.sec{margin-top:42px;scroll-margin-top:56px}
+.sh{display:flex;align-items:baseline;gap:14px;border-bottom:1px solid var(--ink-900);padding-bottom:9px;margin-bottom:18px}
+.sh .n{font-family:'Geist Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-300);font-weight:600}
+.sh h2{font-size:19px;letter-spacing:-.018em;color:var(--ink-900)}
+.sh .ey{font-family:'Geist Mono',monospace;font-size:9.5px;text-transform:uppercase;letter-spacing:.15em;color:var(--ink-500);margin-left:auto}
+.lead{font-size:13.5px;color:var(--ink-600);line-height:1.62;max-width:92ch;margin:0 0 18px}
+.lead strong{color:var(--ink-900);font-weight:600}
+
+.kicker{font-family:'Geist Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-400);font-weight:600;margin:22px 0 9px}
+
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+
+.card{border:1px solid var(--ink-300);background:var(--ink-0)}
+.card .ph{padding:9px 15px;background:var(--ink-50);border-bottom:1px solid var(--rule);font-family:'Geist Mono',monospace;font-size:9.5px;text-transform:uppercase;letter-spacing:.15em;color:var(--ink-500);display:flex;justify-content:space-between;align-items:center}
+.card .ph b{color:var(--ink-900);font-weight:600}
+.card .bd{padding:14px 16px}
+.card .bd p{margin:0 0 10px;font-size:12.5px;color:var(--ink-600);line-height:1.55}
+.card .bd p:last-child{margin-bottom:0}
+.card .bd strong{color:var(--ink-900);font-weight:600}
+
+.chip{display:inline-flex;align-items:center;gap:5px;padding:3px 7px;border:1px solid var(--ink-900);font-family:'Geist Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-900);font-weight:500;white-space:nowrap}
+.chip .d{width:5px;height:5px;background:var(--ink-900);border-radius:50%}
+.chip.solid{background:var(--ink-900);color:#fff}.chip.solid .d{background:#fff}
+.chip.dashed{border-style:dashed;color:var(--ink-600)}.chip.dashed .d{background:transparent;border:1px solid var(--ink-600)}
+.chip.dotted{border-style:dotted;color:var(--ink-600)}.chip.dotted .d{background:transparent;border:1px dotted var(--ink-600)}
+.tier{font-family:'Geist Mono',monospace;font-size:10px;font-weight:600;color:#fff;background:var(--ink-900);padding:2px 6px;letter-spacing:.05em;display:inline-block}
+.tier[data-t="T1"]{background:var(--ink-400)}.tier[data-t="T2"]{background:var(--ink-600)}
+.tier[data-t="T3"]{background:var(--ink-800)}.tier[data-t="T4"]{background:var(--ink-950)}
+.mn{font-family:'Geist Mono',monospace;font-size:11px;color:var(--ink-900);background:var(--ink-50);border:1px solid var(--rule);padding:1px 5px}
+
+/* tables */
+.tbl{width:100%;border-collapse:collapse;font-size:12px;border:1px solid var(--ink-300);background:var(--ink-0)}
+.tbl thead th{position:sticky;background:var(--ink-50);border-bottom:1px solid var(--ink-900);padding:10px 12px;text-align:left;font-family:'Geist Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.14em;color:var(--ink-500);font-weight:600;border-right:1px solid var(--rule);vertical-align:bottom}
+.tbl thead th:last-child{border-right:0}
+.tbl tbody td{padding:9px 12px;border-bottom:1px solid var(--rule);border-right:1px solid var(--rule);vertical-align:top;color:var(--ink-600);line-height:1.45}
+.tbl tbody td:last-child{border-right:0}
+.tbl tbody tr:last-child td{border-bottom:0}
+.tbl tbody td strong{color:var(--ink-900);font-weight:600}
+.tbl tbody td.nm{font-family:'Geist Mono',monospace;font-size:10.5px;letter-spacing:.04em;color:var(--ink-900);background:var(--ink-50);font-weight:500;white-space:nowrap}
+.tbl tbody td code{font-family:'Geist Mono',monospace;font-size:10.5px;color:var(--ink-900)}
+.tbl .scroll{display:block;overflow-x:auto}
+.dotn{display:inline-flex;align-items:center;gap:5px;font-family:'Geist Mono',monospace;font-size:10px;color:var(--ink-700)}
+.dotn::before{content:"";width:8px;height:8px;display:inline-block;background:var(--ink-900)}
+.dotn.hi::before{background:var(--ink-950)}
+.dotn.md::before{background:var(--ink-500)}
+.dotn.lo::before{background:transparent;border:1.5px solid var(--ink-400)}
+
+/* note / callout */
+.note{border-left:2px solid var(--ink-900);padding:3px 0 3px 16px;margin:16px 0;font-size:12.5px;color:var(--ink-600);line-height:1.55}
+.note b{color:var(--ink-900);font-weight:600}
+.note .lb{font-family:'Geist Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-400);display:block;margin-bottom:4px}
+
+/* footer */
+.foot-page{padding:22px 40px;border-top:1px solid var(--rule);background:var(--ink-50);display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;font-family:'Geist Mono',monospace;font-size:10px;color:var(--ink-500);text-transform:uppercase;letter-spacing:.12em}
+.foot-page b{color:var(--ink-900);font-weight:600}
+
+/* ── Architecture stack (D1) ────────────────────── */
+.archw{border:1px solid var(--ink-900);background:var(--ink-0)}
+.archhd{background:var(--ink-950);color:#fff;padding:9px 16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;font-family:'Geist Mono',monospace;font-size:10.5px;letter-spacing:.04em}
+.archhd b{color:#fff;font-weight:500}
+.alayer{display:grid;grid-template-columns:150px 1fr;border-bottom:1px solid var(--rule)}
+.alayer:last-child{border-bottom:0}
+.alayer .al{padding:14px 16px;background:var(--ink-50);border-right:1px solid var(--rule);display:flex;flex-direction:column;gap:5px}
+.alayer .al .ai{font-family:'Geist Mono',monospace;font-size:9px;letter-spacing:.14em;color:var(--ink-400)}
+.alayer .al .an{font-family:'Geist Mono',monospace;font-size:12px;font-weight:600;letter-spacing:.03em;text-transform:uppercase;color:var(--ink-900);line-height:1.2}
+.alayer .ar{padding:13px 16px;font-size:12px;color:var(--ink-600);line-height:1.5}
+.alayer .ar b{color:var(--ink-900);font-weight:600}
+.alayer.dark{background:var(--ink-950)}
+.alayer.dark .al{background:var(--ink-900);border-right-color:var(--ink-800)}
+.alayer.dark .al .ai{color:var(--ink-500)}.alayer.dark .al .an{color:#fff}
+.alayer.dark .ar{color:var(--ink-400)}.alayer.dark .ar b{color:#fff}
+
+/* primitive triad */
+.triad{display:grid;grid-template-columns:1fr 1fr 1fr;border:1px solid var(--ink-900);background:var(--ink-0)}
+.triad .tp{padding:16px 18px;border-right:1px solid var(--rule)}
+.triad .tp:last-child{border-right:0}
+.triad .tp .gly{width:26px;height:26px;display:grid;place-items:center;margin-bottom:11px}
+.triad .tp .gly i{display:block}
+.triad .tp h4{font-family:'Geist Mono',monospace;font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-900);margin-bottom:7px}
+.triad .tp p{font-size:12px;color:var(--ink-600);line-height:1.5;margin:0}
+.triad .tp p b{color:var(--ink-900);font-weight:600}
+.gly-node{width:16px;height:16px;border:2px solid var(--ink-950);border-radius:50%;background:var(--ink-950)}
+.gly-edge{width:22px;height:2px;background:var(--ink-900);position:relative}
+.gly-edge::before,.gly-edge::after{content:"";position:absolute;width:7px;height:7px;border-radius:50%;background:#fff;border:2px solid var(--ink-900);top:-3px}
+.gly-edge::before{left:-3px}.gly-edge::after{right:-3px}
+.gly-anchor{width:18px;height:18px;border:2px solid var(--ink-900);transform:rotate(45deg);background:var(--ink-200)}
+
+/* ── Node catalog (D2) ──────────────────────────── */
+.cat{border:1px solid var(--ink-900);background:var(--ink-0)}
+.catfam{border-bottom:1px solid var(--ink-300)}
+.catfam:last-child{border-bottom:0}
+.catfam .fhd{display:grid;grid-template-columns:200px 1fr 138px;align-items:center;background:var(--ink-50);border-bottom:1px solid var(--rule)}
+.catfam .fhd .fl{padding:10px 16px;border-right:1px solid var(--rule);display:flex;align-items:center;gap:10px}
+.catfam .fhd .fl .fg{width:13px;height:13px;border:1.5px solid var(--ink-900);background:#fff;flex:none}
+.catfam .fhd .fl .fg.clin{border-radius:50%;background:var(--ink-950);border-color:var(--ink-950)}
+.catfam .fhd .fl .fg.org{background:#fff}
+.catfam .fhd .fl .fg.src{background:var(--ink-700);border-color:var(--ink-700);transform:rotate(45deg)}
+.catfam .fhd .fl .fg.cred{background:var(--ink-400);border-color:var(--ink-400)}
+.catfam .fhd .fl .fg.evid{width:10px;height:10px;border-color:var(--ink-400)}
+.catfam .fhd .fl .fg.spec{border-radius:999px;border-style:dashed}
+.catfam .fhd .fl .fg.meta{background:repeating-linear-gradient(45deg,var(--ink-300),var(--ink-300) 2px,#fff 2px,#fff 4px)}
+.catfam .fhd .fl b{font-family:'Geist Mono',monospace;font-size:11.5px;font-weight:600;letter-spacing:.03em;text-transform:uppercase;color:var(--ink-900)}
+.catfam .fhd .fl .ct{font-family:'Geist Mono',monospace;font-size:9px;color:var(--ink-400);letter-spacing:.08em}
+.catfam .fhd .fr{padding:10px 16px;font-size:11.5px;color:var(--ink-600);line-height:1.4;border-right:1px solid var(--rule)}
+.catfam .fhd .fr b{color:var(--ink-900);font-weight:600}
+.catfam .fhd .fx{padding:10px 14px;display:flex;flex-direction:column;gap:4px}
+.catfam .fhd .fx .xr{display:flex;justify-content:space-between;align-items:center;font-family:'Geist Mono',monospace;font-size:8.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-400)}
+.bar{width:62px;height:5px;background:var(--ink-100);position:relative;border:1px solid var(--rule)}
+.bar i{position:absolute;left:0;top:0;bottom:0;background:var(--ink-900);display:block}
+.catfam .nodes{padding:11px 16px;display:flex;flex-wrap:wrap;gap:6px}
+.nchip{font-family:'Geist Mono',monospace;font-size:9.5px;letter-spacing:.02em;color:var(--ink-800);background:var(--ink-50);border:1px solid var(--rule);padding:3px 7px;white-space:nowrap}
+.nchip i{color:var(--ink-400);font-style:normal}
+.nchip.key{border-color:var(--ink-900);color:var(--ink-950);font-weight:600;background:#fff}
+
+/* ── Relationship system (D3) ───────────────────── */
+.tripw{border:1px solid var(--ink-900);background:var(--ink-0)}
+.triphd{background:var(--ink-950);color:#fff;padding:9px 16px;font-family:'Geist Mono',monospace;font-size:10.5px;letter-spacing:.04em;display:flex;justify-content:space-between;align-items:center}
+.triphd b{color:#fff;font-weight:500}
+.trips{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0}
+.trip{display:flex;align-items:center;gap:10px;padding:12px 16px;border-right:1px solid var(--rule);border-bottom:1px solid var(--rule)}
+.trip:nth-child(3n){border-right:0}
+.trip .sub,.trip .obj{font-family:'Geist Mono',monospace;font-size:9.5px;font-weight:600;letter-spacing:.03em;text-transform:uppercase;color:var(--ink-900);white-space:nowrap}
+.trip .obj{color:var(--ink-600)}
+.trip .rel{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;min-width:0}
+.trip .rel .v{font-family:'Geist Mono',monospace;font-size:8.5px;letter-spacing:.06em;color:var(--ink-950);text-transform:uppercase;font-weight:600}
+.trip .rel .ln{width:100%;height:1px;background:var(--ink-300);position:relative}
+.trip .rel .ln::after{content:"";position:absolute;right:0;top:-2.5px;width:0;height:0;border-left:5px solid var(--ink-400);border-top:3px solid transparent;border-bottom:3px solid transparent}
+.trip .rel .ln.perm{height:2px;background:var(--ink-900)}.trip .rel .ln.perm::after{border-left-color:var(--ink-900)}
+.trip .rel .ln.exp{background:repeating-linear-gradient(90deg,var(--ink-400),var(--ink-400) 3px,transparent 3px,transparent 6px)}
+
+/* ── Trust propagation (D4) ─────────────────────── */
+.flow{border:1px solid var(--ink-900);background:var(--ink-0)}
+.flowhd{background:var(--ink-950);color:#fff;padding:9px 16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;font-family:'Geist Mono',monospace;font-size:10.5px;letter-spacing:.04em}
+.flowhd b{color:#fff;font-weight:500}
+.flowhd .lg{display:inline-flex;align-items:center;gap:5px;font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-400)}
+.flowgrid{display:grid;grid-template-columns:1fr 56px 1.15fr 56px 1fr;align-items:stretch}
+.flowcol{padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.flowcol.mid{background:var(--ink-50);border-left:1px solid var(--rule);border-right:1px solid var(--rule)}
+.colh{font-family:'Geist Mono',monospace;font-size:8.5px;text-transform:uppercase;letter-spacing:.14em;color:var(--ink-400);font-weight:600;margin-bottom:2px}
+.fnode{border:1px solid var(--ink-300);background:#fff;padding:8px 10px}
+.fnode .fn{font-family:'Geist Mono',monospace;font-size:10px;font-weight:600;letter-spacing:.02em;color:var(--ink-900);line-height:1.25}
+.fnode .fm{font-size:9.5px;color:var(--ink-500);line-height:1.35;margin-top:2px}
+.tdim{border:1px solid var(--ink-900);background:#fff;padding:9px 11px}
+.tdim .th{display:flex;align-items:center;justify-content:space-between;gap:6px}
+.tdim .th b{font-family:'Geist Mono',monospace;font-size:10.5px;font-weight:600;letter-spacing:.03em;text-transform:uppercase;color:var(--ink-950)}
+.tdim .th .w{font-family:'Geist Mono',monospace;font-size:8.5px;color:var(--ink-400);letter-spacing:.06em}
+.tdim .td{font-size:10px;color:var(--ink-600);line-height:1.4;margin-top:3px}
+.fconn{position:relative}
+.fconn svg{position:absolute;inset:0;width:100%;height:100%}
+.fconn .ce{stroke:var(--ink-300);stroke-width:1;fill:none}
+.fconn .ce.strong{stroke:var(--ink-800);stroke-width:1.5}
+.outc{border:1px solid var(--ink-300);background:#fff;padding:8px 10px}
+.outc .on{font-family:'Geist Mono',monospace;font-size:10px;font-weight:600;color:var(--ink-900);line-height:1.25}
+.outc .od{font-size:9.5px;color:var(--ink-500);line-height:1.35;margin-top:2px}
+
+/* propagation laws */
+.laws{border:1px solid var(--ink-900);background:var(--ink-0)}
+.law{display:grid;grid-template-columns:46px 1fr;border-bottom:1px solid var(--rule)}
+.law:last-child{border-bottom:0}
+.law .ln{padding:13px 0;text-align:center;font-family:'Geist Mono',monospace;font-size:13px;font-weight:600;color:var(--ink-300);background:var(--ink-50);border-right:1px solid var(--rule)}
+.law .lc{padding:12px 16px}
+.law .lc b{font-size:12.5px;color:var(--ink-900);font-weight:600;display:block;margin-bottom:3px;letter-spacing:-.01em}
+.law .lc p{margin:0;font-size:12px;color:var(--ink-600);line-height:1.5}
+.law .lc code{font-family:'Geist Mono',monospace;font-size:11px;color:var(--ink-900);background:var(--ink-50);border:1px solid var(--rule);padding:1px 5px}
+
+/* compounding curve */
+.cmp{display:grid;grid-template-columns:1fr 1fr 1fr;border:1px solid var(--ink-900);background:var(--ink-0)}
+.cmp .cc{padding:15px 16px;border-right:1px solid var(--rule)}
+.cmp .cc:last-child{border-right:0}
+.cmp .cc .ci{font-family:'Geist Mono',monospace;font-size:9px;letter-spacing:.14em;color:var(--ink-400);margin-bottom:8px}
+.cmp .cc h4{font-size:13px;letter-spacing:-.01em;color:var(--ink-900);margin-bottom:7px}
+.cmp .cc p{margin:0;font-size:11.5px;color:var(--ink-600);line-height:1.5}
+.cmp .cc p b{color:var(--ink-900);font-weight:600}
+.spark{display:flex;align-items:flex-end;gap:3px;height:34px;margin-bottom:10px}
+.spark i{flex:1;background:var(--ink-900);display:block;min-height:3px}
+.spark.dec i{background:var(--ink-300)}
+.spark.flat i{background:var(--ink-500)}
+
+/* ── Persona experiences (D5) ───────────────────── */
+.persw{border:1px solid var(--ink-900);background:var(--ink-0)}
+.pers{display:grid;grid-template-columns:178px 1fr;border-bottom:1px solid var(--ink-300)}
+.pers:last-child{border-bottom:0}
+.pers .pl{padding:16px;background:var(--ink-50);border-right:1px solid var(--rule);display:flex;flex-direction:column;gap:8px}
+.pers .pl .pi{font-family:'Geist Mono',monospace;font-size:9px;letter-spacing:.14em;color:var(--ink-400)}
+.pers .pl h4{font-size:15px;letter-spacing:-.015em;color:var(--ink-900)}
+.pers .pl .pq{font-size:11.5px;color:var(--ink-600);line-height:1.45;font-style:italic}
+.pers .pl .pq b{color:var(--ink-900);font-weight:600;font-style:normal}
+.pers .pr{display:grid;grid-template-columns:1fr 1fr 1fr}
+.pers .pr .pc{padding:13px 15px;border-right:1px solid var(--rule)}
+.pers .pr .pc:last-child{border-right:0}
+.pers .pr .pc .pch{font-family:'Geist Mono',monospace;font-size:8.5px;text-transform:uppercase;letter-spacing:.13em;color:var(--ink-400);font-weight:600;margin-bottom:7px}
+.pers .pr .pc p{margin:0;font-size:11.5px;color:var(--ink-600);line-height:1.5}
+.pers .pr .pc p b{color:var(--ink-900);font-weight:600}
+.pers .pr .pc .vlist{margin:0;font-family:'Geist Mono',monospace;font-size:9.5px;color:var(--ink-700);line-height:1.7;letter-spacing:.01em}
+.pers .pr .pc .vlist span{display:block}
+.pers .pr .pc .vlist span::before{content:"› ";color:var(--ink-400)}
+
+/* synthesis answers */
+.ans{border:1px solid var(--ink-900);background:var(--ink-0)}
+.arow{display:grid;grid-template-columns:0.9fr 1.4fr;border-bottom:1px solid var(--rule)}
+.arow.last{border-bottom:0}
+.arow .aq{padding:14px 18px;border-right:1px solid var(--rule);background:var(--ink-50);font-size:13.5px;font-weight:600;color:var(--ink-900);letter-spacing:-.01em;display:flex;gap:11px;align-items:baseline;line-height:1.35}
+.arow .aq .an{font-family:'Geist Mono',monospace;font-size:10px;color:var(--ink-400);letter-spacing:.1em;flex:none}
+.arow .aa{padding:14px 18px;font-size:12.5px;color:var(--ink-600);line-height:1.55}
+.arow .aa b{color:var(--ink-900);font-weight:600}
+
+@media (max-width:1080px){
+  .arc .row{grid-template-columns:1fr 1fr}.arc .arrow{display:none}
+  .toc{grid-template-columns:1fr 1fr 1fr}
+  .grid2,.grid3,.grid4{grid-template-columns:1fr}
+  .triad{grid-template-columns:1fr}.triad .tp{border-right:0;border-bottom:1px solid var(--rule)}
+  .trips{grid-template-columns:1fr}.trip{border-right:0}
+  .catfam .fhd{grid-template-columns:1fr}.catfam .fhd .fl,.catfam .fhd .fr{border-right:0}
+  .flowgrid{grid-template-columns:1fr;gap:0}.fconn{display:none}.flowcol.mid{border:0;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule)}
+  .cmp{grid-template-columns:1fr}.cmp .cc{border-right:0;border-bottom:1px solid var(--rule)}
+  .alayer{grid-template-columns:1fr}.alayer .al{border-right:0;border-bottom:1px solid var(--rule)}
+  .pers{grid-template-columns:1fr}.pers .pl{border-right:0;border-bottom:1px solid var(--rule)}
+  .pers .pr{grid-template-columns:1fr}.pers .pr .pc{border-right:0;border-bottom:1px solid var(--rule)}
+  .arow{grid-template-columns:1fr}.arow .aq{border-right:0;border-bottom:1px solid var(--rule)}
+}
+</style>
+</head>
+<body>
+
+<div class="opbar">
+  <div class="in">
+    <div class="l">
+      <span class="g">V</span>
+      <strong>Wave 220</strong>
+      <span class="sep">/</span>
+      <span>Career Evidence Graph</span>
+      <span class="sep">·</span>
+      <span>role: claude design</span>
+    </div>
+    <div class="r">
+      <span class="pill"><span class="dot"></span>Graph architecture</span>
+      <span class="sep">|</span>
+      <span>vc.2026.06.20 · w220 · v1</span>
+    </div>
+  </div>
+</div>
+
+<div class="doc">
+
+  <!-- ════ MASTHEAD ════ -->
+  <header class="mast" data-screen-label="Masthead">
+    <div class="crumb"><span class="r"></span>VitalCV <span style="color:var(--ink-300)">/</span> Network Layer <span style="color:var(--ink-300)">/</span> <b>W220 · Career Evidence Graph</b></div>
+    <h1>A credential is a fact. <em>The graph is how that fact connects, compounds, and becomes reusable across an entire career.</em></h1>
+    <p class="lede">Wave 215 invented the object. This wave builds the substrate that turns a pile of objects into a <strong>Provider Career Evidence Network</strong>. The graph is not a database — it is the conceptual model of how professional trust <strong>accumulates</strong> (more evidence), <strong>connects</strong> (shared anchors), <strong>compounds</strong> (corroboration density over time), and <strong>becomes portable</strong> (verify once, present anywhere). Five deliverables define its nodes, its relationships, the law by which trust propagates, and what four kinds of people see when they look into it.</p>
+    <div class="meta-h">
+      <span>Substrate<b>Career Evidence Graph</b></span>
+      <span>Node families<b>12 · 100 types</b></span>
+      <span>Edge types<b>24 relationships</b></span>
+      <span>Trust dimensions<b>6</b></span>
+      <span>Propagation laws<b>7</b></span>
+      <span>Experiences<b>4 personas</b></span>
+    </div>
+  </header>
+
+  <!-- ════ ARC ════ -->
+  <section class="arc">
+    <div class="hd"><span>The graph in five moves · entities → relationships → trust → people</span><b>verify once → trust everywhere</b></div>
+    <div class="row">
+      <div class="cell"><div class="ord">D1</div><div class="nm">Invent the<br/>Graph</div><div class="q">Define the substrate: what a Career Evidence Graph is and the architecture it runs on.</div><div class="arrow"></div></div>
+      <div class="cell"><div class="ord">D2</div><div class="nm">100 Node<br/>Types</div><div class="q">The first-class entities — twelve families, one hundred nodes — that populate it.</div><div class="arrow"></div></div>
+      <div class="cell"><div class="ord">D3</div><div class="nm">Relationship<br/>System</div><div class="q">The edges that connect nodes — permanent, expiring, and trust-bearing.</div><div class="arrow"></div></div>
+      <div class="cell"><div class="ord">D4</div><div class="nm">Trust Flow<br/>Model</div><div class="q">The law by which trust originates, moves, corroborates, and compounds.</div><div class="arrow"></div></div>
+      <div class="cell"><div class="ord">D5</div><div class="nm">Graph<br/>Experiences</div><div class="q">What a clinician, recruiter, credentialer, and employer each see and navigate.</div><div class="arrow"></div></div>
+    </div>
+    <div class="foot">Reading rule · <b>nodes are nouns, edges are evidence.</b> Every relationship carries the same provenance an EvidenceObject does — trust is never asserted, only propagated along edges that were themselves observed.</div>
+  </section>
+
+  <!-- ════ TOC ════ -->
+  <nav class="toc">
+    <a href="#d1"><span class="n">D1</span><span class="t">Invent the Graph</span></a>
+    <a href="#d2"><span class="n">D2</span><span class="t">First 100 Node Types</span></a>
+    <a href="#d3"><span class="n">D3</span><span class="t">Relationship System</span></a>
+    <a href="#d4"><span class="n">D4</span><span class="t">Trust Flow Model</span></a>
+    <a href="#d5"><span class="n">D5</span><span class="t">Graph Experiences</span></a>
+    <a href="#synth"><span class="n">06</span><span class="t">Network Synthesis</span></a>
+  </nav>
+
+  <main>
+
+  <!-- ════════════ D1 ════════════ -->
+  <section class="sec" id="d1" data-screen-label="D1 Invent the Graph">
+    <div class="sh"><span class="n">D1</span><h2>Invent the Graph</h2><span class="ey">define the substrate</span></div>
+    <p class="lead"><strong>A Career Evidence Graph is a single, shared, append-only network in which every clinician, organization, source, credential, and piece of evidence is a node, and every relationship between them is a tiered, source-bound edge.</strong> Where a résumé is a private document a clinician re-writes, and a credentialing file is an institution's private copy, the graph is one connected structure that all of them read from and none of them owns alone. It exists so that a fact verified once — a license read from a state board, an employment confirmed by a health system — never has to be verified again by anyone else who relies on the same node.</p>
+
+    <div class="kicker">The three primitives · everything in the graph is one of these</div>
+    <div class="triad">
+      <div class="tp"><div class="gly"><i class="gly-node"></i></div><h4>Node — an entity</h4><p>A durable thing the network refers to: a person, an org, an authority, a credential, a record. Nodes are <b>nouns that persist</b> — they are referenced by many edges and outlive any single relationship.</p></div>
+      <div class="tp"><div class="gly"><i class="gly-edge"></i></div><h4>Edge — an assertion</h4><p>A directed, typed claim from one node to another — <b>holds, issued_by, employed_at</b>. Each edge carries its own tier, observed_at, and receipt. The edge <i>is</i> an EvidenceObject; the graph is the index over them.</p></div>
+      <div class="tp"><div class="gly"><i class="gly-anchor"></i></div><h4>Anchor — a shared node</h4><p>Any node two or more clinicians both connect to: a board, an employer, a specialty. Anchors are where <b>trust becomes transitive</b> and verification cost is amortized across everyone attached to them.</p></div>
+    </div>
+
+    <div class="kicker">Career Evidence Graph architecture · five planes, bottom-up</div>
+    <div class="archw">
+      <div class="archhd"><span>Architecture · capture once at the bottom, reuse at every plane above</span><b>append-only · source-bound · clinician-owned</b></div>
+      <div class="alayer">
+        <div class="al"><span class="ai">Plane 05</span><span class="an">Network</span></div>
+        <div class="ar"><b>The compounding asset.</b> Shared anchors, corroboration clusters, and transitive paths. Every new clinician or source attached to an existing anchor strengthens the whole graph for everyone already on it.</div>
+      </div>
+      <div class="alayer">
+        <div class="al"><span class="ai">Plane 04</span><span class="an">Trust</span></div>
+        <div class="ar"><b>The derived plane.</b> Six trust dimensions and readiness states, computed by propagating tier and corroboration along edges. Nothing here is stored as a fact — it is recomputed from the planes below (see D4).</div>
+      </div>
+      <div class="alayer">
+        <div class="al"><span class="ai">Plane 03</span><span class="an">Relationship</span></div>
+        <div class="ar"><b>The connective plane.</b> Twenty-four edge types binding nodes — <span class="mn">holds</span> <span class="mn">issued_by</span> <span class="mn">corroborates</span> <span class="mn">supersedes</span>. Edges are evidence-bearing and directional; the topology lives here (see D3).</div>
+      </div>
+      <div class="alayer">
+        <div class="al"><span class="ai">Plane 02</span><span class="an">Node</span></div>
+        <div class="ar"><b>The entity plane.</b> One hundred node types across twelve families — clinicians, organizations, authorities, credentials, evidence, taxonomy. Each node is content-addressed and referenced, never duplicated (see D2).</div>
+      </div>
+      <div class="alayer dark">
+        <div class="al"><span class="ai">Plane 01</span><span class="an">Evidence</span></div>
+        <div class="ar"><b>The atomic plane (W215).</b> The EvidenceObject — a single source-attributed, immutable assertion. The graph is an index over these. Every node and edge dereferences to evidence; nothing is asserted without it.</div>
+      </div>
+    </div>
+
+    <div class="kicker">What the graph creates · trust, reputation, portability</div>
+    <div class="grid3">
+      <div class="card"><div class="ph"><span>Creates trust</span><b>provenance × corroboration</b></div><div class="bd"><p>Trust is created where an edge traces to an <strong>independent authority</strong> and is confirmed by <strong>more than one source</strong>. A license edge to the state board is trusted; the same license corroborated by two employers is trusted more. Trust is a property of the path, not the claim.</p></div></div>
+      <div class="card"><div class="ph"><span>Creates reputation</span><b>accumulation over time</b></div><div class="bd"><p>Reputation is created where evidence <strong>accumulates and connects</strong> — a rising arc of leadership edges, a growing body of authored publications, a deepening cluster of recognitions. Reputation is the shape of a clinician's subgraph read across a career, not any single node.</p></div></div>
+      <div class="card"><div class="ph"><span>Creates portability</span><b>ownership + receipt</b></div><div class="bd"><p>Portability is created where a node is <strong>clinician-owned and carries a signed receipt</strong>. Because the destination trusts the source node directly — not VitalCV — the clinician can present the edge anywhere and the receiver verifies it without re-collecting. Trust travels with the person.</p></div></div>
+    </div>
+    <div class="note"><span class="lb">Architecture answer · what is a Career Evidence Graph</span><b>It is professional trust, made into a shared structure.</b> Nodes are the entities a career touches; edges are the source-bound assertions that connect them; anchors are the shared nodes where trust becomes transitive. Build it once, append forever, and the cost of verification falls to zero for the second person who relies on any node.</div>
+  </section>
+
+  <!-- ════════════ D2 ════════════ -->
+  <section class="sec" id="d2" data-screen-label="D2 First 100 Node Types">
+    <div class="sh"><span class="n">D2</span><h2>First 100 Node Types</h2><span class="ey">populate the substrate</span></div>
+    <p class="lead"><strong>The graph is seeded with one hundred first-class node types across twelve families.</strong> A node type earns first-class status when it is referenced by more than one clinician, issued or governed by an identifiable authority, or carries trust that other nodes inherit. Each family below shows what it contributes, and three signals that decide its value: <span class="dotn hi">trust weight</span> — how much trust it can mint or carry; <span class="dotn md">network effect</span> — how strongly it is shared across clinicians; <span class="dotn">compounding</span> — whether it grows in value over a career.</p>
+
+    <div class="cat">
+      <div class="catfam">
+        <div class="fhd">
+          <div class="fl"><span class="fg clin"></span><div><b>01 · Actors</b><div class="ct">8 nodes · roots</div></div></div>
+          <div class="fr">The people and identities the graph is <b>about</b>. Every other node ultimately resolves back to an actor. Trust originates elsewhere, but it is <b>owned</b> here.</div>
+          <div class="fx">
+            <div class="xr"><span>Trust</span><span class="bar"><i style="width:50%"></i></span></div>
+            <div class="xr"><span>Network</span><span class="bar"><i style="width:42%"></i></span></div>
+            <div class="xr"><span>Compound</span><span class="bar"><i style="width:80%"></i></span></div>
+          </div>
+        </div>
+        <div class="nodes">
+          <span class="nchip key">Clinician</span><span class="nchip">Person Identity</span><span class="nchip key">NPI Identity <i>· root key</i></span><span class="nchip">Trainee</span><span class="nchip">Applicant</span><span class="nchip">Delegate <i>· proxy</i></span><span class="nchip">Attestor <i>· reference</i></span><span class="nchip">Peer</span>
+        </div>
+      </div>
+
+      <div class="catfam">
+        <div class="fhd">
+          <div class="fl"><span class="fg org"></span><div><b>02 · Organizations</b><div class="ct">14 nodes · anchors</div></div></div>
+          <div class="fr">Where careers happen. Organizations are the <b>strongest network anchors</b> — thousands of clinicians attach to one, amortizing every verification it backs.</div>
+          <div class="fx">
+            <div class="xr"><span>Trust</span><span class="bar"><i style="width:64%"></i></span></div>
+            <div class="xr"><span>Network</span><span class="bar"><i style="width:96%"></i></span></div>
+            <div class="xr"><span>Compound</span><span class="bar"><i style="width:55%"></i></span></div>
+          </div>
+        </div>
+        <div class="nodes">
+          <span class="nchip key">Health System</span><span class="nchip">Hospital</span><span class="nchip">Academic Medical Center</span><span class="nchip">Medical Group</span><span class="nchip">Clinic</span><span class="nchip">Ambulatory Surgery Ctr</span><span class="nchip">Department</span><span class="nchip">Division</span><span class="nchip">University / Faculty</span><span class="nchip">Residency Program</span><span class="nchip">Fellowship Program</span><span class="nchip">Research Institute</span><span class="nchip">Payer / Insurer</span><span class="nchip">Locums Agency</span>
+        </div>
+      </div>
+
+      <div class="catfam">
+        <div class="fhd">
+          <div class="fl"><span class="fg src"></span><div><b>03 · Authorities &amp; Sources</b><div class="ct">14 nodes · trust origin</div></div></div>
+          <div class="fr">Where trust is <b>minted</b>. These are the only nodes that originate trust rather than carry it. Verify the authority once; trust every credential it ever issued.</div>
+          <div class="fx">
+            <div class="xr"><span>Trust</span><span class="bar"><i style="width:100%"></i></span></div>
+            <div class="xr"><span>Network</span><span class="bar"><i style="width:98%"></i></span></div>
+            <div class="xr"><span>Compound</span><span class="bar"><i style="width:40%"></i></span></div>
+          </div>
+        </div>
+        <div class="nodes">
+          <span class="nchip key">State Medical Board</span><span class="nchip key">ABMS / Specialty Board</span><span class="nchip key">NPPES <i>· NPI registry</i></span><span class="nchip">DEA</span><span class="nchip">NPDB</span><span class="nchip">OIG / SAM <i>· exclusions</i></span><span class="nchip">ECFMG</span><span class="nchip">FSMB</span><span class="nchip">CAQH</span><span class="nchip">AMA Profile</span><span class="nchip">Malpractice Carrier</span><span class="nchip">Primary-Source Verifier</span><span class="nchip">Credentialing Office</span><span class="nchip">State CSR Authority</span>
+        </div>
+      </div>
+
+      <div class="catfam">
+        <div class="fhd">
+          <div class="fl"><span class="fg cred"></span><div><b>04 · Credentials &amp; Licenses</b><div class="ct">10 nodes · gating</div></div></div>
+          <div class="fr">The right-to-practice nodes. <b>Highest trust weight per node</b> and the gate on most readiness — but volatile: they expire and must be re-confirmed on a clock.</div>
+          <div class="fx">
+            <div class="xr"><span>Trust</span><span class="bar"><i style="width:94%"></i></span></div>
+            <div class="xr"><span>Network</span><span class="bar"><i style="width:48%"></i></span></div>
+            <div class="xr"><span>Compound</span><span class="bar"><i style="width:30%"></i></span></div>
+          </div>
+        </div>
+        <div class="nodes">
+          <span class="nchip key">Medical License</span><span class="nchip key">Board Certification</span><span class="nchip">Subspecialty Cert</span><span class="nchip">MOC Status</span><span class="nchip">DEA Registration</span><span class="nchip">State CSR</span><span class="nchip">ACLS / BLS / PALS</span><span class="nchip">ECFMG Certificate</span><span class="nchip">Work Authorization / Visa</span><span class="nchip">Hospital Privileges</span>
+        </div>
+      </div>
+
+      <div class="catfam">
+        <div class="fhd">
+          <div class="fl"><span class="fg cred"></span><div><b>05 · Education &amp; Training</b><div class="ct">9 nodes · identity</div></div></div>
+          <div class="fr">The immutable foundation. Conferred once, <b>true forever</b>, never re-verified. Low volatility, high standing — the root most privileging and academic paths trace back to.</div>
+          <div class="fx">
+            <div class="xr"><span>Trust</span><span class="bar"><i style="width:82%"></i></span></div>
+            <div class="xr"><span>Network</span><span class="bar"><i style="width:58%"></i></span></div>
+            <div class="xr"><span>Compound</span><span class="bar"><i style="width:35%"></i></span></div>
+          </div>
+        </div>
+        <div class="nodes">
+          <span class="nchip key">Medical Degree <i>· MD/DO</i></span><span class="nchip">Undergraduate Degree</span><span class="nchip">Graduate Degree</span><span class="nchip key">Residency</span><span class="nchip key">Fellowship</span><span class="nchip">Internship</span><span class="nchip">CME Record</span><span class="nchip">Transcript</span><span class="nchip">Diploma</span>
+        </div>
+      </div>
+
+      <div class="catfam">
+        <div class="fhd">
+          <div class="fl"><span class="fg evid"></span><div><b>06 · Employment &amp; Roles</b><div class="ct">9 nodes · continuity</div></div></div>
+          <div class="fr">The work history plane. Bridges actor to organization, so it is <b>doubly shared</b>. Continuity of these edges is itself a primary trust signal for mobility.</div>
+          <div class="fx">
+            <div class="xr"><span>Trust</span><span class="bar"><i style="width:70%"></i></span></div>
+            <div class="xr"><span>Network</span><span class="bar"><i style="width:78%"></i></span></div>
+            <div class="xr"><span>Compound</span><span class="bar"><i style="width:72%"></i></span></div>
+          </div>
+        </div>
+        <div class="nodes">
+          <span class="nchip key">Employment Position</span><span class="nchip">Attending Role</span><span class="nchip">Faculty Appointment</span><span class="nchip key">Clinical Privilege <i>· procedure</i></span><span class="nchip">Staff Category</span><span class="nchip">Locums Assignment</span><span class="nchip">Telehealth Credential</span><span class="nchip">Affiliation</span><span class="nchip">Call Coverage</span>
+        </div>
+      </div>
+
+      <div class="catfam">
+        <div class="fhd">
+          <div class="fl"><span class="fg evid"></span><div><b>07 · Scholarship</b><div class="ct">12 nodes · reputation</div></div></div>
+          <div class="fr">The body-of-work plane. <b>Purely additive — it only compounds.</b> Every publication, grant, and trial is a permanent node that adds scholarly weight over a career.</div>
+          <div class="fx">
+            <div class="xr"><span>Trust</span><span class="bar"><i style="width:55%"></i></span></div>
+            <div class="xr"><span>Network</span><span class="bar"><i style="width:66%"></i></span></div>
+            <div class="xr"><span>Compound</span><span class="bar"><i style="width:100%"></i></span></div>
+          </div>
+        </div>
+        <div class="nodes">
+          <span class="nchip key">Publication</span><span class="nchip">Citation Record</span><span class="nchip key">Research Study / Trial</span><span class="nchip">Grant</span><span class="nchip">Principal Investigator Role</span><span class="nchip">IRB Standing</span><span class="nchip">Patent</span><span class="nchip">Conference Presentation</span><span class="nchip">Abstract</span><span class="nchip">Editorial Role</span><span class="nchip">Peer-Review Role</span><span class="nchip">Book / Chapter</span>
+        </div>
+      </div>
+
+      <div class="catfam">
+        <div class="fhd">
+          <div class="fl"><span class="fg evid"></span><div><b>08 · Leadership &amp; Service</b><div class="ct">9 nodes · trajectory</div></div></div>
+          <div class="fr">The institutional-standing plane. A rising arc of these edges, read across decades, <b>is trajectory</b> — the clearest signal of leadership readiness.</div>
+          <div class="fx">
+            <div class="xr"><span>Trust</span><span class="bar"><i style="width:60%"></i></span></div>
+            <div class="xr"><span>Network</span><span class="bar"><i style="width:62%"></i></span></div>
+            <div class="xr"><span>Compound</span><span class="bar"><i style="width:90%"></i></span></div>
+          </div>
+        </div>
+        <div class="nodes">
+          <span class="nchip key">Leadership Position</span><span class="nchip">Department Chair</span><span class="nchip">Program Director Role</span><span class="nchip">Committee Membership</span><span class="nchip key">Professional Society</span><span class="nchip">Society Fellowship</span><span class="nchip">Guideline Authorship</span><span class="nchip">Board Seat</span><span class="nchip">Mentorship</span>
+        </div>
+      </div>
+
+      <div class="catfam">
+        <div class="fhd">
+          <div class="fl"><span class="fg evid"></span><div><b>09 · Recognition</b><div class="ct">6 nodes · standing</div></div></div>
+          <div class="fr">Discrete, dated, permanent honors. <b>Peer-conferred trust</b> — never expires, only accrues. A signal of standing other clinicians and institutions already validated.</div>
+          <div class="fx">
+            <div class="xr"><span>Trust</span><span class="bar"><i style="width:48%"></i></span></div>
+            <div class="xr"><span>Network</span><span class="bar"><i style="width:54%"></i></span></div>
+            <div class="xr"><span>Compound</span><span class="bar"><i style="width:85%"></i></span></div>
+          </div>
+        </div>
+        <div class="nodes">
+          <span class="nchip">Award</span><span class="nchip">Honor</span><span class="nchip">Named Lectureship</span><span class="nchip">Top-Doctor Recognition</span><span class="nchip">Teaching Award</span><span class="nchip">Grant Award</span>
+        </div>
+      </div>
+
+      <div class="catfam">
+        <div class="fhd">
+          <div class="fl"><span class="fg spec"></span><div><b>10 · Taxonomy</b><div class="ct">6 nodes · classifier anchors</div></div></div>
+          <div class="fr">The classifier plane. Specialties and procedures are <b>pure network anchors</b> — they hold no evidence themselves but connect every clinician who practices them.</div>
+          <div class="fx">
+            <div class="xr"><span>Trust</span><span class="bar"><i style="width:20%"></i></span></div>
+            <div class="xr"><span>Network</span><span class="bar"><i style="width:92%"></i></span></div>
+            <div class="xr"><span>Compound</span><span class="bar"><i style="width:30%"></i></span></div>
+          </div>
+        </div>
+        <div class="nodes">
+          <span class="nchip key">Specialty</span><span class="nchip">Subspecialty</span><span class="nchip">Procedure / CPT Competency</span><span class="nchip">Condition / Focus Area</span><span class="nchip">Skill</span><span class="nchip">Modality</span>
+        </div>
+      </div>
+
+      <div class="catfam">
+        <div class="fhd">
+          <div class="fl"><span class="fg meta"></span><div><b>11 · Provenance</b><div class="ct">9 nodes · meta-evidence</div></div></div>
+          <div class="fr">The plane that makes the graph auditable. These nodes are evidence <b>about</b> evidence — receipts, attestations, verification events — the machinery trust propagation runs on.</div>
+          <div class="fx">
+            <div class="xr"><span>Trust</span><span class="bar"><i style="width:88%"></i></span></div>
+            <div class="xr"><span>Network</span><span class="bar"><i style="width:70%"></i></span></div>
+            <div class="xr"><span>Compound</span><span class="bar"><i style="width:95%"></i></span></div>
+          </div>
+        </div>
+        <div class="nodes">
+          <span class="nchip key">EvidenceObject</span><span class="nchip key">Receipt / Signature</span><span class="nchip">Attestation</span><span class="nchip key">Verification Event</span><span class="nchip key">Corroboration Edge</span><span class="nchip">Lineage Record</span><span class="nchip">Source Read</span><span class="nchip">Document / Artifact</span><span class="nchip">Gap / Exception</span>
+        </div>
+      </div>
+
+      <div class="catfam">
+        <div class="fhd">
+          <div class="fl"><span class="fg meta"></span><div><b>12 · Derived</b><div class="ct">5 nodes · computed</div></div></div>
+          <div class="fr">The output plane. Nothing here is captured — all five are <b>recomputed</b> by propagating trust along edges (D4). Stored as cache, never as truth.</div>
+          <div class="fx">
+            <div class="xr"><span>Trust</span><span class="bar"><i style="width:40%"></i></span></div>
+            <div class="xr"><span>Network</span><span class="bar"><i style="width:60%"></i></span></div>
+            <div class="xr"><span>Compound</span><span class="bar"><i style="width:88%"></i></span></div>
+          </div>
+        </div>
+        <div class="nodes">
+          <span class="nchip">Trust Dimension</span><span class="nchip">Readiness State</span><span class="nchip">Reputation Index</span><span class="nchip">Continuity Record</span><span class="nchip key">Network Anchor</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid3" style="margin-top:16px">
+      <div class="card"><div class="ph"><span>Most trust</span><b>authorities &amp; credentials</b></div><div class="bd"><p><strong>Authorities mint it; credentials carry it.</strong> A node's trust ceiling is set by the authority at the end of its provenance path. The state board, ABMS, NPPES, and NPDB are the highest-weight nodes in the graph — and the license, board cert, and privilege nodes that descend from them inherit that weight.</p></div></div>
+      <div class="card"><div class="ph"><span>Most network effect</span><b>anchors</b></div><div class="bd"><p><strong>Shared nodes are the network.</strong> Organizations, authorities, and specialties are reused by thousands of clinicians, so every verification they back is amortized across all of them. The 1,000th clinician at a health system inherits an anchor the 1st paid to establish.</p></div></div>
+      <div class="card"><div class="ph"><span>Most compounding</span><b>scholarship &amp; provenance</b></div><div class="bd"><p><strong>Additive nodes only grow.</strong> Publications, leadership, recognition, and — above all — corroboration and verification events never decay. Each new one adds permanent weight, so a career's subgraph is strictly more valuable every year it is maintained.</p></div></div>
+    </div>
+  </section>
+
+  <!-- ════════════ D3 ════════════ -->
+  <section class="sec" id="d3" data-screen-label="D3 Relationship System">
+    <div class="sh"><span class="n">D3</span><h2>Relationship System</h2><span class="ey">connect the nodes</span></div>
+    <p class="lead"><strong>Relationships are the graph's load-bearing layer — twenty-four directed, typed edges, each one an EvidenceObject in its own right.</strong> An edge is never a bare pointer: it carries the tier, observed_at, source, and receipt of the assertion it makes. Read an edge as a sentence — <span class="mn">Clinician → HOLDS → License</span> — and the three nodes it touches plus the provenance it carries are the whole claim. Edges fall into three behaviors that decide how the graph ages: permanent, expiring, and trust-bearing.</p>
+
+    <div class="kicker">Core triples · subject → relationship → object</div>
+    <div class="tripw">
+      <div class="triphd"><span>Relationship catalog · the sentences the graph is built from</span><b>solid = permanent · dashed = expiring</b></div>
+      <div class="trips">
+        <div class="trip"><span class="sub">Clinician</span><span class="rel"><span class="v">holds</span><span class="ln exp"></span></span><span class="obj">License</span></div>
+        <div class="trip"><span class="sub">Clinician</span><span class="rel"><span class="v">earned</span><span class="ln perm"></span></span><span class="obj">Board Cert</span></div>
+        <div class="trip"><span class="sub">Clinician</span><span class="rel"><span class="v">graduated</span><span class="ln perm"></span></span><span class="obj">Degree</span></div>
+        <div class="trip"><span class="sub">Clinician</span><span class="rel"><span class="v">employed_at</span><span class="ln"></span></span><span class="obj">Organization</span></div>
+        <div class="trip"><span class="sub">Clinician</span><span class="rel"><span class="v">authored</span><span class="ln perm"></span></span><span class="obj">Publication</span></div>
+        <div class="trip"><span class="sub">Clinician</span><span class="rel"><span class="v">led</span><span class="ln perm"></span></span><span class="obj">Leadership Pos.</span></div>
+        <div class="trip"><span class="sub">Clinician</span><span class="rel"><span class="v">privileged_at</span><span class="ln exp"></span></span><span class="obj">Hospital</span></div>
+        <div class="trip"><span class="sub">Clinician</span><span class="rel"><span class="v">specializes_in</span><span class="ln perm"></span></span><span class="obj">Specialty</span></div>
+        <div class="trip"><span class="sub">Clinician</span><span class="rel"><span class="v">received</span><span class="ln perm"></span></span><span class="obj">Award</span></div>
+        <div class="trip"><span class="sub">Clinician</span><span class="rel"><span class="v">member_of</span><span class="ln exp"></span></span><span class="obj">Society</span></div>
+        <div class="trip"><span class="sub">Clinician</span><span class="rel"><span class="v">trained_at</span><span class="ln perm"></span></span><span class="obj">Program</span></div>
+        <div class="trip"><span class="sub">Clinician</span><span class="rel"><span class="v">investigates</span><span class="ln exp"></span></span><span class="obj">Trial</span></div>
+        <div class="trip"><span class="sub">License</span><span class="rel"><span class="v">issued_by</span><span class="ln perm"></span></span><span class="obj">Med Board</span></div>
+        <div class="trip"><span class="sub">Board Cert</span><span class="rel"><span class="v">issued_by</span><span class="ln perm"></span></span><span class="obj">ABMS Board</span></div>
+        <div class="trip"><span class="sub">Privilege</span><span class="rel"><span class="v">granted_by</span><span class="ln exp"></span></span><span class="obj">Hospital</span></div>
+        <div class="trip"><span class="sub">Source</span><span class="rel"><span class="v">verified_by</span><span class="ln"></span></span><span class="obj">Evidence</span></div>
+        <div class="trip"><span class="sub">Source B</span><span class="rel"><span class="v">corroborates</span><span class="ln perm"></span></span><span class="obj">Evidence</span></div>
+        <div class="trip"><span class="sub">Employer</span><span class="rel"><span class="v">attests</span><span class="ln exp"></span></span><span class="obj">Clinician</span></div>
+        <div class="trip"><span class="sub">Object v2</span><span class="rel"><span class="v">supersedes</span><span class="ln perm"></span></span><span class="obj">Object v1</span></div>
+        <div class="trip"><span class="sub">Clinician</span><span class="rel"><span class="v">delegates_to</span><span class="ln exp"></span></span><span class="obj">Proxy</span></div>
+        <div class="trip"><span class="sub">Org</span><span class="rel"><span class="v">part_of</span><span class="ln perm"></span></span><span class="obj">Health System</span></div>
+        <div class="trip"><span class="sub">Clinician</span><span class="rel"><span class="v">recognized_by</span><span class="ln perm"></span></span><span class="obj">Society</span></div>
+        <div class="trip"><span class="sub">Clinician</span><span class="rel"><span class="v">mentored</span><span class="ln perm"></span></span><span class="obj">Trainee</span></div>
+        <div class="trip"><span class="sub">Evidence</span><span class="rel"><span class="v">references</span><span class="ln perm"></span></span><span class="obj">Document</span></div>
+      </div>
+    </div>
+
+    <div class="kicker">Edge behavior · which relationships last, expire, and strengthen trust</div>
+    <div class="tbl scroll">
+    <table class="tbl">
+      <thead><tr><th style="width:118px">Behavior</th><th style="width:230px">Edge types</th><th>How it ages</th><th style="width:160px">Effect on trust</th></tr></thead>
+      <tbody>
+        <tr><td class="nm">Permanent</td><td><code>earned</code> · <code>graduated</code> · <code>authored</code> · <code>received</code> · <code>led</code> · <code>supersedes</code> · <code>issued_by</code></td><td><strong>Never lapses.</strong> The event happened; the edge records it forever. Becomes historical context but is never removed.</td><td><span class="dotn hi">Anchors baseline trust</span></td></tr>
+        <tr><td class="nm">Expiring</td><td><code>holds</code> · <code>privileged_at</code> · <code>member_of</code> · <code>granted_by</code> · <code>attests</code> · <code>investigates</code></td><td><strong>Valid for a window.</strong> Carries an <span class="mn">effective_period</span>; past it the edge goes stale and gates readiness until re-observed.</td><td><span class="dotn md">Decays on a clock</span></td></tr>
+        <tr><td class="nm">Trust-bearing</td><td><code>verified_by</code> · <code>corroborates</code> · <code>attests</code> · <code>recognized_by</code></td><td><strong>Strengthens with density.</strong> Each independent edge of this kind to the same node compounds confidence. These never decay — they only accumulate.</td><td><span class="dotn hi">Multiplies trust</span></td></tr>
+        <tr><td class="nm">Structural</td><td><code>part_of</code> · <code>specializes_in</code> · <code>employed_at</code> · <code>references</code> · <code>delegates_to</code></td><td><strong>Topology, not claim.</strong> Connects the graph and routes traversal. Some expire (employment, delegation); most are durable scaffolding.</td><td><span class="dotn lo">Carries, not creates</span></td></tr>
+      </tbody>
+    </table>
+    </div>
+    <div class="note"><span class="lb">Architecture answer · the edge is the unit of trust</span><b>Permanent edges anchor a career; expiring edges keep it current; trust-bearing edges make it stronger the more the network looks at it.</b> The single most important edge is <code>corroborates</code> — it is how two independent sources agreeing on one fact turn isolated records into a network. Every other relationship is a sentence; <code>corroborates</code> is what makes the graph believe them.</div>
+  </section>
+
+  <!-- ════════════ D4 ════════════ -->
+  <section class="sec" id="d4" data-screen-label="D4 Trust Flow Model">
+    <div class="sh"><span class="n">D4</span><h2>Trust Flow Model</h2><span class="ey">propagate trust through the graph</span></div>
+    <p class="lead"><strong>Trust is not stored on a clinician — it is propagated to them, along edges, from the authorities that mint it.</strong> Every clinician's standing is recomputed by flowing tier and corroboration inward from source nodes, aggregating into six trust dimensions, and resolving outward into readiness and network value. Because the inputs are immutable and the path is auditable, the output is never a black-box score — it is a traceable sum of source-bound evidence.</p>
+
+    <div class="kicker">Propagation · evidence inputs → trust dimensions → portable outcomes</div>
+    <div class="flow">
+      <div class="flowhd"><span>Trust propagation · left mints, middle accumulates, right resolves</span>
+        <span class="lg"><svg width="16" height="6"><line x1="0" y1="3" x2="16" y2="3" stroke="#1e293b" stroke-width="1.5"/></svg>strong path</span>
+      </div>
+      <div class="flowgrid">
+        <div class="flowcol">
+          <div class="colh">Evidence inputs</div>
+          <div class="fnode"><div class="fn">Board Certification</div><div class="fm">ABMS → primary source · T4</div></div>
+          <div class="fnode"><div class="fn">Primary-Source License</div><div class="fm">State board · T4 · volatile</div></div>
+          <div class="fnode"><div class="fn">Publication Record</div><div class="fm">41 authored · additive</div></div>
+          <div class="fnode"><div class="fn">Faculty Appointment</div><div class="fm">University · attested</div></div>
+          <div class="fnode"><div class="fn">Leadership Arc</div><div class="fm">Section → Director · rising</div></div>
+          <div class="fnode"><div class="fn">Corroboration Edges</div><div class="fm">2+ independent sources</div></div>
+        </div>
+        <div class="fconn">
+          <svg preserveAspectRatio="none" viewBox="0 0 56 360">
+            <path class="ce strong" d="M0,30 C28,30 28,40 56,40"/>
+            <path class="ce strong" d="M0,80 C28,80 28,40 56,40"/>
+            <path class="ce strong" d="M0,80 C28,80 28,100 56,100"/>
+            <path class="ce" d="M0,140 C28,140 28,160 56,160"/>
+            <path class="ce" d="M0,200 C28,200 28,160 56,160"/>
+            <path class="ce" d="M0,200 C28,200 28,220 56,220"/>
+            <path class="ce" d="M0,260 C28,260 28,280 56,280"/>
+            <path class="ce strong" d="M0,320 C28,320 28,340 56,340"/>
+            <path class="ce strong" d="M0,320 C28,320 28,100 56,100"/>
+          </svg>
+        </div>
+        <div class="flowcol mid">
+          <div class="colh">Six trust dimensions</div>
+          <div class="tdim"><div class="th"><b>Identity Trust</b><span class="w">who they are</span></div><div class="td">NPI, degree, training, active license. The non-negotiable base every other dimension assumes.</div></div>
+          <div class="tdim"><div class="th"><b>Clinical Trust</b><span class="w">safe to practice</span></div><div class="td">Board cert, privileges, case logs, clean malpractice &amp; NPDB. Gates patient-facing roles.</div></div>
+          <div class="tdim"><div class="th"><b>Academic Trust</b><span class="w">fit to teach</span></div><div class="td">Faculty appointment, teaching history, mentorship. Standing inside a training institution.</div></div>
+          <div class="tdim"><div class="th"><b>Research Trust</b><span class="w">domain authority</span></div><div class="td">Publications, grants, trial roles, IRB standing. Scholarly weight that compounds.</div></div>
+          <div class="tdim"><div class="th"><b>Institutional Trust</b><span class="w">stewardship</span></div><div class="td">Leadership arc, tenure, committee &amp; guideline service, attestation. Trust to run things.</div></div>
+          <div class="tdim"><div class="th"><b>Network Trust</b><span class="w">corroboration</span></div><div class="td">Source independence, corroboration density, shared-anchor depth. The meta-dimension.</div></div>
+        </div>
+        <div class="fconn">
+          <svg preserveAspectRatio="none" viewBox="0 0 56 360">
+            <path class="ce strong" d="M0,40 C28,40 28,60 56,60"/>
+            <path class="ce strong" d="M0,100 C28,100 28,60 56,60"/>
+            <path class="ce" d="M0,100 C28,100 28,150 56,150"/>
+            <path class="ce" d="M0,160 C28,160 28,150 56,150"/>
+            <path class="ce" d="M0,220 C28,220 28,240 56,240"/>
+            <path class="ce" d="M0,280 C28,280 28,240 56,240"/>
+            <path class="ce strong" d="M0,340 C28,340 28,320 56,320"/>
+            <path class="ce strong" d="M0,40 C28,40 28,320 56,320"/>
+          </svg>
+        </div>
+        <div class="flowcol">
+          <div class="colh">Portable outcomes</div>
+          <div class="outc"><div class="on">Credentialing Ready</div><div class="od">Identity + Clinical resolve · signed packet</div></div>
+          <div class="outc"><div class="on">Privileging Ready</div><div class="od">+ case logs &amp; MOC currency</div></div>
+          <div class="outc"><div class="on">Academic Ready</div><div class="od">Academic + Research resolve</div></div>
+          <div class="outc"><div class="on">Leadership Ready</div><div class="od">Institutional trajectory resolves</div></div>
+          <div class="outc"><div class="on">Network Value</div><div class="od">Anchors others verify through</div></div>
+        </div>
+      </div>
+    </div>
+    <p style="font-family:'Geist Mono',monospace;font-size:9.5px;text-transform:uppercase;letter-spacing:.13em;color:var(--ink-500);margin:10px 0 0">Read left to right · <b style="color:var(--ink-900)">authorities mint trust</b> → it accumulates into <b style="color:var(--ink-900)">six dimensions</b> → which resolve into <b style="color:var(--ink-900)">portable readiness</b>. Network Trust feeds back: a well-corroborated clinician strengthens every anchor they touch.</p>
+
+    <div class="kicker">The seven laws of propagation</div>
+    <div class="laws">
+      <div class="law"><div class="ln">01</div><div class="lc"><b>Trust originates only at authorities.</b><p>No node asserts its own trust. Trust enters the graph at <code>Source</code> nodes — a board, a registry, a primary-source verifier — and flows outward. A clinician's standing is always borrowed from the authorities they trace to.</p></div></div>
+      <div class="law"><div class="ln">02</div><div class="lc"><b>Trust flows along edges, weighted by tier.</b><p>Each edge transmits trust scaled by its tier — <span class="tier" data-t="T4">T4</span> signed primary-source passes nearly all of it; <span class="tier" data-t="T1">T1</span> self-report passes almost none. Trust attenuates with every hop away from its source.</p></div></div>
+      <div class="law"><div class="ln">03</div><div class="lc"><b>Independent corroboration multiplies, not adds.</b><p>Two sources that agree are worth more than twice one. A <code>corroborates</code> edge from a genuinely independent source raises confidence super-linearly; a dependent confirmation adds nothing. Independence is the scarce input.</p></div></div>
+      <div class="law"><div class="ln">04</div><div class="lc"><b>Trust accumulates into dimensions, not a single score.</b><p>Evidence routes to one of six dimensions by class. A clinician is never "trusted" in the abstract — they are credentialing-ready, research-strong, leadership-proven. Context picks which dimension matters.</p></div></div>
+      <div class="law"><div class="ln">05</div><div class="lc"><b>Volatile trust decays; immutable trust does not.</b><p>Trust on expiring edges fades on the claim's clock and must be refreshed by a new observation. Trust on permanent edges never decays — it converts to historical context but keeps its weight.</p></div></div>
+      <div class="law"><div class="ln">06</div><div class="lc"><b>Trust crosses shared anchors — it is transitive.</b><p>When two clinicians share a verified anchor, trust the network paid to establish on one is available to the other. This is the only law that moves trust <i>between</i> clinicians, and it is what makes the graph a network.</p></div></div>
+      <div class="law"><div class="ln">07</div><div class="lc"><b>Every propagation is auditable.</b><p>The output carries its inputs. Any trust value can be expanded to the exact edges, sources, and receipts that produced it. There is no opaque score — only a traceable sum of source-bound evidence.</p></div></div>
+    </div>
+
+    <div class="kicker">How trust compounds · three engines, over a career</div>
+    <div class="cmp">
+      <div class="cc">
+        <div class="spark"><i style="height:24%"></i><i style="height:38%"></i><i style="height:52%"></i><i style="height:70%"></i><i style="height:88%"></i><i style="height:100%"></i></div>
+        <div class="ci">Engine A</div><h4>Accumulation</h4><p><b>More evidence, monotonic.</b> Each new publication, role, and recognition is a permanent node. The body of work only grows — a 20-year career's subgraph is strictly denser than a 5-year one.</p>
+      </div>
+      <div class="cc">
+        <div class="spark"><i style="height:20%"></i><i style="height:30%"></i><i style="height:48%"></i><i style="height:72%"></i><i style="height:90%"></i><i style="height:100%"></i></div>
+        <div class="ci">Engine B</div><h4>Corroboration density</h4><p><b>Same facts, more confirmations.</b> Every re-verification and independent attestation thickens existing edges. The same license, confirmed by three more sources over a decade, is worth far more than the day it was first read.</p>
+      </div>
+      <div class="cc">
+        <div class="spark"><i style="height:14%"></i><i style="height:22%"></i><i style="height:40%"></i><i style="height:64%"></i><i style="height:86%"></i><i style="height:100%"></i></div>
+        <div class="ci">Engine C</div><h4>Network reuse</h4><p><b>Shared anchors, amortized.</b> As more clinicians attach to the same boards, employers, and specialties, each anchor's verification cost spreads thinner and its trust value rises for everyone on it. Value per node climbs with graph size.</p>
+      </div>
+    </div>
+    <div class="note"><span class="lb">Deliverable · Trust Propagation Framework</span><b>Trust flows in from authorities, accumulates into six dimensions, decays only where the world changes, and crosses shared anchors to reach other clinicians.</b> It compounds on three engines — accumulation, corroboration density, and network reuse — so a maintained career is strictly more trustworthy every year, and a larger graph is strictly more valuable to everyone in it.</div>
+  </section>
+
+  <!-- ════════════ D5 ════════════ -->
+  <section class="sec" id="d5" data-screen-label="D5 Graph Experiences">
+    <div class="sh"><span class="n">D5</span><h2>Graph Experiences</h2><span class="ey">one graph, four readers</span></div>
+    <p class="lead"><strong>The same graph answers four different questions depending on who is looking — so the experience is one substrate rendered through four lenses, never four separate products.</strong> Each reader enters at a different node, traverses different edges, and reads trust in the dimension that matters to them. What none of them does is re-collect: every lens reads from evidence that was captured once.</p>
+
+    <div class="persw">
+      <div class="pers">
+        <div class="pl"><span class="pi">Persona 01</span><h4>Clinician</h4><div class="pq"><b>"This is my career — and I carry it."</b> Owns the subgraph, fills its gaps, presents it.</div></div>
+        <div class="pr">
+          <div class="pc"><div class="pch">What they see</div><p>Their <b>own subgraph</b> as a living career — every node they own, every edge's tier, and the gaps before anyone else notices them. The graph is autobiography with receipts.</p></div>
+          <div class="pc"><div class="pch">How they navigate trust</div><p>Walk outward from themselves to sources; see which edges are <b>signed, stale, or unbound</b>; refresh a volatile license or request an attestation to lift a dimension.</p></div>
+          <div class="pc"><div class="pch">How they read progression</div><div class="vlist"><span>Timeline of owned nodes</span><span>Rising leadership arc</span><span>Readiness per context</span><span>Signed wallet to present</span></div></div>
+        </div>
+      </div>
+      <div class="pers">
+        <div class="pl"><span class="pi">Persona 02</span><h4>Recruiter</h4><div class="pq"><b>"Is this person a fit, fast?"</b> Triages many subgraphs against one role.</div></div>
+        <div class="pr">
+          <div class="pc"><div class="pch">What they see</div><p>A <b>readiness-first collapse</b> of each candidate's subgraph — specialty anchor, trajectory shape, mobility state — scannable in seconds across a whole pipeline.</p></div>
+          <div class="pc"><div class="pch">How they navigate trust</div><p>Enter at a <b>Specialty or Organization anchor</b> and traverse to clinicians attached to it. Reads dimension badges, not raw evidence; expands only where a role demands it.</p></div>
+          <div class="pc"><div class="pch">How they read progression</div><div class="vlist"><span>Trajectory at a glance</span><span>Specialty &amp; subspecialty fit</span><span>Mobility / locums state</span><span>Sorted by readiness</span></div></div>
+        </div>
+      </div>
+      <div class="pers">
+        <div class="pl"><span class="pi">Persona 03</span><h4>Credentialing Team</h4><div class="pq"><b>"What is primary-source confirmed?"</b> Builds a defensible file.</div></div>
+        <div class="pr">
+          <div class="pc"><div class="pch">What they see</div><p>The <b>audit view</b> — every gating node with its tier, source, and receipt; corroboration count; continuity checks; and a flagged list of gaps and exceptions to resolve.</p></div>
+          <div class="pc"><div class="pch">How they navigate trust</div><p>Traverse each <b>credential edge back to its authority</b> and confirm the receipt verifies independently. Accept signed primary-source nodes instead of re-collecting them.</p></div>
+          <div class="pc"><div class="pch">How they read progression</div><div class="vlist"><span>Packet completeness %</span><span>Primary-source coverage</span><span>Stale / expiring queue</span><span>Exportable signed file</span></div></div>
+        </div>
+      </div>
+      <div class="pers">
+        <div class="pl"><span class="pi">Persona 04</span><h4>Employer</h4><div class="pq"><b>"Can I stand behind this hire?"</b> Weighs risk and fit together.</div></div>
+        <div class="pr">
+          <div class="pc"><div class="pch">What they see</div><p>The clinician's <b>six trust dimensions resolved against the role</b>, continuity with no unexplained gaps, and the network anchors that corroborate the record beyond a single source.</p></div>
+          <div class="pc"><div class="pch">How they navigate trust</div><p>Read the <b>dimension that matches the role</b> — Clinical for a hospitalist, Research for a PI — then drill into corroboration density and NPDB / malpractice standing for risk.</p></div>
+          <div class="pc"><div class="pch">How they read progression</div><div class="vlist"><span>Dimension fit to role</span><span>Continuity &amp; gap audit</span><span>Corroboration depth</span><span>Decision-grade summary</span></div></div>
+        </div>
+      </div>
+    </div>
+    <div class="note"><span class="lb">Architecture answer · one substrate, four entry points</span><b>The clinician enters at themselves, the recruiter at an anchor, the credentialer at a credential, the employer at a role.</b> Same nodes, same edges, same evidence — only the traversal and the dimension in focus change. No reader re-collects what another already captured; the graph turns four separate workflows into four readings of one record.</div>
+  </section>
+
+  <!-- ════════════ 06 · SYNTHESIS ════════════ -->
+  <section class="sec" id="synth" data-screen-label="Synthesis">
+    <div class="sh"><span class="n">06</span><h2>Network Synthesis</h2><span class="ey">the six answers</span></div>
+    <p class="lead">The five deliverables are one substrate. Read together they answer the wave's six questions and describe how the Career Evidence Graph turns VitalCV from a credential-readiness product into a <strong>Provider Career Evidence Network</strong>.</p>
+
+    <div class="ans">
+      <div class="arow"><div class="aq"><span class="an">Q1</span>What is the Career Evidence Graph?</div><div class="aa">A single shared, append-only network where every clinician, organization, authority, credential, and piece of evidence is a node, and every relationship is a tiered, source-bound edge. It is professional trust made into a structure — so a fact verified once is never re-verified by anyone who relies on the same node.</div></div>
+      <div class="arow"><div class="aq"><span class="an">Q2</span>What are its nodes?</div><div class="aa">One hundred first-class types across twelve families — <b>actors, organizations, authorities, credentials, education, employment, scholarship, leadership, recognition, taxonomy, provenance, and derived</b>. Authorities mint trust, credentials carry it, anchors share it, scholarship compounds it.</div></div>
+      <div class="arow"><div class="aq"><span class="an">Q3</span>What are its relationships?</div><div class="aa">Twenty-four directed, evidence-bearing edges in four behaviors — <b>permanent</b> (earned, authored, led), <b>expiring</b> (holds, privileged_at), <b>trust-bearing</b> (verified_by, corroborates), and <b>structural</b> (part_of, specializes_in). <code>corroborates</code> is the edge that turns records into a network.</div></div>
+      <div class="arow"><div class="aq"><span class="an">Q4</span>How does trust propagate?</div><div class="aa">It originates only at authorities, flows along edges weighted by tier, attenuates with distance, multiplies under independent corroboration, accumulates into six dimensions, decays only on volatile claims, and crosses shared anchors to reach other clinicians — every step auditable back to source.</div></div>
+      <div class="arow"><div class="aq"><span class="an">Q5</span>How does trust compound?</div><div class="aa">On three engines: <b>accumulation</b> (permanent nodes only grow), <b>corroboration density</b> (the same facts confirmed by more independent sources), and <b>network reuse</b> (shared anchors amortized across more clinicians). A maintained career is strictly more trustworthy every year.</div></div>
+      <div class="arow last"><div class="aq"><span class="an">Q6</span>How does this become a network?</div><div class="aa">The moment a node is shared. Verify a board once and trust every certification it issues; confirm an employer once and anchor every clinician who worked there. Each new clinician and source strengthens the anchors everyone already depends on — and the network, not any single record, becomes the compounding asset.</div></div>
+    </div>
+    <div class="note"><span class="lb">Determination</span><b>The graph is not a database — it is the memory of a profession.</b> Nodes are what a career touches, edges are the source-bound assertions that connect them, and trust is the value that flows across both. Build the shared anchors right and every clinician, source, and verification makes the whole network stronger. This is the substrate the Provider Career Evidence Network grows out of.</div>
+  </section>
+
+  </main>
+
+  <footer class="foot-page">
+    <span>VitalCV · Wave 220 · Career Evidence Graph</span>
+    <span>role: claude design · <b>D1–D5 + synthesis</b></span>
+    <span>vc.2026.06.20 · w220 · v1 · <b>provider career evidence network</b></span>
+  </footer>
+
+</div>
+</body>
+</html>

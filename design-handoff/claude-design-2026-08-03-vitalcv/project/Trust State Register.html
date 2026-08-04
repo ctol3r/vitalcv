@@ -1,0 +1,436 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>VitalCV · Trust State · Visual Register</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root{--ink-0:#fff;--ink-50:#f8fafc;--ink-100:#f1f5f9;--ink-200:#e2e8f0;--ink-300:#cbd5e1;--ink-400:#94a3b8;--ink-500:#64748b;--ink-600:#475569;--ink-700:#334155;--ink-800:#1e293b;--ink-900:#0f172a;--ink-950:#020617;--rule:#e2e8f0;--paper:#f8f6f1;}
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--ink-50);color:var(--ink-900);font-family:'Geist',ui-sans-serif,system-ui,sans-serif;font-feature-settings:'ss01','cv11';-webkit-font-smoothing:antialiased;font-size:13.5px;line-height:1.5;}
+  code,.mono{font-family:'Geist Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;}
+
+  .op{background:var(--ink-950);color:var(--ink-300);font-family:'Geist Mono',monospace;font-size:11px;}
+  .op .in{max-width:1380px;margin:0 auto;padding:6px 32px;min-height:30px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+  .op .pill{display:inline-flex;align-items:center;gap:6px;padding:2px 7px;border:1px solid var(--ink-700);text-transform:uppercase;letter-spacing:.12em;font-size:10px;}
+  .op .pill .d{width:6px;height:6px;background:#fff;border-radius:50%;}
+  .op .sep{color:var(--ink-600);}
+
+  header.mh{background:var(--ink-0);border-bottom:1px solid var(--rule);}
+  .mh .in{max-width:1380px;margin:0 auto;padding:22px 32px;}
+  .brand{display:flex;align-items:center;gap:11px;margin-bottom:14px;}
+  .brand .g{width:22px;height:22px;background:var(--ink-900);color:#fff;display:grid;place-items:center;font-family:'Geist Mono',monospace;font-size:11px;font-weight:600;}
+  .brand .nm{font-weight:600;letter-spacing:-.01em;font-size:15px;}
+  .brand .nm .sl{color:var(--ink-400);font-weight:400;}
+  .brand .nm .sub{color:var(--ink-500);font-weight:400;}
+  .eyebrow{font-family:'Geist Mono',monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:.18em;color:var(--ink-500);display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+  .eyebrow .r{display:inline-block;width:22px;height:1px;background:var(--ink-300);}
+  h1{font-size:26px;line-height:1.12;letter-spacing:-.025em;font-weight:600;margin:0;max-width:780px;}
+  h1 .muted{color:var(--ink-500);}
+  .meta-h{display:flex;gap:18px;margin-top:12px;flex-wrap:wrap;font-family:'Geist Mono',monospace;font-size:10.5px;color:var(--ink-500);text-transform:uppercase;letter-spacing:.14em;}
+  .meta-h span strong{color:var(--ink-900);font-weight:500;}
+
+  main{max-width:1380px;margin:0 auto;padding:24px 32px 56px;}
+  .sec{margin-top:32px;}
+  .sec:first-child{margin-top:0;}
+  .sh{display:flex;align-items:baseline;gap:14px;border-bottom:1px solid var(--ink-900);padding-bottom:8px;margin-bottom:18px;}
+  .sh .n{font-family:'Geist Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-300);font-weight:600;}
+  .sh h2{font-size:17px;margin:0;font-weight:600;letter-spacing:-.015em;color:var(--ink-900);}
+  .sh .ey{font-family:'Geist Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-500);}
+
+  /* === THREE-CARD STAGE === */
+  .stage{display:grid;grid-template-columns:1fr 1fr 1fr;gap:24px;}
+  .card{display:flex;flex-direction:column;min-height:560px;}
+
+  /* state label strip above each card */
+  .clabel{display:flex;align-items:baseline;gap:10px;margin-bottom:10px;}
+  .clabel .ord{font-family:'Geist Mono',monospace;font-size:10px;color:var(--ink-300);font-weight:600;letter-spacing:.16em;}
+  .clabel .b{font-family:'Geist Mono',monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase;padding:3px 8px;border:1px solid var(--ink-900);color:var(--ink-900);font-weight:500;}
+  .clabel .b.solid{background:var(--ink-900);color:#fff;}
+  .clabel .b.dashed{border-style:dashed;color:var(--ink-700);background:transparent;}
+  .clabel .nm{font-size:14.5px;font-weight:500;letter-spacing:-.01em;color:var(--ink-900);}
+
+  /* === STATE A — Anonymous preview ===
+     paper bg, dashed border, soft type, marketing register, minimal data */
+  .pv{background:var(--paper);border:1.5px dashed var(--ink-400);padding:22px;flex:1;display:flex;flex-direction:column;gap:18px;}
+  .pv .top{display:flex;align-items:center;gap:10px;font-family:'Geist Mono',monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:.14em;color:var(--ink-500);}
+  .pv .top .glyph{width:14px;height:14px;border:1px dashed var(--ink-500);}
+  .pv .h{font-family:'Geist',sans-serif;font-size:22px;letter-spacing:-.02em;color:var(--ink-900);font-weight:500;line-height:1.18;margin:0;}
+  .pv .h .cursor{display:inline-block;width:2px;height:0.95em;background:var(--ink-900);vertical-align:-2px;margin-left:2px;animation:blink 1.05s steps(2,end) infinite;}
+  @keyframes blink{50%{opacity:0}}
+  .pv .body{font-size:13.5px;color:var(--ink-600);line-height:1.55;font-family:'Geist',serif;}
+  .pv .field{padding:11px 13px;border:1px dashed var(--ink-400);background:rgba(255,255,255,.55);font-family:'Geist Mono',monospace;font-size:12px;color:var(--ink-500);}
+  .pv .field .lbl{display:block;font-size:9.5px;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-400);margin-bottom:4px;}
+  .pv .pad{flex:1;}
+  .pv .fineprint{font-family:'Geist Mono',monospace;font-size:10px;color:var(--ink-500);text-transform:uppercase;letter-spacing:.14em;border-top:1px dashed var(--ink-300);padding-top:10px;}
+
+  /* === STATE B — Authenticated ownership ===
+     white card, solid 1px black border, session bar, live freshness pulse */
+  .sn{background:var(--ink-0);border:1px solid var(--ink-900);flex:1;display:flex;flex-direction:column;}
+  .sn .session{display:flex;align-items:center;justify-content:space-between;padding:8px 14px;border-bottom:1px solid var(--rule);background:var(--ink-50);font-family:'Geist Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-700);}
+  .sn .session .l{display:flex;align-items:center;gap:8px;}
+  .sn .session .av{width:18px;height:18px;border-radius:50%;background:var(--ink-900);color:#fff;display:grid;place-items:center;font-size:9px;font-weight:600;letter-spacing:0;}
+  .sn .session .r{display:flex;align-items:center;gap:8px;}
+  .sn .session .ring{width:8px;height:8px;border:1px solid var(--ink-900);border-radius:50%;position:relative;}
+  .sn .session .ring::after{content:"";position:absolute;inset:1px;border-radius:50%;background:var(--ink-900);animation:pulse 2.2s ease-in-out infinite;}
+  @keyframes pulse{0%,100%{transform:scale(0.4);opacity:.3}50%{transform:scale(1);opacity:1}}
+  .sn .body{padding:20px;display:flex;flex-direction:column;gap:14px;flex:1;}
+  .sn .h-eye{font-family:'Geist Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-500);}
+  .sn .h{font-size:19px;font-weight:600;letter-spacing:-.015em;color:var(--ink-900);line-height:1.2;margin:0;}
+  .sn .h .id{display:block;font-family:'Geist Mono',monospace;font-size:11px;color:var(--ink-500);font-weight:500;text-transform:uppercase;letter-spacing:.12em;margin-top:4px;}
+  .sn .rows{display:flex;flex-direction:column;gap:0;border:1px solid var(--rule);}
+  .sn .rows .r{display:grid;grid-template-columns:1.2fr 1fr auto;gap:10px;padding:9px 12px;align-items:center;border-bottom:1px solid var(--rule);}
+  .sn .rows .r:last-child{border-bottom:0;}
+  .sn .rows .nm{font-size:12.5px;font-weight:500;color:var(--ink-900);}
+  .sn .rows .src{font-family:'Geist Mono',monospace;font-size:10.5px;color:var(--ink-500);}
+  .sn .rows .chip{display:inline-flex;align-items:center;gap:5px;padding:2px 6px;border:1px solid var(--ink-900);font-family:'Geist Mono',monospace;font-size:9.5px;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-900);font-weight:500;}
+  .sn .rows .chip .d{width:5px;height:5px;background:var(--ink-900);border-radius:50%;}
+  .sn .rows .chip.dashed{border-style:dashed;color:var(--ink-700);}
+  .sn .rows .chip.dashed .d{background:transparent;border:1px solid var(--ink-700);}
+  .sn .meta{display:grid;grid-template-columns:1fr 1fr;gap:0;border-top:1px solid var(--rule);font-family:'Geist Mono',monospace;font-size:10px;color:var(--ink-500);text-transform:uppercase;letter-spacing:.12em;}
+  .sn .meta .c{padding:8px 12px;border-right:1px solid var(--rule);}
+  .sn .meta .c:last-child{border-right:0;}
+  .sn .meta .c strong{color:var(--ink-900);font-weight:500;display:block;letter-spacing:.08em;}
+  .sn .pad{flex:1;}
+  .sn .foot{padding:10px 14px;border-top:1px solid var(--rule);background:var(--ink-50);font-family:'Geist Mono',monospace;font-size:10px;color:var(--ink-700);text-transform:uppercase;letter-spacing:.12em;display:flex;justify-content:space-between;align-items:center;}
+  .sn .foot strong{color:var(--ink-900);font-weight:500;}
+
+  /* === STATE C — Signed institutional artifact ===
+     inverted dark, key glyph, dense metadata, signature footer */
+  .sg{background:var(--ink-950);color:#fff;border:1px solid var(--ink-950);flex:1;display:flex;flex-direction:column;box-shadow:0 0 0 1px var(--ink-950);}
+  .sg .top{display:flex;align-items:center;justify-content:space-between;padding:9px 16px;border-bottom:1px solid rgba(255,255,255,.08);font-family:'Geist Mono',monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-400);}
+  .sg .top .l{display:flex;align-items:center;gap:10px;}
+  .sg .top .key{width:18px;height:18px;display:grid;place-items:center;}
+  .sg .top .key svg{display:block;}
+  .sg .top .r{color:#fff;font-weight:500;}
+  .sg .body{padding:20px;flex:1;display:flex;flex-direction:column;gap:14px;}
+  .sg .h-eye{font-family:'Geist Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-400);}
+  .sg .h{font-size:19px;font-weight:600;color:#fff;letter-spacing:-.015em;line-height:1.2;margin:0;}
+  .sg .h .id{display:block;font-family:'Geist Mono',monospace;font-size:11px;color:var(--ink-400);font-weight:500;text-transform:uppercase;letter-spacing:.12em;margin-top:4px;}
+  .sg .grid{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid rgba(255,255,255,.1);}
+  .sg .grid .kv{padding:8px 12px;border-right:1px solid rgba(255,255,255,.08);border-bottom:1px solid rgba(255,255,255,.08);}
+  .sg .grid .kv:nth-child(2n){border-right:0;}
+  .sg .grid .kv:nth-last-child(-n+2){border-bottom:0;}
+  .sg .grid .k{font-family:'Geist Mono',monospace;font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-400);margin-bottom:3px;}
+  .sg .grid .v{font-family:'Geist Mono',monospace;font-size:11px;color:#fff;font-weight:500;font-variant-numeric:tabular-nums;}
+  .sg .grid .v .sub{display:block;font-family:'Geist',sans-serif;font-size:10.5px;color:var(--ink-400);font-weight:400;margin-top:2px;letter-spacing:0;text-transform:none;}
+  .sg .sig{margin-top:auto;padding:12px 16px;border-top:1px solid rgba(255,255,255,.1);background:#000;display:flex;justify-content:space-between;align-items:center;font-family:'Geist Mono',monospace;font-size:10px;color:var(--ink-400);letter-spacing:.12em;text-transform:uppercase;}
+  .sg .sig .h{color:#fff;font-weight:500;font-family:'Geist Mono',monospace;font-size:10px;letter-spacing:.12em;margin:0;}
+  .sg .sig .verify{display:inline-flex;align-items:center;gap:7px;color:#fff;font-weight:500;}
+  .sg .sig .verify .d{width:6px;height:6px;background:#fff;border-radius:50%;}
+
+  /* === DIFFERENTIATION RULES TABLE === */
+  .rules{border:1px solid var(--ink-300);background:var(--ink-0);}
+  .rules .h{display:grid;grid-template-columns:160px 1fr 1fr 1fr;gap:0;background:var(--ink-50);border-bottom:1px solid var(--ink-900);}
+  .rules .h .c{padding:11px 14px;border-right:1px solid var(--rule);font-family:'Geist Mono',monospace;font-size:9.5px;text-transform:uppercase;letter-spacing:.14em;color:var(--ink-500);}
+  .rules .h .c:last-child{border-right:0;}
+  .rules .h .c strong{color:var(--ink-900);font-weight:500;display:block;font-size:11px;letter-spacing:.12em;margin-bottom:2px;}
+  .rules .r{display:grid;grid-template-columns:160px 1fr 1fr 1fr;gap:0;border-bottom:1px solid var(--rule);}
+  .rules .r:last-child{border-bottom:0;}
+  .rules .r .rk{padding:12px 14px;border-right:1px solid var(--rule);background:var(--ink-50);font-family:'Geist Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.14em;color:var(--ink-700);font-weight:500;}
+  .rules .r .v{padding:12px 14px;border-right:1px solid var(--rule);font-size:12px;color:var(--ink-700);line-height:1.5;}
+  .rules .r .v:last-child{border-right:0;}
+  .rules .r .v strong{color:var(--ink-900);font-weight:500;}
+  .rules .r .v code{font-family:'Geist Mono',monospace;font-size:10.5px;color:var(--ink-900);}
+
+  /* mini swatches in rules */
+  .sw{display:inline-flex;align-items:center;gap:7px;margin-top:6px;}
+  .sw .box{width:24px;height:16px;border:1.5px dashed var(--ink-400);background:var(--paper);}
+  .sw .box.solid{border:1px solid var(--ink-900);background:#fff;}
+  .sw .box.dark{border:1px solid var(--ink-950);background:var(--ink-950);}
+  .sw .lbl{font-family:'Geist Mono',monospace;font-size:9.5px;color:var(--ink-500);letter-spacing:.12em;text-transform:uppercase;}
+
+  /* hover hint */
+  .hint{font-family:'Geist Mono',monospace;font-size:10px;color:var(--ink-500);text-transform:uppercase;letter-spacing:.14em;margin-top:12px;text-align:center;}
+  .hint strong{color:var(--ink-900);font-weight:500;}
+
+  /* density meter */
+  .density{display:inline-flex;align-items:center;gap:3px;margin-top:4px;}
+  .density .b{width:10px;height:5px;background:var(--ink-300);}
+  .density .b.on{background:var(--ink-900);}
+
+  footer.foot-page{max-width:1380px;margin:24px auto 0;padding:20px 32px;font-family:'Geist Mono',monospace;font-size:10.5px;color:var(--ink-500);display:flex;justify-content:space-between;border-top:1px solid var(--rule);background:var(--ink-0);}
+
+  @media(max-width:1100px){
+    .stage{grid-template-columns:1fr;}
+    .card{min-height:0;}
+    .rules .h,.rules .r{grid-template-columns:1fr;}
+    .rules .h .c,.rules .r .v,.rules .r .rk{border-right:0;border-bottom:1px solid var(--rule);}
+  }
+</style>
+</head>
+<body>
+
+<div class="op">
+  <div class="in">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <span style="letter-spacing:.16em;text-transform:uppercase;color:#fff;font-weight:500;">Trust State · Visual Register</span>
+      <span class="sep">/</span>
+      <span>Three states · five differentiators · zero ambiguity</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:14px;">
+      <span class="pill"><span class="d"></span>Spec · v1</span>
+      <span class="sep">|</span>
+      <span>vc.2026.05.11-a · 14:32:08Z</span>
+    </div>
+  </div>
+</div>
+
+<header class="mh">
+  <div class="in">
+    <div class="brand">
+      <span class="g">V</span>
+      <span class="nm">VitalCV<span class="sl">/</span><span class="sub">trust</span></span>
+    </div>
+    <div class="eyebrow"><span class="r"></span>Three trust states, five rules of separation</div>
+    <h1>You should never need a label to tell them apart. <span class="muted">Border, glyph, motion, copy, and density all change together — so a verifier can&rsquo;t mistake preview for ownership, or ownership for credential.</span></h1>
+    <div class="meta-h">
+      <span>Rules · <strong>border · iconography · motion · labels · metadata density</strong></span>
+      <span>Targets · <strong>institutional verifier · operator · clinician</strong></span>
+    </div>
+  </div>
+</header>
+
+<main>
+
+  <!-- 01 Three cards side-by-side -->
+  <div class="sec">
+    <div class="sh">
+      <span class="n">01</span>
+      <h2>Three states · at the same scale</h2>
+      <span class="ey">same content · different register</span>
+    </div>
+
+    <div class="stage">
+
+      <!-- A · Anonymous preview -->
+      <div class="card">
+        <div class="clabel"><span class="ord">A</span><span class="b dashed">preview</span><span class="nm">Anonymous preview</span></div>
+        <div class="pv" aria-label="anonymous preview">
+          <div class="top">
+            <span class="glyph"></span>
+            <span>Sample · not your data</span>
+          </div>
+          <h3 class="h">See what a provider passport looks like<span class="cursor"></span></h3>
+          <div class="body">A preview is the shape of an answer. It doesn&rsquo;t describe a real clinician and it doesn&rsquo;t leave the page.</div>
+          <div class="field">
+            <span class="lbl">NPI</span>
+            example · 0000000000
+          </div>
+          <div class="field">
+            <span class="lbl">Sources</span>
+            none consulted
+          </div>
+          <div class="pad"></div>
+          <div class="fineprint">No account · nothing stored · refresh discards</div>
+        </div>
+      </div>
+
+      <!-- B · Authenticated ownership -->
+      <div class="card">
+        <div class="clabel"><span class="ord">B</span><span class="b">snapshot</span><span class="nm">Authenticated ownership</span></div>
+        <div class="sn" aria-label="authenticated snapshot">
+          <div class="session">
+            <span class="l"><span class="av">M</span>mira.chen@stanfordhealth · sso</span>
+            <span class="r"><span class="ring"></span>live · 14:32:08Z</span>
+          </div>
+          <div class="body">
+            <div class="h-eye">Provider passport · owned · run 7a2c…b8d3</div>
+            <h3 class="h">Dr. Mira Chen, MD<span class="id">npi · 1356428912 · subject-bound</span></h3>
+            <div class="rows">
+              <div class="r">
+                <span class="nm">CA medical license</span>
+                <span class="src">CA Medical Board · 10 s ago</span>
+                <span class="chip"><span class="d"></span>T3 · live</span>
+              </div>
+              <div class="r">
+                <span class="nm">DEA registration</span>
+                <span class="src">DEA CSOS · 26 s ago</span>
+                <span class="chip"><span class="d"></span>T4 · live</span>
+              </div>
+              <div class="r">
+                <span class="nm">PECOS enrollment</span>
+                <span class="src">PECOS · 2 m 54 s ago</span>
+                <span class="chip dashed"><span class="d"></span>T3 · degraded</span>
+              </div>
+            </div>
+            <div class="meta">
+              <div class="c">checked_at<strong>14:31:58Z · 10 s</strong></div>
+              <div class="c">channel<strong>clinician.vitalcv.health</strong></div>
+              <div class="c">ownership<strong>subject · session</strong></div>
+              <div class="c">replay<strong>logged · pending anchor</strong></div>
+            </div>
+            <div class="pad"></div>
+          </div>
+          <div class="foot"><span>Internal · <strong>not a credential</strong></span><span>refresh rotates run_id</span></div>
+        </div>
+      </div>
+
+      <!-- C · Signed institutional artifact -->
+      <div class="card">
+        <div class="clabel"><span class="ord">C</span><span class="b solid">signed</span><span class="nm">Signed institutional artifact</span></div>
+        <div class="sg" aria-label="signed receipt">
+          <div class="top">
+            <span class="l">
+              <span class="key"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="5" cy="5" r="3" stroke="#fff" stroke-width="1.2"/><path d="M7.5 7.5 L12 12 M10 10 L11.5 10 M11 11 L11 12.5" stroke="#fff" stroke-width="1.2" stroke-linecap="square"/></svg></span>
+              <span>Receipt · #48,214 · signed</span>
+            </span>
+            <span class="r">ed25519 · did:web:vitalcv.health</span>
+          </div>
+          <div class="body">
+            <div class="h-eye">Verifiable credential · CA medical license · anchored</div>
+            <h3 class="h">License A-148293 · CA Medical Board<span class="id">subj · npi 1356428912 · checked 14:31:58Z</span></h3>
+            <div class="grid">
+              <div class="kv"><div class="k">subject</div><div class="v">did:vc:holder<span class="sub">8c91…0d44</span></div></div>
+              <div class="kv"><div class="k">issuer</div><div class="v">did:web:vitalcv.health<span class="sub">key 4f2a · in service 190 d</span></div></div>
+              <div class="kv"><div class="k">algorithm</div><div class="v">ed25519<span class="sub">EdDSA · 256-bit</span></div></div>
+              <div class="kv"><div class="k">status</div><div class="v">active · bit 0<span class="sub">StatusList2021 · idx 481</span></div></div>
+              <div class="kv"><div class="k">checked_at</div><div class="v">14:31:58Z<span class="sub">RFC 3161 · tsa.digicert</span></div></div>
+              <div class="kv"><div class="k">prev hash</div><div class="v">9d11…3e4a<span class="sub">rcpt #48,213</span></div></div>
+              <div class="kv"><div class="k">this hash</div><div class="v">7a2c…b8d3<span class="sub">chain head</span></div></div>
+              <div class="kv"><div class="k">run_id</div><div class="v">7a2c…b8d3<span class="sub">committed · tamper-evident</span></div></div>
+            </div>
+          </div>
+          <div class="sig">
+            <span>signed_by · <span class="h">did:web:vitalcv.health</span></span>
+            <span class="verify"><span class="d"></span>Verify offline →</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="hint">Hover any card · <strong>label, density, and motion all shift together</strong> · the system has no single &ldquo;trust badge&rdquo; you can lift</div>
+  </div>
+
+  <!-- 02 Five differentiation rules -->
+  <div class="sec">
+    <div class="sh">
+      <span class="n">02</span>
+      <h2>Five rules of separation</h2>
+      <span class="ey">every rule shifts in lockstep — no overlap states</span>
+    </div>
+
+    <div class="rules">
+      <div class="h">
+        <div class="c">Rule</div>
+        <div class="c"><strong>A · Preview</strong>anonymous · exploratory</div>
+        <div class="c"><strong>B · Snapshot</strong>authenticated · owned</div>
+        <div class="c"><strong>C · Signed</strong>institutional · anchored</div>
+      </div>
+
+      <div class="r">
+        <div class="rk">Border</div>
+        <div class="v"><strong>Dashed, 1.5px, slate-400.</strong> Reads as <em>not committed to</em>. Paper background (warm) breaks from the slate system, so the eye registers it as a different surface entirely.<div class="sw"><span class="box"></span><span class="lbl">dashed · paper</span></div></div>
+        <div class="v"><strong>Solid, 1px, ink-900.</strong> The default authoritative line weight. White card on slate-50 page. Same border as every working document.<div class="sw"><span class="box solid"></span><span class="lbl">solid · 1px black</span></div></div>
+        <div class="v"><strong>Solid + inversion.</strong> Border <code>ink-950</code> + interior <code>ink-950</code>. Inverted register is reserved — used <em>only</em> for cryptographically signed surfaces.<div class="sw"><span class="box dark"></span><span class="lbl">inverted · reserved</span></div></div>
+      </div>
+
+      <div class="r">
+        <div class="rk">Iconography</div>
+        <div class="v"><strong>None.</strong> A dashed open square as the only glyph. No badge, no checkmark, no shield. Absence of mark = absence of authority.</div>
+        <div class="v"><strong>Open ring with pulse.</strong> Live data indicator next to <code>14:32:08Z</code>. The ring is unfilled — it represents reach, not signature.</div>
+        <div class="v"><strong>Key glyph.</strong> A small key icon at the top, drawn in line weight. The only place a key appears in the entire system.</div>
+      </div>
+
+      <div class="r">
+        <div class="rk">Motion</div>
+        <div class="v"><strong>Typewriter caret.</strong> Headline ends with a blinking cursor — the page is still composing. Suggests &ldquo;not yet a thing.&rdquo;</div>
+        <div class="v"><strong>Freshness pulse.</strong> The ring next to the timestamp breathes at 2.2 s. Confirms the session is live, the clock advancing.</div>
+        <div class="v"><strong>None.</strong> The artifact is steady. Motion would undermine permanence. Signed = settled.</div>
+      </div>
+
+      <div class="r">
+        <div class="rk">Labels &amp; copy</div>
+        <div class="v"><strong>Marketing register.</strong> &ldquo;See what a provider passport looks like.&rdquo; Serif body. Friendly. Footer: <code>No account · nothing stored · refresh discards</code>.</div>
+        <div class="v"><strong>Operational register.</strong> &ldquo;Dr. Mira Chen, MD&rdquo; · NPI · session bar. Footer: <code>Internal · not a credential</code>. Honest about scope.</div>
+        <div class="v"><strong>Institutional register.</strong> &ldquo;Receipt · #48,214 · signed.&rdquo; All mono. No prose. The form of a notarized document.</div>
+      </div>
+
+      <div class="r">
+        <div class="rk">Metadata density</div>
+        <div class="v"><strong>2 fields.</strong> NPI · sources. The minimum to show the shape.<div class="density"><span class="b on"></span><span class="b"></span><span class="b"></span><span class="b"></span></div></div>
+        <div class="v"><strong>6 fields + 3 lanes.</strong> checked_at · channel · ownership · replay · session · run_id. Enough to act on.<div class="density"><span class="b on"></span><span class="b on"></span><span class="b on"></span><span class="b"></span></div></div>
+        <div class="v"><strong>8 fields + signature footer.</strong> subject · issuer · alg · status · checked_at · prev · hash · run_id. Auditor-complete.<div class="density"><span class="b on"></span><span class="b on"></span><span class="b on"></span><span class="b on"></span></div></div>
+      </div>
+
+      <div class="r">
+        <div class="rk">Hover · interaction</div>
+        <div class="v">Hover surfaces a tooltip on every dashed element: <code>not committed</code>. Click anywhere → toast: <em>sign in to bind this to you.</em></div>
+        <div class="v">Hover a lane → expanded source row with last-fetched and tier. Hover the timestamp → tooltip with run_id full string + checked_at in local time.</div>
+        <div class="v">Hover any field → tooltip with the field&rsquo;s commitment status (&ldquo;part of signed payload&rdquo; vs &ldquo;rendered metadata&rdquo;). Click the key → flips to the verify panel.</div>
+      </div>
+
+      <div class="r">
+        <div class="rk">What it asserts</div>
+        <div class="v">Nothing about any real provider. Marketing artifact only.</div>
+        <div class="v">A live, owned view by an authenticated session. Good for current decisions. Not portable.</div>
+        <div class="v">A signed, anchored credential. Verifiable offline against did:web. Portable. Durable.</div>
+      </div>
+
+      <div class="r">
+        <div class="rk">What a verifier should do</div>
+        <div class="v"><strong>Nothing.</strong> Not actionable. Sample data.</div>
+        <div class="v"><strong>Read in context.</strong> Live state is current. Don&rsquo;t archive — the run_id rotates.</div>
+        <div class="v"><strong>Download &amp; verify.</strong> Hand to an auditor. Replay months later. Trust path goes around VitalCV.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 03 Failure modes -->
+  <div class="sec">
+    <div class="sh">
+      <span class="n">03</span>
+      <h2>Failure modes the register prevents</h2>
+      <span class="ey">what would happen without the rules</span>
+    </div>
+
+    <div class="rules">
+      <div class="h">
+        <div class="c">Confusion</div>
+        <div class="c"><strong>Without rules</strong>typical SaaS UI</div>
+        <div class="c"><strong>With rules</strong>this system</div>
+        <div class="c"><strong>Why it matters</strong>institutional cost</div>
+      </div>
+      <div class="r">
+        <div class="rk">Preview → real</div>
+        <div class="v">Demo screen looks identical to the real product. Users start treating sample data as authoritative within a session.</div>
+        <div class="v">Paper bg + dashed border + caret + serif copy. Preview is unmistakably <em>not</em> the product.</div>
+        <div class="v">Privileging decisions made against fake data are reportable events.</div>
+      </div>
+      <div class="r">
+        <div class="rk">Snapshot → credential</div>
+        <div class="v">Authenticated view exports as a screenshot. Recipient assumes it&rsquo;s portable.</div>
+        <div class="v">Snapshot has session bar, pulse, &ldquo;Internal · not a credential&rdquo; footer. Never reads as portable.</div>
+        <div class="v">An employer relying on a screenshot has no replay path. CR §3 wants the receipt.</div>
+      </div>
+      <div class="r">
+        <div class="rk">Signed → marketing</div>
+        <div class="v">Credentials get hero treatment — large headlines, gradient panels, decorative geometry. Feels like a product page.</div>
+        <div class="v">Signed register is inverted, dense, mono. It reads as a notarized document, not a product surface.</div>
+        <div class="v">Auditors discount marketing surfaces by default. Density signals seriousness.</div>
+      </div>
+      <div class="r">
+        <div class="rk">Degraded → silent</div>
+        <div class="v">A stale source returns last-known value. UI shows a green check.</div>
+        <div class="v">Snapshot lanes carry a <code>dashed</code> chip + age. Degraded states are visually surfaced, not hidden.</div>
+        <div class="v">Silent degradation = institutional liability. The system would rather look honest than tidy.</div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<footer class="foot-page">
+  <div>VitalCV · Trust State · Visual Register · <span style="color:var(--ink-700);">three states · five rules · no overlap</span></div>
+  <div style="text-align:right;">
+    <div>Build <span style="color:var(--ink-700);">vc.2026.05.11-a</span> · spec <span style="color:var(--ink-700);">v1</span></div>
+    <div style="color:var(--ink-400);margin-top:2px;">border · iconography · motion · labels · density</div>
+  </div>
+</footer>
+
+</body>
+</html>

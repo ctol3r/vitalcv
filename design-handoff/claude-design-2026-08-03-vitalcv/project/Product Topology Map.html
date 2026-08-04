@@ -1,0 +1,635 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>VitalCV · Product Topology Map · v1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+:root {
+  --ink-0:#fff; --ink-50:#f7f6f2; --ink-100:#efede7; --ink-200:#dddbd3;
+  --ink-300:#c2bfb5; --ink-400:#96938a; --ink-500:#6b6860; --ink-600:#474540;
+  --ink-700:#2d2c28; --ink-800:#1a1916; --ink-900:#0f0e0c; --ink-950:#050504;
+  --rule:#dddbd3; --rule-soft:#eceae4; --paper:#f4f2ec;
+  --live:#2d6a4f; --partial:#7d5a1e; --spec:#6b6860; --orphan:#5a3a1e;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--paper);color:var(--ink-900);font-family:'Geist',ui-sans-serif,system-ui,sans-serif;font-feature-settings:'ss01','cv11';-webkit-font-smoothing:antialiased;font-size:13px;line-height:1.5;letter-spacing:-.003em}
+.mono,code{font-family:'Geist Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums}
+
+/* ── Shell ───────────────────────────────────────── */
+.opbar{background:var(--ink-950);color:var(--ink-300);font-family:'Geist Mono',monospace;font-size:10px;position:sticky;top:0;z-index:60}
+.opbar .in{max-width:1600px;margin:0 auto;padding:0 28px;height:30px;display:flex;align-items:center;justify-content:space-between}
+.opbar .l{display:flex;align-items:center;gap:12px}
+.opbar .l .g{width:16px;height:16px;background:#fff;color:#000;display:grid;place-items:center;font-size:9px;font-weight:700}
+.opbar .l strong{color:#fff;font-weight:600}
+.opbar .r{display:flex;gap:14px;color:var(--ink-500);text-transform:uppercase;letter-spacing:.12em;font-size:9px;align-items:center}
+.opbar .r .pill{display:inline-flex;align-items:center;gap:4px;padding:1px 6px;border:1px solid var(--ink-700);color:var(--ink-400)}
+.opbar .r .dot{width:5px;height:5px;background:#10b981;border-radius:50%;animation:blink 2.4s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:.3}50%{opacity:1}}
+
+.doc{max-width:1600px;margin:0 auto;background:var(--ink-0);box-shadow:0 1px 0 rgba(0,0,0,.04),0 16px 48px -16px rgba(0,0,0,.10)}
+
+/* ── Masthead ─────────────────────────────────────── */
+.mast{padding:28px 40px 24px;border-bottom:1px solid var(--ink-900)}
+.mast .crumb{font-family:'Geist Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.18em;color:var(--ink-500);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.mast .crumb .r{display:inline-block;width:16px;height:1px;background:var(--ink-300)}
+.mast h1{font-size:28px;font-weight:600;letter-spacing:-.025em;margin:0 0 8px;line-height:1.05}
+.mast h1 em{font-style:normal;color:var(--ink-500);font-weight:400}
+.mast .lede{font-size:13.5px;color:var(--ink-600);line-height:1.6;max-width:80ch;margin:0 0 16px}
+.mast .lede strong{color:var(--ink-900);font-weight:500}
+
+/* Legend strip */
+.legend{display:flex;gap:20px;flex-wrap:wrap;align-items:center;padding:10px 0 0}
+.legend .sep{width:1px;height:14px;background:var(--rule)}
+.lg-item{display:flex;align-items:center;gap:7px;font-family:'Geist Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.12em;color:var(--ink-600)}
+.lg-swatch{width:10px;height:10px;flex-shrink:0}
+.sw-live{background:var(--live)}
+.sw-partial{background:transparent;border:1.5px dashed var(--partial)}
+.sw-spec{background:transparent;border:1.5px dashed var(--ink-300)}
+.sw-orphan{background:var(--orphan)}
+.sw-super{background:var(--ink-900);opacity:.4}
+
+/* ── Main canvas ──────────────────────────────────── */
+.canvas{padding:28px 40px 40px;display:flex;flex-direction:column;gap:24px}
+
+/* Zone block */
+.zone{display:flex;flex-direction:column;gap:0;border:1px solid var(--ink-900)}
+.zone-header{padding:9px 16px;background:var(--ink-900);color:#fff;display:flex;align-items:center;justify-content:space-between}
+.zh-left{display:flex;align-items:center;gap:12px}
+.zh-domain{font-family:'Geist Mono',monospace;font-size:10px;color:#fff;font-weight:500;letter-spacing:.04em}
+.zh-desc{font-size:11.5px;color:rgba(255,255,255,.5)}
+.zh-count{font-family:'Geist Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.14em;color:rgba(255,255,255,.35)}
+
+/* Route grid inside zone */
+.route-grid{display:grid;gap:0}
+.route-grid.cols-5{grid-template-columns:repeat(5,1fr)}
+.route-grid.cols-4{grid-template-columns:repeat(4,1fr)}
+.route-grid.cols-3{grid-template-columns:repeat(3,1fr)}
+.route-grid.cols-2{grid-template-columns:repeat(2,1fr)}
+
+/* Individual route node */
+.rnode{border-right:1px solid var(--rule);border-top:1px solid var(--rule-soft);padding:14px 14px 12px;display:flex;flex-direction:column;gap:6px;position:relative;transition:background .12s;cursor:default}
+.rnode:last-child{border-right:0}
+.rnode:hover{background:var(--ink-50)}
+.rnode.rn-live   {border-left:3px solid var(--live)}
+.rnode.rn-partial{border-left:3px dashed var(--partial)}
+.rnode.rn-spec   {border-left:3px dashed var(--ink-200);opacity:.65}
+.rnode.rn-orphan {border-left:3px solid var(--orphan);background:var(--ink-50)}
+.rnode.rn-super  {border-left:3px solid var(--ink-300);background:var(--ink-50);opacity:.45}
+
+/* Route path */
+.rn-path{font-family:'Geist Mono',monospace;font-size:10.5px;color:var(--ink-900);font-weight:500;letter-spacing:.02em}
+.rnode.rn-orphan .rn-path{color:var(--orphan);text-decoration:line-through;text-decoration-color:var(--orphan)}
+.rnode.rn-super  .rn-path{color:var(--ink-500)}
+
+/* Route name */
+.rn-name{font-size:12.5px;font-weight:600;color:var(--ink-900);letter-spacing:-.01em;line-height:1.2}
+.rnode.rn-super  .rn-name{color:var(--ink-500);font-weight:400}
+.rnode.rn-spec   .rn-name{color:var(--ink-600)}
+
+/* Component file */
+.rn-comp{font-family:'Geist Mono',monospace;font-size:9.5px;color:var(--ink-500);line-height:1.3}
+
+/* Data / note */
+.rn-data{font-size:11px;color:var(--ink-600);line-height:1.35;margin-top:2px}
+.rn-data strong{color:var(--ink-900);font-weight:500}
+
+/* State badge */
+.rn-badge{margin-top:auto;padding-top:6px;border-top:1px dashed var(--rule-soft)}
+.sb{display:inline-flex;align-items:center;gap:4px;font-family:'Geist Mono',monospace;font-size:8.5px;text-transform:uppercase;letter-spacing:.10em;font-weight:600;padding:1px 6px}
+.sb .sd{width:4px;height:4px;border-radius:50%}
+.sb-live   {border:1px solid var(--live);color:var(--live)}
+.sb-live .sd{background:var(--live)}
+.sb-partial{border:1px dashed var(--partial);color:var(--partial)}
+.sb-partial .sd{border:1.5px dashed var(--partial);border-radius:50%}
+.sb-spec   {border:1px dashed var(--ink-400);color:var(--spec)}
+.sb-spec .sd{background:var(--ink-400);opacity:.4}
+.sb-orphan {border:1px solid var(--orphan);color:var(--orphan)}
+.sb-orphan .sd{background:var(--orphan)}
+.sb-super  {border:1px solid var(--ink-400);color:var(--ink-500)}
+.sb-super .sd{background:var(--ink-500);opacity:.4}
+
+/* Supersede arrow tag */
+.super-tag{position:absolute;top:0;right:0;font-family:'Geist Mono',monospace;font-size:8px;text-transform:uppercase;letter-spacing:.08em;padding:2px 5px;background:var(--ink-900);color:#fff;font-weight:600}
+
+/* ── Foundation layer ─────────────────────────────── */
+.foundation{display:flex;flex-direction:column;gap:0;border:1px solid var(--ink-900)}
+.foundation-header{padding:9px 16px;background:var(--ink-900);color:#fff;display:flex;align-items:center;justify-content:space-between}
+.fh-label{font-family:'Geist Mono',monospace;font-size:10px;color:#fff;font-weight:500;letter-spacing:.04em}
+.fh-desc{font-size:11.5px;color:rgba(255,255,255,.5)}
+.fh-count{font-family:'Geist Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.14em;color:rgba(255,255,255,.35)}
+.foundation-chips{display:flex;flex-wrap:wrap;gap:8px;padding:12px 16px;border-top:1px solid var(--rule-soft)}
+.fchip{display:flex;flex-direction:column;gap:3px;padding:8px 10px;border:1px solid var(--live);border-left-width:3px;min-width:100px}
+.fchip .fc-name{font-size:11.5px;font-weight:600;color:var(--ink-900);letter-spacing:-.008em}
+.fchip .fc-file{font-family:'Geist Mono',monospace;font-size:9px;color:var(--ink-500)}
+
+/* ── Dependency connectors ────────────────────────── */
+.dep-arrow{text-align:center;padding:4px 0;font-family:'Geist Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.14em;color:var(--ink-400);display:flex;align-items:center;gap:12px}
+.dep-arrow::before,.dep-arrow::after{content:"";flex:1;height:1px;background:var(--rule)}
+
+/* ── Sync protocol compact ────────────────────────── */
+.sync-strip{border:1px solid var(--ink-900);display:grid;grid-template-columns:repeat(4,1fr)}
+.sync-step{padding:14px 14px 12px;border-right:1px solid var(--rule);display:flex;flex-direction:column;gap:5px;position:relative}
+.sync-step:last-child{border-right:0}
+.sync-step .ss-n{font-family:'Geist Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-400);font-weight:600}
+.sync-step .ss-name{font-size:13px;font-weight:600;color:var(--ink-900);letter-spacing:-.01em}
+.sync-step .ss-body{font-size:11.5px;color:var(--ink-700);line-height:1.5}
+.sync-step .ss-body strong{color:var(--ink-900);font-weight:500}
+.sync-step .checks{display:flex;flex-direction:column;gap:2px;margin-top:4px}
+.sync-step .ck{font-family:'Geist Mono',monospace;font-size:9px;color:var(--ink-600);display:flex;gap:5px;align-items:flex-start;line-height:1.35}
+.sync-step .ck::before{content:"·";color:var(--ink-400);flex-shrink:0}
+.sync-arrow{position:absolute;right:-7px;top:20px;width:12px;height:12px;background:var(--ink-0);border-top:1px solid var(--rule);border-right:1px solid var(--rule);transform:rotate(45deg);z-index:2}
+.sync-step:last-child .sync-arrow{display:none}
+.sync-footer{border-top:1px solid var(--rule);background:var(--ink-50);padding:8px 16px;font-family:'Geist Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.12em;color:var(--ink-600);display:flex;gap:24px;flex-wrap:wrap}
+.sync-footer strong{color:var(--ink-900);font-weight:600}
+
+/* ── Drift signals compact ────────────────────────── */
+.drift-strip{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid var(--ink-900)}
+.drift-head{grid-column:1/-1;padding:9px 16px;background:var(--ink-900);color:#fff;font-family:'Geist Mono',monospace;font-size:9.5px;text-transform:uppercase;letter-spacing:.16em;display:flex;justify-content:space-between}
+.drift-head strong{font-weight:500;color:#fff}
+.ds-item{padding:12px 14px;border-right:1px solid var(--rule);border-top:1px solid var(--rule-soft);display:flex;flex-direction:column;gap:5px}
+.ds-item:nth-child(3n+2){border-right:0}
+.ds-item .di-n{font-family:'Geist Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-400);font-weight:600}
+.ds-item .di-pattern{font-size:12.5px;font-weight:600;color:var(--ink-900);letter-spacing:-.01em;line-height:1.2}
+.ds-item .di-detail{font-size:11.5px;color:var(--ink-700);line-height:1.45}
+.ds-item .di-fix{font-size:11px;color:var(--live);font-style:italic;padding-top:4px;border-top:1px dashed var(--rule-soft)}
+
+/* ── Boundary language compact ────────────────────── */
+.bl-table{border:1px solid var(--ink-900);display:grid;grid-template-columns:140px 1fr 1fr 150px}
+.bl-table .blh{padding:9px 14px;background:var(--ink-900);color:rgba(255,255,255,.5);font-family:'Geist Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.14em;border-right:1px solid var(--ink-700)}
+.bl-table .blh:last-child{border-right:0}
+.bl-table .blh strong{color:#fff;display:block;font-size:10px}
+.bl-table .blr{display:contents}
+.bl-table .blr .c{padding:10px 14px;border-right:1px solid var(--rule-soft);border-top:1px solid var(--rule-soft);font-size:11.5px;color:var(--ink-700);line-height:1.45}
+.bl-table .blr .c:last-child{border-right:0}
+.bl-table .blr .c.st{background:var(--ink-50);display:flex;align-items:center;border-right:1px solid var(--rule)}
+.bl-table .blr .c.cd{font-family:'Geist Mono',monospace;font-size:10px;color:var(--ink-700)}
+.bl-table .blr .c.cd code{display:block;background:var(--ink-50);border:1px solid var(--rule);padding:1px 5px;color:var(--ink-900);font-size:9.5px;margin-bottom:3px}
+.bl-table .blr .c em{font-style:italic;color:var(--ink-600)}
+.bl-table .blr .c strong{color:var(--ink-900);font-weight:500}
+
+/* ── Implementation directives ───────────────────── */
+.directives{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid var(--ink-900)}
+.dir-col{border-right:1px solid var(--rule);display:flex;flex-direction:column}
+.dir-col:last-child{border-right:0}
+.dir-head{padding:9px 16px;background:var(--ink-50);border-bottom:1px solid var(--rule);font-family:'Geist Mono',monospace;font-size:9.5px;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-700);display:flex;justify-content:space-between}
+.dir-head strong{color:var(--ink-900);font-weight:600}
+.dir-body{padding:12px 16px;display:flex;flex-direction:column;gap:0}
+.dir-row{display:grid;grid-template-columns:130px 1fr;gap:10px;padding:7px 0;border-bottom:1px dashed var(--rule-soft);align-items:start;font-size:11.5px}
+.dir-row:last-child{border-bottom:0}
+.dir-row .dk{font-family:'Geist Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.12em;color:var(--ink-500);font-weight:600;padding-top:1px}
+.dir-row .dv{color:var(--ink-700);line-height:1.5}
+.dir-row .dv strong{color:var(--ink-900);font-weight:500}
+.never{color:var(--orphan);font-family:'Geist Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.10em;font-weight:600}
+.never::before{content:"× "}
+.always{color:var(--live);font-family:'Geist Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.10em;font-weight:600}
+.always::before{content:"✓ "}
+
+footer.foot{padding:16px 40px;border-top:1px solid var(--rule);background:var(--ink-0);font-family:'Geist Mono',monospace;font-size:9.5px;color:var(--ink-500);text-transform:uppercase;letter-spacing:.14em;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+footer.foot strong{color:var(--ink-900);font-weight:600}
+
+@media(max-width:900px){
+  .route-grid.cols-5,.route-grid.cols-4{grid-template-columns:1fr 1fr}
+  .route-grid.cols-3{grid-template-columns:1fr 1fr}
+  .sync-strip{grid-template-columns:1fr 1fr}
+  .drift-strip{grid-template-columns:1fr 1fr}
+  .directives{grid-template-columns:1fr}
+  .bl-table{grid-template-columns:100px 1fr 1fr}
+  .bl-table .blh:nth-child(4),.bl-table .blr .c:nth-child(4n){display:none}
+  .canvas{padding:16px 20px 28px}
+  .mast{padding:20px}
+  footer.foot{padding:14px 20px}
+}
+</style>
+</head>
+<body>
+
+<div class="opbar">
+  <div class="in">
+    <div class="l">
+      <span class="g">V</span>
+      <strong>VitalCV</strong>
+      <span style="color:var(--ink-700)">/</span>
+      <span style="color:var(--ink-400)">product topology map · reality-aware</span>
+    </div>
+    <div class="r">
+      <span>wave hierarchy · route binding · drift signals · boundary language</span>
+      <span style="color:var(--ink-700)">|</span>
+      <span class="pill"><span class="dot"></span>Live</span>
+      <span style="color:var(--ink-600)">vc.2026.05.21-g</span>
+    </div>
+  </div>
+</div>
+
+<div class="doc">
+  <header class="mast">
+    <div class="crumb"><span class="r"></span>Product topology map · route materialization · sync protocol · Claude Code handoff</div>
+    <h1>The full VitalCV architecture, <em>materially honest.</em></h1>
+    <p class="lede">One visual document showing every route, every wave, and every design artifact — each labeled with its actual materialization state. <strong>What is live is shown as live. What is partial is bounded. What is speculative has no navigation entry point.</strong> Topology honesty is the only kind that holds under institutional review.</p>
+    <div class="legend">
+      <div class="lg-item"><div class="lg-swatch sw-live"></div>Live · fully materialized</div>
+      <div class="lg-item"><div class="lg-swatch sw-partial"></div>Partial · incomplete build</div>
+      <div class="lg-item"><div class="lg-swatch sw-spec"></div>Spec · design only · no route</div>
+      <div class="lg-item"><div class="lg-swatch sw-orphan"></div>Orphaned · disconnected</div>
+      <div class="lg-item"><div class="lg-swatch sw-super"></div>Superseded · higher wave canonical</div>
+    </div>
+  </header>
+
+  <div class="canvas">
+
+    <!-- ── FOUNDATION LAYER ───────────────────────── -->
+    <div class="foundation">
+      <div class="foundation-header">
+        <div><div class="fh-label">Layer 00 · Foundation</div><div class="fh-desc">Tokens, primitives, shared components — everything else depends on these</div></div>
+        <div class="fh-count">All live · no routes · imported by all views</div>
+      </div>
+      <div class="foundation-chips">
+        <div class="fchip"><div class="fc-name">Tokens v2</div><div class="fc-file">tokens-v2.css</div></div>
+        <div class="fchip"><div class="fc-name">Primitives</div><div class="fc-file">primitives.jsx</div></div>
+        <div class="fchip"><div class="fc-name">Icons</div><div class="fc-file">icons.jsx</div></div>
+        <div class="fchip"><div class="fc-name">Shared Components</div><div class="fc-file">components-shared.jsx</div></div>
+        <div class="fchip"><div class="fc-name">Tweaks Panel</div><div class="fc-file">tweaks-panel.jsx</div></div>
+        <div class="fchip"><div class="fc-name">Telemetry</div><div class="fc-file">telemetry.js</div></div>
+      </div>
+    </div>
+
+    <div class="dep-arrow">Views depend on foundation · not the other way</div>
+
+    <!-- ── ZONE 1: CLINICIAN ──────────────────────── -->
+    <div class="zone">
+      <div class="zone-header">
+        <div class="zh-left">
+          <div class="zh-domain">clinician.vitalcv.health</div>
+          <div class="zh-desc">Clinician-facing · activation · passport · inbox · autopilot</div>
+        </div>
+        <div class="zh-count">6 routes · all live</div>
+      </div>
+      <div class="route-grid cols-5" style="grid-template-columns:repeat(5,1fr) repeat(1,1fr)">
+
+        <div class="rnode rn-live">
+          <div class="rn-path">/</div>
+          <div class="rn-name">Public Entry</div>
+          <div class="rn-comp">view-home.jsx · wave9.jsx</div>
+          <div class="rn-data">Static props · no API call</div>
+          <div class="rn-badge"><span class="sb sb-live"><span class="sd"></span>Live</span></div>
+        </div>
+
+        <div class="rnode rn-live">
+          <div class="rn-path">/activate</div>
+          <div class="rn-name">Clinician Activation</div>
+          <div class="rn-comp">view-activation-v2.jsx</div>
+          <div class="rn-data">NPI validation · DID binding · W14b canonical</div>
+          <div class="rn-badge"><span class="sb sb-live"><span class="sd"></span>Live</span></div>
+        </div>
+
+        <div class="rnode rn-live">
+          <div class="rn-path">/passport</div>
+          <div class="rn-name">Clinician Passport</div>
+          <div class="rn-comp">view-passport.jsx · wave7.jsx</div>
+          <div class="rn-data">Credential lanes · ownership chips · chain</div>
+          <div class="rn-badge"><span class="sb sb-live"><span class="sd"></span>Live</span></div>
+        </div>
+
+        <div class="rnode rn-live">
+          <div class="rn-path">/inbox</div>
+          <div class="rn-name">Knowledge Inbox</div>
+          <div class="rn-comp">view-inbox-v2.jsx · wave20</div>
+          <div class="rn-data">Verification queue · Tier 1 default</div>
+          <div class="rn-badge"><span class="sb sb-live"><span class="sd"></span>Live</span></div>
+        </div>
+
+        <div class="rnode rn-live">
+          <div class="rn-path">/autopilot</div>
+          <div class="rn-name">Career Autopilot</div>
+          <div class="rn-comp">view-autopilot-v2.jsx · wave25</div>
+          <div class="rn-data">SLO bands · gap detection · interruption</div>
+          <div class="rn-badge"><span class="sb sb-live"><span class="sd"></span>Live</span></div>
+        </div>
+
+        <div class="rnode rn-live">
+          <div class="rn-path">/file/:id</div>
+          <div class="rn-name">Credentialing File</div>
+          <div class="rn-comp">view-file.jsx</div>
+          <div class="rn-data">Full document · audit trail · chain</div>
+          <div class="rn-badge"><span class="sb sb-live"><span class="sd"></span>Live</span></div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ── ZONE 2: EMPLOYER ───────────────────────── -->
+    <div class="zone">
+      <div class="zone-header">
+        <div class="zh-left">
+          <div class="zh-domain">console.vitalcv.health</div>
+          <div class="zh-desc">Employer + admin · org console · ROI · dossier · application</div>
+        </div>
+        <div class="zh-count">5 routes · 4 live · 1 partial</div>
+      </div>
+      <div class="route-grid cols-5">
+
+        <div class="rnode rn-live">
+          <div class="rn-path">/</div>
+          <div class="rn-name">Employer Console</div>
+          <div class="rn-comp">view-employer.jsx · wave10</div>
+          <div class="rn-data">Org roster · coverage · queue</div>
+          <div class="rn-badge"><span class="sb sb-live"><span class="sd"></span>Live</span></div>
+        </div>
+
+        <div class="rnode rn-live">
+          <div class="rn-path">/application/:id</div>
+          <div class="rn-name">Application Packet</div>
+          <div class="rn-comp">view-application-v2.jsx · wave24</div>
+          <div class="rn-data">Compiled credentialing packet · coverage</div>
+          <div class="rn-badge"><span class="sb sb-live"><span class="sd"></span>Live</span></div>
+        </div>
+
+        <div class="rnode rn-live">
+          <div class="rn-path">/roi</div>
+          <div class="rn-name">Executive ROI</div>
+          <div class="rn-comp">view-roi-v2.jsx · wave22</div>
+          <div class="rn-data">Waste delta · projection labeled · methodology</div>
+          <div class="rn-badge"><span class="sb sb-live"><span class="sd"></span>Live</span></div>
+        </div>
+
+        <div class="rnode rn-live">
+          <div class="rn-path">/dossier/:id</div>
+          <div class="rn-name">Proof Dossier</div>
+          <div class="rn-comp">view-dossier.jsx · wave17</div>
+          <div class="rn-data">Tier 3 · full chain · source URLs · run_id</div>
+          <div class="rn-badge"><span class="sb sb-live"><span class="sd"></span>Live</span></div>
+        </div>
+
+        <div class="rnode rn-partial">
+          <div class="rn-path">/admin</div>
+          <div class="rn-name">Admin Console</div>
+          <div class="rn-comp">view-admin.jsx · wave29</div>
+          <div class="rn-data"><strong>Some write actions mocked.</strong> Org read complete. Bulk actions incomplete.</div>
+          <div class="rn-badge"><span class="sb sb-partial"><span class="sd"></span>Partial</span></div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ── ZONE 3: VERIFIER ───────────────────────── -->
+    <div class="zone">
+      <div class="zone-header">
+        <div class="zh-left">
+          <div class="zh-domain">verify.vitalcv.health</div>
+          <div class="zh-desc">Public verifier · trust badge · replay · reading-order canonical</div>
+        </div>
+        <div class="zh-count">3 routes · all live</div>
+      </div>
+      <div class="route-grid cols-3">
+
+        <div class="rnode rn-live">
+          <div class="rn-path">/:token</div>
+          <div class="rn-name">Public Verifier</div>
+          <div class="rn-comp">wave23-verify-v2.jsx · canonical</div>
+          <div class="rn-data">Reading-order canon · ownership · freshness · chain</div>
+          <div class="rn-badge"><span class="sb sb-live"><span class="sd"></span>Live</span></div>
+        </div>
+
+        <div class="rnode rn-live">
+          <div class="rn-path">/trust/:id</div>
+          <div class="rn-name">Trust Badge</div>
+          <div class="rn-comp">confidence.jsx · wave19</div>
+          <div class="rn-data">Tier 0 verdict · expand to Tier 2 · compact</div>
+          <div class="rn-badge"><span class="sb sb-live"><span class="sd"></span>Live</span></div>
+        </div>
+
+        <div class="rnode rn-live">
+          <div class="rn-path">/replay/:run_id</div>
+          <div class="rn-name">Replay Surface</div>
+          <div class="rn-comp">wave18-verify.jsx</div>
+          <div class="rn-data">Re-verification from chain head · Tier 3 audit</div>
+          <div class="rn-badge"><span class="sb sb-live"><span class="sd"></span>Live</span></div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ── ZONE 4: DISCONNECTED ───────────────────── -->
+    <div class="zone">
+      <div class="zone-header" style="background:var(--ink-800);">
+        <div class="zh-left">
+          <div class="zh-domain" style="color:rgba(255,255,255,.5)">Disconnected zone · not in active navigation</div>
+          <div class="zh-desc">Orphaned components + superseded waves + spec-only artifacts</div>
+        </div>
+        <div class="zh-count" style="color:var(--orphan)">Never link · never import in app.jsx</div>
+      </div>
+      <div class="route-grid cols-4">
+
+        <div class="rnode rn-super">
+          <span class="super-tag">→ W14b</span>
+          <div class="rn-path">/activate/v1</div>
+          <div class="rn-name">Activation v1</div>
+          <div class="rn-comp">view-activation.jsx · wave14</div>
+          <div class="rn-data">Superseded by wave14b. Route removed from router.</div>
+          <div class="rn-badge"><span class="sb sb-super"><span class="sd"></span>Superseded</span></div>
+        </div>
+
+        <div class="rnode rn-orphan">
+          <div class="rn-path">/receipt/pr-b</div>
+          <div class="rn-name">Crypto Verifier (PR-B)</div>
+          <div class="rn-comp">PR-B Crypto Verifier Superseded.html</div>
+          <div class="rn-data">Explicitly superseded by wave23. No route. No import.</div>
+          <div class="rn-badge"><span class="sb sb-orphan"><span class="sd"></span>Orphaned</span></div>
+        </div>
+
+        <div class="rnode rn-spec">
+          <div class="rn-path">— no route —</div>
+          <div class="rn-name">D44–D55 Wave Stack</div>
+          <div class="rn-comp">Standalone HTML design artifacts</div>
+          <div class="rn-data">Design specs. Not imported in app.jsx. Not navigable from product.</div>
+          <div class="rn-badge"><span class="sb sb-spec"><span class="sd"></span>Spec only</span></div>
+        </div>
+
+        <div class="rnode rn-spec">
+          <div class="rn-path">— no route —</div>
+          <div class="rn-name">NPI Resolution (D45)</div>
+          <div class="rn-comp">NPI Resolution D45.html</div>
+          <div class="rn-data">Designed. Not materialized. No component. No data binding.</div>
+          <div class="rn-badge"><span class="sb sb-spec"><span class="sd"></span>Spec only</span></div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="dep-arrow">Sync protocol · run at every wave completion · all four steps required</div>
+
+    <!-- ── SYNC PROTOCOL ──────────────────────────── -->
+    <div class="sync-strip">
+      <div class="sync-step">
+        <div class="ss-n">Step 01</div>
+        <div class="ss-name">Design audit</div>
+        <div class="ss-body">Every feature in <strong>UI copy or design spec</strong> must exist in the component. No speculative copy.</div>
+        <div class="checks">
+          <div class="ck">All copy features are built</div>
+          <div class="ck">No TODO handlers on visible buttons</div>
+          <div class="ck">Mocked data labeled <code>// MOCK</code></div>
+        </div>
+        <div class="sync-arrow"></div>
+      </div>
+      <div class="sync-step">
+        <div class="ss-n">Step 02</div>
+        <div class="ss-name">Route audit</div>
+        <div class="ss-body"><strong>Route in app.jsx</strong> · component imported · reachable from nav · no superseded file at same path.</div>
+        <div class="checks">
+          <div class="ck">Route declared in router</div>
+          <div class="ck">Component imported (not orphaned)</div>
+          <div class="ck">Nav entry point exists</div>
+        </div>
+        <div class="sync-arrow"></div>
+      </div>
+      <div class="sync-step">
+        <div class="ss-n">Step 03</div>
+        <div class="ss-name">Component audit</div>
+        <div class="ss-body">Renders without <strong>console errors</strong> · all props supplied · all imports resolve · no dead interactive paths.</div>
+        <div class="checks">
+          <div class="ck">No console errors on render</div>
+          <div class="ck">All props typed and supplied</div>
+          <div class="ck">All child imports resolve</div>
+        </div>
+        <div class="sync-arrow"></div>
+      </div>
+      <div class="sync-step">
+        <div class="ss-n">Step 04</div>
+        <div class="ss-name">Topology update</div>
+        <div class="ss-body">Update <strong>route binding table</strong> · set wave state to live · log state transition · map update is a required deliverable.</div>
+        <div class="checks">
+          <div class="ck">Route binding table updated</div>
+          <div class="ck">Wave state logged in topology</div>
+          <div class="ck">State machine transition recorded</div>
+        </div>
+      </div>
+      <div class="sync-footer" style="grid-column:1/-1">
+        <span>All 4 steps pass = <strong>Live</strong></span>
+        <span>Steps 1–3 pass · step 4 pending = <strong>Partial</strong></span>
+        <span>Step 2 fails (no route) = <strong>Orphaned</strong></span>
+        <span>Step 1 fails (design only) = <strong>Spec</strong></span>
+        <span>Higher wave ships = <strong>Superseded</strong></span>
+      </div>
+    </div>
+
+    <!-- ── DRIFT SIGNALS ──────────────────────────── -->
+    <div class="drift-strip">
+      <div class="drift-head"><strong>Six drift signals · detectable by inspection · fix before shipping</strong><span style="color:rgba(255,255,255,.4)">drift is never acceptable</span></div>
+
+      <div class="ds-item">
+        <div class="di-n">Signal 01</div>
+        <div class="di-pattern">UI copy references unbuilt feature</div>
+        <div class="di-detail">A button, label, or section heading describes a feature with no handler or backend.</div>
+        <div class="di-fix">Remove copy, add partial marker, or build the feature first.</div>
+      </div>
+      <div class="ds-item">
+        <div class="di-n">Signal 02</div>
+        <div class="di-pattern">Design artifact links to non-existent route</div>
+        <div class="di-detail">A nav link in a design spec points to a surface that has no live route.</div>
+        <div class="di-fix">Audit every nav link before porting from design to product.</div>
+      </div>
+      <div class="ds-item">
+        <div class="di-n">Signal 03</div>
+        <div class="di-pattern">Mocked data without // MOCK label</div>
+        <div class="di-detail">A hardcoded value in a live surface appears to be real data.</div>
+        <div class="di-fix">Add <code>// MOCK</code> to every hardcoded value. Connect or mark partial.</div>
+      </div>
+      <div class="ds-item">
+        <div class="di-n">Signal 04</div>
+        <div class="di-pattern">Superseded file still in router</div>
+        <div class="di-detail">An old wave file is still imported with an active route after a higher wave shipped.</div>
+        <div class="di-fix">Remove route from app.jsx. Add supersession comment. Update topology map.</div>
+      </div>
+      <div class="ds-item">
+        <div class="di-n">Signal 05</div>
+        <div class="di-pattern">Topology map stale after wave ships</div>
+        <div class="di-detail">Route binding table says Partial; the component is now complete. Map wasn't updated.</div>
+        <div class="di-fix">Treat topology map update as a required step 4 deliverable — not optional cleanup.</div>
+      </div>
+      <div class="ds-item">
+        <div class="di-n">Signal 06</div>
+        <div class="di-pattern">Design artifact linked from product nav</div>
+        <div class="di-detail">A D44–D55 HTML artifact is linked from the product's navigation bar or sidebar.</div>
+        <div class="di-fix">Remove all design artifact links from product navigation. Never import in app.jsx.</div>
+      </div>
+    </div>
+
+    <!-- ── BOUNDARY LANGUAGE ──────────────────────── -->
+    <div class="bl-table">
+      <div class="blh"><strong>State</strong></div>
+      <div class="blh"><strong>UI language</strong>what the reviewer sees</div>
+      <div class="blh"><strong>Code annotation</strong>what the developer writes</div>
+      <div class="blh"><strong>Nav rule</strong></div>
+
+      <div class="blr">
+        <div class="c st"><span class="sb sb-live"><span class="sd"></span>Live</span></div>
+        <div class="c"><em>No marker. Absence of marker = live.</em> Surface renders normally without boundary tags.</div>
+        <div class="c cd"><code>data-materialization="live"</code>No // MOCK comments. All handlers wired.</div>
+        <div class="c"><strong>Navigable.</strong> Safe to link from product nav.</div>
+      </div>
+      <div class="blr">
+        <div class="c st"><span class="sb sb-partial"><span class="sd"></span>Partial</span></div>
+        <div class="c"><em>"Some features are still being built."</em> Corner tag: "partial · in progress." Dashed border on incomplete cards.</div>
+        <div class="c cd"><code>data-materialization="partial"</code><code>// MOCK</code> per mocked value. <code>// TODO</code> per incomplete handler.</div>
+        <div class="c"><strong>Navigable.</strong> Boundary always visible.</div>
+      </div>
+      <div class="blr">
+        <div class="c st"><span class="sb sb-spec"><span class="sd"></span>Spec</span></div>
+        <div class="c"><em>"Design artifact — not a product surface."</em> Op-bar label in all design docs. Never in product nav.</div>
+        <div class="c cd"><code>// SPEC ONLY — not imported in app.jsx</code>No route declared. No composition import.</div>
+        <div class="c"><strong>Not navigable</strong> from product. Design docs only.</div>
+      </div>
+      <div class="blr">
+        <div class="c st"><span class="sb sb-super"><span class="sd"></span>Superseded</span></div>
+        <div class="c"><em>Not visible in product.</em> File exists in repo; no surface renders it.</div>
+        <div class="c cd"><code>// SUPERSEDED by wave{N} — do not import</code>Route removed from app.jsx.</div>
+        <div class="c"><strong>Not navigable.</strong> Route removed. File retained for reference.</div>
+      </div>
+      <div class="blr">
+        <div class="c st"><span class="sb sb-orphan"><span class="sd"></span>Orphaned</span></div>
+        <div class="c"><em>Not visible in product.</em> In design docs: "orphaned · superseded" corner tag on ink-50 background.</div>
+        <div class="c cd"><code>// ORPHANED — not connected to any route</code>No import in app.jsx. No router entry.</div>
+        <div class="c"><strong>Not navigable.</strong> Boundary tag required in any design reference.</div>
+      </div>
+    </div>
+
+    <!-- ── IMPLEMENTATION DIRECTIVES ─────────────── -->
+    <div class="directives">
+      <div class="dir-col">
+        <div class="dir-head"><strong>Route hygiene</strong><span>binding rules · per wave</span></div>
+        <div class="dir-body">
+          <div class="dir-row"><div class="dk">Nav links</div><div class="dv"><span class="always">only link to live or partial routes</span> · <span class="never">link to spec or orphaned surfaces</span></div></div>
+          <div class="dir-row"><div class="dk">Supersession</div><div class="dv">Ship wave N → remove wave M route → add comment → update map. <strong>Three steps. Same commit.</strong></div></div>
+          <div class="dir-row"><div class="dk">Restoration</div><div class="dv"><span class="never">restore superseded file by removing comment</span> · restoration = new wave number · always</div></div>
+          <div class="dir-row"><div class="dk">Design artifacts</div><div class="dv"><span class="never">import D44–D55 HTMLs in app.jsx</span> · <span class="never">link from product nav</span> · documentation only</div></div>
+          <div class="dir-row"><div class="dk">Orphan cleanup</div><div class="dv">File stays in repo with <code>// ORPHANED</code> comment. Never delete — retain for audit history.</div></div>
+        </div>
+      </div>
+      <div class="dir-col">
+        <div class="dir-head"><strong>State machine</strong><span>transitions are decisions · not side effects</span></div>
+        <div class="dir-body">
+          <div class="dir-row"><div class="dk">Declaration</div><div class="dv"><span class="always">declare <code>data-materialization</code> on every view component root</span> · state is always explicit</div></div>
+          <div class="dir-row"><div class="dk">Transition log</div><div class="dv">Every state change must update the topology map. <span class="never">change state without updating the binding table</span></div></div>
+          <div class="dir-row"><div class="dk">Dependency rule</div><div class="dv">A composition's effective state = minimum state of its dependencies. Live shell + partial view = partial composition.</div></div>
+          <div class="dir-row"><div class="dk">Mocked data</div><div class="dv"><span class="always">label every hardcoded value <code>// MOCK</code></span> · mocked data in a live surface = drift event</div></div>
+          <div class="dir-row"><div class="dk">Copy audit</div><div class="dv"><span class="never">ship UI copy describing unbuilt features</span> · copy is an implementation claim · treat it as such</div></div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /canvas -->
+
+  <footer class="foot">
+    <div>VitalCV · Product Topology Map · v1 · <strong>4 zones · 14 live routes · 1 partial · 4 disconnected · binding</strong></div>
+    <div style="text-align:right;line-height:1.6">
+      <div>Build <strong>vc.2026.05.21-g</strong> · topology v3</div>
+      <div style="color:var(--ink-400)">no hallucination · no orphaned nav · no hidden incompleteness</div>
+    </div>
+  </footer>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,1063 @@
+/* VitalCV · Trust Surfaces · Canon v1
+   Scoped under .trust-scope (applied by app/(trust)/layout.tsx).
+   No global resets — leaves the rest of @vitalcv/web alone. */
+
+.trust-scope {
+  --ink-0: #fff;
+  --ink-50: #f8fafc;
+  --ink-100: #f1f5f9;
+  --ink-200: #e2e8f0;
+  --ink-300: #cbd5e1;
+  --ink-400: #94a3b8;
+  --ink-500: #64748b;
+  --ink-600: #475569;
+  --ink-700: #334155;
+  --ink-800: #1e293b;
+  --ink-900: #0f172a;
+  --ink-950: #020617;
+  --rule: #e2e8f0;
+  --paper: #f8f6f1;
+
+  font-family: "Geist", ui-sans-serif, system-ui, sans-serif;
+  font-feature-settings: "ss01", "cv11";
+  -webkit-font-smoothing: antialiased;
+  background: var(--ink-50);
+  color: var(--ink-900);
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+
+.trust-scope .mono,
+.trust-scope code {
+  font-family: "Geist Mono", ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ============ DOCUMENT CONTROL BAND · regulated-document header ============ */
+/* Replaces the marketing role of a masthead with the institutional role of
+   a controlled-document header: form number · classification · effective ·
+   controlled-by · revision. Renders ABOVE the lineage header on every surface. */
+.t-doc {
+  background: var(--ink-0);
+  border-top: 2px solid var(--ink-950);
+  border-bottom: 1px solid var(--ink-900);
+}
+.t-doc .in {
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 14px 28px 13px;
+  display: grid;
+  grid-template-columns: 1.5fr 1fr 1fr 1fr 1fr 0.9fr;
+  gap: 18px;
+  align-items: end;
+}
+.t-doc .cell {
+  border-left: 1px solid var(--rule);
+  padding-left: 14px;
+}
+.t-doc .cell:first-child {
+  border-left: 0;
+  padding-left: 0;
+}
+.t-doc .k {
+  font-family: "Geist Mono", monospace;
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-400);
+  margin-bottom: 4px;
+  font-weight: 500;
+}
+.t-doc .v {
+  font-family: "Geist Mono", monospace;
+  font-size: 12px;
+  color: var(--ink-900);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  line-height: 1.25;
+}
+.t-doc .v .sub {
+  display: block;
+  font-family: "Geist", sans-serif;
+  font-size: 10.5px;
+  color: var(--ink-500);
+  margin-top: 3px;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.t-doc .form {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.t-doc .form .g {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.t-doc .form .g .glyph {
+  width: 22px;
+  height: 22px;
+  background: var(--ink-950);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-family: "Geist Mono", monospace;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+.t-doc .form .nm {
+  font-family: "Geist Mono", monospace;
+  font-size: 11.5px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-950);
+  font-weight: 600;
+}
+.t-doc .form .title {
+  font-family: "Geist Mono", monospace;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  color: var(--ink-500);
+  text-transform: uppercase;
+}
+
+/* ============ STATE STAMP · PREVIEW / SNAPSHOT / SIGNED ============ */
+.t-stamp {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 7px 11px;
+  border: 1.5px solid var(--ink-950);
+  font-family: "Geist Mono", monospace;
+  background: transparent;
+}
+.t-stamp .lb {
+  font-size: 8.5px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--ink-500);
+}
+.t-stamp .v {
+  font-size: 13px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-950);
+  font-weight: 600;
+}
+.t-stamp[data-state="preview"] {
+  border-style: dashed;
+  border-color: var(--ink-500);
+}
+.t-stamp[data-state="preview"] .v {
+  color: var(--ink-700);
+}
+.t-stamp[data-state="snapshot"] {
+  border-color: var(--ink-700);
+}
+.t-stamp[data-state="signed"] {
+  border-color: var(--ink-950);
+  background: var(--ink-950);
+}
+.t-stamp[data-state="signed"] .lb {
+  color: var(--ink-400);
+}
+.t-stamp[data-state="signed"] .v {
+  color: #fff;
+}
+
+/* ============ INLINE STANDARDS CITATIONS ============ */
+/* For statute / standard references inline with body copy.
+   "ref · RFC 3161"  · "ref · NCQA CR §3"  · "ref · OpenID4VCI § 7"
+   These read like a regulator's citation, not marketing chrome. */
+.t-cite {
+  font-family: "Geist Mono", monospace;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  color: var(--ink-600);
+  padding: 1px 5px;
+  border: 1px solid var(--rule);
+  background: var(--ink-50);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.t-cite::before {
+  content: "ref · ";
+  color: var(--ink-400);
+}
+
+/* ============ CONTROLLED-DOCUMENT FOOTER · revision / page / control ============ */
+.t-control {
+  max-width: 1320px;
+  margin: 28px auto 0;
+  border-top: 2px solid var(--ink-950);
+  border-bottom: 1px solid var(--ink-900);
+  background: var(--ink-0);
+}
+.t-control .in {
+  padding: 12px 28px;
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1fr 1fr 1fr;
+  gap: 18px;
+  align-items: end;
+}
+.t-control .cell {
+  border-left: 1px solid var(--rule);
+  padding-left: 14px;
+}
+.t-control .cell:first-child {
+  border-left: 0;
+  padding-left: 0;
+}
+.t-control .k {
+  font-family: "Geist Mono", monospace;
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-400);
+  margin-bottom: 4px;
+}
+.t-control .v {
+  font-family: "Geist Mono", monospace;
+  font-size: 11px;
+  color: var(--ink-900);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+.t-control .v .sub {
+  display: block;
+  font-family: "Geist", sans-serif;
+  font-size: 10px;
+  color: var(--ink-500);
+  margin-top: 2px;
+  font-weight: 400;
+}
+
+/* ============ RUNTIME STATE BAND (replaces the t-op marketing strip) ============ */
+.t-runtime {
+  background: var(--ink-950);
+  color: var(--ink-300);
+  font-family: "Geist Mono", monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+}
+.t-runtime .in {
+  max-width: 1320px;
+  margin: 0 auto;
+  min-height: 28px;
+  padding: 5px 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.t-runtime .grp {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.t-runtime .grp .k {
+  color: var(--ink-500);
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  font-size: 9.5px;
+}
+.t-runtime .grp .v {
+  color: #fff;
+  font-weight: 500;
+}
+.t-runtime .sep {
+  color: var(--ink-700);
+}
+
+/* ============ MASTHEAD · top anchor band ============ */
+.t-masthead {
+  background: var(--ink-0);
+  border-bottom: 1px solid var(--ink-900);
+}
+.t-masthead .in {
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 14px 28px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+.t-masthead .brand {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+.t-masthead .brand .g {
+  width: 20px;
+  height: 20px;
+  background: var(--ink-900);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-family: "Geist Mono", monospace;
+  font-size: 10px;
+  font-weight: 600;
+}
+.t-masthead .brand .t {
+  font-family: "Geist Mono", monospace;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--ink-900);
+  font-weight: 500;
+}
+.t-masthead .brand .sl {
+  color: var(--ink-300);
+  margin: 0 7px;
+}
+.t-masthead .meta {
+  display: flex;
+  gap: 14px;
+  font-family: "Geist Mono", monospace;
+  font-size: 11px;
+  color: var(--ink-500);
+  letter-spacing: 0.04em;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.t-masthead .meta strong {
+  color: var(--ink-900);
+  font-weight: 500;
+}
+.t-masthead .meta .sep {
+  color: var(--ink-300);
+}
+
+/* ============ OP STRIP · runtime metadata ============ */
+.t-op {
+  background: var(--ink-950);
+  color: var(--ink-300);
+  font-family: "Geist Mono", monospace;
+  font-size: 11px;
+}
+.t-op .in {
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 6px 28px;
+  min-height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.t-op .pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 7px;
+  border: 1px solid var(--ink-700);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 10px;
+}
+.t-op .pill .d {
+  width: 6px;
+  height: 6px;
+  background: #fff;
+  border-radius: 50%;
+}
+.t-op .sep {
+  color: var(--ink-600);
+}
+
+/* ============ MAIN ============ */
+.t-main {
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 18px 28px 56px;
+}
+
+/* ============ LINEAGE HEADER · 6-cell strip ============ */
+.t-lineage {
+  border: 1px solid var(--ink-900);
+  background: var(--ink-0);
+}
+.t-lineage .hd {
+  background: var(--ink-900);
+  color: #fff;
+  padding: 9px 16px;
+  font-family: "Geist Mono", monospace;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.t-lineage .cells {
+  display: grid;
+  grid-template-columns: 1.4fr 0.8fr 1fr 1fr 0.8fr 0.9fr;
+}
+.t-lineage .cell {
+  padding: 11px 14px;
+  border-right: 1px solid var(--rule);
+}
+.t-lineage .cell:last-child {
+  border-right: 0;
+}
+.t-lineage .k {
+  font-family: "Geist Mono", monospace;
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-500);
+  margin-bottom: 4px;
+}
+.t-lineage .v {
+  font-family: "Geist Mono", monospace;
+  font-size: 11.5px;
+  color: var(--ink-900);
+  font-weight: 500;
+  line-height: 1.3;
+}
+.t-lineage .v .sub {
+  display: block;
+  font-family: "Geist", sans-serif;
+  font-size: 10.5px;
+  color: var(--ink-500);
+  font-weight: 400;
+  margin-top: 2px;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+/* state band on lineage header — preview · snapshot · signed */
+.t-lineage[data-state="preview"] {
+  border-style: dashed;
+  border-color: var(--ink-400);
+  background: var(--paper);
+}
+.t-lineage[data-state="preview"] .hd {
+  background: var(--ink-50);
+  color: var(--ink-700);
+}
+.t-lineage[data-state="signed"] {
+  border-color: var(--ink-950);
+}
+.t-lineage[data-state="signed"] .hd {
+  background: var(--ink-950);
+}
+
+/* ============ TRUST CHIP ============ */
+.t-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 7px;
+  border: 1px solid var(--ink-900);
+  font-family: "Geist Mono", monospace;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--ink-900);
+  font-weight: 500;
+  white-space: nowrap;
+}
+.t-chip .d {
+  width: 5px;
+  height: 5px;
+  background: var(--ink-900);
+  border-radius: 50%;
+}
+.t-chip[data-variant="solid"] {
+  background: var(--ink-900);
+  color: #fff;
+}
+.t-chip[data-variant="solid"] .d {
+  background: #fff;
+}
+.t-chip[data-variant="outline"] {
+  background: transparent;
+}
+.t-chip[data-variant="dashed"] {
+  border-style: dashed;
+  color: var(--ink-700);
+}
+.t-chip[data-variant="dashed"] .d {
+  background: transparent;
+  border: 1px solid var(--ink-700);
+}
+.t-chip[data-variant="dotted"] {
+  border-style: dotted;
+  color: var(--ink-700);
+}
+.t-chip[data-variant="dotted"] .d {
+  background: transparent;
+  border: 1px dotted var(--ink-700);
+}
+
+/* tier badge */
+.t-tier {
+  font-family: "Geist Mono", monospace;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #fff;
+  background: var(--ink-900);
+  padding: 3px 6px;
+  letter-spacing: 0.06em;
+  display: inline-block;
+}
+
+/* ============ ID RENDER ============ */
+.t-id {
+  font-family: "Geist Mono", monospace;
+  font-size: 11px;
+  color: var(--ink-900);
+  font-weight: 500;
+  padding: 2px 6px;
+  background: var(--ink-50);
+  border: 1px solid var(--rule);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.t-id[data-tone="inverted"] {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: #fff;
+}
+
+/* ============ CHECKED_AT ============ */
+.t-when {
+  font-family: "Geist Mono", monospace;
+  font-size: 11px;
+  color: var(--ink-900);
+  font-weight: 500;
+  line-height: 1.25;
+  font-variant-numeric: tabular-nums;
+}
+.t-when .sub {
+  display: block;
+  font-size: 9.5px;
+  color: var(--ink-500);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  margin-top: 2px;
+  font-weight: 400;
+}
+
+/* ============ OWNERSHIP BADGE ============ */
+.t-own {
+  font-family: "Geist Mono", monospace;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 7px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.t-own[data-state="subject"] {
+  background: var(--ink-900);
+  color: #fff;
+}
+.t-own[data-state="subject"] .d {
+  width: 5px;
+  height: 5px;
+  background: #fff;
+  border-radius: 50%;
+}
+.t-own[data-state="delegated"] {
+  border: 1px solid var(--ink-900);
+  color: var(--ink-900);
+}
+.t-own[data-state="delegated"] .d {
+  width: 5px;
+  height: 5px;
+  background: var(--ink-900);
+  border-radius: 50%;
+}
+.t-own[data-state="unbound"] {
+  border: 1px dashed var(--ink-700);
+  color: var(--ink-700);
+}
+.t-own[data-state="unbound"] .d {
+  width: 5px;
+  height: 5px;
+  border: 1px solid var(--ink-700);
+  border-radius: 50%;
+}
+
+/* ============ VERDICT BAR ============ */
+.t-verdict {
+  border: 1px solid var(--ink-900);
+  background: var(--ink-0);
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+}
+.t-verdict .v {
+  padding: 13px 18px;
+  background: var(--ink-900);
+  color: #fff;
+  font-family: "Geist Mono", monospace;
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.t-verdict .v .d {
+  width: 7px;
+  height: 7px;
+  background: #fff;
+  border-radius: 50%;
+}
+.t-verdict .b {
+  padding: 13px 18px;
+  color: var(--ink-900);
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.t-verdict .b .pipe {
+  color: var(--ink-300);
+}
+.t-verdict .a {
+  padding: 13px 18px;
+  border-left: 1px solid var(--rule);
+  font-family: "Geist Mono", monospace;
+  font-size: 10.5px;
+  color: var(--ink-700);
+  background: var(--ink-50);
+}
+.t-verdict .a strong {
+  color: var(--ink-900);
+  font-weight: 500;
+  display: block;
+}
+
+/* ============ CHAIN STRIP ============ */
+.t-chain {
+  border: 1px solid var(--ink-300);
+  background: var(--ink-0);
+}
+.t-chain[data-tone="inverted"] {
+  background: var(--ink-950);
+  border-color: var(--ink-950);
+  color: #fff;
+}
+.t-chain .hd {
+  padding: 9px 16px;
+  background: var(--ink-50);
+  border-bottom: 1px solid var(--rule);
+  font-family: "Geist Mono", monospace;
+  font-size: 9.5px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-500);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.t-chain .hd strong {
+  color: var(--ink-900);
+  font-weight: 500;
+}
+.t-chain[data-tone="inverted"] .hd {
+  background: transparent;
+  border-bottom-color: rgba(255, 255, 255, 0.1);
+  color: var(--ink-400);
+}
+.t-chain[data-tone="inverted"] .hd strong {
+  color: #fff;
+}
+.t-chain .body {
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.t-chain .tok {
+  font-family: "Geist Mono", monospace;
+  font-size: 11px;
+  color: var(--ink-900);
+  background: var(--ink-50);
+  border: 1px solid var(--rule);
+  padding: 3px 7px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+.t-chain[data-tone="inverted"] .tok {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.15);
+  color: #fff;
+}
+.t-chain .tok[data-now="true"] {
+  background: var(--ink-900);
+  color: #fff;
+}
+.t-chain[data-tone="inverted"] .tok[data-now="true"] {
+  background: #fff;
+  color: var(--ink-950);
+  border-color: #fff;
+}
+.t-chain .arr {
+  color: var(--ink-400);
+  font-family: "Geist Mono", monospace;
+  font-size: 12px;
+}
+.t-chain[data-tone="inverted"] .arr {
+  color: var(--ink-500);
+}
+
+/* ============ SIGNATURE PANEL ============ */
+.t-sig {
+  border: 1px solid var(--ink-300);
+  background: var(--ink-0);
+}
+.t-sig .hd {
+  padding: 9px 16px;
+  background: var(--ink-50);
+  border-bottom: 1px solid var(--ink-300);
+  font-family: "Geist Mono", monospace;
+  font-size: 9.5px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-500);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.t-sig .hd strong {
+  color: var(--ink-900);
+  font-weight: 500;
+}
+.t-sig .body {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+}
+.t-sig .body .col {
+  padding: 14px 16px;
+  border-right: 1px solid var(--rule);
+}
+.t-sig .body .col:last-child {
+  border-right: 0;
+}
+.t-sig .body .k {
+  font-family: "Geist Mono", monospace;
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--ink-500);
+  margin-bottom: 4px;
+}
+.t-sig .body .v {
+  font-family: "Geist Mono", monospace;
+  font-size: 12px;
+  color: var(--ink-900);
+  font-weight: 500;
+  line-height: 1.3;
+  font-variant-numeric: tabular-nums;
+}
+.t-sig .body .v .sub {
+  display: block;
+  font-family: "Geist", sans-serif;
+  font-size: 11px;
+  color: var(--ink-600);
+  font-weight: 400;
+  margin-top: 3px;
+  letter-spacing: 0;
+}
+.t-sig .age {
+  height: 5px;
+  background: var(--ink-100);
+  border: 1px solid var(--ink-200);
+  position: relative;
+  margin-top: 7px;
+}
+.t-sig .age .f {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--ink-900);
+}
+
+/* ============ DEGRADED ROW · dashed, never opacity ============ */
+.t-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  align-items: stretch;
+}
+.t-row[data-degraded="true"] {
+  background: var(--ink-50);
+}
+.t-row[data-degraded="true"] .t-chip {
+  border-style: dashed;
+}
+
+/* ============ FAILURE BANNER ============ */
+.t-fb {
+  border: 1px solid var(--ink-300);
+  background: var(--ink-0);
+  padding: 14px 18px;
+  display: grid;
+  grid-template-columns: 28px 1fr auto;
+  gap: 14px;
+  align-items: center;
+}
+.t-fb[data-mode="A"] {
+  border-style: dashed;
+  border-color: var(--ink-400);
+}
+.t-fb[data-mode="B"] {
+  border-color: var(--ink-300);
+}
+.t-fb[data-mode="C"] {
+  background: var(--ink-900);
+  border-color: var(--ink-900);
+  color: #fff;
+}
+.t-fb[data-mode="D"] {
+  border-color: var(--ink-900);
+}
+.t-fb[data-mode="E"] {
+  background: var(--ink-950);
+  border-color: var(--ink-950);
+  color: #fff;
+}
+.t-fb .lb {
+  font-family: "Geist Mono", monospace;
+  font-size: 9.5px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-500);
+}
+.t-fb[data-mode="C"] .lb,
+.t-fb[data-mode="E"] .lb {
+  color: var(--ink-400);
+}
+.t-fb .title {
+  font-size: 13.5px;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  color: var(--ink-900);
+  margin-top: 2px;
+}
+.t-fb[data-mode="C"] .title,
+.t-fb[data-mode="E"] .title {
+  color: #fff;
+}
+.t-fb .cta {
+  font-family: "Geist Mono", monospace;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 6px 10px;
+  border: 1px solid var(--ink-900);
+  color: var(--ink-900);
+  font-weight: 500;
+  background: transparent;
+  cursor: pointer;
+}
+.t-fb[data-mode="C"] .cta,
+.t-fb[data-mode="E"] .cta {
+  border-color: #fff;
+  color: #fff;
+}
+
+/* ============ CLAIM TABLE ============ */
+.t-facts {
+  border: 1px solid var(--ink-300);
+  background: var(--ink-0);
+}
+.t-facts .h {
+  display: grid;
+  grid-template-columns: 54px 100px 96px 1.4fr 1fr 120px;
+  background: var(--ink-50);
+  border-bottom: 1px solid var(--ink-900);
+  font-family: "Geist Mono", monospace;
+  font-size: 9.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-500);
+}
+.t-facts .h .c {
+  padding: 10px 12px;
+  border-right: 1px solid var(--rule);
+}
+.t-facts .h .c:last-child {
+  border-right: 0;
+}
+.t-facts .r {
+  display: grid;
+  grid-template-columns: 54px 100px 96px 1.4fr 1fr 120px;
+  border-bottom: 1px solid var(--rule);
+  align-items: stretch;
+}
+.t-facts .r:last-child {
+  border-bottom: 0;
+}
+.t-facts .r .c {
+  padding: 11px 12px;
+  border-right: 1px solid var(--rule);
+  display: flex;
+  align-items: center;
+}
+.t-facts .r .c:last-child {
+  border-right: 0;
+}
+.t-facts .r:hover {
+  background: var(--ink-50);
+}
+.t-facts .claim {
+  font-size: 13px;
+  color: var(--ink-900);
+  font-weight: 500;
+}
+.t-facts .claim .sub {
+  display: block;
+  font-family: "Geist Mono", monospace;
+  font-size: 10px;
+  color: var(--ink-500);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  margin-top: 2px;
+  font-weight: 400;
+}
+.t-facts .src {
+  font-family: "Geist Mono", monospace;
+  font-size: 11px;
+  color: var(--ink-700);
+}
+.t-facts .src .sub {
+  display: block;
+  font-size: 9.5px;
+  color: var(--ink-500);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  margin-top: 2px;
+}
+.t-facts .rcpt {
+  font-family: "Geist Mono", monospace;
+  font-size: 10.5px;
+  color: var(--ink-900);
+  font-weight: 500;
+}
+.t-facts .rcpt .sub {
+  display: block;
+  font-size: 9.5px;
+  color: var(--ink-500);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  margin-top: 2px;
+  font-weight: 400;
+}
+
+/* ============ SECTION HEADER ============ */
+.t-sh {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  border-bottom: 1px solid var(--ink-900);
+  padding-bottom: 8px;
+  margin: 28px 0 16px;
+}
+.t-sh .n {
+  font-family: "Geist Mono", monospace;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--ink-300);
+  font-weight: 600;
+}
+.t-sh h2 {
+  font-size: 16px;
+  margin: 0;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  color: var(--ink-900);
+}
+.t-sh .ey {
+  font-family: "Geist Mono", monospace;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--ink-500);
+  margin-left: auto;
+}
+
+/* ============ FOOT BAND · bottom anchor ============ */
+.t-foot {
+  max-width: 1320px;
+  margin: 24px auto 0;
+  padding: 20px 28px;
+  font-family: "Geist Mono", monospace;
+  font-size: 10.5px;
+  color: var(--ink-500);
+  display: flex;
+  justify-content: space-between;
+  border-top: 1px solid var(--rule);
+  background: var(--ink-0);
+}
+.t-foot strong {
+  color: var(--ink-700);
+}
+
+/* ============ RESPONSIVE ============ */
+@media (max-width: 1100px) {
+  .t-doc .in {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+  .t-doc .cell:nth-child(4) {
+    border-left: 0;
+    padding-left: 0;
+  }
+  .t-control .in {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+  .t-control .cell:nth-child(4) {
+    border-left: 0;
+    padding-left: 0;
+  }
+}
+@media (max-width: 1000px) {
+  .t-lineage .cells {
+    grid-template-columns: 1fr 1fr;
+  }
+  .t-lineage .cell {
+    border-right: 0;
+    border-bottom: 1px solid var(--rule);
+  }
+  .t-sig .body {
+    grid-template-columns: 1fr 1fr;
+  }
+  .t-sig .body .col {
+    border-right: 0;
+    border-bottom: 1px solid var(--rule);
+  }
+  .t-sig .body .col:nth-child(2n) {
+    border-right: 0;
+  }
+  .t-facts .h,
+  .t-facts .r {
+    grid-template-columns: 54px 1fr 110px;
+  }
+  .t-facts .h > :nth-child(n + 4):nth-child(-n + 5),
+  .t-facts .r > :nth-child(n + 4):nth-child(-n + 5) {
+    display: none;
+  }
+  .t-verdict {
+    grid-template-columns: 1fr;
+  }
+  .t-verdict .a {
+    border-left: 0;
+    border-top: 1px solid var(--rule);
+  }
+}

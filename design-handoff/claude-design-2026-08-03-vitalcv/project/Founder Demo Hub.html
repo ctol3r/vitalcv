@@ -1,0 +1,461 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>VitalCV · Founder hub · localhost</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --ink-0:#fff;--ink-50:#f8fafc;--ink-100:#f1f5f9;--ink-200:#e2e8f0;--ink-300:#cbd5e1;
+    --ink-400:#94a3b8;--ink-500:#64748b;--ink-600:#475569;--ink-700:#334155;
+    --ink-800:#1e293b;--ink-900:#0f172a;--ink-950:#020617;
+    --rule:#1e293b;
+    /* pill hues — tuned for peripheral vision on dark */
+    --pass-fg:#34d399;--pass-bg:#022c22;--pass-bd:#047857;
+    --fail-fg:#fbbf24;--fail-bg:#3f1d04;--fail-bd:#b45309;   /* amber for FAIL — strong */
+    --skip-fg:#94a3b8;--skip-bg:transparent;--skip-bd:#334155; /* zinc for SKIP — recessive */
+    --run-fg:#fde047;--run-bg:#1c1300;--run-bd:#a16207;      /* warm yellow blinking */
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:#000;color:var(--ink-100);font-family:'Geist Mono',ui-monospace,monospace;-webkit-font-smoothing:antialiased;font-size:12.5px;line-height:1.35;}
+  .sans{font-family:'Geist',ui-sans-serif,system-ui,sans-serif;}
+
+  /* === Cockpit chrome === */
+  .top{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:14px;padding:7px 18px;border-bottom:1px solid #111827;background:#000;font-size:11px;color:#94a3b8;}
+  .top .l{display:flex;align-items:center;gap:12px;}
+  .top .l .g{width:18px;height:18px;background:#fff;color:#000;display:grid;place-items:center;font-size:10px;font-weight:700;}
+  .top .l strong{color:#fff;font-weight:600;letter-spacing:.04em;}
+  .top .l .sub{color:#475569;}
+  .top .c{font-size:9.5px;text-transform:uppercase;letter-spacing:.22em;color:#475569;text-align:center;}
+  .top .c strong{color:#fff;font-weight:600;}
+  .top .r{font-size:11px;display:flex;gap:14px;align-items:center;}
+  .top .r .clock{color:#fff;font-weight:500;letter-spacing:.04em;}
+  .top .r .build{color:#475569;letter-spacing:.12em;text-transform:uppercase;font-size:9.5px;}
+
+  main{max-width:1280px;margin:0 auto;padding:14px 18px 22px;display:flex;flex-direction:column;gap:12px;}
+
+  /* === Pre-flight smoke checklist === */
+  .smoke{border:1px solid #1e293b;background:#0a0f1c;}
+  .smoke .hd{padding:7px 14px;border-bottom:1px solid #1e293b;background:#000;display:flex;justify-content:space-between;align-items:center;font-size:10px;text-transform:uppercase;letter-spacing:.16em;color:#64748b;font-weight:600;}
+  .smoke .hd .ttl{color:#fff;}
+  .smoke .hd .summary{display:flex;gap:0;border:1px solid #1e293b;}
+  .smoke .hd .summary span{padding:2px 10px;border-right:1px solid #1e293b;color:#64748b;display:flex;align-items:center;gap:6px;font-size:9.5px;}
+  .smoke .hd .summary span:last-child{border-right:0;}
+  .smoke .hd .summary strong{color:#fff;font-weight:600;font-size:10.5px;font-variant-numeric:tabular-nums;}
+  .smoke .hd .summary .sd{width:5px;height:5px;display:inline-block;}
+  .smoke .hd .summary .sd.p{background:var(--pass-fg);}
+  .smoke .hd .summary .sd.f{background:var(--fail-fg);}
+  .smoke .hd .summary .sd.s{background:var(--skip-fg);}
+  .smoke .hd .summary .sd.r{background:var(--run-fg);animation:blink 1s steps(2,end) infinite;}
+
+  .smoke table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums;}
+  .smoke td{padding:6px 14px;border-bottom:1px solid #1e293b;font-size:11.5px;color:#cbd5e1;vertical-align:middle;line-height:1.35;}
+  .smoke tr:last-child td{border-bottom:0;}
+  .smoke td.ord{width:34px;color:#475569;font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;}
+  .smoke td.nm{color:#fff;font-weight:500;letter-spacing:-.005em;width:28%;}
+  .smoke td.nm .sub{display:block;color:#64748b;font-size:10px;font-weight:400;margin-top:0;letter-spacing:0;}
+  .smoke td.detail{color:#94a3b8;font-size:11px;}
+  .smoke td.detail strong{color:#fff;font-weight:500;}
+  .smoke td.st{width:96px;text-align:right;}
+  .smoke td.act{width:118px;text-align:right;}
+
+  /* Status pill — high-contrast, peripheral-vision distinct */
+  .st-pill{display:inline-flex;align-items:center;gap:6px;font-size:10px;letter-spacing:.14em;text-transform:uppercase;padding:2px 8px 2px 7px;border:1px solid;font-weight:700;font-variant-numeric:tabular-nums;}
+  .st-pill .m{width:6px;height:6px;display:inline-block;}
+
+  /* PASS — filled emerald chip (loud go-signal) */
+  .st-pill.pass{color:var(--pass-fg);background:var(--pass-bg);border-color:var(--pass-bd);}
+  .st-pill.pass .m{background:var(--pass-fg);box-shadow:0 0 0 2px rgba(52,211,153,.18);}
+
+  /* FAIL — filled AMBER chip (peripheral alarm) */
+  .st-pill.fail{color:var(--fail-fg);background:var(--fail-bg);border-color:var(--fail-bd);box-shadow:inset 0 0 0 1px rgba(251,191,36,.12);}
+  .st-pill.fail .m{background:var(--fail-fg);box-shadow:0 0 0 2px rgba(251,191,36,.22);}
+
+  /* SKIP — outlined ZINC chip (recedes — clearly inert) */
+  .st-pill.skip{color:var(--skip-fg);background:transparent;border-color:var(--skip-bd);border-style:dashed;font-weight:600;}
+  .st-pill.skip .m{background:transparent;border:1px solid var(--skip-fg);width:5px;height:5px;}
+
+  /* RUN — yellow with active blinker */
+  .st-pill.run{color:var(--run-fg);background:var(--run-bg);border-color:var(--run-bd);}
+  .st-pill.run .m{background:var(--run-fg);animation:blink 1s steps(2,end) infinite;box-shadow:0 0 0 2px rgba(253,224,71,.18);}
+  @keyframes blink{50%{opacity:0;}}
+
+  /* Action stub button */
+  .smoke .ax{display:inline-flex;align-items:center;gap:6px;font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:#cbd5e1;background:transparent;border:1px solid #334155;padding:3px 9px;cursor:pointer;font-family:inherit;font-weight:500;}
+  .smoke .ax:hover{border-color:#fff;color:#fff;}
+  .smoke .ax.dim{color:#475569;border-color:#1e293b;cursor:default;}
+
+  /* === Persona switcher — massive touch targets, compressed === */
+  .switcher{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+  .persona-tile{background:#0a0f1c;border:1px solid #1e293b;padding:16px 18px 14px;text-align:left;color:#fff;cursor:pointer;text-decoration:none;display:flex;flex-direction:column;gap:9px;min-height:0;transition:border-color .12s ease,background .12s ease,transform .08s ease;position:relative;outline:none;}
+  .persona-tile:hover,.persona-tile:focus-visible{border-color:#fff;background:#101827;}
+  .persona-tile.armed{border-color:#fff;background:#1e293b;transform:scale(.992);}
+  .persona-tile .key{position:absolute;top:12px;right:12px;font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:#475569;border:1px solid #1e293b;padding:1px 7px;font-weight:600;font-family:'Geist Mono',monospace;transition:border-color .12s, color .12s, background .12s;}
+  .persona-tile:hover .key,.persona-tile:focus-visible .key{border-color:#475569;color:#94a3b8;}
+  .persona-tile.armed .key{background:#fff;color:#000;border-color:#fff;}
+  .persona-tile .ord{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:#64748b;font-weight:600;}
+  .persona-tile h2{font-family:'Geist',sans-serif;font-size:26px;font-weight:600;letter-spacing:-.025em;margin:0;line-height:1;color:#fff;}
+  .persona-tile .deck{font-family:'Geist',sans-serif;font-size:12px;color:#94a3b8;letter-spacing:-.005em;line-height:1.45;}
+  .persona-tile .deck strong{color:#fff;font-weight:500;}
+  .persona-tile .meta{margin-top:auto;display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid #1e293b;}
+  .persona-tile .meta .cell{padding:5px 9px;border-right:1px solid #1e293b;}
+  .persona-tile .meta .cell:last-child{border-right:0;}
+  .persona-tile .meta .k{font-size:8.5px;letter-spacing:.16em;text-transform:uppercase;color:#64748b;font-weight:600;}
+  .persona-tile .meta .v{font-size:11px;color:#fff;font-weight:500;letter-spacing:.02em;margin-top:1px;font-variant-numeric:tabular-nums;}
+
+  /* === Quick-jump rail (sub-surfaces) === */
+  .jumps{border:1px solid #1e293b;background:#0a0f1c;}
+  .jumps .hd{padding:6px 14px;border-bottom:1px solid #1e293b;background:#000;font-size:10px;text-transform:uppercase;letter-spacing:.16em;color:#64748b;font-weight:600;display:flex;justify-content:space-between;align-items:center;}
+  .jumps .hd .ttl{color:#fff;}
+  .jumps ul{margin:0;padding:0;list-style:none;display:grid;grid-template-columns:repeat(3,1fr);}
+  .jumps li{border-right:1px solid #1e293b;border-bottom:1px solid #1e293b;}
+  .jumps li:nth-child(3n){border-right:0;}
+  .jumps li:nth-last-child(-n+3){border-bottom:0;}
+  .jumps a{display:flex;justify-content:space-between;align-items:center;padding:7px 14px;color:#fff;text-decoration:none;font-size:11.5px;font-family:'Geist',sans-serif;font-weight:500;letter-spacing:-.005em;}
+  .jumps a:hover{background:#101827;}
+  .jumps a .sub{display:block;font-family:'Geist Mono',monospace;font-size:9.5px;color:#64748b;font-weight:400;margin-top:0;letter-spacing:.04em;}
+  .jumps a .arr{color:#475569;font-family:'Geist Mono',monospace;font-size:11px;}
+  .jumps a:hover .arr{color:#fff;}
+
+  /* === Tools + keymap as a single compact strip === */
+  .lower{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;}
+  .tool{background:#0a0f1c;border:1px solid #1e293b;padding:8px 12px;display:flex;flex-direction:column;gap:3px;}
+  .tool .k{font-size:9.5px;text-transform:uppercase;letter-spacing:.16em;color:#64748b;font-weight:600;display:flex;justify-content:space-between;align-items:center;}
+  .tool .k strong{color:#fff;font-weight:600;}
+  .tool .v{font-size:15px;color:#fff;font-weight:500;letter-spacing:-.012em;font-variant-numeric:tabular-nums;line-height:1.1;}
+  .tool .v .u{font-size:10px;color:#64748b;margin-left:3px;letter-spacing:.04em;}
+  .tool .btns{margin-top:auto;display:flex;gap:5px;flex-wrap:nowrap;padding-top:4px;}
+  .tool .btns button{flex:1;font-family:inherit;font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:#cbd5e1;background:transparent;border:1px solid #334155;padding:4px 6px;cursor:pointer;font-weight:500;}
+  .tool .btns button:hover{border-color:#fff;color:#fff;}
+  .tool .btns button.danger:hover{border-color:var(--fail-fg);color:var(--fail-fg);}
+
+  /* === Footer keymap === */
+  .keymap{display:grid;grid-template-columns:repeat(4,1fr);gap:0;border:1px solid #1e293b;background:#000;}
+  .keymap .cell{padding:6px 12px;border-right:1px solid #1e293b;font-size:10px;color:#94a3b8;display:flex;align-items:center;gap:8px;}
+  .keymap .cell:last-child{border-right:0;}
+  .keymap kbd{font-family:'Geist Mono',monospace;font-size:10px;color:#fff;border:1px solid #334155;padding:1px 6px;background:#0a0f1c;letter-spacing:.06em;}
+  .keymap .cell strong{color:#fff;font-weight:500;}
+
+  /* === HOTKEY FLASH OVERLAY — fullscreen confirmation when ⌘1/2/3 fired === */
+  .hk-flash{position:fixed;inset:0;background:#fff;color:#000;display:none;align-items:center;justify-content:center;flex-direction:column;gap:18px;z-index:9999;font-family:'Geist Mono',monospace;text-align:center;pointer-events:none;}
+  .hk-flash.armed{display:flex;animation:hk-fire .42s ease-out forwards;}
+  @keyframes hk-fire{
+    0%   {opacity:0;transform:scale(1.04);}
+    14%  {opacity:1;transform:scale(1);}
+    72%  {opacity:1;background:#fff;}
+    100% {opacity:0;background:#000;}
+  }
+  .hk-flash .hk{font-size:84px;line-height:1;font-weight:700;letter-spacing:-.04em;font-family:'Geist',sans-serif;}
+  .hk-flash .lbl{font-size:14px;letter-spacing:.32em;text-transform:uppercase;color:#000;font-weight:600;}
+  .hk-flash .rt{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:#475569;display:flex;gap:18px;align-items:center;}
+  .hk-flash .rt .pulse{width:6px;height:6px;background:#000;animation:blink .12s steps(2,end) 3;}
+  .hk-flash .rt strong{color:#000;font-weight:700;letter-spacing:.06em;}
+
+  /* Smoke re-run flash (⌘R) — different shape: a horizontal bar sweep, no nav */
+  .smoke.flashed{animation:smoke-flash .5s ease-out;}
+  @keyframes smoke-flash{0%{box-shadow:inset 0 0 0 1px var(--run-fg);}100%{box-shadow:inset 0 0 0 1px transparent;}}
+
+  @media(max-width:840px){
+    .switcher{grid-template-columns:1fr;}
+    .lower{grid-template-columns:1fr 1fr;}
+    .jumps ul{grid-template-columns:1fr;}
+    .jumps li{border-right:0;}
+    .keymap{grid-template-columns:1fr 1fr;}
+    .keymap .cell:nth-child(2n){border-right:0;}
+    .smoke td.detail{display:none;}
+    .hk-flash .hk{font-size:54px;}
+  }
+</style>
+</head>
+<body data-screen-label="Founder Demo Hub">
+
+<div class="top">
+  <div class="l">
+    <span class="g">V</span>
+    <strong>VitalCV</strong>
+    <span class="sub">/ founder / hub</span>
+  </div>
+  <div class="c">
+    <strong>LOCALHOST</strong> · NOT FOR DISTRIBUTION · DO NOT SHARE
+  </div>
+  <div class="r">
+    <span class="clock" id="clock">14:32:08Z</span>
+    <span class="build">build vc.2026.05.11-a</span>
+  </div>
+</div>
+
+<main>
+
+  <!-- Pre-flight smoke checklist -->
+  <section class="smoke" id="smoke">
+    <div class="hd">
+      <span class="ttl">Pre-flight · smoke checklist</span>
+      <div class="summary">
+        <span><span class="sd p"></span><strong id="pass-count">5</strong>&nbsp;PASS</span>
+        <span><span class="sd f"></span><strong id="fail-count">0</strong>&nbsp;FAIL</span>
+        <span><span class="sd s"></span><strong id="skip-count">1</strong>&nbsp;SKIP</span>
+        <span><span class="sd r"></span><strong id="run-count">1</strong>&nbsp;RUN</span>
+      </div>
+    </div>
+    <table>
+      <tbody id="smoke-rows">
+        <tr data-st="pass">
+          <td class="ord">01</td>
+          <td class="nm">cloudflared tunnel<span class="sub">demo.vitalcv.localhost.dev</span></td>
+          <td class="detail">200 OK · <strong>42 ms</strong> rtt · cert <strong>valid</strong> 38 d</td>
+          <td class="st"><span class="st-pill pass"><span class="m"></span>Pass</span></td>
+          <td class="act"><button class="ax">re-probe</button></td>
+        </tr>
+        <tr data-st="pass">
+          <td class="ord">02</td>
+          <td class="nm">Local Postgres<span class="sub">vitalcv_dev · :5432</span></td>
+          <td class="detail">connected · <strong>4 / 20</strong> conns · migrations <strong>up to head</strong></td>
+          <td class="st"><span class="st-pill pass"><span class="m"></span>Pass</span></td>
+          <td class="act"><button class="ax">psql</button></td>
+        </tr>
+        <tr data-st="pass">
+          <td class="ord">03</td>
+          <td class="nm">Seeded NPIs<span class="sub">cohort · q2-2026-pilot</span></td>
+          <td class="detail"><strong>47</strong> records · last reseed <strong>2 h ago</strong> · drift <strong>0</strong></td>
+          <td class="st"><span class="st-pill pass"><span class="m"></span>Pass</span></td>
+          <td class="act"><button class="ax">reseed</button></td>
+        </tr>
+        <tr data-st="run">
+          <td class="ord">04</td>
+          <td class="nm">NPPES mirror<span class="sub">federal · type-1</span></td>
+          <td class="detail">probing · <strong>p95 412 ms</strong> last hour · cache fresh</td>
+          <td class="st"><span class="st-pill run"><span class="m"></span>Run</span></td>
+          <td class="act"><button class="ax">flush</button></td>
+        </tr>
+        <tr data-st="pass">
+          <td class="ord">05</td>
+          <td class="nm">Issuer key<span class="sub">did:web:vitalcv.health · key 4f2a</span></td>
+          <td class="detail">loaded · <strong>ed25519</strong> · in service <strong>190 d</strong> · rotates Aug</td>
+          <td class="st"><span class="st-pill pass"><span class="m"></span>Pass</span></td>
+          <td class="act"><button class="ax dim">view</button></td>
+        </tr>
+        <tr data-st="skip">
+          <td class="ord">06</td>
+          <td class="nm">PECOS live probe<span class="sub">federal · slow lane</span></td>
+          <td class="detail">skipped on local · use <strong>--prod-probe</strong> to include</td>
+          <td class="st"><span class="st-pill skip"><span class="m"></span>Skip</span></td>
+          <td class="act"><button class="ax">enable</button></td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- Persona switcher — three huge targets -->
+  <section class="switcher">
+    <a class="persona-tile" href="Clinician Start.html" data-key="1" data-screen-label="01 Clinician">
+      <span class="key">⌘ 1</span>
+      <div class="ord">Persona 01</div>
+      <h2>Clinician</h2>
+      <div class="deck">Emotional entry → 3-step activation → vault-key share. <strong>Macie Miller, PA-C</strong> through Cedar Okta. Federal resolution live; bind gated until cleared.</div>
+      <div class="meta">
+        <div class="cell"><div class="k">Entry</div><div class="v">/start</div></div>
+        <div class="cell"><div class="k">Seed</div><div class="v">NPI 1346053246</div></div>
+      </div>
+    </a>
+    <a class="persona-tile" href="Employer Pipeline.html" data-key="2" data-screen-label="02 Employer">
+      <span class="key">⌘ 2</span>
+      <div class="ord">Persona 02</div>
+      <h2>Employer</h2>
+      <div class="deck">Pipeline + replay. <strong>Cedar Health Credentialing</strong>, Q2 cohort of 47. Friction-drop visual, ROI math, acceptance lock-in.</div>
+      <div class="meta">
+        <div class="cell"><div class="k">Entry</div><div class="v">/pipeline</div></div>
+        <div class="cell"><div class="k">Cohort</div><div class="v">47 providers</div></div>
+      </div>
+    </a>
+    <a class="persona-tile" href="Verifier Replay.html" data-key="3" data-screen-label="03 Issuer">
+      <span class="key">⌘ 3</span>
+      <div class="ord">Persona 03</div>
+      <h2>Issuer / Verifier</h2>
+      <div class="deck">Read-only replay surface. Subject-bound run, full audit fields, signed footer. <strong>The 'show me the receipt' moment.</strong></div>
+      <div class="meta">
+        <div class="cell"><div class="k">Entry</div><div class="v">/replay</div></div>
+        <div class="cell"><div class="k">Run</div><div class="v">r-7a2c-b8d3</div></div>
+      </div>
+    </a>
+  </section>
+
+  <!-- Quick-jump rail to sub-surfaces -->
+  <section class="jumps">
+    <div class="hd">
+      <span class="ttl">Sub-surfaces · in order of demo flow</span>
+      <span>12 routes wired · <strong style="color:#fff;">D40–D43 added</strong></span>
+    </div>
+    <ul>
+      <li><a href="Clinician Activation Processing.html"><span>/activation/processing<span class="sub">D40 · assembly ledger ritual · 9 checks</span></span><span class="arr">↗</span></a></li>
+      <li><a href="Operational Guardrails.html"><span>/system/guardrails<span class="sub">D42 · limitations vocabulary · 6 components</span></span><span class="arr">↗</span></a></li>
+      <li><a href="Pilot Deployment Kit.html"><span>/pilot/deployment<span class="sub">D43 · cedar q2-26 · print-ready</span></span><span class="arr">↗</span></a></li>
+      <li><a href="Executive Share.html"><span>/share — executive brief<span class="sub">whitepaper · the email-this link</span></span><span class="arr">↗</span></a></li>
+      <li><a href="Why VitalCV.html"><span>/why — position paper<span class="sub">editorial · 6 min</span></span><span class="arr">↗</span></a></li>
+      <li><a href="Trust Anchor.html"><span>/trust — public anchor<span class="sub">did:web · JWKS · T1–T4</span></span><span class="arr">↗</span></a></li>
+      <li><a href="Pilot Intake.html"><span>/launch — 10-NPI ask<span class="sub">intake form · terminal receipt</span></span><span class="arr">↗</span></a></li>
+      <li><a href="Clinician Activation Success.html"><span>/activation/success<span class="sub">vault-key share · 20% recovered</span></span><span class="arr">↗</span></a></li>
+      <li><a href="Clinician Profile.html"><span>/profile — passport<span class="sub">read-only · dl rows</span></span><span class="arr">↗</span></a></li>
+      <li><a href="Clinician Passport Revoked.html"><span>/passport/revoked<span class="sub">edge case · OIG exclusion</span></span><span class="arr">↗</span></a></li>
+      <li><a href="Source Health Panel.html"><span>/admin/source-health<span class="sub">operator · awaiting integration</span></span><span class="arr">↗</span></a></li>
+      <li><a href="Acceptance Proof.html"><span>/accept — ledger lock<span class="sub">D11 · audit row reveal</span></span><span class="arr">↗</span></a></li>
+    </ul>
+  </section>
+
+  <!-- Cockpit tools + keymap merged into one compact row -->
+  <section class="lower">
+    <div class="tool">
+      <div class="k"><span>Demo timer</span><strong id="demo-timer">00:00</strong></div>
+      <div class="v" id="timer-big">0<span class="u">m elapsed</span></div>
+      <div class="btns">
+        <button id="timer-start">start</button>
+        <button id="timer-reset" class="danger">reset</button>
+      </div>
+    </div>
+    <div class="tool">
+      <div class="k"><span>Snapshot</span><strong>2 h ago</strong></div>
+      <div class="v">47<span class="u">records seeded</span></div>
+      <div class="btns">
+        <button>reseed</button>
+        <button class="danger">truncate</button>
+      </div>
+    </div>
+    <div class="tool">
+      <div class="k"><span>Tunnel</span><strong>up · 38 d</strong></div>
+      <div class="v">demo<span class="u">.vitalcv.localhost.dev</span></div>
+      <div class="btns">
+        <button id="copy-link">copy link</button>
+        <button>rotate</button>
+      </div>
+    </div>
+    <div class="tool">
+      <div class="k"><span>Smoke</span><strong>5 / 6</strong></div>
+      <div class="v">passing<span class="u">· 1 running</span></div>
+      <div class="btns">
+        <button id="rerun-smoke">re-run</button>
+        <button>logs</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Keymap footer -->
+  <section class="keymap">
+    <div class="cell"><kbd>⌘ 1</kbd><span>Jump · <strong>Clinician</strong></span></div>
+    <div class="cell"><kbd>⌘ 2</kbd><span>Jump · <strong>Employer</strong></span></div>
+    <div class="cell"><kbd>⌘ 3</kbd><span>Jump · <strong>Issuer</strong></span></div>
+    <div class="cell"><kbd>⌘ R</kbd><span>Re-run · <strong>smoke</strong></span></div>
+  </section>
+
+</main>
+
+<!-- ===== Fullscreen hotkey flash — fires on ⌘1/⌘2/⌘3 ===== -->
+<div class="hk-flash" id="hk-flash" aria-hidden="true">
+  <div class="rt"><span class="pulse"></span><span>Route transition</span><span>·</span><strong id="hk-route">/start</strong></div>
+  <div class="hk" id="hk-name">Clinician</div>
+  <div class="lbl"><span id="hk-key">⌘ 1</span> · Persona <span id="hk-num">01</span></div>
+</div>
+
+<script>
+  // Live clock
+  function tickClock(){
+    const d = new Date();
+    const pad = n => String(n).padStart(2,'0');
+    document.getElementById('clock').textContent =
+      `${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}:${pad(d.getUTCSeconds())}Z`;
+  }
+  tickClock(); setInterval(tickClock, 1000);
+
+  // ----- Hotkey flash + navigate -----
+  const flash = document.getElementById('hk-flash');
+  const fName = document.getElementById('hk-name');
+  const fKey  = document.getElementById('hk-key');
+  const fNum  = document.getElementById('hk-num');
+  const fRt   = document.getElementById('hk-route');
+
+  function fireHotkey(tile, num){
+    const name = tile.querySelector('h2').textContent.trim();
+    const route = tile.querySelector('.meta .cell:first-child .v').textContent.trim();
+    const key = tile.querySelector('.key').textContent.trim();
+
+    fName.textContent = name;
+    fKey.textContent  = key;
+    fNum.textContent  = String(num).padStart(2,'0');
+    fRt.textContent   = route;
+
+    // "armed" pulse on the tile itself, in case user is looking at it
+    tile.classList.add('armed');
+
+    // Fire flash overlay
+    flash.classList.remove('armed');
+    void flash.offsetWidth; // restart animation
+    flash.classList.add('armed');
+
+    // Navigate at the brightest moment of the flash so the transition feels deliberate
+    setTimeout(()=>{ window.location.href = tile.getAttribute('href'); }, 260);
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (!(e.metaKey || e.ctrlKey)) return;
+    const k = e.key;
+    const tiles = document.querySelectorAll('.persona-tile');
+    if (k === '1') { e.preventDefault(); fireHotkey(tiles[0], 1); return; }
+    if (k === '2') { e.preventDefault(); fireHotkey(tiles[1], 2); return; }
+    if (k === '3') { e.preventDefault(); fireHotkey(tiles[2], 3); return; }
+    if (k && k.toLowerCase() === 'r') {
+      e.preventDefault();
+      const s = document.getElementById('smoke');
+      s.classList.remove('flashed'); void s.offsetWidth; s.classList.add('flashed');
+    }
+  });
+
+  // Click on a tile should also fire the flash (so demo cadence stays consistent)
+  document.querySelectorAll('.persona-tile').forEach((t, i) => {
+    t.addEventListener('click', (e) => {
+      e.preventDefault();
+      fireHotkey(t, i + 1);
+    });
+  });
+
+  // Demo timer
+  (function(){
+    let t = 0, h = null;
+    const lblBig = document.getElementById('timer-big');
+    const lblHd  = document.getElementById('demo-timer');
+    function render(){
+      const mm = Math.floor(t/60), ss = t%60;
+      lblHd.textContent = String(mm).padStart(2,'0')+':'+String(ss).padStart(2,'0');
+      const m = Math.floor(t/60);
+      lblBig.innerHTML = m + '<span class="u">m elapsed</span>';
+    }
+    document.getElementById('timer-start').addEventListener('click', (e)=>{
+      if (h) { clearInterval(h); h=null; e.target.textContent='start'; return; }
+      h = setInterval(()=>{ t++; render(); }, 1000);
+      e.target.textContent='pause';
+    });
+    document.getElementById('timer-reset').addEventListener('click', ()=>{
+      if (h) { clearInterval(h); h=null; document.getElementById('timer-start').textContent='start'; }
+      t = 0; render();
+    });
+    render();
+  })();
+
+  // Re-run smoke
+  document.getElementById('rerun-smoke').addEventListener('click', ()=>{
+    const s = document.getElementById('smoke');
+    s.classList.remove('flashed'); void s.offsetWidth; s.classList.add('flashed');
+  });
+
+  // Copy link
+  document.getElementById('copy-link').addEventListener('click', (e) => {
+    const url = 'https://demo.vitalcv.localhost.dev';
+    if (navigator.clipboard) navigator.clipboard.writeText(url);
+    e.target.textContent = 'copied';
+    setTimeout(()=>e.target.textContent='copy link', 1400);
+  });
+</script>
+
+<script src="telemetry.js"></script>
+</body>
+</html>

@@ -1,0 +1,629 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>VitalCV · Materialization Reality System · v1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+:root {
+  --ink-0:#fff; --ink-50:#f7f6f2; --ink-100:#efede7; --ink-200:#dddbd3;
+  --ink-300:#c2bfb5; --ink-400:#96938a; --ink-500:#6b6860; --ink-600:#474540;
+  --ink-700:#2d2c28; --ink-800:#1a1916; --ink-900:#0f0e0c; --ink-950:#050504;
+  --rule:#dddbd3; --rule-soft:#eceae4; --paper:#f4f2ec;
+  --live:#2d6a4f; --partial:#7d5a1e; --spec:#6b6860; --orphan:#5a3a1e;
+  --pr-open:#2563eb; --pr-merged:#5b21b6; --pr-draft:#6b6860;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--paper);color:var(--ink-900);font-family:'Geist',ui-sans-serif,system-ui,sans-serif;font-feature-settings:'ss01','cv11';-webkit-font-smoothing:antialiased;font-size:13px;line-height:1.5;letter-spacing:-.003em}
+.mono,code{font-family:'Geist Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums}
+
+.opbar{background:var(--ink-950);color:var(--ink-300);font-family:'Geist Mono',monospace;font-size:10px;position:sticky;top:0;z-index:60}
+.opbar .in{max-width:1380px;margin:0 auto;padding:0 36px;height:30px;display:flex;align-items:center;justify-content:space-between}
+.opbar .l{display:flex;align-items:center;gap:12px}
+.opbar .l .g{width:16px;height:16px;background:#fff;color:#000;display:grid;place-items:center;font-size:9px;font-weight:700}
+.opbar .l strong{color:#fff;font-weight:600}
+.opbar .r{display:flex;gap:14px;color:var(--ink-500);text-transform:uppercase;letter-spacing:.12em;font-size:9px;align-items:center}
+.opbar .r .pill{display:inline-flex;align-items:center;gap:4px;padding:1px 6px;border:1px solid var(--ink-700);color:var(--ink-400)}
+.opbar .r .dot{width:5px;height:5px;background:#10b981;border-radius:50%;animation:blink 2.4s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:.3}50%{opacity:1}}
+
+.doc{max-width:1380px;margin:0 auto;background:var(--ink-0);box-shadow:0 1px 0 rgba(0,0,0,.04),0 16px 48px -16px rgba(0,0,0,.10)}
+
+.mast{padding:32px 48px 28px;border-bottom:1px solid var(--ink-900)}
+.mast .crumb{font-family:'Geist Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.18em;color:var(--ink-500);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.mast .crumb .r{display:inline-block;width:16px;height:1px;background:var(--ink-300)}
+.mast h1{font-size:28px;font-weight:600;letter-spacing:-.025em;margin:0 0 8px;line-height:1.05}
+.mast h1 em{font-style:normal;color:var(--ink-500);font-weight:400}
+.mast .lede{font-size:13.5px;color:var(--ink-600);line-height:1.6;max-width:76ch;margin:0 0 18px}
+.mast .lede strong{color:var(--ink-900);font-weight:500}
+.mast .meta{display:flex;gap:20px;flex-wrap:wrap;font-family:'Geist Mono',monospace;font-size:9.5px;text-transform:uppercase;letter-spacing:.14em;color:var(--ink-500)}
+.mast .meta span strong{color:var(--ink-900);font-weight:500}
+
+.body{display:grid;grid-template-columns:200px 1fr}
+.toc{border-right:1px solid var(--rule);padding:24px 20px 40px;position:sticky;top:30px;align-self:flex-start;height:calc(100vh - 30px);overflow-y:auto}
+.toc .lbl{font-family:'Geist Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.18em;color:var(--ink-400);font-weight:600;padding-bottom:8px;margin-bottom:8px;border-bottom:1px solid var(--rule-soft)}
+.toc a{display:flex;align-items:baseline;gap:8px;padding:6px 0;text-decoration:none;font-size:11.5px;font-weight:500;color:var(--ink-700);border-bottom:1px dashed var(--rule-soft);transition:color .1s}
+.toc a:last-child{border-bottom:0}
+.toc a:hover{color:var(--ink-950)}
+.toc a .n{font-family:'Geist Mono',monospace;font-size:9px;color:var(--ink-400);font-weight:400;flex-shrink:0}
+
+.content{padding:0 48px 72px;min-width:0}
+.sec{margin-top:48px}
+.sec:first-child{margin-top:36px}
+.sh{display:flex;align-items:baseline;gap:12px;border-bottom:1px solid var(--ink-900);padding-bottom:8px;margin-bottom:18px}
+.sh .n{font-family:'Geist Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.18em;color:var(--ink-300);font-weight:600}
+.sh h2{font-size:16px;margin:0;font-weight:600;letter-spacing:-.015em}
+.sh .ey{font-family:'Geist Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-500);margin-left:auto}
+.prose{font-size:13px;color:var(--ink-700);line-height:1.65;max-width:74ch;margin-bottom:16px}
+.prose strong{color:var(--ink-900);font-weight:500}
+
+/* shared atoms */
+.sb{display:inline-flex;align-items:center;gap:4px;font-family:'Geist Mono',monospace;font-size:8.5px;text-transform:uppercase;letter-spacing:.10em;font-weight:600;padding:1px 6px;white-space:nowrap}
+.sb .sd{width:4px;height:4px;border-radius:50%}
+.sb-live   {border:1px solid var(--live);color:var(--live)} .sb-live .sd{background:var(--live)}
+.sb-partial{border:1px dashed var(--partial);color:var(--partial)} .sb-partial .sd{border:1.5px dashed var(--partial);border-radius:50%}
+.sb-spec   {border:1px dashed var(--ink-400);color:var(--spec)} .sb-spec .sd{background:var(--ink-400);opacity:.4}
+.sb-orphan {border:1px solid var(--orphan);color:var(--orphan)} .sb-orphan .sd{background:var(--orphan)}
+.sb-super  {border:1px solid var(--ink-400);color:var(--ink-500)} .sb-super .sd{background:var(--ink-500);opacity:.4}
+.sb-exec   {background:var(--ink-900);color:#fff;border:1px solid var(--ink-900)} .sb-exec .sd{background:#fff}
+.sb-nonexec{border:1px dashed var(--ink-400);color:var(--ink-500)} .sb-nonexec .sd{border:1.5px dashed var(--ink-400);border-radius:50%}
+.never{color:var(--orphan);font-family:'Geist Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.10em;font-weight:600}
+.never::before{content:"× "}
+.always{color:var(--live);font-family:'Geist Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.10em;font-weight:600}
+.always::before{content:"✓ "}
+
+/* ═══════════════════════════════════════════════════
+   00 · MATERIALIZATION HIERARCHY
+   ═══════════════════════════════════════════════════ */
+.hier{border:1px solid var(--ink-900);display:flex;flex-direction:column}
+.hier-head{padding:9px 18px;background:var(--ink-900);color:#fff;font-family:'Geist Mono',monospace;font-size:9.5px;text-transform:uppercase;letter-spacing:.16em;display:flex;justify-content:space-between}
+.hier-head strong{font-weight:500;color:#fff}
+
+/* Executable / non-executable split */
+.hier-split{display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid var(--rule)}
+.hs-col{padding:16px 18px;border-right:1px solid var(--rule)}
+.hs-col:last-child{border-right:0;background:var(--ink-50)}
+.hs-col .hsc-label{font-family:'Geist Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-500);font-weight:600;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.hs-col .hsc-label .hl{flex:1;height:1px;background:var(--rule-soft)}
+.hs-states{display:flex;flex-direction:column;gap:7px}
+.hs-state{display:flex;align-items:flex-start;gap:10px;padding:8px 10px;border:1px solid var(--rule-soft)}
+.hs-state.hs-live   {border-left:3px solid var(--live)}
+.hs-state.hs-partial{border-left:3px dashed var(--partial)}
+.hs-state.hs-spec   {border-left:3px dashed var(--ink-200);opacity:.7}
+.hs-state.hs-orphan {border-left:3px solid var(--orphan);background:var(--ink-50)}
+.hs-state.hs-super  {border-left:3px solid var(--ink-300);opacity:.45;background:var(--ink-50)}
+.hs-state .hss-badge{flex-shrink:0;padding-top:1px}
+.hs-state .hss-body{flex:1}
+.hs-state .hss-body .hb-name{font-size:12.5px;font-weight:600;color:var(--ink-900);letter-spacing:-.01em;margin-bottom:2px}
+.hs-state.hs-spec .hss-body .hb-name{color:var(--ink-600)}
+.hs-state .hss-body .hb-def{font-size:11.5px;color:var(--ink-700);line-height:1.45}
+
+/* Executable boundary bar */
+.exec-bar{display:flex;align-items:center;gap:0;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);background:var(--ink-50)}
+.exec-bar .eb-left{flex:1;padding:8px 18px;border-right:1px solid var(--rule);font-family:'Geist Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.14em;color:var(--ink-600);display:flex;align-items:center;gap:8px}
+.exec-bar .eb-right{flex:1;padding:8px 18px;font-family:'Geist Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.14em;color:var(--ink-400);display:flex;align-items:center;gap:8px}
+.exec-bar .eb-line{width:1px;height:14px;background:var(--rule)}
+.exec-bar strong{color:var(--ink-900);font-weight:600}
+
+/* ═══════════════════════════════════════════════════
+   01 · PR STATE MAPPING
+   ═══════════════════════════════════════════════════ */
+.pr-matrix{border:1px solid var(--ink-900)}
+.pr-head-row{display:grid;grid-template-columns:160px 1fr 1fr 140px;background:var(--ink-900)}
+.pr-head-row .c{padding:9px 14px;border-right:1px solid var(--ink-700);font-family:'Geist Mono',monospace;font-size:9.5px;text-transform:uppercase;letter-spacing:.14em;color:rgba(255,255,255,.5)}
+.pr-head-row .c:last-child{border-right:0}
+.pr-head-row .c strong{color:#fff;font-size:10px;font-weight:600;display:block}
+.pr-row{display:grid;grid-template-columns:160px 1fr 1fr 140px;border-top:1px solid var(--rule);align-items:start}
+.pr-row:hover{background:var(--ink-50)}
+.pr-row .c{padding:10px 14px;border-right:1px solid var(--rule-soft);font-size:12px;color:var(--ink-700);line-height:1.45}
+.pr-row .c:last-child{border-right:0}
+.pr-row .c:first-child{display:flex;flex-direction:column;gap:5px;background:var(--ink-50);border-right:1px solid var(--rule)}
+.pr-row .c strong{color:var(--ink-900);font-weight:500}
+.pr-badge{display:inline-flex;align-items:center;gap:5px;font-family:'Geist Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.10em;font-weight:600;padding:2px 7px}
+.pr-open   {border:1px solid var(--pr-open);color:var(--pr-open)}
+.pr-merged {border:1px solid var(--pr-merged);color:var(--pr-merged)}
+.pr-draft  {border:1px dashed var(--pr-draft);color:var(--pr-draft)}
+.pr-closed {border:1px solid var(--orphan);color:var(--orphan)}
+.pr-badge .pd{width:5px;height:5px;border-radius:50%}
+.pr-open .pd{background:var(--pr-open)} .pr-merged .pd{background:var(--pr-merged)}
+.pr-draft .pd{border:1.5px dashed var(--pr-draft);border-radius:50%}
+.pr-closed .pd{background:var(--orphan)}
+
+/* ═══════════════════════════════════════════════════
+   02 · OPERATIONAL REALITY CHECKS
+   ═══════════════════════════════════════════════════ */
+.reality-checks{border:1px solid var(--ink-900);display:flex;flex-direction:column}
+.rc-header{padding:9px 18px;background:var(--ink-900);color:#fff;font-family:'Geist Mono',monospace;font-size:9.5px;text-transform:uppercase;letter-spacing:.16em;display:flex;justify-content:space-between}
+.rc-header strong{font-weight:500;color:#fff}
+.rc-grid{display:grid;grid-template-columns:1fr 1fr 1fr}
+.rc-item{padding:14px 16px;border-right:1px solid var(--rule);border-top:1px solid var(--rule-soft);display:flex;flex-direction:column;gap:6px}
+.rc-item:nth-child(3n){border-right:0}
+.rc-item .ri-phase{font-family:'Geist Mono',monospace;font-size:8.5px;text-transform:uppercase;letter-spacing:.14em;color:var(--ink-400);font-weight:600}
+.rc-item .ri-check{font-size:12.5px;font-weight:600;color:var(--ink-900);letter-spacing:-.01em;line-height:1.2}
+.rc-item .ri-method{font-size:11.5px;color:var(--ink-700);line-height:1.45}
+.rc-item .ri-method code{font-family:'Geist Mono',monospace;font-size:10px;color:var(--ink-900);background:var(--ink-50);border:1px solid var(--rule);padding:1px 4px}
+.rc-item .ri-method strong{color:var(--ink-900);font-weight:500}
+.rc-item .ri-verdict{font-family:'Geist Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.12em;padding-top:6px;border-top:1px dashed var(--rule-soft)}
+.ri-pass{color:var(--live)} .ri-pass::before{content:"pass → "}
+.ri-fail{color:var(--orphan)} .ri-fail::before{content:"fail → "}
+
+/* ═══════════════════════════════════════════════════
+   03 · TOPOLOGY-TRUTH LANGUAGE
+   ═══════════════════════════════════════════════════ */
+.truth-table{border:1px solid var(--ink-900)}
+.tt-head{display:grid;grid-template-columns:1fr 1fr 1fr;background:var(--ink-900)}
+.tt-head .c{padding:9px 14px;border-right:1px solid var(--ink-700);font-family:'Geist Mono',monospace;font-size:9.5px;text-transform:uppercase;letter-spacing:.14em;color:rgba(255,255,255,.5)}
+.tt-head .c:last-child{border-right:0}
+.tt-head .c strong{color:#fff;font-size:10px;font-weight:600;display:block}
+.tt-row{display:grid;grid-template-columns:1fr 1fr 1fr;border-top:1px solid var(--rule);align-items:start}
+.tt-row:hover{background:var(--ink-50)}
+.tt-row .c{padding:10px 14px;border-right:1px solid var(--rule-soft);font-size:12px;color:var(--ink-700);line-height:1.45}
+.tt-row .c:first-child{background:var(--ink-50);border-right:1px solid var(--rule)}
+.tt-row .c:last-child{border-right:0}
+.tt-row .c .bad{color:var(--ink-400);text-decoration:line-through;text-decoration-color:var(--orphan);font-size:11.5px;display:block;margin-bottom:3px}
+.tt-row .c strong{color:var(--ink-900);font-weight:500}
+.tt-row .c em{font-style:italic;color:var(--ink-600)}
+
+/* ═══════════════════════════════════════════════════
+   04 · EXECUTABLE-BOUNDARY SEMANTICS
+   ═══════════════════════════════════════════════════ */
+.exec-semantics{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid var(--ink-900)}
+.es-col{border-right:1px solid var(--rule);display:flex;flex-direction:column}
+.es-col:last-child{border-right:0;background:var(--ink-50)}
+.es-head{padding:9px 16px;background:var(--ink-900);color:#fff;border-bottom:1px solid var(--ink-700);font-family:'Geist Mono',monospace;font-size:9.5px;text-transform:uppercase;letter-spacing:.16em;display:flex;align-items:center;gap:10px}
+.es-head strong{font-weight:500;color:#fff}
+.es-head .eh-count{color:rgba(255,255,255,.4);font-size:9px}
+.es-head.nonexec-head{background:var(--ink-800)}
+.es-items{padding:12px 16px;display:flex;flex-direction:column;gap:7px}
+.es-item{padding:9px 11px;border:1px solid var(--rule-soft);display:flex;flex-direction:column;gap:4px}
+.es-item.ei-live{border-left:3px solid var(--live)}
+.es-item.ei-partial{border-left:3px dashed var(--partial)}
+.es-item.ei-nonexec{border-left:3px dashed var(--ink-300)}
+.es-item.ei-orphan{border-left:3px solid var(--orphan);background:var(--ink-0)}
+.es-item .ei-name{font-size:12px;font-weight:600;color:var(--ink-900);letter-spacing:-.01em}
+.es-item.ei-nonexec .ei-name{color:var(--ink-600);font-weight:400}
+.es-item.ei-orphan .ei-name{color:var(--orphan)}
+.es-item .ei-detail{font-size:11.5px;color:var(--ink-700);line-height:1.4}
+.es-item .ei-rule{font-family:'Geist Mono',monospace;font-size:9px;color:var(--ink-500);margin-top:2px}
+.exec-divider{display:flex;align-items:center;padding:0 48px;border-top:2px solid var(--ink-900);border-bottom:2px solid var(--ink-900);background:var(--ink-900)}
+.exec-divider span{font-family:'Geist Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.18em;color:rgba(255,255,255,.5);padding:7px 0;flex:1;text-align:center}
+.exec-divider .arrow{color:#fff;font-size:16px;font-weight:300}
+
+/* ═══════════════════════════════════════════════════
+   05 · IMPLEMENTATION GUIDANCE
+   ═══════════════════════════════════════════════════ */
+.impl-grid{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid var(--ink-900)}
+.ig-block{border-right:1px solid var(--rule);border-bottom:1px solid var(--rule);display:flex;flex-direction:column}
+.ig-block:nth-child(2n){border-right:0}
+.ig-block:nth-last-child(-n+2){border-bottom:0}
+.ig-head{padding:9px 16px;background:var(--ink-50);border-bottom:1px solid var(--rule);font-family:'Geist Mono',monospace;font-size:9.5px;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-700);display:flex;justify-content:space-between}
+.ig-head strong{color:var(--ink-900);font-weight:600}
+.ig-body{padding:11px 16px;flex:1;display:flex;flex-direction:column;gap:0}
+.rr{display:grid;grid-template-columns:130px 1fr;gap:10px;padding:6px 0;border-bottom:1px dashed var(--rule-soft);align-items:start;font-size:11.5px}
+.rr:last-child{border-bottom:0}
+.rk{font-family:'Geist Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.12em;color:var(--ink-500);font-weight:600;padding-top:1px}
+.rv{color:var(--ink-700);line-height:1.5}
+.rv strong{color:var(--ink-900);font-weight:500}
+.rv code{font-family:'Geist Mono',monospace;font-size:10px;color:var(--ink-900);background:var(--ink-50);border:1px solid var(--rule);padding:1px 4px}
+
+footer.foot{padding:16px 48px;border-top:1px solid var(--rule);background:var(--ink-0);font-family:'Geist Mono',monospace;font-size:9.5px;color:var(--ink-500);text-transform:uppercase;letter-spacing:.14em;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+footer.foot strong{color:var(--ink-900);font-weight:600}
+
+@media(max-width:900px){
+  .body{grid-template-columns:1fr} .toc{display:none} .content{padding:0 20px 48px} .mast{padding:20px}
+  .hier-split,.exec-semantics,.impl-grid{grid-template-columns:1fr}
+  .pr-head-row,.pr-row,.tt-head,.tt-row{grid-template-columns:1fr 1fr}
+  .pr-head-row .c:nth-child(3),.pr-row .c:nth-child(3),.tt-head .c:nth-child(3),.tt-row .c:nth-child(3){display:none}
+  .rc-grid{grid-template-columns:1fr 1fr}
+  .rc-item:nth-child(3n){border-right:1px solid var(--rule)}
+  .rc-item:nth-child(2n){border-right:0}
+  footer.foot{padding:14px 20px}
+}
+</style>
+</head>
+<body>
+
+<div class="opbar">
+  <div class="in">
+    <div class="l">
+      <span class="g">V</span>
+      <strong>VitalCV</strong>
+      <span style="color:var(--ink-700)">/</span>
+      <span style="color:var(--ink-400)">materialization reality system · v1</span>
+    </div>
+    <div class="r">
+      <span>PR states · executable boundary · reality checks · topology truth</span>
+      <span style="color:var(--ink-700)">|</span>
+      <span class="pill"><span class="dot"></span>Live</span>
+      <span style="color:var(--ink-600)">vc.2026.05.21-h</span>
+    </div>
+  </div>
+</div>
+
+<div class="doc">
+  <header class="mast">
+    <div class="crumb"><span class="r"></span>Materialization reality · PR state mapping · executable boundary · operational truth · Claude Code handoff</div>
+    <h1>What can run. <em>What cannot. Visibly always.</em></h1>
+    <p class="lede">VitalCV's implementation reality expressed in four systems: a hierarchy of materialization states, a mapping of PR lifecycle to product state, a set of operational reality checks that can be run at any time, and a vocabulary that names the difference between executable truth and conceptual intention. <strong>No surface, route, or PR claims a state it hasn't earned.</strong></p>
+    <div class="meta">
+      <span>Boundary · <strong>executable vs. non-executable</strong></span>
+      <span>PR states · <strong>draft · open · merged · closed-unmerged</strong></span>
+      <span>Reality checks · <strong>9 · per phase · all runnable</strong></span>
+      <span>Truth vocabulary · <strong>7 substitutions · binding</strong></span>
+    </div>
+  </header>
+
+  <div class="body">
+    <aside class="toc">
+      <div class="lbl">Contents</div>
+      <nav>
+        <a href="#hierarchy"><span class="n">00</span>Materialization Hierarchy</a>
+        <a href="#pr"><span class="n">01</span>PR State Mapping</a>
+        <a href="#reality"><span class="n">02</span>Reality Checks</a>
+        <a href="#truth"><span class="n">03</span>Topology-Truth Language</a>
+        <a href="#boundary"><span class="n">04</span>Executable Boundary</a>
+        <a href="#impl"><span class="n">05</span>Implementation Guidance</a>
+      </nav>
+    </aside>
+
+    <div class="content">
+
+      <!-- ══ 00 · MATERIALIZATION HIERARCHY ════════ -->
+      <div class="sec" id="hierarchy">
+        <div class="sh"><span class="n">00</span><h2>Materialization hierarchy · executable vs. non-executable</h2><span class="ey">the boundary is the first fact</span></div>
+        <p class="prose">The most important distinction in the VitalCV architecture is not between states within the executable zone — it is between the <strong>executable zone</strong> (live, partial) and the <strong>non-executable zone</strong> (spec, orphaned, superseded). An institutional reviewer or developer should be able to determine which zone a surface is in before reading anything else about it.</p>
+
+        <div class="hier">
+          <div class="hier-head"><strong>Materialization hierarchy · five states · executable boundary bisects</strong><span style="color:rgba(255,255,255,.4)">binding · vc.2026.05.21</span></div>
+
+          <div class="exec-bar">
+            <div class="eb-left"><span class="sb sb-exec"><span class="sd"></span>Executable</span><span class="eb-line"></span>Routes resolve · components render · can be navigated in the live product</div>
+            <div class="eb-right"><span class="sb sb-nonexec"><span class="sd"></span>Non-executable</span><span class="eb-line"></span>No active route · cannot be reached through product navigation</div>
+          </div>
+
+          <div class="hier-split">
+            <div class="hs-col">
+              <div class="hsc-label">Executable zone <div class="hl"></div></div>
+              <div class="hs-states">
+                <div class="hs-state hs-live">
+                  <div class="hss-badge"><span class="sb sb-live"><span class="sd"></span>Live</span></div>
+                  <div class="hss-body">
+                    <div class="hb-name">Fully materialized</div>
+                    <div class="hb-def">Route resolves. Component renders without errors. All data bindings are real or labeled mock. All four sync steps passed. Navigation is safe.</div>
+                  </div>
+                </div>
+                <div class="hs-state hs-partial">
+                  <div class="hss-badge"><span class="sb sb-partial"><span class="sd"></span>Partial</span></div>
+                  <div class="hss-body">
+                    <div class="hb-name">Executable with boundaries</div>
+                    <div class="hb-def">Route resolves and component renders, but at least one declared feature has an incomplete handler, mocked data without a label, or a missing data binding. Boundary marker required on surface.</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="hs-col">
+              <div class="hsc-label" style="color:var(--ink-400)">Non-executable zone <div class="hl"></div></div>
+              <div class="hs-states">
+                <div class="hs-state hs-spec">
+                  <div class="hss-badge"><span class="sb sb-spec"><span class="sd"></span>Spec</span></div>
+                  <div class="hss-body">
+                    <div class="hb-name">Design only · no route · no component</div>
+                    <div class="hb-def">Exists in design artifacts or wave specs. No entry in app.jsx router. Not importable as a product surface.</div>
+                  </div>
+                </div>
+                <div class="hs-state hs-orphan">
+                  <div class="hss-badge"><span class="sb sb-orphan"><span class="sd"></span>Orphaned</span></div>
+                  <div class="hss-body">
+                    <div class="hb-name">Built but disconnected</div>
+                    <div class="hb-def">File exists in the repo but no active route imports it. Cannot be reached. Not navigable. Retained for audit history only.</div>
+                  </div>
+                </div>
+                <div class="hs-state hs-super">
+                  <div class="hss-badge"><span class="sb sb-super"><span class="sd"></span>Superseded</span></div>
+                  <div class="hss-body">
+                    <div class="hb-name">Higher wave is canonical</div>
+                    <div class="hb-def">Route removed from router. File annotated with <code>// SUPERSEDED by wave{N}</code>. The superseding wave carries the canonical implementation.</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ 01 · PR STATE MAPPING ══════════════════ -->
+      <div class="sec" id="pr">
+        <div class="sh"><span class="n">01</span><h2>PR state mapping · four PR states → materialization state</h2><span class="ey">PR lifecycle determines product state · always</span></div>
+        <p class="prose">A surface's materialization state is determined by the state of its PR, not by intent or design. <strong>A merged PR with a missing topology update is a partial surface, not a live one.</strong> A draft PR with a routed component is an orphan, not a partial. PR state is the ground truth — everything else follows from it.</p>
+
+        <div class="pr-matrix">
+          <div class="pr-head-row">
+            <div class="c"></div>
+            <div class="c"><strong>What it means for the surface</strong></div>
+            <div class="c"><strong>Materialization state</strong>immediate result</div>
+            <div class="c"><strong>Required action</strong></div>
+          </div>
+
+          <div class="pr-row">
+            <div class="c">
+              <span class="pr-badge pr-draft"><span class="pd"></span>Draft PR</span>
+            </div>
+            <div class="c">Work in progress. Component may exist in a feature branch but is not reachable from the main product. <strong>No product surface exists yet.</strong></div>
+            <div class="c"><span class="sb sb-spec"><span class="sd"></span>Spec</span> — treat as design artifact until merged. No route should be declared from a draft branch.</div>
+            <div class="c"><span class="never">route from draft branch</span>. Keep topology map unchanged until merge.</div>
+          </div>
+
+          <div class="pr-row">
+            <div class="c">
+              <span class="pr-badge pr-open"><span class="pd"></span>Open PR</span>
+            </div>
+            <div class="c">Implementation complete on the feature branch. Route, component, and data are present but not yet in main. <strong>Not in the live product.</strong></div>
+            <div class="c"><span class="sb sb-partial"><span class="sd"></span>Partial</span> (branch-local) — can be demonstrated from the feature branch, but topology map should not be updated until merge.</div>
+            <div class="c">Conduct sync protocol review in PR. Do not update topology map until merge completes.</div>
+          </div>
+
+          <div class="pr-row">
+            <div class="c">
+              <span class="pr-badge pr-merged"><span class="pd"></span>Merged PR</span>
+            </div>
+            <div class="c">Code is in main. Route is accessible. <strong>All four sync steps must now be verified</strong> against the merged state, not the branch state.</div>
+            <div class="c"><span class="sb sb-live"><span class="sd"></span>Live</span> — if all four sync steps pass on the merged main branch. <span class="sb sb-partial"><span class="sd"></span>Partial</span> if any step fails after merge.</div>
+            <div class="c"><span class="always">run sync protocol on merged main</span>. Update topology map. Log state transition.</div>
+          </div>
+
+          <div class="pr-row">
+            <div class="c">
+              <span class="pr-badge pr-closed"><span class="pd"></span>Closed (unmerged)</span>
+            </div>
+            <div class="c">PR abandoned without merge. If any code was pushed to main before closure, that code is now disconnected. <strong>Any route added from this branch must be removed.</strong></div>
+            <div class="c"><span class="sb sb-orphan"><span class="sd"></span>Orphaned</span> for any component that was written but not merged. Revert any premature route additions.</div>
+            <div class="c"><span class="never">leave orphaned routes in app.jsx</span>. Remove route, add orphan annotation, update topology map.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ 02 · OPERATIONAL REALITY CHECKS ═══════ -->
+      <div class="sec" id="reality">
+        <div class="sh"><span class="n">02</span><h2>Operational reality checks · nine checks · three phases</h2><span class="ey">run at any time · each returns pass or fail</span></div>
+        <p class="prose">Nine concrete checks that verify operational truth. Each check is runnable by inspection or grep — no automated tooling required. <strong>Run these checks after every PR merge, before every demo, and whenever the topology map is updated.</strong> A surface that fails any check is not live regardless of what the topology map says.</p>
+
+        <div class="reality-checks">
+          <div class="rc-header"><strong>Nine reality checks · three phases · pass / fail verdict per check</strong><span style="color:rgba(255,255,255,.4)">run per wave · per merge · per demo</span></div>
+          <div class="rc-grid">
+
+            <div class="rc-item">
+              <div class="ri-phase">Phase 1 · Route</div>
+              <div class="ri-check">Route resolves without 404</div>
+              <div class="ri-method">Navigate to the declared path in the running product. <strong>Does it render?</strong> A 404 or blank screen = fail.</div>
+              <div class="ri-verdict ri-fail">state = orphaned or spec</div>
+            </div>
+
+            <div class="rc-item">
+              <div class="ri-phase">Phase 1 · Route</div>
+              <div class="ri-check">Route is reachable from navigation</div>
+              <div class="ri-method">Starting from the product home, can you reach this route through at least one nav path? <strong>No dead-end approaches.</strong></div>
+              <div class="ri-verdict ri-fail">state = partial (unreachable surface)</div>
+            </div>
+
+            <div class="rc-item">
+              <div class="ri-phase">Phase 1 · Route</div>
+              <div class="ri-check">No superseded file at same path</div>
+              <div class="ri-method">Grep app.jsx for the path. Only one component should be assigned to it. <code>grep -n "/activate"</code> — if two imports match, one is wrong.</div>
+              <div class="ri-verdict ri-fail">state = drift event · remove superseded</div>
+            </div>
+
+            <div class="rc-item">
+              <div class="ri-phase">Phase 2 · Component</div>
+              <div class="ri-check">No console errors on render</div>
+              <div class="ri-method">Open the surface in browser. Check console. <strong>Any error = fail.</strong> Warnings are acceptable if they are known and annotated.</div>
+              <div class="ri-verdict ri-fail">state = partial · fix errors before live</div>
+            </div>
+
+            <div class="rc-item">
+              <div class="ri-phase">Phase 2 · Component</div>
+              <div class="ri-check">No TODO handlers on interactive elements</div>
+              <div class="ri-method"><code>grep -n "TODO" src/</code> in the component file. Any TODO in a click/submit handler on a visible element = fail.</div>
+              <div class="ri-verdict ri-fail">state = partial · wire or hide element</div>
+            </div>
+
+            <div class="rc-item">
+              <div class="ri-phase">Phase 2 · Component</div>
+              <div class="ri-check">All child imports resolve</div>
+              <div class="ri-method">Build the component in isolation. <strong>Any missing import = fail.</strong> Watch for components that import superseded wave files.</div>
+              <div class="ri-verdict ri-fail">state = broken · resolve imports first</div>
+            </div>
+
+            <div class="rc-item">
+              <div class="ri-phase">Phase 3 · Data + Topology</div>
+              <div class="ri-check">All data values labeled real or mock</div>
+              <div class="ri-method"><code>grep -n "// MOCK" src/</code> — every hardcoded value should appear. Any unlabeled hardcoded string/number in a live surface = fail.</div>
+              <div class="ri-verdict ri-fail">state = drift · add // MOCK or connect data</div>
+            </div>
+
+            <div class="rc-item">
+              <div class="ri-phase">Phase 3 · Data + Topology</div>
+              <div class="ri-check">UI copy matches implemented features</div>
+              <div class="ri-method">Read every button label, status message, and section heading in the surface. <strong>Does each one describe a feature that exists?</strong> Any mismatch = fail.</div>
+              <div class="ri-verdict ri-fail">state = drift · update copy or build feature</div>
+            </div>
+
+            <div class="rc-item">
+              <div class="ri-phase">Phase 3 · Data + Topology</div>
+              <div class="ri-check">Topology map reflects current state</div>
+              <div class="ri-method">Cross-reference the topology map's state for this route against the results of checks 1–8. <strong>Map must match reality.</strong> Any discrepancy = map is stale.</div>
+              <div class="ri-verdict ri-fail">topology drift · update map immediately</div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ 03 · TOPOLOGY-TRUTH LANGUAGE ══════════ -->
+      <div class="sec" id="truth">
+        <div class="sh"><span class="n">03</span><h2>Topology-truth language · seven substitutions · binding vocabulary</h2><span class="ey">language is an implementation claim · treat it as such</span></div>
+        <p class="prose">The language used to describe a surface is itself an implementation claim. Calling a spec-only surface "ready" is a materialization lie. Calling an orphaned route "deprecated" obscures its actual state. <strong>Seven substitutions that replace speculative or ambiguous language with operational truth.</strong></p>
+
+        <div class="truth-table">
+          <div class="tt-head">
+            <div class="c"><strong>Phrase to retire</strong></div>
+            <div class="c"><strong>Replacement</strong></div>
+            <div class="c"><strong>Why the original is dishonest</strong></div>
+          </div>
+
+          <div class="tt-row">
+            <div class="c"><span class="bad">"Coming soon"</span></div>
+            <div class="c"><strong>"Not built yet."</strong> If it's in the nav: remove it. If it's in documentation: label it spec.</div>
+            <div class="c">"Coming soon" implies a commitment and a timeline that may not exist. It's a marketing phrase, not an implementation state.</div>
+          </div>
+          <div class="tt-row">
+            <div class="c"><span class="bad">"Deprecated"</span></div>
+            <div class="c"><strong>"Superseded by wave{N}"</strong> or <strong>"Orphaned — no active route."</strong> Name the specific state.</div>
+            <div class="c">"Deprecated" is vague — it doesn't say whether the surface is still reachable, what replaced it, or whether it carries a risk of being navigated to.</div>
+          </div>
+          <div class="tt-row">
+            <div class="c"><span class="bad">"In progress"</span></div>
+            <div class="c"><strong>"Partial — [specific incomplete feature] not yet built."</strong> Name what's missing.</div>
+            <div class="c">"In progress" could mean draft, open PR, or partial. Without naming the incomplete part, a reviewer cannot assess the risk of using the surface.</div>
+          </div>
+          <div class="tt-row">
+            <div class="c"><span class="bad">"Planned"</span></div>
+            <div class="c"><strong>"Spec only — no route, no component."</strong> Spec is the honest state.</div>
+            <div class="c">"Planned" implies a roadmap commitment. Spec means it exists in design. These are different claims. Only one is true at time of writing.</div>
+          </div>
+          <div class="tt-row">
+            <div class="c"><span class="bad">"Live" (without sync verification)</span></div>
+            <div class="c"><strong>"Live — passed sync protocol [date]."</strong> The date matters. Live degrades if not re-verified after changes.</div>
+            <div class="c">Calling a surface live without running the sync protocol is a guess, not a state. Live is a verified claim, not a declaration.</div>
+          </div>
+          <div class="tt-row">
+            <div class="c"><span class="bad">"Legacy"</span></div>
+            <div class="c"><strong>"Superseded — [wave{N}] is canonical."</strong> Name the canonical replacement.</div>
+            <div class="c">"Legacy" doesn't tell a developer whether the route is still active, whether it imports the superseded file, or whether it needs to be cleaned up.</div>
+          </div>
+          <div class="tt-row">
+            <div class="c"><span class="bad">"Experimental"</span></div>
+            <div class="c"><strong>"Partial — boundary markers required on surface."</strong> Experimental and partial are the same state. Use the canonical term.</div>
+            <div class="c">"Experimental" is a disposition, not a state. It doesn't specify what's incomplete or what would make it live. Partial with named incomplete features is honest.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ 04 · EXECUTABLE-BOUNDARY SEMANTICS ════ -->
+      <div class="sec" id="boundary">
+        <div class="sh"><span class="n">04</span><h2>Executable-boundary semantics · what can run · what cannot</h2><span class="ey">boundary is always the first fact · never inferred</span></div>
+        <p class="prose">The executable boundary is the most important structural boundary in the VitalCV architecture. <strong>Everything on the executable side of the boundary can be opened in a browser, navigated to, and evaluated by an institutional reviewer.</strong> Everything on the non-executable side cannot — it is design, documentation, or disconnected code. The boundary is always labeled, never implied.</p>
+
+        <div class="exec-semantics">
+          <div class="es-col">
+            <div class="es-head"><strong>Executable</strong><span class="eh-count">reachable in live product</span></div>
+            <div class="es-items">
+              <div class="es-item ei-live">
+                <div class="ei-name">Live route · live component · real or labeled data</div>
+                <div class="ei-detail">All four sync steps passed on merged main. Safe to navigate. Safe to demo. Safe to show to institutional reviewer.</div>
+                <div class="ei-rule">data-materialization="live" · no // MOCK without label</div>
+              </div>
+              <div class="es-item ei-partial">
+                <div class="ei-name">Live route · partial component · incomplete features</div>
+                <div class="ei-detail">Route resolves. Component renders. At least one feature is incomplete, mocked without label, or has a TODO handler. <strong>Boundary marker required at all times.</strong></div>
+                <div class="ei-rule">data-materialization="partial" · corner tag visible · partial features named</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="exec-divider">
+            <span>Executable boundary · nothing crosses without a merge + sync protocol pass</span>
+          </div>
+
+          <div class="es-col">
+            <div class="es-head nonexec-head"><strong>Non-executable</strong><span class="eh-count">not reachable in live product</span></div>
+            <div class="es-items">
+              <div class="es-item ei-nonexec">
+                <div class="ei-name">Spec · design artifact · no route · no component</div>
+                <div class="ei-detail">Exists only in HTML design artifacts, wave specs, or Figma. No route. Not importable. Not reachable. Cannot be confused with a product surface.</div>
+                <div class="ei-rule">// SPEC ONLY comment · never in app.jsx · label in op-bar</div>
+              </div>
+              <div class="es-item ei-nonexec">
+                <div class="ei-name">Draft PR · feature branch only · not in main</div>
+                <div class="ei-detail">May be demoed from the branch. Not part of the product topology. Topology map unchanged until merge. No nav entry point should exist.</div>
+                <div class="ei-rule">feature branch only · topology map locked until merge</div>
+              </div>
+              <div class="es-item ei-orphan">
+                <div class="ei-name">Orphaned · file exists · no active route · no import</div>
+                <div class="ei-detail">Built but disconnected. Cannot be navigated to. Retained for audit history. Must carry // ORPHANED comment. Never linked from product nav.</div>
+                <div class="ei-rule">// ORPHANED comment · removed from app.jsx · not linked</div>
+              </div>
+              <div class="es-item ei-nonexec">
+                <div class="ei-name">Superseded · higher wave canonical · route removed</div>
+                <div class="ei-detail">Route removed from router. Higher wave is the canonical implementation. File retained but annotated. Back-navigation must not resolve to this file.</div>
+                <div class="ei-rule">// SUPERSEDED by wave{N} · route removed · not linked</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ 05 · IMPLEMENTATION GUIDANCE ══════════ -->
+      <div class="sec" id="impl">
+        <div class="sh"><span class="n">05</span><h2>Implementation guidance · Claude Code · binding rules</h2><span class="ey">PR hygiene · reality checks · boundary enforcement · all binding</span></div>
+
+        <div class="impl-grid">
+
+          <div class="ig-block">
+            <div class="ig-head"><strong>PR lifecycle hygiene</strong><span>state follows merge · not intent</span></div>
+            <div class="ig-body">
+              <div class="rr"><div class="rk">Draft PR</div><div class="rv"><span class="never">route from draft branch</span> · <span class="never">update topology map before merge</span> · treat draft as spec-only</div></div>
+              <div class="rr"><div class="rk">Open PR</div><div class="rv">Branch-local demo is permitted. <span class="never">declare surface live before merge</span> · <span class="never">update topology map before merge</span></div></div>
+              <div class="rr"><div class="rk">Merged PR</div><div class="rv"><span class="always">run all 9 reality checks on merged main within same session</span> · update topology map · log state transition</div></div>
+              <div class="rr"><div class="rk">Closed unmerged</div><div class="rv"><span class="always">audit app.jsx for any route additions from the closed branch</span> · remove any routes added · annotate any components written as orphaned</div></div>
+            </div>
+          </div>
+
+          <div class="ig-block">
+            <div class="ig-head"><strong>Executable boundary enforcement</strong><span>boundary is structural · never decorative</span></div>
+            <div class="ig-body">
+              <div class="rr"><div class="rk">Crossing the boundary</div><div class="rv">A surface crosses from non-executable to executable only when its PR is merged AND all 9 reality checks pass on main. <strong>Both conditions. Always.</strong></div></div>
+              <div class="rr"><div class="rk">Spec surfaces</div><div class="rv"><span class="never">import spec-only HTML artifacts in app.jsx</span> · <span class="never">add D44-D55 artifacts to the product router</span> · they are documentation, not routes</div></div>
+              <div class="rr"><div class="rk">Partial marking</div><div class="rv"><span class="always">render <code>data-materialization="partial"</code> corner tag immediately on route creation</span> · remove only when all 9 reality checks pass</div></div>
+              <div class="rr"><div class="rk">Boundary visibility</div><div class="rv">The boundary marker (corner tag, border style, badge) is visible at all times a surface is in the partial state. <span class="never">hide boundary markers in demos or stakeholder presentations</span></div></div>
+            </div>
+          </div>
+
+          <div class="ig-block">
+            <div class="ig-head"><strong>Truth language enforcement</strong><span>language is a claim · treat it as one</span></div>
+            <div class="ig-body">
+              <div class="rr"><div class="rk">UI copy audit</div><div class="rv"><span class="always">before every wave ships, read every button label and status message aloud</span> · does each one describe something that exists? If not, rewrite or remove.</div></div>
+              <div class="rr"><div class="rk">Forbidden phrases</div><div class="rv"><span class="never">use "coming soon" · "legacy" · "deprecated" · "experimental" · "in progress" · "planned"</span> in product surfaces · use canonical state vocabulary</div></div>
+              <div class="rr"><div class="rk">State claims</div><div class="rv"><span class="never">call a surface "live" without running the sync protocol on the current main branch</span> · live is verified, not declared</div></div>
+            </div>
+          </div>
+
+          <div class="ig-block">
+            <div class="ig-head"><strong>Reality check cadence</strong><span>run often · 9 checks · fast by design</span></div>
+            <div class="ig-body">
+              <div class="rr"><div class="rk">After every merge</div><div class="rv"><span class="always">run all 9 checks on the affected routes within the same session as the merge</span> · update topology map before closing the session</div></div>
+              <div class="rr"><div class="rk">Before every demo</div><div class="rv">Run checks 1, 2, and 4 (route resolves · reachable from nav · no console errors) on every surface in the demo flow. <span class="never">demo a surface without checking 1, 2, and 4</span></div></div>
+              <div class="rr"><div class="rk">Before every PR merge</div><div class="rv">Run checks 5 and 7 (no TODO handlers · all data labeled) as part of PR review. These are the two most common sources of post-merge drift.</div></div>
+              <div class="rr"><div class="rk">Monthly audit</div><div class="rv">Run all 9 checks on every route in the topology map. Any failure triggers an immediate state reclassification. The map must never be more than 30 days stale.</div></div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <footer class="foot">
+    <div>VitalCV · Materialization Reality System · v1 · <strong>5 states · 4 PR states · 9 reality checks · 7 truth substitutions · binding</strong></div>
+    <div style="text-align:right;line-height:1.6">
+      <div>Build <strong>vc.2026.05.21-h</strong> · reality v1</div>
+      <div style="color:var(--ink-400)">executable truth · no speculative UX · no hidden incompleteness</div>
+    </div>
+  </footer>
+</div>
+</body>
+</html>

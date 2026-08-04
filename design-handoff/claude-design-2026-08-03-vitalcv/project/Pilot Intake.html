@@ -1,0 +1,576 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>VitalCV · Pilot intake · 10 NPIs</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --ink-0:#fff;--ink-50:#f8fafc;--ink-100:#f1f5f9;--ink-200:#e2e8f0;--ink-300:#cbd5e1;
+    --ink-400:#94a3b8;--ink-500:#64748b;--ink-600:#475569;--ink-700:#334155;
+    --ink-800:#1e293b;--ink-900:#0f172a;--ink-950:#020617;
+    --rule:#e2e8f0;
+    --amber:#92400e;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--ink-50);color:var(--ink-900);font-family:'Geist',ui-sans-serif,system-ui,sans-serif;font-feature-settings:'ss01','cv11';-webkit-font-smoothing:antialiased;font-size:14px;line-height:1.5;}
+  code,.mono{font-family:'Geist Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;}
+
+  /* Op bar */
+  .op{background:var(--ink-950);color:var(--ink-300);font-family:'Geist Mono',monospace;font-size:11px;}
+  .op .in{max-width:920px;margin:0 auto;padding:0 24px;height:30px;display:flex;align-items:center;justify-content:space-between;gap:12px;}
+  .op .pill{display:inline-flex;align-items:center;gap:6px;padding:2px 7px;border:1px solid var(--ink-700);text-transform:uppercase;letter-spacing:.12em;font-size:10px;}
+  .op .pill .d{width:6px;height:6px;background:#10b981;border-radius:50%;}
+  .op .sep{color:var(--ink-600);}
+
+  /* Masthead */
+  header.mh{background:var(--ink-0);border-bottom:1px solid var(--rule);}
+  .mh .in{max-width:920px;margin:0 auto;padding:22px 24px;}
+  .brand{display:flex;align-items:center;gap:11px;margin-bottom:18px;}
+  .brand .g{width:22px;height:22px;background:var(--ink-900);color:#fff;display:grid;place-items:center;font-family:'Geist Mono',monospace;font-size:11px;font-weight:600;}
+  .brand .nm{font-weight:600;letter-spacing:-.01em;font-size:15px;}
+  .brand .nm .sl{color:var(--ink-400);font-weight:400;}
+  .brand .nm .sub{color:var(--ink-500);font-weight:400;}
+  .eyebrow{font-family:'Geist Mono',monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:.18em;color:var(--ink-500);display:flex;align-items:center;gap:10px;margin-bottom:12px;}
+  .eyebrow .r{display:inline-block;width:22px;height:1px;background:var(--ink-300);}
+  h1{font-size:30px;line-height:1.1;letter-spacing:-.028em;font-weight:600;margin:0 0 10px;max-width:22ch;}
+  h1 .muted{color:var(--ink-500);font-weight:500;}
+  .lede{margin:0;color:var(--ink-700);font-size:15px;max-width:60ch;line-height:1.6;}
+  .lede strong{color:var(--ink-900);font-weight:500;}
+
+  main{max-width:920px;margin:0 auto;padding:28px 24px 64px;}
+
+  /* === Trust strip — three guarantees up top === */
+  .guarantees{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;border:1px solid var(--rule);background:var(--ink-0);margin-bottom:24px;}
+  .guarantees .g{padding:13px 16px;border-right:1px solid var(--rule);display:flex;flex-direction:column;gap:3px;}
+  .guarantees .g:last-child{border-right:0;}
+  .guarantees .g .k{font-family:'Geist Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-500);display:flex;align-items:center;gap:6px;}
+  .guarantees .g .k::before{content:"";width:6px;height:6px;background:var(--ink-900);display:inline-block;}
+  .guarantees .g .v{font-size:13.5px;font-weight:500;color:var(--ink-900);letter-spacing:-.005em;line-height:1.35;}
+
+  /* === Form card === */
+  .card{background:var(--ink-0);border:1px solid var(--ink-900);}
+  .card .hd{padding:14px 22px;background:var(--ink-50);border-bottom:1px solid var(--rule);display:flex;justify-content:space-between;align-items:center;gap:14px;}
+  .card .hd .ttl{font-size:15px;font-weight:600;letter-spacing:-.01em;}
+  .card .hd .sub{font-family:'Geist Mono',monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:.14em;color:var(--ink-500);}
+  .card .bd{padding:22px;display:flex;flex-direction:column;gap:20px;}
+
+  /* Section block in form */
+  .blk{}
+  .blk .lab{font-family:'Geist Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-500);margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;}
+  .blk .lab .opt{color:var(--ink-400);font-weight:400;}
+  .blk .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+
+  /* Inputs */
+  .inp{position:relative;background:var(--ink-0);border:1px solid var(--ink-300);padding:12px 14px 10px;transition:border-color .15s ease;}
+  .inp:focus-within{border-color:var(--ink-900);}
+  .inp .l{font-family:'Geist Mono',monospace;font-size:9.5px;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-500);margin-bottom:4px;}
+  .inp input,.inp select{width:100%;border:0;outline:none;background:transparent;font-family:'Geist',sans-serif;font-size:14.5px;color:var(--ink-900);letter-spacing:-.005em;padding:0;}
+  .inp input::placeholder{color:var(--ink-400);}
+  .inp.mono input{font-family:'Geist Mono',monospace;font-size:15px;letter-spacing:.04em;font-variant-numeric:tabular-nums;}
+
+  /* NPI textarea — paste-friendly, spacious, monospace */
+  .npi-paste{position:relative;border:1px solid var(--ink-300);background:var(--ink-0);transition:border-color .15s ease;}
+  .npi-paste:focus-within{border-color:var(--ink-900);}
+  .npi-paste .head{padding:10px 14px;border-bottom:1px solid var(--rule);background:var(--ink-50);display:flex;justify-content:space-between;align-items:center;gap:12px;font-family:'Geist Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.14em;color:var(--ink-500);}
+  .npi-paste .head .lhs{display:flex;align-items:center;gap:10px;}
+  .npi-paste .head .count{display:inline-flex;align-items:center;gap:6px;color:var(--ink-900);font-weight:600;}
+  .npi-paste .head .count::before{content:"";width:6px;height:6px;background:var(--ink-900);display:inline-block;}
+  .npi-paste .head .rhs{color:var(--ink-500);}
+  .npi-paste .head .rhs button{font-family:'Geist Mono',monospace;font-size:10px;color:var(--ink-700);background:transparent;border:0;cursor:pointer;text-decoration:underline;text-decoration-color:var(--ink-300);text-underline-offset:3px;padding:0;letter-spacing:.14em;text-transform:uppercase;}
+  .npi-paste textarea{display:block;width:100%;min-height:160px;padding:14px 16px;border:0;outline:none;resize:vertical;background:transparent;font-family:'Geist Mono',monospace;font-size:15px;line-height:1.8;letter-spacing:.06em;color:var(--ink-900);font-variant-numeric:tabular-nums;}
+  .npi-paste textarea::placeholder{color:var(--ink-300);}
+
+  /* Parsed preview rail — shows what we'll accept */
+  .parsed{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:var(--rule);border-top:1px solid var(--rule);}
+  .parsed .slot{background:var(--ink-50);padding:9px 10px;font-family:'Geist Mono',monospace;font-size:11px;color:var(--ink-700);display:flex;flex-direction:column;gap:2px;min-height:48px;justify-content:center;}
+  .parsed .slot .ord{font-size:9px;text-transform:uppercase;letter-spacing:.14em;color:var(--ink-400);}
+  .parsed .slot .val{font-size:12px;letter-spacing:.04em;color:var(--ink-900);font-variant-numeric:tabular-nums;}
+  .parsed .slot.empty{background:var(--ink-0);}
+  .parsed .slot.empty .val{color:var(--ink-300);}
+  .parsed .slot.warn{background:#fffaf0;}
+  .parsed .slot.warn .val{color:var(--amber);}
+  .parsed .slot.warn .ord{color:var(--amber);}
+
+  /* Format helper bar under NPI grid */
+  .helper{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-top:10px;font-family:'Geist Mono',monospace;font-size:11px;color:var(--ink-500);flex-wrap:wrap;}
+  .helper .l{display:flex;gap:14px;align-items:center;flex-wrap:wrap;}
+  .helper .ok{color:var(--ink-900);}
+  .helper .ok::before{content:"";width:5px;height:5px;background:var(--ink-900);display:inline-block;margin-right:6px;vertical-align:middle;}
+  .helper a{color:var(--ink-700);text-decoration:underline;text-decoration-color:var(--ink-300);text-underline-offset:3px;}
+
+  /* Guardrails — small typography, dashed border, plain language */
+  .guardrails{border:1px dashed var(--ink-300);background:var(--ink-50);padding:12px 14px;font-size:12px;color:var(--ink-600);line-height:1.55;}
+  .guardrails .ttl{font-family:'Geist Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-900);font-weight:600;margin-bottom:6px;}
+  .guardrails ul{list-style:none;padding:0;margin:0;display:grid;grid-template-columns:1fr 1fr;gap:4px 18px;}
+  .guardrails ul li{position:relative;padding-left:14px;}
+  .guardrails ul li::before{content:"";position:absolute;left:0;top:7px;width:7px;height:1px;background:var(--ink-400);}
+  .guardrails ul li strong{color:var(--ink-900);font-weight:500;}
+
+  /* Submit row */
+  .submit-row{display:flex;justify-content:space-between;align-items:center;gap:14px;padding-top:6px;}
+  .submit-row .info{font-family:'Geist Mono',monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:.14em;color:var(--ink-500);}
+  .submit-row .info strong{color:var(--ink-900);font-weight:500;}
+  .submit-row button{background:var(--ink-900);color:#fff;border:0;padding:14px 22px;font-family:'Geist',sans-serif;font-weight:500;font-size:14px;cursor:pointer;letter-spacing:-.005em;display:flex;align-items:center;gap:10px;min-height:48px;transition:background .15s ease;}
+  .submit-row button:hover{background:#000;}
+  .submit-row button .k{font-family:'Geist Mono',monospace;font-size:10px;color:var(--ink-400);border:1px solid var(--ink-700);padding:1px 5px;letter-spacing:.06em;}
+
+  /* === Confirmation state — D32: terminal work-order aesthetic === */
+  .confirm{display:none;background:#000;color:#cbd5e1;border:1px solid var(--ink-900);font-family:'Geist Mono',monospace;}
+  .confirm .hd{padding:11px 18px;background:#000;border-bottom:1px solid #1e293b;display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;font-size:10px;text-transform:uppercase;letter-spacing:.18em;color:#94a3b8;font-weight:600;}
+  .confirm .hd .ttl{color:#fff;display:flex;align-items:center;gap:10px;}
+  .confirm .hd .ttl .m{width:7px;height:7px;background:#10b981;display:inline-block;animation:demo-pulse 2.4s ease-in-out infinite;}
+  @keyframes demo-pulse{0%,100%{opacity:.35;}50%{opacity:1;}}
+  .confirm .hd .sub{color:#64748b;letter-spacing:.14em;}
+  .confirm .hd .sub strong{color:#cbd5e1;font-weight:500;}
+  .term{padding:18px 22px 16px;border-bottom:1px solid #1e293b;background:#000;font-size:12px;line-height:1.7;margin:0;white-space:pre-wrap;word-break:break-word;font-family:'Geist Mono',monospace;color:#cbd5e1;}
+  .term .l{display:block;color:#cbd5e1;letter-spacing:.02em;}
+  .term .l .pr{color:#475569;margin-right:8px;user-select:none;}
+  .term .l .ok{color:#34d399;}
+  .term .l .k{color:#94a3b8;}
+  .term .l .v{color:#fff;font-weight:500;}
+  .term .l .g{color:#64748b;}
+  .term .l .warn{color:#fbbf24;}
+  .term .l.banner{color:#fff;font-weight:700;letter-spacing:.14em;text-transform:uppercase;font-size:13px;padding:4px 0;border-top:1px solid #1e293b;border-bottom:1px solid #1e293b;margin:6px 0;display:block;}
+  .term .l.banner .pr{color:#34d399;}
+  .term .blink{display:inline-block;width:8px;height:13px;background:#34d399;vertical-align:text-bottom;animation:blink-cur 1s steps(2,end) infinite;margin-left:2px;}
+  @keyframes blink-cur{50%{opacity:0;}}
+  .nxt-wrap{padding:18px 22px 20px;background:#0a0f1c;}
+  .nxt-wrap .nh{font-family:'Geist Mono',monospace;font-size:9.5px;text-transform:uppercase;letter-spacing:.18em;color:#64748b;font-weight:600;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;}
+  .nxt-wrap .nh strong{color:#cbd5e1;font-weight:600;}
+  .nxt{display:grid;grid-template-columns:repeat(4,1fr);gap:0;border:1px solid #1e293b;}
+  .nxt .c{padding:13px 14px;border-right:1px solid #1e293b;color:#64748b;}
+  .nxt .c:last-child{border-right:0;}
+  .nxt .c .ord{font-family:'Geist Mono',monospace;font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:#475569;font-weight:600;}
+  .nxt .c .what{font-family:'Geist Mono',monospace;font-size:12px;color:#cbd5e1;font-weight:500;margin-top:6px;letter-spacing:-.005em;line-height:1.35;}
+  .nxt .c .when{font-family:'Geist Mono',monospace;font-size:10px;color:#64748b;margin-top:4px;letter-spacing:.04em;text-transform:uppercase;}
+  .nxt .c .when strong{color:#94a3b8;font-weight:500;}
+  .confirm .quiet{padding:11px 22px 14px;background:#0a0f1c;border-top:1px solid #1e293b;font-family:'Geist Mono',monospace;font-size:10.5px;color:#64748b;line-height:1.55;}
+  .confirm .quiet strong{color:#cbd5e1;font-weight:500;}
+  .confirm .next{padding:11px 22px 16px;background:#0a0f1c;display:flex;gap:8px;flex-wrap:wrap;border-top:1px solid #1e293b;}
+  .confirm .next a{flex:1;min-width:240px;padding:11px 14px;background:transparent;border:1px solid #1e293b;color:#fff;text-decoration:none;font-family:'Geist Mono',monospace;font-size:11px;letter-spacing:.04em;display:flex;justify-content:space-between;align-items:center;transition:border-color .15s ease,background .15s ease;}
+  .confirm .next a:hover{border-color:#fff;background:#000;}
+  .confirm .next a .pri{color:#fff;font-weight:500;font-size:12px;}
+  .confirm .next a .sub{display:block;font-size:9.5px;color:#64748b;font-weight:400;margin-top:2px;letter-spacing:.06em;text-transform:uppercase;}
+  .confirm .next a .arr{color:#64748b;}
+  .confirm .next a:hover .arr{color:#fff;}
+
+  /* When body has confirmed state */
+  body.confirmed .form-state{display:none;}
+  body.confirmed .confirm{display:block;}
+
+  footer.foot-page{max-width:920px;margin:24px auto 0;padding:18px 24px;font-family:'Geist Mono',monospace;font-size:10.5px;color:var(--ink-500);display:flex;justify-content:space-between;border-top:1px solid var(--rule);background:var(--ink-0);gap:12px;flex-wrap:wrap;}
+  footer .v{color:var(--ink-700);}
+
+  /* === Reserved enterprise primitives — empty by design, not by accident === */
+  .reserved{margin-top:32px;border:1px solid var(--rule);background:var(--ink-0);}
+  .reserved .head{padding:12px 18px;border-bottom:1px solid var(--rule);display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;background:var(--ink-50);}
+  .reserved .head .lhs{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;}
+  .reserved .head .ttl{font-family:'Geist Mono',monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:.18em;color:var(--ink-900);font-weight:600;display:flex;align-items:center;gap:8px;}
+  .reserved .head .ttl::before{content:"";width:6px;height:6px;background:var(--ink-900);display:inline-block;}
+  .reserved .head .sub{font-family:'Geist Mono',monospace;font-size:10.5px;color:var(--ink-500);letter-spacing:.04em;}
+  .reserved .head .count{font-family:'Geist Mono',monospace;font-size:10px;color:var(--ink-500);text-transform:uppercase;letter-spacing:.14em;}
+  .reserved .head .count strong{color:var(--ink-900);font-weight:600;}
+  .reserved .slots{display:grid;grid-template-columns:repeat(6,1fr);gap:0;border-bottom:1px solid var(--rule);}
+  .reserved .slot{padding:18px 14px;border-right:1px solid var(--rule);min-height:118px;display:flex;flex-direction:column;justify-content:space-between;background:repeating-linear-gradient(135deg,transparent 0 6px,#f8fafc 6px 7px);position:relative;}
+  .reserved .slot:last-child{border-right:0;}
+  .reserved .slot .ord{font-family:'Geist Mono',monospace;font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-400);font-weight:600;}
+  .reserved .slot .glyph{margin:8px 0 6px;height:28px;display:flex;align-items:center;}
+  .reserved .slot .glyph .bar{height:9px;width:62%;background:var(--ink-200);position:relative;}
+  .reserved .slot .glyph .bar::after{content:"";position:absolute;left:0;top:0;width:18px;height:9px;background:var(--ink-300);}
+  .reserved .slot .glyph .bar.short{width:36%;}
+  .reserved .slot .label{font-family:'Geist Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.14em;color:var(--ink-700);font-weight:600;}
+  .reserved .slot .kind{font-family:'Geist Mono',monospace;font-size:10px;color:var(--ink-500);margin-top:3px;letter-spacing:.04em;line-height:1.4;}
+  .reserved .slot.filled{background:var(--ink-0);}
+  .reserved .slot.filled .glyph .bar{background:var(--ink-900);}
+  .reserved .slot.filled .glyph .bar::after{background:var(--ink-700);}
+  .reserved .slot.filled .label{color:var(--ink-900);}
+  /* Volume metric slots — typographic placeholders */
+  .reserved .metrics{display:grid;grid-template-columns:repeat(3,1fr);}
+  .reserved .m{padding:14px 18px;border-right:1px solid var(--rule);}
+  .reserved .m:last-child{border-right:0;}
+  .reserved .m .k{font-family:'Geist Mono',monospace;font-size:9.5px;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-500);font-weight:600;margin-bottom:5px;}
+  .reserved .m .v{font-family:'Geist Mono',monospace;font-size:30px;font-weight:500;color:var(--ink-300);letter-spacing:-.02em;line-height:1;font-variant-numeric:tabular-nums;}
+  .reserved .m .v .ph{color:var(--ink-300);}
+  .reserved .m .u{display:block;margin-top:6px;font-family:'Geist Mono',monospace;font-size:10.5px;color:var(--ink-500);letter-spacing:.04em;line-height:1.4;}
+  .reserved .m .u strong{color:var(--ink-900);font-weight:500;}
+
+  /* === Mobile === */
+  @media(max-width:720px){
+    .reserved .slots{grid-template-columns:repeat(2,1fr);}
+    .reserved .slot{border-bottom:1px solid var(--rule);}
+    .reserved .slot:nth-child(2n){border-right:0;}
+    .reserved .slots > .slot:nth-last-child(-n+2){border-bottom:0;}
+    .reserved .metrics{grid-template-columns:1fr;}
+    .reserved .m{border-right:0;border-bottom:1px solid var(--rule);}
+    .reserved .m:last-child{border-bottom:0;}
+    .mh .in{padding:20px 18px;}
+    main{padding:24px 18px 56px;}
+    .op .in{padding:0 18px;}
+    h1{font-size:24px;}
+    .lede{font-size:14px;}
+    .guarantees{grid-template-columns:1fr;}
+    .guarantees .g{border-right:0;border-bottom:1px solid var(--rule);}
+    .guarantees .g:last-child{border-bottom:0;}
+    .card .hd{padding:12px 16px;flex-direction:column;align-items:flex-start;gap:4px;}
+    .card .bd{padding:16px;gap:18px;}
+    .npis{grid-template-columns:1fr;}
+    .npi-row{grid-template-columns:30px 1fr 84px;}
+    .npi-row input{font-size:16px;} /* prevent iOS zoom */
+    .npi-paste textarea{font-size:16px;min-height:200px;}
+    .parsed{grid-template-columns:repeat(2,1fr);}
+    .blk .row2{grid-template-columns:1fr;}
+    .guardrails ul{grid-template-columns:1fr;}
+    .submit-row{flex-direction:column;align-items:stretch;gap:10px;}
+    .submit-row button{justify-content:center;width:100%;}
+    .submit-row .info{text-align:center;}
+    .confirm .hd{padding:12px 16px;flex-direction:column;align-items:flex-start;gap:4px;}
+    .confirm .bd{padding:18px 16px;}
+    .confirm h2{font-size:19px;}
+    .confirm .next a{min-width:0;}
+  }
+</style>
+</head>
+<body data-screen-label="Pilot Intake">
+
+<div class="op">
+  <div class="in">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <span style="letter-spacing:.16em;text-transform:uppercase;color:#fff;font-weight:500;">Pilot intake</span>
+      <span class="sep">/</span>
+      <span>vitalcv.health/launch</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:14px;">
+      <span class="pill"><span class="d"></span>Live</span>
+    </div>
+  </div>
+</div>
+
+<header class="mh">
+  <div class="in">
+    <div class="brand">
+      <span class="g">V</span>
+      <span class="nm">VitalCV<span class="sl">/</span><span class="sub">trust</span></span>
+    </div>
+    <div class="eyebrow"><span class="r"></span>Pilot intake · 10 NPIs · zero PHI</div>
+    <h1>Send us 10 NPIs. <span class="muted">We'll show you what your credentialing pipeline looks like in VitalCV — on your providers.</span></h1>
+    <p class="lede">No documents. No patient data. No free text. Just <strong>up to ten 10-digit NPIs</strong> from the federal registry. We resolve each one against NPPES, OIG/LEIE, and PECOS — the same sources your payers ask — and return a redacted snapshot you can take to your VP of Operations.</p>
+  </div>
+</header>
+
+<main>
+
+  <!-- Three trust guarantees up top -->
+  <div class="guarantees">
+    <div class="g">
+      <div class="k">Federal IDs only</div>
+      <div class="v">We accept 10-digit NPIs. Nothing else is parsed.</div>
+    </div>
+    <div class="g">
+      <div class="k">Nothing patient-facing</div>
+      <div class="v">No PHI, no DOBs, no patient identifiers — by design and by validation.</div>
+    </div>
+    <div class="g">
+      <div class="k">Sandbox isolation</div>
+      <div class="v">Pilot data is held in a separate environment and discarded after the snapshot.</div>
+    </div>
+  </div>
+
+  <!-- ===== FORM STATE ===== -->
+  <div class="form-state">
+
+    <div class="card">
+      <div class="hd">
+        <div class="ttl">Your 10 NPIs</div>
+        <div class="sub">Paste a list · we'll auto-split</div>
+      </div>
+
+      <div class="bd">
+
+        <!-- Contact -->
+        <div class="blk">
+          <div class="lab"><span>Who's asking</span><span class="opt">required</span></div>
+          <div class="row2">
+            <div class="inp">
+              <div class="l">Work email</div>
+              <input type="email" placeholder="jen.alvarez@cedarhealth.org" autocomplete="email" />
+            </div>
+            <div class="inp">
+              <div class="l">Organization</div>
+              <input type="text" placeholder="Cedar Health" autocomplete="organization" />
+            </div>
+          </div>
+        </div>
+
+        <!-- NPI textarea — paste a list, we parse -->
+        <div class="blk">
+          <div class="lab"><span>Up to 10 NPIs</span><span class="opt">paste from CSV, email, anywhere</span></div>
+          <div class="npi-paste">
+            <div class="head">
+              <div class="lhs">
+                <span class="count" id="valid-count">0 of 10</span>
+                <span>valid 10-digit NPIs</span>
+              </div>
+              <div class="rhs">
+                <button type="button" id="paste-list">Paste from clipboard</button>
+              </div>
+            </div>
+            <textarea id="npi-input" placeholder="1346053246
+1689421023
+1972015408
+1356428912
+1437209715
+1801442398
+
+or comma-separated — we'll split." spellcheck="false" autocomplete="off"></textarea>
+            <div class="parsed" id="parsed-rail" aria-hidden="true"></div>
+          </div>
+          <div class="helper">
+            <span class="l">
+              <span>Each row is <strong>10 digits</strong>, validated by checksum before submit.</span>
+            </span>
+            <span class="mono" id="reject-note" style="color:var(--ink-500);"></span>
+          </div>
+        </div>
+
+        <!-- Guardrails -->
+        <div class="guardrails">
+          <div class="ttl">What this form will <strong style="color:var(--ink-900);">never</strong> accept</div>
+          <ul>
+            <li>Patient identifiers, DOBs, addresses, or MRNs</li>
+            <li>Documents, attachments, or uploads of any kind</li>
+            <li>Free-text notes, descriptions, or comments</li>
+            <li>Anything that isn't a 10-digit NPI</li>
+          </ul>
+        </div>
+
+        <!-- Submit -->
+        <div class="submit-row">
+          <div class="info">Submission writes a <strong>signed pilot receipt</strong> · you keep a copy.</div>
+          <button id="submit-btn" type="button">Run the snapshot <span class="k">⌘ ↵</span></button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== CONFIRMATION STATE — D32 TERMINAL WORK ORDER ===== -->
+  <div class="confirm">
+    <div class="hd">
+      <div class="ttl"><span class="m"></span>tty/vitalcv · cedar-pilot · cohort-provisioner</div>
+      <div class="sub">job <strong>prv_01HZF8QK4P2V8T</strong> · 14:32:08.214Z</div>
+    </div>
+
+    <pre class="term" id="term-out"><span class="l"><span class="pr">$</span><span class="k">vc</span> intake --cohort <span class="v" id="r-org-cli">cedar-health</span> --scope npi:<span class="v" id="r-cnt-cli">6</span> --sandbox</span>
+<span class="l"><span class="pr">→</span><span class="k">resolving submitter</span> … <span class="ok">ok</span> <span class="g">(<span id="r-contact-cli">jen.alvarez@cedarhealth.org</span>)</span></span>
+<span class="l"><span class="pr">→</span><span class="k">checksum NPIs</span> … <span class="ok">ok</span> <span class="g">(<span id="r-cnt-cli2">6</span> valid · 0 malformed · 0 PHI fields)</span></span>
+<span class="l"><span class="pr">→</span><span class="k">isolating sandbox</span> … <span class="ok">ok</span> <span class="g">(env: vc-edge-us-west-2a · vlan: tnt-cedar-q2)</span></span>
+<span class="l"><span class="pr">→</span><span class="k">writing signed receipt</span> … <span class="ok">ok</span> <span class="g">(ed25519 · key 4f2a · ts RFC 3161)</span></span>
+<span class="l banner"><span class="pr">■</span>INTAKE RECEIVED · SECURE COHORT PROVISIONING INITIATED</span>
+<span class="l"><span class="pr">$</span><span class="k">receipt</span></span>
+<span class="l">  receipt_id        <span class="v">rcpt_01HZF8QK4P2V8T</span></span>
+<span class="l">  submitted_at      <span class="v">2026-05-11T14:32:08.214Z</span> <span class="g">· RFC 3161 · tsa.digicert</span></span>
+<span class="l">  cohort            <span class="v" id="r-cohort-cli">cohort-cedar-health-q2-2026</span> <span class="g">· sandbox-isolated</span></span>
+<span class="l">  payload           <span class="v" id="r-payload-cli">6 NPIs</span> <span class="g">· zero PHI · zero attachments · zero free-text</span></span>
+<span class="l">  resolution_lanes  <span class="v">NPPES · OIG/LEIE · PECOS</span></span>
+<span class="l">  signed_by         <span class="v">did:web:vitalcv.health</span> <span class="g">· ed25519 · key 4f2a</span></span>
+<span class="l">  retention         <span class="v">payload discarded after readiness artifact rendered</span></span>
+<span class="l">  status            <span class="warn">QUEUED · PROVISIONING SANDBOX · SLA &lt; 48h</span></span>
+<span class="l"><span class="pr">$</span><span class="g">awaiting upstream federal lanes…</span><span class="blink"></span></span></pre>
+
+    <div class="nxt-wrap">
+      <div class="nh"><span>Next steps · automated</span><span><strong>4</strong> · nothing required from you</span></div>
+      <div class="nxt">
+        <div class="c">
+          <div class="ord">01 · next</div>
+          <div class="what">Federal lanes resolve in the background</div>
+          <div class="when">Window <strong>now → +48h</strong></div>
+        </div>
+        <div class="c">
+          <div class="ord">02</div>
+          <div class="what">Readiness artifact rendered &amp; signed</div>
+          <div class="when">Generated <strong>within 48h</strong></div>
+        </div>
+        <div class="c">
+          <div class="ord">03</div>
+          <div class="what">Time-bound share link sent to <span id="r-contact-cli2">jen.alvarez@cedarhealth.org</span></div>
+          <div class="when">Delivery <strong>email · ed25519-signed</strong></div>
+        </div>
+        <div class="c">
+          <div class="ord">04</div>
+          <div class="what">Payload discarded after artifact issuance</div>
+          <div class="when">Retention <strong>0 · no PHI written</strong></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="quiet">
+      <strong>No turnaround guarantee.</strong> Federal sources aren't on our clock — we won't commit to a window we can't control. We won't reach out about anything other than this artifact, and we won't follow up if you don't respond.
+    </div>
+
+    <div class="next">
+      <a href="Verifier Replay.html"><span><span class="pri">See a worked example</span><span class="sub">/replay · verifier auditor view</span></span><span class="arr">→</span></a>
+      <a href="Employer Pipeline.html"><span><span class="pri">Read the ROI model</span><span class="sub">103 → 36 d · $278k–$556k / physician</span></span><span class="arr">→</span></a>
+    </div>
+  </div>
+
+  <!-- ===== Reserved enterprise primitives — quiet, structural, future-pilot-ready ===== -->
+  <section class="reserved" aria-label="Initial pilot seats">
+    <div class="head">
+      <div class="lhs">
+        <span class="ttl">Initial Pilots</span>
+        <span class="sub">Q3 2026 cohort · partner slots reserved structurally — no placeholder logos shown</span>
+      </div>
+      <span class="count"><strong>0 of 6</strong> seated · <strong>6</strong> open</span>
+    </div>
+    <div class="slots">
+      <div class="slot">
+        <span class="ord">Seat 01</span>
+        <div class="glyph"><span class="bar"></span></div>
+        <div>
+          <div class="label">Reserved · Q3 '26</div>
+          <div class="kind">Health system<br>≥ 500 providers</div>
+        </div>
+      </div>
+      <div class="slot">
+        <span class="ord">Seat 02</span>
+        <div class="glyph"><span class="bar short"></span></div>
+        <div>
+          <div class="label">Reserved · Q3 '26</div>
+          <div class="kind">Multi-state group<br>≥ 200 providers</div>
+        </div>
+      </div>
+      <div class="slot">
+        <span class="ord">Seat 03</span>
+        <div class="glyph"><span class="bar"></span></div>
+        <div>
+          <div class="label">Reserved · Q3 '26</div>
+          <div class="kind">FQHC network<br>federal reporting</div>
+        </div>
+      </div>
+      <div class="slot">
+        <span class="ord">Seat 04</span>
+        <div class="glyph"><span class="bar short"></span></div>
+        <div>
+          <div class="label">Open · Q4 '26</div>
+          <div class="kind">Locum / staffing<br>cycle-time focus</div>
+        </div>
+      </div>
+      <div class="slot">
+        <span class="ord">Seat 05</span>
+        <div class="glyph"><span class="bar"></span></div>
+        <div>
+          <div class="label">Open · Q4 '26</div>
+          <div class="kind">Payer ops<br>downstream verifier</div>
+        </div>
+      </div>
+      <div class="slot">
+        <span class="ord">Seat 06</span>
+        <div class="glyph"><span class="bar short"></span></div>
+        <div>
+          <div class="label">Open · Q4 '26</div>
+          <div class="kind">Specialty group<br>multi-state DEA</div>
+        </div>
+      </div>
+    </div>
+    <div class="metrics">
+      <div class="m">
+        <div class="k">Credentials processed</div>
+        <div class="v"><span class="ph">— — —</span></div>
+        <div class="u">Tally lands with first pilot · <strong>target Q3 2026</strong></div>
+      </div>
+      <div class="m">
+        <div class="k">Hours saved (cohort)</div>
+        <div class="v"><span class="ph">— — —</span></div>
+        <div class="u">Per-physician model: <strong>67 days × 6 h/d</strong> · realized at pilot end</div>
+      </div>
+      <div class="m">
+        <div class="k">Median time-to-bill</div>
+        <div class="v"><span class="ph">— —</span><span style="font-size:14px;color:var(--ink-500);"> d</span></div>
+        <div class="u">Modeled target <strong>36 d</strong> · benchmark <strong>103 d</strong></div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="foot-page">
+  <div>VitalCV · Pilot intake · <span class="v">10 NPIs · zero PHI · sandbox-isolated</span></div>
+  <div style="text-align:right;">
+    <div>Build <span class="v">vc.2026.05.11-a</span> · receipt signed by <span class="v">did:web:vitalcv.health</span></div>
+  </div>
+</footer>
+
+<script>
+  const textarea = document.getElementById('npi-input');
+  const countEl = document.getElementById('valid-count');
+  const railEl = document.getElementById('parsed-rail');
+  const rejectEl = document.getElementById('reject-note');
+  const submitBtn = document.getElementById('submit-btn');
+  const rContact = document.getElementById('r-contact');
+  const rPayload = document.getElementById('r-payload');
+
+  function renderRail(valid){
+    railEl.innerHTML = '';
+    for(let i=0;i<10;i++){
+      const slot = document.createElement('div');
+      const v = valid[i];
+      slot.className = 'slot' + (v ? '' : ' empty');
+      slot.innerHTML = '<span class="ord">'+String(i+1).padStart(2,'0')+'</span><span class="val">'+(v||'—')+'</span>';
+      railEl.appendChild(slot);
+    }
+  }
+
+  function parse(){
+    const text = textarea.value;
+    const matches = (text.match(/\d{10}/g) || []);
+    const all = (text.match(/\d+/g) || []);
+    const rejected = all.filter(x => x.length !== 10).length;
+    const trimmed = matches.slice(0,10);
+    const overflow = matches.length - trimmed.length;
+    countEl.textContent = trimmed.length + ' of 10';
+    let note = '';
+    if (rejected > 0) note += rejected + ' input' + (rejected>1?'s':'') + ' ignored (not 10 digits) · ';
+    if (overflow > 0) note += overflow + ' extra ignored (cap is 10) · ';
+    if (trimmed.length === 0 && text.trim().length === 0) note = 'Paste or type to begin — NPIs only';
+    rejectEl.textContent = note.replace(/ · $/,'');
+    renderRail(trimmed);
+    return trimmed;
+  }
+  textarea.addEventListener('input', parse);
+
+  document.getElementById('paste-list').addEventListener('click', async (e)=>{
+    e.preventDefault();
+    let text = '';
+    try{ text = await navigator.clipboard.readText(); }
+    catch(_){ text = prompt('Paste your NPI list:') || ''; }
+    textarea.value = (textarea.value ? textarea.value + '\n' : '') + text;
+    parse();
+    textarea.focus();
+  });
+
+  submitBtn.addEventListener('click', ()=>{
+    const npis = parse();
+    const emailEl = document.querySelector('input[type="email"]');
+    const orgEl   = document.querySelectorAll('input[type="text"]')[0];
+    const email   = emailEl && emailEl.value ? emailEl.value : 'jen.alvarez@cedarhealth.org';
+    const org     = orgEl && orgEl.value ? orgEl.value : 'Cedar Health';
+    const orgSlug = (org || 'cedar-health').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+    const cnt     = npis.length || 6;
+    document.querySelectorAll('#r-contact-cli, #r-contact-cli2').forEach(el => { el.textContent = email; });
+    const orgEl2 = document.getElementById('r-org-cli'); if (orgEl2) orgEl2.textContent = orgSlug || 'cedar-health';
+    document.querySelectorAll('#r-cnt-cli, #r-cnt-cli2').forEach(el => { el.textContent = cnt; });
+    const pEl = document.getElementById('r-payload-cli'); if (pEl) pEl.textContent = cnt + ' NPIs';
+    const cEl = document.getElementById('r-cohort-cli'); if (cEl) cEl.textContent = 'cohort-' + (orgSlug || 'cedar-health') + '-q2-2026';
+    document.body.classList.add('confirmed');
+    window.scrollTo({top:0,behavior:'smooth'});
+  });
+
+  parse();
+</script>
+
+<script src="telemetry.js"></script>
+</body>
+</html>

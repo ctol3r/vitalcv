@@ -1,0 +1,34 @@
+/* Wave 1504 · brand/og.css — OG/Twitter card set (DG-4.4)
+   1200×630 · paper/ink editorial · consumes wave1500 tokens. */
+html, body { margin: 0; padding: 0; }
+body { width: 1200px; height: 630px; overflow: hidden; }
+.og {
+  position: relative; width: 1200px; height: 630px; box-sizing: border-box;
+  background: var(--vt-surface-page); color: var(--vt-text);
+  font-family: var(--font-body);
+}
+.og-hairline { position: absolute; inset: 26px; border: 1px solid var(--vt-rule); pointer-events: none; }
+.og-in { position: absolute; inset: 26px; padding: 52px 58px; box-sizing: border-box; display: flex; flex-direction: column; }
+.og-top { display: flex; justify-content: space-between; align-items: center; }
+.og-lock { display: flex; align-items: center; gap: 16px; }
+.og-lock svg { display: block; }
+.og-wm { font-family: var(--font-display); font-weight: 600; font-size: 36px; letter-spacing: -0.01em; line-height: 1; }
+.og-meta { font-family: var(--font-mono); font-size: 15px; font-weight: 500; letter-spacing: 0.16em; text-transform: uppercase; color: var(--vt-text-muted); }
+.og-head {
+  margin: auto 0 0; font-family: var(--font-display); font-weight: 560;
+  font-size: 82px; line-height: 1.05; letter-spacing: -0.015em; max-width: 15ch; text-wrap: balance;
+}
+.og-head.sm { font-size: 68px; }
+.og-head .i { font-style: italic; font-weight: 480; color: var(--vt-accent-editorial); }
+.og-foot { display: flex; align-items: baseline; gap: 30px; margin-top: 40px;
+  font-family: var(--font-mono); font-size: 17px; letter-spacing: 0.06em; color: var(--vt-text-secondary); }
+.og-foot .rule { flex: 1; border-top: 1px solid var(--vt-rule); transform: translateY(-6px); }
+.og-chip { display: inline-flex; align-items: center; font-family: var(--font-mono); font-size: 14px;
+  font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--vt-text);
+  border: 1px solid var(--vt-rule-strong); border-radius: 2px; padding: 6px 12px; }
+/* profile template slots — dashed = unbound, by doctrine */
+.og-slot { border: 2px dashed var(--vt-degraded-border); padding: 18px 26px;
+  font-family: var(--font-mono); font-size: 40px; letter-spacing: 0.06em; color: var(--vt-text-secondary);
+  display: inline-block; }
+.og-slot-cap { font-family: var(--font-mono); font-size: 14px; letter-spacing: 0.16em;
+  text-transform: uppercase; color: var(--vt-text-muted); margin-top: 14px; }

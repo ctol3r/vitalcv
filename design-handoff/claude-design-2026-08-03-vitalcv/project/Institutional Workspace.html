@@ -1,0 +1,821 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>VitalCV · Institutional Workspace · Cedar Health</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+:root {
+  --ink-0:   #fff;
+  --ink-50:  #f7f6f2;
+  --ink-100: #efede7;
+  --ink-200: #dddbd3;
+  --ink-300: #c2bfb5;
+  --ink-400: #96938a;
+  --ink-500: #6b6860;
+  --ink-600: #474540;
+  --ink-700: #2d2c28;
+  --ink-800: #1a1916;
+  --ink-900: #0f0e0c;
+  --ink-950: #050504;
+  --rule:    #dddbd3;
+  --rule-soft: #eceae4;
+  --paper:   #f4f2ec;
+  --s-ok:    #2d6a4f;
+  --s-watch: #7d5a1e;
+  --s-hold:  #5a3a1e;
+  --sidebar: 248px;
+}
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; height: 100%; background: var(--paper); color: var(--ink-900); font-family: 'Geist', ui-sans-serif, system-ui, sans-serif; font-feature-settings: 'ss01','cv11'; -webkit-font-smoothing: antialiased; font-size: 13px; line-height: 1.5; letter-spacing: -.003em; }
+.mono, code { font-family: 'Geist Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; font-feature-settings: 'zero','tnum'; }
+button { font-family: inherit; cursor: pointer; }
+
+/* ── Shell ───────────────────────────────────────────────── */
+.shell { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+
+/* ── Op bar ──────────────────────────────────────────────── */
+.opbar { background: var(--ink-950); color: var(--ink-300); font-family: 'Geist Mono', monospace; font-size: 10.5px; flex-shrink: 0; z-index: 60; }
+.opbar .in { padding: 0 20px 0 0; height: 30px; display: flex; align-items: center; gap: 0; }
+.opbar .brand { display: flex; align-items: center; gap: 10px; padding: 0 16px; height: 100%; border-right: 1px solid var(--ink-800); flex-shrink: 0; width: var(--sidebar); }
+.opbar .brand .g { width: 16px; height: 16px; background: #fff; color: #000; display: grid; place-items: center; font-size: 9px; font-weight: 700; }
+.opbar .brand strong { color: #fff; font-weight: 600; letter-spacing: .04em; font-size: 10px; }
+.opbar .brand .sub { color: var(--ink-600); font-size: 9.5px; }
+.opbar .meta { flex: 1; display: flex; align-items: center; gap: 20px; padding: 0 16px; }
+.opbar .meta .item { display: flex; align-items: center; gap: 6px; color: var(--ink-500); font-size: 9.5px; text-transform: uppercase; letter-spacing: .12em; }
+.opbar .meta .item strong { color: var(--ink-200); font-weight: 500; }
+.opbar .meta .sep { color: var(--ink-800); }
+.opbar .right { display: flex; align-items: center; gap: 12px; }
+.opbar .right .pill { display: inline-flex; align-items: center; gap: 5px; padding: 1px 7px; border: 1px solid var(--ink-700); font-size: 9px; text-transform: uppercase; letter-spacing: .12em; color: var(--ink-400); }
+.opbar .right .dot { width: 5px; height: 5px; background: #10b981; border-radius: 50%; animation: blink 2.4s ease-in-out infinite; }
+@keyframes blink { 0%,100%{opacity:.3} 50%{opacity:1} }
+
+/* ── Workspace ───────────────────────────────────────────── */
+.workspace { flex: 1; display: flex; overflow: hidden; }
+
+/* ── Sidebar ─────────────────────────────────────────────── */
+.sidebar { width: var(--sidebar); background: var(--ink-0); border-right: 1px solid var(--rule); display: flex; flex-direction: column; overflow-y: auto; flex-shrink: 0; }
+
+.sb-org { padding: 14px 16px 12px; border-bottom: 1px solid var(--rule); }
+.sb-org .o-label { font-family: 'Geist Mono', monospace; font-size: 8.5px; text-transform: uppercase; letter-spacing: .18em; color: var(--ink-400); font-weight: 600; margin-bottom: 4px; }
+.sb-org .o-name { font-size: 13.5px; font-weight: 600; color: var(--ink-900); letter-spacing: -.01em; }
+.sb-org .o-meta { font-family: 'Geist Mono', monospace; font-size: 9px; color: var(--ink-500); margin-top: 2px; }
+.sb-org .o-status { display: flex; align-items: center; gap: 6px; margin-top: 8px; }
+.o-chip { font-family: 'Geist Mono', monospace; font-size: 8.5px; text-transform: uppercase; letter-spacing: .10em; font-weight: 600; padding: 2px 6px; }
+.o-chip.pilot { border: 1px dashed var(--ink-400); color: var(--ink-600); }
+.o-chip.live   { border: 1px solid var(--ink-900); color: var(--ink-900); background: var(--ink-900); color: #fff; }
+
+/* Arc nav */
+.sb-arc { padding: 12px 0 4px; }
+.sb-arc .a-label { font-family: 'Geist Mono', monospace; font-size: 8.5px; text-transform: uppercase; letter-spacing: .18em; color: var(--ink-400); font-weight: 600; padding: 0 16px 8px; }
+.arc-item { display: flex; align-items: center; gap: 0; width: 100%; background: none; border: 0; padding: 0; text-align: left; cursor: pointer; position: relative; }
+.arc-item .ai-track { display: flex; flex-direction: column; align-items: center; width: 32px; flex-shrink: 0; padding: 6px 0; }
+.arc-item .ai-node { width: 8px; height: 8px; border-radius: 50%; border: 1.5px solid var(--ink-300); background: var(--ink-0); z-index: 1; flex-shrink: 0; transition: all .15s; }
+.arc-item .ai-line { width: 1px; flex: 1; min-height: 8px; background: var(--rule); }
+.arc-item:last-child .ai-line { display: none; }
+.arc-item .ai-body { flex: 1; padding: 5px 12px 5px 0; min-width: 0; }
+.arc-item .ai-num { font-family: 'Geist Mono', monospace; font-size: 8px; text-transform: uppercase; letter-spacing: .14em; color: var(--ink-400); font-weight: 600; }
+.arc-item .ai-name { font-size: 12px; font-weight: 500; color: var(--ink-600); letter-spacing: -.008em; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.arc-item .ai-state { font-family: 'Geist Mono', monospace; font-size: 8.5px; text-transform: uppercase; letter-spacing: .10em; color: var(--ink-400); }
+
+/* Arc states */
+.arc-item.done .ai-node { border-color: var(--s-ok); background: var(--s-ok); }
+.arc-item.done .ai-num { color: var(--s-ok); }
+.arc-item.done .ai-name { color: var(--ink-700); }
+.arc-item.done .ai-state { color: var(--s-ok); }
+.arc-item.done .ai-line { background: var(--s-ok); opacity: .3; }
+
+.arc-item.active .ai-node { border-color: var(--ink-900); background: var(--ink-900); box-shadow: 0 0 0 3px rgba(15,14,12,.12); }
+.arc-item.active .ai-num { color: var(--ink-900); }
+.arc-item.active .ai-name { color: var(--ink-900); font-weight: 600; }
+.arc-item.active .ai-state { color: var(--ink-600); }
+
+.arc-item.next .ai-node { border-color: var(--ink-600); background: var(--ink-50); }
+.arc-item.next .ai-name { color: var(--ink-700); }
+.arc-item.next .ai-state { color: var(--ink-500); }
+
+.arc-item[data-stage]:hover .ai-name { color: var(--ink-900); }
+.arc-item[data-stage]:hover .ai-node { border-color: var(--ink-700); }
+
+/* Sidebar interruption notice */
+.sb-interrupt { margin: 8px 12px; padding: 8px 10px; border: 1px dashed var(--ink-600); background: var(--ink-50); display: flex; gap: 8px; align-items: flex-start; }
+.sb-interrupt .si-dot { width: 6px; height: 6px; border: 1.5px dashed var(--ink-600); border-radius: 50%; flex-shrink: 0; margin-top: 2px; }
+.sb-interrupt .si-text { font-size: 11px; color: var(--ink-700); line-height: 1.4; }
+.sb-interrupt .si-text strong { color: var(--ink-900); font-weight: 500; display: block; font-size: 11.5px; margin-bottom: 1px; }
+
+/* Sidebar queue summary */
+.sb-queue { padding: 12px 16px; border-top: 1px solid var(--rule); margin-top: auto; }
+.sb-queue .sq-label { font-family: 'Geist Mono', monospace; font-size: 8.5px; text-transform: uppercase; letter-spacing: .18em; color: var(--ink-400); font-weight: 600; margin-bottom: 8px; }
+.sq-item { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 5px 0; border-bottom: 1px dashed var(--rule-soft); }
+.sq-item:last-child { border-bottom: 0; }
+.sq-item .sq-name { font-size: 11.5px; color: var(--ink-700); }
+.sq-item .sq-count { font-family: 'Geist Mono', monospace; font-size: 10.5px; color: var(--ink-900); font-weight: 600; }
+.sq-item .sq-dot { width: 5px; height: 5px; border-radius: 50%; }
+.sq-dot-ok { background: var(--s-ok); }
+.sq-dot-watch { background: transparent; border: 1.5px dashed var(--s-watch); border-radius: 50%; width: 7px; height: 7px; }
+
+/* ── Main content ────────────────────────────────────────── */
+.main { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: var(--paper); }
+
+/* Stage header */
+.stage-header { background: var(--ink-0); border-bottom: 1px solid var(--rule); padding: 16px 28px 14px; flex-shrink: 0; }
+.sh-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.sh-crumb { font-family: 'Geist Mono', monospace; font-size: 8.5px; text-transform: uppercase; letter-spacing: .18em; color: var(--ink-500); margin-bottom: 5px; display: flex; align-items: center; gap: 8px; }
+.sh-crumb .sc-sep { color: var(--ink-300); }
+.sh-title { font-size: 22px; font-weight: 600; letter-spacing: -.022em; color: var(--ink-900); line-height: 1.1; }
+.sh-sub { font-size: 12.5px; color: var(--ink-600); margin-top: 4px; line-height: 1.45; }
+.sh-sub strong { color: var(--ink-900); font-weight: 500; }
+.sh-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; padding-top: 4px; }
+.sh-btn-primary { background: var(--ink-900); color: #fff; font-family: 'Geist Mono', monospace; font-size: 9.5px; text-transform: uppercase; letter-spacing: .12em; font-weight: 600; padding: 7px 14px; border: 0; }
+.sh-btn-ghost { background: transparent; color: var(--ink-600); font-family: 'Geist Mono', monospace; font-size: 9.5px; text-transform: uppercase; letter-spacing: .12em; font-weight: 500; padding: 7px 10px; border: 0; text-decoration: underline; text-decoration-color: var(--ink-300); }
+.sh-ownership { display: flex; align-items: center; gap: 6px; margin-top: 10px; }
+.own-chip { font-family: 'Geist Mono', monospace; font-size: 8.5px; text-transform: uppercase; letter-spacing: .10em; font-weight: 600; padding: 2px 7px; }
+.own-system   { border: 1px solid var(--ink-200); color: var(--ink-500); }
+.own-reviewer { background: var(--ink-900); color: #fff; border: 1px solid var(--ink-900); }
+.own-org      { border: 1px solid var(--ink-700); color: var(--ink-700); }
+.own-shared   { border: 1px dashed var(--ink-600); color: var(--ink-600); }
+
+/* Interrupt banner */
+.interrupt-banner { background: var(--ink-50); border-bottom: 1px dashed var(--ink-500); padding: 8px 28px; display: flex; align-items: center; gap: 12px; font-size: 12px; flex-shrink: 0; }
+.interrupt-banner.hidden { display: none; }
+.ib-marker { display: flex; align-items: center; gap: 6px; font-family: 'Geist Mono', monospace; font-size: 9px; text-transform: uppercase; letter-spacing: .12em; color: var(--s-watch); font-weight: 600; flex-shrink: 0; }
+.ib-marker .ibm-dot { width: 6px; height: 6px; border: 1.5px dashed var(--s-watch); border-radius: 50%; }
+.ib-text { color: var(--ink-700); flex: 1; }
+.ib-text strong { color: var(--ink-900); font-weight: 500; }
+.ib-action { font-family: 'Geist Mono', monospace; font-size: 9.5px; text-transform: uppercase; letter-spacing: .12em; color: var(--ink-900); font-weight: 600; background: none; border: 0; padding: 0; text-decoration: underline; text-decoration-color: var(--ink-300); flex-shrink: 0; }
+
+/* Stage content scroll area */
+.stage-scroll { flex: 1; overflow-y: auto; padding: 20px 28px 0; }
+
+/* ── Stage views ─────────────────────────────────────────── */
+.stage-view { display: none; }
+.stage-view.active { display: block; }
+
+/* Metric rail — calm row of key facts */
+.metric-rail { display: grid; gap: 0; border: 1px solid var(--ink-900); background: var(--ink-0); margin-bottom: 16px; }
+.metric-rail.cols-4 { grid-template-columns: repeat(4, 1fr); }
+.metric-rail.cols-3 { grid-template-columns: repeat(3, 1fr); }
+.metric-rail.cols-5 { grid-template-columns: repeat(5, 1fr); }
+.mr-cell { padding: 14px 16px; border-right: 1px solid var(--rule); display: flex; flex-direction: column; gap: 3px; }
+.mr-cell:last-child { border-right: 0; }
+.mr-cell .k { font-family: 'Geist Mono', monospace; font-size: 8.5px; text-transform: uppercase; letter-spacing: .16em; color: var(--ink-500); }
+.mr-cell .v { font-size: 20px; font-weight: 600; color: var(--ink-900); letter-spacing: -.02em; line-height: 1; }
+.mr-cell .v.mono { font-family: 'Geist Mono', monospace; font-size: 13px; letter-spacing: .04em; }
+.mr-cell .vs { font-family: 'Geist Mono', monospace; font-size: 9.5px; color: var(--ink-500); }
+.mr-cell .vd { font-family: 'Geist Mono', monospace; font-size: 9.5px; text-transform: uppercase; letter-spacing: .10em; font-weight: 600; }
+.vd-ok    { color: var(--s-ok); }
+.vd-ok::before { content: "✓ "; }
+.vd-watch { color: var(--s-watch); }
+.vd-watch::before { content: "△ "; }
+.vd-hold  { color: var(--s-hold); }
+.vd-hold::before { content: "· "; }
+
+/* Section label */
+.sec-lbl { font-family: 'Geist Mono', monospace; font-size: 8.5px; text-transform: uppercase; letter-spacing: .18em; color: var(--ink-500); font-weight: 600; margin-bottom: 8px; display: flex; align-items: center; gap: 10px; }
+.sec-lbl::after { content: ""; flex: 1; height: 1px; background: var(--rule-soft); }
+
+/* Queue table */
+.queue-table { border: 1px solid var(--rule); background: var(--ink-0); margin-bottom: 16px; }
+.qt-head { display: grid; padding: 8px 14px; background: var(--ink-50); border-bottom: 1px solid var(--rule); font-family: 'Geist Mono', monospace; font-size: 8.5px; text-transform: uppercase; letter-spacing: .14em; color: var(--ink-500); gap: 12px; }
+.qt-head.cols-5 { grid-template-columns: 2fr 1fr 1fr 1fr 1fr; }
+.qt-head.cols-4 { grid-template-columns: 2fr 1fr 1fr 1fr; }
+.qt-head.cols-3 { grid-template-columns: 2fr 1.5fr 1fr; }
+.qt-row { display: grid; padding: 10px 14px; border-top: 1px solid var(--rule-soft); align-items: center; gap: 12px; transition: background .1s; }
+.qt-row:hover { background: var(--ink-50); }
+.qt-row.cols-5 { grid-template-columns: 2fr 1fr 1fr 1fr 1fr; }
+.qt-row.cols-4 { grid-template-columns: 2fr 1fr 1fr 1fr; }
+.qt-row.cols-3 { grid-template-columns: 2fr 1.5fr 1fr; }
+.qt-row .r-name { font-size: 12.5px; font-weight: 500; color: var(--ink-900); letter-spacing: -.008em; }
+.qt-row .r-npi  { font-family: 'Geist Mono', monospace; font-size: 10.5px; color: var(--ink-500); letter-spacing: .04em; }
+.qt-row .r-meta { font-size: 11.5px; color: var(--ink-600); }
+.qt-row .r-mono { font-family: 'Geist Mono', monospace; font-size: 10.5px; color: var(--ink-700); }
+.qt-row .r-age  { font-family: 'Geist Mono', monospace; font-size: 10px; color: var(--ink-500); }
+.qt-row .r-action { font-family: 'Geist Mono', monospace; font-size: 9.5px; text-transform: uppercase; letter-spacing: .10em; font-weight: 600; color: var(--ink-900); background: none; border: 0; padding: 0; cursor: pointer; text-decoration: underline; text-decoration-color: var(--ink-300); }
+
+/* Status chips */
+.chip { display: inline-flex; align-items: center; gap: 5px; font-family: 'Geist Mono', monospace; font-size: 9px; text-transform: uppercase; letter-spacing: .10em; font-weight: 600; padding: 2px 7px; }
+.chip .cd { width: 5px; height: 5px; border-radius: 50%; }
+.chip-verified { border: 1px solid var(--ink-700); color: var(--ink-700); }
+.chip-verified .cd { background: var(--ink-700); }
+.chip-pending  { border: 1px dotted var(--ink-600); color: var(--ink-600); }
+.chip-pending .cd { background: transparent; border: 1.5px dotted var(--ink-600); border-radius: 50%; }
+.chip-stale    { border: 1px dashed var(--ink-500); color: var(--ink-500); }
+.chip-stale .cd { background: transparent; border: 1.5px dashed var(--ink-500); border-radius: 50%; }
+.chip-review   { background: var(--ink-900); color: #fff; border: 1px solid var(--ink-900); }
+.chip-review .cd { background: #fff; }
+
+/* Source health row */
+.source-row { display: flex; align-items: center; gap: 10px; padding: 7px 0; border-bottom: 1px dashed var(--rule-soft); }
+.source-row:last-child { border-bottom: 0; }
+.source-row .sr-name { font-family: 'Geist Mono', monospace; font-size: 10px; text-transform: uppercase; letter-spacing: .12em; color: var(--ink-700); font-weight: 500; width: 130px; flex-shrink: 0; }
+.source-row .sr-bar { flex: 1; height: 2px; background: var(--rule); position: relative; }
+.source-row .sr-fill { position: absolute; left: 0; top: 0; height: 100%; }
+.fill-live  { background: var(--ink-900); }
+.fill-ok    { background: var(--ink-500); }
+.fill-stale { background: var(--ink-300); }
+.source-row .sr-age { font-family: 'Geist Mono', monospace; font-size: 9px; text-transform: uppercase; letter-spacing: .10em; color: var(--ink-500); width: 72px; text-align: right; flex-shrink: 0; }
+.source-row .sr-age.stale { color: var(--s-watch); }
+
+/* Chain strip */
+.chain-strip { display: flex; align-items: center; gap: 0; font-family: 'Geist Mono', monospace; font-size: 10px; color: var(--ink-700); flex-wrap: wrap; }
+.chain-strip .ch { padding: 4px 9px; background: var(--ink-50); border: 1px solid var(--rule); }
+.chain-strip .ch.cur { background: var(--ink-900); color: #fff; border-color: var(--ink-900); }
+.chain-strip .arr { color: var(--ink-400); padding: 0 4px; }
+
+/* Next step footer */
+.next-footer { background: var(--ink-0); border-top: 1px solid var(--rule); padding: 14px 28px; flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.nf-left { display: flex; flex-direction: column; gap: 3px; }
+.nf-label { font-family: 'Geist Mono', monospace; font-size: 8.5px; text-transform: uppercase; letter-spacing: .18em; color: var(--ink-400); }
+.nf-text  { font-size: 13px; font-weight: 600; color: var(--ink-900); letter-spacing: -.01em; }
+.nf-sub   { font-size: 11.5px; color: var(--ink-600); }
+.nf-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.nf-btn { background: var(--ink-900); color: #fff; font-family: 'Geist Mono', monospace; font-size: 9.5px; text-transform: uppercase; letter-spacing: .12em; font-weight: 600; padding: 8px 16px; border: 0; }
+.nf-ghost { background: transparent; color: var(--ink-600); font-family: 'Geist Mono', monospace; font-size: 9.5px; text-transform: uppercase; letter-spacing: .12em; font-weight: 500; padding: 8px 0; border: 0; text-decoration: underline; text-decoration-color: var(--ink-300); }
+
+/* detail info box */
+.info-box { background: var(--ink-50); border: 1px solid var(--rule-soft); padding: 12px 16px; font-size: 12px; color: var(--ink-700); line-height: 1.6; margin-bottom: 16px; }
+.info-box strong { color: var(--ink-900); font-weight: 500; }
+.info-box .ib-label { font-family: 'Geist Mono', monospace; font-size: 8.5px; text-transform: uppercase; letter-spacing: .16em; color: var(--ink-400); margin-bottom: 5px; }
+
+/* Waste delta */
+.waste-delta { display: grid; grid-template-columns: 1fr auto 1fr; gap: 0; border: 1px solid var(--ink-900); background: var(--ink-0); margin-bottom: 16px; align-items: center; }
+.wd-col { padding: 20px 22px; }
+.wd-col .wdc-lbl { font-family: 'Geist Mono', monospace; font-size: 8.5px; text-transform: uppercase; letter-spacing: .16em; color: var(--ink-500); margin-bottom: 6px; }
+.wd-col .wdc-val { font-size: 28px; font-weight: 600; letter-spacing: -.028em; color: var(--ink-900); line-height: 1; }
+.wd-col .wdc-sub { font-size: 11.5px; color: var(--ink-600); margin-top: 4px; }
+.wd-arrow { padding: 20px 16px; border-left: 1px solid var(--rule); border-right: 1px solid var(--rule); background: var(--ink-50); text-align: center; font-size: 18px; color: var(--ink-400); }
+.wd-result { background: var(--ink-900); color: #fff; }
+.wd-result .wdc-lbl { color: rgba(255,255,255,.5); }
+.wd-result .wdc-val { color: #fff; }
+.wd-result .wdc-sub { color: rgba(255,255,255,.55); }
+
+/* Proof continuity */
+.proof-table { border: 1px solid var(--rule); background: var(--ink-0); margin-bottom: 16px; }
+.pt-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 16px; border-bottom: 1px solid var(--rule-soft); }
+.pt-row:last-child { border-bottom: 0; }
+.pt-row .pt-lbl { font-family: 'Geist Mono', monospace; font-size: 9.5px; text-transform: uppercase; letter-spacing: .12em; color: var(--ink-500); }
+.pt-row .pt-val { font-family: 'Geist Mono', monospace; font-size: 11px; color: var(--ink-900); font-weight: 500; }
+.pt-row .pt-ok { font-family: 'Geist Mono', monospace; font-size: 9.5px; text-transform: uppercase; letter-spacing: .10em; color: var(--s-ok); font-weight: 600; }
+.pt-row .pt-ok::before { content: "✓ "; }
+
+/* Readiness checks */
+.readiness-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px dashed var(--rule-soft); }
+.readiness-row:last-child { border-bottom: 0; }
+.rr-name { font-size: 12.5px; color: var(--ink-700); }
+.rr-ok    { font-family: 'Geist Mono', monospace; font-size: 9.5px; text-transform: uppercase; letter-spacing: .10em; color: var(--s-ok); font-weight: 600; }
+.rr-ok::before { content: "✓ "; }
+.rr-watch { font-family: 'Geist Mono', monospace; font-size: 9.5px; text-transform: uppercase; letter-spacing: .10em; color: var(--s-watch); font-weight: 600; }
+.rr-watch::before { content: "△ "; }
+.rr-val { font-family: 'Geist Mono', monospace; font-size: 11px; color: var(--ink-700); font-weight: 500; }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- Op bar -->
+  <div class="opbar">
+    <div class="in">
+      <div class="brand">
+        <span class="g">V</span>
+        <div>
+          <strong>VitalCV</strong>
+          <span class="sub"> / workspace</span>
+        </div>
+      </div>
+      <div class="meta">
+        <div class="item"><strong>Cedar Health</strong></div>
+        <span class="sep">·</span>
+        <div class="item">Pilot <strong>R-2026-05-21</strong></div>
+        <span class="sep">·</span>
+        <div class="item">Scope <strong>10 NPIs</strong></div>
+        <span class="sep">·</span>
+        <div class="item">checked_at <strong class="mono">14:31:58Z</strong></div>
+      </div>
+      <div class="right">
+        <span class="pill"><span class="dot"></span>Sources live</span>
+        <span style="font-family:'Geist Mono',monospace;font-size:9.5px;color:var(--ink-600);padding-right:12px;">vc.2026.05.21-c</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="workspace">
+
+    <!-- Sidebar -->
+    <nav class="sidebar">
+      <!-- Org -->
+      <div class="sb-org">
+        <div class="o-label">Active engagement</div>
+        <div class="o-name">Cedar Health</div>
+        <div class="o-meta">10 clinicians · q2-2026</div>
+        <div class="o-status">
+          <span class="o-chip pilot">Pilot</span>
+          <span style="font-family:'Geist Mono',monospace;font-size:8.5px;color:var(--ink-500);">R-2026-05-21</span>
+        </div>
+      </div>
+
+      <!-- Interruption -->
+      <div class="sb-interrupt" id="sb-interrupt">
+        <div class="si-dot"></div>
+        <div class="si-text">
+          <strong>DEA source checking again</strong>
+          Last result 5h old — other sources live
+        </div>
+      </div>
+
+      <!-- Arc nav -->
+      <div class="sb-arc">
+        <div class="a-label">Progression arc</div>
+
+        <div class="arc-item done" data-stage="intake" onclick="showStage('intake')">
+          <div class="ai-track"><div class="ai-node"></div><div class="ai-line"></div></div>
+          <div class="ai-body">
+            <div class="ai-num">01</div>
+            <div class="ai-name">Intake</div>
+            <div class="ai-state">complete · 10 NPIs</div>
+          </div>
+        </div>
+
+        <div class="arc-item active" data-stage="pilot" onclick="showStage('pilot')">
+          <div class="ai-track"><div class="ai-node"></div><div class="ai-line"></div></div>
+          <div class="ai-body">
+            <div class="ai-num">02</div>
+            <div class="ai-name">Pilot</div>
+            <div class="ai-state">→ running · 7 / 10</div>
+          </div>
+        </div>
+
+        <div class="arc-item next" data-stage="waste" onclick="showStage('waste')">
+          <div class="ai-track"><div class="ai-node"></div><div class="ai-line"></div></div>
+          <div class="ai-body">
+            <div class="ai-num">03</div>
+            <div class="ai-name">Waste Visibility</div>
+            <div class="ai-state">up next</div>
+          </div>
+        </div>
+
+        <div class="arc-item" data-stage="proof" onclick="showStage('proof')">
+          <div class="ai-track"><div class="ai-node"></div><div class="ai-line"></div></div>
+          <div class="ai-body">
+            <div class="ai-num">04</div>
+            <div class="ai-name">Proof Continuity</div>
+            <div class="ai-state">pending</div>
+          </div>
+        </div>
+
+        <div class="arc-item" data-stage="memory" onclick="showStage('memory')">
+          <div class="ai-track"><div class="ai-node"></div><div class="ai-line"></div></div>
+          <div class="ai-body">
+            <div class="ai-num">05</div>
+            <div class="ai-name">Trust Memory</div>
+            <div class="ai-state">pending</div>
+          </div>
+        </div>
+
+        <div class="arc-item" data-stage="deploy" onclick="showStage('deploy')">
+          <div class="ai-track"><div class="ai-node"></div></div>
+          <div class="ai-body">
+            <div class="ai-num">06</div>
+            <div class="ai-name">Deployment</div>
+            <div class="ai-state">pending</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Queue summary -->
+      <div class="sb-queue">
+        <div class="sq-label">Queue</div>
+        <div class="sq-item">
+          <span class="sq-name">Pending review</span>
+          <div style="display:flex;align-items:center;gap:6px;"><span class="sq-dot sq-dot-watch"></span><span class="sq-count">3</span></div>
+        </div>
+        <div class="sq-item">
+          <span class="sq-name">Verified</span>
+          <div style="display:flex;align-items:center;gap:6px;"><span class="sq-dot sq-dot-ok"></span><span class="sq-count">7</span></div>
+        </div>
+        <div class="sq-item">
+          <span class="sq-name">Source degraded</span>
+          <div style="display:flex;align-items:center;gap:6px;"><span class="sq-dot" style="background:transparent;border:1.5px dashed var(--ink-400);border-radius:50%;width:7px;height:7px;"></span><span class="sq-count">1</span></div>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Main -->
+    <div class="main">
+
+      <!-- Interrupt banner -->
+      <div class="interrupt-banner" id="interrupt-banner">
+        <div class="ib-marker"><span class="ibm-dot"></span>Source checking again</div>
+        <div class="ib-text"><strong>DEA ARCOS</strong> is not responding — last result from 5 hours ago is shown. Resuming automatically. No action required.</div>
+        <button class="ib-action" onclick="dismissInterrupt()">Dismiss</button>
+      </div>
+
+      <!-- Stage scroll content -->
+      <div class="stage-scroll">
+
+        <!-- ── STAGE 01: INTAKE ─────────────────────────── -->
+        <div class="stage-view" id="view-intake">
+          <div class="stage-header">
+            <div class="sh-top">
+              <div>
+                <div class="sh-crumb">Cedar Health <span class="sc-sep">·</span> Stage 01</div>
+                <div class="sh-title">Intake complete.</div>
+                <div class="sh-sub"><strong>10 NPIs</strong> received, validated, and queued for verification.</div>
+              </div>
+              <div class="sh-right">
+                <button class="sh-btn-ghost" onclick="showStage('pilot')">Go to Pilot →</button>
+              </div>
+            </div>
+            <div class="sh-ownership">
+              <span class="own-chip own-org">Org</span>
+              <span style="font-family:'Geist Mono',monospace;font-size:9px;color:var(--ink-500);">Submitted by Cedar Health · accepted 2026-05-21 09:00Z</span>
+            </div>
+          </div>
+
+          <div style="padding:16px 28px;">
+            <div class="sec-lbl">Received clinicians</div>
+            <div class="queue-table">
+              <div class="qt-head cols-4">
+                <span>Clinician</span><span>NPI</span><span>Specialty</span><span>Status</span>
+              </div>
+              <div class="qt-row cols-4"><span class="r-name">Dr. Mira Chen, MD</span><span class="r-npi">1346053246</span><span class="r-meta">Internal Medicine</span><span class="chip chip-verified"><span class="cd"></span>Queued</span></div>
+              <div class="qt-row cols-4"><span class="r-name">James Park, DO</span><span class="r-npi">1245319876</span><span class="r-meta">Emergency Medicine</span><span class="chip chip-verified"><span class="cd"></span>Queued</span></div>
+              <div class="qt-row cols-4"><span class="r-name">Dr. Aisha Ruiz, MD</span><span class="r-npi">1903847562</span><span class="r-meta">Cardiology</span><span class="chip chip-verified"><span class="cd"></span>Queued</span></div>
+              <div class="qt-row cols-4"><span class="r-name">Macie Miller, PA-C</span><span class="r-npi">1578903241</span><span class="r-meta">Family Medicine</span><span class="chip chip-verified"><span class="cd"></span>Queued</span></div>
+              <div class="qt-row cols-4"><span class="r-name">Dr. Leon Torres, MD</span><span class="r-npi">1234567890</span><span class="r-meta">Psychiatry</span><span class="chip chip-verified"><span class="cd"></span>Queued</span></div>
+              <div class="qt-row cols-4" style="opacity:.5;"><span class="r-name">+ 5 more clinicians</span><span class="r-npi">—</span><span class="r-meta">—</span><span class="chip chip-verified"><span class="cd"></span>Queued</span></div>
+            </div>
+
+            <div class="info-box">
+              <div class="ib-label">Intake · bounded scope</div>
+              This pilot covers exactly the 10 NPIs submitted. No extrapolation. No projection. Results will reflect only these clinicians during the pilot phase.
+            </div>
+          </div>
+        </div>
+
+        <!-- ── STAGE 02: PILOT ─────────────────────────── -->
+        <div class="stage-view active" id="view-pilot">
+          <div class="stage-header">
+            <div class="sh-top">
+              <div>
+                <div class="sh-crumb">Cedar Health <span class="sc-sep">·</span> Stage 02</div>
+                <div class="sh-title">7 of 10 clinicians verified.</div>
+                <div class="sh-sub"><strong>3 pending</strong> — results appear as they arrive. One source checking again shortly.</div>
+              </div>
+              <div class="sh-right">
+                <button class="sh-btn-primary">Review pending 3</button>
+                <button class="sh-btn-ghost">Export report</button>
+              </div>
+            </div>
+            <div class="sh-ownership">
+              <span class="own-chip own-system">System</span>
+              <span style="font-family:'Geist Mono',monospace;font-size:9px;color:var(--ink-500);">Verification running · no action required · sources polled every 15 min</span>
+            </div>
+          </div>
+
+          <div style="padding:16px 28px;">
+            <div class="metric-rail cols-4" style="margin-bottom:16px;">
+              <div class="mr-cell"><div class="k">Verified</div><div class="v">7</div><div class="vs">of 10 clinicians</div><div class="vd vd-ok">on track</div></div>
+              <div class="mr-cell"><div class="k">Pending</div><div class="v">3</div><div class="vs">results running</div><div class="vd vd-watch">in progress</div></div>
+              <div class="mr-cell"><div class="k">Source health</div><div class="v">4<span style="font-size:13px;font-weight:400;color:var(--ink-500);">/5</span></div><div class="vs">sources responding</div><div class="vd vd-watch">1 degraded</div></div>
+              <div class="mr-cell"><div class="k">Last updated</div><div class="v mono">14:31</div><div class="vs">14:31:58Z UTC</div><div class="vd vd-ok">22 s ago</div></div>
+            </div>
+
+            <div class="sec-lbl">Pending verifications · 3 of 10</div>
+            <div class="queue-table" style="margin-bottom:16px;">
+              <div class="qt-head cols-5">
+                <span>Clinician</span><span>NPI</span><span>Blocking check</span><span>Source</span><span></span>
+              </div>
+              <div class="qt-row cols-5">
+                <div><div class="r-name">James Park, DO</div><div class="r-npi">1245319876</div></div>
+                <span class="r-mono">1245319876</span>
+                <span class="chip chip-pending"><span class="cd"></span>DEA pending</span>
+                <span class="r-age">5h stale</span>
+                <button class="r-action">Review</button>
+              </div>
+              <div class="qt-row cols-5">
+                <div><div class="r-name">Macie Miller, PA-C</div><div class="r-npi">1578903241</div></div>
+                <span class="r-mono">1578903241</span>
+                <span class="chip chip-pending"><span class="cd"></span>NPDB pending</span>
+                <span class="r-age">2 min</span>
+                <button class="r-action">Review</button>
+              </div>
+              <div class="qt-row cols-5">
+                <div><div class="r-name">Dr. Aisha Ruiz, MD</div><div class="r-npi">1903847562</div></div>
+                <span class="r-mono">1903847562</span>
+                <span class="chip chip-pending"><span class="cd"></span>State lic. pending</span>
+                <span class="r-age">8 min</span>
+                <button class="r-action">Review</button>
+              </div>
+            </div>
+
+            <div class="sec-lbl">Verified clinicians · 7 of 10</div>
+            <div class="queue-table" style="margin-bottom:16px;">
+              <div class="qt-head cols-4">
+                <span>Clinician</span><span>NPI</span><span>checked_at</span><span>Status</span>
+              </div>
+              <div class="qt-row cols-4"><div><div class="r-name">Dr. Mira Chen, MD</div></div><span class="r-mono">1346053246</span><span class="r-age">14:29:12Z · 3 min</span><span class="chip chip-verified"><span class="cd"></span>Verified</span></div>
+              <div class="qt-row cols-4"><div><div class="r-name">Dr. Leon Torres, MD</div></div><span class="r-mono">1234567890</span><span class="r-age">14:18:44Z · 13 min</span><span class="chip chip-verified"><span class="cd"></span>Verified</span></div>
+              <div class="qt-row cols-4"><div><div class="r-name">Sarah Kim, NP</div></div><span class="r-mono">1987654321</span><span class="r-age">14:22:31Z · 9 min</span><span class="chip chip-verified"><span class="cd"></span>Verified</span></div>
+              <div class="qt-row cols-4" style="opacity:.6;"><span class="r-name">+ 4 more verified</span><span></span><span></span><span class="chip chip-verified"><span class="cd"></span>Verified</span></div>
+            </div>
+
+            <div class="sec-lbl">Source health · 5 sources</div>
+            <div class="info-box" style="padding:14px 16px;">
+              <div class="source-row"><div class="sr-name">NPPES</div><div class="sr-bar"><div class="sr-fill fill-live" style="width:97%"></div></div><div class="sr-age">22 s</div></div>
+              <div class="source-row"><div class="sr-name">SAM.gov OIG</div><div class="sr-bar"><div class="sr-fill fill-ok" style="width:82%"></div></div><div class="sr-age">4 min</div></div>
+              <div class="source-row"><div class="sr-name">DEA ARCOS</div><div class="sr-bar"><div class="sr-fill fill-stale" style="width:22%"></div></div><div class="sr-age stale">5h 17m</div></div>
+              <div class="source-row"><div class="sr-name">State Board OH</div><div class="sr-bar"><div class="sr-fill fill-ok" style="width:88%"></div></div><div class="sr-age">11 min</div></div>
+              <div class="source-row"><div class="sr-name">NPDB</div><div class="sr-bar"><div class="sr-fill fill-ok" style="width:93%"></div></div><div class="sr-age">2 min</div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── STAGE 03: WASTE ─────────────────────────── -->
+        <div class="stage-view" id="view-waste">
+          <div class="stage-header">
+            <div class="sh-top">
+              <div>
+                <div class="sh-crumb">Cedar Health <span class="sc-sep">·</span> Stage 03</div>
+                <div class="sh-title">312 hours recovered.</div>
+                <div class="sh-sub">vs. prior manual credentialing workflow · <strong>10 clinicians · 28-day period</strong></div>
+              </div>
+              <div class="sh-right">
+                <button class="sh-btn-primary">Share with leadership</button>
+                <button class="sh-btn-ghost">View methodology</button>
+              </div>
+            </div>
+            <div class="sh-ownership">
+              <span class="own-chip own-shared">Shared</span>
+              <span style="font-family:'Geist Mono',monospace;font-size:9px;color:var(--ink-500);">System calculated · org decision to share</span>
+            </div>
+          </div>
+          <div style="padding:16px 28px;">
+            <div class="waste-delta">
+              <div class="wd-col">
+                <div class="wdc-lbl">Before · manual workflow</div>
+                <div class="wdc-val">6.5 wks</div>
+                <div class="wdc-sub">avg. per clinician · Cedar Health prior process</div>
+              </div>
+              <div class="wd-arrow">→</div>
+              <div class="wd-col wd-result">
+                <div class="wdc-lbl">With VitalCV</div>
+                <div class="wdc-val">4.2 hrs</div>
+                <div class="wdc-sub">avg. per clinician · pilot period</div>
+              </div>
+            </div>
+            <div class="info-box">
+              <div class="ib-label">Projection · labeled · not a measurement</div>
+              At this rate, a full 120-clinician roster would recover an estimated <strong>3,744 hours annually</strong>. This is a projection based on pilot results — not a measured outcome. Methodology available on request.
+            </div>
+            <div class="sec-lbl">Per-clinician recovery · pilot scope</div>
+            <div class="queue-table">
+              <div class="qt-head cols-3"><span>Clinician</span><span>Before</span><span>With VitalCV</span></div>
+              <div class="qt-row cols-3"><span class="r-name">Dr. Mira Chen, MD</span><span class="r-meta">6.2 weeks</span><span class="r-meta" style="color:var(--s-ok);font-weight:500;">3.8 hours</span></div>
+              <div class="qt-row cols-3"><span class="r-name">Dr. Leon Torres, MD</span><span class="r-meta">7.1 weeks</span><span class="r-meta" style="color:var(--s-ok);font-weight:500;">4.1 hours</span></div>
+              <div class="qt-row cols-3"><span class="r-name">Sarah Kim, NP</span><span class="r-meta">5.8 weeks</span><span class="r-meta" style="color:var(--s-ok);font-weight:500;">3.9 hours</span></div>
+              <div class="qt-row cols-3" style="opacity:.6;"><span class="r-name">+ 7 more clinicians</span><span class="r-meta">avg. 6.5 wks</span><span class="r-meta" style="color:var(--s-ok);">avg. 4.4 hrs</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── STAGE 04: PROOF ─────────────────────────── -->
+        <div class="stage-view" id="view-proof">
+          <div class="stage-header">
+            <div class="sh-top">
+              <div>
+                <div class="sh-crumb">Cedar Health <span class="sc-sep">·</span> Stage 04</div>
+                <div class="sh-title">Records saved and re-verifiable.</div>
+                <div class="sh-sub">Chain is current. All committed results can be independently re-verified at any time.</div>
+              </div>
+              <div class="sh-right">
+                <button class="sh-btn-ghost">View audit trail</button>
+              </div>
+            </div>
+            <div class="sh-ownership">
+              <span class="own-chip own-system">System</span>
+              <span style="font-family:'Geist Mono',monospace;font-size:9px;color:var(--ink-500);">No action required · chain maintained automatically</span>
+            </div>
+          </div>
+          <div style="padding:16px 28px;">
+            <div class="metric-rail cols-3" style="margin-bottom:16px;">
+              <div class="mr-cell"><div class="k">Chain entries</div><div class="v">14</div><div class="vs">committed records</div><div class="vd vd-ok">current</div></div>
+              <div class="mr-cell"><div class="k">Last anchor</div><div class="v mono">14:31</div><div class="vs">14:31:58Z UTC</div><div class="vd vd-ok">22 s ago</div></div>
+              <div class="mr-cell"><div class="k">Re-verifiable</div><div class="v">100%</div><div class="vs">of committed records</div><div class="vd vd-ok">complete</div></div>
+            </div>
+            <div class="sec-lbl">Chain state</div>
+            <div class="info-box">
+              <div class="chain-strip">
+                <span class="ch">a3f1…c204</span><span class="arr">←</span>
+                <span class="ch">9b2e…d718</span><span class="arr">←</span>
+                <span class="ch">3e9f…a1c2</span><span class="arr">←</span>
+                <span class="ch">b72a…f309</span><span class="arr">←</span>
+                <span class="ch cur">7a2c…b8d3</span>
+              </div>
+            </div>
+            <div class="sec-lbl" style="margin-top:16px;">Record details</div>
+            <div class="proof-table">
+              <div class="pt-row"><span class="pt-lbl">Current head</span><span class="pt-val">7a2c…b8d3</span></div>
+              <div class="pt-row"><span class="pt-lbl">Previous</span><span class="pt-val">b72a…f309</span></div>
+              <div class="pt-row"><span class="pt-lbl">committed_at</span><span class="pt-val">14:31:58Z · 22 s ago</span></div>
+              <div class="pt-row"><span class="pt-lbl">Chain depth</span><span class="pt-val">14 entries</span></div>
+              <div class="pt-row"><span class="pt-lbl">Re-verifiable</span><span class="pt-ok">All 14 entries independently re-verifiable</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── STAGE 05: MEMORY ────────────────────────── -->
+        <div class="stage-view" id="view-memory">
+          <div class="stage-header">
+            <div class="sh-top">
+              <div>
+                <div class="sh-crumb">Cedar Health <span class="sc-sep">·</span> Stage 05</div>
+                <div class="sh-title">28-day audit record.</div>
+                <div class="sh-sub">Full history of every verification, decision, and source check since pilot started.</div>
+              </div>
+              <div class="sh-right">
+                <button class="sh-btn-primary">Confirm audit record</button>
+                <button class="sh-btn-ghost">Export full log</button>
+              </div>
+            </div>
+            <div class="sh-ownership">
+              <span class="own-chip own-reviewer">Reviewer</span>
+              <span style="font-family:'Geist Mono',monospace;font-size:9px;color:var(--ink-500);">Confirm depth of audit record to advance to deployment</span>
+            </div>
+          </div>
+          <div style="padding:16px 28px;">
+            <div class="metric-rail cols-4" style="margin-bottom:16px;">
+              <div class="mr-cell"><div class="k">Record depth</div><div class="v">28</div><div class="vs">days of history</div><div class="vd vd-ok">complete</div></div>
+              <div class="mr-cell"><div class="k">Verifications</div><div class="v">142</div><div class="vs">total checks run</div><div class="vd vd-ok">all logged</div></div>
+              <div class="mr-cell"><div class="k">Decisions</div><div class="v">3</div><div class="vs">reviewer decisions</div><div class="vd vd-ok">all attributed</div></div>
+              <div class="mr-cell"><div class="k">Source gaps</div><div class="v">2</div><div class="vs">documented gaps</div><div class="vd vd-ok">both closed</div></div>
+            </div>
+            <div class="sec-lbl">Recent audit entries</div>
+            <div class="queue-table">
+              <div class="qt-head cols-4"><span>Event</span><span>Clinician</span><span>By</span><span>When</span></div>
+              <div class="qt-row cols-4"><span class="r-meta">Verification completed</span><span class="r-name">Dr. Mira Chen</span><span class="r-mono">system</span><span class="r-age">14:29Z</span></div>
+              <div class="qt-row cols-4"><span class="r-meta">Exception resolved</span><span class="r-name">James Park, DO</span><span class="r-mono">J. Martinez</span><span class="r-age">11:24Z</span></div>
+              <div class="qt-row cols-4"><span class="r-meta">Source gap closed</span><span class="r-name">DEA ARCOS</span><span class="r-mono">system</span><span class="r-age">09:31Z</span></div>
+              <div class="qt-row cols-4"><span class="r-meta">Source degraded</span><span class="r-name">DEA ARCOS</span><span class="r-mono">system</span><span class="r-age">09:14Z</span></div>
+              <div class="qt-row cols-4"><span class="r-meta">Pilot started</span><span class="r-name">10 NPIs</span><span class="r-mono">org intake</span><span class="r-age">09:00Z</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── STAGE 06: DEPLOY ────────────────────────── -->
+        <div class="stage-view" id="view-deploy">
+          <div class="stage-header">
+            <div class="sh-top">
+              <div>
+                <div class="sh-crumb">Cedar Health <span class="sc-sep">·</span> Stage 06</div>
+                <div class="sh-title">Three verifications still running.</div>
+                <div class="sh-sub">Check back shortly — no blocking issues found. Review pending 3 to advance.</div>
+              </div>
+              <div class="sh-right">
+                <button class="sh-btn-primary">Review pending 3</button>
+              </div>
+            </div>
+            <div class="sh-ownership">
+              <span class="own-chip own-reviewer">Reviewer</span>
+              <span style="font-family:'Geist Mono',monospace;font-size:9px;color:var(--ink-500);">Complete pending items to unlock production handoff</span>
+            </div>
+          </div>
+          <div style="padding:16px 28px;">
+            <div class="metric-rail cols-5" style="margin-bottom:16px;">
+              <div class="mr-cell"><div class="k">NPI coverage</div><div class="v">7<span style="font-size:13px;font-weight:400;color:var(--ink-500);">/10</span></div><div class="vs">clinicians verified</div><div class="vd vd-watch">3 pending</div></div>
+              <div class="mr-cell"><div class="k">Source health</div><div class="v">4<span style="font-size:13px;font-weight:400;color:var(--ink-500);">/5</span></div><div class="vs">sources live</div><div class="vd vd-watch">1 degraded</div></div>
+              <div class="mr-cell"><div class="k">Chain</div><div class="v">✓</div><div class="vs">anchored</div><div class="vd vd-ok">complete</div></div>
+              <div class="mr-cell"><div class="k">Human review</div><div class="v">3<span style="font-size:13px;font-weight:400;color:var(--ink-500);">/3</span></div><div class="vs">reviewers cleared</div><div class="vd vd-ok">complete</div></div>
+              <div class="mr-cell"><div class="k">Exceptions</div><div class="v">0</div><div class="vs">blocking items</div><div class="vd vd-ok">none</div></div>
+            </div>
+            <div class="sec-lbl">Readiness checks</div>
+            <div class="info-box" style="padding:14px 18px;">
+              <div class="readiness-row"><span class="rr-name">NPI coverage · 7 of 10 verified</span><span class="rr-watch">3 pending</span></div>
+              <div class="readiness-row"><span class="rr-name">Source health · 4 of 5 responding</span><span class="rr-watch">DEA degraded</span></div>
+              <div class="readiness-row"><span class="rr-name">Chain continuity</span><span class="rr-ok">all anchored</span></div>
+              <div class="readiness-row"><span class="rr-name">Human review complete</span><span class="rr-ok">3 of 3 reviewers</span></div>
+              <div class="readiness-row"><span class="rr-name">Open exceptions</span><span class="rr-ok">none</span></div>
+              <div class="readiness-row"><span class="rr-name">Audit record depth</span><span class="rr-ok">28 days confirmed</span></div>
+            </div>
+            <div class="info-box" style="margin-top:0;">
+              <div class="ib-label">Hold · bounded honesty</div>
+              Production handoff is available when all 10 clinicians are verified. The 3 pending results are still running — they are not blocked, just in progress. Review them now or wait for automatic completion.
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /stage-scroll -->
+
+      <!-- Next step footer -->
+      <div class="next-footer" id="next-footer">
+        <div class="nf-left">
+          <div class="nf-label" id="nf-label">Next step</div>
+          <div class="nf-text" id="nf-text">Review 3 pending verifications.</div>
+          <div class="nf-sub" id="nf-sub">Each has a result — one needs a decision before it can close.</div>
+        </div>
+        <div class="nf-right">
+          <button class="nf-btn" id="nf-btn">Review pending 3</button>
+          <button class="nf-ghost" id="nf-ghost">Wait for automatic completion</button>
+        </div>
+      </div>
+
+    </div><!-- /main -->
+  </div><!-- /workspace -->
+</div><!-- /shell -->
+
+<script>
+const stages = ['intake','pilot','waste','proof','memory','deploy'];
+let current = 'pilot';
+
+const nextStepData = {
+  intake: {
+    label: 'Next in arc',
+    text: 'Start verification — pilot stage is ready.',
+    sub: 'All 10 NPIs validated. Sources are configured and ready to poll.',
+    btn: 'Begin pilot',
+    ghost: null
+  },
+  pilot: {
+    label: 'Next step',
+    text: 'Review 3 pending verifications.',
+    sub: 'Results are in — one needs a decision before this stage closes.',
+    btn: 'Review pending 3',
+    ghost: 'Wait for automatic completion'
+  },
+  waste: {
+    label: 'Next in arc',
+    text: 'Share results with leadership.',
+    sub: 'The waste analysis is ready. Sharing unlocks the proof continuity stage.',
+    btn: 'Share with leadership',
+    ghost: 'View methodology first'
+  },
+  proof: {
+    label: 'Next step · automatic',
+    text: 'Chain is building — no action required.',
+    sub: 'The system will advance to Trust Memory once all records are anchored.',
+    btn: null,
+    ghost: 'View audit trail'
+  },
+  memory: {
+    label: 'Next step',
+    text: 'Confirm the audit record to advance.',
+    sub: '28 days of verified history is ready for reviewer sign-off.',
+    btn: 'Confirm audit record',
+    ghost: 'Export full log first'
+  },
+  deploy: {
+    label: 'Next step',
+    text: 'Review 3 pending verifications.',
+    sub: 'Once all 10 are cleared, production handoff becomes available.',
+    btn: 'Review pending 3',
+    ghost: null
+  }
+};
+
+function showStage(stage) {
+  current = stage;
+
+  // Hide all views
+  document.querySelectorAll('.stage-view').forEach(v => v.classList.remove('active'));
+  document.getElementById('view-' + stage).classList.add('active');
+
+  // Update arc items
+  document.querySelectorAll('.arc-item[data-stage]').forEach(item => {
+    const s = item.dataset.stage;
+    const idx = stages.indexOf(s);
+    const curIdx = stages.indexOf(stage);
+    item.classList.remove('done','active','next');
+    if (idx < curIdx) item.classList.add('done');
+    else if (idx === curIdx) item.classList.add('active');
+    else if (idx === curIdx + 1) item.classList.add('next');
+  });
+
+  // Update next footer
+  const nd = nextStepData[stage];
+  document.getElementById('nf-label').textContent = nd.label;
+  document.getElementById('nf-text').textContent = nd.text;
+  document.getElementById('nf-sub').textContent = nd.sub;
+
+  const btn = document.getElementById('nf-btn');
+  const ghost = document.getElementById('nf-ghost');
+  if (nd.btn) { btn.textContent = nd.btn; btn.style.display = ''; }
+  else { btn.style.display = 'none'; }
+  if (nd.ghost) { ghost.textContent = nd.ghost; ghost.style.display = ''; }
+  else { ghost.style.display = 'none'; }
+
+  // Scroll to top
+  document.querySelector('.stage-scroll').scrollTop = 0;
+}
+
+function dismissInterrupt() {
+  document.getElementById('interrupt-banner').classList.add('hidden');
+  document.getElementById('sb-interrupt').style.display = 'none';
+}
+
+// Init
+showStage('pilot');
+</script>
+</body>
+</html>
