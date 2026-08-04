@@ -10,9 +10,12 @@ When dispatched as part of a wave, roles are explicit:
 - **Claude Code Desktop** = supervisor / merge gate (issues GO/NO-GO, never builds)
 - **Claude Code Terminal** = primary builder (writes code, opens PRs, runs `gh pr merge`)
 - **Codex** (`codex exec` v0.125+) = optional surgical verifier. Useful for a second opinion on a risky diff; **not** required before merge.
+- **`pr-shepherd`** (`.claude/agents/pr-shepherd.md`) = PR landing. Owns the loop from red-or-stalled to genuinely green and merged: triage, CI diagnosis, fix, re-verify against the head SHA, merge, post-merge deploy confirmation. Delegate a failing or stuck PR here rather than re-deriving the gate topology.
 - Do NOT use OpenClaw, Browser, or Cowork for build/verify work.
 
 **Merge gate (settled 2026-07-25):** green CI **plus real verification** — you must actually exercise the change (run the suite, hit the route, load the page, execute the script) and show the evidence. Green CI on its own is not enough: shell scripts, GPU paths, and dev-gated e2e specs run in no PR check. Codex is not a merge gate, and no verifier verdict substitutes for having exercised the change yourself.
+
+**"Green" is a claim about a SHA, not a PR.** Read the required contexts live (`gh api repos/:owner/:repo/branches/main/protection --jq '.required_status_checks.contexts[]'` — the list has moved 2 → 5 → 7 → 14 in six weeks) and enumerate conclusions from `commits/<head-sha>/check-runs`. A `CONFLICTING` PR skips every `pull_request` gate and displays ~3 push checks that look green; a push to a closed PR runs zero workflows silently. Require zero pending, zero failing, and `mergeStateStatus == CLEAN`. Never `gh pr merge --auto`.
 
 ## Founder visual gate (active 2026-08-02)
 
