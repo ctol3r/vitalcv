@@ -1,34 +1,49 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 
-import { CheckRunArtifact } from '@/components/home/ask/AskHome';
+import { ILLUSTRATIVE_MODEL } from '@/components/home/film/illustrative';
 import { ProofPacketInspector } from '@/components/proof/ProofPacketInspector';
 import { SOURCE_LANE_OPS } from '@/lib/trust/sourceLanes';
 
 /**
  * Wave 5 / D5 — every artifact on the homepage declares what it is.
  *
- * The four moments mix two fundamentally different things: drawings of how the
- * product works, and a ledger reading the real source registry. A reader cannot
- * tell those apart by looking, so each has to say so. The audit:
+ * The page mixes two fundamentally different things: worked examples of how the
+ * product behaves, and a ledger reading the real source registry. A reader
+ * cannot tell those apart by looking, so each has to say so. The audit:
  *
- *   step 1  CheckRunArtifact       ILLUSTRATIVE  — an SVG of a lookup
- *   step 2  HomeLaneLedger         LIVE          — reads SOURCE_LANE_OPS
- *   step 3  ProofPacketInspector   ILLUSTRATIVE  — self-labels in its header
- *   step 4  PacketArtifact         ILLUSTRATIVE  — an SVG of a packet
+ *   ILLUSTRATIVE_MODEL     ILLUSTRATIVE  — the worked example the film renders
+ *   HomeLaneLedger         LIVE          — reads SOURCE_LANE_OPS
+ *   ProofPacketInspector   ILLUSTRATIVE  — self-labels in its header
  *
  * Both directions are defects. An illustration that reads as live invents
  * evidence; a live ledger stamped "illustrative" throws away real evidence the
  * page actually has.
+ *
+ * `CheckRunArtifact` (an SVG drawing of a lookup, from the deleted
+ * `components/home/ask/AskHome`) was removed by the homepage recovery (#1060).
+ * The film shows the same idea with the labelled record below instead, and the
+ * "is it labelled where the reader can see it" half of that guard now lives in
+ * `homepage-truth-contract.test.tsx`.
  */
 describe('homepage artifact provenance', () => {
-  it('the check-run drawing claims no source result', () => {
-    const html = renderToStaticMarkup(<CheckRunArtifact />).toLowerCase();
-    // It may name the parts of a lookup; it may not report on any of them.
-    for (const outcome of ['confirmed', 'verified', 'clear', 'enrolled', 'excluded', 'passed']) {
-      expect(html, `"${outcome}" is an outcome an illustration cannot know`).not.toContain(outcome);
+  /**
+   * The worked example obeys the two rules that keep it from becoming a claim
+   * about a real person (see the header of `components/home/film/illustrative.ts`):
+   * no NPI of any kind, and cadences read from the registry rather than typed.
+   */
+  it('the illustrative record names no NPI and invents no cadence', () => {
+    expect(ILLUSTRATIVE_MODEL.npi, 'a well-formed NPI in an illustration is a claim about its holder')
+      .not.toMatch(/\d{10}/);
+
+    const registryCadences = new Set(SOURCE_LANE_OPS.map((lane) => lane.cadenceLabel));
+    for (const row of ILLUSTRATIVE_MODEL.rows) {
+      if (row.cadence === null) continue;
+      expect(
+        registryCadences.has(row.cadence),
+        `${row.id} states a cadence "${row.cadence}" that no real lane declares`,
+      ).toBe(true);
     }
-    expect(html).not.toMatch(/\d+\s*%/);
   });
 
   it('the proof-packet inspector labels itself where the reader can see it', () => {

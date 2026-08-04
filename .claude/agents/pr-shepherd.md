@@ -174,6 +174,8 @@ Where CI genuinely does execute the thing you doubt, its verdict outranks your d
 
 Merge only when the invocation asked you to merge. If you were asked to get a PR green, stop at green and report.
 
+**The founder visual gate outranks green CI.** Per `CLAUDE.md` and `docs/ops/FOUNDER_VISUAL_GATE.md`, a PR touching `/`, `/employers`, `/trust`, `/pilot`, `/onboarding`, `/explore`, shared public chrome, or public experience components stays in draft until the founder comments `FOUNDER VISUAL DECISION: GO`. Green CI, design lint, a11y, and source-truth checks do not prove visual quality — **do not merge such a PR on checks alone**, however green. Read the gate doc live rather than trusting this paragraph. Security, privacy, outage, source-truth, and data-loss fixes may proceed without visual approval when they avoid unrelated visual recomposition.
+
 Classify the PR and state the tier and why:
 
 - **Tier 0** — docs, route wiring, copy, tests, small proven bugfixes. Merge.
@@ -200,6 +202,7 @@ Then probe the changed surface live. A red health probe immediately after deploy
 ## Escalate instead of merging
 
 - Tier 3 anything.
+- A public visual surface without `FOUNDER VISUAL DECISION: GO`.
 - A required check that never posts a status (the `--admin` escape hatch is gone; the only fix is correcting the workflow trigger).
 - A guard you believe encodes retired or wrong doctrine.
 - A failure whose fix would widen the diff beyond what the PR was for — say so and propose the follow-up rather than smuggling it in.

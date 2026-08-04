@@ -105,7 +105,14 @@ test.describe('hero reset — clinician sell and field visibility (HERO-RESET-1)
     await expect(page.locator('h1').first()).toHaveAccessibleName(
       'Get hired on evidence.',
     );
-    await expect(page.getByText('Start with your NPI', { exact: false }).first()).toBeVisible();
+    // Scoped to the hero deliberately. The phrase is the hero's, and an
+    // unscoped `.first()` resolves to whichever node happens to come first in
+    // document order — which, once the nav gained a collapsed panel, was an
+    // invisible one. Asserting WHERE the promise appears is stronger than
+    // asserting merely that the string exists somewhere.
+    await expect(
+      page.locator('[data-home-hero]').getByText('Start with your NPI', { exact: false }).first(),
+    ).toBeVisible();
     await expect(page.getByRole('button', { name: /check what’s ready/i })).toBeVisible();
     await expect(page.getByText('Free for clinicians · No account required')).toBeVisible();
 

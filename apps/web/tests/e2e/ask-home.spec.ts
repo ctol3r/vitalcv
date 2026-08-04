@@ -54,8 +54,11 @@ test.describe('homepage evidence film', () => {
   test('opens with a truthful empty source record, not a fabricated clinician', async ({ page }) => {
     const hero = page.locator('[data-home-hero]');
     await expect(hero.getByRole('heading', { level: 1 })).toHaveAccessibleName('Get hired on evidence.');
-    await expect(hero.locator('.film-record')).toBeVisible();
-    await expect(hero.locator('.film-panel-lane')).toHaveCount(6);
+    // The #1060 recovery replaced `.film-record` / `.film-panel-lane` with the
+    // `.film-summon` record and its six `.film-strip` lane cards. Same six
+    // lanes, same pre-lookup truth — only the markup moved.
+    await expect(hero.locator('.film-summon')).toBeVisible();
+    await expect(hero.locator('.film-strip')).toHaveCount(6);
 
     const text = (await hero.innerText()).toLowerCase();
     expect(text).toContain('not checked');
@@ -81,11 +84,21 @@ test.describe('homepage evidence film', () => {
 
   test('translates panes from ordinary vertical scroll without intercepting it', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
-    await expect(page.locator('.film')).toHaveAttribute('data-film-mode', 'film');
+    // Page-wide horizontal travel is RETIRED (founder directive, 2026-08-03):
+    // the document scrolls vertically and horizontal movement happens inside a
+    // sticky chapter stage instead. `vertical` is therefore the correct and
+    // only mode. Asserting 'film' here would be a guard enforcing doctrine that
+    // was deliberately withdrawn.
+    await expect(page.locator('.film')).toHaveAttribute('data-film-mode', 'vertical');
 
-    const track = page.locator('.film-track');
+    const track = page.locator('.film-stage-rail');
     const before = await track.evaluate((element) => getComputedStyle(element).transform);
-    await page.evaluate(() => window.scrollTo({ top: window.innerHeight * 2 }));
+    // Scroll INTO the sticky stage — that is where the rail travels now.
+    await page.evaluate(() => {
+      const spacer = document.querySelector('.film-stage-spacer');
+      const top = (spacer?.getBoundingClientRect().top ?? 0) + window.scrollY;
+      window.scrollTo(0, top + window.innerHeight);
+    });
     await expect
       .poll(() => track.evaluate((element) => getComputedStyle(element).transform))
       .not.toBe(before);

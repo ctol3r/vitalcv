@@ -17,6 +17,30 @@ When dispatched as part of a wave, roles are explicit:
 
 **"Green" is a claim about a SHA, not a PR.** Read the required contexts live (`gh api repos/:owner/:repo/branches/main/protection --jq '.required_status_checks.contexts[]'` — the list has moved 2 → 5 → 7 → 14 in six weeks) and enumerate conclusions from `commits/<head-sha>/check-runs`. A `CONFLICTING` PR skips every `pull_request` gate and displays ~3 push checks that look green; a push to a closed PR runs zero workflows silently. Require zero pending, zero failing, and `mergeStateStatus == CLEAN`. Never `gh pr merge --auto`.
 
+## Founder visual gate (active 2026-08-02)
+
+Public-facing visual work is governed by
+[`docs/ops/FOUNDER_VISUAL_GATE.md`](docs/ops/FOUNDER_VISUAL_GATE.md).
+
+For `/`, `/employers`, `/trust`, `/pilot`, `/onboarding`, `/explore`, shared
+public chrome, and public experience components:
+
+- name one creative owner;
+- attach desktop and mobile before/after evidence;
+- attach recordings for motion or scroll-controlled behavior;
+- document duplicate-intent searches before creating a component;
+- do not describe an unmounted design-system component as a customer-facing
+  improvement;
+- keep the PR in draft until the founder comments
+  `FOUNDER VISUAL DECISION: GO`;
+- do not begin a parallel homepage composition while the recovery freeze is
+  active.
+
+Green CI, design lint, accessibility checks, and source-truth checks do not
+prove visual quality. Founder approval is required in addition to the normal
+merge gate. Security, privacy, outage, source-truth, and data-loss fixes may
+proceed without visual approval when they avoid unrelated visual recomposition.
+
 ## Branch cutting (worktree fleet caveat)
 
 Local `main` is held by `/Users/christoler/vitalcv-omega4f-trigger`, and ~80 other worktrees exist (`~/.codex/worktrees/*` for the Codex fleet, plus dozens of `vitalcv-*` feature trees). **Never** `git checkout main && git pull origin main` — it fails. Instead:

@@ -32,10 +32,15 @@ test.describe('evidence-film progression', () => {
     await page.goto('/', { waitUntil: 'networkidle' });
 
     const film = page.locator('.film');
-    const track = page.locator('.film-track');
-    await expect(film).toHaveAttribute('data-film-mode', 'film');
+    const track = page.locator('.film-stage-rail');
+    await expect(film).toHaveAttribute('data-film-mode', 'vertical'); // page-wide travel retired 2026-08-03
     const before = await track.evaluate((element) => getComputedStyle(element).transform);
-    await page.evaluate(() => window.scrollTo({ top: window.innerHeight * 3 }));
+    // Scroll INTO the sticky stage — that is where the rail travels now.
+    await page.evaluate(() => {
+      const spacer = document.querySelector('.film-stage-spacer');
+      const top = (spacer?.getBoundingClientRect().top ?? 0) + window.scrollY;
+      window.scrollTo(0, top + window.innerHeight);
+    });
     await expect.poll(() => track.evaluate((element) => getComputedStyle(element).transform)).not.toBe(before);
   });
 
@@ -60,7 +65,12 @@ test.describe('evidence-film progression', () => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto('/', { waitUntil: 'networkidle' });
 
-    await expect(page.locator('.film')).toHaveAttribute('data-film-mode', 'film');
+    // Page-wide horizontal travel is RETIRED (founder directive, 2026-08-03):
+    // the document scrolls vertically and horizontal movement happens inside a
+    // sticky chapter stage instead. `vertical` is therefore the correct and
+    // only mode. Asserting 'film' here would be a guard enforcing doctrine that
+    // was deliberately withdrawn.
+    await expect(page.locator('.film')).toHaveAttribute('data-film-mode', 'vertical');
     await page.locator('#film-npi-input').fill(VALID_NPI);
     await page.locator('.film-npi-submit').click();
     await expect(page.getByText('Macie Miller')).toBeVisible({ timeout: 20_000 });
@@ -68,6 +78,11 @@ test.describe('evidence-film progression', () => {
 
     await page.getByRole('button', { name: /check another npi/i }).click();
     await expect(page.locator('#film-npi-input')).toBeFocused();
-    await expect(page.locator('.film')).toHaveAttribute('data-film-mode', 'film');
+    // Page-wide horizontal travel is RETIRED (founder directive, 2026-08-03):
+    // the document scrolls vertically and horizontal movement happens inside a
+    // sticky chapter stage instead. `vertical` is therefore the correct and
+    // only mode. Asserting 'film' here would be a guard enforcing doctrine that
+    // was deliberately withdrawn.
+    await expect(page.locator('.film')).toHaveAttribute('data-film-mode', 'vertical');
   });
 });

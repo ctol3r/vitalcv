@@ -1,32 +1,49 @@
 import { expect, test } from '@playwright/test';
 
 /**
- * Evidence-film atmosphere is orientation, not product state. The cursor only
- * lights the current frame; it never impersonates a custom cursor, turns a
- * source lane into a result, or breaks the vertical fallback.
+ * Evidence-film atmosphere is orientation, not product state. Pointer movement
+ * never impersonates a custom cursor, turns a source lane into a result, or
+ * breaks the vertical fallback.
+ *
+ * The #1060 recovery RETIRED the pointer-tracked reading light (`.film-readinglight`)
+ * and the atmosphere canvas outright — there is no ambient layer on this route
+ * any more. The assertions that named those mechanisms are gone with them; the
+ * ones that survive are the ones about what a reader actually gets: no cursor
+ * follower, a six-lane record stamped with its true pre-lookup state, and no
+ * clipping at any supported width.
  */
 
 test.describe('home evidence-film atmosphere', () => {
-  test('uses pointer position as a reading light without adding a cursor follower', async ({ page }) => {
+  test('adds no cursor follower and stamps every lane in the opening record', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto('/', { waitUntil: 'networkidle' });
-    await expect(page.locator('.film')).toHaveAttribute('data-film-mode', 'film');
+    // Page-wide horizontal travel is RETIRED (founder directive, 2026-08-03):
+    // the document scrolls vertically and horizontal movement happens inside a
+    // sticky chapter stage instead. `vertical` is therefore the correct and
+    // only mode. Asserting 'film' here would be a guard enforcing doctrine that
+    // was deliberately withdrawn.
+    await expect(page.locator('.film')).toHaveAttribute('data-film-mode', 'vertical');
 
     await page.locator('.film-stage').hover({ position: { x: 980, y: 430 } });
-    await expect(page.locator('.film-readinglight')).toBeVisible();
+    // RETIRED: `.film-readinglight` visible — the reading light was removed in
+    // the #1060 recovery and has no successor mechanism to assert.
     await expect(page.locator('[data-vt-cursor], .vt-cursor')).toHaveCount(0);
-    await expect(page.locator('.film-record .film-panel-stamp')).toHaveCount(6);
+    // Was `.film-record .film-panel-stamp` ×6: the record is `.film-summon` and
+    // each lane's stamp is a ProvenanceChip carrying `data-provenance-state`.
+    await expect(page.locator('.film-summon [data-provenance-state]')).toHaveCount(6);
   });
 
-  test('drops the reading light with reduced motion while retaining the evidence record', async ({ page }) => {
+  test('retains the complete evidence record under reduced motion', async ({ page }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto('/', { waitUntil: 'networkidle' });
 
     await page.mouse.move(980, 430);
-    await expect(page.locator('.film-readinglight')).toHaveCount(0);
+    // RETIRED: `.film-readinglight` count 0 — nothing tracks the pointer now,
+    // so there is no reduced-motion suppression left to prove.
+    await expect(page.locator('[data-vt-cursor], .vt-cursor')).toHaveCount(0);
     await expect(page.locator('.film')).toHaveAttribute('data-film-mode', 'vertical');
-    await expect(page.locator('.film-record .film-panel-lane')).toHaveCount(6);
+    await expect(page.locator('.film-summon .film-strip')).toHaveCount(6);
   });
 
   test('keeps visual artifacts within the viewport at supported widths', async ({ page }) => {
@@ -41,7 +58,7 @@ test.describe('home evidence-film atmosphere', () => {
       );
       expect(overflow, `horizontal overflow at ${width}px`).toBe(true);
 
-      const arrival = page.locator('[data-film-scene="arrival"] .film-panel-lane');
+      const arrival = page.locator('[data-film-scene="arrival"] .film-strip');
       await expect(arrival).toHaveCount(6);
       for (const lane of await arrival.all()) {
         const box = await lane.boundingBox();

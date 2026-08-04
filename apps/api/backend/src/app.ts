@@ -1340,6 +1340,12 @@ const AVERAGE_DELAY_REDUCTION_DAYS = 7;
 const REVENUE_RECOVERY_PER_DAY_USD = 1000;
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
+// Share ids are `@db.Uuid` columns; anything else must be rejected before it
+// reaches Prisma. Same shape as the guards in routes/passportEntity.ts and
+// routes/auditDecision.ts.
+const SHARE_ID_UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 function parseRequiredString(value: unknown, field: string): string {
   if (typeof value !== 'string' || value.trim().length === 0) {
     throw new Error(`${field} is required`);
@@ -2590,6 +2596,15 @@ function registerPilotRoutes(app: Express): void {
     const organizationId = getRequestOrganizationId(req);
     const organizationFilter = buildOrganizationFilter(organizationId);
     const ref = normalizeFunnelRef(req.query.ref);
+
+    // ShareLink.id is `@db.Uuid`, so a malformed id makes Prisma throw at the
+    // driver ("Error creating UUID") before the not-found branch below is ever
+    // reached — a public endpoint returning 500 for any non-UUID path segment.
+    // Guard the exact value the query receives, and answer exactly as we answer
+    // an id that simply does not exist, so the two are indistinguishable.
+    if (!SHARE_ID_UUID_RE.test(shareId)) {
+      return res.status(404).json({ error: 'Share link not found' });
+    }
 
     try {
       const existing = await prisma.shareLink.findFirst({

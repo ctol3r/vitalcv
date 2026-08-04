@@ -345,10 +345,9 @@ const GOLDEN_SCAN_ROOTS = [
 // purpose: the film is what `/` renders (#859), and HomePageClient remains on
 // disk as the documented rollback target — an unresolvable href in either one
 // is a broken link waiting to happen.
-const EXTRA_FULL_SCAN_FILES = [
-  'components/home/film/HorizontalCareerFilm.tsx',
-  'app/HomePageClient.tsx',
-];
+// `app/HomePageClient.tsx` was deleted by the homepage recovery (#1060); the
+// homepage's links now all live in the film component below.
+const EXTRA_FULL_SCAN_FILES = ['components/home/film/HorizontalCareerFilm.tsx'];
 
 /**
  * Coverage floor: these load-bearing surfaces must exist AND be inside the

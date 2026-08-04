@@ -1,9 +1,10 @@
 import type { Metadata } from 'next';
 
 import { HorizontalCareerFilm } from '@/components/home/film/HorizontalCareerFilm';
-import '@/styles/motion.css';
-import '@/styles/glass-eyebrow.css';
-import '@/styles/compete-film.css';
+// ONE route stylesheet. It owns the composition AND the evidence capsule, so
+// the surface the primary action produces can never again be orphaned from the
+// page it renders on — see the header of `styles/home.css`.
+import '@/styles/home.css';
 
 const TAGLINE = 'VitalCV — Your career evidence, ready before your next job.';
 const DESCRIPTION =

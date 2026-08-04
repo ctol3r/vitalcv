@@ -3,6 +3,7 @@ import {
   validateVerificationArtifact,
 } from '@vitalcv/trust-state';
 import prisma from '../../graphql/prisma_client';
+import { HttpError } from '../../utils/httpError';
 import { capsuleEngine } from '../decision/capsuleEngine';
 import {
   buildCredentialHash,
@@ -60,12 +61,18 @@ function assertArtifactCompleteness(
   npi: string,
   artifacts: CanonicalArtifacts,
 ): void {
+  // An NPI with no artifacts has no bundle — that is absence, not a server
+  // fault. Only the error *type* changes here: these were bare Errors, and the
+  // route decided 404-vs-500 by sniffing the message for "not found", which
+  // this wording never matched, so absence surfaced as a 500. The route now
+  // maps HttpError by type, so the messages stay exactly as they were —
+  // they carry the credential-vs-verification distinction a caller needs.
   if (artifacts.credentialArtifacts.length === 0) {
-    throw new Error(`Audit bundle missing credential artifacts for ${npi}`);
+    throw new HttpError(404, `Audit bundle missing credential artifacts for ${npi}`);
   }
 
   if (artifacts.verificationArtifacts.length === 0) {
-    throw new Error(`Audit bundle missing verification artifacts for ${npi}`);
+    throw new HttpError(404, `Audit bundle missing verification artifacts for ${npi}`);
   }
 }
 
