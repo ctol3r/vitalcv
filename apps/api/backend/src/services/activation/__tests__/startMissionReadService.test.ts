@@ -32,6 +32,9 @@ function packet(hash = 'packet-hash'): ApplicationPacketReadResponse {
       consentReceiptId: '4b6f0000-0000-4000-8000-000000000007',
       consentGrantId: '4b6f0000-0000-4000-8000-000000000008',
       selectedSections: ['identity'],
+      // Derived from the sealed fields, never a stored parallel list — and this
+      // fixture seals none, so nothing is withheld.
+      withheldFieldIds: [],
       fields: [],
       methodologyVersion: 'phase1',
       clinicianNote: null,
