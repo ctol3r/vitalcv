@@ -1,14 +1,17 @@
 import type { Metadata } from 'next';
 
-import { Z1Home } from '@/components/evidence-record/Z1Home';
+import { HorizontalCareerFilm } from '@/components/home/film/HorizontalCareerFilm';
+// ONE route stylesheet. It owns the composition AND the evidence capsule, so
+// the surface the primary action produces can never again be orphaned from the
+// page it renders on — see the header of `styles/home.css`.
+import '@/styles/home.css';
 
-const TAGLINE = 'VitalCV — Get hired for the right opportunity, and start sooner.';
+const TAGLINE = 'VitalCV — Your career evidence, ready before your next job.';
 const DESCRIPTION =
-  'Build a reusable clinician profile from your NPI, apply with it, and give employers a head start — so hiring does not restart from zero.';
+  'Enter your NPI to see what employers can confirm today, what still needs review, and the next step toward being ready to start.';
 
 // Shared caches must converge quickly after a release. Railway busts its edge
-// on deploy, but external caches do not; five minutes bounds stale public copy
-// (the #680 freshness contract).
+// on deploy, but external caches do not; five minutes bounds stale public copy.
 export const revalidate = 300;
 
 export const metadata: Metadata = {
@@ -50,19 +53,14 @@ const STRUCTURED_DATA = {
 };
 
 /**
- * The homepage is the Z1 product story (founder-directed live 2026-08-03,
- * superseding the six-scene film):
+ * The homepage is one source-honest evidence film:
  *
- *   NPI → reusable clinician profile → MATCHA opportunity → Apply with
- *   VitalCV → the employer receives a permissioned head start → start sooner
- *   → keep the record, and the loop begins again.
+ * 1. Let a clinician act immediately through the NPI-first opening pane.
+ * 2. Carry the same evidence story through native scroll rather than a static
+ *    stack of sections.
  *
- * One persistent profile object carries the narrative; the canonical Living
- * Evidence Record is the proof layer inside it. The NPI resolution on this
- * page is SIMULATED and says so on the surface — nothing here represents
- * demo data as live verification. The full server render carries the
- * complete story (no-JS floor), and every loop of motion dies under
- * prefers-reduced-motion.
+ * The film has one passive scroll owner and a complete vertical fallback for
+ * no-JavaScript, reduced-motion, touch, and narrow viewports.
  */
 export default function HomePage() {
   return (
@@ -71,7 +69,7 @@ export default function HomePage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(STRUCTURED_DATA) }}
       />
-      <Z1Home />
+      <HorizontalCareerFilm />
     </>
   );
 }

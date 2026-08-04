@@ -50,9 +50,8 @@ describe('page density system', () => {
     // 151 = 150 + the restored public opportunities board at /explore. The route
     // was already public in roles.ts and monitored by launch-ops, but its page
     // had been archived — so /explore 404'd while four surfaces linked to it.
-    // 152 = 151 + the Z1 homepage story (added as /design/z1-home, then moved
-    // to the public /preview/home when the founder directed it live on
-    // production; noindex until it replaces '/').
+    // 152 = 151 + the Z1 homepage-story preview at /design/z1-home (noindex;
+    // 404s in canonical production via the /design layout gate).
     expect(inventory).toHaveLength(152);
     expect(inventory.every((item) => !item.source.includes('/_archive/'))).toBe(true);
     expect(inventory.every((item) => !item.route.startsWith('/api/'))).toBe(true);

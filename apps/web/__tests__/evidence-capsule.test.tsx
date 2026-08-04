@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { join } from 'node:path';
 
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
@@ -421,52 +421,36 @@ describe('evidence capsule stylesheet', () => {
  * asserted here — and completely absent from the page, because no route
  * imported the file it lived in.
  *
- * 2026-08-03: '/' became the Z1 product story, whose evidence surface is the
- * canonical record (`.evr`, components/evidence-record/record.css) rendered
- * by Z1Home. The guard follows the same one-hop logic the original did —
- * the route's own import graph must carry the styles its evidence paints
- * with — pointed at the surface the route actually renders. The capsule
- * component keeps its own styling tests above for the surfaces that still
- * render it.
+ * This closes the loop: follow `app/page.tsx`'s own CSS imports and require
+ * that one of them really defines the capsule.
  */
-describe('the homepage evidence surface is style-reachable from the route', () => {
-  const readCssImports = (sourcePath: string): string[] => {
-    const source = readFileSync(sourcePath, 'utf8');
-    return [...source.matchAll(/import\s+['"]([^'"]+\.css)['"]/g)]
-      .map((m) => m[1])
-      .map((specifier) =>
-        specifier.startsWith('@/')
-          ? join(__dirname, '..', specifier.slice(2))
-          : join(dirname(sourcePath), specifier),
-      );
-  };
-
+describe('evidence capsule is reachable from the route that renders it', () => {
   const pagePath = join(__dirname, '..', 'app', 'page.tsx');
   const pageSource = readFileSync(pagePath, 'utf8');
-  // one hop: the page's own css imports plus those of every '@/components'
-  // module it composes (Z1Home carries the record + composition stylesheets)
-  const componentPaths = [...pageSource.matchAll(/from\s+['"]@\/(components\/[^'"]+)['"]/g)]
-    .map((m) => join(__dirname, '..', m[1]))
-    .map((p2) => (p2.endsWith('.tsx') || p2.endsWith('.ts') ? p2 : `${p2}.tsx`));
-  const importedStylesheets = [
-    ...readCssImports(pagePath),
-    ...componentPaths.flatMap((p2) => readCssImports(p2)),
-  ];
 
-  it('imports at least one stylesheet across the route graph', () => {
+  /** Every `import '...css'` in page.tsx, resolved to a path on disk. */
+  const importedStylesheets = [...pageSource.matchAll(/import\s+['"]([^'"]+\.css)['"]/g)]
+    .map((m) => m[1])
+    .map((specifier) =>
+      specifier.startsWith('@/')
+        ? join(__dirname, '..', specifier.slice(2))
+        : join(__dirname, '..', 'app', specifier),
+    );
+
+  it('imports at least one stylesheet', () => {
     expect(importedStylesheets.length).toBeGreaterThan(0);
   });
 
-  it('one of those stylesheets actually defines the evidence object (.evr)', () => {
+  it('one of those stylesheets actually defines .evidence-capsule', () => {
     const defining = importedStylesheets.filter((path) =>
-      readFileSync(path, 'utf8').includes('.evr{'),
+      readFileSync(path, 'utf8').includes('.evidence-capsule'),
     );
 
     expect(
       defining,
-      "the homepage renders the Living Evidence Record but its route graph " +
-        'imports no stylesheet that defines `.evr` — the record would paint as ' +
-        `unstyled text. Imports checked: ${importedStylesheets.join(', ') || '(none)'}`,
+      'app/page.tsx renders the evidence capsule but imports no stylesheet that ' +
+        'defines `.evidence-capsule` — the capsule would paint as unstyled text. ' +
+        `Imports checked: ${importedStylesheets.join(', ') || '(none)'}`,
     ).not.toEqual([]);
   });
 });

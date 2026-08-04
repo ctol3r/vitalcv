@@ -15,12 +15,11 @@ import { FUNNEL_EVENTS } from '@/lib/analytics/funnel';
 
 const webFile = (rel: string) => readFileSync(path.join(__dirname, '..', rel), 'utf8');
 
-// The homepage is the Z1 product story (2026-08-03, superseding the
-// six-scene film). This guard has now survived TWO compositions going stale
-// under it — HomePageClient, then the film, whose file still contained the
-// call after '/' stopped rendering it, keeping this green for a component no
-// visitor reached. It points at the component the live hero actually mounts.
-const homepage = webFile('components/evidence-record/NpiActivation.tsx');
+// The homepage is the six-scene film (#859). This pointed at
+// `app/HomePageClient.tsx` until 2026-07-26 and kept passing after the switch —
+// asserting the denominator fired from a component no visitor reaches. The
+// funnel was in fact intact, but this guard could not have told us either way.
+const homepage = webFile('components/home/film/HorizontalCareerFilm.tsx');
 const passport = webFile('app/passport/page.tsx');
 const console_ = webFile('components/hero/LiveTrustConsole.tsx');
 
@@ -45,7 +44,7 @@ describe('funnel instrumentation', () => {
     // A SHA-256 of a 10-digit number is brute-forceable, so hashNpi() is not
     // anonymisation and must not be used to justify sending an NPI.
     for (const [name, src] of [
-      ['NpiActivation', homepage],
+      ['HomePageClient', homepage],
       ['passport page', passport],
       ['LiveTrustConsole', console_],
     ] as const) {

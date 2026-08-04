@@ -91,9 +91,6 @@ export const PROTECTED_ROUTES: Array<{ pattern: RegExp; role: UserRoleType }> = 
  */
 export const PUBLIC_ROUTE_PATTERNS = [
   /^\/$/, // landing
-  // Z1 homepage story — founder-directed public preview of the next homepage
-  // (2026-08-03). noindex via route metadata; '/' itself is untouched.
-  /^\/preview\/home$/,
   // ── Other public surfaces ─────────────────────────────────────────────────
   /^\/simulation(\/.*)?$/, // public simulation surface
   /^\/mobile(\/.*)?$/, // mobile landing
