@@ -9,6 +9,10 @@
  */
 
 import type { Metadata } from 'next';
+// The .w14 console's keyframes live in the house motion file (LINT-03 permits
+// definitions nowhere else). motion.css is imported per-page, not globally, so
+// this import is what actually makes those animations run.
+import '@/styles/motion.css';
 import { auth } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
 import { getOpsEngineSnapshot } from '@/lib/ops-engine/getOpsEngineSnapshot';

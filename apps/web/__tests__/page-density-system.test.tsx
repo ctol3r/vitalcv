@@ -50,11 +50,17 @@ describe('page density system', () => {
     // 151 = 150 + the restored public opportunities board at /explore. The route
     // was already public in roles.ts and monitored by launch-ops, but its page
     // had been archived — so /explore 404'd while four surfaces linked to it.
-    // 153 = 151 + the two Operations Engine surfaces: the static shell at
-    // /operations-engine and the live, org-scoped worklist at /ops/engine.
-    // The W1400 data layer (lib/operations/*) landed in #464; the UI on top of
-    // it never reached main until now.
-    expect(inventory).toHaveLength(153);
+    // 152 = 151 + the live, org-scoped Operations Engine at /ops/engine. The
+    // W1400 data layer (lib/operations/*) landed in #464; the UI on top of it
+    // never reached main until now.
+    //
+    // The public /operations-engine demo that shipped alongside it is
+    // deliberately NOT here: it renders fabricated provider names beside
+    // randomly generated NPI-shaped identifiers ('1' + 9 random digits, which
+    // can collide with a real registered provider) and the line "License & NPI
+    // verified against registry" — with no visible synthetic-data disclosure.
+    // check-route-guards caught it as served-but-undeclared, which was correct.
+    expect(inventory).toHaveLength(152);
     expect(inventory.every((item) => !item.source.includes('/_archive/'))).toBe(true);
     expect(inventory.every((item) => !item.route.startsWith('/api/'))).toBe(true);
     expect(new Set(inventory.map((item) => item.density))).toEqual(

@@ -2217,12 +2217,8 @@ const SCOPED_CSS = `
 .w14 .accent-ring { box-shadow: inset 0 0 0 1px var(--accent-ring); }
 .w14 .accent-border { border-color: var(--accent-ring); }
 .w14 .accent-bg:hover { filter: brightness(1.08); }
-@keyframes w14blink { 0%,100% { opacity: .3; } 50% { opacity: 1; } }
 .w14 .blink { animation: w14blink 2.4s ease-in-out infinite; }
-@keyframes w14pulse { 0%,100% { opacity: 1; } 50% { opacity: .35; } }
 .w14 .pulse-soft { animation: w14pulse 1.8s ease-in-out infinite; }
-@keyframes w14rise { from { transform: translateY(8px); opacity: 0; } to { transform: none; opacity: 1; } }
-@keyframes w14slide { from { transform: translateX(24px); opacity: 0; } to { transform: none; opacity: 1; } }
 @media (prefers-reduced-motion: no-preference) { .w14 .rise { animation: w14rise .45s cubic-bezier(.2,.7,.2,1) both; } }
 .w14 .scroll-thin::-webkit-scrollbar { height: 8px; width: 8px; }
 .w14 .scroll-thin::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.14); border-radius: 8px; }
