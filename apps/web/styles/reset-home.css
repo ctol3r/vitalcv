@@ -35,6 +35,35 @@
 .rst *{box-sizing:border-box}
 .rst p,.rst h1,.rst h2,.rst h3,.rst ul,.rst li{margin:0;padding:0;list-style:none}
 
+/* NAVIGATION — page-scoped only (body:has). The global component is shared
+   with production and is NOT modified here. The old bar's pale fill, small
+   type and rounded indigo pill belong to the previous visual language and sit
+   badly above a poster-scale headline, so on this page it becomes flat ivory,
+   larger type, and square ink actions in the reset's own grammar. */
+body:has(.rst) header.sticky.top-0.z-50,
+body:has(.rst) header.sticky.top-0.z-50 > div{
+  background:#F4F2ED !important;
+  backdrop-filter:none !important;-webkit-backdrop-filter:none !important;
+  border-bottom:1px solid #DDD7C9;box-shadow:none !important;
+}
+body:has(.rst) header.sticky.top-0.z-50::after{display:none !important}
+body:has(.rst) header.sticky.top-0.z-50 nav button,
+body:has(.rst) header.sticky.top-0.z-50 nav a{font-size:17px;font-weight:500}
+/* both header actions square up into the reset's grammar */
+body:has(.rst) header.sticky.top-0.z-50 a[href="/sign-in"],
+body:has(.rst) header.sticky.top-0.z-50 a[href="/passport"]{
+  border-radius:0 !important;font-size:16px;
+}
+body:has(.rst) header.sticky.top-0.z-50 a[href="/passport"]{
+  background:#12100D !important;color:#F4F2ED !important;border-color:#12100D !important;
+}
+body:has(.rst) header.sticky.top-0.z-50 a[href="/sign-in"]{border-color:#C9C2B4 !important}
+/* the wordmark carries the page's serif, not the old sans lockup */
+body:has(.rst) header.sticky.top-0.z-50 a[href="/"]{
+  font-family:var(--font-fraunces-loaded,'Fraunces'),ui-serif,Georgia,serif;
+  font-size:22px;font-weight:500;letter-spacing:-.02em;
+}
+
 /* Development chrome must not contaminate a design review. Scoped to this
    page only — the global component is untouched. */
 body:has(.rst) [class*="FeedbackButton"],
@@ -129,30 +158,34 @@ body:has(.rst) [data-feedback-button]{display:none !important}
 .rst-bar button:disabled{opacity:.75;cursor:default}
 .rst-bar input:focus-visible,.rst-bar button:focus-visible{outline:3px solid var(--indigo);outline-offset:3px}
 
-/* ---- THE TRANSFORMATION — one continuous cinematic band ------------------
-   Six moments on ONE rail. Not cards: the identity is a solid plate that
-   moves along the rail, and the moments ahead of it are ghosted. Nothing is
-   boxed except the identity itself. */
+/* ---- THE TRANSFORMATION — one cinematic band ----------------------------
+   Full-bleed and CROPPED at both edges: the journey runs past the frame, so
+   the scene reads as a continuing strip rather than a six-item widget. Scale
+   carries the drama — the moment the identity currently occupies is large and
+   solid; everything ahead of it is small and ghosted. That contrast is what
+   makes this a scene instead of a progress bar. */
 .rst-track{
-  width:min(1360px,96vw);
-  margin-top:clamp(14px,2.4vh,32px);
   position:relative;
+  align-self:stretch;
+  width:auto;
+  margin-inline:calc(-1 * clamp(20px,4vw,64px));
+  margin-top:clamp(16px,2.8vh,38px);
   display:grid;
   grid-template-columns:repeat(6,1fr);
   align-items:end;
-  gap:clamp(6px,1vw,18px);
-  padding-bottom:30px;
+  gap:clamp(10px,1.4vw,26px);
+  padding:0 clamp(18px,2.6vw,46px) 30px;
 }
-.rst-track::after{                       /* the rail itself */
+.rst-track::after{                       /* the rail, running off both edges */
   content:'';position:absolute;left:0;right:0;bottom:22px;height:2px;
   background:linear-gradient(90deg,var(--ink) 0%,var(--ink) var(--rst-progress,16%),#C9C2B4 var(--rst-progress,16%),#C9C2B4 100%);
   transition:background .5s ease;
 }
 .rst-step{
   position:relative;
-  display:flex;flex-direction:column;align-items:center;gap:10px;
-  padding-bottom:26px;
-  opacity:.34;
+  display:flex;flex-direction:column;align-items:center;justify-content:flex-end;
+  gap:10px;padding-bottom:26px;
+  opacity:.3;
   transition:opacity .45s ease;
 }
 .rst-step[data-on]{opacity:1}
@@ -160,34 +193,46 @@ body:has(.rst) [data-feedback-button]{display:none !important}
   content:'';position:absolute;bottom:16px;left:50%;
   width:13px;height:13px;margin-left:-6.5px;border-radius:50%;
   background:var(--ivory);border:2px solid #B8B0A0;
-  transition:background .35s ease,border-color .35s ease;
+  transition:background .35s ease,border-color .35s ease,transform .35s ease;
 }
 .rst-step[data-on]::after{background:var(--ink);border-color:var(--ink)}
+.rst-step[data-active]::after{transform:scale(1.5)}
 .rst-step-name{
   font-family:var(--sans);font-weight:600;
-  font-size:clamp(13px,1.05vw,17px);
+  font-size:clamp(12px,1.05vw,17px);
   letter-spacing:-.01em;text-align:center;
 }
+.rst-step[data-active] .rst-step-name{font-size:clamp(14px,1.25vw,20px)}
 
-/* The moving identity plate — solid, never outlined, poster-weight. */
+/* The plate. The ACTIVE moment is poster-weight; the rest are quiet. */
 .rst-plate{
-  width:100%;max-width:200px;
+  width:100%;
   background:var(--ink);color:var(--ivory);
-  padding:14px 12px 13px;
-  display:flex;flex-direction:column;align-items:center;gap:7px;
-  min-height:clamp(74px,9vh,96px);justify-content:center;
+  padding:12px 10px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:6px;
+  min-height:clamp(56px,6.6vh,76px);
   text-align:center;
+  transition:min-height .4s ease,transform .4s ease;
+}
+.rst-step[data-active] .rst-plate{
+  min-height:clamp(104px,13vh,150px);
+  padding:16px 14px;
+  gap:9px;
+  box-shadow:0 0 0 3px var(--ivory), 0 0 0 6px var(--ink);
 }
 .rst-plate--ghost{
   background:transparent;color:#9C9484;
   border:2px dashed #C4BCAB;
 }
 .rst-mono-lg{
-  font-family:var(--mono);font-size:clamp(15px,1.3vw,19px);
+  font-family:var(--mono);font-size:clamp(13px,1.15vw,17px);
   letter-spacing:.1em;font-variant-numeric:tabular-nums;
 }
-.rst-plate-name{font-family:var(--sans);font-weight:600;font-size:clamp(12.5px,1.05vw,15px);line-height:1.15;text-align:center}
-.rst-plate-sub{font-family:var(--mono);font-size:10.5px;opacity:.7;letter-spacing:.05em}
+.rst-step[data-active] .rst-mono-lg{font-size:clamp(17px,1.7vw,26px)}
+.rst-plate-name{font-family:var(--sans);font-weight:600;font-size:clamp(11.5px,.95vw,14px);line-height:1.15;text-align:center}
+.rst-step[data-active] .rst-plate-name{font-size:clamp(14px,1.25vw,19px)}
+.rst-plate-sub{font-family:var(--mono);font-size:10px;opacity:.7;letter-spacing:.05em}
 
 /* the identity monogram — the one shape that recurs everywhere */
 .rst-mono{
@@ -280,21 +325,28 @@ body:has(.rst) [data-feedback-button]{display:none !important}
   padding:clamp(14px,1.8vh,20px) clamp(16px,1.8vw,26px);
 }
 .rst-side--to .rst-carry{flex-direction:row-reverse}
-.rst-carry-name{font-weight:600;font-size:clamp(16px,1.4vw,21px)}
-.rst-carry-sub{font-family:var(--mono);font-size:11.5px;opacity:.65;margin-top:3px}
+.rst-carry-name{display:block;font-weight:600;font-size:clamp(16px,1.4vw,21px)}
+.rst-carry-sub{display:block;font-family:var(--mono);font-size:11.5px;opacity:.65;margin-top:3px}
 .rst-arrow{
   font-size:clamp(40px,5vw,86px);line-height:1;opacity:.9;
   font-family:var(--sans);
 }
 /* the record: proof-sized, cropped, NOT the identity of the page */
+/* Proof, cropped ON PURPOSE and overlapping what receives it — the record
+   tucks under the employer's block rather than sitting politely beneath it.
+   Big enough to be read as real evidence, never big enough to become the
+   page's identity. */
 .rst-proof{
-  margin-top:clamp(20px,3vh,36px);
-  max-height:clamp(150px,20vh,210px);
+  margin-top:calc(-1 * clamp(14px,2vh,26px));
+  margin-right:clamp(10px,2vw,34px);
+  max-height:clamp(210px,27vh,300px);
   overflow:hidden;
-  width:min(520px,100%);
-  -webkit-mask-image:linear-gradient(180deg,#000 62%,transparent 100%);
-  mask-image:linear-gradient(180deg,#000 62%,transparent 100%);
+  width:min(400px,100%);
+  align-self:flex-end;
+  -webkit-mask-image:linear-gradient(180deg,#000 68%,transparent 100%);
+  mask-image:linear-gradient(180deg,#000 68%,transparent 100%);
 }
+.rst-side--to .rst-carry{position:relative;z-index:2}
 
 /* ==========================================================================
    CHAPTER 4 · CONTINUE — ivory room. The outcome, big; the profile returns.
@@ -346,7 +398,9 @@ body:has(.rst) [data-feedback-button]{display:none !important}
   }
   .rst-step::after{left:26px;bottom:auto;top:50%;margin:-6.5px 0 0 -6.5px}
   .rst-step-name{text-align:left;font-size:16px}
-  .rst-plate{max-width:none;width:100%;min-height:0;flex-direction:row;justify-content:flex-start;gap:12px;padding:12px 14px}
+  .rst-plate{width:100%;min-height:0;flex-direction:row;justify-content:flex-start;gap:12px;padding:12px 14px}
+  .rst-step[data-active] .rst-plate{min-height:0;padding:16px 16px;box-shadow:none;border-left:4px solid var(--ink)}
+  .rst-track{width:100%;margin-left:0;padding:0}
   .rst-h{font-size:clamp(36px,9.5vw,50px)}
   .rst-room{padding:clamp(52px,7vh,72px) 22px}
   .rst-create{min-height:auto;gap:26px}

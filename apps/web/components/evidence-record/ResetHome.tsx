@@ -132,8 +132,11 @@ export function ResetHome({ sealedFace }: Props) {
         <div className="rst-track" style={{ ['--rst-progress' as string]: progress }} aria-label="NPI to start">
           {STEPS.map((name, i) => {
             const on = i < reached;
+            /* The moment the identity currently occupies — the one that gets
+             * poster weight. Before any input, the NPI moment is the subject. */
+            const active = i === Math.max(0, reached - 1);
             return (
-              <div className="rst-step" key={name} data-on={on ? '' : undefined}>
+              <div className="rst-step" key={name} data-on={on ? '' : undefined} data-active={active ? '' : undefined}>
                 <div className={`rst-plate${on ? '' : ' rst-plate--ghost'}${on && live ? ' rst-anim' : ''}`}>
                   {i === 0 && (
                     <span className="rst-mono-lg">
