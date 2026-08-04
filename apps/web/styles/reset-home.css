@@ -90,7 +90,7 @@ body:has(.rst) [data-feedback-button]{display:none !important}
   font-size:clamp(90px,13vw,220px);line-height:.8;
   letter-spacing:-.04em;
   opacity:.11;
-  position:absolute;top:clamp(10px,2vh,28px);right:clamp(10px,3vw,54px);
+  position:absolute;top:clamp(48px,7vh,104px);right:clamp(10px,3vw,54px);
   pointer-events:none;user-select:none;
 }
 
@@ -115,7 +115,10 @@ body:has(.rst) [data-feedback-button]{display:none !important}
    the centrepiece, and beneath it ONE wide transformation.
    ========================================================================== */
 .rst-open{
-  min-height:100svh;max-height:none;
+  /* 100svh minus the chrome above this section (announcement + nav). The old
+     100svh box overflowed by that amount and centring pushed ~200px of void
+     above the headline. If content exceeds the box it simply flows. */
+  min-height:calc(100svh - 200px);max-height:none;
   display:flex;flex-direction:column;
   align-items:center;justify-content:center;
   gap:clamp(14px,2.1vh,28px);
@@ -204,10 +207,13 @@ body:has(.rst) [data-feedback-button]{display:none !important}
 }
 .rst-step[data-active] .rst-step-name{font-size:clamp(14px,1.25vw,20px)}
 
-/* The plate. The ACTIVE moment is poster-weight; the rest are quiet. */
+/* The plate carries three tenses, not one color: moments the identity has
+   PASSED are quiet solids (deep ivory, ink text), the moment it OCCUPIES is
+   poster ink, and moments AHEAD are ghosts. Six lit plates previously all
+   went solid ink — a wall of black with no tonal depth. */
 .rst-plate{
   width:100%;
-  background:var(--ink);color:var(--ivory);
+  background:var(--ivory-deep);color:var(--ink);
   padding:12px 10px;
   display:flex;flex-direction:column;align-items:center;justify-content:center;
   gap:6px;
@@ -216,11 +222,14 @@ body:has(.rst) [data-feedback-button]{display:none !important}
   transition:min-height .4s ease,transform .4s ease;
 }
 .rst-step[data-active] .rst-plate{
+  background:var(--ink);color:var(--ivory);
   min-height:clamp(104px,13vh,150px);
   padding:16px 14px;
   gap:9px;
   box-shadow:0 0 0 3px var(--ivory), 0 0 0 6px var(--ink);
 }
+/* the monogram inside a passed plate flips to ink-on-ivory */
+.rst-step[data-on]:not([data-active]) .rst-plate .rst-mono{background:var(--ink);color:var(--ivory)}
 .rst-plate--ghost{
   background:transparent;color:#9C9484;
   border:2px dashed #C4BCAB;
@@ -399,7 +408,7 @@ body:has(.rst) [data-feedback-button]{display:none !important}
   .rst-step::after{left:26px;bottom:auto;top:50%;margin:-6.5px 0 0 -6.5px}
   .rst-step-name{text-align:left;font-size:16px}
   .rst-plate{width:100%;min-height:0;flex-direction:row;justify-content:flex-start;gap:12px;padding:12px 14px}
-  .rst-step[data-active] .rst-plate{min-height:0;padding:16px 16px;box-shadow:none;border-left:4px solid var(--ink)}
+  .rst-step[data-active] .rst-plate{background:var(--ink);color:var(--ivory);min-height:0;padding:16px 16px;box-shadow:none;border-left:4px solid var(--ink)}
   .rst-track{width:100%;margin-left:0;padding:0}
   .rst-h{font-size:clamp(36px,9.5vw,50px)}
   .rst-room{padding:clamp(52px,7vh,72px) 22px}
