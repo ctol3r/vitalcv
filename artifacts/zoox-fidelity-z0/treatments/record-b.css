@@ -1,0 +1,44 @@
+/* ==========================================================================
+   Z0 review-sheet wrapper for the Living Evidence Record.
+
+   THE OBJECT'S RULES NO LONGER LIVE HERE. At Z1 the canonical stylesheet
+   graduated into the application:
+     apps/web/components/evidence-record/record.css
+   and this file @imports it, so the sheets review exactly what ships. What
+   remains here is sheet-only: the local @font-face (the app loads the same
+   families via next/font), the page reset, and the review harness. Tokens are
+   island-scoped under .evr-scene in the canonical file; every sheet <body>
+   carries that class.
+   ========================================================================== */
+
+@import url('../../../apps/web/components/evidence-record/record.css');
+
+@font-face { font-family:'Fraunces'; src:url('./fonts/Fraunces-Variable.woff2') format('woff2'); font-weight:100 900; font-display:block; }
+@font-face { font-family:'Geist'; src:url('./fonts/Geist-Variable.woff2') format('woff2'); font-weight:100 900; font-display:block; }
+@font-face { font-family:'Geist Mono'; src:url('./fonts/GeistMono-Variable.woff2') format('woff2'); font-weight:100 900; font-display:block; }
+
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased}
+
+/* ---- review harness (not the object) ------------------------------------ */
+.sheet{padding:30px 34px}
+.sheet h2{font-family:var(--serif);font-weight:500;font-size:27px;margin-bottom:3px}
+.sheet .sub{color:var(--ink-muted);font-size:13.5px;margin-bottom:24px;max-width:70ch;line-height:1.55}
+.cap{font-family:var(--mono);font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-subtle);margin-bottom:9px}
+.grid{display:flex;gap:28px;align-items:flex-start;flex-wrap:wrap}
+.stage{background:var(--paper);border:1px solid var(--rule);padding:0;position:relative;overflow:hidden}
+/* The covered test must blank DESCENDANTS too, not just the labelled element.
+   INSPECTED's detail rows carry an inline `color:var(--ink)` on nested spans,
+   which outranks a class rule — so the one face with the most copy on it was
+   the one face the recognition test left legible, and the test read as passed. */
+.covered .evr-name,.covered .evr-npi,.covered .evr-claim,.covered .evr-ret,
+.covered .evr-prov,.covered .evr-eyebrow,.covered .stamp,.covered .evr-receipt,
+.covered .evr-perm,.covered .evr-seal,.covered .illus,
+.covered .evr-prov *,.covered .evr-receipt *,.covered .stamp *,
+.covered .evr-eyebrow *{color:transparent!important}
+.covered .evr-name,.covered .evr-claim,.covered .evr-ret,.covered .evr-prov,
+.covered .evr-npi,.covered .evr-eyebrow span,.covered .evr-receipt,
+.covered .evr-perm,.covered .illus{background:var(--rule);border-radius:1px}
+.thumb{width:120px}.thumb .scaler{width:420px;transform:scale(0.2857);transform-origin:top left}
+
+

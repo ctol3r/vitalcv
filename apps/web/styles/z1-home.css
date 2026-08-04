@@ -1,0 +1,769 @@
+/* ==========================================================================
+   Z1 first visible slice — /design/z1-home composition.
+
+   FOUNDER DENSITY RULE: make the content larger before making the container
+   larger. Type is editorial-scale, the hero is content-driven (no arbitrary
+   100vh centering), and the career loop starts inside the first viewport so
+   the page has momentum. Blank space exists only where it creates emphasis:
+   around the headline and between story stages.
+
+   The object's rules live in components/evidence-record/record.css — this
+   file composes the page and NEVER restates them. The packet record's width
+   flows through --z1-packet because faces set --wn inline (media queries
+   cannot override an inline style; the var can).
+   ========================================================================== */
+
+.z1-page{background:var(--paper)}
+
+/* Page-scoped navigation treatment. The GLOBAL Navbar is shared with the
+   public homepage, which this slice must not alter — every rule here applies
+   only while this preview is on screen (body:has). If the founder approves,
+   the global change is a separate, deliberate PR.
+
+   GLASS ON CHROME is doctrine (CD-12): the bar frosts over the page while
+   evidence stays solid. The ANIMATED OUTLINE is a slow indigo current along
+   the bar's lower edge — alive, never flashing; gone under reduced motion. */
+body:has(.z1-page) header.sticky.top-0.z-50 nav button,
+body:has(.z1-page) header.sticky.top-0.z-50 a{font-size:17px}
+
+body:has(.z1-page) header.sticky.top-0.z-50 > div,
+body:has(.z1-page) header.sticky.top-0.z-50{
+  background:color-mix(in oklab, var(--vt-cloud-dancer) 62%, transparent);
+  -webkit-backdrop-filter:blur(14px) saturate(1.5);
+  backdrop-filter:blur(14px) saturate(1.5);
+}
+body:has(.z1-page) header.sticky.top-0.z-50{position:sticky}
+body:has(.z1-page) header.sticky.top-0.z-50::after{
+  content:'';position:absolute;left:0;right:0;bottom:0;height:2px;
+  background:linear-gradient(90deg,
+    transparent 0%, #B9B3A6 30%, #4338CA 50%, #B9B3A6 70%, transparent 100%);
+  background-size:260% 100%;
+  animation:z1-nav-current 14s linear infinite;
+  /* quiet: the visitor notices the navigation, not the animation technique */
+  opacity:.4;
+}
+/* z1-nav-current keyframes live in styles/motion.css (LINT-03's one permitted home). */
+@media (prefers-reduced-motion:reduce){
+  body:has(.z1-page) header.sticky.top-0.z-50::after{animation:none;background-size:100% 100%}
+}
+
+/* ---- hero ----------------------------------------------------------------
+   Left: one headline, one support line, one activation instrument, the demo
+   disclosure. Right: the product story — NPI → profile → opportunity/apply →
+   employer packet → start sooner — one connected pathway, not five cards.
+   The story column's height is state-constant (nodes carry min-heights), so
+   resolving a number lights the story without moving the argument. */
+.z1-hero{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(0,clamp(480px,42vw,620px));
+  grid-template-areas:
+    "head story"
+    "sup  story"
+    "npi  story"
+    "note story";
+  grid-template-rows:auto auto auto 1fr;
+  column-gap:clamp(40px,5vw,84px);
+  max-width:1520px;
+  margin:0 auto;
+  padding:clamp(28px,4.5vh,56px) clamp(24px,4vw,64px) clamp(20px,3vh,36px);
+}
+.z1-arg,.z1-activation{display:contents}
+
+.z1-headline{
+  grid-area:head;
+  font-family:var(--serif);font-weight:500;
+  /* 72–96px at 1440+, founder direction. 5.6vw → 80px at 1440, 96px capped. */
+  font-size:clamp(46px,6.1vw,96px);
+  line-height:1.02;letter-spacing:-.025em;
+  color:var(--ink-strong);max-width:14ch;margin:0;
+}
+.z1-headline em{font-style:italic;color:var(--accent)}
+.z1-support{
+  grid-area:sup;
+  font-size:clamp(19px,1.95vw,28px);
+  color:var(--ink-muted);max-width:34ch;line-height:1.45;
+  margin:clamp(16px,2.2vh,24px) 0 0;
+}
+
+/* the employer side entry: present, distinct, never competing with the NPI */
+.z1-employer-entry{grid-area:note;align-self:end;font-size:15px;color:var(--ink-subtle);margin:8px 0 0}
+.z1-employer-entry a{color:var(--ink-muted);text-decoration:underline;text-underline-offset:3px}
+.z1-employer-entry a:hover{color:var(--ink-strong)}
+
+/* ---- the activation instrument ------------------------------------------
+   One broad bar: input + action joined, ~64px tall. The primary product
+   action, not a newsletter field. */
+.z1-npi{grid-area:npi;margin-top:clamp(20px,3.4vh,36px);max-width:680px}
+.z1-npi-bar{
+  display:flex;align-items:stretch;
+  border:2px solid var(--ink-strong);border-radius:12px;
+  background:var(--raised);overflow:hidden;
+  height:clamp(60px,7.2vh,72px);
+}
+.z1-npi-input{
+  flex:1;min-width:0;border:0;background:transparent;outline:none;
+  padding:0 clamp(16px,1.6vw,22px);
+  font-family:var(--mono);font-size:clamp(18px,1.65vw,23px);color:var(--ink-strong);
+  font-variant-numeric:tabular-nums;letter-spacing:.05em;
+}
+.z1-npi-input::placeholder{color:var(--ink-subtle)}
+.z1-npi-submit{
+  flex:none;border:0;cursor:pointer;
+  background:var(--ink-strong);color:var(--raised);
+  padding:0 clamp(20px,2vw,30px);
+  font-family:var(--sans);font-size:clamp(16px,1.5vw,21px);font-weight:600;
+  white-space:nowrap;
+}
+.z1-npi-submit:hover{background:var(--ink)}
+.z1-npi-submit:disabled{opacity:.7;cursor:default}
+.z1-npi-submit:focus-visible,.z1-npi-input:focus-visible,.z1-chip:focus-visible{
+  outline:2px solid var(--accent);outline-offset:2px;
+}
+.z1-npi-hint{font-size:15px;color:var(--ink-subtle);margin-top:10px}
+.z1-npi-message{font-size:16px;color:var(--ink-muted);margin-top:12px;max-width:44ch;line-height:1.5}
+.z1-npi-message strong{color:var(--ink-strong);font-weight:600}
+
+/* Present, honest, visually secondary. */
+.z1-demo-note{
+  grid-area:note;align-self:start;
+  font-family:var(--mono);font-size:13.5px;color:var(--ink-subtle);
+  margin-top:clamp(14px,2vh,22px);max-width:56ch;line-height:1.9;
+}
+.z1-chip{
+  border:1px solid var(--rule-strong);background:var(--raised);color:var(--ink-muted);
+  border-radius:3px;padding:3px 10px;cursor:pointer;
+  font-family:var(--mono);font-size:11.5px;letter-spacing:.04em;text-transform:uppercase;
+}
+.z1-chip:hover{border-color:var(--ink-strong);color:var(--ink-strong)}
+
+/* ---- the story ----------------------------------------------------------
+   One persistent object moving through the product. Interface objects carry
+   the meaning; connector words are small mono subordinates on the spine.
+   Indigo appears only on the travel action (Apply), per the approved
+   permission doctrine. */
+.z1-story{
+  grid-area:story;
+  position:relative;
+  display:flex;flex-direction:column;
+  padding-left:26px;
+}
+.z1-story::before{
+  content:'';position:absolute;left:7px;top:10px;bottom:14px;
+  width:2px;background:var(--rule-strong);
+}
+.z1-story[data-lit]::before{background:var(--ink-strong)}
+
+.z1-node{
+  position:relative;
+  background:var(--raised);
+  border:1px solid var(--rule-strong);
+  border-radius:8px;
+  padding:clamp(14px,1.6vh,18px) clamp(16px,1.5vw,22px);
+  opacity:.6;
+  transition:opacity .3s ease,border-color .3s ease;
+}
+.z1-node::before{
+  content:'';position:absolute;left:-24px;top:22px;
+  width:12px;height:12px;border-radius:50%;
+  background:var(--paper);border:2px solid var(--rule-strong);
+}
+.z1-node[data-on]{opacity:1;border-color:var(--ink-strong)}
+.z1-node[data-on]::before{background:var(--ink-strong);border-color:var(--ink-strong)}
+
+/* connector words: subordinate, on the spine */
+.z1-link{
+  padding:clamp(4px,0.8vh,8px) 0 clamp(4px,0.8vh,8px) 2px;
+  font-family:var(--mono);font-size:11px;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--ink-subtle);
+}
+.z1-link::before{content:'↓  ';color:var(--ink-muted)}
+
+/* 1 · the NPI as a field object */
+.z1-npi-node{display:flex;align-items:center;gap:16px}
+.z1-field-label{
+  font-family:var(--mono);font-size:12px;letter-spacing:.08em;color:var(--ink-subtle);
+  border:1px solid var(--rule-strong);border-radius:4px;padding:4px 8px;
+}
+.z1-npi-echo{
+  font-family:var(--mono);font-size:clamp(20px,1.7vw,24px);
+  color:var(--ink-strong);letter-spacing:.14em;font-variant-numeric:tabular-nums;
+}
+
+/* 2 · the profile — the persistent object. Dormant = assembling silhouette. */
+.z1-profile{min-height:150px}
+.z1-profile-head{display:flex;align-items:center;gap:14px}
+.z1-avatar{
+  flex:none;width:46px;height:46px;border-radius:50%;
+  display:inline-flex;align-items:center;justify-content:center;
+  background:var(--ink-strong);color:var(--raised);
+  font-weight:600;font-size:16px;letter-spacing:.02em;
+}
+/* dormant: a dashed identity mark waiting for a person */
+.z1-node:not([data-on]) .z1-avatar{
+  background:transparent;border:2px dashed var(--rule-strong);color:transparent;
+}
+.z1-avatar--mini{width:26px;height:26px;font-size:11px}
+.z1-node:not([data-on]) .z1-avatar--mini{border-width:1.5px}
+.z1-profile-id{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
+.z1-profile-name{font-weight:600;font-size:clamp(21px,1.8vw,25px);color:var(--ink-strong);margin:0;line-height:1.1}
+.z1-profile-meta{font-size:16px;color:var(--ink-muted);margin:0}
+.z1-profile-badge{
+  align-self:flex-start;flex:none;
+  font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--ink-subtle);border:1px solid var(--rule-strong);border-radius:4px;padding:4px 8px;
+}
+.z1-node[data-on] .z1-profile-badge{color:var(--ink);border-color:var(--ink-strong)}
+/* unresolved identity: name-shaped bars, not an empty box */
+.z1-sil{display:block;border-radius:3px;background:var(--inset);border:1px solid var(--rule)}
+.z1-sil--name{width:64%;height:20px}
+.z1-sil--meta{width:42%;height:13px}
+/* six evidence lanes — hollow until sources answer */
+.z1-lanes{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-top:14px}
+.z1-lane{
+  height:12px;border-radius:2px;
+  background:var(--paper);border:1px solid var(--rule-strong);
+}
+.z1-lane[data-f]{background:var(--ink-strong);border-color:var(--ink-strong)}
+.z1-profile-evidence{
+  font-family:var(--mono);font-size:12.5px;color:var(--ink-subtle);
+  margin:10px 0 0;line-height:1.5;
+}
+
+/* 3 · the opportunity, the profile riding along, the travel action */
+.z1-opp{display:flex;align-items:center;gap:18px;flex-wrap:wrap;min-height:118px}
+.z1-opp-main{flex:1;min-width:220px}
+.z1-opp-role{font-weight:600;font-size:clamp(19px,1.6vw,22px);color:var(--ink-strong);margin:0}
+.z1-opp-org{font-size:15.5px;color:var(--ink-muted);margin:4px 0 0}
+.z1-opp-attach{
+  display:flex;align-items:center;gap:9px;margin-top:12px;
+  font-size:14px;color:var(--ink-muted);
+}
+/* the travel action is a real button-weight object; indigo = travel */
+.z1-apply{
+  flex:none;display:inline-block;
+  background:var(--accent);color:var(--raised);
+  border-radius:10px;padding:14px 20px;
+  font-size:clamp(15px,1.25vw,17px);font-weight:600;white-space:nowrap;
+}
+.z1-node:not([data-on]) .z1-apply{background:var(--ink-subtle)}
+
+/* 4 · the employer's frame around the sealed record, and the outcome */
+.z1-packet{
+  display:flex;align-items:center;gap:clamp(16px,1.6vw,26px);flex-wrap:wrap;
+  padding:0;border:0;background:transparent;
+}
+.z1-packet::before{top:30px}
+.z1-packet-frame{
+  flex:none;
+  border:1px solid var(--rule-strong);border-radius:8px;
+  background:var(--inset);padding:10px 12px 12px;
+}
+.z1-node[data-on] .z1-packet-frame{border-color:var(--ink-strong)}
+.z1-packet-head{
+  font-family:var(--mono);font-size:11px;letter-spacing:.07em;text-transform:uppercase;
+  color:var(--ink-subtle);margin:0 0 8px;
+}
+.z1-packet-record{flex:none}
+.z1-outcome{
+  flex:1;min-width:150px;
+  font-size:clamp(17px,1.5vw,21px);color:var(--ink-muted);margin:0;line-height:1.4;
+}
+.z1-outcome strong{display:block;color:var(--ink-strong);font-weight:600;font-size:clamp(21px,1.9vw,27px)}
+
+/* ==========================================================================
+   CHAPTERS 2 + 3 — Discover (MATCHA) and Apply with VitalCV.
+   One large idea per chapter: a short headline, at most one supporting
+   sentence, one dominant product composition. The persistent profile
+   continues; indigo stays reserved for the travel action.
+   ========================================================================== */
+.z1-chapter{
+  max-width:1520px;margin:0 auto;
+  padding:clamp(40px,7vh,84px) clamp(24px,4vw,64px) clamp(28px,4vh,48px);
+}
+/* The hero hands off directly into Discover — one continuous narrative, so
+   the first chapter begins at the hero's seam rather than after a band of
+   dead space. */
+.z1-discover{padding-top:clamp(8px,2vh,24px);border-top:1px solid var(--rule)}
+.z1-ch-head{max-width:64ch}
+.z1-ch-headline{
+  font-family:var(--serif);font-weight:500;
+  font-size:clamp(34px,3.9vw,58px);
+  line-height:1.05;letter-spacing:-.02em;color:var(--ink-strong);
+  max-width:22ch;margin:6px 0 0;
+}
+.z1-ch-support{
+  font-size:clamp(17px,1.5vw,22px);color:var(--ink-muted);
+  max-width:52ch;line-height:1.5;margin:clamp(10px,1.6vh,16px) 0 0;
+}
+.z1-ch-note{
+  font-family:var(--mono);font-size:12.5px;color:var(--ink-subtle);
+  margin:14px 0 0;
+}
+
+/* ---- discover stage ------------------------------------------------------
+   The profile at the centre of discovery; ONE dominant opportunity anchored
+   to why-it-fits rows; two secondary possibilities as quiet, real buttons.
+   Never a grid of equal cards. */
+.z1-discover-stage{
+  display:grid;
+  grid-template-columns:minmax(320px,460px) minmax(0,1fr);
+  grid-template-areas:
+    "profile dominant"
+    "secondary dominant"
+    "note note";
+  column-gap:clamp(32px,4vw,72px);
+  row-gap:clamp(16px,2.4vh,26px);
+  align-items:start;
+  margin-top:clamp(24px,4vh,44px);
+  position:relative;
+}
+.z1-discover-profile{grid-area:profile;position:relative}
+/* the tie between profile and dominant match — the reading line of the scene */
+.z1-discover-profile::after{
+  content:'';position:absolute;top:50%;right:calc(-1 * clamp(32px,4vw,72px));
+  width:clamp(32px,4vw,72px);height:2px;background:var(--rule-strong);
+}
+.z1-opp--dominant{
+  grid-area:dominant;
+  display:flex;align-items:flex-start;gap:20px;flex-wrap:wrap;
+  padding:clamp(20px,2.4vh,28px) clamp(20px,2vw,30px);
+}
+.z1-opp--dominant .z1-opp-role{font-size:clamp(23px,2.1vw,30px)}
+.z1-opp--dominant .z1-opp-org{font-size:clamp(15px,1.25vw,18px)}
+.z1-fit-list{list-style:none;margin:14px 0 0;padding:0;display:flex;flex-direction:column;gap:9px}
+.z1-fit{
+  display:flex;align-items:center;gap:10px;
+  font-size:clamp(14.5px,1.15vw,17px);color:var(--ink);
+}
+/* the tie mark: the fit row POINTS BACK at the profile — ink, never a green
+   tick, because fit is a match statement, not a verification claim */
+.z1-fit-tie{
+  flex:none;width:18px;height:2px;background:var(--ink-strong);
+  position:relative;
+}
+.z1-fit-tie::before{
+  content:'';position:absolute;left:-4px;top:-3px;
+  width:8px;height:8px;border-radius:50%;background:var(--ink-strong);
+}
+.z1-discover-secondary{
+  grid-area:secondary;
+  display:flex;flex-direction:column;gap:12px;
+}
+.z1-opp--secondary{
+  display:flex;flex-direction:column;gap:3px;align-items:flex-start;
+  text-align:left;cursor:pointer;opacity:.75;
+  padding:12px 16px;
+  /* a quiet possibility is content-sized — it must not inherit the hero
+     opportunity's min-height and read as a half-empty card */
+  min-height:0;
+}
+.z1-opp--secondary:hover{opacity:1;border-color:var(--ink-strong)}
+.z1-opp--secondary .z1-opp-role{font-size:16.5px}
+.z1-opp--secondary .z1-opp-org{font-size:13.5px;margin:0}
+.z1-discover-stage .z1-ch-note{grid-area:note;margin:0}
+
+/* ---- the handoff ---------------------------------------------------------
+   Clinician side and employer side of one application. The records ARE the
+   content: DECIDING = review what travels; RETURNED = what is available,
+   what still needs review, where each item came from. */
+.z1-apply-ch{padding-top:clamp(28px,5vh,56px)}
+.z1-handoff{
+  --z1-review:430;
+  --z1-packet2:470;
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);
+  column-gap:clamp(18px,2vw,36px);
+  align-items:start;
+  margin-top:clamp(24px,4vh,44px);
+}
+.z1-handoff-side{min-width:0;display:flex;flex-direction:column;gap:14px}
+.z1-side-tag{
+  font-family:var(--mono);font-size:12px;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--ink-subtle);margin:0;
+}
+.z1-opp--chosen{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.z1-handoff-caption{
+  font-size:clamp(15px,1.2vw,17.5px);color:var(--ink-muted);margin:4px 0 0;
+}
+.z1-handoff-caption--outcome{font-size:clamp(17px,1.45vw,21px)}
+.z1-handoff-caption--outcome strong{color:var(--ink-strong);font-weight:600}
+.z1-handoff-record{max-width:100%}
+.z1-handoff-record .evr{max-width:100%}
+.z1-handoff-arrow{
+  /* the transfer leaves the CHOSEN OPPORTUNITY's row — one continuous event,
+     not a connector floating between two unrelated columns */
+  align-self:start;
+  margin-top:74px;
+  display:flex;flex-direction:column;align-items:center;gap:8px;
+  font-family:var(--mono);font-size:11px;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--ink-subtle);
+  white-space:nowrap;
+}
+.z1-handoff-arrow::after{
+  content:'→';font-size:26px;color:var(--ink-strong);font-family:var(--sans);
+}
+.z1-packet-frame--deep{padding:14px 16px 16px}
+.z1-packet-frame--deep .z1-packet-head{
+  display:flex;align-items:center;gap:9px;font-size:12px;margin-bottom:10px;
+}
+.z1-packet-frame--deep .z1-avatar--mini{background:var(--ink-strong);color:var(--raised)}
+
+/* the employer record is deliberately deeper — capped with an EXPLICIT
+   continuation edge so the outcome stays in view and the crop cannot read
+   as accidental */
+.z1-handoff-record--capped{
+  max-height:560px;overflow:hidden;
+  border-bottom:2px solid var(--ink-strong);
+}
+.z1-record-continues{
+  font-family:var(--mono);font-size:11.5px;color:var(--ink-subtle);
+  margin:8px 0 0;letter-spacing:.03em;
+}
+
+/* rows travel, arrive, or stay — restrained spatial behaviour, once, on
+   reveal. Travelling rows step toward the employer; arriving rows settle in,
+   staggered; held rows do not move, which is the point. Keyframes
+   (z1-travel / z1-arrive) live in styles/motion.css. */
+.z1-handoff[data-seen] .z1-handoff-clinician .evr-row[data-travel="travels"]{animation:z1-travel .55s ease both}
+.z1-handoff[data-seen] .z1-handoff-employer .evr-row{animation:z1-arrive .5s ease both}
+.z1-handoff[data-seen] .z1-handoff-employer .evr-row:nth-child(2){animation-delay:.1s}
+.z1-handoff[data-seen] .z1-handoff-employer .evr-row:nth-child(3){animation-delay:.2s}
+.z1-handoff[data-seen] .z1-handoff-employer .evr-row:nth-child(4){animation-delay:.3s}
+.z1-handoff[data-seen] .z1-handoff-employer .evr-row:nth-child(5){animation-delay:.4s}
+.z1-handoff[data-seen] .z1-handoff-employer .evr-row:nth-child(6){animation-delay:.5s}
+@media (prefers-reduced-motion:reduce){
+  .z1-handoff[data-seen] .evr-row{animation:none !important}
+}
+
+/* ---- chapter 4 · start sooner --------------------------------------------
+   Four interface STATES of one pane; the steps are the object's own
+   progression, not four feature cards. */
+.z1-start-stage{margin-top:clamp(24px,4vh,44px);max-width:980px}
+.z1-steps{display:flex;gap:10px;flex-wrap:wrap}
+.z1-step{
+  display:inline-flex;align-items:center;gap:10px;
+  border:1px solid var(--rule-strong);border-radius:8px;
+  background:var(--raised);color:var(--ink-subtle);
+  padding:12px 18px;cursor:pointer;
+  font-size:clamp(14.5px,1.15vw,17px);font-weight:500;
+  opacity:.65;
+}
+.z1-step[data-on]{opacity:1;color:var(--ink)}
+.z1-step[data-active]{border-color:var(--ink-strong);color:var(--ink-strong);background:var(--paper)}
+.z1-step-n{font-family:var(--mono);font-size:11px;color:var(--ink-subtle)}
+.z1-start-pane{margin-top:16px;min-height:150px;display:flex;align-items:center}
+.z1-start-received{display:flex;align-items:center;gap:20px}
+.z1-start-line{font-size:clamp(18px,1.55vw,23px);color:var(--ink);margin:0}
+.z1-start-line strong{color:var(--ink-strong);font-weight:600}
+.z1-start-sub{font-size:clamp(14.5px,1.2vw,17px);color:var(--ink-muted);margin:6px 0 0;max-width:56ch;line-height:1.5}
+.z1-headstart-mark{
+  flex:none;width:46px;height:46px;border-radius:50%;
+  display:inline-flex;align-items:center;justify-content:center;
+  border:2px solid var(--ink-strong);color:var(--ink-strong);
+  font-size:20px;
+}
+.z1-day-chip{
+  flex:none;
+  font-family:var(--mono);font-size:13px;letter-spacing:.08em;text-transform:uppercase;
+  border:2px solid var(--ink-strong);border-radius:8px;color:var(--ink-strong);
+  padding:12px 14px;
+}
+.z1-review-list{list-style:none;margin:0;padding:0;width:100%;display:flex;flex-direction:column}
+.z1-review-row{
+  display:flex;justify-content:space-between;gap:18px;flex-wrap:wrap;
+  padding:12px 2px;border-top:1px solid var(--rule);
+  font-size:clamp(15px,1.2vw,17.5px);
+}
+.z1-review-row:first-child{border-top:0}
+.z1-review-claim{font-weight:600;color:var(--ink-strong)}
+.z1-review-state{color:var(--ink-muted)}
+.z1-review-row--note{color:var(--ink-subtle);font-size:14px;border-top:1px dashed var(--rule-strong)}
+
+/* ---- chapter 5 · keep your record ----------------------------------------
+   The persistent object returns; continuity rows carry the outcome; the loop
+   closes into the ghost of the NEXT discovery. */
+.z1-keep-stage{
+  display:grid;
+  grid-template-columns:minmax(320px,520px) minmax(0,1fr);
+  column-gap:clamp(36px,5vw,80px);
+  align-items:start;
+  margin-top:clamp(24px,4vh,44px);
+}
+.z1-continuity{list-style:none;margin:14px 0 0;padding:0;display:flex;flex-direction:column;gap:10px}
+.z1-continuity-row{
+  display:flex;align-items:center;gap:12px;
+  font-size:clamp(15px,1.2vw,17.5px);color:var(--ink);
+}
+.z1-continuity-mark{
+  flex:none;width:10px;height:10px;border-radius:50%;
+  background:var(--ink-strong);
+}
+.z1-loop-close{
+  display:flex;flex-direction:column;gap:12px;align-self:center;
+  position:relative;padding-left:clamp(28px,3vw,52px);
+}
+.z1-loop-close::before{
+  content:'↻';position:absolute;left:0;top:2px;
+  font-size:clamp(22px,2vw,30px);color:var(--ink-strong);
+}
+.z1-loop-close-word{
+  font-family:var(--mono);font-size:12px;letter-spacing:.07em;
+  text-transform:uppercase;color:var(--ink-subtle);
+}
+.z1-opp--next{opacity:.7;max-width:420px;cursor:pointer}
+.z1-opp--next:hover{opacity:1;transform:translateX(3px)}
+
+@media (max-width:1080px){
+  .z1-keep-stage{grid-template-columns:minmax(0,1fr);row-gap:26px}
+  .z1-handoff-arrow{margin-top:0}
+}
+
+/* ---- explainer motion + medical theme ------------------------------------
+   Ambient, looping, GIF-like explainers built in CSS: the profile token
+   travels the hero spine, MATCHA's tie-line flows toward the match, panes
+   slide between interface states, and an EKG pulse line divides chapters.
+   Every loop dies under prefers-reduced-motion; nothing meaningful is only
+   in the motion. */
+
+/* the KO token travels the lit story spine — the record moving through the
+   product, on loop */
+.z1-story[data-lit]::after{
+  content:'KO';
+  position:absolute;left:8px;top:0;
+  width:22px;height:22px;margin-left:-10px;border-radius:50%;
+  background:var(--ink-strong);color:var(--raised);
+  font-family:var(--sans);font-size:9px;font-weight:600;
+  display:flex;align-items:center;justify-content:center;
+  /* THE signature motion. Three complete journeys, then rest — it must not
+     restart forever while someone is reading — and any hover or focus inside
+     the story pauses it. */
+  animation:z1-spine-travel 7s ease-in-out 3;
+}
+.z1-story:hover::after,
+.z1-story:focus-within::after{animation-play-state:paused}
+/* z1-spine-travel keyframes live in styles/motion.css. */
+
+/* MATCHA's tie flows FROM the profile INTO the match — but only when the
+   connection ACTIVATES (reveal, or a new selection); it then settles into a
+   static tie. Connection feedback, not ambient decoration. */
+.z1-discover-profile[data-tie-active]::after{
+  background:repeating-linear-gradient(90deg,
+    var(--rule-strong) 0 10px, var(--ink-strong) 10px 16px);
+  background-size:26px 100%;
+  animation:z1-tie-flow 1.6s linear 2;
+}
+
+/* sliding panes: content keyed by state slides in from the right.
+   z1-tie-flow and z1-slide-in keyframes live in styles/motion.css. */
+.z1-pane-slide{animation:z1-slide-in .22s ease both}
+
+/* the loop-closure mark is static; the RETURN is an interaction (the ghost
+   card is a real control that carries you back to Discover) */
+
+/* Continuity rail — the VitalCV-owned divider. Not a heartbeat monitor:
+   the aperture-band motif stretched between chapters, six lanes filling ONCE
+   as the divider enters view — information moving through a record. */
+.z1-flowline{
+  display:flex;align-items:center;gap:10px;
+  max-width:1520px;margin:0 auto;
+  padding:0 clamp(24px,4vw,64px);
+  height:34px;
+}
+.z1-flowline::before,.z1-flowline::after{
+  content:'';flex:1;height:1px;background:var(--rule);
+}
+.z1-flowline-lane{
+  width:26px;height:7px;border-radius:2px;
+  background:var(--paper);border:1px solid var(--rule-strong);
+  opacity:.9;
+}
+.z1-flowline[data-seen] .z1-flowline-lane{animation:z1-lane-fill .35s ease both}
+.z1-flowline[data-seen] .z1-flowline-lane:nth-child(2){animation-delay:.12s}
+.z1-flowline[data-seen] .z1-flowline-lane:nth-child(3){animation-delay:.24s}
+.z1-flowline[data-seen] .z1-flowline-lane:nth-child(4){animation-delay:.36s}
+.z1-flowline[data-seen] .z1-flowline-lane:nth-child(5){animation-delay:.48s}
+.z1-flowline[data-seen] .z1-flowline-lane:nth-child(6){animation-delay:.6s}
+/* z1-lane-fill keyframes live in styles/motion.css. */
+
+/* interactive weight on every control: lift on hover, seat on press */
+.z1-apply,.z1-npi-submit,.z1-step,.z1-chip,.z1-opp--secondary{
+  transition:transform .16s ease,border-color .2s ease,background-color .2s ease,opacity .2s ease;
+}
+.z1-apply:hover,.z1-npi-submit:hover{transform:translateY(-1px)}
+.z1-apply:active,.z1-npi-submit:active,.z1-step:active,.z1-chip:active{transform:translateY(1px)}
+.z1-step:hover{border-color:var(--ink-strong);opacity:1}
+.z1-opp--secondary:hover{transform:translateX(3px)}
+
+/* the story column announces that it is a live preview of the control */
+.z1-live-chip{
+  align-self:flex-start;
+  display:inline-flex;align-items:center;gap:8px;
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--ink-subtle);border:1px solid var(--rule-strong);border-radius:4px;
+  padding:4px 9px;margin:0 0 10px;
+}
+.z1-live-dot{
+  width:7px;height:7px;border-radius:50%;background:var(--accent);
+  /* static on purpose: one ambient per viewport, and the hero's is the nav
+     current. The chip is preview-only scaffolding, not homepage content. */
+}
+
+/* chapter eyebrow icons — clinician iconography, ink, 1.5px strokes */
+.z1-eyebrow{display:flex;align-items:center;gap:9px}
+.z1-eyebrow svg{width:17px;height:17px;stroke-width:1.75;color:var(--ink-muted)}
+.z1-opp-org{display:flex;align-items:center;gap:7px}
+.z1-opp-org svg{width:15px;height:15px;stroke-width:1.75;color:var(--ink-subtle);flex:none}
+.z1-step svg{width:17px;height:17px;stroke-width:1.75}
+
+@media (prefers-reduced-motion:reduce){
+  .z1-story[data-lit]::after,
+  .z1-discover-profile[data-tie-active]::after,
+  .z1-flowline[data-seen] .z1-flowline-lane{animation:none}
+  .z1-flowline[data-seen] .z1-flowline-lane{background:var(--ink-strong);border-color:var(--ink-strong)}
+  .z1-pane-slide{animation:none}
+  .z1-apply,.z1-npi-submit,.z1-step,.z1-chip,.z1-opp--secondary{transition:none}
+}
+
+.z1-truth-boundary{
+  font-size:14px;color:var(--ink-subtle);line-height:1.5;margin:6px 0 0;max-width:44ch;
+}
+.z1-npi-count{font-variant-numeric:tabular-nums}
+
+/* ---- reveal --------------------------------------------------------------
+   One observer, one attribute. Motion is a small rise; reduced motion gets
+   the complete argument with no movement at all. */
+[data-reveal]{opacity:0;transform:translateY(14px);transition:opacity .5s ease,transform .5s ease}
+[data-reveal][data-seen]{opacity:1;transform:none}
+@media (prefers-reduced-motion:reduce){
+  [data-reveal]{opacity:1;transform:none;transition:none}
+}
+
+/* ---- chapters responsive ------------------------------------------------- */
+@media (max-width:1080px){
+  .z1-discover-stage{
+    grid-template-columns:minmax(0,1fr);
+    grid-template-areas:"profile" "dominant" "secondary" "note";
+  }
+  .z1-discover-profile::after{display:none}
+  .z1-handoff{grid-template-columns:minmax(0,1fr);row-gap:22px}
+  .z1-handoff-arrow{flex-direction:row;justify-self:start}
+  .z1-handoff-arrow::after{content:'↓'}
+}
+@media (max-width:880px){
+  .z1-handoff{--z1-review:350;--z1-packet2:350}
+  .z1-opp--dominant .z1-apply{width:100%;text-align:center}
+}
+@media (max-height:820px){
+  .z1-discover{padding-top:6px}
+  .z1-ch-headline{font-size:40px}
+}
+
+/* ---- career loop ---------------------------------------------------------
+   Five stages, one visual each, one short line each. The connecting rule is
+   the same profile moving — continuity, not five unrelated cards. */
+.z1-loop{border-top:1px solid var(--rule)}
+.z1-loop-inner{max-width:1520px;margin:0 auto;padding:clamp(28px,4vh,48px) clamp(24px,4vw,64px) clamp(40px,6vh,64px)}
+.z1-loop-title{
+  font-family:var(--serif);font-weight:500;
+  font-size:clamp(24px,2.2vw,32px);color:var(--ink-strong);
+  margin:0 0 clamp(20px,3vh,30px);
+}
+.z1-loop-track{
+  display:flex;align-items:stretch;list-style:none;margin:0;padding:0;
+  border-top:2px solid var(--ink-strong);
+}
+.z1-stage-item{
+  flex:1 1 0;min-width:0;
+  display:flex;flex-direction:column;gap:8px;
+  padding:clamp(18px,2.4vh,26px) 22px 0 0;
+  position:relative;
+}
+.z1-stage-item + .z1-stage-item{padding-left:22px;border-left:1px solid var(--rule)}
+/* the profile's position on the track */
+.z1-stage-item::before{
+  content:'';position:absolute;top:-6px;left:0;
+  width:10px;height:10px;border-radius:50%;
+  background:var(--ink-strong);
+}
+.z1-stage-glyph{color:var(--ink-strong)}
+.z1-stage-glyph svg{width:clamp(26px,2.2vw,32px);height:clamp(26px,2.2vw,32px);stroke-width:1.6}
+.z1-stage-name{font-weight:600;font-size:clamp(19px,1.7vw,25px);color:var(--ink-strong)}
+.z1-stage-desc{font-size:clamp(14px,1.15vw,16px);color:var(--ink-muted);line-height:1.45;max-width:22ch}
+
+/* Short laptop viewports (1366×768 class): tighten vertical rhythm so the
+   career loop's start is visible inside the first viewport — momentum comes
+   from tighter spacing, not smaller type. */
+@media (max-height:820px){
+  .z1-hero{padding-top:10px;padding-bottom:0}
+  /* 1366×768-class laptops: still editorial, sized to keep the loop's start
+     inside the frame — 64px headline, 58px instrument. */
+  /* Content larger before container larger: at 1366 the headline holds
+     editorial scale so the argument column FILLS its height; the trims that
+     protect the fold all land in the story's rhythm, not in type. */
+  .z1-headline{font-size:76px}
+  .z1-support{font-size:23px;margin-top:10px}
+  .z1-loop-inner{padding-top:16px}
+  .z1-loop-title{margin-bottom:14px}
+  .z1-npi-bar{height:58px}
+  .z1-npi-input{font-size:19px}
+  .z1-npi-submit{font-size:17px}
+  .z1-node{padding:10px 15px}
+  .z1-story{--z1-packet:270}
+  .z1-profile{min-height:124px}
+  .z1-opp{min-height:0}
+  .z1-avatar{width:38px;height:38px;font-size:14px}
+  .z1-lane{height:10px}
+  .z1-apply{padding:10px 15px}
+  .z1-link{padding:1px 0 1px 2px;font-size:10px}
+  .z1-opp-attach{margin-top:7px}
+  .z1-packet-head{margin-bottom:5px}
+  .z1-profile-evidence{margin-top:7px}
+  .z1-lanes{margin-top:9px}
+  .z1-npi-node{padding-top:8px;padding-bottom:8px}
+  .z1-packet-frame{padding:8px 9px 9px}
+  .z1-support{margin-top:12px}
+  .z1-npi{margin-top:16px}
+  .z1-demo-note{margin-top:12px;line-height:1.7}
+  .z1-link{padding:3px 0 3px 2px}
+  .z1-node{padding:11px 16px}
+  .z1-profile{min-height:132px}
+  .z1-profile-name{font-size:21px}
+  .z1-lanes{margin-top:10px}
+  .z1-apply{padding:11px 16px}
+  .z1-avatar{width:40px;height:40px}
+  .z1-story{--z1-packet:300}
+  .z1-outcome{margin-top:8px}
+}
+
+/* ---- responsive ---------------------------------------------------------- */
+@media (max-width:1080px){
+  .z1-hero{grid-template-columns:minmax(0,1fr) minmax(0,440px)}
+}
+@media (max-width:880px){
+  /* MOBILE IS COMPOSED, NOT COMPRESSED: one column, the story follows the
+     instrument at full width. Type stays intentionally large. */
+  .z1-hero{
+    grid-template-columns:minmax(0,1fr);
+    grid-template-areas:"head" "sup" "npi" "story" "note";
+    padding-top:24px;
+  }
+  .z1-headline{font-size:clamp(44px,12vw,56px)}
+  .z1-support{font-size:clamp(19px,5vw,22px);max-width:none}
+  .z1-npi-bar{height:60px}
+  .z1-npi-input{font-size:18px}
+  .z1-npi-submit{font-size:16px;padding:0 18px}
+  .z1-story{margin-top:28px;--z1-packet:300}
+  .z1-demo-note{margin-top:20px}
+  .z1-stage-item{flex:1 1 100%;padding:14px 0 14px 24px}
+  .z1-loop-track{flex-direction:column;border-top:0;border-left:2px solid var(--ink-strong)}
+  .z1-stage-item + .z1-stage-item{border-left:0;border-top:1px solid var(--rule)}
+  .z1-stage-item::before{top:20px;left:-6px}
+}
+
+/* ---- motion --------------------------------------------------------------
+   The story lights; nothing tweens position. Under reduced motion the
+   opacity/border transitions become hard cuts and every state remains
+   reachable — the argument is complete without animation. */
+@media (prefers-reduced-motion:reduce){
+  .z1-node{transition:none}
+}

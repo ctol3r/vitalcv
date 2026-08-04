@@ -52,7 +52,7 @@ describe('page density system', () => {
     // had been archived — so /explore 404'd while four surfaces linked to it.
     // 152 = 151 + the live, org-scoped Operations Engine at /ops/engine. The
     // W1400 data layer (lib/operations/*) landed in #464; the UI on top of it
-    // never reached main until now.
+    // never reached main until then.
     //
     // The public /operations-engine demo that shipped alongside it is
     // deliberately NOT here: it renders fabricated provider names beside
@@ -60,7 +60,12 @@ describe('page density system', () => {
     // can collide with a real registered provider) and the line "License & NPI
     // verified against registry" — with no visible synthetic-data disclosure.
     // check-route-guards caught it as served-but-undeclared, which was correct.
-    expect(inventory).toHaveLength(152);
+    //
+    // 153 = 152 + the Z1 homepage-story preview at /design/z1-home (noindex;
+    // 404s in canonical production via the /design layout gate).
+    // 154 = 153 + /design/reset, the design-reset preview shown beside
+    // /design/z1-home for founder comparison (noindex, gated).
+    expect(inventory).toHaveLength(154);
     expect(inventory.every((item) => !item.source.includes('/_archive/'))).toBe(true);
     expect(inventory.every((item) => !item.route.startsWith('/api/'))).toBe(true);
     expect(new Set(inventory.map((item) => item.density))).toEqual(

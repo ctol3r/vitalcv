@@ -134,6 +134,105 @@
   }
 }
 
+/* ── Z1 homepage story (/preview/home · styles/z1-home.css) ──────────────────
+ * The z1-* set below is consumed only by z1-home.css; the page imports this
+ * file alongside it. Every use sits behind that stylesheet's
+ * prefers-reduced-motion guards, and each animation runs a bounded number of
+ * iterations (or once, on reveal) — nothing loops forever except the nav
+ * current, which is opacity-quiet and disabled under reduced motion. */
+
+/* The slow indigo current along the preview nav bar's lower edge — alive,
+ * never flashing. Background-position only; it cannot move layout. */
+@keyframes z1-nav-current {
+  from {
+    background-position: 0% 0;
+  }
+  to {
+    background-position: 220% 0;
+  }
+}
+
+/* Handoff rows: travelling rows step toward the employer, arriving rows
+ * settle in staggered. Once, on reveal; held rows do not move. */
+@keyframes z1-travel {
+  from {
+    transform: translateX(-10px);
+  }
+  to {
+    transform: none;
+  }
+}
+@keyframes z1-arrive {
+  from {
+    opacity: 0.25;
+    transform: translateX(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* THE signature motion: the story spine's carrier makes three complete
+ * journeys down the page, then rests. Paused by hover/focus in z1-home.css. */
+@keyframes z1-spine-travel {
+  0% {
+    top: 2%;
+    opacity: 0;
+  }
+  6% {
+    opacity: 1;
+  }
+  30% {
+    top: 34%;
+  }
+  55% {
+    top: 62%;
+  }
+  82% {
+    top: 90%;
+    opacity: 1;
+  }
+  92%,
+  100% {
+    top: 94%;
+    opacity: 0;
+  }
+}
+
+/* MATCHA's tie flows from the profile into the match on activation, then
+ * settles into a static tie. Connection feedback, not ambient decoration. */
+@keyframes z1-tie-flow {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: 26px 0;
+  }
+}
+
+/* Sliding panes: content keyed by state slides in from the right. */
+@keyframes z1-slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Continuity-rail lanes fill once as the divider enters view — information
+ * moving through a record. Colours resolve at the lane element, which carries
+ * the record palette (record.css). */
+@keyframes z1-lane-fill {
+  to {
+    background: var(--ink-strong);
+    border-color: var(--ink-strong);
+  }
+}
+
 /* ── Operations Engine (W1400) ──────────────────────────────────────────────
  *
  * The `.w14` console is a scoped island: it ships its own chrome in a <style>

@@ -105,6 +105,15 @@ export default defineConfig({
       // e2e job reported "pass" on a PR where none of them ran. The specs now
       // fail loudly on a 404 in CI (see requireHarness) so this can't recur.
       COMPETE_FILM_PREVIEW: '1',
+      // Same for the whole `/design/*` subtree, which z1-preview-story.spec.ts
+      // drives at /design/z1-home. The gate there is a LAYOUT calling
+      // notFound(), so without this the CI production build serves a 404 and
+      // every Z1 spec fails on `element(s) not found` rather than on anything
+      // about the composition. Canonical production still refuses the subtree
+      // regardless of this flag (isDesignPreviewAllowed checks
+      // RAILWAY_ENVIRONMENT/VERCEL_ENV first), so enabling it for the e2e
+      // server cannot reach vitalcv.com.
+      DESIGN_PREVIEW: '1',
       // scene-degradation.spec.ts forces capability tiers via `?sceneTier=`;
       // readForcedTier() ignores the override in production builds unless this
       // is set at BUILD time (NEXT_PUBLIC_* is inlined by `next build`, which
