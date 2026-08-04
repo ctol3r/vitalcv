@@ -29,6 +29,22 @@ export const FUNNEL_EVENTS = {
   // SHD-2.2: the quiet employer entry beside the clinician NPI action, so the
   // two sides of the hero conversion are distinguishable in the funnel.
   EMPLOYER_ENTRY_CLICKED: 'employer_entry_clicked',
+  // ── Wave 1072 — the one-real-loop stages. Truth rule: a *_completed or
+  // *_resolved event fires only when the corresponding backend event actually
+  // succeeded. Preview-only and simulated actions NEVER emit completion
+  // events; they may emit the earlier intent-stage events only. Payloads
+  // carry stage metadata, never an NPI (hashed or otherwise) and never
+  // clinician identity fields.
+  NPI_INPUT_STARTED: 'npi_input_started',
+  NPI_RESOLVED: 'npi_resolved',
+  NPI_RESOLUTION_FAILED: 'npi_resolution_failed',
+  MATCH_FEED_VIEWED: 'match_feed_viewed',
+  OPPORTUNITY_SELECTED: 'opportunity_selected',
+  APPLY_OPENED: 'apply_opened',
+  SHARE_PREVIEWED: 'share_previewed',
+  AUTHENTICATION_STARTED: 'authentication_started',
+  SHARE_COMPLETED: 'share_completed',
+  SHARE_REVOKED: 'share_revoked',
 } as const;
 
 export type FunnelEventName = (typeof FUNNEL_EVENTS)[keyof typeof FUNNEL_EVENTS];

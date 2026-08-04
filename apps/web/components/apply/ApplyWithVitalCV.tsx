@@ -16,6 +16,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useBiometricConfirmation } from '@/hooks/useBiometricConfirmation';
+import { FUNNEL_EVENTS, trackFunnelEvent } from '@/lib/analytics/funnel';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -74,6 +75,14 @@ interface Props {
   /** Prefill the share destination (e.g. from a MATCHA opportunity's employer). Always editable. */
   initialOrgContext?: Partial<OrgContext>;
   onShareComplete?: (result: ShareResult) => void;
+  /**
+   * Wave 1072 — mirrors the clinician's ACTUAL selection so an embedding
+   * surface (the employer-packet preview) can render exactly what would
+   * travel. Fires on every selection change and on open.
+   */
+  onSelectionChange?: (selected: BundleCredential[]) => void;
+  /** Fired when the share stops at the authentication boundary (backend 401). */
+  onAuthRequired?: () => void;
 }
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -133,7 +142,7 @@ function clerkId(): string {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export function ApplyWithVitalCV({ npi, label = 'Apply with VitalCV', initialOrgContext, onShareComplete }: Props) {
+export function ApplyWithVitalCV({ npi, label = 'Apply with VitalCV', initialOrgContext, onShareComplete, onSelectionChange, onAuthRequired }: Props) {
   const baseOrgCtx = useCallback((): OrgContext => ({
     organization_id: initialOrgContext?.organization_id ?? '',
     name: initialOrgContext?.name ?? '',
@@ -165,6 +174,7 @@ export function ApplyWithVitalCV({ npi, label = 'Apply with VitalCV', initialOrg
     setOrgCtx(baseOrgCtx());
     setOrgCtxErrors({});
     setIsOpen(true);
+    trackFunnelEvent(FUNNEL_EVENTS.APPLY_OPENED);
   }, [baseOrgCtx]);
 
   const closeModal = useCallback(() => { setIsOpen(false); }, []);
@@ -193,6 +203,7 @@ export function ApplyWithVitalCV({ npi, label = 'Apply with VitalCV', initialOrg
           }));
         setCredentials(creds);
         setSelectedTypes(new Set(creds.map((c) => c.type)));
+        onSelectionChange?.(creds);
       })
       .catch(() => setError('Trust engine connection interrupted. Please try again.'))
       .finally(() => setIsLoading(false));
@@ -218,9 +229,11 @@ export function ApplyWithVitalCV({ npi, label = 'Apply with VitalCV', initialOrg
     setSelectedTypes((prev) => {
       const next = new Set(prev);
       if (next.has(type)) next.delete(type); else next.add(type);
+      onSelectionChange?.(credentials.filter((c) => next.has(c.type)));
       return next;
     });
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [credentials, onSelectionChange]);
 
   // Step 2 validation
   function validateOrgCtx(): boolean {
@@ -267,12 +280,21 @@ export function ApplyWithVitalCV({ npi, label = 'Apply with VitalCV', initialOrg
         }),
       });
 
+      if (res.status === 401) {
+        // The authentication boundary — reached, not failed. Nothing was sent.
+        trackFunnelEvent(FUNNEL_EVENTS.AUTHENTICATION_STARTED);
+        onAuthRequired?.();
+        setError('Sign in to send. Preview only — nothing has been sent.');
+        return;
+      }
       if (!res.ok) {
         const err = await res.json().catch(() => ({})) as { error?: string };
         throw new Error(err?.error ?? 'Share failed. Please try again.');
       }
 
       const result = await res.json() as ShareResult;
+      // share_completed fires ONLY here — the backend event actually succeeded.
+      trackFunnelEvent(FUNNEL_EVENTS.SHARE_COMPLETED);
       setShareResult(result);
       setStep('confirmed');
       onShareComplete?.(result);
@@ -299,6 +321,8 @@ export function ApplyWithVitalCV({ npi, label = 'Apply with VitalCV', initialOrg
         const err = await res.json().catch(() => ({})) as { error?: string };
         throw new Error(err?.error ?? 'Revoke failed.');
       }
+      // share_revoked fires ONLY here — the backend revocation succeeded.
+      trackFunnelEvent(FUNNEL_EVENTS.SHARE_REVOKED);
       // Show revoked state
       setShareResult((prev) => prev ? { ...prev, status: 'logged_only', webhookDelivered: false } : prev);
       setStep('credentials');
@@ -625,7 +649,7 @@ export function ApplyWithVitalCV({ npi, label = 'Apply with VitalCV', initialOrg
             {step === 'credentials' && (
               <button
                 type="button"
-                onClick={() => setStep('org_context')}
+                onClick={() => { trackFunnelEvent(FUNNEL_EVENTS.SHARE_PREVIEWED); setStep('org_context'); }}
                 disabled={selectedTypes.size === 0}
                 className="w-full flex min-h-[52px] items-center justify-center rounded-xl bg-emerald-500 font-semibold text-foreground shadow-[0_0_20px_rgba(16,185,129,0.2)] hover:bg-emerald-400 transition-all disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]"
               >
