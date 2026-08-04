@@ -151,7 +151,7 @@ export function CareerLoop() {
         <p className="rst-fine">
           {isDemo
             ? 'Illustrative example — fictional clinician and opportunities, clearly not a live result'
-            : 'Reads the public NPPES registry · institutions still run their own review'}
+            : 'Reads the public NPPES registry'}
           {' · '}
           <button type="button" className="rst-demo-link" onClick={loadDemo}>
             Load an illustrative example
@@ -189,13 +189,13 @@ export function CareerLoop() {
           ) : (
             <>
               <p className="rst-name-xl rst-dim">Your name, from the registry</p>
-              <p className="rst-role">Enter your NPI above — nothing is invented to fill this in</p>
+              <p className="rst-role">Nothing is invented — enter your NPI above</p>
             </>
           )}
         </div>
         <div data-rst-reveal>
           <h2 className="rst-h">A number becomes a career.</h2>
-          <p className="rst-sub">Your NPI assembles a profile you own and reuse — not another application form.</p>
+          {live && <p className="rst-sub">A profile you own and reuse — not another application form.</p>}
         </div>
       </section>
 
@@ -222,7 +222,7 @@ export function CareerLoop() {
           </div>
         )}
         {state.matchPhase === 'idle' && !live && (
-          <p className="rst-sub rst-dim">When your profile resolves, real opportunities appear here — or an honest “none match yet.”</p>
+          <p className="rst-sub rst-dim">Real opportunities appear when your profile resolves.</p>
         )}
 
         {state.selected && (
@@ -257,7 +257,7 @@ export function CareerLoop() {
           </div>
         )}
         <p className="rst-fine">
-          {isDemo ? 'Illustrative matches — not live listings' : 'Matches ranked by the MATCHA engine from open listings · fit reasons are computed, never written by hand'}
+          {isDemo ? 'Illustrative matches — not live listings' : 'Ranked by MATCHA from open listings · reasons are computed, not written'}
         </p>
       </section>
 
@@ -266,7 +266,7 @@ export function CareerLoop() {
         <span className="rst-mark" aria-hidden="true">03</span>
         <div data-rst-reveal>
           <h2 className="rst-h">The same profile, handed over.</h2>
-          <p className="rst-sub">You choose what travels. The employer sees where each item came from.</p>
+          {live && <p className="rst-sub">You choose what travels. The employer sees where each item came from.</p>}
         </div>
 
         <div className="rst-cross" data-rst-reveal>
@@ -293,7 +293,7 @@ export function CareerLoop() {
               <p className="rst-carry-sub">
                 {isDemo
                   ? 'Illustrative example — the live Apply flow needs a real NPI'
-                  : 'Resolve your NPI to open the real Apply flow'}
+                  : 'Opens when your NPI resolves'}
               </p>
             )}
           </div>
@@ -355,7 +355,6 @@ export function CareerLoop() {
             </div>
           </div>
         </div>
-        <p className="rst-fine">Employers make their own hiring and credentialing decisions.</p>
       </section>
     </div>
   );

@@ -105,6 +105,12 @@ export default defineConfig({
       // e2e job reported "pass" on a PR where none of them ran. The specs now
       // fail loudly on a 404 in CI (see requireHarness) so this can't recur.
       COMPETE_FILM_PREVIEW: '1',
+      // Same for the /design subtree, which one-real-loop.spec.ts drives at
+      // /design/reset. The gate is a layout calling notFound(); without this
+      // the CI production build 404s the route and the specs fail on
+      // element-not-found. Canonical production refuses the subtree
+      // regardless (isDesignPreviewAllowed checks the environment first).
+      DESIGN_PREVIEW: '1',
       // scene-degradation.spec.ts forces capability tiers via `?sceneTier=`;
       // readForcedTier() ignores the override in production builds unless this
       // is set at BUILD time (NEXT_PUBLIC_* is inlined by `next build`, which
