@@ -21,6 +21,7 @@ import {
 } from '../services/distribution/applyShareService';
 import { HttpError } from '../utils/httpError';
 import { requireVerifiedClerkUserId, requireNpiAuthorization } from '../middleware/verifiedActor';
+import { resolveRecipientForOpportunity } from '../services/distribution/recipientResolution';
 import { log } from '../obs/logger';
 import { emitLearningEvent } from '../services/feedback/prismaEventStore';
 
@@ -113,10 +114,13 @@ export function registerApplyRoutes(app: Express): void {
     '/api/apply/share',
     asyncHandler(async (req, res) => {
       const clerkUserId = requireVerifiedClerkUserId(req);
-      const { npi, organization_context, selectiveClaims } = req.body as {
+      const { npi, organization_context, selectiveClaims, opportunityId } = req.body as {
         npi?: string;
         organization_context?: unknown;
         selectiveClaims?: string[];
+        /** C3 — when the share comes from a chosen listing, the recipient is
+         *  resolved from it server-side rather than trusted from the body. */
+        opportunityId?: string;
       };
 
       if (!npi || typeof npi !== 'string') {
@@ -135,6 +139,28 @@ export function registerApplyRoutes(app: Express): void {
           throw new HttpError(400, err.message);
         }
         throw err;
+      }
+
+      /*
+       * C3 — when an opportunity is named, the recipient is a FACT about that
+       * listing, not a client assertion. resolveRecipientForOpportunity reads
+       * the opportunity's real organization, refuses a mismatch against what
+       * the client claimed, refuses a listing with no receiving organization,
+       * and refuses one that is no longer active. The resolved values then
+       * overwrite the client-supplied id and name.
+       */
+      if (opportunityId) {
+        const recipient = await resolveRecipientForOpportunity(
+          opportunityId,
+          orgCtx.organization_id,
+          orgCtx.purpose_of_use,
+        );
+        orgCtx = {
+          ...orgCtx,
+          organization_id: recipient.organizationId,
+          name: recipient.organizationName,
+          purpose_of_use: recipient.purposeOfUse,
+        };
       }
 
       const result = await shareBundle(npi, clerkUserId, orgCtx, { selectiveClaims });

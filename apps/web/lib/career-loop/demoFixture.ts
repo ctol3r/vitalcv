@@ -31,6 +31,9 @@ export const DEMO_FIXTURE: {
     {
       opportunityId: 'demo-cascade',
       title: 'Emergency Medicine PA',
+      // No organizationId: the illustrative listing cannot receive a share,
+      // and the UI disables Apply for it honestly rather than pretending.
+      applyAvailable: false,
       organizationName: 'Cascade Regional Medical Center',
       location: 'CO',
       hiringType: 'Full-time',
@@ -44,6 +47,7 @@ export const DEMO_FIXTURE: {
     {
       opportunityId: 'demo-harbor',
       title: 'Urgent Care PA',
+      applyAvailable: false,
       organizationName: 'Blue Harbor Health',
       location: 'CO',
       hiringType: 'Full-time',

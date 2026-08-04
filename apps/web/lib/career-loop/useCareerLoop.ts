@@ -40,6 +40,10 @@ import { DEMO_FIXTURE } from '@/lib/career-loop/demoFixture';
 export interface LoopMatch {
   opportunityId: string;
   title: string;
+  /** Canonical recipient id; absent means this listing cannot receive a share. */
+  organizationId?: string;
+  /** The API's own statement, never inferred from a display name. */
+  applyAvailable: boolean;
   organizationName?: string;
   location?: string;
   hiringType?: string;
@@ -80,9 +84,16 @@ function normalizeMatches(payload: unknown): LoopMatch[] {
     const explanation = (match.explanation ?? match) as Record<string, unknown>;
     const fit = (explanation.fitReasons ?? match.fitReasons) as unknown[] | undefined;
     const blockers = (explanation.blockers ?? match.blockers) as unknown[] | undefined;
+    const organizationId = (opp.organizationId ?? opp.organization_id ?? match.organizationId) as string | undefined;
     return {
       opportunityId: String(opp.id ?? opp.opportunityId ?? match.opportunityId ?? ''),
       title: String(opp.title ?? opp.role ?? 'Opportunity'),
+      organizationId,
+      // The public-safe response states this outright; fall back to the
+      // presence of a real org id. An id is NEVER derived from a name.
+      applyAvailable: typeof match.applyAvailable === 'boolean'
+        ? match.applyAvailable
+        : Boolean(organizationId),
       organizationName: (opp.organizationName ?? opp.employerName ?? opp.organization) as string | undefined,
       location: (opp.state ?? opp.location) as string | undefined,
       hiringType: (opp.hiringType ?? opp.employmentType) as string | undefined,
@@ -136,7 +147,9 @@ export function useCareerLoop() {
         matches,
         selected: matches[0] ?? null,
       }));
-      if (matches[0]) trackFunnelEvent(FUNNEL_EVENTS.OPPORTUNITY_SELECTED, { how: 'default' });
+      // Defaulting to the first match is the system's choice, not the
+      // clinician's — recorded as its own event so selection rate stays honest.
+      if (matches[0]) trackFunnelEvent(FUNNEL_EVENTS.MATCH_DEFAULTED);
     } catch {
       if (requestSeq.current === seq) setState((s) => ({ ...s, matchPhase: 'error' }));
     }
@@ -189,7 +202,7 @@ export function useCareerLoop() {
   }, [loadMatches]);
 
   const select = useCallback((m: LoopMatch) => {
-    trackFunnelEvent(FUNNEL_EVENTS.OPPORTUNITY_SELECTED, { how: 'user' });
+    trackFunnelEvent(FUNNEL_EVENTS.OPPORTUNITY_SELECTED);
     setState((s) => ({ ...s, selected: m }));
   }, []);
 

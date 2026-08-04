@@ -36,6 +36,8 @@ export const FUNNEL_EVENTS = {
   // carry stage metadata, never an NPI (hashed or otherwise) and never
   // clinician identity fields.
   NPI_INPUT_STARTED: 'npi_input_started',
+  /** A default first selection, which is NOT a user choice. */
+  MATCH_DEFAULTED: 'match_defaulted',
   NPI_RESOLVED: 'npi_resolved',
   NPI_RESOLUTION_FAILED: 'npi_resolution_failed',
   MATCH_FEED_VIEWED: 'match_feed_viewed',
@@ -120,10 +122,25 @@ export function trackFunnelEvent(
   try {
     const utm = getStoredUtmParams();
 
+    /*
+     * C7 — every event declares its SURFACE, so a design preview can never
+     * silently inflate the production homepage conversion denominator.
+     * `/design/*` is a gated, noindex review route; its traffic is real but
+     * it is not acquisition. Analyses filter on `vcv_surface === 'production'`.
+     *
+     * Payloads carry stage metadata only. No NPI (hashed or otherwise), no
+     * clinician name, no credential detail, and no blocker text ever enters
+     * an analytics property — the loop passes counts and enum-like strings.
+     */
+    const path = window.location?.pathname ?? '';
+    const isPreviewSurface = path.startsWith('/design/') || path.startsWith('/dev/');
+
     // Contextual drop-off / hesitation analysis
     const trackingProps = {
       ...utm,
       funnel_timestamp: Date.now(),
+      vcv_surface: isPreviewSurface ? 'preview' : 'production',
+      vcv_surface_path: isPreviewSurface ? path : undefined,
       ...properties,
     };
 

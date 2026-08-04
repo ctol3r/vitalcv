@@ -16,6 +16,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useBiometricConfirmation } from '@/hooks/useBiometricConfirmation';
+import Link from 'next/link';
 import { FUNNEL_EVENTS, trackFunnelEvent } from '@/lib/analytics/funnel';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -67,6 +68,19 @@ interface OrgContext {
   purpose_of_use: string;
 }
 
+/**
+ * C3 — the canonical recipient, resolved from the selected opportunity.
+ * When present, the clinician never types an internal organization id: the
+ * recipient is shown as a fact and the backend re-resolves it from the
+ * opportunity anyway, refusing any mismatch.
+ */
+export interface ApplicationRecipient {
+  organizationId: string;
+  organizationName: string;
+  opportunityId: string;
+  purposeOfUse?: string;
+}
+
 type Step = 'credentials' | 'org_context' | 'confirmed';
 
 interface Props {
@@ -83,6 +97,20 @@ interface Props {
   onSelectionChange?: (selected: BundleCredential[]) => void;
   /** Fired when the share stops at the authentication boundary (backend 401). */
   onAuthRequired?: () => void;
+  /**
+   * C3 — recipient derived from the selected opportunity. Supplying it means
+   * the org fields are read-only facts rather than inputs, and `opportunityId`
+   * is sent so the backend can verify the organization↔opportunity link.
+   */
+  recipient?: ApplicationRecipient;
+  /**
+   * C4 — presentation only. 'career-loop' renders in the reset's ivory/ink/
+   * indigo material system. The state machine, requests, selection logic,
+   * auth boundary, a11y behaviour and revocation contract are IDENTICAL in
+   * every appearance; only classes change. Default is unchanged for the
+   * existing product surfaces.
+   */
+  appearance?: 'default' | 'career-loop';
 }
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -142,13 +170,37 @@ function clerkId(): string {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export function ApplyWithVitalCV({ npi, label = 'Apply with VitalCV', initialOrgContext, onShareComplete, onSelectionChange, onAuthRequired }: Props) {
+export function ApplyWithVitalCV({ npi, label = 'Apply with VitalCV', initialOrgContext, onShareComplete, onSelectionChange, onAuthRequired, recipient, appearance = 'default' }: Props) {
+  /*
+   * C4 — appearance is a CLASS MAP, nothing else. Every hook, request,
+   * validation, keyboard path and aria attribute below is shared; only these
+   * strings differ, so the career-loop skin cannot fork into a second Apply
+   * implementation. The default strings are byte-identical to what shipped.
+   */
+  const careerLoop = appearance === 'career-loop';
+  const cx = (...parts: Array<string | false | undefined>) => parts.filter(Boolean).join(' ');
+  const triggerCls = careerLoop
+    ? 'inline-flex min-h-[56px] w-full sm:w-auto items-center justify-center gap-2 px-8 text-[17px] font-semibold text-white transition-colors focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2'
+    : 'inline-flex min-h-[48px] w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-emerald-500 px-6 font-semibold text-foreground shadow-lg shadow-emerald-500/25 ring-1 ring-emerald-400/50 transition-all hover:bg-emerald-400 hover:shadow-emerald-400/30 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400';
+  const panelCls = careerLoop
+    // mobile keeps the bottom-sheet composition; ivory paper, ink edge, square
+    ? 'relative w-full max-w-xl mt-auto sm:mt-0 border-t-[3px] sm:border-[3px] border-[color:var(--ink,#12100D)] bg-[color:var(--ivory,#F4F2ED)] text-[color:var(--ink,#12100D)] overflow-hidden pointer-events-auto'
+    : 'relative w-full max-w-lg mt-auto sm:mt-0 rounded-t-3xl sm:rounded-2xl border-t sm:border border-border bg-zinc-900/95 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] sm:shadow-2xl backdrop-blur-xl overflow-hidden pointer-events-auto';
+  const fieldCls = careerLoop
+    ? 'w-full border-2 border-[color:var(--stone-deep,#B8B0A0)] bg-white px-4 py-3.5 text-[15px] text-[color:var(--ink-strong,#0E0D0B)] focus:outline-none focus:border-[color:var(--ink,#12100D)]'
+    : 'w-full rounded-xl border border-border bg-muted px-4 py-3 text-sm text-foreground placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-transparent';
+  const primaryCls = careerLoop
+    ? 'min-h-[52px] px-7 text-[16px] font-semibold text-white transition-colors disabled:opacity-60'
+    : 'min-h-[44px] rounded-xl bg-emerald-500 px-5 text-sm font-semibold text-foreground transition hover:bg-emerald-400 disabled:opacity-60';
+  const primaryStyle = careerLoop ? { background: 'var(--indigo, #3A30C4)' } : undefined;
+  const triggerStyle = careerLoop ? { background: 'var(--ink, #12100D)' } : undefined;
+
   const baseOrgCtx = useCallback((): OrgContext => ({
-    organization_id: initialOrgContext?.organization_id ?? '',
-    name: initialOrgContext?.name ?? '',
+    organization_id: recipient?.organizationId ?? initialOrgContext?.organization_id ?? '',
+    name: recipient?.organizationName ?? initialOrgContext?.name ?? '',
     callback_url: initialOrgContext?.callback_url ?? '',
-    purpose_of_use: initialOrgContext?.purpose_of_use ?? PURPOSE_OPTIONS[0],
-  }), [initialOrgContext]);
+    purpose_of_use: recipient?.purposeOfUse ?? initialOrgContext?.purpose_of_use ?? PURPOSE_OPTIONS[0],
+  }), [initialOrgContext, recipient]);
   const [isOpen, setIsOpen] = useState(false);
   const [step, setStep] = useState<Step>('credentials');
   const [isLoading, setIsLoading] = useState(false);
@@ -164,6 +216,8 @@ export function ApplyWithVitalCV({ npi, label = 'Apply with VitalCV', initialOrg
   const [countdown, setCountdown] = useState('');
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /** Set when the backend refused for want of a verified session (C1/C7). */
+  const [authRequired, setAuthRequired] = useState(false);
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Reset on open/close
@@ -173,6 +227,7 @@ export function ApplyWithVitalCV({ npi, label = 'Apply with VitalCV', initialOrg
     setShareResult(null);
     setOrgCtx(baseOrgCtx());
     setOrgCtxErrors({});
+    setAuthRequired(false);
     setIsOpen(true);
     trackFunnelEvent(FUNNEL_EVENTS.APPLY_OPENED);
   }, [baseOrgCtx]);
@@ -277,14 +332,22 @@ export function ApplyWithVitalCV({ npi, label = 'Apply with VitalCV', initialOrg
             purpose_of_use: orgCtx.purpose_of_use,
           },
           selectiveClaims: selectedTypes.size > 0 ? Array.from(selectedTypes) : undefined,
+          // C3 — lets the backend resolve and verify the recipient itself.
+          opportunityId: recipient?.opportunityId,
         }),
       });
 
       if (res.status === 401) {
-        // The authentication boundary — reached, not failed. Nothing was sent.
-        trackFunnelEvent(FUNNEL_EVENTS.AUTHENTICATION_STARTED);
+        /*
+         * The authentication boundary — reached, not failed. Nothing was sent.
+         *
+         * C7: this does NOT fire authentication_started. A 401 is the API's
+         * event, not the user's; the funnel step belongs to the moment the
+         * clinician actually chooses to sign in (the action below).
+         */
+        setAuthRequired(true);
         onAuthRequired?.();
-        setError('Sign in to send. Preview only — nothing has been sent.');
+        setError('Preview only — nothing has been sent.');
         return;
       }
       if (!res.ok) {
@@ -341,7 +404,8 @@ export function ApplyWithVitalCV({ npi, label = 'Apply with VitalCV', initialOrg
       <button
         type="button"
         onClick={openModal}
-        className="inline-flex min-h-[48px] w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-emerald-500 px-6 font-semibold text-foreground shadow-lg shadow-emerald-500/25 ring-1 ring-emerald-400/50 transition-all hover:bg-emerald-400 hover:shadow-emerald-400/30 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
+        className={triggerCls}
+        style={triggerStyle}
         aria-label={label}
       >
         <VCVIcon />
@@ -357,9 +421,12 @@ export function ApplyWithVitalCV({ npi, label = 'Apply with VitalCV', initialOrg
       aria-modal="true"
       aria-label="Apply with VitalCV"
     >
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={closeModal} />
+      <div
+        className={careerLoop ? 'absolute inset-0 bg-[color:var(--ink,#12100D)]/60' : 'absolute inset-0 bg-black/70 backdrop-blur-sm'}
+        onClick={closeModal}
+      />
 
-      <div className="relative w-full max-w-lg mt-auto sm:mt-0 rounded-t-3xl sm:rounded-2xl border-t sm:border border-border bg-zinc-900/95 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] sm:shadow-2xl backdrop-blur-xl overflow-hidden pointer-events-auto">
+      <div className={panelCls}>
 
         {/* Mobile grabber */}
         <div className="absolute top-0 inset-x-0 flex justify-center py-2 sm:hidden">
@@ -401,8 +468,24 @@ export function ApplyWithVitalCV({ npi, label = 'Apply with VitalCV', initialOrg
           {isLoading && <div className="flex justify-center py-8"><Spinner /></div>}
 
           {error && (
-            <div className="rounded-xl bg-red-500/10 border border-red-500/20 px-4 py-3 text-sm text-red-300">
+            <div className={careerLoop
+              ? 'border-2 border-[color:var(--ink,#12100D)] bg-white px-4 py-3.5 text-[14px] text-[color:var(--ink,#12100D)]'
+              : 'rounded-xl bg-red-500/10 border border-red-500/20 px-4 py-3 text-sm text-red-300'}>
               {error}
+              {authRequired && (
+                <>
+                  {' '}
+                  <Link
+                    href="/sign-in"
+                    // C7 — the funnel step belongs to the user's real choice
+                    // to authenticate, not to the API's 401.
+                    onClick={() => trackFunnelEvent(FUNNEL_EVENTS.AUTHENTICATION_STARTED)}
+                    className={careerLoop ? 'font-semibold underline underline-offset-2' : 'font-semibold text-emerald-300 underline'}
+                  >
+                    Sign in to send
+                  </Link>
+                </>
+              )}
             </div>
           )}
 
@@ -482,26 +565,41 @@ export function ApplyWithVitalCV({ npi, label = 'Apply with VitalCV', initialOrg
                   value={orgCtx.name}
                   onChange={(e) => setOrgCtx((p) => ({ ...p, name: e.target.value }))}
                   placeholder="e.g. Stanford Health Care"
-                  className="w-full rounded-xl border border-border bg-muted px-4 py-3 text-sm text-foreground placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-transparent"
+                  className={fieldCls}
                 />
                 {orgCtxErrors.name && <p className="mt-1 text-[10px] text-red-400">{orgCtxErrors.name}</p>}
               </div>
 
-              {/* Org ID */}
-              <div>
-                <label className="block text-xs font-medium text-zinc-300 mb-1.5">
-                  Organization ID <span className="text-red-400">*</span>
-                  <span className="ml-1 text-[10px] text-zinc-600 font-normal">(system ID, NPI, or slug)</span>
-                </label>
-                <input
-                  type="text"
-                  value={orgCtx.organization_id}
-                  onChange={(e) => setOrgCtx((p) => ({ ...p, organization_id: e.target.value }))}
-                  placeholder="e.g. stanford-health-care or 1234567890"
-                  className="w-full rounded-xl border border-border bg-muted px-4 py-3 text-sm text-foreground placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
-                />
-                {orgCtxErrors.organization_id && <p className="mt-1 text-[10px] text-red-400">{orgCtxErrors.organization_id}</p>}
-              </div>
+              {/* Org ID — a RESOLVED recipient is shown as a fact; only a
+                  manual share (no selected opportunity) asks for an id. */}
+              {recipient ? (
+                <div>
+                  <p className={cx('block text-xs font-medium mb-1.5', careerLoop ? 'text-[color:var(--ink-muted,#57534A)]' : 'text-zinc-300')}>
+                    Receiving organization
+                  </p>
+                  <p className={cx('text-sm', careerLoop ? 'font-medium text-[color:var(--ink-strong,#0E0D0B)]' : 'text-foreground')}>
+                    {recipient.organizationName}
+                  </p>
+                  <p className={cx('mt-1 text-[11px]', careerLoop ? 'text-[color:var(--ink-subtle,#676257)]' : 'text-zinc-500')}>
+                    Resolved from the opportunity you selected · verified again when you send
+                  </p>
+                </div>
+              ) : (
+                <div>
+                  <label className={cx('block text-xs font-medium mb-1.5', careerLoop ? 'text-[color:var(--ink-muted,#57534A)]' : 'text-zinc-300')}>
+                    Organization ID <span className="text-red-400">*</span>
+                    <span className="ml-1 text-[10px] font-normal opacity-70">(system ID, NPI, or slug)</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={orgCtx.organization_id}
+                    onChange={(e) => setOrgCtx((p) => ({ ...p, organization_id: e.target.value }))}
+                    placeholder="e.g. stanford-health-care or 1234567890"
+                    className={fieldCls}
+                  />
+                  {orgCtxErrors.organization_id && <p className="mt-1 text-[10px] text-red-400">{orgCtxErrors.organization_id}</p>}
+                </div>
+              )}
 
               {/* Purpose */}
               <div>
@@ -651,7 +749,10 @@ export function ApplyWithVitalCV({ npi, label = 'Apply with VitalCV', initialOrg
                 type="button"
                 onClick={() => { trackFunnelEvent(FUNNEL_EVENTS.SHARE_PREVIEWED); setStep('org_context'); }}
                 disabled={selectedTypes.size === 0}
-                className="w-full flex min-h-[52px] items-center justify-center rounded-xl bg-emerald-500 font-semibold text-foreground shadow-[0_0_20px_rgba(16,185,129,0.2)] hover:bg-emerald-400 transition-all disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]"
+                className={cx('w-full flex items-center justify-center transition-all disabled:opacity-50 disabled:cursor-not-allowed', careerLoop
+                  ? 'min-h-[56px] text-[16px] font-semibold text-white'
+                  : 'min-h-[52px] rounded-xl bg-emerald-500 font-semibold text-foreground shadow-[0_0_20px_rgba(16,185,129,0.2)] hover:bg-emerald-400 active:scale-[0.98]')}
+                style={primaryStyle}
               >
                 Next: Share destination ({selectedTypes.size} credential{selectedTypes.size !== 1 ? 's' : ''}) →
               </button>
@@ -670,7 +771,10 @@ export function ApplyWithVitalCV({ npi, label = 'Apply with VitalCV', initialOrg
                   type="button"
                   onClick={handleShare}
                   disabled={isSharing || isConfirming}
-                  className="flex-[3] flex min-h-[52px] items-center justify-center gap-2 rounded-xl bg-emerald-500 font-semibold text-foreground hover:bg-emerald-400 transition-all disabled:opacity-50 active:scale-[0.98]"
+                  className={cx('flex-[3] flex items-center justify-center gap-2 transition-all disabled:opacity-50', careerLoop
+                    ? 'min-h-[56px] text-[16px] font-semibold text-white'
+                    : 'min-h-[52px] rounded-xl bg-emerald-500 font-semibold text-foreground hover:bg-emerald-400 active:scale-[0.98]')}
+                  style={primaryStyle}
                 >
                   {isConfirming ? <><Spinner size="sm" /> Confirm identity…</> : isSharing ? <><Spinner size="sm" /> Sharing…</> : 'Sign & Share'}
                 </button>

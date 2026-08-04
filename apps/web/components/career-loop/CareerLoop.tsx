@@ -279,16 +279,31 @@ export function CareerLoop() {
                 <span className="rst-carry-sub">with permission</span>
               </span>
             </div>
-            {live && !isDemo ? (
+            {live && !isDemo && state.selected?.applyAvailable ? (
               <div className="rst-apply-embed" onClickCapture={() => setApplyTouched(true)}>
                 <ApplyWithVitalCV
                   npi={profile.npi}
-                  initialOrgContext={state.selected ? { name: state.selected.organizationName ?? '' } : undefined}
+                  appearance="career-loop"
+                  /* C3 — the recipient is resolved from the SELECTED
+                     opportunity and re-verified server-side; changing the
+                     selection remounts with fresh context (key), so stale
+                     recipient state cannot survive. */
+                  key={state.selected.opportunityId}
+                  recipient={{
+                    organizationId: state.selected.organizationId!,
+                    organizationName: state.selected.organizationName ?? 'This organization',
+                    opportunityId: state.selected.opportunityId,
+                  }}
                   onSelectionChange={(sel) => setSelectedClaims(sel.map((c) => ({ type: c.type, issuer: c.issuer, status: c.status })))}
                   onAuthRequired={() => setAuthBoundary(true)}
                   onShareComplete={(r) => setShared({ recipient: r.recipient?.name, bundleUrl: r.bundleUrl })}
                 />
               </div>
+            ) : live && !isDemo && state.selected && !state.selected.applyAvailable ? (
+              <p className="rst-carry-sub">
+                Apply with VitalCV isn&rsquo;t available for this listing yet — it has no receiving
+                organization on file. <a className="rst-demo-link" href="/explore">Browse other opportunities</a>
+              </p>
             ) : (
               <p className="rst-carry-sub">
                 {isDemo
