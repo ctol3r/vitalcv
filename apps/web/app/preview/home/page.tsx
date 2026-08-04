@@ -1,5 +1,7 @@
 /**
- * /design/z1-home — Z1 first visible slice (founder preview)
+ * /preview/home — the Z1 homepage story, live on production (founder-directed
+ * 2026-08-03). Public and noindex: the reviewable next homepage on the real
+ * domain, until the founder directs the swap of '/' itself.
  *
  * FIVE-SECOND TEST: a first-time visitor must understand, from the first
  * viewport's visuals alone, that VitalCV turns an NPI into a reusable

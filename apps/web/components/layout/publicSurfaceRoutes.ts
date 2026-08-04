@@ -24,12 +24,10 @@ export const PUBLIC_SURFACE_PATHS = new Set([
   '/terms',
   '/contact',
   '/trust',
-  // Z1 founder preview of the future homepage. It must be judged WITH the real
-  // global Navbar — the nav shell is part of the slice — so this one route is
-  // exempt from the /design self-chrome rule below, mirroring how
-  // /dev/compete-film is scoped against the /dev blanket. The /design layout
-  // gate still 404s it in canonical production.
-  '/design/z1-home',
+  // The Z1 homepage story, founder-directed live on production (2026-08-03).
+  // Public and noindex until it replaces '/' itself; renders with the real
+  // global chrome.
+  '/preview/home',
 ]);
 
 export function isPublicSafe(route: string): boolean {
@@ -70,13 +68,13 @@ export const OPS_SURFACE_PREFIXES = [
 ] as const;
 
 /**
- * Routes exempt from an OPS_SURFACE_PREFIXES match. The Z1 homepage preview
- * must be judged with the real public chrome — the nav shell is part of the
- * slice — while every other /design reference keeps its self-chrome. Mirrors
- * the /dev/compete-film pattern above: scope the exception to one route, never
- * widen the rule.
+ * Routes exempt from an OPS_SURFACE_PREFIXES match. Empty today — the Z1
+ * homepage story moved from /design/z1-home to the public /preview/home when
+ * the founder directed it live on production — but the mechanism stays: it is
+ * how ONE route under an ops prefix gets the public chrome without widening
+ * the rule (the /dev/compete-film pattern).
  */
-export const OPS_SURFACE_EXEMPTIONS = new Set(['/design/z1-home']);
+export const OPS_SURFACE_EXEMPTIONS = new Set<string>([]);
 
 /** The single chrome decision: ops shell, or public Navbar+Footer. */
 export function isOpsSurfacePath(pathname: string | null): boolean {

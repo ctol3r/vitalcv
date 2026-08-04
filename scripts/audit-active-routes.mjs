@@ -9,6 +9,8 @@ const appRoot = join(repoRoot, 'apps/web/app');
 const PUBLIC_MARKETING = new Set([
   '/', '/concierge', '/contact', '/docs', '/evidence-network',
   '/matcha/experience', '/matcha/hospitals', '/matcha/investors',
+  // The Z1 homepage-story preview, founder-directed public on production.
+  '/preview/home',
   '/matcha/recruiters', '/pilot', '/pricing', '/privacy', '/solutions',
   '/status', '/support', '/terms', '/trust', '/verify/guide',
 ]);
