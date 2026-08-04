@@ -55,6 +55,44 @@ describe('funnel instrumentation', () => {
     expect(console_).not.toMatch(/npi:\s*cleanNpi/);
   });
 
+  /*
+   * Wave 1072C / C7 — the one real loop resolves a REAL clinician, so its
+   * events run closest to identifying data. The founder boundary is explicit:
+   * no NPI, clinician name, credential detail, or blocker text in a payload.
+   *
+   * This is an allowlist over the actual call sites rather than a scan for
+   * known-bad words: a scan goes green the moment someone invents a new key.
+   */
+  it('the career loop sends only stage metadata — never identity or blockers', () => {
+    const ALLOWED_KEYS = new Set(['count', 'kind', 'outcome']);
+    const loopFiles = [
+      'lib/career-loop/useCareerLoop.ts',
+      'components/career-loop/CareerLoop.tsx',
+      'components/apply/ApplyWithVitalCV.tsx',
+    ];
+
+    let callsChecked = 0;
+    for (const rel of loopFiles) {
+      const src = webFile(rel);
+      // trackFunnelEvent(EVENT) or trackFunnelEvent(EVENT, { k: v, ... })
+      for (const m of src.matchAll(/trackFunnelEvent\(\s*[^,)]+(?:,\s*\{([^}]*)\})?\s*\)/g)) {
+        callsChecked += 1;
+        const props = m[1];
+        if (!props) continue;
+        for (const km of props.matchAll(/(?:^|,)\s*([A-Za-z_$][\w$]*)\s*:/g)) {
+          const key = km[1];
+          expect(
+            ALLOWED_KEYS.has(key),
+            `${rel} sends analytics property "${key}"; the loop may send only ${[...ALLOWED_KEYS].join(', ')}`,
+          ).toBe(true);
+        }
+      }
+    }
+
+    // If the regex ever stops matching, this test would pass vacuously.
+    expect(callsChecked).toBeGreaterThan(8);
+  });
+
   it('keeps the documented event names in sync with the schema doc', () => {
     const doc = readFileSync(
       path.join(__dirname, '..', '..', '..', 'docs', 'ops', 'metrics-analytics.md'),
