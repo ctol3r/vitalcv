@@ -127,8 +127,14 @@ export function LiquidMenu({
           <Link href="/sign-in" onClick={onClose} className="liquid-menu__cta-secondary">
             Sign In
           </Link>
-          <Link href="/passport" onClick={onClose} className="liquid-menu__cta-primary">
-            Check Readiness
+          {/*
+            Wave 1077 IA correction — see Navbar.tsx. `Check Readiness` was the
+            retired promise pointing at `/passport`, the retired noun, while the
+            homepage asks for `Build my free profile`. One action, one name:
+            this points at the same destination the Clinicians panel uses.
+          */}
+          <Link href="/onboarding" onClick={onClose} className="liquid-menu__cta-primary">
+            Build my profile
           </Link>
         </div>
       </div>
