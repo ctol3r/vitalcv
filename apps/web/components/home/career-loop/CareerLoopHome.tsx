@@ -56,16 +56,35 @@ export function CareerLoopHome() {
 
   useEffect(() => { trackFunnelEvent(FUNNEL_EVENTS.HOMEPAGE_VIEWED); }, []);
 
+  /*
+   * Scroll-reveal. `[data-clh-reveal]` starts at opacity 0 and is revealed by
+   * `data-seen`, so anything the observer misses never paints AT ALL.
+   *
+   * This ran once per `state.outcome`, which meant it only ever saw the nodes
+   * that existed at resolution time. The opportunity block mounts later, when
+   * the match feed returns — so it was observed by nothing and stayed
+   * invisible for the whole session. Reduced motion forces opacity:1, which
+   * is why it looked fine there and only there.
+   *
+   * One observer for the component's life; every render sweeps for nodes that
+   * have appeared since. `observe()` on an already-observed element is a
+   * no-op, so the sweep is safe to run unconditionally.
+   */
+  const revealRef = useRef<IntersectionObserver | null>(null);
   useEffect(() => {
     const root = rootRef.current;
     if (!root) return;
-    const io = new IntersectionObserver(
-      (es) => es.forEach((e) => { if (e.isIntersecting) e.target.setAttribute('data-seen', ''); }),
-      { rootMargin: '0px 0px -10% 0px' },
-    );
-    root.querySelectorAll('[data-clh-reveal]').forEach((el) => io.observe(el));
-    return () => io.disconnect();
-  }, [state.outcome]);
+    if (!revealRef.current) {
+      revealRef.current = new IntersectionObserver(
+        (es) => es.forEach((e) => { if (e.isIntersecting) e.target.setAttribute('data-seen', ''); }),
+        { rootMargin: '0px 0px -10% 0px' },
+      );
+    }
+    const io = revealRef.current;
+    root.querySelectorAll('[data-clh-reveal]:not([data-seen])').forEach((el) => io.observe(el));
+  });
+
+  useEffect(() => () => { revealRef.current?.disconnect(); revealRef.current = null; }, []);
 
   const digits = raw.replace(/\D/g, '').slice(0, 10);
   const { profile, isDemo } = state;
@@ -160,7 +179,15 @@ export function CareerLoopHome() {
         <div className="clh-track" style={{ ['--clh-progress' as string]: progress }} aria-label="NPI to employer review">
           {STEPS.map((name, i) => {
             const plate = railPlate(i);
-            const active = i === Math.max(0, reached - 1);
+            /*
+             * Nothing has happened yet means NO step is active. `Math.max(0,
+             * reached - 1)` forced step 0 active at rest, so the empty NPI
+             * plate rendered with the filled active treatment over the ghost
+             * styling — a muddy grey block that read as a broken asset rather
+             * than an empty state. The whole rail is ghosted until the visitor
+             * actually starts.
+             */
+            const active = reached > 0 && i === reached - 1;
             return (
               <div className="clh-step" key={name} data-on={plate.on ? '' : undefined} data-active={active ? '' : undefined}>
                 <div className={`clh-plate${plate.on ? '' : ' clh-plate--ghost'}`}>

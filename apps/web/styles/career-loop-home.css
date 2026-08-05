@@ -159,6 +159,14 @@ body:has(.clh) [data-feedback-button]{display:none !important}
   font-variant-numeric:tabular-nums;
 }
 .clh-bar input::placeholder{color:var(--placeholder);letter-spacing:.06em}
+/* At 320px the placeholder truncated mid-word ("Your 10-digit N"), which
+   reads as a layout accident rather than a composed mobile state. The field is
+   still the largest control on the screen; it just stops outgrowing its own
+   box. */
+@media (max-width: 380px){
+  .clh-bar input{font-size:19px;letter-spacing:.06em;padding:0 14px}
+  .clh-bar input::placeholder{letter-spacing:.02em}
+}
 .clh-bar button{
   flex:none;border:0;cursor:pointer;
   background:var(--ink);color:var(--ivory);

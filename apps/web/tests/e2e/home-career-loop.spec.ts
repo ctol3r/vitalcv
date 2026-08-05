@@ -148,6 +148,30 @@ test.describe('4–9 · the real loop on the production root', () => {
     await expect(page.locator('body')).not.toContainText('Cascade Regional');
   });
 
+  /*
+   * Every scene must actually PAINT under default motion.
+   *
+   * The scroll-reveal starts nodes at opacity 0. The observer only ran on
+   * `state.outcome`, so the opportunity block — which mounts later, when the
+   * feed returns — was observed by nothing and never became visible. Only
+   * reduced motion (which forces opacity:1) looked correct, so the
+   * reduced-motion spec passed straight over it and `toHaveText` did too:
+   * the text was in the DOM the whole time, drawn at zero opacity.
+   */
+  test('every resolved scene is actually visible, not merely in the DOM', async ({ page }) => {
+    await mockHome(page);
+    await resolve(page);
+    for (const sel of ['.clh-create', '.clh-opp', '.clh-apply', '.clh-continue']) {
+      const el = page.locator(sel).first();
+      await el.scrollIntoViewIfNeeded();
+      await expect(el, `${sel} never painted`).toBeVisible();
+      // Retrying assertion — the reveal is a 0.6s transition, and reading
+      // computed opacity once races it. Note toBeVisible() alone does NOT
+      // catch this: Playwright counts an opacity-0 element as visible.
+      await expect(el, `${sel} stayed transparent`).toHaveCSS('opacity', '1');
+    }
+  });
+
   test('a secondary opportunity is a user choice that replaces the default', async ({ page }) => {
     await mockHome(page);
     await resolve(page);
