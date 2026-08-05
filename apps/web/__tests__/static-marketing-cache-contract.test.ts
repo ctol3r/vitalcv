@@ -39,12 +39,33 @@ describe('root layout never reads request state', () => {
 });
 
 describe('homepage keeps bounded shared caching', () => {
-  it('exports revalidate ≤ 300 (the #680 freshness contract)', () => {
+  /*
+   * The #680 contract is a bound on STALENESS, not a demand for one keyword.
+   * This asserted `export const revalidate = N` literally, and went red in
+   * Wave 1075 on a change that made the homepage strictly fresher: `/` is now
+   * force-dynamic, so shared caches hold it for 0s rather than up to 300s.
+   *
+   * force-dynamic is also load-bearing there for a second reason — it is what
+   * lets PUBLIC_HOME_VARIANT switch the homepage on redeploy instead of
+   * rebuild, so an incident rollback does not wait on a build.
+   */
+  it('bounds shared staleness at ≤ 300s (the #680 freshness contract)', () => {
     const page = read('../app/page.tsx');
-    const match = page.match(/export const revalidate = (\d+)/);
-    expect(match, 'homepage must export a bounded revalidate').not.toBeNull();
-    expect(Number(match![1])).toBeGreaterThan(0);
-    expect(Number(match![1])).toBeLessThanOrEqual(300);
+    const revalidate = page.match(/export const revalidate = (\d+)/);
+    const forcedDynamic = /export const dynamic = 'force-dynamic'/.test(page);
+
+    const maxStalenessSeconds = forcedDynamic
+      ? 0
+      : revalidate
+        ? Number(revalidate[1])
+        : Number.POSITIVE_INFINITY;
+
+    expect(
+      maxStalenessSeconds,
+      'homepage must bound shared-cache staleness (revalidate ≤ 300 or force-dynamic)',
+    ).toBeLessThanOrEqual(300);
+    // Unbounded (neither directive present) is the failure this guards.
+    expect(Number.isFinite(maxStalenessSeconds)).toBe(true);
   });
 });
 

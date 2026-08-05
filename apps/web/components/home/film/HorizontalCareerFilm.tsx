@@ -21,6 +21,7 @@ import {
   CapsuleShell,
 } from '@/components/home/evidence/EvidenceCapsule';
 import { SOURCE_LANE_OPS } from '@/lib/trust/sourceLanes';
+import { sourceCadenceSentence } from '@/lib/trust/sourceCadence';
 
 import { CHAPTERS, ChapterRail } from './ChapterRail';
 import {
@@ -69,24 +70,6 @@ const TRUST_FOOTER_LINKS = [
   { label: 'Evidence network', href: '/evidence-network' },
   { label: 'Trust', href: '/trust' },
 ] as const;
-
-/**
- * The homepage's source-freshness statement, in one sentence of ink.
- *
- * DERIVED from `lib/trust/sourceLanes.ts` — the same registry behind /status
- * and /api/status — so a lane's cadence cannot drift from what the homepage
- * says about it. This is also why the sentence never says "live" as a blanket:
- * one lane is read per request and three are not.
- */
-function sourceCadenceSentence(): string {
-  const label = (id: string) =>
-    SOURCE_LANE_OPS.find((lane) => lane.laneId === id)?.cadenceLabel ?? 'not read';
-  return (
-    `NPPES is ${label('nppes_identity')} per request; ` +
-    `OIG/LEIE returns a ${label('oig_exclusions')} and CMS PECOS a ${label('pecos_enrollment')}; ` +
-    `state licensure is ${label('state_license')}.`
-  );
-}
 
 function useSceneTier(): SceneTier {
   // 'static' until capabilities are proven — SSR and the first client render

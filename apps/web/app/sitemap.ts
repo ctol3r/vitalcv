@@ -39,10 +39,10 @@ interface SitemapRoute {
 }
 
 export const SITEMAP_ROUTES: readonly SitemapRoute[] = [
-  { path: '', source: 'app/page.tsx', lastModified: '2026-08-04', changeFrequency: 'weekly', priority: 1 },
+  { path: '', source: 'app/page.tsx', lastModified: '2026-08-05', changeFrequency: 'weekly', priority: 1 },
   { path: '/onboarding', source: 'app/onboarding', lastModified: '2026-07-16', changeFrequency: 'weekly', priority: 0.9 },
   { path: '/passport', source: 'app/passport', lastModified: '2026-07-21', changeFrequency: 'weekly', priority: 0.9 },
-  { path: '/employers', source: 'app/employers', lastModified: '2026-08-02', changeFrequency: 'weekly', priority: 0.8 },
+  { path: '/employers', source: 'app/employers', lastModified: '2026-08-04', changeFrequency: 'weekly', priority: 0.8 },
   { path: '/solutions', source: 'app/solutions', lastModified: '2026-07-15', changeFrequency: 'weekly', priority: 0.8 },
   { path: '/pilot', source: 'app/pilot', lastModified: '2026-07-30', changeFrequency: 'monthly', priority: 0.7 },
   { path: '/trust', source: 'app/trust', lastModified: '2026-08-02', changeFrequency: 'monthly', priority: 0.7 },
