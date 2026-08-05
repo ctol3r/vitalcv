@@ -41,6 +41,55 @@ prove visual quality. Founder approval is required in addition to the normal
 merge gate. Security, privacy, outage, source-truth, and data-loss fixes may
 proceed without visual approval when they avoid unrelated visual recomposition.
 
+## VitalCV Strategy Contract
+
+**Read [`docs/strategy/README.md`](docs/strategy/README.md) and both canonical
+documents before changing any of the following:**
+
+- Homepage messaging
+- Navigation
+- Customer-facing terminology
+- Product naming
+- Clinician onboarding
+- Job discovery
+- Apply flows
+- Employer candidate review
+- Roadmap priorities
+
+Canonical (founder-approved 2026-08-04):
+
+- [`docs/strategy/vitalcv-category-strategy.md`](docs/strategy/vitalcv-category-strategy.md) — the full rationale
+- [`docs/strategy/vitalcv-strategy-operating-brief.md`](docs/strategy/vitalcv-strategy-operating-brief.md) — the day-to-day decision contract
+
+> VitalCV is the portable professional identity and employment network for clinicians.
+
+The reusable clinician profile is the product; NPI is the acquisition wedge;
+`Apply with VitalCV` is the canonical transaction; employer acceptance
+intelligence is the long-term advantage. North star: **clinician starts enabled
+by a reused VitalCV profile** — not profiles created, checks run, or packets
+generated.
+
+Customers should need to remember four things: **VitalCV**, **your VitalCV
+profile**, **VitalCV Jobs**, **Apply with VitalCV**. Wallet, passport, dossier,
+Trust Passport, Evidence OS, recognition, snapshot, receipt, holder, PSV, trust
+tier, SD-JWT, blockchain and knowledge graph are infrastructure vocabulary —
+keep them out of the homepage, primary navigation, onboarding headings, major
+CTAs and acquisition copy. **Do not mass-rename backend classes, schemas, APIs
+or audit records to match the marketing vocabulary**; the strategy does not ask
+for that.
+
+Precedence when instructions conflict: founder instruction in the current task →
+operating brief → category strategy → **security, privacy and truth contracts** →
+existing implementation and older strategy documents. Note the fourth rank: these
+documents govern what the product SAYS IT IS. They never license a claim the
+truth contract forbids (see [Truth contract](#truth-contract-issuer--psv-chain)
+and its banned strings) and never relax a security boundary. `docs/strategy/`
+still contains older mandates that claim homepage authority; each carries a
+superseded notice.
+
+Before adding any customer-facing term or feature, run
+[`docs/strategy/product-decision-filter.md`](docs/strategy/product-decision-filter.md).
+
 ## Branch cutting (worktree fleet caveat)
 
 Local `main` is held by `/Users/christoler/vitalcv-omega4f-trigger`, and ~80 other worktrees exist (`~/.codex/worktrees/*` for the Codex fleet, plus dozens of `vitalcv-*` feature trees). **Never** `git checkout main && git pull origin main` — it fails. Instead:
