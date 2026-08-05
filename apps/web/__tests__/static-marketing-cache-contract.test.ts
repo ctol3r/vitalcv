@@ -17,6 +17,8 @@ import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { classifyCachePolicy } from '../../../scripts/lib/cachePolicy.mjs';
+
 const read = (rel: string) => readFileSync(new URL(rel, import.meta.url).pathname, 'utf8');
 
 describe('root layout never reads request state', () => {
@@ -66,6 +68,17 @@ describe('homepage keeps bounded shared caching', () => {
     ).toBeLessThanOrEqual(300);
     // Unbounded (neither directive present) is the failure this guards.
     expect(Number.isFinite(maxStalenessSeconds)).toBe(true);
+
+    /*
+     * And the HEADER those directives produce must satisfy the same shared
+     * definition the deploy smoke test applies at run time — otherwise this
+     * source-level check and the release gate can disagree, which is exactly
+     * what happened in Wave 1075.
+     */
+    const emitted = forcedDynamic
+      ? 'private, no-cache, no-store, max-age=0, must-revalidate'
+      : `public, s-maxage=${maxStalenessSeconds}`;
+    expect(classifyCachePolicy(emitted).ok, classifyCachePolicy(emitted).reason).toBe(true);
   });
 });
 
