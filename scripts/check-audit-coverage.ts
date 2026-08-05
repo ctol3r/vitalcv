@@ -27,10 +27,25 @@ const ROUTES_DIR = join('apps', 'api', 'backend', 'src', 'routes');
 const BASELINE_PATH = join('apps', 'api', 'backend', 'audit-coverage-baseline.json');
 
 const MUTATING = /\b(router|app)\.(post|put|patch|delete)\s*\(/;
-// Durable audit signals (persistent AuditEvent row). Intentionally EXCLUDES the
-// bare in-memory `appendAuditEvent` ledger, which is not a durable audit row.
+/*
+ * Durable audit signals (persistent AuditEvent row). Intentionally EXCLUDES the
+ * bare in-memory `appendAuditEvent` ledger, which is not a durable audit row.
+ *
+ * `writeActivationAudit` (2026-08-05) is a named helper that provably calls
+ * `prisma.auditEvent.create`. It is recognised here because the alternative was
+ * worse: this scan only reads ROUTE files, so requiring the write to appear
+ * textually in the route pushes it OUT of the service where the mutation
+ * happens — and therefore out of any transaction that could make a successful
+ * mutation without its receipt impossible.
+ *
+ * A name in this list is a claim that must stay true. The real guard is a test
+ * that a failing audit write blocks the 2xx; see
+ * routes/__tests__/clinicianProfileRoutes.test.ts ("an audit failure prevents
+ * a 2xx"). Adding a name here without such a test would make this gate a
+ * formality.
+ */
 const DURABLE_AUDIT =
-  /(auditEvent\.create|AuditEvent\.create|auditIssuance|auditRevocation|auditDecision|auditPresentation|recordAuditEvent|writeAuditEvent)\b/;
+  /(auditEvent\.create|AuditEvent\.create|auditIssuance|auditRevocation|auditDecision|auditPresentation|recordAuditEvent|writeAuditEvent|writeActivationAudit)\b/;
 
 function walk(absDir: string): string[] {
   let out: string[] = [];

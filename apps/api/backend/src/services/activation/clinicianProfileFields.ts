@@ -115,6 +115,99 @@ export function isProfileField(key: string): boolean {
  * An allowlist, not a filter: a client may not persist arbitrary keys into a
  * record whose whole purpose is that every value's origin is known.
  */
+/** US state + DC codes. A state list is not free text. */
+const US_STATES = new Set([
+  'AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME',
+  'MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA',
+  'RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY','DC',
+]);
+
+export const WORK_ARRANGEMENTS = [
+  'full_time', 'part_time', 'locums', 'per_diem', 'additional_role',
+] as const;
+
+const MAX_TEXT = 120;
+const MAX_EMAIL = 254;
+const MAX_LIST = 60;
+
+export class FieldValidationError extends Error {
+  constructor(public readonly field: string, message: string) {
+    super(message);
+    this.name = 'FieldValidationError';
+  }
+}
+
+const text = (field: string, v: unknown, max = MAX_TEXT): string => {
+  // Objects and arrays are not strings, and coercing them produces
+  // "[object Object]" — a value that would persist and look deliberate.
+  if (typeof v !== 'string') throw new FieldValidationError(field, `${field} must be text.`);
+  const trimmed = v.trim();
+  if (!trimmed) throw new FieldValidationError(field, `${field} cannot be empty.`);
+  if (trimmed.length > max) throw new FieldValidationError(field, `${field} is too long (max ${max}).`);
+  return trimmed;
+};
+
+const stateCode = (field: string, v: unknown): string => {
+  const raw = text(field, v, 2 + 8).toUpperCase();
+  if (!US_STATES.has(raw)) throw new FieldValidationError(field, `${raw} is not a US state code.`);
+  return raw;
+};
+
+const stateList = (field: string, v: unknown): string[] => {
+  const items = Array.isArray(v) ? v : [v];
+  if (items.length > MAX_LIST) throw new FieldValidationError(field, `${field} has too many entries.`);
+  // Normalized and de-duplicated: "co", "CO" and "CO " are one state.
+  return [...new Set(items.map((i) => stateCode(field, i)))];
+};
+
+const email = (field: string, v: unknown): string => {
+  const raw = text(field, v, MAX_EMAIL).toLowerCase();
+  // Deliberately conservative rather than RFC-exhaustive: this exists to catch
+  // a typo that would silently make a share unreachable.
+  if (!/^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/.test(raw)) {
+    throw new FieldValidationError(field, 'Enter a valid email address.');
+  }
+  return raw;
+};
+
+const oneOf = (field: string, v: unknown, allowed: readonly string[]): string => {
+  const raw = text(field, v).toLowerCase();
+  if (!allowed.includes(raw)) {
+    throw new FieldValidationError(field, `${field} must be one of: ${allowed.join(', ')}.`);
+  }
+  return raw;
+};
+
+/** Per-field value schema. A name allowlist alone lets junk through typed. */
+const VALIDATORS: Record<string, (v: unknown) => unknown> = {
+  fullName: (v) => text('fullName', v),
+  credential: (v) => text('credential', v, 40),
+  specialty: (v) => text('specialty', v),
+  practiceState: (v) => stateCode('practiceState', v),
+  licensedStates: (v) => stateList('licensedStates', v),
+  preferredStates: (v) => stateList('preferredStates', v),
+  workArrangement: (v) => oneOf('workArrangement', v, WORK_ARRANGEMENTS),
+  contactEmail: (v) => email('contactEmail', v),
+};
+
+/**
+ * Validate and normalize a correction payload.
+ *
+ * Unknown keys are ignored (the established convention here — the name
+ * allowlist already drops them). A DECLARED field with an invalid value is
+ * never silently dropped: it throws, because silently discarding a correction
+ * the clinician typed is worse than refusing it.
+ */
+export function validateCorrections(input: unknown): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  if (!input || typeof input !== 'object') return out;
+  for (const [k, v] of Object.entries(input as Record<string, unknown>)) {
+    if (!isProfileField(k) || v === undefined) continue;
+    out[k] = VALIDATORS[k](v);
+  }
+  return out;
+}
+
 export function pickProfileFields(input: unknown): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   if (!input || typeof input !== 'object') return out;

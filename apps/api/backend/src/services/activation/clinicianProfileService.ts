@@ -26,10 +26,12 @@ import {
 import {
   mergeProfile,
   missingRequired,
-  pickProfileFields,
   PROFILE_FIELDS,
+  validateCorrections,
   type ResolvedField,
 } from './clinicianProfileFields';
+import { bootstrapFromNpi } from '../workspace/workspaceService';
+import { writeActivationAudit, type ActivationAuditAction } from './clinicianProfileAudit';
 
 const NPI_RE = /^\d{10}$/;
 
@@ -133,35 +135,76 @@ const SELECT = {
 /**
  * Create the draft, or recover the one that already exists.
  *
- * `upsert` on (userId, npi) is what makes the claim step safe to repeat: a
- * clinician who signs in, gets interrupted, and returns lands on their own
- * draft rather than a second one. A re-claim refreshes the public-source
- * snapshot but NEVER touches the clinician's edits or the activation stamps.
+ * The public-source snapshot is resolved HERE, server-side, by the canonical
+ * resolver — never taken from the request. An earlier version accepted the
+ * browser's preview payload and stored it as `public_source`, which let any
+ * caller manufacture provenance: edit the preview in devtools, claim, and your
+ * own values would be labelled as a registry answer for the rest of the
+ * profile's life. The client sends an NPI and nothing else.
+ *
+ * `upsert` on (userId, npi) makes the claim safe to repeat: a clinician who
+ * signs in, gets interrupted and returns lands on their own draft rather than a
+ * second one. A re-claim refreshes the snapshot and NEVER touches the
+ * clinician's edits or the activation stamps.
  */
-export async function createOrRecoverDraft(
-  userId: string,
-  npiRaw: string,
-  resolvedSnapshot: Record<string, unknown>,
-  sourceObservations: Record<string, unknown> = {},
-): Promise<ProfileView> {
+export async function createOrRecoverDraft(userId: string, npiRaw: string): Promise<ProfileView> {
   const npi = assertNpi(npiRaw);
-  const snapshot = pickProfileFields(resolvedSnapshot);
+
+  // The canonical path, reused — not a second NPPES implementation.
+  const boot = await bootstrapFromNpi(npi);
+
+  if (boot.npiType === 'TYPE_2') {
+    throw new HttpError(
+      400,
+      'That NPI identifies an organization. A clinician profile needs an individual (Type 1) NPI.',
+    );
+  }
+
+  /*
+   * Provenance is stamped from what the SERVER observed. `identitySource` is
+   * the resolver's own account of whether the registry answered; when it did
+   * not, there is no public-source snapshot to record and the clinician simply
+   * fills the profile in themselves.
+   */
+  const observedAt = new Date();
+  const registryAnswered = boot.identitySource === 'NPPES_API';
+  const snapshot: Record<string, unknown> = {};
+  const observations: Record<string, unknown> = {};
+
+  if (registryAnswered) {
+    const name = [boot.firstName, boot.lastName].filter(Boolean).join(' ').trim();
+    const observed: Array<[string, unknown]> = [
+      ['fullName', name || undefined],
+      ['specialty', boot.specialty],
+      ['practiceState', boot.state],
+    ];
+    for (const [key, value] of observed) {
+      if (value === undefined || value === null || value === '') continue;
+      snapshot[key] = value;
+      observations[key] = { source: 'NPPES', observedAt: observedAt.toISOString() };
+    }
+  }
 
   const row = (await prisma.clinicianProfileDraft.upsert({
     where: { userId_npi: { userId, npi } },
     create: {
       userId, npi,
       resolvedSnapshot: asJson(snapshot),
-      sourceObservations: asJson(sourceObservations),
-      resolvedAt: new Date(),
+      sourceObservations: asJson(observations),
+      resolvedAt: registryAnswered ? observedAt : null,
     },
     update: {
       resolvedSnapshot: asJson(snapshot),
-      sourceObservations: asJson(sourceObservations),
-      resolvedAt: new Date(),
+      sourceObservations: asJson(observations),
+      resolvedAt: registryAnswered ? observedAt : null,
     },
     select: SELECT,
   })) as unknown as DraftRow;
+
+  await writeActivationAudit('CLINICIAN_PROFILE_CLAIMED', userId, row.id, {
+    registryAnswered,
+    observedFieldCount: Object.keys(snapshot).length,
+  });
 
   return toView(row, await isOwnershipVerified(userId, npi));
 }
@@ -197,7 +240,12 @@ async function requireOwnDraft(userId: string, npi: string): Promise<DraftRow> {
 }
 
 /**
- * Save the clinician's corrections.
+ * Persist the clinician's corrections.
+ *
+ * Explicitly does NOT stamp `savedAt`. A correction is a draft write; a
+ * reusable profile is a validated, complete thing the clinician asked to keep.
+ * Conflating them meant any single keystroke satisfied the save condition
+ * activation depends on, so a half-filled profile could activate.
  *
  * Writes ONLY to `clinicianFields`. The public-source snapshot is never edited
  * in place, so "what the registry said" and "what the clinician says" both
@@ -210,13 +258,63 @@ export async function saveCorrections(
 ): Promise<ProfileView> {
   const npi = assertNpi(npiRaw);
   const existing = await requireOwnDraft(userId, npi);
-  const merged = { ...obj(existing.clinicianFields), ...pickProfileFields(corrections) };
+  // Throws FieldValidationError on a declared field with an invalid value —
+  // silently discarding something the clinician typed is worse than refusing it.
+  const clean = validateCorrections(corrections);
+  const merged = { ...obj(existing.clinicianFields), ...clean };
 
   const row = (await prisma.clinicianProfileDraft.update({
     where: { userId_npi: { userId, npi } },
-    data: { clinicianFields: asJson(merged), savedAt: new Date() },
+    data: { clinicianFields: asJson(merged) },
     select: SELECT,
   })) as unknown as DraftRow;
+
+  await writeActivationAudit('CLINICIAN_PROFILE_CORRECTED', userId, row.id, {
+    correctedFieldCount: Object.keys(clean).length,
+    correctedFieldKeys: Object.keys(clean).sort(),
+  });
+
+  return finalize(userId, row);
+}
+
+/**
+ * The explicit reusable-profile save.
+ *
+ * This is the transition that stamps `savedAt`, and the only one. It refuses an
+ * incomplete profile: a clinician cannot "keep" something that would arrive at
+ * an employer missing the fields that make it usable.
+ *
+ * Deliberately not called `activate` — the client asks to SAVE, and activation
+ * is what the server concludes when review and sharing control are also true.
+ */
+export async function saveReusableProfile(userId: string, npiRaw: string): Promise<ProfileView> {
+  const npi = assertNpi(npiRaw);
+  const existing = await requireOwnDraft(userId, npi);
+
+  const fields = mergeProfile(
+    obj(existing.resolvedSnapshot),
+    obj(existing.clinicianFields),
+    obj(existing.sourceObservations) as Record<string, { source?: string; observedAt?: string }>,
+  );
+  const missing = missingRequired(fields);
+  if (missing.length > 0) {
+    throw new HttpError(
+      422,
+      `Add ${missing.join(', ')} before saving a reusable profile.`,
+      'PROFILE_INCOMPLETE',
+    );
+  }
+
+  const row = (await prisma.clinicianProfileDraft.update({
+    where: { userId_npi: { userId, npi } },
+    // Idempotent: re-saving a complete profile keeps the first save time.
+    data: { savedAt: existing.savedAt ?? new Date() },
+    select: SELECT,
+  })) as unknown as DraftRow;
+
+  await writeActivationAudit('CLINICIAN_PROFILE_SAVED', userId, row.id, {
+    missingRequiredCount: 0,
+  });
 
   return finalize(userId, row);
 }
@@ -230,6 +328,7 @@ export async function confirmReview(userId: string, npiRaw: string): Promise<Pro
     data: { reviewedAt: existing.reviewedAt ?? new Date() },
     select: SELECT,
   })) as unknown as DraftRow;
+  await writeActivationAudit('CLINICIAN_PROFILE_REVIEW_CONFIRMED', userId, row.id);
   return finalize(userId, row);
 }
 
@@ -241,6 +340,7 @@ export async function confirmSharingControl(userId: string, npiRaw: string): Pro
     data: { sharingConfirmedAt: existing.sharingConfirmedAt ?? new Date() },
     select: SELECT,
   })) as unknown as DraftRow;
+  await writeActivationAudit('CLINICIAN_PROFILE_SHARING_CONFIRMED', userId, row.id);
   return finalize(userId, row);
 }
 
@@ -267,6 +367,13 @@ async function finalize(userId: string, row: DraftRow): Promise<ProfileView> {
       log('info', 'clinician_profile_activated', {
         userId,
         editedFieldCount: Object.keys(obj(row.clinicianFields)).length,
+      });
+
+      // The durable receipt. A different responsibility from the analytics
+      // event above: that one measures a funnel, this one records that a
+      // person's professional profile became active.
+      await writeActivationAudit('CLINICIAN_PROFILE_ACTIVATED', userId, row.id, {
+        correctedFieldCount: Object.keys(obj(row.clinicianFields)).length,
       });
     }
 

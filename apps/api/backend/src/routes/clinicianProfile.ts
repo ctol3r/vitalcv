@@ -13,6 +13,12 @@
  * on an administrator, an employer, or an institution-gated source — that is
  * the whole point of separating "profile saved" from "ownership verified".
  *
+ * AUDIT: every mutating handler below delegates to a service function that
+ * calls `writeActivationAudit` (services/activation/clinicianProfileAudit.ts)
+ * before returning. The write lives there, with the mutation, so a successful
+ * mutation cannot exist without its receipt — an audit failure propagates and
+ * the route answers 5xx rather than 2xx.
+ *
  * There is deliberately no activation endpoint. Activation is not something a
  * client asserts; it is what the server concludes when review, sharing control
  * and save are all true. A client that could POST /activate could activate
@@ -31,6 +37,7 @@ import {
   listProfiles,
   readDraft,
   saveCorrections,
+  saveReusableProfile,
 } from '../services/activation/clinicianProfileService';
 
 function asyncHandler(fn: (req: Request, res: Response, next: NextFunction) => Promise<void>) {
@@ -51,13 +58,15 @@ export function registerClinicianProfileRoutes(app: Express): void {
     publicApiRateLimit,
     asyncHandler(async (req, res) => {
       const userId = requireVerifiedClerkUserId(req);
-      const { npi, resolved, observations } = req.body as {
-        npi?: string;
-        resolved?: Record<string, unknown>;
-        observations?: Record<string, unknown>;
-      };
+      /*
+       * The NPI, and nothing else. The server resolves the public-source
+       * snapshot itself — an earlier version accepted the browser's preview
+       * payload and stored it as `public_source`, which let any caller
+       * manufacture provenance.
+       */
+      const { npi } = req.body as { npi?: string };
       if (!npi) throw new HttpError(400, 'npi is required.');
-      const view = await createOrRecoverDraft(userId, npi, resolved ?? {}, observations ?? {});
+      const view = await createOrRecoverDraft(userId, npi);
       res.status(200).json(view);
     }),
   );
@@ -96,6 +105,19 @@ export function registerClinicianProfileRoutes(app: Express): void {
     asyncHandler(async (req, res) => {
       const userId = requireVerifiedClerkUserId(req);
       res.json(await confirmReview(userId, req.params.npi));
+    }),
+  );
+
+  /**
+   * The explicit reusable-profile save. Not `activate`: the client asks to
+   * keep the profile, and activation is what the server concludes.
+   */
+  app.post(
+    '/api/clinician-profile/:npi/save',
+    publicApiRateLimit,
+    asyncHandler(async (req, res) => {
+      const userId = requireVerifiedClerkUserId(req);
+      res.json(await saveReusableProfile(userId, req.params.npi));
     }),
   );
 
