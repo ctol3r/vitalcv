@@ -172,6 +172,24 @@ test.describe('4–9 · the real loop on the production root', () => {
     }
   });
 
+  /*
+   * Wave 1077 relocated the source-cadence disclosure from the idle hero to
+   * the resolved profile — the first moment a source has actually answered.
+   * Relocated, not removed: this is the assertion that keeps it honest, and it
+   * lives here because only a resolved profile puts it in the DOM.
+   */
+  test('the source-cadence disclosure appears once a source has answered', async ({ page }) => {
+    await mockHome(page);
+    await resolve(page);
+    const cadence = page.locator('[data-home-source-cadence]');
+    await expect(cadence).toHaveCount(1);
+    await cadence.scrollIntoViewIfNeeded();
+    const text = await cadence.innerText();
+    expect(text).toMatch(/read live/i);
+    expect(text).toMatch(/monthly snapshot/i);
+    expect(text).toMatch(/quarterly snapshot/i);
+  });
+
   test('a secondary opportunity is a user choice that replaces the default', async ({ page }) => {
     await mockHome(page);
     await resolve(page);
@@ -283,7 +301,7 @@ test.describe('16–19 · production surface properties', () => {
     // Every scene's content is present without relying on scroll animation.
     await expect(page.locator('.clh-name-xl')).toContainText('JEAN ABBOTT');
     await expect(page.locator('.clh-opp-role')).toBeVisible();
-    await expect(page.locator('.clh-keep-line')).toContainText('Keep your profile');
+    await expect(page.locator('.clh-keep-line')).toContainText('Build once');
   });
 
   test('19. no horizontal overflow at any required viewport', async ({ page }) => {

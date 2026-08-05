@@ -9,9 +9,9 @@ import { resolveHomeVariant } from '@/lib/home/variant';
 import '@/styles/home.css';
 import '@/styles/career-loop-home.css';
 
-const TAGLINE = 'VitalCV — Build your clinician profile from your NPI and apply with it.';
+const TAGLINE = 'VitalCV — Your clinician profile. Ready for every move.';
 const DESCRIPTION =
-  'Build a clinician profile from your NPI, find opportunities that fit it, and apply with the same profile — giving employers a head start and keeping the record yours to reuse.';
+  'Start with your NPI. Build a reusable clinician profile from public sources, find roles that fit, and apply with VitalCV without entering the same information again. Free for clinicians.';
 
 export const metadata: Metadata = {
   title: { absolute: TAGLINE },

@@ -55,8 +55,8 @@ describe('1 — / renders the career-loop homepage by default', () => {
   it('serves the loop with no variant configured', async () => {
     const html = await renderRoot(undefined);
     expect(html).toContain(LOOP);
-    expect(html).toContain('Get hired for the right opportunity');
-    expect(html).toContain('Start with your NPI');
+    expect(html).toContain('Your clinician profile');
+    expect(html).toContain('Build my free profile');
   });
 
   it('the resolver defaults to career-loop', () => {
@@ -168,9 +168,16 @@ describe('14–15 — nothing claims completion before a backend success', () =>
 describe('the rail states the truthful progression and stops at review', () => {
   it('ends at Review, never at a confirmed start', () => {
     const html = renderHomepageHtml();
-    for (const step of ['NPI', 'Profile', 'Opportunity', 'Apply', 'Packet', 'Review']) {
+    /*
+     * Wave 1077 retired 'Packet' from the rail: packet is machinery language
+     * the strategy keeps behind the transaction, and 'Their decision' made the
+     * employer's verdict the emotional endpoint. The loop still ends at
+     * review.
+     */
+    for (const step of ['NPI', 'Profile', 'Roles', 'Apply', 'Review']) {
       expect(html).toContain(step);
     }
+    expect(html).not.toContain('Packet');
     expect(html).not.toMatch(/start (confirmed|guaranteed)/i);
   });
 });
@@ -246,11 +253,21 @@ describe('20 — banned vocabulary and claims stay out of the homepage', () => {
     }
   });
 
-  it('states source cadence rather than a blanket "live"', () => {
+  it('never claims blanket freshness in the acquisition hierarchy', () => {
+    /*
+     * Wave 1077 moved the per-lane cadence sentence OUT of the idle hero and
+     * beside the resolved profile — the first moment a source has actually
+     * answered, so the first moment a cadence is about anything. The
+     * disclosure was relocated, not removed; homepage-truth-contract asserts
+     * it renders in the resolved state.
+     *
+     * What must still hold at rest: the idle page makes no freshness claim it
+     * cannot support.
+     */
     const html = renderHomepageHtml();
-    expect(html).toContain('data-home-source-cadence');
-    // The one lane genuinely read per request is named; the snapshots are not
-    // allowed to inherit its freshness.
-    expect(html).toMatch(/snapshot/i);
+    expect(html).not.toMatch(/\bread live\b/i);
+    expect(html).not.toMatch(/always up to date|continuously verified/i);
+    // What it does say is bounded and true.
+    expect(html).toContain('Reads public sources');
   });
 });

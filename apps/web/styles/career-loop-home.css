@@ -513,3 +513,14 @@ body:has(.clh) [data-feedback-button]{display:none !important}
   text-decoration-thickness: 1px;
 }
 .clh-employer:hover { opacity: 1; }
+
+/* The freshness disclosure, at the moment a source has actually answered. */
+.clh-cadence {
+  margin: 0.5rem 0 0;
+  font-family: var(--mono);
+  font-size: 11px;
+  line-height: 1.5;
+  letter-spacing: 0.02em;
+  opacity: 0.55;
+  max-width: 60ch;
+}

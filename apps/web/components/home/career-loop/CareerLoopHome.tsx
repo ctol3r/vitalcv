@@ -41,7 +41,7 @@ import { useCareerLoop, type LoopMatch } from '@/lib/career-loop/useCareerLoop';
 import { sourceCadenceSentence } from '@/lib/trust/sourceCadence';
 
 /** Truthful rail: six stages, ending at review — never at a confirmed start. */
-const STEPS = ['NPI', 'Profile', 'Opportunity', 'Apply', 'Packet', 'Review'] as const;
+const STEPS = ['NPI', 'Profile', 'Roles', 'Apply', 'Review'] as const;
 
 interface SelectedClaim { type: string; issuer?: string; status?: string }
 
@@ -92,8 +92,8 @@ export function CareerLoopHome() {
 
   /* Rail progression from REAL state only. */
   const reached =
-    shared ? 6
-    : authBoundary || applyTouched ? (selectedClaims.length ? 5 : 4)
+    shared ? 5
+    : authBoundary || applyTouched ? 4
     : state.selected ? 3
     : live ? 2
     : digits.length > 0 || state.phase === 'resolving' ? 1
@@ -105,10 +105,9 @@ export function CareerLoopHome() {
     switch (i) {
       case 0: return { on, text: digits.length ? `${digits.slice(0, 2)}${'•'.repeat(Math.max(0, digits.length - 2))}` : '··········' };
       case 1: return { on, text: live ? profile.displayName : 'Your profile' };
-      case 2: return { on, text: state.selected ? state.selected.title : 'A match' };
-      case 3: return { on, text: on ? 'Selected claims' : 'You choose' };
-      case 4: return { on, text: on ? (shared ? 'Sent' : 'Prepared') : 'The packet' };
-      case 5: return { on, text: on ? 'Review begins' : 'Their decision' };
+      case 2: return { on, text: state.selected ? state.selected.title : 'Roles that fit' };
+      case 3: return { on, text: on ? 'You choose what to send' : 'You choose' };
+      case 4: return { on, text: on ? 'Employer review begins' : 'Employer review' };
       default: return { on, text: '' };
     }
   };
@@ -119,9 +118,10 @@ export function CareerLoopHome() {
     <div className="clh" ref={rootRef}>
       {/* ================= OPENING — one unified scene ================= */}
       <section className="clh-room clh-open" data-home-hero aria-label="Start with your NPI">
-        <h1 className="clh-h">Get hired for the right opportunity—and start <em>sooner</em>.</h1>
+        <h1 className="clh-h">Your clinician profile. Ready for every <em>move</em>.</h1>
         <p className="clh-sub">
-          Build your clinician profile from your NPI, apply with it, and give employers a head start.
+          Start with your NPI. Build a reusable professional profile, find roles that fit,
+          and apply without entering the same information again.
         </p>
 
         <form className="clh-bar" onSubmit={(e) => { e.preventDefault(); void submit(raw); }}>
@@ -135,13 +135,16 @@ export function CareerLoopHome() {
             onChange={(e) => { setRaw(e.target.value); onInput(e.target.value); setShared(null); setApplyTouched(false); setAuthBoundary(false); setSelectedClaims([]); }}
           />
           <button type="submit" data-home-primary-cta disabled={state.phase === 'resolving'}>
-            {state.phase === 'resolving' ? 'Checking the registry…' : 'Start with your NPI'}
+            {state.phase === 'resolving' ? 'Checking the registry…' : 'Build my free profile'}
           </button>
         </form>
         {/* Honest, free, and countable: the NPI action states its own progress
             rather than implying a lookup has happened. Retained across three
             homepage rewrites (homepage-truth-pass). */}
-        <p className="clh-count" aria-live="polite">{digits.length}/10 digits · free, no account needed</p>
+        <p className="clh-count" aria-live="polite">
+          {digits.length}/10 digits · Free for clinicians · No account needed to preview ·
+          You choose what gets shared
+        </p>
 
         {/*
           SHD-2.2 — the quiet employer door, after the clinician action and
@@ -155,7 +158,7 @@ export function CareerLoopHome() {
           data-home-employer-cta=""
           onClick={() => trackFunnelEvent(FUNNEL_EVENTS.EMPLOYER_ENTRY_CLICKED)}
         >
-          Hiring clinicians? See what employers review
+          Hiring clinicians? See VitalCV for employers
         </a>
 
         {state.phase === 'invalid' && (
@@ -201,10 +204,10 @@ export function CareerLoopHome() {
           })}
         </div>
 
-        <p className="clh-fine" data-home-source-cadence="">
+        <p className="clh-fine">
           {isDemo
             ? 'Illustrative example — fictional clinician and opportunities, clearly not a live result'
-            : sourceCadenceSentence()}
+            : 'Reads public sources. Nothing is shared until you choose to.'}
           {' · '}
           <button type="button" className="clh-demo-link" onClick={loadDemo}>
             Load an illustrative example
@@ -238,17 +241,27 @@ export function CareerLoopHome() {
                 {profile.readinessSummary.needsReview > 0 ? ` · ${profile.readinessSummary.needsReview} still need review` : ''}
                 {isDemo ? ' · illustrative' : ''}
               </p>
+              {/*
+                The freshness disclosure belongs HERE, not in the idle hero:
+                this is the first moment a source has actually answered, so it
+                is the first moment the cadence is about anything. Required by
+                the homepage truth contract and kept verbatim from the lane
+                registry — only its position changed.
+              */}
+              {!isDemo && (
+                <p className="clh-cadence" data-home-source-cadence="">{sourceCadenceSentence()}</p>
+              )}
             </>
           ) : (
-            <>
-              <p className="clh-name-xl clh-dim">Your name, from the registry</p>
-              <p className="clh-role">Enter your NPI above</p>
-            </>
+            <p className="clh-name-xl clh-dim">Your profile, from public sources</p>
           )}
         </div>
         <div data-clh-reveal>
-          <h2 className="clh-h">A number becomes a career.</h2>
-          {live && <p className="clh-sub">A profile you own and reuse — not another application form.</p>}
+          <h2 className="clh-h">Start with what is already known.</h2>
+          <p className="clh-sub">
+            Enter your NPI and VitalCV fills in professional information available from
+            public sources. See where each item came from, review it, and add what is missing.
+          </p>
         </div>
       </section>
 
@@ -256,7 +269,11 @@ export function CareerLoopHome() {
       <section className="clh-room clh-room--deep clh-discover" aria-label="Discover">
         <span className="clh-mark" aria-hidden="true">02</span>
         <div data-clh-reveal>
-          <h2 className="clh-h">Work that fits more than a résumé.</h2>
+          <h2 className="clh-h">Find work that fits.</h2>
+          <p className="clh-sub">
+            Tell us what matters to you—specialty, location, schedule, and career goals.
+            See relevant opportunities and why they may fit.
+          </p>
         </div>
 
         {state.matchPhase === 'loading' && (
@@ -274,9 +291,7 @@ export function CareerLoopHome() {
             </div>
           </div>
         )}
-        {state.matchPhase === 'idle' && !live && (
-          <p className="clh-sub clh-dim">Real opportunities appear when your profile resolves.</p>
-        )}
+
 
         {state.selected && (
           <div className="clh-opp" data-clh-reveal>
@@ -309,27 +324,32 @@ export function CareerLoopHome() {
             ))}
           </div>
         )}
-        <p className="clh-fine">
-          {isDemo ? 'Illustrative matches — not live listings' : 'Ranked by MATCHA from open listings · reasons are computed, not written'}
-        </p>
+        {(state.selected || isDemo) && (
+          <p className="clh-fine">
+            {isDemo ? 'Illustrative matches — not live listings' : 'Reasons are computed from public information, not written by an employer'}
+          </p>
+        )}
       </section>
 
       {/* ================= 3 · APPLY — indigo ================= */}
       <section className="clh-room clh-room--indigo clh-apply" aria-label="Apply">
         <span className="clh-mark" aria-hidden="true">03</span>
         <div data-clh-reveal>
-          <h2 className="clh-h">The same profile, handed over.</h2>
-          {live && <p className="clh-sub">You choose what travels. The employer sees where each item came from.</p>}
+          <h2 className="clh-h">Apply with your profile.</h2>
+          <p className="clh-sub">
+            Preview exactly what an employer will receive, then send your VitalCV profile
+            instead of rebuilding your professional history from scratch.
+          </p>
         </div>
 
         <div className="clh-cross" data-clh-reveal>
           <div className="clh-side">
-            <span className="clh-who">You</span>
+            {live && <span className="clh-who">You</span>}
             <div className="clh-carry">
               <span className={`clh-mono clh-mono--sm${live ? '' : ' clh-mono--ghost'}`} aria-hidden="true">{live ? profile.monogram : ''}</span>
               <span>
-                <span className="clh-carry-name">{live ? profile.displayName : 'Your profile'}</span>
-                <span className="clh-carry-sub">with permission</span>
+                <span className="clh-carry-name">{live ? profile.displayName : ''}</span>
+                <span className="clh-carry-sub">{live ? 'with permission' : ''}</span>
               </span>
             </div>
             {live && !isDemo && state.selected?.applyAvailable ? (
@@ -359,9 +379,7 @@ export function CareerLoopHome() {
               </p>
             ) : (
               <p className="clh-carry-sub">
-                {isDemo
-                  ? 'Illustrative example — the live Apply flow needs a real NPI'
-                  : 'Opens when your NPI resolves'}
+                {isDemo ? 'Illustrative example — the live Apply flow needs a real NPI' : ''}
               </p>
             )}
           </div>
@@ -369,17 +387,17 @@ export function CareerLoopHome() {
           <span className="clh-arrow" aria-hidden="true">→</span>
 
           <div className="clh-side clh-side--to">
-            <span className="clh-who">{state.selected?.organizationName ?? 'The employer'}</span>
+            {live && <span className="clh-who">{state.selected?.organizationName ?? 'The employer'}</span>}
             <div className="clh-carry">
               <span className={`clh-mono clh-mono--sm${live ? '' : ' clh-mono--ghost'}`} aria-hidden="true">{live ? profile.monogram : ''}</span>
               <span>
-                <span className="clh-carry-name">{shared ? 'Received' : 'The packet'}</span>
+                <span className="clh-carry-name">{live ? (shared ? 'Received' : 'What you send') : ''}</span>
                 <span className="clh-carry-sub">
                   {shared
                     ? `sent to ${shared.recipient ?? 'the organization'}`
                     : selectedClaims.length
                       ? `${selectedClaims.length} selected item${selectedClaims.length === 1 ? '' : 's'} would travel`
-                      : 'exactly what you select — nothing more'}
+                      : live ? 'exactly what you select — nothing more' : ''}
                 </span>
               </span>
             </div>
@@ -404,23 +422,39 @@ export function CareerLoopHome() {
       <section className="clh-room clh-continue" aria-label="Continue">
         <span className="clh-mark" aria-hidden="true">04</span>
         <div data-clh-reveal>
-          <h2 className="clh-h">Review starts ahead, not from zero.</h2>
-          <p className="clh-outcome">Start sooner.</p>
+          <h2 className="clh-h">Keep it for your next move.</h2>
+          <p className="clh-sub">
+            Update your profile once and reuse it for future applications and employer
+            requests throughout your career.
+          </p>
         </div>
         <div className="clh-keep" data-clh-reveal>
           <span className={`clh-mono clh-mono--xl${live ? '' : ' clh-mono--ghost'}`} aria-hidden="true">{live ? profile.monogram : ''}</span>
           <div>
-            <p className="clh-keep-line">Keep your profile. Update it once. Use it again.</p>
+            <p className="clh-keep-line">Build once. Move forward without starting over.</p>
             {live && (
               <p className="clh-keep-sub">
                 {`${profile.displayName}'s record stays ${isDemo ? 'theirs' : 'yours'} — a completed application never resets it.`}
               </p>
             )}
             <div className="clh-actions">
-              <a className="clh-act clh-act--ink" href="/holder">Manage your record</a>
-              <button type="button" className="clh-act clh-act--quiet" onClick={() => { setRaw(''); reset(); setShared(null); setSelectedClaims([]); setApplyTouched(false); setAuthBoundary(false); window.scrollTo({ top: 0, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }); }}>
-                Check another NPI
+              <button
+                type="button"
+                className="clh-act clh-act--ink"
+                onClick={() => {
+                  document.getElementById('clh-npi')?.scrollIntoView({
+                    behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+                    block: 'center',
+                  });
+                  document.getElementById('clh-npi')?.focus();
+                }}
+              >
+                Build my free profile
               </button>
+              {live && <a className="clh-act clh-act--quiet" href="/holder">Manage your profile</a>}
+              {live && <button type="button" className="clh-act clh-act--quiet" onClick={() => { setRaw(''); reset(); setShared(null); setSelectedClaims([]); setApplyTouched(false); setAuthBoundary(false); window.scrollTo({ top: 0, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }); }}>
+                Check another NPI
+              </button>}
             </div>
           </div>
         </div>

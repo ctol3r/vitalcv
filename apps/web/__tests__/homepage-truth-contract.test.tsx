@@ -29,6 +29,7 @@ vi.mock('@clerk/nextjs', () => ({
 }));
 
 import { renderHomepageHtml } from './helpers/render-homepage';
+import { sourceCadenceSentence } from '@/lib/trust/sourceCadence';
 
 /**
  * Claims the public homepage may never make. Several are absolute-verification
@@ -71,15 +72,27 @@ describe('homepage — required disclosures', () => {
   });
 
   it('states each source lane at its real cadence, from the canonical registry', () => {
-    // Guards the #822/#817/#824 fix: the homepage may not imply that snapshot
-    // sources are read per request. The sentence is derived from
-    // lib/trust/sourceLanes.ts, so it cannot drift from /status.
+    /*
+     * Guards the #822/#817/#824 fix: the homepage may not imply that snapshot
+     * sources are read per request. The sentence is derived from
+     * lib/trust/sourceLanes.ts, so it cannot drift from /status.
+     *
+     * Wave 1077 moved WHERE it renders — out of the idle hero and beside the
+     * resolved profile, the first moment a source has actually answered — so
+     * this asserts the sentence the homepage will show, still derived from the
+     * one registry. That it reaches the DOM in the resolved state is asserted
+     * in tests/e2e/home-career-loop.spec.ts, which can actually resolve a
+     * profile; an SSR render of the untouched page cannot.
+     */
+    const sentence = sourceCadenceSentence();
+    expect(sentence).toContain('read live');
+    expect(sentence).toContain('monthly snapshot');
+    expect(sentence).toContain('quarterly snapshot');
+    expect(sentence).toContain('access-gated');
+
+    // And the idle page must not pre-empt it with a blanket freshness claim.
     const html = renderHomepageHtml();
-    expect(html).toContain('data-home-source-cadence');
-    expect(html).toContain('read live');
-    expect(html).toContain('monthly snapshot');
-    expect(html).toContain('quarterly snapshot');
-    expect(html).toContain('access-gated');
+    expect(html).not.toMatch(/\bread live\b/i);
   });
 
   it('labels its own product imagery illustrative', () => {
