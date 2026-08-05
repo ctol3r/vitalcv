@@ -1,7 +1,6 @@
 # Beachhead decision packet
 
-**Date:** 2026-08-05 · **Wave:** 1077 (PR C) · **Status:** awaiting
-`FOUNDER BEACHHEAD DECISION`
+**Date:** 2026-08-05 · **Wave:** 1077 (PR C) · **Status:** ✅ **DECIDED 2026-08-05 — hospital-based APPs**
 
 The Wave 1077 instruction is explicit: *"Do not independently declare VitalCV 'for
 every clinician'"* and *"Evaluate each using only verifiable evidence and current
@@ -127,4 +126,26 @@ controlled-substance surface.
 The homepage stays segment-neutral until this is answered — the instruction
 requires it, and on the evidence above, narrowing now would be guessing.
 
-> **FOUNDER BEACHHEAD DECISION**
+---
+
+## Decision (founder, 2026-08-05)
+
+**Hospital-based advanced practice providers** is the initial controlled
+beachhead. Rationale as given: lower access dependency than locums, repeat
+hiring behaviour, meaningful credential and application friction, a clearer
+employer-side pilot path, better fit with current product and public-source
+coverage, and a faster route to proving reuse **without making access-gated
+licensure the critical path** — which was precisely the risk flagged against the
+locum option above.
+
+**Locum physicians** is retained as the second beachhead, once state-board and
+licensure access is operationally reliable.
+
+Pilot recruitment expresses the segment more narrowly:
+
+> Hospital-based nurse practitioners and physician assistants changing employers
+> or taking an additional role.
+
+This is an operating hypothesis to validate. **No market dominance or density
+claim** — the 6 opportunities / 0 verified clinicians measured above is evidence
+that clinician activation is the bottleneck, not evidence about any segment.
