@@ -13,7 +13,12 @@ jest.mock('../../graphql/prisma_client', () => ({
   __esModule: true,
   default: {
     $use: jest.fn(),
+    // The transaction runs its callback against the SAME mock client, so the
+    // assertions below still see every call — while the service is genuinely
+    // going through $transaction.
+    $transaction: jest.fn(),
     npiOwnership: { findFirst: jest.fn() },
+    user: { findUnique: jest.fn() },
     auditEvent: { create: jest.fn() },
     clinicianProfileDraft: {
       findUnique: jest.fn(),
@@ -35,7 +40,9 @@ import { registerClinicianProfileRoutes } from '../clinicianProfile';
 import { bootstrapFromNpi } from '../../services/workspace/workspaceService';
 
 const prisma = prismaClient as unknown as {
+  $transaction: jest.Mock;
   npiOwnership: { findFirst: jest.Mock };
+  user: { findUnique: jest.Mock };
   auditEvent: { create: jest.Mock };
   clinicianProfileDraft: {
     findUnique: jest.Mock; findMany: jest.Mock; upsert: jest.Mock;
@@ -124,6 +131,7 @@ const completeFields = {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  prisma.$transaction.mockImplementation((fn: (t: unknown) => Promise<unknown>) => fn(prisma));
   prisma.auditEvent.create.mockResolvedValue({ id: 'audit-1' });
   (bootstrapFromNpi as jest.Mock).mockResolvedValue({
     npi: NPI, npiType: 'TYPE_1', inferredPersona: 'CLINICIAN',
@@ -132,6 +140,9 @@ beforeEach(() => {
     specialty: 'Emergency Medicine', state: 'CO',
     alreadyRegistered: false,
   });
+  // npi_ownership.user_id is the INTERNAL User.id (a uuid), not the Clerk
+  // subject — the lookup must resolve it first.
+  prisma.user.findUnique.mockResolvedValue({ id: '11111111-2222-3333-4444-555555555555' });
   prisma.npiOwnership.findFirst.mockResolvedValue(null); // no ownership by default
   prisma.clinicianProfileDraft.findUnique.mockResolvedValue(row());
   prisma.clinicianProfileDraft.upsert.mockResolvedValue(row());
@@ -618,5 +629,38 @@ describe('11–12 · every mutation leaves a durable receipt', () => {
     }
     // Field KEYS are kept — they say what changed without saying to what.
     expect(payload).toContain('specialty');
+  });
+});
+
+describe('the Clerk ↔ internal user id boundary', () => {
+  it('never queries npi_ownership with the Clerk subject', async () => {
+    prisma.clinicianProfileDraft.findUnique.mockResolvedValue(
+      row({ reviewedAt: T, sharingConfirmedAt: T, savedAt: T, activatedAt: T }),
+    );
+    await invoke(buildApp(), 'get', '/api/clinician-profile/:npi', {
+      verifiedUserId: MINE, params: { npi: NPI },
+    });
+    /*
+     * npi_ownership.user_id is a UUID column holding the INTERNAL User.id.
+     * Querying it with the Clerk subject sent `user_clinician` at a uuid
+     * column and Postgres threw — an authenticated request got a 500 instead
+     * of a 403, and a genuine verified binding could never have matched.
+     */
+    const where = prisma.npiOwnership.findFirst.mock.calls[0][0].where;
+    expect(where.userId).toBe('11111111-2222-3333-4444-555555555555');
+    expect(where.userId).not.toBe(MINE);
+  });
+
+  it('treats a caller with no account row as unbound rather than erroring', async () => {
+    prisma.user.findUnique.mockResolvedValue(null);
+    prisma.clinicianProfileDraft.findUnique.mockResolvedValue(
+      row({ reviewedAt: T, sharingConfirmedAt: T, savedAt: T, activatedAt: T }),
+    );
+    const r = await invoke(buildApp(), 'get', '/api/clinician-profile/:npi', {
+      verifiedUserId: MINE, params: { npi: NPI },
+    });
+    expect(r.status).toBe(200);
+    expect((r.body as { permissions: { privateCredentialHoldings: boolean } })
+      .permissions.privateCredentialHoldings).toBe(false);
   });
 });

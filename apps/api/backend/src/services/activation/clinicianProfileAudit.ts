@@ -38,19 +38,29 @@ export interface ActivationAuditMetadata {
   missingRequiredCount?: number;
 }
 
+/** The minimum surface this helper needs — satisfied by Prisma and by a tx. */
+export interface AuditWriteClient {
+  auditEvent: { create: (args: unknown) => Promise<unknown> };
+}
+
 /**
- * Write the durable receipt.
+ * Write the durable receipt, on the caller's transaction.
  *
- * Deliberately NOT swallowed: if the audit write fails, the caller's mutation
- * must not report success. A 2xx with no audit record is exactly the state this
- * exists to make impossible, so the error propagates and the route returns 5xx.
+ * `client` is required to be the SAME `Prisma.TransactionClient` that performed
+ * the mutation. An earlier version defaulted to the global client, so a failing
+ * audit rejected the request while the mutation stayed committed — a 5xx that
+ * had already changed the profile. Blocking the 2xx is not the guarantee;
+ * atomicity is.
+ *
+ * The error is deliberately not swallowed: it aborts the transaction, and the
+ * mutation rolls back with it.
  */
 export async function writeActivationAudit(
   action: ActivationAuditAction,
   userId: string,
   draftId: string,
   metadata: ActivationAuditMetadata = {},
-  client: { auditEvent: { create: (args: unknown) => Promise<unknown> } } = prisma as never,
+  client: AuditWriteClient = prisma as never,
 ): Promise<void> {
   await client.auditEvent.create({
     data: {
