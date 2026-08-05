@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test';
 
+import { classifyCachePolicy } from '../../../../scripts/lib/cachePolicy.mjs';
+
 /**
  * Wave 0.2 — live cache-header contract, asserted against a production build
  * (`next start`), which is what Railway serves.
@@ -28,9 +30,10 @@ test.describe('session routes are never shared-cacheable', () => {
       // must be uncacheable too, so a shared cache can't pin the redirect.
       expect([200, 307, 308]).toContain(response.status());
       const cacheControl = (response.headers()['cache-control'] ?? '').toLowerCase();
-      expect(cacheControl, `${route} missing no-store: "${cacheControl}"`).toContain('no-store');
+      // Personalized: no shared lifetime is acceptable, however short.
+      const policy = classifyCachePolicy(cacheControl, { personalized: true });
+      expect(policy.ok, `${route} cache policy: ${policy.reason}`).toBe(true);
       expect(cacheControl, `${route} carries private: "${cacheControl}"`).toContain('private');
-      expect(cacheControl, `${route} still shared-cacheable: "${cacheControl}"`).not.toContain('s-maxage');
       expect(response.headers()['x-nextjs-prerender'], `${route} was prerendered`).toBeUndefined();
     });
   }
@@ -38,29 +41,15 @@ test.describe('session routes are never shared-cacheable', () => {
 
 test('public homepage bounds shared-cache staleness', async ({ request }) => {
   /*
-   * The #680 contract is a bound on STALENESS. This demanded an `s-maxage`
-   * header specifically, and went red in Wave 1075 on a change that made the
-   * homepage strictly fresher: `/` is force-dynamic (so the rollback variant
-   * switches on redeploy rather than rebuild), which serves no-store — 0s of
-   * shared staleness rather than up to 300s.
-   *
-   * Either is acceptable. An absent directive is not: that is the unbounded
-   * case this exists to catch.
+   * The #680 contract is a bound on STALENESS, satisfied by either a bounded
+   * shared lifetime or no-store. Interpreted by scripts/lib/cachePolicy.mjs —
+   * the same module the deploy smoke test and the vitest contract use, so
+   * "fresh enough" has exactly one definition. Three private copies of this
+   * rule is what made a strictly-fresher homepage read as a regression and
+   * turned `vitalcv/web-deploy-converged` red on a converged deployment.
    */
   const response = await request.get('/');
   expect(response.status()).toBe(200);
-  const cacheControl = (response.headers()['cache-control'] ?? '').toLowerCase();
-
-  const sMaxAge = cacheControl.match(/s-maxage=(\d+)/);
-  const staleness = /no-store/.test(cacheControl)
-    ? 0
-    : sMaxAge
-      ? Number(sMaxAge[1])
-      : Number.POSITIVE_INFINITY;
-
-  expect(
-    Number.isFinite(staleness),
-    `homepage shared caching is unbounded: "${cacheControl}"`,
-  ).toBe(true);
-  expect(staleness, `homepage shared staleness too high: "${cacheControl}"`).toBeLessThanOrEqual(300);
+  const policy = classifyCachePolicy(response.headers()['cache-control']);
+  expect(policy.ok, `homepage cache policy: ${policy.reason}`).toBe(true);
 });

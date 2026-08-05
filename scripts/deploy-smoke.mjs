@@ -24,15 +24,18 @@
  *    web Prisma product routes are fail-open; retried so one transient blip
  *    cannot paint a healthy deploy red; --allow-missing-db-health tolerates
  *    404 until the endpoint is deployed)
- *  - / : current-release homepage marker (data-home-hero), bounded
- *    shared cache (s-maxage ≤ 300)
- *  - /onboarding: HTTP 200 AND private/no-store with no s-maxage (Wave 0.2)
+ *  - / : current-release homepage marker (data-home-hero) and a SAFE cache
+ *    policy — either bounded shared staleness (≤ 300s) or zero-staleness
+ *    (no-store). See scripts/lib/cachePolicy.mjs for the one definition all
+ *    of the cache assertions share.
+ *  - /onboarding: HTTP 200 AND never shared-cacheable (Wave 0.2)
  *  - /employers /trust /status: HTTP 200
  *
  * Every request carries a unique cache-buster query + `Cache-Control:
  * no-cache`, so a stale shared cache cannot fake a pass.
  */
 
+import { classifyCachePolicy } from './lib/cachePolicy.mjs';
 import { compareLaneParity, parseApiLanes, parseRenderedLanes } from './lib/lane-parity.mjs';
 
 const args = process.argv.slice(2);
@@ -156,19 +159,26 @@ try {
   const home = await get('/');
   record('home: HTTP 200', home.status === 200, `HTTP ${home.status}`);
   record('home: current release marker', home.body.includes('data-home-hero'), 'data-home-hero');
-  const homeCache = (home.headers.get('cache-control') || '').toLowerCase();
-  const maxAge = homeCache.match(/s-maxage=(\d+)/);
-  record('home: bounded shared cache', Boolean(maxAge) && Number(maxAge[1]) <= 300, homeCache || 'no cache-control');
+  /*
+   * The contract is a bound on SHARED STALENESS, not a demand for one token.
+   * This asserted a literal `s-maxage` and failed the Wave 1075 deployment,
+   * which had converged: `/` became force-dynamic (so the homepage rollback
+   * is a redeploy, not a rebuild) and answers no-store — 0s of staleness
+   * rather than up to 300s. classifyCachePolicy is the single definition
+   * shared with the vitest contract and the e2e header spec.
+   */
+  const homePolicy = classifyCachePolicy(home.headers.get('cache-control'));
+  record('home: bounded or zero-staleness shared cache', homePolicy.ok, homePolicy.reason);
 
   // 4. /onboarding — reachable AND never shared-cacheable (Wave 0.2).
   const onboarding = await get('/onboarding');
-  const onboardingCache = (onboarding.headers.get('cache-control') || '').toLowerCase();
   record('onboarding: HTTP 200', onboarding.status === 200, `HTTP ${onboarding.status}`);
-  record(
-    'onboarding: private + no-store, no s-maxage',
-    onboardingCache.includes('no-store') && !onboardingCache.includes('s-maxage'),
-    onboardingCache || 'no cache-control',
-  );
+  // Personalized: a shared cache may not hold it at ANY lifetime, so a short
+  // public s-maxage is a cross-user leak rather than a freshness question.
+  const onboardingPolicy = classifyCachePolicy(onboarding.headers.get('cache-control'), {
+    personalized: true,
+  });
+  record('onboarding: never shared-cacheable', onboardingPolicy.ok, onboardingPolicy.reason);
 
   // 5. Core public routes exist.
   for (const path of ['/employers', '/trust', '/status']) {
