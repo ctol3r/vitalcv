@@ -1,5 +1,18 @@
 # VitalCV — the one platform
 
+> **Superseded where it conflicts — 2026-08-04.**
+> [`vitalcv-category-strategy.md`](./vitalcv-category-strategy.md) and
+> [`vitalcv-strategy-operating-brief.md`](./vitalcv-strategy-operating-brief.md)
+> are now canonical for positioning, homepage messaging, customer-facing
+> vocabulary, information architecture, and roadmap sequencing. Where this
+> document and those disagree, **those win** — see
+> [the source-of-truth order](./README.md#source-of-truth-order).
+>
+> This file is kept, not deleted: it records which founder documents were synthesized and
+> which creative decisions were delegated, which is the only trace of how the
+> pre-2026-08-04 direction was arrived at.
+> Read it for that, not for what the product should call itself.
+
 **Date:** 2026-07-25
 **Status:** Synthesis of seven founder documents into a single governing direction. Creative
 decisions in §3 were delegated to and made by Claude Code; every one cites the source that
