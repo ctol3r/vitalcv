@@ -148,6 +148,7 @@ import { registerEmailOtpRoutes } from './routes/identity';                 // E
 import { registerSearchRoutes } from './routes/search';                     // Wave 184: Unified Search Index & Content Graph
 import { registerRoleRoutes } from './routes/role';                         // Clerk auth: GET /api/me/role
 import { registerOwnershipRoutes } from './routes/ownership';               // Auth A1: NPI ownership claims
+import { registerClinicianProfileRoutes } from './routes/clinicianProfile';  // W1076 B1: clinician activation
 import { registerEntityRoutes }    from './routes/entity';                   // S1/S3: canonical entity resolution
 import { registerPassportEntityRoutes } from './routes/passportEntity';      // S1/S5: entity passport + share
 import { registerIngestStreamRoutes }   from './routes/ingestStream';        // Real-time ingest SSE
@@ -3683,6 +3684,7 @@ registerEmailOtpRoutes(app);          // Email-OTP identity-binding possession f
 registerSearchRoutes(app);            // Wave 184 — Unified Search Index + hybrid retrieval
 registerRoleRoutes(app);              // Clerk auth — GET /api/me/role (role resolution)
 registerOwnershipRoutes(app);         // Auth A1 — NPI ownership claim/revoke
+registerClinicianProfileRoutes(app);  // W1076 B1 — review, correct, save, activate
 registerEntityRoutes(app);            // S1/S3 — canonical entity resolution + roles + relationships
 registerPassportEntityRoutes(app);    // S1/S5 — trust passport + POST /api/share + POST /api/organization-context
 registerIngestStreamRoutes(app);      // Real-time ingest — POST /api/ingest/:npi + GET /api/ingest/:runId/stream
