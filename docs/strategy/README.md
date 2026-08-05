@@ -77,6 +77,15 @@ evidence register in them remain useful, and quietly reconciling them would
 leave two contradictory mandates in the tree with nothing recording which one a
 reviewer should follow.
 
+## Audits and plans (Wave 1077 PR C)
+
+| Document | What it answers |
+| --- | --- |
+| [`customer-language-inventory.md`](./customer-language-inventory.md) | Every retired term, classified against what the code actually renders |
+| [`information-architecture-audit.md`](./information-architecture-audit.md) | What the navigation says vs what routes exist, plus a gap list |
+| [`beachhead-decision.md`](./beachhead-decision.md) | Six candidates on verifiable evidence; two finalists; awaiting `FOUNDER BEACHHEAD DECISION` |
+| [`90-day-category-execution-plan.md`](./90-day-category-execution-plan.md) | The mandate with each item's real status and baseline |
+
 ## Decision filter
 
 See [`product-decision-filter.md`](./product-decision-filter.md). A proposal
