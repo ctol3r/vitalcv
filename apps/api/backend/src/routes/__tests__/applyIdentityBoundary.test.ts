@@ -68,11 +68,30 @@ describe('C1 — a signed-in user cannot act on another clinician’s NPI', () =
   beforeEach(() => prisma.npiOwnership.findFirst.mockReset());
 
   it('allows the owner', async () => {
-    prisma.npiOwnership.findFirst.mockResolvedValue({ id: 'binding-1' });
-    await expect(requireNpiAuthorization('user_real', '1234567893')).resolves.toBeUndefined();
-    expect(prisma.npiOwnership.findFirst).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { userId: 'user_real', npi: '1234567893', revokedAt: null } }),
+    // Wave 1075: authority is verifiedAt + a recognised method, not mere existence.
+    prisma.npiOwnership.findFirst.mockResolvedValue(
+      { verifiedAt: new Date('2026-02-01T00:00:00Z'), verificationMethod: 'ADMIN_VERIFIED', revokedAt: null },
     );
+    await expect(requireNpiAuthorization('user_real', '1234567893')).resolves.toBeUndefined();
+    // The user and NPI are what scope the lookup. This deliberately does NOT
+    // pin the rest of the where clause: it once asserted `revokedAt: null`,
+    // and went red when the query started reading revoked rows so it could
+    // report them AS revoked — a better refusal, failing an outcome-blind test.
+    expect(prisma.npiOwnership.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ userId: 'user_real', npi: '1234567893' }),
+      }),
+    );
+  });
+
+  it('rejects a PENDING self-asserted claim — a request is not authority', async () => {
+    prisma.npiOwnership.findFirst.mockResolvedValue(
+      { verifiedAt: null, verificationMethod: 'CLAIMED', revokedAt: null },
+    );
+    await expect(requireNpiAuthorization('user_real', '1234567893')).rejects.toMatchObject({
+      status: 403,
+      code: 'OWNERSHIP_PENDING',
+    });
   });
 
   it('rejects a mismatched NPI with 403', async () => {
@@ -80,11 +99,12 @@ describe('C1 — a signed-in user cannot act on another clinician’s NPI', () =
     await expect(requireNpiAuthorization('user_real', '1578672820')).rejects.toMatchObject({ status: 403 });
   });
 
-  it('rejects a REVOKED binding (the query excludes revoked rows)', async () => {
-    prisma.npiOwnership.findFirst.mockResolvedValue(null);
+  it('rejects a REVOKED binding and says it was revoked', async () => {
+    prisma.npiOwnership.findFirst.mockResolvedValue(
+      { verifiedAt: new Date('2026-02-01T00:00:00Z'), verificationMethod: 'ADMIN_VERIFIED', revokedAt: new Date('2026-03-01T00:00:00Z') },
+    );
     await expect(requireNpiAuthorization('user_real', '1234567893')).rejects.toThrow(HttpError);
-    const where = prisma.npiOwnership.findFirst.mock.calls[0][0].where;
-    expect(where.revokedAt).toBeNull();
+    await expect(requireNpiAuthorization('user_real', '1234567893')).rejects.toThrow(/revoked/i);
   });
 
   it('rejects a malformed NPI before it reaches a query', async () => {

@@ -734,6 +734,9 @@ export function registerMatchaRoutes(app: Express): void {
           error: authError instanceof HttpError
             ? authError.message
             : 'Verified Clerk session required.',
+          // Carries OWNERSHIP_PENDING through, so the surface can route a
+          // clinician into verification instead of showing a dead refusal.
+          ...(authError instanceof HttpError ? { code: authError.code } : {}),
         });
         return;
       }

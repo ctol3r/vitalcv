@@ -65,6 +65,11 @@ const prisma = prismaClient as unknown as {
 const OWNER = 'user_owner';
 const ATTACKER = 'user_attacker';
 const MINE = '1003000126';
+const VERIFIED_BINDING = {
+  verifiedAt: new Date('2026-02-01T00:00:00Z'),
+  verificationMethod: 'ADMIN_VERIFIED',
+  revokedAt: null,
+};
 const THEIRS = '1003000134';
 
 /*
@@ -183,9 +188,13 @@ beforeEach(() => {
   });
   (listSharesForNpi as jest.Mock).mockResolvedValue([{ shareId: 'share-1' }]);
   (revokeShare as jest.Mock).mockResolvedValue({ success: true });
-  // OWNER owns MINE; nobody owns THEIRS.
+  /*
+   * OWNER holds a VERIFIED binding for MINE; nobody holds one for THEIRS.
+   * Wave 1075: a bare row is no longer authority — only `verifiedAt` plus a
+   * recognised method is. A fixture without them is a PENDING claim.
+   */
   prisma.npiOwnership.findFirst.mockImplementation(async ({ where }: { where: { userId: string; npi: string } }) =>
-    where.userId === OWNER && where.npi === MINE ? { id: 'binding-1' } : null,
+    where.userId === OWNER && where.npi === MINE ? VERIFIED_BINDING : null,
   );
   prisma.opportunity.findUnique.mockResolvedValue(null);
 });
