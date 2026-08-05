@@ -104,10 +104,10 @@ export function CareerLoopHome() {
     const on = i < reached;
     switch (i) {
       case 0: return { on, text: digits.length ? `${digits.slice(0, 2)}${'•'.repeat(Math.max(0, digits.length - 2))}` : '··········' };
-      case 1: return { on, text: live ? profile.displayName : 'Your profile' };
-      case 2: return { on, text: state.selected ? state.selected.title : 'Roles that fit' };
-      case 3: return { on, text: on ? 'You choose what to send' : 'You choose' };
-      case 4: return { on, text: on ? 'Employer review begins' : 'Employer review' };
+      case 1: return { on, text: live ? profile.displayName : '' };
+      case 2: return { on, text: state.selected ? state.selected.title : '' };
+      case 3: return { on, text: on ? 'You choose what to send' : '' };
+      case 4: return { on, text: on ? 'Employer review begins' : '' };
       default: return { on, text: '' };
     }
   };
@@ -253,14 +253,14 @@ export function CareerLoopHome() {
               )}
             </>
           ) : (
-            <p className="clh-name-xl clh-dim">Your profile, from public sources</p>
+            <p className="clh-name-xl clh-dim" />
           )}
         </div>
         <div data-clh-reveal>
           <h2 className="clh-h">Start with what is already known.</h2>
           <p className="clh-sub">
-            Enter your NPI and VitalCV fills in professional information available from
-            public sources. See where each item came from, review it, and add what is missing.
+            VitalCV fills in professional information from public sources. See where each
+            item came from, review it, and add what is missing.
           </p>
         </div>
       </section>
@@ -271,8 +271,8 @@ export function CareerLoopHome() {
         <div data-clh-reveal>
           <h2 className="clh-h">Find work that fits.</h2>
           <p className="clh-sub">
-            Tell us what matters to you—specialty, location, schedule, and career goals.
-            See relevant opportunities and why they may fit.
+            Tell us what matters—specialty, location, schedule, goals—and see roles that
+            fit, and why.
           </p>
         </div>
 
@@ -337,8 +337,8 @@ export function CareerLoopHome() {
         <div data-clh-reveal>
           <h2 className="clh-h">Apply with your profile.</h2>
           <p className="clh-sub">
-            Preview exactly what an employer will receive, then send your VitalCV profile
-            instead of rebuilding your professional history from scratch.
+            Preview exactly what an employer receives, then send your profile instead of
+            rebuilding your history.
           </p>
         </div>
 
@@ -424,8 +424,7 @@ export function CareerLoopHome() {
         <div data-clh-reveal>
           <h2 className="clh-h">Keep it for your next move.</h2>
           <p className="clh-sub">
-            Update your profile once and reuse it for future applications and employer
-            requests throughout your career.
+            Update it once and reuse it for every future application.
           </p>
         </div>
         <div className="clh-keep" data-clh-reveal>
