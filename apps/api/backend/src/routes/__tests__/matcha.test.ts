@@ -81,7 +81,10 @@ beforeEach(() => {
   // Default: the verified user DOES own the NPI. Tests that need the
   // unauthorized path override this explicitly.
   npiOwnershipFindFirst.mockReset();
-  npiOwnershipFindFirst.mockResolvedValue({ id: 'binding-1' });
+  npiOwnershipFindFirst.mockResolvedValue(
+    // Wave 1075: a VERIFIED binding; a bare row is now a pending claim.
+    { verifiedAt: new Date('2026-02-01T00:00:00Z'), verificationMethod: 'ADMIN_VERIFIED', revokedAt: null },
+  );
 });
 
 async function invokeRoute(

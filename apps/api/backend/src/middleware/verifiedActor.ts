@@ -19,6 +19,11 @@
 import type { Request } from 'express';
 
 import { HttpError } from '../utils/httpError';
+import {
+  authorizesPrivateAccess,
+  blockedReason,
+  ownershipState,
+} from '../services/ownership/npiOwnershipState';
 import { log } from '../obs/logger';
 import type { VerifiedAuth } from './verifiedIdentity';
 import prisma from '../graphql/prisma_client';
@@ -42,7 +47,7 @@ import prisma from '../graphql/prisma_client';
  */
 function auditDenial(
   req: Request,
-  reason: 'no_verified_session' | 'npi_not_bound' | 'malformed_npi',
+  reason: 'no_verified_session' | 'npi_not_bound' | 'ownership_pending' | 'malformed_npi',
 ): void {
   log('warn', 'authz_denied', {
     reason,
@@ -77,13 +82,16 @@ export function requireVerifiedClerkUserId(req: Request): string {
 /**
  * Assert that the verified user may act for this NPI.
  *
- * Authorized when an unrevoked `NpiOwnership` row binds the two. A share
- * discloses a clinician's compiled evidence, so "signed in" is not
- * sufficient — the caller must be the clinician (or hold an explicitly
- * granted binding).
+ * A share discloses a clinician's compiled evidence, so "signed in" is not
+ * sufficient — and neither is "asked to be". Only a VERIFIED or DELEGATED
+ * binding authorizes. A pending self-asserted claim (`CLAIMED`, no
+ * `verifiedAt`) is a request, and PR #1074 treated it as authority: any
+ * signed-in user could claim a stranger's NPI and read their private record.
  *
  * 403, not 404: the caller is authenticated and the NPI is public, so there
- * is nothing to conceal by pretending the record is absent.
+ * is nothing to conceal by pretending the record is absent. The message names
+ * the state so the surface can route the clinician into verification rather
+ * than guessing why it was refused.
  */
 export async function requireNpiAuthorization(
   userId: string,
@@ -96,16 +104,23 @@ export async function requireNpiAuthorization(
     throw new HttpError(400, 'NPI must be exactly 10 digits.');
   }
 
+  // Revoked rows are read too, so a revoked binding is reported as revoked
+  // rather than as "never linked".
   const binding = await prisma.npiOwnership.findFirst({
-    where: { userId, npi: digits, revokedAt: null },
-    select: { id: true },
+    where: { userId, npi: digits },
+    select: { verifiedAt: true, verificationMethod: true, revokedAt: true },
+    orderBy: { claimedAt: 'desc' },
   });
 
-  if (!binding) {
-    if (req) auditDenial(req, 'npi_not_bound');
+  const state = ownershipState(binding);
+  if (!authorizesPrivateAccess(state)) {
+    if (req) auditDenial(req, state === 'pending' ? 'ownership_pending' : 'npi_not_bound');
+    // A stable code so the Apply surface can route a PENDING clinician into
+    // verification instead of showing a generic refusal.
     throw new HttpError(
       403,
-      'This NPI is not linked to your account. Claim it before sharing its record.',
+      blockedReason(state),
+      state === 'pending' ? 'OWNERSHIP_PENDING' : 'OWNERSHIP_REQUIRED',
     );
   }
 }

@@ -29,6 +29,29 @@ export const FUNNEL_EVENTS = {
   // SHD-2.2: the quiet employer entry beside the clinician NPI action, so the
   // two sides of the hero conversion are distinguishable in the funnel.
   EMPLOYER_ENTRY_CLICKED: 'employer_entry_clicked',
+
+  /*
+   * Wave 1075 — the one real loop on `/`. Stage metadata only: no NPI, no
+   * clinician name, no credential detail, no blocker text. See the payload
+   * allowlist pinned in __tests__/funnel-instrumentation.test.ts.
+   */
+  NPI_INPUT_STARTED: 'npi_input_started',
+  NPI_RESOLVED: 'npi_resolved',
+  NPI_RESOLUTION_FAILED: 'npi_resolution_failed',
+  MATCH_FEED_VIEWED: 'match_feed_viewed',
+  /** The system picking the first match — NOT a user choice. Counted apart
+   *  so selection rate never inherits the default. */
+  MATCH_DEFAULTED: 'match_defaulted',
+  OPPORTUNITY_SELECTED: 'opportunity_selected',
+  APPLY_OPENED: 'apply_opened',
+  AUTHENTICATION_STARTED: 'authentication_started',
+  /** Signed in, NPI claimed, ownership unproven — the clinician went to
+   *  verification rather than being told to sign in again. */
+  OWNERSHIP_VERIFICATION_STARTED: 'ownership_verification_started',
+  SHARE_PREVIEWED: 'share_previewed',
+  /** Fires ONLY after the backend share succeeded. */
+  SHARE_COMPLETED: 'share_completed',
+  SHARE_REVOKED: 'share_revoked',
 } as const;
 
 export type FunnelEventName = (typeof FUNNEL_EVENTS)[keyof typeof FUNNEL_EVENTS];

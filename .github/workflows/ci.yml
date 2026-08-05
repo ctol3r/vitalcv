@@ -120,6 +120,15 @@ jobs:
       # runs signed-out and must not depend on a backend.
       - name: Run web e2e suite
         run: pnpm --filter @vitalcv/web exec playwright test
+      # Wave 1075: `/` serves the career loop; the evidence film is the tested
+      # PUBLIC_HOME_VARIANT rollback. Its specs were preserved rather than
+      # deleted, so they run against a server booted on the rollback variant.
+      # A separate run (not a separate project) because the variant is decided
+      # by the SERVER — keeping `/` a plain synchronous read of one env var.
+      - name: Run web e2e suite (film rollback variant)
+        env:
+          E2E_HOME_VARIANT: film
+        run: pnpm --filter @vitalcv/web exec playwright test
       - name: Upload Playwright report on failure
         if: failure()
         uses: actions/upload-artifact@v7
