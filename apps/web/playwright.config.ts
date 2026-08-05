@@ -6,6 +6,37 @@ const e2ePort = process.env.PORT ?? '3000';
 const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? `http://127.0.0.1:${e2ePort}`;
 
 /**
+ * Specs that describe the EVIDENCE FILM homepage.
+ *
+ * `/` serves the career loop as of Wave 1075; the film remains the tested
+ * rollback. These run in their own project with the variant header so they
+ * keep asserting the composition they were written for.
+ */
+/**
+ * A film run boots the web server with PUBLIC_HOME_VARIANT=film and runs ONLY
+ * the film specs. Splitting by server rather than by request keeps `/` a plain
+ * synchronous server component reading one env var — a request-scoped override
+ * would have made the page async and broken every renderToStaticMarkup guard,
+ * and would have meant a request could decide which homepage a crawler sees.
+ */
+const filmRun = process.env.E2E_HOME_VARIANT === 'film';
+
+const FILM_SPECS = [
+  /tests\/e2e\/ask-home\.spec\.ts/,
+  /tests\/e2e\/ask-npi-response\.spec\.ts/,
+  /tests\/e2e\/doctrine-visual\.spec\.ts/,
+  /tests\/e2e\/glass-chrome\.spec\.ts/,
+  /tests\/e2e\/home-a11y-floor\.spec\.ts/,
+  /tests\/e2e\/home-atmosphere\.spec\.ts/,
+  /tests\/e2e\/home-layout-stability\.spec\.ts/,
+  /tests\/e2e\/home-phase\.spec\.ts/,
+  /tests\/e2e\/homepage-degradation\.spec\.ts/,
+  /tests\/e2e\/homepage-proof-moment\.spec\.ts/,
+  /tests\/e2e\/liquid-menu\.spec\.ts/,
+  /tests\/e2e\/npi-truth-engine\.spec\.ts/,
+];
+
+/**
  * Authed mode (J8 — real Clerk test-auth): when the Clerk DEVELOPMENT-instance
  * keys are provided, the web server boots WITH Clerk and the suite switches to
  * the `tests/e2e-authed` projects, which sign a real test user in through the
@@ -70,6 +101,14 @@ export default defineConfig({
         {
           name: 'chromium',
           use: { ...devices['Desktop Chrome'] },
+          // In a film run this project is the one that gets skipped.
+          testIgnore: filmRun ? undefined : FILM_SPECS,
+          testMatch: filmRun ? /$^/ : undefined,
+        },
+        {
+          name: 'chromium-film',
+          testMatch: filmRun ? FILM_SPECS : /$^/,
+          use: { ...devices['Desktop Chrome'] },
         },
       ],
 
@@ -114,6 +153,10 @@ export default defineConfig({
       // RAILWAY_ENVIRONMENT/VERCEL_ENV first), so enabling it for the e2e
       // server cannot reach vitalcv.com.
       DESIGN_PREVIEW: '1',
+      // Wave 1075: `/` serves the career loop. A film run flips the whole
+      // server to the rollback so the preserved film specs assert the
+      // composition they were written for.
+      PUBLIC_HOME_VARIANT: filmRun ? 'film' : 'career-loop',
       // scene-degradation.spec.ts forces capability tiers via `?sceneTier=`;
       // readForcedTier() ignores the override in production builds unless this
       // is set at BUILD time (NEXT_PUBLIC_* is inlined by `next build`, which
