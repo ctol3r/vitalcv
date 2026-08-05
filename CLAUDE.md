@@ -17,29 +17,42 @@ When dispatched as part of a wave, roles are explicit:
 
 **"Green" is a claim about a SHA, not a PR.** Read the required contexts live (`gh api repos/:owner/:repo/branches/main/protection --jq '.required_status_checks.contexts[]'` — the list has moved 2 → 5 → 7 → 14 in six weeks) and enumerate conclusions from `commits/<head-sha>/check-runs`. A `CONFLICTING` PR skips every `pull_request` gate and displays ~3 push checks that look green; a push to a closed PR runs zero workflows silently. Require zero pending, zero failing, and `mergeStateStatus == CLEAN`. Never `gh pr merge --auto`.
 
-## Founder visual gate (active 2026-08-02)
+## Public product work — the gate
 
-Public-facing visual work is governed by
-[`docs/ops/FOUNDER_VISUAL_GATE.md`](docs/ops/FOUNDER_VISUAL_GATE.md).
+Public-facing product and visual work is governed by the canonical strategy
+hierarchy, in this order:
 
-For `/`, `/employers`, `/trust`, `/pilot`, `/onboarding`, `/explore`, shared
-public chrome, and public experience components:
+1. [`docs/strategy/vitalcv-strategy-operating-brief.md`](docs/strategy/vitalcv-strategy-operating-brief.md)
+2. [`docs/strategy/vitalcv-category-strategy.md`](docs/strategy/vitalcv-category-strategy.md)
+3. [`docs/strategy/product-decision-filter.md`](docs/strategy/product-decision-filter.md)
+4. later wave-specific instructions
 
-- name one creative owner;
-- attach desktop and mobile before/after evidence;
-- attach recordings for motion or scroll-controlled behavior;
-- document duplicate-intent searches before creating a component;
-- do not describe an unmounted design-system component as a customer-facing
-  improvement;
-- keep the PR in draft until the founder comments
-  `FOUNDER VISUAL DECISION: GO`;
-- do not begin a parallel homepage composition while the recovery freeze is
-  active.
+**Every product proposal must pass the decision filter** — it moves forward only
+when it materially strengthens time-to-a-useful-profile, role relevance, repeated
+data entry, clinician-controlled sharing, employer acceptance, successful starts,
+or profile reuse. If it passes none, classify it honestly (infrastructure,
+maintenance, compliance, premature scope, distraction) rather than shipping it as
+product.
 
-Green CI, design lint, accessibility checks, and source-truth checks do not
-prove visual quality. Founder approval is required in addition to the normal
-merge gate. Security, privacy, outage, source-truth, and data-loss fixes may
-proceed without visual approval when they avoid unrelated visual recomposition.
+Craft expectations for a public surface, unchanged: name one creative owner,
+attach desktop and mobile before/after evidence, attach recordings for motion or
+scroll-controlled behaviour, search for duplicate intent before creating a
+component, and never describe an unmounted design-system component as a
+customer-facing improvement. Green CI, design lint, accessibility and
+source-truth checks do not prove visual quality.
+
+Production promotion requires an explicit founder instruction for the change in
+question, plus the deployment discipline in
+[Deployment](#deployment-railway--vercel-is-deprecated): exact deployed SHA,
+matching public `/api/version`, a passing production smoke, and a homepage
+interaction audit.
+
+**Superseded 2026-08-05.** The Wave-1072 founder visual gate that stood here
+implied Z0 was open, Z1 could not begin, production promotion was locked, and the
+Living Evidence Record awaited approval. All four are closed: Z0 is complete, Z1
+shipped, and `/` was promoted to the One Real Loop under explicit founder
+authorization (PR #1075, `7b6bb0aa1`). Do not reopen the Z0 storyboard,
+animatics, media package, or Treatment B cycle.
 
 ## VitalCV Strategy Contract
 

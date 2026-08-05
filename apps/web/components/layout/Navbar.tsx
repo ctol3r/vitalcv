@@ -43,10 +43,10 @@ const NAV_GROUPS = [
     // sits before the page content in DOM order and is hidden while collapsed,
     // so a shared phrase makes `getByText(...).first()` resolve to an invisible
     // node — which is exactly how this broke the homepage's own copy assertion.
-    blurb: 'Your record, assembled from the sources employers already trust.',
+    blurb: 'One reusable profile, built from the sources employers already trust.',
     links: [
-      { href: '/onboarding', label: 'Check your readiness', detail: 'Begin with your NPI' },
-      { href: '/passport', label: 'Your evidence record', detail: 'What travels, and what you hold' },
+      { href: '/onboarding', label: 'Build your profile', detail: 'Begin with your NPI' },
+      { href: '/passport', label: 'Your VitalCV profile', detail: 'What travels, and what you hold' },
     ],
   },
   {
@@ -57,15 +57,13 @@ const NAV_GROUPS = [
       { href: '/employers', label: 'For employers', detail: 'What arrives, and what it does not decide' },
     ],
   },
-  {
-    id: 'evidence',
-    label: 'Evidence',
-    blurb: 'Every claim names the source that answered and its refresh window.',
-    links: [
-      { href: '/evidence-network', label: 'Evidence network', detail: 'How records move between parties' },
-      { href: '/trust/attribution', label: 'Source attribution', detail: 'Which source answered for what' },
-    ],
-  },
+  /*
+   * Wave 1077 IA correction: `Evidence` was a fifth top-level concept, and a
+   * customer is meant to hold four (VitalCV, their profile, VitalCV Jobs,
+   * Apply with VitalCV). "Evidence" names the machinery. Both of its pages are
+   * real and keep working — they moved UNDER Trust, which is already where a
+   * visitor goes to ask what this company actually knows.
+   */
   {
     id: 'trust',
     label: 'Trust',
@@ -73,6 +71,8 @@ const NAV_GROUPS = [
     links: [
       { href: '/trust', label: 'Trust', detail: 'What VitalCV does and does not decide' },
       { href: '/status', label: 'Status', detail: 'Live source and system state' },
+      { href: '/trust/attribution', label: 'Source attribution', detail: 'Which source answered for what' },
+      { href: '/evidence-network', label: 'Evidence network', detail: 'How records move between parties' },
     ],
   },
 ] as const;
@@ -261,13 +261,19 @@ export default function Navbar() {
           >
             Sign In
           </Link>
-          <Link
-            href="/passport"
-            style={{ backgroundColor: 'var(--vt-accent)' }}
-            className="inline-flex items-center rounded-[10px] px-4 min-h-11 text-sm font-semibold text-white hover:opacity-90 transition"
-          >
-            Check Readiness
-          </Link>
+          {/*
+            Wave 1077 IA correction: the primary CTA read `Check Readiness` and
+            pointed at `/passport` — the retired promise pointing at the retired
+            noun, while the homepage asks for `Build my free profile`. Two names
+            for one action.
+
+            It is REMOVED from primary navigation rather than relabelled,
+            because relabelling it to a customer-language destination requires a
+            route rename plus redirects, and the founder decision is explicit
+            that those must ship in the same change or not at all. `/passport`
+            stays reachable under Clinicians, and the homepage still carries the
+            primary action.
+          */}
         </div>
 
         {/* Mobile menu toggle */}

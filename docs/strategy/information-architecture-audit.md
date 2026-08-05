@@ -117,7 +117,19 @@ failure the instruction warns against. Recorded as a gap below.
 
 ---
 
-## 5. What this audit does not do
+## 5. Decisions applied in this PR (founder-approved 2026-08-05)
+
+| Decision | Applied |
+| --- | --- |
+| Demote `Evidence` beneath `Trust` | ✅ `Navbar.tsx` — both pages keep working, now under Trust |
+| Remove `Check Readiness → /passport` from primary nav | ✅ desktop CTA removed; mobile overlay now `Build my profile → /onboarding` |
+| No retired terms in primary navigation | ✅ "Check your readiness" → "Build your profile"; "Your evidence record" → "Your VitalCV profile" |
+| Preserve working routes until redirects exist | ✅ `/passport` and `/holder/*` unchanged and still reachable |
+| No backend renaming for cosmetics | ✅ nothing renamed |
+| No empty labels or placeholder destinations | ✅ none created |
+| No top-level `Starts` page | ✅ not created — a metric is not a navigation destination |
+
+## 6. What this audit does not do
 
 It changes no labels. Every recommendation above is a proposal with a verified
 destination attached, so the founder can approve them individually. The one thing

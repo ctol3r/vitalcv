@@ -27,7 +27,8 @@ test.describe('liquid mobile menu', () => {
     for (const label of ['Home', 'For Clinicians', 'For Employers', 'Trust']) {
       await expect(dialog.getByRole('link', { name: label })).toBeVisible();
     }
-    await expect(dialog.getByRole('link', { name: 'Check Readiness' })).toBeVisible();
+    // Wave 1077: `Check Readiness → /passport` retired from primary navigation.
+    await expect(dialog.getByRole('link', { name: 'Build my profile' })).toBeVisible();
     await expect(dialog.getByRole('link', { name: 'Sign In' })).toBeVisible();
 
     // Escape closes, restores scroll, and returns focus to the trigger.
