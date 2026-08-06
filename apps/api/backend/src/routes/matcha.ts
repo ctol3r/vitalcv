@@ -654,10 +654,10 @@ export function registerMatchaRoutes(app: Express): void {
        * public facts rather than filtered down from the private object.
        */
       let authorized = false;
-      let verifiedUserId: string | null = null;
+      let verifiedClerkUserId: string | null = null;
       try {
-        verifiedUserId = requireVerifiedClerkUserId(req);
-        await requireNpiAuthorization(verifiedUserId, npi, req);
+        verifiedClerkUserId = requireVerifiedClerkUserId(req);
+        await requireNpiAuthorization(verifiedClerkUserId, npi, req);
         authorized = true;
       } catch {
         authorized = false;
@@ -680,7 +680,7 @@ export function registerMatchaRoutes(app: Express): void {
       const result = await getLiveMatchesForNpi(npi, filters, intent);
 
       if (!authorized) {
-        log('info', 'matcha: public_safe_projection', { hasSession: Boolean(verifiedUserId) });
+        log('info', 'matcha: public_safe_projection', { hasSession: Boolean(verifiedClerkUserId) });
         res.json(toPublicSafeMatches(npi, result as { matches?: unknown[] }));
         return;
       }
@@ -726,8 +726,8 @@ export function registerMatchaRoutes(app: Express): void {
       // and one that reads as an outage in the logs. The web proxy's own 401
       // hid this from the outside, so only a route-level test could see it.
       try {
-        const simUserId = requireVerifiedClerkUserId(req);
-        await requireNpiAuthorization(simUserId, npi, req);
+        const simClerkUserId = requireVerifiedClerkUserId(req);
+        await requireNpiAuthorization(simClerkUserId, npi, req);
       } catch (authError) {
         const status = authError instanceof HttpError ? authError.status : 401;
         res.status(status).json({
@@ -768,8 +768,8 @@ export function registerMatchaRoutes(app: Express): void {
     // A MatchExplanation carries per-clinician blockers and credential
     // coverage — private state. Authenticated and NPI-bound only.
     try {
-      const explainUserId = requireVerifiedClerkUserId(req);
-      await requireNpiAuthorization(explainUserId, npi, req);
+      const explainClerkUserId = requireVerifiedClerkUserId(req);
+      await requireNpiAuthorization(explainClerkUserId, npi, req);
     } catch (authError) {
       const status = authError instanceof HttpError ? authError.status : 401;
       res.status(status).json({
