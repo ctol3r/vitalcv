@@ -17,12 +17,18 @@ import { toPublicSafeMatches } from '../../services/matcha/publicSafeMatches';
 
 jest.mock('../../graphql/prisma_client', () => ({
   __esModule: true,
-  default: { npiOwnership: { findFirst: jest.fn() } },
+  default: {
+    npiOwnership: { findFirst: jest.fn() },
+    // requireNpiAuthorization resolves the INTERNAL User.id first:
+    // npi_ownership.user_id is a uuid column, not the Clerk subject.
+    user: { findUnique: jest.fn() },
+  },
 }));
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const prisma = require('../../graphql/prisma_client').default as {
   npiOwnership: { findFirst: jest.Mock };
+  user: { findUnique: jest.Mock };
 };
 
 const req = (over: Partial<Request> & Record<string, unknown> = {}) =>
@@ -65,7 +71,11 @@ describe('C1 — a browser may not assert the identity that authorizes a share',
 });
 
 describe('C1 — a signed-in user cannot act on another clinician’s NPI', () => {
-  beforeEach(() => prisma.npiOwnership.findFirst.mockReset());
+  beforeEach(() => {
+    prisma.npiOwnership.findFirst.mockReset();
+    prisma.user.findUnique.mockReset();
+    prisma.user.findUnique.mockResolvedValue({ id: '11111111-2222-3333-4444-555555555555' });
+  });
 
   it('allows the owner', async () => {
     // Wave 1075: authority is verifiedAt + a recognised method, not mere existence.
@@ -79,7 +89,16 @@ describe('C1 — a signed-in user cannot act on another clinician’s NPI', () =
     // report them AS revoked — a better refusal, failing an outcome-blind test.
     expect(prisma.npiOwnership.findFirst).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: expect.objectContaining({ userId: 'user_real', npi: '1234567893' }),
+        /*
+         * The INTERNAL User.id, not the Clerk subject: npi_ownership.user_id
+         * is a uuid column, and querying it with `user_real` made Postgres
+         * reject the comparison — an authenticated request got a 500 instead
+         * of a 403, and a real binding could never have matched.
+         */
+        where: expect.objectContaining({
+          userId: '11111111-2222-3333-4444-555555555555',
+          npi: '1234567893',
+        }),
       }),
     );
   });

@@ -21,6 +21,9 @@ jest.mock('../../graphql/prisma_client', () => ({
   default: {
     $use: jest.fn(),
     npiOwnership: { findFirst: jest.fn() },
+    // requireNpiAuthorization resolves the INTERNAL User.id first:
+    // npi_ownership.user_id is a uuid column, not the Clerk subject.
+    user: { findUnique: jest.fn() },
     opportunity: { findUnique: jest.fn() },
   },
 }));
@@ -58,6 +61,7 @@ import { listSharesForNpi, revokeShare } from '../../services/distribution/apply
 
 const prisma = prismaClient as unknown as {
   npiOwnership: { findFirst: jest.Mock };
+  user: { findUnique: jest.Mock };
   opportunity: { findUnique: jest.Mock };
 };
 
@@ -65,6 +69,24 @@ const prisma = prismaClient as unknown as {
 const OWNER = 'user_owner';
 const ATTACKER = 'user_attacker';
 const MINE = '1003000126';
+
+/**
+ * Clerk subject -> internal User.id.
+ *
+ * npi_ownership.user_id is a uuid column holding the INTERNAL id, so an
+ * ownership mock must key on THAT. Keeping a deterministic map lets these
+ * tests still say "the owner" and "the attacker" in Clerk terms.
+ */
+const INTERNAL_ID: Record<string, string> = {};
+let internalSeq = 0;
+const internalIdFor = (clerkId: string): string => {
+  if (!INTERNAL_ID[clerkId]) {
+    internalSeq += 1;
+    INTERNAL_ID[clerkId] = `00000000-0000-4000-8000-${String(internalSeq).padStart(12, '0')}`;
+  }
+  return INTERNAL_ID[clerkId];
+};
+
 const VERIFIED_BINDING = {
   verifiedAt: new Date('2026-02-01T00:00:00Z'),
   verificationMethod: 'ADMIN_VERIFIED',
@@ -181,6 +203,9 @@ function assertNoPrivateDetail(body: unknown) {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  prisma.user.findUnique.mockImplementation(
+    async ({ where }: { where: { clerkUserId: string } }) => ({ id: internalIdFor(where.clerkUserId) }),
+  );
   (getLiveMatchesForNpi as jest.Mock).mockResolvedValue(LIVE_RESULT);
   (generateApplyBundle as jest.Mock).mockResolvedValue({
     credentials: [{ type: 'LICENSE', issuer: 'CA Medical Board', status: 'ACTIVE' }],
@@ -194,7 +219,7 @@ beforeEach(() => {
    * recognised method is. A fixture without them is a PENDING claim.
    */
   prisma.npiOwnership.findFirst.mockImplementation(async ({ where }: { where: { userId: string; npi: string } }) =>
-    where.userId === OWNER && where.npi === MINE ? VERIFIED_BINDING : null,
+    where.userId === internalIdFor(OWNER) && where.npi === MINE ? VERIFIED_BINDING : null,
   );
   prisma.opportunity.findUnique.mockResolvedValue(null);
 });

@@ -80,6 +80,24 @@ export function requireVerifiedClerkUserId(req: Request): string {
 }
 
 /**
+ * Map a Clerk subject to the internal `User.id`.
+ *
+ * These two identifiers are not interchangeable and are easy to confuse:
+ * `clerkUserId` looks like `user_2abc…`; `internalUserId` is a UUID. Every
+ * table that scopes data to a person stores the INTERNAL id.
+ *
+ * Exported so callers resolve the boundary once, explicitly, instead of doing
+ * it inline — doing it inline is how the two got mixed up.
+ */
+export async function resolveInternalUserId(clerkUserId: string): Promise<string | null> {
+  const user = await prisma.user.findUnique({
+    where: { clerkUserId },
+    select: { id: true },
+  });
+  return user?.id ?? null;
+}
+
+/**
  * Assert that the verified user may act for this NPI.
  *
  * A share discloses a clinician's compiled evidence, so "signed in" is not
@@ -94,7 +112,7 @@ export function requireVerifiedClerkUserId(req: Request): string {
  * than guessing why it was refused.
  */
 export async function requireNpiAuthorization(
-  userId: string,
+  clerkUserId: string,
   npi: string,
   req?: Request,
 ): Promise<void> {
@@ -104,10 +122,31 @@ export async function requireNpiAuthorization(
     throw new HttpError(400, 'NPI must be exactly 10 digits.');
   }
 
+  /*
+   * `npi_ownership.user_id` is a UUID column holding the INTERNAL `User.id` —
+   * that is what routes/ownership.ts writes. Every caller of this function
+   * passes the CLERK subject, so the query sent `user_2abc…` at a uuid column
+   * and Postgres rejected it at the type comparison, BEFORE it could determine
+   * whether any row existed. The result was a 500 on an authenticated request
+   * instead of a 403, and a genuinely verified binding that could never match.
+   *
+   * Resolve the boundary explicitly. Never coerce or cast a Clerk id into a
+   * UUID: a Clerk subject is not a malformed UUID, it is a different
+   * identifier for the same person, and the mapping lives in the `User` table.
+   */
+  const internalUserId = await resolveInternalUserId(clerkUserId);
+  if (!internalUserId) {
+    // No VitalCV account row yet, so nothing can be bound to them. A 403 with
+    // the ordinary "not linked" message — not a 404 that would leak whether an
+    // account exists, and emphatically not a 500.
+    if (req) auditDenial(req, 'npi_not_bound');
+    throw new HttpError(403, blockedReason(null), 'OWNERSHIP_REQUIRED');
+  }
+
   // Revoked rows are read too, so a revoked binding is reported as revoked
   // rather than as "never linked".
   const binding = await prisma.npiOwnership.findFirst({
-    where: { userId, npi: digits },
+    where: { userId: internalUserId, npi: digits },
     select: { verifiedAt: true, verificationMethod: true, revokedAt: true },
     orderBy: { claimedAt: 'desc' },
   });

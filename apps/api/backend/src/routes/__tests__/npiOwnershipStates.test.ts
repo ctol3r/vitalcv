@@ -81,6 +81,24 @@ const prisma = prismaClient as unknown as {
   };
 };
 
+
+/**
+ * Clerk subject -> internal User.id.
+ *
+ * npi_ownership.user_id is a uuid column holding the INTERNAL id, so an
+ * ownership mock must key on THAT. Keeping a deterministic map lets these
+ * tests still say "the owner" and "the attacker" in Clerk terms.
+ */
+const INTERNAL_ID: Record<string, string> = {};
+let internalSeq = 0;
+const internalIdFor = (clerkId: string): string => {
+  if (!INTERNAL_ID[clerkId]) {
+    internalSeq += 1;
+    INTERNAL_ID[clerkId] = `00000000-0000-4000-8000-${String(internalSeq).padStart(12, '0')}`;
+  }
+  return INTERNAL_ID[clerkId];
+};
+
 const CLINICIAN = 'user_clinician';
 const OTHER = 'user_other';
 const ADMIN = 'user_admin';
@@ -183,16 +201,18 @@ function buildApp() {
 /** Point the binding lookup at one state for the clinician, nothing for others. */
 function bindingIs(state: Row | null, forUser = CLINICIAN) {
   prisma.npiOwnership.findFirst.mockImplementation(async ({ where }: { where: { userId: string } }) =>
-    where.userId === forUser ? state : null,
+    where.userId === internalIdFor(forUser) ? state : null,
   );
   prisma.npiOwnership.findUnique.mockImplementation(async ({ where }: { where: { userId_npi: { userId: string } } }) =>
-    where.userId_npi.userId === forUser ? state : null,
+    where.userId_npi.userId === internalIdFor(forUser) ? state : null,
   );
 }
 
 beforeEach(() => {
   jest.clearAllMocks();
-  prisma.user.findUnique.mockResolvedValue({ id: 'internal-user-1' });
+  prisma.user.findUnique.mockImplementation(
+    async ({ where }: { where: { clerkUserId: string } }) => ({ id: internalIdFor(where.clerkUserId) }),
+  );
   (fetchNpiFromCMS as jest.Mock).mockResolvedValue({
     rawPayload: { results: [{ enumeration_type: 'NPI-1' }] },
   });

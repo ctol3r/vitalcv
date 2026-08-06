@@ -6,6 +6,9 @@ jest.mock('../../graphql/prisma_client', () => ({
     $use: jest.fn(),
     // C2: the authorization path resolves the NPI<->user binding here.
     npiOwnership: { findFirst: jest.fn() },
+    // requireNpiAuthorization resolves the INTERNAL User.id first:
+    // npi_ownership.user_id is a uuid column, not the Clerk subject.
+    user: { findUnique: jest.fn() },
   },
 }));
 
@@ -71,6 +74,10 @@ import { registerMatchaRoutes } from '../matcha';
 import { getLiveMatchesForNpi } from '../../services/matcha/liveMatchaService';
 
 const getLiveMatchesMock = getLiveMatchesForNpi as jest.Mock;
+const userFindUnique = (prismaClient as unknown as {
+  user: { findUnique: jest.Mock };
+}).user.findUnique;
+
 const npiOwnershipFindFirst = (prismaClient as unknown as {
   npiOwnership: { findFirst: jest.Mock };
 }).npiOwnership.findFirst;
@@ -80,6 +87,9 @@ beforeEach(() => {
   getLiveMatchesMock.mockResolvedValue(LIVE_RESULT);
   // Default: the verified user DOES own the NPI. Tests that need the
   // unauthorized path override this explicitly.
+  // npi_ownership.user_id is the INTERNAL User.id (a uuid), not the Clerk subject.
+  userFindUnique.mockReset();
+  userFindUnique.mockResolvedValue({ id: '11111111-2222-3333-4444-555555555555' });
   npiOwnershipFindFirst.mockReset();
   npiOwnershipFindFirst.mockResolvedValue(
     // Wave 1075: a VERIFIED binding; a bare row is now a pending claim.
