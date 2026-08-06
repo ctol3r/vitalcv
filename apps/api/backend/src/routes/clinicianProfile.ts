@@ -71,12 +71,18 @@ export function registerClinicianProfileRoutes(app: Express): void {
     }),
   );
 
+  /**
+   * The caller's profiles. `?include=all` also returns drafts still in
+   * progress, which is how the surface recovers on a machine that has never
+   * seen this flow — no URL, no local storage, just the durable draft.
+   */
   app.get(
     '/api/clinician-profile',
     publicApiRateLimit,
     asyncHandler(async (req, res) => {
       const userId = requireVerifiedClerkUserId(req);
-      res.json({ profiles: await listProfiles(userId) });
+      const includeDrafts = req.query.include === 'all';
+      res.json({ profiles: await listProfiles(userId, { includeDrafts }) });
     }),
   );
 

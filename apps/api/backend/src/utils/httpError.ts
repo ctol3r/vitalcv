@@ -10,12 +10,25 @@
 export class HttpError extends Error {
   readonly status: number;
   readonly code: string;
+  /**
+   * Extra machine-readable context, merged into the error body when present.
+   *
+   * Exists so a client can act on a refusal rather than just print it — a
+   * field-level validation failure has to name its field for the surface to
+   * attach the message to the right input instead of dumping it at the top of
+   * a form. Omitted entirely when unset, so every existing error response is
+   * byte-identical to what it was before.
+   *
+   * Not for anything sensitive: this is serialized straight to the caller.
+   */
+  readonly details?: Record<string, string>;
 
-  constructor(status: number, message: string, code?: string) {
+  constructor(status: number, message: string, code?: string, details?: Record<string, string>) {
     super(message);
     this.name = 'HttpError';
     this.status = status;
     this.code = code ?? statusToCode(status);
+    if (details) this.details = details;
   }
 }
 

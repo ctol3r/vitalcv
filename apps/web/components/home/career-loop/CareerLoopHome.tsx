@@ -238,6 +238,18 @@ export function CareerLoopHome() {
                 {profile.readinessSummary.needsReview > 0 ? ` · ${profile.readinessSummary.needsReview} still need review` : ''}
                 {isDemo ? ' · illustrative' : ''}
               </p>
+              {/*
+                The handoff into activation (B1). Offered only on a REAL
+                resolution — an illustrative example resolves a fictional
+                clinician, and inviting someone to keep one as their own
+                profile would be the homepage's one genuinely dishonest
+                moment.
+              */}
+              {!isDemo && (
+                <a className="clh-act" href={`/profile/activate?npi=${profile.npi}`} data-home-claim-cta="">
+                  Keep this profile and correct it
+                </a>
+              )}
             </>
           ) : (
             <>

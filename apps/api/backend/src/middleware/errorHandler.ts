@@ -21,11 +21,13 @@ export function errorHandler(
   let status = 500;
   let message = "Internal Server Error";
   let errorCode = "INTERNAL_ERROR";
+  let details: Record<string, string> | undefined;
 
   if (err instanceof HttpError) {
     status = err.status;
     message = err.message;
     errorCode = err.code;
+    details = err.details;
   } else if (err && typeof err === "object") {
     if ("status" in err && typeof (err as Record<string, unknown>).status === "number") {
       status = (err as Record<string, unknown>).status as number;
@@ -72,6 +74,9 @@ export function errorHandler(
     error: {
       code: errorCode,
       message,
+      // Spread only when the thrower supplied context, so an error without
+      // details serializes exactly as it always has.
+      ...(details ?? {}),
     },
   });
 }

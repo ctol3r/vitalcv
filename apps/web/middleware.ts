@@ -37,6 +37,32 @@ import { checkCorsAllowlist, getAllowedOrigins } from '@/lib/security/corsAllowl
 const isSignInPage = createRouteMatcher(['/sign-in(.*)', '/sign-up(.*)']);
 
 /**
+ * The sign-in redirect, carrying the WHOLE destination — path and query.
+ *
+ * This used to send `redirect_url=<pathname>`, dropping the search string. For
+ * most gated pages that was invisible, because the path is the whole address.
+ * It is not invisible for a flow whose subject travels in the query: a
+ * clinician arriving at `/profile/activate?npi=1234567890` was returned after
+ * sign-in to `/profile/activate` with no NPI, and had to type it again — on the
+ * one step where the product's promise is that you never re-enter anything.
+ *
+ * The role-resolution interstitial below already preserved `search`; these two
+ * hops now agree, so a return destination survives however many of them a
+ * first-time sign-in happens to take.
+ *
+ * `redirect_url` is a path-and-query taken from this request's own URL, never
+ * from caller-supplied input, so it cannot be used to bounce a user off-site.
+ */
+function signInRedirect(req: NextRequest): URL {
+  const signInUrl = req.nextUrl.clone();
+  const destination = `${req.nextUrl.pathname}${req.nextUrl.search}`;
+  signInUrl.pathname = '/sign-in';
+  signInUrl.search = '';
+  signInUrl.searchParams.set('redirect_url', destination);
+  return signInUrl;
+}
+
+/**
  * API routes that should never 500 due to Clerk edge failures.
  * Clerk is attempted (so authenticated users get full data), but
  * failures are caught and the request passes through to route handlers.
@@ -62,10 +88,7 @@ const clerkHandler = clerkMiddleware(async (auth, req) => {
   // 3. Require authentication
   const session = await auth();
   if (!session.userId) {
-    const signInUrl = req.nextUrl.clone();
-    signInUrl.pathname = '/sign-in';
-    signInUrl.searchParams.set('redirect_url', pathname);
-    return NextResponse.redirect(signInUrl);
+    return NextResponse.redirect(signInRedirect(req));
   }
 
   // 4. Read role from JWT claim (fast path)
@@ -160,10 +183,7 @@ async function routeMiddleware(req: NextRequest, event: NextFetchEvent) {
       return NextResponse.next();
     }
 
-    const signInUrl = req.nextUrl.clone();
-    signInUrl.pathname = '/sign-in';
-    signInUrl.searchParams.set('redirect_url', req.nextUrl.pathname);
-    return NextResponse.redirect(signInUrl);
+    return NextResponse.redirect(signInRedirect(req));
   }
 
   if (INTELLIGENCE_API.test(req.nextUrl.pathname)) {

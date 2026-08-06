@@ -146,3 +146,61 @@ describe('middleware preview fallback', () => {
     expect(response.headers.get('location')).toContain('redirect_url=%2Fholder');
   });
 });
+
+/**
+ * The return destination has to survive sign-in WHOLE — path and query.
+ *
+ * `redirect_url` used to carry the pathname alone. On a gated page whose
+ * subject travels in the query, that silently drops the subject: the clinician
+ * comes back to an empty form on the one step where the product's promise is
+ * that nothing is entered twice.
+ */
+describe('sign-in preserves the whole return destination', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.resetModules();
+    vi.stubEnv('CLERK_SECRET_KEY', '');
+  });
+
+  it('keeps the query string on the redirect', async () => {
+    const middlewareModule = await import('../middleware');
+    const req = new NextRequest('http://localhost:3000/holder?npi=1003000126&from=home');
+    const response = await middlewareModule.default(req, {} as never);
+
+    const location = response.headers.get('location') ?? '';
+    const redirectUrl = new URL(location, 'http://localhost:3000').searchParams.get('redirect_url');
+    expect(redirectUrl).toBe('/holder?npi=1003000126&from=home');
+  });
+
+  it('does not leak the original query into the sign-in URL itself', async () => {
+    const middlewareModule = await import('../middleware');
+    const req = new NextRequest('http://localhost:3000/holder?npi=1003000126');
+    const response = await middlewareModule.default(req, {} as never);
+
+    const url = new URL(response.headers.get('location') ?? '', 'http://localhost:3000');
+    // One parameter, and it is the destination — the clone's own search is
+    // cleared, so `npi` does not also sit loose on /sign-in.
+    expect([...url.searchParams.keys()]).toEqual(['redirect_url']);
+  });
+
+  it('still works for a path with no query at all', async () => {
+    const middlewareModule = await import('../middleware');
+    const req = new NextRequest('http://localhost:3000/holder');
+    const response = await middlewareModule.default(req, {} as never);
+
+    const url = new URL(response.headers.get('location') ?? '', 'http://localhost:3000');
+    expect(url.searchParams.get('redirect_url')).toBe('/holder');
+  });
+
+  it('sends a relative destination, never an absolute one', async () => {
+    const middlewareModule = await import('../middleware');
+    const req = new NextRequest('http://localhost:3000/holder?next=https://evil.example.com');
+    const response = await middlewareModule.default(req, {} as never);
+
+    const url = new URL(response.headers.get('location') ?? '', 'http://localhost:3000');
+    // Built from this request's own path and query, so it cannot become an
+    // off-site bounce however the query is crafted.
+    expect(url.searchParams.get('redirect_url')?.startsWith('/holder')).toBe(true);
+    expect(url.origin).toBe('http://localhost:3000');
+  });
+});

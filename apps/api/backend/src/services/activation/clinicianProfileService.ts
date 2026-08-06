@@ -24,6 +24,7 @@ import {
   type ActivationState,
 } from './clinicianProfileState';
 import {
+  FieldValidationError,
   mergeProfile,
   missingRequired,
   PROFILE_FIELDS,
@@ -250,10 +251,26 @@ export async function readDraft(userId: string, npiRaw: string): Promise<Profile
   return toView(row, await isOwnershipVerified(userId, npi));
 }
 
-/** Every reusable profile this clinician holds. */
-export async function listProfiles(userId: string): Promise<ProfileView[]> {
+/**
+ * Every reusable profile this clinician holds.
+ *
+ * `includeDrafts` also returns the ones still in progress. That exists because
+ * recovery cannot be allowed to depend on the browser: a clinician who claimed
+ * a profile, closed the laptop and signed in a week later on a different
+ * machine has no URL and no local storage to recover from, and asking them to
+ * re-enter what they already filled in is the single thing a reusable profile
+ * exists to prevent. The durable draft is the only thing that remembers.
+ *
+ * The default is unchanged — saved profiles only — so a caller asking for the
+ * reusable list still gets exactly that and never has an unfinished draft
+ * appear as though it were one.
+ */
+export async function listProfiles(
+  userId: string,
+  opts: { includeDrafts?: boolean } = {},
+): Promise<ProfileView[]> {
   const rows = (await prisma.clinicianProfileDraft.findMany({
-    where: { userId, savedAt: { not: null } },
+    where: opts.includeDrafts ? { userId } : { userId, savedAt: { not: null } },
     orderBy: { updatedAt: 'desc' },
     select: SELECT,
   })) as unknown as DraftRow[];
@@ -318,9 +335,27 @@ export async function saveCorrections(
 ): Promise<ProfileView> {
   const npi = assertNpi(npiRaw);
   const existing = await requireOwnDraft(userId, npi);
-  // Throws on a declared field with an invalid value — silently discarding
-  // something the clinician typed is worse than refusing it.
-  const clean = validateCorrections(corrections);
+  /*
+   * Throws on a declared field with an invalid value — silently discarding
+   * something the clinician typed is worse than refusing it.
+   *
+   * Translated to a 400 that NAMES the field. Left as a bare
+   * FieldValidationError this reached the generic branch of the error handler,
+   * which has no status to read and therefore answered 500 — so a mistyped
+   * email address was reported to the clinician as a server fault and to
+   * Sentry as an outage. A typo is neither. The field travels in `details` so
+   * the surface can attach the message to the input that caused it rather than
+   * dropping it at the top of the form.
+   */
+  let clean: Record<string, unknown>;
+  try {
+    clean = validateCorrections(corrections);
+  } catch (err) {
+    if (err instanceof FieldValidationError) {
+      throw new HttpError(400, err.message, 'FIELD_INVALID', { field: err.field });
+    }
+    throw err;
+  }
   const merged = { ...obj(existing.clinicianFields), ...clean };
 
   return mutateWithAudit(userId, npi, 'CLINICIAN_PROFILE_CORRECTED', {
