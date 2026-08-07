@@ -504,7 +504,7 @@ export type WorkflowAction =
 export type WorkflowSurface =
   | '/get-ready'
   | '/interview'
-  | '/passport'
+  | '/onboarding'
   | '/holder'
   | '/verifier'
   | '/verifier/inbox'
@@ -548,7 +548,7 @@ export const WORKFLOW_ROUTING: Record<WorkflowContext, {
     suggestedRoles:   ['employer', 'verifier', 'clinician'],
     permittedActions: ['view_readiness', 'view_claims', 'flag_for_review'],
     primarySurface:   '/verifier/inbox',
-    fallbackSurface:  '/passport',
+    fallbackSurface:  '/onboarding', // /passport retired 2026-08-07
     description:      'Continuous monitoring of a provider\'s credential standing.',
   },
   evaluate_organization: {

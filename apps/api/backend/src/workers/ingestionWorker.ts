@@ -24,6 +24,12 @@ import { FEED_CONNECTORS, ingestAllFeeds } from '../services/ingestion/ingestion
 const DEFAULT_INTERVAL_MS = 6 * 60 * 60 * 1000;
 
 /**
+ * Wait before the boot run, so ingestion is not competing with the rest of
+ * startup and the database has settled.
+ */
+const INITIAL_RUN_DELAY_MS = 60_000;
+
+/**
  * Advisory lock key. Any stable arbitrary number; it only has to differ from
  * the keys other workers use.
  */
@@ -111,18 +117,37 @@ export function startIngestionWorker(intervalMs = resolveIntervalMs()): void {
     return;
   }
 
-  intervalHandle = setInterval(() => {
+  const runCycle = () => {
     void runIngestionCycle().catch((error) => {
       log('error', 'ingestion_worker_cycle_failed', {
         error: error instanceof Error ? error.message : 'Unknown error',
       });
     });
-  }, intervalMs);
+  };
+
+  /**
+   * Run once shortly after boot, then on the interval.
+   *
+   * Without this, configuring a feed produced nothing for a full interval —
+   * six hours of an empty board with no way to tell whether the credentials
+   * had been accepted. The admin HTTP trigger is not an escape hatch either:
+   * every /api/admin route sits behind the org-context middleware and is
+   * unreachable from outside the service, by design.
+   *
+   * The delay lets the app finish booting and the database settle first, and
+   * the advisory lock means several instances starting together still produce
+   * exactly one run.
+   */
+  const initialHandle = setTimeout(runCycle, INITIAL_RUN_DELAY_MS);
+  initialHandle.unref?.();
+
+  intervalHandle = setInterval(runCycle, intervalMs);
 
   intervalHandle.unref?.();
 
   log('info', 'ingestion_worker_started', {
     intervalMs,
+    initialRunInMs: INITIAL_RUN_DELAY_MS,
     feeds: FEED_CONNECTORS.filter((connector) => connector.isConfigured()).map((c) => c.feed),
   });
 }

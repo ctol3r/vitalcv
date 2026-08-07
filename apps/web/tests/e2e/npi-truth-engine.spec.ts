@@ -231,7 +231,13 @@ test.describe('NPI truth engine — homepage hero', () => {
 
     // One next step, and the snapshot names its own limits. /onboarding is the
     // canonical destination (#686 route canon); /get-ready is only a 307 now.
-    await expect(hero(page).getByRole('link', { name: /claim your wallet/i })).toHaveAttribute(
+    //
+    // Addressed by `data-home-next-step` rather than by its label. The label was
+    // "Claim your Wallet" until CD-13 retired wallet/crypto/DID vocabulary from
+    // the acquisition path — `wallet` is in the shipped banned-strings list — so
+    // it now reads "Keep this record". The DESTINATION is the contract; keying
+    // the locator to copy that doctrine forced to change is what broke here.
+    await expect(hero(page).locator('[data-home-next-step]')).toHaveAttribute(
       'href',
       '/onboarding',
     );
@@ -396,7 +402,11 @@ test.describe('NPI truth engine — homepage hero', () => {
       hero(page).getByText(`This is a system state, not a finding about NPI ${VALID_NPI}.`),
     ).toBeVisible();
     await expect(hero(page).getByText('Returned by source')).not.toBeVisible();
-    await expect(hero(page).getByRole('link', { name: /claim your wallet/i })).not.toBeVisible();
+    // Same retarget as above, and it matters MORE here: keyed to the retired
+    // "Claim your Wallet" label this assertion had gone vacuous — it passed
+    // because no element by that name existed in ANY state, so it could no
+    // longer prove that a registry outage withholds the next step.
+    await expect(hero(page).locator('[data-home-next-step]')).toHaveCount(0);
     await expect(hero(page).getByRole('button', { name: /try another npi/i })).toBeVisible();
   });
 

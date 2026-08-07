@@ -1,18 +1,21 @@
 /**
- * VitalCV Widget SDK  v1.0.0
- * ─────────────────────────
- * Embeddable script for hospital career sites.
+ * VitalCV Widget SDK v1.1.0
  *
- * Usage:
- *   <script src="https://vitalcv.com/vitalcv-widget.js" defer></script>
- *   <div id="vitalcv-apply-button" data-client-id="YOUR_CLIENT_ID"></div>
+ * Canonical usage:
+ *   <div id="vitalcv-apply-button"
+ *        data-client-id="YOUR_CLIENT_ID"
+ *        data-request-uri="vai_..."></div>
+ *
+ * Without data-request-uri the legacy authorization popup remains unchanged.
+ * Successful canonical submissions dispatch a `vitalcv:submitted` CustomEvent
+ * on the host container with application, packet-hash and handoff identifiers.
  */
 (function (global) {
   'use strict';
 
   var BASE_URL = 'https://vitalcv.com';
-  var POPUP_W  = 400;
-  var POPUP_H  = 600;
+  var POPUP_W = 520;
+  var POPUP_H = 760;
 
   function getClientId(el) {
     return el.dataset.clientId
@@ -20,19 +23,24 @@
       || 'demo';
   }
 
+  function getRequestUri(el) {
+    var value = el.dataset.requestUri || el.getAttribute('data-request-uri') || '';
+    return /^vai_[A-Za-z0-9_-]{20,80}$/.test(value) ? value : '';
+  }
+
   function popupFeatures(w, h) {
     var sl = (screen && screen.availLeft) ? screen.availLeft : 0;
-    var st = (screen && screen.availTop)  ? screen.availTop  : 0;
-    var sw = (screen && screen.width)     ? screen.width     : 1024;
-    var sh = (screen && screen.height)    ? screen.height    : 768;
+    var st = (screen && screen.availTop) ? screen.availTop : 0;
+    var sw = (screen && screen.width) ? screen.width : 1024;
+    var sh = (screen && screen.height) ? screen.height : 768;
     var left = Math.round(sl + (sw - w) / 2);
-    var top  = Math.round(st + (sh - h) / 2);
+    var top = Math.round(st + (sh - h) / 2);
     return [
-      'width='    + w,    'height='  + h,
-      'left='     + left, 'top='     + top,
-      'resizable=yes',    'scrollbars=no',
-      'status=no',        'toolbar=no',
-      'menubar=no',       'location=no',
+      'width=' + w, 'height=' + h,
+      'left=' + left, 'top=' + top,
+      'resizable=yes', 'scrollbars=yes',
+      'status=no', 'toolbar=no',
+      'menubar=no', 'location=no',
     ].join(',');
   }
 
@@ -42,7 +50,15 @@
     + '<circle cx="7" cy="7" r="2.6" fill="rgba(74,222,128,0.9)"/>'
     + '</svg>';
 
-  function createButton(clientId) {
+  function canonicalApplyUrl(clientId, requestUri) {
+    var url = new URL('/apply/' + encodeURIComponent(requestUri), BASE_URL);
+    url.searchParams.set('clientId', clientId);
+    url.searchParams.set('popup', '1');
+    url.searchParams.set('parent_origin', global.location.origin);
+    return url.toString();
+  }
+
+  function createButton(container, clientId, requestUri) {
     var btn = document.createElement('button');
     btn.type = 'button';
     btn.setAttribute('data-vitalcv', clientId);
@@ -67,7 +83,7 @@
       btn.style.opacity = '0.86'; btn.style.transform = 'translateY(-1px)';
     });
     btn.addEventListener('mouseleave', function () {
-      btn.style.opacity = '1';   btn.style.transform = 'translateY(0)';
+      btn.style.opacity = '1'; btn.style.transform = 'translateY(0)';
     });
     btn.addEventListener('mousedown', function () {
       btn.style.transform = 'translateY(0) scale(0.98)';
@@ -77,8 +93,15 @@
     });
 
     btn.addEventListener('click', function () {
-      var url = BASE_URL + '/widget/authorize?clientId=' + encodeURIComponent(clientId);
+      var url = requestUri
+        ? canonicalApplyUrl(clientId, requestUri)
+        : BASE_URL + '/widget/authorize?clientId=' + encodeURIComponent(clientId);
       global.open(url, 'vitalcv_apply', popupFeatures(POPUP_W, POPUP_H));
+    });
+
+    global.addEventListener('message', function (event) {
+      if (event.origin !== BASE_URL || !event.data || event.data.type !== 'VITALCV_APPLICATION_SUBMITTED') return;
+      container.dispatchEvent(new CustomEvent('vitalcv:submitted', { detail: event.data.payload || {} }));
     });
 
     return btn;
@@ -87,7 +110,7 @@
   function injectButton(container) {
     if (container.dataset.vitalcvMounted) return;
     container.dataset.vitalcvMounted = '1';
-    container.appendChild(createButton(getClientId(container)));
+    container.appendChild(createButton(container, getClientId(container), getRequestUri(container)));
   }
 
   function init() {
@@ -102,5 +125,4 @@
   } else {
     init();
   }
-
 }(typeof window !== 'undefined' ? window : this));

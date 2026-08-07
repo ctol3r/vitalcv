@@ -8,7 +8,8 @@
   "scripts": {
     "db:migrate:deploy": "pnpm exec prisma migrate deploy",
     "dev": "bash ../../../scripts/prisma-generate-locked.sh --schema prisma/schema.prisma && ts-node src/server.ts",
-    "build": "bash ../../../scripts/prisma-generate-locked.sh --schema prisma/schema.prisma && tsc && pnpm exec ts-node src/qa/runQaSuite.ts",
+    "build": "bash ../../../scripts/prisma-generate-locked.sh --schema prisma/schema.prisma && tsc",
+    "qa:ci": "pnpm exec ts-node src/qa/runQaSuite.ts",
     "graph:bench": "pnpm exec ts-node src/tools/graphBench.ts",
     "manual:audit-bundle": "pnpm exec ts-node src/tools/generateManualAuditBundle.ts",
     "ncqa:validate": "pnpm exec ts-node src/tools/runNcqaValidationGate.ts",
@@ -25,7 +26,7 @@
   "dependencies": {
     "@opentelemetry/api": "^1.9.0",
     "@opentelemetry/context-async-hooks": "^2.5.0",
-    "@opentelemetry/core": "^2.5.0",
+    "@opentelemetry/core": "^2.8.0",
     "@opentelemetry/resources": "^2.5.0",
     "@opentelemetry/sdk-trace-base": "^2.5.0",
     "@opentelemetry/semantic-conventions": "^1.39.0",

@@ -121,3 +121,29 @@ describe('security headers (SEC-HEADERS-1)', () => {
     expect(headers.length).toBe(securityHeaders.length);
   });
 });
+
+/**
+ * X-Powered-By is removed by CONFIG, not by a header entry.
+ *
+ * `headers()` can only ADD headers; it cannot delete one Next sets itself. So
+ * this asserts `poweredByHeader: false` in the resolved config — the thing
+ * that actually suppresses the header — rather than looking for an absence in
+ * `securityHeaders`, where it was never going to appear either way. Asserting
+ * an absence in the wrong place is how a guard stays green while the header
+ * still ships: production served `x-powered-by: Next.js` under this very
+ * suite, on every response, for the whole life of the file.
+ */
+describe('X-Powered-By is suppressed at the framework level', () => {
+  it('sets poweredByHeader: false in next.config.mjs', async () => {
+    const mod = await import('../next.config.mjs');
+    const config = (mod.default ?? mod) as { poweredByHeader?: boolean };
+    expect(config.poweredByHeader).toBe(false);
+  });
+
+  it('does not attempt the removal via the headers() list, which cannot work', () => {
+    const powered = securityHeaders.find(
+      (h: { key: string }) => h.key.toLowerCase() === 'x-powered-by',
+    );
+    expect(powered).toBeUndefined();
+  });
+});

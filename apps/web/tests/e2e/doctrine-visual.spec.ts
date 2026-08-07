@@ -266,4 +266,106 @@ test.describe('rendered doctrine', () => {
       ).toEqual([]);
     });
   }
+
+  /**
+   * CD-13 also retires "gradients as surface (any linear-/radial-gradient on
+   * paper)".
+   *
+   * Measured as what PAINTS, not what the stylesheets say. A source grep found
+   * 112 gradient references across live files and exactly ONE of them reached
+   * paper on a public route — the rest sit in dead code, non-paper islands,
+   * masks (a fade is not a surface) and OG images. Grepping this rule would
+   * mean triaging 112 hits by hand on every change; rendering it costs one
+   * pass and cannot be wrong about which ones actually land on paper.
+   */
+  for (const route of ROUTES) {
+    test(`${route} — no gradient used as surface on paper`, async ({ page }) => {
+      await page.goto(route, { waitUntil: 'domcontentloaded' });
+      await page.waitForTimeout(500);
+
+      const offenders = await page.evaluate((CLOUD_DANCER) => {
+        const hits: string[] = [];
+        for (const el of Array.from(document.querySelectorAll('*'))) {
+          const cs = getComputedStyle(el);
+          if (!/gradient\(/.test(cs.backgroundImage)) continue;
+
+          const rect = el.getBoundingClientRect();
+          // Sub-pixel slivers are not surfaces.
+          if (rect.width < 4 || rect.height < 4) continue;
+
+          // On paper = the nearest ANCESTOR that actually paints a background
+          // is Cloud Dancer. A gradient inside a deliberately dark island is
+          // not "on paper" and CD-13 does not reach it.
+          let context: string | null = null;
+          let node = el.parentElement;
+          while (node) {
+            const bg = getComputedStyle(node).backgroundColor;
+            if (bg && !/rgba\(0, 0, 0, 0\)/.test(bg)) {
+              context = bg;
+              break;
+            }
+            node = node.parentElement;
+          }
+          if (context !== CLOUD_DANCER) continue;
+
+          const cls = (el.className?.toString() ?? '').trim().split(/\s+/)[0] ?? '';
+          hits.push(`${el.tagName.toLowerCase()}${cls ? `.${cls}` : ''}`);
+        }
+        return [...new Set(hits)];
+      }, CLOUD_DANCER);
+
+      expect(
+        offenders,
+        `${route} paints a gradient as surface on paper — CD-13 retires gradients on paper`,
+      ).toEqual([]);
+    });
+  }
+
+  /**
+   * CD-13 retires `01–06` step numbering, grouped there with giant metric
+   * counters and percentage rings as counting theatre.
+   *
+   * This is the check that would have saved a wrong answer. I searched
+   * `app/employers/page.tsx` for quoted `'01'` and `>01<`, found nothing, and
+   * reported the route clean — twice. The numerals were `ordinal: '01'` in
+   * `components/employers/employerWorkflow.ts`, a file I never opened, and six
+   * of them were rendering the whole time.
+   *
+   * A rendered check does not care which file a string came from, whether it
+   * was generated, interpolated, or produced by a CSS counter. It asks the one
+   * question that matters: does a reader see a step number?
+   */
+  for (const route of MECHANISM_ROUTES) {
+    test(`${route} — no 01–06 step numbering`, async ({ page }) => {
+      const res = await page.goto(route, { waitUntil: 'domcontentloaded' });
+      if (!res || res.status() >= 400) test.skip();
+      await page.waitForTimeout(300);
+
+      const numerals = await page.evaluate(() => {
+        const hits: string[] = [];
+        for (const el of Array.from(document.querySelectorAll('*'))) {
+          const rect = el.getBoundingClientRect();
+          const cs = getComputedStyle(el);
+          if (rect.width < 2 || rect.height < 2) continue;
+          if (cs.visibility === 'hidden' || cs.display === 'none') continue;
+          // OWN text only — otherwise every ancestor of a "01" matches too.
+          const own = Array.from(el.childNodes)
+            .filter((n) => n.nodeType === 3)
+            .map((n) => n.textContent ?? '')
+            .join('')
+            .trim();
+          // `01`–`06` alone in an element, or leading a `01 · Label` eyebrow.
+          if (/^0[1-6]$/.test(own) || /^0[1-6]\s+·/.test(own)) {
+            hits.push(`<${el.tagName.toLowerCase()}> "${own.slice(0, 20)}"`);
+          }
+        }
+        return [...new Set(hits)];
+      });
+
+      expect(
+        numerals,
+        `${route} renders 01–06 step numbering, which CD-13 retires`,
+      ).toEqual([]);
+    });
+  }
 });

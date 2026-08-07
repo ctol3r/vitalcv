@@ -1,7 +1,11 @@
 import { notFound } from 'next/navigation';
 
 import { HorizontalCareerFilm } from '@/components/home/film/HorizontalCareerFilm';
-import '@/styles/compete-film.css';
+// The SAME stylesheet the real route imports. The previous harness pulled only
+// `compete-film.css` while `/` also pulled two more, so the preview quietly
+// rendered a different page than production — a harness that lies is worse
+// than no harness.
+import '@/styles/home.css';
 
 export const dynamic = 'force-dynamic';
 

@@ -1,5 +1,6 @@
 import * as React from 'react';
 
+import { coverageLabel } from '@vitalcv/licensure';
 import { SOURCE_LANE_OPS, type SourceLaneOps } from '@/lib/trust/sourceLanes';
 
 /**
@@ -38,6 +39,48 @@ const TONE: Record<SourceLaneOps['lifecycle'], Tone> = {
   unintegrated: { fill: 'var(--vt-text-muted)', label: 'Not connected' },
 };
 
+/**
+ * The licensure lane says what is pending, not merely that something is.
+ *
+ * `Access required` is true of every gated lane and therefore tells a reader
+ * nothing about this one. What is actually pending is access to a NATIONAL
+ * network — FSMB for physicians, Nursys for nursing — so the honest state word
+ * names that.
+ *
+ * The phrase is taken from `@vitalcv/licensure`'s own projection rather than
+ * written here, because that projection is SELF-CORRECTING: `coverageLabel`
+ * derives the suffix from `countLiveRoutes()` and stops saying "pending" the
+ * moment a route completes a real production run. A string typed into this
+ * component would keep saying "pending" forever, including on the day it became
+ * false — which is the failure mode this whole wave exists to remove.
+ *
+ * Only the SUFFIX is used. `coverageLabel` returns a profession-scoped headline
+ * ("Physician licensure — …"), and this register is profession-agnostic: it
+ * describes VitalCV's lanes, not one clinician's. Rendering "Physician
+ * licensure" here would silently drop nursing from a diagram that covers it.
+ */
+function licensureStateLabel(): string {
+  // `PHYSICIAN_MD` is a representative profession — the national-vs-pending
+  // determination is read off live route state, and the suffix it produces is
+  // profession-agnostic. If a nursing route went live first this would need to
+  // consider both lanes; today `countLiveRoutes()` is zero for every profession.
+  const headline = coverageLabel('PHYSICIAN_MD');
+  const suffix = headline.split('—')[1]?.trim();
+  // Fall back to the generic gated wording rather than rendering a half-parsed
+  // sentence if the upstream label format ever changes.
+  return suffix ? capitalize(suffix) : TONE.planned.label;
+}
+
+function capitalize(value: string): string {
+  return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
+function stateLabelFor(lane: SourceLaneOps): string {
+  return lane.readinessDimension === 'licensure'
+    ? licensureStateLabel()
+    : TONE[lane.lifecycle].label;
+}
+
 /** How full the bar reads. Availability is categorical, so these are the only three widths. */
 const FILL: Record<SourceLaneOps['lifecycle'], number> = {
   active: 1,
@@ -63,7 +106,11 @@ export function SourceCoverageDiagram({ lanes = SOURCE_LANE_OPS }: { lanes?: rea
         role="img"
         aria-label={
           `Source lane availability: ${liveCount} of ${lanes.length} lanes return data today. ` +
-          lanes.map((l) => `${l.marketingShortName}: ${TONE[l.lifecycle].label}`).join('. ') + '.'
+          // `stateLabelFor`, not `TONE[...].label` — the accessible name has to
+          // say what the sighted reader sees. A screen-reader user hearing
+          // "Licensure: access required" while the diagram reads "national
+          // source access pending" is being told a different, vaguer fact.
+          lanes.map((l) => `${l.marketingShortName}: ${stateLabelFor(l)}`).join('. ') + '.'
         }
       >
         {lanes.map((lane, i) => {
@@ -109,7 +156,7 @@ export function SourceCoverageDiagram({ lanes = SOURCE_LANE_OPS }: { lanes?: rea
                 fill="var(--vt-text-muted)"
                 style={{ font: '400 11px var(--font-mono, ui-monospace)' }}
               >
-                {tone.label}
+                {stateLabelFor(lane)}
               </text>
             </g>
           );

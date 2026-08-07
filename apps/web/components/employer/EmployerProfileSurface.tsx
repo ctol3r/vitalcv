@@ -141,7 +141,7 @@ export function EmployerProfileSurface() {
     };
   }, [isSignedIn]);
 
-  // Signed-out / not-yet-claimed: a calm invitation, not a broken page.
+  // Signed-out / no organization access yet: a calm invitation, not a broken page.
   if (isLoaded && !isSignedIn) {
     return (
       <section className="rounded-2xl border border-[var(--vt-border,rgba(0,0,0,0.08))] bg-[var(--vt-surface,white)] p-6 text-center sm:p-8">
@@ -150,8 +150,9 @@ export function EmployerProfileSurface() {
         </div>
         <h2 className="text-lg font-semibold text-[var(--vt-text-primary)]">Build your company profile</h2>
         <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-[var(--vt-text-secondary)]">
-          Claim your organization with its Type&nbsp;2 NPI, then present a source-backed company
-          profile clinicians can review — the same way clinicians present their career evidence.
+          Find your organization by its Type&nbsp;2 NPI and request access, then present a
+          source-backed company profile clinicians can review — the same way clinicians present
+          their career evidence.
         </p>
         <Link
           href="/employers"
@@ -162,7 +163,7 @@ export function EmployerProfileSurface() {
           style={{ backgroundColor: 'var(--vt-text-primary)' }}
           className="mt-5 inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-[13px] font-semibold text-white transition-opacity hover:opacity-90"
         >
-          Claim your organization <ArrowRight size={14} aria-hidden="true" />
+          Request organization access <ArrowRight size={14} aria-hidden="true" />
         </Link>
       </section>
     );

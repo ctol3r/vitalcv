@@ -1,39 +1,51 @@
 'use client';
 
 /**
- * LiquidMenu — the accessible mobile navigation overlay (VHS-2.5).
+ * LiquidMenu — the mobile navigation recomposition (VHS-2.5, rebuilt by the
+ * 2026-08-06 shared-header wave).
  *
- * Opens with an organic circular "liquid" bloom from the toggle button (top
- * corner), staggering the destinations in. It is a real modal dialog: focus is
- * trapped, background scroll is locked, Escape closes it, and focus returns to
- * the trigger on close. prefers-reduced-motion drops the bloom + stagger and
- * just shows/hides the panel. Rendered only while open, so it never affects the
- * NPI field's keyboard focus when closed.
+ * Not the desktop menu shrunk: a full-screen overlay composed for touch —
+ * the journey rail stacked vertically with the current stage marked, then
+ * the destination groups at editorial scale, then the CTA pair. Destinations
+ * come from navDestinations (the same source the desktop canvas consumes);
+ * stages come from journeyStages.
+ *
+ * It remains a real modal dialog: focus is trapped, background scroll is
+ * locked, Escape closes it, and focus returns to the trigger on close. The
+ * organic circular "liquid" bloom survives from the shipped version;
+ * prefers-reduced-motion drops the bloom + stagger and just shows the panel.
+ * Rendered only while open, so it never affects the NPI field's keyboard
+ * focus when closed.
  */
 
 import * as React from 'react';
 import Link from 'next/link';
 import { X } from 'lucide-react';
-
-export interface LiquidMenuItem {
-  href: string;
-  label: string;
-  active?: boolean;
-}
+import { NAV_GROUPS } from './navDestinations';
+import { JourneyRail } from './JourneyRail';
+import { isRouteActive } from './publicSurfaceRoutes';
+import type { JourneyStageId } from './journeyStages';
+import type { HeaderCta } from './headerRouteContext';
 
 export function LiquidMenu({
   open,
   onClose,
-  items,
   returnFocusRef,
   onNavigate,
+  pathname,
+  stage,
+  railInteractive,
+  cta,
 }: {
   open: boolean;
   onClose: () => void;
-  items: readonly LiquidMenuItem[];
   /** Focus returns here on close (the toggle button). */
   returnFocusRef: React.RefObject<HTMLElement | null>;
   onNavigate?: (label: string) => void;
+  pathname: string;
+  stage: JourneyStageId;
+  railInteractive: boolean;
+  cta: HeaderCta | null;
 }) {
   const panelRef = React.useRef<HTMLDivElement>(null);
   const firstLinkRef = React.useRef<HTMLAnchorElement>(null);
@@ -44,7 +56,11 @@ export function LiquidMenu({
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     // Move focus into the dialog on the next frame (after the mount paints).
-    const raf = requestAnimationFrame(() => firstLinkRef.current?.focus());
+    const raf = requestAnimationFrame(() => {
+      const target =
+        firstLinkRef.current ?? panelRef.current?.querySelector<HTMLElement>('a[href], button');
+      target?.focus();
+    });
 
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -83,6 +99,11 @@ export function LiquidMenu({
 
   if (!open) return null;
 
+  const navigate = (label: string) => {
+    onNavigate?.(label);
+    onClose();
+  };
+
   return (
     <div
       className="liquid-menu md:hidden"
@@ -90,6 +111,7 @@ export function LiquidMenu({
       aria-modal="true"
       aria-label="Site navigation"
       data-liquid-menu=""
+      data-header-theme-scope="overlay"
     >
       {/* Scrim — clicking outside the sheet closes it. */}
       <button
@@ -101,35 +123,68 @@ export function LiquidMenu({
       />
       <div ref={panelRef} className="liquid-menu__panel">
         <div className="liquid-menu__head">
-          <span className="liquid-menu__brand">VitalCV</span>
+          <Link
+            ref={firstLinkRef}
+            href="/"
+            className="liquid-menu__brand"
+            onClick={() => navigate('Home')}
+          >
+            VitalCV
+          </Link>
           <button type="button" aria-label="Close menu" className="liquid-menu__close" onClick={onClose}>
             <X className="h-5 w-5" aria-hidden="true" />
           </button>
         </div>
-        <nav aria-label="Primary">
-          <ul className="liquid-menu__list">
-            {items.map((item, i) => (
-              <li key={item.href} className="liquid-menu__item" style={{ ['--i' as string]: i }}>
-                <Link
-                  ref={i === 0 ? firstLinkRef : undefined}
-                  href={item.href}
-                  aria-current={item.active ? 'page' : undefined}
-                  onClick={() => { onNavigate?.(item.label); onClose(); }}
-                  className="liquid-menu__link"
-                >
-                  {item.label}
-                </Link>
-              </li>
-            ))}
-          </ul>
+
+        {/* The journey, vertical — the same four stages the desktop rail
+            shows, with the current stage marked for this route. */}
+        <div className="liquid-menu__journey liquid-menu__item" style={{ ['--i' as string]: 0 }}>
+          <p className="liquid-menu__eyebrow">The journey</p>
+          <JourneyRail
+            stage={stage}
+            interactive={railInteractive}
+            variant="overlay"
+            onNavigate={navigate}
+          />
+        </div>
+
+        <nav aria-label="Primary" className="liquid-menu__nav">
+          {NAV_GROUPS.map((group, gi) => (
+            <div
+              key={group.id}
+              className="liquid-menu__group liquid-menu__item"
+              style={{ ['--i' as string]: gi + 1 }}
+            >
+              <p className="liquid-menu__eyebrow" id={`liquid-group-${group.id}`}>
+                {group.label}
+              </p>
+              <ul className="liquid-menu__list" aria-labelledby={`liquid-group-${group.id}`}>
+                {group.links.map((link) => (
+                  <li key={link.href}>
+                    <Link
+                      href={link.href}
+                      aria-current={isRouteActive(pathname, link.href) ? 'page' : undefined}
+                      onClick={() => navigate(link.label)}
+                      className="liquid-menu__link"
+                    >
+                      {link.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
         </nav>
+
         <div className="liquid-menu__cta">
-          <Link href="/sign-in" onClick={onClose} className="liquid-menu__cta-secondary">
+          <Link href="/sign-in" onClick={() => navigate('Sign In')} className="liquid-menu__cta-secondary">
             Sign In
           </Link>
-          <Link href="/passport" onClick={onClose} className="liquid-menu__cta-primary">
-            Check Readiness
-          </Link>
+          {cta ? (
+            <Link href={cta.href} onClick={() => navigate(cta.label)} className="liquid-menu__cta-primary">
+              {cta.label}
+            </Link>
+          ) : null}
         </div>
       </div>
     </div>

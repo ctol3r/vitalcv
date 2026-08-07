@@ -86,8 +86,13 @@ jobs:
       - name: Install (frozen lockfile)
         run: pnpm install --frozen-lockfile
 
+      # `pnpm --filter @vitalcv/api run build` runs only this package's own tsc,
+      # leaving every workspace dependency's `dist/` unbuilt. Nothing noticed
+      # while the build was the last word, but the QA sweep below actually
+      # imports them at runtime (`@vitalcv/trust-state` first). Turbo's
+      # `dependsOn: ["^build"]` prebuilds the dependency graph.
       - name: Build API
-        run: pnpm --filter @vitalcv/api run build
+        run: pnpm turbo run build --filter @vitalcv/api
 
       - name: Env contract check (production mode with dummy values)
         env:
@@ -112,6 +117,39 @@ jobs:
         run: |
           cd apps/api/backend
           npx prisma migrate deploy
+
+      # The QA sweep boots the app and exercises route contracts against a real
+      # database, so it can only run AFTER `prisma migrate deploy` above.
+      #
+      # It used to be the tail of the backend `build` script, which made it a
+      # deploy-time side effect rather than a CI gate: `railway.toml` runs an
+      # unfiltered `pnpm turbo build`, so the sweep booted the app against the
+      # deploy database on every release, while nothing in CI ran it at all
+      # (ci-preflight builds `@vitalcv/api`, whose build is tsc-only). It also
+      # could never fail anything — `QA_FAIL_ON_CRITICAL` was set nowhere in
+      # the repo, so `runQaSuite` returned 0 no matter how many critical
+      # findings it reported.
+      #
+      # The sweep is NOT read-only: three consecutive local runs against one
+      # database reported 42/43/44 findings and 14/15/16 criticals, with the
+      # graph growing 26→27 nodes. It writes. That is the real reason it must
+      # not run as part of a deploy build, and why it needs the ephemeral
+      # database above rather than any shared one.
+      #
+      # NOT fail-closed yet, deliberately. Measured against a migrated, unseeded
+      # database on 2026-08-02: 42 findings, of which **14 are critical** — all
+      # `endpoint_server_error`, e.g. GET /.well-known/jwks.json returning 500,
+      # and the sentinel NPI 0000000000 returning 500 rather than 404 from the
+      # artifact/audit bundle routes. Those predate this step and were invisible
+      # precisely because nothing ever set QA_FAIL_ON_CRITICAL.
+      #
+      # Turning it on today would red every PR, so this step reports instead.
+      # Burn the 14 down, then set QA_FAIL_ON_CRITICAL=1 here — the code path
+      # already exists in runQaSuite.ts and needs no further change.
+      - name: Backend QA sweep (post-migration, reporting)
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/vitalcv_preflight
+        run: pnpm --filter @vitalcv/api run qa:ci
 
       - name: Smoke tests
         env:

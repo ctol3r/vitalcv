@@ -1,26 +1,17 @@
 import type { Metadata } from 'next';
 
-import { AskHome } from '@/components/home/ask/AskHome';
-import { CinematicEvidenceField } from '@/components/home/cinematic/CinematicEvidenceField';
-import '@/styles/motion.css';
-import '@/styles/artifact-motion.css';
-import '@/styles/home-surfaces.css';
-import '@/styles/ask-home.css';
-// After ask-home.css: the evidence capsule raises the field from that file's
-// ruled underline, so it must win on equal specificity.
-import '@/styles/evidence-input.css';
-import '@/styles/evidence-capsule.css';
-import '@/styles/spine-tabs.css';
-import '@/styles/glass-eyebrow.css';
-import '@/styles/cinematic-home.css';
+import { CareerLoopHome } from '@/components/home/career-loop/CareerLoopHome';
+import { HorizontalCareerFilm } from '@/components/home/film/HorizontalCareerFilm';
+import { resolveHomeVariant } from '@/lib/home/variant';
+// Both route stylesheets. The film's owns its composition AND the evidence
+// capsule (see the header of `styles/home.css`); the loop's is namespaced
+// `clh-` so the two can coexist in one bundle without restyling each other.
+import '@/styles/home.css';
+import '@/styles/career-loop-home.css';
 
-const TAGLINE = 'VitalCV — Your career evidence, ready before your next job.';
+const TAGLINE = 'VitalCV — Build your clinician profile from your NPI and apply with it.';
 const DESCRIPTION =
-  'Enter your NPI to see what employers can confirm today, what still needs review, and the next step toward being ready to start.';
-
-// Shared caches must converge quickly after a release. Railway busts its edge
-// on deploy, but external caches do not; five minutes bounds stale public copy.
-export const revalidate = 300;
+  'Build a clinician profile from your NPI, find opportunities that fit it, and apply with the same profile — giving employers a head start and keeping the record yours to reuse.';
 
 export const metadata: Metadata = {
   title: { absolute: TAGLINE },
@@ -61,24 +52,36 @@ const STRUCTURED_DATA = {
 };
 
 /**
- * The homepage has two jobs and no competing composition:
+ * `/` — the one real clinician career loop (Wave 1075).
  *
- * 1. Let a clinician act immediately through the NPI-first Ask.
- * 2. Let a reader who does not type operate the same product argument in one
- *    four-step pane: NPI → source evidence → chosen packet → hospital review.
+ *   NPI → clinician profile → opportunity → Apply with VitalCV
+ *       → employer head start → review begins → keep the career record
  *
- * The cinematic evidence field is decorative and source-honest. AskHome still
- * owns every action, truth state, accessible explanation and conversion path.
+ * `film` is the previous homepage, kept as a rollback rather than deleted:
+ * set PUBLIC_HOME_VARIANT=film and redeploy. The choice is made here, on the
+ * server, so only one variant is ever sent — no flash, no double-counted
+ * homepage event, and one canonical root for crawlers.
+ *
+ * `export const dynamic` is deliberate. A static root would bake the env var
+ * at BUILD time, which would make the rollback switch a rebuild rather than a
+ * redeploy — exactly the "restore the old homepage without a code change"
+ * property this exists to provide.
+ *
+ * This replaces the previous `revalidate = 300`: the two cannot coexist, and
+ * a cached root would serve the pre-rollback homepage for up to five minutes
+ * during an incident.
  */
+export const dynamic = 'force-dynamic';
+
 export default function HomePage() {
+  const variant = resolveHomeVariant(process.env.PUBLIC_HOME_VARIANT);
   return (
     <>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(STRUCTURED_DATA) }}
       />
-      <CinematicEvidenceField />
-      <AskHome />
+      {variant === 'film' ? <HorizontalCareerFilm /> : <CareerLoopHome />}
     </>
   );
 }

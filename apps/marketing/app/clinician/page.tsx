@@ -14,8 +14,8 @@ export default async function ClinicianPage({
   const npi = typeof params.npi === 'string' ? params.npi : null;
 
   if (npi) {
-    redirect(buildWebAppUrl('/passport', `?npi=${encodeURIComponent(npi)}`));
+    redirect(buildWebAppUrl('/onboarding'));
   } else {
-    redirect(buildWebAppUrl('/passport'));
+    redirect(buildWebAppUrl('/onboarding'));
   }
 }

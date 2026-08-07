@@ -25,6 +25,15 @@ jest.mock('../../../graphql/prisma_client', () => ({
       findUnique: jest.fn(),
       update: jest.fn(),
     },
+    // Organization access governance: every authority decision is now durable
+    // and emits an audit + outbox event, so this mock must model those writers
+    // or upsertOrgProfile throws on an undefined delegate.
+    organizationAccessRequest: {
+      create: jest.fn(),
+      update: jest.fn(),
+    },
+    auditEvent: { create: jest.fn() },
+    outboxEvent: { upsert: jest.fn() },
   },
 }));
 
@@ -58,10 +67,28 @@ const prismaMock = prisma as unknown as {
     findUnique: jest.Mock;
     update: jest.Mock;
   };
+  organizationAccessRequest: {
+    create: jest.Mock;
+    update: jest.Mock;
+  };
+  auditEvent: { create: jest.Mock };
+  outboxEvent: { upsert: jest.Mock };
 };
+
+/**
+ * Governance writers, reset per test. `create` must resolve an id — the access
+ * request row is what the grant path later attaches the organization to.
+ */
+function resetGovernanceMocks() {
+  prismaMock.organizationAccessRequest.create.mockReset().mockResolvedValue({ id: 'access-request-1' });
+  prismaMock.organizationAccessRequest.update.mockReset().mockResolvedValue({});
+  prismaMock.auditEvent.create.mockReset().mockResolvedValue({});
+  prismaMock.outboxEvent.upsert.mockReset().mockResolvedValue({ id: 'outbox-1' });
+}
 
 describe('opportunityService org profile pilot policy', () => {
   beforeEach(() => {
+    resetGovernanceMocks();
     prismaMock.user.findUnique.mockReset();
     prismaMock.personProfile.findUnique.mockReset();
     prismaMock.personProfile.create.mockReset();
@@ -305,6 +332,7 @@ describe('updateOpportunity', () => {
   }
 
   beforeEach(() => {
+    resetGovernanceMocks();
     prismaMock.user.findUnique.mockReset();
     prismaMock.personProfile.findUnique.mockReset();
     prismaMock.workspaceMembership.findFirst.mockReset();

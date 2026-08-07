@@ -5,6 +5,7 @@ import {
   hashMerkleConcat,
 } from '../utils/merkle';
 import { buildAuditBundleProof } from '../services/audit/auditBundleProof';
+import { HttpError } from '../utils/httpError';
 
 interface InclusionProof {
   eventHash: string;
@@ -89,6 +90,11 @@ export function registerAuditRoutes(app: Express): void {
       res.setHeader('Content-Disposition', 'attachment; filename="audit_bundle.json"');
       return res.json(bundle);
     } catch (error) {
+      // Map by type, not by sniffing the message: an absent bundle is a 404,
+      // and only a genuine fault is a 500.
+      if (error instanceof HttpError) {
+        return res.status(error.status).json({ error: error.message });
+      }
       const message = error instanceof Error ? error.message : 'Unable to build audit bundle';
       if (message.includes('not found')) {
         return res.status(404).json({ error: message });

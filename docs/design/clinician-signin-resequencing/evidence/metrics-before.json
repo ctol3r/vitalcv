@@ -1,0 +1,46 @@
+{
+  "baseUrl": "https://vitalcv.com",
+  "label": "before",
+  "capturedAt": "2026-08-07T15:20:52.649Z",
+  "pages": {
+    "before-onboarding-1440x900": {
+      "scrollHeight": 1089,
+      "scrollWidth": 1440,
+      "innerWidth": 1440,
+      "horizontalOverflow": false,
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 ()"
+      ],
+      "failedRequests": [
+        "https://vitalcv.com/sign-in?_rsc=B7yroOPNvpOYIw-w — net::ERR_ABORTED",
+        "https://vitalcv.com/?_rsc=B7yroOPNvpOYIw-w — net::ERR_ABORTED",
+        "https://vitalcv.com/sign-up?_rsc=B7yroOPNvpOYIw-w — net::ERR_ABORTED"
+      ]
+    },
+    "before-onboarding-390x844": {
+      "scrollHeight": 1065,
+      "scrollWidth": 390,
+      "innerWidth": 390,
+      "horizontalOverflow": false,
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 ()"
+      ],
+      "failedRequests": [
+        "https://vitalcv.com/?_rsc=B7yroOPNvpOYIw-w — net::ERR_ABORTED",
+        "https://vitalcv.com/sign-in?redirect_url=%2Fonboarding&_rsc=B7yroOPNvpOYIw-w — net::ERR_ABORTED",
+        "https://vitalcv.com/sign-up?_rsc=B7yroOPNvpOYIw-w — net::ERR_ABORTED"
+      ]
+    },
+    "before-home-review-1440x900": {
+      "scrollHeight": 3705,
+      "scrollWidth": 1440,
+      "innerWidth": 1440,
+      "horizontalOverflow": false,
+      "consoleErrors": [],
+      "failedRequests": [
+        "https://vitalcv.com/onboarding?_rsc=1p-R_iEY6bj0jY31 — net::ERR_ABORTED",
+        "https://vitalcv.com/sign-in?_rsc=1p-R_iEY6bj0jY31 — net::ERR_ABORTED"
+      ]
+    }
+  }
+}

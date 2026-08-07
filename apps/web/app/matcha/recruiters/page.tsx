@@ -26,7 +26,7 @@ export default function MatchaRecruitersPage() {
           { label: 'Credential confidence', traditional: 'Chase documents and re-verify from scratch each time.', vital: 'Source-backed readiness travels with the clinician.' },
           { label: 'Duplicate work', traditional: 'Every agency re-verifies the same person.', vital: 'Reusable evidence — accept a head start or request a refresh.' },
           { label: 'Pipeline', traditional: 'Keyword search and guesswork on fit.', vital: 'MATCHA ranks fit from stated preferences and eligibility.' },
-          { label: 'Speed', traditional: 'Weeks of back-and-forth before a clinician is ready.', vital: 'Start from a readiness snapshot; shorten time-to-start.' },
+          { label: 'Ramp-up', traditional: 'Weeks of back-and-forth before a clinician is ready.', vital: 'Start from a readiness snapshot the clinician already assembled, not a cold document chase.' },
           { label: 'Transparency', traditional: 'Opaque scores you have to take on faith.', vital: 'Every recommendation shows the reasons behind it.' },
         ],
       }}

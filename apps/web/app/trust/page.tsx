@@ -175,7 +175,7 @@ export default async function TrustCenterPage() {
               rule: no protected health information is placed on any shared or anchored artifact.
             </p>
             <p>
-              Receipts are signed with an ES256 key ({snapshot.keyAlgorithm}); the public key and issuer identity are
+              Receipts are signed with an {snapshot.keyAlgorithm} key; the public key and issuer identity are
               published so a recipient can check a receipt independently. Every mutation to your record is written to an
               audit trail before it takes effect.
             </p>
