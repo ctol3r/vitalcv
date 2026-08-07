@@ -73,13 +73,13 @@ export const EMPLOYER_ORG_SIZES: readonly EmployerOrgSize[] = [
     band: 'Single practice or clinic',
     situation: 'No credentialing department — the office manager is the credentialing team.',
     body: 'You get the same evidence packet a health system gets, with the same sources named and the same gaps listed. No CVO contract, no integration, and nothing to install.',
-    action: { label: 'Request organization access', href: '#request-organization-access' },
+    action: { label: 'Request organization access', href: '/employers/request-access' },
   },
   {
     band: 'Provider group, staffing firm, MSO or DSO',
     situation: 'Multi-state, high volume, and paying for agency or locum cover while files sit.',
     body: 'A clinician gathers their evidence once and carries it, so the same source lanes are not re-verified from scratch at every placement. Expirables and re-credentialing dates travel with the record instead of being rediscovered.',
-    action: { label: 'Request organization access', href: '#request-organization-access' },
+    action: { label: 'Request organization access', href: '/employers/request-access' },
   },
   {
     band: 'Hospital or health system',

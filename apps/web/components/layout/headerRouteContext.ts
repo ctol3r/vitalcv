@@ -40,10 +40,10 @@ const CLINICIAN_CTA: HeaderCta = { href: '/onboarding', label: 'Build my profile
 
 /**
  * The employer action mirrors the one honest action `/employers` itself
- * opens with; the fragment jumps to the claim flow on that page.
+ * opens with; Step 1 lives on its own route now, so the bar goes there.
  */
 const EMPLOYER_CTA: HeaderCta = {
-  href: '/employers#request-organization-access',
+  href: '/employers/request-access',
   label: 'Request organization access',
 };
 

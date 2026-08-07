@@ -65,7 +65,11 @@ describe('page density system', () => {
     // 404s in canonical production via the /design layout gate).
     // 154 = 153 + /design/reset, the design-reset preview shown beside
     // /design/z1-home for founder comparison (noindex, gated).
-    expect(inventory).toHaveLength(154);
+    // 156 = 154 + /employers/how-it-works and /employers/request-access — the
+    // /employers restructure (founder audit 2026-08-06): the lane register
+    // moved to its own page, and Step 1 became a real route instead of a
+    // 5,100px in-page anchor.
+    expect(inventory).toHaveLength(156);
     expect(inventory.every((item) => !item.source.includes('/_archive/'))).toBe(true);
     expect(inventory.every((item) => !item.route.startsWith('/api/'))).toBe(true);
     expect(new Set(inventory.map((item) => item.density))).toEqual(

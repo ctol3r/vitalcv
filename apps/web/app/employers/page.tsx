@@ -1,44 +1,49 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { EmployerGetStartedClient } from './EmployerGetStartedClient';
 import { ArtifactStage } from '@/components/motion/ArtifactStage';
 import { DecisionArtifact } from '@/components/artifacts/PageArtifacts';
 import { HospitalArtifact } from '@/components/artifacts/SceneArtifacts';
 import '@/styles/motion.css';
 import '@/styles/artifact-motion.css';
 import { EmployerAudienceSection } from '@/components/employers/EmployerAudienceSection';
-import { EmployerEvidenceSection } from '@/components/employers/EmployerEvidenceSection';
 import { EmployerWorkflowPreview } from '@/components/employers/EmployerWorkflowPreview';
 import { PageFrame } from '@/components/layout/PageFrame';
 import { SOURCE_LANE_OPS } from '@/lib/trust/sourceLanes';
 
 /**
- * /employers — the employer landing + onboarding.
+ * /employers — the employer landing.
  *
- * Wave 6 (deep-audit 2026-07-21) + D3 (one-platform synthesis): the doorway
- * leads with the BUYER OUTCOME — "Start clinicians from source-backed
- * evidence" — not with setup mechanics. Step 1 is real and necessary, but it
- * renders after the buyer has seen the job-to-start operating model, not as
- * the page's thesis.
+ * Restructured per the founder experience audit (2026-08-06): the page ran
+ * 5,744px with its only conversion moment at 96% depth, the primary CTA was a
+ * 5,100px in-page smooth-scroll, and three mono disclaimer paragraphs sat
+ * between the H1 and the action. The restructure:
  *
- * Step 1 is a REQUEST for organization access, never a claim. Resolving a
- * Type 2 NPI against NPPES establishes which organization is meant; it is not
+ *  - The primary CTA is a real route, `/employers/request-access`, which now
+ *    owns Step 1 (the Type 2 NPI resolution + access request). The page sells;
+ *    the route converts.
+ *  - The lane register and the illustrative packet moved to
+ *    `/employers/how-it-works`. This page keeps a short, registry-derived
+ *    hand-off so the lane count cannot drift from lane truth.
+ *  - The D3 limits block survives, compressed to two sentences plus the
+ *    registry-derived cadence line, placed directly after the hero artifact:
+ *    still early, still plain prose, no longer outranking the only action.
+ *    The audit asked for below-the-fold; D3 (deep-audit 2026-07-21) requires
+ *    "early, never a footnote" for procurement readers. This is the
+ *    reconciliation — final placement is a founder visual gate decision.
+ *
+ * Step 1 remains a REQUEST for organization access, never a claim: resolving a
+ * Type 2 NPI against NPPES establishes which organization is meant, not
  * authority to act for it, and the server refuses on that basis
- * (resolveOrganizationAuthority). The page used to say "Claim your
- * organization", which promised an entitlement the platform will not grant on
- * an NPI alone.
+ * (resolveOrganizationAuthority).
  *
  * The outcome is stated WITHOUT a speed claim. The brand split (2026-07-26)
  * retired the speed hero — "faster" is a promise about time-to-start, and no
- * pilot has measured it yet. The buyer outcome survives; the unearned
- * comparative does not. Re-add it only when a pilot produces the number, and
- * then state the number, not the adjective. See check-public-claims.ts.
+ * pilot has measured it yet. Re-add it only when a pilot produces the number,
+ * and then state the number, not the adjective. See check-public-claims.ts.
  *
- * D3 (high-effort readers): limits are stated plainly and EARLY on this
- * surface — the blemishing effect that lets the clinician film defer limits
- * does not apply to procurement readers. The cadence sentence derives from
- * lib/trust/sourceLanes.ts, the same registry behind /, /status and
- * /api/status, so this page cannot drift from lane truth.
+ * The cadence sentence derives from lib/trust/sourceLanes.ts, the same
+ * registry behind /, /status and /api/status, so this page cannot drift from
+ * lane truth.
  */
 
 // Bound external shared-cache staleness to 5 min (see app/page.tsx note).
@@ -78,42 +83,12 @@ export default function EmployersPage() {
             exclusions, enrollment, each answer named to its source. You see requirements and
             remaining blockers up front, instead of opening another document chase.
           </p>
-          {/* D3: plain, early limits — visible prose in the opening viewport,
-              never a footnote. Boundary first, cadence second. */}
-          <div
-            data-employer-limits=""
-            className="mz-mono mt-4 max-w-[620px] border-l-2 border-[var(--vt-border)] pl-3 text-[12px] leading-relaxed text-[var(--vt-text-muted)]"
-          >
-            <p>
-              The limits, stated plainly: VitalCV is not a credentialing service. Head-start
-              acceptance is not a credentialing decision, and the hiring decision stays yours.
-            </p>
-            <p style={{ marginTop: 6 }}>{cadenceSentence()}</p>
-            {/* Diligence route. The per-field register at /trust/attribution is the
-                honest substitute for the compliance badges this market runs on and
-                our truth contract forbids — it opens by disclaiming HIPAA, SOC 2 and
-                NCQA certification, then names the source, read time and state of
-                every field. It was reachable from the clinician homepage but not
-                from the procurement surface, which is where the reader with a
-                diligence question actually lands. */}
-            <p style={{ marginTop: 6 }}>
-              Checking us out?{' '}
-              <Link
-                href="/trust/attribution"
-                className="underline underline-offset-2 hover:text-[var(--vt-text-primary)]"
-              >
-                Read the per-field source register
-              </Link>{' '}
-              — every field, its source, when we read it, and what it does not establish.
-            </p>
-          </div>
-          {/* The opening viewport keeps one honest action. It ASKS for nothing —
-              it jumps to Step 1 below, after the operating model has made the
-              case. Returning buyers skip straight to the claim flow. */}
+          {/* One action in the opening viewport, and it is a real route: the
+              page makes the case, /employers/request-access takes the request. */}
           <p style={{ marginTop: 20 }}>
-            <a href="#request-organization-access" className="mz-btn">
+            <Link href="/employers/request-access" className="mz-btn">
               Request organization access
-            </a>
+            </Link>
           </p>
         </header>
 
@@ -128,6 +103,31 @@ export default function EmployersPage() {
           </ArtifactStage>
         </section>
 
+        {/* D3: plain, early limits — compressed to the boundary, the cadence,
+            and the diligence route. The per-field register link stays INSIDE
+            this block (employers-diligence-route contract): the reader with a
+            diligence question finds the register beside the boundary, not in
+            marketing body copy. */}
+        <div
+          data-employer-limits=""
+          className="mz-mono mt-8 max-w-[620px] border-l-2 border-[var(--vt-border)] pl-3 text-[12px] leading-relaxed text-[var(--vt-text-muted)]"
+        >
+          <p>
+            The limits, stated plainly: VitalCV is not a credentialing service, and the hiring
+            decision stays yours. {cadenceSentence()}
+          </p>
+          <p style={{ marginTop: 6 }}>
+            Checking us out?{' '}
+            <Link
+              href="/trust/attribution"
+              className="underline underline-offset-2 hover:text-[var(--vt-text-primary)]"
+            >
+              Read the per-field source register
+            </Link>{' '}
+            — every field, its source, when we read it, and what it does not establish.
+          </p>
+        </div>
+
         {/* Then what the reviewer actually receives: claims carrying their
             sources, and the three actions that stay visibly the reviewer's.
             Ordered after the hospital on purpose — the place, then the work.
@@ -140,40 +140,54 @@ export default function EmployersPage() {
 
         <EmployerWorkflowPreview />
 
-        {/* The operating model has made the case; this is the evidence itself.
-            CD-20's buyer asymmetry is "they claim numbers, we show one artifact"
-            — and CD-14 says the evidence artifact IS the brand, the thing an
-            employer screenshots and forwards. Until now this page described the
-            packet and never showed it.
-
-            The lane register is read from SOURCE_LANE_OPS, so it cannot drift
-            from lane truth; the packet beneath it is explicitly illustrative.
-            That split is the point — see the component's header. */}
-        <EmployerEvidenceSection />
+        {/* The lane register and the illustrative packet live on their own page
+            now (audit: reference-documentation density on a landing page). The
+            hand-off keeps one registry-derived fact — the lane count — so even
+            this sentence cannot drift from lane truth. */}
+        <section aria-label="What arrives, source by source" className="mt-12">
+          <p className="mz-eyebrow">What arrives, source by source</p>
+          <h2 className="mz-h2" style={{ marginTop: 8, maxWidth: 620 }}>
+            {SOURCE_LANE_OPS.length} evidence lanes, each named to its source.
+          </h2>
+          <p className="mz-small" style={{ marginTop: 8, maxWidth: 620 }}>
+            Every lane states what it returns, when it was read, and what it does not decide —
+            read from the same registry that drives /status. The full register, and what a
+            reviewed packet looks like, has its own page.
+          </p>
+          <p style={{ marginTop: 12 }}>
+            <Link
+              href="/employers/how-it-works"
+              className="text-[14px] font-semibold text-[var(--vt-text-primary)] underline underline-offset-2"
+            >
+              See what each lane returns, and what a reviewed packet looks like
+            </Link>
+          </p>
+        </section>
 
         {/* MB1 — the teams who actually read this page, and the way in by org size.
             Placed after the operating model has made the case and BEFORE the ask,
             which is the order every credentialing vendor uses for its segmented
-            story (study §9.4). Small practices and groups route down to Step 1;
-            health systems route to /pilot. */}
+            story (study §9.4). Small practices and groups route to
+            /employers/request-access; health systems route to /pilot. */}
         <EmployerAudienceSection />
 
-        <section
-          id="request-organization-access"
-          className="mz-card mt-10 scroll-mt-24 p-5 sm:p-6"
-          aria-label="Step 1 — request organization access"
-        >
-          <p className="mz-eyebrow">Step 1 — Request organization access</p>
+        {/* The close: same label, same destination as the hero — one intention,
+            one route (audit: three labels for one intention forced a choice
+            without information). */}
+        <section className="mz-card mt-12 p-5 sm:p-6" aria-label="Request organization access">
+          <p className="mz-eyebrow">Ready when you are</p>
           <h2 className="mz-h2" style={{ marginTop: 8 }}>
-            Find your organization, then request access
+            Request access to your organization
           </h2>
-          <p className="mz-small" style={{ marginTop: 4, marginBottom: 16 }}>
-            Your organization has a Type 2 NPI in the same federal registry a clinician uses,
-            resolved against NPPES, the federal source of record. That resolves{' '}
-            <em>which</em> organization you mean — never that you may act for it, so access is a
-            request that has to be granted.
+          <p className="mz-small" style={{ marginTop: 4, marginBottom: 16, maxWidth: 620 }}>
+            Resolve your organization against the federal registry and request access — a request
+            that has to be granted, never a claim.
           </p>
-          <EmployerGetStartedClient />
+          <p>
+            <Link href="/employers/request-access" className="mz-btn">
+              Request organization access
+            </Link>
+          </p>
         </section>
 
         <p className="mt-6 text-center text-xs text-[var(--vt-text-muted)]">

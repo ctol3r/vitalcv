@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import EmployersPage from '@/app/employers/page';
+import RequestOrganizationAccessPage from '@/app/employers/request-access/page';
 import { EMPLOYER_STAGES } from '@/components/employers/employerWorkflow';
 import { EMPLOYER_ORG_SIZES } from '@/components/employers/employerAudience';
 
@@ -21,35 +22,46 @@ import { EMPLOYER_ORG_SIZES } from '@/components/employers/employerAudience';
  * the page stops rendering it.
  */
 
+const toText = (html: string) =>
+  html
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&rsquo;|&#x27;|&apos;/g, "'")
+    .replace(/&nbsp;/g, ' ')
+    .replace(/\s+/g, ' ');
+
+// Step 1 moved to its own route (founder experience audit 2026-08-06): the
+// landing page sells and links; /employers/request-access holds the form.
+// The request-not-claim contract now spans both renders.
 const markup = renderToStaticMarkup(<EmployersPage />);
-const text = markup
-  .replace(/<[^>]*>/g, ' ')
-  .replace(/&amp;/g, '&')
-  .replace(/&rsquo;|&#x27;|&apos;/g, "'")
-  .replace(/&nbsp;/g, ' ')
-  .replace(/\s+/g, ' ');
+const text = toText(markup);
+const requestMarkup = renderToStaticMarkup(<RequestOrganizationAccessPage />);
+const requestText = toText(requestMarkup);
 
 describe('/employers asks for access instead of offering a claim', () => {
-  it('offers the request, at the top and at step 1', () => {
+  it('offers the request on the landing page, routed to the request page', () => {
     expect(text).toContain('Request organization access');
-    expect(text).toContain('Step 1 — Request organization access');
+    expect(markup).toContain('href="/employers/request-access"');
   });
 
-  it('has no "claim your organization" call to action anywhere on the route', () => {
-    expect(text.toLowerCase()).not.toContain('claim your organization');
-    expect(text.toLowerCase()).not.toContain('claim this organization');
+  it('holds step 1 on the request route', () => {
+    expect(requestText).toContain('Step 1 — Request organization access');
+    expect(requestMarkup).toContain('id="request-organization-access"');
   });
 
-  it('anchors the step to the request id, and drops the claim id', () => {
-    expect(markup).toContain('id="request-organization-access"');
-    expect(markup).toContain('href="#request-organization-access"');
+  it('has no "claim your organization" call to action on either route', () => {
+    for (const t of [text, requestText]) {
+      expect(t.toLowerCase()).not.toContain('claim your organization');
+      expect(t.toLowerCase()).not.toContain('claim this organization');
+    }
     expect(markup).not.toContain('claim-your-organization');
+    expect(requestMarkup).not.toContain('claim-your-organization');
   });
 
-  it('states that NPPES resolution is not authority', () => {
+  it('states that NPPES resolution is not authority, where the form is', () => {
     // The substance behind the rename: the boundary has to survive, not just
     // the verb. Phrasing may change; "not authority to act for it" is the claim.
-    expect(text.toLowerCase()).toContain('not authority to act for it');
+    expect(requestText.toLowerCase()).toContain('not authority to act for it');
   });
 });
 
@@ -61,11 +73,11 @@ describe('the workflow and audience data agree with the route', () => {
     expect(first.title.toLowerCase()).not.toContain('claim');
   });
 
-  it('every self-serve band points at the request anchor', () => {
-    const selfServe = EMPLOYER_ORG_SIZES.filter((b) => b.action.href.startsWith('#'));
+  it('every self-serve band points at the request route', () => {
+    const selfServe = EMPLOYER_ORG_SIZES.filter((b) => b.action.href !== '/pilot');
     expect(selfServe.length).toBeGreaterThan(0);
     for (const band of selfServe) {
-      expect(band.action.href).toBe('#request-organization-access');
+      expect(band.action.href).toBe('/employers/request-access');
       expect(band.action.label).toBe('Request organization access');
     }
   });
