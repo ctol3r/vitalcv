@@ -1,7 +1,6 @@
 {
   "ROUTE-01": [
     "/activity/[entityId]",
-    "/admin/demo-reset",
     "/career-intelligence/[entityId]",
     "/career-map/[entityId]",
     "/clinician/profile",
