@@ -18,12 +18,12 @@ import { EMPLOYER_STAGES } from './employerWorkflow';
  */
 export function EmployerWorkflowPreview() {
   return (
-    <section aria-label="How the employer workflow works" data-employer-workflow="" className="mt-10">
+    <section aria-label="How the employer workflow works" data-employer-workflow="" className="mt-8">
       <p className="mz-eyebrow">The workflow</p>
       <h2 className="mz-h2" style={{ marginTop: 8, maxWidth: 620 }}>
         From requesting access to a clinician&rsquo;s <span className="mz-accent">first day</span>.
       </h2>
-      <p className="mz-small" style={{ marginTop: 8, marginBottom: 14, maxWidth: 620 }}>
+      <p className="mz-small" style={{ marginTop: 8, marginBottom: 12, maxWidth: 620 }}>
         The same source-backed record a clinician carries becomes your review, your decision, and an
         auditable path to start — not another document chase.
       </p>
@@ -31,7 +31,7 @@ export function EmployerWorkflowPreview() {
       {/* Ordinality is carried by the <ol> semantics and DOM order (the
           01–06 numbering was retired by CD-13); a hairline top rule stands in
           for the retired card borders so the group still reads as one set. */}
-      <ol className="grid list-none grid-cols-1 gap-x-6 gap-y-3 border-t border-[var(--vt-border)] pt-3 sm:grid-cols-2 lg:grid-cols-3">
+      <ol className="grid list-none grid-cols-1 gap-x-6 gap-y-2.5 border-t border-[var(--vt-border)] pt-3 sm:grid-cols-2 lg:grid-cols-3">
         {EMPLOYER_STAGES.map((stage) => (
           <li key={stage.id} className="flex flex-col">
             <h3 className="text-sm font-semibold leading-snug text-[var(--vt-text-primary)]">

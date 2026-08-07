@@ -84,7 +84,7 @@ export default function EmployersPage() {
     // system instead of a plainer offshoot.
     <div className="mz mz-paper mz-persona-employer min-h-screen">
       <PageFrame as="main" mode="focused-form">
-        <header className="mb-5">
+        <header className="mb-4">
           <p className="mz-eyebrow">For employers &amp; verifiers</p>
           <h1 className="mz-h1" style={{ marginTop: 12, maxWidth: 680 }}>
             Move a clinician hire from interest to <span className="mz-accent">start</span>.
@@ -106,7 +106,7 @@ export default function EmployersPage() {
               page makes the case, /employers/request-access takes the request.
               The caption keeps the mechanism in its place — a doorway, not
               the reason the product exists. */}
-          <p style={{ marginTop: 20 }}>
+          <p style={{ marginTop: 16 }}>
             <Link href="/employers/request-access" className="mz-btn">
               Request organization access
             </Link>
@@ -125,7 +125,7 @@ export default function EmployersPage() {
         {/* Dense vignette (founder density lever, 2026-08-07): same drawing,
             cropped viewBox and compact stage — the elevation still says who
             the page is for without spending half a viewport saying it. */}
-        <section aria-label="Where the packet arrives" className="mt-8">
+        <section aria-label="Where the packet arrives" className="mt-6">
           <ArtifactStage glass dense>
             <HospitalArtifact />
           </ArtifactStage>
@@ -138,7 +138,7 @@ export default function EmployersPage() {
             marketing body copy. */}
         <div
           data-employer-limits=""
-          className="mz-mono mt-8 max-w-[620px] border-l-2 border-[var(--vt-border)] pl-3 text-[12px] leading-relaxed text-[var(--vt-text-muted)]"
+          className="mz-mono mt-6 max-w-[620px] border-l-2 border-[var(--vt-border)] pl-3 text-[12px] leading-relaxed text-[var(--vt-text-muted)]"
         >
           <p>
             The limits, stated plainly: VitalCV is not a credentialing service, and the hiring
@@ -166,7 +166,7 @@ export default function EmployersPage() {
             now (audit: reference-documentation density on a landing page). The
             hand-off keeps one registry-derived fact — the lane count — so even
             this sentence cannot drift from lane truth. */}
-        <section aria-label="What arrives, source by source" className="mt-12">
+        <section aria-label="What arrives, source by source" className="mt-9">
           <p className="mz-eyebrow">What arrives, source by source</p>
           <h2 className="mz-h2" style={{ marginTop: 8, maxWidth: 620 }}>
             {SOURCE_LANE_OPS.length} evidence lanes, each named to its source.
@@ -196,12 +196,12 @@ export default function EmployersPage() {
         {/* The close: same label, same destination as the hero — one intention,
             one route (audit: three labels for one intention forced a choice
             without information). */}
-        <section className="mz-card mt-12 p-5 sm:p-6" aria-label="Request organization access">
+        <section className="mz-card mt-9 p-5 sm:p-6" aria-label="Request organization access">
           <p className="mz-eyebrow">Ready when you are</p>
           <h2 className="mz-h2" style={{ marginTop: 8 }}>
             Request access to your organization
           </h2>
-          <p className="mz-small" style={{ marginTop: 4, marginBottom: 16, maxWidth: 620 }}>
+          <p className="mz-small" style={{ marginTop: 4, marginBottom: 12, maxWidth: 620 }}>
             The doorway into the employer experience: resolve your organization against the
             federal registry and request access — a request that has to be granted, never a
             claim.
@@ -213,7 +213,7 @@ export default function EmployersPage() {
           </p>
         </section>
 
-        <p className="mt-6 text-center text-xs text-[var(--vt-text-muted)]">
+        <p className="mt-5 text-center text-xs text-[var(--vt-text-muted)]">
           A network or health system?{' '}
           <Link href="/pilot" className="underline underline-offset-2 hover:text-[var(--vt-text-primary)]">
             Request a pilot
