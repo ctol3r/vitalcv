@@ -48,7 +48,8 @@ degrades to a neutral status rather than a red failure when unwired.
 | ~20:05 | Probe: forged `x-clerk-user-id` + `x-org-role: admin`, no token | **401 `identity_header_requires_verified_session_token`** — the forgery hole closes exactly as designed |
 | 20:09 | release-verify dispatched as canary | "success", but **`Run release verification` skipped** — no signed-in evidence produced |
 | 20:11–20:25 | Live deployment log sweep | 16 requests, all `outcome:"anonymous"`, **zero 401s, zero verified** — no signed-in traffic exists to prove or disprove the happy path |
-| 20:25 | `CLERK_JWT_VERIFICATION=shadow` — **rolled back** | Restored the month-stable state |
+| 20:25 | `CLERK_JWT_VERIFICATION=shadow` — **rolled back** | Var set; rollback carried by a later deployment |
+| 20:35 | Rollback **confirmed at the behavior level** | Forged-header probe returned to **400** (was 401 under enforce); anonymous 400; `mode="shadow"` in logs; both vars read `shadow`. Note the deployment created immediately after the var-set ended `REMOVED` — superseded seconds later by another build — so deployment status alone would have read as a failed rollback. Assert the served behavior, not the deployment row. |
 
 No user-visible breakage was observed during the ~23 minutes at enforce, but absence of breakage
 here is absence of traffic, not evidence of correctness. Leaving a security-critical fail-closed
