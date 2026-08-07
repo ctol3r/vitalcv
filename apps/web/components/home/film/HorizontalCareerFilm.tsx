@@ -277,6 +277,8 @@ export function HorizontalCareerFilm() {
               data-home-hero=""
               data-film-scene="arrival"
               data-film-seen=""
+              data-header-theme="light"
+              data-header-stage="your-number"
               aria-label={CHAPTERS[0].label}
             >
               <div className="film-ask">
@@ -429,10 +431,12 @@ export function HorizontalCareerFilm() {
                 collapses and the frames stack vertically (see home.css), so the
                 argument survives without the pin. */}
             <section
-              id="source-responses"
+              id="sources"
               className="film-chapter film-chapter--staged"
               data-film-scene="sources"
               data-film-seen={!isFilm || seen >= 1 ? '' : undefined}
+              data-header-theme="light"
+              data-header-stage="sources"
               aria-label={CHAPTERS[1].label}
             >
               <div ref={stageRef} className="film-stage-spacer">
@@ -544,10 +548,12 @@ export function HorizontalCareerFilm() {
 
             {/* ------------------------------------------ 03 YOUR PERMISSION */}
             <section
-              id="your-permission"
+              id="permission"
               className="film-chapter"
               data-film-scene="permission"
               data-film-seen={!isFilm || seen >= 2 ? '' : undefined}
+              data-header-theme="light"
+              data-header-stage="permission"
               aria-label={CHAPTERS[2].label}
             >
               <div className="film-two-col">
@@ -641,10 +647,12 @@ export function HorizontalCareerFilm() {
 
             {/* --------------------------------------------- 04 HUMAN REVIEW */}
             <section
-              id="human-review"
+              id="review"
               className="film-chapter"
               data-film-scene="review"
               data-film-seen={!isFilm || seen >= 3 ? '' : undefined}
+              data-header-theme="light"
+              data-header-stage="review"
               aria-label={CHAPTERS[3].label}
             >
               <div className="film-two-col">
@@ -682,6 +690,13 @@ export function HorizontalCareerFilm() {
               className="film-chapter"
               data-film-scene="closing"
               data-film-seen={!isFilm || seen >= 4 ? '' : undefined}
+              /* The epilogue stays on `review`: the journey rail is four
+                 stages by founder decision, and an undeclared final section
+                 would drop the band's winner entirely — snapping the header
+                 back to the route default mid-page. The reader is still in
+                 the review-and-reuse part of the story here. */
+              data-header-theme="light"
+              data-header-stage="review"
               aria-label={CHAPTERS[4].label}
             >
               <div className="film-closing film-reveal">

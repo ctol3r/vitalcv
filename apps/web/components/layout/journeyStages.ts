@@ -7,9 +7,10 @@
  * confirmed, and its copy must not imply that an NPI proves identity
  * ownership or that review means credential verification.
  *
- * The film variant's ChapterRail keeps its own frozen five-chapter
- * vocabulary; unifying it with this model is a founder-review follow-up
- * (docs/design/shared-header-recovery/gap-analysis.md §8.1).
+ * The film variant's ChapterRail derives its first four chapters (ids AND
+ * labels) from this module, plus a film-only `closing` epilogue — the
+ * gap-analysis §8.1 follow-up, unified 2026-08-07 by founder direction.
+ * `film-journey-unification.test.tsx` pins that derivation.
  */
 
 export type JourneyStageId = 'your-number' | 'sources' | 'permission' | 'review';
