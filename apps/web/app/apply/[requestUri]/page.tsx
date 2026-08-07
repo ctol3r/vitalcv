@@ -96,12 +96,18 @@ async function fetchBundle(bundleId: string): Promise<BundleResult> {
 }
 
 function BundleErrorView({ reason, retryHref }: { reason: 'expired' | 'error'; retryHref: string }) {
+  // Copy modernized 2026-08-07: the passport vocabulary was retired
+  // (category strategy 2026-08-04; the /passport route itself is a redirect
+  // stub since #1096), and the old primary label promised a passport while
+  // its href already went to /holder. The dark bg-ops-gradient ground —
+  // retired-era ops styling on a public clinician flow, with a border-white/6
+  // button that assumed it — goes with it (Calm Wave ALL-LIGHT ruling).
   const messages = {
     expired: {
       symbol: '⏱',
       title: 'This link has expired',
-      body: 'Passport links are valid for 24 hours.',
-      primaryLabel: 'Return to your passport',
+      body: 'Apply links are valid for 24 hours.',
+      primaryLabel: 'Open your VitalCV profile',
       primaryHref: '/holder',
       secondaryLabel: 'Start a new NPI lookup',
       secondaryHref: '/onboarding',
@@ -109,7 +115,7 @@ function BundleErrorView({ reason, retryHref }: { reason: 'expired' | 'error'; r
     error: {
       symbol: '!',
       title: 'Connection interrupted',
-      body: 'We could not load this passport right now. Try again in a moment.',
+      body: 'We could not load this application link right now. Try again in a moment.',
       primaryLabel: 'Try again',
       primaryHref: retryHref,
       secondaryLabel: 'Start a new NPI lookup',
@@ -118,7 +124,7 @@ function BundleErrorView({ reason, retryHref }: { reason: 'expired' | 'error'; r
   } as const;
   const message = messages[reason];
   return (
-    <div className="flex min-h-screen items-center justify-center bg-ops-gradient px-4 text-foreground">
+    <div className="flex min-h-screen items-center justify-center bg-background px-4 text-foreground">
       <div className="w-full max-w-sm space-y-4 text-center">
         <div className="text-5xl" aria-hidden="true">{message.symbol}</div>
         <h1 className="text-xl font-bold text-foreground">{message.title}</h1>
@@ -127,7 +133,7 @@ function BundleErrorView({ reason, retryHref }: { reason: 'expired' | 'error'; r
           <a href={message.primaryHref} className="inline-flex h-11 w-full items-center justify-center rounded-xl border border-border bg-muted px-6 text-sm font-semibold text-foreground transition-colors hover:bg-muted">
             {message.primaryLabel}
           </a>
-          <a href={message.secondaryHref} className="inline-flex h-11 w-full items-center justify-center rounded-xl border border-white/6 px-6 text-sm text-foreground/70 transition-colors hover:text-foreground">
+          <a href={message.secondaryHref} className="inline-flex h-11 w-full items-center justify-center rounded-xl border border-border px-6 text-sm text-foreground/70 transition-colors hover:text-foreground">
             {message.secondaryLabel}
           </a>
         </div>

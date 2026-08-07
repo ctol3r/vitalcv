@@ -7,7 +7,9 @@ import Link from 'next/link';
  */
 export default function ApplyLinkNotFound() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-ops-gradient px-4 text-foreground">
+    // Ground modernized 2026-08-07 with the sibling error view: the dark
+    // ops gradient was retired-era styling on a public clinician flow.
+    <div className="flex min-h-screen items-center justify-center bg-background px-4 text-foreground">
       <div className="w-full max-w-sm space-y-4 text-center">
         <div className="text-5xl" aria-hidden="true">?</div>
         <h1 className="text-xl font-bold text-foreground">Link not found</h1>
