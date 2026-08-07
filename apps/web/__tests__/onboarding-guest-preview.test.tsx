@@ -77,6 +77,7 @@ let root: Root;
 beforeEach(() => {
   window.sessionStorage.clear();
   window.localStorage.clear();
+  window.history.replaceState(null, '', '/');
   container = document.createElement('div');
   document.body.appendChild(container);
 });
@@ -157,6 +158,39 @@ describe('/onboarding anonymous visitor — record before account', () => {
 
     expect(container.querySelector('[data-guest-record]')).not.toBeNull();
     expect(container.textContent).toContain('Ada Rivers');
+  });
+
+  it('auto-resolves an NPI carried in ?npi= (cross-origin marketing arrival)', async () => {
+    // The marketing site's NPI form cannot write this origin's storage — the
+    // query string is its only carrier (see lib/onboarding/npiHandoff.ts).
+    window.history.replaceState(null, '', `/onboarding?npi=${VALID_NPI}`);
+    mockFetch();
+    await renderSurface();
+
+    expect(container.querySelector('[data-guest-record]')).not.toBeNull();
+    expect(container.textContent).toContain('Ada Rivers');
+  });
+
+  it('prefers the fresh ?npi= over a stale stored handoff', async () => {
+    // 1234567893 is the CMS check-digit example NPI — checksum-valid, and the
+    // fetch mock resolves nothing for it, so if storage won this test would
+    // land on the unavailable state instead of the fixture record.
+    window.sessionStorage.setItem(ONBOARDING_NPI_KEY, '1234567893');
+    window.history.replaceState(null, '', `/onboarding?npi=${VALID_NPI}`);
+    mockFetch();
+    await renderSurface();
+
+    expect(container.querySelector('[data-guest-record]')).not.toBeNull();
+    expect(container.textContent).toContain('Ada Rivers');
+  });
+
+  it('ignores a malformed ?npi= and shows the entry form', async () => {
+    window.history.replaceState(null, '', '/onboarding?npi=12345');
+    mockFetch();
+    await renderSurface();
+
+    expect(container.querySelector('#guest-npi-input')).not.toBeNull();
+    expect(container.querySelector('[data-guest-record]')).toBeNull();
   });
 
   it('reports registry silence as a system state, not a finding', async () => {

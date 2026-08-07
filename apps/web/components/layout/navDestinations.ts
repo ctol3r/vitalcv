@@ -45,6 +45,7 @@ export const NAV_GROUPS: readonly NavGroup[] = [
     blurb: 'Begin review from attributed evidence instead of from intake.',
     links: [
       { href: '/employers', label: 'For employers', detail: 'What arrives, and what it does not decide' },
+      { href: '/pricing', label: 'Pricing', detail: 'Plain terms, stated' },
     ],
   },
   /*
