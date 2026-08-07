@@ -33,8 +33,11 @@ harnesses; `notFound()` in production).
 ## C. Self-guarded internal — registry/middleware question, not chrome (6)
 
 `/ops` · `/ops/survivability` · `/admin/leads` · `/admin/platform` inline-guard
-with `auth()`. **`/admin/demo-reset` does NOT guard at all** — raised as a
-separate security fix, deliberately outside this visual wave.
+with `auth()`. **`/admin/demo-reset` finding CLOSED** — it shipped with no
+guard at all; fixed by [#1100](https://github.com/ctol3r/vitalcv/pull/1100)
+(merged `c65ec700b`): sibling-pattern inline `auth()` + ADMIN check on the
+page, plus a `/^\/admin(\/.*)?$/ → ADMIN` prefix guard in `PROTECTED_ROUTES`
+so the whole tree is middleware-covered.
 `/clinician/profile` guards client-side only (Clerk `useUser`) and is linked
 exclusively from signed-in surfaces.
 
