@@ -74,6 +74,17 @@
   width: 100%;
 }
 
+/* Dense stage (founder density lever, 2026-08-07): the compact vignette for
+   landing pages. Narrows the wide artifact and fixes the glass padding at the
+   clamp's floor. 38rem keeps the rendered SVG comfortably above the 500px
+   width floor page-artifacts.spec enforces. */
+.vt-artifact--dense .ask-art.ask-art--wide {
+  max-width: 38rem;
+}
+.vt-artifact--dense.vt-artifact--glass {
+  padding: 1.1rem 1.4rem;
+}
+
 /* Caption for any artifact figure outside the homepage's beat layout. */
 .ask-art-cap {
   margin: 0.85rem 0 0;
