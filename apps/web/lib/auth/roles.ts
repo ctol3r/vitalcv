@@ -46,7 +46,7 @@ export const ROLE_LANDING: Record<UserRoleType, string> = {
  *               it is deliberately not in PROTECTED_ROUTES. The gated
  *               employer workspace is /employer/* (singular).
  *   Ops/Intel — /intelligence/*, /findings/*, /graph/*, …  → AUTHENTICATED (any)
- *   Internal  — /internal/*, /analytics, /billing,
+ *   Internal  — /internal/*, /admin/*, /analytics, /billing,
  *               /pilot-ops, /mission-ops, /command-center → ADMIN role
  *
  * /dashboard/cv-builder is legacy (deprecated per doctrine §8).
@@ -68,6 +68,10 @@ export const PROTECTED_ROUTES: Array<{ pattern: RegExp; role: UserRoleType }> = 
   { pattern: /^\/issuer(\/.*)?$/, role: UserRole.ISSUER },
   { pattern: /^\/internal(\/.*)?$/, role: UserRole.ADMIN },
   // Internal / operator surfaces — admin only
+  // /admin/* — leads, platform, demo-reset. /admin/demo-reset shipped with no
+  // guard at all while its siblings self-guarded with inline auth(); this
+  // prefix guard covers the whole tree so the next /admin page is born gated.
+  { pattern: /^\/admin(\/.*)?$/, role: UserRole.ADMIN },
   { pattern: /^\/pilot-ops(\/.*)?$/, role: UserRole.ADMIN },
   { pattern: /^\/mission-ops(\/.*)?$/, role: UserRole.ADMIN },
   { pattern: /^\/analytics(\/.*)?$/, role: UserRole.ADMIN },
