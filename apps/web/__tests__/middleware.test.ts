@@ -67,6 +67,13 @@ describe('Route role mapping', () => {
     { path: '/internal/metrics', role: 'CLINICIAN', expected: '/' },
     { path: '/internal/metrics', role: 'VERIFIER', expected: '/' },
     { path: '/internal/metrics', role: 'ISSUER', expected: '/' },
+
+    // /admin - ADMIN only (demo-reset shipped unguarded; prefix now gated)
+    { path: '/admin/demo-reset', role: 'ADMIN', expected: 'allow' },
+    { path: '/admin/leads', role: 'ADMIN', expected: 'allow' },
+    { path: '/admin/platform', role: 'ADMIN', expected: 'allow' },
+    { path: '/admin/demo-reset', role: 'CLINICIAN', expected: '/holder' },
+    { path: '/admin/demo-reset', role: 'VERIFIER', expected: '/employer/dashboard' },
   ];
 
   it.each(cases)(
@@ -95,7 +102,7 @@ describe('Route role mapping', () => {
 describe('Route leak sentinel', () => {
   it('every protected route pattern is covered by the test matrix', () => {
     const protectedPatterns = PROTECTED_ROUTES.map((r) => r.pattern);
-    const testedPrefixes = ['/holder', '/verifier', '/issuer', '/internal', '/findings/abc', '/investigations/abc', '/intelligence/deep-link'];
+    const testedPrefixes = ['/holder', '/verifier', '/issuer', '/internal', '/admin/demo-reset', '/findings/abc', '/investigations/abc', '/intelligence/deep-link'];
     for (const prefix of testedPrefixes) {
       const matchesAny = protectedPatterns.some((p) => p.test(prefix));
       expect(matchesAny).toBe(true);
@@ -103,7 +110,7 @@ describe('Route leak sentinel', () => {
   });
 
   it('no protected route is accidentally public', () => {
-    const protectedPaths = ['/holder', '/verifier', '/issuer', '/internal/metrics', '/mission-ops', '/analytics'];
+    const protectedPaths = ['/holder', '/verifier', '/issuer', '/internal/metrics', '/admin/demo-reset', '/mission-ops', '/analytics'];
     for (const path of protectedPaths) {
       expect(isPublicRoute(path)).toBe(false);
     }

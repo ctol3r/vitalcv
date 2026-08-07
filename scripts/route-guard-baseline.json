@@ -3,7 +3,6 @@
     "/account/recovery",
     "/activation/[caseId]",
     "/activity/[entityId]",
-    "/admin/demo-reset",
     "/analytics-foundation",
     "/autopilot",
     "/career-intelligence/[entityId]",

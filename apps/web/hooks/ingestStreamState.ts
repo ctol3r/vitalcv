@@ -295,8 +295,9 @@ export function createInitialIngestStreamState(): IngestStreamState {
 
 /**
  * Hydrate an IngestStreamState from the homepage preview's ClinicianTrustState.
- * Used when navigating from LiveTrustConsole → /passport to avoid re-running
- * NPPES and OIG checks that already completed on the homepage.
+ * Written for the retired homepage-console → /passport handoff (both surfaces
+ * removed by 2026-08-07) to avoid re-running NPPES and OIG checks that already
+ * completed on the homepage.
  *
  * The returned state has NPPES and OIG marked as done, PECOS still pending
  * (the passport SSE stream will fill it in). Phase is set to 'enrollment'
