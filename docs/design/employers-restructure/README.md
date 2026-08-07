@@ -9,6 +9,31 @@ intention; lane-register reference density on a landing page.
 Explicitly **not** in this wave (open founder decisions): the H1 line, any
 pricing statement.
 
+## REVISION 2 (founder visual gate, 2026-08-07)
+
+The gate approved the restructure and revised the hierarchy: the evidence-led
+H1 sold the trust machinery as the product. Changes, all on the existing
+structure (`evidence-revision2/`):
+
+- **Hero** now leads with the hiring experience — "Move a clinician hire from
+  interest to start." — with the lede carrying arrival/known/remaining/decision
+  and attribution entering immediately beneath as proof. No pace language.
+- **Organization access** is framed as the doorway (hero caption + closing
+  card), not the proposition. Same label, same route, still the only action.
+- **Audience section** recomposed from six bordered cards in two grids to two
+  hairline row lists under one heading; size-band rows run full-width with the
+  action on the band line. All W10 titles, W11 bands, routing, and boundary
+  strings preserved.
+- The branch also inherits the shared journey header (#1083, #1085) via rebase.
+
+Measured (branch prod build, `next start`): /employers **3,145px** desktop
+(was 3,262 at revision 1; 5,743 before), **4,118px** mobile (was 4,571;
+7,402 before). Zero console errors, no overflow at any capture size. The
+audit's ≤2,800px is still not fully reached: the remaining mass is the
+six-card workflow section (~590px) and the hero artifact stage (~290px) —
+both part of the approved visual architecture, so tightening either is a
+founder decision, not one this revision takes silently.
+
 ## Measured result (branch prod build, `next start`)
 
 | Route | 1440 height | 390 height | overflow | console errors |

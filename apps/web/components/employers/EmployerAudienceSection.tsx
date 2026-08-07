@@ -36,7 +36,7 @@ export function EmployerAudienceSection() {
         {EMPLOYER_TEAMS.map((team) => (
           <li
             key={team.team}
-            className="flex flex-col gap-1 border-b border-[var(--vt-border)] py-3 lg:flex-row lg:items-baseline lg:gap-6"
+            className="flex flex-col gap-1 border-b border-[var(--vt-border)] py-2.5 lg:flex-row lg:items-baseline lg:gap-6"
           >
             <h3 className="shrink-0 text-sm font-semibold leading-snug text-[var(--vt-text-primary)] lg:w-60">
               {team.team}
@@ -56,30 +56,29 @@ export function EmployerAudienceSection() {
         ))}
       </ul>
 
+      {/* Size bands run full-width: at this column width a third text column
+          forces four-line wraps, which is where the old vertical mass hid.
+          Name and action share the first line; situation and body each get
+          one full-width line. */}
       <ul className="mt-6 list-none border-t border-[var(--vt-border)]">
         {EMPLOYER_ORG_SIZES.map((size) => (
-          <li
-            key={size.band}
-            className="flex flex-col gap-1 border-b border-[var(--vt-border)] py-3 lg:flex-row lg:items-baseline lg:gap-6"
-          >
-            <h3 className="shrink-0 text-sm font-semibold leading-snug text-[var(--vt-text-primary)] lg:w-60">
-              {size.band}
-            </h3>
-            <div className="min-w-0 flex-1">
-              <p className="mz-mono text-[11px] leading-relaxed text-[var(--vt-text-muted)]">
-                {size.situation}
-              </p>
-              <p className="mt-1 text-[13px] leading-relaxed text-[var(--vt-text-secondary)]">
-                {size.body}
-              </p>
-            </div>
-            <p className="shrink-0 lg:text-right">
+          <li key={size.band} className="border-b border-[var(--vt-border)] py-2.5">
+            <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
+              <h3 className="text-sm font-semibold leading-snug text-[var(--vt-text-primary)]">
+                {size.band}
+              </h3>
               <a
                 href={size.action.href}
                 className="text-[13px] font-semibold text-[var(--vt-text-primary)] underline underline-offset-2"
               >
                 {size.action.label}
               </a>
+            </div>
+            <p className="mz-mono mt-0.5 text-[11px] leading-relaxed text-[var(--vt-text-muted)]">
+              {size.situation}
+            </p>
+            <p className="mt-1 max-w-[620px] text-[13px] leading-relaxed text-[var(--vt-text-secondary)]">
+              {size.body}
             </p>
           </li>
         ))}
