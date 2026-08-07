@@ -23,6 +23,21 @@ name: Release verify
 # CLERK_FAPI_URL (default https://clerk.vitalcv.com), RELEASE_PROBE_BASE
 # (default https://vitalcv.com). GITHUB_TOKEN is automatic (statuses: write).
 # See docs/deployment/release-monitoring.md.
+#
+# Infra vs signal (added after runs #397/#398, 2026-08-06):
+#   Both of this workflow's failures in the 120 runs ending 2026-08-07 were
+#   runner-acquisition timeouts (runner_id 0, zero steps, killed at ~15:03
+#   during a GitHub Actions incident) — not production failures. Two
+#   mechanisms keep infra out of the red channel:
+#   1. An egress sentinel runs before the status is recorded. If the smoke
+#      or verification failed AND the sentinel proves the runner's own
+#      egress is dead (two independent non-production control endpoints
+#      both unreachable), the run records a grey `pending` "no signal"
+#      status and does not fail red. Ambiguity resolves to RED — a real
+#      production failure is never converted to grey by this path.
+#   2. Runner-never-acquired failures (nothing in this file executes) are
+#      handled by monitor-rescue.yml: one automatic re-run, then a grey
+#      `pending` "no signal" status if the retry also cannot start.
 
 on:
   repository_dispatch:
@@ -34,7 +49,11 @@ on:
         required: false
         default: ''
   schedule:
-    - cron: '*/30 * * * *'
+    # Safety net for missed deploy webhooks. Twice hourly at off-peak
+    # minutes: :00/:30 are the most congested schedule minutes on shared
+    # GitHub infra and the old */30 delivered a median gap of 113 minutes
+    # anyway (measured over the 120 runs ending 2026-08-07).
+    - cron: '11,41 * * * *'
 
 concurrency:
   # Never run two verifications against prod at once; do not cancel one mid-run.
@@ -94,6 +113,12 @@ jobs:
       # cache cannot fake a pass.
       - name: Production smoke (secretless, cache-busted)
         id: smoke
+        # continue-on-error so a smoke failure reaches the egress sentinel +
+        # status classification below instead of aborting the job unclassified.
+        # The "Fail the job" step at the end still paints a genuine smoke
+        # failure red — this does NOT soften the smoke gate.
+        continue-on-error: true
+        timeout-minutes: 5
         env:
           RELEASE_PROBE_BASE: ${{ secrets.RELEASE_PROBE_BASE || 'https://vitalcv.com' }}
           EXPECTED_SHA: ${{ steps.target.outputs.sha }}
@@ -101,6 +126,9 @@ jobs:
 
       - name: Preflight — is the monitor wired?
         id: preflight
+        # Smoke failure used to abort the job here implicitly; keep that
+        # ordering explicit now that smoke is continue-on-error.
+        if: steps.smoke.outcome == 'success'
         env:
           CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
         run: |
@@ -133,6 +161,26 @@ jobs:
           RELEASE_REPORT_OUT: report.json
         run: pnpm verify:release
 
+      - name: Egress sentinel — is the runner's own network alive?
+        id: egress
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Two independent, non-production control endpoints. Only when BOTH
+          # are unreachable is the runner's own egress proven dead — then any
+          # probe failure in this run is "no signal", not a production
+          # verdict. If either answers, egress works and a failure against
+          # production stays a real red. Ambiguity resolves to red: ok=false
+          # is only ever written on a confirmed double control failure.
+          if curl -fsS --max-time 10 "https://www.githubstatus.com/api/v2/status.json" >/dev/null 2>&1 \
+            || curl -fsS --max-time 10 -H "Authorization: Bearer ${GH_TOKEN}" \
+                 "https://api.github.com/rate_limit" >/dev/null 2>&1; then
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Record commit status + job summary
         if: always()
         env:
@@ -144,6 +192,7 @@ jobs:
           SMOKE_OUTCOME: ${{ steps.smoke.outcome }}
           VERIFY_OUTCOME: ${{ steps.verify.outcome }}
           WIRED: ${{ steps.preflight.outputs.wired }}
+          EGRESS_OK: ${{ steps.egress.outputs.ok }}
         run: |
           # The commit Status API has no `neutral` state (that lives in the Checks
           # API); `pending` is its non-pass/non-fail signal and renders as a grey
@@ -153,7 +202,17 @@ jobs:
           # web→DB connectivity) — it must paint a RED status, never the grey
           # "not wired" pending it used to fall through to (preflight is skipped
           # when the smoke step fails, so WIRED is empty on that path).
-          if [ "$SMOKE_OUTCOME" = "failure" ]; then
+          #
+          # EXCEPTION, proven not assumed: when the egress sentinel confirmed
+          # the runner's own network is dead (EGRESS_OK=false — BOTH control
+          # endpoints unreachable), a smoke/verify failure says nothing about
+          # production. That is "no signal" and records grey `pending`, which
+          # is deliberately NOT the state a real probe failure records. Any
+          # other sentinel outcome (true, empty, step skipped) keeps the red.
+          if [ "$SMOKE_OUTCOME" = "failure" ] && [ "$EGRESS_OK" = "false" ]; then
+            STATE=pending
+            DESC="no signal — runner egress failure (GitHub infra); production was not reached"
+          elif [ "$SMOKE_OUTCOME" = "failure" ]; then
             STATE=failure
             DESC="production smoke failed (version / auth-config / db-connectivity / public routes)"
           elif [ "$WIRED" != "true" ]; then
@@ -162,6 +221,9 @@ jobs:
           elif [ "$VERIFY_OUTCOME" = "success" ]; then
             STATE=success
             DESC="release verification"
+          elif [ "$EGRESS_OK" = "false" ]; then
+            STATE=pending
+            DESC="no signal — runner egress failed during verification (GitHub infra)"
           else
             STATE=failure
             DESC="release verification"
@@ -175,11 +237,13 @@ jobs:
             # still-serving commit's green status red and leave the new commit
             # with no status at all.
             SHA=$(jq -r '.targetSha // .containerSha // .mainSha // empty' report.json)
-            OVERALL=$(jq -r '.overall // "unknown"' report.json)
-            FAILED=$(jq -r '(.failedChecks // []) | join(", ")' report.json)
-            HOLDER_OK=$(jq -r '[.checks[]? | select((.name|startswith("holder")) and .ok)] | length' report.json)
-            HOLDER_TOTAL=$(jq -r '[.checks[]? | select(.name|startswith("holder"))] | length' report.json)
-            DESC="${OVERALL}: holder ${HOLDER_OK}/${HOLDER_TOTAL}${FAILED:+; failed ${FAILED}}"
+            if [ "$EGRESS_OK" != "false" ] || [ "$STATE" != "pending" ]; then
+              OVERALL=$(jq -r '.overall // "unknown"' report.json)
+              FAILED=$(jq -r '(.failedChecks // []) | join(", ")' report.json)
+              HOLDER_OK=$(jq -r '[.checks[]? | select((.name|startswith("holder")) and .ok)] | length' report.json)
+              HOLDER_TOTAL=$(jq -r '[.checks[]? | select(.name|startswith("holder"))] | length' report.json)
+              DESC="${OVERALL}: holder ${HOLDER_OK}/${HOLDER_TOTAL}${FAILED:+; failed ${FAILED}}"
+            fi
           fi
           [ -z "$SHA" ] && SHA="$TARGET_SHA"
           [ -z "$SHA" ] && SHA="$HEAD_SHA"
@@ -208,9 +272,23 @@ jobs:
             fi
           } >> "$GITHUB_STEP_SUMMARY"
 
+      - name: No signal — GitHub infra, not a production verdict
+        if: >-
+          steps.egress.outputs.ok == 'false' &&
+          (steps.smoke.outcome == 'failure' ||
+           (steps.preflight.outputs.wired == 'true' && steps.verify.outcome != 'success'))
+        run: |
+          echo "::warning::Runner egress failure — this run produced NO SIGNAL about production. Commit status is grey pending, not red."
+
       - name: Fail the job when verification failed
         # Only a wired run can fail red; an unwired run posts neutral and exits 0.
-        if: steps.preflight.outputs.wired == 'true' && steps.verify.outcome != 'success'
+        # A CONFIRMED runner-egress failure (sentinel ok=false) is "no signal",
+        # not a production verdict — that path stays green here with the grey
+        # pending status above. Any other sentinel outcome keeps the red.
+        if: >-
+          steps.egress.outputs.ok != 'false' &&
+          (steps.smoke.outcome == 'failure' ||
+           (steps.preflight.outputs.wired == 'true' && steps.verify.outcome != 'success'))
         run: |
           echo "::error::Release verification failed — see the vitalcv/release-verified commit status and the job summary." >&2
           exit 1
