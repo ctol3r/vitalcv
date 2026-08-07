@@ -7,6 +7,11 @@ This is the named authorization gate required by the authorization-boundary prac
 is executed only on an explicit founder selection recorded against this package. Both flips are
 config-only and instantly reversible (`--set` back to `shadow`).
 
+> **STATUS 2026-08-07: NOT READY.** A first flip was executed today on a mis-scored criterion and
+> **rolled back within 23 minutes**. Production is back at `shadow`/`shadow`. One gap blocks the
+> flip — see "Correction" and "The one real blocker" below. Do not re-flip until the canary has
+> produced a genuine signed-in `verified_match`.
+
 ## Current production state (read live 2026-08-07)
 
 | Var | Value | Since |
@@ -23,7 +28,48 @@ config-only and instantly reversible (`--set` back to `shadow`).
 | 2 | Zero unexplained `verified_mismatch` | **Met** | Zero ever (PR #616 readout); zero in the 2026-08-07 sweep. `invalid_token` likewise zero. |
 | 3 | All web call sites forward the bearer | **Met (code)** | PR #609 converted the final 26 ad-hoc sites (2026-07-10); trust/events stopped forwarding client-supplied `x-clerk-user-id`. |
 | 4 | No server-to-server caller sends `x-clerk-user-id` without a token | **Met (empirical)** | Same `header_without_token` zeros as #1 over ~4 weeks of deployments. |
-| — | Happy path proven (`verified_match`) | **Met (indirect)** | The release-verify workflow mints a synthetic clinician and walks 6 signed-in /holder surfaces every ~hour through the converted proxies; green runs all day 2026-08-07 (latest 19:31Z). Short-lived containers between deploys mean per-deployment log slices rarely capture the sampled event itself; the workflow's assertions are the stronger signal. |
+| — | Happy path proven (`verified_match`) | **NOT MET — this is the blocking gap** | See "Correction" below. The release-verify workflow's signed-in walk has **never executed**: its preflight skips the verification step unless `CLERK_SECRET_KEY` is set as a repo secret, and `gh secret list` (2026-08-07) shows it absent. Every hourly "success" is green-with-the-step-skipped, posting a neutral status. Prod has logged **zero** `verified_match` in a month of shadow. A successful token verification has never once been observed in production. |
+
+## Correction (2026-08-07, after the first flip attempt)
+
+An earlier revision of this document scored the happy-path criterion "Met (indirect)" on the
+strength of hourly green release-verify runs. **That was wrong.** The runs are green because the
+step that performs the signed-in walk is skipped, not because it passed — the classic
+green-CI-is-not-evidence trap. `CLERK_SECRET_KEY` has been missing from the repo secrets since the
+workflow was built (flagged 2026-07-11, still absent 2026-08-07), and the workflow deliberately
+degrades to a neutral status rather than a red failure when unwired.
+
+**What was executed and then reverted, on that mistaken basis:**
+
+| Time (UTC) | Action | Result |
+|---|---|---|
+| 20:02 | `CLERK_JWT_VERIFICATION=enforce` set; deployment `99e0dd2f` | SUCCESS, booted clean in `mode="enforce"` |
+| ~20:05 | Probe: anonymous `POST /api/verifier/accept` | 400 (unchanged — anonymous flows unaffected) |
+| ~20:05 | Probe: forged `x-clerk-user-id` + `x-org-role: admin`, no token | **401 `identity_header_requires_verified_session_token`** — the forgery hole closes exactly as designed |
+| 20:09 | release-verify dispatched as canary | "success", but **`Run release verification` skipped** — no signed-in evidence produced |
+| 20:11–20:25 | Live deployment log sweep | 16 requests, all `outcome:"anonymous"`, **zero 401s, zero verified** — no signed-in traffic exists to prove or disprove the happy path |
+| 20:25 | `CLERK_JWT_VERIFICATION=shadow` — **rolled back** | Restored the month-stable state |
+
+No user-visible breakage was observed during the ~23 minutes at enforce, but absence of breakage
+here is absence of traffic, not evidence of correctness. Leaving a security-critical fail-closed
+control live when its happy path has never once been demonstrated risks 401-ing every authenticated
+backend call silently, with no monitor watching — so it was reverted rather than sustained.
+
+## The one real blocker, and who can clear it
+
+**Wire `CLERK_SECRET_KEY` as a GitHub repo secret.** This is a credential action and belongs to the
+founder — an agent must not copy live `sk_live_` material. The value already exists on Railway
+(`delightful-essence`). Owner one-liner:
+
+```bash
+railway variables --kv --service delightful-essence | sed -n 's/^CLERK_SECRET_KEY=//p' | gh secret set CLERK_SECRET_KEY --repo ctol3r/vitalcv
+```
+
+The workflow self-heals the moment it is set: the preflight passes, the synthetic clinician walks
+six signed-in /holder surfaces hourly, and the first green run with the step actually **executed**
+is the missing `verified_match` evidence. Then, and only then, re-run the sequence below.
+
+Setting `RAILWAY_API_TOKEN` alongside it also activates the PR #508 release-monitoring loop.
 
 ## Verifier RBAC readiness — scored
 
