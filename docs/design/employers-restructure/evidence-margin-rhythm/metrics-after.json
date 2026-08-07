@@ -1,0 +1,60 @@
+{
+  "baseUrl": "http://localhost:3062",
+  "label": "after",
+  "capturedAt": "2026-08-07T16:38:41.280Z",
+  "routes": {
+    "/employers": {
+      "scrollHeight": 2796,
+      "scrollWidth": 1440,
+      "innerWidth": 1440,
+      "title": "For Employers · VitalCV — VitalCV",
+      "horizontalOverflow": false,
+      "consoleErrors": [],
+      "failedRequests": [
+        "http://localhost:3062/?_rsc=MXABT8tckXANW7yL — net::ERR_ABORTED"
+      ],
+      "mobile": {
+        "scrollHeight": 3608,
+        "scrollWidth": 390,
+        "innerWidth": 390,
+        "horizontalOverflow": false
+      }
+    },
+    "/employers/request-access": {
+      "scrollHeight": 1054,
+      "scrollWidth": 1440,
+      "innerWidth": 1440,
+      "title": "Request organization access · VitalCV — VitalCV",
+      "horizontalOverflow": false,
+      "consoleErrors": [],
+      "failedRequests": [
+        "http://localhost:3062/sign-in?_rsc=K_j3GWHR5GbP5_kJ — net::ERR_ABORTED",
+        "http://localhost:3062/?_rsc=K_j3GWHR5GbP5_kJ — net::ERR_ABORTED"
+      ],
+      "mobile": {
+        "scrollHeight": 1030,
+        "scrollWidth": 390,
+        "innerWidth": 390,
+        "horizontalOverflow": false
+      }
+    },
+    "/employers/how-it-works": {
+      "scrollHeight": 3390,
+      "scrollWidth": 1440,
+      "innerWidth": 1440,
+      "title": "How it works — what arrives, source by source · VitalCV — VitalCV",
+      "horizontalOverflow": false,
+      "consoleErrors": [],
+      "failedRequests": [
+        "http://localhost:3062/?_rsc=NXeuwuBKOQHh9seZ — net::ERR_ABORTED",
+        "http://localhost:3062/sign-in?_rsc=NXeuwuBKOQHh9seZ — net::ERR_ABORTED"
+      ],
+      "mobile": {
+        "scrollHeight": 3578,
+        "scrollWidth": 390,
+        "innerWidth": 390,
+        "horizontalOverflow": false
+      }
+    }
+  }
+}

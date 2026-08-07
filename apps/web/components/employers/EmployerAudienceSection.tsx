@@ -22,12 +22,12 @@ import {
  */
 export function EmployerAudienceSection() {
   return (
-    <section aria-label="Who this is for" data-employer-audience="" className="mt-12">
+    <section aria-label="Who this is for" data-employer-audience="" className="mt-9">
       <p className="mz-eyebrow">Who this is for</p>
       <h2 className="mz-h2" style={{ marginTop: 8, maxWidth: 620 }}>
         Three teams, one record — and a way in at <span className="mz-accent">every size</span>.
       </h2>
-      <p className="mz-small" style={{ marginTop: 8, marginBottom: 16, maxWidth: 620 }}>
+      <p className="mz-small" style={{ marginTop: 8, marginBottom: 12, maxWidth: 620 }}>
         Credentialing, recruitment, and HR each need a different thing from the same evidence.
         Nobody re-keys it for the next team.
       </p>
@@ -36,7 +36,7 @@ export function EmployerAudienceSection() {
         {EMPLOYER_TEAMS.map((team) => (
           <li
             key={team.team}
-            className="flex flex-col gap-1 border-b border-[var(--vt-border)] py-2.5 lg:flex-row lg:items-baseline lg:gap-6"
+            className="flex flex-col gap-1 border-b border-[var(--vt-border)] py-2 lg:flex-row lg:items-baseline lg:gap-6"
           >
             <h3 className="shrink-0 text-sm font-semibold leading-snug text-[var(--vt-text-primary)] lg:w-60">
               {team.team}
@@ -60,9 +60,9 @@ export function EmployerAudienceSection() {
           forces four-line wraps, which is where the old vertical mass hid.
           Name and action share the first line; situation and body each get
           one full-width line. */}
-      <ul className="mt-6 list-none border-t border-[var(--vt-border)]">
+      <ul className="mt-5 list-none border-t border-[var(--vt-border)]">
         {EMPLOYER_ORG_SIZES.map((size) => (
-          <li key={size.band} className="border-b border-[var(--vt-border)] py-2.5">
+          <li key={size.band} className="border-b border-[var(--vt-border)] py-2">
             <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
               <h3 className="text-sm font-semibold leading-snug text-[var(--vt-text-primary)]">
                 {size.band}
@@ -86,7 +86,7 @@ export function EmployerAudienceSection() {
 
       <p
         data-employer-audience-boundary=""
-        className="mz-mono mt-5 max-w-[620px] border-l-2 border-[var(--vt-border)] pl-3 text-[12px] leading-relaxed text-[var(--vt-text-muted)]"
+        className="mz-mono mt-4 max-w-[620px] border-l-2 border-[var(--vt-border)] pl-3 text-[12px] leading-relaxed text-[var(--vt-text-muted)]"
       >
         {EMPLOYER_AUDIENCE_BOUNDARY}
       </p>
