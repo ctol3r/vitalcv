@@ -63,7 +63,11 @@ export function getHeaderRouteContext(pathname: string): HeaderRouteContext {
   ) {
     return {
       audience: 'employer',
-      cta: pathname === '/employers' ? null : EMPLOYER_CTA,
+      // Suppressed on /employers (the page opens with the identical action)
+      // and on the CTA's own destination — a bar button pointing at the page
+      // you are already on is the same competing-primary problem.
+      cta:
+        pathname === '/employers' || pathname === EMPLOYER_CTA.href ? null : EMPLOYER_CTA,
       defaultStage: 'review',
       defaultTheme: 'light',
       railInteractive: false,

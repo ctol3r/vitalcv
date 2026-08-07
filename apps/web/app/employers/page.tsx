@@ -1,7 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ArtifactStage } from '@/components/motion/ArtifactStage';
-import { DecisionArtifact } from '@/components/artifacts/PageArtifacts';
 import { HospitalArtifact } from '@/components/artifacts/SceneArtifacts';
 import '@/styles/motion.css';
 import '@/styles/artifact-motion.css';
@@ -128,16 +127,10 @@ export default function EmployersPage() {
           </p>
         </div>
 
-        {/* Then what the reviewer actually receives: claims carrying their
-            sources, and the three actions that stay visibly the reviewer's.
-            Ordered after the hospital on purpose — the place, then the work.
-            Both play once on entry, then rest. */}
-        <section aria-label="What a reviewer receives" className="mt-10">
-          <ArtifactStage glass>
-            <DecisionArtifact />
-          </ArtifactStage>
-        </section>
-
+        {/* The reviewer's-eye artifact ("what a reviewer receives") moved to
+            /employers/how-it-works with the rest of the packet anatomy — two
+            glass artifact stages in a row competed, and its subject is exactly
+            what that page carries in full. */}
         <EmployerWorkflowPreview />
 
         {/* The lane register and the illustrative packet live on their own page

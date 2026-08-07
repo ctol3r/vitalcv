@@ -1,5 +1,9 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { ArtifactStage } from '@/components/motion/ArtifactStage';
+import { DecisionArtifact } from '@/components/artifacts/PageArtifacts';
+import '@/styles/motion.css';
+import '@/styles/artifact-motion.css';
 import { EmployerEvidenceSection } from '@/components/employers/EmployerEvidenceSection';
 import { PageFrame } from '@/components/layout/PageFrame';
 
@@ -42,6 +46,16 @@ export default function EmployerHowItWorksPage() {
             says so.
           </p>
         </header>
+
+        {/* What the reviewer actually receives: claims carrying their sources,
+            and the three actions that stay visibly the reviewer's. Moved here
+            from the landing page with the rest of the packet anatomy — this is
+            the page that shows the work. Plays once on entry, then rests. */}
+        <section aria-label="What a reviewer receives" className="mt-8">
+          <ArtifactStage glass>
+            <DecisionArtifact />
+          </ArtifactStage>
+        </section>
 
         <EmployerEvidenceSection />
 
