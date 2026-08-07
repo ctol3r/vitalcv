@@ -14,9 +14,12 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
+import { ONBOARDING_NPI_KEY } from '@/lib/onboarding/npiHandoff';
 
 const STORAGE_KEYS = {
-  npi: 'onboarding_npi',
+  // Shared with lib/onboarding/npiHandoff.ts — the homepage resolved state
+  // and /onboarding's anonymous preview write the same key.
+  npi: ONBOARDING_NPI_KEY,
   bootstrap: 'onboarding_bootstrap',
   returnTo: 'onboarding_return_to',
 } as const;

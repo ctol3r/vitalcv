@@ -38,6 +38,7 @@ import { useEffect, useRef, useState } from 'react';
 import { ApplyWithVitalCV } from '@/components/apply/ApplyWithVitalCV';
 import { FUNNEL_EVENTS, trackFunnelEvent } from '@/lib/analytics/funnel';
 import { useCareerLoop, type LoopMatch } from '@/lib/career-loop/useCareerLoop';
+import { writeNpiHandoff } from '@/lib/onboarding/npiHandoff';
 import { sourceCadenceSentence } from '@/lib/trust/sourceCadence';
 
 /** Truthful rail: six stages, ending at review — never at a confirmed start. */
@@ -449,7 +450,22 @@ export function CareerLoopHome() {
               </p>
             )}
             <div className="clh-actions">
-              <a className="clh-act clh-act--ink" href="/holder">Manage your record</a>
+              {/* Record-first sequencing (founder audit 2026-08-06): this used
+                  to point at /holder, whose layout redirects anonymous
+                  visitors to sign-in — the page's own "no account" promise,
+                  repossessed. It now hands the resolved NPI to /onboarding,
+                  which shows the record before the account ask. Label matches
+                  the film variant's EvidenceCapsule CTA, so both home
+                  compositions carry one vocabulary. */}
+              <a
+                className="clh-act clh-act--ink"
+                href="/onboarding"
+                onClick={() => {
+                  if (live && !isDemo && profile?.npi) writeNpiHandoff(profile.npi);
+                }}
+              >
+                Keep this record
+              </a>
               <button type="button" className="clh-act clh-act--quiet" onClick={() => { setRaw(''); reset(); setShared(null); setSelectedClaims([]); setApplyTouched(false); setAuthBoundary(false); window.scrollTo({ top: 0, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }); }}>
                 Check another NPI
               </button>

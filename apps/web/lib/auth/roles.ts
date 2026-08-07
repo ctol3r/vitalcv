@@ -33,7 +33,12 @@ export const ROLE_LANDING: Record<UserRoleType, string> = {
  *
  * Surface classification (VCV_UI_DOCTRINE §1):
  *   Public   — /explore, /get-ready, /onboarding, /p/:npi, /verify/:npi, /sign-in, /sign-up, etc.
- *   Clinician — /holder/*, /passport/*, /onboarding/*     → CLINICIAN role
+ *               NOTE: /onboarding is public end-to-end — it resolves the
+ *               public registry record anonymously (record before account);
+ *               only the BIND (POST /api/profile/npi/bootstrap) needs auth.
+ *   Clinician — /holder/*                                 → CLINICIAN role
+ *               NOTE: /passport is currently UNCLASSIFIED (served publicly,
+ *               ROUTE-01 baselined) — its fate is an open founder decision.
  *   Verifier  — /verifier/*, /employer/*, /issuer/*       → VERIFIER role
  *               NOTE: /employers (plural) is the PUBLIC acquisition page —
  *               it is deliberately not in PROTECTED_ROUTES. The gated
