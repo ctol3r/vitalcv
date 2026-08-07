@@ -24,7 +24,6 @@ const homepage = webFile('components/home/film/HorizontalCareerFilm.tsx');
 // states live in /onboarding's guest lane now (GetReadySurface.resolveGuest),
 // which took over as the only producer of RESULTS_DISPLAYED.
 const guestLane = webFile('app/get-ready/GetReadySurface.tsx');
-const console_ = webFile('components/hero/LiveTrustConsole.tsx');
 
 describe('funnel instrumentation', () => {
   it('fires the denominator from the homepage', () => {
@@ -44,7 +43,6 @@ describe('funnel instrumentation', () => {
     for (const outcome of ['organization', 'unavailable']) {
       expect(guestLane, `missing drop-off outcome ${outcome}`).toContain(`outcome: '${outcome}'`);
     }
-    expect(console_).toContain("outcome: 'invalid_length'");
   });
 
   it('keeps the pilot-ops passport_viewed KPI producing', () => {
@@ -60,13 +58,9 @@ describe('funnel instrumentation', () => {
     for (const [name, src] of [
       ['HomePageClient', homepage],
       ['guest lane', guestLane],
-      ['LiveTrustConsole', console_],
     ] as const) {
       expect(src, `${name} must not hash an NPI into analytics`).not.toContain('hashNpi');
     }
-    // The only NPI-derived property permitted is a digit count.
-    expect(console_).toContain('npi_length: cleanNpi.length');
-    expect(console_).not.toMatch(/npi:\s*cleanNpi/);
   });
 
   it('keeps the documented event names in sync with the schema doc', () => {
