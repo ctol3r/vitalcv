@@ -13,7 +13,7 @@ pricing statement.
 
 The gate approved the restructure and revised the hierarchy: the evidence-led
 H1 sold the trust machinery as the product. Changes, all on the existing
-structure (`evidence-revision2/`):
+structure (canonical capture set: `evidence/`):
 
 - **Hero** now leads with the hiring experience — "Move a clinician hire from
   interest to start." — with the lede carrying arrival/known/remaining/decision
