@@ -1,0 +1,132 @@
+{
+  "baseUrl": "http://localhost:3063",
+  "label": "after",
+  "capturedAt": "2026-08-07T15:23:19.708Z",
+  "pages": {
+    "after-onboarding-entry-1440x900": {
+      "scrollHeight": 1282,
+      "scrollWidth": 1440,
+      "innerWidth": 1440,
+      "horizontalOverflow": false,
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      ],
+      "failedRequests": [
+        "http://localhost:3063/api/me/workspaces — net::ERR_ABORTED",
+        "http://localhost:3063/?_rsc=B7yroOPNvpOYIw-w — net::ERR_ABORTED",
+        "http://localhost:3063/sign-in?_rsc=B7yroOPNvpOYIw-w — net::ERR_ABORTED"
+      ]
+    },
+    "after-onboarding-entry-390x844": {
+      "scrollHeight": 1359,
+      "scrollWidth": 390,
+      "innerWidth": 390,
+      "horizontalOverflow": false,
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      ],
+      "failedRequests": [
+        "http://localhost:3063/api/me/workspaces — net::ERR_ABORTED",
+        "http://localhost:3063/?_rsc=B7yroOPNvpOYIw-w — net::ERR_ABORTED"
+      ]
+    },
+    "after-onboarding-entry-768x1024": {
+      "scrollHeight": 1264,
+      "scrollWidth": 768,
+      "innerWidth": 768,
+      "horizontalOverflow": false,
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      ],
+      "failedRequests": [
+        "http://localhost:3063/api/me/workspaces — net::ERR_ABORTED",
+        "http://localhost:3063/?_rsc=B7yroOPNvpOYIw-w — net::ERR_ABORTED",
+        "http://localhost:3063/sign-in?_rsc=B7yroOPNvpOYIw-w — net::ERR_ABORTED"
+      ]
+    },
+    "after-onboarding-entry-reduced-motion": {
+      "scrollHeight": 1282,
+      "scrollWidth": 1440,
+      "innerWidth": 1440,
+      "horizontalOverflow": false,
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      ],
+      "failedRequests": [
+        "http://localhost:3063/api/me/workspaces — net::ERR_ABORTED",
+        "http://localhost:3063/?_rsc=B7yroOPNvpOYIw-w — net::ERR_ABORTED",
+        "http://localhost:3063/sign-in?_rsc=B7yroOPNvpOYIw-w — net::ERR_ABORTED"
+      ]
+    },
+    "after-onboarding-entry-200pct-zoom": {
+      "scrollHeight": 1264,
+      "scrollWidth": 720,
+      "innerWidth": 720,
+      "horizontalOverflow": false,
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      ],
+      "failedRequests": [
+        "http://localhost:3063/api/me/workspaces — net::ERR_ABORTED",
+        "http://localhost:3063/?_rsc=B7yroOPNvpOYIw-w — net::ERR_ABORTED",
+        "http://localhost:3063/sign-in?redirect_url=%2Fonboarding&_rsc=B7yroOPNvpOYIw-w — net::ERR_ABORTED"
+      ]
+    },
+    "after-onboarding-entry-focus": {
+      "scrollHeight": 1282,
+      "scrollWidth": 1440,
+      "innerWidth": 1440,
+      "horizontalOverflow": false,
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      ],
+      "failedRequests": [
+        "http://localhost:3063/api/me/workspaces — net::ERR_ABORTED",
+        "http://localhost:3063/?_rsc=B7yroOPNvpOYIw-w — net::ERR_ABORTED"
+      ]
+    },
+    "after-onboarding-resolved-mocked-1440x900": {
+      "scrollHeight": 1089,
+      "scrollWidth": 1440,
+      "innerWidth": 1440,
+      "horizontalOverflow": false,
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "Failed to load resource: the server responded with a status of 503 (Service Unavailable)"
+      ],
+      "failedRequests": [
+        "http://localhost:3063/api/me/workspaces — net::ERR_ABORTED",
+        "http://localhost:3063/?_rsc=B7yroOPNvpOYIw-w — net::ERR_ABORTED",
+        "http://localhost:3063/sign-in?_rsc=B7yroOPNvpOYIw-w — net::ERR_ABORTED",
+        "http://localhost:3063/api/trust-state/1407202518 — net::ERR_ABORTED"
+      ]
+    },
+    "after-onboarding-resolved-mocked-390x844": {
+      "scrollHeight": 1065,
+      "scrollWidth": 390,
+      "innerWidth": 390,
+      "horizontalOverflow": false,
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "Failed to load resource: the server responded with a status of 503 (Service Unavailable)"
+      ],
+      "failedRequests": [
+        "http://localhost:3063/api/me/workspaces — net::ERR_ABORTED",
+        "http://localhost:3063/?_rsc=B7yroOPNvpOYIw-w — net::ERR_ABORTED",
+        "http://localhost:3063/sign-in?redirect_url=%2Fonboarding&_rsc=B7yroOPNvpOYIw-w — net::ERR_ABORTED",
+        "http://localhost:3063/api/trust-state/1407202518 — net::ERR_ABORTED"
+      ]
+    },
+    "after-home-review-1440x900": {
+      "scrollHeight": 3705,
+      "scrollWidth": 1440,
+      "innerWidth": 1440,
+      "horizontalOverflow": false,
+      "consoleErrors": [],
+      "failedRequests": [
+        "http://localhost:3063/sign-in?_rsc=1p-R_iEY6bj0jY31 — net::ERR_ABORTED",
+        "http://localhost:3063/onboarding?_rsc=1p-R_iEY6bj0jY31 — net::ERR_ABORTED"
+      ]
+    }
+  }
+}

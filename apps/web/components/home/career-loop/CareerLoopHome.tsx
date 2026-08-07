@@ -38,6 +38,7 @@ import { useEffect, useRef, useState } from 'react';
 import { ApplyWithVitalCV } from '@/components/apply/ApplyWithVitalCV';
 import { FUNNEL_EVENTS, trackFunnelEvent } from '@/lib/analytics/funnel';
 import { useCareerLoop, type LoopMatch } from '@/lib/career-loop/useCareerLoop';
+import { writeNpiHandoff } from '@/lib/onboarding/npiHandoff';
 import { sourceCadenceSentence } from '@/lib/trust/sourceCadence';
 
 /** Truthful rail: six stages, ending at review — never at a confirmed start. */
@@ -118,7 +119,14 @@ export function CareerLoopHome() {
   return (
     <div className="clh" ref={rootRef}>
       {/* ================= OPENING — one unified scene ================= */}
-      <section className="clh-room clh-open" data-home-hero aria-label="Start with your NPI">
+      <section
+        className="clh-room clh-open"
+        data-home-hero
+        id="your-number"
+        data-header-theme="light"
+        data-header-stage="your-number"
+        aria-label="Start with your NPI"
+      >
         <h1 className="clh-h">Get hired for the right opportunity—and start <em>sooner</em>.</h1>
         <p className="clh-sub">
           Build your clinician profile from your NPI, apply with it, and give employers a head start.
@@ -213,7 +221,13 @@ export function CareerLoopHome() {
       </section>
 
       {/* ================= 1 · CREATE — ink ================= */}
-      <section className="clh-room clh-room--ink clh-create" aria-label="Create">
+      <section
+        className="clh-room clh-room--ink clh-create"
+        id="sources"
+        data-header-theme="dark"
+        data-header-stage="sources"
+        aria-label="Create"
+      >
         <span className="clh-mark" aria-hidden="true">01</span>
         <div className="clh-create-id" data-clh-reveal>
           <span className={`clh-mono clh-mono--xl${live ? '' : ' clh-mono--ghost'}`} aria-hidden="true">
@@ -265,7 +279,14 @@ export function CareerLoopHome() {
       </section>
 
       {/* ================= 2 · DISCOVER — MATCHA ================= */}
-      <section className="clh-room clh-room--deep clh-discover" aria-label="Discover">
+      {/* DISCOVER continues the Sources act of the journey narrative: still
+          "what the record shows", before the truth boundary at Apply. */}
+      <section
+        className="clh-room clh-room--deep clh-discover"
+        data-header-theme="light"
+        data-header-stage="sources"
+        aria-label="Discover"
+      >
         <span className="clh-mark" aria-hidden="true">02</span>
         <div data-clh-reveal>
           <h2 className="clh-h">Work that fits more than a résumé.</h2>
@@ -327,7 +348,13 @@ export function CareerLoopHome() {
       </section>
 
       {/* ================= 3 · APPLY — indigo ================= */}
-      <section className="clh-room clh-room--indigo clh-apply" aria-label="Apply">
+      <section
+        className="clh-room clh-room--indigo clh-apply"
+        id="permission"
+        data-header-theme="dark"
+        data-header-stage="permission"
+        aria-label="Apply"
+      >
         <span className="clh-mark" aria-hidden="true">03</span>
         <div data-clh-reveal>
           <h2 className="clh-h">The same profile, handed over.</h2>
@@ -413,7 +440,13 @@ export function CareerLoopHome() {
       </section>
 
       {/* ================= 4 · CONTINUE — ivory ================= */}
-      <section className="clh-room clh-continue" aria-label="Continue">
+      <section
+        className="clh-room clh-continue"
+        id="review"
+        data-header-theme="light"
+        data-header-stage="review"
+        aria-label="Continue"
+      >
         <span className="clh-mark" aria-hidden="true">04</span>
         <div data-clh-reveal>
           <h2 className="clh-h">Review starts ahead, not from zero.</h2>
@@ -429,7 +462,22 @@ export function CareerLoopHome() {
               </p>
             )}
             <div className="clh-actions">
-              <a className="clh-act clh-act--ink" href="/holder">Manage your record</a>
+              {/* Record-first sequencing (founder audit 2026-08-06): this used
+                  to point at /holder, whose layout redirects anonymous
+                  visitors to sign-in — the page's own "no account" promise,
+                  repossessed. It now hands the resolved NPI to /onboarding,
+                  which shows the record before the account ask. Label matches
+                  the film variant's EvidenceCapsule CTA, so both home
+                  compositions carry one vocabulary. */}
+              <a
+                className="clh-act clh-act--ink"
+                href="/onboarding"
+                onClick={() => {
+                  if (live && !isDemo && profile?.npi) writeNpiHandoff(profile.npi);
+                }}
+              >
+                Keep this record
+              </a>
               <button type="button" className="clh-act clh-act--quiet" onClick={() => { setRaw(''); reset(); setShared(null); setSelectedClaims([]); setApplyTouched(false); setAuthBoundary(false); window.scrollTo({ top: 0, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }); }}>
                 Check another NPI
               </button>

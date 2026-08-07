@@ -113,6 +113,14 @@
  *
  * Measured after this change: 0.0000.
  */
+/* The chapter ids are the journey-stage ids (ChapterRail derives both from
+   journeyStages), so the shared header's rail anchors land here. Same offset
+   discipline as `.clh-room[id]` in career-loop-home.css: without it an
+   anchored chapter opens under the sticky bar. */
+.film-chapter[id] {
+  scroll-margin-top: 4.5rem;
+}
+
 .film-chapter {
   position: relative;
   display: flex;

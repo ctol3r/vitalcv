@@ -24,6 +24,22 @@ export const PUBLIC_SURFACE_PATHS = new Set([
   '/terms',
   '/contact',
   '/trust',
+  // 2026-08-07 headerless-routes sweep (gap-analysis §8.4). /pricing was
+  // indexable sitemap marketing (priority 0.6) rendering with no nav and no
+  // footer; /concierge is a sellable offer page nothing linked to. Both are
+  // light-ground content pages the standard chrome fits.
+  '/pricing',
+  '/concierge',
+  // A Navbar Trust-group destination. It was de-ops'd (see the note on
+  // OPS_SURFACE_PREFIXES) but never listed here, so clicking it from the
+  // header dropped the visitor into a chrome-less page. Fixed by the
+  // 2026-08-06 shared-header wave.
+  '/evidence-network',
+  // The clinician activation surface arriving with PR #1081. Listing a
+  // not-yet-existing path is this file's established pattern (see
+  // /developers, /investors above); the header covers the route the moment
+  // the page lands.
+  '/profile/activate',
   // The Z1 homepage story preview. It must be judged WITH the real global
   // Navbar — the nav shell is part of the composition — so this one route is
   // exempt from the /design self-chrome rule below, mirroring how
@@ -92,7 +108,6 @@ const PREFIX_MATCHERS = [
   '/demo',
   '/sign-in',
   '/sign-up',
-  '/passport',
   '/review',
   '/employers',
   '/opportunities',
@@ -107,6 +122,15 @@ const PREFIX_MATCHERS = [
   '/matcha',
   '/for',
   '/solutions',
+  // 2026-08-07 headerless-routes sweep. Parameterized public-record surfaces:
+  // /directory/[npi] is the indexable NPPES registry page (JSON-LD + canonical
+  // — a search visitor landed with no way into the site), /profile/[npi] is
+  // the career profile a clinician deliberately shares (also covers the
+  // exact-listed /profile/activate), /investigate/[npi] is the public
+  // diligence surface the survivability registry declares public.
+  '/directory',
+  '/profile',
+  '/investigate',
 ] as const;
 
 export function isPublicSurfacePath(pathname: string | null): boolean {

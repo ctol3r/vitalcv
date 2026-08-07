@@ -2,6 +2,8 @@
 
 import * as React from 'react';
 
+import { JOURNEY_STAGES } from '@/components/layout/journeyStages';
+
 /**
  * The chapter rail — Concept A's sliding chapter menu, grafted into the
  * approved direction (#1060).
@@ -30,15 +32,19 @@ export interface Chapter {
 }
 
 /**
- * The founder-approved chapter vocabulary. These are also the section
- * `aria-label`s, so a screen reader navigating by region hears the same four
- * names a sighted reader sees in the rail.
+ * The chapter vocabulary, DERIVED from the header's journey stages (founder
+ * unification follow-up, 2026-08-07 — gap-analysis §8.1). The film narrates
+ * the same four stages the shared header's rail does, under the same ids and
+ * labels, so the header's `/#` anchors resolve on this composition too and
+ * the reader never sees two names for one idea. `closing` is the film's own
+ * epilogue: it has no counterpart in the header rail, which is four stages
+ * by founder decision.
+ *
+ * These are also the section `aria-label`s, so a screen reader navigating by
+ * region hears the same names a sighted reader sees in the rail.
  */
 export const CHAPTERS: ReadonlyArray<Chapter> = Object.freeze([
-  Object.freeze({ id: 'your-number', label: 'Your number' }),
-  Object.freeze({ id: 'source-responses', label: 'Source responses' }),
-  Object.freeze({ id: 'your-permission', label: 'Your permission' }),
-  Object.freeze({ id: 'human-review', label: 'Human review' }),
+  ...JOURNEY_STAGES.map((stage) => Object.freeze({ id: stage.id, label: stage.label })),
   Object.freeze({ id: 'closing', label: 'What happens next' }),
 ]);
 

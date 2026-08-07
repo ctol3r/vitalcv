@@ -32,6 +32,7 @@
 @import '../styles/scene.css';
 @import '../styles/story-rail.css';
 @import '../styles/matcha-deck.css';
+@import '../styles/header.css';
 /* glue.css, graph-foundry.css and trust-register.css were deleted here (745
    lines, zero importers between them). graph-foundry.css also carried a live
    `@import url('https://fonts.googleapis.com/…Nunito+Sans…')` — the exact CDN
@@ -1048,16 +1049,18 @@ time, code, kbd, samp {
 @keyframes liquid-scrim { from { opacity: 0; } to { opacity: 1; } }
 
 .liquid-menu__panel {
+  /* Full-screen recomposition (2026-08-06 shared-header wave): the overlay
+     owns the viewport rather than floating as an inset card, and scrolls
+     internally when the journey + groups exceed the screen. */
   position: absolute;
-  inset: 0.75rem;
+  inset: 0;
   display: flex;
   flex-direction: column;
-  border-radius: 1.5rem;
-  border: 1px solid color-mix(in oklab, var(--foreground) 10%, transparent);
-  background: color-mix(in oklab, var(--background) 92%, transparent);
+  overflow-y: auto;
+  border: 0;
+  background: color-mix(in oklab, var(--background) 96%, transparent);
   backdrop-filter: blur(24px) saturate(150%);
-  box-shadow: 0 24px 70px -30px rgba(2, 6, 23, 0.5);
-  padding: 1.1rem 1.25rem 1.4rem;
+  padding: 1rem 1.25rem 1.4rem;
   /* Liquid bloom: an organic circle grows from the toggle corner. */
   clip-path: circle(0% at calc(100% - 2.4rem) 2.4rem);
   animation: liquid-bloom 0.52s cubic-bezier(0.22, 1, 0.36, 1) forwards;
@@ -1073,10 +1076,15 @@ time, code, kbd, samp {
   margin-bottom: 0.5rem;
 }
 .liquid-menu__brand {
-  font-family: var(--font-heading, inherit);
-  font-size: 1.05rem;
-  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+  font-family: var(--font-fraunces, var(--font-heading, inherit));
+  font-size: 1.2rem;
+  font-weight: 500;
+  letter-spacing: -0.02em;
   color: var(--foreground);
+  text-decoration: none;
 }
 .liquid-menu__close {
   display: inline-flex;
@@ -1088,7 +1096,7 @@ time, code, kbd, samp {
 }
 .liquid-menu__close:hover { background: color-mix(in oklab, var(--foreground) 6%, transparent); }
 
-.liquid-menu__list { list-style: none; margin: 0.5rem 0 0; padding: 0; }
+.liquid-menu__list { list-style: none; margin: 0.25rem 0 0; padding: 0; }
 .liquid-menu__item {
   opacity: 0;
   transform: translateY(10px);
@@ -1096,12 +1104,33 @@ time, code, kbd, samp {
   animation-delay: calc(0.12s + var(--i) * 0.05s);
 }
 @keyframes liquid-item { to { opacity: 1; transform: translateY(0); } }
+
+/* Journey-first composition: the vertical rail sits above the groups, each
+   group under a small mono eyebrow — designed for the screen, not shrunk
+   from the desktop. */
+.liquid-menu__journey { margin-top: 0.75rem; }
+.liquid-menu__eyebrow {
+  margin: 0 0 0.35rem;
+  font-family: var(--font-mono, monospace);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted-foreground, currentColor);
+}
+.liquid-menu__journey .vcv-rail--overlay .vcv-rail__stage {
+  min-height: 2.75rem;
+  font-size: 1rem;
+}
+.liquid-menu__nav { margin-top: 1.4rem; display: grid; gap: 1.4rem; }
 .liquid-menu__link {
-  display: block;
-  padding: 0.85rem 0.5rem;
+  display: flex;
+  align-items: center;
+  min-height: 2.75rem;
+  padding: 0.35rem 0.25rem;
   border-bottom: 1px solid color-mix(in oklab, var(--foreground) 8%, transparent);
   font-family: var(--font-heading, inherit);
-  font-size: 1.6rem;
+  font-size: 1.35rem;
   font-weight: 600;
   letter-spacing: -0.02em;
   color: var(--foreground);
@@ -1110,12 +1139,12 @@ time, code, kbd, samp {
 .liquid-menu__link[aria-current='page'] { color: var(--accent, var(--foreground)); }
 .liquid-menu__link:focus-visible { outline: 2px solid var(--vt-focus-ring, currentColor); outline-offset: 3px; border-radius: 0.4rem; }
 
-.liquid-menu__cta { margin-top: auto; display: flex; gap: 0.6rem; padding-top: 1rem; }
+.liquid-menu__cta { margin-top: auto; display: flex; gap: 0.6rem; padding-top: 1.4rem; }
 .liquid-menu__cta-secondary,
 .liquid-menu__cta-primary {
   flex: 1;
-  border-radius: 0.9rem;
-  padding: 0.85rem 0;
+  border-radius: 10px; /* CD-10: chrome is 10px, never a pill */
+  padding: 0.85rem 0.5rem;
   text-align: center;
   font-size: 0.95rem;
   font-weight: 600;

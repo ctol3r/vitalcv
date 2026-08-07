@@ -1,0 +1,24 @@
+{
+  "baseUrl": "https://vitalcv.com",
+  "label": "before",
+  "capturedAt": "2026-08-07T10:22:04.592Z",
+  "routes": {
+    "/employers": {
+      "scrollHeight": 5743,
+      "scrollWidth": 1440,
+      "innerWidth": 1440,
+      "title": "For Employers · VitalCV — VitalCV",
+      "horizontalOverflow": false,
+      "consoleErrors": [],
+      "failedRequests": [
+        "https://vitalcv.com/?_rsc=MXABT8tckXANW7yL — net::ERR_ABORTED"
+      ],
+      "mobile": {
+        "scrollHeight": 7402,
+        "scrollWidth": 390,
+        "innerWidth": 390,
+        "horizontalOverflow": false
+      }
+    }
+  }
+}

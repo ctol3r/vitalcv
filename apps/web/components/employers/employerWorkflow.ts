@@ -42,7 +42,7 @@ export const EMPLOYER_STAGES: readonly EmployerStage[] = [
   {
     id: 'define-requirements',
     title: 'Define what the role requires',
-    body: 'State the credentials, licensure, and readiness a role needs. Requirements become the checklist every packet is measured against — nothing is graded against a hidden bar.',
+    body: 'State what the role needs; requirements become the checklist every packet is measured against — nothing is graded against a hidden bar.',
   },
   {
     id: 'receive-packet',
@@ -53,17 +53,17 @@ export const EMPLOYER_STAGES: readonly EmployerStage[] = [
   {
     id: 'review-coverage',
     title: 'Review coverage and blockers',
-    body: 'Every claim names its source, state, and freshness. Checked lanes read as checked; access-gated lanes read as gated; blockers read as blockers — never a single green light over an unproven record.',
+    body: 'Every claim names its source, state, and freshness — checked reads as checked, gated as gated, blockers as blockers, never one green light over an unproven record.',
   },
   {
     id: 'accept-head-start',
     title: 'Accept as a head start',
-    body: 'Recognize the packet to move a clinician toward starting sooner, and resolve the remaining requirements together.',
+    body: 'Recognize the packet to move a clinician toward starting sooner, and resolve what remains together.',
     boundary: 'Acceptance is a head start, not credentialing. Your committee keeps the hiring and privileging decision.',
   },
   {
     id: 'reach-start-ready',
     title: 'Reach start-ready',
-    body: 'Work the remaining requirements down until the role is start-ready. Every step is attributable and recorded, so the path from interest to start is auditable end to end.',
+    body: 'Work the remaining requirements down to start-ready — every step attributable and recorded, auditable end to end.',
   },
 ] as const;
