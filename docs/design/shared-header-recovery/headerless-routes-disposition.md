@@ -56,16 +56,21 @@ exclusively from signed-in surfaces.
   `/onboarding/success` (still a live CTA target — `ReadinessCard.tsx:81`
   must be re-pointed first), `/signup`.
 
-## E. Held for founder decision (9)
+## E. Decided 2026-08-07 (founder-delegated) (9)
 
 - The **8 WorkspaceNav entity surfaces** (`/activity`, `/career-intelligence`,
   `/career-map`, `/ecosystem`, `/packet`, `/professional-growth`,
-  `/recruiter/candidate`, `/search/[entityId]`): live, entered from the
-  chromed `/demo`, so a visitor crosses a chrome boundary mid-journey. The
-  call: does `WorkspaceNav` substitute for the site header, or nest under it?
-- `/status/technical`: one click from the chromed public `/status`, but a dark
-  `bg-gray-950` mono operator console. Chrome it, or move it behind an ops
-  prefix.
+  `/recruiter/candidate`, `/search/[entityId]`): **nest under the site
+  header.** One navigation model — the shared header is the global chrome,
+  the pill-nav is local secondary navigation; the `/demo` → entity chrome
+  cliff is healed. Implemented via `PREFIX_MATCHERS`.
+- `/status/technical`: **stays a bare standalone console — deliberately in
+  neither chrome class.** Public chrome would put the paper journey header
+  over a dark mono console (scene-system violation); ops classification was
+  evaluated and REJECTED because the ops shell mounts `VCommandBar` —
+  ungated intelligence tooling — which must not appear on a publicly
+  reachable route. Pinned three ways in
+  `__tests__/public-surface-registry.test.ts`.
 
 Notable side-findings: `/support` and `/status/technical` were both named as
 chrome candidates in gap-analysis §8.4 and turned out to be a spec shell
