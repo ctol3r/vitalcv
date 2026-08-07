@@ -121,6 +121,16 @@ equivalent rule for error telemetry.
 `scripts/pilot-kpi-report.sh` reads pilot KPIs. The funnel rates above are the
 intended source for start-of-funnel reporting once the PostHog key is set.
 
+`GET /api/internal/funnel-metrics` computes today's counts and rates from the
+live events only (`homepage_viewed`, `npi_input_started`, `npi_submitted`,
+`results_displayed`, `dropoff_detected`). Events with no live producer —
+`npi_input_focused` (producer deleted 2026-08-07 with the `/passport`
+retirement, #1099) and the signup/packet tail — are returned in its
+`retired_events` block with the reason for each, not counted: the endpoint is
+today-scoped, so a producer-less event would render a permanent 0 as if it
+were a measurement. Pre-retirement rows remain queryable in PostHog directly.
+`__tests__/funnel-instrumentation.test.ts` pins the endpoint's live set.
+
 **FD-3 gate:** no time-to-start or pilot-outcome metric may be derived from these
 events and rendered as a public claim until the founder sets the pilot threshold.
 Coverage and lane facts only. See the waves 1509–1516 plan.
