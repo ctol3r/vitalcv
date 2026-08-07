@@ -40,7 +40,7 @@ interface SitemapRoute {
 
 export const SITEMAP_ROUTES: readonly SitemapRoute[] = [
   { path: '', source: 'app/page.tsx', lastModified: '2026-08-05', changeFrequency: 'weekly', priority: 1 },
-  { path: '/onboarding', source: 'app/onboarding', lastModified: '2026-07-16', changeFrequency: 'weekly', priority: 0.9 },
+  { path: '/onboarding', source: 'app/onboarding', lastModified: '2026-08-07', changeFrequency: 'weekly', priority: 0.9 },
   { path: '/employers', source: 'app/employers', lastModified: '2026-08-07', changeFrequency: 'weekly', priority: 0.8 },
   { path: '/employers/how-it-works', source: 'app/employers/how-it-works', lastModified: '2026-08-07', changeFrequency: 'monthly', priority: 0.7 },
   { path: '/employers/request-access', source: 'app/employers/request-access', lastModified: '2026-08-07', changeFrequency: 'monthly', priority: 0.7 },
