@@ -81,20 +81,27 @@ export function HeroSection() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, ease: "easeOut" }}
           >
+            {/* Lead updated 2026-08-07 with the employer-doorway REVISION 2
+                ruling: evidence is the proof underneath, never the opening
+                proposition, and credentialing-first framing is retired
+                (category strategy 2026-08-04). This component is currently
+                unmounted in apps/web — the copy is fixed at the source so a
+                future remount cannot resurrect the retired lead. */}
             <p className="inline-flex items-center gap-2 rounded-full border border-[var(--trust-green)]/35 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.32em] text-[var(--trust-green)]">
-              Healthcare Credentialing Reinvented
+              The Provider Career Evidence Network
             </p>
 
             <h1
               style={{ fontFamily: 'var(--font-fraunces, var(--font-sans), Georgia, serif)' }}
               className="text-[clamp(2.2rem,4.8vw,4.5rem)] font-semibold leading-[1.02] tracking-tight text-[var(--warm-charcoal)]"
             >
-              Start clinicians from source-backed evidence.
+              Your clinician profile. Ready for every move.
             </h1>
 
             <p className="max-w-2xl text-lg leading-relaxed text-[var(--warm-charcoal)]/75">
-              VitalCV checks source-backed credential readiness and generates
-              audit-ready packets for employer review. Data freshness varies by
+              Start with your NPI. VitalCV reads public sources into a reusable
+              professional profile — every fact named to its source, with what
+              has not been checked listed beside it. Data freshness varies by
               source, from daily checks to quarterly snapshots.
             </p>
 
