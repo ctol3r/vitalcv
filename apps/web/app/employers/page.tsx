@@ -203,20 +203,16 @@ export default function EmployersPage() {
             "Employers should pay for outcomes and workflow"), stated without
             figures because real pricing is set in a signed scope, never on
             a page. */}
-        <section aria-label="What this costs" data-employer-pricing="" className="mt-12">
+        <section aria-label="What this costs" data-employer-pricing="" className="mt-9">
           <p className="mz-eyebrow">What this costs</p>
           <p className="mz-small" style={{ marginTop: 8, maxWidth: 620 }}>
             Free for clinicians, always. For organizations: no payment is collected on this
             site — the pilot costs nothing, and commercial terms are set in a signed scope.
-          </p>
-          <p className="mz-small" style={{ marginTop: 8, maxWidth: 620 }}>
             When VitalCV charges employers, it charges for outcomes — clinicians who start —
-            not seats or lookups.
-          </p>
-          <p style={{ marginTop: 12 }}>
+            not seats or lookups.{' '}
             <Link
               href="/pricing"
-              className="text-[14px] font-semibold text-[var(--vt-text-primary)] underline underline-offset-2"
+              className="font-semibold text-[var(--vt-text-primary)] underline underline-offset-2"
             >
               Plain terms, stated
             </Link>
