@@ -24,6 +24,16 @@ export const PUBLIC_SURFACE_PATHS = new Set([
   '/terms',
   '/contact',
   '/trust',
+  // A Navbar Trust-group destination. It was de-ops'd (see the note on
+  // OPS_SURFACE_PREFIXES) but never listed here, so clicking it from the
+  // header dropped the visitor into a chrome-less page. Fixed by the
+  // 2026-08-06 shared-header wave.
+  '/evidence-network',
+  // The clinician activation surface arriving with PR #1081. Listing a
+  // not-yet-existing path is this file's established pattern (see
+  // /developers, /investors above); the header covers the route the moment
+  // the page lands.
+  '/profile/activate',
   // The Z1 homepage story preview. It must be judged WITH the real global
   // Navbar — the nav shell is part of the composition — so this one route is
   // exempt from the /design self-chrome rule below, mirroring how

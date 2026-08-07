@@ -43,35 +43,18 @@
 .clh *{box-sizing:border-box}
 .clh p,.clh h1,.clh h2,.clh h3,.clh ul,.clh li{margin:0;padding:0;list-style:none}
 
-/* NAVIGATION — page-scoped only (body:has). The global component is shared
-   with production and is NOT modified here. The old bar's pale fill, small
-   type and rounded indigo pill belong to the previous visual language and sit
-   badly above a poster-scale headline, so on this page it becomes flat ivory,
-   larger type, and square ink actions in the reset's own grammar. */
-body:has(.clh){--clh-ivory:#F4F2ED;--clh-ink:#12100D;--clh-hairline:#DDD7C9;--clh-stone:#C9C2B4}
-body:has(.clh) header.sticky.top-0.z-50,
-body:has(.clh) header.sticky.top-0.z-50 > div{
-  background:var(--clh-ivory) !important;
-  backdrop-filter:none !important;-webkit-backdrop-filter:none !important;
-  border-bottom:1px solid var(--clh-hairline);box-shadow:none !important;
-}
-body:has(.clh) header.sticky.top-0.z-50::after{display:none !important}
-body:has(.clh) header.sticky.top-0.z-50 nav button,
-body:has(.clh) header.sticky.top-0.z-50 nav a{font-size:17px;font-weight:500}
-/* both header actions square up into the reset's grammar */
-body:has(.clh) header.sticky.top-0.z-50 a[href="/sign-in"],
-body:has(.clh) header.sticky.top-0.z-50 a[href="/passport"]{
-  border-radius:0 !important;font-size:16px;
-}
-body:has(.clh) header.sticky.top-0.z-50 a[href="/passport"]{
-  background:var(--clh-ink) !important;color:var(--clh-ivory) !important;border-color:var(--clh-ink) !important;
-}
-body:has(.clh) header.sticky.top-0.z-50 a[href="/sign-in"]{border-color:var(--clh-stone) !important}
-/* the wordmark carries the page's serif, not the old sans lockup */
-body:has(.clh) header.sticky.top-0.z-50 a[href="/"]{
-  font-family:var(--font-fraunces-loaded,'Fraunces'),ui-serif,Georgia,serif;
-  font-size:22px;font-weight:500;letter-spacing:-.02em;
-}
+/* NAVIGATION — the page-scoped `!important` override that used to live here
+   (forcing an opaque ivory plate, larger nav type, square actions, and a
+   serif wordmark onto the global header via a brittle Tailwind-class
+   selector) was removed by the 2026-08-06 shared-header wave. The header now
+   owns its own typography, its transparent-at-rest plate, and its scene
+   treatment (styles/header.css); this page declares its scenes with
+   `data-header-theme` / `data-header-stage` on the rooms instead of
+   restyling the chrome from outside. */
+
+/* The journey rail's anchors land under a sticky bar; give the anchored
+   rooms breathing room so the target's opening line is not buried. */
+.clh-room[id]{scroll-margin-top:4.5rem}
 
 /* Development chrome must not contaminate a design review. Scoped to this
    page only — the global component is untouched. */

@@ -1,0 +1,164 @@
+/**
+ * headerRouteContext — one place that decides, per route, how the shared
+ * header behaves: which audience it addresses, the single contextual primary
+ * action, the journey stage shown before any section declares one, and
+ * whether the journey rail may be interactive.
+ *
+ * Route-specific behavior lives HERE, never scattered across components.
+ * The rail is interactive only on `/`, where its anchors are honest — every
+ * other route shows narrative position without pretending to be in-page
+ * navigation.
+ */
+
+import { DEFAULT_JOURNEY_STAGE, type HeaderTheme, type JourneyStageId } from './journeyStages';
+
+export type HeaderAudience = 'clinician' | 'employer' | 'neutral';
+
+export interface HeaderCta {
+  href: string;
+  label: string;
+}
+
+export interface HeaderRouteContext {
+  audience: HeaderAudience;
+  /**
+   * The one contextual primary action. `null` on the action's own
+   * destination — a button pointing at the page it is on is noise, and the
+   * page carries the primary action itself.
+   */
+  cta: HeaderCta | null;
+  /** Stage shown until a section declares `data-header-stage`. */
+  defaultStage: JourneyStageId;
+  /** Treatment until a section declares `data-header-theme`. */
+  defaultTheme: HeaderTheme;
+  /** Anchors are honest only on the homepage narrative. */
+  railInteractive: boolean;
+}
+
+/** The clinician action — same destination and name the mobile CTA shipped with. */
+const CLINICIAN_CTA: HeaderCta = { href: '/onboarding', label: 'Build my profile' };
+
+/**
+ * The employer action mirrors the one honest action `/employers` itself
+ * opens with; the fragment jumps to the claim flow on that page.
+ */
+const EMPLOYER_CTA: HeaderCta = {
+  href: '/employers#request-organization-access',
+  label: 'Request organization access',
+};
+
+const matches = (pathname: string, prefix: string) =>
+  pathname === prefix || pathname.startsWith(`${prefix}/`);
+
+export function getHeaderRouteContext(pathname: string): HeaderRouteContext {
+  // Employer-audience surfaces. On `/employers` itself the bar CTA is
+  // suppressed — the page opens with the identical action, and two copies of
+  // one button is exactly the competing-primary problem the wave retires.
+  if (
+    matches(pathname, '/employers') ||
+    matches(pathname, '/for') ||
+    matches(pathname, '/pilot') ||
+    matches(pathname, '/solutions') ||
+    matches(pathname, '/demo')
+  ) {
+    return {
+      audience: 'employer',
+      cta: pathname === '/employers' ? null : EMPLOYER_CTA,
+      defaultStage: 'review',
+      defaultTheme: 'light',
+      railInteractive: false,
+    };
+  }
+
+  // Employer-side inspection surfaces: verification and review live at the
+  // Review end of the journey.
+  if (matches(pathname, '/verify') || matches(pathname, '/review')) {
+    return {
+      audience: 'employer',
+      cta: EMPLOYER_CTA,
+      defaultStage: 'review',
+      defaultTheme: 'light',
+      railInteractive: false,
+    };
+  }
+
+  // The clinician activation flow: the journey begins at the number. The
+  // page advances the stage itself only from a server-confirmed phase
+  // (see lib/activation/headerStage.ts) — never from client-invented
+  // completion. No CTA: this IS the CTA's destination.
+  if (
+    matches(pathname, '/onboarding') ||
+    matches(pathname, '/get-ready') ||
+    matches(pathname, '/profile/activate')
+  ) {
+    return {
+      audience: 'clinician',
+      cta: null,
+      defaultStage: DEFAULT_JOURNEY_STAGE,
+      defaultTheme: 'light',
+      railInteractive: false,
+    };
+  }
+
+  // The profile a clinician holds, and where it came from.
+  if (matches(pathname, '/passport') || matches(pathname, '/explore')) {
+    return {
+      audience: 'clinician',
+      cta: CLINICIAN_CTA,
+      defaultStage: 'sources',
+      defaultTheme: 'light',
+      railInteractive: false,
+    };
+  }
+
+  // Trust surfaces answer "where do the facts come from" — Sources.
+  if (
+    matches(pathname, '/trust') ||
+    matches(pathname, '/status') ||
+    matches(pathname, '/evidence-network')
+  ) {
+    return {
+      audience: 'neutral',
+      cta: CLINICIAN_CTA,
+      defaultStage: 'sources',
+      defaultTheme: 'light',
+      railInteractive: false,
+    };
+  }
+
+  // Sharing, consent, and shared-profile surfaces — Permission.
+  if (
+    matches(pathname, '/opportunities') ||
+    matches(pathname, '/p') ||
+    matches(pathname, '/privacy') ||
+    matches(pathname, '/legal')
+  ) {
+    return {
+      audience: pathname.startsWith('/opportunities') ? 'clinician' : 'neutral',
+      cta: CLINICIAN_CTA,
+      defaultStage: 'permission',
+      defaultTheme: 'light',
+      railInteractive: false,
+    };
+  }
+
+  // The homepage: the narrative owns the rail; sections declare stage and
+  // theme; anchors are honest.
+  if (pathname === '/') {
+    return {
+      audience: 'clinician',
+      cta: CLINICIAN_CTA,
+      defaultStage: DEFAULT_JOURNEY_STAGE,
+      defaultTheme: 'light',
+      railInteractive: true,
+    };
+  }
+
+  return {
+    audience: 'neutral',
+    cta: CLINICIAN_CTA,
+    defaultStage: DEFAULT_JOURNEY_STAGE,
+    defaultTheme: 'light',
+    railInteractive: false,
+  };
+}

@@ -119,3 +119,37 @@ Mechanism-level detail lives in
 [`VITALCV_EXPERIENCE_SYSTEM_2026.md`](VITALCV_EXPERIENCE_SYSTEM_2026.md). Rulings
 live here. Enforcement lives in `scripts/check-design-lint.ts` and the doctrine
 tests — a ruling that no gate can check is an intention, not a rule.
+
+---
+
+## FR-6. The shared header is scene-aware journey navigation
+
+**Amends:** CD-12 (chrome), CD-13 (kill list, as applied to the header).
+**Established:** 2026-08-06, by the founder shared-header recovery wave.
+
+The shared public header operates as journey navigation, not a category list:
+
+| Mechanism | Notes |
+| --- | --- |
+| A journey rail in the chrome | Four stages — Your Number · Sources · Permission · Review — inside the single header tier. Not a second page-level rail; CD-13's two-tier prohibition stands. |
+| Scene-declared treatment | Sections declare `data-header-theme="light\|dark"` and `data-header-stage="…"`; the header reflects the declaration. Declaration, not detection — no pixel sampling. |
+| A dark header treatment | Built from the public warm-ink token family, the same tonal move FR-3 permits as a full-bleed chapter. LINT-04 stands: never an ops token, never `--vt-surface-inverse` or `--ink-950`, never an `<html>`-level flip. |
+| A full-width navigation canvas | The bar unfolds into one editorial panel holding every group. One panel, never two. Destinations come from one source of truth and must resolve to live routes. |
+| A mobile recomposition | Full-screen overlay, journey rail first, designed independently of desktop. Modal semantics are mandatory: focus trap, scroll lock, Escape, focus restoration. |
+
+### What this ruling does **not** relax
+
+- One scroll owner (XS-1). The header observes discrete activation; it never
+  drives progression, never adds a scroll listener or rAF loop.
+- The rail shows narrative position. It may not display completion the
+  server has not confirmed, imply an NPI proves identity ownership, or imply
+  review means credential verification.
+- Rendered `01–06` ordinals stay retired (CD-13); the rail carries order by
+  sequence, shape, and screen-reader text.
+- Reduced motion is a deliverable (FR-4): every treatment resolves to an
+  immediate state change and the full hierarchy survives.
+- The NPI field outranks the journey (XS-10).
+- A page-local stylesheet may not restyle the global header. The
+  `!important` override this wave removed from `career-loop-home.css` is the
+  named anti-pattern; scenes speak to the header through the declaration
+  contract only.
