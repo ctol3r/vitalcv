@@ -24,6 +24,10 @@ const homepage = webFile('components/home/film/HorizontalCareerFilm.tsx');
 // states live in /onboarding's guest lane now (GetReadySurface.resolveGuest),
 // which took over as the only producer of RESULTS_DISPLAYED.
 const guestLane = webFile('app/get-ready/GetReadySurface.tsx');
+// The internal metrics endpoint must derive steps from events that still have
+// producers — it kept counting npi_input_focused after the hero console died
+// with the /passport retirement, rendering a permanent 0 as a measurement.
+const metricsRoute = webFile('app/api/internal/funnel-metrics/route.ts');
 
 describe('funnel instrumentation', () => {
   it('fires the denominator from the homepage', () => {
@@ -61,6 +65,28 @@ describe('funnel instrumentation', () => {
     ] as const) {
       expect(src, `${name} must not hash an NPI into analytics`).not.toContain('hashNpi');
     }
+  });
+
+  it('derives internal funnel metrics from events that still have producers', () => {
+    const live = metricsRoute.match(/const LIVE_FUNNEL_EVENTS = \[[\s\S]*?\]/)?.[0] ?? '';
+    expect(live, 'LIVE_FUNNEL_EVENTS block missing from the metrics route').not.toBe('');
+    for (const event of [
+      FUNNEL_EVENTS.HOMEPAGE_VIEWED,
+      FUNNEL_EVENTS.NPI_INPUT_STARTED,
+      FUNNEL_EVENTS.NPI_SUBMITTED,
+      FUNNEL_EVENTS.RESULTS_DISPLAYED,
+      FUNNEL_EVENTS.DROPOFF_DETECTED,
+    ]) {
+      expect(live, `live funnel lost ${event}`).toContain(`'${event}'`);
+    }
+    expect(
+      live,
+      'npi_input_focused lost its only producer on 2026-08-07 (#1099) — it may appear only as a labelled retired event',
+    ).not.toContain(FUNNEL_EVENTS.NPI_INPUT_FOCUSED);
+    expect(
+      metricsRoute,
+      'retired steps must stay labelled, not silently dropped',
+    ).toContain('RETIRED_FUNNEL_EVENTS');
   });
 
   it('keeps the documented event names in sync with the schema doc', () => {

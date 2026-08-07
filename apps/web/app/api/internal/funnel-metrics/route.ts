@@ -7,6 +7,34 @@ const POSTHOG_HOST = process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://us.i.posth
 const POSTHOG_API_KEY = process.env.POSTHOG_PERSONAL_API_KEY || '';
 const POSTHOG_PROJECT_ID = process.env.POSTHOG_PROJECT_ID || '';
 
+// The live acquisition funnel — see docs/ops/metrics-analytics.md. Since the
+// /passport retirement (2026-08-07, #1096/#1099) the career loop on `/` emits
+// npi_input_started at the moment the deleted hero console emitted
+// npi_input_focused, and the guest lane on /onboarding owns the terminal pair
+// (results_displayed / dropoff_detected).
+const LIVE_FUNNEL_EVENTS = [
+  'homepage_viewed',
+  'npi_input_started',
+  'npi_submitted',
+  'results_displayed',
+  'dropoff_detected',
+] as const;
+
+// Declared in FUNNEL_EVENTS but nothing live emits them. This endpoint reports
+// today only, so counting a producer-less event would render a permanent 0 as
+// if it were a measurement — they are labelled here instead of counted.
+// Pre-retirement rows remain queryable in PostHog directly.
+const RETIRED_FUNNEL_EVENTS = {
+  npi_input_focused:
+    'Producer (hero LiveTrustConsole) deleted 2026-08-07 with the /passport retirement (#1099); npi_input_started marks the equivalent moment.',
+  signup_prompt_shown: 'Producer CreateAccountModal is no longer mounted anywhere.',
+  signup_prompt_dismissed: 'Producer CreateAccountModal is no longer mounted anywhere.',
+  signup_clicked: 'Producer CreateAccountModal is no longer mounted anywhere.',
+  signup_completed: 'Never had a producer.',
+  packet_downloaded:
+    'Server producer exists on /api/passport/analytics/[npi]/download but nothing in the product calls that route since /passport retired.',
+} as const;
+
 interface EventCount {
   event: string;
   count: number;
@@ -66,20 +94,12 @@ export async function GET() {
   try {
     const todayStr = new Date().toISOString().slice(0, 10);
 
-    // Count each funnel event today
+    // Count each live funnel event today
     const counts = await queryPostHog<EventCount>(
       `SELECT event, count() as count
        FROM events
        WHERE event IN (
-         'homepage_viewed',
-         'npi_input_focused',
-         'npi_submitted',
-         'results_displayed',
-         'signup_prompt_shown',
-         'signup_prompt_dismissed',
-         'signup_clicked',
-         'signup_completed',
-         'packet_downloaded'
+         ${LIVE_FUNNEL_EVENTS.map((e) => `'${e}'`).join(',\n         ')}
        )
        AND timestamp >= '${todayStr}'
        GROUP BY event`,
@@ -91,13 +111,10 @@ export async function GET() {
     }
 
     const views = countMap['homepage_viewed'] ?? 0;
-    const focused = countMap['npi_input_focused'] ?? 0;
+    const started = countMap['npi_input_started'] ?? 0;
     const submitted = countMap['npi_submitted'] ?? 0;
     const displayed = countMap['results_displayed'] ?? 0;
-    const promptShown = countMap['signup_prompt_shown'] ?? 0;
-    const signupClicked = countMap['signup_clicked'] ?? 0;
-    const signupCompleted = countMap['signup_completed'] ?? 0;
-    const downloaded = countMap['packet_downloaded'] ?? 0;
+    const dropoffs = countMap['dropoff_detected'] ?? 0;
 
     // Average time from page view → NPI submit (using funnel_timestamp property)
     const timingRows = await queryPostHog<EventTimingRow>(
@@ -139,22 +156,22 @@ export async function GET() {
       date: todayStr,
       metrics: {
         homepage_views: views,
-        npi_focuses: focused,
+        npi_input_starts: started,
         npi_submissions: submitted,
         results_displayed: displayed,
-        signup_prompts_shown: promptShown,
-        signup_clicks: signupClicked,
-        signup_completions: signupCompleted,
-        packet_downloads: downloaded,
+        dropoffs_detected: dropoffs,
         // Rates
         submission_rate: views > 0 ? submitted / views : null,
         result_success_rate: submitted > 0 ? displayed / submitted : null,
-        signup_conversion_rate: displayed > 0 ? signupClicked / displayed : null,
-        packet_download_rate: displayed > 0 ? downloaded / displayed : null,
         // Timing (seconds)
         avg_view_to_submit_seconds: avgViewToSubmitSeconds,
         avg_submit_to_result_seconds: avgSubmitToResultSeconds,
       },
+      caveats: [
+        'npi_submitted fires from both the homepage career loop (/) and the guest lane (/onboarding); results_displayed and dropoff_detected fire only from the guest lane, so result_success_rate undercounts guest-lane conversion.',
+        'npi_input_started fires only from the homepage career loop — it is not an ancestor of guest-lane submissions.',
+      ],
+      retired_events: RETIRED_FUNNEL_EVENTS,
     });
   } catch (error) {
     return NextResponse.json(
