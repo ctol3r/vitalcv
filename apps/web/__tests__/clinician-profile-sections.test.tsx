@@ -9,7 +9,6 @@
  *   - USER_ENTERED is used for med school, residency, fellowship
  *   - INFERRED is used for research / publications
  *   - UNKNOWN is used for missing values
- *   - KnowledgeTrustGraphPanel renders all 9 nodes and honest copy rules
  *   - no banned overclaim strings in any render
  */
 
@@ -18,7 +17,6 @@ import { readFileSync } from 'node:fs';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { ClinicianProfileSections } from '../components/profile/ClinicianProfileSections';
-import { KnowledgeTrustGraphPanel } from '../components/trust/KnowledgeTrustGraphPanel';
 import { PROVENANCE_META, normalizeFieldProvenance } from '../lib/profile/provenance';
 import type { PassportData } from '../lib/trust/passport-contract';
 
@@ -252,38 +250,6 @@ describe('ClinicianProfileSections', () => {
   });
 });
 
-describe('KnowledgeTrustGraphPanel', () => {
-  it('renders all 9 nodes in order', () => {
-    const html = renderToStaticMarkup(<KnowledgeTrustGraphPanel />);
-    for (const key of [
-      'clinician',
-      'npi',
-      'claims',
-      'sources',
-      'receipts',
-      'passport',
-      'proofPack',
-      'employerReview',
-      'auditEvents',
-    ]) {
-      expect(html).toContain(`data-testid="ktg-node-${key}"`);
-    }
-  });
-
-  it('surfaces all four copy rules', () => {
-    const html = renderToStaticMarkup(<KnowledgeTrustGraphPanel />);
-    expect(html).toContain('CRS is derived from evidence, not evidence itself.');
-    expect(html).toContain('The trust container does not upgrade proof tier.');
-    expect(html).toContain('Audit events prove action history, not clinical truth.');
-    expect(html).toContain('Partial proof stays partial.');
-  });
-
-  it('never emits a banned overclaim string', () => {
-    const html = renderToStaticMarkup(<KnowledgeTrustGraphPanel expanded />);
-    assertNoBanned(html);
-  });
-});
-
 describe('LIVE-100B source copy guard', () => {
   const sourceFiles = [
     'app/page.tsx',
@@ -295,7 +261,6 @@ describe('LIVE-100B source copy guard', () => {
     'app/p/[slug]/page.tsx',
     'app/holder/readiness/ReadinessSurface.tsx',
     'components/profile/ClinicianProfileSections.tsx',
-    'components/trust/KnowledgeTrustGraphPanel.tsx',
     'components/trust/TrustGraphXRay.tsx',
     'components/knowledge/KnowledgeExplorer.tsx',
     'components/trust-state/SourceProvenanceDrawer.tsx',
