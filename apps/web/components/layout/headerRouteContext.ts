@@ -40,10 +40,10 @@ const CLINICIAN_CTA: HeaderCta = { href: '/onboarding', label: 'Build my profile
 
 /**
  * The employer action mirrors the one honest action `/employers` itself
- * opens with; the fragment jumps to the claim flow on that page.
+ * opens with; Step 1 lives on its own route now, so the bar goes there.
  */
 const EMPLOYER_CTA: HeaderCta = {
-  href: '/employers#request-organization-access',
+  href: '/employers/request-access',
   label: 'Request organization access',
 };
 
@@ -63,7 +63,11 @@ export function getHeaderRouteContext(pathname: string): HeaderRouteContext {
   ) {
     return {
       audience: 'employer',
-      cta: pathname === '/employers' ? null : EMPLOYER_CTA,
+      // Suppressed on /employers (the page opens with the identical action)
+      // and on the CTA's own destination — a bar button pointing at the page
+      // you are already on is the same competing-primary problem.
+      cta:
+        pathname === '/employers' || pathname === EMPLOYER_CTA.href ? null : EMPLOYER_CTA,
       defaultStage: 'review',
       defaultTheme: 'light',
       railInteractive: false,

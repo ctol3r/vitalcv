@@ -103,6 +103,12 @@ export const PUBLIC_ROUTE_PATTERNS = [
   /^\/get-ready(\/.*)?$/, // legacy entry — redirects to /onboarding
   /^\/onboarding(\/.*)?$/, // canonical clinician activation (anonymous NPI preview)
   /^\/explore(\/.*)?$/, // public opportunities board
+  // Public employer acquisition tree — /employers (plural) and its
+  // conversion/diligence subroutes (/employers/request-access,
+  // /employers/how-it-works). Distinct from /employer (singular), the
+  // PROTECTED workspace. The middleware always served these anonymously;
+  // declaring them closes the ROUTE-01 drift entry instead of baselining it.
+  /^\/employers(\/.*)?$/,
   /^\/search(\/.*)?$/, // public search
   /^\/p(\/.*)?$/, // public clinician profiles — /p/:npi and subpaths
   // Public provider directory — /directory/:npi. Deliberately anonymous and
