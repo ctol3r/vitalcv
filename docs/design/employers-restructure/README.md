@@ -39,13 +39,14 @@ founder decision, not one this revision takes silently.
 | Route | 1440 height | 390 height | overflow | console errors |
 |---|---|---|---|---|
 | /employers (before, prod) | 5,743px | 7,402px | none | 0 |
-| /employers (after) | **3,262px (−43%)** | **4,571px (−38%)** | none | 0 |
+| /employers (after, revision 2) | **3,145px (−45%)** | **4,118px (−44%)** | none | 0 |
 | /employers/request-access (new) | 1,054px | 1,030px | none | 0 |
 | /employers/how-it-works (new) | 3,390px | 3,578px | none | 0 |
 
 The audit's ≤2,800px target is not fully reached; the remaining mass is the
-audience section's two 3-card grids (~1,100px). Tightening those is a content
-decision left to the gate (REVISE lever), not made silently.
+six-card workflow section (~590px) and the hero artifact stage (~290px) — both
+approved visual architecture, so tightening either is a founder decision, not
+made silently.
 
 ## Capture methodology
 
