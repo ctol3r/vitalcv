@@ -13,7 +13,7 @@ export default function ApplyLinkNotFound() {
         <h1 className="text-xl font-bold text-foreground">Link not found</h1>
         <p className="text-sm text-muted-foreground">This link is invalid or has been revoked.</p>
         <div className="flex flex-col gap-2 pt-2">
-          <Link href="/passport" className="inline-flex h-11 w-full items-center justify-center rounded-xl border border-border bg-muted px-6 text-sm font-semibold text-foreground transition-colors hover:bg-muted">
+          <Link href="/onboarding" className="inline-flex h-11 w-full items-center justify-center rounded-xl border border-border bg-muted px-6 text-sm font-semibold text-foreground transition-colors hover:bg-muted">
             Start a new NPI lookup
           </Link>
         </div>

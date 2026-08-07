@@ -2,6 +2,7 @@ import Link from 'next/link';
 import EvidenceUploadPanel from '@/components/mobile/EvidenceUploadPanel';
 import { ClinicianSupportCard } from '@/components/mobile/ClinicianSupportCard';
 import { ShareRecognitionPanel } from '@/components/recognition/ShareRecognitionPanel';
+import { ShareBundleCard } from '@/components/holder/ShareBundleCard';
 import { ClinicianRecordDetail } from '@/components/clinician-record/ClinicianRecordDetail';
 import { CredentialWallet } from '@/components/wallet/CredentialWallet';
 import { CVWalletRegistrySummary } from '@/components/wallet/CVWalletRegistrySummary';
@@ -193,6 +194,7 @@ export default async function HolderPage() {
             </h2>
           </div>
           <ShareRecognitionPanel npi={npi} />
+          <ShareBundleCard npi={npi} />
         </section>
 
         <ClinicianSupportCard

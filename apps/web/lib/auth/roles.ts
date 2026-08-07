@@ -37,8 +37,10 @@ export const ROLE_LANDING: Record<UserRoleType, string> = {
  *               public registry record anonymously (record before account);
  *               only the BIND (POST /api/profile/npi/bootstrap) needs auth.
  *   Clinician — /holder/*                                 → CLINICIAN role
- *               NOTE: /passport is currently UNCLASSIFIED (served publicly,
- *               ROUTE-01 baselined) — its fate is an open founder decision.
+ *               NOTE: /passport was RETIRED by founder decision 2026-08-07 —
+ *               both routes are public redirect stubs (/passport →
+ *               /onboarding; /passport/{npi} → /verify/{npi}, kept forever
+ *               for shipped mobile deep links).
  *   Verifier  — /verifier/*, /employer/*, /issuer/*       → VERIFIER role
  *               NOTE: /employers (plural) is the PUBLIC acquisition page —
  *               it is deliberately not in PROTECTED_ROUTES. The gated
@@ -107,6 +109,7 @@ export const PUBLIC_ROUTE_PATTERNS = [
   /^\/sign-up(\/.*)?$/,
   /^\/get-ready(\/.*)?$/, // legacy entry — redirects to /onboarding
   /^\/onboarding(\/.*)?$/, // canonical clinician activation (anonymous NPI preview)
+  /^\/passport(\/.*)?$/, // RETIRED 2026-08-07 — public redirect stubs only (see app/passport)
   /^\/explore(\/.*)?$/, // public opportunities board
   // Public employer acquisition tree — /employers (plural) and its
   // conversion/diligence subroutes (/employers/request-access,

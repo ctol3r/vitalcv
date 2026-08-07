@@ -140,7 +140,14 @@ describe('/onboarding anonymous visitor — record before account', () => {
     // The bind endpoints were never touched anonymously.
     expect(calls.every((c) => !c.url.includes('/api/profile/npi/bootstrap'))).toBe(true);
     expect(calls.every((c) => !c.url.includes('/api/ownership/claim'))).toBe(true);
-    expect(calls.every((c) => c.method === 'GET')).toBe(true);
+    // Data reads stay GET-only; the only POSTs an anonymous visitor may make
+    // are telemetry (pilot-ops/analytics), added with /passport's retirement
+    // when this lane took over the acquisition funnel's conversion events.
+    const nonGet = calls.filter((c) => c.method !== 'GET');
+    expect(
+      nonGet.every((c) => c.url.includes('/api/pilot-ops') || c.url.includes('/api/analytics')),
+      `unexpected non-GET calls: ${nonGet.map((c) => c.url).join(', ')}`,
+    ).toBe(true);
   });
 
   it('auto-resolves an NPI handed off from the homepage', async () => {

@@ -104,7 +104,7 @@ function BundleErrorView({ reason, retryHref }: { reason: 'expired' | 'error'; r
       primaryLabel: 'Return to your passport',
       primaryHref: '/holder',
       secondaryLabel: 'Start a new NPI lookup',
-      secondaryHref: '/passport',
+      secondaryHref: '/onboarding',
     },
     error: {
       symbol: '!',
@@ -113,7 +113,7 @@ function BundleErrorView({ reason, retryHref }: { reason: 'expired' | 'error'; r
       primaryLabel: 'Try again',
       primaryHref: retryHref,
       secondaryLabel: 'Start a new NPI lookup',
-      secondaryHref: '/passport',
+      secondaryHref: '/onboarding',
     },
   } as const;
   const message = messages[reason];

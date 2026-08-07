@@ -122,7 +122,7 @@ describe('Wave 5 buyer proof surface', () => {
 
     expect(markup).toContain('Employer review');
     expect(findHrefByText(markup, 'Request pilot review')).toBe('/review/request');
-    expect(findHrefByText(markup, 'Start with NPI lookup')).toBe('/passport');
+    expect(findHrefByText(markup, 'Start with NPI lookup')).toBe('/onboarding');
     expectNoBuyerBannedStrings(markup);
   });
 });

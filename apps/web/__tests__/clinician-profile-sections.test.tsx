@@ -288,12 +288,12 @@ describe('LIVE-100B source copy guard', () => {
   const sourceFiles = [
     'app/page.tsx',
     'components/layout/Navbar.tsx',
+    // /passport retired 2026-08-07 — its surviving redirect stub carries no
+    // copy; the guest record surface it pointed to is swept via GetReadySurface.
     'app/passport/page.tsx',
-    'app/passport/layout.tsx',
-    'app/passport/[id]/PassportEntityClient.tsx',
+    'app/get-ready/GetReadySurface.tsx',
     'app/p/[slug]/page.tsx',
     'app/holder/readiness/ReadinessSurface.tsx',
-    'components/passport/PassportWallet.tsx',
     'components/profile/ClinicianProfileSections.tsx',
     'components/trust/KnowledgeTrustGraphPanel.tsx',
     'components/trust/TrustGraphXRay.tsx',

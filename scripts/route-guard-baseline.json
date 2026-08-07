@@ -57,8 +57,6 @@
     "/opportunities/[id]",
     "/opportunities/discover",
     "/packet/[entityId]",
-    "/passport",
-    "/passport/[id]",
     "/pilot",
     "/pricing",
     "/privacy",
