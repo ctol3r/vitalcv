@@ -78,7 +78,11 @@ export function ReadinessCard({ state, title, summary, passportId, className }: 
 
           <div className="pt-8 w-full border-t border-border mt-8 flex justify-center">
             <MagneticButton>
-              <Link href={`/onboarding/success`} className="glue-btn glue-btn-primary">
+              {/* Was /onboarding/success — a stub that bounced to `/`. The
+                  retirement sweep (2026-08-07) re-points the CTA at the real
+                  activation surface instead of deleting a live button's
+                  destination out from under it. */}
+              <Link href={`/profile/activate`} className="glue-btn glue-btn-primary">
                 Activate Profile
               </Link>
             </MagneticButton>

@@ -227,9 +227,10 @@ function readAppRoute(rel: string): string {
 
 describe('clinician foundation — route copy invariants', () => {
   it('canonical onboarding keeps self-attestation separate from verification', () => {
-    const alias = readRoute('onboarding/page.tsx');
+    // The /clinician/onboarding redirect alias was retired 2026-08-07
+    // (headerless-routes disposition, bucket D); the attestation pins live
+    // on the canonical surface.
     const src = readAppRoute('get-ready/GetReadySurface.tsx');
-    expect(alias).toContain("redirect('/onboarding')");
     expect(src).toContain('You&apos;re attesting to your role');
     expect(src).toContain('VitalCV records this attestation; it does not verify it here.');
   });
@@ -259,32 +260,11 @@ describe('clinician foundation — route copy invariants', () => {
     expect(src).toContain('PROVENANCE_META');
   });
 
-  it('import page marks every integration card as planned or entry-point-only', () => {
-    const src = readRoute('import/page.tsx');
-    expect(src).toContain("status: 'planned'");
-    expect(src).toContain("status: 'entry point only'");
-    expect(src).toMatch(/Integration is planned; no live LinkedIn sync ships today\./);
-    expect(src).toMatch(/Integration is planned; no live Doximity sync ships today\./);
-  });
-
-  it('import page does not claim live PubMed import success', () => {
-    const src = readRoute('import/page.tsx');
-    expect(src).toMatch(/imported-candidates until a source-backed check upgrades them/);
-    expect(src.toLowerCase()).not.toContain('pubmed import complete');
-    expect(src.toLowerCase()).not.toContain('publications verified');
-  });
-
-  it('graph page is quarantined (SHD-0.3): a redirect, not a public synthetic graph', () => {
-    // /clinician/graph carries no auth gate (roles.ts classes it as neither
-    // public nor protected, so middleware passes it through) yet it mounted the
-    // same synthetic force-directed clinician roster as the legacy public
-    // /evidence-network. SHD retires it: the route now redirects to the public
-    // Trust Center and imports no graph. A real clinician evidence graph lives
-    // only in the gated /holder workspace.
-    const src = readRoute('graph/page.tsx');
-    expect(src).toMatch(/redirect\('\/trust'\)/);
-    expect(src).not.toMatch(/CareerGraph/);
-  });
+  // The import-page and graph-page blocks left with their routes: the
+  // 2026-08-07 retirement deleted /clinician/import (spec shell) and
+  // /clinician/graph (the SHD-0.3 quarantine redirect — quarantine complete,
+  // the alias itself is now gone). /clinician/profile remains live and
+  // remains pinned above and below.
 
   it('no clinician foundation page contains forbidden truth-contract phrases', () => {
     const banned = [
@@ -300,7 +280,7 @@ describe('clinician foundation — route copy invariants', () => {
       'global credential truth',
       'tamper-proof',
     ];
-    for (const rel of ['onboarding/page.tsx', 'profile/page.tsx', 'import/page.tsx', 'graph/page.tsx']) {
+    for (const rel of ['profile/page.tsx']) {
       const src = readRoute(rel).toLowerCase();
       for (const phrase of banned) {
         expect(src).not.toContain(phrase.toLowerCase());
