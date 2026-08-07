@@ -23,8 +23,8 @@ export default function MatchaHospitalsPage() {
         traditionalLabel: 'Today',
         vitalLabel: 'With VitalCV',
         rows: [
-          { label: 'Vacancy time', traditional: 'Long gaps while credentialing restarts for each hire.', vital: 'Begin from source-backed readiness to shorten time-to-start.' },
-          { label: 'Agency spend', traditional: 'Premium agency rates to cover the gap.', vital: 'A faster internal pipeline reduces reliance on premium coverage.' },
+          { label: 'Vacancy time', traditional: 'Long gaps while credentialing restarts for each hire.', vital: 'Begin from source-backed readiness the clinician already assembled, rather than restarting for each hire.' },
+          { label: 'Agency spend', traditional: 'Premium agency rates to cover the gap.', vital: 'An internal pipeline that starts from evidence reduces reliance on premium coverage.' },
           { label: 'Credentialing', traditional: 'Re-collect and re-verify from zero.', vital: 'Accept a documented head start, then complete your own review.' },
           { label: 'Fit & retention', traditional: 'Hire on résumé keywords; mismatch risk.', vital: 'MATCHA matches on stated preferences and eligibility, explained.' },
           { label: 'After hire', traditional: 'Readiness goes stale until the next renewal scramble.', vital: 'Continuous readiness surfaces changes as they happen.' },

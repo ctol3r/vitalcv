@@ -17,9 +17,21 @@ import { ConnectorMatrix } from '@/components/status/ConnectorMatrix';
 import { buildAdapterMatrix } from '@/lib/authority/adapterMatrix';
 import { buildDataClassificationFoundation } from '@/lib/security/dataClassificationFoundation';
 import { buildRetentionFoundation } from '@/lib/security/retentionFoundation';
+import { getVersionInfo } from '@/lib/deployInfo';
 
-// Bound external shared-cache staleness to 5 min (see app/page.tsx note).
-export const revalidate = 300;
+/**
+ * W0.2: rendered per request, like /status.
+ *
+ * This was `revalidate = 300`, which a CDN served as
+ * `s-maxage=300, stale-while-revalidate=31535700`. That was tolerable while
+ * the page showed no build provenance. It is not tolerable now that it prints
+ * `build <sha>`: a cached copy would attribute the running release's telemetry
+ * to whatever commit happened to be live when the page was generated — a
+ * stale-but-confident answer on the one surface that promises independent
+ * verifiability. The page renders pure in-process foundation builders, so
+ * per-request rendering costs a few function calls, not a fetch.
+ */
+export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
   title: 'Technical Status · VitalCV',
@@ -99,6 +111,7 @@ export default function StatusPage() {
   const dataClassification = buildDataClassificationFoundation();
   const retention = buildRetentionFoundation();
   const authority = buildAdapterMatrix();
+  const version = getVersionInfo();
 
   return (
     <div className="min-h-screen bg-gray-950 text-gray-100 font-mono">
@@ -111,6 +124,18 @@ export default function StatusPage() {
             </h1>
             <p className="mt-1 text-[10px] text-gray-500">
               External observability surface — independently verifiable
+            </p>
+            {/*
+              W0.2 build provenance. This page carried no build marker at all,
+              so a reader could not tell whether its telemetry described the
+              running release or a cached older one — on a page whose entire
+              claim is "independently verifiable". /status has published
+              `build <sha>` from runtime all along; this is the same value from
+              the same source, never a literal.
+            */}
+            <p className="mt-1 text-[10px] text-gray-600">
+              build {version.commitShort ?? 'unknown'}
+              {version.builtAt ? ` · built ${version.builtAt}` : ''}
             </p>
           </div>
           <Link
@@ -157,7 +182,24 @@ export default function StatusPage() {
           </div>
         </section>
 
-        {/* Connector matrix — per-source state, observation, and operator interpretation */}
+        {/*
+          Two tables on this page describe sources, on two different axes, and
+          a reader who does not know that will read them as contradicting each
+          other. The connector matrix answers "what can an anonymous visitor
+          get"; the source-lane telemetry further down answers "is the lane
+          wired and returning data", and is derived from the same registry
+          /api/status serves. OIG can legitimately be a monthly snapshot in one
+          and `active / operational` in the other. Each is labelled.
+        */}
+        <p className="text-[10px] leading-relaxed text-gray-500">
+          <strong className="text-gray-400">Access boundary.</strong>{' '}
+          The matrix below describes what an <em>anonymous</em> visitor can obtain from each
+          connector. Whether a lane is wired and returning data at all is a different question,
+          answered by <span className="font-mono">source lane operational telemetry</span> further
+          down this page and by{' '}
+          <Link href="/api/status" className="underline hover:text-gray-300">/api/status</Link>.
+          A lane can be fully operational here and still require something of the caller.
+        </p>
         <ConnectorMatrix />
 
         <section
@@ -200,7 +242,16 @@ export default function StatusPage() {
         {/* Live status board */}
         <LiveTrustStatusBoard />
 
-        {/* Source lane telemetry */}
+        {/* Source lane telemetry — derived from SOURCE_LANE_OPS, the same
+            registry /api/status serves. See the axis note above the connector
+            matrix for why the two tables can differ without contradicting. */}
+        <p className="text-[10px] leading-relaxed text-gray-500">
+          <strong className="text-gray-400">Lane capability.</strong>{' '}
+          Derived from the same source registry{' '}
+          <Link href="/api/status" className="underline hover:text-gray-300">/api/status</Link>{' '}
+          publishes, so the two always agree. This is whether a lane is wired and returning data —
+          not what an anonymous visitor can retrieve, which is the connector matrix above.
+        </p>
         <SourceLaneTelemetry />
 
         {/* Chronology integrity */}

@@ -3,7 +3,7 @@
 import { ShieldCheck, Info } from 'lucide-react';
 import { TrustStateCardData } from '../trust-state/types';
 
-export function TrustWidget({ data, npi = '1003000126' }: { data: TrustStateCardData, npi?: string }) {
+export function TrustWidget({ data, npi = '0000000000' }: { data: TrustStateCardData, npi?: string }) {
   const isGreen = data.band === 'GREEN';
 
   return (

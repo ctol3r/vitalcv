@@ -55,7 +55,7 @@ export function TimeToStartCard({
       <div className="mt-3 grid gap-3 sm:grid-cols-3">
         <div className="rounded-2xl border border-[var(--vt-border-subtle)] bg-[var(--vt-surface-subtle)] px-3 py-3">
           <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-[var(--vt-text-muted)]">
-            Without VitalCV
+            Assumed baseline
           </p>
           <p className="mt-1 text-sm font-semibold text-[var(--vt-text-primary)]">
             {estimate.withoutVitalCvLabel}
@@ -63,7 +63,7 @@ export function TimeToStartCard({
         </div>
         <div className="rounded-2xl border border-[var(--vt-badge-checked-bg)] bg-[var(--vt-badge-checked-bg)] px-3 py-3">
           <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-[var(--vt-status-resolved)]">
-            With VitalCV
+            Projected with VitalCV
           </p>
           <p className="mt-1 text-sm font-semibold text-[var(--vt-status-resolved)]">
             {estimate.withVitalCvLabel}
@@ -71,7 +71,7 @@ export function TimeToStartCard({
         </div>
         <div className="rounded-2xl border border-[var(--vt-border-subtle)] bg-[var(--vt-surface-subtle)] px-3 py-3">
           <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-[var(--vt-text-muted)]">
-            Time Saved
+            Projected difference
           </p>
           <p className="mt-1 text-sm font-semibold text-[var(--vt-text-primary)]">
             {estimate.timeSavedLabel}

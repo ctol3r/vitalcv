@@ -62,103 +62,103 @@ interface SeedProvider {
 
 const PROVIDERS: SeedProvider[] = [
   {
-    npi: '1003000126',
-    firstName: 'Sarah',
-    lastName: 'Chen',
+    npi: '1003000101',
+    firstName: 'Example',
+    lastName: 'Clinician A',
     specialty: 'Internal Medicine',
     stateOfPractice: 'CA',
-    clerkUserId: 'seed_user_chen',
-    email: 'seed.chen@vitalcv.local',
+    clerkUserId: 'seed_user_example_a',
+    email: 'seed.example.a@vitalcv.local',
     conditions: ['trust_decline', 'divergence'],
   },
   {
-    npi: '1003000134',
-    firstName: 'Michael',
-    lastName: 'Rivera',
+    npi: '1003000102',
+    firstName: 'Example',
+    lastName: 'Clinician B',
     specialty: 'Cardiovascular Disease',
     stateOfPractice: 'TX',
-    clerkUserId: 'seed_user_rivera',
-    email: 'seed.rivera@vitalcv.local',
+    clerkUserId: 'seed_user_example_b',
+    email: 'seed.example.b@vitalcv.local',
     conditions: ['research_momentum', 'clinical_trial'],
   },
   {
-    npi: '1003000142',
-    firstName: 'Emily',
-    lastName: 'Nakamura',
+    npi: '1003000103',
+    firstName: 'Example',
+    lastName: 'Clinician C',
     specialty: 'Neurology',
     stateOfPractice: 'NY',
-    clerkUserId: 'seed_user_nakamura',
-    email: 'seed.nakamura@vitalcv.local',
+    clerkUserId: 'seed_user_example_c',
+    email: 'seed.example.c@vitalcv.local',
     conditions: ['network_emergence', 'research_momentum'],
   },
   {
-    npi: '1003000159',
-    firstName: 'James',
-    lastName: 'Okonkwo',
+    npi: '1003000104',
+    firstName: 'Example',
+    lastName: 'Clinician D',
     specialty: 'Family Medicine',
     stateOfPractice: 'IL',
-    clerkUserId: 'seed_user_okonkwo',
-    email: 'seed.okonkwo@vitalcv.local',
+    clerkUserId: 'seed_user_example_d',
+    email: 'seed.example.d@vitalcv.local',
     conditions: ['workforce_shift', 'trust_decline'],
   },
   {
-    npi: '1003000167',
-    firstName: 'Priya',
-    lastName: 'Sharma',
+    npi: '1003000105',
+    firstName: 'Example',
+    lastName: 'Clinician E',
     specialty: 'Psychiatry',
     stateOfPractice: 'MA',
-    clerkUserId: 'seed_user_sharma',
-    email: 'seed.sharma@vitalcv.local',
+    clerkUserId: 'seed_user_example_e',
+    email: 'seed.example.e@vitalcv.local',
     conditions: ['industry_influence', 'divergence'],
   },
   {
-    npi: '1003000175',
-    firstName: 'David',
-    lastName: 'Kim',
+    npi: '1003000106',
+    firstName: 'Example',
+    lastName: 'Clinician F',
     specialty: 'Orthopedic Surgery',
     stateOfPractice: 'FL',
-    clerkUserId: 'seed_user_kim',
-    email: 'seed.kim@vitalcv.local',
+    clerkUserId: 'seed_user_example_f',
+    email: 'seed.example.f@vitalcv.local',
     conditions: ['sanctions', 'workforce_pressure'],
   },
   {
-    npi: '1003000183',
-    firstName: 'Alexandra',
-    lastName: 'Petrov',
+    npi: '1003000107',
+    firstName: 'Example',
+    lastName: 'Clinician G',
     specialty: 'Pediatrics',
     stateOfPractice: 'WA',
-    clerkUserId: 'seed_user_petrov',
-    email: 'seed.petrov@vitalcv.local',
+    clerkUserId: 'seed_user_example_g',
+    email: 'seed.example.g@vitalcv.local',
     conditions: ['institution_expansion', 'network_emergence'],
   },
   {
-    npi: '1003000191',
-    firstName: 'Robert',
-    lastName: 'Washington',
+    npi: '1003000108',
+    firstName: 'Example',
+    lastName: 'Clinician H',
     specialty: 'Emergency Medicine',
     stateOfPractice: 'GA',
-    clerkUserId: 'seed_user_washington',
-    email: 'seed.washington@vitalcv.local',
+    clerkUserId: 'seed_user_example_h',
+    email: 'seed.example.h@vitalcv.local',
     conditions: ['workforce_shift', 'sanctions'],
   },
   {
-    npi: '1003000209',
-    firstName: 'Maria',
-    lastName: 'Gonzalez',
+    npi: '1003000109',
+    firstName: 'Example',
+    lastName: 'Clinician I',
     specialty: 'Obstetrics & Gynecology',
     stateOfPractice: 'AZ',
-    clerkUserId: 'seed_user_gonzalez',
-    email: 'seed.gonzalez@vitalcv.local',
+    clerkUserId: 'seed_user_example_i',
+    email: 'seed.example.i@vitalcv.local',
     conditions: ['clinical_trial', 'trust_decline'],
   },
   {
-    npi: '1003000217',
-    firstName: 'Thomas',
-    lastName: 'Anderson',
+    npi: '1003000110',
+    firstName: 'Example',
+    lastName: 'Clinician J',
     specialty: 'Anesthesiology',
     stateOfPractice: 'CO',
-    clerkUserId: 'seed_user_anderson',
-    email: 'seed.anderson@vitalcv.local',
+    clerkUserId: 'seed_user_example_j',
+    email: 'seed.example.j@vitalcv.local',
     conditions: ['industry_influence', 'institution_expansion'],
   },
 ];
@@ -553,6 +553,32 @@ async function seedGraphNodes(providers: SeedProvider[]): Promise<{ nodes: numbe
 /* ── Main ───────────────────────────────────────────────────────────────────── */
 
 async function main() {
+  // Production tripwire, kept as defence in depth.
+  //
+  // Until 2026-07-27 PROVIDERS used REAL NPIs: the sequential block
+  // 1003000126 / 1003000134 / 1003000142 / 1003000159 / 1003000167 /
+  // 1003000175 / 1003000183 / 1003000191 / 1003000209 / 1003000217 all belong
+  // to real registrants (1003000126 is ARDALAN ENKESHAFI in NPPES), and each
+  // carried a fabricated name. Registering "Dr. Sarah Chen" on a real
+  // provider's NPI in the production database made the public identity surfaces
+  // misattribute that NPI.
+  //
+  // Those are now 1003000101–1003000110, which all fail the NPI check digit
+  // (Luhn over "80840" + the first 9 digits) and so cannot collide with a
+  // registrant, and the cast is named "Example Clinician A".."J". This guard
+  // stays anyway: it also stops synthetic findings, trust scores and storylines
+  // from landing in a real database.
+  const dbUrl = process.env.DATABASE_URL ?? '';
+  const looksLocal = /localhost|127\.0\.0\.1|@db:|@postgres:/i.test(dbUrl);
+  if (!looksLocal && process.env.ALLOW_SEED_AGAINST_REMOTE_DB !== '1') {
+    console.error(
+      '[Seed] Refusing to run: DATABASE_URL does not look local, and this script ' +
+        'writes fabricated providers, findings and trust scores. Set ' +
+        'ALLOW_SEED_AGAINST_REMOTE_DB=1 only for a disposable non-production database.',
+    );
+    process.exit(1);
+  }
+
   console.log('╔══════════════════════════════════════════════════════╗');
   console.log('║  VitalCV Intelligence Seed — Provider + Signals     ║');
   console.log('╚══════════════════════════════════════════════════════╝');
@@ -620,12 +646,12 @@ async function main() {
   console.log(`║  Graph nodes:      ${nodes.toString().padStart(3)}                              ║`);
   console.log(`║  Graph edges:      ${edges.toString().padStart(3)}                              ║`);
   console.log('╠══════════════════════════════════════════════════════╣');
-  console.log('║  Canonical test NPI: 1003000126  (Dr. Sarah Chen)   ║');
+  console.log('║  Canonical test NPI: 1003000101 (Example Clinician A) ║');
   console.log('║                                                      ║');
   console.log('║  Open:                                                ║');
   console.log('║    /findings                                          ║');
   console.log('║    /providers                                         ║');
-  console.log('║    /investigations?npi=1003000126                     ║');
+  console.log('║    /investigations?npi=1003000101                     ║');
   console.log('║    /storylines                                        ║');
   console.log('║    /intelligence                                      ║');
   console.log('╠══════════════════════════════════════════════════════╣');

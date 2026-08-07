@@ -8,7 +8,8 @@ function mapMarketingPath(pathname: string): string {
   }
 
   if (pathname === '/clinician') {
-    return '/passport';
+    // /passport retired 2026-08-07 — one hop straight to the canonical entry.
+    return '/onboarding';
   }
 
   if (pathname === '/verifier') {

@@ -5,6 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { isAuthenticatedVisibility, toPublicSafeMatches } from '@/lib/matcha/publicSafeProjection';
 import { auth } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/db';
 import { sanitizeStoredPreferences, toCandidateIntent } from '@/lib/matcha/preferences';
@@ -53,6 +54,20 @@ export async function GET(
     });
 
     const data = await res.json().catch(() => ({ error: 'Invalid response from backend' }));
+
+    /*
+     * C2 second wall — FAIL CLOSED on version skew.
+     *
+     * The backend enforces the public/authenticated split, but a web
+     * deployment can point at a backend that predates the guard (this
+     * preview's BACKEND_URL targets the production API), and the browser
+     * would then receive the full credential-derived object anyway. Forward
+     * the private object ONLY when the backend positively asserts it verified
+     * the session and the NPI binding; otherwise project down.
+     */
+    if (res.ok && !isAuthenticatedVisibility(data)) {
+      return NextResponse.json(toPublicSafeMatches(npi, data), { status: 200 });
+    }
     return NextResponse.json(data, { status: res.status });
   } catch (error) {
     console.error('[matcha/opportunities proxy] error:', error);

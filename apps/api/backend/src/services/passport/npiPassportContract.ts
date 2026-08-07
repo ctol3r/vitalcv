@@ -13,7 +13,11 @@ import {
   PECOS_SOURCE_LABEL,
   type PecosEnrollmentStatus,
 } from '../identity/pecosContract';
-import { getSourceFreshnessWindowHours } from '../identity/sourceCatalog';
+import {
+  getSource,
+  getSourceFreshnessWindowHours,
+  isSourceFlagEnabled,
+} from '../identity/sourceCatalog';
 import {
   buildDecisionPosture,
   buildPassportTrustPosture,
@@ -440,6 +444,16 @@ function buildSourceCoverage(
   }
 
   const license = authority.credentials.find((credential) => credential.domain === 'LICENSURE');
+  /**
+   * Is a state board actually reachable? Derived from the source catalog, not
+   * from whether a licence row exists. `liveAvailable` is the catalog's own
+   * statement that no state implementation ships; the env flag is the operator
+   * override for when one does.
+   */
+  const stateBoardSource = getSource('STATE_BOARD');
+  const stateBoardLive = Boolean(
+    stateBoardSource && (stateBoardSource.liveAvailable || isSourceFlagEnabled(stateBoardSource)),
+  );
   const enrollmentStatus = standing.pecosEnrollmentStatus;
   const nppesCheckedAt = legacy.passport.credentials.find((credential) => (
     credential.type === 'NPI_IDENTITY' || credential.type === 'IDENTITY'
@@ -477,13 +491,33 @@ function buildSourceCoverage(
       checkedAt: exclusionCheckedAt,
       freshnessWindowHours: getSourceFreshnessWindowHours('OIG_LEIE'),
     }),
+    // STATE_BOARD reports what the source catalog says is possible, not what a
+    // license ROW happens to contain.
+    //
+    // This lane read `license ? 'checked' : 'pending'`, so any licence record
+    // made the lane say "checked" and supplied a `checkedAt`. No state board is
+    // ever queried: the catalog marks STATE_BOARD `liveAvailable: false` behind
+    // `STATE_BOARD_ENABLED`, which is unset in production, and FSMB DocInfo is
+    // a paid aggregator the cost policy rules out. The licence number that made
+    // the lane look "checked" comes from the provider's own NPPES filing.
+    //
+    // Downstream that was worse than a wrong label: /verify maps `checked`
+    // through a freshness window, so an old `checkedAt` rendered as **Stale** —
+    // which tells a reader the board WAS checked and merely aged. Never-checked
+    // and checked-then-aged are different facts, and only one of them is true.
+    // `gated` is the honest state and the one /status already publishes for
+    // this lane (`pending_integration` / "Access required").
     createCanonicalSourceCoverage({
       sourceId: 'STATE_BOARD',
-      state: license ? 'checked' : 'pending',
-      reason: license
-        ? 'Licensure checked'
-        : 'Licensure source not yet checked',
-      checkedAt: licensureCheckedAt,
+      state: stateBoardLive ? (license ? 'checked' : 'pending') : 'gated',
+      reason: stateBoardLive
+        ? license
+          ? 'Licensure checked'
+          : 'Licensure source not yet checked'
+        : 'State board verification requires access VitalCV does not have yet. Any licence number shown is self-reported to NPPES by the provider and has not been confirmed with a board.',
+      // No timestamp when nothing was checked — a date here is the whole
+      // reason the surface could imply a check had happened.
+      checkedAt: stateBoardLive ? licensureCheckedAt : null,
       freshnessWindowHours: getSourceFreshnessWindowHours('STATE_BOARD'),
     }),
     createCanonicalSourceCoverage({

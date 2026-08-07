@@ -40,6 +40,7 @@ node scripts/security/audit-gate.mjs
 | + PR #572 (protobufjs / shell-quote overrides) | **0** | **75** | **67** | **14** | **156** | **criticals eliminated** |
 | 2026-07-20 (`tar` GHSA-23hp-3jrh-7fpw ignore) | **0** *(1 suppressed)* | 79 | 75 | 16 | 170 | new build-time critical newly disclosed against `tar@6.2.1`; accepted-risk ignore (below). High/moderate drift = registry advisory DB growth, not new deps. |
 | 2026-07-21 (#812 — revert #808's `tar` override) | **0** *(1 suppressed)* | 79 | 75 | 16 | 170 | `tar` back to `6.2.1`; #808's `>=7.5.19` override broke `@expo/cli` on `main`. Counts unchanged — the ignore already held the gate. |
+| 2026-08-02 (Expo SDK 52→53 — `tar` remediated) | **0** *(0 suppressed)* | 74 | 63 | 17 | 154 | `apps/mobile` expo `~53.0.0` → `@expo/cli@0.24.24` declares `tar ^7.4.3` → resolves **7.5.22** (patched). `tar@6.2.1` no longer in the lockfile at all; GHSA-23hp-3jrh-7fpw ignore **removed** — the gate passes with an empty ignore list. High/moderate drop = Next 15.5.22 (#1029) + the SDK-52 subtree leaving the tree. |
 
 ### Criticals — DONE (0 remaining)
 
@@ -61,9 +62,30 @@ revisit condition changes.
 
 | GHSA | Package | Severity | Reaches | Signed off | Revisit when |
 |---|---|---|---|---|---|
-| [GHSA-23hp-3jrh-7fpw](https://github.com/advisories/GHSA-23hp-3jrh-7fpw) (CVE-2026-59873) | `tar@6.2.1` | Critical (CVSS 7.5) | `apps/mobile` build tooling only | Chris (owner), 2026-07-20 | (a) `apps/mobile` joins the production deploy path, **or** (b) Expo ships `@expo/cli` on a patched `tar`, **or** (c) `@expo/cli` drops the babel `_interopRequireDefault` default-import shim so a `tar@≥7.5.19` override becomes safe |
+| *(none — list is empty as of 2026-08-02)* | | | | | |
 
-### GHSA-23hp-3jrh-7fpw — node-tar decompression/parse DoS
+### RESOLVED 2026-08-02 — GHSA-23hp-3jrh-7fpw — node-tar decompression/parse DoS
+
+**How it was resolved.** Revisit condition (b) fired: the Expo SDK 53 line
+ships `@expo/cli@0.24.24` with a **declared** `tar: ^7.4.3` dependency (its
+compiled code imports `tar@7` correctly — no `_interopRequireDefault` shim
+against a missing default export). Bumping `apps/mobile` from `expo ~52.0.0` to
+`expo ~53.0.0` (with `expo install --fix` aligning the companion packages,
+react 19.0.0 / react-native 0.79.6) removed `tar@6.2.1` from the lockfile
+entirely; the only `tar` in the tree is now **7.5.22** (patched ≥7.5.19). The
+`ignoreGhsas` entry was removed and the gate passes with an **empty** ignore
+list. Unlike #808's override, the fix was exercised for real: `@expo/cli`'s own
+`build/src/utils/npm.js` `extractNpmTarballFromUrlAsync` downloaded and
+extracted a live registry tarball (`expo-status-bar@2.2.3`, 7 files) with
+`tar@7.5.22` resolved from the CLI's context — the exact call path that threw
+`TypeError` under the override. Mobile `tsc --noEmit` and the 3-file vitest
+suite (9 tests) pass on SDK 53; the lockfile's `importers` diff is confined to
+`apps/mobile`.
+
+The history below is preserved because its lesson outlives the advisory:
+**upgrade the consumer, never force an override the consumer can't load.**
+
+#### Original analysis (2026-07-20, while the ignore was in force)
 
 **What it is.** node-tar `<=7.5.18` does not bound total decompressed bytes or
 entry counts, so a tiny "gzip bomb" can exhaust disk/CPU during extraction.

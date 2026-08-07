@@ -22,7 +22,11 @@ import { ProvenanceStrip } from '@/components/verifier/ProvenanceStrip';
 import { ReceiptVerificationPane } from '@/components/verifier/ReceiptVerificationPane';
 import { IssuerContinuityPanel } from '@/components/verifier/IssuerContinuityPanel';
 import { ReplayChronologyPanel } from '@/components/verifier/ReplayChronologyPanel';
-import type { LaneSnapshot } from '@/components/proof/trust-types';
+import { ClinicianRecordDetail } from '@/components/clinician-record/ClinicianRecordDetail';
+import { fetchNppesRecord } from '@/lib/clinician-record/nppes';
+import { buildClinicianRecord, attachMedicareEnrollment } from '@/lib/clinician-record/build';
+import { fetchCmsClinicianRows } from '@/lib/clinician-record/cmsClinicians';
+import { checksToLaneSnapshots } from '@/lib/verify/laneSnapshots';
 import { VerdictSplit, type VerdictItem } from '@/design-system/components';
 import type { PassportData } from '@/lib/trust/passport-contract';
 import {
@@ -117,50 +121,6 @@ const TIER_CONFIG: Record<string, { label: string; cls: string }> = {
   },
 };
 
-/**
- * Map passport sourceCoverage checks → LaneSnapshot[] compatible with
- * the verifier components (which use trust-types.ts LaneSnapshot shape).
- */
-function checksToLaneSnapshots(
-  checks: PassportData['sourceCoverage']['checks'],
-): LaneSnapshot[] {
-  return checks.map((c) => {
-    const checkedAtMs = c.checkedAt ? new Date(c.checkedAt).getTime() : null;
-    const receiptId = c.proof?.receiptIds?.[0] ?? null;
-
-    // Map canonical state → SourceStatus (best-effort)
-    const statusMap: Record<string, LaneSnapshot['status']> = {
-      checked: 'verified',
-      stale: 'stale',
-      pending: 'in_progress',
-      gated: 'access_required',
-      unavailable: 'unavailable',
-      accessRequired: 'access_required',
-      reviewRequired: 'review_required',
-      notDecisionGrade: 'not_checked',
-      previewOnly: 'not_checked',
-    };
-
-    // The source's own refresh SLA (sourceCatalog.refreshSlaHours), carried on
-    // the passport. Without it the strip can only show an absolute timestamp,
-    // which reads as "just checked" for a periodic source — the over-claim the
-    // freshness line repairs.
-    const freshnessWindowMs =
-      typeof c.freshnessWindowHours === 'number' && c.freshnessWindowHours > 0
-        ? c.freshnessWindowHours * 60 * 60 * 1000
-        : undefined;
-
-    return {
-      laneId: c.sourceId,
-      status: statusMap[c.state] ?? 'not_checked',
-      checkedAt: isNaN(checkedAtMs as number) ? null : checkedAtMs,
-      source: c.sourceUrl ?? undefined,
-      receiptId,
-      freshnessWindowMs,
-    };
-  });
-}
-
 // ── Data fetching ──────────────────────────────────────────────────────────────
 
 /**
@@ -238,14 +198,31 @@ export default async function VerifierPage({
   if (!/^\d{10}$/.test(npi)) {
     notFound();
   }
-  const [passport, acceptanceHistory] = await Promise.all([
+  // The CMS read runs alongside the passport fetch rather than after it —
+  // they are independent, and serialising them would add a round trip to a
+  // page whose whole point is being readable in under 30 seconds.
+  const [passport, acceptanceHistory, nppes, cmsClinicians] = await Promise.all([
     fetchPassport(npi),
     fetchAcceptanceHistory(npi),
+    fetchNppesRecord(npi),
+    fetchCmsClinicianRows(npi),
   ]);
 
   if (!passport) {
     return <NotFound npi={npi} />;
   }
+
+  // Null when CMS was unreachable or the NPI is unknown. The section is then
+  // omitted entirely rather than rendered empty — an empty registry block on
+  // a credentialing page reads as "this provider filed nothing", which is a
+  // different and much worse claim than "we could not read CMS".
+  const clinicianRecord = nppes
+    ? attachMedicareEnrollment(
+        buildClinicianRecord(nppes.reading, { retrievedAt: nppes.retrievedAt }),
+        cmsClinicians,
+        nppes.reading,
+      )
+    : null;
 
   // Derive lane snapshots from source coverage
   const lanes = checksToLaneSnapshots(passport.sourceCoverage?.checks ?? []);
@@ -293,13 +270,21 @@ export default async function VerifierPage({
   // "Not checked" beats a silent omission; wiring the live status list is
   // the backend follow-up.
   const checkedLanes = lanes.filter((l) => l.status === 'verified');
+  const notFoundLanes = lanes.filter((l) => l.status === 'not_found');
   const receiptLanes = lanes.filter((l) => l.receiptId);
   const tierKey = String(proofTier).toLowerCase();
   const integrityItems: VerdictItem[] = [
     {
-      label: 'Source checks recorded',
+      // "checked" was doing two jobs here — "we ran a check" and "the source
+      // confirmed them" — and a reviewer reads the second. Count and name only
+      // the lanes a source actually confirmed, and say separately when a lane
+      // was read and came back with no active record.
+      label: 'Sources confirming this provider',
       status: checkedLanes.length > 0 ? 'pass' : 'pending',
-      detail: `${checkedLanes.length} of ${lanes.length} lanes checked`,
+      detail:
+        notFoundLanes.length > 0
+          ? `${checkedLanes.length} of ${lanes.length} lanes confirmed · ${notFoundLanes.length} found no active record`
+          : `${checkedLanes.length} of ${lanes.length} lanes confirmed`,
       provenance: passport.lastCheckedAt ? `checked ${formatUtc(passport.lastCheckedAt)}` : undefined,
     },
     {
@@ -458,6 +443,22 @@ export default async function VerifierPage({
           <ProvenanceStrip lanes={lanes} now={renderedAt} />
         </Section>
         </Reveal>
+
+        {/* ── Section: Full registry record ───────────────────────────────
+            The complete NPPES filing, resolved against the NUCC code set and
+            the CMS Medicare crosswalk. Sits BELOW source coverage on purpose:
+            the verdict and what was actually checked come first, and this is
+            reference detail underneath it, not evidence.
+
+            Renders only when the CMS read succeeded. A partial record here
+            would read as a thin filing rather than a failed fetch. */}
+        {clinicianRecord && (
+          <Reveal delay={60}>
+          <Section title="Full registry record">
+            <ClinicianRecordDetail record={clinicianRecord} mode="public" />
+          </Section>
+          </Reveal>
+        )}
 
         {/* ── Section: Employer acceptances (Recognition) ────────────────── */}
         <Reveal delay={80}>

@@ -21,7 +21,7 @@
 type Tone = 'confirmed' | 'gated' | 'attested' | 'unknown';
 
 const TONE_DOT: Record<Tone, string> = {
-  confirmed: 'var(--vt-accent-emerald)',
+  confirmed: 'var(--vt-state-source-confirmed)',
   gated: 'var(--vt-state-stale, #a2670b)',
   attested: 'var(--vt-text-secondary)',
   unknown: 'var(--vt-text-muted)',

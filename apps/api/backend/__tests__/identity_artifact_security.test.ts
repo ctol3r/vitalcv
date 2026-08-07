@@ -25,14 +25,32 @@ function makeProviderFixture(): NormalizedProvider {
     name_suffix: '',
     organization_name: '',
     display_name: 'Avery Stone, MD',
+    // Demographics blank rather than invented: this fixture is signed and
+    // hashed by the artifact generator, so a fabricated value here would be
+    // indistinguishable from a real CMS one in the resulting artifact.
+    sex: '',
+    sole_proprietor: '',
     primary_taxonomy: null,
     primary_taxonomy_code: null,
     taxonomies: [],
     practice_address: null,
     addresses: [],
+    practice_locations: [],
     identifiers: [],
     enumeration_date: '2010-01-01',
-    last_updated: '2026-01-01', mailing_address: null, endpoints: [], other_names: [],
+    last_updated: '2026-01-01',
+    certification_date: '',
+    deactivation_date: '',
+    deactivation_reason_code: '',
+    reactivation_date: '',
+    created_epoch: '',
+    last_updated_epoch: '',
+    mailing_address: null,
+    endpoints: [],
+    other_names: [],
+    organizational_subpart: '',
+    parent_organization_legal_business_name: '',
+    authorized_official: null,
   };
 }
 

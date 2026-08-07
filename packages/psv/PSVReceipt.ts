@@ -1,6 +1,12 @@
 import crypto from 'crypto';
 
 export const SOURCE_AUTHORITIES = ['ABMS', 'FSMB', 'NPI', 'LEIE', 'OTHER'] as const;
+/**
+ * Mirrors CANONICAL_SOURCE_COVERAGE_STATES in @vitalcv/trust-state. Kept as a
+ * local literal rather than an import so this package stays dependency-free;
+ * when a state is added there it must be added here, or receipts cannot record
+ * it (TrustStateResolver fails to compile, which is how this one was caught).
+ */
 export const RECEIPT_SOURCE_COVERAGE_STATES = [
   'checked',
   'stale',
@@ -10,6 +16,7 @@ export const RECEIPT_SOURCE_COVERAGE_STATES = [
   'accessRequired',
   'reviewRequired',
   'notDecisionGrade',
+  'notFound',
   'previewOnly',
 ] as const;
 

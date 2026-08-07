@@ -1,3 +1,4 @@
+/** @deprecated Use identityIngestionPipeline.handlers.NURSYS for production ingestion. */
 import { sha256ForPayload } from '../utils/deterministic';
 import {
   buildNursysContractSnapshot,

@@ -40,7 +40,7 @@ export function ApplyWithVitalCVWidget({
 import { VerificationLatencyBadge } from '../onboarding/VerificationLatencyBadge';
 import { VerifierConfidencePanel } from '../employer/VerifierConfidencePanel';
 
-export function ApplyWithVitalCVResult({ candidateName = "Dr. Sarah Chen", readinessScore = 98, trustLevel = "L3" }) {
+export function ApplyWithVitalCVResult({ candidateName = "Example Clinician A", readinessScore = 98, trustLevel = "L3" }) {
   return (
     <div className="w-full max-w-2xl space-y-4">
       <div className="p-6 border border-emerald-100 rounded-2xl bg-emerald-50/30 relative overflow-hidden flex flex-col sm:flex-row items-start sm:items-center justify-between">

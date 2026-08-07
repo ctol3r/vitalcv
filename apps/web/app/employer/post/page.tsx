@@ -12,7 +12,7 @@
  *                                        "no organization yet" path)
  *
  * A posting is a plain listing — nothing here implies VitalCV verified the
- * employer. Calm-glass, employer (source-green) persona.
+ * employer. Calm-glass employer surface; one editorial accent (CD-3).
  */
 
 import Link from 'next/link';

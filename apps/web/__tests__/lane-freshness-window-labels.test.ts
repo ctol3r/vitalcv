@@ -92,19 +92,25 @@ describe('lane freshness labels agree with the backend source catalog', () => {
   });
 
   /**
-   * Documented divergence, deliberately NOT auto-corrected.
+   * SETTLED 2026-07-26 (founder ruling): `state_license` stays at `30 days`.
    *
-   * `state_license` is labelled `30 days` while its catalog sources
-   * (STATE_BOARD, NURSYS) both sit at 168h. Unlike the NPPES/OIG swap this is
-   * not a transposition, and the lane is access-gated — it returns no data, so
-   * the label never renders beside a real check age. It reads as a forward
-   * policy tolerance rather than an observed refresh interval.
+   * The divergence is real and intentional. The label is `30 days` while the
+   * catalog sources it maps to (STATE_BOARD, NURSYS) both sit at 168h. Unlike
+   * the NPPES/OIG swap corrected in #830 this is not a transposition: it is a
+   * deliberate policy tolerance — how stale a board check may be before it is
+   * re-pulled — not a claim about how often the upstream publishes.
    *
-   * This test pins the divergence so it stays visible: if someone reconciles
-   * the two, this fails and they update it on purpose. It is a flag, not an
-   * endorsement — the value still wants a product ruling.
+   * Two facts keep it safe. The lane is access-gated, so it returns no data and
+   * the label never renders beside a real check age. And a tolerance that is
+   * LONGER than the source's own refresh interval cannot overstate freshness;
+   * it can only be conservative.
+   *
+   * So this test now pins a decision, not an open question. Do NOT "reconcile"
+   * it with the catalog — reconciling would silently convert a product policy
+   * into an observed interval, which is the exact confusion the readCadence
+   * split (#817) exists to prevent. Changing it needs a new founder ruling.
    */
-  it('records the known state_license divergence rather than hiding it', () => {
+  it('keeps the ruled state_license window at 30 days, diverging from catalog by design', () => {
     expect(labelFor('state_license')).toBe('30 days');
     expect(catalog.get('STATE_BOARD')).toBe(168);
   });

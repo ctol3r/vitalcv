@@ -25,7 +25,7 @@ function asyncHandler(
  * Routes:
  *   GET  /demo/status              — service version, uptime, git sha
  *   GET  /demo/provider?npi=:npi   — public NPPES lookup
- *   GET  /demo/sample-npis         — hardcoded sample NPI list
+ *   GET  /demo/sample-npis         — how to drive the demo; nominates no clinician
  *   POST /demo/issue               — issue mock W3C Verifiable Credential
  *   POST /demo/verify              — full verify pipeline, returns signed artifact
  */

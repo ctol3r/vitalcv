@@ -19,7 +19,7 @@ export type StoryIconName =
   | 'reuse'
   | 'wallet';
 
-const EM = 'var(--vt-accent-emerald)';
+const EM = 'var(--vt-state-source-confirmed)';
 const AC = 'var(--accent)';
 const OP = 'var(--vt-field-opportunity, #2f6fb0)';
 

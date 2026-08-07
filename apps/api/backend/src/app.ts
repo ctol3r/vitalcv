@@ -40,6 +40,7 @@ import { registerAuthorityRoutes } from './routes/authority';
 import { registerAuditRoutes } from './routes/audit';
 import { startAnchorWorker } from './workers/anchorWorker';
 import { startRevocationOutboxWorker } from './workers/revocationOutboxWorker';
+import { startIngestionWorker } from './workers/ingestionWorker';
 // Wave 37: Superbrain GraphRAG intelligence endpoint — now superseded by Intelligence Engine
 // Wave 40: Continuous Trust & Revocation Engine
 import { registerStatusListRoutes } from './routes/statusList';
@@ -142,6 +143,7 @@ import { registerMissionOpsRoutes } from './routes/missionOps';             // W
 import { registerWorkspaceRoutes } from './routes/workspace';               // Wave 180: Identity workspace graph
 import { registerClinicianRoutes } from './routes/clinician';             // Wave 287: Clinician activation
 import { registerIntakeRoutes } from './routes/intake';                     // Wave 183: Resume + NPI + Links + Work Auth ingestion
+import { registerGardenRoutes } from './routes/gardenNotes';                 // Career Garden: private notes + Living CV lines
 import { registerEmailOtpRoutes } from './routes/identity';                 // Email-OTP identity-binding possession factor
 import { registerSearchRoutes } from './routes/search';                     // Wave 184: Unified Search Index & Content Graph
 import { registerRoleRoutes } from './routes/role';                         // Clerk auth: GET /api/me/role
@@ -165,7 +167,10 @@ import { registerDetailAgentRoutes } from './routes/detailAgents';           // 
 import { registerPollingRoutes } from './routes/polling';                    // Wave POLL: Polling scheduler
 import { registerEmployerRoutes } from './routes/employers';                 // Wave 186: Employer Knowledge Layer
 import { registerPrequalificationRoutes } from './routes/prequalification';  // Wave 189: AI Interview, Assessments, Prequalification
-import { registerVerifierPipelineRoutes } from './routes/verifierPipeline';  // Wave 190: Apply with VitalCV + ATS + Verifier Pipeline
+// Wave 190 (verifierPipeline) is deliberately NOT imported — the routes are
+// unauthenticated and org-scoped by a caller-supplied header. See the header of
+// routes/verifierPipeline.ts and the guard in
+// routes/__tests__/verifierPipelineNotWired.test.ts before re-adding this.
 import { registerReferralRoutes } from './routes/referrals';                 // Wave 191: Referral Engine with Compliance Guardrails
 import { registerAmbassadorRoutes } from './routes/ambassador';              // Wave 192: Ambassador Program
 import { registerGrowthRoutes } from './routes/growth';                      // Wave 193: Instant Offers + Growth Loops
@@ -1335,6 +1340,12 @@ const AVERAGE_DELAY_REDUCTION_DAYS = 7;
 const REVENUE_RECOVERY_PER_DAY_USD = 1000;
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
+// Share ids are `@db.Uuid` columns; anything else must be rejected before it
+// reaches Prisma. Same shape as the guards in routes/passportEntity.ts and
+// routes/auditDecision.ts.
+const SHARE_ID_UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 function parseRequiredString(value: unknown, field: string): string {
   if (typeof value !== 'string' || value.trim().length === 0) {
     throw new Error(`${field} is required`);
@@ -1783,6 +1794,14 @@ function registerHealthRoutes(app: Express): void {
       metrics: requestLatencyMetrics.snapshot(),
       git_branch: process.env.RAILWAY_GIT_BRANCH ?? null,
       git_sha: process.env.RAILWAY_GIT_COMMIT_SHA ?? null,
+      // The container's Node version decides whether a CommonJS `require()`
+      // can load an ESM-only dependency: `require(esm)` exists from 22.12.
+      // Two outages on 2026-07-27 (jose v6, @noble/post-quantum) turned on
+      // this exact number, and both times it had to be INFERRED from an
+      // ERR_REQUIRE_ESM in the logs because nothing reported it. `nixpacks.toml`
+      // pins `nodejs_22` while its own comment claims ">= 22.12" — publishing
+      // the real value is how that claim stops being unfalsifiable.
+      node_version: process.version,
     });
   });
 
@@ -2577,6 +2596,15 @@ function registerPilotRoutes(app: Express): void {
     const organizationId = getRequestOrganizationId(req);
     const organizationFilter = buildOrganizationFilter(organizationId);
     const ref = normalizeFunnelRef(req.query.ref);
+
+    // ShareLink.id is `@db.Uuid`, so a malformed id makes Prisma throw at the
+    // driver ("Error creating UUID") before the not-found branch below is ever
+    // reached — a public endpoint returning 500 for any non-UUID path segment.
+    // Guard the exact value the query receives, and answer exactly as we answer
+    // an id that simply does not exist, so the two are indistinguishable.
+    if (!SHARE_ID_UUID_RE.test(shareId)) {
+      return res.status(404).json({ error: 'Share link not found' });
+    }
 
     try {
       const existing = await prisma.shareLink.findFirst({
@@ -3650,6 +3678,7 @@ registerMissionOpsRoutes(app);        // Wave 123 — Mission Ops + onboarding f
 registerWorkspaceRoutes(app);         // Wave 180 — Dual-Entity Identity + workspace switching
 registerClinicianRoutes(app);         // Wave 287 — Clinician activation
 registerIntakeRoutes(app);            // Wave 183 — Resume + NPI + Links + Work Auth ingestion
+registerGardenRoutes(app);            // Career Garden — private notes + explicit Living CV promotion
 registerEmailOtpRoutes(app);          // Email-OTP identity-binding possession factor
 registerSearchRoutes(app);            // Wave 184 — Unified Search Index + hybrid retrieval
 registerRoleRoutes(app);              // Clerk auth — GET /api/me/role (role resolution)
@@ -3676,7 +3705,10 @@ registerDetailAgentRoutes(app);      // Wave DT — Detail agents + system healt
 registerPollingRoutes(app);          // Wave POLL — Polling scheduler
 registerEmployerRoutes(app);          // Wave 186 — Employer Knowledge Layer
 registerPrequalificationRoutes(app);  // Wave 189 — AI Interview, Assessments, Prequalification
-registerVerifierPipelineRoutes(app);  // Wave 190 — Apply with VitalCV + ATS + Verifier Pipeline
+// Wave 190 — Apply with VitalCV + ATS + Verifier Pipeline: NOT WIRED.
+// Unauthenticated writes on any NPI and a cross-tenant read gated only on the
+// x-verifier-org-id request header. No caller exists (the embed it backed 404s).
+// Restoring it requires real auth first — routes/verifierPipeline.ts explains what.
 registerReferralRoutes(app);          // Wave 191 — Referral Engine with Compliance Guardrails
 registerAmbassadorRoutes(app);        // Wave 192 — Ambassador Program
 registerGrowthRoutes(app);            // Wave 193 — Instant Offers + Growth Loops
@@ -3741,6 +3773,9 @@ if (BACKGROUND_JOBS_ENABLED) {
   startAnchorWorker();
   startContinuousMonitor();
   startRevocationOutboxWorker();
+  // No-ops unless a feed's credentials are set, so an unconfigured deployment
+  // stays silent instead of failing every interval.
+  startIngestionWorker();
 }
 
 if (ENTERPRISE_MODE) {

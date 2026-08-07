@@ -128,19 +128,26 @@ export async function verifyEnvelope(
     }
 
     if (envelope.suite === 'ml-dsa-65' || envelope.suite === 'slh-dsa-128s') {
-      // Dynamic import — @noble/post-quantum is an optional peer dep
+      // Dynamic import — @noble/post-quantum is an optional peer dep.
+      // The `.js` suffix is REQUIRED: the package's `exports` map declares
+      // `./ml-dsa.js` / `./slh-dsa.js` literally, so an extensionless subpath
+      // throws ERR_PACKAGE_PATH_NOT_EXPORTED even when the package IS
+      // installed — which the old catch then reported as "not installed".
       try {
         if (envelope.suite === 'ml-dsa-65') {
-          const { ml_dsa65 } = await import('@noble/post-quantum/ml-dsa' as string) as { ml_dsa65: { verify: (sig: Uint8Array, msg: Uint8Array, pk: Uint8Array) => boolean } };
+          const { ml_dsa65 } = await import('@noble/post-quantum/ml-dsa.js' as string) as { ml_dsa65: { verify: (sig: Uint8Array, msg: Uint8Array, pk: Uint8Array) => boolean } };
           const valid = ml_dsa65.verify(sig, payload, pk);
           return { valid, suiteId: 'ml-dsa-65', keyId: envelope.keyId, quantumResistant: true, signedAt: envelope.signedAt, error: null };
         } else {
-          const { slh_dsa_shake_128s } = await import('@noble/post-quantum/slh-dsa' as string) as { slh_dsa_shake_128s: { verify: (sig: Uint8Array, msg: Uint8Array, pk: Uint8Array) => boolean } };
+          const { slh_dsa_shake_128s } = await import('@noble/post-quantum/slh-dsa.js' as string) as { slh_dsa_shake_128s: { verify: (sig: Uint8Array, msg: Uint8Array, pk: Uint8Array) => boolean } };
           const valid = slh_dsa_shake_128s.verify(sig, payload, pk);
           return { valid, suiteId: 'slh-dsa-128s', keyId: envelope.keyId, quantumResistant: true, signedAt: envelope.signedAt, error: null };
         }
-      } catch {
-        return { valid: false, suiteId: envelope.suite, keyId: envelope.keyId, quantumResistant: true, signedAt: envelope.signedAt, error: `PQC verification requires @noble/post-quantum: npm install @noble/post-quantum` };
+      } catch (err) {
+        // Report what actually went wrong. The previous message blamed a
+        // missing install unconditionally, which sent anyone hitting the
+        // subpath bug to reinstall a package they already had.
+        return { valid: false, suiteId: envelope.suite, keyId: envelope.keyId, quantumResistant: true, signedAt: envelope.signedAt, error: `PQC verification unavailable (@noble/post-quantum): ${String(err)}` };
       }
     }
 

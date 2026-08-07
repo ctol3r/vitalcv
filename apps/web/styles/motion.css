@@ -24,3 +24,271 @@
     opacity: 1;
   }
 }
+
+/* Used by the homepage ask diagrams (`.ask-art-step-*` / `.ask-art-flow` in
+ * ask-home.css) when AskHome's IntersectionObserver adds `.ask-art-play`:
+ * each diagram replays its state sequence once on entry, then rests (CD-11).
+ * Both references sit inside ask-home.css's reduced-motion guard, and the
+ * resting composition is the base CSS there — these keyframes only replay how
+ * it came to be. `appear` uses `translate`, not `transform`, so it cannot
+ * collide with any transform a diagram element already carries. */
+@keyframes ask-art-appear {
+  from {
+    opacity: 0;
+    translate: 0 6px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+/* The consent diagram's permission rule DRAWS across the boundary — direction
+ * is the one meaning this motion carries. 32 matches the path's 32px length. */
+@keyframes ask-art-draw {
+  from {
+    stroke-dashoffset: 32;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* Variable-length trace. `ask-art-draw` hard-codes a 32px path, which is why it
+ * could only ever serve the one consent rule; a cardiac trace, a corridor, or a
+ * building outline are each a different length. The consumer sets --trace-len
+ * to the path length (SVG `pathLength` normalises it if you would rather not
+ * measure). Still single-shot: it draws itself once and rests (CD-11). */
+@keyframes ask-art-trace {
+  from {
+    stroke-dashoffset: var(--trace-len, 300);
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* A pane of glass catching the light as it settles in. Opacity and a small
+ * rise only — no shimmer, no sweep, no loop: CD-13 retires glow and shimmer,
+ * and this must come to rest like every other artifact step. */
+@keyframes ask-art-glass-in {
+  from {
+    opacity: 0;
+    translate: 0 10px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+/* ── Home Evidence Experience v2 ──────────────────────────────────────────
+ * Consumed by styles/home-surfaces.css. Three additions only; the product
+ * entrance reuses `ask-art-appear` and the evidence line reuses
+ * `ask-art-trace` rather than restating them (docs/design/
+ * home-evidence-experience-v2.md §5). All three are single-shot and animate
+ * only composited properties — no layout property appears in any of them. */
+
+/* The evidence capsule arrives as a capsule: the shell is revealed from its
+ * own top edge rather than fading in as a rectangle. `inset()` with the
+ * capsule's own radius keeps the corner correct through the whole sweep, so it
+ * never reads as a square becoming round. Paired with opacity so a browser
+ * that cannot animate clip-path still shows a clean fade. */
+@keyframes home-capsule-reveal {
+  from {
+    opacity: 0;
+    clip-path: inset(0 0 100% 0 round var(--home-capsule-radius, 0));
+  }
+  to {
+    opacity: 1;
+    clip-path: inset(0 0 0 0 round var(--home-capsule-radius, 0));
+  }
+}
+
+/* One state replacing another inside a container that must NOT resize —
+ * resolving → resolved, or an error message swapping its text. Opacity plus a
+ * 4px rise; nothing that can move a neighbour. */
+@keyframes home-state-in {
+  from {
+    opacity: 0;
+    translate: 0 4px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+/* A small glyph exchanged for another (the CTA's arrow on hover, a status
+ * glyph resolving). Scale is bounded at 0.94 so the swap reads as an exchange
+ * rather than a pop, and it starts visible: the glyph is never absent, which
+ * is what would make the swap feel like a flicker. */
+@keyframes home-glyph-swap {
+  from {
+    opacity: 0.4;
+    scale: 0.94;
+  }
+  to {
+    opacity: 1;
+    scale: 1;
+  }
+}
+
+/* ── Z1 homepage story (/preview/home · styles/z1-home.css) ──────────────────
+ * The z1-* set below is consumed only by z1-home.css; the page imports this
+ * file alongside it. Every use sits behind that stylesheet's
+ * prefers-reduced-motion guards, and each animation runs a bounded number of
+ * iterations (or once, on reveal) — nothing loops forever except the nav
+ * current, which is opacity-quiet and disabled under reduced motion. */
+
+/* The slow indigo current along the preview nav bar's lower edge — alive,
+ * never flashing. Background-position only; it cannot move layout. */
+@keyframes z1-nav-current {
+  from {
+    background-position: 0% 0;
+  }
+  to {
+    background-position: 220% 0;
+  }
+}
+
+/* Handoff rows: travelling rows step toward the employer, arriving rows
+ * settle in staggered. Once, on reveal; held rows do not move. */
+@keyframes z1-travel {
+  from {
+    transform: translateX(-10px);
+  }
+  to {
+    transform: none;
+  }
+}
+@keyframes z1-arrive {
+  from {
+    opacity: 0.25;
+    transform: translateX(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* THE signature motion: the story spine's carrier makes three complete
+ * journeys down the page, then rests. Paused by hover/focus in z1-home.css. */
+@keyframes z1-spine-travel {
+  0% {
+    top: 2%;
+    opacity: 0;
+  }
+  6% {
+    opacity: 1;
+  }
+  30% {
+    top: 34%;
+  }
+  55% {
+    top: 62%;
+  }
+  82% {
+    top: 90%;
+    opacity: 1;
+  }
+  92%,
+  100% {
+    top: 94%;
+    opacity: 0;
+  }
+}
+
+/* MATCHA's tie flows from the profile into the match on activation, then
+ * settles into a static tie. Connection feedback, not ambient decoration. */
+@keyframes z1-tie-flow {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: 26px 0;
+  }
+}
+
+/* Sliding panes: content keyed by state slides in from the right. */
+@keyframes z1-slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Continuity-rail lanes fill once as the divider enters view — information
+ * moving through a record. Colours resolve at the lane element, which carries
+ * the record palette (record.css). */
+@keyframes z1-lane-fill {
+  to {
+    background: var(--ink-strong);
+    border-color: var(--ink-strong);
+  }
+}
+
+/* ── Operations Engine (W1400) ──────────────────────────────────────────────
+ *
+ * The `.w14` console is a scoped island: it ships its own chrome in a <style>
+ * block inside OpsEngineClient. LINT-03 permits keyframe DEFINITIONS in this
+ * file only, so the four the console needs live here while their .w14-scoped
+ * consumers stay in the component.
+ *
+ * NOTE: this file is imported per-page, not from globals.css — /ops/engine
+ * imports it explicitly. Moving a keyframe here without that import satisfies
+ * the linter and silently kills the animation.
+ */
+
+/* A live indicator drawing attention without motion: opacity only, so it costs
+ * no layout and cannot shift the row it sits in. */
+@keyframes w14blink {
+  0%,
+  100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* The softer sibling of w14blink, for "work in progress" rather than "live". */
+@keyframes w14pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+/* A row entering the worklist. Gated behind prefers-reduced-motion at the call
+ * site, since it does translate. */
+@keyframes w14rise {
+  from {
+    transform: translateY(8px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+/* A detail pane arriving from the right. */
+@keyframes w14slide {
+  from {
+    transform: translateX(24px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}

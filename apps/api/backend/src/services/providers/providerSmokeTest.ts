@@ -29,6 +29,27 @@ import {
   getConnectorHealth,
 } from './connectors/connectorHealthTracker';
 
+/**
+ * NPI sent to live third-party registries to prove each connector is reachable
+ * and still returns a well-formed response.
+ *
+ * It must FAIL the NPI check digit (Luhn over "80840" + the first 9 digits) so it
+ * cannot name a registrant. These smoke tests reach CMS NPPES, state boards, OIG,
+ * ABMS, CAQH and NPDB on every call to `GET /api/providers/health`, so a real NPI
+ * here means anyone hitting that endpoint queries six external registries about an
+ * actual person who never consented.
+ *
+ * `1003000126` was the default until 2026-07-27 — it is a real physician. The
+ * replacement keeps the final digit (6) because the sandbox connectors branch on
+ * it.
+ *
+ * A check-digit-invalid NPI still exercises every connector fully: the assertions
+ * here are reachability, schema, field length and UTF-8, none of which need a
+ * match. NPPES answers `{"result_count":0,"results":[]}`, which satisfies
+ * NPPES_SCHEMA_POLICY.
+ */
+const SMOKE_TEST_NPI = '1558395516';
+
 // ── Types ─────────────────────────────────────────────────────────────
 
 export type ConnectorId = 'NPPES' | 'STATE_BOARD' | 'OIG' | 'ABMS' | 'CAQH' | 'NPDB';
@@ -79,7 +100,7 @@ const NPPES_SCHEMA_POLICY = {
 
 // ── NPPES Smoke Test ──────────────────────────────────────────────────
 
-async function smokeTestNppes(sampleNpi = '1003000126'): Promise<SmokeTestResult> {
+async function smokeTestNppes(sampleNpi = SMOKE_TEST_NPI): Promise<SmokeTestResult> {
   const errors: string[] = [];
   const warnings: string[] = [];
   const start = Date.now();
@@ -179,7 +200,7 @@ async function smokeTestNppes(sampleNpi = '1003000126'): Promise<SmokeTestResult
 
 // ── Connector Smoke Tests ────────────────────────────────────────────
 
-async function smokeTestStateBoard(sampleNpi = '1003000126'): Promise<SmokeTestResult> {
+async function smokeTestStateBoard(sampleNpi = SMOKE_TEST_NPI): Promise<SmokeTestResult> {
   const start = Date.now();
   const errors: string[] = [];
   try {
@@ -201,7 +222,7 @@ async function smokeTestStateBoard(sampleNpi = '1003000126'): Promise<SmokeTestR
   }
 }
 
-async function smokeTestOIG(sampleNpi = '1003000126'): Promise<SmokeTestResult> {
+async function smokeTestOIG(sampleNpi = SMOKE_TEST_NPI): Promise<SmokeTestResult> {
   const start = Date.now();
   const errors: string[] = [];
   try {
@@ -229,7 +250,7 @@ async function smokeTestOIG(sampleNpi = '1003000126'): Promise<SmokeTestResult> 
   }
 }
 
-async function smokeTestABMS(sampleNpi = '1003000126'): Promise<SmokeTestResult> {
+async function smokeTestABMS(sampleNpi = SMOKE_TEST_NPI): Promise<SmokeTestResult> {
   const start = Date.now();
   const errors: string[] = [];
   try {
@@ -251,7 +272,7 @@ async function smokeTestABMS(sampleNpi = '1003000126'): Promise<SmokeTestResult>
   }
 }
 
-async function smokeTestCAQH(sampleNpi = '1003000126'): Promise<SmokeTestResult> {
+async function smokeTestCAQH(sampleNpi = SMOKE_TEST_NPI): Promise<SmokeTestResult> {
   const start = Date.now();
   const errors: string[] = [];
   try {
@@ -273,7 +294,7 @@ async function smokeTestCAQH(sampleNpi = '1003000126'): Promise<SmokeTestResult>
   }
 }
 
-async function smokeTestNPDB(sampleNpi = '1003000126'): Promise<SmokeTestResult> {
+async function smokeTestNPDB(sampleNpi = SMOKE_TEST_NPI): Promise<SmokeTestResult> {
   const start = Date.now();
   const errors: string[] = [];
   try {

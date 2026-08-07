@@ -131,24 +131,83 @@ export const keyStore = new KeyStore();
 
 // ── PQC module loader (lazy, handles pnpm resolution) ─────────────────────────
 
-let _mlDsa65: typeof import('@noble/post-quantum/ml-dsa')['ml_dsa65'] | null = null;
-let _slhDsa128s: typeof import('@noble/post-quantum/slh-dsa')['slh_dsa_shake_128s'] | null = null;
-let _pqcLoadAttempted = false;
+/**
+ * Subpaths MUST carry the `.js` suffix.
+ *
+ * `@noble/post-quantum@0.5.x` declares its `exports` map with explicit file
+ * names — `./ml-dsa.js`, `./slh-dsa.js` — and Node's exports resolution is a
+ * literal match, so the extensionless `@noble/post-quantum/ml-dsa` is not a
+ * key and throws `ERR_PACKAGE_PATH_NOT_EXPORTED`. The catch below then
+ * downgraded every signature to classical, in production, with only a WARN.
+ * Found in the Railway log 2026-07-27; the suffix is the entire fix.
+ *
+ * Verify against the installed package rather than the docs before changing:
+ *   node -e "console.log(Object.keys(require('@noble/post-quantum/package.json').exports))"
+ */
+let _mlDsa65: typeof import('@noble/post-quantum/ml-dsa.js')['ml_dsa65'] | null = null;
+let _slhDsa128s: typeof import('@noble/post-quantum/slh-dsa.js')['slh_dsa_shake_128s'] | null = null;
 
-function loadPQC(): void {
-  if (_pqcLoadAttempted) return;
-  _pqcLoadAttempted = true;
+/**
+ * Real dynamic import, protected from the TypeScript transpiler.
+ *
+ * This file compiles with `module: CommonJS`, and tsc rewrites a plain
+ * `await import(x)` into `Promise.resolve().then(() => require(x))` — which
+ * is exactly the `require()` that cannot load an ES module. Building the
+ * import through `new Function` puts it beyond tsc's reach, so the emitted
+ * JS keeps a genuine `import()`.
+ *
+ * Verify the OUTPUT, not the source, when touching this:
+ *   grep -n "import(" dist/.../cryptoRegistry.js   # must not be require()
+ */
+const nativeImport = new Function(
+  'specifier',
+  'return import(specifier);',
+) as (specifier: string) => Promise<Record<string, unknown>>;
+
+let _pqcLoadPromise: Promise<void> | null = null;
+
+/**
+ * Load one PQC subpath, tolerating every runtime this code actually runs in.
+ *
+ * `require()` first, `import()` second — because neither works everywhere:
+ *
+ *   Node >= 22.12  require(esm) supported     -> require() wins
+ *   Node <  22.12  ERR_REQUIRE_ESM            -> import() wins   (Railway today)
+ *   jest (CJS)     import() is blocked with
+ *                  ERR_VM_DYNAMIC_IMPORT_...  -> require() wins
+ *
+ * A single strategy fails one of them: `require()` alone is what shipped
+ * classical-only to production, and `import()` alone cannot execute under
+ * jest's VM without --experimental-vm-modules. Trying both keeps the
+ * behavioural tests real AND the container correct.
+ */
+async function loadPqcModule<T>(specifier: string): Promise<T> {
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const mlDsaMod  = require('@noble/post-quantum/ml-dsa')  as { ml_dsa65: typeof _mlDsa65 };
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const slhDsaMod = require('@noble/post-quantum/slh-dsa') as { slh_dsa_shake_128s: typeof _slhDsa128s };
-    _mlDsa65    = mlDsaMod.ml_dsa65;
-    _slhDsa128s = slhDsaMod.slh_dsa_shake_128s;
-    log('info', 'cryptoRegistry: PQC algorithms loaded (ML-DSA-65, SLH-DSA-128s)');
-  } catch (err) {
-    log('warn', 'cryptoRegistry: PQC algorithms unavailable — using classical only', { error: String(err) });
+    return require(specifier) as T;
+  } catch (requireErr) {
+    const code = (requireErr as NodeJS.ErrnoException)?.code;
+    if (code !== 'ERR_REQUIRE_ESM') throw requireErr;
+    return await nativeImport(specifier) as T;
   }
+}
+
+async function loadPQC(): Promise<void> {
+  // Memoize the PROMISE, not a boolean: concurrent callers must await the same
+  // load rather than race past a flag that is set before the import resolves.
+  if (_pqcLoadPromise) return _pqcLoadPromise;
+  _pqcLoadPromise = (async () => {
+    try {
+      const mlDsaMod  = await loadPqcModule<{ ml_dsa65: typeof _mlDsa65 }>('@noble/post-quantum/ml-dsa.js');
+      const slhDsaMod = await loadPqcModule<{ slh_dsa_shake_128s: typeof _slhDsa128s }>('@noble/post-quantum/slh-dsa.js');
+      _mlDsa65    = mlDsaMod.ml_dsa65;
+      _slhDsa128s = slhDsaMod.slh_dsa_shake_128s;
+      log('info', 'cryptoRegistry: PQC algorithms loaded (ML-DSA-65, SLH-DSA-128s)');
+    } catch (err) {
+      log('warn', 'cryptoRegistry: PQC algorithms unavailable — using classical only', { error: String(err) });
+    }
+  })();
+  return _pqcLoadPromise;
 }
 
 // ── Key generation ─────────────────────────────────────────────────────────────
@@ -178,8 +237,8 @@ async function generateEd25519Pair(keyId: string): Promise<KeyPair> {
   };
 }
 
-function generateMLDSA65Pair(keyId: string): KeyPair {
-  loadPQC();
+async function generateMLDSA65Pair(keyId: string): Promise<KeyPair> {
+  await loadPQC();
   if (!_mlDsa65) throw new Error('ML-DSA-65 not available — install @noble/post-quantum');
   const { publicKey, secretKey } = _mlDsa65.keygen();
   return {
@@ -190,8 +249,8 @@ function generateMLDSA65Pair(keyId: string): KeyPair {
   };
 }
 
-function generateSLHDSA128sPair(keyId: string): KeyPair {
-  loadPQC();
+async function generateSLHDSA128sPair(keyId: string): Promise<KeyPair> {
+  await loadPQC();
   if (!_slhDsa128s) throw new Error('SLH-DSA-128s not available — install @noble/post-quantum');
   const { publicKey, secretKey } = _slhDsa128s.keygen();
   return {
@@ -216,7 +275,7 @@ export async function signWithSuite(
   payload: Uint8Array,
   suiteId: SuiteId,
 ): Promise<SignResult> {
-  loadPQC();
+  await loadPQC();
 
   const key = keyStore.activeKeyForSuite(suiteId);
   if (!key) throw new Error(`No active key for suite ${suiteId} — call initializeCryptoKeys() first`);
@@ -256,7 +315,7 @@ export async function verifyWithSuite(
   signatureHex: string,
   keyId: string,
 ): Promise<{ valid: boolean; suiteId: SuiteId; error?: string }> {
-  loadPQC();
+  await loadPQC();
 
   const keyRecord = keyStore.getPublic(keyId);
   if (!keyRecord) return { valid: false, suiteId: 'sha256', error: `Key not found: ${keyId}` };
@@ -343,7 +402,7 @@ async function initKeyFromEnv(suiteId: SuiteId, keyId: string): Promise<KeyPair 
 }
 
 export async function initializeCryptoKeys(): Promise<void> {
-  loadPQC();
+  await loadPQC();
   const tasks: Array<() => Promise<void>> = [
     async () => {
       const existing = await initKeyFromEnv('ed25519', 'vitalcv-ed25519-v1');
@@ -354,14 +413,14 @@ export async function initializeCryptoKeys(): Promise<void> {
     async () => {
       if (!_mlDsa65) return;
       const existing = await initKeyFromEnv('ml-dsa-65', 'vitalcv-ml-dsa-65-v1');
-      const pair = existing ?? generateMLDSA65Pair('vitalcv-ml-dsa-65-v1');
+      const pair = existing ?? await generateMLDSA65Pair('vitalcv-ml-dsa-65-v1');
       keyStore.set(pair);
       log('info', 'cryptoRegistry: ML-DSA-65 key ready', { keyId: pair.keyId });
     },
     async () => {
       if (!_slhDsa128s) return;
       const existing = await initKeyFromEnv('slh-dsa-128s', 'vitalcv-slh-dsa-128s-v1');
-      const pair = existing ?? generateSLHDSA128sPair('vitalcv-slh-dsa-128s-v1');
+      const pair = existing ?? await generateSLHDSA128sPair('vitalcv-slh-dsa-128s-v1');
       keyStore.set(pair);
       log('info', 'cryptoRegistry: SLH-DSA-128s key ready', { keyId: pair.keyId });
     },

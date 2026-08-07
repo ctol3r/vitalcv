@@ -127,8 +127,13 @@ export function buildTimeToStartEstimate(
     penaltyDays,
     readinessFactor,
     adjusted,
-    withoutVitalCvLabel: `~${BASELINE_DAYS} days`,
-    withVitalCvLabel: formatApproxDays(adjusted),
-    timeSavedLabel: formatApproxDays(readinessFactor),
+    // Same discipline as lib/trust/time-to-start-estimate.ts: the baseline is an
+    // assumption and the difference is a projection, so the values say so. This
+    // pair (module + components/hero/TimeToStartCard) currently has no consumer,
+    // but dead code with measurement-flavoured labels is a loaded gun — if it is
+    // ever wired up it must not assert an outcome nobody measured.
+    withoutVitalCvLabel: `~${BASELINE_DAYS} days (assumed)`,
+    withVitalCvLabel: `${formatApproxDays(adjusted)} (projected)`,
+    timeSavedLabel: `${formatApproxDays(readinessFactor)} (projected)`,
   };
 }

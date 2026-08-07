@@ -36,8 +36,8 @@ const ROUTE_FAMILIES = [
     detail: 'Start the wedge by ingesting an NPI into the current source-backed pipeline.',
     routes: ['POST /api/identity/:npi/ingest'],
     example: {
-      request: 'POST /api/identity/1003000126/ingest',
-      response: '{ "runId": "run_abc123", "npi": "1003000126", "status": "started" }',
+      request: 'POST /api/identity/0000000000/ingest',
+      response: '{ "runId": "run_abc123", "npi": "0000000000", "status": "started" }',
     },
   },
   {
@@ -45,8 +45,8 @@ const ROUTE_FAMILIES = [
     detail: 'Fetch the same passport truth used by clinician and employer surfaces.',
     routes: ['GET /api/passport/npi/:npi', 'GET /api/passport/entity/:id'],
     example: {
-      request: 'GET /api/passport/npi/1003000126',
-      response: '{ "entity": { "npi": "1003000126", "name": "...", "readiness": { "score": 82, "level": "L2" } }, "sources": [...] }',
+      request: 'GET /api/passport/npi/0000000000',
+      response: '{ "entity": { "npi": "0000000000", "name": "...", "readiness": { "score": 82, "level": "L2" } }, "sources": [...] }',
     },
   },
   {
@@ -227,11 +227,11 @@ export default function DevelopersPage() {
             </p>
             <CodeBlock
               code={`# 1. Ingest an NPI
-curl -X POST '${publicApiBase}/api/identity/1003000126/ingest' \\
+curl -X POST '${publicApiBase}/api/identity/0000000000/ingest' \\
   -H 'content-type: application/json'
 
 # 2. Retrieve the passport
-curl '${publicApiBase}/api/passport/npi/1003000126'
+curl '${publicApiBase}/api/passport/npi/0000000000'
 
 # 3. Accept as employer (authenticated)
 curl -X POST '${publicApiBase}/api/employer-review/<entityId>/accept' \\

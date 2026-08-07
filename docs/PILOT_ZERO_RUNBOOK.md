@@ -184,7 +184,12 @@ Stop the pilot and fix first if:
 - [ ] `/api/passport/{NPI}` returns `passport_not_available` for a known clinician
 - [ ] `/review/{NPI}` returns blank page (frontend crash)
 - [ ] Trust score is 0 for a known-active clinician (scoring engine broken)
-- [ ] Name shows "Dr. Sarah Chen" (seed data leak — should never happen again)
+- [ ] The displayed name is anything other than the registry identity for the NPI entered —
+      in particular any seeded demo name such as "Dr. Sarah Chen". Ten seeded identities
+      caused this. The removal script is a separate, unlanded change (it is a destructive
+      data operation and ships under its own review), so until it has been run against this
+      environment a fabricated name here means the rows are still present; after it has run,
+      it means a new fabrication has been introduced. Either way, stop.
 
 ---
 

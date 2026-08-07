@@ -68,8 +68,11 @@ const RELATIONSHIP_LABELS: Record<string, string> = {
 
 /* ── Demo Data ────────────────────────────────────────────── */
 
+// Synthetic placeholders only. A demo subject must never carry a real
+// clinician's NPI: `0000000000` fails the NPI check digit, so it cannot
+// collide with a registrant. Do not substitute a real NPI here.
 const DEMO_ENTITIES: KnowledgeEntity[] = [
-  { id: 'clinician-1003000126', type: 'clinician', label: 'Dr. Sarah Chen', trustScore: 0.92, centrality: 1.0, metadata: { npi: '1003000126' } },
+  { id: 'clinician-example', type: 'clinician', label: 'Example Clinician A', trustScore: 0.92, centrality: 1.0, metadata: { npi: '0000000000' } },
   { id: 'issuer-ca-medical-board', type: 'issuer', label: 'CA Medical Board', trustScore: 0.95, centrality: 0.6, metadata: {} },
   { id: 'issuer-training-source', type: 'issuer', label: 'Training source', trustScore: 0.58, centrality: 0.4, metadata: { proofTier: 'contextual' } },
   { id: 'credential-license', type: 'credential', label: 'Medical License', trustScore: 0.9, centrality: 0.7, metadata: { status: 'ACTIVE', exp: '2027-03-15' } },
@@ -81,8 +84,8 @@ const DEMO_ENTITIES: KnowledgeEntity[] = [
 const DEMO_RELATIONSHIPS: KnowledgeRelationship[] = [
   { id: 'r1', type: 'ISSUED_BY', sourceId: 'credential-license', targetId: 'issuer-ca-medical-board', weight: 1.0, confidence: 0.95 },
   { id: 'r2', type: 'CONTEXT_FOR', sourceId: 'credential-training', targetId: 'issuer-training-source', weight: 0.5, confidence: 0.5 },
-  { id: 'r3', type: 'VERIFIED_BY', sourceId: 'clinician-1003000126', targetId: 'credential-license', weight: 1.0, confidence: 0.9 },
-  { id: 'r4', type: 'CONTEXT_FOR', sourceId: 'clinician-1003000126', targetId: 'credential-training', weight: 0.5, confidence: 0.5 },
+  { id: 'r3', type: 'VERIFIED_BY', sourceId: 'clinician-example', targetId: 'credential-license', weight: 1.0, confidence: 0.9 },
+  { id: 'r4', type: 'CONTEXT_FOR', sourceId: 'clinician-example', targetId: 'credential-training', weight: 0.5, confidence: 0.5 },
   { id: 'r5', type: 'VERIFIED_BY', sourceId: 'credential-license', targetId: 'verifier-psv', weight: 1.0, confidence: 1.0 },
   { id: 'r6', type: 'DEPENDS_ON', sourceId: 'decision-review', targetId: 'credential-license', weight: 1.0, confidence: 0.92 },
   { id: 'r7', type: 'CONTEXT_FOR', sourceId: 'decision-review', targetId: 'credential-training', weight: 0.5, confidence: 0.5 },

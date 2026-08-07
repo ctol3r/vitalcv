@@ -8,12 +8,20 @@ on:
       - 'packages/**'
       - 'railway.toml'
       - 'pnpm-lock.yaml'
+      # Included so a change to the verification itself is exercised by the
+      # very next deploy instead of sitting unrun until someone happens to
+      # touch apps/api. Safe because railway.toml sets no watchPatterns, so
+      # Railway rebuilds on every push to main — a workflow-only merge still
+      # produces a deploy for this job to assert against.
+      - '.github/workflows/deploy-api.yml'
   workflow_dispatch:
     inputs:
       reason:
-        description: 'Reason for manual trigger'
+        # This job does not deploy; Railway does. Dispatching it re-runs the
+        # verification against whatever is currently live.
+        description: 'Reason for re-running deploy verification'
         required: false
-        default: 'manual redeploy'
+        default: 're-verify the live deploy'
 
 concurrency:
   group: deploy-api
@@ -27,48 +35,72 @@ env:
   PNPM_VERSION: '10.6.1'
 
 jobs:
-  # Railway auto-deploys on push to main.
-  # This job waits for the deploy to complete, then runs smoke tests.
+  # Railway auto-deploys on push to main. This job does NOT deploy — it waits
+  # for the deploy to land and then proves THIS commit is the one serving.
   smoke-test:
     name: Post-deploy smoke test
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    # 10 min of SHA-wait budget plus slack. A 10-minute job timeout would let
+    # the wait consume the whole budget and kill the job before it judged
+    # anything. Mirrors deploy-web.yml.
+    timeout-minutes: 15
 
     steps:
-      - name: Wait for Railway deploy to propagate
-        run: sleep 120
-
-      - name: Smoke test /health
+      # This job used to `sleep 120` and then pass on the first HTTP 200 from
+      # /health. That can only prove SOMETHING is answering — never that THIS
+      # commit is the thing answering, because the PREVIOUS release answers 200
+      # perfectly well. On 2026-07-28 it reported success for 49e5ee8fd (a
+      # cross-tenant authorization fix) while production was demonstrably still
+      # serving 0661fe1a7, three merges behind: Railway had queued the build and
+      # not started it, and the old instance kept returning 200 throughout.
+      #
+      # deploy-web.yml had the identical defect and it was fixed in #920 by
+      # asserting the SHA. That fix could not simply be reused here:
+      # scripts/deploy-smoke.mjs is web-specific (it asserts service=web on
+      # /api/version and probes /status, /onboarding and homepage markers), so
+      # this is the same contract expressed against the API's own /health, which
+      # already reports git_sha.
+      - name: Verify the API is serving this commit
         env:
+          # An override, not a gate. This step previously `exit 0`d the entire
+          # job when the secret was unset, which silently disabled the only
+          # post-deploy check — the same trap #920 removed from deploy-web.yml.
           API_DOMAIN: ${{ secrets.RAILWAY_API_DOMAIN }}
+          WAIT_SECONDS: '600'
+          INTERVAL: '15'
         run: |
-          if [ -z "$API_DOMAIN" ]; then
-            echo "RAILWAY_API_DOMAIN secret not set. Skipping smoke test."
-            exit 0
-          fi
+          set -uo pipefail
+          BASE="https://${API_DOMAIN:-api.vitalcv.com}"
+          HEALTH_URL="${BASE}/health"
+          echo "Waiting for ${HEALTH_URL} to serve ${GITHUB_SHA}"
 
-          HEALTH_URL="https://${API_DOMAIN}/health"
-          echo "Testing: $HEALTH_URL"
+          DEADLINE=$(( SECONDS + WAIT_SECONDS ))
+          OBSERVED=""
+          BODY=""
 
-          MAX_ATTEMPTS=12
-          INTERVAL=15
-          ATTEMPT=0
+          while [ "$SECONDS" -lt "$DEADLINE" ]; do
+            # Cache-busted so a shared cache cannot fake either the liveness or
+            # the commit.
+            BODY=$(curl -fsS -m 20 -H 'Cache-Control: no-cache' \
+              "${HEALTH_URL}?cb=${GITHUB_RUN_ID}-${SECONDS}" 2>/dev/null || true)
+            OBSERVED=$(printf '%s' "$BODY" | sed -nE 's/.*"git_sha":"([^"]*)".*/\1/p')
 
-          while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
-            HTTP_CODE=$(curl -s -o /tmp/health_body -w '%{http_code}' "$HEALTH_URL" 2>/dev/null || echo "000")
-
-            if [ "$HTTP_CODE" = "200" ]; then
-              echo "Health check passed (HTTP 200)"
-              cat /tmp/health_body
-              echo ""
+            if [ "$OBSERVED" = "$GITHUB_SHA" ]; then
+              echo "PASS — ${BASE} is serving ${GITHUB_SHA}"
+              printf '%s\n' "$BODY"
               exit 0
             fi
 
-            ATTEMPT=$((ATTEMPT + 1))
-            echo "Attempt $ATTEMPT/$MAX_ATTEMPTS: HTTP $HTTP_CODE. Retrying in ${INTERVAL}s..."
+            echo "  serving ${OBSERVED:-<unreachable>}, expected ${GITHUB_SHA} — retrying in ${INTERVAL}s"
             sleep "$INTERVAL"
           done
 
-          echo "Health check failed after $MAX_ATTEMPTS attempts"
-          cat /tmp/health_body 2>/dev/null || true
+          echo ""
+          echo "FAIL — ${BASE} never served ${GITHUB_SHA} within ${WAIT_SECONDS}s."
+          echo "  expected: ${GITHUB_SHA}"
+          echo "  observed: ${OBSERVED:-<unreachable>}"
+          echo ""
+          echo "The API is not running this commit. Check the Railway build for"
+          echo "the service before assuming the change is live — a queued or"
+          echo "failed build looks identical to a healthy one from /health alone."
           exit 1

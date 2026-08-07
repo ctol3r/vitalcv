@@ -1,0 +1,45 @@
+name: Route Guard Gate
+
+# Route-tree / guard-list drift. See scripts/check-route-guards.ts.
+#
+# WHY: /employer/* shipped to production with no route guard (#908). The
+# doctrine comment in apps/web/lib/auth/roles.ts had classified it as a
+# VERIFIER surface for months; the pattern was never added to
+# PROTECTED_ROUTES. Nothing compared the prose to the array, and nothing
+# compared either to the routes actually served. This gate does both.
+#
+# Three rules, all ratchets against scripts/route-guard-baseline.json:
+#   ROUTE-01  a served route protected by nothing, declared public by nothing
+#   ROUTE-02  a guard pattern matching no served route (orphaned guard)
+#   ROUTE-03  a ROLE_LANDING target that is not a served route
+#
+# Baselines are LISTS, not counts, so a failure names the exact route and the
+# baseline file stays a reviewable inventory of known drift.
+#
+# The script imports apps/web/lib/auth/roles.ts directly and that module has
+# no imports of its own, so this gate needs no dependency install and runs in
+# seconds on Node's built-in type stripping.
+
+on:
+  # Deliberately NOT path-filtered, for the reason spelled out at length in
+  # design-lint-gate.yml and ci.yml: a path-filtered workflow is skipped
+  # entirely on a PR touching none of its paths, so a required check run is
+  # never created and the PR stays permanently blocked. Adding a route is
+  # exactly the kind of change that could land in a PR this filter would miss.
+  pull_request:
+    branches: [main]
+
+env:
+  NODE_VERSION: '22'
+
+jobs:
+  check-route-guards:
+    name: check-route-guards
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Enforce route-guard ratchets
+        run: node --experimental-strip-types --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/check-route-guards.ts

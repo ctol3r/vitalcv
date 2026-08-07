@@ -1,0 +1,201 @@
+/* ==========================================================================
+   Living Evidence Record — three art-direction treatments of ONE anatomy.
+   Isolated review prototype. Not a public route, not shipped.
+
+   Same content, same dimensions, same anatomy, same state truth in all three.
+   Only art direction changes. Anything that differs between A, B and C is
+   deliberate; anything shared is the anatomy and must stay shared.
+   ========================================================================== */
+
+@font-face { font-family:'Fraunces'; src:url('./fonts/Fraunces-Variable.woff2') format('woff2'); font-weight:100 900; font-display:block; }
+@font-face { font-family:'Fraunces'; src:url('./fonts/Fraunces-Variable-Italic.woff2') format('woff2'); font-weight:100 900; font-style:italic; font-display:block; }
+@font-face { font-family:'Geist'; src:url('./fonts/Geist-Variable.woff2') format('woff2'); font-weight:100 900; font-display:block; }
+@font-face { font-family:'Geist Mono'; src:url('./fonts/GeistMono-Variable.woff2') format('woff2'); font-weight:100 900; font-display:block; }
+
+:root {
+  /* CD-3 / CD-4 — identical across all three treatments. */
+  --paper:#F0EEE9; --raised:#F7F5F1; --inset:#E7E4DD;
+  --rule:#D6D2C8; --rule-strong:#B9B3A6;
+  --ink:#1A1815; --ink-strong:#0E0D0B; --ink-muted:#57534A; --ink-subtle:#676257;
+  --accent:#4338CA;
+  --state-confirmed:#1C5C38; --state-snapshot:#3D5A6C;
+  --state-access:#676257; --state-attention:#7D5A1E;
+  --serif:'Fraunces',ui-serif,Georgia,serif;
+  --sans:'Geist',system-ui,sans-serif;
+  --mono:'Geist Mono',ui-monospace,monospace;
+}
+
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:15px;-webkit-font-smoothing:antialiased}
+
+/* ---- the shared anatomy -------------------------------------------------
+   PROPORTIONS portrait 4:5 · FRONT opaque paper · EDGE hairline with a heavy
+   top · SPINE the vertical axis · APERTURES six lane slots · CLAIM ROWS ·
+   RECEIPT EDGE · SEAL circular · SHADOW none, ever.                        */
+
+/*
+ * PROPORTIONS. Portrait-leaning, but content-driven inside that envelope.
+ *
+ * A hard `aspect-ratio: 4/5` was wrong: it forced every face to the tallest
+ * face's height, so SEALED — which by definition reduces to silhouette, seal
+ * and receipt — rendered as a mostly-empty box. That is the same "small object
+ * adrift in a large frame" failure this whole programme began with, reproduced
+ * at object scale. The envelope constrains, it does not pad.
+ */
+.evr{
+  position:relative;
+  width:var(--w,420px);
+  min-height:calc(var(--w,420px) * 0.72);
+  max-height:calc(var(--w,420px) * 1.35);
+  background:var(--raised);
+  display:flex; flex-direction:column;
+  overflow:hidden;
+  /* no shadow on evidence, in any treatment */
+}
+
+.evr-head{padding:14px 16px 12px;position:relative}
+.evr-eyebrow{
+  font-family:var(--mono);font-size:10px;letter-spacing:.09em;
+  text-transform:uppercase;color:var(--ink-subtle);
+  display:flex;justify-content:space-between;gap:12px;
+}
+.evr-name{font-weight:600;font-size:16px;color:var(--ink-strong);margin-top:6px}
+.evr-npi{font-family:var(--mono);font-size:12px;color:var(--ink-muted);font-variant-numeric:tabular-nums}
+
+/* SPINE — the NPI axis. Present in every face; it is what the field becomes. */
+.evr-spine{position:absolute;top:0;bottom:0;width:2px;background:var(--rule);left:var(--spine-x,16px)}
+
+.evr-body{flex:1;display:flex;flex-direction:column;min-height:0}
+
+/* APERTURES — six lane slots. Empty, filling, or filled. Never hidden. */
+.evr-apertures{display:grid;grid-template-columns:repeat(6,1fr);gap:4px;padding:10px 16px}
+.evr-ap{height:6px;background:var(--inset);border:1px solid var(--rule)}
+.evr-ap[data-open]{background:var(--rule-strong);border-color:var(--rule-strong)}
+
+/* CLAIM ROWS — radius 0–3px in every treatment. Facts are never soft. */
+.evr-rows{list-style:none;flex:1;overflow:hidden}
+.evr-row{
+  display:flex;align-items:flex-start;justify-content:space-between;gap:10px;
+  padding:9px 16px;border-top:1px solid var(--rule);
+}
+.evr-claim{font-weight:500;font-size:13px;display:block}
+.evr-ret{font-size:12px;color:var(--ink-muted);margin-top:1px}
+.evr-prov{font-family:var(--mono);font-size:10px;color:var(--ink-subtle);margin-top:3px;line-height:1.45}
+
+.stamp{
+  display:inline-flex;align-items:center;gap:.35em;flex:none;
+  font-family:var(--mono);font-size:9px;letter-spacing:.05em;text-transform:uppercase;
+  color:var(--ink);background:var(--raised);
+  border:1px solid var(--rule);border-left-width:2px;border-radius:3px;
+  padding:2px 6px;white-space:nowrap;
+}
+.s-conf{border-left-color:var(--state-confirmed)} .s-conf .g{color:var(--state-confirmed)}
+.s-snap{border-left-color:var(--state-snapshot)}  .s-snap .g{color:var(--state-snapshot)}
+.s-acc {border-left-color:var(--state-access)}    .s-acc  .g{color:var(--state-access)}
+.s-pend{border-left-color:var(--rule-strong)}     .s-pend .g{color:var(--ink-subtle)}
+
+/* RECEIPT EDGE — only once something is actually signed. */
+.evr-receipt{
+  padding:8px 16px;background:var(--inset);
+  font-family:var(--mono);font-size:9.5px;color:var(--ink-subtle);
+  border-top:1px dashed var(--rule-strong);
+}
+
+/* PERMISSION LAYER — the only translucency the object is allowed. */
+.evr-perm{font-family:var(--mono);font-size:10px;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap}
+.evr-perm[data-t="travels"]{color:var(--accent)}
+.evr-perm[data-t="held"]{color:var(--ink)}
+
+/* CONSENT SEAL — circular. The one circular element in the system. */
+.evr-seal{
+  width:64px;height:64px;border-radius:50%;
+  border:2px solid var(--ink-strong);
+  display:flex;align-items:center;justify-content:center;text-align:center;
+  font-family:var(--mono);font-size:8px;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--ink-strong);line-height:1.3;margin:0 auto;
+}
+
+.illus{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-subtle)}
+
+/* ==========================================================================
+   TREATMENT A — CLINICAL RECORD
+   Strongest paper/document character. Ruled structure, receipt edge,
+   restrained apertures, most editorial. The object reads as a filed page.
+   ========================================================================== */
+.t-a .evr{border:1px solid var(--rule);border-top:3px solid var(--ink-strong);border-radius:2px}
+.t-a .evr-head{border-bottom:1px solid var(--rule)}
+.t-a .evr-ap{height:4px;background:transparent;border-bottom:1px solid var(--rule);border-top:0;border-left:0;border-right:0}
+.t-a .evr-ap[data-open]{background:transparent;border-bottom:2px solid var(--ink-strong)}
+.t-a .evr-name{font-family:var(--serif);font-weight:500;font-size:19px}
+.t-a .evr-spine{left:0;width:3px;background:var(--ink-strong)}
+.t-a .evr-rows{border-top:1px solid var(--rule)}
+
+/* ==========================================================================
+   TREATMENT B — EVIDENCE INSTRUMENT
+   Stronger physical silhouette, apertures made apparent, controlled depth
+   through overlap. Closest to a designed device you could pick up.
+   ========================================================================== */
+.t-b .evr{border:1px solid var(--rule-strong);border-top:6px solid var(--ink-strong);border-radius:3px}
+.t-b .evr-head{background:var(--inset);border-bottom:1px solid var(--rule-strong)}
+.t-b .evr-apertures{gap:5px;padding:12px 16px;background:var(--inset);border-bottom:1px solid var(--rule-strong)}
+.t-b .evr-ap{height:14px;border-radius:2px;background:var(--paper);border:1px solid var(--rule-strong)}
+.t-b .evr-ap[data-open]{background:var(--ink-strong);border-color:var(--ink-strong)}
+.t-b .evr-spine{left:0;width:6px;background:var(--ink-strong)}
+.t-b .evr-name{font-size:17px}
+/* depth through overlap, never shadow */
+.t-b .evr::after{
+  content:'';position:absolute;inset:6px -6px -6px 6px;z-index:-1;
+  border:1px solid var(--rule);border-radius:3px;background:var(--inset);
+}
+
+/* ==========================================================================
+   TREATMENT C — SECURE HANDOFF OBJECT
+   Stronger spine and seal; the clearest separation between the complete
+   record and the recipient subset. Permission and travel most legible.
+   ========================================================================== */
+.t-c .evr{border:1px solid var(--rule);border-top:2px solid var(--ink-strong);border-radius:2px;padding-left:14px}
+.t-c .evr-spine{left:0;width:14px;background:var(--ink-strong)}
+.t-c .evr-head{border-bottom:1px solid var(--rule)}
+.t-c .evr-ap{height:8px;border-radius:0;background:var(--paper);border:1px solid var(--rule)}
+.t-c .evr-ap[data-open]{background:var(--accent);border-color:var(--accent)}
+.t-c .evr-name{font-size:16px}
+.t-c .evr-receipt{border-top:2px dashed var(--ink-strong);background:var(--inset)}
+.t-c .evr-seal{border-width:3px;width:72px;height:72px}
+/* the recipient subset is the same object, smaller and lighter — never a card */
+.t-c .evr--recipient{--w:60%;border-top-width:1px;opacity:.96}
+
+/* ---- review harness (not part of the object) ---------------------------- */
+.sheet{padding:28px 32px}
+.sheet h2{font-family:var(--serif);font-weight:500;font-size:26px;margin-bottom:2px}
+.sheet .sub{color:var(--ink-muted);font-size:13px;margin-bottom:22px;max-width:62ch}
+.grid{display:flex;gap:26px;align-items:flex-start;flex-wrap:wrap}
+.cell{}
+.cap{font-family:var(--mono);font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-subtle);margin-bottom:8px}
+/*
+ * The thumbnail test SCALES the object; it does not re-flow it.
+ *
+ * Rendering the record at a 120px width reflows every row and produces a
+ * different silhouette — which defeats the test, because the question is
+ * whether THIS object stays recognisable when small, not whether a
+ * 120px-wide variant of it exists.
+ */
+.thumbwrap{display:flex;gap:26px;align-items:flex-start}
+.thumb{width:120px}
+.thumb .scaler{width:420px;transform:scale(0.2857);transform-origin:top left}
+.thumb .evr{max-height:calc(420px * 1.35)}
+.covered{position:relative}
+/* The acceptance test: every word blanked to a neutral bar, so only the
+   object's structure can carry recognition. */
+.covered .evr-name,.covered .evr-npi,.covered .evr-claim,.covered .evr-ret,
+.covered .evr-prov,.covered .evr-eyebrow,.covered .stamp,.covered .evr-receipt,
+.covered .evr-perm,.covered .evr-seal,.covered .illus{color:transparent!important}
+.covered .illus{background:var(--rule);border-radius:1px}
+.covered .stamp{border-left-color:currentColor}
+.covered .evr-name,.covered .evr-claim,.covered .evr-ret,.covered .evr-prov,
+.covered .evr-npi,.covered .evr-eyebrow span,.covered .evr-receipt,.covered .evr-perm{
+  background:var(--rule);border-radius:1px;
+}
+
+/* SEALED is the shortest face by design — it must not inherit the tall floor. */
+.evr--sealed{min-height:0}
+.evr--sealed .evr-body{flex:0 0 auto}

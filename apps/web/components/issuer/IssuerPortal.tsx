@@ -35,7 +35,7 @@ const DEMO_CREDENTIALS: CredentialRecord[] = [
   {
     id: 'cred-001',
     credentialType: 'STATE_LICENSE',
-    subjectName: 'Dr. Alice Johnson',
+    subjectName: 'Example Clinician A',
     subjectNpi: '1234567890',
     status: 'ACTIVE',
     claimLevel: 'L3',
@@ -45,7 +45,7 @@ const DEMO_CREDENTIALS: CredentialRecord[] = [
   {
     id: 'cred-002',
     credentialType: 'BOARD_CERTIFICATION',
-    subjectName: 'Dr. Marcus Rivera',
+    subjectName: 'Example Clinician B',
     subjectNpi: '2345678901',
     status: 'ACTIVE',
     claimLevel: 'L2',
@@ -55,7 +55,7 @@ const DEMO_CREDENTIALS: CredentialRecord[] = [
   {
     id: 'cred-003',
     credentialType: 'DEA_REGISTRATION',
-    subjectName: 'Dr. Sarah Chen',
+    subjectName: 'Example Clinician C',
     subjectNpi: '3456789012',
     status: 'EXPIRED',
     claimLevel: 'L3',
@@ -65,7 +65,7 @@ const DEMO_CREDENTIALS: CredentialRecord[] = [
   {
     id: 'cred-004',
     credentialType: 'STATE_LICENSE',
-    subjectName: 'Dr. James Park',
+    subjectName: 'Example Clinician D',
     subjectNpi: '4567890123',
     status: 'REVOKED',
     claimLevel: 'L3',
@@ -76,7 +76,7 @@ const DEMO_CREDENTIALS: CredentialRecord[] = [
   {
     id: 'cred-005',
     credentialType: 'EDUCATION',
-    subjectName: 'Dr. Emily Brooks',
+    subjectName: 'Example Clinician E',
     subjectNpi: '5678901234',
     status: 'PENDING',
     claimLevel: 'L0',
@@ -85,7 +85,7 @@ const DEMO_CREDENTIALS: CredentialRecord[] = [
   {
     id: 'cred-006',
     credentialType: 'MALPRACTICE_INSURANCE',
-    subjectName: 'Dr. Alice Johnson',
+    subjectName: 'Example Clinician A',
     subjectNpi: '1234567890',
     status: 'ACTIVE',
     claimLevel: 'L2',

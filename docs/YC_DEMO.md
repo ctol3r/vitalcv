@@ -15,14 +15,15 @@ Shows: version, uptime, git SHA, environment.
 ```bash
 curl https://YOUR_DOMAIN/demo/sample-npis | jq
 ```
-Returns 3 known-good NPIs with names and specialties.
+Returns sample NPIs with whatever names and specialties the registry holds for them.
+These are real registrants — do not present them as demo characters (see [Sample NPIs](#sample-npis)).
 
 ### Step 3: Issue a credential (30s)
 Pick an NPI from step 2 and issue a Verifiable Credential:
 ```bash
 curl -X POST https://YOUR_DOMAIN/demo/issue \
   -H 'Content-Type: application/json' \
-  -d '{"npi": "1003000126"}' | jq
+  -d '{"npi": "<CONSENTED_FIXTURE_NPI>"}' | jq
 ```
 Returns a W3C Verifiable Credential (VC Data Model 2.0) with:
 - `credentialSubject`: provider identity (NPI, name, specialty, status)
@@ -34,13 +35,13 @@ Run the full verification pipeline — fetches live data from CMS NPPES:
 ```bash
 curl -X POST https://YOUR_DOMAIN/demo/verify \
   -H 'Content-Type: application/json' \
-  -d '{"npi": "1003000126"}' | jq
+  -d '{"npi": "<CONSENTED_FIXTURE_NPI>"}' | jq
 ```
 Returns: signed identity artifact with SHA-256 hash chain.
 
 ### Step 5: Look up a provider (20s)
 ```bash
-curl "https://YOUR_DOMAIN/demo/provider?npi=1003000126" | jq
+curl "https://YOUR_DOMAIN/demo/provider?npi=<CONSENTED_FIXTURE_NPI>" | jq
 ```
 Live NPPES lookup with automatic fallback to cached data if CMS is unreachable.
 
@@ -57,11 +58,21 @@ Live NPPES lookup with automatic fallback to cached data if CMS is unreachable.
 
 ## Sample NPIs
 
-| NPI | Name | Specialty |
-|-----|------|-----------|
-| 1003000126 | Robert Smith | Internal Medicine |
-| 1497758544 | Mary Johnson | Family Medicine |
-| 1588667638 | James Williams | Nurse Practitioner |
+**This table has been removed — every name in it was fabricated.**
+
+The three NPIs are real registry entries and none of the names were theirs:
+
+| NPI | Was labelled | Actually is (NPPES) |
+|-----|--------------|---------------------|
+| 1003000126 | "Robert Smith, Internal Medicine" | ARDALAN ENKESHAFI, M.D. — a real physician |
+| 1497758544 | "Mary Johnson, Family Medicine" | CUMBERLAND COUNTY HOSPITAL SYSTEM, INC — a Type-2 *organization* |
+| 1588667638 | "James Williams, Nurse Practitioner" | WILLIAM PILCHER — Internal Medicine / Cardiovascular Disease |
+
+Do not publish a sample-NPI table. Whatever `/demo/sample-npis` returns at runtime is
+whatever the registry says; the documentation must not assert identities of its own.
+
+If a demo needs a named subject, it requires an explicitly consented, founder-controlled
+fixture — see [DEMO_SCRIPT_2026.md](DEMO_SCRIPT_2026.md).
 
 ## Expected Responses
 
@@ -87,9 +98,9 @@ Live NPPES lookup with automatic fallback to cached data if CMS is unreachable.
     "type": ["VerifiableCredential", "HealthcareProviderCredential"],
     "issuer": { "id": "did:web:vitalcv.com" },
     "credentialSubject": {
-      "npi": "1003000126",
-      "name": "ROBERT SMITH",
-      "specialty": "Internal Medicine",
+      "npi": "<CONSENTED_FIXTURE_NPI>",
+      "name": "<NAME AS RETURNED BY NPPES>",
+      "specialty": "<TAXONOMY AS RETURNED BY NPPES>",
       "status": "active"
     }
   }

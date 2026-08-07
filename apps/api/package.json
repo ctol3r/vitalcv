@@ -9,6 +9,7 @@
     "build": "bash ../../scripts/prisma-generate-locked.sh --schema backend/prisma/schema.prisma && pnpm exec tsc -p backend/tsconfig.json",
     "start": "npm --prefix backend run start",
     "db:migrate:deploy": "pnpm exec prisma migrate deploy --schema backend/prisma/schema.prisma",
+    "qa:ci": "npm --prefix backend run qa:ci",
     "graph:bench": "npm --prefix backend run graph:bench",
     "seed": "npm --prefix backend run seed",
     "watchtower": "pnpm exec ts-node backend/src/tools/watchtower.ts",

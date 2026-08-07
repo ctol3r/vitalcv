@@ -49,7 +49,7 @@ export default function ReviewLandingPage() {
               Request pilot review
             </Link>
             <Button asChild variant="outline" className="h-11 w-full rounded-xl">
-              <Link href={PUBLIC_WEDGE_ROUTE_TARGETS.passportEntry}>Start with NPI lookup</Link>
+              <Link href="/onboarding">Start with NPI lookup</Link>
             </Button>
           </div>
 

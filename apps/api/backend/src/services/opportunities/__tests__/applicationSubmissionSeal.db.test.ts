@@ -196,6 +196,20 @@ describe('applyToOpportunity — sealed submission (real DB)', () => {
     expect(sealedEvent?.hash).toBe(packet.packetHash);
   });
 
+  it('seals only the clinician-selected disclosure sections', async () => {
+    const application = await applyToOpportunity({
+      opportunityId,
+      clerkUserId: CLERK_USER,
+      selectedSections: ['identity'],
+    });
+
+    const packet = await readPacket(application.id);
+    expect(packet.selectedSections).toEqual(['identity']);
+    expect(packet.fields).toHaveLength(1);
+    expect(packet.fields.every((field) => field.sectionId === 'identity')).toBe(true);
+    expect(verifySealedPacket(packet)).toBe(true);
+  });
+
   it('ACCEPTANCE GATE: the submitted packet replays unchanged after Wallet evidence moves', async () => {
     const application = await applyToOpportunity({ opportunityId, clerkUserId: CLERK_USER });
     const submitted = await readPacket(application.id);

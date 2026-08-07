@@ -32,6 +32,7 @@ export type ClaimType =
   | 'BOARD_CERT_FLAG'        // board certification flag from CMS D&C
   | 'EXCLUSION_STATUS'       // OIG/LEIE or SAM.gov exclusion
   | 'SANCTION_RECORD'        // specific sanction event
+  | 'LICENSE_REPORTED'       // license number/state reported by a non-authority source
   | 'LICENSE'                // state professional license
   | 'LICENSE_DISCIPLINE'     // disciplinary action on a license
   | 'BOARD_CERTIFICATION'    // specialty board certification (ABMS-style)
@@ -47,6 +48,59 @@ export type ClaimType =
   | 'DEA_REGISTRATION'       // DEA controlled substance registration
   | 'FEDERAL_EXCLUSION'      // SAM.gov federal exclusion
   | 'TRAINING_COMPLETION'    // source-backed training completion
+  | 'PROFESSIONAL_NAME'
+  | 'PROFILE_PHOTO'
+  | 'PROFESSIONAL_HEADLINE'
+  | 'PROFESSIONAL_SUMMARY'
+  | 'PRONOUNS'
+  | 'LANGUAGE'
+  | 'PUBLIC_CONTACT_POINT'
+  | 'PROFESSIONAL_PROFILE_URL'
+  | 'LICENSE_PRIVILEGE'
+  | 'PROFESSIONAL_CERTIFICATION'
+  | 'CERTIFICATION_MAINTENANCE'
+  | 'CONTROLLED_SUBSTANCE_REGISTRATION'
+  | 'EDUCATION'
+  | 'DEGREE'
+  | 'MEDICAL_SCHOOL'
+  | 'POSTGRADUATE_TRAINING'
+  | 'RESIDENCY'
+  | 'FELLOWSHIP'
+  | 'INTERNSHIP'
+  | 'CME_CE_CREDIT'
+  | 'EMPLOYMENT'
+  | 'ACADEMIC_APPOINTMENT'
+  | 'FACILITY_AFFILIATION'
+  | 'HOSPITAL_AFFILIATION'
+  | 'HOSPITAL_PRIVILEGE'
+  | 'DEPARTMENT_AFFILIATION'
+  | 'LEADERSHIP_ROLE'
+  | 'TELEHEALTH_CAPABILITY'
+  | 'CLINICAL_INTEREST'
+  | 'SKILL'
+  | 'VISIT_REASON'
+  | 'PROCEDURE_CAPABILITY'
+  | 'PROCEDURE_VOLUME'
+  | 'PATIENT_POPULATION'
+  | 'INSURANCE_ACCEPTANCE'
+  | 'AVAILABILITY'
+  | 'PRESENTATION'
+  | 'RESEARCH_GRANT'
+  | 'RESEARCH_TOPIC'
+  | 'AWARD'
+  | 'PROFESSIONAL_MEMBERSHIP'
+  | 'COMMITTEE_ROLE'
+  | 'AUTHORED_CONTENT'
+  | 'MEDIA_MENTION'
+  | 'MALPRACTICE_COVERAGE'
+  | 'MALPRACTICE_HISTORY'
+  | 'ADVERSE_ACTION'
+  | 'CLINICAL_PRIVILEGE_HISTORY'
+  | 'WORK_HISTORY_GAP'
+  | 'PROFESSIONAL_REFERENCE'
+  | 'PEER_REFERENCE'
+  | 'BACKGROUND_CHECK'
+  | 'HEALTH_REQUIREMENT'
   | 'AUTHORITY_UNAVAILABLE'; // authority contract unavailable / unresolved
 
 export interface SourceDefinition {
@@ -94,8 +148,8 @@ export const SOURCE_CATALOG: Record<string, SourceDefinition> = {
     tier: 'GOLD', accessPattern: 'API', refreshCadence: 'WEEKLY', refreshSlaHours: 168,
     baseUrl: 'https://npiregistry.cms.hhs.gov/api/',
     bulkFileUrl: null,
-    claimTypes: ['NPI_IDENTITY', 'PERSONAL_IDENTITY', 'SPECIALTY', 'PRACTICE_LOCATION', 'MAILING_ADDRESS', 'ENDPOINT'],
-    parserVersion: 'v1.2.0', envFlag: 'NPPES_API_ENABLED', liveAvailable: true,
+    claimTypes: ['NPI_IDENTITY', 'PERSONAL_IDENTITY', 'SPECIALTY', 'LICENSE_REPORTED', 'PRACTICE_LOCATION', 'MAILING_ADDRESS', 'ENDPOINT'],
+    parserVersion: 'v1.3.0', envFlag: 'NPPES_API_ENABLED', liveAvailable: true,
     decisionGrade: true,
     notes: 'CMS FOIA-disclosable. Treat as identity registration only: NPI issuance does not validate licensure or credential status. V2.1 returns addresses, taxonomies, endpoints, identifiers.',
   },
@@ -106,7 +160,7 @@ export const SOURCE_CATALOG: Record<string, SourceDefinition> = {
     tier: 'GOLD', accessPattern: 'BULK_FILE', refreshCadence: 'MONTHLY', refreshSlaHours: 744,
     baseUrl: 'https://download.cms.gov/nppes/',
     bulkFileUrl: 'https://download.cms.gov/nppes/NPI_Files.html',
-    claimTypes: ['NPI_IDENTITY', 'PERSONAL_IDENTITY', 'SPECIALTY', 'PRACTICE_LOCATION', 'MAILING_ADDRESS', 'ENDPOINT'],
+    claimTypes: ['NPI_IDENTITY', 'PERSONAL_IDENTITY', 'SPECIALTY', 'LICENSE_REPORTED', 'PRACTICE_LOCATION', 'MAILING_ADDRESS', 'ENDPOINT'],
     parserVersion: 'v1.0.0', envFlag: 'NPPES_BULK_ENABLED', liveAvailable: true,
     decisionGrade: true,
     notes: 'Monthly full file + weekly incremental. Primary source for universe-scale NPI coverage.',
@@ -364,6 +418,7 @@ export const IMPLEMENTED_INGEST_SOURCE_IDS = [
   'OPENALEX',
   'CLINICAL_TRIALS',
   'PUBMED',
+  'OFAC_SDN',
 ] as const;
 
 export type ImplementedIngestSourceId = (typeof IMPLEMENTED_INGEST_SOURCE_IDS)[number];

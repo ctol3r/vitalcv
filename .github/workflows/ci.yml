@@ -56,10 +56,10 @@ jobs:
           --health-timeout 5s
           --health-retries 5
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       # pnpm version resolved from packageManager field in package.json (pnpm@10.6.1)
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
@@ -100,9 +100,9 @@ jobs:
     name: Web E2E (Playwright)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
@@ -120,9 +120,18 @@ jobs:
       # runs signed-out and must not depend on a backend.
       - name: Run web e2e suite
         run: pnpm --filter @vitalcv/web exec playwright test
+      # Wave 1075: `/` serves the career loop; the evidence film is the tested
+      # PUBLIC_HOME_VARIANT rollback. Its specs were preserved rather than
+      # deleted, so they run against a server booted on the rollback variant.
+      # A separate run (not a separate project) because the variant is decided
+      # by the SERVER — keeping `/` a plain synchronous read of one env var.
+      - name: Run web e2e suite (film rollback variant)
+        env:
+          E2E_HOME_VARIANT: film
+        run: pnpm --filter @vitalcv/web exec playwright test
       - name: Upload Playwright report on failure
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: playwright-report
           path: |
@@ -171,11 +180,11 @@ jobs:
             echo "present=false" >> "$GITHUB_OUTPUT"
             echo "::notice::E2E_CLERK_* secrets not configured — real-auth e2e skipped"
           fi
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         if: steps.keys.outputs.present == 'true'
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         if: steps.keys.outputs.present == 'true'
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         if: steps.keys.outputs.present == 'true'
         with:
           node-version: ${{ env.NODE_VERSION }}
@@ -225,7 +234,7 @@ jobs:
         run: pnpm --filter @vitalcv/web exec playwright test
       - name: Upload Playwright report on failure
         if: failure() && steps.keys.outputs.present == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: playwright-report-authed
           path: |

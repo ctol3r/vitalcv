@@ -67,9 +67,17 @@ Record in the pilot tracking system:
 ### Step 4.1 — Select a Test Clinician
 
 For **simulation** (pre-pilot testing):
-- Use NPI `1003000126` (seeded demo data — Sarah Chen MD, expected state: READY L3).
-- Alternative: `1558395519` (expected: PARTIAL or READY).
-- For gap scenarios: `1942788324` (PECOS gap), `1841498016` (OIG exclusion).
+- **Do not use `1003000126`.** It is ARDALAN ENKESHAFI, M.D. — a real physician who never
+  consented to being a demo subject. It was previously listed here as "Sarah Chen MD, READY L3"
+  because a seed script wrote ten fabricated identities onto ten real NPIs; those rows are
+  being removed. The fabricated name was never that registrant's, and the READY L3 state
+  described seeded data, not a verification result.
+- Do not substitute another real NPI. Simulation NPIs must be check-digit-invalid so they
+  cannot collide with a registrant: `1558395519`, `1942788324` (PECOS gap scenario), and
+  `1841498016` (OIG exclusion scenario) are all invalid and therefore safe to use as shapes.
+  Treat their states as fixtures, not as findings about anyone.
+- A walkthrough against a real person returns only when there is an explicitly consented,
+  founder-controlled clinician fixture. See [`../yc/DEMO_RUNBOOK.md`](../yc/DEMO_RUNBOOK.md).
 
 For **real pilot**:
 - Use a real, active NPI provided by the pilot customer.

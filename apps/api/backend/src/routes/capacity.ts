@@ -2,8 +2,23 @@
  * capacity.ts — Wave 240
  *
  * Routes:
- *   GET /api/capacity/system         — system-wide capacity (public, no auth)
- *   GET /api/capacity/:organizationId — org capacity score (requires x-clerk-user-id)
+ *   GET /api/capacity/system          — system-wide capacity (public, aggregate)
+ *   GET /api/capacity/:organizationId — capacity score for the CALLER's own org
+ *
+ * Trust contract:
+ *   - The per-org score is competitively sensitive: open positions, pipeline
+ *     depth, hires accepted this quarter, and review latency describe an
+ *     employer's hiring posture. It is readable only by a member of that
+ *     organization.
+ *   - The org in the path is a caller-supplied value, so it is never used as
+ *     the authorization scope. The caller's org is resolved from the membership
+ *     store using their verified Clerk id, and the path must equal it. Anything
+ *     else — a different org, a malformed id, a caller with no org — returns a
+ *     uniform 404, so the endpoint cannot be used to enumerate organizations or
+ *     to distinguish "not yours" from "does not exist".
+ *   - Identity is the verified Clerk session, not `x-clerk-user-id`: that header
+ *     is forgeable until CLERK_JWT_VERIFICATION reaches `enforce`, and it was
+ *     the whole of the previous check.
  */
 
 import type { Express, NextFunction, Request, Response } from 'express';
@@ -11,7 +26,9 @@ import {
   computeOrganizationCapacity,
   computeSystemCapacity,
 } from '../services/capacity/capacityEngine';
+import prisma from '../graphql/prisma_client';
 import { HttpError } from '../utils/httpError';
+import type { VerifiedAuth } from '../middleware/verifiedIdentity';
 import { log } from '../obs/logger';
 
 function asyncHandler(
@@ -21,16 +38,38 @@ function asyncHandler(
     fn(req, res, next).catch(next);
 }
 
-function requireClerkUserId(req: Request): string {
-  const id = (req.headers['x-clerk-user-id'] as string | undefined)?.trim();
-  if (!id) throw new HttpError(401, 'Missing x-clerk-user-id header.');
-  return id;
+function requireVerifiedClerkUserId(req: Request): string {
+  const verifiedUserId = (req as Request & { verifiedAuth?: VerifiedAuth })
+    .verifiedAuth?.verifiedUserId?.trim();
+  if (!verifiedUserId) {
+    throw new HttpError(401, 'Verified Clerk session required.');
+  }
+  return verifiedUserId;
+}
+
+/** The caller's organization, from the membership store — never from a header
+ *  or a path parameter. */
+async function resolveCallerOrganizationId(clerkUserId: string): Promise<string | null> {
+  const user = await prisma.user.findUnique({
+    where: { clerkUserId },
+    select: { organizationId: true },
+  });
+  return user?.organizationId ?? null;
 }
 
 export function registerCapacityRoutes(app: Express): void {
   /**
    * GET /api/capacity/system
-   * System-wide capacity snapshot — public, no auth required.
+   * System-wide capacity snapshot. Aggregate only — it names no organization,
+   * so it needs no membership check of its own.
+   *
+   * Not world-reachable despite the "public, no auth" the original header
+   * claimed: the global tenant guard answers 401 before routing when there is
+   * no org context, so a bare request never reaches this handler. Measured, not
+   * assumed — bare 401, with an org header 200.
+   *
+   * Registered before the parameterised route so the literal "system" segment
+   * cannot be captured as an organizationId.
    */
   app.get(
     '/api/capacity/system',
@@ -42,23 +81,33 @@ export function registerCapacityRoutes(app: Express): void {
 
   /**
    * GET /api/capacity/:organizationId
-   * Per-organization capacity score — requires Clerk auth.
+   * The caller's own organization capacity score.
    */
   app.get(
     '/api/capacity/:organizationId',
     asyncHandler(async (req, res) => {
-      requireClerkUserId(req);
-      const { organizationId } = req.params;
-      if (!organizationId?.trim()) {
-        throw new HttpError(400, 'organizationId is required.');
+      const clerkUserId = requireVerifiedClerkUserId(req);
+      const requested = req.params.organizationId?.trim();
+
+      // Uniform 404 for every unauthorized shape. Note this also keeps a
+      // malformed id away from Prisma: `organizationId` is a uuid column, so a
+      // non-uuid string made `opportunity.count()` throw, and the handler
+      // rethrew it into a 500 whose body carried the Prisma error code and
+      // query shape. An id that is not the caller's own org never reaches a
+      // query now.
+      const callerOrganizationId = await resolveCallerOrganizationId(clerkUserId);
+      if (!requested || !callerOrganizationId || requested !== callerOrganizationId) {
+        log('warn', 'capacity_org_denied', {
+          reason: !callerOrganizationId ? 'caller_has_no_org' : 'not_caller_org',
+        });
+        throw new HttpError(404, 'Organization not found.');
       }
 
       try {
-        const result = await computeOrganizationCapacity(organizationId.trim());
+        const result = await computeOrganizationCapacity(callerOrganizationId);
         res.json(result);
       } catch (err) {
         log('error', 'capacity_org_error', {
-          organizationId,
           error: err instanceof Error ? err.message : 'unknown',
         });
         throw err;

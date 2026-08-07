@@ -90,7 +90,7 @@ export function OnboardingReadiness({ npi }: { npi: string }) {
 
   return (
     <div className="mt-6 text-left">
-      <div className="flex items-center gap-2 text-[var(--vt-accent-emerald)]">
+      <div className="flex items-center gap-2 text-[var(--vt-accent-editorial)]">
         <PartyPopper size={18} aria-hidden="true" />
         <p className="text-[15px] font-semibold text-[var(--vt-text-primary)]">Your VitalCV Wallet is ready.</p>
       </div>
@@ -108,8 +108,8 @@ export function OnboardingReadiness({ npi }: { npi: string }) {
         </p>
       )}
 
-      <div className="mt-4 rounded-[8px] border border-[color-mix(in_oklab,var(--vt-accent-emerald)_28%,transparent)] bg-[color-mix(in_oklab,var(--vt-accent-emerald)_8%,transparent)] p-3">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--vt-accent-emerald)]">Best next step</p>
+      <div className="mt-4 rounded-[8px] border border-[color-mix(in_oklab,var(--vt-accent-editorial)_28%,transparent)] bg-[color-mix(in_oklab,var(--vt-accent-editorial)_8%,transparent)] p-3">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--vt-accent-editorial)]">Best next step</p>
         <p className="mt-1 text-[13px] leading-relaxed text-[var(--vt-text-primary)]">{nextAction}</p>
       </div>
 

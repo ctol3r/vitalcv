@@ -20,7 +20,12 @@
  *     'vitalcv-signed'.
  */
 
-import { SignJWT, importJWK, jwtVerify, type JWK, type KeyLike } from 'jose';
+// `CryptoKey` is intentionally NOT imported from jose. v6 exports the type and
+// v5 does not, so importing it pins this file to a single major. The global
+// WebCrypto `CryptoKey` (Node 18+) is structurally what `importJWK` returns for
+// an asymmetric key and is what `SignJWT.sign()` accepts, so using the global
+// keeps this file compiling against either.
+import { SignJWT, importJWK, jwtVerify, type JWK } from 'jose';
 import { sha256Hex, stableStringify } from '../../../utils/deterministic';
 import type {
   AnchorReceiptResult,
@@ -52,8 +57,8 @@ export interface VitalCvTrustContainerConfig {
 }
 
 interface LoadedKeyMaterial {
-  privateKey: KeyLike;
-  publicKey: KeyLike;
+  privateKey: CryptoKey;
+  publicKey: CryptoKey;
   publicJwk: JWK;
   kid: string;
   issuerDid: string;
@@ -105,8 +110,8 @@ export class VitalCvTrustContainer implements TrustContainerProvider {
     }
 
     const { d: _privateScalar, ...publicJwk } = parsed;
-    const privateKey = (await importJWK(parsed, 'ES256')) as KeyLike;
-    const publicKey = (await importJWK(publicJwk, 'ES256')) as KeyLike;
+    const privateKey = (await importJWK(parsed, 'ES256')) as CryptoKey;
+    const publicKey = (await importJWK(publicJwk, 'ES256')) as CryptoKey;
 
     this.keyMaterial = {
       privateKey,

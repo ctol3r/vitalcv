@@ -3,11 +3,12 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
-const SAMPLE_NPIS = [
-  { npi: '1003000126', label: 'Robert Smith' },
-  { npi: '1497758544', label: 'Mary Johnson' },
-  { npi: '1588667638', label: 'James Williams' },
-];
+// No sample-NPI chips. This form submits a live CMS NPPES lookup, so any NPI that
+// returns data belongs to a real registrant, and a check-digit-invalid NPI would
+// simply return nothing. Until 2026-07-27 three chips paired invented names with
+// real registrants — "Robert Smith · 1003000126" fetched and displayed the CMS
+// record of ARDALAN ENKESHAFI, M.D. under the wrong name. Visitors type their own
+// NPI instead.
 
 export default function DemoLanding() {
   const router = useRouter();
@@ -117,24 +118,6 @@ export default function DemoLanding() {
             'Apply with VCV'
           )}
         </button>
-      </div>
-
-      {/* Sample NPIs */}
-      <div className="mt-8 flex flex-wrap justify-center gap-2">
-        {SAMPLE_NPIS.map((sample) => (
-          <button
-            key={sample.npi}
-            type="button"
-            onClick={() => {
-              setNpi(sample.npi);
-              handleSubmit(sample.npi);
-            }}
-            disabled={loading}
-            className="rounded-full border border-white/10 px-4 py-1.5 text-xs text-white/40 transition-colors hover:border-white/30 hover:text-white/70 disabled:opacity-30"
-          >
-            {sample.label} · {sample.npi}
-          </button>
-        ))}
       </div>
 
       {/* Subtle link to full wizard */}

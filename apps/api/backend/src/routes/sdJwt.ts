@@ -4,7 +4,7 @@
 
 import type { Express, Request, Response } from 'express';
 import { parseBooleanEnv } from '../utils/environment';
-import { isSuperAdminRequest } from '../middleware/tenantGuard';
+import { ensurePlatformAdmin } from '../middleware/platformAdmin';
 import { log } from '../obs/logger';
 import { issueSdJwt, type SdJwtClaim } from '../services/sd-jwt/sdJwtIssuer';
 import { getJwks } from '../services/sd-jwt/keyManager';
@@ -76,13 +76,12 @@ export function registerSdJwtRoutes(app: Express): void {
   });
 
   // ── Trust Registry Governance ───────────────────────────────────────────────
-  const requireAdmin = (req: Request, res: Response): boolean => {
-    if (!req.headers['x-admin-key'] && !isSuperAdminRequest(req)) {
-      res.status(403).json({ error: 'Admin access required' });
-      return false;
-    }
-    return true;
-  };
+  // Trust-registry governance decides which issuers are trusted and with what
+  // capabilities. Authorization is a verified platform administrator resolved
+  // server-side — see middleware/platformAdmin.ts for why the previous
+  // `x-admin-key` presence check was no check at all (#950).
+  const requireAdmin = (req: Request, res: Response): Promise<boolean> =>
+    ensurePlatformAdmin(req, res);
 
   app.get('/api/trust-registry/issuers', (req: Request, res: Response) => {
     if (!trustAnchorsEnabled()) { res.status(404).json({ error: 'Not found' }); return; }
@@ -90,9 +89,9 @@ export function registerSdJwtRoutes(app: Express): void {
     res.status(200).json({ issuers: listIssuers({ role, hasCapability }) });
   });
 
-  app.post('/api/trust-registry/issuers', (req: Request, res: Response) => {
+  app.post('/api/trust-registry/issuers', async (req: Request, res: Response) => {
     if (!trustAnchorsEnabled()) { res.status(404).json({ error: 'Not found' }); return; }
-    if (!requireAdmin(req, res)) return;
+    if (!(await requireAdmin(req, res))) return;
     const { did, name, url, role } = req.body as { did?: string; name?: string; url?: string; role?: string };
     if (!did || !name || !role) { res.status(400).json({ error: 'did, name, role required' }); return; }
     try {
@@ -103,9 +102,9 @@ export function registerSdJwtRoutes(app: Express): void {
     }
   });
 
-  app.post('/api/trust-registry/issuers/:id/capabilities', (req: Request, res: Response) => {
+  app.post('/api/trust-registry/issuers/:id/capabilities', async (req: Request, res: Response) => {
     if (!trustAnchorsEnabled()) { res.status(404).json({ error: 'Not found' }); return; }
-    if (!requireAdmin(req, res)) return;
+    if (!(await requireAdmin(req, res))) return;
     const { credentialType, grantedBy, origin } = req.body as { credentialType?: string; grantedBy?: string; origin?: 'onchain' | 'offchain' | 'vitalcv' };
     if (!credentialType || !grantedBy) { res.status(400).json({ error: 'credentialType and grantedBy required' }); return; }
     try {
@@ -116,9 +115,9 @@ export function registerSdJwtRoutes(app: Express): void {
     }
   });
 
-  app.delete('/api/trust-registry/issuers/:id/capabilities/:type', (req: Request, res: Response) => {
+  app.delete('/api/trust-registry/issuers/:id/capabilities/:type', async (req: Request, res: Response) => {
     if (!trustAnchorsEnabled()) { res.status(404).json({ error: 'Not found' }); return; }
-    if (!requireAdmin(req, res)) return;
+    if (!(await requireAdmin(req, res))) return;
     const { reason } = req.body as { reason?: string };
     try {
       revokeCapability(req.params.id, req.params.type, reason ?? 'no reason given');
@@ -128,9 +127,9 @@ export function registerSdJwtRoutes(app: Express): void {
     }
   });
 
-  app.post('/api/trust-registry/issuers/:id/evidence', (req: Request, res: Response) => {
+  app.post('/api/trust-registry/issuers/:id/evidence', async (req: Request, res: Response) => {
     if (!trustAnchorsEnabled()) { res.status(404).json({ error: 'Not found' }); return; }
-    if (!requireAdmin(req, res)) return;
+    if (!(await requireAdmin(req, res))) return;
     const { type, url, checksum, fetchedAt } = req.body as { type?: string; url?: string; checksum?: string; fetchedAt?: string };
     if (!type || !url || !checksum || !fetchedAt) { res.status(400).json({ error: 'type, url, checksum, fetchedAt required' }); return; }
     try {

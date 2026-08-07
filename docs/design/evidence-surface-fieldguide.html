@@ -1,0 +1,920 @@
+<title>VitalCV &mdash; Evidence Surface Field Guide</title>
+<style>
+  /* ============================================================
+     VitalCV &#8212; Evidence Surface Field Guide
+     A living showcase of the P0 UI/UX patterns from the
+     100-source research synthesis. Calm Wave aesthetic:
+     warm paper + ink + serif display + mono provenance.
+     Mockup &#8212; evokes the production system, not pixel-exact.
+     ============================================================ */
+
+  :root {
+    --paper:   #FAFAF8;   /* Calm Wave canonical ground */
+    --paper-2: #F3F1E9;   /* recessed */
+    --card:    #FFFFFF;   /* SOLID evidence surface &#8212; pops on warm paper */
+    --ink:     #191C1A;   /* near-black, whisper of green */
+    --ink-2:   #565A53;
+    --ink-3:   #868981;
+    --line:    #E6E3DA;
+    --line-2:  #D6D2C6;
+    --accent:  #1F5C4D;   /* evidence teal &#8212; brand/interactive */
+    --accent-2:#2C7C67;
+
+    --ok:      #2E6B4F;  --ok-bg:  #E7F0EA;  --ok-line:#BBD8C7;
+    --gate:    #9E6A16;  --gate-bg:#F6EDDA;  --gate-line:#E4CE9E;
+    --stale:   #866E4B;  --stale-bg:#F0EADD; --stale-line:#DCCEB4;
+    --unk:     #5F6560;  --unk-bg: #EBEAE4;  --unk-line:#D6D3C9;
+    --revoked: #B23A34;  --revoked-bg:#F8E6E2; --revoked-line:#EBC4BC;
+
+    --shadow: 0 1px 0 rgba(25,28,26,.03), 0 8px 26px -18px rgba(25,28,26,.35);
+    --shadow-lift: 0 1px 0 rgba(25,28,26,.04), 0 20px 44px -24px rgba(25,28,26,.40);
+
+    --sans: var(--font-geist, "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif);
+    --serif: var(--font-fraunces, "Fraunces", "Hoefler Text", "Iowan Old Style", "Charter", Georgia, serif);
+    --mono: var(--font-geist-mono, "Geist Mono", ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace);
+
+    --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+    --dur: 320ms;
+    --maxw: 1160px;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper:   #14161A;
+      --paper-2: #191C21;
+      --card:    #1E222A;
+      --ink:     #ECEAE1;
+      --ink-2:   #A7ABA1;
+      --ink-3:   #767A72;
+      --line:    #2A2F36;
+      --line-2:  #363C44;
+      --accent:  #63C0A1;
+      --accent-2:#7FD3B8;
+
+      --ok:  #71C098; --ok-bg:#16271F; --ok-line:#2B4A3A;
+      --gate:#D6A150; --gate-bg:#271F12; --gate-line:#4A3C21;
+      --stale:#B89C73; --stale-bg:#221D14; --stale-line:#3E3524;
+      --unk: #9AA09A; --unk-bg:#1E2229; --unk-line:#333941;
+      --revoked:#E3766C; --revoked-bg:#2B1613; --revoked-line:#4B2721;
+
+      --shadow: 0 1px 0 rgba(0,0,0,.3), 0 10px 30px -18px rgba(0,0,0,.7);
+      --shadow-lift: 0 1px 0 rgba(0,0,0,.35), 0 26px 50px -24px rgba(0,0,0,.8);
+    }
+  }
+  /* viewer toggle wins in both directions */
+  :root[data-theme="light"] {
+    --paper:#FAFAF8; --paper-2:#F3F1E9; --card:#FFFFFF; --ink:#191C1A; --ink-2:#565A53; --ink-3:#868981;
+    --line:#E6E3DA; --line-2:#D6D2C6; --accent:#1F5C4D; --accent-2:#2C7C67;
+    --ok:#2E6B4F; --ok-bg:#E7F0EA; --ok-line:#BBD8C7; --gate:#9E6A16; --gate-bg:#F6EDDA; --gate-line:#E4CE9E;
+    --stale:#866E4B; --stale-bg:#F0EADD; --stale-line:#DCCEB4; --unk:#5F6560; --unk-bg:#EBEAE4; --unk-line:#D6D3C9;
+    --revoked:#B23A34; --revoked-bg:#F8E6E2; --revoked-line:#EBC4BC;
+    --shadow:0 1px 0 rgba(25,28,26,.03),0 8px 26px -18px rgba(25,28,26,.35);
+    --shadow-lift:0 1px 0 rgba(25,28,26,.04),0 20px 44px -24px rgba(25,28,26,.40);
+  }
+  :root[data-theme="dark"] {
+    --paper:#14161A; --paper-2:#191C21; --card:#1E222A; --ink:#ECEAE1; --ink-2:#A7ABA1; --ink-3:#767A72;
+    --line:#2A2F36; --line-2:#363C44; --accent:#63C0A1; --accent-2:#7FD3B8;
+    --ok:#71C098; --ok-bg:#16271F; --ok-line:#2B4A3A; --gate:#D6A150; --gate-bg:#271F12; --gate-line:#4A3C21;
+    --stale:#B89C73; --stale-bg:#221D14; --stale-line:#3E3524; --unk:#9AA09A; --unk-bg:#1E2229; --unk-line:#333941;
+    --revoked:#E3766C; --revoked-bg:#2B1613; --revoked-line:#4B2721;
+    --shadow:0 1px 0 rgba(0,0,0,.3),0 10px 30px -18px rgba(0,0,0,.7);
+    --shadow-lift:0 1px 0 rgba(0,0,0,.35),0 26px 50px -24px rgba(0,0,0,.8);
+  }
+
+  * { box-sizing: border-box; }
+  body { margin: 0; }
+  .fg {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--sans);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+  .fg ::selection { background: color-mix(in oklab, var(--accent) 26%, transparent); }
+
+  /* ---------- top rail ---------- */
+  .rail {
+    position: sticky; top: 0; z-index: 40;
+    display: flex; align-items: center; justify-content: space-between; gap: 16px;
+    padding: 11px clamp(16px, 4vw, 40px);
+    background: color-mix(in oklab, var(--paper) 82%, transparent);
+    backdrop-filter: saturate(1.3) blur(12px);
+    -webkit-backdrop-filter: saturate(1.3) blur(12px);
+    border-bottom: 1px solid var(--line);
+  }
+  .rail .mark { display: flex; align-items: baseline; gap: 10px; font-weight: 600; letter-spacing: -.01em; }
+  .rail .mark b { font-weight: 700; }
+  .rail .mark .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 0 3px var(--ok-bg); align-self: center; }
+  .rail .meta { font-family: var(--mono); font-size: 11px; color: var(--ink-3); letter-spacing: .04em; }
+  .rail .meta b { color: var(--ink-2); font-weight: 500; }
+
+  /* ---------- layout ---------- */
+  .wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 clamp(16px, 4vw, 40px); }
+  .shell { display: grid; grid-template-columns: 148px minmax(0,1fr); gap: clamp(20px, 4vw, 56px); max-width: var(--maxw); margin: 0 auto; padding: 0 clamp(16px, 4vw, 40px); }
+  @media (max-width: 900px) { .shell { grid-template-columns: 1fr; } .spine { display: none; } }
+
+  /* ---------- spine (scrollspy) ---------- */
+  .spine { position: sticky; top: 78px; align-self: start; height: max-content; padding-top: 8px; }
+  .spine ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; border-left: 1px solid var(--line); }
+  .spine a {
+    display: block; padding: 5px 0 5px 14px; margin-left: -1px;
+    border-left: 2px solid transparent;
+    font-family: var(--mono); font-size: 11px; letter-spacing: .02em;
+    color: var(--ink-3); text-decoration: none; transition: color var(--dur) var(--ease), border-color var(--dur) var(--ease);
+  }
+  .spine a .id { color: var(--ink-2); }
+  .spine a:hover { color: var(--ink); }
+  .spine a.active { color: var(--ink); border-left-color: var(--accent); }
+  .spine a.active .id { color: var(--accent); }
+
+  /* ---------- section scaffolding ---------- */
+  main { min-width: 0; }
+  section { padding: clamp(48px, 8vw, 92px) 0; border-bottom: 1px solid var(--line); scroll-margin-top: 76px; }
+  section:last-of-type { border-bottom: 0; }
+  .eyebrow { display: inline-flex; align-items: center; gap: 10px; font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: .16em; color: var(--ink-3); margin: 0 0 18px; }
+  .eyebrow .pid { color: var(--accent); font-weight: 600; }
+  .eyebrow .tag { padding: 2px 7px; border: 1px solid var(--line-2); border-radius: 999px; letter-spacing: .1em; font-size: 10px; color: var(--ink-2); }
+  h2.thesis { font-family: var(--serif); font-weight: 500; font-size: clamp(1.7rem, 3.6vw, 2.7rem); line-height: 1.08; letter-spacing: -.02em; margin: 0 0 16px; text-wrap: balance; max-width: 22ch; }
+  .lede { font-size: clamp(1rem, 1.4vw, 1.12rem); color: var(--ink-2); max-width: 62ch; margin: 0 0 30px; }
+  .lede b { color: var(--ink); font-weight: 600; }
+
+  /* ---------- evidence card (SOLID, never glass) ---------- */
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow); overflow: hidden; }
+  .card-h { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 18px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+  .card-h .t { font-weight: 600; font-size: .95rem; letter-spacing: -.01em; }
+  .card-h .sub { font-family: var(--mono); font-size: 11px; color: var(--ink-3); letter-spacing: .02em; }
+  .prov { font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); letter-spacing: .01em; font-variant-numeric: tabular-nums; }
+  .prov b { color: var(--ink-2); font-weight: 500; }
+  .cap { font-family: var(--mono); font-size: 11px; color: var(--ink-3); letter-spacing: .02em; margin: 12px 2px 0; }
+
+  /* ---------- chip system ---------- */
+  .chip { display: inline-flex; align-items: center; gap: 7px; padding: 4px 10px 4px 9px; border-radius: 999px; font-family: var(--mono); font-size: 12px; font-weight: 500; letter-spacing: .02em; border: 1px solid; line-height: 1; white-space: nowrap; }
+  .chip .g { width: 7px; height: 7px; border-radius: 50%; }
+  .chip.checked { color: var(--ok); background: var(--ok-bg); border-color: var(--ok-line); }
+  .chip.checked .g { background: var(--ok); }
+  .chip.gated { color: var(--gate); background: var(--gate-bg); border-color: var(--gate-line); }
+  .chip.gated .g { background: var(--gate); }
+  .chip.stale { color: var(--stale); background: var(--stale-bg); border-color: var(--stale-line); }
+  .chip.stale .g { background: var(--stale); }
+  .chip.unknown { color: var(--unk); background: var(--unk-bg); border-color: var(--unk-line); }
+  .chip.unknown .g { background: var(--unk); box-shadow: inset 0 0 0 1.5px var(--unk); background: transparent; }
+  .chip.revoked { color: var(--revoked); background: var(--revoked-bg); border-color: var(--revoked-line); font-weight: 600; }
+  .chip.revoked .g { background: var(--revoked); }
+  .chip.selfatt { color: var(--ink-2); background: transparent; border-style: dashed; border-color: var(--line-2); }
+  .chip.selfatt .g { background: transparent; box-shadow: inset 0 0 0 1.5px var(--ink-3); }
+
+  /* specimen grid for chips */
+  .specimens { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+  .spec { background: var(--card); padding: 16px 16px 15px; display: flex; flex-direction: column; gap: 9px; }
+  .spec .desc { font-size: 12.5px; color: var(--ink-2); line-height: 1.45; }
+  .spec .desc b { color: var(--ink); font-weight: 600; }
+  .spec.fc { background: var(--revoked-bg); }
+
+  /* ---------- source-check narration ---------- */
+  .src-list { display: flex; flex-direction: column; }
+  .src { display: grid; grid-template-columns: 22px minmax(0,1fr) auto; align-items: center; gap: 12px; padding: 13px 18px; border-top: 1px solid var(--line); }
+  .src:first-child { border-top: 0; }
+  .src .idx { font-family: var(--mono); font-size: 11px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+  .src .name { min-width: 0; }
+  .src .name .n { font-weight: 600; font-size: .92rem; }
+  .src .name .p { font-family: var(--mono); font-size: 11px; color: var(--ink-3); letter-spacing: .01em; font-variant-numeric: tabular-nums; margin-top: 2px; opacity: 0; transform: translateY(2px); transition: opacity var(--dur) var(--ease), transform var(--dur) var(--ease); }
+  .src.done .name .p, .src.working .name .p { opacity: 1; transform: none; }
+  .src .st { justify-self: end; }
+  .spin { display: inline-flex; align-items: center; gap: 7px; font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); letter-spacing: .02em; }
+  .spin .ring { width: 12px; height: 12px; border-radius: 50%; border: 1.5px solid var(--line-2); border-top-color: var(--accent); animation: spin .8s linear infinite; }
+  .chip, .spin { opacity: 1; }
+  .src .st .chip { opacity: 0; transform: translateY(2px) scale(.96); animation: pop var(--dur) var(--ease) forwards; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes pop { to { opacity: 1; transform: none; } }
+  .readout { display: flex; align-items: flex-start; gap: 14px; padding: 16px 18px; border-top: 1px solid var(--line); background: var(--paper-2); }
+  .readout .k { font-family: var(--serif); font-size: 1.5rem; line-height: 1; font-weight: 500; font-variant-numeric: tabular-nums; }
+  .readout .txt { font-size: 13px; color: var(--ink-2); }
+  .readout .txt .prov { display: block; margin-top: 3px; }
+
+  /* ---------- buttons ---------- */
+  .btn { display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 10px; border: 1px solid var(--line-2); background: var(--card); color: var(--ink); font-family: var(--mono); font-size: 12px; letter-spacing: .02em; cursor: pointer; transition: border-color var(--dur) var(--ease), background var(--dur) var(--ease), transform 80ms var(--ease); }
+  .btn:hover { border-color: var(--accent); }
+  .btn:active { transform: translateY(1px); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  :root[data-theme="dark"] .btn.primary, @media (prefers-color-scheme: dark) { }
+  .btn svg { width: 13px; height: 13px; }
+  .btn:focus-visible, a:focus-visible, .fld:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .controls { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 16px; }
+  .hint { font-family: var(--mono); font-size: 11px; color: var(--ink-3); letter-spacing: .02em; }
+
+  /* ---------- disclosure composer ---------- */
+  .disc { display: grid; grid-template-columns: 1fr; }
+  .spine-bar { display: flex; align-items: center; gap: 12px; padding: 13px 18px; background: var(--ink); color: var(--paper); }
+  :root[data-theme="light"] .spine-bar { background: #20241F; color: #F6F5EF; }
+  @media (prefers-color-scheme: light) { .spine-bar { background: #20241F; color: #F6F5EF; } }
+  .spine-bar .seal { width: 26px; height: 26px; border-radius: 7px; display: grid; place-items: center; background: color-mix(in oklab, var(--ok) 30%, transparent); color: #fff; }
+  .spine-bar .seal svg { width: 14px; height: 14px; }
+  .spine-bar .lbl { font-weight: 600; font-size: .9rem; }
+  .spine-bar .sig { margin-left: auto; font-family: var(--mono); font-size: 10.5px; opacity: .72; letter-spacing: .02em; text-align: right; }
+  .fld-list { display: flex; flex-direction: column; }
+  .fld { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 14px; width: 100%; text-align: left; padding: 13px 18px; border-top: 1px solid var(--line); background: var(--card); border-left: 0; border-right: 0; border-bottom: 0; cursor: pointer; font: inherit; color: inherit; transition: background var(--dur) var(--ease); }
+  .fld:hover { background: var(--paper-2); }
+  .fld .lab { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: .12em; color: var(--ink-3); margin-bottom: 4px; }
+  .fld .val { font-weight: 600; font-size: .92rem; font-variant-numeric: tabular-nums; }
+  .fld.off .val { color: var(--ink-3); font-weight: 500; font-family: var(--mono); font-size: 12.5px; letter-spacing: .01em; }
+  .fld .req { margin-top: 3px; font-size: 11.5px; color: var(--ink-2); }
+  .fld.off .req { color: var(--ink-3); }
+  .tog { position: relative; width: 42px; height: 24px; border-radius: 999px; background: var(--ok); flex: none; transition: background var(--dur) var(--ease); }
+  .fld.off .tog { background: var(--line-2); }
+  .tog::after { content: ""; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff; transition: transform var(--dur) var(--ease); box-shadow: 0 1px 3px rgba(0,0,0,.3); }
+  .fld:not(.off) .tog::after { transform: translateX(18px); }
+  .disc-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 13px 18px; border-top: 1px solid var(--line); background: var(--paper-2); flex-wrap: wrap; }
+  .disc-count { font-family: var(--mono); font-size: 12px; color: var(--ink-2); letter-spacing: .02em; }
+  .disc-count b { color: var(--ink); }
+
+  /* ---------- verification transcript ---------- */
+  .term { font-family: var(--mono); font-size: 12.5px; line-height: 1.85; padding: 16px 18px; background: var(--card); font-variant-numeric: tabular-nums; }
+  .ln { display: grid; grid-template-columns: 16px minmax(0,1fr) auto; gap: 10px; align-items: baseline; opacity: 0; transform: translateY(3px); }
+  .ln.show { opacity: 1; transform: none; transition: opacity 240ms var(--ease), transform 240ms var(--ease); }
+  .ln .mk { color: var(--ok); }
+  .ln .mk.bad { color: var(--revoked); }
+  .ln .body { color: var(--ink-2); word-break: break-all; }
+  .ln .body .h { color: var(--ink); }
+  .ln .rt { color: var(--ink-3); justify-self: end; white-space: nowrap; }
+  .ln.head { margin-top: 8px; }
+  .ln.head .body { color: var(--ink); font-weight: 600; }
+  .ln.bad .body { color: var(--revoked); }
+  .verdict { margin: 4px 18px 0; }
+  .verdict-in { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 10px; border: 1px solid var(--ok-line); background: var(--ok-bg); color: var(--ok); font-weight: 600; font-size: .9rem; }
+  .verdict-in.bad { border-color: var(--revoked-line); background: var(--revoked-bg); color: var(--revoked); }
+  .verdict-in .prov { color: inherit; opacity: .8; font-weight: 500; margin-left: auto; }
+
+  /* ---------- graph ---------- */
+  .graph-card { position: relative; }
+  .graph-wrap { position: relative; width: 100%; aspect-ratio: 16 / 10; max-height: 520px; background: radial-gradient(120% 120% at 50% 42%, var(--paper-2) 0%, var(--card) 70%); }
+  .graph-wrap canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .graph-legend { display: flex; gap: 16px; flex-wrap: wrap; padding: 12px 18px; border-top: 1px solid var(--line); font-family: var(--mono); font-size: 11px; color: var(--ink-3); letter-spacing: .02em; }
+  .graph-legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .graph-legend i { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+  .g-count { position: absolute; left: 18px; top: 14px; font-family: var(--mono); font-size: 11px; color: var(--ink-2); letter-spacing: .04em; background: color-mix(in oklab, var(--card) 80%, transparent); padding: 4px 8px; border-radius: 8px; border: 1px solid var(--line); }
+  .g-count b { color: var(--accent); font-variant-numeric: tabular-nums; }
+
+  /* ---------- diff ---------- */
+  .diff { display: flex; flex-direction: column; }
+  .diff-row { display: grid; grid-template-columns: 20px minmax(0,1fr) auto; gap: 12px; align-items: center; padding: 12px 18px; border-top: 1px solid var(--line); }
+  .diff-row:first-child { border-top: 0; }
+  .diff-row .sym { font-family: var(--mono); font-weight: 600; text-align: center; }
+  .diff-row.add .sym { color: var(--ok); }
+  .diff-row.fresh .sym { color: var(--accent); }
+  .diff-row.same .sym { color: var(--ink-3); }
+  .diff-row .d .n { font-weight: 600; font-size: .9rem; }
+  .diff-row .d .p { font-family: var(--mono); font-size: 11px; color: var(--ink-3); font-variant-numeric: tabular-nums; margin-top: 2px; }
+  .diff-head { padding: 14px 18px; background: var(--paper-2); border-top: 1px solid var(--line); font-size: 13px; color: var(--ink-2); }
+  .diff-head b { color: var(--ink); }
+
+  /* ---------- two-half verify + anti-pattern ---------- */
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 0; }
+  @media (max-width: 620px) { .two { grid-template-columns: 1fr; } }
+  .half { padding: 16px 18px; }
+  .half + .half { border-left: 1px solid var(--line); }
+  @media (max-width: 620px) { .half + .half { border-left: 0; border-top: 1px solid var(--line); } }
+  .half h4 { margin: 0 0 12px; font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: .12em; color: var(--ink-3); }
+  .vrow { display: flex; align-items: baseline; gap: 9px; padding: 7px 0; font-size: 13px; }
+  .vrow .ck { color: var(--ok); font-family: var(--mono); }
+  .vrow .txt { color: var(--ink-2); }
+  .vrow .txt b { color: var(--ink); font-weight: 600; }
+  .vrow .prov { margin-left: auto; }
+
+  .versus { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 20px; }
+  @media (max-width: 640px) { .versus { grid-template-columns: 1fr; } }
+  .vs-card { border-radius: 14px; border: 1px solid var(--line); padding: 16px; background: var(--card); position: relative; }
+  .vs-card .tagline { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: .12em; margin: 0 0 12px; }
+  .vs-card.good .tagline { color: var(--ok); }
+  .vs-card.bad { background: var(--paper-2); }
+  .vs-card.bad .tagline { color: var(--revoked); }
+  .vs-card .stamp { position: absolute; top: 12px; right: 12px; font-family: var(--mono); font-size: 10px; letter-spacing: .08em; padding: 3px 7px; border-radius: 6px; border: 1px solid; }
+  .vs-card.good .stamp { color: var(--ok); border-color: var(--ok-line); background: var(--ok-bg); }
+  .vs-card.bad .stamp { color: var(--revoked); border-color: var(--revoked-line); background: var(--revoked-bg); }
+  .bigbadge { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; font-size: 1.05rem; letter-spacing: -.01em; margin: 6px 0 4px; }
+  .bigbadge.fake { color: var(--ink-2); }
+  .bigbadge .tick { color: var(--stale); }
+  .vs-card .note { font-size: 12.5px; color: var(--ink-2); margin-top: 8px; line-height: 1.5; }
+
+  /* ---------- hero ---------- */
+  .hero { padding: clamp(40px, 7vw, 84px) 0 clamp(40px, 6vw, 70px); border-bottom: 1px solid var(--line); }
+  .hero .kick { font-family: var(--mono); font-size: 11.5px; text-transform: uppercase; letter-spacing: .18em; color: var(--accent); margin: 0 0 20px; }
+  .hero h1 { font-family: var(--serif); font-weight: 500; font-size: clamp(2.3rem, 6.2vw, 4.4rem); line-height: 1.02; letter-spacing: -.028em; margin: 0 0 22px; text-wrap: balance; max-width: 16ch; }
+  .hero h1 em { font-style: italic; color: var(--accent); }
+  .hero p.sub { font-size: clamp(1.05rem, 1.7vw, 1.28rem); color: var(--ink-2); max-width: 56ch; margin: 0 0 30px; }
+  .hero-strip { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .hero-note { margin-top: 26px; font-family: var(--mono); font-size: 11px; color: var(--ink-3); letter-spacing: .02em; max-width: 60ch; line-height: 1.7; }
+  .hero-note b { color: var(--ink-2); font-weight: 500; }
+
+  /* ---------- closing / anti-patterns ---------- */
+  .reject { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; margin-top: 8px; }
+  .rej { border: 1px solid var(--line); border-radius: 12px; padding: 14px; background: var(--card); }
+  .rej .x { font-family: var(--mono); color: var(--revoked); font-weight: 700; font-size: 13px; }
+  .rej .h { font-weight: 600; font-size: .9rem; margin: 6px 0 4px; }
+  .rej .d { font-size: 12.5px; color: var(--ink-2); line-height: 1.5; }
+  footer { padding: clamp(40px,7vw,72px) 0 60px; }
+  footer .card { padding: 22px 24px; }
+  footer a { color: var(--accent); text-decoration: none; border-bottom: 1px solid color-mix(in oklab, var(--accent) 40%, transparent); }
+  footer a:hover { border-bottom-color: var(--accent); }
+  .foot-grid { display: grid; grid-template-columns: 1.4fr 1fr; gap: 28px; }
+  @media (max-width: 720px) { .foot-grid { grid-template-columns: 1fr; } }
+  .foot-grid h3 { font-family: var(--serif); font-weight: 500; font-size: 1.3rem; margin: 0 0 10px; letter-spacing: -.01em; }
+  .foot-grid p { color: var(--ink-2); font-size: 13.5px; margin: 0 0 10px; }
+  .kv { font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); display: flex; flex-direction: column; gap: 6px; }
+  .kv div { display: flex; justify-content: space-between; gap: 12px; border-bottom: 1px dashed var(--line); padding-bottom: 6px; }
+  .kv b { color: var(--ink-2); font-weight: 500; }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
+  }
+</style>
+
+<div class="fg">
+  <div class="rail">
+    <div class="mark"><span class="dot"></span><span>Vital<b>CV</b></span></div>
+    <div class="meta"><b>Evidence Surface</b> &#183; Field Guide &#183; P0 patterns &#183; <b>2026-07-17</b></div>
+  </div>
+
+  <!-- HERO -->
+  <header class="hero">
+    <div class="wrap">
+      <p class="kick">A field guide to the evidence surface</p>
+      <h1>Everything here is <em>dated</em>, <em>sourced</em>, and yours.</h1>
+      <p class="sub">Eight signature patterns distilled from a 100-source design study &#8212; rendered live, in the Calm Wave system. The thesis in one line: incumbents <b>assert</b> trust; VitalCV <b>shows</b> it.</p>
+      <div class="hero-strip">
+        <span class="chip checked"><span class="g"></span>checked</span>
+        <span class="chip gated"><span class="g"></span>gated</span>
+        <span class="chip stale"><span class="g"></span>stale</span>
+        <span class="chip unknown"><span class="g"></span>unknown</span>
+        <span class="chip revoked"><span class="g"></span>revoked &#183; fails closed</span>
+        <span class="chip selfatt"><span class="g"></span>self-attested</span>
+      </div>
+      <p class="hero-note"><b>How to read this:</b> every panel below is a working instrument, not a screenshot. Motion fires only on evidence-state changes. The left spine keys each pattern to its ID in the research repository. Mockup &#8212; evokes production Calm Wave; type resolves to your system serif &amp; mono.</p>
+    </div>
+  </header>
+
+  <div class="shell">
+    <!-- SPINE -->
+    <nav class="spine" aria-label="Pattern index">
+      <ol>
+        <li><a href="#chips"><span class="id">T1&#183;T2</span> &#183; Status atom</a></li>
+        <li><a href="#watch"><span class="id">M2&#183;R1</span> &#183; Watched it work</a></li>
+        <li><a href="#disclose"><span class="id">P1&#183;P5</span> &#183; Disclosure</a></li>
+        <li><a href="#verify"><span class="id">A2&#183;T2</span> &#183; Proof transcript</a></li>
+        <li><a href="#graph"><span class="id">M4</span> &#183; One &#8594; many</a></li>
+        <li><a href="#diff"><span class="id">E5</span> &#183; Re-share diff</a></li>
+        <li><a href="#public"><span class="id">V1&#183;V4</span> &#183; Public verify</a></li>
+        <li><a href="#reject"><span class="id">&#10007;</span> &#183; Reject list</a></li>
+      </ol>
+    </nav>
+
+    <main>
+      <!-- 1. CHIP SYSTEM -->
+      <section id="chips">
+        <p class="eyebrow"><span class="pid">T1 &#183; T2 &#183; T6</span> <span class="tag">design-language</span></p>
+        <h2 class="thesis">The atom is a chip with a memory.</h2>
+        <p class="lede">Status is never a color alone, an icon alone, or a bare word. It's a dot, a word, and a <b>mono provenance line</b> &#8212; source and timestamp &#8212; underneath. Six states, each with its own register. Red belongs to <b>revoked</b> and nothing else.</p>
+        <div class="specimens">
+          <div class="spec">
+            <span class="chip checked"><span class="g"></span>checked</span>
+            <div class="prov">NPPES &#183; 2026-07-14 09:12Z</div>
+            <div class="desc">A <b>source</b> confirmed it. The only state that earns the word.</div>
+          </div>
+          <div class="spec">
+            <span class="chip gated"><span class="g"></span>gated</span>
+            <div class="prov">DEA &#183; access required</div>
+            <div class="desc">Source reachable, but <b>blocked behind an agreement</b>. Honest, not hidden.</div>
+          </div>
+          <div class="spec">
+            <span class="chip stale"><span class="g"></span>stale</span>
+            <div class="prov">State board &#183; 214d ago</div>
+            <div class="desc">Was checked; aged past the <b>NCQA window</b>. Refresh is one tap.</div>
+          </div>
+          <div class="spec">
+            <span class="chip unknown"><span class="g"></span>unknown</span>
+            <div class="prov">NPDB &#183; not queried</div>
+            <div class="desc">No claim made. Absence rendered <b>as absence</b>, never as pass.</div>
+          </div>
+          <div class="spec fc">
+            <span class="chip revoked"><span class="g"></span>revoked</span>
+            <div class="prov">Issuer &#183; 2026-06-30 &#8212; fails closed</div>
+            <div class="desc">A full stop. Content blocks; <b>custody history stays visible</b>.</div>
+          </div>
+          <div class="spec">
+            <span class="chip selfatt"><span class="g"></span>self-attested</span>
+            <div class="prov">entered by holder &#183; unverified</div>
+            <div class="desc">Dashed border, own band. <b>Can never blend</b> into source-checked evidence.</div>
+          </div>
+        </div>
+        <p class="cap">// T1 provenance chip &#183; T2 fail-closed register &#183; T6 self-attested quarantine</p>
+      </section>
+
+      <!-- 2. WATCHED IT WORK -->
+      <section id="watch">
+        <p class="eyebrow"><span class="pid">M2 &#183; R1</span> <span class="tag">motion</span> <span class="tag">readiness</span></p>
+        <h2 class="thesis">Watch it work, one source at a time.</h2>
+        <p class="lede">The hero moment. Checks resolve <b>in sequence, with real timestamps</b> &#8212; honest latency instead of a fake spinner. The snapshot states its own formula: no opaque score exists anywhere in the product.</p>
+        <div class="card" id="watchCard">
+          <div class="card-h">
+            <div><div class="t">Readiness run &#183; NPI 1043 522 719</div><div class="sub">6 sources &#183; compiled live</div></div>
+            <button class="btn" id="watchReplay" type="button" aria-label="Replay the source-check run">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>
+              Replay
+            </button>
+          </div>
+          <div class="src-list" id="srcList"></div>
+          <div class="readout" id="readout" hidden>
+            <div class="k" id="roK">&#8212;</div>
+            <div class="txt" id="roTxt"></div>
+          </div>
+        </div>
+        <p class="cap">// M2 live source-check narration &#183; R1 derivation-transparent snapshot &#183; gated + stale shown honestly</p>
+      </section>
+
+      <!-- 3. DISCLOSURE COMPOSER -->
+      <section id="disclose">
+        <p class="eyebrow"><span class="pid">P1 &#183; P5 &#183; P4</span> <span class="tag">proof-packet</span> <span class="tag">interactive</span></p>
+        <h2 class="thesis">Share exactly these fields &#8212; the rest stays a hash.</h2>
+        <p class="lede">Selective disclosure is the product's signature interaction, not a settings panel. Toggle a field off and it <b>collapses to a salted digest</b> &#8212; the verifier sees a fingerprint, never your data. Each share is signed to <b>this exact selection</b>. Try it:</p>
+        <div class="card disc" id="disc">
+          <div class="spine-bar">
+            <span class="seal" title="issuer-signed core">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+            </span>
+            <span class="lbl">Issuer-signed core</span>
+            <span class="sig">ES256 &#183; did:web:vitalcv.com<br>root 4d2e&#8230;9a1</span>
+          </div>
+          <div class="fld-list" id="fldList"></div>
+          <div class="disc-foot">
+            <span class="disc-count" id="discCount">Employer view &#183; <b>5</b> of 5 fields disclosed</span>
+            <span class="hint" id="discSeal">bound &amp; signed &#183; 2026-07-17 14:32Z</span>
+          </div>
+        </div>
+        <p class="cap">// P1 SD-JWT disclosure composer &#183; P5 predicate withhold-until-accept &#183; P4 audience-scoped view</p>
+      </section>
+
+      <!-- 4. VERIFICATION TRANSCRIPT -->
+      <section id="verify">
+        <p class="eyebrow"><span class="pid">A2 &#183; A3 &#183; T2</span> <span class="tag">audit-provenance</span></p>
+        <h2 class="thesis">Verification you can watch &#8212; and break.</h2>
+        <p class="lede">Proof-checking runs as a <b>line-by-line transcript</b>: event hashes, chain validation, Merkle root, inclusion proof. When something's wrong it <b>names the exact break</b> and fails closed &#8212; never a generic "verification failed."</p>
+        <div class="card" id="verifyCard">
+          <div class="card-h">
+            <div><div class="t">Audit proof &#183; packet VCV-7F3K-2201</div><div class="sub" id="vSub">recomputing digests&#8230;</div></div>
+            <div class="controls" style="margin:0">
+              <button class="btn" id="vReplay" type="button">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>
+                Verify
+              </button>
+              <button class="btn" id="vTamper" type="button">Simulate tampering</button>
+            </div>
+          </div>
+          <div class="term" id="term"></div>
+          <div class="verdict"><div class="verdict-in" id="verdict" hidden></div></div>
+          <div style="height:14px"></div>
+        </div>
+        <p class="cap">// A2 stepwise mono transcript &#183; A3 user-triggered verify &#183; T2 located, fail-closed failure</p>
+      </section>
+
+      <!-- 5. GRAPH -->
+      <section id="graph">
+        <p class="eyebrow"><span class="pid">M4</span> <span class="tag">homepage</span> <span class="tag">motion</span></p>
+        <h2 class="thesis">One clinician. Thirteen relationships. One packet.</h2>
+        <p class="lede">The average physician re-proves themselves to ~13 organizations. The reuse thesis, in one motion: a single evidence packet flows outward from the holder and <b>lands as an acceptance</b> at each &#8212; the network effect made visible.</p>
+        <div class="card graph-card">
+          <div class="graph-wrap">
+            <div class="g-count">accepted &#183; <b id="gCount">0</b> / 13</div>
+            <canvas id="reuseGraph"></canvas>
+          </div>
+          <div class="graph-legend">
+            <span><i style="background:var(--accent)"></i> holder &#183; NPI 1043 522 719</span>
+            <span><i style="background:var(--ok)"></i> accepted as head start</span>
+            <span><i style="background:var(--ink-3)"></i> awaiting</span>
+            <span style="margin-left:auto"><button class="btn" id="gReplay" type="button" style="padding:5px 10px">Replay flow</button></span>
+          </div>
+        </div>
+        <p class="cap">// M4 1&#8594;13 reuse sequence &#183; packet authored once, accepted many times</p>
+      </section>
+
+      <!-- 6. RE-SHARE DIFF -->
+      <section id="diff">
+        <p class="eyebrow"><span class="pid">E5 &#183; E6</span> <span class="tag">employer-review</span></p>
+        <h2 class="thesis">"Here's what changed since you accepted."</h2>
+        <p class="lede">When a clinician re-shares to an employer who already accepted, lead with the <b>delta</b> &#8212; not the whole packet again. Acceptance compounds: re-review shrinks to reading three lines.</p>
+        <div class="card diff">
+          <div class="diff-head">Compared against your acceptance on <b>2026-04-02</b> &#8212; <b>nothing revoked</b> in the interval.</div>
+          <div class="diff-row fresh"><span class="sym">&#8635;</span><div class="d"><div class="n">DEA registration</div><div class="p">refreshed &#183; checked 2026-07-11 &#183; was stale</div></div><span class="chip checked"><span class="g"></span>checked</span></div>
+          <div class="diff-row fresh"><span class="sym">&#8635;</span><div class="d"><div class="n">State medical license &#183; TX</div><div class="p">refreshed &#183; checked 2026-07-09 &#183; renewal cleared</div></div><span class="chip checked"><span class="g"></span>checked</span></div>
+          <div class="diff-row add"><span class="sym">+</span><div class="d"><div class="n">Board certification &#183; Cardiology</div><div class="p">new &#183; ABMS &#183; checked 2026-06-28</div></div><span class="chip checked"><span class="g"></span>checked</span></div>
+          <div class="diff-row same"><span class="sym">=</span><div class="d"><div class="n">NPPES identity &#183; OIG exclusions</div><div class="p">unchanged since acceptance</div></div><span class="prov">2 items</span></div>
+        </div>
+        <p class="cap">// E5 re-share diff &#183; E6 watch-this-passport &#183; the acceptance-compounding feature</p>
+      </section>
+
+      <!-- 7. PUBLIC VERIFY -->
+      <section id="public">
+        <p class="eyebrow"><span class="pid">V1 &#183; V4 &#183; V5</span> <span class="tag">public-verify</span></p>
+        <h2 class="thesis">The public page wins on honesty.</h2>
+        <p class="lede">A verdict split in two: <b>integrity</b> (does the math hold?) and <b>issuer legitimacy</b> (is the signer real?). A signature-valid credential from an unknown issuer is its own mixed state &#8212; never one green banner. Below: our surface beside the pattern we reject.</p>
+        <div class="card">
+          <div class="card-h"><div class="t">/verify &#183; Dr. A. Okonkwo &#183; NPI 1043 522 719</div><span class="prov"><b>resolved</b> 2026-07-17 14:32Z</span></div>
+          <div class="two">
+            <div class="half">
+              <h4>Integrity</h4>
+              <div class="vrow"><span class="ck">&#10003;</span><span class="txt"><b>Signature</b> valid &#183; ES256</span><span class="prov">did:web:vitalcv.com</span></div>
+              <div class="vrow"><span class="ck">&#10003;</span><span class="txt"><b>Digest set</b> intact &#183; no unreferenced disclosures</span></div>
+              <div class="vrow"><span class="ck">&#10003;</span><span class="txt"><b>Inclusion</b> proven to root <span class="prov">4d2e&#8230;9a1</span></span></div>
+            </div>
+            <div class="half">
+              <h4>Issuer legitimacy</h4>
+              <div class="vrow"><span class="ck">&#10003;</span><span class="txt"><b>Issued by</b> vitalcv.com</span><span class="prov">registry 2026-06-02</span></div>
+              <div class="vrow"><span class="ck">&#10003;</span><span class="txt"><b>Revocation</b> &#183; none found</span><span class="prov">checked 14:32Z</span></div>
+              <div class="vrow"><span class="ck" style="color:var(--gate)">&#9680;</span><span class="txt">1 field <b>self-attested</b> &#183; shown as such</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="versus">
+          <div class="vs-card good">
+            <span class="stamp">ship</span>
+            <p class="tagline">VitalCV &#183; public verify</p>
+            <div class="prov" style="font-size:13px;color:var(--ink-2)">Licensure &#183; <b style="color:var(--ok)">checked</b></div>
+            <div class="prov">state board &#183; 2026-07-09 14:02Z</div>
+            <p class="note">Per-field source and timestamp. NPPES-derived facts labeled <b>self-reported</b>. The word is earned, per claim.</p>
+          </div>
+          <div class="vs-card bad">
+            <span class="stamp">reject</span>
+            <p class="tagline">Incumbent SEO directory</p>
+            <div class="bigbadge fake"><span class="tick">&#10003;</span> 2,040,237 Verified</div>
+            <p class="note">A bare "Verified" stamped across <b>self-reported registry data</b>, one global "last synced" for the whole site. The pattern the truth contract exists to reject.</p>
+          </div>
+        </div>
+        <p class="cap">// V1 beat-the-directory honesty &#183; V4 two-half verdict &#183; V5 revocation as a visible step</p>
+      </section>
+
+      <!-- 8. REJECT LIST -->
+      <section id="reject">
+        <p class="eyebrow"><span class="pid">&#10007; reject</span> <span class="tag">anti-pattern</span></p>
+        <h2 class="thesis">What the research says we must not become.</h2>
+        <p class="lede">Twenty anti-patterns surfaced across the 100 sources. The load-bearing few, kept visible so no wave quietly reintroduces them:</p>
+        <div class="reject">
+          <div class="rej"><div class="x">&#10007; 01</div><div class="h">The bare status word</div><div class="d">"Verified" with no source, no date. Never a status without provenance.</div></div>
+          <div class="rej"><div class="x">&#10007; 02</div><div class="h">The single fit score</div><div class="d">"95% match," interview odds, salary guesses. Reason codes or nothing.</div></div>
+          <div class="rej"><div class="x">&#10007; 03</div><div class="h">The dead artifact</div><div class="d">Buy-once PDF r&#233;sum&#233;s that never decay or revoke. Ours stays alive.</div></div>
+          <div class="rej"><div class="x">&#10007; 04</div><div class="h">Badge soup</div><div class="d">Walls of compliance logos in place of a dated control + audit event.</div></div>
+          <div class="rej"><div class="x">&#10007; 05</div><div class="h">Manufactured urgency</div><div class="d">Fake countdowns, streak-loss, "no time to think" consent. Deliberate wins.</div></div>
+          <div class="rej"><div class="x">&#10007; 06</div><div class="h">Edit buttons on audit rows</div><div class="d">Corrections are appended, never overwritten. Say so in the microcopy.</div></div>
+          <div class="rej"><div class="x">&#10007; 07</div><div class="h">Fuzzy identity matching</div><div class="d">An NPI ranked "close enough" is a truth violation. Exact-match only.</div></div>
+          <div class="rej"><div class="x">&#10007; 08</div><div class="h">Crypto bragging</div><div class="d">TPS numbers, chain hype. The chain is the engine, never the headline.</div></div>
+        </div>
+        <p class="cap">// full 20-item reject list + 70 patterns &#8594; docs/design/ui-ux-inspiration-repository-2026-07-17.md</p>
+      </section>
+    </main>
+  </div>
+
+  <footer>
+    <div class="wrap">
+      <div class="card">
+        <div class="foot-grid">
+          <div>
+            <h3>From 100 sources to eight instruments.</h3>
+            <p>Seven parallel research agents read the canonical link set &#8212; healthcare UX, credentialing incumbents, verifiable-credential wallets, tamper-evident ledgers, threat models, market signal &#8212; and returned ~250 concrete inspirations. This guide renders the P0 set the way the research demands it be judged: live, dated, and honest.</p>
+            <p>Full synthesis, all 70 patterns and the 20-item reject list, with per-item sources and a P0/P1/P2 build plan, lives at <a href="#public">docs/design/ui-ux-inspiration-repository-2026-07-17.md</a>.</p>
+          </div>
+          <div>
+            <div class="kv">
+              <div><span>Patterns catalogued</span><b>70</b></div>
+              <div><span>Sources read</span><b>97 / 100</b></div>
+              <div><span>Rendered here</span><b>P0 &#183; 8</b></div>
+              <div><span>Design system</span><b>Calm Wave</b></div>
+              <div><span>Status vocabulary</span><b>checked &#183; gated &#183; stale &#183; unknown &#183; revoked</b></div>
+              <div><span>Truth contract</span><b>honored</b></div>
+            </div>
+            <p style="margin-top:16px;font-family:var(--mono);font-size:11px;color:var(--ink-3);line-height:1.7">Mockup for design evaluation. Not production, not deployed. Copy contains no banned strings; every rendered status carries source + timestamp.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </footer>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var $ = function (s, r) { return (r || document).querySelector(s); };
+  var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
+
+  /* ---------- scrollspy ---------- */
+  (function () {
+    var links = $$(".spine a");
+    var map = {};
+    links.forEach(function (a) { map[a.getAttribute("href").slice(1)] = a; });
+    var obs = new IntersectionObserver(function (ents) {
+      ents.forEach(function (e) {
+        if (e.isIntersecting) {
+          links.forEach(function (l) { l.classList.remove("active"); });
+          if (map[e.target.id]) map[e.target.id].classList.add("active");
+        }
+      });
+    }, { rootMargin: "-30% 0px -60% 0px", threshold: 0 });
+    $$("section").forEach(function (s) { obs.observe(s); });
+  })();
+
+  /* ---------- helper: run once when visible ---------- */
+  function onView(el, fn, once) {
+    var o = new IntersectionObserver(function (ents, obs) {
+      ents.forEach(function (e) {
+        if (e.isIntersecting) { fn(); if (once !== false) obs.unobserve(e.target); }
+      });
+    }, { threshold: 0.35 });
+    o.observe(el);
+  }
+  function chip(cls, label) {
+    return '<span class="chip ' + cls + '"><span class="g"></span>' + label + '</span>';
+  }
+
+  /* ---------- 1/2. source-check narration ---------- */
+  (function () {
+    var SRC = [
+      { n: "NPPES registry",            p: "checked 2026-07-17 14:31:58Z",  cls: "checked", label: "checked", wait: 620 },
+      { n: "OIG LEIE exclusions",       p: "swept 2026-07-17 14:32:01Z \u00B7 no match", cls: "checked", label: "checked", wait: 880 },
+      { n: "DEA registration",          p: "access required \u00B7 agreement pending", cls: "gated", label: "gated", wait: 1500 },
+      { n: "State medical board \u00B7 TX",  p: "checked 2026-07-17 14:32:05Z",  cls: "checked", label: "checked", wait: 1050 },
+      { n: "NPDB continuous query",     p: "last checked 2026-01-04 \u00B7 214d", cls: "stale", label: "stale", wait: 760 },
+      { n: "ABMS board certification",  p: "checked 2026-07-17 14:32:07Z",  cls: "checked", label: "checked", wait: 980 }
+    ];
+    var list = $("#srcList"), readout = $("#readout"), roK = $("#roK"), roTxt = $("#roTxt");
+    var timers = [];
+    function clearTimers() { timers.forEach(clearTimeout); timers = []; }
+    function build() {
+      list.innerHTML = "";
+      SRC.forEach(function (s, i) {
+        var row = document.createElement("div");
+        row.className = "src";
+        row.innerHTML =
+          '<div class="idx">' + String(i + 1).padStart(2, "0") + '</div>' +
+          '<div class="name"><div class="n">' + s.n + '</div><div class="p"></div></div>' +
+          '<div class="st"></div>';
+        list.appendChild(row);
+      });
+    }
+    function finalReadout() {
+      var checked = SRC.filter(function (s) { return s.cls === "checked"; }).length;
+      var gated = SRC.filter(function (s) { return s.cls === "gated"; }).length;
+      var stale = SRC.filter(function (s) { return s.cls === "stale"; }).length;
+      roK.textContent = checked + "/" + SRC.length;
+      roTxt.innerHTML = "<b style='color:var(--ink)'>Readiness reflects " + SRC.length + " source checks</b> \u2014 " +
+        checked + " checked, " + gated + " gated, " + stale + " stale." +
+        "<span class='prov'>compiled 2026-07-17 14:32:07Z \u00B7 no composite score \u2014 the checks are the score</span>";
+      readout.hidden = false;
+    }
+    function run() {
+      clearTimers(); build(); readout.hidden = true;
+      var rows = $$(".src", list);
+      if (reduce) {
+        rows.forEach(function (row, i) {
+          var s = SRC[i];
+          row.classList.add("done");
+          $(".p", row).textContent = s.p;
+          $(".st", row).innerHTML = chip(s.cls, s.label);
+        });
+        finalReadout(); return;
+      }
+      var t = 260;
+      rows.forEach(function (row, i) {
+        var s = SRC[i];
+        timers.push(setTimeout(function () {
+          row.classList.add("working");
+          $(".st", row).innerHTML = '<span class="spin"><span class="ring"></span>querying\u2026</span>';
+          $(".p", row).textContent = "contacting source\u2026";
+        }, t));
+        t += s.wait;
+        timers.push(setTimeout(function () {
+          row.classList.remove("working"); row.classList.add("done");
+          $(".p", row).textContent = s.p;
+          $(".st", row).innerHTML = chip(s.cls, s.label);
+        }, t));
+        t += 120;
+      });
+      timers.push(setTimeout(finalReadout, t + 180));
+    }
+    build();
+    $("#watchReplay").addEventListener("click", run);
+    onView($("#watchCard"), run);
+  })();
+
+  /* ---------- 3. disclosure composer ---------- */
+  (function () {
+    var FIELDS = [
+      { lab: "Identity", val: "A. Okonkwo \u00B7 NPI 1043 522 719", req: "Required to resolve the record", on: true, hash: "e7b1\u20264a9" },
+      { lab: "Active licensure", val: "TX medical license \u00B7 active", req: "Employer needs: status only", on: true, hash: "8f2a\u2026c41" },
+      { lab: "License number", val: "TX \u00B7 K5521-\u2026", req: "Withheld until you accept", on: false, hash: "3d9c\u202670b" },
+      { lab: "DEA registration", val: "registered \u00B7 schedule II\u2013V", req: "Predicate: registered = yes", on: true, hash: "b204\u2026e18" },
+      { lab: "Date of birth", val: "1984-03-11", req: "Not needed for credentialing", on: false, hash: "a15e\u2026992" }
+    ];
+    var list = $("#fldList"), count = $("#discCount"), seal = $("#discSeal");
+    function fauxHash() {
+      var s = FIELDS.map(function (f) { return f.on ? "1" : "0"; }).join("");
+      var h = 2166136261;
+      for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = (h * 16777619) >>> 0; }
+      return ("00000000" + h.toString(16)).slice(-8, -4) + "\u2026" + ("00000000" + (h >>> 7).toString(16)).slice(-3);
+    }
+    function render() {
+      list.innerHTML = "";
+      FIELDS.forEach(function (f, i) {
+        var b = document.createElement("button");
+        b.type = "button";
+        b.className = "fld" + (f.on ? "" : " off");
+        b.setAttribute("aria-pressed", f.on ? "true" : "false");
+        b.innerHTML =
+          '<div><div class="lab">' + f.lab + '</div>' +
+          '<div class="val">' + (f.on ? f.val : ("sha256 \u00B7 salted \u00B7 " + f.hash)) + '</div>' +
+          '<div class="req">' + (f.on ? f.req : "verifier sees a salted digest, not your data") + '</div></div>' +
+          '<div class="tog" aria-hidden="true"></div>';
+        b.addEventListener("click", function () { FIELDS[i].on = !FIELDS[i].on; render(); });
+        list.appendChild(b);
+      });
+      var on = FIELDS.filter(function (f) { return f.on; }).length;
+      count.innerHTML = "Employer view \u00B7 <b>" + on + "</b> of " + FIELDS.length + " fields disclosed";
+      seal.textContent = "bound to this selection \u00B7 sig " + fauxHash() + " \u00B7 14:32Z";
+    }
+    render();
+  })();
+
+  /* ---------- 4. verification transcript ---------- */
+  (function () {
+    var EVENTS = [
+      { id: "001", h: "a1b9\u2026f2", label: "issuance offered" },
+      { id: "002", h: "7f3c\u20268d", label: "claims bound to key" },
+      { id: "003", h: "c40a\u202619", label: "packet sealed & anchored" },
+      { id: "004", h: "9e21\u2026b7", label: "presented to verifier" }
+    ];
+    var term = $("#term"), verdict = $("#verdict"), vSub = $("#vSub"), tamperOn = false;
+    var timers = [];
+    function clearT() { timers.forEach(clearTimeout); timers = []; }
+    function line(cls, mk, mkbad, body, rt) {
+      var d = document.createElement("div");
+      d.className = "ln" + (cls ? " " + cls : "");
+      d.innerHTML =
+        '<span class="mk' + (mkbad ? " bad" : "") + '">' + mk + '</span>' +
+        '<span class="body">' + body + '</span>' +
+        '<span class="rt">' + (rt || "") + '</span>';
+      term.appendChild(d);
+      return d;
+    }
+    function show(el) { el.classList.add("show"); }
+    function run() {
+      clearT(); term.innerHTML = ""; verdict.hidden = true;
+      vSub.textContent = tamperOn ? "recomputing digests\u2026" : "recomputing digests\u2026";
+      var lines = [];
+      EVENTS.forEach(function (e) {
+        var bad = tamperOn && e.id === "002";
+        lines.push(line("", bad ? "\u2717" : "\u2192", bad, 'event ' + e.id + ' <span class="h">' + e.h + '</span> \u00B7 ' + e.label + (bad ? ' \u2014 <b>hash mismatch: content was modified</b>' : ''), bad ? "FAIL" : "ok"));
+        if (bad) lines[lines.length - 1].classList.add("bad");
+      });
+      if (tamperOn) {
+        lines.push(line("head bad", "\u2717", true, "chain validation \u2014 <b>chain broken at event 002</b>", ""));
+      } else {
+        lines.push(line("head", "\u2713", false, "chain validation \u2014 chain valid", ""));
+        lines.push(line("", "\u2192", false, 'merkle root <span class="h">4d2e\u20269a1</span>', ""));
+        lines.push(line("head", "\u2713", false, "inclusion proof \u2014 verified to root", ""));
+      }
+      if (reduce) {
+        lines.forEach(show);
+        finalize();
+        return;
+      }
+      var t = 120;
+      lines.forEach(function (ln) {
+        timers.push(setTimeout(function () { show(ln); }, t));
+        t += 260;
+      });
+      timers.push(setTimeout(finalize, t + 120));
+    }
+    function finalize() {
+      if (tamperOn) {
+        vSub.textContent = "halted \u00B7 integrity failure located";
+        verdict.className = "verdict-in bad";
+        verdict.innerHTML = 'Fails closed \u2014 packet rejected at event 002 <span class="prov">custody history preserved</span>';
+      } else {
+        vSub.textContent = "complete \u00B7 4 events \u00B7 integrity intact";
+        verdict.className = "verdict-in";
+        verdict.innerHTML = 'Inclusion verified against signed checkpoint <span class="prov">root 4d2e\u20269a1 \u00B7 pin this</span>';
+      }
+      verdict.hidden = false;
+    }
+    $("#vReplay").addEventListener("click", run);
+    $("#vTamper").addEventListener("click", function () {
+      tamperOn = !tamperOn;
+      this.textContent = tamperOn ? "Restore integrity" : "Simulate tampering";
+      this.style.borderColor = tamperOn ? "var(--revoked)" : "";
+      this.style.color = tamperOn ? "var(--revoked)" : "";
+      run();
+    });
+    onView($("#verifyCard"), run);
+  })();
+
+  /* ---------- 5. graph: one -> thirteen (self-fitting, observer-independent) ---------- */
+  (function () {
+    var wrap = $(".graph-wrap"), canvas = $("#reuseGraph"), gCount = $("#gCount");
+    var ctx = canvas.getContext("2d");
+    var N = 13, nodes = [], cx = 0, cy = 0, R = 0, dpr = 1, W = 0, H = 0;
+    var raf = null, warmRaf = null, started = false, done = false, startT = 0;
+    var SPAN = 500 + N * 300 + 1700;
+
+    function css(v) { return (getComputedStyle(document.documentElement).getPropertyValue(v).trim()) || "#888888"; }
+    function ease(t) { return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2; }
+    function layout() {
+      for (var i = 0; i < N; i++) {
+        var a = (-Math.PI / 2) + (i / N) * Math.PI * 2;
+        if (!nodes[i]) nodes[i] = { accepted: false, litAt: 0, t0: 500 + i * 300 };
+        nodes[i].a = a; nodes[i].x = cx + Math.cos(a) * R; nodes[i].y = cy + Math.sin(a) * R;
+      }
+    }
+    function fit() {
+      var w = wrap.clientWidth, h = wrap.clientHeight;
+      if (!w || !h) return false;
+      dpr = Math.min(window.devicePixelRatio || 1, 2);
+      var bw = Math.round(w * dpr), bh = Math.round(h * dpr);
+      if (canvas.width !== bw) canvas.width = bw;
+      if (canvas.height !== bh) canvas.height = bh;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      W = w; H = h; cx = w / 2; cy = h * 0.5; R = Math.min(w, h) * 0.37;
+      layout();
+      return true;
+    }
+    function scene(now) {
+      var C = { line: css("--line-2"), ink3: css("--ink-3"), accent: css("--accent"), ok: css("--ok"), okbg: css("--ok-bg"), card: css("--card") };
+      var elapsed = started ? (now - startT) : -1;
+      ctx.clearRect(0, 0, W, H);
+      var acc = 0;
+      nodes.forEach(function (nd) {
+        var pp = elapsed < 0 ? -1 : (elapsed - nd.t0) / 900;
+        var prog = Math.max(0, Math.min(1, pp));
+        var tx = nd.accepted ? nd.x : cx + (nd.x - cx) * prog;
+        var ty = nd.accepted ? nd.y : cy + (nd.y - cy) * prog;
+        ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(tx, ty);
+        ctx.strokeStyle = nd.accepted ? C.ok : C.line;
+        ctx.globalAlpha = 0.5; ctx.lineWidth = nd.accepted ? 1.6 : 1; ctx.stroke(); ctx.globalAlpha = 1;
+        if (pp > 0 && pp < 1) {
+          var e = ease(pp);
+          ctx.beginPath(); ctx.arc(cx + (nd.x - cx) * e, cy + (nd.y - cy) * e, 3.4, 0, 7); ctx.fillStyle = C.accent; ctx.fill();
+        }
+        if (pp >= 1 && !nd.accepted) { nd.accepted = true; nd.litAt = now; }
+      });
+      nodes.forEach(function (nd) {
+        if (nd.accepted) acc++;
+        var lit = nd.accepted ? Math.min(1, (now - (nd.litAt || now)) / 380) : 0;
+        var r = 7 + lit * 2.5;
+        if (nd.accepted) {
+          ctx.beginPath(); ctx.arc(nd.x, nd.y, r + 6, 0, 7); ctx.fillStyle = C.okbg; ctx.globalAlpha = 0.9 * lit; ctx.fill(); ctx.globalAlpha = 1;
+        }
+        ctx.beginPath(); ctx.arc(nd.x, nd.y, r, 0, 7);
+        ctx.fillStyle = nd.accepted ? C.ok : C.card; ctx.strokeStyle = nd.accepted ? C.ok : C.ink3;
+        ctx.lineWidth = 1.4; ctx.fill(); ctx.stroke();
+        if (nd.accepted && lit > 0.4) {
+          ctx.strokeStyle = C.card; ctx.lineWidth = 1.6; ctx.lineCap = "round";
+          ctx.beginPath(); ctx.moveTo(nd.x - 2.6, nd.y); ctx.lineTo(nd.x - 0.6, nd.y + 2); ctx.lineTo(nd.x + 3, nd.y - 2.4); ctx.stroke();
+        }
+      });
+      var pulse = 1 + Math.sin(now / 600) * 0.04;
+      ctx.beginPath(); ctx.arc(cx, cy, 15 * pulse + 8, 0, 7); ctx.fillStyle = C.accent; ctx.globalAlpha = 0.10; ctx.fill(); ctx.globalAlpha = 1;
+      ctx.beginPath(); ctx.arc(cx, cy, 15, 0, 7); ctx.fillStyle = C.accent; ctx.fill();
+      ctx.fillStyle = C.card; ctx.font = "600 13px " + css("--mono"); ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillText("you", cx, cy + 0.5);
+      gCount.textContent = acc;
+      return acc;
+    }
+    function frame(now) {
+      if (!fit()) { raf = requestAnimationFrame(frame); return; }
+      var acc = scene(now);
+      if (reduce) { raf = null; return; }
+      if (started && acc >= N && (now - startT) > SPAN) { raf = null; done = true; return; }
+      raf = requestAnimationFrame(frame);
+    }
+    function begin() {
+      if (started && !done) return;
+      if (reduce) {
+        fit(); nodes.forEach(function (nd) { nd.accepted = true; nd.litAt = 0; });
+        started = false; scene(0); gCount.textContent = N; return;
+      }
+      started = true; done = false; startT = (window.performance && performance.now) ? performance.now() : 0;
+      if (!raf) raf = requestAnimationFrame(frame);
+    }
+    function replay() {
+      if (raf) { cancelAnimationFrame(raf); raf = null; }
+      nodes.forEach(function (nd) { nd.accepted = false; nd.litAt = 0; });
+      started = false; done = false; begin();
+    }
+    (function warm() {
+      if (fit()) { scene((window.performance && performance.now) ? performance.now() : 0); return; }
+      warmRaf = requestAnimationFrame(warm);
+    })();
+    new ResizeObserver(function () { if (!raf && fit()) scene((window.performance && performance.now) ? performance.now() : 0); }).observe(wrap);
+    $("#gReplay").addEventListener("click", replay);
+    onView(wrap, begin);
+  })();
+})();
+</script>

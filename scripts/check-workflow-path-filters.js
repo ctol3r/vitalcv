@@ -37,12 +37,22 @@ const workflowDir = path.join(repoRoot, '.github/workflows');
  * Required status checks on `main`, as configured in branch protection.
  *
  * This list is committed because CI's default GITHUB_TOKEN cannot read branch
- * protection. It is kept honest by the reconciliation below: every name here
- * must be produced by some workflow job, so a renamed job fails this check
- * instead of silently dropping out of coverage. If you change branch
- * protection, change this list in the same PR.
+ * protection. It is kept honest in ONE direction by the reconciliation below:
+ * every name here must be produced by some workflow job, so a renamed job fails
+ * this check instead of silently dropping out of coverage.
  *
- * Verify with:
+ * THE OTHER DIRECTION IS NOT COVERED IN CI. A check that is required in branch
+ * protection but missing from this list is invisible here — the lint would
+ * happily pass while that check went path-filtered and started blocking every
+ * PR. That is the exact bug this script exists to prevent, so run
+ *
+ *   node scripts/check-workflow-path-filters.js --verify-protection
+ *
+ * whenever branch protection changes. It needs a token that can read protection
+ * (the default CI one cannot, which is why it is opt-in rather than a gate) and
+ * fails on drift in either direction.
+ *
+ * Verify by hand with:
  *   gh api repos/ctol3r/vitalcv/branches/main/protection \
  *     --jq '.required_status_checks.contexts[]'
  */
@@ -62,6 +72,17 @@ const REQUIRED_CHECKS = [
   // path-filtered to begin with.
   'axe WCAG 2.2 AA',
   'check-public-claims',
+  // 2026-08-02 hardening: live branch protection had silently drifted BEHIND
+  // this list (only 5 of the 9 entries above were actually required on main).
+  // Live protection was re-synced and extended to every gate that runs on ALL
+  // PRs; names are the literal check-run names GitHub recorded on #1029.
+  'Web E2E (real auth)',
+  'Identity-header trust ratchet',
+  'Canonical Source Adapter Gate',
+  'check-route-guards',
+  // Requires the de-filtered pull_request trigger this PR ships in
+  // backend-tests.yml. Added to live protection only after this merges.
+  'Backend Tests (Postgres)',
 ];
 
 const indentOf = (line) => line.match(/^\s*/)[0].length;
@@ -159,6 +180,62 @@ for (const name of REQUIRED_CHECKS) {
   }
 }
 
+/**
+ * Opt-in: compare REQUIRED_CHECKS against LIVE branch protection, both ways.
+ *
+ * Not part of the CI gate because the default GITHUB_TOKEN cannot read branch
+ * protection — a gate that silently cannot do its job is the failure this whole
+ * script is about, so it is an explicit flag instead. Run it whenever branch
+ * protection changes.
+ *
+ * The direction CI genuinely cannot see is protection → list: a check required
+ * on main but absent here would let this lint pass while that check went
+ * path-filtered and blocked every PR.
+ */
+function verifyAgainstProtection() {
+  const { execFileSync } = require('node:child_process');
+  let live;
+  try {
+    const out = execFileSync(
+      'gh',
+      ['api', 'repos/ctol3r/vitalcv/branches/main/protection', '--jq', '.required_status_checks.contexts[]'],
+      { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] },
+    );
+    live = out.split('\n').map((s) => s.trim()).filter(Boolean);
+  } catch (err) {
+    console.error(
+      'Could not read branch protection. This mode needs `gh` authenticated with a ' +
+        'token that can read it (admin scope); the default CI token cannot.\n' +
+        String(err.stderr ?? err.message ?? err).trim(),
+    );
+    process.exitCode = 1;
+    return;
+  }
+
+  const missingFromList = live.filter((c) => !REQUIRED_CHECKS.includes(c));
+  const missingFromProtection = REQUIRED_CHECKS.filter((c) => !live.includes(c));
+
+  if (missingFromList.length === 0 && missingFromProtection.length === 0) {
+    console.log(`Protection matches REQUIRED_CHECKS — ${live.length} checks, both directions.`);
+    return;
+  }
+
+  console.error('REQUIRED_CHECKS and branch protection have DRIFTED:\n');
+  for (const c of missingFromList) {
+    console.error(
+      `  - "${c}" is REQUIRED on main but missing from REQUIRED_CHECKS. ` +
+        'This lint is therefore not guarding it against path-filtering.\n',
+    );
+  }
+  for (const c of missingFromProtection) {
+    console.error(
+      `  - "${c}" is in REQUIRED_CHECKS but NOT required on main. ` +
+        'The list is claiming a guarantee that does not exist.\n',
+    );
+  }
+  process.exitCode = 1;
+}
+
 if (problems.length > 0) {
   console.error('Workflow path-filter check FAILED:\n');
   for (const p of problems) console.error(`  - ${p}\n`);
@@ -169,3 +246,5 @@ if (problems.length > 0) {
       'none path-filtered on pull_request.',
   );
 }
+
+if (process.argv.includes('--verify-protection')) verifyAgainstProtection();

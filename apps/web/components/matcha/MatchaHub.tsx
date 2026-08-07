@@ -15,7 +15,7 @@ import { useMatchaOpportunities } from './useMatchaOpportunities';
 import { useOpportunityActions } from './useOpportunityActions';
 import { MatchaProfile } from './MatchaProfile';
 import { MatchaDailyBrief } from './MatchaDailyBrief';
-import { MatchaConstellation } from './MatchaConstellation';
+import { CareerEvidenceTimeline } from '@/components/artifacts/CareerEvidenceTimeline';
 import { OpportunityCard } from './OpportunityCard';
 import { CATEGORY_META, CATEGORY_ORDER, allCategoryProgress } from '@/lib/matcha/categories';
 import { deriveNextActions } from '@/lib/matcha/nextActions';
@@ -110,20 +110,19 @@ export function MatchaHub() {
         </div>
       </Panel>
 
-      {/* Your constellation — the signed-in hero, built from your real evidence */}
+      {/* The career, as a ruled document.
+          This was a constellation captioned "built from your real evidence" —
+          but it was passed no events, only a specialty, a score and a match
+          count, so it drew the fixed illustrative sky with three labels
+          swapped. The hub does not hold a clinician's career HISTORY; that
+          lives in the wallet. So the drawing now says what it is, and the
+          adjacent line points at where the real record actually is. */}
       {started && (
         <div>
-          <p className="mz-eyebrow" style={{ marginBottom: 10 }}>Your career, in motion</p>
-          <MatchaConstellation
-            height={420}
-            profile={{
-              specialty: preferences.currentSpecialties?.[0] ?? preferences.desiredSpecialties?.[0],
-              readinessScore: data.trustState?.readinessScore ?? null,
-              matchCount: matches.length,
-            }}
-          />
+          <p className="mz-eyebrow" style={{ marginBottom: 10 }}>Your career, end to end</p>
+          <CareerEvidenceTimeline />
           <p className="mz-mono" style={{ marginTop: 8, fontSize: 10, color: 'var(--ink-400)' }}>
-            Drag to rotate · pull the slider to travel your career. Past &amp; future are projected; your real evidence lives in your wallet.
+            Your real evidence lives in your wallet.
           </p>
         </div>
       )}

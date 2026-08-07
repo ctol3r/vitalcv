@@ -25,7 +25,7 @@ const CHAPTERS = JOURNEY_CHAPTERS.map((chapter) => ({
   id: chapter.id,
   label: chapter.label,
   blurb: chapter.body,
-  accent: 'var(--vt-accent-emerald)',
+  accent: 'var(--vt-accent-editorial)',
 }));
 
 function ChapterBody({ index, label, blurb, accent }: { index: number; label: string; blurb: string; accent: string }) {

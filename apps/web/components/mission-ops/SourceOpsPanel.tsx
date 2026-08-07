@@ -26,6 +26,8 @@ const COVERAGE_STATE_STYLES: Record<SourceOpsCoverageState, string> = {
   reviewRequired: 'bg-vt-warning/10 text-vt-warning border-vt-warning/20',
   previewOnly: 'bg-vt-warning/10 text-vt-warning border-vt-warning/20',
   notDecisionGrade: 'bg-muted text-foreground border-border',
+  // Neutral, not danger: the connector worked, the subject just is not there.
+  notFound: 'bg-muted text-foreground border-border',
 };
 
 const SPINE_STATUS_STYLES: Record<SourceOpsReport['spineStatus'], string> = {
@@ -47,6 +49,9 @@ function formatCoverageState(state: SourceOpsCoverageState): string {
       return 'Review Required';
     case 'previewOnly':
       return 'Preview Only';
+    case 'notFound':
+      // The default branch would title-case this to "NotFound".
+      return 'No Active Record';
     default:
       return state.charAt(0).toUpperCase() + state.slice(1);
   }

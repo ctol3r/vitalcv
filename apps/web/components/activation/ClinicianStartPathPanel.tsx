@@ -33,10 +33,10 @@ const STATUS_LABEL: Record<ActivationRequirementStatus, string> = {
   expired: 'Expired — needs refresh',
 };
 
-/** Semantic token per status — emerald=resolved, red=blocker, amber=attention. */
+/** Semantic token per status — green=source-confirmed, red=blocker, amber=attention. */
 function statusColor(status: ActivationRequirementStatus): string {
   if (status === 'met' || status === 'waived' || status === 'not_applicable') {
-    return 'var(--vt-accent-emerald)';
+    return 'var(--vt-state-source-confirmed)';
   }
   if (status === 'blocked') return 'var(--vt-state-blocked, #B91C1C)';
   if (status === 'expired') return 'var(--vt-state-pending, #92400E)';

@@ -123,6 +123,7 @@ function buildGenericDegradedPassport(entityId: string): PassportRuntimePayload 
         accessRequired: [],
         reviewRequired: [],
         notDecisionGrade: [],
+        notFound: [],
         previewOnly: [],
       },
     },
