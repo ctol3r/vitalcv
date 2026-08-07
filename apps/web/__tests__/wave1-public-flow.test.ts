@@ -2,31 +2,23 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-const WEB_ROOT = path.resolve(__dirname, '..');
 const MARKETING_ROOT = path.resolve(__dirname, '../../marketing');
-
-function readWeb(relativePath: string): string {
-  return fs.readFileSync(path.join(WEB_ROOT, relativePath), 'utf8');
-}
 
 function readMarketing(relativePath: string): string {
   return fs.readFileSync(path.join(MARKETING_ROOT, relativePath), 'utf8');
 }
 
-describe('Wave 1 public pilot flow copy and NPI routing', () => {
-  it('routes marketing NPI submissions to the canonical passport intake', () => {
-    expect(readWeb('components/marketing/NpiLookupInput.tsx')).toContain('router.push(buildPassportLookupHref(trimmed))');
-    expect(readWeb('components/marketing/Hero.tsx')).toContain('router.push(buildPassportLookupHref(normalizedNpi))');
-    expect(readWeb('components/marketing/HeroSection.tsx')).toContain('router.push(buildPassportLookupHref(normalizedNpi))');
+describe('marketing public flow copy and NPI routing', () => {
+  it('routes marketing NPI submissions into the web app', () => {
+    // /passport is a permanent 307 stub since 2026-08-07 (#1096): bare
+    // /passport lands on /onboarding. The marketing link keeps working via
+    // that hop; retargeting NpiInput straight at /onboarding is a
+    // marketing-side change and stays out of web cleanup waves.
     expect(readMarketing('components/marketing/NpiInput.tsx')).toContain("buildWebAppUrl('/passport'");
   });
 
-  it('keeps Hero and NPI form copy free of banned overclaims', () => {
+  it('keeps marketing hero and NPI form copy free of banned overclaims', () => {
     const source = [
-      readWeb('components/hero/LiveTrustConsole.tsx'),
-      readWeb('components/marketing/Hero.tsx'),
-      readWeb('components/marketing/HeroSection.tsx'),
-      readWeb('components/marketing/NpiLookupInput.tsx'),
       readMarketing('components/marketing/HeroSection.tsx'),
       readMarketing('components/marketing/NpiInput.tsx'),
     ].join('\n');
