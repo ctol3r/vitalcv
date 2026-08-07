@@ -24,11 +24,11 @@ are not funnel steps.
 
 | Event | Fires when | Properties |
 | --- | --- | --- |
-| `homepage_viewed` | Homepage mounts, once per mount | — |
-| `npi_input_focused` | Hero NPI field first focused | — |
-| `npi_submitted` | Hero form passes 10-digit validation | — |
-| `results_displayed` | `/passport` reaches a terminal state with a viewable passport | `outcome: 'passport'` |
-| `dropoff_detected` | A run ends without a passport (see below) | `last_step`, `dropoff_reason`, `outcome`, sometimes `npi_length` |
+| `homepage_viewed` | Homepage mounts, once per mount (`CareerLoopHome` on `/`; the film rollback variant keeps its own producer) | — |
+| `npi_input_focused` | **Nothing — no live producer since 2026-08-07.** Its only producer was the hero NPI console deleted with the `/passport` retirement (#1099). Kept declared so historical events stay readable; `/api/internal/funnel-metrics` still counts it. The career loop emits `npi_input_started` at the equivalent moment. | — |
+| `npi_submitted` | Guest lane (`/onboarding`, `GetReadySurface.resolveGuest`) passes NPI validation; the homepage career loop also emits it at its own submit step | — |
+| `results_displayed` | Guest lane displays the anonymous record | `outcome: 'guest_record'` |
+| `dropoff_detected` | A guest-lane run ends without a record (see below) | `last_step`, `dropoff_reason`, `outcome` |
 | `employer_entry_clicked` | Employer entry beside the clinician action | — |
 
 Every event also carries `funnel_timestamp` and any stored UTM parameters,
@@ -40,27 +40,36 @@ attached automatically by `trackFunnelEvent`.
 
 | `outcome` | `last_step` | Meaning |
 | --- | --- | --- |
-| `invalid_length` | `npi_input_focused` | Submitted fewer or more than 10 digits — never reached submit |
-| `no_profile` | `npi_submitted` | Run completed; no NPPES profile resolved for that NPI |
-| `disconnected` | `npi_submitted` | Ingest stream dropped before a usable result |
-| `no_anchor` | `npi_submitted` | Run completed with authoritative identity but no anchor entity |
-| `error` | `npi_submitted` | Everything else that ended without a passport |
+| `organization` | `npi_submitted` | NPI resolved to a Type-2 organization, not an individual |
+| `unavailable` | `npi_submitted` | No profile, upstream outage, or rate-limit — collapsed deliberately: "unavailable" is a system state, not a finding about the NPI |
+
+Retired outcomes: `invalid_length` (fired from the deleted hero console, with
+an `npi_length` property) and `no_profile` / `disconnected` / `no_anchor` /
+`error` (fired from the retired `/passport` page) stopped producing on
+2026-08-07 (#1096/#1099). Historical events with those outcomes remain
+queryable in PostHog; nothing live emits them or `npi_length`.
 
 ## The funnel
 
 ```
-homepage_viewed          ← denominator
-  └─ npi_input_focused
-       ├─ dropoff_detected (invalid_length)
-       └─ npi_submitted
-            ├─ results_displayed (outcome: passport)   ← conversion
-            └─ dropoff_detected (no_profile | disconnected | no_anchor | error)
+homepage_viewed          ← denominator (/)
+  └─ npi_submitted       ← guest lane (/onboarding)
+       ├─ results_displayed (outcome: guest_record)   ← conversion
+       └─ dropoff_detected (organization | unavailable)
 ```
 
-Before NUM-1.6 the first and fourth rows were declared in `FUNNEL_EVENTS` but
-never fired from anywhere. With no denominator and no conversion event, no rate
-in this funnel was computable — a run that died was indistinguishable from one
-that succeeded.
+The funnel now spans two routes: the denominator fires on `/` and the terminal
+states fire from the guest lane on `/onboarding`
+(`app/get-ready/GetReadySurface.tsx`), which took over as the only producer of
+`results_displayed` when `/passport` retired (2026-08-07, #1096/#1099). The
+homepage career loop additionally emits its own richer stage events
+(`npi_input_started` → `npi_resolved` → `match_feed_viewed` → …, declared in
+`FUNNEL_EVENTS`); those measure the loop on `/`, not this acquisition funnel.
+
+Before NUM-1.6 the denominator and conversion events were declared in
+`FUNNEL_EVENTS` but never fired from anywhere. With no denominator and no
+conversion event, no rate in this funnel was computable — a run that died was
+indistinguishable from one that succeeded.
 
 ## Actor — who an event is attributed to
 
@@ -132,6 +141,7 @@ Two NUM-1.6 signals remain open:
 - **Metric render events** — which numbers rendered, with their source class,
   from `EvidenceMetric`.
 - **Chapter-reach depth** — deepest homepage chapter reached, available from
-  `ChapterProgress` (`activeId` + `subscribe`).
+  `ChapterProgress` (`activeId` + `subscribe`). Applies to the film rollback
+  variant of `/`; the career-loop homepage has no chapters.
 
 Both are additive to the schema above and do not change the funnel.
