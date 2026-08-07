@@ -197,7 +197,7 @@ curl -s https://api.vitalcv.com/health | jq -r .git_sha   # compare to origin/ma
 
 Deploy lag is normally ~4.5 minutes of build time. Two Railway services and only one migrates: the root `railway.toml` API service has `preDeployCommand = npx prisma migrate deploy`; `apps/web/railway.toml` has none and **never migrates**. So a web-tier feature that reads a new table can go live before the table exists. If the PR carried a migration, verify the API SHA and the table, not just the web surface. `api.vitalcv.com` is a second public origin — check it too when the change touches public data.
 
-Then probe the changed surface live. A red health probe immediately after deploy is often a cold start, not a broken deploy — re-probe before declaring an incident.
+Then probe the changed surface live. A red health probe immediately after deploy is often a cold start, not a broken deploy — re-probe before declaring an incident. On client-gated surfaces (state resolved after hydration — e.g. `/onboarding`, which SSRs only its "Checking your workspace…" skeleton), assert against the hydrated DOM with Playwright against production; raw-HTML grep is valid only for server-rendered content, and finding the skeleton proves only that the new bundle is deployed (ruling in `docs/ops/deploy-canonicality.md`).
 
 ## Escalate instead of merging
 

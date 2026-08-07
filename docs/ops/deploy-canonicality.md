@@ -77,6 +77,21 @@ curl -s "https://vitalcv.com/?bust=$(date +%s%N)" | grep -o "Get hired faster"
 Compare a cache-busted body against a plain one. If they match, production is
 canonical and the report is stale — do not redeploy or rebuild to "fix" it.
 
+## Route checks on client-gated surfaces (ruling, 2026-08-07)
+
+Raw-HTML grep proves only what the server renders. A client-gated surface
+serves its loading skeleton in the raw body regardless of production state:
+`/onboarding` SSRs "Checking your workspace…" because
+`apps/web/app/get-ready/GetReadySurface.tsx` initializes `phase='checking'`
+and resolves the anonymous entry state only client-side, after
+`GET /api/me/workspaces` returns 401 — so a raw-HTML assertion on its
+entry-state copy is unsatisfiable by design (PR #1090's shepherd hit exactly
+this and had to fall back ad hoc). The rule: post-deploy route checks on
+client-gated surfaces must assert against the hydrated DOM — Playwright
+against production — with raw-HTML grep reserved for server-rendered content.
+Finding the SSR skeleton in the raw body counts only as proof the new bundle
+is deployed, never as proof of the surface's real state.
+
 ## What this file cannot verify from the repo
 
 Domain→service mapping and environment variables live in Railway's dashboard, not
