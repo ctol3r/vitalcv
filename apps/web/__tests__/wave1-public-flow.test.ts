@@ -10,11 +10,11 @@ function readMarketing(relativePath: string): string {
 
 describe('marketing public flow copy and NPI routing', () => {
   it('routes marketing NPI submissions into the web app', () => {
-    // /passport is a permanent 307 stub since 2026-08-07 (#1096): bare
-    // /passport lands on /onboarding. The marketing link keeps working via
-    // that hop; retargeting NpiInput straight at /onboarding is a
-    // marketing-side change and stays out of web cleanup waves.
-    expect(readMarketing('components/marketing/NpiInput.tsx')).toContain("buildWebAppUrl('/passport'");
+    // The marketing origin targets /onboarding directly: the /passport stub
+    // (#1096) 307s without forwarding ?npi=, so routing through it dropped
+    // the NPI the visitor typed. /onboarding accepts ?npi= as the
+    // cross-origin carrier (lib/onboarding/npiHandoff.ts).
+    expect(readMarketing('components/marketing/NpiInput.tsx')).toContain("buildWebAppUrl('/onboarding'");
   });
 
   it('keeps marketing hero and NPI form copy free of banned overclaims', () => {

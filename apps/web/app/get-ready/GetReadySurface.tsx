@@ -57,7 +57,7 @@ import {
   isOrganization,
   type ClinicianCareerProfile,
 } from '@/lib/career-loop/profile';
-import { readNpiHandoff, writeNpiHandoff } from '@/lib/onboarding/npiHandoff';
+import { readNpiHandoff, readNpiQueryHandoff, writeNpiHandoff } from '@/lib/onboarding/npiHandoff';
 import { trackPilotEvent } from '@/lib/pilot-ops/client';
 import { FUNNEL_EVENTS, trackFunnelEvent } from '@/lib/analytics/funnel';
 import { UX_EVENTS } from '@/lib/analytics/ux-events';
@@ -178,10 +178,12 @@ export default function GetReadySurface() {
         if (cancelled) return;
         if (res.status === 401) {
           setPhase('signed_out');
-          // Record-first: an NPI carried from the homepage resolved state (or
-          // a previous visit) resolves immediately — the visitor sees their
-          // public record before any account ask.
-          const carried = readNpiHandoff();
+          // Record-first: an NPI carried from the homepage resolved state, a
+          // previous visit, or a cross-origin arrival (the marketing site's
+          // NPI form links here with ?npi=) resolves immediately — the
+          // visitor sees their public record before any account ask. The
+          // query param wins over storage: it is the fresher intent.
+          const carried = readNpiQueryHandoff() ?? readNpiHandoff();
           if (carried) {
             setGuestNpiInput(carried);
             void resolveGuest(carried);
@@ -204,8 +206,9 @@ export default function GetReadySurface() {
           setPhase('already_bound');
         } else {
           // Continuity after sign-in: prefill the binding form with the NPI
-          // the visitor already resolved anonymously, so nothing is re-typed.
-          const carried = readNpiHandoff();
+          // the visitor already resolved anonymously (or carried in ?npi=),
+          // so nothing is re-typed.
+          const carried = readNpiQueryHandoff() ?? readNpiHandoff();
           if (carried) setNpiInput(carried);
           setPhase('intro');
         }
