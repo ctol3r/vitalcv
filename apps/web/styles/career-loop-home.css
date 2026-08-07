@@ -56,6 +56,12 @@
    rooms breathing room so the target's opening line is not buried. */
 .clh-room[id]{scroll-margin-top:4.5rem}
 
+/* The sticky header occupies 64px of flow above .clh. With the bar
+   transparent at rest (its approved state), that strip shows the body
+   background — which is not this page's ivory. Match the page material so
+   the transparent bar sits on one continuous surface. */
+body:has(.clh){--clh-page:#F4F2ED;background:var(--clh-page)}
+
 /* Development chrome must not contaminate a design review. Scoped to this
    page only — the global component is untouched. */
 body:has(.clh) [class*="FeedbackButton"],

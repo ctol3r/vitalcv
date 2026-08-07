@@ -35,8 +35,16 @@ export interface HeaderScene {
 
 const SCENE_SELECTOR = '[data-header-theme], [data-header-stage]';
 
-/** The observation band: the strip of viewport directly under the header. */
-const BAND_ROOT_MARGIN = '0px 0px -88% 0px';
+/**
+ * The observation band: the top 35% of the viewport. A section takes the
+ * header as it becomes the reader's context — slightly before it slides
+ * under the bar, which reads as the header anticipating the scene (the
+ * 300ms surface transition covers the hand-off). The band is deliberately
+ * NOT a thin strip at the header line: a final section shorter than the
+ * remaining viewport can never reach a thin top band before the page
+ * bottoms out, and would be unreachable by scroll.
+ */
+const BAND_ROOT_MARGIN = '0px 0px -65% 0px';
 
 export function useHeaderScene(defaults: HeaderScene): HeaderScene {
   const [declared, setDeclared] = useState<Partial<HeaderScene>>({});
