@@ -49,6 +49,7 @@ import {
   type BoundIdentitySummary,
 } from '@/lib/get-ready/npi-binding';
 import EmailVerification from '@/components/get-ready/EmailVerification';
+import { activationHeaderStage } from '@/lib/activation/headerStage';
 import { OnboardingReadiness } from '@/components/onboarding/OnboardingReadiness';
 
 type Phase =
@@ -398,7 +399,7 @@ export default function GetReadySurface() {
   /* ── Success ── */
   if (phase === 'success' && summary) {
     return (
-      <Shell>
+      <Shell headerStage={activationHeaderStage(phase)}>
         <GateIcon done />
         <Header
           title={summary.isOrganizationNpi ? 'Organization NPI detected' : 'NPPES identity record matched'}
@@ -698,9 +699,17 @@ const primaryBtn =
 const secondaryBtn =
   'inline-flex w-full items-center justify-center gap-2 rounded-[3px] border border-[var(--vt-border)] bg-transparent px-7 py-3.5 text-sm font-semibold text-[var(--vt-text-primary)] transition-colors duration-300 ease-out hover:border-[var(--vt-text-muted)] hover:bg-[color-mix(in_oklab,var(--vt-text-primary)_5%,transparent)] active:translate-y-px motion-reduce:transform-none';
 
-function Shell({ children }: { children: React.ReactNode }) {
+function Shell({ children, headerStage }: { children: React.ReactNode; headerStage?: string }) {
   return (
-    <div className="mz mz-paper grid min-h-screen text-[var(--vt-text-primary)] lg:grid-cols-2">
+    <div
+      className="mz mz-paper grid min-h-screen text-[var(--vt-text-primary)] lg:grid-cols-2"
+      // Scene contract for the shared header (FR-6). Declared only when a
+      // phase has real server confirmation behind it — see
+      // lib/activation/headerStage.ts. Undeclared phases fall back to the
+      // route default (Your Number).
+      data-header-stage={headerStage}
+      data-header-theme={headerStage ? 'light' : undefined}
+    >
       <div className="flex items-center justify-center px-6 py-12">
         <div className="w-full max-w-md text-center">{children}</div>
       </div>
