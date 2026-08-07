@@ -30,22 +30,57 @@ closure step was never executed.** 225 PRs were sentenced to close on 08-02;
 
 ## The capacity problem, quantified
 
-- ~15–16 check jobs fire per push on a full-stack branch (12 on docs-only
-  after path filters). Observed: 16 on #852, 15 on #853/#1076, 14 on #1066,
-  12 on #891/#986. This matches the required-context growth (2 → 5 → 7 → 14)
-  recorded in CLAUDE.md.
-- The backlog's standing cost is **event-multiplied**. Check-run and
-  `updated_at` timestamps on the stale PRs I inspected cluster into bulk
-  events — 2026-03-22 ~04:20 (all 43 ancient PRs touched at the same second),
-  2026-07-26 18:15–18:43 (#439–442, #748, #574 all re-fired), 2026-08-02
-  18:39–18:51 (#582, #852, #853 re-fired full suites). Something (bulk
-  "update branch" / re-run sweeps) periodically walks stale branches and
-  re-fires their gates. 194 stale branches × ~15 jobs ≈ **~2,900 runner jobs
-  per sweep**, for PRs that will never merge.
-- The backlog also destroyed signal: with 216 open, the ~13 PRs that are
-  actually waiting on a human (§4, §5) are invisible.
-- The backlog is still growing: during the two hours of this audit, at least
-  7 new PRs (#1110–#1116) were opened. They are outside this snapshot.
+There are **two distinct mechanisms**, and they need different fixes. A live
+measurement taken during this audit separates them.
+
+**Per-PR gate cost.** ~15–16 check jobs fire per push on a full-stack branch,
+12–14 on docs-only. Observed: 16 on #852, 15 on #853/#1076, 14 on #1066/#1122,
+12 on #891/#986. This matches the required-context growth (2 → 5 → 7 → 14)
+recorded in CLAUDE.md. Note the floor: this document's own docs-only PR
+(#1122) fired **14** runs. Path filters do not rescue much, and per
+`public-claims-gate.yml` they *cannot* be applied to required checks at all —
+a filtered workflow is skipped, its check run is never created, and a required
+check that never reports blocks the PR forever.
+
+**Mechanism 1 — acute: burst concurrency from parallel lanes (this is what is
+saturating runners right now).** Measured 2026-08-07 20:23 UTC:
+**115 workflow runs queued against 9 in progress** — a ~12:1 backlog. Of 60
+queued runs sampled, every one came from six *active* branches, all created
+inside a four-minute window (20:09–20:13):
+
+| Queued runs | Branch |
+|---|---|
+| 13 | `claude/retire-marketing-dead-code` |
+| 12 | `claude/pr-backlog-disposition-g5nufa` (this document) |
+| 11 | `claude/funnel-metrics-live-events` |
+| 11 | `chore/retire-orphaned-routes` |
+| 9 | `main` (push) |
+| 4 | `claude/bitstring-status-list` |
+
+Several agent lanes opening PRs concurrently, each firing ~12–15 runs, with
+**no `concurrency` group anywhere to deduplicate superseded runs**. The stale
+backlog contributed *nothing* to this particular jam.
+
+**Mechanism 2 — standing: sweep amplification across stale branches.** Check-run
+and `updated_at` timestamps on the stale PRs cluster into bulk events —
+2026-03-22 ~04:20 (all 43 ancient PRs touched at the same second), 2026-07-26
+18:15–18:43 (#439–442, #748, #574 re-fired), 2026-08-02 18:39–18:51 (#582,
+#852, #853 re-fired full suites). Something periodically walks stale branches
+and re-fires their gates: 194 stale branches × ~15 jobs ≈ **~2,900 runner jobs
+per sweep**, for PRs that will never merge. Live confirmation during this
+audit: #891 — a flask bump green since **July 26** — was *in progress again*
+at 20:23, re-validating a two-week-old green while active lanes waited.
+
+So: closing the backlog (§1) removes the periodic ~2,900-job spikes and the
+signal loss, but **it will not by itself fix day-to-day queue times** — that
+needs concurrency groups and lane admission control (§7.3, §7.4). Reporting
+only the backlog number would have mis-prescribed the fix.
+
+**Signal loss.** With 216 open, the ~13 PRs actually waiting on a human
+(§4, §5) are invisible. That cost is entirely attributable to the backlog.
+
+**Still growing.** During the two hours of this audit at least 7 new PRs
+(#1110–#1116) were opened, outside this snapshot.
 
 ## Bucket totals
 
@@ -196,23 +231,32 @@ not closures.** Recommendations, strongest first:
    which is only valid with a named unblock condition and a 60-day expiry
    (re-affirm or it closes). This bounds the backlog at ~5 weeks of true
    inactivity, forever.
-3. **Cap open PRs via wave discipline (net-zero rule).** Above a threshold
-   (suggest 25 open), a wave may not open more PRs than it merges or closes.
-   GitHub has no native cap, so enforce with a nightly job that fails/
-   notifies when `open_count > 25`, and make the count part of the wave
-   ledger. The Aug 7 lane (9 PRs in 15 minutes) is fine *if* it lands; it
-   must not be possible on top of 200 corpses.
-4. **Kill the bulk re-fire vector.** The Mar 22 / Jul 26 / Aug 2 sweeps
+3. **Add `concurrency` groups — the highest-leverage fix for day-to-day queue
+   time, and it is independent of the backlog.** No workflow currently
+   declares one, so every superseded push keeps its runners. Add
+   `concurrency: { group: <workflow>-${{ github.event.pull_request.number || github.ref }}, cancel-in-progress: true }`
+   to every `pull_request` workflow. On the 20:13 sample this alone would
+   have freed a large share of the 115-deep queue, since the same branches
+   had stacked multiple generations of runs. **Do not** reach for path
+   filters instead: per `public-claims-gate.yml`, filtering a *required*
+   check makes it skip, never report, and block the PR forever.
+4. **Lane admission control + a net-zero rule.** Two limits, because the
+   Aug 7 jam was concurrency, not count: (a) cap *simultaneously active
+   agent lanes* — 4+ lanes each firing ~13 gates within four minutes will
+   saturate any runner pool regardless of backlog size; (b) above a
+   threshold (suggest 25 open), a wave may not open more PRs than it merges
+   or closes, enforced by a nightly job that notifies when
+   `open_count > 25`, with the count recorded in the wave ledger.
+5. **Kill the bulk re-fire vector.** The Mar 22 / Jul 26 / Aug 2 sweeps
    re-ran full gate suites across stale branches with zero merges to show
-   for it. Disable auto-"update branch" on anything labeled `stale`/`parked`,
-   and add `concurrency: { group: pr-<number>, cancel-in-progress: true }`
-   to the remaining heavyweight workflows so a rebase storm costs one run,
-   not N.
-5. **Parked means draft + label + condition + small.** Never a title-only
+   for it, and #891 was observed re-running a two-week-old green mid-audit.
+   Disable auto-"update branch" on anything labeled `stale`/`parked`, and
+   do not re-fire gates on a branch whose PR nobody intends to merge.
+6. **Parked means draft + label + condition + small.** Never a title-only
    "DO NOT MERGE" on a non-draft PR (#506 sat mergeable-looking for five
    weeks). And prefer *close-and-recut-at-arm-time* for small parked diffs:
    #506's 222 lines cost less to re-cut than to keep alive.
-6. **Let dependabot manage dependabot.** Red/conflicting bumps get
+7. **Let dependabot manage dependabot.** Red/conflicting bumps get
    `@dependabot recreate`, not hand-rebasing; superseded bumps (#582 vs
    #1031) get closed the day the superseding PR merges.
 
@@ -436,5 +480,13 @@ Close all; anything still wanted is a re-cut from main.
 [`open-pr-disposition-2026-08-02.md`](open-pr-disposition-2026-08-02.md);
 that document's Tier-S sentence stands and is re-affirmed here with
 merge-tree evidence. Verification data (merge bases, merge-tree results,
-check-run enumerations) gathered 2026-08-07 19:50–21:40 UTC against
-`main@f0b3749d3f8`.*
+check-run enumerations, and the 20:23 UTC runner-queue measurement) gathered
+2026-08-07 19:50–20:30 UTC against `main@f0b3749d3f8`.*
+
+*Known limits of this snapshot: bucket (b)/(c) assignments for the 147-PR
+April–May cohort rest on merge-tree status plus the 2026-08-02 audit's
+spot-checks, not on per-PR archaeology of whether each intent landed —
+consistent with that document's stated method. PRs #1110–#1116, opened
+during the audit, are untriaged. The queue measurement is a single sample;
+if the concurrency-group change in §7.3 is made, re-measure before judging
+its effect.*
