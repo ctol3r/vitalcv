@@ -101,7 +101,7 @@ describe('header route context', () => {
 
   it('makes the rail interactive only on the homepage', () => {
     expect(getHeaderRouteContext('/').railInteractive).toBe(true);
-    for (const path of ['/employers', '/trust', '/onboarding', '/passport', '/status']) {
+    for (const path of ['/employers', '/trust', '/onboarding', '/status']) {
       expect(getHeaderRouteContext(path).railInteractive).toBe(false);
     }
   });

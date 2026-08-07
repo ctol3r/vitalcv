@@ -105,7 +105,7 @@ export function getHeaderRouteContext(pathname: string): HeaderRouteContext {
   }
 
   // The profile a clinician holds, and where it came from.
-  if (matches(pathname, '/passport') || matches(pathname, '/explore')) {
+  if (matches(pathname, '/explore')) {
     return {
       audience: 'clinician',
       cta: CLINICIAN_CTA,

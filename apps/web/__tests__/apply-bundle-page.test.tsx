@@ -130,6 +130,6 @@ describe('/apply/[requestUri] — not-found boundary', () => {
     const html = renderToStaticMarkup(<ApplyLinkNotFound />);
     expect(html).toContain('Link not found');
     expect(html).toContain('This link is invalid or has been revoked.');
-    expect(html).toContain('href="/passport"');
+    expect(html).toContain('href="/onboarding"');
   });
 });

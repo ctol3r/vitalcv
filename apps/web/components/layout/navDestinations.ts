@@ -36,7 +36,6 @@ export const NAV_GROUPS: readonly NavGroup[] = [
     blurb: 'One reusable profile, built from the sources employers already trust.',
     links: [
       { href: '/onboarding', label: 'Build your profile', detail: 'Begin with your NPI' },
-      { href: '/passport', label: 'Your VitalCV profile', detail: 'What travels, and what you hold' },
       { href: '/opportunities/discover', label: 'Opportunities', detail: 'Roles that fit the profile you hold' },
     ],
   },

@@ -58,6 +58,9 @@ import {
   type ClinicianCareerProfile,
 } from '@/lib/career-loop/profile';
 import { readNpiHandoff, writeNpiHandoff } from '@/lib/onboarding/npiHandoff';
+import { trackPilotEvent } from '@/lib/pilot-ops/client';
+import { FUNNEL_EVENTS, trackFunnelEvent } from '@/lib/analytics/funnel';
+import { UX_EVENTS } from '@/lib/analytics/ux-events';
 import type { Bootstrap } from '@/components/home/evidence/evidenceCapsuleModel';
 import type { TrustState } from '@/components/readiness/sourceCheckNarration';
 
@@ -232,6 +235,13 @@ export default function GetReadySurface() {
     }
     setGuestError(null);
     setGuestStep('resolving');
+    // Funnel continuity after /passport's retirement (2026-08-07): this lane
+    // is now the anonymous acquisition funnel. NPI_SUBMITTED marks the start;
+    // the terminal states below fire RESULTS_DISPLAYED / DROPOFF_DETECTED —
+    // the conversion pair the retired page was the only producer of. No NPI
+    // is attached: a SHA-256 of a 10-digit number is brute-forceable in
+    // seconds, so hashing it would not make it anonymous.
+    trackFunnelEvent(FUNNEL_EVENTS.NPI_SUBMITTED);
     try {
       const [bootRes, trust] = await Promise.all([
         fetch(`/api/identity/bootstrap/${check.npi}`, { cache: 'no-store' }),
@@ -251,15 +261,44 @@ export default function GetReadySurface() {
         writeNpiHandoff(check.npi);
         setGuestProfile(profile);
         setGuestStep('resolved');
+        trackFunnelEvent(FUNNEL_EVENTS.RESULTS_DISPLAYED, { outcome: 'guest_record' });
+        // KPI continuity: passport_viewed is a named pilot-ops funnel step
+        // whose only producer was the retired /passport page. It now marks
+        // the honest equivalent moment — the anonymous record actually
+        // displayed (a stricter trigger than the old page-view, so the
+        // count can only get more truthful, not inflated).
+        void trackPilotEvent({
+          eventType: UX_EVENTS.PASSPORT_VIEWED,
+          route: '/onboarding',
+          oncePerSession: true,
+          message: 'Anonymous record displayed',
+        });
       } else if (isOrganization(boot)) {
         setGuestStep('organization');
+        trackFunnelEvent(FUNNEL_EVENTS.DROPOFF_DETECTED, {
+          last_step: FUNNEL_EVENTS.NPI_SUBMITTED,
+          dropoff_reason: 'error',
+          outcome: 'organization',
+        });
       } else {
         // The upstream contract collapses no-result / outage / rate-limit —
         // "unavailable" is a system state, not a finding about the NPI.
         setGuestStep('unavailable');
+        trackFunnelEvent(FUNNEL_EVENTS.DROPOFF_DETECTED, {
+          last_step: FUNNEL_EVENTS.NPI_SUBMITTED,
+          dropoff_reason: 'error',
+          outcome: 'unavailable',
+        });
       }
     } catch {
-      if (mountedRef.current) setGuestStep('unavailable');
+      if (mountedRef.current) {
+        setGuestStep('unavailable');
+        trackFunnelEvent(FUNNEL_EVENTS.DROPOFF_DETECTED, {
+          last_step: FUNNEL_EVENTS.NPI_SUBMITTED,
+          dropoff_reason: 'error',
+          outcome: 'unavailable',
+        });
+      }
     }
   }
 

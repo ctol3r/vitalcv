@@ -102,7 +102,6 @@ const PREFIX_MATCHERS = [
   '/demo',
   '/sign-in',
   '/sign-up',
-  '/passport',
   '/review',
   '/employers',
   '/opportunities',
