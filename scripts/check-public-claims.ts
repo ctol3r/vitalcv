@@ -51,6 +51,12 @@ const PROHIBITED_CLAIMS: ReadonlyArray<{ phrase: string; fix: string }> = [
   { phrase: 'clinicians start faster', fix: 'Speed hero retired (brand split 2026-07-26) — describe the experience, not the pace.' },
   { phrase: 'start faster', fix: 'Speed hero retired (brand split 2026-07-26) — describe the work removed, not the clock.' },
   { phrase: 'hired faster', fix: 'Speed hero retired (brand split 2026-07-26) — no unmeasured time-to-hire claim.' },
+  // Wedge-era root meta description relics, banned 2026-08-07 (copy-guard
+  // ruling wave). Scoped narrowly: "readiness in 30 seconds" is the speed
+  // overclaim; a plain "in 30 seconds" would also catch the verifier guide's
+  // honest reading-time note, so the readiness framing is the target.
+  { phrase: 'readiness in 30 seconds', fix: 'An unmeasured speed claim (brand split 2026-07-26). Describe what the visitor sees, not how fast.' },
+  { phrase: 'live federal data', fix: 'Only NPPES is read per request; OIG/PECOS are snapshots. Name the cadence per source (lane registry), never a blanket "live".' },
   { phrase: 'days, not months', fix: 'An unmeasured time-to-start claim. Remove until a pilot measures it, then state the measured number.' },
   { phrase: 'days not months', fix: 'An unmeasured time-to-start claim. Remove until a pilot measures it, then state the measured number.' },
   { phrase: 'weeks to days', fix: 'An unmeasured time-to-start claim. Remove until a pilot measures it, then state the measured number.' },
