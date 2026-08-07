@@ -1,21 +1,20 @@
 {
   "baseUrl": "http://localhost:3062",
   "label": "after",
-  "capturedAt": "2026-08-07T10:24:20.630Z",
+  "capturedAt": "2026-08-07T14:53:50.226Z",
   "routes": {
     "/employers": {
-      "scrollHeight": 3262,
+      "scrollHeight": 3145,
       "scrollWidth": 1440,
       "innerWidth": 1440,
       "title": "For Employers · VitalCV — VitalCV",
       "horizontalOverflow": false,
       "consoleErrors": [],
       "failedRequests": [
-        "http://localhost:3062/?_rsc=MXABT8tckXANW7yL — net::ERR_ABORTED",
-        "http://localhost:3062/sign-in?_rsc=MXABT8tckXANW7yL — net::ERR_ABORTED"
+        "http://localhost:3062/?_rsc=MXABT8tckXANW7yL — net::ERR_ABORTED"
       ],
       "mobile": {
-        "scrollHeight": 4571,
+        "scrollHeight": 4118,
         "scrollWidth": 390,
         "innerWidth": 390,
         "horizontalOverflow": false
