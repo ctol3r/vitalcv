@@ -14,11 +14,13 @@ function readMarketing(relativePath: string): string {
 }
 
 describe('Wave 1 public pilot flow copy and NPI routing', () => {
-  it('routes marketing NPI submissions to the canonical passport intake', () => {
+  it('routes NPI submissions to their canonical intake surfaces', () => {
     expect(readWeb('components/marketing/NpiLookupInput.tsx')).toContain('router.push(buildPassportLookupHref(trimmed))');
     expect(readWeb('components/marketing/Hero.tsx')).toContain('router.push(buildPassportLookupHref(normalizedNpi))');
     expect(readWeb('components/marketing/HeroSection.tsx')).toContain('router.push(buildPassportLookupHref(normalizedNpi))');
-    expect(readMarketing('components/marketing/NpiInput.tsx')).toContain("buildWebAppUrl('/passport'");
+    // The marketing origin targets /onboarding directly (the /passport wedge
+    // was retired in #1096 — a stub there 307s without forwarding ?npi=).
+    expect(readMarketing('components/marketing/NpiInput.tsx')).toContain("buildWebAppUrl('/onboarding'");
   });
 
   it('keeps Hero and NPI form copy free of banned overclaims', () => {
