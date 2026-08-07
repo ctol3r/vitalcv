@@ -121,7 +121,7 @@ export const SOURCE_LANE_OPS: readonly SourceLaneOps[] = [
     statusApiKey: 'state_license',
     statusApiStatus: 'pending_integration',
     detail:
-      'Licensure is routed nationally (FSMB for physicians, Nursys for nursing) with direct boards as a fallback. No licensure route has completed a production run, so no licence record can be read today.',
+      'Licensure is routed nationally (FSMB for physicians, Nursys for nursing) with direct boards as a fallback. No licensure route has completed a production run, so no license record can be read today.',
     readCadence: 'not_read',
     cadenceLabel: 'access-gated',
     readinessDimension: 'licensure',

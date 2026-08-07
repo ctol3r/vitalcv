@@ -79,7 +79,6 @@ export function EmployerEvidenceSection() {
       panel: (
         <EvidenceInspector
           title={`${lane.marketingShortName} — what this lane returns`}
-          recordId={lane.laneId}
           facts={[
             {
               label: 'Standing',
@@ -93,10 +92,10 @@ export function EmployerEvidenceSection() {
             // blank reads as "unknown" when the truth is "the registry does not
             // record one" (CD-1: uncertainty rendered as confidently as fact).
             {
-              label: 'Behaviour',
-              value: lane.detail ?? 'The registry records no behaviour note for this lane.',
-              source: 'lib/trust/sourceLanes.ts',
-              asOf: 'lane registry',
+              label: 'Behavior',
+              value: lane.detail ?? 'The registry records no behavior note for this lane.',
+              source: 'VitalCV lane registry',
+              asOf: 'as published on /status',
             },
             {
               label: 'Readiness',
@@ -105,7 +104,7 @@ export function EmployerEvidenceSection() {
               asOf: lane.cadenceLabel,
             },
           ]}
-          doesNotDecide="Whether this clinician may practise at your facility. A lane result is evidence for your review, not a credentialing decision."
+          doesNotDecide="Whether this clinician may practice at your facility. A lane result is evidence for your review, not a credentialing decision."
         />
       ),
     };
