@@ -17,6 +17,13 @@ on:
         required: false
         default: 'all'
 
+# Cancel superseded runs on the same ref — never on main — so a stale push's
+# gate runs release their hosted runners instead of starving the pool.
+# Invariant enforced by scripts/check-workflow-concurrency.js.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
 permissions:
   contents: read
   pull-requests: write
