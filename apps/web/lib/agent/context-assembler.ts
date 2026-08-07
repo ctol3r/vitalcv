@@ -13,11 +13,13 @@
  */
 import { createToolRegistry, type ToolRegistry } from './tools/registry';
 import { buildStartAgentTools, type CanonicalReaders } from './tools/canonical-tools';
-import type {
-  EvidenceRef,
-  SourceObservationState,
-  StartAgentContext,
-  SubjectRef,
+import {
+  AGENT_ACTION_TYPES,
+  type AgentActionType,
+  type EvidenceRef,
+  type SourceObservationState,
+  type StartAgentContext,
+  type SubjectRef,
 } from './types';
 
 export interface AssembledContext {
@@ -138,7 +140,7 @@ export async function assembleStartAgentContext(options: AssembleOptions): Promi
         { npi },
       );
       if (result.available) {
-        const refs = result.opportunityRefs ?? [];
+        const refs = [...(result.opportunityRefs ?? [])].sort();
         opportunities =
           refs.length > 0
             ? {
@@ -161,6 +163,63 @@ export async function assembleStartAgentContext(options: AssembleOptions): Promi
     } catch {
       inputGaps.push('opportunity_retrieval');
     }
+  }
+
+  // Agent consent ledger — only GRANTED scopes enter the context. A revoked
+  // or absent scope is simply not a consent; asks are derived from need, and
+  // a failed ledger read hides granted work (safe) rather than inventing it.
+  let consents: StartAgentContext['consents'] = [];
+  try {
+    const result = await registry.execute<{
+      states: Array<{ scope: string; granted: boolean; eventRef: string; at: string }>;
+    }>('consent_state_retrieval', { subjectRef: subject.profileRef });
+    consents = result.states
+      .filter((state) => state.granted)
+      .map((state) => ({
+        scope: state.scope,
+        granted: true,
+        evidenceRefs: [
+          {
+            kind: 'system_record' as const,
+            ref: `consent_event:${state.eventRef}`,
+            provenance: 'platform_record' as const,
+            observedAt: state.at,
+          },
+        ],
+      }))
+      .sort((a, b) => (a.scope < b.scope ? -1 : a.scope > b.scope ? 1 : 0));
+  } catch {
+    inputGaps.push('consent_state_retrieval');
+  }
+
+  // Prior agent action outcomes — feeds completed-suppression and the
+  // repeated-failure pause. A failed read degrades to no history (the plan
+  // may re-recommend; execution-side records still exist).
+  let actionHistory: StartAgentContext['actionHistory'] = [];
+  try {
+    const result = await registry.execute<{
+      entries: Array<{
+        actionId: string;
+        actionType: string;
+        outcome: 'completed' | 'failed' | 'dismissed';
+        at: string;
+        failureCount?: number;
+      }>;
+    }>('action_history_retrieval', { subjectRef: subject.profileRef });
+    actionHistory = result.entries
+      .filter((entry): entry is typeof entry & { actionType: AgentActionType } =>
+        (AGENT_ACTION_TYPES as readonly string[]).includes(entry.actionType),
+      )
+      .map((entry) => ({
+        actionId: entry.actionId,
+        type: entry.actionType,
+        outcome: entry.outcome,
+        at: entry.at,
+        ...(entry.failureCount !== undefined ? { failureCount: entry.failureCount } : {}),
+      }))
+      .sort((a, b) => (a.actionId < b.actionId ? -1 : a.actionId > b.actionId ? 1 : 0));
+  } catch {
+    inputGaps.push('action_history_retrieval');
   }
 
   const context: StartAgentContext = {
@@ -188,11 +247,13 @@ export async function assembleStartAgentContext(options: AssembleOptions): Promi
             ]
           : [],
     },
-    observations,
+    observations: [...observations].sort((a, b) =>
+      a.laneId < b.laneId ? -1 : a.laneId > b.laneId ? 1 : 0,
+    ),
     readiness: { status: 'unknown', determinedBy: 'unavailable', evidenceRefs: [] },
     opportunities,
-    consents: [],
-    actionHistory: [],
+    consents,
+    actionHistory,
     collectedAt: options.now,
     contextClass: options.contextClass,
   };

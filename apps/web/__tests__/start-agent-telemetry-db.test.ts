@@ -79,7 +79,7 @@ describe.skipIf(SKIP)('agent telemetry persistence (real Postgres)', () => {
     expect(run).not.toBeNull();
     expect(run!.planId).toBe(plan.planId);
     expect(run!.policyVersion).toBe('start-policy-v1');
-    expect(run!.toolsetVersion).toBe('start-toolset-v1');
+    expect(run!.toolsetVersion).toBe('start-toolset-v2');
     expect(run!.selectedActionId).toBe(plan.rankedActionIds[0]);
     expect(run!.inputGaps).toEqual(['opportunity_retrieval']);
 

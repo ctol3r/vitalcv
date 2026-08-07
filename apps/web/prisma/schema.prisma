@@ -277,3 +277,25 @@ model AgentEvent {
   @@index([relatedKind, relatedRef])
   @@map("agent_events")
 }
+
+// FOUNDER WAVE A1 — agent consent ledger (mirror of the backend model;
+// migration lives in apps/api/backend/prisma/migrations/20260807120000_agent_consents).
+// Append-only granted/revoked events written ONLY through
+// apps/web/lib/agent/consent/consent-store.ts, audit-first in one
+// transaction. Current state = fold over the latest event per
+// (subjectRef, scope). Never updated or deleted.
+model AgentConsentEvent {
+  id         String   @id @default(uuid()) @db.Uuid
+  subjectRef String   @map("subject_ref")
+  scope      String
+  kind       String
+  eventHash  String   @map("event_hash")
+  actionId   String?  @map("action_id")
+  planId     String?  @map("plan_id")
+  metadata   Json     @default("{}")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([subjectRef, scope, createdAt])
+  @@index([createdAt])
+  @@map("agent_consent_events")
+}

@@ -4438,3 +4438,33 @@ model StatusListState {
 
   @@map("status_list_state")
 }
+
+/// FOUNDER WAVE A1 — agent consent ledger (the authorization layer).
+///
+/// Append-only granted/revoked events; current state is a fold over the
+/// latest event per (subject_ref, scope). Revocation is a state, never a
+/// deletion, and re-grant after revoke is a NEW event (event_hash covers the
+/// event id, so the cycle is representable — deliberately unlike
+/// ConsentGrant's content-addressed grant_hash).
+///
+/// This ledger answers "may the agent run this?". The immutable disclosure
+/// record for an EXERCISED share remains the canonical ConsentGrant, minted
+/// by the canonical capability (e.g. the apply-intent seal transaction) at
+/// execution time; agent events reference it in metadata. Revoking a scope
+/// here gates future agent execution only — it does not recall a share that
+/// already ran (that remains the BundleShareEvent revocation surface).
+model AgentConsentEvent {
+  id         String   @id @default(uuid()) @db.Uuid
+  subjectRef String   @map("subject_ref")
+  scope      String
+  kind       String
+  eventHash  String   @map("event_hash")
+  actionId   String?  @map("action_id")
+  planId     String?  @map("plan_id")
+  metadata   Json     @default("{}")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([subjectRef, scope, createdAt])
+  @@index([createdAt])
+  @@map("agent_consent_events")
+}

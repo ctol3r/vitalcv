@@ -46,6 +46,37 @@ export interface CanonicalReaders {
   }> | null>;
   /** Canonical opportunity read for the subject. */
   readOpportunities(npi: string): Promise<{ opportunityRefs: string[] } | null>;
+  /** Agent consent ledger fold for the subject (A1). */
+  readAgentConsents(subjectRef: string): Promise<Array<{
+    scope: string;
+    granted: boolean;
+    eventRef: string;
+    at: string;
+  }>>;
+  /** Prior agent action outcomes for the subject, from the telemetry store (A1). */
+  readActionHistory(subjectRef: string): Promise<Array<{
+    actionId: string;
+    actionType: string;
+    outcome: 'completed' | 'failed' | 'dismissed';
+    at: string;
+    failureCount?: number;
+  }>>;
+  /** Level-2 execution: trigger the canonical public-source refresh (A1). */
+  triggerSourceRefresh(npi: string): Promise<{ requested: boolean; computedAt?: string } | null>;
+  /**
+   * Level-3 execution: the canonical apply-share (`POST /api/apply/share`)
+   * with a server-resolved recipient via opportunityId (A1). `blocked` maps
+   * the canonical authz refusal (ownership not verified/delegated).
+   */
+  executeApplyShare(input: {
+    npi: string;
+    opportunityRef: string;
+    purpose: string;
+  }): Promise<
+    | { shareId: string; recipientName?: string; status: string; sharedAt?: string }
+    | { blocked: 'canonical_ownership_authz' }
+    | null
+  >;
 }
 
 const NPI_INPUT = { fields: { npi: { type: 'string' as const, required: true } } };
@@ -203,6 +234,102 @@ export function buildStartAgentTools(readers: CanonicalReaders): AgentTool[] {
     },
   };
 
+  const consentStateRetrieval: AgentTool = {
+    id: 'consent_state_retrieval',
+    description: 'Reads the agent consent ledger fold for the subject. Absent or revoked scopes simply do not appear as granted — never guessed.',
+    requiredPermission: 'observe',
+    inputSchema: { fields: { subjectRef: { type: 'string', required: true } } },
+    outputSchema: {
+      fields: {
+        states: { type: 'array', required: true },
+      },
+    },
+    async execute(input) {
+      const { subjectRef } = input as { subjectRef: string };
+      const states = await readers.readAgentConsents(subjectRef);
+      return { states };
+    },
+  };
+
+  const actionHistoryRetrieval: AgentTool = {
+    id: 'action_history_retrieval',
+    description: 'Reads prior agent action outcomes for the subject from the telemetry store, so completed work is never re-recommended and repeated failures pause.',
+    requiredPermission: 'observe',
+    inputSchema: { fields: { subjectRef: { type: 'string', required: true } } },
+    outputSchema: {
+      fields: {
+        entries: { type: 'array', required: true },
+      },
+    },
+    async execute(input) {
+      const { subjectRef } = input as { subjectRef: string };
+      const entries = await readers.readActionHistory(subjectRef);
+      return { entries };
+    },
+  };
+
+  const triggerSourceRefresh: AgentTool = {
+    id: 'trigger_source_refresh',
+    description:
+      'Level 2 execution: triggers the canonical trust-state refresh (a public-source re-read). The canonical service records its own artifacts and audit rows; this tool asserts nothing about the outcome.',
+    requiredPermission: 'prepare',
+    inputSchema: NPI_INPUT,
+    outputSchema: {
+      fields: {
+        requested: { type: 'boolean', required: true },
+        computedAt: { type: 'string' },
+      },
+    },
+    async execute(input) {
+      const { npi } = input as { npi: string };
+      const result = await readers.triggerSourceRefresh(npi);
+      if (!result || !result.requested) return { requested: false };
+      return { requested: true, ...(result.computedAt ? { computedAt: result.computedAt } : {}) };
+    },
+  };
+
+  const executeApplyShare: AgentTool = {
+    id: 'execute_apply_share',
+    description:
+      'Level 3 execution: the canonical apply-share with a server-resolved recipient (opportunityId). Runs ONLY under a ConsentProof; the canonical route additionally refuses unless NPI ownership is verified or delegated.',
+    requiredPermission: 'execute_with_consent',
+    inputSchema: {
+      fields: {
+        npi: { type: 'string', required: true },
+        consentScope: { type: 'string', required: true },
+        opportunityRef: { type: 'string', required: true },
+        purpose: { type: 'string', required: true },
+      },
+    },
+    outputSchema: {
+      fields: {
+        executed: { type: 'boolean', required: true },
+        shareId: { type: 'string' },
+        recipientName: { type: 'string' },
+        status: { type: 'string' },
+        sharedAt: { type: 'string' },
+        blockedBy: { type: 'string' },
+      },
+    },
+    async execute(input) {
+      const { npi, opportunityRef, purpose } = input as {
+        npi: string;
+        opportunityRef: string;
+        purpose: string;
+      };
+      const result = await readers.executeApplyShare({ npi, opportunityRef, purpose });
+      if (!result) return { executed: false, blockedBy: 'canonical_capability_unavailable' };
+      if ('blocked' in result) return { executed: false, blockedBy: result.blocked };
+      return {
+        executed: true,
+        shareId: result.shareId,
+        ...(result.recipientName ? { recipientName: result.recipientName } : {}),
+        status: result.status,
+        ...(result.sharedAt ? { sharedAt: result.sharedAt } : {}),
+      };
+    },
+  };
+
   return [
     npiIdentityResolution,
     ownershipState,
@@ -210,5 +337,9 @@ export function buildStartAgentTools(readers: CanonicalReaders): AgentTool[] {
     sourceObservationRetrieval,
     opportunityRetrieval,
     shareApplyPreparation,
+    consentStateRetrieval,
+    actionHistoryRetrieval,
+    triggerSourceRefresh,
+    executeApplyShare,
   ];
 }

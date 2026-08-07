@@ -45,6 +45,12 @@ export interface StartBenchScenario {
   description: string;
   /** Fixed holdout scenarios are never used to tune a policy, only to judge one. */
   holdout?: boolean;
+  /**
+   * Earliest policy version whose behavior this scenario pins (e.g.
+   * 'start-policy-v2'). Absent = applies to every version. Replays of older
+   * policies exclude later-versioned scenarios via `scenariosForPolicy`.
+   */
+  sincePolicy?: string;
   context: StartAgentContext;
   expect: StartBenchExpectation;
 }

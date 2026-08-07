@@ -19,13 +19,11 @@ import { stableStringify } from '../ids';
 import { validateNarrative } from '../model/agent-model';
 import { buildModelContext } from '../model/context-builder';
 import { DeterministicTemplateModel } from '../model/template-model';
-import {
-  generateStartPlan,
-  type GenerateStartPlanOptions,
-} from '../policy/start-policy-v1';
+import type { GenerateStartPlanOptions } from '../policy/start-policy-v1';
+import { generateStartPlanV2 } from '../policy/start-policy-v2';
 import { auditTruthBoundaries, validateStartPlanStructure } from '../truth-boundary';
 import type { StartAgentContext, StartPlan } from '../types';
-import { START_BENCH_SCENARIOS } from './scenarios';
+import { START_BENCH_SCENARIOS, START_BENCH_VERSION } from './scenarios';
 import type { StartBenchScenario } from './scenario-types';
 
 export type StartPolicy = (
@@ -55,7 +53,7 @@ const BENCH_NOW = '2026-08-07T00:00:00.000Z';
 
 export async function runStartBenchScenario(
   scenario: StartBenchScenario,
-  policy: StartPolicy = generateStartPlan,
+  policy: StartPolicy = generateStartPlanV2,
 ): Promise<ScenarioResult> {
   const failures: string[] = [];
   let plan: StartPlan | null = null;
@@ -157,7 +155,7 @@ export async function runStartBenchScenario(
 }
 
 export async function runStartBench(
-  policy: StartPolicy = generateStartPlan,
+  policy: StartPolicy = generateStartPlanV2,
   scenarios: StartBenchScenario[] = START_BENCH_SCENARIOS,
 ): Promise<StartBenchReport> {
   const results: ScenarioResult[] = [];
@@ -166,7 +164,7 @@ export async function runStartBench(
   }
   const passed = results.filter((r) => r.passed).length;
   return {
-    benchVersion: 'start-bench-v1',
+    benchVersion: START_BENCH_VERSION,
     policyVersion: results.find((r) => r.plan)?.plan?.policyVersion ?? null,
     total: results.length,
     passed,

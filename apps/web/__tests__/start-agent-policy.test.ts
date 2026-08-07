@@ -51,7 +51,7 @@ describe('generateStartPlan', () => {
   it('stamps policy and toolset versions', () => {
     const plan = generateStartPlan(ctx(), { now: NOW });
     expect(plan.policyVersion).toBe(START_POLICY_VERSION);
-    expect(plan.toolsetVersion).toBe('start-toolset-v1');
+    expect(plan.toolsetVersion).toBe('start-toolset-v2');
   });
 
   it('ranks VitalCV-doable work above clinician asks when nothing blocks an application', () => {

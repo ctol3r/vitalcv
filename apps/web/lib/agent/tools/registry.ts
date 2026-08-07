@@ -1,23 +1,28 @@
 /**
  * Tool registry — the execution boundary for Start Agent tools.
  *
- * Enforces the A0 execution ceiling: nothing above Level 2 (prepare) runs.
- * Level 3 (`execute_with_consent`) exists in the representation but any
- * attempt to execute it here throws — consented execution is the A1 wave and
- * arrives with its own consent verification, not a registry flag flip.
- * Level 4 (`human_only`) is not executable by definition, ever.
+ * Execution ceiling by wave:
+ *  - Levels 0–2 (observe/recommend/prepare) execute directly.
+ *  - Level 3 (`execute_with_consent`) executes ONLY when the caller supplies
+ *    a `ConsentProof` — minted by the consent store from a ledger read at
+ *    execution time (A1). The proof's scope must match the consent scope the
+ *    tool invocation names, and its shape is validated here fail-closed.
+ *    A missing, malformed, or wrong-scope proof throws; there is no flag
+ *    that bypasses this.
+ *  - Level 4 (`human_only`) is not executable by definition, ever.
  *
  * Input and output are validated against the tool's declared schemas,
  * fail-closed: a canonical adapter answering in an unexpected shape is an
  * error, never coerced.
  */
-import {
-  EXECUTION_LEVEL_BY_PERMISSION,
-  MAX_EXECUTABLE_LEVEL_A0,
-} from '../types';
+import { isConsentProofShape, type ConsentProof } from '../consent/types';
+import { EXECUTION_LEVEL_BY_PERMISSION } from '../types';
 import { validateAgainstSchema, type AgentTool } from './contract';
 
-export const START_TOOLSET_VERSION = 'start-toolset-v1';
+export const START_TOOLSET_VERSION = 'start-toolset-v2';
+
+/** Levels 0-2 need no consent; Level 3 needs a verified ConsentProof. */
+const MAX_UNCONSENTED_LEVEL = 2;
 
 export class ToolPermissionError extends Error {
   constructor(toolId: string, detail: string) {
@@ -33,11 +38,19 @@ export class ToolContractError extends Error {
   }
 }
 
+export interface ToolExecuteOptions {
+  /**
+   * Required for Level 3 tools. Never client-supplied — the execution
+   * service mints it via the consent store immediately before this call.
+   */
+  consentProof?: ConsentProof;
+}
+
 export interface ToolRegistry {
   toolsetVersion: string;
   list(): AgentTool[];
   get(id: string): AgentTool | undefined;
-  execute<O = unknown>(id: string, input: unknown): Promise<O>;
+  execute<O = unknown>(id: string, input: unknown, options?: ToolExecuteOptions): Promise<O>;
 }
 
 export function createToolRegistry(tools: AgentTool[]): ToolRegistry {
@@ -53,7 +66,7 @@ export function createToolRegistry(tools: AgentTool[]): ToolRegistry {
     toolsetVersion: START_TOOLSET_VERSION,
     list: () => [...byId.values()],
     get: (id) => byId.get(id),
-    async execute<O = unknown>(id: string, input: unknown): Promise<O> {
+    async execute<O = unknown>(id: string, input: unknown, options?: ToolExecuteOptions): Promise<O> {
       const tool = byId.get(id);
       if (!tool) throw new ToolPermissionError(id, 'unknown tool');
 
@@ -61,11 +74,33 @@ export function createToolRegistry(tools: AgentTool[]): ToolRegistry {
       if (tool.requiredPermission === 'human_only') {
         throw new ToolPermissionError(id, 'human_only capabilities are never executable by the agent');
       }
-      if (level > MAX_EXECUTABLE_LEVEL_A0) {
-        throw new ToolPermissionError(
-          id,
-          `requires Level ${level} (${tool.requiredPermission}); A0 executes up to Level ${MAX_EXECUTABLE_LEVEL_A0}`,
-        );
+      if (level > MAX_UNCONSENTED_LEVEL) {
+        const proof = options?.consentProof;
+        if (!proof) {
+          throw new ToolPermissionError(
+            id,
+            `requires Level ${level} (${tool.requiredPermission}); execution without a verified ConsentProof is refused`,
+          );
+        }
+        if (!isConsentProofShape(proof)) {
+          throw new ToolPermissionError(id, 'consent proof is malformed');
+        }
+        const namedScope =
+          typeof input === 'object' && input !== null
+            ? (input as Record<string, unknown>).consentScope
+            : undefined;
+        if (typeof namedScope !== 'string' || namedScope.length === 0) {
+          throw new ToolPermissionError(
+            id,
+            'Level 3 invocations must name the consentScope they execute under',
+          );
+        }
+        if (proof.scope !== namedScope) {
+          throw new ToolPermissionError(
+            id,
+            `consent proof scope ${proof.scope} does not cover the invoked scope ${namedScope}`,
+          );
+        }
       }
 
       const inputErrors = validateAgainstSchema(input, tool.inputSchema);

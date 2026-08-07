@@ -110,6 +110,66 @@ export async function persistAgentRun(input: PersistAgentRunInput): Promise<Pers
   }
 }
 
+export interface AgentActionHistoryRow {
+  actionId: string;
+  actionType: string;
+  outcome: 'completed' | 'failed' | 'dismissed';
+  at: string;
+  failureCount?: number;
+}
+
+const HISTORY_EVENT_OUTCOME: Record<string, AgentActionHistoryRow['outcome']> = {
+  agent_action_completed: 'completed',
+  agent_action_failed: 'failed',
+  agent_action_dismissed: 'dismissed',
+};
+
+/**
+ * Fold recent outcome events into per-action history: the latest event per
+ * actionId governs the outcome; failureCount is the total failed count for
+ * that action. Rows without a `metadata.actionType` (written before A1) are
+ * skipped — an untyped entry cannot drive suppression honestly.
+ */
+export async function readAgentActionHistory(
+  subjectRef: string,
+  limit = 500,
+): Promise<AgentActionHistoryRow[]> {
+  try {
+    const rows = await prisma.agentEvent.findMany({
+      where: { subjectRef, eventType: { in: Object.keys(HISTORY_EVENT_OUTCOME) } },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: limit,
+    });
+    const latest = new Map<string, AgentActionHistoryRow>();
+    const failures = new Map<string, number>();
+    for (const row of rows) {
+      if (!row.actionId) continue;
+      const metadata = (row.metadata ?? {}) as Record<string, unknown>;
+      const actionType = typeof metadata.actionType === 'string' ? metadata.actionType : null;
+      if (!actionType) continue;
+      if (row.eventType === 'agent_action_failed') {
+        failures.set(row.actionId, (failures.get(row.actionId) ?? 0) + 1);
+      }
+      if (!latest.has(row.actionId)) {
+        latest.set(row.actionId, {
+          actionId: row.actionId,
+          actionType,
+          outcome: HISTORY_EVENT_OUTCOME[row.eventType],
+          at: row.createdAt.toISOString(),
+        });
+      }
+    }
+    return [...latest.values()]
+      .map((entry) => ({
+        ...entry,
+        ...(failures.has(entry.actionId) ? { failureCount: failures.get(entry.actionId) } : {}),
+      }))
+      .sort((a, b) => (a.actionId < b.actionId ? -1 : a.actionId > b.actionId ? 1 : 0));
+  } catch {
+    return [];
+  }
+}
+
 export interface RecordAgentEventInput {
   eventType: AgentEventType;
   planId: string;

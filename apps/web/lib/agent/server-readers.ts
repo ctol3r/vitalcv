@@ -1,35 +1,55 @@
 /**
- * Production CanonicalReaders wiring for the A0 route.
+ * Production CanonicalReaders wiring.
  *
- * Each reader is a thin, read-only call into an existing canonical
- * capability — the web NPPES adapter directly, everything else over the
- * backend HTTP surface with the canonical identity headers. Mapping is
- * defensive: an answer in an unexpected shape (or a non-OK status) becomes
- * null / a thrown error, which the assembler reports as an input gap — never
- * a guessed state.
+ * Reads: the web NPPES adapter directly; ownership, profile, coverage, and
+ * opportunities over the backend HTTP surface with canonical identity
+ * headers; the agent consent ledger and action history from the web-side
+ * stores. Mapping is defensive: an answer in an unexpected shape (or a
+ * non-OK status) becomes null / a thrown error, which the assembler reports
+ * as an input gap — never a guessed state.
  *
- * Not yet wired in A0 (returns null → honest input gap, visible in the
- * response and telemetry): opportunity retrieval. It lands with A1's tool
- * work rather than guessing a backend path here.
+ * Executions (A1): the canonical trust-state refresh (Level 2) and the
+ * canonical apply-share with server-resolved recipient (Level 3 — the
+ * registry additionally requires a ConsentProof, and the backend route
+ * itself refuses unless NPI ownership is verified or delegated). Both
+ * require the backend to run Clerk JWT verification in shadow/enforce mode;
+ * in `off` mode the verified-identity routes 401 and execution degrades to
+ * an honest failure, never a fake success.
  */
 import 'server-only';
 import { buildIdentityHeaders } from '@/lib/auth/forwardIdentity';
 import { BACKEND_URL as B } from '@/lib/backend-url';
 import { fetchNppesRecord } from '@/lib/clinician-record/nppes';
+import { readAgentConsentStates } from './consent/consent-store';
+import { readAgentActionHistory } from './telemetry/agent-run-store';
 import type { CanonicalReaders } from './tools/canonical-tools';
 
-async function backendGet(path: string, userId: string): Promise<{ status: number; body: unknown }> {
+async function backendRequest(
+  method: 'GET' | 'POST',
+  path: string,
+  userId: string,
+  body?: unknown,
+): Promise<{ status: number; body: unknown }> {
   const response = await fetch(`${B}${path}`, {
-    headers: { ...(await buildIdentityHeaders({ userId })) },
+    method,
+    headers: {
+      ...(await buildIdentityHeaders({ userId })),
+      ...(body !== undefined ? { 'content-type': 'application/json' } : {}),
+    },
+    ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
     cache: 'no-store',
   });
-  let body: unknown = null;
+  let parsed: unknown = null;
   try {
-    body = await response.json();
+    parsed = await response.json();
   } catch {
-    body = null;
+    parsed = null;
   }
-  return { status: response.status, body };
+  return { status: response.status, body: parsed };
+}
+
+async function backendGet(path: string, userId: string): Promise<{ status: number; body: unknown }> {
+  return backendRequest('GET', path, userId);
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {
@@ -91,8 +111,71 @@ export function buildProductionReaders(userId: string): CanonicalReaders {
       return mapped;
     },
 
-    async readOpportunities() {
-      return null;
+    async readOpportunities(npi) {
+      const { status, body } = await backendGet(`/api/matcha/opportunities/${npi}`, userId);
+      if (status !== 200) return null;
+      const record = asRecord(body);
+      const matches = Array.isArray(record?.matches) ? record.matches : null;
+      if (!matches) return null;
+      const opportunityRefs: string[] = [];
+      for (const raw of matches) {
+        const match = asRecord(raw);
+        if (match && typeof match.opportunityId === 'string') {
+          opportunityRefs.push(match.opportunityId);
+        }
+      }
+      return { opportunityRefs };
+    },
+
+    async readAgentConsents(subjectRef) {
+      return readAgentConsentStates(subjectRef);
+    },
+
+    async readActionHistory(subjectRef) {
+      return readAgentActionHistory(subjectRef);
+    },
+
+    async triggerSourceRefresh(npi) {
+      const { status, body } = await backendRequest(
+        'POST',
+        `/api/trust-state/${npi}/refresh`,
+        userId,
+        {},
+      );
+      if (status !== 200) return null;
+      const record = asRecord(body);
+      const computedAt =
+        typeof record?.computed_at === 'string'
+          ? record.computed_at
+          : typeof record?.computedAt === 'string'
+            ? record.computedAt
+            : undefined;
+      return { requested: true, ...(computedAt ? { computedAt } : {}) };
+    },
+
+    async executeApplyShare(input) {
+      const { status, body } = await backendRequest('POST', '/api/apply/share', userId, {
+        npi: input.npi,
+        // The recipient is server-resolved from the opportunity; these fields
+        // are the required envelope the resolver overwrites.
+        organization_context: {
+          organization_id: 'agent-consented-share',
+          name: 'Consented agent share (server-resolved recipient)',
+          purpose_of_use: input.purpose,
+        },
+        opportunityId: input.opportunityRef,
+      });
+      if (status === 403) return { blocked: 'canonical_ownership_authz' };
+      if (status !== 200 && status !== 201) return null;
+      const record = asRecord(body);
+      if (!record || typeof record.shareId !== 'string') return null;
+      const recipient = asRecord(record.recipient);
+      return {
+        shareId: record.shareId,
+        ...(typeof recipient?.name === 'string' ? { recipientName: recipient.name } : {}),
+        status: typeof record.status === 'string' ? record.status : 'unknown',
+        ...(typeof record.sharedAt === 'string' ? { sharedAt: record.sharedAt } : {}),
+      };
     },
   };
 }
