@@ -34,22 +34,20 @@ six-card workflow section (~590px) and the hero artifact stage (~290px) —
 both part of the approved visual architecture, so tightening either is a
 founder decision, not one this revision takes silently.
 
-## Measured result (branch prod build, `next start`)
+## Measured result (canonical set: captured from PRODUCTION at `d9e155d28`)
 
 | Route | 1440 height | 390 height | overflow | console errors |
 |---|---|---|---|---|
-| /employers (before, prod) | 5,743px | 7,402px | none | 0 |
-| /employers (after, revision 2) | **3,145px (−45%)** | **4,118px (−44%)** | none | 0 |
-| /employers (after, workflow density pass) | **3,029px (−47%)** | **3,768px (−49%)** | none | 0 |
-| /employers/request-access (new) | 1,054px | 1,030px | none | 0 |
-| /employers/how-it-works (new) | 3,390px | 3,578px | none | 0 |
+| /employers (before, prod `2e7d7fb`) | 5,743px | 7,402px | none | 0 |
+| /employers (after: REVISION 2 + #1091 workflow + #1093 artifact + #1095 margins) | **2,796px (−51%)** | **3,608px (−51%)** | none | 0 |
+| /employers/request-access | 1,054px | 1,030px | none | 0 |
+| /employers/how-it-works | 3,390px | 3,578px | none | 0 |
 
-The workflow density pass (#1091) de-chromed the six workflow cards into
-borderless grid cells; its heights are transcribed from
-`evidence-workflow-density/metrics-after.json` (branch prod build at the merged
-head). The audit's ≤2,800px target is still not fully reached; the remaining
-mass is the hero artifact stage (~290px) — approved visual architecture, so
-tightening it is a founder decision, not made silently.
+**The audit's ≤2,800px target is reached.** The path: REVISION 2 hierarchy
+(3,145px) → workflow de-chrome #1091 (3,029px) → dense hero artifact #1093
+(2,914px) → margin rhythm #1095 (2,796px). Interim per-wave capture sets were
+removed after each landed (git history preserves them); this canonical after-set
+is captured from the production origin at the exact deployed SHA.
 
 ## Capture methodology
 
