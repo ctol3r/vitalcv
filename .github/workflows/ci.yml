@@ -80,9 +80,9 @@ jobs:
       - name: Lint web app
         run: pnpm --filter @vitalcv/web lint
       - name: Run web unit tests
-        run: pnpm --filter @vitalcv/web exec vitest run --exclude __tests__/verifier-worklist-db.test.ts
+        run: pnpm --filter @vitalcv/web exec vitest run --exclude __tests__/verifier-worklist-db.test.ts --exclude __tests__/start-agent-telemetry-db.test.ts
       - name: Run web database integration tests
-        run: pnpm --filter @vitalcv/web exec vitest run __tests__/verifier-worklist-db.test.ts
+        run: pnpm --filter @vitalcv/web exec vitest run __tests__/verifier-worklist-db.test.ts __tests__/start-agent-telemetry-db.test.ts
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/vitalcv_web_test
       - name: Build web app

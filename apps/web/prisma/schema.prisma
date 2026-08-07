@@ -202,3 +202,78 @@ model AvailabilitySample {
   @@index([observedAt])
   @@map("availability_samples")
 }
+
+// FOUNDER WAVE A0 — Start Agent telemetry (mirror of the backend models;
+// migration lives in apps/api/backend/prisma/migrations/20260807000000_agent_telemetry).
+// The web app writes these from apps/web/lib/agent/telemetry/agent-run-store.ts,
+// paired with an AuditEvent append in the same transaction. Append-only from
+// web: runs and events are never updated or deleted here. Structured plan
+// payloads carry evidence REFS and template text only — never raw credential
+// values (see the privacy notes on the backend models).
+model AgentRun {
+  id                 String           @id @default(uuid()) @db.Uuid
+  planId             String           @map("plan_id")
+  subjectRef         String           @map("subject_ref")
+  npi                String?
+  contextClass       String           @map("context_class")
+  contextFingerprint String           @map("context_fingerprint")
+  policyVersion      String           @map("policy_version")
+  toolsetVersion     String           @map("toolset_version")
+  modelVersion       String?          @map("model_version")
+  blockers           Json             @default("[]")
+  candidateActions   Json             @default("[]") @map("candidate_actions")
+  rankedActionIds    Json             @default("[]") @map("ranked_action_ids")
+  selectedActionId   String?          @map("selected_action_id")
+  confidence         Float?
+  inputGaps          Json             @default("[]") @map("input_gaps")
+  generatedAt        DateTime         @map("generated_at")
+  createdAt          DateTime         @default(now()) @map("created_at")
+  actions            AgentRunAction[]
+  events             AgentEvent[]
+
+  @@index([subjectRef, createdAt])
+  @@index([planId])
+  @@index([policyVersion, createdAt])
+  @@map("agent_runs")
+}
+
+model AgentRunAction {
+  id         String   @id @default(uuid()) @db.Uuid
+  runId      String   @map("run_id") @db.Uuid
+  actionId   String   @map("action_id")
+  actionType String   @map("action_type")
+  owner      String
+  permission String
+  status     String
+  priority   Int
+  rankTier   Int      @map("rank_tier")
+  createdAt  DateTime @default(now()) @map("created_at")
+  run        AgentRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@index([runId, priority])
+  @@index([actionType, createdAt])
+  @@map("agent_run_actions")
+}
+
+model AgentEvent {
+  id          String    @id @default(uuid()) @db.Uuid
+  runId       String?   @map("run_id") @db.Uuid
+  planId      String    @map("plan_id")
+  subjectRef  String    @map("subject_ref")
+  actionId    String?   @map("action_id")
+  eventType   String    @map("event_type")
+  owner       String?
+  outcome     String?
+  elapsedMs   Int?      @map("elapsed_ms")
+  relatedKind String?   @map("related_kind")
+  relatedRef  String?   @map("related_ref")
+  metadata    Json      @default("{}")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  run         AgentRun? @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@index([planId, createdAt])
+  @@index([eventType, createdAt])
+  @@index([subjectRef, createdAt])
+  @@index([relatedKind, relatedRef])
+  @@map("agent_events")
+}
