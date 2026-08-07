@@ -40,9 +40,8 @@ const BOOTSTRAP_FIXTURE = {
   identitySource: 'NPPES_API',
   firstName: 'Ada',
   lastName: 'Rivers',
-  credential: 'PA-C',
   specialty: 'Family Medicine',
-  stateOfPractice: 'OR',
+  state: 'OR',
 };
 
 function mockFetch() {
