@@ -1,0 +1,270 @@
+/* ==========================================================================
+   THE LIVING EVIDENCE RECORD — canonical object stylesheet.
+   Treatment B (Evidence Instrument), founder-approved at Z0 with the ten
+   refinements and the cinematic-scale system (2026-08-03).
+
+   This file styles ONLY the object. It is imported by the application AND by
+   the Z0 review sheets (artifacts/zoox-fidelity-z0/treatments/record-b.css
+   @imports it), so what was approved and what ships are the same rules.
+   Review-harness styling lives with the sheets, never here.
+
+   B's identity, preserved: strong top edge · visible six-aperture band ·
+   opaque evidence material · stable spine · instrument-like presence · sharp
+   factual rows · NO evidence shadow. Portrait proportion is NOT an invariant:
+   the founder's SEALED ruling made height a consequence of state.
+
+   TOKENS are island-scoped under `.evr-scene`, following the repo's `.mz` /
+   `.vcv-doc` convention — the app's globals already define `--accent`,
+   `--paper` and `--ink` with other values, and a bare `:root` here would
+   fight them. Every use of the object must sit inside an `.evr-scene`.
+
+   FONTS: the app loads Fraunces/Geist/Geist Mono via next/font/local and
+   exposes them as `--font-*-loaded`. The var() fallback keeps the Z0 sheets
+   working: they declare @font-face for the same families themselves.
+   ========================================================================== */
+
+.evr-scene{
+  --paper:#F0EEE9; --raised:#F7F5F1; --inset:#E7E4DD;
+  --rule:#D6D2C8; --rule-strong:#B9B3A6;
+  --ink:#1A1815; --ink-strong:#0E0D0B; --ink-muted:#57534A; --ink-subtle:#676257;
+  --accent:#4338CA;
+  --state-confirmed:#1C5C38; --state-snapshot:#3D5A6C;
+  --state-access:#676257; --state-attention:#7D5A1E;
+  --serif:var(--font-fraunces-loaded,'Fraunces'),ui-serif,Georgia,serif;
+  --sans:var(--font-geist-loaded,'Geist'),system-ui,sans-serif;
+  --mono:var(--font-geist-mono-loaded,'Geist Mono'),ui-monospace,monospace;
+
+  /* REFINEMENT 3 — one spine width, selected in composition, not a range. */
+  --spine:5px;
+
+  color:var(--ink);
+  font-family:var(--sans);
+  -webkit-font-smoothing:antialiased;
+}
+.evr-scene *{margin:0;padding:0;box-sizing:border-box}
+
+/* ---------------------------------------------------------------- object --
+ * Everything scales from the record's own width, so the object is one design
+ * at 120px and at 70vw rather than a small design enlarged (refinement 8).
+ *
+ * The width arrives UNITLESS as --wn, and both the pixel width and the
+ * proportional unit are derived from it. This is not a style preference.
+ * --u was previously `calc(var(--w) / 420)` with --w a length, which yields a
+ * LENGTH (2.14px at 900px wide), so every `calc(15px * var(--u))` multiplied
+ * px by px, was invalid, and was dropped by the browser — all 37 of them.
+ * The object rendered at fixed base sizes and never scaled at all. Dividing a
+ * unitless number keeps --u a number, which is what a multiplier must be.
+ */
+.evr{
+  --w:calc(var(--wn, 420) * 1px);     /* pixel width, derived */
+  --u:calc(var(--wn, 420) / 420);     /* proportional unit, UNITLESS */
+  /* TYPE unit. Structure scales in both directions; text only scales UP.
+     The object may be rendered narrower than its 420px design size — on
+     mobile, and for the recipient subset — and proportional scaling would
+     take the claim line to 12.5px there, below the CD-15 readable floor and
+     failing the rule that mobile must be composed rather than shrunk. So
+     type holds at design size and grows from there; only the object's
+     structure gets smaller. */
+  --ut:max(1, var(--u));
+  position:relative;
+  width:var(--w);
+  min-height:calc(var(--w) * 0.72);
+  background:var(--raised);
+  border:1px solid var(--rule-strong);
+  border-top:calc(6px * var(--u)) solid var(--ink-strong);
+  border-radius:calc(3px * var(--u));
+  display:flex;flex-direction:column;
+  overflow:hidden;
+  font-size:calc(15px * var(--ut));
+  /*
+   * REFINEMENT 5 — no backing layer. Treatment B's offset ::after was measured
+   * byte-identical with and without it, and is gone. Depth in this object
+   * comes from the top edge, the spine, and deliberate overlap in the
+   * composition — never from a shadow, and never from a second card
+   * pretending to be a layer.
+   */
+}
+
+/* SPINE — the NPI axis. Survives every face; present at thumbnail scale. */
+.evr-spine{
+  position:absolute;left:0;top:0;bottom:0;
+  width:calc(var(--spine) * var(--u));
+  background:var(--ink-strong);
+}
+.evr > *{padding-left:calc(var(--spine) * var(--u))}
+
+.evr-head{padding:calc(14px * var(--u)) calc(16px * var(--u)) calc(12px * var(--u));background:var(--inset);border-bottom:1px solid var(--rule-strong)}
+.evr-eyebrow{
+  font-family:var(--mono);font-size:calc(10px * var(--ut));letter-spacing:.09em;
+  text-transform:uppercase;color:var(--ink-subtle);
+  display:flex;justify-content:space-between;gap:calc(12px * var(--u));
+}
+/* REFINEMENT 9 — identity outranks metadata. */
+.evr-name{font-weight:600;font-size:calc(17px * var(--ut));color:var(--ink-strong);margin-top:calc(6px * var(--u))}
+.evr-npi{font-family:var(--mono);font-size:calc(12px * var(--ut));color:var(--ink-muted);font-variant-numeric:tabular-nums}
+
+/* ---- REFINEMENT 6 — the aperture band, five semantic states ---------------
+ * Not six status lights. At thumbnail scale the band communicates record
+ * PROGRESSION; at reading scale the rows carry the precise meaning. Fill,
+ * not hue, does the work — the band stays ink/neutral until a factual state
+ * justifies otherwise, and indigo never appears here.
+ */
+.evr-apertures{
+  display:grid;grid-template-columns:repeat(6,1fr);gap:calc(5px * var(--u));
+  padding:calc(12px * var(--u)) calc(16px * var(--u));
+  background:var(--inset);border-bottom:1px solid var(--rule-strong);
+}
+.evr-ap{
+  height:calc(14px * var(--u));border-radius:calc(2px * var(--u));
+  background:var(--paper);border:1px solid var(--rule-strong);
+  position:relative;overflow:hidden;
+}
+/* CLOSED — nothing checked. The default; an empty slot, not an absence. */
+.evr-ap[data-s="closed"]{}
+/* OPENING — request in flight. Half-filled from the leading edge. */
+.evr-ap[data-s="opening"]::after{content:'';position:absolute;inset:0 50% 0 0;background:var(--rule-strong)}
+/* RETURNED — a source answered. Solid ink: the only fully-filled state. */
+.evr-ap[data-s="returned"]{background:var(--ink-strong);border-color:var(--ink-strong)}
+/* LIMITED — access or scope limitation. Barred, so it can never read as full. */
+.evr-ap[data-s="limited"]{
+  background:repeating-linear-gradient(-45deg,var(--paper) 0 calc(2px * var(--u)),var(--rule-strong) calc(2px * var(--u)) calc(4px * var(--u)));
+}
+/* UNAVAILABLE — the system could not answer. Hollow with a struck centre:
+   visibly different from "not asked", which is what CLOSED means. */
+.evr-ap[data-s="unavailable"]::after{
+  content:'';position:absolute;left:15%;right:15%;top:50%;height:1px;background:var(--rule-strong);
+}
+
+.evr-body{flex:1;display:flex;flex-direction:column;min-height:0}
+.evr-rows{list-style:none;flex:1}
+/* Compact row: assertion and stamp share the first line, provenance takes the
+   next. Provenance is a SIBLING of the assertion, not a child of it, so the
+   hero grid can place it in its own column without a spanning track. */
+.evr-row{
+  display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;
+  column-gap:calc(10px * var(--u));row-gap:calc(3px * var(--u));
+  padding:calc(9px * var(--u)) calc(16px * var(--u));
+  border-top:1px solid var(--rule);
+}
+.evr-assert{display:block;flex:1 1 auto;min-width:0}
+.evr-row > .evr-prov{flex:1 1 100%}
+.evr-rows > .evr-row:first-child{border-top:none}
+/* REFINEMENT 9 — facts are sharp; radius 0–3px never softens. */
+.evr-claim{font-weight:500;font-size:calc(13px * var(--ut));display:block}
+/* display:block, not inline. As inline spans these concatenated — the row
+   read "Located in the NPPES registryNPPES · read live ·", welding a claim
+   to its own provenance. On an evidence surface that is not a layout bug,
+   it is a sentence the product never wrote. */
+.evr-ret{display:block;font-size:calc(12px * var(--ut));color:var(--ink-muted);margin-top:calc(2px * var(--u))}
+.evr-prov{display:block;font-family:var(--mono);font-size:calc(10px * var(--ut));color:var(--ink-subtle);margin-top:calc(4px * var(--u));line-height:1.5;max-width:64ch}
+
+.stamp{
+  display:inline-flex;align-items:center;gap:.35em;flex:none;
+  font-family:var(--mono);font-size:calc(9px * var(--ut));letter-spacing:.05em;text-transform:uppercase;
+  color:var(--ink);background:var(--raised);
+  border:1px solid var(--rule);border-left-width:calc(2px * var(--u));border-radius:calc(3px * var(--u));
+  padding:calc(2px * var(--u)) calc(6px * var(--u));white-space:nowrap;
+}
+.s-conf{border-left-color:var(--state-confirmed)} .s-conf .g{color:var(--state-confirmed)}
+.s-snap{border-left-color:var(--state-snapshot)}  .s-snap .g{color:var(--state-snapshot)}
+.s-acc {border-left-color:var(--state-access)}    .s-acc  .g{color:var(--state-access)}
+.s-pend{border-left-color:var(--rule-strong)}     .s-pend .g{color:var(--ink-subtle)}
+
+/* RECEIPT EDGE — restrained. C's heavier edge is deliberately not carried. */
+.evr-receipt{
+  padding:calc(8px * var(--u)) calc(16px * var(--u));background:var(--inset);
+  font-family:var(--mono);font-size:calc(9.5px * var(--ut));color:var(--ink-subtle);
+  border-top:1px dashed var(--rule-strong);
+}
+
+/* ---- REFINEMENT 2 — permission clarity from C, none of C's styling -------
+ * TRAVELS and HELD must be unmistakably different. Indigo appears ONLY on an
+ * active permission choice and on the travel action — never on an aperture,
+ * never on a state stamp, never as decoration.
+ */
+.evr-row[data-travel]{position:relative}
+.evr-row[data-travel="travels"]{box-shadow:inset calc(3px * var(--u)) 0 0 var(--accent)}
+.evr-row[data-travel="held"]{opacity:.82}
+.evr-perm{
+  font-family:var(--mono);font-size:calc(10px * var(--ut));letter-spacing:.04em;
+  text-transform:uppercase;white-space:nowrap;flex:none;
+}
+.evr-perm[data-t="travels"]{color:var(--accent);font-weight:500}
+.evr-perm[data-t="held"]{color:var(--ink-subtle)}
+
+/* ---- REFINEMENT 4 — the seal ---------------------------------------------
+ * ~68px at a 420px record, proportional. Ink outline, one circular element,
+ * no glow, no indigo fill, no wax imitation. It states that consent was
+ * recorded for a defined purpose; it is not a trust badge.
+ */
+.evr-seal{
+  width:calc(68px * var(--u));height:calc(68px * var(--u));border-radius:50%;
+  border:calc(2px * var(--u)) solid var(--ink-strong);
+  display:flex;align-items:center;justify-content:center;text-align:center;
+  font-family:var(--mono);font-size:calc(8px * var(--ut));letter-spacing:.08em;
+  text-transform:uppercase;color:var(--ink-strong);line-height:1.35;
+  margin:0 auto;flex:none;
+}
+
+/* ---- REFINEMENT 7 — SEALED is shorter, and the SAME object ---------------
+ * Same width, same top edge, same spine, same aperture rhythm, same receipt
+ * edge, same material. Only the row stack is gone. The founder's scale ruling
+ * accepted the landscape proportion as a consequence of state.
+ */
+.evr--sealed{min-height:0}
+.evr--sealed .evr-body{flex:0 0 auto}
+
+/* The recipient frame: the same record with fewer rows. Never a new card. */
+.evr--recipient{opacity:.97}
+
+.illus{font-family:var(--mono);font-size:calc(9px * var(--ut));letter-spacing:.1em;text-transform:uppercase;color:var(--ink-subtle)}
+
+/* ---- REFINEMENT 8 — hero composition, not enlargement --------------------
+ * At hero scale the interior RECOMPOSES: the row becomes a two-column measure
+ * so provenance sits beside the claim instead of running to a 90-character
+ * line, the band gains real height so it reads as a band rather than six
+ * dashes, and the record is HEIGHT-LED — the width-derived floor is removed
+ * and the body no longer grows, because a record is content-driven and
+ * cinematic scale comes from the scene, never from inflating an evidence
+ * document into a tall empty rectangle.
+ */
+.evr[data-scale="hero"]{min-height:0}
+.evr[data-scale="hero"] .evr-body,
+.evr[data-scale="hero"] .evr-rows{flex:0 0 auto}
+.evr[data-scale="hero"] .evr-apertures{
+  padding:calc(18px * var(--u)) calc(20px * var(--u));
+  gap:calc(8px * var(--u));
+}
+.evr[data-scale="hero"] .evr-ap{height:calc(22px * var(--u))}
+/*
+ * Assertion, provenance and stamp sit side by side in ONE grid row, each
+ * top-aligned. They previously occupied two rows with provenance spanning
+ * both; a spanning item's height is distributed across the tracks it spans,
+ * so six lines of provenance stretched both rows and left a ~90px void inside
+ * every row — the empty-band failure relocated to where a whole-record
+ * measurement does not see it. One row and `align-items:start` remove the
+ * mechanism rather than tuning around it.
+ */
+.evr[data-scale="hero"] .evr-row{
+  display:grid;
+  grid-template-columns:minmax(0,34%) minmax(0,1fr) auto;
+  gap:calc(20px * var(--u));
+  align-items:start;
+  padding:calc(16px * var(--u)) calc(20px * var(--u));
+}
+.evr[data-scale="hero"] .evr-assert{grid-column:1;grid-row:1}
+.evr[data-scale="hero"] .evr-claim{font-size:calc(15px * var(--ut))}
+.evr[data-scale="hero"] .evr-ret{margin-top:calc(3px * var(--u))}
+.evr[data-scale="hero"] .evr-prov{grid-column:2;grid-row:1;margin-top:0;max-width:none}
+.evr[data-scale="hero"] .stamp{grid-column:3;grid-row:1}
+
+/*
+ * The OPENED claim is a detail panel, not a three-part row: it stacks
+ * key/value pairs across the full width. Without this it inherits the hero
+ * row grid, which places EVERY .evr-prov at column 2 / row 1 — all seven of
+ * its lines landed in one cell and overprinted into an illegible block. A
+ * row-level rule must not reach into a panel that reuses the same class.
+ */
+.evr-row--opened{flex-direction:column;align-items:stretch}
+.evr[data-scale="hero"] .evr-row--opened{display:flex;flex-direction:column;align-items:stretch}
+.evr[data-scale="hero"] .evr-row--opened .evr-prov{grid-column:auto;grid-row:auto;max-width:none}

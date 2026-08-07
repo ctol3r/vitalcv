@@ -60,6 +60,9 @@ const READINESS_KEYS = [
 ];
 
 const SOURCE_COVERAGE_KEYS = ['checks', 'summary'];
+// One bucket per canonical coverage state. 'notFound' joined the set so a
+// source that answered with no record for the subject stops being counted as
+// 'checked' (which rendered as source-backed on the public verifier).
 const SOURCE_SUMMARY_KEYS = [
   'checked',
   'stale',
@@ -69,6 +72,7 @@ const SOURCE_SUMMARY_KEYS = [
   'accessRequired',
   'reviewRequired',
   'notDecisionGrade',
+  'notFound',
   'previewOnly',
 ];
 const POSTURE_KEYS = ['status', 'label', 'detail'];
@@ -460,6 +464,7 @@ describe('passport runtime convergence routes', () => {
         "accessRequired",
         "reviewRequired",
         "notDecisionGrade",
+        "notFound",
         "previewOnly",
       ]
     `);

@@ -1,8 +1,41 @@
 # Force Nixpacks builder for Railway — do not use Railpack.
 # Explicit phases prevent Railway from improvising install/build steps.
 
+# Node 22. NOTE: `nodejs_22` in this nixpkgs channel resolves BELOW 22.12 —
+# proven in production 2026-07-27, when @noble/post-quantum threw
+# ERR_REQUIRE_ESM at startup, which cannot happen on >= 22.12 (require(esm)).
+# An earlier revision of this comment asserted ">= 22.12"; that was aspiration,
+# not fact, and jose v6 was pinned back to v5 because of it.
+#
+# Practical consequence: any ESM-only dependency needs either a CJS-shipping
+# version, or the require-then-import fallback in
+# `src/services/crypto/cryptoRegistry.ts`. Read the live value rather than
+# trusting this comment:  curl -s https://api.vitalcv.com/health | jq -r .node_version
+#
+# The backend compiles to CommonJS ("type": "commonjs", tsconfig
+# "module": "CommonJS"), so every `import ... from 'jose'` emits `require("jose")`.
+# jose v6 is ESM-only — its package.json is `"type": "module"` with no `require`
+# condition in `exports`. Requiring an ES module from CJS only works on Node
+# >= 22.12; on Node 20 it throws ERR_REQUIRE_ESM at startup, the healthcheck
+# never passes, and the deploy fails.
+#
+# That is exactly what happened: this file pinned nodejs_20 while #894 moved the
+# backend to jose v6, and EVERY API deploy failed from that commit onward —
+# including docs-only and test-only commits, because they still rebuild a tree
+# containing the import. Seven commits were stranded, among them a security
+# dependency patch (#898) and the D4 migration (#900).
+#
+# CI never caught it because CI is not this runtime: `ci.yml` runs
+# NODE_VERSION 22 (where the require succeeds) and `backend-tests.yml` runs
+# 20.11.1 but through ts-jest, which resolves modules itself rather than
+# exercising the production `require()`. Verified by simulation:
+#   node --no-experimental-require-module -e "require('jose')"  -> ERR_REQUIRE_ESM
+#   node -e "require('jose')"                                   -> OK
+#
+# Node 20 also reached end-of-life in April 2026. If you ever pin this back
+# below 22.12, revert jose to a version shipping a CJS build first.
 [phases.setup]
-nixPkgs = ["nodejs_20", "pnpm"]
+nixPkgs = ["nodejs_22", "pnpm"]
 
 [phases.install]
 cmds = ["pnpm install --no-frozen-lockfile"]

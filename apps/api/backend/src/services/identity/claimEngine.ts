@@ -23,6 +23,7 @@ import {
   type NpiIdentityValue,
   type PersonalIdentityValue,
   type SpecialtyValue,
+  type ReportedLicenseValue,
   type PracticeLocationValue,
   type EndpointValue,
   type EnrollmentValue,
@@ -155,7 +156,7 @@ interface NppesResult {
   last_updated_epoch?: string;
 }
 
-const NPPES_PARSER_VERSION = 'v1.2.0';
+const NPPES_PARSER_VERSION = 'v1.3.0';
 const NPPES_IDENTITY_ONLY_EXPLANATION =
   'NPI confirms identity only — not licensure, enrollment, or credential status';
 const NPPES_USAGE_RESTRICTIONS = Object.freeze([
@@ -245,6 +246,42 @@ export function parseNppesResult(
       };
       const sClaim = makeClaim({ ...base, claimType: 'SPECIALTY', subjectNpi: npi, value: specialtyValue, confidence: 'HIGH', confidenceScore: 0.95 });
       claims.push(sClaim);
+
+      // Additive only: preserve the historical SPECIALTY claim bytes and ID.
+      if (tax.state?.trim() && tax.license?.trim()) {
+        const value: ReportedLicenseValue = {
+          _type: 'LICENSE_REPORTED',
+          state: tax.state.trim().toUpperCase(),
+          licenseNumber: tax.license.trim(),
+          taxonomyCode: tax.code,
+          taxonomyDescription: tax.desc ?? null,
+          source: 'NPPES_API',
+          authorityConfirmed: false,
+          sourceDisclaimer: 'License number and state are reported in NPPES; CMS does not validate licensure or standing when issuing an NPI.',
+          usageRestrictions: [
+            'cannot imply active license status',
+            'cannot imply good standing',
+            'requires licensing-authority confirmation for decision use',
+          ],
+        };
+        const claim = makeClaim({
+          ...base,
+          claimType: 'LICENSE_REPORTED',
+          subjectNpi: npi,
+          value,
+          confidence: 'HIGH',
+          confidenceScore: 0.95,
+          status: 'UNVERIFIED',
+          reviewRequired: true,
+          reviewReason: 'NPPES is not the licensing authority. Confirm status and standing with the relevant board.',
+        });
+        claims.push(claim);
+        receipts.push(buildReceipt(
+          claim,
+          'licenseNumber',
+          `${value.state} license ${value.licenseNumber} is reported in NPPES; licensing-authority confirmation has not been completed.`,
+        ));
+      }
     }
 
     // Practice location + mailing address claims

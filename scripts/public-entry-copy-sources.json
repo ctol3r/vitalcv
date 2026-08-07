@@ -6,10 +6,10 @@
       "entryFile": "apps/web/app/page.tsx",
       "copySources": [
         "apps/web/components/home/film/HorizontalCareerFilm.tsx",
-        "apps/web/components/home/film/scenes.ts",
-        "apps/web/components/home/film/FilmRecord.tsx",
-        "apps/web/components/home/film/FilmFit.tsx",
-        "apps/web/components/home/film/FilmSignature.tsx",
+        "apps/web/components/home/film/ChapterRail.tsx",
+        "apps/web/components/home/film/illustrative.ts",
+        "apps/web/components/home/evidence/EvidenceCapsule.tsx",
+        "apps/web/components/home/evidence/evidenceCapsuleModel.ts",
         "apps/web/components/home/LiveNpiResult.tsx",
         "apps/web/components/home/TruthBoundary.tsx",
         "apps/web/components/proof/ProofPacketInspector.tsx",
@@ -20,7 +20,9 @@
       "id": "developer-shell",
       "label": "Developer shell",
       "entryFile": "apps/web/app/docs/page.tsx",
-      "copySources": ["apps/api/backend/src/services/search/searchIndex.ts"]
+      "copySources": [
+        "apps/api/backend/src/services/search/searchIndex.ts"
+      ]
     },
     {
       "id": "buyer-pilot",

@@ -55,8 +55,12 @@ function requireUserId(req: Request): string {
  * first touch when the proxy forwards `x-clerk-user-email` (the /get-ready
  * flow loads /api/me/workspaces first, which does the same), and fails with a
  * clean 404 when it cannot resolve one.
+ *
+ * Exported for sibling clinician-personal route families (Career Garden) so
+ * they resolve identity through this one audited path instead of reading
+ * identity headers themselves (keeps the header-trust ratchet flat).
  */
-async function requireInternalUserId(req: Request): Promise<string> {
+export async function requireInternalUserId(req: Request): Promise<string> {
   const clerkUserId = requireUserId(req);
   const email = getHeader(req, 'x-clerk-user-email') || undefined;
   const user = await ensureWorkspaceUser(clerkUserId, email);

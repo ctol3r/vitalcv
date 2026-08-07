@@ -6,7 +6,7 @@
 
 import type { Express, Request, Response } from 'express';
 import { parseBooleanEnv } from '../utils/environment';
-import { isSuperAdminRequest } from '../middleware/tenantGuard';
+import { ensurePlatformAdmin } from '../middleware/platformAdmin';
 import { log } from '../obs/logger';
 import {
   listAnchors,
@@ -60,15 +60,10 @@ export function registerTrustAnchorRoutes(app: Express): void {
     });
   });
 
-  // POST /api/trust-anchors/ingest  (admin)
-  app.post('/api/trust-anchors/ingest', (req: Request, res: Response) => {
+  // POST /api/trust-anchors/ingest  (platform administrator)
+  app.post('/api/trust-anchors/ingest', async (req: Request, res: Response) => {
     if (!ensureEnabled(res)) return;
-
-    const adminKey = req.headers['x-admin-key'];
-    if (!adminKey && !isSuperAdminRequest(req)) {
-      res.status(403).json({ error: 'Admin access required' });
-      return;
-    }
+    if (!(await ensurePlatformAdmin(req, res))) return;
 
     try {
       const anchors = ingestAllTrustLists();
@@ -81,15 +76,10 @@ export function registerTrustAnchorRoutes(app: Express): void {
     }
   });
 
-  // POST /api/trust-anchors/:id/revoke  (admin)
-  app.post('/api/trust-anchors/:id/revoke', (req: Request, res: Response) => {
+  // POST /api/trust-anchors/:id/revoke  (platform administrator)
+  app.post('/api/trust-anchors/:id/revoke', async (req: Request, res: Response) => {
     if (!ensureEnabled(res)) return;
-
-    const adminKey = req.headers['x-admin-key'];
-    if (!adminKey && !isSuperAdminRequest(req)) {
-      res.status(403).json({ error: 'Admin access required' });
-      return;
-    }
+    if (!(await ensurePlatformAdmin(req, res))) return;
 
     const { reason } = req.body as { reason?: string };
     if (!reason) {

@@ -12,7 +12,7 @@ export function RailJourney() {
   return (
     <section aria-labelledby="journey-title" data-home-journey="" className="mz pt-14">
       <div className="mx-auto w-full max-w-[1320px]">
-        <p className="mz-eyebrow">How you get hired faster</p>
+        <p className="mz-eyebrow">How you get hired on evidence</p>
         <h2 id="journey-title" className="mz-h1 mt-3 max-w-[18ch]">
           One record, carried from ready to started.
         </h2>

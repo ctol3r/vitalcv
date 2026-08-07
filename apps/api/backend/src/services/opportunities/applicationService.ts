@@ -36,10 +36,13 @@ import {
 import { HttpError } from '../../utils/httpError';
 import {
   buildFieldEntriesFromTrustState,
+  normalizeDisclosureSelection,
   sealPacket,
+  type DisclosureSelection,
   type ApplicationPacketContent,
   type SealedApplicationPacket,
 } from './applicationPacketService';
+import { resolveDisclosureSections } from './applicationDisclosure';
 
 const prisma = new PrismaClient();
 const NPI_RE = /^\d{10}$/;
@@ -90,18 +93,18 @@ export interface ApplyInput {
   clerkUserId: string;
   npi?: string;
   coverNote?: string;
-  /**
-   * Sections the clinician chose to disclose. Defaults to the full evidence
-   * set only because the field-level composer ships in Wave 3 — when it does,
-   * the caller always sends an explicit selection.
-   */
+  /** Sections the clinician chose to disclose. */
   selectedSections?: string[];
+  /**
+   * Field ids the clinician withheld inside those sections. Field-level
+   * disclosure: withheld fields still appear in the packet, valueless and
+   * marked `withheld`, so the reviewer can tell "not shared" from "no such
+   * evidence".
+   */
+  withheldFieldIds?: string[];
   /** Purpose recorded in the packet + consent receipt. */
   purpose?: string;
 }
-
-/** Default disclosure until the Wave 3 composer supplies an explicit choice. */
-const DEFAULT_SECTIONS = ['identity', 'exclusions', 'licensure', 'enrollment'] as const;
 
 export interface ReviewInput {
   applicationId: string;
@@ -191,6 +194,8 @@ async function sealSubmissionPacket(
     recipient: string;
     purpose: string;
     selectedSections: string[];
+    /** Field ids withheld inside the selected sections (field-level disclosure). */
+    withheldFieldIds?: string[];
     clinicianNote: string | null;
     trustState: ClinicianTrustState;
     consentAt: Date;
@@ -198,7 +203,15 @@ async function sealSubmissionPacket(
     opportunityVersion: string;
   },
 ): Promise<SealedApplicationPacket> {
-  const fields = buildFieldEntriesFromTrustState(args.trustState, args.selectedSections);
+  // ONE selection object, consumed by preview and seal alike. Passing the
+  // section list and the withheld list as two separate arguments is how the
+  // two paths drift; this makes them the same value by construction.
+  const disclosure: DisclosureSelection = {
+    sections: args.selectedSections,
+    withheldFieldIds: args.withheldFieldIds ?? [],
+  };
+  const normalizedDisclosure = normalizeDisclosureSelection(disclosure);
+  const fields = buildFieldEntriesFromTrustState(args.trustState, disclosure);
   if (fields.length === 0) {
     throw new HttpError(
       409,
@@ -223,7 +236,12 @@ async function sealSubmissionPacket(
         opportunity_id: args.opportunityId,
         purpose: args.purpose,
         recipient: args.recipient,
-        selected_sections: args.selectedSections,
+        selected_sections: normalizedDisclosure.sections,
+        // Consent is to a SPECIFIC disclosure, so the receipt records what was
+        // withheld too. Without it the durable consent record cannot answer
+        // "consented to disclose what?" — the only question it exists for.
+        withheld_field_ids: normalizedDisclosure.withheldFieldIds,
+        withheld_field_count: normalizedDisclosure.withheldFieldIds.length,
         field_count: fields.length,
       },
     },
@@ -238,7 +256,10 @@ async function sealSubmissionPacket(
     employerOrgId: args.employerOrgId,
     purpose: args.purpose,
     recipient: args.recipient,
-    selectedSections: [...args.selectedSections].sort(),
+    selectedSections: normalizedDisclosure.sections,
+    // No parallel withheld list here: `fields` already carries the decision
+    // per entry and is hashed. A packet with nothing withheld therefore
+    // hashes exactly as it did before field-level disclosure existed.
     fields,
     clinicianNote: args.clinicianNote,
     methodologyVersion: args.trustState.methodology_version,
@@ -316,9 +337,7 @@ async function sealSubmissionPacket(
  */
 export async function applyToOpportunity(input: ApplyInput): Promise<MarketplaceApplication> {
   const { opportunityId, clerkUserId, npi, coverNote } = input;
-  const selectedSections = input.selectedSections?.length
-    ? [...input.selectedSections]
-    : [...DEFAULT_SECTIONS];
+  const selectedSections = resolveDisclosureSections(input.selectedSections);
   const purpose = input.purpose ?? 'application';
 
   // The organization NAME is on the relation, not the opportunity row — and it
@@ -411,6 +430,7 @@ export async function applyToOpportunity(input: ApplyInput): Promise<Marketplace
       recipient: opp.organization?.name ?? opp.organizationId,
       purpose,
       selectedSections,
+      withheldFieldIds: input.withheldFieldIds ?? [],
       clinicianNote: coverNote ?? null,
       trustState,
       consentAt,

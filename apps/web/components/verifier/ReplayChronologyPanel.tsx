@@ -41,6 +41,10 @@ const STATUS_LABEL: Record<string, string> = {
   unavailable: 'UNAVAILABLE',
   access_required: 'ACCESS REQ.',
   review_required: 'REVIEW REQ.',
+  // The chronology records that a read HAPPENED, which is why a not-found lane
+  // legitimately appears here at all — but the event must state what came back,
+  // or the timeline reads as a run of successful confirmations.
+  not_found: 'NO ACTIVE RECORD',
   adverse: 'ADVERSE',
 };
 
@@ -54,6 +58,7 @@ const STATUS_TEXT: Record<string, string> = {
   unavailable: 'text-[var(--ink-500)]',
   access_required: 'text-[var(--watch)] font-semibold',
   review_required: 'text-[var(--watch)] font-semibold',
+  not_found: 'text-[var(--ink-500)]',
 };
 
 // Event-state truth chip variant per lane status.
@@ -66,6 +71,7 @@ const STATUS_CHIP: Record<string, string> = {
   unavailable: 'mz-chip-unknown',
   access_required: 'mz-chip-watch',
   review_required: 'mz-chip-watch',
+  not_found: 'mz-chip-unknown',
 };
 
 interface RunEvent {

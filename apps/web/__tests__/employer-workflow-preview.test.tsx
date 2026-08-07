@@ -39,8 +39,11 @@ describe('EmployerWorkflowPreview — the honest job-to-start loop (EMP-6.1)', (
 
   it('states the three non-negotiable boundaries inline, not in a footnote', () => {
     const html = render();
-    // identity ≠ authority
-    expect(html).toContain('not legal proof of authority');
+    // identity ≠ authority. The wording moved from "not legal proof of
+    // authority over it" to "not authority to act for it" when step 01 became
+    // a request rather than a claim. The boundary is unchanged — and the
+    // boundary, not one phrasing of it, is what this guard protects.
+    expect(html).toContain('not authority to act for it');
     // the clinician owns sharing
     expect(html).toMatch(/only when the clinician shares it/i);
     // acceptance ≠ credentialing

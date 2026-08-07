@@ -71,6 +71,10 @@ const TRUST_STATUS_META: Record<TrustUiStatus, { label: string; badgeClassName: 
     label: 'Review required',
     badgeClassName: 'border-transparent bg-[var(--vt-badge-unavailable-bg)] text-[var(--vt-badge-unavailable-text)]',
   },
+  not_found: {
+    label: 'No active record',
+    badgeClassName: 'border-transparent bg-[var(--vt-badge-unavailable-bg)] text-[var(--vt-badge-unavailable-text)]',
+  },
   demo: {
     label: 'Preview',
     badgeClassName: 'border-transparent bg-[var(--vt-badge-preview-bg)] text-[var(--vt-badge-preview-text)]',
@@ -90,6 +94,7 @@ const SAFE_DISPLAY_LABELS: Record<TrustUiStatus, readonly string[]> = {
   unavailable: ['Unavailable', 'Cannot verify'],
   access_required: ['Access required'],
   review_required: ['Review required'],
+  not_found: ['No active record', 'No record found', 'Not enrolled'],
   demo: ['Preview', 'Preview only'],
   preview_only: ['Preview', 'Preview only'],
 };

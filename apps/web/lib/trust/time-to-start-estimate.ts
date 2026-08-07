@@ -1,7 +1,31 @@
 import type { PassportData } from '@/lib/trust/passport-contract';
 
+/**
+ * Pilot time-to-start PROJECTION.
+ *
+ * Every number this module returns is arithmetic on an assumption. The 90-day
+ * baseline is an industry-shaped guess, not an observation — VitalCV has never
+ * measured what this clinician's start would have taken without it — and the
+ * coefficients below are hand-tuned, not fitted to outcomes. `timeSavedDays` is
+ * therefore `assumedBaseline - projectedStart`: a difference between a guess and
+ * a model, not an observed saving.
+ *
+ * That is legitimate as a conversation anchor and is exactly how
+ * `docs/PILOT_ROI_NARRATIVE.md` frames it ("Hypothesis until measured by real
+ * pilot cases. Do not present as proven."). It is NOT legitimate to render it in
+ * the vocabulary of measurement, which is why the labels below say projected and
+ * assumed, and why the disclosure names it a projection.
+ *
+ * The measured counterpart is `lib/trust/qualified-start-measurement.ts`, which
+ * derives a real span from recorded milestones and deliberately refuses to emit
+ * any `timeSaved` value at all, because a saving needs a counterfactual we do not
+ * observe. When that module has enough measured spans to publish, it — not this
+ * one — is what may speak in the language of fact.
+ */
+
 export const DEFAULT_PILOT_START_BASELINE_DAYS = 90;
-export const PILOT_TIME_TO_START_DISCLOSURE = 'Pilot estimate — based on current credential readiness';
+export const PILOT_TIME_TO_START_DISCLOSURE =
+  'Projection from an assumed baseline — not a measured result. VitalCV has not measured this start.';
 
 const NON_CHECKED_SOURCE_BUCKETS: Array<keyof PassportData['sourceCoverage']['summary']> = [
   'stale',
@@ -164,8 +188,11 @@ export function estimatePilotTimeToStart({
     estimatedDays,
     timeSavedDays,
     estimatedStartLabel: formatDayRange(estimatedDays),
-    baselineLabel: `~${normalizedBaselineDays} days`,
-    timeSavedLabel: formatDayRange(timeSavedDays, true),
+    // "assumed" is carried in the value itself, not only in the surrounding
+    // label, so the number cannot be lifted into a screenshot, a deck or a
+    // different component and read as an observation.
+    baselineLabel: `~${normalizedBaselineDays} days (assumed)`,
+    timeSavedLabel: `${formatDayRange(timeSavedDays, true)} (projected)`,
     disclosureLabel: PILOT_TIME_TO_START_DISCLOSURE,
   };
 }

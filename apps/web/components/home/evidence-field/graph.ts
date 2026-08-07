@@ -144,7 +144,7 @@ export const EDGES: readonly { from: string; to: string }[] = [
  * carrying its own.
  */
 export const STATE_LEGEND: readonly { state: EvidenceState; label: string; color: string }[] = [
-  { state: 'source-backed', label: 'Source-backed', color: 'var(--vt-accent-emerald)' },
+  { state: 'source-backed', label: 'Source-backed', color: 'var(--vt-state-source-confirmed)' },
   { state: 'checked', label: 'Checked', color: 'var(--accent, #4f46e5)' },
   { state: 'access-required', label: 'Access required', color: 'var(--vt-state-stale, #a2670b)' },
   { state: 'employer-decision', label: 'Employer decision', color: 'var(--vt-text-muted)' },

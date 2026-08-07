@@ -1,3 +1,4 @@
+/** @deprecated Compatibility/PSV adapter only; do not import directly from API routes or user interfaces. */
 import { normalizeNpi } from '@vitalcv/ingest';
 
 import {

@@ -42,6 +42,13 @@ export interface TrustRegisterSnapshot {
     sourceId: string;
     displayName: string;
     lifecycle: 'active' | 'partial' | 'planned' | 'unintegrated';
+    /**
+     * The key this lane publishes under in /api/status. Carried here so an
+     * external prober can JOIN the rendered /status page to the /api/status
+     * payload — they key differently (`board_cert` vs `board_certification`),
+     * which is why W0.5's parity check needs it rather than sourceId.
+     */
+    statusApiKey: string;
     lastCheckedAt: number | null;
   }>;
 
@@ -80,6 +87,7 @@ export async function getTrustRegisterSnapshot(): Promise<TrustRegisterSnapshot>
       sourceId: lane.laneId,
       displayName: getLaneDisplayName(lane.laneId),
       lifecycle: toRegisterLifecycle(lane.lifecycle),
+      statusApiKey: lane.statusApiKey,
       lastCheckedAt: null,
     })),
 

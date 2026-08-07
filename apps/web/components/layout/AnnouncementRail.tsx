@@ -14,12 +14,12 @@ import { ArrowRight, X } from 'lucide-react';
  * live copy is the free-wallet fact, not a pilot call. Bump ANNOUNCE_VERSION
  * when the message changes so a prior dismissal doesn't hide the new one.
  */
-const ANNOUNCE_VERSION = 'v1';
+const ANNOUNCE_VERSION = 'v2';
 const STORAGE_KEY = `vcv-announce-dismissed-${ANNOUNCE_VERSION}`;
 
 /**
  * Buyer surfaces where the clinician-wallet pitch must not render. The
- * employer doorway (Wave 6) opens with "Start clinicians faster from
+ * employer doorway (Wave 6) opens with "Start clinicians from
  * source-backed evidence" — a strip above it addressing a different audience
  * ("The VitalCV Wallet is free for clinicians → Check your NPI") undercuts the
  * page's one argument, and "wallet" is on the buyer-surface banned list that
@@ -28,6 +28,23 @@ const STORAGE_KEY = `vcv-announce-dismissed-${ANNOUNCE_VERSION}`;
  * serves on those routes.
  */
 const BUYER_PATH_PREFIXES = ['/employers', '/employer', '/pilot', '/review', '/for/'] as const;
+
+/**
+ * Surfaces that already make this exact offer, louder and better.
+ *
+ * The homepage IS the NPI check: it carries the field at display scale, says
+ * "Free for clinicians" in its own hint line, and labels the act "Step 1 ·
+ * Start with your NPI". The rail above it therefore repeated the page's offer
+ * and its call to action in the first line a visitor reads — and did it in a
+ * different vocabulary ("Wallet"), a noun that appears nowhere else on the
+ * page. A utility strip earns its place by carrying a message the page does
+ * not; here it competed with one.
+ */
+const REDUNDANT_PATHS = ['/'] as const;
+
+export function isRedundantAnnouncementPath(pathname: string | null): boolean {
+  return Boolean(pathname) && REDUNDANT_PATHS.includes(pathname as (typeof REDUNDANT_PATHS)[number]);
+}
 
 export function isBuyerSurfacePath(pathname: string | null): boolean {
   if (!pathname) return false;
@@ -56,6 +73,7 @@ export function AnnouncementRail() {
   // Buyer surfaces never render the clinician pitch — server and client agree
   // on pathname, so this is hydration-safe and holds for no-JS readers too.
   if (isBuyerSurfacePath(pathname)) return null;
+  if (isRedundantAnnouncementPath(pathname)) return null;
 
   // Renders on the server + first paint (so no-JS users see it), then hides
   // itself after mount if this message was already dismissed.
@@ -78,7 +96,7 @@ export function AnnouncementRail() {
     >
       <div className="mx-auto flex min-h-[34px] max-w-7xl items-center justify-center gap-3 px-10 py-1.5 text-center text-[13px]">
         <p className="leading-tight">
-          The VitalCV Wallet is free for clinicians.{' '}
+          VitalCV is free for clinicians.{' '}
           <Link
             href="/#npi"
             className="group inline-flex items-center gap-1 font-semibold text-[var(--vt-text-primary)] underline-offset-4 hover:underline"

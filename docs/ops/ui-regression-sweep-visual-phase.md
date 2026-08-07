@@ -79,8 +79,8 @@ phrases returned only the items below.
 The bulk of the 1085 raw hits fall into categories that are expected and do not
 violate the truth contract (all confirmed green by the contract vitest suite):
 
-- **CSS-variable token names** — `--vt-state-verified` (`styles/themes/index.css`),
-  `--trust-signal-verified` (`styles/tokens.css`), and their `var(--vt-state-verified)`
+- **CSS-variable token names** — `--vt-state-source-confirmed` (`styles/themes/index.css`),
+  `--trust-signal-verified` (`styles/tokens.css`), and their `var(--vt-state-source-confirmed)`
   consumers in `HomePageClient.tsx`. These are design-token identifiers, not copy.
 - **Prop / variable / field names** — `lastVerifiedAt`, `identityVerified`,
   `isVerified`, `verifiedSources`, `hasOrcidVerified`, `status: 'verified'`

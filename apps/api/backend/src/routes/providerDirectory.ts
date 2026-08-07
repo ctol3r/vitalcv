@@ -44,7 +44,20 @@ function parseDirectoryQuery(req: Request) {
   };
 }
 
+/**
+ * These routes are reachable unauthenticated on the backend's own public
+ * domain, not only through the web proxy, so the proxy's headers do not cover
+ * them. Without an explicit directive an intermediary may cache heuristically
+ * and keep serving a payload after a correction ships.
+ */
+function noStore(_req: Request, res: Response, next: () => void): void {
+  res.set('Cache-Control', 'no-store');
+  next();
+}
+
 export function registerProviderDirectoryRoutes(app: Express): void {
+  app.use('/api/directory', noStore);
+
   /**
    * GET /api/directory?page=1&pageSize=200&limit=200&minTrustScore=50
    * Structured provider directory.

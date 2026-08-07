@@ -116,7 +116,7 @@ export function IssueCredentialForm({ onIssue, loading }: IssueCredentialFormPro
             <Input
               value={subjectName}
               onChange={(e) => setSubjectName(e.target.value)}
-              placeholder="e.g., Dr. Alice Johnson"
+              placeholder="e.g., Example Clinician A"
             />
           </div>
 

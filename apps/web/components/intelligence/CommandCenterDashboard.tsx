@@ -148,7 +148,7 @@ export function CommandCenterDashboard() {
                 { id: 'PRV-1092', label: 'Dr. Sarah Jenkins' },
                 { id: 'FAC-0041', label: 'Mercy General Hospital' },
                 { id: 'TXT-9921', label: 'Payment Query #44' },
-                { id: 'PRV-8812', label: 'Dr. Marcus Webb' }
+                { id: 'PRV-8812', label: 'Example Clinician B' }
               ].map((inv) => (
                 <div key={inv.id} className="text-sm flex items-center gap-3 p-2 rounded hover:bg-[var(--vt-surface-2)] cursor-pointer text-[var(--vt-text-2)]">
                   <span className="font-mono text-xs text-[var(--vt-text-1)]0">{inv.id}</span>

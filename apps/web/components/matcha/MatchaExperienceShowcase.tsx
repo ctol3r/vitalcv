@@ -8,9 +8,13 @@
  */
 
 import { DailyBriefView } from './MatchaDailyBrief';
-import { MatchaConstellation } from './MatchaConstellation';
+import { CareerEvidenceTimeline } from '@/components/artifacts/CareerEvidenceTimeline';
 import { OpportunityIntelligenceCard, type IntelligenceExplanation, type IntelligenceOpportunity } from './OpportunityIntelligenceCard';
 import { buildBriefItems, gapNudge } from '@/lib/matcha/daily';
+import { ArtifactStage } from '@/components/motion/ArtifactStage';
+import { ClinicianArtifact, SpecialtyArtifact } from '@/components/artifacts/SceneArtifacts';
+import '@/styles/motion.css';
+import '@/styles/artifact-motion.css';
 
 const SAMPLE_ITEMS = buildBriefItems({
   newMatches: 4,
@@ -72,19 +76,37 @@ export function MatchaExperienceShowcase() {
       {/* Daily brief — presentational, sample data, shown in its "new day" state */}
       <DailyBriefView streak={5} items={SAMPLE_ITEMS} isNewDay />
 
-      {/* The personal constellation */}
+      {/* The career, as a ruled document. Was a drag-to-rotate constellation
+          canvas until CD-13 retired the mechanism; the drawing carries its own
+          "illustrative" note, so this surface cannot present sample data as a
+          record even by accident. */}
       <div>
-        <p className="mz-eyebrow" style={{ marginBottom: 10 }}>Your career, in motion</p>
-        <MatchaConstellation height={440} profile={{ specialty: 'Cardiology', readinessScore: 78, matchCount: 4 }} />
-        <p className="mz-mono" style={{ marginTop: 8, fontSize: 10, color: 'var(--ink-400)' }}>
-          Drag to rotate · pull the slider to travel your career. Past &amp; future are projected; your real evidence lives in your wallet.
-        </p>
+        <p className="mz-eyebrow" style={{ marginBottom: 10 }}>Your career, end to end</p>
+        <CareerEvidenceTimeline />
       </div>
 
       {/* An opportunity intelligence card */}
       <div>
         <p className="mz-eyebrow" style={{ marginBottom: 10 }}>An opportunity MATCHA found</p>
         <OpportunityIntelligenceCard opportunity={SAMPLE_OPP} explanation={SAMPLE_EXPLANATION} />
+      </div>
+
+      {/* The two scene artifacts: who this is for, and where they practise.
+          Everything above is sample DATA — a name, a brief, a match. These two
+          are drawings, not data, so they carry the story without inventing a
+          second clinician. Both play once on entry and rest (CD-11); glass per
+          the 2026-07-28 ruling that illustrative artifacts may be glass. */}
+      <div>
+        <p className="mz-eyebrow" style={{ marginBottom: 10 }}>The record that travels with you</p>
+        <ArtifactStage glass>
+          <ClinicianArtifact />
+        </ArtifactStage>
+      </div>
+      <div>
+        <p className="mz-eyebrow" style={{ marginBottom: 10 }}>Whichever room you practise in</p>
+        <ArtifactStage glass>
+          <SpecialtyArtifact />
+        </ArtifactStage>
       </div>
 
       {/* Honest footer + CTA to the real thing */}

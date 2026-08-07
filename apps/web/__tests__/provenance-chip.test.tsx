@@ -146,14 +146,14 @@ describe('ProvenanceChip — fail-closed & self-attested registers', () => {
 });
 
 describe('ProvenanceChip — order arrays', () => {
-  it('PROVENANCE_ORDER enumerates all 11 states with no duplicates', () => {
+  it('PROVENANCE_ORDER enumerates all 12 states with no duplicates', () => {
     const expected: ReadonlySet<ProvenanceState> = new Set<ProvenanceState>([
       'checked', 'stale', 'pending', 'gated', 'unavailable',
-      'accessRequired', 'reviewRequired', 'notDecisionGrade', 'previewOnly',
+      'accessRequired', 'reviewRequired', 'notDecisionGrade', 'notFound', 'previewOnly',
       'revoked', 'selfAttested',
     ]);
     expect(new Set(PROVENANCE_ORDER)).toEqual(expected);
-    expect(PROVENANCE_ORDER).toHaveLength(11);
+    expect(PROVENANCE_ORDER).toHaveLength(12);
   });
 
   it('PROVENANCE_CORE_ORDER is the six-register set ending in the two "never a check" states', () => {

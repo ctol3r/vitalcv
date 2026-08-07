@@ -46,6 +46,38 @@ interface Props {
 type Phase = 'form' | 'submitting' | 'success' | 'error';
 const REQUEST_TIMEOUT_MS = 12_000;
 
+const DISCLOSURE_SECTIONS = [
+  {
+    id: 'identity',
+    label: 'Identity',
+    detail: 'Your NPI-linked clinician identity is required for this application.',
+    required: true,
+  },
+  {
+    id: 'exclusions',
+    label: 'Exclusions',
+    detail: 'Current federal exclusion evidence, with its source state.',
+    required: false,
+  },
+  {
+    id: 'licensure',
+    label: 'Licensure',
+    detail: 'Available license evidence and any review or access limits.',
+    required: false,
+  },
+  {
+    id: 'enrollment',
+    label: 'Enrollment',
+    detail: 'Available PECOS or enrollment evidence and freshness.',
+    required: false,
+  },
+] as const;
+
+type DisclosureSectionId = (typeof DISCLOSURE_SECTIONS)[number]['id'];
+const DEFAULT_DISCLOSURE_SECTIONS: DisclosureSectionId[] = DISCLOSURE_SECTIONS.map(
+  (section) => section.id,
+);
+
 function statusClasses(status: string): string {
   switch (applicationStatusTone(status)) {
     case 'emerald':
@@ -120,6 +152,9 @@ export default function ApplyModal({
   } = useRoleContext();
   const trackEvent = useTrackEvent();
   const [coverNote, setCoverNote] = useState('');
+  const [selectedSections, setSelectedSections] = useState<DisclosureSectionId[]>(
+    DEFAULT_DISCLOSURE_SECTIONS,
+  );
   const [phase, setPhase] = useState<Phase>('form');
   const [errorMsg, setErrorMsg] = useState('');
   const [loadingTrustState, setLoadingTrustState] = useState(false);
@@ -145,6 +180,7 @@ export default function ApplyModal({
 
   useEffect(() => {
     setCoverNote('');
+    setSelectedSections(DEFAULT_DISCLOSURE_SECTIONS);
     setPhase('form');
     setErrorMsg('');
     setSubmittedApplication(null);
@@ -229,6 +265,15 @@ export default function ApplyModal({
     return null;
   }
 
+  function toggleDisclosureSection(sectionId: DisclosureSectionId) {
+    if (sectionId === 'identity') {
+      return;
+    }
+    setSelectedSections((current) => current.includes(sectionId)
+      ? current.filter((section) => section !== sectionId)
+      : [...current, sectionId]);
+  }
+
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     if (!clinicianNpi || !opportunity) {
@@ -246,6 +291,8 @@ export default function ApplyModal({
         body: JSON.stringify({
           npi: clinicianNpi,
           coverNote: coverNote.trim() || undefined,
+          selectedSections,
+          purpose: 'application',
         }),
       });
 
@@ -633,6 +680,47 @@ export default function ApplyModal({
                 </div>
 
                 <div>
+                  <fieldset className="rounded-2xl border border-zinc-200 bg-white p-4">
+                    <legend className="px-1 text-sm font-semibold text-zinc-900">
+                      Choose what to present
+                    </legend>
+                    <p className="mt-1 text-xs leading-5 text-zinc-600">
+                      This is the exact section selection sealed into this employer&apos;s application packet.
+                      Omitted sections are not presented.
+                    </p>
+                    <div className="mt-3 space-y-2">
+                      {DISCLOSURE_SECTIONS.map((section) => {
+                        const selected = selectedSections.includes(section.id);
+                        return (
+                          <label
+                            key={section.id}
+                            className="flex cursor-pointer items-start gap-3 rounded-xl border border-zinc-200 p-3 transition-colors hover:bg-zinc-50"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={selected}
+                              disabled={section.required}
+                              onChange={() => toggleDisclosureSection(section.id)}
+                              className="mt-0.5 h-4 w-4 rounded border-zinc-300 text-emerald-600 focus:ring-emerald-500 disabled:cursor-not-allowed"
+                            />
+                            <span className="min-w-0">
+                              <span className="flex items-center gap-2 text-sm font-semibold text-zinc-900">
+                                {section.label}
+                                {section.required ? (
+                                  <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-zinc-600">
+                                    Required
+                                  </span>
+                                ) : null}
+                              </span>
+                              <span className="mt-0.5 block text-xs leading-5 text-zinc-600">{section.detail}</span>
+                            </span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </fieldset>
+
+                  <div className="mt-4">
                   <label className="mb-1.5 block text-sm font-medium text-zinc-700">
                     Cover note <span className="font-normal text-zinc-400">(optional)</span>
                   </label>
@@ -644,8 +732,9 @@ export default function ApplyModal({
                     className="glue-input glue-input--emerald min-h-[112px] w-full resize-none px-4 py-3 text-sm leading-6 mb-2"
                   />
                   <p className="text-[11px] text-zinc-500 leading-relaxed bg-zinc-100/50 p-2.5 rounded-lg border border-zinc-200">
-                    Applying with VitalCV includes your living readiness passport. Employers can review current source coverage and decide what still needs credentialing review.
+                    This packet preserves what you selected at submission. Employers can review that submitted evidence and still decide what needs credentialing review.
                   </p>
+                  </div>
                 </div>
 
                 {phase === 'error' ? (

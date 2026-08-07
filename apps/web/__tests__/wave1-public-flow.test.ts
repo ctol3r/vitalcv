@@ -2,31 +2,23 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-const WEB_ROOT = path.resolve(__dirname, '..');
 const MARKETING_ROOT = path.resolve(__dirname, '../../marketing');
-
-function readWeb(relativePath: string): string {
-  return fs.readFileSync(path.join(WEB_ROOT, relativePath), 'utf8');
-}
 
 function readMarketing(relativePath: string): string {
   return fs.readFileSync(path.join(MARKETING_ROOT, relativePath), 'utf8');
 }
 
-describe('Wave 1 public pilot flow copy and NPI routing', () => {
-  it('routes marketing NPI submissions to the canonical passport intake', () => {
-    expect(readWeb('components/marketing/NpiLookupInput.tsx')).toContain('router.push(buildPassportLookupHref(trimmed))');
-    expect(readWeb('components/marketing/Hero.tsx')).toContain('router.push(buildPassportLookupHref(normalizedNpi))');
-    expect(readWeb('components/marketing/HeroSection.tsx')).toContain('router.push(buildPassportLookupHref(normalizedNpi))');
-    expect(readMarketing('components/marketing/NpiInput.tsx')).toContain("buildWebAppUrl('/passport'");
+describe('marketing public flow copy and NPI routing', () => {
+  it('routes marketing NPI submissions into the web app', () => {
+    // The marketing origin targets /onboarding directly: the /passport stub
+    // (#1096) 307s without forwarding ?npi=, so routing through it dropped
+    // the NPI the visitor typed. /onboarding accepts ?npi= as the
+    // cross-origin carrier (lib/onboarding/npiHandoff.ts).
+    expect(readMarketing('components/marketing/NpiInput.tsx')).toContain("buildWebAppUrl('/onboarding'");
   });
 
-  it('keeps Hero and NPI form copy free of banned overclaims', () => {
+  it('keeps marketing hero and NPI form copy free of banned overclaims', () => {
     const source = [
-      readWeb('components/hero/LiveTrustConsole.tsx'),
-      readWeb('components/marketing/Hero.tsx'),
-      readWeb('components/marketing/HeroSection.tsx'),
-      readWeb('components/marketing/NpiLookupInput.tsx'),
       readMarketing('components/marketing/HeroSection.tsx'),
       readMarketing('components/marketing/NpiInput.tsx'),
     ].join('\n');

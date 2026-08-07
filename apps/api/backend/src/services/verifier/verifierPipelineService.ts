@@ -126,23 +126,17 @@ export function getCandidateQueue(verifierOrgId: string, opportunityId?: string)
 }
 
 function buildCandidateSummary(r: ApplicationRecord): CandidateSummary {
-  // Stub clinician profiles keyed by NPI
-  const profiles: Record<string, { name: string; specialty: string; prequalified: boolean; credentialSummary: string }> = {
-    '1003000126': {
-      name: 'Dr. Sarah Chen',
-      specialty: 'Internal Medicine',
-      prequalified: true,
-      credentialSummary: 'CA License L3 · ABIM Certified · DEA Active · Sanctions Clear',
-    },
-    '1234567890': {
-      name: 'Dr. Marcus Webb',
-      specialty: 'Cardiology',
-      prequalified: false,
-      credentialSummary: 'CA License L3 · ABIM Cardiology · Malpractice Pending',
-    },
-  };
-
-  const profile = profiles[r.npi] ?? {
+  // Until 2026-07-27 this consulted a hardcoded map of stub profiles before
+  // falling back to the honest summary below. NPI 1003000126 resolved to
+  // "Dr. Sarah Chen … CA License L3 · ABIM Certified · DEA Active · Sanctions
+  // Clear" — that NPI belongs to a real physician. Because this feeds the
+  // verifier candidate queue, an application from that clinician would have been
+  // shown to an employer under someone else's name, carrying a credential
+  // summary no source ever produced.
+  //
+  // Do not reintroduce a lookup table here. Until real profiles are wired, the
+  // only honest answer is that the record is unresolved.
+  const profile = {
     name: `NPI ${r.npi}`,
     specialty: 'Unknown',
     prequalified: false,

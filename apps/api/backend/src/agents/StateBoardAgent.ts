@@ -11,8 +11,19 @@ import type { StateBoardResult as ConnectorResult } from '../services/providers/
  * State Board connector (sandbox or live depending on env).
  */
 
+/**
+ * Every NPI here must FAIL the NPI check digit (Luhn over "80840" + the first 9
+ * digits) so it cannot collide with a registrant. This agent sends each entry to
+ * a live state medical board every cycle, so a real NPI here polls an actual
+ * person's licence status forever without their consent.
+ *
+ * `1003000126` sat at the head of this list until 2026-07-27 — it is a real
+ * physician. The replacement keeps the final digit (6), because the sandbox
+ * connectors branch on it. The other four entries were already
+ * check-digit-invalid.
+ */
 const NPI_WATCHLIST: Array<{ npi: string; state: string }> = [
-  { npi: '1003000126', state: 'CA' },
+  { npi: '1558395516', state: 'CA' },
   { npi: '1234567890', state: 'NY' },
   { npi: '9876543210', state: 'TX' },
   { npi: '1112223334', state: 'FL' },

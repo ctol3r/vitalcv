@@ -11,7 +11,7 @@ function readArg(flag: string): string | null {
 }
 
 async function main(): Promise<void> {
-  const npi = readArg('--npi') ?? '1003000126';
+  const npi = readArg('--npi') ?? '0000000000';
   const outDirArg = readArg('--outdir');
   const outDir = outDirArg
     ? path.resolve(outDirArg)

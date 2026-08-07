@@ -1,10 +1,13 @@
 import { expect, test } from '@playwright/test';
 
 /**
- * Liquid mobile menu (VHS-2.5) — the accessible modal nav overlay. The bloom is
- * decorative; these tests pin the behaviour that must not break: it is a focus-
- * trapped, scroll-locked dialog that Escape closes and returns focus to its
- * trigger, it is mobile-only, and reduced motion drops the animation.
+ * Liquid mobile menu — the mobile navigation recomposition (VHS-2.5,
+ * rebuilt by the 2026-08-06 shared-header wave). The bloom is decorative;
+ * these tests pin the behaviour that must not break: it is a focus-trapped,
+ * scroll-locked full-screen dialog that Escape closes and returns focus to
+ * its trigger, it carries the journey rail plus every destination group
+ * from the single navDestinations source, it is mobile-only, and reduced
+ * motion drops the animation.
  */
 
 test.describe('liquid mobile menu', () => {
@@ -19,15 +22,20 @@ test.describe('liquid mobile menu', () => {
     const dialog = page.locator('[data-liquid-menu]');
     await expect(dialog).toBeVisible();
     await expect(dialog).toHaveAttribute('aria-modal', 'true');
-    // Focus moved into the dialog (the first destination).
-    await expect(page.locator('[data-liquid-menu] a').first()).toBeFocused();
+    // Focus moved into the dialog (the brand link leads the panel).
+    await expect(page.locator('.liquid-menu__panel a').first()).toBeFocused();
     // Background scroll is locked while open.
     expect(await page.evaluate(() => getComputedStyle(document.body).overflow)).toBe('hidden');
-    // Every required destination is present.
-    for (const label of ['Home', 'For Clinicians', 'For Employers', 'Trust']) {
+    // The journey rail is present, vertical, with the current stage marked.
+    await expect(dialog.locator('.vcv-rail--overlay')).toBeVisible();
+    await expect(dialog.locator('[data-rail-state="active"]')).toHaveText(/Your Number/);
+    // Every destination group from the single source is present.
+    await expect(dialog.locator('.liquid-menu__group')).toHaveCount(3);
+    for (const label of ['Build your profile', 'For employers', 'Source attribution']) {
       await expect(dialog.getByRole('link', { name: label })).toBeVisible();
     }
-    await expect(dialog.getByRole('link', { name: 'Check Readiness' })).toBeVisible();
+    // The CTA pair: Sign In plus the one contextual action.
+    await expect(dialog.getByRole('link', { name: 'Build my profile' })).toBeVisible();
     await expect(dialog.getByRole('link', { name: 'Sign In' })).toBeVisible();
 
     // Escape closes, restores scroll, and returns focus to the trigger.
@@ -41,8 +49,10 @@ test.describe('liquid mobile menu', () => {
     await page.setViewportSize({ width: 1280, height: 800 });
     await page.goto('/', { waitUntil: 'networkidle' });
     await expect(page.getByRole('button', { name: 'Open menu' })).toBeHidden();
-    // Desktop nav is the conventional bar.
-    await expect(page.getByRole('link', { name: 'For Employers' }).first()).toBeVisible();
+    // Desktop carries the journey rail and the canvas trigger instead of a
+    // row of category links.
+    await expect(page.locator('.vcv-rail--bar')).toBeVisible();
+    await expect(page.locator('.vcv-header__trigger')).toBeVisible();
   });
 
   test('reduced motion drops the bloom animation', async ({ page }) => {

@@ -3,6 +3,12 @@ import { getSecurityHeadersForNext } from './security-headers.mjs';
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Next sends `X-Powered-By: Next.js` on every response by default, naming
+  // the framework (and, with it, the CVE list worth trying) to anyone
+  // enumerating the origin, in exchange for nothing. The `headers()` block
+  // below cannot remove it — that only ADDS headers — so it is turned off at
+  // the framework level. Asserted absent by __tests__/security-headers.test.ts.
+  poweredByHeader: false,
   transpilePackages: [
     '@vitalcv/shared',
     '@vitalcv/crs',
@@ -46,6 +52,24 @@ const nextConfig = {
       {
         source: '/(.*)',
         headers: getSecurityHeadersForNext(),
+      },
+      // Public provider surfaces must not be cached by any intermediary.
+      // These routes send no Cache-Control today, so a CDN or proxy is free to
+      // apply heuristic caching — which would keep serving a payload after a
+      // correction ships. Declared here rather than per-response because each
+      // proxy has several exit paths (upstream error, timeout, catch) and a
+      // header added by hand would be missed on at least one of them.
+      {
+        source: '/api/providers',
+        headers: [{ key: 'Cache-Control', value: 'no-store' }],
+      },
+      {
+        source: '/api/directory',
+        headers: [{ key: 'Cache-Control', value: 'no-store' }],
+      },
+      {
+        source: '/api/directory/:path*',
+        headers: [{ key: 'Cache-Control', value: 'no-store' }],
       },
     ];
   },

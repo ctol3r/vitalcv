@@ -84,17 +84,49 @@ export interface RawNppesBasic {
   middle_name: string;
   /** Up to 50 chars in v2 — MD, DO, NP, etc. */
   credential: string;
+  /** "YES" | "NO" — sole proprietor flag (individuals only) */
   sole_proprietor: string;
-  gender: string;
+  /**
+   * Administrative sex as recorded by CMS.
+   *
+   * NPPES v2.1 emits `sex` ("M" | "F"). Older v2.0 payloads emitted `gender`.
+   * Both are declared so the normalizer can read whichever is present; `sex`
+   * wins when both appear. This is CMS's own registry field, not a statement
+   * about gender identity, and it is surfaced as such.
+   */
+  sex?: string;
+  /** @deprecated NPPES v2.0 spelling — superseded by `sex`. Read-only fallback. */
+  gender?: string;
   enumeration_date: string;
   last_updated: string;
+  /** Date the provider last certified the record's accuracy with CMS */
+  certification_date?: string;
   /** "A" = Active — authoritative status field */
   status: string;
+  /** Set when `status` is "D" (deactivated) */
+  deactivation_date?: string;
+  deactivation_reason_code?: string;
+  /** Set when a deactivated NPI has been restored */
+  reactivation_date?: string;
   name_prefix: string;
   name_suffix: string;
   enumeration_type: string;
   /** Up to 300 chars in v2 — never truncate */
   organization_name?: string;
+
+  // ── Type-2 (organization) only ──────────────────────────────────────────
+  /** "YES" | "NO" — whether this org is a subpart of a parent organization */
+  organizational_subpart?: string;
+  parent_organization_legal_business_name?: string;
+  parent_organization_ein?: string;
+  authorized_official_first_name?: string;
+  authorized_official_last_name?: string;
+  authorized_official_middle_name?: string;
+  authorized_official_name_prefix?: string;
+  authorized_official_name_suffix?: string;
+  authorized_official_credential?: string;
+  authorized_official_title_or_position?: string;
+  authorized_official_telephone_number?: string;
 }
 
 /** Single result entry from CMS NPPES API v2.1 */
@@ -111,6 +143,16 @@ export interface RawNppesResult {
   identifiers: RawNppesIdentifier[];
   endpoints: RawNppesEndpoint[];
   other_names: RawNppesOtherName[];
+  /**
+   * Secondary practice locations, distinct from `addresses`.
+   *
+   * CMS emits this key in camelCase (unlike every other field on the result),
+   * and it is frequently absent rather than empty. It carries the practice
+   * sites a provider works at beyond the single LOCATION address, which is
+   * why a registry mirror that reads only `addresses` under-reports where a
+   * clinician actually practises.
+   */
+  practiceLocations?: RawNppesAddress[];
 }
 
 /** Top-level CMS NPPES API response */
@@ -136,6 +178,8 @@ export interface NormalizedTaxonomy {
 /** Full address after normalization */
 export interface NormalizedAddress {
   purpose: 'LOCATION' | 'MAILING' | string;
+  /** DOM (domestic) | FGN (foreign) | MIL (military) */
+  address_type: string;
   /** Full address line — TEXT field (up to 200 chars in v2) */
   address_1: string;
   address_2: string;
@@ -144,7 +188,9 @@ export interface NormalizedAddress {
   state: string;
   postal_code: string;
   country_code: string;
+  country_name: string;
   telephone_number: string;
+  fax_number: string;
 }
 
 export interface NormalizedEndpoint {
@@ -157,6 +203,22 @@ export interface NormalizedEndpoint {
 export interface NormalizedOtherName {
   display_name: string;
   type: string;
+}
+
+/**
+ * Type-2 authorized official — the natural person CMS holds accountable for
+ * an organization's NPI record. Null for individual (NPI-1) providers.
+ */
+export interface NormalizedAuthorizedOfficial {
+  display_name: string;
+  first_name: string;
+  last_name: string;
+  middle_name: string;
+  name_prefix: string;
+  name_suffix: string;
+  credential: string;
+  title_or_position: string;
+  telephone_number: string;
 }
 
 /**
@@ -187,6 +249,15 @@ export interface NormalizedProvider {
   /** Display name — full name or org name, never truncated */
   display_name: string;
 
+  // ── Demographics ──────────────────────────────────────────────────────
+  /**
+   * CMS administrative sex code: "M" | "F" | "" when not recorded.
+   * Registry metadata, not an identity claim — render it labelled as such.
+   */
+  sex: string;
+  /** "YES" | "NO" | "" — sole-proprietor election (individuals only) */
+  sole_proprietor: string;
+
   // ── Classification ────────────────────────────────────────────────────
   /** Primary taxonomy description — full TEXT */
   primary_taxonomy: string | null;
@@ -202,15 +273,34 @@ export interface NormalizedProvider {
   mailing_address: NormalizedAddress | null;
   /** All addresses */
   addresses: NormalizedAddress[];
+  /** Secondary practice sites from the `practiceLocations` key */
+  practice_locations: NormalizedAddress[];
 
   // ── Identifiers ───────────────────────────────────────────────────────
   identifiers: RawNppesIdentifier[];
   endpoints: NormalizedEndpoint[];
   other_names: NormalizedOtherName[];
 
+  // ── Organization (Type-2) ─────────────────────────────────────────────
+  /** "YES" | "NO" | "" */
+  organizational_subpart: string;
+  parent_organization_legal_business_name: string;
+  /** Null for individual (NPI-1) providers */
+  authorized_official: NormalizedAuthorizedOfficial | null;
+
   // ── Audit ─────────────────────────────────────────────────────────────
   enumeration_date: string;
   last_updated: string;
+  /** Date the provider last certified record accuracy with CMS */
+  certification_date: string;
+  /** Populated only when the NPI is deactivated */
+  deactivation_date: string;
+  deactivation_reason_code: string;
+  /** Populated only when a deactivated NPI was restored */
+  reactivation_date: string;
+  /** CMS epoch timestamps (ms as string) — exact machine-readable audit anchors */
+  created_epoch: string;
+  last_updated_epoch: string;
 }
 
 // ── Smoke test result ─────────────────────────────────────────────────────

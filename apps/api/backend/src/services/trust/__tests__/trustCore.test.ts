@@ -14,6 +14,56 @@ describe('trust core readiness', () => {
     expect(defaultCoverageStateForSource('NURSYS_ENOTIFY')).toBe('gated');
   });
 
+  it('keeps a not-found result out of checked even when an artifact exists', () => {
+    // The production shape: an artifact row was stored (checked: true, fresh),
+    // but what it recorded was "the registry has no active record for this
+    // NPI". Landing on 'checked' is what rendered Source-backed for a
+    // non-existent NPI on /verify/[npi].
+    expect(
+      resolveSourceCoverageState({
+        sourceId: 'NPPES_API',
+        checked: true,
+        fresh: true,
+        notFound: true,
+      }),
+    ).toBe('notFound');
+
+    expect(
+      resolveSourceCoverageState({
+        sourceId: 'PECOS_PUBLIC',
+        checked: true,
+        fresh: true,
+        notFound: true,
+      }),
+    ).toBe('notFound');
+
+    // An unread source still outranks it — there we never got an answer at all.
+    expect(
+      resolveSourceCoverageState({ sourceId: 'NPPES_API', notFound: true, unavailable: true }),
+    ).toBe('unavailable');
+
+    // And an affirming read is untouched.
+    expect(
+      resolveSourceCoverageState({ sourceId: 'NPPES_API', checked: true, fresh: true }),
+    ).toBe('checked');
+  });
+
+  it('will not certify readiness from lanes that found no record', () => {
+    const lane = (sourceId: string) => ({
+      sourceCoverage: [{ sourceId, state: 'notFound' as const, reason: 'no active record' }],
+    });
+    const readiness = computeDeterministicTrustReadiness({
+      identity: { dimension: 'identity', status: 'MET', confidence: 0.99, ...lane('NPPES_API') },
+      exclusion: { dimension: 'exclusion', status: 'MET', confidence: 0.95, ...lane('OIG_LEIE') },
+      licensure: { dimension: 'licensure', status: 'MET', confidence: 0.95, ...lane('STATE_BOARD') },
+      enrollment: { dimension: 'enrollment', status: 'MET', confidence: 0.95, ...lane('PECOS_PUBLIC') },
+    });
+
+    // Every dimension claims MET; not one source actually found the provider.
+    expect(readiness.readinessState).not.toBe('DECISION_GRADE');
+    expect(readiness.overallStatus).not.toBe('CLEAR_TO_START');
+  });
+
   it('computes readiness from checked decision-grade source results', () => {
     const readiness = computeDeterministicTrustReadiness({
       identity: {

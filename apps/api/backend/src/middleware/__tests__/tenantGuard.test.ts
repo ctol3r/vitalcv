@@ -52,6 +52,36 @@ describe('tenantGuard', () => {
     )).toBe(false);
   });
 
+  it('never skips tenant context for the directory publish write', () => {
+    // /api/directory/publish mints an integrity-hashed, federation-ready
+    // snapshot and was reachable unauthenticated on the backend's public
+    // domain. The reads beside it stay public; only the write is closed.
+    expect(shouldSkipTenantContext('/api/directory/publish')).toBe(false);
+    expect(shouldSkipTenantContext('/api/directory/publish/')).toBe(false);
+    expect(shouldSkipTenantContext('/API/Directory/Publish')).toBe(false);
+
+    expect(shouldSkipTenantContext('/api/directory')).toBe(true);
+    expect(shouldSkipTenantContext('/api/directory/csv')).toBe(true);
+    expect(shouldSkipTenantContext('/api/directory/fhir')).toBe(true);
+    expect(shouldSkipTenantContext('/api/directory/signed')).toBe(true);
+    expect(shouldSkipTenantContext('/api/directory/snapshots')).toBe(true);
+  });
+
+  it('rejects an unauthenticated directory publish through the middleware', () => {
+    const req = createRequest('/api/directory/publish');
+    const res = createResponse();
+    const next = jest.fn();
+
+    requireTenantContextOrReadAccess(req, res, next);
+
+    expect(next).not.toHaveBeenCalled();
+    expect(res.status).toHaveBeenCalledWith(401);
+    expect(res.json).toHaveBeenCalledWith({
+      error: 'organization_context_required',
+      error_description: 'Organization context is required.',
+    });
+  });
+
   it('skips tenant context for clerk-scoped workspace bootstrap routes', () => {
     expect(shouldSkipTenantContext('/api/me/workspaces')).toBe(true);
     expect(shouldSkipTenantContext('/api/workspaces/switch')).toBe(true);
@@ -131,5 +161,37 @@ describe('tenantGuard', () => {
       error: 'organization_context_required',
       error_description: 'Organization context is required.',
     });
+  });
+});
+
+describe('E0 source-runtime transparency is reachable without an organization', () => {
+  // The regression this locks: the route file called itself "public source-
+  // runtime transparency endpoints" while the guard returned 401
+  // `organization_context_required` to every anonymous caller. A comment is
+  // not an authorization decision.
+  it('skips the tenant guard for the source-runtime routes', () => {
+    expect(shouldSkipTenantContext('/api/system/source-runtime')).toBe(true);
+    expect(shouldSkipTenantContext('/api/system/source-runtime/NPPES_API')).toBe(true);
+    expect(shouldSkipTenantContext('/api/system/source-runtime/OIG_LEIE')).toBe(true);
+  });
+
+  // The reason the fix is two exact matches and not
+  // `startsWith('/api/system/')`. That prefix reads as the obvious one-liner
+  // and would silently publish seven unrelated operational endpoints.
+  it.each([
+    '/api/system/telemetry',
+    '/api/system/telemetry/pilot',
+    '/api/system/trust-health',
+    '/api/system/trust-health/graph',
+    '/api/system/trust-health/orphans',
+    '/api/system/pulse',
+    '/api/system/status',
+  ])('does NOT open the neighbouring operational route %s', (path) => {
+    expect(shouldSkipTenantContext(path)).toBe(false);
+  });
+
+  it('does not open a lookalike prefix', () => {
+    expect(shouldSkipTenantContext('/api/system/source-runtime-internal')).toBe(false);
+    expect(shouldSkipTenantContext('/api/system/source-runtimes')).toBe(false);
   });
 });

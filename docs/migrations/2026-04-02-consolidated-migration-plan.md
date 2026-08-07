@@ -39,8 +39,15 @@ railway run --service vitalcv-api "cd apps/api/backend && npx prisma migrate dep
 - Safe for production if applied during low-traffic window
 
 ## Verification After Migration
+
+Substitute an NPI selected per [`../specs/vitalcv-pilot-runbook.md` §4.1](../specs/vitalcv-pilot-runbook.md) —
+the pilot customer's own NPI, or a consented founder-controlled fixture. This writes an
+ingest record against whatever NPI is passed, so it must not be pointed at a real
+clinician who has not consented. This step named `1003000126` until 2026-07-28; that is
+ARDALAN ENKESHAFI, M.D., a real physician.
+
 ```bash
-curl -s -X POST "https://delightful-essence-production.up.railway.app/api/identity/1003000126/ingest" \
+curl -s -X POST "https://delightful-essence-production.up.railway.app/api/identity/<NPI>/ingest" \
   -H "Content-Type: application/json" -d '{}' | python3 -m json.tool | grep '"status"'
 ```
 

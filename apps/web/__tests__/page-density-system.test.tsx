@@ -40,7 +40,36 @@ describe('page density system', () => {
     // reference (noindex) + the canonical employer application queue and
     // its application-detail route.
     // 142 = 141 + the COMPETE-2 /dev/compete-film harness (dev-gated, noindex).
-    expect(inventory).toHaveLength(142);
+    // 143 = 142 + the public, indexable provider record at /directory/[npi].
+    // 150 = 143 + the six Career Garden workspace pages under /holder/garden
+    // (home, cv, notes, research, opportunities, privacy) + the
+    // /dev/career-garden harness (dev-gated, noindex).
+    // Back to 150: /design/spine was a prototype for the four-step spine.
+    // The spine shipped into the homepage itself (#973), so the reference
+    // route was removed rather than left as a second, drifting copy.
+    // 151 = 150 + the restored public opportunities board at /explore. The route
+    // was already public in roles.ts and monitored by launch-ops, but its page
+    // had been archived — so /explore 404'd while four surfaces linked to it.
+    // 152 = 151 + the live, org-scoped Operations Engine at /ops/engine. The
+    // W1400 data layer (lib/operations/*) landed in #464; the UI on top of it
+    // never reached main until then.
+    //
+    // The public /operations-engine demo that shipped alongside it is
+    // deliberately NOT here: it renders fabricated provider names beside
+    // randomly generated NPI-shaped identifiers ('1' + 9 random digits, which
+    // can collide with a real registered provider) and the line "License & NPI
+    // verified against registry" — with no visible synthetic-data disclosure.
+    // check-route-guards caught it as served-but-undeclared, which was correct.
+    //
+    // 153 = 152 + the Z1 homepage-story preview at /design/z1-home (noindex;
+    // 404s in canonical production via the /design layout gate).
+    // 154 = 153 + /design/reset, the design-reset preview shown beside
+    // /design/z1-home for founder comparison (noindex, gated).
+    // 156 = 154 + /employers/how-it-works and /employers/request-access — the
+    // /employers restructure (founder audit 2026-08-06): the lane register
+    // moved to its own page, and Step 1 became a real route instead of a
+    // 5,100px in-page anchor.
+    expect(inventory).toHaveLength(156);
     expect(inventory.every((item) => !item.source.includes('/_archive/'))).toBe(true);
     expect(inventory.every((item) => !item.route.startsWith('/api/'))).toBe(true);
     expect(new Set(inventory.map((item) => item.density))).toEqual(

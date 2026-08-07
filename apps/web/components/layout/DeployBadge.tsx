@@ -19,7 +19,8 @@ interface DeployInfo {
   sha: string;
   message: string;
   branch: string;
-  deployedAt: string;
+  /** ISO build timestamp, or null when the build time is unknown. */
+  deployedAt: string | null;
 }
 
 function useDeployInfo() {
@@ -35,8 +36,18 @@ function useDeployInfo() {
   return info;
 }
 
-function relativeTime(iso: string): string {
-  const ms = Date.now() - new Date(iso).getTime();
+/**
+ * Relative build age, or null when the build time is unknown.
+ *
+ * `deployedAt` used to fall back to the request clock, so this rendered
+ * "just now" on every page load regardless of when the build actually ran.
+ * An unknown build time now renders nothing rather than a comforting lie.
+ */
+function relativeTime(iso: string | null): string | null {
+  if (!iso) return null;
+  const parsed = new Date(iso).getTime();
+  if (Number.isNaN(parsed)) return null;
+  const ms = Date.now() - parsed;
   const mins = Math.floor(ms / 60_000);
   if (mins < 2) return 'just now';
   if (mins < 60) return `${mins}m ago`;
@@ -63,6 +74,7 @@ export function DeployBadge() {
       : 'bg-muted';
 
   const label = isProd ? 'Live' : isPrev ? 'Preview' : 'Dev';
+  const age = relativeTime(info.deployedAt);
 
   return (
     <Link
@@ -72,8 +84,12 @@ export function DeployBadge() {
     >
       <span className={`h-1.5 w-1.5 rounded-full ${dot} ${isProd ? 'animate-pulse' : ''}`} />
       <span>{label}</span>
-      <span className="text-white/30">·</span>
-      <span>{relativeTime(info.deployedAt)}</span>
+      {age && (
+        <>
+          <span className="text-white/30">·</span>
+          <span>{age}</span>
+        </>
+      )}
     </Link>
   );
 }

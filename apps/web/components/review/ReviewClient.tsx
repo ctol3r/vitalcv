@@ -79,7 +79,6 @@ import {
   type PassportTruthListItem,
 } from '@/lib/trust/passport-review-truth';
 import {
-  buildPassportEntityHref,
   resolvePublicWedgeSurfaceStateFromAccordionStatus,
   resolvePublicWedgeSurfaceStateFromTruth,
 } from '@/lib/trust/public-wedge-parity';

@@ -1,3 +1,4 @@
+/** @deprecated Use identityIngestionPipeline.handlers.SAM_GOV for production ingestion. */
 import type { CanonicalSourceCoverageState } from '@vitalcv/trust-state';
 import { sha256ForPayload } from '../utils/deterministic';
 

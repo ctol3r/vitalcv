@@ -1,11 +1,11 @@
 name: Deploy Web + Smoke Test
 
-# Railway is the canonical deployment target for apps/web. Railway auto-deploys
-# the web service on push to main (apps/web/Dockerfile → next start). This
-# workflow waits for that deploy and smoke-tests the /api/health endpoint.
-#
-# Vercel is deprecated — no preview/deploy step here. See
-# docs/deployment/railway-migration.md.
+# Railway remains the canonical deployment target for apps/web. GitHub auto-deploy
+# is useful, but it is not the release authority: Railway can report a newer
+# deployment successful while the public custom domain still serves an older
+# container. This workflow therefore audits the expected Railway service/domain,
+# explicitly requests the exact GitHub SHA, and refuses success until the public
+# no-store /api/version endpoint reports that same full SHA.
 
 on:
   push:
@@ -16,12 +16,14 @@ on:
       - 'apps/web/railway.toml'
       - 'apps/web/Dockerfile'
       - 'pnpm-lock.yaml'
+      - 'scripts/deploy-smoke.mjs'
+      - '.github/workflows/deploy-web.yml'
   workflow_dispatch:
     inputs:
       reason:
-        description: 'Reason for manual trigger'
+        description: 'Reason for exact-SHA web deployment'
         required: false
-        default: 'manual redeploy'
+        default: 'manual convergence repair'
 
 concurrency:
   group: deploy-web
@@ -29,50 +31,331 @@ concurrency:
 
 permissions:
   contents: read
+  statuses: write
+
+env:
+  # Production identities are pinned so a token cannot accidentally deploy or
+  # audit a similarly named service in another Railway project/environment.
+  RAILWAY_PROJECT_ID: 706ceff8-23ac-404c-a45b-449de5920848
+  RAILWAY_WEB_SERVICE_ID: f31e461b-d617-4e7e-8a40-796a640ffc0b
+  RAILWAY_PRODUCTION_ENVIRONMENT_ID: cd700720-5c9d-472b-bf68-4b3cc65191cd
+  RAILWAY_EXPECTED_DOMAIN: vitalcv.com
 
 jobs:
-  # Railway auto-deploys on push to main.
-  # This job waits for the deploy to complete, then runs smoke tests.
-  smoke-test:
-    name: Post-deploy smoke test
+  deploy-and-verify:
+    name: Exact-SHA web deployment
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 30
 
     steps:
-      - name: Wait for Railway deploy to propagate
-        run: sleep 120
+      - name: Check out the release commit
+        uses: actions/checkout@v7
 
-      - name: Smoke test /api/health
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 10.6.1
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+
+      - name: Audit Railway service and custom-domain binding
+        id: railway_audit
+        env:
+          RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN }}
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          if [ -n "${RAILWAY_API_TOKEN}" ]; then
+            RAILWAY_AUTH_HEADER="Authorization: Bearer ${RAILWAY_API_TOKEN}"
+            echo "Using Railway workspace/account token authentication."
+          elif [ -n "${RAILWAY_TOKEN}" ]; then
+            RAILWAY_AUTH_HEADER="Project-Access-Token: ${RAILWAY_TOKEN}"
+            echo "Using Railway project token authentication."
+          else
+            echo "::error::RAILWAY_API_TOKEN or RAILWAY_TOKEN is required for exact-SHA deployment convergence."
+            exit 1
+          fi
+
+          QUERY='query WebReleaseAudit($projectId: String!, $environmentId: String!, $serviceId: String!) {
+            service(id: $serviceId) {
+              id
+              name
+              projectId
+            }
+            serviceInstance(serviceId: $serviceId, environmentId: $environmentId) {
+              id
+              serviceName
+              rootDirectory
+              healthcheckPath
+              latestDeployment {
+                id
+                status
+                createdAt
+                meta
+              }
+            }
+            domains(projectId: $projectId, environmentId: $environmentId, serviceId: $serviceId) {
+              serviceDomains {
+                id
+                domain
+                targetPort
+              }
+              customDomains {
+                id
+                domain
+                status {
+                  dnsRecords {
+                    hostlabel
+                    requiredValue
+                    currentValue
+                    status
+                  }
+                }
+              }
+            }
+          }'
+
+          jq -n \
+            --arg query "$QUERY" \
+            --arg projectId "$RAILWAY_PROJECT_ID" \
+            --arg environmentId "$RAILWAY_PRODUCTION_ENVIRONMENT_ID" \
+            --arg serviceId "$RAILWAY_WEB_SERVICE_ID" \
+            '{query: $query, variables: {projectId: $projectId, environmentId: $environmentId, serviceId: $serviceId}}' \
+            > railway-audit-request.json
+
+          curl --fail-with-body --silent --show-error \
+            https://backboard.railway.com/graphql/v2 \
+            -H "${RAILWAY_AUTH_HEADER}" \
+            -H 'Content-Type: application/json' \
+            --data-binary @railway-audit-request.json \
+            > railway-audit.json
+
+          if jq -e '.errors and (.errors | length > 0)' railway-audit.json >/dev/null; then
+            jq '.errors' railway-audit.json
+            echo "::error::Railway service/domain audit returned GraphQL errors."
+            exit 1
+          fi
+
+          jq -e --arg id "$RAILWAY_WEB_SERVICE_ID" --arg project "$RAILWAY_PROJECT_ID" \
+            '.data.service.id == $id and .data.service.projectId == $project' \
+            railway-audit.json >/dev/null || {
+              echo "::error::The Railway token did not resolve the pinned vitalcv-web service/project."
+              jq '.data.service' railway-audit.json
+              exit 1
+            }
+          jq -e --arg domain "$RAILWAY_EXPECTED_DOMAIN" \
+            '.data.domains.customDomains | any(.domain == $domain)' \
+            railway-audit.json >/dev/null || {
+              echo "::error::${RAILWAY_EXPECTED_DOMAIN} is not attached to the expected vitalcv-web service/environment."
+              jq '.data.domains' railway-audit.json
+              exit 1
+            }
+
+          echo "Railway service: $(jq -r '.data.service.name' railway-audit.json)"
+          echo "Root directory: $(jq -r '.data.serviceInstance.rootDirectory // "(repository root)"' railway-audit.json)"
+          echo "Healthcheck: $(jq -r '.data.serviceInstance.healthcheckPath // "(unset)"' railway-audit.json)"
+          echo "Latest Railway deployment before reconciliation: $(jq -r '.data.serviceInstance.latestDeployment.id // "none"' railway-audit.json)"
+          jq '.data.domains' railway-audit.json
+
+      - name: Request the exact main SHA from Railway
+        id: railway_deploy
+        env:
+          RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN }}
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          if [ -n "${RAILWAY_API_TOKEN}" ]; then
+            RAILWAY_AUTH_HEADER="Authorization: Bearer ${RAILWAY_API_TOKEN}"
+          elif [ -n "${RAILWAY_TOKEN}" ]; then
+            RAILWAY_AUTH_HEADER="Project-Access-Token: ${RAILWAY_TOKEN}"
+          else
+            echo "::error::Railway credential disappeared after the audit step."
+            exit 1
+          fi
+
+          MUTATION='mutation DeployExactWebCommit($serviceId: String!, $environmentId: String!, $commitSha: String!) {
+            serviceInstanceDeployV2(serviceId: $serviceId, environmentId: $environmentId, commitSha: $commitSha)
+          }'
+
+          jq -n \
+            --arg query "$MUTATION" \
+            --arg serviceId "$RAILWAY_WEB_SERVICE_ID" \
+            --arg environmentId "$RAILWAY_PRODUCTION_ENVIRONMENT_ID" \
+            --arg commitSha "$GITHUB_SHA" \
+            '{query: $query, variables: {serviceId: $serviceId, environmentId: $environmentId, commitSha: $commitSha}}' \
+            > railway-deploy-request.json
+
+          curl --fail-with-body --silent --show-error \
+            https://backboard.railway.com/graphql/v2 \
+            -H "${RAILWAY_AUTH_HEADER}" \
+            -H 'Content-Type: application/json' \
+            --data-binary @railway-deploy-request.json \
+            > railway-deploy.json
+
+          if jq -e '.errors and (.errors | length > 0)' railway-deploy.json >/dev/null; then
+            jq '.errors' railway-deploy.json
+            echo "::error::Railway rejected the exact-SHA deployment request."
+            exit 1
+          fi
+
+          DEPLOYMENT_ID=$(jq -r '.data.serviceInstanceDeployV2 // empty' railway-deploy.json)
+          if [ -z "$DEPLOYMENT_ID" ]; then
+            cat railway-deploy.json
+            echo "::error::Railway did not return a deployment ID."
+            exit 1
+          fi
+
+          echo "deployment_id=${DEPLOYMENT_ID}" >> "$GITHUB_OUTPUT"
+          echo "Railway deployment requested: ${DEPLOYMENT_ID} for ${GITHUB_SHA}"
+
+      - name: Verify the exact commit is live and self-consistent
+        id: smoke
         env:
           WEB_DOMAIN: ${{ secrets.RAILWAY_WEB_DOMAIN }}
         run: |
-          if [ -z "$WEB_DOMAIN" ]; then
-            echo "RAILWAY_WEB_DOMAIN secret not set. Skipping smoke test."
-            exit 0
+          set -euo pipefail
+          BASE="https://${WEB_DOMAIN:-vitalcv.com}"
+          echo "Verifying ${BASE} is serving ${GITHUB_SHA}"
+          node scripts/deploy-smoke.mjs \
+            --base "$BASE" \
+            --sha "$GITHUB_SHA" \
+            --wait-for-sha 600 \
+            --receipt deploy-receipt.json \
+            | tee smoke-output.txt
+
+      - name: Install production-audit browser
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm --filter @vitalcv/web exec playwright install --with-deps chromium
+
+      - name: Run the homepage interaction contract against production
+        id: homepage_audit
+        env:
+          # Empty CI makes Playwright reuse the reachable production base URL
+          # instead of starting the repository's local preview webServer.
+          CI: ''
+          PLAYWRIGHT_BASE_URL: https://vitalcv.com
+        run: |
+          pnpm --filter @vitalcv/web exec playwright test \
+            tests/e2e/ask-home.spec.ts \
+            --project=chromium \
+            --workers=1 \
+            --reporter=list \
+            | tee production-home-audit.txt
+
+      - name: Capture production audit frames
+        env:
+          AUDIT_BASE: https://vitalcv.com
+        working-directory: apps/web
+        run: |
+          mkdir -p ../../production-home-audit
+          node <<'NODE'
+          const { chromium } = require('@playwright/test');
+          const path = require('node:path');
+
+          const base = process.env.AUDIT_BASE;
+          const output = (name) => path.resolve('../../production-home-audit', `${name}.png`);
+
+          (async () => {
+            const browser = await chromium.launch({ headless: true });
+
+            const capture = async (name, contextOptions, viewport, prepare) => {
+              const context = await browser.newContext(contextOptions);
+              const page = await context.newPage();
+              await page.setViewportSize(viewport);
+              await page.goto(base, { waitUntil: 'networkidle' });
+              await page.locator('[data-home-hero]').waitFor();
+              if (prepare) await prepare(page);
+              await page.screenshot({ path: output(name), fullPage: true });
+              await context.close();
+            };
+
+            await capture('desktop-1440', {}, { width: 1440, height: 1000 });
+            await capture('mobile-390', {}, { width: 390, height: 844 });
+            await capture(
+              'reduced-motion',
+              { reducedMotion: 'reduce' },
+              { width: 1440, height: 1000 },
+              async (page) => page.waitForTimeout(1000),
+            );
+            await capture(
+              'keyboard-focus',
+              {},
+              { width: 1440, height: 1000 },
+              async (page) => {
+                for (let stop = 0; stop < 12; stop += 1) {
+                  await page.keyboard.press('Tab');
+                  if (await page.evaluate(() => document.activeElement?.id === 'npi-input')) break;
+                }
+              },
+            );
+            await capture(
+              'no-javascript',
+              { javaScriptEnabled: false },
+              { width: 1440, height: 1000 },
+            );
+
+            await browser.close();
+          })().catch((error) => {
+            console.error(error);
+            process.exit(1);
+          });
+          NODE
+
+      - name: Publish the convergence receipt
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: web-deploy-receipt-${{ github.sha }}
+          path: |
+            railway-audit.json
+            railway-deploy.json
+            deploy-receipt.json
+            smoke-output.txt
+            production-home-audit.txt
+            production-home-audit/*.png
+          if-no-files-found: warn
+
+      - name: Record exact-SHA convergence status
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          REPO: ${{ github.repository }}
+          DEPLOY_OUTCOME: ${{ steps.railway_deploy.outcome }}
+          SMOKE_OUTCOME: ${{ steps.smoke.outcome }}
+          AUDIT_OUTCOME: ${{ steps.homepage_audit.outcome }}
+          DEPLOYMENT_ID: ${{ steps.railway_deploy.outputs.deployment_id }}
+        run: |
+          if [ "$DEPLOY_OUTCOME" = "success" ] && [ "$SMOKE_OUTCOME" = "success" ] && [ "$AUDIT_OUTCOME" = "success" ]; then
+            STATE=success
+            DESC="exact main SHA live; production homepage audit passed"
+          else
+            STATE=failure
+            DESC="web deploy or production homepage audit did not converge"
           fi
 
-          HEALTH_URL="https://${WEB_DOMAIN}/api/health"
-          echo "Testing: $HEALTH_URL"
+          gh api -X POST "repos/${REPO}/statuses/${GITHUB_SHA}" \
+            -f state="$STATE" \
+            -f context="vitalcv/web-deploy-converged" \
+            -f description="$DESC" \
+            -f target_url="$RUN_URL" >/dev/null
 
-          MAX_ATTEMPTS=12
-          INTERVAL=15
-          ATTEMPT=0
-
-          while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
-            HTTP_CODE=$(curl -s -o /tmp/health_body -w '%{http_code}' "$HEALTH_URL" 2>/dev/null || echo "000")
-
-            if [ "$HTTP_CODE" = "200" ]; then
-              echo "Health check passed (HTTP 200)"
-              cat /tmp/health_body
-              echo ""
-              exit 0
-            fi
-
-            ATTEMPT=$((ATTEMPT + 1))
-            echo "Attempt $ATTEMPT/$MAX_ATTEMPTS: HTTP $HTTP_CODE. Retrying in ${INTERVAL}s..."
-            sleep "$INTERVAL"
-          done
-
-          echo "Health check failed after $MAX_ATTEMPTS attempts"
-          cat /tmp/health_body 2>/dev/null || true
-          exit 1
+          {
+            echo "### Exact-SHA web deployment"
+            echo ""
+            echo "- Commit: \`${GITHUB_SHA}\`"
+            echo "- Railway deployment: \`${DEPLOYMENT_ID:-not created}\`"
+            echo "- Result: **${STATE}** — ${DESC}"
+            echo ""
+            echo '```'
+            cat smoke-output.txt 2>/dev/null || echo "no smoke output captured"
+            echo '```'
+            echo ""
+            echo '```'
+            cat production-home-audit.txt 2>/dev/null || echo "no production homepage audit captured"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

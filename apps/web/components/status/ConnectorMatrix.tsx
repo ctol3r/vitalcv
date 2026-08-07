@@ -12,19 +12,36 @@ import type { TruthStateKind } from '@/design-system/components/TruthStateChip';
  * marketing. NPPES, OIG/LEIE, PECOS, STATE_BOARD, FSMB, NURSYS each
  * own their own row.
  *
+ * WHAT THIS TABLE MEASURES. Not lane capability — the *access boundary* an
+ * anonymous visitor hits. `SOURCE_LANE_OPS` (rendered by SourceLaneTelemetry
+ * further down this page) answers "is the lane wired and returning data".
+ * This answers "can you, with no session, get a result". Both can be true at
+ * once, which is why the two tables can legitimately differ; the page labels
+ * each axis so a reader does not mistake that for a contradiction.
+ *
  * Truth-contract guarantees (enforced by
  * `apps/web/__tests__/connector-matrix.test.tsx`):
- *  - NPPES is "temporarily-unavailable" by default — this matches the
- *    public unauthenticated state observed by Browser (the upstream
- *    proxy gates `POST /api/ingest/:npi` for non-operator sessions).
- *    The chip never claims NPPES is "Live" or "Source-backed" — that
- *    requires an authenticated SSE payload, which is a per-request
- *    behavior, not a matrix state.
- *  - OIG / LEIE and CMS PECOS render "auth-required": both DO reach
- *    live upstream sources (HHS LEIE CSV; CMS data.gov), but the web
- *    proxy returns 401 without a session. Corrected 2026-07-25 — they
- *    previously said "connector-not-live", which contradicted
- *    /api/status and understated real capability.
+ *  - NPPES is "source-backed". Corrected 2026-07-26. It previously said
+ *    "temporarily-unavailable", on the premise that the proxy gates
+ *    `POST /api/ingest/:npi` for non-operator sessions. Measured against
+ *    production, that premise is false: anonymously,
+ *    `/api/identity/bootstrap/:npi` returns 200 with NPPES-derived fields and
+ *    `/api/trust-state/:npi` reports `NPPES_API` in state `checked`, carrying
+ *    a live `npiregistry.cms.hhs.gov` source URL and a real `checkedAt`.
+ *  - OIG / LEIE is "snapshot-only". Corrected 2026-07-26. It previously said
+ *    "auth-required — results require an authenticated session"; that is also
+ *    false. Anonymously, NPI 1215930367 returns `OIG_LEIE` in state `checked`
+ *    with "OIG LEIE check clear". The real precondition is an active NPPES
+ *    identity match, not a session — an NPI that returns no active identity
+ *    reports `pending / gated on an active NPPES identity match`. The chip is
+ *    "snapshot-only" rather than "source-backed" because the lane reads a
+ *    monthly LEIE cache (`SOURCE_LANE_OPS.readCadence: 'monthly_snapshot'`),
+ *    so a clear result is a snapshot, never a live read.
+ *  - CMS PECOS stays "auth-required" — NOT verified, deliberately unchanged.
+ *    PECOS reported `pending / not yet checked` on every anonymous probe,
+ *    including one with an active identity match, so there was no evidence
+ *    either to confirm the session claim or to correct it. Understating an
+ *    unmeasured lane is the safe direction; upgrading it on a guess is not.
  *  - STATE_BOARD is "access-required" (per-jurisdiction agreements);
  *    FSMB and NURSYS remain "connector-not-live" — genuinely unwired.
  *  - The matrix MUST NOT claim a connector is live unless the build
@@ -45,24 +62,29 @@ export interface ConnectorRow {
 
 export const CONNECTOR_MATRIX_ROWS: ReadonlyArray<ConnectorRow> = Object.freeze([
   {
+    // Corrected 2026-07-26: "temporarily-unavailable" was false. Measured
+    // anonymously against production, NPPES is read per request and reported
+    // as `checked` with a live registry URL. See the header block.
     connector: 'NPPES (Federal NPI Registry)',
-    state: 'temporarily-unavailable',
+    state: 'source-backed',
     observation:
-      'Identity-only proxy. Returns a payload when authenticated; gated otherwise.',
+      'Identity lane. Read per request against the federal NPI registry, with no session required.',
     interpretation:
-      'When NPPES returns a payload with displayName, identityStatus, and entityId, the row promotes to source-backed for that specific run. The matrix state reflects the gateway, not a single ingest call.',
+      'A returned identity is NPPES-backed as of the timestamp shown. NPPES describes registration, not licensure, standing, or fitness to practise.',
   },
   {
     // Corrected 2026-07-25: "no live upstream wiring" was false. The adapter
     // reads the real HHS LEIE CSV unless OIG_LEIE_ENABLED === 'false', which
-    // is unset on Railway (founder-confirmed). The true boundary is the
-    // session: the web proxy returns 401 unauthenticated.
+    // is unset on Railway (founder-confirmed).
+    // Corrected again 2026-07-26: "auth-required" was also false — the lane
+    // returns a clear result to an anonymous caller. The precondition is an
+    // active NPPES identity match, not a session.
     connector: 'OIG / LEIE (Federal Exclusion Lane)',
-    state: 'auth-required',
+    state: 'snapshot-only',
     observation:
-      'Adapter reads the HHS LEIE list upstream. Results require an authenticated session.',
+      'Reads a monthly HHS LEIE snapshot cache. Runs once NPPES returns an active identity match — no session required. Without that match it reports pending, not clear.',
     interpretation:
-      'Do not treat the absence of an exclusion result as a clearance. Institution review still applies.',
+      'A clear result reflects the most recent monthly snapshot, not a live read, and is not a clearance. Do not treat the absence of an exclusion result as one. Institution review still applies.',
   },
   {
     connector: 'CMS PECOS (Medicare Enrollment Lane)',

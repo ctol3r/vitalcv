@@ -26,8 +26,10 @@ import type {
   RawNppesAddress,
   RawNppesEndpoint,
   RawNppesOtherName,
+  RawNppesBasic,
   NormalizedEndpoint,
   NormalizedOtherName,
+  NormalizedAuthorizedOfficial,
 } from './types';
 
 // ── Field-length thresholds (NPPES v2 maximums) ────────────────────────────
@@ -51,13 +53,56 @@ const FIELD_LENGTH_THRESHOLDS: Record<string, number> = {
 function normalizeAddress(raw: RawNppesAddress): NormalizedAddress {
   return {
     purpose: raw.address_purpose,
+    address_type: raw.address_type ?? '',
     address_1: raw.address_1 ?? '',
     address_2: raw.address_2 ?? '',
     city: raw.city ?? '',
     state: raw.state ?? '',
     postal_code: raw.postal_code ?? '',
     country_code: raw.country_code ?? 'US',
+    country_name: raw.country_name ?? '',
     telephone_number: raw.telephone_number ?? '',
+    fax_number: raw.fax_number ?? '',
+  };
+}
+
+/**
+ * Build the Type-2 authorized official block.
+ *
+ * Returns null when none of the `authorized_official_*` fields carry a value,
+ * which is the normal case for individual (NPI-1) records. We key off the
+ * name fields rather than `enumeration_type` so a malformed Type-2 record
+ * without an official still normalizes to null instead of an empty shell.
+ */
+function normalizeAuthorizedOfficial(
+  basic: RawNppesBasic,
+): NormalizedAuthorizedOfficial | null {
+  const first_name = basic.authorized_official_first_name ?? '';
+  const last_name = basic.authorized_official_last_name ?? '';
+  const middle_name = basic.authorized_official_middle_name ?? '';
+  const name_prefix = basic.authorized_official_name_prefix ?? '';
+  const name_suffix = basic.authorized_official_name_suffix ?? '';
+  const credential = basic.authorized_official_credential ?? '';
+  const title_or_position = basic.authorized_official_title_or_position ?? '';
+  const telephone_number = basic.authorized_official_telephone_number ?? '';
+
+  if (!first_name && !last_name) return null;
+
+  const display_name = [name_prefix, first_name, middle_name, last_name, name_suffix]
+    .filter(Boolean)
+    .join(' ')
+    .trim();
+
+  return {
+    display_name: credential ? `${display_name}, ${credential}` : display_name,
+    first_name,
+    last_name,
+    middle_name,
+    name_prefix,
+    name_suffix,
+    credential,
+    title_or_position,
+    telephone_number,
   };
 }
 
@@ -216,6 +261,11 @@ export function normalizeProvider(raw: RawNppesResponse): NormalizedProvider {
     addresses.find((a) => a.purpose === 'LOCATION') ?? addresses[0] ?? null;
   const mailing_address =
     addresses.find((a) => a.purpose === 'MAILING') ?? null;
+  // Secondary practice sites. CMS emits this key in camelCase and often omits
+  // it entirely, so a missing key and an empty list are both normal.
+  const practice_locations: NormalizedAddress[] = (
+    (result.practiceLocations ?? []) as RawNppesAddress[]
+  ).map(normalizeAddress);
   const endpoints: NormalizedEndpoint[] = ((result.endpoints ?? []) as RawNppesEndpoint[])
     .map(normalizeEndpoint)
     .filter((entry): entry is NormalizedEndpoint => entry !== null);
@@ -250,6 +300,12 @@ export function normalizeProvider(raw: RawNppesResponse): NormalizedProvider {
     organization_name: basic.organization_name ?? '', // up to 300 chars in v2
     display_name,
 
+    // Demographics. NPPES v2.1 emits `sex`; v2.0 emitted `gender`. Read both
+    // so a payload from either vintage populates the field rather than
+    // silently rendering blank.
+    sex: basic.sex ?? basic.gender ?? '',
+    sole_proprietor: basic.sole_proprietor ?? '',
+
     // Classification
     primary_taxonomy: primaryTaxonomy?.desc ?? null,
     primary_taxonomy_code: primaryTaxonomy?.code ?? null,
@@ -259,14 +315,28 @@ export function normalizeProvider(raw: RawNppesResponse): NormalizedProvider {
     practice_address,
     mailing_address,
     addresses,
+    practice_locations,
 
     // Identifiers
     identifiers: result.identifiers ?? [],
     endpoints,
     other_names,
 
+    // Organization (Type-2)
+    organizational_subpart: basic.organizational_subpart ?? '',
+    parent_organization_legal_business_name:
+      basic.parent_organization_legal_business_name ?? '',
+    authorized_official: normalizeAuthorizedOfficial(basic),
+
     // Audit
     enumeration_date: basic.enumeration_date ?? '',
     last_updated: basic.last_updated ?? '',
+    certification_date: basic.certification_date ?? '',
+    deactivation_date: basic.deactivation_date ?? '',
+    deactivation_reason_code: basic.deactivation_reason_code ?? '',
+    reactivation_date: basic.reactivation_date ?? '',
+    created_epoch: result.created_epoch != null ? String(result.created_epoch) : '',
+    last_updated_epoch:
+      result.last_updated_epoch != null ? String(result.last_updated_epoch) : '',
   };
 }

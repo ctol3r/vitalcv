@@ -16,6 +16,8 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useBiometricConfirmation } from '@/hooks/useBiometricConfirmation';
+import Link from 'next/link';
+import { FUNNEL_EVENTS, trackFunnelEvent } from '@/lib/analytics/funnel';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -66,6 +68,19 @@ interface OrgContext {
   purpose_of_use: string;
 }
 
+/**
+ * C3 — the canonical recipient, resolved from the selected opportunity.
+ * When present, the clinician never types an internal organization id: the
+ * recipient is shown as a fact and the backend re-resolves it from the
+ * opportunity anyway, refusing any mismatch.
+ */
+export interface ApplicationRecipient {
+  organizationId: string;
+  organizationName: string;
+  opportunityId: string;
+  purposeOfUse?: string;
+}
+
 type Step = 'credentials' | 'org_context' | 'confirmed';
 
 interface Props {
@@ -74,6 +89,28 @@ interface Props {
   /** Prefill the share destination (e.g. from a MATCHA opportunity's employer). Always editable. */
   initialOrgContext?: Partial<OrgContext>;
   onShareComplete?: (result: ShareResult) => void;
+  /**
+   * Wave 1072 — mirrors the clinician's ACTUAL selection so an embedding
+   * surface (the employer-packet preview) can render exactly what would
+   * travel. Fires on every selection change and on open.
+   */
+  onSelectionChange?: (selected: BundleCredential[]) => void;
+  /** Fired when the share stops at the authentication boundary (backend 401). */
+  onAuthRequired?: () => void;
+  /**
+   * C3 — recipient derived from the selected opportunity. Supplying it means
+   * the org fields are read-only facts rather than inputs, and `opportunityId`
+   * is sent so the backend can verify the organization↔opportunity link.
+   */
+  recipient?: ApplicationRecipient;
+  /**
+   * C4 — presentation only. 'career-loop' renders in the reset's ivory/ink/
+   * indigo material system. The state machine, requests, selection logic,
+   * auth boundary, a11y behaviour and revocation contract are IDENTICAL in
+   * every appearance; only classes change. Default is unchanged for the
+   * existing product surfaces.
+   */
+  appearance?: 'default' | 'career-loop';
 }
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -133,13 +170,37 @@ function clerkId(): string {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export function ApplyWithVitalCV({ npi, label = 'Apply with VitalCV', initialOrgContext, onShareComplete }: Props) {
+export function ApplyWithVitalCV({ npi, label = 'Apply with VitalCV', initialOrgContext, onShareComplete, onSelectionChange, onAuthRequired, recipient, appearance = 'default' }: Props) {
+  /*
+   * C4 — appearance is a CLASS MAP, nothing else. Every hook, request,
+   * validation, keyboard path and aria attribute below is shared; only these
+   * strings differ, so the career-loop skin cannot fork into a second Apply
+   * implementation. The default strings are byte-identical to what shipped.
+   */
+  const careerLoop = appearance === 'career-loop';
+  const cx = (...parts: Array<string | false | undefined>) => parts.filter(Boolean).join(' ');
+  const triggerCls = careerLoop
+    ? 'inline-flex min-h-[56px] w-full sm:w-auto items-center justify-center gap-2 px-8 text-[17px] font-semibold text-white transition-colors focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2'
+    : 'inline-flex min-h-[48px] w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-emerald-500 px-6 font-semibold text-foreground shadow-lg shadow-emerald-500/25 ring-1 ring-emerald-400/50 transition-all hover:bg-emerald-400 hover:shadow-emerald-400/30 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400';
+  const panelCls = careerLoop
+    // mobile keeps the bottom-sheet composition; ivory paper, ink edge, square
+    ? 'relative w-full max-w-xl mt-auto sm:mt-0 border-t-[3px] sm:border-[3px] border-[color:var(--ink,#12100D)] bg-[color:var(--ivory,#F4F2ED)] text-[color:var(--ink,#12100D)] overflow-hidden pointer-events-auto'
+    : 'relative w-full max-w-lg mt-auto sm:mt-0 rounded-t-3xl sm:rounded-2xl border-t sm:border border-border bg-zinc-900/95 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] sm:shadow-2xl backdrop-blur-xl overflow-hidden pointer-events-auto';
+  const fieldCls = careerLoop
+    ? 'w-full border-2 border-[color:var(--stone-deep,#B8B0A0)] bg-white px-4 py-3.5 text-[15px] text-[color:var(--ink-strong,#0E0D0B)] focus:outline-none focus:border-[color:var(--ink,#12100D)]'
+    : 'w-full rounded-xl border border-border bg-muted px-4 py-3 text-sm text-foreground placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-transparent';
+  const primaryCls = careerLoop
+    ? 'min-h-[52px] px-7 text-[16px] font-semibold text-white transition-colors disabled:opacity-60'
+    : 'min-h-[44px] rounded-xl bg-emerald-500 px-5 text-sm font-semibold text-foreground transition hover:bg-emerald-400 disabled:opacity-60';
+  const primaryStyle = careerLoop ? { background: 'var(--indigo, #3A30C4)' } : undefined;
+  const triggerStyle = careerLoop ? { background: 'var(--ink, #12100D)' } : undefined;
+
   const baseOrgCtx = useCallback((): OrgContext => ({
-    organization_id: initialOrgContext?.organization_id ?? '',
-    name: initialOrgContext?.name ?? '',
+    organization_id: recipient?.organizationId ?? initialOrgContext?.organization_id ?? '',
+    name: recipient?.organizationName ?? initialOrgContext?.name ?? '',
     callback_url: initialOrgContext?.callback_url ?? '',
-    purpose_of_use: initialOrgContext?.purpose_of_use ?? PURPOSE_OPTIONS[0],
-  }), [initialOrgContext]);
+    purpose_of_use: recipient?.purposeOfUse ?? initialOrgContext?.purpose_of_use ?? PURPOSE_OPTIONS[0],
+  }), [initialOrgContext, recipient]);
   const [isOpen, setIsOpen] = useState(false);
   const [step, setStep] = useState<Step>('credentials');
   const [isLoading, setIsLoading] = useState(false);
@@ -155,6 +216,13 @@ export function ApplyWithVitalCV({ npi, label = 'Apply with VitalCV', initialOrg
   const [countdown, setCountdown] = useState('');
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /** Set when the backend refused for want of a verified session (C1/C7). */
+  const [authRequired, setAuthRequired] = useState(false);
+  /*
+   * Wave 1075 — signed in, NPI claimed, ownership NOT yet verified. Distinct
+   * from `authRequired`: the action needed is verification, not sign-in.
+   */
+  const [ownershipPending, setOwnershipPending] = useState(false);
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Reset on open/close
@@ -164,7 +232,9 @@ export function ApplyWithVitalCV({ npi, label = 'Apply with VitalCV', initialOrg
     setShareResult(null);
     setOrgCtx(baseOrgCtx());
     setOrgCtxErrors({});
+    setAuthRequired(false);
     setIsOpen(true);
+    trackFunnelEvent(FUNNEL_EVENTS.APPLY_OPENED);
   }, [baseOrgCtx]);
 
   const closeModal = useCallback(() => { setIsOpen(false); }, []);
@@ -174,16 +244,58 @@ export function ApplyWithVitalCV({ npi, label = 'Apply with VitalCV', initialOrg
     if (!isOpen || trustState) return;
     setIsLoading(true);
     setError(null);
-    fetch(`/api/trust-state/${npi}`)
-      .then((r) => r.json())
-      .then((data: TrustStateResponse) => {
+    /*
+     * C1 — credential holdings come from the VERIFIED, NPI-bound route.
+     * The anonymous trust-state endpoint (which the production homepage
+     * capsule uses) would have handed a credential list to anyone who opened
+     * this modal for any NPI. A 401 here is the honest boundary, not a
+     * failure: the surface says what it cannot show and offers sign-in.
+     */
+    fetch(`/api/apply/credentials/${npi}`, { cache: 'no-store' })
+      .then(async (r) => {
+        if (r.status === 401 || r.status === 403) {
+          setAuthRequired(true);
+          /*
+           * Wave 1075 — three states, not two. A 403 carrying
+           * OWNERSHIP_PENDING means the clinician IS signed in and has asked
+           * for this NPI, but nobody has verified that it is theirs. Telling
+           * them to "sign in" would be wrong and telling them it "isn't
+           * linked" would be misleading — they linked it; it is unproven.
+           * The backend's own sentence is used verbatim so the boundary reads
+           * the same everywhere.
+           */
+          let code: string | undefined;
+          let message: string | undefined;
+          try {
+            const body = (await r.json()) as { code?: string; error?: string };
+            code = body?.code;
+            message = body?.error;
+          } catch {
+            // A non-JSON refusal is still a refusal.
+          }
+          if (r.status === 403 && code === 'OWNERSHIP_PENDING') {
+            setOwnershipPending(true);
+            setError(message ?? 'Verify this NPI before selecting and sharing private information.');
+          } else {
+            setError(r.status === 403
+              ? (message ?? 'This NPI is not linked to your account.')
+              : 'Sign in to see and choose what you share.');
+          }
+          return null;
+        }
+        return r.json();
+      })
+      .then((payload: { trustState?: TrustStateResponse; credentials?: BundleCredential[] } | null) => {
+        if (!payload) return;
+        const data = (payload.trustState ?? {}) as TrustStateResponse;
         setTrustState({
           readiness_level: data.readiness_level ?? 'L0',
           readiness_score: data.readiness_score ?? 0,
           readiness_status: data.readiness_status ?? 'Unknown',
           computed_at: data.computed_at ?? new Date().toISOString(),
         });
-        const creds: BundleCredential[] = data.credentials
+        const creds: BundleCredential[] = payload.credentials
+          ?? data.credentials
           ?? (data.facts ?? []).map((f) => ({
             type: f.factType ?? f.source,
             issuer: f.source,
@@ -193,6 +305,7 @@ export function ApplyWithVitalCV({ npi, label = 'Apply with VitalCV', initialOrg
           }));
         setCredentials(creds);
         setSelectedTypes(new Set(creds.map((c) => c.type)));
+        onSelectionChange?.(creds);
       })
       .catch(() => setError('Trust engine connection interrupted. Please try again.'))
       .finally(() => setIsLoading(false));
@@ -218,9 +331,11 @@ export function ApplyWithVitalCV({ npi, label = 'Apply with VitalCV', initialOrg
     setSelectedTypes((prev) => {
       const next = new Set(prev);
       if (next.has(type)) next.delete(type); else next.add(type);
+      onSelectionChange?.(credentials.filter((c) => next.has(c.type)));
       return next;
     });
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [credentials, onSelectionChange]);
 
   // Step 2 validation
   function validateOrgCtx(): boolean {
@@ -264,15 +379,32 @@ export function ApplyWithVitalCV({ npi, label = 'Apply with VitalCV', initialOrg
             purpose_of_use: orgCtx.purpose_of_use,
           },
           selectiveClaims: selectedTypes.size > 0 ? Array.from(selectedTypes) : undefined,
+          // C3 — lets the backend resolve and verify the recipient itself.
+          opportunityId: recipient?.opportunityId,
         }),
       });
 
+      if (res.status === 401) {
+        /*
+         * The authentication boundary — reached, not failed. Nothing was sent.
+         *
+         * C7: this does NOT fire authentication_started. A 401 is the API's
+         * event, not the user's; the funnel step belongs to the moment the
+         * clinician actually chooses to sign in (the action below).
+         */
+        setAuthRequired(true);
+        onAuthRequired?.();
+        setError('Preview only — nothing has been sent.');
+        return;
+      }
       if (!res.ok) {
         const err = await res.json().catch(() => ({})) as { error?: string };
         throw new Error(err?.error ?? 'Share failed. Please try again.');
       }
 
       const result = await res.json() as ShareResult;
+      // share_completed fires ONLY here — the backend event actually succeeded.
+      trackFunnelEvent(FUNNEL_EVENTS.SHARE_COMPLETED);
       setShareResult(result);
       setStep('confirmed');
       onShareComplete?.(result);
@@ -299,6 +431,8 @@ export function ApplyWithVitalCV({ npi, label = 'Apply with VitalCV', initialOrg
         const err = await res.json().catch(() => ({})) as { error?: string };
         throw new Error(err?.error ?? 'Revoke failed.');
       }
+      // share_revoked fires ONLY here — the backend revocation succeeded.
+      trackFunnelEvent(FUNNEL_EVENTS.SHARE_REVOKED);
       // Show revoked state
       setShareResult((prev) => prev ? { ...prev, status: 'logged_only', webhookDelivered: false } : prev);
       setStep('credentials');
@@ -317,7 +451,8 @@ export function ApplyWithVitalCV({ npi, label = 'Apply with VitalCV', initialOrg
       <button
         type="button"
         onClick={openModal}
-        className="inline-flex min-h-[48px] w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-emerald-500 px-6 font-semibold text-foreground shadow-lg shadow-emerald-500/25 ring-1 ring-emerald-400/50 transition-all hover:bg-emerald-400 hover:shadow-emerald-400/30 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
+        className={triggerCls}
+        style={triggerStyle}
         aria-label={label}
       >
         <VCVIcon />
@@ -333,9 +468,12 @@ export function ApplyWithVitalCV({ npi, label = 'Apply with VitalCV', initialOrg
       aria-modal="true"
       aria-label="Apply with VitalCV"
     >
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={closeModal} />
+      <div
+        className={careerLoop ? 'absolute inset-0 bg-[color:var(--ink,#12100D)]/60' : 'absolute inset-0 bg-black/70 backdrop-blur-sm'}
+        onClick={closeModal}
+      />
 
-      <div className="relative w-full max-w-lg mt-auto sm:mt-0 rounded-t-3xl sm:rounded-2xl border-t sm:border border-border bg-zinc-900/95 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] sm:shadow-2xl backdrop-blur-xl overflow-hidden pointer-events-auto">
+      <div className={panelCls}>
 
         {/* Mobile grabber */}
         <div className="absolute top-0 inset-x-0 flex justify-center py-2 sm:hidden">
@@ -377,8 +515,40 @@ export function ApplyWithVitalCV({ npi, label = 'Apply with VitalCV', initialOrg
           {isLoading && <div className="flex justify-center py-8"><Spinner /></div>}
 
           {error && (
-            <div className="rounded-xl bg-red-500/10 border border-red-500/20 px-4 py-3 text-sm text-red-300">
+            <div className={careerLoop
+              ? 'border-2 border-[color:var(--ink,#12100D)] bg-white px-4 py-3.5 text-[14px] text-[color:var(--ink,#12100D)]'
+              : 'rounded-xl bg-red-500/10 border border-red-500/20 px-4 py-3 text-sm text-red-300'}>
               {error}
+              {authRequired && (
+                <>
+                  {' '}
+                  {ownershipPending ? (
+                    /*
+                     * The real route into verification. It is NOT a "claim"
+                     * button: clicking claim does not verify anything, and
+                     * offering one here would tell the clinician their
+                     * ownership is settled when it is not.
+                     */
+                    <Link
+                      href={`/holder/settings?npi=${encodeURIComponent(npi)}&intent=verify-ownership`}
+                      onClick={() => trackFunnelEvent(FUNNEL_EVENTS.OWNERSHIP_VERIFICATION_STARTED)}
+                      className={careerLoop ? 'font-semibold underline underline-offset-2' : 'font-semibold text-emerald-300 underline'}
+                    >
+                      Verify this NPI
+                    </Link>
+                  ) : (
+                    <Link
+                      href="/sign-in"
+                      // C7 — the funnel step belongs to the user's real choice
+                      // to authenticate, not to the API's 401.
+                      onClick={() => trackFunnelEvent(FUNNEL_EVENTS.AUTHENTICATION_STARTED)}
+                      className={careerLoop ? 'font-semibold underline underline-offset-2' : 'font-semibold text-emerald-300 underline'}
+                    >
+                      Sign in to send
+                    </Link>
+                  )}
+                </>
+              )}
             </div>
           )}
 
@@ -393,16 +563,25 @@ export function ApplyWithVitalCV({ npi, label = 'Apply with VitalCV', initialOrg
                     {trustState.readiness_level}
                   </span>
                   <div>
-                    <p className="text-sm font-semibold text-foreground">{trustState.readiness_status}</p>
-                    <p className="text-xs text-zinc-500">Score: {trustState.readiness_score}/100</p>
+                    <p className={cx('text-sm font-semibold', careerLoop ? 'text-[color:var(--ink-strong,#0E0D0B)]' : 'text-foreground')}>
+                      {trustState.readiness_status}
+                    </p>
+                    {/* A numeric readiness score is a compiled metric about a
+                        person. It stays in the signed-in product, and is not
+                        rendered on the acquisition surface. */}
+                    {!careerLoop && (
+                      <p className="text-xs text-zinc-500">Score: {trustState.readiness_score}/100</p>
+                    )}
                   </div>
                 </div>
-                <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
-                  <div
-                    className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-emerald-400 transition-all duration-700"
-                    style={{ width: `${trustState.readiness_score}%` }}
-                  />
-                </div>
+                {!careerLoop && (
+                  <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-emerald-400 transition-all duration-700"
+                      style={{ width: `${trustState.readiness_score}%` }}
+                    />
+                  </div>
+                )}
               </div>
 
               {/* Selective disclosure */}
@@ -458,26 +637,41 @@ export function ApplyWithVitalCV({ npi, label = 'Apply with VitalCV', initialOrg
                   value={orgCtx.name}
                   onChange={(e) => setOrgCtx((p) => ({ ...p, name: e.target.value }))}
                   placeholder="e.g. Stanford Health Care"
-                  className="w-full rounded-xl border border-border bg-muted px-4 py-3 text-sm text-foreground placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-transparent"
+                  className={fieldCls}
                 />
                 {orgCtxErrors.name && <p className="mt-1 text-[10px] text-red-400">{orgCtxErrors.name}</p>}
               </div>
 
-              {/* Org ID */}
-              <div>
-                <label className="block text-xs font-medium text-zinc-300 mb-1.5">
-                  Organization ID <span className="text-red-400">*</span>
-                  <span className="ml-1 text-[10px] text-zinc-600 font-normal">(system ID, NPI, or slug)</span>
-                </label>
-                <input
-                  type="text"
-                  value={orgCtx.organization_id}
-                  onChange={(e) => setOrgCtx((p) => ({ ...p, organization_id: e.target.value }))}
-                  placeholder="e.g. stanford-health-care or 1234567890"
-                  className="w-full rounded-xl border border-border bg-muted px-4 py-3 text-sm text-foreground placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
-                />
-                {orgCtxErrors.organization_id && <p className="mt-1 text-[10px] text-red-400">{orgCtxErrors.organization_id}</p>}
-              </div>
+              {/* Org ID — a RESOLVED recipient is shown as a fact; only a
+                  manual share (no selected opportunity) asks for an id. */}
+              {recipient ? (
+                <div>
+                  <p className={cx('block text-xs font-medium mb-1.5', careerLoop ? 'text-[color:var(--ink-muted,#57534A)]' : 'text-zinc-300')}>
+                    Receiving organization
+                  </p>
+                  <p className={cx('text-sm', careerLoop ? 'font-medium text-[color:var(--ink-strong,#0E0D0B)]' : 'text-foreground')}>
+                    {recipient.organizationName}
+                  </p>
+                  <p className={cx('mt-1 text-[11px]', careerLoop ? 'text-[color:var(--ink-subtle,#676257)]' : 'text-zinc-500')}>
+                    Resolved from the opportunity you selected · verified again when you send
+                  </p>
+                </div>
+              ) : (
+                <div>
+                  <label className={cx('block text-xs font-medium mb-1.5', careerLoop ? 'text-[color:var(--ink-muted,#57534A)]' : 'text-zinc-300')}>
+                    Organization ID <span className="text-red-400">*</span>
+                    <span className="ml-1 text-[10px] font-normal opacity-70">(system ID, NPI, or slug)</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={orgCtx.organization_id}
+                    onChange={(e) => setOrgCtx((p) => ({ ...p, organization_id: e.target.value }))}
+                    placeholder="e.g. stanford-health-care or 1234567890"
+                    className={fieldCls}
+                  />
+                  {orgCtxErrors.organization_id && <p className="mt-1 text-[10px] text-red-400">{orgCtxErrors.organization_id}</p>}
+                </div>
+              )}
 
               {/* Purpose */}
               <div>
@@ -625,9 +819,12 @@ export function ApplyWithVitalCV({ npi, label = 'Apply with VitalCV', initialOrg
             {step === 'credentials' && (
               <button
                 type="button"
-                onClick={() => setStep('org_context')}
+                onClick={() => { trackFunnelEvent(FUNNEL_EVENTS.SHARE_PREVIEWED); setStep('org_context'); }}
                 disabled={selectedTypes.size === 0}
-                className="w-full flex min-h-[52px] items-center justify-center rounded-xl bg-emerald-500 font-semibold text-foreground shadow-[0_0_20px_rgba(16,185,129,0.2)] hover:bg-emerald-400 transition-all disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]"
+                className={cx('w-full flex items-center justify-center transition-all disabled:opacity-50 disabled:cursor-not-allowed', careerLoop
+                  ? 'min-h-[56px] text-[16px] font-semibold text-white'
+                  : 'min-h-[52px] rounded-xl bg-emerald-500 font-semibold text-foreground shadow-[0_0_20px_rgba(16,185,129,0.2)] hover:bg-emerald-400 active:scale-[0.98]')}
+                style={primaryStyle}
               >
                 Next: Share destination ({selectedTypes.size} credential{selectedTypes.size !== 1 ? 's' : ''}) →
               </button>
@@ -646,7 +843,10 @@ export function ApplyWithVitalCV({ npi, label = 'Apply with VitalCV', initialOrg
                   type="button"
                   onClick={handleShare}
                   disabled={isSharing || isConfirming}
-                  className="flex-[3] flex min-h-[52px] items-center justify-center gap-2 rounded-xl bg-emerald-500 font-semibold text-foreground hover:bg-emerald-400 transition-all disabled:opacity-50 active:scale-[0.98]"
+                  className={cx('flex-[3] flex items-center justify-center gap-2 transition-all disabled:opacity-50', careerLoop
+                    ? 'min-h-[56px] text-[16px] font-semibold text-white'
+                    : 'min-h-[52px] rounded-xl bg-emerald-500 font-semibold text-foreground hover:bg-emerald-400 active:scale-[0.98]')}
+                  style={primaryStyle}
                 >
                   {isConfirming ? <><Spinner size="sm" /> Confirm identity…</> : isSharing ? <><Spinner size="sm" /> Sharing…</> : 'Sign & Share'}
                 </button>

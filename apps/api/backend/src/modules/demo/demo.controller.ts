@@ -128,19 +128,27 @@ export async function handleDemoVerify(
 /**
  * GET /demo/sample-npis
  *
- * Returns a list of well-known public NPIs for the demo wizard.
- * These are real NPIs from the public CMS registry — no synthetic data.
+ * Nominates no NPI. This route published `1003000126` as the suggested demo
+ * subject until 2026-07-27; that is a real physician who never agreed to stand in
+ * for our demo. Appearing in the public registry does not make someone a public
+ * demo subject, and this route is unauthenticated, so whatever it names is
+ * handed to anyone who asks.
+ *
+ * The demo runs against whatever NPI the caller supplies, so it does not need to
+ * nominate one. Keep `samples` empty rather than substituting another registrant:
+ * every check-digit-valid NPI belongs to someone, and a check-digit-invalid
+ * placeholder would 404 against CMS NPPES and so teach nothing.
  */
 export function handleDemoSampleNpis(
   _req: Request,
   res: Response,
 ): void {
   res.json({
-    samples: [
-      { npi: '1003000126', note: 'Look up any valid 10-digit NPI against CMS NPPES' },
-    ],
+    samples: [],
     source: 'STATIC_REFERENCE',
-    notice: 'Use /demo/provider?npi=<NPI> for live CMS NPPES data. No synthetic data is served.',
+    notice:
+      'Use /demo/provider?npi=<NPI> with any 10-digit NPI for live CMS NPPES data. ' +
+      'No synthetic data is served, and no clinician is nominated as a demo subject.',
   });
 }
 

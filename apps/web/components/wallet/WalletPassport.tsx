@@ -1,8 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { AlertTriangle, ArrowRight, Loader2, RefreshCw, ShieldAlert, ShieldCheck, ShieldX } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { AlertTriangle, Loader2, RefreshCw } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
 import { trackClinicianEventOncePerSession } from '@/lib/mobile/analytics';
 import { PilotFailureSignal } from '@/components/pilot-ops/PilotFailureSignal';
 import { SupportActionButton } from '@/components/pilot-ops/SupportActionButton';
@@ -36,83 +36,53 @@ interface TrustStateResponse {
 }
 
 const LEVEL_STYLES: Record<ReadinessLevel, string> = {
-  L3: 'border-emerald-500/25 bg-emerald-500/12 text-emerald-200',
-  L2: 'border-sky-500/25 bg-sky-500/12 text-sky-200',
-  L1: 'border-amber-500/25 bg-amber-500/12 text-amber-200',
-  L0: 'border-rose-500/25 bg-rose-500/12 text-rose-200',
+  L3: 'border-emerald-300 bg-emerald-50 text-emerald-800',
+  L2: 'border-sky-300 bg-sky-50 text-sky-800',
+  L1: 'border-amber-300 bg-amber-50 text-amber-800',
+  L0: 'border-rose-300 bg-rose-50 text-rose-800',
 };
 
 const FACT_STATUS_STYLES: Record<string, string> = {
-  VERIFIED: 'border-emerald-500/20 bg-emerald-500/10 text-emerald-200',
-  ACTIVE: 'border-emerald-500/20 bg-emerald-500/10 text-emerald-200',
-  CLEAR: 'border-emerald-500/20 bg-emerald-500/10 text-emerald-200',
-  PENDING: 'border-amber-500/20 bg-amber-500/10 text-amber-200',
-  EXPIRED: 'border-rose-500/20 bg-rose-500/10 text-rose-200',
-  EXCLUDED: 'border-rose-500/20 bg-rose-500/10 text-rose-200',
+  VERIFIED: 'border-emerald-300 bg-emerald-50 text-emerald-800',
+  ACTIVE: 'border-emerald-300 bg-emerald-50 text-emerald-800',
+  CLEAR: 'border-emerald-300 bg-emerald-50 text-emerald-800',
+  PENDING: 'border-amber-300 bg-amber-50 text-amber-800',
+  EXPIRED: 'border-rose-300 bg-rose-50 text-rose-800',
+  EXCLUDED: 'border-rose-300 bg-rose-50 text-rose-800',
 };
 
+function titleCase(value: string): string {
+  return value
+    .replace(/_/g, ' ')
+    .toLowerCase()
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
 function formatDateTime(value?: string): string {
-  if (!value) {
-    return 'Unavailable';
-  }
-
-  try {
-    return new Intl.DateTimeFormat('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-    }).format(new Date(value));
-  } catch {
-    return value;
-  }
-}
-
-function formatFactLabel(value: string): string {
-  return value
-    .replace(/_/g, ' ')
-    .toLowerCase()
-    .replace(/\b\w/g, (letter) => letter.toUpperCase());
-}
-
-function formatStatusLabel(value: string): string {
-  return value
-    .replace(/_/g, ' ')
-    .toLowerCase()
-    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+  if (!value) return 'Unavailable';
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return value;
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(parsed);
 }
 
 function licensureLabel(value: LicensureStatus): string {
-  switch (value) {
-    case 'verified':
-      return 'Issuer-confirmed';
-    case 'pending':
-      return 'Pending review';
-    case 'expired':
-      return 'Expired';
-    default:
-      return 'Unavailable';
-  }
-}
-
-function trustIcon(level: ReadinessLevel) {
-  if (level === 'L3') {
-    return ShieldCheck;
-  }
-
-  if (level === 'L0') {
-    return ShieldX;
-  }
-
-  return ShieldAlert;
+  if (value === 'verified') return 'Confirmed by a licensing source';
+  if (value === 'pending') return 'State-board review pending';
+  if (value === 'expired') return 'Expired according to the licensing source';
+  return 'No state-board result available';
 }
 
 export function WalletPassport({
-  npi = '1003000126',
+  npi,
   pollIntervalMs = 30_000,
 }: {
-  npi?: string;
+  npi: string;
   pollIntervalMs?: number;
 }) {
   const [trustState, setTrustState] = useState<TrustStateResponse | null>(null);
@@ -123,31 +93,23 @@ export function WalletPassport({
   const loadTrustState = useCallback(async (isRefresh = false) => {
     if (!npi) {
       setTrustState(null);
-      setError('Clinician NPI is required to load the wallet.');
+      setError('Clinician NPI is required to load verification status.');
       setLoading(false);
       return;
     }
 
-    if (isRefresh) {
-      setRefreshing(true);
-    } else {
-      setLoading(true);
-    }
+    if (isRefresh) setRefreshing(true);
+    else setLoading(true);
 
     try {
       const response = await fetch(`/api/trust-state/${encodeURIComponent(npi)}`, {
         cache: 'no-store',
       });
-
-      if (!response.ok) {
-        throw new Error('Live trust state is unavailable.');
-      }
-
-      const payload = await response.json() as TrustStateResponse;
-      setTrustState(payload);
+      if (!response.ok) throw new Error('Live verification status is unavailable.');
+      setTrustState((await response.json()) as TrustStateResponse);
       setError(null);
     } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : 'Live trust state is unavailable.');
+      setError(loadError instanceof Error ? loadError.message : 'Live verification status is unavailable.');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -159,22 +121,13 @@ export function WalletPassport({
   }, [loadTrustState]);
 
   useEffect(() => {
-    if (!pollIntervalMs || pollIntervalMs <= 0) {
-      return;
-    }
-
-    const interval = window.setInterval(() => {
-      void loadTrustState(true);
-    }, pollIntervalMs);
-
+    if (!pollIntervalMs || pollIntervalMs <= 0) return;
+    const interval = window.setInterval(() => void loadTrustState(true), pollIntervalMs);
     return () => window.clearInterval(interval);
   }, [loadTrustState, pollIntervalMs]);
 
   useEffect(() => {
-    if (!trustState) {
-      return;
-    }
-
+    if (!trustState) return;
     void trackClinicianEventOncePerSession(`wallet:${trustState.npi}`, 'clinician.wallet_viewed', {
       npi: trustState.npi,
       readinessLevel: trustState.readiness_level,
@@ -182,16 +135,12 @@ export function WalletPassport({
     });
   }, [trustState]);
 
-  const topFacts = useMemo(() => {
-    return trustState?.facts.slice(0, 4) ?? [];
-  }, [trustState?.facts]);
-
   if (loading && !trustState) {
     return (
-      <div className="rounded-[28px] border border-zinc-800 bg-zinc-900/75 p-5 text-foreground">
-        <div className="flex items-center gap-3 text-sm text-zinc-300">
-          <Loader2 className="h-4 w-4 animate-spin text-emerald-400" />
-          Loading your live wallet passport...
+      <div className="rounded-[28px] border border-[var(--vt-border)] bg-[var(--vt-surface)] p-5">
+        <div className="flex items-center gap-3 text-sm text-[var(--vt-text-secondary)]">
+          <Loader2 className="h-4 w-4 animate-spin text-[var(--vt-accent-emerald)]" />
+          Loading verification status…
         </div>
       </div>
     );
@@ -199,68 +148,76 @@ export function WalletPassport({
 
   if (error && !trustState) {
     return (
-      <div className="rounded-[28px] border border-rose-500/20 bg-rose-500/10 p-5 text-foreground">
+      <div className="rounded-[28px] border border-rose-300 bg-rose-50 p-5 text-rose-950">
         <PilotFailureSignal
-          title="Passport sync interrupted"
+          title="Verification sync interrupted"
           message={error}
           queueItem={{ source: 'route_failure' }}
           dedupeKey={`wallet-passport:${npi}:${error}`}
         />
         <div className="flex items-start gap-3">
-          <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-rose-200" />
-          <div className="min-w-0">
-            <p className="text-sm font-semibold text-foreground">Passport sync interrupted</p>
-            <p className="mt-1 text-sm leading-6 text-rose-100/80">The connection to the trust engine was interrupted. Your passport is safe and will retry shortly.</p>
+          <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-rose-700" />
+          <div>
+            <p className="text-sm font-semibold">Verification status could not load</p>
+            <p className="mt-1 text-sm leading-6 text-rose-800">{error} No credential conclusion was made.</p>
           </div>
         </div>
-        <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+        <div className="mt-4 flex flex-col gap-2 sm:flex-row">
           <button
             type="button"
             onClick={() => void loadTrustState(true)}
-            className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-2xl bg-white px-4 text-sm font-semibold text-zinc-950 transition hover:bg-zinc-200 active:scale-[0.98]"
+            className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl bg-rose-800 px-4 text-sm font-semibold text-white"
           >
-            Retry
-            <RefreshCw className="h-4 w-4" />
+            Retry <RefreshCw className="h-4 w-4" />
           </button>
-          <Link
-            href="/holder/readiness"
-            className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-2xl border border-border bg-white/[0.03] px-4 text-sm font-semibold text-foreground transition hover:bg-white/[0.08] active:scale-[0.98]"
-          >
-            Open readiness
-            <ArrowRight className="h-4 w-4" />
-          </Link>
           <SupportActionButton
             label="Contact support"
-            title="Passport sync interrupted"
+            title="Verification sync interrupted"
             messagePrefill={error}
-            className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-2xl border border-border bg-white/[0.03] px-4 text-sm font-semibold text-foreground transition hover:bg-white/[0.08] active:scale-[0.98]"
+            className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-rose-300 bg-white px-4 text-sm font-semibold text-rose-900"
           />
         </div>
       </div>
     );
   }
 
-  if (!trustState) {
-    return null;
-  }
+  if (!trustState) return null;
 
-  const TrustIcon = trustIcon(trustState.readiness_level);
+  const statusRows = [
+    {
+      label: 'Identity',
+      value: trustState.identityVerified ? 'Confirmed by an identity source' : 'Needs source review',
+    },
+    {
+      label: 'State license verification',
+      value: licensureLabel(trustState.licensureStatus),
+    },
+    {
+      label: 'Federal sanctions',
+      value: trustState.exclusionClear ? 'No exclusion found in the current screening' : 'Needs review',
+    },
+    {
+      label: 'Attached credential evidence',
+      value: `${trustState.credentialCount} item${trustState.credentialCount === 1 ? '' : 's'}`,
+    },
+  ];
 
   return (
-    <div className="space-y-4 rounded-[28px] border border-zinc-800 bg-zinc-900/75 p-5 text-foreground shadow-sm">
+    <div className="rounded-[28px] border border-[var(--vt-border)] bg-[var(--vt-surface)] p-5 shadow-sm sm:p-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
-            Your readiness
-          </p>
-          <h2 className="mt-2 text-2xl font-semibold tracking-tight text-foreground">
-            Source-backed credential state
-          </h2>
-          <p className="mt-1 text-sm text-zinc-400">
-            NPI <span className="font-mono text-zinc-200">{trustState.npi}</span> - Updated {formatDateTime(trustState.computed_at)}
+          <div className="flex flex-wrap items-center gap-2">
+            <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${LEVEL_STYLES[trustState.readiness_level]}`}>
+              {trustState.readiness_status}
+            </span>
+            <span className="rounded-full border border-[var(--vt-border)] bg-[var(--vt-surface-subtle)] px-3 py-1 text-xs font-semibold text-[var(--vt-text-secondary)]">
+              Readiness {trustState.readiness_score}/100
+            </span>
+          </div>
+          <p className="mt-3 text-sm text-[var(--vt-text-secondary)]">
+            Updated {formatDateTime(trustState.computed_at)}
           </p>
         </div>
-
         <div className="flex flex-wrap items-center gap-2">
           <SanctionRiskBadge
             hasRisk={!trustState.exclusionClear}
@@ -271,128 +228,80 @@ export function WalletPassport({
             type="button"
             onClick={() => void loadTrustState(true)}
             disabled={refreshing}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-zinc-700 bg-zinc-950/60 text-zinc-300 transition hover:border-zinc-500 hover:text-foreground disabled:opacity-50"
-            aria-label="Refresh wallet passport"
+            aria-label="Refresh verification status"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--vt-border)] bg-[var(--vt-surface-subtle)] text-[var(--vt-text-secondary)] transition hover:text-foreground disabled:opacity-50"
           >
-            {refreshing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
           </button>
         </div>
       </div>
 
-      <section className="rounded-[24px] border border-zinc-800 bg-zinc-950/70 p-4">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div className="min-w-0">
-            <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-muted">
-                <TrustIcon className="h-5 w-5 text-emerald-300" />
-              </div>
-              <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500">
-                  Live trust state
-                </p>
-                <p className="mt-1 text-lg font-semibold text-foreground">{trustState.readiness_status}</p>
-              </div>
-            </div>
+      <dl className="mt-5 divide-y divide-[var(--vt-border)] border-y border-[var(--vt-border)]">
+        {statusRows.map((row) => (
+          <div key={row.label} className="grid gap-1 py-3 sm:grid-cols-[190px_1fr] sm:gap-5">
+            <dt className="text-xs font-semibold uppercase tracking-[0.13em] text-[var(--vt-text-secondary)]">
+              {row.label}
+            </dt>
+            <dd className="text-sm text-foreground">{row.value}</dd>
           </div>
-          <span className={`inline-flex w-fit items-center rounded-full border px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] ${LEVEL_STYLES[trustState.readiness_level]}`}>
-            {trustState.readiness_level}
-          </span>
+        ))}
+      </dl>
+
+      {trustState.gap_summary.length > 0 ? (
+        <div className="mt-5 rounded-2xl border border-amber-300 bg-amber-50 p-4">
+          <p className="text-sm font-semibold text-amber-950">Still needed</p>
+          <ul className="mt-2 space-y-1 text-sm leading-6 text-amber-900">
+            {trustState.gap_summary.map((gap) => <li key={gap}>• {gap}</li>)}
+          </ul>
         </div>
+      ) : null}
 
-        <div className="mt-5 flex items-end gap-2">
-          <span className="text-4xl font-semibold tracking-tight text-foreground">{trustState.readiness_score}</span>
-          <span className="pb-1 text-lg text-zinc-500">/100</span>
-        </div>
-
-        <div className="mt-4 h-2.5 overflow-hidden rounded-full bg-zinc-800">
-          <div
-            className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-emerald-300 transition-all duration-700"
-            style={{ width: `${Math.max(6, Math.min(100, trustState.readiness_score))}%` }}
-          />
-        </div>
-
-        <div className="mt-4 grid gap-3 sm:grid-cols-2">
-          <div className="rounded-2xl border border-white/8 bg-black/20 px-4 py-3">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500">Identity</p>
-            <p className="mt-2 text-sm text-foreground">{trustState.identityVerified ? 'Identity confirmed by issuer' : 'Identity needs review'}</p>
-          </div>
-          <div className="rounded-2xl border border-white/8 bg-black/20 px-4 py-3">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500">Licensure</p>
-            <p className="mt-2 text-sm text-foreground">{licensureLabel(trustState.licensureStatus)}</p>
-          </div>
-          <div className="rounded-2xl border border-white/8 bg-black/20 px-4 py-3">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500">Credential artifacts</p>
-            <p className="mt-2 text-sm text-foreground">{trustState.credentialCount}</p>
-          </div>
-          <div className="rounded-2xl border border-white/8 bg-black/20 px-4 py-3">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500">Top blocker</p>
-            <p className="mt-2 text-sm text-foreground">{trustState.gap_summary[0] ?? 'No blocking gaps detected'}</p>
-          </div>
-        </div>
-      </section>
-
-      <section className="rounded-[24px] border border-zinc-800 bg-zinc-950/70 p-4">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500">
-          Source-backed facts
-        </p>
-        {topFacts.length > 0 ? (
-          <div className="mt-4 space-y-3">
-            {topFacts.map((fact) => {
-              const statusKey = fact.status.trim().toUpperCase();
-              const factStatusStyle = FACT_STATUS_STYLES[statusKey] ?? 'border-border bg-white/[0.03] text-foreground/70';
-
+      <details className="mt-5 rounded-2xl border border-[var(--vt-border)] bg-[var(--vt-surface-subtle)] p-4">
+        <summary className="min-h-[36px] cursor-pointer text-sm font-semibold text-foreground">
+          Source evidence ({trustState.facts.length})
+        </summary>
+        {trustState.facts.length > 0 ? (
+          <div className="mt-3 divide-y divide-[var(--vt-border)] border-t border-[var(--vt-border)]">
+            {trustState.facts.map((fact) => {
+              const style = FACT_STATUS_STYLES[fact.status.trim().toUpperCase()] ??
+                'border-[var(--vt-border)] bg-white text-[var(--vt-text-secondary)]';
               return (
-                <div
-                  key={`${fact.factType}-${fact.source}-${fact.verifiedAt ?? fact.expiresAt ?? fact.status}`}
-                  className="rounded-2xl border border-white/8 bg-black/20 px-4 py-4"
-                >
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                    <div className="min-w-0">
-                      <p className="text-sm font-semibold text-foreground">{formatFactLabel(fact.factType)}</p>
-                      <p className="mt-1 text-xs text-zinc-400">{fact.source}</p>
+                <div key={`${fact.factType}-${fact.source}-${fact.verifiedAt ?? fact.expiresAt ?? fact.status}`} className="py-3">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">{titleCase(fact.factType)}</p>
+                      <p className="mt-1 text-xs text-[var(--vt-text-secondary)]">{fact.source}</p>
                     </div>
-                    <span className={`inline-flex w-fit items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold ${factStatusStyle}`}>
-                      {formatStatusLabel(fact.status)}
+                    <span className={`w-fit rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.1em] ${style}`}>
+                      {titleCase(fact.status)}
                     </span>
                   </div>
-                  <div className="mt-3 grid gap-3 text-xs text-zinc-300 sm:grid-cols-2">
-                    <div>
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-500">Last confirmed</p>
-                      <p className="mt-1">{formatDateTime(fact.verifiedAt)}</p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-500">Expires</p>
-                      <p className="mt-1">{fact.expiresAt ? formatDateTime(fact.expiresAt) : 'Not provided'}</p>
-                    </div>
-                  </div>
-                  {fact.details ? (
-                    <p className="mt-3 text-xs leading-6 text-zinc-400">{fact.details}</p>
-                  ) : null}
+                  {fact.details ? <p className="mt-2 text-sm text-[var(--vt-text-secondary)]">{fact.details}</p> : null}
+                  <p className="mt-2 text-xs text-[var(--vt-text-secondary)]">
+                    {fact.verifiedAt ? `Observed ${formatDateTime(fact.verifiedAt)}` : 'Observation time unavailable'}
+                    {fact.expiresAt ? ` · Expires ${formatDateTime(fact.expiresAt)}` : ''}
+                  </p>
                 </div>
               );
             })}
           </div>
         ) : (
-          <p className="mt-3 text-sm leading-6 text-zinc-300">
-            Source-confirmed facts will populate here as your credentials are corroborated.
-          </p>
+          <p className="mt-2 text-sm text-[var(--vt-text-secondary)]">No source facts are available yet.</p>
         )}
-      </section>
+      </details>
 
-      <div className="flex flex-col gap-3 sm:flex-row">
+      <div className="mt-5 flex flex-col gap-2 sm:flex-row">
         <Link
           href="/holder/readiness"
-          className="inline-flex min-h-[48px] flex-1 items-center justify-center gap-2 rounded-2xl bg-white px-4 text-sm font-semibold text-zinc-950 transition hover:bg-zinc-200 active:scale-[0.98]"
+          className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-[var(--vt-border)] bg-[var(--vt-surface-subtle)] px-4 text-sm font-semibold text-foreground transition hover:bg-[var(--vt-surface-dim)]"
         >
-          Open readiness
-          <ArrowRight className="h-4 w-4" />
+          Review readiness details
         </Link>
         <Link
-          href={`/passport/${trustState.npi}`}
-          className="inline-flex min-h-[48px] flex-1 items-center justify-center gap-2 rounded-2xl border border-border bg-white/[0.03] px-4 text-sm font-semibold text-foreground transition hover:bg-white/[0.08] active:scale-[0.98]"
+          href="/clinician/profile"
+          className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-[var(--vt-border)] bg-[var(--vt-surface)] px-4 text-sm font-semibold text-foreground transition hover:bg-[var(--vt-surface-subtle)]"
         >
-          Open public passport
-          <ArrowRight className="h-4 w-4" />
+          Add missing career details
         </Link>
       </div>
     </div>

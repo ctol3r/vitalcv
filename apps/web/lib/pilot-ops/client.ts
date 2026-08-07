@@ -124,7 +124,7 @@ export function pilotReporterOpenEventName(): string {
 }
 
 export function inferPilotRole(pathname: string): string {
-  if (pathname.startsWith('/holder') || pathname.startsWith('/onboarding') || pathname.startsWith('/passport')) {
+  if (pathname.startsWith('/holder') || pathname.startsWith('/onboarding')) {
     return 'CLINICIAN';
   }
   if (pathname.startsWith('/verifier') || pathname.startsWith('/employers')) {

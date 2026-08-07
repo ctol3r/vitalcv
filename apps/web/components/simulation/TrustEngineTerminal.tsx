@@ -65,7 +65,7 @@ const STATUS_COLOR: Record<string, string> = {
 
 // ── Component ─────────────────────────────────────────────────────────
 
-export function TrustEngineTerminal({ npi = '1003000126', onComplete, className = '' }: TrustEngineTerminalProps) {
+export function TrustEngineTerminal({ npi = '0000000000', onComplete, className = '' }: TrustEngineTerminalProps) {
   const [steps, setSteps] = useState<PipelineStep[]>(() => createPipeline(npi));
   const [running, setRunning] = useState(false);
   const [currentIdx, setCurrentIdx] = useState(-1);

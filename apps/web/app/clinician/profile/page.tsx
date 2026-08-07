@@ -1,7 +1,11 @@
 import * as React from 'react';
+import { Suspense } from 'react';
 import type { Metadata } from 'next';
 import { PROVENANCE_META, type ProfileProvenance } from '@/lib/profile/provenance';
 import { ProfileHeader } from '@/components/clinician/ProfileHeader';
+import { ClinicianRecordDetail } from '@/components/clinician-record/ClinicianRecordDetail';
+import { loadOwnerRecord } from '@/lib/clinician-record/ownerRecord';
+import { OWNER_CONTEXT_NOTE } from '@/lib/clinician-record/copy';
 import { InstitutionAutocomplete } from '@/components/clinician/InstitutionAutocomplete';
 import type { InstitutionKind } from '@/lib/institutions/curated';
 
@@ -157,6 +161,84 @@ function ProvenanceBadge({ provenance }: { provenance: ProfileProvenance }) {
   );
 }
 
+/**
+ * The registry record an employer reads about this clinician.
+ *
+ * Placed ABOVE the self-entered form on purpose. The form is what the
+ * clinician controls; this is what the world already says about them, and it
+ * is the thing they cannot fix without first being shown it. Every empty
+ * state below names its own cause, because "link your NPI" and "CMS was
+ * unreachable" need different actions from the clinician — collapsing them
+ * into one blank panel tells them nothing they can act on.
+ */
+function OwnRegistryRecordPending() {
+  return (
+    <section
+      aria-labelledby="own-registry-record-heading"
+      aria-busy="true"
+      className="space-y-1 rounded-[3px] border border-[var(--vt-border)] bg-[var(--vt-surface)] p-4 sm:p-5"
+    >
+      <h2 id="own-registry-record-heading" className="mz-h2">
+        Reading your registry record
+      </h2>
+      <p className="text-[12px] leading-relaxed text-[var(--ink-600)]">
+        Checking what CMS publishes about you.
+      </p>
+    </section>
+  );
+}
+
+async function OwnRegistryRecord() {
+  const result = await loadOwnerRecord();
+
+  if (result.state === 'ready') {
+    return (
+      <section
+        aria-labelledby="own-registry-record-heading"
+        className="space-y-4 rounded-[3px] border border-[var(--vt-border)] bg-[var(--vt-surface)] p-4 sm:p-5"
+      >
+        <div className="space-y-1">
+          <h2 id="own-registry-record-heading" className="mz-h2">
+            What employers read about you
+          </h2>
+          <p className="text-[12px] leading-relaxed text-[var(--ink-600)]">
+            {OWNER_CONTEXT_NOTE}
+          </p>
+        </div>
+        <ClinicianRecordDetail record={result.record} mode="owner" />
+      </section>
+    );
+  }
+
+  const { heading, body } =
+    result.state === 'no_npi'
+      ? {
+          heading: 'No NPI linked to this account',
+          body: 'Link your NPI and your public CMS record will appear here, exactly as an employer reviewing you would read it.',
+        }
+      : result.state === 'registry_unavailable'
+        ? {
+            heading: `CMS had no readable record for NPI ${result.npi}`,
+            body: 'This may be a temporary CMS outage, or an NPI that is no longer enumerated. Nothing is being hidden — we could not read the registry just now.',
+          }
+        : {
+            heading: 'Could not check your registry record',
+            body: 'We could not reach your workspace to find which NPI is linked to this account. That is our problem, not a finding about your record.',
+          };
+
+  return (
+    <section
+      aria-labelledby="own-registry-record-heading"
+      className="space-y-1 rounded-[3px] border border-[var(--vt-border)] bg-[var(--vt-surface)] p-4 sm:p-5"
+    >
+      <h2 id="own-registry-record-heading" className="mz-h2">
+        {heading}
+      </h2>
+      <p className="text-[12px] leading-relaxed text-[var(--ink-600)]">{body}</p>
+    </section>
+  );
+}
+
 export default function ClinicianProfilePage() {
   // Foundation shell: sections render with placeholders and provenance
   // badges. No client state. Filled-ness summary is computed below from
@@ -178,6 +260,14 @@ export default function ClinicianProfilePage() {
       </p>
 
       <div className="space-y-5">
+        {/* What the world already says, before what the clinician types.
+            Behind Suspense: this reaches out to CMS, and the clinician's own
+            form should paint immediately rather than waiting on a third party
+            that may be slow or down. */}
+        <Suspense fallback={<OwnRegistryRecordPending />}>
+          <OwnRegistryRecord />
+        </Suspense>
+
         <section
           aria-labelledby="completion-summary-heading"
           className="rounded-[3px] border border-[var(--vt-border)] bg-[var(--vt-surface)] p-4 sm:p-5"

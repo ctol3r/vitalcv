@@ -452,7 +452,40 @@ function scoreCandidate(entry: ExclusionEntry, input: LookupProviderInput): Matc
     };
   }
 
-  if (!firstExact && firstPartial) {
+  // An exact first name, on top of the exact surname already required above,
+  // with no specialty to corroborate it.
+  //
+  // This branch used to not exist, and the gap was load-bearing: both strong
+  // branches above require a specialty, and the partial-name branch below was
+  // gated on `!firstExact`. So an EXACT first+last+state match with no
+  // specialty fell through to null and reported CLEAR, while a strictly
+  // WORSE partial-name match returned WEAK. Supplying the full first name
+  // made the screen miss. Verified against the live list: "CRISELDA
+  // ABAD-SANTOS" (CA) returned CLEAR, "CRIS ABAD-SANTOS" returned
+  // POSSIBLE_MATCH — same excluded person.
+  //
+  // That failure direction is the dangerous one on an exclusion screen, and
+  // it is not a corner case: 72,037 of the 80,233 named individuals on LEIE
+  // (89.8%) carry no NPI at all, so name matching is the ONLY way to reach
+  // them. `routes/oig.ts` passes neither state nor specialty, landing on
+  // exactly this path.
+  //
+  // Scored above firstPartial (0.58) and below the specialty-corroborated
+  // branches (0.76) to keep the ordering monotone: a superset of matched
+  // fields must never score lower than a subset. Confidence rises with state
+  // agreement. Still POSSIBLE_MATCH, never EXCLUDED — an uncorroborated name
+  // match routes to human review rather than auto-blocking anyone.
+  if (firstExact) {
+    return {
+      entry,
+      matchType: 'WEAK',
+      confidence: stateMatch ? 'MEDIUM' : 'LOW',
+      score: stateMatch ? 0.68 : 0.62,
+      matchedFields: Object.freeze(Array.from(matchedFields)),
+    };
+  }
+
+  if (firstPartial) {
     return {
       entry,
       matchType: 'WEAK',

@@ -78,7 +78,12 @@ export function registerApplicationRoutes(app: Express): void {
     asyncHandler(async (req, res) => {
       const clerkUserId = requireClerkUserId(req);
       const opportunityId = requireUuidParam(req.params.id, 'Opportunity');
-      const { npi, coverNote } = req.body as { npi?: string; coverNote?: string };
+      const { npi, coverNote, selectedSections, purpose } = req.body as {
+        npi?: string;
+        coverNote?: string;
+        selectedSections?: string[];
+        purpose?: string;
+      };
 
       // Applications carry the clinician's readiness snapshot to an employer —
       // they unlock at the work_email_confirmed identity tier.
@@ -86,7 +91,14 @@ export function registerApplicationRoutes(app: Express): void {
       if (!applicant) throw new HttpError(404, 'User not found. Complete onboarding first.');
       await requireIdentityTier(applicant.id, 'work_email_confirmed');
 
-      const application = await applyToOpportunity({ opportunityId, clerkUserId, npi, coverNote });
+      const application = await applyToOpportunity({
+        opportunityId,
+        clerkUserId,
+        npi,
+        coverNote,
+        selectedSections,
+        purpose,
+      });
       res.status(201).json(application);
     }),
   );

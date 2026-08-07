@@ -191,7 +191,7 @@ export function ExpiryHorizon({
     urgent: 'var(--vt-state-blocked)',
     warning: 'var(--vt-state-pending)',
     notice: 'var(--vt-state-pending)',
-    far: 'var(--vt-state-verified)',
+    far: 'var(--vt-state-source-confirmed)',
   };
 
   return (

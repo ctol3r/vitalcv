@@ -1,5 +1,7 @@
 /* eslint-disable @next/next/no-page-custom-font */
 import RootChrome from '@/components/layout/RootChrome';
+import { GlassCursor } from '@/components/chrome/GlassCursor';
+import '../styles/glass-cursor.css';
 import { CommandPalette } from '@/components/ui/CommandPalette';
 import { Toaster } from '@/components/ui/sonner';
 import { CLERK_PROVIDER_ENABLED } from '@/lib/auth/clerkConfig';
@@ -162,6 +164,9 @@ export default function RootLayout({
           <RootChrome clerkEnabled={clerkEnabled}>{children}</RootChrome>
           {renderGlobalChrome ? <CommandPalette /> : null}
           {renderGlobalChrome ? <Toaster position="top-right" closeButton richColors /> : null}
+          {/* The frosted pointer lens (chrome, CD-12). Renders inert markup;
+              its listeners self-gate on pointer:fine + motion preference. */}
+          {renderGlobalChrome ? <GlassCursor /> : null}
         </Providers>
       </body>
     </html>

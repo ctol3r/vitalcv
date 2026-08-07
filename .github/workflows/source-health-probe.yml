@@ -48,9 +48,13 @@ jobs:
           fi
           # -fsS: fail on non-2xx, silent progress, show errors.
           # Authorization header is consumed by the server's checkAuth.
+          # `?source=cron` attributes the availability samples this tick writes
+          # (D4). Without it the handler defaults to `manual`, so every
+          # scheduled observation would be indistinguishable from an ad-hoc one
+          # and the ledger's probeSource column would carry no information.
           response="$(curl -fsS -X POST \
             -H "Authorization: Bearer ${CRON_SECRET}" \
-            "${PROBE_URL}/api/internal/source-health/probe")"
+            "${PROBE_URL}/api/internal/source-health/probe?source=cron")"
           # Echo response for operator visibility. Body contains only
           # safe metadata; secret is not echoed.
           echo "$response"

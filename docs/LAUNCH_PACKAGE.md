@@ -57,13 +57,23 @@
 - **10 providers** with real NPI-style data
 - **91 findings** across providers
 - **22+ storylines** clustering findings into narratives
-- **Graph:** 20 nodes, 135 edges for anchor provider (1003000126)
+- **Graph:** 20 nodes, 135 edges for the anchor provider (NPI withheld — the number
+  previously printed here belongs to a real, non-consenting physician)
 
 ### Demo Identity Strategy
+
+**The clinician walkthrough is deferred — there is no NPI we are permitted to demo.**
+
+`1003000126` must not be used. It is ARDALAN ENKESHAFI, M.D., a real physician who never
+consented to being a demo subject; earlier material wrongly attached the fabricated name
+"Dr. Sarah Chen" to it. No demo may point at a real clinician's NPI, and no other real NPI
+may be substituted. A live clinician walkthrough returns only when there is an explicitly
+consented, founder-controlled clinician fixture. See [`yc/DEMO_RUNBOOK.md`](yc/DEMO_RUNBOOK.md).
+
 | Role | Identity | Path |
 |------|----------|------|
-| Clinician | Dr. Sarah Chen (NPI 1003000126) — Internal Medicine, CA | `/intelligence` → select provider |
-| Employer | Bay Area Cardiac Group | `/explore` → view posted roles |
+| Clinician | ⬜ deferred — awaiting a consented, founder-controlled fixture | — |
+| Employer | Bay Area Cardiac Group (organization, not a person) | `/explore` → view posted roles |
 | Verifier | Read-only investigation | `/intelligence?view=investigations` |
 
 ### Action Required
@@ -138,7 +148,15 @@ echo "Findings: $FINDINGS"
 FEED=$(curl -s "$BACKEND/api/intelligence/feed?limit=1" -H "x-org-id: demo" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("total",0))' 2>/dev/null)
 echo "Feed items: $FEED"
 
-GRAPH=$(curl -s "$BACKEND/api/graph/investigation?npi=1003000126&limit=1" -H "x-org-id: demo" | python3 -c 'import json,sys; d=json.load(sys.stdin); print(f"nodes={len(d.get(\"nodes\",[]))} edges={len(d.get(\"edges\",[]))}")' 2>/dev/null)
+# Set GRAPH_SMOKE_NPI to an NPI you are permitted to query. Do not hardcode a real
+# clinician's NPI here — see "Demo Identity Strategy" above; 1003000126 in particular
+# is off-limits. Left unset, this check reports that it was skipped rather than
+# silently querying someone.
+if [ -n "$GRAPH_SMOKE_NPI" ]; then
+  GRAPH=$(curl -s "$BACKEND/api/graph/investigation?npi=$GRAPH_SMOKE_NPI&limit=1" -H "x-org-id: demo" | python3 -c 'import json,sys; d=json.load(sys.stdin); print(f"nodes={len(d.get(\"nodes\",[]))} edges={len(d.get(\"edges\",[]))}")' 2>/dev/null)
+else
+  GRAPH="skipped (GRAPH_SMOKE_NPI unset)"
+fi
 echo "Graph: $GRAPH"
 
 # 5. Error check

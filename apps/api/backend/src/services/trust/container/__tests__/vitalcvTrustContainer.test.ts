@@ -28,7 +28,13 @@ const TEST_DID = 'did:web:vitalcv.com';
 let privateJwkJson: string;
 
 beforeAll(async () => {
-  const { privateKey } = await generateKeyPair('ES256');
+  // `extractable: true` is required from jose v6 — v4 generated extractable
+  // keys by default, v6 does not, and `exportJWK` on a non-extractable
+  // CryptoKey throws "non-extractable CryptoKey cannot be exported as a JWK".
+  // Test-only: production key material arrives via `importJWK` from configured
+  // JWKs, and the one production `generateKeyPair` caller
+  // (services/sd-jwt/keyManager.ts) already passes this flag.
+  const { privateKey } = await generateKeyPair('ES256', { extractable: true });
   const jwk = await exportJWK(privateKey);
   privateJwkJson = JSON.stringify(jwk);
 });

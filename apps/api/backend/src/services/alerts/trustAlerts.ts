@@ -67,16 +67,34 @@ export interface TrustAlert {
 
 // ── Seed alerts ───────────────────────────────────────────────────────
 
+/**
+ * Seed alerts populate the alerts surface before any real alert is emitted.
+ * `seedDefaults` writes them to the alerts table, so they must never assert
+ * anything about a real person.
+ *
+ * NEVER give a seed alert a real clinician's NPI as its `subject`. Demo NPIs must
+ * FAIL the NPI check digit (Luhn over "80840" + the first 9 digits) so they cannot
+ * collide with a registrant. `1003000126` was used here until 2026-07-27; it is a
+ * real physician, and this seed asserted a California licence expiry for him that
+ * no source had ever reported.
+ *
+ * `alertId` values are deliberately unchanged: `seedDefaults` skips any alertId
+ * already present, so correcting the content here changes what a *fresh* database
+ * receives without inserting or rewriting a row in an existing one. Rows already
+ * carrying the fabricated content must be removed by a separate, explicitly
+ * authorised data operation — not by renaming these ids.
+ */
 const SEED_ALERTS: TrustAlert[] = [
   {
     alertId: 'seed-alert-license-expiring',
     type: 'credential_expiring',
     severity: 'WARNING',
     title: 'License expiring in 14 days',
-    description: 'California Medical License for NPI 1003000126 expires on 2026-03-19.',
-    subject: '1003000126',
-    issuerId: 'did:vitalcv:issuer:ca-medical-board',
-    recommendedAction: 'Initiate license renewal with California Medical Board.',
+    description:
+      'Example: a state medical license for NPI 1558395516 (Example Clinician A) expires in 14 days.',
+    subject: '1558395516',
+    issuerId: 'did:vitalcv:issuer:example-state-board',
+    recommendedAction: 'Initiate license renewal with the issuing state board.',
     acknowledged: false,
     createdAt: '2026-03-05T18:00:00.000Z',
   },

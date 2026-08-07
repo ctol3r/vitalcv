@@ -52,14 +52,15 @@ type ArtifactResult = {
 };
 
 /* ------------------------------------------------------------------ */
-/*  Sample NPIs — pre-loaded for easy demos                           */
+/*  No sample NPIs                                                     */
+/*                                                                     */
+/*  This wizard runs a live CMS NPPES lookup, so any NPI that returns  */
+/*  data belongs to a real registrant, and a check-digit-invalid NPI   */
+/*  would return nothing. Until 2026-07-27 three "Try a sample" chips  */
+/*  paired invented names with real registrants — "Robert Smith —      */
+/*  Internal Medicine" fetched the CMS record of ARDALAN ENKESHAFI,    */
+/*  M.D. under the wrong name. Visitors type their own NPI instead.    */
 /* ------------------------------------------------------------------ */
-
-const SAMPLE_NPIS = [
-  { npi: '1003000126', label: 'Robert Smith — Internal Medicine' },
-  { npi: '1497758544', label: 'Mary Johnson — Family Medicine' },
-  { npi: '1588667638', label: 'James Williams — Nurse Practitioner' },
-];
 
 /* ------------------------------------------------------------------ */
 /*  Component                                                          */
@@ -215,25 +216,10 @@ export function DemoWizard() {
           )}
 
           <div className="mt-5">
-            <p className="text-xs uppercase tracking-wide text-muted">
-              Try a sample
+            <p className="text-xs text-muted">
+              Enter any valid 10-digit NPI. Results come from the live CMS NPPES
+              registry.
             </p>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {SAMPLE_NPIS.map((s) => (
-                <button
-                  key={s.npi}
-                  type="button"
-                  disabled={loading}
-                  onClick={() => {
-                    setNpi(s.npi);
-                    void lookupProvider(s.npi);
-                  }}
-                  className="rounded-md border border-border px-3 py-1.5 text-xs font-medium text-foreground transition-theme hover:bg-surface disabled:opacity-50"
-                >
-                  {s.label}
-                </button>
-              ))}
-            </div>
           </div>
         </div>
       )}

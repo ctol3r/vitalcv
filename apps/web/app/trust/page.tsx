@@ -3,9 +3,14 @@ import Link from 'next/link';
 import { ArrowRight, ShieldCheck, FileCode2, Activity } from 'lucide-react';
 
 import { getTrustRegisterSnapshot } from '@/lib/trust/register';
+import { ArtifactStage } from '@/components/motion/ArtifactStage';
+import { ReceiptArtifact } from '@/components/artifacts/PageArtifacts';
+import '@/styles/motion.css';
+import '@/styles/artifact-motion.css';
 import { StateChip } from '@/components/vital/StateChip';
 import { EVIDENCE_STATE, type EvidenceState } from '@/lib/vital/evidenceState';
 import { PageFrame } from '@/components/layout/PageFrame';
+import { SourceCoverageDiagram } from '@/components/trust/SourceCoverageDiagram';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,7 +25,7 @@ export const metadata: Metadata = {
 // per-clinician result. "Available" means the lane is wired and returns data;
 // it does not mean any specific clinician has been checked.
 const LIFECYCLE_LABEL: Record<string, { label: string; tone: string; note: string }> = {
-  active: { label: 'Available', tone: 'var(--vt-accent-emerald)', note: 'Wired and returning data.' },
+  active: { label: 'Available', tone: 'var(--vt-state-source-confirmed)', note: 'Wired and returning data.' },
   partial: { label: 'Partial', tone: 'var(--vt-state-stale, #a2670b)', note: 'Available for some records; being expanded.' },
   planned: { label: 'Access required', tone: 'var(--vt-state-stale, #a2670b)', note: 'A source exists; access is not yet in place.' },
   unintegrated: { label: 'Not yet connected', tone: 'var(--vt-text-muted)', note: 'On the roadmap; not connected today.' },
@@ -64,9 +69,21 @@ export default async function TrustCenterPage() {
           unknown stays visibly unknown, and the final credentialing decision always belongs to the employer.
         </p>
 
+        {/* The page's animated artifact: the provenance chain itself — a claim,
+            its source and read time, the receipt, and the open door at the end.
+            Plays once on entry, then rests (CD-11). */}
+        <section aria-label="How a claim carries its provenance" className="mt-10">
+          <ArtifactStage glass>
+            <ReceiptArtifact />
+          </ArtifactStage>
+        </section>
+
         {/* 1 — What VitalCV checks + current availability */}
         <Section id="checks" eyebrow="What we check" title="The sources VitalCV reads, and whether they're available today">
-          <div className="overflow-hidden rounded-[12px] border border-[var(--vt-border)]">
+          {/* The same lane state the table below prints, drawn. Both read
+              SOURCE_LANE_OPS, so the picture cannot disagree with the rows. */}
+          <SourceCoverageDiagram />
+          <div className="mt-8 overflow-hidden rounded-[12px] border border-[var(--vt-border)]">
             {snapshot.sources.map((s, i) => {
               const meta = LIFECYCLE_LABEL[s.lifecycle] ?? LIFECYCLE_LABEL.unintegrated;
               return (
@@ -158,7 +175,7 @@ export default async function TrustCenterPage() {
               rule: no protected health information is placed on any shared or anchored artifact.
             </p>
             <p>
-              Receipts are signed with an ES256 key ({snapshot.keyAlgorithm}); the public key and issuer identity are
+              Receipts are signed with an {snapshot.keyAlgorithm} key; the public key and issuer identity are
               published so a recipient can check a receipt independently. Every mutation to your record is written to an
               audit trail before it takes effect.
             </p>

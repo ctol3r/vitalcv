@@ -1,0 +1,108 @@
+{
+  "base": "https://vitalcv.com",
+  "expectedSha": "f9900b141def51610427bc3fa00ad89a5622b6b7",
+  "checkedAt": "2026-08-02T14:18:03.680Z",
+  "overall": "pass",
+  "results": [
+    {
+      "name": "version: f9900b141def began serving within 900s",
+      "ok": true,
+      "detail": "deploy landed"
+    },
+    {
+      "name": "version: HTTP 200 + JSON",
+      "ok": true,
+      "detail": "HTTP 200"
+    },
+    {
+      "name": "version: platform=railway",
+      "ok": true,
+      "detail": "railway"
+    },
+    {
+      "name": "version: environment=production",
+      "ok": true,
+      "detail": "production"
+    },
+    {
+      "name": "version: branch=main",
+      "ok": true,
+      "detail": "main"
+    },
+    {
+      "name": "version: expected SHA deployed",
+      "ok": true,
+      "detail": "serving f9900b141def vs expected f9900b141def"
+    },
+    {
+      "name": "auth-health: HTTP 200 + status ok",
+      "ok": true,
+      "detail": "HTTP 200 status=ok"
+    },
+    {
+      "name": "db-health: HTTP 200 + db ok",
+      "ok": true,
+      "detail": "HTTP 200 db=ok"
+    },
+    {
+      "name": "home: HTTP 200",
+      "ok": true,
+      "detail": "HTTP 200"
+    },
+    {
+      "name": "home: current release marker",
+      "ok": true,
+      "detail": "data-home-hero"
+    },
+    {
+      "name": "home: bounded shared cache",
+      "ok": true,
+      "detail": "s-maxage=300, stale-while-revalidate=31535700"
+    },
+    {
+      "name": "onboarding: HTTP 200",
+      "ok": true,
+      "detail": "HTTP 200"
+    },
+    {
+      "name": "onboarding: private + no-store, no s-maxage",
+      "ok": true,
+      "detail": "private, no-store"
+    },
+    {
+      "name": "/employers: HTTP 200",
+      "ok": true,
+      "detail": "HTTP 200"
+    },
+    {
+      "name": "/trust: HTTP 200",
+      "ok": true,
+      "detail": "HTTP 200"
+    },
+    {
+      "name": "/status: HTTP 200",
+      "ok": true,
+      "detail": "HTTP 200"
+    },
+    {
+      "name": "api-status: HTTP 200 + JSON",
+      "ok": true,
+      "detail": "HTTP 200"
+    },
+    {
+      "name": "source lanes: /status agrees with /api/status",
+      "ok": true,
+      "detail": "6 lanes agree"
+    },
+    {
+      "name": "/status/technical: HTTP 200",
+      "ok": true,
+      "detail": "HTTP 200"
+    },
+    {
+      "name": "source lanes: /status/technical agrees with /api/status",
+      "ok": true,
+      "detail": "6 lanes agree"
+    }
+  ]
+}

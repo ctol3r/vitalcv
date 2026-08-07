@@ -30,7 +30,7 @@ const ncqaTagVariants = cva(
     variants: {
       status: {
         satisfied:
-          'bg-[color-mix(in_oklab,var(--vt-state-verified)_12%,transparent)] text-[var(--vt-state-verified)] ring-[color-mix(in_oklab,var(--vt-state-verified)_24%,transparent)]',
+          'bg-[color-mix(in_oklab,var(--vt-state-source-confirmed)_12%,transparent)] text-[var(--vt-state-source-confirmed)] ring-[color-mix(in_oklab,var(--vt-state-source-confirmed)_24%,transparent)]',
         pending:
           'bg-[color-mix(in_oklab,var(--vt-state-pending)_12%,transparent)] text-[var(--vt-state-pending)] ring-[color-mix(in_oklab,var(--vt-state-pending)_24%,transparent)]',
         access:

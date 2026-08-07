@@ -87,7 +87,7 @@ export const JOURNEY_CHAPTERS: readonly JourneyChapter[] = [
   },
   {
     id: 'start',
-    label: 'Start faster',
+    label: 'Start from evidence',
     eyebrow: '04 · Recognition',
     title: 'Carry the employer decision forward.',
     body: 'VitalCV Recognition records the acceptance. Institution review remains.',

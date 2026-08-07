@@ -13,11 +13,41 @@ export function buildDegradedPassportStub(
 ): PassportData & { _degraded: boolean } {
   const basic = (nppesData?.basic as Record<string, unknown>) ?? {};
   const taxonomies = (nppesData?.taxonomies as Array<Record<string, unknown>>) ?? [];
-  const displayName = [
+
+  // NPPES enumerates organizations as NPI-2. The stub used to hardcode
+  // `entityType: 'individual'`, which called real organizations people, and
+  // only ever read the person name fields, so an organization fell through to
+  // the `NPI …` placeholder even though NPPES had its name.
+  const enumerationType = typeof nppesData?.enumeration_type === 'string'
+    ? nppesData.enumeration_type
+    : null;
+  const isOrganization = enumerationType === 'NPI-2';
+  const entityType = isOrganization
+    ? 'organization'
+    : enumerationType === 'NPI-1'
+      ? 'individual'
+      : 'unknown';
+
+  const organizationName = typeof basic.organization_name === 'string'
+    ? basic.organization_name.trim()
+    : '';
+  const personName = [
     basic.first_name,
     basic.middle_name,
     basic.last_name,
-  ].filter(Boolean).join(' ') || `NPI ${npi}`;
+  ].filter(Boolean).join(' ');
+  const displayName = (isOrganization ? organizationName : personName) || `NPI ${npi}`;
+
+  // NPPES returns taxonomies in no meaningful order and routinely lists several
+  // non-primary rows first — 1003000126 carries three non-primary "Internal
+  // Medicine" entries ahead of its primary "Hospitalist". Reading `[0]` reported
+  // a specialty the provider does not hold as their primary. Only the row NPPES
+  // marks primary is authoritative; if none is marked, the specialty is withheld
+  // rather than guessed, because guessing is the defect being fixed.
+  const primaryTaxonomy = taxonomies.find((taxonomy) => taxonomy.primary === true);
+  const specialty = typeof primaryTaxonomy?.desc === 'string'
+    ? primaryTaxonomy.desc
+    : undefined;
 
   const now = new Date().toISOString();
 
@@ -27,9 +57,9 @@ export function buildDegradedPassportStub(
     identity: {
       npi,
       displayName,
-      entityType: 'individual',
+      entityType,
       status: basic.status === 'A' ? 'active' : 'unknown',
-      specialty: (taxonomies[0]?.desc as string | undefined) ?? undefined,
+      specialty,
     },
     authority: {
       credentials: [],
@@ -103,6 +133,7 @@ export function buildDegradedPassportStub(
         accessRequired: [],
         reviewRequired: [],
         notDecisionGrade: [],
+        notFound: [],
         previewOnly: [],
       },
     },

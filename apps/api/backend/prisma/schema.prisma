@@ -39,6 +39,50 @@ model MatchaPreference {
   @@index([clerkUserId])
 }
 
+/// Career Garden private note ("seed"). Clinician-personal workspace prose,
+/// keyed by the internal User.id (pre-NPI accounts included). Never evidence,
+/// never source-checked, never shared by any backend path: rows leave this
+/// table only when the clinician explicitly promotes one into a
+/// GardenCvEntry. Professional-development content only — the UI reminds
+/// clinicians to keep patient details out.
+model GardenNote {
+  id         String    @id @default(uuid()) @db.Uuid
+  userId     String    @db.Uuid
+  title      String
+  body       String
+  tags       String[]  @default([])
+  /// unfiled | growing | grown — workspace state, enforced in the route layer.
+  status     String    @default("unfiled")
+  promotedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([userId, createdAt])
+  @@map("garden_notes")
+}
+
+/// A Living CV line grown from the Career Garden. Always clinician-authored:
+/// `provenance` is the literal string "self_attested" and the route layer
+/// rejects anything else — promotion can never mint a source-backed claim.
+/// Distinct from PersonProfile.selfAttested (structured intake sections) and
+/// from credential evidence: these are prose CV lines with a recorded origin.
+model GardenCvEntry {
+  id         String   @id @default(uuid()) @db.Uuid
+  userId     String   @db.Uuid
+  /// experience | research | teaching | service | publications
+  section    String
+  headline   String
+  detail     String
+  provenance String   @default("self_attested")
+  /// Plain-language origin ("Grown from your note …"), shown under the line.
+  origin     String
+  fromNoteId String?  @db.Uuid
+  createdAt  DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@map("garden_cv_entries")
+}
+
 /// Wave Q — durable commercial lead capture. One row per submitted pilot
 /// request / pilot intake (in addition to the existing Slack + stdout
 /// delivery, which stays). Operational CRM-lite, never evidence: rows carry
@@ -335,9 +379,31 @@ model VerificationRequest {
   receiptId     String?
   failureReason String?
 
+  // Start Mission linkage. Nullable preserves every legacy manual PSV request.
+  applicationId           String?  @map("application_id") @db.Uuid
+  startActivationId       String?  @map("start_activation_id") @db.Uuid
+  activationRequirementId String?  @map("activation_requirement_id") @db.Uuid
+  organizationId          String?  @map("organization_id") @db.Uuid
+  issuerId                String?  @map("issuer_id")
+  requestedClaim          String?  @map("requested_claim")
+  purpose                 String?
+  authorizationConsentId  String?  @map("authorization_consent_id") @db.Uuid
+  preferredChannel        String?  @map("preferred_channel")
+  dueAt                   DateTime? @map("due_at")
+  nextFollowUpAt          DateTime? @map("next_follow_up_at")
+  attemptCount            Int      @default(0) @map("attempt_count")
+  assignedTo              String?  @map("assigned_to")
+  idempotencyKey          String?  @unique @map("idempotency_key")
+  updatedAt               DateTime @default(now()) @updatedAt @map("updated_at")
+
   @@index([clinicianId])
   @@index([status])
   @@index([createdAt])
+  @@index([applicationId, status])
+  @@index([startActivationId, status])
+  @@index([activationRequirementId])
+  @@index([issuerId, status])
+  @@index([nextFollowUpAt, status])
 }
 
 model ShareLink {
@@ -384,12 +450,37 @@ model Opportunity {
   status           String   @default("ACTIVE")
   createdAt        DateTime @default(now()) @map("created_at")
   updatedAt        DateTime @updatedAt @map("updated_at")
+  /// Where this listing came from. 'employer_posted' means an employer who
+  /// claimed a Type 2 NPI wrote it; 'public_feed' means it was copied from a
+  /// public feed and NOBODY at that employer has stated anything to VitalCV.
+  /// The read path branches on this so feed rows never claim employer-backed
+  /// provenance, and never publish derived guesses as employer requirements.
+  listingSource    String    @default("employer_posted") @map("listing_source")
+  sourceFeed       String?   @map("source_feed")
+  sourceRef        String?   @map("source_ref")
+  sourceUrl        String?   @map("source_url")
+  /// When the feed was last read. A fetch time, never a verification time.
+  fetchedAt        DateTime? @map("fetched_at")
+  /// Weighted tsvector over title/specialty/description, GENERATED ALWAYS by
+  /// Postgres (migration 20260802000000_opportunity_search). Prisma cannot
+  /// express a generated column, so it is Unsupported and never written from
+  /// application code — read via $queryRaw with websearch_to_tsquery.
+  searchVector     Unsupported("tsvector")? @map("search_vector")
   applications     Application[]
   organization     Organization @relation(fields: [organizationId], references: [id])
 
   @@index([organizationId])
   @@index([specialty, state])
   @@index([status])
+  /// The public board's real access path: WHERE status = 'ACTIVE'
+  /// ORDER BY updated_at DESC, created_at DESC.
+  @@index([status, updatedAt(sort: Desc), createdAt(sort: Desc)], map: "Opportunity_status_updated_at_idx")
+  /// Idempotency key for ingestion — re-running a feed updates, never duplicates.
+  /// Not partial: a partial unique index cannot serve Prisma's ON CONFLICT
+  /// target (Postgres 42P10). Employer-posted rows hold (NULL, NULL) and NULLs
+  /// are distinct in a unique index, so they never collide regardless.
+  @@unique([sourceFeed, sourceRef], map: "Opportunity_source_feed_ref_key")
+  @@index([status, listingSource], map: "Opportunity_status_listing_source_idx")
 }
 
 /// Linked profile for an individual clinician (Type 1 NPI)
@@ -632,6 +723,70 @@ model WorkspaceMembership {
 }
 
 /// Per-user workspace preferences and active persona state
+/// Durable record of a request for administrative access to an organization.
+///
+/// The refusal copy has always promised that "a VitalCV reviewer will verify
+/// your authority" — but nothing was ever written down. `upsertOrgProfile`
+/// threw a 403 and the request evaporated, so there was no queue, no history,
+/// and no way for a legitimate operator whose email is at a different domain to
+/// ever get access. This is the record that makes the promise true.
+///
+/// It is also the audit trail for the grants that DO happen: every decision,
+/// including the automatic ones, records the basis it was decided on.
+model OrganizationAccessRequest {
+  id String @id @default(uuid()) @db.Uuid
+
+  /// Requesting account. Not a relation: the request outlives any profile row
+  /// it might reference, and must remain readable after cleanup.
+  clerkUserId  String  @map("clerk_user_id")
+  accountEmail String? @map("account_email")
+
+  /// What was asked for, as asked for. Recorded verbatim so a reviewer sees
+  /// the actual request rather than a normalized summary of it.
+  requestedName    String  @map("requested_name")
+  requestedNpi     String? @map("requested_npi")
+  requestedWebsite String? @map("requested_website")
+  requestedDomain  String? @map("requested_domain")
+
+  /// The server's decision and the basis for it. `authorityReason` is the
+  /// OrganizationAuthorityReason discriminant (work_domain_match,
+  /// domain_mismatch, public_email_provider, …).
+  status          OrganizationAccessStatus @default(PENDING_REVIEW)
+  authorityReason String                   @map("authority_reason")
+  emailDomain     String?                  @map("email_domain")
+
+  /// Set only once access actually exists.
+  organizationId String? @map("organization_id") @db.Uuid
+
+  /// NPI binding is decided SEPARATELY from access. A work-domain match proves
+  /// control of that domain — never that the domain owns that Type 2 NPI — so
+  /// an automatic grant leaves this false and the NPI unbound.
+  npiBindingGranted Boolean @default(false) @map("npi_binding_granted")
+
+  /// Human review, when it happens.
+  reviewedBy    String?   @map("reviewed_by")
+  reviewedAt    DateTime? @map("reviewed_at")
+  reviewerNote  String?   @map("reviewer_note")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@index([status, createdAt], map: "org_access_requests_status_idx")
+  @@index([clerkUserId], map: "org_access_requests_user_idx")
+  @@index([requestedNpi], map: "org_access_requests_npi_idx")
+  @@index([organizationId], map: "org_access_requests_org_idx")
+  @@map("organization_access_requests")
+}
+
+enum OrganizationAccessStatus {
+  /// Refused automatic grant; waiting on a human.
+  PENDING_REVIEW
+  /// Access exists. Automatic (work-domain match) or reviewer-approved.
+  GRANTED
+  /// A reviewer said no.
+  DENIED
+}
+
 model WorkspacePreference {
   id               String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   userId           String        @unique @map("user_id") @db.Uuid
@@ -1813,6 +1968,10 @@ model ApplicationPacket {
   methodologyVersion   String    @map("methodology_version")
   consentAt            DateTime  @map("consent_at")
   consentReceiptId     String    @map("consent_receipt_id")
+  /// First-class consent binding for packets sealed after Start Mission Phase 1.
+  /// NULL means the legacy packet predates ConsentGrant and MUST be omitted from
+  /// canonical replay bytes, exactly like a legacy opportunityVersion.
+  consentGrantId       String?   @map("consent_grant_id") @db.Uuid
   /// PR J5b — the opportunity version (updatedAt at seal time) the application
   /// was sealed against. Additive + nullable: NULL = legacy packet sealed
   /// before this column existed, which replays with the field OMITTED from the
@@ -1899,21 +2058,142 @@ model EmployerAcceptance {
 /// No FK constraints — acceptanceId is a string reference only.
 /// Safe to deploy without breaking existing relations.
 model StartActivation {
-  id              String    @id @default(uuid()) @db.Uuid
-  clinicianNpi    String    @map("clinician_npi")
-  orgId           String    @map("org_id")
-  acceptanceId    String?   @map("acceptance_id")
-  role            String?
-  activationState String    @default("NOT_STARTABLE") @map("activation_state")
-  createdAt       DateTime  @default(now()) @map("created_at")
-  activatedAt     DateTime? @map("activated_at")
-  metadata        Json?
+  id                 String    @id @default(uuid()) @db.Uuid
+  clinicianNpi       String    @map("clinician_npi")
+  orgId              String    @map("org_id")
+  acceptanceId       String?   @map("acceptance_id")
+  role               String?
+  activationState    String    @default("NOT_STARTABLE") @map("activation_state")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  activatedAt        DateTime? @map("activated_at")
+  metadata           Json?
+
+  // StartMission is a domain aggregate over this sidecar, not a competing table.
+  applicationId      String?   @unique @map("application_id") @db.Uuid
+  opportunityId      String?   @map("opportunity_id") @db.Uuid
+  acceptedPacketId   String?   @map("accepted_packet_id") @db.Uuid
+  acceptedPacketHash String?   @map("accepted_packet_hash")
+  intendedStartDate  DateTime? @map("intended_start_date")
+  urgency            String    @default("routine")
+  policyVersion      String?   @map("policy_version")
+  updatedAt          DateTime  @default(now()) @updatedAt @map("updated_at")
 
   @@index([clinicianNpi])
   @@index([orgId])
   @@index([acceptanceId])
   @@index([activationState])
+  @@index([opportunityId])
+  @@index([activationState, intendedStartDate])
   @@map("start_activations")
+}
+
+/// A field/claim-scoped authorization. Revocation is a state, never a deletion.
+model ConsentGrant {
+  id                    String    @id @default(uuid()) @db.Uuid
+  clinicianUserId       String    @map("clinician_user_id")
+  clinicianNpi          String    @map("clinician_npi")
+  organizationId        String    @map("organization_id") @db.Uuid
+  recipient             String
+  purpose               String
+  action                String
+  scope                 Json
+  packetId              String?   @map("packet_id") @db.Uuid
+  packetHash            String?   @map("packet_hash")
+  applicationId         String?   @map("application_id") @db.Uuid
+  startActivationId     String?   @map("start_activation_id") @db.Uuid
+  verificationRequestId String?   @map("verification_request_id") @db.Uuid
+  authenticationMethod  String    @map("authentication_method")
+  authenticationRef     String?   @map("authentication_ref")
+  grantedAt             DateTime  @map("granted_at")
+  validUntil            DateTime? @map("valid_until")
+  revokedAt             DateTime? @map("revoked_at")
+  revokedReason         String?   @map("revoked_reason")
+  supersededById        String?   @map("superseded_by_id") @db.Uuid
+  grantHash             String    @unique @map("grant_hash")
+  auditEventId          String    @unique @map("audit_event_id") @db.Uuid
+  metadata              Json      @default("{}")
+  createdAt             DateTime  @default(now()) @map("created_at")
+
+  @@index([clinicianUserId, grantedAt])
+  @@index([organizationId, grantedAt])
+  @@index([applicationId])
+  @@index([startActivationId])
+  @@index([verificationRequestId])
+  @@map("consent_grants")
+}
+
+/// Append-only correspondence ledger. Raw content remains in encrypted storage;
+/// this table keeps minimum-necessary summaries, hashes, provider ids and scope.
+model CommunicationEvent {
+  id                      String   @id @default(uuid()) @db.Uuid
+  startActivationId       String?  @map("start_activation_id") @db.Uuid
+  applicationId           String?  @map("application_id") @db.Uuid
+  verificationRequestId   String?  @map("verification_request_id") @db.Uuid
+  activationRequirementId String?  @map("activation_requirement_id") @db.Uuid
+  organizationId          String?  @map("organization_id") @db.Uuid
+  clinicianId             String?  @map("clinician_id")
+  issuerId                String?  @map("issuer_id")
+  direction               String
+  channel                 String
+  eventType               String   @map("event_type")
+  status                  String
+  senderRef               String?  @map("sender_ref")
+  recipientRef            String?  @map("recipient_ref")
+  providerMessageId       String?  @map("provider_message_id")
+  threadKey               String?  @map("thread_key")
+  subject                 String?
+  redactedSummary         String?  @map("redacted_summary")
+  contentHash             String?  @map("content_hash")
+  encryptedContentRef     String?  @map("encrypted_content_ref")
+  attachmentRefs          Json     @default("[]") @map("attachment_refs")
+  consentGrantId          String?  @map("consent_grant_id") @db.Uuid
+  occurredAt              DateTime @map("occurred_at")
+  auditEventId            String   @unique @map("audit_event_id") @db.Uuid
+  metadata                Json     @default("{}")
+  createdAt               DateTime @default(now()) @map("created_at")
+
+  @@unique([channel, providerMessageId], map: "communication_events_channel_provider_message_uq")
+  @@index([verificationRequestId, occurredAt])
+  @@index([startActivationId, occurredAt])
+  @@index([threadKey, occurredAt])
+  @@index([issuerId, occurredAt])
+  @@map("communication_events")
+}
+
+/// Immutable transport receipt. Delivery is not employer review or acceptance.
+model HandoffReceipt {
+  id                      String    @id @default(uuid()) @db.Uuid
+  handoffId               String    @map("handoff_id") @db.Uuid
+  attemptNumber           Int       @map("attempt_number")
+  applicationId           String?   @map("application_id") @db.Uuid
+  startActivationId       String?   @map("start_activation_id") @db.Uuid
+  verificationRequestId   String?   @map("verification_request_id") @db.Uuid
+  communicationEventId    String?   @map("communication_event_id") @db.Uuid
+  consentGrantId          String    @map("consent_grant_id") @db.Uuid
+  packetId                String?   @map("packet_id") @db.Uuid
+  packetHash              String?   @map("packet_hash")
+  payloadHash             String    @map("payload_hash")
+  recipientOrganizationId String?   @map("recipient_organization_id") @db.Uuid
+  recipient               String
+  purpose                 String
+  channel                 String
+  transportProvider       String?   @map("transport_provider")
+  providerMessageId       String?   @map("provider_message_id")
+  status                  String
+  limitation              String?
+  deliveredAt             DateTime? @map("delivered_at")
+  acknowledgedAt          DateTime? @map("acknowledged_at")
+  issuedAt                DateTime  @default(now()) @map("issued_at")
+  receiptHash             String    @unique @map("receipt_hash")
+  auditEventId            String    @unique @map("audit_event_id") @db.Uuid
+  metadata                Json      @default("{}")
+
+  @@unique([handoffId, attemptNumber])
+  @@index([applicationId, issuedAt])
+  @@index([startActivationId, issuedAt])
+  @@index([recipientOrganizationId, issuedAt])
+  @@index([status, issuedAt])
+  @@map("handoff_receipts")
 }
 
 model BillingEvent {
@@ -3496,9 +3776,24 @@ enum IssuerSigningKeyState {
 }
 
 enum VerificationRequestStatus {
+  // Legacy manual PSV compatibility values — never rewrite historic rows.
   PENDING
   COMPLETE
   FAILED
+
+  // Start Mission request lifecycle (additive).
+  DRAFT
+  AWAITING_AUTHORIZATION
+  READY_TO_SEND
+  SENT
+  DELIVERED
+  AWAITING_RESPONSE
+  RESPONSE_RECEIVED
+  UNDER_REVIEW
+  SATISFIED
+  PARTIALLY_SATISFIED
+  UNABLE_TO_VERIFY
+  CANCELLED
 }
 
 enum VerifierLifecycle {
@@ -3990,4 +4285,35 @@ model ReceiptCandidate {
   @@index([requestId])
   @@index([reviewState])
   @@index([createdAt])
+}
+
+/// D4 — probe-observed availability ledger.
+///
+/// One row per source lane per probe tick. Exists because the source-health
+/// store is an in-memory Map that empties on every cold start, so the platform
+/// forgot its own health on each deploy and `/status` could only say "we do not
+/// publish uptime figures we have not measured".
+///
+/// The honesty grammar this table encodes:
+///   - The denominator is SAMPLES TAKEN, never wall-clock. A gap between probe
+///     ticks is unmeasured time; it counts neither for nor against a lane.
+///   - `probeSource` distinguishes a scheduled tick from a post-deploy or manual
+///     one, so a burst of deploy probes can never be mistaken for steady
+///     observation.
+///   - Per lane only. There is deliberately no global "uptime" column: a blanket
+///     figure would repeat the lane-flattening that produced the "read live"
+///     overclaim.
+model AvailabilitySample {
+  id          String   @id @default(uuid()) @db.Uuid
+  laneId      String   @map("lane_id")
+  ok          Boolean
+  state       String
+  latencyMs   Int?     @map("latency_ms")
+  probeSource String   @map("probe_source")
+  observedAt  DateTime @map("observed_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([laneId, observedAt])
+  @@index([observedAt])
+  @@map("availability_samples")
 }

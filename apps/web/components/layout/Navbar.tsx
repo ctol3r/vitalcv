@@ -1,14 +1,34 @@
 'use client';
 
 /**
- * Navbar — Wave 181: Navigation Rewrite & Information Architecture
+ * Navbar — the shared public header, rebuilt as scene-aware journey
+ * navigation (founder shared-header wave, 2026-08-06; FR-6).
  *
- * Public nav: Home · Explore · Employers · Search · Network · Developers
- * Auth CTA: Sign In + Get Started (unauthenticated), My Workspace (authenticated)
+ * Composition: wordmark · journey rail (optically centered) · Sign In · one
+ * contextual action · menu trigger. The full destination set lives behind
+ * the trigger in an editorial canvas (HeaderMenu) — not a row of equally
+ * weighted category links.
+ *
+ * Scene awareness: sections declare `data-header-theme` / `data-header-stage`
+ * and the header reflects them (useHeaderScene). Declaration, not detection —
+ * no pixel sampling, no scroll listener; the sentinel IntersectionObserver
+ * from #1068 still decides when the bar earns its plate, and ChapterProgress
+ * remains the homepage's only scroll owner.
+ *
+ * Structural contract: this stays a sticky `<header>` with a constant-height
+ * bar row. The film rollback measures `document.querySelector('header')` for
+ * `position: sticky`, and a constant outer height is what makes the compact
+ * scrolled state free of layout shift — the interior tightens, the box does
+ * not.
  */
 
-import { isPublicSurfacePath, isRouteActive } from '@/components/layout/publicSurfaceRoutes';
+import { isPublicSurfacePath } from '@/components/layout/publicSurfaceRoutes';
 import { LiquidMenu } from '@/components/layout/LiquidMenu';
+import { HeaderMenu } from '@/components/layout/HeaderMenu';
+import { JourneyRail } from '@/components/layout/JourneyRail';
+import { getHeaderRouteContext } from '@/components/layout/headerRouteContext';
+import { JOURNEY_STAGES } from '@/components/layout/journeyStages';
+import { useHeaderScene } from '@/components/layout/useHeaderScene';
 import { useUxTelemetry } from '@/hooks/useUxTelemetry';
 import { UX_EVENTS } from '@/lib/analytics/ux-events';
 import { Menu, X } from 'lucide-react';
@@ -16,32 +36,21 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 
-// Public-only nav items, clinician-led (Sprint 1). Never add ops/internal routes
-// here, and never a dead link — /explore + /developers are intentionally omitted
-// until those pages exist (a later sprint).
-const NAV_ITEMS = [
-  { href: '/onboarding', label: 'For Clinicians' },
-  { href: '/employers', label: 'For Employers' },
-  { href: '/trust',     label: 'Trust' },
-] as const;
-
-// Mobile menu destinations (VHS-2.5 required set): Home + the public nav.
-// Check Readiness + Sign In render as the overlay's CTA pair.
-const MOBILE_MENU_ITEMS = [
-  { href: '/', label: 'Home' },
-  ...NAV_ITEMS,
-] as const;
-
 export default function Navbar() {
   const pathname = usePathname();
-  const [menuOpen, setMenuOpen] = useState(false);
+  const [overlayOpen, setOverlayOpen] = useState(false);
+  const [canvasOpen, setCanvasOpen] = useState(false);
   const toggleRef = useRef<HTMLButtonElement>(null);
+  const canvasTriggerRef = useRef<HTMLButtonElement>(null);
+  const navRef = useRef<HTMLElement>(null);
   const { track } = useUxTelemetry();
 
-  // Glass is right over paper and wrong over content. At 60% translucency a
-  // large serif heading scrolling underneath reads THROUGH the bar, which
-  // looks like a rendering fault rather than a material. So the rail keeps its
-  // full translucency at rest and firms up once there is content behind it.
+  const route = getHeaderRouteContext(pathname ?? '/');
+  const scene = useHeaderScene({ theme: route.defaultTheme, stage: route.defaultStage });
+  const activeStage = JOURNEY_STAGES.find((s) => s.id === scene.stage);
+
+  // Glass is right over paper and wrong over content. So the rail keeps full
+  // transparency at rest and firms up once there is content behind it.
   //
   // A sentinel + IntersectionObserver, deliberately not a scroll listener:
   // this is site chrome on every public surface, and the homepage's rule is
@@ -59,119 +68,157 @@ export default function Navbar() {
     return () => observer.disconnect();
   }, []);
 
-  // Calm Wave: a single, consistent paper bar on every public surface. The
-  // homepage's dark drama now lives in inset "instrument" panels below the
-  // nav, so the bar no longer flips dark over a full-bleed hero.
+  // Escape closes the canvas wherever focus is (returning focus to the
+  // trigger), and a click outside dismisses it.
+  useEffect(() => {
+    if (!canvasOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setCanvasOpen(false);
+        canvasTriggerRef.current?.focus();
+      }
+    };
+    const onPointer = (e: MouseEvent) => {
+      if (!navRef.current?.contains(e.target as Node)) setCanvasOpen(false);
+    };
+    document.addEventListener('keydown', onKey);
+    document.addEventListener('mousedown', onPointer);
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.removeEventListener('mousedown', onPointer);
+    };
+  }, [canvasOpen]);
+
+  // Route changes end any open navigation state.
+  useEffect(() => {
+    setCanvasOpen(false);
+    setOverlayOpen(false);
+  }, [pathname]);
+
   if (!isPublicSurfacePath(pathname)) {
     return null;
   }
 
-  const closeMenu = () => setMenuOpen(false);
   const handleNavItemClick = (label: string) => {
     track({
       eventType: UX_EVENTS.NAV_ITEM_CLICKED,
       componentId: 'navbar',
       metadata: { label },
     });
-    closeMenu();
+    setCanvasOpen(false);
+    setOverlayOpen(false);
   };
 
   return (
     <>
     {/* Top-of-document sentinel: while it is in view the rail is at rest. */}
     <div ref={sentinelRef} aria-hidden="true" className="absolute top-0 h-px w-full" />
-    <header className="sticky top-0 z-50 px-3 pt-3" data-nav-lifted={lifted ? '' : undefined}>
-      {/* Vital Glass — a floating frosted rail. Detached from the top edge and
-         translucent enough (60%) that page content frosts through it under a
-         high blur + saturate, with a bright inset top-sheen and a soft float
-         shadow. A flush frosted bar over flat paper read as nothing; a floating
-         translucent rail reads unmistakably as glass. Theme-safe.
+    <header
+      ref={navRef}
+      className="vcv-header sticky top-0 z-50"
+      data-nav-lifted={lifted ? '' : undefined}
+      data-menu-open={canvasOpen ? '' : undefined}
+      data-header-theme={scene.theme}
+      data-header-stage={scene.stage}
+    >
+      {/* The plate: nothing at rest, a surface earned on scroll or expansion
+          (#1068). What is new is that the surface answers the scene beneath
+          it — over a declared dark room it resolves to warm ink built from
+          the public token family, never an ops token (LINT-04, FR-6). */}
+      <div className="vcv-header__plate w-full border-b">
+        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-5 sm:px-8">
 
-         Lifted state: once the page has scrolled, the same rail moves to 92%
-         and takes a firmer edge — still glass, but content passing underneath
-         no longer prints through the words on top of it. */}
-      <div
-        className={`mx-auto max-w-7xl overflow-hidden rounded-2xl border backdrop-blur-2xl backdrop-saturate-150 transition-[background-color,border-color,box-shadow] duration-300 ${
-          lifted
-            ? 'border-[color-mix(in_oklab,var(--foreground)_16%,transparent)] bg-[color-mix(in_oklab,var(--background)_92%,transparent)] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.5),0_18px_44px_-20px_rgba(2,6,23,0.5)]'
-            : 'border-[color-mix(in_oklab,var(--foreground)_10%,transparent)] bg-[color-mix(in_oklab,var(--background)_60%,transparent)] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.5),0_14px_40px_-18px_rgba(2,6,23,0.42)]'
-        }`}
-      >
-      <div className="flex h-16 items-center justify-between gap-6 px-5 sm:px-6">
+          {/* Wordmark — the serif lockup the homepage shipped with, owned by
+              the header itself instead of a page-local override. */}
+          <Link
+            href="/"
+            className="vcv-header__wordmark shrink-0"
+            onClick={() => handleNavItemClick('Home')}
+          >
+            VitalCV
+          </Link>
 
-        {/* Logo */}
-        <Link
-          href="/"
-          className="font-heading text-lg font-semibold tracking-tight shrink-0 text-foreground"
-          onClick={closeMenu}
-        >
-          VitalCV
-        </Link>
+          {/* The journey rail — the page narrative in the chrome. */}
+          <nav
+            className="hidden min-w-0 flex-1 justify-center md:flex"
+            aria-label="Primary"
+          >
+            <JourneyRail
+              stage={scene.stage}
+              interactive={route.railInteractive}
+              variant="bar"
+              onNavigate={handleNavItemClick}
+            />
+          </nav>
 
-        {/* Desktop nav */}
-        <nav className="hidden items-center gap-1 md:flex flex-1">
-          {NAV_ITEMS.map((item) => {
-            const active = isRouteActive(pathname, item.href);
-            return (
+          {/* Mobile: the current stage stays visible in the compact bar. */}
+          <span className="vcv-header__stage md:hidden" aria-hidden="true">
+            {activeStage?.label}
+          </span>
+
+          {/* Right side: restrained. Sign In, at most one contextual action,
+              and the menu trigger. */}
+          <div className="hidden shrink-0 items-center gap-2 md:flex">
+            <Link href="/sign-in" className="vcv-header__signin">
+              Sign In
+            </Link>
+            {route.cta ? (
               <Link
-                key={item.href}
-                href={item.href}
-                onClick={() => handleNavItemClick(item.label)}
-                className={`rounded-full px-3 py-1.5 text-sm font-medium transition ${
-                  active
-                    ? 'bg-foreground/10 text-foreground'
-                    : 'text-muted-foreground hover:bg-foreground/5 hover:text-foreground'
-                }`}
+                href={route.cta.href}
+                className="vcv-header__cta"
+                onClick={() => handleNavItemClick(route.cta!.label)}
               >
-                {item.label}
+                {route.cta.label}
               </Link>
-            );
-          })}
-        </nav>
+            ) : null}
+            <button
+              ref={canvasTriggerRef}
+              type="button"
+              aria-expanded={canvasOpen}
+              aria-controls="vcv-header-menu"
+              className="vcv-header__trigger"
+              onClick={() => setCanvasOpen((o) => !o)}
+            >
+              {canvasOpen ? 'Close' : 'Menu'}
+              <span aria-hidden="true" className="vcv-header__trigger-glyph" data-open={canvasOpen ? '' : undefined} />
+            </button>
+          </div>
 
-        {/* Desktop CTA */}
-        <div className="hidden md:flex items-center gap-2 shrink-0">
-          <Link
-            href="/sign-in"
-            className="rounded-full border border-border px-4 py-1.5 text-sm font-medium text-muted-foreground hover:border-foreground/30 hover:text-foreground transition"
+          {/* Mobile menu toggle */}
+          <button
+            ref={toggleRef}
+            type="button"
+            aria-label={overlayOpen ? 'Close menu' : 'Open menu'}
+            aria-expanded={overlayOpen}
+            aria-haspopup="dialog"
+            className="vcv-header__mobile-toggle rounded-[10px] p-2 md:hidden"
+            onClick={() => setOverlayOpen((o) => !o)}
           >
-            Sign In
-          </Link>
-          <Link
-            href="/passport"
-            style={{ backgroundColor: 'oklch(18% 0.012 265)' }}
-            className="rounded-full px-4 py-1.5 text-sm font-semibold text-white hover:opacity-90 transition"
-          >
-            Check Readiness
-          </Link>
+            {overlayOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </button>
         </div>
 
-        {/* Mobile menu toggle */}
-        <button
-          ref={toggleRef}
-          type="button"
-          aria-label={menuOpen ? 'Close menu' : 'Open menu'}
-          aria-expanded={menuOpen}
-          aria-haspopup="dialog"
-          className="rounded-lg p-2 text-muted-foreground hover:bg-foreground/5 hover:text-foreground transition md:hidden"
-          onClick={() => setMenuOpen((o) => !o)}
-        >
-          {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-        </button>
-      </div>
+        {/* The canvas lives INSIDE the plate, so the bar unfolds across the
+            page rather than a menu appearing beneath one. */}
+        <HeaderMenu
+          open={canvasOpen}
+          pathname={pathname ?? '/'}
+          stage={scene.stage}
+          railInteractive={route.railInteractive}
+          onNavigate={handleNavItemClick}
+        />
       </div>
 
-      {/* Liquid mobile menu (VHS-2.5) — accessible modal overlay with an organic
-         circular bloom. Desktop nav stays conventional above. */}
+      {/* The mobile recomposition — full-screen overlay, journey-first. */}
       <LiquidMenu
-        open={menuOpen}
-        onClose={closeMenu}
+        open={overlayOpen}
+        onClose={() => setOverlayOpen(false)}
         returnFocusRef={toggleRef}
         onNavigate={handleNavItemClick}
-        items={MOBILE_MENU_ITEMS.map((item) => ({
-          ...item,
-          active: isRouteActive(pathname, item.href),
-        }))}
+        pathname={pathname ?? '/'}
+        stage={scene.stage}
+        railInteractive={route.railInteractive}
+        cta={route.cta}
       />
     </header>
     </>

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   assertNonGatedIfPositive,
+  CANONICAL_TRUTH_RENDER_RULES,
   CANONICAL_TRUTH_STATUSES,
   createCanonicalTruth,
   createCanonicalSourceCoverage,
@@ -194,13 +195,14 @@ describe('Canonical Source Coverage Contracts', () => {
 
 describe('Wave 2 — Canonical Trust Parity', () => {
   describe('8-status contract exhaustiveness', () => {
-    it('defines exactly 8 canonical truth statuses with underscored identifiers', () => {
-      expect(CANONICAL_TRUTH_STATUSES).toHaveLength(8);
+    it('defines exactly 9 canonical truth statuses with underscored identifiers', () => {
+      expect(CANONICAL_TRUTH_STATUSES).toHaveLength(9);
       expect(CANONICAL_TRUTH_STATUSES).toEqual([
         'VERIFIED',
         'CLEAR',
         'ENROLLED',
         'PENDING',
+        'NOT_FOUND',
         'REVIEW_REQUIRED',
         'UNAVAILABLE',
         'ACCESS_REQUIRED',
@@ -213,12 +215,15 @@ describe('Wave 2 — Canonical Trust Parity', () => {
     });
   });
 
-  describe('gated source guard — ACCESS_REQUIRED / NOT_DECISION_GRADE never appear as positive', () => {
+  describe('gated source guard — ACCESS_REQUIRED / NOT_DECISION_GRADE / NOT_FOUND never appear as positive', () => {
     const gatedCoverageStates: CanonicalSourceCoverageState[] = [
       'gated',
       'accessRequired',
       'notDecisionGrade',
       'previewOnly',
+      // Not gated — read cleanly, answered no. Guarded for the same reason:
+      // no upstream may turn a not-found answer into a positive.
+      'notFound',
     ];
     const positiveStatuses = ['VERIFIED', 'CLEAR', 'ENROLLED'] as const;
 
@@ -391,11 +396,139 @@ describe('Wave 2 — Canonical Trust Parity', () => {
 
         it(`gated truth status is identified by isGatedTruthStatus`, () => {
           const gatedStatus = spec.gatedScenario.expectedStatus;
-          if (gatedStatus === 'ACCESS_REQUIRED' || gatedStatus === 'NOT_DECISION_GRADE') {
+          if (
+            gatedStatus === 'ACCESS_REQUIRED'
+            || gatedStatus === 'NOT_DECISION_GRADE'
+            || gatedStatus === 'NOT_FOUND'
+          ) {
             expect(isGatedTruthStatus(gatedStatus as any)).toBe(true);
           }
         });
+
+        // Every entity, regardless of kind, resolves a not-found read to the
+        // same status. `kind` decides which positive a checked source may mint
+        // (VERIFIED/CLEAR/ENROLLED); it has no say once the answer is no.
+        it(`notFound → NOT_FOUND, and never contributes to readiness`, () => {
+          const coverage = createCanonicalSourceCoverage({
+            sourceId: spec.sourceId,
+            state: 'notFound',
+            reason: `${entity} returned no record for this subject`,
+          });
+
+          // The hostile case: an upstream insisting the dimension is satisfied.
+          const truth = createCanonicalTruth({
+            kind: spec.kind,
+            satisfied: true,
+            coverage,
+          });
+
+          expect(truth.status).toBe('NOT_FOUND');
+          expect(truth.status).not.toBe('PENDING');
+          expect(truth.decisionGrade).toBe(false);
+          expect(isGatedTruthStatus(truth.status)).toBe(true);
+          expect(isReadinessPositive(truth)).toBe(false);
+          expect(truth.status).not.toBe(spec.checkedScenario.expectedStatus);
+        });
       });
     }
+  });
+});
+
+/**
+ * 'notFound' exists because 'checked' was carrying two different claims — "we
+ * ran the query" and "the source affirmed this subject". Folding a not-found
+ * answer into 'checked' put the Source-backed tier next to an NPI that does not
+ * exist on the public verifier (prod, 2026-07-27, NPI 1234567893).
+ */
+describe('notFound — a source that answered, with no record for the subject', () => {
+  it('is never decision-grade and never reaches a positive truth status', () => {
+    const coverage = createCanonicalSourceCoverage({
+      sourceId: 'NPPES_API',
+      state: 'notFound',
+      reason: 'NPPES checked but did not return an active identity record',
+    });
+
+    // `satisfied: true` is the hostile case: even if an upstream claims the
+    // dimension is satisfied, a not-found source must not mint VERIFIED.
+    const truth = createCanonicalTruth({ kind: 'verification', satisfied: true, coverage });
+    expect(truth.decisionGrade).toBe(false);
+    expect(truth.status).not.toBe('VERIFIED');
+    expect(isReadinessPositive(truth)).toBe(false);
+  });
+
+  it('resolves to NOT_FOUND, not PENDING — the question has a settled answer', () => {
+    const coverage = createCanonicalSourceCoverage({
+      sourceId: 'PECOS_PUBLIC',
+      state: 'notFound',
+      reason: 'PECOS quarterly release does not show Medicare enrollment for this NPI',
+    });
+
+    const truth = createCanonicalTruth({ kind: 'enrollment', satisfied: false, coverage });
+    expect(truth.status).toBe('NOT_FOUND');
+    // The point of the status. PENDING claims we are still looking.
+    expect(truth.status).not.toBe('PENDING');
+    // ...and it is still fenced out of readiness, by both locks.
+    expect(isGatedTruthStatus(truth.status)).toBe(true);
+    expect(truth.decisionGrade).toBe(false);
+    expect(isReadinessPositive(truth)).toBe(false);
+  });
+
+  it('cannot be paired with a positive status by a hand-assembled caller', () => {
+    for (const positive of ['VERIFIED', 'CLEAR', 'ENROLLED'] as const) {
+      expect(() => assertNonGatedIfPositive(positive, 'notFound')).toThrow(
+        /Trust parity violation/,
+      );
+    }
+  });
+
+  it('carries its own render rule, so no status renders by falling through', () => {
+    for (const status of CANONICAL_TRUTH_STATUSES) {
+      expect(CANONICAL_TRUTH_RENDER_RULES[status]).toBeTruthy();
+    }
+    expect(CANONICAL_TRUTH_RENDER_RULES.NOT_FOUND).toMatch(/no record/i);
+  });
+
+  it('never renders the source-backed badge', () => {
+    expect(sourceCoverageBadgeLabel({ state: 'notFound', decisionGrade: false })).toBe('No active record');
+    // The badge helper only mints 'Source-backed' from 'checked'.
+    expect(sourceCoverageBadgeLabel({ state: 'notFound', decisionGrade: true })).not.toBe('Source-backed');
+  });
+
+  it('stays distinct from unavailable and pending — we DID get an answer', () => {
+    expect(mapSourceCoverageStateToTrustStatus('notFound')).toBe('not_found');
+    expect(mapSourceCoverageStateToTrustStatus('notFound')).not.toBe(
+      mapSourceCoverageStateToTrustStatus('unavailable'),
+    );
+    expect(mapSourceCoverageStateToTrustStatus('notFound')).not.toBe(
+      mapSourceCoverageStateToTrustStatus('pending'),
+    );
+    // Coverage is complete, so this is not a pipeline-health problem.
+    expect(sourceCoveragePosture('notFound')).toBe('partial');
+  });
+
+  it('is reachable from the boolean resolver and from upstream spellings', () => {
+    const coverage = createCanonicalSourceCoverage({
+      sourceId: 'PECOS_PUBLIC',
+      notFound: true,
+      // The bug shape: an artifact existed, so `checked` was true.
+      checked: true,
+      fresh: true,
+      reason: 'PECOS quarterly release does not show Medicare enrollment for this NPI',
+    });
+    expect(coverage.state).toBe('notFound');
+
+    expect(normalizeCanonicalSourceCoverageState('NOT_FOUND')).toBe('notFound');
+    expect(normalizeCanonicalSourceCoverageState('no_record')).toBe('notFound');
+  });
+
+  it('is counted in its own summary bucket, not among checked sources', () => {
+    const summary = summarizeCanonicalSourceCoverage([
+      { sourceId: 'NPPES_API', state: 'notFound' },
+      { sourceId: 'PECOS_PUBLIC', state: 'notFound' },
+      { sourceId: 'OIG_LEIE', state: 'checked' },
+    ]);
+
+    expect(summary.notFound).toEqual(['NPPES_API', 'PECOS_PUBLIC']);
+    expect(summary.checked).toEqual(['OIG_LEIE']);
   });
 });

@@ -1,45 +1,67 @@
 /**
  * networkGateway.ts — Wave 91 + 96: Network Gateway + Webhook APIs
  *
- * POST /api/network/gateway/connect     — Generate gateway token
- * GET  /api/network/gateway/connections — List connected orgs
- * POST /api/network/webhooks/register   — Register webhook
- * POST /api/network/webhooks/test       — Test webhook delivery
- * GET  /api/network/webhooks            — List webhook subscriptions
- * GET  /api/network/global              — Wave 96: Global trust network graph
+ * SERVED:
+ *   GET  /api/network/gateway/connections — List connected orgs
+ *   GET  /api/network/global              — Wave 96: Global trust network graph
+ *
+ * NOT SERVED (see "Unwired scaffold" below):
+ *   POST /api/network/gateway/connect     — Generate gateway token
+ *   POST /api/network/webhooks/register   — Register webhook
+ *   POST /api/network/webhooks/test       — Test webhook delivery
+ *   GET  /api/network/webhooks            — List webhook subscriptions
+ *
+ * ── Why the two reads stay reachable ────────────────────────────────────────
+ * Both have real consumers and both are aggregate platform views, not per-tenant
+ * data: `/global` backs the institutions map, `GlobalTrustMap`, and the ops
+ * `TrustGraphConsole`; `/gateway/connections` backs `GatewayConnections`. The
+ * graph's clinician nodes carry only an NPI and a label, both of which are
+ * public NPPES facts; the trust metrics on it belong to issuer nodes, and it
+ * contains no acceptance edges, so it does not reveal which employer engaged
+ * which clinician. Keeping them public was an explicit decision (2026-07-28),
+ * not an oversight — if that changes, they need identity forwarding added to
+ * those three web callers in the same change, or the surfaces break.
+ *
+ * ── Unwired scaffold ────────────────────────────────────────────────────────
+ * The four routes above were registered with NO authentication of any kind.
+ * `connect` minted a gateway token for any organization named in the body;
+ * `webhooks/register` accepted an arbitrary org id and callback URL. Nothing in
+ * the repository ever called any of them.
+ *
+ * They are unregistered rather than authenticated, on the same reasoning as
+ * #947: the store behind them is a process-local Map (`gatewayRegistry`,
+ * `webhookDispatcher`), nothing outside this module ever calls
+ * `webhookDispatcher`, so a registered subscription is never dispatched — the
+ * registry is write-only. Verified empty in production before removal:
+ * `/gateway/connections` and `/webhooks` both returned `total: 0`. Removing
+ * `connect` therefore changes nothing observable — `connections` was already
+ * permanently empty, which is why `GatewayConnections` renders an empty state.
+ *
+ * BEFORE RESTORING ANY OF THEM, all four must be true:
+ *   1. Authentication. Every one was world-reachable. `connect` is credential
+ *      issuance and needs a platform-operator boundary (middleware/platformAdmin.ts),
+ *      not a session.
+ *   2. Ownership. `webhooks/register` took `organizationId` from the body, so a
+ *      caller could subscribe to another org's events. Scope it to the caller's
+ *      own org, resolved from the membership store — never from input.
+ *   3. Egress control. The registered `url` is unvalidated. `testDelivery`
+ *      currently only simulates and never fetches, so there is no SSRF today —
+ *      but wiring a real dispatcher without an allowlist and a block on
+ *      internal/link-local addresses creates one immediately.
+ *   4. Enumeration. `GET /api/network/webhooks` listed every subscription
+ *      across all orgs, including each callback URL. It must be org-scoped.
+ *
+ * `routes/__tests__/networkGatewayScaffold.test.ts` fails if any of the four is
+ * re-registered without this being revisited.
  */
 
 import type { Express, Request, Response } from 'express';
-import { randomUUID } from 'node:crypto';
-import { generateGatewayToken } from '../services/network/gateway';
 import { gatewayRegistry } from '../services/network/gatewayRegistry';
-import { webhookDispatcher, type WebhookEvent } from '../services/network/webhookDispatcher';
 import { generateGlobalGraph } from '../services/network/globalGraph';
-import { sha256Hex } from '../utils/deterministic';
 import { log } from '../obs/logger';
 
-const VALID_EVENTS: WebhookEvent[] = ['credential_verified', 'credential_revoked', 'decision_created', 'trust_state_changed'];
-
 export function registerNetworkGatewayRoutes(app: Express): void {
-  // Generate gateway token for an organization
-  app.post('/api/network/gateway/connect', (req: Request, res: Response) => {
-    try {
-      const { organizationId, organizationName, type } = req.body ?? {};
-      if (!organizationId || typeof organizationId !== 'string') {
-        res.status(400).json({ error: 'organizationId is required' });
-        return;
-      }
-
-      const token = generateGatewayToken(organizationId, organizationName, type);
-      res.json(token);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Unknown error';
-      log('error', 'gateway_connect: failed', { error: message });
-      res.status(500).json({ error: 'Failed to generate gateway token' });
-    }
-  });
-
-  // List connected organizations
+  // List connected organizations — aggregate, no per-tenant data.
   app.get('/api/network/gateway/connections', (_req: Request, res: Response) => {
     const connections = gatewayRegistry.listAll().map((org) => ({
       id: org.id,
@@ -51,91 +73,6 @@ export function registerNetworkGatewayRoutes(app: Express): void {
       permissions: org.permissions,
     }));
     res.json({ connections, total: connections.length });
-  });
-
-  // Register webhook subscription
-  app.post('/api/network/webhooks/register', (req: Request, res: Response) => {
-    try {
-      const { organizationId, url, events } = req.body ?? {};
-
-      if (!organizationId || typeof organizationId !== 'string') {
-        res.status(400).json({ error: 'organizationId is required' });
-        return;
-      }
-      if (!url || typeof url !== 'string') {
-        res.status(400).json({ error: 'url is required' });
-        return;
-      }
-      if (!Array.isArray(events) || events.length === 0) {
-        res.status(400).json({ error: 'events array is required', validEvents: VALID_EVENTS });
-        return;
-      }
-
-      const invalidEvents = events.filter((e: string) => !VALID_EVENTS.includes(e as WebhookEvent));
-      if (invalidEvents.length > 0) {
-        res.status(400).json({ error: `Invalid events: ${invalidEvents.join(', ')}`, validEvents: VALID_EVENTS });
-        return;
-      }
-
-      const secret = sha256Hex(`${organizationId}:${randomUUID()}`).slice(0, 32);
-      const subscription = webhookDispatcher.register({
-        id: randomUUID(),
-        organizationId,
-        url,
-        events: events as WebhookEvent[],
-        secret,
-        createdAt: new Date().toISOString(),
-      });
-
-      res.json({
-        subscription: {
-          id: subscription.id,
-          url: subscription.url,
-          events: subscription.events,
-          active: subscription.active,
-          createdAt: subscription.createdAt,
-        },
-        secret,
-      });
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Unknown error';
-      log('error', 'webhook_register: failed', { error: message });
-      res.status(500).json({ error: 'Failed to register webhook' });
-    }
-  });
-
-  // Test webhook delivery
-  app.post('/api/network/webhooks/test', async (req: Request, res: Response) => {
-    try {
-      const { subscriptionId } = req.body ?? {};
-      if (!subscriptionId || typeof subscriptionId !== 'string') {
-        res.status(400).json({ error: 'subscriptionId is required' });
-        return;
-      }
-
-      const result = await webhookDispatcher.testDelivery(subscriptionId);
-      res.json(result);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Unknown error';
-      log('error', 'webhook_test: failed', { error: message });
-      res.status(500).json({ error: 'Failed to test webhook' });
-    }
-  });
-
-  // List all webhook subscriptions
-  app.get('/api/network/webhooks', (_req: Request, res: Response) => {
-    const subscriptions = webhookDispatcher.listAll().map((s) => ({
-      id: s.id,
-      organizationId: s.organizationId,
-      url: s.url,
-      events: s.events,
-      active: s.active,
-      lastDelivery: s.lastDelivery,
-      deliveryCount: s.deliveryCount,
-      failureCount: s.failureCount,
-      createdAt: s.createdAt,
-    }));
-    res.json({ subscriptions, total: subscriptions.length });
   });
 
   // ── GET /api/network/global — Wave 96: Global Trust Network Graph ──

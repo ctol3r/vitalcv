@@ -87,7 +87,7 @@ const LANES: ReadonlyArray<SourceLane> = RIBBON_COPY.map(({ laneId, name, sr }) 
 
 /** Colour reinforces the word; it never carries the state alone (WCAG). */
 const AVAILABILITY_COLOR: Record<LaneAvailability, string> = {
-  live: 'var(--vt-accent-emerald)',
+  live: 'var(--vt-state-source-confirmed)',
   // A calm slate — plainly not the live emerald and not the gated amber: real
   // data, periodically refreshed, not a real-time read.
   snapshot: 'var(--vt-field-opportunity, #4c6b8a)',

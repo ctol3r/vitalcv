@@ -23,7 +23,7 @@ export function PasReceipt({ pas }: { pas?: PASObject }) {
         <div className="flex items-start justify-between">
             <div>
                 <h1 className="text-xl font-bold text-slate-800 tracking-tight">John Doe, MD</h1>
-                <p className="text-sm text-slate-500 mt-1 font-mono">NPI: 1003000126</p>
+                <p className="text-sm text-slate-500 mt-1 font-mono">NPI: 0000000000</p>
             </div>
             <div className="flex flex-col items-end gap-2">
                 <MonitoringStatusBadge active={true} lastMonitoredAt={new Date().toISOString()} />

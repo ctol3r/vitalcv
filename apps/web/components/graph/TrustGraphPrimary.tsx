@@ -195,14 +195,14 @@ function stepSimulation(
 /* ── Mock data ────────────────────────────────────────────── */
 
 export const DEMO_NODES: GraphNode[] = [
-  { id: 'c1', label: 'Dr. Sarah Chen', type: 'clinician', status: 'active' },
+  { id: 'c1', label: 'Example Clinician A', type: 'clinician', status: 'active' },
   { id: 'i1', label: 'CA Medical Board', type: 'issuer' },
   { id: 'i2', label: 'ABIM', type: 'issuer' },
   { id: 'i3', label: 'DEA', type: 'issuer' },
   { id: 'cr1', label: 'Medical License', type: 'credential', meta: { exp: '2027-03-15', status: 'ACTIVE' } },
   { id: 'cr2', label: 'Board Certification', type: 'credential', meta: { exp: '2028-12-01', status: 'ACTIVE' } },
   { id: 'cr3', label: 'DEA Registration', type: 'credential', meta: { exp: '2026-06-30', status: 'ACTIVE' } },
-  { id: 'cr4', label: 'NPI Verification', type: 'credential', meta: { npi: '1003000126', status: 'VERIFIED' } },
+  { id: 'cr4', label: 'NPI Verification', type: 'credential', meta: { npi: '0000000000', status: 'VERIFIED' } },
   { id: 'd1', label: 'Clearance Decision', type: 'decision', meta: { verdict: 'CLEARED', confidence: '0.97' } },
   { id: 'e1', label: 'Memorial Hospital', type: 'employer' },
   { id: 'e2', label: 'Pacific Health', type: 'employer' },

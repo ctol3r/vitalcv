@@ -1,5 +1,9 @@
 import type { NextFunction, Request, Response } from 'express';
-import { SignJWT, generateKeyPair, jwtVerify, type KeyLike } from 'jose';
+// `CryptoKey` comes from the global WebCrypto types, not from jose: v6 exports
+// the type and v5 does not, so importing it would pin this file to one major.
+// See the runtime contract test for why the backend must stay on a jose that
+// ships a CommonJS build.
+import { SignJWT, generateKeyPair, jwtVerify } from 'jose';
 import { createVerifiedIdentityMiddleware, type TokenVerifier, type VerifiedAuth } from '../verifiedIdentity';
 
 // G1 header-trust closure (ASVS 14.5.4 / gap register G1,
@@ -24,8 +28,8 @@ jest.mock('../../obs/logger', () => ({
   log: jest.fn(),
 }));
 
-let privateKey: KeyLike;
-let publicKey: KeyLike;
+let privateKey: CryptoKey;
+let publicKey: CryptoKey;
 let verifier: TokenVerifier;
 
 beforeAll(async () => {

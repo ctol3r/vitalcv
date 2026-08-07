@@ -3,6 +3,7 @@ import { ArrowLeft, FileCheck2, ShieldAlert } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ApplicationEvidenceView } from '@/components/applications/ApplicationEvidenceView';
+import { EmployerHandoffReceiptCard } from '@/components/employer/EmployerHandoffReceiptCard';
 import {
   employerWorkflowStateLabel,
   employerWorkflowStateTone,
@@ -11,6 +12,7 @@ import {
 } from '@/lib/employer-workflow';
 import type { ApplicationEvidenceLoadResult } from '@/lib/applications/evidenceView';
 import type { EmployerWorkflowLoadResult } from '@/lib/server/employerWorkflow';
+import type { EmployerHandoffLoadResult } from '@/lib/server/handoffReceipt';
 
 function clinicianName(application: EmployerWorkflowApplication): string {
   return application.provider?.fullName ?? (application.npi ? `NPI ${application.npi}` : 'Clinician');
@@ -24,20 +26,22 @@ function workflowError(result: EmployerWorkflowLoadResult): string | null {
 }
 
 /**
- * Employer packet review is intentionally read-only in this first canonical
- * route. A decision command must atomically bind the exact packet version,
- * decision capsule, audit event, and required durable consequences; the
- * legacy demo controls do not meet that contract.
+ * Employer packet review remains read-only. Handoff receipts expose transport
+ * truth without implying review, acceptance, credentialing, privileging or start.
  */
 export function EmployerApplicationReview({
   workflowResult,
   evidenceResult,
+  handoffResult,
 }: {
   workflowResult: EmployerWorkflowLoadResult;
   evidenceResult: ApplicationEvidenceLoadResult;
+  /** Optional only for retained pre-Phase-2 render fixtures. Runtime pages supply it. */
+  handoffResult?: EmployerHandoffLoadResult;
 }) {
   const workflow = workflowResult.status === 'ok' ? workflowResult.data : null;
   const error = workflowError(workflowResult);
+  const resolvedHandoffResult: EmployerHandoffLoadResult = handoffResult ?? { status: 'not_found' };
 
   return (
     <main className="min-h-screen bg-[#08101d] px-4 py-8 text-white sm:px-6 lg:px-8">
@@ -87,6 +91,8 @@ export function EmployerApplicationReview({
             </CardHeader>
           </Card>
         )}
+
+        <EmployerHandoffReceiptCard result={resolvedHandoffResult} />
 
         <section className="rounded-[28px] border border-white/10 bg-white/[0.04] p-4 sm:p-6">
           <div className="mb-5 flex items-start gap-3 rounded-2xl border border-emerald-400/20 bg-emerald-400/10 p-4 text-emerald-50">

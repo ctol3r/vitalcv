@@ -57,6 +57,11 @@ function startsWithAny(route, prefixes) {
 function classify(route) {
   if (
     PUBLIC_MARKETING.has(route) ||
+    // The public opportunities board and its role detail pages. Anonymous-first
+    // and already public in roles.ts PUBLIC_ROUTE_PATTERNS.
+    route === '/explore' ||
+    route.startsWith('/explore/') ||
+    route.startsWith('/directory/') ||
     route.startsWith('/for/') ||
     route.startsWith('/legal/') ||
     route.startsWith('/p/') ||

@@ -60,19 +60,33 @@ describe('ConnectorMatrix — receipt-document table', () => {
     );
   });
 
-  // Corrected 2026-07-25. These pinned `connector-not-live`, which was FALSE
-  // and was itself half of a public contradiction: /api/status published both
-  // lanes as operational while this matrix said no connector existed.
-  // OigLeieAdapter reads the real HHS LEIE CSV unless OIG_LEIE_ENABLED ===
-  // 'false' (unset on Railway, founder-confirmed) and fetchPecos calls CMS
-  // data.gov with no env gate. The real boundary is the session — the web
-  // proxy 401s unauthenticated — so the honest state is `auth-required`.
-  it('OIG / LEIE row is auth-required, not connector-not-live', () => {
+  // Corrected 2026-07-25: pinned `connector-not-live`, which was FALSE — half
+  // of a public contradiction, since /api/status published the lane as
+  // operational while this matrix said no connector existed. OigLeieAdapter
+  // reads the real HHS LEIE CSV unless OIG_LEIE_ENABLED === 'false' (unset on
+  // Railway, founder-confirmed).
+  //
+  // Corrected again 2026-07-26: `auth-required` was ALSO false. That premise
+  // — "the web proxy 401s unauthenticated" — does not hold for this lane.
+  // Measured against production with no session:
+  //
+  //   GET /api/trust-state/1215930367 → OIG_LEIE  checked, "OIG LEIE check clear"
+  //   GET /api/trust-state/1063495429 → OIG_LEIE  pending,
+  //                       "gated on an active NPPES identity match"
+  //
+  // So the precondition is an identity match, not a session. The honest state
+  // is `snapshot-only`: the lane does return a result to anonymous callers,
+  // and that result comes from a monthly LEIE cache
+  // (SOURCE_LANE_OPS.readCadence: 'monthly_snapshot'), never a live read.
+  it('OIG / LEIE is snapshot-only and does not claim a session is required', () => {
     const oig = CONNECTOR_MATRIX_ROWS.find((r) =>
       r.connector.toLowerCase().includes('oig'),
     );
-    expect(oig?.state).toBe('auth-required');
+    expect(oig?.state).toBe('snapshot-only');
     expect(oig?.observation).not.toMatch(/no live upstream/i);
+    expect(oig?.observation).not.toMatch(/require.{0,20}(authenticated|session)/i);
+    // Still must not read as a clearance — the original point of this row.
+    expect(oig?.interpretation).toMatch(/not a clearance/i);
   });
 
   it('CMS PECOS row is auth-required, not connector-not-live', () => {
@@ -102,11 +116,25 @@ describe('ConnectorMatrix — receipt-document table', () => {
     }
   });
 
-  it('NPPES row never claims source-backed at the matrix level (per-request only)', () => {
+  // Corrected 2026-07-26. This pinned `not source-backed`, on the premise that
+  // a source-backed NPPES claim "requires an authenticated SSE payload".
+  // Measured against production with no session, that is false:
+  //
+  //   GET /api/identity/bootstrap/1063495429 → 200, NPPES-derived fields
+  //   GET /api/trust-state/1215930367        → NPPES_API  checked,
+  //        sourceUrl npiregistry.cms.hhs.gov/api/?number=…, real checkedAt
+  //
+  // NPPES is read per request for anonymous callers, so `source-backed` is the
+  // accurate state and the previous one understated real capability — which
+  // ConnectorMatrix's own standing rule forbids as firmly as overstating.
+  it('NPPES row is source-backed, and says no session is required', () => {
     const nppes = CONNECTOR_MATRIX_ROWS.find((r) =>
       r.connector.toLowerCase().includes('nppes'),
     );
-    expect(nppes?.state).not.toBe('source-backed');
+    expect(nppes?.state).toBe('source-backed');
+    expect(nppes?.observation).toMatch(/no session required/i);
+    // Registration is not licensure — the row must not imply standing.
+    expect(nppes?.interpretation).toMatch(/not licensure|registration, not/i);
   });
 
   it('contains no banned phrases in any row', () => {

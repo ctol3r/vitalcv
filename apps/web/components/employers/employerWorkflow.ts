@@ -15,8 +15,17 @@
  */
 
 export interface EmployerStage {
-  /** Two-digit ordinal, matching the journey's `01 · …` eyebrow grammar. */
-  ordinal: string;
+  /**
+   * Stable key. Was `ordinal: '01'…'06'`, rendered as a two-digit label above
+   * each stage title — the `01–06` step numbering CD-13 retires, grouped there
+   * with giant metric counters and percentage rings as counting theatre.
+   *
+   * The span carrying it was already `aria-hidden`, which settles what it was
+   * worth: it told a screen-reader user nothing, so it was decoration that
+   * happened to look like information. Order is carried by DOM order and the
+   * grid, which is where order actually lives.
+   */
+  id: string;
   title: string;
   body: string;
   /** The one boundary or honesty rail this stage must state, if any. */
@@ -25,36 +34,36 @@ export interface EmployerStage {
 
 export const EMPLOYER_STAGES: readonly EmployerStage[] = [
   {
-    ordinal: '01',
-    title: 'Claim your organization',
-    body: 'Confirm your Type 2 NPI against NPPES — the same 30-second flow a clinician uses.',
-    boundary: 'Identity only. Claiming an organization is not legal proof of authority over it.',
+    id: 'request-access',
+    title: 'Request organization access',
+    body: 'Find your organization by its Type 2 NPI against NPPES, then request access for your account.',
+    boundary: 'Identity only. Resolving an organization in NPPES is not authority to act for it — access is granted separately.',
   },
   {
-    ordinal: '02',
+    id: 'define-requirements',
     title: 'Define what the role requires',
-    body: 'State the credentials, licensure, and readiness a role needs. Requirements become the checklist every packet is measured against — nothing is graded against a hidden bar.',
+    body: 'State what the role needs; requirements become the checklist every packet is measured against — nothing is graded against a hidden bar.',
   },
   {
-    ordinal: '03',
+    id: 'receive-packet',
     title: 'Receive a consented packet',
     body: 'A clinician shares a source-backed readiness packet with your organization.',
     boundary: 'You see a record only when the clinician shares it. No silent sourcing, no anonymous directory.',
   },
   {
-    ordinal: '04',
+    id: 'review-coverage',
     title: 'Review coverage and blockers',
-    body: 'Every claim names its source, state, and freshness. Checked lanes read as checked; access-gated lanes read as gated; blockers read as blockers — never a single green light over an unproven record.',
+    body: 'Every claim names its source, state, and freshness — checked reads as checked, gated as gated, blockers as blockers, never one green light over an unproven record.',
   },
   {
-    ordinal: '05',
+    id: 'accept-head-start',
     title: 'Accept as a head start',
-    body: 'Recognize the packet to move a clinician toward starting sooner, and resolve the remaining requirements together.',
+    body: 'Recognize the packet to move a clinician toward starting sooner, and resolve what remains together.',
     boundary: 'Acceptance is a head start, not credentialing. Your committee keeps the hiring and privileging decision.',
   },
   {
-    ordinal: '06',
+    id: 'reach-start-ready',
     title: 'Reach start-ready',
-    body: 'Work the remaining requirements down until the role is start-ready. Every step is attributable and recorded, so the path from interest to start is auditable end to end.',
+    body: 'Work the remaining requirements down to start-ready — every step attributable and recorded, auditable end to end.',
   },
 ] as const;
