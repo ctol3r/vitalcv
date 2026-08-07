@@ -193,6 +193,36 @@ export default function EmployersPage() {
             /employers/request-access; health systems route to /pilot. */}
         <EmployerAudienceSection />
 
+        {/* What this costs (founder ruling, 2026-08-07): the audit's
+            30-second test asked "what do I pay for?" and this page answered
+            with silence, which reads as enterprise-sales friction. Every
+            sentence below is checkable today — collectsPayment:false across
+            all plans (lib/commercial/pricingFoundation.ts), Stripe dark
+            without its key — and the direction sentence is the category
+            strategy's own model (docs/strategy/vitalcv-category-strategy.md:
+            "Employers should pay for outcomes and workflow"), stated without
+            figures because real pricing is set in a signed scope, never on
+            a page. */}
+        <section aria-label="What this costs" data-employer-pricing="" className="mt-12">
+          <p className="mz-eyebrow">What this costs</p>
+          <p className="mz-small" style={{ marginTop: 8, maxWidth: 620 }}>
+            Free for clinicians, always. For organizations: no payment is collected on this
+            site — the pilot costs nothing, and commercial terms are set in a signed scope.
+          </p>
+          <p className="mz-small" style={{ marginTop: 8, maxWidth: 620 }}>
+            When VitalCV charges employers, it charges for outcomes — clinicians who start —
+            not seats or lookups.
+          </p>
+          <p style={{ marginTop: 12 }}>
+            <Link
+              href="/pricing"
+              className="text-[14px] font-semibold text-[var(--vt-text-primary)] underline underline-offset-2"
+            >
+              Plain terms, stated
+            </Link>
+          </p>
+        </section>
+
         {/* The close: same label, same destination as the hero — one intention,
             one route (audit: three labels for one intention forced a choice
             without information). */}
