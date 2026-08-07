@@ -122,8 +122,11 @@ export default function EmployersPage() {
             read like every other B2B diagram. An elevation of the hospital —
             packet arriving at the door, one lit room where it is being read —
             says who the page is for before a word of copy is. */}
+        {/* Dense vignette (founder density lever, 2026-08-07): same drawing,
+            cropped viewBox and compact stage — the elevation still says who
+            the page is for without spending half a viewport saying it. */}
         <section aria-label="Where the packet arrives" className="mt-8">
-          <ArtifactStage glass>
+          <ArtifactStage glass dense>
             <HospitalArtifact />
           </ArtifactStage>
         </section>
