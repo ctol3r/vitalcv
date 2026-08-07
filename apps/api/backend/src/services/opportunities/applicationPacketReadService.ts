@@ -47,6 +47,7 @@ export interface ApplicationPacketReadResponse {
     recipient: string;
     consentAt: string;
     consentReceiptId: string;
+    consentGrantId: string | null;
     selectedSections: string[];
     /** Field ids the clinician withheld at consent time (field-level disclosure). */
     withheldFieldIds: string[];
@@ -135,6 +136,8 @@ type StoredApplicationPacket = {
   methodologyVersion: string;
   consentAt: Date;
   consentReceiptId: string;
+  /** null for legacy packets sealed before first-class grants existed. */
+  consentGrantId: string | null;
   /** null for legacy packets sealed before this column existed. */
   opportunityVersion: string | null;
   packetHash: string;
@@ -224,6 +227,9 @@ function reconstructSealedPacket(row: StoredApplicationPacket): SealedApplicatio
     methodologyVersion: row.methodologyVersion,
     consentAt: row.consentAt.toISOString(),
     consentReceiptId: row.consentReceiptId,
+    // A null grant column predates ConsentGrant and must be omitted from the
+    // canonical bytes. New packets include the id and bind it into the seal.
+    consentGrantId: row.consentGrantId ?? undefined,
     // CRITICAL for legacy replay: a null column (packet sealed before this
     // field existed) must become `undefined` so `canonicalize` OMITS the key
     // and re-hashes to the original seal. A `null` here would add a key the
@@ -428,6 +434,7 @@ export async function readApplicationPacket(
       recipient: packet.recipient,
       consentAt: packet.consentAt,
       consentReceiptId: packet.consentReceiptId,
+      consentGrantId: packet.consentGrantId ?? null,
       selectedSections: packet.selectedSections,
       // Derived from the sealed fields, never a stored parallel list.
       withheldFieldIds: withheldFieldIdsOf(packet),

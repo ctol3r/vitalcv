@@ -50,6 +50,7 @@ function responseFixture() {
       recipient: 'Packet Test Health',
       consentAt: '2026-07-16T12:05:00.000Z',
       consentReceiptId: 'consent-1',
+      consentGrantId: null,
       selectedSections: ['identity'],
       withheldFieldIds: [],
       fields: [],

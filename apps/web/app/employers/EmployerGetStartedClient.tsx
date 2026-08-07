@@ -273,7 +273,7 @@ export function EmployerGetStartedClient() {
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
           <p className="text-sm text-destructive">{errorMsg}</p>
         </div>
-        <button onClick={reset} className="h-10 w-full rounded-lg border border-border text-sm hover:bg-muted">
+        <button onClick={reset} className="h-11 w-full rounded-[10px] border border-border text-sm hover:bg-muted">
           Try again
         </button>
       </div>
@@ -311,7 +311,7 @@ export function EmployerGetStartedClient() {
       <button
         type="submit"
         disabled={phase === 'looking_up' || npi.length !== 10}
-        className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-foreground text-sm font-medium text-background hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+        className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-[10px] bg-[var(--vt-accent)] text-sm font-medium text-[var(--vt-surface)] hover:bg-[var(--vt-accent-hover)] disabled:cursor-not-allowed disabled:opacity-40"
       >
         {phase === 'looking_up' ? (
           <>

@@ -1,18 +1,17 @@
 import type { Metadata } from 'next';
 
+import { CareerLoopHome } from '@/components/home/career-loop/CareerLoopHome';
 import { HorizontalCareerFilm } from '@/components/home/film/HorizontalCareerFilm';
-// ONE route stylesheet. It owns the composition AND the evidence capsule, so
-// the surface the primary action produces can never again be orphaned from the
-// page it renders on — see the header of `styles/home.css`.
+import { resolveHomeVariant } from '@/lib/home/variant';
+// Both route stylesheets. The film's owns its composition AND the evidence
+// capsule (see the header of `styles/home.css`); the loop's is namespaced
+// `clh-` so the two can coexist in one bundle without restyling each other.
 import '@/styles/home.css';
+import '@/styles/career-loop-home.css';
 
-const TAGLINE = 'VitalCV — Your career evidence, ready before your next job.';
+const TAGLINE = 'VitalCV — Build your clinician profile from your NPI and apply with it.';
 const DESCRIPTION =
-  'Enter your NPI to see what employers can confirm today, what still needs review, and the next step toward being ready to start.';
-
-// Shared caches must converge quickly after a release. Railway busts its edge
-// on deploy, but external caches do not; five minutes bounds stale public copy.
-export const revalidate = 300;
+  'Build a clinician profile from your NPI, find opportunities that fit it, and apply with the same profile — giving employers a head start and keeping the record yours to reuse.';
 
 export const metadata: Metadata = {
   title: { absolute: TAGLINE },
@@ -53,23 +52,36 @@ const STRUCTURED_DATA = {
 };
 
 /**
- * The homepage is one source-honest evidence film:
+ * `/` — the one real clinician career loop (Wave 1075).
  *
- * 1. Let a clinician act immediately through the NPI-first opening pane.
- * 2. Carry the same evidence story through native scroll rather than a static
- *    stack of sections.
+ *   NPI → clinician profile → opportunity → Apply with VitalCV
+ *       → employer head start → review begins → keep the career record
  *
- * The film has one passive scroll owner and a complete vertical fallback for
- * no-JavaScript, reduced-motion, touch, and narrow viewports.
+ * `film` is the previous homepage, kept as a rollback rather than deleted:
+ * set PUBLIC_HOME_VARIANT=film and redeploy. The choice is made here, on the
+ * server, so only one variant is ever sent — no flash, no double-counted
+ * homepage event, and one canonical root for crawlers.
+ *
+ * `export const dynamic` is deliberate. A static root would bake the env var
+ * at BUILD time, which would make the rollback switch a rebuild rather than a
+ * redeploy — exactly the "restore the old homepage without a code change"
+ * property this exists to provide.
+ *
+ * This replaces the previous `revalidate = 300`: the two cannot coexist, and
+ * a cached root would serve the pre-rollback homepage for up to five minutes
+ * during an incident.
  */
+export const dynamic = 'force-dynamic';
+
 export default function HomePage() {
+  const variant = resolveHomeVariant(process.env.PUBLIC_HOME_VARIANT);
   return (
     <>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(STRUCTURED_DATA) }}
       />
-      <HorizontalCareerFilm />
+      {variant === 'film' ? <HorizontalCareerFilm /> : <CareerLoopHome />}
     </>
   );
 }

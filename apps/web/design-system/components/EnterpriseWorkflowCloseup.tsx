@@ -58,7 +58,7 @@ export function EnterpriseWorkflowCloseup({
           {caption}
         </span>
         {illustrative ? (
-          <span className="font-[var(--vt-font-mono,ui-monospace)] text-[0.6875rem] uppercase tracking-[0.08em] text-[var(--vt-text-muted)]">
+          <span className="font-[family-name:var(--vt-font-mono)] text-[0.6875rem] uppercase tracking-[0.08em] text-[var(--vt-text-muted)]">
             Illustrative — not a live result
           </span>
         ) : null}

@@ -107,7 +107,7 @@ export function SourceWorkflowTabs({ tabs, label, initialId, className }: Source
                 // CD-15: 44px. CD-10: chrome is 10px at the top corners, never a pill.
                 'min-h-11 rounded-t-[10px] px-[var(--vt-space-12)]',
                 // CD-8: a source name is a machine fact.
-                'font-[var(--vt-font-mono,ui-monospace)] text-[0.75rem] uppercase tracking-[0.06em]',
+                'font-[family-name:var(--vt-font-mono)] text-[0.75rem] uppercase tracking-[0.06em]',
                 'transition-colors duration-[120ms] motion-reduce:transition-none',
                 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--vt-focus-ring)]',
                 selected

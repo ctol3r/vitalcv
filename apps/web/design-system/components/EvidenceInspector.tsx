@@ -72,7 +72,7 @@ export function EvidenceInspector({
           {title}
         </h3>
         {recordId ? (
-          <span className="font-[var(--vt-font-mono,ui-monospace)] text-[0.8125rem] tabular-nums text-[var(--vt-text-muted)]">
+          <span className="font-[family-name:var(--vt-font-mono)] text-[0.8125rem] tabular-nums text-[var(--vt-text-muted)]">
             {recordId}
           </span>
         ) : null}
@@ -90,13 +90,13 @@ export function EvidenceInspector({
             </dt>
             <dd className="m-0 flex flex-col gap-[var(--vt-space-4)]">
               {/* CD-8 — the retrieved value. */}
-              <span className="font-[var(--vt-font-mono,ui-monospace)] text-[0.8125rem] leading-[1.5] tabular-nums text-[var(--vt-text-primary)]">
+              <span className="font-[family-name:var(--vt-font-mono)] text-[0.8125rem] leading-[1.5] tabular-nums text-[var(--vt-text-primary)]">
                 {fact.value}
               </span>
               {/* CD-2.2 — source and age, always, in mono because both are
                   machine facts. Remove all colour and this line still says who
                   said it and when. */}
-              <span className="font-[var(--vt-font-mono,ui-monospace)] text-[0.6875rem] leading-[1.4] tracking-[0.04em] text-[var(--vt-text-muted)]">
+              <span className="font-[family-name:var(--vt-font-mono)] text-[0.6875rem] leading-[1.4] tracking-[0.04em] text-[var(--vt-text-muted)]">
                 {fact.source} · {fact.asOf}
               </span>
               {fact.note ? (
@@ -111,7 +111,7 @@ export function EvidenceInspector({
 
       {doesNotDecide ? (
         <p className="mt-[var(--vt-space-12)] max-w-[62ch] text-[0.8125rem] leading-[1.5] text-[var(--vt-text-secondary)]">
-          <span className="font-[var(--vt-font-mono,ui-monospace)] text-[0.6875rem] uppercase tracking-[0.08em] text-[var(--vt-text-muted)]">
+          <span className="font-[family-name:var(--vt-font-mono)] text-[0.6875rem] uppercase tracking-[0.08em] text-[var(--vt-text-muted)]">
             Does not decide
           </span>
           <br />

@@ -33,13 +33,20 @@ export const ROLE_LANDING: Record<UserRoleType, string> = {
  *
  * Surface classification (VCV_UI_DOCTRINE §1):
  *   Public   — /explore, /get-ready, /onboarding, /p/:npi, /verify/:npi, /sign-in, /sign-up, etc.
- *   Clinician — /holder/*, /passport/*, /onboarding/*     → CLINICIAN role
+ *               NOTE: /onboarding is public end-to-end — it resolves the
+ *               public registry record anonymously (record before account);
+ *               only the BIND (POST /api/profile/npi/bootstrap) needs auth.
+ *   Clinician — /holder/*                                 → CLINICIAN role
+ *               NOTE: /passport was RETIRED by founder decision 2026-08-07 —
+ *               both routes are public redirect stubs (/passport →
+ *               /onboarding; /passport/{npi} → /verify/{npi}, kept forever
+ *               for shipped mobile deep links).
  *   Verifier  — /verifier/*, /employer/*, /issuer/*       → VERIFIER role
  *               NOTE: /employers (plural) is the PUBLIC acquisition page —
  *               it is deliberately not in PROTECTED_ROUTES. The gated
  *               employer workspace is /employer/* (singular).
  *   Ops/Intel — /intelligence/*, /findings/*, /graph/*, …  → AUTHENTICATED (any)
- *   Internal  — /internal/*, /analytics, /billing,
+ *   Internal  — /internal/*, /admin/*, /analytics, /billing,
  *               /pilot-ops, /mission-ops, /command-center → ADMIN role
  *
  * /dashboard/cv-builder is legacy (deprecated per doctrine §8).
@@ -61,6 +68,10 @@ export const PROTECTED_ROUTES: Array<{ pattern: RegExp; role: UserRoleType }> = 
   { pattern: /^\/issuer(\/.*)?$/, role: UserRole.ISSUER },
   { pattern: /^\/internal(\/.*)?$/, role: UserRole.ADMIN },
   // Internal / operator surfaces — admin only
+  // /admin/* — leads, platform, demo-reset. /admin/demo-reset shipped with no
+  // guard at all while its siblings self-guarded with inline auth(); this
+  // prefix guard covers the whole tree so the next /admin page is born gated.
+  { pattern: /^\/admin(\/.*)?$/, role: UserRole.ADMIN },
   { pattern: /^\/pilot-ops(\/.*)?$/, role: UserRole.ADMIN },
   { pattern: /^\/mission-ops(\/.*)?$/, role: UserRole.ADMIN },
   { pattern: /^\/analytics(\/.*)?$/, role: UserRole.ADMIN },
@@ -102,7 +113,14 @@ export const PUBLIC_ROUTE_PATTERNS = [
   /^\/sign-up(\/.*)?$/,
   /^\/get-ready(\/.*)?$/, // legacy entry — redirects to /onboarding
   /^\/onboarding(\/.*)?$/, // canonical clinician activation (anonymous NPI preview)
+  /^\/passport(\/.*)?$/, // RETIRED 2026-08-07 — public redirect stubs only (see app/passport)
   /^\/explore(\/.*)?$/, // public opportunities board
+  // Public employer acquisition tree — /employers (plural) and its
+  // conversion/diligence subroutes (/employers/request-access,
+  // /employers/how-it-works). Distinct from /employer (singular), the
+  // PROTECTED workspace. The middleware always served these anonymously;
+  // declaring them closes the ROUTE-01 drift entry instead of baselining it.
+  /^\/employers(\/.*)?$/,
   /^\/search(\/.*)?$/, // public search
   /^\/p(\/.*)?$/, // public clinician profiles — /p/:npi and subpaths
   // Public provider directory — /directory/:npi. Deliberately anonymous and

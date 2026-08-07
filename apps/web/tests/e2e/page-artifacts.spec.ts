@@ -11,14 +11,16 @@ import { expect, test } from '@playwright/test';
  */
 
 /**
- * A page may carry MORE than one artifact — /employers opens on the hospital
- * elevation and then shows the reviewer's decision surface. So each entry names
- * the artifact it is asserting by aria-label rather than assuming the page has
- * exactly one, and the rest-check below covers every artifact on the page.
+ * A page may carry MORE than one artifact, so each entry names the artifact it
+ * is asserting by aria-label rather than assuming the page has exactly one,
+ * and the rest-check below covers every artifact on the page. The employers
+ * restructure split the pair that used to share the doorway: the hospital
+ * elevation stays on /employers; the reviewer's decision surface moved to
+ * /employers/how-it-works with the rest of the packet anatomy.
  */
 const PAGES = [
   { path: '/employers', artifact: 'An elevation drawing of a hospital' },
-  { path: '/employers', artifact: 'A consented packet arriving' },
+  { path: '/employers/how-it-works', artifact: 'A consented packet arriving' },
   { path: '/trust', artifact: 'One claim connected to its named source' },
   { path: '/pilot', artifact: 'A timeline from accepted offer' },
   { path: '/matcha/experience', artifact: 'A drawn clinician beside the record' },

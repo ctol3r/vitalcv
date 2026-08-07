@@ -59,10 +59,10 @@ export function PacketHandoff({
         className,
       )}
     >
-      <p className="m-0 font-[var(--vt-font-mono,ui-monospace)] text-[0.6875rem] uppercase tracking-[0.08em] text-[var(--vt-text-muted)]">
+      <p className="m-0 font-[family-name:var(--vt-font-mono)] text-[0.6875rem] uppercase tracking-[0.08em] text-[var(--vt-text-muted)]">
         Handed to
       </p>
-      <p className="mt-[var(--vt-space-4)] mb-[var(--vt-space-12)] font-[var(--vt-font-mono,ui-monospace)] text-[0.9375rem] leading-[1.4] text-[var(--vt-text-primary)]">
+      <p className="mt-[var(--vt-space-4)] mb-[var(--vt-space-12)] font-[family-name:var(--vt-font-mono)] text-[0.9375rem] leading-[1.4] text-[var(--vt-text-primary)]">
         {recipient}
       </p>
 
@@ -77,7 +77,7 @@ export function PacketHandoff({
           >
             <span
               aria-hidden="true"
-              className="font-[var(--vt-font-mono,ui-monospace)] text-[0.75rem] tabular-nums text-[var(--vt-text-muted)]"
+              className="font-[family-name:var(--vt-font-mono)] text-[0.75rem] tabular-nums text-[var(--vt-text-muted)]"
             >
               {i + 1}
             </span>
@@ -85,7 +85,7 @@ export function PacketHandoff({
               <span className="text-[0.875rem] leading-[1.5] text-[var(--vt-text-primary)]">
                 {step.label}
               </span>
-              <span className="font-[var(--vt-font-mono,ui-monospace)] text-[0.6875rem] leading-[1.4] tracking-[0.04em] text-[var(--vt-text-muted)]">
+              <span className="font-[family-name:var(--vt-font-mono)] text-[0.6875rem] leading-[1.4] tracking-[0.04em] text-[var(--vt-text-muted)]">
                 {step.actor} · {step.at ?? 'not yet'}
               </span>
             </span>
@@ -94,13 +94,13 @@ export function PacketHandoff({
       </ol>
 
       {expiresAt !== undefined ? (
-        <p className="mt-[var(--vt-space-12)] mb-0 font-[var(--vt-font-mono,ui-monospace)] text-[0.75rem] tabular-nums text-[var(--vt-text-secondary)]">
+        <p className="mt-[var(--vt-space-12)] mb-0 font-[family-name:var(--vt-font-mono)] text-[0.75rem] tabular-nums text-[var(--vt-text-secondary)]">
           Expires {expiresAt ?? 'never'}
         </p>
       ) : null}
 
       <p className="mt-[var(--vt-space-12)] mb-0 max-w-[62ch] text-[0.8125rem] leading-[1.5] text-[var(--vt-text-secondary)]">
-        <span className="font-[var(--vt-font-mono,ui-monospace)] text-[0.6875rem] uppercase tracking-[0.08em] text-[var(--vt-text-muted)]">
+        <span className="font-[family-name:var(--vt-font-mono)] text-[0.6875rem] uppercase tracking-[0.08em] text-[var(--vt-text-muted)]">
           Does not decide
         </span>
         <br />

@@ -53,14 +53,14 @@ export function ApplicationEvidenceTimeline({
           >
             {/* Age first — CD-2.2 treats it as part of the assertion, not a
                 footnote. Mono because it is a machine fact (CD-8). */}
-            <span className="font-[var(--vt-font-mono,ui-monospace)] text-[0.75rem] leading-[1.5] tabular-nums text-[var(--vt-text-muted)]">
+            <span className="font-[family-name:var(--vt-font-mono)] text-[0.75rem] leading-[1.5] tabular-nums text-[var(--vt-text-muted)]">
               {entry.at}
             </span>
             <span className="flex flex-col gap-[var(--vt-space-4)]">
               <span className="text-[0.875rem] leading-[1.5] text-[var(--vt-text-primary)]">
                 {entry.event}
               </span>
-              <span className="font-[var(--vt-font-mono,ui-monospace)] text-[0.6875rem] leading-[1.4] tracking-[0.04em] text-[var(--vt-text-muted)]">
+              <span className="font-[family-name:var(--vt-font-mono)] text-[0.6875rem] leading-[1.4] tracking-[0.04em] text-[var(--vt-text-muted)]">
                 {entry.actor}
                 {entry.source ? ` · ${entry.source}` : ''}
               </span>

@@ -68,7 +68,12 @@ export function HospitalArtifact() {
 
   return (
     <svg
-      viewBox="0 0 720 400"
+      /* Cropped from `0 0 720 400` (founder density lever, 2026-08-07): the
+         top 44 units and bottom 26 were empty sky and floor margin. Every
+         stroke survives — the helipad's top edge sits at y≈48 and the
+         "committee still decides" note bottoms out at y≈371 — the drawing
+         just stops paying for field it never drew in. */
+      viewBox="0 44 720 330"
       className="ask-art ask-art--wide"
       role="img"
       aria-label="An elevation drawing of a hospital: two wings and a central entrance, a consented packet arriving at the door, and one lit upper room where a reviewer is reading it"

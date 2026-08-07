@@ -102,7 +102,7 @@ export function ExpandingEyebrow({
       <p
         className={cn(
           // CD-9 `eyebrow`: mono 500, 0.08em tracking, uppercase.
-          'font-[var(--vt-font-mono,ui-monospace)] text-[0.6875rem] uppercase leading-[1.3]',
+          'font-[family-name:var(--vt-font-mono)] text-[0.6875rem] uppercase leading-[1.3]',
           'tracking-[0.08em] text-[var(--vt-text-muted)]',
           'm-0',
         )}

@@ -1,5 +1,18 @@
 # Competitive mandate and evidence register
 
+> **Superseded where it conflicts — 2026-08-04.**
+> [`vitalcv-category-strategy.md`](./vitalcv-category-strategy.md) and
+> [`vitalcv-strategy-operating-brief.md`](./vitalcv-strategy-operating-brief.md)
+> are now canonical for positioning, homepage messaging, customer-facing
+> vocabulary, information architecture, and roadmap sequencing. Where this
+> document and those disagree, **those win** — see
+> [the source-of-truth order](./README.md#source-of-truth-order).
+>
+> This file is kept, not deleted: its competitive analysis and evidence register are still the record of what
+> was measured, and its retired-mechanisms list still names things that must not
+> come back.
+> Read it for that, not for what the product should call itself.
+
 **Established:** 2026-07-21 · **Authority:** founder mandate
 `VitalCV_Competitive_Mandate_and_Claude_Code_Waves_2026-07-21.md` (COMPETE-0)
 **Status:** binding on homepage strategy, homepage copy, and acquisition-surface
