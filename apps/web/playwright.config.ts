@@ -25,6 +25,7 @@ const FILM_SPECS = [
   /tests\/e2e\/ask-home\.spec\.ts/,
   /tests\/e2e\/ask-npi-response\.spec\.ts/,
   /tests\/e2e\/doctrine-visual\.spec\.ts/,
+  /tests\/e2e\/film-journey-rail\.spec\.ts/,
   /tests\/e2e\/glass-chrome\.spec\.ts/,
   /tests\/e2e\/home-a11y-floor\.spec\.ts/,
   /tests\/e2e\/home-atmosphere\.spec\.ts/,
