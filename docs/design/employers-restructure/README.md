@@ -40,13 +40,16 @@ founder decision, not one this revision takes silently.
 |---|---|---|---|---|
 | /employers (before, prod) | 5,743px | 7,402px | none | 0 |
 | /employers (after, revision 2) | **3,145px (−45%)** | **4,118px (−44%)** | none | 0 |
+| /employers (after, workflow density pass) | **3,029px (−47%)** | **3,768px (−49%)** | none | 0 |
 | /employers/request-access (new) | 1,054px | 1,030px | none | 0 |
 | /employers/how-it-works (new) | 3,390px | 3,578px | none | 0 |
 
-The audit's ≤2,800px target is not fully reached; the remaining mass is the
-six-card workflow section (~590px) and the hero artifact stage (~290px) — both
-approved visual architecture, so tightening either is a founder decision, not
-made silently.
+The workflow density pass (#1091) de-chromed the six workflow cards into
+borderless grid cells; its heights are transcribed from
+`evidence-workflow-density/metrics-after.json` (branch prod build at the merged
+head). The audit's ≤2,800px target is still not fully reached; the remaining
+mass is the hero artifact stage (~290px) — approved visual architecture, so
+tightening it is a founder decision, not made silently.
 
 ## Capture methodology
 
@@ -68,3 +71,4 @@ on prod today — platform-wide Next prefetch behavior, not introduced here.
 - `evidence/after-employers-*` — this branch, same viewports, plus 768×1024, reduced-motion, 200%-zoom proxy (720×450 reflow), keyboard-focus (2×Tab).
 - `evidence/after-employers_request-access-*`, `after-employers_how-it-works-*` — the new routes.
 - `evidence/metrics-before.json`, `evidence/metrics-after.json` — heights, overflow, console errors, failed requests per route.
+- `evidence-workflow-density/metrics-after.json` — heights after the workflow density pass (#1091).
