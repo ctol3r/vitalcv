@@ -334,7 +334,7 @@ export default function PacketClient({ entityId }: { entityId: string }) {
           This passport hasn&apos;t been generated yet. Run a readiness check to open the source-backed snapshot.
         </p>
         <Link
-          href="/passport"
+          href="/onboarding"
           className="inline-flex h-11 items-center justify-center rounded-full bg-foreground px-5 text-sm font-medium text-background"
         >
           Check readiness

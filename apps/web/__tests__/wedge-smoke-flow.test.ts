@@ -3,7 +3,9 @@
  *
  * Documents the canonical pilot wedge flow as executable assertions.
  * Each test corresponds to one step in the flow:
- * NPI → readiness → passport → request-review → employer context → review → action
+ * NPI → readiness → request-review → employer context → review → action
+ * (/passport retired 2026-08-07 (#1096); anonymous entry is /onboarding's
+ * guest lane, and its redirect stubs are pinned by passport-retirement.test.tsx)
  *
  * These are unit/integration tests, NOT E2E Playwright tests.
  * They verify that the route contracts, URL builders, and API shape
@@ -13,7 +15,6 @@
 import { describe, expect, it } from 'vitest';
 import {
   PUBLIC_WEDGE_ROUTE_TARGETS,
-  buildPassportLookupHref,
   buildEmployerReviewHref,
 } from '../lib/trust/public-wedge-parity';
 import type {
@@ -35,38 +36,9 @@ describe('wedge smoke flow', () => {
     it('homepage is the wedge entry point', () => {
       expect(PUBLIC_WEDGE_ROUTE_TARGETS.homepageLookup).toBe('/');
     });
-
-    it('LiveTrustConsole is the homepage hero component', async () => {
-      // Static import check — if this import resolves, the component exists
-      const mod = await import('../components/hero/LiveTrustConsole');
-      expect(mod.LiveTrustConsole).toBeDefined();
-      expect(typeof mod.LiveTrustConsole).toBe('function');
-    });
   });
 
-  describe('step 2 — readiness → passport URL contract', () => {
-    it('passport route target is /passport', () => {
-      expect(PUBLIC_WEDGE_ROUTE_TARGETS.passportEntry).toBe('/passport');
-    });
-
-    it('builds passport URL with NPI query param', () => {
-      expect(buildPassportLookupHref(SAMPLE_NPI)).toBe(
-        `/passport?npi=${SAMPLE_NPI}`,
-      );
-    });
-
-    it('builds bare passport URL when NPI is missing', () => {
-      expect(buildPassportLookupHref(null)).toBe('/passport');
-      expect(buildPassportLookupHref(undefined)).toBe('/passport');
-    });
-
-    it('rejects invalid NPI format', () => {
-      expect(buildPassportLookupHref('123')).toBe('/passport');
-      expect(buildPassportLookupHref('not-a-number')).toBe('/passport');
-    });
-  });
-
-  describe('step 3 — request-review URL contract', () => {
+  describe('step 2 — request-review URL contract', () => {
     // buildEmployerReviewHref is already covered in detail by
     // public-wedge-parity-contract.test.ts — this test verifies
     // the basic shape only to document the flow step.
@@ -85,7 +57,7 @@ describe('wedge smoke flow', () => {
     });
   });
 
-  describe('step 4 — employer action type contract', () => {
+  describe('step 3 — employer action type contract', () => {
     it('EmployerReviewActionIntent covers accept/refresh/review', () => {
       // Type-level assertion: these values must be assignable
       const intents: EmployerReviewActionIntent[] = [
@@ -130,7 +102,7 @@ describe('wedge smoke flow', () => {
     });
   });
 
-  describe('step 5 — review load URL format', () => {
+  describe('step 4 — review load URL format', () => {
     it('/review/[entityId]?contextId= is the canonical review URL', () => {
       const href = buildEmployerReviewHref(SAMPLE_ENTITY_ID, {
         contextId: SAMPLE_CONTEXT_ID,
@@ -142,7 +114,7 @@ describe('wedge smoke flow', () => {
     });
   });
 
-  describe('step 6 — employer action API routes', () => {
+  describe('step 5 — employer action API routes', () => {
     it('accept endpoint follows /api/employer-review/:entityId/accept pattern', () => {
       const endpoint = `/api/employer-review/${SAMPLE_ENTITY_ID}/accept`;
       expect(endpoint).toMatch(

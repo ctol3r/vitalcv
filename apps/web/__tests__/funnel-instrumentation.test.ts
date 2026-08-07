@@ -20,24 +20,36 @@ const webFile = (rel: string) => readFileSync(path.join(__dirname, '..', rel), '
 // asserting the denominator fired from a component no visitor reaches. The
 // funnel was in fact intact, but this guard could not have told us either way.
 const homepage = webFile('components/home/film/HorizontalCareerFilm.tsx');
-const passport = webFile('app/passport/page.tsx');
-const console_ = webFile('components/hero/LiveTrustConsole.tsx');
+// /passport retired 2026-08-07 — the anonymous acquisition funnel's terminal
+// states live in /onboarding's guest lane now (GetReadySurface.resolveGuest),
+// which took over as the only producer of RESULTS_DISPLAYED.
+const guestLane = webFile('app/get-ready/GetReadySurface.tsx');
 
 describe('funnel instrumentation', () => {
   it('fires the denominator from the homepage', () => {
     expect(homepage).toContain('FUNNEL_EVENTS.HOMEPAGE_VIEWED');
   });
 
-  it('fires the conversion event when a passport is viewable', () => {
-    expect(passport).toContain('FUNNEL_EVENTS.RESULTS_DISPLAYED');
-    expect(passport).toContain("outcome: 'passport'");
+  it('fires the conversion event when the anonymous record is displayed', () => {
+    expect(guestLane).toContain('FUNNEL_EVENTS.RESULTS_DISPLAYED');
+    expect(guestLane).toContain("outcome: 'guest_record'");
+  });
+
+  it('marks the funnel start when a guest submits an NPI', () => {
+    expect(guestLane).toContain('FUNNEL_EVENTS.NPI_SUBMITTED');
   });
 
   it('distinguishes every terminal failure mode', () => {
-    for (const outcome of ['no_profile', 'disconnected', 'no_anchor', 'error']) {
-      expect(passport, `missing drop-off outcome ${outcome}`).toContain(`'${outcome}'`);
+    for (const outcome of ['organization', 'unavailable']) {
+      expect(guestLane, `missing drop-off outcome ${outcome}`).toContain(`outcome: '${outcome}'`);
     }
-    expect(console_).toContain("outcome: 'invalid_length'");
+  });
+
+  it('keeps the pilot-ops passport_viewed KPI producing', () => {
+    // passport_viewed is a named pilot funnel step (pilotFunnelService) whose
+    // only producer was the retired /passport page. The guest lane re-emits
+    // it at the honest equivalent moment so the KPI never silently zeroes.
+    expect(guestLane).toContain('UX_EVENTS.PASSPORT_VIEWED');
   });
 
   it('never sends an NPI value, hashed or otherwise', () => {
@@ -45,14 +57,10 @@ describe('funnel instrumentation', () => {
     // anonymisation and must not be used to justify sending an NPI.
     for (const [name, src] of [
       ['HomePageClient', homepage],
-      ['passport page', passport],
-      ['LiveTrustConsole', console_],
+      ['guest lane', guestLane],
     ] as const) {
       expect(src, `${name} must not hash an NPI into analytics`).not.toContain('hashNpi');
     }
-    // The only NPI-derived property permitted is a digit count.
-    expect(console_).toContain('npi_length: cleanNpi.length');
-    expect(console_).not.toMatch(/npi:\s*cleanNpi/);
   });
 
   it('keeps the documented event names in sync with the schema doc', () => {

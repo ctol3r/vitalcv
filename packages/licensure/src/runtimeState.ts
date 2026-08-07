@@ -19,7 +19,7 @@
  */
 
 import { listAuthorities } from './authorityRegistry';
-import { isNursingProfession, isPhysicianProfession } from './sourceRouter';
+import { isNursingProfession, isPhysicianProfession } from './professions';
 import type {
   LicensureRouteKind,
   LicensureRuntimeState,

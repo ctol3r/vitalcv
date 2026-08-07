@@ -41,14 +41,34 @@ const PROHIBITED_CLAIMS: ReadonlyArray<{ phrase: string; fix: string }> = [
   // not months'" as the fix for `hire instantly`. That advice was itself the
   // retired claim, so the gate was steering copy toward the thing it exists to
   // stop. Fix text is doctrine too.
-  { phrase: 'hire instantly', fix: 'Do not promise speed — describe the evidence, e.g. "start clinicians from source-backed evidence".' },
-  { phrase: 'start clinicians faster', fix: 'Speed hero retired (brand split 2026-07-26) — say "start clinicians from source-backed evidence".' },
-  { phrase: 'clinicians start faster', fix: 'Speed hero retired (brand split 2026-07-26) — describe the evidence, not the pace.' },
-  { phrase: 'start faster', fix: 'Speed hero retired (brand split 2026-07-26) — say "start from evidence".' },
+  // Fix text updated at REVISION 2 of the employer doorway (2026-08-07): the
+  // earlier advice here — say "start clinicians from source-backed evidence" —
+  // was itself retired as an H1 by the founder visual gate, which ruled that
+  // evidence is the proof, not the proposition. Steer toward the experience,
+  // still without pace.
+  { phrase: 'hire instantly', fix: 'Do not promise speed — describe the hiring experience, e.g. "see what is known, what remains, and who owns the next step".' },
+  { phrase: 'start clinicians faster', fix: 'Speed hero retired (brand split 2026-07-26) — describe the hiring experience, not the pace.' },
+  { phrase: 'clinicians start faster', fix: 'Speed hero retired (brand split 2026-07-26) — describe the experience, not the pace.' },
+  { phrase: 'start faster', fix: 'Speed hero retired (brand split 2026-07-26) — describe the work removed, not the clock.' },
   { phrase: 'hired faster', fix: 'Speed hero retired (brand split 2026-07-26) — no unmeasured time-to-hire claim.' },
   { phrase: 'days, not months', fix: 'An unmeasured time-to-start claim. Remove until a pilot measures it, then state the measured number.' },
   { phrase: 'days not months', fix: 'An unmeasured time-to-start claim. Remove until a pilot measures it, then state the measured number.' },
   { phrase: 'weeks to days', fix: 'An unmeasured time-to-start claim. Remove until a pilot measures it, then state the measured number.' },
+  // Two survivors of the same retirement, found live in production on
+  // 2026-08-02 — /onboarding and /employers — because the entries above name
+  // the adjective ("faster") and the comparison ("days not months") but never
+  // the noun or a duration. The claim simply reappeared in a form no phrase
+  // matched. Both are duration claims about the product, so they are barred by
+  // shape rather than by wording.
+  //
+  // Scoped deliberately: 'time to start' alone would flag the honest
+  // Time-to-Start comparison label, and '30 second' alone would flag the
+  // verifier reading guide, which truthfully describes how long a DOCUMENT
+  // takes to read. Neither is a claim about how fast VitalCV works.
+  { phrase: 'shortens time to start', fix: 'An unmeasured time-to-start claim. Describe what the packet contains, not the pace, until a pilot measures it.' },
+  { phrase: 'shorten time to start', fix: 'An unmeasured time-to-start claim. Describe what the packet contains, not the pace, until a pilot measures it.' },
+  { phrase: 'shorter time to start', fix: 'An unmeasured time-to-start claim. Describe what the packet contains, not the pace, until a pilot measures it.' },
+  { phrase: '30 second flow', fix: 'An unmeasured duration claim about a product flow. Say what the step confirms, e.g. "the same identity check a clinician completes".' },
   { phrase: 'instant credentialing', fix: 'Say "credential readiness head start".' },
   { phrase: 'complete credentialing', fix: 'VitalCV is the readiness wedge, not full credentialing.' },
   { phrase: 'credentialing replacement', fix: 'Say "credentialing head start".' },

@@ -7,7 +7,6 @@
  *   POST   /api/opportunities           — post a new opportunity
  *   GET    /api/opportunities           — list public active opportunities
  *   GET    /api/employer/opportunities  — list my org's opportunities
- *   GET    /api/candidates              — list verified clinicians (for verifiers)
  */
 
 import type { Express, NextFunction, Request, Response } from 'express';
@@ -17,7 +16,6 @@ import {
   createOpportunity,
   getPublicOpportunityById,
   getOrgProfile,
-  listCandidates,
   listOpportunitiesForOrg,
   listPublicOpportunities,
   updateOpportunity,
@@ -352,19 +350,23 @@ export function registerOpportunityRoutes(app: Express): void {
 
   /* ── Candidates ── */
 
-  app.get(
-    '/api/candidates',
-    asyncHandler(async (req, res) => {
-      const { specialty, state } = req.query;
-      const result = await listCandidates({
-        specialty: typeof specialty === 'string' ? specialty : undefined,
-        state: typeof state === 'string' ? state : undefined,
-        limit: parsePositiveInt(req.query.limit, 20),
-        offset: parsePositiveInt(req.query.offset, 0),
-      });
-      res.json(result);
-    }),
-  );
+  /*
+   * `/api/candidates` is REMOVED, not merely guarded.
+   *
+   * The handler served clinician records to any caller: it performed no
+   * identity check, while every sibling route in this file calls
+   * `requireClerkUserId` first. The Next.js proxy in front of it did require a
+   * session, which is why the gap was invisible from inside the app — the
+   * proxy was the only enforcement, and it is bypassable by addressing the API
+   * host directly.
+   *
+   * It is deleted rather than rebuilt behind authorization because its only
+   * consumer was an archived page. Re-adding an authorized candidate listing
+   * would restore attack surface that no shipping surface asks for. A future
+   * candidate-list API needs its own security and product review.
+   *
+   * `candidates-route-removed.test.ts` asserts this route stays absent.
+   */
 
   /* ── Admin: Seed launch opportunities ── */
   app.post(

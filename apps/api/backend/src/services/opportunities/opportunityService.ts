@@ -33,10 +33,12 @@ import {
 } from './opportunityTruth';
 import {
   buildCanonicalOrganizationIdentity,
-  describeOrganizationAuthorityRefusal,
   isPlaceholderOrganizationDomain,
-  resolveOrganizationAuthority,
 } from '../employers/employerIntegrity';
+import {
+  attachOrganizationToAccessRequest,
+  recordOrganizationAccessRequest,
+} from '../employers/organizationAccessGovernance';
 
 /* ── Types ─────────────────────────────────────────────────── */
 
@@ -222,17 +224,31 @@ export async function upsertOrgProfile(
 
   // ── Authority gate ───────────────────────────────────────────────────────
   // Creating an organization GRANTS the caller administrative membership over
-  // it, so it needs an authority signal. Previously this path required only a
+  // it, so it needs an authority signal. This path once required only a
   // signed-in account plus a self-typed name: an NPPES lookup proves the
   // organization EXISTS, never that this person may act for it, so anyone could
-  // take over any employer name. Self-serve now requires a work email at the
+  // take over any employer name. Self-serve requires a work email at the
   // organization's own domain; everything else routes to manual review.
-  const authority = resolveOrganizationAuthority({
+  //
+  // The decision is server-side and reads server-held facts: `user.email` comes
+  // from the User row keyed by the Clerk id, never from the request body.
+  //
+  // Every outcome is now DURABLE. A refusal used to throw a 403 and vanish,
+  // which made the refusal copy ("a VitalCV reviewer will verify your
+  // authority") a promise nothing kept — there was no queue to land in and no
+  // route to access for a legitimate operator at a different domain. Refusals
+  // become PENDING_REVIEW rows; grants are recorded with the basis they were
+  // granted on. Both emit an audit event and an outbox event.
+  const decision = await recordOrganizationAccessRequest({
+    clerkUserId,
     accountEmail: user.email,
+    requestedName: canonicalIdentity.displayName,
+    requestedNpi: normalizedNpi || null,
+    requestedWebsite: canonicalIdentity.website,
     organizationDomain: canonicalIdentity.domain,
   });
-  if (!authority.authorized) {
-    throw new HttpError(403, describeOrganizationAuthorityRefusal(authority.reason));
+  if (!decision.authorized) {
+    throw new HttpError(403, decision.refusal ?? 'Access request submitted for review.');
   }
 
   // An organization NPI identifies exactly one organization. Without this, the
@@ -250,6 +266,15 @@ export async function upsertOrgProfile(
     }
   }
 
+  // The website is caller-supplied, so a domain match proves the caller
+  // controls an address at a domain THEY named. That is a real signal about
+  // the domain and none at all about a Type 2 NPI — otherwise anyone with a
+  // work address at their own domain could send a hospital's real NPI and walk
+  // away with the hospital's federal identifier bound to their organization.
+  // The automatic grant therefore creates the organization WITHOUT the NPI;
+  // binding it is a separate reviewed decision (npiBindingGranted).
+  const npiToBind = decision.npiBindingGranted ? normalizedNpi : '';
+
   // Create new org + profile + membership
   const existingOrganization = await prisma.organization.findUnique({
     where: { slug: canonicalIdentity.slug },
@@ -265,7 +290,7 @@ export async function upsertOrgProfile(
       slug: canonicalIdentity.slug,
       organizationProfile: {
         create: {
-          ...(normalizedNpi ? { npi: normalizedNpi } : {}),
+          ...(npiToBind ? { npi: npiToBind } : {}),
           facilityType: input.facilityType ?? 'hospital',
           specialties: input.specialties ?? [],
           statesCovered: input.statesCovered ?? [],
@@ -313,6 +338,10 @@ export async function upsertOrgProfile(
       active: true,
     },
   });
+
+  // Close the loop: the access request now points at the organization it
+  // produced, so the record is a usable history rather than a loose intent.
+  await attachOrganizationToAccessRequest(decision.requestId, org.id);
 
   return { organizationId: org.id };
 }

@@ -1,19 +1,6 @@
-# Railway deploy ignore — keep upload under Cloudflare 100MB limit
-# Target: <100MB payload for Cloudflare proxy
-node_modules
-.next
-.next.*
-.git
-dist
-.vercel
-.turbo
-apps/web/.next
-apps/web/.next.*
-apps/mobile
-apps/marketing
-apps/api/ai-matcher-service
-blockchain
-docs/archive
-*.md
-!README.md
-!ARCHITECTURE.md
+# Railway CLI upload overrides. The CLI's ignore matcher does not honor the
+# root .gitignore's leading-slash anchor on /artifacts/, so it silently drops
+# apps/web/components/artifacts — tracked application source — from uploads.
+# Re-include it explicitly.
+!apps/web/components/artifacts
+!apps/web/components/artifacts/**

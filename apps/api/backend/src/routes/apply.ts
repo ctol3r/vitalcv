@@ -1,13 +1,9 @@
 /**
  * apply.ts — Apply-with-VitalCV Routes
  *
- * Routes:
- *   POST   /api/apply/bundle           — generate bundle (clinician-auth)
- *   GET    /api/apply/bundle/:bundleId — retrieve bundle (public, employer-consumable)
- *   POST   /api/apply/verify           — verify bundle integrity (public)
- *   POST   /api/apply/share            — Sign & Share with org context (clinician-auth)
- *   GET    /api/apply/shares/:npi      — list shares for a clinician (clinician-auth)
- *   DELETE /api/apply/share/:shareId   — revoke a share (clinician-auth)
+ * Legacy bundle/share routes remain available. Phase 2 also registers the
+ * canonical ParRequest-backed Apply Intent transaction routes through this
+ * module so the application bootstrap has one Apply registration point.
  */
 
 import type { Express, NextFunction, Request, Response } from 'express';
@@ -20,26 +16,34 @@ import {
   ShareValidationError,
 } from '../services/distribution/applyShareService';
 import { HttpError } from '../utils/httpError';
+import { requireVerifiedClerkUserId, requireNpiAuthorization } from '../middleware/verifiedActor';
+import { resolveRecipientForOpportunity } from '../services/distribution/recipientResolution';
 import { log } from '../obs/logger';
 import { emitLearningEvent } from '../services/feedback/prismaEventStore';
+import { registerApplyIntentRoutes } from './applyIntents';
 
 function asyncHandler(fn: (req: Request, res: Response, next: NextFunction) => Promise<void>) {
   return (req: Request, res: Response, next: NextFunction) => fn(req, res, next).catch(next);
 }
 
-function requireClerkUserId(req: Request): string {
-  const id = (req.headers['x-clerk-user-id'] as string | undefined)?.trim();
-  if (!id) throw new HttpError(401, 'Missing x-clerk-user-id header.');
-  return id;
-}
+/**
+ * C1 — every route below that discloses or revokes a clinician's evidence now
+ * derives identity from the VERIFIED Clerk session JWT, never from the
+ * browser-settable `x-clerk-user-id` header, and binds the acting user to the
+ * requested NPI via NpiOwnership. A forged header cannot authorize a share,
+ * and a signed-in user cannot act on another clinician's record.
+ *
+ * The old header-trusting helper is deliberately gone rather than left beside
+ * the new one: a helper that reads a client header is a foot-gun on this file.
+ */
 
 export function registerApplyRoutes(app: Express): void {
+  registerApplyIntentRoutes(app);
 
-  // ── POST /api/apply/bundle ─────────────────────────────────────────────────
   app.post(
     '/api/apply/bundle',
     asyncHandler(async (req, res) => {
-      requireClerkUserId(req);
+      const clerkUserId = requireVerifiedClerkUserId(req);
       const { npi, selectiveClaims } = req.body as {
         npi?: string;
         selectiveClaims?: string[];
@@ -47,12 +51,12 @@ export function registerApplyRoutes(app: Express): void {
       if (!npi || typeof npi !== 'string') {
         throw new HttpError(400, 'npi is required.');
       }
+      await requireNpiAuthorization(clerkUserId, npi, req);
       const bundle = await generateApplyBundle(npi, { selectiveClaims });
       res.status(201).json(bundle);
     }),
   );
 
-  // ── GET /api/apply/bundle/:bundleId ────────────────────────────────────────
   app.get(
     '/api/apply/bundle/:bundleId',
     asyncHandler(async (req, res) => {
@@ -67,7 +71,6 @@ export function registerApplyRoutes(app: Express): void {
     }),
   );
 
-  // ── POST /api/apply/verify ─────────────────────────────────────────────────
   app.post(
     '/api/apply/verify',
     asyncHandler(async (req, res) => {
@@ -83,38 +86,26 @@ export function registerApplyRoutes(app: Express): void {
     }),
   );
 
-  // ── POST /api/apply/share ──────────────────────────────────────────────────
-  /**
-   * Sign & Share a bundle to a specific organization.
-   *
-   * Body: {
-   *   npi: string,
-   *   organization_context: {
-   *     organization_id: string,
-   *     name: string,
-   *     callback_url?: string,
-   *     purpose_of_use: string,
-   *   },
-   *   selectiveClaims?: string[],
-   * }
-   *
-   * Returns: ShareResult — { success, shareId, bundleId, recipient, status,
-   *                          sharedAt, expiresAt, bundleUrl,
-   *                          webhookDelivered, emailSent }
-   */
   app.post(
     '/api/apply/share',
     asyncHandler(async (req, res) => {
-      const clerkUserId = requireClerkUserId(req);
-      const { npi, organization_context, selectiveClaims } = req.body as {
+      const clerkUserId = requireVerifiedClerkUserId(req);
+      const { npi, organization_context, selectiveClaims, opportunityId } = req.body as {
         npi?: string;
         organization_context?: unknown;
         selectiveClaims?: string[];
+        /** C3 — when the share comes from a chosen listing, the recipient is
+         *  resolved from it server-side rather than trusted from the body. */
+        opportunityId?: string;
       };
 
       if (!npi || typeof npi !== 'string') {
         throw new HttpError(400, 'npi is required.');
       }
+
+      // The share discloses THIS clinician's evidence — the caller must be
+      // authorized for the NPI, not merely signed in.
+      await requireNpiAuthorization(clerkUserId, npi, req);
 
       let orgCtx;
       try {
@@ -126,9 +117,30 @@ export function registerApplyRoutes(app: Express): void {
         throw err;
       }
 
+      /*
+       * C3 — when an opportunity is named, the recipient is a FACT about that
+       * listing, not a client assertion. resolveRecipientForOpportunity reads
+       * the opportunity's real organization, refuses a mismatch against what
+       * the client claimed, refuses a listing with no receiving organization,
+       * and refuses one that is no longer active. The resolved values then
+       * overwrite the client-supplied id and name.
+       */
+      if (opportunityId) {
+        const recipient = await resolveRecipientForOpportunity(
+          opportunityId,
+          orgCtx.organization_id,
+          orgCtx.purpose_of_use,
+        );
+        orgCtx = {
+          ...orgCtx,
+          organization_id: recipient.organizationId,
+          name: recipient.organizationName,
+          purpose_of_use: recipient.purposeOfUse,
+        };
+      }
+
       const result = await shareBundle(npi, clerkUserId, orgCtx, { selectiveClaims });
 
-      // Learning: track application submitted (fire-and-forget)
       emitLearningEvent({
         type: 'APPLICATION_SUBMITTED',
         providerId: npi,
@@ -141,6 +153,39 @@ export function registerApplyRoutes(app: Express): void {
     }),
   );
 
+  // ── GET /api/apply/credentials/:npi ───────────────────────────────────────
+  /**
+   * C1 — the credential list the Apply modal selects from.
+   *
+   * The modal previously read `/api/trust-state/:npi`, which is anonymous
+   * because the production homepage capsule needs it. But the modal renders
+   * CREDENTIAL HOLDINGS — issuer, status, expiry — which is exactly the
+   * compiled private state C2 exists to protect, so reaching it required no
+   * session at all.
+   *
+   * This route serves the same shape behind the verified-and-bound contract.
+   * The homepage's anonymous capsule route is deliberately left untouched:
+   * changing it would alter production, and its payload is the capsule's
+   * lane summary rather than a credential list.
+   */
+  app.get(
+    '/api/apply/credentials/:npi',
+    asyncHandler(async (req, res) => {
+      const clerkUserId = requireVerifiedClerkUserId(req);
+      const { npi } = req.params;
+      if (!/^\d{10}$/.test(npi)) {
+        throw new HttpError(400, 'npi must be a 10-digit NPI.');
+      }
+      await requireNpiAuthorization(clerkUserId, npi, req);
+      const bundle = await generateApplyBundle(npi, {});
+      res.json({
+        npi,
+        credentials: bundle.credentials ?? [],
+        trustState: bundle.trustState ?? null,
+      });
+    }),
+  );
+
   // ── GET /api/apply/shares/:npi ─────────────────────────────────────────────
   /**
    * List all shares for a clinician.
@@ -149,26 +194,23 @@ export function registerApplyRoutes(app: Express): void {
   app.get(
     '/api/apply/shares/:npi',
     asyncHandler(async (req, res) => {
-      requireClerkUserId(req);
+      const clerkUserId = requireVerifiedClerkUserId(req);
       const { npi } = req.params;
       if (!/^\d{10}$/.test(npi)) {
         throw new HttpError(400, 'npi must be a 10-digit NPI.');
       }
+      // Previously authenticated but UNBOUND — any signed-in user could read
+      // another clinician's share history.
+      await requireNpiAuthorization(clerkUserId, npi, req);
       const shares = await listSharesForNpi(npi);
       res.json({ shares });
     }),
   );
 
-  // ── DELETE /api/apply/share/:shareId ──────────────────────────────────────
-  /**
-   * Revoke a specific share. Only the original sharer (by clerkUserId) can revoke.
-   * The bundle itself is not deleted — it simply becomes marked revoked.
-   * The public /apply/[bundleId] page should check share revocation status.
-   */
   app.delete(
     '/api/apply/share/:shareId',
     asyncHandler(async (req, res) => {
-      const clerkUserId = requireClerkUserId(req);
+      const clerkUserId = requireVerifiedClerkUserId(req);
       const { shareId } = req.params;
 
       let result;
@@ -191,9 +233,15 @@ export function registerApplyRoutes(app: Express): void {
 
   log('info', 'apply_routes_registered', {
     routes: [
+      'POST   /api/apply/intents',
+      'GET    /api/apply/intents/:requestUri',
+      'POST   /api/apply/intents/:requestUri/submit',
+      'GET    /api/applications/:applicationId/handoff',
+      'GET    /api/handoffs/:handoffId/receipts',
       'POST   /api/apply/bundle',
       'GET    /api/apply/bundle/:bundleId',
       'POST   /api/apply/verify',
+      'GET    /api/apply/credentials/:npi',
       'POST   /api/apply/share',
       'GET    /api/apply/shares/:npi',
       'DELETE /api/apply/share/:shareId',

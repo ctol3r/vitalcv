@@ -1,30 +1,13 @@
-import { test, expect, type Page } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 
-/**
- * Wave 4 — the hero phase reaches the DOM and moves (contract §7).
- *
- * `__tests__/home-phase.test.tsx` pins the state machine as a pure function.
- * That is not evidence the marker is wired: the derivation can be perfect while
- * nothing renders it, or while the two reporters (`onStatusChange` from the
- * field, `onPhaseChange` from the result) are never connected. This drives the
- * real page and watches the attribute change.
- */
 const VALID_NPI = '1234567893';
-const NPI_FIELD = { name: /npi/i };
-const HERO_CTA = /check what.s ready/i;
 
-const root = (page: Page) => page.locator('[data-home-phase]');
-
-async function mockLookup(page: Page, opts: { bootstrapStatus?: number } = {}) {
+async function mockLookup(page: Page) {
   await page.route('**/api/identity/bootstrap/**', (route) =>
     route.fulfill({
-      status: opts.bootstrapStatus ?? 200,
+      status: 200,
       contentType: 'application/json',
-      body: JSON.stringify(
-        opts.bootstrapStatus && opts.bootstrapStatus >= 400
-          ? { error: 'Backend unavailable' }
-          : { firstName: 'MACIE', lastName: 'MILLER', specialty: 'Family Medicine', state: 'CA' },
-      ),
+      body: JSON.stringify({ firstName: 'MACIE', lastName: 'MILLER', specialty: 'Family Medicine', state: 'CA' }),
     }),
   );
   await page.route('**/api/trust-state/**', (route) =>
@@ -43,89 +26,63 @@ async function mockLookup(page: Page, opts: { bootstrapStatus?: number } = {}) {
   );
 }
 
-test.describe('hero phase choreography', () => {
-  test('starts idle and becomes active only when the visitor engages', async ({ page }) => {
+test.describe('evidence-film progression', () => {
+  test('uses a single scroll-driven film on eligible desktop', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto('/', { waitUntil: 'networkidle' });
 
-    // The server render — and therefore the no-JS floor — is idle.
-    await expect(root(page)).toHaveAttribute('data-home-phase', 'idle');
-
-    await page.getByRole('textbox', NPI_FIELD).fill('123');
-    await expect(root(page)).toHaveAttribute('data-home-phase', 'active');
-  });
-
-  test('advances to resolving, then resolved, and releases on reset', async ({ page }) => {
-    await mockLookup(page);
-    await page.goto('/', { waitUntil: 'networkidle' });
-
-    await page.getByRole('textbox', NPI_FIELD).fill(VALID_NPI);
-    const cta = page.getByRole('button', { name: HERO_CTA });
-    await expect(cta).toBeEnabled();
-    await cta.click();
-
-    // The sequence holds a minimum on-screen duration, so resolving is
-    // observable rather than a frame that races past.
-    await expect(root(page)).toHaveAttribute('data-home-phase', 'resolving');
-    await expect(root(page)).toHaveAttribute('data-home-phase', 'resolved', { timeout: 15_000 });
-
-    // Reset must release the phase with the result that produced it — a hero
-    // still claiming `resolved` over an empty field is the bug this catches.
-    //
-    // The released phase is `active`, not `idle`, and that is correct. Reset
-    // now returns FOCUS to the field; before Wave 5 it called `.focus()` on a
-    // ref that was still null, so focus silently stayed on `<body>` and the
-    // phase fell to `idle` as a side effect of that defect. A focused field is
-    // engagement by this derivation's own rule, so pinning the literal `idle`
-    // would re-assert the bug. What this test means is that no POST-SUBMIT
-    // phase survives the reset — so that is what it now asserts.
-    await page.getByRole('button', { name: /check another|reset|start over/i }).first().click();
-    await expect
-      .poll(() => root(page).getAttribute('data-home-phase'), { timeout: 5_000 })
-      .toMatch(/^(idle|active)$/);
-  });
-
-  /**
-   * The truth-carrying case: a failed lookup is a state of the SYSTEM. The
-   * markup must not offer a phase that a stylesheet could dress as an adverse
-   * finding about this clinician.
-   */
-  test('a registry outage reads as system-error, not as a finding', async ({ page }) => {
-    await mockLookup(page, { bootstrapStatus: 500 });
-    await page.goto('/', { waitUntil: 'networkidle' });
-
-    await page.getByRole('textbox', NPI_FIELD).fill(VALID_NPI);
-    const cta = page.getByRole('button', { name: HERO_CTA });
-    await expect(cta).toBeEnabled();
-    await cta.click();
-
-    await expect(root(page)).toHaveAttribute('data-home-phase', 'system-error', {
-      timeout: 15_000,
+    const film = page.locator('.film');
+    const track = page.locator('.film-stage-rail');
+    await expect(film).toHaveAttribute('data-film-mode', 'vertical'); // page-wide travel retired 2026-08-03
+    const before = await track.evaluate((element) => getComputedStyle(element).transform);
+    // Scroll INTO the sticky stage — that is where the rail travels now.
+    await page.evaluate(() => {
+      const spacer = document.querySelector('.film-stage-spacer');
+      const top = (spacer?.getBoundingClientRect().top ?? 0) + window.scrollY;
+      window.scrollTo(0, top + window.innerHeight);
     });
+    await expect.poll(() => track.evaluate((element) => getComputedStyle(element).transform)).not.toBe(before);
   });
 
-  /**
-   * RISK 1 — the decorative atmosphere reads the phase. It must never be able
-   * to describe a real person, so the phase itself may not carry the lookup.
-   */
-  test('the phase marker never carries the submitted NPI or identity', async ({ page }) => {
+  test('uses the same complete vertical document for reduced motion and mobile', async ({ browser }) => {
+    const reduced = await browser.newContext({ reducedMotion: 'reduce', viewport: { width: 1440, height: 900 } });
+    const reducedPage = await reduced.newPage();
+    await reducedPage.goto('/', { waitUntil: 'networkidle' });
+    await expect(reducedPage.locator('.film')).toHaveAttribute('data-film-mode', 'vertical');
+    await expect(reducedPage.locator('[data-film-scene]')).toHaveCount(5);
+    await reduced.close();
+
+    const mobile = await browser.newContext({ viewport: { width: 390, height: 844 } });
+    const mobilePage = await mobile.newPage();
+    await mobilePage.goto('/', { waitUntil: 'networkidle' });
+    await expect(mobilePage.locator('.film')).toHaveAttribute('data-film-mode', 'vertical');
+    await expect(mobilePage.locator('[data-film-scene]')).toHaveCount(5);
+    await mobile.close();
+  });
+
+  test('releases the film for a real answer and restores it after reset', async ({ page }) => {
     await mockLookup(page);
+    await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto('/', { waitUntil: 'networkidle' });
 
-    await page.getByRole('textbox', NPI_FIELD).fill(VALID_NPI);
-    await page.getByRole('button', { name: HERO_CTA }).click();
-    await expect(root(page)).toHaveAttribute('data-home-phase', 'resolved', { timeout: 15_000 });
+    // Page-wide horizontal travel is RETIRED (founder directive, 2026-08-03):
+    // the document scrolls vertically and horizontal movement happens inside a
+    // sticky chapter stage instead. `vertical` is therefore the correct and
+    // only mode. Asserting 'film' here would be a guard enforcing doctrine that
+    // was deliberately withdrawn.
+    await expect(page.locator('.film')).toHaveAttribute('data-film-mode', 'vertical');
+    await page.locator('#film-npi-input').fill(VALID_NPI);
+    await page.locator('.film-npi-submit').click();
+    await expect(page.getByText('Macie Miller')).toBeVisible({ timeout: 20_000 });
+    await expect(page.locator('.film')).toHaveAttribute('data-film-mode', 'vertical');
 
-    const attrs = await root(page).evaluate((el) =>
-      Object.fromEntries(
-        Array.from(el.attributes)
-          .filter((a) => a.name.startsWith('data-home'))
-          .map((a) => [a.name, a.value]),
-      ),
-    );
-    const serialised = JSON.stringify(attrs);
-    expect(serialised).not.toContain(VALID_NPI);
-    expect(serialised.toLowerCase()).not.toContain('macie');
-    expect(serialised.toLowerCase()).not.toContain('miller');
-    expect(attrs['data-home-phase']).toBe('resolved');
+    await page.getByRole('button', { name: /check another npi/i }).click();
+    await expect(page.locator('#film-npi-input')).toBeFocused();
+    // Page-wide horizontal travel is RETIRED (founder directive, 2026-08-03):
+    // the document scrolls vertically and horizontal movement happens inside a
+    // sticky chapter stage instead. `vertical` is therefore the correct and
+    // only mode. Asserting 'film' here would be a guard enforcing doctrine that
+    // was deliberately withdrawn.
+    await expect(page.locator('.film')).toHaveAttribute('data-film-mode', 'vertical');
   });
 });

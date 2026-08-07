@@ -95,7 +95,7 @@ export default function EcosystemHomeClient({ entityId }: { entityId: string }) 
       <main className="mx-auto flex min-h-[60vh] w-full max-w-sm flex-col items-center justify-center gap-4 px-4 text-center">
         <h1 className="text-lg font-semibold text-foreground">Ecosystem not available</h1>
         <p className="text-sm text-muted-foreground">Run a readiness check to generate this clinician&apos;s source-backed career snapshot.</p>
-        <Link href="/passport" className="inline-flex h-11 items-center justify-center rounded-full bg-foreground px-5 text-sm font-medium text-background">Check readiness</Link>
+        <Link href="/onboarding" className="inline-flex h-11 items-center justify-center rounded-full bg-foreground px-5 text-sm font-medium text-background">Check readiness</Link>
       </main>
     );
   }

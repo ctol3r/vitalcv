@@ -33,6 +33,7 @@
  * the type and is populated only from real data; today nothing populates it.
  */
 
+import type { ProvenanceState } from '@/design-system/components/ProvenanceChip';
 import type { TrustState } from '@/components/readiness/sourceCheckNarration';
 import { SOURCE_LANE_OPS } from '@/lib/trust/sourceLanes';
 
@@ -65,6 +66,16 @@ export interface EvidenceRow {
   /** Only ever set from real response data. Nothing populates it today. */
   observedAt: string | null;
   kind: EvidenceRowKind;
+  /**
+   * The row's own state, in the canonical provenance vocabulary.
+   *
+   * Set EXPLICITLY at each construction site below, never derived in a view.
+   * A renderer that inferred "this came back from a monthly file, so call it
+   * checked" would be making a truth claim in a presentation layer — which is
+   * how the group-heading bug this module was written to kill got in. The
+   * place that knows what a source actually said is the place that says it.
+   */
+  state: ProvenanceState;
 }
 
 export interface EvidenceCapsuleModel {
@@ -145,6 +156,7 @@ export function buildEvidenceCapsule(
       limitation: 'The registry lists the provider record. It does not attest to current practice.',
       observedAt: null,
       kind: 'returned',
+      state: 'checked',
     });
   }
 
@@ -159,6 +171,7 @@ export function buildEvidenceCapsule(
       limitation: 'A monthly file cannot show an exclusion published after it was compiled.',
       observedAt: null,
       kind: 'returned',
+      state: 'checked',
     });
   } else if (trust?.exclusionStatus === 'EXCLUDED') {
     rows.push({
@@ -170,6 +183,7 @@ export function buildEvidenceCapsule(
       limitation: 'Identity matching is by name and NPI. Confirm against the source record.',
       observedAt: null,
       kind: 'attention',
+      state: 'reviewRequired',
     });
   } else if (trust?.exclusionStatus === 'UNCHECKED') {
     rows.push({
@@ -181,6 +195,7 @@ export function buildEvidenceCapsule(
       limitation: null,
       observedAt: null,
       kind: 'unavailable',
+      state: 'pending',
     });
   }
 
@@ -195,6 +210,7 @@ export function buildEvidenceCapsule(
       limitation: 'A quarterly snapshot can lag a recent enrollment change.',
       observedAt: null,
       kind: 'returned',
+      state: 'checked',
     });
   } else if (trust?.pecosStatus === 'NOT_FOUND') {
     rows.push({
@@ -206,6 +222,7 @@ export function buildEvidenceCapsule(
       limitation: 'A quarterly snapshot can lag a recent enrollment change.',
       observedAt: null,
       kind: 'attention',
+      state: 'notFound',
     });
   }
 
@@ -221,6 +238,7 @@ export function buildEvidenceCapsule(
       limitation: null,
       observedAt: null,
       kind: 'attention',
+      state: 'reviewRequired',
     });
   }
 
@@ -238,6 +256,7 @@ export function buildEvidenceCapsule(
       limitation: 'VitalCV has no board or FSMB access for this lane yet.',
       observedAt: null,
       kind: 'unavailable',
+      state: 'accessRequired',
     });
   }
 

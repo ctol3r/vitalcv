@@ -1,187 +1,70 @@
-import { test, expect, type Page, type Route } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 /**
- * Wave 4, D2 — what the hero phase SPENDS, at runtime.
+ * Evidence-film atmosphere is orientation, not product state. Pointer movement
+ * never impersonates a custom cursor, turns a source lane into a result, or
+ * breaks the vertical fallback.
  *
- * `home-phase.spec.ts` (D1) drives the phase itself. This drives the half no
- * unit test can see: the decorative layer is a PRECEDING SIBLING of the phase
- * carrier, so it is matched with `:has()` plus a sibling combinator. A DOM-order
- * change or a dropped `data-home-atmosphere` handle would silently stop the page
- * responding while every stylesheet assertion stayed green — proven by removing
- * the handle, which leaves the unit suite passing and turns these red.
+ * The #1060 recovery RETIRED the pointer-tracked reading light (`.film-readinglight`)
+ * and the atmosphere canvas outright — there is no ambient layer on this route
+ * any more. The assertions that named those mechanisms are gone with them; the
+ * ones that survive are the ones about what a reader actually gets: no cursor
+ * follower, a six-lane record stamped with its true pre-lookup state, and no
+ * clipping at any supported width.
  */
 
-const VALID_NPI = '1234567893';
+test.describe('home evidence-film atmosphere', () => {
+  test('adds no cursor follower and stamps every lane in the opening record', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto('/', { waitUntil: 'networkidle' });
+    // Page-wide horizontal travel is RETIRED (founder directive, 2026-08-03):
+    // the document scrolls vertically and horizontal movement happens inside a
+    // sticky chapter stage instead. `vertical` is therefore the correct and
+    // only mode. Asserting 'film' here would be a guard enforcing doctrine that
+    // was deliberately withdrawn.
+    await expect(page.locator('.film')).toHaveAttribute('data-film-mode', 'vertical');
 
-async function mockClean(page: Page) {
-  await page.route('**/api/identity/bootstrap/**', (r) =>
-    r.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({
-        firstName: 'MACIE',
-        lastName: 'MILLER',
-        specialty: 'Family Medicine',
-        state: 'CA',
-        identitySource: 'NPPES_API',
-      }),
-    }),
-  );
-  await page.route('**/api/trust-state/**', (r) =>
-    r.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({
-        identityVerified: true,
-        exclusionStatus: 'CLEAR',
-        pecosStatus: 'ENROLLED',
-        licensureStatus: 'unknown',
-        blockers: [],
-        nextActions: [],
-      }),
-    }),
-  );
-}
-
-async function mockDown(page: Page) {
-  const down = (route: Route) =>
-    route.fulfill({ status: 500, contentType: 'application/json', body: '{"error":"down"}' });
-  await page.route('**/api/identity/bootstrap/**', down);
-  await page.route('**/api/trust-state/**', down);
-}
-
-const phaseOf = (page: Page) =>
-  page.locator('[data-home-phase]').first().getAttribute('data-home-phase');
-
-/** Computed opacity of the decorative layer — what the phase actually spends. */
-const atmosphere = (page: Page) =>
-  page.evaluate(() => {
-    const el = document.querySelector('[data-home-atmosphere]');
-    return el ? Number.parseFloat(getComputedStyle(el).opacity) : null;
+    await page.locator('.film-stage').hover({ position: { x: 980, y: 430 } });
+    // RETIRED: `.film-readinglight` visible — the reading light was removed in
+    // the #1060 recovery and has no successor mechanism to assert.
+    await expect(page.locator('[data-vt-cursor], .vt-cursor')).toHaveCount(0);
+    // Was `.film-record .film-panel-stamp` ×6: the record is `.film-summon` and
+    // each lane's stamp is a ProvenanceChip carrying `data-provenance-state`.
+    await expect(page.locator('.film-summon [data-provenance-state]')).toHaveCount(6);
   });
 
-/**
- * Type into the field in a way React actually observes.
- *
- * On the server-rendered input, `fill()` sets the DOM value without React ever
- * seeing an `onChange`, so `onStatusChange` never fires and the phase stays
- * `idle` — legitimately.
- *
- * This took two attempts, and the second is why every `goto` in this file waits
- * on `networkidle` rather than `domcontentloaded`. Clicking first is enough
- * against a PRODUCTION build, where hydration is quick — that is the form this
- * shipped in, and it passed CI. Against the dev server the suite runs on
- * locally, hydration lands later still: the click landed on a control with no
- * handler attached, the fill bypassed React again, and all three cases failed
- * while CI stayed green. `networkidle` is what the sibling `home-phase.spec.ts`
- * uses and the only wait here that survives both servers.
- */
-async function typeNpi(page: Page, value: string) {
-  const field = page.getByRole('textbox', { name: /npi/i });
-  await field.click();
-  await field.fill(value);
-}
-
-async function submit(page: Page, npi = VALID_NPI) {
-  await typeNpi(page, npi);
-  const cta = page.getByRole('button', { name: /check what.s ready/i });
-  await expect(cta).toBeEnabled();
-  await cta.click();
-}
-
-test.describe('home atmosphere', () => {
-  test('recedes as the reader commits', async ({ page }) => {
-    await mockClean(page);
-    await page.goto('/', { waitUntil: 'networkidle' });
-    const idle = await atmosphere(page);
-
-    await typeNpi(page, '12345');
-    await expect
-      .poll(() => phaseOf(page), { timeout: 5_000 })
-      .toBe('active');
-    await page.waitForTimeout(500);
-    const active = await atmosphere(page);
-
-    await submit(page);
-    await expect(page.locator('[data-evidence-group]').first()).toBeVisible({ timeout: 20_000 });
-    await page.waitForTimeout(600);
-    const resolved = await atmosphere(page);
-
-    // Strictly monotonic. This is the assertion that proves the `:has()` reach
-    // works — if the selector stopped matching, all three would be equal.
-    expect(idle).toBeGreaterThan(active as number);
-    expect(active).toBeGreaterThan(resolved as number);
-    // Still present, never removed: it is atmosphere, not a toggle.
-    expect(resolved).toBeGreaterThan(0);
-  });
-
-  test('is exactly as quiet after a failure as after a success', async ({ page }) => {
-    // The load-bearing honesty property. If a system error left the page
-    // brighter or darker than a success, the decoration would be reporting an
-    // outcome no source returned.
-    await mockClean(page);
-    await page.goto('/', { waitUntil: 'networkidle' });
-    await submit(page);
-    await expect(page.locator('[data-evidence-group]').first()).toBeVisible({ timeout: 20_000 });
-    await page.waitForTimeout(600);
-    const onSuccess = await atmosphere(page);
-
-    await mockDown(page);
-    await page.goto('/', { waitUntil: 'networkidle' });
-    await submit(page);
-    await expect.poll(() => phaseOf(page), { timeout: 20_000 }).toBe('system-error');
-    await page.waitForTimeout(600);
-    const onError = await atmosphere(page);
-
-    expect(onError).toBeCloseTo(onSuccess as number, 3);
-  });
-
-  test('reduced motion lands on the same end state, with nothing animating', async ({ page }) => {
+  test('retains the complete evidence record under reduced motion', async ({ page }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' });
-    await mockClean(page);
+    await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto('/', { waitUntil: 'networkidle' });
-    await submit(page);
-    await expect(page.locator('[data-evidence-group]').first()).toBeVisible({ timeout: 20_000 });
-    await expect.poll(() => phaseOf(page), { timeout: 5_000 }).toBe('resolved');
 
-    // The recession still happened — it simply did not animate.
-    expect(await atmosphere(page)).toBeLessThan(0.62);
-    expect(await page.evaluate(() => document.getAnimations().length)).toBe(0);
+    await page.mouse.move(980, 430);
+    // RETIRED: `.film-readinglight` count 0 — nothing tracks the pointer now,
+    // so there is no reduced-motion suppression left to prove.
+    await expect(page.locator('[data-vt-cursor], .vt-cursor')).toHaveCount(0);
+    await expect(page.locator('.film')).toHaveAttribute('data-film-mode', 'vertical');
+    await expect(page.locator('.film-summon .film-strip')).toHaveCount(6);
   });
-});
 
-test.describe('decorative words are never rendered clipped', () => {
-  // At 768px the artwork is 70rem wide, so every perimeter label was sliced by
-  // the viewport edge and the caption crossed the employer link. The band
-  // between the phone breakpoint and 900px was the only one not dropping them.
-  for (const width of [360, 390, 768, 899, 1080, 1440]) {
-    test(`no clipped decoration at ${width}px`, async ({ page }) => {
+  test('keeps visual artifacts within the viewport at supported widths', async ({ page }) => {
+    await page.goto('/', { waitUntil: 'networkidle' });
+    for (const width of [360, 390, 768, 899, 1080, 1440]) {
       await page.setViewportSize({ width, height: 1000 });
-      await page.goto('/', { waitUntil: 'networkidle' });
-      await page.waitForTimeout(600);
+      await page.waitForTimeout(150);
+      await page.evaluate(() => window.scrollTo({ top: 0 }));
 
-      const clipped = await page.evaluate(() =>
-        [
-          ...document.querySelectorAll(
-            '.cinematic-evidence-field__label, .cinematic-evidence-field__caption',
-          ),
-        ]
-          .filter((el) => getComputedStyle(el).display !== 'none')
-          .map((el) => {
-            const b = el.getBoundingClientRect();
-            return {
-              text: (el.textContent ?? '').trim(),
-              clipped: b.width > 0 && (b.x < 0 || b.right > window.innerWidth),
-            };
-          })
-          .filter((n) => n.clipped)
-          .map((n) => n.text),
+      const overflow = await page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth + 1,
       );
+      expect(overflow, `horizontal overflow at ${width}px`).toBe(true);
 
-      expect(clipped).toEqual([]);
-      expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
-        width + 1,
-      );
-    });
-  }
+      const arrival = page.locator('[data-film-scene="arrival"] .film-strip');
+      await expect(arrival).toHaveCount(6);
+      for (const lane of await arrival.all()) {
+        const box = await lane.boundingBox();
+        expect(box?.x ?? -1, `lane clipped left at ${width}px`).toBeGreaterThanOrEqual(-1);
+        expect(box ? box.x + box.width : width + 1, `lane clipped right at ${width}px`).toBeLessThanOrEqual(width + 1);
+      }
+    }
+  });
 });

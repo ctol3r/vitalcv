@@ -6,8 +6,6 @@ import {
   PUBLIC_WEDGE_ROUTE_TARGETS,
   PUBLIC_WEDGE_SURFACE_STATES,
   buildEmployerReviewHref,
-  buildPassportEntityHref,
-  buildPassportLookupHref,
   getPublicWedgeSurfaceStateLabel,
   isPublicWedgeStrongOutcome,
   resolvePublicWedgeSurfaceStateFromAccordionStatus,
@@ -37,12 +35,7 @@ function buildTruth(
 }
 
 describe('public wedge parity helpers', () => {
-  it('keeps homepage, passport, and review routes on one shared helper contract', () => {
-    expect(buildPassportLookupHref('1234567890')).toBe(
-      `${PUBLIC_WEDGE_ROUTE_TARGETS.passportEntry}?npi=1234567890`,
-    );
-    expect(buildPassportLookupHref(null)).toBe(PUBLIC_WEDGE_ROUTE_TARGETS.passportEntry);
-    expect(buildPassportEntityHref('entity_123')).toBe('/passport/entity_123');
+  it('keeps the employer review href on the shared helper contract', () => {
     expect(buildEmployerReviewHref('entity_123', {
       contextId: 'ctx_abc123',
       bundleId: 'bundle_123',
@@ -96,7 +89,7 @@ describe('public wedge parity helpers', () => {
     expect(isPublicWedgeStrongOutcome('preview_only')).toBe(false);
   });
 
-  it('keeps shared wedge state labels explicit across homepage, passport, review, and request surfaces', () => {
+  it('keeps shared wedge state labels explicit across homepage, review, and request surfaces', () => {
     expect(
       PUBLIC_WEDGE_SURFACE_STATES.map((state) => [state, getPublicWedgeSurfaceStateLabel(state)]),
     ).toEqual([

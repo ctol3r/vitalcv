@@ -44,8 +44,10 @@ export function DailyBriefView({ streak, items, isNewDay, onSeen }: DailyBriefVi
         <span className="mz-mono" style={{ fontSize: 12, color: 'var(--ink-600)', letterSpacing: '0.04em' }}>
           {streakLine} · you&rsquo;re up to date
         </span>
+        {/* The count carried a 🔥 — emoji as UI, which CD-13 retires. The
+            number is the fact; the flame was a reaction to it. */}
         <span className="mz-mono" style={{ fontSize: 20, fontWeight: 600, color: 'var(--ink-900)', fontVariantNumeric: 'tabular-nums' }}>
-          {streak > 1 ? `${streak}🔥` : ''}
+          {streak > 1 ? `${streak}` : ''}
         </span>
       </div>
     );
@@ -63,7 +65,7 @@ export function DailyBriefView({ streak, items, isNewDay, onSeen }: DailyBriefVi
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '16px 20px', borderBottom: '1px solid var(--rule)' }}>
           <span className="mz-eyebrow">MATCHA today</span>
           <span className="mz-mono" style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-700)', letterSpacing: '0.04em' }}>
-            {streak > 1 ? `${streak}-day streak 🔥` : 'Day 1'}
+            {streak > 1 ? `${streak}-day streak` : 'Day 1'}
           </span>
         </div>
 

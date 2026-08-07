@@ -11,7 +11,8 @@ import { buildWebAppUrl } from '../../lib/webAppUrl';
  * Flow:
  * 1. User enters 10-digit NPI
  * 2. On submit → POST to /api/npi/:npi
- * 3. If exists → route to the canonical passport surface on the web app
+ * 3. If exists → route to the canonical clinician entry (/onboarding) on the
+ *    web app, carrying ?npi= so the record resolves without re-typing
  * 4. If not found → inline "NPI not found" error
  * 5. If network error → graceful inline message
  *
@@ -68,8 +69,9 @@ export function NpiInput() {
         const data: { exists: boolean } = await res.json();
 
         if (data.exists) {
-          // Route to the real live wedge on vitalcv.com
-          window.location.href = buildWebAppUrl('/passport', `?npi=${encodeURIComponent(value)}`);
+          // Route to the canonical clinician entry on vitalcv.com (/passport
+          // retired 2026-08-07); ?npi= prefills the record-first guest lane.
+          window.location.href = buildWebAppUrl('/onboarding', `?npi=${encodeURIComponent(value)}`);
         } else {
           setError('NPI not found');
         }

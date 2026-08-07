@@ -28,21 +28,14 @@ import type {
 import { isLive } from './types';
 import { getRuntimeState } from './runtimeState';
 
-const PHYSICIAN_PROFESSIONS: readonly Profession[] = [
-  'PHYSICIAN_MD',
-  'PHYSICIAN_DO',
-  'PHYSICIAN_ASSISTANT',
-];
+// Imported for local use AND re-exported. Moving the definitions to a leaf
+// module broke a sourceRouter <-> runtimeState init cycle; see professions.ts.
+// The re-export preserves every existing import path; the plain import is what
+// binds the names in THIS module's scope, which a bare `export … from` does not
+// do and which the routing predicates below rely on.
+import { isNursingProfession, isPhysicianProfession } from './professions';
 
-const NURSING_PROFESSIONS: readonly Profession[] = ['RN', 'LPN_VN', 'APRN'];
-
-export function isPhysicianProfession(profession: Profession): boolean {
-  return PHYSICIAN_PROFESSIONS.includes(profession);
-}
-
-export function isNursingProfession(profession: Profession): boolean {
-  return NURSING_PROFESSIONS.includes(profession);
-}
+export { isNursingProfession, isPhysicianProfession } from './professions';
 
 /** Freshness windows, in hours, by route kind. */
 const FRESHNESS_WINDOW_HOURS: Record<LicensureRouteKind, number> = {

@@ -113,14 +113,32 @@ export const SOURCE_LANE_OPS: readonly SourceLaneOps[] = [
   },
   {
     laneId: 'state_license',
+    // `laneId` and `statusApiKey` stay `state_license`: both are public payload
+    // keys that external consumers and `status-source-lanes.test.ts` pin by
+    // exact string. Renaming an identifier to fix a display label would be a
+    // breaking change to a public contract for a copy problem.
     lifecycle: 'planned',
     statusApiKey: 'state_license',
     statusApiStatus: 'pending_integration',
-    detail: 'Launch-state board lane requires live board or FSMB institutional access.',
+    detail:
+      'Licensure is routed nationally (FSMB for physicians, Nursys for nursing) with direct boards as a fallback. No licensure route has completed a production run, so no license record can be read today.',
     readCadence: 'not_read',
     cadenceLabel: 'access-gated',
     readinessDimension: 'licensure',
-    marketingShortName: 'State board',
+    // Was `State board`, which was narrower than the truth in the direction that
+    // flatters us least AND misdescribes the architecture: the primary path is a
+    // NATIONAL network (FSMB / Nursys), not fifty state boards. Reading "State
+    // board — access required" a visitor concludes we are blocked on fifty
+    // separate agreements, when we are blocked on one or two.
+    //
+    // The scope-aware, self-correcting form lives in `@vitalcv/licensure`
+    // (`coverageLabel`), which derives "… — national source access pending" from
+    // `countLiveRoutes()` and flips to "… — nationwide FSMB coverage" only once a
+    // route has actually completed a production run. Surfaces that know a
+    // profession should render THAT via `buildPublicSourceStates({ licensureLabel })`.
+    // This static value is the profession-agnostic fallback for the public
+    // register, which has no clinician in scope.
+    marketingShortName: 'Licensure',
   },
   {
     laneId: 'pecos_enrollment',
