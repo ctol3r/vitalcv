@@ -30,6 +30,18 @@ import { SOURCE_LANE_OPS } from '@/lib/trust/sourceLanes';
  *    "early, never a footnote" for procurement readers. This is the
  *    reconciliation — final placement is a founder visual gate decision.
  *
+ * REVISION 2 (founder visual gate, 2026-08-07): the restructure was approved;
+ * the hierarchy was not. The evidence-led H1 ("Start clinicians from
+ * source-backed evidence") sold the trust machinery as the product. The
+ * canonical employer direction is the hiring experience — find clinicians,
+ * see what is known, watch what remains, move the hire toward start — with
+ * attribution entering immediately beneath as the reason the experience can
+ * be trusted. Organization access is framed as the doorway in, not the value
+ * proposition, and the audience section was recomposed from six cards in two
+ * grids to two hairline row lists. No quantitative speed claim anywhere: the
+ * brand split (2026-07-26) still bans pace language, and this page describes
+ * the work, not the clock.
+ *
  * Step 1 remains a REQUEST for organization access, never a claim: resolving a
  * Type 2 NPI against NPPES establishes which organization is meant, not
  * authority to act for it, and the server refuses on that basis
@@ -51,7 +63,7 @@ export const revalidate = 300;
 export const metadata: Metadata = {
   title: 'For Employers · VitalCV',
   description:
-    'Start clinicians from source-backed evidence — review consented, attributable packets, see remaining requirements up front, and keep the final decision. Request access to your organization to begin.',
+    'Move a clinician hire from interest to start — see what is already known, what remains, and who owns the next step, with every answer named to its source. The hiring decision stays yours.',
 };
 
 /** Lane-truth cadences, from the registry — never hand-typed on this page. */
@@ -75,19 +87,33 @@ export default function EmployersPage() {
         <header className="mb-5">
           <p className="mz-eyebrow">For employers &amp; verifiers</p>
           <h1 className="mz-h1" style={{ marginTop: 12, maxWidth: 680 }}>
-            Start clinicians from <span className="mz-accent">source-backed evidence</span>.
+            Move a clinician hire from interest to <span className="mz-accent">start</span>.
           </h1>
           <p className="mz-lede" style={{ marginTop: 12, maxWidth: 620 }}>
-            A clinician arrives with a consented, attributable evidence packet — identity,
-            exclusions, enrollment, each answer named to its source. You see requirements and
-            remaining blockers up front, instead of opening another document chase.
+            The clinician arrives with a profile they have already built and reviewed. You see
+            what is known, what remains, and who owns the next step — and the hiring decision
+            stays yours.
+          </p>
+          {/* Evidence enters here, immediately under the experience, as the
+              reason it can be trusted — not as the proposition itself
+              (REVISION 2). */}
+          <p className="mz-small" style={{ marginTop: 10, maxWidth: 620 }}>
+            What makes that reviewable is attribution: identity, exclusions, and enrollment
+            answers arrive named to their public source, dated, with what has not been checked
+            listed beside them.
           </p>
           {/* One action in the opening viewport, and it is a real route: the
-              page makes the case, /employers/request-access takes the request. */}
+              page makes the case, /employers/request-access takes the request.
+              The caption keeps the mechanism in its place — a doorway, not
+              the reason the product exists. */}
           <p style={{ marginTop: 20 }}>
             <Link href="/employers/request-access" className="mz-btn">
               Request organization access
             </Link>
+          </p>
+          <p className="mz-mono mt-2 text-[12px] leading-relaxed text-[var(--vt-text-muted)]">
+            Organization access is the doorway in, not the product — resolve your organization
+            against the federal registry and ask to begin.
           </p>
         </header>
 
@@ -173,8 +199,9 @@ export default function EmployersPage() {
             Request access to your organization
           </h2>
           <p className="mz-small" style={{ marginTop: 4, marginBottom: 16, maxWidth: 620 }}>
-            Resolve your organization against the federal registry and request access — a request
-            that has to be granted, never a claim.
+            The doorway into the employer experience: resolve your organization against the
+            federal registry and request access — a request that has to be granted, never a
+            claim.
           </p>
           <p>
             <Link href="/employers/request-access" className="mz-btn">

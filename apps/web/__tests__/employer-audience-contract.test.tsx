@@ -26,8 +26,20 @@ describe('/employers is a page, not a redirect', () => {
     expect(markup).toContain('data-employer-audience');
   });
 
-  it('leads with the buyer outcome, stated without a speed claim', () => {
-    expect(text).toContain('Start clinicians from source-backed evidence');
+  it('leads with the hiring experience, with evidence beneath it as proof', () => {
+    // REVISION 2 (founder visual gate, 2026-08-07): the previous pin here was
+    // "Start clinicians from source-backed evidence" — an H1 that sold the
+    // trust machinery as the product. The canonical employer direction leads
+    // with what the employer accomplishes; attribution enters immediately
+    // after as the reason it can be trusted. Both halves are pinned so
+    // neither the experience lead nor the proof line can quietly vanish.
+    expect(text).toContain('Move a clinician hire from interest to start');
+    expect(text).toContain('the hiring decision stays yours');
+    expect(text).toContain('named to their public source');
+  });
+
+  it('frames organization access as the doorway, not the proposition', () => {
+    expect(text).toContain('Organization access is the doorway');
   });
 
   // This assertion replaces one named "still leads with the employer speed

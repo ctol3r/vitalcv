@@ -34,10 +34,12 @@ export interface EmployerTeam {
   roles: readonly string[];
 }
 
+// Bodies are single sentences by REVISION 2 (founder visual gate, 2026-08-07):
+// the section moved from cards to rows, and a row earns one sentence.
 export const EMPLOYER_TEAMS: readonly EmployerTeam[] = [
   {
     team: 'Credentialing & medical staff services',
-    body: 'The file starts populated instead of empty. Identity, exclusions, and enrollment answers each arrive named to the source that returned them, with the date it was read — and an explicit list of what has not been checked.',
+    body: 'The file starts populated — each answer named to the source that returned it and dated, with an explicit list of what has not been checked.',
     roles: [
       'medical staff services professional (MSP)',
       'credentialing specialist',
@@ -47,12 +49,12 @@ export const EMPLOYER_TEAMS: readonly EmployerTeam[] = [
   },
   {
     team: 'Recruitment & talent acquisition',
-    body: 'See what a candidate still has outstanding before the offer rather than after it, so the start date you commit to is grounded in what is actually left to resolve.',
+    body: 'See what a candidate still has outstanding before the offer, so the start date you commit to reflects what is actually left.',
     roles: ['recruiter', 'sourcer', 'talent acquisition manager'],
   },
   {
     team: 'HR & onboarding',
-    body: 'One consented record carries into onboarding, so the first week is not a second discovery process for documents the clinician has already shared once.',
+    body: 'One consented record carries into onboarding instead of a second document collection in week one.',
     roles: ['HR generalist', 'onboarding coordinator', 'people operations'],
   },
 ];
@@ -72,19 +74,19 @@ export const EMPLOYER_ORG_SIZES: readonly EmployerOrgSize[] = [
   {
     band: 'Single practice or clinic',
     situation: 'No credentialing department — the office manager is the credentialing team.',
-    body: 'You get the same evidence packet a health system gets, with the same sources named and the same gaps listed. No CVO contract, no integration, and nothing to install.',
+    body: 'The same evidence packet a health system gets, sources named and gaps listed. No CVO contract, nothing to install.',
     action: { label: 'Request organization access', href: '/employers/request-access' },
   },
   {
     band: 'Provider group, staffing firm, MSO or DSO',
     situation: 'Multi-state, high volume, and paying for agency or locum cover while files sit.',
-    body: 'A clinician gathers their evidence once and carries it, so the same source lanes are not re-verified from scratch at every placement. Expirables and re-credentialing dates travel with the record instead of being rediscovered.',
+    body: 'Evidence gathered once travels between placements; expirables and re-credentialing dates travel with the record instead of being rediscovered.',
     action: { label: 'Request organization access', href: '/employers/request-access' },
   },
   {
     band: 'Hospital or health system',
     situation: 'You already run a CVO, an applicant tracking system, and a credentialing committee.',
-    body: 'VitalCV gives the committee file a head start — the source-backed evidence assembled before intake opens. It does not replace primary source verification you are required to perform, and appointment and privileging decisions stay with medical staff services.',
+    body: 'A head start for the committee file. It does not replace primary source verification you are required to perform, and appointment and privileging decisions stay with medical staff services.',
     action: { label: 'Request a pilot', href: '/pilot' },
   },
 ];

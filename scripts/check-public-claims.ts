@@ -41,10 +41,15 @@ const PROHIBITED_CLAIMS: ReadonlyArray<{ phrase: string; fix: string }> = [
   // not months'" as the fix for `hire instantly`. That advice was itself the
   // retired claim, so the gate was steering copy toward the thing it exists to
   // stop. Fix text is doctrine too.
-  { phrase: 'hire instantly', fix: 'Do not promise speed — describe the evidence, e.g. "start clinicians from source-backed evidence".' },
-  { phrase: 'start clinicians faster', fix: 'Speed hero retired (brand split 2026-07-26) — say "start clinicians from source-backed evidence".' },
-  { phrase: 'clinicians start faster', fix: 'Speed hero retired (brand split 2026-07-26) — describe the evidence, not the pace.' },
-  { phrase: 'start faster', fix: 'Speed hero retired (brand split 2026-07-26) — say "start from evidence".' },
+  // Fix text updated at REVISION 2 of the employer doorway (2026-08-07): the
+  // earlier advice here — say "start clinicians from source-backed evidence" —
+  // was itself retired as an H1 by the founder visual gate, which ruled that
+  // evidence is the proof, not the proposition. Steer toward the experience,
+  // still without pace.
+  { phrase: 'hire instantly', fix: 'Do not promise speed — describe the hiring experience, e.g. "see what is known, what remains, and who owns the next step".' },
+  { phrase: 'start clinicians faster', fix: 'Speed hero retired (brand split 2026-07-26) — describe the hiring experience, not the pace.' },
+  { phrase: 'clinicians start faster', fix: 'Speed hero retired (brand split 2026-07-26) — describe the experience, not the pace.' },
+  { phrase: 'start faster', fix: 'Speed hero retired (brand split 2026-07-26) — describe the work removed, not the clock.' },
   { phrase: 'hired faster', fix: 'Speed hero retired (brand split 2026-07-26) — no unmeasured time-to-hire claim.' },
   { phrase: 'days, not months', fix: 'An unmeasured time-to-start claim. Remove until a pilot measures it, then state the measured number.' },
   { phrase: 'days not months', fix: 'An unmeasured time-to-start claim. Remove until a pilot measures it, then state the measured number.' },
