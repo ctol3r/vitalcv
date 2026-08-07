@@ -39,7 +39,7 @@ POST /api/internal/release-monitor/webhook      ← thin bridge, runs in web con
    │  • 202 immediately — does NO verification itself
    ▼
 .github/workflows/release-verify.yml            ← EXTERNAL vantage (a real-user viewpoint)
-   triggers: repository_dispatch[release-verify] + schedule(*/30) + workflow_dispatch
+   triggers: repository_dispatch[release-verify] + schedule(11,41 * * * *) + workflow_dispatch
    │  pnpm verify:release → scripts/release-verify.ts:
    │    1. target = deploy commit (webhook) or GitHub main HEAD
    │    2. poll /api/version until the container serves the target commit
@@ -252,9 +252,24 @@ green.
 
 ## Failure modes
 
-- **Webhook missed / receiver briefly down** → the `*/30` scheduled run catches
-  it. The signal is never stored in-process, so it can't be lost to the
+- **Webhook missed / receiver briefly down** → the twice-hourly scheduled run
+  (`11,41 * * * *` — off-peak minutes; :00/:30 are the most congested schedule
+  minutes and the old `*/30` delivered a median gap of 113 minutes anyway)
+  catches it. The signal is never stored in-process, so it can't be lost to the
   in-memory-store-resets race that affects the source-health probe.
+- **Runner never acquired (GitHub Actions incident)** → the job dies before any
+  step runs (runner_id 0, zero steps, killed at ~15 min), so nothing inside
+  `release-verify.yml` can respond. `monitor-rescue.yml` re-runs it once; if
+  the retry also cannot start, it posts a grey `pending`
+  "no signal — runner not acquired" on `vitalcv/release-verified` so the
+  durable channel never confuses GitHub infra with a production failure. All
+  observed failures in the 120 runs ending 2026-08-07 (#397, #398) were this
+  class.
+- **Runner egress dead mid-run** → an egress sentinel (two independent
+  non-production control endpoints) must confirm the runner's own network is
+  dead before a smoke/verify failure is downgraded to grey "no signal";
+  ambiguity resolves to red, so a genuine production failure is never
+  converted to grey.
 - **Container hairpin** → avoided entirely by the external GitHub-runner vantage.
 - **Benign SHA lag** (web not redeployed by a non-web commit) → `web_sha` is
   reported, not fatal, on scheduled runs; exact on webhook runs.
