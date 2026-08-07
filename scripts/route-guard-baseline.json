@@ -41,7 +41,6 @@
     "/dev/story-rail",
     "/dossier/[receiptId]",
     "/ecosystem/[entityId]",
-    "/employers",
     "/evidence-network",
     "/file/[fileId]",
     "/for/cvo",
