@@ -17,7 +17,7 @@ advisories never reach the merge signal).
 
 | PR | Bump | Age | Advisory-driven? | Still live on main? | Ships where | Conflicts? | Disposition |
 |---|---|---|---|---|---|---|---|
-| [#853](https://github.com/ctol3r/vitalcv/pull/853) | `@opentelemetry/core` 2.5.0 → 2.8.0 | 13d | Yes — baggage-header DoS | **Yes** | **Runtime** — deployed API (`apps/api`, `apps/api/backend`) | clean | **Merge (1st)** |
+| [#853](https://github.com/ctol3r/vitalcv/pull/853) | `@opentelemetry/core` 2.5.0 → 2.8.0 | 13d | Yes — baggage-header DoS (**not reachable in our code**, see below) | Yes by version | **Runtime** — deployed API (`apps/api`, `apps/api/backend`) | clean | **Merge (1st)** |
 | [#891](https://github.com/ctol3r/vitalcv/pull/891) | `flask` 3.0.3 → 3.1.3 | 12d | Yes — 2 GHSAs | Yes (by version; not exploitable in context) | Runtime of `apps/api/bug-bounty` — **not deployed anywhere** | clean | **Merge** |
 | [#1066](https://github.com/ctol3r/vitalcv/pull/1066) | `actions/cache` v4 → v6 | 4d | No — CI hygiene | Yes (`cargo-audit.yml` pins v4) | CI only | clean | **Merge** |
 | [#574](https://github.com/ctol3r/vitalcv/pull/574) | `actions/github-script` v7 → v9 | 32d | No — CI hygiene | Yes (`openid-conformance.yml` pins v7) | CI only | clean | **Merge** |
@@ -47,16 +47,30 @@ GitHub Actions pins — so those six PRs are **not** redundant.
 - **Advisory:** [GHSA-8988-4f7v-96qf](https://github.com/advisories/GHSA-8988-4f7v-96qf)
   (CVE-2026-54285, moderate, CVSS 5.3) — unbounded memory allocation in
   `W3CBaggagePropagator.extract()`; an oversized `baggage` header drives
-  memory growth. Fixed in 2.8.0 (8 KB cap per the W3C spec). Note 2.7.1 in the
-  range carries a flagged behavioral change in `TraceState` parsing
-  (invalid set/unset now return the same instance) — check any code that
-  manipulates trace state directly.
-- **Still live:** yes — lockfile resolves `@opentelemetry/core@2.5.0` for the
-  direct deps.
+  memory growth. Fixed in 2.8.0 (8 KB cap per the W3C spec).
+- **Still live:** yes by version — lockfile resolves `@opentelemetry/core@2.5.0`
+  for the direct deps.
+- **Honest reachability note — corrected during the merge pass.** The original
+  draft of this report called #853 a live production-runtime vulnerability.
+  That overstated it. Reading the code: `apps/api/backend/src/telemetry.ts:274`
+  registers `W3CTraceContextPropagator` as the **sole** global propagator,
+  `W3CBaggagePropagator` is never instantiated anywhere in the repo, and
+  `parentContextFromTraceparent` extracts only the `traceparent` header.
+  Confirmed empirically by exercising the app's own telemetry module on 2.8.0 —
+  the registered global propagator reports fields `["traceparent","tracestate"]`
+  and does not handle `baggage` at all. So the advisory is **not reachable
+  through our code today**. The bump is still correct and worth landing (direct
+  production dependency, raises the floor for both API importers so any future
+  composite/baggage propagator inherits the fix), but it carries no incident
+  urgency. Same spirit as `f3a150e4e`'s note that cheerio never opens a
+  WebSocket.
+- **2.7.1 `TraceState` behavioural change — no exposure.** The range's flagged
+  breaking change (invalid `set`/`unset` now return the same instance) touches
+  nothing here: `TraceState` has zero references across the repo.
 - **Ships where:** **runtime.** `dependencies` (`^2.5.0`) of both
   `apps/api/package.json` and `apps/api/backend/package.json` — the API that
-  Railway deploys. This is the only open npm PR that patches production code,
-  which is why it goes first.
+  Railway deploys. It is the only open npm PR touching production dependencies,
+  which is why it leads the three lockfile PRs.
 - **Breaking major:** no (2.5 → 2.8 minor).
 - **Residual after merge:** the lockfile keeps **two `@opentelemetry/core@2.2.0`
   copies** (transitive, via the experimental `@opentelemetry/instrumentation@0.211.0`
@@ -232,6 +246,36 @@ nothing in this report waives it.
   `debug=True` in its `__main__` path. Undeployed today, but it is attack
   surface waiting for a deploy mistake — recommend deciding to keep-and-harden
   or delete.
+
+## Merge log (2026-08-07, founder-authorised)
+
+The founder authorised merging #853 through #1076 in the order above. Each merge
+was gated on the repo standard — zero pending / zero failing check-runs read
+live off the **head SHA**, `mergeStateStatus == CLEAN`, and real verification
+performed locally, never `--auto`. Squash merge throughout, matching the repo's
+single-parent history.
+
+| PR | Merge commit | Head SHA gated | Verification performed |
+|---|---|---|---|
+| #853 | `2bb20f3e5` | `a168c467` (15/15 green) | `--frozen-lockfile` clean; 16/16 turbo build tasks; backend jest **2093 passed / 1 skipped / 0 failed** against real Postgres; app telemetry module exercised on 2.8.0 (init OK, traceparent ids correct, span emitted, clean shutdown); library baggage cap exercised with a ~3 MB header (1 ms, ≤8 KB honoured, ~0.2 MB heap) |
+| #891 | `46ecc3f10` | `ec692d5e` (15/15 green) | Flask 3.1.3 installed in a clean venv; app booted; `GET /` renders the form and `POST /submit` writes the report |
+| #852 | *(pending)* | — | Lockfile merge verified to **preserve** #853's otel 2.8.0 while removing vite 6.4.1 entirely; `--frozen-lockfile` clean; vite 6.4.3 resolves in all three importers; 4/4 builds and 7/7 test tasks green (haip-config 33 tests, verifier-api 4) |
+
+Notes worth keeping:
+
+- **Deploy supersession is expected.** Merging #853 started an API deploy for
+  `2bb20f3e5`; merging #891 ~40 s later started one for `46ecc3f10` and the
+  concurrency group cancelled the first. Nothing is lost — the surviving run
+  contains both commits. Read a cancelled deploy here as "superseded", not
+  "failed", and confirm the *latest* run instead.
+- **CI runner contention** was heavy during this pass; several PRs sat 20+
+  minutes with checks queued. That is a throughput problem, not a signal about
+  the PRs.
+- **`@dependabot rebase` comments do not work from this tooling** — the
+  `@`-mention is neutralised before it reaches Dependabot, so the bot never
+  acts. Use the PR *update-branch* API instead; it merges current `main` into
+  the PR head and re-triggers CI, and it resolved the lockfile PRs' rebases
+  correctly.
 
 ## Method
 
