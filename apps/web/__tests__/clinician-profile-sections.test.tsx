@@ -265,7 +265,9 @@ describe('LIVE-100B source copy guard', () => {
     'components/knowledge/KnowledgeExplorer.tsx',
     'components/trust-state/SourceProvenanceDrawer.tsx',
     'components/motion/FloatingCredentials.tsx',
-    'components/sandbox/ClinicianPassport.tsx',
+    // components/sandbox/ was deleted 2026-08-07 as dead code (no importers
+    // outside this guard since SandboxApp lost its route) — entry dropped, not
+    // replaced: the sandbox surface has no successor to sweep.
     'components/explore/ApplyModal.tsx',
     'lib/trust/passport-truth.ts',
     'lib/trust/homepage-public-truth.ts',

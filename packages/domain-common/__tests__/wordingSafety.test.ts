@@ -93,7 +93,11 @@ describe('public surface truth guards — post-release drift prevention', () => 
    */
   const candidatePublicSurfaces = Array.from(new Set([
     'apps/web/components/layout/Navbar.tsx',
-    'apps/web/components/hero/ReadinessPreview.tsx',
+    // `hero/ReadinessPreview.tsx` stood here until 2026-08-07, when it was
+    // deleted as dead code — no route rendered it, so the scan was covering a
+    // surface no visitor could see. The entry is DROPPED rather than replaced:
+    // its live successor (`app/holder/readiness/ReadinessSurface.tsx`) is
+    // already swept via the copy-manifest guards in apps/web.
     // The public opportunities board. `ExploreClient.tsx` used to stand here;
     // #999 retired it and split the surface across a page and three components,
     // so the entry is REPLACED rather than dropped — dropping it would shrink
@@ -173,14 +177,6 @@ describe('public surface truth guards — post-release drift prevention', () => 
     expect(combined).not.toContain('"Get Verified"');
     expect(combined).not.toContain("'Get Verified'");
     expect(combined).not.toContain('label="Get Verified"');
-  });
-
-  it('does not use "Ready in this run" framing in readiness surfaces', () => {
-    const readinessPath = 'apps/web/components/hero/ReadinessPreview.tsx';
-    if (!fileExists(readinessPath)) return;
-    const readinessSrc = readFile(readinessPath);
-
-    expect(readinessSrc).not.toContain('Ready in this run');
   });
 
   it('interview blocked state does not imply verified readiness', () => {
