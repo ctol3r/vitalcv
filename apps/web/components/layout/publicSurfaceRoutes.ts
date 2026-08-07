@@ -142,7 +142,6 @@ const PREFIX_MATCHERS = [
   // substituting for it — one navigation model; the header is the global
   // chrome, the pill-nav is local secondary navigation. A visitor entering
   // from the chromed /demo no longer crosses a chrome cliff mid-journey.
-  '/activity',
   '/career-intelligence',
   '/career-map',
   '/ecosystem',
@@ -158,6 +157,16 @@ export function isPublicSurfacePath(pathname: string | null): boolean {
   }
 
   if (PUBLIC_SURFACE_PATHS.has(pathname)) {
+    return true;
+  }
+
+  // The activity entity surface is chromed like its WorkspaceNav siblings
+  // (bucket E, 2026-08-07) but expressed as a regex rather than a
+  // PREFIX_MATCHERS string: the activity namespace is golden with no root
+  // page, and the repo-wide golden-namespace sweep (holder-route-contract)
+  // rightly treats any quoted bare form of it — even in a comment — as
+  // minting a dead URL. The regex matches only children that actually exist.
+  if (/^\/activity\/.+/.test(pathname)) {
     return true;
   }
 
