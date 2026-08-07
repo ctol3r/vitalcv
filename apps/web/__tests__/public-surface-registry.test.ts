@@ -35,6 +35,14 @@ describe('public surface registry — routes the chrome must cover', () => {
     '/directory/0000000000',
     '/profile/0000000000',
     '/investigate/0000000000',
+    // Bucket E decision (2026-08-07): WorkspaceNav surfaces nest under the
+    // site header — the pill-nav is local, the header is global.
+    '/activity/some-entity',
+    '/career-map/some-entity',
+    '/packet/some-entity',
+    '/ecosystem/some-entity',
+    '/recruiter/candidate/some-entity',
+    '/search/some-entity',
   ];
 
   it.each(chromed)('%s renders with the public chrome', (route) => {
@@ -53,11 +61,23 @@ describe('public surface registry — deliberate exclusions hold', () => {
     '/onboarding/fetching',
     '/receipt/some-receipt-id', // standalone printable/QR evidence artifact
     '/snapshot/some-share-id', // share-once artifact, fail-closed on 410
-    '/status/technical', // dark ops console — bucket E, held for founder call
   ];
 
   it.each(chromeless)('%s stays chromeless', (route) => {
     expect(isPublicSurfacePath(route)).toBe(false);
+  });
+
+  it('keeps /status/technical a bare standalone console — neither chrome class', () => {
+    // Bucket E decision (2026-08-07). Public chrome would put the paper
+    // journey header over a dark mono console (scene-system violation); ops
+    // classification would mount VCommandBar — ungated intelligence
+    // tooling — on a publicly reachable route. Bare on purpose, linked from
+    // the chromed /status page for technical readers. The parent stays
+    // public chrome.
+    expect(isPublicSurfacePath('/status/technical')).toBe(false);
+    expect(isOpsSurfacePath('/status/technical')).toBe(false);
+    expect(isPublicSurfacePath('/status')).toBe(true);
+    expect(isOpsSurfacePath('/status')).toBe(false);
   });
 
   it('keeps /onboarding chromed while its step children stay immersive', () => {
