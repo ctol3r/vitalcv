@@ -24,6 +24,12 @@ export const PUBLIC_SURFACE_PATHS = new Set([
   '/terms',
   '/contact',
   '/trust',
+  // 2026-08-07 headerless-routes sweep (gap-analysis §8.4). /pricing was
+  // indexable sitemap marketing (priority 0.6) rendering with no nav and no
+  // footer; /concierge is a sellable offer page nothing linked to. Both are
+  // light-ground content pages the standard chrome fits.
+  '/pricing',
+  '/concierge',
   // A Navbar Trust-group destination. It was de-ops'd (see the note on
   // OPS_SURFACE_PREFIXES) but never listed here, so clicking it from the
   // header dropped the visitor into a chrome-less page. Fixed by the
@@ -116,6 +122,15 @@ const PREFIX_MATCHERS = [
   '/matcha',
   '/for',
   '/solutions',
+  // 2026-08-07 headerless-routes sweep. Parameterized public-record surfaces:
+  // /directory/[npi] is the indexable NPPES registry page (JSON-LD + canonical
+  // — a search visitor landed with no way into the site), /profile/[npi] is
+  // the career profile a clinician deliberately shares (also covers the
+  // exact-listed /profile/activate), /investigate/[npi] is the public
+  // diligence surface the survivability registry declares public.
+  '/directory',
+  '/profile',
+  '/investigate',
 ] as const;
 
 export function isPublicSurfacePath(pathname: string | null): boolean {
