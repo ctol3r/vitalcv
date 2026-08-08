@@ -98,7 +98,7 @@ Never customer-facing: packets · artifacts · lanes · evidence networks · pro
 
 **Receipt, resolved:** `receipt` is an internal and audit concept. It remains lawful on audit and trust-center surfaces. Customer-facing surfaces say **"Activity"** or **"Completed work."** The same noun is never simultaneously banned and mandated.
 
-The machine-checkable subset lands in `scripts/copy-rules.json` (UX-16). Voice: calm, declarative; facts with lineage, never enthusiasm; errors never apologize twice, never "oops."
+The machine-checkable subset is planned as `scripts/copy-rules.json` (UX-16) — **it does not exist yet**; today's enforcement is `scripts/check-public-claims.ts`, which already covers every EC-3 banned string (verified W1080, 2026-08-08; its matcher normalizes hyphens and case, so "zero-knowledge proof" and "zero knowledge proof" both fail). Until UX-16 lands, cite the script, not the JSON. Voice: calm, declarative; facts with lineage, never enthusiasm; errors never apologize twice, never "oops."
 
 ### EC-10. The eyebrow — structural form is invariant
 
@@ -181,9 +181,9 @@ The **structure** is locked now. The **values** are filled from the UX-01 verdic
 | Eyebrow exact geometry (within EC-10's form) | Set at the **UX-03 founder visual gate**. Verdict reference: 64px desktop / 56px mobile, contextual product-state middle zone | SET AT UX-03 GATE |
 | Button grammar (primary/secondary/quiet/destructive; ≥44px targets locked via EC-5) | Primary = solid work-green square-cornered instrument with AA-corrected near-black ink (reference `#4ADE97`; solid `#2E9E6B` + off-white recorded as the alternative); secondary = hairline outline; quiet = text. Exact styles in UX-02 | LOCKED STRUCTURE · styles in UX-02 |
 | Rule/border treatment | 1px hairlines structure panels and bands (`#2E2F33` on the graphite register) | LOCKED |
-| Icon family | Chosen in UX-02 by design review | PENDING UX-02 |
+| Icon family | **Consolidate to one family in UX-02.** Two are installed today: `lucide-react` (imported by 330 `apps/web` files) and `@blueprintjs/icons`; 47 components also carry inline `<svg>`. Whichever wins must satisfy the locked grammar — 1px hairline weight, near-sharp 0–3px, no glass, no gradient, no glow — and the loser is removed, not left resident. Design review picks; this row records the constraint and the count | DEFERRED · UX-02 owns · constraint locked |
 | Corner-radius philosophy + pill policy | Near-sharp 0–3px on panels and instruments; **pills retired** (now verdict-locked, no longer era law) | LOCKED |
-| Spacing rhythm | Set in UX-02 | PENDING UX-02 |
+| Spacing rhythm | **No spacing scale exists yet** — measured 2026-08-08 (W1080): zero `--*-space*` custom properties across `apps/web/styles` and `globals.css`, so every value is currently ad hoc. UX-02A's "one semantic token layer" owns it; until that lands no wave may assert a spacing rule as law. Bounded by the locked band composition (full-width hairline-ruled, content max ~1400px) and the 64/56px eyebrow | DEFERRED · UX-02A owns · nothing to supersede |
 | Neutral palette (grounds, ink ramp, rules) | **Public register (dark, permitted not mandated):** ground `#141517`, panel `#1C1D20`, raised `#222326`, hairline `#2E2F33`, ink `#F2F1ED`, secondary `#9C9D99`. **Light register (required for evidence/printable/dense-legibility surfaces):** off-white family with graphite ink; exact artifact palette is a named UX-02 design task | LOCKED · light values in UX-02 |
 | Interaction/accent treatment | **Accent-work merge accepted:** work-green is the single work color and the primary action; needs-you amber `#E4B45C`; waiting neutral `#6E7073`. Nothing glows. State words always in ink (EC-4). Full state-hue family reconciled in UX-02 with the EC-3 vocabulary mapping | LOCKED |
 | Mono presentation policy | Machine facts — NPIs, timestamps, state words, source names, micro-labels — in Geist Mono, `tabular-nums` | LOCKED |
@@ -191,12 +191,20 @@ The **structure** is locked now. The **values** are filled from the UX-01 verdic
 | Glass treatment | **None.** Solid surfaces everywhere; no blur halos | LOCKED |
 | Gradient treatment | **None** | LOCKED |
 | Light/dark doctrine | Dark-first warm-graphite is the permitted **public register**; the light register is **required** for evidence artifacts (printable by default, amendment 6), dense workflow surfaces, and legibility-critical contexts; **not** permanent dark everywhere (amendment 5). Explicitly supersedes CD-3 "light is the only public mode", CD's 2026-08-02 one-Ink-chapter amendment, and wave-1505 LINT-04's scope (rescoped in the EC-23 port) | LOCKED |
-| Product-UI visual density | Designed in UX-02+ under design review | PENDING UX-02 |
+| Product-UI visual density | Designed in UX-02+ under **design review** — an EC-14 Class C judgement, never a CI rule. Bounded by what is already locked: cards earn their box, structure comes from rules and space rather than container sprawl, density serves comprehension, and working surfaces operate where acquisition surfaces argue | DEFERRED · UX-02+ owns · Class C, review-enforced |
 | Illustration treatment | VitalCV's own artifacts plus abstracted, **self-labeling** product illustrations ("Illustration — not a live result"); no stock imagery | LOCKED |
 | Animation character/easing + band values | Motion communicates the Easy Button **quickly**; no blocking or gating sequences (amendment 5); single-shot; the four-band structure holds; exact durations/easing set in UX-02 motion work | LOCKED CONSTRAINTS · values in UX-02 |
 | Font delivery | Self-hosted variable `woff2` via `next/font/local` in `apps/web/app/fonts/`; never `next/font/google` | LOCKED |
 
-State hues may never be spent as decoration (EC-3). The accent-work merge above is the recorded verdict decision. Rows marked "in UX-02" are bounded design tasks inside locked constraints — not open questions.
+State hues may never be spent as decoration (EC-3). The accent-work merge above is the recorded verdict decision. Rows marked "in UX-02" or **DEFERRED** are bounded design tasks inside locked constraints — not open questions.
+
+**On the difference (W1080 closure, 2026-08-08).** Three rows previously read
+"PENDING UX-02", which is indistinguishable from an unresolved brand decision and
+made the table read as incomplete when it is not. A deferral is legitimate only
+when it names **the wave that owns it** and **the constraint it decides within**;
+all three now do, and each records what was measured rather than a value nobody
+has chosen. No row in this table is an open question, and no wave may fill a
+DEFERRED row by inventing a value — EC-22 applies unchanged.
 
 ---
 
@@ -216,7 +224,7 @@ Class A clauses and locked EC-20 rows change only by editing this file with a da
 
 **CI-blocking (objective, lands with UX-02):**
 
-- Truth/copy safety: the EC-3 banned strings and false-claim patterns (`scripts/copy-rules.json`); checkmark-on-gated-or-non-integrated-source
+- Truth/copy safety: the EC-3 banned strings and false-claim patterns (`scripts/check-public-claims.ts`, run as the `check-public-claims` required check); checkmark-on-gated-or-non-integrated-source
 - Accessibility contracts: focus ring presence, target sizes, contrast floors
 - Reduced-motion presence: every animated surface ships a reduced-motion composition
 - State never by color alone: glyph + word pairing at the component level
@@ -229,12 +237,29 @@ Subjective July-era taste is not encoded as CI law before the reset direction is
 
 ### EC-24. Records
 
+- **W1080 decision closure (2026-08-08).** The UX-01 verdict was already FINAL and EC-20 already
+  back-filled, so closure was not a matter of making decisions — it was making them *citable*.
+  EC-21 declares this document law and every locked EC-20 row derives from the verdict, but the
+  verdict itself, `design-lab/homepage-reset/DECISION.md`, was **never committed**. The rest of
+  the exploration record around it *was* — master brief, all three direction briefs and
+  prototypes, the three pass-1 critiques, the evidence harness, 17 files in all. The one file that
+  never landed was the decision. It existed on one machine; nobody else could read the authority
+  this document rests on, and one lost working tree would have taken the founder's ruling with it.
+  It is now tracked. Three further citations were wrong:
+  `scripts/copy-rules.json` was named in EC-23 as the live CI mechanism but **has never existed**
+  (the real guard is `scripts/check-public-claims.ts`, which does cover every EC-3 string); the
+  competitive mandate was **recorded missing when it is in the repo**, renamed to
+  `docs/strategy/competitive-mandate.md`; and `PARKED_VISUAL_ERAS` cited three chrome specs by
+  filename that were **deleted**, not parked, so it now names the retiring commit. The lesson is
+  narrow and worth keeping: **a governance document that cites a file nobody can open is a claim
+  about law, not law.** `apps/web/__tests__/governance-citability.test.ts` now makes citability a
+  property this repo has rather than one it asserts.
 - **R2 restructure (2026-08-08):** founder ruling — Phase 0 approved; UX-00 revised into the three-class layering; PR #1160 held draft at reviewed head `9568a4db1e`; merge blocked pending FOUNDER UX-00 REVISION REVIEW.
 - **UX-01 verdict state — FINAL.** Lineage, all 2026-08-08: a parallel lane recorded "B as presented, no hybrid" (selection made in-session 2026-08-07) → the founder's UX-00 ruling reopened the verdict pending hybrid consideration (no back-fill occurred during the reopening) → the founder's amended ruling resolved it: **DIRECTION B GO, WITH AMENDMENTS** (memorialized in `DECISION.md`): product-forward brand; dark-first as public *register* with intentionally light evidence/dense surfaces; the Start Agent's visible work is brand; the eyebrow is binding with its own UX-03 gate; NOT authorized — blocking 14–18s hero, permanent dark everywhere, prototype-as-implementation. EC-20 back-fill follows only after this R2 layering is accepted (execution step 3). The verdict's register scoping supplies the explicit supersession EC-13.11 requires.
 - **Companion ruling on #1165 (census):** accepted as evidence; merge held until governance rebase — "UX-02 adopts…" language renamed to "candidate substrate / measured recommendation" (the census establishes facts, it does not legislate); rebase after #1160 settles (main had advanced to `ab25931b6` at ruling time). Its Direction-B scoping assumption is now consistent with the final verdict.
 - `VITALCV_EXPERIENCE_SYSTEM_2026.md` (XS-1…XS-10, est. 2026-08-02, deriving from `founder-rulings-2026-08.md`) is canonical for *interaction and progression* and was missed by the program audit. Carried forward: XS-1 (one scroll owner, cited in EC-4), XS-7 (reduced motion as deliverable), XS-9 (performance floor), XS-10 (the NPI field outranks the journey — aligned with EC-1). Its homepage-journey mechanisms (XS-3 media rail, XS-4 chapter menu) serve the retired journey model; **UX-04 must amend XS per its own rules** — a recorded dependency, not a silent supersession.
 - Mainline CD carries the **2026-08-02 "One public Ink chapter" amendment**; any dark-public verdict must supersede it explicitly (EC-13.11).
-- `VitalCV_Competitive_Mandate_and_Claude_Code_Waves_2026-07-21.md` — **recorded missing** (searched 2026-08-08, repo root / docs / design-handoff, depth ≤4). Homepage-composition authority rests with the homepage reset; the film/scene model is retired. If it surfaces, its strategic copy is UX-16 salvage only.
+- **Competitive mandate — found 2026-08-08 (W1080), correcting a "recorded missing" entry.** It is `docs/strategy/competitive-mandate.md`, tracked on `origin/main`. The earlier search looked for the original filename (`VitalCV_Competitive_Mandate_and_Claude_Code_Waves_2026-07-21.md`) across repo root / docs / design-handoff at depth ≤4 and missed it because the document had been **renamed**, not lost. Searching for a path rather than for the document is how a live file gets recorded as missing. Its authority is unchanged: homepage-composition authority rests with the homepage reset, the film/scene model is retired, and it carries a superseded-where-conflicting notice; its strategic copy is UX-16 salvage only.
 - The wave-1505 design system (`design-handoff/claude-design-2026-07-12-wave1505/wave1505/`) remains the best token/component architecture in the codebase — UX-02's skeleton, re-skinned to the verdict; its taste rules are Class B raw material (EC-13, EC-23).
 - Working-tree copies of CD on long-lived branches were found **stale** against `origin/main` during R1 drafting. Doctrine reads come from `origin/main`, never a branch's working copy.
 - The UX-01 exploration record lives in `design-lab/homepage-reset/` (master brief, three direction briefs + prototypes, three pass-1 critiques — all PASS, Playwright evidence at 1440×900 / 390×844 + reduced-motion + motion captures).
