@@ -75,6 +75,26 @@ faster** — but renders them in a visible grid. The composition gate prohibits
 page-level in-page navigation rails and the journey tests prohibit mounting the
 retired carousel markers.
 
+## The eyebrow wave (2026-08-07): "How VitalCV works" added to the career loop
+
+Founder directive, same wave as the header's full-width eyebrow restyle. The
+live career-loop composition gains one section between the opening scene and
+`01 · CREATE`:
+
+| Section | Owner component | Data source | Motion owner | Fallback | Conversion job |
+| --- | --- | --- | --- | --- | --- |
+| How VitalCV works | `components/home/career-loop/HowItWorks` | `JOURNEY_STAGES` (labels + descriptions) and `SOURCE_LANE_OPS` (lane cadence) — derived, never restated | Single-shot activation walk (IntersectionObserver, CSS transitions only); stage heads lightly interactive after it | SSR-complete: all four vignettes render resolved; reduced motion and no-JS skip the walk and see everything | Let a visitor understand NPI → Sources → Permission → Review **without** entering an NPI or loading the illustrative example — removing the "what happens if I type here?" hesitation ahead of THE primary conversion |
+
+Composition rules honored: all four stages are visible at once — activation
+moves emphasis, it never rotates panels or hides a column (no carousel, no
+page-level in-page navigation rail; the stage heads are emphasis controls
+inside the section, not page navigation). The section declares
+`data-header-stage="your-number"` / `data-header-theme="light"`, and its
+`id="how-it-works"` deliberately does NOT reuse a journey anchor id — the
+header rail's four anchors still land exactly once each
+(`home-how-it-works.test.tsx` pins this, along with the derived vocabulary,
+the complete server render, and the no-ten-digit-number rule).
+
 ## Change protocol
 
 Adding, removing, or re-ordering a section requires updating THIS manifest and

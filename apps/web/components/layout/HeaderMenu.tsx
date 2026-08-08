@@ -45,7 +45,7 @@ export function HeaderMenu({
           role="region"
           aria-label="Site navigation"
           hidden={!open}
-          className="mx-auto grid max-w-7xl grid-cols-[minmax(0,20rem)_1fr] gap-x-16 border-t px-5 pb-12 pt-8 sm:px-8 vcv-menu__canvas"
+          className="grid w-full grid-cols-[minmax(0,20rem)_1fr] gap-x-16 border-t pb-12 pt-8 vcv-menu__canvas"
         >
           {/* The journey column — the canvas's relationship to the rail. */}
           <div className="vcv-menu__journey">

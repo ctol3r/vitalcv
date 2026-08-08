@@ -1,5 +1,11 @@
 /* ==========================================================================
-   SHARED PUBLIC HEADER — scene-aware journey navigation (FR-6, 2026-08-06)
+   SHARED PUBLIC HEADER — the full-width journey EYEBROW (2026-08-07),
+   evolving the scene-aware navigation of FR-6 (2026-08-06).
+
+   One shallow full-bleed strip: wordmark + network descriptor at the left
+   edge, journey itinerary holding the center, quiet controls at the right
+   edge. No centered content column — the bar reads as an instrument strip
+   across the page, not a website nav.
 
    The header's two treatments are driven by `data-header-theme`, declared by
    the sections passing beneath the bar — never detected from pixels. Both
@@ -18,7 +24,18 @@
   --hdr-surface: color-mix(in oklab, var(--vt-bg) 92%, transparent);
   --hdr-hairline: color-mix(in oklab, var(--vt-text-primary) 12%, transparent);
   --hdr-wash: color-mix(in oklab, var(--vt-text-primary) 6%, transparent);
+  /* The eyebrow's shared geometry: one shallow constant height, one gutter
+     used by the bar row and the unfolded canvas alike. */
+  --hdr-bar-h: 3.25rem;
+  --hdr-pad: clamp(1.1rem, 2.6vw, 2rem);
   color: var(--hdr-fg);
+}
+
+/* The bar row: full-bleed, edge-gutters only, constant height (the film
+   rollback measures the box; the scrolled state tightens the interior). */
+.vcv-header__row {
+  height: var(--hdr-bar-h);
+  padding-inline: var(--hdr-pad);
 }
 
 /* The ink treatment: paper and ink swap roles; the accent stays indigo. */
@@ -53,7 +70,7 @@
    The scrolled state tightens the interior while the bar's box holds. */
 .vcv-header__wordmark {
   font-family: var(--font-fraunces, serif);
-  font-size: 1.375rem;
+  font-size: 1.25rem;
   font-weight: 500;
   letter-spacing: -0.02em;
   color: var(--hdr-fg);
@@ -61,7 +78,20 @@
   transition: font-size 0.3s ease;
 }
 .vcv-header[data-nav-lifted] .vcv-header__wordmark {
-  font-size: 1.125rem;
+  font-size: 1.0625rem;
+}
+
+/* The network descriptor — the doctrine name set as an instrument label
+   beside the wordmark. Machine-set (mono, tracked caps): a designation,
+   not a tagline. */
+.vcv-header__descriptor {
+  font-family: var(--font-mono, monospace);
+  font-size: 0.625rem;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--hdr-fg-muted);
 }
 
 /* ── The journey rail ──────────────────────────────────────────────────── */
@@ -74,7 +104,24 @@
   padding: 0;
 }
 .vcv-rail--bar {
-  gap: clamp(0.25rem, 1.2vw, 1rem);
+  gap: 0;
+}
+/* The itinerary track: stages joined by hairline segments that take ink as
+   the journey passes through them — a route being traveled, not a link row. */
+.vcv-rail--bar .vcv-rail__item {
+  display: flex;
+  align-items: center;
+}
+.vcv-rail--bar .vcv-rail__item + .vcv-rail__item::before {
+  content: '';
+  width: clamp(0.75rem, 2.6vw, 2.75rem);
+  height: 1px;
+  background: var(--hdr-hairline);
+  transition: background-color 0.3s ease;
+}
+.vcv-rail--bar .vcv-rail__item[data-rail-state='passed']::before,
+.vcv-rail--bar .vcv-rail__item[data-rail-state='active']::before {
+  background: var(--hdr-fg-muted);
 }
 .vcv-rail__stage {
   position: relative;
@@ -91,8 +138,17 @@
   white-space: nowrap;
   transition: color 0.3s ease, letter-spacing 0.3s ease;
 }
+/* In the bar the stages are machine-set: mono small caps, the same register
+   as the descriptor and the mobile stage indicator — the eyebrow's one voice.
+   The overlay recomposition keeps its readable sans. */
+.vcv-rail--bar .vcv-rail__stage {
+  font-family: var(--font-mono, monospace);
+  font-size: 0.6875rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
 .vcv-header[data-nav-lifted] .vcv-rail--bar .vcv-rail__stage {
-  letter-spacing: 0;
+  letter-spacing: 0.1em;
 }
 
 /* Stage states are carried by shape and weight, never color alone:
@@ -166,37 +222,43 @@ a.vcv-rail__stage:focus-visible {
 
 /* ── Right-side controls ───────────────────────────────────────────────── */
 
+/* Quiet controls: no boxes. In an eyebrow the controls are set in the same
+   machine register as the rail; the single CTA is the only built surface. */
 .vcv-header__signin,
 .vcv-header__trigger {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
   min-height: 2.75rem;
-  padding: 0 1rem;
+  padding: 0 0.6rem;
   border-radius: 10px;
-  border: 1px solid var(--hdr-hairline);
-  font-size: 0.875rem;
+  border: 0;
+  font-family: var(--font-mono, monospace);
+  font-size: 0.6875rem;
   font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
   color: var(--hdr-fg-muted);
   background: transparent;
   text-decoration: none;
   cursor: pointer;
-  transition: color 0.2s ease, border-color 0.2s ease, background-color 0.2s ease;
+  transition: color 0.2s ease, background-color 0.2s ease;
 }
 .vcv-header__signin:hover,
 .vcv-header__trigger:hover {
   color: var(--hdr-fg);
-  border-color: color-mix(in oklab, var(--hdr-fg) 30%, transparent);
+  background: var(--hdr-wash);
 }
 .vcv-header__cta {
   display: inline-flex;
   align-items: center;
-  min-height: 2.75rem;
+  min-height: 2.75rem; /* CD-15: 44px floor */
   padding: 0 1.1rem;
+  margin-left: 0.35rem;
   border-radius: 10px;
   background: var(--vt-accent);
   color: var(--vt-bg);
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
   font-weight: 600;
   text-decoration: none;
   transition: background-color 0.2s ease;
@@ -252,6 +314,9 @@ a.vcv-rail__stage:focus-visible {
 }
 .vcv-menu__canvas {
   border-color: var(--hdr-hairline);
+  /* The canvas unfolds edge to edge, sharing the bar's gutters — one strip,
+     one geometry. */
+  padding-inline: var(--hdr-pad);
 }
 .vcv-menu__eyebrow {
   margin: 0 0 0.75rem;
@@ -331,6 +396,7 @@ a.vcv-rail__stage:focus-visible {
   .vcv-header__wordmark,
   .vcv-rail__stage,
   .vcv-rail__dot,
+  .vcv-rail--bar .vcv-rail__item + .vcv-rail__item::before,
   .vcv-rail--bar .vcv-rail__stage::after,
   .vcv-header__signin,
   .vcv-header__trigger,

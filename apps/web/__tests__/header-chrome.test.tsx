@@ -217,3 +217,23 @@ describe('mobile overlay (LiquidMenu)', () => {
     expect(document.querySelectorAll('.liquid-menu__cta-primary').length).toBe(0);
   });
 });
+
+describe('the eyebrow form (2026-08-07)', () => {
+  it('runs full-bleed: an edge-to-edge row, no centered content column', async () => {
+    await mount(<Navbar />);
+    const row = container.querySelector('.vcv-header__row');
+    expect(row).not.toBeNull();
+    expect(row!.className).toContain('w-full');
+    expect(container.innerHTML).not.toContain('max-w-7xl');
+  });
+
+  it('sets the network descriptor beside the wordmark, outside the tab order', async () => {
+    await mount(<Navbar />);
+    const descriptor = container.querySelector('.vcv-header__descriptor');
+    expect(descriptor).not.toBeNull();
+    expect(descriptor!.textContent).toContain('Provider Career Evidence Network');
+    // A span, not a link: the pinned tab order (wordmark → rail → Sign In)
+    // must not gain a stop.
+    expect(descriptor!.tagName).toBe('SPAN');
+  });
+});

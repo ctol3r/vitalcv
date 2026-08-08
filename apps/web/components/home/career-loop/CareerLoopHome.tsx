@@ -36,6 +36,7 @@
 import { useEffect, useRef, useState } from 'react';
 
 import { ApplyWithVitalCV } from '@/components/apply/ApplyWithVitalCV';
+import { HowItWorks } from '@/components/home/career-loop/HowItWorks';
 import { FUNNEL_EVENTS, trackFunnelEvent } from '@/lib/analytics/funnel';
 import { useCareerLoop, type LoopMatch } from '@/lib/career-loop/useCareerLoop';
 import { writeNpiHandoff } from '@/lib/onboarding/npiHandoff';
@@ -219,6 +220,12 @@ export function CareerLoopHome() {
           </button>
         </p>
       </section>
+
+      {/* ============ HOW IT WORKS — the journey without an NPI ============ */}
+      {/* The eyebrow wave's second element: the four-stage model, explained
+          before anything is typed. Declares the your-number scene — the
+          visitor reading it has not started yet. */}
+      <HowItWorks />
 
       {/* ================= 1 · CREATE — ink ================= */}
       <section

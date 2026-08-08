@@ -1,13 +1,16 @@
 'use client';
 
 /**
- * Navbar — the shared public header, rebuilt as scene-aware journey
- * navigation (founder shared-header wave, 2026-08-06; FR-6).
+ * Navbar — the shared public header as a full-width EYEBROW (2026-08-07
+ * founder directive), evolving the scene-aware journey navigation of the
+ * 2026-08-06 shared-header wave (FR-6).
  *
- * Composition: wordmark · journey rail (optically centered) · Sign In · one
- * contextual action · menu trigger. The full destination set lives behind
- * the trigger in an editorial canvas (HeaderMenu) — not a row of equally
- * weighted category links.
+ * The eyebrow form: one shallow full-bleed strip — wordmark and network
+ * descriptor pushed to the left edge, controls to the right edge, no
+ * centered content column. The journey rail holds the optical center as an
+ * itinerary (mono small-caps stages joined by a hairline track), not a row
+ * of category links. The full destination set stays behind the trigger in
+ * the editorial canvas (HeaderMenu).
  *
  * Scene awareness: sections declare `data-header-theme` / `data-header-stage`
  * and the header reflects them (useHeaderScene). Declaration, not detection —
@@ -126,17 +129,24 @@ export default function Navbar() {
           it — over a declared dark room it resolves to warm ink built from
           the public token family, never an ops token (LINT-04, FR-6). */}
       <div className="vcv-header__plate w-full border-b">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-5 sm:px-8">
+        <div className="vcv-header__row flex w-full items-center justify-between gap-4">
 
-          {/* Wordmark — the serif lockup the homepage shipped with, owned by
-              the header itself instead of a page-local override. */}
-          <Link
-            href="/"
-            className="vcv-header__wordmark shrink-0"
-            onClick={() => handleNavItemClick('Home')}
-          >
-            VitalCV
-          </Link>
+          {/* Left edge: the serif lockup plus the network descriptor — the
+              wordmark-and-division grammar of an operational eyebrow, not a
+              logo floating in a nav. The descriptor is a span, so the pinned
+              tab order (wordmark → rail anchors → Sign In) is untouched. */}
+          <div className="flex shrink-0 items-baseline gap-3">
+            <Link
+              href="/"
+              className="vcv-header__wordmark"
+              onClick={() => handleNavItemClick('Home')}
+            >
+              VitalCV
+            </Link>
+            <span className="vcv-header__descriptor hidden xl:inline">
+              Provider Career Evidence Network
+            </span>
+          </div>
 
           {/* The journey rail — the page narrative in the chrome. */}
           <nav

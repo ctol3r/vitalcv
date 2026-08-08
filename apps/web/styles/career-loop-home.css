@@ -502,3 +502,145 @@ body:has(.clh) [data-feedback-button]{display:none !important}
   text-decoration-thickness: 1px;
 }
 .clh-employer:hover { opacity: 1; }
+
+/* ==========================================================================
+   HOW IT WORKS — 2026-08-07, the eyebrow wave's second element.
+
+   The journey as ONE visible band: four stage columns sharing the header
+   rail's grammar (dot · mono small-caps label · a track that takes ink as
+   the journey passes). Activation moves emphasis; it never hides a column —
+   the composition manifest forbids rotating panels and carousels. All
+   motion is CSS transitions off data-state (no keyframes, LINT-03); the
+   staged detail reveal applies only after hydration and only where motion
+   is allowed, so the server render and reduced motion always show the full
+   explanation.
+   ========================================================================== */
+.clh-how{padding-top:clamp(56px,8vh,96px);padding-bottom:clamp(56px,8vh,96px)}
+.clh-how-eyebrow{
+  font-family:var(--mono);font-size:12px;font-weight:500;
+  letter-spacing:.16em;text-transform:uppercase;opacity:.55;
+  margin-bottom:clamp(14px,2vh,22px);
+}
+.clh-how-band{
+  margin-top:clamp(30px,4.5vh,56px);
+  display:grid;grid-template-columns:repeat(4,1fr);
+  gap:clamp(16px,2.2vw,36px);
+  align-items:start;
+}
+
+/* Emphasis, not visibility: ahead = ghosted, passed = settled, active = lit. */
+.clh-how-stage{
+  display:flex;flex-direction:column;gap:14px;
+  opacity:.45;transition:opacity .45s ease;
+}
+.clh-how-stage[data-passed]{opacity:.78}
+.clh-how-stage[data-active]{opacity:1}
+
+/* The stage head — the header rail's grammar at section scale. */
+.clh-how-head{
+  position:relative;
+  display:flex;align-items:center;gap:10px;
+  min-height:44px;
+  border:0;background:none;cursor:pointer;
+  padding:0 0 12px;text-align:left;
+  font-family:var(--mono);font-size:12px;font-weight:500;
+  letter-spacing:.14em;text-transform:uppercase;
+  color:var(--ink);
+  border-bottom:1px solid var(--stone-lane);
+}
+.clh-how-head:focus-visible{outline:3px solid var(--indigo);outline-offset:3px}
+.clh-how-head::after{
+  content:'';position:absolute;left:0;right:0;bottom:-1px;height:2px;
+  background:var(--ink);
+  transform:scaleX(0);transform-origin:left center;
+  transition:transform .5s ease;
+}
+.clh-how-stage[data-active] .clh-how-head::after,
+.clh-how-stage[data-passed] .clh-how-head::after{transform:scaleX(1)}
+.clh-how-dot{
+  flex:none;width:7px;height:7px;border-radius:50%;
+  border:1.5px solid var(--ink);background:transparent;
+  transition:background-color .3s ease;
+}
+.clh-how-stage[data-active] .clh-how-dot,
+.clh-how-stage[data-passed] .clh-how-dot{background:var(--ink)}
+
+/* The plate: flat ivory on the deep room — material contrast, no border. */
+.clh-how-plate{
+  background:var(--ivory);
+  min-height:clamp(118px,15vh,164px);
+  padding:clamp(14px,1.6vw,22px);
+  display:flex;flex-direction:column;justify-content:center;
+}
+.clh-how-copy{font-size:clamp(13px,1.05vw,15px);line-height:1.5;opacity:.78;max-width:30ch}
+
+/* Vignette 1 — YOUR NUMBER: ten slots taking a value. Never digits. */
+.clh-how-npi{display:flex;gap:5px;flex-wrap:wrap;justify-content:center}
+.clh-how-slot{
+  width:clamp(13px,1.2vw,19px);height:clamp(22px,2vw,30px);
+  border:1.5px solid var(--stone);
+  display:flex;align-items:center;justify-content:center;
+}
+.clh-how-slot::after{
+  content:'•';font-family:var(--mono);font-size:14px;color:var(--ink);
+  opacity:1;transition:opacity .3s ease;
+  transition-delay:calc(var(--d)*70ms);
+}
+
+/* Vignette 2 — SOURCES: the readiness lanes with their honest cadence. */
+.clh-how-lanes{display:flex;flex-direction:column;gap:10px}
+.clh-how-lanes li{
+  display:flex;justify-content:space-between;align-items:baseline;gap:10px;
+  font-family:var(--mono);font-size:11.5px;letter-spacing:.02em;
+  transition:opacity .35s ease,transform .35s ease;
+  transition-delay:calc(var(--d)*110ms);
+}
+.clh-how-lane-name{font-weight:600}
+.clh-how-lane-cadence{opacity:.6;text-align:right}
+
+/* Vignette 3 — PERMISSION: what travels is chosen, and shown chosen. */
+.clh-how-claims{display:flex;flex-direction:column;gap:10px}
+.clh-how-claims li{
+  display:flex;justify-content:space-between;align-items:baseline;gap:10px;
+  font-size:13px;
+  border-left:2px solid var(--stone);padding-left:10px;
+  transition:transform .35s ease,opacity .35s ease;
+  transition-delay:calc(var(--d)*110ms);
+}
+.clh-how-claims li[data-travels]{border-left-color:var(--indigo)}
+.clh-how-state{
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;
+  text-transform:uppercase;opacity:.6;
+}
+.clh-how-stage[data-active] .clh-how-claims li[data-travels]{transform:translateX(6px)}
+.clh-how-stage[data-active] .clh-how-claims li:not([data-travels]){opacity:.5}
+
+/* Vignette 4 — REVIEW: the handoff to the institution's own decision. */
+.clh-how-review{display:flex;align-items:center;gap:10px;font-size:12.5px;flex-wrap:wrap}
+.clh-how-node{font-weight:600;white-space:nowrap}
+.clh-how-node--decides{font-weight:400;opacity:.85}
+.clh-how-line{
+  flex:1;min-width:20px;height:1px;background:var(--stone-deep);
+  transform:scaleX(1);transform-origin:left center;
+  transition:transform .5s ease;
+}
+
+/* The staged walk's detail reveal — hydration-gated and motion-gated, so a
+   server render or reduced-motion visitor always sees everything. */
+@media (prefers-reduced-motion:no-preference){
+  .clh-how-band[data-how-hydrated] .clh-how-stage:not([data-active]):not([data-passed]) .clh-how-slot::after{opacity:0}
+  .clh-how-band[data-how-hydrated] .clh-how-stage:not([data-active]):not([data-passed]) .clh-how-lanes li{opacity:0;transform:translateX(-8px)}
+  .clh-how-band[data-how-hydrated] .clh-how-stage:not([data-active]):not([data-passed]) .clh-how-claims li{opacity:.35}
+  .clh-how-band[data-how-hydrated] .clh-how-stage:not([data-active]):not([data-passed]) .clh-how-line{transform:scaleX(.25)}
+}
+
+@media (prefers-reduced-motion:reduce){
+  .clh-how-stage,.clh-how-head::after,.clh-how-dot,.clh-how-slot::after,
+  .clh-how-lanes li,.clh-how-claims li,.clh-how-line{transition:none}
+}
+
+@media (max-width:820px){
+  .clh-how-band{grid-template-columns:1fr;gap:26px}
+  .clh-how-copy{max-width:46ch}
+  .clh-how-npi{justify-content:flex-start}
+}

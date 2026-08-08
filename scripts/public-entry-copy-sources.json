@@ -5,6 +5,9 @@
       "label": "Homepage",
       "entryFile": "apps/web/app/page.tsx",
       "copySources": [
+        "apps/web/components/home/career-loop/CareerLoopHome.tsx",
+        "apps/web/components/home/career-loop/HowItWorks.tsx",
+        "apps/web/components/layout/journeyStages.ts",
         "apps/web/components/home/film/HorizontalCareerFilm.tsx",
         "apps/web/components/home/film/ChapterRail.tsx",
         "apps/web/components/home/film/illustrative.ts",
