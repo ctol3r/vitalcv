@@ -56,6 +56,14 @@ jobs:
     name: Reap leaked synthetic identities
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    # LOAD-BEARING — do not remove. CLERK_SECRET_KEY is an ENVIRONMENT secret
+    # on `production`, not a repository secret. Without this line
+    # `secrets.CLERK_SECRET_KEY` resolves to the empty string, the preflight
+    # takes the not-wired branch, and the sweep exits GREEN having reconciled
+    # nothing. Run 31233274419 did exactly that: `CLERK_SECRET_KEY:` empty in
+    # the step env, Reconcile skipped, job success. A sweep that cannot see the
+    # key is indistinguishable from a sweep that found nothing to reap.
+    environment: production
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
