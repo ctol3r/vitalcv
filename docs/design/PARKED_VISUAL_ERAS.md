@@ -41,9 +41,13 @@ public chrome. Nothing was deleted.
 Notes:
 
 - The rollback variants serve under the **UX-V1 eyebrow** — chrome does not switch with the
-  content variant. Three chrome-pinning e2e specs were retired with the cutover
-  (`header-journey.spec.ts`, `liquid-menu.spec.ts`, `film-journey-rail.spec.ts`); their surviving
-  contracts moved to `eyebrow.spec.ts`, `eyebrow-chrome.test.tsx`, and the unit suites above.
+  content variant. Three chrome-pinning e2e specs were retired with the cutover — they lived at
+  `apps/web/tests/e2e/{header-journey,liquid-menu,film-journey-rail}.spec.ts` and were **deleted**
+  in `c6a693641` (#1190), so unlike every other row in this document they are not parked on disk.
+  Git history is their park: `git show c6a693641^:apps/web/tests/e2e/header-journey.spec.ts`
+  recovers one. Naming the retiring commit is what makes that recoverable — a filename alone
+  points at nothing once the file is gone (recorded 2026-08-08, W1080). Their surviving contracts
+  moved to `eyebrow.spec.ts`, `eyebrow-chrome.test.tsx`, and the unit suites above.
 - `journeyStages.ts`, `navDestinations.ts`, `headerRouteContext.ts`, and `useHeaderScene.ts` are
   NOT parked — the eyebrow consumes them; the film derives its chapter vocabulary from
   `journeyStages.ts`.
