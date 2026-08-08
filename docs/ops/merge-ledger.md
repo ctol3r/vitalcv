@@ -218,3 +218,105 @@ f8721ff30 docs(ops): record cascade merge of PRs #425 #426 #424 (#427)
 1. **Authenticated SSE smoke** for NPI 1699264564 — biggest single percentage move on Product Truth Contract; releases the 18% hold on Source Integrations / PSV.
 2. **Browser visual QA** of merged surfaces (/passport, /, /sign-in, /sign-up, /status, /trust/attribution) — closes the design-quality feedback loop.
 3. **`fix/nppes-source-health-observability`** — next coding wave outside the visual-system arc.
+
+---
+
+## Tier-S backlog closure — executed 2026-08-08
+
+Not a merge record. This entry is the **execution receipt** for the Tier-S
+closure sentenced in
+[`open-pr-disposition-2026-08-02.md`](open-pr-disposition-2026-08-02.md) and
+re-affirmed with merge evidence in
+[`open-pr-disposition-2026-08-07.md`](open-pr-disposition-2026-08-07.md) (#1122,
+merged `9faa6838d`). It exists because per-PR receipt comments were not posted —
+see "Receipts" below — so this is the durable record of what was closed and why.
+
+| Field | Value |
+|---|---|
+| Executed | 2026-08-08 ~01:05–01:20 UTC |
+| Authorized by | Founder instruction in-session, on top of the 08-02 disposition (merged, founder-visible) and the 08-07 re-affirmation |
+| Scope rule | Every open PR created **before 2026-06-01** — exactly 194 |
+| Open PRs before | 216 |
+| Open PRs after | **18** (verified by live listing, not by call results) |
+| Tier-S remaining open | **0** |
+| Method | `update_pull_request state=closed`, one call per PR |
+
+### What was closed
+
+- **43 ancient** (#1, #2, #4–#42, #45, #46) — share no merge base with today's
+  `main` after the early-history rewrite; mechanically unmergeable.
+- **147 April–May cohort** (#124–#442 range) — 70 conflicting against
+  `main@f0b3749`, the rest adds-only trees whose intent landed in later form.
+- Includes the May-30 docs quartet #439–#442 and the stacked series
+  (`w2-pr17a` governance, `web-v2` sandbox, trust-primitives, provenance).
+
+### What was deliberately NOT closed
+
+The scope was pre-June only. These were excluded even though the 08-02
+disposition also sentenced some of them — they need their own decisions:
+
+`#506` (parked on env rollout + founder GO) · `#582` (superseded by #1031) ·
+`#748` (founder call vs ADR 0006) · `#844` (dependabot recreate) · `#852`
+(merge-ready) · `#986` (merge-ready) · `#1072` `#1079` `#1081` (parked drafts).
+
+### Safety checks performed before execution
+
+1. **Dependency hazard** — verified no PR outside Tier-S was based on a Tier-S
+   branch, so no active work was closed as collateral. (The only stacked
+   non-Tier-S PR, #1123, sits on #1113's branch.)
+2. **Live re-verification** — the open list was re-read immediately before
+   execution; PRs that had closed or merged since the 08-07 snapshot (#574,
+   #853, #891, #1066, #1101–#1109) were correctly absent.
+3. **Branch mapping** — all 194 mapped to 193 distinct remote branches
+   (#245/#246 share `feat/upload-cv`); no protected branch in the set.
+
+### ⚠ Branch deletion — BLOCKED REPO-WIDE, still outstanding
+
+**No branch was deleted.** `git push origin --delete` returns **HTTP 403**, and
+the cause is a **repository-level restriction on ref deletion — not a
+credential limitation.**
+
+That correction matters, because the first diagnosis recorded here was wrong.
+It read the 403 as this automation's token lacking delete scope, on the
+evidence that the same push failed on four unrelated branches while
+create/update pushes succeeded. That evidence was equally consistent with a
+repo-wide rule, and the tie was broken on 2026-08-08 when **the founder's own
+seat hit the identical 403** running the documented command. A full sweep was
+attempted and verified afterwards: all 196 listed branches were still present
+(`git ls-remote` intersection = 196 of 196), and the repo's branch count had
+*risen* from 919 to 939 on new lane activity. Nothing was deleted.
+
+**The unblock is a settings change, not a different command.** No client-side
+invocation gets past it — not `git push --delete`, not
+`gh api -X DELETE .../git/refs/heads/...`, not the web UI. Look in
+**Settings → Rules → Rulesets** for a ruleset targeting all refs (`~ALL` or
+`**`) with **Restrict deletions** enabled, and either narrow its target to
+`main`, add a bypass actor, or disable that one rule. Classic **Branch
+protection** rules can do the same via a pattern that matches every branch.
+Once ref deletion is permitted, the command in
+`docs/ops/backlog/tierS-branches-pending-deletion.md` deletes all 196 in four
+pushes and is safe to re-run — it re-derives the list and re-checks open PRs
+at run time.
+
+Consequence while it stands: the closed PRs can be reopened, and the stale
+branches remain resurrectable by bulk update/re-run sweeps — the exact vector
+§7.5 of the disposition warns about. The canonical list of what to delete is
+`docs/ops/backlog/tierS-branches-pending-deletion.md` (196 entries: 193 Tier-S
+plus three later closures). Do not regenerate it from a PR query — the earlier
+`gh pr list --number < 500` heuristic recorded here was never accurate, since
+it captures neither the post-Tier-S closures nor the branch that never had a PR.
+
+### Receipts
+
+Per-PR closure comments were **not** posted: at 194 PRs that is ~194 extra API
+calls, and the disposition documents already on `main` are the durable record.
+This ledger entry is the receipt of record, per §7.1 of the 08-07 disposition
+("the run recorded in `docs/ops/merge-ledger.md`"). Anyone landing on a closed
+Tier-S PR should read `docs/ops/open-pr-disposition-2026-08-07.md`.
+
+### Note on what this does and does not buy
+
+Closing stops `pull_request` gates from firing on these branches and restores
+signal about what actually awaits a human. It does **not** by itself fix
+day-to-day runner queue times — that is burst concurrency from parallel lanes,
+addressed by concurrency groups (§7.3). #1110 appears to be doing exactly that.

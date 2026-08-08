@@ -271,7 +271,9 @@ describe('/holder/home page', () => {
     );
 
     // Identity-forward wallet header: who you are + how to share/prove.
-    expect(markup).toContain('Your VitalCV Wallet');
+    // Wave L1 (customer-language inventory): "wallet" retired as a customer
+    // noun; the canonical name is the clinician's VitalCV profile.
+    expect(markup).toContain('Your VitalCV profile');
     expect(markup).toContain('Ada Lovelace');
     expect(markup).toContain('NPI 1234567890');
     expect(markup).toContain('Share / prove');

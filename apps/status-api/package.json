@@ -1,12 +1,13 @@
 {
   "name": "@vitalcv/status-api",
   "version": "1.0.0",
-  "description": "Status API for VC revocation (StatusList2021)",
+  "description": "Status API for VC revocation (W3C VC 2.0 Bitstring Status List)",
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
-    "start": "node dist/index.js"
+    "start": "node dist/index.js",
+    "test": "vitest run"
   },
   "dependencies": {
     "express": "^4.18.2",
@@ -17,7 +18,8 @@
     "@types/cors": "^2.8.17",
     "@types/node": "^24.10.1",
     "tsx": "^4.7.0",
-    "typescript": "^5.3.3"
+    "typescript": "^5.3.3",
+    "vitest": "^3.2.6"
   }
 }
 

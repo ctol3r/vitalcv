@@ -26,12 +26,12 @@ export default function MatchaRecruitersPage() {
           { label: 'Credential confidence', traditional: 'Chase documents and re-verify from scratch each time.', vital: 'Source-backed readiness travels with the clinician.' },
           { label: 'Duplicate work', traditional: 'Every agency re-verifies the same person.', vital: 'Reusable evidence — accept a head start or request a refresh.' },
           { label: 'Pipeline', traditional: 'Keyword search and guesswork on fit.', vital: 'MATCHA ranks fit from stated preferences and eligibility.' },
-          { label: 'Ramp-up', traditional: 'Weeks of back-and-forth before a clinician is ready.', vital: 'Start from a readiness snapshot the clinician already assembled, not a cold document chase.' },
+          { label: 'Ramp-up', traditional: 'Weeks of back-and-forth before a clinician is ready.', vital: 'Start from readiness the clinician already assembled, not a cold document chase.' },
           { label: 'Transparency', traditional: 'Opaque scores you have to take on faith.', vital: 'Every recommendation shows the reasons behind it.' },
         ],
       }}
       benefits={[
-        { title: 'Time saved', body: 'Begin from a readiness snapshot instead of a blank file. Less chasing, more placing.' },
+        { title: 'Time saved', body: 'Begin from current readiness instead of a blank file. Less chasing, more placing.' },
         { title: 'Credential confidence', body: 'Each item shows its source state — checked, gated, stale, or unknown — so you know what you can rely on.' },
         { title: 'Duplicate reduction', body: 'Reusable evidence means you are not re-doing verification another team already did.' },
         { title: 'Pipeline intelligence', body: 'MATCHA surfaces clinicians whose stated preferences and eligibility actually fit the role.' },

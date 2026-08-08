@@ -491,7 +491,7 @@ export function ApplicationList({
 
               <div className="mt-4 mz-card px-4 py-4">
                 <div className="flex items-center justify-between gap-3">
-                  <p className="mz-h2">Passport Attached</p>
+                  <p className="mz-h2">Record attached</p>
                   <span className="mz-chip mz-chip-ok">
                     <ShieldCheck className="h-3.5 w-3.5" />
                     {application.readiness?.readinessLevel ?? 'L0'}

@@ -1,6 +1,6 @@
-// @ts-nocheck
 import prisma from '../../graphql/prisma_client';
 import { log } from '../../obs/logger';
+import { setRevoked } from '../ledger/statusListManager';
 
 export class GraphCascader {
   /**
@@ -92,11 +92,13 @@ export class GraphCascader {
                }
              });
 
-             // 4. Update StatusList2021 bitstring
-             const artifact = await prisma.verificationArtifact.findUnique({ where: { id: artifactId } });
-             if (artifact && artifact.statusListIndex !== null) {
-                await this.setRevocationBit(artifact.statusListIndex);
-             }
+             // 4. Flip the artifact's bit in the Bitstring Status List so the
+             //    revocation is visible to verifiers. setRevoked() decodes the
+             //    list, sets the bit, re-encodes, bumps the version (which
+             //    busts both the ETag and the in-memory cache), and assigns an
+             //    index first if this artifact predates status-list
+             //    integration. It is idempotent on an already-set bit.
+             await setRevoked(artifactId);
            } catch (err) {
              log('error', `[GraphCascader] Error updating verification artifact ${artifactId}`, { error: err });
            }
@@ -108,25 +110,10 @@ export class GraphCascader {
     return edgesRevoked;
   }
 
-  private async setRevocationBit(index: number) {
-    const state = await prisma.statusListState.findUnique({
-      where: { id: 'singleton' }
-    });
-    if (!state) return;
-
-    // Decode, set bit, encode
-    // For here, we do a basic mock update or log, as updating the bitstring without the existing library code might be error-prone.
-    log('info', `[GraphCascader] Setting StatusList2021 revocation bit at index: ${index}`);
-
-    // In a real implementation we would import pako and jose or standard builtins for zlib
-    // to edit the bit. We update the version to force cache busting for VC verifiers.
-    await prisma.statusListState.update({
-      where: { id: 'singleton' },
-      data: {
-        version: { increment: 1 }
-      }
-    });
-  }
+  // setRevocationBit() was removed in favour of delegating to
+  // statusListManager.setRevoked(). It only incremented the version to bust
+  // verifier caches and never decoded, set, or re-encoded the bitstring, so a
+  // cascaded revocation still read "not revoked" to every verifier.
 }
 
 export const graphCascader = new GraphCascader();

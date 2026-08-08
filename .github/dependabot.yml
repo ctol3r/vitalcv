@@ -30,6 +30,27 @@ updates:
         update-types:
           - "minor"
           - "patch"
+    ignore:
+      # expo-* packages follow Expo's SDK-aligned version scheme: expo-notifications
+      # 57.x belongs to Expo SDK 57, while apps/mobile is pinned to expo ~53.0.0 /
+      # react-native 0.79.6. A standalone major bump therefore produces an
+      # SDK-mismatched pair that expo-doctor flags and the app cannot ship — it
+      # merges as text and breaks as software (PR #582 was exactly this).
+      #
+      # Moving expo-notifications is a whole-SDK job: `expo install --fix` so the
+      # companion set advances together. That is the shape that worked for the
+      # tar remediation (#1031, SDK 52 -> 53) after forcing a single package
+      # across a major broke @expo/cli (#808, reverted by #812).
+      #
+      # Scope is deliberately narrow. This suppresses *version* updates only —
+      # per GitHub's ignore semantics, `update-types: version-update:*`
+      # conditions do NOT apply to Dependabot **security** updates, so a real
+      # expo-notifications advisory still opens a PR. Minor and patch bumps
+      # within the current SDK line also still flow.
+      #
+      # Remove this entry as part of the Expo SDK 53 -> 57 upgrade wave.
+      - dependency-name: "expo-notifications"
+        update-types: ["version-update:semver-major"]
 
   # Keep CI action pins current — GitHub Actions are part of the supply chain.
   - package-ecosystem: "github-actions"

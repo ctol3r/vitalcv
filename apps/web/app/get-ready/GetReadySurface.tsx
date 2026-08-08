@@ -57,7 +57,7 @@ import {
   isOrganization,
   type ClinicianCareerProfile,
 } from '@/lib/career-loop/profile';
-import { readNpiHandoff, writeNpiHandoff } from '@/lib/onboarding/npiHandoff';
+import { readNpiHandoff, readNpiQueryHandoff, writeNpiHandoff } from '@/lib/onboarding/npiHandoff';
 import { trackPilotEvent } from '@/lib/pilot-ops/client';
 import { FUNNEL_EVENTS, trackFunnelEvent } from '@/lib/analytics/funnel';
 import { UX_EVENTS } from '@/lib/analytics/ux-events';
@@ -106,7 +106,7 @@ const ATTESTATION_VERSION = 'v1';
 /** Honest value props — VitalCV's real clinician offer, no over-claim. */
 const BENEFITS: ReadonlyArray<{ icon: React.ReactNode; text: string }> = [
   { icon: <Stethoscope className="h-4 w-4" aria-hidden />, text: 'Source-backed career evidence that follows you across every role' },
-  { icon: <Wallet className="h-4 w-4" aria-hidden />, text: 'A clinician-owned career wallet — free to start, and yours to keep' },
+  { icon: <Wallet className="h-4 w-4" aria-hidden />, text: 'A clinician-owned career profile — free to start, and yours to keep' },
   { icon: <FileCheck2 className="h-4 w-4" aria-hidden />, text: 'An employer-ready readiness packet a hospital can review claim by claim' },
   { icon: <ShieldCheck className="h-4 w-4" aria-hidden />, text: 'Your evidence, your control — no credit card, no document uploads to start' },
 ];
@@ -136,8 +136,8 @@ const FAQS: ReadonlyArray<{ q: string; a: string }> = [
  * verification. The source-backed readiness lane opens once an NPI is bound.
  */
 const PREVIEW_NEXT_STEPS: ReadonlyArray<string> = [
-  'Build your self-attested profile — add your program, training, and career goals in your wallet.',
-  'Explore what a source-backed VitalCV wallet unlocks for clinicians, so you know what to expect.',
+  'Build your self-attested profile — add your program, training, and career goals.',
+  'Explore what a source-backed VitalCV profile unlocks for clinicians, so you know what to expect.',
   'Connect your NPI the moment you receive it — that unlocks your source-backed readiness, publishing, and applications.',
 ];
 
@@ -178,10 +178,12 @@ export default function GetReadySurface() {
         if (cancelled) return;
         if (res.status === 401) {
           setPhase('signed_out');
-          // Record-first: an NPI carried from the homepage resolved state (or
-          // a previous visit) resolves immediately — the visitor sees their
-          // public record before any account ask.
-          const carried = readNpiHandoff();
+          // Record-first: an NPI carried from the homepage resolved state, a
+          // previous visit, or a cross-origin arrival (the marketing site's
+          // NPI form links here with ?npi=) resolves immediately — the
+          // visitor sees their public record before any account ask. The
+          // query param wins over storage: it is the fresher intent.
+          const carried = readNpiQueryHandoff() ?? readNpiHandoff();
           if (carried) {
             setGuestNpiInput(carried);
             void resolveGuest(carried);
@@ -204,8 +206,9 @@ export default function GetReadySurface() {
           setPhase('already_bound');
         } else {
           // Continuity after sign-in: prefill the binding form with the NPI
-          // the visitor already resolved anonymously, so nothing is re-typed.
-          const carried = readNpiHandoff();
+          // the visitor already resolved anonymously (or carried in ?npi=),
+          // so nothing is re-typed.
+          const carried = readNpiQueryHandoff() ?? readNpiHandoff();
           if (carried) setNpiInput(carried);
           setPhase('intro');
         }
@@ -608,11 +611,11 @@ export default function GetReadySurface() {
         <GateIcon done />
         <Header
           title="Your NPI is already connected"
-          lede={`This workspace is bound to NPI ${existingNpi}. Your wallet and readiness surfaces read from it.`}
+          lede={`This workspace is bound to NPI ${existingNpi}. Your profile and readiness surfaces read from it.`}
         />
         <div className="mt-6 space-y-3">
           <Link href="/holder" className={primaryBtn}>
-            Open your wallet <ChevronRight className="h-4 w-4" aria-hidden />
+            Open your profile <ChevronRight className="h-4 w-4" aria-hidden />
           </Link>
           <Link href="/holder/readiness" className={secondaryBtn}>
             Check your readiness
@@ -629,7 +632,7 @@ export default function GetReadySurface() {
         <GateIcon />
         <Header
           title="Confirm you are a clinician"
-          lede="Confirm you're a practicing clinician to unlock your VitalCV workspace — your free, source-backed career wallet."
+          lede="Confirm you're a practicing clinician to unlock your VitalCV workspace — your free, source-backed career profile."
         />
         <p className="mz-small mt-4">
           You&apos;re signed in as{' '}
@@ -687,14 +690,14 @@ export default function GetReadySurface() {
           </div>
         )}
         {/* Finish the golden path IN PLACE: stream the source checks, render the
-            readiness rail + one next-best action, end with "Your Wallet is
-            ready" — instead of bouncing the clinician to /holder/readiness. */}
+            readiness rail + one next-best action, end with "Your VitalCV profile
+            is ready" — instead of bouncing the clinician to /holder/readiness. */}
         {!summary.isOrganizationNpi && validateNpi(npiInput).npi ? (
           <OnboardingReadiness npi={validateNpi(npiInput).npi!} />
         ) : (
           <div className="mt-6">
             <Link href="/holder" className={primaryBtn}>
-              Open your wallet <ChevronRight className="h-4 w-4" aria-hidden />
+              Open your profile <ChevronRight className="h-4 w-4" aria-hidden />
             </Link>
           </div>
         )}
@@ -737,7 +740,7 @@ export default function GetReadySurface() {
         </div>
         <div className="mt-6 space-y-3">
           <Link href="/holder" className={primaryBtn}>
-            Open your wallet <ChevronRight className="h-4 w-4" aria-hidden />
+            Open your profile <ChevronRight className="h-4 w-4" aria-hidden />
           </Link>
           <button
             type="button"
@@ -996,7 +999,7 @@ function BenefitsPanel() {
     <div className="hidden border-l border-[var(--rule)] px-8 py-12 lg:flex lg:items-center lg:justify-center">
       <div className="mz-inset w-full max-w-sm p-8">
         <p className="mz-eyebrow">VitalCV for Clinicians</p>
-        <p className="mz-body mt-3">Your free, source-backed career wallet</p>
+        <p className="mz-body mt-3">Your free, source-backed career profile</p>
         <ul className="mt-6 space-y-4">
           {BENEFITS.map((b, i) => (
             <li key={i} className="flex items-start gap-3 text-sm text-[var(--ink-600)]">

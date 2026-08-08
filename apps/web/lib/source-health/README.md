@@ -102,10 +102,24 @@ wired; it returns `UNKNOWN`. We do **not** fake `LIVE`.
 
 ## Live Probe Scheduling (RELIABILITY-2)
 
+### Cadence
+
+The cron runs twice hourly at off-peak minutes (`7,37`), not every 15 minutes.
+Nothing this probe feeds needs 15-minute resolution: the availability ledger
+counts samples rather than wall-clock (a missed tick is UNMEASURED, see
+`getLaneAvailability.ts`), its 30-day render gate needs one sample per
+distinct day, and the snapshot store has no freshness contract tighter than
+"periodically refreshed". GitHub throttles busy schedule minutes hard — the
+old `*/15` cron delivered a median gap of 88 minutes — so off-peak minutes
+deliver more reliably than a denser request would. Infra failures (runner
+never acquired) are retried and reclassified by
+`.github/workflows/monitor-rescue.yml`; see the probe workflow header for the
+full infra-vs-signal contract.
+
 ### Architecture
 
 ```
-GitHub Actions (cron every 15m on main)
+GitHub Actions (cron 2×/hour on main, off-peak minutes)
         │
         │  POST  Authorization: Bearer ${{ secrets.CRON_SECRET }}
         ▼

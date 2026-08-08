@@ -100,7 +100,7 @@ export function CandidateCard({ candidate, now }: { candidate: PoolCandidate; no
           rel="noopener noreferrer"
           style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 15px', borderRadius: 10, fontSize: 13, fontWeight: 600, textDecoration: 'none', border: '1px solid var(--vt-border, #D6DED9)', color: 'var(--vt-text-primary)' }}
         >
-          <FileText size={14} aria-hidden="true" /> View passport
+          <FileText size={14} aria-hidden="true" /> View record
         </a>
         <button
           type="button"

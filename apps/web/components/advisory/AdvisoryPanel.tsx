@@ -214,9 +214,9 @@ export function PassportAdvisoryPanel({ passport, context }: { passport: Passpor
         title="Recommended next steps"
         state="AVAILABLE"
         summary="You are closest to ready for your target roles."
-        details="No blocking items detected in this passport."
+        details="No blocking items detected in this record."
         estimatedPath="Ready now"
-        suggestedAction="Proceed to share passport"
+        suggestedAction="Proceed to share this record"
       />
     );
   }

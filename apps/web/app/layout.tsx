@@ -89,8 +89,13 @@ export const metadata: Metadata = {
     default: 'VitalCV — Your career evidence, ready before your next job.',
     template: '%s — VitalCV',
   },
+  // Sitewide SEO copy, held to the same truth contract as rendered surfaces:
+  // no unmeasured speed claim (brand split 2026-07-26 — the wedge-era
+  // "in 30 seconds" was one), and no blanket "live" claim over sources that
+  // are snapshots (only NPPES is read per request). "No account required" is
+  // true since #1090: the record renders before any account ask.
   description:
-    'Enter your NPI and see your credential readiness in 30 seconds. Live federal data. No account required.',
+    'Enter your NPI and see your public registry record before you create anything. Free for clinicians — no account required to look.',
   metadataBase: new URL('https://vitalcv.com'),
   keywords: [
     'healthcare credentialing',

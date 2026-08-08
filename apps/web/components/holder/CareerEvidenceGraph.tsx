@@ -227,7 +227,7 @@ export function CareerEvidenceGraph() {
 
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--rule)] px-5 py-4">
           <p className="mz-small max-w-xl">
-            Each recorded row traces to a career event in your wallet — checks, licensure,
+            Each recorded row traces to a career event in your profile — checks, licensure,
             recognition — and sits on its own line. What you are headed toward is projected,
             never asserted, and never gains that line.
           </p>

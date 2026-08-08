@@ -88,7 +88,7 @@ export async function generateMetadata(
   const name = [profile.firstName, profile.lastName].filter(Boolean).join(' ') || `NPI ${npi}`;
   return {
     title: `${name} — Career Profile`,
-    description: `Clinician-published career profile, backed by the VitalCV career evidence wallet.`,
+    description: `Clinician-published career profile, backed by the clinician's source-backed VitalCV record.`,
   };
 }
 

@@ -17,7 +17,7 @@ export default function RequestReviewPage() {
             Employer review
           </p>
           <h1 className="mt-1 text-2xl font-semibold tracking-tight text-foreground">
-            Request a passport review
+            Request a clinician review
           </h1>
           <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
             Initiate a source-backed credential review for a clinician. You&apos;ll

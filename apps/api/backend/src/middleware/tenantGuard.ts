@@ -125,6 +125,14 @@ export function shouldSkipTenantContext(path: string): boolean {
     || normalized.startsWith('/api/trust-proof/')
     || normalized.startsWith('/api/verify')
     || normalized.startsWith('/api/verifier/accept')
+    // W3C Bitstring Status List revocation registry. Its entire audience is
+    // unauthenticated verifiers dereferencing the `statusListCredential` URL
+    // embedded in an issued VC, so requiring org context 401s exactly the
+    // callers the route exists for — and that 401 also masked the fact that
+    // the manager behind it was throwing (launch blocker #14). The response
+    // is a public, non-tenant-scoped credential: an opaque bitstring with no
+    // subject identifiers, already rate limited by `publicApiRateLimit`.
+    || normalized === '/api/credentials/status-list'
     || normalized.startsWith('/api/pilot')
     || normalized.startsWith('/api/metrics')
     || normalized.startsWith('/api/artifact')

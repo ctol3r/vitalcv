@@ -55,13 +55,14 @@ describe('AuthDisclosureCard — sign-in mode', () => {
   });
 
   it('sign-in disclosure names what signing in accesses (clinician-facing, Sprint 1)', () => {
-    expect(SIGN_IN_DISCLOSURE.toLowerCase()).toContain('wallet');
+    // Waves L1/L2: 'wallet' and 'passport' retired as customer nouns.
+    expect(SIGN_IN_DISCLOSURE.toLowerCase()).toContain('profile');
     expect(SIGN_IN_DISCLOSURE.toLowerCase()).toContain('readiness');
     expect(SIGN_IN_DISCLOSURE.toLowerCase()).toContain('shared evidence');
   });
 
-  it('sign-in disclosure confirms public passport pages remain readable without an account', () => {
-    expect(SIGN_IN_DISCLOSURE.toLowerCase()).toContain('public passport pages');
+  it('sign-in disclosure confirms public profile pages remain readable without an account', () => {
+    expect(SIGN_IN_DISCLOSURE.toLowerCase()).toContain('public profile pages');
     expect(SIGN_IN_DISCLOSURE.toLowerCase()).toContain('without an account');
   });
 

@@ -282,7 +282,7 @@ export function ReviewQueueSurface() {
                         {candidate.readiness.level} · {candidate.readiness.score}/100
                       </span>
                     ) : (
-                      <span style={{ fontSize: 12, color: 'var(--vt-text-muted)' }}>Readiness snapshot unavailable</span>
+                      <span style={{ fontSize: 12, color: 'var(--vt-text-muted)' }}>Readiness unavailable</span>
                     )}
                     {candidate.alreadyAccepted ? (
                       <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--vt-status-resolved, #2E7D45)' }}>

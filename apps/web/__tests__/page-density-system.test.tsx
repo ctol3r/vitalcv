@@ -69,7 +69,14 @@ describe('page density system', () => {
     // /employers restructure (founder audit 2026-08-06): the lane register
     // moved to its own page, and Step 1 became a real route instead of a
     // 5,100px in-page anchor.
-    expect(inventory).toHaveLength(156);
+    // 135 = 156 − 21: the 2026-08-07 orphaned-route retirement
+    // (headerless-routes disposition, bucket D) deleted 12 foundation-doc
+    // spec pages (2 of them nested children), 6 fixture demo dashboards, and
+    // 3 of the 4 redirect stubs (/signup kept as a URL-compat alias;
+    // /onboarding/success deleted after its live CTA was re-pointed at
+    // /profile/activate; /clinician/graph + /clinician/onboarding were
+    // retired-concept aliases).
+    expect(inventory).toHaveLength(135);
     expect(inventory.every((item) => !item.source.includes('/_archive/'))).toBe(true);
     expect(inventory.every((item) => !item.route.startsWith('/api/'))).toBe(true);
     expect(new Set(inventory.map((item) => item.density))).toEqual(

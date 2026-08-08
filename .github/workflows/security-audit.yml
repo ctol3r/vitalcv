@@ -28,7 +28,8 @@ permissions:
 
 concurrency:
   group: sca-${{ github.ref }}
-  cancel-in-progress: true
+  # Guarded off main: push runs there must complete (check-workflow-concurrency.js).
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 env:
   NODE_VERSION: '22'

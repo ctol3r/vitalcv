@@ -17,32 +17,88 @@
 #     is echoed for operator visibility but contains only safe
 #     metadata (already redacted by the server). The secret itself is
 #     NEVER echoed.
+#
+# Infra vs signal (added after runs #2343/#2344, 2026-08-06):
+#   A red run here must mean "production did not answer", never "GitHub
+#   could not find us a runner". Audit of the 120 runs ending 2026-08-07
+#   found 2 failures, both runner-acquisition timeouts (runner_id 0, zero
+#   steps executed, killed at ~15:03) during a GitHub Actions incident —
+#   and 0 genuine production failures. Three mechanisms keep the two apart:
+#
+#   1. The probe curl retries transient transport errors (3 attempts,
+#      backoff) before concluding anything.
+#   2. When production still hasn't answered, an egress sentinel fetches
+#      two non-production control endpoints. Only if the sentinel PROVES
+#      the runner's own egress is dead does the run classify as
+#      "no-signal": job exits green, commit status
+#      `vitalcv/source-health-probe` goes grey `pending` ("no signal"),
+#      and the job summary says so. Ambiguity resolves to RED — a real
+#      production failure is never converted to grey by this path.
+#   3. Runner-never-acquired failures (job dies before any step runs, so
+#      nothing in this file can execute) are handled by
+#      monitor-rescue.yml: one automatic re-run, then a grey `pending`
+#      "no signal" status if the retry also cannot start.
+#
+#   The durable signal is the `vitalcv/source-health-probe` commit status
+#   on main: success = probe reached production and got 2xx, failure =
+#   production did not answer a working runner, pending = no signal
+#   (GitHub infra) — deliberately distinct from a real probe failure.
+#
+# Cadence (changed from */15, 2026-08-07):
+#   The probe consumes ~8s of runner time (p50 over the last 120 runs;
+#   p90 14s). What it feeds does not need 15-minute resolution:
+#   - The availability ledger (lib/source-health/getLaneAvailability.ts)
+#     counts samples, never wall-clock — a gap between ticks is
+#     UNMEASURED and biases nothing.
+#   - Its 30-day render gate needs one sample per distinct day.
+#   - The in-memory snapshot store has no freshness contract tighter
+#     than "periodically refreshed".
+#   Meanwhile GitHub throttles busy `schedule` minutes hard: the */15
+#   cron requested 96 runs/day and DELIVERED a median gap of 88 minutes
+#   (measured over the same 120 runs). Every requested-but-queued tick
+#   during an Actions incident is one more 15-minute wait that dies as a
+#   false red. Twice hourly at off-peak minutes (:07/:37 — never
+#   :00/:15/:30/:45, the most congested schedule minutes) requests half
+#   the ticks while typically landing MORE reliably than */15 did.
 
 name: Source Health Probe
 
 on:
   schedule:
-    # Every 15 minutes.
-    - cron: "*/15 * * * *"
+    # Twice hourly at off-peak minutes — see "Cadence" in the header.
+    - cron: "7,37 * * * *"
   workflow_dispatch:
 
 permissions:
   contents: read
+  statuses: write
+
+concurrency:
+  # At most one probe queued behind one running: during an Actions
+  # backlog, a newer tick replaces the older still-queued one (shown as
+  # cancelled, not failed) instead of stacking 15-minute false reds.
+  # Never cancel a probe mid-flight — it only takes seconds.
+  group: source-health-probe
+  cancel-in-progress: false
 
 jobs:
   probe:
     name: Trigger source-health probe
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 8
     steps:
-      - name: POST /api/internal/source-health/probe
+      - name: POST /api/internal/source-health/probe (retry + classify)
+        id: probe
         env:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
           PROBE_URL: ${{ secrets.PROBE_URL }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           if [ -z "${CRON_SECRET:-}" ] || [ -z "${PROBE_URL:-}" ]; then
+            # Misconfiguration is an operator error, not GitHub infra:
+            # stay loud red. verdict stays empty -> the verdict step fails.
             echo "Missing CRON_SECRET or PROBE_URL secret." >&2
             exit 1
           fi
@@ -52,9 +108,86 @@ jobs:
           # (D4). Without it the handler defaults to `manual`, so every
           # scheduled observation would be indistinguishable from an ad-hoc one
           # and the ledger's probeSource column would carry no information.
-          response="$(curl -fsS -X POST \
-            -H "Authorization: Bearer ${CRON_SECRET}" \
-            "${PROBE_URL}/api/internal/source-health/probe?source=cron")"
-          # Echo response for operator visibility. Body contains only
-          # safe metadata; secret is not echoed.
-          echo "$response"
+          verdict=""
+          for attempt in 1 2 3; do
+            if response="$(curl -fsS --max-time 60 -X POST \
+              -H "Authorization: Bearer ${CRON_SECRET}" \
+              "${PROBE_URL}/api/internal/source-health/probe?source=cron")"; then
+              verdict=ok
+              break
+            fi
+            echo "::warning::Probe attempt ${attempt}/3 did not get a 2xx from production."
+            if [ "$attempt" -lt 3 ]; then
+              sleep $((attempt * 10))
+            fi
+          done
+
+          if [ "$verdict" = "ok" ]; then
+            # Echo response for operator visibility. Body contains only
+            # safe metadata; secret is not echoed.
+            echo "$response"
+          else
+            # Egress sentinel: two independent, non-production control
+            # endpoints. Only when BOTH are unreachable is the runner's own
+            # egress proven dead ("no-signal"). If either answers, egress
+            # works and production genuinely did not — that is a real red.
+            if curl -fsS --max-time 10 "https://www.githubstatus.com/api/v2/status.json" >/dev/null 2>&1 \
+              || curl -fsS --max-time 10 -H "Authorization: Bearer ${GH_TOKEN}" \
+                   "https://api.github.com/rate_limit" >/dev/null 2>&1; then
+              verdict=genuine-failure
+            else
+              verdict=no-signal
+            fi
+          fi
+          echo "verdict=${verdict}" >> "$GITHUB_OUTPUT"
+
+      - name: Record commit status (vitalcv/source-health-probe)
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERDICT: ${{ steps.probe.outputs.verdict }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          # The commit Status API has no `neutral` state; `pending` is its
+          # non-pass/non-fail signal and renders as a grey dot — deliberately
+          # NOT the red X that reads as a production failure. An empty
+          # verdict (probe step errored unexpectedly / misconfig) resolves
+          # to failure: ambiguity is always red, never grey.
+          case "${VERDICT}" in
+            ok)
+              STATE=success
+              DESC="probe reached production; source-health snapshot recorded" ;;
+            no-signal)
+              STATE=pending
+              DESC="no signal — runner egress failure (GitHub infra), production was not reached" ;;
+            genuine-failure)
+              STATE=failure
+              DESC="production did not answer the probe from a working runner" ;;
+            *)
+              STATE=failure
+              DESC="probe step errored before classification (misconfiguration?)" ;;
+          esac
+          echo "commit status → ${STATE} @ ${SHA} — ${DESC}"
+          gh api -X POST "repos/${REPO}/statuses/${SHA}" \
+            -f state="${STATE}" \
+            -f context="vitalcv/source-health-probe" \
+            -f description="${DESC}" \
+            -f target_url="${RUN_URL}" >/dev/null
+          {
+            echo "## Source health probe: ${STATE}"
+            echo ""
+            echo "- ${DESC}"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: No signal — GitHub infra, not a production verdict
+        if: steps.probe.outputs.verdict == 'no-signal'
+        run: |
+          echo "::warning::Runner egress failure — this run produced NO SIGNAL about production. Commit status is grey pending, not red. This tick is UNMEASURED in the availability ledger."
+
+      - name: Fail red only on a genuine production signal
+        if: steps.probe.outputs.verdict != 'ok' && steps.probe.outputs.verdict != 'no-signal'
+        run: |
+          echo "::error::Source-health probe failed: production did not answer 2xx from a working runner (verdict: '${{ steps.probe.outputs.verdict }}')." >&2
+          exit 1

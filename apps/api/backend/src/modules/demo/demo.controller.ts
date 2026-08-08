@@ -5,6 +5,11 @@ import { fetchNpiFromCMS } from '../identity/nppes.service';
 import { normalizeProvider } from '../identity/nppes.validator';
 import { generateIdentityArtifact } from '../identity/nppes.artifact.generator';
 import { signArtifact } from '../identity/signer';
+import {
+  DEMO_STATUS_LIST_INDEX,
+  STATUS_LIST_URL,
+  type BitstringStatusListEntry,
+} from '../../services/ledger/statusListManager';
 
 const NPI_PATTERN = /^\d{10}$/;
 const BOOT_TIME = Date.now();
@@ -252,11 +257,12 @@ export async function handleDemoIssue(
       enumerationType: provider.enumeration_type,
     },
     credentialStatus: {
-      type: 'StatusList2021Entry',
+      id: `${credentialId}#status`,
+      type: 'BitstringStatusListEntry',
       statusPurpose: 'revocation',
-      statusListIndex: '0',
-      statusListCredential: 'https://api.vitalcv.com/credentials/status/demo',
-    },
+      statusListIndex: DEMO_STATUS_LIST_INDEX,
+      statusListCredential: STATUS_LIST_URL,
+    } satisfies BitstringStatusListEntry,
     proof: {
       type: 'DemoProof2026',
       created: issuedAt,

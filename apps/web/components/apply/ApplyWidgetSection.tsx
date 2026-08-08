@@ -36,7 +36,7 @@ export function ApplyWidgetSection({ npi }: Props) {
         Share Your Credentials
       </p>
       <p className="text-xs text-zinc-400">
-        Generate the current passport share flow for employer review from the live wedge.
+        Generate the current share flow for employer review from the live wedge.
       </p>
       <div className="pt-1">
         <ApplyWithVitalCV npi={npi} label="Generate Credential Bundle" />

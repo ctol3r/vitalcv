@@ -39,7 +39,7 @@ POST /api/internal/release-monitor/webhook      ← thin bridge, runs in web con
    │  • 202 immediately — does NO verification itself
    ▼
 .github/workflows/release-verify.yml            ← EXTERNAL vantage (a real-user viewpoint)
-   triggers: repository_dispatch[release-verify] + schedule(*/30) + workflow_dispatch
+   triggers: repository_dispatch[release-verify] + schedule(11,41 * * * *) + workflow_dispatch
    │  pnpm verify:release → scripts/release-verify.ts:
    │    1. target = deploy commit (webhook) or GitHub main HEAD
    │    2. poll /api/version until the container serves the target commit
@@ -196,8 +196,15 @@ capturing the `vitalcv_role` cookie the flow mints), then **deletes the Clerk
 user + org** — always, even on a mid-run failure (the runner passes the created
 ids to `cleanupClinician` from a `finally`).
 
-Every synthetic identity uses an `@vitalcv-monitor.local` email so it can never
-collide with, or rebind (per #504), a real user row. A **failed** delete is a
+Every synthetic identity uses a plus-tagged `svc-monitor+<runId>@vitalcv.com`
+email so it can never collide with, or rebind (per #504), a real user row.
+(This document said `@vitalcv-monitor.local` until 2026-08-08. It was never
+true: production Clerk rejects a `.local` TLD with 422
+`form_param_format_invalid`, so the mint path has always used the plus-tagged
+address on the owned domain. Backend-API user creation sends no email, so
+nothing is ever delivered there. The stale wording mattered — a reconciliation
+sweep written from it would have matched zero users and reaped nothing while
+reporting success.) A **failed** delete is a
 critical check → red status (a leaked synthetic identity is never silently
 green). Error bodies from Clerk/FAPI are reduced to safe code+message fields
 (`safeErrorBody`) before they can reach logs or `report.json` — a raw body could
@@ -210,14 +217,35 @@ each created id *incrementally* (the instant the Clerk user, then org, exists) �
 so a kill mid-mint still cleans up a just-created user. A SIGKILL (no grace) or
 the microsecond gap before the id is reported can still leak one identity.
 
-**Required backstop (guaranteed cleanup):** a periodic reconciliation sweep MUST
-delete any stale synthetic identities — Clerk users with
-`public_metadata.synthetic === true` / `@vitalcv-monitor.local` emails and their
-orgs older than a few minutes. This covers both the hard-kill window and any
-transient Clerk delete failure. **Known residual:** the backend has no delete API
-for the `User` row it upserts on first role-resolve, so each run also leaves one
-orphan DB row (placeholder-pattern email, non-colliding); the same sweep (or a
-backend cleanup endpoint) should reap it.
+**Required backstop (guaranteed cleanup) — SHIPPED 2026-08-08.** A periodic
+reconciliation sweep deletes stale synthetic identities, covering both the
+hard-kill window and any transient Clerk delete failure.
+
+| Piece | Where |
+| --- | --- |
+| Logic + safety invariants | `apps/web/lib/release-monitor/reconcileSynthetics.ts` |
+| Runner | `scripts/reconcile-synthetics.ts` (`pnpm reconcile:synthetics`) |
+| Schedule | `.github/workflows/synthetic-reconcile.yml` — hourly at `:23` |
+| Tests | `apps/web/__tests__/release-monitor-reconcile.test.ts` |
+
+A Clerk user is deleted only when **all** of these hold: `public_metadata.synthetic
+=== true`, `public_metadata.purpose === 'release-monitor'`, every address on the
+account matches `svc-monitor+…@vitalcv.com`, and it is older than the age grace
+(default 2 h, so a verification in flight can never be reaped — the whole job
+budget is 15 min). Conjunction, never disjunction; an unknown `created_at` never
+authorises a delete; deletions are capped per run; and every candidate is
+re-validated immediately before its `DELETE`. Orgs match on the
+`vcv-monitor-` name prefix plus age, which is a deliberately weaker signal —
+the mint path gives orgs no metadata.
+
+Run `pnpm reconcile:synthetics --dry-run` to see what it would reap without
+touching anything. Not-wired (`CLERK_SECRET_KEY` unset) is a green no-op, not a
+red: nothing is being minted, so nothing can leak.
+
+**Known residual (still open):** the backend has no delete API for the `User`
+row it upserts on first role-resolve, so each run also leaves one orphan DB row
+(placeholder-pattern email, non-colliding). The sweep reaps the Clerk side only;
+a backend cleanup endpoint is still needed for the DB row.
 
 ## Rollout & rollback
 
@@ -244,17 +272,56 @@ gate. The receiver route itself is harmless when unwired — it fails closed
 
 **Fail-closed matrix:** no receiver secret → 500, never dispatches · missing
 `GITHUB_DISPATCH_TOKEN` → 500 + container log · missing `CLERK_SECRET_KEY` on
-the runner → monitor is **not wired**: a preflight skips verification and posts
-a NEUTRAL `pending` status (never a red false-negative), self-healing the moment
-the secret is set · `CLERK_SECRET_KEY` set but `RAILWAY_API_TOKEN` missing →
-`deploy_integrity` failure → red status. No missing secret can produce a false
-green.
+the runner → monitor is **not wired** → **RED** (see below) ·
+`CLERK_SECRET_KEY` set but `RAILWAY_API_TOKEN` missing → `deploy_integrity`
+failure → red status. No missing secret can produce a false green.
+
+**Unwired is RED (changed 2026-08-08).** This used to post a neutral `pending`
+"never a red false-negative", on the reasoning that an unwired monitor should
+not look like a broken deploy. The cost of that kindness was total: the monitor
+posted "skipped — monitor not wired" on **every run of its entire life** and
+nobody noticed, because grey does not demand attention. The signed-in flow this
+document describes — synthetic clinician, six `/holder` surfaces,
+`check:deploy` — had never once executed against production. The secret existed
+the whole time; it is an *environment* secret on **`Production`** (capital P)
+and the jobs had not declared that environment, so `secrets.CLERK_SECRET_KEY`
+resolved to the empty string and the skip branch swallowed it.
+
+> **The environment name is case-sensitive, and getting it wrong is silent.**
+> GitHub does not error on an unknown `environment:` value — it *creates* one.
+> The first fix (#1138) declared lowercase `production`, which conjured a new
+> empty environment, drew the secret from it, and reproduced the identical
+> green no-op (run 31235056713, on a commit that verifiably carried the
+> declaration). If you ever see a wired monitor skip, check the case before
+> anything else, and check Settings → Environments for a stray auto-created
+> duplicate.
+
+An unwired monitor is a misconfiguration, not a resting state. Both
+`release-verify` and `synthetic-reconcile` now fail red when the key is
+invisible. To run unwired deliberately, set the repository **variable**
+`MONITORS_UNWIRED_OK=true` — an auditable statement of intent; the neutral grey
+`pending` returns only under that flag.
 
 ## Failure modes
 
-- **Webhook missed / receiver briefly down** → the `*/30` scheduled run catches
-  it. The signal is never stored in-process, so it can't be lost to the
+- **Webhook missed / receiver briefly down** → the twice-hourly scheduled run
+  (`11,41 * * * *` — off-peak minutes; :00/:30 are the most congested schedule
+  minutes and the old `*/30` delivered a median gap of 113 minutes anyway)
+  catches it. The signal is never stored in-process, so it can't be lost to the
   in-memory-store-resets race that affects the source-health probe.
+- **Runner never acquired (GitHub Actions incident)** → the job dies before any
+  step runs (runner_id 0, zero steps, killed at ~15 min), so nothing inside
+  `release-verify.yml` can respond. `monitor-rescue.yml` re-runs it once; if
+  the retry also cannot start, it posts a grey `pending`
+  "no signal — runner not acquired" on `vitalcv/release-verified` so the
+  durable channel never confuses GitHub infra with a production failure. All
+  observed failures in the 120 runs ending 2026-08-07 (#397, #398) were this
+  class.
+- **Runner egress dead mid-run** → an egress sentinel (two independent
+  non-production control endpoints) must confirm the runner's own network is
+  dead before a smoke/verify failure is downgraded to grey "no signal";
+  ambiguity resolves to red, so a genuine production failure is never
+  converted to grey.
 - **Container hairpin** → avoided entirely by the external GitHub-runner vantage.
 - **Benign SHA lag** (web not redeployed by a non-web commit) → `web_sha` is
   reported, not fatal, on scheduled runs; exact on webhook runs.
@@ -279,9 +346,14 @@ green.
   not a literal). The site will LOOK fine — web-Prisma routes fail open — but
   MATCHA preferences/decisions are silently non-persistent. Fix the variable,
   redeploy, and the next run self-heals.
-- **A neutral `pending` status** ("skipped — monitor not wired") → *not* a broken
-  deploy; `CLERK_SECRET_KEY` is unset so verification never ran. Set the owner
-  secrets (above) and the next run verifies for real.
+- **A red "MISCONFIGURED — CLERK_SECRET_KEY not visible" status** → *not* a
+  broken deploy, but **nothing was verified**, which is treated as just as
+  serious. Either the job lost its `environment: production` declaration (the
+  secret lives on that environment, not at repository level) or the secret was
+  removed/renamed. Fix it and the next run verifies for real.
+- **A neutral `pending` status** ("skipped — deliberately unwired") → only
+  appears when the repository variable `MONITORS_UNWIRED_OK=true` is set.
+  Without that flag, unwired is red.
 - **Re-run manually:** Actions → *Release verify* → *Run workflow* (optionally
   pass a `target_sha`).
 - **Run locally against prod:**
@@ -293,9 +365,10 @@ green.
 
 - Ops Center card at `/admin/platform` reading the commit status.
 - Slack notification (`SLACK_WEBHOOK_URL`), status-doc committer.
-- **Reconciliation sweep (recommended before heavy reliance):** reap stale
-  synthetic Clerk identities (`public_metadata.synthetic` / `@vitalcv-monitor.local`)
-  + a backend cleanup endpoint for the orphaned `User` row. Guarantees no leak
-  survives a hard-kill or a transient Clerk delete failure.
+- ~~Reconciliation sweep~~ — **shipped 2026-08-08**, see "Required backstop"
+  above. (This entry and that section disagreed for months about whether the
+  sweep was mandatory or merely recommended; it was in fact unbuilt. The Clerk
+  side is now built and scheduled.) Still open: a **backend cleanup endpoint**
+  for the orphaned `User` row, which the sweep does not touch.
 - Retire the now-redundant fixed-`sleep 120` smoke test in `deploy-web.yml`
   (this system supersedes its intent).

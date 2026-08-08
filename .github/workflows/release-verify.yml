@@ -14,15 +14,37 @@ name: Release verify
 # /auth/resolving interstitial, runs `pnpm check:deploy`, and records a DURABLE
 # GitHub commit status (context "vitalcv/release-verified") on the verified SHA.
 #
-# If CLERK_SECRET_KEY is unset the monitor is "not wired": it cannot mint a
-# session, so rather than post a red failure that reads as a broken deploy it
-# skips verification and records a NEUTRAL `pending` status ("skipped — monitor
-# not wired"). This self-heals — set the secret and the next run verifies for real.
+# If CLERK_SECRET_KEY is not visible the monitor is "not wired": it cannot mint
+# a session, so it verifies NOTHING — and since 2026-08-08 that is a RED
+# failure, not the grey `pending` it used to post. The grey was a trap: this
+# monitor posted "skipped — monitor not wired" on every run of its entire life
+# and nobody looked, because grey does not demand attention. Set
+# MONITORS_UNWIRED_OK=true (a repository VARIABLE) to deliberately run unwired
+# and get the grey back.
+#
+# CLERK_SECRET_KEY lives on the `Production` environment (capital P), which is
+# why this job declares `environment: Production`. Getting that name wrong is
+# silent — GitHub creates an unknown environment rather than rejecting it.
 #
 # Required repo secrets: CLERK_SECRET_KEY, RAILWAY_API_TOKEN. Optional:
 # CLERK_FAPI_URL (default https://clerk.vitalcv.com), RELEASE_PROBE_BASE
 # (default https://vitalcv.com). GITHUB_TOKEN is automatic (statuses: write).
 # See docs/deployment/release-monitoring.md.
+#
+# Infra vs signal (added after runs #397/#398, 2026-08-06):
+#   Both of this workflow's failures in the 120 runs ending 2026-08-07 were
+#   runner-acquisition timeouts (runner_id 0, zero steps, killed at ~15:03
+#   during a GitHub Actions incident) — not production failures. Two
+#   mechanisms keep infra out of the red channel:
+#   1. An egress sentinel runs before the status is recorded. If the smoke
+#      or verification failed AND the sentinel proves the runner's own
+#      egress is dead (two independent non-production control endpoints
+#      both unreachable), the run records a grey `pending` "no signal"
+#      status and does not fail red. Ambiguity resolves to RED — a real
+#      production failure is never converted to grey by this path.
+#   2. Runner-never-acquired failures (nothing in this file executes) are
+#      handled by monitor-rescue.yml: one automatic re-run, then a grey
+#      `pending` "no signal" status if the retry also cannot start.
 
 on:
   repository_dispatch:
@@ -34,7 +56,11 @@ on:
         required: false
         default: ''
   schedule:
-    - cron: '*/30 * * * *'
+    # Safety net for missed deploy webhooks. Twice hourly at off-peak
+    # minutes: :00/:30 are the most congested schedule minutes on shared
+    # GitHub infra and the old */30 delivered a median gap of 113 minutes
+    # anyway (measured over the 120 runs ending 2026-08-07).
+    - cron: '11,41 * * * *'
 
 concurrency:
   # Never run two verifications against prod at once; do not cancel one mid-run.
@@ -50,6 +76,24 @@ jobs:
     name: Verify signed-in release
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    # LOAD-BEARING — do not remove. CLERK_SECRET_KEY is an ENVIRONMENT secret
+    # on `Production`, not a repository secret. A job that does not declare the
+    # environment resolves `secrets.CLERK_SECRET_KEY` to the empty string, the
+    # preflight below reads that as "monitor not wired", and the run goes GREEN
+    # having verified nothing. That is precisely how this monitor spent its
+    # entire life posting grey "skipped — monitor not wired" statuses while
+    # looking healthy. Deleting this line silently restores that failure.
+    # Repository-level secrets (RAILWAY_API_TOKEN, CLERK_FAPI_URL,
+    # RELEASE_PROBE_BASE) remain visible; an environment only ADDS to what a
+    # job can see, and wins only on a name collision.
+    #
+    # CASE-SENSITIVE — the environment is `Production`, capital P. GitHub does
+    # NOT error on an unknown environment name; it silently CREATES one. So the
+    # first attempt at this fix (lowercase `production`, #1138) conjured a
+    # brand-new empty environment, drew the secret from it, got the empty
+    # string, and skipped verification while reporting green — the same silent
+    # no-op it was written to cure. Verified against run 31235056713.
+    environment: Production
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
@@ -94,6 +138,12 @@ jobs:
       # cache cannot fake a pass.
       - name: Production smoke (secretless, cache-busted)
         id: smoke
+        # continue-on-error so a smoke failure reaches the egress sentinel +
+        # status classification below instead of aborting the job unclassified.
+        # The "Fail the job" step at the end still paints a genuine smoke
+        # failure red — this does NOT soften the smoke gate.
+        continue-on-error: true
+        timeout-minutes: 5
         env:
           RELEASE_PROBE_BASE: ${{ secrets.RELEASE_PROBE_BASE || 'https://vitalcv.com' }}
           EXPECTED_SHA: ${{ steps.target.outputs.sha }}
@@ -101,20 +151,63 @@ jobs:
 
       - name: Preflight — is the monitor wired?
         id: preflight
+        # Smoke failure used to abort the job here implicitly; keep that
+        # ordering explicit now that smoke is continue-on-error.
+        if: steps.smoke.outcome == 'success'
         env:
           CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
+          # Escape hatch — see the fail-closed note below.
+          UNWIRED_OK: ${{ vars.MONITORS_UNWIRED_OK }}
         run: |
           # The signed-in verification cannot run without a Clerk backend key to
-          # mint a synthetic session. When it is absent the monitor is "not wired":
-          # skip verification and post a NEUTRAL status (below) instead of a red
-          # failure that reads as a broken deploy. Self-heals — the moment
-          # CLERK_SECRET_KEY is set this passes and full verification runs.
+          # mint a synthetic session.
+          #
+          # FAIL-CLOSED (changed 2026-08-08). "Not wired" used to post a grey
+          # neutral status and exit 0, so as not to paint a red that reads as a
+          # broken deploy. The cost of that kindness: this monitor posted
+          # "skipped — monitor not wired" on EVERY run of its entire life and
+          # nobody noticed, because grey does not demand attention. The
+          # signed-in flow it advertises — synthetic clinician, six /holder
+          # surfaces, check:deploy — had never once executed against
+          # production.
+          #
+          # #1138 added `environment: Production` to this job, which was a real
+          # latent bug worth fixing. Its note that the secret "existed; it was
+          # an environment secret this job had not declared" was NOT correct,
+          # and is corrected here (2026-08-08) so nobody trusts it: at that
+          # time and at the time of this edit, CLERK_SECRET_KEY exists at NO
+          # scope Actions can read. Verified against the API rather than the
+          # `gh secret list` convenience view, which shows only repo scope:
+          #   repo   → total_count 5, none of them CLERK_SECRET_KEY
+          #   envs   → all 9 environments return {"total_count":0}
+          # (The repo call returning 5 is the control proving the API answers
+          # honestly rather than hiding secrets from the caller's token.)
+          #
+          # So declaring the environment did not wire the monitor, and this job
+          # still fails closed below. Wiring it remains a human credential
+          # action — an agent must not copy a live sk_live_ key:
+          #   gh secret set CLERK_SECRET_KEY --repo ctol3r/vitalcv --env Production
+          # (interactive prompt; no pipe to swallow the error). Re-dispatch
+          # this workflow afterwards — a green run with `Run release
+          # verification` actually EXECUTED is the proof, never the run
+          # conclusion alone.
+          #
+          # An unwired monitor is now a MISCONFIGURATION, not a resting state,
+          # and reports red. To deliberately run unwired, set the repository
+          # VARIABLE MONITORS_UNWIRED_OK=true — an auditable statement of
+          # intent, rather than silence meaning consent.
           if [ -n "${CLERK_SECRET_KEY}" ]; then
             echo "wired=true" >> "$GITHUB_OUTPUT"
+            echo "unwired_ok=false" >> "$GITHUB_OUTPUT"
             echo "Monitor wired — running full signed-in verification."
+          elif [ "${UNWIRED_OK}" = "true" ]; then
+            echo "wired=false" >> "$GITHUB_OUTPUT"
+            echo "unwired_ok=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::CLERK_SECRET_KEY unset and MONITORS_UNWIRED_OK=true — deliberate no-op; posting a neutral status."
           else
             echo "wired=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::CLERK_SECRET_KEY unset — monitor not wired; skipping verification and posting a neutral status."
+            echo "unwired_ok=false" >> "$GITHUB_OUTPUT"
+            echo "::error::CLERK_SECRET_KEY is not visible to this job — the signed-in verification did NOT run. Check that this job still declares 'environment: Production' (CAPITAL P — an unknown environment name is silently created, not rejected) and that the secret still exists on that environment. If unwired is intended, set the repository variable MONITORS_UNWIRED_OK=true."
           fi
 
       - name: Run release verification
@@ -133,6 +226,26 @@ jobs:
           RELEASE_REPORT_OUT: report.json
         run: pnpm verify:release
 
+      - name: Egress sentinel — is the runner's own network alive?
+        id: egress
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Two independent, non-production control endpoints. Only when BOTH
+          # are unreachable is the runner's own egress proven dead — then any
+          # probe failure in this run is "no signal", not a production
+          # verdict. If either answers, egress works and a failure against
+          # production stays a real red. Ambiguity resolves to red: ok=false
+          # is only ever written on a confirmed double control failure.
+          if curl -fsS --max-time 10 "https://www.githubstatus.com/api/v2/status.json" >/dev/null 2>&1 \
+            || curl -fsS --max-time 10 -H "Authorization: Bearer ${GH_TOKEN}" \
+                 "https://api.github.com/rate_limit" >/dev/null 2>&1; then
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Record commit status + job summary
         if: always()
         env:
@@ -144,6 +257,8 @@ jobs:
           SMOKE_OUTCOME: ${{ steps.smoke.outcome }}
           VERIFY_OUTCOME: ${{ steps.verify.outcome }}
           WIRED: ${{ steps.preflight.outputs.wired }}
+          UNWIRED_OK: ${{ steps.preflight.outputs.unwired_ok }}
+          EGRESS_OK: ${{ steps.egress.outputs.ok }}
         run: |
           # The commit Status API has no `neutral` state (that lives in the Checks
           # API); `pending` is its non-pass/non-fail signal and renders as a grey
@@ -153,15 +268,33 @@ jobs:
           # web→DB connectivity) — it must paint a RED status, never the grey
           # "not wired" pending it used to fall through to (preflight is skipped
           # when the smoke step fails, so WIRED is empty on that path).
-          if [ "$SMOKE_OUTCOME" = "failure" ]; then
+          #
+          # EXCEPTION, proven not assumed: when the egress sentinel confirmed
+          # the runner's own network is dead (EGRESS_OK=false — BOTH control
+          # endpoints unreachable), a smoke/verify failure says nothing about
+          # production. That is "no signal" and records grey `pending`, which
+          # is deliberately NOT the state a real probe failure records. Any
+          # other sentinel outcome (true, empty, step skipped) keeps the red.
+          if [ "$SMOKE_OUTCOME" = "failure" ] && [ "$EGRESS_OK" = "false" ]; then
+            STATE=pending
+            DESC="no signal — runner egress failure (GitHub infra); production was not reached"
+          elif [ "$SMOKE_OUTCOME" = "failure" ]; then
             STATE=failure
             DESC="production smoke failed (version / auth-config / db-connectivity / public routes)"
-          elif [ "$WIRED" != "true" ]; then
+          elif [ "$WIRED" != "true" ] && [ "$UNWIRED_OK" = "true" ]; then
             STATE=pending
-            DESC="skipped — monitor not wired (set CLERK_SECRET_KEY)"
+            DESC="skipped — deliberately unwired (MONITORS_UNWIRED_OK=true)"
+          elif [ "$WIRED" != "true" ]; then
+            # Fail-closed: an unwired monitor verified NOTHING. Grey here is
+            # what let this monitor look fine for its entire life.
+            STATE=failure
+            DESC="MISCONFIGURED — CLERK_SECRET_KEY not visible; nothing was verified"
           elif [ "$VERIFY_OUTCOME" = "success" ]; then
             STATE=success
             DESC="release verification"
+          elif [ "$EGRESS_OK" = "false" ]; then
+            STATE=pending
+            DESC="no signal — runner egress failed during verification (GitHub infra)"
           else
             STATE=failure
             DESC="release verification"
@@ -175,11 +308,13 @@ jobs:
             # still-serving commit's green status red and leave the new commit
             # with no status at all.
             SHA=$(jq -r '.targetSha // .containerSha // .mainSha // empty' report.json)
-            OVERALL=$(jq -r '.overall // "unknown"' report.json)
-            FAILED=$(jq -r '(.failedChecks // []) | join(", ")' report.json)
-            HOLDER_OK=$(jq -r '[.checks[]? | select((.name|startswith("holder")) and .ok)] | length' report.json)
-            HOLDER_TOTAL=$(jq -r '[.checks[]? | select(.name|startswith("holder"))] | length' report.json)
-            DESC="${OVERALL}: holder ${HOLDER_OK}/${HOLDER_TOTAL}${FAILED:+; failed ${FAILED}}"
+            if [ "$EGRESS_OK" != "false" ] || [ "$STATE" != "pending" ]; then
+              OVERALL=$(jq -r '.overall // "unknown"' report.json)
+              FAILED=$(jq -r '(.failedChecks // []) | join(", ")' report.json)
+              HOLDER_OK=$(jq -r '[.checks[]? | select((.name|startswith("holder")) and .ok)] | length' report.json)
+              HOLDER_TOTAL=$(jq -r '[.checks[]? | select(.name|startswith("holder"))] | length' report.json)
+              DESC="${OVERALL}: holder ${HOLDER_OK}/${HOLDER_TOTAL}${FAILED:+; failed ${FAILED}}"
+            fi
           fi
           [ -z "$SHA" ] && SHA="$TARGET_SHA"
           [ -z "$SHA" ] && SHA="$HEAD_SHA"
@@ -208,9 +343,39 @@ jobs:
             fi
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Fail the job when verification failed
-        # Only a wired run can fail red; an unwired run posts neutral and exits 0.
-        if: steps.preflight.outputs.wired == 'true' && steps.verify.outcome != 'success'
+      - name: No signal — GitHub infra, not a production verdict
+        if: >-
+          steps.egress.outputs.ok == 'false' &&
+          (steps.smoke.outcome == 'failure' ||
+           (steps.preflight.outputs.wired == 'true' && steps.verify.outcome != 'success'))
         run: |
-          echo "::error::Release verification failed — see the vitalcv/release-verified commit status and the job summary." >&2
+          echo "::warning::Runner egress failure — this run produced NO SIGNAL about production. Commit status is grey pending, not red."
+
+      - name: Fail the job when verification failed
+        # A CONFIRMED runner-egress failure (sentinel ok=false) is "no signal",
+        # not a production verdict — that path stays green here with the grey
+        # pending status above. Any other sentinel outcome keeps the red.
+        #
+        # Three distinct red causes, deliberately NOT collapsed:
+        #   - the secretless smoke failed (real deploy problem);
+        #   - a wired verification failed (real signed-in problem);
+        #   - the monitor is unwired without MONITORS_UNWIRED_OK (it verified
+        #     nothing, which used to exit 0 and is the whole reason nobody
+        #     noticed this monitor was inert for its entire life).
+        # The unwired clause is guarded on the preflight having actually run,
+        # so a smoke failure — which skips the preflight — cannot double-report
+        # as a misconfiguration.
+        if: >-
+          steps.egress.outputs.ok != 'false' &&
+          (steps.smoke.outcome == 'failure' ||
+           (steps.preflight.outputs.wired == 'true' && steps.verify.outcome != 'success') ||
+           (steps.preflight.outcome == 'success' &&
+            steps.preflight.outputs.wired != 'true' &&
+            steps.preflight.outputs.unwired_ok != 'true'))
+        run: |
+          if [ "${{ steps.preflight.outputs.wired }}" != "true" ] && [ "${{ steps.smoke.outcome }}" != "failure" ]; then
+            echo "::error::Monitor is MISCONFIGURED — CLERK_SECRET_KEY was not visible, so nothing was verified. This is not a passing deploy; it is an absent test." >&2
+          else
+            echo "::error::Release verification failed — see the vitalcv/release-verified commit status and the job summary." >&2
+          fi
           exit 1

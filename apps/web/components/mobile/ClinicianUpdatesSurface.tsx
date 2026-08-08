@@ -96,7 +96,7 @@ export default function ClinicianUpdatesSurface() {
       <ApplicationList
         applications={data.activeApplications}
         heading="Applications in motion"
-        description="Submitted applications keep their employer context, readiness snapshot, and next-step links attached."
+        description="Submitted applications keep their employer context, readiness, and next-step links attached."
       />
 
       <ClinicianSupportCard

@@ -722,7 +722,7 @@ export default function ProfileSurface() {
       {passport ? (
         <>
           <p className="text-xs leading-relaxed vcv-subtle">
-            The sections below read from your passport and registry sources plus the self-attested
+            The sections below read from your source-backed record and registry sources plus the self-attested
             details you saved above. Source checks keep the verified rows current.
           </p>
           <ClinicianProfileSections

@@ -126,7 +126,7 @@ function readinessConfidenceCopy(trustState: MobileTrustState | null): {
   if (trustState.gapSummary.length === 0) {
     return {
       title: `Ready to submit with ${trustState.readinessLevel} readiness`,
-      detail: 'Your verified profile and current readiness snapshot will go with this application automatically.',
+      detail: 'Your verified profile and current readiness will go with this application automatically.',
     };
   }
 
@@ -495,7 +495,7 @@ export default function ApplyModal({
                       Verified profile attached.
                     </p>
                     <p className="mt-1 text-[13px] leading-relaxed text-emerald-800/80">
-                      Your current readiness snapshot and verified identity went with this application, and we&apos;ll keep the status here as it moves.
+                      Your current readiness and verified identity went with this application, and we&apos;ll keep the status here as it moves.
                     </p>
                   </div>
                 </div>
@@ -605,7 +605,7 @@ export default function ApplyModal({
                     {existingApplicationRecord.employer.name ?? existingApplicationRecord.opportunity.organizationName ?? opportunity.organizationName ?? 'Employer context attached'}
                   </p>
                   <p className="mt-1 text-sm text-zinc-600">
-                    {existingApplicationRecord.readiness?.readinessStatus ?? 'Your latest readiness snapshot stays attached to this application.'}
+                    {existingApplicationRecord.readiness?.readinessStatus ?? 'Your latest readiness stays attached to this application.'}
                   </p>
                   {formatTimestamp(existingApplicationRecord.updatedAt) ? (
                     <p className="mt-2 text-xs text-zinc-500">
@@ -824,7 +824,7 @@ export default function ApplyModal({
                   </div>
                 ) : (
                   <p className="text-center text-[11px] text-zinc-400">
-                    Your verified profile and current readiness snapshot go with this application automatically.
+                    Your verified profile and current readiness go with this application automatically.
                   </p>
                 )}
               </form>

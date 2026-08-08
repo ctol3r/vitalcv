@@ -96,13 +96,13 @@ export default function ResolvingPage() {
         <p style={{ fontSize: '0.875rem', opacity: 0.7 }}>
           Taking longer than expected.{' '}
           <a href="/holder" style={{ textDecoration: 'underline' }}>
-            Continue to your wallet
+            Continue to your profile
           </a>
           .
         </p>
       )}
       <noscript>
-        <a href="/holder">Continue to your wallet</a>
+        <a href="/holder">Continue to your profile</a>
       </noscript>
     </main>
   );

@@ -115,14 +115,14 @@ export function MatchaHub() {
           but it was passed no events, only a specialty, a score and a match
           count, so it drew the fixed illustrative sky with three labels
           swapped. The hub does not hold a clinician's career HISTORY; that
-          lives in the wallet. So the drawing now says what it is, and the
+          lives in the profile. So the drawing now says what it is, and the
           adjacent line points at where the real record actually is. */}
       {started && (
         <div>
           <p className="mz-eyebrow" style={{ marginBottom: 10 }}>Your career, end to end</p>
           <CareerEvidenceTimeline />
           <p className="mz-mono" style={{ marginTop: 8, fontSize: 10, color: 'var(--ink-400)' }}>
-            Your real evidence lives in your wallet.
+            Your real evidence lives in your profile.
           </p>
         </div>
       )}
