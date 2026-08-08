@@ -1,8 +1,14 @@
-# Tier-S closure — branches pending deletion (2026-08-08)
+# Branches pending deletion (2026-08-08)
 
-193 remote branches whose only open PR was closed in the Tier-S batch.
-Deletion is blocked for the executing session (HTTP 403); this list exists
-so an operator with branch-delete rights can finish the job.
+Deletion is blocked for the sessions that created these (HTTP 403 on
+`git push --delete`, with no delete-branch tool available and the REST token
+gated). This list exists so an operator with branch-delete rights can finish
+the job in one pass.
+
+## Tier-S closure (193)
+
+193 remote branches whose only open PR was closed in the Tier-S batch — see
+`docs/ops/merge-ledger.md` for the execution receipt.
 
 ```
 a11y/homepage-main-landmark
@@ -199,3 +205,24 @@ wave/w4-pr249a-wire-manifest-panel
 wave/w5-pr256a-web-v2-clerk-signin
 wave/well-known-w9
 ```
+
+## Other (1)
+
+Not part of the Tier-S batch — recorded here so one cleanup pass covers
+everything rather than leaving a stray behind.
+
+```
+claude/stale-janitor
+```
+
+`claude/stale-janitor` @ `503ed3a3f` was created in error while building the
+stale janitor: the work was pushed there before being moved onto its designated
+branch. It has no pull request, and the commit it carries is an **older** copy
+of the janitor than what landed — it predates both the ref-keyed concurrency fix
+and the enforce-by-default flip. Nothing exists only on this branch; deleting it
+loses nothing.
+
+Ironic but worth stating plainly: this is exactly the kind of orphan the janitor
+in `.github/workflows/stale-janitor.yml` cannot clean up. That workflow acts on
+open pull requests and deletes a head branch only when it closes one, so a
+branch with no PR is invisible to it. Bare-branch hygiene remains a manual sweep.
