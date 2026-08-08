@@ -213,6 +213,13 @@ model AvailabilitySample {
 model AgentRun {
   id                 String           @id @default(uuid()) @db.Uuid
   planId             String           @map("plan_id")
+  /// A2.1 — what caused this run. `event` is reserved for A2.2+.
+  trigger            String           @default("interactive")
+  /// A2.0 — who ran it, and how much they could see.
+  actor              String           @default("clinician_session")
+  completeness       String           @default("full")
+  /// Shadow runs record everything and act on nothing.
+  mode               String           @default("live")
   subjectRef         String           @map("subject_ref")
   npi                String?
   contextClass       String           @map("context_class")
@@ -301,4 +308,41 @@ model AgentConsentEvent {
   @@index([subjectRef, scope, seq])
   @@index([createdAt])
   @@map("agent_consent_events")
+}
+
+// A2.1 — per-subject scheduling state for the background agent loop.
+//
+// Row existence IS the cohort allowlist. A subject is only ever reachable by
+// the scheduler because someone explicitly enrolled them; there is no
+// predicate that could silently widen the cohort as data changes, which is
+// the failure mode cohort gating exists to prevent.
+//
+// Claiming: a tick claims a subject by MOVING nextDueAt FORWARD in a
+// compare-and-set (`updateMany` where the row is still due), claimed iff
+// count === 1. Same discipline as revocationOutboxWorker, and the reason a
+// retried or concurrent tick finds nothing to claim rather than double-running.
+//
+// Migration owned by apps/api/backend/prisma/migrations/
+// 20260808120000_agent_subject_schedule.
+model AgentSubjectSchedule {
+  id                  String    @id @default(uuid()) @db.Uuid
+  subjectRef          String    @unique @map("subject_ref")
+  npi                 String?
+  /// Pause without un-enrolling. A disabled row is never claimed.
+  enabled             Boolean   @default(true)
+  /// When this subject next becomes claimable.
+  nextDueAt           DateTime  @map("next_due_at")
+  /// Cadence between scheduled runs for this subject, in minutes.
+  intervalMinutes     Int       @default(1440) @map("interval_minutes")
+  lastClaimedAt       DateTime? @map("last_claimed_at")
+  lastRunAt           DateTime? @map("last_run_at")
+  lastRunId           String?   @map("last_run_id") @db.Uuid
+  /// Consecutive tick failures; a backoff input, never a truth signal.
+  consecutiveFailures Int       @default(0) @map("consecutive_failures")
+  lastError           String?   @map("last_error")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+
+  @@index([enabled, nextDueAt])
+  @@map("agent_subject_schedules")
 }

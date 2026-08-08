@@ -4334,6 +4334,13 @@ model AvailabilitySample {
 model AgentRun {
   id                 String           @id @default(uuid()) @db.Uuid
   planId             String           @map("plan_id")
+  /// A2.1 — what caused this run. `event` is reserved for A2.2+.
+  trigger            String           @default("interactive")
+  /// A2.0 — who ran it, and how much they could see.
+  actor              String           @default("clinician_session")
+  completeness       String           @default("full")
+  /// Shadow runs record everything and act on nothing.
+  mode               String           @default("live")
   subjectRef         String           @map("subject_ref")
   npi                String?
   contextClass       String           @map("context_class")
@@ -4471,4 +4478,33 @@ model AgentConsentEvent {
   @@index([subjectRef, scope, seq])
   @@index([createdAt])
   @@map("agent_consent_events")
+}
+
+/// A2.1 — per-subject scheduling state for the background agent loop.
+///
+/// Row existence IS the cohort allowlist: a subject is reachable by the
+/// scheduler only because someone explicitly enrolled them. There is no
+/// predicate that could silently widen the cohort as data changes.
+///
+/// Claiming moves `next_due_at` FORWARD in a compare-and-set, so a retried or
+/// concurrent tick finds nothing to claim rather than double-running.
+///
+/// Written by apps/web (lib/agent/schedule/); the backend owns the migration.
+model AgentSubjectSchedule {
+  id                  String    @id @default(uuid()) @db.Uuid
+  subjectRef          String    @unique @map("subject_ref")
+  npi                 String?
+  enabled             Boolean   @default(true)
+  nextDueAt           DateTime  @map("next_due_at")
+  intervalMinutes     Int       @default(1440) @map("interval_minutes")
+  lastClaimedAt       DateTime? @map("last_claimed_at")
+  lastRunAt           DateTime? @map("last_run_at")
+  lastRunId           String?   @map("last_run_id") @db.Uuid
+  consecutiveFailures Int       @default(0) @map("consecutive_failures")
+  lastError           String?   @map("last_error")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+
+  @@index([enabled, nextDueAt])
+  @@map("agent_subject_schedules")
 }

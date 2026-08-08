@@ -96,7 +96,8 @@
     "StartBench",
     "AgentConsentLedger",
     "ConsentProof",
-    "AgentActor"
+    "AgentActor",
+    "AgentSubjectSchedule"
   ],
   "edges": [
     { "source": "Clinician", "relation": "HAS_NPI", "target": "NPI" },
@@ -204,7 +205,8 @@
     { "source": "StartBench", "relation": "EVALUATES", "target": "StartPlan" },
     { "source": "AgentConsentLedger", "relation": "AUTHORIZES", "target": "StartAgent" },
     { "source": "ConsentProof", "relation": "MINTED_FROM", "target": "AgentConsentLedger" },
-    { "source": "AgentActor", "relation": "CONSTRAINS", "target": "StartAgent" }
+    { "source": "AgentActor", "relation": "CONSTRAINS", "target": "StartAgent" },
+    { "source": "AgentSubjectSchedule", "relation": "GATES", "target": "StartAgent" }
   ],
   "rules": [
     "NPPES identity claim is NOT licensure proof.",
@@ -304,7 +306,10 @@
     "agent_action_presented is a view-layer event; execution records agent_action_accepted, and appearing in a plan is neither.",
     "actor is orthogonal to permission: a registry is bound to one actor and refuses tools that actor cannot invoke before permission is considered; system_scheduler may never execute a disclosing action whatever a tool declares.",
     "An unknown ownership state raises no blocker and clears nothing — we-could-not-look is neither there-is-nothing-there nor it-is-fine.",
-    "A reduced context/plan is never served interactively and may only be diffed against another of equal completeness."
+    "A reduced context/plan is never served interactively and may only be diffed against another of equal completeness.",
+    "Claiming a scheduled subject moves its due time forward in a compare-and-set BEFORE the work starts, so retries and concurrent ticks cannot double-run it.",
+    "Only explicitly enrolled subjects are reachable by a background run; no predicate may select subjects for autonomous work.",
+    "In an observation wave shadow is structural (no executor wired), and an unreadable kill switch is not a kill."
   ],
   "knownLimitations": [
     "Machine-readable stub is documentation-grade only, not integrated into runtime types."

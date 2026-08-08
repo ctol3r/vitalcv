@@ -18,22 +18,29 @@
  */
 import 'server-only';
 import { buildIdentityHeaders } from '@/lib/auth/forwardIdentity';
+import type { AgentActor } from './types';
 import { BACKEND_URL as B } from '@/lib/backend-url';
 import { fetchNppesRecord } from '@/lib/clinician-record/nppes';
 import { readAgentConsentStates } from './consent/consent-store';
 import { readAgentActionHistory } from './telemetry/agent-run-store';
 import type { CanonicalReaders } from './tools/canonical-tools';
 
+interface IdentityInput {
+  userId: string;
+  /** Explicit `null` means "this caller has no bearer and never will". */
+  token?: null;
+}
+
 async function backendRequest(
   method: 'GET' | 'POST',
   path: string,
-  userId: string,
+  identity: IdentityInput,
   body?: unknown,
 ): Promise<{ status: number; body: unknown }> {
   const response = await fetch(`${B}${path}`, {
     method,
     headers: {
-      ...(await buildIdentityHeaders({ userId })),
+      ...(await buildIdentityHeaders(identity)),
       ...(body !== undefined ? { 'content-type': 'application/json' } : {}),
     },
     ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
@@ -48,8 +55,11 @@ async function backendRequest(
   return { status: response.status, body: parsed };
 }
 
-async function backendGet(path: string, userId: string): Promise<{ status: number; body: unknown }> {
-  return backendRequest('GET', path, userId);
+async function backendGet(
+  path: string,
+  identity: IdentityInput,
+): Promise<{ status: number; body: unknown }> {
+  return backendRequest('GET', path, identity);
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {
@@ -58,7 +68,24 @@ function asRecord(value: unknown): Record<string, unknown> | null {
     : null;
 }
 
-export function buildProductionReaders(userId: string): CanonicalReaders {
+export interface ProductionReaderOptions {
+  /**
+   * A background run has no Clerk session. Passing `token: null` explicitly
+   * (rather than letting the helper try `auth().getToken()`) keeps the
+   * scheduler honest: it never attaches a bearer, so identity-bound routes
+   * refuse it at the boundary instead of appearing to work. The registry
+   * already refuses those tools for this actor (A2.0); this is the same
+   * truth expressed one layer down.
+   */
+  actor?: AgentActor;
+}
+
+export function buildProductionReaders(
+  userId: string,
+  options: ProductionReaderOptions = {},
+): CanonicalReaders {
+  const identityInput: IdentityInput =
+    options.actor === 'system_scheduler' ? { userId, token: null } : { userId };
   return {
     async readNppesIdentity(npi) {
       const result = await fetchNppesRecord(npi);
@@ -67,7 +94,7 @@ export function buildProductionReaders(userId: string): CanonicalReaders {
     },
 
     async readOwnershipState(npi) {
-      const { status, body } = await backendGet(`/api/ownership/state/${npi}`, userId);
+      const { status, body } = await backendGet(`/api/ownership/state/${npi}`, identityInput);
       if (status === 404) return null;
       if (status !== 200) throw new Error(`ownership read failed with ${status}`);
       const record = asRecord(body);
@@ -78,7 +105,7 @@ export function buildProductionReaders(userId: string): CanonicalReaders {
     },
 
     async readProfileCompleteness() {
-      const { status, body } = await backendGet('/api/profile/completeness', userId);
+      const { status, body } = await backendGet('/api/profile/completeness', identityInput);
       if (status !== 200) return null;
       const record = asRecord(body);
       const score = typeof record?.score === 'number' ? record.score : null;
@@ -91,7 +118,7 @@ export function buildProductionReaders(userId: string): CanonicalReaders {
     },
 
     async readSourceCoverage(npi) {
-      const { status, body } = await backendGet(`/api/trust-state/${npi}`, userId);
+      const { status, body } = await backendGet(`/api/trust-state/${npi}`, identityInput);
       if (status !== 200) return null;
       const record = asRecord(body);
       const coverage = asRecord(record?.sourceCoverage);
@@ -112,7 +139,7 @@ export function buildProductionReaders(userId: string): CanonicalReaders {
     },
 
     async readOpportunities(npi) {
-      const { status, body } = await backendGet(`/api/matcha/opportunities/${npi}`, userId);
+      const { status, body } = await backendGet(`/api/matcha/opportunities/${npi}`, identityInput);
       if (status !== 200) return null;
       const record = asRecord(body);
       const matches = Array.isArray(record?.matches) ? record.matches : null;
@@ -139,7 +166,7 @@ export function buildProductionReaders(userId: string): CanonicalReaders {
       const { status, body } = await backendRequest(
         'POST',
         `/api/trust-state/${npi}/refresh`,
-        userId,
+        identityInput,
         {},
       );
       if (status !== 200) return null;
@@ -154,7 +181,7 @@ export function buildProductionReaders(userId: string): CanonicalReaders {
     },
 
     async executeApplyShare(input) {
-      const { status, body } = await backendRequest('POST', '/api/apply/share', userId, {
+      const { status, body } = await backendRequest('POST', '/api/apply/share', identityInput, {
         npi: input.npi,
         // The recipient is server-resolved from the opportunity; these fields
         // are the required envelope the resolver overwrites.

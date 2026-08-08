@@ -1,0 +1,61 @@
+name: Agent Tick (shadow)
+
+# A2.1 — drives the background Start Agent loop.
+#
+# Deliberately NOT a required status check and deliberately NOT path-filtered
+# on pull_request (it has no pull_request trigger at all), so it can never
+# block a PR the way a filtered required check would.
+#
+# The loop is SHADOW: the tick plans and records, and executes nothing. The
+# schedule is hourly rather than continuous because A2.1's purpose is to
+# learn the real delta rate, not to be timely.
+
+on:
+  schedule:
+    - cron: '25 * * * *'
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: 'Max subjects to claim this tick (clamped server-side)'
+        required: false
+        default: '25'
+
+concurrency:
+  # A tick that overlaps itself would contend on claims. The claim CAS makes
+  # that safe, but serialising is cheaper than proving it every hour.
+  group: agent-tick
+  cancel-in-progress: false
+
+jobs:
+  tick:
+    name: Agent tick
+    runs-on: ubuntu-latest
+    # Only from main: a scheduled workflow on a feature branch would point at
+    # production with unreviewed intent.
+    if: github.ref == 'refs/heads/main'
+    timeout-minutes: 10
+    steps:
+      - name: Run one shadow tick
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          TICK_URL: ${{ secrets.PROBE_URL }}
+          LIMIT: ${{ github.event.inputs.limit || '25' }}
+        run: |
+          set -euo pipefail
+          if [ -z "${CRON_SECRET:-}" ] || [ -z "${TICK_URL:-}" ]; then
+            echo "::notice::CRON_SECRET or PROBE_URL not configured; skipping."
+            exit 0
+          fi
+          # dryRun=false is explicit: production is the only place the tick is
+          # allowed to consume schedule slots, and it must say so out loud.
+          code=$(curl -sS -o /tmp/tick.json -w '%{http_code}' \
+            -X POST \
+            -H "Authorization: Bearer ${CRON_SECRET}" \
+            "${TICK_URL}/api/internal/agent/tick?source=cron&limit=${LIMIT}&dryRun=false")
+          echo "HTTP ${code}"
+          cat /tmp/tick.json
+          echo
+          if [ "${code}" != "200" ]; then
+            echo "::error::agent tick failed with HTTP ${code}"
+            exit 1
+          fi
