@@ -7,14 +7,28 @@ Audit basis: production `vitalcv.com`, 2026-08-07, desktop 1440×900 + iPhone 14
 (390pt) via Playwright. Evidence archives live under `docs/design/design-lab/<ID>/`
 once a wave ships; pre-wave evidence is summarized inline.
 
-Open-PR collision map at audit time: #1079 owns homepage composition/copy
-(`app/page.tsx`, `CareerLoopHome.tsx`); #1081 owns `/profile/activate` (B1);
-#1103 touches `app/get-ready/GetReadySurface.tsx` + onboarding NPI handoff;
-#1109 owns WorkspaceNav/journey-header nesting.
+Open-PR collision map, **refreshed 2026-08-07 after the Tier-S closure (#1127) closed
+194 PRs**: #1079 still owns homepage composition/copy (`app/page.tsx`,
+`CareerLoopHome.tsx`); #1081 still owns `/profile/activate` (B1); #1133 owns the
+journey eyebrow header (at founder gate). **#1103 and #1109 have MERGED**, which
+unblocks the `/onboarding` copy tier.
 
 ---
 
-## DL-001 — Floating feedback chip blocks taps on mobile — **SELECTED (wave 1)**
+## DL-001 — Floating feedback chip blocks taps on mobile — **CLOSED ✅ (wave 1)**
+
+**Shipped** as PR #1119 → `29970a559`, founder GO 2026-08-07.
+**Production-verified** on `vitalcv.com/onboarding` (iPhone 14) once the deploy carried
+the merge SHA: chip now `44×44 @ x322`, `intersects: false`,
+`signinClickBlocked: false`, `elementFromPoint` at the link's center returns
+`"Sign in"`, and clicking it navigates to `/sign-in?redirect_url=%2Fonboarding`.
+Desktop unchanged (109×44, label visible). Evidence: `dl-001/`.
+
+Re-audit note: the click only navigates after hydration settles (~6s in the harness);
+an earlier click returned to the same URL. That is a general harness caveat, not a
+regression — assert against a hydration signal, not a fixed wait.
+
+<details><summary>Original finding (kept for lineage)</summary>
 
 - **Route/surface:** global fixed chrome (`components/feedback/FeedbackButton.tsx`), measured on `/onboarding`
 - **Problem:** the labeled "Feedback" chip (`fixed bottom-6 right-6`, ~109×44px) occupies
@@ -39,7 +53,45 @@ Open-PR collision map at audit time: #1079 owns homepage composition/copy
 - **Dependencies:** none
 - **Collision risk:** none — no open PR touches `components/feedback/`
 
+</details>
+
+## DL-002a — Customer-language inventory — **DELIVERED (wave 2), awaiting classification sign-off**
+
+- **Deliverable:** `docs/strategy/customer-language-inventory.md` — **revised in place**;
+  a Wave 1077 PR C version already existed and its conclusions needed correcting, not replacing
+- **Why it came before DL-002:** DL-002 looked like a one-file copy edit. The inventory
+  shows the same vocabulary spans **443 visible occurrences across 10 terms**, so a
+  narrow fix would have renamed the noun on one surface and left it standing on
+  twenty — trading one incoherence for another.
+- **Findings that change the plan:**
+  1. **These words do two jobs.** ~45 occurrences are *truth qualifiers* (freshness
+     windows like "monthly snapshot", limitation clauses like "Receipt recorded. Does
+     not imply employer acceptance."), not product vocabulary. They are marked
+     **protected** — a blind rename would delete the honesty the product is built on.
+  2. **Primary navigation is already canonical** (Clinicians/Employers/Trust, profile-first
+     labels). The debt is page copy and in-app surfaces, not IA — this retires the nav
+     half of DL-003.
+  3. **The real cost is tests:** 141 test files reference these terms and 20+ assert on
+     rendered copy, several of them truth guards. A copy wave is a copy edit **plus** a
+     test-contract migration.
+  4. **The 2026-08-05 inventory's headline was wrong.** It concluded the retire list
+     was "already almost absent from customer copy" using a JSX-text-node search; that
+     method cannot see prose string literals, which is where most of this copy lives.
+     Production screenshots settle it — `/onboarding` renders "Your free, source-backed
+     career wallet". The revision annotates the original inline rather than rewriting it.
+  5. **The guard that was supposed to prevent this does not exist on `main`.**
+     `strategy-messaging-guard.test.tsx` lives only in open PR #1079, but the merged
+     inventory describes it as active. Nothing currently fails the build when a retired
+     noun reaches the homepage. Landing it is part of wave L1.
+- **Proposed sequencing:** L1 `wallet` (~40, low risk) → L2 `passport` orphans (~25) →
+  L3 acquisition-copy demotion (~35, after #1079) → L4 in-app snapshot noun (~30).
+- **Open founder decisions:** keep `recognition` as a distinct state? rename-vs-retire
+  the `/snapshot` and `/packet` routes? change the PWA description in `app/manifest.ts`?
+
 ## DL-002 — `/onboarding` sells a "career wallet" and "readiness packet" (retired vocabulary)
+
+**Now UNBLOCKED** (#1103 merged). Superseded in scope by DL-002a: execute as **wave L1**
+of the inventory's sequence rather than as a single-file edit.
 
 - **Route/surface:** `/onboarding` right rail (source: `app/get-ready/GetReadySurface.tsx`)
 - **Problem:** the rail headlines "Your free, source-backed career wallet" and promises an
@@ -52,9 +104,9 @@ Open-PR collision map at audit time: #1079 owns homepage composition/copy
 - **Severity:** P1 · **Strategic impact:** comprehension + category convergence
 - **Recommended direction:** copy-only pass replacing wallet/packet with profile
   vocabulary per the strategy brief; no layout change.
-- **Size:** XS · **Dependencies:** strategy docs installed (`docs/strategy/`)
-- **Collision risk:** **BLOCKED — WAIT.** #1103 touches `GetReadySurface.tsx`; coordinate
-  or take after it lands.
+- **Size:** XS as scoped; **~40 occurrences** as wave L1 across clinician + public surfaces
+- **Dependencies:** none — `docs/strategy/` canon is already in-repo (landed in #1080)
+- **Collision risk:** cleared — #1103 merged 2026-08-07; no open PR touches `GetReadySurface.tsx`
 
 ## DL-003 — Homepage journey rail exposes machinery labels ("Packet", "Their decision")
 
@@ -70,6 +122,9 @@ Open-PR collision map at audit time: #1079 owns homepage composition/copy
   clinician-benefit cell copy. Hero/section copy is #1079's contract.
 - **Size:** S · **Collision risk:** **BLOCKED — WAIT.** #1079 owns homepage composition;
   recommendation handed to that wave rather than a competing implementation.
+- **Update 2026-08-07 (DL-002a):** the *navigation* half of this finding is closed —
+  `navDestinations.ts` is already canonical. What remains is the rail's cell copy
+  (`CareerLoopHome.tsx:111,403` "The packet"), which stays #1079's to change.
 
 ## DL-004 — Cinematic interstitials outrank utility in the homepage story
 
@@ -135,7 +190,12 @@ Open-PR collision map at audit time: #1079 owns homepage composition/copy
 | Design coherence | 7 | Paper/ink system holds across `/`, `/onboarding`, `/employers` |
 | Differentiation | 6 | Journey rail + source-attribution feel ownable; interstitial mood pieces read generic-cinematic |
 | Trust clarity | 8 | Source/freshness qualifiers present and honest everywhere audited |
-| Mobile quality | 5 | DL-001 tap blocker; compositions otherwise sound |
+| Mobile quality | 5 → **7** | DL-001 tap blocker CLOSED and prod-verified 2026-08-07; compositions otherwise sound. Next mobile evidence needed before claiming higher |
 | Interaction/motion | 7 | Scenes reveal correctly on scroll (verified); motion mostly has a job |
 
-Weakest important dimension: **mobile quality** — hence DL-001 as wave 1.
+Weakest important dimension at baseline: **mobile quality** — hence DL-001 as wave 1.
+After wave 1 the weakest important dimensions are **comprehension (6)** and
+**differentiation (6)**; both are gated on #1079 landing, so wave 3 should be either
+the inventory's L1 (`wallet` → profile, unblocked now) or DL-005 (`/employers`
+hierarchy). Re-score against fresh captures after the next deploy — these numbers are
+only as good as the evidence behind them.
