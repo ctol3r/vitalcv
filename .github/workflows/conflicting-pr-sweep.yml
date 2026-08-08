@@ -1,0 +1,73 @@
+name: Conflicting PR Sweep
+
+# Reports open PRs that are running ZERO gates because they conflict with their
+# base branch.
+#
+# A conflicting PR cannot build its `refs/pull/N/merge` ref, so GitHub creates no
+# `pull_request` check runs for it at all — no skip notice, no failing check,
+# just an empty check list that reads exactly like a PR opened one second ago.
+# #1081 sat that way for a day (2026-08-06 → 08-07) while its stale re-runs
+# reported "queued" forever; close/reopen and a fresh SHA both did nothing, and
+# merging the base branch fixed it instantly.
+#
+# THIS IS A REPORT, NOT A GATE. With hundreds of open PRs some are always
+# mid-conflict, so a job that failed on findings would be red permanently and
+# ignored within a week — the same "monitor whose red means nothing" failure
+# this line of work started from. Findings surface as a job summary and warning
+# annotations. A green run means THE SWEEP RAN, never "no PR is wedged".
+# `fail_on_findings` is available on manual runs for a human who wants the
+# exit code.
+#
+# No pull_request trigger, so scripts/check-workflow-concurrency.js does not
+# apply to it. `cancel-in-progress: true` on a main-ref workflow is deliberate
+# and safe here: the sweep reports no per-commit status, so a superseded run has
+# nothing anyone could lose — unlike a gate, whose main check runs must survive.
+
+on:
+  schedule:
+    # Every 6 hours, off the hour to avoid the :00 scheduling crush.
+    - cron: '17 */6 * * *'
+  workflow_dispatch:
+    inputs:
+      fail_on_findings:
+        description: 'Exit non-zero if any PR is running zero gates'
+        required: false
+        default: 'false'
+
+permissions:
+  contents: read
+  pull-requests: read
+  checks: read
+
+concurrency:
+  group: conflicting-pr-sweep
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '22'
+
+jobs:
+  sweep:
+    name: Conflicting-PR sweep
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Sweep open PRs for the zero-gates state
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Read into env rather than interpolated into the `run` script: a
+          # workflow_dispatch input is attacker-influencable text, and `${{ }}`
+          # inside a shell line is string substitution, not an argument.
+          FAIL_ON_FINDINGS: ${{ inputs.fail_on_findings }}
+        run: |
+          set -euo pipefail
+          if [ "${FAIL_ON_FINDINGS:-false}" = "true" ]; then
+            node scripts/check-conflicting-prs.mjs --fail-on-findings
+          else
+            node scripts/check-conflicting-prs.mjs
+          fi
