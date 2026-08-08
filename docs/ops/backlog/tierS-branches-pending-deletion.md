@@ -5,9 +5,9 @@
 > `git push origin --delete` returns **HTTP 403** for *every* seat, including
 > the founder's — not just for automation. An earlier revision of this file
 > blamed the automation's credential; that was wrong, and a full attempted
-> sweep confirmed it: all 196 branches below were still present afterwards
-> (`git ls-remote` intersection = 196 of 196) and the repo's branch count had
-> risen from 919 to 939.
+> sweep confirmed it: all 196 branches listed at that time were still present
+> afterwards (`git ls-remote` intersection = 196 of 196) and the repo's branch
+> count had risen from 919 to 939. The list has since grown to 207.
 >
 > **This is a settings change, not a command problem.** No client-side
 > invocation gets past a ref-deletion restriction — `git push --delete`,
@@ -51,9 +51,11 @@ echo "remaining from list: $(comm -12 /tmp/todelete.txt /tmp/remote.txt | wc -l)
 three-backtick sequence inside its `awk` pattern, which would otherwise close
 this block early and scramble every fence below it.)
 
-Verified at the time of writing: 196 names extract cleanly, none match a
-protected branch, none intersects any open PR's head or base, and all 196 were
-still present on the remote. **Delete this file once that last number is 0.**
+Verified at the time of writing: 196 names extracted cleanly, none matched a
+protected branch, none intersected any open PR's head or base, and all 196 were
+still present on the remote. **Now 207** — 11 merged-PR branches were appended
+on 2026-08-08 and checked against the same four criteria. **Delete this file
+once the remaining count is 0.**
 
 ## Tier-S closure (193)
 
@@ -292,9 +294,61 @@ Dependabot deletes its own head branch when its PR closes, and both
 `dependabot/npm_and_yarn/apps/marketing/next-15.5.21`) were verified gone from
 the remote. Noted so nobody hunts for them and concludes the list is short.
 
+## Merged-PR branches (11)
+
+A different category from everything above, added 2026-08-08. Every other entry
+in this file is the head of a **closed** PR or a branch with no PR at all. These
+eleven are heads of PRs that **merged** — the Dependabot backlog pass and the
+Expo SDK 53 → 57 wave. Their content is on `main`; only the refs survive.
+
+```
+claude/dependabot-backlog-triage-cjhums
+claude/vite-6-4-3-supersede-852
+claude/dependabot-ignore-expo-notifications-major
+claude/expo-sdk-53-to-57-wave-plan
+claude/mobile-ci-coverage
+claude/fix-notification-trigger
+claude/expo-sdk-54
+claude/expo-sdk-55
+claude/expo-sdk-56
+claude/expo-sdk-57
+claude/expo-wave-results
+```
+
+Each was verified merged by confirming its squash-merge commit is an ancestor of
+`main` — `git merge-base --is-ancestor`, 11/11 — rather than by branch name or
+PR state. Squash-merging means the branch tip itself is *not* an ancestor, so
+`git branch --merged` will not list these and a tip-to-tip `git diff main..branch`
+says nothing useful; the merge commit is the only reliable witness.
+
+| Branch | PR | Merge commit |
+|---|---|---|
+| `claude/dependabot-backlog-triage-cjhums` | #1111 | `0b62fc04b` |
+| `claude/vite-6-4-3-supersede-852` | #1128 | `d8174a3f6` |
+| `claude/dependabot-ignore-expo-notifications-major` | #1135 | `16029f23c` |
+| `claude/expo-sdk-53-to-57-wave-plan` | #1141 | `f2dc053ff` |
+| `claude/mobile-ci-coverage` | #1143 | `1c5ba0037` |
+| `claude/fix-notification-trigger` | #1144 | `75199350a` |
+| `claude/expo-sdk-54` | #1167 | `655d56bcb` |
+| `claude/expo-sdk-55` | #1172 | `c5a34645` |
+| `claude/expo-sdk-56` | #1173 | `793340fa3` |
+| `claude/expo-sdk-57` | #1176 | `cff3ea913` |
+| `claude/expo-wave-results` | #1181 | `ae0681b8a` |
+
+Checked against this file's own safety criteria before being added: all 11
+present on the remote, none matching a protected name, none already listed, and
+none used as head or base by any of the 16 open PRs.
+
+**Why auto-delete does not cover them.** *Automatically delete head branches*
+was enabled on 2026-08-08, after these merged. It fires on the merge event, so
+it applies going forward and cannot reach back. This should be the last batch of
+merged-PR branches that ever needs listing here.
+
 ### Why the janitor does not shrink this list
 
 `.github/workflows/stale-janitor.yml` acts on open pull requests and deletes a
 head branch only when it closes one, so a branch whose PR is already closed — or
-that never had a PR at all — is invisible to it. Every entry here is in exactly
-that state. Bare-branch hygiene remains a manual sweep.
+that never had a PR at all — is invisible to it. Every entry above the
+merged-PR section is in exactly that state, and the merged eleven are doubly
+invisible: their PRs were never *closed*, they were *merged*. Bare-branch
+hygiene remains a manual sweep.
