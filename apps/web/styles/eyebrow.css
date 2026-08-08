@@ -95,6 +95,25 @@
   transition: none;
 }
 
+/*
+ * W1079. The nav had no rule at all: an unstyled block whose only separation
+ * between destinations was a literal space in the JSX. At 11px uppercase mono
+ * with 0.12em letter-spacing that space measures ~4px — the same as the gap
+ * between two letters — so the bar rendered as one run,
+ * "HOW IT WORKS FOR EMPLOYERS TRUST", with no way to see where one destination
+ * ended and the next began. Measured on production before this wave: link boxes
+ * at 517-612, 616-719, 723-763.
+ *
+ * A real flex gap is what separates them; the JSX spaces are gone. 26px rather
+ * than the right cluster's 14px because letter-spaced uppercase needs more room
+ * to read as discrete items.
+ */
+.vcv-eb__center-nav {
+  display: flex;
+  align-items: center;
+  gap: 26px;
+}
+
 .vcv-eb__navlink {
   font-family: var(--font-geist-mono);
   font-size: 11px;
