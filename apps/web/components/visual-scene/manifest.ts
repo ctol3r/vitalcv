@@ -1,0 +1,126 @@
+/**
+ * VisualScene asset manifest — CC-06 / VIS-05.
+ *
+ * One registry for every public visual scene. The ten scene ids are the
+ * approved first-release inventory (Experience Constitution EC-28); a scene
+ * outside this list cannot be rendered, and a new one requires an EC-22
+ * amendment. Budgets and metadata obligations are EC-29 law: every asset
+ * carries source / license / origin, posters stay ≤ 250 KB, desktop motion
+ * ≤ 1.5 MB per format.
+ *
+ * This wave ships static placeholder posters only (original SVG, drawn for
+ * this repo — no stock, no generated concept art, no 3D footage). Motion
+ * sources land per-scene in later waves (CC-13+) and must pass the same
+ * validation.
+ */
+
+export const SCENE_IDS = [
+  'journey_film',
+  'npi_reveal',
+  'profile_layers',
+  'choice_gate',
+  'opportunity_field',
+  'employer_desk',
+  'continuity_ribbon',
+  'quiet_source_constellation',
+  'workbench_window',
+  'decision_trail',
+] as const;
+export type SceneId = (typeof SCENE_IDS)[number];
+
+/** EC-26: the three scene kinds, distinguished at the type level. */
+export type SceneKind = 'decorative' | 'process' | 'stateful';
+
+/** EC-29 budgets, in bytes. Measured by the asset validation test. */
+export const POSTER_BUDGET_BYTES = 250_000;
+export const MOTION_BUDGET_BYTES = 1_500_000;
+
+export interface SceneAsset {
+  /** Path under apps/web/public (leading slash). */
+  path: string;
+  format: 'svg' | 'avif' | 'webp' | 'png' | 'webm' | 'mp4';
+  /** Provenance metadata — required on every asset (EC-29). */
+  source: string;
+  license: string;
+  origin: string;
+}
+
+export interface SceneManifestEntry {
+  scene: SceneId;
+  kind: SceneKind;
+  title: string;
+  /** Intrinsic aspect ratio; the component reserves this box (no CLS). */
+  aspect: { w: number; h: number };
+  poster: SceneAsset;
+  /** Motion sources, best-format-first. Empty until a motion wave lands. */
+  motion: SceneAsset[];
+  /**
+   * Adjacent textual equivalent (EC-26/EC-29): required for process and
+   * stateful scenes; never present on decorative ones.
+   */
+  transcript?: string;
+  /** Alt text: empty string for decorative crops, meaningful otherwise. */
+  altText: string;
+}
+
+/**
+ * Placeholder entries — one per kind, so the whole contract is exercised
+ * before any production art exists. Compositions are abstract by design and
+ * pass the EC-25 truth review: no providers, no counts, no source responses,
+ * no outcomes.
+ */
+export const SCENE_MANIFEST: readonly SceneManifestEntry[] = [
+  {
+    scene: 'continuity_ribbon',
+    kind: 'decorative',
+    title: 'Continuity ribbon (placeholder)',
+    aspect: { w: 8, h: 3 },
+    poster: {
+      path: '/scenes/continuity-ribbon-placeholder.svg',
+      format: 'svg',
+      source: 'original',
+      license: 'VitalCV proprietary',
+      origin: 'CC-06 placeholder, drawn in-repo',
+    },
+    motion: [],
+    altText: '',
+  },
+  {
+    scene: 'workbench_window',
+    kind: 'process',
+    title: 'Workbench window (placeholder)',
+    aspect: { w: 4, h: 3 },
+    poster: {
+      path: '/scenes/workbench-window-placeholder.svg',
+      format: 'svg',
+      source: 'original',
+      license: 'VitalCV proprietary',
+      origin: 'CC-06 placeholder, drawn in-repo',
+    },
+    motion: [],
+    transcript:
+      'A private note sits beside a role. The clinician writes, links the note to the role, and — only when ready — chooses to create a reviewable draft. Nothing leaves the workspace without that explicit step.',
+    altText: 'Abstract illustration of a private note pane beside a role pane, connected by a drawn link',
+  },
+  {
+    scene: 'quiet_source_constellation',
+    kind: 'stateful',
+    title: 'Quiet source constellation (placeholder)',
+    aspect: { w: 3, h: 2 },
+    poster: {
+      path: '/scenes/quiet-source-constellation-placeholder.svg',
+      format: 'svg',
+      source: 'original',
+      license: 'VitalCV proprietary',
+      origin: 'CC-06 placeholder, drawn in-repo',
+    },
+    motion: [],
+    transcript:
+      'A sparse, orderly set of source objects, each linked to one fact. Sources that were actually read are marked read with their age; sources that were not are visibly open — never implied.',
+    altText: 'Abstract illustration of a small set of labeled source shapes linked to a record',
+  },
+] as const;
+
+export function sceneEntry(scene: SceneId): SceneManifestEntry | undefined {
+  return SCENE_MANIFEST.find((e) => e.scene === scene);
+}

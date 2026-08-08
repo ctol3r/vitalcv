@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 300" role="img" aria-hidden="true">
+  <!-- CC-06 placeholder · original · VitalCV proprietary. A continuity ribbon:
+       one path, two opportunity nodes, the record travels without restarting. -->
+  <rect width="800" height="300" fill="#141517"/>
+  <path d="M60 220 C 240 140, 400 250, 560 150 S 740 90, 760 100" fill="none" stroke="#2E2F33" stroke-width="2"/>
+  <path d="M60 220 C 240 140, 400 250, 560 150" fill="none" stroke="#4ADE97" stroke-width="2" opacity="0.7"/>
+  <circle cx="60" cy="220" r="7" fill="#222326" stroke="#9C9D99" stroke-width="1.5"/>
+  <circle cx="560" cy="150" r="7" fill="#222326" stroke="#9C9D99" stroke-width="1.5"/>
+  <rect x="300" y="150" width="46" height="62" rx="2" fill="#1C1D20" stroke="#4ADE97" stroke-width="1.5"/>
+  <line x1="308" y1="166" x2="338" y2="166" stroke="#F2F1ED" stroke-width="2"/>
+  <line x1="308" y1="180" x2="332" y2="180" stroke="#9C9D99" stroke-width="1.5"/>
+  <line x1="308" y1="192" x2="335" y2="192" stroke="#9C9D99" stroke-width="1.5"/>
+</svg>
