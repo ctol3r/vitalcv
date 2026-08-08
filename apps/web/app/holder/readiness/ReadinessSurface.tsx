@@ -185,6 +185,31 @@ export default function ReadinessSurface() {
         {/* Live state log */}
         {loadState !== 'no-npi' && <LiveStateLog entries={logEntries} maxHeight={160} />}
 
+        {/* The same "open readiness items" the home surface counts — one
+            selector (data.blockers), both surfaces. Home said "5 open
+            readiness items" while this page rendered only passport lanes, so
+            the number appeared to vanish on click-through. */}
+        {data.blockers.length > 0 && (
+          <div className="vcv-panel px-5 py-4" data-readiness-blockers="">
+            <p className="vcv-eyebrow mb-2">
+              What&rsquo;s left ({data.blockers.length})
+            </p>
+            <ul className="space-y-2.5">
+              {data.blockers.map((blocker) => (
+                <li key={blocker.id} className="flex items-start justify-between gap-3 text-sm">
+                  <span style={{ color: 'var(--ink)' }}>{blocker.label}</span>
+                  <Link
+                    href={blocker.nextActionHref}
+                    className="vcv-mono shrink-0 text-xs underline underline-offset-4 transition-opacity hover:opacity-80"
+                  >
+                    {blocker.nextActionLabel}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
         {/* Loading — a readiness-shaped skeleton, not a spinner */}
         {loadState === 'loading' && (
           <div className="space-y-4" aria-busy="true" aria-live="polite">

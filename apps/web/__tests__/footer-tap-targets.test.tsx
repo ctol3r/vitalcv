@@ -90,10 +90,9 @@ const OVERLAY = [
     file: 'components/verifier/IssuerContinuityPanel.tsx',
     what: 'JWKS "verify →" link (43×14 on production)',
   },
-  {
-    file: 'app/trust/attribution/page.tsx',
-    what: '"← vitalcv.com" back-link (78×12 on production)',
-  },
+  // app/trust/attribution's "← vitalcv.com" back-link was removed with the
+  // page's duplicate header (the global chrome provides both) — no sub-24px
+  // control remains there to guard.
 ] as const;
 
 describe('sub-24px controls keep an expanded hit area', () => {

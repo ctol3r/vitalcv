@@ -163,17 +163,17 @@ export function TrustAttributionRegister({
     >
       <h2
         id="trust-attribution-register-heading"
-        className="text-[10px] font-bold uppercase tracking-widest text-gray-400"
+        className="text-[10px] font-bold uppercase tracking-widest text-[var(--vt-text-secondary)]"
       >
         Per-field attribution
       </h2>
-      <p className="mt-1 text-[10px] text-gray-500">
+      <p className="mt-1 text-[10px] text-[var(--vt-text-muted)]">
         Each row: field, source, when we read it, current state, who decides.
       </p>
-      <div className="mt-3 overflow-hidden border border-gray-800">
+      <div className="mt-3 overflow-hidden border border-[var(--vt-border)]">
         <table className="w-full text-xs">
           <thead>
-            <tr className="border-b border-gray-800 text-[9px] uppercase tracking-widest text-gray-600">
+            <tr className="border-b border-[var(--vt-border)] text-[9px] uppercase tracking-widest text-[var(--vt-text-muted)]">
               <th className="px-4 py-1.5 text-left font-normal">Field</th>
               <th className="px-4 py-1.5 text-left font-normal">Source</th>
               <th className="px-4 py-1.5 text-left font-normal">Retrieval time</th>
@@ -181,7 +181,7 @@ export function TrustAttributionRegister({
               <th className="px-4 py-1.5 text-left font-normal">Review boundary</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-900">
+          <tbody className="divide-y divide-[var(--vt-border)]">
             {rows.map((row) => (
               <tr
                 key={row.field}
@@ -191,11 +191,11 @@ export function TrustAttributionRegister({
                   .replace(/^-+|-+$/g, '')}
                 className="align-top"
               >
-                <td className="px-4 py-2 text-[11px] font-medium text-gray-200">
+                <td className="px-4 py-2 text-[11px] font-medium text-[var(--vt-text-primary)]">
                   {row.field}
                 </td>
-                <td className="px-4 py-2 text-[10px] text-gray-400">{row.source}</td>
-                <td className="px-4 py-2 text-[10px] text-gray-500">
+                <td className="px-4 py-2 text-[10px] text-[var(--vt-text-secondary)]">{row.source}</td>
+                <td className="px-4 py-2 text-[10px] text-[var(--vt-text-muted)]">
                   {row.retrievalTime}
                 </td>
                 <td className="px-4 py-2">
@@ -205,7 +205,7 @@ export function TrustAttributionRegister({
                     size="sm"
                   />
                 </td>
-                <td className="px-4 py-2 text-[10px] text-gray-400">
+                <td className="px-4 py-2 text-[10px] text-[var(--vt-text-secondary)]">
                   {row.reviewBoundary}
                 </td>
               </tr>

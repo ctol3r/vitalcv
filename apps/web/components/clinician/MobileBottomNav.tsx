@@ -5,16 +5,18 @@ import { usePathname } from 'next/navigation';
 import { Bell, Briefcase, CreditCard, Home, ShieldCheck, UserRound } from 'lucide-react';
 import { UserButton } from '@clerk/nextjs';
 import { useClinicianMobile } from '@/components/mobile/ClinicianMobileProvider';
+import { isApplicationNotification } from '@/lib/mobile/clinician-state';
 
 export function MobileBottomNav({ showClerkAccount = true }: { showClerkAccount?: boolean }) {
   const pathname = usePathname();
   const { unreadNotifications } = useClinicianMobile();
+  const unreadApplicationCount = unreadNotifications.filter(isApplicationNotification).length;
 
   const NAV_ITEMS = [
     { name: 'Home', href: '/holder/home', matchPrefix: false, icon: Home },
     { name: 'Ready', href: '/holder/readiness', matchPrefix: true, icon: ShieldCheck },
-    { name: 'Roles', href: '/holder/opportunities', matchPrefix: true, icon: Briefcase },
-    { name: 'Updates', href: '/holder/applications', matchPrefix: true, icon: Bell },
+    { name: 'Opportunities', href: '/holder/opportunities', matchPrefix: true, icon: Briefcase },
+    { name: 'Applications', href: '/holder/applications', matchPrefix: true, icon: Bell },
     { name: 'Wallet', href: '/holder', matchPrefix: false, icon: CreditCard },
   ];
 
@@ -52,9 +54,9 @@ export function MobileBottomNav({ showClerkAccount = true }: { showClerkAccount?
                   }`}
                   strokeWidth={isActive ? 2.5 : 2}
                 />
-                {item.href === '/holder/applications' && unreadNotifications.length > 0 ? (
+                {item.href === '/holder/applications' && unreadApplicationCount > 0 ? (
                   <span className="absolute -right-1 -top-1 inline-flex min-h-4 min-w-4 items-center justify-center rounded-full bg-vt-info px-1 text-[9px] font-bold text-zinc-950">
-                    {Math.min(unreadNotifications.length, 9)}
+                    {Math.min(unreadApplicationCount, 9)}
                   </span>
                 ) : null}
               </div>

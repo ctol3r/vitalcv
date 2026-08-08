@@ -27,6 +27,8 @@ import type { MobileQuickAction } from '@/components/mobile/ClinicianPanels';
 import { ClinicianStatusBanner } from '@/components/mobile/ClinicianStatusBanner';
 import { ClinicianSupportCard } from '@/components/mobile/ClinicianSupportCard';
 import { useClinicianMobile } from '@/components/mobile/ClinicianMobileProvider';
+import { countApplicationsInMotion } from '@/lib/mobile/clinician-state';
+import { formatEventTimestamp } from '@/lib/mobile/formatEventTimestamp';
 import { RecognitionCard } from '@/components/recognition/RecognitionCard';
 import CareerCompass from '@/components/matcha/CareerCompass';
 import ProductLoopRail from '@/components/holder/ProductLoopRail';
@@ -375,12 +377,7 @@ export default function ClinicianHomeSurface() {
                 </p>
                 {highlightedChange?.occurredAt ? (
                   <p className="mt-3 mz-small mz-mono">
-                    Latest change recorded {new Date(highlightedChange.occurredAt).toLocaleString([], {
-                      month: 'short',
-                      day: 'numeric',
-                      hour: 'numeric',
-                      minute: '2-digit',
-                    })}
+                    Latest change recorded {formatEventTimestamp(highlightedChange.occurredAt)}
                   </p>
                 ) : null}
               </div>
@@ -444,7 +441,7 @@ export default function ClinicianHomeSurface() {
             </div>
 
             <div className="mt-5 grid gap-3 sm:grid-cols-3">
-              <MetricCard label="Active applications" value={`${data.activeApplications.length}`} />
+              <MetricCard label="Active applications" value={`${countApplicationsInMotion(data.activeApplications)}`} />
               <MetricCard label="Available roles" value={`${data.availableOpportunities.length}`} />
               <MetricCard label="Unread updates" value={`${unreadNotifications.length}`} />
             </div>

@@ -177,9 +177,7 @@ export default function PricingFoundationPage() {
                     color: textMuted,
                   }}
                 >
-                  Payments collected: {String(plan.collectsPayment)} · Checkout live:{' '}
-                  {String(plan.checkoutIntegrationLive)} · Subscription active:{' '}
-                  {String(plan.subscriptionActive)}
+                  No payment is collected in this build.
                 </p>
 
                 <PlanCta planKind={plan.kind} />

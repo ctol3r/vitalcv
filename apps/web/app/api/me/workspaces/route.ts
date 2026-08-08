@@ -1,4 +1,4 @@
-import { auth } from '@clerk/nextjs/server';
+import { auth, clerkClient } from '@clerk/nextjs/server';
 import { applyIdentityHeaders } from '@/lib/auth/forwardIdentity';
 import { NextResponse } from 'next/server';
 
@@ -10,13 +10,41 @@ const BACKEND =
   process.env.NEXT_PUBLIC_BACKEND_URL ||
   'http://localhost:4000';
 
-async function buildForwardHeaders(session: Awaited<ReturnType<typeof auth>>): Promise<Headers> {
+/**
+ * The signed-in account's email. The session token carries no `email` claim on
+ * this Clerk instance (no session-token customization), so the claim path was
+ * null for every user — surfaces greeted "signed in as your account". Fall back
+ * to the Clerk backend API, the same pattern resolve-role uses to create
+ * first-time users.
+ */
+async function resolveAccountEmail(
+  session: Awaited<ReturnType<typeof auth>>,
+): Promise<string | null> {
+  const emailClaim = (session.sessionClaims as Record<string, unknown> | undefined)?.email;
+  if (typeof emailClaim === 'string' && emailClaim.length > 0) return emailClaim;
+  if (!session.userId) return null;
+
+  try {
+    const clerk = await clerkClient();
+    const user = await clerk.users.getUser(session.userId);
+    return (
+      user.emailAddresses.find((e) => e.id === user.primaryEmailAddressId)?.emailAddress ?? null
+    );
+  } catch {
+    // Clerk fetch failed — the workspace payload still resolves without it.
+    return null;
+  }
+}
+
+async function buildForwardHeaders(
+  session: Awaited<ReturnType<typeof auth>>,
+  accountEmail: string | null,
+): Promise<Headers> {
   const headers = new Headers();
   await applyIdentityHeaders(headers, { userId: session.userId });
 
-  const emailClaim = (session.sessionClaims as Record<string, unknown> | undefined)?.email;
-  if (typeof emailClaim === 'string' && emailClaim.length > 0) {
-    headers.set('x-clerk-user-email', emailClaim);
+  if (accountEmail) {
+    headers.set('x-clerk-user-email', accountEmail);
   }
 
   return headers;
@@ -28,12 +56,11 @@ export async function GET() {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const emailClaim = (session.sessionClaims as Record<string, unknown> | undefined)?.email;
-  const accountEmail = typeof emailClaim === 'string' && emailClaim.length > 0 ? emailClaim : null;
+  const accountEmail = await resolveAccountEmail(session);
 
   try {
     const upstream = await fetch(`${BACKEND}/api/me/workspaces`, {
-      headers: await buildForwardHeaders(session),
+      headers: await buildForwardHeaders(session, accountEmail),
       cache: 'no-store',
       signal: AbortSignal.timeout(8000),
     });

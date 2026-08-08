@@ -68,7 +68,7 @@ function buildStages(input: {
     { key: 'readiness', label: 'Readiness', icon: ShieldCheck, href: '/holder/readiness', status: readinessStatus },
     { key: 'recognition', label: 'Recognition', icon: Award, href: '/holder/recognition', status: 'open' },
     { key: 'share', label: 'Share / prove', icon: Share2, href: shareHref, status: 'open' },
-    { key: 'opportunity', label: 'Opportunity', icon: Compass, href: '/holder/opportunities', status: 'open' },
+    { key: 'opportunity', label: 'Opportunities', icon: Compass, href: '/holder/opportunities', status: 'open' },
   ];
 
   // The surface you are on is where you are — mark it current, even if a data
@@ -126,8 +126,10 @@ export function ProductLoopRail({
                   <Icon className="h-4 w-4" aria-hidden="true" />
                 </span>
                 <span className="flex min-w-0 flex-col">
+                  {/* Wrap, never clip: truncate turned "4. Recognition" into
+                      "Reco…" at the 3- and 5-column widths. */}
                   <span
-                    className="truncate text-[13px] font-semibold"
+                    className="text-[13px] font-semibold leading-tight"
                     style={doc ? { color: 'var(--ink-strong)' } : undefined}
                   >
                     <span
@@ -194,9 +196,10 @@ function badgeCalmStyle({ isDone, isCurrent }: { isDone: boolean; isCurrent: boo
 }
 
 function statusClass(doc: boolean): string {
-  if (doc) return 'truncate text-[11px]';
+  if (doc) return 'text-[11px]';
   // Mono, uppercase micro-label — the eyebrow idiom for the step's state.
-  return 'mz-mono truncate text-[10px] uppercase tracking-[0.14em]';
+  // No truncate: the wide tracking clipped "You are here" to "You are he…".
+  return 'mz-mono text-[10px] uppercase tracking-[0.14em]';
 }
 
 function statusDocStyle({ isDone, isCurrent }: { isDone: boolean; isCurrent: boolean }): React.CSSProperties {
