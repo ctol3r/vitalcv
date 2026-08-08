@@ -100,7 +100,8 @@
     "AgentSubjectSchedule",
     "PlanDelta",
     "Deadline",
-    "RefreshBudget"
+    "RefreshBudget",
+    "StandingConsent"
   ],
   "edges": [
     { "source": "Clinician", "relation": "HAS_NPI", "target": "NPI" },
@@ -212,7 +213,8 @@
     { "source": "AgentSubjectSchedule", "relation": "GATES", "target": "StartAgent" },
     { "source": "PlanDelta", "relation": "DERIVED_FROM", "target": "StartPlan" },
     { "source": "Deadline", "relation": "PRIORITIZES", "target": "StartBlocker" },
-    { "source": "RefreshBudget", "relation": "THROTTLES", "target": "StartAgent" }
+    { "source": "RefreshBudget", "relation": "THROTTLES", "target": "StartAgent" },
+    { "source": "StandingConsent", "relation": "AUTHORIZES", "target": "StartAgent" }
   ],
   "rules": [
     "NPPES identity claim is NOT licensure proof.",
@@ -324,7 +326,10 @@
     "Urgency is an intra-tier tiebreak and never reorders the ranking tiers.",
     "Scheduled reads are governed by SOURCE_REGISTRY alone; a lane the registry does not know gets no invented default cadence.",
     "A spent budget or an unavailable source causes a deferral with a named reason, never a queue.",
-    "The refresh budget is shared across a tick and checked last, so shared sources cannot be hammered and free skips cost no quota."
+    "The refresh budget is shared across a tick and checked last, so shared sources cannot be hammered and free skips cost no quota.",
+    "Point consent lapses after a short window; only standing consent authorises unattended work, and a point proof never does however fresh.",
+    "Standing consent is available only for allowlisted non-disclosing scopes — the agent may work for you in the background but never disclose you.",
+    "A lapsed consent stays granted and is marked lapsed; the honest surface is renew, and expiry is a read-time predicate, never a sweeper write."
   ],
   "knownLimitations": [
     "Machine-readable stub is documentation-grade only, not integrated into runtime types."

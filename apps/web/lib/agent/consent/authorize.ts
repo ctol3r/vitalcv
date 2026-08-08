@@ -12,6 +12,7 @@
  * owns the rebuild.
  */
 import type { AgentAction, StartPlan } from '../types';
+import { isStandingEligibleScope, type ConsentKind } from './types';
 
 export const CONSENT_AUTHORIZATION_REFUSALS = [
   'action_not_in_current_plan',
@@ -19,11 +20,12 @@ export const CONSENT_AUTHORIZATION_REFUSALS = [
   'human_only_action',
   'not_vitalcv_owned',
   'action_missing_scope',
+  'standing_scope_not_eligible',
 ] as const;
 export type ConsentAuthorizationRefusal = (typeof CONSENT_AUTHORIZATION_REFUSALS)[number];
 
 export type ConsentAuthorization =
-  | { ok: true; scope: string; action: AgentAction }
+  | { ok: true; scope: string; kind: ConsentKind; action: AgentAction }
   | { ok: false; refusal: ConsentAuthorizationRefusal; detail: string };
 
 /**
@@ -44,6 +46,30 @@ export function authorizeConsentForAction(
         'That action is not in the current plan for your current state, so there is nothing to approve.',
     };
   }
+  // A2.5 — standing consent takes its own path. It is not a Level-3
+  // authorization: the work it enables (a source refresh) is Level 2 and the
+  // scheduler could already invoke it. What standing consent adds is
+  // LEGIBILITY — the clinician chose to have work done unattended and can
+  // revoke it — so the gates differ from the disclosure path deliberately.
+  if (action.consentKind === 'standing') {
+    if (!action.consentScope) {
+      return {
+        ok: false,
+        refusal: 'action_missing_scope',
+        detail: 'This action names no consent scope, so no authorization can be derived from it.',
+      };
+    }
+    if (!isStandingEligibleScope(action.consentScope)) {
+      return {
+        ok: false,
+        refusal: 'standing_scope_not_eligible',
+        detail:
+          'Only non-disclosing work may be approved as standing consent. VitalCV will always ask before showing anything to anyone.',
+      };
+    }
+    return { ok: true, scope: action.consentScope, kind: 'standing', action };
+  }
+
   if (action.permission === 'human_only') {
     return {
       ok: false,
@@ -72,5 +98,5 @@ export function authorizeConsentForAction(
       detail: 'This action names no consent scope, so no authorization can be derived from it.',
     };
   }
-  return { ok: true, scope: action.consentScope, action };
+  return { ok: true, scope: action.consentScope, kind: 'point', action };
 }

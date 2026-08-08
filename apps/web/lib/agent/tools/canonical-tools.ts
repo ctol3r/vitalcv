@@ -50,6 +50,8 @@ export interface CanonicalReaders {
   readAgentConsents(subjectRef: string): Promise<Array<{
     scope: string;
     granted: boolean;
+    kind?: 'point' | 'standing';
+    lapsed?: boolean;
     eventRef: string;
     at: string;
   }>>;

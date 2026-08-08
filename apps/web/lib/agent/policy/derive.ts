@@ -12,6 +12,7 @@
  * state, an ownership state, or a review state.
  */
 import { deriveDeadlines, urgencyForRef } from '../deadlines/derive';
+import { cadenceForLane } from '../refresh/cadence';
 import { actionId, blockerId } from '../ids';
 import type {
   ActionOwner,
@@ -82,6 +83,7 @@ interface ActionDraft {
   evidenceRefs: EvidenceRef[];
   expectedOutcome: string;
   consentScope?: string;
+  consentKind?: 'point' | 'standing';
   target?: AgentActionTarget;
 }
 
@@ -119,6 +121,7 @@ export function deriveBlockersAndActions(
         expectedOutcome: draft.expectedOutcome,
         resolvesBlockerIds: [],
         ...(draft.consentScope ? { consentScope: draft.consentScope } : {}),
+        ...(draft.consentKind ? { consentKind: draft.consentKind } : {}),
         ...(draft.target ? { target: draft.target } : {}),
       });
     }
@@ -781,6 +784,88 @@ export function deriveBlockersAndActions(
           consentBlockerRow.dependsOnBlockerIds.push(ownershipBlockerId);
         }
       }
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // 8b. Standing consent for background refresh (A2.5)
+  //
+  // The work itself is Level 2 and the scheduler could already invoke it.
+  // What the ask adds is LEGIBILITY: keeping someone's evidence current
+  // unattended should be something they chose and can revoke, not something
+  // that quietly happens to them.
+  // -------------------------------------------------------------------------
+  const BACKGROUND_REFRESH_SCOPE = 'background_refresh:self';
+  // Only lanes a SCHEDULED refresh could actually act on. Two narrowings,
+  // both honesty rather than tidiness:
+  //  - a lane with no registry cadence (most state boards) is one the
+  //    scheduler can never touch, so offering to keep it current in the
+  //    background would promise work that cannot happen;
+  //  - the ask is a question for a person, so it is not derived into the
+  //    reduced plans a background actor produces (nobody is there to answer,
+  //    and those plans are never shown).
+  const refreshableLanes =
+    context.actor === 'clinician_session'
+      ? context.observations.filter(
+          (o) =>
+            (o.status === 'stale' || o.status === 'not_checked' || o.status === 'invalid') &&
+            cadenceForLane(o.laneId) !== null,
+        )
+      : [];
+  const backgroundConsent = context.consents.find((c) => c.scope === BACKGROUND_REFRESH_SCOPE);
+
+  if (refreshableLanes.length > 0) {
+    if (backgroundConsent?.granted && backgroundConsent.lapsed) {
+      // A lapsed standing grant is NOT a withdrawal. They said yes; the
+      // approval simply aged out, so the honest ask is "renew", not
+      // "you never agreed".
+      const aId = upsertAction({
+        type: 'renew_background_refresh',
+        discriminator: BACKGROUND_REFRESH_SCOPE,
+        title: 'Renew keeping your evidence current',
+        reason:
+          'Your approval for VitalCV to refresh your source evidence on its own has reached the end of its term. Nothing was withdrawn — approvals are time-limited on purpose.',
+        owner: 'clinician',
+        permission: 'recommend',
+        status: 'ready',
+        evidenceRefs: evidenceOr(context, backgroundConsent.evidenceRefs, 'consent:background_refresh'),
+        expectedOutcome:
+          'VitalCV resumes refreshing your source evidence in the background, for another 90 days.',
+        consentScope: BACKGROUND_REFRESH_SCOPE,
+        consentKind: 'standing',
+      });
+      addBlocker({
+        type: 'clinician_consent_required',
+        discriminator: `consent:${BACKGROUND_REFRESH_SCOPE}:expired`,
+        // Deliberately "lapsed", not "expired": the A2.3 phrasing guard
+        // reserves expiry language for source-backed credential dates, and
+        // it is right to be blunt about that — the cost of an occasional
+        // reword is far smaller than "your license has expired" attaching
+        // to something we invented. Caught by the guard, not by review.
+        what: 'Your approval for background refresh has lapsed.',
+        whyItMatters:
+          'Until it is renewed, your source evidence only refreshes when you come back and ask.',
+        controlledBy: 'clinician',
+        evidenceRefs: evidenceOr(context, backgroundConsent.evidenceRefs, 'consent:background_refresh'),
+        vitalcvCanActNow: false,
+        actionIds: [aId],
+      });
+    } else if (!backgroundConsent?.granted) {
+      upsertAction({
+        type: 'enable_background_refresh',
+        discriminator: BACKGROUND_REFRESH_SCOPE,
+        title: 'Let VitalCV keep your evidence current on its own',
+        reason:
+          'Some of your source evidence is ageing. With your approval VitalCV can re-read those sources in the background so it is current when you next need it.',
+        owner: 'clinician',
+        permission: 'recommend',
+        status: 'ready',
+        evidenceRefs: [fallbackEvidence(context, 'consent:background_refresh')],
+        expectedOutcome:
+          'VitalCV re-reads your ageing sources on their own schedule. It will always ask before showing anything to anyone, and you can withdraw this at any time.',
+        consentScope: BACKGROUND_REFRESH_SCOPE,
+        consentKind: 'standing',
+      });
     }
   }
 

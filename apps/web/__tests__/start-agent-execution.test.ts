@@ -70,6 +70,7 @@ function proof(scope = SHARE_SCOPE): ConsentProof {
     consentId: 'consent-event-1',
     subjectRef: SUBJECT,
     scope,
+    kind: 'point',
     grantedAt: NOW,
     verifiedAt: NOW,
   };

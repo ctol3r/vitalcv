@@ -327,6 +327,13 @@ export interface ConsentState {
   /** Consent scope id, e.g. `share_packet:employer`, `private_holdings_access`. */
   scope: string;
   granted: boolean;
+  /** A2.5 — `point` unless the ledger says otherwise. */
+  kind?: 'point' | 'standing';
+  /**
+   * A2.5 — approved, but no longer usable (a point consent past its window,
+   * a standing grant past its expiry). Never the same as `granted: false`.
+   */
+  lapsed?: boolean;
   evidenceRefs: EvidenceRef[];
 }
 
@@ -435,6 +442,8 @@ export const AGENT_ACTION_TYPES = [
   'complete_role_requirement',
   'provide_manual_evidence',
   'review_opportunity',
+  'enable_background_refresh',
+  'renew_background_refresh',
   'await_employer_decision',
   'await_institution_decision',
   'await_source_availability',
@@ -475,6 +484,12 @@ export interface AgentAction {
    * be granted before the action may leave `awaiting_consent`.
    */
   consentScope?: string;
+  /**
+   * A2.5 — which KIND of consent this action asks for. `standing` is only
+   * ever attached to non-disclosing actions; the ledger enforces that
+   * independently via a scope allowlist.
+   */
+  consentKind?: 'point' | 'standing';
   /**
    * Structured execution target (which lane, field, opportunity, or
    * recipient the action operates on) — executors read this, never parse it

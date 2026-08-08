@@ -305,6 +305,10 @@ model AgentConsentEvent {
   kind       String
   seq        Int
   eventHash  String   @map("event_hash")
+  /// A2.5 — `point` (approve once, runs now) or `standing` (keep doing this).
+  consentKind String  @default("point") @map("consent_kind")
+  /// Mandatory for `standing`; null for `point`. Enforced at read time.
+  expiresAt  DateTime? @map("expires_at")
   actionId   String?  @map("action_id")
   planId     String?  @map("plan_id")
   metadata   Json     @default("{}")
