@@ -28,10 +28,27 @@ interface ArtifactInput {
   trustState: string;
   verifiedAt: Date | null;
   createdAt: Date;
+  /**
+   * The expiry the SOURCE published, or null when it published none.
+   * Optional so existing callers compile; a caller that does not supply it
+   * gets no expiry risks rather than invented ones.
+   */
+  expiresAt?: Date | null;
 }
 
 // ── Risk Detectors ────────────────────────────────────────────────────
 
+/**
+ * Expiry risks from the date the SOURCE published.
+ *
+ * This function previously computed `(verifiedAt ?? createdAt) + 365 days`
+ * and fed the result into the decision engine as a HIGH-severity risk — the
+ * same fabrication the monitoring scanner carried, but on a path that shapes
+ * recommendations rather than a read API. An artifact with no published
+ * expiry now produces no expiry risk at all: not knowing when something
+ * expires is not a risk finding, and inventing one distorts every decision
+ * downstream of it.
+ */
 function detectExpiringCredentials(artifacts: ArtifactInput[]): RiskFactor[] {
   const risks: RiskFactor[] = [];
   const now = Date.now();
@@ -39,10 +56,9 @@ function detectExpiringCredentials(artifacts: ArtifactInput[]): RiskFactor[] {
   for (const art of artifacts) {
     if (art.status === 'REVOKED' || art.status === 'SUSPENDED' || art.status === 'EXPIRED') continue;
 
-    // Estimate expiration: 1 year from verification or creation
-    const baseDate = art.verifiedAt ?? art.createdAt;
-    const estimatedExpiry = new Date(baseDate).getTime() + 365 * 24 * 60 * 60 * 1000;
-    const daysRemaining = Math.floor((estimatedExpiry - now) / (24 * 60 * 60 * 1000));
+    // No published expiry ⇒ nothing to say. Never estimated.
+    if (!art.expiresAt) continue;
+    const daysRemaining = Math.floor((new Date(art.expiresAt).getTime() - now) / (24 * 60 * 60 * 1000));
 
     if (daysRemaining <= 0) {
       risks.push({
