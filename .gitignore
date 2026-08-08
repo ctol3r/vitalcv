@@ -124,7 +124,10 @@ apps/web/artifacts/
 # Git kept the files (tracked wins over ignore), but `railway up` walks the
 # filesystem honoring these patterns and silently dropped them from the
 # upload, so the preview build failed on modules that exist.
-/artifacts/
+# `/artifacts/*` (children), NOT `/artifacts/` (the directory): gitignore
+# cannot re-include anything inside an excluded directory, so the negations
+# below only take effect if the directory itself stays unexcluded.
+/artifacts/*
 
 # Z0 review prototype SOURCE is tracked (small, reproducible); its rendered
 # PNGs are not - they live on the never-merged review branch.
@@ -132,3 +135,7 @@ apps/web/artifacts/
 !/artifacts/zoox-fidelity-z0/**
 /artifacts/zoox-fidelity-z0/**/*.png
 /artifacts/zoox-fidelity-z0/**/*.woff2
+
+# Tracked deploy-smoke evidence; same filesystem-walker exposure as above.
+!/artifacts/audit/
+!/artifacts/audit/**
