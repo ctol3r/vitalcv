@@ -106,8 +106,10 @@ Before adding any customer-facing term or feature, run
 ## Experience Overhaul Program — design-only boundary (Phase 0, 2026-08-08)
 
 A **UI PR freeze is in effect until UX-03 ships**: no visual PRs outside the Experience Overhaul
-Program (`docs/design/VITALCV_EXPERIENCE_OVERHAUL_PROGRAM_2026-08-08.md`). Unapproved visual
-treatments are parked, not deleted — `docs/design/PARKED_VISUAL_ERAS.md`. The experience authority
+Program (`docs/design/VITALCV_EXPERIENCE_OVERHAUL_PROGRAM_2026-08-08.md`). **Exempt** (each still
+design-review gated, never unrelated visual feature work): accessibility regressions;
+production-breaking UI defects; security/truth corrections; founder-authorized urgent fixes.
+Unapproved visual treatments are parked, not deleted — `docs/design/PARKED_VISUAL_ERAS.md`. The experience authority
 is `docs/design/VITALCV_EXPERIENCE_CONSTITUTION.md` (successor-of-record to
 `VITALCV_CREATIVE_DIRECTION.md`).
 
