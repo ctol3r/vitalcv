@@ -13,8 +13,6 @@ import { OpportunityIntelligenceCard, type IntelligenceExplanation, type Intelli
 import { buildBriefItems, gapNudge } from '@/lib/matcha/daily';
 import { ArtifactStage } from '@/components/motion/ArtifactStage';
 import { ClinicianArtifact, SpecialtyArtifact } from '@/components/artifacts/SceneArtifacts';
-import '@/styles/motion.css';
-import '@/styles/artifact-motion.css';
 
 const SAMPLE_ITEMS = buildBriefItems({
   newMatches: 4,
@@ -82,7 +80,9 @@ export function MatchaExperienceShowcase() {
           record even by accident. */}
       <div>
         <p className="mz-eyebrow" style={{ marginBottom: 10 }}>Your career, end to end</p>
-        <CareerEvidenceTimeline />
+        <div className="vt-artifact">
+          <CareerEvidenceTimeline />
+        </div>
       </div>
 
       {/* An opportunity intelligence card */}

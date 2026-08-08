@@ -74,7 +74,7 @@ export function ShareBundleCard({ npi }: { npi: string }) {
           type="button"
           onClick={() => void handleShare()}
           disabled={sharing}
-          className="inline-flex min-h-[46px] items-center justify-center rounded-xl bg-[var(--vt-accent-emerald)] px-5 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-60"
+          className="inline-flex min-h-[46px] items-center justify-center rounded-xl bg-[var(--vt-accent-editorial,#4338CA)] px-5 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-60"
         >
           {sharing ? 'Generating link…' : 'Generate review link'}
         </button>

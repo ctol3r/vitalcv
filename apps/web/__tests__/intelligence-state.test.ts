@@ -100,11 +100,11 @@ describe('intelligence surface state helpers', () => {
 
   it('maps organization access failures to a neutral empty state', () => {
     expect(getAccessEmptyState({
-      error: 'Organization workspace required. Switch to /workspace/switch.',
+      error: 'Organization workspace required. Switch to /holder.',
       resourceLabel: 'actions',
     })).toEqual({
       title: 'Switch workspace to load actions',
-      description: 'Organization workspace required. Switch to /workspace/switch.',
+      description: 'Organization workspace required. Switch to /holder.',
     });
   });
 

@@ -6,8 +6,6 @@ import { ProfileHeader } from '@/components/clinician/ProfileHeader';
 import { ClinicianRecordDetail } from '@/components/clinician-record/ClinicianRecordDetail';
 import { loadOwnerRecord } from '@/lib/clinician-record/ownerRecord';
 import { OWNER_CONTEXT_NOTE } from '@/lib/clinician-record/copy';
-import { InstitutionAutocomplete } from '@/components/clinician/InstitutionAutocomplete';
-import type { InstitutionKind } from '@/lib/institutions/curated';
 
 // The header renders a Clerk-backed avatar/name (useUser), so this page can't
 // be statically prerendered (no ClerkProvider runtime at build time). Render at
@@ -26,10 +24,10 @@ interface SectionDef {
   fields: ReadonlyArray<{
     label: string;
     provenance: ProfileProvenance;
+    /** Guidance shown in the empty slot — what will belong here once editing ships. */
     placeholder: string;
-    // When set, the field is a typeahead over the curated institution directory
-    // (lib/institutions/curated.ts), scoped to these kinds.
-    kinds?: InstitutionKind[];
+    /** A state readout (e.g. board certification), rendered as a chip, never as a field. */
+    status?: true;
   }>;
 }
 
@@ -48,7 +46,7 @@ const SECTIONS: ReadonlyArray<SectionDef> = [
     key: 'medical_school',
     title: 'Medical school',
     fields: [
-      { label: 'Institution', provenance: 'USER_ENTERED', placeholder: 'Search medical schools…', kinds: ['med_school_md', 'med_school_do'] },
+      { label: 'Institution', provenance: 'USER_ENTERED', placeholder: 'Medical school name' },
       { label: 'Degree', provenance: 'USER_ENTERED', placeholder: 'MD, DO, MBBS, …' },
       { label: 'Graduation year', provenance: 'USER_ENTERED', placeholder: 'YYYY' },
     ],
@@ -85,7 +83,7 @@ const SECTIONS: ReadonlyArray<SectionDef> = [
     fields: [
       { label: 'Specialty', provenance: 'INFERRED', placeholder: 'NPPES taxonomy or self-attested' },
       { label: 'Subspecialty', provenance: 'USER_ENTERED', placeholder: 'Free-text' },
-      { label: 'Board certified', provenance: 'UNKNOWN', placeholder: 'Pending source-backed check' },
+      { label: 'Board certified', provenance: 'UNKNOWN', placeholder: 'Pending source-backed check', status: true },
     ],
   },
   {
@@ -98,7 +96,7 @@ const SECTIONS: ReadonlyArray<SectionDef> = [
     fields: [
       { label: 'License state', provenance: 'USER_ENTERED', placeholder: 'e.g., California (add one row per state)' },
       { label: 'License number', provenance: 'USER_ENTERED', placeholder: 'State-issued license #' },
-      { label: 'License status', provenance: 'UNKNOWN', placeholder: 'Pending state-board source access' },
+      { label: 'License status', provenance: 'UNKNOWN', placeholder: 'Pending state-board source access', status: true },
       { label: 'Expiration', provenance: 'USER_ENTERED', placeholder: 'YYYY-MM-DD' },
     ],
   },
@@ -124,7 +122,7 @@ const SECTIONS: ReadonlyArray<SectionDef> = [
     key: 'affiliations',
     title: 'Affiliations',
     fields: [
-      { label: 'Organization', provenance: 'USER_ENTERED', placeholder: 'Search societies, boards, associations…', kinds: ['society', 'association', 'board', 'honor_society'] },
+      { label: 'Organization', provenance: 'USER_ENTERED', placeholder: 'Society, association, or board' },
       { label: 'Type', provenance: 'USER_ENTERED', placeholder: 'Privileges, member, …' },
       { label: 'Years', provenance: 'USER_ENTERED', placeholder: 'YYYY–YYYY' },
     ],
@@ -240,18 +238,23 @@ async function OwnRegistryRecord() {
 }
 
 export default function ClinicianProfilePage() {
-  // Foundation shell: sections render with placeholders and provenance
-  // badges. No client state. Filled-ness summary is computed below from
-  // the static defs (everything is currently empty / unknown).
-  const totalFields = SECTIONS.reduce((s, sec) => s + sec.fields.length, 0);
-  const filledFields = 0;
-  const sourceBackedFields = 0;
-  const completionPercent = totalFields === 0 ? 0 : Math.round((filledFields / totalFields) * 100);
-
+  // Foundation shell: sections render as read-only display rows with
+  // provenance badges. No client state, no inputs — an element that looks
+  // typeable but drops keystrokes is a defect, not a preview, so nothing
+  // here renders as a form control until the editing flow actually ships.
   return (
     <div className="mz mz-paper mz-persona-holder min-h-screen">
       <main className="mx-auto w-full max-w-3xl space-y-5 px-4 py-8 sm:py-12">
       <ProfileHeader />
+
+      <div
+        role="status"
+        className="rounded-[3px] border border-[var(--vt-border)] bg-[var(--vt-surface)] px-4 py-3 text-sm leading-relaxed text-[var(--vt-text-secondary)]"
+      >
+        <strong className="text-foreground">This profile is read-only for now.</strong>{' '}
+        The sections below show the structure of your record and where each
+        field&rsquo;s provenance stands; the editing flow has not shipped yet.
+      </div>
 
       <p className="text-sm leading-relaxed text-muted-foreground">
         <strong>User-entered information is not verified until source-backed
@@ -268,31 +271,11 @@ export default function ClinicianProfilePage() {
           <OwnRegistryRecord />
         </Suspense>
 
-        <section
-          aria-labelledby="completion-summary-heading"
-          className="rounded-[3px] border border-[var(--vt-border)] bg-[var(--vt-surface)] p-4 sm:p-5"
-        >
-          <h2 id="completion-summary-heading" className="text-sm font-semibold">
-            Profile completion summary
-          </h2>
-          <dl className="mt-3 grid grid-cols-1 gap-2 text-sm sm:grid-cols-3">
-            <div>
-              <dt className="text-xs uppercase tracking-wider text-muted-foreground">Filled</dt>
-              <dd className="mt-1 font-mono">
-                {filledFields} / {totalFields} ({completionPercent}%)
-              </dd>
-            </div>
-            <div>
-              <dt className="text-xs uppercase tracking-wider text-muted-foreground">Source-backed</dt>
-              <dd className="mt-1 font-mono">{sourceBackedFields} / {totalFields}</dd>
-            </div>
-            <div>
-              <dt className="text-xs uppercase tracking-wider text-muted-foreground">Verified credentialing</dt>
-              <dd className="mt-1 text-muted-foreground">Not asserted by completion alone.</dd>
-            </div>
-          </dl>
-        </section>
-
+        {/* The "Profile completion summary" (Filled 0/36, Source-backed 0/36)
+            was removed here: both numerators were hardcoded zeros, so the
+            panel was a fabricated statistic that also contradicted the real
+            5-dimension completeness readout on /holder/home. One completeness
+            signal, computed from data, lives there. */}
         {SECTIONS.map((section) => (
           <section
             key={section.key}
@@ -309,29 +292,27 @@ export default function ClinicianProfilePage() {
                   <div key={fieldId} className="flex flex-col gap-1.5 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
                     <div className="flex flex-1 items-center gap-2">
                       <dt>
-                        <label htmlFor={fieldId} className="text-sm font-medium">
-                          {field.label}
-                        </label>
+                        <span className="text-sm font-medium">{field.label}</span>
                       </dt>
                       <ProvenanceBadge provenance={field.provenance} />
                     </div>
                     <dd className="flex-1">
-                      {field.kinds ? (
-                        <InstitutionAutocomplete
+                      {field.status ? (
+                        <span
                           id={fieldId}
-                          kinds={field.kinds}
-                          placeholder={field.placeholder}
-                          ariaDescribedBy={`${fieldId}-help`}
-                        />
-                      ) : (
-                        <input
-                          id={fieldId}
-                          type="text"
-                          readOnly
-                          placeholder={field.placeholder}
                           aria-describedby={`${fieldId}-help`}
-                          className="w-full rounded-[3px] border border-[var(--vt-border)] bg-transparent px-3 py-2 text-sm placeholder:text-[var(--vt-text-muted)] focus:outline-none focus:ring-2 focus:ring-offset-2"
-                        />
+                          className="inline-flex items-center rounded-full border border-[var(--vt-border)] px-3 py-1 text-xs font-medium text-[var(--vt-text-secondary)]"
+                        >
+                          {field.placeholder}
+                        </span>
+                      ) : (
+                        <p
+                          id={fieldId}
+                          aria-describedby={`${fieldId}-help`}
+                          className="w-full rounded-[3px] border border-dashed border-[var(--vt-border)] px-3 py-2 text-sm italic text-[var(--vt-text-muted)]"
+                        >
+                          {field.placeholder}
+                        </p>
                       )}
                       <p id={`${fieldId}-help`} className="mt-1 text-[11px] text-muted-foreground">
                         {PROVENANCE_META[field.provenance].description}

@@ -218,7 +218,10 @@ export function CareerEvidenceGraph() {
           </span>
         </div>
 
-        <div className="px-2 sm:px-4">
+        {/* vt-artifact maps the drawing's --ask-* tokens from the global --vt-*
+            set; without an ancestor carrying it every fill computes to invalid
+            and falls back to SVG black. */}
+        <div className="vt-artifact px-2 sm:px-4">
           {/* When the timeline is live these are the clinician's real events;
               otherwise no entries are passed and the drawing states that it is
               illustrative on its own face. */}

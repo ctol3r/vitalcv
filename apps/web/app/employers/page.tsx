@@ -2,8 +2,6 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ArtifactStage } from '@/components/motion/ArtifactStage';
 import { HospitalArtifact } from '@/components/artifacts/SceneArtifacts';
-import '@/styles/motion.css';
-import '@/styles/artifact-motion.css';
 import { EmployerAudienceSection } from '@/components/employers/EmployerAudienceSection';
 import { EmployerWorkflowPreview } from '@/components/employers/EmployerWorkflowPreview';
 import { PageFrame } from '@/components/layout/PageFrame';

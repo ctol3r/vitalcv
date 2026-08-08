@@ -14,7 +14,6 @@ import { StoryChapters } from '@/components/evidence-record/StoryChapters';
 // composition may steer the object but never restate its rules. The z1-*
 // keyframes live in the house motion file (LINT-03), so it loads too.
 import '@/components/evidence-record/record.css';
-import '@/styles/motion.css';
 import '@/styles/z1-home.css';
 
 import { FACES } from '@/components/evidence-record/faces.mjs';

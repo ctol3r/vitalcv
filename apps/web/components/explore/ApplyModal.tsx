@@ -571,7 +571,9 @@ export default function ApplyModal({
                     Applications only submit from a clinician profile with an active NPI.
                   </p>
                 </div>
-                <Link href="/workspace/switch" className="glue-btn glue-btn-primary w-full justify-center">
+                {/* /workspace/switch never shipped; the live switcher is the
+                    persona widget on the holder surfaces. */}
+                <Link href="/holder" className="glue-btn glue-btn-primary w-full justify-center">
                   Open workspace switcher
                 </Link>
               </div>

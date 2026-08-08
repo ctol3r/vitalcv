@@ -139,7 +139,7 @@ export function WalletPassport({
     return (
       <div className="rounded-[28px] border border-[var(--vt-border)] bg-[var(--vt-surface)] p-5">
         <div className="flex items-center gap-3 text-sm text-[var(--vt-text-secondary)]">
-          <Loader2 className="h-4 w-4 animate-spin text-[var(--vt-accent-emerald)]" />
+          <Loader2 className="h-4 w-4 animate-spin text-[var(--vt-accent-editorial,#4338CA)]" />
           Loading verification status…
         </div>
       </div>

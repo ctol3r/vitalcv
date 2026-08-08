@@ -277,7 +277,7 @@ function ApplicationRow({
           <div className="text-xs font-medium text-muted-foreground text-right">
             Applied {relativeTime(application.createdAt)}
           </div>
-          <Link href={`/verifier/inbox`} className="rounded-xl border border-border bg-muted px-4 py-2 text-xs font-bold text-foreground transition-all group-hover:bg-emerald-500 group-hover:text-foreground group-hover:border-emerald-500">
+          <Link href={`/employer/review/${application.id}`} className="rounded-xl border border-border bg-muted px-4 py-2 text-xs font-bold text-foreground transition-all group-hover:bg-emerald-500 group-hover:text-foreground group-hover:border-emerald-500">
             Review & Verify
           </Link>
         </div>
@@ -516,7 +516,10 @@ export function EmployerDashboard() {
                   This dashboard is for employer and verifier actions. Switch into your employer workspace to review providers, findings, and incoming applications.
                 </p>
                 <div className="mt-5 flex flex-wrap gap-3">
-                  <Link href="/workspace/switch" className="glue-btn glue-btn-primary">
+                  {/* /workspace/switch never shipped (only an _archive page).
+                      The live switcher is the persona widget mounted on the
+                      holder surfaces. */}
+                  <Link href="/holder" className="glue-btn glue-btn-primary">
                     Open workspace switcher
                   </Link>
                   <Link href="/holder/home" className="glue-btn border border-border bg-muted text-foreground hover:bg-muted">
@@ -544,10 +547,11 @@ export function EmployerDashboard() {
               </p>
             </div>
             <div className="flex flex-wrap gap-3">
-              <Link href="/verifier/inbox" className="glue-btn glue-btn-primary">
+              {/* /verifier/* was archived; the live employer tree is /employer/*. */}
+              <Link href="/employer/review-queue" className="glue-btn glue-btn-primary">
                 Open applications queue
               </Link>
-              <Link href="/verifier/opportunities" className="glue-btn border border-border bg-muted text-foreground hover:bg-muted">
+              <Link href="/employer/post" className="glue-btn border border-border bg-muted text-foreground hover:bg-muted">
                 Post opportunity
               </Link>
               {FEATURES.MATCHA_V2 ? (
@@ -696,7 +700,7 @@ export function EmployerDashboard() {
           <SectionShell
             title="Incoming Applications"
             helper="Live submissions from clinicians who applied with their VitalCV profile."
-            actionHref="/verifier/inbox"
+            actionHref="/employer/review-queue"
             actionLabel="Review queue"
           >
             <ResourceState
@@ -721,7 +725,7 @@ export function EmployerDashboard() {
           <SectionShell
             title="Providers"
             helper="Clinicians connected to your workspace and live intelligence view."
-            actionHref="/providers"
+            actionHref="/employer/candidates"
             actionLabel="Open providers"
           >
             <ResourceState
@@ -744,8 +748,8 @@ export function EmployerDashboard() {
           <SectionShell
             title="Findings"
             helper="Signals that should influence review, verification, or escalation."
-            actionHref="/findings"
-            actionLabel="Open findings"
+            /* The intelligence-era /findings surface was archived; the panel
+               keeps its data but a CTA must not link into a 404. */
           >
             <ResourceState
               loading={findings.loading}
@@ -765,8 +769,7 @@ export function EmployerDashboard() {
           <SectionShell
             title="Storylines"
             helper="Narratives that track provider risk, verification progress, and hiring state."
-            actionHref="/storylines"
-            actionLabel="Open storylines"
+            /* /storylines was archived with the intelligence tree. */
           >
             <ResourceState
               loading={storylines.loading}
@@ -786,8 +789,7 @@ export function EmployerDashboard() {
           <SectionShell
             title="Actions Queue"
             helper="Real actions your team can take to move providers through the hiring loop."
-            actionHref="/actions"
-            actionLabel="Open actions"
+            /* /actions was archived with the intelligence tree. */
           >
             <ResourceState
               loading={actions.loading}

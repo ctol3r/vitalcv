@@ -337,6 +337,14 @@ const GOLDEN_SCAN_ROOTS = [
   'components/mobile',
   'components/clinician',
   'components/recognition',
+  // Global chrome + gate surfaces. WorkspaceSwitcher shipped a /workspace/switch
+  // href (a route that never existed outside _archive) for weeks because these
+  // roots were not scanned — the persona widget renders on every signed-in
+  // page, so its links are as load-bearing as any Golden Path CTA.
+  'components/workspace',
+  'components/layout',
+  'components/explore',
+  'components/employer',
   'lib/mobile',
 ];
 
