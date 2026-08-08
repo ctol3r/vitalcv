@@ -105,10 +105,22 @@ route guarded by `requireVerifiedClerkUserId` — the ownership read and the
 apply-share — is unreachable from a background run.
 
 There is no service-account, machine-token, or impersonation mechanism in the
-codebase that satisfies that guard. Inventing one means creating a credential
-that can act as **any clinician**, which is the single most dangerous asset
-this system could hold. A2 should not do that as a side effect of wanting a
-cron job.
+codebase that satisfies that guard. Confirmed by inventory: `verifiedAuth` is
+populated only by `verifiedIdentityMiddleware`, which accepts only a JWT
+signed by Clerk's JWKS for `CLERK_ISSUER` — no HS256 shared secret, no bypass
+env var, no Clerk actor-token flow, no `INTERNAL_API_KEY`. The `x-api-key`
+path (`apiKeyAuth`) grants API-tier access and never populates `verifiedAuth`,
+so it cannot stand in for a clinician. `buildIdentityHeaders` mints its bearer
+via `session.getToken()` and **has no headless variant**.
+
+The one machine→clinician path that does exist —
+`syntheticClinician.ts::mintClinicianSession`, driven by the release-verify
+cron — creates a *throwaway synthetic user* per run. It cannot act as an
+existing clinician, by design.
+
+Inventing a credential that could would mean creating an asset that acts as
+**any clinician**, which is the single most dangerous thing this system could
+hold. A2 must not create that as a side effect of wanting a cron job.
 
 ### The design: actor-scoped tool availability
 
@@ -259,16 +271,40 @@ ranked actions) carry over unchanged. Runs remain append-only.
    database** for these rather than wait for the `OutboxEvent` table to gain
    a drainer; the data is local and polling is honest and simple.
 
-### Scheduling mechanism: reuse the established pattern
+### Scheduling mechanism
 
-The repo already has exactly one working pattern for scheduled production
-work: **GitHub Actions cron → `CRON_SECRET` bearer → internal endpoint on the
-deployed web app**. `source-health-probe.yml` runs this every 15 minutes
-against `/api/internal/source-health/probe?source=cron`, and
-`release-verify.yml` every 30.
+Two established patterns exist, and picking between them matters:
 
-A2 uses the same shape rather than introducing a worker process or a queue
-library:
+**In-process `node-cron` in the backend container.** This is where most
+scheduled work actually lives — `startContinuousMonitor` (3 crons),
+`startMonitoringScheduler`, `startInvestigatorScheduler`,
+`startStrategyAgentScheduler`, `startAnchorWorker`,
+`startRevocationOutboxWorker`, `startIngestionWorker`, plus the daily
+`runMonitoringCycle` from `server.ts`. All in one Express process, gated by
+`BACKGROUND_JOBS_ENABLED`. `node-cron` is the only scheduling library in the
+monorepo; there is no queue.
+
+**GitHub Actions cron → machine-authenticated endpoint on the deployed web
+app.** Exactly one endpoint is driven this way today —
+`/api/internal/source-health/probe?source=cron`, every 15 minutes — and its
+guard, `_auth.ts::checkAuth`, is the only reusable timing-safe, fail-closed
+machine-auth primitive in the codebase.
+
+**Recommendation: the second, because the agent lives in `apps/web`.** Every
+A2 module (context assembler, policy, registry, consent store, execution
+service) is web-side. Running the loop from the backend container would mean
+either duplicating that stack or calling the web app from the backend, and
+Railway runs exactly two services with no cron service and no worker.
+
+Two things this recommendation is *not*: it is not a claim that in-process
+cron is unavailable, and it is not a claim that Actions cron is better
+engineering. `strategyAgentScheduler` is the closer *shape* precedent — a
+per-job cron map with an `inProgress` re-entrancy guard,
+`lastRunAt`/`nextRunAt`/`lastError` state, and an explicit `trigger`
+discriminator — and A2's tick should copy that shape regardless of what fires
+it.
+
+The endpoint:
 
 ```
 POST /api/internal/agent/tick?source=cron    (Bearer CRON_SECRET)
@@ -278,12 +314,12 @@ One tick claims a bounded batch of due subjects, runs each, records a run and
 its deltas, and returns operator-safe counts. Bounded batch size is what
 keeps a tick's blast radius and runtime predictable.
 
-Worth naming: GitHub Actions cron is not a precise scheduler (it can be
-delayed under load), and this couples production cadence to a CI product.
-That is acceptable for A2 at pilot scale and matches what the platform
-already relies on for source-health. If A2 graduates past pilot, a Railway
-cron service is the natural migration and the endpoint contract does not
-change.
+Worth naming honestly: GitHub Actions cron is not a precise scheduler (it can
+be delayed under load), and this couples production cadence to a CI product.
+Acceptable at pilot scale, and it is what source-health already depends on.
+Migration paths if A2 outgrows it — a Railway cron service, or moving the
+tick in-process alongside the other schedulers — both leave the endpoint
+contract unchanged.
 
 ### Idempotence
 
@@ -334,6 +370,51 @@ Typed change kinds, each carrying an owner and a materiality:
 deliberate: it is the most common thing that will happen, it must be recorded
 for the learning loop, and it must never reach the clinician.
 
+**Three rules adopted verbatim from `packages/licensure/monitoringJob.ts`,
+which already got this right:**
+
+- A source going quiet is `SOURCE_LOST`, **not** a status change. Losing the
+  ability to read a license says nothing about the license.
+- A reading ageing out is `WENT_STALE`, **not** a status change.
+- An empty monitoring plan means *"monitoring is not established"* — never
+  *"no changes detected."* This one is the trap a background loop walks into
+  by default: a tick that checked nothing and a tick that found nothing look
+  identical unless the model distinguishes them.
+
+### Relationship to the existing watchtower — consume, do not re-detect
+
+There is already a rich **fact-level** change-detection system, and A2 must
+not build a second one. `watchtowerEngine` emits 14 delta types
+(`CLAIM_CHANGED`, `LICENSE_STATUS_CHANGED`, `EXCLUSION_DETECTED`,
+`SOURCE_STALE`, `SOURCE_DISAPPEARED`, …) into `IdentityClaimDelta`,
+`EntityChangeEvent`, `SourceStalenessEvent`, and `TrustDegradationEvent`.
+`packages/source-adapters/drift-engine.ts` does the same purely for lanes.
+
+The two layers answer different questions and both are needed:
+
+| Layer | Question | Owner |
+| --- | --- | --- |
+| Watchtower / drift | *what changed in the world?* | existing systems |
+| `PlanDelta` | *what changed about what this clinician should do?* | A2 |
+
+A license status flipping is a fact delta. "Your top next action changed from
+'refresh your license observation' to 'the hospital now has everything'" is a
+plan delta. A2 **consumes** fact deltas as an input to re-planning and emits
+plan deltas as its output.
+
+Concretely: a fact delta is a trigger for a run; a plan delta is what that
+run produces. Wiring A2 to re-derive fact changes from raw source reads would
+duplicate the watchtower and guarantee the two disagree.
+
+### Suppression: reuse the watchtower algorithm verbatim
+
+`checksumForAlertGroup({subject, type, sourceId, claimType, fieldPath,
+currentValue})` + a lookback over `suppressionWindowMinutes` +
+`findRecentAlertByChecksum`, and — the part worth copying — a suppressed
+alert **writes an `AlertDeliveryAttempt` with status `SUPPRESSED`** rather
+than silently vanishing. A2 should not invent dedupe logic when a ledgered
+one exists.
+
 ### Delta persistence
 
 Deltas are rows, not derived-on-read, because the learning loop needs to ask
@@ -362,6 +443,35 @@ enforced structurally. "Your license expires in 12 days" and "our preferred
 freshness window closes in 12 days" are completely different sentences, and
 only one of them is about the clinician's license.
 
+### The actual inventory (corrected against the code)
+
+Most "expiry" in this codebase is VitalCV policy or a session TTL, not a
+source fact. What genuinely exists today:
+
+**Source-provided:** `VcvCredential.expiresAt` (LICENSE branch only — NPPES
+and OIG branches hardcode `null`), licensure observation `expiresAt`,
+`ClaimRecord.validUntil` / `.expiresAt`, PECOS `revalidationDue`.
+
+**VitalCV policy** (must never be phrased as the clinician's deadline):
+`nextReverifyAt` (= `verifiedAt + FRESHNESS_WINDOWS_DAYS[domain]`, default
+90), PSV window deadlines (NCQA 120 / expedited 90), receipt `ttl_seconds`
+(a two-branch ternary: 3600 for OIG, else 86400), expiration-forecast bands,
+`changeMonitor`'s 90/60/30 warning ladder, source freshness SLAs.
+
+**Employer-set:** `VcvOrganizationContext.dueAt` — and **only** that one.
+
+**Declared but never written — assume null.** `ActivationRequirement.dueAt`
+is read in three places and ordered by, but the only creation path
+(`instantiateActivationRequirements`) omits it from the row builder entirely,
+and `RequirementSeed` has no `dueAt` member. Same for
+`VerificationRequest.dueAt` and `.nextFollowUpAt` — which means the
+`{kind:'follow_up'}` next action keyed off `nextFollowUpAt` can never fire.
+
+This matters for A2 because the intuitive design — "wake up before the
+employer's requirement due date" — has no data behind it. Employer-set
+deadlines are effectively a single field on org context, and A2 should not
+promise more than that until employers actually set them.
+
 ### A deadline is not a blocker
 
 Deadlines do not create blockers — they change the **urgency** of existing
@@ -378,10 +488,17 @@ verification artifact regardless of source, then emits `EXPIRED` /
 `daysRemaining` count. Nothing in that number came from an authority. It is
 consumed by `monitoringEngine` and `alertEngine`.
 
+It also **ignores `VerificationArtifact.expiresAt`, which exists on the same
+model** — the real date is right there and unused. And the output is not
+dormant: it is served publicly at `GET /api/monitoring/events` via
+`alertEngine.generateAlerts()`, rendered as `"<source> has expired"` /
+`"expires in N days"` at `CRITICAL` severity. Every artifact older than a
+year reports as an expired credential.
+
 A2 **must not** consume this scanner as a deadline source. Its output is an
 `estimated` projection wearing the clothes of a `source_set` fact, and
-feeding it into a system that wakes clinicians up would turn a dormant
-inaccuracy into an active one.
+wiring it into a system that wakes clinicians up would convert a served
+inaccuracy into a broadcast one.
 
 This is out of A2's scope to fix, but it should be tracked separately — it is
 the same failure class as the fabrication cluster the platform has already
@@ -395,16 +512,35 @@ someone would wire it in.
 
 Rules, in priority order:
 
-1. **Never refresh faster than the source's own cadence.** A source that
-   updates monthly, polled hourly, produces load and no information. Cadence
-   comes from the canonical `SOURCE_REGISTRY`, not from an agent-side guess.
+1. **Never refresh faster than the source's own cadence** — but be aware
+   there are **three unreconciled cadence tables** today, and A2 must pick one
+   and say so rather than adding a fourth:
+   - `SOURCE_REGISTRY` (packages/source-adapters): 5 entries with `cadence`
+     and `freshnessTtl` in ms — NPPES 24h/7d, OIG_LEIE 24h/24h, PECOS
+     ×2 24h/7d, CA_PA_BOARD 7d/30d.
+   - `SOURCE_POLL_CONFIGS` (backend pollingScheduler): a different 11-source
+     table with DAILY/WEEKLY/MONTHLY/ANNUAL bands, which does not import
+     `SOURCE_REGISTRY`.
+   - `MONITOR_CRON` / `NURSYS_POLL_CRON` / `OIG_CRON` env vars in
+     `continuousMonitor`.
+
+   **Recommendation: `SOURCE_REGISTRY`**, because it is the one the canonical
+   adapters themselves declare and the one decision-grade eligibility is
+   keyed to. Reconciling the other two is out of A2's scope, but the choice
+   must be explicit or the agent will silently disagree with the sweeps.
 2. **Refresh only what matters.** Lanes required for a role the clinician is
    actually pursuing, plus lanes already carrying evidence that is aging.
    Not every lane for every clinician.
-3. **Global per-source budget.** A ceiling per source per hour across all
-   clinicians, enforced centrally, so the fleet cannot collectively hammer a
-   public registry. When the budget is exhausted the tick defers rather than
-   queues indefinitely.
+3. **Global per-source budget — wrap the one that exists.** Note
+   `SOURCE_REGISTRY` carries **no rate-limit field at all** (only `cadence`
+   and `freshnessTtl`), so the budget cannot come from there. What does
+   exist: `core/connectors/quotaManager.ts` (`consumeConnectorQuota`,
+   per-connector token budget, default 60/60s, `parseRetryAfterMs`,
+   `blockedUntil`) and `core/connectors/retryPolicy.ts`
+   (`executeWithRetry`, jittered backoff, distinguishes `retry-after` from
+   `backoff`). A2 should consume those rather than add a parallel limiter.
+   When the budget is exhausted the tick **defers**, rather than queueing
+   indefinitely.
 4. **Backoff and pause.** Reuse A1's repeated-failure pause
    (`REPEATED_FAILURE_THRESHOLD`) rather than adding a second retry policy.
 5. **A scheduled refresh must be distinguishable from a clinician-initiated
@@ -421,22 +557,59 @@ snapshots already exist and should gate the tick.
 
 ## 10. Noticing vs. telling
 
-### Scope recommendation: A2 notices; delivery is a separate gate
+### The finding that reframes this section
 
-A2 should **produce and persist material deltas**, and stop there. Delivery
-to a human should be its own sub-wave with its own review, for three reasons:
+**Today, when a clinician's credential is 30 days from expiry, VitalCV emails
+their employers and an ops inbox. The clinician is not told.**
+
+`continuousMonitor`'s daily sweep detects the expiry from the *real*
+`expiresAt`, writes an audit event, and calls `dispatchMonitoringAlert` —
+whose recipients are `MONITORING_ALERT_EMAIL` plus employer contacts resolved
+through `Acceptance → VerifierOrg.contactEmail`. The clinician is not a
+recipient anywhere in the system. Their only path to the information is
+opening the mobile Updates surface, where notifications are *recomputed from
+trust-history deltas on each load* and read/dismissed state lives in
+**browser localStorage**.
+
+That is worth sitting with. The person whose license it is, is the last to
+know. Fixing that is arguably more valuable than anything else in A2 — and it
+is also why delivery needs its own gate rather than being smuggled in as a
+side effect of a scheduler.
+
+### Scope recommendation: A2 notices; delivery is a separate sub-wave
+
+A2 should **produce and persist material deltas**, and stop there:
 
 1. Outbound comms is the most irreversible thing in this design. A wrong
    packet share is recallable-ish; a wrong email is not.
-2. The existing surface is thin — `INotificationProvider.send(to, subject,
-   body)`, Resend-backed via `RESEND_API_KEY`, stub-logging otherwise. There
-   is no clinician-level notification preference model, no opt-out, and no
-   in-app notification store. All three are prerequisites, and none of them
-   is agent work.
-3. The provider already carries the right doctrine —
-   `isEmailDeliveryConfigured()` exists specifically so callers never claim
-   "sent" when the environment can only log. A2 must inherit that honesty:
-   the agent may never record `notified` when delivery was a no-op.
+2. Three prerequisites do not exist and none of them is agent work: a
+   clinician-scoped contact-consent artifact, a channel/severity preference
+   record, and a server-side seen/unseen ledger.
+3. **`verifiedEmail` is not permission to contact.** It is established by an
+   email-OTP possession proof for the purpose of corroborating NPI→person
+   binding. Using it as a notification destination is a purpose expansion
+   and needs its own consent artifact — the natural substrate is
+   `AgentConsentEvent` (§5), which is exactly the shape this problem wants.
+
+### What to reuse when delivery does land
+
+Four primitives already exist and none of the current senders use all of them:
+
+- **`appendCommunicationEvent`** — audit-before-send in one transaction,
+  dedupes on `(channel, providerMessageId)`, carries `consentGrantId` and a
+  `redactedSummary`. This is the correct wrapper for any outbound message,
+  and **none of the three current Resend callers use it**.
+- **`AlertDeliveryAttempt`** + `AlertDeliveryChannel` — a ledger with
+  `DELIVERED | PENDING | SUPPRESSED | DEDUPED | FAILED | NOT_CONFIGURED`.
+  `EMAIL` and `SLACK` are currently hardcoded to `NOT_CONFIGURED`, which is
+  the honest-ledger pattern to preserve, not route around.
+- **`isEmailDeliveryConfigured()`** — the doctrine that a caller must never
+  claim "sent" when the environment can only log. A2 may never record
+  `notified` when delivery was a no-op.
+- **`Watchlist`** (`deliveryChannels`, `severityFloor`,
+  `suppressionWindowMinutes`) — the only channel-preference model in the
+  codebase. It is org-scoped; a clinician-facing preference should extend
+  this shape rather than invent a new table.
 
 ### When delivery does land, the rules
 
@@ -460,8 +633,10 @@ submitted applications and turn transitions into deltas.
   packet" invites exactly the over-reading A1's copy contract works to
   prevent. Recommend recording it, not sending it.
 - `opened → reviewed` is material.
-- Requirement status transitions on `ActivationRequirement` are material when
-  the owner is the clinician (something is now theirs to do).
+- Requirement *status* transitions on `ActivationRequirement` are material
+  when the owner is the clinician (something is now theirs to do). Status is
+  genuinely written; `dueAt` is not (§8), so requirement urgency cannot come
+  from the employer today.
 
 The honesty gate from `clinicianActivationView` — an empty requirement ledger
 is `not_started`, never `requirements_met` — carries over unchanged. A
@@ -583,10 +758,29 @@ Explicitly **not** metrics: opens, sessions, daily actives, time in product.
    imprecise) vs Railway cron service (better fit, new infrastructure).
    Recommend Actions for A2 pilot scale.
 7. **Cohort.** Which subjects are in the first allowlist?
+8. **The clinician-audience gap (§10).** Employers are told about a
+   clinician's expiring credential and the clinician is not. Is closing that
+   an A2 goal, or its own wave? It is the highest-value thing this spec
+   uncovered, and it is not really a scheduler problem — the sweep that
+   detects it already runs daily.
 
 ---
 
-## 16. Explicitly out of scope for A2
+## 16. Defects found while writing this spec
+
+None of these are A2's to fix, and none block the design — but A2 touches all
+of them and would either amplify or inherit each one.
+
+| # | Defect | Impact on A2 |
+| --- | --- | --- |
+| 1 | `expirationScanner` fabricates expiry (`verifiedAt + 365d`), ignores the real `expiresAt` on the same model, and is served at `GET /api/monitoring/events` | **Blocks A2.3.** Must be remediated before deadline work. |
+| 2 | `recomputeCrsForNpi`'s `SCORE_DEGRADED` alert is unreachable — it queries a `trustStateSnapshot` model that does not exist (snapshots live in `VerificationArtifact`), so `previousScore` is always null and the threshold never fires | Readiness-drop detection must use `findLatestTrustState` / `isBandDegradation` instead. |
+| 3 | `ActivationRequirement.dueAt` and `VerificationRequest.dueAt` / `.nextFollowUpAt` are declared, read, and ordered by — but never written | Employer-set requirement deadlines do not exist as data. §8. |
+| 4 | `OutboxEvent` has full drain semantics and five writers but **no drainer** — rows accumulate as `PENDING` indefinitely (`revocationOutboxWorker` is the working template) | A2 polls our own DB for employer transitions rather than depending on it (§6). |
+| 5 | `webhookDispatcher.ts` is `@ts-nocheck` over a real schema mismatch — selects `signingSecret`/`active`, model declares `secret`/`isActive` | Treat enterprise webhook delivery as unproven. |
+| 6 | Several `/api/internal/*` web routes are ungated (`funnel-metrics`, `mission-ops/sources`, `source-health`, and `pilot/start-outcome`, which is an unauthenticated write proxy) | A2's tick endpoint must use `_auth.ts::checkAuth`, not follow these. |
+
+## 17. Explicitly out of scope for A2
 
 - Any chat UI or new public product noun (still).
 - Autonomous disclosure of any kind (D1).
@@ -595,4 +789,5 @@ Explicitly **not** metrics: opens, sessions, daily actives, time in product.
   replay → shadow → canary → promote with a human at the gate.
 - Impersonation or machine credentials that can act as an arbitrary
   clinician (§4).
-- Fixing the expiration scanner (flagged, tracked separately).
+- Fixing any of the six defects in §16 — all flagged, all tracked separately.
+  Defect 1 is the only one that *blocks* a sub-wave (A2.3).
