@@ -10,7 +10,7 @@ import GetReadySurface from '@/app/get-ready/GetReadySurface';
 export const metadata: Metadata = {
   title: 'Get started · VitalCV',
   description:
-    'Enter your NPI and VitalCV starts your clinician career wallet from your public NPPES record. License and exclusion checks run separately, with their own receipts.',
+    'Enter your NPI and VitalCV starts your clinician career profile from your public NPPES record. License and exclusion checks run separately, with their own receipts.',
 };
 
 export default function OnboardingPage() {

@@ -63,7 +63,7 @@ export async function generateMetadata(
   return {
     title: opp ? `${opp.title} — Apply with VitalCV` : 'Opportunity',
     description: opp
-      ? 'Apply with your VitalCV career evidence wallet — readiness snapshot attached, no résumé re-typing.'
+      ? 'Apply with your VitalCV profile — readiness snapshot attached, no résumé re-typing.'
       : undefined,
   };
 }
@@ -104,7 +104,7 @@ export default async function PublicOpportunityPage(
         <div className="mz-card mz-card-pad mt-6">
           <h2 className="mz-h2">Apply with your career evidence, not a résumé</h2>
           <p className="mz-body mt-2">
-            VitalCV is the clinician-owned career wallet: your NPI-backed
+            VitalCV is the clinician-owned career profile: your NPI-backed
             readiness snapshot and source-backed evidence travel with your
             application, so this employer can act on it as a head start.
           </p>
@@ -117,11 +117,11 @@ export default async function PublicOpportunityPage(
               Apply with VitalCV →
             </Link>
             <Link href="/onboarding" className="mz-btn-ghost">
-              New here? Set up your wallet first
+              New here? Build your profile first
             </Link>
           </div>
           <p className="mz-small mt-3 opacity-70">
-            Signing in keeps your application tied to your own wallet. Applying
+            Signing in keeps your application tied to your own profile. Applying
             shares your readiness snapshot with this employer — nothing more.
           </p>
         </div>

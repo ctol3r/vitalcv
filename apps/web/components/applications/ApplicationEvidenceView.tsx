@@ -75,7 +75,7 @@ export function ApplicationEvidenceView({ result }: { result: ApplicationEvidenc
     <section aria-labelledby="application-evidence-heading" className="space-y-5">
       <div>
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Application evidence</p>
-        <h2 id="application-evidence-heading" className="mt-2 text-2xl font-semibold text-foreground">Submitted record and current Wallet state</h2>
+        <h2 id="application-evidence-heading" className="mt-2 text-2xl font-semibold text-foreground">Submitted record and current profile state</h2>
         <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
           The submitted packet is immutable historical evidence. Current source results are compared separately and never overwrite it.
         </p>
@@ -113,7 +113,7 @@ export function ApplicationEvidenceView({ result }: { result: ApplicationEvidenc
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,0.72fr)]">
         <div className="rounded-2xl border border-border bg-background p-5">
-          <h3 className="font-semibold text-foreground">Current Wallet evidence</h3>
+          <h3 className="font-semibold text-foreground">Current profile evidence</h3>
           <p className="mt-2 text-sm leading-6 text-muted-foreground">{data.currentEvidence.notice}</p>
           {data.currentEvidence.observedAt ? <p className="mt-1 text-xs text-muted-foreground">Computed {formatDate(data.currentEvidence.observedAt)}</p> : null}
           <div className="mt-4"><FieldList fields={data.currentEvidence.fields} empty="No current source result is available." /></div>
