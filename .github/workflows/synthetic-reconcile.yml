@@ -32,9 +32,12 @@
 # from a sweep that found nothing to reap, so it must not be green. Set
 # MONITORS_UNWIRED_OK=true (a repository VARIABLE) to deliberately run unwired.
 #
-# CLERK_SECRET_KEY lives on the `Production` environment (capital P), hence
-# `environment: Production` below. Getting that name wrong is silent — GitHub
-# creates an unknown environment rather than rejecting it.
+# The secret is the REPOSITORY secret `CLERK_SECRET_KEY_PROD`, mapped onto the
+# `CLERK_SECRET_KEY` env var the script reads. The GitHub name and the process
+# name deliberately differ; `_PROD` distinguishes it from the sk_test_ key CI
+# E2E uses. A name that does not exist resolves to the empty string with no
+# error, which is what made this take five dispatches to find (probe run
+# 31238667349).
 
 name: Synthetic Reconcile
 
@@ -64,20 +67,12 @@ jobs:
     name: Reap leaked synthetic identities
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    # LOAD-BEARING — do not remove. CLERK_SECRET_KEY is an ENVIRONMENT secret
-    # on `Production`, not a repository secret. Without this line
-    # `secrets.CLERK_SECRET_KEY` resolves to the empty string, the preflight
-    # takes the not-wired branch, and the sweep exits GREEN having reconciled
-    # nothing. Run 31233274419 did exactly that: `CLERK_SECRET_KEY:` empty in
-    # the step env, Reconcile skipped, job success. A sweep that cannot see the
-    # key is indistinguishable from a sweep that found nothing to reap.
-    #
-    # CASE-SENSITIVE — the environment is `Production`, capital P. GitHub does
-    # NOT error on an unknown environment name; it silently CREATES one. The
-    # first attempt (lowercase `production`, #1138) therefore conjured an empty
-    # environment and reproduced the identical green no-op in run 31235056713,
-    # on a commit that verifiably contained the declaration.
-    environment: Production
+    # No `environment:` — CLERK_SECRET_KEY_PROD is a REPOSITORY secret, visible
+    # to every job. The environment declarations added in #1138/#1140 chased a
+    # shadowing theory that measurement disproved; they are removed rather than
+    # left as clutter, because an environment records a deployment on every run
+    # (fictional, for an hourly sweep) and would silently BLOCK these runs the
+    # day a protection rule lands on that environment.
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
@@ -96,7 +91,7 @@ jobs:
       - name: Preflight — is the monitor wired?
         id: preflight
         env:
-          CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
+          CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY_PROD }}
           # Escape hatch. Unset/anything-but-"true" means "this monitor is
           # expected to be wired" — see the fail-closed note below.
           UNWIRED_OK: ${{ vars.MONITORS_UNWIRED_OK }}
@@ -106,12 +101,13 @@ jobs:
           # true right up until the monitor WAS wired — at which point the same
           # branch turned a misconfiguration into a clean bill of health.
           #
-          # It happened exactly once and cost the whole point of the job: run
-          # 31233274419 could not see CLERK_SECRET_KEY (it is an environment
-          # secret and the job had not declared `environment: Production`), so
-          # it skipped Reconcile and reported success having never contacted
-          # Clerk. A sweep that cannot see the key is indistinguishable, from
-          # the outside, from a sweep that found nothing to reap.
+          # It happened five times and cost the whole point of the job: runs
+          # 31233274419 / 31235056713 / 31237430191 / 31237517106 skipped
+          # Reconcile and reported success having never contacted Clerk,
+          # because the workflow read `secrets.CLERK_SECRET_KEY` while the
+          # secret is named CLERK_SECRET_KEY_PROD. A sweep that cannot see the
+          # key is indistinguishable, from the outside, from a sweep that found
+          # nothing to reap — which is why only the last of those five was red.
           #
           # So the default is now RED. To deliberately run unwired, set the
           # repository VARIABLE MONITORS_UNWIRED_OK=true — a visible, auditable
@@ -128,12 +124,12 @@ jobs:
             } >> "$GITHUB_STEP_SUMMARY"
           else
             echo "wired=false" >> "$GITHUB_OUTPUT"
-            echo "::error::CLERK_SECRET_KEY is not visible to this job — the sweep did NOT run. Check that this job still declares 'environment: Production' (CAPITAL P — an unknown environment name is silently created, not rejected) and that the secret still exists on that environment. If unwired is intended, set the repository variable MONITORS_UNWIRED_OK=true."
+            echo "::error::CLERK_SECRET_KEY_PROD is not visible to this job — the sweep did NOT run. Check the REPOSITORY secret is still named exactly CLERK_SECRET_KEY_PROD (a missing name resolves to the empty string with no error). If unwired is intended, set the repository variable MONITORS_UNWIRED_OK=true."
             {
               echo "## Synthetic reconciliation: MISCONFIGURED"
               echo ""
               echo "- \`CLERK_SECRET_KEY\` is not visible to this job, so **nothing was reconciled**."
-              echo "- Most likely cause: the job lost its \`environment: Production\` declaration (or had its case changed — an unknown environment name is silently created, not rejected), or the secret was removed/renamed."
+              echo "- Most likely cause: the repository secret \`CLERK_SECRET_KEY_PROD\` was renamed or removed. A name that does not exist resolves to the empty string with no error."
               echo "- This is deliberately RED. It is not evidence that there was nothing to reap."
             } >> "$GITHUB_STEP_SUMMARY"
             exit 1
@@ -142,7 +138,7 @@ jobs:
       - name: Reconcile
         if: steps.preflight.outputs.wired == 'true'
         env:
-          CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
+          CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY_PROD }}
         run: |
           if [ "${{ inputs.dry_run }}" = "true" ]; then
             pnpm reconcile:synthetics --dry-run --out reconcile.json
