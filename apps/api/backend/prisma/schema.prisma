@@ -83,6 +83,51 @@ model GardenCvEntry {
   @@map("garden_cv_entries")
 }
 
+/// CC-05 / WB-02 — immutable pre-image of a garden note, captured in the
+/// same transaction as every content mutation (cause 'update') and on
+/// restore (cause 'pre_restore'). Rows are never updated or edited; like the
+/// note itself they are scoped by the internal User.id resolved from the
+/// verified identity, and misses read as 404. A revision is workspace prose,
+/// never evidence: restoring one cannot change provenance anywhere.
+model GardenNoteRevision {
+  id        String   @id @default(uuid()) @db.Uuid
+  noteId    String   @db.Uuid
+  userId    String   @db.Uuid
+  title     String
+  body      String
+  tags      String[] @default([])
+  /// update | pre_restore — what caused this pre-image to be captured.
+  cause     String   @default("update")
+  createdAt DateTime @default(now())
+
+  @@index([userId, noteId, createdAt])
+  @@map("garden_note_revisions")
+}
+
+/// CC-05 / WB-02 — a typed link from a clinician's private note to something
+/// that clinician may legally see. Target types are a closed allowlist
+/// enforced in the service layer (note | cv_entry | opportunity |
+/// profile_field | source_pointer); ownership/visibility of the target is
+/// resolved server-side both when the link is created AND when it is read,
+/// so a link can never disclose another user's rows. `label` is a display
+/// snapshot derived server-side at create time — never caller-supplied. A
+/// link is a research pointer, never evidence: it cannot set or elevate any
+/// source-backed state.
+model GardenNoteLink {
+  id         String   @id @default(uuid()) @db.Uuid
+  userId     String   @db.Uuid
+  fromNoteId String   @db.Uuid
+  targetType String
+  targetId   String
+  label      String
+  createdAt  DateTime @default(now())
+
+  @@unique([userId, fromNoteId, targetType, targetId])
+  @@index([userId, targetType, targetId])
+  @@index([userId, fromNoteId])
+  @@map("garden_note_links")
+}
+
 /// Wave Q — durable commercial lead capture. One row per submitted pilot
 /// request / pilot intake (in addition to the existing Slack + stdout
 /// delivery, which stays). Operational CRM-lite, never evidence: rows carry
