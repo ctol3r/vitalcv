@@ -83,17 +83,19 @@ regression — assert against a hydration signal, not a fixed wait.
      `strategy-messaging-guard.test.tsx` lives only in open PR #1079, but the merged
      inventory describes it as active. Nothing currently fails the build when a retired
      noun reaches the homepage. Landing it is part of wave L1.
-- **Proposed sequencing:** L1 `wallet` (~40, low risk) → L2 `passport` orphans (~25) →
+- **Sequencing:** **L1 SHIPPED** (see below) → L2 `passport` orphans (~24, excl. manifest) →
   L3 acquisition-copy demotion (~35, after #1079) → L4 in-app snapshot noun (~30).
 - **Founder decisions recorded 2026-08-07:** `recognition` **KEPT** as a distinct
   in-app state; routes are **labels-only** (no path renames or redirects in a copy
   wave); `app/manifest.ts` is **not to be touched**, which removes the PWA description
   from L2. Classification sign-off given — L1–L4 may execute, each at its own gate.
 
-## DL-002 — `/onboarding` sells a "career wallet" and "readiness packet" (retired vocabulary)
+## DL-002 / wave L1 — `wallet` retired from customer copy — **AT FOUNDER GATE**
 
-**Now UNBLOCKED** (#1103 merged). Superseded in scope by DL-002a: execute as **wave L1**
-of the inventory's sequence rather than as a single-file edit.
+Shipped as the L1 wave: 55+ replacements across 25 files, two-way guard landed
+(`__tests__/customer-language-guard.test.ts`), full suite 3308 passing. Evidence in
+`design-lab/l1-wallet/`. Surfaced DL-008 (nav IA) and DL-009 (dead components) rather
+than forcing them into scope.
 
 - **Route/surface:** `/onboarding` right rail (source: `app/get-ready/GetReadySurface.tsx`)
 - **Problem:** the rail headlines "Your free, source-backed career wallet" and promises an
@@ -109,6 +111,36 @@ of the inventory's sequence rather than as a single-file edit.
 - **Size:** XS as scoped; **~40 occurrences** as wave L1 across clinician + public surfaces
 - **Dependencies:** none — `docs/strategy/` canon is already in-repo (landed in #1080)
 - **Collision risk:** cleared — #1103 merged 2026-08-07; no open PR touches `GetReadySurface.tsx`
+
+## DL-008 — `/holder` and `/clinician/profile` both claim to be "the profile" (IA)
+
+- **Route/surface:** `components/holder/HolderDesktopNav.tsx`, `components/clinician/MobileBottomNav.tsx`
+- **Problem:** the desktop holder nav carries **both** `Wallet → /holder` and
+  `Profile → /clinician/profile`. Wave L1 retired "wallet" as a customer noun, but the
+  label cannot simply become "Profile" — that would put two identically named entries in
+  one nav pointing at different routes. The real question is what these two surfaces
+  *are*: one of them is the clinician's profile, and the product has not decided which.
+- **Evidence:** `HolderDesktopNav.tsx:29-38` (8 items incl. both), `MobileBottomNav.tsx:14-19`.
+- **Persona:** clinician, activated · **Severity:** P1 · **Strategic impact:** comprehension, coherence
+- **Recommended direction:** founder IA decision first (merge the surfaces, or name them
+  distinctly — e.g. workspace home vs published profile), then a label wave.
+- **Size:** S (labels) / M (if surfaces merge) · **Collision risk:** low today; #1081 (B1)
+  lands `/profile/activate` and may inform the answer — **sequence after B1**.
+- **Note:** nav labels were deliberately excluded from wave L1 for this reason.
+
+## DL-009 — Dead homepage components still carrying retired vocabulary
+
+- **Route/surface:** `components/home/ProductCarousel.tsx`, `components/home/OutcomeTriad.tsx`
+- **Problem:** both have **zero real importers** — nothing renders them. They still carry
+  wallet/packet/recognition acquisition copy ("Reuse the same Wallet and Proof Packet…",
+  "Source checks, receipts, and Recognition — one wallet."), which inflates every
+  vocabulary audit with occurrences no customer can ever read.
+- **Evidence:** no `from '@/components/home/ProductCarousel'` or `.../OutcomeTriad'`
+  anywhere in `app/` or `components/`; verified 2026-08-07.
+- **Persona:** n/a (maintenance) · **Severity:** P3 · **Strategic impact:** coherence — deletion makes the product simpler
+- **Recommended direction:** delete both, with their tests. Do not "fix" their copy —
+  polishing dead code is how it survives another audit.
+- **Size:** XS · **Collision risk:** verify against #1079 before deleting (it owns `components/home/`)
 
 ## DL-003 — Homepage journey rail exposes machinery labels ("Packet", "Their decision")
 
