@@ -45,7 +45,10 @@ const nextConfig = {
       // /intelligence was archived (app/_archive/wave119); this redirect kept
       // pointing at it and 404'd. The clinician landing surface is the target.
       { source: '/dashboard', destination: '/holder/home', permanent: false },
-      { source: '/docs/api', destination: '/developers', permanent: false },
+      // /docs/api pointed at /developers, which 404s (retired to _archive/wave119),
+      // so this redirect landed traffic on a dead end. /docs is live and states
+      // plainly that complete API documentation is planned, not shipped.
+      { source: '/docs/api', destination: '/docs', permanent: false },
       { source: '/employers/kaiser-permanente-norcal', destination: '/employers/kaiser-permanente-northern-california', permanent: false },
     ];
   },

@@ -1,9 +1,10 @@
 import { GardenShell } from '@/components/career-garden/GardenShell';
+import { workbenchSectionTitle } from '@/lib/career-garden/branding';
 import { NotesSurface } from '@/components/career-garden/surfaces/NotesSurface';
 import { loadGardenData } from '@/lib/career-garden/serverSource';
 
 export const metadata = {
-  title: 'Notes · Career Garden · VitalCV',
+  title: workbenchSectionTitle('Notes'),
 };
 
 export default async function CareerGardenNotesPage({

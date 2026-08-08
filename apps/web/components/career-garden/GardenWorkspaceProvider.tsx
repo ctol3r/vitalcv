@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { WORKBENCH_BRANDING } from '@/lib/career-garden/branding';
 import { useRouter } from 'next/navigation';
 
 import type { CvEntry, CvSection } from '@/lib/career-garden/demoData';
@@ -132,7 +133,7 @@ export function GardenWorkspaceProvider({
         router.refresh();
         return json;
       } catch {
-        setLastError('Garden storage is temporarily unavailable — nothing was changed.');
+        setLastError(`${WORKBENCH_BRANDING.storageName} is temporarily unavailable — nothing was changed.`);
         return null;
       } finally {
         setPending(false);

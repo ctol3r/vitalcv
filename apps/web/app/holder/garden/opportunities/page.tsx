@@ -1,9 +1,10 @@
 import { GardenShell } from '@/components/career-garden/GardenShell';
+import { workbenchSectionTitle } from '@/lib/career-garden/branding';
 import { OpportunitiesSurface } from '@/components/career-garden/surfaces/OpportunitiesSurface';
 import { loadGardenData } from '@/lib/career-garden/serverSource';
 
 export const metadata = {
-  title: 'Opportunities · Career Garden · VitalCV',
+  title: workbenchSectionTitle('Opportunities'),
 };
 
 export default async function CareerGardenOpportunitiesPage({

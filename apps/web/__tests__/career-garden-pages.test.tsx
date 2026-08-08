@@ -63,7 +63,7 @@ describe('career-garden pages (live server render)', () => {
     expect(html).toContain('Recent activity');
     expect(html).toContain('href="/holder"');
     expect(html).toContain('href="/holder/applications"');
-    expect(html).toContain('aria-label="Career Garden sections"');
+    expect(html).toContain('aria-label="Workbench sections"');
     expect(html).toContain('aria-current="page"');
   });
 
@@ -172,7 +172,7 @@ describe('career-garden pages (live server render)', () => {
       render(CareerGardenPrivacyPage()),
     ];
     for (const html of await Promise.all(pages)) {
-      expect(html).toContain('aria-label="Career Garden sections"');
+      expect(html).toContain('aria-label="Workbench sections"');
       expect(html).toContain('aria-current="page"');
       expect(html).toContain('<h1');
     }
