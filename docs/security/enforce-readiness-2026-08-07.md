@@ -180,12 +180,24 @@ proof is `Run release verification` showing `success` rather than `skipped`. As 
 monitor now fails red instead of reporting a silent green, which was verified live (a dispatch on
 main concluded `failure` with the step skipped).
 
-**Caveat worth checking before trusting the canary as happy-path monitoring:** it is documented as
-walking six signed-in **/holder** surfaces, and /holder does not reach this backend at all (see
-above). A wired canary may therefore exercise the web app without ever producing a `verified_match`.
-If ongoing verification of the *backend* auth path is the goal, the canary needs to hit an employer
-surface — confirm what `lib/release-monitor/syntheticClinician.ts` actually walks before relying on
-it as the enforce monitor.
+**Correction (2026-08-08):** an earlier revision of this section warned that the canary might only
+walk `/holder` and so never produce a `verified_match`. **That was wrong — the canary is exactly the
+right monitor**, and it was designed for this precise gap.
+
+`lib/release-monitor/syntheticClinician.ts` does walk `/holder`, but it also exports
+`probeBackendIdentityProxy`, which hits `/api/me/workspaces` — the identity-bearing web→backend
+proxy — with the synthetic session. Its docblock states the reasoning outright: *"The page sweep
+alone cannot see this — the /holder surfaces render in the web tier without calling the backend."*
+Whoever built it had already established the topology finding recorded above.
+
+It is wired end to end, not merely defined: `scripts/release-verify.ts:172` supplies it, and
+`lib/release-monitor/verify.ts:160` runs it as check `backend_identity_proxy` with
+**`critical: true`**, so a failure fails the run. In `shadow` it emits `verified_match` telemetry on
+every monitor run; in `enforce` it turns the release status red the moment the token path breaks,
+because the backend 401 propagates through the proxy.
+
+So wiring `CLERK_SECRET_KEY` does buy exactly the ongoing enforce monitoring this rollout needs —
+and it would also have produced the happy-path evidence on its own, hourly, had it ever run.
 
 Setting `RAILWAY_API_TOKEN` alongside it also activates the PR #508 release-monitoring loop.
 
