@@ -152,6 +152,28 @@ working proves enforce *can* succeed; a clean warning count across a day of real
 proves it will not 401 someone in an edge case. Flip only after that window, and treat any non-zero
 count as a known breakage rather than an acceptable risk.
 
+### How to read the count (run this before deciding)
+
+The warning is a `console.warn` in `apps/web`, so it lands on the **`vitalcv-web`** service, NOT the
+backend. Railway keeps logs per deployment and containers are replaced often, so sweep several:
+
+```bash
+cd /Users/christoler/vitalcv   # railway project link is per-directory
+for d in $(railway deployment list --service vitalcv-web --json < /dev/null | jq -r '.[:8][].id'); do
+  n=$(railway logs "$d" --json < /dev/null 2>/dev/null | grep -c identity_header_without_bearer)
+  echo "${d:0:8}: $n"
+done
+```
+
+Interpreting it:
+- **All zero across containers that carry real traffic** → the null-token fallback never fires; enforce
+  is safe on this axis, and `forwardIdentity`'s fallback can then be made fail-closed as a follow-up.
+- **Any non-zero** → those sessions WILL 401 under enforce. Read the `where` field (`buildIdentityHeaders`,
+  `buildEmployerWorkspaceHeaders`, `intelligence/_shared:*`) to find the caller, and fix before flipping.
+- **Zero on containers with almost no log lines** → *not* evidence. That was the state at 03:55Z
+  (~11 lines total). Confirm the containers actually served signed-in traffic before trusting a zero;
+  cross-check with `verified_match` counts on `delightful-essence` for the same window.
+
 ## The canary — a monitoring requirement, no longer the evidence path
 
 *(Superseded 2026-08-08. This section previously called `CLERK_SECRET_KEY` "the one real blocker"
