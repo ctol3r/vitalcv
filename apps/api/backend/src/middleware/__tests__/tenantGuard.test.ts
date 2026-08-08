@@ -67,12 +67,12 @@ describe('tenantGuard', () => {
     expect(shouldSkipTenantContext('/api/directory/snapshots')).toBe(true);
   });
 
-  it('rejects an unauthenticated directory publish through the middleware', () => {
+  it('rejects an unauthenticated directory publish through the middleware', async () => {
     const req = createRequest('/api/directory/publish');
     const res = createResponse();
     const next = jest.fn();
 
-    requireTenantContextOrReadAccess(req, res, next);
+    await requireTenantContextOrReadAccess(req, res, next);
 
     expect(next).not.toHaveBeenCalled();
     expect(res.status).toHaveBeenCalledWith(401);
@@ -126,34 +126,34 @@ describe('tenantGuard', () => {
     expect(shouldSkipTenantContext('/api/snapshot/11111111-1111-4111-8111-111111111111')).toBe(true);
   });
 
-  it('allows the trust-proof read through without organization context', () => {
+  it('allows the trust-proof read through without organization context', async () => {
     const req = createRequest('/api/trust-proof/1003000126');
     const res = createResponse();
     const next = jest.fn();
 
-    requireTenantContextOrReadAccess(req, res, next);
+    await requireTenantContextOrReadAccess(req, res, next);
 
     expect(next).toHaveBeenCalledTimes(1);
     expect(res.status).not.toHaveBeenCalled();
   });
 
-  it('allows health probes through without organization context', () => {
+  it('allows health probes through without organization context', async () => {
     const req = createRequest('/health');
     const res = createResponse();
     const next = jest.fn();
 
-    requireTenantContextOrReadAccess(req, res, next);
+    await requireTenantContextOrReadAccess(req, res, next);
 
     expect(next).toHaveBeenCalledTimes(1);
     expect(res.status).not.toHaveBeenCalled();
   });
 
-  it('rejects protected routes without organization context', () => {
+  it('rejects protected routes without organization context', async () => {
     const req = createRequest('/api/clinician/activate');
     const res = createResponse();
     const next = jest.fn();
 
-    requireTenantContextOrReadAccess(req, res, next);
+    await requireTenantContextOrReadAccess(req, res, next);
 
     expect(next).not.toHaveBeenCalled();
     expect(res.status).toHaveBeenCalledWith(401);

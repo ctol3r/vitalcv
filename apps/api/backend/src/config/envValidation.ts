@@ -89,6 +89,29 @@ export function validateEnv(): void {
     });
   }
 
+  // --- G1 org-context binding (middleware/tenantGuard.ts#bindOrganizationContext) ---
+  // Binding resolves the caller's org from `verifiedAuth.verifiedUserId`, which
+  // verifiedIdentity only populates in shadow/enforce. Binding at enforce while
+  // JWT verification is off would resolve NO membership for anyone and deny
+  // every org-scoped request — a total outage wearing the costume of a security
+  // control. Fatal at boot rather than at first request.
+  const orgBinding = process.env.TENANT_ORG_BINDING;
+  if (orgBinding === 'enforce' && (!jwtMode || jwtMode === 'off')) {
+    log('error', 'env_validation_fatal', {
+      key: 'TENANT_ORG_BINDING',
+      note: 'TENANT_ORG_BINDING=enforce requires CLERK_JWT_VERIFICATION=shadow|enforce',
+    });
+    throw new Error(
+      '[EnvValidation] TENANT_ORG_BINDING=enforce requires CLERK_JWT_VERIFICATION=shadow or enforce',
+    );
+  }
+  if (orgBinding === 'shadow' && (!jwtMode || jwtMode === 'off')) {
+    log('warn', 'env_validation_missing', {
+      key: 'CLERK_JWT_VERIFICATION',
+      note: 'TENANT_ORG_BINDING=shadow reports every request as would_deny_unverified until CLERK_JWT_VERIFICATION is on',
+    });
+  }
+
   // --- Optional, warn if absent ---
   const optionalKeys: { key: string; note: string }[] = [
     { key: 'OPENAI_API_KEY',    note: 'LLM provider will use stub mode' },
