@@ -138,6 +138,53 @@ describe('customer-language guard — `passport` stays retired (L2)', () => {
   });
 });
 
+/**
+ * Wave L4 — `snapshot`. The narrowest wave in the sequence, and the one where
+ * the negative half matters LEAST. The word does four jobs and only one is
+ * product vocabulary:
+ *
+ *   1. cadence      — "OIG/LEIE refresh on a monthly snapshot"   PROTECTED
+ *   2. point-in-time — "not checked on this public snapshot"     PROTECTED
+ *   3. trust state  — "OWNED SNAPSHOT" (attributed, replay-visible)  PROTECTED
+ *   4. possession   — "your readiness snapshot", a thing you have and share  RETIRED
+ *
+ * Only (4) was touched. `readiness` itself stays — it is an allowed
+ * task-specific term for a clinician's own state; what went is the artifact noun.
+ */
+const SNAPSHOT_FREE_SURFACES = [
+  'app/concierge/page.tsx',
+  'app/matcha/recruiters/page.tsx',
+  'components/explore/ApplyModal.tsx',
+  'components/mobile/ClinicianUpdatesSurface.tsx',
+  'components/onboarding/OnboardingReadiness.tsx',
+  'components/review/ReviewQueueSurface.tsx',
+];
+
+describe('customer-language guard — `snapshot`-as-possession retired (L4)', () => {
+  it.each(SNAPSHOT_FREE_SURFACES)('%s no longer calls it a "readiness snapshot"', (rel) => {
+    const hits = customerVisibleStrings(read(rel)).filter((s) => /\b(readiness|career)\s+snapshots?\b/i.test(s));
+    expect(
+      hits,
+      `"readiness snapshot" names an artifact the customer must remember. `
+        + `Keep "readiness"; drop the artifact noun.`,
+    ).toEqual([]);
+  });
+
+  it('the three PROTECTED senses of "snapshot" survive — this is the half that matters', () => {
+    // 1. cadence — a monthly-cadence source must never read as live
+    expect(read('app/evidence-network/page.tsx')).toMatch(/monthly snapshot/i);
+    expect(read('components/employers/EmployerEvidenceSection.tsx')).toMatch(/monthly snapshot/i);
+    // 2. point-in-time scope limits on the public verify surface
+    const verify = read('app/verify/[npi]/page.tsx');
+    expect(verify).toMatch(/not checked on this public snapshot/i);
+    expect(verify).toMatch(/no receipts on this snapshot/i);
+    // 3. the trust-state taxonomy label and its unowned counterpart
+    const legend = read('components/trust/TrustRegisterLegend.tsx');
+    expect(legend).toMatch(/OWNED SNAPSHOT/);
+    expect(legend).toMatch(/unowned/i);
+  });
+});
+
 describe('customer-language guard — truth qualifiers must survive any copy wave', () => {
   it('source-cadence windows still name their real refresh cadence', () => {
     const text = read('app/evidence-network/page.tsx');

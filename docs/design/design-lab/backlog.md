@@ -83,8 +83,8 @@ regression — assert against a hydration signal, not a fixed wait.
      `strategy-messaging-guard.test.tsx` lives only in open PR #1079, but the merged
      inventory describes it as active. Nothing currently fails the build when a retired
      noun reaches the homepage. Landing it is part of wave L1.
-- **Sequencing:** **L1 MERGED** `96d3255b2` → **L2 AT FOUNDER GATE** (`passport` orphans) →
-  L3 acquisition-copy demotion (~35, after #1079) → L4 in-app snapshot noun (~30).
+- **Sequencing:** **L1 MERGED** `96d3255b2` → **L2 MERGED** `e55bf2b84` →
+  **L4 AT FOUNDER GATE** → L3 acquisition-copy demotion (~35) still blocked on #1079.
 - **Founder decisions recorded 2026-08-07:** `recognition` **KEPT** as a distinct
   in-app state; routes are **labels-only** (no path renames or redirects in a copy
   wave); `app/manifest.ts` is **not to be touched**, which removes the PWA description
@@ -168,6 +168,33 @@ than forcing them into scope.
   `E2E_HOME_VARIANT=film --project=chromium-film` or it silently reports "No tests
   found". **Any future copy wave must grep `tests/` for every string it changes and
   run the affected specs under the right project**, not just the vitest suite.
+
+## L4 — `snapshot`-as-possession retired — **AT FOUNDER GATE**
+
+- **Thesis:** the word does four jobs; only one is product vocabulary.
+  | Sense | Example | Disposition |
+  | --- | --- | --- |
+  | cadence | "OIG/LEIE refresh on a monthly snapshot" | **protected** |
+  | point-in-time | "not checked on this public snapshot" | **protected** |
+  | trust state | "OWNED SNAPSHOT" (attributed, replay-visible) | **protected** |
+  | possession | "your readiness snapshot" — a thing you have and share | **retired** |
+- **Scope: 12 replacements across 8 files** — far smaller than the inventory's ~30
+  estimate, which counted raw occurrences before the sense-split. `readiness` itself
+  stays: it is an allowed task-specific term for a clinician's own state, and only the
+  artifact noun goes.
+- **Deliberately NOT changed:** `app/snapshot/[id]` page labels. The artifact's identity
+  is tied to its route, and renaming the label while the URL still reads `/snapshot`
+  swaps one incoherence for another. Folded into the route-level IA decision alongside
+  DL-008 rather than half-done here.
+- **Guard proven red in BOTH directions:** reintroducing "Readiness snapshot." fails the
+  negative half; changing "monthly snapshot" to "monthly refresh" fails the positive
+  half. For this wave the positive half is the point — three protected senses survive.
+- **Two real bugs caught during the wave:** the guard found three further
+  `readiness snapshot` strings in `ApplyModal.tsx` that the extraction heuristic missed;
+  and a replacement introducing "clinician's" broke a single-quoted string
+  (`matcha/recruiters/page.tsx`) — a build-breaking syntax error the suite caught.
+- **Verification:** full suite **3364 passed**; typecheck 0 non-generated errors; `tests/`
+  swept for every changed string (no e2e pins — the L2 lesson applied up front).
 
 ## DL-003 — Homepage journey rail exposes machinery labels ("Packet", "Their decision")
 

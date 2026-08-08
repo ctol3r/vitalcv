@@ -37,7 +37,7 @@ export default function ConciergePage() {
         </h2>
         <ul className="mt-3 space-y-3 text-sm text-foreground">
           <li className="rounded-lg border border-border p-3">
-            <strong>Readiness snapshot.</strong> Your current credential readiness from live source
+            <strong>Current readiness.</strong> Your current credential readiness from live source
             checks, with every item labeled checked, gated, stale, or unknown — never guessed.
           </li>
           <li className="rounded-lg border border-border p-3">
