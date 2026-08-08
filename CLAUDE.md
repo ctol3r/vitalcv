@@ -103,6 +103,28 @@ superseded notice.
 Before adding any customer-facing term or feature, run
 [`docs/strategy/product-decision-filter.md`](docs/strategy/product-decision-filter.md).
 
+## Experience Overhaul Program — design-only boundary (Phase 0, 2026-08-08)
+
+A **UI PR freeze is in effect until UX-03 ships**: no visual PRs outside the Experience Overhaul
+Program (`docs/design/VITALCV_EXPERIENCE_OVERHAUL_PROGRAM_2026-08-08.md`). Unapproved visual
+treatments are parked, not deleted — `docs/design/PARKED_VISUAL_ERAS.md`. The experience authority
+is `docs/design/VITALCV_EXPERIENCE_CONSTITUTION.md` (successor-of-record to
+`VITALCV_CREATIVE_DIRECTION.md`).
+
+Every overhaul wave carries this text verbatim at the top:
+
+> **DESIGN-ONLY BOUNDARY**
+> This wave may change UI, UX, visual design, interaction design, responsive behavior, animation,
+> information hierarchy, customer-facing copy, navigation presentation, and brand expression.
+> It may not change application truth, authentication, authorization, consent semantics, data
+> models, APIs, readiness calculations, agent policy, source behavior, employer decisions,
+> business logic, or pricing behavior.
+> If the proposed experience requires one of those changes, record it as a product dependency and
+> stop. Do not solve it inside the design PR.
+
+**Operating rule:** Product contracts are inherited. Visual decisions are not. No wave inherits a
+prior visual treatment merely because it exists.
+
 ## Branch cutting (worktree fleet caveat)
 
 Local `main` is held by `/Users/christoler/vitalcv-omega4f-trigger`, and ~80 other worktrees exist (`~/.codex/worktrees/*` for the Codex fleet, plus dozens of `vitalcv-*` feature trees). **Never** `git checkout main && git pull origin main` — it fails. Instead:

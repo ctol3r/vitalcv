@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>VitalCV — Homepage Reset: Verdict Board</title>
+<style>
+  :root { color-scheme: light; }
+  * { margin:0; box-sizing:border-box; }
+  body { font: 15px/1.55 ui-sans-serif, system-ui, -apple-system, sans-serif; background:#F4F3EF; color:#17181A; padding:56px 40px 96px; }
+  .wrap { max-width:1360px; margin:0 auto; }
+  h1 { font-size:24px; letter-spacing:-0.01em; margin-bottom:6px; }
+  h2 { font-size:17px; letter-spacing:-0.01em; margin:56px 0 4px; }
+  h2 + p.sub { margin-bottom:20px; }
+  p.sub { color:#6A6C68; margin-bottom:32px; max-width:74ch; }
+  .k { font:11px/1 ui-monospace, SFMono-Regular, monospace; letter-spacing:.08em; color:#8B8D89; text-transform:uppercase; }
+  .status { display:inline-block; font:11px/1 ui-monospace, monospace; letter-spacing:.08em; text-transform:uppercase; border:1px solid #B4890F; color:#8A6A1F; background:#F4EDDB; padding:7px 10px; margin:2px 0 30px; }
+  .row3 { display:grid; grid-template-columns:repeat(3,1fr); gap:1px; background:#D8D7D1; border:1px solid #D8D7D1; }
+  @media (max-width:900px){ .row3 { grid-template-columns:1fr; } }
+  .cell { background:#fff; padding:20px; }
+  .cell .k { display:block; margin-bottom:12px; }
+  .cell .t { font-size:17px; font-weight:600; margin-bottom:6px; }
+  .cell .d { color:#5B5E5C; font-size:13.5px; }
+  .cell a.proto { display:inline-block; margin-top:12px; font-size:13px; color:#17181A; }
+  figure { background:#fff; padding:14px 14px 12px; margin:0; }
+  figure a { display:block; }
+  figure img, figure video { width:100%; height:auto; display:block; border:1px solid #E3E2DC; background:#EFEEE9; }
+  figcaption { font:10.5px/1.4 ui-monospace, monospace; letter-spacing:.06em; color:#8B8D89; text-transform:uppercase; margin-top:8px; }
+  .shot { margin-top:28px; }
+  .shot .k { display:block; margin-bottom:8px; }
+  table { border-collapse:collapse; width:100%; background:#fff; border:1px solid #D8D7D1; }
+  th, td { border:1px solid #E3E2DC; padding:10px 12px; font-size:13.5px; text-align:left; vertical-align:top; }
+  th { font:11px/1.3 ui-monospace, monospace; letter-spacing:.07em; text-transform:uppercase; color:#5B5E5C; background:#FBFAF7; }
+  td.pass { color:#175E4C; font-weight:600; }
+  td.partial { color:#8A6A1F; font-weight:600; }
+  td small { display:block; font-weight:400; color:#6A6C68; margin-top:2px; }
+  .memo { background:#fff; border:1px solid #D8D7D1; padding:26px 28px; max-width:100%; }
+  .memo h3 { font-size:15px; margin:18px 0 6px; }
+  .memo h3:first-child { margin-top:0; }
+  .memo p, .memo li { font-size:13.5px; color:#3A3C39; }
+  .memo ul { padding-left:18px; margin:6px 0; }
+  .verdict { border:1px solid #17181A; background:#fff; padding:26px 28px; margin-top:28px; }
+  .verdict code { font:12.5px ui-monospace, monospace; background:#EFEEE9; padding:1px 5px; }
+  .note { margin-top:40px; font-size:12.5px; color:#8B8D89; max-width:78ch; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>VitalCV — Homepage Reset: Verdict Board</h1>
+<p class="sub">Three from-first-principles directions around one idea: <strong>Enter your NPI. VitalCV does the rest.</strong> All three passed critique pass 1 on all seven tests. The winner becomes the <em>global</em> visual operating system (Constitution EC-20) — this is a company-appearance decision, not a page decision.</p>
+<span class="status">Awaiting founder verdict → write DECISION.md</span>
+
+<div class="row3">
+  <div class="cell"><span class="k">Direction A</span><div class="t">Operational Calm</div><div class="d">The calmest, most capable operating system in healthcare hiring. Bone ground, one spruce accent, humane console. Instrument Sans + IBM Plex Mono.</div><a class="proto" href="direction-a/index.html">Open prototype →</a></div>
+  <div class="cell"><span class="k">Direction B</span><div class="t">Intelligent Product</div><div class="d">You watch VitalCV do the work before anyone asks you to believe anything. Warm graphite, living product surface. Geist + Geist Mono.</div><a class="proto" href="direction-b/index.html">Open prototype →</a></div>
+  <div class="cell"><span class="k">Direction C</span><div class="t">Precision / Editorial</div><div class="d">Category-defining confidence. Gallery white, true black, scarce vermilion, drafted rules, expanded Archivo at 88–110px.</div><a class="proto" href="direction-c/index.html">Open prototype →</a></div>
+</div>
+
+<h2>Critique pass 1 — all three directions</h2>
+<p class="sub">Full write-ups in <code>critique/direction-{a,b,c}-pass1.md</code>. Method: Playwright captures at 1440×900 / 390×844 + headless interaction, ban-sweep, and reduced-motion verification.</p>
+<table>
+  <tr><th>Test</th><th>A — Operational Calm</th><th>B — Intelligent Product</th><th>C — Precision / Editorial</th></tr>
+  <tr><th>Five-second</th><td class="pass">PASS</td><td class="pass">PASS</td><td class="pass">PASS<small>Strongest of the three</small></td></tr>
+  <tr><th>Easy-button</th><td class="pass">PASS</td><td class="pass">PASS<small>Strongest — work visibly leaves the clinician</small></td><td class="pass">PASS</td></tr>
+  <tr><th>Distinctiveness</th><td class="partial">PARTIAL<small>By design — the calm thesis</small></td><td class="pass">PASS</td><td class="pass">PASS<small>By a wide margin</small></td></tr>
+  <tr><th>Trust</th><td class="pass">PASS</td><td class="pass">PASS</td><td class="pass">PASS</td></tr>
+  <tr><th>Product</th><td class="pass">PASS</td><td class="pass">PASS</td><td class="pass">PASS</td></tr>
+  <tr><th>Employer</th><td class="pass">PASS</td><td class="pass">PASS</td><td class="pass">PASS</td></tr>
+  <tr><th>Eyebrow spec</th><td class="pass">PASS</td><td class="pass">PASS<small>Most literal “contextual product state” middle zone</small></td><td class="pass">PASS</td></tr>
+  <tr><th>Watch items</th><td>Quietest next to C; stage air in beats 2/4 at 900px</td><td>14–18s autoplay pacing; dark-first is the biggest brand statement</td><td>The far pole from calm; mobile h1 is a 4-line stack; hero void is deliberate air</td></tr>
+</table>
+
+<h2>Side-by-side evidence</h2>
+<p class="sub">Thumbnails link to full-resolution captures. Desktop 1440×900 · mobile 390×844.</p>
+
+<div class="shot"><span class="k">01 · Hero — the five-second read</span>
+<div class="row3">
+  <figure><a href="evidence/direction-a/desktop-01-hero.png"><img src="evidence/board-thumbs/a-desktop-01-hero.jpg" alt="Direction A hero"></a><figcaption>A · bone / spruce</figcaption></figure>
+  <figure><a href="evidence/direction-b/desktop-01-hero.png"><img src="evidence/board-thumbs/b-desktop-01-hero.jpg" alt="Direction B hero"></a><figcaption>B · graphite / work-green</figcaption></figure>
+  <figure><a href="evidence/direction-c/desktop-01-hero.png"><img src="evidence/board-thumbs/c-desktop-01-hero.jpg" alt="Direction C hero"></a><figcaption>C · gallery white / vermilion</figcaption></figure>
+</div></div>
+
+<div class="shot"><span class="k">02 · Eyebrow at top — the navigation constitution</span>
+<div class="row3">
+  <figure><a href="evidence/direction-a/desktop-02-eyebrow-top.png"><img src="evidence/board-thumbs/a-desktop-02-eyebrow-top.jpg" alt="Direction A eyebrow"></a><figcaption>A · 64px, two quiet items</figcaption></figure>
+  <figure><a href="evidence/direction-b/desktop-02-eyebrow-top.png"><img src="evidence/board-thumbs/b-desktop-02-eyebrow-top.jpg" alt="Direction B eyebrow"></a><figcaption>B · 64px, live beat ticker</figcaption></figure>
+  <figure><a href="evidence/direction-c/desktop-02-eyebrow-top.png"><img src="evidence/board-thumbs/c-desktop-02-eyebrow-top.jpg" alt="Direction C eyebrow"></a><figcaption>C · 60px drafted band, N° index</figcaption></figure>
+</div></div>
+
+<div class="shot"><span class="k">03 · No-NPI explainer mid-sequence — work in motion</span>
+<div class="row3">
+  <figure><a href="evidence/direction-a/desktop-04-explainer-mid.png"><img src="evidence/board-thumbs/a-desktop-04-explainer-mid.jpg" alt="Direction A explainer mid"></a><figcaption>A</figcaption></figure>
+  <figure><a href="evidence/direction-b/desktop-04-explainer-mid.png"><img src="evidence/board-thumbs/b-desktop-04-explainer-mid.jpg" alt="Direction B explainer mid"></a><figcaption>B</figcaption></figure>
+  <figure><a href="evidence/direction-c/desktop-04-explainer-mid.png"><img src="evidence/board-thumbs/c-desktop-04-explainer-mid.jpg" alt="Direction C explainer mid"></a><figcaption>C</figcaption></figure>
+</div></div>
+
+<div class="shot"><span class="k">04 · Explainer final beat — role and first-day momentum</span>
+<div class="row3">
+  <figure><a href="evidence/direction-a/desktop-05-explainer-final.png"><img src="evidence/board-thumbs/a-desktop-05-explainer-final.jpg" alt="Direction A explainer final"></a><figcaption>A</figcaption></figure>
+  <figure><a href="evidence/direction-b/desktop-05-explainer-final.png"><img src="evidence/board-thumbs/b-desktop-05-explainer-final.jpg" alt="Direction B explainer final"></a><figcaption>B</figcaption></figure>
+  <figure><a href="evidence/direction-c/desktop-05-explainer-final.png"><img src="evidence/board-thumbs/c-desktop-05-explainer-final.jpg" alt="Direction C explainer final"></a><figcaption>C</figcaption></figure>
+</div></div>
+
+<div class="shot"><span class="k">05 · Eyebrow inversion — identical geometry over a contrasting band</span>
+<div class="row3">
+  <figure><a href="evidence/direction-a/desktop-06b-eyebrow-over-outcome.png"><img src="evidence/board-thumbs/a-desktop-06b-eyebrow-over-outcome.jpg" alt="Direction A eyebrow over outcome band"></a><figcaption>A · over outcome</figcaption></figure>
+  <figure><a href="evidence/direction-b/desktop-06c-eyebrow-over-employers.png"><img src="evidence/board-thumbs/b-desktop-06c-eyebrow-over-employers.jpg" alt="Direction B eyebrow over light employer band"></a><figcaption>B · inverted over light band</figcaption></figure>
+  <figure><a href="evidence/direction-c/desktop-06b-eyebrow-over-outcome.png"><img src="evidence/board-thumbs/c-desktop-06b-eyebrow-over-outcome.jpg" alt="Direction C eyebrow over black outcome band"></a><figcaption>C · inverted over black</figcaption></figure>
+</div></div>
+
+<div class="shot"><span class="k">06 · Four-owner model — the ownership section</span>
+<div class="row3">
+  <figure><a href="evidence/direction-a/desktop-07-ownership.png"><img src="evidence/board-thumbs/a-desktop-07-ownership.jpg" alt="Direction A ownership"></a><figcaption>A</figcaption></figure>
+  <figure><a href="evidence/direction-b/desktop-07-ownership.png"><img src="evidence/board-thumbs/b-desktop-07-ownership.jpg" alt="Direction B ownership"></a><figcaption>B</figcaption></figure>
+  <figure><a href="evidence/direction-c/desktop-07-ownership.png"><img src="evidence/board-thumbs/c-desktop-07-ownership.jpg" alt="Direction C ownership"></a><figcaption>C</figcaption></figure>
+</div></div>
+
+<div class="shot"><span class="k">07 · Employer doorway — present without hijacking</span>
+<div class="row3">
+  <figure><a href="evidence/direction-a/desktop-08-employer-doorway.png"><img src="evidence/board-thumbs/a-desktop-08-employer-doorway.jpg" alt="Direction A employer doorway"></a><figcaption>A</figcaption></figure>
+  <figure><a href="evidence/direction-b/desktop-08-employer-doorway.png"><img src="evidence/board-thumbs/b-desktop-08-employer-doorway.jpg" alt="Direction B employer doorway"></a><figcaption>B</figcaption></figure>
+  <figure><a href="evidence/direction-c/desktop-08-employer-doorway.png"><img src="evidence/board-thumbs/c-desktop-08-employer-doorway.jpg" alt="Direction C employer doorway"></a><figcaption>C</figcaption></figure>
+</div></div>
+
+<div class="shot"><span class="k">08 · Mobile — designed, not stacked (hero / explainer / agent work)</span>
+<div class="row3">
+  <figure>
+    <div class="row3" style="border:0;background:transparent;gap:8px;grid-template-columns:repeat(3,1fr);">
+      <a href="evidence/direction-a/mobile-01-hero.png"><img src="evidence/board-thumbs/a-mobile-01-hero.jpg" alt="A mobile hero"></a>
+      <a href="evidence/direction-a/mobile-03-explainer.png"><img src="evidence/board-thumbs/a-mobile-03-explainer.jpg" alt="A mobile explainer"></a>
+      <a href="evidence/direction-a/mobile-04-agent-work.png"><img src="evidence/board-thumbs/a-mobile-04-agent-work.jpg" alt="A mobile agent work"></a>
+    </div><figcaption>A · 390×844</figcaption></figure>
+  <figure>
+    <div class="row3" style="border:0;background:transparent;gap:8px;grid-template-columns:repeat(3,1fr);">
+      <a href="evidence/direction-b/mobile-01-hero.png"><img src="evidence/board-thumbs/b-mobile-01-hero.jpg" alt="B mobile hero"></a>
+      <a href="evidence/direction-b/mobile-03-explainer.png"><img src="evidence/board-thumbs/b-mobile-03-explainer.jpg" alt="B mobile explainer"></a>
+      <a href="evidence/direction-b/mobile-04-agent-work.png"><img src="evidence/board-thumbs/b-mobile-04-agent-work.jpg" alt="B mobile agent work"></a>
+    </div><figcaption>B · 390×844</figcaption></figure>
+  <figure>
+    <div class="row3" style="border:0;background:transparent;gap:8px;grid-template-columns:repeat(3,1fr);">
+      <a href="evidence/direction-c/mobile-01-hero.png"><img src="evidence/board-thumbs/c-mobile-01-hero.jpg" alt="C mobile hero"></a>
+      <a href="evidence/direction-c/mobile-03-explainer.png"><img src="evidence/board-thumbs/c-mobile-03-explainer.jpg" alt="C mobile explainer"></a>
+      <a href="evidence/direction-c/mobile-04-agent-work.png"><img src="evidence/board-thumbs/c-mobile-04-agent-work.jpg" alt="C mobile agent work"></a>
+    </div><figcaption>C · 390×844</figcaption></figure>
+</div></div>
+
+<div class="shot"><span class="k">09 · Reduced motion — the explainer as a static composition (first-class, not a degradation)</span>
+<div class="row3">
+  <figure><a href="evidence/direction-a/reduced-motion-explainer.png"><img src="evidence/board-thumbs/a-reduced-motion-explainer.jpg" alt="A reduced motion"></a><figcaption>A · annotated static sequence</figcaption></figure>
+  <figure><a href="evidence/direction-b/reduced-motion-explainer.png"><img src="evidence/board-thumbs/b-reduced-motion-explainer.jpg" alt="B reduced motion"></a><figcaption>B · final frame, beats 1–5 annotated</figcaption></figure>
+  <figure><a href="evidence/direction-c/reduced-motion-explainer.png"><img src="evidence/board-thumbs/c-reduced-motion-explainer.jpg" alt="C reduced motion"></a><figcaption>C · printed spread</figcaption></figure>
+</div></div>
+
+<div class="shot"><span class="k">10 · Motion — the explainer sequence in time</span>
+<div class="row3">
+  <figure><video controls preload="metadata" src="evidence/direction-a/motion.mp4"></video><figcaption>A · scroll-advanced beats, 320ms</figcaption></figure>
+  <figure><video controls preload="metadata" src="evidence/direction-b/motion.mp4"></video><figcaption>B · 14–18s single autoplay + replay</figcaption></figure>
+  <figure><video controls preload="metadata" src="evidence/direction-c/motion.mp4"></video><figcaption>C · frames draw in sequence, 400ms</figcaption></figure>
+</div></div>
+
+<div class="shot"><span class="k">11 · Full pages</span>
+<div class="row3">
+  <div class="cell"><a class="proto" href="evidence/direction-a/desktop-10-full-page.png">A desktop full page →</a><br><a class="proto" href="evidence/direction-a/mobile-07-full-page.png">A mobile full page →</a><br><a class="proto" href="evidence/direction-a/reduced-motion-full-page.png">A reduced-motion full page →</a></div>
+  <div class="cell"><a class="proto" href="evidence/direction-b/desktop-10-full-page.png">B desktop full page →</a><br><a class="proto" href="evidence/direction-b/mobile-07-full-page.png">B mobile full page →</a><br><a class="proto" href="evidence/direction-b/reduced-motion-full-page.png">B reduced-motion full page →</a></div>
+  <div class="cell"><a class="proto" href="evidence/direction-c/desktop-10-full-page.png">C desktop full page →</a><br><a class="proto" href="evidence/direction-c/mobile-07-full-page.png">C mobile full page →</a><br><a class="proto" href="evidence/direction-c/reduced-motion-full-page.png">C reduced-motion full page →</a></div>
+</div></div>
+
+<h2>What the verdict commits the whole product to</h2>
+<p class="sub">Full memo: <code>DECISION-MEMO.md</code>. The winner is not a homepage — it is the workspace, the employer surface, and the evidence artifact for the next two years.</p>
+<div class="memo">
+  <h3>A — Operational Calm</h3>
+  <ul>
+    <li>Light bone product everywhere; cheapest migration from today's paper+ink. Instrument Sans + IBM Plex Mono.</li>
+    <li>Spruce becomes both the brand accent and the work/done color — one green, one meaning; the separate indigo interaction accent retires.</li>
+    <li>Trade-off: distinctiveness is "partial by design" — the calm thesis bets the <em>work</em> is the memorable thing.</li>
+  </ul>
+  <h3>B — Intelligent Product</h3>
+  <ul>
+    <li>Dark-first public brand (warm graphite) — overturns "light is the only public mode" and requires defining where light bands are law. Geist + Geist Mono.</li>
+    <li>The hero's living work surface is the grammar the product itself adopts (work ledger, approval pauses) — the demonstration <em>is</em> the brand.</li>
+    <li>Creates one real design task: a defined light/print treatment for evidence artifacts an employer forwards.</li>
+  </ul>
+  <h3>C — Precision / Editorial</h3>
+  <ul>
+    <li>Gallery white + true black drafted rules product-wide; expanded Archivo display discipline at product density is a genuinely new design problem.</li>
+    <li>Cleanest signal-vs-state separation: vermilion is architectural only, states stay black/white.</li>
+    <li>Trade-off: the far pole from calm — daily-use fatigue in the workspace is the open question.</li>
+  </ul>
+  <h3>Named hybrids</h3>
+  <ul>
+    <li><strong>"A ground, B hero"</strong> — bone/spruce system with B's living work surface (needs a re-render on bone to prove it).</li>
+    <li><strong>"A system, C eyebrow"</strong> — operational calm with C's drafted two-rule band for character.</li>
+    <li><strong>"C public, A workspace"</strong> — two registers; only lawful if written into the constitution deliberately.</li>
+  </ul>
+  <h3>Standing recommendation</h3>
+  <p><strong>B — Intelligent Product</strong>: the program's thesis is "show, don't assert," and B is the only direction where the first experience is the product doing work. Its two costs are bounded design tasks, not truth risks. If maximum calm wins instead: A, or "A ground, B hero."</p>
+</div>
+
+<div class="verdict">
+  <span class="k">To record the verdict</span>
+  <p style="margin-top:10px;font-size:13.5px;">Write <code>design-lab/homepage-reset/DECISION.md</code>: the direction (or named hybrid), one paragraph of rationale, any amendments. The constitution's EC-20 brand table is back-filled the same day; UX-02 (brand foundation) and UX-03 (eyebrow) start immediately after.</p>
+</div>
+
+<p class="note">Concept-selection wave · source main SHA 0b62fc04b · prototypes are explanatory illustrations, not live product claims · Browser-pane note: scroll-driven states freeze in the hidden-tab compositor — visual truth here is Playwright renders (evidence/capture.mjs).</p>
+
+</div>
+</body>
+</html>
