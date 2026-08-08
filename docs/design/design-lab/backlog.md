@@ -251,7 +251,30 @@ than forcing them into scope.
   carry benefit copy instead of placeholder nouns).
 - **Collision risk:** **BLOCKED — WAIT** (#1079).
 
-## DL-007 — Start Agent activity language has no designed surface yet (standing stream)
+## DL-007 — Start Agent activity language — **EXPLORATION DELIVERED**
+
+- **Deliverable:** [`dl-007-start-agent-language.md`](./dl-007-start-agent-language.md)
+- **Core finding:** the primitives are **already in the domain model**. A0's
+  `ACTION_OWNERS` × `PERMISSION_CLASSES` generate all of the charter's requested
+  primitives — plus a seventh the charter missed (`source`-controlled, distinct from
+  `employer`-controlled, because "the board hasn't replied" and "the hospital is
+  deciding" feel different and only one is anyone's fault). We render these; we do not
+  invent a parallel vocabulary.
+- **Position:** not a chat interface — a worklist with provenance. Chat makes every
+  statement look the same, and these statements carry different authority.
+- **Honesty constraint:** A0 executes nothing above Level 2 (`prepare`), so the surface
+  must say "I drafted this; it sends when you approve" rather than "I sent this" —
+  and grow into execution without changing voice.
+- **No aggregate:** seven load-bearing distinctions (resolved≠owned, pending≠verified,
+  not_found is a finding, unsupported is OUR gap, invalid is never evidence, a
+  correction has no winner, ready_to_start only when canonical) exist precisely to
+  resist the summary a score would impose.
+- **Next step is NOT implementation:** when A1 (#1123) merges, render one real plan
+  read-only and check whether all seven disclosure elements can be filled from live
+  data. An element that cannot be filled is a substrate finding, cheaper to learn in a
+  render than in a wave.
+- **Blocked on:** DL-008 (the agent surface must not become a third claimant to "the
+  profile"); A1 for real plan data.
 
 - **Route/surface:** future — activation/readiness surfaces (B1 `/profile/activate`, readiness planner)
 - **Problem:** as the Readiness Planner (first agent capability per the Easy Button
