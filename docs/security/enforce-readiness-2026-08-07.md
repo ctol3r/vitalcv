@@ -7,11 +7,14 @@ This is the named authorization gate required by the authorization-boundary prac
 is executed only on an explicit founder selection recorded against this package. Both flips are
 config-only and instantly reversible (`--set` back to `shadow`).
 
-> **STATUS 2026-08-08: NOT READY — and for a harder reason than first recorded.** A first flip was
-> executed 2026-08-07 on a mis-scored criterion and **rolled back within 23 minutes**; production is
-> back at `shadow`/`shadow`. The original write-up said the only gap was unproven happy-path
-> evidence. That was too generous: enforce would **break named live callers today** — see
-> "Update 2026-08-08" below. Fix those first; the canary is a monitoring requirement, not the gate.
+> **STATUS 2026-08-08 03:55Z: NEARLY READY — one criterion left, and it is a waiting period, not a
+> defect.** A first flip was executed 2026-08-07 on a mis-scored criterion and **rolled back within
+> 23 minutes**; production is `shadow`/`shadow`. Since then: the named live callers that enforce
+> would have broken are **fixed and deployed** (#1158, `79d3f2033`), client-set identity headers are
+> **audited and cannot reach the backend unpaired**, and — the criterion that had never once been met
+> — **the happy path is PROVEN in production** (26 `verified_match` events, see below). What remains
+> is a clean `identity_header_without_bearer` count over a day of real traffic. See
+> "Update 2026-08-08" and "Happy path — PROVEN".
 
 ## Current production state (read live 2026-08-07)
 
@@ -100,19 +103,89 @@ and the helper's null-token path is decided deliberately — fail the request in
 real error, rather than silently emitting a header that the backend will reject. Until then the
 flip has a *known* break, and no amount of canary green changes that.
 
-## The one real blocker, and who can clear it
+## Happy path — PROVEN 2026-08-08 (the criterion that had never once been met)
 
-**Wire `CLERK_SECRET_KEY` as a GitHub repo secret.** This is a credential action and belongs to the
-founder — an agent must not copy live `sk_live_` material. The value already exists on Railway
-(`delightful-essence`). Owner one-liner:
+For a month of shadow, and throughout the 23-minute enforce window, production logged **zero**
+`verified_match`. A token had never been observed verifying successfully against prod. That — not
+the canary — was the criterion carrying real risk: if JWKS fetch, issuer match, or clock skew were
+wrong, enforce would 401 every authenticated backend call and we would learn it from users.
 
-```bash
-railway variables --kv --service delightful-essence | sed -n 's/^CLERK_SECRET_KEY=//p' | gh secret set CLERK_SECRET_KEY --repo ctol3r/vitalcv
+**It is now met.** A signed-in session exercising an **employer** surface produced **26
+`verified_match` events**, `mode: shadow`, `hasHeaderIdentity: true`, across five real routes:
+
+```
+GET  /api/me/workspaces          ← the employer workspace lookup (lib/server/employer-workspace.ts)
+GET  /api/profile/completeness
+GET  /api/clinician/proof
+GET  /api/clinician/applications
+POST /api/pilot-ops/events
 ```
 
-The workflow self-heals the moment it is set: the preflight passes, the synthetic clinician walks
-six signed-in /holder surfaces hourly, and the first green run with the step actually **executed**
-is the missing `verified_match` evidence. Then, and only then, re-run the sequence below.
+`verified_match` is the strong outcome: the token verified **and** its `sub` matched the forwarded
+`x-clerk-user-id` — precisely the pairing enforce requires. JWKS, issuer and clock are therefore all
+working in production.
+
+Two honesty notes on this evidence. The counts (25–26) hit `ALWAYS_LOG_FIRST` in
+`shouldLogSampled`, so there were *at least* that many, not exactly that many. And the containers
+carrying it (`4b3f9683`, `e36a661d`) are already `REMOVED` — the finding is recorded here precisely
+because it cannot be re-read later.
+
+**Why the earlier `/holder` attempt found nothing:** `/holder` never reaches this backend at all —
+signed-in clinician surfaces are served by the web app. That was confirmed as a true negative, not
+an observation gap: `verifiedIdentityMiddleware` is mounted app-wide (`app.use()`, `app.ts:3566`,
+before the tenant guard) and the sampler always logs the first N of each outcome. **Use an employer
+surface to exercise this middleware; `/holder` cannot.**
+
+### What is still NOT measured
+
+`identity_header_without_bearer` — the warning added by #1158 for the null-token fallback — reads
+**zero**, but that number is currently worthless: the instrumentation deployed at the same moment as
+the test session, and the web containers hold only ~11 log lines total. **Absence of warnings here
+is absence of observation, not evidence.**
+
+A first pass looked for this warning in the *backend* logs, where it could never appear — it is a
+`console.warn` in `apps/web`, so it surfaces on the `vitalcv-web` service. Corrected; both were
+checked.
+
+**This is the remaining gate, and it is a waiting period rather than a defect.** The happy path
+working proves enforce *can* succeed; a clean warning count across a day of real traffic is what
+proves it will not 401 someone in an edge case. Flip only after that window, and treat any non-zero
+count as a known breakage rather than an acceptable risk.
+
+## The canary — a monitoring requirement, no longer the evidence path
+
+*(Superseded 2026-08-08. This section previously called `CLERK_SECRET_KEY` "the one real blocker"
+and said the first genuinely-executed canary run would supply the missing `verified_match`. Both
+are now wrong: the happy path was proven directly — see above — and the secret governs **ongoing
+monitoring**, not the flip decision.)*
+
+**`CLERK_SECRET_KEY` exists at NO scope GitHub Actions can read.** Verified against the API rather
+than `gh secret list` (which shows only repo scope): repo returns `total_count: 5` without it, and
+all nine environments return `total_count: 0` — the repo call returning 5 being the control that
+proves the API is not hiding it from the caller's token. The value *does* exist on Railway
+(`delightful-essence`); extraction was confirmed to yield a 50-character `sk_`-prefixed value.
+
+Wiring it is a founder credential action — an agent must not copy live `sk_live_` material. **Do not
+use a pipeline for this**: three attempts through
+`railway variables --kv … | sed … | gh secret set …` failed silently, because the pipe swallows the
+error from the `gh` end. Use the interactive form, which cannot hide a failure, and target the
+environment the job now declares (`environment: Production`, added by #1138):
+
+```bash
+gh secret set CLERK_SECRET_KEY --repo ctol3r/vitalcv --env Production
+```
+
+Then re-dispatch `release-verify` and read the **step** conclusion, never the run conclusion — the
+proof is `Run release verification` showing `success` rather than `skipped`. As of #1138 an unwired
+monitor now fails red instead of reporting a silent green, which was verified live (a dispatch on
+main concluded `failure` with the step skipped).
+
+**Caveat worth checking before trusting the canary as happy-path monitoring:** it is documented as
+walking six signed-in **/holder** surfaces, and /holder does not reach this backend at all (see
+above). A wired canary may therefore exercise the web app without ever producing a `verified_match`.
+If ongoing verification of the *backend* auth path is the goal, the canary needs to hit an employer
+surface — confirm what `lib/release-monitor/syntheticClinician.ts` actually walks before relying on
+it as the enforce monitor.
 
 Setting `RAILWAY_API_TOKEN` alongside it also activates the PR #508 release-monitoring loop.
 
