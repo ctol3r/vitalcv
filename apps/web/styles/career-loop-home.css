@@ -516,6 +516,9 @@ body:has(.clh) [data-feedback-button]{display:none !important}
    explanation.
    ========================================================================== */
 .clh-how{padding-top:clamp(56px,8vh,96px);padding-bottom:clamp(56px,8vh,96px)}
+/* Poster type at line-height .98 paints its descenders below its own box;
+   the supporting line needs real clearance or "digit." strikes through it. */
+.clh-how .clh-sub{margin-top:clamp(24px,3.4vh,38px)}
 .clh-how-eyebrow{
   font-family:var(--mono);font-size:12px;font-weight:500;
   letter-spacing:.16em;text-transform:uppercase;opacity:.55;
@@ -629,7 +632,9 @@ body:has(.clh) [data-feedback-button]{display:none !important}
    server render or reduced-motion visitor always sees everything. */
 @media (prefers-reduced-motion:no-preference){
   .clh-how-band[data-how-hydrated] .clh-how-stage:not([data-active]):not([data-passed]) .clh-how-slot::after{opacity:0}
-  .clh-how-band[data-how-hydrated] .clh-how-stage:not([data-active]):not([data-passed]) .clh-how-lanes li{opacity:0;transform:translateX(-8px)}
+  /* Ghosted, never empty: a blank plate reads as broken, so the ahead
+     states keep a faint preview for the walk to resolve. */
+  .clh-how-band[data-how-hydrated] .clh-how-stage:not([data-active]):not([data-passed]) .clh-how-lanes li{opacity:.18;transform:translateX(-8px)}
   .clh-how-band[data-how-hydrated] .clh-how-stage:not([data-active]):not([data-passed]) .clh-how-claims li{opacity:.35}
   .clh-how-band[data-how-hydrated] .clh-how-stage:not([data-active]):not([data-passed]) .clh-how-line{transform:scaleX(.25)}
 }
