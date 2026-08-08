@@ -23,6 +23,14 @@ export interface PersistAgentRunInput {
   subjectRef: string;
   npi?: string;
   inputGaps: string[];
+  /** A2.1 — what caused this run. Defaults to the pre-A2 meaning. */
+  trigger?: 'interactive' | 'scheduled' | 'event';
+  /**
+   * A2.1 — `shadow` runs record everything and act on nothing. Recorded on
+   * the row so a later analysis can never mistake an observation run for one
+   * that was allowed to do something.
+   */
+  mode?: 'live' | 'shadow';
 }
 
 export interface PersistAgentRunResult {
@@ -48,6 +56,12 @@ export async function persistAgentRun(input: PersistAgentRunInput): Promise<Pers
           npi: input.npi ?? null,
           contextClass: plan.contextClass,
           contextFingerprint: plan.contextFingerprint,
+          trigger: input.trigger ?? 'interactive',
+          // Actor and completeness are properties of the PLAN, not of the
+          // caller — they cannot be overridden here.
+          actor: plan.actor,
+          completeness: plan.completeness,
+          mode: input.mode ?? 'live',
           policyVersion: plan.policyVersion,
           toolsetVersion: plan.toolsetVersion,
           modelVersion: plan.modelVersion ?? null,
