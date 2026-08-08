@@ -69,8 +69,12 @@ jobs:
     name: Reap leaked synthetic identities
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    # No `environment:` — CLERK_SECRET_KEY_PROD is a REPOSITORY secret, visible
-    # to every job. The environment declarations added in #1138/#1140 chased a
+    # No `environment:` — CLERK_SECRET_KEY_PROD is intended as a REPOSITORY
+    # secret, and repository secrets are visible to every job without one.
+    # (It does not exist yet — as of 2026-08-08 no GitHub Actions copy of the
+    # Clerk key exists at any scope; it lives only in Railway. The point stands
+    # either way: declaring an environment would not help.)
+    # The environment declarations added in #1138/#1140 chased a
     # shadowing theory that measurement disproved; they are removed rather than
     # left as clutter, because an environment records a deployment on every run
     # (fictional, for an hourly sweep) and would silently BLOCK these runs the
