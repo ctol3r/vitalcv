@@ -18,7 +18,8 @@
           "cameraPermission": "Allow VitalCV Wallet to scan verifier QR codes."
         }
       ],
-      "expo-font"
+      "expo-font",
+      "expo-status-bar"
     ],
     "ios": {
       "bundleIdentifier": "com.vitalcv.wallet",
