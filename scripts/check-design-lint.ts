@@ -113,7 +113,14 @@ const LEGACY_HOME_ROOTS = [
   join(web, 'app', 'HomePageClient.tsx'),
   join(web, 'app', 'page.tsx'),
 ];
-const HOMEPAGE_ROOTS = [...FILM_ROOTS, ...LEGACY_HOME_ROOTS];
+
+/**
+ * UX-V1: the live `/` composition. Governed by the same COMPETE rules as the
+ * film — the previous career-loop composition was never in a lint root, which
+ * was a coverage gap, not a permission.
+ */
+const EASY_HOME_ROOTS = [join(web, 'components', 'home', 'easy')];
+const HOMEPAGE_ROOTS = [...FILM_ROOTS, ...LEGACY_HOME_ROOTS, ...EASY_HOME_ROOTS];
 
 const RULES: Rule[] = [
   {

@@ -3,10 +3,9 @@
 import { SignedIn } from '@clerk/nextjs';
 import { usePathname } from 'next/navigation';
 import { Suspense, type ReactNode } from 'react';
-import AnnouncementRail from '@/components/layout/AnnouncementRail';
+import Eyebrow from '@/components/layout/Eyebrow';
 import FeedbackButton from '@/components/feedback/FeedbackButton';
 import Footer from '@/components/layout/Footer';
-import Navbar from '@/components/layout/Navbar';
 import { PilotReporterHost } from '@/components/pilot-ops/PilotReporterHost';
 import { PilotSignInTracker } from '@/components/pilot-ops/PilotSignInTracker';
 import PrequalifyBar from '@/components/prequalify/PrequalifyBar';
@@ -53,15 +52,21 @@ export default function RootChrome({ children, clerkEnabled }: RootChromeProps) 
       >
         Skip to content
       </a>
-      <AnnouncementRail />
-      <Navbar />
+      {/* UX-V1: the architectural eyebrow replaces Navbar + AnnouncementRail on
+          public surfaces. Navbar, AnnouncementRail, HeaderMenu, LiquidMenu and
+          JourneyRail are parked, not deleted — see
+          docs/design/PARKED_VISUAL_ERAS.md. */}
+      <Eyebrow />
       {clerkEnabled ? (
         <SignedIn>
           <WorkspaceSwitcher />
         </SignedIn>
       ) : null}
       <div id="main-content" className="relative flex-1">{children}</div>
-      <Footer />
+      {/* The UX-V1 homepage composes its own final CTA + footer band; the
+          shared Footer would double it. Every other public surface keeps the
+          shared Footer unchanged. */}
+      {pathname === '/' ? null : <Footer />}
       <FeedbackButton />
       {clerkEnabled ? (
         <SignedIn>

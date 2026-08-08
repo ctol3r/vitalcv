@@ -146,14 +146,15 @@ export function getHeaderRouteContext(pathname: string): HeaderRouteContext {
     };
   }
 
-  // The homepage: the narrative owns the rail; sections declare stage and
-  // theme; anchors are honest.
+  // The homepage: UX-V1's dark warm-graphite register (a register, not a
+  // mandate — UX-01 amendment 2). Sections still declare stage and theme;
+  // the eyebrow substitutes its own "Start with your NPI" action on `/`.
   if (pathname === '/') {
     return {
       audience: 'clinician',
       cta: CLINICIAN_CTA,
       defaultStage: DEFAULT_JOURNEY_STAGE,
-      defaultTheme: 'light',
+      defaultTheme: 'dark',
       railInteractive: true,
     };
   }
