@@ -47,6 +47,7 @@
     "@vitalcv/licensure": "workspace:*",
     "@vitalcv/psv": "workspace:*",
     "@vitalcv/shared": "workspace:*",
+    "@vitalcv/source-adapters": "workspace:*",
     "@vitalcv/trust-state": "workspace:*",
     "@vitalcv/verifier-sdk": "workspace:*",
     "@vitalcv/wallet-sdk": "workspace:*",
