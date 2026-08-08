@@ -21,6 +21,13 @@
  */
 import 'server-only';
 import { assembleStartAgentContext, ContextAssemblyError } from '../context-assembler';
+import {
+  attachRunProjection,
+  persistPlanDeltas,
+  readPriorRun,
+} from '../delta/delta-store';
+import { diffProjections } from '../delta/diff';
+import { buildDecisionProjection, decisionFingerprint } from '../delta/projection';
 import { generateStartPlanV2 } from '../policy/start-policy-v2';
 import { buildProductionReaders } from '../server-readers';
 import { persistAgentRun } from '../telemetry/agent-run-store';
@@ -53,6 +60,15 @@ export interface SubjectRunOutcome {
   rankedActionCount?: number;
   completeness?: 'full' | 'reduced';
   inputGaps?: string[];
+  /** A2.2 — what changed since this subject's last comparable run. */
+  deltaCount?: number;
+  materialDeltaCount?: number;
+  /**
+   * Why no comparison happened, when none did. A first run and a
+   * completeness mismatch are both "we did not compare", and neither is
+   * "nothing changed".
+   */
+  notComparable?: 'completeness_mismatch' | 'no_prior_run' | 'projection_version_mismatch';
   error?: string;
 }
 
@@ -64,6 +80,8 @@ export interface TickResult {
   claimed: number;
   succeeded: number;
   failed: number;
+  /** A2.2 — the number the shadow gate is actually watching. */
+  materialDeltas: number;
   skipped?: TickSkipReason;
   /** Operator-safe: subject refs are the caller's own opaque keys, no PII. */
   outcomes: SubjectRunOutcome[];
@@ -132,6 +150,12 @@ async function defaultPlanSubject(
   });
 
   const plan = generateStartPlanV2(context, { now: context.collectedAt });
+  const projection = buildDecisionProjection(plan, context);
+
+  // Diff against this subject's last comparable run. Computed even in a dry
+  // run, because the delta rate is exactly what shadow mode exists to learn.
+  const prior = await readPriorRun(subject.subjectRef);
+  const outcome = diffProjections(prior?.projection ?? null, projection);
 
   const persistence = dryRun
     ? { persisted: false, runId: null }
@@ -144,6 +168,24 @@ async function defaultPlanSubject(
         mode: 'shadow',
       });
 
+  if (!dryRun && persistence.runId) {
+    await attachRunProjection({
+      runId: persistence.runId,
+      projection,
+      fingerprint: decisionFingerprint(projection),
+      deltaFromRunId: outcome.comparable ? (prior?.runId ?? null) : null,
+    });
+    if (outcome.comparable && outcome.deltas.length > 0) {
+      await persistPlanDeltas({
+        runId: persistence.runId,
+        priorRunId: prior?.runId ?? null,
+        subjectRef: subject.subjectRef,
+        planId: plan.planId,
+        deltas: outcome.deltas,
+      });
+    }
+  }
+
   return {
     subjectRef: subject.subjectRef,
     ok: true,
@@ -153,6 +195,9 @@ async function defaultPlanSubject(
     rankedActionCount: plan.rankedActionIds.length,
     completeness: plan.completeness,
     inputGaps,
+    deltaCount: outcome.deltas.length,
+    materialDeltaCount: outcome.materialCount,
+    ...(outcome.comparable ? {} : { notComparable: outcome.reason }),
   };
 }
 
@@ -184,6 +229,7 @@ export async function runAgentTick(options: RunTickOptions = {}): Promise<TickRe
     claimed: 0,
     succeeded: 0,
     failed: 0,
+    materialDeltas: 0,
     outcomes: [],
     summary: await deps.summary(now).catch(() => ({ enrolled: 0, enabled: 0, due: 0 })),
     ...extra,
@@ -222,6 +268,7 @@ export async function runAgentTick(options: RunTickOptions = {}): Promise<TickRe
     claimed: claimed.length,
     succeeded: outcomes.filter((o) => o.ok).length,
     failed: outcomes.filter((o) => !o.ok).length,
+    materialDeltas: outcomes.reduce((sum, o) => sum + (o.materialDeltaCount ?? 0), 0),
     outcomes,
   });
 }

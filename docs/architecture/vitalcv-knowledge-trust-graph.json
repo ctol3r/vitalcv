@@ -97,7 +97,8 @@
     "AgentConsentLedger",
     "ConsentProof",
     "AgentActor",
-    "AgentSubjectSchedule"
+    "AgentSubjectSchedule",
+    "PlanDelta"
   ],
   "edges": [
     { "source": "Clinician", "relation": "HAS_NPI", "target": "NPI" },
@@ -206,7 +207,8 @@
     { "source": "AgentConsentLedger", "relation": "AUTHORIZES", "target": "StartAgent" },
     { "source": "ConsentProof", "relation": "MINTED_FROM", "target": "AgentConsentLedger" },
     { "source": "AgentActor", "relation": "CONSTRAINS", "target": "StartAgent" },
-    { "source": "AgentSubjectSchedule", "relation": "GATES", "target": "StartAgent" }
+    { "source": "AgentSubjectSchedule", "relation": "GATES", "target": "StartAgent" },
+    { "source": "PlanDelta", "relation": "DERIVED_FROM", "target": "StartPlan" }
   ],
   "rules": [
     "NPPES identity claim is NOT licensure proof.",
@@ -309,7 +311,10 @@
     "A reduced context/plan is never served interactively and may only be diffed against another of equal completeness.",
     "Claiming a scheduled subject moves its due time forward in a compare-and-set BEFORE the work starts, so retries and concurrent ticks cannot double-run it.",
     "Only explicitly enrolled subjects are reachable by a background run; no predicate may select subjects for autonomous work.",
-    "In an observation wave shadow is structural (no executor wired), and an unreadable kill switch is not a kill."
+    "In an observation wave shadow is structural (no executor wired), and an unreadable kill switch is not a kill.",
+    "Change detection never uses contextFingerprint or planId — both change when only the clock advances; comparison runs over a decision-relevant projection.",
+    "Every delta is recorded, only some are material; observation_refreshed_no_change exists so the commonest outcome is logged and never surfaced.",
+    "Plans may only be diffed at equal completeness, and no-prior-run is a refusal rather than a no-change result."
   ],
   "knownLimitations": [
     "Machine-readable stub is documentation-grade only, not integrated into runtime types."
