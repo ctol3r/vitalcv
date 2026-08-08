@@ -1,17 +1,28 @@
 # Expo SDK 53 → 57 wave — plan
 
-**Status: steps 0a and 0b are DONE and on `main`. Steps 1–4 are unstarted and
-still awaiting a founder decision.**
+**Status: the wave is COMPLETE. `apps/mobile` moved from `expo ~53.0.0` /
+`react-native 0.79.6` to `expo ~57.0.0` / `react-native 0.86.2` across six
+independently verified, independently revertible PRs.**
 
 | Step | State |
 |---|---|
-| 0a — mobile `typecheck` + `test` in CI | ✅ merged, [#1143](https://github.com/ctol3r/vitalcv/pull/1143) `1c5ba0037` |
-| 0b — notification trigger fix + 7 regression tests | ✅ merged, [#1144](https://github.com/ctol3r/vitalcv/pull/1144) `75199350a` |
-| 1–4 — the SDK moves (53 → 54 → 55 → 56 → 57) | ⬜ not started |
+| 0a — mobile `typecheck` + `test` in CI | ✅ [#1143](https://github.com/ctol3r/vitalcv/pull/1143) `1c5ba0037` |
+| 0b — notification trigger fix + 7 regression tests | ✅ [#1144](https://github.com/ctol3r/vitalcv/pull/1144) `75199350a` |
+| 1 — SDK 53 → 54 | ✅ [#1167](https://github.com/ctol3r/vitalcv/pull/1167) `655d56bcb` |
+| 2 — SDK 54 → 55 (New Architecture) | ✅ [#1172](https://github.com/ctol3r/vitalcv/pull/1172) `c5a34645` |
+| 3 — SDK 55 → 56 (expo-router fork) | ✅ [#1173](https://github.com/ctol3r/vitalcv/pull/1173) `793340fa3` |
+| 4 — SDK 56 → 57 + remove the `dependabot.yml` ignore | ✅ [#1176](https://github.com/ctol3r/vitalcv/pull/1176) `cff3ea913` |
 
-The four decisions in §8 remain open, including the first one: **whether the SDK
-moves are worth running at all.** Sections below are the original analysis,
-annotated where reality has since caught up.
+**The one thing the wave did NOT do: verify anything natively.** There is still
+no `ios/`, no `android/`, no `eas.json` — none ever committed. Fabric, Hermes V1
+and the iOS 16.4 minimum introduced across SDKs 55–56 remain **unexercised**.
+Decision 3 in §8 (native build path) is the only original decision still open,
+and it is now the *only* thing standing between this app and a claim that it
+works. See [§11 Wave results](#11-wave-results--what-actually-happened).
+
+Sections below are the original analysis, annotated where reality caught up.
+Where the plan was wrong, the correction is marked rather than the text quietly
+edited.
 
 **Scope:** `apps/mobile` (`@vitalcv/mobile-wallet`) only.
 **Origin:** the deliberate loose end left by the
@@ -295,10 +306,12 @@ through `dist/`. Verified by moving `dist/` aside — mobile `tsc` fails with
 have gone red on its first run. Same class of trap as the `@vitalcv/trust-state`
 note in `CLAUDE.md`.
 
-**Still outstanding — this job does not yet gate merges.** Adding a job does not
-make it a *required status check*; that is branch-protection configuration. It
-reports on every PR but a mobile regression will show red without blocking.
-Adding the `Mobile Quality` context to the required list is a founder action.
+**Resolved after the fact.** Adding a job does not make it a *required status
+check* — that is branch-protection configuration, which the agent tooling can
+neither read nor write. The founder added the `Mobile Quality` context to the
+required list on 2026-08-08. Safe to require, incidentally, because the job runs
+unconditionally on every PR to `main`: the permanently-blocked-PR failure mode
+documented in `ci.yml` from #806 only bites *path-filtered* workflows.
 
 ### Step 0b — fix the notification trigger bug ✅ done — [#1144](https://github.com/ctol3r/vitalcv/pull/1144), `75199350a`
 
@@ -368,16 +381,119 @@ merits and are now on `main`; the four SDK moves are unstarted.
 
 - ⬜ `apps/mobile` on `expo ~57.0.0` with the companion set aligned by
   `expo install --fix`
-- ⬜ `tsc --noEmit` exit 0; **16/16** tests; `expo-doctor` clean
-- ⬜ `pnpm install --frozen-lockfile` clean, lockfile importer diff confined to
-  `apps/mobile`
-- ✅ Mobile `typecheck` + `test` running in CI — *not yet a required check; see
-  §7 step 0a*
-- ⬜ The `expo-notifications` `ignore` entry removed from `.github/dependabot.yml`
+- ✅ `tsc --noEmit` exit 0; **16/16** tests; `expo-doctor` clean *(modulo two
+  proxy-blocked checks — see §11)*
+- ✅ `pnpm install --frozen-lockfile` clean; lockfile scope held — **no specifier
+  changed outside `apps/mobile`** at any step
+- ✅ Mobile `typecheck` + `test` running in CI. Added to the required-checks list
+  by the founder on 2026-08-08 — asserted here on their word, not independently
+  verified: branch protection is not readable from the agent's tooling. Confirm
+  with `gh api repos/:owner/:repo/branches/main/protection
+  --jq '.required_status_checks.contexts[]'`
+- ✅ The `expo-notifications` `ignore` entry removed from `.github/dependabot.yml`
 - ✅ The §3 trigger bug fixed
-- **Stated explicitly in the final PR:** whether native/New-Arch verification was
-  performed or deliberately skipped. No claim that the app "works" on the
-  strength of `tsc` and 9 unit tests.
+- ✅ **Stated explicitly in every PR:** native/New-Arch verification was
+  deliberately skipped. No claim anywhere that the app "works" on the strength
+  of `tsc` and unit tests.
+
+---
+
+## 11. Wave results — what actually happened
+
+### Version arc
+
+| | Before | After |
+|---|---|---|
+| `expo` | `~53.0.0` | **`~57.0.0`** |
+| `react-native` | `0.79.6` | **`0.86.2`** |
+| `react` | `19.0.0` | **`19.2.3`** |
+| `expo-router` | `~5.1.11` | **`~57.0.11`** |
+| `expo-notifications` | `~0.31.5` | **`~57.0.9`** |
+| mobile test suite | 9 tests / 3 files, **run by no CI job** | 16 tests / 4 files, **required check** |
+
+`expo-notifications ~57.0.9` is the package PR #582 asked for. Closing that PR
+and taking the whole SDK instead is what made it safe to arrive.
+
+### Two real defects found — both typechecked cleanly
+
+Neither would have failed a build. Both are the same failure class, and it is
+the one this codebase should expect from dependency waves:
+
+1. **Expiry reminders fired immediately** (§3, fixed in #1144). A trigger
+   missing its `type` discriminant is structurally a `ChannelAwareTriggerInput`
+   — "deliver immediately" — while the stray `date` survives excess-property
+   checking because it exists on `DateTriggerInput` elsewhere in the union.
+2. **The SDK 56 react-navigation fork** (fixed in #1173). `expo-router@56`
+   vendors its own react-navigation and declares no `@react-navigation/*`
+   dependency. Our import kept resolving only because we declared the package
+   directly, so `ThemeProvider` would have fed a context from a *different*
+   navigation instance than expo-router's navigators read — theme silently dead,
+   `tsc` green, 16/16 passing.
+
+On (2) the clean typecheck was initially misread as the plan's prediction
+failing to materialise. It took tracing the import into expo-router's own
+package to find the truth. **A passing typecheck was not evidence the change
+had been handled.**
+
+### Procedural findings, for the next SDK wave
+
+1. **`api.expo.dev` is blocked by the agent proxy** (403 on CONNECT), so plain
+   `expo install` dies parsing `"Host not in allowlist"` as JSON. `EXPO_OFFLINE=1`
+   is Expo's own supported fallback: it reads `expo/bundledNativeModules.json`,
+   the same map the endpoint serves. Select the SDK version by hand in
+   `package.json`; let Expo choose every companion.
+2. **`expo install --fix` is not sufficient on its own.** At step 1 it left three
+   missing peers and a duplicate native module that only `expo-doctor` caught.
+   Run expo-doctor as *part of the procedure*, not just as the acceptance gate.
+3. **expo-doctor has no New Architecture check.** The one check carrying New Arch
+   flags — *Validate packages against React Native Directory* — is proxy-blocked
+   here. A green-ish doctor run says nothing about Fabric readiness.
+4. **Stacked PRs targeting a non-`main` base get ZERO checks.** `ci.yml`'s
+   `pull_request` trigger is `branches: [main]`. Worse, retargeting afterwards
+   does *not* start them: a base change is `pull_request.edited`, which is not a
+   default activity type. **Retarget to `main` first, then push.** #1173 sat with
+   16 checks missing and looked fine until it was explicitly inspected.
+5. **Every stacked step needs a rebase** after its predecessor squash-merges —
+   the squash produces a new commit, so the branch's base stops being an
+   ancestor and the PR shows a bogus conflict.
+6. **Lockfile churn outside `apps/mobile` is expected and benign.** pnpm re-keys
+   peer resolutions when the graph gains optional peers (SDK 54 introduced
+   `yaml@2.9.0` and `babel-plugin-react-compiler@1.0.0`). Verify by diffing the
+   parsed `importers` section for *specifier* changes, not by line count.
+
+### Plan predictions that were wrong
+
+- **`@react-native-vector-icons` scoped packages (§5 step 3).** Does not affect
+  us. That migration targets the *community* `react-native-vector-icons`;
+  `@expo/vector-icons` is a different package and stayed on `^15.x`.
+- **"Lockfile importer diff confined to `apps/mobile`" (§6).** Too strict as
+  written — every importer moves via peer re-keying. The criterion that actually
+  holds, and was met at every step, is *no specifier changes outside
+  `apps/mobile`*.
+- **RN version guesses per SDK.** SDK 55 shipped RN 0.83.10, not the ~0.82
+  the plan assumed.
+
+### What is still not verified
+
+Unchanged from the day the plan was written, and the reason no one should read
+"wave complete" as "mobile app works":
+
+- **No native build has ever been produced** — no `ios/`, no `android/`, no
+  `eas.json`, none ever committed.
+- **Fabric / New Architecture runtime is unexercised.** Step 2's evidence was
+  `codegenConfig` presence in `react-native-svg`, `react-native-screens` and
+  `react-native-safe-area-context` (with `react-native-qrcode-svg` carrying no
+  native code at all). That proves the specs ship — *not* that the app builds or
+  runs under Fabric.
+- **Hermes V1 and the iOS 16.4 minimum** (SDK 56) are likewise untested.
+- **The theming fix in #1173 is reasoned from expo-router's export map**, not
+  observed on a device.
+- `VALIDATION.md` still reads *"AWAITING EXECUTION — human required"*. No
+  clinician has opened this app.
+
+Closing that gap is **decision 3 in §8**, still open: add `eas.json` and a
+development build, or continue accepting JS-only verification. The wave was
+explicitly scoped not to answer it.
 
 ---
 
