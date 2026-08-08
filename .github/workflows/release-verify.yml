@@ -70,7 +70,7 @@ jobs:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     # LOAD-BEARING — do not remove. CLERK_SECRET_KEY is an ENVIRONMENT secret
-    # on `production`, not a repository secret. A job that does not declare the
+    # on `Production`, not a repository secret. A job that does not declare the
     # environment resolves `secrets.CLERK_SECRET_KEY` to the empty string, the
     # preflight below reads that as "monitor not wired", and the run goes GREEN
     # having verified nothing. That is precisely how this monitor spent its
