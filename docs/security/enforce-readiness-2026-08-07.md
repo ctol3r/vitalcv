@@ -7,10 +7,11 @@ This is the named authorization gate required by the authorization-boundary prac
 is executed only on an explicit founder selection recorded against this package. Both flips are
 config-only and instantly reversible (`--set` back to `shadow`).
 
-> **STATUS 2026-08-07: NOT READY.** A first flip was executed today on a mis-scored criterion and
-> **rolled back within 23 minutes**. Production is back at `shadow`/`shadow`. One gap blocks the
-> flip — see "Correction" and "The one real blocker" below. Do not re-flip until the canary has
-> produced a genuine signed-in `verified_match`.
+> **STATUS 2026-08-08: NOT READY — and for a harder reason than first recorded.** A first flip was
+> executed 2026-08-07 on a mis-scored criterion and **rolled back within 23 minutes**; production is
+> back at `shadow`/`shadow`. The original write-up said the only gap was unproven happy-path
+> evidence. That was too generous: enforce would **break named live callers today** — see
+> "Update 2026-08-08" below. Fix those first; the canary is a monitoring requirement, not the gate.
 
 ## Current production state (read live 2026-08-07)
 
@@ -55,6 +56,49 @@ No user-visible breakage was observed during the ~23 minutes at enforce, but abs
 here is absence of traffic, not evidence of correctness. Leaving a security-critical fail-closed
 control live when its happy path has never once been demonstrated risks 401-ing every authenticated
 backend call silently, with no monitor watching — so it was reverted rather than sustained.
+
+## Update 2026-08-08 — the blocker is NOT the canary. Enforce would break live callers.
+
+The canary was never the real gate. Attempting to produce happy-path evidence by hand found
+something better and worse: **named call sites that enforce would 401 today.**
+
+**Method.** A signed-in session loaded `/holder` in production. The backend logged **zero**
+authenticated requests — no `verified_match`, and equally no `invalid_token`. That is a real
+negative, not a gap in observation: `verifiedIdentityMiddleware` is mounted app-wide via
+`app.use()` (`app.ts:3566`, before the tenant guard) and `shouldLogSampled` always logs the first
+N of every outcome, and prod has recorded zero `verified_match` in a month. The only traffic on
+three consecutive containers was `/health`, `/favicon.ico`, `/credentials/status/demo` and one
+anonymous `/api/matcha/opportunities/...`, all with `hasHeaderIdentity: false`.
+
+**Conclusion 1 — `/holder` never touches this middleware.** Signed-in clinician surfaces are
+served by the web app, so the enforce blast radius on the clinician golden path is smaller than
+the readiness package assumed. It also means signing in to `/holder` can never produce the
+happy-path evidence; that method is a dead end regardless of the canary.
+
+**Conclusion 2 — the actual hazard, with names.** Under enforce the middleware 401s
+(`identity_header_requires_verified_session_token`) any request carrying `x-clerk-user-id`
+*without* a verified bearer. Two live sources do exactly that:
+
+1. **`apps/web/lib/server/employer-workspace.ts`** sets `x-clerk-user-id` and **no `Authorization`
+   header at all** (zero references in the file), then calls `${BACKEND}/api/me/workspaces`
+   (line 128) and `/api/entity/resolve/npi/...` (line 239). It is imported by the live route
+   `apps/web/app/api/request-review/route.ts`. **This 401s the moment enforce is on.**
+2. **`apps/web/lib/auth/forwardIdentity.ts`** — the helper written *for* this flip — degrades to
+   forwarding `x-clerk-user-id` alone when `getToken()` returns null. Its own docblock calls that
+   "strictly additive and safe to land before the backend flips to enforce," which is true, and
+   precisely why it is **not** safe after. Every null-token session becomes a 401.
+
+Seven more files set `x-clerk-user-id` without going through the helper
+(`app/api/track/apply/route.ts`, `components/apply/ApplyWithVitalCV.tsx`,
+`components/monitoring/MonitoringStatusPanel.tsx`, `components/replay-doctrine/ReplayContractMap.tsx`,
+`lib/learning/useTrackEvent.ts`, `lib/ops-engine/getOpsEngineSnapshot.ts`,
+`app/api/intelligence/_shared.ts`); each needs the same audit before the flip.
+
+**So the exit criteria change.** "Prove the happy path" is necessary but not sufficient. Enforce
+must not be flipped until every caller that sends an identity header also sends a verified bearer,
+and the helper's null-token path is decided deliberately — fail the request in the web layer with a
+real error, rather than silently emitting a header that the backend will reject. Until then the
+flip has a *known* break, and no amount of canary green changes that.
 
 ## The one real blocker, and who can clear it
 
