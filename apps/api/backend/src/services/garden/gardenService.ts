@@ -97,14 +97,41 @@ export async function updateGardenNote(userId: string, noteId: string, input: Ga
   }
   if (Object.keys(data).length === 0) throw new HttpError(400, 'Nothing to update.');
 
-  const note = await prisma.gardenNote.update({ where: { id: existing.id }, data });
+  // CC-05: content mutations capture the pre-image in the same transaction,
+  // so history is complete even if the process dies mid-request. Pure status
+  // moves (unfiled ⇄ growing) are workspace state, not content — no revision.
+  const contentChanged = data.title !== undefined || data.body !== undefined || data.tags !== undefined;
+  if (!contentChanged) {
+    return prisma.gardenNote.update({ where: { id: existing.id }, data });
+  }
+  const [, note] = await prisma.$transaction([
+    prisma.gardenNoteRevision.create({
+      data: {
+        noteId: existing.id,
+        userId,
+        title: existing.title,
+        body: existing.body,
+        tags: existing.tags,
+        cause: 'update',
+      },
+    }),
+    prisma.gardenNote.update({ where: { id: existing.id }, data }),
+  ]);
   return note;
 }
 
 export async function deleteGardenNote(userId: string, noteId: string) {
   const existing = await prisma.gardenNote.findFirst({ where: { id: noteId, userId } });
   if (!existing) throw new HttpError(404, 'Note not found.');
-  await prisma.gardenNote.delete({ where: { id: existing.id } });
+  // CC-05: deleting a note hard-deletes its history and its relationships in
+  // both directions — revisions, outgoing links, and links pointing at it.
+  // All scoped by userId; referenced targets themselves are never touched.
+  await prisma.$transaction([
+    prisma.gardenNoteRevision.deleteMany({ where: { noteId: existing.id, userId } }),
+    prisma.gardenNoteLink.deleteMany({ where: { userId, fromNoteId: existing.id } }),
+    prisma.gardenNoteLink.deleteMany({ where: { userId, targetType: 'note', targetId: existing.id } }),
+    prisma.gardenNote.delete({ where: { id: existing.id } }),
+  ]);
   return { deleted: true as const };
 }
 

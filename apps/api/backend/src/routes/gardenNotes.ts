@@ -11,6 +11,15 @@ import {
   promoteGardenNote,
   updateGardenNote,
 } from '../services/garden/gardenService';
+import {
+  createNoteLink,
+  deleteNoteLink,
+  listNoteBacklinks,
+  listNoteLinks,
+  listNoteRevisions,
+  noteNeighborhood,
+  restoreNoteRevision,
+} from '../services/garden/gardenLinksService';
 import { requireInternalUserId } from './intake';
 
 /**
@@ -121,6 +130,80 @@ export function registerGardenRoutes(app: Express): void {
         fromNoteId: result.fromNoteId,
       });
       res.json(result);
+    }),
+  );
+
+  // ——— CC-05 / WB-02: revisions and typed links ————————————————————————
+  // Same contract as every route above: identity via requireInternalUserId,
+  // rows scoped to the resolved user, misses read as 404, mutations audited
+  // before the 2xx. Reads are not audited (matching notes/cv list behavior).
+
+  app.get(
+    '/api/profile/garden/notes/:noteId/revisions',
+    asyncHandler(async (req, res) => {
+      const userId = await requireInternalUserId(req);
+      res.json({ revisions: await listNoteRevisions(userId, req.params.noteId) });
+    }),
+  );
+
+  app.post(
+    '/api/profile/garden/notes/:noteId/revisions/:revisionId/restore',
+    asyncHandler(async (req, res) => {
+      const userId = await requireInternalUserId(req);
+      const result = await restoreNoteRevision(userId, req.params.noteId, req.params.revisionId);
+      await auditGarden('garden_note_revision_restored', userId, {
+        noteId: req.params.noteId,
+        revisionId: req.params.revisionId,
+      });
+      res.json(result);
+    }),
+  );
+
+  app.get(
+    '/api/profile/garden/notes/:noteId/links',
+    asyncHandler(async (req, res) => {
+      const userId = await requireInternalUserId(req);
+      res.json({ links: await listNoteLinks(userId, req.params.noteId) });
+    }),
+  );
+
+  app.post(
+    '/api/profile/garden/notes/:noteId/links',
+    asyncHandler(async (req, res) => {
+      const userId = await requireInternalUserId(req);
+      const link = await createNoteLink(userId, req.params.noteId, req.body ?? {});
+      await auditGarden('garden_note_link_created', userId, {
+        linkId: link.id,
+        fromNoteId: link.fromNoteId,
+        targetType: link.targetType,
+      });
+      res.status(201).json({ link });
+    }),
+  );
+
+  app.delete(
+    '/api/profile/garden/links/:linkId',
+    asyncHandler(async (req, res) => {
+      const userId = await requireInternalUserId(req);
+      const result = await deleteNoteLink(userId, req.params.linkId);
+      await auditGarden('garden_note_link_removed', userId, { linkId: req.params.linkId });
+      res.json(result);
+    }),
+  );
+
+  app.get(
+    '/api/profile/garden/notes/:noteId/backlinks',
+    asyncHandler(async (req, res) => {
+      const userId = await requireInternalUserId(req);
+      res.json({ backlinks: await listNoteBacklinks(userId, req.params.noteId) });
+    }),
+  );
+
+  app.get(
+    '/api/profile/garden/notes/:noteId/graph',
+    asyncHandler(async (req, res) => {
+      const userId = await requireInternalUserId(req);
+      res.json(await noteNeighborhood(userId, req.params.noteId));
     }),
   );
 }
