@@ -175,7 +175,7 @@ export function SystemConsole() {
               </MagneticButton>
               <MagneticButton>
                 <Link
-                  href="/developers"
+                  href="/docs"
                   className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-6 py-3 text-sm font-semibold text-foreground transition hover:bg-muted"
                 >
                   API Docs

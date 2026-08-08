@@ -30,7 +30,6 @@ const QUICK_ACTIONS = [
   { id: 'Recognition', label: 'My Recognition', desc: 'Employer-accepted head starts', icon: Award, action: 'nav', href: '/holder/recognition' },
   { id: 'Opportunities', label: 'Find opportunities', desc: 'Roles matched to your evidence', icon: Compass, action: 'nav', href: '/holder/opportunities' },
   { id: 'VerifyNpiCommand', label: 'Look up a clinician', desc: 'See what is source-backed about an NPI', icon: Search, action: 'cmd' },
-  { id: 'AskVitalCV', label: 'Ask VitalCV', desc: 'Ask about your readiness or the process', icon: Sparkles, action: 'ask' },
 ];
 
 export function CommandPalette() {
@@ -142,11 +141,11 @@ export function CommandPalette() {
         if (flatVisibleItems.length > 0) {
           const item = flatVisibleItems[selectedIndex];
           if (item) navigateToResult(item);
-        } else {
-          // Ask AI fallback
-          router.push(`/ask?q=${encodeURIComponent(search)}`);
-          setOpen(false);
         }
+        // No match: hold the palette open so the query can be refined. This
+        // used to push `/ask?q=`, which 404s — /ask was retired to _archive
+        // (wave119) and its archived page redirects to `/`, so there is no
+        // natural-language surface to fall back to.
       }
     }
   };
@@ -165,9 +164,6 @@ export function CommandPalette() {
     if (action.action === 'nav') {
       setOpen(false);
       router.push(action.href!);
-    } else if (action.action === 'ask') {
-      setOpen(false);
-      router.push('/ask');
     } else if (action.action === 'cmd') {
       setActiveCommand(action.id);
       try {
@@ -260,7 +256,7 @@ export function CommandPalette() {
                   <input
                     ref={inputRef}
                     className="flex-1 bg-transparent border-none outline-none text-lg text-[var(--ink-900)] placeholder:text-[var(--ink-400)] placeholder:font-[family-name:var(--font-geist-mono)]"
-                    placeholder="Jump to your profile, readiness, or Recognition — or ask VitalCV"
+                    placeholder="Jump to your profile, readiness, or Recognition — or search clinicians and employers"
                     value={search}
                     onChange={(e) => { setSearch(e.target.value); setSelectedIndex(0); }}
                     onKeyDown={handleKeyDown}
@@ -347,11 +343,11 @@ export function CommandPalette() {
 
                     <div className="mt-8 px-2">
                       <div className="p-4 rounded-[6px] bg-[var(--paper-2)] border border-[var(--rule)] flex gap-4 items-start">
-                        <Sparkles className="w-6 h-6 text-[var(--accent)] shrink-0 mt-1" />
+                        <Search className="w-6 h-6 text-[var(--accent)] shrink-0 mt-1" />
                         <div>
-                          <h4 className="text-sm font-medium text-[var(--ink-900)] mb-1">Ask in plain language</h4>
+                          <h4 className="text-sm font-medium text-[var(--ink-900)] mb-1">What you can search</h4>
                           <p className="text-xs text-[var(--ink-600)]">
-                            &ldquo;What&rsquo;s blocking my readiness?&rdquo; or &ldquo;Which sources are still gated for my NPI?&rdquo;
+                            Clinicians by NPI or name, employers, and open roles. Search matches records, not questions.
                           </p>
                         </div>
                       </div>
@@ -364,14 +360,10 @@ export function CommandPalette() {
                         <div className="w-12 h-12 rounded-full bg-[var(--paper-2)] border border-[var(--rule)] flex items-center justify-center mb-4">
                           <Search className="w-5 h-5 text-[var(--ink-400)]" />
                         </div>
-                        <p className="text-sm text-[var(--ink-900)] mb-4">No specific entities found.</p>
-                        <button
-                          onClick={() => { setOpen(false); router.push(`/ask?q=${encodeURIComponent(search)}`); }}
-                          className="flex items-center gap-2 px-4 py-2 rounded-[6px] bg-[var(--accent)] text-[var(--card)] text-sm font-medium hover:bg-[color-mix(in_oklch,var(--accent)_85%,var(--ink-900))] transition-colors"
-                        >
-                          <Sparkles className="w-4 h-4" />
-                          Ask VitalCV instead
-                        </button>
+                        <p className="text-sm text-[var(--ink-900)] mb-1">No specific entities found.</p>
+                        <p className="text-xs text-[var(--ink-600)]">
+                          Try a 10-digit NPI, a clinician name, or an employer.
+                        </p>
                       </div>
                     )}
 
