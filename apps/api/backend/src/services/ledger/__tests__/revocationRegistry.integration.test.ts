@@ -1,7 +1,7 @@
 /**
  * Launch blocker #14 — the revocation registry actually revokes.
  *
- * Each describe block below fails if one of the three original breaks returns:
+ * Each block below fails if one of the three original breaks returns:
  *
  *   (a) `model StatusListState` missing from schema.prisma → every DB path in
  *       statusListManager throws. These tests exercise those paths against a
@@ -12,9 +12,19 @@
  *   (c) /api/credentials/status-list was missing from the tenant-guard
  *       skip-list and 401'd the unauthenticated verifiers it exists to serve.
  *
- * These assert the OUTCOME a verifier observes (is the bit set in the served
- * list?), not the mechanism, so a future refactor that keeps the behaviour
- * passes and one that quietly stops flipping bits fails.
+ * These assert the OUTCOME a verifier observes — the bit decoded out of the
+ * served credential — not the mechanism, so a refactor that preserves the
+ * behaviour passes and one that quietly stops flipping bits fails.
+ *
+ * ISOLATION
+ * ─────────
+ * The status list is a singleton shared by the whole backend suite, so this
+ * file deliberately does NOT reset it: every assertion is written against the
+ * index it was just handed, which is correct whatever the cursor started at.
+ * Cleanup deletes only the rows this file created, by id. An earlier revision
+ * called `deleteMany({})` on VerificationArtifact and tripped
+ * `AuditSnapshot_artifactId_fkey` against rows other suites had left behind —
+ * it passed alone and failed in the full run.
  */
 
 import { gunzipSync } from 'node:zlib';
@@ -29,25 +39,28 @@ import {
 } from '../statusListManager';
 import { graphCascader } from '../../intelligence/graphCascader';
 
-const TEST_NPI = '1407202518';
+const createdArtifactIds: string[] = [];
+const createdNodeIds: string[] = [];
+const createdEdgeIds: string[] = [];
 
-async function resetState(): Promise<void> {
-  await prisma.authorityEdge.deleteMany({});
-  await prisma.knowledgeNode.deleteMany({});
-  await prisma.verificationArtifact.deleteMany({});
-  await prisma.statusListState.deleteMany({});
+/** Synthetic, deliberately invalid NPI (leading zero) — never a real person. */
+let npiCounter = 0;
+function syntheticNpi(): string {
+  npiCounter += 1;
+  return `0${String(npiCounter).padStart(9, '0')}`;
 }
 
-async function createArtifact(npi = TEST_NPI): Promise<string> {
+async function createArtifact(npi: string): Promise<string> {
   const artifact = await prisma.verificationArtifact.create({
     data: {
       npi,
-      source: 'test',
+      source: 'revocation-registry-test',
       status: 'active',
-      checksum: `checksum-${Math.random().toString(36).slice(2)}`,
+      checksum: `checksum-${npi}-${Date.now()}`,
       verifiedAt: new Date(),
     },
   });
+  createdArtifactIds.push(artifact.id);
   return artifact.id;
 }
 
@@ -60,15 +73,18 @@ function readBitFromCredential(credential: any, index: number): 0 | 1 {
   return ((byte >> (7 - (index % 8))) & 1) as 0 | 1;
 }
 
-describe('#14(a) — the status list state table exists and every DB path works', () => {
-  beforeEach(resetState);
-  afterAll(async () => {
-    await resetState();
-    await prisma.$disconnect();
-  });
+afterAll(async () => {
+  // FK-safe order, scoped to this file's own rows.
+  await prisma.authorityEdge.deleteMany({ where: { id: { in: createdEdgeIds } } });
+  await prisma.knowledgeNode.deleteMany({ where: { id: { in: createdNodeIds } } });
+  await prisma.auditSnapshot.deleteMany({ where: { artifactId: { in: createdArtifactIds } } });
+  await prisma.verificationArtifact.deleteMany({ where: { id: { in: createdArtifactIds } } });
+  await prisma.$disconnect();
+});
 
+describe('#14(a) — the status list state table exists and every DB path works', () => {
   it('assigns an index, flips the bit, and reads it back', async () => {
-    const artifactId = await createArtifact();
+    const artifactId = await createArtifact(syntheticNpi());
 
     const index = await assignStatusIndex(artifactId);
     expect(typeof index).toBe('number');
@@ -79,7 +95,7 @@ describe('#14(a) — the status list state table exists and every DB path works'
   });
 
   it('serves a credential whose bitstring carries the flipped bit', async () => {
-    const artifactId = await createArtifact();
+    const artifactId = await createArtifact(syntheticNpi());
     const index = await assignStatusIndex(artifactId);
     await setRevoked(artifactId);
 
@@ -92,7 +108,7 @@ describe('#14(a) — the status list state table exists and every DB path works'
   });
 
   it('is idempotent — revoking twice leaves the bit set', async () => {
-    const artifactId = await createArtifact();
+    const artifactId = await createArtifact(syntheticNpi());
     const index = await assignStatusIndex(artifactId);
 
     await setRevoked(artifactId);
@@ -102,24 +118,18 @@ describe('#14(a) — the status list state table exists and every DB path works'
   });
 
   it('never hands out the bit reserved for the demo credential', async () => {
-    const artifactId = await createArtifact();
+    const artifactId = await createArtifact(syntheticNpi());
     const index = await assignStatusIndex(artifactId);
     expect(index).not.toBe(DEMO_STATUS_LIST_INDEX);
 
-    const credential: any = await getStatusListCredential();
-    expect(readBitFromCredential(credential, DEMO_STATUS_LIST_INDEX)).toBe(0);
+    await expect(isRevoked(DEMO_STATUS_LIST_INDEX)).resolves.toBe(false);
   });
 });
 
 describe('#14(b) — a cascaded revocation flips the bit', () => {
-  beforeEach(resetState);
-  afterAll(async () => {
-    await resetState();
-    await prisma.$disconnect();
-  });
-
   it('revokeClinician marks the artifact revoked in the served status list', async () => {
-    const artifactId = await createArtifact();
+    const npi = syntheticNpi();
+    const artifactId = await createArtifact(npi);
     const index = await assignStatusIndex(artifactId);
 
     const clinicianNode = await prisma.knowledgeNode.create({
@@ -127,9 +137,10 @@ describe('#14(b) — a cascaded revocation flips the bit', () => {
         entityType: 'CLINICIAN',
         entityId: `clinician-${artifactId}`,
         label: 'Test Clinician',
-        attributes: { npi: TEST_NPI },
+        attributes: { npi },
       },
     });
+    createdNodeIds.push(clinicianNode.id);
 
     const credentialNode = await prisma.knowledgeNode.create({
       data: {
@@ -139,18 +150,20 @@ describe('#14(b) — a cascaded revocation flips the bit', () => {
         attributes: {},
       },
     });
+    createdNodeIds.push(credentialNode.id);
 
-    await prisma.authorityEdge.create({
+    const edge = await prisma.authorityEdge.create({
       data: {
         sourceNodeId: credentialNode.id,
         targetNodeId: clinicianNode.id,
         relationType: 'ISSUED_TO',
       },
     });
+    createdEdgeIds.push(edge.id);
 
     await expect(isRevoked(index)).resolves.toBe(false);
 
-    const edgesRevoked = await graphCascader.revokeClinician(TEST_NPI, 'test-source');
+    const edgesRevoked = await graphCascader.revokeClinician(npi, 'test-source');
     expect(edgesRevoked).toBe(1);
 
     // The outcome that matters: a verifier reading the served list sees it.
