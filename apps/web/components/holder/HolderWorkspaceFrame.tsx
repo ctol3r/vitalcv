@@ -8,6 +8,7 @@ import NetworkStatusBanner from '@/components/mobile/NetworkStatusBanner';
 import type { ClinicianMobileData } from '@/lib/mobile/clinician-state';
 import { HolderDesktopNav } from './HolderDesktopNav';
 import { HolderWorkspaceShell } from './HolderWorkspaceShell';
+import { WorkbenchDock } from '@/components/workbench/WorkbenchDock';
 
 /**
  * The visual and mobile-data frame shared by every holder route.
@@ -34,6 +35,10 @@ export function HolderWorkspaceFrame({
           {children}
         </div>
         <MobileBottomNav showClerkAccount={showClerkAccount} />
+        {/* CC-07: the Workbench dock mounts ONLY here — the clinician chrome.
+            It self-suppresses on /holder/garden/* (the full workspace owns
+            that surface); a source-scan test pins this as the single mount. */}
+        <WorkbenchDock />
       </HolderWorkspaceShell>
     </ClinicianMobileProvider>
   );
