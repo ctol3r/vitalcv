@@ -6,7 +6,7 @@ import { loadApplicationActivationView } from '@/lib/server/applicationActivatio
 
 export const metadata: Metadata = {
   title: 'Application',
-  description: 'Your application status, immutable submitted packet, and current Wallet evidence.',
+  description: 'Your application status, immutable submitted packet, and current profile evidence.',
 };
 
 // Detail page for a single application. ApplyModal redirects here on a

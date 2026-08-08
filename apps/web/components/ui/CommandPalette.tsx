@@ -24,8 +24,8 @@ const TYPE_MAPPING: Record<string, { group: string, icon: any, color: string }> 
 };
 
 const QUICK_ACTIONS = [
-  { id: 'GetReady', label: 'Confirm my NPI', desc: 'Start your source-backed wallet', icon: Fingerprint, action: 'nav', href: '/onboarding' },
-  { id: 'Wallet', label: 'Open my wallet', desc: 'Your credentials, readiness, and proof', icon: Wallet, action: 'nav', href: '/holder' },
+  { id: 'GetReady', label: 'Confirm my NPI', desc: 'Start your source-backed profile', icon: Fingerprint, action: 'nav', href: '/onboarding' },
+  { id: 'Wallet', label: 'Open my profile', desc: 'Your credentials, readiness, and proof', icon: Wallet, action: 'nav', href: '/holder' },
   { id: 'Readiness', label: 'Check my readiness', desc: 'Live source coverage and blockers', icon: ShieldCheck, action: 'nav', href: '/holder/readiness' },
   { id: 'Recognition', label: 'My Recognition', desc: 'Employer-accepted head starts', icon: Award, action: 'nav', href: '/holder/recognition' },
   { id: 'Opportunities', label: 'Find opportunities', desc: 'Roles matched to your evidence', icon: Compass, action: 'nav', href: '/holder/opportunities' },
@@ -260,7 +260,7 @@ export function CommandPalette() {
                   <input
                     ref={inputRef}
                     className="flex-1 bg-transparent border-none outline-none text-lg text-[var(--ink-900)] placeholder:text-[var(--ink-400)] placeholder:font-[family-name:var(--font-geist-mono)]"
-                    placeholder="Jump to your wallet, readiness, or Recognition — or ask VitalCV"
+                    placeholder="Jump to your profile, readiness, or Recognition — or ask VitalCV"
                     value={search}
                     onChange={(e) => { setSearch(e.target.value); setSelectedIndex(0); }}
                     onKeyDown={handleKeyDown}
@@ -434,7 +434,7 @@ export function CommandPalette() {
                   <span className="flex items-center gap-1"><kbd className="bg-[var(--paper-2)] border border-[var(--rule)] px-1 rounded-[3px]">↑↓</kbd> to navigate</span>
                   <span className="flex items-center gap-1"><kbd className="bg-[var(--paper-2)] border border-[var(--rule)] px-1 rounded-[3px]">↵</kbd> to select</span>
                 </div>
-                <div className="flex items-center gap-1.5"><span className="inline-block w-1.5 h-1.5 rounded-full bg-[var(--accent)]" /> VitalCV · your career wallet</div>
+                <div className="flex items-center gap-1.5"><span className="inline-block w-1.5 h-1.5 rounded-full bg-[var(--accent)]" /> VitalCV · your career profile</div>
               </div>
             </motion.div>
           </div>
