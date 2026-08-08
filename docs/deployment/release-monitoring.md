@@ -179,7 +179,7 @@ https://vitalcv.com/api/internal/release-monitor/webhook?token=<RELEASE_WEBHOOK_
 
 | Secret | Purpose |
 | --- | --- |
-| `CLERK_SECRET_KEY` | Clerk Backend API — mint/cleanup the synthetic clinician. |
+| `CLERK_SECRET_KEY` | Clerk Backend API — mint/cleanup the synthetic clinician. Rotating it: [`clerk-secret-key-rotation.md`](clerk-secret-key-rotation.md) — read it first, the key also signs role cookies. |
 | `RAILWAY_API_TOKEN` | `check:deploy` GraphQL fallback (no linked CLI on the runner). |
 | `CLERK_FAPI_URL` | Optional; defaults to `https://clerk.vitalcv.com`. |
 | `RELEASE_PROBE_BASE` | Optional; defaults to `https://vitalcv.com`. |
