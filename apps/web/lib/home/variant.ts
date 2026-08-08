@@ -1,24 +1,25 @@
 /**
- * Which homepage `/` serves — Wave 1075.
+ * Which homepage `/` serves — Wave 1075, amended by UX-V1.
  *
- * The One Real Loop replaces the evidence film at the root. The film is not
- * deleted: it stays a tested, one-env-var rollback so an incident is contained
- * by a redeploy rather than by writing code under pressure.
+ * UX-V1 (the production experience cutover) replaces the career loop at the
+ * root. Neither predecessor is deleted: `career-loop` and `film` stay as
+ * tested, one-env-var rollbacks so an incident is contained by a redeploy
+ * rather than by writing code under pressure.
  *
  * Resolved on the SERVER, once, before render. There is no client-side switch
  * and therefore no flash between variants, and the HTML a crawler receives is
  * the HTML a visitor receives.
  *
- * Unknown or absent values fall back to `film` — the variant that has been
- * serving production. A typo in an env var must not decide what the homepage
- * is; it should leave it where it was and be visible in the logs.
+ * Unknown or absent values fall back to `film` — the longest-serving variant.
+ * A typo in an env var must not decide what the homepage is; it should leave
+ * it somewhere known-good and be visible in the logs.
  */
 
-export const HOME_VARIANTS = ['career-loop', 'film'] as const;
+export const HOME_VARIANTS = ['easy', 'career-loop', 'film'] as const;
 export type HomeVariant = (typeof HOME_VARIANTS)[number];
 
 /** What ships when nothing is configured. */
-export const DEFAULT_HOME_VARIANT: HomeVariant = 'career-loop';
+export const DEFAULT_HOME_VARIANT: HomeVariant = 'easy';
 
 /** Where an unrecognised value lands. Documented, not incidental. */
 export const FALLBACK_HOME_VARIANT: HomeVariant = 'film';

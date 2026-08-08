@@ -1,0 +1,1751 @@
+/**
+ * easy-home.css — the `/` production experience (UX-V1 cutover).
+ *
+ * Direction B thesis, amended: the product demonstration is the brand. Dark
+ * warm-graphite public register (a register, not a mandate), hairline-ruled
+ * panels, square corners, Geist + Geist Mono, work-green reserved for
+ * completed/moving work and the primary action, amber for "needs a person".
+ *
+ * Island discipline: `.ezh` scopes everything; every color routes through an
+ * --ezh-* custom property declared on the island root. No @keyframes — the
+ * work surface is a JS-scheduled class timeline over CSS transitions, so
+ * reduced-motion neutralization and the static end-frame need no animation
+ * machinery. No z-index: stacking follows DOM order. No scroll interception:
+ * the browser scrolls; we observe.
+ *
+ * Server markup renders the COMPLETED story frame (every beat on). Script
+ * resets and replays it; without script, and under prefers-reduced-motion,
+ * the full meaning is simply present.
+ */
+
+.ezh {
+  --ezh-ground: #141517;
+  --ezh-panel: #1c1d20;
+  --ezh-panel2: #222326;
+  --ezh-line: #2e2f33;
+  --ezh-line2: #3a3c40;
+  --ezh-text: #f2f1ed;
+  --ezh-text2: #9c9d99;
+  --ezh-text3: #7b7d79;
+  --ezh-work: #4ade97;
+  --ezh-work-deep: #2e9e6b;
+  --ezh-hold: #e4b45c;
+  --ezh-wait: #8a8c8f;
+  --ezh-cta-text: #12231b;
+  --ezh-light: #f6f5f1;
+  --ezh-light-line: #d9d6cd;
+  --ezh-light-text: #141517;
+  --ezh-light-text2: #5b5c57;
+  --ezh-maxw: 1400px;
+  --ezh-gutter: 32px;
+
+  background: var(--ezh-ground);
+  color: var(--ezh-text);
+  font-family: var(--font-geist);
+  font-size: 16px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+.ezh a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.ezh :focus-visible {
+  outline: 2px solid var(--ezh-work);
+  outline-offset: 2px;
+}
+
+.ezh-wrap {
+  max-width: var(--ezh-maxw);
+  margin: 0 auto;
+  padding-left: var(--ezh-gutter);
+  padding-right: var(--ezh-gutter);
+}
+
+/* micro-label */
+.ezh-k {
+  display: block;
+  font-family: var(--font-geist-mono);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ezh-text2);
+}
+
+.ezh section {
+  border-top: 1px solid var(--ezh-line);
+}
+
+/* anchors land below the sticky 64px eyebrow */
+.ezh [id] {
+  scroll-margin-top: 80px;
+}
+
+.ezh-sec-head {
+  padding-top: 26px;
+  margin-bottom: 14px;
+}
+
+.ezh-sec-head h2 {
+  font-family: var(--font-geist);
+  font-size: 30px;
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.015em;
+  margin-top: 10px;
+}
+
+.ezh-sec-sub {
+  max-width: 560px;
+  color: var(--ezh-text2);
+  font-size: 15px;
+  margin-bottom: 40px;
+}
+
+/* ── hero ──────────────────────────────────────────────────────────────── */
+
+.ezh-hero {
+  border-top: 0;
+}
+
+.ezh-hero .ezh-wrap {
+  display: grid;
+  grid-template-columns: 430px minmax(0, 1fr);
+  gap: 56px;
+  align-items: start;
+  padding-top: 56px;
+  padding-bottom: 88px;
+}
+
+.ezh-hero-copy .ezh-k {
+  margin-bottom: 22px;
+}
+
+.ezh h1 {
+  font-family: var(--font-geist);
+  font-size: 48px;
+  font-weight: 600;
+  line-height: 1.08;
+  letter-spacing: -0.025em;
+  color: var(--ezh-text);
+  margin-bottom: 20px;
+  text-wrap: balance;
+}
+
+.ezh-hero-sub {
+  color: var(--ezh-text2);
+  font-size: 16px;
+  line-height: 1.6;
+  max-width: 400px;
+  margin-bottom: 30px;
+}
+
+/* ── real NPI entry ────────────────────────────────────────────────────── */
+
+.ezh-npi-form {
+  max-width: 400px;
+}
+
+.ezh-npi-form label {
+  margin-bottom: 8px;
+}
+
+.ezh-npi-row {
+  display: flex;
+  gap: 8px;
+}
+
+.ezh-npi-input {
+  flex: 1;
+  min-width: 0;
+  height: 48px;
+  padding: 0 14px;
+  background: var(--ezh-panel);
+  border: 1px solid var(--ezh-line2);
+  border-radius: 2px;
+  color: var(--ezh-text);
+  font-family: var(--font-geist-mono);
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+}
+
+.ezh-npi-input::placeholder {
+  color: var(--ezh-text3);
+  letter-spacing: 0.06em;
+}
+
+.ezh-npi-input:focus {
+  outline: 2px solid var(--ezh-work);
+  outline-offset: 0;
+  border-color: transparent;
+}
+
+.ezh-npi-submit {
+  height: 48px;
+  padding: 0 22px;
+  background: var(--ezh-work);
+  color: var(--ezh-cta-text);
+  font-family: var(--font-geist);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1;
+  border: 0;
+  border-radius: 2px;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.ezh-npi-submit:hover,
+.ezh-npi-submit:focus-visible {
+  background: var(--ezh-work-deep);
+  color: var(--ezh-text);
+}
+
+.ezh-npi-submit[disabled] {
+  background: var(--ezh-panel2);
+  color: var(--ezh-text2);
+  cursor: default;
+}
+
+.ezh-npi-count {
+  margin-top: 10px;
+  font-family: var(--font-geist-mono);
+  font-size: 12px;
+  color: var(--ezh-text3);
+}
+
+.ezh-npi-note {
+  margin-top: 10px;
+  font-family: var(--font-geist-mono);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ezh-hold);
+}
+
+.ezh-npi-fine {
+  margin-top: 12px;
+  font-size: 12px;
+  color: var(--ezh-text3);
+}
+
+.ezh-hero-emp {
+  margin-top: 34px;
+  font-size: 13px;
+  color: var(--ezh-text3);
+}
+
+.ezh-hero-emp a {
+  color: var(--ezh-text2);
+  border-bottom: 1px solid var(--ezh-line2);
+  padding-bottom: 1px;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.ezh-hero-emp a:hover,
+.ezh-hero-emp a:focus-visible {
+  color: var(--ezh-text);
+  border-color: var(--ezh-text2);
+}
+
+/* ── resolved result panel (the real thing, not the illustration) ──────── */
+
+.ezh-result {
+  margin-top: 26px;
+  border: 1px solid var(--ezh-line);
+  border-radius: 2px;
+  background: var(--ezh-panel);
+  padding: 16px;
+}
+
+.ezh-result-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ezh-result-mono {
+  width: 40px;
+  height: 40px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--ezh-line2);
+  border-radius: 2px;
+  font-family: var(--font-geist-mono);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ezh-text);
+  background: var(--ezh-panel2);
+}
+
+.ezh-result-name {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.ezh-result-meta {
+  font-size: 12.5px;
+  color: var(--ezh-text2);
+  margin-top: 2px;
+}
+
+.ezh-result-src {
+  margin-top: 12px;
+  font-family: var(--font-geist-mono);
+  font-size: 10px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--ezh-text3);
+}
+
+.ezh-result-matches {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  border-top: 1px solid var(--ezh-line);
+}
+
+.ezh-result-match {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--ezh-line);
+}
+
+.ezh-result-match-title {
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--ezh-text);
+}
+
+.ezh-result-match-meta {
+  font-size: 12px;
+  color: var(--ezh-text2);
+  margin-top: 2px;
+}
+
+.ezh-result-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.ezh-result-keep {
+  display: inline-flex;
+  align-items: center;
+  height: 40px;
+  padding: 0 16px;
+  background: var(--ezh-work);
+  color: var(--ezh-cta-text);
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 2px;
+  transition: background-color 0.15s ease;
+}
+
+.ezh-result-keep:hover,
+.ezh-result-keep:focus-visible {
+  background: var(--ezh-work-deep);
+  color: var(--ezh-text);
+}
+
+.ezh-result-again {
+  display: inline-flex;
+  align-items: center;
+  height: 40px;
+  padding: 0 16px;
+  border: 1px solid var(--ezh-line2);
+  color: var(--ezh-text2);
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 2px;
+  background: none;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.ezh-result-again:hover,
+.ezh-result-again:focus-visible {
+  color: var(--ezh-text);
+  border-color: var(--ezh-text2);
+}
+
+.ezh-result-note {
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--ezh-text2);
+  margin-top: 10px;
+}
+
+/* ── the work surface — the product demonstration ──────────────────────── */
+
+.ezh-surface {
+  position: relative;
+  background: var(--ezh-panel);
+  border: 1px solid var(--ezh-line);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.ezh-sf-chrome {
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 0 14px;
+  border-bottom: 1px solid var(--ezh-line);
+}
+
+.ezh-sf-cap {
+  font-family: var(--font-geist-mono);
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 1.4;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ezh-text3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ezh-sf-tools {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex: 0 0 auto;
+}
+
+.ezh-sf-dots {
+  display: flex;
+  gap: 5px;
+}
+
+.ezh-sf-dots i {
+  width: 6px;
+  height: 6px;
+  border: 1px solid var(--ezh-line2);
+  border-radius: 1px;
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+.ezh-sf-dots i.is-cur {
+  background: var(--ezh-text);
+  border-color: var(--ezh-text);
+}
+
+.ezh-sf-dots i.is-past {
+  background: var(--ezh-text3);
+  border-color: var(--ezh-text3);
+}
+
+.ezh-sf-replay {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 10px;
+  border: 1px solid var(--ezh-line2);
+  border-radius: 2px;
+  background: none;
+  cursor: pointer;
+  font-family: var(--font-geist-mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  color: var(--ezh-text2);
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.ezh-sf-replay:hover,
+.ezh-sf-replay:focus-visible {
+  border-color: var(--ezh-text2);
+  color: var(--ezh-text);
+}
+
+.ezh-sf-body {
+  position: relative;
+  height: 600px;
+}
+
+/* columns: found facts left, what remains right */
+.ezh-sf-cols {
+  display: grid;
+  grid-template-columns: 38fr 62fr;
+  height: 100%;
+  transition: opacity 0.6s ease;
+}
+
+.ezh-surface.is-dim .ezh-sf-cols {
+  opacity: 0.38;
+}
+
+.ezh-sf-left {
+  padding: 20px;
+  border-right: 1px solid var(--ezh-line);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.ezh-sf-right {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.ezh-sf-h {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--ezh-text);
+}
+
+.ezh-sf-hsub {
+  font-size: 12px;
+  color: var(--ezh-text3);
+  margin-top: 3px;
+}
+
+/* the masked seed row (beat one's resting state) */
+.ezh-seed {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--ezh-line2);
+  border-radius: 2px;
+  background: var(--ezh-panel2);
+  padding: 10px 12px;
+  opacity: 1;
+  transform: none;
+  transition: opacity 0.45s ease, transform 0.45s ease;
+}
+
+.ezh-seed:not(.on) {
+  opacity: 0;
+  transform: translateY(-6px);
+}
+
+.ezh-seed-k {
+  font-family: var(--font-geist-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  color: var(--ezh-text2);
+}
+
+.ezh-seed-v {
+  font-family: var(--font-geist-mono);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.3em;
+  color: var(--ezh-text);
+}
+
+.ezh-seed-tag {
+  margin-left: auto;
+  font-family: var(--font-geist-mono);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.09em;
+  color: var(--ezh-text3);
+  border: 1px solid var(--ezh-line2);
+  border-radius: 2px;
+  padding: 4px 6px;
+  white-space: nowrap;
+}
+
+/* what VitalCV found (beat two) */
+.ezh-profile {
+  opacity: 1;
+  transition: opacity 0.45s ease;
+}
+
+.ezh-profile:not(.on) {
+  opacity: 0;
+}
+
+.ezh-facts {
+  margin-top: 12px;
+  border-top: 1px solid var(--ezh-line);
+}
+
+.ezh-fact {
+  display: grid;
+  grid-template-columns: 92px 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--ezh-line);
+  opacity: 1;
+  transform: none;
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
+.ezh-fact:not(.on) {
+  opacity: 0;
+  transform: translateX(-10px);
+}
+
+.ezh-fact-l {
+  font-family: var(--font-geist-mono);
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 1.3;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ezh-text2);
+}
+
+.ezh-skel {
+  height: 10px;
+  background: var(--ezh-line2);
+  border-radius: 1px;
+  transform: none;
+  transform-origin: left;
+  transition: transform 0.8s 0.15s cubic-bezier(0.25, 0.7, 0.2, 1);
+}
+
+.ezh-fact:not(.on) .ezh-skel {
+  transform: scaleX(0.55);
+}
+
+.ezh-src {
+  font-family: var(--font-geist-mono);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--ezh-text2);
+  border: 1px solid var(--ezh-line2);
+  border-radius: 2px;
+  padding: 4px 6px;
+  white-space: nowrap;
+}
+
+.ezh-fact-cap {
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--ezh-text3);
+  margin-top: 10px;
+  opacity: 1;
+  transition: opacity 0.5s ease;
+}
+
+.ezh-fact-cap:not(.on) {
+  opacity: 0;
+}
+
+/* what still matters (beat three) */
+.ezh-remains {
+  opacity: 1;
+  transition: opacity 0.45s ease;
+}
+
+.ezh-remains:not(.on) {
+  opacity: 0;
+}
+
+.ezh-arows {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  border-top: 1px solid var(--ezh-line);
+}
+
+.ezh-arow {
+  display: grid;
+  grid-template-columns: 1fr auto minmax(150px, auto);
+  align-items: center;
+  gap: 12px;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--ezh-line);
+  opacity: 1;
+  transform: none;
+  transition: opacity 0.45s ease, transform 0.45s ease;
+}
+
+.ezh-arow:not(.on) {
+  opacity: 0;
+  transform: translateY(8px);
+}
+
+.ezh-arow-t {
+  font-size: 13px;
+  color: var(--ezh-text);
+  line-height: 1.35;
+}
+
+.ezh-chip {
+  font-family: var(--font-geist-mono);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ezh-text2);
+  border: 1px solid var(--ezh-line2);
+  border-radius: 2px;
+  padding: 4px 6px;
+  white-space: nowrap;
+}
+
+.ezh-stz {
+  display: flex;
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+.ezh-st {
+  display: none;
+  font-family: var(--font-geist-mono);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.3;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.ezh-st .ezh-ck {
+  font-style: normal;
+  font-size: 10px;
+}
+
+.ezh-st-idle {
+  display: inline-flex;
+  color: var(--ezh-text3);
+}
+
+.ezh-arow.is-done .ezh-st-idle,
+.ezh-arow.is-ready .ezh-st-idle,
+.ezh-arow.is-approved .ezh-st-idle,
+.ezh-arow.is-needs .ezh-st-idle,
+.ezh-arow.is-wait .ezh-st-idle {
+  display: none;
+}
+
+.ezh-arow.is-done .ezh-st-done {
+  display: inline-flex;
+  color: var(--ezh-work);
+}
+
+.ezh-arow.is-ready .ezh-st-ready {
+  display: inline-flex;
+  color: var(--ezh-hold);
+}
+
+.ezh-arow.is-approved .ezh-st-approved {
+  display: inline-flex;
+  color: var(--ezh-work);
+}
+
+.ezh-arow.is-needs .ezh-st-needs {
+  display: inline-flex;
+  color: var(--ezh-hold);
+}
+
+.ezh-arow.is-wait .ezh-st-wait {
+  display: inline-flex;
+  color: var(--ezh-wait);
+}
+
+.ezh-st .ezh-t {
+  font-weight: 500;
+  color: var(--ezh-text3);
+  margin-left: 2px;
+}
+
+/* the work feed and the approval pause (beat four) */
+.ezh-workfeed {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 264px;
+  gap: 16px;
+  align-items: start;
+  margin-top: auto;
+  opacity: 1;
+  transform: none;
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
+.ezh-workfeed:not(.on) {
+  opacity: 0;
+  transform: translateY(8px);
+}
+
+.ezh-feed {
+  border: 1px solid var(--ezh-line);
+  border-radius: 2px;
+  background: var(--ezh-panel2);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.ezh-feedline {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  font-family: var(--font-geist-mono);
+  font-size: 10.5px;
+  line-height: 1.5;
+  letter-spacing: 0.03em;
+  color: var(--ezh-text2);
+  opacity: 1;
+  transform: none;
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+
+.ezh-feedline:not(.on) {
+  opacity: 0;
+  transform: translateX(-8px);
+}
+
+.ezh-feedline b {
+  color: var(--ezh-text3);
+  font-weight: 500;
+}
+
+.ezh-feedline .ezh-ck {
+  font-style: normal;
+  color: var(--ezh-work);
+}
+
+.ezh-apcard {
+  border: 1px solid var(--ezh-line2);
+  border-left: 2px solid var(--ezh-hold);
+  border-radius: 2px;
+  background: var(--ezh-panel2);
+  padding: 13px 14px;
+  opacity: 1;
+  transform: none;
+  transition: opacity 0.5s ease, transform 0.5s ease, border-color 0.3s ease;
+}
+
+.ezh-apcard:not(.on) {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.ezh-ap-head {
+  font-family: var(--font-geist-mono);
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ezh-hold);
+  margin-bottom: 8px;
+}
+
+.ezh-ap-head .ezh-h-ok {
+  display: none;
+  color: var(--ezh-work);
+}
+
+.ezh-apcard.is-confirmed {
+  border-left-color: var(--ezh-work-deep);
+}
+
+.ezh-apcard.is-confirmed .ezh-h-wait {
+  display: none;
+}
+
+.ezh-apcard.is-confirmed .ezh-h-ok {
+  display: inline;
+}
+
+.ezh-ap-body {
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--ezh-text);
+  margin-bottom: 10px;
+}
+
+.ezh-ap-btn {
+  display: inline-flex;
+  align-items: center;
+  height: 30px;
+  padding: 0 14px;
+  border: 1px solid var(--ezh-hold);
+  border-radius: 2px;
+  color: var(--ezh-hold);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  transition: transform 0.15s ease, border-color 0.3s ease, color 0.3s ease;
+}
+
+.ezh-ap-btn.is-pressed {
+  transform: translateY(1px);
+  border-color: var(--ezh-work);
+  color: var(--ezh-work);
+}
+
+.ezh-apcard.is-confirmed .ezh-ap-btn {
+  display: none;
+}
+
+.ezh-ap-done {
+  display: none;
+  font-family: var(--font-geist-mono);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.3;
+  color: var(--ezh-work);
+}
+
+.ezh-apcard.is-confirmed .ezh-ap-done {
+  display: block;
+}
+
+.ezh-ap-note {
+  font-size: 10.5px;
+  line-height: 1.5;
+  color: var(--ezh-text3);
+  margin-top: 9px;
+}
+
+/* resolution band (beat five) — after the columns in DOM, so no z-index */
+.ezh-sf-resolve {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--ezh-panel2);
+  border-top: 1px solid var(--ezh-line);
+  display: grid;
+  grid-template-columns: 1fr 1.15fr;
+  transform: none;
+  transition: transform 0.7s cubic-bezier(0.3, 0.7, 0.2, 1);
+}
+
+.ezh-sf-resolve:not(.on) {
+  transform: translateY(103%);
+}
+
+.ezh-res-role {
+  padding: 18px 20px;
+  border-right: 1px solid var(--ezh-line);
+}
+
+.ezh-role-facts {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  opacity: 1;
+  transition: opacity 0.5s ease;
+}
+
+.ezh-role-facts:not(.on) {
+  opacity: 0;
+}
+
+.ezh-role-facts .ezh-skel {
+  transform: none;
+  height: 9px;
+}
+
+.ezh-role-cap {
+  font-size: 10.5px;
+  color: var(--ezh-text3);
+  margin-top: 10px;
+}
+
+.ezh-applied {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 12px;
+  font-family: var(--font-geist-mono);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1;
+  color: var(--ezh-work);
+  opacity: 1;
+  transition: opacity 0.45s ease;
+}
+
+.ezh-applied:not(.on) {
+  opacity: 0;
+}
+
+.ezh-applied .ezh-ck {
+  font-style: normal;
+}
+
+.ezh-res-track {
+  padding: 18px 20px;
+}
+
+.ezh-trackbar {
+  position: relative;
+  height: 2px;
+  background: var(--ezh-line2);
+  margin: 30px 8px 34px;
+}
+
+.ezh-fillbar {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 71%;
+  background: var(--ezh-work);
+  transition: width 1.1s cubic-bezier(0.25, 0.6, 0.2, 1);
+}
+
+.ezh-fillbar:not(.on) {
+  width: 0;
+}
+
+.ezh-node {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.ezh-node b {
+  width: 9px;
+  height: 9px;
+  background: var(--ezh-panel2);
+  border: 1px solid var(--ezh-line2);
+  border-radius: 1px;
+  display: block;
+}
+
+.ezh-node span {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--font-geist-mono);
+  font-size: 9px;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--ezh-text2);
+  white-space: nowrap;
+}
+
+.ezh-node.n1 { left: 0; }
+.ezh-node.n2 { left: 33%; }
+.ezh-node.n3 { left: 66%; }
+.ezh-node.n4 { left: 100%; }
+
+.ezh-fillbar.on ~ .ezh-node.n1 b,
+.ezh-fillbar.on ~ .ezh-node.n2 b,
+.ezh-fillbar.on ~ .ezh-node.n3 b {
+  background: var(--ezh-work);
+  border-color: var(--ezh-work);
+}
+
+.ezh-track-cap {
+  font-size: 10.5px;
+  color: var(--ezh-text3);
+}
+
+/* beat one overlay — after everything in DOM, covers the surface */
+.ezh-sf-stage {
+  position: absolute;
+  inset: 0;
+  background: var(--ezh-panel);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  opacity: 1;
+  transform: none;
+  transition: opacity 0.5s ease, transform 0.5s ease, visibility 0s 0.5s;
+}
+
+.ezh-sf-stage.is-off {
+  opacity: 0;
+  transform: translateY(-16px);
+  pointer-events: none;
+  visibility: hidden;
+}
+
+.ezh-npi-illus {
+  border: 1px solid var(--ezh-line2);
+  border-radius: 2px;
+  background: var(--ezh-panel2);
+  padding: 22px 26px;
+  min-width: 340px;
+}
+
+.ezh-npi-illus .ezh-k {
+  margin-bottom: 12px;
+}
+
+.ezh-glyphs {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  height: 26px;
+}
+
+.ezh-g {
+  width: 17px;
+  height: 24px;
+  border: 1px solid var(--ezh-line2);
+  border-radius: 2px;
+  background: transparent;
+  transition: background-color 0.18s ease, border-color 0.18s ease;
+}
+
+.ezh-g.on {
+  background: var(--ezh-text);
+  border-color: var(--ezh-text);
+}
+
+.ezh-npi-go {
+  margin-top: 16px;
+  display: inline-flex;
+  align-items: center;
+  height: 36px;
+  padding: 0 16px;
+  border: 1px solid var(--ezh-line2);
+  border-radius: 2px;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1;
+  color: var(--ezh-text2);
+  transition: transform 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.ezh-npi-go.is-press {
+  transform: translateY(1px);
+  border-color: var(--ezh-text);
+  color: var(--ezh-text);
+}
+
+.ezh-stage-cap {
+  font-size: 12px;
+  color: var(--ezh-text3);
+}
+
+/* the truth boundary under the surface */
+.ezh-truth {
+  margin-top: 12px;
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--ezh-text3);
+  max-width: 640px;
+}
+
+/* static end-frame annotation (reduced motion / no script) */
+.ezh-rm-legend {
+  display: none;
+  padding: 10px 14px;
+  border-top: 1px solid var(--ezh-line);
+  font-family: var(--font-geist-mono);
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 1.6;
+  letter-spacing: 0.05em;
+  color: var(--ezh-text2);
+}
+
+.ezh-surface.is-static .ezh-rm-legend {
+  display: block;
+}
+
+.ezh-surface.is-static [data-beat] {
+  position: relative;
+}
+
+.ezh-surface.is-static [data-beat]::before {
+  content: attr(data-beat);
+  position: absolute;
+  top: -9px;
+  left: -9px;
+  width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  background: var(--ezh-ground);
+  border: 1px solid var(--ezh-work);
+  border-radius: 2px;
+  font-family: var(--font-geist-mono);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--ezh-work);
+}
+
+.ezh-surface.is-static .ezh-sf-resolve::before {
+  top: -11px;
+  left: 11px;
+}
+
+.ezh-surface.is-static .ezh-sf-cols {
+  opacity: 1;
+}
+
+@media (min-width: 769px) {
+  .ezh-surface.is-static .ezh-sf-body {
+    height: 720px;
+  }
+
+  .ezh-surface.is-static .ezh-sf-cols {
+    padding-bottom: 185px;
+  }
+}
+
+/* ── ownership — the agent's work-state model ──────────────────────────── */
+
+.ezh-own .ezh-wrap {
+  padding-bottom: 96px;
+}
+
+.ezh-own-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border: 1px solid var(--ezh-line);
+  border-radius: 3px;
+  overflow: hidden;
+  background: var(--ezh-panel);
+}
+
+.ezh-own-cell {
+  padding: 24px 22px 26px;
+  border-left: 1px solid var(--ezh-line);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.ezh-own-cell:first-child {
+  border-left: 0;
+}
+
+.ezh-own-mark {
+  width: 10px;
+  height: 10px;
+  border-radius: 1px;
+}
+
+.ezh-own-mark.m-work {
+  background: var(--ezh-work);
+}
+
+.ezh-own-mark.m-hold {
+  background: var(--ezh-hold);
+}
+
+.ezh-own-mark.m-wait {
+  background: var(--ezh-wait);
+}
+
+.ezh-own-cell h3 {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.ezh-own-cell ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.ezh-own-cell li {
+  position: relative;
+  padding-left: 16px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--ezh-text2);
+}
+
+.ezh-own-cell li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 8px;
+  width: 6px;
+  height: 6px;
+  border: 1px solid var(--ezh-line2);
+  border-radius: 1px;
+}
+
+.ezh-own-note {
+  margin-top: auto;
+  padding-top: 14px;
+  border-top: 1px solid var(--ezh-line);
+  font-size: 11.5px;
+  line-height: 1.55;
+  color: var(--ezh-text3);
+}
+
+/* ── outcome ───────────────────────────────────────────────────────────── */
+
+.ezh-out .ezh-wrap {
+  padding-bottom: 104px;
+}
+
+.ezh-out-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 480px) minmax(0, 1fr);
+  gap: 64px;
+  align-items: center;
+}
+
+.ezh-out-copy p {
+  color: var(--ezh-text2);
+  font-size: 15.5px;
+  line-height: 1.65;
+}
+
+.ezh-out-copy p + p {
+  margin-top: 14px;
+}
+
+.ezh-bigtrack {
+  border: 1px solid var(--ezh-line);
+  border-radius: 3px;
+  background: var(--ezh-panel);
+  padding: 34px 30px 30px;
+}
+
+.ezh-bigtrack .ezh-trackbar {
+  margin: 34px 12px 44px;
+}
+
+.ezh-bigtrack .ezh-node b {
+  background: var(--ezh-panel);
+}
+
+.ezh-bigtrack .ezh-fillbar {
+  width: 38%;
+}
+
+.ezh-bigtrack .ezh-fillbar ~ .ezh-node.n1 b {
+  background: var(--ezh-work);
+  border-color: var(--ezh-work);
+}
+
+.ezh-bigtrack-cap {
+  font-size: 12px;
+  color: var(--ezh-text3);
+}
+
+/* ── employers — the light band; the eyebrow inverts here ─────────────── */
+
+.ezh-emp {
+  background: var(--ezh-light);
+  color: var(--ezh-light-text);
+  border-top: 1px solid var(--ezh-light-line);
+}
+
+.ezh-emp .ezh-wrap {
+  padding-top: 26px;
+  padding-bottom: 120px;
+}
+
+.ezh-emp .ezh-k {
+  color: var(--ezh-light-text2);
+}
+
+.ezh-emp .ezh-sec-head h2 {
+  color: var(--ezh-light-text);
+}
+
+.ezh-emp-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 560px) minmax(0, 1fr);
+  gap: 64px;
+  align-items: start;
+  margin-top: 24px;
+}
+
+.ezh-emp-copy p {
+  color: var(--ezh-light-text2);
+  font-size: 15.5px;
+  line-height: 1.65;
+  max-width: 480px;
+}
+
+.ezh-emp-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 28px;
+  height: 48px;
+  padding: 0 22px;
+  border: 1px solid var(--ezh-light-text);
+  border-radius: 2px;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--ezh-light-text);
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.ezh-emp-cta:hover,
+.ezh-emp-cta:focus-visible {
+  background: var(--ezh-light-text);
+  color: var(--ezh-light);
+}
+
+.ezh-emp-points {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--ezh-light-line);
+}
+
+.ezh-emp-points li {
+  display: flex;
+  align-items: baseline;
+  gap: 18px;
+  padding: 18px 0;
+  border-bottom: 1px solid var(--ezh-light-line);
+}
+
+.ezh-emp-points .ezh-tt {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--ezh-light-text);
+  min-width: 192px;
+}
+
+.ezh-emp-points p {
+  font-size: 13.5px;
+  color: var(--ezh-light-text2);
+  line-height: 1.5;
+}
+
+/* ── final action + footer composition ─────────────────────────────────── */
+
+.ezh-start .ezh-wrap {
+  padding-bottom: 120px;
+}
+
+.ezh-start-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 520px) minmax(0, 1fr);
+  gap: 64px;
+  align-items: center;
+  margin-top: 24px;
+}
+
+.ezh-start-copy p {
+  color: var(--ezh-text2);
+  font-size: 15.5px;
+  line-height: 1.6;
+  max-width: 420px;
+}
+
+.ezh-start-cta {
+  display: inline-flex;
+  align-items: center;
+  height: 52px;
+  padding: 0 26px;
+  background: var(--ezh-work);
+  color: var(--ezh-cta-text);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1;
+  border-radius: 2px;
+  transition: background-color 0.15s ease;
+}
+
+.ezh-start-cta:hover,
+.ezh-start-cta:focus-visible {
+  background: var(--ezh-work-deep);
+  color: var(--ezh-text);
+}
+
+.ezh-start-fine {
+  margin-top: 14px;
+  font-size: 12.5px;
+  color: var(--ezh-text3);
+}
+
+.ezh-foot {
+  border-top: 1px solid var(--ezh-line);
+  padding: 28px 0 40px;
+}
+
+.ezh-foot-in {
+  display: flex;
+  align-items: baseline;
+  gap: 28px;
+  flex-wrap: wrap;
+}
+
+.ezh-foot-mark {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.ezh-foot-links {
+  display: flex;
+  gap: 22px;
+  flex-wrap: wrap;
+  font-size: 13px;
+  color: var(--ezh-text2);
+}
+
+.ezh-foot-links a:hover,
+.ezh-foot-links a:focus-visible {
+  color: var(--ezh-text);
+}
+
+.ezh-foot-truth {
+  width: 100%;
+  margin-top: 18px;
+  font-family: var(--font-geist-mono);
+  font-size: 10.5px;
+  line-height: 1.7;
+  letter-spacing: 0.02em;
+  color: var(--ezh-text3);
+  max-width: 760px;
+}
+
+/* ── tablet fold ───────────────────────────────────────────────────────── */
+
+@media (max-width: 1100px) {
+  .ezh-hero .ezh-wrap {
+    grid-template-columns: 1fr;
+    gap: 44px;
+    padding-top: 44px;
+  }
+
+  .ezh-hero-copy {
+    max-width: 560px;
+  }
+
+  .ezh-sf-body {
+    height: 620px;
+  }
+
+  .ezh-own-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .ezh-own-cell {
+    border-top: 1px solid var(--ezh-line);
+  }
+
+  .ezh-own-cell:nth-child(1),
+  .ezh-own-cell:nth-child(2) {
+    border-top: 0;
+  }
+
+  .ezh-own-cell:nth-child(3) {
+    border-left: 0;
+  }
+
+  .ezh-out-grid,
+  .ezh-emp-grid,
+  .ezh-start-grid {
+    grid-template-columns: 1fr;
+    gap: 44px;
+  }
+}
+
+/* ── true mobile: the surface becomes a task stream ────────────────────── */
+
+@media (max-width: 768px) {
+  .ezh {
+    --ezh-gutter: 20px;
+    font-size: 15px;
+  }
+
+  .ezh h1 {
+    font-size: 33px;
+  }
+
+  .ezh-hero-sub {
+    font-size: 15px;
+  }
+
+  .ezh-hero .ezh-wrap {
+    padding-top: 36px;
+    padding-bottom: 64px;
+    gap: 36px;
+  }
+
+  .ezh-sec-head h2 {
+    font-size: 24px;
+  }
+
+  .ezh-sf-body {
+    height: auto;
+    min-height: 340px;
+  }
+
+  .ezh-sf-cols {
+    display: block;
+    height: auto;
+  }
+
+  .ezh-sf-left,
+  .ezh-sf-right {
+    padding: 16px;
+    border-right: 0;
+  }
+
+  .ezh-sf-left {
+    padding-bottom: 0;
+  }
+
+  .ezh-surface.is-dim .ezh-sf-cols {
+    opacity: 1;
+  }
+
+  .ezh-sf-stage {
+    position: static;
+    padding: 40px 16px;
+  }
+
+  .ezh-sf-stage.is-off {
+    display: none;
+  }
+
+  .ezh-npi-illus {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .ezh-glyphs {
+    flex-wrap: wrap;
+    height: auto;
+  }
+
+  /* while the timeline is PLAYING, unfired stream blocks stay collapsed; the
+     server frame (no data-motion) shows everything */
+  .ezh-surface[data-motion='playing'] .ezh-profile:not(.on),
+  .ezh-surface[data-motion='playing'] .ezh-remains:not(.on),
+  .ezh-surface[data-motion='playing'] .ezh-workfeed:not(.on),
+  .ezh-surface[data-motion='playing'] .ezh-fact:not(.on),
+  .ezh-surface[data-motion='playing'] .ezh-arow:not(.on),
+  .ezh-surface[data-motion='playing'] .ezh-sf-resolve:not(.on) {
+    display: none;
+  }
+
+  .ezh-fact {
+    grid-template-columns: 84px 1fr auto;
+    gap: 8px;
+  }
+
+  .ezh-arow {
+    grid-template-columns: 1fr auto;
+    grid-template-rows: auto auto;
+    gap: 6px 10px;
+    padding: 12px 0;
+  }
+
+  .ezh-arow .ezh-stz {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+  }
+
+  .ezh-workfeed {
+    grid-template-columns: 1fr;
+    margin-top: 16px;
+  }
+
+  .ezh-sf-resolve {
+    position: static;
+    grid-template-columns: 1fr;
+  }
+
+  .ezh-sf-resolve:not(.on) {
+    transform: none;
+  }
+
+  .ezh-res-role {
+    border-right: 0;
+    border-bottom: 1px solid var(--ezh-line);
+  }
+
+  .ezh-surface.is-static [data-beat]::before {
+    top: -6px;
+    left: -6px;
+  }
+
+  .ezh-surface.is-static .ezh-sf-resolve::before {
+    top: 6px;
+    left: 6px;
+  }
+
+  .ezh-own-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .ezh-own-cell {
+    border-left: 0;
+    border-top: 1px solid var(--ezh-line);
+  }
+
+  .ezh-own-cell:first-child {
+    border-top: 0;
+  }
+
+  .ezh-own-cell:nth-child(2) {
+    border-top: 1px solid var(--ezh-line);
+  }
+
+  .ezh-bigtrack {
+    padding: 26px 18px 22px;
+  }
+
+  .ezh-node span {
+    font-size: 8.5px;
+  }
+
+  .ezh-emp-points .ezh-tt {
+    min-width: 0;
+  }
+
+  .ezh-emp-points li {
+    flex-direction: column;
+    gap: 6px;
+  }
+}
+
+@media (max-width: 480px) {
+  .ezh h1 {
+    font-size: 30px;
+  }
+
+  .ezh-npi-row {
+    flex-direction: column;
+  }
+
+  .ezh-npi-submit {
+    width: 100%;
+    height: 48px;
+  }
+}
+
+/* ── reduced motion: nothing moves; the story is complete ──────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  .ezh *,
+  .ezh *::before,
+  .ezh *::after {
+    transition: none !important;
+  }
+}

@@ -1,17 +1,20 @@
 import type { Metadata } from 'next';
 
 import { CareerLoopHome } from '@/components/home/career-loop/CareerLoopHome';
+import EasyHome from '@/components/home/easy/EasyHome';
 import { HorizontalCareerFilm } from '@/components/home/film/HorizontalCareerFilm';
 import { resolveHomeVariant } from '@/lib/home/variant';
-// Both route stylesheets. The film's owns its composition AND the evidence
-// capsule (see the header of `styles/home.css`); the loop's is namespaced
-// `clh-` so the two can coexist in one bundle without restyling each other.
+// All three route stylesheets. The film's owns its composition AND the
+// evidence capsule (see the header of `styles/home.css`); the loop's is
+// namespaced `clh-` and the UX-V1 experience `ezh-`, so the variants can
+// coexist in one bundle without restyling each other.
 import '@/styles/home.css';
 import '@/styles/career-loop-home.css';
+import '@/styles/easy-home.css';
 
-const TAGLINE = 'VitalCV — Build your clinician profile from your NPI and apply with it.';
+const TAGLINE = 'VitalCV — Enter your NPI. VitalCV does the rest.';
 const DESCRIPTION =
-  'Build a clinician profile from your NPI, find opportunities that fit it, and apply with the same profile — giving employers a head start and keeping the record yours to reuse.';
+  'Enter your NPI and VitalCV builds your clinician profile, shows exactly what remains, handles the administrative work it safely can, and lets you apply with the same profile — free for clinicians.';
 
 export const metadata: Metadata = {
   title: { absolute: TAGLINE },
@@ -30,7 +33,7 @@ const STRUCTURED_DATA = {
       name: 'VitalCV',
       url: 'https://vitalcv.com',
       description:
-        'The Provider Career Evidence Network — source-backed clinician career evidence that follows providers across every opportunity.',
+        'VitalCV builds a clinician profile from an NPI, shows what remains, and handles the administrative work of hiring that can safely be handled.',
     },
     {
       '@type': 'WebSite',
@@ -52,24 +55,20 @@ const STRUCTURED_DATA = {
 };
 
 /**
- * `/` — the one real clinician career loop (Wave 1075).
+ * `/` — the UX-V1 production experience: Enter your NPI. VitalCV does the
+ * rest. The Easy Button hero, the real NPI entry, and the illustrated work
+ * surface (see components/home/easy/).
  *
- *   NPI → clinician profile → opportunity → Apply with VitalCV
- *       → employer head start → review begins → keep the career record
- *
- * `film` is the previous homepage, kept as a rollback rather than deleted:
- * set PUBLIC_HOME_VARIANT=film and redeploy. The choice is made here, on the
- * server, so only one variant is ever sent — no flash, no double-counted
- * homepage event, and one canonical root for crawlers.
+ * `career-loop` (the previous homepage) and `film` (the one before it) are
+ * kept as env-switchable rollbacks rather than deleted: set
+ * PUBLIC_HOME_VARIANT and redeploy. The choice is made here, on the server,
+ * so only one variant is ever sent — no flash, no double-counted homepage
+ * event, and one canonical root for crawlers.
  *
  * `export const dynamic` is deliberate. A static root would bake the env var
  * at BUILD time, which would make the rollback switch a rebuild rather than a
  * redeploy — exactly the "restore the old homepage without a code change"
  * property this exists to provide.
- *
- * This replaces the previous `revalidate = 300`: the two cannot coexist, and
- * a cached root would serve the pre-rollback homepage for up to five minutes
- * during an incident.
  */
 export const dynamic = 'force-dynamic';
 
@@ -81,7 +80,13 @@ export default function HomePage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(STRUCTURED_DATA) }}
       />
-      {variant === 'film' ? <HorizontalCareerFilm /> : <CareerLoopHome />}
+      {variant === 'film' ? (
+        <HorizontalCareerFilm />
+      ) : variant === 'career-loop' ? (
+        <CareerLoopHome />
+      ) : (
+        <EasyHome />
+      )}
     </>
   );
 }

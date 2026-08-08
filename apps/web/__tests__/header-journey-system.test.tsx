@@ -124,10 +124,13 @@ describe('header route context', () => {
     expect(getHeaderRouteContext('/verify/1234567893').defaultStage).toBe('review');
   });
 
-  it('defaults every route to the light treatment — dark is scene-declared only', () => {
-    for (const path of ['/', '/employers', '/trust', '/onboarding', '/unknown']) {
+  it('defaults every route except / to light — the homepage is the dark register (UX-V1)', () => {
+    for (const path of ['/employers', '/trust', '/onboarding', '/unknown']) {
       expect(getHeaderRouteContext(path).defaultTheme).toBe('light');
     }
+    // UX-01 amendment 2: dark warm-graphite is the homepage's public
+    // register, not a sitewide mandate.
+    expect(getHeaderRouteContext('/').defaultTheme).toBe('dark');
   });
 });
 

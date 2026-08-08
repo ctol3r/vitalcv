@@ -21,11 +21,20 @@ const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? `http://127.0.0.1:${e2ePort}`
  */
 const filmRun = process.env.E2E_HOME_VARIANT === 'film';
 
+/**
+ * UX-V1: `/` serves the Easy Button experience; the career loop joins the
+ * film as an env-switched rollback. A career-loop run boots the server with
+ * PUBLIC_HOME_VARIANT=career-loop and runs ONLY the loop specs, exactly the
+ * film mechanism.
+ */
+const careerLoopRun = process.env.E2E_HOME_VARIANT === 'career-loop';
+
+const CAREER_LOOP_SPECS = [/tests\/e2e\/home-career-loop\.spec\.ts/];
+
 const FILM_SPECS = [
   /tests\/e2e\/ask-home\.spec\.ts/,
   /tests\/e2e\/ask-npi-response\.spec\.ts/,
   /tests\/e2e\/doctrine-visual\.spec\.ts/,
-  /tests\/e2e\/film-journey-rail\.spec\.ts/,
   /tests\/e2e\/glass-chrome\.spec\.ts/,
   /tests\/e2e\/home-a11y-floor\.spec\.ts/,
   /tests\/e2e\/home-atmosphere\.spec\.ts/,
@@ -33,7 +42,6 @@ const FILM_SPECS = [
   /tests\/e2e\/home-phase\.spec\.ts/,
   /tests\/e2e\/homepage-degradation\.spec\.ts/,
   /tests\/e2e\/homepage-proof-moment\.spec\.ts/,
-  /tests\/e2e\/liquid-menu\.spec\.ts/,
   /tests\/e2e\/npi-truth-engine\.spec\.ts/,
 ];
 
@@ -102,13 +110,19 @@ export default defineConfig({
         {
           name: 'chromium',
           use: { ...devices['Desktop Chrome'] },
-          // In a film run this project is the one that gets skipped.
-          testIgnore: filmRun ? undefined : FILM_SPECS,
-          testMatch: filmRun ? /$^/ : undefined,
+          // In a variant run this project is the one that gets skipped.
+          testIgnore:
+            filmRun || careerLoopRun ? undefined : [...FILM_SPECS, ...CAREER_LOOP_SPECS],
+          testMatch: filmRun || careerLoopRun ? /$^/ : undefined,
         },
         {
           name: 'chromium-film',
           testMatch: filmRun ? FILM_SPECS : /$^/,
+          use: { ...devices['Desktop Chrome'] },
+        },
+        {
+          name: 'chromium-career-loop',
+          testMatch: careerLoopRun ? CAREER_LOOP_SPECS : /$^/,
           use: { ...devices['Desktop Chrome'] },
         },
       ],
@@ -154,10 +168,10 @@ export default defineConfig({
       // RAILWAY_ENVIRONMENT/VERCEL_ENV first), so enabling it for the e2e
       // server cannot reach vitalcv.com.
       DESIGN_PREVIEW: '1',
-      // Wave 1075: `/` serves the career loop. A film run flips the whole
-      // server to the rollback so the preserved film specs assert the
-      // composition they were written for.
-      PUBLIC_HOME_VARIANT: filmRun ? 'film' : 'career-loop',
+      // UX-V1: `/` serves the Easy Button experience. A variant run flips the
+      // whole server to the requested rollback so its preserved specs assert
+      // the composition they were written for.
+      PUBLIC_HOME_VARIANT: filmRun ? 'film' : careerLoopRun ? 'career-loop' : 'easy',
       // scene-degradation.spec.ts forces capability tiers via `?sceneTier=`;
       // readForcedTier() ignores the override in production builds unless this
       // is set at BUILD time (NEXT_PUBLIC_* is inlined by `next build`, which

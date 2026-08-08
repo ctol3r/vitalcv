@@ -24,7 +24,31 @@ UX-02's de-islanding work (mechanical, many small PRs) — not something to do o
 | 3 | **Antigravity** (particles, glass, magnetic buttons) | `antigravity.css` loaded via layout; `--ag-*` tokens; particle/magnetic interaction code | Parked. Its devices are direction-locked/guidance material (EC-13/EC-14), not defaults for any surface. |
 | 4 | **Calm Wave paper+ink** (waves 1500–1505) | `.mz` / `.w14` / `.w1505` scoped islands; `styles/vitalTokens.css`, `styles/tokens.css`; wave-1505 handoff under `design-handoff/claude-design-2026-07-12-wave1505/` | Parked as a *visual treatment*. Its **token/component architecture** (semantic `--vt-*` layer, StateChip contract, lint rules) carries forward as UX-02's skeleton, re-skinned to the UX-01 verdict. |
 | 5 | **Creative Direction "record, not dashboard"** (July 2026) | `docs/design/VITALCV_CREATIVE_DIRECTION.md` (CD-1…CD-20); partial implementation across public routes | Doctrine largely carries forward into the Experience Constitution (see its Part II). CD's palette and type sections are **subject to the UX-01 verdict**. CD is amended per CD-19, never forked. |
-| 6 | **Homepage reset directions A/B/C** (2026-08-07/08) | `design-lab/homepage-reset/` — three isolated prototypes, critiques, Playwright evidence | Not an era yet. Awaiting founder verdict (UX-01). The winner's values back-fill the constitution and become global. |
+| 6 | **Homepage reset directions A/B/C** (2026-08-07/08) | `design-lab/homepage-reset/` — three isolated prototypes, critiques, Playwright evidence | **Resolved.** UX-01 verdict = **Direction B GO, with amendments** (`design-lab/homepage-reset/DECISION.md`). A and C are parked; B's *thesis* — not its implementation — is implemented by UX-V1 below. |
+| 7 | **One Real Loop homepage + journey-rail chrome** (Wave 1075 / FR-6 shared header) | See the UX-V1 table below | Parked by UX-V1. Both homepage predecessors stay env-switchable; the journey-rail chrome is unmounted but importable. |
+
+## Parked by UX-V1 (production experience cutover, 2026-08-08)
+
+The cutover (`docs/design/UXV1_PRODUCTION_CUTOVER_2026-08-08.md`) replaced `/` and the shared
+public chrome. Nothing was deleted.
+
+| Era | Code | How it is still reachable | Tests |
+| --- | --- | --- | --- |
+| Career-loop homepage ("One Real Loop", Wave 1075) | `components/home/career-loop/`, `styles/career-loop-home.css` | `PUBLIC_HOME_VARIANT=career-loop` (env rollback) | `tests/e2e/home-career-loop.spec.ts` (its own e2e pass), unit coverage via variant renders in `home-easy-cutover.test.tsx` |
+| Evidence-film homepage (COMPETE-1) | `components/home/film/`, `styles/home.css` | `PUBLIC_HOME_VARIANT=film` (env rollback) | film e2e pass (`E2E_HOME_VARIANT=film`), `film-journey-unification.test.tsx`, `home-artifact-provenance.test.tsx` |
+| Journey-rail header chrome (FR-6 shared-header era) | `components/layout/Navbar.tsx`, `HeaderMenu.tsx`, `LiquidMenu.tsx`, `JourneyRail.tsx`, `AnnouncementRail.tsx`, `styles/header.css` | Unmounted — `RootChrome` renders `Eyebrow` instead | `header-chrome.test.tsx`, `header-journey-system.test.tsx`, `header-scene.test.tsx` (component-level; the components remain importable) |
+
+Notes:
+
+- The rollback variants serve under the **UX-V1 eyebrow** — chrome does not switch with the
+  content variant. Three chrome-pinning e2e specs were retired with the cutover
+  (`header-journey.spec.ts`, `liquid-menu.spec.ts`, `film-journey-rail.spec.ts`); their surviving
+  contracts moved to `eyebrow.spec.ts`, `eyebrow-chrome.test.tsx`, and the unit suites above.
+- `journeyStages.ts`, `navDestinations.ts`, `headerRouteContext.ts`, and `useHeaderScene.ts` are
+  NOT parked — the eyebrow consumes them; the film derives its chapter vocabulary from
+  `journeyStages.ts`.
+- Cleanup debt (dead-weight removal of parked chrome once rollback confidence expires) is recorded
+  for the UX-F foundation lane in `docs/design/UXV1_PRODUCTION_CUTOVER_2026-08-08.md`.
 
 ## Shared entropy (belongs to no era, removed by UX-02)
 
@@ -36,11 +60,13 @@ UX-02's de-islanding work (mechanical, many small PRs) — not something to do o
   `--infra-`, `--glue-`, `--ops-`, `--mz-`, and more.
 - A **global `*` transition rule** (~280ms on color properties) — forbidden by the wave-1505
   motion doctrine it coexists with.
-- `apps/web/app/fonts/` **does not exist** — body and mono text resolve to system stacks.
 - Two parallel component systems (`design-system/` vs `components/ui/`); a `Badge` import
   resolves differently by path; **≥30 status/badge components** express the same truth states.
-- `check-design-lint.ts` exists only in the `.worktrees/retire-speed-claim` worktree — the CI
-  enforcement gate never landed on mainline. Porting it is Part 4 of the program.
+
+Two entries from the 2026-08-08 audit have since been corrected on mainline and are **not**
+outstanding: `apps/web/app/fonts/` does exist (Geist, Geist Mono and Fraunces are self-hosted via
+`next/font/local`), and `scripts/check-design-lint.ts` is on mainline behind the required
+`check-design-lint` status check.
 
 ## What "unparking" would take
 

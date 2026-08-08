@@ -67,7 +67,9 @@ describe('Navbar gating', () => {
     await mount(<Navbar />);
     const header = container.querySelector('header.vcv-header');
     expect(header).not.toBeNull();
-    expect(header!.getAttribute('data-header-theme')).toBe('light');
+    // UX-V1 made `/` the dark register; the parked Navbar reads the same
+    // route context the live Eyebrow does.
+    expect(header!.getAttribute('data-header-theme')).toBe('dark');
     expect(header!.getAttribute('data-header-stage')).toBe('your-number');
   });
 
