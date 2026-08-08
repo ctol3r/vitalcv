@@ -132,7 +132,7 @@ export default function ClinicianHomeSurface() {
   const npi = profile?.npi ?? 'unknown';
   const hasValidNpi = /^\d{10}$/.test(npi);
   const fullName = [profile?.firstName, profile?.lastName].filter(Boolean).join(' ').trim();
-  const displayName = fullName || 'Your VitalCV Wallet';
+  const displayName = fullName || 'Your VitalCV profile';
   // Share the real, public, source-backed proof (what an employer actually
   // reads) — never the demo-backed presentation flow. Falls back to the wallet
   // when no NPI is bound yet.
@@ -284,7 +284,7 @@ export default function ClinicianHomeSurface() {
           <div className="min-w-0">
             <div className="mz-eyebrow">
               <Wallet className="h-3.5 w-3.5" />
-              Your VitalCV Wallet
+              Your VitalCV profile
             </div>
             <h1 className="mz-h1 mt-4 truncate">
               {displayName}

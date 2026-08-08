@@ -10,7 +10,7 @@ const ACCENT = 'var(--vt-accent, #0A7B7F)';
 
 const STAGES: Array<{ key: string; label: string; note: string }> = [
   { key: 'clinicians', label: 'Clinicians', note: 'Own their career evidence' },
-  { key: 'wallet', label: 'Wallet', note: 'Home base for credentials' },
+  { key: 'wallet', label: 'Profile', note: 'Home base for credentials' },
   { key: 'trust', label: 'Trust', note: 'Source-backed readiness' },
   { key: 'recognition', label: 'Recognition', note: 'Employer acceptance, reusable' },
   { key: 'matcha', label: 'MATCHA', note: 'Learns preferences + fit' },

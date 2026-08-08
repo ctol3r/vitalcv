@@ -6,7 +6,7 @@ import { loadClinicianMobileData } from '@/lib/mobile/server';
 
 export const metadata: Metadata = {
   title: 'Clinician Workspace',
-  description: 'Your verified medical credential wallet and opportunities.',
+  description: 'Your source-backed clinician profile and opportunities.',
 };
 
 // Session-sensitive tree (Wave 0.2): the holder workspace is per-user.

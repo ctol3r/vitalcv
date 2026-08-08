@@ -6,7 +6,7 @@ import { loadEmployerHandoff } from '@/lib/server/handoffReceipt';
 
 export const metadata: Metadata = {
   title: 'Employer application review',
-  description: 'Review the exact submitted application packet, current Wallet evidence, and immutable handoff receipts.',
+  description: 'Review the exact submitted application packet, current profile evidence, and immutable handoff receipts.',
 };
 
 export const dynamic = 'force-dynamic';

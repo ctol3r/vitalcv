@@ -272,11 +272,35 @@ gate. The receiver route itself is harmless when unwired — it fails closed
 
 **Fail-closed matrix:** no receiver secret → 500, never dispatches · missing
 `GITHUB_DISPATCH_TOKEN` → 500 + container log · missing `CLERK_SECRET_KEY` on
-the runner → monitor is **not wired**: a preflight skips verification and posts
-a NEUTRAL `pending` status (never a red false-negative), self-healing the moment
-the secret is set · `CLERK_SECRET_KEY` set but `RAILWAY_API_TOKEN` missing →
-`deploy_integrity` failure → red status. No missing secret can produce a false
-green.
+the runner → monitor is **not wired** → **RED** (see below) ·
+`CLERK_SECRET_KEY` set but `RAILWAY_API_TOKEN` missing → `deploy_integrity`
+failure → red status. No missing secret can produce a false green.
+
+**Unwired is RED (changed 2026-08-08).** This used to post a neutral `pending`
+"never a red false-negative", on the reasoning that an unwired monitor should
+not look like a broken deploy. The cost of that kindness was total: the monitor
+posted "skipped — monitor not wired" on **every run of its entire life** and
+nobody noticed, because grey does not demand attention. The signed-in flow this
+document describes — synthetic clinician, six `/holder` surfaces,
+`check:deploy` — had never once executed against production. The secret existed
+the whole time; it is an *environment* secret on **`Production`** (capital P)
+and the jobs had not declared that environment, so `secrets.CLERK_SECRET_KEY`
+resolved to the empty string and the skip branch swallowed it.
+
+> **The environment name is case-sensitive, and getting it wrong is silent.**
+> GitHub does not error on an unknown `environment:` value — it *creates* one.
+> The first fix (#1138) declared lowercase `production`, which conjured a new
+> empty environment, drew the secret from it, and reproduced the identical
+> green no-op (run 31235056713, on a commit that verifiably carried the
+> declaration). If you ever see a wired monitor skip, check the case before
+> anything else, and check Settings → Environments for a stray auto-created
+> duplicate.
+
+An unwired monitor is a misconfiguration, not a resting state. Both
+`release-verify` and `synthetic-reconcile` now fail red when the key is
+invisible. To run unwired deliberately, set the repository **variable**
+`MONITORS_UNWIRED_OK=true` — an auditable statement of intent; the neutral grey
+`pending` returns only under that flag.
 
 ## Failure modes
 
@@ -322,9 +346,14 @@ green.
   not a literal). The site will LOOK fine — web-Prisma routes fail open — but
   MATCHA preferences/decisions are silently non-persistent. Fix the variable,
   redeploy, and the next run self-heals.
-- **A neutral `pending` status** ("skipped — monitor not wired") → *not* a broken
-  deploy; `CLERK_SECRET_KEY` is unset so verification never ran. Set the owner
-  secrets (above) and the next run verifies for real.
+- **A red "MISCONFIGURED — CLERK_SECRET_KEY not visible" status** → *not* a
+  broken deploy, but **nothing was verified**, which is treated as just as
+  serious. Either the job lost its `environment: production` declaration (the
+  secret lives on that environment, not at repository level) or the secret was
+  removed/renamed. Fix it and the next run verifies for real.
+- **A neutral `pending` status** ("skipped — deliberately unwired") → only
+  appears when the repository variable `MONITORS_UNWIRED_OK=true` is set.
+  Without that flag, unwired is red.
 - **Re-run manually:** Actions → *Release verify* → *Run workflow* (optionally
   pass a `target_sha`).
 - **Run locally against prod:**

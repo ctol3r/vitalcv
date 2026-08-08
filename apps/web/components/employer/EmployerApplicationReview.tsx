@@ -98,7 +98,7 @@ export function EmployerApplicationReview({
           <div className="mb-5 flex items-start gap-3 rounded-2xl border border-emerald-400/20 bg-emerald-400/10 p-4 text-emerald-50">
             <FileCheck2 className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
             <p className="text-sm leading-6">
-              Review the exact submitted packet below. Current Wallet evidence is shown separately and never replaces the clinician’s original presentation.
+              Review the exact submitted packet below. Current profile evidence is shown separately and never replaces the clinician’s original presentation.
             </p>
           </div>
           <ApplicationEvidenceView result={evidenceResult} />
