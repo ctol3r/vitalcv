@@ -12,6 +12,14 @@
  *   - identity ≠ authority (an org NPI confirms who you are, not legal power);
  *   - the clinician owns sharing (a packet appears only with their consent);
  *   - acceptance ≠ credentialing (a head start, never the committee's decision).
+ *
+ * DL-005 (2026-08-07, hierarchy pass): every stage now carries its qualifier in
+ * `boundary` rather than three of them burying it mid-sentence in `body`. The
+ * renderer already gave `boundary` its own treatment — mono, accent rule, muted —
+ * so half the stages were rendering their honesty rail as a visible rail and half
+ * were hiding it inside a longer paragraph. Same words, same claims: nothing was
+ * softened or dropped, and the qualifier is now legible in the stages where it was
+ * least visible. Bodies are one scannable line each; recruiters scan.
  */
 
 export interface EmployerStage {
@@ -42,7 +50,8 @@ export const EMPLOYER_STAGES: readonly EmployerStage[] = [
   {
     id: 'define-requirements',
     title: 'Define what the role requires',
-    body: 'State what the role needs; requirements become the checklist every packet is measured against — nothing is graded against a hidden bar.',
+    body: 'State what the role needs. Requirements become the checklist every packet is measured against.',
+    boundary: 'Nothing is graded against a hidden bar.',
   },
   {
     id: 'receive-packet',
@@ -53,7 +62,8 @@ export const EMPLOYER_STAGES: readonly EmployerStage[] = [
   {
     id: 'review-coverage',
     title: 'Review coverage and blockers',
-    body: 'Every claim names its source, state, and freshness — checked reads as checked, gated as gated, blockers as blockers, never one green light over an unproven record.',
+    body: 'Every claim names its source, state, and freshness.',
+    boundary: 'Checked reads as checked, gated as gated, blockers as blockers — never one green light over an unproven record.',
   },
   {
     id: 'accept-head-start',
@@ -64,6 +74,7 @@ export const EMPLOYER_STAGES: readonly EmployerStage[] = [
   {
     id: 'reach-start-ready',
     title: 'Reach start-ready',
-    body: 'Work the remaining requirements down to start-ready — every step attributable and recorded, auditable end to end.',
+    body: 'Work the remaining requirements down to start-ready.',
+    boundary: 'Every step attributable and recorded, auditable end to end.',
   },
 ] as const;
