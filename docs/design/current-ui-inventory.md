@@ -76,7 +76,7 @@ Beyond the two `Badge.tsx` primitives, the codebase has ~30 status-shaped compon
 | `DecisionBadge` | `components/decision/DecisionBadge.tsx` | Decision outcome label |
 | `ReplayIntegrityBadge` | `components/replay-diagnostics/` | Audit replay integrity signal |
 | `ReuseSignalBadge` | `components/trust/ReuseSignalBadge.tsx` | Reuse-from-prior-receipt signal |
-| `SystemCapacityBadge`, `DeployBadge` | `components/capacity/`, `components/layout/` | Infrastructure signals |
+| `SystemCapacityBadge` | `components/capacity/` | Infrastructure signals |
 | `BadgeStatus`, `StatusBadge`, `claim-badge`, `trust-status-badge` | `components/ui/` | Multiple shadcn-style overlap |
 | `TrustStatusIndicator`, `SystemStatus` | `components/system/`, `components/marketing/` | More infrastructure signals |
 
@@ -161,7 +161,6 @@ Auth components (`components/auth/`):
 | `Navbar.tsx` | top navigation |
 | `Footer.tsx` | bottom links |
 | `Grid.tsx` | layout primitive |
-| `DeployBadge.tsx` | small infrastructure badge |
 
 `/app/layout.tsx` mounts the chrome; `/app/HomePageClient.tsx` is the homepage client surface (PR-F #214).
 

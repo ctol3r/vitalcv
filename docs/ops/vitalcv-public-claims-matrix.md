@@ -1,7 +1,7 @@
 # VitalCV Public Claims Matrix
 
-Last updated: 2026-04-27
-Source branch: `fix/truth-align-live-sales-code-claims`
+Last updated: 2026-08-08 — W1081 removed `hero/SystemConsole` (deleted, see below)
+Originally authored on: `fix/truth-align-live-sales-code-claims` (2026-04-27)
 
 This matrix is the single source of truth for what VitalCV may say in
 public-facing copy (site, marketing components, employer/review surfaces).
@@ -13,13 +13,17 @@ public-facing copy (site, marketing components, employer/review surfaces).
   - **Partial** — some implementation exists; copy must use a qualifier ("pilot", "boundary", "metadata", "planned").
   - **Planned** — architecture or scaffolding only; copy must say "planned" or omit.
   - **Forbidden** — no implementation; the claim must not appear in any public surface.
+  - **Not claimed** — no live surface makes the claim today. The row is kept because
+    its **Forbidden wording** is still a standing guard: if the claim returns, it
+    returns under these constraints. Distinct from **Forbidden**, which is about
+    the implementation being absent, not the surface.
 - **Public surface** lists the rendering files (live, non-archived, non-sandbox).
 - **Code support** points at the implementation evidence (or its absence).
 - **Evidence** is the verifying merge / file path.
 
 | Claim | Public surface (live) | Code support | Status | Allowed wording | Forbidden wording | Evidence |
 |---|---|---|---|---|---|---|
-| NPPES identity lookup | `marketing/HeroSection.tsx`, `hero/SystemConsole.tsx` | `apps/web/app/api/ingest/[npi]/route.ts` proxy + fallback | **Live** | "source-backed identity (NPPES)", "NPI lookup with source backing" | "verified physician identity", "identity-proofed" | LIVE-100C/D fallbacks |
+| NPPES identity lookup | `marketing/HeroSection.tsx` | `apps/web/app/api/ingest/[npi]/route.ts` proxy + fallback | **Live** | "source-backed identity (NPPES)", "NPI lookup with source backing" | "verified physician identity", "identity-proofed" | LIVE-100C/D fallbacks |
 | OIG / LEIE check | trust-state surfaces | NPPES fallback identity pipeline + OIG/PECOS honest fallback cadence per Wave GOD-3S | **Partial** | "OIG/LEIE source-backed check (cadence: per-source)" | "real-time OIG verification", "continuous OIG monitoring" | existing board: "Truth/Enforcement 71% — Identity, OIG, PECOS enforced" |
 | PECOS public posture | trust-state surfaces | Same fallback pipeline | **Partial** | "PECOS public posture lookup" | "PECOS-certified", "real-time PECOS sync" | same |
 | State board / FSMB lane | (no live surface) | Existing board: "Authority Lanes 32% — state boards require extensive adapter build-out" | **Planned** | "state-board lane on the roadmap" | "state license verified", "FSMB-verified" | existing board |
@@ -30,7 +34,7 @@ public-facing copy (site, marketing components, employer/review surfaces).
 | Receipt candidate (literal `decisionGrade:false`, `proofTier:'receipt_candidate'`) | `review/[entityId]` | `apps/web/lib/issuer-verification/receiptCandidate.ts` | **Live** | "receipt candidate", "candidate (not yet a verified receipt)" | "verified receipt", "PSV receipt" (when actually a candidate) | CLAUDE.md truth contract |
 | Policy review 5-gate flow | `policy-review/[requestId]` | `apps/web/lib/issuer-verification/policyReview.ts` | **Live** | "policy review with 5 acceptance gates" | "automatic policy clearance" | code |
 | PSV receipt promotion + reuse + revocation boundary | `review/*` | PR #172 | **Live** | "PSV receipt boundary", "reuse / revocation rules" | "instant credentialing", "complete credentialing" (banned per CLAUDE.md) | #172 |
-| Audit-boundary metadata (event schema, no real writer) | `employer/*`, `review/*`, `passport/SharePacketModal`, `marketing/BentoGrid`, `hero/SystemConsole`, `marketing/AcceptanceNetwork` | PRs #175, #176, #177, #180; **default writer is `createDeferredServerPsvReceiptWriter` — never persists** | **Partial** | "audit-boundary metadata", "audit-boundary record", "captured as audit-boundary entry", "pilot audit-boundary metadata", "audit-ready structure" | "audit trail", "audit event recorded", "logged to audit trail", "production audit trail", "Merkle audit trail", "cryptographically anchored", "Cryptographic Audit Anchor", "tamper-proof", "irreversible proof" | #175 / #180 defer doc |
+| Audit-boundary metadata (event schema, no real writer) | `employer/*`, `review/*`, `passport/SharePacketModal`, `marketing/BentoGrid`, `marketing/AcceptanceNetwork` | PRs #175, #176, #177, #180; **default writer is `createDeferredServerPsvReceiptWriter` — never persists** | **Partial** | "audit-boundary metadata", "audit-boundary record", "captured as audit-boundary entry", "pilot audit-boundary metadata", "audit-ready structure" | "audit trail", "audit event recorded", "logged to audit trail", "production audit trail", "Merkle audit trail", "cryptographically anchored", "Cryptographic Audit Anchor", "tamper-proof", "irreversible proof" | #175 / #180 defer doc |
 | Server persistence writer | (none — internal only) | `serverPsvReceiptWriter.ts` deferred default; defensive downgrade orchestrator | **Partial** (boundary only) | "server-side persistence boundary", "deferred persistence writer", "boundary contract" | "persisted by default", "production database write" | #180 |
 | Real persistence writer (DB-backed PSV receipt write) | (must not be claimed) | None on `main`. Schema/RPC/audit-table blockers per #180 defer memo. | **Forbidden** | (none — do not claim) | "persisted", "stored in our database", "permanently recorded" | absence; #180 defer memo |
 | Cryptographic signing of audit records | (must not be claimed) | None | **Forbidden** | "cryptographic signing is on the roadmap" (only inside an explicit roadmap context) | "cryptographically verifiable audit trail", "cryptographically signed compliance", "signed audit records" | absence |
@@ -52,7 +56,7 @@ public-facing copy (site, marketing components, employer/review surfaces).
 | Biometric signature payload binding | `verifier/AuditProofViewer.tsx:157` | None on `main` | **Forbidden** | (none) | "biometric signature payload", "bound via biometric signature" | absence |
 | Government ID verification / liveness | (must not be claimed) | None | **Forbidden** | (none) | "government ID verified", "liveness checked", "identity-proofed" | absence; per Completion Board |
 | Native iOS / Android app | (must not be claimed) | None | **Forbidden** | (none) | "iOS app", "Android app", "in the App Store" | absence; per Completion Board |
-| Continuous monitoring of compliance | `hero/SystemConsole` (now "monitors freshness") | Freshness timers exist; "compliance monitoring" overstates this | **Partial** | "continuously monitors source freshness", "freshness windows tracked" | "continuously monitors compliance", "live compliance monitoring" | code |
+| Continuous monitoring of compliance | _none — `hero/SystemConsole` deleted (W1081)_ | Freshness timers exist; "compliance monitoring" overstates this | **Not claimed** | "continuously monitors source freshness", "freshness windows tracked" | "continuously monitors compliance", "live compliance monitoring" | code |
 | 21st Century Cures / TEFCA framing | `marketing/HomeSections` | Background context, not a product claim | **Live** (as context) | "TEFCA and Cures Act create the demand window" | "TEFCA-certified", "Cures-Act compliant" | regulatory text only |
 
 ## Blanket banned strings (any public surface)
