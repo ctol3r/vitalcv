@@ -2059,7 +2059,7 @@ function ReviewClientLoaded({
           <SectionReveal delay={0.05}>
             <Card className="gap-3 rounded-2xl border-white/8 bg-card px-5 py-4 shadow-none">
             <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground/60">
-              Passport truth in this review
+              Source truth in this review
             </p>
 
             <div className="rounded-lg border border-white/6 bg-white/2 px-3 py-2.5">
@@ -2096,7 +2096,7 @@ function ReviewClientLoaded({
               items={reviewTruth.buckets.sourceBackedNow}
               icon="✓"
               accentClassName="text-emerald-400/60"
-              emptyLabel="No source-backed Passport proof is attached yet."
+              emptyLabel="No source-backed proof is attached yet."
             />
 
             {reviewTruth.buckets.contextualOnly.length > 0 && (
@@ -2138,7 +2138,7 @@ function ReviewClientLoaded({
                 items={reviewTruth.buckets.missingOrAccessRequired}
                 icon="–"
                 accentClassName="text-muted-foreground/40"
-                emptyLabel="No missing Passport proof sections are flagged right now."
+                emptyLabel="No missing proof sections are flagged right now."
               />
             </div>
 

@@ -672,14 +672,14 @@ export function ActivateOnboardingStep({
       }),
     ]).then(async ([ingestResult, activateResult]) => {
       if (activateResult.status !== 'fulfilled') {
-        setError('Passport creation failed before activation could complete.');
+        setError('Profile creation failed before activation could complete.');
         return;
       }
 
       const activateResponse = activateResult.value;
       const activatePayload = await activateResponse.json().catch(() => ({})) as ActivationResult & { error?: string };
       if (!activateResponse.ok) {
-        setError(activatePayload.error ?? 'Passport creation failed. Please try again.');
+        setError(activatePayload.error ?? 'Profile creation failed. Please try again.');
         return;
       }
 

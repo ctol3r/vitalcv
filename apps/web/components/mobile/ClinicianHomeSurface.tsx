@@ -173,7 +173,7 @@ export default function ClinicianHomeSurface() {
             ? data.recommendedAction?.ctaLabel ?? 'View opportunities'
             : data.recommendedAction?.kind === 'view_application'
               ? 'View application'
-              : data.recommendedAction?.ctaLabel ?? 'Open passport',
+              : data.recommendedAction?.ctaLabel ?? 'Open your profile',
         tone: 'emerald' as const,
       };
   const proof = buildClinicianProofSummary(data);

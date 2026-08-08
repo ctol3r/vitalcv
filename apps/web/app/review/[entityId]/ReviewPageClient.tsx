@@ -205,7 +205,7 @@ export default async function ReviewPageClient({
             description={
               isOrgError
                 ? 'Sign in and configure your employer workspace to access the full review surface.'
-                : 'This clinician passport is not available for review yet. The clinician may need to run a readiness check first.'
+                : 'This clinician record is not available for review yet. The clinician may need to run a readiness check first.'
             }
             tone="warning"
             centered
