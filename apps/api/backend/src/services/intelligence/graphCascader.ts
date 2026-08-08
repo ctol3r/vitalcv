@@ -1,4 +1,3 @@
-// @ts-nocheck
 import prisma from '../../graphql/prisma_client';
 import { log } from '../../obs/logger';
 import { setRevoked } from '../ledger/statusListManager';

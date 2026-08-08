@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * statusListManager.ts — Wave 40: Continuous Trust & Revocation Engine
  *
