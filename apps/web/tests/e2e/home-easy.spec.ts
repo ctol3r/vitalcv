@@ -121,15 +121,16 @@ test.describe('home — layout integrity across viewports', () => {
 });
 
 test.describe('home — reduced motion', () => {
-  test.use({ reducedMotion: 'reduce' });
-
+  // page.emulateMedia rather than test.use: with this config the context
+  // option is not honored (@playwright/test 1.58.2), the CDP call is.
   test('the static frame is complete, annotated, and loses no meaning', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto('/');
     await expect(surface(page)).toHaveClass(/is-static/, { timeout: 15000 });
     await expect(surface(page)).toHaveAttribute('data-active-beat', '5');
     // Every beat's content is present at once.
-    await expect(surface(page).getByText('What VitalCV found')).toBeVisible();
+    await expect(surface(page).getByText('What VitalCV found', { exact: true })).toBeVisible();
     await expect(surface(page).getByText(/what still matters/)).toBeVisible();
     await expect(surface(page).locator('.ezh-applied')).toBeVisible();
     // The annotation legend replaces the timeline.

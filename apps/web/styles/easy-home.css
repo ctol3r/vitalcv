@@ -7,8 +7,9 @@
  * completed/moving work and the primary action, amber for "needs a person".
  *
  * Island discipline: `.ezh` scopes everything; every color routes through an
- * --ezh-* custom property declared on the island root. No @keyframes — the
- * work surface is a JS-scheduled class timeline over CSS transitions, so
+ * --ezh-* custom property declared on the island root. No keyframe
+ * animations — the work surface is a JS-scheduled class timeline over CSS
+ * transitions, so
  * reduced-motion neutralization and the static end-frame need no animation
  * machinery. No z-index: stacking follows DOM order. No scroll interception:
  * the browser scrolls; we observe.
@@ -19,22 +20,22 @@
  */
 
 .ezh {
-  --ezh-ground: #141517;
-  --ezh-panel: #1c1d20;
-  --ezh-panel2: #222326;
-  --ezh-line: #2e2f33;
-  --ezh-line2: #3a3c40;
+  --ezh-ground: #151412;
+  --ezh-panel: #1d1b19;
+  --ezh-panel2: #232120;
+  --ezh-line: #32302d;
+  --ezh-line2: #403d39;
   --ezh-text: #f2f1ed;
   --ezh-text2: #9c9d99;
   --ezh-text3: #7b7d79;
   --ezh-work: #4ade97;
   --ezh-work-deep: #2e9e6b;
   --ezh-hold: #e4b45c;
-  --ezh-wait: #8a8c8f;
-  --ezh-cta-text: #12231b;
+  --ezh-wait: #8f8c88;
+  --ezh-cta-text: #1c1914;
   --ezh-light: #f6f5f1;
   --ezh-light-line: #d9d6cd;
-  --ezh-light-text: #141517;
+  --ezh-light-text: #151412;
   --ezh-light-text2: #5b5c57;
   --ezh-maxw: 1400px;
   --ezh-gutter: 32px;

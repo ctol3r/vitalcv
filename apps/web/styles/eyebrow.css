@@ -17,14 +17,15 @@
   /* dark register (the homepage ground) */
   --eb-h: 64px;
   --eb-gutter: 32px;
-  --eb-bg: #141517;
+  --eb-bg: #151412;
   --eb-text: #f2f1ed;
   --eb-text2: #9c9d99;
   --eb-text3: #7b7d79;
-  --eb-line: #2e2f33;
+  --eb-line: #32302d;
   --eb-work: #4ade97;
   --eb-work-deep: #2e9e6b;
-  --eb-cta-text: #12231b;
+  --eb-cta-text: #1c1914;
+  --eb-on-work: #f2f1ed;
 
   position: sticky;
   top: 0;
@@ -38,7 +39,7 @@
 
 .vcv-eb[data-eb-theme='light'] {
   --eb-bg: #f6f5f1;
-  --eb-text: #141517;
+  --eb-text: #151412;
   --eb-text2: #5b5c57;
   --eb-text3: #8b8c85;
   --eb-line: #d9d6cd;
@@ -151,12 +152,12 @@
 .vcv-eb__cta:hover,
 .vcv-eb__cta:focus-visible {
   background: var(--eb-work-deep);
-  color: var(--eb-text);
+  color: var(--eb-on-work);
 }
 
 .vcv-eb[data-eb-theme='light'] .vcv-eb__cta {
   background: var(--eb-work-deep);
-  color: #f2f1ed;
+  color: var(--eb-on-work);
 }
 
 .vcv-eb__cta-short {
@@ -197,11 +198,21 @@
 
 /* ── full-takeover index menu ──────────────────────────────────────────── */
 
+/* The takeover is ALWAYS the dark register, regardless of the bar's current
+   inversion state — so it carries its own constants rather than the flipping
+   --eb-* family. */
 .vcv-eb-menu {
+  --ebm-bg: #151412;
+  --ebm-text: #f2f1ed;
+  --ebm-text2: #9c9d99;
+  --ebm-text3: #7b7d79;
+  --ebm-line: #32302d;
+  --ebm-work: #4ade97;
+
   position: fixed;
   inset: 0;
-  background: #141517;
-  color: #f2f1ed;
+  background: var(--ebm-bg);
+  color: var(--ebm-text);
   display: flex;
   flex-direction: column;
 }
@@ -213,22 +224,22 @@
   align-items: center;
   justify-content: space-between;
   padding: 0 var(--eb-gutter, 32px);
-  border-bottom: 1px solid #2e2f33;
+  border-bottom: 1px solid var(--ebm-line);
 }
 
 .vcv-eb-menu__top .vcv-eb__wordmark {
-  color: #f2f1ed;
+  color: var(--ebm-text);
 }
 
 .vcv-eb-menu__close {
   width: 44px;
   height: 44px;
-  border: 1px solid #2e2f33;
+  border: 1px solid var(--ebm-line);
   border-radius: 2px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: #f2f1ed;
+  color: var(--ebm-text);
   background: none;
   cursor: pointer;
   font-size: 15px;
@@ -237,7 +248,7 @@
 
 .vcv-eb-menu__close:hover,
 .vcv-eb-menu__close:focus-visible {
-  border-color: #9c9d99;
+  border-color: var(--ebm-text2);
 }
 
 .vcv-eb-menu__scroll {
@@ -264,9 +275,9 @@
   font-weight: 500;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: #7b7d79;
+  color: var(--ebm-text3);
   padding-bottom: 12px;
-  border-bottom: 1px solid #2e2f33;
+  border-bottom: 1px solid var(--ebm-line);
 }
 
 .vcv-eb-menu__link {
@@ -278,26 +289,26 @@
   font-weight: 500;
   letter-spacing: -0.01em;
   line-height: 1.2;
-  color: #f2f1ed;
+  color: var(--ebm-text);
   padding: 14px 0;
-  border-bottom: 1px solid #2e2f33;
+  border-bottom: 1px solid var(--ebm-line);
   transition: color 0.15s ease;
 }
 
 .vcv-eb-menu__link:hover,
 .vcv-eb-menu__link:focus-visible {
-  color: #4ade97;
+  color: var(--ebm-work);
 }
 
 .vcv-eb-menu__link i {
   margin-left: auto;
   font-style: normal;
   font-size: 18px;
-  color: #7b7d79;
+  color: var(--ebm-text3);
 }
 
 .vcv-eb-menu__link:hover i {
-  color: #4ade97;
+  color: var(--ebm-work);
 }
 
 .vcv-eb-menu__detail {
@@ -305,7 +316,7 @@
   font-family: var(--font-geist);
   font-size: 12.5px;
   font-weight: 400;
-  color: #9c9d99;
+  color: var(--ebm-text2);
   margin-top: 4px;
 }
 
@@ -317,7 +328,7 @@
   font-weight: 500;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: #7b7d79;
+  color: var(--ebm-text3);
 }
 
 /* ── mobile recomposition: wordmark + Start + menu box at 56px ─────────── */

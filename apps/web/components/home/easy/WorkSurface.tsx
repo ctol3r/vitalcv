@@ -18,7 +18,7 @@
  * frame stays put and gains numbered beat annotations instead.
  *
  * The timeline is JS-scheduled class toggling over CSS transitions — no
- * @keyframes, no scroll coupling, no wheel listeners. Each beat announces
+ * keyframe animations, no scroll coupling, no wheel listeners. Each beat announces
  * itself through the HOME_BEAT_EVENT custom event so the eyebrow's mono
  * ticker can narrate along.
  */

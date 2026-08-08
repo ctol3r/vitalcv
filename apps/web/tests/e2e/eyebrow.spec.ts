@@ -179,10 +179,11 @@ test.describe('eyebrow — mobile recomposition', () => {
 });
 
 test.describe('eyebrow — reduced motion', () => {
-  test.use({ reducedMotion: 'reduce' });
-
+  // page.emulateMedia rather than test.use: with this config the context
+  // option is not honored (@playwright/test 1.58.2), the CDP call is.
   test('the ticker holds the static label', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto('/');
     await expect(eyebrow(page)).toBeVisible();
     const ticker = page.locator('.vcv-eb__ticker');
