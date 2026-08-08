@@ -1,9 +1,18 @@
 import { NextResponse } from 'next/server';
 import { getBackendBase } from '@/lib/api';
+import { checkAuth, readAuthEnv, readAuthHeaders } from './_auth';
 
 export const runtime = 'nodejs';
 
-export async function GET(): Promise<NextResponse> {
+// Machine-authenticated like probe/ and snapshots/ below it: the backend's
+// /api/mission-ops/sources sits behind a caller-supplied org header (gap G1),
+// so this proxy is the surface that actually keeps the report internal.
+export async function GET(request: Request): Promise<NextResponse> {
+  const auth = checkAuth(readAuthHeaders(request), readAuthEnv());
+  if (!auth.ok) {
+    return NextResponse.json(auth.body, { status: auth.status });
+  }
+
   try {
     const response = await fetch(`${getBackendBase()}/api/mission-ops/sources`, {
       cache: 'no-store',
