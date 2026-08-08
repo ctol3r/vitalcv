@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { getBackendBase } from '@/lib/api';
+import { checkAuth, readAuthEnv, readAuthHeaders } from '../../source-health/_auth';
 
 export const runtime = 'nodejs';
 
@@ -38,6 +39,21 @@ function isValidIsoDateString(value: unknown): value is string {
 }
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
+  // This route WRITES: it forwards the caller's payload to the backend with
+  // x-monitoring-secret attached, so the record it creates carries the
+  // platform's own authority. Checking that MONITORING_SECRET is *configured*
+  // (below) is a config check, not an auth check — it never read anything the
+  // caller presented, which left anonymous callers able to write pilot
+  // start-outcome events, the input to the qualified-start metric.
+  //
+  // REAL_PILOT_RUNBOOK.md already documents operators sending
+  // `X-Monitoring-Secret: $MONITORING_SECRET` here, so verifying it breaks no
+  // documented caller.
+  const auth = checkAuth(readAuthHeaders(req), readAuthEnv());
+  if (!auth.ok) {
+    return NextResponse.json(auth.body, { status: auth.status });
+  }
+
   if (!MONITORING_SECRET) {
     return NextResponse.json({ error: 'MONITORING_SECRET not configured.' }, { status: 500 });
   }

@@ -132,7 +132,11 @@ intended source for start-of-funnel reporting once the PostHog key is set.
 
 `GET /api/internal/funnel-metrics` computes today's counts and rates from the
 live events only (`homepage_viewed`, `npi_input_started`, `npi_submitted`,
-`results_displayed`, `dropoff_detected`). Events with no live producer —
+`results_displayed`, `dropoff_detected`). It is machine-authenticated like the
+source-health probe — send `Authorization: Bearer <CRON_SECRET>` or
+`x-monitoring-secret: <MONITORING_SECRET>`; anonymous callers get 401, and the
+route fails closed (500) if neither secret is configured. The queries run with
+`POSTHOG_PERSONAL_API_KEY`, which is why the route cannot be open. Events with no live producer —
 `npi_input_focused` (producer deleted 2026-08-07 with the `/passport`
 retirement, #1099) and the signup/packet tail — are returned in its
 `retired_events` block with the reason for each, not counted: the endpoint is

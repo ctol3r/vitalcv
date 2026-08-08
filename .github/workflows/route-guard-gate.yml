@@ -8,10 +8,17 @@ name: Route Guard Gate
 # PROTECTED_ROUTES. Nothing compared the prose to the array, and nothing
 # compared either to the routes actually served. This gate does both.
 #
-# Three rules, all ratchets against scripts/route-guard-baseline.json:
+# Four rules, all ratchets against scripts/route-guard-baseline.json:
 #   ROUTE-01  a served route protected by nothing, declared public by nothing
 #   ROUTE-02  a guard pattern matching no served route (orphaned guard)
 #   ROUTE-03  a ROLE_LANDING target that is not a served route
+#   ROUTE-04  an /api/internal route handler reaching no auth guard
+#
+# ROUTE-04 exists because rules 1-3 read page.tsx only, while
+# PUBLIC_ROUTE_PATTERNS exempts all of /api from the middleware on the promise
+# that API routes handle their own auth. /api/internal/funnel-metrics handled
+# none and shipped driving a privileged PostHog personal API key for anonymous
+# callers.
 #
 # Baselines are LISTS, not counts, so a failure names the exact route and the
 # baseline file stays a reviewable inventory of known drift.

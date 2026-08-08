@@ -20,6 +20,13 @@
  * It imports the REAL arrays rather than re-parsing them, so the gate reads
  * the same source of truth the middleware does and cannot drift from it.
  *
+ * ROUTE-04 extends the same question to /api/internal route handlers, which
+ * rules 1–3 cannot see: they read page.tsx only, and PUBLIC_ROUTE_PATTERNS
+ * exempts all of /api from the middleware on the promise that "API routes
+ * handle their own auth". /api/internal/funnel-metrics handled none, and
+ * shipped forwarding anonymous callers' queries to PostHog under a privileged
+ * personal API key. Nothing here compared that promise to the handlers.
+ *
  * PROTECTION IS NOT ONLY `PROTECTED_ROUTES`. Some pages guard themselves with
  * an inline `auth()` / `currentUser()` call in the page or an ancestor layout
  * (`/admin/leads`, `/admin/platform`, `/ops` all do, and all correctly 307 to
@@ -123,19 +130,129 @@ function concreteUrl(route: string): string {
 /** Does this page, or any layout wrapping it, perform its own auth check? */
 const SELF_GUARD = /\bauth\s*\(\s*\)|\bcurrentUser\s*\(|\brequireRole\b|\brequireOrgRole\b/;
 
+/** Comments describing auth are not auth. */
+function stripComments(source: string): string {
+  return source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+}
+
+function readCode(file: string): string | null {
+  try {
+    return stripComments(readFileSync(file, 'utf8'));
+  } catch {
+    return null;
+  }
+}
+
 function isSelfGuarded(chain: string[]): boolean {
   return chain.some((f) => {
-    let source: string;
-    try {
-      source = readFileSync(f, 'utf8');
-    } catch {
-      return false;
-    }
-    // Strip comments so prose describing auth does not read as auth.
-    const code = source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
-    return SELF_GUARD.test(code);
+    const code = readCode(f);
+    return code !== null && SELF_GUARD.test(code);
   });
 }
+
+// ── API handlers ───────────────────────────────────────────────────────────
+//
+// The three rules above read app/**/page.tsx only. Route handlers are invisible
+// to them, and PUBLIC_ROUTE_PATTERNS exempts all of /api from the middleware
+// with the comment "API routes handle their own auth" — so an /api/internal
+// handler that handles none is protected by nothing and declared public by
+// nothing, and no gate here notices. That is not hypothetical:
+// /api/internal/funnel-metrics shipped forwarding anonymous callers' queries
+// to PostHog under POSTHOG_PERSONAL_API_KEY, a privileged personal key.
+//
+// ROUTE-04 covers the /api/internal family specifically: every route under it
+// is by name an operator or machine surface, so "reachable by anyone" is always
+// a finding, with no judgement call about which are meant to be public.
+
+const INTERNAL_API_DIR = join(APP_DIR, 'api', 'internal');
+
+/**
+ * Guards reached through a helper (`forwardPilotOpsRequest` →
+ * `requireAdminPilotSession`) are real guards, so this follows local imports
+ * one hop rather than pattern-matching helper names — a name allowlist would
+ * pass any future helper that merely *looks* like it guards.
+ *
+ * One hop, whole-file: same coarseness as `isSelfGuarded` above. It answers
+ * "is a guard anywhere on this path", not "does this specific export guard".
+ * The gate's job is finding handlers protected by NOTHING; proving a given
+ * closure guards correctly is the route test's job (see
+ * __tests__/funnel-metrics-route-auth.test.ts).
+ */
+// `authenticate*(` covers the release-monitor webhook's `authenticateWebhook`,
+// which does its own timing-safe compare and fails closed rather than reusing
+// checkAuth. Leaving it out reported a genuinely guarded route as a hole — and
+// a gate that cries wolf teaches everyone to skip its output, which is how #908
+// survived months.
+const API_GUARD =
+  /\bcheckAuth\b|\brequireAdminPilotSession\b|\bauthenticate\w*\s*\(|\bauth\s*\(\s*\)|\bcurrentUser\s*\(|\brequireRole\b|\brequireOrgRole\b/;
+
+/** Resolve an import specifier to a file under apps/web, or null if external. */
+function resolveLocalImport(spec: string, fromFile: string): string | null {
+  let base: string;
+  if (spec.startsWith('@/')) {
+    base = join(APP_DIR, '..', spec.slice(2));
+  } else if (spec.startsWith('.')) {
+    base = resolve(join(fromFile, '..'), spec);
+  } else {
+    return null;
+  }
+  for (const candidate of [`${base}.ts`, `${base}.tsx`, join(base, 'index.ts')]) {
+    try {
+      if (statSync(candidate).isFile()) return candidate;
+    } catch {
+      // Not this extension; keep looking.
+    }
+  }
+  return null;
+}
+
+function importedLocalFiles(code: string, fromFile: string): string[] {
+  const specs = [...code.matchAll(/from\s+['"]([^'"]+)['"]/g)].map((m) => m[1]);
+  return specs
+    .map((s) => resolveLocalImport(s, fromFile))
+    .filter((f): f is string => f !== null);
+}
+
+function collectApiRoutes(dir: string): string[] {
+  let entries: string[];
+  try {
+    entries = readdirSync(dir);
+  } catch {
+    return [];
+  }
+  const found: string[] = [];
+  if (entries.includes('route.ts')) found.push(join(dir, 'route.ts'));
+  for (const entry of entries) {
+    if (entry === 'node_modules' || entry.startsWith('.')) continue;
+    const child = join(dir, entry);
+    if (statSync(child).isDirectory()) found.push(...collectApiRoutes(child));
+  }
+  return found;
+}
+
+/** URL path for a route.ts, relative to the app dir. */
+function apiRouteUrl(file: string): string {
+  const rel = file.slice(APP_DIR.length).replace(/\/route\.ts$/, '');
+  return rel
+    .split('/')
+    .filter((s) => s !== '' && !isRouteGroup(s) && !isNonAddressable(s))
+    .reduce((acc, s) => `${acc}/${s}`, '');
+}
+
+function isApiGuarded(routeFile: string): boolean {
+  const code = readCode(routeFile);
+  if (code === null) return false;
+  if (API_GUARD.test(code)) return true;
+  return importedLocalFiles(code, routeFile).some((f) => {
+    const dep = readCode(f);
+    return dep !== null && API_GUARD.test(dep);
+  });
+}
+
+const unguardedInternalApi = collectApiRoutes(INTERNAL_API_DIR)
+  .filter((f) => !isApiGuarded(f))
+  .map(apiRouteUrl)
+  .sort();
 
 // ── Analyse ────────────────────────────────────────────────────────────────
 
@@ -193,6 +310,12 @@ const rules: Rule[] = [
     mode: 'ratchet',
     title: 'ROLE_LANDING target that is not a served route',
     findings: deadLandings,
+  },
+  {
+    id: 'ROUTE-04',
+    mode: 'ratchet',
+    title: '/api/internal route handler reaching no auth guard',
+    findings: unguardedInternalApi,
   },
 ];
 

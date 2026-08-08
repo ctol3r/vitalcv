@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { checkAuth, readAuthEnv, readAuthHeaders } from '../source-health/_auth';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -80,7 +81,17 @@ async function queryPostHog<T>(query: string): Promise<T[]> {
   });
 }
 
-export async function GET() {
+export async function GET(request: Request) {
+  // Machine-authenticated: every query here is executed with
+  // POSTHOG_PERSONAL_API_KEY, a privileged personal key, so an open route
+  // would let anonymous callers drive it. Reuses the source-health probe's
+  // checkAuth (same reasoning as agent/tick). Both env secrets unset ⇒ 500,
+  // not open.
+  const auth = checkAuth(readAuthHeaders(request), readAuthEnv());
+  if (!auth.ok) {
+    return NextResponse.json(auth.body, { status: auth.status });
+  }
+
   if (!POSTHOG_API_KEY || !POSTHOG_PROJECT_ID) {
     return NextResponse.json(
       {
