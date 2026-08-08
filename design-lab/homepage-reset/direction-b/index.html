@@ -1,0 +1,1308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>VitalCV — Direction B: Intelligent Product</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script>document.documentElement.className += ' js';</script>
+<style>
+/* ============================================================
+   DIRECTION B — INTELLIGENT PRODUCT
+   Warm dark ground. Precise hairlines. The product surface is
+   the hero: you watch VitalCV work before anyone asks you to
+   believe anything.
+   ============================================================ */
+
+:root{
+  --ground:#141517;
+  --panel:#1C1D20;
+  --panel2:#222326;
+  --line:#2E2F33;
+  --line2:#3A3C40;
+  --ink:#F2F1ED;
+  --ink2:#9C9D99;
+  --ink3:#7B7D79;
+  --green:#4ADE97;
+  --green-deep:#2E9E6B;
+  --amber:#E4B45C;
+  --wait:#6E7073;
+  --wait-ink:#8A8C8F;
+  --cta-ink:#12231B;
+  --light:#F2F1ED;
+  --light-line:#D9D6CD;
+  --light-ink:#141517;
+  --light-ink2:#5B5C57;
+  --maxw:1400px;
+  --gutter:32px;
+  --eb-h:64px;
+}
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;scroll-padding-top:calc(var(--eb-h) + 16px)}
+body{
+  background:var(--ground);
+  color:var(--ink);
+  font:400 16px/1.55 'Geist',ui-sans-serif,system-ui,-apple-system,'Helvetica Neue',Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;
+  padding-top:var(--eb-h);
+}
+[hidden]{display:none!important}
+a{color:inherit;text-decoration:none}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+i,em{font-style:normal}
+::selection{background:var(--green-deep);color:var(--ink)}
+
+:focus-visible{outline:2px solid var(--green);outline-offset:2px}
+[data-ground="light"] :focus-visible{outline-color:var(--light-ink)}
+
+.wrap{max-width:var(--maxw);margin:0 auto;padding-left:var(--gutter);padding-right:var(--gutter)}
+
+.mono{font-family:'Geist Mono',ui-monospace,'SF Mono',Menlo,monospace}
+.k{ /* micro-label */
+  font:500 11px/1 'Geist Mono',ui-monospace,Menlo,monospace;
+  letter-spacing:.08em;text-transform:uppercase;color:var(--ink2);
+}
+
+.skip{
+  position:absolute;left:-9999px;top:0;z-index:100;
+  background:var(--green);color:var(--cta-ink);padding:10px 16px;font-weight:600;
+}
+.skip:focus{left:var(--gutter);top:8px}
+
+/* ============================================================
+   EYEBROW — one continuous 64px instrument
+   ============================================================ */
+#eyebrow{
+  --eb-bg:var(--ground);
+  --eb-ink:var(--ink);
+  --eb-ink2:var(--ink2);
+  --eb-line:var(--line);
+  position:fixed;top:0;left:0;right:0;height:var(--eb-h);z-index:60;
+  background:var(--eb-bg);color:var(--eb-ink);
+  border-bottom:1px solid var(--eb-line);
+  transition:background-color .24s ease,color .24s ease,border-color .24s ease;
+}
+#eyebrow.inverted{
+  --eb-bg:var(--light);
+  --eb-ink:var(--light-ink);
+  --eb-ink2:var(--light-ink2);
+  --eb-line:var(--light-line);
+}
+.eb-in{
+  position:relative;height:100%;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 var(--gutter);
+}
+.wordmark{
+  font:600 18px/1 'Geist',sans-serif;letter-spacing:-.01em;color:var(--eb-ink,var(--ink));
+}
+#eyebrow .wordmark{color:var(--eb-ink)}
+.eb-ticker{
+  position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  font:500 11px/1 'Geist Mono',ui-monospace,Menlo,monospace;
+  letter-spacing:.12em;text-transform:uppercase;color:var(--eb-ink2);
+  white-space:nowrap;pointer-events:none;
+}
+.eb-ticker.roll{animation:tickroll .38s ease}
+@keyframes tickroll{from{opacity:0;transform:translate(-50%,calc(-50% + 7px))}to{opacity:1;transform:translate(-50%,-50%)}}
+.eb-right{display:flex;align-items:center;gap:14px}
+.eb-signin{
+  font:500 13px/1 'Geist',sans-serif;color:var(--eb-ink2);
+  padding:10px 6px;transition:color .15s;
+}
+.eb-signin:hover{color:var(--eb-ink)}
+.eb-cta{
+  display:inline-flex;align-items:center;height:40px;padding:0 18px;
+  background:var(--green);color:var(--cta-ink);
+  font:600 13px/1 'Geist',sans-serif;letter-spacing:.01em;
+  border-radius:2px;
+  transition:background-color .15s;
+}
+.eb-cta:hover{background:#5fe5a5}
+.eb-cta .short{display:none}
+.box-btn{
+  width:44px;height:44px;border:1px solid var(--eb-line,var(--line));border-radius:2px;
+  display:inline-flex;align-items:center;justify-content:center;
+  color:var(--eb-ink,var(--ink));
+  transition:border-color .15s;
+}
+.box-btn:hover{border-color:var(--eb-ink2,var(--ink2))}
+.mi{display:flex;flex-direction:column;gap:5px;width:16px}
+.mi i{display:block;height:1px;background:currentColor}
+
+/* ============================================================
+   FULL-TAKEOVER INDEX MENU
+   ============================================================ */
+#menu{
+  position:fixed;inset:0;z-index:70;background:var(--ground);color:var(--ink);
+  display:none;flex-direction:column;
+}
+#menu.open{display:flex}
+.menu-top{
+  height:var(--eb-h);flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;
+  padding:0 var(--gutter);border-bottom:1px solid var(--line);
+}
+#menu .box-btn{border-color:var(--line);color:var(--ink);font-size:15px}
+.menu-list{
+  flex:1;display:flex;flex-direction:column;justify-content:center;
+  padding:0 var(--gutter);max-width:var(--maxw);width:100%;margin:0 auto;
+}
+.menu-list a{
+  display:flex;align-items:baseline;gap:22px;
+  font:500 34px/1.2 'Geist',sans-serif;letter-spacing:-.01em;color:var(--ink);
+  padding:16px 0;border-bottom:1px solid var(--line);
+  transition:color .15s;
+}
+.menu-list a:hover{color:var(--green)}
+.menu-list a b{
+  font:500 12px/1 'Geist Mono',monospace;letter-spacing:.08em;color:var(--ink3);font-weight:500;
+}
+.menu-list a i{margin-left:auto;color:var(--ink3);font-size:24px}
+.menu-list a:hover i{color:var(--green)}
+.menu-foot{
+  flex:0 0 auto;padding:20px var(--gutter);
+  font:500 10px/1 'Geist Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);
+}
+
+/* ============================================================
+   SECTION SCAFFOLD — indexed, hairline-ruled
+   ============================================================ */
+section{border-top:1px solid var(--line)}
+.sec-head{display:flex;align-items:baseline;gap:20px;padding-top:26px;margin-bottom:36px}
+.sec-idx{font:500 11px/1 'Geist Mono',monospace;letter-spacing:.12em;color:var(--ink3)}
+.sec-head h2{font:600 30px/1.15 'Geist',sans-serif;letter-spacing:-.015em}
+.sec-sub{max-width:560px;color:var(--ink2);font-size:15px;margin-top:-24px;margin-bottom:40px;margin-left:0}
+
+/* reveal on scroll (below the fold only) */
+html.js .reveal{opacity:0;transform:translateY(12px);transition:opacity .6s ease,transform .6s ease}
+html.js .reveal.seen{opacity:1;transform:none}
+
+/* ============================================================
+   HERO
+   ============================================================ */
+#hero{border-top:0}
+#hero .wrap{
+  display:grid;grid-template-columns:430px minmax(0,1fr);gap:56px;align-items:center;
+  padding-top:56px;padding-bottom:88px;
+}
+.hero-copy .k{display:block;margin-bottom:22px}
+h1{
+  font:600 48px/1.08 'Geist',sans-serif;letter-spacing:-.025em;color:var(--ink);
+  margin-bottom:20px;text-wrap:balance;
+}
+.hero-sub{color:var(--ink2);font-size:16px;line-height:1.6;max-width:400px;margin-bottom:30px}
+
+/* real NPI entry */
+.npi-form{max-width:400px}
+.npi-form label{display:block;margin-bottom:8px}
+.npi-row{display:flex;gap:8px}
+.npi-input{
+  flex:1;min-width:0;height:48px;padding:0 14px;
+  background:var(--panel);border:1px solid var(--line2);border-radius:2px;
+  color:var(--ink);
+  font:500 15px/1 'Geist Mono',ui-monospace,Menlo,monospace;letter-spacing:.14em;
+}
+.npi-input::placeholder{color:var(--ink3);letter-spacing:.06em}
+.npi-input:focus{outline:2px solid var(--green);outline-offset:0;border-color:transparent}
+.npi-submit{
+  height:48px;padding:0 22px;background:var(--green);color:var(--cta-ink);
+  font:600 14px/1 'Geist',sans-serif;border-radius:2px;white-space:nowrap;
+  transition:background-color .15s;
+}
+.npi-submit:hover{background:#5fe5a5}
+[data-ground="light"] .npi-input{background:#fff;border-color:#C9C6BC;color:var(--light-ink)}
+.form-note{
+  margin-top:10px;font:400 12px/1.5 'Geist Mono',monospace;color:var(--amber);
+}
+.form-fine{margin-top:12px;font-size:12px;color:var(--ink3)}
+.hero-emp{
+  margin-top:34px;font-size:13px;color:var(--ink3);
+}
+.hero-emp a{color:var(--ink2);border-bottom:1px solid var(--line2);padding-bottom:1px;transition:color .15s,border-color .15s}
+.hero-emp a:hover{color:var(--ink);border-color:var(--ink2)}
+
+/* ============================================================
+   THE PRODUCT SURFACE — the core of this direction
+   ============================================================ */
+.surface{
+  position:relative;
+  background:var(--panel);border:1px solid var(--line);border-radius:3px;
+  overflow:hidden;
+}
+.sf-chrome{
+  height:40px;display:flex;align-items:center;justify-content:space-between;gap:16px;
+  padding:0 14px;border-bottom:1px solid var(--line);
+}
+.sf-cap{
+  font:500 10px/1.4 'Geist Mono',monospace;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--ink3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.sf-tools{display:flex;align-items:center;gap:14px;flex:0 0 auto}
+.sf-dots{display:flex;gap:5px}
+.sf-dots i{width:6px;height:6px;border:1px solid var(--line2);border-radius:1px;transition:background-color .3s,border-color .3s}
+.sf-dots i.cur{background:var(--ink);border-color:var(--ink)}
+.sf-dots i.past{background:var(--ink3);border-color:var(--ink3)}
+.sf-replay{
+  display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px;
+  border:1px solid var(--line2);border-radius:2px;
+  font:500 10px/1 'Geist Mono',monospace;letter-spacing:.1em;color:var(--ink2);
+  transition:border-color .15s,color .15s;
+}
+.sf-replay:hover{border-color:var(--ink2);color:var(--ink)}
+.surface.played .sf-replay{color:var(--ink);border-color:var(--line2)}
+
+.sf-body{position:relative;height:600px}
+
+/* --- Stage 1: the typing NPI seed (transient) --- */
+.sf-stage{
+  position:absolute;inset:0;z-index:5;background:var(--panel);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;
+  transition:opacity .5s ease,transform .5s ease;
+}
+.sf-stage.off{opacity:0;transform:translateY(-16px);pointer-events:none;visibility:hidden;transition:opacity .5s ease,transform .5s ease,visibility 0s .5s}
+.npi-illus{border:1px solid var(--line2);border-radius:2px;background:var(--panel2);padding:22px 26px;min-width:340px}
+.npi-illus .k{display:block;margin-bottom:12px}
+.glyphs{display:flex;gap:7px;align-items:center;height:26px}
+.g{
+  width:17px;height:24px;border:1px solid var(--line2);border-radius:2px;background:transparent;
+  transition:background-color .18s ease,border-color .18s ease;
+}
+.g.on{background:var(--ink);border-color:var(--ink)}
+.caret{width:1px;height:20px;background:var(--ink2);margin-left:2px;animation:blink 1.05s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+.npi-go{
+  margin-top:16px;display:inline-flex;align-items:center;height:36px;padding:0 16px;
+  border:1px solid var(--line2);border-radius:2px;
+  font:500 12px/1 'Geist',sans-serif;color:var(--ink2);
+}
+.npi-go.pulse{animation:gopress .55s ease}
+@keyframes gopress{
+  0%{transform:none;border-color:var(--line2);color:var(--ink2)}
+  35%{transform:translateY(1px);border-color:var(--ink);color:var(--ink)}
+  100%{transform:none;border-color:var(--line2);color:var(--ink2)}
+}
+.stage-cap{font-size:12px;color:var(--ink3)}
+
+/* --- Columns: found facts (left) / what remains (right) --- */
+.sf-cols{display:grid;grid-template-columns:38fr 62fr;height:100%;transition:opacity .6s ease}
+.surface.dim .sf-cols{opacity:.38}
+.sf-left{padding:20px;border-right:1px solid var(--line);display:flex;flex-direction:column;gap:16px;min-width:0}
+.sf-rightcol{padding:20px;display:flex;flex-direction:column;gap:16px;min-width:0}
+
+.sf-h{font:600 14px/1.3 'Geist',sans-serif;color:var(--ink)}
+.sf-hsub{font-size:12px;color:var(--ink3);margin-top:3px}
+
+/* seed row (beat 1 resting state) */
+.seed{
+  display:flex;align-items:center;gap:10px;
+  border:1px solid var(--line2);border-radius:2px;background:var(--panel2);
+  padding:10px 12px;
+  opacity:0;transform:translateY(-6px);transition:opacity .45s ease,transform .45s ease;
+}
+.seed.on{opacity:1;transform:none}
+.seed-k{font:500 11px/1 'Geist Mono',monospace;letter-spacing:.08em;color:var(--ink2)}
+.seed-v{font:500 13px/1 'Geist Mono',monospace;letter-spacing:.3em;color:var(--ink)}
+.seed-tag{
+  margin-left:auto;font:500 9px/1 'Geist Mono',monospace;letter-spacing:.09em;color:var(--ink3);
+  border:1px solid var(--line2);border-radius:2px;padding:4px 6px;white-space:nowrap;
+}
+
+/* profile column (beat 2) */
+.profile{opacity:0;transition:opacity .45s ease}
+.profile.on{opacity:1}
+.facts{margin-top:12px;border-top:1px solid var(--line)}
+.fact{
+  display:grid;grid-template-columns:92px 1fr auto;align-items:center;gap:12px;
+  padding:12px 0;border-bottom:1px solid var(--line);
+  opacity:0;transform:translateX(-10px);transition:opacity .5s ease,transform .5s ease;
+}
+.fact.on{opacity:1;transform:none}
+.fact-l{font:500 10px/1.3 'Geist Mono',monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--ink2)}
+.skel{height:10px;background:var(--line2);border-radius:1px;transform:scaleX(.55);transform-origin:left;transition:transform .8s .15s cubic-bezier(.25,.7,.2,1)}
+.fact.on .skel{transform:none}
+.src{
+  font:500 9px/1 'Geist Mono',monospace;letter-spacing:.07em;text-transform:uppercase;
+  color:var(--ink2);border:1px solid var(--line2);border-radius:2px;padding:4px 6px;white-space:nowrap;
+}
+.fact-cap{font-size:11.5px;line-height:1.5;color:var(--ink3);margin-top:10px;opacity:0;transition:opacity .5s ease}
+.fact-cap.on{opacity:1}
+
+/* what remains (beat 3) */
+.remains{opacity:0;transition:opacity .45s ease}
+.remains.on{opacity:1}
+.arows{list-style:none;margin-top:12px;border-top:1px solid var(--line)}
+.arow{
+  display:grid;grid-template-columns:1fr auto minmax(150px,auto);align-items:center;gap:12px;
+  padding:11px 0;border-bottom:1px solid var(--line);
+  opacity:0;transform:translateY(8px);transition:opacity .45s ease,transform .45s ease;
+}
+.arow.on{opacity:1;transform:none}
+.arow-t{font-size:13px;color:var(--ink);line-height:1.35}
+.chip{
+  font:500 9px/1 'Geist Mono',monospace;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--ink2);border:1px solid var(--line2);border-radius:2px;padding:4px 6px;white-space:nowrap;
+}
+.stz{display:flex;justify-content:flex-end;min-width:0}
+.st{display:none;font:500 11px/1.3 'Geist Mono',monospace;letter-spacing:.03em;white-space:nowrap;align-items:center;gap:6px}
+.st .ck{font-size:10px}
+.st-idle{display:inline-flex;color:var(--ink3)}
+.arow.is-done .st-idle,.arow.is-ready .st-idle,.arow.is-approved .st-idle,
+.arow.is-needs .st-idle,.arow.is-wait .st-idle{display:none}
+.arow.is-done .st-done{display:inline-flex;color:var(--green)}
+.arow.is-ready .st-ready{display:inline-flex;color:var(--amber)}
+.arow.is-approved .st-approved{display:inline-flex;color:var(--green)}
+.arow.is-needs .st-needs{display:inline-flex;color:var(--amber)}
+.arow.is-wait .st-wait{display:inline-flex;color:var(--wait-ink)}
+.st .t{font-weight:500;color:var(--ink3);margin-left:2px}
+
+/* work feed + approval moment (beat 4) */
+.workfeed{
+  display:grid;grid-template-columns:minmax(0,1fr) 264px;gap:16px;align-items:start;
+  margin-top:auto;
+  opacity:0;transform:translateY(8px);transition:opacity .5s ease,transform .5s ease;
+}
+.workfeed.on{opacity:1;transform:none}
+.feed{border:1px solid var(--line);border-radius:2px;background:var(--panel2);padding:12px 14px;display:flex;flex-direction:column;gap:9px}
+.feed .k{margin-bottom:2px}
+.feedline{
+  display:flex;gap:10px;align-items:baseline;
+  font:400 10.5px/1.5 'Geist Mono',monospace;letter-spacing:.03em;color:var(--ink2);
+  opacity:0;transform:translateX(-8px);transition:opacity .4s ease,transform .4s ease;
+}
+.feedline.on{opacity:1;transform:none}
+.feedline b{color:var(--ink3);font-weight:500}
+.feedline .ck{color:var(--green)}
+.apcard{
+  border:1px solid var(--line2);border-left:2px solid var(--amber);border-radius:2px;
+  background:var(--panel2);padding:13px 14px;
+  opacity:0;transform:translateY(10px);transition:opacity .5s ease,transform .5s ease;
+}
+.apcard.on{opacity:1;transform:none}
+.ap-head{font:500 10px/1 'Geist Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--amber);margin-bottom:8px}
+.ap-head .h-ok{display:none;color:var(--green)}
+.apcard.confirmed{border-left-color:var(--green-deep)}
+.apcard.confirmed .h-wait{display:none}
+.apcard.confirmed .h-ok{display:inline}
+.ap-body{font-size:12.5px;line-height:1.45;color:var(--ink);margin-bottom:10px}
+.ap-btn{
+  display:inline-flex;align-items:center;height:30px;padding:0 14px;
+  border:1px solid var(--amber);border-radius:2px;color:var(--amber);
+  font:600 12px/1 'Geist',sans-serif;
+  transition:transform .15s ease,opacity .3s ease,border-color .3s,color .3s;
+}
+.ap-btn.pressed{transform:translateY(1px);border-color:var(--green);color:var(--green)}
+.apcard.confirmed .ap-btn{display:none}
+.ap-done{display:none;font:500 11px/1.3 'Geist Mono',monospace;color:var(--green)}
+.apcard.confirmed .ap-done{display:block}
+.ap-note{font-size:10.5px;line-height:1.5;color:var(--ink3);margin-top:9px}
+
+/* resolution band (beat 5) */
+.sf-resolve{
+  position:absolute;left:0;right:0;bottom:0;z-index:6;
+  background:var(--panel2);border-top:1px solid var(--line);
+  display:grid;grid-template-columns:1fr 1.15fr;
+  transform:translateY(103%);transition:transform .7s cubic-bezier(.3,.7,.2,1);
+}
+.sf-resolve.on{transform:none}
+.res-role{padding:18px 20px;border-right:1px solid var(--line)}
+.role-facts{margin-top:10px;display:flex;flex-direction:column;gap:8px;opacity:0;transition:opacity .5s ease}
+.role-facts.on{opacity:1}
+.role-facts .skel{transform:none;height:9px}
+.role-cap{font-size:10.5px;color:var(--ink3);margin-top:10px}
+.applied{
+  display:flex;align-items:center;gap:7px;margin-top:12px;
+  font:500 12px/1 'Geist Mono',monospace;color:var(--green);
+  opacity:0;transition:opacity .45s ease;
+}
+.applied.on{opacity:1}
+.res-track{padding:18px 20px}
+.trackbar{position:relative;height:2px;background:var(--line2);margin:30px 8px 34px}
+.fillbar{position:absolute;left:0;top:0;bottom:0;width:0;background:var(--green);transition:width 1.1s cubic-bezier(.25,.6,.2,1)}
+.fillbar.on{width:72%}
+.node{position:absolute;top:50%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:8px}
+.node b{width:9px;height:9px;background:var(--panel2);border:1px solid var(--line2);border-radius:1px;display:block}
+.node span{position:absolute;top:14px;font:500 9px/1 'Geist Mono',monospace;letter-spacing:.07em;text-transform:uppercase;color:var(--ink2);white-space:nowrap}
+.node.n1{left:0}.node.n2{left:33%}.node.n3{left:66%}.node.n4{left:100%}
+.fillbar.on ~ .node.n1 b,.fillbar.on ~ .node.n2 b,.fillbar.on ~ .node.n3 b{background:var(--green);border-color:var(--green)}
+.track-cap{font-size:10.5px;color:var(--ink3)}
+
+/* --- static reduced-motion frame: numbered beat annotations --- */
+.rm-legend{
+  display:none;padding:10px 14px;border-top:1px solid var(--line);
+  font:500 10px/1.6 'Geist Mono',monospace;letter-spacing:.05em;color:var(--ink2);
+}
+.surface.static-frame .rm-legend{display:block}
+.surface.static-frame [data-beat]{position:relative}
+.surface.static-frame [data-beat]::before{
+  content:attr(data-beat);
+  position:absolute;top:-9px;left:-9px;z-index:8;
+  width:20px;height:20px;display:grid;place-items:center;
+  background:var(--ground);border:1px solid var(--green);border-radius:2px;
+  font:500 11px/1 'Geist Mono',monospace;color:var(--green);
+}
+.surface.static-frame .sf-resolve::before{top:-11px;left:11px}
+.surface.static-frame .sf-cols{opacity:1}
+/* the static frame shows every beat at once — give the columns room above the resolve band */
+@media (min-width:769px){
+  .surface.static-frame .sf-body{height:720px}
+  .surface.static-frame .sf-cols{padding-bottom:185px}
+}
+
+/* ============================================================
+   OWNERSHIP — what VitalCV handles
+   ============================================================ */
+#ownership .wrap{padding-bottom:96px}
+.own-grid{
+  display:grid;grid-template-columns:repeat(4,1fr);
+  border:1px solid var(--line);border-radius:3px;overflow:hidden;background:var(--panel);
+}
+.own{padding:24px 22px 26px;border-left:1px solid var(--line);display:flex;flex-direction:column;gap:14px}
+.own:first-child{border-left:0}
+.own-mark{width:10px;height:10px;border-radius:1px}
+.own-mark.g{background:var(--green)}
+.own-mark.a{background:var(--amber)}
+.own-mark.n{background:var(--wait)}
+.own h3{font:600 15px/1.3 'Geist',sans-serif}
+.own ul{list-style:none;display:flex;flex-direction:column;gap:9px}
+.own li{
+  position:relative;padding-left:16px;font-size:13px;line-height:1.45;color:var(--ink2);
+}
+.own li::before{
+  content:"";position:absolute;left:0;top:8px;width:6px;height:6px;
+  border:1px solid var(--line2);border-radius:1px;
+}
+.own-note{margin-top:auto;padding-top:14px;border-top:1px solid var(--line);font-size:11.5px;line-height:1.55;color:var(--ink3)}
+
+/* ============================================================
+   OUTCOME
+   ============================================================ */
+#outcome .wrap{padding-bottom:104px}
+.out-grid{display:grid;grid-template-columns:minmax(0,480px) minmax(0,1fr);gap:64px;align-items:center}
+.out-copy p{color:var(--ink2);font-size:15.5px;line-height:1.65}
+.out-copy p + p{margin-top:14px}
+.bigtrack{border:1px solid var(--line);border-radius:3px;background:var(--panel);padding:34px 30px 30px}
+.bigtrack .trackbar{margin:34px 12px 44px}
+.bigtrack .node b{background:var(--panel)}
+.bigtrack .node span{font-size:10px}
+.bigtrack .fillbar{width:0}
+.bigtrack.seen .fillbar,html:not(.js) .bigtrack .fillbar{width:38%}
+.bigtrack .fillbar ~ .node.n1 b{background:var(--green);border-color:var(--green)}
+.bigtrack-cap{font-size:12px;color:var(--ink3)}
+
+/* ============================================================
+   EMPLOYERS — light band (eyebrow inverts here)
+   ============================================================ */
+#employers{
+  background:var(--light);color:var(--light-ink);border-top:1px solid var(--light-line);
+}
+#employers .wrap{padding-top:26px;padding-bottom:150px;min-height:620px;display:flex;flex-direction:column}
+#employers .emp-grid{margin-top:auto;margin-bottom:auto}
+#employers .sec-idx{color:#8B8C85}
+#employers .sec-head h2{color:var(--light-ink)}
+.emp-grid{display:grid;grid-template-columns:minmax(0,560px) minmax(0,1fr);gap:64px;align-items:start}
+.emp-copy p{color:var(--light-ink2);font-size:15.5px;line-height:1.65;max-width:480px}
+.emp-cta{
+  display:inline-flex;align-items:center;gap:10px;margin-top:28px;height:48px;padding:0 22px;
+  border:1px solid var(--light-ink);border-radius:2px;
+  font:600 14px/1 'Geist',sans-serif;color:var(--light-ink);
+  transition:background-color .15s,color .15s;
+}
+.emp-cta:hover{background:var(--light-ink);color:var(--light)}
+.emp-points{list-style:none;border-top:1px solid var(--light-line)}
+.emp-points li{
+  display:flex;align-items:baseline;gap:18px;
+  padding:18px 0;border-bottom:1px solid var(--light-line);
+}
+.emp-points b{font:500 11px/1 'Geist Mono',monospace;letter-spacing:.1em;color:#8B8C85;font-weight:500}
+.emp-points .tt{font:600 15px/1.3 'Geist',sans-serif;color:var(--light-ink);min-width:172px}
+.emp-points p{font-size:13.5px;color:var(--light-ink2);line-height:1.5}
+
+/* ============================================================
+   START + FOOTER
+   ============================================================ */
+#start .wrap{padding-bottom:150px}
+.start-grid{padding-top:16px}
+.start-grid{display:grid;grid-template-columns:minmax(0,520px) minmax(0,1fr);gap:64px;align-items:center}
+.start-copy p{color:var(--ink2);font-size:15.5px;line-height:1.6;max-width:420px}
+#start .npi-form{max-width:440px}
+
+footer{border-top:1px solid var(--line);padding:28px 0 40px}
+.foot-in{display:flex;align-items:center;gap:28px;flex-wrap:wrap}
+.foot-in .wordmark{font-size:15px}
+.foot-links{display:flex;gap:22px;font-size:13px;color:var(--ink2)}
+.foot-links a:hover{color:var(--ink)}
+.foot-note{
+  margin-left:auto;font:500 9.5px/1.6 'Geist Mono',monospace;letter-spacing:.09em;
+  text-transform:uppercase;color:var(--ink3);text-align:right;
+}
+
+/* ============================================================
+   RESPONSIVE — tablet fold
+   ============================================================ */
+@media (max-width:1100px){
+  #hero .wrap{grid-template-columns:1fr;gap:44px;padding-top:44px}
+  .hero-copy{max-width:560px}
+  .sf-body{height:620px}
+  .own-grid{grid-template-columns:1fr 1fr}
+  .own{border-top:1px solid var(--line)}
+  .own:nth-child(1),.own:nth-child(2){border-top:0}
+  .own:nth-child(3){border-left:0}
+  .out-grid,.emp-grid,.start-grid{grid-template-columns:1fr;gap:44px}
+}
+
+/* ============================================================
+   RESPONSIVE — TRUE MOBILE (390×844): the surface becomes a
+   phone-width task stream; eyebrow recomposes at 56px.
+   ============================================================ */
+@media (max-width:768px){
+  :root{--gutter:20px;--eb-h:56px}
+  body{font-size:15px}
+
+  /* eyebrow: wordmark + Start + menu box */
+  .eb-ticker,.eb-signin{display:none}
+  .eb-cta{height:36px;padding:0 14px}
+  .eb-cta .long{display:none}
+  .eb-cta .short{display:inline}
+  .box-btn{width:40px;height:40px}
+
+  .menu-list a{font-size:26px;gap:14px;padding:14px 0}
+
+  h1{font-size:33px}
+  .hero-sub{font-size:15px}
+  #hero .wrap{padding-top:36px;padding-bottom:64px;gap:36px}
+  .sec-head h2{font-size:24px}
+  .sec-head{margin-bottom:28px}
+  .sec-sub{margin-top:-16px;margin-bottom:30px}
+
+  /* ---- the surface reframes as a task stream ---- */
+  .sf-body{height:auto;min-height:340px}
+  .sf-cols{display:block;height:auto}
+  .sf-left,.sf-rightcol{padding:16px;border-right:0}
+  .sf-left{border-bottom:0;padding-bottom:0}
+  .surface.dim .sf-cols{opacity:1}
+
+  /* stage 1 sits in the stream, then collapses away */
+  .sf-stage{position:static;padding:40px 16px}
+  .sf-stage.off{display:none}
+  .npi-illus{min-width:0;width:100%}
+  .glyphs{flex-wrap:wrap;height:auto}
+
+  /* stream blocks are collapsed until their beat arrives */
+  html.js .profile:not(.on),
+  html.js .remains:not(.on),
+  html.js .workfeed:not(.on){display:none}
+  .profile.on,.remains.on,.workfeed.on{animation:streamin .5s ease}
+  html.js .fact:not(.on){display:none}
+  .fact.on{display:grid;animation:streamin .45s ease}
+  html.js .arow:not(.on){display:none}
+  .arow.on{display:grid;animation:streamin .45s ease}
+  @keyframes streamin{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
+  .fact{grid-template-columns:84px 1fr auto;gap:8px}
+  .arow{grid-template-columns:1fr auto;grid-template-rows:auto auto;gap:6px 10px;padding:12px 0}
+  .arow .stz{grid-column:1 / -1;justify-content:flex-start}
+  .workfeed{grid-template-columns:1fr;margin-top:16px}
+
+  .sf-resolve{position:static;transform:none;grid-template-columns:1fr}
+  html.js .sf-resolve:not(.on){display:none}
+  .sf-resolve.on{animation:streamin .55s ease}
+  .res-role{border-right:0;border-bottom:1px solid var(--line)}
+
+  .surface.static-frame [data-beat]::before{top:-6px;left:-6px}
+  .surface.static-frame .sf-resolve::before{top:6px;left:6px}
+
+  .own-grid{grid-template-columns:1fr}
+  .own{border-left:0;border-top:1px solid var(--line)}
+  .own:first-child{border-top:0}
+  .own:nth-child(2){border-top:1px solid var(--line)}
+
+  .bigtrack{padding:26px 18px 22px}
+  .node span{font-size:8.5px}
+
+  .emp-points .tt{min-width:0}
+  .emp-points li{flex-direction:column;gap:6px}
+
+  .foot-note{margin-left:0;text-align:left;width:100%}
+}
+
+@media (max-width:480px){
+  h1{font-size:30px}
+  .npi-row{flex-direction:column}
+  .npi-submit{width:100%;justify-content:center;align-items:center;display:inline-flex}
+  .menu-list a{font-size:22px}
+  .arow-t{font-size:12.5px}
+  .fact{grid-template-columns:76px 1fr auto}
+}
+
+/* ============================================================
+   REDUCED MOTION — nothing moves; the story is still complete
+   ============================================================ */
+@media (prefers-reduced-motion: reduce){
+  html{scroll-behavior:auto}
+  *,*::before,*::after{animation:none!important;transition:none!important}
+  html.js .reveal{opacity:1;transform:none}
+  .caret{display:none}
+}
+</style>
+</head>
+<body id="top">
+
+<a class="skip" href="#main">Skip to content</a>
+
+<!-- ======================= EYEBROW ======================= -->
+<header id="eyebrow">
+  <div class="eb-in">
+    <a class="wordmark" href="#top" aria-label="VitalCV — top of page">VitalCV</a>
+    <span id="ticker" class="eb-ticker" aria-hidden="true">How VitalCV works</span>
+    <div class="eb-right">
+      <a class="eb-signin" href="https://vitalcv.com/sign-in">Sign in</a>
+      <a class="eb-cta" href="#start"><span class="long">Start with your NPI</span><span class="short">Start</span></a>
+      <button id="menu-open" class="box-btn" aria-label="Open menu" aria-expanded="false" aria-controls="menu">
+        <span class="mi" aria-hidden="true"><i></i><i></i></span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<!-- ======================= INDEX MENU ======================= -->
+<div id="menu" role="dialog" aria-modal="true" aria-label="Index" hidden>
+  <div class="menu-top">
+    <span class="wordmark">VitalCV</span>
+    <button id="menu-close" class="box-btn" aria-label="Close menu"><span aria-hidden="true">&#10005;</span></button>
+  </div>
+  <nav class="menu-list" aria-label="Page index">
+    <a href="#start"><b>01</b> Start with your NPI <i aria-hidden="true">&#8627;</i></a>
+    <a href="#how-it-works"><b>02</b> How it works <i aria-hidden="true">&#8627;</i></a>
+    <a href="#ownership"><b>03</b> What VitalCV handles <i aria-hidden="true">&#8627;</i></a>
+    <a href="#employers"><b>04</b> For employers <i aria-hidden="true">&#8627;</i></a>
+    <a href="https://vitalcv.com/sign-in"><b>05</b> Sign in <i aria-hidden="true">&#8599;</i></a>
+  </nav>
+  <p class="menu-foot">VitalCV &middot; clinician hiring, handled</p>
+</div>
+
+<main id="main">
+
+<!-- ======================= HERO ======================= -->
+<section id="hero" aria-label="VitalCV — enter your NPI">
+  <div class="wrap">
+    <div class="hero-copy">
+      <span class="k">For US clinicians</span>
+      <h1>Enter your NPI.<br>VitalCV does the rest.</h1>
+      <p class="hero-sub">We find what we can, show you exactly what remains, and handle the administrative work that can safely be handled.</p>
+
+      <form class="npi-form" action="https://vitalcv.com/onboarding" method="get" novalidate>
+        <label class="k" for="npi-hero">Your NPI</label>
+        <div class="npi-row">
+          <input class="npi-input" id="npi-hero" name="npi" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="10" autocomplete="off" placeholder="10 digits">
+          <button class="npi-submit" type="submit">Start</button>
+        </div>
+        <p class="form-note" role="status" hidden>Prototype &mdash; the real flow continues at vitalcv.com/onboarding</p>
+        <p class="form-fine">Your NPI is a public identifier. Starting is free.</p>
+      </form>
+
+      <p class="hero-emp">Hiring clinicians? <a href="https://vitalcv.com/employers">VitalCV for employers <span aria-hidden="true">&#8627;</span></a></p>
+    </div>
+
+    <!-- =========== THE PRODUCT SURFACE (doubles as How it works) =========== -->
+    <div class="surface" id="how-it-works" aria-label="How VitalCV works — an animated product illustration in five steps: your NPI goes in, VitalCV finds what it can from named public sources, ranks what remains by owner, does the work it safely can while pausing for your approval, and ends at a role, an application, and progress toward your first day.">
+      <div class="sf-chrome">
+        <span class="sf-cap">How VitalCV works &middot; illustration &mdash; not a live result</span>
+        <div class="sf-tools">
+          <span class="sf-dots" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
+          <button id="replay" class="sf-replay" type="button"><span aria-hidden="true">&#8635;</span> Replay</button>
+        </div>
+      </div>
+
+      <div class="sf-body">
+
+        <!-- Beat 1 (transient stage): the NPI seed types itself -->
+        <div class="sf-stage" id="stage1" aria-hidden="true">
+          <div class="npi-illus">
+            <span class="k">Your NPI</span>
+            <div class="glyphs">
+              <span class="g"></span><span class="g"></span><span class="g"></span><span class="g"></span><span class="g"></span><span class="g"></span><span class="g"></span><span class="g"></span><span class="g"></span><span class="g"></span>
+              <span class="caret"></span>
+            </div>
+            <span class="npi-go">Find what&rsquo;s on record</span>
+          </div>
+          <p class="stage-cap">Illustration &mdash; no real numbers, no real people.</p>
+        </div>
+
+        <div class="sf-cols">
+          <!-- LEFT: the seed + what VitalCV found -->
+          <div class="sf-left">
+            <div class="seed" data-beat="1">
+              <span class="seed-k">NPI</span>
+              <span class="seed-v" aria-hidden="true">&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;</span>
+              <span class="seed-tag">masked &middot; illustration</span>
+            </div>
+
+            <div class="profile" data-beat="2">
+              <p class="sf-h">What VitalCV found</p>
+              <p class="sf-hsub">Each fact carries its source.</p>
+              <div class="facts">
+                <div class="fact">
+                  <span class="fact-l">Name</span>
+                  <span class="skel" style="width:72%" aria-hidden="true"></span>
+                  <span class="src">NPPES</span>
+                </div>
+                <div class="fact">
+                  <span class="fact-l">Specialty</span>
+                  <span class="skel" style="width:56%" aria-hidden="true"></span>
+                  <span class="src">NPPES</span>
+                </div>
+                <div class="fact">
+                  <span class="fact-l">Practice</span>
+                  <span class="skel" style="width:84%" aria-hidden="true"></span>
+                  <span class="src">Practice info</span>
+                </div>
+                <div class="fact">
+                  <span class="fact-l">License record</span>
+                  <span class="skel" style="width:64%" aria-hidden="true"></span>
+                  <span class="src">State board record</span>
+                </div>
+              </div>
+              <p class="fact-cap">We show where every fact came from. Values here are placeholders &mdash; not every source has every answer, and we say so when one doesn&rsquo;t.</p>
+            </div>
+          </div>
+
+          <!-- RIGHT: what still matters + the work -->
+          <div class="sf-rightcol">
+            <div class="remains" data-beat="3">
+              <p class="sf-h">Here&rsquo;s what still matters</p>
+              <p class="sf-hsub">A short list &mdash; each item labeled by who owns it.</p>
+              <ul class="arows">
+                <li class="arow" data-final="done"><!-- r1 -->
+                  <span class="arow-t">Assemble a work history draft</span>
+                  <span class="chip">VitalCV</span>
+                  <span class="stz">
+                    <span class="st st-idle">&middot;</span>
+                    <span class="st st-done"><i class="ck" aria-hidden="true">&#10003;</i> Done by VitalCV <b class="t">00:06</b></span>
+                  </span>
+                </li>
+                <li class="arow" data-final="done"><!-- r2 -->
+                  <span class="arow-t">Check the state license record</span>
+                  <span class="chip">VitalCV</span>
+                  <span class="stz">
+                    <span class="st st-idle">&middot;</span>
+                    <span class="st st-done"><i class="ck" aria-hidden="true">&#10003;</i> Done by VitalCV <b class="t">00:04</b></span>
+                  </span>
+                </li>
+                <li class="arow" data-final="approved"><!-- r3 -->
+                  <span class="arow-t">Send your profile to an interested employer</span>
+                  <span class="chip">Your approval</span>
+                  <span class="stz">
+                    <span class="st st-idle">&middot;</span>
+                    <span class="st st-ready">Ready for your approval</span>
+                    <span class="st st-approved"><i class="ck" aria-hidden="true">&#10003;</i> Approved &middot; moving</span>
+                  </span>
+                </li>
+                <li class="arow" data-final="needs"><!-- r4 -->
+                  <span class="arow-t">Occupational health forms</span>
+                  <span class="chip">You</span>
+                  <span class="stz">
+                    <span class="st st-idle">&middot;</span>
+                    <span class="st st-needs">Needs you</span>
+                  </span>
+                </li>
+                <li class="arow" data-final="wait"><!-- r5 -->
+                  <span class="arow-t">Interview and facility sign-off</span>
+                  <span class="chip">Employer</span>
+                  <span class="stz">
+                    <span class="st st-idle">&middot;</span>
+                    <span class="st st-wait">Waiting on employer</span>
+                  </span>
+                </li>
+              </ul>
+            </div>
+
+            <div class="workfeed" data-beat="4">
+              <div class="feed">
+                <span class="k">VitalCV working</span>
+                <p class="feedline f1"><b>00:04</b> <span class="ck" aria-hidden="true">&#10003;</span> State license record checked &mdash; done</p>
+                <p class="feedline f2"><b>00:06</b> <span class="ck" aria-hidden="true">&#10003;</span> Work history draft assembled &mdash; done</p>
+              </div>
+              <div class="apcard">
+                <p class="ap-head"><span class="h-wait">Ready for your approval</span><span class="h-ok">Approved &mdash; VitalCV continues</span></p>
+                <p class="ap-body">Send your profile to an interested employer.</p>
+                <span class="ap-btn" aria-hidden="true">Approve</span>
+                <p class="ap-done"><span aria-hidden="true">&#10003;</span> Profile sent</p>
+                <p class="ap-note">Illustration &mdash; in the product, nothing moves without you.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Beat 5: resolution -->
+        <div class="sf-resolve" data-beat="5">
+          <div class="res-role">
+            <p class="sf-h">A role that fits</p>
+            <div class="role-facts">
+              <span class="skel" style="width:70%" aria-hidden="true"></span>
+              <span class="skel" style="width:46%" aria-hidden="true"></span>
+            </div>
+            <p class="applied"><span aria-hidden="true">&#10003;</span> Applied with VitalCV</p>
+            <p class="role-cap">Drawn from the profile above &mdash; illustrative.</p>
+          </div>
+          <div class="res-track">
+            <p class="sf-h">Toward your first day</p>
+            <div class="trackbar" aria-hidden="true">
+              <i class="fillbar"></i>
+              <span class="node n1"><b></b><span>Applied</span></span>
+              <span class="node n2"><b></b><span>Interview</span></span>
+              <span class="node n3"><b></b><span>Offer</span></span>
+              <span class="node n4"><b></b><span>First day</span></span>
+            </div>
+            <p class="track-cap">Illustrative pace &mdash; the remaining steps stay visible until day one.</p>
+          </div>
+        </div>
+
+      </div><!-- /sf-body -->
+
+      <p class="rm-legend">1 Your NPI &middot; 2 What VitalCV found &middot; 3 What remains &middot; 4 Work in motion &middot; 5 A role and a start</p>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= OWNERSHIP ======================= -->
+<section id="ownership" aria-labelledby="ownership-h">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="sec-idx">02</span>
+      <h2 id="ownership-h">What VitalCV handles &mdash; and what it never touches without you</h2>
+    </div>
+    <p class="sec-sub reveal">Every item in your hiring process has exactly one owner. That&rsquo;s the whole system.</p>
+
+    <div class="own-grid reveal">
+      <div class="own">
+        <span class="own-mark g" aria-hidden="true"></span>
+        <h3>VitalCV handles</h3>
+        <ul>
+          <li>Pulling public records &mdash; NPPES, state license boards</li>
+          <li>Assembling your work history draft</li>
+          <li>Tracking license renewal dates</li>
+        </ul>
+        <p class="own-note">Work VitalCV can do safely on its own. Every action is logged for you to see.</p>
+      </div>
+      <div class="own">
+        <span class="own-mark a" aria-hidden="true"></span>
+        <h3>Needs your approval</h3>
+        <ul>
+          <li>Sending your profile to an employer</li>
+          <li>Requesting a reference on your behalf</li>
+        </ul>
+        <p class="own-note">Prepared and waiting. Nothing is sent until you say so.</p>
+      </div>
+      <div class="own">
+        <span class="own-mark a" aria-hidden="true"></span>
+        <h3>Needs you</h3>
+        <ul>
+          <li>Signing applications</li>
+          <li>Occupational health forms</li>
+        </ul>
+        <p class="own-note">Only you can do these. We keep the list short and obvious.</p>
+      </div>
+      <div class="own">
+        <span class="own-mark n" aria-hidden="true"></span>
+        <h3>Employer decides</h3>
+        <ul>
+          <li>Interviews and offers</li>
+          <li>Sign-off at their facility</li>
+        </ul>
+        <p class="own-note">Out of your hands &mdash; so we show you what we know, when we know it.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= OUTCOME ======================= -->
+<section id="outcome" aria-labelledby="outcome-h">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="sec-idx">03</span>
+      <h2 id="outcome-h">All of this exists so you start sooner</h2>
+    </div>
+    <div class="out-grid">
+      <div class="out-copy reveal">
+        <p>The profile is not the destination &mdash; the job is. VitalCV keeps the remaining steps visible and keeps them moving, from application to your first day.</p>
+        <p>And when it&rsquo;s time for the next move, the work you did here is still yours &mdash; ready to go again.</p>
+      </div>
+      <div class="bigtrack reveal">
+        <span class="k">From role to first day</span>
+        <div class="trackbar" aria-hidden="true">
+          <i class="fillbar"></i>
+          <span class="node n1"><b></b><span>Apply</span></span>
+          <span class="node n2"><b></b><span>Interview</span></span>
+          <span class="node n3"><b></b><span>Offer</span></span>
+          <span class="node n4"><b></b><span>First day</span></span>
+        </div>
+        <p class="bigtrack-cap">Each step has one owner &mdash; you always know whose move it is.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= EMPLOYERS (light band) ======================= -->
+<section id="employers" data-ground="light" aria-labelledby="employers-h">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="sec-idx">04</span>
+      <h2 id="employers-h">Hiring clinicians?</h2>
+    </div>
+    <div class="emp-grid">
+      <div class="emp-copy reveal">
+        <p>Find people who fit. Know what remains. Keep the hire moving. VitalCV shows your team exactly where each candidate stands &mdash; and who owns the next step.</p>
+        <a class="emp-cta" href="https://vitalcv.com/employers">VitalCV for employers <span aria-hidden="true">&#8627;</span></a>
+      </div>
+      <ul class="emp-points reveal">
+        <li><b>A</b><span class="tt">Find people who fit</span><p>Search by what&rsquo;s on record, not what&rsquo;s on a r&eacute;sum&eacute;.</p></li>
+        <li><b>B</b><span class="tt">Know what remains</span><p>See the open items on any hire &mdash; and who owns each one.</p></li>
+        <li><b>C</b><span class="tt">Keep the hire moving</span><p>When it&rsquo;s your move, VitalCV makes that obvious too.</p></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= START ======================= -->
+<section id="start" aria-labelledby="start-h">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="sec-idx">05</span>
+      <h2 id="start-h">Start with your NPI</h2>
+    </div>
+    <div class="start-grid">
+      <div class="start-copy reveal">
+        <p>You watched it work. Now let it work for you &mdash; we find what we can, show you what remains, and get to it.</p>
+      </div>
+      <form class="npi-form reveal" action="https://vitalcv.com/onboarding" method="get" novalidate>
+        <label class="k" for="npi-start">Your NPI</label>
+        <div class="npi-row">
+          <input class="npi-input" id="npi-start" name="npi" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="10" autocomplete="off" placeholder="10 digits">
+          <button class="npi-submit" type="submit">Start with your NPI</button>
+        </div>
+        <p class="form-note" role="status" hidden>Prototype &mdash; the real flow continues at vitalcv.com/onboarding</p>
+        <p class="form-fine">Free to start. You decide what gets shared, every time.</p>
+      </form>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<!-- ======================= FOOTER ======================= -->
+<footer>
+  <div class="wrap foot-in">
+    <span class="wordmark">VitalCV</span>
+    <nav class="foot-links" aria-label="Footer">
+      <a href="https://vitalcv.com/employers">For employers</a>
+      <a href="https://vitalcv.com/sign-in">Sign in</a>
+      <a href="https://vitalcv.com">vitalcv.com</a>
+    </nav>
+    <p class="foot-note">Design prototype B &mdash; intelligent product &middot; not the live product &middot; &copy; 2026 VitalCV</p>
+  </div>
+</footer>
+
+<script>
+(function(){
+  'use strict';
+
+  var RM = window.matchMedia('(prefers-reduced-motion: reduce)');
+  var surface = document.getElementById('how-it-works');
+  var ticker = document.getElementById('ticker');
+
+  /* ------------------------------------------------------------
+     THE HERO SURFACE TIMELINE — five beats, plays once, replayable.
+     Beat map (ms):  1 @ 0 · 2 @ 2900 · 3 @ 6800 · 4 @ 9800 · 5 @ 14200 · done @ 17000
+     ------------------------------------------------------------ */
+  var BEAT_LABEL = {
+    1:'01 · Reading the NPI',
+    2:'02 · Finding sources',
+    3:'03 · Ranking what remains',
+    4:'04 · Working',
+    5:'05 · Toward day one'
+  };
+  var STATIC_LABEL = 'How VitalCV works';
+
+  var timers = [];
+  var state = { beat:0, playing:false, done:false };
+
+  function q(sel){ return surface.querySelector(sel); }
+  function qa(sel){ return Array.prototype.slice.call(surface.querySelectorAll(sel)); }
+  function at(t, fn){ timers.push(setTimeout(fn, t)); }
+  function clearTimers(){ timers.forEach(clearTimeout); timers = []; }
+
+  function setTicker(txt){
+    if (RM.matches){ ticker.textContent = STATIC_LABEL; return; }
+    ticker.classList.remove('roll');
+    void ticker.offsetWidth; /* restart the roll animation */
+    ticker.textContent = txt;
+    ticker.classList.add('roll');
+  }
+
+  function setDots(n){
+    var dots = qa('.sf-dots i');
+    dots.forEach(function(d, i){
+      d.classList.toggle('cur', i === n - 1);
+      d.classList.toggle('past', i < n - 1);
+    });
+  }
+
+  function beat(n){
+    state.beat = n;
+    surface.setAttribute('data-active-beat', String(n));
+    setTicker(BEAT_LABEL[n]);
+    setDots(n);
+  }
+
+  var STATE_CLASSES = ['on','off','is-done','is-ready','is-approved','is-needs','is-wait','pressed','confirmed','pulse'];
+  function reset(){
+    clearTimers();
+    surface.classList.remove('played','dim','static-frame');
+    surface.removeAttribute('data-active-beat');
+    qa('.' + STATE_CLASSES.join(',.')).forEach(function(el){
+      STATE_CLASSES.forEach(function(c){ el.classList.remove(c); });
+    });
+    qa('.sf-dots i').forEach(function(d){ d.classList.remove('cur','past'); });
+    state = { beat:0, playing:false, done:false };
+  }
+
+  function rows(){ return qa('.arow'); }
+
+  function play(){
+    if (RM.matches){ jumpToEnd(true); return; }
+    reset();
+    state.playing = true;
+
+    /* --- BEAT 1 · 0s–2.9s · the seed --- */
+    beat(1);
+    qa('.g').forEach(function(g, i){
+      at(500 + i * 120, function(){ g.classList.add('on'); });
+    });
+    at(2200, function(){ q('.npi-go').classList.add('pulse'); });
+
+    /* --- BEAT 2 · 2.9s–6.8s · finding sources --- */
+    at(2900, function(){
+      beat(2);
+      q('#stage1').classList.add('off');
+      q('.seed').classList.add('on');
+    });
+    at(3300, function(){ q('.profile').classList.add('on'); });
+    qa('.fact').forEach(function(f, i){
+      at(3550 + i * 650, function(){ f.classList.add('on'); });
+    });
+    at(6250, function(){ q('.fact-cap').classList.add('on'); });
+
+    /* --- BEAT 3 · 6.8s–9.8s · ranking what remains --- */
+    at(6800, function(){
+      beat(3);
+      q('.remains').classList.add('on');
+    });
+    rows().forEach(function(r, i){
+      at(7250 + i * 380, function(){ r.classList.add('on'); });
+    });
+
+    /* --- BEAT 4 · 9.8s–14.2s · working --- */
+    at(9800, function(){
+      beat(4);
+      q('.workfeed').classList.add('on');
+    });
+    at(10150, function(){
+      q('.feedline.f1').classList.add('on');
+      rows()[1].classList.add('is-done');           /* state license record — done 00:04 */
+    });
+    at(10550, function(){ rows()[4].classList.add('is-wait'); });   /* waiting on employer */
+    at(10850, function(){ rows()[3].classList.add('is-needs'); });  /* needs you */
+    at(11100, function(){
+      q('.feedline.f2').classList.add('on');
+      rows()[0].classList.add('is-done');           /* work history draft — done 00:06 */
+    });
+    at(11650, function(){
+      q('.apcard').classList.add('on');
+      rows()[2].classList.add('is-ready');          /* pauses for approval */
+    });
+    at(12850, function(){ q('.ap-btn').classList.add('pressed'); }); /* self-confirms — clearly illustrative */
+    at(13450, function(){
+      q('.apcard').classList.add('confirmed');
+      var r3 = rows()[2];
+      r3.classList.remove('is-ready');
+      r3.classList.add('is-approved');
+    });
+
+    /* --- BEAT 5 · 14.2s–17s · toward day one --- */
+    at(14200, function(){
+      beat(5);
+      surface.classList.add('dim');
+      q('.sf-resolve').classList.add('on');
+    });
+    at(14750, function(){ q('.role-facts').classList.add('on'); });
+    at(15250, function(){ q('.applied').classList.add('on'); });
+    at(15650, function(){ q('.fillbar').classList.add('on'); });
+
+    /* --- done --- */
+    at(17000, function(){
+      state.playing = false;
+      state.done = true;
+      surface.classList.add('played');
+    });
+    at(18200, function(){ setTicker(STATIC_LABEL); ticker.classList.remove('roll'); });
+  }
+
+  /* Final composed frame — used for prefers-reduced-motion (annotated). */
+  function jumpToEnd(annotate){
+    reset();
+    q('#stage1').classList.add('off');
+    ['.seed','.profile','.fact-cap','.remains','.workfeed','.feedline.f1','.feedline.f2',
+     '.apcard','.sf-resolve','.role-facts','.applied','.fillbar'].forEach(function(sel){
+      var el = q(sel); if (el) el.classList.add('on');
+    });
+    qa('.g').forEach(function(g){ g.classList.add('on'); });
+    qa('.fact').forEach(function(f){ f.classList.add('on'); });
+    rows().forEach(function(r){
+      r.classList.add('on');
+      var f = r.getAttribute('data-final');
+      if (f) r.classList.add('is-' + f);
+    });
+    q('.apcard').classList.add('confirmed');
+    q('.ap-btn').classList.add('pressed');
+    surface.classList.add('played');
+    if (annotate) surface.classList.add('static-frame');
+    setDots(5);
+    qa('.sf-dots i').forEach(function(d){ d.classList.add('past'); });
+    surface.setAttribute('data-active-beat','5');
+    ticker.textContent = STATIC_LABEL;
+    state = { beat:5, playing:false, done:true };
+  }
+
+  /* Capture hook: window.__reset = { play(), state } */
+  window.__reset = {
+    play: play,
+    get state(){
+      return { beat: state.beat, playing: state.playing, done: state.done, reducedMotion: RM.matches };
+    }
+  };
+
+  document.getElementById('replay').addEventListener('click', function(){
+    if (RM.matches) jumpToEnd(true); else play();
+  });
+
+  if (RM.addEventListener){
+    RM.addEventListener('change', function(){ if (RM.matches) jumpToEnd(true); });
+  }
+
+  /* Autoplay once on load */
+  if (RM.matches){
+    jumpToEnd(true);
+  } else {
+    window.setTimeout(play, 600);
+  }
+
+  /* ------------------------------------------------------------
+     EYEBROW INVERSION over the light employer band
+     ------------------------------------------------------------ */
+  var eyebrow = document.getElementById('eyebrow');
+  var lightBand = document.querySelector('[data-ground="light"]');
+  var io = null;
+  function buildInversionObserver(){
+    if (io) io.disconnect();
+    var h = eyebrow.offsetHeight || 64;
+    io = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){
+        eyebrow.classList.toggle('inverted', e.isIntersecting);
+      });
+    }, {
+      /* intersection zone = the strip of viewport behind the eyebrow */
+      rootMargin: '0px 0px ' + (-(window.innerHeight - h)) + 'px 0px',
+      threshold: 0
+    });
+    io.observe(lightBand);
+  }
+  if (lightBand && 'IntersectionObserver' in window){
+    buildInversionObserver();
+    var rsz;
+    window.addEventListener('resize', function(){
+      clearTimeout(rsz);
+      rsz = setTimeout(buildInversionObserver, 180);
+    });
+  }
+
+  /* ------------------------------------------------------------
+     INDEX MENU — full takeover
+     ------------------------------------------------------------ */
+  var menu = document.getElementById('menu');
+  var menuOpenBtn = document.getElementById('menu-open');
+  var menuCloseBtn = document.getElementById('menu-close');
+  var lastFocus = null;
+
+  function openMenu(){
+    lastFocus = document.activeElement;
+    menu.hidden = false;
+    menu.classList.add('open');
+    menuOpenBtn.setAttribute('aria-expanded','true');
+    document.body.style.overflow = 'hidden';
+    menuCloseBtn.focus();
+  }
+  function closeMenu(){
+    menu.classList.remove('open');
+    menu.hidden = true;
+    menuOpenBtn.setAttribute('aria-expanded','false');
+    document.body.style.overflow = '';
+    if (lastFocus) lastFocus.focus();
+  }
+  menuOpenBtn.addEventListener('click', openMenu);
+  menuCloseBtn.addEventListener('click', closeMenu);
+  menu.addEventListener('click', function(e){
+    if (e.target.closest('a')) closeMenu();
+  });
+  document.addEventListener('keydown', function(e){
+    if (e.key === 'Escape' && !menu.hidden) closeMenu();
+  });
+  /* modest focus containment while open */
+  menu.addEventListener('keydown', function(e){
+    if (e.key !== 'Tab') return;
+    var focusables = menu.querySelectorAll('a, button');
+    var first = focusables[0], last = focusables[focusables.length - 1];
+    if (e.shiftKey && document.activeElement === first){ e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last){ e.preventDefault(); first.focus(); }
+  });
+
+  /* ------------------------------------------------------------
+     REAL NPI ENTRY — digits only; prototype intercept on submit
+     ------------------------------------------------------------ */
+  document.querySelectorAll('form.npi-form').forEach(function(form){
+    var input = form.querySelector('.npi-input');
+    var note = form.querySelector('.form-note');
+    input.addEventListener('input', function(){
+      input.value = input.value.replace(/\D/g, '').slice(0, 10);
+    });
+    form.addEventListener('submit', function(e){
+      e.preventDefault();
+      note.hidden = false;
+    });
+  });
+
+  /* ------------------------------------------------------------
+     Below-the-fold reveals (gentle; disabled under reduced motion)
+     ------------------------------------------------------------ */
+  var reveals = document.querySelectorAll('.reveal');
+  if (RM.matches || !('IntersectionObserver' in window)){
+    reveals.forEach(function(el){ el.classList.add('seen'); });
+    document.querySelectorAll('.bigtrack').forEach(function(el){ el.classList.add('seen'); });
+  } else {
+    var rio = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){
+        if (e.isIntersecting){
+          e.target.classList.add('seen');
+          rio.unobserve(e.target);
+        }
+      });
+    }, { threshold: 0.15 });
+    reveals.forEach(function(el){ rio.observe(el); });
+  }
+})();
+</script>
+</body>
+</html>

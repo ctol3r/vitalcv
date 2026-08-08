@@ -7,6 +7,27 @@
 
 Every clause is numbered. Reject a PR by citing a number.
 
+> **Amendment 2026-08-08 (per CD-19).** This document now has a **successor-of-record**:
+> [`VITALCV_EXPERIENCE_CONSTITUTION.md`](VITALCV_EXPERIENCE_CONSTITUTION.md) (UX-00 of the
+> Experience Overhaul Program, `VITALCV_EXPERIENCE_OVERHAUL_PROGRAM_2026-08-08.md`). Where the two
+> disagree, the constitution wins. Carried forward intact and renumbered there: the five laws
+> (EC-3), mono law (EC-4), state law (EC-5), geometry semantics (EC-6), kill list (EC-7, extended),
+> accessibility floor (EC-8), glass/solid boundary (EC-12), and the CD-20 asymmetries (EC-9/EC-10).
+> **This document's palette (Part III) and typography (Part IV) are subject to the UX-01 verdict** —
+> the winning homepage-reset direction's values become global via EC-20, so CD-3/CD-7 values are no
+> longer safe to build against until that verdict lands. The competitive mandate file named in the
+> header above is **recorded missing** (EC-24, searched 2026-08-08); homepage composition authority
+> now rests with the homepage reset. *Rationale:* the Experience Overhaul Program consolidates six
+> coexisting visual eras behind one constitution; this is an amendment and pointer forward, not a
+> fork. This document remains the execution record of the July 2026 direction.
+>
+> *Verdict update, same day:* UX-01 landed **FINAL — Direction B GO, with amendments**
+> (`design-lab/homepage-reset/DECISION.md`). The constitution's EC-20 is back-filled: Geist +
+> Geist Mono; a dark warm-graphite **public register** with a **required light register** for
+> evidence/printable surfaces. Accordingly, this document's Part III (palette) and Part IV
+> (typography) values are **superseded by EC-20**, and CD-3's "light is the only public mode"
+> and the 2026-08-02 one-Ink-chapter amendment are superseded by EC-20's register doctrine.
+
 ---
 
 ## Part I — The idea

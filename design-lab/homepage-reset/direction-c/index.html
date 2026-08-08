@@ -1,0 +1,909 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>VitalCV — Direction C: Precision Editorial</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ============ TOKENS ============ */
+:root{
+  --paper:#FBFAF7;
+  --paper-2:#F3F2EE;
+  --ink:#0E0E0C;
+  --verm:#D8451D;      /* marks, large type, rules only */
+  --verm-deep:#C93A12; /* hover ground — AA with white label at small sizes */
+  --muted:#6E6D68;     /* AA on paper for small text */
+  --muted-inv:#8B8A85; /* AA on ink for small text */
+  --hair:#DBDAD4;      /* decorative intra-list separators */
+  --rail:84px;
+  --gutter:32px;
+  --eb:60px;
+  --sans:"Archivo","Helvetica Neue",Arial,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,monospace;
+}
+
+/* ============ BASE ============ */
+*{margin:0;padding:0;box-sizing:border-box}
+[hidden]{display:none!important}
+html{scroll-padding-top:calc(var(--eb) + 24px)}
+@media (prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}
+html.menu-open{overflow:hidden}
+body{
+  background:var(--paper);color:var(--ink);
+  font-family:var(--sans);font-size:16px;line-height:1.55;
+  padding-top:var(--eb);overflow-x:clip;
+  -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+}
+::selection{background:var(--ink);color:var(--paper)}
+a{color:inherit}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.sec--dark :focus-visible,.menu :focus-visible,#eyebrow.inv :focus-visible{outline-color:var(--paper)}
+svg{display:block}
+
+.ann{
+  font-family:var(--mono);font-size:11px;font-weight:500;
+  letter-spacing:.08em;text-transform:uppercase;line-height:1.4;
+}
+.skip{
+  position:absolute;left:-9999px;top:0;z-index:200;
+  font-family:var(--mono);font-size:12px;text-transform:uppercase;letter-spacing:.08em;
+  background:var(--ink);color:var(--paper);padding:12px 18px;text-decoration:none;
+}
+.skip:focus-visible{left:0;top:var(--eb)}
+
+/* full-bleed rules that keep content on the column grid */
+.bleed{
+  margin-left:calc(-1*(var(--rail) + var(--gutter)));
+  padding-left:calc(var(--rail) + var(--gutter));
+  margin-right:calc(-1*var(--gutter));
+  padding-right:var(--gutter);
+}
+/* full-bleed band that owns the whole width (solid ground covers the rail rule) */
+.bleed-flat{
+  margin-left:calc(-1*(var(--rail) + var(--gutter)));
+  margin-right:calc(-1*var(--gutter));
+}
+
+/* ============ EYEBROW ============ */
+#eyebrow{
+  position:fixed;top:0;left:0;right:0;height:var(--eb);z-index:60;
+  background:var(--paper);
+  border-top:1px solid var(--ink);border-bottom:1px solid var(--ink);
+  display:flex;align-items:center;padding:0 var(--gutter);
+}
+.wordmark{
+  font-family:var(--sans);font-weight:650;font-stretch:110%;
+  font-size:15px;letter-spacing:.14em;text-transform:uppercase;
+  text-decoration:none;line-height:1;
+}
+.eb-index{
+  position:absolute;left:50%;transform:translateX(-50%);
+  font-family:var(--mono);font-size:11px;font-weight:500;
+  letter-spacing:.08em;text-transform:uppercase;white-space:nowrap;
+  transition:opacity .14s linear;
+}
+.eb-index.swap{opacity:0}
+.eb-right{margin-left:auto;display:flex;align-items:center;gap:22px}
+.eb-signin{
+  font-family:var(--mono);font-size:11px;font-weight:500;
+  letter-spacing:.08em;text-transform:uppercase;text-decoration:none;
+}
+.eb-signin:hover{text-decoration:underline;text-underline-offset:4px}
+.eb-cta{
+  display:inline-flex;align-items:center;height:42px;padding:0 20px;
+  background:var(--ink);color:var(--paper);
+  font-family:var(--mono);font-size:11px;font-weight:500;
+  letter-spacing:.1em;text-transform:uppercase;text-decoration:none;
+  border:1px solid var(--ink);
+  transition:background-color .15s linear;
+}
+.eb-cta:hover{background:var(--verm-deep);border-color:var(--verm-deep)}
+.eb-cta--m{display:none}
+.eb-menu{
+  display:none;height:42px;padding:0 14px;border:1px solid var(--ink);
+  font-family:var(--mono);font-size:11px;font-weight:500;
+  letter-spacing:.1em;text-transform:uppercase;
+}
+/* inversion over the black outcome band — identical geometry */
+#eyebrow.inv{background:var(--ink);color:var(--paper);border-color:var(--paper)}
+#eyebrow.inv .eb-cta{background:var(--paper);color:var(--ink);border-color:var(--paper)}
+#eyebrow.inv .eb-cta:hover{background:var(--verm-deep);color:#fff;border-color:var(--verm-deep)}
+#eyebrow.inv .eb-menu{border-color:var(--paper)}
+
+/* ============ INDEX MENU (mobile) ============ */
+.menu{
+  position:fixed;inset:0;z-index:80;background:var(--ink);color:var(--paper);
+  overflow:auto;padding:0 var(--gutter) 56px;
+}
+.menu-top{
+  height:var(--eb);display:flex;align-items:center;justify-content:space-between;
+  border-bottom:1px solid var(--paper);margin:0 calc(-1*var(--gutter));
+  padding:0 var(--gutter);
+}
+.menu-title{font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:.1em;text-transform:uppercase}
+#menu-close{
+  height:42px;padding:0 14px;border:1px solid var(--paper);
+  font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;
+}
+.menu nav{margin-top:8px}
+.menu a{
+  display:flex;align-items:baseline;gap:18px;text-decoration:none;
+  border-bottom:1px solid var(--paper);padding:20px 0;
+}
+.menu a .no{font-family:var(--mono);font-size:12px;font-weight:500;color:var(--muted-inv)}
+.menu a .it{
+  font-family:var(--sans);font-weight:620;font-stretch:118%;
+  font-size:clamp(30px,8.6vw,54px);line-height:1.02;letter-spacing:-0.02em;
+  text-transform:uppercase;
+}
+.menu a:hover .it{color:var(--verm)}
+.menu .menu-sign{border-bottom:0;padding-top:26px}
+.menu .menu-sign .it{font-size:15px;font-family:var(--mono);font-weight:500;letter-spacing:.1em;font-stretch:100%}
+
+/* ============ SECTION CHASSIS ============ */
+.sec{display:grid;grid-template-columns:var(--rail) minmax(0,1fr);border-top:1px solid var(--ink)}
+#hero.sec{border-top:0}
+.rail{border-right:1px solid var(--ink);padding:26px 0 0 var(--gutter)}
+.rail-no{font-family:var(--mono);font-size:24px;font-weight:500;line-height:1;letter-spacing:.02em}
+.rail-no.live{color:var(--verm)}
+.body{padding:0 var(--gutter);min-width:0;position:relative}
+
+.sec--dark{background:var(--ink);color:var(--paper)}
+.sec--dark .rail{border-color:var(--paper)}
+
+.sec-head{
+  display:flex;flex-wrap:wrap;align-items:baseline;gap:16px 28px;
+  padding:26px 0 30px;
+}
+.sec-head .ann{color:var(--muted)}
+.sec--dark .sec-head .ann{color:var(--muted-inv)}
+.sec-head h2{
+  flex-basis:100%;
+  font-family:var(--sans);font-weight:600;font-stretch:116%;
+  font-size:clamp(34px,3.7vw,52px);line-height:1.04;letter-spacing:-0.02em;
+  max-width:22ch;
+}
+.sec-head .head-tool{margin-left:auto}
+.sub{font-size:16px;color:var(--muted);max-width:44ch}
+.sec--dark .sub{color:var(--muted-inv)}
+
+/* ============ 01 HERO ============ */
+#hero .body{display:flex;flex-direction:column;min-height:calc(100vh - var(--eb))}
+.hero-ann{
+  display:flex;align-items:center;gap:10px;
+  padding:24px 0 0;color:var(--ink);
+}
+.hero-ann .sq{width:8px;height:8px;background:var(--ink);flex:none}
+.hero-display{
+  position:relative;
+  border-top:1px solid var(--ink);border-bottom:1px solid var(--ink);
+  padding-top:34px;padding-bottom:44px;margin-top:auto;
+}
+h1{
+  font-family:var(--sans);font-weight:640;font-stretch:122%;
+  font-size:clamp(44px,6.7vw,96px);line-height:.98;letter-spacing:-0.03em;
+  text-wrap:balance;
+}
+h1 span{display:block;white-space:nowrap}
+.mbr{display:none}
+.xh{position:absolute;color:var(--ink)}
+.xh-a{top:-6.5px;right:calc(var(--gutter) - 7px)}
+.xh-b{bottom:-6.5px;left:calc(var(--rail) + var(--gutter) - 7px)}
+.hero-lower{
+  display:flex;align-items:flex-end;gap:48px;
+  padding:48px 0 44px;margin-top:auto;
+}
+.hero-support{max-width:300px;margin-left:auto;font-size:15px;line-height:1.6}
+.hero-support .ann{display:block;color:var(--muted);margin-bottom:10px}
+
+/* NPI instrument */
+.npi{width:100%;max-width:620px}
+.npi label{
+  display:block;font-family:var(--mono);font-size:10px;font-weight:500;
+  letter-spacing:.12em;text-transform:uppercase;margin-bottom:8px;
+}
+.npi-row{display:flex}
+.npi input{
+  flex:1;min-width:0;height:58px;
+  border:1px solid var(--ink);border-right:0;background:transparent;
+  font-family:var(--mono);font-size:18px;font-weight:500;letter-spacing:.18em;
+  padding:0 18px;color:var(--ink);border-radius:0;appearance:none;
+}
+.npi input::placeholder{color:var(--muted);letter-spacing:.18em}
+.npi button{
+  height:58px;padding:0 30px;background:var(--ink);color:var(--paper);
+  border:1px solid var(--ink);
+  font-family:var(--mono);font-size:11px;font-weight:500;
+  letter-spacing:.12em;text-transform:uppercase;
+  transition:background-color .15s linear;flex:none;
+}
+.npi button:hover{background:var(--verm-deep);border-color:var(--verm-deep)}
+.npi-note{
+  min-height:20px;margin-top:10px;
+  font-family:var(--mono);font-size:11px;letter-spacing:.02em;
+}
+.npi-note.is-on::before{
+  content:"";display:inline-block;width:7px;height:7px;
+  background:var(--verm);margin-right:8px;
+}
+.hero-foot{
+  display:flex;align-items:baseline;justify-content:space-between;gap:24px;
+  border-top:1px solid var(--ink);padding-top:14px;padding-bottom:26px;
+}
+.hero-foot .micro{
+  font-family:var(--mono);font-size:10px;font-weight:400;
+  letter-spacing:.06em;text-transform:uppercase;color:var(--muted);
+}
+.link-mono{
+  font-family:var(--mono);font-size:11px;font-weight:500;
+  letter-spacing:.08em;text-transform:uppercase;
+  text-decoration:underline;text-underline-offset:4px;text-decoration-thickness:1px;
+}
+.link-mono:hover{text-decoration-thickness:2px}
+
+/* ============ 02 HOW IT WORKS ============ */
+#replay{
+  height:40px;padding:0 16px;border:1px solid var(--ink);
+  font-family:var(--mono);font-size:11px;font-weight:500;
+  letter-spacing:.1em;text-transform:uppercase;
+  transition:background-color .15s linear,color .15s linear;
+}
+#replay:hover{background:var(--ink);color:var(--paper)}
+.frames{
+  display:grid;grid-template-columns:repeat(5,1fr);
+  border-top:1px solid var(--ink);border-bottom:1px solid var(--ink);
+  background:var(--paper-2);
+}
+.frame{
+  padding:18px 18px 24px;display:flex;flex-direction:column;min-height:396px;
+}
+.frame + .frame{border-left:1px solid var(--ink)}
+.f-rule{height:2px;background:var(--ink);margin-bottom:16px;transform-origin:left center}
+.frame.is-live .f-rule{background:var(--verm)}
+.f-head{display:flex;align-items:baseline;gap:10px;margin-bottom:18px}
+.f-no{font-family:var(--mono);font-size:24px;font-weight:500;line-height:1}
+.frame.is-live .f-no{color:var(--verm)}
+.f-title{font-family:var(--mono);font-size:10px;font-weight:500;letter-spacing:.1em;text-transform:uppercase}
+.f-art{flex:1}
+.frame figcaption{
+  margin-top:16px;font-family:var(--mono);font-size:12px;font-weight:400;
+  line-height:1.6;letter-spacing:.01em;max-width:30ch;
+}
+/* art primitives */
+.cells{display:flex;gap:4px;flex-wrap:wrap}
+.cell{
+  width:17px;height:24px;border:1px solid var(--ink);
+  display:grid;place-items:center;
+  font-family:var(--mono);font-size:11px;line-height:1;
+}
+.seed-tag{margin-top:12px;font-family:var(--mono);font-size:9px;letter-spacing:.08em;color:var(--muted)}
+.fact{display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--hair)}
+.fact:last-child{border-bottom:0}
+.f-label{font-family:var(--mono);font-size:9px;font-weight:500;letter-spacing:.06em;flex:none;width:72px;text-transform:uppercase}
+.bar{height:11px;background:var(--ink)}
+.bar--open{background:transparent;border:1px solid var(--ink)}
+.src{margin-left:auto;font-family:var(--mono);font-size:8.5px;letter-spacing:.04em;color:var(--muted);text-transform:uppercase;text-align:right}
+.item{padding:8px 0;border-bottom:1px solid var(--hair);display:flex;flex-direction:column;gap:5px}
+.item:last-child{border-bottom:0}
+.i-name{font-family:var(--mono);font-size:10px;font-weight:500;letter-spacing:.05em;text-transform:uppercase}
+.i-owner{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:8.5px;letter-spacing:.05em;color:var(--muted);text-transform:uppercase}
+.mk{width:7px;height:7px;flex:none}
+.mk--ink{background:var(--ink)}
+.mk--verm{background:var(--verm)}
+.mk--verm-o{border:2px solid var(--verm)}
+.mk--mute{border:1px solid var(--muted)}
+.chip{
+  display:inline-flex;align-items:center;gap:6px;width:max-content;
+  padding:3px 8px;border:1px solid var(--ink);
+  font-family:var(--mono);font-size:8.5px;font-weight:500;
+  letter-spacing:.06em;text-transform:uppercase;
+}
+.chip--done{background:var(--ink);color:var(--paper)}
+.chip--wait{border-color:var(--muted);color:var(--muted)}
+.swap-chip{display:grid}
+.swap-chip .chip{grid-area:1/1}
+.st-await{display:none}
+.f5-role{display:flex;align-items:center;gap:8px;padding:8px 0 12px;border-bottom:1px solid var(--hair)}
+.f5-apply{
+  margin-top:14px;width:max-content;background:var(--ink);color:var(--paper);
+  padding:8px 12px;font-family:var(--mono);font-size:9px;font-weight:500;
+  letter-spacing:.1em;text-transform:uppercase;
+}
+.meter{margin-top:22px}
+.m-line{position:relative;height:9px;border-bottom:1px solid var(--ink)}
+.m-line i{position:absolute;bottom:0;width:1px;height:9px;background:var(--ink)}
+.m-line i:nth-child(1){left:0}
+.m-line i:nth-child(2){left:50%}
+.m-line i:nth-child(3){right:0}
+.m-fill{position:absolute;left:0;bottom:-2px;height:3px;width:38%;background:var(--ink)}
+.m-labels{display:flex;justify-content:space-between;margin-top:6px;font-family:var(--mono);font-size:8.5px;letter-spacing:.05em;color:var(--muted);text-transform:uppercase}
+.hiw-after{padding:22px 0 34px;max-width:52ch;font-size:15px;color:var(--muted)}
+
+/* explainer motion — only when motion is allowed and JS armed the sequence */
+@media (prefers-reduced-motion:no-preference){
+  .js-anim .frame .f-rule{transform:scaleX(0);transition:transform .42s cubic-bezier(.2,.6,.2,1)}
+  .js-anim .frame.is-drawn .f-rule{transform:scaleX(1)}
+  .js-anim .frame .f-head,
+  .js-anim .frame .f-art,
+  .js-anim .frame figcaption{opacity:0;transform:translateY(9px);transition:opacity .36s ease,transform .36s ease}
+  .js-anim .frame .f-art{transition-delay:.1s}
+  .js-anim .frame figcaption{transition-delay:.18s}
+  .js-anim .frame.is-drawn .f-head,
+  .js-anim .frame.is-drawn .f-art,
+  .js-anim .frame.is-drawn figcaption{opacity:1;transform:none}
+  /* beat 4: one item pauses for approval, then continues */
+  .js-anim .frame[data-beat="4"] .st-await{display:inline-flex}
+  .js-anim .frame[data-beat="4"] .st-ok{opacity:0}
+  .js-anim .frame[data-beat="4"].is-drawn .st-await{animation:stepout .28s ease 1.45s forwards}
+  .js-anim .frame[data-beat="4"].is-drawn .st-ok{animation:stepin .28s ease 1.62s forwards}
+}
+@keyframes stepout{to{opacity:0;visibility:hidden}}
+@keyframes stepin{to{opacity:1}}
+
+/* ============ 03 OWNERSHIP ============ */
+.own-grid{
+  display:grid;grid-template-columns:repeat(4,1fr);
+  border-top:1px solid var(--ink);border-bottom:1px solid var(--ink);
+  background:var(--paper);
+}
+.own-col{padding:22px 24px 34px}
+.own-col + .own-col{border-left:1px solid var(--ink)}
+.own-col h3{
+  display:flex;align-items:center;gap:9px;
+  font-family:var(--mono);font-size:11px;font-weight:500;
+  letter-spacing:.08em;text-transform:uppercase;margin-bottom:14px;
+}
+.own-col h3 .mk{width:9px;height:9px}
+.own-col ul{list-style:none}
+.own-col li{font-size:15px;line-height:1.45;padding:11px 0;border-bottom:1px solid var(--hair)}
+.own-col li:last-child{border-bottom:0}
+.own-col--wait h3{color:var(--muted)}
+.own-after{padding:20px 0 36px;font-size:15px;color:var(--muted);max-width:52ch}
+
+/* ============ 04 OUTCOME ============ */
+#outcome .sec-head h2{max-width:18ch;font-size:clamp(38px,4.6vw,64px)}
+#outcome .out-copy{max-width:52ch;font-size:16px;color:var(--muted-inv);padding-bottom:38px}
+.track{
+  border-top:1px solid var(--paper);border-bottom:1px solid var(--paper);
+  background:var(--ink);
+  display:grid;grid-template-columns:repeat(4,1fr);
+  padding:0;
+}
+.t-node{position:relative;padding:34px 18px 30px;border-left:1px solid var(--paper)}
+.t-node:first-child{border-left:0}
+.t-node::before{
+  content:"";position:absolute;top:-6px;left:18px;width:11px;height:11px;
+  background:var(--paper);
+}
+.t-node--fin::before{background:var(--verm)}
+.t-label{font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:.1em;text-transform:uppercase}
+.t-sub{margin-top:6px;font-family:var(--mono);font-size:9.5px;letter-spacing:.04em;color:var(--muted-inv);text-transform:uppercase;line-height:1.5}
+.out-after{padding:22px 0 40px;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted-inv)}
+
+/* ============ 05 EMPLOYERS ============ */
+#employers .body{padding-bottom:0}
+.emp-wrap{padding:26px 0 56px;display:flex;flex-direction:column;gap:26px;align-items:flex-start}
+.emp-wrap .lede{
+  font-family:var(--sans);font-weight:600;font-stretch:114%;
+  font-size:clamp(22px,2.1vw,29px);line-height:1.25;letter-spacing:-0.015em;
+  max-width:26ch;
+}
+.ghost-cta{
+  display:inline-flex;align-items:center;height:46px;padding:0 22px;
+  border:1px solid var(--ink);text-decoration:none;
+  font-family:var(--mono);font-size:11px;font-weight:500;
+  letter-spacing:.1em;text-transform:uppercase;
+  transition:background-color .15s linear,color .15s linear;
+}
+.ghost-cta:hover{background:var(--ink);color:var(--paper)}
+
+/* ============ 06 START ============ */
+#start .body{padding-bottom:64px}
+#start .npi{max-width:760px;margin-top:6px}
+#start .npi input{height:72px;font-size:22px}
+#start .npi button{height:72px;padding:0 38px;font-size:12px}
+.start-micro{
+  margin-top:22px;font-family:var(--mono);font-size:10px;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--muted);
+}
+
+/* ============ FOOTER ============ */
+footer{
+  border-top:1px solid var(--ink);
+  display:flex;flex-wrap:wrap;align-items:baseline;gap:14px 36px;
+  padding:20px var(--gutter) 30px;
+  font-family:var(--mono);font-size:10.5px;font-weight:400;
+  letter-spacing:.06em;text-transform:uppercase;
+}
+footer nav{display:flex;flex-wrap:wrap;gap:14px 24px}
+footer a{text-decoration:none}
+footer a:hover{text-decoration:underline;text-underline-offset:4px}
+.ft-meta{margin-left:auto;color:var(--muted)}
+
+/* ============ BREAKPOINTS ============ */
+@media (max-width:1120px){
+  .eb-index{display:none}
+}
+@media (max-width:960px){
+  .frames{grid-template-columns:1fr}
+  .frame{min-height:0}
+  .frame + .frame{border-left:0;border-top:1px solid var(--ink)}
+  .frame figcaption{max-width:44ch}
+}
+@media (max-width:768px){
+  :root{--rail:0px;--gutter:20px}
+  .sec{grid-template-columns:minmax(0,1fr)}
+  .rail{display:none}
+  .eb-signin{display:none}
+  .eb-cta--d{display:none}
+  .eb-cta--m{display:inline-flex}
+  .eb-menu{display:inline-flex;align-items:center}
+  .eb-right{gap:12px}
+  #hero .body{min-height:calc(100svh - var(--eb))}
+  .hero-display{padding-top:30px;padding-bottom:36px;margin-top:26px}
+  .mbr{display:inline}
+  .xh{display:none}
+  .hero-lower{flex-direction:column;align-items:stretch;gap:30px;padding:34px 0}
+  .hero-support{margin-left:0;max-width:34ch}
+  .hero-foot{flex-direction:column;gap:12px;align-items:flex-start}
+  .sec-head{padding:22px 0 24px}
+  .own-grid{grid-template-columns:1fr}
+  .own-col + .own-col{border-left:0;border-top:1px solid var(--ink)}
+  .track{grid-template-columns:1fr;border-bottom:1px solid var(--paper)}
+  .t-node{border-left:0;border-top:1px solid var(--paper);padding:22px 18px 22px 34px}
+  .t-node:first-child{border-top:0}
+  .t-node::before{top:26px;left:12px}
+  #start .npi input{height:60px;font-size:17px}
+  #start .npi button{height:60px;padding:0 22px}
+  .ft-meta{margin-left:0}
+}
+@media (max-width:480px){
+  .npi-row{flex-direction:column}
+  .npi input{border-right:1px solid var(--ink);border-bottom:0}
+  .npi button{width:100%;justify-content:center;align-items:center;display:inline-flex}
+}
+
+/* ============ REDUCED MOTION: printed spread ============ */
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+  html{scroll-behavior:auto}
+  #replay{display:none}
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<!-- ================= EYEBROW ================= -->
+<header id="eyebrow">
+  <a class="wordmark" href="#hero">VitalCV</a>
+  <p class="eb-index" id="eb-index">N&deg; 01 &mdash; Clinician hiring, handled</p>
+  <div class="eb-right">
+    <a class="eb-signin" href="https://vitalcv.com/sign-in">Sign in</a>
+    <a class="eb-cta eb-cta--d" href="#start">Start with your NPI</a>
+    <a class="eb-cta eb-cta--m" href="#start">Start</a>
+    <button class="eb-menu" id="menu-btn" aria-expanded="false" aria-controls="index-menu">Menu</button>
+  </div>
+</header>
+
+<!-- ================= INDEX MENU (mobile) ================= -->
+<div class="menu" id="index-menu" hidden>
+  <div class="menu-top">
+    <p class="menu-title">VitalCV &mdash; Index</p>
+    <button id="menu-close">Close</button>
+  </div>
+  <nav aria-label="Page index">
+    <a href="#hero"><span class="no">01</span><span class="it">Enter your NPI</span></a>
+    <a href="#how-it-works"><span class="no">02</span><span class="it">How it works</span></a>
+    <a href="#ownership"><span class="no">03</span><span class="it">What VitalCV handles</span></a>
+    <a href="#outcome"><span class="no">04</span><span class="it">The outcome</span></a>
+    <a href="#employers"><span class="no">05</span><span class="it">For employers</span></a>
+    <a href="#start"><span class="no">06</span><span class="it">Start</span></a>
+    <a class="menu-sign" href="https://vitalcv.com/sign-in"><span class="no">&nbsp;&nbsp;</span><span class="it">Sign in &nearr;</span></a>
+  </nav>
+</div>
+
+<main id="main">
+
+<!-- ================= 01 HERO ================= -->
+<section class="sec" id="hero" aria-labelledby="hero-h">
+  <div class="rail" aria-hidden="true"><span class="rail-no" data-rail="hero">01</span></div>
+  <div class="body">
+    <p class="hero-ann ann"><span class="sq" aria-hidden="true"></span>For clinicians &mdash; physicians, NPs, PAs, RNs</p>
+    <div class="hero-display bleed">
+      <h1 id="hero-h"><span>Enter <br class="mbr">your NPI.</span><span>VitalCV <br class="mbr">does the rest.</span></h1>
+      <svg class="xh xh-a" aria-hidden="true" width="13" height="13" viewBox="0 0 13 13"><path d="M6.5 0v13M0 6.5h13" stroke="currentColor" stroke-width="1"/></svg>
+      <svg class="xh xh-b" aria-hidden="true" width="13" height="13" viewBox="0 0 13 13"><path d="M6.5 0v13M0 6.5h13" stroke="currentColor" stroke-width="1"/></svg>
+    </div>
+    <div class="hero-lower">
+      <form class="npi" data-npi action="https://vitalcv.com/onboarding" method="get" novalidate>
+        <label for="npi-hero">NPI number</label>
+        <div class="npi-row">
+          <input id="npi-hero" name="npi" inputmode="numeric" autocomplete="off" maxlength="10" pattern="[0-9]*" placeholder="##########">
+          <button type="submit">Start</button>
+        </div>
+        <p class="npi-note" data-note role="status"></p>
+      </form>
+      <p class="hero-support">
+        <span class="ann">What that means</span>
+        We find what we can, show you exactly what remains, and handle the
+        administrative work that can safely be handled.
+      </p>
+    </div>
+    <div class="hero-foot bleed">
+      <span class="micro">Ten digits, then prove it&rsquo;s you. Nothing is shared without your approval.</span>
+      <a class="link-mono" href="https://vitalcv.com/employers">Hiring? &rarr; For employers</a>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 02 HOW IT WORKS ================= -->
+<section class="sec" id="how-it-works" aria-labelledby="hiw-h">
+  <div class="rail" aria-hidden="true"><span class="rail-no" data-rail="how-it-works">02</span></div>
+  <div class="body">
+    <div class="sec-head">
+      <p class="ann">N&deg; 02 &mdash; How it works</p>
+      <button id="replay" class="head-tool" type="button">&#8635;&nbsp;Replay</button>
+      <h2 id="hiw-h">How VitalCV works</h2>
+    </div>
+    <div class="frames bleed-flat" id="frames">
+
+      <figure class="frame" data-beat="1">
+        <div class="f-rule" aria-hidden="true"></div>
+        <div class="f-head"><span class="f-no" aria-hidden="true">1</span><span class="f-title">Your NPI</span></div>
+        <div class="f-art" aria-hidden="true">
+          <div class="cells">
+            <span class="cell">&bull;</span><span class="cell">&bull;</span><span class="cell">&bull;</span><span class="cell">&bull;</span><span class="cell">&bull;</span><span class="cell">&bull;</span><span class="cell">&bull;</span><span class="cell">&bull;</span><span class="cell">&bull;</span><span class="cell">&bull;</span>
+          </div>
+          <p class="seed-tag">NPI &middot; ##########</p>
+        </div>
+        <figcaption>You enter your ten-digit NPI. That is the whole ask.</figcaption>
+      </figure>
+
+      <figure class="frame" data-beat="2">
+        <div class="f-rule" aria-hidden="true"></div>
+        <div class="f-head"><span class="f-no" aria-hidden="true">2</span><span class="f-title">Found</span></div>
+        <div class="f-art" aria-hidden="true">
+          <div class="fact"><span class="f-label">Name</span><span class="bar" style="width:52%"></span><span class="src">NPPES</span></div>
+          <div class="fact"><span class="f-label">Specialty</span><span class="bar" style="width:38%"></span><span class="src">NPPES</span></div>
+          <div class="fact"><span class="f-label">Practice</span><span class="bar" style="width:45%"></span><span class="src">NPPES</span></div>
+          <div class="fact"><span class="f-label">License record</span><span class="bar bar--open" style="width:48%"></span><span class="src">State board</span></div>
+        </div>
+        <figcaption>VitalCV gathers what it can from public sources &mdash; NPPES, state license board records &mdash; and labels where each fact came from.</figcaption>
+      </figure>
+
+      <figure class="frame" data-beat="3">
+        <div class="f-rule" aria-hidden="true"></div>
+        <div class="f-head"><span class="f-no" aria-hidden="true">3</span><span class="f-title">What remains</span></div>
+        <div class="f-art" aria-hidden="true">
+          <div class="item"><span class="i-name">Work history</span><span class="i-owner"><span class="mk mk--ink"></span>VitalCV can handle this</span></div>
+          <div class="item"><span class="i-name">Reference outreach</span><span class="i-owner"><span class="mk mk--verm-o"></span>Needs your approval</span></div>
+          <div class="item"><span class="i-name">Health forms</span><span class="i-owner"><span class="mk mk--verm"></span>You complete this</span></div>
+          <div class="item"><span class="i-name">Site onboarding</span><span class="i-owner"><span class="mk mk--mute"></span>The employer controls this</span></div>
+        </div>
+        <figcaption>Then it works out what still matters: a short list, each item labeled by who owns it.</figcaption>
+      </figure>
+
+      <figure class="frame" data-beat="4">
+        <div class="f-rule" aria-hidden="true"></div>
+        <div class="f-head"><span class="f-no" aria-hidden="true">4</span><span class="f-title">In motion</span></div>
+        <div class="f-art" aria-hidden="true">
+          <div class="item"><span class="i-name">Work history</span><span class="chip chip--done">Done by VitalCV</span></div>
+          <div class="item"><span class="i-name">Reference outreach</span>
+            <span class="swap-chip">
+              <span class="chip st-await"><span class="mk mk--verm-o"></span>Awaiting your approval</span>
+              <span class="chip chip--done st-ok">Approved &mdash; in motion</span>
+            </span>
+          </div>
+          <div class="item"><span class="i-name">Health forms</span><span class="chip"><span class="mk mk--verm"></span>Needs you</span></div>
+          <div class="item"><span class="i-name">Site onboarding</span><span class="chip chip--wait">Waiting on employer</span></div>
+        </div>
+        <figcaption>VitalCV starts clearing the list. One item pauses for your approval; you approve; work continues.</figcaption>
+      </figure>
+
+      <figure class="frame" data-beat="5">
+        <div class="f-rule" aria-hidden="true"></div>
+        <div class="f-head"><span class="f-no" aria-hidden="true">5</span><span class="f-title">Start</span></div>
+        <div class="f-art" aria-hidden="true">
+          <div class="f5-role"><span class="f-label">Role</span><span class="bar" style="width:58%"></span></div>
+          <div class="f5-apply">Apply with VitalCV</div>
+          <div class="meter">
+            <div class="m-line"><i></i><i></i><i></i><span class="m-fill"></span></div>
+            <div class="m-labels"><span>Applied</span><span>Offer</span><span>First day</span></div>
+          </div>
+        </div>
+        <figcaption>It resolves into a relevant role, a short application, and a clear track to your first day.</figcaption>
+      </figure>
+
+    </div>
+    <p class="hiw-after">Nothing here is a live result &mdash; it is the idea, drawn once. The real flow starts with your number, below.</p>
+  </div>
+</section>
+
+<!-- ================= 03 OWNERSHIP ================= -->
+<section class="sec" id="ownership" aria-labelledby="own-h">
+  <div class="rail" aria-hidden="true"><span class="rail-no" data-rail="ownership">03</span></div>
+  <div class="body">
+    <div class="sec-head">
+      <p class="ann">N&deg; 03 &mdash; What VitalCV handles</p>
+      <h2 id="own-h">What VitalCV handles</h2>
+    </div>
+    <div class="own-grid bleed-flat">
+      <div class="own-col">
+        <h3><span class="mk mk--ink" aria-hidden="true"></span>VitalCV handles</h3>
+        <ul>
+          <li>Finds your record in NPPES</li>
+          <li>Assembles your professional history</li>
+          <li>Prepares application paperwork</li>
+          <li>Tracks what is still outstanding</li>
+        </ul>
+      </div>
+      <div class="own-col">
+        <h3><span class="mk mk--verm-o" aria-hidden="true"></span>Needs your approval</h3>
+        <ul>
+          <li>Sharing your profile with an employer</li>
+          <li>Sending a reference request</li>
+          <li>Submitting an application in your name</li>
+        </ul>
+      </div>
+      <div class="own-col">
+        <h3><span class="mk mk--verm" aria-hidden="true"></span>Needs you</h3>
+        <ul>
+          <li>Prove the NPI is yours</li>
+          <li>Health steps only you can do</li>
+          <li>Signatures only you can give</li>
+        </ul>
+      </div>
+      <div class="own-col own-col--wait">
+        <h3><span class="mk mk--mute" aria-hidden="true"></span>Employer decides</h3>
+        <ul>
+          <li>Interviews and the offer</li>
+          <li>Site-specific onboarding</li>
+          <li>Your start date</li>
+        </ul>
+      </div>
+    </div>
+    <p class="own-after">Four owners. No mystery about whose move it is.</p>
+  </div>
+</section>
+
+<!-- ================= 04 OUTCOME ================= -->
+<section class="sec sec--dark" id="outcome" aria-labelledby="out-h">
+  <div class="rail" aria-hidden="true"><span class="rail-no" data-rail="outcome">04</span></div>
+  <div class="body">
+    <div class="sec-head">
+      <p class="ann">N&deg; 04 &mdash; The outcome</p>
+      <h2 id="out-h">All of it exists so you start sooner.</h2>
+    </div>
+    <p class="out-copy">The profile is not the destination &mdash; the job is. Every remaining
+    step stays visible: what is done, what is waiting, and who owns it.</p>
+    <div class="track bleed-flat">
+      <div class="t-node">
+        <p class="t-label">Relevant role</p>
+        <p class="t-sub">Matched to your license and specialty</p>
+      </div>
+      <div class="t-node">
+        <p class="t-label">Application</p>
+        <p class="t-sub">Short &mdash; your profile does the heavy lifting</p>
+      </div>
+      <div class="t-node">
+        <p class="t-label">Offer</p>
+        <p class="t-sub">Remaining start work, listed by owner</p>
+      </div>
+      <div class="t-node t-node--fin">
+        <p class="t-label">First day</p>
+        <p class="t-sub">The point of all of it</p>
+      </div>
+    </div>
+    <p class="out-after">Role &rarr; offer &rarr; first day. Keep moving.</p>
+  </div>
+</section>
+
+<!-- ================= 05 EMPLOYERS ================= -->
+<section class="sec" id="employers" aria-labelledby="emp-h">
+  <div class="rail" aria-hidden="true"><span class="rail-no" data-rail="employers">05</span></div>
+  <div class="body">
+    <div class="sec-head">
+      <p class="ann">N&deg; 05 &mdash; For employers</p>
+      <h2 id="emp-h">Hiring clinicians?</h2>
+    </div>
+    <div class="emp-wrap">
+      <p class="lede">Find people who fit. Know what remains. Keep the hire moving.</p>
+      <a class="ghost-cta" href="https://vitalcv.com/employers">For employers &nearr;</a>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 06 START ================= -->
+<section class="sec" id="start" aria-labelledby="start-h">
+  <div class="rail" aria-hidden="true"><span class="rail-no" data-rail="start">06</span></div>
+  <div class="body">
+    <div class="sec-head">
+      <p class="ann">N&deg; 06 &mdash; Start</p>
+      <h2 id="start-h">Start with your NPI.</h2>
+    </div>
+    <form class="npi" data-npi action="https://vitalcv.com/onboarding" method="get" novalidate>
+      <label for="npi-start">NPI number</label>
+      <div class="npi-row">
+        <input id="npi-start" name="npi" inputmode="numeric" autocomplete="off" maxlength="10" pattern="[0-9]*" placeholder="##########">
+        <button type="submit">Start</button>
+      </div>
+      <p class="npi-note" data-note role="status"></p>
+    </form>
+    <p class="start-micro">One number starts it. You approve anything before it is shared.</p>
+  </div>
+</section>
+
+</main>
+
+<!-- ================= FOOTER ================= -->
+<footer>
+  <p>VitalCV &mdash; Clinician hiring, handled</p>
+  <nav aria-label="Footer">
+    <a href="https://vitalcv.com/sign-in">Sign in</a>
+    <a href="https://vitalcv.com/employers">For employers</a>
+    <a href="https://vitalcv.com/privacy">Privacy</a>
+    <a href="https://vitalcv.com/terms">Terms</a>
+  </nav>
+  <p class="ft-meta">Design prototype &mdash; Direction C &middot; &copy; 2026 VitalCV</p>
+</footer>
+
+<script>
+(function(){
+  'use strict';
+  var d = document;
+  var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* ---------- NPI forms: digits only, intercepted submit ---------- */
+  Array.prototype.forEach.call(d.querySelectorAll('form[data-npi]'), function(form){
+    var input = form.querySelector('input[name="npi"]');
+    var note = form.querySelector('[data-note]');
+    input.addEventListener('input', function(){
+      var v = input.value.replace(/\D+/g, '').slice(0, 10);
+      if (v !== input.value) input.value = v;
+    });
+    form.addEventListener('submit', function(e){
+      e.preventDefault();
+      note.textContent = 'Prototype — the real flow continues at vitalcv.com/onboarding';
+      note.classList.add('is-on');
+    });
+  });
+
+  /* ---------- Mobile index menu ---------- */
+  var menuBtn = d.getElementById('menu-btn');
+  var menu = d.getElementById('index-menu');
+  var menuClose = d.getElementById('menu-close');
+  var lastFocus = null;
+  function openMenu(){
+    lastFocus = d.activeElement;
+    menu.hidden = false;
+    d.documentElement.classList.add('menu-open');
+    menuBtn.setAttribute('aria-expanded', 'true');
+    var first = menu.querySelector('a, button');
+    if (first) first.focus();
+  }
+  function closeMenu(){
+    menu.hidden = true;
+    d.documentElement.classList.remove('menu-open');
+    menuBtn.setAttribute('aria-expanded', 'false');
+    if (lastFocus && lastFocus.focus) lastFocus.focus();
+  }
+  menuBtn.addEventListener('click', function(){ menu.hidden ? openMenu() : closeMenu(); });
+  menuClose.addEventListener('click', closeMenu);
+  d.addEventListener('keydown', function(e){ if (e.key === 'Escape' && !menu.hidden) closeMenu(); });
+  menu.addEventListener('click', function(e){
+    var a = e.target && e.target.closest ? e.target.closest('a') : null;
+    if (a) closeMenu();
+  });
+
+  /* ---------- Section index: eyebrow annotation + rail + inversion ---------- */
+  var EBH = 60;
+  var SECTIONS = [
+    ['hero', 'N° 01 — Clinician hiring, handled'],
+    ['how-it-works', 'N° 02 — How it works'],
+    ['ownership', 'N° 03 — What VitalCV handles'],
+    ['outcome', 'N° 04 — The outcome'],
+    ['employers', 'N° 05 — For employers'],
+    ['start', 'N° 06 — Start with your NPI']
+  ];
+  var secEls = SECTIONS.map(function(s){
+    return { el: d.getElementById(s[0]), label: s[1], rail: d.querySelector('[data-rail="' + s[0] + '"]') };
+  });
+  var eyebrow = d.getElementById('eyebrow');
+  var ebIndex = d.getElementById('eb-index');
+  var outcome = d.getElementById('outcome');
+  var current = -1;
+  var swapTimer = null;
+
+  function setIndex(i){
+    if (reduced) return; /* printed spread: annotation and rail stay static */
+    secEls.forEach(function(s, j){ s.rail.classList.toggle('live', j === i); });
+    ebIndex.classList.add('swap');
+    clearTimeout(swapTimer);
+    swapTimer = setTimeout(function(){
+      ebIndex.textContent = secEls[i].label;
+      ebIndex.classList.remove('swap');
+    }, 140);
+  }
+  function onScroll(){
+    var r = outcome.getBoundingClientRect();
+    eyebrow.classList.toggle('inv', r.top < EBH && r.bottom > 0);
+    var idx = 0;
+    for (var i = 0; i < secEls.length; i++){
+      var rr = secEls[i].el.getBoundingClientRect();
+      if (rr.top <= EBH + 2) idx = i;
+    }
+    if (idx !== current){ current = idx; setIndex(idx); }
+  }
+  var ticking = false;
+  function requestScroll(){
+    if (ticking) return;
+    ticking = true;
+    requestAnimationFrame(function(){ ticking = false; onScroll(); });
+  }
+  window.addEventListener('scroll', requestScroll, { passive: true });
+  window.addEventListener('resize', requestScroll);
+  onScroll();
+
+  /* ---------- Explainer sequence ---------- */
+  var seqSection = d.getElementById('how-it-works');
+  var framesWrap = d.getElementById('frames');
+  var frames = Array.prototype.slice.call(framesWrap.querySelectorAll('.frame'));
+  var replay = d.getElementById('replay');
+  var seq = { playing: false, played: reduced, beat: reduced ? 5 : 0 };
+  var timers = [];
+
+  function clearTimers(){ timers.forEach(clearTimeout); timers = []; }
+
+  function play(){
+    if (reduced) return;
+    clearTimers();
+    frames.forEach(function(f){ f.classList.remove('is-drawn', 'is-live'); });
+    void framesWrap.offsetWidth; /* reflow so re-added classes re-trigger */
+    seq.playing = true; seq.beat = 0; seq.played = false;
+    frames.forEach(function(f, i){
+      timers.push(setTimeout(function(){
+        if (i > 0) frames[i - 1].classList.remove('is-live');
+        f.classList.add('is-drawn', 'is-live');
+        seq.beat = i + 1;
+        if (i === frames.length - 1){
+          timers.push(setTimeout(function(){ seq.playing = false; seq.played = true; }, 700));
+        }
+      }, 140 + i * 400));
+    });
+  }
+
+  if (!reduced){
+    seqSection.classList.add('js-anim');
+    if ('IntersectionObserver' in window){
+      var io = new IntersectionObserver(function(entries){
+        entries.forEach(function(en){
+          if (en.isIntersecting && !seq.played && !seq.playing){
+            play();
+            io.disconnect();
+          }
+        });
+      }, { threshold: 0.3 });
+      io.observe(framesWrap);
+    } else {
+      play();
+    }
+    replay.addEventListener('click', play);
+  }
+
+  /* capture-script hook */
+  window.__reset = {
+    play: play,
+    get state(){
+      return { playing: seq.playing, played: seq.played, beat: seq.beat, reducedMotion: reduced };
+    }
+  };
+})();
+</script>
+</body>
+</html>
