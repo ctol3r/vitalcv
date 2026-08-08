@@ -1,6 +1,18 @@
 # Expo SDK 53 → 57 wave — plan
 
-**Status:** proposal, awaiting founder decision. Nothing here has been executed.
+**Status: steps 0a and 0b are DONE and on `main`. Steps 1–4 are unstarted and
+still awaiting a founder decision.**
+
+| Step | State |
+|---|---|
+| 0a — mobile `typecheck` + `test` in CI | ✅ merged, [#1143](https://github.com/ctol3r/vitalcv/pull/1143) `1c5ba0037` |
+| 0b — notification trigger fix + 7 regression tests | ✅ merged, [#1144](https://github.com/ctol3r/vitalcv/pull/1144) `75199350a` |
+| 1–4 — the SDK moves (53 → 54 → 55 → 56 → 57) | ⬜ not started |
+
+The four decisions in §8 remain open, including the first one: **whether the SDK
+moves are worth running at all.** Sections below are the original analysis,
+annotated where reality has since caught up.
+
 **Scope:** `apps/mobile` (`@vitalcv/mobile-wallet`) only.
 **Origin:** the deliberate loose end left by the
 [Dependabot backlog triage](../security/dependabot-backlog-triage-2026-08-07.md) —
@@ -44,11 +56,11 @@ Everything in this section was verified against `origin/main` on 2026-08-08.
 | `react-native` | `0.79.6` |
 | `react` | `19.0.0` |
 | Baseline `tsc --noEmit` | **exit 0** (clean) |
-| Baseline test suite | **9/9 passing**, 3 files, 584 ms |
+| Baseline test suite | **9/9 passing**, 3 files, 584 ms — *now 16/16 across 4 files after step 0b* |
 | `apps/mobile/ios/`, `apps/mobile/android/` | do not exist, **never committed** |
 | `eas.json` | does not exist **anywhere in the repo** |
 | `newArchEnabled` in `app.json` | **not set** |
-| CI jobs executing anything in `apps/mobile` | **zero** |
+| CI jobs executing anything in `apps/mobile` | **zero** — *closed by step 0a; a `Mobile Quality` job now runs on every PR* |
 | Store presence | none — completion board: `isLive: false`, "nothing shipped to devices" |
 | `VALIDATION.md` | "AWAITING EXECUTION — human required" |
 
@@ -77,6 +89,12 @@ unless we change that first.**
 ---
 
 ## 3. A real bug found while planning — independent of the upgrade
+
+> **Fixed in [#1144](https://github.com/ctol3r/vitalcv/pull/1144) (`75199350a`).**
+> The analysis below is preserved because it explains *why* the type checker
+> could not catch it, which is the durable lesson. Before restoring the fix the
+> new test was proven to fail against the buggy code: `tsc` exit **0**, vitest
+> **2 failed / 14 passed**. With the fix: `tsc` exit 0, 16/16 across 4 files.
 
 `apps/mobile/src/services/NotificationService.ts:88-91` schedules expiry
 reminders with:
@@ -245,7 +263,7 @@ writes the `apps/mobile` importer with pre-override specifiers (e.g.
 just mobile's. A plain `pnpm install` re-normalises it. Budget for hitting this
 four times.
 
-**Expected acceptance per step:** `tsc` exit 0, 9/9 tests, `expo-doctor` clean,
+**Expected acceptance per step:** `tsc` exit 0, 16/16 tests, `expo-doctor` clean,
 `--frozen-lockfile` clean, and the lockfile importer diff confined to
 `apps/mobile`.
 
@@ -253,8 +271,10 @@ four times.
 
 ## 7. The verification problem, and step 0
 
-`tsc` + 9 tests is the entire automated signal available, and today **neither
-runs in CI**. What that signal cannot see:
+`tsc` + the vitest suite is the entire automated signal available. As written,
+**neither ran in CI** — step 0a has since fixed that, and 0b took the suite from
+9 tests to 16. The signal is now real, but its ceiling is unchanged. What it
+still cannot see:
 
 - native build success (no build path exists)
 - New Architecture runtime behaviour (step 2's actual risk)
@@ -262,18 +282,33 @@ runs in CI**. What that signal cannot see:
 - notification delivery (the §3 bug is invisible to `tsc` by construction —
   that is *how* it survived)
 
-### Step 0a — add mobile to CI (strongly recommended, cheap)
+### Step 0a — add mobile to CI ✅ done — [#1143](https://github.com/ctol3r/vitalcv/pull/1143), `1c5ba0037`
 
-Add a job to `.github/workflows/ci.yml` running mobile `typecheck` + `test`.
-Cost: a few seconds of runner time — the suite is 584 ms and `tsc` is fast.
-Benefit: converts four blind upgrades into four gated ones, and closes a gap
-that exists today regardless of whether this wave ever runs.
+A `mobile-quality` job in `.github/workflows/ci.yml`: install → build workspace
+deps → `tsc --noEmit` → vitest. `apps/mobile/**` added to the push path filter;
+the `pull_request` trigger left deliberately unfiltered.
 
-This is worth doing **even if the founder defers the whole wave.**
+One thing the plan did not anticipate: **the workspace build step is required,
+not incidental.** `apps/mobile` imports `@vitalcv/wallet-sdk`, which resolves
+through `dist/`. Verified by moving `dist/` aside — mobile `tsc` fails with
+`TS2307` on `WalletSyncService.ts:1`. A naive job without the prebuild would
+have gone red on its first run. Same class of trap as the `@vitalcv/trust-state`
+note in `CLAUDE.md`.
 
-### Step 0b — fix the notification trigger bug (§3)
+**Still outstanding — this job does not yet gate merges.** Adding a job does not
+make it a *required status check*; that is branch-protection configuration. It
+reports on every PR but a mobile regression will show red without blocking.
+Adding the `Mobile Quality` context to the required list is a founder action.
 
-Isolated, one-line, reviewable. Ahead of the SDK moves so it is not buried.
+### Step 0b — fix the notification trigger bug ✅ done — [#1144](https://github.com/ctol3r/vitalcv/pull/1144), `75199350a`
+
+One line in `NotificationService.ts` plus 7 regression tests. Landed separately
+so it reads as the behavioural fix it is rather than being buried in an upgrade
+diff, and refreshed from `main` after 0a so the `Mobile Quality` job ran on it —
+15/15 green on `ec4e14eb2`. The tests executed in CI *before* merge rather than
+on local evidence alone, which was the point of sequencing 0a first.
+
+The mobile suite is now **16 tests across 4 files**, up from 9 across 3.
 
 ### The build-path question
 
@@ -305,36 +340,41 @@ recording that decision here.
    since git history preserves it and `ROLE.md` explicitly forbids mobile being
    a wallet.
 3. **Native build path** — accept JS-only verification (recommended) or add EAS?
-4. **Step 0a (mobile CI)** — approve independently of the rest of the wave?
+4. ~~**Step 0a (mobile CI)** — approve independently of the rest of the wave?~~
+   **Answered: yes, merged as #1143.** The follow-on question stands — should
+   `Mobile Quality` become a *required* status check? Until it is, a mobile
+   regression shows red without blocking a merge.
 
 ---
 
 ## 9. Sequencing and effort
 
-| Step | Content | Risk | Verification available |
-|---|---|---|---|
-| 0a | Mobile `typecheck` + `test` in CI | Very low | The job itself |
-| 0b | Notification trigger fix | Low | `tsc`, tests, code read |
-| 1 | SDK 53 → 54 | Low | `tsc`, tests, `expo-doctor` |
-| 2 | SDK 54 → 55 (**New Arch**) | **High** | JS only unless a build path is added |
-| 3 | SDK 55 → 56 (router fork, icons) | Medium | `tsc` catches both changes |
-| 4 | SDK 56 → 57 + remove the `dependabot.yml` ignore | Low | `tsc`, tests, `expo-doctor` |
+| Step | Content | Risk | Verification available | State |
+|---|---|---|---|---|
+| 0a | Mobile `typecheck` + `test` in CI | Very low | The job itself | ✅ `1c5ba0037` |
+| 0b | Notification trigger fix | Low | `tsc`, tests, code read | ✅ `75199350a` |
+| 1 | SDK 53 → 54 | Low | `tsc`, tests, `expo-doctor` | ⬜ |
+| 2 | SDK 54 → 55 (**New Arch**) | **High** | JS only unless a build path is added | ⬜ |
+| 3 | SDK 55 → 56 (router fork, icons) | Medium | `tsc` catches both changes | ⬜ |
+| 4 | SDK 56 → 57 + remove the `dependabot.yml` ignore | Low | `tsc`, tests, `expo-doctor` | ⬜ |
 
-Six PRs, each independently revertible. Steps 0a and 0b can land immediately and
-are useful on their own merits. **Do not `expo install --fix` straight to 57.**
+Six PRs, each independently revertible. Steps 0a and 0b landed on their own
+merits and are now on `main`; the four SDK moves are unstarted.
+**Do not `expo install --fix` straight to 57.**
 
 ---
 
 ## 10. Definition of done
 
-- `apps/mobile` on `expo ~57.0.0` with the companion set aligned by
+- ⬜ `apps/mobile` on `expo ~57.0.0` with the companion set aligned by
   `expo install --fix`
-- `tsc --noEmit` exit 0; 9/9 tests; `expo-doctor` clean
-- `pnpm install --frozen-lockfile` clean, lockfile importer diff confined to
+- ⬜ `tsc --noEmit` exit 0; **16/16** tests; `expo-doctor` clean
+- ⬜ `pnpm install --frozen-lockfile` clean, lockfile importer diff confined to
   `apps/mobile`
-- Mobile `typecheck` + `test` running in CI
-- The `expo-notifications` `ignore` entry removed from `.github/dependabot.yml`
-- The §3 trigger bug fixed
+- ✅ Mobile `typecheck` + `test` running in CI — *not yet a required check; see
+  §7 step 0a*
+- ⬜ The `expo-notifications` `ignore` entry removed from `.github/dependabot.yml`
+- ✅ The §3 trigger bug fixed
 - **Stated explicitly in the final PR:** whether native/New-Arch verification was
   performed or deliberately skipped. No claim that the app "works" on the
   strength of `tsc` and 9 unit tests.
