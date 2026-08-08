@@ -31,6 +31,8 @@ import { buildDecisionProjection, decisionFingerprint } from '../delta/projectio
 import { generateStartPlanV2 } from '../policy/start-policy-v2';
 import { createRefreshBudget, type RefreshBudget } from '../refresh/budget';
 import { planScheduledRefreshes, type RefreshPlan } from '../refresh/planner';
+import type { ConsentProof } from '../consent/types';
+import { recordAgentEvent } from '../telemetry/agent-run-store';
 import { buildProductionReaders } from '../server-readers';
 import { persistAgentRun } from '../telemetry/agent-run-store';
 import { buildStartAgentTools } from '../tools/canonical-tools';
@@ -42,6 +44,13 @@ import {
   scheduleSummary,
   type ScheduledSubject,
 } from './subject-schedule';
+
+/**
+ * A2.5 — the scope a clinician grants to let VitalCV keep their evidence
+ * current unattended. Non-disclosing by construction; the ledger enforces
+ * that independently via an allowlist.
+ */
+export const BACKGROUND_REFRESH_SCOPE = 'background_refresh:self';
 
 /** The surface id the operator kill switch uses. */
 export const AGENT_TICK_SURFACE_ID = 'agent_tick';
@@ -71,6 +80,11 @@ export interface SubjectRunOutcome {
    */
   refreshesPlanned?: number;
   refreshesSkipped?: Partial<Record<string, number>>;
+  /** A2.5 — refreshes actually EXECUTED under a verified standing consent. */
+  refreshesExecuted?: number;
+  refreshesFailed?: number;
+  /** Why nothing ran, when nothing did. */
+  executionWithheld?: 'no_standing_consent' | 'dry_run' | 'nothing_planned';
   /**
    * Why no comparison happened, when none did. A first run and a
    * completeness mismatch are both "we did not compare", and neither is
@@ -96,6 +110,8 @@ export interface TickResult {
    */
   refreshBudget: Record<string, { used: number; remaining: number; nearLimit: boolean }>;
   refreshesPlanned: number;
+  /** A2.5 — the first unattended work this system does. */
+  refreshesExecuted: number;
   skipped?: TickSkipReason;
   /** Operator-safe: subject refs are the caller's own opaque keys, no PII. */
   outcomes: SubjectRunOutcome[];
@@ -116,12 +132,24 @@ export interface RunTickOptions {
 }
 
 export interface TickDeps {
+  /** A2.5 — injected so tests drive execution without a database. */
+  verifyConsent(subjectRef: string, scope: string, now: string): Promise<ConsentProof | null>;
+  emit(input: Parameters<typeof recordAgentEvent>[0]): Promise<{ persisted: boolean }>;
   isKilled(): Promise<boolean>;
   claim(input: { limit: number; now: Date }): Promise<ScheduledSubject[]>;
   planSubject(subject: ScheduledSubject, now: Date): Promise<SubjectRunOutcome>;
   onSuccess(input: { id: string; runId: string | null; now: Date }): Promise<void>;
   onFailure(input: { id: string; error: string; now: Date }): Promise<void>;
   summary(now: Date): Promise<{ enrolled: number; enabled: number; due: number }>;
+}
+
+async function defaultVerifyConsent(
+  subjectRef: string,
+  scope: string,
+  now: string,
+): Promise<ConsentProof | null> {
+  const { verifyAgentConsent } = await import('../consent/consent-store');
+  return verifyAgentConsent(subjectRef, scope, now);
 }
 
 async function defaultIsKilled(): Promise<boolean> {
@@ -143,11 +171,17 @@ async function defaultIsKilled(): Promise<boolean> {
  * unreachable for this actor (A2.0), so the resulting plan is `reduced` and
  * is never shown to anyone — it exists to be recorded.
  */
+interface SubjectExecutionDeps {
+  verifyConsent(subjectRef: string, scope: string, now: string): Promise<ConsentProof | null>;
+  emit(input: Parameters<typeof recordAgentEvent>[0]): Promise<{ persisted: boolean }>;
+}
+
 async function defaultPlanSubject(
   subject: ScheduledSubject,
   now: Date,
   dryRun: boolean,
   budget: RefreshBudget,
+  deps: SubjectExecutionDeps,
 ): Promise<SubjectRunOutcome> {
   const readers = buildProductionReaders(subject.subjectRef, { actor: 'system_scheduler' });
   const registry = createToolRegistry(buildStartAgentTools(readers), {
@@ -210,6 +244,97 @@ async function defaultPlanSubject(
     }
   }
 
+  // ---------------------------------------------------------------------
+  // A2.5 — the first unattended action.
+  //
+  // Three things must all hold, and none of them is a config default:
+  //   * a STANDING consent proof, minted by re-reading the ledger right now
+  //     (so a revocation or an expiry since the last tick is honoured);
+  //   * not a dry run;
+  //   * the refresh planner actually asked for something.
+  //
+  // The work is Level 2, so the registry's actor gate already permits the
+  // scheduler. The consent is what makes it legible and revocable — the
+  // clinician chose to have this happen and can stop it.
+  // ---------------------------------------------------------------------
+  let executed = 0;
+  let failed = 0;
+  let withheld: SubjectRunOutcome['executionWithheld'];
+
+  if (refresh.planned.length === 0) {
+    withheld = 'nothing_planned';
+  } else if (dryRun) {
+    withheld = 'dry_run';
+  } else {
+    const proof = await deps.verifyConsent(
+      subject.subjectRef,
+      BACKGROUND_REFRESH_SCOPE,
+      now.toISOString(),
+    );
+    if (!proof || proof.kind !== 'standing') {
+      // Point consent cannot authorise unattended work, however fresh it is.
+      withheld = 'no_standing_consent';
+    } else {
+      for (const planned of refresh.planned) {
+        const actionRef = `refresh:${planned.laneId}`;
+        await deps.emit({
+          eventType: 'agent_action_accepted',
+          planId: plan.planId,
+          subjectRef: subject.subjectRef,
+          ...(persistence.runId ? { runId: persistence.runId } : {}),
+          actionId: actionRef,
+          owner: 'vitalcv',
+          metadata: {
+            actionType: 'refresh_source_observation',
+            trigger: 'scheduled',
+            consentId: proof.consentId,
+            laneId: planned.laneId,
+            sourceId: planned.sourceId,
+          },
+        });
+        try {
+          const result = await registry.execute<{ requested: boolean }>(
+            'trigger_source_refresh',
+            { npi: subject.npi ?? context.subject.npi },
+          );
+          const ok = result?.requested === true;
+          if (ok) executed += 1;
+          else failed += 1;
+          await deps.emit({
+            eventType: ok ? 'agent_action_completed' : 'agent_action_failed',
+            planId: plan.planId,
+            subjectRef: subject.subjectRef,
+            ...(persistence.runId ? { runId: persistence.runId } : {}),
+            actionId: actionRef,
+            owner: 'vitalcv',
+            outcome: ok ? 'completed' : 'capability_declined',
+            metadata: {
+              actionType: 'refresh_source_observation',
+              consentId: proof.consentId,
+              laneId: planned.laneId,
+            },
+          });
+        } catch (error) {
+          failed += 1;
+          await deps.emit({
+            eventType: 'agent_action_failed',
+            planId: plan.planId,
+            subjectRef: subject.subjectRef,
+            ...(persistence.runId ? { runId: persistence.runId } : {}),
+            actionId: actionRef,
+            owner: 'vitalcv',
+            outcome: 'threw',
+            metadata: {
+              actionType: 'refresh_source_observation',
+              laneId: planned.laneId,
+              error: error instanceof Error ? error.message : 'unknown',
+            },
+          });
+        }
+      }
+    }
+  }
+
   return {
     subjectRef: subject.subjectRef,
     ok: true,
@@ -221,6 +346,9 @@ async function defaultPlanSubject(
     inputGaps,
     deltaCount: outcome.deltas.length,
     materialDeltaCount: outcome.materialCount,
+    refreshesExecuted: executed,
+    refreshesFailed: failed,
+    ...(withheld ? { executionWithheld: withheld } : {}),
     refreshesPlanned: refresh.planned.length,
     refreshesSkipped: refresh.skipped.reduce<Record<string, number>>((acc, s) => {
       acc[s.reason] = (acc[s.reason] ?? 0) + 1;
@@ -244,9 +372,15 @@ export async function runAgentTick(options: RunTickOptions = {}): Promise<TickRe
   const refreshBudget = createRefreshBudget();
 
   const deps: TickDeps = {
+    verifyConsent: defaultVerifyConsent,
+    emit: recordAgentEvent,
     isKilled: defaultIsKilled,
     claim: claimDueSubjects,
-    planSubject: (subject, at) => defaultPlanSubject(subject, at, dryRun, refreshBudget),
+    planSubject: (subject, at) =>
+      defaultPlanSubject(subject, at, dryRun, refreshBudget, {
+        verifyConsent: options.deps?.verifyConsent ?? defaultVerifyConsent,
+        emit: options.deps?.emit ?? recordAgentEvent,
+      }),
     onSuccess: recordSubjectSuccess,
     onFailure: recordSubjectFailure,
     summary: scheduleSummary,
@@ -264,6 +398,7 @@ export async function runAgentTick(options: RunTickOptions = {}): Promise<TickRe
     materialDeltas: 0,
     refreshBudget: refreshBudget.spend(),
     refreshesPlanned: 0,
+    refreshesExecuted: 0,
     outcomes: [],
     summary: await deps.summary(now).catch(() => ({ enrolled: 0, enabled: 0, due: 0 })),
     ...extra,
@@ -305,6 +440,7 @@ export async function runAgentTick(options: RunTickOptions = {}): Promise<TickRe
     materialDeltas: outcomes.reduce((sum, o) => sum + (o.materialDeltaCount ?? 0), 0),
     refreshBudget: refreshBudget.spend(),
     refreshesPlanned: outcomes.reduce((sum, o) => sum + (o.refreshesPlanned ?? 0), 0),
+    refreshesExecuted: outcomes.reduce((sum, o) => sum + (o.refreshesExecuted ?? 0), 0),
     outcomes,
   });
 }

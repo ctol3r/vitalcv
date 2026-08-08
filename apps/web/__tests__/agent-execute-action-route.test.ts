@@ -153,6 +153,7 @@ describe('POST /api/agent/execute-action', () => {
       consentId: 'evt-1',
       subjectRef: 'user_exec_route',
       scope: SHARE_SCOPE,
+      kind: 'point' as const,
       grantedAt: NOW,
       verifiedAt: NOW,
     });

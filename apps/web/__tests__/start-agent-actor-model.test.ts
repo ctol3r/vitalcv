@@ -118,6 +118,7 @@ describe('actor-scoped tool availability', () => {
             consentId: 'c1',
             subjectRef: SUBJECT,
             scope: 'scope:x',
+            kind: 'point' as const,
             grantedAt: NOW,
             verifiedAt: NOW,
           },
