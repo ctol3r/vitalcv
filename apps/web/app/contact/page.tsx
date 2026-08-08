@@ -18,7 +18,7 @@ export const dynamic = 'force-static';
 export const revalidate = 300;
 
 export const metadata: Metadata = {
-  title: 'Contact — Start a Pilot — VitalCV',
+  title: 'Contact — Start a Pilot',
   description:
     'Tell us about your credentialing flow. We typically reply within one business day.',
 };

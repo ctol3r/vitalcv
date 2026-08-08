@@ -30,7 +30,7 @@ import type {
 } from '@/lib/ops/getOperatorDashboardSnapshot';
 
 export const metadata: Metadata = {
-  title: 'Operator Console · VitalCV',
+  title: 'Operator Console',
   description: 'VitalCV infrastructure monitoring and trust audit surface.',
 };
 

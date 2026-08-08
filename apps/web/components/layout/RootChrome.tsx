@@ -62,7 +62,10 @@ export default function RootChrome({ children, clerkEnabled }: RootChromeProps) 
           <WorkspaceSwitcher />
         </SignedIn>
       ) : null}
-      <div id="main-content" className="relative flex-1">{children}</div>
+      {/* tabIndex makes the skip-link target actually receive focus. It stays a
+          <div>: nearly every page renders its own <main>, so promoting this
+          wrapper would nest main landmarks site-wide. */}
+      <div id="main-content" tabIndex={-1} className="relative flex-1">{children}</div>
       {/* The UX-V1 homepage composes its own final CTA + footer band; the
           shared Footer would double it. Every other public surface keeps the
           shared Footer unchanged. */}

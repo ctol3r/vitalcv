@@ -61,7 +61,7 @@ export function HospitalArtifact() {
           height={16}
           rx={1.5}
           className={`${lit.includes(i) ? 'ask-art-window--lit' : 'ask-art-window'} ask-art-item`}
-          style={{ ['--i' as string]: i, ['--set-delay' as string]: '760ms' }}
+          style={{ ['--i' as string]: i, ['--set-delay' as string]: '160ms' }}
         />
       );
     });
@@ -160,7 +160,7 @@ export function HospitalArtifact() {
         d="M590 322 Q470 330 348 326"
         pathLength={100}
         className="ask-art-trace ask-art-traced"
-        style={{ ['--trace-len' as string]: 100, ['--trace-delay' as string]: '1900ms' }}
+        style={{ ['--trace-len' as string]: 100, ['--trace-delay' as string]: '280ms' }}
       />
 
       {/* ── labels: parts only, in narrative order ───────────────── */}
@@ -198,7 +198,7 @@ const SPECIALTIES: { label: string; glyph: React.ReactNode }[] = [
         d="M6 26 H18 L23 14 L29 38 L35 22 L40 26 H54"
         pathLength={100}
         className="ask-art-trace ask-art-traced"
-        style={{ ['--trace-len' as string]: 100, ['--trace-delay' as string]: '1200ms' }}
+        style={{ ['--trace-len' as string]: 100, ['--trace-delay' as string]: '200ms' }}
       />
     ),
   },
@@ -284,7 +284,7 @@ export function SpecialtyArtifact() {
           <g
             key={s.label}
             className="ask-art-item"
-            style={{ ['--i' as string]: i, ['--set-delay' as string]: '200ms' }}
+            style={{ ['--i' as string]: i, ['--set-delay' as string]: '80ms' }}
           >
             <rect x={x} y={30} width={100} height={110} rx={10} className="ask-art-glass" />
             <path d={`M${x + 8} 34 H${x + 92}`} className="ask-art-glass-edge" />
@@ -306,7 +306,7 @@ export function SpecialtyArtifact() {
         d="M20 168 H700"
         pathLength={100}
         className="ask-art-trace ask-art-traced"
-        style={{ ['--trace-len' as string]: 100, ['--trace-delay' as string]: '1150ms' }}
+        style={{ ['--trace-len' as string]: 100, ['--trace-delay' as string]: '190ms' }}
       />
       <text x="20" y="192" className="ask-art-note ask-art-step-6">
         one record, whichever room you practise in
@@ -355,7 +355,7 @@ export function ClinicianArtifact() {
           d="M92 110 Q80 146 92 164 M116 110 Q128 146 116 164"
           pathLength={100}
           className="ask-art-trace ask-art-traced"
-          style={{ ['--trace-len' as string]: 100, ['--trace-delay' as string]: '700ms' }}
+          style={{ ['--trace-len' as string]: 100, ['--trace-delay' as string]: '120ms' }}
         />
         <circle cx="104" cy="170" r="7" className="ask-art-seal" />
       </g>
@@ -392,7 +392,7 @@ export function ClinicianArtifact() {
           x2="418"
           y2={y}
           className="ask-art-line ask-art-item"
-          style={{ ['--i' as string]: i, ['--set-delay' as string]: '1000ms' }}
+          style={{ ['--i' as string]: i, ['--set-delay' as string]: '200ms' }}
         />
       ))}
       {/* THEN each one gains the shorter line underneath that names where it
@@ -409,7 +409,7 @@ export function ClinicianArtifact() {
           x2="356"
           y2={y + 16}
           className="ask-art-meta ask-art-item"
-          style={{ ['--i' as string]: i, ['--set-delay' as string]: '1800ms' }}
+          style={{ ['--i' as string]: i, ['--set-delay' as string]: '320ms' }}
         />
       ))}
       <text x="244" y="228" className="ask-art-label ask-art-step-6">
@@ -423,7 +423,7 @@ export function ClinicianArtifact() {
           cy={y + 6}
           r="11"
           className="ask-art-seal ask-art-item"
-          style={{ ['--i' as string]: i, ['--set-delay' as string]: '2500ms' }}
+          style={{ ['--i' as string]: i, ['--set-delay' as string]: '440ms' }}
         />
       ))}
 
@@ -432,7 +432,7 @@ export function ClinicianArtifact() {
         d="M496 140 H566"
         pathLength={100}
         className="ask-art-trace ask-art-traced"
-        style={{ ['--trace-len' as string]: 100, ['--trace-delay' as string]: '3050ms' }}
+        style={{ ['--trace-len' as string]: 100, ['--trace-delay' as string]: '480ms' }}
       />
       <g className="ask-art-step-9">
         <rect x="574" y="76" width="112" height="128" rx="6" className="ask-art-glass-tint" />

@@ -4,7 +4,7 @@ import { FEATURES } from '@/lib/features';
 import { MatchaAssessment } from '@/components/matcha/MatchaAssessment';
 
 export const metadata: Metadata = {
-  title: 'Match questions — VitalCV',
+  title: 'Match questions',
   description: 'Answer Personal, Professional, and Place match questions to sharpen how MATCHA matches you.',
 };
 

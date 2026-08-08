@@ -13,7 +13,7 @@ import { prisma } from '@/lib/db';
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
-  title: 'Leads · VitalCV',
+  title: 'Leads',
   description: 'Captured pilot leads — internal.',
 };
 

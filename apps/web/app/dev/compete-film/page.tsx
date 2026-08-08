@@ -10,7 +10,7 @@ import '@/styles/home.css';
 export const dynamic = 'force-dynamic';
 
 export const metadata = {
-  title: 'Horizontal career film (dev) · VitalCV',
+  title: 'Horizontal career film (dev)',
   robots: { index: false, follow: false },
 };
 

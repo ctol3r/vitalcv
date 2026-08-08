@@ -13,7 +13,7 @@ import { SourceCoverageDiagram } from '@/components/trust/SourceCoverageDiagram'
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
-  title: 'Trust Center — VitalCV',
+  title: 'Trust Center',
   description:
     'What VitalCV checks, what each evidence state means, what VitalCV does not decide, and the controls you keep over your own career record.',
   robots: { index: true, follow: true },

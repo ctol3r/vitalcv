@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import { LegalShell } from '@/components/legal/LegalShell';
 
 export const metadata: Metadata = {
-  title: 'Cookie Policy · VitalCV',
+  title: 'Cookie Policy',
   description:
     'VitalCV cookie inventory and consent posture. We describe what cookies are set, who sets them, and why.',
 };

@@ -20,7 +20,7 @@ import { PageFrame } from '@/components/layout/PageFrame';
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
-  title: 'Status · VitalCV',
+  title: 'Status',
   description:
     'Plain-language status for the VitalCV web application, API, and the public data sources it reads. No uptime figures are claimed until they are measured.',
 };

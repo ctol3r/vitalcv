@@ -294,55 +294,61 @@
 }
 
 /* ── entry motion: explain once, then rest ─────────────────── */
+/* Tempo compressed 2026-08-08 (audit W3): the 10-step ladder totalled
+   4,540ms, leaving above-the-fold artifacts blank for ~4s on /trust,
+   /employers and /pilot. Order is the grammar and is unchanged; the whole
+   sentence now lands in ~1.3s (940ms last delay + 360ms), with a deliberate
+   breath before steps 8-10 so a consequence never shares a beat with its
+   cause (the review room lights only after the delivery trace completes). */
 
 @media (prefers-reduced-motion: no-preference) {
   .ask-art-play .ask-art-step-1 {
-    animation: ask-art-appear 480ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+    animation: ask-art-appear 360ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
   }
   .ask-art-play .ask-art-step-2 {
-    animation: ask-art-appear 480ms cubic-bezier(0.2, 0.8, 0.2, 1) 420ms both;
+    animation: ask-art-appear 360ms cubic-bezier(0.2, 0.8, 0.2, 1) 70ms both;
   }
   .ask-art-play .ask-art-step-3 {
-    animation: ask-art-appear 480ms cubic-bezier(0.2, 0.8, 0.2, 1) 860ms both;
+    animation: ask-art-appear 360ms cubic-bezier(0.2, 0.8, 0.2, 1) 140ms both;
   }
   .ask-art-play .ask-art-step-4 {
-    animation: ask-art-appear 480ms cubic-bezier(0.2, 0.8, 0.2, 1) 1300ms both;
+    animation: ask-art-appear 360ms cubic-bezier(0.2, 0.8, 0.2, 1) 210ms both;
   }
   .ask-art-play .ask-art-step-5 {
-    animation: ask-art-appear 480ms cubic-bezier(0.2, 0.8, 0.2, 1) 1760ms both;
+    animation: ask-art-appear 360ms cubic-bezier(0.2, 0.8, 0.2, 1) 280ms both;
   }
   .ask-art-play .ask-art-step-6 {
-    animation: ask-art-appear 480ms cubic-bezier(0.2, 0.8, 0.2, 1) 2220ms both;
+    animation: ask-art-appear 360ms cubic-bezier(0.2, 0.8, 0.2, 1) 350ms both;
   }
   .ask-art-play .ask-art-step-7 {
-    animation: ask-art-appear 480ms cubic-bezier(0.2, 0.8, 0.2, 1) 2680ms both;
+    animation: ask-art-appear 360ms cubic-bezier(0.2, 0.8, 0.2, 1) 420ms both;
   }
   .ask-art-play .ask-art-step-8 {
-    animation: ask-art-appear 480ms cubic-bezier(0.2, 0.8, 0.2, 1) 3140ms both;
+    animation: ask-art-appear 360ms cubic-bezier(0.2, 0.8, 0.2, 1) 800ms both;
   }
   /* Steps 9–10 exist so a drawing can finish its SENTENCE. A story needs a
      consequence after the action, and the consequence cannot share a beat with
      the thing that caused it — on the hospital, the review room lighting up has
      to land after the packet reaches the door, not with it. */
   .ask-art-play .ask-art-step-9 {
-    animation: ask-art-appear 480ms cubic-bezier(0.2, 0.8, 0.2, 1) 3600ms both;
+    animation: ask-art-appear 360ms cubic-bezier(0.2, 0.8, 0.2, 1) 870ms both;
   }
   .ask-art-play .ask-art-step-10 {
-    animation: ask-art-appear 480ms cubic-bezier(0.2, 0.8, 0.2, 1) 4060ms both;
+    animation: ask-art-appear 360ms cubic-bezier(0.2, 0.8, 0.2, 1) 940ms both;
   }
   /* A rule that DRAWS across a boundary rather than fading — the one meaning
      motion carries is direction. Dash length must be ≥ the path length. */
   .ask-art-play .ask-art-flow {
     stroke-dasharray: 32;
-    animation: ask-art-draw 520ms cubic-bezier(0.2, 0.8, 0.2, 1) 480ms both;
+    animation: ask-art-draw 400ms cubic-bezier(0.2, 0.8, 0.2, 1) 160ms both;
   }
   /* Variable-length trace. Set --trace-len (path length) and optionally
      --trace-delay inline. Used for the cardiac line, the corridor, and the
      building outline — paths far longer than ask-art-flow's fixed 32. */
   .ask-art-play .ask-art-traced {
     stroke-dasharray: var(--trace-len, 300);
-    animation: ask-art-trace 900ms cubic-bezier(0.3, 0.7, 0.2, 1)
-      var(--trace-delay, 600ms) both;
+    animation: ask-art-trace 520ms cubic-bezier(0.3, 0.7, 0.2, 1)
+      var(--trace-delay, 200ms) both;
   }
   /* A glass pane settling in — slightly longer and softer than a shape appear,
      because a pane is a bigger object and should feel like it has weight. */
@@ -354,12 +360,12 @@
      is set inline on each item; one shared rule rather than a class per index. */
   .ask-art-play .ask-art-item {
     animation: ask-art-appear 420ms cubic-bezier(0.2, 0.8, 0.2, 1)
-      calc(var(--set-delay, 0ms) + var(--i, 0) * 90ms) both;
+      calc(var(--set-delay, 0ms) + var(--i, 0) * 50ms) both;
   }
   /* Staggered row entry for ledger-style artifacts; `--i` set inline. */
   .ask-art-play .ask-ledger-row,
   .ask-ledger-rows.ask-art-play .ask-ledger-row {
     animation: ask-art-appear 420ms cubic-bezier(0.2, 0.8, 0.2, 1)
-      calc(var(--i, 0) * 110ms) both;
+      calc(var(--i, 0) * 60ms) both;
   }
 }

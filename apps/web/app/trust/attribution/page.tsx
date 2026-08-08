@@ -38,7 +38,7 @@ import {
 export const revalidate = 300;
 
 export const metadata: Metadata = {
-  title: 'Source Attribution · VitalCV',
+  title: 'Source Attribution',
   description: TRUST_ATTRIBUTION_DISCLAIMER,
 };
 

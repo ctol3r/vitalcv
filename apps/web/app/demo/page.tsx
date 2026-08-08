@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { DEMO_ENTITY_ID } from '@/lib/demo/demo-passport';
 
 export const metadata = {
-  title: 'Live Demo · VitalCV',
+  title: 'Live Demo',
   description: 'Explore the VitalCV Provider Career Evidence Network with a source-backed sample clinician — ecosystem, recruiter review, career intelligence, and proof packet.',
   /**
    * W0.4: demo surfaces are not indexable.

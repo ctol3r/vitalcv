@@ -138,7 +138,7 @@ describe('career-garden pages (live server render)', () => {
       expect(html).toContain(standing);
     }
     expect(html).toContain('None exists in this prototype');
-    expect(html).toContain('no security, compliance, or encryption claims');
+    expect(html).toContain('no security, compliance, or encryption');
     for (const field of ['Connection method', 'What VitalCV observed', 'Refresh', 'Sharing']) {
       expect(html).toContain(field);
     }

@@ -7,7 +7,7 @@ import { PageStackHarness } from './PageStackHarness';
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
-  title: 'Page stack (dev) — VitalCV',
+  title: 'Page stack (dev)',
   robots: { index: false, follow: false },
 };
 

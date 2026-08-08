@@ -25,6 +25,15 @@ const MODE_NOTICE: Record<GardenDataMode, string> = {
  * holder shell) — paper, ink, hairline rules. No new stylesheet, no new
  * tokens, no new island.
  */
+const SECTION_HEADINGS: Record<GardenSection, string> = {
+  home: 'A place to cultivate your professional life',
+  cv: 'Living CV',
+  research: 'Research',
+  notes: 'Notes',
+  opportunities: 'Opportunities',
+  privacy: 'Privacy & connections',
+};
+
 export function GardenShell({
   active,
   mount,
@@ -43,7 +52,10 @@ export function GardenShell({
       <header className="border-b border-[var(--rule)] pb-6">
         <p className="mz-eyebrow">{WORKBENCH_BRANDING.productName}</p>
         <div className="mt-3 flex flex-wrap items-baseline gap-x-4 gap-y-2">
-          <h1 className="mz-h1">A place to cultivate your professional life</h1>
+          {/* One h1 per ROUTE, not per shell — all six garden pages shared
+              this identical heading. Home keeps the tagline; sections use
+              their own names (matching their document titles). */}
+          <h1 className="mz-h1">{SECTION_HEADINGS[active]}</h1>
         </div>
         <p
           className="mz-small mt-4 border-l-2 pl-3"

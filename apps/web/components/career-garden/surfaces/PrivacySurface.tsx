@@ -22,8 +22,9 @@ export function PrivacySurface({ mount }: { mount: GardenMount }) {
           explicit. Nothing moves between layers on its own.
         </p>
         <p className="mz-small mt-2" style={{ color: 'var(--vt-text-muted)' }}>
-          This prototype makes no security, compliance, or encryption claims — what you see is a visibility
-          model, and it holds only fictional sample data.
+          This workspace view is a visibility model — it makes no security, compliance, or encryption
+          claims of its own beyond the VitalCV privacy summary, and its sample beds hold only fictional
+          data.
         </p>
       </header>
 

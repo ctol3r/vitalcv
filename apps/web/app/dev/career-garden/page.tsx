@@ -18,7 +18,7 @@ import { buildClinicianMobileData } from '@/lib/mobile/clinician-state';
 export const dynamic = 'force-dynamic';
 
 export const metadata = {
-  title: 'Career Garden harness (dev) · VitalCV',
+  title: 'Career Garden harness (dev)',
   robots: { index: false, follow: false },
 };
 

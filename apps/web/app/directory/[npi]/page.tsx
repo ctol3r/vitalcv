@@ -46,7 +46,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   if (!nppes) {
     return {
-      title: `NPI ${npi} · VitalCV`,
+      title: `NPI ${npi}`,
       robots: { index: false, follow: false },
     };
   }

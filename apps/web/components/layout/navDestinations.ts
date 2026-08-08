@@ -93,6 +93,13 @@ export const NAV_GROUPS: readonly NavGroup[] = [
     links: [
       { href: '/employers', label: 'For employers', detail: 'What arrives, and what it does not decide' },
       { href: '/pricing', label: 'Pricing', detail: 'Plain terms, stated' },
+      // 2026-08-08 audit: these pages were reachable from no navigation.
+      { href: '/solutions', label: 'Solutions', detail: 'What VitalCV replaces, by workflow' },
+      { href: '/for/cvo', label: 'For CVOs', detail: 'Primary-source workload, attributed' },
+      { href: '/for/payer', label: 'For payers', detail: 'Roster evidence without re-collection' },
+      { href: '/for/staffing-exchange', label: 'For staffing exchanges', detail: 'Portable clinician records' },
+      { href: '/pilot', label: 'Start a pilot', detail: 'Scope, measures, and the gate' },
+      { href: '/contact', label: 'Contact', detail: 'Reach the team' },
     ],
   },
   /*

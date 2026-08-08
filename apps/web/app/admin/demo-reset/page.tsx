@@ -8,7 +8,7 @@ import { buildDemoResetFoundationPlan } from '@/lib/demo/demoResetFoundation';
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
-  title: 'Demo Reset · VitalCV',
+  title: 'Demo Reset',
   description:
     'Demo reset foundation plan. Non-production. Requires explicit operator confirmation. No destructive database changes.',
 };

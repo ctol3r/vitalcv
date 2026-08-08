@@ -4,7 +4,7 @@ export const dynamic = 'force-dynamic';
 
 export const metadata = {
   robots: { index: false, follow: false },
-  title: 'My Network · VitalCV',
+  title: 'My Network',
   description: 'The organizations connected to a clinician — training institutions, credential issuers, licensing boards, and verification authorities.',
 };
 

@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 
 export const metadata: Metadata = {
-  title: 'Concierge — Credential Readiness Packet — VitalCV',
+  title: 'Concierge — Credential Readiness Packet',
   description:
     'A source-backed credential readiness packet, assembled with you and ready to hand to employers and recruiters.',
 };

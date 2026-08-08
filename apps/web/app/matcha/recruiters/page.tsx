@@ -4,7 +4,7 @@ import { FEATURES } from '@/lib/features';
 import { BuyerLanding } from '@/components/matcha/buyer/BuyerLanding';
 
 export const metadata: Metadata = {
-  title: 'MATCHA for recruiters — VitalCV',
+  title: 'MATCHA for recruiters',
   description: 'Source-backed clinician evidence and explained recommendations — not another keyword search.',
 };
 

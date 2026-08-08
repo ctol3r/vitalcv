@@ -145,11 +145,15 @@ export default function ReadinessSurface() {
       </div>
 
       <PageFrame mode="product" className="max-w-5xl space-y-6">
+        {/* The page h1 cannot live inside the activeSnapshot branch — with
+            no NPI, on error, or while loading the page had no h1 at all. */}
+        <h1 className="vcv-title text-2xl">Readiness</h1>
+
         {/* Identity + posture header — serif title, mono identifier */}
         {activeSnapshot && (
           <div className="flex flex-wrap items-end gap-4">
             <div>
-              <h1 className="vcv-title text-3xl">{activeSnapshot.name}</h1>
+              <h2 className="vcv-title text-3xl">{activeSnapshot.name}</h2>
               <p className="vcv-mono text-sm vcv-muted mt-1">NPI {activeSnapshot.npi}</p>
             </div>
             <div className="flex flex-wrap items-center gap-2 ml-auto">

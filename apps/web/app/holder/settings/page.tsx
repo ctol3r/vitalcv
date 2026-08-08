@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import SettingsSurface from './SettingsSurface';
 
 export const metadata: Metadata = {
-  title: 'Settings · VitalCV',
+  title: 'Settings',
   description: 'Account, identity binding, professional profile, and sharing settings for your clinician workspace.',
 };
 

@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import { ActivateOnboardingStep } from '@/components/onboarding/OnboardingFlowSteps';
 
 export const metadata: Metadata = {
-  title: 'Continue activation · VitalCV',
+  title: 'Continue activation',
   description:
     'Continue activation and move into the next trust-backed readiness state.',
 };

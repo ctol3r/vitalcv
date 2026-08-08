@@ -34,7 +34,7 @@ import { getVersionInfo } from '@/lib/deployInfo';
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
-  title: 'Technical Status · VitalCV',
+  title: 'Technical Status',
   description:
     'Status surfaces are foundation previews. No uptime guarantee is implied. Live operational status for VitalCV trust infrastructure.',
 };

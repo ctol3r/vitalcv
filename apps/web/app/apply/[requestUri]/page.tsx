@@ -63,7 +63,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { requestUri } = await params;
   if (isApplyIntent(requestUri)) {
     return {
-      title: 'Apply with VitalCV',
+      title: { absolute: 'Apply with VitalCV' },
       description: 'Review an employer request, choose the career evidence to disclose, and hand off an immutable application packet.',
       robots: { index: false },
     };

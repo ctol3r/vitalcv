@@ -5,7 +5,7 @@ import { StoryRailHarness } from './StoryRailHarness';
 export const dynamic = 'force-dynamic';
 
 export const metadata = {
-  title: 'Story rail harness (dev) · VitalCV',
+  title: 'Story rail harness (dev)',
   robots: { index: false, follow: false },
 };
 

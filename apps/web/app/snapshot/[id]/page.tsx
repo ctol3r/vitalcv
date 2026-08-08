@@ -16,7 +16,7 @@ import { notFound } from 'next/navigation';
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
-  title: 'Readiness snapshot — VitalCV',
+  title: 'Readiness snapshot',
   description:
     'A source-backed readiness snapshot, served as issued with read-time freshness labeling.',
 };

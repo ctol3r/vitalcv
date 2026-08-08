@@ -8,7 +8,7 @@
  * prototypes already set noindex; /demo was the one that did not.
  */
 
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
@@ -64,14 +64,31 @@ describe('W0.4 — robots.txt disallows demo and prototype trees', () => {
   const rule = Array.isArray(rules) ? rules[0] : rules;
   const disallow = Array.isArray(rule.disallow) ? rule.disallow : [rule.disallow];
 
-  it.each(['/demo', '/design/'])('disallows %s', (path) => {
-    expect(disallow).toContain(path);
+  it('disallows /demo', () => {
+    expect(disallow).toContain('/demo');
   });
 
   it('still disallows the previously protected trees', () => {
-    for (const path of ['/api/', '/internal/', '/holder/', '/workspace/']) {
+    for (const path of ['/api/', '/holder/', '/workspace/']) {
       expect(disallow).toContain(path);
     }
+  });
+
+  it('does not advertise internal namespaces — robots.txt is public', () => {
+    // 2026-08-08 audit: listing /internal/, /mission-ops/, /pilot-ops/ and
+    // /design/ in a world-readable file disclosed the ops namespace. They are
+    // auth-walled and now carry X-Robots-Tag noindex via next.config headers.
+    for (const path of ['/internal/', '/mission-ops/', '/pilot-ops/', '/design/']) {
+      expect(disallow).not.toContain(path);
+    }
+  });
+
+  it('the de-advertised trees still carry noindex headers', () => {
+    const config = readFileSync(join(__dirname, '..', 'next.config.mjs'), 'utf8');
+    for (const prefix of ['/internal/:path*', '/mission-ops/:path*', '/pilot-ops/:path*', '/design/:path*']) {
+      expect(config, `${prefix} lost its noindex header`).toContain(prefix);
+    }
+    expect(config).toContain("key: 'X-Robots-Tag', value: 'noindex, nofollow'");
   });
 
   it('does not disallow the public acquisition surfaces', () => {

@@ -9,7 +9,7 @@ import { TrustRegistryFooter } from '@/components/trust/TrustRegistryFooter';
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
-  title: 'Trust Register (technical) — VitalCV',
+  title: 'Trust Register (technical)',
   description:
     "VitalCV's evidence and signing architecture — proof tiers, issuer continuity, and the trust-state grammar. A developer reference, not a clinician record.",
   robots: { index: true, follow: true },

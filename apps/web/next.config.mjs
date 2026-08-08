@@ -50,6 +50,10 @@ const nextConfig = {
       // plainly that complete API documentation is planned, not shipped.
       { source: '/docs/api', destination: '/docs', permanent: false },
       { source: '/employers/kaiser-permanente-norcal', destination: '/employers/kaiser-permanente-northern-california', permanent: false },
+      // /review/queue never existed — it fell through to the [entityId]
+      // passport lookup for the literal string "queue" and rendered a
+      // misleading error card. The real queue is the employer surface.
+      { source: '/review/queue', destination: '/employer/review-queue', permanent: false },
     ];
   },
   async headers() {
@@ -58,6 +62,15 @@ const nextConfig = {
         source: '/(.*)',
         headers: getSecurityHeadersForNext(),
       },
+      // Internal/ops namespaces left robots.txt (listing them there advertised
+      // their existence); noindex now travels as a header instead. The routes
+      // are auth-walled — this only keeps the sign-in redirects out of indexes.
+      ...['/internal/:path*', '/mission-ops/:path*', '/pilot-ops/:path*', '/design/:path*'].map(
+        (source) => ({
+          source,
+          headers: [{ key: 'X-Robots-Tag', value: 'noindex, nofollow' }],
+        }),
+      ),
       // Public provider surfaces must not be cached by any intermediary.
       // These routes send no Cache-Control today, so a CDN or proxy is free to
       // apply heuristic caching — which would keep serving a payload after a

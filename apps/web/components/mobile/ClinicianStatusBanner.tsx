@@ -63,7 +63,7 @@ export function ClinicianStatusBanner({
                 style={{ color: 'var(--accent)' }}
               >
                 {actionLabel}
-                <ArrowRight className="h-4 w-4" />
+                <ArrowRight className="h-4 w-4" aria-hidden="true" />
               </Link>
             ) : null}
           </div>

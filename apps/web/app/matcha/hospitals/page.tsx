@@ -4,7 +4,7 @@ import { FEATURES } from '@/lib/features';
 import { BuyerLanding } from '@/components/matcha/buyer/BuyerLanding';
 
 export const metadata: Metadata = {
-  title: 'MATCHA for hospitals & health systems — VitalCV',
+  title: 'MATCHA for hospitals & health systems',
   description: 'Fill roles faster with source-backed readiness and better-fit clinicians — with continuous readiness after hire.',
 };
 

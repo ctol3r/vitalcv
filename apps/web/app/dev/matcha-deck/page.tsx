@@ -8,7 +8,7 @@ import { buildClinicianMobileData } from '@/lib/mobile/clinician-state'
 export const dynamic = 'force-dynamic'
 
 export const metadata = {
-  title: 'MATCHA Deck harness (dev) · VitalCV',
+  title: 'MATCHA Deck harness (dev)',
   robots: { index: false, follow: false },
 }
 

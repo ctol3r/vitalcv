@@ -15,7 +15,7 @@ import PlatformDashboardClient from '@/components/platform/PlatformDashboardClie
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
-  title: 'Platform · VitalCV',
+  title: 'Platform',
   description: 'Production deployment integrity — Founder Dashboard.',
 };
 

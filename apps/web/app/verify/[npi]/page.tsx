@@ -178,7 +178,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { npi } = await params;
   return {
-    title: `Verifier View — NPI ${npi} | VitalCV`,
+    title: `Verifier View — NPI ${npi}`,
     description: 'Read-only credential verification for hospital and employer reviewers.',
   };
 }

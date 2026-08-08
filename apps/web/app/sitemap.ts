@@ -25,9 +25,9 @@ import { isCanonicalProductionProcess } from '@/lib/deployment/canonicalProducti
  * what the drift test catches; it caught it on the commit that introduced it.)
  *
  * Only real, public, polished routes are listed. Absent on purpose: routes
- * that 404 (/explore, /developers, /compliance, /updates, /about), the
- * robots-disallowed /review, and any named health-system page implying a
- * partnership.
+ * that 404 (/developers, /compliance, /updates, /about), the
+ * robots-disallowed /review and /demo, and any named health-system page
+ * implying a partnership.
  */
 interface SitemapRoute {
   /** Path under https://vitalcv.com — '' is the homepage. */
@@ -42,15 +42,15 @@ interface SitemapRoute {
 
 export const SITEMAP_ROUTES: readonly SitemapRoute[] = [
   { path: '', source: 'app/page.tsx', lastModified: '2026-08-08', changeFrequency: 'weekly', priority: 1 },
-  { path: '/onboarding', source: 'app/onboarding', lastModified: '2026-08-08', changeFrequency: 'weekly', priority: 0.9 },
-  { path: '/employers', source: 'app/employers', lastModified: '2026-08-08', changeFrequency: 'weekly', priority: 0.8 },
-  { path: '/employers/how-it-works', source: 'app/employers/how-it-works', lastModified: '2026-08-08', changeFrequency: 'monthly', priority: 0.7 },
-  { path: '/employers/request-access', source: 'app/employers/request-access', lastModified: '2026-08-07', changeFrequency: 'monthly', priority: 0.7 },
-  { path: '/solutions', source: 'app/solutions', lastModified: '2026-07-15', changeFrequency: 'weekly', priority: 0.8 },
+  { path: '/onboarding', source: 'app/onboarding', lastModified: '2026-08-09', changeFrequency: 'weekly', priority: 0.9 },
+  { path: '/employers', source: 'app/employers', lastModified: '2026-08-09', changeFrequency: 'weekly', priority: 0.8 },
+  { path: '/employers/how-it-works', source: 'app/employers/how-it-works', lastModified: '2026-08-09', changeFrequency: 'monthly', priority: 0.7 },
+  { path: '/employers/request-access', source: 'app/employers/request-access', lastModified: '2026-08-09', changeFrequency: 'monthly', priority: 0.7 },
+  { path: '/solutions', source: 'app/solutions', lastModified: '2026-08-09', changeFrequency: 'weekly', priority: 0.8 },
   { path: '/pilot', source: 'app/pilot', lastModified: '2026-08-08', changeFrequency: 'monthly', priority: 0.7 },
-  { path: '/trust', source: 'app/trust', lastModified: '2026-08-08', changeFrequency: 'monthly', priority: 0.7 },
-  { path: '/pricing', source: 'app/pricing', lastModified: '2026-08-08', changeFrequency: 'monthly', priority: 0.6 },
-  { path: '/contact', source: 'app/contact', lastModified: '2026-07-16', changeFrequency: 'monthly', priority: 0.6 },
+  { path: '/trust', source: 'app/trust', lastModified: '2026-08-09', changeFrequency: 'monthly', priority: 0.7 },
+  { path: '/pricing', source: 'app/pricing', lastModified: '2026-08-09', changeFrequency: 'monthly', priority: 0.6 },
+  { path: '/contact', source: 'app/contact', lastModified: '2026-08-09', changeFrequency: 'monthly', priority: 0.6 },
   { path: '/for/cvo', source: 'app/for/cvo', lastModified: '2026-05-06', changeFrequency: 'monthly', priority: 0.5 },
   { path: '/for/payer', source: 'app/for/payer', lastModified: '2026-05-06', changeFrequency: 'monthly', priority: 0.5 },
   {
@@ -60,7 +60,17 @@ export const SITEMAP_ROUTES: readonly SitemapRoute[] = [
     changeFrequency: 'monthly',
     priority: 0.5,
   },
-  { path: '/status', source: 'app/status', lastModified: '2026-07-30', changeFrequency: 'daily', priority: 0.4 },
+  { path: '/status', source: 'app/status', lastModified: '2026-08-09', changeFrequency: 'daily', priority: 0.4 },
+  // 2026-08-08 audit: these were live public pages the sitemap omitted —
+  // including /explore, which the stale comment above called a 404.
+  { path: '/explore', source: 'app/explore', lastModified: '2026-08-09', changeFrequency: 'daily', priority: 0.8 },
+  { path: '/docs', source: 'app/docs', lastModified: '2026-08-09', changeFrequency: 'monthly', priority: 0.3 },
+  { path: '/evidence-network', source: 'app/evidence-network', lastModified: '2026-08-02', changeFrequency: 'monthly', priority: 0.5 },
+  { path: '/trust/attribution', source: 'app/trust/attribution', lastModified: '2026-08-09', changeFrequency: 'monthly', priority: 0.5 },
+  { path: '/privacy', source: 'app/privacy', lastModified: '2026-07-13', changeFrequency: 'monthly', priority: 0.3 },
+  { path: '/terms', source: 'app/terms', lastModified: '2026-08-09', changeFrequency: 'monthly', priority: 0.3 },
+  { path: '/legal/dpa', source: 'app/legal/dpa', lastModified: '2026-08-09', changeFrequency: 'monthly', priority: 0.2 },
+  { path: '/legal/cookies', source: 'app/legal/cookies', lastModified: '2026-08-09', changeFrequency: 'monthly', priority: 0.2 },
 ];
 
 /**

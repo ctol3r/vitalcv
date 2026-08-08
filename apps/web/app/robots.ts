@@ -49,19 +49,17 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: '*',
         allow: '/',
-        // W0.4: `/demo` and `/design/` are demo/prototype surfaces. Both carry
-        // noindex now, but robots.txt is the cheaper, coarser gate and it also
-        // covers the sample-clinician surfaces /demo links into.
+        // Disallow only paths a crawler could otherwise fetch usefully.
+        // Internal/ops surface names (/internal/, /mission-ops/, /pilot-ops/,
+        // /design/) were removed 2026-08-08: robots.txt is public, so listing
+        // them ADVERTISED the internal namespace. They are auth-walled and
+        // carry X-Robots-Tag: noindex via next.config headers instead.
         disallow: [
           '/api/',
-          '/internal/',
           '/review/',
-          '/mission-ops/',
-          '/pilot-ops/',
           '/holder/',
           '/workspace/',
           '/demo',
-          '/design/',
         ],
       },
     ],

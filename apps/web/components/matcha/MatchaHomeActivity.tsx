@@ -29,7 +29,7 @@ export function MatchaHomeActivity() {
     <section className="mz mz-glass p-5">
       <div className="flex items-start justify-between gap-4">
         <span className="mz-eyebrow">
-          <Sparkles className="h-3.5 w-3.5" />
+          <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
           MATCHA activity
         </span>
         <Link
@@ -38,7 +38,7 @@ export function MatchaHomeActivity() {
           style={{ color: 'var(--accent)' }}
         >
           {started ? 'Open MATCHA' : 'Meet MATCHA'}
-          <ArrowRight className="h-4 w-4" />
+          <ArrowRight className="h-4 w-4" aria-hidden="true" />
         </Link>
       </div>
 

@@ -23,7 +23,7 @@ export function ClinicianSupportCard({
             className="mz-inset inline-flex h-10 w-10 items-center justify-center rounded-[8px]"
             style={{ color: 'var(--ink-600)' }}
           >
-            <LifeBuoy className="h-5 w-5" />
+            <LifeBuoy className="h-5 w-5" aria-hidden="true" />
           </div>
           <h2 className="mz-h2 mt-4">Need help?</h2>
           <p className="mt-2 max-w-2xl mz-body">
@@ -39,7 +39,7 @@ export function ClinicianSupportCard({
             className="mz-btn min-h-12 justify-center"
           >
             {primaryLabel}
-            <ArrowRight className="h-4 w-4" />
+            <ArrowRight className="h-4 w-4" aria-hidden="true" />
           </Link>
         ) : null}
         <SupportActionButton

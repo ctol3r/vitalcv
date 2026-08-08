@@ -59,7 +59,7 @@ import { SOURCE_LANE_OPS } from '@/lib/trust/sourceLanes';
 export const revalidate = 300;
 
 export const metadata: Metadata = {
-  title: 'For Employers · VitalCV',
+  title: 'For Employers',
   description:
     'Move a clinician hire from interest to start — see what is already known, what remains, and who owns the next step, with every answer named to its source. The hiring decision stays yours.',
 };

@@ -18,9 +18,9 @@ export default function NetworkStatusBanner() {
     >
       <div className="mx-auto flex w-full max-w-5xl items-start gap-3">
         {isOffline ? (
-          <WifiOff className="mt-0.5 h-4 w-4 shrink-0 text-amber-200" />
+          <WifiOff className="mt-0.5 h-4 w-4 shrink-0 text-amber-200" aria-hidden="true" />
         ) : (
-          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-200" />
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-200" aria-hidden="true" />
         )}
         <div className="text-sm">
           <p className="font-semibold text-white">

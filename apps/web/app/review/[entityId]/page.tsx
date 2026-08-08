@@ -1,5 +1,12 @@
+import type { Metadata } from 'next';
 import React from 'react';
 import ReviewPageClient from './ReviewPageClient';
+
+
+export const metadata: Metadata = {
+  title: 'Employer Review',
+  description: 'Review a shared, source-backed clinician record.',
+};
 
 export const dynamic = 'force-dynamic';
 

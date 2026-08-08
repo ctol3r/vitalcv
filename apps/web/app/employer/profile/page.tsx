@@ -7,7 +7,7 @@ import { PageFrame } from '@/components/layout/PageFrame';
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
-  title: 'Company Profile · VitalCV',
+  title: 'Company Profile',
   description:
     "Your organization's company profile. Legal name and Type 2 NPI are confirmed against NPPES; other details are self-reported until source-backed.",
 };
