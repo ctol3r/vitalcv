@@ -4,18 +4,17 @@
  * HolderDesktopNav — persistent workspace navigation for signed-in clinicians
  * at md+ widths.
  *
- * The holder shell previously had ONLY the mobile bottom tab bar (md:hidden),
- * which left desktop users with no persistent way to reach the job board,
- * wallet, applications, recognition, or the CV profile — every surface existed
- * but was undiscoverable. This is the md+ complement to MobileBottomNav: same
- * destinations plus the two that never had a nav home (Recognition, Profile).
+ * This is the md+ complement to MobileBottomNav: the same four primary
+ * destinations, one nav model per breakpoint (A2, 2026-08-08). The eight-item
+ * era — where Wallet, Readiness, Recognition, the Workbench, and a global
+ * Share CTA raced Home/Profile/Roles/Updates as top-level peers — is retired;
+ * those destinations are contextual now.
  *
  * Styled with Calm Wave ink/paper tokens so it reads correctly over both the
  * paper (mz-paper) and dark instrument holder pages.
  */
 
 import Link from 'next/link';
-import { WORKBENCH_BRANDING } from '@/lib/career-garden/branding';
 import { usePathname } from 'next/navigation';
 import { UserButton } from '@clerk/nextjs';
 import { UserRound } from 'lucide-react';
@@ -27,21 +26,23 @@ interface NavItem {
   matchPrefix: boolean;
 }
 
+/**
+ * The four primary destinations (audit plan 2026-08-08, product decision 2):
+ * Home, Profile, Roles, Updates. Wallet, Readiness, Recognition, sharing,
+ * MATCHA, and the Workbench are contextual destinations reached from the
+ * surface where they advance the current task — never simultaneous global
+ * peers. a2-clinician-nav-model.test.tsx guards both halves: this list stays
+ * exactly four, and every demoted destination stays reachable from at least
+ * one clinician surface.
+ */
 const NAV_ITEMS: NavItem[] = [
   { name: 'Home', href: '/holder/home', matchPrefix: false },
-  { name: WORKBENCH_BRANDING.shortName, href: '/holder/garden', matchPrefix: true },
-  { name: 'Wallet', href: '/holder', matchPrefix: false },
-  { name: 'Readiness', href: '/holder/readiness', matchPrefix: true },
+  { name: 'Profile', href: '/clinician/profile', matchPrefix: true },
   { name: 'Roles', href: '/holder/opportunities', matchPrefix: true },
   { name: 'Updates', href: '/holder/applications', matchPrefix: true },
-  { name: 'Recognition', href: '/holder/recognition', matchPrefix: true },
-  { name: 'Profile', href: '/clinician/profile', matchPrefix: true },
 ];
 
 function isItemActive(item: NavItem, pathname: string): boolean {
-  if (item.href === '/holder/readiness') {
-    return pathname.startsWith('/holder/readiness') || pathname.startsWith('/holder/blockers/');
-  }
   return item.matchPrefix ? pathname.startsWith(item.href) : pathname === item.href;
 }
 
@@ -94,10 +95,6 @@ export function HolderDesktopNav({ showClerkAccount = true }: { showClerkAccount
             );
           })}
         </div>
-
-        <Link href="/holder/recognition" className="mz-btn mz-btn-sm shrink-0">
-          Share / prove
-        </Link>
 
         {/* Account menu — Manage account + Sign out (Clerk). */}
         {showClerkAccount ? (

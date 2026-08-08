@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Bell, Briefcase, CreditCard, Home, ShieldCheck, UserRound } from 'lucide-react';
+import { Bell, Briefcase, Home, UserRound } from 'lucide-react';
 import { UserButton } from '@clerk/nextjs';
 import { useClinicianMobile } from '@/components/mobile/ClinicianMobileProvider';
 
@@ -10,12 +10,13 @@ export function MobileBottomNav({ showClerkAccount = true }: { showClerkAccount?
   const pathname = usePathname();
   const { unreadNotifications } = useClinicianMobile();
 
+  // One nav model per breakpoint (A2): the same four primary destinations as
+  // HolderDesktopNav, deliberately compact labels, full-cell touch targets.
   const NAV_ITEMS = [
     { name: 'Home', href: '/holder/home', matchPrefix: false, icon: Home },
-    { name: 'Ready', href: '/holder/readiness', matchPrefix: true, icon: ShieldCheck },
+    { name: 'Profile', href: '/clinician/profile', matchPrefix: true, icon: UserRound },
     { name: 'Roles', href: '/holder/opportunities', matchPrefix: true, icon: Briefcase },
     { name: 'Updates', href: '/holder/applications', matchPrefix: true, icon: Bell },
-    { name: 'Wallet', href: '/holder', matchPrefix: false, icon: CreditCard },
   ];
 
   return (
@@ -23,13 +24,11 @@ export function MobileBottomNav({ showClerkAccount = true }: { showClerkAccount?
       className="fixed bottom-0 left-0 z-50 w-full border-t border-vt-neutral-800 bg-vt-surface-ops-base/90 backdrop-blur-lg pb-safe lg:hidden"
       data-holder-mobile-bottom-nav="true"
     >
-      <div className="grid h-[var(--holder-mobile-bottom-nav-height)] grid-cols-6 px-2">
+      <div className="grid h-[var(--holder-mobile-bottom-nav-height)] grid-cols-5 px-2">
         {NAV_ITEMS.map((item) => {
-          const isActive = item.href === '/holder/readiness'
-            ? pathname.startsWith('/holder/readiness') || pathname.startsWith('/holder/blockers/')
-            : item.matchPrefix
-              ? pathname.startsWith(item.href)
-              : pathname === item.href;
+          const isActive = item.matchPrefix
+            ? pathname.startsWith(item.href)
+            : pathname === item.href;
 
           const Icon = item.icon;
 
