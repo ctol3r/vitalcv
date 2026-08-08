@@ -440,7 +440,7 @@ test.describe('Review without a hydratable passport', () => {
     await expect(page.getByText('Employer review unavailable')).toBeVisible({ timeout: 15_000 });
     await expect(
       page.getByText(
-        'This clinician passport is not available for review yet. The clinician may need to run a readiness check first.',
+        'This clinician record is not available for review yet. The clinician may need to run a readiness check first.',
       ),
     ).toBeVisible();
     await expect(page.getByRole('link', { name: 'Try again' })).toBeVisible();

@@ -158,7 +158,16 @@ than forcing them into scope.
   not on L1's guard surface list, so the guard stayed green and its own pinned test
   caught it instead. The surface list is a commitment, not a net — noted in the
   charter's evidence contract.
-- **Verification:** full suite **3357 passed**; guard extended to `passport`.
+- **Verification:** full suite **3357 passed**; guard extended to `passport`; the two
+  migrated e2e specs run and pass locally (12/12 for the film project).
+- **Process lesson — the vitest suite cannot see e2e pins.** `vitest.config` excludes
+  `tests/**`, so `tests/e2e/*.spec.ts` assertions on rendered copy are invisible to a
+  green local run. L2's first CI attempt failed on exactly that: two specs pinned
+  "This clinician passport is not available for review yet…". Worse, one of them
+  (`npi-truth-engine.spec.ts`) is **film-gated** — it needs
+  `E2E_HOME_VARIANT=film --project=chromium-film` or it silently reports "No tests
+  found". **Any future copy wave must grep `tests/` for every string it changes and
+  run the affected specs under the right project**, not just the vitest suite.
 
 ## DL-003 — Homepage journey rail exposes machinery labels ("Packet", "Their decision")
 
