@@ -30,6 +30,8 @@ import { randomUUID } from 'node:crypto';
 import cron from 'node-cron';
 import prisma from '../graphql/prisma_client';
 import { log } from '../obs/logger';
+import { dispatchClinicianAlert } from '../services/notifications/clinicianAlertDispatch';
+import type { ClinicianAlertSeverity } from '../services/notifications/clinicianAlertRecipient';
 import { setRevoked } from '../services/ledger/statusListManager';
 import { propagateCredentialLifecycleChange } from '../services/revocation/propagationEngine';
 import { emitMonitoringAlert, type MonitoringAlertKind } from '../services/alerts/trustAlerts';
@@ -162,11 +164,48 @@ async function dispatchMonitoringAlert(input: {
   description: string;
   credentialId?: string;
   recommendedAction: string;
+  /**
+   * N1 — copy addressed TO the clinician, plus its severity. Omitted means
+   * this alert is not sent to them: the employer/ops copy is written about
+   * the clinician in the third person and forwarding it would be worse than
+   * silence. Only call sites that have authored clinician-facing wording
+   * opt in.
+   */
+  clinicianCopy?: {
+    severity: ClinicianAlertSeverity;
+    title: string;
+    description: string;
+    recommendedAction: string;
+  };
 }): Promise<void> {
   // Emit in-app alert (persisted + cached)
   await emitMonitoringAlert(input);
 
   const maskedNpi = `${input.npi.slice(0, 4)}****`;
+
+  // N1 — the clinician, if they have asked to be told. Runs before the
+  // employer/ops loop and in its own try/catch: the person the alert is
+  // about should not be last in line, and a failure to reach them must not
+  // suppress the employer notice that already worked before N1 existed.
+  if (input.clinicianCopy) {
+    try {
+      await dispatchClinicianAlert({
+        npi: input.npi,
+        kind: input.kind,
+        severity: input.clinicianCopy.severity,
+        title: input.clinicianCopy.title,
+        description: input.clinicianCopy.description,
+        recommendedAction: input.clinicianCopy.recommendedAction,
+        credentialId: input.credentialId,
+      });
+    } catch (err) {
+      log('warn', 'clinician_alert_dispatch_error', {
+        kind: input.kind,
+        npi: maskedNpi,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
 
   try {
     const employerEmails = await resolveEmployerAlertEmails(input.npi);
@@ -362,6 +401,23 @@ async function handleAdverseAction(input: {
     description: input.alertDescription,
     credentialId: input.artifactId,
     recommendedAction: input.recommendedAction,
+    // N1 — an adverse action on someone's own credential is the single most
+    // important thing VitalCV can tell them, and until now it went only to
+    // their employers. The wording states what the source recorded and what
+    // VitalCV did in response; it does not characterise the clinician.
+    clinicianCopy: {
+      severity: 'CRITICAL',
+      title: isRevocation
+        ? `Your ${input.source} credential is recorded as revoked`
+        : `Your ${input.source} credential is recorded as expired`,
+      description: [
+        `${input.source} now reports this credential as ${input.kind.toLowerCase()}.`,
+        `VitalCV has updated its own record to match and has stopped presenting it as current.`,
+        `Reason recorded by the source: ${input.reason}.`,
+      ].join(' '),
+      recommendedAction:
+        'Resolution runs through the issuing authority — VitalCV cannot change what a source reports. If you believe this is wrong, contact them directly; VitalCV will reflect the correction once they publish it.',
+    },
   });
 
   // 6. Run revocation propagation (non-blocking)
@@ -683,6 +739,13 @@ async function runMonitorSweep(): Promise<void> {
         description: `A ${artifact.source} credential for NPI ${artifact.npi.slice(0, 4)}**** expires on ${artifact.expiresAt.toISOString().split('T')[0]}.`,
         credentialId: artifact.id,
         recommendedAction: 'Initiate renewal with the issuing authority before expiration.',
+        clinicianCopy: {
+          severity: 'HIGH',
+          title: `Your ${artifact.source} credential expires in ${daysRemaining} days`,
+          description: `Your ${artifact.source} credential is recorded as expiring on ${artifact.expiresAt.toISOString().split('T')[0]}. This date comes from the issuing authority's record, not from an estimate.`,
+          recommendedAction:
+            'Start the renewal with the issuing authority. VitalCV cannot renew it for you, but it will pick up the new expiration date once the authority publishes it.',
+        },
       });
 
       // Record monitoring event

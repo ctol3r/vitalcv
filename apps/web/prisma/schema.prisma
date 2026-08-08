@@ -389,3 +389,47 @@ model AgentPlanDelta {
   @@index([kind, material, createdAt])
   @@map("agent_plan_deltas")
 }
+
+// N1 — clinician contact consent ledger (mirror of the backend model;
+// migration lives in apps/api/backend/prisma/migrations/
+// 20260808000000_clinician_notification_audience).
+//
+// The WEB app is the writer: the clinician grants and revokes their own
+// contact permission here, audit-paired in one transaction, through
+// apps/web/lib/clinician-notifications/consent-store.ts. The backend sweep
+// only READS the fold when deciding whether it may email them.
+//
+// Append-only. Current state = highest-`seq` row per (clinicianNpi, channel);
+// the unique constraint is what serializes concurrent transitions.
+model ClinicianContactConsentEvent {
+  id           String   @id @default(uuid()) @db.Uuid
+  clinicianNpi String   @map("clinician_npi")
+  channel      String
+  kind         String
+  seq          Int
+  eventHash    String   @map("event_hash")
+  grantSource  String?  @map("grant_source")
+  metadata     Json     @default("{}")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@unique([clinicianNpi, channel, seq])
+  @@index([clinicianNpi, channel, seq])
+  @@index([createdAt])
+  @@map("clinician_contact_consent_events")
+}
+
+// N1 — clinician notification preferences (mirror; see above for migration
+// ownership). Routing only — permission to contact lives in the consent
+// ledger, never here.
+model ClinicianNotificationPreference {
+  id                       String   @id @default(uuid()) @db.Uuid
+  clinicianNpi             String   @unique @map("clinician_npi")
+  channels                 String[] @default(["EMAIL"])
+  severityFloor            String   @default("HIGH") @map("severity_floor")
+  suppressionWindowMinutes Int      @default(1440) @map("suppression_window_minutes")
+  active                   Boolean  @default(true)
+  createdAt                DateTime @default(now()) @map("created_at")
+  updatedAt                DateTime @updatedAt @map("updated_at")
+
+  @@map("clinician_notification_preferences")
+}

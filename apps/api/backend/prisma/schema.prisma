@@ -4551,3 +4551,56 @@ model AgentPlanDelta {
   @@index([kind, material, createdAt])
   @@map("agent_plan_deltas")
 }
+
+/// N1 — clinician contact consent (append-only authorization ledger).
+///
+/// Until this existed, VitalCV emailed a clinician's EMPLOYERS and an ops
+/// inbox when their credential neared expiry, and never told the clinician.
+/// Closing that gap needs permission, and permission needs a record.
+///
+/// `PersonProfile.verifiedEmail` is NOT that record: it is an OTP possession
+/// proof established to corroborate NPI→person binding. Using it as a
+/// notification destination is a purpose expansion, so contacting a clinician
+/// requires an explicit grant here.
+///
+/// Append-only granted/revoked events; current state is the highest-`seq`
+/// event per (clinician_npi, channel), serialized by the unique constraint
+/// exactly as the agent consent ledger is. Revocation is a state, never a
+/// deletion, and re-grant after revoke is a new event.
+model ClinicianContactConsentEvent {
+  id           String   @id @default(uuid()) @db.Uuid
+  clinicianNpi String   @map("clinician_npi")
+  channel      String
+  kind         String
+  seq          Int
+  eventHash    String   @map("event_hash")
+  /// How the grant was captured, e.g. `holder_settings`. Never inferred.
+  grantSource  String?  @map("grant_source")
+  metadata     Json     @default("{}")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@unique([clinicianNpi, channel, seq])
+  @@index([clinicianNpi, channel, seq])
+  @@index([createdAt])
+  @@map("clinician_contact_consent_events")
+}
+
+/// N1 — clinician notification preferences.
+///
+/// Deliberately mirrors the shape `Watchlist` already established for
+/// org-scoped alerting (channels + severity floor + suppression window)
+/// rather than inventing a second vocabulary. A preference is not a consent:
+/// muting everything below CRITICAL is a routing choice, while permission to
+/// contact at all lives in ClinicianContactConsentEvent.
+model ClinicianNotificationPreference {
+  id                       String   @id @default(uuid()) @db.Uuid
+  clinicianNpi             String   @unique @map("clinician_npi")
+  channels                 String[] @default(["EMAIL"])
+  severityFloor            String   @default("HIGH") @map("severity_floor")
+  suppressionWindowMinutes Int      @default(1440) @map("suppression_window_minutes")
+  active                   Boolean  @default(true)
+  createdAt                DateTime @default(now()) @map("created_at")
+  updatedAt                DateTime @updatedAt @map("updated_at")
+
+  @@map("clinician_notification_preferences")
+}
