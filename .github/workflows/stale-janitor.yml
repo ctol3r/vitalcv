@@ -1,0 +1,97 @@
+# Stale-PR janitor — the mechanism behind §7.2 of
+# docs/ops/open-pr-disposition-2026-08-07.md.
+#
+# The problem it exists for: on 2026-08-02 a disposition sentenced 225 open PRs
+# to close. It was reviewed, merged to `main`, and never executed — so 194 of
+# them were still open six days later, ~90% of a 216-PR backlog, each branch
+# able to fire ~15 gates whenever a bulk sweep touched it. The judgement was
+# never the missing piece; the execution was. A policy that depends on someone
+# remembering is not a policy.
+#
+# What it does, daily:
+#   21 days with no commits or human comments -> label `stale` + a warning
+#   14 further days with still nothing        -> close + delete the head branch
+#   any commit or human comment in between    -> label comes off, clock resets
+#
+# Label changes are NOT activity. If they were, this workflow's own labelling
+# would reset the clock it is running and nothing would ever close.
+#
+# SHIPS INERT. `debug-only` is the default: a scheduled run reports exactly what
+# it would do and mutates nothing until someone sets the repository variable
+# STALE_JANITOR_ENFORCE to 'true'. That is not timidity — on the first live run
+# every PR already past 35 days closes at once, and on this repo that set
+# includes PRs waiting on a founder decision rather than on a timer. Read one
+# dry-run log, apply `parked` where it belongs, then switch it on.
+#
+# Exemption is by label (`parked`, `security`, `pinned`), never by draft status.
+# A draft is still backlog. `parked` is only legitimate with a named unblock
+# condition stated on the PR, per the disposition.
+#
+# Not a required status check, so the `paths:` filter on `pull_request` is
+# permitted by scripts/check-workflow-path-filters.js — that rule constrains the
+# required set only. The PR trigger exists so a change to the janitor is
+# exercised on its own PR; it is hard-wired to dry-run there regardless of the
+# repo variable, because a PR-triggered run must never mutate the backlog.
+
+name: Stale Janitor
+
+on:
+  schedule:
+    # 04:17 UTC — off the hour on purpose, so it does not join the :00 herd that
+    # this repo's runner-contention problem is made of.
+    - cron: '17 4 * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Report only, mutate nothing'
+        type: boolean
+        default: true
+      stale_days:
+        description: 'Days of inactivity before labelling stale'
+        type: string
+        default: '21'
+      close_days:
+        description: 'Days after labelling before closing'
+        type: string
+        default: '14'
+  pull_request:
+    # Self-test only. Always dry-run — see the job's ENFORCE expression.
+    paths:
+      - '.github/workflows/stale-janitor.yml'
+      - 'scripts/stale-janitor.sh'
+
+permissions:
+  contents: write # delete the head branch of a closed PR
+  pull-requests: write # close PRs
+  issues: write # labels and comments reach PRs through the issues API
+
+concurrency:
+  # Two janitors racing would double-comment and double-close.
+  group: stale-janitor
+  cancel-in-progress: false
+
+jobs:
+  janitor:
+    name: Sweep stale pull requests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Sweep
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          STALE_DAYS: ${{ inputs.stale_days || '21' }}
+          CLOSE_DAYS: ${{ inputs.close_days || '14' }}
+          EXEMPT_LABELS: 'parked,security,pinned'
+          MAX_OPS: '50'
+          # Enforce only when: not a pull_request run, AND either the operator
+          # dispatched with dry_run=false or the repo variable is set. Any other
+          # combination — including the daily schedule before the variable is
+          # set — reports and exits clean.
+          ENFORCE: >-
+            ${{ github.event_name != 'pull_request'
+                && ( (github.event_name == 'workflow_dispatch' && inputs.dry_run == false)
+                     || (github.event_name == 'schedule' && vars.STALE_JANITOR_ENFORCE == 'true') ) }}
+        run: bash scripts/stale-janitor.sh
