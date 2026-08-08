@@ -14,12 +14,32 @@ second.
 | `subject_ref` | TEXT | clinician subject key (Clerk user id on the web path) |
 | `scope` | TEXT | e.g. `share_packet:opportunity:opp-42` |
 | `kind` | TEXT | `granted` \| `revoked` |
-| `event_hash` | TEXT | sha256 over the event **including its id** |
+| `seq` | INTEGER | per-(subject_ref, scope) monotonic counter; **UNIQUE with (subject_ref, scope)** |
+| `event_hash` | TEXT | sha256 over the event **including its id and seq** |
 | `action_id` / `plan_id` | TEXT NULL | provenance for which plan/action prompted the decision |
 | `metadata` | JSONB | |
 | `created_at` | TIMESTAMP(3) | |
 
-Indexes: `(subject_ref, scope, created_at)` for the fold, `(created_at)` for sweeps.
+Indexes: a **UNIQUE** index on `(subject_ref, scope, seq)` — load-bearing, see
+below — plus `(subject_ref, scope, seq)` for the fold and `(created_at)` for
+sweeps.
+
+## Why `seq` exists
+
+Authorization state must not be decided by `created_at` (millisecond
+resolution, so ties are real) or by uuid tiebreak (random, so the "latest"
+row chosen that way is arbitrary). Each event carries a per-(subject_ref,
+scope) monotonic `seq`, and the unique constraint is what **serializes**
+concurrent transitions: appending reads the head and inserts at `head.seq +
+1`, so two racing appends compute the same `seq` and exactly one survives.
+The loser's transaction rolls back whole — audit row included — and retries
+against the new head.
+
+Proven against real Postgres in
+`apps/web/__tests__/start-agent-consent-db.test.ts`: simultaneous grants
+produce exactly one event, grant-vs-revoke and revoke-vs-re-grant land in a
+definite order with a dense gapless `seq`, and dropping the unique index
+makes those tests fail (the constraint is load-bearing, not decorative).
 
 ## Why a new table rather than extending `ConsentGrant`
 

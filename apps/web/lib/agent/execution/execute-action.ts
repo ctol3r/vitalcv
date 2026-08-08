@@ -18,9 +18,17 @@
  *   7. the tool registry re-checks the permission ceiling and the proof's
  *      scope against the invocation.
  *
- * Every attempt emits telemetry: `agent_action_presented` on entry, then
- * exactly one terminal event (`agent_action_completed`, `agent_action_failed`,
- * or `agent_action_blocked`) carrying owner, outcome, and elapsed time.
+ * Telemetry: this API represents a clinician ACTING on a recommendation, so
+ * entry emits `agent_action_accepted`, then exactly one terminal event
+ * (`agent_action_completed`, `agent_action_failed`, or
+ * `agent_action_blocked`) carrying owner, outcome, and elapsed time.
+ *
+ * `agent_action_presented` is deliberately NOT emitted here. Presentation is
+ * a view-layer fact — the moment a recommendation is actually shown to the
+ * clinician — and conflating it with acceptance would make every action in
+ * every generated plan look accepted, destroying the funnel's ability to
+ * measure whether a recommendation was any good. The view layer records it
+ * via `recordActionPresented`.
  */
 import type { ConsentProof } from '../consent/types';
 import type { RecordAgentEventInput } from '../telemetry/agent-run-store';
@@ -111,7 +119,7 @@ export async function executeAgentAction(
   const action = plan.actions.find((candidate) => candidate.id === actionId);
 
   await emit({
-    eventType: 'agent_action_presented',
+    eventType: 'agent_action_accepted',
     planId: plan.planId,
     subjectRef,
     ...(input.runId ? { runId: input.runId } : {}),

@@ -205,8 +205,12 @@ describe('execution', () => {
     );
     expect(result.executed).toBe(true);
     expect(refreshExecutor).toHaveBeenCalledWith(NPI);
+    // Execution records ACCEPTANCE, not presentation: presentation is a
+    // view-layer fact and counting it here would make every planned action
+    // look accepted.
     const events = emit.mock.calls.map((c) => c[0].eventType);
-    expect(events).toEqual(['agent_action_presented', 'agent_action_completed']);
+    expect(events).toEqual(['agent_action_accepted', 'agent_action_completed']);
+    expect(events).not.toContain('agent_action_presented');
     const completed = emit.mock.calls[1][0];
     expect(completed.owner).toBe('vitalcv');
     expect(completed.outcome).toBe('completed');

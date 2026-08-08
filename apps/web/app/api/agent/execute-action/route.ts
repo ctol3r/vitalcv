@@ -14,12 +14,9 @@
  */
 import { auth } from '@clerk/nextjs/server';
 import { NextResponse, type NextRequest } from 'next/server';
-import { assembleStartAgentContext, ContextAssemblyError } from '@/lib/agent/context-assembler';
+import { ContextAssemblyError } from '@/lib/agent/context-assembler';
+import { buildCurrentPlan } from '@/lib/agent/current-plan';
 import { executeAgentAction } from '@/lib/agent/execution/execute-action';
-import { generateStartPlanV2 } from '@/lib/agent/policy/start-policy-v2';
-import { buildProductionReaders } from '@/lib/agent/server-readers';
-import { buildStartAgentTools } from '@/lib/agent/tools/canonical-tools';
-import { createToolRegistry } from '@/lib/agent/tools/registry';
 import { isStructurallyValidNpi, invalidNpiResponse } from '@/lib/trust/npi-format';
 
 export const runtime = 'nodejs';
@@ -78,18 +75,12 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const readers = buildProductionReaders(session.userId);
-    const registry = createToolRegistry(buildStartAgentTools(readers));
-
-    const { context } = await assembleStartAgentContext({
-      subject: { profileRef: session.userId, ...(npi ? { npi } : {}) },
-      contextClass: 'holder_execute',
-      now: new Date().toISOString(),
-      registry,
-    });
-
     // Regenerated here — the client's view of the plan is never authoritative.
-    const plan = generateStartPlanV2(context, { now: context.collectedAt });
+    const { plan, context, registry } = await buildCurrentPlan({
+      subjectRef: session.userId,
+      ...(npi ? { npi } : {}),
+      contextClass: 'holder_execute',
+    });
 
     const result = await executeAgentAction(
       { plan, context, actionId, subjectRef: session.userId },

@@ -282,20 +282,23 @@ model AgentEvent {
 // migration lives in apps/api/backend/prisma/migrations/20260807120000_agent_consents).
 // Append-only granted/revoked events written ONLY through
 // apps/web/lib/agent/consent/consent-store.ts, audit-first in one
-// transaction. Current state = fold over the latest event per
-// (subjectRef, scope). Never updated or deleted.
+// transaction. Current state = the highest-`seq` event per
+// (subjectRef, scope); the unique constraint on (subjectRef, scope, seq)
+// is what serializes concurrent transitions. Never updated or deleted.
 model AgentConsentEvent {
   id         String   @id @default(uuid()) @db.Uuid
   subjectRef String   @map("subject_ref")
   scope      String
   kind       String
+  seq        Int
   eventHash  String   @map("event_hash")
   actionId   String?  @map("action_id")
   planId     String?  @map("plan_id")
   metadata   Json     @default("{}")
   createdAt  DateTime @default(now()) @map("created_at")
 
-  @@index([subjectRef, scope, createdAt])
+  @@unique([subjectRef, scope, seq])
+  @@index([subjectRef, scope, seq])
   @@index([createdAt])
   @@map("agent_consent_events")
 }

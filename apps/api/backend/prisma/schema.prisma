@@ -4441,10 +4441,12 @@ model StatusListState {
 
 /// FOUNDER WAVE A1 — agent consent ledger (the authorization layer).
 ///
-/// Append-only granted/revoked events; current state is a fold over the
-/// latest event per (subject_ref, scope). Revocation is a state, never a
-/// deletion, and re-grant after revoke is a NEW event (event_hash covers the
-/// event id, so the cycle is representable — deliberately unlike
+/// Append-only granted/revoked events. Current state is the highest-`seq`
+/// event per (subject_ref, scope) — ordering is DB-enforced by the unique
+/// constraint on (subject_ref, scope, seq), never by created_at (ms ties are
+/// real) or uuid order (arbitrary). Revocation is a state, never a deletion,
+/// and re-grant after revoke is a NEW event (event_hash covers the event id
+/// and seq, so the cycle is representable — deliberately unlike
 /// ConsentGrant's content-addressed grant_hash).
 ///
 /// This ledger answers "may the agent run this?". The immutable disclosure
@@ -4458,13 +4460,15 @@ model AgentConsentEvent {
   subjectRef String   @map("subject_ref")
   scope      String
   kind       String
+  seq        Int
   eventHash  String   @map("event_hash")
   actionId   String?  @map("action_id")
   planId     String?  @map("plan_id")
   metadata   Json     @default("{}")
   createdAt  DateTime @default(now()) @map("created_at")
 
-  @@index([subjectRef, scope, createdAt])
+  @@unique([subjectRef, scope, seq])
+  @@index([subjectRef, scope, seq])
   @@index([createdAt])
   @@map("agent_consent_events")
 }

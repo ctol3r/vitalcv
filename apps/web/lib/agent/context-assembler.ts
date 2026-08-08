@@ -165,32 +165,57 @@ export async function assembleStartAgentContext(options: AssembleOptions): Promi
     }
   }
 
-  // Agent consent ledger — only GRANTED scopes enter the context. A revoked
-  // or absent scope is simply not a consent; asks are derived from need, and
-  // a failed ledger read hides granted work (safe) rather than inventing it.
-  let consents: StartAgentContext['consents'] = [];
+  // Consent state has two independent halves, and conflating them breaks the
+  // loop in opposite directions:
+  //
+  //  - WHICH consents are relevant is derived from canonical state. A matched
+  //    opportunity is what makes "share your packet with this employer" a
+  //    thing worth asking about. If the ask came from the ledger instead, an
+  //    ungranted consent could never appear and could never be approved.
+  //  - WHETHER a consent is granted comes only from the ledger. Nothing else
+  //    may set `granted: true`.
+  //
+  // A failed ledger read therefore leaves relevant scopes present but
+  // UNGRANTED: the clinician is asked again rather than the agent assuming
+  // an approval it could not read.
+  const candidateScopes = new Set<string>(
+    opportunities.matches.map((match) => `share_packet:opportunity:${match.opportunityRef}`),
+  );
+  const grantedScopes = new Map<string, { eventRef: string; at: string }>();
   try {
     const result = await registry.execute<{
       states: Array<{ scope: string; granted: boolean; eventRef: string; at: string }>;
     }>('consent_state_retrieval', { subjectRef: subject.profileRef });
-    consents = result.states
-      .filter((state) => state.granted)
-      .map((state) => ({
-        scope: state.scope,
-        granted: true,
-        evidenceRefs: [
-          {
-            kind: 'system_record' as const,
-            ref: `consent_event:${state.eventRef}`,
-            provenance: 'platform_record' as const,
-            observedAt: state.at,
-          },
-        ],
-      }))
-      .sort((a, b) => (a.scope < b.scope ? -1 : a.scope > b.scope ? 1 : 0));
+    for (const state of result.states) {
+      if (!state.granted) continue;
+      grantedScopes.set(state.scope, { eventRef: state.eventRef, at: state.at });
+      // A granted scope stays visible even if its opportunity has since left
+      // the pool, so the clinician can still see and withdraw it.
+      candidateScopes.add(state.scope);
+    }
   } catch {
     inputGaps.push('consent_state_retrieval');
   }
+
+  const consents: StartAgentContext['consents'] = [...candidateScopes]
+    .sort()
+    .map((scope) => {
+      const grant = grantedScopes.get(scope);
+      return {
+        scope,
+        granted: grant !== undefined,
+        evidenceRefs: grant
+          ? [
+              {
+                kind: 'system_record' as const,
+                ref: `consent_event:${grant.eventRef}`,
+                provenance: 'platform_record' as const,
+                observedAt: grant.at,
+              },
+            ]
+          : [],
+      };
+    });
 
   // Prior agent action outcomes — feeds completed-suppression and the
   // repeated-failure pause. A failed read degrades to no history (the plan

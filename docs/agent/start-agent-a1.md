@@ -14,11 +14,13 @@ execution — not carried from the plan the clinician was looking at.
 
 ```mermaid
 flowchart LR
-  subgraph plan [Plan]
-    P[start-policy-v2<br/>granted consent ⇒ executable action]
+  C["client sends actionId only"]
+  subgraph plan [Server-side, every request]
+    P[rebuild context → regenerate<br/>start-policy-v2 plan]
+    D[derive consentScope<br/>from the canonical action]
   end
   subgraph consent [Consent ledger]
-    L[(agent_consent_events<br/>append-only grant/revoke)]
+    L[("agent_consent_events<br/>append-only, seq-serialized")]
     V[verifyAgentConsent<br/>re-reads AT execution]
   end
   subgraph exec [Execution service]
@@ -26,25 +28,36 @@ flowchart LR
     R[Tool registry<br/>Level 3 requires ConsentProof<br/>scope must match]
   end
   subgraph canon [Canonical capabilities]
-    T[POST /api/trust-state/:npi/refresh<br/>Level 2]
-    S[POST /api/apply/share<br/>Level 3, server-resolved recipient]
+    T["POST /api/trust-state/:npi/refresh — Level 2"]
+    S["POST /api/apply/share — Level 3, server-resolved recipient"]
   end
-  E[(agent_events<br/>presented → completed/failed/blocked)]
+  E[("agent_events<br/>accepted → completed/failed/blocked")]
+  UI["view layer → agent_action_presented"]
 
+  C --> P
+  P --> D --> L
   P --> G --> V --> L
   V -- ConsentProof --> R --> canon
   G --> E
   R --> E
+  UI --> E
 ```
 
 ### 1. Consent ledger (`lib/agent/consent/`)
 
-`agent_consent_events` — append-only `granted`/`revoked` events, folded per
-`(subjectRef, scope)`. Revocation is a state, re-grant is a new event
-(distinct `event_hash`, because the hash covers the event id). Every write
-pairs an `AuditEvent` in the same transaction. Consent writes are strict: a
-write that does not persist reports failure and the route answers 503 —
-never a phantom authorization.
+`agent_consent_events` — append-only `granted`/`revoked` events. Current
+state is the highest-`seq` event per `(subjectRef, scope)`, **never** the
+newest `created_at` (millisecond ties are real) or the uuid tiebreak
+(arbitrary). The unique constraint on `(subject_ref, scope, seq)` is what
+serializes concurrent transitions: appending reads the head and inserts at
+`head.seq + 1`, so two racing appends compute the same `seq`, exactly one
+survives, and the loser rolls back whole — audit row included — and retries
+against the new head.
+
+Revocation is a state, re-grant is a new event. Every write pairs an
+`AuditEvent` in the same transaction. Consent writes are strict: a write that
+does not persist reports failure and the route answers 503 — never a phantom
+authorization.
 
 Why a new table rather than extending the canonical `ConsentGrant`:
 its content-addressed `grant_hash` makes grant → revoke → re-grant
@@ -71,9 +84,16 @@ Categorical facts (whose decision this is) are stated before transient
 status, so a clinician waiting on a hospital is told *that*, not "not
 actionable".
 
-Every attempt emits `agent_action_presented` and then exactly one terminal
-event carrying owner, outcome, and elapsed time — the outcome chain the
-learning loop consumes.
+Every attempt emits `agent_action_accepted` — this API *is* the clinician
+acting on a recommendation — and then exactly one terminal event carrying
+owner, outcome, and elapsed time.
+
+`agent_action_presented` is deliberately not emitted here. Presentation is a
+view-layer fact recorded by `recordActionPresented` when a recommendation is
+actually shown; conflating it with acceptance would mark every action in
+every generated plan as accepted and destroy the funnel's ability to measure
+whether a recommendation was any good. `presented → accepted → completed`
+only carries signal if each step is recorded when it happens.
 
 ### 4. Real tools
 
@@ -97,9 +117,19 @@ collateral drift).
 
 ### 6. API
 
-- `POST /api/agent/consent` — grant or revoke one scope. Subject from the
-  session; client-supplied subjects/proofs refused; scope grammar enforced.
-- `GET /api/agent/consent` — the current fold.
+- `POST /api/agent/consent` — the client approves an **action**, never a
+  scope: `{ decision: 'grant', actionId }`. The server authenticates,
+  rebuilds canonical context, regenerates the plan, locates the action,
+  requires `execute_with_consent` + VitalCV-owned, derives the scope from
+  that canonical action, and records the derived scope. A client-supplied
+  `scope`, `planId`, subject, or proof is rejected outright — the browser
+  expresses approval, it does not author the authorization namespace.
+  Revocation resolves its scope the same way, either from a live action or
+  from a server-issued `consentRef` handed out by `GET` (so a clinician can
+  still withdraw an approval whose action has left the plan, and neither
+  path can introduce a scope the server did not already know).
+- `GET /api/agent/consent` — the current fold, with each scope's `eventRef`
+  and `seq`.
 - `POST /api/agent/execute-action` — takes **only** an action id. Context is
   reassembled and the plan regenerated server-side, so a stale or forged
   client plan authorizes nothing. A refusal is a 200 with `executed: false`
@@ -112,6 +142,12 @@ The Level-3 share and the ownership read go through backend routes guarded by
 `CLERK_JWT_VERIFICATION=off`. In `off` mode execution degrades to an honest
 recorded failure — never a fake success — but consented sharing will not
 function until the backend runs `shadow` or `enforce`.
+
+That flip is a **sequenced rollout, not an A1 dependency**:
+`off → shadow → enforce`, with shadow required to prove the affected paths
+receive valid verified identities and zero unexplained mismatches first. Plan
+and exit criteria in
+[docs/ops/clerk-jwt-verification-rollout.md](../ops/clerk-jwt-verification-rollout.md).
 
 ## Still not in scope
 

@@ -19,10 +19,15 @@ export type ConsentEventKind = (typeof CONSENT_EVENT_KINDS)[number];
 
 export interface AgentConsentState {
   scope: string;
-  /** Fold of the latest ledger event for this (subject, scope). */
+  /** State of the highest-`seq` ledger event for this (subject, scope). */
   granted: boolean;
-  /** Ledger row id of the governing event. */
+  /**
+   * Ledger row id of the governing event. This is the server-issued handle
+   * a client passes back to revoke — clients never author scope strings.
+   */
   eventRef: string;
+  /** Serialized position of the governing event (see consent-store). */
+  seq: number;
   at: string;
 }
 

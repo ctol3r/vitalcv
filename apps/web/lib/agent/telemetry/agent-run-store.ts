@@ -110,6 +110,38 @@ export async function persistAgentRun(input: PersistAgentRunInput): Promise<Pers
   }
 }
 
+/**
+ * Record that a recommendation was actually SHOWN to the clinician.
+ *
+ * This is a view-layer fact and the only writer of `agent_action_presented`.
+ * It is deliberately separate from execution: an action appearing in a
+ * generated plan is not a presentation, and a presentation is not an
+ * acceptance. Keeping the three distinct is what lets the funnel measure
+ * whether a recommendation was any good — `presented → accepted → completed`
+ * only carries signal if each step is recorded when it actually happens.
+ *
+ * No UI calls this yet (A1 ships no agent surface); it exists so the view
+ * layer has one correct way in, rather than reaching for the execution path.
+ */
+export async function recordActionPresented(input: {
+  planId: string;
+  subjectRef: string;
+  actionId: string;
+  owner?: string;
+  runId?: string;
+  metadata?: Record<string, unknown>;
+}): Promise<{ persisted: boolean }> {
+  return recordAgentEvent({
+    eventType: 'agent_action_presented',
+    planId: input.planId,
+    subjectRef: input.subjectRef,
+    actionId: input.actionId,
+    ...(input.owner ? { owner: input.owner } : {}),
+    ...(input.runId ? { runId: input.runId } : {}),
+    ...(input.metadata ? { metadata: input.metadata } : {}),
+  });
+}
+
 export interface AgentActionHistoryRow {
   actionId: string;
   actionType: string;
