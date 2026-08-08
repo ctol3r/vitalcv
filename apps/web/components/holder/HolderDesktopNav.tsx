@@ -15,6 +15,7 @@
  */
 
 import Link from 'next/link';
+import { WORKBENCH_BRANDING } from '@/lib/career-garden/branding';
 import { usePathname } from 'next/navigation';
 import { UserButton } from '@clerk/nextjs';
 import { UserRound } from 'lucide-react';
@@ -28,7 +29,7 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { name: 'Home', href: '/holder/home', matchPrefix: false },
-  { name: 'Garden', href: '/holder/garden', matchPrefix: true },
+  { name: WORKBENCH_BRANDING.shortName, href: '/holder/garden', matchPrefix: true },
   { name: 'Wallet', href: '/holder', matchPrefix: false },
   { name: 'Readiness', href: '/holder/readiness', matchPrefix: true },
   { name: 'Roles', href: '/holder/opportunities', matchPrefix: true },

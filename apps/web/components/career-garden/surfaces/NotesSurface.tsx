@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { WORKBENCH_BRANDING } from '@/lib/career-garden/branding';
 
 import { NOTE_PRIVACY_LINE } from '@/lib/career-garden/demoData';
 import type { GardenData } from '@/lib/career-garden/gardenViews';
@@ -62,7 +63,7 @@ export function NotesSurface({
 
         {data.mode === 'unavailable' ? (
           <p className="mz-inset mz-small mt-4 p-3" role="status">
-            Garden storage is temporarily unavailable — notes cannot be read or saved right now. Nothing
+            {WORKBENCH_BRANDING.storageName} is temporarily unavailable — notes cannot be read or saved right now. Nothing
             was lost; try again shortly.
           </p>
         ) : data.notes.length === 0 ? (

@@ -29,11 +29,18 @@ export function ResearchSurface({ selectedId, mount }: { selectedId?: string; mo
       ) : null}
 
       <section aria-labelledby="research-shelf">
-        <h2 id="research-shelf" className="mz-h2">
-          Reading shelf
-        </h2>
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <h2 id="research-shelf" className="mz-h2">
+            Reading shelf
+          </h2>
+          <span className="mz-chip mz-chip-watch">
+            <span className="mz-gl" aria-hidden="true" />
+            Sample items
+          </span>
+        </div>
         <p className="mz-small mt-1.5" style={{ color: 'var(--vt-text-muted)' }}>
-          Private annotations — save an insight or a teaching point with the Cursor (⌘K).
+          Private annotations — save an insight or a teaching point with the Cursor (⌘K). Everything on
+          this shelf is fictional sample content — its live wave comes next.
         </p>
         <ul className="mt-4 space-y-3">
           {DEMO_RESEARCH_ITEMS.map((item) => (

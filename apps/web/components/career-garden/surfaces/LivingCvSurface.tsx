@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { WORKBENCH_BRANDING } from '@/lib/career-garden/branding';
 
 import { CV_SECTION_LABEL, type CvSection } from '@/lib/career-garden/demoData';
 import type { GardenData } from '@/lib/career-garden/gardenViews';
@@ -52,13 +53,13 @@ export function LivingCvSurface({
           <Link href="/holder" className="underline underline-offset-4">
             Profile
           </Link>
-          . This garden view drafts lines alongside them — it never replaces them.
+          . This workspace view drafts lines alongside them — it never replaces them.
         </p>
       </header>
 
       {data.mode === 'unavailable' ? (
         <p className="mz-inset mz-small p-3" role="status">
-          Garden storage is temporarily unavailable — your lines are safe and will show here again shortly.
+          {WORKBENCH_BRANDING.storageName} is temporarily unavailable — your lines are safe and will show here again shortly.
         </p>
       ) : null}
 

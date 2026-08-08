@@ -5,6 +5,8 @@
  * without crossing the auth gate.
  */
 
+import { WORKBENCH_BRANDING } from './branding';
+
 export type GardenSection =
   | 'home'
   | 'cv'
@@ -20,7 +22,7 @@ export interface GardenNavLink {
 }
 
 const SECTIONS: Array<{ key: GardenSection; label: string; path: string }> = [
-  { key: 'home', label: 'Garden', path: '' },
+  { key: 'home', label: WORKBENCH_BRANDING.shortName, path: '' },
   { key: 'cv', label: 'Living CV', path: '/cv' },
   { key: 'research', label: 'Research', path: '/research' },
   { key: 'notes', label: 'Notes', path: '/notes' },

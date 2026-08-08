@@ -1,6 +1,7 @@
 import Link from 'next/link';
 
 import { PageFrame } from '@/components/layout/PageFrame';
+import { WORKBENCH_BRANDING } from '@/lib/career-garden/branding';
 import {
   GARDEN_PRIVACY_LINE,
   GARDEN_SAMPLE_NOTICE,
@@ -11,8 +12,7 @@ import { navLinksFor, type GardenMount, type GardenSection } from '@/lib/career-
 const MODE_NOTICE: Record<GardenDataMode, string> = {
   fixture: GARDEN_SAMPLE_NOTICE,
   live: 'Your notes and CV lines here are saved to your private workspace. Research, connections, and postings are still samples — their waves come next.',
-  unavailable:
-    'Garden storage is temporarily unavailable — nothing you write can be saved right now, so the garden is read-only until it returns.',
+  unavailable: `${WORKBENCH_BRANDING.storageName} is temporarily unavailable — nothing you write can be saved right now, so the workspace is read-only until it returns.`,
 };
 
 /**
@@ -41,7 +41,7 @@ export function GardenShell({
     <div data-garden-root>
       <PageFrame as="main" mode="product" className="pb-24">
       <header className="border-b border-[var(--rule)] pb-6">
-        <p className="mz-eyebrow">Career Garden</p>
+        <p className="mz-eyebrow">{WORKBENCH_BRANDING.productName}</p>
         <div className="mt-3 flex flex-wrap items-baseline gap-x-4 gap-y-2">
           <h1 className="mz-h1">A place to cultivate your professional life</h1>
         </div>
@@ -56,7 +56,7 @@ export function GardenShell({
         </p>
 
         <p className="mz-mono mt-5 text-[11px] uppercase tracking-[0.12em]" style={{ color: 'var(--ink-500)' }} aria-label="Where this workspace sits">
-          <span style={{ color: 'var(--ink-900)' }}>Garden · private</span>
+          <span style={{ color: 'var(--ink-900)' }}>{WORKBENCH_BRANDING.breadcrumbLabel}</span>
           <span aria-hidden="true"> → </span>
           <Link href="/holder" className="underline decoration-[var(--rule)] underline-offset-4" style={{ color: 'var(--ink-500)' }}>
             Your profile · yours to control
@@ -68,7 +68,7 @@ export function GardenShell({
         </p>
       </header>
 
-      <nav aria-label="Career Garden sections" className="mt-6 flex flex-wrap gap-2">
+      <nav aria-label={WORKBENCH_BRANDING.sectionsNavLabel} className="mt-6 flex flex-wrap gap-2">
         {links.map((link) => {
           const isActive = link.key === active;
           return (
@@ -89,7 +89,7 @@ export function GardenShell({
       <footer className="mt-16 border-t border-[var(--rule)] pt-4">
         <p className="mz-small" style={{ color: 'var(--vt-text-muted)' }}>
           The Cursor is one keystroke away — press <kbd className="mz-mono">⌘K</kbd> (or{' '}
-          <kbd className="mz-mono">Ctrl+K</kbd>) anywhere in the garden, or use the round
+          <kbd className="mz-mono">Ctrl+K</kbd>) anywhere in the workspace, or use the round
           button in the corner.
         </p>
       </footer>
