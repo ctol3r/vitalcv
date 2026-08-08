@@ -85,7 +85,16 @@ export class NotificationService {
               daysBefore,
             },
           },
+          // `type` is load-bearing, not decoration. Without it this object is
+          // structurally a ChannelAwareTriggerInput — which expo-notifications
+          // documents as "delivered immediately" — and `parseDateTrigger`
+          // (which requires type === DATE) never matches, so `date` is silently
+          // discarded and every reminder fires at once. TypeScript cannot catch
+          // the omission: NotificationTriggerInput is a union, and `date`
+          // survives excess-property checking because DateTriggerInput declares
+          // it. Covered by NotificationService.test.ts.
           trigger: {
+            type: Notifications.SchedulableTriggerInputTypes.DATE,
             channelId: 'credential-alerts',
             date: reminderDate,
           },
