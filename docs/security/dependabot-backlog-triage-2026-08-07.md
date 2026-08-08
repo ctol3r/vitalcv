@@ -1,9 +1,17 @@
 # Dependabot backlog triage — 2026-08-07
 
 **Enterprise-map B1 (supply chain) · ASVS G8 (SCA).**
-Read-only triage of all 8 open Dependabot PRs. Nothing was merged or closed in
-producing this report — dispositions below are recommendations; the merge and
-close calls stay with the founder.
+Triage of all 8 open Dependabot PRs, with the dispositions below.
+
+> **Status: closed out.** The triage was produced read-only; the founder then
+> authorised acting on it. All six recommended bumps are now on `main` (five as
+> their own PRs, vite via replacement PR [#1128](https://github.com/ctol3r/vitalcv/pull/1128)),
+> [#844](https://github.com/ctol3r/vitalcv/pull/844) remains open pending the
+> supersede-and-close call, and [#582](https://github.com/ctol3r/vitalcv/pull/582)
+> remains open awaiting an Expo SDK wave. See
+> [Merge log](#merge-log-2026-08-07-founder-authorised) for what landed and how
+> each was verified. The original triage sections below are unedited except
+> where marked as corrected.
 
 Evidence baseline: `origin/main` @ `f0b3749` (2026-08-07). "Still live" means
 the vulnerable version is what the tree resolves **today** (root
@@ -21,7 +29,7 @@ advisories never reach the merge signal).
 | [#891](https://github.com/ctol3r/vitalcv/pull/891) | `flask` 3.0.3 → 3.1.3 | 12d | Yes — 2 GHSAs | Yes (by version; not exploitable in context) | Runtime of `apps/api/bug-bounty` — **not deployed anywhere** | clean | **Merge** |
 | [#1066](https://github.com/ctol3r/vitalcv/pull/1066) | `actions/cache` v4 → v6 | 4d | No — CI hygiene | Yes (`cargo-audit.yml` pins v4) | CI only | clean | **Merge** |
 | [#574](https://github.com/ctol3r/vitalcv/pull/574) | `actions/github-script` v7 → v9 | 32d | No — CI hygiene | Yes (`openid-conformance.yml` pins v7) | CI only | clean | **Merge** |
-| [#852](https://github.com/ctol3r/vitalcv/pull/852) | `vite` 6.4.1 → 6.4.3 | 13d | Yes — dev-server path traversal | **Yes** | **Dev-only** (3 workspaces, `devDependencies`) | clean | **Merge** |
+| [#852](https://github.com/ctol3r/vitalcv/pull/852) | `vite` 6.4.1 → 6.4.3 | 13d | Yes — dev-server path traversal | **Yes** | **Dev-only** (3 workspaces, `devDependencies`) | clean at triage; later conflicted | **Merged via [#1128](https://github.com/ctol3r/vitalcv/pull/1128); #852 closed as superseded** |
 | [#1076](https://github.com/ctol3r/vitalcv/pull/1076) | `postcss` 8.5.6 → 8.5.23 | 2d | Yes — 3 file-read GHSAs | **Yes** | **Dev-only** (web + marketing build toolchain) | clean | **Merge (last of the lockfile set)** |
 | [#844](https://github.com/ctol3r/vitalcv/pull/844) | `next` 15.2.8 → 15.5.21 (`apps/marketing`) | 13d | Yes — 11 high advisories | **No — main is already past it (15.5.22)** | (was runtime) | **conflicts** | **Supersede & close** |
 | [#582](https://github.com/ctol3r/vitalcv/pull/582) | `expo-notifications` 0.31.5 → 57.0.8 | 32d | **No advisory found** | n/a | Runtime of `apps/mobile` | clean, but SDK-broken | **Needs-work — do not merge as-is** |
@@ -233,11 +241,20 @@ nothing in this report waives it.
 
 ## Residual risk after the backlog clears
 
-- `@opentelemetry/core@2.2.0` ×2 remains (transitive, experimental otel
-  0.20x line) — follow-up bump when the instrumentation packages release
-  against core 2.8.
-- `postcss@8.4.31` / `8.4.49` remain (pinned inside `next` et al.) — upstream's
-  to fix; no direct exposure in our build.
+Re-measured against `main` after all six landed:
+
+- **`@opentelemetry/core` 2.2.0 and 2.5.0 both remain**, transitively. 2.5.0
+  comes in under `@opentelemetry/sdk-trace-base@2.5.0`, `resources@2.5.0` and
+  `instrumentation-http@0.211.0`; 2.2.0 under the older `otlp-*@0.208.0` /
+  `sdk-logs` / `sdk-metrics@2.2.0` line. #853 raised only the two **direct**
+  API importers, which is all it claimed to do — these are the transitive
+  copies and clear when those packages release against core 2.8. Note the
+  earlier draft of this section said "2.2.0 ×2"; 2.5.0 survives too.
+- `postcss@8.4.31` (inside `next@15.5.22`) and `8.4.49` (inside
+  `@expo/metro-config`) remain — upstream's to fix, no direct exposure in our
+  build. **`postcss@8.5.6` is now gone entirely**, removed by the vite bump
+  that held it.
+- `vite` resolves to **6.4.3 only** — no 6.4.1 anywhere in the tree.
 - The ~80 pre-existing production highs tracked in
   [dependency-remediation.md](dependency-remediation.md) are untouched by this
   backlog — largely `apps/mobile` (undici 6.x among others); the Expo SDK 57
@@ -255,7 +272,9 @@ live off the **head SHA**, `mergeStateStatus == CLEAN`, and real verification
 performed locally, never `--auto`. Squash merge throughout, matching the repo's
 single-parent history.
 
-**Five of six landed. #852 is blocked** — see below.
+**All six bumps are on `main`.** Five landed as their own Dependabot PRs; the
+sixth (vite) landed via a replacement PR after its Dependabot PR became
+unrebaseable — see [#852 → #1128](#852-was-blocked--what-happened-and-how-it-was-resolved).
 
 | PR | Merge commit | Head SHA gated | Verification performed |
 |---|---|---|---|
@@ -264,9 +283,9 @@ single-parent history.
 | #574 | `b28217331` | `aba5f9ea` (15/15 green) | OpenID Conformance ran on this head **under v9** and its comment step posted successfully; grepped all workflows to confirm neither v9 breaking change (`require('@actions/github')`, `const/let getOctokit`) is tripped |
 | #1066 | `82dd639cd` | `4b979e99` (14/14 green) | The cargo-audit job ran on this head **under v6** and its cache step restored successfully |
 | #1076 | `971d76c84` | `58b6eb59` (15/15 green) | Merged onto main locally; `--frozen-lockfile` clean; postcss resolves **8.5.23** for web and marketing; otel 2.8.0 from #853 preserved through the lockfile merge; `turbo run build --filter @vitalcv/web` **16/16 tasks** |
-| **#852** | **blocked** | — | Verified green locally *before* it was blocked: lockfile merge preserved #853's otel 2.8.0 while removing vite 6.4.1 entirely; `--frozen-lockfile` clean; vite 6.4.3 in all three importers; 4/4 builds and 7/7 test tasks (haip-config 33 tests, verifier-api 4) |
+| #852 → **#1128** | `d8174a3f6` | `95ac3e7d` (16/16 green) | `--frozen-lockfile` clean after regeneration; vite resolves **6.4.3** in all three workspaces; **zero** `vite@6.4.1` and **zero** `postcss@8.5.6` left in the lockfile; otel 2.8.0 (#853) and postcss 8.5.23 (#1076) both preserved; `turbo build` 4/4 and `turbo test` 7/7 (haip-config 33 tests, verifier-api 4) — those suites run *through* vite's transform pipeline; the advisory patch verified present in the shipped bundle (`isOptimizedDepFile(sourcemapPath)` in `dist/node`) |
 
-### #852 is blocked — what happened and how to unblock it
+### #852 was blocked — what happened and how it was resolved
 
 `950300c11` (#1120, BitstringStatusList) rewrote `pnpm-lock.yaml` mid-flight,
 putting #852 into conflict. That alone is routine — Dependabot rebases its own
@@ -281,19 +300,21 @@ that update counts as altering it, so Dependabot stopped managing the branch.
 #852 has sat at `d081cae5f` ever since, now 11 commits behind `main`, and
 `update-branch` refuses with *"merge conflict between base and head"*.
 
-Unblocking it needs one Dependabot command, which must come from a human —
-comments posted by this tooling have the `@`-mention neutralised, so the bot
-never receives them:
+A `@dependabot recreate` was attempted and never registered on the PR — the
+comment did not appear in its timeline at all, and the head never moved off
+`d081cae5f`. (Comments posted by this tooling also have the `@`-mention
+neutralised, so an agent cannot issue the command itself.)
 
-```
-@dependabot recreate
-```
+**Resolution:** the bump was reproduced as an ordinary PR from a branch we own,
+[#1128](https://github.com/ctol3r/vitalcv/pull/1128) — the same three
+`^6.3.5` → `^6.4.3` manifest edits with the lockfile regenerated from the
+current `main` — verified independently and merged as `d8174a3f6`. **#852 was
+then closed as superseded**, with the reason recorded on the PR.
 
-(`recreate` rather than `rebase`: the branch was altered, so it needs rebuilding
-from the current base rather than replaying.) After it reopens green, the
-verification to repeat is the one already run above — `--frozen-lockfile`, then
-`turbo build`/`test` for `@vitalcv/issuer-api`, `@vitalcv/verifier-api`,
-`@vitalcv/haip-config`.
+Two things this trades away, worth stating: the change loses its Dependabot
+provenance, and closing a Dependabot PR unmerged signals Dependabot to stop
+offering that version. Neither matters here — the dependency is now *at* 6.4.3,
+so there is nothing left to offer.
 
 **Lesson for the next lockfile PR:** prefer `@dependabot rebase` (from a human)
 over the update-branch API on Dependabot PRs. Update-branch is fine for
@@ -314,9 +335,31 @@ departures, both benign:
   — not a dependency. Holding a ready, verified PR hostage to a blocked one
   would have bought nothing.
 
-One consequence worth recording: the last `postcss@8.5.6` copy in the tree is
-held solely by `vite@6.4.1`, so #852 is what finally removes it. #1076 and #852
-are complementary, which is a reason to finish #852 rather than drop it.
+One consequence worth recording: the last `postcss@8.5.6` copy in the tree was
+held solely by `vite@6.4.1`, so the vite bump is what finally removed it —
+confirmed on `main` after #1128 landed. #1076 and the vite change were
+complementary, which is why finishing the vite bump was worth the replacement
+PR rather than dropping it.
+
+### Operational lessons
+
+1. **Don't use the update-branch API on a Dependabot lockfile PR.** It writes a
+   merge commit onto the branch, and Dependabot stops resolving conflicts on a
+   PR you've altered. It was fine on the four single-file PRs (#853, #891,
+   #574, #1066) and cost us #852. Prefer a human-posted `@dependabot rebase`,
+   or leave the bot alone and let it rebase itself — it did exactly that for
+   #1076, unaided.
+2. **An agent cannot drive Dependabot.** `@`-mentions in comments posted by this
+   tooling are neutralised before the bot sees them, so `rebase`/`recreate` must
+   come from a human — and a `recreate` that never appears in the PR timeline
+   never ran.
+3. **Reproducing the bump in an owned PR is a clean escape hatch** when a
+   Dependabot PR is unrecoverable: same manifest edits, regenerate the lockfile
+   from current `main`, verify independently, and close the original as
+   superseded.
+4. **Read a cancelled deploy as superseded, not failed** — merges in quick
+   succession cancel each other's deploy runs via the concurrency group. Confirm
+   the *latest* run.
 
 Notes worth keeping:
 
