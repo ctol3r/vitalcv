@@ -16,12 +16,18 @@
 # Label changes are NOT activity. If they were, this workflow's own labelling
 # would reset the clock it is running and nothing would ever close.
 #
-# SHIPS INERT. `debug-only` is the default: a scheduled run reports exactly what
-# it would do and mutates nothing until someone sets the repository variable
-# STALE_JANITOR_ENFORCE to 'true'. That is not timidity — on the first live run
-# every PR already past 35 days closes at once, and on this repo that set
-# includes PRs waiting on a founder decision rather than on a timer. Read one
-# dry-run log, apply `parked` where it belongs, then switch it on.
+# LIVE ON THE SCHEDULE, with a kill switch. A scheduled run enforces unless the
+# repository variable STALE_JANITOR_ENFORCE is explicitly set to 'false' — set
+# it and the janitor drops back to reporting immediately, no revert PR needed.
+#
+# Enabling was decided against evidence rather than left as a default nobody
+# read. The dry-run on this workflow's own PR swept the live backlog and found
+# exactly one PR past threshold (#506, 34 days inactive) and nothing closable:
+#   #748   ok      12d since update
+#   #506   MARK    34d inactive -> label + warn
+#   summary: marked=1 closed=0 revived=0 exempt=0
+# So the first enforced sweep labels one PR and closes none, and nothing can
+# close for at least 14 days after that.
 #
 # Exemption is by label (`parked`, `security`, `pinned`), never by draft status.
 # A draft is still backlog. `parked` is only legitimate with a named unblock
@@ -95,12 +101,19 @@ jobs:
           CLOSE_DAYS: ${{ inputs.close_days || '14' }}
           EXEMPT_LABELS: 'parked,security,pinned'
           MAX_OPS: '50'
-          # Enforce only when: not a pull_request run, AND either the operator
-          # dispatched with dry_run=false or the repo variable is set. Any other
-          # combination — including the daily schedule before the variable is
-          # set — reports and exits clean.
+          # A pull_request run NEVER enforces — that is the hard rule, and it is
+          # the first conjunct so no later term can override it. Beyond that:
+          # a dispatch enforces only when the operator unticks dry_run, and the
+          # schedule enforces unless STALE_JANITOR_ENFORCE is set to 'false'.
+          #
+          # Note `!= 'false'` rather than `== 'true'`: the variable is a kill
+          # switch, not an enable switch, so an unset variable means live. Any
+          # value other than the literal 'false' therefore enforces — a typo in
+          # the kill switch fails toward acting, which is why the schedule also
+          # caps mutations at MAX_OPS and cannot close anything for 14 days
+          # after first labelling it.
           ENFORCE: >-
             ${{ github.event_name != 'pull_request'
                 && ( (github.event_name == 'workflow_dispatch' && inputs.dry_run == false)
-                     || (github.event_name == 'schedule' && vars.STALE_JANITOR_ENFORCE == 'true') ) }}
+                     || (github.event_name == 'schedule' && vars.STALE_JANITOR_ENFORCE != 'false') ) }}
         run: bash scripts/stale-janitor.sh

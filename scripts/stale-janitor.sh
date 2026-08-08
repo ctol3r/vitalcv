@@ -17,11 +17,12 @@
 # rebase comment, or this janitor's own warning cannot keep a dead PR alive.
 #
 # Fail-safe posture: every mutating call goes through run(), which only echoes
-# unless ENFORCE=true. The workflow ships with enforcement OFF — a scheduled run
-# logs exactly what it would do and changes nothing until an operator sets the
-# STALE_JANITOR_ENFORCE repo variable. That is deliberate: on the first live run
-# this would close every PR already past the threshold, and some of those need a
-# human decision rather than a timer (see the `parked` exemption).
+# unless ENFORCE=true. ENFORCE is decided by the workflow and never here, and it
+# defaults to false — so running this script by hand reports and mutates nothing
+# unless you deliberately export ENFORCE=true.
+#
+# The scheduled sweep enforces unless the STALE_JANITOR_ENFORCE repo variable is
+# set to 'false' (the kill switch). A pull_request run never enforces.
 #
 # Exemptions are by LABEL, not by draft status. A draft is still backlog; a
 # `parked` PR is a deliberate decision with a named unblock condition. Per the
@@ -203,6 +204,8 @@ done < <(echo "$prs" | jq -r '.[] | [
 echo
 echo "summary: marked=$marked closed=$closed revived=$unstaled exempt=$skipped_exempt (enforce=$ENFORCE)"
 if [ "$ENFORCE" != "true" ]; then
-  echo "NOTE: dry run — nothing above was applied. Set the STALE_JANITOR_ENFORCE repo"
-  echo "      variable to 'true' (or dispatch with dry_run=false) to make it act."
+  echo "NOTE: dry run — nothing above was applied. The scheduled sweep enforces by"
+  echo "      default, so this run is one of: a pull_request self-test (never"
+  echo "      enforces), a dispatch with dry_run left ticked, or STALE_JANITOR_ENFORCE"
+  echo "      set to 'false' — the kill switch."
 fi
