@@ -218,3 +218,90 @@ f8721ff30 docs(ops): record cascade merge of PRs #425 #426 #424 (#427)
 1. **Authenticated SSE smoke** for NPI 1699264564 — biggest single percentage move on Product Truth Contract; releases the 18% hold on Source Integrations / PSV.
 2. **Browser visual QA** of merged surfaces (/passport, /, /sign-in, /sign-up, /status, /trust/attribution) — closes the design-quality feedback loop.
 3. **`fix/nppes-source-health-observability`** — next coding wave outside the visual-system arc.
+
+---
+
+## Tier-S backlog closure — executed 2026-08-08
+
+Not a merge record. This entry is the **execution receipt** for the Tier-S
+closure sentenced in
+[`open-pr-disposition-2026-08-02.md`](open-pr-disposition-2026-08-02.md) and
+re-affirmed with merge evidence in
+[`open-pr-disposition-2026-08-07.md`](open-pr-disposition-2026-08-07.md) (#1122,
+merged `9faa6838d`). It exists because per-PR receipt comments were not posted —
+see "Receipts" below — so this is the durable record of what was closed and why.
+
+| Field | Value |
+|---|---|
+| Executed | 2026-08-08 ~01:05–01:20 UTC |
+| Authorized by | Founder instruction in-session, on top of the 08-02 disposition (merged, founder-visible) and the 08-07 re-affirmation |
+| Scope rule | Every open PR created **before 2026-06-01** — exactly 194 |
+| Open PRs before | 216 |
+| Open PRs after | **18** (verified by live listing, not by call results) |
+| Tier-S remaining open | **0** |
+| Method | `update_pull_request state=closed`, one call per PR |
+
+### What was closed
+
+- **43 ancient** (#1, #2, #4–#42, #45, #46) — share no merge base with today's
+  `main` after the early-history rewrite; mechanically unmergeable.
+- **147 April–May cohort** (#124–#442 range) — 70 conflicting against
+  `main@f0b3749`, the rest adds-only trees whose intent landed in later form.
+- Includes the May-30 docs quartet #439–#442 and the stacked series
+  (`w2-pr17a` governance, `web-v2` sandbox, trust-primitives, provenance).
+
+### What was deliberately NOT closed
+
+The scope was pre-June only. These were excluded even though the 08-02
+disposition also sentenced some of them — they need their own decisions:
+
+`#506` (parked on env rollout + founder GO) · `#582` (superseded by #1031) ·
+`#748` (founder call vs ADR 0006) · `#844` (dependabot recreate) · `#852`
+(merge-ready) · `#986` (merge-ready) · `#1072` `#1079` `#1081` (parked drafts).
+
+### Safety checks performed before execution
+
+1. **Dependency hazard** — verified no PR outside Tier-S was based on a Tier-S
+   branch, so no active work was closed as collateral. (The only stacked
+   non-Tier-S PR, #1123, sits on #1113's branch.)
+2. **Live re-verification** — the open list was re-read immediately before
+   execution; PRs that had closed or merged since the 08-07 snapshot (#574,
+   #853, #891, #1066, #1101–#1109) were correctly absent.
+3. **Branch mapping** — all 194 mapped to 193 distinct remote branches
+   (#245/#246 share `feat/upload-cv`); no protected branch in the set.
+
+### ⚠ Branch deletion — BLOCKED, still outstanding
+
+**193 branches were NOT deleted.** `git push origin --delete` returns
+**HTTP 403** for this session's credential — confirmed categorical by testing
+it against an already-merged branch of my own, while branch *create/update*
+push succeeds. The GitHub MCP server exposes no delete-branch tool, and the
+raw REST token is gated (`GitHub access is not enabled for this session`).
+This is a permissions boundary, not a transient failure; it was not retried
+or routed around.
+
+Consequence: the closed PRs can be reopened, and the stale branches remain
+resurrectable by bulk update/re-run sweeps — the exact vector §7.5 of the
+disposition warns about. **Someone with branch-delete rights should delete the
+193 branches** listed by:
+
+```bash
+# branches whose only open PR was a Tier-S closure
+gh pr list --state closed --limit 300 --json number,headRefName \
+  --jq '.[] | select(.number < 500) | .headRefName' | sort -u
+```
+
+### Receipts
+
+Per-PR closure comments were **not** posted: at 194 PRs that is ~194 extra API
+calls, and the disposition documents already on `main` are the durable record.
+This ledger entry is the receipt of record, per §7.1 of the 08-07 disposition
+("the run recorded in `docs/ops/merge-ledger.md`"). Anyone landing on a closed
+Tier-S PR should read `docs/ops/open-pr-disposition-2026-08-07.md`.
+
+### Note on what this does and does not buy
+
+Closing stops `pull_request` gates from firing on these branches and restores
+signal about what actually awaits a human. It does **not** by itself fix
+day-to-day runner queue times — that is burst concurrency from parallel lanes,
+addressed by concurrency groups (§7.3). #1110 appears to be doing exactly that.

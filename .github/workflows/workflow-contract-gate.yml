@@ -1,6 +1,8 @@
 name: Workflow Contract Gate
 
-# Enforces one rule: a REQUIRED status check must never path-filter its
+# Enforces two rules about what workflow files may say.
+#
+# Rule 1: a REQUIRED status check must never path-filter its
 # `pull_request` trigger.
 #
 # A path-filtered workflow is skipped ENTIRELY on a PR touching none of its
@@ -16,6 +18,20 @@ name: Workflow Contract Gate
 # The rule is narrow on purpose: path-filtering is fine for non-required
 # workflows (eight currently do it to save CI minutes), and `paths:` under
 # `push:` is always fine because push filtering cannot affect a PR's checks.
+#
+# Rule 2: every pull_request-triggered workflow must declare a ref-keyed
+# concurrency group whose cancel-in-progress is guarded off main.
+#
+# Without it, superseded runs from earlier pushes are never cancelled; with 216
+# open PRs and ~12 gates firing per push they saturated the hosted runner pool
+# on 2026-08-06 and starved both prod monitors (Source Health Probe #2344,
+# Release verify #398 — 15 minutes at runner_id 0, then failed by the service),
+# making them report infrastructure failures as prod regressions. The guard
+# matters as much as the cancellation: a bare `cancel-in-progress: true` would
+# also cancel superseded push runs on main, losing check runs on intermediate
+# main SHAs. Deploys and prod monitors have no pull_request trigger and are
+# deliberately outside this rule — their singleton, never-cancel groups are
+# prod-safety decisions, not pool hygiene.
 
 on:
   # Not path-filtered — for the reason this gate exists. Filtering it to
@@ -24,6 +40,13 @@ on:
   # this file a live example of the bug it is meant to prevent.
   pull_request:
     branches: [main]
+
+# Cancel superseded runs on the same ref — never on main — so a stale push's
+# gate runs release their hosted runners instead of starving the pool.
+# Invariant enforced by scripts/check-workflow-concurrency.js.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 env:
   NODE_VERSION: '22'
@@ -39,3 +62,5 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
       - name: Required checks must not be path-filtered on pull_request
         run: node scripts/check-workflow-path-filters.js
+      - name: PR-triggered workflows must cancel superseded runs (never on main)
+        run: node scripts/check-workflow-concurrency.js
