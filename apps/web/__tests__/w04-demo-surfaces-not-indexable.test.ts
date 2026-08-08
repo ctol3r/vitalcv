@@ -50,7 +50,17 @@ describe('W0.4 — app/robots.ts is the file actually served', () => {
 });
 
 describe('W0.4 — robots.txt disallows demo and prototype trees', () => {
+  // These describe the CANONICAL PRODUCTION rules. Every other deployment
+  // serves a blanket `Disallow: /` instead (the review environment is a second
+  // copy of the public site and must not be crawled at all), so the
+  // environment is declared here rather than inherited from the runner. The
+  // blanket case is covered by __tests__/review-environment-noindex.test.ts.
+  const previous = process.env.RAILWAY_ENVIRONMENT;
+  process.env.RAILWAY_ENVIRONMENT = 'production';
   const rules = robots().rules;
+  if (previous === undefined) delete process.env.RAILWAY_ENVIRONMENT;
+  else process.env.RAILWAY_ENVIRONMENT = previous;
+
   const rule = Array.isArray(rules) ? rules[0] : rules;
   const disallow = Array.isArray(rule.disallow) ? rule.disallow : [rule.disallow];
 

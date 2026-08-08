@@ -96,12 +96,23 @@ describe('sitemap freshness is measured, not asserted', () => {
   });
 
   it('emits absolute vitalcv.com URLs with real Date objects', () => {
-    const entries = sitemap();
-    expect(entries).toHaveLength(SITEMAP_ROUTES.length);
-    for (const entry of entries) {
-      expect(entry.url.startsWith('https://vitalcv.com')).toBe(true);
-      expect(entry.lastModified).toBeInstanceOf(Date);
-      expect(Number.isNaN((entry.lastModified as Date).getTime())).toBe(false);
+    // The sitemap is served ONLY from canonical production — a review
+    // deployment returns nothing, so the environment has to be declared here
+    // rather than inherited from whatever the test runner happens to have set.
+    // See __tests__/review-environment-noindex.test.ts for the empty case.
+    const previous = process.env.RAILWAY_ENVIRONMENT;
+    process.env.RAILWAY_ENVIRONMENT = 'production';
+    try {
+      const entries = sitemap();
+      expect(entries).toHaveLength(SITEMAP_ROUTES.length);
+      for (const entry of entries) {
+        expect(entry.url.startsWith('https://vitalcv.com')).toBe(true);
+        expect(entry.lastModified).toBeInstanceOf(Date);
+        expect(Number.isNaN((entry.lastModified as Date).getTime())).toBe(false);
+      }
+    } finally {
+      if (previous === undefined) delete process.env.RAILWAY_ENVIRONMENT;
+      else process.env.RAILWAY_ENVIRONMENT = previous;
     }
   });
 

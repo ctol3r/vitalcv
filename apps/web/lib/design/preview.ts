@@ -20,6 +20,8 @@
  * from a local production build, where they are genuinely useful.
  */
 
+import { isCanonicalProduction } from '@/lib/deployment/canonicalProduction';
+
 export interface DesignPreviewEnvironment {
   NODE_ENV?: string;
   RAILWAY_ENVIRONMENT?: string;
@@ -30,15 +32,11 @@ export interface DesignPreviewEnvironment {
 export function isDesignPreviewAllowed(env: DesignPreviewEnvironment): boolean {
   if (env.NODE_ENV !== 'production') return true;
 
-  const isCanonicalProduction =
-    env.RAILWAY_ENVIRONMENT?.trim().toLowerCase() === 'production'
-    || env.VERCEL_ENV?.trim().toLowerCase() === 'production';
-
   // A local or preview production build still serves them, so `next start`
   // remains a usable way to check a reference. Canonical production never does,
   // and DESIGN_PREVIEW cannot override that — an escape hatch on the one
   // environment this exists to protect would defeat the gate.
-  if (isCanonicalProduction) return false;
+  if (isCanonicalProduction(env)) return false;
 
   return env.DESIGN_PREVIEW === '1';
 }

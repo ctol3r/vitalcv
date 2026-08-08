@@ -71,6 +71,29 @@ For any motion, sticky, scroll-controlled, sliding, expanding, masking, or inter
 
 A list of tests is not a substitute for screenshots and recordings.
 
+### A live review URL
+
+A public-facing visual PR must publish its branch to the **review environment**
+and put the URL in the PR before requesting the founder's decision:
+
+```bash
+gh workflow run deploy-review.yml -f ref=<branch> -f pr=<number>
+```
+
+Screenshots prove composition. They cannot prove that a control feels right
+under the cursor, that motion reads at real speed, or that the page is pleasant
+to use — and those are precisely what this gate exists to judge. The UX-V1
+cutover was reviewed from stills plus a reviewer's localhost because no review
+environment existed; that is no longer an acceptable answer.
+
+The review environment has no database and no Clerk secret, so **signed-in and
+write paths are expected to degrade there**. Say so in the PR rather than
+presenting a degraded surface as a defect or a finished state. Setup, cost, and
+the indexing refusals: `docs/deployment/review-environment.md`.
+
+Review proves the design. It does **not** replace the post-deploy production
+check at the exact merge SHA above — that stays mandatory.
+
 ## 4. Founder approval phrase
 
 A public-facing visual PR must remain a draft until the founder reviews the rendered evidence.

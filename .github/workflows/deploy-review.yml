@@ -1,0 +1,356 @@
+name: Deploy Review Environment
+
+# The pre-merge visual review surface (docs/deployment/review-environment.md).
+#
+# WHY THIS EXISTS. The founder visual gate (docs/ops/FOUNDER_VISUAL_GATE.md)
+# requires rendered evidence before a visual PR may merge, but until now the
+# only place to *interact* with a change was a reviewer's own laptop. The UX-V1
+# cutover shipped on screenshots plus a localhost server for exactly that
+# reason. This workflow gives a branch a real URL a human can click.
+#
+# WHAT IT IS NOT. It is not a second production. It has no database, so write
+# paths degrade rather than touching real records; it reads through to the
+# production API for public lookups only; it refuses indexing at three layers
+# (robots.txt, X-Robots-Tag, empty sitemap — see
+# lib/deployment/canonicalProduction.ts).
+#
+# SAFETY. The production environment ID is pinned and explicitly REFUSED as a
+# target, and the resolved review domain is asserted not to be vitalcv.com. A
+# workflow that can deploy anywhere is one typo away from being a production
+# deploy, and this one is invoked by hand with an arbitrary ref.
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 'Branch, tag, or SHA to publish to the review environment'
+        required: true
+        default: 'main'
+      pr:
+        description: 'PR number to comment the review URL on (optional)'
+        required: false
+
+concurrency:
+  group: deploy-review
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  pull-requests: write
+
+env:
+  RAILWAY_PROJECT_ID: 706ceff8-23ac-404c-a45b-449de5920848
+  RAILWAY_WEB_SERVICE_ID: f31e461b-d617-4e7e-8a40-796a640ffc0b
+  # Pinned so it can be REFUSED, never selected.
+  RAILWAY_PRODUCTION_ENVIRONMENT_ID: cd700720-5c9d-472b-bf68-4b3cc65191cd
+  RAILWAY_PRODUCTION_DOMAIN: vitalcv.com
+  REVIEW_ENVIRONMENT_NAME: review
+
+jobs:
+  deploy-review:
+    name: Publish ref to the review environment
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out the requested ref
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.ref }}
+
+      - name: Resolve the exact SHA
+        id: resolve
+        run: |
+          set -euo pipefail
+          SHA=$(git rev-parse HEAD)
+          echo "sha=${SHA}" >> "$GITHUB_OUTPUT"
+          echo "Publishing ${{ inputs.ref }} → ${SHA}"
+
+      - name: Resolve or create the review environment
+        id: environment
+        env:
+          RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN }}
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          if [ -n "${RAILWAY_API_TOKEN:-}" ]; then
+            AUTH="Authorization: Bearer ${RAILWAY_API_TOKEN}"
+          elif [ -n "${RAILWAY_TOKEN:-}" ]; then
+            AUTH="Project-Access-Token: ${RAILWAY_TOKEN}"
+          else
+            echo "::error::RAILWAY_API_TOKEN or RAILWAY_TOKEN is required."
+            exit 1
+          fi
+          echo "AUTH_HEADER=${AUTH}" >> "$GITHUB_ENV"
+
+          api() {
+            jq -n --arg query "$1" --argjson variables "$2" \
+              '{query: $query, variables: $variables}' > req.json
+            curl --fail-with-body --silent --show-error \
+              https://backboard.railway.com/graphql/v2 \
+              -H "${AUTH}" -H 'Content-Type: application/json' \
+              --data-binary @req.json
+          }
+
+          LIST='query Envs($projectId: String!) {
+            project(id: $projectId) {
+              environments { edges { node { id name } } }
+            }
+          }'
+          api "$LIST" "$(jq -n --arg projectId "$RAILWAY_PROJECT_ID" '{projectId: $projectId}')" > envs.json
+
+          if jq -e '.errors and (.errors|length > 0)' envs.json >/dev/null; then
+            jq '.errors' envs.json
+            echo "::error::Could not list Railway environments."
+            exit 1
+          fi
+
+          ENV_ID=$(jq -r --arg name "$REVIEW_ENVIRONMENT_NAME" \
+            '.data.project.environments.edges[]?.node | select(.name == $name) | .id' envs.json | head -1)
+
+          if [ -z "$ENV_ID" ]; then
+            echo "Review environment absent — creating it."
+            CREATE='mutation CreateEnv($input: EnvironmentCreateInput!) {
+              environmentCreate(input: $input) { id name }
+            }'
+            api "$CREATE" "$(jq -n \
+              --arg projectId "$RAILWAY_PROJECT_ID" \
+              --arg name "$REVIEW_ENVIRONMENT_NAME" \
+              '{input: {projectId: $projectId, name: $name}}')" > created.json
+            if jq -e '.errors and (.errors|length > 0)' created.json >/dev/null; then
+              jq '.errors' created.json
+              echo "::error::Could not create the review environment."
+              exit 1
+            fi
+            ENV_ID=$(jq -r '.data.environmentCreate.id' created.json)
+            echo "Created review environment ${ENV_ID}"
+          else
+            echo "Reusing review environment ${ENV_ID}"
+          fi
+
+          # The whole point of pinning the production ID: refuse it as a target.
+          if [ "$ENV_ID" = "$RAILWAY_PRODUCTION_ENVIRONMENT_ID" ]; then
+            echo "::error::Refusing to deploy: the resolved review environment IS production."
+            exit 1
+          fi
+
+          echo "environment_id=${ENV_ID}" >> "$GITHUB_OUTPUT"
+
+      - name: Set review-environment variables
+        env:
+          REVIEW_ENVIRONMENT_ID: ${{ steps.environment.outputs.environment_id }}
+          E2E_CLERK_PUBLISHABLE_KEY: ${{ secrets.E2E_CLERK_PUBLISHABLE_KEY }}
+        run: |
+          set -euo pipefail
+
+          # Deliberately NOT set:
+          #   DATABASE_URL — no database. Write paths (issuer requests, receipt
+          #     candidates) degrade instead of reaching production records.
+          #   CLERK_SECRET_KEY — signed-in surfaces are out of scope for a
+          #     visual review; the middleware already no-ops without it.
+          #
+          # RAILWAY_ENVIRONMENT is supplied by Railway itself as the environment
+          # NAME ("review"), which is exactly what isCanonicalProduction() reads
+          # to refuse indexing. Do not override it.
+          VARS=$(jq -n \
+            --arg pub "${E2E_CLERK_PUBLISHABLE_KEY:-}" \
+            '{
+              BACKEND_URL: "https://api.vitalcv.com",
+              NEXT_PUBLIC_API_BASE: "https://api.vitalcv.com",
+              NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: $pub
+            }')
+
+          MUTATION='mutation SetVars($input: VariableCollectionUpsertInput!) {
+            variableCollectionUpsert(input: $input)
+          }'
+          jq -n --arg query "$MUTATION" \
+            --arg projectId "$RAILWAY_PROJECT_ID" \
+            --arg environmentId "$REVIEW_ENVIRONMENT_ID" \
+            --arg serviceId "$RAILWAY_WEB_SERVICE_ID" \
+            --argjson variables "$VARS" \
+            '{query: $query, variables: {input: {
+              projectId: $projectId, environmentId: $environmentId,
+              serviceId: $serviceId, variables: $variables
+            }}}' > vars-request.json
+
+          curl --fail-with-body --silent --show-error \
+            https://backboard.railway.com/graphql/v2 \
+            -H "${AUTH_HEADER}" -H 'Content-Type: application/json' \
+            --data-binary @vars-request.json > vars.json
+
+          if jq -e '.errors and (.errors|length > 0)' vars.json >/dev/null; then
+            jq '.errors' vars.json
+            echo "::error::Could not set review-environment variables."
+            exit 1
+          fi
+          echo "Review variables applied (no DATABASE_URL, no CLERK_SECRET_KEY)."
+
+      - name: Resolve or create the review domain
+        id: domain
+        env:
+          REVIEW_ENVIRONMENT_ID: ${{ steps.environment.outputs.environment_id }}
+        run: |
+          set -euo pipefail
+
+          api() {
+            jq -n --arg query "$1" --argjson variables "$2" \
+              '{query: $query, variables: $variables}' > dreq.json
+            curl --fail-with-body --silent --show-error \
+              https://backboard.railway.com/graphql/v2 \
+              -H "${AUTH_HEADER}" -H 'Content-Type: application/json' \
+              --data-binary @dreq.json
+          }
+
+          LIST='query Domains($projectId: String!, $environmentId: String!, $serviceId: String!) {
+            domains(projectId: $projectId, environmentId: $environmentId, serviceId: $serviceId) {
+              serviceDomains { id domain }
+              customDomains { id domain }
+            }
+          }'
+          api "$LIST" "$(jq -n \
+            --arg projectId "$RAILWAY_PROJECT_ID" \
+            --arg environmentId "$REVIEW_ENVIRONMENT_ID" \
+            --arg serviceId "$RAILWAY_WEB_SERVICE_ID" \
+            '{projectId: $projectId, environmentId: $environmentId, serviceId: $serviceId}')" > domains.json
+
+          DOMAIN=$(jq -r '.data.domains.serviceDomains[0].domain // empty' domains.json)
+
+          if [ -z "$DOMAIN" ]; then
+            echo "No review domain yet — creating one."
+            CREATE='mutation CreateDomain($input: ServiceDomainCreateInput!) {
+              serviceDomainCreate(input: $input) { id domain }
+            }'
+            api "$CREATE" "$(jq -n \
+              --arg environmentId "$REVIEW_ENVIRONMENT_ID" \
+              --arg serviceId "$RAILWAY_WEB_SERVICE_ID" \
+              '{input: {environmentId: $environmentId, serviceId: $serviceId}}')" > domain-created.json
+            if jq -e '.errors and (.errors|length > 0)' domain-created.json >/dev/null; then
+              jq '.errors' domain-created.json
+              echo "::error::Could not create a review service domain."
+              exit 1
+            fi
+            DOMAIN=$(jq -r '.data.serviceDomainCreate.domain' domain-created.json)
+          fi
+
+          # Second refusal: even a correct environment ID must not resolve to
+          # the production hostname.
+          if [ "$DOMAIN" = "$RAILWAY_PRODUCTION_DOMAIN" ]; then
+            echo "::error::Refusing to continue: the review domain resolved to production."
+            exit 1
+          fi
+
+          echo "domain=${DOMAIN}" >> "$GITHUB_OUTPUT"
+          echo "Review URL: https://${DOMAIN}"
+
+      - name: Deploy the exact SHA to the review environment
+        env:
+          REVIEW_ENVIRONMENT_ID: ${{ steps.environment.outputs.environment_id }}
+          TARGET_SHA: ${{ steps.resolve.outputs.sha }}
+        run: |
+          set -euo pipefail
+
+          MUTATION='mutation DeployReview($serviceId: String!, $environmentId: String!, $commitSha: String!) {
+            serviceInstanceDeployV2(serviceId: $serviceId, environmentId: $environmentId, commitSha: $commitSha)
+          }'
+          jq -n --arg query "$MUTATION" \
+            --arg serviceId "$RAILWAY_WEB_SERVICE_ID" \
+            --arg environmentId "$REVIEW_ENVIRONMENT_ID" \
+            --arg commitSha "$TARGET_SHA" \
+            '{query: $query, variables: {serviceId: $serviceId, environmentId: $environmentId, commitSha: $commitSha}}' \
+            > deploy-request.json
+
+          curl --fail-with-body --silent --show-error \
+            https://backboard.railway.com/graphql/v2 \
+            -H "${AUTH_HEADER}" -H 'Content-Type: application/json' \
+            --data-binary @deploy-request.json > deploy.json
+
+          if jq -e '.errors and (.errors|length > 0)' deploy.json >/dev/null; then
+            jq '.errors' deploy.json
+            echo "::error::Railway rejected the review deployment."
+            exit 1
+          fi
+          echo "Review deployment requested for ${TARGET_SHA}"
+
+      - name: Verify the review URL serves that exact SHA
+        id: verify
+        env:
+          REVIEW_DOMAIN: ${{ steps.domain.outputs.domain }}
+          TARGET_SHA: ${{ steps.resolve.outputs.sha }}
+        run: |
+          set -euo pipefail
+          BASE="https://${REVIEW_DOMAIN}"
+
+          # The same discipline as the production deploy: assert the SHA the
+          # site REPORTS, never a 200. A healthy old container answers 200 all
+          # day while serving the previous build.
+          for attempt in $(seq 1 60); do
+            SERVED=$(curl -s --max-time 15 -H 'Cache-Control: no-cache' \
+              "${BASE}/api/version" 2>/dev/null \
+              | jq -r '.commit // empty' 2>/dev/null || true)
+            if [ "$SERVED" = "$TARGET_SHA" ]; then
+              echo "Review environment is serving ${TARGET_SHA}"
+              echo "verified=true" >> "$GITHUB_OUTPUT"
+              break
+            fi
+            echo "attempt ${attempt}: serving '${SERVED:-nothing}', want ${TARGET_SHA}"
+            sleep 20
+          done
+
+          if [ "${SERVED:-}" != "$TARGET_SHA" ]; then
+            echo "::error::Review environment never reported ${TARGET_SHA}."
+            exit 1
+          fi
+
+          # The review copy must never be indexable. Asserted here rather than
+          # trusted, because this is the one deployment where getting it wrong
+          # puts a duplicate of the marketing site into search results.
+          ROBOTS=$(curl -s --max-time 15 "${BASE}/robots.txt")
+          echo "$ROBOTS" | grep -qi 'Disallow: /' || {
+            echo "::error::Review robots.txt does not disallow crawling:"; echo "$ROBOTS"; exit 1;
+          }
+          curl -sI --max-time 15 "${BASE}/" | grep -qi 'x-robots-tag: *noindex' || {
+            echo "::error::Review environment is missing the X-Robots-Tag noindex header."; exit 1;
+          }
+          echo "Indexing refused: robots.txt disallow + X-Robots-Tag noindex confirmed."
+
+      - name: Comment the review URL on the PR
+        if: ${{ inputs.pr != '' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REVIEW_DOMAIN: ${{ steps.domain.outputs.domain }}
+          TARGET_SHA: ${{ steps.resolve.outputs.sha }}
+        run: |
+          set -euo pipefail
+          gh pr comment "${{ inputs.pr }}" --body "$(cat <<EOF
+          **Review environment updated**
+
+          | | |
+          |---|---|
+          | URL | https://${REVIEW_DOMAIN} |
+          | Serving | \`${TARGET_SHA}\` (verified from \`/api/version\`) |
+          | Ref | \`${{ inputs.ref }}\` |
+
+          No database and no Clerk secret: public surfaces and the real NPI
+          lookup work, signed-in and write paths degrade. Indexing is refused
+          (\`robots.txt\` disallow + \`X-Robots-Tag: noindex\`).
+
+          This environment is shared and always reflects the **last ref pushed
+          to it** — re-run *Deploy Review Environment* to claim it.
+          EOF
+          )"
+
+      - name: Summary
+        if: always()
+        env:
+          REVIEW_DOMAIN: ${{ steps.domain.outputs.domain }}
+          TARGET_SHA: ${{ steps.resolve.outputs.sha }}
+        run: |
+          {
+            echo "## Review environment"
+            echo ""
+            echo "- URL: https://${REVIEW_DOMAIN:-(not resolved)}"
+            echo "- Ref: \`${{ inputs.ref }}\`"
+            echo "- SHA: \`${TARGET_SHA:-(not resolved)}\`"
+            echo "- Verified serving that SHA: ${{ steps.verify.outputs.verified || 'no' }}"
+          } >> "$GITHUB_STEP_SUMMARY"

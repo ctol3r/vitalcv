@@ -3,6 +3,8 @@
  * preview boundary: open in local dev, explicit opt-in for production-mode
  * test builds, always denied on canonical production.
  */
+import { isCanonicalProduction } from '@/lib/deployment/canonicalProduction';
+
 export interface CareerGardenPreviewEnvironment {
   NODE_ENV?: string;
   CAREER_GARDEN_PREVIEW?: string;
@@ -13,9 +15,5 @@ export interface CareerGardenPreviewEnvironment {
 export function isCareerGardenPreviewAllowed(env: CareerGardenPreviewEnvironment): boolean {
   if (env.NODE_ENV !== 'production') return true;
 
-  const isCanonicalProduction =
-    env.RAILWAY_ENVIRONMENT?.trim().toLowerCase() === 'production'
-    || env.VERCEL_ENV?.trim().toLowerCase() === 'production';
-
-  return env.CAREER_GARDEN_PREVIEW === '1' && !isCanonicalProduction;
+  return env.CAREER_GARDEN_PREVIEW === '1' && !isCanonicalProduction(env);
 }
