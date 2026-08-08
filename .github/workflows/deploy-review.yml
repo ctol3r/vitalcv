@@ -156,13 +156,17 @@ jobs:
                 echo "::notice::Railway reports the environment already exists — re-resolving."
                 ENV_ID=$(resolve_env_id || true)
                 if [ -z "$ENV_ID" ]; then
-                  echo "::error::'${REVIEW_ENVIRONMENT_NAME}' exists in Railway but is not visible to this token."
+                  echo "::error::'${REVIEW_ENVIRONMENT_NAME}' exists in Railway but is invisible to this token."
                   echo "::notice::Railway refused to create it because the name is taken, yet it does"
-                  echo "::notice::not appear in the environment list above. That combination means the"
-                  echo "::notice::credential can see the project but not this environment."
-                  echo "::notice::Add a RAILWAY_API_TOKEN repository secret (Railway → Account"
-                  echo "::notice::Settings → Tokens) — the workflow prefers it when present — or"
-                  echo "::notice::confirm the environment is named exactly '${REVIEW_ENVIRONMENT_NAME}'."
+                  echo "::notice::not appear in the environment list above. That combination is"
+                  echo "::notice::conclusive: RAILWAY_TOKEN is a PROJECT token, and Railway project"
+                  echo "::notice::tokens are scoped to ONE environment (here, production)."
+                  echo "::notice::Creating the environment by hand does NOT fix this — a token that"
+                  echo "::notice::cannot see '${REVIEW_ENVIRONMENT_NAME}' also cannot set its"
+                  echo "::notice::variables, create its domain, or deploy to it."
+                  echo "::notice::REQUIRED: add a RAILWAY_API_TOKEN repository secret (Railway →"
+                  echo "::notice::Account Settings → Tokens). This workflow prefers it when present."
+                  echo "::notice::See docs/deployment/review-environment.md."
                   exit 1
                 fi
                 echo "Resolved existing review environment ${ENV_ID}"
