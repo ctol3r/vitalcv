@@ -109,9 +109,14 @@ test.describe('eyebrow — desktop', () => {
     for (const label of ['Clinicians', 'Employers', 'Trust']) {
       await expect(menu.getByText(label, { exact: true })).toBeVisible();
     }
-    for (const href of ['/onboarding', '/opportunities/discover', '/employers', '/pricing', '/trust', '/status', '/trust/attribution', '/evidence-network']) {
+    // W1079 swapped the clinician group's jobs destination from
+    // /opportunities/discover — a redirect alias into the CLINICIAN-protected
+    // /holder tree, which walled every signed-out visitor at sign-in — to
+    // /explore, the public board written for exactly that reader.
+    for (const href of ['/onboarding', '/explore', '/employers', '/pricing', '/trust', '/status', '/trust/attribution', '/evidence-network']) {
       await expect(menu.locator(`a[href="${href}"]`)).toHaveCount(1);
     }
+    await expect(menu.locator('a[href="/opportunities/discover"]')).toHaveCount(0);
   });
 
   test('narrates the work surface, then settles back to the static label', async ({ page }) => {
@@ -138,6 +143,22 @@ test.describe('eyebrow — off-homepage register', () => {
     const count = await navlinks.count();
     expect(count).toBeGreaterThan(0);
     expect(count).toBeLessThanOrEqual(3);
+
+    // W1079: clinician-first order, and Trust is no longer a bar destination —
+    // it moved to the footer. Asserted here because the bar is the one nav
+    // surface a visitor sees without opening anything.
+    await expect(navlinks).toHaveText(['Jobs', 'For employers', 'How it works']);
+    await expect(eyebrow(page).locator('a[href="/trust"]')).toHaveCount(0);
+    await expect(page.locator('footer nav a[href="/trust"]')).toHaveCount(1);
+    await expect(page.locator('footer nav a[href="/status"]')).toHaveCount(1);
+
+    // The separation is a real flex gap. A literal space in the JSX measured
+    // ~4px at 11px uppercase mono with 0.12em tracking — the same as the gap
+    // between two letters — so the bar read as one run.
+    const gap = await eyebrow(page)
+      .locator('.vcv-eb__center-nav')
+      .evaluate((el) => parseFloat(getComputedStyle(el).columnGap));
+    expect(gap).toBeGreaterThanOrEqual(16);
   });
 
   test('suppresses the dominant action on its own destination', async ({ page }) => {

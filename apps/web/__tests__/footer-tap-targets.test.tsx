@@ -27,7 +27,18 @@ describe('global footer — tap targets meet WCAG 2.5.8', () => {
   it('declares one shared link class rather than per-link literals', () => {
     // Divergent copies are how the 24px floor gets lost on a single link.
     expect(FOOTER).toContain('const FOOTER_LINK_CLASS');
-    expect(FOOTER.match(/className=\{FOOTER_LINK_CLASS\}/g)?.length ?? 0).toBeGreaterThanOrEqual(2);
+
+    // Every <Link> in the footer must carry the shared class. This was a
+    // "there are at least 2 uses" count, which read the old shape — a mapped
+    // list plus a hand-written Contact link — as the invariant. W1079 folded
+    // Contact into FOOTER_NAV, leaving one render site, which satisfies the
+    // intent (no divergent copies) strictly better than two did. Comparing the
+    // two counts says what the guard actually means and holds at any number of
+    // render sites.
+    const links = FOOTER.match(/<Link\b/g)?.length ?? 0;
+    const styled = FOOTER.match(/className=\{FOOTER_LINK_CLASS\}/g)?.length ?? 0;
+    expect(links).toBeGreaterThan(0);
+    expect(styled, 'every footer <Link> must use FOOTER_LINK_CLASS').toBe(links);
   });
 
   it('that class guarantees a >= 24px hit area', () => {
@@ -39,6 +50,12 @@ describe('global footer — tap targets meet WCAG 2.5.8', () => {
     expect(cls).toMatch(/min-h-\[24px\]|min-h-6/);
     expect(cls).toMatch(/inline-flex|flex/);
     expect(cls).toContain('items-center');
+
+    // 2.5.8 is a floor on BOTH dimensions. Only the height was guarded here,
+    // and "DPA" sat at 23px wide on production the whole time — a short label
+    // is all it takes. Measured at 390×844.
+    expect(cls, 'width floor: a short label like "DPA" falls under 24px without it')
+      .toMatch(/min-w-\[24px\]|min-w-6/);
   });
 
   it('no footer link carries a bare text-xs class without the hit-area wrapper', () => {

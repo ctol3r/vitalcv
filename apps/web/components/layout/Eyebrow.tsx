@@ -25,7 +25,7 @@ import { usePathname } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { getHeaderRouteContext } from '@/components/layout/headerRouteContext';
-import { NAV_GROUPS } from '@/components/layout/navDestinations';
+import { NAV_GROUPS, PRIMARY_NAV } from '@/components/layout/navDestinations';
 import { isPublicSurfacePath } from '@/components/layout/publicSurfaceRoutes';
 import { useHeaderScene } from '@/components/layout/useHeaderScene';
 
@@ -145,16 +145,21 @@ export default function Eyebrow() {
               {ticker}
             </span>
           ) : (
+            /*
+             * W1079 — clinician-first order, from the shared PRIMARY_NAV, and
+             * Trust is no longer a top-level bar destination. A clinician's
+             * next actions are the profile (the CTA to the right) and the roles
+             * it unlocks; Trust answers a question they have not asked yet. It
+             * keeps a full group in the index menu and a direct link in the
+             * footer, which is the "compact path" the wave asks for — moved,
+             * not demoted.
+             */
             <nav aria-label="Primary" className="vcv-eb__center-nav">
-              <Link className="vcv-eb__navlink" href="/#how-it-works">
-                How it works
-              </Link>{' '}
-              <Link className="vcv-eb__navlink" href="/employers">
-                For employers
-              </Link>{' '}
-              <Link className="vcv-eb__navlink" href="/trust">
-                Trust
-              </Link>
+              {PRIMARY_NAV.map((link) => (
+                <Link key={link.href} className="vcv-eb__navlink" href={link.href}>
+                  {link.label}
+                </Link>
+              ))}
             </nav>
           )}
         </div>
