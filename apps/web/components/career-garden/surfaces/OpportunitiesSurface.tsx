@@ -162,7 +162,7 @@ export function OpportunitiesSurface({
                       </p>
                       <p className="mz-small mt-0.5">{item.note}</p>
                     </div>
-                    <StateChip state={item.state} size="sm" />
+                    <StateChip state={item.state} attribution="legend" size="sm" />
                   </li>
                 ),
               )}

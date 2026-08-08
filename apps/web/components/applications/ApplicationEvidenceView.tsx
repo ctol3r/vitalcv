@@ -19,6 +19,20 @@ function displayState(state: ApplicationEvidenceField['evidenceState']): Evidenc
   return state === 'employer_decided' ? 'employer_decision' : state;
 }
 
+/**
+ * W1082: every field names its source (sourceId) and observation time, so the
+ * chip's attribution comes straight from the field. A null observation stays
+ * null — announced "as-of not recorded" — matching the visible "Not recorded"
+ * this view already prints.
+ */
+function fieldAttribution(field: ApplicationEvidenceField) {
+  return {
+    source: field.sourceId,
+    asOf: field.sourceObservedAt ? formatDate(field.sourceObservedAt) : null,
+    asOfISO: field.sourceObservedAt ?? undefined,
+  };
+}
+
 const CHANGE_LABEL: Record<ApplicationEvidenceChangeKind, string> = {
   unchanged: 'Unchanged',
   added_after_submission: 'Added after submission',
@@ -43,7 +57,7 @@ function FieldList({ fields, empty }: { fields: ApplicationEvidenceField[]; empt
               {field.freshUntil ? ` · fresh through ${formatDate(field.freshUntil)}` : ''}
             </p>
           </div>
-          <StateChip state={displayState(field.evidenceState)} size="sm" />
+          <StateChip state={displayState(field.evidenceState)} attribution={fieldAttribution(field)} size="sm" />
         </div>
       ))}
     </div>
@@ -134,12 +148,12 @@ export function ApplicationEvidenceView({ result }: { result: ApplicationEvidenc
                     <div>
                       <dt className="font-semibold text-muted-foreground">Submitted</dt>
                       <dd className="mt-1 break-words text-foreground">{change.submitted?.value ?? 'Not present'}</dd>
-                      {change.submitted ? <StateChip state={displayState(change.submitted.evidenceState)} size="sm" className="mt-2" /> : null}
+                      {change.submitted ? <StateChip state={displayState(change.submitted.evidenceState)} attribution={fieldAttribution(change.submitted)} size="sm" className="mt-2" /> : null}
                     </div>
                     <div>
                       <dt className="font-semibold text-muted-foreground">Current</dt>
                       <dd className="mt-1 break-words text-foreground">{change.current?.value ?? 'Not present'}</dd>
-                      {change.current ? <StateChip state={displayState(change.current.evidenceState)} size="sm" className="mt-2" /> : null}
+                      {change.current ? <StateChip state={displayState(change.current.evidenceState)} attribution={fieldAttribution(change.current)} size="sm" className="mt-2" /> : null}
                     </div>
                   </dl>
                 </li>

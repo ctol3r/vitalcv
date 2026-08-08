@@ -74,7 +74,7 @@ export function ResearchSurface({ selectedId, mount }: { selectedId?: string; mo
           <h2 id="research-candidates" className="mz-h2">
             Publication candidates
           </h2>
-          <StateChip state="needs_review" size="sm" />
+          <StateChip state="needs_review" attribution="legend" size="sm" />
         </div>
         <p className="mz-body mt-2" style={{ color: 'var(--ink-600)' }}>
           Matched by author name from your saved Scholar link. A name match is a candidate for your review —
