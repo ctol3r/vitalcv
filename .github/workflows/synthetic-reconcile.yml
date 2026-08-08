@@ -100,7 +100,7 @@ jobs:
           #
           # It happened exactly once and cost the whole point of the job: run
           # 31233274419 could not see CLERK_SECRET_KEY (it is an environment
-          # secret and the job had not declared `environment: production`), so
+          # secret and the job had not declared `environment: Production`), so
           # it skipped Reconcile and reported success having never contacted
           # Clerk. A sweep that cannot see the key is indistinguishable, from
           # the outside, from a sweep that found nothing to reap.
@@ -120,12 +120,12 @@ jobs:
             } >> "$GITHUB_STEP_SUMMARY"
           else
             echo "wired=false" >> "$GITHUB_OUTPUT"
-            echo "::error::CLERK_SECRET_KEY is not visible to this job — the sweep did NOT run. Check that the secret exists on the 'production' environment and that this job still declares 'environment: production'. If unwired is intended, set the repository variable MONITORS_UNWIRED_OK=true."
+            echo "::error::CLERK_SECRET_KEY is not visible to this job — the sweep did NOT run. Check that this job still declares 'environment: Production' (CAPITAL P — an unknown environment name is silently created, not rejected) and that the secret still exists on that environment. If unwired is intended, set the repository variable MONITORS_UNWIRED_OK=true."
             {
               echo "## Synthetic reconciliation: MISCONFIGURED"
               echo ""
               echo "- \`CLERK_SECRET_KEY\` is not visible to this job, so **nothing was reconciled**."
-              echo "- Most likely cause: the job lost its \`environment: production\` declaration, or the secret was removed/renamed."
+              echo "- Most likely cause: the job lost its \`environment: Production\` declaration (or had its case changed — an unknown environment name is silently created, not rejected), or the secret was removed/renamed."
               echo "- This is deliberately RED. It is not evidence that there was nothing to reap."
             } >> "$GITHUB_STEP_SUMMARY"
             exit 1
