@@ -2,28 +2,40 @@
 // Rules:
 //   - Do NOT add ops/intelligence routes here (/mission-ops, /intelligence, /graph, etc.)
 //   - Do NOT add auth-gated routes here (/holder, /verifier, etc.)
+//   - Every entry must resolve to a page module under apps/web/app, OR carry a
+//     `pending:` comment naming the PR/wave that lands it. See below.
 // See docs/VCV_UI_DOCTRINE.md §2 for classification rules.
+//
+// PENDING ENTRIES — this file used to describe "listing a not-yet-existing
+// path" as an established pattern with no expiry attached. That licence is
+// what let nine dead paths accumulate: /developers, /documents, /mobile,
+// /ask, /investors, /partners, /updates, /compliance and /clip, every one
+// measured 404 against https://vitalcv.com on 2026-08-08, and all but
+// /mobile still sitting retired under app/_archive/wave119. Registering a
+// path before its page lands is still legitimate — the chrome covers the
+// route the moment it ships — but it is now a claim with a name on it:
+//
+//   // pending: <what lands it> (PR #1234)   ← or (wave W1079)
+//   '/some-route',
+//
+// public-surface-registry.test.ts fails on any entry that has neither a page
+// module nor that marker, so an unlanded promise expires loudly instead of
+// silently becoming debris.
 export const PUBLIC_SURFACE_PATHS = new Set([
   '/',
-  '/developers',
-  '/documents',
-  '/mobile',
   '/explore',
-  '/employers',
-  '/search',
-  '/ask',
   '/get-ready',
   '/onboarding',
-  '/investors',
-  '/partners',
-  '/updates',
   '/pilot',
   '/status',
-  '/compliance',
   '/privacy',
   '/terms',
   '/contact',
-  '/trust',
+  // NOTE — '/employers', '/trust' and '/search' were listed here AND in
+  // PREFIX_MATCHERS. The prefix form is a strict superset (it matches the
+  // bare path and its children), so the exact entries were dead weight: two
+  // places to edit, one of them not the real chrome decision. Dropped
+  // 2026-08-08; the prefix entries below are unchanged and still cover them.
   // 2026-08-07 headerless-routes sweep (gap-analysis §8.4). /pricing was
   // indexable sitemap marketing (priority 0.6) rendering with no nav and no
   // footer; /concierge is a sellable offer page nothing linked to. Both are
@@ -35,11 +47,12 @@ export const PUBLIC_SURFACE_PATHS = new Set([
   // header dropped the visitor into a chrome-less page. Fixed by the
   // 2026-08-06 shared-header wave.
   '/evidence-network',
-  // The clinician activation surface arriving with PR #1081. Listing a
-  // not-yet-existing path is this file's established pattern (see
-  // /developers, /investors above); the header covers the route the moment
-  // the page lands.
-  '/profile/activate',
+  // NOTE — /profile/activate (the clinician activation surface named for PR
+  // #1081) was listed here as an exact entry AND covered by the /profile
+  // prefix below. The prefix is a strict superset, so the exact entry changed
+  // nothing; it is dropped to keep one chrome decision per route. The page is
+  // still unlanded and still chromed the moment it ships — see the /profile
+  // note in PREFIX_MATCHERS, which is now the single place that fact lives.
   // The Z1 homepage story preview. It must be judged WITH the real global
   // Navbar — the nav shell is part of the composition — so this one route is
   // exempt from the /design self-chrome rule below, mirroring how
@@ -110,7 +123,17 @@ export function isOpsSurfacePath(pathname: string | null): boolean {
   );
 }
 
-const PREFIX_MATCHERS = [
+// Prefix matchers: chrome the prefix itself and everything under it. A prefix
+// earns its place by having at least one routable page in its subtree — that
+// is what the registry test asserts. Note this is deliberately weaker than the
+// exact-path rule above: a bare `/career-map` 404s because the namespace is
+// parameterized (/career-map/[entityId]) with no index page, and that is
+// correct, not drift.
+//
+// Removed 2026-08-08 (Wave 1080 registry hygiene): '/compliance' and '/clip'
+// matched no directory under app/ at all — both retired to
+// app/_archive/wave119 — and a duplicate '/review' was listed twice.
+export const PREFIX_MATCHERS = [
   '/demo',
   '/sign-in',
   '/sign-up',
@@ -118,11 +141,8 @@ const PREFIX_MATCHERS = [
   '/employers',
   '/opportunities',
   '/docs',
-  '/compliance',
   '/p',
-  '/review',
   '/verify',
-  '/clip',
   '/trust',
   '/legal',
   '/matcha',
@@ -131,9 +151,13 @@ const PREFIX_MATCHERS = [
   // 2026-08-07 headerless-routes sweep. Parameterized public-record surfaces:
   // /directory/[npi] is the indexable NPPES registry page (JSON-LD + canonical
   // — a search visitor landed with no way into the site), /profile/[npi] is
-  // the career profile a clinician deliberately shares (also covers the
-  // exact-listed /profile/activate), /investigate/[npi] is the public
-  // diligence surface the survivability registry declares public.
+  // the career profile a clinician deliberately shares, /investigate/[npi] is
+  // the public diligence surface the survivability registry declares public.
+  //
+  // pending: /profile also carries /profile/activate, the clinician
+  // activation surface that lands with (PR #1081). The page does not exist
+  // yet — this prefix is the one place that promise is recorded, and it is
+  // load-bearing for ReadinessCard's activation CTA.
   '/directory',
   '/profile',
   '/investigate',
