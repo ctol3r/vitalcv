@@ -17,6 +17,15 @@ export interface AuthHealthInputs {
   runtimePublishableKey: boolean;
   /** Secret key present in the runtime environment (server-only, never inlined). */
   runtimeSecretKey: boolean;
+  /**
+   * ROLE_COOKIE_SECRET present — the INDEPENDENT role-cookie signing secret.
+   *
+   * Reported, never gated on. Its absence is not an outage: `roleCookie.ts`
+   * falls back to `CLERK_SECRET_KEY` and cookies sign correctly. It is a
+   * latent ROTATION hazard, and 503-ing on it would take production down for
+   * a condition production is currently surviving.
+   */
+  runtimeRoleCookieSecret: boolean;
   /** Clerk is expected: production deployments (Railway) must have auth. */
   authExpected: boolean;
 }
@@ -35,11 +44,42 @@ export interface AuthHealthReport {
   buildTimeClerk: boolean;
   runtimePublishableKey: boolean;
   runtimeSecretKey: boolean;
+  runtimeRoleCookieSecret: boolean;
+  /**
+   * True when `roleCookie.ts` is signing with `CLERK_SECRET_KEY` through its
+   * fallback — i.e. `ROLE_COOKIE_SECRET` is unset and the Clerk key is present.
+   *
+   * This is the single fact the rotation runbook's Step 0 needs and could not
+   * previously obtain: while true, rotating `CLERK_SECRET_KEY` invalidates
+   * EVERY outstanding role cookie at once, and signed-in users lose their
+   * resolved role until it re-mints. Nothing in the Clerk dashboard hints at
+   * it, which is exactly why it needs reporting here.
+   *
+   * Deliberately does not affect `status` — see `runtimeRoleCookieSecret`.
+   */
+  roleCookieSignedWithClerkKey: boolean;
 }
 
 export function evaluateAuthHealth(inputs: AuthHealthInputs): AuthHealthReport {
-  const { buildTimeClerk, runtimePublishableKey, runtimeSecretKey, authExpected } = inputs;
-  const base = { authExpected, buildTimeClerk, runtimePublishableKey, runtimeSecretKey };
+  const {
+    buildTimeClerk,
+    runtimePublishableKey,
+    runtimeSecretKey,
+    runtimeRoleCookieSecret,
+    authExpected,
+  } = inputs;
+  const base = {
+    authExpected,
+    buildTimeClerk,
+    runtimePublishableKey,
+    runtimeSecretKey,
+    runtimeRoleCookieSecret,
+    // Mirrors getSecret() in roleCookie.ts: ROLE_COOKIE_SECRET wins, else the
+    // Clerk key, else ''. The fallback is only actually load-bearing when the
+    // override is absent AND the Clerk key is present; with neither set,
+    // signing is broken for a different reason and this flag would mislead.
+    roleCookieSignedWithClerkKey: !runtimeRoleCookieSecret && runtimeSecretKey,
+  };
 
   if (!authExpected) {
     // Local/preview builds run without Clerk on purpose (e2e clears the keys).

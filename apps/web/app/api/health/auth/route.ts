@@ -31,6 +31,12 @@ export async function GET() {
     buildTimeClerk: CLERK_ENABLED,
     runtimePublishableKey: runtimeHas('NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY'),
     runtimeSecretKey: runtimeHas('CLERK_SECRET_KEY'),
+    // Rotation prerequisite, not a health gate. roleCookie.ts falls back to
+    // CLERK_SECRET_KEY when this is unset, so rotating the Clerk key would
+    // invalidate every outstanding role cookie. The rotation runbook told
+    // operators to check this endpoint for exactly this fact, which it did
+    // not report until now — a healthy response read as "override is set".
+    runtimeRoleCookieSecret: runtimeHas('ROLE_COOKIE_SECRET'),
     // Railway containers always carry RAILWAY_PROJECT_ID; production must
     // never run authless. Local prod builds (e2e) run without it — reported
     // honestly as auth_disabled, HTTP 200.
@@ -46,6 +52,8 @@ export async function GET() {
       buildTimeClerk: report.buildTimeClerk,
       runtimePublishableKey: report.runtimePublishableKey,
       runtimeSecretKey: report.runtimeSecretKey,
+      runtimeRoleCookieSecret: report.runtimeRoleCookieSecret,
+      roleCookieSignedWithClerkKey: report.roleCookieSignedWithClerkKey,
     },
     {
       status: report.httpStatus,

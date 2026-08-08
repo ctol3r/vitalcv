@@ -47,11 +47,27 @@ to miss because nothing in the Clerk dashboard hints at it.
 Check whether the override is set before doing anything else:
 
 ```bash
-curl -s https://vitalcv.com/api/health/auth | jq
+curl -s https://vitalcv.com/api/health/auth | jq '{runtimeRoleCookieSecret, roleCookieSignedWithClerkKey}'
 ```
 
-…or read the web service env in Railway. If `ROLE_COOKIE_SECRET` is absent, do
-step 0.
+```json
+{ "runtimeRoleCookieSecret": false, "roleCookieSignedWithClerkKey": true }
+```
+
+**`roleCookieSignedWithClerkKey: true` means step 0 applies** — the fallback is
+live and rotating the Clerk key will log every signed-in user out of their
+resolved role. `false` means cookie signing is already independent and the
+rotation cannot touch it.
+
+> **This check did not work before 2026-08-08.** The runbook has always pointed
+> here, but `/api/health/auth` reported only the Clerk publishable and secret
+> keys — it had no role-cookie field at all. A healthy response therefore read
+> as "the override is set" when the endpoint had never looked. If you are on an
+> older deployment and the two fields above are absent from the JSON, do not
+> infer anything from their absence; read the web service env in Railway
+> instead.
+
+The endpoint reports presence booleans only, never key material.
 
 ## Step 0 — decouple cookie signing (only if `ROLE_COOKIE_SECRET` is unset)
 
