@@ -1,6 +1,6 @@
 # VitalCV Experience Constitution
 
-**Status:** DRAFT R2 — restructured 2026-08-08 per founder UX-00 ruling (three-class layering). Awaiting FOUNDER UX-00 REVISION REVIEW. Phase 0 (EC-0) is founder-approved.
+**Status:** CANONICAL — founder GO on the R2 layering, 2026-08-08. Phase 0 approved; EC-20 back-filled from the final UX-01 verdict (Direction B with amendments) per the ruling's execution step 3.
 **Drafted:** 2026-08-08 (R1) · revised same day (R2)
 **Successor-of-record to:** `VITALCV_CREATIVE_DIRECTION.md` (CD-1…CD-20), amended per CD-19 with a dated pointer forward — never a silent fork. CD remains a valid execution record; where the two documents disagree, this one wins.
 **Companion:** `VITALCV_EXPERIENCE_OVERHAUL_PROGRAM_2026-08-08.md` (execution plan) · `PARKED_VISUAL_ERAS.md` (freeze record).
@@ -171,32 +171,32 @@ Strong defaults. A surface that departs from them is a **design-review finding r
 
 The **structure** is locked now. The **values** are filled from the UX-01 verdict (`design-lab/homepage-reset/DECISION.md`) and locked thereafter. A wave that ships before back-fill inherits nothing visually — it waits.
 
-**Verdict status: FINAL 2026-08-08 — Direction B GO, with amendments** (see EC-24 and DECISION.md). Back-fill happens **only after this R2 layering is founder-accepted** (the ruling's execution step 3) and must honor the amendments: B's thesis is the brand (the product demonstration), the prototype is reference not implementation canon; dark-first warm-graphite is a **public register, not a mandate**; evidence artifacts stay **printable/light by default**; no 14–18s blocking hero — motion communicates the Easy Button quickly; the eyebrow gets its own UX-03 implementation and founder visual gate.
+**Verdict status: FINAL 2026-08-08 — Direction B GO, with amendments** (see EC-24 and DECISION.md). **Back-filled 2026-08-08 on founder GO** (R2 layering accepted). The amendments govern every value below: B's thesis is the brand (the product demonstration), the prototype is reference not implementation canon; dark-first warm-graphite is a **public register, not a mandate**; evidence artifacts stay **printable/light by default**; no 14–18s blocking hero — motion communicates the Easy Button quickly; the eyebrow gets its own UX-03 implementation and founder visual gate.
 
 | Decision | Value | Status |
 |---|---|---|
-| Typography — display / body / mono faces | TBD (A: Instrument Sans + IBM Plex Mono · B: Geist + Geist Mono · C: Archivo expanded + IBM Plex Mono) | AWAITING VERDICT |
-| Type scale | TBD | AWAITING VERDICT |
-| Grid + page width | TBD | AWAITING VERDICT |
-| Eyebrow exact geometry (within EC-10's form) | TBD | AWAITING VERDICT |
-| Button grammar (primary/secondary/quiet/destructive; ≥44px targets locked via EC-5) | TBD | AWAITING VERDICT |
-| Rule/border treatment | TBD | AWAITING VERDICT |
-| Icon family | TBD | AWAITING VERDICT |
-| Corner-radius philosophy + pill policy | TBD | AWAITING VERDICT |
-| Spacing rhythm | TBD | AWAITING VERDICT |
-| Neutral palette (grounds, ink ramp, rules) | TBD (A: bone `#F1F0EC` · B: warm graphite `#141517` · C: gallery white `#FBFAF7`) | AWAITING VERDICT |
-| Interaction/accent treatment — incl. whether brand accent and work color merge (A/B) or stay separate (C) | TBD | AWAITING VERDICT |
-| Mono presentation policy | TBD | AWAITING VERDICT |
-| Card grammar | TBD | AWAITING VERDICT |
-| Glass treatment | TBD | AWAITING VERDICT |
-| Gradient treatment | TBD | AWAITING VERDICT |
-| Light/dark doctrine (incl. supersessions named in EC-13.11) | TBD | AWAITING VERDICT |
-| Product-UI visual density | TBD | AWAITING VERDICT |
-| Illustration treatment | TBD (interim default: EC-14 own-artifacts) | AWAITING VERDICT |
-| Animation character/easing + band values | TBD (band structure is the working default) | AWAITING VERDICT |
+| Typography — display / body / mono faces | **Geist** (400/500/600) for display and body; **Geist Mono** (400/500) for machine facts and micro-labels | LOCKED |
+| Type scale | Anchors from the verdict reference: hero h1 44–52px desktop / 30–34px mobile; micro-labels 11px mono uppercase `+0.08em`. Full ramp finalized in UX-02 within these anchors | LOCKED ANCHORS · ramp in UX-02 |
+| Grid + page width | Full-width hairline-ruled band composition; content max ~1400px. Precise grid in UX-02 | LOCKED · grid in UX-02 |
+| Eyebrow exact geometry (within EC-10's form) | Set at the **UX-03 founder visual gate**. Verdict reference: 64px desktop / 56px mobile, contextual product-state middle zone | SET AT UX-03 GATE |
+| Button grammar (primary/secondary/quiet/destructive; ≥44px targets locked via EC-5) | Primary = solid work-green square-cornered instrument with AA-corrected near-black ink (reference `#4ADE97`; solid `#2E9E6B` + off-white recorded as the alternative); secondary = hairline outline; quiet = text. Exact styles in UX-02 | LOCKED STRUCTURE · styles in UX-02 |
+| Rule/border treatment | 1px hairlines structure panels and bands (`#2E2F33` on the graphite register) | LOCKED |
+| Icon family | Chosen in UX-02 by design review | PENDING UX-02 |
+| Corner-radius philosophy + pill policy | Near-sharp 0–3px on panels and instruments; **pills retired** (now verdict-locked, no longer era law) | LOCKED |
+| Spacing rhythm | Set in UX-02 | PENDING UX-02 |
+| Neutral palette (grounds, ink ramp, rules) | **Public register (dark, permitted not mandated):** ground `#141517`, panel `#1C1D20`, raised `#222326`, hairline `#2E2F33`, ink `#F2F1ED`, secondary `#9C9D99`. **Light register (required for evidence/printable/dense-legibility surfaces):** off-white family with graphite ink; exact artifact palette is a named UX-02 design task | LOCKED · light values in UX-02 |
+| Interaction/accent treatment | **Accent-work merge accepted:** work-green is the single work color and the primary action; needs-you amber `#E4B45C`; waiting neutral `#6E7073`. Nothing glows. State words always in ink (EC-4). Full state-hue family reconciled in UX-02 with the EC-3 vocabulary mapping | LOCKED |
+| Mono presentation policy | Machine facts — NPIs, timestamps, state words, source names, micro-labels — in Geist Mono, `tabular-nums` | LOCKED |
+| Card grammar | Solid hairline-ruled panels, radius 0–3px, no shadows | LOCKED |
+| Glass treatment | **None.** Solid surfaces everywhere; no blur halos | LOCKED |
+| Gradient treatment | **None** | LOCKED |
+| Light/dark doctrine | Dark-first warm-graphite is the permitted **public register**; the light register is **required** for evidence artifacts (printable by default, amendment 6), dense workflow surfaces, and legibility-critical contexts; **not** permanent dark everywhere (amendment 5). Explicitly supersedes CD-3 "light is the only public mode", CD's 2026-08-02 one-Ink-chapter amendment, and wave-1505 LINT-04's scope (rescoped in the EC-23 port) | LOCKED |
+| Product-UI visual density | Designed in UX-02+ under design review | PENDING UX-02 |
+| Illustration treatment | VitalCV's own artifacts plus abstracted, **self-labeling** product illustrations ("Illustration — not a live result"); no stock imagery | LOCKED |
+| Animation character/easing + band values | Motion communicates the Easy Button **quickly**; no blocking or gating sequences (amendment 5); single-shot; the four-band structure holds; exact durations/easing set in UX-02 motion work | LOCKED CONSTRAINTS · values in UX-02 |
 | Font delivery | Self-hosted variable `woff2` via `next/font/local` in `apps/web/app/fonts/`; never `next/font/google` | LOCKED |
 
-State hues may never be spent as decoration (EC-3); whether the brand accent doubles as the work color is a verdict decision recorded here.
+State hues may never be spent as decoration (EC-3). The accent-work merge above is the recorded verdict decision. Rows marked "in UX-02" are bounded design tasks inside locked constraints — not open questions.
 
 ---
 

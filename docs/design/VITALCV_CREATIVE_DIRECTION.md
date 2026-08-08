@@ -20,6 +20,13 @@ Every clause is numbered. Reject a PR by citing a number.
 > now rests with the homepage reset. *Rationale:* the Experience Overhaul Program consolidates six
 > coexisting visual eras behind one constitution; this is an amendment and pointer forward, not a
 > fork. This document remains the execution record of the July 2026 direction.
+>
+> *Verdict update, same day:* UX-01 landed **FINAL — Direction B GO, with amendments**
+> (`design-lab/homepage-reset/DECISION.md`). The constitution's EC-20 is back-filled: Geist +
+> Geist Mono; a dark warm-graphite **public register** with a **required light register** for
+> evidence/printable surfaces. Accordingly, this document's Part III (palette) and Part IV
+> (typography) values are **superseded by EC-20**, and CD-3's "light is the only public mode"
+> and the 2026-08-02 one-Ink-chapter amendment are superseded by EC-20's register doctrine.
 
 ---
 
