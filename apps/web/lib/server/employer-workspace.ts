@@ -6,6 +6,7 @@ import type {
 import type { RequestReviewErrorPayload } from '@/lib/request-review-contract';
 
 import { BACKEND_URL as BACKEND } from '@/lib/backend-url';
+import { applyIdentityHeaders } from '@/lib/auth/forwardIdentity';
 
 type EmployerWorkspaceAuthBase = {
   email: string | null;
@@ -15,6 +16,17 @@ type EmployerWorkspaceAuthBase = {
 type EmployerWorkspaceAuthenticatedBase = {
   email: string | null;
   userId: string;
+  /**
+   * Clerk session JWT, resolved once alongside `userId`.
+   *
+   * Every backend call from this module forwards `x-clerk-user-id`, and the
+   * backend's verified-identity middleware 401s an identity header that
+   * arrives without a matching verified bearer once
+   * `CLERK_JWT_VERIFICATION=enforce`. Carrying the token on the context lets
+   * the synchronous `buildEmployerWorkspaceHeaders` attach it without becoming
+   * async for every caller. Null when minting failed — see the warn there.
+   */
+  token: string | null;
 };
 
 export type EmployerWorkspaceAuthContext =
@@ -117,8 +129,17 @@ export async function resolveEmployerWorkspaceAuthContext(): Promise<EmployerWor
     };
   }
 
+  // Mint the session bearer once and carry it on the context. Forwarding
+  // x-clerk-user-id without it is a 401 under CLERK_JWT_VERIFICATION=enforce.
+  let token: string | null = null;
+  try {
+    token = typeof session.getToken === 'function' ? await session.getToken() : null;
+  } catch {
+    token = null;
+  }
+
   const headers = new Headers();
-  headers.set('x-clerk-user-id', userId);
+  await applyIdentityHeaders(headers, { userId, token });
   if (email) {
     headers.set('x-clerk-user-email', email);
   }
@@ -135,6 +156,7 @@ export async function resolveEmployerWorkspaceAuthContext(): Promise<EmployerWor
       status: 'workspace_lookup_failed',
       userId,
       email,
+      token,
       lookupStatus: 503,
     };
   }
@@ -145,6 +167,7 @@ export async function resolveEmployerWorkspaceAuthContext(): Promise<EmployerWor
         status: 'workspace_lookup_failed',
         userId,
         email,
+        token,
         lookupStatus: response.status,
       };
     }
@@ -153,6 +176,7 @@ export async function resolveEmployerWorkspaceAuthContext(): Promise<EmployerWor
       status: 'missing_workspace',
       userId,
       email,
+      token,
       workspace: null,
     };
   }
@@ -164,6 +188,7 @@ export async function resolveEmployerWorkspaceAuthContext(): Promise<EmployerWor
       status: 'missing_workspace',
       userId,
       email,
+      token,
       workspace,
     };
   }
@@ -172,6 +197,7 @@ export async function resolveEmployerWorkspaceAuthContext(): Promise<EmployerWor
     status: 'ready',
     userId,
     email,
+    token,
     workspace,
     activeOrg,
   };
@@ -303,6 +329,20 @@ export function buildEmployerWorkspaceHeaders(
   const headers = new Headers(init);
   if (context.userId) {
     headers.set('x-clerk-user-id', context.userId);
+    // Pair the identity header with the bearer resolved at context time. The
+    // backend rejects the header alone under enforce; sending it unpaired
+    // would 401 every employer request the moment that flag flips.
+    if (context.token) {
+      headers.set('Authorization', `Bearer ${context.token}`);
+    } else {
+      console.warn(
+        JSON.stringify({
+          event: 'identity_header_without_bearer',
+          where: 'buildEmployerWorkspaceHeaders',
+          detail: 'forwarding x-clerk-user-id with no session token; this 401s under CLERK_JWT_VERIFICATION=enforce',
+        }),
+      );
+    }
   }
   headers.set('x-org-id', context.activeOrg.organizationId);
 

@@ -118,6 +118,14 @@ async function resolveActiveWorkspaceOrgId(
 
   if (authToken) {
     headers.set('Authorization', `Bearer ${authToken}`);
+  } else {
+    console.warn(
+      JSON.stringify({
+        event: 'identity_header_without_bearer',
+        where: 'intelligence/_shared:resolveWorkspace',
+        detail: 'forwarding x-clerk-user-id with no session token; this 401s under CLERK_JWT_VERIFICATION=enforce',
+      }),
+    );
   }
 
   try {
@@ -403,6 +411,14 @@ export function buildForwardHeadersFromContext(
 
   if (context.authToken && !headers.has('Authorization')) {
     headers.set('Authorization', `Bearer ${context.authToken}`);
+  } else if (context.userId && !headers.has('Authorization')) {
+    console.warn(
+      JSON.stringify({
+        event: 'identity_header_without_bearer',
+        where: 'intelligence/_shared:buildHeaders',
+        detail: 'forwarding x-clerk-user-id with no session token; this 401s under CLERK_JWT_VERIFICATION=enforce',
+      }),
+    );
   }
 
   return headers;

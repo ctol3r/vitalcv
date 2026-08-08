@@ -56,6 +56,24 @@ export async function buildIdentityHeaders(
   const headers: Record<string, string> = {};
   if (userId) headers['x-clerk-user-id'] = userId;
   if (token) headers.Authorization = `Bearer ${token}`;
+
+  // The degradation this helper's docblock calls "safe to land before the
+  // backend flips to enforce" is exactly what breaks *after* it: an identity
+  // header with no bearer is a hard 401 under enforce. It stays permissive for
+  // now — flipping it to fail-closed while the backend is still in shadow would
+  // break sessions that currently work — but it is no longer silent. Every
+  // occurrence is a session that WILL 401 once enforce is on, so this warning
+  // is the measurement that decides whether the flip is safe.
+  if (userId && !token) {
+    console.warn(
+      JSON.stringify({
+        event: 'identity_header_without_bearer',
+        where: 'buildIdentityHeaders',
+        detail: 'getToken() returned no session token; this request 401s under CLERK_JWT_VERIFICATION=enforce',
+      }),
+    );
+  }
+
   return headers;
 }
 
