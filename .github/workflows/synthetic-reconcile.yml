@@ -32,14 +32,20 @@
 # from a sweep that found nothing to reap, so it must not be green. Set
 # MONITORS_UNWIRED_OK=true (a repository VARIABLE) to deliberately run unwired.
 #
-# THE CLERK KEY IS NOT IN GITHUB — it exists only in Railway (web + API), where
-# production needs it. No GitHub Actions copy has ever existed, so this sweep
-# has never run. This job reads `secrets.CLERK_SECRET_KEY_PROD`, the name a
-# GitHub copy should take; creating that repository secret is what wires it.
-# Until then the job fails red, which is correct. `secrets.<name>` yields the
-# empty string with no error when nothing of that name exists, so a workflow
-# cannot tell wrong-name from wrong-scope from never-configured — that
-# ambiguity absorbed six dispatches (probe run 31238667349 measured it).
+# THE KEY WAS ON THE DEPENDABOT SECRETS TAB, NOT THE ACTIONS ONE — which is why
+# this sweep never ran. `Settings → Secrets and variables` keeps separate
+# Actions, Dependabot and Codespaces stores. They look identical in the UI, and
+# a Dependabot secret is INVISIBLE to `secrets.<name>` in an Actions job: it
+# resolves to the empty string with no error, exactly like a name that was never
+# configured at all.
+#
+# Measured 2026-08-08 by run 31258941186. A throwaway `ZZ_TEST` created moments
+# earlier also read 0 — which killed every remaining naming theory, since a
+# brand-new secret with a clean name cannot have a typo. In the same job
+# CRON_SECRET read 64, PROBE_URL 19 and CLERK_FAPI_URL 25. Two of those three
+# were absent from the secrets list the owner was reading, so Actions could see
+# secrets the operator could not and vice versa: two different stores, not one
+# store disagreeing with itself.
 
 name: Synthetic Reconcile
 
@@ -110,8 +116,8 @@ jobs:
           # It happened six times and cost the whole point of the job: runs
           # 31233274419 / 31235056713 / 31237430191 / 31237517106 / 31253928362
           # skipped Reconcile having never contacted Clerk. The reason was not
-          # exotic — no GitHub Actions copy of the Clerk key has ever existed;
-          # it lives only in Railway. A sweep that cannot see the key is
+          # exotic — the key was stored on the DEPENDABOT secrets tab, which an
+          # Actions job cannot read. A sweep that cannot see the key is
           # indistinguishable, from the outside, from a sweep that found nothing
           # to reap, which is why the first three of those reported SUCCESS.
           #
@@ -130,12 +136,13 @@ jobs:
             } >> "$GITHUB_STEP_SUMMARY"
           else
             echo "wired=false" >> "$GITHUB_OUTPUT"
-            echo "::error::CLERK_SECRET_KEY_PROD is not visible to this job — the sweep did NOT run. As of 2026-08-08 no GitHub Actions copy of the Clerk key exists; it lives only in Railway. Create a repository secret named exactly CLERK_SECRET_KEY_PROD to wire this monitor. If unwired is intended, set the repository variable MONITORS_UNWIRED_OK=true."
+            echo "::error::CLERK_SECRET_KEY_PROD is not visible to this job — the sweep did NOT run. CHECK WHICH TAB THE SECRET IS ON FIRST: Settings → Secrets and variables has separate Actions, Dependabot and Codespaces stores, they look identical, and a Dependabot secret reads as the empty string here with no error. That was the cause on 2026-08-08. It must be an ACTIONS repository secret named exactly CLERK_SECRET_KEY_PROD. If unwired is intended, set the repository variable MONITORS_UNWIRED_OK=true."
             {
               echo "## Synthetic reconciliation: MISCONFIGURED"
               echo ""
               echo "- \`CLERK_SECRET_KEY\` is not visible to this job, so **nothing was reconciled**."
-              echo "- Cause as of 2026-08-08: no GitHub Actions copy of the Clerk key exists — it lives only in Railway. Create the repository secret \`CLERK_SECRET_KEY_PROD\` to wire this. A name that does not exist resolves to the empty string with no error."
+              echo "- **Check the tab before anything else.** \`Settings → Secrets and variables\` keeps separate **Actions**, **Dependabot** and **Codespaces** stores. They look identical in the UI, and a Dependabot secret resolves to the empty string in an Actions job with no error — indistinguishable from a name that was never configured. That was the cause on 2026-08-08, after four wrong theories about naming and scope."
+              echo "- It must be an **Actions** repository secret named exactly \`CLERK_SECRET_KEY_PROD\`: <https://github.com/ctol3r/vitalcv/settings/secrets/actions>"
               echo "- This is deliberately RED. It is not evidence that there was nothing to reap."
             } >> "$GITHUB_STEP_SUMMARY"
             exit 1
