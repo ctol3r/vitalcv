@@ -74,6 +74,31 @@ extracted.
   `/api/version`, never from an HTTP 200 — a healthy old container answers 200
   while serving the previous build.
 
+## First-run setup: the environment must exist
+
+**Status 2026-08-08: this is the one outstanding step.** The first real run of
+the workflow got as far as creating the environment and Railway answered
+`Not Authorized`.
+
+The cause is token scope, not the workflow. The repo supplies `RAILWAY_TOKEN`,
+a Railway **project** token — it can read the project, set variables, and
+deploy, but it cannot *create an environment*. Pick either fix:
+
+- **(a) Create it once by hand (least privilege, recommended).** Railway
+  dashboard → the VitalCV project → **New Environment** → name it exactly
+  `review`. The workflow's first step then *resolves* the existing environment
+  and never needs the elevated scope again.
+- **(b) Add a `RAILWAY_API_TOKEN` secret.** Railway → Account Settings →
+  Tokens → create a workspace/account token, then add it as a repository
+  secret. The workflow already prefers `RAILWAY_API_TOKEN` over
+  `RAILWAY_TOKEN` when it is present, and will provision the environment
+  itself.
+
+After either, re-run the workflow. Whether the *remaining* steps
+(`variableCollectionUpsert`, `serviceDomainCreate`) are within the project
+token's scope is unverified — the run stopped before reaching them. If one of
+them also returns `Not Authorized`, option (b) resolves all of them at once.
+
 ## Cost
 
 One small always-on container in the Railway project. If it is idle for long

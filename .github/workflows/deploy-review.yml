@@ -120,7 +120,27 @@ jobs:
               '{input: {projectId: $projectId, name: $name}}')" > created.json
             if jq -e '.errors and (.errors|length > 0)' created.json >/dev/null; then
               jq '.errors' created.json
-              echo "::error::Could not create the review environment."
+              # Observed on the first real run: a Railway PROJECT token can
+              # read, deploy, and set variables, but may not create an
+              # environment — that needs an account/workspace token. The raw
+              # GraphQL reply for this is a bare "Not Authorized", which reads
+              # like a broken workflow rather than a missing scope.
+              if jq -e '[.errors[].message] | any(test("Not Authorized"; "i"))' created.json >/dev/null; then
+                echo "::error::Railway refused to create the '${REVIEW_ENVIRONMENT_NAME}' environment: Not Authorized."
+                echo "::notice::This is a TOKEN SCOPE limit, not a workflow bug. The repo currently"
+                echo "::notice::supplies RAILWAY_TOKEN (a project token), which cannot create"
+                echo "::notice::environments. Fix it either way:"
+                echo "::notice::  (a) create the environment once by hand — Railway dashboard →"
+                echo "::notice::      project → New Environment → name it exactly"
+                echo "::notice::      '${REVIEW_ENVIRONMENT_NAME}'. This step then RESOLVES it and"
+                echo "::notice::      never needs the elevated scope again; or"
+                echo "::notice::  (b) add a RAILWAY_API_TOKEN repository secret (Railway → Account"
+                echo "::notice::      Settings → Tokens), which this workflow already prefers when"
+                echo "::notice::      present."
+                echo "::notice::See docs/deployment/review-environment.md."
+              else
+                echo "::error::Could not create the review environment."
+              fi
               exit 1
             fi
             ENV_ID=$(jq -r '.data.environmentCreate.id' created.json)
