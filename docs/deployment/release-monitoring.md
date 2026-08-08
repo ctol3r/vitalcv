@@ -196,8 +196,15 @@ capturing the `vitalcv_role` cookie the flow mints), then **deletes the Clerk
 user + org** — always, even on a mid-run failure (the runner passes the created
 ids to `cleanupClinician` from a `finally`).
 
-Every synthetic identity uses an `@vitalcv-monitor.local` email so it can never
-collide with, or rebind (per #504), a real user row. A **failed** delete is a
+Every synthetic identity uses a plus-tagged `svc-monitor+<runId>@vitalcv.com`
+email so it can never collide with, or rebind (per #504), a real user row.
+(This document said `@vitalcv-monitor.local` until 2026-08-08. It was never
+true: production Clerk rejects a `.local` TLD with 422
+`form_param_format_invalid`, so the mint path has always used the plus-tagged
+address on the owned domain. Backend-API user creation sends no email, so
+nothing is ever delivered there. The stale wording mattered — a reconciliation
+sweep written from it would have matched zero users and reaped nothing while
+reporting success.) A **failed** delete is a
 critical check → red status (a leaked synthetic identity is never silently
 green). Error bodies from Clerk/FAPI are reduced to safe code+message fields
 (`safeErrorBody`) before they can reach logs or `report.json` — a raw body could
@@ -210,14 +217,35 @@ each created id *incrementally* (the instant the Clerk user, then org, exists) �
 so a kill mid-mint still cleans up a just-created user. A SIGKILL (no grace) or
 the microsecond gap before the id is reported can still leak one identity.
 
-**Required backstop (guaranteed cleanup):** a periodic reconciliation sweep MUST
-delete any stale synthetic identities — Clerk users with
-`public_metadata.synthetic === true` / `@vitalcv-monitor.local` emails and their
-orgs older than a few minutes. This covers both the hard-kill window and any
-transient Clerk delete failure. **Known residual:** the backend has no delete API
-for the `User` row it upserts on first role-resolve, so each run also leaves one
-orphan DB row (placeholder-pattern email, non-colliding); the same sweep (or a
-backend cleanup endpoint) should reap it.
+**Required backstop (guaranteed cleanup) — SHIPPED 2026-08-08.** A periodic
+reconciliation sweep deletes stale synthetic identities, covering both the
+hard-kill window and any transient Clerk delete failure.
+
+| Piece | Where |
+| --- | --- |
+| Logic + safety invariants | `apps/web/lib/release-monitor/reconcileSynthetics.ts` |
+| Runner | `scripts/reconcile-synthetics.ts` (`pnpm reconcile:synthetics`) |
+| Schedule | `.github/workflows/synthetic-reconcile.yml` — hourly at `:23` |
+| Tests | `apps/web/__tests__/release-monitor-reconcile.test.ts` |
+
+A Clerk user is deleted only when **all** of these hold: `public_metadata.synthetic
+=== true`, `public_metadata.purpose === 'release-monitor'`, every address on the
+account matches `svc-monitor+…@vitalcv.com`, and it is older than the age grace
+(default 2 h, so a verification in flight can never be reaped — the whole job
+budget is 15 min). Conjunction, never disjunction; an unknown `created_at` never
+authorises a delete; deletions are capped per run; and every candidate is
+re-validated immediately before its `DELETE`. Orgs match on the
+`vcv-monitor-` name prefix plus age, which is a deliberately weaker signal —
+the mint path gives orgs no metadata.
+
+Run `pnpm reconcile:synthetics --dry-run` to see what it would reap without
+touching anything. Not-wired (`CLERK_SECRET_KEY` unset) is a green no-op, not a
+red: nothing is being minted, so nothing can leak.
+
+**Known residual (still open):** the backend has no delete API for the `User`
+row it upserts on first role-resolve, so each run also leaves one orphan DB row
+(placeholder-pattern email, non-colliding). The sweep reaps the Clerk side only;
+a backend cleanup endpoint is still needed for the DB row.
 
 ## Rollout & rollback
 
@@ -308,9 +336,10 @@ green.
 
 - Ops Center card at `/admin/platform` reading the commit status.
 - Slack notification (`SLACK_WEBHOOK_URL`), status-doc committer.
-- **Reconciliation sweep (recommended before heavy reliance):** reap stale
-  synthetic Clerk identities (`public_metadata.synthetic` / `@vitalcv-monitor.local`)
-  + a backend cleanup endpoint for the orphaned `User` row. Guarantees no leak
-  survives a hard-kill or a transient Clerk delete failure.
+- ~~Reconciliation sweep~~ — **shipped 2026-08-08**, see "Required backstop"
+  above. (This entry and that section disagreed for months about whether the
+  sweep was mandatory or merely recommended; it was in fact unbuilt. The Clerk
+  side is now built and scheduled.) Still open: a **backend cleanup endpoint**
+  for the orphaned `User` row, which the sweep does not touch.
 - Retire the now-redundant fixed-`sleep 120` smoke test in `deploy-web.yml`
   (this system supersedes its intent).
