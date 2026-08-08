@@ -26,7 +26,11 @@ import { readAgentActionHistory } from './telemetry/agent-run-store';
 import type { CanonicalReaders } from './tools/canonical-tools';
 
 interface IdentityInput {
-  userId: string;
+  /**
+   * `null` means "send NO identity header" — the request goes to the backend
+   * anonymously. Used for the scheduler, which has no Clerk session.
+   */
+  userId: string | null;
   /** Explicit `null` means "this caller has no bearer and never will". */
   token?: null;
 }
@@ -70,12 +74,30 @@ function asRecord(value: unknown): Record<string, unknown> | null {
 
 export interface ProductionReaderOptions {
   /**
-   * A background run has no Clerk session. Passing `token: null` explicitly
-   * (rather than letting the helper try `auth().getToken()`) keeps the
-   * scheduler honest: it never attaches a bearer, so identity-bound routes
-   * refuse it at the boundary instead of appearing to work. The registry
-   * already refuses those tools for this actor (A2.0); this is the same
-   * truth expressed one layer down.
+   * A background run has no Clerk session, so it sends NO identity headers at
+   * all — neither `x-clerk-user-id` nor a bearer.
+   *
+   * This previously forwarded `x-clerk-user-id` with `token: null`, on the
+   * stated theory that identity-bound routes would "refuse it at the boundary
+   * instead of appearing to work". They did not: with the backend in
+   * `CLERK_JWT_VERIFICATION=shadow` an unpaired identity header is *accepted*,
+   * so a background tick was reading as the subject on the strength of a
+   * header nobody verified. Measured 2026-08-08 — four live
+   * `identity_header_without_bearer` warnings, corroborated by four backend
+   * `header_without_token` events on `/api/trust-state/:npi` and
+   * `/api/matcha/opportunities/:npi`.
+   *
+   * Sending nothing makes the code match that docblock's original intent. The
+   * reads the scheduler performs are NPI-keyed public routes (both are in
+   * `shouldSkipTenantContext`), so they keep working; anything genuinely
+   * identity-bound now fails at the boundary, which is the honest outcome and
+   * what the registry already enforces one layer up (A2.0).
+   *
+   * It also unblocks the enforce flip: an unpaired identity header is a hard
+   * 401 under `enforce`, so this path would have broken on the flip. Note that
+   * making `forwardIdentity` fail closed would NOT have fixed it — that turns
+   * the 401 into a silently anonymous read, which is worse for an unattended
+   * agent than a loud failure.
    */
   actor?: AgentActor;
 }
@@ -85,7 +107,7 @@ export function buildProductionReaders(
   options: ProductionReaderOptions = {},
 ): CanonicalReaders {
   const identityInput: IdentityInput =
-    options.actor === 'system_scheduler' ? { userId, token: null } : { userId };
+    options.actor === 'system_scheduler' ? { userId: null, token: null } : { userId };
   return {
     async readNppesIdentity(npi) {
       const result = await fetchNppesRecord(npi);
