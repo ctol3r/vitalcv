@@ -16,9 +16,12 @@ independently verified, independently revertible PRs.**
 **The one thing the wave did NOT do: verify anything natively.** There is still
 no `ios/`, no `android/`, no `eas.json` — none ever committed. Fabric, Hermes V1
 and the iOS 16.4 minimum introduced across SDKs 55–56 remain **unexercised**.
-Decision 3 in §8 (native build path) is the only original decision still open,
-and it is now the *only* thing standing between this app and a claim that it
-works. See [§11 Wave results](#11-wave-results--what-actually-happened).
+Decision 3 in §8 (native build path) has since been **answered** — EAS is
+configured, see [the runbook](2026-08-08-mobile-native-build-path.md) — but
+answering it did not close the gap. **No native build has ever been produced.**
+The first `eas build` is still what would let anyone claim this app works, and
+it has to be run by a human with an Expo account. See
+[§11 Wave results](#11-wave-results--what-actually-happened).
 
 Sections below are the original analysis, annotated where reality caught up.
 Where the plan was wrong, the correction is marked rather than the text quietly
@@ -352,7 +355,17 @@ recording that decision here.
    implementation the MOBILE_AUDIT calls "complete". **Recommendation: delete**,
    since git history preserves it and `ROLE.md` explicitly forbids mobile being
    a wallet.
-3. **Native build path** — accept JS-only verification (recommended) or add EAS?
+3. ~~**Native build path** — accept JS-only verification (recommended) or add EAS?~~
+   **Answered: EAS added.** `apps/mobile/eas.json` with development/preview/
+   production profiles, plus a `.gitignore` keeping the app on CNG. See
+   [the runbook](2026-08-08-mobile-native-build-path.md). **The path is
+   configured but has never been walked** — no native build exists, and the
+   sandbox cannot produce one (no Android SDK, no Xcode, `expo.dev` unreachable).
+   `expo prebuild` verifies clean for both platforms, which is project
+   *generation*, not compilation. It did surface a live defect: `app.json`'s
+   `userInterfaceStyle`, `backgroundColor` and `primaryColor` were all inert
+   without `expo-system-ui`, now installed. Fabric, Hermes V1 and the iOS 16.4
+   minimum remain unexercised.
 4. ~~**Step 0a (mobile CI)** — approve independently of the rest of the wave?~~
    **Answered: yes, merged as #1143.** The follow-on question stands — should
    `Mobile Quality` become a *required* status check? Until it is, a mobile

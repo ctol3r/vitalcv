@@ -1,0 +1,19 @@
+# apps/mobile uses Expo's Continuous Native Generation (CNG): the native
+# projects are GENERATED from app.json + the config plugins, never hand-edited
+# and never committed. `expo prebuild` and `eas build` regenerate them on demand.
+#
+# These entries are load-bearing. Before they existed, `expo prebuild` left
+# ios/ and android/ as untracked-but-not-ignored, one `git add .` away from
+# being committed — which would silently convert this app to the bare workflow.
+# In bare, app.json's plugin block stops driving native config and every future
+# SDK upgrade becomes a manual native merge instead of a regeneration. That is
+# the single most expensive accident available in this directory.
+#
+# If the project ever adopts bare deliberately, delete these lines in the same
+# commit that adds the native projects, so the switch is explicit and reviewable.
+/ios/
+/android/
+
+# Expo local state
+.expo/
+expo-env.d.ts
