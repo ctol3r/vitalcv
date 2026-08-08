@@ -142,18 +142,38 @@ jobs:
         if: steps.smoke.outcome == 'success'
         env:
           CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
+          # Escape hatch — see the fail-closed note below.
+          UNWIRED_OK: ${{ vars.MONITORS_UNWIRED_OK }}
         run: |
           # The signed-in verification cannot run without a Clerk backend key to
-          # mint a synthetic session. When it is absent the monitor is "not wired":
-          # skip verification and post a NEUTRAL status (below) instead of a red
-          # failure that reads as a broken deploy. Self-heals — the moment
-          # CLERK_SECRET_KEY is set this passes and full verification runs.
+          # mint a synthetic session.
+          #
+          # FAIL-CLOSED (changed 2026-08-08). "Not wired" used to post a grey
+          # neutral status and exit 0, so as not to paint a red that reads as a
+          # broken deploy. The cost of that kindness: this monitor posted
+          # "skipped — monitor not wired" on EVERY run of its entire life and
+          # nobody noticed, because grey does not demand attention. The
+          # signed-in flow it advertises — synthetic clinician, six /holder
+          # surfaces, check:deploy — had never once executed against
+          # production. The secret existed; it was an environment secret this
+          # job had not declared (fixed in #1138).
+          #
+          # An unwired monitor is now a MISCONFIGURATION, not a resting state,
+          # and reports red. To deliberately run unwired, set the repository
+          # VARIABLE MONITORS_UNWIRED_OK=true — an auditable statement of
+          # intent, rather than silence meaning consent.
           if [ -n "${CLERK_SECRET_KEY}" ]; then
             echo "wired=true" >> "$GITHUB_OUTPUT"
+            echo "unwired_ok=false" >> "$GITHUB_OUTPUT"
             echo "Monitor wired — running full signed-in verification."
+          elif [ "${UNWIRED_OK}" = "true" ]; then
+            echo "wired=false" >> "$GITHUB_OUTPUT"
+            echo "unwired_ok=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::CLERK_SECRET_KEY unset and MONITORS_UNWIRED_OK=true — deliberate no-op; posting a neutral status."
           else
             echo "wired=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::CLERK_SECRET_KEY unset — monitor not wired; skipping verification and posting a neutral status."
+            echo "unwired_ok=false" >> "$GITHUB_OUTPUT"
+            echo "::error::CLERK_SECRET_KEY is not visible to this job — the signed-in verification did NOT run. Check that the secret exists on the 'production' environment and that this job still declares 'environment: production'. If unwired is intended, set the repository variable MONITORS_UNWIRED_OK=true."
           fi
 
       - name: Run release verification
@@ -203,6 +223,7 @@ jobs:
           SMOKE_OUTCOME: ${{ steps.smoke.outcome }}
           VERIFY_OUTCOME: ${{ steps.verify.outcome }}
           WIRED: ${{ steps.preflight.outputs.wired }}
+          UNWIRED_OK: ${{ steps.preflight.outputs.unwired_ok }}
           EGRESS_OK: ${{ steps.egress.outputs.ok }}
         run: |
           # The commit Status API has no `neutral` state (that lives in the Checks
@@ -226,9 +247,14 @@ jobs:
           elif [ "$SMOKE_OUTCOME" = "failure" ]; then
             STATE=failure
             DESC="production smoke failed (version / auth-config / db-connectivity / public routes)"
-          elif [ "$WIRED" != "true" ]; then
+          elif [ "$WIRED" != "true" ] && [ "$UNWIRED_OK" = "true" ]; then
             STATE=pending
-            DESC="skipped — monitor not wired (set CLERK_SECRET_KEY)"
+            DESC="skipped — deliberately unwired (MONITORS_UNWIRED_OK=true)"
+          elif [ "$WIRED" != "true" ]; then
+            # Fail-closed: an unwired monitor verified NOTHING. Grey here is
+            # what let this monitor look fine for its entire life.
+            STATE=failure
+            DESC="MISCONFIGURED — CLERK_SECRET_KEY not visible; nothing was verified"
           elif [ "$VERIFY_OUTCOME" = "success" ]; then
             STATE=success
             DESC="release verification"
@@ -292,14 +318,30 @@ jobs:
           echo "::warning::Runner egress failure — this run produced NO SIGNAL about production. Commit status is grey pending, not red."
 
       - name: Fail the job when verification failed
-        # Only a wired run can fail red; an unwired run posts neutral and exits 0.
         # A CONFIRMED runner-egress failure (sentinel ok=false) is "no signal",
         # not a production verdict — that path stays green here with the grey
         # pending status above. Any other sentinel outcome keeps the red.
+        #
+        # Three distinct red causes, deliberately NOT collapsed:
+        #   - the secretless smoke failed (real deploy problem);
+        #   - a wired verification failed (real signed-in problem);
+        #   - the monitor is unwired without MONITORS_UNWIRED_OK (it verified
+        #     nothing, which used to exit 0 and is the whole reason nobody
+        #     noticed this monitor was inert for its entire life).
+        # The unwired clause is guarded on the preflight having actually run,
+        # so a smoke failure — which skips the preflight — cannot double-report
+        # as a misconfiguration.
         if: >-
           steps.egress.outputs.ok != 'false' &&
           (steps.smoke.outcome == 'failure' ||
-           (steps.preflight.outputs.wired == 'true' && steps.verify.outcome != 'success'))
+           (steps.preflight.outputs.wired == 'true' && steps.verify.outcome != 'success') ||
+           (steps.preflight.outcome == 'success' &&
+            steps.preflight.outputs.wired != 'true' &&
+            steps.preflight.outputs.unwired_ok != 'true'))
         run: |
-          echo "::error::Release verification failed — see the vitalcv/release-verified commit status and the job summary." >&2
+          if [ "${{ steps.preflight.outputs.wired }}" != "true" ] && [ "${{ steps.smoke.outcome }}" != "failure" ]; then
+            echo "::error::Monitor is MISCONFIGURED — CLERK_SECRET_KEY was not visible, so nothing was verified. This is not a passing deploy; it is an absent test." >&2
+          else
+            echo "::error::Release verification failed — see the vitalcv/release-verified commit status and the job summary." >&2
+          fi
           exit 1

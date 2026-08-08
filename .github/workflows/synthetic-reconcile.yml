@@ -83,15 +83,46 @@ jobs:
         id: preflight
         env:
           CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
+          # Escape hatch. Unset/anything-but-"true" means "this monitor is
+          # expected to be wired" — see the fail-closed note below.
+          UNWIRED_OK: ${{ vars.MONITORS_UNWIRED_OK }}
         run: |
+          # FAIL-CLOSED. "Not wired" used to be a green no-op, on the reasoning
+          # that an unwired monitor mints nothing so nothing can leak. That was
+          # true right up until the monitor WAS wired — at which point the same
+          # branch turned a misconfiguration into a clean bill of health.
+          #
+          # It happened exactly once and cost the whole point of the job: run
+          # 31233274419 could not see CLERK_SECRET_KEY (it is an environment
+          # secret and the job had not declared `environment: production`), so
+          # it skipped Reconcile and reported success having never contacted
+          # Clerk. A sweep that cannot see the key is indistinguishable, from
+          # the outside, from a sweep that found nothing to reap.
+          #
+          # So the default is now RED. To deliberately run unwired, set the
+          # repository VARIABLE MONITORS_UNWIRED_OK=true — a visible, auditable
+          # statement of intent, rather than silence meaning consent.
           if [ -n "${CLERK_SECRET_KEY}" ]; then
             echo "wired=true" >> "$GITHUB_OUTPUT"
+          elif [ "${UNWIRED_OK}" = "true" ]; then
+            echo "wired=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::CLERK_SECRET_KEY unset and MONITORS_UNWIRED_OK=true — deliberate no-op."
+            {
+              echo "## Synthetic reconciliation: skipped (deliberate)"
+              echo ""
+              echo "- Not wired, and \`MONITORS_UNWIRED_OK=true\` says that is intended."
+            } >> "$GITHUB_STEP_SUMMARY"
           else
             echo "wired=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::CLERK_SECRET_KEY unset — the monitor mints nothing, so there is nothing to reconcile. No-op."
-            echo "## Synthetic reconciliation: skipped" >> "$GITHUB_STEP_SUMMARY"
-            echo "" >> "$GITHUB_STEP_SUMMARY"
-            echo "- Monitor not wired (CLERK_SECRET_KEY unset) — nothing is being minted, so nothing can leak." >> "$GITHUB_STEP_SUMMARY"
+            echo "::error::CLERK_SECRET_KEY is not visible to this job — the sweep did NOT run. Check that the secret exists on the 'production' environment and that this job still declares 'environment: production'. If unwired is intended, set the repository variable MONITORS_UNWIRED_OK=true."
+            {
+              echo "## Synthetic reconciliation: MISCONFIGURED"
+              echo ""
+              echo "- \`CLERK_SECRET_KEY\` is not visible to this job, so **nothing was reconciled**."
+              echo "- Most likely cause: the job lost its \`environment: production\` declaration, or the secret was removed/renamed."
+              echo "- This is deliberately RED. It is not evidence that there was nothing to reap."
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 1
           fi
 
       - name: Reconcile
