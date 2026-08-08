@@ -64,9 +64,14 @@ jobs:
     name: Reap leaked synthetic identities
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    # LOAD-BEARING — do not remove. CLERK_SECRET_KEY is an ENVIRONMENT secret
-    # on `Production`, not a repository secret. Without this line
-    # `secrets.CLERK_SECRET_KEY` resolves to the empty string, the preflight
+    # Kept deliberately. An environment only ADDS to what a job can see, so
+    # declaring one is free insurance for the case where CLERK_SECRET_KEY is
+    # placed on `Production` — but it is NOT currently there. Probe run
+    # 31238667349 measured length 0 for it as a repository secret, on
+    # `Production`, and under three alternative spellings, while CLERK_FAPI_URL
+    # read 25 in the same job: secrets DO reach here, this one is absent.
+    # Where an environment-scoped secret IS in play, dropping this line makes
+    # `secrets.CLERK_SECRET_KEY` resolve to the empty string, the preflight
     # takes the not-wired branch, and the sweep exits GREEN having reconciled
     # nothing. Run 31233274419 did exactly that: `CLERK_SECRET_KEY:` empty in
     # the step env, Reconcile skipped, job success. A sweep that cannot see the

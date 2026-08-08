@@ -22,9 +22,14 @@ name: Release verify
 # MONITORS_UNWIRED_OK=true (a repository VARIABLE) to deliberately run unwired
 # and get the grey back.
 #
-# CLERK_SECRET_KEY lives on the `Production` environment (capital P), which is
-# why this job declares `environment: Production`. Getting that name wrong is
-# silent — GitHub creates an unknown environment rather than rejecting it.
+# WHERE CLERK_SECRET_KEY LIVES IS CURRENTLY UNRESOLVED. As of 2026-08-08 it
+# resolves to the empty string from these jobs — measured, not assumed: probe
+# run 31238667349 read length 0 for it as a repository secret, on the
+# `Production` environment, and under three alternative spellings, while
+# `CLERK_FAPI_URL` read 25 in the same job. So secrets DO reach here; this one
+# is simply absent. `environment: Production` is retained because an
+# environment only ADDS visibility and costs nothing if the key is later placed
+# there. Do not read that line as a claim about where the key is.
 #
 # Required repo secrets: CLERK_SECRET_KEY, RAILWAY_API_TOKEN. Optional:
 # CLERK_FAPI_URL (default https://clerk.vitalcv.com), RELEASE_PROBE_BASE
@@ -76,9 +81,11 @@ jobs:
     name: Verify signed-in release
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    # LOAD-BEARING — do not remove. CLERK_SECRET_KEY is an ENVIRONMENT secret
-    # on `Production`, not a repository secret. A job that does not declare the
-    # environment resolves `secrets.CLERK_SECRET_KEY` to the empty string, the
+    # Kept deliberately. An environment only ADDS to what a job can see, so
+    # declaring one is free insurance for the case where CLERK_SECRET_KEY is
+    # placed on `Production` — but it is NOT currently there (probe run
+    # 31238667349). A job that does not declare the environment resolves an
+    # environment-scoped `secrets.CLERK_SECRET_KEY` to the empty string, the
     # preflight below reads that as "monitor not wired", and the run goes GREEN
     # having verified nothing. That is precisely how this monitor spent its
     # entire life posting grey "skipped — monitor not wired" statuses while
