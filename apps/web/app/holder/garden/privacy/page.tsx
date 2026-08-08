@@ -1,9 +1,10 @@
 import { GardenShell } from '@/components/career-garden/GardenShell';
+import { workbenchSectionTitle } from '@/lib/career-garden/branding';
 import { PrivacySurface } from '@/components/career-garden/surfaces/PrivacySurface';
 import { loadGardenData } from '@/lib/career-garden/serverSource';
 
 export const metadata = {
-  title: 'Privacy & connections · Career Garden · VitalCV',
+  title: workbenchSectionTitle('Privacy & connections'),
 };
 
 export default async function CareerGardenPrivacyPage() {
