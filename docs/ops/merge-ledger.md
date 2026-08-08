@@ -270,26 +270,41 @@ disposition also sentenced some of them — they need their own decisions:
 3. **Branch mapping** — all 194 mapped to 193 distinct remote branches
    (#245/#246 share `feat/upload-cv`); no protected branch in the set.
 
-### ⚠ Branch deletion — BLOCKED, still outstanding
+### ⚠ Branch deletion — BLOCKED REPO-WIDE, still outstanding
 
-**193 branches were NOT deleted.** `git push origin --delete` returns
-**HTTP 403** for this session's credential — confirmed categorical by testing
-it against an already-merged branch of my own, while branch *create/update*
-push succeeds. The GitHub MCP server exposes no delete-branch tool, and the
-raw REST token is gated (`GitHub access is not enabled for this session`).
-This is a permissions boundary, not a transient failure; it was not retried
-or routed around.
+**No branch was deleted.** `git push origin --delete` returns **HTTP 403**, and
+the cause is a **repository-level restriction on ref deletion — not a
+credential limitation.**
 
-Consequence: the closed PRs can be reopened, and the stale branches remain
-resurrectable by bulk update/re-run sweeps — the exact vector §7.5 of the
-disposition warns about. **Someone with branch-delete rights should delete the
-193 branches** listed by:
+That correction matters, because the first diagnosis recorded here was wrong.
+It read the 403 as this automation's token lacking delete scope, on the
+evidence that the same push failed on four unrelated branches while
+create/update pushes succeeded. That evidence was equally consistent with a
+repo-wide rule, and the tie was broken on 2026-08-08 when **the founder's own
+seat hit the identical 403** running the documented command. A full sweep was
+attempted and verified afterwards: all 196 listed branches were still present
+(`git ls-remote` intersection = 196 of 196), and the repo's branch count had
+*risen* from 919 to 939 on new lane activity. Nothing was deleted.
 
-```bash
-# branches whose only open PR was a Tier-S closure
-gh pr list --state closed --limit 300 --json number,headRefName \
-  --jq '.[] | select(.number < 500) | .headRefName' | sort -u
-```
+**The unblock is a settings change, not a different command.** No client-side
+invocation gets past it — not `git push --delete`, not
+`gh api -X DELETE .../git/refs/heads/...`, not the web UI. Look in
+**Settings → Rules → Rulesets** for a ruleset targeting all refs (`~ALL` or
+`**`) with **Restrict deletions** enabled, and either narrow its target to
+`main`, add a bypass actor, or disable that one rule. Classic **Branch
+protection** rules can do the same via a pattern that matches every branch.
+Once ref deletion is permitted, the command in
+`docs/ops/backlog/tierS-branches-pending-deletion.md` deletes all 196 in four
+pushes and is safe to re-run — it re-derives the list and re-checks open PRs
+at run time.
+
+Consequence while it stands: the closed PRs can be reopened, and the stale
+branches remain resurrectable by bulk update/re-run sweeps — the exact vector
+§7.5 of the disposition warns about. The canonical list of what to delete is
+`docs/ops/backlog/tierS-branches-pending-deletion.md` (196 entries: 193 Tier-S
+plus three later closures). Do not regenerate it from a PR query — the earlier
+`gh pr list --number < 500` heuristic recorded here was never accurate, since
+it captures neither the post-Tier-S closures nor the branch that never had a PR.
 
 ### Receipts
 
