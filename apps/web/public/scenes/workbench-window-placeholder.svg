@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" role="img">
+  <!-- CC-06 placeholder · original · VitalCV proprietary. Workbench window:
+       a private note pane beside a role pane, joined by one drawn link.
+       Abstract, fictional, EC-25-clean: no names, no counts, no outcomes. -->
+  <rect width="800" height="600" fill="#141517"/>
+  <rect x="70" y="90" width="300" height="420" rx="3" fill="#1C1D20" stroke="#2E2F33" stroke-width="1.5"/>
+  <rect x="70" y="90" width="300" height="44" rx="3" fill="#222326"/>
+  <line x1="96" y1="170" x2="330" y2="170" stroke="#F2F1ED" stroke-width="3"/>
+  <line x1="96" y1="200" x2="300" y2="200" stroke="#9C9D99" stroke-width="2"/>
+  <line x1="96" y1="226" x2="316" y2="226" stroke="#9C9D99" stroke-width="2"/>
+  <line x1="96" y1="252" x2="280" y2="252" stroke="#9C9D99" stroke-width="2"/>
+  <rect x="96" y="300" width="120" height="26" rx="2" fill="none" stroke="#4ADE97" stroke-width="1.5"/>
+  <rect x="430" y="150" width="300" height="300" rx="3" fill="#1C1D20" stroke="#2E2F33" stroke-width="1.5"/>
+  <rect x="430" y="150" width="300" height="44" rx="3" fill="#222326"/>
+  <line x1="456" y1="230" x2="700" y2="230" stroke="#F2F1ED" stroke-width="3"/>
+  <line x1="456" y1="260" x2="640" y2="260" stroke="#9C9D99" stroke-width="2"/>
+  <line x1="456" y1="286" x2="668" y2="286" stroke="#9C9D99" stroke-width="2"/>
+  <path d="M216 313 C 320 313, 360 320, 430 320" fill="none" stroke="#4ADE97" stroke-width="2" stroke-dasharray="1 6" stroke-linecap="round"/>
+  <circle cx="430" cy="320" r="4" fill="#4ADE97"/>
+</svg>
