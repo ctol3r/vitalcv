@@ -79,7 +79,7 @@ describe.skipIf(SKIP)('agent telemetry persistence (real Postgres)', () => {
     expect(run).not.toBeNull();
     expect(run!.planId).toBe(plan.planId);
     expect(run!.policyVersion).toBe('start-policy-v1');
-    expect(run!.toolsetVersion).toBe('start-toolset-v1');
+    expect(run!.toolsetVersion).toBe('start-toolset-v2');
     expect(run!.selectedActionId).toBe(plan.rankedActionIds[0]);
     expect(run!.inputGaps).toEqual(['opportunity_retrieval']);
 
@@ -128,5 +128,98 @@ describe.skipIf(SKIP)('agent telemetry persistence (real Postgres)', () => {
     expect(row!.relatedKind).toBe('application');
     expect(row!.elapsedMs).toBe(1234);
     expect(row!.owner).toBe('clinician');
+  });
+
+  describe('funnel semantics', () => {
+    // A recommendation is only worth measuring if these three are distinct.
+    // Generating a plan is not showing it; showing it is not acceptance;
+    // acceptance is not success.
+    const FUNNEL_SUBJECT = `funnel-subject-${randomUUID().slice(0, 8)}`;
+
+    afterAll(async () => {
+      if (SKIP) return;
+      await prisma.agentEvent.deleteMany({ where: { subjectRef: FUNNEL_SUBJECT } });
+      await prisma.agentRun.deleteMany({ where: { subjectRef: FUNNEL_SUBJECT } });
+    });
+
+    it('an action merely appearing in a plan is never counted as presented or accepted', async () => {
+      const { persistAgentRun } = await import('@/lib/agent/telemetry/agent-run-store');
+      const plan = generateStartPlan(context(), { now: NOW });
+      expect(plan.rankedActionIds.length).toBeGreaterThan(0);
+
+      await persistAgentRun({ plan, subjectRef: FUNNEL_SUBJECT, npi: '1234567893', inputGaps: [] });
+
+      const counts = await prisma.agentEvent.groupBy({
+        by: ['eventType'],
+        where: { subjectRef: FUNNEL_SUBJECT },
+        _count: { _all: true },
+      });
+      const byType = Object.fromEntries(counts.map((c) => [c.eventType, c._count._all]));
+      expect(byType.agent_plan_generated).toBe(1);
+      expect(byType.agent_action_presented ?? 0).toBe(0);
+      expect(byType.agent_action_accepted ?? 0).toBe(0);
+    });
+
+    it('distinguishes presented -> accepted -> completed for one action', async () => {
+      const { recordActionPresented, recordAgentEvent } = await import(
+        '@/lib/agent/telemetry/agent-run-store'
+      );
+      const plan = generateStartPlan(context(), { now: NOW });
+      const [shown, alsoShown] = plan.rankedActionIds;
+
+      // The view layer shows two recommendations…
+      await recordActionPresented({ planId: plan.planId, subjectRef: FUNNEL_SUBJECT, actionId: shown, owner: 'vitalcv' });
+      if (alsoShown) {
+        await recordActionPresented({ planId: plan.planId, subjectRef: FUNNEL_SUBJECT, actionId: alsoShown, owner: 'clinician' });
+      }
+      // …the clinician acts on exactly one of them.
+      await recordAgentEvent({
+        eventType: 'agent_action_accepted',
+        planId: plan.planId,
+        subjectRef: FUNNEL_SUBJECT,
+        actionId: shown,
+        owner: 'vitalcv',
+      });
+      await recordAgentEvent({
+        eventType: 'agent_action_completed',
+        planId: plan.planId,
+        subjectRef: FUNNEL_SUBJECT,
+        actionId: shown,
+        owner: 'vitalcv',
+        outcome: 'completed',
+        elapsedMs: 42,
+      });
+
+      // Scoped to the action lifecycle: `agent_plan_generated` also carries
+      // this action id (it records which action was selected), and that is
+      // precisely the event a naive funnel would miscount as presentation.
+      const rows = await prisma.agentEvent.findMany({
+        where: {
+          subjectRef: FUNNEL_SUBJECT,
+          actionId: shown,
+          eventType: {
+            in: ['agent_action_presented', 'agent_action_accepted', 'agent_action_completed'],
+          },
+        },
+        orderBy: { createdAt: 'asc' },
+      });
+      expect(rows.map((r) => r.eventType)).toEqual([
+        'agent_action_presented',
+        'agent_action_accepted',
+        'agent_action_completed',
+      ]);
+
+      // The funnel is measurable: presented > accepted is what tells us a
+      // recommendation was shown and passed over.
+      const presented = await prisma.agentEvent.count({
+        where: { subjectRef: FUNNEL_SUBJECT, eventType: 'agent_action_presented' },
+      });
+      const accepted = await prisma.agentEvent.count({
+        where: { subjectRef: FUNNEL_SUBJECT, eventType: 'agent_action_accepted' },
+      });
+      expect(presented).toBe(alsoShown ? 2 : 1);
+      expect(accepted).toBe(1);
+      if (alsoShown) expect(presented).toBeGreaterThan(accepted);
+    });
   });
 });

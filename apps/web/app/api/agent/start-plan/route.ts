@@ -15,7 +15,7 @@ import { assembleStartAgentContext, ContextAssemblyError } from '@/lib/agent/con
 import { validateNarrative, type AgentNarrative } from '@/lib/agent/model/agent-model';
 import { buildModelContext } from '@/lib/agent/model/context-builder';
 import { getAgentModel } from '@/lib/agent/model/template-model';
-import { generateStartPlan } from '@/lib/agent/policy/start-policy-v1';
+import { generateStartPlanV2 } from '@/lib/agent/policy/start-policy-v2';
 import { buildProductionReaders } from '@/lib/agent/server-readers';
 import { persistAgentRun } from '@/lib/agent/telemetry/agent-run-store';
 import { invalidNpiResponse, isStructurallyValidNpi } from '@/lib/trust/npi-format';
@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
       readers: buildProductionReaders(session.userId),
     });
 
-    const plan = generateStartPlan(context, { now: context.collectedAt });
+    const plan = generateStartPlanV2(context, { now: context.collectedAt });
 
     const persistence = await persistAgentRun({
       plan,

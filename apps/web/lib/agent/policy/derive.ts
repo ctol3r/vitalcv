@@ -16,6 +16,7 @@ import type {
   ActionOwner,
   AgentAction,
   AgentActionStatus,
+  AgentActionTarget,
   AgentActionType,
   EvidenceRef,
   PermissionClass,
@@ -29,6 +30,24 @@ export interface DerivationResult {
   actions: AgentAction[];
   /** Blocker ids that stand between the clinician and an ACTIVE application. */
   blockingApplication: Set<string>;
+}
+
+export interface DeriveOptions {
+  /**
+   * start-policy-v2: a GRANTED share consent surfaces the prepared work as an
+   * executable action (status `ready`, still `execute_with_consent`, still
+   * scope-bound — execution re-verifies the ledger). Under v1 a granted
+   * consent derived nothing, which made the grant→execute loop unreachable.
+   */
+  surfaceGrantedConsentWork?: boolean;
+}
+
+/** Structured share target parsed from a consent scope — executors read this. */
+function shareTargetFromScope(scope: string): AgentActionTarget {
+  const rest = scope.startsWith('share_packet:') ? scope.slice('share_packet:'.length) : scope;
+  return rest.startsWith('opportunity:')
+    ? { opportunityRef: rest.slice('opportunity:'.length) }
+    : { employerRef: rest };
 }
 
 /** Consecutive failures after which an action is paused for review. */
@@ -62,9 +81,13 @@ interface ActionDraft {
   evidenceRefs: EvidenceRef[];
   expectedOutcome: string;
   consentScope?: string;
+  target?: AgentActionTarget;
 }
 
-export function deriveBlockersAndActions(context: StartAgentContext): DerivationResult {
+export function deriveBlockersAndActions(
+  context: StartAgentContext,
+  options: DeriveOptions = {},
+): DerivationResult {
   const blockers: StartBlocker[] = [];
   const actions = new Map<string, AgentAction>();
   const blockingApplication = new Set<string>();
@@ -91,6 +114,7 @@ export function deriveBlockersAndActions(context: StartAgentContext): Derivation
         expectedOutcome: draft.expectedOutcome,
         resolvesBlockerIds: [],
         ...(draft.consentScope ? { consentScope: draft.consentScope } : {}),
+        ...(draft.target ? { target: draft.target } : {}),
       });
     }
     return id;
@@ -144,6 +168,7 @@ export function deriveBlockersAndActions(context: StartAgentContext): Derivation
       status: 'ready',
       evidenceRefs: evidenceOr(context, context.identity.evidenceRefs, 'identity'),
       expectedOutcome: 'A structurally valid NPI that the public registry can be queried with.',
+      target: { field: 'npi' },
     });
     addBlocker({
       type: 'unresolved_public_source_fact',
@@ -167,6 +192,7 @@ export function deriveBlockersAndActions(context: StartAgentContext): Derivation
       status: 'ready',
       evidenceRefs: evidenceOr(context, context.identity.evidenceRefs, 'identity'),
       expectedOutcome: 'A registry observation recorded with its own timestamp and provenance.',
+      target: { laneId: 'nppes_identity' },
     });
     addBlocker({
       type: 'unresolved_public_source_fact',
@@ -199,6 +225,7 @@ export function deriveBlockersAndActions(context: StartAgentContext): Derivation
       status: 'ready',
       evidenceRefs: evidenceOr(context, context.profile.evidenceRefs, `profile:${gap.field}`),
       expectedOutcome: 'The field saved to your profile, recorded as provided by you.',
+      target: { field: gap.field },
     });
     const bId = addBlocker({
       type: 'missing_clinician_field',
@@ -304,6 +331,7 @@ export function deriveBlockersAndActions(context: StartAgentContext): Derivation
       status: 'ready',
       evidenceRefs: evidenceOr(context, lane.evidenceRefs, `lane:${lane.laneId}`),
       expectedOutcome: `A current observation from ${lane.authority}, recorded with its own timestamp.`,
+      target: { laneId: lane.laneId },
     });
     laneActionIds.set(lane.laneId, id);
     return id;
@@ -479,6 +507,7 @@ export function deriveBlockersAndActions(context: StartAgentContext): Derivation
             status: 'ready',
             evidenceRefs: reqEvidence,
             expectedOutcome: 'The field saved to your profile, recorded as provided by you.',
+            target: { field: req.field },
           });
           const bId = addBlocker({
             type: 'missing_clinician_field',
@@ -622,7 +651,34 @@ export function deriveBlockersAndActions(context: StartAgentContext): Derivation
   // 8. Consents
   // -------------------------------------------------------------------------
   for (const consent of context.consents) {
-    if (consent.granted) continue;
+    if (consent.granted) {
+      if (options.surfaceGrantedConsentWork && consent.scope.startsWith('share_packet')) {
+        const prepId = upsertAction({
+          type: 'prepare_share_packet',
+          discriminator: `consent:${consent.scope}`,
+          title: 'Approved: share your evidence packet',
+          reason:
+            'You approved this share. It runs when you say go, exactly as prepared — and you can revoke the approval any time before that.',
+          owner: 'vitalcv',
+          permission: 'execute_with_consent',
+          status: 'ready',
+          evidenceRefs: evidenceOr(context, consent.evidenceRefs, `consent:${consent.scope}`),
+          expectedOutcome:
+            'The packet is shared to the named recipient and the share is recorded with your consent reference.',
+          consentScope: consent.scope,
+          target: shareTargetFromScope(consent.scope),
+        });
+        // Sharing still waits on ownership while it is unverified.
+        if (ownershipBlockerId) {
+          const prep = actions.get(prepId)!;
+          const verifyActionId = actionId('verify_ownership', 'ownership');
+          if (actions.has(verifyActionId) && !prep.dependencies.includes(verifyActionId)) {
+            prep.dependencies.push(verifyActionId);
+          }
+        }
+      }
+      continue;
+    }
     const consentEvidence = evidenceOr(context, consent.evidenceRefs, `consent:${consent.scope}`);
     const requestId = upsertAction({
       type: 'request_consent',
@@ -634,6 +690,7 @@ export function deriveBlockersAndActions(context: StartAgentContext): Derivation
       status: 'ready',
       evidenceRefs: consentEvidence,
       expectedOutcome: 'A recorded consent grant scoped to exactly this action, revocable by you.',
+      consentScope: consent.scope,
     });
     const consentBlockerId = addBlocker({
       type: 'clinician_consent_required',
@@ -658,6 +715,7 @@ export function deriveBlockersAndActions(context: StartAgentContext): Derivation
         evidenceRefs: consentEvidence,
         expectedOutcome: 'On your approval, the packet is shared exactly as prepared — nothing is sent before that.',
         consentScope: consent.scope,
+        target: shareTargetFromScope(consent.scope),
       });
       const prep = actions.get(prepId)!;
       if (!prep.dependencies.includes(requestId)) prep.dependencies.push(requestId);
@@ -734,6 +792,7 @@ export function deriveBlockersAndActions(context: StartAgentContext): Derivation
         status: 'ready',
         evidenceRefs: evidenceOr(context, match.evidenceRefs, `opportunity:${match.opportunityRef}`),
         expectedOutcome: 'You decide whether to pursue it; nothing is applied to or shared without you.',
+        target: { opportunityRef: match.opportunityRef },
       });
     }
   } else if (context.opportunities.status === 'none_available') {

@@ -13,11 +13,13 @@
  */
 import { createToolRegistry, type ToolRegistry } from './tools/registry';
 import { buildStartAgentTools, type CanonicalReaders } from './tools/canonical-tools';
-import type {
-  EvidenceRef,
-  SourceObservationState,
-  StartAgentContext,
-  SubjectRef,
+import {
+  AGENT_ACTION_TYPES,
+  type AgentActionType,
+  type EvidenceRef,
+  type SourceObservationState,
+  type StartAgentContext,
+  type SubjectRef,
 } from './types';
 
 export interface AssembledContext {
@@ -138,7 +140,7 @@ export async function assembleStartAgentContext(options: AssembleOptions): Promi
         { npi },
       );
       if (result.available) {
-        const refs = result.opportunityRefs ?? [];
+        const refs = [...(result.opportunityRefs ?? [])].sort();
         opportunities =
           refs.length > 0
             ? {
@@ -161,6 +163,88 @@ export async function assembleStartAgentContext(options: AssembleOptions): Promi
     } catch {
       inputGaps.push('opportunity_retrieval');
     }
+  }
+
+  // Consent state has two independent halves, and conflating them breaks the
+  // loop in opposite directions:
+  //
+  //  - WHICH consents are relevant is derived from canonical state. A matched
+  //    opportunity is what makes "share your packet with this employer" a
+  //    thing worth asking about. If the ask came from the ledger instead, an
+  //    ungranted consent could never appear and could never be approved.
+  //  - WHETHER a consent is granted comes only from the ledger. Nothing else
+  //    may set `granted: true`.
+  //
+  // A failed ledger read therefore leaves relevant scopes present but
+  // UNGRANTED: the clinician is asked again rather than the agent assuming
+  // an approval it could not read.
+  const candidateScopes = new Set<string>(
+    opportunities.matches.map((match) => `share_packet:opportunity:${match.opportunityRef}`),
+  );
+  const grantedScopes = new Map<string, { eventRef: string; at: string }>();
+  try {
+    const result = await registry.execute<{
+      states: Array<{ scope: string; granted: boolean; eventRef: string; at: string }>;
+    }>('consent_state_retrieval', { subjectRef: subject.profileRef });
+    for (const state of result.states) {
+      if (!state.granted) continue;
+      grantedScopes.set(state.scope, { eventRef: state.eventRef, at: state.at });
+      // A granted scope stays visible even if its opportunity has since left
+      // the pool, so the clinician can still see and withdraw it.
+      candidateScopes.add(state.scope);
+    }
+  } catch {
+    inputGaps.push('consent_state_retrieval');
+  }
+
+  const consents: StartAgentContext['consents'] = [...candidateScopes]
+    .sort()
+    .map((scope) => {
+      const grant = grantedScopes.get(scope);
+      return {
+        scope,
+        granted: grant !== undefined,
+        evidenceRefs: grant
+          ? [
+              {
+                kind: 'system_record' as const,
+                ref: `consent_event:${grant.eventRef}`,
+                provenance: 'platform_record' as const,
+                observedAt: grant.at,
+              },
+            ]
+          : [],
+      };
+    });
+
+  // Prior agent action outcomes — feeds completed-suppression and the
+  // repeated-failure pause. A failed read degrades to no history (the plan
+  // may re-recommend; execution-side records still exist).
+  let actionHistory: StartAgentContext['actionHistory'] = [];
+  try {
+    const result = await registry.execute<{
+      entries: Array<{
+        actionId: string;
+        actionType: string;
+        outcome: 'completed' | 'failed' | 'dismissed';
+        at: string;
+        failureCount?: number;
+      }>;
+    }>('action_history_retrieval', { subjectRef: subject.profileRef });
+    actionHistory = result.entries
+      .filter((entry): entry is typeof entry & { actionType: AgentActionType } =>
+        (AGENT_ACTION_TYPES as readonly string[]).includes(entry.actionType),
+      )
+      .map((entry) => ({
+        actionId: entry.actionId,
+        type: entry.actionType,
+        outcome: entry.outcome,
+        at: entry.at,
+        ...(entry.failureCount !== undefined ? { failureCount: entry.failureCount } : {}),
+      }))
+      .sort((a, b) => (a.actionId < b.actionId ? -1 : a.actionId > b.actionId ? 1 : 0));
+  } catch {
+    inputGaps.push('action_history_retrieval');
   }
 
   const context: StartAgentContext = {
@@ -188,11 +272,13 @@ export async function assembleStartAgentContext(options: AssembleOptions): Promi
             ]
           : [],
     },
-    observations,
+    observations: [...observations].sort((a, b) =>
+      a.laneId < b.laneId ? -1 : a.laneId > b.laneId ? 1 : 0,
+    ),
     readiness: { status: 'unknown', determinedBy: 'unavailable', evidenceRefs: [] },
     opportunities,
-    consents: [],
-    actionHistory: [],
+    consents,
+    actionHistory,
     collectedAt: options.now,
     contextClass: options.contextClass,
   };

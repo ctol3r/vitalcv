@@ -15,7 +15,7 @@ import type {
 } from '../types';
 import type { StartBenchScenario } from './scenario-types';
 
-export const START_BENCH_VERSION = 'start-bench-v1';
+export const START_BENCH_VERSION = 'start-bench-v2';
 
 const NOW = '2026-08-07T00:00:00.000Z';
 const NPI = '1234567893';
@@ -466,4 +466,48 @@ export const START_BENCH_SCENARIOS: StartBenchScenario[] = [
       acceptableTopActions: [{ type: 'await_employer_decision', owner: 'employer', permission: 'human_only' }],
     },
   },
+  {
+    id: 'sb26_consent_granted_share_executable',
+    title: 'Consent granted — prepared share becomes executable',
+    description: 'The clinician approved the share. The prepared work surfaces as executable (still consent-scoped; execution re-verifies the ledger), and no consent blocker remains.',
+    sincePolicy: 'start-policy-v2',
+    context: baseContext({
+      role: { roleRef: 'role-1', employerRef: 'emp-1', applicationState: 'in_progress', requirements: [] },
+      consents: [{ scope: 'share_packet:emp-1', granted: true, evidenceRefs: [platformRef('consent:share_packet:emp-1')] }],
+    }),
+    expect: {
+      requiredBlockerTypes: [],
+      acceptableTopActions: [{ type: 'prepare_share_packet', owner: 'vitalcv', permission: 'execute_with_consent' }],
+    },
+  },
+  {
+    id: 'sb27_consent_granted_ownership_pending',
+    title: 'Consent granted but ownership pending — execution stays held',
+    description: 'Approval alone does not outrank truth: with ownership unconfirmed, the approved share stays blocked on the ownership chain and never ranks.',
+    sincePolicy: 'start-policy-v2',
+    context: baseContext({
+      ownership: ownership('pending'),
+      role: { roleRef: 'role-1', employerRef: 'emp-1', applicationState: 'in_progress', requirements: [] },
+      consents: [{ scope: 'share_packet:emp-1', granted: true, evidenceRefs: [platformRef('consent:share_packet:emp-1')] }],
+    }),
+    expect: {
+      requiredBlockerTypes: ['ownership_verification_required'],
+      acceptableTopActions: [{ type: 'verify_ownership', owner: 'clinician', permission: 'recommend' }],
+      mustMentionActionTypes: ['prepare_share_packet'],
+      mustNotRankActionTypes: ['prepare_share_packet'],
+    },
+  },
 ];
+
+/**
+ * Scenarios applicable to a given policy version — older policies replay
+ * against the subset that existed for them, never against later-versioned
+ * behavior pins.
+ */
+export function scenariosForPolicy(policyVersion: string): StartBenchScenario[] {
+  const versionNumber = (v: string): number => Number(/v(\d+)$/.exec(v)?.[1] ?? 0);
+  const target = versionNumber(policyVersion);
+  return START_BENCH_SCENARIOS.filter(
+    (s) => !s.sincePolicy || versionNumber(s.sincePolicy) <= target,
+  );
+}

@@ -30,6 +30,10 @@ function healthyReaders(overrides: Partial<CanonicalReaders> = {}): CanonicalRea
     readProfileCompleteness: async () => ({ score: 100, missingFields: [] }),
     readSourceCoverage: async () => [{ sourceId: 'NPPES_API', state: 'checked', checkedAt: NOW }],
     readOpportunities: async () => null,
+    readAgentConsents: async () => [],
+    readActionHistory: async () => [],
+    triggerSourceRefresh: async () => ({ requested: true }),
+    executeApplyShare: async () => null,
     ...overrides,
   };
 }
@@ -107,8 +111,8 @@ describe('POST /api/agent/start-plan', () => {
     expect(response.status).toBe(200);
     const body = await response.json();
 
-    expect(body.plan.policyVersion).toBe('start-policy-v1');
-    expect(body.plan.toolsetVersion).toBe('start-toolset-v1');
+    expect(body.plan.policyVersion).toBe('start-policy-v2');
+    expect(body.plan.toolsetVersion).toBe('start-toolset-v2');
     expect(body.plan.subject.profileRef).toBe('user_test_1');
     expect(Array.isArray(body.plan.blockers)).toBe(true);
     expect(Array.isArray(body.plan.rankedActionIds)).toBe(true);
@@ -129,6 +133,6 @@ describe('POST /api/agent/start-plan', () => {
     expect(response.status).toBe(200);
     const body = await response.json();
     expect(body.telemetry.persisted).toBe(false);
-    expect(body.plan.policyVersion).toBe('start-policy-v1');
+    expect(body.plan.policyVersion).toBe('start-policy-v2');
   });
 });

@@ -55,9 +55,11 @@ export const EXECUTION_LEVEL_BY_PERMISSION: Record<PermissionClass, ExecutionLev
 };
 
 /**
- * A0 executes nothing above Level 2 (prepare). Levels 3–4 exist in the
- * representation so plans can carry them, but the tool registry refuses to
- * run them (see tools/registry.ts).
+ * The unconsented execution ceiling: Levels 0–2 (through prepare) run
+ * directly. As of A1, Level 3 (`execute_with_consent`) executes ONLY under a
+ * `ConsentProof` minted from the consent ledger at execution time (see
+ * tools/registry.ts and consent/consent-store.ts); Level 4 (`human_only`) is
+ * never executable.
  */
 export const MAX_EXECUTABLE_LEVEL_A0: ExecutionLevel = 2;
 
@@ -411,6 +413,19 @@ export interface AgentAction {
    * be granted before the action may leave `awaiting_consent`.
    */
   consentScope?: string;
+  /**
+   * Structured execution target (which lane, field, opportunity, or
+   * recipient the action operates on) — executors read this, never parse it
+   * back out of ids or titles.
+   */
+  target?: AgentActionTarget;
+}
+
+export interface AgentActionTarget {
+  laneId?: string;
+  field?: string;
+  opportunityRef?: string;
+  employerRef?: string;
 }
 
 // ---------------------------------------------------------------------------

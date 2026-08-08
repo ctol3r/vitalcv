@@ -23,7 +23,7 @@ import { contextFingerprint, planId } from '../ids';
 import { START_TOOLSET_VERSION } from '../tools/registry';
 import { assertPlanHonorsTruthContract } from '../truth-boundary';
 import type { StartAgentContext, StartPlan } from '../types';
-import { deriveBlockersAndActions } from './derive';
+import { deriveBlockersAndActions, type DeriveOptions } from './derive';
 import { rankActions } from './rank';
 
 export const START_POLICY_VERSION = 'start-policy-v1';
@@ -38,12 +38,36 @@ export interface GenerateStartPlanOptions {
   modelVersion?: string;
 }
 
+export interface StartPolicyConfig {
+  policyVersion: string;
+  deriveOptions: DeriveOptions;
+}
+
 export function generateStartPlan(
   context: StartAgentContext,
   options: GenerateStartPlanOptions = {},
 ): StartPlan {
+  return runStartPolicy(context, options, {
+    policyVersion: START_POLICY_VERSION,
+    deriveOptions: {},
+  });
+}
+
+/**
+ * The shared, versioned pipeline. Each policy version is a frozen
+ * (policyVersion, deriveOptions) pair over this machinery so versions replay
+ * side-by-side against START-Bench.
+ */
+export function runStartPolicy(
+  context: StartAgentContext,
+  options: GenerateStartPlanOptions,
+  config: StartPolicyConfig,
+): StartPlan {
   // 1–3: consume state, derive blockers and candidate actions.
-  const { blockers, actions, blockingApplication } = deriveBlockersAndActions(context);
+  const { blockers, actions, blockingApplication } = deriveBlockersAndActions(
+    context,
+    config.deriveOptions,
+  );
 
   // 4: actions with pending dependencies stay visible but unranked. The one
   // exception: a consent-gated action's dependency on its own consent request
@@ -70,7 +94,7 @@ export function generateStartPlan(
 
   const fingerprint = contextFingerprint(context);
   const plan: StartPlan = {
-    planId: planId(context.subject.profileRef, START_POLICY_VERSION, fingerprint),
+    planId: planId(context.subject.profileRef, config.policyVersion, fingerprint),
     subject: context.subject,
     contextClass: context.contextClass,
     contextFingerprint: fingerprint,
@@ -78,7 +102,7 @@ export function generateStartPlan(
     actions,
     rankedActionIds,
     generatedAt: options.now ?? new Date().toISOString(),
-    policyVersion: START_POLICY_VERSION,
+    policyVersion: config.policyVersion,
     toolsetVersion: START_TOOLSET_VERSION,
     ...(options.modelVersion ? { modelVersion: options.modelVersion } : {}),
   };

@@ -93,7 +93,9 @@
     "DeferredPersistenceAttempt",
     "StartAgent",
     "StartPlan",
-    "StartBench"
+    "StartBench",
+    "AgentConsentLedger",
+    "ConsentProof"
   ],
   "edges": [
     { "source": "Clinician", "relation": "HAS_NPI", "target": "NPI" },
@@ -198,7 +200,9 @@
     { "source": "Start Outcome", "relation": "CLOSES_LOOP", "target": "Employer Review" },
     { "source": "StartAgent", "relation": "CONSUMES_TRUTH_FROM", "target": "Source Check" },
     { "source": "StartAgent", "relation": "PRODUCES", "target": "StartPlan" },
-    { "source": "StartBench", "relation": "EVALUATES", "target": "StartPlan" }
+    { "source": "StartBench", "relation": "EVALUATES", "target": "StartPlan" },
+    { "source": "AgentConsentLedger", "relation": "AUTHORIZES", "target": "StartAgent" },
+    { "source": "ConsentProof", "relation": "MINTED_FROM", "target": "AgentConsentLedger" }
   ],
   "rules": [
     "NPPES identity claim is NOT licensure proof.",
@@ -289,7 +293,13 @@
     "Start Agent plans are produced by the deterministic versioned start-policy-v1; no LLM determines credential truth, identity ownership, employer approval, or start readiness, and invalid narratives are dropped, never repaired.",
     "Start Agent state distinctions (resolved / profile saved / ownership verified / employer reviewed / ready to start) never collapse; ready_to_start is unrepresentable without a canonical determination.",
     "Start Agent A0 executes nothing above Level 2 (prepare); Level 3 exists only as awaiting_consent representation, human_only is never executable, and assumed consent is a fatal truth violation.",
-    "generateStartPlan fails closed: it re-audits its own output and throws on any truth-contract violation; START-Bench runs the same audit across all scenarios."
+    "generateStartPlan fails closed: it re-audits its own output and throws on any truth-contract violation; START-Bench runs the same audit across all scenarios.",
+    "Agent consent is an append-only granted/revoked ledger folded per (subject, scope); revocation is a state, re-grant is a new event, and a non-persisting write reports failure rather than implying authorization.",
+    "A ConsentProof is minted only by re-reading the consent ledger at execution time, is never accepted from a client, and must match the invoked scope; the ledger authorizes, not the plan.",
+    "Agent execution accepts only an action id: subject, context, and plan are server-derived, and a canonical refusal is recorded as a failure, never a success.",
+    "A client approves an action, never a scope: the consent scope is derived server-side from the canonical action in a regenerated plan, and client-supplied scopes/plans/subjects/proofs are rejected on both the grant and revoke surfaces.",
+    "Consent state is the highest-seq event per (subject, scope) under a DB unique constraint; racing transitions cannot both land, and a failed write creates neither authorization nor a partial audit row.",
+    "agent_action_presented is a view-layer event; execution records agent_action_accepted, and appearing in a plan is neither."
   ],
   "knownLimitations": [
     "Machine-readable stub is documentation-grade only, not integrated into runtime types."
