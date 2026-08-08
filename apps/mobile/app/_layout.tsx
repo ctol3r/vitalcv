@@ -1,5 +1,11 @@
-import { DarkTheme, ThemeProvider } from '@react-navigation/native';
-import { Stack, useRouter } from 'expo-router';
+// SDK 56 forked react-navigation into expo-router: expo-router@56 declares no
+// @react-navigation/* dependency and vendors its own copy, re-exporting the
+// theming API. Importing from the standalone package still compiled, but the
+// ThemeProvider would have supplied a context from a DIFFERENT react-navigation
+// instance than expo-router's navigators consume — the theme would silently
+// stop applying, with tsc green. Import from expo-router so provider and
+// consumer share one instance.
+import { DarkTheme, Stack, ThemeProvider, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 

@@ -41,7 +41,10 @@ export default function TabLayout() {
   );
 }
 
-import { Text } from 'react-native';
-function TabIcon({ symbol, color }: { symbol: string; color: string }) {
+import { Text, type ColorValue } from 'react-native';
+// SDK 56 widened tabBarIcon's `color` from string to ColorValue
+// (string | OpaqueColorValue). Widen to match rather than cast — Text's
+// style.color already accepts ColorValue, so the value passes straight through.
+function TabIcon({ symbol, color }: { symbol: string; color: ColorValue }) {
   return <Text style={{ fontSize: 16, color }}>{symbol}</Text>;
 }
