@@ -12,7 +12,7 @@ import { buildMarketplaceHeaders } from '@/lib/server/marketplace-proxy';
  */
 export async function proxyGardenPath(
   path: string,
-  method: 'GET' | 'POST',
+  method: 'GET' | 'POST' | 'DELETE',
   body?: string,
 ): Promise<NextResponse> {
   const session = await auth();

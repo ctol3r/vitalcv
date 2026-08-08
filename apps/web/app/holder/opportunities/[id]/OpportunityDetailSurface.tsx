@@ -1,4 +1,5 @@
 'use client';
+import { CaptureInWorkbench } from '@/components/workbench/CaptureInWorkbench';
 
 /**
  * OpportunityDetailSurface — the role detail page for a signed-in clinician.
@@ -215,7 +216,11 @@ export default function OpportunityDetailSurface({ opportunityId }: { opportunit
           <Building2 className="h-3.5 w-3.5 opacity-60" aria-hidden />
           {opportunity.organizationName}
         </p>
-        <h1 className="mz-h1 mt-2">{opportunity.title}</h1>
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <h1 className="mz-h1 mt-2">{opportunity.title}</h1>
+          {/* CC-09: private research capture, right where the role is. */}
+          <CaptureInWorkbench context={`Role: ${opportunity.title} — ${opportunity.state}`} />
+        </div>
         <div className="mt-3 flex flex-wrap items-center gap-2 mz-small">
           <span className="inline-flex items-center gap-1">
             <MapPin className="h-3.5 w-3.5" aria-hidden />

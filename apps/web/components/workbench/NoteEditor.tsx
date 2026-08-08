@@ -3,6 +3,7 @@
 import * as React from 'react';
 
 import { renderNoteBody } from '@/lib/workbench/markdown';
+import { LINK_TARGET_TYPE_LABEL, pickerCandidates, type PickerCandidate } from '@/lib/workbench/linkTargets';
 import { WORKBENCH_BRANDING } from '@/lib/career-garden/branding';
 
 /**
@@ -64,10 +65,13 @@ export function NoteEditor({
   note,
   onSaved,
   onDirtyChange,
+  onOpenNote,
 }: {
   note: EditorNote;
   onSaved: (note: EditorNote) => void;
   onDirtyChange?: (dirty: boolean) => void;
+  /** Open another owned note in a stacked pane (CC-07 shell semantics). */
+  onOpenNote?: (noteId: string) => void;
 }) {
   const readOnly = note.status === 'grown';
   const [tab, setTab] = React.useState<Tab>('write');
@@ -78,6 +82,13 @@ export function NoteEditor({
   const [links, setLinks] = React.useState<NoteLink[] | 'loading' | 'unavailable'>('loading');
   const [backlinks, setBacklinks] = React.useState<Backlink[] | 'loading' | 'unavailable'>('loading');
   const [restoredFrom, setRestoredFrom] = React.useState<string | null>(null);
+  // CC-09: the [[ typed-link picker. Anchor = index of the '[[' in body.
+  const [picker, setPicker] = React.useState<{ query: string; anchor: number } | null>(null);
+  const [pickerError, setPickerError] = React.useState<string | null>(null);
+  const [pickerPool, setPickerPool] = React.useState<{
+    notes: Array<{ id: string; title: string }>;
+    cv: Array<{ id: string; headline: string }>;
+  } | null>(null);
 
   const lastSaved = React.useRef({ title: note.title, body: note.body });
   const timer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -177,6 +188,69 @@ export function NoteEditor({
     }
   };
 
+  const loadPickerPool = React.useCallback(async () => {
+    if (pickerPool) return;
+    try {
+      const [notesRes, cvRes] = await Promise.all([
+        fetch('/api/profile/garden/notes', { cache: 'no-store' }),
+        fetch('/api/profile/garden/cv', { cache: 'no-store' }),
+      ]);
+      const notesJson = notesRes.ok ? ((await notesRes.json()) as { notes?: Array<{ id: string; title: string }> }) : {};
+      const cvJson = cvRes.ok ? ((await cvRes.json()) as { entries?: Array<{ id: string; headline: string }> }) : {};
+      setPickerPool({ notes: notesJson.notes ?? [], cv: cvJson.entries ?? [] });
+    } catch {
+      setPickerPool({ notes: [], cv: [] });
+    }
+  }, [pickerPool]);
+
+  /** Detect an unclosed `[[` immediately before the caret. */
+  const detectPicker = (value: string, caret: number) => {
+    const upToCaret = value.slice(0, caret);
+    const open = upToCaret.lastIndexOf('[[');
+    if (open === -1 || upToCaret.indexOf(']]', open) !== -1) {
+      setPicker(null);
+      return;
+    }
+    setPicker({ query: upToCaret.slice(open + 2), anchor: open });
+    setPickerError(null);
+    void loadPickerPool();
+  };
+
+  const chooseCandidate = async (candidate: PickerCandidate) => {
+    try {
+      const res = await fetch(`/api/profile/garden/notes/${encodeURIComponent(note.id)}/links`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ targetType: candidate.targetType, targetId: candidate.targetId }),
+      });
+      if (res.status === 409) {
+        // Already linked: still insert the reference text — the relationship exists.
+      } else if (!res.ok) {
+        throw new Error(String(res.status));
+      }
+      if (!picker) return;
+      const caretEnd = picker.anchor + 2 + picker.query.length;
+      setBody((prev) => `${prev.slice(0, picker.anchor)}[[${candidate.label}]]${prev.slice(caretEnd)}`);
+      setPicker(null);
+      setLinks('loading'); // context tab refetches next open
+    } catch {
+      // The typed text stays exactly as typed — plain text, no fake link.
+      setPickerError('Could not create the link — your text is unchanged.');
+    }
+  };
+
+  /** Unlink removes only the relationship — never the referenced thing. */
+  const unlink = async (linkId: string) => {
+    try {
+      const res = await fetch(`/api/profile/garden/links/${encodeURIComponent(linkId)}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error(String(res.status));
+      await loadContext();
+    } catch {
+      setLinks('unavailable');
+      setBacklinks('unavailable');
+    }
+  };
+
   const openTab = (next: Tab) => {
     setTab(next);
     if (next === 'history') void loadHistory();
@@ -233,11 +307,63 @@ export function NoteEditor({
             id="ed-body"
             value={body}
             readOnly={readOnly}
-            onChange={(e) => setBody(e.target.value)}
+            onChange={(e) => {
+              setBody(e.target.value);
+              detectPicker(e.target.value, e.target.selectionStart ?? e.target.value.length);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape' && picker) {
+                e.stopPropagation();
+                setPicker(null);
+              }
+            }}
             rows={10}
             className="mt-1 w-full border p-2"
             style={{ borderColor: 'var(--rule, #ddd)' }}
           />
+          {picker ? (
+            <div
+              data-link-picker
+              role="listbox"
+              aria-label="Link to"
+              className="mt-1 border p-2"
+              style={{ borderColor: 'var(--rule, #ddd)' }}
+            >
+              <p className="mz-small" style={{ margin: 0, color: 'var(--vt-text-muted, #666)' }}>
+                Link to — typed, private, and only things you can already see. Escape keeps plain text.
+              </p>
+              {pickerError ? (
+                <p className="mz-small" role="alert" style={{ margin: '4px 0 0' }}>
+                  {pickerError}
+                </p>
+              ) : null}
+              <ul className="mt-1 space-y-1">
+                {(pickerPool
+                  ? pickerCandidates(picker.query, pickerPool.notes, pickerPool.cv, note.id)
+                  : []
+                ).map((c) => (
+                  <li key={`${c.targetType}:${c.targetId}`}>
+                    <button
+                      type="button"
+                      role="option"
+                      aria-selected={false}
+                      className="mz-btn-ghost mz-btn-sm w-full text-left"
+                      onClick={() => void chooseCandidate(c)}
+                      style={{ minHeight: 44 }}
+                    >
+                      <span className="mz-mono" style={{ fontSize: '0.8em', marginRight: 6 }}>
+                        {LINK_TARGET_TYPE_LABEL[c.targetType] ?? c.targetType}
+                      </span>
+                      {c.label}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+              {pickerPool && pickerCandidates(picker.query, pickerPool.notes, pickerPool.cv, note.id).length === 0 ? (
+                <p className="mz-small mt-1">No matches — keep typing to leave it as plain text.</p>
+              ) : null}
+            </div>
+          ) : null}
           <p className="mz-small mt-1" style={{ color: 'var(--vt-text-muted, #666)' }}>
             Only you can see this. Keep patient-identifying and clinical record data out — this space is
             for your professional life.
@@ -274,7 +400,9 @@ export function NoteEditor({
 
       {tab === 'context' ? (
         <section aria-label="Linked context" className="mt-3">
-          <h3 className="mz-small">Links from this note</h3>
+          <h3 className="mz-small">
+            Links from this note{Array.isArray(links) ? ` (${links.length})` : ''}
+          </h3>
           {links === 'loading' ? (
             <p className="mz-small mt-1">Loading…</p>
           ) : links === 'unavailable' ? (
@@ -290,14 +418,35 @@ export function NoteEditor({
           ) : (
             <ul className="mt-1 space-y-1" data-editor-links>
               {links.map((l) => (
-                <li key={l.id} className="mz-small">
+                <li key={l.id} className="mz-small flex flex-wrap items-center gap-2">
                   <span data-ref-card>{l.label}</span>
-                  {!l.resolved ? ' — no longer visible' : null}
+                  {!l.resolved ? <span> — no longer visible</span> : null}
+                  {l.targetType === 'note' && l.resolved && onOpenNote ? (
+                    <button
+                      type="button"
+                      className="mz-btn-ghost mz-btn-sm"
+                      onClick={() => onOpenNote(l.targetId)}
+                      style={{ minHeight: 44 }}
+                    >
+                      Open
+                    </button>
+                  ) : null}
+                  <button
+                    type="button"
+                    className="mz-btn-ghost mz-btn-sm"
+                    aria-label={`Unlink ${l.label}`}
+                    onClick={() => void unlink(l.id)}
+                    style={{ minHeight: 44 }}
+                  >
+                    Unlink
+                  </button>
                 </li>
               ))}
             </ul>
           )}
-          <h3 className="mz-small mt-4">Notes that link here</h3>
+          <h3 className="mz-small mt-4">
+            Notes that link here{Array.isArray(backlinks) ? ` (${backlinks.length})` : ''}
+          </h3>
           {backlinks === 'loading' ? (
             <p className="mz-small mt-1">Loading…</p>
           ) : backlinks === 'unavailable' ? (
@@ -307,8 +456,18 @@ export function NoteEditor({
           ) : (
             <ul className="mt-1 space-y-1" data-editor-backlinks>
               {backlinks.map((b) => (
-                <li key={b.id} className="mz-small">
-                  {b.fromTitle}
+                <li key={b.id} className="mz-small flex items-center gap-2">
+                  <span>{b.fromTitle}</span>
+                  {onOpenNote ? (
+                    <button
+                      type="button"
+                      className="mz-btn-ghost mz-btn-sm"
+                      onClick={() => onOpenNote(b.fromNoteId)}
+                      style={{ minHeight: 44 }}
+                    >
+                      Open
+                    </button>
+                  ) : null}
                 </li>
               ))}
             </ul>

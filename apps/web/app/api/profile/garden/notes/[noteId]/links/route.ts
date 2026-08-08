@@ -7,3 +7,12 @@ export async function GET(_req: Request, { params }: { params: Promise<{ noteId:
   const { noteId } = await params;
   return proxyGardenPath(`/api/profile/garden/notes/${encodeURIComponent(noteId)}/links`, 'GET');
 }
+
+export async function POST(req: Request, { params }: { params: Promise<{ noteId: string }> }) {
+  const { noteId } = await params;
+  return proxyGardenPath(
+    `/api/profile/garden/notes/${encodeURIComponent(noteId)}/links`,
+    'POST',
+    await req.text(),
+  );
+}
