@@ -1,0 +1,930 @@
+{
+  "generatedAgainst": "origin/main",
+  "totals": {
+    "cssFiles": 35,
+    "selectors": 1468,
+    "uniqueCustomProps": 993,
+    "customPropDefinitions": 1099,
+    "deadClassCandidates": 161,
+    "propsDefinedInMultipleFiles": 94
+  },
+  "collisions": [
+    {
+      "prop": "--accent",
+      "files": [
+        "app/globals.css",
+        "components/evidence-record/record.css",
+        "styles/clinician-doc.css",
+        "styles/matcha-zen.css"
+      ]
+    },
+    {
+      "prop": "--ink",
+      "files": [
+        "components/evidence-record/record.css",
+        "styles/career-loop-home.css",
+        "styles/clinician-doc.css",
+        "styles/reset-home.css"
+      ]
+    },
+    {
+      "prop": "--paper",
+      "files": [
+        "components/evidence-record/record.css",
+        "styles/clinician-doc.css",
+        "styles/matcha-zen.css"
+      ]
+    },
+    {
+      "prop": "--serif",
+      "files": [
+        "components/evidence-record/record.css",
+        "styles/career-loop-home.css",
+        "styles/reset-home.css"
+      ]
+    },
+    {
+      "prop": "--sans",
+      "files": [
+        "components/evidence-record/record.css",
+        "styles/career-loop-home.css",
+        "styles/reset-home.css"
+      ]
+    },
+    {
+      "prop": "--mono",
+      "files": [
+        "components/evidence-record/record.css",
+        "styles/career-loop-home.css",
+        "styles/reset-home.css"
+      ]
+    },
+    {
+      "prop": "--hairline",
+      "files": [
+        "styles/career-loop-home.css",
+        "styles/clinician-doc.css",
+        "styles/reset-home.css"
+      ]
+    },
+    {
+      "prop": "--vt-accent-editorial",
+      "files": [
+        "styles/matcha-zen.css",
+        "styles/themes/index.css",
+        "styles/wave1501-home.css"
+      ]
+    },
+    {
+      "prop": "--vt-text-secondary",
+      "files": [
+        "styles/matcha-zen.css",
+        "styles/themes/index.css",
+        "styles/wave1501-home.css"
+      ]
+    },
+    {
+      "prop": "--vt-text-muted",
+      "files": [
+        "styles/matcha-zen.css",
+        "styles/themes/index.css",
+        "styles/wave1501-home.css"
+      ]
+    },
+    {
+      "prop": "--card",
+      "files": [
+        "app/globals.css",
+        "styles/matcha-zen.css"
+      ]
+    },
+    {
+      "prop": "--font-mono",
+      "files": [
+        "app/globals.css",
+        "styles/typography.css"
+      ]
+    },
+    {
+      "prop": "--radius-sm",
+      "files": [
+        "app/globals.css",
+        "styles/design-tokens.css"
+      ]
+    },
+    {
+      "prop": "--radius-md",
+      "files": [
+        "app/globals.css",
+        "styles/design-tokens.css"
+      ]
+    },
+    {
+      "prop": "--radius-lg",
+      "files": [
+        "app/globals.css",
+        "styles/design-tokens.css"
+      ]
+    },
+    {
+      "prop": "--radius-xl",
+      "files": [
+        "app/globals.css",
+        "styles/design-tokens.css"
+      ]
+    },
+    {
+      "prop": "--radius-none",
+      "files": [
+        "app/globals.css",
+        "styles/design-tokens.css"
+      ]
+    },
+    {
+      "prop": "--radius-2xl",
+      "files": [
+        "app/globals.css",
+        "styles/design-tokens.css"
+      ]
+    },
+    {
+      "prop": "--radius-full",
+      "files": [
+        "app/globals.css",
+        "styles/design-tokens.css"
+      ]
+    },
+    {
+      "prop": "--rule",
+      "files": [
+        "components/evidence-record/record.css",
+        "styles/matcha-zen.css"
+      ]
+    },
+    {
+      "prop": "--ivory",
+      "files": [
+        "styles/career-loop-home.css",
+        "styles/reset-home.css"
+      ]
+    },
+    {
+      "prop": "--ivory-deep",
+      "files": [
+        "styles/career-loop-home.css",
+        "styles/reset-home.css"
+      ]
+    },
+    {
+      "prop": "--ink-soft",
+      "files": [
+        "styles/career-loop-home.css",
+        "styles/reset-home.css"
+      ]
+    },
+    {
+      "prop": "--indigo",
+      "files": [
+        "styles/career-loop-home.css",
+        "styles/reset-home.css"
+      ]
+    },
+    {
+      "prop": "--indigo-deep",
+      "files": [
+        "styles/career-loop-home.css",
+        "styles/reset-home.css"
+      ]
+    },
+    {
+      "prop": "--paper-on-ink",
+      "files": [
+        "styles/career-loop-home.css",
+        "styles/reset-home.css"
+      ]
+    },
+    {
+      "prop": "--stone",
+      "files": [
+        "styles/career-loop-home.css",
+        "styles/reset-home.css"
+      ]
+    },
+    {
+      "prop": "--stone-deep",
+      "files": [
+        "styles/career-loop-home.css",
+        "styles/reset-home.css"
+      ]
+    },
+    {
+      "prop": "--stone-dim",
+      "files": [
+        "styles/career-loop-home.css",
+        "styles/reset-home.css"
+      ]
+    },
+    {
+      "prop": "--stone-dash",
+      "files": [
+        "styles/career-loop-home.css",
+        "styles/reset-home.css"
+      ]
+    },
+    {
+      "prop": "--stone-lane",
+      "files": [
+        "styles/career-loop-home.css",
+        "styles/reset-home.css"
+      ]
+    },
+    {
+      "prop": "--placeholder",
+      "files": [
+        "styles/career-loop-home.css",
+        "styles/reset-home.css"
+      ]
+    },
+    {
+      "prop": "--pure-white",
+      "files": [
+        "styles/career-loop-home.css",
+        "styles/reset-home.css"
+      ]
+    },
+    {
+      "prop": "--space-1",
+      "files": [
+        "styles/design-tokens.css",
+        "styles/wave1501-home.css"
+      ]
+    },
+    {
+      "prop": "--space-5",
+      "files": [
+        "styles/design-tokens.css",
+        "styles/wave1501-home.css"
+      ]
+    },
+    {
+      "prop": "--space-12",
+      "files": [
+        "styles/design-tokens.css",
+        "styles/wave1501-home.css"
+      ]
+    },
+    {
+      "prop": "--vt-badge-access-text",
+      "files": [
+        "styles/home.css",
+        "styles/tokens.css"
+      ]
+    },
+    {
+      "prop": "--ink-950",
+      "files": [
+        "styles/matcha-zen.css",
+        "styles/wave1501-home.css"
+      ]
+    },
+    {
+      "prop": "--ink-900",
+      "files": [
+        "styles/matcha-zen.css",
+        "styles/wave1501-home.css"
+      ]
+    },
+    {
+      "prop": "--ink-800",
+      "files": [
+        "styles/matcha-zen.css",
+        "styles/wave1501-home.css"
+      ]
+    }
+  ],
+  "files": [
+    {
+      "file": "app/globals.css",
+      "bytes": 35133,
+      "selectors": 29,
+      "customProps": 202,
+      "classNames": 22,
+      "importers": [
+        "app/layout.tsx"
+      ],
+      "deadClasses": [
+        "animate-node-breathe",
+        "glow-on-hover",
+        "memory-cluster"
+      ]
+    },
+    {
+      "file": "components/evidence-record/record.css",
+      "bytes": 14067,
+      "selectors": 55,
+      "customProps": 13,
+      "classNames": 28,
+      "importers": [
+        "app/design/reset/page.tsx",
+        "components/evidence-record/Z1Home.tsx",
+        "components/evidence-record/faces.mjs"
+      ],
+      "deadClasses": []
+    },
+    {
+      "file": "components/home/SourceCoverageRibbon.module.css",
+      "bytes": 1210,
+      "selectors": 3,
+      "customProps": 0,
+      "classNames": 2,
+      "importers": [
+        "components/home/SourceCoverageRibbon.tsx"
+      ],
+      "deadClasses": []
+    },
+    {
+      "file": "components/motion/ScrollMotion.module.css",
+      "bytes": 1443,
+      "selectors": 7,
+      "customProps": 0,
+      "classNames": 4,
+      "importers": [
+        "components/motion/ScrollMotion.tsx"
+      ],
+      "deadClasses": []
+    },
+    {
+      "file": "components/page-stack/PageStack.module.css",
+      "bytes": 2846,
+      "selectors": 18,
+      "customProps": 0,
+      "classNames": 16,
+      "importers": [
+        "components/page-stack/EntityLink.tsx",
+        "components/page-stack/EntityPreviewCard.tsx",
+        "components/page-stack/PageStack.tsx",
+        "components/page-stack/Pane.tsx"
+      ],
+      "deadClasses": []
+    },
+    {
+      "file": "styles/antigravity.css",
+      "bytes": 19598,
+      "selectors": 62,
+      "customProps": 128,
+      "classNames": 47,
+      "importers": [
+        "app/layout.tsx"
+      ],
+      "deadClasses": [
+        "ag-arrow-link",
+        "ag-body",
+        "ag-btn",
+        "ag-btn-accent",
+        "ag-btn-compact",
+        "ag-btn-nav",
+        "ag-btn-primary",
+        "ag-btn-secondary",
+        "ag-btn-text",
+        "ag-caption",
+        "ag-card",
+        "ag-card-elevated",
+        "ag-code",
+        "ag-col-1",
+        "ag-col-10",
+        "ag-col-11",
+        "ag-col-12",
+        "ag-col-2",
+        "ag-col-3",
+        "ag-col-4",
+        "ag-col-5",
+        "ag-col-6",
+        "ag-col-7",
+        "ag-col-8",
+        "ag-col-9",
+        "ag-container",
+        "ag-cta",
+        "ag-cta-nav",
+        "ag-divider",
+        "ag-grid-col",
+        "ag-grid-row",
+        "ag-heading-0",
+        "ag-heading-00",
+        "ag-heading-1",
+        "ag-heading-2",
+        "ag-heading-3",
+        "ag-heading-4",
+        "ag-heading-5",
+        "ag-heading-6",
+        "ag-heading-7",
+        "ag-heading-8",
+        "ag-heading-9",
+        "ag-input",
+        "ag-label",
+        "ag-landing-main",
+        "ag-pill",
+        "ag-small"
+      ]
+    },
+    {
+      "file": "styles/artifact-motion.css",
+      "bytes": 12774,
+      "selectors": 35,
+      "customProps": 5,
+      "classNames": 34,
+      "importers": [
+        "__tests__/scene-artifacts.test.tsx",
+        "app/employers/how-it-works/page.tsx",
+        "app/employers/page.tsx",
+        "app/pilot/page.tsx",
+        "app/trust/page.tsx",
+        "components/artifacts/PageArtifacts.tsx",
+        "components/artifacts/SceneArtifacts.tsx",
+        "components/matcha/MatchaExperienceShowcase.tsx",
+        "components/motion/ArtifactStage.tsx"
+      ],
+      "deadClasses": [
+        "ask-art-glyph-accent",
+        "ask-art-overlap"
+      ]
+    },
+    {
+      "file": "styles/blueprint-overrides.css",
+      "bytes": 9482,
+      "selectors": 39,
+      "customProps": 0,
+      "classNames": 35,
+      "importers": [
+        "app/globals.css (@import)"
+      ],
+      "deadClasses": [
+        "vital-blueprint",
+        "vital-topnav__divider"
+      ]
+    },
+    {
+      "file": "styles/career-loop-home.css",
+      "bytes": 21689,
+      "selectors": 109,
+      "customProps": 18,
+      "classNames": 67,
+      "importers": [
+        "app/page.tsx"
+      ],
+      "deadClasses": [
+        "clh-plate-sub",
+        "clh-proof",
+        "clh-room--ivory"
+      ]
+    },
+    {
+      "file": "styles/clinician-doc.css",
+      "bytes": 5518,
+      "selectors": 21,
+      "customProps": 32,
+      "classNames": 12,
+      "importers": [
+        "app/globals.css (@import)"
+      ],
+      "deadClasses": []
+    },
+    {
+      "file": "styles/design-tokens.css",
+      "bytes": 2727,
+      "selectors": 1,
+      "customProps": 57,
+      "classNames": 0,
+      "importers": [
+        "components/layout/Grid.tsx",
+        "app/globals.css (@import)"
+      ],
+      "deadClasses": []
+    },
+    {
+      "file": "styles/glass-cursor.css",
+      "bytes": 2295,
+      "selectors": 3,
+      "customProps": 0,
+      "classNames": 1,
+      "importers": [
+        "app/layout.tsx"
+      ],
+      "deadClasses": []
+    },
+    {
+      "file": "styles/graph.css",
+      "bytes": 7883,
+      "selectors": 39,
+      "customProps": 0,
+      "classNames": 34,
+      "importers": [
+        "app/globals.css (@import)"
+      ],
+      "deadClasses": [
+        "tippy-arrow",
+        "tippy-box",
+        "tippy-content",
+        "vital-graph-badge",
+        "vital-graph-badge--accent",
+        "vital-graph-drawer",
+        "vital-graph-loading",
+        "vital-graph-stage",
+        "vital-graph-statusbar",
+        "vital-graph-statusbar__group",
+        "vital-graph-tabs",
+        "vital-swatch",
+        "vital-swatch--line"
+      ]
+    },
+    {
+      "file": "styles/header.css",
+      "bytes": 9570,
+      "selectors": 46,
+      "customProps": 5,
+      "classNames": 24,
+      "importers": [
+        "app/globals.css (@import)"
+      ],
+      "deadClasses": []
+    },
+    {
+      "file": "styles/holder-light-compat.css",
+      "bytes": 1997,
+      "selectors": 5,
+      "customProps": 0,
+      "classNames": 1,
+      "importers": [
+        "components/holder/HolderWorkspaceShell.tsx",
+        "app/globals.css (@import)"
+      ],
+      "deadClasses": []
+    },
+    {
+      "file": "styles/home.css",
+      "bytes": 32085,
+      "selectors": 120,
+      "customProps": 16,
+      "classNames": 84,
+      "importers": [
+        "__tests__/design-wave1501.test.tsx",
+        "__tests__/evidence-capsule.test.tsx",
+        "__tests__/film-journey-unification.test.tsx",
+        "app/design/reset/page.tsx",
+        "app/dev/compete-film/page.tsx",
+        "app/page.tsx",
+        "components/evidence-record/Z1Home.tsx",
+        "components/home/evidence/EvidenceCapsule.tsx",
+        "components/home/film/HorizontalCareerFilm.tsx",
+        "components/home/w1501/Sky.tsx",
+        "components/home/w1501/Wave1501Client.tsx",
+        "components/home/w1501/primitives.tsx",
+        "scripts/evidence-record-acceptance-matrix.mjs"
+      ],
+      "deadClasses": [
+        "film-narration",
+        "film-narration-line",
+        "film-narration-mark"
+      ]
+    },
+    {
+      "file": "styles/homepage-motion.css",
+      "bytes": 22298,
+      "selectors": 80,
+      "customProps": 1,
+      "classNames": 50,
+      "importers": [
+        "__tests__/chapter-anchor-contract.test.ts",
+        "components/home/StoryIcon.tsx",
+        "app/globals.css (@import)"
+      ],
+      "deadClasses": [
+        "hero-compact",
+        "mz-scale-lg",
+        "mz-scroll-cue",
+        "proofcycle",
+        "proofcycle-word",
+        "proofcycle-words"
+      ]
+    },
+    {
+      "file": "styles/intelligence.css",
+      "bytes": 16966,
+      "selectors": 87,
+      "customProps": 27,
+      "classNames": 76,
+      "importers": [
+        "app/globals.css (@import)"
+      ],
+      "deadClasses": [
+        "vital-card-grid",
+        "vital-feed-card--ranked",
+        "vital-feed-card__signal--investigator",
+        "vital-graph-stage--context",
+        "vital-metric-card",
+        "vital-metric-card--accent",
+        "vital-metric-card--danger",
+        "vital-metric-card--success",
+        "vital-metric-grid",
+        "vital-profile-spotlight",
+        "vital-profile-spotlight__actions",
+        "vital-profile-spotlight__copy",
+        "vital-profile-spotlight__summary",
+        "vital-profile-spotlight__title",
+        "vital-results-table",
+        "vital-results-table__head",
+        "vital-results-table__row",
+        "vital-status-pill--blocked",
+        "vital-status-pill--elevated",
+        "vital-status-pill--ready",
+        "vital-verification-banner",
+        "vital-verification-banner--no_match",
+        "vital-verification-banner--ready",
+        "vital-verification-banner--watch"
+      ]
+    },
+    {
+      "file": "styles/kinetic.css",
+      "bytes": 1279,
+      "selectors": 3,
+      "customProps": 0,
+      "classNames": 3,
+      "importers": [
+        "app/globals.css (@import)"
+      ],
+      "deadClasses": [
+        "kinetic-phrase-in",
+        "kinetic-phrase-slot",
+        "workflow-fade-in"
+      ]
+    },
+    {
+      "file": "styles/matcha-deck.css",
+      "bytes": 25256,
+      "selectors": 149,
+      "customProps": 24,
+      "classNames": 107,
+      "importers": [
+        "app/globals.css (@import)"
+      ],
+      "deadClasses": [
+        "mdk-chip--possible",
+        "mdk-chip--promising"
+      ]
+    },
+    {
+      "file": "styles/matcha-zen.css",
+      "bytes": 27378,
+      "selectors": 66,
+      "customProps": 41,
+      "classNames": 46,
+      "importers": [
+        "app/explore/page.tsx",
+        "components/clinician-record/ClinicianRecordDetail.tsx",
+        "components/motion/Reveal.tsx",
+        "app/globals.css (@import)"
+      ],
+      "deadClasses": [
+        "mz-display-hero",
+        "mz-dotgrid",
+        "mz-meter-ok"
+      ]
+    },
+    {
+      "file": "styles/matcha.css",
+      "bytes": 1636,
+      "selectors": 4,
+      "customProps": 0,
+      "classNames": 3,
+      "importers": [
+        "app/globals.css (@import)"
+      ],
+      "deadClasses": [
+        "matcha-skeleton"
+      ]
+    },
+    {
+      "file": "styles/motion.css",
+      "bytes": 8284,
+      "selectors": 0,
+      "customProps": 0,
+      "classNames": 0,
+      "importers": [
+        "__tests__/chapter-anchor-contract.test.ts",
+        "__tests__/scene-artifacts.test.tsx",
+        "app/employers/how-it-works/page.tsx",
+        "app/employers/page.tsx",
+        "app/ops/engine/page.tsx",
+        "app/pilot/page.tsx",
+        "app/trust/page.tsx",
+        "components/artifacts/PageArtifacts.tsx",
+        "components/artifacts/SceneArtifacts.tsx",
+        "components/design-wave1505/views-governance.tsx",
+        "components/evidence-record/Z1Home.tsx",
+        "components/home/StoryIcon.tsx",
+        "components/matcha/MatchaExperienceShowcase.tsx",
+        "components/motion/ArtifactStage.tsx",
+        "app/globals.css (@import)"
+      ],
+      "deadClasses": []
+    },
+    {
+      "file": "styles/page-density.css",
+      "bytes": 1932,
+      "selectors": 7,
+      "customProps": 5,
+      "classNames": 3,
+      "importers": [
+        "__tests__/page-density-system.test.tsx",
+        "app/layout.tsx"
+      ],
+      "deadClasses": []
+    },
+    {
+      "file": "styles/reset-home.css",
+      "bytes": 19198,
+      "selectors": 92,
+      "customProps": 18,
+      "classNames": 54,
+      "importers": [
+        "app/design/reset/page.tsx"
+      ],
+      "deadClasses": [
+        "rst-room--ivory"
+      ]
+    },
+    {
+      "file": "styles/scene.css",
+      "bytes": 2178,
+      "selectors": 5,
+      "customProps": 0,
+      "classNames": 5,
+      "importers": [
+        "components/home/scene/AmbientField.tsx",
+        "app/globals.css (@import)"
+      ],
+      "deadClasses": [
+        "scene-scrim",
+        "scene-scrim-strong"
+      ]
+    },
+    {
+      "file": "styles/story-rail.css",
+      "bytes": 4005,
+      "selectors": 15,
+      "customProps": 0,
+      "classNames": 9,
+      "importers": [
+        "app/globals.css (@import)"
+      ],
+      "deadClasses": []
+    },
+    {
+      "file": "styles/themes/index.css",
+      "bytes": 9965,
+      "selectors": 6,
+      "customProps": 86,
+      "classNames": 3,
+      "importers": [
+        "components/vds/primitives.tsx",
+        "app/globals.css (@import)"
+      ],
+      "deadClasses": [
+        "vt-animate-grow-x",
+        "vt-animate-rise"
+      ]
+    },
+    {
+      "file": "styles/tokens.css",
+      "bytes": 16555,
+      "selectors": 12,
+      "customProps": 195,
+      "classNames": 11,
+      "importers": [
+        "components/layout/Grid.tsx",
+        "app/globals.css (@import)"
+      ],
+      "deadClasses": [
+        "ops-muted",
+        "ops-subtle",
+        "ops-surface-alt",
+        "trust-l0",
+        "trust-l1",
+        "trust-l2",
+        "trust-l3"
+      ]
+    },
+    {
+      "file": "styles/typography.css",
+      "bytes": 10416,
+      "selectors": 27,
+      "customProps": 54,
+      "classNames": 25,
+      "importers": [
+        "app/layout.tsx",
+        "app/globals.css (@import)"
+      ],
+      "deadClasses": [
+        "metric-lg",
+        "metric-sm",
+        "metric-xl",
+        "type-body-lg",
+        "type-body-sm",
+        "type-heading-lg",
+        "type-heading-md",
+        "type-heading-sm",
+        "type-heading-xl",
+        "type-label"
+      ]
+    },
+    {
+      "file": "styles/utilities.css",
+      "bytes": 6642,
+      "selectors": 14,
+      "customProps": 0,
+      "classNames": 12,
+      "importers": [
+        "app/globals.css (@import)"
+      ],
+      "deadClasses": [
+        "animate-alive-slide",
+        "animate-critical-pulse",
+        "badge-animate-pop",
+        "command-pulse",
+        "command-ripple",
+        "staggered-scroll-reveal"
+      ]
+    },
+    {
+      "file": "styles/vds.css",
+      "bytes": 958,
+      "selectors": 4,
+      "customProps": 0,
+      "classNames": 3,
+      "importers": [
+        "app/globals.css (@import)"
+      ],
+      "deadClasses": [
+        "vds-graph-cluster-label",
+        "vds-graph-dimmed",
+        "vds-graph-focused"
+      ]
+    },
+    {
+      "file": "styles/vitalTokens.css",
+      "bytes": 6741,
+      "selectors": 2,
+      "customProps": 79,
+      "classNames": 1,
+      "importers": [
+        "components/design-wave1505/styles.ts",
+        "app/globals.css (@import)"
+      ],
+      "deadClasses": []
+    },
+    {
+      "file": "styles/wave1501-home.css",
+      "bytes": 25362,
+      "selectors": 120,
+      "customProps": 91,
+      "classNames": 81,
+      "importers": [
+        "__tests__/design-wave1501.test.tsx",
+        "components/home/w1501/Sky.tsx",
+        "components/home/w1501/Wave1501Client.tsx",
+        "components/home/w1501/primitives.tsx"
+      ],
+      "deadClasses": [
+        "vt-btn-primary",
+        "vt-btn-secondary",
+        "vt-chip",
+        "vt-chip-dot",
+        "vt-freshness",
+        "vt-honesty",
+        "vt-paper-card",
+        "vt-srcrow",
+        "vt-srcrow-label",
+        "vt-srcrow-source",
+        "vt-srcrow-spacer"
+      ]
+    },
+    {
+      "file": "styles/z1-home.css",
+      "bytes": 33280,
+      "selectors": 183,
+      "customProps": 2,
+      "classNames": 117,
+      "importers": [
+        "components/evidence-record/Z1Home.tsx"
+      ],
+      "deadClasses": [
+        "z1-loop-inner",
+        "z1-loop-title",
+        "z1-loop-track",
+        "z1-stage-desc",
+        "z1-stage-glyph",
+        "z1-stage-item",
+        "z1-stage-name"
+      ]
+    }
+  ]
+}
