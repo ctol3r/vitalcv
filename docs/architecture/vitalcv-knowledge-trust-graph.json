@@ -98,7 +98,8 @@
     "ConsentProof",
     "AgentActor",
     "AgentSubjectSchedule",
-    "PlanDelta"
+    "PlanDelta",
+    "Deadline"
   ],
   "edges": [
     { "source": "Clinician", "relation": "HAS_NPI", "target": "NPI" },
@@ -208,7 +209,8 @@
     { "source": "ConsentProof", "relation": "MINTED_FROM", "target": "AgentConsentLedger" },
     { "source": "AgentActor", "relation": "CONSTRAINS", "target": "StartAgent" },
     { "source": "AgentSubjectSchedule", "relation": "GATES", "target": "StartAgent" },
-    { "source": "PlanDelta", "relation": "DERIVED_FROM", "target": "StartPlan" }
+    { "source": "PlanDelta", "relation": "DERIVED_FROM", "target": "StartPlan" },
+    { "source": "Deadline", "relation": "PRIORITIZES", "target": "StartBlocker" }
   ],
   "rules": [
     "NPPES identity claim is NOT licensure proof.",
@@ -314,7 +316,10 @@
     "In an observation wave shadow is structural (no executor wired), and an unreadable kill switch is not a kill.",
     "Change detection never uses contextFingerprint or planId — both change when only the clock advances; comparison runs over a decision-relevant projection.",
     "Every delta is recorded, only some are material; observation_refreshed_no_change exists so the commonest outcome is logged and never surfaced.",
-    "Plans may only be diffed at equal completeness, and no-prior-run is a refusal rather than a no-change result."
+    "Plans may only be diffed at equal completeness, and no-prior-run is a refusal rather than a no-change result.",
+    "A deadline carries mandatory provenance; only source-set and employer-set dates may be stated as fact, and a VitalCV freshness window may only be phrased as our own preference.",
+    "A deadline never creates a blocker — it changes the urgency of an existing one.",
+    "Urgency is an intra-tier tiebreak and never reorders the ranking tiers."
   ],
   "knownLimitations": [
     "Machine-readable stub is documentation-grade only, not integrated into runtime types."

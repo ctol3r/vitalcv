@@ -90,7 +90,7 @@ export function runStartPolicy(
 
   // 5–7: ownership and permissions were assigned at derivation (they are
   // properties of the action, not presentation); rank what remains.
-  const { rankedActionIds } = rankActions({ actions, blockingApplication });
+  const { rankedActionIds } = rankActions({ actions, blockingApplication, blockers });
 
   const fingerprint = contextFingerprint(context);
   const plan: StartPlan = {

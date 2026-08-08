@@ -11,6 +11,7 @@
  * platform_record ref to the context itself), and no rule upgrades a source
  * state, an ownership state, or a review state.
  */
+import { deriveDeadlines, urgencyForRef } from '../deadlines/derive';
 import { actionId, blockerId } from '../ids';
 import type {
   ActionOwner,
@@ -92,6 +93,10 @@ export function deriveBlockersAndActions(
   const actions = new Map<string, AgentAction>();
   const blockingApplication = new Set<string>();
 
+  // A2.3 — deadlines never create blockers; they make existing ones more
+  // pressing. Derived once here and attached by ref as blockers are added.
+  const deadlines = deriveDeadlines(context);
+
   const applicationActive =
     context.role !== undefined &&
     (context.role.applicationState === 'in_progress' || context.role.applicationState === 'submitted');
@@ -130,9 +135,17 @@ export function deriveBlockersAndActions(
     vitalcvCanActNow: boolean;
     actionIds: string[];
     blocksApplication?: boolean;
+    /** The lane/role a deadline would attach to, when one applies. */
+    urgencyRef?: string;
   }): string {
     const id = blockerId(input.type, input.discriminator);
     if (blockers.some((b) => b.id === id)) return id;
+    // `urgencyRef` names the thing a deadline would be about (a lane, a
+    // role). Absent when the blocker is not the sort of thing a clock
+    // applies to.
+    const urgency = input.urgencyRef
+      ? urgencyForRef(deadlines, input.urgencyRef, context.collectedAt)
+      : null;
     blockers.push({
       id,
       type: input.type,
@@ -143,6 +156,7 @@ export function deriveBlockersAndActions(
       resolvableByActionIds: input.actionIds,
       vitalcvCanActNow: input.vitalcvCanActNow,
       dependsOnBlockerIds: [],
+      ...(urgency ? { urgency } : {}),
     });
     for (const aId of input.actionIds) {
       const action = actions.get(aId);
@@ -360,6 +374,7 @@ export function deriveBlockersAndActions(
         addBlocker({
           type: 'stale_source_observation',
           discriminator: `lane:${lane.laneId}`,
+          urgencyRef: lane.laneId,
           what: `The ${lane.authority} observation is older than its freshness window.`,
           whyItMatters: 'Reviewers discount observations that have aged past the window the source itself sets.',
           controlledBy: 'vitalcv',
@@ -374,6 +389,7 @@ export function deriveBlockersAndActions(
         addBlocker({
           type: 'invalid_source_observation',
           discriminator: `lane:${lane.laneId}`,
+          urgencyRef: lane.laneId,
           what: `${lane.authority} returned a response that failed validation.`,
           whyItMatters:
             'An unparseable response is not evidence and is never treated as a status. A clean re-read is needed.',
@@ -400,6 +416,7 @@ export function deriveBlockersAndActions(
         addBlocker({
           type: 'source_unavailable',
           discriminator: `lane:${lane.laneId}`,
+          urgencyRef: lane.laneId,
           what: `${lane.authority} is temporarily unreachable.`,
           whyItMatters: 'The lane cannot move until the source answers; only the source controls that.',
           controlledBy: 'source',
@@ -427,6 +444,7 @@ export function deriveBlockersAndActions(
         addBlocker({
           type: 'unsupported_jurisdiction',
           discriminator: `lane:${lane.laneId}`,
+          urgencyRef: lane.laneId,
           what: `VitalCV cannot read ${lane.authority} yet.`,
           whyItMatters:
             'Until coverage exists, this lane can only carry clinician-provided documentation, which reviewers weigh differently.',
@@ -454,6 +472,7 @@ export function deriveBlockersAndActions(
         addBlocker({
           type: 'unresolved_public_source_fact',
           discriminator: `lane:${lane.laneId}:adverse`,
+          urgencyRef: lane.laneId,
           what: `${lane.authority} reports an adverse record on this lane.`,
           whyItMatters: 'Reviewers will see the source record; unaddressed, it stops most reviews.',
           controlledBy: 'source',
@@ -558,6 +577,7 @@ export function deriveBlockersAndActions(
         addBlocker({
           type: 'role_requirement_unmet',
           discriminator: `requirement:${req.id}`,
+          ...(req.laneId ? { urgencyRef: req.laneId } : {}),
           what: `The role's ${req.laneId.replace(/[_:]/g, ' ')} requirement is ${req.satisfied === 'unknown' ? 'not yet evidenced' : 'unmet'}.`,
           whyItMatters: 'The employer requires this before the application can conclude.',
           controlledBy: req.controlledBy,

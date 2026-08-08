@@ -245,6 +245,27 @@ export const TEMPORAL_SCENARIOS: TemporalScenario[] = [
     },
   },
   {
+    id: 'tb11_source_deadline_enters_window',
+    title: 'A source-set expiry crosses the notice offset',
+    description:
+      'The authority published an end date and it is now inside the notice window. Urgency changes; no new blocker type appears, because a deadline is not a blocker.',
+    prior: ctx(T1, {
+      observations: [
+        { ...lane('state_license:VA', 'stale', T1), sourceExpiresAt: '2026-12-01T00:00:00.000Z' },
+      ],
+    }),
+    next: ctx(T2, {
+      observations: [
+        { ...lane('state_license:VA', 'stale', T1), sourceExpiresAt: '2026-08-15T00:00:00.000Z' },
+      ],
+    }),
+    // The blocker set is unchanged — only its urgency moved — so the plan's
+    // decision content is identical and no delta is produced. Urgency lives
+    // on the blocker, and A2.2's projection does not carry it; wiring it in
+    // would make every day's drift toward a deadline a "change".
+    expect: { requiredKinds: [], materialCount: 0 },
+  },
+  {
     id: 'tb10_identical_state_idempotent',
     title: 'Two ticks over byte-identical state',
     description: 'No deltas, no duplicate work, nothing to say.',

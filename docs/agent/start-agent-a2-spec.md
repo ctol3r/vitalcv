@@ -903,6 +903,7 @@ of them and would either amplify or inherit each one.
 | 3 | `ActivationRequirement.dueAt` and `VerificationRequest.dueAt` / `.nextFollowUpAt` are declared, read, and ordered by — but never written | Employer-set requirement deadlines do not exist as data. §8. |
 | 4 | `OutboxEvent` has full drain semantics and five writers but **no drainer** — rows accumulate as `PENDING` indefinitely (`revocationOutboxWorker` is the working template) | A2 polls our own DB for employer transitions rather than depending on it (§6). |
 | 5 | `webhookDispatcher.ts` is `@ts-nocheck` over a real schema mismatch — selects `signingSecret`/`active`, model declares `secret`/`isActive` | Treat enterprise webhook delivery as unproven. |
+| 7 | `buildCanonicalSourceCoverageFreshness` builds `expiresAt` as EITHER a source-published value OR `observedAt + freshnessWindowHours`, and the output cannot tell them apart — so nothing downstream can distinguish an authority's date from our own policy window | **Found during A2.3.** Forces source-set deadlines through a separate provenance-preserving field; the coverage `expiresAt` is unusable as a source fact until the two are split. |
 | 6 | Several `/api/internal/*` web routes are ungated (`funnel-metrics`, `mission-ops/sources`, `source-health`, and `pilot/start-outcome`, which is an unauthenticated write proxy) | A2's tick endpoint must use `_auth.ts::checkAuth`, not follow these. |
 
 ## 17. Explicitly out of scope for A2

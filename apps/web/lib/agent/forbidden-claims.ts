@@ -10,6 +10,7 @@
  * repo-banned strings literally (the claims-check gate greps source text; the
  * split-join constant is the documented escape hatch for evaluators).
  */
+import { deriveDeadlines } from './deadlines/derive';
 import type { StartAgentContext } from './types';
 
 const j = (...parts: string[]) => parts.join(' ');
@@ -103,6 +104,27 @@ export const FORBIDDEN_CLAIM_RULES: ForbiddenClaimRule[] = [
       ),
     detail:
       'License status language belongs to the source observation; agent text may echo it only while a current observation exists.',
+  },
+  {
+    code: 'expiry_stated_as_fact',
+    phrases: [
+      'your license expires',
+      'your credential expires',
+      'this expires on',
+      'expires on',
+      'has expired',
+      'expiration date',
+    ],
+    // Only sayable when a deadline that MAY be stated as fact exists —
+    // source-set or employer-set. Our own freshness window is not the
+    // clinician's expiry date, and phrasing it as one is the single most
+    // likely way this model gets violated.
+    allowedWhen: (ctx) =>
+      deriveDeadlines(ctx).some(
+        (d) => d.provenance === 'source_set' || d.provenance === 'employer_set',
+      ),
+    detail:
+      'An expiry may be stated as fact only from a source-set or employer-set deadline. A VitalCV freshness window is our preference, not the authority\u2019s date.',
   },
   {
     code: 'source_process_claim',
