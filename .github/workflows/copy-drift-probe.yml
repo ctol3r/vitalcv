@@ -1,0 +1,96 @@
+# Public-copy drift probe (Continuous Design Lab).
+#
+# What this answers that CI does not:
+#   The unit guard (apps/web/__tests__/customer-language-guard.test.ts) stops
+#   retired vocabulary from reaching `main`. This asks whether PRODUCTION still
+#   says what we think it says — a different question in this repo, because a
+#   CONFLICTING PR skips every pull_request gate, a non-main base ref skips them
+#   too, and a rollback can serve an older build indefinitely. Each of those can
+#   put copy on production that no merged guard ever saw.
+#
+# Infra vs signal (convention borrowed from source-health-probe.yml):
+#   A red run must mean "production contradicts the contract", never "the runner
+#   had a bad day". The probe retries transport errors three times with backoff;
+#   if production still cannot be read it exits 2 = NO SIGNAL, and this job goes
+#   green with a job-summary note rather than crying drift. Ambiguity resolves to
+#   quiet, because the alternative — a monitor that cries wolf — gets ignored,
+#   and an ignored monitor is worse than none.
+#
+# Truth contract:
+#   The probe asserts CONCEPTS (a retired noun is absent; a freshness window is
+#   stated), never exact sentences, so legitimate copy iteration does not turn it
+#   red. Its most important assertions are the POSITIVE ones: a copy edit that
+#   silently drops a source-cadence window makes a monthly-cadence source read as
+#   live, and every other check in the repo would still pass.
+#
+# No secrets. It reads public pages only.
+
+name: Public-copy drift probe
+
+on:
+  schedule:
+    # Twice daily. Copy drift is not a minutes-matter event; noise is the
+    # bigger risk to a monitor's usefulness than latency.
+    - cron: '0 7,19 * * *'
+  workflow_dispatch:
+    inputs:
+      base:
+        description: 'Origin to probe (defaults to production)'
+        required: false
+        default: 'https://vitalcv.com'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: copy-drift-probe
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+
+      - name: Probe production copy contract
+        id: probe
+        env:
+          PROBE_BASE: ${{ inputs.base || 'https://vitalcv.com' }}
+        run: |
+          set +e
+          node scripts/copy-drift-probe.mjs | tee /tmp/probe.txt
+          # The probe's own exit code, not tee's — a piped status here would
+          # report every run clean.
+          code=${PIPESTATUS[0]}
+          set -e
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          {
+            echo '## Public-copy drift probe'
+            echo
+            echo '```'
+            cat /tmp/probe.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit 0
+
+      - name: Classify result
+        run: |
+          case "${{ steps.probe.outputs.code }}" in
+            0)
+              echo "Copy contract holds."
+              ;;
+            2)
+              echo "::notice title=No signal::Production could not be read after retries. This run makes no claim about drift."
+              echo '> **No signal** — production unreadable after 3 attempts. Not a drift finding.' >> "$GITHUB_STEP_SUMMARY"
+              ;;
+            *)
+              echo "::error title=Copy drift::Production contradicts the copy contract. See the job summary."
+              echo '> **DRIFT** — see the assertions above.' >> "$GITHUB_STEP_SUMMARY"
+              exit 1
+              ;;
+          esac

@@ -79,6 +79,17 @@ useful, mobile, and relevant interaction states (menu open/closed, empty/resolve
 loading/error, anonymous/authenticated, reduced motion) — rendered product, not code
 screenshots. Evidence lives under `docs/design/design-lab/<ID>/`.
 
+**Production drift is monitored, not assumed.**
+`.github/workflows/copy-drift-probe.yml` runs `scripts/copy-drift-probe.mjs` twice
+daily against production. It exists because the unit guard answers "can this reach
+`main`?" while the probe answers "does production still say it?" — different questions
+here, since a CONFLICTING PR skips every `pull_request` gate, a non-main base ref skips
+them too, and a rollback can serve an older build indefinitely. It asserts concepts, not
+sentences, and its POSITIVE assertions matter most: an edit that drops a source-cadence
+window makes a monthly source read as live while every other check stays green.
+Three exit states, each proven before it was scheduled: `0` holds, `1` drift, `2` no
+signal (production unreadable → green with a note, never a false alarm).
+
 **Copy waves carry one extra obligation.** A green vitest run does not cover rendered
 copy pinned by end-to-end specs: `vitest.config` excludes `tests/**`. Before opening a
 copy PR, grep `tests/` for every string the wave changes and run the affected specs —
