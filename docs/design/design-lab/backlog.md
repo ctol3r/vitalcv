@@ -83,7 +83,7 @@ regression — assert against a hydration signal, not a fixed wait.
      `strategy-messaging-guard.test.tsx` lives only in open PR #1079, but the merged
      inventory describes it as active. Nothing currently fails the build when a retired
      noun reaches the homepage. Landing it is part of wave L1.
-- **Sequencing:** **L1 SHIPPED** (see below) → L2 `passport` orphans (~24, excl. manifest) →
+- **Sequencing:** **L1 MERGED** `96d3255b2` → **L2 AT FOUNDER GATE** (`passport` orphans) →
   L3 acquisition-copy demotion (~35, after #1079) → L4 in-app snapshot noun (~30).
 - **Founder decisions recorded 2026-08-07:** `recognition` **KEPT** as a distinct
   in-app state; routes are **labels-only** (no path renames or redirects in a copy
@@ -141,6 +141,24 @@ than forcing them into scope.
 - **Recommended direction:** delete both, with their tests. Do not "fix" their copy —
   polishing dead code is how it survives another audit.
 - **Size:** XS · **Collision risk:** verify against #1079 before deleting (it owns `components/home/`)
+
+## L2 — `passport` retired from customer copy — **AT FOUNDER GATE**
+
+- **Thesis:** the concept died with the route (#1096 retired `/passport`); the
+  vocabulary outlived it. This is deletion of a name that points at nothing.
+- **Scope:** 27 rendered-copy replacements across 21 files. Internal names untouched
+  (`PassportData`, `passport` variables, `/api/passport/*`, `lib/trust/passport-*`) —
+  the strategy explicitly forbids mass-renaming machinery.
+- **Delicate case:** `TrustAttributionRegister` is a truth surface with its own
+  contract test. Its `retrievalTime` values state *when* a source is read; the fact
+  ("per request") survives, and one row citing `/passport input` — a route that no
+  longer exists — is corrected to the route that carries NPI input today. Guarded
+  both ways.
+- **Caught an L1 miss:** `AuthDisclosureCard` still read "Access your Wallet"; it was
+  not on L1's guard surface list, so the guard stayed green and its own pinned test
+  caught it instead. The surface list is a commitment, not a net — noted in the
+  charter's evidence contract.
+- **Verification:** full suite **3357 passed**; guard extended to `passport`.
 
 ## DL-003 — Homepage journey rail exposes machinery labels ("Packet", "Their decision")
 
