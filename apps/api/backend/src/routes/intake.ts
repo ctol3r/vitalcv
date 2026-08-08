@@ -23,6 +23,7 @@ import {
   updateSelfAttested,
   type ClearableLinkField,
 } from '../services/intake/intakeService';
+import prisma from '../graphql/prisma_client';
 import { ensureWorkspaceUser } from '../services/workspace/workspaceService';
 import { identityStateForUser, requireIdentityTier } from '../services/identity/identityGate';
 import { publicApiRateLimit } from '../middleware/publicSafety';
@@ -265,6 +266,34 @@ export function registerIntakeRoutes(app: Express): void {
     asyncHandler(async (req, res) => {
       const userId = await requireInternalUserId(req);
       res.json(await identityStateForUser(userId));
+    }),
+  );
+
+  /**
+   * GET /api/profile/notification-target — N1.
+   *
+   * The caller's OWN notification-relevant facts, so the web app can grant
+   * contact consent for the right NPI without ever accepting an NPI from the
+   * browser. Read-only, and deliberately returns no address: whether a
+   * verified email exists is all a settings screen needs, and the sweep
+   * reads the address itself server-side.
+   */
+  app.get(
+    '/api/profile/notification-target',
+    asyncHandler(async (req, res) => {
+      const userId = await requireInternalUserId(req);
+      const profile = await prisma.personProfile.findUnique({
+        where: { userId },
+        select: { npi: true, verifiedEmail: true },
+      });
+      const email = profile?.verifiedEmail?.trim() ?? '';
+      res.json({
+        npi: profile?.npi ?? null,
+        hasVerifiedEmail: email.includes('@'),
+        // Domain only. Enough for a settings screen to say "we'd write to
+        // your @example.org address" without handing the address back out.
+        verifiedEmailDomain: email.includes('@') ? email.split('@')[1] : null,
+      });
     }),
   );
 
