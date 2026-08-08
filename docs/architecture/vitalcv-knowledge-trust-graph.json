@@ -90,7 +90,10 @@
     "ServerPsvReceiptWriter",
     "DryRunPersistenceAttempt",
     "FailedPersistenceAttempt",
-    "DeferredPersistenceAttempt"
+    "DeferredPersistenceAttempt",
+    "StartAgent",
+    "StartPlan",
+    "StartBench"
   ],
   "edges": [
     { "source": "Clinician", "relation": "HAS_NPI", "target": "NPI" },
@@ -192,7 +195,10 @@
     { "source": "IssuerAuditPersistenceAdapter", "relation": "EMITS", "target": "PersistenceAdapterDecision" },
     { "source": "IssuerResponse", "relation": "HAS_SOURCE_BASIS", "target": "SourceBasis" },
     { "source": "ContractedAgent", "relation": "ACTS_FOR", "target": "SourceOrIssuer" },
-    { "source": "Start Outcome", "relation": "CLOSES_LOOP", "target": "Employer Review" }
+    { "source": "Start Outcome", "relation": "CLOSES_LOOP", "target": "Employer Review" },
+    { "source": "StartAgent", "relation": "CONSUMES_TRUTH_FROM", "target": "Source Check" },
+    { "source": "StartAgent", "relation": "PRODUCES", "target": "StartPlan" },
+    { "source": "StartBench", "relation": "EVALUATES", "target": "StartPlan" }
   ],
   "rules": [
     "NPPES identity claim is NOT licensure proof.",
@@ -279,10 +285,14 @@
     "The boundary defensively downgrades any persisted=true claim from a writer that did not emit a valid confirmation.",
     "DryRun, deferred, unavailable, and failed write attempts NEVER produce a PersistedAuditRecord.",
     "Client-supplied persisted/confirmation flags are refused by canUseServerPsvReceiptWriter; only a real writer may emit a confirmation.",
-    "Forbidden truth-tier fields (decisionGrade, proofTier, globalCredentialTruth) on ServerPsvReceiptWriteInput are refused by the boundary."
+    "Forbidden truth-tier fields (decisionGrade, proofTier, globalCredentialTruth) on ServerPsvReceiptWriteInput are refused by the boundary.",
+    "Start Agent plans are produced by the deterministic versioned start-policy-v1; no LLM determines credential truth, identity ownership, employer approval, or start readiness, and invalid narratives are dropped, never repaired.",
+    "Start Agent state distinctions (resolved / profile saved / ownership verified / employer reviewed / ready to start) never collapse; ready_to_start is unrepresentable without a canonical determination.",
+    "Start Agent A0 executes nothing above Level 2 (prepare); Level 3 exists only as awaiting_consent representation, human_only is never executable, and assumed consent is a fatal truth violation.",
+    "generateStartPlan fails closed: it re-audits its own output and throws on any truth-contract violation; START-Bench runs the same audit across all scenarios."
   ],
   "knownLimitations": [
     "Machine-readable stub is documentation-grade only, not integrated into runtime types."
   ],
-  "lastUpdated": "2026-04-26"
+  "lastUpdated": "2026-08-07"
 }
