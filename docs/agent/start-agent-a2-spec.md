@@ -202,15 +202,26 @@ has moved.
 
 **Point consent** (A1's behavior, unchanged as the default): approval for an
 action to run *now*, with the clinician present. A proof may only be minted
-within a short freshness window — proposed **15 minutes** — after which the
-grant lapses for execution purposes. The ledger row is not deleted; the head
-simply stops satisfying proof minting, and the clinician is asked again. This
-closes a hole A1 currently has: an unexecuted grant stays executable forever.
+within a freshness window — **30 minutes** — after which the grant lapses for
+execution purposes. The ledger row is not deleted; the head simply stops
+satisfying proof minting, and the clinician is asked again. This closes a
+hole A1 currently has: an unexecuted grant stays executable forever.
 
 **Standing consent**: an explicit, separately-worded decision — *"keep doing
-this for me"* — carrying a mandatory `expiresAt` (proposed maximum **90
+this for me"* — carrying a mandatory `expiresAt` (maximum and default **90
 days**) and revocable at any time. Only standing consent authorizes a
 background run to execute anything at Level 3.
+
+Standing consent does **not** lapse on clinician inactivity, even though that
+sounds prudent. The entire value proposition is that a clinician who
+disappears for three months comes back to current evidence rather than the
+stale evidence they left. Lapsing on inactivity would re-create exactly the
+problem the wave exists to solve. The cost concern that motivates
+inactivity-lapse is real but belongs to cadence and budgets (§9), not to
+consent.
+
+On expiry, the standing grant does not vanish silently: expiry surfaces as a
+renewal action in the next plan the clinician sees.
 
 ### Which actions may ever hold standing consent
 
@@ -666,16 +677,21 @@ Staging:
 
 | Sub-wave | Content | Gate to proceed |
 | --- | --- | --- |
+| **N1** (recommended first, §15 Q8) | Clinician notification audience against the EXISTING daily sweep: contact consent, channel preferences, seen/unseen ledger | Independent of A2; unblocks A2.6 |
 | A2.0 | Actor model, reduced context, actor-scoped tool availability | Bench proves scheduler cannot reach identity-bound tools |
 | A2.1 | Run model, tick endpoint, claiming, **shadow only** | A week of shadow ticks with a sane delta rate |
 | A2.2 | `PlanDelta` + persistence + temporal bench | Deltas match hand-labeled expectations |
 | A2.3 | Deadlines (provenance-typed) | Expiration-scanner remediation landed first |
 | A2.4 | Scheduled source refresh with budgets | Source-health gating proven; no budget breach in shadow |
 | A2.5 | Standing consent + background Level 2 execution | Consent-kind semantics accepted |
-| A2.6 | Notification delivery | Separate review; preferences + opt-out exist |
+| A2.6 | Notification delivery for plan deltas | Small integration if N1 landed; otherwise a full wave of its own |
 
 A2.5 is the first sub-wave where the agent *does* something unattended.
 Everything before it is observation.
+
+N1 is not an A2 sub-wave and does not depend on one. It is listed here only
+because its position relative to A2.0 is the sequencing recommendation in
+§15 Q8.
 
 ---
 
@@ -740,32 +756,141 @@ Explicitly **not** metrics: opens, sessions, daily actives, time in product.
 
 ---
 
-## 15. Open questions for founder decision
+## 15. The eight questions, answered
 
-1. **Standing consent scope.** I recommend non-disclosing actions only (D1).
-   Confirm, or name the disclosure case worth arguing about.
-2. **Point-consent freshness window.** Proposed 15 minutes. This is a real
-   product tradeoff: too short and approvals fail on slow connections; too
-   long and a stale click authorizes a later action.
-3. **Standing-consent maximum.** Proposed 90 days with mandatory expiry.
-4. **Notification delivery in or out of A2.** I recommend out (§10), which
-   means A2 ships an agent that notices and records but never contacts
-   anyone. That may feel like half the value — the counter-argument is that
-   the noticing is the hard part and the sending is the dangerous part.
-5. **Expiration-scanner remediation.** A2.3 should not start before it. Do
-   you want that as its own ticket now?
-6. **Scheduler substrate.** GitHub Actions cron (matches existing practice,
-   imprecise) vs Railway cron service (better fit, new infrastructure).
-   Recommend Actions for A2 pilot scale.
-7. **Cohort.** Which subjects are in the first allowlist?
-8. **The clinician-audience gap (§10).** Employers are told about a
-   clinician's expiring credential and the clinician is not. Is closing that
-   an A2 goal, or its own wave? It is the highest-value thing this spec
-   uncovered, and it is not really a scheduler problem — the sweep that
-   detects it already runs daily.
+These were posed for founder decision and then answered on request. They are
+**recommendations pending ratification** — Q4/Q8 in particular change wave
+order, which is not mine to decide unilaterally. Two answers revise what I
+originally proposed; both revisions are marked.
+
+### Q1 — Standing consent scope: **non-disclosing actions only.** Confirmed.
+
+There *is* one disclosure case worth stating, because it is the one that will
+keep coming back: a clinician has applied, the employer already holds their
+packet, and the packet's contents change. Re-sharing with a recipient who
+already has the data feels like a continuation rather than a new disclosure,
+and standing consent for it would remove a real round-trip.
+
+I still say no, for one reason that outweighs the convenience: **an updated
+packet can contain facts the clinician has never seen.** A newly-surfaced
+adverse finding, a lane that flipped, a correction that landed — auto-sending
+the refreshed packet is precisely the mechanism by which the worst possible
+disclosure happens automatically, to the party with the most leverage, before
+the clinician knows it exists. The recall problem is unchanged, and the
+saving is one tap.
+
+What would make me revisit: evidence from real usage that stale-packet
+re-share requests are a measurable source of time-to-start delay. Absent
+that, the case is theoretical and the risk is not.
+
+### Q2 — Point-consent freshness window: **30 minutes.** *(revised up from 15)*
+
+I proposed 15 and now think that was reflexively tight. The reasoning that
+changed it:
+
+Point consent is never the *only* control on a point-consent execution. The
+clinician is present and clicking, the executor regenerates the plan from
+canonical state, and a consent whose action no longer exists already fails
+before the window is consulted. So the window is defense-in-depth against a
+narrow residual case: the action still exists, the approval is old, and
+something triggers execution anyway.
+
+Against that modest risk sits a real harm: a window short enough to expire
+during an ordinary interruption trains people to click through approval
+prompts. Consent fatigue is not a soft cost — it degrades the exact signal
+the whole design depends on. 30 minutes covers a normal interruption without
+meaningfully widening the residual case.
+
+### Q3 — Standing-consent maximum: **90 days, mandatory, also the default.**
+
+90 aligns with the longest canonical freshness window
+(`FRESHNESS_WINDOWS_DAYS` licensure = 90) and with a typical active search,
+so a clinician re-affirms roughly once per evidence cycle rather than on an
+arbitrary calendar.
+
+I considered and **rejected** adding an inactivity lapse — "stop if they
+haven't logged in for 30 days" — which sounds prudent and is wrong. The
+entire promise is that a clinician who disappears for three months returns to
+current evidence. Lapsing on inactivity would hand them back exactly the
+stale evidence the wave exists to prevent. The cost worry that motivates it
+is legitimate and belongs to cadence and per-source budgets (§9), not to the
+authorization model.
+
+Expiry surfaces as a renewal action in the next plan rather than silently
+stopping.
+
+### Q4 — Notification delivery: **out of A2.** Confirmed, and see Q8.
+
+The finding in §10 raised the *value* of delivery enormously but did not move
+it into A2, because it also revealed that delivery is not an A2 problem. The
+detection already exists and runs daily. What is missing is an audience and
+three prerequisites — contact consent, channel preferences, a server-side
+seen/unseen ledger — none of which is scheduler work.
+
+A2 ships an agent that notices and records and contacts nobody.
+
+### Q5 — Expiration-scanner remediation: **yes, its own ticket, and above A2 in priority.**
+
+Not merely a blocker for A2.3. It is currently serving fabricated
+`CRITICAL` "has expired" alerts about real clinicians at a public endpoint,
+which is a live-copy problem today regardless of whether A2 ever exists.
+
+The fix is small and worth stating so the ticket is unambiguous: read the
+real `VerificationArtifact.expiresAt`, and when it is null **emit nothing**.
+An unknown expiry is not a finding. Deleting the `+365d` estimate is the
+whole change; there is no replacement heuristic, because there is no honest
+one.
+
+### Q6 — Scheduler substrate: **GitHub Actions cron through A2.4; revisit at A2.5.**
+
+Through the observation sub-waves the loop takes no action, so cadence
+precision buys nothing and new infrastructure costs something. The endpoint
+contract is identical under any substrate, so this is a reversible choice.
+
+Revisit at A2.5 — the first unattended action — where a delayed tick can
+actually miss a refresh window.
+
+A third option deserves an explicit no: in-process `node-cron` inside the
+**web** container. Next has no clean startup hook for it, and the web tier
+already treats in-process state as unreliable (the source-health snapshot
+store is explicitly ephemeral, "serverless cold starts will reset this"). A
+scheduler whose state resets unpredictably is worse than an imprecise one.
+
+### Q7 — First cohort: **internal accounts only, then pilot, by explicit allowlist.**
+
+The selection criteria are mine to specify; the actual roster is yours.
+A subject qualifies only with all four: verified NPI ownership, at least one
+existing source observation, a recorded consent, and membership in the
+allowlist. Mechanism: an explicit list of `subjectRef`s, not a percentage and
+not a predicate — a predicate silently widens as data changes, which is the
+failure mode cohort gating exists to prevent.
+
+Sequence: founder and team accounts first (single digits, people who can
+recognise a wrong answer), then named pilot clinicians. The only input I
+cannot supply is which real clinicians belong in the second group.
+
+### Q8 — Clinician-audience gap: **its own wave, and it should go *before* A2.** *(revised)*
+
+I originally framed this as an open question about A2's scope. Having worked
+through it, the sequencing answer is the interesting one.
+
+It is independent of A2 — the daily sweep already detects the expiry and
+already emails employers; only the audience is missing. It is almost
+certainly worth more than the entire A2 scheduler, because "the person whose
+license it is finds out from us" is a product promise and "we re-plan in the
+background" is an implementation detail. And it forces exactly the three
+prerequisites A2's own notification sub-wave would need anyway: contact
+consent, channel preferences, and a seen/unseen ledger.
+
+Recommendation: name it **N1**, build it against the existing sweep, and
+sequence it ahead of A2.0. If it lands first, A2.6 stops being a wave and
+becomes a small integration.
+
+This is the one answer I would most like you to overrule if you disagree,
+because it reorders committed work on the strength of a finding that is one
+day old.
 
 ---
-
 ## 16. Defects found while writing this spec
 
 None of these are A2's to fix, and none block the design — but A2 touches all
