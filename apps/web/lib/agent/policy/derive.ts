@@ -247,8 +247,23 @@ export function deriveBlockersAndActions(
   // -------------------------------------------------------------------------
   // 3. Ownership
   // -------------------------------------------------------------------------
+  // Positively verified is the only state that CLEARS ownership. Everything
+  // else either raises a blocker or, when the state is `unknown`, raises
+  // nothing at all — see below.
+  const ownershipVerified =
+    context.ownership.status === 'verified' || context.ownership.status === 'delegated';
+
+  // `unknown` means the ownership record was not readable in this context (a
+  // background actor cannot reach the identity-bound route). It is neither a
+  // problem nor an all-clear:
+  //  - no blocker, because inventing "confirm this record is yours" for
+  //    someone who verified months ago would be a false alarm;
+  //  - no clearance, because anything that presupposes verified ownership
+  //    must not be derived either (guarded at the share paths below).
+  const ownershipUnknown = context.ownership.status === 'unknown';
+
   let ownershipBlockerId: string | null = null;
-  if (context.ownership.status !== 'verified' && context.ownership.status !== 'delegated') {
+  if (!ownershipVerified && !ownershipUnknown) {
     const revoked = context.ownership.status === 'revoked';
     const aId = upsertAction({
       type: 'verify_ownership',
@@ -652,7 +667,16 @@ export function deriveBlockersAndActions(
   // -------------------------------------------------------------------------
   for (const consent of context.consents) {
     if (consent.granted) {
-      if (options.surfaceGrantedConsentWork && consent.scope.startsWith('share_packet')) {
+      // A share presupposes verified ownership. With ownership unreadable we
+      // cannot know it holds, so the prepared share is not derived at all
+      // rather than shown as executable. Plans of different completeness are
+      // never diffed against each other, so the absence cannot read as a
+      // change (see StartPlan.completeness).
+      if (
+        options.surfaceGrantedConsentWork &&
+        consent.scope.startsWith('share_packet') &&
+        !ownershipUnknown
+      ) {
         const prepId = upsertAction({
           type: 'prepare_share_packet',
           discriminator: `consent:${consent.scope}`,
@@ -703,7 +727,7 @@ export function deriveBlockersAndActions(
       actionIds: [requestId],
     });
 
-    if (consent.scope.startsWith('share_packet')) {
+    if (consent.scope.startsWith('share_packet') && !ownershipUnknown) {
       const prepId = upsertAction({
         type: 'prepare_share_packet',
         discriminator: `consent:${consent.scope}`,

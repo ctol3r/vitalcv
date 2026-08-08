@@ -35,6 +35,28 @@ export const ACTION_OWNERS = [
 ] as const;
 export type ActionOwner = (typeof ACTION_OWNERS)[number];
 
+/**
+ * WHO is driving a run, as an axis orthogonal to `permission`.
+ *
+ * `permission` answers *what kind of action is this*; `actor` answers *who
+ * is asking*. A2 needs the second because a scheduled run has no clinician
+ * session and therefore cannot mint the Clerk bearer that identity-bound
+ * canonical routes require. Rather than invent a credential that can act as
+ * any clinician — the most dangerous asset this system could hold — the
+ * scheduler is simply a weaker actor, and the tool registry enforces that
+ * structurally (see tools/registry.ts).
+ */
+export const AGENT_ACTORS = ['clinician_session', 'system_scheduler'] as const;
+export type AgentActor = (typeof AGENT_ACTORS)[number];
+
+/**
+ * Whether the context behind a plan was assembled with everything the agent
+ * can normally see. `reduced` is a first-class state, not a degradation: a
+ * scheduler run legitimately cannot read identity-bound state, and a plan
+ * built that way must never be mistaken for the clinician's real one.
+ */
+export type ContextCompleteness = 'full' | 'reduced';
+
 export const PERMISSION_CLASSES = [
   'observe',
   'recommend',
@@ -172,7 +194,20 @@ export interface ClinicianProfileState {
  * `pending` = claimed but not verified (claimed is NOT verified), `delegated` =
  * verified-equivalent access granted by delegation, `none` = no row.
  */
-export type OwnershipStatus = 'none' | 'pending' | 'verified' | 'delegated' | 'revoked';
+export type OwnershipStatus =
+  | 'none'
+  | 'pending'
+  | 'verified'
+  | 'delegated'
+  | 'revoked'
+  /**
+   * The canonical ownership record was NOT READABLE in this context — a
+   * scheduler run cannot reach the identity-bound route. Deliberately
+   * distinct from `none`: "we could not look" is not "there is no claim",
+   * and collapsing the two would either invent an ownership problem or
+   * clear one. Nothing downstream may treat `unknown` as either.
+   */
+  | 'unknown';
 
 export interface OwnershipState {
   status: OwnershipStatus;
@@ -308,6 +343,10 @@ export interface StartAgentContext {
   opportunities: OpportunityContext;
   consents: ConsentState[];
   actionHistory: ActionHistoryEntry[];
+  /** Who assembled this context (see AgentActor). */
+  actor: AgentActor;
+  /** Whether every input the agent normally consumes was reachable. */
+  completeness: ContextCompleteness;
   /** ISO timestamp for when this snapshot was assembled (injected, never Date.now in the policy). */
   collectedAt: string;
   /** Coarse surface/situation class for telemetry, e.g. `holder`, `bench_fixture`. */
@@ -452,4 +491,14 @@ export interface StartPlan {
   policyVersion: string;
   toolsetVersion: string;
   modelVersion?: string;
+  /** Carried from the context so a plan is never separated from who built it. */
+  actor: AgentActor;
+  /**
+   * A `reduced` plan drives background work and change detection only. It is
+   * never presented to a clinician as their current plan, and it may only be
+   * compared against another plan of the same completeness — otherwise a
+   * diff reports the gap between what two actors can see as if it were a
+   * change in the world.
+   */
+  completeness: ContextCompleteness;
 }

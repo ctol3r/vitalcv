@@ -77,6 +77,8 @@ function baseContext(overrides: Partial<StartAgentContext> = {}): StartAgentCont
     observations: BASE_LANES,
     readiness: { status: 'unknown', determinedBy: 'unavailable', evidenceRefs: [] },
     opportunities: { status: 'unknown', matches: [] },
+    actor: 'clinician_session',
+    completeness: 'full',
     consents: [],
     actionHistory: [],
     collectedAt: NOW,
@@ -87,6 +89,60 @@ function baseContext(overrides: Partial<StartAgentContext> = {}): StartAgentCont
 
 const STALE_VA_LANE = lane('state_license:VA', 'Virginia Board of Medicine', 'stale');
 const REFRESH_VA_ACTION_ID = actionId('refresh_source_observation', 'lane:state_license:VA');
+
+/**
+ * A2.0 — reduced-context behavior. Not policy-version gated: both v1 and v2
+ * share the derivation that handles `unknown` ownership, so both must pass.
+ */
+export const A2_0_SCENARIOS: StartBenchScenario[] = [
+  {
+    id: 'sb28_reduced_context_unknown_ownership',
+    title: 'Background actor cannot read ownership — no blocker invented',
+    description:
+      'A scheduler run cannot reach the identity-bound ownership route. `unknown` must raise no ownership blocker (the clinician may have verified months ago) while still refusing to treat ownership as cleared.',
+    context: baseContext({
+      actor: 'system_scheduler',
+      completeness: 'reduced',
+      ownership: { status: 'unknown', evidenceRefs: [] },
+      observations: [lane('state_license:VA', 'Virginia Board of Medicine', 'stale')],
+    }),
+    expect: {
+      requiredBlockerTypes: ['stale_source_observation'],
+      forbiddenBlockerTypes: ['ownership_verification_required'],
+      acceptableTopActions: [
+        { type: 'refresh_source_observation', owner: 'vitalcv', permission: 'prepare' },
+      ],
+    },
+  },
+  {
+    id: 'sb29_reduced_context_no_share_derived',
+    title: 'Background actor with a granted share consent derives no share',
+    description:
+      'A share presupposes verified ownership. With ownership unreadable the prepared share is not derived at all — a background run must never present disclosure work it cannot justify.',
+    context: baseContext({
+      actor: 'system_scheduler',
+      completeness: 'reduced',
+      ownership: { status: 'unknown', evidenceRefs: [] },
+      role: { roleRef: 'role-1', employerRef: 'emp-1', applicationState: 'in_progress', requirements: [] },
+      consents: [
+        {
+          scope: 'share_packet:opportunity:opp-42',
+          granted: true,
+          evidenceRefs: [platformRef('consent:share_packet:opportunity:opp-42')],
+        },
+      ],
+      observations: [lane('state_license:VA', 'Virginia Board of Medicine', 'stale')],
+    }),
+    expect: {
+      requiredBlockerTypes: ['stale_source_observation'],
+      forbiddenBlockerTypes: ['ownership_verification_required'],
+      acceptableTopActions: [
+        { type: 'refresh_source_observation', owner: 'vitalcv', permission: 'prepare' },
+      ],
+      forbiddenActionTypes: ['prepare_share_packet'],
+    },
+  },
+];
 
 export const START_BENCH_SCENARIOS: StartBenchScenario[] = [
   {
@@ -497,6 +553,7 @@ export const START_BENCH_SCENARIOS: StartBenchScenario[] = [
       mustNotRankActionTypes: ['prepare_share_packet'],
     },
   },
+  ...A2_0_SCENARIOS,
 ];
 
 /**

@@ -105,6 +105,10 @@ export function runStartPolicy(
     policyVersion: config.policyVersion,
     toolsetVersion: START_TOOLSET_VERSION,
     ...(options.modelVersion ? { modelVersion: options.modelVersion } : {}),
+    // Carried from the context, never chosen by the policy: a plan must
+    // always be readable alongside who built it and how much they could see.
+    actor: context.actor,
+    completeness: context.completeness,
   };
 
   // 8: fail closed — a truth-contract violation is a bug, not a plan.

@@ -35,6 +35,14 @@ export interface StartBenchExpectation {
   mustMentionActionTypes?: AgentActionType[];
   /** Action types that must NOT appear in the ranked list. */
   mustNotRankActionTypes?: AgentActionType[];
+  /**
+   * Blocker types the plan must NOT derive. Distinct from `exactBlockers`:
+   * this pins that a specific blocker was deliberately withheld, which is
+   * the assertion that matters when a state is unknown rather than bad.
+   */
+  forbiddenBlockerTypes?: BlockerType[];
+  /** Action types that must not exist ANYWHERE in the plan, ranked or not. */
+  forbiddenActionTypes?: AgentActionType[];
   /** Extra literal phrases (lowercase) that must not appear anywhere in plan or narrative. */
   forbiddenText?: string[];
 }

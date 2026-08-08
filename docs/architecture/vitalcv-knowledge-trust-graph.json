@@ -95,7 +95,8 @@
     "StartPlan",
     "StartBench",
     "AgentConsentLedger",
-    "ConsentProof"
+    "ConsentProof",
+    "AgentActor"
   ],
   "edges": [
     { "source": "Clinician", "relation": "HAS_NPI", "target": "NPI" },
@@ -202,7 +203,8 @@
     { "source": "StartAgent", "relation": "PRODUCES", "target": "StartPlan" },
     { "source": "StartBench", "relation": "EVALUATES", "target": "StartPlan" },
     { "source": "AgentConsentLedger", "relation": "AUTHORIZES", "target": "StartAgent" },
-    { "source": "ConsentProof", "relation": "MINTED_FROM", "target": "AgentConsentLedger" }
+    { "source": "ConsentProof", "relation": "MINTED_FROM", "target": "AgentConsentLedger" },
+    { "source": "AgentActor", "relation": "CONSTRAINS", "target": "StartAgent" }
   ],
   "rules": [
     "NPPES identity claim is NOT licensure proof.",
@@ -299,7 +301,10 @@
     "Agent execution accepts only an action id: subject, context, and plan are server-derived, and a canonical refusal is recorded as a failure, never a success.",
     "A client approves an action, never a scope: the consent scope is derived server-side from the canonical action in a regenerated plan, and client-supplied scopes/plans/subjects/proofs are rejected on both the grant and revoke surfaces.",
     "Consent state is the highest-seq event per (subject, scope) under a DB unique constraint; racing transitions cannot both land, and a failed write creates neither authorization nor a partial audit row.",
-    "agent_action_presented is a view-layer event; execution records agent_action_accepted, and appearing in a plan is neither."
+    "agent_action_presented is a view-layer event; execution records agent_action_accepted, and appearing in a plan is neither.",
+    "actor is orthogonal to permission: a registry is bound to one actor and refuses tools that actor cannot invoke before permission is considered; system_scheduler may never execute a disclosing action whatever a tool declares.",
+    "An unknown ownership state raises no blocker and clears nothing — we-could-not-look is neither there-is-nothing-there nor it-is-fine.",
+    "A reduced context/plan is never served interactively and may only be diffed against another of equal completeness."
   ],
   "knownLimitations": [
     "Machine-readable stub is documentation-grade only, not integrated into runtime types."

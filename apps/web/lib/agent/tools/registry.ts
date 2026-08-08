@@ -11,12 +11,23 @@
  *    that bypasses this.
  *  - Level 4 (`human_only`) is not executable by definition, ever.
  *
+ * A2.0 adds a second, orthogonal gate: the ACTOR. A registry is bound to one
+ * actor at construction, and a tool the actor may not invoke is refused
+ * before its permission is even considered. Two rules, both fail-closed:
+ *
+ *  - the tool must list this actor in `allowedActors`;
+ *  - `system_scheduler` may NEVER execute `execute_with_consent`, whatever a
+ *    tool declares. That is doctrine D1 — the agent may do work in the
+ *    background but may not disclose in the background — made unrepresentable
+ *    rather than merely documented, so a future tool that wrongly lists the
+ *    scheduler still cannot send anything.
+ *
  * Input and output are validated against the tool's declared schemas,
  * fail-closed: a canonical adapter answering in an unexpected shape is an
  * error, never coerced.
  */
 import { isConsentProofShape, type ConsentProof } from '../consent/types';
-import { EXECUTION_LEVEL_BY_PERMISSION } from '../types';
+import { EXECUTION_LEVEL_BY_PERMISSION, type AgentActor } from '../types';
 import { validateAgainstSchema, type AgentTool } from './contract';
 
 export const START_TOOLSET_VERSION = 'start-toolset-v2';
@@ -46,14 +57,41 @@ export interface ToolExecuteOptions {
   consentProof?: ConsentProof;
 }
 
+export class ToolActorError extends Error {
+  readonly toolId: string;
+  readonly actor: AgentActor;
+  constructor(toolId: string, actor: AgentActor, detail: string) {
+    super(`Tool ${toolId} is not available to ${actor}: ${detail}`);
+    this.name = 'ToolActorError';
+    this.toolId = toolId;
+    this.actor = actor;
+  }
+}
+
 export interface ToolRegistry {
   toolsetVersion: string;
+  /** The actor this registry is bound to. */
+  actor: AgentActor;
+  /** Every registered tool, regardless of actor. */
   list(): AgentTool[];
+  /** Only the tools this registry's actor may invoke. */
+  availableTools(): AgentTool[];
+  /** Whether this registry's actor may invoke the named tool. */
+  isAvailable(id: string): boolean;
   get(id: string): AgentTool | undefined;
   execute<O = unknown>(id: string, input: unknown, options?: ToolExecuteOptions): Promise<O>;
 }
 
-export function createToolRegistry(tools: AgentTool[]): ToolRegistry {
+export interface CreateToolRegistryOptions {
+  /** Defaults to a clinician session — the only actor that existed before A2. */
+  actor?: AgentActor;
+}
+
+export function createToolRegistry(
+  tools: AgentTool[],
+  options: CreateToolRegistryOptions = {},
+): ToolRegistry {
+  const actor: AgentActor = options.actor ?? 'clinician_session';
   const byId = new Map<string, AgentTool>();
   for (const tool of tools) {
     if (byId.has(tool.id)) {
@@ -62,13 +100,41 @@ export function createToolRegistry(tools: AgentTool[]): ToolRegistry {
     byId.set(tool.id, tool);
   }
 
+  /** The actor gate. Returns the refusal reason, or null when allowed. */
+  function actorRefusal(tool: AgentTool): string | null {
+    if (actor === 'system_scheduler' && tool.requiredPermission === 'execute_with_consent') {
+      // D1, enforced ahead of the tool's own declaration on purpose.
+      return 'background runs may never execute a disclosing action';
+    }
+    // A tool that forgot to declare its actors fails CLOSED to the most
+    // restrictive reading rather than throwing or defaulting open. The type
+    // makes the declaration mandatory; this is the runtime backstop for
+    // anything constructed outside the type checker (fixtures, plugins).
+    const allowed = tool.allowedActors ?? ['clinician_session'];
+    if (!allowed.includes(actor)) {
+      return 'this capability requires a live clinician session';
+    }
+    return null;
+  }
+
   return {
     toolsetVersion: START_TOOLSET_VERSION,
+    actor,
     list: () => [...byId.values()],
+    availableTools: () => [...byId.values()].filter((tool) => actorRefusal(tool) === null),
+    isAvailable: (id) => {
+      const tool = byId.get(id);
+      return tool !== undefined && actorRefusal(tool) === null;
+    },
     get: (id) => byId.get(id),
     async execute<O = unknown>(id: string, input: unknown, options?: ToolExecuteOptions): Promise<O> {
       const tool = byId.get(id);
       if (!tool) throw new ToolPermissionError(id, 'unknown tool');
+
+      // Actor first: whether this runner may use the capability at all is a
+      // prior question to what the capability is allowed to do.
+      const refusal = actorRefusal(tool);
+      if (refusal) throw new ToolActorError(id, actor, refusal);
 
       const level = EXECUTION_LEVEL_BY_PERMISSION[tool.requiredPermission];
       if (tool.requiredPermission === 'human_only') {
