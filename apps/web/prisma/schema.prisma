@@ -215,6 +215,12 @@ model AgentRun {
   planId             String           @map("plan_id")
   /// A2.1 — what caused this run. `event` is reserved for A2.2+.
   trigger            String           @default("interactive")
+  /// A2.2 — the prior run this one was diffed against. Added WITH its writer.
+  deltaFromRunId     String?          @map("delta_from_run_id") @db.Uuid
+  /// A2.2 — decision-relevant projection, the only thing deltas compare.
+  decisionProjection Json?            @map("decision_projection")
+  /// A2.2 — hash of the DECISION content only (no clocks, no observedAt).
+  decisionFingerprint String?         @map("decision_fingerprint")
   /// A2.0 — who ran it, and how much they could see.
   actor              String           @default("clinician_session")
   completeness       String           @default("full")
@@ -345,4 +351,37 @@ model AgentSubjectSchedule {
 
   @@index([enabled, nextDueAt])
   @@map("agent_subject_schedules")
+}
+
+// A2.2 — plan-level deltas: what changed about what this clinician should do.
+//
+// Complementary to the fact-level detectors (watchtowerEngine,
+// drift-engine), never a replacement: those record what changed in the
+// world, these record what changed about the recommended next step.
+//
+// `material` is load-bearing. Most rows will be
+// `observation_refreshed_no_change` — recorded for the learning loop,
+// never surfaced to a human. Recording is unconditional; materiality is
+// what a future notification layer filters on.
+//
+// Migration owned by apps/api/backend/prisma/migrations/
+// 20260808180000_agent_plan_deltas.
+model AgentPlanDelta {
+  id          String   @id @default(uuid()) @db.Uuid
+  runId       String   @map("run_id") @db.Uuid
+  priorRunId  String?  @map("prior_run_id") @db.Uuid
+  subjectRef  String   @map("subject_ref")
+  planId      String   @map("plan_id")
+  kind        String
+  material    Boolean
+  owner       String?
+  /// Blocker id, action id, or lane id this delta is about.
+  ref         String
+  detail      String
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([subjectRef, createdAt])
+  @@index([runId])
+  @@index([kind, material, createdAt])
+  @@map("agent_plan_deltas")
 }
