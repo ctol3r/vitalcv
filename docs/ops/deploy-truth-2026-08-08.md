@@ -127,11 +127,26 @@ semantics. Wave 1078's strategy promotion is founder-gated and is **not** includ
 
 ---
 
-## Open decision for the founder — the homepage headline
+## Resolved — the homepage headline
+
+**Founder decision, 2026-08-08: the live headline stays.**
+*"Enter your NPI. VitalCV does the rest."* is canonical. The operating brief was
+amended in this wave (its *Homepage message* section, plus a superseded-where-
+conflicting notice on the homepage draft in the category strategy) so neither
+document is still cited as authority for a hero it no longer describes.
+
+"Your clinician profile. Ready for every move." is **not retired** — it remains
+the clinician promise, and is the first alternative to test if the hero stops
+converting. It is simply no longer the H1.
+
+The conflict that produced this decision is recorded below, because the reasoning
+is what stops it being re-opened.
+
+---
 
 Wave 1078 says to "promote the founder-approved Wave 1077 customer language only
-after review". That promotion cannot proceed as written, because **three
-different headlines are in play and two of them are founder-approved at
+after review". That promotion could not proceed as written, because **three
+different headlines were in play and two of them were founder-approved at
 different times.**
 
 | Source | Headline | Status |
@@ -151,16 +166,10 @@ Two things follow:
    is newer and shipped under a direct founder instruction to prioritise a
    visibly different homepage.
 
-This is a positioning decision, not a drift repair, so this wave does not make
-it. Per the brief's own precedence order (founder task instruction → operating
-brief → category strategy), the newer instruction governs unless the founder
-says otherwise.
-
-**Needed:** which headline is canonical going forward. If it is the operating
-brief's, the brief's hero block should be promoted and UX-V1's hero revised. If
-it is the live one, the operating brief should be amended so it stops being
-cited as the authority for a hero it no longer describes. Leaving both standing
-is the only outcome that guarantees the next wave re-opens this.
+This was a positioning decision, not a drift repair, so the wave did not make it
+unilaterally. Per the brief's own precedence order (founder task instruction →
+operating brief → category strategy), the newer instruction governs — and the
+founder confirmed it directly.
 
 ## Also unresolved: there is still no review URL
 

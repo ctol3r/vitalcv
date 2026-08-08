@@ -3,10 +3,19 @@ title: "VitalCV Strategy Operating Brief"
 status: "Canonical"
 owner: "Chris Toler"
 date: "2026-08-04"
+amended: "2026-08-08"
 source: "VitalCV Category Strategy"
 ---
 
 # VitalCV Strategy Operating Brief
+
+> **Amendment — 2026-08-08 (founder decision, Wave 1078).** The homepage hero is
+> now **"Enter your NPI. VitalCV does the rest."**, shipped by UX-V1 (#1190).
+> This document previously specified "Your clinician profile. Ready for every
+> move." as the hero; that line remains the **clinician promise** but is no
+> longer the homepage H1. Only the *Homepage message* section below changed —
+> the category, core loop, north-star metric, vocabulary, and business model are
+> untouched. Rationale is recorded in that section.
 
 ## Category
 
@@ -30,17 +39,35 @@ Supporting promise:
 
 > **Build once. Move forward without starting over.**
 
+These are the **promise** — what the product is for, and the language to use when
+explaining VitalCV in a sentence. They are not required to be the homepage H1.
+
 ## Homepage message
 
 ### Hero
 
-# Your clinician profile. Ready for every move.
+*Amended 2026-08-08. Live since UX-V1 (#1190).*
 
-Start with your NPI. Build a reusable professional profile, find roles that fit, and apply without entering the same information again.
+# Enter your NPI. VitalCV does the rest.
 
-**Build my free profile**
+We find what we can, show you exactly what remains, and handle the administrative work that can safely be handled.
 
-Free for clinicians · No account needed to preview · You choose what gets shared
+**Start with your NPI**
+
+Free for clinicians · Your NPI is a public identifier — entering it starts nothing you don't approve
+
+**Why this hero and not the promise line.** The promise names the *asset* (a
+reusable profile); this hero names the *wedge* (the one action a cold clinician
+can take in five seconds with nothing to hand). A hero has to earn the first
+interaction, and the asset only becomes legible after the NPI resolves — which
+is the product's first proof of work and the moment the homepage is built
+around. The promise then does its job everywhere the reader already has context:
+the profile surfaces, jobs, apply, employer pages, and every explanation of what
+VitalCV is.
+
+**This is a hero decision, not a category change.** The reusable profile is still
+the product and the north-star metric is unchanged. If the hero stops converting,
+the promise line is the first alternative to test — it is not retired.
 
 ### Four steps
 

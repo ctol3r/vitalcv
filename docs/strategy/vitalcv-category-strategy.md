@@ -142,6 +142,14 @@ That communicates both the next job and the lifelong reusable asset.
 
 Here is the version I would ship.
 
+> **Superseded where conflicting — 2026-08-08 (founder decision, Wave 1078).**
+> The homepage draft below is no longer the shipped hero. Live since UX-V1
+> (#1190) is **"Enter your NPI. VitalCV does the rest."** — see the *Homepage
+> message* section of `vitalcv-strategy-operating-brief.md`, which is the
+> authority for homepage copy. The reasoning above still stands: "Ready for
+> every move" remains the clinician **promise**, and continuity is still the
+> defensible claim. Only its use as the homepage H1 changed.
+
 # Your clinician profile. Ready for every move.
 
 Start with your NPI. Build a reusable professional profile, find roles that fit, and apply without entering the same information again.
