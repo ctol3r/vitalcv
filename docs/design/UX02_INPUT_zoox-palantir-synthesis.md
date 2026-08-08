@@ -10,8 +10,11 @@
 > stop. Do not solve it inside the design PR.
 
 **Status:** program input, folded by founder decision 2026-08-07. Not a wave of its own.
+Recommendation language renamed per the founder's #1165 companion ruling (2026-08-08): the
+census establishes facts and recommends; it does not legislate — UX-00/EC-20 do.
 **Feeds:** UX-02 (brand foundation) — engineering substrate; UX-01 verdict untouched.
-**Blocked on:** #1160 merge (constitution) and the UX-01 verdict → EC-20 values.
+**Formerly blocked on** #1160 and the EC-20 back-fill — both resolved 2026-08-08 (#1160
+merged; EC-20 back-filled from the FINAL Direction B verdict). This input is now live.
 
 ## Provenance and verification
 
@@ -47,9 +50,15 @@ vitalcv.com, plus this repo. Verified against `origin/main` @ `efda1a5d8` on 202
    explicitly out.
 3. **Token *values* are held until the UX-01 verdict back-fills EC-20.** The teardown's
    palette assumes the current light-first ground (`#f0eee9` + indigo); Direction B is
-   warm-graphite dark-first. Structure is adopted now; values are decided by the verdict.
+   warm-graphite dark-first. Structure below is a measured recommendation; values are
+   decided by the verdict. (EC-20 has since been back-filled — see the status note above.)
 
-## Adopted into UX-02 (direction-agnostic substrate)
+## UX-02 candidate substrate (measured recommendations)
+
+These are recommendations from measurement, not decisions. Where one conflicts with a
+locked EC-20 row, the locked row wins — e.g. the radius scale below carries a `pill` step,
+while EC-20 locks near-sharp 0–3px on panels/instruments with pills retired; UX-02 takes
+the scale's *mechanism* (a named radius ramp), not any value a locked row forecloses.
 
 - **Three-tier token architecture** — primitives → semantic → component; component may
   only reference semantic, semantic only primitives. One `:root` file of record; a
