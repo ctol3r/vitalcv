@@ -72,17 +72,23 @@ Update all three before revoking anything:
 1. Railway **web** service → `CLERK_SECRET_KEY` → redeploy.
 2. Railway **API** service → `CLERK_SECRET_KEY` → redeploy.
 3. GitHub → Settings → Secrets and variables → **Actions** → *Repository
-   secrets* → `CLERK_SECRET_KEY`.
+   secrets* → **`CLERK_SECRET_KEY_PROD`** (note the suffix — the workflows map
+   it onto the `CLERK_SECRET_KEY` env var the scripts read, so the GitHub name
+   and the process name deliberately differ).
 
 > **Where the GitHub copy goes, and how it hides.** It must be a **secret**, not
-> a variable, on the **Actions** tab (not Dependabot). Beware two silent traps
-> this repo has already hit: (a) an **environment** secret of the same name
-> *overrides* the repository secret, so a stale copy on the `Production`
-> environment will shadow a correct repository one; (b) `secrets.CLERK_SECRET_KEY`
-> resolves to the **empty string** when the name does not match exactly — a
-> trailing space or a zero-width character from a paste produces no error
-> anywhere. If a monitor reports `MISCONFIGURED` after rotation, suspect these
-> before suspecting the key.
+> a variable, on the **Actions** tab (not Dependabot), named exactly
+> `CLERK_SECRET_KEY_PROD`.
+>
+> **`secrets.<name>` resolves to the empty string when the name does not exist,
+> with no error anywhere.** That single fact cost five dispatches: the
+> workflows read `secrets.CLERK_SECRET_KEY` while the secret was
+> `CLERK_SECRET_KEY_PROD`, so every run reported "monitor not wired" rather
+> than "wrong name", and three separate hypotheses (repository vs environment
+> scope, lowercase vs capital `Production`) were chased and disproved before
+> anyone read the actual list. If a monitor reports `MISCONFIGURED` after
+> rotation, **check the name against the list first** — it is the cheapest
+> check and it was the answer.
 
 ## Step 3 — verify before revoking
 
@@ -112,8 +118,9 @@ turns a routine rotation into an outage.
 
 - Sessions still work (role cookies re-minted if step 0 applied).
 - Both monitors green on their next scheduled tick.
-- No `CLERK_SECRET_KEY` remains in GitHub **Variables**, nor on any
-  environment — the repository secret should be the only copy.
+- No stray `CLERK_SECRET_KEY` (unsuffixed) exists in GitHub **Variables** or on
+  any environment — the repository secret `CLERK_SECRET_KEY_PROD` should be the
+  only copy.
 
 ## Rollback
 
@@ -123,11 +130,24 @@ and repeating steps 2–3 — there is no way to un-revoke.
 
 ## Why this document exists
 
-The key was stored as an Actions **variable**. `secrets.CLERK_SECRET_KEY`
-resolves to the empty string for a variable, with no error, so both production
-monitors skipped their work and reported success for their entire lifetimes —
-`release-verify` never once executed its signed-in verification against
-production. Five separate dispatches were spent guessing at the cause before the
-storage kind was checked. The lesson worth keeping: **an empty secret is
-indistinguishable from a working one unless something asserts otherwise**, which
-is why both monitors now fail red instead of skipping quietly.
+Both production monitors skipped their work and reported success for their
+entire lifetimes — `release-verify` never once executed its signed-in
+verification against production. The eventual cause was mundane: the workflows
+read `secrets.CLERK_SECRET_KEY` while the secret is named
+**`CLERK_SECRET_KEY_PROD`**.
+
+`secrets.<name>` yields the empty string when nothing of that name exists, with
+no error, so the monitors could not tell "wrong name" from "not configured" —
+and neither could anyone reading them. Five dispatches and three disproved
+hypotheses (stored as a variable; repository vs environment scope; lowercase vs
+capital `Production`) went by before anyone simply read the secrets list, which
+would have answered it in seconds.
+
+Two lessons worth keeping:
+
+1. **An empty secret is indistinguishable from a working one unless something
+   asserts otherwise** — which is why both monitors now fail red rather than
+   skipping quietly.
+2. **Read the list before theorising about scope.** Every hypothesis above was
+   plausible, internally consistent, and wrong; the cheap enumeration was
+   available the whole time.

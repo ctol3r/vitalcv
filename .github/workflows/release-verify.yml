@@ -22,16 +22,20 @@ name: Release verify
 # MONITORS_UNWIRED_OK=true (a repository VARIABLE) to deliberately run unwired
 # and get the grey back.
 #
-# WHERE CLERK_SECRET_KEY LIVES IS CURRENTLY UNRESOLVED. As of 2026-08-08 it
-# resolves to the empty string from these jobs — measured, not assumed: probe
-# run 31238667349 read length 0 for it as a repository secret, on the
-# `Production` environment, and under three alternative spellings, while
-# `CLERK_FAPI_URL` read 25 in the same job. So secrets DO reach here; this one
-# is simply absent. `environment: Production` is retained because an
-# environment only ADDS visibility and costs nothing if the key is later placed
-# there. Do not read that line as a claim about where the key is.
+# THE SECRET IS NAMED `CLERK_SECRET_KEY_PROD`, not `CLERK_SECRET_KEY`. The
+# `_PROD` suffix distinguishes it from the `sk_test_` key used by CI E2E
+# (`E2E_CLERK_SECRET_KEY`). It is a REPOSITORY secret. The workflow maps it onto
+# the `CLERK_SECRET_KEY` env var the scripts read, so the GitHub name and the
+# process name deliberately differ — do not "fix" one to match the other.
 #
-# Required repo secrets: CLERK_SECRET_KEY, RAILWAY_API_TOKEN. Optional:
+# This cost five dispatches to find. `secrets.CLERK_SECRET_KEY` resolves to the
+# empty string when nothing of that name exists, with no error anywhere, so the
+# monitor skipped and reported healthy each time. Probe run 31238667349 finally
+# measured it: length 0 under four spellings, while CLERK_FAPI_URL read 25 in
+# the same job — proving secrets reached the job and this one simply was not
+# there. `_PROD` was not among the four names guessed.
+#
+# Required repo secrets: CLERK_SECRET_KEY_PROD, RAILWAY_API_TOKEN. Optional:
 # CLERK_FAPI_URL (default https://clerk.vitalcv.com), RELEASE_PROBE_BASE
 # (default https://vitalcv.com). GITHUB_TOKEN is automatic (statuses: write).
 # See docs/deployment/release-monitoring.md.
@@ -81,26 +85,14 @@ jobs:
     name: Verify signed-in release
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    # Kept deliberately. An environment only ADDS to what a job can see, so
-    # declaring one is free insurance for the case where CLERK_SECRET_KEY is
-    # placed on `Production` — but it is NOT currently there (probe run
-    # 31238667349). A job that does not declare the environment resolves an
-    # environment-scoped `secrets.CLERK_SECRET_KEY` to the empty string, the
-    # preflight below reads that as "monitor not wired", and the run goes GREEN
-    # having verified nothing. That is precisely how this monitor spent its
-    # entire life posting grey "skipped — monitor not wired" statuses while
-    # looking healthy. Deleting this line silently restores that failure.
-    # Repository-level secrets (RAILWAY_API_TOKEN, CLERK_FAPI_URL,
-    # RELEASE_PROBE_BASE) remain visible; an environment only ADDS to what a
-    # job can see, and wins only on a name collision.
-    #
-    # CASE-SENSITIVE — the environment is `Production`, capital P. GitHub does
-    # NOT error on an unknown environment name; it silently CREATES one. So the
-    # first attempt at this fix (lowercase `production`, #1138) conjured a
-    # brand-new empty environment, drew the secret from it, got the empty
-    # string, and skipped verification while reporting green — the same silent
-    # no-op it was written to cure. Verified against run 31235056713.
-    environment: Production
+    # No `environment:` — CLERK_SECRET_KEY_PROD is a REPOSITORY secret, visible
+    # to every job. #1138 and #1140 added `environment: production` then
+    # `Production` chasing a shadowing theory that measurement later disproved
+    # (probe run 31238667349). Both are removed rather than left as harmless
+    # clutter: an environment declaration records a deployment on every run,
+    # which for a twice-hourly monitor is a stream of fictional deployments, and
+    # it would silently start BLOCKING these runs the day someone adds a
+    # protection rule to that environment.
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
@@ -162,7 +154,7 @@ jobs:
         # ordering explicit now that smoke is continue-on-error.
         if: steps.smoke.outcome == 'success'
         env:
-          CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
+          CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY_PROD }}
           # Escape hatch — see the fail-closed note below.
           UNWIRED_OK: ${{ vars.MONITORS_UNWIRED_OK }}
         run: |
@@ -178,26 +170,24 @@ jobs:
           # surfaces, check:deploy — had never once executed against
           # production.
           #
-          # #1138 added `environment: Production` to this job, which was a real
-          # latent bug worth fixing. Its note that the secret "existed; it was
-          # an environment secret this job had not declared" was NOT correct,
-          # and is corrected here (2026-08-08) so nobody trusts it: at that
-          # time and at the time of this edit, CLERK_SECRET_KEY exists at NO
-          # scope Actions can read. Verified against the API rather than the
-          # `gh secret list` convenience view, which shows only repo scope:
+          # RESOLVED 2026-08-08: the secret is the repository secret
+          # `CLERK_SECRET_KEY_PROD`. Nothing named CLERK_SECRET_KEY ever
+          # existed at any scope, which is exactly what the earlier API check
+          # found and what probe run 31238667349 measured:
           #   repo   → total_count 5, none of them CLERK_SECRET_KEY
           #   envs   → all 9 environments return {"total_count":0}
-          # (The repo call returning 5 is the control proving the API answers
-          # honestly rather than hiding secrets from the caller's token.)
+          #   probe  → length 0 under four spellings; CLERK_FAPI_URL read 25
+          # The `_PROD` suffix distinguishes it from the sk_test_ key CI E2E
+          # uses. `_PROD` was simply never among the names guessed, and
+          # `secrets.<missing>` yields the empty string with no error, so five
+          # dispatches read as "not wired" rather than "wrong name".
           #
-          # So declaring the environment did not wire the monitor, and this job
-          # still fails closed below. Wiring it remains a human credential
-          # action — an agent must not copy a live sk_live_ key:
-          #   gh secret set CLERK_SECRET_KEY --repo ctol3r/vitalcv --env Production
-          # (interactive prompt; no pipe to swallow the error). Re-dispatch
-          # this workflow afterwards — a green run with `Run release
-          # verification` actually EXECUTED is the proof, never the run
-          # conclusion alone.
+          # The environment declarations #1138/#1140 added chased a shadowing
+          # theory that measurement disproved; they are gone. A repository
+          # secret is visible to every job.
+          #
+          # Proof of wiring is a run in which `Run release verification`
+          # actually EXECUTED — never the run conclusion alone.
           #
           # An unwired monitor is now a MISCONFIGURATION, not a resting state,
           # and reports red. To deliberately run unwired, set the repository
@@ -214,7 +204,7 @@ jobs:
           else
             echo "wired=false" >> "$GITHUB_OUTPUT"
             echo "unwired_ok=false" >> "$GITHUB_OUTPUT"
-            echo "::error::CLERK_SECRET_KEY is not visible to this job — the signed-in verification did NOT run. Check that this job still declares 'environment: Production' (CAPITAL P — an unknown environment name is silently created, not rejected) and that the secret still exists on that environment. If unwired is intended, set the repository variable MONITORS_UNWIRED_OK=true."
+            echo "::error::CLERK_SECRET_KEY_PROD is not visible to this job — the signed-in verification did NOT run. Check the REPOSITORY secret is still named exactly CLERK_SECRET_KEY_PROD (a missing name resolves to the empty string with no error). If unwired is intended, set the repository variable MONITORS_UNWIRED_OK=true."
           fi
 
       - name: Run release verification
@@ -227,7 +217,7 @@ jobs:
         env:
           RELEASE_PROBE_BASE: ${{ secrets.RELEASE_PROBE_BASE || 'https://vitalcv.com' }}
           RELEASE_TARGET_SHA: ${{ steps.target.outputs.sha }}
-          CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
+          CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY_PROD }}
           CLERK_FAPI_URL: ${{ secrets.CLERK_FAPI_URL }}
           RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN }}
           RELEASE_REPORT_OUT: report.json
