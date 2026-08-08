@@ -107,9 +107,10 @@
   --vt-shadow-glass-lens-active:
     inset 0 1px 0 0 color-mix(in oklab, white 65%, transparent),
     0 4px 16px -8px color-mix(in oklab, var(--vt-accent-editorial) 50%, transparent);
-  /* The lens sits above every product surface but is inert — see
-     components/chrome/GlassCursor.tsx. */
-  --vt-z-cursor: 2147483000;
+  /* W1083: the glass cursor is fully removed (its no-op tombstone scheduled
+     this coupled cleanup); the lens z token went with it. The glass-material
+     tokens above remain only because parked-era stylesheets reference them —
+     EC-20 locks Glass: None for anything new. */
 
   /* ── Neutral (zinc) ──────────────────────────── */
   --palette-neutral-50:  oklch(0.985 0 0);

@@ -41,22 +41,13 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* Smooth theme transition — color/background only, no layout shifts */
-@media (prefers-reduced-motion: no-preference) {
-  *,
-  *::before,
-  *::after {
-    transition-property: color, background-color, border-color, fill, stroke;
-    transition-duration: 280ms;
-    transition-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1);
-  }
-
-  /* Reset transition for elements that need instant response */
-  input, textarea, select,
-  [data-no-theme-transition] {
-    transition: none !important;
-  }
-}
+/* W1083 (UX-02C): the universal theme transition is gone. It put a 280ms
+   five-property transition on EVERY element — so every hover, chip render, and
+   state change on every page animated whether its surface wanted that or not,
+   and islands that needed instant response had to carry an opt-out
+   ([data-no-theme-transition], which by removal day had zero consumers).
+   Motion is now declared by the surface that owns it (EC-4: one owner), and a
+   theme switch is instant. Do not reintroduce a `* { transition }` rule. */
 
 html,
 body {
