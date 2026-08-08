@@ -23,10 +23,18 @@
 # entire job budget is 15 minutes. Off-peak minute for the same reason the
 # monitors use one: :00/:15/:30/:45 are the congested schedule slots.
 #
-# Not wired (CLERK_SECRET_KEY unset) is a NO-OP, not a failure: the sweep has
-# nothing to reconcile because the monitor is not minting anything. It exits
-# green with a note, exactly like the monitor's own not-wired path, so this job
-# cannot become another red that means nothing.
+# Not wired (CLERK_SECRET_KEY not visible) is a RED failure, not a no-op. It
+# was a green no-op for exactly one day, on the reasoning that an unwired
+# monitor mints nothing so nothing can leak — which held right up until the
+# monitor was wired, at which point the same branch turned a misconfiguration
+# into a clean bill of health (run 31233274419: Reconcile skipped, job success,
+# Clerk never contacted). A sweep that cannot see the key is indistinguishable
+# from a sweep that found nothing to reap, so it must not be green. Set
+# MONITORS_UNWIRED_OK=true (a repository VARIABLE) to deliberately run unwired.
+#
+# CLERK_SECRET_KEY lives on the `Production` environment (capital P), hence
+# `environment: Production` below. Getting that name wrong is silent — GitHub
+# creates an unknown environment rather than rejecting it.
 
 name: Synthetic Reconcile
 
