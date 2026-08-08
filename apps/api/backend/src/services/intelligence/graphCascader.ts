@@ -92,7 +92,9 @@ export class GraphCascader {
                }
              });
 
-             // 4. Update StatusList2021 bitstring
+             // 4. Bump the Bitstring Status List version so cached verifiers
+             //    refetch. NOTE: this does NOT flip the artifact's revocation
+             //    bit — see setRevocationBit below.
              const artifact = await prisma.verificationArtifact.findUnique({ where: { id: artifactId } });
              if (artifact && artifact.statusListIndex !== null) {
                 await this.setRevocationBit(artifact.statusListIndex);
@@ -114,12 +116,12 @@ export class GraphCascader {
     });
     if (!state) return;
 
-    // Decode, set bit, encode
-    // For here, we do a basic mock update or log, as updating the bitstring without the existing library code might be error-prone.
-    log('info', `[GraphCascader] Setting StatusList2021 revocation bit at index: ${index}`);
-
-    // In a real implementation we would import pako and jose or standard builtins for zlib
-    // to edit the bit. We update the version to force cache busting for VC verifiers.
+    // This only busts the verifier cache. It does NOT decode the bitstring,
+    // flip bit `index`, or re-encode it — so the credential still reads
+    // "not revoked" in the Bitstring Status List served to verifiers.
+    // The real bit-flip is statusListManager.setRevoked(artifactId), which
+    // this method should delegate to; continuousMonitor already calls it.
+    log('info', `[GraphCascader] Bitstring Status List cache-bust for index: ${index} (bit NOT flipped)`);
     await prisma.statusListState.update({
       where: { id: 'singleton' },
       data: {

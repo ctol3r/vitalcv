@@ -42,7 +42,36 @@ const LIST_SIZE_BITS  = 131_072;          // 128 Kbits
 const LIST_SIZE_BYTES = LIST_SIZE_BITS / 8; // 16 KiB
 
 const STATUS_LIST_ISSUER_DID = process.env.STATUS_LIST_ISSUER_DID ?? 'did:web:vitalcv.ai';
-const STATUS_LIST_CONTEXT    = 'https://vitalcv.ai/credentials/status-list/1';
+
+/**
+ * Canonical *identifier* of the status list credential — its `id` and its
+ * `credentialSubject.id`. This is a name, not a location: nothing serves it.
+ * Issuers embedding a `credentialStatus` want `STATUS_LIST_URL` instead.
+ */
+export const STATUS_LIST_CONTEXT = 'https://vitalcv.ai/credentials/status-list/1';
+
+/**
+ * Dereferenceable URL of the status list credential — the route registered by
+ * `routes/statusList.ts`. W3C Bitstring Status List §3.1 requires that
+ * `BitstringStatusListEntry.statusListCredential` resolve to the status list
+ * credential itself, so this is what goes into an issued VC, not
+ * `STATUS_LIST_CONTEXT`.
+ */
+export const STATUS_LIST_URL =
+  `${process.env.ISSUER_BASE_URL ?? 'https://api.vitalcv.com'}/api/credentials/status-list`;
+
+/**
+ * The one bit reserved for the demo issuer's sample credential
+ * (`modules/demo/demo.controller.ts`).
+ *
+ * Demo credentials are never persisted as VerificationArtifacts, so they never
+ * receive an index from `assignStatusIndex`. Without a reservation a demo
+ * credential would have to borrow some real artifact's bit and would then
+ * report that artifact's revocation state as its own. `assignStatusIndex`
+ * never hands this bit out and no code path flips it, so it reads
+ * "not revoked" for the life of the list.
+ */
+export const DEMO_STATUS_LIST_INDEX = LIST_SIZE_BITS - 1;
 
 // ── In-memory cache ────────────────────────────────────────────────────────
 
@@ -179,7 +208,9 @@ async function ensureState(): Promise<{
 export async function assignStatusIndex(artifactId: string): Promise<number> {
   const state = await ensureState();
 
-  if (state.nextIndex >= state.sizeBits) {
+  // The final bit is reserved for the demo credential (DEMO_STATUS_LIST_INDEX)
+  // and is never assigned to a real artifact.
+  if (state.nextIndex >= state.sizeBits - 1) {
     throw new Error('StatusListManager: bit list exhausted — provision a new list.');
   }
 
