@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "@expo/vector-icons": "^15.1.1",
-    "@react-navigation/native": "^7.0.14",
+    "@react-navigation/native": "^7.3.14",
     "@vitalcv/wallet-sdk": "workspace:*",
     "expo": "~55.0.0",
     "expo-camera": "~55.0.21",
@@ -26,15 +26,15 @@
     "expo-secure-store": "~55.0.16",
     "expo-status-bar": "~55.0.6",
     "jose": "^5.0.0",
-    "react": "19.2.0",
-    "react-native": "0.83.10",
+    "react": "19.2.8",
+    "react-native": "0.86.2",
     "react-native-qrcode-svg": "^6.3.15",
-    "react-native-safe-area-context": "5.6.2",
-    "react-native-screens": "~4.23.0",
-    "react-native-svg": "15.15.3"
+    "react-native-safe-area-context": "5.8.1",
+    "react-native-screens": "~4.26.2",
+    "react-native-svg": "15.15.5"
   },
   "devDependencies": {
-    "@types/react": "^19.0.14",
+    "@types/react": "^19.2.18",
     "typescript": "^5.8.3",
     "vitest": "^3.2.6"
   }
