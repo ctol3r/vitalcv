@@ -4,6 +4,7 @@ import * as React from 'react';
 import { usePathname } from 'next/navigation';
 
 import { WORKBENCH_BRANDING } from '@/lib/career-garden/branding';
+import { NoteEditor } from '@/components/workbench/NoteEditor';
 
 /**
  * WorkbenchDock — CC-07 / WB-03, the spatial Workbench shell.
@@ -92,10 +93,11 @@ export function WorkbenchDock() {
   const [saving, setSaving] = React.useState(false);
   const [saveError, setSaveError] = React.useState<string | null>(null);
   const [load, setLoad] = React.useState<LoadState>({ mode: 'loading' });
+  const [editorDirty, setEditorDirty] = React.useState(false);
 
   const drawerRef = React.useRef<HTMLDivElement | null>(null);
   const triggerRef = React.useRef<HTMLButtonElement | null>(null);
-  const dirty = draft.trim().length > 0;
+  const dirty = draft.trim().length > 0 || editorDirty;
   const reduced = prefersReducedMotion();
   const narrow = isNarrowViewport();
 
@@ -153,10 +155,13 @@ export function WorkbenchDock() {
   }, [dirty]);
 
   const closeTopPane = React.useCallback(() => {
+    // The pane hosts the editor; autosave usually keeps it clean, but a
+    // pending or failed save is still the clinician's text — ask first.
+    if (editorDirty && !window.confirm('Discard your unsaved note changes?')) return;
     // The pane entry lives in history; going back keeps Back-button and
     // Escape semantics identical.
     window.history.back();
-  }, []);
+  }, [editorDirty]);
 
   // Escape: topmost pane first, then the drawer. Focus stays managed.
   React.useEffect(() => {
@@ -184,7 +189,7 @@ export function WorkbenchDock() {
   };
 
   const capture = async () => {
-    if (!dirty || saving || load.mode === 'unavailable') return;
+    if (!draft.trim() || saving || load.mode === 'unavailable') return;
     setSaving(true);
     setSaveError(null);
     try {
@@ -346,9 +351,9 @@ export function WorkbenchDock() {
             {paneNotes.length > 0 ? (
               <section aria-label="Open note" data-workbench-pane={paneNotes[paneNotes.length - 1].id}>
                 <div className="flex items-center justify-between gap-2">
-                  <h2 className="mz-h2" style={{ margin: 0 }}>
-                    {paneNotes[paneNotes.length - 1].title}
-                  </h2>
+                  <p className="mz-small" style={{ margin: 0, color: 'var(--vt-text-muted, #666)' }}>
+                    Only you can see this.
+                  </p>
                   <button
                     type="button"
                     className="mz-btn-ghost mz-btn-sm"
@@ -358,12 +363,18 @@ export function WorkbenchDock() {
                     Back
                   </button>
                 </div>
-                <p className="mz-small mt-1" style={{ color: 'var(--vt-text-muted, #666)' }}>
-                  Only you can see this. Read-only here — editing arrives with the editor wave.
-                </p>
-                <p className="mz-body mt-3" style={{ whiteSpace: 'pre-wrap' }}>
-                  {paneNotes[paneNotes.length - 1].body}
-                </p>
+                <NoteEditor
+                  key={paneNotes[paneNotes.length - 1].id}
+                  note={paneNotes[paneNotes.length - 1]}
+                  onSaved={(updated) => {
+                    setLoad((prev) =>
+                      prev.mode === 'live'
+                        ? { mode: 'live', notes: prev.notes.map((n) => (n.id === updated.id ? { ...n, ...updated } : n)) }
+                        : prev,
+                    );
+                  }}
+                  onDirtyChange={setEditorDirty}
+                />
                 {paneNotes.length > 1 ? (
                   <p className="mz-small mt-4" style={{ color: 'var(--vt-text-muted, #666)' }}>
                     {paneNotes.length} panes open — Back or Escape closes the most recent first.
@@ -390,7 +401,7 @@ export function WorkbenchDock() {
                     type="button"
                     className="mz-btn mz-btn-sm"
                     onClick={() => void capture()}
-                    disabled={!dirty || saving || load.mode === 'unavailable'}
+                    disabled={!draft.trim() || saving || load.mode === 'unavailable'}
                     style={{ minWidth: 44, minHeight: 44 }}
                   >
                     {saving ? 'Saving…' : 'Save note'}

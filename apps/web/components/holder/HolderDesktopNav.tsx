@@ -4,18 +4,17 @@
  * HolderDesktopNav — persistent workspace navigation for signed-in clinicians
  * at md+ widths.
  *
- * The holder shell previously had ONLY the mobile bottom tab bar (md:hidden),
- * which left desktop users with no persistent way to reach the job board,
- * wallet, applications, recognition, or the CV profile — every surface existed
- * but was undiscoverable. This is the md+ complement to MobileBottomNav: same
- * destinations plus the two that never had a nav home (Recognition, Profile).
+ * This is the md+ complement to MobileBottomNav: the same four primary
+ * destinations, one nav model per breakpoint (A2, 2026-08-08). The eight-item
+ * era — where Wallet, Readiness, Recognition, the Workbench, and a global
+ * Share CTA raced Home/Profile/Roles/Updates as top-level peers — is retired;
+ * those destinations are contextual now.
  *
  * Styled with Calm Wave ink/paper tokens so it reads correctly over both the
  * paper (mz-paper) and dark instrument holder pages.
  */
 
 import Link from 'next/link';
-import { WORKBENCH_BRANDING } from '@/lib/career-garden/branding';
 import { usePathname } from 'next/navigation';
 import { UserButton } from '@clerk/nextjs';
 import { UserRound } from 'lucide-react';
@@ -28,31 +27,31 @@ interface NavItem {
   matchPrefix: boolean;
 }
 
+/**
+ * The four primary destinations (audit plan 2026-08-08, product decision 2):
+ * Home, Profile, Roles, Updates. Wallet, Readiness, Recognition, sharing,
+ * MATCHA, and the Workbench are contextual destinations reached from the
+ * surface where they advance the current task — never simultaneous global
+ * peers. a2-clinician-nav-model.test.tsx guards both halves: this list stays
+ * exactly four, and every demoted destination stays reachable from at least
+ * one clinician surface.
+ */
 const NAV_ITEMS: NavItem[] = [
   { name: 'Home', href: '/holder/home', matchPrefix: false },
-  { name: WORKBENCH_BRANDING.shortName, href: '/holder/garden', matchPrefix: true },
-  { name: 'Wallet', href: '/holder', matchPrefix: false },
-  { name: 'Readiness', href: '/holder/readiness', matchPrefix: true },
-  // Labels match the destination pages' own titles — "Roles" pointed at a
-  // page titled Opportunities and "Updates" at one titled Applications.
-  // Recognition lives on the styled CTA below, not duplicated here.
-  { name: 'Opportunities', href: '/holder/opportunities', matchPrefix: true },
-  { name: 'Applications', href: '/holder/applications', matchPrefix: true },
   { name: 'Profile', href: '/clinician/profile', matchPrefix: true },
+  { name: 'Roles', href: '/holder/opportunities', matchPrefix: true },
+  { name: 'Updates', href: '/holder/applications', matchPrefix: true },
 ];
 
 function isItemActive(item: NavItem, pathname: string): boolean {
-  if (item.href === '/holder/readiness') {
-    return pathname.startsWith('/holder/readiness') || pathname.startsWith('/holder/blockers/');
-  }
   return item.matchPrefix ? pathname.startsWith(item.href) : pathname === item.href;
 }
 
 export function HolderDesktopNav({ showClerkAccount = true }: { showClerkAccount?: boolean }) {
   const pathname = usePathname();
   const { unreadNotifications } = useClinicianMobile();
-  // The badge sits on the Applications tab, so it counts only application
-  // notifications — not the mixed feed (readiness deltas, blockers).
+  // The badge sits on the Updates (applications) tab, so it counts only
+  // application notifications — not the mixed feed (readiness deltas, blockers).
   const unreadApplicationCount = unreadNotifications.filter(isApplicationNotification).length;
 
   return (
@@ -100,13 +99,6 @@ export function HolderDesktopNav({ showClerkAccount = true }: { showClerkAccount
             );
           })}
         </div>
-
-        {/* "Share / prove" is the /verify/:npi public-proof affordance (see
-            ClinicianHomeSurface); this button goes to Recognition, so it says
-            Recognition. */}
-        <Link href="/holder/recognition" className="mz-btn mz-btn-sm shrink-0">
-          Recognition
-        </Link>
 
         {/* Account menu — Manage account + Sign out (Clerk). */}
         {showClerkAccount ? (

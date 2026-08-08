@@ -91,3 +91,45 @@ describe('the backtracking trap itself', () => {
     expect(offenders).toEqual([]);
   });
 });
+
+describe('LINT-12 — the shell stylesheet set is pinned (W1083)', () => {
+  const re = patternFor('LINT-12');
+
+  it.each([
+    "import Providers from './providers';",
+    "import { Toaster } from '@/components/ui/sonner';",
+  ])('ignores non-CSS imports: %s', (line) => {
+    expect(re.test(line)).toBe(false);
+  });
+
+  it.each([
+    "import './globals.css';",
+    "import '../styles/antigravity.css';",
+    "import '../styles/anything-new.css';",
+  ])('matches every CSS import (the allow-list decides): %s', (line) => {
+    // The pattern deliberately matches ALL stylesheet imports; the rule's
+    // allow() then admits exactly the three pinned sheets. Testing the split
+    // this way keeps the regex simple and the policy in one visible list.
+    expect(re.test(line)).toBe(true);
+  });
+});
+
+describe('LINT-13 — custom-property family freeze (W1083)', () => {
+  const re = patternFor('LINT-13');
+
+  it.each([
+    'color: var(--vt-text-primary);',
+    '  background: var(--brand-new-family-ref);', // var() REFERENCE, not a definition
+    'grid-template-columns: 1fr 1fr;',
+  ])('ignores references and non-token lines: %s', (line) => {
+    expect(re.test(line)).toBe(false);
+  });
+
+  it.each([
+    '  --vt-surface: #fff;',
+    ':root { --w83-x: red; }', // the one-line form the first anchor missed
+    'body:has(.clh){--clh-page:#F4F2ED}',
+  ])('matches definitions wherever they sit on the line: %s', (line) => {
+    expect(re.test(line)).toBe(true);
+  });
+});

@@ -15,7 +15,6 @@ import React, { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Award, ChevronRight, Loader2, ShieldCheck } from 'lucide-react';
 import { ClinicianSupportCard } from '@/components/mobile/ClinicianSupportCard';
-import ProductLoopRail from '@/components/holder/ProductLoopRail';
 import { ShareRecognitionPanel } from '@/components/recognition/ShareRecognitionPanel';
 import {
   acceptanceScopeLabel,
@@ -71,9 +70,6 @@ export function RecognitionSurface() {
       </div>
 
       <div className="mx-auto max-w-3xl space-y-6 px-4 py-8 sm:px-6">
-        {/* Product loop — Profile → Readiness → Recognition → Share → Opportunity */}
-        <ProductLoopRail variant="doc" activeStage="recognition" npi={npi} />
-
         <header className="space-y-2">
           <div className="flex items-center gap-2">
             <Award className="h-5 w-5" style={{ color: 'var(--accent)' }} aria-hidden />

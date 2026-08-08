@@ -31,7 +31,6 @@ import { countApplicationsInMotion } from '@/lib/mobile/clinician-state';
 import { formatEventTimestamp } from '@/lib/mobile/formatEventTimestamp';
 import { RecognitionCard } from '@/components/recognition/RecognitionCard';
 import CareerCompass from '@/components/matcha/CareerCompass';
-import ProductLoopRail from '@/components/holder/ProductLoopRail';
 import { CareerEvidenceGraph } from '@/components/holder/CareerEvidenceGraph';
 import { Reveal } from '@/components/motion/Reveal';
 import { FEATURES } from '@/lib/features';
@@ -345,12 +344,6 @@ export default function ClinicianHomeSurface() {
         <MatchaHomeActivity />
 
         <CareerEvidenceGraph />
-
-        <ProductLoopRail
-          npi={hasValidNpi ? npi : null}
-          profileComplete={profileComplete}
-          hasReadiness={Boolean(readiness)}
-        />
 
         <Reveal>
           <section className="mz-glass-strong mz-glass-interactive p-5">

@@ -21,7 +21,7 @@ UX-02's de-islanding work (mechanical, many small PRs) — not something to do o
 |---|---|---|---|
 | 1 | **Stark black/white YC MVP** (early 2026) | Residual utility classes and layouts in older routes; `styles/utilities.css`, parts of `styles/typography.css` | Parked. No authority. |
 | 2 | **Warm Minimalism / Liquid Glass blueprint** | `styles/blueprint-overrides.css`; glass/backdrop treatments on assorted chrome | Parked. Glass treatment is direction-locked (constitution EC-13) pending the UX-01 verdict; EC-3's certainty rule still bars certainty-implying treatment on evidence. |
-| 3 | **Antigravity** (particles, glass, magnetic buttons) | `antigravity.css` loaded via layout; `--ag-*` tokens; particle/magnetic interaction code | Parked. Its devices are direction-locked/guidance material (EC-13/EC-14), not defaults for any surface. |
+| 3 | **Antigravity** (particles, glass, magnetic buttons) | `antigravity.css` (no longer loaded — W1083 removed the global import; the file stays as the era record); `--ag-*` tokens; particle/magnetic interaction code | Parked, and since W1083 **unloaded**: it served zero live consumers while shipping 570 lines to every page. Its devices are direction-locked/guidance material (EC-13/EC-14), not defaults for any surface. LINT-12 now pins the shell's stylesheet set, so re-loading it is a CI failure, not a drive-by import. |
 | 4 | **Calm Wave paper+ink** (waves 1500–1505) | `.mz` / `.w14` / `.w1505` scoped islands; `styles/vitalTokens.css`, `styles/tokens.css`; wave-1505 handoff under `design-handoff/claude-design-2026-07-12-wave1505/` | Parked as a *visual treatment*. Its **token/component architecture** (semantic `--vt-*` layer, StateChip contract, lint rules) carries forward as UX-02's skeleton, re-skinned to the UX-01 verdict. |
 | 5 | **Creative Direction "record, not dashboard"** (July 2026) | `docs/design/VITALCV_CREATIVE_DIRECTION.md` (CD-1…CD-20); partial implementation across public routes | Doctrine largely carries forward into the Experience Constitution (see its Part II). CD's palette and type sections are **subject to the UX-01 verdict**. CD is amended per CD-19, never forked. |
 | 6 | **Homepage reset directions A/B/C** (2026-08-07/08) | `design-lab/homepage-reset/` — three isolated prototypes, critiques, Playwright evidence | **Resolved.** UX-01 verdict = **Direction B GO, with amendments** (`design-lab/homepage-reset/DECISION.md`). A and C are parked; B's *thesis* — not its implementation — is implemented by UX-V1 below. |
@@ -59,11 +59,15 @@ Notes:
 - `apps/web/app/globals.css` imports **13 stylesheets** (14 `@import` lines incl. normalize +
   tailwind): `themes/index.css`, `vds.css`, `design-tokens.css`, `utilities.css`,
   `typography.css`, `tokens.css`, `vitalTokens.css`, `blueprint-overrides.css`, `matcha.css`,
-  `matcha-zen.css`, `graph.css`, `intelligence.css` — plus `antigravity.css` via layout.
+  `matcha-zen.css`, `graph.css`, `intelligence.css`. (`antigravity.css` was unloaded from layout
+  by W1083 and stays on disk as the era record; the glass-cursor stylesheet was DELETED outright
+  in the same wave together with its no-op component — the W1083 merge commit is its park, per
+  this document's own deleted-files convention. LINT-12 pins the shell's remaining set.)
 - Competing token prefixes: `--vt-`, `--ag-`, `--palette-`, `--vital-`, `--gf-`, `--trust-`,
   `--infra-`, `--glue-`, `--ops-`, `--mz-`, and more.
-- A **global `*` transition rule** (~280ms on color properties) — forbidden by the wave-1505
-  motion doctrine it coexists with.
+- ~~A **global `*` transition rule** (~280ms on color properties)~~ — **removed by W1083**; its
+  opt-out attribute had zero consumers by removal day. Motion is declared by the surface that
+  owns it (EC-4).
 - Two parallel component systems (`design-system/` vs `components/ui/`); a `Badge` import
   resolves differently by path; **≥30 status/badge components** express the same truth states.
 

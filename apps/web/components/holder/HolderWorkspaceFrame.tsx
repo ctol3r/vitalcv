@@ -28,10 +28,22 @@ export function HolderWorkspaceFrame({
   return (
     <ClinicianMobileProvider initialData={initialData}>
       <HolderWorkspaceShell>
+        <a
+          href="#holder-main"
+          className="sr-only z-[60] rounded-md bg-[var(--card)] px-3 py-2 text-sm font-semibold text-[var(--ink-900)] focus:not-sr-only focus:absolute focus:left-4 focus:top-4"
+        >
+          Skip to content
+        </a>
         <ClinicianLaunchTracker />
         <NetworkStatusBanner />
         <HolderDesktopNav showClerkAccount={showClerkAccount} />
-        <div className="flex-1 pb-[calc(var(--holder-mobile-bottom-nav-height)+env(safe-area-inset-bottom,0px)+1rem)] lg:pb-0">
+        {/* Skip-link target. Deliberately a div: many holder pages render
+            their own <main> landmark, so the frame must not add a second. */}
+        <div
+          id="holder-main"
+          tabIndex={-1}
+          className="flex-1 pb-[calc(var(--holder-mobile-bottom-nav-height)+env(safe-area-inset-bottom,0px)+1rem)] lg:pb-0"
+        >
           {children}
         </div>
         <MobileBottomNav showClerkAccount={showClerkAccount} />

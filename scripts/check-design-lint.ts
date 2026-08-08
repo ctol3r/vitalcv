@@ -70,6 +70,27 @@ const TOKEN_FILES = [
 const isTokenFile = (f: string) => TOKEN_FILES.some((t) => f === t);
 
 /**
+ * Every custom-property prefix family that exists today (measured W1083:
+ * seventy of them, several only visible once the sweep stopped being line-anchored — the de-islanding debt itself). LINT-13 freezes the
+ * list: existing families keep working, and defining a token under a NEW
+ * family is an error, because family #68 is how the 1,023-property collapse
+ * (UX-02's census work) gets harder while nobody is looking. Do not add to
+ * this set without a UX-02-scoped design review; the intended direction is
+ * for it to SHRINK toward --vt-* plus the scoped islands.
+ */
+const KNOWN_TOKEN_PREFIXES = new Set([
+  'accent', 'ag', 'ask', 'blur', 'card', 'chart', 'claim', 'clh', 'color',
+  'container', 'control', 'destructive', 'divider', 'doc', 'dur', 'duration',
+  'ease', 'eb', 'ebm', 'ezh', 'film', 'font', 'glass', 'hdr', 'hue', 'indigo',
+  'infra', 'ink', 'ivory', 'leading', 'matcha', 'mdk', 'muted', 'mz', 'ok',
+  'ops', 'outline', 'p0', 'palette', 'paper', 'popover', 'primary', 'pure',
+  'r', 'radius', 'rst', 'rule', 'secondary', 'shadow', 'sidebar', 'space', 'spacing',
+  'spotlight', 'state', 'stone', 'surface', 'text', 'trace', 'transition',
+  'trust', 'type', 'unknown', 'vcv', 'vds', 'vital', 'vt', 'w1501', 'watch',
+  'z', 'z1',
+]);
+
+/**
  * OKLCH hue + chroma of the first colour literal on a line, or null when there
  * isn't one (a `var()`, `color-mix()`, or bare keyword). Used by CD-3/4, which
  * has to make a NUMERIC judgement — "is this token green?" — that a regex
@@ -207,6 +228,46 @@ const RULES: Rule[] = [
     exts: CSS,
     pattern: /font-family\s*:\s*(?!\s*var\()/,
     allow: (f) => isTokenFile(f) || f.endsWith('fonts.css'),
+  },
+  // ── W1083 (UX-02C): the shell's global CSS surface is pinned ───────────────
+  // EC-23: "no new stylesheet imports". The shell reached five global sheets by
+  // accretion — antigravity.css served zero live consumers and glass-cursor.css
+  // styled markup that never rendered, and nothing failed when either landed.
+  // These two rules are `error`, not `ratchet`: the debt was removed first, so
+  // the first new global sheet or token-prefix family is the offence itself.
+  {
+    id: 'LINT-12',
+    mode: 'error',
+    what: 'New global stylesheet import in the shell',
+    fix: 'The shell loads exactly globals.css + typography.css + page-density.css (W1083). New CSS belongs to the island component that owns it, or to the UX-02 token layer via an @import reviewed into globals.css.',
+    roots: [join(web, 'app', 'layout.tsx')],
+    exts: TSX,
+    pattern: /^import\s+'[^']*\.css'/,
+    allow: (_f, line) =>
+      ["'./globals.css'", "'../styles/typography.css'", "'../styles/page-density.css'"].some((ok) =>
+        line.includes(ok),
+      ),
+  },
+  {
+    id: 'LINT-13',
+    mode: 'error',
+    what: 'New custom-property prefix family',
+    fix: 'Define new tokens under --vt-* (the semantic layer) or inside an existing island prefix. 70 prefix families already compete — the answer to "none of these fit" is UX-02 token work, not family #71.',
+    roots: [join(web, 'styles'), join(web, 'app')],
+    exts: CSS,
+    // A custom-property DEFINITION introduces a family; var() references don't.
+    // Anchored to line start OR a preceding { or ; so a one-line
+    // `:root { --x: y }` cannot slip past — which is exactly how the first
+    // injection proof failed to fire and got this anchor widened.
+    pattern: /(?:^|[{;])\s*--[a-z0-9]+(?:-[a-z0-9]+)*\s*:/,
+    allow: (_f, line) => {
+      const matches = [...line.matchAll(/(?:^|[{;])\s*--([a-z0-9]+)(-|\s*:)/g)];
+      // Un-prefixed single-word tokens (--ring:, --radius:) are shadcn-style
+      // theme slots owned by globals.css; the family rule is about prefixes.
+      return matches.every(
+        (m) => m[2] !== '-' || KNOWN_TOKEN_PREFIXES.has(m[1]),
+      );
+    },
   },
   // ── XS-1: the one scroll owner ──────────────────────────────────────────────
   // Added 2026-08-02 with the founder cinematic rulings. All three are `error`,
