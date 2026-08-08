@@ -2,10 +2,14 @@
  * Customer-language guard — wave L1 of the language inventory
  * (`docs/strategy/customer-language-inventory.md`).
  *
- * Two directions, deliberately. The 2026-08-05 inventory closed by claiming a
- * guard already prevented retired nouns from reaching the homepage; that guard
- * (`strategy-messaging-guard.test.tsx`) only ever existed in an unmerged PR, so
- * nothing enforced it and `wallet` drifted back onto `/onboarding`.
+ * This closes an AUDIENCE gap, not an absence. `buyer-proof-page.test.tsx`
+ * already bans `wallet` via BUYER_BANNED_STRINGS and works; nothing equivalent
+ * covered clinician surfaces, so the noun stayed rigorously banned where an
+ * employer would read it and drifted onto `/onboarding`, where a clinician
+ * starts. (The homepage was supposed to be covered by
+ * `strategy-messaging-guard.test.tsx`, which exists only in an unmerged PR.)
+ *
+ * Two directions, deliberately.
  *
  *   1. NEGATIVE — `wallet` must not return as a product noun on the customer
  *      surfaces this wave cleaned.

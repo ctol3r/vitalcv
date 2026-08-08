@@ -55,10 +55,25 @@ language, and the employer doorway's decision boundary.
 find-and-replace that stripped them would satisfy a negative-only guard while deleting
 the honesty the product is built on. That is why this guard is two-way.
 
-A one-way guard is also precisely what failed here: the 2026-08-05 inventory closed by
-saying `strategy-messaging-guard.test.tsx` prevented retired nouns from reaching the
-homepage. That file only ever existed in unmerged PR #1079 — nothing was enforcing it,
-and `wallet` drifted onto the primary entry surface.
+## Why it drifted — the guard existed, but only for one audience
+
+This is the useful part. Enforcement was not absent; it was **audience-scoped**:
+
+- `__tests__/buyer-proof-page.test.tsx` defines `BUYER_BANNED_STRINGS`, which already
+  contains `wallet` — and it works. `AnnouncementRail.tsx` even documents the noun as
+  "on the buyer-surface banned list" and suppresses the clinician strip on buyer pages.
+- `__tests__/announcement-buyer-scope.test.tsx` enforces that suppression.
+- Nothing equivalent existed for **clinician** surfaces. So the noun was rigorously
+  banned where an employer would read it, and completely unguarded on `/onboarding` —
+  the first thing a clinician reads.
+
+The homepage was supposed to be covered by `strategy-messaging-guard.test.tsx`, which
+the 2026-08-05 inventory describes as active. That file only ever existed in unmerged
+PR #1079.
+
+So the vocabulary was protected on the surfaces we were watching, and drifted on the
+one we were not. The new guard closes the clinician half; it does not duplicate
+`BUYER_BANNED_STRINGS`.
 
 ## Findings logged, not fixed here
 
