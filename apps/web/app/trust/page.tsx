@@ -147,7 +147,7 @@ export default async function TrustCenterPage() {
         <Section id="controls" eyebrow="Your record" title="The controls you keep">
           <div className="grid gap-4 sm:grid-cols-2">
             {[
-              { t: 'You own it', d: 'Your wallet, source checks, and receipts live in a record you own — not an employer’s filing cabinet. It leaves with you.' },
+              { t: 'You own it', d: 'Your profile, source checks, and receipts live in a record you own — not an employer’s filing cabinet. It leaves with you.' },
               { t: 'Sharing is explicit', d: 'Nothing is shared until you share it. A shared proof packet names exactly what the recipient can see.' },
               { t: 'Corrections have a path', d: 'When a source value is wrong, you can flag it and attach supporting evidence — prior evidence and timestamps are preserved, never silently overwritten.' },
               { t: 'Consent is withdrawable', d: 'Access you grant can be withdrawn; each open and each acceptance is recorded in your activity.' },
@@ -161,7 +161,7 @@ export default async function TrustCenterPage() {
           <p className="mt-3 text-[13px] text-[var(--vt-text-muted)]">
             These controls live in your{' '}
             <Link href="/holder" className="font-medium text-[var(--vt-text-secondary)] underline underline-offset-2 hover:text-[var(--vt-text-primary)]">
-              CV Wallet
+              VitalCV profile
             </Link>{' '}
             once you activate it.
           </p>

@@ -248,7 +248,7 @@ export function RequestReviewPanel() {
               Review link
             </p>
             <p className="text-xs leading-relaxed text-muted-foreground">
-              Send this to the clinician, or open it yourself to see their passport in employer
+              Send this to the clinician, or open it yourself to see their record in employer
               review mode. Employer actions on this review are captured as audit-boundary metadata.
             </p>
             <div className="rounded-lg border border-white/8 bg-black/15 px-3 py-2">

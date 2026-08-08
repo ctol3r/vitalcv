@@ -7,14 +7,28 @@ Audit basis: production `vitalcv.com`, 2026-08-07, desktop 1440×900 + iPhone 14
 (390pt) via Playwright. Evidence archives live under `docs/design/design-lab/<ID>/`
 once a wave ships; pre-wave evidence is summarized inline.
 
-Open-PR collision map at audit time: #1079 owns homepage composition/copy
-(`app/page.tsx`, `CareerLoopHome.tsx`); #1081 owns `/profile/activate` (B1);
-#1103 touches `app/get-ready/GetReadySurface.tsx` + onboarding NPI handoff;
-#1109 owns WorkspaceNav/journey-header nesting.
+Open-PR collision map, **refreshed 2026-08-07 after the Tier-S closure (#1127) closed
+194 PRs**: #1079 still owns homepage composition/copy (`app/page.tsx`,
+`CareerLoopHome.tsx`); #1081 still owns `/profile/activate` (B1); #1133 owns the
+journey eyebrow header (at founder gate). **#1103 and #1109 have MERGED**, which
+unblocks the `/onboarding` copy tier.
 
 ---
 
-## DL-001 — Floating feedback chip blocks taps on mobile — **SELECTED (wave 1)**
+## DL-001 — Floating feedback chip blocks taps on mobile — **CLOSED ✅ (wave 1)**
+
+**Shipped** as PR #1119 → `29970a559`, founder GO 2026-08-07.
+**Production-verified** on `vitalcv.com/onboarding` (iPhone 14) once the deploy carried
+the merge SHA: chip now `44×44 @ x322`, `intersects: false`,
+`signinClickBlocked: false`, `elementFromPoint` at the link's center returns
+`"Sign in"`, and clicking it navigates to `/sign-in?redirect_url=%2Fonboarding`.
+Desktop unchanged (109×44, label visible). Evidence: `dl-001/`.
+
+Re-audit note: the click only navigates after hydration settles (~6s in the harness);
+an earlier click returned to the same URL. That is a general harness caveat, not a
+regression — assert against a hydration signal, not a fixed wait.
+
+<details><summary>Original finding (kept for lineage)</summary>
 
 - **Route/surface:** global fixed chrome (`components/feedback/FeedbackButton.tsx`), measured on `/onboarding`
 - **Problem:** the labeled "Feedback" chip (`fixed bottom-6 right-6`, ~109×44px) occupies
@@ -39,7 +53,49 @@ Open-PR collision map at audit time: #1079 owns homepage composition/copy
 - **Dependencies:** none
 - **Collision risk:** none — no open PR touches `components/feedback/`
 
-## DL-002 — `/onboarding` sells a "career wallet" and "readiness packet" (retired vocabulary)
+</details>
+
+## DL-002a — Customer-language inventory — **DELIVERED (wave 2), awaiting classification sign-off**
+
+- **Deliverable:** `docs/strategy/customer-language-inventory.md` — **revised in place**;
+  a Wave 1077 PR C version already existed and its conclusions needed correcting, not replacing
+- **Why it came before DL-002:** DL-002 looked like a one-file copy edit. The inventory
+  shows the same vocabulary spans **443 visible occurrences across 10 terms**, so a
+  narrow fix would have renamed the noun on one surface and left it standing on
+  twenty — trading one incoherence for another.
+- **Findings that change the plan:**
+  1. **These words do two jobs.** ~45 occurrences are *truth qualifiers* (freshness
+     windows like "monthly snapshot", limitation clauses like "Receipt recorded. Does
+     not imply employer acceptance."), not product vocabulary. They are marked
+     **protected** — a blind rename would delete the honesty the product is built on.
+  2. **Primary navigation is already canonical** (Clinicians/Employers/Trust, profile-first
+     labels). The debt is page copy and in-app surfaces, not IA — this retires the nav
+     half of DL-003.
+  3. **The real cost is tests:** 141 test files reference these terms and 20+ assert on
+     rendered copy, several of them truth guards. A copy wave is a copy edit **plus** a
+     test-contract migration.
+  4. **The 2026-08-05 inventory's headline was wrong.** It concluded the retire list
+     was "already almost absent from customer copy" using a JSX-text-node search; that
+     method cannot see prose string literals, which is where most of this copy lives.
+     Production screenshots settle it — `/onboarding` renders "Your free, source-backed
+     career wallet". The revision annotates the original inline rather than rewriting it.
+  5. **The guard that was supposed to prevent this does not exist on `main`.**
+     `strategy-messaging-guard.test.tsx` lives only in open PR #1079, but the merged
+     inventory describes it as active. Nothing currently fails the build when a retired
+     noun reaches the homepage. Landing it is part of wave L1.
+- **Sequencing:** **L1 MERGED** `96d3255b2` → **L2 AT FOUNDER GATE** (`passport` orphans) →
+  L3 acquisition-copy demotion (~35, after #1079) → L4 in-app snapshot noun (~30).
+- **Founder decisions recorded 2026-08-07:** `recognition` **KEPT** as a distinct
+  in-app state; routes are **labels-only** (no path renames or redirects in a copy
+  wave); `app/manifest.ts` is **not to be touched**, which removes the PWA description
+  from L2. Classification sign-off given — L1–L4 may execute, each at its own gate.
+
+## DL-002 / wave L1 — `wallet` retired from customer copy — **AT FOUNDER GATE**
+
+Shipped as the L1 wave: 55+ replacements across 25 files, two-way guard landed
+(`__tests__/customer-language-guard.test.ts`), full suite 3308 passing. Evidence in
+`design-lab/l1-wallet/`. Surfaced DL-008 (nav IA) and DL-009 (dead components) rather
+than forcing them into scope.
 
 - **Route/surface:** `/onboarding` right rail (source: `app/get-ready/GetReadySurface.tsx`)
 - **Problem:** the rail headlines "Your free, source-backed career wallet" and promises an
@@ -52,9 +108,66 @@ Open-PR collision map at audit time: #1079 owns homepage composition/copy
 - **Severity:** P1 · **Strategic impact:** comprehension + category convergence
 - **Recommended direction:** copy-only pass replacing wallet/packet with profile
   vocabulary per the strategy brief; no layout change.
-- **Size:** XS · **Dependencies:** strategy docs installed (`docs/strategy/`)
-- **Collision risk:** **BLOCKED — WAIT.** #1103 touches `GetReadySurface.tsx`; coordinate
-  or take after it lands.
+- **Size:** XS as scoped; **~40 occurrences** as wave L1 across clinician + public surfaces
+- **Dependencies:** none — `docs/strategy/` canon is already in-repo (landed in #1080)
+- **Collision risk:** cleared — #1103 merged 2026-08-07; no open PR touches `GetReadySurface.tsx`
+
+## DL-008 — `/holder` and `/clinician/profile` both claim to be "the profile" (IA)
+
+- **Route/surface:** `components/holder/HolderDesktopNav.tsx`, `components/clinician/MobileBottomNav.tsx`
+- **Problem:** the desktop holder nav carries **both** `Wallet → /holder` and
+  `Profile → /clinician/profile`. Wave L1 retired "wallet" as a customer noun, but the
+  label cannot simply become "Profile" — that would put two identically named entries in
+  one nav pointing at different routes. The real question is what these two surfaces
+  *are*: one of them is the clinician's profile, and the product has not decided which.
+- **Evidence:** `HolderDesktopNav.tsx:29-38` (8 items incl. both), `MobileBottomNav.tsx:14-19`.
+- **Persona:** clinician, activated · **Severity:** P1 · **Strategic impact:** comprehension, coherence
+- **Recommended direction:** founder IA decision first (merge the surfaces, or name them
+  distinctly — e.g. workspace home vs published profile), then a label wave.
+- **Size:** S (labels) / M (if surfaces merge) · **Collision risk:** low today; #1081 (B1)
+  lands `/profile/activate` and may inform the answer — **sequence after B1**.
+- **Note:** nav labels were deliberately excluded from wave L1 for this reason.
+
+## DL-009 — Dead homepage components still carrying retired vocabulary
+
+- **Route/surface:** `components/home/ProductCarousel.tsx`, `components/home/OutcomeTriad.tsx`
+- **Problem:** both have **zero real importers** — nothing renders them. They still carry
+  wallet/packet/recognition acquisition copy ("Reuse the same Wallet and Proof Packet…",
+  "Source checks, receipts, and Recognition — one wallet."), which inflates every
+  vocabulary audit with occurrences no customer can ever read.
+- **Evidence:** no `from '@/components/home/ProductCarousel'` or `.../OutcomeTriad'`
+  anywhere in `app/` or `components/`; verified 2026-08-07.
+- **Persona:** n/a (maintenance) · **Severity:** P3 · **Strategic impact:** coherence — deletion makes the product simpler
+- **Recommended direction:** delete both, with their tests. Do not "fix" their copy —
+  polishing dead code is how it survives another audit.
+- **Size:** XS · **Collision risk:** verify against #1079 before deleting (it owns `components/home/`)
+
+## L2 — `passport` retired from customer copy — **AT FOUNDER GATE**
+
+- **Thesis:** the concept died with the route (#1096 retired `/passport`); the
+  vocabulary outlived it. This is deletion of a name that points at nothing.
+- **Scope:** 27 rendered-copy replacements across 21 files. Internal names untouched
+  (`PassportData`, `passport` variables, `/api/passport/*`, `lib/trust/passport-*`) —
+  the strategy explicitly forbids mass-renaming machinery.
+- **Delicate case:** `TrustAttributionRegister` is a truth surface with its own
+  contract test. Its `retrievalTime` values state *when* a source is read; the fact
+  ("per request") survives, and one row citing `/passport input` — a route that no
+  longer exists — is corrected to the route that carries NPI input today. Guarded
+  both ways.
+- **Caught an L1 miss:** `AuthDisclosureCard` still read "Access your Wallet"; it was
+  not on L1's guard surface list, so the guard stayed green and its own pinned test
+  caught it instead. The surface list is a commitment, not a net — noted in the
+  charter's evidence contract.
+- **Verification:** full suite **3357 passed**; guard extended to `passport`; the two
+  migrated e2e specs run and pass locally (12/12 for the film project).
+- **Process lesson — the vitest suite cannot see e2e pins.** `vitest.config` excludes
+  `tests/**`, so `tests/e2e/*.spec.ts` assertions on rendered copy are invisible to a
+  green local run. L2's first CI attempt failed on exactly that: two specs pinned
+  "This clinician passport is not available for review yet…". Worse, one of them
+  (`npi-truth-engine.spec.ts`) is **film-gated** — it needs
+  `E2E_HOME_VARIANT=film --project=chromium-film` or it silently reports "No tests
+  found". **Any future copy wave must grep `tests/` for every string it changes and
+  run the affected specs under the right project**, not just the vitest suite.
 
 ## DL-003 — Homepage journey rail exposes machinery labels ("Packet", "Their decision")
 
@@ -70,6 +183,9 @@ Open-PR collision map at audit time: #1079 owns homepage composition/copy
   clinician-benefit cell copy. Hero/section copy is #1079's contract.
 - **Size:** S · **Collision risk:** **BLOCKED — WAIT.** #1079 owns homepage composition;
   recommendation handed to that wave rather than a competing implementation.
+- **Update 2026-08-07 (DL-002a):** the *navigation* half of this finding is closed —
+  `navDestinations.ts` is already canonical. What remains is the rail's cell copy
+  (`CareerLoopHome.tsx:111,403` "The packet"), which stays #1079's to change.
 
 ## DL-004 — Cinematic interstitials outrank utility in the homepage story
 
@@ -135,7 +251,12 @@ Open-PR collision map at audit time: #1079 owns homepage composition/copy
 | Design coherence | 7 | Paper/ink system holds across `/`, `/onboarding`, `/employers` |
 | Differentiation | 6 | Journey rail + source-attribution feel ownable; interstitial mood pieces read generic-cinematic |
 | Trust clarity | 8 | Source/freshness qualifiers present and honest everywhere audited |
-| Mobile quality | 5 | DL-001 tap blocker; compositions otherwise sound |
+| Mobile quality | 5 → **7** | DL-001 tap blocker CLOSED and prod-verified 2026-08-07; compositions otherwise sound. Next mobile evidence needed before claiming higher |
 | Interaction/motion | 7 | Scenes reveal correctly on scroll (verified); motion mostly has a job |
 
-Weakest important dimension: **mobile quality** — hence DL-001 as wave 1.
+Weakest important dimension at baseline: **mobile quality** — hence DL-001 as wave 1.
+After wave 1 the weakest important dimensions are **comprehension (6)** and
+**differentiation (6)**; both are gated on #1079 landing, so wave 3 should be either
+the inventory's L1 (`wallet` → profile, unblocked now) or DL-005 (`/employers`
+hierarchy). Re-score against fresh captures after the next deploy — these numbers are
+only as good as the evidence behind them.

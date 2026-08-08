@@ -143,7 +143,7 @@ function PacketBody({ model }: { model: CareerPacketModel }) {
       {/* 4. Verification Sources */}
       <Section title="Verification Sources" eyebrow="4">
         {model.sources.length === 0 ? (
-          <EmptyState>No source checks are attached to this passport yet.</EmptyState>
+          <EmptyState>No source checks are attached to this record yet.</EmptyState>
         ) : (
           <div className="divide-y divide-border">
             {model.sources.map((s) => (
@@ -221,7 +221,7 @@ function PacketBody({ model }: { model: CareerPacketModel }) {
       {/* 8. Trust Signals */}
       <Section title="Trust Signals" eyebrow="8">
         {!model.trustSignals ? (
-          <EmptyState>Trust posture is not available for this passport.</EmptyState>
+          <EmptyState>Trust posture is not available for this record.</EmptyState>
         ) : (
           <>
             <p className="text-sm text-muted-foreground">
@@ -331,7 +331,7 @@ export default function PacketClient({ entityId }: { entityId: string }) {
       <main className="mx-auto flex min-h-[60vh] w-full max-w-sm flex-col items-center justify-center gap-4 px-4 text-center">
         <h1 className="text-lg font-semibold text-foreground">Packet not available</h1>
         <p className="text-sm text-muted-foreground">
-          This passport hasn&apos;t been generated yet. Run a readiness check to open the source-backed snapshot.
+          This record hasn&apos;t been generated yet. Run a readiness check to open the source-backed snapshot.
         </p>
         <Link
           href="/onboarding"

@@ -26,7 +26,7 @@ import { cn } from '@/lib/utils';
  */
 
 export const SIGN_IN_DISCLOSURE =
-  'Access your Wallet, readiness progress, opportunities, applications, and shared evidence. Public passport pages remain readable without an account.';
+  'Access your profile, readiness progress, opportunities, applications, and shared evidence. Public profile pages remain readable without an account.';
 
 export const SIGN_UP_DISCLOSURE =
   'Create an operator account. Sign-up does not credential a clinician and does not contact employers.';

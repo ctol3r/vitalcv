@@ -283,7 +283,7 @@ export default function NodeInspector({ node, onClose }: NodeInspectorProps) {
               }`}
             >
               <TrendingUp className="h-3 w-3" />
-              {node.kind === 'clinician' ? 'View Passport' : 'Node Details'}
+              {node.kind === 'clinician' ? 'View record' : 'Node Details'}
             </a>
           </div>
         </motion.div>

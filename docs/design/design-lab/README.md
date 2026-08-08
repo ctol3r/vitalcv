@@ -79,6 +79,13 @@ useful, mobile, and relevant interaction states (menu open/closed, empty/resolve
 loading/error, anonymous/authenticated, reduced motion) — rendered product, not code
 screenshots. Evidence lives under `docs/design/design-lab/<ID>/`.
 
+**Copy waves carry one extra obligation.** A green vitest run does not cover rendered
+copy pinned by end-to-end specs: `vitest.config` excludes `tests/**`. Before opening a
+copy PR, grep `tests/` for every string the wave changes and run the affected specs —
+noting that some are gated behind a project flag (`E2E_HOME_VARIANT=film
+--project=chromium-film`) and report "No tests found" rather than skipping visibly.
+Wave L2 shipped its first CI attempt red for exactly this reason.
+
 ## Wave stop condition
 
 Every implementation stops at `FOUNDER [SURFACE] VISUAL REVIEW`. `GO` → merge via the

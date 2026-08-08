@@ -111,7 +111,7 @@ export function CredentialWallet({
   const fetchWallet = useCallback(async () => {
     if (!subject) {
       setData(null);
-      setError('A clinician NPI is required to load the credential wallet.');
+      setError('A clinician NPI is required to load these credentials.');
       setLoading(false);
       return;
     }
@@ -128,7 +128,7 @@ export function CredentialWallet({
       // reported as unreachable. Credentials already fetched for this subject
       // are the clinician's own, so they stay on screen and are marked stale
       // rather than being replaced or silently refreshed.
-      setError('Credential wallet is unavailable right now.');
+      setError('Credentials are unavailable right now.');
     } finally {
       setLoading(false);
     }
@@ -171,7 +171,7 @@ export function CredentialWallet({
       <div className="flex items-center justify-between px-5 py-4 border-b border-infra-border bg-infra-surface">
         <div className="flex items-center gap-2">
           <FileKey2 className="h-5 w-5 text-infra-blue" />
-          <h2 className="font-bold text-foreground">Credential Wallet</h2>
+          <h2 className="font-bold text-foreground">Credentials</h2>
           {summary && (
             <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
               {summary.total} total
@@ -182,10 +182,10 @@ export function CredentialWallet({
           type="button"
           onClick={() => void fetchWallet()}
           disabled={loading}
-          aria-label="Refresh credential wallet"
+          aria-label="Refresh credentials"
           aria-busy={loading}
           className="rounded p-1.5 hover:bg-secondary transition-colors disabled:opacity-40"
-          title="Refresh wallet"
+          title="Refresh credentials"
         >
           <RefreshCw className={`h-3.5 w-3.5 text-muted-foreground ${loading ? 'animate-spin' : ''}`} />
         </button>
@@ -214,7 +214,7 @@ export function CredentialWallet({
           <AlertTriangle className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-amber-600" />
           <p className="text-xs leading-5 text-amber-800">
             Could not refresh
-            {lastUpdated ? ` — showing your wallet as of ${lastUpdated.toLocaleTimeString()}` : ''}
+            {lastUpdated ? ` — showing your credentials as of ${lastUpdated.toLocaleTimeString()}` : ''}
             . This view may be out of date.
           </p>
         </div>
@@ -234,7 +234,7 @@ export function CredentialWallet({
           <div className="flex flex-col items-center gap-3 px-5 py-12 text-center">
             <AlertTriangle className="h-8 w-8 text-amber-500" />
             <div>
-              <p className="text-sm font-semibold text-foreground">Credential wallet unavailable</p>
+              <p className="text-sm font-semibold text-foreground">Credentials unavailable</p>
               <p className="mx-auto mt-1 max-w-sm text-xs leading-5 text-muted-foreground">
                 {error} Nothing is shown here until it can be reached again.
               </p>
@@ -253,7 +253,7 @@ export function CredentialWallet({
         {!loading && !error && credentials.length === 0 && (
           <div className="flex flex-col items-center gap-2 py-12">
             <FileKey2 className="h-8 w-8 text-muted-foreground/40" />
-            <p className="text-sm text-muted-foreground">No credentials in wallet</p>
+            <p className="text-sm text-muted-foreground">No credentials attached yet</p>
           </div>
         )}
 
@@ -295,10 +295,10 @@ export function CredentialWallet({
                         type="button"
                         onClick={() => void handleRemove(credential.credentialId)}
                         disabled={isRemoving}
-                        aria-label={`Remove ${issuerLabel} credential from wallet`}
+                        aria-label={`Remove ${issuerLabel} credential from your profile`}
                         aria-busy={isRemoving}
                         className="rounded p-1 hover:bg-red-50 text-muted-foreground hover:text-red-500 transition-colors disabled:opacity-40"
-                        title="Remove from wallet"
+                        title="Remove from profile"
                       >
                         {isRemoving
                           ? <RefreshCw className="h-3 w-3 animate-spin" />
