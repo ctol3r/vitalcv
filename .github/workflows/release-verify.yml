@@ -69,6 +69,17 @@ jobs:
     name: Verify signed-in release
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    # LOAD-BEARING — do not remove. CLERK_SECRET_KEY is an ENVIRONMENT secret
+    # on `production`, not a repository secret. A job that does not declare the
+    # environment resolves `secrets.CLERK_SECRET_KEY` to the empty string, the
+    # preflight below reads that as "monitor not wired", and the run goes GREEN
+    # having verified nothing. That is precisely how this monitor spent its
+    # entire life posting grey "skipped — monitor not wired" statuses while
+    # looking healthy. Deleting this line silently restores that failure.
+    # Repository-level secrets (RAILWAY_API_TOKEN, CLERK_FAPI_URL,
+    # RELEASE_PROBE_BASE) remain visible; an environment only ADDS to what a
+    # job can see, and wins only on a name collision.
+    environment: production
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
