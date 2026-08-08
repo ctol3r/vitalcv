@@ -4407,6 +4407,8 @@ model AgentEvent {
   @@index([subjectRef, createdAt])
   @@index([relatedKind, relatedRef])
   @@map("agent_events")
+}
+
 /// Singleton row backing the W3C Bitstring Status List v1.0 revocation
 /// registry (`services/ledger/statusListManager.ts`, Wave 40).
 ///
