@@ -1,5 +1,7 @@
 import type { MetadataRoute } from 'next';
 
+import { isCanonicalProductionProcess } from '@/lib/deployment/canonicalProduction';
+
 /**
  * `lastModified` is a claim about a specific page, so each entry carries its
  * own real date — the commit date of the route's own source, read from git.
@@ -61,7 +63,20 @@ export const SITEMAP_ROUTES: readonly SitemapRoute[] = [
   { path: '/status', source: 'app/status', lastModified: '2026-07-30', changeFrequency: 'daily', priority: 0.4 },
 ];
 
+/**
+ * Evaluated per REQUEST — see the note on `app/robots.ts`. Statically
+ * generating this would bake the build machine's environment into production's
+ * sitemap, emptying it.
+ */
+export const dynamic = 'force-dynamic';
+
 export default function sitemap(): MetadataRoute.Sitemap {
+  // Only canonical production advertises the site. A review deployment already
+  // sends `Disallow: /` and `X-Robots-Tag: noindex`, so serving the full route
+  // inventory here would contradict both. `SITEMAP_ROUTES` stays exported
+  // unchanged, so the freshness guard still measures every entry.
+  if (!isCanonicalProductionProcess()) return [];
+
   return SITEMAP_ROUTES.map((route) => ({
     url: `https://vitalcv.com${route.path}`,
     // Midnight UTC of the commit day. A commit-time-of-day would imply a

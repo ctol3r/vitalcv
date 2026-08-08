@@ -8,6 +8,7 @@ import {
   type UserRoleType,
 } from '@/lib/auth/roles';
 import { ROLE_COOKIE_NAME, verifyRoleCookie } from '@/lib/auth/roleCookie';
+import { isCanonicalProductionProcess } from '@/lib/deployment/canonicalProduction';
 import { checkCorsAllowlist, getAllowedOrigins } from '@/lib/security/corsAllowlist';
 
 /**
@@ -177,10 +178,29 @@ async function routeMiddleware(req: NextRequest, event: NextFetchEvent) {
   return clerkHandler(req, event);
 }
 
+/**
+ * Every deployment that is not canonical production is a second copy of the
+ * public site on another hostname, so it refuses indexing outright.
+ *
+ * Resolved ONCE at module scope rather than per request: the value comes from
+ * the container's own environment and cannot change between requests, and
+ * `robots.ts` reads the same predicate. `X-Robots-Tag` is the half crawlers
+ * actually obey — `robots.txt` alone does not stop an already-known URL from
+ * being indexed.
+ *
+ * Set here, in the one place every response passes through, for the same
+ * reason the cache-control header is: `routeMiddleware` has six exit paths and
+ * a header added by hand would be missed on at least one of them.
+ */
+const REFUSE_INDEXING = !isCanonicalProductionProcess();
+
 export default async function middleware(req: NextRequest, event: NextFetchEvent) {
   const response = await routeMiddleware(req, event);
   if (response && isSessionPath(req.nextUrl.pathname)) {
     response.headers.set('Cache-Control', 'private, no-store');
+  }
+  if (response && REFUSE_INDEXING) {
+    response.headers.set('X-Robots-Tag', 'noindex, nofollow');
   }
   return response;
 }

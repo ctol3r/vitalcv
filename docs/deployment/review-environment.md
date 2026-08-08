@@ -1,0 +1,97 @@
+# The review environment
+
+**Purpose:** give a branch a real URL a human can click, *before* it merges.
+
+Established 2026-08-08, after the UX-V1 production cutover shipped on
+screenshots plus a reviewer's localhost. The founder visual gate
+(`docs/ops/FOUNDER_VISUAL_GATE.md`) already demanded rendered evidence; what it
+could not offer was a place to *use* the change. This closes that.
+
+## What it is
+
+One **persistent** Railway environment named `review`, in the same project as
+production, running the same `vitalcv-web` service. It has a stable URL, and it
+always reflects **the last ref deployed to it** — it is a shared workbench, not
+a per-PR preview.
+
+Deploy to it with the **Deploy Review Environment** workflow
+(`.github/workflows/deploy-review.yml`), which takes a ref and an optional PR
+number:
+
+```bash
+gh workflow run deploy-review.yml -f ref=my-branch -f pr=1234
+```
+
+The workflow provisions the environment and its domain on first run, so there
+is no manual dashboard setup. It is `workflow_dispatch` only — nothing deploys
+here automatically, because a shared environment that changes under you while
+you are reviewing is worse than no environment.
+
+## What it deliberately is not
+
+| | Decision | Why |
+|---|---|---|
+| Database | **None.** No `DATABASE_URL`. | Write paths (issuer requests, receipt candidates) degrade instead of reaching production records. A review deploy must not be able to write real data. |
+| Backend | **Reads through to `https://api.vitalcv.com`.** | The real NPI entry is the homepage's hero interaction — a review where it doesn't resolve is a much weaker review. NPI lookup is a public read of NPPES, so the blast radius is a read. |
+| Auth | **No `CLERK_SECRET_KEY`.** | Signed-in surfaces are out of scope for a visual review. The middleware already no-ops without it (`CLERK_MIDDLEWARE_ENABLED`). |
+| Indexing | **Refused at three layers.** | See below. This is the one that would silently hurt if wrong. |
+| Lifecycle | **Persistent, one at a time.** | Matches the one-wave-at-a-time design cadence, and keeps a stable URL the founder can bookmark. Cost is one small container. |
+
+## Indexing is refused, three ways
+
+A review deployment is a second copy of the public marketing site on another
+hostname. Left alone it would be crawlable, and a duplicate of vitalcv.com in
+search results is an SEO problem no test would have caught.
+
+The single source of truth is
+`apps/web/lib/deployment/canonicalProduction.ts` — a deployment is canonical
+production only when it says so itself via `RAILWAY_ENVIRONMENT` (or the legacy
+`VERCEL_ENV`). **Never `NODE_ENV`**, which the review build also sets to
+`production`, and never a hostname, which a custom domain would defeat.
+
+Off canonical production:
+
+1. `robots.txt` serves a blanket `Disallow: /` (`app/robots.ts`).
+2. Every response carries `X-Robots-Tag: noindex, nofollow` (`middleware.ts`,
+   set at the one point every response passes through). This is the half
+   crawlers actually obey — `robots.txt` does not remove an already-known URL.
+3. `/sitemap.xml` returns empty (`app/sitemap.ts`), so the route inventory is
+   not advertised from a host that should advertise nothing.
+
+The deploy workflow **asserts 1 and 2 after every deploy** rather than trusting
+them. Covered by `apps/web/__tests__/review-environment-noindex.test.ts`, which
+also fails if any file re-implements the canonical-production comparison
+instead of importing it — that rule had grown four copies before it was
+extracted.
+
+## Safety rails in the workflow
+
+- The production environment ID is pinned and explicitly **refused** as a
+  target. A workflow invoked by hand with an arbitrary ref is one typo away
+  from being a production deploy.
+- The resolved review domain is asserted **not** to be `vitalcv.com`.
+- Deployment success is asserted from the SHA the site **reports** at
+  `/api/version`, never from an HTTP 200 — a healthy old container answers 200
+  while serving the previous build.
+
+## Cost
+
+One small always-on container in the Railway project. If it is idle for long
+stretches, enable app-sleep on the `review` environment's service instance in
+the Railway dashboard; the first request after a sleep pays a cold start.
+
+To stop paying for it entirely, delete the `review` environment in Railway. The
+workflow recreates it on the next run, so deleting it costs nothing but the
+next deploy's provisioning time.
+
+## Relationship to production verification
+
+The review environment does **not** replace post-merge production verification.
+The sequence for a visual wave is:
+
+1. Deploy the branch to review → founder looks at a real URL → GO / REVISE.
+2. Merge the exact reviewed SHA.
+3. Deploy production, assert the production SHA, capture vitalcv.com itself.
+
+Step 3 stays mandatory. Review proves the design; only production proves the
+deploy.

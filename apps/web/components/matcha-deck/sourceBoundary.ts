@@ -1,3 +1,4 @@
+import { isCanonicalProduction } from '@/lib/deployment/canonicalProduction'
 import type {
   DeckRecommendation,
   DeckSource,
@@ -59,11 +60,7 @@ export function assertNoFixtureMarkersInLivePayload(payload: DeckSourcePayload):
 export function isMatchaDeckPreviewAllowed(env: MatchaDeckPreviewEnvironment): boolean {
   if (env.NODE_ENV !== 'production') return true
 
-  const isCanonicalProduction =
-    env.RAILWAY_ENVIRONMENT?.trim().toLowerCase() === 'production'
-    || env.VERCEL_ENV?.trim().toLowerCase() === 'production'
-
-  return env.MATCHA_DECK_PREVIEW === '1' && !isCanonicalProduction
+  return env.MATCHA_DECK_PREVIEW === '1' && !isCanonicalProduction(env)
 }
 
 export function createDeckSourcePayload(input: MatchaDeckPayloadInput): DeckSourcePayload {
