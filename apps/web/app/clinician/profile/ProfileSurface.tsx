@@ -27,6 +27,7 @@ import {
   Share2,
   UserRound,
 } from 'lucide-react';
+import { WORKBENCH_BRANDING } from '@/lib/career-garden/branding';
 import { ClinicianProfileSections } from '@/components/profile/ClinicianProfileSections';
 import SelfAttestedEditor from '@/components/profile/SelfAttestedEditor';
 import { NppesLicensureCard } from '@/components/profile/NppesLicensureCard';
@@ -613,6 +614,16 @@ export default function ProfileSurface() {
           These fields are entered by you and shared with employers as self-attested information.
           User-entered information is not verified until source-backed evidence is attached. You can
           clear any saved value by emptying it and saving.
+        </p>
+        {/* Contextual Workbench entry (A2): notes, research, and the living CV
+            left the global nav; this is their reachable home for the profile
+            task, on desktop and mobile alike. */}
+        <p className="mt-2 text-xs leading-relaxed vcv-muted">
+          Longer-form thinking — private notes, research, and your living CV — lives in your{' '}
+          <Link href="/holder/garden" className="vcv-link font-semibold">
+            {WORKBENCH_BRANDING.shortName}
+          </Link>
+          .
         </p>
         <form onSubmit={saveSelfAttested} className="mt-4 grid gap-4 sm:grid-cols-2" noValidate>
           <FormField
