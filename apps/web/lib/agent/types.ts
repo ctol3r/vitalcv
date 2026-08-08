@@ -21,6 +21,7 @@
  *    the collapsed form unrepresentable, and the policy engine has no code
  *    path that writes it.
  */
+import type { BlockerUrgency } from './deadlines/types';
 
 // ---------------------------------------------------------------------------
 // Owners and permissions
@@ -244,8 +245,19 @@ export interface SourceObservationState {
   authority: string;
   status: SourceObservationStatus;
   observedAt?: string;
-  /** The source's own preferred freshness window, when it has one. */
+  /**
+   * VitalCV's preferred freshness window for this lane. OUR policy — the
+   * deadline derived from it is labelled `vitalcv_policy`, never the
+   * authority's date.
+   */
   freshnessWindowDays?: number;
+  /**
+   * An end date the AUTHORITY published (a licence expiring, an enrolment
+   * revalidation due). Set only from a channel that preserves provenance —
+   * never inferred from canonical coverage `expiresAt`, which is built as
+   * either a source value or `observedAt + window` and cannot be told apart.
+   */
+  sourceExpiresAt?: string;
   evidenceRefs: EvidenceRef[];
 }
 
@@ -270,6 +282,12 @@ export interface RoleRequirement {
 export interface RoleContext {
   roleRef: string;
   employerRef?: string;
+  /**
+   * A due date the EMPLOYER set (`VcvOrganizationContext.dueAt` is the only
+   * one written anywhere today). `ActivationRequirement.dueAt` is declared
+   * and read but never populated, so nothing derives a deadline from it.
+   */
+  employerDueAt?: string;
   requirements: RoleRequirement[];
   applicationState: 'none' | 'in_progress' | 'submitted';
 }
@@ -396,6 +414,11 @@ export interface StartBlocker {
   vitalcvCanActNow: boolean;
   /** Blockers that must clear before this one can move (dependency chains). */
   dependsOnBlockerIds: string[];
+  /**
+   * A2.3 — a deadline does not create a blocker; it makes an existing one
+   * more pressing. Absent when nothing is approaching.
+   */
+  urgency?: BlockerUrgency;
 }
 
 // ---------------------------------------------------------------------------
