@@ -12,11 +12,15 @@
  *   node scripts/release-record.mjs [--sha <intended>] [--write]
  *                                   [--web https://vitalcv.com]
  *                                   [--api https://api.vitalcv.com]
+ *                                   [--repo <path>]
  *                                   [--review-url <url>] [--evidence <path>...]
  *
  * Default intended SHA is `origin/main`. `--write` persists the record to
  * docs/releases/<shortSha>.json and refreshes docs/releases/latest.json;
- * without it the record only goes to stdout.
+ * without it the record only goes to stdout. `--repo` points the commit lookups
+ * at a different working tree — useful when generating a record from outside a
+ * checkout, and what lets the ancestry logic be tested against purpose-built
+ * history instead of whatever depth CI happened to clone.
  *
  * Convergence is reported as ANCESTRY, not equality. "Not equal" is three very
  * different situations — production trailing a just-merged commit is routine,
@@ -41,6 +45,8 @@ const opt = (name, fallback) => {
 const optAll = (name) => args.reduce((acc, arg, i) => (arg === name && args[i + 1] ? [...acc, args[i + 1]] : acc), []);
 
 const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
+/** Working tree the commit lookups resolve against; defaults to this checkout. */
+const GIT_ROOT = opt('--repo', process.env.RELEASE_RECORD_REPO || REPO_ROOT);
 const WEB_BASE = opt('--web', process.env.RELEASE_WEB_BASE || 'https://vitalcv.com').replace(/\/$/, '');
 const API_BASE = opt('--api', process.env.RELEASE_API_BASE || 'https://api.vitalcv.com').replace(/\/$/, '');
 const REVIEW_URL = opt('--review-url', process.env.RELEASE_REVIEW_URL || '') || null;
@@ -49,7 +55,7 @@ const WRITE = flag('--write');
 
 const git = (...gitArgs) => {
   try {
-    return execFileSync('git', gitArgs, { cwd: REPO_ROOT, encoding: 'utf8' }).trim();
+    return execFileSync('git', gitArgs, { cwd: GIT_ROOT, encoding: 'utf8' }).trim();
   } catch {
     return null;
   }

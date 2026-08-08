@@ -13,10 +13,11 @@
  * A guard that has never been observed failing is not known to work.
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { execFile } from 'node:child_process';
+import { execFile, execFileSync } from 'node:child_process';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { createServer, type Server } from 'node:http';
-import { execFileSync } from 'node:child_process';
-import { resolve } from 'node:path';
+import { tmpdir } from 'node:os';
+import { join, resolve } from 'node:path';
 import { promisify } from 'node:util';
 
 const REPO_ROOT = resolve(__dirname, '../../..');
@@ -36,9 +37,31 @@ async function run(script: string, args: string[]): Promise<{ code: number; stdo
   }
 }
 
-/** Two real commits, so the ancestry classifier has history to walk. */
-const HEAD_SHA = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: REPO_ROOT, encoding: 'utf8' }).trim();
-const PARENT_SHA = execFileSync('git', ['rev-parse', 'HEAD~1'], { cwd: REPO_ROOT, encoding: 'utf8' }).trim();
+/**
+ * The ancestry classifier needs two commits where one descends from the other.
+ * This checkout cannot supply them: CI clones shallow, so `HEAD~1` is not a
+ * revision there even though it resolves fine locally. Build a throwaway repo
+ * with exactly the history these assertions need and point the script at it
+ * with `--repo`, so the test proves the same thing at any clone depth.
+ */
+const gitRepo = mkdtempSync(join(tmpdir(), 'vitalcv-release-record-'));
+const inRepo = (...gitArgs: string[]) =>
+  execFileSync('git', gitArgs, { cwd: gitRepo, encoding: 'utf8' }).trim();
+
+inRepo('init', '--quiet', '--initial-branch=main');
+inRepo('config', 'user.email', 'test@vitalcv.invalid');
+inRepo('config', 'user.name', 'Release Record Test');
+writeFileSync(join(gitRepo, 'file.txt'), 'first\n');
+inRepo('add', 'file.txt');
+inRepo('commit', '--quiet', '-m', 'first');
+const PARENT_SHA = inRepo('rev-parse', 'HEAD');
+writeFileSync(join(gitRepo, 'file.txt'), 'second\n');
+inRepo('add', 'file.txt');
+inRepo('commit', '--quiet', '-m', 'second');
+const HEAD_SHA = inRepo('rev-parse', 'HEAD');
+
+/** Every release-record run resolves commits against that throwaway repo. */
+const runRecord = (args: string[]) => run(RELEASE_RECORD, ['--repo', gitRepo, ...args]);
 
 /** Payloads the stub serves; each test rewrites this before running a script. */
 let routes: Record<string, unknown> = {};
@@ -59,6 +82,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await new Promise<void>((done) => server.close(() => done()));
+  rmSync(gitRepo, { recursive: true, force: true });
 });
 
 const versionPayload = (commit: string) => ({
@@ -73,7 +97,7 @@ describe('release-record: convergence is ancestry, not a boolean', () => {
   it('reports converged and exits 0 when both services serve the intended SHA', async () => {
     routes = { '/api/version': versionPayload(HEAD_SHA), '/health': { git_sha: HEAD_SHA, git_branch: 'main' } };
 
-    const { code, stdout } = await run(RELEASE_RECORD, ['--sha', HEAD_SHA, '--web', origin, '--api', origin]);
+    const { code, stdout } = await runRecord(['--sha', HEAD_SHA, '--web', origin, '--api', origin]);
     const record = JSON.parse(stdout);
 
     expect(code).toBe(0);
@@ -84,7 +108,7 @@ describe('release-record: convergence is ancestry, not a boolean', () => {
   it('reports behind — not merely "not converged" — when the deploy has not landed', async () => {
     routes = { '/api/version': versionPayload(PARENT_SHA), '/health': { git_sha: PARENT_SHA, git_branch: 'main' } };
 
-    const { code, stdout } = await run(RELEASE_RECORD, ['--sha', HEAD_SHA, '--web', origin, '--api', origin]);
+    const { code, stdout } = await runRecord(['--sha', HEAD_SHA, '--web', origin, '--api', origin]);
     const record = JSON.parse(stdout);
 
     expect(code).toBe(1);
@@ -95,7 +119,7 @@ describe('release-record: convergence is ancestry, not a boolean', () => {
   it('reports ahead when production has moved past the intended SHA', async () => {
     routes = { '/api/version': versionPayload(HEAD_SHA), '/health': { git_sha: HEAD_SHA, git_branch: 'main' } };
 
-    const { code, stdout } = await run(RELEASE_RECORD, ['--sha', PARENT_SHA, '--web', origin, '--api', origin]);
+    const { code, stdout } = await runRecord(['--sha', PARENT_SHA, '--web', origin, '--api', origin]);
     const record = JSON.parse(stdout);
 
     expect(code).toBe(1);
@@ -105,7 +129,7 @@ describe('release-record: convergence is ancestry, not a boolean', () => {
   it('records unknown with a reason instead of guessing when a service is unreachable', async () => {
     routes = { '/api/version': versionPayload(HEAD_SHA) }; // /health deliberately absent
 
-    const { code, stdout } = await run(RELEASE_RECORD, ['--sha', HEAD_SHA, '--web', origin, '--api', origin]);
+    const { code, stdout } = await runRecord(['--sha', HEAD_SHA, '--web', origin, '--api', origin]);
     const record = JSON.parse(stdout);
 
     expect(code).toBe(1);
@@ -117,7 +141,7 @@ describe('release-record: convergence is ancestry, not a boolean', () => {
   it('never invents a review URL it was not given', async () => {
     routes = { '/api/version': versionPayload(HEAD_SHA), '/health': { git_sha: HEAD_SHA, git_branch: 'main' } };
 
-    const { stdout } = await run(RELEASE_RECORD, ['--sha', HEAD_SHA, '--web', origin, '--api', origin]);
+    const { stdout } = await runRecord(['--sha', HEAD_SHA, '--web', origin, '--api', origin]);
 
     expect(JSON.parse(stdout).reviewUrl).toBeNull();
   });
