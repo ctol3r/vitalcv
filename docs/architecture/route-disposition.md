@@ -2,9 +2,11 @@
 
 **Wave:** A0 (production-truth containment and route disposition), per
 `docs/audits/2026-08-08-signed-in-product-audit-action-plan.md`.
-**Census base:** `origin/main` @ `4765ff90f` (2026-08-08).
-**Production at census time:** `https://vitalcv.com/api/version` → `873542cbe` (`main`), two doc/test
-commits behind the census base. Production was read live, not inferred from local main.
+**Census base:** `origin/main` @ `4765ff90f` (2026-08-08); branch rebased onto `5bc35c9da`
+(#1201 retired-route gate, #1203 Workbench CC-00/CC-01/CC-04) before publication.
+**Production at census time:** `https://vitalcv.com/api/version` → `873542cbe`; by A0 completion it
+had advanced to `87bea5598` (#1201), an ancestor of this branch's base. Production was read live at
+both points, not inferred from local main.
 **Counts:** 135 non-archive page routes, 280 non-archive API routes, 92 archived pages under
 `apps/web/app/_archive` (none linked or imported by active code — verified by sweep; the only
 mention outside `_archive` is a historical comment in `apps/web/app/explore/page.tsx`).
@@ -102,7 +104,7 @@ All `/holder/*` are gated once, in `app/holder/layout.tsx` (Clerk `auth()` → r
 | `/holder/opportunities` (+`/discover`, `/interested`, `/passed`, `/[id]`) | holder-nav | Discover = MATCHA deck (harness twin `/dev/matcha-deck`). |
 | `/holder/applications` (+`/[id]`) | holder-nav | |
 | `/holder/blockers/[blockerId]` | content | Hrefs minted by `lib/mobile/clinician-state.ts`. |
-| `/holder/garden` (+`/cv`, `/research`, `/notes`, `/opportunities`, `/privacy`) | holder-nav + garden tabs | Carries the labeled "Sample — its wave is next" cards; removal is sequenced in **A5** (pinned today by `career-garden-pages.test.tsx`). |
+| `/holder/garden` (+`/cv`, `/research`, `/notes`, `/opportunities`, `/privacy`) | holder-nav + garden tabs | Customer-facing name is now "VitalCV Workbench" (CC-04, `lib/career-garden/branding.ts`); routes and the `career-garden` namespace deliberately unchanged. Carries the labeled "Sample — its wave is next" cards; removal is sequenced in **A5** (pinned today by `career-garden-pages.test.tsx`). |
 | `/holder/scoreboard` | content | Home tile only. |
 | `/holder/settings` | content | |
 | `/holder/timeline` | content | Resolves NPI then redirects → `/activity/{npi}`; no NPI → `/onboarding`. |
@@ -229,11 +231,12 @@ header-trusted routes (`employer-review/[entityId]/[action]`, `workspace-config/
   none as viewer state: `/p/[slug]` (pilot evidence), `/trust/doctrine` (worked example), and a
   path comment in `api/receipt/[lineageKey]/route.ts`.
 - No active link or import into `_archive`.
-- The audit's three cited Workbench/Living-Profile briefs
-  (`VITALCV_CLAUDE_CODE_ACTION_PLAN_VISUAL_WORKBENCH_2026-08-08.md`,
-  `VITALCV_WORKBENCH_SPATIAL_KNOWLEDGE_PROGRAM_2026-08-08.md`,
-  `VITALCV_LIVING_PROFILE_VISUAL_SYSTEM_2026-08-08.md`) exist nowhere in the repository or its
-  history; the Experience Overhaul Program lives at
-  `docs/design/VITALCV_EXPERIENCE_OVERHAUL_PROGRAM_2026-08-08.md`, not the repo root the audit
-  cites. A5/A7 must not start until their governing briefs are committed (the
+- Of the audit's three cited Workbench/Living-Profile briefs, one landed mid-A0 via #1203:
+  `docs/design/VITALCV_LIVING_PROFILE_VISUAL_SYSTEM_2026-08-08.md` (plus
+  `docs/architecture/workbench-baseline.md` as the CC-00 truth baseline). Two remain uncommitted
+  anywhere in the repository or its history:
+  `VITALCV_CLAUDE_CODE_ACTION_PLAN_VISUAL_WORKBENCH_2026-08-08.md` and
+  `VITALCV_WORKBENCH_SPATIAL_KNOWLEDGE_PROGRAM_2026-08-08.md`. The Experience Overhaul Program
+  lives at `docs/design/VITALCV_EXPERIENCE_OVERHAUL_PROGRAM_2026-08-08.md`, not the repo root the
+  audit cites. A5/A7 must not start until their governing briefs are committed (the
   governance-citability lesson, PR #1200).

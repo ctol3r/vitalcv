@@ -103,8 +103,10 @@ const CLINICIAN_PRODUCT_DIRS = [
   'components/clinician',
   'components/proof',
   'components/recognition',
+  'components/career-garden',
   'lib/mobile',
   'lib/readiness',
+  'lib/career-garden',
 ];
 
 const WEB_ROOT = resolve(__dirname, '..');
