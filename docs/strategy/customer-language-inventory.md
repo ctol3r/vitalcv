@@ -225,7 +225,7 @@ Review) contains no retire-tier vocabulary. **The debt is page copy, not IA.**
 | Wave | Scope | Occurrences | Test risk |
 | --- | --- | ---: | --- |
 | **L1** | `wallet` → profile (clinician + public) **+ land the missing guard** | ~40 | Low — no truth strings |
-| **L2** | `passport` orphans, incl. `app/manifest.ts` PWA description | ~25 | Low — concept already retired |
+| **L2** | `passport` orphans — **excluding `app/manifest.ts`** (founder: do not touch) | ~24 | Low — concept already retired |
 | **L3** | acquisition-copy demotion of packet/receipt/recognition | ~35 | **Medium — every adjacent limitation clause must survive** |
 | **L4** | in-app `snapshot`-as-noun | ~30 | Medium |
 | — | protected truth qualifiers | ~45 | **Never touched** |
@@ -236,13 +236,20 @@ The guard landed in L1 should assert **both** directions: that acquisition surfa
 not reintroduce `wallet`/`passport`, **and** that the freshness qualifiers and
 limitation clauses remain. Guard the truth strings, not only the marketing strings.
 
-## Open founder decisions
+## Founder decisions — recorded 2026-08-07
 
-1. **`recognition`** — keep as a distinct in-app state (recommended: yes, it names a
-   real thing an employer did), or fold into "employer accepted"?
-2. **`/snapshot/[id]`, `/packet/[entityId]`, `/receipt/[receiptId]`** — retire-tier
-   words in live, linked routes. Labels only now, routes in a later IA wave?
-3. **`app/manifest.ts`** — changing the PWA description alters an install-surface
-   string on every mobile home screen. Confirm before it moves.
+1. **`recognition` — KEEP** as a distinct in-app state. It names a real thing an
+   employer did; folding it into "employer accepted" would cost meaning. Stays
+   *allowed when task-specific*: in-app yes, acquisition copy no.
+2. **Routes — LABELS ONLY.** `/snapshot/[id]`, `/packet/[entityId]`,
+   `/receipt/[receiptId]` keep their paths. Change rendered labels; do not rename or
+   redirect routes in a copy wave. Route-level IA is a separate, later decision.
+3. **`app/manifest.ts` — DO NOT TOUCH.** The PWA description stays as-is. It is an
+   install-surface string on every mobile home screen and is explicitly out of scope
+   for every wave below. **This removes it from L2.**
 4. **"VitalCV Jobs"** — still unused, as the 2026-08-05 pass found. Unchanged and
-   still the one canonical concept with no surface.
+   still the one canonical concept with no surface. Not part of L1–L4; needs its own
+   decision about whether the marketplace takes the canonical name.
+
+These decisions are the classification sign-off. Waves L1–L4 may now execute against
+this inventory, each stopping at its own founder visual gate.

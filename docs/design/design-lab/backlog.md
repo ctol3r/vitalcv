@@ -85,8 +85,10 @@ regression — assert against a hydration signal, not a fixed wait.
      noun reaches the homepage. Landing it is part of wave L1.
 - **Proposed sequencing:** L1 `wallet` (~40, low risk) → L2 `passport` orphans (~25) →
   L3 acquisition-copy demotion (~35, after #1079) → L4 in-app snapshot noun (~30).
-- **Open founder decisions:** keep `recognition` as a distinct state? rename-vs-retire
-  the `/snapshot` and `/packet` routes? change the PWA description in `app/manifest.ts`?
+- **Founder decisions recorded 2026-08-07:** `recognition` **KEPT** as a distinct
+  in-app state; routes are **labels-only** (no path renames or redirects in a copy
+  wave); `app/manifest.ts` is **not to be touched**, which removes the PWA description
+  from L2. Classification sign-off given — L1–L4 may execute, each at its own gate.
 
 ## DL-002 — `/onboarding` sells a "career wallet" and "readiness packet" (retired vocabulary)
 
