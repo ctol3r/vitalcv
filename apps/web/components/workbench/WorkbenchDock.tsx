@@ -134,6 +134,20 @@ export function WorkbenchDock() {
     return () => window.removeEventListener('popstate', onPop);
   }, []);
 
+  // CC-09: contextual "Capture in Workbench" — any holder surface can raise
+  // this event with a context label; the dock opens with the capture box
+  // seeded. An existing draft is never overwritten, only appended to.
+  React.useEffect(() => {
+    const onCapture = (e: Event) => {
+      const detail = (e as CustomEvent<{ context?: string }>).detail;
+      const seed = detail?.context ? `[[${detail.context}]]\n` : '';
+      setOpen(true);
+      setDraft((prev) => (prev.trim() ? `${prev}\n${seed}` : seed));
+    };
+    window.addEventListener('vitalcv:workbench-capture', onCapture);
+    return () => window.removeEventListener('vitalcv:workbench-capture', onCapture);
+  }, []);
+
   // A dirty draft never dies silently on hard unload.
   React.useEffect(() => {
     if (!dirty) return;
@@ -374,6 +388,7 @@ export function WorkbenchDock() {
                     );
                   }}
                   onDirtyChange={setEditorDirty}
+                  onOpenNote={openPane}
                 />
                 {paneNotes.length > 1 ? (
                   <p className="mz-small mt-4" style={{ color: 'var(--vt-text-muted, #666)' }}>
