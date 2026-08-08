@@ -66,9 +66,18 @@ permissions:
   issues: write # labels and comments reach PRs through the issues API
 
 concurrency:
-  # Two janitors racing would double-comment and double-close.
-  group: stale-janitor
-  cancel-in-progress: false
+  # Ref-keyed per the invariant in scripts/check-workflow-concurrency.js, which
+  # applies here because of the pull_request self-test trigger above.
+  #
+  # It also happens to be exactly what this workflow wants. Every scheduled run
+  # carries ref `refs/heads/main`, so they all share one group and — with
+  # cancellation guarded off main — queue rather than overlap. That preserves
+  # the property that matters: two janitors must never mutate the backlog
+  # concurrently and double-comment or double-close. The PR self-test runs on
+  # `refs/pull/N/merge`, gets its own group, and is freely cancellable because
+  # it is dry-run by construction.
+  group: stale-janitor-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
   janitor:
