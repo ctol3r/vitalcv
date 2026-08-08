@@ -22,10 +22,19 @@ name: Release verify
 # MONITORS_UNWIRED_OK=true (a repository VARIABLE) to deliberately run unwired
 # and get the grey back.
 #
-# THE CLERK KEY IS NOT IN GITHUB. Established 2026-08-08 by measurement, after
-# four wrong guesses: it exists only in Railway (web + API services), where
-# production needs it. No GitHub Actions copy has ever existed, which is why
-# this monitor has never run its signed-in verification.
+# THE KEY WAS ON THE DEPENDABOT SECRETS TAB, NOT THE ACTIONS ONE. Established
+# 2026-08-08 by measurement (run 31258941186), and it is why this monitor has
+# never run its signed-in verification. `Settings → Secrets and variables` has
+# separate Actions, Dependabot and Codespaces stores; they look identical in the
+# UI and a Dependabot secret is INVISIBLE to `secrets.<name>` in an Actions job,
+# resolving to the empty string with no error.
+#
+# The measurement that showed it: a throwaway `ZZ_TEST` created moments before
+# the run also read 0, killing every naming theory at once — while CRON_SECRET
+# (64), PROBE_URL (19) and CLERK_FAPI_URL (25) resolved in the same job. Two of
+# those three were absent from the secrets list the owner was reading. Actions
+# could see secrets the operator could not, and vice versa, because they were
+# looking at two different stores.
 #
 # This job reads `secrets.CLERK_SECRET_KEY_PROD` — the name a GitHub copy
 # SHOULD take, mirroring the Railway variable and separating it from the
