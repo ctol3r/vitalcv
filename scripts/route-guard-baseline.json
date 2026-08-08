@@ -82,5 +82,6 @@
     "ISSUER -> /issuer",
     "ADMIN -> /internal/metrics",
     "AUTHENTICATED -> /intelligence"
-  ]
+  ],
+  "ROUTE-04": []
 }

@@ -99,6 +99,13 @@ curl -X POST https://delightful-essence-production.up.railway.app/api/internal/p
 
 Expected response: `202 Accepted` with `{ ok: true, queued: true, entityId, startedAt }`.
 
+`X-Monitoring-Secret` is now verified rather than assumed: the route previously
+checked only that `MONITORING_SECRET` was configured server-side and never read
+the caller's header, so anonymous callers could write start-outcome events —
+the input to the qualified-start metric. A missing or wrong secret returns
+`401 unauthorized` and writes nothing. `Authorization: Bearer $CRON_SECRET`
+also works, matching the source-health probe.
+
 The system automatically derives velocity metrics (`daysFromFirstReview`, `daysFromShare`, `daysFromReady`) from prior events for this entity.
 
 ### Step 7 — Verify Outcome in Dashboard
