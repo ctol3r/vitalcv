@@ -255,11 +255,68 @@ live off the **head SHA**, `mergeStateStatus == CLEAN`, and real verification
 performed locally, never `--auto`. Squash merge throughout, matching the repo's
 single-parent history.
 
+**Five of six landed. #852 is blocked** — see below.
+
 | PR | Merge commit | Head SHA gated | Verification performed |
 |---|---|---|---|
 | #853 | `2bb20f3e5` | `a168c467` (15/15 green) | `--frozen-lockfile` clean; 16/16 turbo build tasks; backend jest **2093 passed / 1 skipped / 0 failed** against real Postgres; app telemetry module exercised on 2.8.0 (init OK, traceparent ids correct, span emitted, clean shutdown); library baggage cap exercised with a ~3 MB header (1 ms, ≤8 KB honoured, ~0.2 MB heap) |
 | #891 | `46ecc3f10` | `ec692d5e` (15/15 green) | Flask 3.1.3 installed in a clean venv; app booted; `GET /` renders the form and `POST /submit` writes the report |
-| #852 | *(pending)* | — | Lockfile merge verified to **preserve** #853's otel 2.8.0 while removing vite 6.4.1 entirely; `--frozen-lockfile` clean; vite 6.4.3 resolves in all three importers; 4/4 builds and 7/7 test tasks green (haip-config 33 tests, verifier-api 4) |
+| #574 | `b28217331` | `aba5f9ea` (15/15 green) | OpenID Conformance ran on this head **under v9** and its comment step posted successfully; grepped all workflows to confirm neither v9 breaking change (`require('@actions/github')`, `const/let getOctokit`) is tripped |
+| #1066 | `82dd639cd` | `4b979e99` (14/14 green) | The cargo-audit job ran on this head **under v6** and its cache step restored successfully |
+| #1076 | `971d76c84` | `58b6eb59` (15/15 green) | Merged onto main locally; `--frozen-lockfile` clean; postcss resolves **8.5.23** for web and marketing; otel 2.8.0 from #853 preserved through the lockfile merge; `turbo run build --filter @vitalcv/web` **16/16 tasks** |
+| **#852** | **blocked** | — | Verified green locally *before* it was blocked: lockfile merge preserved #853's otel 2.8.0 while removing vite 6.4.1 entirely; `--frozen-lockfile` clean; vite 6.4.3 in all three importers; 4/4 builds and 7/7 test tasks (haip-config 33 tests, verifier-api 4) |
+
+### #852 is blocked — what happened and how to unblock it
+
+`950300c11` (#1120, BitstringStatusList) rewrote `pnpm-lock.yaml` mid-flight,
+putting #852 into conflict. That alone is routine — Dependabot rebases its own
+PRs when the base moves, and it did exactly that for #1076 (`4dd01f87b` →
+`58b6eb598`, conflict cleared without intervention).
+
+It did **not** do so for #852, and the cause is an action taken during this
+pass: #852's branch was refreshed with the GitHub *update-branch* API, which
+writes a merge commit onto the Dependabot branch. Dependabot's own PR body
+states it resolves conflicts **"as long as you don't alter it yourself"** —
+that update counts as altering it, so Dependabot stopped managing the branch.
+#852 has sat at `d081cae5f` ever since, now 11 commits behind `main`, and
+`update-branch` refuses with *"merge conflict between base and head"*.
+
+Unblocking it needs one Dependabot command, which must come from a human —
+comments posted by this tooling have the `@`-mention neutralised, so the bot
+never receives them:
+
+```
+@dependabot recreate
+```
+
+(`recreate` rather than `rebase`: the branch was altered, so it needs rebuilding
+from the current base rather than replaying.) After it reopens green, the
+verification to repeat is the one already run above — `--frozen-lockfile`, then
+`turbo build`/`test` for `@vitalcv/issuer-api`, `@vitalcv/verifier-api`,
+`@vitalcv/haip-config`.
+
+**Lesson for the next lockfile PR:** prefer `@dependabot rebase` (from a human)
+over the update-branch API on Dependabot PRs. Update-branch is fine for
+one-file PRs — it worked cleanly for #853, #891, #574 and #1066 — but on a
+lockfile PR it trades away Dependabot's conflict handling exactly where that
+handling is most valuable.
+
+### Order deviation, stated plainly
+
+The recommended order was #853 → #891 → #1066 → #574 → #852 → #1076. Two
+departures, both benign:
+
+- **#574 landed before #1066.** #1066's checks were still queued behind runner
+  contention while #574 was fully green. The report already classified
+  #891/#1066/#574 as independent single-file PRs mergeable in any gap.
+- **#1076 landed before #852.** #852 was blocked (above) and #1076 was green.
+  The only coupling between the two was lockfile serialisation — one at a time
+  — not a dependency. Holding a ready, verified PR hostage to a blocked one
+  would have bought nothing.
+
+One consequence worth recording: the last `postcss@8.5.6` copy in the tree is
+held solely by `vite@6.4.1`, so #852 is what finally removes it. #1076 and #852
+are complementary, which is a reason to finish #852 rather than drop it.
 
 Notes worth keeping:
 
