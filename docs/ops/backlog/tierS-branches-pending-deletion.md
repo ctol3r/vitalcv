@@ -1,9 +1,59 @@
 # Branches pending deletion (2026-08-08)
 
-Deletion is blocked for the sessions that created these (HTTP 403 on
-`git push --delete`, with no delete-branch tool available and the REST token
-gated). This list exists so an operator with branch-delete rights can finish
-the job in one pass.
+> **Status 2026-08-08: still pending. Deletion is blocked repo-wide.**
+>
+> `git push origin --delete` returns **HTTP 403** for *every* seat, including
+> the founder's — not just for automation. An earlier revision of this file
+> blamed the automation's credential; that was wrong, and a full attempted
+> sweep confirmed it: all 196 branches below were still present afterwards
+> (`git ls-remote` intersection = 196 of 196) and the repo's branch count had
+> risen from 919 to 939.
+>
+> **This is a settings change, not a command problem.** No client-side
+> invocation gets past a ref-deletion restriction — `git push --delete`,
+> `gh api -X DELETE`, and the web UI all fail identically. Check
+> **Settings → Rules → Rulesets** for a ruleset targeting all refs (`~ALL` or
+> `**`) with **Restrict deletions** enabled, and either narrow its target to
+> `main`, add a bypass actor, or disable that rule. Classic **Branch
+> protection** can impose the same thing via an all-matching pattern.
+>
+> Once deletion is permitted, run the command below — it re-derives this list
+> and re-checks open PRs at run time, so it is safe whenever it runs.
+
+## Deleting these, once the restriction is lifted
+
+````bash
+set -euo pipefail
+git fetch origin main
+
+git show origin/main:docs/ops/backlog/tierS-branches-pending-deletion.md \
+  | awk '/^```$/{f=!f;next} f' | grep . | sort -u > /tmp/todelete.txt
+
+# never touch a branch an open PR uses as head or base
+gh pr list --state open --limit 300 --json headRefName,baseRefName \
+  --jq '.[] | .headRefName, .baseRefName' | sort -u > /tmp/inuse.txt
+comm -12 /tmp/todelete.txt /tmp/inuse.txt > /tmp/hazard.txt
+if [ -s /tmp/hazard.txt ]; then
+  echo "ABORT — still in use by an open PR:"; cat /tmp/hazard.txt; exit 1
+fi
+if grep -qxE 'main|master|develop' /tmp/todelete.txt; then
+  echo "ABORT — protected branch in list"; exit 1
+fi
+
+xargs -n 50 git push origin --delete < /tmp/todelete.txt
+
+git fetch origin --prune
+git ls-remote --heads origin | sed 's#.*refs/heads/##' | sort > /tmp/remote.txt
+echo "remaining from list: $(comm -12 /tmp/todelete.txt /tmp/remote.txt | wc -l)"  # expect 0
+````
+
+(Fenced with four backticks on purpose — the script contains a literal
+three-backtick sequence inside its `awk` pattern, which would otherwise close
+this block early and scramble every fence below it.)
+
+Verified at the time of writing: 196 names extract cleanly, none match a
+protected branch, none intersects any open PR's head or base, and all 196 were
+still present on the remote. **Delete this file once that last number is 0.**
 
 ## Tier-S closure (193)
 
