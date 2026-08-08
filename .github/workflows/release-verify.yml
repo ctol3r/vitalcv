@@ -22,18 +22,23 @@ name: Release verify
 # MONITORS_UNWIRED_OK=true (a repository VARIABLE) to deliberately run unwired
 # and get the grey back.
 #
-# THE SECRET IS NAMED `CLERK_SECRET_KEY_PROD`, not `CLERK_SECRET_KEY`. The
-# `_PROD` suffix distinguishes it from the `sk_test_` key used by CI E2E
-# (`E2E_CLERK_SECRET_KEY`). It is a REPOSITORY secret. The workflow maps it onto
-# the `CLERK_SECRET_KEY` env var the scripts read, so the GitHub name and the
-# process name deliberately differ — do not "fix" one to match the other.
+# THE CLERK KEY IS NOT IN GITHUB. Established 2026-08-08 by measurement, after
+# four wrong guesses: it exists only in Railway (web + API services), where
+# production needs it. No GitHub Actions copy has ever existed, which is why
+# this monitor has never run its signed-in verification.
 #
-# This cost five dispatches to find. `secrets.CLERK_SECRET_KEY` resolves to the
-# empty string when nothing of that name exists, with no error anywhere, so the
-# monitor skipped and reported healthy each time. Probe run 31238667349 finally
-# measured it: length 0 under four spellings, while CLERK_FAPI_URL read 25 in
-# the same job — proving secrets reached the job and this one simply was not
-# there. `_PROD` was not among the four names guessed.
+# This job reads `secrets.CLERK_SECRET_KEY_PROD` — the name a GitHub copy
+# SHOULD take, mirroring the Railway variable and separating it from the
+# `sk_test_` key CI E2E uses via E2E_CLERK_SECRET_KEY. Creating that repository
+# secret is what will finally wire this monitor; until then it fails red, which
+# is correct.
+#
+# Why it took six dispatches: `secrets.<name>` yields the empty string when
+# nothing of that name exists, with NO error anywhere, so a workflow cannot
+# distinguish wrong-name from wrong-scope from never-configured. Probe run
+# 31238667349 measured length 0 under four spellings while CLERK_FAPI_URL read
+# 25 in the same job — secrets reached the job; this one was simply absent
+# everywhere Actions can see.
 #
 # Required repo secrets: CLERK_SECRET_KEY_PROD, RAILWAY_API_TOKEN. Optional:
 # CLERK_FAPI_URL (default https://clerk.vitalcv.com), RELEASE_PROBE_BASE

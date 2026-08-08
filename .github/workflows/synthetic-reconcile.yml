@@ -32,12 +32,14 @@
 # from a sweep that found nothing to reap, so it must not be green. Set
 # MONITORS_UNWIRED_OK=true (a repository VARIABLE) to deliberately run unwired.
 #
-# The secret is the REPOSITORY secret `CLERK_SECRET_KEY_PROD`, mapped onto the
-# `CLERK_SECRET_KEY` env var the script reads. The GitHub name and the process
-# name deliberately differ; `_PROD` distinguishes it from the sk_test_ key CI
-# E2E uses. A name that does not exist resolves to the empty string with no
-# error, which is what made this take five dispatches to find (probe run
-# 31238667349).
+# THE CLERK KEY IS NOT IN GITHUB — it exists only in Railway (web + API), where
+# production needs it. No GitHub Actions copy has ever existed, so this sweep
+# has never run. This job reads `secrets.CLERK_SECRET_KEY_PROD`, the name a
+# GitHub copy should take; creating that repository secret is what wires it.
+# Until then the job fails red, which is correct. `secrets.<name>` yields the
+# empty string with no error when nothing of that name exists, so a workflow
+# cannot tell wrong-name from wrong-scope from never-configured — that
+# ambiguity absorbed six dispatches (probe run 31238667349 measured it).
 
 name: Synthetic Reconcile
 
@@ -101,13 +103,13 @@ jobs:
           # true right up until the monitor WAS wired — at which point the same
           # branch turned a misconfiguration into a clean bill of health.
           #
-          # It happened five times and cost the whole point of the job: runs
-          # 31233274419 / 31235056713 / 31237430191 / 31237517106 skipped
-          # Reconcile and reported success having never contacted Clerk,
-          # because the workflow read `secrets.CLERK_SECRET_KEY` while the
-          # secret is named CLERK_SECRET_KEY_PROD. A sweep that cannot see the
-          # key is indistinguishable, from the outside, from a sweep that found
-          # nothing to reap — which is why only the last of those five was red.
+          # It happened six times and cost the whole point of the job: runs
+          # 31233274419 / 31235056713 / 31237430191 / 31237517106 / 31253928362
+          # skipped Reconcile having never contacted Clerk. The reason was not
+          # exotic — no GitHub Actions copy of the Clerk key has ever existed;
+          # it lives only in Railway. A sweep that cannot see the key is
+          # indistinguishable, from the outside, from a sweep that found nothing
+          # to reap, which is why the first three of those reported SUCCESS.
           #
           # So the default is now RED. To deliberately run unwired, set the
           # repository VARIABLE MONITORS_UNWIRED_OK=true — a visible, auditable
@@ -124,12 +126,12 @@ jobs:
             } >> "$GITHUB_STEP_SUMMARY"
           else
             echo "wired=false" >> "$GITHUB_OUTPUT"
-            echo "::error::CLERK_SECRET_KEY_PROD is not visible to this job — the sweep did NOT run. Check the REPOSITORY secret is still named exactly CLERK_SECRET_KEY_PROD (a missing name resolves to the empty string with no error). If unwired is intended, set the repository variable MONITORS_UNWIRED_OK=true."
+            echo "::error::CLERK_SECRET_KEY_PROD is not visible to this job — the sweep did NOT run. As of 2026-08-08 no GitHub Actions copy of the Clerk key exists; it lives only in Railway. Create a repository secret named exactly CLERK_SECRET_KEY_PROD to wire this monitor. If unwired is intended, set the repository variable MONITORS_UNWIRED_OK=true."
             {
               echo "## Synthetic reconciliation: MISCONFIGURED"
               echo ""
               echo "- \`CLERK_SECRET_KEY\` is not visible to this job, so **nothing was reconciled**."
-              echo "- Most likely cause: the repository secret \`CLERK_SECRET_KEY_PROD\` was renamed or removed. A name that does not exist resolves to the empty string with no error."
+              echo "- Cause as of 2026-08-08: no GitHub Actions copy of the Clerk key exists — it lives only in Railway. Create the repository secret \`CLERK_SECRET_KEY_PROD\` to wire this. A name that does not exist resolves to the empty string with no error."
               echo "- This is deliberately RED. It is not evidence that there was nothing to reap."
             } >> "$GITHUB_STEP_SUMMARY"
             exit 1
