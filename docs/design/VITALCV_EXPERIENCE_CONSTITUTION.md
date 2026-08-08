@@ -208,13 +208,105 @@ DEFERRED row by inventing a value — EC-22 applies unchanged.
 
 ---
 
-## Part V — Governance
+## Part V — Profile in Motion: the visual narrative system
+
+Added by CC-01 / VIS-01 (2026-08-08) from `docs/design/VITALCV_LIVING_PROFILE_VISUAL_SYSTEM_2026-08-08.md` (the founder brief, committed with this amendment), amended in place per EC-22. These clauses govern illustration, scene, and motion work. They do not touch application truth, authorization, consent, data models, source behavior, or employer decisions (EC-0).
+
+### EC-25. Scene truth review — Class A
+
+Every scene, still or moving, passes this review before it ships. This is EC-3 applied to artwork, and it is rejection law.
+
+A scene may never contain or imply:
+
+1. A clinician who could be mistaken for a real person — no real or well-formed NPI, no realistic external identifier, no plausible name paired with credentials.
+2. A source response that did not occur, a source that is not integrated, or a confirmation mark on a gated source.
+3. A count, score, match, or metric presented as a measurement. Illustrative numbers are labeled illustrative or removed.
+4. A submission, share, or send shown as complete before the real endpoint has succeeded.
+5. An employer decision, hire, clearance, privilege, or start. **Employer scenes stop at review** — the review desk receives, it never resolves green.
+6. Verification, clearance, or credentialing performed by VitalCV.
+
+A scene must be impossible to mistake for live results. Where a scene sits next to real product state, the self-labeling illustration rule in EC-20 applies: it says what it is.
+
+### EC-26. The `VisualScene` contract — Class A
+
+There is one rendering path for public visual scenes, and it distinguishes **decorative art** from **data-driven app state** at the type level. A component may not blur the two.
+
+```
+VisualScene {
+  scene      SceneId              // from the EC-28 inventory
+  kind       'decorative'         // art; alt="" ; carries no state
+           | 'process'            // explains a process; requires transcript
+           | 'stateful'           // reflects real returned app state
+  mode       'motion' | 'static' | 'auto'
+  state?     <scene-specific>     // required when kind='stateful', else forbidden
+  priority   'hero' | 'inline' | 'background'
+  poster     <asset>              // required for every motion scene
+  transcript <text>               // required for kind='process' and 'stateful'
+}
+```
+
+Binding properties:
+
+- **`kind='stateful'` renders only from real returned records.** It has no fixture path and no optimistic path. Unknown, unavailable, and error states are composed deliberately, never rendered as an empty or broken scene.
+- **A scene is never the sole carrier of meaning** (EC-4). No state, consent choice, source limitation, ownership label, or employer decision may exist only inside artwork. Removing every scene from a surface must leave it fully usable and fully legible.
+- **Reduced motion is a composition, not a fallback.** The static state tells the same story, with step controls where a sequence carries the meaning.
+- **No autoplay** under `prefers-reduced-motion` or data-saving conditions; serve poster plus an explicit play or replay control.
+- **No layout shift.** Scenes reserve their space.
+
+### EC-27. The protagonist object and the five beats — Class C
+
+**One protagonist across the product.** It is the clinician's own record — not a dashboard, hospital, network graph, AI motif, or a person.
+
+This clause **reconciles with, and does not replace, `docs/design/vitalcv-cinematic-storyboard.md`** (issue #1069, Phase Z0), which already defines the object's anatomy — SILHOUETTE, PROPORTIONS, and the "cover the copy and the object still reads" test. That anatomy is the object's definition of record. The Living Profile brief's "profile object" and Z0's "living evidence record" are **the same protagonist under two names**; shipping them as two objects would recreate exactly the multiple-competing-systems problem this constitution exists to end. Waves cite Z0 for anatomy and this clause for narrative.
+
+**The five permanent beats:** Identify → Build → Choose → Apply → Carry forward. The employer-review scene is a **bridge between Apply and Carry forward, never a sixth success beat** (EC-25.5).
+
+The four ownership cues are already law in EC-7 and are the vocabulary every scene expresses through object behavior: VitalCV assembles; the clinician pulls, releases, and approves; the employer receives and reviews; open items stay visibly open.
+
+Materials, palette, lighting, and camera are **Class B** — they resolve through EC-13 and the locked EC-20 rows, not here. This clause supplies narrative structure only.
+
+### EC-28. The approved scene inventory and placement authority — Class C, with Class A gates
+
+Only these scenes are approved for the first release. A new scene requires an EC-22 amendment.
+
+| Scene | Kind | Home surface |
+|---|---|---|
+| Journey Film | process | See placement note below |
+| NPI Reveal | stateful | NPI entry / resolution |
+| Profile Layers | stateful | Claim, profile completion |
+| Choice Gate | stateful | Apply, sharing permissions |
+| Opportunity Field | stateful | `/holder/opportunities*` (see note) |
+| Employer Desk | process | Employer acquisition |
+| Continuity Ribbon | decorative | Application timeline, reuse |
+| Quiet Source Constellation | stateful | Trust Center, Status |
+| Workbench Window | process | Clinician product page |
+| Decision Trail | stateful | Opportunity detail |
+
+**Placement note — the Journey Film is not authorized on `/` by this clause.** Homepage composition authority rests with the homepage reset and UX-04 (EC-24), and the retired film/scene model may not re-enter through an illustration wave. A Journey Film on the homepage requires an explicit EC-22 amendment and a founder visual gate. Independent of that, UX-01 amendment 5 forbids a blocking hero: no scene may make a visitor wait for the message, and the real NPI action outranks the journey (XS-10, EC-1).
+
+**Route note (founder decision, 2026-08-08).** The source briefs target a `/jobs` surface. No such route exists. Opportunity and apply scenes target the surfaces that do: `/holder/opportunities{,/discover,/interested,/passed}`, `/holder/matcha/opportunities`, and `/opportunities/discover`. Renaming the customer-facing noun is UX-16 copy work; creating a `/jobs` route is a product dependency, not an illustration wave.
+
+### EC-29. Media budgets and motion safety — Class A
+
+Objective, measurable, and CI-enforceable (EC-23):
+
+- Hero poster ≤ 250 KB. Desktop hero moving asset ≤ 1.5 MB per modern format after compression. Measure; do not assume.
+- Every motion asset ships: poster, static reduced-motion composition, and — for `kind='process'` and `'stateful'` — a transcript or adjacent textual equivalent. Decorative crops carry empty alt text; meaningful process scenes never do.
+- Every asset carries source, license, and origin metadata. An unlabeled, oversized, or fallback-less asset fails the gate.
+- Motion timing follows the four bands already locked in EC-20: 80–150ms control feedback · 150–250ms state transition · 250–450ms product transformation · 450–800ms rare narrative.
+- **Nothing loops** except a loading skeleton, a system-status pulse, or a source check that is genuinely running. A hero does not loop once it has finished.
+- Numbers animate only between real returned values (EC-3).
+- No body copy is printed inside an image; contrast floors hold independent of artwork (EC-5).
+
+---
+
+## Part VI — Governance
 
 ### EC-21. Citability
 
-- **Rejection law:** Class A clauses (EC-0…EC-12) and **locked** EC-20 rows. Cite the number.
+- **Rejection law:** Class A clauses (EC-0…EC-12, EC-25, EC-26, EC-29) and **locked** EC-20 rows. Cite the number.
 - **Class B (EC-13):** not citable as law until its EC-20 row locks. Neither prior eras nor new inventions may be asserted as authority in these domains before the verdict.
-- **Class C (EC-14):** rejections happen in design review, citing the clause **plus a named rationale**. Never automated.
+- **Class C (EC-14, EC-27, EC-28):** rejections happen in design review, citing the clause **plus a named rationale**. Never automated. EC-28's placement and route notes record founder decisions and bind like locked EC-20 rows.
 
 ### EC-22. Amendment
 
@@ -254,6 +346,7 @@ Subjective July-era taste is not encoded as CI law before the reset direction is
   narrow and worth keeping: **a governance document that cites a file nobody can open is a claim
   about law, not law.** `apps/web/__tests__/governance-citability.test.ts` now makes citability a
   property this repo has rather than one it asserts.
+- **CC-01 / VIS-01 amendment (2026-08-08):** Part V (EC-25…EC-29, Profile in Motion) added per the founder's Visual System + Workbench program (CC-01 wave; source brief `docs/design/VITALCV_LIVING_PROFILE_VISUAL_SYSTEM_2026-08-08.md`, committed with this amendment per the W1080 lesson); Governance renumbered to Part VI, clause numbers unchanged. Founder decisions recorded same day: customer-facing name **VitalCV Workbench** (collision with the ops-facing investigation workbench noted in `docs/architecture/workbench-baseline.md` §4-M5 — copy-only rename, no route/table changes); opportunity/apply waves **retarget to `/holder/opportunities*`** (no `/jobs` route exists; EC-28 route note). CC-00 baseline: `docs/architecture/workbench-baseline.md`.
 - **R2 restructure (2026-08-08):** founder ruling — Phase 0 approved; UX-00 revised into the three-class layering; PR #1160 held draft at reviewed head `9568a4db1e`; merge blocked pending FOUNDER UX-00 REVISION REVIEW.
 - **UX-01 verdict state — FINAL.** Lineage, all 2026-08-08: a parallel lane recorded "B as presented, no hybrid" (selection made in-session 2026-08-07) → the founder's UX-00 ruling reopened the verdict pending hybrid consideration (no back-fill occurred during the reopening) → the founder's amended ruling resolved it: **DIRECTION B GO, WITH AMENDMENTS** (memorialized in `DECISION.md`): product-forward brand; dark-first as public *register* with intentionally light evidence/dense surfaces; the Start Agent's visible work is brand; the eyebrow is binding with its own UX-03 gate; NOT authorized — blocking 14–18s hero, permanent dark everywhere, prototype-as-implementation. EC-20 back-fill follows only after this R2 layering is accepted (execution step 3). The verdict's register scoping supplies the explicit supersession EC-13.11 requires.
 - **Companion ruling on #1165 (census):** accepted as evidence; merge held until governance rebase — "UX-02 adopts…" language renamed to "candidate substrate / measured recommendation" (the census establishes facts, it does not legislate); rebase after #1160 settles (main had advanced to `ab25931b6` at ruling time). Its Direction-B scoping assumption is now consistent with the final verdict.
