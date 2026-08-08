@@ -228,6 +228,27 @@ list is `REGRESSION_MATRIX.md` in the handoff bundle.
 
 ---
 
+## LINT-12 / LINT-13 — the W1083 de-islanding gates
+
+Added by W1083 (UX-02C) after removing the debt they now hold at zero, so both
+are hard errors rather than ratchets — the first offence is the offence.
+
+**LINT-12 — new global stylesheet import in the shell.** `app/layout.tsx` loads
+exactly `globals.css` + `typography.css` + `page-density.css`. The shell reached
+five global sheets by accretion: `antigravity.css` served zero live consumers
+while shipping 570 lines to every page, and `glass-cursor.css` styled markup
+that never rendered (its component was a no-op tombstone). New CSS belongs to
+the island component that owns it, or enters `globals.css` as an `@import`
+through design review.
+
+**LINT-13 — new custom-property prefix family.** Seventy prefix families
+already compete (the measured de-islanding debt). Existing families keep
+working; DEFINING a token under a new family is an error. The pattern matches
+definitions anywhere on a line — a one-line `:root { --x: y }` slipped the
+first, line-anchored draft, which is pinned as a regression case in
+`design-lint-rules.test.ts`. The answer to "none of these fit" is UX-02 token
+work under `--vt-*`, not family seventy-one.
+
 ## Not yet built
 
 - **DG-18.2 — `/dev/design`**, the living style guide: every primitive in every
