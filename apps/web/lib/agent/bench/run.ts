@@ -133,6 +133,18 @@ export async function runStartBenchScenario(
         .map((id) => plan!.actions.find((a) => a.id === id)?.type)
         .filter(Boolean),
     );
+    for (const type of scenario.expect.forbiddenBlockerTypes ?? []) {
+      if (plan.blockers.some((b) => b.type === type)) {
+        failures.push(`blocker type ${type} was derived but must not be`);
+      }
+    }
+
+    for (const type of scenario.expect.forbiddenActionTypes ?? []) {
+      if (plan.actions.some((a) => a.type === type)) {
+        failures.push(`action type ${type} exists in the plan but must not be derived at all`);
+      }
+    }
+
     for (const type of scenario.expect.mustNotRankActionTypes ?? []) {
       if (rankedTypes.has(type)) failures.push(`action type ${type} must not appear in the ranked list`);
     }

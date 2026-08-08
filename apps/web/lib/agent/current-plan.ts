@@ -13,7 +13,7 @@ import { generateStartPlanV2 } from './policy/start-policy-v2';
 import { buildProductionReaders } from './server-readers';
 import { buildStartAgentTools } from './tools/canonical-tools';
 import { createToolRegistry, type ToolRegistry } from './tools/registry';
-import type { StartAgentContext, StartPlan } from './types';
+import type { AgentActor, StartAgentContext, StartPlan } from './types';
 
 export interface CurrentPlan {
   plan: StartPlan;
@@ -27,8 +27,13 @@ export async function buildCurrentPlan(options: {
   npi?: string;
   contextClass: string;
   now?: string;
+  /** Defaults to a clinician session; a scheduler gets a reduced plan. */
+  actor?: AgentActor;
 }): Promise<CurrentPlan> {
-  const registry = createToolRegistry(buildStartAgentTools(buildProductionReaders(options.subjectRef)));
+  const registry = createToolRegistry(
+    buildStartAgentTools(buildProductionReaders(options.subjectRef)),
+    { actor: options.actor },
+  );
   const { context, inputGaps } = await assembleStartAgentContext({
     subject: { profileRef: options.subjectRef, ...(options.npi ? { npi: options.npi } : {}) },
     contextClass: options.contextClass,

@@ -15,6 +15,7 @@ import { createToolRegistry, type ToolRegistry } from './tools/registry';
 import { buildStartAgentTools, type CanonicalReaders } from './tools/canonical-tools';
 import {
   AGENT_ACTION_TYPES,
+  type AgentActor,
   type AgentActionType,
   type EvidenceRef,
   type SourceObservationState,
@@ -40,6 +41,12 @@ export interface AssembleOptions {
   contextClass: string;
   /** Injected clock so assembly is reproducible in tests. */
   now: string;
+  /**
+   * Who is assembling. Defaults to a clinician session. A `system_scheduler`
+   * cannot reach identity-bound tools, so the context it produces is marked
+   * `reduced` and carries `ownership: 'unknown'` rather than a guess.
+   */
+  actor?: AgentActor;
   registry?: ToolRegistry;
   readers?: CanonicalReaders;
 }
@@ -47,10 +54,15 @@ export interface AssembleOptions {
 export async function assembleStartAgentContext(options: AssembleOptions): Promise<AssembledContext> {
   const registry =
     options.registry ??
-    (options.readers ? createToolRegistry(buildStartAgentTools(options.readers)) : null);
+    (options.readers
+      ? createToolRegistry(buildStartAgentTools(options.readers), { actor: options.actor })
+      : null);
   if (!registry) {
     throw new ContextAssemblyError('either a tool registry or canonical readers must be supplied');
   }
+  // A supplied registry carries its own actor; that binding wins, so a
+  // caller cannot claim one actor while holding another's capabilities.
+  const actor: AgentActor = registry.actor;
 
   const inputGaps: string[] = [];
   const subject = options.subject;
@@ -80,37 +92,58 @@ export async function assembleStartAgentContext(options: AssembleOptions): Promi
   }
 
   // Ownership — a failed read is a gap, never a state.
+  //
+  // Two different situations that must not be conflated:
+  //  - the tool is UNAVAILABLE to this actor (a scheduler has no session and
+  //    the canonical route is identity-bound). That is expected, not a
+  //    failure: the status becomes `unknown` and the context is `reduced`.
+  //  - the tool is available and the read FAILED. Planning past that would
+  //    mean guessing ownership, so assembly still refuses outright.
   let ownershipStatus: StartAgentContext['ownership']['status'] = 'none';
+  let reducedByActor = false;
   if (npi) {
-    try {
-      const result = await registry.execute<{ status: string }>('ownership_state', { npi });
-      ownershipStatus = result.status as StartAgentContext['ownership']['status'];
-    } catch {
-      inputGaps.push('ownership_state');
-      throw new ContextAssemblyError(
-        'the canonical ownership state could not be read; planning without it would require guessing ownership',
-      );
+    if (!registry.isAvailable('ownership_state')) {
+      ownershipStatus = 'unknown';
+      reducedByActor = true;
+      inputGaps.push('ownership_state:actor_unavailable');
+    } else {
+      try {
+        const result = await registry.execute<{ status: string }>('ownership_state', { npi });
+        ownershipStatus = result.status as StartAgentContext['ownership']['status'];
+      } catch {
+        inputGaps.push('ownership_state');
+        throw new ContextAssemblyError(
+          'the canonical ownership state could not be read; planning without it would require guessing ownership',
+        );
+      }
     }
   }
 
-  // Profile completeness.
+  // Profile completeness. Also identity-bound, so a scheduler simply cannot
+  // see it — recorded as an actor gap rather than as "no profile", which
+  // would invent missing fields the clinician has actually filled in.
   let profileStatus: StartAgentContext['profile']['status'] = 'none';
   let missingFields: string[] = [];
-  try {
-    const result = await registry.execute<{
-      available: boolean;
-      score?: number;
-      missingFields?: string[];
-    }>('clinician_profile_retrieval', {});
-    if (result.available) {
-      const score = result.score ?? 0;
-      profileStatus = score >= 100 ? 'saved' : score > 0 ? 'partial' : 'none';
-      missingFields = result.missingFields ?? [];
-    } else {
+  if (!registry.isAvailable('clinician_profile_retrieval')) {
+    reducedByActor = true;
+    inputGaps.push('clinician_profile_retrieval:actor_unavailable');
+  } else {
+    try {
+      const result = await registry.execute<{
+        available: boolean;
+        score?: number;
+        missingFields?: string[];
+      }>('clinician_profile_retrieval', {});
+      if (result.available) {
+        const score = result.score ?? 0;
+        profileStatus = score >= 100 ? 'saved' : score > 0 ? 'partial' : 'none';
+        missingFields = result.missingFields ?? [];
+      } else {
+        inputGaps.push('clinician_profile_retrieval');
+      }
+    } catch {
       inputGaps.push('clinician_profile_retrieval');
     }
-  } catch {
-    inputGaps.push('clinician_profile_retrieval');
   }
 
   // Source observations.
@@ -262,7 +295,7 @@ export async function assembleStartAgentContext(options: AssembleOptions): Promi
     ownership: {
       status: ownershipStatus,
       evidenceRefs:
-        npi && ownershipStatus !== 'none'
+        npi && ownershipStatus !== 'none' && ownershipStatus !== 'unknown'
           ? [
               {
                 kind: 'ownership_record',
@@ -279,6 +312,12 @@ export async function assembleStartAgentContext(options: AssembleOptions): Promi
     opportunities,
     consents,
     actionHistory,
+    actor,
+    // `reduced` records that an input was structurally out of reach for this
+    // actor — not that a read happened to fail. Ordinary gaps (a source that
+    // timed out) leave the context `full`, because a clinician session with a
+    // flaky read still sees the same *kinds* of things a plan is built from.
+    completeness: reducedByActor ? 'reduced' : 'full',
     collectedAt: options.now,
     contextClass: options.contextClass,
   };

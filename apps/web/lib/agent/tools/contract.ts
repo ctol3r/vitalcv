@@ -11,7 +11,7 @@
  * flags, validated structurally at the registry boundary. Rich validation
  * stays inside the canonical adapters where it already lives.
  */
-import type { PermissionClass } from '../types';
+import type { AgentActor, PermissionClass } from '../types';
 
 export type AgentToolFieldType = 'string' | 'number' | 'boolean' | 'object' | 'array';
 
@@ -23,6 +23,14 @@ export interface AgentTool<I = unknown, O = unknown> {
   id: string;
   description: string;
   requiredPermission: PermissionClass;
+  /**
+   * Which actors may invoke this tool. Orthogonal to `requiredPermission`:
+   * a Level-2 tool can still be scheduler-forbidden if it needs a live
+   * clinician identity to reach its canonical route. Declared per tool so
+   * the reason lives next to the capability rather than in a central list
+   * someone forgets to update.
+   */
+  allowedActors: readonly AgentActor[];
   inputSchema: AgentToolSchema;
   outputSchema: AgentToolSchema;
   execute(input: I): Promise<O>;

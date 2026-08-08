@@ -86,6 +86,17 @@ export async function POST(request: NextRequest) {
 
     const plan = generateStartPlanV2(context, { now: context.collectedAt });
 
+    // A2.0 — this is the interactive surface, so the plan a clinician sees
+    // must be a full one. A reduced plan drives background work and change
+    // detection only; serving one here would show a person a thinner picture
+    // of their own situation without saying so.
+    if (plan.completeness !== 'full') {
+      return NextResponse.json(
+        { error: 'canonical state unavailable', detail: 'context was reduced on an interactive request' },
+        { status: 503 },
+      );
+    }
+
     const persistence = await persistAgentRun({
       plan,
       subjectRef: session.userId,

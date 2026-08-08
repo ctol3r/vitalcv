@@ -81,12 +81,26 @@ export interface CanonicalReaders {
 
 const NPI_INPUT = { fields: { npi: { type: 'string' as const, required: true } } };
 
+/**
+ * Reachable without a clinician session: public registries, anonymous
+ * canonical reads, header-authenticated routes, and VitalCV's own stores.
+ */
+const ANY_ACTOR = ['clinician_session', 'system_scheduler'] as const;
+
+/**
+ * Requires a live Clerk bearer, which only a clinician session can mint —
+ * `buildIdentityHeaders` has no headless variant. A scheduler run is refused
+ * at the registry rather than 401ing against the canonical route.
+ */
+const SESSION_ONLY = ['clinician_session'] as const;
+
 export function buildStartAgentTools(readers: CanonicalReaders): AgentTool[] {
   const npiIdentityResolution: AgentTool = {
     id: 'npi_identity_resolution',
     description:
       'Reads the public NPI registry record via the canonical NPPES adapter. Public-source facts only; carries no ownership meaning.',
     requiredPermission: 'observe',
+    allowedActors: ANY_ACTOR,
     inputSchema: NPI_INPUT,
     outputSchema: {
       fields: {
@@ -107,6 +121,7 @@ export function buildStartAgentTools(readers: CanonicalReaders): AgentTool[] {
     description:
       'Reads the canonical ownership state for an NPI. The ownership service alone decides the state; a claim is not ownership.',
     requiredPermission: 'observe',
+    allowedActors: SESSION_ONLY,
     inputSchema: NPI_INPUT,
     outputSchema: {
       fields: {
@@ -130,6 +145,7 @@ export function buildStartAgentTools(readers: CanonicalReaders): AgentTool[] {
     id: 'clinician_profile_retrieval',
     description: 'Reads the canonical profile completeness summary for the signed-in clinician.',
     requiredPermission: 'observe',
+    allowedActors: SESSION_ONLY,
     inputSchema: { fields: {} },
     outputSchema: {
       fields: {
@@ -150,6 +166,7 @@ export function buildStartAgentTools(readers: CanonicalReaders): AgentTool[] {
     description:
       'Reads canonical source-coverage checks (trust-state layer) and maps them conservatively; no state is ever upgraded.',
     requiredPermission: 'observe',
+    allowedActors: ANY_ACTOR,
     inputSchema: NPI_INPUT,
     outputSchema: {
       fields: {
@@ -183,6 +200,7 @@ export function buildStartAgentTools(readers: CanonicalReaders): AgentTool[] {
     id: 'opportunity_retrieval',
     description: 'Reads canonical opportunity matches for the subject; absence of matches is an honest pool state.',
     requiredPermission: 'observe',
+    allowedActors: ANY_ACTOR,
     inputSchema: NPI_INPUT,
     outputSchema: {
       fields: {
@@ -203,6 +221,7 @@ export function buildStartAgentTools(readers: CanonicalReaders): AgentTool[] {
     description:
       'Level 2: drafts a share/apply descriptor from plan state. Pure — nothing is sent, stored, or shared. Actual sharing is Level 3 and does not exist in A0.',
     requiredPermission: 'prepare',
+    allowedActors: SESSION_ONLY,
     inputSchema: {
       fields: {
         planId: { type: 'string', required: true },
@@ -238,6 +257,7 @@ export function buildStartAgentTools(readers: CanonicalReaders): AgentTool[] {
     id: 'consent_state_retrieval',
     description: 'Reads the agent consent ledger fold for the subject. Absent or revoked scopes simply do not appear as granted — never guessed.',
     requiredPermission: 'observe',
+    allowedActors: ANY_ACTOR,
     inputSchema: { fields: { subjectRef: { type: 'string', required: true } } },
     outputSchema: {
       fields: {
@@ -255,6 +275,7 @@ export function buildStartAgentTools(readers: CanonicalReaders): AgentTool[] {
     id: 'action_history_retrieval',
     description: 'Reads prior agent action outcomes for the subject from the telemetry store, so completed work is never re-recommended and repeated failures pause.',
     requiredPermission: 'observe',
+    allowedActors: ANY_ACTOR,
     inputSchema: { fields: { subjectRef: { type: 'string', required: true } } },
     outputSchema: {
       fields: {
@@ -273,6 +294,7 @@ export function buildStartAgentTools(readers: CanonicalReaders): AgentTool[] {
     description:
       'Level 2 execution: triggers the canonical trust-state refresh (a public-source re-read). The canonical service records its own artifacts and audit rows; this tool asserts nothing about the outcome.',
     requiredPermission: 'prepare',
+    allowedActors: ANY_ACTOR,
     inputSchema: NPI_INPUT,
     outputSchema: {
       fields: {
@@ -293,6 +315,7 @@ export function buildStartAgentTools(readers: CanonicalReaders): AgentTool[] {
     description:
       'Level 3 execution: the canonical apply-share with a server-resolved recipient (opportunityId). Runs ONLY under a ConsentProof; the canonical route additionally refuses unless NPI ownership is verified or delegated.',
     requiredPermission: 'execute_with_consent',
+    allowedActors: SESSION_ONLY,
     inputSchema: {
       fields: {
         npi: { type: 'string', required: true },
