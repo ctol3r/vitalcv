@@ -27,6 +27,12 @@ export interface MonitoringAlert {
 
 // ── Alert Generation ──────────────────────────────────────────────────
 
+/**
+ * These sentences assert a date. They are only safe because the scanner now
+ * reads the expiry the SOURCE published and emits nothing when there is
+ * none — the description says so explicitly, so a reader can tell this from
+ * a projection.
+ */
 function fromExpirationAlert(ea: ExpirationAlert): MonitoringAlert {
   const isExpired = ea.severity === 'EXPIRED';
   return {
@@ -35,7 +41,9 @@ function fromExpirationAlert(ea: ExpirationAlert): MonitoringAlert {
     severity: ea.severity === 'EXPIRED' ? 'CRITICAL' : ea.severity === 'CRITICAL' ? 'CRITICAL' : 'WARNING',
     npi: ea.npi,
     title: isExpired ? `${ea.source} has expired` : `${ea.source} expires in ${ea.daysRemaining} days`,
-    description: `Credential from ${ea.source} ${isExpired ? 'expired' : 'is approaching expiration'}. Status: ${ea.status}.`,
+    description:
+      `${ea.source} published an expiry of ${ea.expiresAt.slice(0, 10)} for this credential, `
+      + `which ${isExpired ? 'has passed' : 'is approaching'}. Status: ${ea.status}.`,
     daysRemaining: ea.daysRemaining,
     detectedAt: new Date().toISOString(),
   };
