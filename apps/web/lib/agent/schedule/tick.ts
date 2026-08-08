@@ -29,6 +29,8 @@ import {
 import { diffProjections } from '../delta/diff';
 import { buildDecisionProjection, decisionFingerprint } from '../delta/projection';
 import { generateStartPlanV2 } from '../policy/start-policy-v2';
+import { createRefreshBudget, type RefreshBudget } from '../refresh/budget';
+import { planScheduledRefreshes, type RefreshPlan } from '../refresh/planner';
 import { buildProductionReaders } from '../server-readers';
 import { persistAgentRun } from '../telemetry/agent-run-store';
 import { buildStartAgentTools } from '../tools/canonical-tools';
@@ -64,6 +66,12 @@ export interface SubjectRunOutcome {
   deltaCount?: number;
   materialDeltaCount?: number;
   /**
+   * A2.4 — the refreshes this subject WOULD have triggered. Planned, never
+   * executed: background Level-2 execution is A2.5.
+   */
+  refreshesPlanned?: number;
+  refreshesSkipped?: Partial<Record<string, number>>;
+  /**
    * Why no comparison happened, when none did. A first run and a
    * completeness mismatch are both "we did not compare", and neither is
    * "nothing changed".
@@ -82,6 +90,12 @@ export interface TickResult {
   failed: number;
   /** A2.2 — the number the shadow gate is actually watching. */
   materialDeltas: number;
+  /**
+   * A2.4 — what a live tick would have spent per source this window. The
+   * "no budget breach in shadow" gate reads this.
+   */
+  refreshBudget: Record<string, { used: number; remaining: number; nearLimit: boolean }>;
+  refreshesPlanned: number;
   skipped?: TickSkipReason;
   /** Operator-safe: subject refs are the caller's own opaque keys, no PII. */
   outcomes: SubjectRunOutcome[];
@@ -133,6 +147,7 @@ async function defaultPlanSubject(
   subject: ScheduledSubject,
   now: Date,
   dryRun: boolean,
+  budget: RefreshBudget,
 ): Promise<SubjectRunOutcome> {
   const readers = buildProductionReaders(subject.subjectRef, { actor: 'system_scheduler' });
   const registry = createToolRegistry(buildStartAgentTools(readers), {
@@ -151,6 +166,15 @@ async function defaultPlanSubject(
 
   const plan = generateStartPlanV2(context, { now: context.collectedAt });
   const projection = buildDecisionProjection(plan, context);
+
+  // A2.4 — decide what a refresh would touch, against a budget SHARED across
+  // every subject in this tick. A per-subject budget would let a large batch
+  // hammer one source while each subject stayed politely under its own cap.
+  const refresh: RefreshPlan = planScheduledRefreshes({
+    context,
+    now: context.collectedAt,
+    budget,
+  });
 
   // Diff against this subject's last comparable run. Computed even in a dry
   // run, because the delta rate is exactly what shadow mode exists to learn.
@@ -197,6 +221,11 @@ async function defaultPlanSubject(
     inputGaps,
     deltaCount: outcome.deltas.length,
     materialDeltaCount: outcome.materialCount,
+    refreshesPlanned: refresh.planned.length,
+    refreshesSkipped: refresh.skipped.reduce<Record<string, number>>((acc, s) => {
+      acc[s.reason] = (acc[s.reason] ?? 0) + 1;
+      return acc;
+    }, {}),
     ...(outcome.comparable ? {} : { notComparable: outcome.reason }),
   };
 }
@@ -211,10 +240,13 @@ export async function runAgentTick(options: RunTickOptions = {}): Promise<TickRe
     Math.max(1, options.limit ?? DEFAULT_SUBJECTS_PER_TICK),
   );
 
+  // One budget for the whole tick: sources are shared, so the cap must be too.
+  const refreshBudget = createRefreshBudget();
+
   const deps: TickDeps = {
     isKilled: defaultIsKilled,
     claim: claimDueSubjects,
-    planSubject: (subject, at) => defaultPlanSubject(subject, at, dryRun),
+    planSubject: (subject, at) => defaultPlanSubject(subject, at, dryRun, refreshBudget),
     onSuccess: recordSubjectSuccess,
     onFailure: recordSubjectFailure,
     summary: scheduleSummary,
@@ -230,6 +262,8 @@ export async function runAgentTick(options: RunTickOptions = {}): Promise<TickRe
     succeeded: 0,
     failed: 0,
     materialDeltas: 0,
+    refreshBudget: refreshBudget.spend(),
+    refreshesPlanned: 0,
     outcomes: [],
     summary: await deps.summary(now).catch(() => ({ enrolled: 0, enabled: 0, due: 0 })),
     ...extra,
@@ -269,6 +303,8 @@ export async function runAgentTick(options: RunTickOptions = {}): Promise<TickRe
     succeeded: outcomes.filter((o) => o.ok).length,
     failed: outcomes.filter((o) => !o.ok).length,
     materialDeltas: outcomes.reduce((sum, o) => sum + (o.materialDeltaCount ?? 0), 0),
+    refreshBudget: refreshBudget.spend(),
+    refreshesPlanned: outcomes.reduce((sum, o) => sum + (o.refreshesPlanned ?? 0), 0),
     outcomes,
   });
 }
