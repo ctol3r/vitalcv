@@ -63,7 +63,7 @@ jobs:
       # cargo-audit takes ~2min to compile from source; cache the built binary.
       - name: Cache cargo-audit binary
         id: cache-cargo-audit
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.cargo/bin/cargo-audit
           key: cargo-audit-${{ env.CARGO_AUDIT_VERSION }}-${{ runner.os }}
