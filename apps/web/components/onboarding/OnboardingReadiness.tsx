@@ -79,7 +79,7 @@ export function OnboardingReadiness({ npi }: { npi: string }) {
         <SourceCheckNarration
           step={step}
           compact
-          trailing={<SkeletonStack rows={4} className="mt-5" aria-label="Preparing your readiness snapshot" />}
+          trailing={<SkeletonStack rows={4} className="mt-5" aria-label="Preparing your readiness" />}
         />
       </div>
     );
