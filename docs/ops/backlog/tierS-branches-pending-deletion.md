@@ -1,24 +1,86 @@
 # Branches pending deletion (2026-08-08)
 
-> **Status 2026-08-08: still pending. Deletion is blocked repo-wide.**
+> **Status 2026-08-08: still pending. The 403 is an AGENT-SANDBOX policy, not a
+> GitHub restriction — try from a human workstation first.**
 >
-> `git push origin --delete` returns **HTTP 403** for *every* seat, including
-> the founder's — not just for automation. An earlier revision of this file
-> blamed the automation's credential; that was wrong, and a full attempted
-> sweep confirmed it: all 196 branches listed at that time were still present
-> afterwards (`git ls-remote` intersection = 196 of 196) and the repo's branch
-> count had risen from 919 to 939. The list has since grown to 207.
+> **Corrected 2026-08-08 (second revision).** Two earlier diagnoses in this file
+> were wrong. The first blamed the automation's credential. The second — which
+> replaced it — blamed a repo-wide GitHub ruleset and sent an operator to
+> loosen **Settings → Rules → Rulesets**. Both were wrong, and the second was
+> worse than useless: it prescribed weakening a real guardrail to fix something
+> that guardrail was not causing. If *Restrict deletions* was relaxed on the
+> strength of that advice, **consider putting it back.**
 >
-> **This is a settings change, not a command problem.** No client-side
-> invocation gets past a ref-deletion restriction — `git push --delete`,
-> `gh api -X DELETE`, and the web UI all fail identically. Check
-> **Settings → Rules → Rulesets** for a ruleset targeting all refs (`~ALL` or
-> `**`) with **Restrict deletions** enabled, and either narrow its target to
-> `main`, add a bypass actor, or disable that rule. Classic **Branch
-> protection** can impose the same thing via an all-matching pattern.
+> ### What the 403 actually is
 >
-> Once deletion is permitted, run the command below — it re-derives this list
-> and re-checks open PRs at run time, so it is safe whenever it runs.
+> `git push origin --delete` from inside a Claude Code agent sandbox is
+> intercepted by the agent HTTP proxy, which rejects ref deletions without
+> forwarding them. GitHub never sees the request. Evidence, from
+> `GIT_CURL_VERBOSE=1` on a delete push:
+>
+> | | ref advertisement (`GET /info/refs`) | delete (`POST /git-receive-pack`) |
+> |---|---|---|
+> | `X-Github-Request-Id` | **present** | **absent** |
+> | round trip | ~300 ms | **28 ms** |
+> | result | 200 | 403, `Content-Type: application/x-git-receive-pack-result` |
+>
+> The GET reaches GitHub and returns GitHub's headers. The POST is answered in
+> 28 ms by something carrying **no GitHub headers at all**, in a synthesised
+> git-protocol envelope. Non-delete pushes through that same `git-receive-pack`
+> endpoint succeed constantly — twelve landed the same day this was written —
+> so the proxy is not blocking receive-pack; it inspects the payload and refuses
+> **deletions** specifically. That is a deliberate agent-safety policy.
+>
+> ### Why the earlier "every seat, including the founder's" claim was unfounded
+>
+> That claim rested on a sweep that failed. But the sweep was run from an agent
+> session behind this same proxy, so it could only ever have demonstrated the
+> proxy's policy — never GitHub's. No human-workstation attempt was ever
+> recorded. The observation that the branch count *rose* from 919 to 939 during
+> the sweep is consistent with the same thing: the deletes never reached GitHub
+> while ordinary pushes did.
+>
+> ### What to actually do
+>
+> 1. **From a human workstation, outside any agent sandbox**, try one:
+>    `git push origin --delete claude/expo-wave-results`
+> 2. If it succeeds — the expected outcome — the proxy was always the blocker.
+>    Run the script below for the rest; no settings change is needed, and
+>    *Restrict deletions* can stay on.
+> 3. Only if it **also** fails from a human workstation does the GitHub-ruleset
+>    theory apply. In that case check **Settings → Rules → Rulesets** for a
+>    ruleset targeting all refs (`~ALL` or `**`) with **Restrict deletions**
+>    enabled, and prefer narrowing its target or adding a bypass actor over
+>    disabling the rule.
+>
+> **Do not diagnose this from inside an agent session again.** Every deletion
+> path available there fails identically regardless of cause, so the environment
+> cannot distinguish "GitHub forbids this" from "the sandbox forbids this". That
+> ambiguity is what produced both previous wrong answers. The distinguishing
+> test is the one above, and it has to be run outside.
+>
+> ### The janitor's `deletions-blocked` counter is not evidence — yet
+>
+> `.github/workflows/stale-janitor.yml` runs on GitHub Actions runners, which do
+> **not** sit behind the agent proxy, so it is the one existing mechanism that
+> could settle the GitHub-side question independently. It has not, and its
+> output is easy to misread. The enforcing scheduled run of 2026-08-08T05:11Z
+> reported:
+>
+> ```
+> summary: marked=0 closed=0 revived=0 exempt=0 deletions-blocked=0 (enforce=true)
+> ```
+>
+> `closed=0` means it closed no PR, and the janitor deletes a head branch *only*
+> when it closes one — so **zero deletions were attempted**, and
+> `deletions-blocked=0` reflects that rather than a successful deletion. Do not
+> cite it as proof that Actions can delete refs. The first enforcing run that
+> actually closes a stale PR will produce the real datapoint; until then that
+> counter is uninformative in both directions.
+>
+> The list is at **207** (196 original + 11 merged-PR branches added 2026-08-08).
+> The command below re-derives it and re-checks open PRs at run time, so it is
+> safe whenever it runs.
 
 ## Deleting these, once the restriction is lifted
 
