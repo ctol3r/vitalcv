@@ -1,0 +1,98 @@
+# Reconciliation sweep — reaps leaked release-monitor synthetic identities.
+#
+# The release monitor mints a real Clerk user + org per wired run and deletes
+# both from a `finally`. Three paths defeat that and leak an identity whose ids
+# no longer exist in any process, so nothing can clean it up by id: a SIGKILL
+# (no grace for the handler), the gap before a created id is reported to
+# `onResourceCreated`, and a transient Clerk DELETE failure. This job is the
+# backstop `docs/deployment/release-monitoring.md` has called required since
+# the monitor shipped, and which did not exist until now.
+#
+# Safety — this DELETES USERS FROM PRODUCTION CLERK. The invariants live in
+# apps/web/lib/release-monitor/reconcileSynthetics.ts and are unit-tested in
+# release-monitor-reconcile.test.ts. In short: a user is deleted only when
+# `public_metadata.synthetic === true` AND `public_metadata.purpose ===
+# 'release-monitor'` AND every address on the account matches
+# `svc-monitor+…@vitalcv.com` AND it is older than the age grace. Conjunction,
+# never disjunction; unknown age never authorises a delete; a per-run cap
+# bounds the blast radius; and each candidate is re-validated immediately
+# before its DELETE.
+#
+# Cadence: hourly at :23. The age grace (2 h) is what makes this safe to run
+# often — a verification in flight can never be reaped, because release-verify's
+# entire job budget is 15 minutes. Off-peak minute for the same reason the
+# monitors use one: :00/:15/:30/:45 are the congested schedule slots.
+#
+# Not wired (CLERK_SECRET_KEY unset) is a NO-OP, not a failure: the sweep has
+# nothing to reconcile because the monitor is not minting anything. It exits
+# green with a note, exactly like the monitor's own not-wired path, so this job
+# cannot become another red that means nothing.
+
+name: Synthetic Reconcile
+
+on:
+  schedule:
+    - cron: '23 * * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Report what would be deleted, delete nothing'
+        type: boolean
+        required: false
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  # Two concurrent sweeps would race on the same candidates; the loser would
+  # log 404s that the code already treats as already-gone, but there is no
+  # reason to create that noise. Never cancel one mid-flight.
+  group: synthetic-reconcile
+  cancel-in-progress: false
+
+jobs:
+  reconcile:
+    name: Reap leaked synthetic identities
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 10.6.1
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      # No `pnpm install`: the runner imports only local .ts + Node built-ins,
+      # matching release-verify.yml.
+
+      - name: Preflight — is the monitor wired?
+        id: preflight
+        env:
+          CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
+        run: |
+          if [ -n "${CLERK_SECRET_KEY}" ]; then
+            echo "wired=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "wired=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::CLERK_SECRET_KEY unset — the monitor mints nothing, so there is nothing to reconcile. No-op."
+            echo "## Synthetic reconciliation: skipped" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "- Monitor not wired (CLERK_SECRET_KEY unset) — nothing is being minted, so nothing can leak." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Reconcile
+        if: steps.preflight.outputs.wired == 'true'
+        env:
+          CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
+        run: |
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            pnpm reconcile:synthetics --dry-run --out reconcile.json
+          else
+            pnpm reconcile:synthetics --out reconcile.json
+          fi
