@@ -112,6 +112,10 @@ either way.
 
 ## Weekly synthesis
 
+**Latest: [`design-state-2026-08-07.md`](./design-state-2026-08-07.md)** — six PRs,
+two scorecard dimensions moved, and the finding that the homepage blockage (#1079) is
+now the dominant constraint rather than a scheduling detail.
+
 After several waves, produce `VITALCV DESIGN STATE`: what improved, what got worse,
 top-10 backlog, highest-impact unfinished experience, stale-strategy surfaces,
 design-system inconsistencies, journey discontinuities, collision map, next three
