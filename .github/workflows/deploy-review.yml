@@ -98,16 +98,39 @@ jobs:
               environments { edges { node { id name } } }
             }
           }'
-          api "$LIST" "$(jq -n --arg projectId "$RAILWAY_PROJECT_ID" '{projectId: $projectId}')" > envs.json
 
-          if jq -e '.errors and (.errors|length > 0)' envs.json >/dev/null; then
-            jq '.errors' envs.json
-            echo "::error::Could not list Railway environments."
+          # Resolve the environment by name, case- and whitespace-insensitively.
+          # Railway's own UI title-cases some input, and "Review" vs "review" is
+          # not a difference worth failing a deploy over.
+          resolve_env_id() {
+            api "$LIST" "$(jq -n --arg projectId "$RAILWAY_PROJECT_ID" '{projectId: $projectId}')" > envs.json
+            if jq -e '.errors and (.errors|length > 0)' envs.json >/dev/null; then
+              jq '.errors' envs.json >&2
+              return 1
+            fi
+            jq -r --arg name "$REVIEW_ENVIRONMENT_NAME" '
+              .data.project.environments.edges[]?.node
+              | select((.name | ascii_downcase | gsub("^\\s+|\\s+$"; ""))
+                       == ($name | ascii_downcase))
+              | .id' envs.json | head -1
+          }
+
+          ENV_ID=$(resolve_env_id || true)
+
+          # A project token that cannot read the project returns a null node
+          # rather than an error, which is indistinguishable from "no such
+          # environment" unless the difference is named.
+          if jq -e '.data.project == null' envs.json >/dev/null 2>&1; then
+            echo "::error::The Railway token could not read project ${RAILWAY_PROJECT_ID}."
+            echo "::notice::The environment list came back empty because the PROJECT is not"
+            echo "::notice::readable with this credential — not because the environment is"
+            echo "::notice::missing. Add a RAILWAY_API_TOKEN repository secret (Railway →"
+            echo "::notice::Account Settings → Tokens); the workflow prefers it when present."
             exit 1
           fi
 
-          ENV_ID=$(jq -r --arg name "$REVIEW_ENVIRONMENT_NAME" \
-            '.data.project.environments.edges[]?.node | select(.name == $name) | .id' envs.json | head -1)
+          echo "Environments visible to this token:"
+          jq -r '.data.project.environments.edges[]?.node | "  - \(.name) (\(.id))"' envs.json
 
           if [ -z "$ENV_ID" ]; then
             echo "Review environment absent — creating it."
@@ -120,7 +143,45 @@ jobs:
               '{input: {projectId: $projectId, name: $name}}')" > created.json
             if jq -e '.errors and (.errors|length > 0)' created.json >/dev/null; then
               jq '.errors' created.json
-              echo "::error::Could not create the review environment."
+              # Observed on the first real run: a Railway PROJECT token can
+              # read, deploy, and set variables, but may not create an
+              # environment — that needs an account/workspace token. The raw
+              # GraphQL reply for this is a bare "Not Authorized", which reads
+              # like a broken workflow rather than a missing scope.
+              # "already exists" means the listing above missed it — a name the
+              # match did not cover, or a project the token can only partially
+              # read. Re-resolve rather than fail: the environment is there,
+              # which is all this step actually needs.
+              if jq -e '[.errors[].message] | any(test("already exists"; "i"))' created.json >/dev/null; then
+                echo "::notice::Railway reports the environment already exists — re-resolving."
+                ENV_ID=$(resolve_env_id || true)
+                if [ -z "$ENV_ID" ]; then
+                  echo "::error::'${REVIEW_ENVIRONMENT_NAME}' exists in Railway but is not visible to this token."
+                  echo "::notice::Railway refused to create it because the name is taken, yet it does"
+                  echo "::notice::not appear in the environment list above. That combination means the"
+                  echo "::notice::credential can see the project but not this environment."
+                  echo "::notice::Add a RAILWAY_API_TOKEN repository secret (Railway → Account"
+                  echo "::notice::Settings → Tokens) — the workflow prefers it when present — or"
+                  echo "::notice::confirm the environment is named exactly '${REVIEW_ENVIRONMENT_NAME}'."
+                  exit 1
+                fi
+                echo "Resolved existing review environment ${ENV_ID}"
+              elif jq -e '[.errors[].message] | any(test("Not Authorized"; "i"))' created.json >/dev/null; then
+                echo "::error::Railway refused to create the '${REVIEW_ENVIRONMENT_NAME}' environment: Not Authorized."
+                echo "::notice::This is a TOKEN SCOPE limit, not a workflow bug. The repo currently"
+                echo "::notice::supplies RAILWAY_TOKEN (a project token), which cannot create"
+                echo "::notice::environments. Fix it either way:"
+                echo "::notice::  (a) create the environment once by hand — Railway dashboard →"
+                echo "::notice::      project → New Environment → name it exactly"
+                echo "::notice::      '${REVIEW_ENVIRONMENT_NAME}'. This step then RESOLVES it and"
+                echo "::notice::      never needs the elevated scope again; or"
+                echo "::notice::  (b) add a RAILWAY_API_TOKEN repository secret (Railway → Account"
+                echo "::notice::      Settings → Tokens), which this workflow already prefers when"
+                echo "::notice::      present."
+                echo "::notice::See docs/deployment/review-environment.md."
+              else
+                echo "::error::Could not create the review environment."
+              fi
               exit 1
             fi
             ENV_ID=$(jq -r '.data.environmentCreate.id' created.json)
