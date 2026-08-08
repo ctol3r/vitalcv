@@ -44,6 +44,7 @@ marked=0
 closed=0
 unstaled=0
 skipped_exempt=0
+deletion_blocked=0
 
 iso_to_epoch() { date -u -d "$1" +%s 2>/dev/null || echo 0; }
 days_since() { echo $(( (now - $(iso_to_epoch "$1")) / 86400 )); }
@@ -55,6 +56,40 @@ run() {
   else
     printf '      DRY-RUN would: %s\n' "$*"
   fi
+}
+
+# run(), but a failure is reported and tolerated. Used for branch deletion ONLY.
+#
+# Deleting the head branch is the last and least important step of closing a
+# stale PR: the PR is already closed and commented by the time we get here. On
+# a repo that restricts ref deletion — which this one does, see
+# docs/ops/backlog/tierS-branches-pending-deletion.md — the delete returns 403,
+# and under `set -euo pipefail` that would abort the sweep mid-flight and paint
+# the scheduled run red. A policy the janitor cannot satisfy must degrade it to
+# close-only, not break it.
+#
+# The Actions GITHUB_TOKEN is a different actor from any human bypass, so a
+# bypass granted to an operator does NOT cover this script. Granting the GitHub
+# Actions app `bypass_mode: always` makes deletion work; this function makes the
+# janitor correct either way, which is the part that should not depend on a
+# settings detail staying put.
+#
+# Every other mutation still uses run(): a failure to label, comment or close is
+# a real problem and should go red.
+try() {
+  if [ "$ENFORCE" != "true" ]; then
+    printf '      DRY-RUN would: %s\n' "$*"
+    return 0
+  fi
+  local rc=0
+  "$@" || rc=$?
+  if [ "$rc" -ne 0 ]; then
+    deletion_blocked=$((deletion_blocked + 1))
+    printf '      WARN  branch NOT deleted (exit %s). The PR is closed; the branch remains.\n' "$rc"
+    printf '            If this is a ref-deletion restriction, add the GitHub Actions app\n'
+    printf '            as a ruleset bypass actor with bypass_mode=always.\n'
+  fi
+  return 0
 }
 
 budget_left() {
@@ -187,7 +222,7 @@ Automated by \`.github/workflows/stale-janitor.yml\`; policy in \
     if [ "$base_users" != "0" ]; then
       printf '          keep branch %s — %s open PR(s) still target it as base\n' "$head_ref" "$base_users"
     else
-      run gh api -X DELETE "repos/$REPO/git/refs/heads/$head_ref"
+      try gh api -X DELETE "repos/$REPO/git/refs/heads/$head_ref"
     fi
   else
     printf '          keep branch — head is a fork (%s)\n' "${head_repo:-unknown}"
@@ -202,7 +237,14 @@ done < <(echo "$prs" | jq -r '.[] | [
   ] | @tsv')
 
 echo
-echo "summary: marked=$marked closed=$closed revived=$unstaled exempt=$skipped_exempt (enforce=$ENFORCE)"
+echo "summary: marked=$marked closed=$closed revived=$unstaled exempt=$skipped_exempt" \
+     "deletions-blocked=$deletion_blocked (enforce=$ENFORCE)"
+if [ "$deletion_blocked" -gt 0 ]; then
+  echo "NOTE: $deletion_blocked branch(es) survived their closed PR because ref deletion"
+  echo "      was refused. The sweep is still correct — those PRs are closed — but the"
+  echo "      branches stay resurrectable. Grant the GitHub Actions app a ruleset bypass"
+  echo "      with bypass_mode=always to let the janitor finish the job itself."
+fi
 if [ "$ENFORCE" != "true" ]; then
   echo "NOTE: dry run — nothing above was applied. The scheduled sweep enforces by"
   echo "      default, so this run is one of: a pull_request self-test (never"
