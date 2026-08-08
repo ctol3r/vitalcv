@@ -102,6 +102,42 @@ describe('customer-language guard — `wallet` stays retired (L1)', () => {
   });
 });
 
+/**
+ * Wave L2 — `passport`. The concept is gone (the /passport route was retired by
+ * #1096); what survived was vocabulary pointing at nothing. Narrower list than
+ * L1 because `PassportData`, `passport` variables and `/api/passport/*` are
+ * internal names the strategy says not to rename — only rendered copy is here.
+ */
+const PASSPORT_FREE_SURFACES = [
+  'app/packet/[entityId]/PacketClient.tsx',
+  'app/review/[entityId]/ReviewPageClient.tsx',
+  'app/review/request/page.tsx',
+  'components/advisory/AdvisoryPanel.tsx',
+  'components/mobile/ClinicianPanels.tsx',
+  'components/onboarding/OnboardingFlowSteps.tsx',
+];
+
+describe('customer-language guard — `passport` stays retired (L2)', () => {
+  it.each(PASSPORT_FREE_SURFACES)('%s renders no "passport" product noun', (rel) => {
+    const hits = customerVisibleStrings(read(rel)).filter((s) => /\bpassports?\b/i.test(s));
+    expect(
+      hits,
+      `"passport" names a concept that no longer exists — the /passport route was retired by #1096. `
+        + `See docs/strategy/customer-language-inventory.md.`,
+    ).toEqual([]);
+  });
+
+  it('the attribution register no longer cites the retired /passport route', () => {
+    const src = read('components/trust/TrustAttributionRegister.tsx');
+    const retrievalTimes = [...src.matchAll(/retrievalTime: '([^']+)'/g)].map((m) => m[1]);
+    expect(retrievalTimes.length).toBeGreaterThan(0);
+    expect(retrievalTimes.some((t) => /\/passport/.test(t))).toBe(false);
+    // …and the FACT each one states must survive the rename: these rows say
+    // when the read happens, which is the honest part.
+    expect(retrievalTimes.some((t) => /per request/i.test(t))).toBe(true);
+  });
+});
+
 describe('customer-language guard — truth qualifiers must survive any copy wave', () => {
   it('source-cadence windows still name their real refresh cadence', () => {
     const text = read('app/evidence-network/page.tsx');

@@ -198,7 +198,8 @@ describe('review page contract', () => {
 
     expect(reviewClientSpy).not.toHaveBeenCalled();
     expect(markup).toContain('Employer review unavailable');
-    expect(markup).toContain('This clinician passport is not available for review yet');
+    // Wave L2: 'passport' retired — the /passport route was removed by #1096.
+    expect(markup).toContain('This clinician record is not available for review yet');
     expect(markup).toContain('/review/entity-1?contextId=ctx-1&amp;bundleId=bundle-1&amp;from=Ada+Lovelace');
   });
 

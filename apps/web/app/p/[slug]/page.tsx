@@ -56,7 +56,7 @@ const PILOTS: Record<string, {
       isvReadinessToActionMs: 108000,
       isvEvents: [
         { event: 'readiness.viewed',  deltaSec: 0,   label: 'Readiness checked' },
-        { event: 'passport.viewed',   deltaSec: 45,  label: 'Passport opened' },
+        { event: 'passport.viewed',   deltaSec: 45,  label: 'Profile opened' },
         { event: 'review.opened',     deltaSec: 93,  label: 'Employer review opened' },
         { event: 'action.taken',      deltaSec: 108, label: 'Head-start accepted' },
         { event: 'state.updated',     deltaSec: 109, label: 'System state updated' },
