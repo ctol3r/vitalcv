@@ -36,18 +36,23 @@ name: Release verify
 # could see secrets the operator could not, and vice versa, because they were
 # looking at two different stores.
 #
-# This job reads `secrets.CLERK_SECRET_KEY_PROD` — the name a GitHub copy
-# SHOULD take, mirroring the Railway variable and separating it from the
-# `sk_test_` key CI E2E uses via E2E_CLERK_SECRET_KEY. Creating that repository
-# secret is what will finally wire this monitor; until then it fails red, which
-# is correct.
+# This job reads `secrets.CLERK_SECRET_KEY_PROD` — the name mirrors the Railway
+# variable and separates it from the `sk_test_` key CI E2E uses via
+# E2E_CLERK_SECRET_KEY. It must be an ACTIONS repository secret; see above.
 #
-# Why it took six dispatches: `secrets.<name>` yields the empty string when
-# nothing of that name exists, with NO error anywhere, so a workflow cannot
-# distinguish wrong-name from wrong-scope from never-configured. Probe run
-# 31238667349 measured length 0 under four spellings while CLERK_FAPI_URL read
-# 25 in the same job — secrets reached the job; this one was simply absent
-# everywhere Actions can see.
+# Why it took nine dispatches: `secrets.<name>` yields the empty string when a
+# name is not visible to Actions, with NO error anywhere, so a workflow cannot
+# distinguish wrong-name from wrong-tab from wrong-scope from never-configured.
+# All four look identical from inside a job, and from its logs.
+#
+# STILL UNRESOLVED as of 2026-08-08 — see the note in
+# docs/deployment/clerk-rotation-2026-08.md. Moving the secret to the Actions
+# tab did NOT fix it: a control secret created there with a known five-character
+# value read 0 (job 93113536112), and it remains listed in repository settings
+# after a hard reload. The write persists server-side but does not reach the
+# Actions runtime. A GitHub support ticket is open. Until it is resolved this
+# monitor stays red no matter where the secret is placed, and that red is
+# correct — it has still never run a signed-in verification.
 #
 # Required repo secrets: CLERK_SECRET_KEY_PROD, RAILWAY_API_TOKEN. Optional:
 # CLERK_FAPI_URL (default https://clerk.vitalcv.com), RELEASE_PROBE_BASE
@@ -99,10 +104,9 @@ jobs:
     name: Verify signed-in release
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    # No `environment:` — CLERK_SECRET_KEY_PROD is intended as a REPOSITORY
-    # secret, and repository secrets are visible to every job without one.
-    # (It does not exist yet — see the header. The point stands either way:
-    # declaring an environment would not help.) #1138 and #1140 added
+    # No `environment:` — CLERK_SECRET_KEY_PROD is a REPOSITORY secret, and
+    # repository secrets are visible to every job without one.
+    # #1138 and #1140 added
     # `environment: production` then
     # `Production` chasing a shadowing theory that measurement later disproved
     # (probe run 31238667349). Both are removed rather than left as harmless

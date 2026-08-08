@@ -14,6 +14,19 @@ byte-for-byte identical from inside a workflow.
 > **Read the coupling section first.** This key does not only authenticate to
 > Clerk. Rotating it without preparation logs users out.
 
+> **⚠ Open GitHub fault, 2026-08-08.** Secrets in this repository currently do
+> **not** reach Actions jobs regardless of where they are placed — a control
+> secret created under *Repository secrets* on the **Actions** tab with a known
+> five-character value read length 0 (job `93113536112`) and remained listed
+> after a hard reload. A support ticket is open. **The tab guidance below is
+> correct in general but insufficient today**: following it will produce no
+> change, which reads like the guidance failing and invites another round of
+> moving secrets about. See
+> [`clerk-rotation-2026-08.md`](clerk-rotation-2026-08.md), which also carries
+> the concrete ordering for the rotation in flight. Check whether the fault is
+> fixed by dispatching the secret visibility probe and confirming `PROBE_CANARY`
+> reads **5**. Delete this block once GitHub resolves it.
+
 ## What depends on this key
 
 | Consumer | Location | Consequence if stale/missing |

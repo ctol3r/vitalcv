@@ -75,16 +75,13 @@ jobs:
     name: Reap leaked synthetic identities
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    # No `environment:` — CLERK_SECRET_KEY_PROD is intended as a REPOSITORY
-    # secret, and repository secrets are visible to every job without one.
-    # (It does not exist yet — as of 2026-08-08 no GitHub Actions copy of the
-    # Clerk key exists at any scope; it lives only in Railway. The point stands
-    # either way: declaring an environment would not help.)
-    # The environment declarations added in #1138/#1140 chased a
-    # shadowing theory that measurement disproved; they are removed rather than
-    # left as clutter, because an environment records a deployment on every run
-    # (fictional, for an hourly sweep) and would silently BLOCK these runs the
-    # day a protection rule lands on that environment.
+    # No `environment:` — CLERK_SECRET_KEY_PROD is a REPOSITORY secret, and
+    # repository secrets are visible to every job without one. The environment
+    # declarations added in #1138/#1140 chased a shadowing theory that
+    # measurement disproved; they are removed rather than left as clutter,
+    # because an environment records a deployment on every run (fictional, for
+    # an hourly sweep) and would silently BLOCK these runs the day a protection
+    # rule lands on that environment.
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
@@ -136,14 +133,24 @@ jobs:
             } >> "$GITHUB_STEP_SUMMARY"
           else
             echo "wired=false" >> "$GITHUB_OUTPUT"
-            echo "::error::CLERK_SECRET_KEY_PROD is not visible to this job — the sweep did NOT run. CHECK WHICH TAB THE SECRET IS ON FIRST: Settings → Secrets and variables has separate Actions, Dependabot and Codespaces stores, they look identical, and a Dependabot secret reads as the empty string here with no error. That was the cause on 2026-08-08. It must be an ACTIONS repository secret named exactly CLERK_SECRET_KEY_PROD. If unwired is intended, set the repository variable MONITORS_UNWIRED_OK=true."
+            echo "::error::CLERK_SECRET_KEY_PROD is not visible to this job — the sweep did NOT run. READ docs/deployment/clerk-rotation-2026-08.md BEFORE MOVING ANYTHING: as of 2026-08-08 a GitHub-side propagation fault means secrets in this repo may not reach Actions REGARDLESS of placement, and a support ticket is open. Confirm that is fixed before assuming misplacement. Otherwise: check which tab — Settings → Secrets and variables has separate Actions, Dependabot and Codespaces stores, they look identical, and a Dependabot secret reads as the empty string here with no error. It must be an ACTIONS repository secret named exactly CLERK_SECRET_KEY_PROD. If unwired is intended, set the repository variable MONITORS_UNWIRED_OK=true."
             {
               echo "## Synthetic reconciliation: MISCONFIGURED"
               echo ""
               echo "- \`CLERK_SECRET_KEY\` is not visible to this job, so **nothing was reconciled**."
-              echo "- **Check the tab before anything else.** \`Settings → Secrets and variables\` keeps separate **Actions**, **Dependabot** and **Codespaces** stores. They look identical in the UI, and a Dependabot secret resolves to the empty string in an Actions job with no error — indistinguishable from a name that was never configured. That was the cause on 2026-08-08, after four wrong theories about naming and scope."
+              echo ""
+              echo "### ⚠ Known GitHub-side fault, open since 2026-08-08"
+              echo ""
+              echo "**Do not start moving the secret around.** Secrets in this repository may not reach Actions **regardless of where they are placed**. A control secret created under *Repository secrets* on the **Actions** tab, with a known five-character value, read length 0 (job \`93113536112\`) and remained listed after a hard reload — so the write persists server-side but does not reach the Actions runtime. A GitHub support ticket is open."
+              echo ""
+              echo "Read [\`docs/deployment/clerk-rotation-2026-08.md\`](https://github.com/ctol3r/vitalcv/blob/main/docs/deployment/clerk-rotation-2026-08.md) first. To check whether it is fixed, dispatch the secret visibility probe and see whether \`PROBE_CANARY\` reads **5**. If it still reads 0, nothing below will help and this red is expected."
+              echo ""
+              echo "### If that fault is resolved and this is still red"
+              echo ""
+              echo "- **Check the tab before anything else.** \`Settings → Secrets and variables\` keeps separate **Actions**, **Dependabot** and **Codespaces** stores. They look identical in the UI, and a Dependabot secret resolves to the empty string in an Actions job with no error — indistinguishable from a name that was never configured. That was the original cause on 2026-08-08, after four wrong theories about naming and scope."
               echo "- It must be an **Actions** repository secret named exactly \`CLERK_SECRET_KEY_PROD\`: <https://github.com/ctol3r/vitalcv/settings/secrets/actions>"
-              echo "- This is deliberately RED. It is not evidence that there was nothing to reap."
+              echo ""
+              echo "This is deliberately RED. It is **not** evidence that there was nothing to reap."
             } >> "$GITHUB_STEP_SUMMARY"
             exit 1
           fi
