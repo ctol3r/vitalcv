@@ -1,6 +1,7 @@
 // @ts-nocheck
 import prisma from '../../graphql/prisma_client';
 import { log } from '../../obs/logger';
+import { setRevoked } from '../ledger/statusListManager';
 
 export class GraphCascader {
   /**
@@ -92,13 +93,13 @@ export class GraphCascader {
                }
              });
 
-             // 4. Bump the Bitstring Status List version so cached verifiers
-             //    refetch. NOTE: this does NOT flip the artifact's revocation
-             //    bit — see setRevocationBit below.
-             const artifact = await prisma.verificationArtifact.findUnique({ where: { id: artifactId } });
-             if (artifact && artifact.statusListIndex !== null) {
-                await this.setRevocationBit(artifact.statusListIndex);
-             }
+             // 4. Flip the artifact's bit in the Bitstring Status List so the
+             //    revocation is visible to verifiers. setRevoked() decodes the
+             //    list, sets the bit, re-encodes, bumps the version (which
+             //    busts both the ETag and the in-memory cache), and assigns an
+             //    index first if this artifact predates status-list
+             //    integration. It is idempotent on an already-set bit.
+             await setRevoked(artifactId);
            } catch (err) {
              log('error', `[GraphCascader] Error updating verification artifact ${artifactId}`, { error: err });
            }
@@ -110,25 +111,10 @@ export class GraphCascader {
     return edgesRevoked;
   }
 
-  private async setRevocationBit(index: number) {
-    const state = await prisma.statusListState.findUnique({
-      where: { id: 'singleton' }
-    });
-    if (!state) return;
-
-    // This only busts the verifier cache. It does NOT decode the bitstring,
-    // flip bit `index`, or re-encode it — so the credential still reads
-    // "not revoked" in the Bitstring Status List served to verifiers.
-    // The real bit-flip is statusListManager.setRevoked(artifactId), which
-    // this method should delegate to; continuousMonitor already calls it.
-    log('info', `[GraphCascader] Bitstring Status List cache-bust for index: ${index} (bit NOT flipped)`);
-    await prisma.statusListState.update({
-      where: { id: 'singleton' },
-      data: {
-        version: { increment: 1 }
-      }
-    });
-  }
+  // setRevocationBit() was removed in favour of delegating to
+  // statusListManager.setRevoked(). It only incremented the version to bust
+  // verifier caches and never decoded, set, or re-encoded the bitstring, so a
+  // cascaded revocation still read "not revoked" to every verifier.
 }
 
 export const graphCascader = new GraphCascader();
