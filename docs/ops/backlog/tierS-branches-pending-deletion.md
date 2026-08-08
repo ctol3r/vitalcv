@@ -1,15 +1,24 @@
 # Branches pending deletion (2026-08-08)
 
-> **Status 2026-08-08: still pending. The 403 is an AGENT-SANDBOX policy, not a
-> GitHub restriction — try from a human workstation first.**
+> **Status 2026-08-08: CONFIRMED — the 403 is an agent-sandbox policy, not a
+> GitHub restriction. Deletion works from a human workstation. Just run the
+> script below from one.**
+>
+> **Confirmed by direct test, 2026-08-08.** A `git push origin --delete`
+> succeeded from a human workstation **with `Restrict deletions` restored and
+> active**. That is the decisive control: the same command fails from every
+> agent session and succeeds from a workstation under the *original* ruleset, so
+> GitHub was never blocking it and the ruleset was never the cause. **Leave
+> `Restrict deletions` enabled.** Nothing about branch cleanup requires
+> weakening it.
 >
 > **Corrected 2026-08-08 (second revision).** Two earlier diagnoses in this file
 > were wrong. The first blamed the automation's credential. The second — which
 > replaced it — blamed a repo-wide GitHub ruleset and sent an operator to
 > loosen **Settings → Rules → Rulesets**. Both were wrong, and the second was
 > worse than useless: it prescribed weakening a real guardrail to fix something
-> that guardrail was not causing. If *Restrict deletions* was relaxed on the
-> strength of that advice, **consider putting it back.**
+> that guardrail was not causing. That relaxation has since been reverted and
+> the test above re-run against the restored rule.
 >
 > ### What the 403 actually is
 >
@@ -35,37 +44,37 @@
 >
 > That claim rested on a sweep that failed. But the sweep was run from an agent
 > session behind this same proxy, so it could only ever have demonstrated the
-> proxy's policy — never GitHub's. No human-workstation attempt was ever
-> recorded. The observation that the branch count *rose* from 919 to 939 during
-> the sweep is consistent with the same thing: the deletes never reached GitHub
-> while ordinary pushes did.
+> proxy's policy — never GitHub's. No human-workstation attempt had been
+> recorded at that point; the one run since disproves the claim outright. The
+> observation that the branch count *rose* from 919 to 939 during the sweep is
+> consistent with the same thing: the deletes never reached GitHub while
+> ordinary pushes did.
 >
 > ### What to actually do
 >
-> 1. **From a human workstation, outside any agent sandbox**, try one:
->    `git push origin --delete claude/expo-wave-results`
-> 2. If it succeeds — the expected outcome — the proxy was always the blocker.
->    Run the script below for the rest; no settings change is needed, and
->    *Restrict deletions* can stay on.
-> 3. Only if it **also** fails from a human workstation does the GitHub-ruleset
->    theory apply. In that case check **Settings → Rules → Rulesets** for a
->    ruleset targeting all refs (`~ALL` or `**`) with **Restrict deletions**
->    enabled, and prefer narrowing its target or adding a bypass actor over
->    disabling the rule.
+> **Run the script below from a human workstation, outside any agent sandbox.**
+> That is the whole fix. No settings change is needed; *Restrict deletions*
+> stays on. The script re-derives the list and re-checks open PRs at run time,
+> so it is safe whenever it runs.
+>
+> The 207 branches listed here are still present as of this revision — the
+> confirming test deleted a single branch, not the backlog.
 >
 > **Do not diagnose this from inside an agent session again.** Every deletion
 > path available there fails identically regardless of cause, so the environment
 > cannot distinguish "GitHub forbids this" from "the sandbox forbids this". That
-> ambiguity is what produced both previous wrong answers. The distinguishing
-> test is the one above, and it has to be run outside.
+> ambiguity is what produced both previous wrong answers — two confident,
+> mutually exclusive diagnoses from the same unreadable signal. The only test
+> that separates them is a single delete from a workstation, and it is now on
+> record above.
 >
-> ### The janitor's `deletions-blocked` counter is not evidence — yet
+> ### The janitor's `deletions-blocked` counter is not evidence either way
 >
 > `.github/workflows/stale-janitor.yml` runs on GitHub Actions runners, which do
-> **not** sit behind the agent proxy, so it is the one existing mechanism that
-> could settle the GitHub-side question independently. It has not, and its
-> output is easy to misread. The enforcing scheduled run of 2026-08-08T05:11Z
-> reported:
+> **not** sit behind the agent proxy. It was the obvious independent witness
+> before the workstation test settled the question — but it never actually
+> testified, and its output is easy to misread. The enforcing scheduled run of
+> 2026-08-08T05:11Z reported:
 >
 > ```
 > summary: marked=0 closed=0 revived=0 exempt=0 deletions-blocked=0 (enforce=true)
