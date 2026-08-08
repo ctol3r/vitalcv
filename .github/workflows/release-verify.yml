@@ -90,8 +90,11 @@ jobs:
     name: Verify signed-in release
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    # No `environment:` — CLERK_SECRET_KEY_PROD is a REPOSITORY secret, visible
-    # to every job. #1138 and #1140 added `environment: production` then
+    # No `environment:` — CLERK_SECRET_KEY_PROD is intended as a REPOSITORY
+    # secret, and repository secrets are visible to every job without one.
+    # (It does not exist yet — see the header. The point stands either way:
+    # declaring an environment would not help.) #1138 and #1140 added
+    # `environment: production` then
     # `Production` chasing a shadowing theory that measurement later disproved
     # (probe run 31238667349). Both are removed rather than left as harmless
     # clutter: an environment declaration records a deployment on every run,
@@ -175,8 +178,19 @@ jobs:
           # surfaces, check:deploy — had never once executed against
           # production.
           #
-          # RESOLVED 2026-08-08: the secret is the repository secret
-          # `CLERK_SECRET_KEY_PROD`. Nothing named CLERK_SECRET_KEY ever
+          # STILL UNWIRED as of 2026-08-08 13:1xZ. An earlier revision of this
+          # comment said "RESOLVED — the secret is the repository secret
+          # CLERK_SECRET_KEY_PROD". It is not: nothing of EITHER name exists on
+          # this repo. Verified after the rename landed — repo enumeration
+          # returns the same five secrets (CLERK_FAPI_URL, CRON_SECRET,
+          # PROBE_URL, RAILWAY_TOKEN, RAILWAY_WEB_DOMAIN), all nine
+          # environments return total_count 0, and run 31256274599 (12:00Z,
+          # head 1bfa6bfc1, which DOES carry this rename) still skipped
+          # `Run release verification`. Renaming the reference could not wire a
+          # secret that was never created; `_PROD` is the name a GitHub copy
+          # SHOULD take, not the name of something that exists.
+          #
+          # Nothing named CLERK_SECRET_KEY ever
           # existed at any scope, which is exactly what the earlier API check
           # found and what probe run 31238667349 measured:
           #   repo   → total_count 5, none of them CLERK_SECRET_KEY
