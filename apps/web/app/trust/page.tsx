@@ -116,7 +116,10 @@ export default async function TrustCenterPage() {
             {STATE_ORDER.map((state) => (
               <li key={state} className="flex flex-col gap-2 rounded-[10px] border border-[var(--vt-border)] px-4 py-3.5 sm:flex-row sm:items-center sm:gap-4">
                 <div className="shrink-0 sm:w-44">
-                  <StateChip state={state} />
+                  {/* The grammar section illustrates the vocabulary itself —
+                      'legend' announces "vocabulary example, not a result
+                      about anyone", so it cannot read as a real finding. */}
+                  <StateChip state={state} attribution="legend" />
                 </div>
                 <p className="text-[14px] leading-relaxed text-[var(--vt-text-secondary)]">{EVIDENCE_STATE[state].meaning}</p>
               </li>

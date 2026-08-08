@@ -86,7 +86,16 @@ export function ProofContinuityRail({
                   ))}
               </div>
             </div>
-            <StateChip state={lane.state} size="sm" className="mt-0.5 shrink-0" />
+            {/* W1082: a rail lane IS a source lane — its label names the source
+                ("NPPES identity", "OIG exclusions"), so the label is the honest
+                attribution. asOf: null on lanes never checked announces
+                "as-of not recorded" rather than inventing a timestamp. */}
+            <StateChip
+              state={lane.state}
+              attribution={{ source: lane.label, asOf: lane.checkedAt ?? null, asOfISO: lane.checkedAtISO }}
+              size="sm"
+              className="mt-0.5 shrink-0"
+            />
           </li>
         ))}
       </ul>

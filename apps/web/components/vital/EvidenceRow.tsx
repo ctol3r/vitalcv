@@ -30,6 +30,13 @@ export interface EvidenceRowData {
 
 export function EvidenceRow({ data, className }: { data: EvidenceRowData; className?: string }) {
   const { claim, value, state, source, checkedAt, checkedAtISO, meaning, limitation, action } = data;
+  // W1082: the chip demands attribution. A row that names its source passes it
+  // through (asOf: null when the row has a source but no timestamp — announced
+  // as "as-of not recorded", never invented). A row without a source falls to
+  // 'declared', which announces the state's own meaning and names nobody.
+  const attribution = source
+    ? { source, asOf: checkedAt ?? null, asOfISO: checkedAtISO }
+    : ('declared' as const);
   return (
     <div className={`border-b border-[var(--vt-border-subtle,var(--vt-border))] py-3.5 last:border-b-0 ${className ?? ''}`}>
       <div className="flex items-start justify-between gap-3">
@@ -37,7 +44,7 @@ export function EvidenceRow({ data, className }: { data: EvidenceRowData; classN
           <p className="text-[14px] font-semibold text-[var(--vt-text-primary)]">{claim}</p>
           {value && <p className="mt-0.5 text-[13px] text-[var(--vt-text-secondary)]">{value}</p>}
         </div>
-        <StateChip state={state} size="sm" className="mt-0.5 shrink-0" />
+        <StateChip state={state} attribution={attribution} size="sm" className="mt-0.5 shrink-0" />
       </div>
 
       {(source || checkedAt) && (

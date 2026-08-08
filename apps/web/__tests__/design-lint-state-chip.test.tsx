@@ -25,7 +25,7 @@ import { EVIDENCE_STATE, type EvidenceState } from '@/lib/vital/evidenceState';
 const CHECK_PATH = /m9 12 2 2 4-4|M9 12l2 2 4-4/i;
 
 const STATES = Object.keys(EVIDENCE_STATE) as EvidenceState[];
-const render = (state: EvidenceState) => renderToStaticMarkup(<StateChip state={state} />);
+const render = (state: EvidenceState) => renderToStaticMarkup(<StateChip state={state} attribution="declared" />);
 
 describe('LINT-07 — the check glyph is reserved for affirmative states', () => {
   it('covers every declared evidence state', () => {

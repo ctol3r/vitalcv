@@ -56,13 +56,13 @@ describe('vital/evidenceState — vocabulary invariants', () => {
 
 describe('vital/StateChip + TrustGlyph — render', () => {
   it('StateChip renders the label text (not color-only)', () => {
-    expect(renderToStaticMarkup(<StateChip state="source_backed" />)).toContain('Source-backed');
-    expect(renderToStaticMarkup(<StateChip state="access_required" />)).toContain('Access required');
+    expect(renderToStaticMarkup(<StateChip state="source_backed" attribution={{ source: 'NPPES', asOf: 'Jul 15, 2026' }} />)).toContain('Source-backed');
+    expect(renderToStaticMarkup(<StateChip state="access_required" attribution="declared" />)).toContain('Access required');
   });
 
   it('affirmative StateChip uses a check glyph; gated does NOT', () => {
-    const backed = renderToStaticMarkup(<StateChip state="source_backed" />);
-    const gated = renderToStaticMarkup(<StateChip state="access_required" />);
+    const backed = renderToStaticMarkup(<StateChip state="source_backed" attribution={{ source: 'NPPES', asOf: 'Jul 15, 2026' }} />);
+    const gated = renderToStaticMarkup(<StateChip state="access_required" attribution="declared" />);
     expect(backed).toContain('lucide-circle-check');
     expect(gated).not.toContain('lucide-circle-check');
     expect(gated).toContain('lucide-lock');
