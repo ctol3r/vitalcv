@@ -169,8 +169,28 @@ jobs:
           # nobody noticed, because grey does not demand attention. The
           # signed-in flow it advertises — synthetic clinician, six /holder
           # surfaces, check:deploy — had never once executed against
-          # production. The secret existed; it was an environment secret this
-          # job had not declared (fixed in #1138).
+          # production.
+          #
+          # #1138 added `environment: Production` to this job, which was a real
+          # latent bug worth fixing. Its note that the secret "existed; it was
+          # an environment secret this job had not declared" was NOT correct,
+          # and is corrected here (2026-08-08) so nobody trusts it: at that
+          # time and at the time of this edit, CLERK_SECRET_KEY exists at NO
+          # scope Actions can read. Verified against the API rather than the
+          # `gh secret list` convenience view, which shows only repo scope:
+          #   repo   → total_count 5, none of them CLERK_SECRET_KEY
+          #   envs   → all 9 environments return {"total_count":0}
+          # (The repo call returning 5 is the control proving the API answers
+          # honestly rather than hiding secrets from the caller's token.)
+          #
+          # So declaring the environment did not wire the monitor, and this job
+          # still fails closed below. Wiring it remains a human credential
+          # action — an agent must not copy a live sk_live_ key:
+          #   gh secret set CLERK_SECRET_KEY --repo ctol3r/vitalcv --env Production
+          # (interactive prompt; no pipe to swallow the error). Re-dispatch
+          # this workflow afterwards — a green run with `Run release
+          # verification` actually EXECUTED is the proof, never the run
+          # conclusion alone.
           #
           # An unwired monitor is now a MISCONFIGURATION, not a resting state,
           # and reports red. To deliberately run unwired, set the repository
