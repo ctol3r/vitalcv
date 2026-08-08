@@ -14,8 +14,9 @@
  * artifact-motion.css; without IntersectionObserver the drawing simply
  * stands.
  *
- * Pages using this must import `@/styles/artifact-motion.css` (grammar +
- * step timing) — keyframe definitions live in `@/styles/motion.css`.
+ * `@/styles/artifact-motion.css` (grammar + step timing) and
+ * `@/styles/motion.css` (keyframe definitions) are imported globally via
+ * app/globals.css — no per-page import is needed.
  */
 
 import * as React from 'react';

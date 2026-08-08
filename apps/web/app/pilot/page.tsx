@@ -13,8 +13,6 @@ import { PilotRequestForm } from './PilotRequestForm';
 import { Reveal } from '@/components/motion/Reveal';
 import { ArtifactStage } from '@/components/motion/ArtifactStage';
 import { MeasureArtifact } from '@/components/artifacts/PageArtifacts';
-import '@/styles/motion.css';
-import '@/styles/artifact-motion.css';
 import { SOURCE_LANE_OPS, getLaneDisplayName } from '@/lib/trust/sourceLanes';
 
 /**

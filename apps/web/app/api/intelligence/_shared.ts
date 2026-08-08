@@ -8,7 +8,9 @@ import { auth } from '@clerk/nextjs/server';
 import type { NextRequest } from 'next/server';
 
 const FALLBACK_BACKEND = 'http://localhost:4000';
-const WORKSPACE_SWITCH_HREF = '/workspace/switch';
+// /workspace/switch never shipped as a route; the live switcher is the
+// persona widget on /holder. Remediation links must resolve.
+const WORKSPACE_SWITCH_HREF = '/holder';
 const SIGN_IN_HREF = '/sign-in';
 
 export type IntelligenceAuthStatus = 'authenticated' | 'missing_session' | 'missing_org';

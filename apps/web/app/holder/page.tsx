@@ -53,7 +53,7 @@ function WalletState({ result }: { result: Exclude<OwnerRecordResult, { state: '
           <div className="mt-6 flex flex-col gap-3 sm:flex-row">
             <Link
               href={content.actionHref}
-              className="inline-flex min-h-[46px] items-center justify-center rounded-xl bg-[var(--vt-accent-emerald)] px-5 text-sm font-semibold text-white transition hover:opacity-90"
+              className="inline-flex min-h-[46px] items-center justify-center rounded-xl bg-[var(--vt-accent-editorial,#4338CA)] px-5 text-sm font-semibold text-white transition hover:opacity-90"
             >
               {content.actionLabel}
             </Link>
@@ -99,13 +99,13 @@ export default async function HolderPage() {
             <div className="flex flex-col gap-2 sm:flex-row">
               <Link
                 href="/clinician/profile"
-                className="inline-flex min-h-[46px] items-center justify-center rounded-xl border border-[var(--vt-border)] bg-[var(--vt-surface-subtle)] px-4 text-sm font-semibold text-foreground transition hover:border-[var(--vt-accent-emerald)] hover:bg-[var(--vt-surface-dim)]"
+                className="inline-flex min-h-[46px] items-center justify-center rounded-xl border border-[var(--vt-border)] bg-[var(--vt-surface-subtle)] px-4 text-sm font-semibold text-foreground transition hover:border-[var(--vt-accent-editorial,#4338CA)] hover:bg-[var(--vt-surface-dim)]"
               >
                 Add career details
               </Link>
               <a
                 href="#add-evidence"
-                className="inline-flex min-h-[46px] items-center justify-center rounded-xl bg-[var(--vt-accent-emerald)] px-4 text-sm font-semibold text-white transition hover:opacity-90"
+                className="inline-flex min-h-[46px] items-center justify-center rounded-xl bg-[var(--vt-accent-editorial,#4338CA)] px-4 text-sm font-semibold text-white transition hover:opacity-90"
               >
                 Add a document
               </a>

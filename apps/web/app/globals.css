@@ -34,6 +34,13 @@
 @import '../styles/matcha-deck.css';
 @import '../styles/header.css';
 @import '../styles/eyebrow.css';
+/* motion.css + artifact-motion.css were imported per-page by four marketing
+   pages while components using their .ask-art-* grammar (CareerEvidenceTimeline)
+   also render in the /holder route group — where no import existed, so every
+   fill fell back to SVG black. One global import; the per-page imports are
+   removed to avoid the double-emit documented above for typography.css. */
+@import '../styles/motion.css';
+@import '../styles/artifact-motion.css';
 /* glue.css, graph-foundry.css and trust-register.css were deleted here (745
    lines, zero importers between them). graph-foundry.css also carried a live
    `@import url('https://fonts.googleapis.com/…Nunito+Sans…')` — the exact CDN

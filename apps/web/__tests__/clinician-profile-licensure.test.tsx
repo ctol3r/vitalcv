@@ -39,6 +39,25 @@ describe('clinician profile — state licensure', () => {
     expect(html).not.toMatch(/>\s*Verified\s*</);
   });
 
+  it('renders no form controls while the page is a read-only shell', () => {
+    // Regression contract for the inert-form defect: 34 readOnly <input>s with
+    // normal styling and focus rings shipped to production, silently dropping
+    // keystrokes with no Save control anywhere. Until the editing flow ships,
+    // nothing on this page may render as a typeable control.
+    expect(html).not.toContain('<input');
+    expect(html).not.toContain('<textarea');
+    expect(html).not.toContain('<select');
+    // and the read-only state is disclosed at the top, not in a footnote
+    expect(html).toContain('This profile is read-only for now.');
+  });
+
+  it('fabricated completion counters stay gone', () => {
+    // "Filled 0/36 (0%)" had a hardcoded-zero numerator — a statistic computed
+    // from nothing. The one completeness readout lives on /holder/home.
+    expect(html).not.toContain('Profile completion summary');
+    expect(html).not.toMatch(/0\s*\/\s*36/);
+  });
+
   it('the license-number field carries the self-attested (User-entered) provenance', () => {
     // USER_ENTERED renders as the "User-entered" badge; the licensure section
     // must not present the number as "Source-confirmed" (the VERIFIED label).

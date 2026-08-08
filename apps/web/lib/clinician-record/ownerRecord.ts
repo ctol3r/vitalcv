@@ -12,17 +12,12 @@
  * state tells the clinician nothing actionable.
  */
 
-import { headers } from 'next/headers';
+import { auth } from '@clerk/nextjs/server';
+import { MARKETPLACE_BACKEND, buildMarketplaceHeaders } from '@/lib/server/marketplace-proxy';
 import { fetchNppesRecord } from './nppes';
 import { buildClinicianRecord, attachMedicareEnrollment } from './build';
 import { fetchCmsClinicianRows } from './cmsClinicians';
 import type { ClinicianRecord } from './types';
-
-const BACKEND =
-  process.env.BACKEND_URL ??
-  process.env.NEXT_PUBLIC_API_BASE ??
-  process.env.NEXT_PUBLIC_BACKEND_URL ??
-  'http://localhost:4000';
 
 export type OwnerRecordResult =
   | { state: 'ready'; record: ClinicianRecord; npi: string }
@@ -36,20 +31,21 @@ export type OwnerRecordResult =
 /**
  * Read the caller's NPI from their workspace.
  *
- * Forwards the incoming cookies so the backend sees the same session the
- * browser has; without them this is an unauthenticated call and would
- * silently look like "no NPI linked".
+ * The backend authenticates this route by identity headers
+ * (x-clerk-user-id + Authorization bearer), not by browser cookies — it has
+ * no cookie session at all. Forwarding cookies here made every lookup 401
+ * regardless of onboarding state, which rendered the "workspace lookup
+ * failed" outage card to every signed-in user. buildMarketplaceHeaders is
+ * the same verified-session pattern every sibling server-side caller uses
+ * (holder/timeline, employer-workspace, mobile server loader).
  */
 async function resolveOwnNpi(): Promise<string | null | 'error'> {
   try {
-    const incoming = await headers();
-    const cookie = incoming.get('cookie');
+    const session = await auth();
+    if (!session.userId) return 'error';
 
-    const res = await fetch(`${BACKEND}/api/me/workspaces`, {
-      headers: {
-        Accept: 'application/json',
-        ...(cookie ? { cookie } : {}),
-      },
+    const res = await fetch(`${MARKETPLACE_BACKEND}/api/me/workspaces`, {
+      headers: await buildMarketplaceHeaders(session),
       cache: 'no-store',
       signal: AbortSignal.timeout(6_000),
     });

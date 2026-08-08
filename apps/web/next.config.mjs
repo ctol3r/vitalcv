@@ -42,7 +42,9 @@ const nextConfig = {
   },
   async redirects() {
     return [
-      { source: '/dashboard', destination: '/intelligence?view=dashboard', permanent: false },
+      // /intelligence was archived (app/_archive/wave119); this redirect kept
+      // pointing at it and 404'd. The clinician landing surface is the target.
+      { source: '/dashboard', destination: '/holder/home', permanent: false },
       { source: '/docs/api', destination: '/developers', permanent: false },
       { source: '/employers/kaiser-permanente-norcal', destination: '/employers/kaiser-permanente-northern-california', permanent: false },
     ];

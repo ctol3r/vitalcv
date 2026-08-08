@@ -120,7 +120,9 @@ export function MatchaHub() {
       {started && (
         <div>
           <p className="mz-eyebrow" style={{ marginBottom: 10 }}>Your career, end to end</p>
-          <CareerEvidenceTimeline />
+          <div className="vt-artifact">
+            <CareerEvidenceTimeline />
+          </div>
           <p className="mz-mono" style={{ marginTop: 8, fontSize: 10, color: 'var(--ink-400)' }}>
             Your real evidence lives in your profile.
           </p>

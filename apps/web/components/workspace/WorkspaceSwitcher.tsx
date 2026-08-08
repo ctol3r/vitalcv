@@ -145,12 +145,6 @@ export function WorkspaceSwitcher() {
               <ChevronDown className={cn('h-4 w-4 transition-transform', menuOpen && 'rotate-180')} aria-hidden="true" />
             )}
           </button>
-          <Link
-            href="/workspace/switch"
-            className="inline-flex items-center rounded-xl border border-vt-neutral-800 px-3 py-2.5 body-sm text-vt-neutral-200 transition hover:border-vt-brand-primary/40 hover:text-foreground"
-          >
-            View
-          </Link>
         </div>
 
         {menuOpen ? (

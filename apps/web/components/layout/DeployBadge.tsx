@@ -78,7 +78,7 @@ export function DeployBadge() {
 
   return (
     <Link
-      href="/updates"
+      href="/status"
       className="inline-flex items-center gap-1.5 text-[11px] text-white/50 hover:text-white/70 transition-colors"
       title="View latest updates"
     >

@@ -95,7 +95,7 @@ export function BoardResultRow({ opportunity }: { opportunity: OpportunitySummar
             </a>
           ) : (
             <Link
-              href={`/explore/${opportunity.id}`}
+              href={`/opportunities/${opportunity.id}`}
               className="no-underline hover:underline"
               style={{ color: 'var(--vt-text-primary)' }}
             >

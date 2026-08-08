@@ -2,8 +2,6 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ArtifactStage } from '@/components/motion/ArtifactStage';
 import { DecisionArtifact } from '@/components/artifacts/PageArtifacts';
-import '@/styles/motion.css';
-import '@/styles/artifact-motion.css';
 import { EmployerEvidenceSection } from '@/components/employers/EmployerEvidenceSection';
 import { PageFrame } from '@/components/layout/PageFrame';
 

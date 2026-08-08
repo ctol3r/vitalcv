@@ -809,7 +809,7 @@ describe('intelligence auth forwarding', () => {
     await expect(response.json()).resolves.toEqual({
       error: 'organization_context_required',
       error_description: 'Organization workspace required. Switch to an organization workspace to continue.',
-      workspaceSwitchHref: '/workspace/switch',
+      workspaceSwitchHref: '/holder',
     });
   });
 
@@ -931,7 +931,7 @@ describe('intelligence auth forwarding', () => {
     await expect(response.json()).resolves.toEqual({
       error: 'organization_context_required',
       error_description: 'Organization workspace required. Switch to an organization workspace to continue.',
-      workspaceSwitchHref: '/workspace/switch',
+      workspaceSwitchHref: '/holder',
     });
   });
 
