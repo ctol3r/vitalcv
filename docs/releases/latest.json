@@ -1,0 +1,49 @@
+{
+  "schema": "vitalcv.release-record/1",
+  "recordedAt": "2026-08-08T18:22:36.794Z",
+  "intended": {
+    "sha": "a6886d43d4213f6a7ebb4572273b1f72264d58a2",
+    "shortSha": "a6886d4",
+    "ref": "origin/main",
+    "subject": "infra(review): name the token-scope cause when environment creation is refused (#1195)",
+    "committedAt": "2026-08-08T10:52:11-07:00"
+  },
+  "services": {
+    "web": {
+      "base": "https://vitalcv.com",
+      "reachable": true,
+      "deployedSha": "a6886d43d4213f6a7ebb4572273b1f72264d58a2",
+      "branch": "main",
+      "environment": "production",
+      "platform": "railway",
+      "deploymentId": "cf6fb488-dbb2-484a-8562-cba3e506dbc4",
+      "convergence": {
+        "state": "converged",
+        "detail": "exact match"
+      },
+      "reason": null
+    },
+    "api": {
+      "base": "https://api.vitalcv.com",
+      "reachable": true,
+      "deployedSha": "a6886d43d4213f6a7ebb4572273b1f72264d58a2",
+      "branch": "main",
+      "convergence": {
+        "state": "converged",
+        "detail": "exact match"
+      },
+      "reason": null
+    }
+  },
+  "verdict": {
+    "converged": true,
+    "states": {
+      "web": "converged",
+      "api": "converged"
+    }
+  },
+  "reviewUrl": null,
+  "evidence": [
+    "docs/ops/deploy-truth-2026-08-08.md"
+  ]
+}
