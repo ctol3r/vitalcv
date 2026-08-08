@@ -15,10 +15,16 @@
  * stitcher repeats sticky elements otherwise (homepage-reset harness lesson).
  */
 
-import { chromium } from 'playwright';
 import { mkdirSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+// Resolve playwright from apps/web regardless of where this script lives.
+const require = createRequire(
+  new URL('../../../../apps/web/package.json', import.meta.url),
+);
+const { chromium } = require('@playwright/test');
 
 const here = dirname(fileURLToPath(import.meta.url));
 const mode = process.argv[2];
@@ -32,8 +38,10 @@ mkdirSync(out, { recursive: true });
 
 const HEADER_SELECTOR = mode === 'after' ? 'header.vcv-eb' : 'header, .vcv-header';
 const pinHeader = async (page) => {
+  // Absolute-pinning removes the sticky bar from flow; compensate so the
+  // first section is not stitched underneath it.
   await page.addStyleTag({
-    content: `${HEADER_SELECTOR} { position: absolute !important; }`,
+    content: `${HEADER_SELECTOR} { position: absolute !important; } body { padding-top: 64px; }`,
   });
 };
 

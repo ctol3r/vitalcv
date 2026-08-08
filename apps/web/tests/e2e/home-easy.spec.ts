@@ -116,6 +116,17 @@ test.describe('home — layout integrity across viewports', () => {
         () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
       );
       expect(overflow).toBeLessThanOrEqual(0);
+      // scrollWidth is blind when an ancestor hides overflow-x — a clipped
+      // page measures "no overflow" while the CTA hangs off screen. Assert
+      // the interactive elements actually END inside the viewport.
+      for (const selector of ['#ezh-npi', '[data-home-primary-cta]', '[data-home-work-surface]']) {
+        const box = await page.locator(selector).boundingBox();
+        expect(box, `${selector} missing at ${width}`).not.toBeNull();
+        expect(
+          box!.x + box!.width,
+          `${selector} clipped past the ${width}px viewport`,
+        ).toBeLessThanOrEqual(width + 1);
+      }
     });
   }
 });
