@@ -7,8 +7,10 @@ Triage of all 8 open Dependabot PRs, with the dispositions below.
 > authorised acting on it. All six recommended bumps are now on `main` (five as
 > their own PRs, vite via replacement PR [#1128](https://github.com/ctol3r/vitalcv/pull/1128)),
 > [#844](https://github.com/ctol3r/vitalcv/pull/844) was **closed as
-> superseded**, and [#582](https://github.com/ctol3r/vitalcv/pull/582) remains
-> the only open item, awaiting an Expo SDK wave. See
+> superseded**, and [#582](https://github.com/ctol3r/vitalcv/pull/582) was
+> **closed** with `expo-notifications` majors ignored until the Expo SDK wave
+> ([#1135](https://github.com/ctol3r/vitalcv/pull/1135)). The backlog is fully
+> dispositioned — zero open Dependabot PRs from this triage. See
 > [Merge log](#merge-log-2026-08-07-founder-authorised) for what landed and how
 > each was verified. The original triage sections below are unedited except
 > where marked as corrected.
@@ -32,7 +34,7 @@ advisories never reach the merge signal).
 | [#852](https://github.com/ctol3r/vitalcv/pull/852) | `vite` 6.4.1 → 6.4.3 | 13d | Yes — dev-server path traversal | **Yes** | **Dev-only** (3 workspaces, `devDependencies`) | clean at triage; later conflicted | **Merged via [#1128](https://github.com/ctol3r/vitalcv/pull/1128); #852 closed as superseded** |
 | [#1076](https://github.com/ctol3r/vitalcv/pull/1076) | `postcss` 8.5.6 → 8.5.23 | 2d | Yes — 3 file-read GHSAs | **Yes** | **Dev-only** (web + marketing build toolchain) | clean | **Merge (last of the lockfile set)** |
 | [#844](https://github.com/ctol3r/vitalcv/pull/844) | `next` 15.2.8 → 15.5.21 (`apps/marketing`) | 13d | Yes — 11 high advisories | **No — main is already past it (15.5.22)** | (was runtime) | **conflicts** | **Closed as superseded** ✔ |
-| [#582](https://github.com/ctol3r/vitalcv/pull/582) | `expo-notifications` 0.31.5 → 57.0.8 | 32d | **No advisory found** | n/a | Runtime of `apps/mobile` | clean, but SDK-broken | **Needs-work — do not merge as-is** |
+| [#582](https://github.com/ctol3r/vitalcv/pull/582) | `expo-notifications` 0.31.5 → 57.0.8 | 32d | **No advisory found** | n/a | Runtime of `apps/mobile` | clean, but SDK-broken | **Closed; majors ignored until the SDK wave ([#1135](https://github.com/ctol3r/vitalcv/pull/1135))** ✔ |
 
 ## What main already remediated manually
 
@@ -219,6 +221,20 @@ GitHub Actions pins — so those six PRs are **not** redundant.
   PR (or close it) to stop the weekly rebase churn until the SDK wave lands;
   Dependabot will reopen if told to, and a real expo-notifications advisory
   would still open a fresh security PR.
+- **Outcome: closed 2026-08-08**, with the ignore implemented as config rather
+  than a bot-state command — [#1135](https://github.com/ctol3r/vitalcv/pull/1135)
+  adds an `ignore` entry for `expo-notifications` /
+  `update-types: version-update:semver-major` to the npm block of
+  `.github/dependabot.yml`, carrying the rationale and the removal condition
+  next to the rule. Config was chosen over the comment form because it is
+  version-controlled and reviewable; it is also the only route available to an
+  agent, since `@`-mentions in comments posted by this tooling are neutralised
+  before Dependabot sees them.
+  **Confirmed safe for the SCA posture:** `update-types: version-update:*`
+  ignore conditions apply to *version* updates only and do **not** suppress
+  Dependabot **security** updates, so a genuine `expo-notifications` advisory
+  still opens a PR; minor/patch bumps inside the current SDK line still flow.
+  Remove the entry as part of the SDK 53 → 57 wave.
 
 ## Safe merge order
 
