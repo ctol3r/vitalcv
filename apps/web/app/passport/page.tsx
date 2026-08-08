@@ -16,7 +16,20 @@ import { redirect } from 'next/navigation';
  *    routes must be protected or declared — never unclassified).
  *
  * Do not rebuild an experience here. The entry is /onboarding.
+ *
+ * Historical links (and buildPassportLookupHref callers) carry ?npi=<npi>;
+ * a well-formed 10-digit value is forwarded so /onboarding's guest lane can
+ * resolve the record without re-typing. Anything else is dropped.
  */
-export default function RetiredPassportPage() {
+export default async function RetiredPassportPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ npi?: string | string[] }>;
+}) {
+  const { npi } = (await searchParams) ?? {};
+  const candidate = Array.isArray(npi) ? npi[0] : npi;
+  if (candidate && /^\d{10}$/.test(candidate)) {
+    redirect(`/onboarding?npi=${candidate}`);
+  }
   redirect('/onboarding');
 }

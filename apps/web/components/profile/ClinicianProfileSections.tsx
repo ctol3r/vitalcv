@@ -215,7 +215,7 @@ export function ClinicianProfileSections({
             ) : null}
           </div>
         ) : (
-          <EmptyList label="No NPPES practice addresses hydrated on this passport yet." />
+          <EmptyList label="No NPPES practice addresses hydrated on this record yet." />
         )}
       </Section>
 

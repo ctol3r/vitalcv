@@ -5,6 +5,7 @@ on:
     branches: [main, 'feature/**', 'fix/**', 'wave/**', 'chore/**']
     paths:
       - 'apps/web/**'
+      - 'apps/mobile/**'
       - 'packages/**'
       - 'package.json'
       - 'pnpm-lock.yaml'
@@ -33,6 +34,13 @@ on:
   # after a change-detection step — never to re-add a trigger-level filter.
   pull_request:
     branches: [main]
+
+# Cancel superseded runs on the same ref — never on main — so a stale push's
+# gate runs release their hosted runners instead of starving the pool.
+# Invariant enforced by scripts/check-workflow-concurrency.js.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 env:
   NODE_VERSION: '22'
@@ -241,3 +249,42 @@ jobs:
             apps/web/playwright-report/
             apps/web/test-results/
           retention-days: 7
+
+  # apps/mobile had NO CI coverage at all before this job. Every other
+  # invocation in this file is `--filter @vitalcv/web` or
+  # `--filter='!@vitalcv/web'`; the latter looks like it should catch mobile,
+  # but @vitalcv/mobile-wallet declares no `build` script, so turbo has nothing
+  # to run for it and `typecheck`/`test` were never invoked repo-wide. The
+  # suite existed and passed locally while executing in zero CI jobs.
+  #
+  # Deliberately cheap: the vitest suite is ~600ms and tsc is a few seconds, so
+  # this adds negligible wall-clock next to the E2E jobs above.
+  #
+  # NOTE: adding a job does not make it a required status check — that is
+  # branch-protection configuration. This reports on every PR but does not gate
+  # merges until the "Mobile Quality" context is added to the required list.
+  mobile-quality:
+    name: Mobile Quality
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      # Required, not incidental: apps/mobile imports @vitalcv/wallet-sdk, whose
+      # package.json main/module/types all point at dist/. Without this build,
+      # mobile's tsc fails with
+      #   src/services/WalletSyncService.ts(1,54): error TS2307:
+      #   Cannot find module '@vitalcv/wallet-sdk'
+      # — verified by moving dist/ aside and re-running. Same class of trap as
+      # the @vitalcv/trust-state note in CLAUDE.md.
+      - name: Build workspace package dependencies
+        run: pnpm turbo build --filter='!@vitalcv/web'
+      - name: Typecheck mobile
+        run: pnpm --filter @vitalcv/mobile-wallet exec tsc --noEmit
+      - name: Run mobile tests
+        run: pnpm --filter @vitalcv/mobile-wallet exec vitest run --config vitest.config.ts

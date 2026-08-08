@@ -1,5 +1,3 @@
-import { PUBLIC_WEDGE_ROUTE_TARGETS as RUNTIME_PUBLIC_WEDGE_ROUTE_TARGETS } from '@/lib/trust/public-wedge-parity';
-
 export const APPROVED_PUBLIC_WORDING = {
   checked: 'Checked',
   sourceBacked: 'source-backed',
@@ -21,7 +19,12 @@ export const PROHIBITED_PUBLIC_STRINGS = [
   'Trust Protocol',
   'signed link',
   'expires in 24h',
-  'no account needed',
+  // 'no account needed' left this list by founder ruling 2026-08-07: it was
+  // banned in the wedge era (d9d9937b0) when the promise was false — the
+  // sign-in wall repossessed it. #1090 made it true (the record renders
+  // before any account ask), and the audit called the homepage line that
+  // carries it the best microcopy on the site. The ban survives where its
+  // register is still wrong: buyer surfaces, in the employer list below.
   'Network Peer Acceptance',
   'AUTHORITATIVE issuers require',
   'TRUST_THRESHOLD',
@@ -30,6 +33,10 @@ export const PROHIBITED_PUBLIC_STRINGS = [
 ] as const;
 
 export const PROHIBITED_EMPLOYER_PUBLIC_STRINGS = [
+  // Buyer surfaces request organization access — an account-free promise is
+  // the wrong register there (founder ruling 2026-08-07; see note above).
+  'no account needed',
+  'no account required',
   'Verified since',
   'Trust score',
   'Open employer workspace',
@@ -41,15 +48,6 @@ export const PROHIBITED_EMPLOYER_PUBLIC_STRINGS = [
   'platform network',
   'trust protocol',
 ] as const;
-
-export const PUBLIC_WEDGE_ROUTE_TARGETS = {
-  homepageContinuePrefix: `${RUNTIME_PUBLIC_WEDGE_ROUTE_TARGETS.passportEntry}?npi=`,
-  explorePrimary: '/onboarding',
-  exploreSecondary: '/ask',
-  interviewBlocked: RUNTIME_PUBLIC_WEDGE_ROUTE_TARGETS.homepageLookup,
-  interviewReviewPrefix: `${RUNTIME_PUBLIC_WEDGE_ROUTE_TARGETS.reviewEntry}/`,
-  employerEntry: RUNTIME_PUBLIC_WEDGE_ROUTE_TARGETS.reviewEntry,
-} as const;
 
 function stripTags(input: string): string {
   return input.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();

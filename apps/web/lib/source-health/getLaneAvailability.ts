@@ -10,11 +10,13 @@ import { ALL_SOURCE_IDS } from './sourceHealthTypes';
  * not incidental detail.
  *
  * **The denominator is samples taken, never wall-clock.** The source-health
- * cron is nominally every 15 minutes but GitHub throttles it to roughly every
- * 2–4 h in practice, so elapsed time and observed time are different
- * quantities. A gap between ticks is UNMEASURED — it counts neither for nor
- * against a lane. Dividing ok-samples by elapsed minutes would invent
- * observations that never happened.
+ * cron is nominally twice hourly (every 15 minutes before 2026-08) but GitHub
+ * throttles scheduled workflows, so delivered gaps stretch to hours in
+ * practice and elapsed time and observed time are different quantities. A gap
+ * between ticks is UNMEASURED — it counts neither for nor against a lane.
+ * Dividing ok-samples by elapsed minutes would invent observations that never
+ * happened. This is also why the cron cadence can change without corrupting
+ * the figures: sampling density affects resolution, never the ratio.
  *
  * (Do not write the cron expression literally in a block comment here — the
  * asterisk-slash sequence closes it and silently truncates everything after.)

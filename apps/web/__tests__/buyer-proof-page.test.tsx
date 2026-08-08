@@ -3,7 +3,11 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
-import { findHrefByText } from './helpers/public-copy-guard';
+import {
+  findHrefByText,
+  PROHIBITED_EMPLOYER_PUBLIC_STRINGS,
+  PROHIBITED_PUBLIC_STRINGS,
+} from './helpers/public-copy-guard';
 
 vi.mock('next/link', () => ({
   default: ({
@@ -43,8 +47,21 @@ const BUYER_BANNED_STRINGS = [
 
 function expectNoBuyerBannedStrings(markup: string) {
   const normalized = markup.toLowerCase();
-  for (const banned of BUYER_BANNED_STRINGS) {
-    expect(normalized).not.toContain(banned.toLowerCase());
+  // Until 2026-08-07 the two shared lists below were exported and consumed by
+  // NOTHING — orphaned guards (the failure mode session memory warns about:
+  // a guard nobody runs enforces nothing). They are now enforced here, on the
+  // buyer surfaces they were written for. 'no account needed/required' lives
+  // in the EMPLOYER list by founder ruling: true and welcome on clinician
+  // surfaces since #1090, wrong register where organization access is
+  // requested.
+  for (const banned of [
+    ...BUYER_BANNED_STRINGS,
+    ...PROHIBITED_PUBLIC_STRINGS,
+    ...PROHIBITED_EMPLOYER_PUBLIC_STRINGS,
+  ]) {
+    expect(normalized, `buyer surface carries banned string: "${banned}"`).not.toContain(
+      banned.toLowerCase(),
+    );
   }
 }
 

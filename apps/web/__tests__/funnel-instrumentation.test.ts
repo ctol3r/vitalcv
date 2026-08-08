@@ -24,7 +24,10 @@ const homepage = webFile('components/home/film/HorizontalCareerFilm.tsx');
 // states live in /onboarding's guest lane now (GetReadySurface.resolveGuest),
 // which took over as the only producer of RESULTS_DISPLAYED.
 const guestLane = webFile('app/get-ready/GetReadySurface.tsx');
-const console_ = webFile('components/hero/LiveTrustConsole.tsx');
+// The internal metrics endpoint must derive steps from events that still have
+// producers — it kept counting npi_input_focused after the hero console died
+// with the /passport retirement, rendering a permanent 0 as a measurement.
+const metricsRoute = webFile('app/api/internal/funnel-metrics/route.ts');
 
 describe('funnel instrumentation', () => {
   it('fires the denominator from the homepage', () => {
@@ -44,7 +47,6 @@ describe('funnel instrumentation', () => {
     for (const outcome of ['organization', 'unavailable']) {
       expect(guestLane, `missing drop-off outcome ${outcome}`).toContain(`outcome: '${outcome}'`);
     }
-    expect(console_).toContain("outcome: 'invalid_length'");
   });
 
   it('keeps the pilot-ops passport_viewed KPI producing', () => {
@@ -60,13 +62,31 @@ describe('funnel instrumentation', () => {
     for (const [name, src] of [
       ['HomePageClient', homepage],
       ['guest lane', guestLane],
-      ['LiveTrustConsole', console_],
     ] as const) {
       expect(src, `${name} must not hash an NPI into analytics`).not.toContain('hashNpi');
     }
-    // The only NPI-derived property permitted is a digit count.
-    expect(console_).toContain('npi_length: cleanNpi.length');
-    expect(console_).not.toMatch(/npi:\s*cleanNpi/);
+  });
+
+  it('derives internal funnel metrics from events that still have producers', () => {
+    const live = metricsRoute.match(/const LIVE_FUNNEL_EVENTS = \[[\s\S]*?\]/)?.[0] ?? '';
+    expect(live, 'LIVE_FUNNEL_EVENTS block missing from the metrics route').not.toBe('');
+    for (const event of [
+      FUNNEL_EVENTS.HOMEPAGE_VIEWED,
+      FUNNEL_EVENTS.NPI_INPUT_STARTED,
+      FUNNEL_EVENTS.NPI_SUBMITTED,
+      FUNNEL_EVENTS.RESULTS_DISPLAYED,
+      FUNNEL_EVENTS.DROPOFF_DETECTED,
+    ]) {
+      expect(live, `live funnel lost ${event}`).toContain(`'${event}'`);
+    }
+    expect(
+      live,
+      'npi_input_focused lost its only producer on 2026-08-07 (#1099) — it may appear only as a labelled retired event',
+    ).not.toContain(FUNNEL_EVENTS.NPI_INPUT_FOCUSED);
+    expect(
+      metricsRoute,
+      'retired steps must stay labelled, not silently dropped',
+    ).toContain('RETIRED_FUNNEL_EVENTS');
   });
 
   it('keeps the documented event names in sync with the schema doc', () => {

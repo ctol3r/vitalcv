@@ -59,7 +59,7 @@ export function GardenShell({
           <span style={{ color: 'var(--ink-900)' }}>Garden · private</span>
           <span aria-hidden="true"> → </span>
           <Link href="/holder" className="underline decoration-[var(--rule)] underline-offset-4" style={{ color: 'var(--ink-500)' }}>
-            CV Wallet · yours to control
+            Your profile · yours to control
           </Link>
           <span aria-hidden="true"> → </span>
           <Link href="/holder/applications" className="underline decoration-[var(--rule)] underline-offset-4" style={{ color: 'var(--ink-500)' }}>

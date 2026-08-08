@@ -50,7 +50,7 @@ export function LivingCvSurface({
           </Link>{' '}
           and your credential record in the{' '}
           <Link href="/holder" className="underline underline-offset-4">
-            Wallet
+            Profile
           </Link>
           . This garden view drafts lines alongside them — it never replaces them.
         </p>

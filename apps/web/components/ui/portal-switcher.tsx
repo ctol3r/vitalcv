@@ -14,7 +14,7 @@ const PORTALS = [
     label: 'Clinician',
     href: '/holder',
     icon: Stethoscope,
-    description: 'Credential wallet',
+    description: 'Your clinician profile',
   },
   {
     key: 'employer',

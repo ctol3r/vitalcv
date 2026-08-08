@@ -37,9 +37,33 @@ import { isPublicRoute } from '@/lib/auth/roles';
 import { NAV_GROUPS } from '@/components/layout/navDestinations';
 
 describe('retired routes redirect, never render', () => {
-  it('/passport → /onboarding', () => {
+  it('/passport → /onboarding', async () => {
     redirectMock.mockClear();
-    RetiredPassportPage();
+    await RetiredPassportPage({ searchParams: Promise.resolve({}) });
+    expect(redirectMock.mock.calls[0]).toEqual(['/onboarding']);
+  });
+
+  it('/passport?npi={10-digit} carries the NPI to /onboarding — historical lookup links', async () => {
+    redirectMock.mockClear();
+    await RetiredPassportPage({ searchParams: Promise.resolve({ npi: '1407202518' }) });
+    expect(redirectMock.mock.calls[0]).toEqual(['/onboarding?npi=1407202518']);
+  });
+
+  it('/passport?npi={malformed} drops the param', async () => {
+    redirectMock.mockClear();
+    await RetiredPassportPage({ searchParams: Promise.resolve({ npi: '123' }) });
+    expect(redirectMock.mock.calls[0]).toEqual(['/onboarding']);
+
+    redirectMock.mockClear();
+    await RetiredPassportPage({
+      searchParams: Promise.resolve({ npi: '1407202518; DROP' }),
+    });
+    expect(redirectMock.mock.calls[0]).toEqual(['/onboarding']);
+  });
+
+  it('/passport with no searchParams promise still redirects', async () => {
+    redirectMock.mockClear();
+    await RetiredPassportPage({});
     expect(redirectMock.mock.calls[0]).toEqual(['/onboarding']);
   });
 

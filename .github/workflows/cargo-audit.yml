@@ -39,7 +39,8 @@ permissions:
 
 concurrency:
   group: cargo-sca-${{ github.ref }}
-  cancel-in-progress: true
+  # Guarded off main: push runs there must complete (check-workflow-concurrency.js).
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 env:
   NODE_VERSION: '22'
@@ -63,7 +64,7 @@ jobs:
       # cargo-audit takes ~2min to compile from source; cache the built binary.
       - name: Cache cargo-audit binary
         id: cache-cargo-audit
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.cargo/bin/cargo-audit
           key: cargo-audit-${{ env.CARGO_AUDIT_VERSION }}-${{ runner.os }}

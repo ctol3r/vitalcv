@@ -1,11 +1,7 @@
 /**
- * FOUNDATION-SWEEP-2 — identity / accessibility / import foundation tests.
+ * FOUNDATION-SWEEP-2 — accessibility / import foundation tests.
  *
  * Truth invariants enforced:
- *   - NPI lookup is not identity proofing.
- *   - User-entered name + NPI does not prove identity.
- *   - Government ID and liveness are planned controls (isLive: false).
- *   - No status implies IAL2 / IAL3.
  *   - Accessibility checklist contains the required category set.
  *   - Checklist never claims WCAG AA complete.
  *   - Import entries label LinkedIn / Doximity / PubMed as planned or
@@ -13,20 +9,17 @@
  *   - Import error states are user-safe (no raw payload, no stack
  *     trace, no secret).
  *   - Provenance labels do not imply verification.
- *   - The clinician identity + import pages render the safe copy.
+ *
+ * The identity-proofing blocks and the clinician/identity +
+ * clinician/import route-copy invariants left with the routes themselves:
+ * the 2026-08-07 orphaned-route retirement deleted those foundation pages
+ * and their spec modules (headerless-routes disposition, bucket D), so the
+ * claims those guards policed no longer ship anywhere. The import and
+ * accessibility modules below remain live and remain guarded.
  */
 
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-import {
-  buildIdentityProofingFoundationPolicy,
-  evaluateClinicianNpiBindingReadiness,
-  explainIdentityProofingStatus,
-  type ClinicianNpiBindingStatus,
-  type IdentityProofingStatus,
-} from '../lib/identity/identityProofingPolicy';
 import {
   buildAccessibilityFoundationChecklist,
   explainAccessibilityRequirement,
@@ -43,92 +36,13 @@ import {
 } from '../lib/import-export/importFoundation';
 
 // ────────────────────────────────────────────────────────────────────────────
-// Identity proofing
-// ────────────────────────────────────────────────────────────────────────────
-
-describe('identity proofing foundation', () => {
-  const policy = buildIdentityProofingFoundationPolicy();
-
-  it('NPI lookup is NOT identity proofing — disclaimer present', () => {
-    expect(policy.disclaimers[0]).toMatch(/NPI lookup is not government-ID identity proofing/);
-  });
-
-  it('user-entered name + NPI does NOT prove identity', () => {
-    const status: ClinicianNpiBindingStatus = evaluateClinicianNpiBindingReadiness({
-      identifierResolved: true,
-      selfAttestedName: true,
-    });
-    expect(status).toBe('foundation_ready');
-    // foundation_ready is NOT verified
-    expect(status).not.toContain('verified');
-  });
-
-  it('government ID and liveness are planned controls (isLive: false)', () => {
-    const govId = policy.controls.find((c) => c.id === 'government_id');
-    const liveness = policy.controls.find((c) => c.id === 'selfie_liveness');
-    expect(govId).toBeDefined();
-    expect(liveness).toBeDefined();
-    expect(govId!.isLive).toBe(false);
-    expect(liveness!.isLive).toBe(false);
-  });
-
-  it('NPI lookup and self-attested name are the only live controls', () => {
-    const liveControls = policy.controls.filter((c) => c.isLive);
-    expect(liveControls.map((c) => c.id).sort()).toEqual(['npi_lookup', 'self_attested_name']);
-  });
-
-  it('no IAL2 / IAL3 / AAL2 / AAL3 claim is produced anywhere in the policy', () => {
-    const text = JSON.stringify(policy);
-    expect(text).not.toMatch(/IAL2/);
-    expect(text).not.toMatch(/IAL3/);
-    expect(text).not.toMatch(/AAL2/);
-    expect(text).not.toMatch(/AAL3/);
-    // explicit disclaimer that this foundation does not assert any NIST identity assurance level
-    expect(policy.disclaimers.some((d) => /does not assert any NIST 800-63 identity assurance level/.test(d))).toBe(true);
-  });
-
-  it('binding readiness is foundation_ready at most — never "verified"', () => {
-    for (const input of [
-      { identifierResolved: true, selfAttestedName: true },
-      {
-        identifierResolved: true,
-        selfAttestedName: true,
-        governmentIdVerified: true,
-        livenessVerified: true,
-      },
-    ]) {
-      const out = evaluateClinicianNpiBindingReadiness(input);
-      expect(out).not.toMatch(/verified/);
-      expect(out).toBe('foundation_ready');
-    }
-  });
-
-  it('explainIdentityProofingStatus covers every status without fabricating IAL claims', () => {
-    const allStatuses: IdentityProofingStatus[] = [
-      'not_started',
-      'policy_defined',
-      'user_claimed',
-      'source_candidate',
-      'source_backed',
-      'requires_government_id',
-      'requires_liveness',
-      'blocked',
-      'unavailable',
-    ];
-    for (const status of allStatuses) {
-      const out = explainIdentityProofingStatus(status);
-      expect(out.length).toBeGreaterThan(0);
-      expect(out).not.toMatch(/IAL2|IAL3/);
-    }
-  });
-});
-
-// ────────────────────────────────────────────────────────────────────────────
 // Accessibility
 // ────────────────────────────────────────────────────────────────────────────
 
 describe('accessibility foundation checklist', () => {
-  const checklist = buildAccessibilityFoundationChecklist('/clinician/identity', []);
+  // Route key is a label input only; use a live surface now that the
+  // retired /clinician/identity page is gone.
+  const checklist = buildAccessibilityFoundationChecklist('/profile/activate', []);
 
   it('contains every required category', () => {
     const required: AccessibilityCategory[] = [
@@ -266,62 +180,5 @@ describe('import / export foundation', () => {
     expect(labels.source_backed).not.toMatch(/verified credential/i);
     expect(labels.unknown).toMatch(/no data/i);
     expect(labels.conflict).toMatch(/disagree/i);
-  });
-});
-
-// ────────────────────────────────────────────────────────────────────────────
-// Route copy invariants (clinician/identity + clinician/import)
-// ────────────────────────────────────────────────────────────────────────────
-
-const ROUTE_DIR = resolve(__dirname, '..', 'app', 'clinician');
-const readRoute = (rel: string) => readFileSync(resolve(ROUTE_DIR, rel), 'utf-8');
-
-describe('clinician identity + import page copy invariants', () => {
-  it('clinician/identity page renders the NPI-vs-identity-proofing disclaimer', () => {
-    const src = readRoute('identity/page.tsx');
-    expect(src).toContain('NPI lookup is not government-ID identity proofing.');
-  });
-
-  it('clinician/identity page does not claim live government ID or liveness verification', () => {
-    const src = readRoute('identity/page.tsx').toLowerCase();
-    expect(src).not.toContain('government id verified');
-    expect(src).not.toContain('liveness verified');
-    expect(src).not.toContain('biometric verified');
-    expect(src).not.toMatch(/\bial2\b/);
-    expect(src).not.toMatch(/\bial3\b/);
-  });
-
-  it('clinician/import page renders the imported-data-not-verified disclaimer', () => {
-    const src = readRoute('import/page.tsx');
-    expect(src).toContain(
-      'Import entries may be planned or entry-only. Imported or uploaded data is not verified until source-backed evidence is attached.',
-    );
-  });
-
-  it('clinician/import page does not claim LinkedIn / Doximity / PubMed are live', () => {
-    const src = readRoute('import/page.tsx').toLowerCase();
-    expect(src).not.toContain('linkedin import live');
-    expect(src).not.toContain('doximity import live');
-    expect(src).not.toContain('pubmed import live');
-  });
-
-  it('neither page contains blanket truth-contract banned phrases', () => {
-    const banned = [
-      'guaranteed verification',
-      'instant credentialing',
-      'complete credentialing',
-      'legally accepted',
-      'risk transferred',
-      'hipaa compliant',
-      'soc2 certified',
-      'ncqa verified',
-      'irreversible proof',
-      'tamper-proof',
-      'wcag aa complete',
-    ];
-    for (const rel of ['identity/page.tsx', 'import/page.tsx']) {
-      const src = readRoute(rel).toLowerCase();
-      for (const phrase of banned) expect(src).not.toContain(phrase);
-    }
   });
 });

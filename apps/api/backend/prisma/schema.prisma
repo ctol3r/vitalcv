@@ -4407,4 +4407,32 @@ model AgentEvent {
   @@index([subjectRef, createdAt])
   @@index([relatedKind, relatedRef])
   @@map("agent_events")
+/// Singleton row backing the W3C Bitstring Status List v1.0 revocation
+/// registry (`services/ledger/statusListManager.ts`, Wave 40).
+///
+/// This model was referenced by the manager from the day it was written but
+/// never existed in the schema or in any migration, so `prisma.statusListState`
+/// was `undefined` and every DB path in the manager threw at runtime —
+/// `getStatusListCredential()`, `setRevoked()`, `assignStatusIndex()`,
+/// `isRevoked()`. `// @ts-nocheck` at the top of the manager is why the
+/// compiler never reported it. Launch blocker #14(a).
+///
+///   - `id` is always the literal `'singleton'`; there is exactly one row.
+///   - `encoded` is the base64url of the GZIP-compressed bitstring (§4.1), not
+///     the raw bits. At the 131,072-bit minimum size an empty list compresses
+///     to a few hundred bytes.
+///   - `version` increments on every bit flip and drives both the ETag served
+///     to verifiers and the in-memory cache invalidation.
+///   - `nextIndex` is the assignment cursor. The final bit is reserved for the
+///     demo credential (`DEMO_STATUS_LIST_INDEX`) and is never handed out.
+model StatusListState {
+  id        String   @id
+  encoded   String   @db.Text
+  version   Int      @default(0)
+  sizeBits  Int      @map("size_bits")
+  nextIndex Int      @default(0) @map("next_index")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("status_list_state")
 }

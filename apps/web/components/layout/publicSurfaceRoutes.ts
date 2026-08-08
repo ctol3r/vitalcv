@@ -24,6 +24,12 @@ export const PUBLIC_SURFACE_PATHS = new Set([
   '/terms',
   '/contact',
   '/trust',
+  // 2026-08-07 headerless-routes sweep (gap-analysis §8.4). /pricing was
+  // indexable sitemap marketing (priority 0.6) rendering with no nav and no
+  // footer; /concierge is a sellable offer page nothing linked to. Both are
+  // light-ground content pages the standard chrome fits.
+  '/pricing',
+  '/concierge',
   // A Navbar Trust-group destination. It was de-ops'd (see the note on
   // OPS_SURFACE_PREFIXES) but never listed here, so clicking it from the
   // header dropped the visitor into a chrome-less page. Fixed by the
@@ -71,6 +77,12 @@ export const OPS_SURFACE_PREFIXES = [
   '/ops/engine',
   // Design-reference surfaces carry their own chrome (wave1505 port et al.)
   '/design',
+  // NOTE — /status/technical is deliberately in NEITHER list (bucket E
+  // decision, 2026-08-07): the paper journey header would violate the scene
+  // system on a dark mono console, and ops classification would mount
+  // VCommandBar — ungated intelligence tooling — on a publicly reachable
+  // route. It renders as a bare standalone console on purpose;
+  // public-surface-registry.test.ts pins all three facts.
   // COMPETE-2 film spike: a full-viewport composition cannot be evaluated with
   // a promo rail over its first scene. Scoped to this ONE harness rather than
   // all of /dev, so the other dev routes keep the chrome their tests expect.
@@ -116,6 +128,27 @@ const PREFIX_MATCHERS = [
   '/matcha',
   '/for',
   '/solutions',
+  // 2026-08-07 headerless-routes sweep. Parameterized public-record surfaces:
+  // /directory/[npi] is the indexable NPPES registry page (JSON-LD + canonical
+  // — a search visitor landed with no way into the site), /profile/[npi] is
+  // the career profile a clinician deliberately shares (also covers the
+  // exact-listed /profile/activate), /investigate/[npi] is the public
+  // diligence surface the survivability registry declares public.
+  '/directory',
+  '/profile',
+  '/investigate',
+  // Bucket E decision (headerless-routes disposition, 2026-08-07): the
+  // WorkspaceNav entity surfaces NEST under the site header rather than
+  // substituting for it — one navigation model; the header is the global
+  // chrome, the pill-nav is local secondary navigation. A visitor entering
+  // from the chromed /demo no longer crosses a chrome cliff mid-journey.
+  '/career-intelligence',
+  '/career-map',
+  '/ecosystem',
+  '/packet',
+  '/professional-growth',
+  '/recruiter',
+  '/search',
 ] as const;
 
 export function isPublicSurfacePath(pathname: string | null): boolean {
@@ -124,6 +157,16 @@ export function isPublicSurfacePath(pathname: string | null): boolean {
   }
 
   if (PUBLIC_SURFACE_PATHS.has(pathname)) {
+    return true;
+  }
+
+  // The activity entity surface is chromed like its WorkspaceNav siblings
+  // (bucket E, 2026-08-07) but expressed as a regex rather than a
+  // PREFIX_MATCHERS string: the activity namespace is golden with no root
+  // page, and the repo-wide golden-namespace sweep (holder-route-contract)
+  // rightly treats any quoted bare form of it — even in a comment — as
+  // minting a dead URL. The regex matches only children that actually exist.
+  if (/^\/activity\/.+/.test(pathname)) {
     return true;
   }
 

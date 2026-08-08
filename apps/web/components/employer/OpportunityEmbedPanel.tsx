@@ -62,7 +62,7 @@ export function OpportunityEmbedPanel({ opportunityId, title }: { opportunityId:
 
       <p className="mz-small mt-2 opacity-80">
         Candidates land on a public VitalCV page for this role and apply with
-        their career evidence wallet — readiness snapshot attached, no résumé
+        their VitalCV profile — readiness snapshot attached, no résumé
         re-typing.
       </p>
 

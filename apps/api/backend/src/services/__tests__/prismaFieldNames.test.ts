@@ -122,6 +122,13 @@ describe('the files that hid this defect stay type-checked', () => {
     'services/intelligence/providerIntelligenceService.ts',
     'services/intelligence/graphRagEvaluator.ts',
     'services/geospatial/geospatialMaterializationService.ts',
+    // The revocation registry (launch blocker #14). These two referenced
+    // `prisma.statusListState` for months while no model declared it, so the
+    // property was `undefined` and every database path threw at runtime. The
+    // pragma is the entire reason the compiler stayed silent about a dead
+    // revocation stack. The model now exists, so both files type-check.
+    'services/ledger/statusListManager.ts',
+    'services/intelligence/graphCascader.ts',
   ];
 
   // Matches the DIRECTIVE — a comment whose content is the pragma — not the

@@ -1,7 +1,11 @@
 import * as React from 'react';
 import type { Metadata } from 'next';
+import { auth } from '@clerk/nextjs/server';
+import { redirect } from 'next/navigation';
 
 import { buildDemoResetFoundationPlan } from '@/lib/demo/demoResetFoundation';
+
+export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
   title: 'Demo Reset · VitalCV',
@@ -9,7 +13,16 @@ export const metadata: Metadata = {
     'Demo reset foundation plan. Non-production. Requires explicit operator confirmation. No destructive database changes.',
 };
 
-export default function AdminDemoResetPage() {
+export default async function AdminDemoResetPage() {
+  const session = await auth();
+  if (!session.userId) {
+    redirect('/sign-in?redirect_url=/admin/demo-reset');
+  }
+  const role = (session.sessionClaims as { vitalcv?: { role?: string } } | null)?.vitalcv?.role;
+  if (role !== 'ADMIN') {
+    redirect('/');
+  }
+
   const plan = buildDemoResetFoundationPlan();
 
   return (

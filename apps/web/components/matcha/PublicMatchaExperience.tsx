@@ -197,7 +197,7 @@ export function PublicMatchaExperience() {
                 That&rsquo;s the idea.
               </p>
               <p className="mz-body" style={{ marginTop: 10 }}>
-                With your wallet, MATCHA keeps learning and works in the background — scoring real
+                With your profile, MATCHA keeps learning and works in the background — scoring real
                 roles on your source-backed readiness, not just what you typed here.
               </p>
               <Link href="/holder/matcha" className="mz-btn" style={{ marginTop: 18 }}>

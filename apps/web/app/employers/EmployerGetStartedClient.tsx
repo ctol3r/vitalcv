@@ -156,7 +156,7 @@ export function EmployerGetStartedClient() {
         <p className="text-xs text-muted-foreground">
           A domain match establishes that you control an address at that domain. NPPES resolves the organization
           identifier. Neither is legal proof of authority over the organization. Your workspace can now review clinician
-          passports.
+          records.
         </p>
         <a
           href="/employer/dashboard"

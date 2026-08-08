@@ -15,8 +15,8 @@ function WalletState({ result }: { result: Exclude<OwnerRecordResult, { state: '
   const content =
     result.state === 'no_npi'
       ? {
-          eyebrow: 'CV Wallet setup',
-          heading: 'Connect your NPI to build your wallet',
+          eyebrow: 'Profile setup',
+          heading: 'Connect your NPI to build your profile',
           body: 'VitalCV will read the public clinician record tied to your NPI, preserve every field the source returns, and show what still needs separate verification.',
           actionHref: '/onboarding',
           actionLabel: 'Connect my NPI',
@@ -30,7 +30,7 @@ function WalletState({ result }: { result: Exclude<OwnerRecordResult, { state: '
             actionLabel: 'Try again',
           }
         : {
-            eyebrow: 'Wallet connection',
+            eyebrow: 'Profile connection',
             heading: 'We could not load your linked clinician record',
             body: 'The workspace lookup failed before VitalCV could determine which NPI belongs to this account. No conclusion was made about your credentials.',
             actionHref: '/holder',
@@ -87,7 +87,7 @@ export default async function HolderPage() {
           <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
             <div className="min-w-0">
               <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--vt-text-secondary)]">
-                CV Wallet
+                Your VitalCV profile
               </p>
               <h1 className="mt-2 text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
                 {displayName}
@@ -112,7 +112,7 @@ export default async function HolderPage() {
             </div>
           </div>
 
-          <nav aria-label="CV Wallet sections" className="mt-6 flex flex-wrap gap-2 border-t border-[var(--vt-border)] pt-4">
+          <nav aria-label="Profile sections" className="mt-6 flex flex-wrap gap-2 border-t border-[var(--vt-border)] pt-4">
             {[
               ['#career-record', 'Career record'],
               ['#verification', 'Verification'],
@@ -154,7 +154,7 @@ export default async function HolderPage() {
               Credentials and documents
             </p>
             <h2 id="credentials-heading" className="mt-1 text-xl font-semibold text-foreground">
-              Evidence already attached to your wallet
+              Evidence already attached to your profile
             </h2>
           </div>
           <CredentialWallet subject={npi} />
@@ -180,7 +180,7 @@ export default async function HolderPage() {
             heading="Add evidence"
             description="Attach a license, certificate, CV, or supporting document. VitalCV keeps uploaded evidence separate from source-reported and source-verified facts."
             returnToHref="/holder"
-            returnToLabel="Return to your CV Wallet"
+            returnToLabel="Return to your profile"
           />
         </section>
 

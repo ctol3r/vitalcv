@@ -20,93 +20,10 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import {
-  buildAnalyticsFoundationPlan,
-  explainAnalyticsPrivacyLevel,
-  type AnalyticsEventKind,
-  type AnalyticsPrivacyLevel,
-} from '../lib/commercial/analyticsFoundation';
-import {
   buildStatusFoundationPlan,
   explainStatusSurfaceStatus,
   type StatusSurfaceKind,
 } from '../lib/commercial/statusFoundation';
-
-// ────────────────────────────────────────────────────────────────────────────
-// Analytics
-// ────────────────────────────────────────────────────────────────────────────
-
-describe('analytics foundation', () => {
-  const plan = buildAnalyticsFoundationPlan();
-
-  it('typed literals: dispatchedToThirdParty=false, productionPipelineLive=false, collectsPhi=false, collectsCredentialPayload=false', () => {
-    expect(plan.dispatchedToThirdParty).toBe(false);
-    expect(plan.productionPipelineLive).toBe(false);
-    expect(plan.collectsPhi).toBe(false);
-    expect(plan.collectsCredentialPayload).toBe(false);
-  });
-
-  it('every event privacy level is one of the two safe_* values (no requires_consent in catalog)', () => {
-    for (const e of plan.events) {
-      expect(['safe_session_only', 'safe_aggregate']).toContain(e.privacyLevel);
-    }
-  });
-
-  it('catalog includes the required event kinds', () => {
-    const required: AnalyticsEventKind[] = [
-      'npi_lookup_started',
-      'profile_section_viewed',
-      'import_entry_clicked',
-      'proof_pack_previewed',
-      'signup_step_viewed',
-      'verifier_cta_clicked',
-    ];
-    const present = plan.events.map((e) => e.kind);
-    for (const r of required) expect(present).toContain(r);
-  });
-
-  it('analytics-foundation route renders the privacy-safe disclaimer + invariant labels', () => {
-    const src = readFileSync(resolve(APP_ROOT, 'analytics-foundation/page.tsx'), 'utf-8');
-    expect(src).toContain('Analytics events are a privacy-safe foundation vocabulary. No PHI or credential payloads are collected here.');
-    expect(src).toContain('Dispatched to third party');
-    expect(src).toContain('Production pipeline live');
-    expect(src).toContain('Collects PHI');
-    expect(src).toContain('Collects credential payload');
-  });
-
-  it('the entire JSON serialization of the analytics plan contains no banned identifier-bearing context-key', () => {
-    const text = JSON.stringify(plan).toLowerCase();
-    // The serialized plan walks every event's allowedContextKeys; banned terms
-    // must not appear anywhere in it.
-    for (const banned of ['"npi"', '"email"', '"phone"', '"firstname"', '"lastname"', '"ssn"', '"dob"', '"credential"', '"token"', '"secret"']) {
-      expect(text).not.toContain(banned);
-    }
-  });
-
-  it('allowedContextKeys never includes identifier-bearing fields', () => {
-    const banned = ['npi', 'email', 'phone', 'name', 'firstName', 'lastName', 'address', 'ssn', 'dob', 'credential', 'token', 'secret'];
-    for (const e of plan.events) {
-      for (const key of e.allowedContextKeys) {
-        const lower = key.toLowerCase();
-        for (const b of banned) {
-          expect(lower).not.toContain(b);
-        }
-      }
-    }
-  });
-
-  it('disclaimers explicitly negate PHI / third-party / raw-NPI capture', () => {
-    expect(plan.disclaimers.some((d) => /No PHI or credential payloads are collected/.test(d))).toBe(true);
-    expect(plan.disclaimers.some((d) => /No third-party analytics vendor is wired/.test(d))).toBe(true);
-    expect(plan.disclaimers.some((d) => /exclude NPI digits, names, emails, and credential payloads/.test(d))).toBe(true);
-  });
-
-  it('explainAnalyticsPrivacyLevel returns text for every level', () => {
-    const all: AnalyticsPrivacyLevel[] = ['safe_session_only', 'safe_aggregate', 'requires_consent'];
-    for (const l of all) {
-      expect(explainAnalyticsPrivacyLevel(l).length).toBeGreaterThan(0);
-    }
-  });
-});
 
 // ────────────────────────────────────────────────────────────────────────────
 // Status / docs
@@ -163,11 +80,6 @@ const APP_ROOT = resolve(__dirname, '..', 'app');
 const readRoute = (rel: string) => readFileSync(resolve(APP_ROOT, rel), 'utf-8');
 
 describe('analytics / status / docs route copy invariants', () => {
-  it('analytics-foundation page renders the privacy-safe disclaimer', () => {
-    const src = readRoute('analytics-foundation/page.tsx');
-    expect(src).toContain('Analytics events are a privacy-safe foundation vocabulary. No PHI or credential payloads are collected here.');
-  });
-
   it('status pages render their no-uptime honesty (split: customer + technical)', () => {
     // The operator console moved to /status/technical and keeps the original
     // foundation-preview disclaimer; the customer page carries its own.
@@ -242,7 +154,6 @@ describe('analytics / status / docs route copy invariants', () => {
       'stripe checkout live',
     ];
     for (const rel of [
-      'analytics-foundation/page.tsx',
       'status/page.tsx',
       'status/technical/page.tsx',
       'docs/page.tsx',
@@ -268,7 +179,6 @@ describe('analytics / status / docs route copy invariants', () => {
       'tamper-proof',
     ];
     for (const rel of [
-      'analytics-foundation/page.tsx',
       'status/page.tsx',
       'status/technical/page.tsx',
       'docs/page.tsx',

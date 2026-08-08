@@ -27,15 +27,20 @@ export default function FeedbackButton() {
          displacement is capped at 8px), and CD-15 (py-2.5 at text-xs computed to
          ~34px, under the 44px floor).
          The float shadow stays: CD-12 permits exactly one, reserved for a
-         detached floating rail, and this is that. */
-      className="fixed bottom-6 right-6 z-40 flex min-h-11 items-center gap-2 rounded-[10px] bg-[var(--vt-text-primary)] px-4 py-2.5 text-xs font-medium text-[var(--vt-surface)] shadow-lg transition-colors duration-[120ms] hover:bg-[var(--vt-accent)] motion-reduce:transition-none"
+         detached floating rail, and this is that.
+         Below md the label is dropped and the chip collapses to a 44px square:
+         at 390pt the labeled chip spans ~109px of the bottom-right corner and
+         was measured sitting on top of centered tappable content (DL-001) —
+         the accessible name lives in aria-label, so the visible label is
+         presentation, not the control's name. */
+      className="fixed bottom-6 right-6 z-40 flex min-h-11 min-w-11 items-center justify-center gap-2 rounded-[10px] bg-[var(--vt-text-primary)] px-3 py-2.5 text-xs font-medium text-[var(--vt-surface)] shadow-lg transition-colors duration-[120ms] hover:bg-[var(--vt-accent)] motion-reduce:transition-none md:px-4"
       aria-label="Send feedback"
       type="button"
     >
       <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
       </svg>
-      Feedback
+      <span className="hidden md:inline">Feedback</span>
     </button>
   );
 }

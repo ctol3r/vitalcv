@@ -1,0 +1,140 @@
+# Monitor rescue — retries and reclassifies INFRASTRUCTURE failures of the
+# scheduled production monitors. It never touches a genuine production red.
+#
+# Why this exists (audit of the 120 runs of each monitor ending 2026-08-07):
+# every observed failure of Source Health Probe (#2343, #2344) and Release
+# verify (#397, #398) was a runner-acquisition timeout — runner_id 0, zero
+# steps executed, job killed by GitHub at ~15:03 during an Actions incident.
+# Nothing inside those workflow files can handle that class of failure,
+# because the job never starts: no retry step runs, no status is posted, and
+# the run paints the same red as a real production failure. A monitor that is
+# red for reasons unrelated to what it monitors trains people to stop looking
+# at it.
+#
+# What it does, per completed-and-failed monitor run:
+#   1. Classify. Fetch the failed run's jobs. INFRA means GitHub never gave
+#      us a machine: zero jobs, or no job ever got a runner (runner_id 0)
+#      and no step executed. If ANY step executed, the monitor's own
+#      in-workflow classification owns the outcome — GENUINE — and this
+#      workflow does nothing. Ambiguity therefore resolves toward leaving
+#      the red alone; a true production failure is never rescued away.
+#   2. Retry once. An attempt-1 infra failure is re-run in place via the
+#      Actions re-run API. If the retry gets a runner and the probe passes,
+#      the SAME run turns green — the false red heals on the board. Only
+#      attempt 1 is ever retried, so an ongoing GitHub incident produces at
+#      most one retry per scheduled tick, never a retry storm.
+#   3. Reclassify when the retry is also unacquirable (attempt >= 2 still
+#      infra-failed): post a grey `pending` commit status on the monitor's
+#      own context — "no signal — runner not acquired" — so the durable
+#      signal channel distinguishes "GitHub could not run the probe" from
+#      "production failed the probe". The red run row remains visible; the
+#      status channel tells the truth about what it means.
+#
+# Honest limitation: this workflow needs a runner too. In a total Actions
+# outage it also cannot start, and the monitors are silently red until GitHub
+# recovers. No in-GitHub watchdog can do better; the grey/red distinction it
+# maintains covers the common partial-incident case (like 2026-08-06).
+#
+# workflow_run only fires for workflows on the default branch — this file is
+# inert until merged to main.
+
+name: Monitor Rescue
+
+on:
+  workflow_run:
+    workflows: ["Source Health Probe", "Release verify"]
+    types: [completed]
+
+permissions:
+  actions: write # re-run the failed monitor run
+  statuses: write # post the grey "no signal" commit status
+  contents: read
+
+jobs:
+  rescue:
+    name: Classify and retry infra failure
+    if: github.event.workflow_run.conclusion == 'failure'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Classify — did the failed run ever get a runner?
+        id: classify
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+        run: |
+          set -euo pipefail
+          JOBS="$(gh api "repos/${REPO}/actions/runs/${RUN_ID}/jobs?per_page=100")"
+          TOTAL=$(jq '.total_count' <<<"$JOBS")
+          # A job "executed" if it was ever assigned a runner or ran any step
+          # to a conclusion. Runner-acquisition deaths have runner_id 0 and
+          # an empty/never-started step list.
+          EXECUTED=$(jq '[.jobs[] | select(
+              ((.runner_id // 0) != 0)
+              or (([.steps[]? | select(.conclusion != null and .conclusion != "skipped")] | length) > 0)
+            )] | length' <<<"$JOBS")
+          if [ "$TOTAL" -eq 0 ] || [ "$EXECUTED" -eq 0 ]; then
+            echo "verdict=infra" >> "$GITHUB_OUTPUT"
+            echo "Run ${RUN_ID}: ${TOTAL} job(s), none executed — INFRA (runner never acquired / GitHub 5xx)."
+          else
+            echo "verdict=genuine" >> "$GITHUB_OUTPUT"
+            echo "Run ${RUN_ID}: ${EXECUTED}/${TOTAL} job(s) executed — GENUINE failure; leaving the red untouched."
+          fi
+
+      - name: Retry once (attempt-1 infra failures only)
+        id: retry
+        if: steps.classify.outputs.verdict == 'infra' && github.event.workflow_run.run_attempt == 1
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+        run: |
+          set -euo pipefail
+          # Re-run in place: a successful retry turns the SAME run green.
+          # If the API call itself fails, fall through to the reclassify
+          # step below rather than leaving the red unexplained.
+          if gh api -X POST "repos/${REPO}/actions/runs/${RUN_ID}/rerun" >/dev/null; then
+            echo "rerun=dispatched" >> "$GITHUB_OUTPUT"
+            echo "Re-run dispatched for run ${RUN_ID}."
+          else
+            echo "rerun=failed" >> "$GITHUB_OUTPUT"
+            echo "::warning::Re-run API call failed for run ${RUN_ID}; posting no-signal status instead."
+          fi
+
+      - name: Post grey "no signal" status when retry is exhausted
+        # Two paths land here: the retry itself could not be dispatched, or
+        # this failure IS the retry (attempt >= 2) and GitHub still could not
+        # find a runner. Either way the truthful durable signal is "no
+        # signal", which must not look like a real probe failure.
+        if: >-
+          steps.classify.outputs.verdict == 'infra' &&
+          (github.event.workflow_run.run_attempt != 1 ||
+           steps.retry.outputs.rerun == 'failed')
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          WORKFLOW_NAME: ${{ github.event.workflow_run.name }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          RUN_URL: ${{ github.event.workflow_run.html_url }}
+          RUN_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
+        run: |
+          set -euo pipefail
+          case "${WORKFLOW_NAME}" in
+            "Source Health Probe") CONTEXT="vitalcv/source-health-probe" ;;
+            "Release verify") CONTEXT="vitalcv/release-verified" ;;
+            *) echo "Unknown workflow '${WORKFLOW_NAME}' — not posting a status."; exit 0 ;;
+          esac
+          DESC="no signal — runner not acquired (GitHub infra), attempt ${RUN_ATTEMPT}; production was not probed"
+          echo "commit status → pending @ ${HEAD_SHA} (${CONTEXT}) — ${DESC}"
+          gh api -X POST "repos/${REPO}/statuses/${HEAD_SHA}" \
+            -f state="pending" \
+            -f context="${CONTEXT}" \
+            -f description="${DESC}" \
+            -f target_url="${RUN_URL}" >/dev/null
+          {
+            echo "## No signal: ${WORKFLOW_NAME}"
+            echo ""
+            echo "- ${DESC}"
+            echo "- [Failed run](${RUN_URL})"
+          } >> "$GITHUB_STEP_SUMMARY"

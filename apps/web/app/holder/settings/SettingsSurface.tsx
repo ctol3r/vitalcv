@@ -115,7 +115,7 @@ export default function SettingsSurface() {
         <div className="mz-card-pad">
           <ul className="mz-body space-y-2">
             <li>
-              Your passport is shared only through links you create — from your wallet or when you
+              Your record is shared only through links you create — from your profile or when you
               apply to a role. Nothing is published without an action you take.
             </li>
             <li>
@@ -129,7 +129,7 @@ export default function SettingsSurface() {
           </ul>
           <div className="mt-4 flex flex-wrap gap-3">
             <Link href="/holder" className="mz-btn mz-btn-ghost mz-btn-sm">
-              Your wallet &amp; sharing <ChevronRight className="h-4 w-4" aria-hidden />
+              Your profile &amp; sharing <ChevronRight className="h-4 w-4" aria-hidden />
             </Link>
             <Link href="/holder/readiness" className="mz-btn mz-btn-ghost mz-btn-sm">
               Readiness &amp; receipts <ChevronRight className="h-4 w-4" aria-hidden />

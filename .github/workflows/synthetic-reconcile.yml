@@ -1,0 +1,151 @@
+# Reconciliation sweep — reaps leaked release-monitor synthetic identities.
+#
+# The release monitor mints a real Clerk user + org per wired run and deletes
+# both from a `finally`. Three paths defeat that and leak an identity whose ids
+# no longer exist in any process, so nothing can clean it up by id: a SIGKILL
+# (no grace for the handler), the gap before a created id is reported to
+# `onResourceCreated`, and a transient Clerk DELETE failure. This job is the
+# backstop `docs/deployment/release-monitoring.md` has called required since
+# the monitor shipped, and which did not exist until now.
+#
+# Safety — this DELETES USERS FROM PRODUCTION CLERK. The invariants live in
+# apps/web/lib/release-monitor/reconcileSynthetics.ts and are unit-tested in
+# release-monitor-reconcile.test.ts. In short: a user is deleted only when
+# `public_metadata.synthetic === true` AND `public_metadata.purpose ===
+# 'release-monitor'` AND every address on the account matches
+# `svc-monitor+…@vitalcv.com` AND it is older than the age grace. Conjunction,
+# never disjunction; unknown age never authorises a delete; a per-run cap
+# bounds the blast radius; and each candidate is re-validated immediately
+# before its DELETE.
+#
+# Cadence: hourly at :23. The age grace (2 h) is what makes this safe to run
+# often — a verification in flight can never be reaped, because release-verify's
+# entire job budget is 15 minutes. Off-peak minute for the same reason the
+# monitors use one: :00/:15/:30/:45 are the congested schedule slots.
+#
+# Not wired (CLERK_SECRET_KEY not visible) is a RED failure, not a no-op. It
+# was a green no-op for exactly one day, on the reasoning that an unwired
+# monitor mints nothing so nothing can leak — which held right up until the
+# monitor was wired, at which point the same branch turned a misconfiguration
+# into a clean bill of health (run 31233274419: Reconcile skipped, job success,
+# Clerk never contacted). A sweep that cannot see the key is indistinguishable
+# from a sweep that found nothing to reap, so it must not be green. Set
+# MONITORS_UNWIRED_OK=true (a repository VARIABLE) to deliberately run unwired.
+#
+# CLERK_SECRET_KEY lives on the `Production` environment (capital P), hence
+# `environment: Production` below. Getting that name wrong is silent — GitHub
+# creates an unknown environment rather than rejecting it.
+
+name: Synthetic Reconcile
+
+on:
+  schedule:
+    - cron: '23 * * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Report what would be deleted, delete nothing'
+        type: boolean
+        required: false
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  # Two concurrent sweeps would race on the same candidates; the loser would
+  # log 404s that the code already treats as already-gone, but there is no
+  # reason to create that noise. Never cancel one mid-flight.
+  group: synthetic-reconcile
+  cancel-in-progress: false
+
+jobs:
+  reconcile:
+    name: Reap leaked synthetic identities
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    # LOAD-BEARING — do not remove. CLERK_SECRET_KEY is an ENVIRONMENT secret
+    # on `Production`, not a repository secret. Without this line
+    # `secrets.CLERK_SECRET_KEY` resolves to the empty string, the preflight
+    # takes the not-wired branch, and the sweep exits GREEN having reconciled
+    # nothing. Run 31233274419 did exactly that: `CLERK_SECRET_KEY:` empty in
+    # the step env, Reconcile skipped, job success. A sweep that cannot see the
+    # key is indistinguishable from a sweep that found nothing to reap.
+    #
+    # CASE-SENSITIVE — the environment is `Production`, capital P. GitHub does
+    # NOT error on an unknown environment name; it silently CREATES one. The
+    # first attempt (lowercase `production`, #1138) therefore conjured an empty
+    # environment and reproduced the identical green no-op in run 31235056713,
+    # on a commit that verifiably contained the declaration.
+    environment: Production
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 10.6.1
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      # No `pnpm install`: the runner imports only local .ts + Node built-ins,
+      # matching release-verify.yml.
+
+      - name: Preflight — is the monitor wired?
+        id: preflight
+        env:
+          CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
+          # Escape hatch. Unset/anything-but-"true" means "this monitor is
+          # expected to be wired" — see the fail-closed note below.
+          UNWIRED_OK: ${{ vars.MONITORS_UNWIRED_OK }}
+        run: |
+          # FAIL-CLOSED. "Not wired" used to be a green no-op, on the reasoning
+          # that an unwired monitor mints nothing so nothing can leak. That was
+          # true right up until the monitor WAS wired — at which point the same
+          # branch turned a misconfiguration into a clean bill of health.
+          #
+          # It happened exactly once and cost the whole point of the job: run
+          # 31233274419 could not see CLERK_SECRET_KEY (it is an environment
+          # secret and the job had not declared `environment: Production`), so
+          # it skipped Reconcile and reported success having never contacted
+          # Clerk. A sweep that cannot see the key is indistinguishable, from
+          # the outside, from a sweep that found nothing to reap.
+          #
+          # So the default is now RED. To deliberately run unwired, set the
+          # repository VARIABLE MONITORS_UNWIRED_OK=true — a visible, auditable
+          # statement of intent, rather than silence meaning consent.
+          if [ -n "${CLERK_SECRET_KEY}" ]; then
+            echo "wired=true" >> "$GITHUB_OUTPUT"
+          elif [ "${UNWIRED_OK}" = "true" ]; then
+            echo "wired=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::CLERK_SECRET_KEY unset and MONITORS_UNWIRED_OK=true — deliberate no-op."
+            {
+              echo "## Synthetic reconciliation: skipped (deliberate)"
+              echo ""
+              echo "- Not wired, and \`MONITORS_UNWIRED_OK=true\` says that is intended."
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "wired=false" >> "$GITHUB_OUTPUT"
+            echo "::error::CLERK_SECRET_KEY is not visible to this job — the sweep did NOT run. Check that this job still declares 'environment: Production' (CAPITAL P — an unknown environment name is silently created, not rejected) and that the secret still exists on that environment. If unwired is intended, set the repository variable MONITORS_UNWIRED_OK=true."
+            {
+              echo "## Synthetic reconciliation: MISCONFIGURED"
+              echo ""
+              echo "- \`CLERK_SECRET_KEY\` is not visible to this job, so **nothing was reconciled**."
+              echo "- Most likely cause: the job lost its \`environment: Production\` declaration (or had its case changed — an unknown environment name is silently created, not rejected), or the secret was removed/renamed."
+              echo "- This is deliberately RED. It is not evidence that there was nothing to reap."
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+
+      - name: Reconcile
+        if: steps.preflight.outputs.wired == 'true'
+        env:
+          CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
+        run: |
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            pnpm reconcile:synthetics --dry-run --out reconcile.json
+          else
+            pnpm reconcile:synthetics --out reconcile.json
+          fi

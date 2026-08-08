@@ -4,7 +4,6 @@ import { NextRequest, NextResponse } from 'next/server';
  * Demo API proxy — forwards /api/demo/* to the backend API.
  *
  * Keeps the backend URL private and avoids CORS issues.
- * Follows same pattern as apps/marketing/app/api/npi/[npi]/route.ts.
  */
 
 const API_BASE = (process.env.NEXT_PUBLIC_API_URL ?? '').replace(/\/$/, '');

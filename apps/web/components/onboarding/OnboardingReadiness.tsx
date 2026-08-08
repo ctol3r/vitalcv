@@ -18,7 +18,7 @@ import {
  * OnboardingReadiness — the final step of the canonical activation flow. After
  * the NPI is bound, this streams the source checks IN PLACE (no bounce to
  * /holder/readiness), renders the shared ProofContinuityRail, states the one
- * next-best action, and ends with "Your VitalCV Wallet is ready."
+ * next-best action, and ends with "Your VitalCV profile is ready."
  *
  * Every value is REAL (public /api/trust-state/{npi}); the honest mapping mirrors
  * the homepage LiveNpiResult (identityVerified → source-backed, OIG CLEAR →
@@ -79,7 +79,7 @@ export function OnboardingReadiness({ npi }: { npi: string }) {
         <SourceCheckNarration
           step={step}
           compact
-          trailing={<SkeletonStack rows={4} className="mt-5" aria-label="Preparing your readiness snapshot" />}
+          trailing={<SkeletonStack rows={4} className="mt-5" aria-label="Preparing your readiness" />}
         />
       </div>
     );
@@ -92,7 +92,7 @@ export function OnboardingReadiness({ npi }: { npi: string }) {
     <div className="mt-6 text-left">
       <div className="flex items-center gap-2 text-[var(--vt-accent-editorial)]">
         <PartyPopper size={18} aria-hidden="true" />
-        <p className="text-[15px] font-semibold text-[var(--vt-text-primary)]">Your VitalCV Wallet is ready.</p>
+        <p className="text-[15px] font-semibold text-[var(--vt-text-primary)]">Your VitalCV profile is ready.</p>
       </div>
       <p className="mt-1 text-[13px] text-[var(--vt-text-secondary)]">
         A source-backed snapshot of where you stand today. It is not a completed credentialing decision — institution
@@ -103,7 +103,7 @@ export function OnboardingReadiness({ npi }: { npi: string }) {
 
       {phase === 'error' && (
         <p className="mt-2 text-[12px] text-[var(--vt-text-muted)]">
-          Some sources couldn&rsquo;t be reached just now — that&rsquo;s a system state, not a finding. Your wallet still
+          Some sources couldn&rsquo;t be reached just now — that&rsquo;s a system state, not a finding. Your profile still
           opens; the lanes refresh when the sources respond.
         </p>
       )}
@@ -118,7 +118,7 @@ export function OnboardingReadiness({ npi }: { npi: string }) {
         className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-[4px] px-4 py-3 text-[14px] font-semibold text-white"
         style={{ backgroundColor: 'var(--vt-text-primary)' }}
       >
-        Open your Wallet <ArrowRight size={15} aria-hidden="true" />
+        Open your profile <ArrowRight size={15} aria-hidden="true" />
       </Link>
     </div>
   );
