@@ -226,7 +226,17 @@ than forcing them into scope.
   Scout re-audits whether scene pacing still buries utility (motion-has-a-job test).
 - **Collision risk:** **BLOCKED — WAIT** (#1079).
 
-## DL-005 — `/employers` reading load before the first action
+## DL-005 — `/employers` reading load before the first action — **AT FOUNDER GATE**
+
+**Shipped as a hierarchy pass.** Root cause was narrower than "long copy": the stage
+model already has a `boundary` slot with its own rendered treatment (mono, accent rule,
+muted), and three of six stages buried the same kind of qualifier mid-sentence in `body`
+instead. Half the grid showed its honesty rail; half hid it. Three qualifiers moved into
+the slot — **no words added, removed, or softened**, all seven truth strings verified
+verbatim afterwards. Bodies are one scannable line each; 6/6 stages now carry a rail.
+Evidence in `dl-005-employers/`. Full suite 3368 passed.
+
+<details><summary>Original finding</summary>
 
 - **Route/surface:** `/employers`
 - **Problem:** the doorway now leads with outcome (good, post-#1086) but the workflow
@@ -236,7 +246,10 @@ than forcing them into scope.
 - **Persona:** employer (recruiter / MSP) · **Severity:** P2 · **Strategic impact:** employer conversion, premium quality
 - **Recommended direction:** hierarchy pass only — tighten step copy to one scannable
   line + one qualifier, keep the truth qualifiers; no strategy change.
-- **Size:** S · **Collision risk:** low (no open PR owns `/employers` today) — candidate wave 2/3.
+- **Size:** S · **Collision risk:** verified nil at implementation time — #1079, #1133 and
+  #1160 touch zero `/employers` files.
+
+</details>
 
 ## DL-006 — Homepage rail placeholder cells are empty chrome before any NPI exists
 
