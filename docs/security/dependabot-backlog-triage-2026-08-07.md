@@ -6,9 +6,9 @@ Triage of all 8 open Dependabot PRs, with the dispositions below.
 > **Status: closed out.** The triage was produced read-only; the founder then
 > authorised acting on it. All six recommended bumps are now on `main` (five as
 > their own PRs, vite via replacement PR [#1128](https://github.com/ctol3r/vitalcv/pull/1128)),
-> [#844](https://github.com/ctol3r/vitalcv/pull/844) remains open pending the
-> supersede-and-close call, and [#582](https://github.com/ctol3r/vitalcv/pull/582)
-> remains open awaiting an Expo SDK wave. See
+> [#844](https://github.com/ctol3r/vitalcv/pull/844) was **closed as
+> superseded**, and [#582](https://github.com/ctol3r/vitalcv/pull/582) remains
+> the only open item, awaiting an Expo SDK wave. See
 > [Merge log](#merge-log-2026-08-07-founder-authorised) for what landed and how
 > each was verified. The original triage sections below are unedited except
 > where marked as corrected.
@@ -31,7 +31,7 @@ advisories never reach the merge signal).
 | [#574](https://github.com/ctol3r/vitalcv/pull/574) | `actions/github-script` v7 → v9 | 32d | No — CI hygiene | Yes (`openid-conformance.yml` pins v7) | CI only | clean | **Merge** |
 | [#852](https://github.com/ctol3r/vitalcv/pull/852) | `vite` 6.4.1 → 6.4.3 | 13d | Yes — dev-server path traversal | **Yes** | **Dev-only** (3 workspaces, `devDependencies`) | clean at triage; later conflicted | **Merged via [#1128](https://github.com/ctol3r/vitalcv/pull/1128); #852 closed as superseded** |
 | [#1076](https://github.com/ctol3r/vitalcv/pull/1076) | `postcss` 8.5.6 → 8.5.23 | 2d | Yes — 3 file-read GHSAs | **Yes** | **Dev-only** (web + marketing build toolchain) | clean | **Merge (last of the lockfile set)** |
-| [#844](https://github.com/ctol3r/vitalcv/pull/844) | `next` 15.2.8 → 15.5.21 (`apps/marketing`) | 13d | Yes — 11 high advisories | **No — main is already past it (15.5.22)** | (was runtime) | **conflicts** | **Supersede & close** |
+| [#844](https://github.com/ctol3r/vitalcv/pull/844) | `next` 15.2.8 → 15.5.21 (`apps/marketing`) | 13d | Yes — 11 high advisories | **No — main is already past it (15.5.22)** | (was runtime) | **conflicts** | **Closed as superseded** ✔ |
 | [#582](https://github.com/ctol3r/vitalcv/pull/582) | `expo-notifications` 0.31.5 → 57.0.8 | 32d | **No advisory found** | n/a | Runtime of `apps/mobile` | clean, but SDK-broken | **Needs-work — do not merge as-is** |
 
 ## What main already remediated manually
@@ -189,6 +189,11 @@ GitHub Actions pins — so those six PRs are **not** redundant.
   to contribute.
 - **Disposition:** close as superseded by #1029 / `865445f55`. No
   `@dependabot ignore` needed — future next advisories should still open PRs.
+- **Outcome: closed 2026-08-08.** Re-verified immediately before closing —
+  `main` pins `"next": "15.5.22"` in `apps/marketing/package.json` while this PR
+  proposes `"next": "15.5.21"`, so merging it would have been a **downgrade**,
+  and it still conflicted on the only file it touches. Reason recorded on the
+  PR; no ignore condition added.
 
 ### #582 — `expo-notifications` 0.31.5 → 57.0.8 · NEEDS-WORK, DO NOT MERGE AS-IS
 
