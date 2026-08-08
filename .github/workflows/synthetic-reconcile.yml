@@ -63,7 +63,13 @@ jobs:
     # nothing. Run 31233274419 did exactly that: `CLERK_SECRET_KEY:` empty in
     # the step env, Reconcile skipped, job success. A sweep that cannot see the
     # key is indistinguishable from a sweep that found nothing to reap.
-    environment: production
+    #
+    # CASE-SENSITIVE — the environment is `Production`, capital P. GitHub does
+    # NOT error on an unknown environment name; it silently CREATES one. The
+    # first attempt (lowercase `production`, #1138) therefore conjured an empty
+    # environment and reproduced the identical green no-op in run 31235056713,
+    # on a commit that verifiably contained the declaration.
+    environment: Production
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7

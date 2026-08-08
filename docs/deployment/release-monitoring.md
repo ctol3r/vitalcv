@@ -283,9 +283,18 @@ posted "skipped — monitor not wired" on **every run of its entire life** and
 nobody noticed, because grey does not demand attention. The signed-in flow this
 document describes — synthetic clinician, six `/holder` surfaces,
 `check:deploy` — had never once executed against production. The secret existed
-the whole time; it is an *environment* secret on `production` and the job had
-not declared `environment: production` (#1138), so `secrets.CLERK_SECRET_KEY`
+the whole time; it is an *environment* secret on **`Production`** (capital P)
+and the jobs had not declared that environment, so `secrets.CLERK_SECRET_KEY`
 resolved to the empty string and the skip branch swallowed it.
+
+> **The environment name is case-sensitive, and getting it wrong is silent.**
+> GitHub does not error on an unknown `environment:` value — it *creates* one.
+> The first fix (#1138) declared lowercase `production`, which conjured a new
+> empty environment, drew the secret from it, and reproduced the identical
+> green no-op (run 31235056713, on a commit that verifiably carried the
+> declaration). If you ever see a wired monitor skip, check the case before
+> anything else, and check Settings → Environments for a stray auto-created
+> duplicate.
 
 An unwired monitor is a misconfiguration, not a resting state. Both
 `release-verify` and `synthetic-reconcile` now fail red when the key is

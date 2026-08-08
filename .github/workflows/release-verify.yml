@@ -79,7 +79,14 @@ jobs:
     # Repository-level secrets (RAILWAY_API_TOKEN, CLERK_FAPI_URL,
     # RELEASE_PROBE_BASE) remain visible; an environment only ADDS to what a
     # job can see, and wins only on a name collision.
-    environment: production
+    #
+    # CASE-SENSITIVE — the environment is `Production`, capital P. GitHub does
+    # NOT error on an unknown environment name; it silently CREATES one. So the
+    # first attempt at this fix (lowercase `production`, #1138) conjured a
+    # brand-new empty environment, drew the secret from it, got the empty
+    # string, and skipped verification while reporting green — the same silent
+    # no-op it was written to cure. Verified against run 31235056713.
+    environment: Production
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
