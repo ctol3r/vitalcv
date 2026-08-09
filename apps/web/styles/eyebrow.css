@@ -39,6 +39,8 @@
   --eb-h: 64px;
   --eb-gutter: 30px;
   --eb-ctl-top: 30px;
+  /* the transparent ring that lifts a 40px painted box to a 44px target */
+  --eb-pad: 2px;
   --eb-bg: var(--vt-scene-canvas);
   --eb-text: var(--vt-scene-text);
   --eb-text2: var(--vt-scene-text-secondary);
@@ -105,16 +107,22 @@
   color: var(--eb-text);
 }
 
+/* The 30px top offset the reference puts on the mark, less the 12px the
+   wordmark link gains centring its 20px glyphs inside a 44px target — so the
+   painted mark still starts at y=30. */
 .vcv-eb__brand {
   position: absolute;
   left: var(--eb-gutter);
   top: 0;
-  padding: 30px 0 16px;
+  padding: 18px 0 16px;
   display: flex;
   align-items: center;
 }
 
 .vcv-eb__wordmark {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
   font-family: var(--font-geist);
   font-size: 20px;
   font-weight: 600;
@@ -124,17 +132,25 @@
   transition: color 0.25s ease-in-out;
 }
 
+/* Instruments carry 2px of transparent padding so the interactive element is
+   44px while the painted box is the reference's 40px (--eb-pad). The row is
+   pulled back by that padding on both axes, so the VISIBLE edges — not the
+   hit areas — land on the 30px gutter and the 30px top offset. */
 .vcv-eb__controls {
   position: absolute;
-  right: var(--eb-gutter);
-  top: var(--eb-ctl-top);
+  right: calc(var(--eb-gutter) - var(--eb-pad));
+  top: calc(var(--eb-ctl-top) - var(--eb-pad));
   display: flex;
   align-items: center;
 }
 
 /* ── right cluster: quiet sign-in, one rectangular action, fused squares ── */
 
+/* Text-only control: no painted box, so it takes the 44px floor directly. */
 .vcv-eb__signin {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
   font-family: var(--font-geist);
   font-size: 16px;
   font-weight: 400;
@@ -153,12 +169,22 @@
 .vcv-eb__cta {
   display: inline-flex;
   align-items: center;
+  padding: var(--eb-pad);
+  /* the 30px reference gap, less this instrument's and the cluster's padding */
+  margin-right: calc(30px - var(--eb-pad) - var(--eb-pad));
+  color: var(--eb-cta-text);
+  transition: color 0.25s ease-in-out;
+}
+
+.vcv-eb__cta-box {
+  display: inline-flex;
+  align-items: center;
   justify-content: center;
   height: 40px;
   min-width: 205px;
   padding: 0 20px;
   background: var(--eb-cta-bg);
-  color: var(--eb-cta-text);
+  color: inherit;
   border: 1px solid var(--eb-cta-line);
   border-radius: 0;
   font-family: var(--font-geist);
@@ -166,15 +192,18 @@
   font-weight: 400;
   line-height: 1;
   white-space: nowrap;
-  margin-right: 30px;
   transition: background-color 0.25s ease-in-out, color 0.25s ease-in-out,
     border-color 0.25s ease-in-out;
 }
 
 .vcv-eb__cta:hover,
 .vcv-eb__cta:focus-visible {
-  background: var(--eb-press-bg);
   color: var(--eb-press-text);
+}
+
+.vcv-eb__cta:hover .vcv-eb__cta-box,
+.vcv-eb__cta:focus-visible .vcv-eb__cta-box {
+  background: var(--eb-press-bg);
   border-color: transparent;
 }
 
@@ -196,38 +225,58 @@
   display: flex;
 }
 
-/* Adjacent instruments fuse: the -1px margin collapses their borders into a
-   single shared hairline, reading as one segmented control. */
+/* Adjacent instruments fuse into one segmented control: the shift is the two
+   transparent pads plus 1px, so the PAINTED borders collapse into a single
+   shared hairline. */
 .vcv-eb__cluster > * + * {
-  margin-left: -1px;
+  margin-left: calc((var(--eb-pad) * -2) - 1px);
 }
 
 .vcv-eb__icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--eb-pad);
+  background: none;
+  border: 0;
+  color: var(--eb-instr-text);
+  cursor: pointer;
+  transition: color 0.25s ease-in-out;
+}
+
+/* The painted box: the reference's exact 40px square. */
+.vcv-eb__instr {
   width: 40px;
   height: 40px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   background: var(--eb-instr-bg);
-  color: var(--eb-instr-text);
+  color: inherit;
   border: 1px solid var(--eb-instr-line);
   border-radius: 0;
-  cursor: pointer;
   transition: background-color 0.25s ease-in-out, color 0.25s ease-in-out,
     border-color 0.25s ease-in-out;
 }
 
 .vcv-eb__icon-btn:hover,
 .vcv-eb__icon-btn:focus-visible {
-  background: var(--eb-press-bg);
   color: var(--eb-press-text);
+}
+
+.vcv-eb__icon-btn:hover .vcv-eb__instr,
+.vcv-eb__icon-btn:focus-visible .vcv-eb__instr {
+  background: var(--eb-press-bg);
 }
 
 /* While the takeover is open the menu instrument fills paper and its glyph
    turns to ink — the reference's close-state treatment. */
 .vcv-eb[data-menu-open='true'] .vcv-eb__menu-btn {
-  background: var(--vt-action-primary-bg);
   color: var(--vt-action-primary-fg);
+}
+
+.vcv-eb[data-menu-open='true'] .vcv-eb__menu-btn .vcv-eb__instr {
+  background: var(--vt-action-primary-bg);
   border-color: var(--vt-action-primary-bg);
 }
 
@@ -379,7 +428,8 @@
   }
 
   .vcv-eb__brand {
-    padding: 20px 0 16px;
+    /* 20px reference offset, less the wordmark's 12px centring inset */
+    padding: 8px 0 16px;
   }
 
   .vcv-eb__signin {
@@ -387,13 +437,15 @@
   }
 
   /* The control cluster pins to the bottom of the viewport: menu and lookup
-     on the left, the action on the right — the reference's mobile grammar. */
+     on the left, the action on the right — the reference's mobile grammar.
+     Offsets absorb the instruments' 2px hit-area padding on all three edges,
+     so the painted boxes sit on the 20px gutter and 20px above the bottom. */
   .vcv-eb__controls {
     position: fixed;
-    left: var(--eb-gutter);
-    right: var(--eb-gutter);
+    left: calc(var(--eb-gutter) - var(--eb-pad));
+    right: calc(var(--eb-gutter) - var(--eb-pad));
     top: auto;
-    bottom: 20px;
+    bottom: calc(20px - var(--eb-pad));
     justify-content: space-between;
   }
 
@@ -404,13 +456,16 @@
 
   .vcv-eb__cluster > * + * {
     margin-left: 0;
-    margin-right: -1px;
+    margin-right: calc((var(--eb-pad) * -2) - 1px);
   }
 
   .vcv-eb__cta {
+    margin-right: 0;
+  }
+
+  .vcv-eb__cta-box {
     min-width: 0;
     padding: 0 16px;
-    margin-right: 0;
   }
 
   .vcv-eb__cta-long {

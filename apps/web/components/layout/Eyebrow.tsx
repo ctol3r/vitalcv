@@ -181,10 +181,18 @@ export default function Eyebrow() {
               Sign in
             </Link>
           )}
+          {/* Every instrument draws its visible box in an inner span. The
+              reference's boxes are 40px; EC-5's floor is 44px. Rather than
+              choose, the interactive element is 44px and the painted box
+              stays 40px inside it — the geometry matches the reference and
+              the target clears the floor. eyebrow.css compensates the 2px of
+              transparent padding so the VISIBLE edges land on the gutter. */}
           {cta ? (
             <Link href={cta.href} className="vcv-eb__cta">
-              <span className="vcv-eb__cta-long">{cta.label}</span>
-              <span className="vcv-eb__cta-short">Start</span>
+              <span className="vcv-eb__cta-box">
+                <span className="vcv-eb__cta-long">{cta.label}</span>
+                <span className="vcv-eb__cta-short">Start</span>
+              </span>
             </Link>
           ) : null}
           <div className="vcv-eb__cluster">
@@ -195,18 +203,20 @@ export default function Eyebrow() {
               className="vcv-eb__icon-btn vcv-eb__lookup"
               aria-label="Look up a clinician by NPI"
             >
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 16 16"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                aria-hidden="true"
-              >
-                <circle cx="7" cy="7" r="5.25" />
-                <path d="M11 11l4 4" />
-              </svg>
+              <span className="vcv-eb__instr">
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  aria-hidden="true"
+                >
+                  <circle cx="7" cy="7" r="5.25" />
+                  <path d="M11 11l4 4" />
+                </svg>
+              </span>
             </Link>
             <button
               ref={menuButtonRef}
@@ -217,10 +227,12 @@ export default function Eyebrow() {
               aria-controls="vcv-eb-menu"
               onClick={toggleMenu}
             >
-              <span className="vcv-eb__menu-glyph" aria-hidden="true">
-                <i />
-                <i />
-                <i />
+              <span className="vcv-eb__instr">
+                <span className="vcv-eb__menu-glyph" aria-hidden="true">
+                  <i />
+                  <i />
+                  <i />
+                </span>
               </span>
             </button>
           </div>

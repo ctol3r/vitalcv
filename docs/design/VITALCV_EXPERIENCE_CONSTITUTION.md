@@ -186,7 +186,7 @@ The **structure** is locked now. The **values** are filled from the UX-01 verdic
 | Typography — display / body / mono faces | **Geist** (400/500/600) for display and body; **Geist Mono** (400/500) for machine facts and micro-labels | LOCKED |
 | Type scale | Anchors from the verdict reference: hero h1 44–52px desktop / 30–34px mobile; micro-labels 11px mono uppercase `+0.08em`. Full ramp finalized in UX-02 within these anchors | LOCKED ANCHORS · ramp in UX-02 |
 | Grid + page width | Full-width hairline-ruled band composition; content max ~1400px. Precise grid in UX-02 | LOCKED · grid in UX-02 |
-| Eyebrow exact geometry (within EC-10's form) | **Amended 2026-08-09 (A-2)**, superseding "64px desktop / 56px mobile, contextual product-state middle zone". Zero-height floating group; instruments at a 30px gutter (20px mobile), 30px from the top edge; dominant action 40px tall × 205px minimum, 16px/400 label; square instruments 40 × 40px with fused 1px borders; radius 0 on every chrome instrument; no fill, no bottom rule, no centre content. Mobile: identity at 20/20, control cluster fixed 20px above the viewport bottom | LOCKED (amended A-2) |
+| Eyebrow exact geometry (within EC-10's form) | **Amended 2026-08-09 (A-2)**, superseding "64px desktop / 56px mobile, contextual product-state middle zone". Zero-height floating group; instruments at a 30px gutter (20px mobile), 30px from the top edge; dominant action 40px tall × 205px minimum, 16px/400 label; square instruments 40 × 40px with fused 1px borders; radius 0 on every chrome instrument; no fill, no bottom rule, no centre content. Mobile: identity at the 20px gutter, control cluster fixed 20px above the viewport bottom. **All dimensions here are the PAINTED box**; interactive elements carry a 2px transparent ring so the target measures 44px (EC-5) while the painted box measures the reference value | LOCKED (amended A-2) |
 | Button grammar (primary/secondary/quiet/destructive; ≥44px targets locked via EC-5) | Primary = solid work-green square-cornered instrument with AA-corrected near-black ink (reference `#4ADE97`; solid `#2E9E6B` + off-white recorded as the alternative); secondary = hairline outline; quiet = text. Exact styles in UX-02 | LOCKED STRUCTURE · styles in UX-02 |
 | Rule/border treatment | 1px hairlines structure panels and bands (`#2E2F33` on the graphite register) | LOCKED |
 | Icon family | **Consolidate to one family in UX-02.** Two are installed today: `lucide-react` (imported by 330 `apps/web` files) and `@blueprintjs/icons`; 47 components also carry inline `<svg>`. Whichever wins must satisfy the locked grammar — 1px hairline weight, near-sharp 0–3px, no glass, no gradient, no glow — and the loser is removed, not left resident. Design review picks; this row records the constraint and the count | DEFERRED · UX-02 owns · constraint locked |
@@ -362,12 +362,24 @@ Subjective July-era taste is not encoded as CI law before the reset direction is
   square. **That divergence is deliberate and visible on `/` — two "Start with your NPI" controls
   in different silhouettes — and is flagged for the founder at the visual gate.**
 
-  **One reference behaviour was rejected on accessibility grounds and the deviation is recorded
-  here rather than silently taken.** Mobile pins the control cluster to the viewport bottom, as the
-  reference does. Measured at 390 × 844 before clearance was added, the cluster covered the
-  footer's last two links and the feedback control at the document bottom. The footer now reserves
-  84px and the feedback chip rides above the cluster. The reference reserves equivalent clearance;
-  copying the pinning without the clearance would have shipped untappable links.
+  **Two reference behaviours were adjusted on accessibility grounds; both deviations are recorded
+  here rather than silently taken.**
+
+  *Mobile clearance.* Mobile pins the control cluster to the viewport bottom, as the reference
+  does. Measured at 390 × 844 before clearance was added, the cluster covered the footer's last
+  two links and the feedback control at the document bottom. The footer now reserves 84px and the
+  feedback chip rides above the cluster. The reference reserves equivalent clearance; copying the
+  pinning without it would have shipped untappable links.
+
+  *Target size.* The reference's instruments are 40px; EC-5's floor is 44px. **The two are
+  reconciled rather than traded off:** every instrument paints its box in an inner span, so the
+  interactive element measures 44px while the painted box measures the reference's 40px, and the
+  row offsets absorb the 2px ring so the *visible* edges still land on the gutter. This is why the
+  EC-20 row above states painted dimensions — a future wave measuring the outer element will read
+  44 and must not "correct" the row. The required a11y baseline ratchet is what caught the
+  regression (`/`: sub-44px targets 13 → 15) after a full local e2e run had gone green, because
+  that spec landed on `main` while this work was in flight; the same pass also lifted the wordmark
+  and sign-in link, which the baseline had grandfathered, taking `/` to 12.
 
 - **A-1 — the 2026 scene register, ratified after the fact (2026-08-09).** Four locked EC-20 rows
   above carry an `amended A-1` marker. This entry records why, and the process failure that made
