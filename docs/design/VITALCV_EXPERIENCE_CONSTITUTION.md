@@ -182,14 +182,14 @@ The **structure** is locked now. The **values** are filled from the UX-01 verdic
 | Button grammar (primary/secondary/quiet/destructive; ≥44px targets locked via EC-5) | Primary = solid work-green square-cornered instrument with AA-corrected near-black ink (reference `#4ADE97`; solid `#2E9E6B` + off-white recorded as the alternative); secondary = hairline outline; quiet = text. Exact styles in UX-02 | LOCKED STRUCTURE · styles in UX-02 |
 | Rule/border treatment | 1px hairlines structure panels and bands (`#2E2F33` on the graphite register) | LOCKED |
 | Icon family | **Consolidate to one family in UX-02.** Two are installed today: `lucide-react` (imported by 330 `apps/web` files) and `@blueprintjs/icons`; 47 components also carry inline `<svg>`. Whichever wins must satisfy the locked grammar — 1px hairline weight, near-sharp 0–3px, no glass, no gradient, no glow — and the loser is removed, not left resident. Design review picks; this row records the constraint and the count | DEFERRED · UX-02 owns · constraint locked |
-| Corner-radius philosophy + pill policy | Near-sharp 0–3px on panels and instruments; **pills retired** (now verdict-locked, no longer era law) | LOCKED |
+| Corner-radius philosophy + pill policy | **Amended 2026-08-09 (A-1)**, superseding "near-sharp 0–3px on panels and instruments; pills retired". The public **scene register** carries a four-step shape scale — `--vt-shape-pill` 9999px, `--vt-shape-control` 10px, `--vt-shape-card` 20px, `--vt-shape-panel` 24px. Two limits survive intact: evidence and operational surfaces (proof rows, tables, stamps, dense workflow) stay near-sharp, and **a pill is never a state marker** — EC-4 is untouched. Islands outside the scene register keep their own radii until migrated | LOCKED (amended A-1) |
 | Spacing rhythm | **No spacing scale exists yet** — measured 2026-08-08 (W1080): zero `--*-space*` custom properties across `apps/web/styles` and `globals.css`, so every value is currently ad hoc. UX-02A's "one semantic token layer" owns it; until that lands no wave may assert a spacing rule as law. Bounded by the locked band composition (full-width hairline-ruled, content max ~1400px) and the 64/56px eyebrow | DEFERRED · UX-02A owns · nothing to supersede |
 | Neutral palette (grounds, ink ramp, rules) | **Public register (dark, permitted not mandated):** ground `#141517`, panel `#1C1D20`, raised `#222326`, hairline `#2E2F33`, ink `#F2F1ED`, secondary `#9C9D99`. **Light register (required for evidence/printable/dense-legibility surfaces):** off-white family with graphite ink; exact artifact palette is a named UX-02 design task | LOCKED · light values in UX-02 |
-| Interaction/accent treatment | **Accent-work merge accepted:** work-green is the single work color and the primary action; needs-you amber `#E4B45C`; waiting neutral `#6E7073`. Nothing glows. State words always in ink (EC-4). Full state-hue family reconciled in UX-02 with the EC-3 vocabulary mapping | LOCKED |
+| Interaction/accent treatment | **Amended 2026-08-09 (A-1): the accent-work merge is reversed.** Work-green (`#4ADE97`, `--vt-scene-state-source-confirmed`) is the single **work** colour — source-confirmed facts and completed work — and is **retired as the primary action**. The primary action is the warm-paper inverse instrument (`--vt-action-primary-bg` = scene paper, `--vt-action-primary-fg` = paper ink). Needs-you amber `#E4B45C`; waiting neutral `#8F8C88`. VitalCV indigo (`--vt-accent-editorial`, register-resolved via `-on-dark` / `-on-paper`) carries the focus ring and the editorial atmosphere, and is **never a status colour**. State words always in ink (EC-4). Full state-hue family reconciled in UX-02 with the EC-3 vocabulary mapping | LOCKED (amended A-1) |
 | Mono presentation policy | Machine facts — NPIs, timestamps, state words, source names, micro-labels — in Geist Mono, `tabular-nums` | LOCKED |
 | Card grammar | Solid hairline-ruled panels, radius 0–3px, no shadows | LOCKED |
-| Glass treatment | **None.** Solid surfaces everywhere; no blur halos | LOCKED |
-| Gradient treatment | **None** | LOCKED |
+| Glass treatment | **Amended 2026-08-09 (A-1), superseding "None."** Frost is permitted on **chrome and scene overlays only** — `--vt-frost-bg` / `--vt-frost-border`, both `color-mix` over scene surfaces, so the effect degrades to a solid panel wherever `backdrop-filter` is unsupported. **Evidence surfaces stay solid:** no frost on a proof row, artifact, receipt, or any surface a decision is read from. This restores CD's "glass on chrome, solid on evidence" as the operative line rather than a blanket ban | LOCKED (amended A-1) |
+| Gradient treatment | **Amended 2026-08-09 (A-1), superseding "None."** Exactly one atmospheric gradient is permitted — `--vt-scene-glow`, the editorial indigo wash, **at most once per viewport**, behind a scene composition. It may never appear on a control, text, status marker, input, evidence surface, or card fill, and it carries no meaning: removing it must cost nothing but atmosphere (EC-4). No other gradient is authorised | LOCKED (amended A-1) |
 | Light/dark doctrine | Dark-first warm-graphite is the permitted **public register**; the light register is **required** for evidence artifacts (printable by default, amendment 6), dense workflow surfaces, and legibility-critical contexts; **not** permanent dark everywhere (amendment 5). Explicitly supersedes CD-3 "light is the only public mode", CD's 2026-08-02 one-Ink-chapter amendment, and wave-1505 LINT-04's scope (rescoped in the EC-23 port) | LOCKED |
 | Product-UI visual density | Designed in UX-02+ under **design review** — an EC-14 Class C judgement, never a CI rule. Bounded by what is already locked: cards earn their box, structure comes from rules and space rather than container sprawl, density serves comprehension, and working surfaces operate where acquisition surfaces argue | DEFERRED · UX-02+ owns · Class C, review-enforced |
 | Illustration treatment | VitalCV's own artifacts plus abstracted, **self-labeling** product illustrations ("Illustration — not a live result"); no stock imagery | LOCKED |
@@ -328,6 +328,48 @@ Class A clauses and locked EC-20 rows change only by editing this file with a da
 Subjective July-era taste is not encoded as CI law before the reset direction is chosen. The `check-design-lint.ts` port from `.worktrees/retire-speed-claim` is scoped to the objective list above; taste rules from wave-1505's set (pill radii, shadow discipline, dark-on-public) join CI only if and when the verdict locks the matching EC-20 row. Proof obligation stands: a deliberately-violating PR must fail CI on every objective count before the gate is considered live.
 
 ### EC-24. Records
+
+- **A-1 — the 2026 scene register, ratified after the fact (2026-08-09).** Four locked EC-20 rows
+  above carry an `amended A-1` marker. This entry records why, and the process failure that made
+  the amendment necessary rather than optional.
+
+  The work landed first. `#1229` (squash `4a023b269`) shipped the public scene register —
+  `--vt-shape-*` (pill 9999px, control 10px, card 20px, panel 24px), `--vt-scene-glow`,
+  `--vt-frost-*`, and the paper-inverse `--vt-action-primary-*` — into
+  `apps/web/styles/themes/index.css`, and it is live. It did not touch this file. For roughly a
+  day, four rows of citable law said the opposite of the running product: pills retired, glass
+  none, gradient none, near-sharp 0–3px, work-green as the primary action.
+
+  **A contradiction like that does not sit still — it converts into rejected correct work.**
+  EC-21 makes locked rows rejection law, so the next wave to read EC-20 would have cited a number
+  against the shipped design and been *right by the document and wrong by the product*. This is
+  the failure `check-design-lint.ts` documents twice in its own comments (the R2 `HorizontalStoryRail`
+  ban and the CD-3/4 accent arc), where a gate defends retired doctrine and the correct fix looks
+  like a broken build. The remedy is not to relax the rule that caught it; it is to make the
+  document tell the truth, on the record, with the limits restated.
+
+  What the amendment **preserves** is the load-bearing part. Frost is confined to chrome and scene
+  overlays and may never touch an evidence surface — CD's "glass on chrome, solid on evidence"
+  becomes the operative line instead of a blanket ban. The single indigo wash is atmosphere with
+  no meaning attached, capped at one per viewport, banned from every control and status marker.
+  A pill is a control silhouette and **never** a state marker. EC-4 is untouched: nothing in this
+  amendment lets colour, motion, or hover carry meaning alone.
+
+  The one row that got *stricter* is the accent. The 2026-08-08 accent-work merge made work-green
+  both the completed-work colour and the primary action; on the shipped homepage that produced a
+  single hex doing two contradictory jobs — reporting "this is confirmed" and soliciting "click
+  me" — across the NPI submit, the eyebrow action, and roughly fourteen completed-state selectors
+  in one viewport. Two independent lanes reached the same correction on the same day
+  (`#1229` and `#1230`'s ruling board, `design-lab/2026-register/`). A truth colour that also
+  asks for clicks stops being a truth colour, so green is now work only and the primary action is
+  paper.
+
+  **Process note, recorded because the next amendment should not repeat it.** Two lanes executed
+  the same founder brief in parallel roughly ten minutes apart, reaching mostly-identical
+  conclusions through duplicated effort and one head-on collision (a duplicate `LINT-14` ID; the
+  loser closed as `#1231`). A wave that changes a locked row must amend this file **in the same
+  PR** — the EC-22 requirement is not satisfied by shipping the values and intending to write it
+  down later.
 
 - **W1080 decision closure (2026-08-08).** The UX-01 verdict was already FINAL and EC-20 already
   back-filled, so closure was not a matter of making decisions — it was making them *citable*.
