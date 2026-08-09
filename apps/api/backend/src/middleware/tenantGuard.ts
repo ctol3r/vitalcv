@@ -1,9 +1,122 @@
 import type { NextFunction, Request, Response } from 'express';
-import { getRequestOrganizationId } from './organizationContext';
+import {
+  getAssertedOrganizationId,
+  getRequestOrganizationId,
+  resolveVerifiedOrganizationId,
+} from './organizationContext';
+import { env } from '../config/env';
+import { log } from '../obs/logger';
 
 export type TenantRequest = Request & {
   organizationId?: string;
+  organizationBindingEnforced?: boolean;
 };
+
+export type OrgBindingMode = 'off' | 'shadow' | 'enforce';
+
+/** Resolved per-request so an ops flag flip takes effect without a redeploy. */
+export function getOrgBindingMode(): OrgBindingMode {
+  return env().TENANT_ORG_BINDING;
+}
+
+/**
+ * G1 org-context binding — the closure for "presence of a caller-supplied org
+ * id is treated as authorization" (ASVS 14.5.4 / 4.1.2).
+ *
+ * `requireTenantContext` historically accepted ANY non-empty `x-org-id` or
+ * `?organizationId=`. Both are caller-supplied, so every route behind the guard
+ * was reachable by an anonymous caller who set one header. This binds org
+ * context to the caller's VERIFIED membership instead, staged exactly like the
+ * G1 verified-identity and G2 verifier-RBAC rollouts — a security control must
+ * never silently no-op, and must never flip blind:
+ *
+ *   off      — no-op (default). Behaviour identical to before this landed.
+ *   shadow   — resolve the verified org and compare it to what the caller
+ *              asserted; log the outcome; NEVER block. This measures the
+ *              break-set before enforce, which matters more here than it did
+ *              for G1: the web tier itself asserts org ids that can never
+ *              match a row (`vcv-system`, `demo-pilot-org-alpha`), and
+ *              `Organization.id` is a uuid column, so those callers WILL be
+ *              denied by enforce and must be migrated first.
+ *   enforce  — org context comes ONLY from verified membership. The asserted
+ *              value is ignored entirely; a caller who asserts an org they are
+ *              not a member of gets 403, and one with no verified membership
+ *              gets no org context at all (401 on org-required routes).
+ *
+ * Binding happens once, on the single global mount, and writes `organizationId`
+ * onto the request — so every downstream reader (`getRequestOrganizationId`,
+ * `enforceOrganizationMatch`, and the routes that scope queries by org)
+ * transparently inherits verified data with no per-route refactor. Same
+ * mechanism `verifiedIdentity` uses to rewrite `x-clerk-user-id`.
+ */
+export async function bindOrganizationContext(req: Request): Promise<
+  { ok: true } | { ok: false; status: number; body: Record<string, string> }
+> {
+  const mode = getOrgBindingMode();
+  if (mode === 'off') {
+    return { ok: true };
+  }
+
+  const asserted = getAssertedOrganizationId(req);
+  const verified = await resolveVerifiedOrganizationId(req);
+
+  if (mode === 'shadow') {
+    // Only log requests that would change behaviour under enforce. A request
+    // asserting nothing and verifying to nothing is the uninteresting majority.
+    if (asserted || verified) {
+      const outcome = !verified
+        ? (asserted ? 'would_deny_unverified' : 'no_org')
+        : asserted === verified
+          ? 'match'
+          : asserted
+            ? 'would_deny_mismatch'
+            : 'would_bind_unasserted';
+      if (outcome !== 'match' && outcome !== 'no_org') {
+        log('warn', 'org_binding_shadow', {
+          outcome,
+          mode,
+          path: req.path,
+          method: req.method,
+          // Never log the asserted value itself — it is attacker-controlled
+          // input and would land in log storage verbatim.
+          hasAsserted: Boolean(asserted),
+          hasVerified: Boolean(verified),
+        });
+      }
+    }
+    return { ok: true };
+  }
+
+  // --- enforce ---
+  (req as TenantRequest).organizationBindingEnforced = true;
+
+  if (verified) {
+    (req as TenantRequest).organizationId = verified;
+    // Asserting a DIFFERENT org than the one you belong to is not a mistake to
+    // silently correct — it is the exact shape of the attack. Refuse it.
+    if (asserted && asserted !== verified) {
+      log('warn', 'org_binding_rejected', {
+        reason: 'asserted_org_mismatch',
+        path: req.path,
+        method: req.method,
+      });
+      return {
+        ok: false,
+        status: 403,
+        body: {
+          error: 'forbidden',
+          error_description: 'Organization scope mismatch.',
+        },
+      };
+    }
+    return { ok: true };
+  }
+
+  // No verified membership → no org context. `organizationBindingEnforced`
+  // stops `getRequestOrganizationId` falling back to the asserted value, so
+  // org-required routes 401 below rather than honouring the header.
+  return { ok: true };
+}
 
 const SUPER_ADMIN_ROLE = 'super-admin';
 
@@ -211,11 +324,37 @@ export function shouldSkipTenantContext(path: string): boolean {
  *
  * Write routes within intelligence paths must call requireTenantContext directly.
  */
-export function requireTenantContextOrReadAccess(
+export async function requireTenantContextOrReadAccess(
   req: Request,
   res: Response,
   next: NextFunction,
-): void {
+): Promise<void> {
+  // Binding runs for EVERY request, skip-listed or not. The allowlist waives
+  // the *requirement* for org context; it does not make an asserted org id
+  // trustworthy. Seven allowlisted routes still scope their reads by whatever
+  // org the caller asserts (`/api/verify/:shareId`, `/api/artifact/bundle/:npi`,
+  // `/api/pilot/report`, …), so binding only the non-skipped paths would leave
+  // the bypass open on exactly the routes that answer without a 401 first.
+  try {
+    const binding = await bindOrganizationContext(req);
+    if (!binding.ok) {
+      res.status(binding.status).json(binding.body);
+      return;
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'unknown';
+    log('error', 'org_binding_error', { path: req.path, method: req.method, error: message });
+    // `shadow` and `off` are non-blocking by contract — an internal fault in
+    // the observer must not become an outage. `enforce` fails closed.
+    if (getOrgBindingMode() === 'enforce') {
+      res.status(503).json({
+        error: 'organization_binding_unavailable',
+        error_description: 'Unable to resolve organization membership.',
+      });
+      return;
+    }
+  }
+
   if (shouldSkipTenantContext(req.path)) {
     const organizationId = getRequestOrganizationId(req);
     if (organizationId) {

@@ -170,6 +170,17 @@ const envSchema = z.object({
   // unverified). Same shadow-first pattern as VERIFIER_RBAC_ENFORCED, and
   // likewise NOT in the SYSTEM_FROZEN blocklist.
   CLERK_JWT_VERIFICATION: z.enum(['off', 'shadow', 'enforce']).default('off'),
+  // G1 org-context binding — staged closure of "presence of a caller-supplied
+  // `x-org-id` is treated as authorization" (middleware/tenantGuard.ts
+  // #bindOrganizationContext). off = no-op; shadow = resolve verified
+  // membership and log what enforce would deny, never block; enforce = org
+  // context comes only from verified membership (403 on asserted mismatch,
+  // no org context at all without a verified membership).
+  //
+  // Depends on CLERK_JWT_VERIFICATION: `verifiedAuth` is only populated in
+  // shadow/enforce, so binding at enforce while JWT verification is off would
+  // deny every org-scoped request. envValidation makes that combination fatal.
+  TENANT_ORG_BINDING: z.enum(['off', 'shadow', 'enforce']).default('off'),
   // Clerk frontend-API origin, e.g. https://clerk.vitalcv.com — JWKS is fetched
   // from `${CLERK_ISSUER}/.well-known/jwks.json`. Required for shadow/enforce
   // (envValidation fails the boot on enforce-without-issuer).
