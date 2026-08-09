@@ -193,7 +193,7 @@ The **structure** is locked now. The **values** are filled from the UX-01 verdic
 | Button grammar (primary/secondary/quiet/destructive; ≥44px targets locked via EC-5) | Primary = solid work-green square-cornered instrument with AA-corrected near-black ink (reference `#4ADE97`; solid `#2E9E6B` + off-white recorded as the alternative); secondary = hairline outline; quiet = text. Exact styles in UX-02 | LOCKED STRUCTURE · styles in UX-02 |
 | Rule/border treatment | 1px hairlines structure panels and bands (`#2E2F33` on the graphite register) | LOCKED |
 | Icon family | **Consolidate to one family in UX-02.** Two are installed today: `lucide-react` (imported by 330 `apps/web` files) and `@blueprintjs/icons`; 47 components also carry inline `<svg>`. Whichever wins must satisfy the locked grammar — 1px hairline weight, near-sharp 0–3px, no glass, no gradient, no glow — and the loser is removed, not left resident. Design review picks; this row records the constraint and the count | DEFERRED · UX-02 owns · constraint locked |
-| Corner-radius philosophy + pill policy | **Amended 2026-08-09 (A-1)**, superseding "near-sharp 0–3px on panels and instruments; pills retired". The public **scene register** carries a four-step shape scale — `--vt-shape-pill` 9999px, `--vt-shape-control` 10px, `--vt-shape-card` 20px, `--vt-shape-panel` 24px. Two limits survive intact: evidence and operational surfaces (proof rows, tables, stamps, dense workflow) stay near-sharp, and **a pill is never a state marker** — EC-4 is untouched. Islands outside the scene register keep their own radii until migrated | LOCKED (amended A-1) |
+| Corner-radius philosophy + pill policy | **Amended 2026-08-09 (A-1, then A-2).** A-1 superseded "near-sharp 0–3px on panels and instruments; pills retired" and gave the public **scene register** a four-step shape scale — `--vt-shape-pill` 9999px, `--vt-shape-control` 10px, `--vt-shape-card` 20px, `--vt-shape-panel` 24px. **A-2 resolves what the scale left ambiguous: an ACTION is square, a WORD-LABEL may be a pill.** Every action on a public surface takes radius 0 — chrome instruments and page actions alike — and so does any illustration that DEPICTS an action. The pill survives for names and labels (source names, owner chips, disclosure tags, step indices), which makes the silhouette carry meaning: square means you can act on it. A-1's limits are untouched: evidence and operational surfaces stay near-sharp, and **a pill is never a state marker** (EC-4). Islands outside the scene register keep their own radii until migrated | LOCKED (amended A-2) |
 | Spacing rhythm | **No spacing scale exists yet** — measured 2026-08-08 (W1080): zero `--*-space*` custom properties across `apps/web/styles` and `globals.css`, so every value is currently ad hoc. UX-02A's "one semantic token layer" owns it; until that lands no wave may assert a spacing rule as law. Bounded by the locked band composition (full-width hairline-ruled, content max ~1400px) and the chrome gutter (30px desktop / 20px mobile, A-2) | DEFERRED · UX-02A owns · nothing to supersede |
 | Neutral palette (grounds, ink ramp, rules) | **Public register (dark, permitted not mandated):** ground `#141517`, panel `#1C1D20`, raised `#222326`, hairline `#2E2F33`, ink `#F2F1ED`, secondary `#9C9D99`. **Light register (required for evidence/printable/dense-legibility surfaces):** off-white family with graphite ink; exact artifact palette is a named UX-02 design task | LOCKED · light values in UX-02 |
 | Interaction/accent treatment | **Amended 2026-08-09 (A-1): the accent-work merge is reversed.** Work-green (`#4ADE97`, `--vt-scene-state-source-confirmed`) is the single **work** colour — source-confirmed facts and completed work — and is **retired as the primary action**. The primary action is the warm-paper inverse instrument (`--vt-action-primary-bg` = scene paper, `--vt-action-primary-fg` = paper ink). Needs-you amber `#E4B45C`; waiting neutral `#8F8C88`. VitalCV indigo (`--vt-accent-editorial`, register-resolved via `-on-dark` / `-on-paper`) carries the focus ring and the editorial atmosphere, and is **never a status colour**. State words always in ink (EC-4). Full state-hue family reconciled in UX-02 with the EC-3 vocabulary mapping | LOCKED (amended A-1) |
@@ -373,6 +373,20 @@ Subjective July-era taste is not encoded as CI law before the reset direction is
   from the action (LINT-15). The page's primary NPI action keeps its A-1 pill; only the chrome is
   square. **That divergence is deliberate and visible on `/` — two "Start with your NPI" controls
   in different silhouettes — and is flagged for the founder at the visual gate.**
+
+  **The page action followed the chrome, on founder ruling.** Squaring the chrome left `/` showing
+  two "Start with your NPI" controls in different silhouettes — chrome square, page pill — which
+  was flagged at the gate rather than resolved unilaterally. The founder ruled: *"square the page
+  action to match."* So the EC-20 shape row above now states the rule that ruling implies, and it
+  is a rule rather than a special case: **an action is square, a word-label may be a pill.**
+
+  Measured before changing anything, `/` was the only public surface with pill-shaped actions —
+  `/pricing`, `/employers`, `/trust`, `/explore` and `/verify` already carry none — so the change
+  is one island (`easy-home.css`) and six real actions. Two DEPICTIONS of buttons inside the
+  illustrative work surface went square with them, because an illustration that draws a product we
+  no longer ship is simply a wrong picture. Four word-labels keep the pill: the disclosure tag,
+  source names, the owner chip, and the reduced-motion step index. Nothing here weakens A-1: a
+  pill is still never a state marker, and the state markers were already radius 0.
 
   **Two reference behaviours were adjusted on accessibility grounds; both deviations are recorded
   here rather than silently taken.**

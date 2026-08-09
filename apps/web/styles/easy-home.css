@@ -17,6 +17,23 @@
  * Server markup renders the COMPLETED story frame (every beat on). Script
  * resets and replays it; without script, and under prefers-reduced-motion,
  * the full meaning is simply present.
+ *
+ * SHAPE RULE (A-2, founder directive 2026-08-09 — "square the page action to
+ * match"): an ACTION is square, a WORD-LABEL is a pill. The chrome went square
+ * with the palantir rebuild, and a pill NPI button beside a square chrome
+ * action was the same control drawn two ways. So every real action here takes
+ * radius 0 — `.ezh-npi-submit`, `.ezh-result-keep`, `.ezh-result-again`,
+ * `.ezh-sf-replay`, `.ezh-emp-cta`, `.ezh-start-cta` — and so do the two
+ * DEPICTIONS of buttons inside the illustrative surface (`.ezh-gate-btn`,
+ * `.ezh-npi-go`), because an illustration that draws a product we no longer
+ * ship is just a wrong picture.
+ *
+ * The four word-labels KEEP `--vt-shape-pill`: `.ezh-seed-tag`, `.ezh-src`
+ * (source names), `.ezh-chip` (owner), and the reduced-motion step index.
+ * They are names, not controls, and holding the pill for them makes the
+ * silhouette carry meaning — square means you can act on it. A-1's surviving
+ * limit is untouched: a pill is never a state marker, and `.ezh-st` stays
+ * radius 0.
  */
 
 .ezh {
@@ -225,7 +242,7 @@
   font-weight: 600;
   line-height: 1;
   border: 0;
-  border-radius: var(--vt-shape-pill);
+  border-radius: 0;
   white-space: nowrap;
   cursor: pointer;
   transition: background-color 0.15s ease, color 0.15s ease;
@@ -378,7 +395,7 @@
   color: var(--ezh-cta-text);
   font-size: 13px;
   font-weight: 600;
-  border-radius: var(--vt-shape-pill);
+  border-radius: 0;
   transition: background-color 0.15s ease, color 0.15s ease;
 }
 
@@ -397,7 +414,7 @@
   color: var(--ezh-text2);
   font-size: 13px;
   font-weight: 500;
-  border-radius: var(--vt-shape-pill);
+  border-radius: 0;
   background: none;
   cursor: pointer;
   transition: color 0.15s ease, border-color 0.15s ease;
@@ -517,7 +534,7 @@
   height: 26px;
   padding: 0 10px;
   border: 1px solid var(--ezh-line2);
-  border-radius: var(--vt-shape-pill);
+  border-radius: 0;
   background: none;
   cursor: pointer;
   font-family: var(--font-geist-mono);
@@ -1040,7 +1057,7 @@
   height: 30px;
   padding: 0 14px;
   border: 1px solid var(--ezh-hold);
-  border-radius: var(--vt-shape-pill);
+  border-radius: 0;
   color: var(--ezh-hold);
   font-size: 12px;
   font-weight: 600;
@@ -1342,7 +1359,7 @@
   height: 36px;
   padding: 0 16px;
   border: 1px solid var(--ezh-line2);
-  border-radius: var(--vt-shape-pill);
+  border-radius: 0;
   font-size: 12px;
   font-weight: 500;
   line-height: 1;
@@ -1608,7 +1625,7 @@
   height: 48px;
   padding: 0 22px;
   border: 1px solid var(--ezh-light-text);
-  border-radius: var(--vt-shape-pill);
+  border-radius: 0;
   font-size: 14px;
   font-weight: 600;
   line-height: 1;
@@ -1682,7 +1699,7 @@
   font-size: 15px;
   font-weight: 600;
   line-height: 1;
-  border-radius: var(--vt-shape-pill);
+  border-radius: 0;
   transition: background-color 0.15s ease, color 0.15s ease;
 }
 

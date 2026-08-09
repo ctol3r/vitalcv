@@ -65,11 +65,33 @@ All VitalCV figures below are the **painted** boxes. Every interactive element i
    lifted the wordmark (71×20 → 71×44) and the sign-in link, which the baseline had grandfathered,
    so `/` now measures **12**, below the 13 it inherited.
 
-## Open founder question, visible on `/`
+## Resolved: the page action followed the chrome
 
-The homepage's own NPI submit keeps its A-1 pill while the chrome action is now a sharp rectangle,
-so `/` shows two "Start with your NPI" controls in different silhouettes. The directive covered
-the top chrome only; whether the page action follows the chrome to square is a founder call.
+Squaring the chrome left `/` showing two "Start with your NPI" controls in different silhouettes.
+Founder ruling: *"square the page action to match."* Implemented as a rule rather than a special
+case — **an action is square, a word-label may be a pill** (EC-20 shape row, amended A-2).
+
+Measured before changing anything: `/` was the **only** public surface with pill-shaped actions
+(`/pricing`, `/employers`, `/trust`, `/explore`, `/verify` already carry none), so the change is
+one island and six real actions:
+
+| Squared (actions) | Kept as pills (word-labels) |
+|---|---|
+| `.ezh-npi-submit`, `.ezh-start-cta` (both "Start with your NPI") | `.ezh-src` — source names (NPPES) |
+| `.ezh-emp-cta` — employer doorway | `.ezh-chip` — owner chip (VITALCV) |
+| `.ezh-result-keep`, `.ezh-result-again` | `.ezh-seed-tag` — "masked · illustrative" |
+| `.ezh-sf-replay` — the Replay control | reduced-motion step index |
+| `.ezh-gate-btn`, `.ezh-npi-go` — *depictions* of buttons inside the illustrative surface | |
+
+The two depictions moved with the actions because an illustration that draws a product we no
+longer ship is a wrong picture. Holding the pill for labels makes the silhouette carry meaning:
+square means you can act on it. A-1's limit is untouched — a pill is never a state marker, and
+`.ezh-st` was already radius 0.
+
+Guarded by `home-easy.spec.ts` → *"every action is square; only word-labels keep the pill"*, which
+asserts the outcome across the whole page (no rounded action may appear) **and** that some label
+pills still exist, so it cannot pass vacuously. See `shape-hero-actions.png`,
+`shape-closing-action.png`, `shape-worksurface.png`.
 
 ## Captures
 
