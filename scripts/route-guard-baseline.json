@@ -11,6 +11,7 @@
     "/design/freshness",
     "/design/proof-packet",
     "/design/provenance",
+    "/design/living-record",
     "/design/reset",
     "/design/transcript",
     "/design/verify",
