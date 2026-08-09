@@ -64,7 +64,15 @@ export function registerGardenRoutes(app: Express): void {
     '/api/profile/garden/notes',
     asyncHandler(async (req, res) => {
       const userId = await requireInternalUserId(req);
-      res.json({ notes: await listGardenNotes(userId) });
+      // WB-06: bounded, searchable, cursor-paginated. Bare calls return the
+      // newest page with the previous response shape plus nextCursor.
+      const { notes, nextCursor } = await listGardenNotes(userId, {
+        q: req.query.q,
+        tag: req.query.tag,
+        cursor: req.query.cursor,
+        limit: req.query.limit,
+      });
+      res.json({ notes, nextCursor });
     }),
   );
 

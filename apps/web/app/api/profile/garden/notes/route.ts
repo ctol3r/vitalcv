@@ -21,8 +21,15 @@ async function proxy(req: NextRequest, method: 'GET' | 'POST') {
   if (!base) {
     return NextResponse.json({ error: 'Garden storage is not configured.' }, { status: 503 });
   }
+  // WB-06 retrieval params — explicit allowlist, never blind passthrough.
+  const forwarded = new URLSearchParams();
+  for (const key of ['q', 'tag', 'cursor', 'limit'] as const) {
+    const value = req.nextUrl.searchParams.get(key);
+    if (value) forwarded.set(key, value);
+  }
+  const query = forwarded.size > 0 ? `?${forwarded.toString()}` : '';
   try {
-    const res = await fetch(`${base}/api/profile/garden/notes`, {
+    const res = await fetch(`${base}/api/profile/garden/notes${query}`, {
       method,
       headers: await buildMarketplaceHeaders(
         session,
