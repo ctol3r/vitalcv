@@ -15,9 +15,8 @@ import Link from 'next/link';
 import { ArrowUpRight } from 'lucide-react';
 import { useClinicianMobile } from '@/components/mobile/ClinicianMobileProvider';
 import { fetchAcceptanceRecognition } from '@/lib/recognition/acceptance-recognition';
-import { completenessPercent } from '@/lib/matcha/preferences';
-import { loadStoredPreferences } from '@/lib/matcha/storage';
 import { FEATURES } from '@/lib/features';
+import { useMatchaPreferences } from '@/components/matcha/useMatchaPreferences';
 import { OpportunitySimulator } from '@/components/matcha/OpportunitySimulator';
 import { PageFrame } from '@/components/layout/PageFrame';
 import {
@@ -46,7 +45,14 @@ export default function CareerScoreboardSurface() {
       .join(' ') || 'Your career';
 
   const [recognition, setRecognition] = useState<RecognitionSummaryInput>({ state: 'unavailable' });
-  const [matchaPercent, setMatchaPercent] = useState<number | null>(null);
+
+  // Read the clinician's own stored answers through the account-scoped hook. Reading
+  // localStorage directly here rendered whichever account last used this browser as
+  // this clinician's tuning figure.
+  const { completeness: matchaCompleteness, loaded: matchaLoaded } = useMatchaPreferences(
+    npi ?? undefined,
+  );
+  const matchaPercent = FEATURES.MATCHA_V2 && matchaLoaded ? matchaCompleteness : null;
 
   // Recognition — public acceptance-history read, keyed to the clinician NPI.
   useEffect(() => {
@@ -68,16 +74,6 @@ export default function CareerScoreboardSurface() {
       cancelled = true;
     };
   }, [npi]);
-
-  // MATCHA tuning — only when the pilot surface is reachable, so the tile never
-  // links to a gated route. Read from the clinician's own stored answers.
-  useEffect(() => {
-    if (!FEATURES.MATCHA_V2) {
-      setMatchaPercent(null);
-      return;
-    }
-    setMatchaPercent(completenessPercent(loadStoredPreferences()));
-  }, []);
 
   const board = useMemo(() => {
     const readiness = data.trustState

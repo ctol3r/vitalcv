@@ -14,6 +14,7 @@ import { useMatchaPreferences } from './useMatchaPreferences';
 import { useMatchaOpportunities } from './useMatchaOpportunities';
 import { useOpportunityActions } from './useOpportunityActions';
 import { MatchaProfile } from './MatchaProfile';
+import { MatchaStorageNotice, MatchaUnboundPreferencesPrompt } from './MatchaStorageNotice';
 import { MatchaDailyBrief } from './MatchaDailyBrief';
 import { CareerEvidenceTimeline } from '@/components/artifacts/CareerEvidenceTimeline';
 import { OpportunityCard } from './OpportunityCard';
@@ -21,6 +22,7 @@ import { CATEGORY_META, CATEGORY_ORDER, allCategoryProgress } from '@/lib/matcha
 import { deriveNextActions } from '@/lib/matcha/nextActions';
 import { BUCKET_LABEL, BUCKET_ORDER } from '@/lib/matcha/opportunityActions';
 import { preferenceMatchReasons } from '@/lib/matcha/opportunityFit';
+import { countAnsweredFields } from '@/lib/matcha/preferences';
 
 const ACCENT = 'var(--vt-accent, #0A7B7F)';
 
@@ -38,7 +40,17 @@ export function MatchaHub() {
   const npi = person?.npi ?? undefined;
   const firstName = person?.firstName ?? undefined;
 
-  const { preferences, derived, completeness, memory, loaded } = useMatchaPreferences(npi);
+  const {
+    preferences,
+    derived,
+    completeness,
+    memory,
+    loaded,
+    notice,
+    unboundDevicePreferences,
+    adoptDevicePreferences,
+    dismissDevicePreferences,
+  } = useMatchaPreferences(npi);
   const categoryProgress = allCategoryProgress(preferences);
 
   const { matches, state: oppState } = useMatchaOpportunities(npi ?? null);
@@ -109,6 +121,17 @@ export function MatchaHub() {
           ))}
         </div>
       </Panel>
+
+      {/* Where these answers actually live — carried next to the completeness figure
+          above, which otherwise reads as a durable account record in every case. */}
+      <MatchaStorageNotice notice={notice} />
+      <MatchaUnboundPreferencesPrompt
+        answeredCount={
+          unboundDevicePreferences ? countAnsweredFields(unboundDevicePreferences) : 0
+        }
+        onAdopt={adoptDevicePreferences}
+        onDismiss={dismissDevicePreferences}
+      />
 
       {/* The career, as a ruled document.
           This was a constellation captioned "built from your real evidence" —

@@ -1,9 +1,22 @@
 /**
  * MATCHA client persistence + memory diffing.
  *
- * Preferences are the clinician's own data, so the durable home base is the browser
- * (localStorage), with a best-effort push of the engine-relevant subset to the MATCHA
- * intent endpoint. This module is pure and SSR-safe — no React, guards on `window`.
+ * Preferences are the clinician's own data, so the browser holds a working copy while the
+ * auth-scoped server store is the durable home for a signed-in account. This module is pure
+ * and SSR-safe — no React, guards on `window`.
+ *
+ * Every read and write is scoped to an identity. Before scoping, one global key held whatever
+ * the last person on the browser had answered, so a second account signing in on the same
+ * device rendered the first account's preferences — and the derived "MATCHA understands you"
+ * profile — as its own. A cache with no identity on it cannot be attributed to an identity,
+ * so {@link accountScope} keys each account's copy separately and {@link DEVICE_SCOPE} holds
+ * the signed-out, device-local bucket.
+ *
+ * The pre-scoping key is never silently adopted into an account. It is unbound data: it may
+ * belong to the person signing in, or to whoever used the browser before them, and nothing
+ * on disk distinguishes the two. The device scope inherits it (identical meaning — this
+ * browser, no account), while an account scope only ever receives it through
+ * {@link adoptUnboundPreferences}, which is an explicit act by the person reading the screen.
  *
  * {@link diffPreferences} powers Wave 10 ("MATCHA remembers") by turning two preference
  * snapshots into plain-language memory notes. Every note is grounded in a real change, so
@@ -13,11 +26,45 @@
 import {
   type MatchaPreferences,
   type PreferenceField,
+  countAnsweredFields,
   isFieldAnswered,
 } from './preferences';
 
-export const PREFERENCES_STORAGE_KEY = 'vitalcv.matcha.preferences';
-export const PREFERENCES_UPDATED_KEY = 'vitalcv.matcha.preferences.updatedAt';
+/**
+ * The pre-scoping keys. Written by every build before preferences were bound to an
+ * account; still present on returning devices, so they are read (once, into the device
+ * bucket) and offered for adoption rather than deleted out from under anyone.
+ */
+export const LEGACY_PREFERENCES_STORAGE_KEY = 'vitalcv.matcha.preferences';
+export const LEGACY_PREFERENCES_UPDATED_KEY = 'vitalcv.matcha.preferences.updatedAt';
+
+const SCOPED_KEY_PREFIX = 'vitalcv.matcha.preferences.v2';
+
+/**
+ * Which bucket of browser storage a read or write belongs to. Compared by value so it can
+ * sit directly in a React dependency list.
+ */
+export type PreferenceScope = string;
+
+/** The signed-out bucket: this browser, no account attached. */
+export const DEVICE_SCOPE: PreferenceScope = 'device';
+
+/** The bucket for one signed-in Clerk account. */
+export function accountScope(userId: string): PreferenceScope {
+  return `u.${userId}`;
+}
+
+export function isAccountScope(scope: PreferenceScope): boolean {
+  return scope !== DEVICE_SCOPE;
+}
+
+function storageKey(scope: PreferenceScope): string {
+  return `${SCOPED_KEY_PREFIX}.${scope}`;
+}
+
+function updatedAtKey(scope: PreferenceScope): string {
+  return `${SCOPED_KEY_PREFIX}.${scope}.updatedAt`;
+}
 
 interface StoredEnvelope {
   version: 1;
@@ -34,11 +81,9 @@ function safeLocalStorage(): Storage | null {
   }
 }
 
-export function loadStoredPreferences(): MatchaPreferences {
-  const ls = safeLocalStorage();
-  if (!ls) return {};
+function readKey(ls: Storage, key: string): MatchaPreferences {
   try {
-    const raw = ls.getItem(PREFERENCES_STORAGE_KEY);
+    const raw = ls.getItem(key);
     if (!raw) return {};
     const parsed = JSON.parse(raw) as StoredEnvelope | MatchaPreferences;
     if (parsed && typeof parsed === 'object' && 'preferences' in parsed) {
@@ -50,25 +95,91 @@ export function loadStoredPreferences(): MatchaPreferences {
   }
 }
 
-export function savePreferences(prefs: MatchaPreferences, at: string): boolean {
-  const ls = safeLocalStorage();
-  if (!ls) return false;
+function writeKey(ls: Storage, scope: PreferenceScope, prefs: MatchaPreferences, at: string): boolean {
   try {
     const envelope: StoredEnvelope = { version: 1, updatedAt: at, preferences: prefs };
-    ls.setItem(PREFERENCES_STORAGE_KEY, JSON.stringify(envelope));
-    ls.setItem(PREFERENCES_UPDATED_KEY, at);
+    ls.setItem(storageKey(scope), JSON.stringify(envelope));
+    ls.setItem(updatedAtKey(scope), at);
     return true;
   } catch {
     return false;
   }
 }
 
-export function clearStoredPreferences(): void {
+function removeLegacyKeys(ls: Storage): void {
+  try {
+    ls.removeItem(LEGACY_PREFERENCES_STORAGE_KEY);
+    ls.removeItem(LEGACY_PREFERENCES_UPDATED_KEY);
+  } catch {
+    /* no-op */
+  }
+}
+
+/**
+ * The pre-scoping blob, if any answers survive in it. Returns `{}` once it has been
+ * inherited by the device scope, adopted into an account, or discarded.
+ */
+export function readUnboundPreferences(): MatchaPreferences {
+  const ls = safeLocalStorage();
+  if (!ls) return {};
+  return readKey(ls, LEGACY_PREFERENCES_STORAGE_KEY);
+}
+
+/**
+ * Move the unbound blob into `scope` because the person on the screen said it is theirs.
+ * Returns what was adopted so the caller can render it without a second read.
+ */
+export function adoptUnboundPreferences(
+  scope: PreferenceScope,
+  at: string,
+): MatchaPreferences {
+  const ls = safeLocalStorage();
+  if (!ls) return {};
+  const unbound = readKey(ls, LEGACY_PREFERENCES_STORAGE_KEY);
+  if (countAnsweredFields(unbound) === 0) return {};
+  writeKey(ls, scope, unbound, at);
+  removeLegacyKeys(ls);
+  return unbound;
+}
+
+/** Drop the unbound blob because the person on the screen said it is not theirs. */
+export function discardUnboundPreferences(): void {
+  const ls = safeLocalStorage();
+  if (!ls) return;
+  removeLegacyKeys(ls);
+}
+
+export function loadStoredPreferences(scope: PreferenceScope): MatchaPreferences {
+  const ls = safeLocalStorage();
+  if (!ls) return {};
+  const scoped = readKey(ls, storageKey(scope));
+  if (countAnsweredFields(scoped) > 0 || isAccountScope(scope)) return scoped;
+
+  // Device scope only: the pre-scoping key meant exactly this — this browser, nobody
+  // signed in — so inherit it once and retire the old key.
+  const unbound = readKey(ls, LEGACY_PREFERENCES_STORAGE_KEY);
+  if (countAnsweredFields(unbound) === 0) return scoped;
+  writeKey(ls, scope, unbound, ls.getItem(LEGACY_PREFERENCES_UPDATED_KEY) ?? new Date(0).toISOString());
+  removeLegacyKeys(ls);
+  return unbound;
+}
+
+export function savePreferences(
+  scope: PreferenceScope,
+  prefs: MatchaPreferences,
+  at: string,
+): boolean {
+  const ls = safeLocalStorage();
+  if (!ls) return false;
+  return writeKey(ls, scope, prefs, at);
+}
+
+export function clearStoredPreferences(scope: PreferenceScope): void {
   const ls = safeLocalStorage();
   if (!ls) return;
   try {
-    ls.removeItem(PREFERENCES_STORAGE_KEY);
-    ls.removeItem(PREFERENCES_UPDATED_KEY);
+    ls.removeItem(storageKey(scope));
+    ls.removeItem(updatedAtKey(scope));
   } catch {
     /* no-op */
   }
