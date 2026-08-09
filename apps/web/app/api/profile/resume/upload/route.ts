@@ -1,7 +1,7 @@
 import { auth } from '@clerk/nextjs/server';
 import { getApiBase } from '@/lib/api';
 import { type NextRequest, NextResponse } from 'next/server';
-import { buildIdentityHeaders } from '@/lib/auth/forwardIdentity';
+import { buildEmailHeader, buildIdentityHeaders } from '@/lib/auth/forwardIdentity';
 
 const BACKEND = getApiBase();
 
@@ -15,6 +15,7 @@ export async function POST(req: NextRequest) {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     ...(await buildIdentityHeaders({ userId: session.userId })),
+    ...buildEmailHeader(session.sessionClaims as Record<string, unknown> | undefined),
   };
   const body = await req.text();
   const res = await fetch(url, { method: 'POST', headers, body });
