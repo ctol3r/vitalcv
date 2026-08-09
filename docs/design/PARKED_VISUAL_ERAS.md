@@ -6,8 +6,9 @@
 
 ## The freeze
 
-A **UI PR freeze is in effect until UX-03 (eyebrow + navigation) ships.** No visual PRs land
-outside the Experience Overhaul Program. Bug fixes that happen to touch UI files are permitted
+**The UI PR freeze was LIFTED on 2026-08-09** (founder ruling): UX-03 shipped as UX-V1 (#1190,
+the public eyebrow and homepage) plus #1232 (the signed-in navigation contract). This register
+outlives the freeze — parking is how superseded treatments are retired, freeze or no freeze. Bug fixes that happen to touch UI files are permitted
 only when they change no visual treatment.
 
 Every visual treatment below is **parked, not deleted**. Parked means: it stays in the tree, it

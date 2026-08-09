@@ -120,3 +120,24 @@ already shipped it.
 **FOUNDER UX-V1 PRODUCTION CUTOVER REVIEW** — this wave stops at the review
 deploy. No merge before founder visual GO. On GO: merge the exact reviewed
 SHA → deploy → verify the exact production SHA → capture VitalCV.com itself.
+
+## UX-03 ruling and freeze release (founder, 2026-08-09)
+
+**`FOUNDER VISUAL DECISION: GO`** on #1232 (the signed-in navigation contract),
+issued by the founder in-session and recorded here because the PR merged before
+the decision was written down. Verified by this lane before the ruling: 183
+tests green on its branch including every UX-V1 contract suite, the homepage
+eyebrow pixel-identical by computed-style diff against live vitalcv.com, and
+the eyebrow/product-bar mutual exclusion enforced by one registry and asserted
+across every route.
+
+**UX-03 is satisfied and the UI PR freeze is LIFTED.** UX-03 shipped in two
+parts — UX-V1 (#1190) delivered the public eyebrow and homepage, #1232
+delivered the signed-in counterpart that shares its island. The freeze existed
+to stop visual work outrunning a decided direction; the direction now exists.
+
+What survives the freeze, because it was never the same rule: the DESIGN-ONLY
+BOUNDARY, the founder visual gate (`docs/ops/FOUNDER_VISUAL_GATE.md`) with its
+rendered evidence, live review URL and explicit decision comment, and the
+Experience Constitution as authority. Lifting the freeze removed a queue, not
+a standard.
