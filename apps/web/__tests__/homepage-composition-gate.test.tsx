@@ -80,4 +80,33 @@ describe('homepage composition gate (W0.2)', () => {
     // The manifest's core rule stays stated in the document itself.
     expect(manifest).toContain('page-level in-page navigation');
   });
+
+  /**
+   * D-01A — Profile in Motion's boundary and layer contract, pinned.
+   *
+   * 1. The story ends at the employer's REVIEW. The scene renders the review
+   *    desk with an open, undecided outcome — no "hired", no "accepted", no
+   *    resolved employer decision. The boundary is the point of the frame.
+   * 2. The layered record and the consent gate exist in the SERVER frame:
+   *    the completed story is what crawlers and no-JS visitors receive.
+   */
+  it('the work surface ends at employer review, undecided (D-01A)', () => {
+    const html = renderHomepageHtml();
+    expect(html).toContain('ezh-desk-out');
+    expect(html).toContain('This is where VitalCV stops');
+    for (const resolved of ['Hired', 'Offer accepted', 'You got the job']) {
+      expect(html, `the employer boundary resolved itself: "${resolved}"`).not.toContain(resolved);
+    }
+  });
+
+  it('the server frame carries the layered record and the consent gate (D-01A)', () => {
+    const html = renderHomepageHtml();
+    for (const layer of ['identity', 'sourced', 'yours', 'consent']) {
+      expect(html, `record layer "${layer}" missing from the server frame`).toContain(
+        `data-layer="${layer}"`,
+      );
+    }
+    expect(html).toContain('ezh-gate');
+    expect(html).toContain('Your approval');
+  });
 });

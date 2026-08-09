@@ -20,23 +20,40 @@
  */
 
 .ezh {
-  --ezh-ground: #151412;
-  --ezh-panel: #1d1b19;
-  --ezh-panel2: #232120;
-  --ezh-line: #32302d;
-  --ezh-line2: #403d39;
-  --ezh-text: #f2f1ed;
-  --ezh-text2: #9c9d99;
-  --ezh-text3: #7b7d79;
-  --ezh-work: #4ade97;
-  --ezh-work-deep: #2e9e6b;
-  --ezh-hold: #e4b45c;
-  --ezh-wait: #8f8c88;
-  --ezh-cta-text: #1c1914;
-  --ezh-light: #f6f5f1;
-  --ezh-light-line: #d9d6cd;
-  --ezh-light-text: #151412;
-  --ezh-light-text2: #5b5c57;
+  /* D-01A — the island keeps its own names so 1,700 lines of call sites stay
+     untouched, but every value now resolves through the scene register in
+     styles/themes/index.css. Before this, easy-home.css and eyebrow.css each
+     declared their own literals and eleven hex values were maintained twice
+     with nothing enforcing agreement (D-00 §2.2). Two consumers, one source.
+
+     Values are byte-identical to the previous literals EXCEPT the three that
+     the founder decisions and the A-1/A-2 accessibility fixes change:
+       --ezh-text3   #7b7d79 → #888A85   A-1: 4.13:1 → 4.92:1 on the panel
+       --ezh-cta-*   green   → warm paper + dark ink   decision 2, fixes A-2
+       --ezh-focus   green   → indigo                  decision 3 */
+  --ezh-ground: var(--vt-scene-canvas);
+  --ezh-panel: var(--vt-scene-panel);
+  --ezh-panel2: var(--vt-scene-panel-raised);
+  --ezh-line: var(--vt-scene-line);
+  --ezh-line2: var(--vt-scene-line-strong);
+  --ezh-text: var(--vt-scene-text);
+  --ezh-text2: var(--vt-scene-text-secondary);
+  --ezh-text3: var(--vt-scene-text-tertiary);
+  --ezh-work: var(--vt-scene-state-source-confirmed);
+  --ezh-work-deep: var(--vt-scene-state-source-confirmed-deep);
+  --ezh-hold: var(--vt-scene-state-needs-person);
+  --ezh-wait: var(--vt-scene-state-waiting);
+  /* The primary action. `--ezh-cta-text` used to name the ink printed on a
+     green fill; it now names the ink printed on paper. */
+  --ezh-cta-bg: var(--vt-action-primary-bg);
+  --ezh-cta-text: var(--vt-action-primary-fg);
+  --ezh-cta-bg-press: var(--vt-action-primary-bg-press);
+  --ezh-cta-text-press: var(--vt-action-primary-fg-press);
+  --ezh-focus: var(--vt-focus-ring-scene);
+  --ezh-light: var(--vt-scene-paper);
+  --ezh-light-line: var(--vt-scene-paper-line);
+  --ezh-light-text: var(--vt-scene-paper-text);
+  --ezh-light-text2: var(--vt-scene-paper-text-secondary);
   --ezh-maxw: 1400px;
   --ezh-gutter: 32px;
 
@@ -53,8 +70,11 @@
   text-decoration: none;
 }
 
+/* Decision 3 — indigo owns focus. It was green, which made green a fourth
+   meaning on a page where green already had to mean "a source confirmed it"
+   and "VitalCV finished this". 9.23:1 on the canvas. */
 .ezh :focus-visible {
-  outline: 2px solid var(--ezh-work);
+  outline: 2px solid var(--ezh-focus);
   outline-offset: 2px;
 }
 
@@ -160,14 +180,21 @@
   gap: 8px;
 }
 
+/* A-3 — `flex: 1` is `flex-basis: 0%` on the MAIN axis. At <=480px the row
+   below turns into a column, the main axis becomes vertical, and the declared
+   height stopped applying: the primary control in the funnel rendered 21px
+   tall on a phone (D-00 §3.5). The button was re-declared in that media block;
+   the input was not. `min-height` is authoritative in both orientations, and
+   the media block now pins the input as well. */
 .ezh-npi-input {
-  flex: 1;
+  flex: 1 1 auto;
   min-width: 0;
   height: 48px;
+  min-height: 48px;
   padding: 0 14px;
   background: var(--ezh-panel);
   border: 1px solid var(--ezh-line2);
-  border-radius: 2px;
+  border-radius: var(--vt-shape-control);
   color: var(--ezh-text);
   font-family: var(--font-geist-mono);
   font-size: 15px;
@@ -181,7 +208,7 @@
 }
 
 .ezh-npi-input:focus {
-  outline: 2px solid var(--ezh-work);
+  outline: 2px solid var(--ezh-focus);
   outline-offset: 0;
   border-color: transparent;
 }
@@ -189,23 +216,26 @@
 .ezh-npi-submit {
   height: 48px;
   padding: 0 22px;
-  background: var(--ezh-work);
+  background: var(--ezh-cta-bg);
   color: var(--ezh-cta-text);
   font-family: var(--font-geist);
   font-size: 14px;
   font-weight: 600;
   line-height: 1;
   border: 0;
-  border-radius: 2px;
+  border-radius: var(--vt-shape-pill);
   white-space: nowrap;
   cursor: pointer;
-  transition: background-color 0.15s ease;
+  transition: background-color 0.15s ease, color 0.15s ease;
 }
 
+/* A-2 — this pair used to be #F2F1ED on #2E9E6B: 2.99:1, and because
+   :focus-visible shares the rule, a keyboard user met the failing state as
+   the default. Warm paper pressed to a warmer paper; 16.88:1 → 14.36:1. */
 .ezh-npi-submit:hover,
 .ezh-npi-submit:focus-visible {
-  background: var(--ezh-work-deep);
-  color: var(--ezh-text);
+  background: var(--ezh-cta-bg-press);
+  color: var(--ezh-cta-text-press);
 }
 
 .ezh-npi-submit[disabled] {
@@ -259,7 +289,7 @@
 .ezh-result {
   margin-top: 26px;
   border: 1px solid var(--ezh-line);
-  border-radius: 2px;
+  border-radius: var(--vt-shape-card);
   background: var(--ezh-panel);
   padding: 16px;
 }
@@ -337,23 +367,23 @@
   margin-top: 14px;
 }
 
-.ezh-result-keep {
+.ezh .ezh-result-keep {
   display: inline-flex;
   align-items: center;
   height: 40px;
   padding: 0 16px;
-  background: var(--ezh-work);
+  background: var(--ezh-cta-bg);
   color: var(--ezh-cta-text);
   font-size: 13px;
   font-weight: 600;
-  border-radius: 2px;
-  transition: background-color 0.15s ease;
+  border-radius: var(--vt-shape-pill);
+  transition: background-color 0.15s ease, color 0.15s ease;
 }
 
-.ezh-result-keep:hover,
-.ezh-result-keep:focus-visible {
-  background: var(--ezh-work-deep);
-  color: var(--ezh-text);
+.ezh .ezh-result-keep:hover,
+.ezh .ezh-result-keep:focus-visible {
+  background: var(--ezh-cta-bg-press);
+  color: var(--ezh-cta-text-press);
 }
 
 .ezh-result-again {
@@ -365,7 +395,7 @@
   color: var(--ezh-text2);
   font-size: 13px;
   font-weight: 500;
-  border-radius: 2px;
+  border-radius: var(--vt-shape-pill);
   background: none;
   cursor: pointer;
   transition: color 0.15s ease, border-color 0.15s ease;
@@ -386,15 +416,38 @@
 
 /* ── the work surface — the product demonstration ──────────────────────── */
 
+/* D-01A — the public register.
+ *
+ * ONE atmospheric glow per viewport, and it sits behind the profile visual
+ * only: never behind a button, a control, an input, or a source status. It is
+ * a parent ::before, so it paints under its own children without a z-index —
+ * the island's no-z-index discipline holds.
+ *
+ * The glow is what makes frosting mean something. Backdrop blur over a flat
+ * dark panel is a no-op; over a soft indigo horizon it reads as material. */
 .ezh-hero-stagecol {
+  position: relative;
   min-width: 0;
 }
 
+.ezh-hero-stagecol::before {
+  content: '';
+  position: absolute;
+  inset: -12% -6% 18%;
+  background: var(--vt-scene-glow);
+  pointer-events: none;
+}
+
+/* The work surface is the one frosted panel: translucent over the glow, a warm
+   hairline rather than a shadow. Elevation comes from material and edge, never
+   from a drop shadow (which LINT-06 would flag anyway). */
 .ezh-surface {
   position: relative;
-  background: var(--ezh-panel);
-  border: 1px solid var(--ezh-line);
-  border-radius: 3px;
+  background: var(--vt-frost-bg);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  border: 1px solid var(--vt-frost-border);
+  border-radius: var(--vt-shape-panel);
   overflow: hidden;
   min-width: 0;
 }
@@ -462,7 +515,7 @@
   height: 26px;
   padding: 0 10px;
   border: 1px solid var(--ezh-line2);
-  border-radius: 2px;
+  border-radius: var(--vt-shape-pill);
   background: none;
   cursor: pointer;
   font-family: var(--font-geist-mono);
@@ -479,16 +532,27 @@
   color: var(--ezh-text);
 }
 
+/* D-01A geometry — every beat's space is reserved at first paint.
+ *
+ * The body is a two-row grid: the columns, then the resolution band. The band
+ * used to be `position: absolute; bottom: 0` and slide UP OVER the columns,
+ * which is why the completed frame — the one crawlers, no-script and
+ * reduced-motion visitors receive — measured six text overlaps at 1280 and two
+ * at 1440 (D-00 findings B-1, B-2). Its height is now a real grid row that
+ * exists before the timeline runs, so beat five reveals in place and covers
+ * nothing. */
 .ezh-sf-body {
   position: relative;
-  height: 600px;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  min-height: 600px;
 }
 
-/* columns: found facts left, what remains right */
+/* columns: the record left, what remains right */
 .ezh-sf-cols {
   display: grid;
-  grid-template-columns: 38fr 62fr;
-  height: 100%;
+  grid-template-columns: 40fr 60fr;
+  min-height: 0;
   transition: opacity 0.6s ease;
 }
 
@@ -500,19 +564,25 @@
 
 .ezh-sf-left {
   padding: 20px;
-  border-right: 1px solid var(--ezh-line);
+  border-right: 1px solid var(--vt-frost-border);
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
   min-width: 0;
+  overflow: hidden;
 }
 
+/* The right column STACKS. It used to end in a `minmax(0,1fr) 264px` grid
+   inside a column that is only ~450px wide at 1280, which squeezed the work
+   feed to a 101px ribbon breaking roughly one word per line — narrower on a
+   desktop than on a 360px phone (D-00 finding B-3). */
 .ezh-sf-right {
   padding: 20px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
   min-width: 0;
+  overflow: hidden;
 }
 
 .ezh-sf-h {
@@ -528,13 +598,17 @@
   margin-top: 3px;
 }
 
-/* the masked seed row (beat one's resting state) */
+/* the masked seed row (beat one's resting state)
+   B-1 — the tag is `margin-left: auto; white-space: nowrap`, which at 1280
+   pushed it clean out of this box and 40px into the next column, printing
+   "masked · illustrative" across "Here's what still matters". It wraps now. */
 .ezh-seed {
   display: flex;
   align-items: center;
-  gap: 10px;
-  border: 1px solid var(--ezh-line2);
-  border-radius: 2px;
+  flex-wrap: wrap;
+  gap: 8px 10px;
+  border: 1px solid var(--vt-frost-border);
+  border-radius: var(--vt-shape-control);
   background: var(--ezh-panel2);
   padding: 10px 12px;
   opacity: 1;
@@ -571,24 +645,66 @@
   letter-spacing: 0.09em;
   color: var(--ezh-text3);
   border: 1px solid var(--ezh-line2);
-  border-radius: 2px;
+  border-radius: var(--vt-shape-pill);
   padding: 4px 6px;
   white-space: nowrap;
 }
 
-/* what VitalCV found (beat two) */
-.ezh-profile {
+/* ── beat two — the profile record, in layers ──────────────────────────────
+ * Profile in Motion's protagonist. Each layer is a labelled band of the same
+ * record rather than a separate card, so the object reads as one thing
+ * gaining depth: identity, then facts that arrive carrying a source name,
+ * then the parts only the clinician can supply, then the consent boundary. */
+.ezh-record {
   opacity: 1;
   transition: opacity 0.45s ease;
 }
 
-.ezh-profile:not(.on) {
+.ezh-record:not(.on) {
   opacity: 0;
 }
 
-.ezh-facts {
+.ezh-rec-layer {
   margin-top: 12px;
-  border-top: 1px solid var(--ezh-line);
+  padding-left: 10px;
+  border-left: 2px solid var(--ezh-line);
+  opacity: 1;
+  transform: none;
+  transition: opacity 0.5s ease, transform 0.5s ease, border-color 0.5s ease;
+}
+
+.ezh-rec-layer:not(.on) {
+  opacity: 0;
+  transform: translateX(-6px);
+}
+
+/* The consent layer is the boundary of the object, so it carries the
+   needs-a-person hue rather than the neutral rule. Amber names a real state
+   here: something is waiting on a human. */
+.ezh-rec-layer[data-layer='consent'] {
+  border-left-color: var(--ezh-hold);
+}
+
+.ezh-rec-k {
+  display: block;
+  font-family: var(--font-geist-mono);
+  font-size: 9.5px;
+  font-weight: 500;
+  line-height: 1.3;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ezh-text2);
+}
+
+.ezh-rec-note {
+  margin-top: 6px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ezh-text2);
+}
+
+.ezh-facts {
+  margin-top: 4px;
 }
 
 .ezh-fact {
@@ -596,8 +712,7 @@
   grid-template-columns: 92px 1fr auto;
   align-items: center;
   gap: 12px;
-  padding: 12px 0;
-  border-bottom: 1px solid var(--ezh-line);
+  padding: 9px 0;
   opacity: 1;
   transform: none;
   transition: opacity 0.5s ease, transform 0.5s ease;
@@ -606,6 +721,16 @@
 .ezh-fact:not(.on) {
   opacity: 0;
   transform: translateX(-10px);
+}
+
+/* an open item — the record showing what it does NOT have */
+.ezh-fact.is-open {
+  grid-template-columns: auto 1fr;
+}
+
+.ezh-fact-open {
+  font-size: 11px;
+  color: var(--ezh-hold);
 }
 
 .ezh-fact-l {
@@ -639,21 +764,21 @@
   text-transform: uppercase;
   color: var(--ezh-text2);
   border: 1px solid var(--ezh-line2);
-  border-radius: 2px;
+  border-radius: var(--vt-shape-pill);
   padding: 4px 6px;
   white-space: nowrap;
 }
 
-.ezh-fact-cap {
+.ezh-rec-cap {
   font-size: 11.5px;
   line-height: 1.5;
   color: var(--ezh-text3);
-  margin-top: 10px;
+  margin-top: 12px;
   opacity: 1;
   transition: opacity 0.5s ease;
 }
 
-.ezh-fact-cap:not(.on) {
+.ezh-rec-cap:not(.on) {
   opacity: 0;
 }
 
@@ -705,19 +830,27 @@
   text-transform: uppercase;
   color: var(--ezh-text2);
   border: 1px solid var(--ezh-line2);
-  border-radius: 2px;
+  border-radius: var(--vt-shape-pill);
   padding: 4px 6px;
   white-space: nowrap;
 }
 
+/* The status cell reserves its widest label at first paint: every .ezh-st
+   occupies the SAME grid cell, so the column is as wide as the widest state
+   from the start and swapping "Ready for you" → "You approved it" cannot
+   reflow the row. The old display:none/inline-flex swap resized the cell on
+   every beat — the source of half the page's measured CLS (D-00 §3.2). */
 .ezh-stz {
-  display: flex;
+  display: grid;
   justify-content: flex-end;
   min-width: 0;
 }
 
 .ezh-st {
-  display: none;
+  grid-area: 1 / 1;
+  justify-self: end;
+  display: inline-flex;
+  visibility: hidden;
   font-family: var(--font-geist-mono);
   font-size: 11px;
   font-weight: 500;
@@ -734,7 +867,7 @@
 }
 
 .ezh-st-idle {
-  display: inline-flex;
+  visibility: visible;
   color: var(--ezh-text3);
 }
 
@@ -743,31 +876,31 @@
 .ezh-arow.is-approved .ezh-st-idle,
 .ezh-arow.is-needs .ezh-st-idle,
 .ezh-arow.is-wait .ezh-st-idle {
-  display: none;
+  visibility: hidden;
 }
 
 .ezh-arow.is-done .ezh-st-done {
-  display: inline-flex;
+  visibility: visible;
   color: var(--ezh-work);
 }
 
 .ezh-arow.is-ready .ezh-st-ready {
-  display: inline-flex;
+  visibility: visible;
   color: var(--ezh-hold);
 }
 
 .ezh-arow.is-approved .ezh-st-approved {
-  display: inline-flex;
+  visibility: visible;
   color: var(--ezh-work);
 }
 
 .ezh-arow.is-needs .ezh-st-needs {
-  display: inline-flex;
+  visibility: visible;
   color: var(--ezh-hold);
 }
 
 .ezh-arow.is-wait .ezh-st-wait {
-  display: inline-flex;
+  visibility: visible;
   color: var(--ezh-wait);
 }
 
@@ -777,31 +910,27 @@
   margin-left: 2px;
 }
 
-/* the work feed and the approval pause (beat four) */
+/* the work feed and the consent gate (beat four)
+   B-3 — this used to be a `minmax(0,1fr) 264px` grid inside a ~450px column:
+   the feed measured 101px wide at 1280 and broke one word per line. The feed
+   and the gate now STACK full-width, and their space is part of the column's
+   normal flow rather than `margin-top: auto` pushing into whatever remained.
+   Both fade in place — opacity only, no layout change (the CLS fix). */
 .ezh-workfeed {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 264px;
-  gap: 16px;
-  align-items: start;
-  margin-top: auto;
-  opacity: 1;
-  transform: none;
-  transition: opacity 0.5s ease, transform 0.5s ease;
-}
-
-.ezh-workfeed:not(.on) {
-  opacity: 0;
-  transform: translateY(8px);
-}
-
-.ezh-feed {
   border: 1px solid var(--ezh-line);
-  border-radius: 2px;
+  border-radius: var(--vt-shape-control);
   background: var(--ezh-panel2);
   padding: 12px 14px;
   display: flex;
   flex-direction: column;
-  gap: 9px;
+  gap: 8px;
+  margin-top: auto;
+  opacity: 1;
+  transition: opacity 0.5s ease;
+}
+
+.ezh-workfeed:not(.on) {
+  opacity: 0;
 }
 
 .ezh-feedline {
@@ -823,93 +952,112 @@
   transform: translateX(-8px);
 }
 
-.ezh-feedline b {
-  color: var(--ezh-text3);
-  font-weight: 500;
-}
-
 .ezh-feedline .ezh-ck {
   font-style: normal;
   color: var(--ezh-work);
 }
 
-.ezh-apcard {
+/* The consent gate — the one place Profile in Motion stops for a person.
+   Amber left rule while it waits; the green that follows confirmation is the
+   completed-work fact, not a celebration. The rule's colour swap is the only
+   border change; geometry is constant. */
+.ezh-gate {
   border: 1px solid var(--ezh-line2);
   border-left: 2px solid var(--ezh-hold);
-  border-radius: 2px;
+  border-radius: var(--vt-shape-control);
   background: var(--ezh-panel2);
   padding: 13px 14px;
   opacity: 1;
-  transform: none;
-  transition: opacity 0.5s ease, transform 0.5s ease, border-color 0.3s ease;
+  transition: opacity 0.5s ease, border-color 0.3s ease;
 }
 
-.ezh-apcard:not(.on) {
+.ezh-gate:not(.on) {
   opacity: 0;
-  transform: translateY(10px);
 }
 
-.ezh-ap-head {
+/* The head reserves both labels in one grid cell (same trick as .ezh-stz), so
+   "Your approval" → "You approved — VitalCV continues" cannot reflow. */
+.ezh-gate-head {
+  display: grid;
   font-family: var(--font-geist-mono);
   font-size: 10px;
   font-weight: 500;
-  line-height: 1;
+  line-height: 1.3;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--ezh-hold);
   margin-bottom: 8px;
 }
 
-.ezh-ap-head .ezh-h-ok {
-  display: none;
+.ezh-gate-head > span {
+  grid-area: 1 / 1;
+  justify-self: start;
+}
+
+.ezh-gate-head .ezh-h-wait {
+  visibility: visible;
+  color: var(--ezh-hold);
+}
+
+.ezh-gate-head .ezh-h-ok {
+  visibility: hidden;
   color: var(--ezh-work);
 }
 
-.ezh-apcard.is-confirmed {
+.ezh-gate.is-confirmed {
   border-left-color: var(--ezh-work-deep);
 }
 
-.ezh-apcard.is-confirmed .ezh-h-wait {
-  display: none;
+.ezh-gate.is-confirmed .ezh-h-wait {
+  visibility: hidden;
 }
 
-.ezh-apcard.is-confirmed .ezh-h-ok {
-  display: inline;
+.ezh-gate.is-confirmed .ezh-h-ok {
+  visibility: visible;
 }
 
-.ezh-ap-body {
+.ezh-gate-body {
   font-size: 12.5px;
   line-height: 1.45;
   color: var(--ezh-text);
   margin-bottom: 10px;
 }
 
-.ezh-ap-btn {
+/* The button and the done-line share one reserved grid cell, so confirming
+   the gate swaps meaning without moving a pixel of layout. */
+.ezh-gate-act {
+  display: grid;
+  align-items: center;
+  min-height: 30px;
+}
+
+.ezh-gate-btn {
+  grid-area: 1 / 1;
+  justify-self: start;
   display: inline-flex;
   align-items: center;
   height: 30px;
   padding: 0 14px;
   border: 1px solid var(--ezh-hold);
-  border-radius: 2px;
+  border-radius: var(--vt-shape-pill);
   color: var(--ezh-hold);
   font-size: 12px;
   font-weight: 600;
   line-height: 1;
-  transition: transform 0.15s ease, border-color 0.3s ease, color 0.3s ease;
+  transition: transform 0.15s ease, opacity 0.3s ease;
 }
 
-.ezh-ap-btn.is-pressed {
+.ezh-gate-btn.is-pressed {
   transform: translateY(1px);
-  border-color: var(--ezh-work);
-  color: var(--ezh-work);
 }
 
-.ezh-apcard.is-confirmed .ezh-ap-btn {
-  display: none;
+.ezh-gate.is-confirmed .ezh-gate-btn {
+  visibility: hidden;
 }
 
-.ezh-ap-done {
-  display: none;
+.ezh-gate-done {
+  grid-area: 1 / 1;
+  justify-self: start;
+  visibility: hidden;
   font-family: var(--font-geist-mono);
   font-size: 11px;
   font-weight: 500;
@@ -917,33 +1065,33 @@
   color: var(--ezh-work);
 }
 
-.ezh-apcard.is-confirmed .ezh-ap-done {
-  display: block;
+.ezh-gate.is-confirmed .ezh-gate-done {
+  visibility: visible;
 }
 
-.ezh-ap-note {
+.ezh-gate-note {
   font-size: 10.5px;
   line-height: 1.5;
   color: var(--ezh-text3);
   margin-top: 9px;
 }
 
-/* resolution band (beat five) — after the columns in DOM, so no z-index */
+/* ── beat five — a role, then the employer's review desk ──────────────────
+   B-2 / CLS — this band was `position: absolute; bottom: 0` sliding up OVER
+   the columns, which overlapped the feed text in the completed frame and
+   shifted layout when it arrived. It is now the body grid's second ROW:
+   present from first paint, revealed by opacity, covering nothing. */
 .ezh-sf-resolve {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
   background: var(--ezh-panel2);
   border-top: 1px solid var(--ezh-line);
   display: grid;
   grid-template-columns: 1fr 1.15fr;
-  transform: none;
-  transition: transform 0.7s cubic-bezier(0.3, 0.7, 0.2, 1);
+  opacity: 1;
+  transition: opacity 0.7s ease;
 }
 
 .ezh-sf-resolve:not(.on) {
-  transform: translateY(103%);
+  opacity: 0;
 }
 
 .ezh-res-role {
@@ -997,8 +1145,74 @@
   font-style: normal;
 }
 
-.ezh-res-track {
+/* The employer's review desk — the boundary Profile in Motion ends on.
+   The record arrives (green: work that really happened); the decision cell
+   stays neutral and OPEN. It never lights, never resolves, never celebrates:
+   the employer decides, and the scene does not decide for them. */
+.ezh-res-desk {
   padding: 18px 20px;
+}
+
+.ezh-desk {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+
+.ezh-desk-in {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-geist-mono);
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  color: var(--ezh-work);
+  border: 1px solid var(--ezh-work-deep);
+  border-radius: var(--vt-shape-control);
+  padding: 8px 10px;
+  opacity: 1;
+  transition: opacity 0.5s ease;
+}
+
+.ezh-desk-in:not(.on) {
+  opacity: 0;
+}
+
+.ezh-desk-doc {
+  width: 8px;
+  height: 11px;
+  border: 1px solid currentColor;
+  border-radius: 1px;
+}
+
+.ezh-desk-line {
+  flex: 1 1 24px;
+  min-width: 24px;
+  height: 1px;
+  background: var(--ezh-line2);
+}
+
+.ezh-desk-out {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--font-geist-mono);
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  color: var(--ezh-wait);
+  border: 1px dashed var(--ezh-line2);
+  border-radius: var(--vt-shape-control);
+  padding: 8px 10px;
+}
+
+.ezh-desk-cap {
+  font-size: 10.5px;
+  line-height: 1.5;
+  color: var(--ezh-text3);
+  margin-top: 12px;
 }
 
 .ezh-trackbar {
@@ -1064,11 +1278,6 @@
   border-color: var(--ezh-work);
 }
 
-.ezh-track-cap {
-  font-size: 10.5px;
-  color: var(--ezh-text3);
-}
-
 /* beat one overlay — after everything in DOM, covers the surface */
 .ezh-sf-stage {
   position: absolute;
@@ -1093,7 +1302,7 @@
 
 .ezh-npi-illus {
   border: 1px solid var(--ezh-line2);
-  border-radius: 2px;
+  border-radius: var(--vt-shape-control);
   background: var(--ezh-panel2);
   padding: 22px 26px;
   min-width: 340px;
@@ -1131,7 +1340,7 @@
   height: 36px;
   padding: 0 16px;
   border: 1px solid var(--ezh-line2);
-  border-radius: 2px;
+  border-radius: var(--vt-shape-pill);
   font-size: 12px;
   font-weight: 500;
   line-height: 1;
@@ -1176,46 +1385,42 @@
   display: block;
 }
 
-.ezh-surface.is-static [data-beat] {
-  position: relative;
-}
-
+/* B-4 — the beat numerals used to be absolutely positioned at (-9,-9), which
+   printed them over the headings they were annotating. In the static
+   composition they now participate in normal flow ABOVE their beat: the
+   static frame is a first-class layout (EC-4), so it gets real geometry, not
+   an overlay. Decision 2/3 — the numerals are chapter markers, not a state:
+   they carry the editorial accent, never green. */
 .ezh-surface.is-static [data-beat]::before {
   content: attr(data-beat);
-  position: absolute;
-  top: -9px;
-  left: -9px;
+  display: inline-grid;
+  place-items: center;
   width: 20px;
   height: 20px;
-  display: grid;
-  place-items: center;
+  margin-bottom: 8px;
   background: var(--ezh-ground);
-  border: 1px solid var(--ezh-work);
-  border-radius: 2px;
+  border: 1px solid var(--ezh-focus);
+  border-radius: var(--vt-shape-pill);
   font-family: var(--font-geist-mono);
   font-size: 11px;
   font-weight: 500;
-  color: var(--ezh-work);
+  color: var(--ezh-focus);
 }
 
+/* the resolve band is a grid — its numeral spans the full row so it cannot
+   claim the role column as a grid item */
 .ezh-surface.is-static .ezh-sf-resolve::before {
-  top: -11px;
-  left: 11px;
+  grid-column: 1 / -1;
+  margin: 14px 0 0 20px;
 }
 
 .ezh-surface.is-static .ezh-sf-cols {
   opacity: 1;
 }
 
-@media (min-width: 769px) {
-  .ezh-surface.is-static .ezh-sf-body {
-    height: 720px;
-  }
-
-  .ezh-surface.is-static .ezh-sf-cols {
-    padding-bottom: 185px;
-  }
-}
+/* The old static frame needed a taller body and a padded column because the
+   absolutely-positioned resolve band covered the columns' feet. The band is a
+   real grid row now, so the static frame needs no compensating geometry. */
 
 /* ── ownership — the agent's work-state model ──────────────────────────── */
 
@@ -1227,7 +1432,7 @@
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   border: 1px solid var(--ezh-line);
-  border-radius: 3px;
+  border-radius: var(--vt-shape-card);
   overflow: hidden;
   background: var(--ezh-panel);
 }
@@ -1330,7 +1535,7 @@
 
 .ezh-bigtrack {
   border: 1px solid var(--ezh-line);
-  border-radius: 3px;
+  border-radius: var(--vt-shape-card);
   background: var(--ezh-panel);
   padding: 34px 30px 30px;
 }
@@ -1393,7 +1598,7 @@
   max-width: 480px;
 }
 
-.ezh-emp-cta {
+.ezh .ezh-emp-cta {
   display: inline-flex;
   align-items: center;
   gap: 10px;
@@ -1401,7 +1606,7 @@
   height: 48px;
   padding: 0 22px;
   border: 1px solid var(--ezh-light-text);
-  border-radius: 2px;
+  border-radius: var(--vt-shape-pill);
   font-size: 14px;
   font-weight: 600;
   line-height: 1;
@@ -1409,8 +1614,8 @@
   transition: background-color 0.15s ease, color 0.15s ease;
 }
 
-.ezh-emp-cta:hover,
-.ezh-emp-cta:focus-visible {
+.ezh .ezh-emp-cta:hover,
+.ezh .ezh-emp-cta:focus-visible {
   background: var(--ezh-light-text);
   color: var(--ezh-light);
 }
@@ -1465,24 +1670,24 @@
   max-width: 420px;
 }
 
-.ezh-start-cta {
+.ezh .ezh-start-cta {
   display: inline-flex;
   align-items: center;
   height: 52px;
   padding: 0 26px;
-  background: var(--ezh-work);
+  background: var(--ezh-cta-bg);
   color: var(--ezh-cta-text);
   font-size: 15px;
   font-weight: 600;
   line-height: 1;
-  border-radius: 2px;
-  transition: background-color 0.15s ease;
+  border-radius: var(--vt-shape-pill);
+  transition: background-color 0.15s ease, color 0.15s ease;
 }
 
-.ezh-start-cta:hover,
-.ezh-start-cta:focus-visible {
-  background: var(--ezh-work-deep);
-  color: var(--ezh-text);
+.ezh .ezh-start-cta:hover,
+.ezh .ezh-start-cta:focus-visible {
+  background: var(--ezh-cta-bg-press);
+  color: var(--ezh-cta-text-press);
 }
 
 .ezh-start-fine {
@@ -1603,8 +1808,11 @@
     font-size: 24px;
   }
 
+  /* On mobile everything is one flowing stack, so the desktop's row
+     reservation is unnecessary — and `minmax(0, 1fr)` actively collapses row
+     one under the stacked columns' height. Plain block flow sizes honestly. */
   .ezh-sf-body {
-    height: auto;
+    display: block;
     min-height: 340px;
   }
 
@@ -1627,35 +1835,21 @@
     opacity: 1;
   }
 
+  /* D-01A — the beat-one stage does not render on mobile. It sat at the
+     BOTTOM of the surface in flow (it is last in DOM for desktop stacking)
+     and then display:none'd itself at beat two, collapsing ~200px and
+     shifting everything below it — mobile CLS the desktop fix had just
+     removed. The real NPI entry is directly above the surface here, and the
+     dots + eyebrow ticker still narrate beat one. */
   .ezh-sf-stage {
-    position: static;
-    padding: 40px 16px;
-  }
-
-  .ezh-sf-stage.is-off {
     display: none;
   }
 
-  .ezh-npi-illus {
-    min-width: 0;
-    width: 100%;
-  }
-
-  .ezh-glyphs {
-    flex-wrap: wrap;
-    height: auto;
-  }
-
-  /* while the timeline is PLAYING, unfired stream blocks stay collapsed; the
-     server frame (no data-motion) shows everything */
-  .ezh-surface[data-motion='playing'] .ezh-profile:not(.on),
-  .ezh-surface[data-motion='playing'] .ezh-remains:not(.on),
-  .ezh-surface[data-motion='playing'] .ezh-workfeed:not(.on),
-  .ezh-surface[data-motion='playing'] .ezh-fact:not(.on),
-  .ezh-surface[data-motion='playing'] .ezh-arow:not(.on),
-  .ezh-surface[data-motion='playing'] .ezh-sf-resolve:not(.on) {
-    display: none;
-  }
+  /* The old mobile "task stream" collapsed unfired blocks with display:none
+     while the timeline played — a layout-shift machine, one shift per beat.
+     Mobile now reserves space exactly like desktop: unfired blocks are
+     opacity 0 in their final geometry, and the timeline changes nothing but
+     opacity. */
 
   .ezh-fact {
     grid-template-columns: 84px 1fr auto;
@@ -1675,17 +1869,11 @@
   }
 
   .ezh-workfeed {
-    grid-template-columns: 1fr;
     margin-top: 16px;
   }
 
   .ezh-sf-resolve {
-    position: static;
     grid-template-columns: 1fr;
-  }
-
-  .ezh-sf-resolve:not(.on) {
-    transform: none;
   }
 
   .ezh-res-role {
@@ -1745,6 +1933,14 @@
 
   .ezh-npi-row {
     flex-direction: column;
+  }
+
+  /* A-3 — full width and a real 48px target once the row stacks. */
+  .ezh-npi-input {
+    flex: none;
+    width: 100%;
+    height: 48px;
+    min-height: 48px;
   }
 
   .ezh-npi-submit {

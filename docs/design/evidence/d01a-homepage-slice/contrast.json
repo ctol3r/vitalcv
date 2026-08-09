@@ -1,0 +1,228 @@
+{
+  "overlapForensics": {
+    "rows": [
+      {
+        "i": 0,
+        "top": 338.2,
+        "bottom": 380.1,
+        "h": 41.9
+      },
+      {
+        "i": 1,
+        "top": 408.5,
+        "bottom": 450.4,
+        "h": 41.9
+      },
+      {
+        "i": 2,
+        "top": 450.4,
+        "bottom": 492.4,
+        "h": 41.9
+      },
+      {
+        "i": 3,
+        "top": 492.4,
+        "bottom": 536.4,
+        "h": 44
+      },
+      {
+        "i": 4,
+        "top": 564.7,
+        "bottom": 616.8,
+        "h": 52.1
+      }
+    ],
+    "sample": [
+      {
+        "cls": "ezh-fact-l",
+        "text": "Name",
+        "top": 352.7,
+        "bottom": 365.7,
+        "h": 13,
+        "fontSize": "10px",
+        "lineHeight": "13px",
+        "rowIndex": 0
+      },
+      {
+        "cls": "ezh-src",
+        "text": "NPPES",
+        "top": 347.2,
+        "bottom": 371.1,
+        "h": 23.9,
+        "fontSize": "9px",
+        "lineHeight": "13.95px",
+        "rowIndex": 0
+      },
+      {
+        "cls": "ezh-fact-l",
+        "text": "Specialty",
+        "top": 423,
+        "bottom": 436,
+        "h": 13,
+        "fontSize": "10px",
+        "lineHeight": "13px",
+        "rowIndex": 1
+      },
+      {
+        "cls": "ezh-src",
+        "text": "NPPES",
+        "top": 417.5,
+        "bottom": 441.4,
+        "h": 23.9,
+        "fontSize": "9px",
+        "lineHeight": "13.95px",
+        "rowIndex": 1
+      },
+      {
+        "cls": "ezh-fact-l",
+        "text": "Practice",
+        "top": 464.9,
+        "bottom": 477.9,
+        "h": 13,
+        "fontSize": "10px",
+        "lineHeight": "13px",
+        "rowIndex": 2
+      },
+      {
+        "cls": "ezh-src",
+        "text": "Practice info",
+        "top": 459.4,
+        "bottom": 483.4,
+        "h": 23.9,
+        "fontSize": "9px",
+        "lineHeight": "13.95px",
+        "rowIndex": 2
+      }
+    ],
+    "collisions": []
+  },
+  "contrast": {
+    "rest": [
+      {
+        "sel": ".ezh-npi-submit",
+        "text": "Start with your NPI",
+        "fg": "rgb(21, 20, 18)",
+        "bg": "rgb(246, 245, 241)",
+        "fontSize": "14px",
+        "fontWeight": "600",
+        "size": "171x48",
+        "ratio": 16.88,
+        "radius": "9999px"
+      },
+      {
+        "sel": ".ezh-npi-input",
+        "text": "10 digits",
+        "fg": "rgb(242, 241, 237)",
+        "bg": "rgb(29, 27, 25)",
+        "fontSize": "15px",
+        "fontWeight": "500",
+        "size": "222x48",
+        "ratio": 15.19,
+        "radius": "10px"
+      },
+      {
+        "sel": ".ezh-truth",
+        "text": "Illustrative — no real people, and nothing",
+        "fg": "rgb(136, 138, 133)",
+        "bg": "rgba(0, 0, 0, 0)",
+        "fontSize": "12px",
+        "fontWeight": "400",
+        "size": "640x37",
+        "ratio": 5.28,
+        "radius": "0px"
+      },
+      {
+        "sel": ".ezh-foot-truth",
+        "text": "Source freshness, stated plainly: NPPES is",
+        "fg": "rgb(136, 138, 133)",
+        "bg": "rgba(0, 0, 0, 0)",
+        "fontSize": "10.5px",
+        "fontWeight": "400",
+        "size": "760x54",
+        "ratio": 5.28,
+        "radius": "0px"
+      },
+      {
+        "sel": ".ezh-sf-cap",
+        "text": "How VitalCV works · illustrative — not a l",
+        "fg": "rgb(136, 138, 133)",
+        "bg": "rgba(0, 0, 0, 0)",
+        "fontSize": "10px",
+        "fontWeight": "500",
+        "size": "364x14",
+        "ratio": 6.02,
+        "radius": "0px"
+      },
+      {
+        "sel": ".ezh-hero-sub",
+        "text": "We find what we can, show you exactly what",
+        "fg": "rgb(156, 157, 153)",
+        "bg": "rgba(0, 0, 0, 0)",
+        "fontSize": "16px",
+        "fontWeight": "400",
+        "size": "400x77",
+        "ratio": 6.75,
+        "radius": "0px"
+      },
+      {
+        "sel": ".vcv-eb__cta",
+        "text": "Start with your NPIStart",
+        "fg": "rgb(21, 20, 18)",
+        "bg": "rgb(246, 245, 241)",
+        "fontSize": "13px",
+        "fontWeight": "600",
+        "size": "156x40",
+        "ratio": 16.88,
+        "radius": "9999px"
+      }
+    ],
+    "ctaHover": {
+      "sel": ".ezh-npi-submit",
+      "text": "Start with your NPI",
+      "fg": "rgb(21, 20, 18)",
+      "bg": "rgb(228, 225, 216)",
+      "fontSize": "14px",
+      "fontWeight": "600",
+      "size": "171x48",
+      "ratio": 14.08,
+      "radius": "9999px"
+    },
+    "ctaFocusVisible": {
+      "active": "ezh-npi-submit",
+      "fg": "rgb(21, 20, 18)",
+      "bg": "rgb(228, 225, 216)",
+      "outline": "rgb(165, 180, 252) 2px",
+      "ratio": 14.08
+    }
+  },
+  "a3": {
+    "390": {
+      "input": {
+        "w": 350,
+        "h": 48
+      },
+      "submit": {
+        "w": 350,
+        "h": 48
+      },
+      "row": {
+        "w": 350,
+        "h": 104
+      }
+    },
+    "480": {
+      "input": {
+        "w": 400,
+        "h": 48
+      },
+      "submit": {
+        "w": 400,
+        "h": 48
+      },
+      "row": {
+        "w": 400,
+        "h": 104
+      }
+    }
+  }
+}

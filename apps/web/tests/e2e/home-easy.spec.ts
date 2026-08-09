@@ -140,10 +140,13 @@ test.describe('home — reduced motion', () => {
     await page.goto('/');
     await expect(surface(page)).toHaveClass(/is-static/, { timeout: 15000 });
     await expect(surface(page)).toHaveAttribute('data-active-beat', '5');
-    // Every beat's content is present at once.
-    await expect(surface(page).getByText('What VitalCV found', { exact: true })).toBeVisible();
+    // Every beat's content is present at once — D-01A's Profile in Motion
+    // frame: the layered record, what remains, the consent gate, and the
+    // employer's open review desk.
+    await expect(surface(page).getByText('Your record, as it builds', { exact: true })).toBeVisible();
     await expect(surface(page).getByText(/what still matters/)).toBeVisible();
     await expect(surface(page).locator('.ezh-applied')).toBeVisible();
+    await expect(surface(page).locator('.ezh-desk-out')).toBeVisible();
     // The annotation legend replaces the timeline.
     await expect(surface(page).locator('.ezh-rm-legend')).toBeVisible();
   });

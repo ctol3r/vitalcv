@@ -209,15 +209,17 @@ describe('nothing claims completion before a backend success', () => {
 // ── the work surface tells the truthful progression ─────────────────────────
 
 describe('the work surface states the ownership story and stops honestly', () => {
-  it('walks find → remains → work → approval → outcome', () => {
+  it('walks record → remains → work → approval → review (D-01A Profile in Motion)', () => {
     const html = renderHomepageHtml();
     for (const beat of [
-      'What VitalCV found',
+      'Your record, as it builds',
       'what still matters',
-      'Ready for your approval',
+      'Your approval',
       'Needs you',
       'Waiting on the employer',
       'Applied with VitalCV',
+      // the story now ENDS at the employer's desk, open and undecided
+      'The employer\u2019s review',
     ]) {
       expect(html).toContain(beat);
     }

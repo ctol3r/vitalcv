@@ -1,0 +1,198 @@
+{
+  "base": "http://localhost:4311",
+  "capturedAt": "2026-08-09T10:42:56.080Z",
+  "routes": {
+    "/": {
+      "widths": {
+        "390": {
+          "vitals": {
+            "cls": 0,
+            "clsSources": [],
+            "lcp": {
+              "time": 528,
+              "size": 22445,
+              "el": "P.ezh-hero-sub",
+              "text": "We find what we can, show you exactly what remains, and handle the adm"
+            },
+            "fcp": 528,
+            "longTasks": 0,
+            "longTaskMs": 0
+          },
+          "bytes": {
+            "js": 1565101,
+            "css": 628616,
+            "font": 201624,
+            "img": 0,
+            "doc": 75705,
+            "other": 9786,
+            "count": 55
+          },
+          "fonts": [
+            {
+              "file": "125b055e8623e92e-s.p.woff2",
+              "transfer": 23428,
+              "decoded": 23128
+            },
+            {
+              "file": "37b8a9476d01468b-s.p.woff2",
+              "transfer": 67564,
+              "decoded": 67264
+            },
+            {
+              "file": "6442c9ebd985a117-s.p.woff2",
+              "transfer": 82132,
+              "decoded": 81832
+            },
+            {
+              "file": "9ff55a8a9670220d-s.p.woff2",
+              "transfer": 29700,
+              "decoded": 29400
+            }
+          ],
+          "docHeight": 4737
+        },
+        "768": {
+          "vitals": {
+            "cls": 0,
+            "clsSources": [],
+            "lcp": {
+              "time": 476,
+              "size": 26599,
+              "el": "P.ezh-hero-sub",
+              "text": "We find what we can, show you exactly what remains, and handle the adm"
+            },
+            "fcp": 476,
+            "longTasks": 0,
+            "longTaskMs": 0
+          },
+          "bytes": {
+            "js": 1565101,
+            "css": 628616,
+            "font": 201624,
+            "img": 0,
+            "doc": 75705,
+            "other": 9788,
+            "count": 56
+          },
+          "fonts": [
+            {
+              "file": "125b055e8623e92e-s.p.woff2",
+              "transfer": 23428,
+              "decoded": 23128
+            },
+            {
+              "file": "37b8a9476d01468b-s.p.woff2",
+              "transfer": 67564,
+              "decoded": 67264
+            },
+            {
+              "file": "6442c9ebd985a117-s.p.woff2",
+              "transfer": 82132,
+              "decoded": 81832
+            },
+            {
+              "file": "9ff55a8a9670220d-s.p.woff2",
+              "transfer": 29700,
+              "decoded": 29400
+            }
+          ],
+          "docHeight": 4207
+        },
+        "1280": {
+          "vitals": {
+            "cls": 0,
+            "clsSources": [],
+            "lcp": {
+              "time": 512,
+              "size": 60756,
+              "el": "H1",
+              "text": "Enter your NPI.VitalCV does the rest."
+            },
+            "fcp": 512,
+            "longTasks": 0,
+            "longTaskMs": 0
+          },
+          "bytes": {
+            "js": 1565101,
+            "css": 628616,
+            "font": 201624,
+            "img": 0,
+            "doc": 75705,
+            "other": 9988,
+            "count": 56
+          },
+          "fonts": [
+            {
+              "file": "125b055e8623e92e-s.p.woff2",
+              "transfer": 23428,
+              "decoded": 23128
+            },
+            {
+              "file": "37b8a9476d01468b-s.p.woff2",
+              "transfer": 67564,
+              "decoded": 67264
+            },
+            {
+              "file": "6442c9ebd985a117-s.p.woff2",
+              "transfer": 82132,
+              "decoded": 81832
+            },
+            {
+              "file": "9ff55a8a9670220d-s.p.woff2",
+              "transfer": 29700,
+              "decoded": 29400
+            }
+          ],
+          "docHeight": 2956
+        },
+        "1440": {
+          "vitals": {
+            "cls": 0,
+            "clsSources": [],
+            "lcp": {
+              "time": 480,
+              "size": 60756,
+              "el": "H1",
+              "text": "Enter your NPI.VitalCV does the rest."
+            },
+            "fcp": 480,
+            "longTasks": 0,
+            "longTaskMs": 0
+          },
+          "bytes": {
+            "js": 1565101,
+            "css": 628616,
+            "font": 201624,
+            "img": 0,
+            "doc": 75705,
+            "other": 9986,
+            "count": 56
+          },
+          "fonts": [
+            {
+              "file": "125b055e8623e92e-s.p.woff2",
+              "transfer": 23428,
+              "decoded": 23128
+            },
+            {
+              "file": "37b8a9476d01468b-s.p.woff2",
+              "transfer": 67564,
+              "decoded": 67264
+            },
+            {
+              "file": "6442c9ebd985a117-s.p.woff2",
+              "transfer": 82132,
+              "decoded": 81832
+            },
+            {
+              "file": "9ff55a8a9670220d-s.p.woff2",
+              "transfer": 29700,
+              "decoded": 29400
+            }
+          ],
+          "docHeight": 2853
+        }
+      }
+    }
+  }
+}
