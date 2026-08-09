@@ -43,8 +43,14 @@ the Workbench brief).
   directions in one transaction. Referenced targets are never touched.
 - Deleting a grown CV line reopens its seed (existing behavior, unchanged).
 - Account deletion inherits the platform's user-deletion path; Workbench
-  rows carry no independent retention. A dedicated privacy-safe export and
-  the account-closure walkthrough are **WB-10 scope, not yet built**.
+  rows carry no independent retention.
+- **Export (WB-10, shipped):** `GET /api/profile/garden/export` returns the
+  caller's entire Workbench — notes, revisions, links, CV lines — as one
+  versioned document (`vitalcv-workbench-export/v1`). Every query is scoped
+  by the resolved internal userId; the export is audited before the 2xx
+  with counts only. This is the one sanctioned path out of the module
+  besides promotion, and it exists solely at the clinician's request. The
+  **account-closure walkthrough is UI and remains post-UX-03 scope**.
 
 ## Audit
 

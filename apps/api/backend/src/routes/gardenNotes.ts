@@ -21,6 +21,7 @@ import {
   restoreNoteRevision,
 } from '../services/garden/gardenLinksService';
 import { setNoteAgentConsent } from '../services/garden/gardenAgentConsent';
+import { exportWorkbench } from '../services/garden/gardenExport';
 import { requireInternalUserId } from './intake';
 
 /**
@@ -232,6 +233,20 @@ export function registerGardenRoutes(app: Express): void {
         { noteId: note.id },
       );
       res.json({ note });
+    }),
+  );
+
+  // ——— WB-10: privacy-safe export ——————————————————————————————————————
+  // The whole Workbench for ONE user in one versioned document. Audited
+  // before the 2xx with counts only — the audit row never carries text.
+
+  app.get(
+    '/api/profile/garden/export',
+    asyncHandler(async (req, res) => {
+      const userId = await requireInternalUserId(req);
+      const exportDoc = await exportWorkbench(userId);
+      await auditGarden('garden_export_generated', userId, { counts: exportDoc.counts });
+      res.json(exportDoc);
     }),
   );
 }
