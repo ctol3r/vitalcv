@@ -201,6 +201,7 @@ export const ROUTE_MANIFEST: Record<string, RouteNode> = {
   '/admin/platform': { label: 'Platform', parent: null, section: 'admin' },
   '/admin/leads': { label: 'Leads', parent: '/admin/platform', section: 'admin' },
   '/admin/demo-reset': { label: 'Demo reset', parent: '/admin/platform', section: 'admin' },
+  '/admin/agent-ops': { label: 'Agent Ops', parent: '/admin/platform', section: 'admin' },
 
   // ── Ops ──────────────────────────────────────────────────────────────────
   '/ops': { label: 'Operations', parent: null, section: 'ops' },
