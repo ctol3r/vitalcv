@@ -12,7 +12,8 @@ import PrequalifyBar from '@/components/prequalify/PrequalifyBar';
 import { ProductChrome } from '@/components/navigation/ProductChrome';
 import { WorkspaceSwitcher } from '@/components/workspace/WorkspaceSwitcher';
 import VCommandBar from '@/components/ops/VCommandBar';
-import { isOpsSurfacePath } from '@/components/layout/publicSurfaceRoutes';
+import { WorkbenchDock } from '@/components/workbench/WorkbenchDock';
+import { isOpsSurfacePath, isWorkbenchCaptureSurface } from '@/components/layout/publicSurfaceRoutes';
 
 // Single source of truth lives in publicSurfaceRoutes.ts — do not maintain a
 // local copy here. isOpsSurfacePath also owns the per-route exemptions
@@ -82,6 +83,21 @@ export default function RootChrome({ children, clerkEnabled }: RootChromeProps) 
       {clerkEnabled ? (
         <SignedIn>
           <PrequalifyBar />
+        </SignedIn>
+      ) : null}
+      {/* WB-08: the Workbench capture dock. Mount ownership moved here from
+          HolderWorkspaceFrame so the registry stays the single chrome
+          decision — isWorkbenchCaptureSurface is the fail-closed allowlist
+          (holder + clinician namespace + designated research surfaces; never
+          employer/issuer/admin/ops), and SignedIn keeps the trigger away from
+          anonymous visitors. RootChrome outlives client-side navigation, so
+          an open drawer and its unsaved capture text survive route changes —
+          the same persistence the holder frame used to provide, now on every
+          surface the registry allows. The dock still self-suppresses on
+          /holder/garden/*; the source-scan test pins this as the only mount. */}
+      {clerkEnabled && isWorkbenchCaptureSurface(pathname) ? (
+        <SignedIn>
+          <WorkbenchDock />
         </SignedIn>
       ) : null}
       {clerkEnabled ? pilotReporter : null}

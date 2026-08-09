@@ -9,7 +9,6 @@ import type { ClinicianMobileData } from '@/lib/mobile/clinician-state';
 import { RouteTrail } from '@/components/navigation/RouteTrail';
 import { HolderDesktopNav } from './HolderDesktopNav';
 import { HolderWorkspaceShell } from './HolderWorkspaceShell';
-import { WorkbenchDock } from '@/components/workbench/WorkbenchDock';
 
 /**
  * The visual and mobile-data frame shared by every holder route.
@@ -53,10 +52,10 @@ export function HolderWorkspaceFrame({
           {children}
         </div>
         <MobileBottomNav showClerkAccount={showClerkAccount} />
-        {/* CC-07: the Workbench dock mounts ONLY here — the clinician chrome.
-            It self-suppresses on /holder/garden/* (the full workspace owns
-            that surface); a source-scan test pins this as the single mount. */}
-        <WorkbenchDock />
+        {/* CC-07's Workbench dock used to mount here. WB-08 moved the single
+            mount to RootChrome, gated by the isWorkbenchCaptureSurface
+            registry predicate (which covers this whole tree) — the registry,
+            not a layout file, is the chrome decision. */}
       </HolderWorkspaceShell>
     </ClinicianMobileProvider>
   );
