@@ -1,0 +1,101 @@
+{
+  "hover": {
+    "getStartedRest": {
+      "bg": "rgb(255, 255, 255)",
+      "color": "rgb(30, 33, 36)",
+      "border": "1px solid rgb(30, 33, 36)"
+    },
+    "searchRest": {
+      "bg": "rgb(255, 255, 255)",
+      "color": "rgb(30, 33, 36)",
+      "border": "1px solid rgb(30, 33, 36)"
+    },
+    "menuRest": {
+      "bg": "rgb(255, 255, 255)",
+      "color": "rgb(30, 33, 36)",
+      "border": "1px solid rgb(30, 33, 36)"
+    }
+  },
+  "getStartedHover": {
+    "bg": "rgb(30, 33, 36)",
+    "color": "rgb(255, 255, 255)",
+    "border": "1px solid rgba(0, 0, 0, 0)"
+  },
+  "searchHover": {
+    "bg": "rgb(30, 33, 36)",
+    "color": "rgb(255, 255, 255)",
+    "border": "1px solid rgb(30, 33, 36)"
+  },
+  "announceGoneAfterScroll": -2347.15625,
+  "menu": {
+    "cls": "ptcom-design__pageShape__ec3r6t ptcom-design__pageShapeGray__ec3r6t",
+    "rect": {
+      "x": -5112.06640625,
+      "y": -1442.08056640625,
+      "w": 3387.937744140625,
+      "h": 2941.3837890625
+    },
+    "bg": "rgb(118, 118, 118)",
+    "pos": "absolute",
+    "zIndex": "925",
+    "padding": "0px",
+    "links": [],
+    "heads": []
+  },
+  "mobile": {
+    "logo": {
+      "rect": {
+        "x": 20,
+        "y": 76,
+        "w": 83,
+        "h": 56
+      },
+      "padding": "20px 0px 16px"
+    },
+    "logoSvg": {
+      "rect": {
+        "x": 20,
+        "y": 96,
+        "w": 83,
+        "h": 20
+      },
+      "width": "83px",
+      "height": "20px"
+    },
+    "getStarted": {
+      "rect": {
+        "x": 261,
+        "y": 784,
+        "w": 109,
+        "h": 40
+      },
+      "font-size": "16px",
+      "padding": "10.2857px",
+      "height": "40px",
+      "width": "109.484px",
+      "display": "flex"
+    },
+    "btnCount": 2,
+    "btn0": {
+      "rect": {
+        "x": 59,
+        "y": 784,
+        "w": 40,
+        "h": 40
+      },
+      "width": "40px",
+      "height": "40px"
+    },
+    "banner": {
+      "rect": {
+        "x": 0,
+        "y": 0,
+        "w": 390,
+        "h": 76
+      },
+      "font-size": "16px",
+      "height": "75.6875px",
+      "padding": "0px"
+    }
+  }
+}

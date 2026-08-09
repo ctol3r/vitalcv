@@ -1,23 +1,31 @@
 'use client';
 
 /**
- * Eyebrow — the shared public eyebrow (UX-V1 production cutover).
+ * Eyebrow — the shared public chrome, rebuilt to the palantir.com header
+ * grammar (founder directive 2026-08-09: "exact to palantir").
  *
- * One continuous 64px architectural instrument, full browser width:
- * restrained VitalCV identity left, contextual product state center (a mono
- * ticker that follows the homepage work surface's current beat; a plain route
- * cue elsewhere), and a minimal right cluster — quiet Sign in, at most ONE
- * dominant contextual action (from headerRouteContext, unchanged policy), and
- * a boxed menu glyph opening a full-takeover index menu.
+ * There is no bar. The chrome is a zero-height sticky group whose instruments
+ * float over the page: wordmark upper-left at the gutter, and a right cluster —
+ * quiet sign-in, ONE dominant rectangular action (from headerRouteContext,
+ * unchanged policy), and a fused pair of 40px square instruments (NPI lookup,
+ * menu). The menu opens a full-viewport ink takeover that paints BELOW the
+ * chrome — the same instruments stay live over it and the menu glyph becomes
+ * the close control.
  *
  * Geometry is constant: scrolling and theme inversion change color only,
- * never height or layout. Sections keep declaring their register through the
+ * never position or size. Sections keep declaring their register through the
  * existing `data-header-theme` contract (useHeaderScene is unchanged); the
- * bar inverts over light bands and returns over dark ones.
+ * instruments invert over light bands and return over dark ones. While the
+ * takeover is open the chrome holds the dark register — it sits on ink.
  *
- * Replaces Navbar + AnnouncementRail on public surfaces. Route membership is
- * still owned by publicSurfaceRoutes.ts — this component decides nothing
- * about which routes carry chrome.
+ * On mobile the wordmark stays upper-left and the control cluster pins to the
+ * BOTTOM of the viewport (menu, lookup left; action right), matching the
+ * reference exactly.
+ *
+ * Route membership is still owned by publicSurfaceRoutes.ts — this component
+ * decides nothing about which routes carry chrome. Off the homepage a spacer
+ * keeps page tops clear of the floating instruments; the homepage hero owns
+ * its own clearance (easy-home.css).
  */
 
 import Link from 'next/link';
@@ -30,10 +38,13 @@ import { isPublicSurfacePath } from '@/components/layout/publicSurfaceRoutes';
 import { useOptionalRoleContext } from '@/components/auth/RoleContext';
 import { useHeaderScene } from '@/components/layout/useHeaderScene';
 
-/** The home work surface announces its current beat through this event. */
+/**
+ * The home work surface announces its current beat through this event.
+ * The chrome no longer narrates (the reference carries no center content);
+ * the constant stays exported because the surface still dispatches it and
+ * the composition manifest records the relationship.
+ */
 export const HOME_BEAT_EVENT = 'vcv:home-beat';
-
-const STATIC_TICKER = 'How VitalCV works';
 
 export default function Eyebrow() {
   const pathname = usePathname() ?? '/';
@@ -44,58 +55,32 @@ export default function Eyebrow() {
   });
 
   const [menuOpen, setMenuOpen] = useState(false);
-  const [ticker, setTicker] = useState(STATIC_TICKER);
-  const [tickerRoll, setTickerRoll] = useState(false);
-  const menuRef = useRef<HTMLDivElement | null>(null);
+  const headerRef = useRef<HTMLElement | null>(null);
   const menuButtonRef = useRef<HTMLButtonElement | null>(null);
-  const closeButtonRef = useRef<HTMLButtonElement | null>(null);
 
   const isHome = pathname === '/';
 
-  // The homepage work surface narrates its beat into the bar. Reduced-motion
-  // visitors never receive these events (the surface doesn't play), so the
-  // static label simply holds.
-  useEffect(() => {
-    if (!isHome) {
-      setTicker(STATIC_TICKER);
-      return;
-    }
-    const onBeat = (event: Event) => {
-      const label = (event as CustomEvent<{ label?: string }>).detail?.label;
-      if (!label) return;
-      setTicker(label);
-      setTickerRoll(true);
-    };
-    window.addEventListener(HOME_BEAT_EVENT, onBeat);
-    return () => window.removeEventListener(HOME_BEAT_EVENT, onBeat);
-  }, [isHome]);
-
-  useEffect(() => {
-    if (!tickerRoll) return;
-    const raf = requestAnimationFrame(() => setTickerRoll(false));
-    return () => cancelAnimationFrame(raf);
-  }, [tickerRoll, ticker]);
-
-  const openMenu = useCallback(() => setMenuOpen(true), []);
+  const toggleMenu = useCallback(() => setMenuOpen((open) => !open), []);
   const closeMenu = useCallback(() => {
     setMenuOpen(false);
     menuButtonRef.current?.focus();
   }, []);
 
-  // Takeover behavior: scroll lock, Escape, initial focus, focus containment.
+  // Takeover behavior: scroll lock, Escape, focus containment. The trap spans
+  // the whole header — the floating instruments stay interactive over the
+  // takeover, exactly like the reference chrome.
   useEffect(() => {
     if (!menuOpen) return;
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
-    closeButtonRef.current?.focus();
 
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         closeMenu();
         return;
       }
-      if (event.key !== 'Tab' || !menuRef.current) return;
-      const focusables = menuRef.current.querySelectorAll<HTMLElement>('a, button');
+      if (event.key !== 'Tab' || !headerRef.current) return;
+      const focusables = headerRef.current.querySelectorAll<HTMLElement>('a, button');
       if (focusables.length === 0) return;
       const first = focusables[0];
       const last = focusables[focusables.length - 1];
@@ -130,33 +115,60 @@ export default function Eyebrow() {
     : route.cta;
 
   return (
-    <header
-      className="vcv-eb z-50"
-      data-eb-theme={scene.theme}
-      data-eb-stage={scene.stage}
-      data-menu-open={menuOpen ? 'true' : 'false'}
-    >
-      <div className="vcv-eb__in">
-        <Link href="/" className="vcv-eb__wordmark" aria-label="VitalCV home">
-          VitalCV
-        </Link>
+    <>
+      <header
+        ref={headerRef}
+        className="vcv-eb z-50"
+        data-eb-theme={menuOpen ? 'dark' : scene.theme}
+        data-eb-stage={scene.stage}
+        data-menu-open={menuOpen ? 'true' : 'false'}
+      >
+        {/* The takeover paints first so the chrome instruments that follow it
+            in DOM order sit above it — stacking is DOM order, no z-index. */}
+        {menuOpen ? (
+          <div
+            id="vcv-eb-menu"
+            className="vcv-eb-menu"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Index"
+          >
+            <nav className="vcv-eb-menu__grid" aria-label="Site index">
+              {NAV_GROUPS.map((group) => (
+                <section key={group.id} className="vcv-eb-menu__col">
+                  <p className="vcv-eb-menu__label">{group.label}</p>
+                  <ul className="vcv-eb-menu__list">
+                    {group.links.map((link) => (
+                      <li key={link.href}>
+                        <Link
+                          href={link.href}
+                          className="vcv-eb-menu__link"
+                          onClick={closeMenu}
+                        >
+                          <span className="vcv-eb-menu__link-label">{link.label}</span>
+                          <span className="vcv-eb-menu__detail">
+                            <i aria-hidden="true">&#8627;</i> {link.detail}
+                          </span>
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              ))}
+            </nav>
+            <p className="vcv-eb-menu__foot">
+              VitalCV &middot; Enter your NPI. VitalCV does the rest.
+            </p>
+          </div>
+        ) : null}
 
-        <div className="vcv-eb__center">
-          {isHome ? (
-            <span
-              className={tickerRoll ? 'vcv-eb__ticker is-roll' : 'vcv-eb__ticker'}
-              aria-hidden="true"
-            >
-              {ticker}
-            </span>
-          ) : (
-            <span className="vcv-eb__context" data-header-context={route.audience}>
-              {route.contextLabel}
-            </span>
-          )}
+        <div className="vcv-eb__brand">
+          <Link href="/" className="vcv-eb__wordmark" aria-label="VitalCV home">
+            VitalCV
+          </Link>
         </div>
 
-        <div className="vcv-eb__right">
+        <div className="vcv-eb__controls">
           {/* Signed-in visitors get their workspace, not a sign-in prompt.
               Resolves client-side only — the root layout must stay static
               (static-marketing-cache-contract), so no auth() on the server. */}
@@ -175,70 +187,50 @@ export default function Eyebrow() {
               <span className="vcv-eb__cta-short">Start</span>
             </Link>
           ) : null}
-          <button
-            ref={menuButtonRef}
-            type="button"
-            className="vcv-eb__menu-btn"
-            aria-label="Open menu"
-            aria-expanded={menuOpen}
-            aria-controls="vcv-eb-menu"
-            onClick={openMenu}
-          >
-            <span className="vcv-eb__menu-glyph" aria-hidden="true">
-              <i />
-              <i />
-            </span>
-          </button>
-        </div>
-      </div>
-
-      {menuOpen ? (
-        <div
-          id="vcv-eb-menu"
-          ref={menuRef}
-          className="vcv-eb-menu z-[60]"
-          role="dialog"
-          aria-modal="true"
-          aria-label="Index"
-        >
-          <div className="vcv-eb-menu__top">
-            <span className="vcv-eb__wordmark">VitalCV</span>
-            <button
-              ref={closeButtonRef}
-              type="button"
-              className="vcv-eb-menu__close"
-              aria-label="Close menu"
-              onClick={closeMenu}
+          <div className="vcv-eb__cluster">
+            {/* The reference's search slot, mapped to VitalCV's one real
+                lookup: the public NPI check. Never a decorative control. */}
+            <Link
+              href="/verify"
+              className="vcv-eb__icon-btn vcv-eb__lookup"
+              aria-label="Look up a clinician by NPI"
             >
-              <span aria-hidden="true">&#10005;</span>
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                aria-hidden="true"
+              >
+                <circle cx="7" cy="7" r="5.25" />
+                <path d="M11 11l4 4" />
+              </svg>
+            </Link>
+            <button
+              ref={menuButtonRef}
+              type="button"
+              className="vcv-eb__icon-btn vcv-eb__menu-btn"
+              aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+              aria-expanded={menuOpen}
+              aria-controls="vcv-eb-menu"
+              onClick={toggleMenu}
+            >
+              <span className="vcv-eb__menu-glyph" aria-hidden="true">
+                <i />
+                <i />
+                <i />
+              </span>
             </button>
           </div>
-          <div className="vcv-eb-menu__scroll">
-            <nav className="vcv-eb-menu__groups" aria-label="Site index">
-              {NAV_GROUPS.map((group) => (
-                <div key={group.id} className="vcv-eb-menu__group">
-                  <p className="vcv-eb-menu__group-label">{group.label}</p>
-                  {group.links.map((link) => (
-                    <Link
-                      key={link.href}
-                      href={link.href}
-                      className="vcv-eb-menu__link"
-                      onClick={closeMenu}
-                    >
-                      <span>
-                        {link.label}
-                        <span className="vcv-eb-menu__detail">{link.detail}</span>
-                      </span>
-                      <i aria-hidden="true">&#8627;</i>
-                    </Link>
-                  ))}
-                </div>
-              ))}
-            </nav>
-          </div>
-          <p className="vcv-eb-menu__foot">VitalCV &middot; Enter your NPI. VitalCV does the rest.</p>
         </div>
-      ) : null}
-    </header>
+      </header>
+      {/* Off the homepage, page tops were composed under a 64px solid bar.
+          The floating chrome has zero footprint, so a spacer keeps those
+          compositions clear of the instruments. The homepage hero is a
+          full-bleed scene and owns its own clearance. */}
+      {!isHome ? <div className="vcv-eb__space" aria-hidden="true" /> : null}
+    </>
   );
 }

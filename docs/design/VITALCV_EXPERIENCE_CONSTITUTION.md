@@ -69,7 +69,7 @@ AA minimum everywhere. Every state legible in grayscale and to a screen reader w
 
 ### EC-6. Mobile is designed independently
 
-Every priority flow is composed for a 390px device deliberately — never stacked desktop. No horizontal scroll from 360px up. The eyebrow recomposes deliberately at the same height discipline (EC-10).
+Every priority flow is composed for a 390px device deliberately — never stacked desktop. No horizontal scroll from 360px up. The chrome recomposes deliberately: identity stays at the top gutter and the control cluster pins above the viewport bottom, with the page reserving clearance so no control is ever covered (EC-10, A-2).
 
 ### EC-7. Ownership and control — presentation preserves the controller
 
@@ -102,11 +102,19 @@ The machine-checkable subset is planned as `scripts/copy-rules.json` (UX-16) —
 
 ### EC-10. The eyebrow — structural form is invariant
 
-The site chrome is a **wide, shallow eyebrow**: full browser width, ONE continuous horizontal instrument, deliberately shallow at a **constant 56–72px**, content vertically centered, gutters consistent with the page grid. LEFT: restrained identity. MIDDLE: max 3 quiet items or contextual product state. RIGHT: quiet sign-in + at most one dominant instrument and/or a menu control. Architecturally stable on scroll (same height; ground/rule may change). Menu opens as a full-takeover canvas. Mobile recomposes deliberately at the same height discipline.
+**Amended 2026-08-09 (A-2), superseding the continuous-bar clause on the founder's direct
+directive ("exact to palantir.com").** The site chrome is a **floating instrument group**: a
+zero-height sticky layer with NO bar, no fill, and no bottom rule, whose instruments float over
+the page at the chrome gutter. LEFT: restrained identity (wordmark at the gutter). MIDDLE:
+nothing — the chrome carries no center content. RIGHT: quiet sign-in + at most one dominant
+rectangular action and a fused pair of square instruments (real lookup, menu). Instrument
+positions are architecturally stable on scroll (register/color may change, geometry never).
+Menu opens as a full-takeover canvas that paints BELOW the still-live chrome. Mobile recomposes
+deliberately: identity stays up top, the control cluster pins to the viewport bottom.
 
-**Banned forms:** floating rounded container, SaaS pills, centered-link-row-as-main-event, backdrop-blur-navbar-with-thin-line, ordinary hamburger sheet.
+**Banned forms (unchanged):** floating rounded container, SaaS pills, centered-link-row-as-main-event, backdrop-blur-navbar-with-thin-line, ordinary hamburger sheet.
 
-Exact geometry inside this form — height value, gutter value, rule treatment, corner language, inversion behavior — is Class B and locks in EC-20. After UX-03 ships with founder GO, shared chrome freezes unless a usability finding reopens it.
+Exact geometry inside this form — offset values, gutter value, instrument sizes, corner language, inversion behavior — is Class B and locks in EC-20. Shared chrome remains founder-gated: this amendment implements the founder's 2026-08-09 directive and itself lands only through the founder visual gate.
 
 ### EC-11. Value before commitment, and the four asymmetries
 
@@ -178,12 +186,12 @@ The **structure** is locked now. The **values** are filled from the UX-01 verdic
 | Typography — display / body / mono faces | **Geist** (400/500/600) for display and body; **Geist Mono** (400/500) for machine facts and micro-labels | LOCKED |
 | Type scale | Anchors from the verdict reference: hero h1 44–52px desktop / 30–34px mobile; micro-labels 11px mono uppercase `+0.08em`. Full ramp finalized in UX-02 within these anchors | LOCKED ANCHORS · ramp in UX-02 |
 | Grid + page width | Full-width hairline-ruled band composition; content max ~1400px. Precise grid in UX-02 | LOCKED · grid in UX-02 |
-| Eyebrow exact geometry (within EC-10's form) | Set at the **UX-03 founder visual gate**. Verdict reference: 64px desktop / 56px mobile, contextual product-state middle zone | SET AT UX-03 GATE |
+| Eyebrow exact geometry (within EC-10's form) | **Amended 2026-08-09 (A-2)**, superseding "64px desktop / 56px mobile, contextual product-state middle zone". Zero-height floating group; instruments at a 30px gutter (20px mobile), 30px from the top edge; dominant action 40px tall × 205px minimum, 16px/400 label; square instruments 40 × 40px with fused 1px borders; radius 0 on every chrome instrument; no fill, no bottom rule, no centre content. Mobile: identity at 20/20, control cluster fixed 20px above the viewport bottom | LOCKED (amended A-2) |
 | Button grammar (primary/secondary/quiet/destructive; ≥44px targets locked via EC-5) | Primary = solid work-green square-cornered instrument with AA-corrected near-black ink (reference `#4ADE97`; solid `#2E9E6B` + off-white recorded as the alternative); secondary = hairline outline; quiet = text. Exact styles in UX-02 | LOCKED STRUCTURE · styles in UX-02 |
 | Rule/border treatment | 1px hairlines structure panels and bands (`#2E2F33` on the graphite register) | LOCKED |
 | Icon family | **Consolidate to one family in UX-02.** Two are installed today: `lucide-react` (imported by 330 `apps/web` files) and `@blueprintjs/icons`; 47 components also carry inline `<svg>`. Whichever wins must satisfy the locked grammar — 1px hairline weight, near-sharp 0–3px, no glass, no gradient, no glow — and the loser is removed, not left resident. Design review picks; this row records the constraint and the count | DEFERRED · UX-02 owns · constraint locked |
 | Corner-radius philosophy + pill policy | **Amended 2026-08-09 (A-1)**, superseding "near-sharp 0–3px on panels and instruments; pills retired". The public **scene register** carries a four-step shape scale — `--vt-shape-pill` 9999px, `--vt-shape-control` 10px, `--vt-shape-card` 20px, `--vt-shape-panel` 24px. Two limits survive intact: evidence and operational surfaces (proof rows, tables, stamps, dense workflow) stay near-sharp, and **a pill is never a state marker** — EC-4 is untouched. Islands outside the scene register keep their own radii until migrated | LOCKED (amended A-1) |
-| Spacing rhythm | **No spacing scale exists yet** — measured 2026-08-08 (W1080): zero `--*-space*` custom properties across `apps/web/styles` and `globals.css`, so every value is currently ad hoc. UX-02A's "one semantic token layer" owns it; until that lands no wave may assert a spacing rule as law. Bounded by the locked band composition (full-width hairline-ruled, content max ~1400px) and the 64/56px eyebrow | DEFERRED · UX-02A owns · nothing to supersede |
+| Spacing rhythm | **No spacing scale exists yet** — measured 2026-08-08 (W1080): zero `--*-space*` custom properties across `apps/web/styles` and `globals.css`, so every value is currently ad hoc. UX-02A's "one semantic token layer" owns it; until that lands no wave may assert a spacing rule as law. Bounded by the locked band composition (full-width hairline-ruled, content max ~1400px) and the chrome gutter (30px desktop / 20px mobile, A-2) | DEFERRED · UX-02A owns · nothing to supersede |
 | Neutral palette (grounds, ink ramp, rules) | **Public register (dark, permitted not mandated):** ground `#141517`, panel `#1C1D20`, raised `#222326`, hairline `#2E2F33`, ink `#F2F1ED`, secondary `#9C9D99`. **Light register (required for evidence/printable/dense-legibility surfaces):** off-white family with graphite ink; exact artifact palette is a named UX-02 design task | LOCKED · light values in UX-02 |
 | Interaction/accent treatment | **Amended 2026-08-09 (A-1): the accent-work merge is reversed.** Work-green (`#4ADE97`, `--vt-scene-state-source-confirmed`) is the single **work** colour — source-confirmed facts and completed work — and is **retired as the primary action**. The primary action is the warm-paper inverse instrument (`--vt-action-primary-bg` = scene paper, `--vt-action-primary-fg` = paper ink). Needs-you amber `#E4B45C`; waiting neutral `#8F8C88`. VitalCV indigo (`--vt-accent-editorial`, register-resolved via `-on-dark` / `-on-paper`) carries the focus ring and the editorial atmosphere, and is **never a status colour**. State words always in ink (EC-4). Full state-hue family reconciled in UX-02 with the EC-3 vocabulary mapping | LOCKED (amended A-1) |
 | Mono presentation policy | Machine facts — NPIs, timestamps, state words, source names, micro-labels — in Geist Mono, `tabular-nums` | LOCKED |
@@ -328,6 +336,38 @@ Class A clauses and locked EC-20 rows change only by editing this file with a da
 Subjective July-era taste is not encoded as CI law before the reset direction is chosen. The `check-design-lint.ts` port from `.worktrees/retire-speed-claim` is scoped to the objective list above; taste rules from wave-1505's set (pill radii, shadow discipline, dark-on-public) join CI only if and when the verdict locks the matching EC-20 row. Proof obligation stands: a deliberately-violating PR must fail CI on every objective count before the gate is considered live.
 
 ### EC-24. Records
+
+- **A-2 — the floating chrome, on founder directive (2026-08-09).** EC-10's structural form and
+  EC-20's eyebrow-geometry row carry an `amended A-2` marker. This entry records the directive and
+  what the amendment deliberately does not touch.
+
+  The founder's standing request — restated 2026-08-09, "since the beginning, I've been asking for
+  the top eyebrow to be exact to palantir.com" — is a **Class B geometry directive inside EC-10's
+  form**, and EC-10's form itself had to move: the reference is not a bar. Measured from
+  palantir.com on 2026-08-09 (probe and computed styles archived with the wave evidence): the
+  chrome is a sticky group of zero height, the brand floats at a 30px gutter, the right cluster
+  holds one 40 × 205px rectangular action plus two fused 40px squares, every corner is square, and
+  the takeover paints beneath a chrome that stays live. VitalCV's implementation matches that
+  geometry and maps the reference's search slot to the one real lookup it has (the public NPI
+  check) rather than adding a decorative control.
+
+  **What A-2 does not change.** The register mechanism is untouched: sections still declare
+  `data-header-theme` and the chrome still inverts by declaration, never by pixel sampling or
+  blend-mode trickery — the reference uses `mix-blend-mode: difference`, which VitalCV rejects
+  because it makes contrast a function of whatever pixel is underneath, and EC-5's contrast floor
+  has to be provable. Colour still routes through `--vt-scene-*`. A-1 is untouched and not
+  contradicted: it *permits* the pill, it does not mandate it, and chrome instruments fall under
+  A-1's own surviving limit that operational surfaces stay near-sharp. Work-green remains barred
+  from the action (LINT-15). The page's primary NPI action keeps its A-1 pill; only the chrome is
+  square. **That divergence is deliberate and visible on `/` — two "Start with your NPI" controls
+  in different silhouettes — and is flagged for the founder at the visual gate.**
+
+  **One reference behaviour was rejected on accessibility grounds and the deviation is recorded
+  here rather than silently taken.** Mobile pins the control cluster to the viewport bottom, as the
+  reference does. Measured at 390 × 844 before clearance was added, the cluster covered the
+  footer's last two links and the feedback control at the document bottom. The footer now reserves
+  84px and the feedback chip rides above the cluster. The reference reserves equivalent clearance;
+  copying the pinning without the clearance would have shipped untappable links.
 
 - **A-1 — the 2026 scene register, ratified after the fact (2026-08-09).** Four locked EC-20 rows
   above carry an `amended A-1` marker. This entry records why, and the process failure that made

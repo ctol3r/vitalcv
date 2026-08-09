@@ -138,7 +138,9 @@
   grid-template-columns: 430px minmax(0, 1fr);
   gap: 56px;
   align-items: start;
-  padding-top: 56px;
+  /* The chrome is a zero-height floating group with instruments in the top
+     70px — the hero owns its clearance rather than sitting under a bar. */
+  padding-top: 120px;
   padding-bottom: 88px;
 }
 
@@ -1746,7 +1748,7 @@
        chrome's nowrap caption would push the track past narrow viewports */
     grid-template-columns: minmax(0, 1fr);
     gap: 44px;
-    padding-top: 44px;
+    padding-top: 108px;
   }
 
   .ezh-hero-copy {
@@ -1799,7 +1801,9 @@
   }
 
   .ezh-hero .ezh-wrap {
-    padding-top: 36px;
+    /* mobile chrome: only the wordmark floats up top (controls pin to the
+       viewport bottom), so the hero clears the 56px brand zone */
+    padding-top: 92px;
     padding-bottom: 64px;
     gap: 36px;
   }

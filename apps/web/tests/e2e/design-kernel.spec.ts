@@ -63,9 +63,10 @@ test.describe('design kernel — the intended font stack actually computes', () 
   });
 
   test('machine facts compute Geist Mono — mono is the retrieved-not-written signal', async ({ page }) => {
-    // The eyebrow's micro-labels are the always-present mono surface: the
-    // ticker on `/`, nav links elsewhere. Both feed from --font-geist-mono.
-    expect(await firstFamily(page, '.vcv-eb__ticker, .vcv-eb__navlink')).toBe(MONO);
+    // The homepage's micro-labels are the always-present mono surface. The
+    // chrome no longer carries center content (the floating-chrome rebuild),
+    // so the page's own kicker labels carry this contract.
+    expect(await firstFamily(page, '.ezh-k')).toBe(MONO);
   });
 
   test('every legacy font variable resolves to a kernel face — no era escapes', async ({ page }) => {

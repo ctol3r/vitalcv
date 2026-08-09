@@ -1,14 +1,17 @@
 // @vitest-environment jsdom
 
 /**
- * The UX-V1 eyebrow's contracts: public-route gating, the dark/light
- * register defaults, the single dominant action and its per-route
- * suppression, exactly one quiet sign-in, the full-takeover index menu
- * (open / Escape / focus return / scroll lock / complete nav registry), the
- * homepage beat ticker, and a plain route cue instead of a link row.
+ * The floating-chrome eyebrow's contracts: public-route gating, the
+ * dark/light register defaults, the single dominant action and its per-route
+ * suppression, exactly one quiet sign-in, the fused instrument cluster (real
+ * NPI lookup + menu toggle), the full-takeover index menu (toggle / Escape /
+ * focus return / scroll lock / complete nav registry / forced dark register
+ * while open), the off-home spacer, and the absence of any center content —
+ * the reference chrome carries none.
  *
- * Geometry (constant 64px height across scroll and inversion) is a browser
- * measurement — pinned in tests/e2e/eyebrow.spec.ts, not here.
+ * Geometry (zero-height sticky group, floating instrument positions constant
+ * across scroll, mobile bottom cluster) is a browser measurement — pinned in
+ * tests/e2e/eyebrow.spec.ts, not here.
  */
 
 import React from 'react';
@@ -22,7 +25,7 @@ vi.mock('next/navigation', () => ({
   usePathname: () => pathnameRef.current,
 }));
 
-import Eyebrow, { HOME_BEAT_EVENT } from '@/components/layout/Eyebrow';
+import Eyebrow from '@/components/layout/Eyebrow';
 import { NAV_GROUPS } from '@/components/layout/navDestinations';
 
 let root: Root | null = null;
@@ -37,12 +40,16 @@ async function mount(node: React.ReactNode) {
   });
 }
 
-afterEach(async () => {
+async function unmount() {
   if (root) {
     await act(async () => root!.unmount());
     root = null;
   }
   document.body.innerHTML = '';
+}
+
+afterEach(async () => {
+  await unmount();
   document.body.style.overflow = '';
 });
 
@@ -61,7 +68,7 @@ const pressEscape = () =>
   });
 
 describe('eyebrow gating and registers', () => {
-  it('renders the eyebrow on the homepage in the dark register', async () => {
+  it('renders the chrome on the homepage in the dark register', async () => {
     await mount(<Eyebrow />);
     const header = container.querySelector('header.vcv-eb');
     expect(header).not.toBeNull();
@@ -80,9 +87,19 @@ describe('eyebrow gating and registers', () => {
     const header = container.querySelector('header.vcv-eb');
     expect(header!.getAttribute('data-eb-theme')).toBe('light');
   });
+
+  it('the homepage is full-bleed; every other public route gets the spacer', async () => {
+    await mount(<Eyebrow />);
+    expect(container.querySelector('.vcv-eb__space')).toBeNull();
+    await unmount();
+
+    pathnameRef.current = '/trust';
+    await mount(<Eyebrow />);
+    expect(container.querySelector('.vcv-eb__space')).not.toBeNull();
+  });
 });
 
-describe('the right cluster: one quiet sign-in, at most one dominant action', () => {
+describe('the right cluster: one quiet sign-in, one action, fused instruments', () => {
   it('carries exactly one sign-in link', async () => {
     await mount(<Eyebrow />);
     expect(container.querySelectorAll('a[href="/sign-in"]').length).toBe(1);
@@ -101,9 +118,7 @@ describe('the right cluster: one quiet sign-in, at most one dominant action', ()
       pathnameRef.current = path;
       await mount(<Eyebrow />);
       expect(container.querySelectorAll('.vcv-eb__cta').length).toBeLessThanOrEqual(1);
-      await act(async () => root!.unmount());
-      root = null;
-      document.body.innerHTML = '';
+      await unmount();
     }
   });
 
@@ -112,53 +127,36 @@ describe('the right cluster: one quiet sign-in, at most one dominant action', ()
       pathnameRef.current = path;
       await mount(<Eyebrow />);
       expect(container.querySelector('.vcv-eb__cta')).toBeNull();
-      await act(async () => root!.unmount());
-      root = null;
-      document.body.innerHTML = '';
+      await unmount();
     }
   });
-});
 
-describe('the center: product state on /, route context elsewhere', () => {
-  it('shows the static ticker before any beat arrives', async () => {
+  it('the lookup instrument is the real public NPI check, never decorative', async () => {
     await mount(<Eyebrow />);
-    expect(container.querySelector('.vcv-eb__ticker')?.textContent).toBe('How VitalCV works');
+    const lookup = container.querySelector('.vcv-eb__lookup');
+    expect(lookup).not.toBeNull();
+    expect(lookup!.getAttribute('href')).toBe('/verify');
+    expect(lookup!.getAttribute('aria-label')).toBe('Look up a clinician by NPI');
   });
 
-  it('follows the work surface beats through the custom event', async () => {
-    await mount(<Eyebrow />);
-    await act(async () => {
-      window.dispatchEvent(
-        new CustomEvent(HOME_BEAT_EVENT, { detail: { label: 'Finding sources' } }),
-      );
-    });
-    expect(container.querySelector('.vcv-eb__ticker')?.textContent).toBe('Finding sources');
-  });
-
-  it('shows a non-interactive route cue off the homepage, never a link row', async () => {
-    pathnameRef.current = '/pricing';
-    await mount(<Eyebrow />);
-    const cue = container.querySelector('.vcv-eb__context');
-    expect(cue?.textContent).toBe('Your profile, ready for every move');
-    expect(container.querySelector('.vcv-eb__center-nav')).toBeNull();
-    expect(container.querySelectorAll('.vcv-eb__navlink')).toHaveLength(0);
-    expect(container.querySelector('nav[aria-label="Primary"]')).toBeNull();
-    expect(container.querySelector('.vcv-eb__ticker')).toBeNull();
-  });
-
-  it('uses the employer route cue without reviving the old employer link', async () => {
-    pathnameRef.current = '/employers/team';
-    await mount(<Eyebrow />);
-    const cue = container.querySelector('.vcv-eb__context');
-    expect(cue?.textContent).toBe('Hiring teams');
-    expect(cue?.getAttribute('data-header-context')).toBe('employer');
+  it('carries no center content: no ticker, no route cue, no link row', async () => {
+    for (const path of ['/', '/pricing']) {
+      pathnameRef.current = path;
+      await mount(<Eyebrow />);
+      expect(container.querySelector('.vcv-eb__ticker')).toBeNull();
+      expect(container.querySelector('.vcv-eb__context')).toBeNull();
+      expect(container.querySelector('.vcv-eb__center')).toBeNull();
+      expect(container.querySelectorAll('.vcv-eb__navlink')).toHaveLength(0);
+      expect(container.querySelector('nav[aria-label="Primary"]')).toBeNull();
+      await unmount();
+    }
   });
 });
 
 describe('the full-takeover index menu', () => {
   const trigger = () => container.querySelector<HTMLButtonElement>('.vcv-eb__menu-btn')!;
 
-  it('opens as a modal dialog listing the complete nav registry', async () => {
+  it('toggles open as a modal dialog listing the complete nav registry', async () => {
     await mount(<Eyebrow />);
     expect(trigger().getAttribute('aria-expanded')).toBe('false');
     await click(trigger());
@@ -176,6 +174,17 @@ describe('the full-takeover index menu', () => {
     }
   });
 
+  it('forces the dark register while open — the chrome sits on ink', async () => {
+    pathnameRef.current = '/trust';
+    await mount(<Eyebrow />);
+    const header = container.querySelector('header.vcv-eb')!;
+    expect(header.getAttribute('data-eb-theme')).toBe('light');
+    await click(trigger());
+    expect(header.getAttribute('data-eb-theme')).toBe('dark');
+    await pressEscape();
+    expect(header.getAttribute('data-eb-theme')).toBe('light');
+  });
+
   it('Escape closes it, restores scroll, and returns focus to the trigger', async () => {
     await mount(<Eyebrow />);
     await click(trigger());
@@ -187,11 +196,23 @@ describe('the full-takeover index menu', () => {
     expect(document.activeElement).toBe(trigger());
   });
 
-  it('the close control closes it too', async () => {
+  it('the same instrument closes it — the menu toggle is the close control', async () => {
     await mount(<Eyebrow />);
     await click(trigger());
-    await click(container.querySelector('.vcv-eb-menu__close')!);
+    expect(container.querySelector('#vcv-eb-menu')).not.toBeNull();
+    await click(trigger());
     expect(container.querySelector('#vcv-eb-menu')).toBeNull();
     expect(document.body.style.overflow).toBe('');
+  });
+
+  it('the takeover paints before the instruments in DOM order — no z-index war', async () => {
+    await mount(<Eyebrow />);
+    await click(trigger());
+    const header = container.querySelector('header.vcv-eb')!;
+    const children = Array.from(header.children).map((el) => el.className || el.id);
+    const menuIndex = children.findIndex((c) => String(c).includes('vcv-eb-menu'));
+    const brandIndex = children.findIndex((c) => String(c).includes('vcv-eb__brand'));
+    expect(menuIndex).toBeGreaterThanOrEqual(0);
+    expect(brandIndex).toBeGreaterThan(menuIndex);
   });
 });
