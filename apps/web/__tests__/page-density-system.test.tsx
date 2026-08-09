@@ -76,11 +76,14 @@ describe('page density system', () => {
     // /onboarding/success deleted after its live CTA was re-pointed at
     // /profile/activate; /clinician/graph + /clinician/onboarding were
     // retired-concept aliases).
-    // 136 = 135 + /admin/agent-ops, the Wave L0 read surface over the Start
-    // Agent decision ledger. ADMIN-gated and self-guarded like its sibling
-    // /admin/platform; before it, the six agent telemetry tables had no
-    // reader anywhere in the codebase.
-    expect(inventory).toHaveLength(136);
+    // 137 = 135 + two routes that landed together:
+    //   /admin/agent-ops — the Wave L0 read surface over the Start Agent
+    //     decision ledger. ADMIN-gated and self-guarded like its sibling
+    //     /admin/platform; before it, the six agent telemetry tables had no
+    //     reader anywhere in the codebase.
+    //   /design/vital-primitives — the D-02 scene-primitives harness
+    //     (noindex; 404s in canonical production via the /design layout gate).
+    expect(inventory).toHaveLength(137);
     expect(inventory.every((item) => !item.source.includes('/_archive/'))).toBe(true);
     expect(inventory.every((item) => !item.route.startsWith('/api/'))).toBe(true);
     expect(new Set(inventory.map((item) => item.density))).toEqual(
