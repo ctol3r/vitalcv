@@ -87,7 +87,6 @@
   ],
   "exclude": [
     "node_modules",
-    "src/blockchain/**",
     "src/graphql/**",
     "routes/*.disabled.ts",
     "src/domain/entity/educationService.ts",
