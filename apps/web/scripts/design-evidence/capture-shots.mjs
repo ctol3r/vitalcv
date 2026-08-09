@@ -1,6 +1,8 @@
 import { chromium } from '@playwright/test';
+import { mkdirSync } from 'node:fs';
 const BASE = process.env.BASE || 'http://localhost:4319';
-const OUT = process.env.OUT || '/private/tmp/vitalcv-d00/docs/design/evidence/d01a-homepage-slice';
+const OUT = process.env.OUT || './design-evidence-out';
+mkdirSync(OUT, { recursive: true });
 const browser = await chromium.launch();
 for (const width of [1280, 1440]) {
   const ctx = await browser.newContext({ viewport: { width, height: 1000 }, deviceScaleFactor: 2 });

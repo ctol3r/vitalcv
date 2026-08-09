@@ -17,7 +17,7 @@ import { chromium } from '@playwright/test';
 import { mkdirSync, writeFileSync } from 'node:fs';
 
 const BASE = process.env.BASE || 'http://localhost:4311';
-const OUT = process.env.OUT || '/tmp/vitalcv-d00-evidence';
+const OUT = process.env.OUT || './design-evidence-out';
 const ROUTES = (process.env.ROUTES || '/,/employers').split(',');
 const WIDTHS = [390, 768, 1280, 1440];
 
