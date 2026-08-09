@@ -98,7 +98,15 @@
   padding: 0 var(--eb-gutter);
 }
 
+/* EC-5 — the wordmark is a link home, and it measured 64×18: the type is 18px
+   and the box was the type. `inline-flex` + `min-height: 44px` grows the HIT
+   AREA only; `line-height: 1` still governs the glyphs and the bar centres the
+   box exactly where it centred the text, so this is a zero-pixel visual change
+   to D-01A's composition. The same applies to `__signin` below. */
 .vcv-eb__wordmark {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
   font-family: var(--font-geist);
   font-size: 18px;
   font-weight: 600;
@@ -160,11 +168,16 @@
 }
 
 .vcv-eb__signin {
+  display: inline-flex;
+  align-items: center;
+  /* 10px of padding on a 13px line box gave ~33px. Hit area only — see the
+     wordmark note; the label does not move. */
+  min-height: 44px;
   font-family: var(--font-geist);
   font-size: 13px;
   font-weight: 500;
   color: var(--eb-text2);
-  padding: 10px 6px;
+  padding: 0 6px;
   transition: color 0.15s ease;
 }
 
@@ -173,10 +186,14 @@
   color: var(--eb-text);
 }
 
+/* EC-20's locked button-grammar row reads "≥44px targets locked via EC-5", so
+   44 is the locked design, and 40 was the drift from it — raising this
+   IMPLEMENTS the reviewed row rather than overriding it. The pill is 4px taller
+   (36 → 44 on mobile); width, type, colour and radius are untouched. */
 .vcv-eb__cta {
   display: inline-flex;
   align-items: center;
-  height: 40px;
+  height: 44px;
   padding: 0 18px;
   background: var(--eb-cta-bg);
   color: var(--eb-cta-text);
@@ -404,7 +421,10 @@
   }
 
   .vcv-eb__cta {
-    height: 36px;
+    /* 44 even at 390px: the floor is not viewport-dependent, and a 56px bar
+       seats a 44px pill with 6px either side. Padding stays 14px so the pill
+       keeps its mobile width. */
+    height: 44px;
     padding: 0 14px;
   }
 
@@ -417,8 +437,11 @@
   }
 
   .vcv-eb__menu-btn {
-    width: 40px;
-    height: 40px;
+    /* Desktop already declares 44×44; only this mobile override dropped to 40,
+       i.e. the floor was honoured everywhere except the viewport where a finger
+       is the pointer. Restored to the desktop value rather than invented. */
+    width: 44px;
+    height: 44px;
   }
 
   .vcv-eb-menu__groups {

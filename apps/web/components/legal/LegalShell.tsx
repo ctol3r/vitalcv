@@ -45,9 +45,13 @@ const SCOPED_CSS = `
   font-family: ${bodyFont}; }
 .wv-legal-wrap { max-width: 860px; margin: 0 auto; padding: 56px 24px 80px; }
 .wv-legal-tabs { display: flex; flex-wrap: wrap; gap: 2px; margin-bottom: 28px; }
+/* EC-5 44px floor: 8px padding on a 10.5px mono line box measured 30px tall.
+   inline-flex + min-height grows the bordered box to the floor; the label stays
+   optically centred and the horizontal padding is unchanged. */
 .wv-legal-tab { font-family: ${monoFont}; font-size: 10.5px; font-weight: 600; letter-spacing: 0.1em;
   text-transform: uppercase; text-decoration: none; color: ${textSecondary};
-  padding: 8px 14px; border: 1px solid ${rule}; border-radius: 2px; }
+  display: inline-flex; align-items: center; min-height: 44px;
+  padding: 0 14px; border: 1px solid ${rule}; border-radius: 2px; }
 .wv-legal-tab:hover { color: ${ink}; border-color: ${ruleSoft}; }
 .wv-legal-tab[aria-current="page"] { color: ${paper}; background: ${ink}; border-color: ${ink}; }
 .wv-legal-eyebrow { font-family: ${monoFont}; font-size: 10px; font-weight: 500; letter-spacing: 0.2em;
