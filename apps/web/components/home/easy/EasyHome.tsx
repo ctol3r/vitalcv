@@ -24,8 +24,9 @@
  */
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
+import { NpiReveal, ResolvingNarration } from '@/components/home/easy/NpiReveal';
 import ProcessStory from '@/components/home/easy/ProcessStory';
 import WorkSurface from '@/components/home/easy/WorkSurface';
 import { FUNNEL_EVENTS, trackFunnelEvent } from '@/lib/analytics/funnel';
@@ -36,14 +37,31 @@ import { sourceCadenceSentence } from '@/lib/trust/sourceCadence';
 function NpiEntry() {
   const { state, onInput, submit, reset } = useCareerLoop();
   const [raw, setRaw] = useState('');
+  // The recognition pacing (UX-05): `settled` goes false the moment a submit
+  // starts and true only when the narration's floor elapses — so the reveal
+  // never beats the narration, and fast networks still get the beat. Under
+  // prefers-reduced-motion the floor is zero (the pacing hook settles
+  // instantly), which preserves today's immediate result exactly.
+  const [settled, setSettled] = useState(true);
+  const [attempt, setAttempt] = useState(0);
   const digits = raw.replace(/\D/g, '').slice(0, 10);
   const resolving = state.phase === 'resolving';
+  const narrating = resolving || !settled;
 
   const handleChange = (value: string) => {
     const next = value.replace(/\D/g, '').slice(0, 10);
     setRaw(next);
     onInput(next);
   };
+
+  const handleSubmit = () => {
+    if (resolving) return;
+    setSettled(false);
+    setAttempt((a) => a + 1);
+    void submit(raw);
+  };
+
+  const handleSettled = useCallback(() => setSettled(true), []);
 
   const profile = state.outcome === 'individual' ? state.profile : null;
 
@@ -53,7 +71,7 @@ function NpiEntry() {
         className="ezh-npi-form"
         onSubmit={(event) => {
           event.preventDefault();
-          if (!resolving) void submit(raw);
+          handleSubmit();
         }}
       >
         <label className="ezh-k" htmlFor="ezh-npi">
@@ -85,21 +103,25 @@ function NpiEntry() {
         </p>
       </form>
 
-      {profile ? (
-        <div className="ezh-result" role="status">
-          <div className="ezh-result-head">
-            <span className="ezh-result-mono" aria-hidden="true">{profile.monogram}</span>
-            <div>
-              <p className="ezh-result-name">{profile.displayName}</p>
-              <p className="ezh-result-meta">
-                {[profile.credential, profile.specialty, profile.location]
-                  .filter(Boolean)
-                  .join(' · ') || 'Named in the NPPES registry'}
-              </p>
-            </div>
-          </div>
-          <p className="ezh-result-src">Named by NPPES for NPI {profile.npi}</p>
+      {narrating && attempt > 0 && state.phase !== 'invalid' ? (
+        <ResolvingNarration
+          key={attempt}
+          done={!resolving}
+          onSettled={handleSettled}
+        />
+      ) : null}
 
+      {!narrating && profile ? (
+        <NpiReveal
+          profile={profile}
+          capsule={state.capsule}
+          isDemo={state.isDemo}
+          onKeep={() => writeNpiHandoff(profile.npi)}
+          onReset={() => {
+            setRaw('');
+            reset();
+          }}
+        >
           {state.matchPhase === 'loading' ? (
             <p className="ezh-result-note">Finding roles that fit&hellip;</p>
           ) : null}
@@ -126,33 +148,10 @@ function NpiEntry() {
           {state.matchPhase === 'error' ? (
             <p className="ezh-result-note">Role matching is unavailable right now.</p>
           ) : null}
-
-          <div className="ezh-result-actions">
-            <Link
-              href="/onboarding"
-              className="ezh-result-keep"
-              onClick={() => writeNpiHandoff(profile.npi)}
-            >
-              Keep this record
-            </Link>
-            <button
-              type="button"
-              className="ezh-result-again"
-              onClick={() => {
-                setRaw('');
-                reset();
-              }}
-            >
-              Check another NPI
-            </button>
-          </div>
-          <p className="ezh-result-note">
-            Your profile continues in onboarding &mdash; you decide what gets shared, every time.
-          </p>
-        </div>
+        </NpiReveal>
       ) : null}
 
-      {state.outcome === 'organization' ? (
+      {!narrating && state.outcome === 'organization' ? (
         <div className="ezh-result" role="status">
           <p className="ezh-result-name">This NPI names an organization.</p>
           <p className="ezh-result-note">
@@ -174,7 +173,7 @@ function NpiEntry() {
         </div>
       ) : null}
 
-      {state.outcome === 'unavailable' || state.phase === 'error' ? (
+      {!narrating && (state.outcome === 'unavailable' || state.phase === 'error') ? (
         <div className="ezh-result" role="status">
           <p className="ezh-result-name">The registry could not answer.</p>
           <p className="ezh-result-note">
