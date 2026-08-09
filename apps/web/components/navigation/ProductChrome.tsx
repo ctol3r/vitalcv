@@ -21,7 +21,9 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { UserButton } from '@clerk/nextjs';
 
+import { CLERK_PROVIDER_ENABLED } from '@/lib/auth/clerkConfig';
 import { RouteTrail } from '@/components/navigation/RouteTrail';
 import { isProductSurfacePath } from '@/components/layout/publicSurfaceRoutes';
 import {
@@ -80,6 +82,24 @@ export function ProductChrome() {
                 {ROUTE_MANIFEST[rootHref]?.label ?? 'Overview'}
               </Link>
             )}
+            {/*
+              Account + sign out.
+
+              The clinician tree has had this since HolderDesktopNav; the
+              employer, issuer, admin and ops consoles never did, because they
+              had no chrome at all — so a signed-in employer had NO WAY TO SIGN
+              OUT of their own console short of clearing cookies. UX-03 gave
+              those surfaces a bar; this puts the one account control that is
+              actually wired into it.
+
+              Deliberately just Clerk's UserButton (manage account, sign out).
+              It is not an employer settings surface: organization membership,
+              roles and seat management are org-governance product decisions,
+              recorded as the open dependency in the authed-navigation audit and
+              NOT invented here. Same `afterSignOutUrl` as the holder tree so
+              signing out lands in one place across the product.
+            */}
+            {CLERK_PROVIDER_ENABLED ? <UserButton afterSignOutUrl="/" /> : null}
           </div>
         </div>
       </header>

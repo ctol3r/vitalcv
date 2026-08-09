@@ -176,3 +176,79 @@ recorded in `docs/security/a11y-known-violations.md`. After the StateChip fix,
    Serving a production build without it returns **500** on both —
    *"receiptIssuer: RECEIPT_PRIVATE_KEY_JWK is required in production"* — which
    looks like a broken page and is actually a missing harness variable.
+
+---
+
+## Addendum — the touch floor was two numbers; 44 rules
+
+Running the gate produced a baseline of 253 desktop / 251 mobile sub-44px
+targets. Aggregating them **by component** rather than by page showed it was not
+scattered debt — four shared elements carried ~87% of it:
+
+| Component | Size | ~instances |
+|---|---|---|
+| Footer links (`FOOTER_LINK_CLASS`) | 24px high | ~152 |
+| `.vcv-eb__wordmark` | 64×18 | 20 |
+| `.vcv-eb__menu-btn` (mobile only) | 40×40 | 20 |
+| `.vcv-eb__cta` | 60×36 | 18 |
+
+And the footer's 24px was **deliberate**: its comment reasons explicitly to
+**WCAG 2.2 AA 2.5.8 (Target Size, Minimum) = 24×24 CSS px**, with a guard
+asserting `min-h-[24px]`.
+
+**The ruling: 44 controls.** EC-5 states "44px minimum touch targets" and
+EC-20's locked button-grammar row repeats it — *"≥44px targets locked via
+EC-5"*. The constitution is the experience authority of record. 2.5.8's 24px is
+the external floor we must never fall through; it is not the bar we aim at, and
+a guard pinned at 24 was enforcing a number the constitution had already
+superseded — the `guards_can_enforce_retired_doctrine` pattern, found by a gate
+rather than by review.
+
+Note what this means for the eyebrow: raising `.vcv-eb__cta` from 40 → 44
+**implements** the locked EC-20 row rather than overriding the founder-reviewed
+D-01A composition. 40px was the drift.
+
+### Result — and why this landed in two parts
+
+The eyebrow half was **split out before merge**. PR #1261 ("rebuild the public
+eyebrow to the palantir.com grammar") was open from another lane and edits the
+same four files, and the founder visual gate §1 is explicit: *"Do not merge
+visual changes from multiple agent lanes into the same public surface without
+one named creative owner."* Two lanes editing `styles/eyebrow.css` means
+whichever lands second silently reverts the other — and a four-pixel CTA change
+is exactly what a rebuild would quietly undo.
+
+So the eyebrow declarations wait for that rebuild and are re-applied on top of
+it, where the ratchet then *proves* the rebuilt bar clears the floor. Held on
+`fix/touch-floor-eyebrow-held`.
+
+| Viewport | Before | Footer + legal tabs (shipped) | Change | With eyebrow (held) |
+|---|---|---|---|---|
+| desktop 1440×900 | 253 | **93** | −63% | 35 (−86%) |
+| mobile 390×844 | 251 | **91** | −64% | 33 (−87%) |
+
+The footer alone carries roughly two-thirds of the debt; the eyebrow's four
+controls carry the next 58 targets, because they render on every one of the 20
+routes.
+
+In the **held** eyebrow half, two of the changes are zero-pixel visual changes —
+the wordmark and sign-in link grow their hit box only (`inline-flex` +
+`min-height`), since the type keeps `line-height: 1` and the bar centres the box
+where it centred the text.
+
+In the **shipped** half, the footer's link row gets taller. Real 44px boxes were
+chosen over the padding/negative-margin trick because with `gap-4` between
+wrapped rows, phantom hit areas would overlap the neighbouring row's by 12px —
+trading a visible, honest height increase for silent mis-taps.
+
+### What the remaining ~34 are
+
+A long tail with no dominant component: inline text links on individual pages
+(~20px), the homepage's own bespoke footer band (`/` composes its own, so it does
+not inherit the shared Footer fix), `/pilot`'s two CTAs at 42px, and a single
+`ezh-sf-replay` button at 77×26.
+
+Each needs individual visual judgement on a reviewed composition, for
+diminishing returns — so they are **ratcheted in place, not swept**. The gate
+now prevents any of them growing back, and the next pass has an exact,
+short list.

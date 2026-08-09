@@ -1,1 +1,198 @@
-{"/@desktop":{"violations":{},"smallTargets":12},"/@mobile":{"violations":{},"smallTargets":12},"/contact@desktop":{"violations":{"color-contrast":3},"smallTargets":12},"/contact@mobile":{"violations":{"color-contrast":3},"smallTargets":12},"/docs@desktop":{"violations":{},"smallTargets":11},"/docs@mobile":{"violations":{},"smallTargets":11},"/employers@desktop":{"violations":{},"smallTargets":18},"/employers@mobile":{"violations":{},"smallTargets":18},"/evidence-network@desktop":{"violations":{"color-contrast":1},"smallTargets":14},"/evidence-network@mobile":{"violations":{"color-contrast":1},"smallTargets":14},"/for/cvo@desktop":{"violations":{},"smallTargets":11},"/for/cvo@mobile":{"violations":{},"smallTargets":11},"/for/payer@desktop":{"violations":{},"smallTargets":11},"/for/payer@mobile":{"violations":{},"smallTargets":11},"/for/staffing-exchange@desktop":{"violations":{},"smallTargets":11},"/for/staffing-exchange@mobile":{"violations":{},"smallTargets":11},"/onboarding@desktop":{"violations":{},"smallTargets":10},"/onboarding@mobile":{"violations":{},"smallTargets":10},"/pilot@desktop":{"violations":{},"smallTargets":11},"/pilot@mobile":{"violations":{},"smallTargets":11},"/pricing@desktop":{"violations":{"color-contrast":7},"smallTargets":14},"/pricing@mobile":{"violations":{"color-contrast":7},"smallTargets":14},"/privacy@desktop":{"violations":{"color-contrast":1},"smallTargets":15},"/privacy@mobile":{"violations":{"color-contrast":1},"smallTargets":15},"/review@desktop":{"violations":{"color-contrast":1},"smallTargets":12},"/review@mobile":{"violations":{"color-contrast":1},"smallTargets":12},"/sign-in@desktop":{"violations":{},"smallTargets":11},"/sign-in@mobile":{"violations":{},"smallTargets":11},"/sign-up@desktop":{"violations":{},"smallTargets":11},"/sign-up@mobile":{"violations":{},"smallTargets":11},"/status@desktop":{"violations":{"color-contrast":1},"smallTargets":12},"/status@mobile":{"violations":{"color-contrast":1},"smallTargets":12},"/terms@desktop":{"violations":{"color-contrast":1},"smallTargets":15},"/terms@mobile":{"violations":{"color-contrast":1},"smallTargets":15},"/trust@desktop":{"violations":{"color-contrast":4},"smallTargets":13},"/trust@mobile":{"violations":{"color-contrast":4},"smallTargets":13},"/verify@desktop":{"violations":{},"smallTargets":12},"/verify@mobile":{"violations":{},"smallTargets":12},"/verify/guide@desktop":{"violations":{"color-contrast":6},"smallTargets":17},"/verify/guide@mobile":{"violations":{"color-contrast":6},"smallTargets":15}}
+{
+  "/@desktop": {
+    "violations": {},
+    "smallTargets": 12
+  },
+  "/@mobile": {
+    "violations": {},
+    "smallTargets": 12
+  },
+  "/contact@desktop": {
+    "violations": {
+      "color-contrast": 3
+    },
+    "smallTargets": 4
+  },
+  "/contact@mobile": {
+    "violations": {
+      "color-contrast": 3
+    },
+    "smallTargets": 4
+  },
+  "/docs@desktop": {
+    "violations": {},
+    "smallTargets": 3
+  },
+  "/docs@mobile": {
+    "violations": {},
+    "smallTargets": 3
+  },
+  "/employers@desktop": {
+    "violations": {},
+    "smallTargets": 10
+  },
+  "/employers@mobile": {
+    "violations": {},
+    "smallTargets": 10
+  },
+  "/evidence-network@desktop": {
+    "violations": {
+      "color-contrast": 1
+    },
+    "smallTargets": 6
+  },
+  "/evidence-network@mobile": {
+    "violations": {
+      "color-contrast": 1
+    },
+    "smallTargets": 6
+  },
+  "/for/cvo@desktop": {
+    "violations": {},
+    "smallTargets": 3
+  },
+  "/for/cvo@mobile": {
+    "violations": {},
+    "smallTargets": 3
+  },
+  "/for/payer@desktop": {
+    "violations": {},
+    "smallTargets": 3
+  },
+  "/for/payer@mobile": {
+    "violations": {},
+    "smallTargets": 3
+  },
+  "/for/staffing-exchange@desktop": {
+    "violations": {},
+    "smallTargets": 3
+  },
+  "/for/staffing-exchange@mobile": {
+    "violations": {},
+    "smallTargets": 3
+  },
+  "/onboarding@desktop": {
+    "violations": {},
+    "smallTargets": 2
+  },
+  "/onboarding@mobile": {
+    "violations": {},
+    "smallTargets": 2
+  },
+  "/pilot@desktop": {
+    "violations": {},
+    "smallTargets": 3
+  },
+  "/pilot@mobile": {
+    "violations": {},
+    "smallTargets": 3
+  },
+  "/pricing@desktop": {
+    "violations": {
+      "color-contrast": 7
+    },
+    "smallTargets": 6
+  },
+  "/pricing@mobile": {
+    "violations": {
+      "color-contrast": 7
+    },
+    "smallTargets": 6
+  },
+  "/privacy@desktop": {
+    "violations": {
+      "color-contrast": 1
+    },
+    "smallTargets": 3
+  },
+  "/privacy@mobile": {
+    "violations": {
+      "color-contrast": 1
+    },
+    "smallTargets": 3
+  },
+  "/review@desktop": {
+    "violations": {
+      "color-contrast": 1
+    },
+    "smallTargets": 4
+  },
+  "/review@mobile": {
+    "violations": {
+      "color-contrast": 1
+    },
+    "smallTargets": 4
+  },
+  "/sign-in@desktop": {
+    "violations": {},
+    "smallTargets": 3
+  },
+  "/sign-in@mobile": {
+    "violations": {},
+    "smallTargets": 3
+  },
+  "/sign-up@desktop": {
+    "violations": {},
+    "smallTargets": 3
+  },
+  "/sign-up@mobile": {
+    "violations": {},
+    "smallTargets": 3
+  },
+  "/status@desktop": {
+    "violations": {
+      "color-contrast": 1
+    },
+    "smallTargets": 4
+  },
+  "/status@mobile": {
+    "violations": {
+      "color-contrast": 1
+    },
+    "smallTargets": 4
+  },
+  "/terms@desktop": {
+    "violations": {
+      "color-contrast": 1
+    },
+    "smallTargets": 3
+  },
+  "/terms@mobile": {
+    "violations": {
+      "color-contrast": 1
+    },
+    "smallTargets": 3
+  },
+  "/trust@desktop": {
+    "violations": {
+      "color-contrast": 4
+    },
+    "smallTargets": 5
+  },
+  "/trust@mobile": {
+    "violations": {
+      "color-contrast": 4
+    },
+    "smallTargets": 5
+  },
+  "/verify@desktop": {
+    "violations": {},
+    "smallTargets": 4
+  },
+  "/verify@mobile": {
+    "violations": {},
+    "smallTargets": 4
+  },
+  "/verify/guide@desktop": {
+    "violations": {
+      "color-contrast": 6
+    },
+    "smallTargets": 9
+  },
+  "/verify/guide@mobile": {
+    "violations": {
+      "color-contrast": 6
+    },
+    "smallTargets": 7
+  }
+}

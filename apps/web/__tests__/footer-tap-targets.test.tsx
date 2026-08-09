@@ -3,7 +3,7 @@ import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 /**
- * WCAG 2.2 AA 2.5.8 (Target Size, Minimum) for the global footer.
+ * EC-5's 44px touch floor for the global footer.
  *
  * Measured on production at a real 390×844 viewport: the six footer links were
  * 16px tall — `text-xs` gives a 16px line box — with `gap-4` (16px) between
@@ -11,11 +11,23 @@ import { describe, expect, it } from 'vitest';
  * are standalone nav links, so the inline-in-a-sentence exception does not
  * apply either.
  *
+ * This guard originally asserted **24px**, reasoning from WCAG 2.2 AA 2.5.8
+ * (Target Size, Minimum). That is the external legal minimum, not the house
+ * floor: EC-5 says "44px minimum touch targets" and EC-20's locked
+ * button-grammar row repeats it. So the guard was pinning a number the
+ * constitution had already superseded, and holding it there — exactly the
+ * `guards_can_enforce_retired_doctrine` failure. Raised to 44 with the
+ * component.
+ *
+ * 2.5.8's 24px is still the floor we must never fall through; it is simply not
+ * the bar we aim at, and a guard should encode the bar.
+ *
  * The guard is source-level because jsdom does not lay out (every
  * getBoundingClientRect is 0×0), so a rendered assertion here would pass
  * against any markup and prove nothing. Real geometry is checked by the mobile
- * Playwright pass; this test's job is to stop the class from being dropped in a
- * copy or styling edit — the failure mode this repo has hit before.
+ * Playwright pass in tests/e2e/a11y-public-routes.spec.ts; this test's job is
+ * to stop the class from being dropped in a copy or styling edit — the failure
+ * mode this repo has hit before.
  */
 
 const FOOTER = fs.readFileSync(
@@ -41,21 +53,21 @@ describe('global footer — tap targets meet WCAG 2.5.8', () => {
     expect(styled, 'every footer <Link> must use FOOTER_LINK_CLASS').toBe(links);
   });
 
-  it('that class guarantees a >= 24px hit area', () => {
+  it('that class guarantees a >= 44px hit area (EC-5, not 2.5.8)', () => {
     const decl = FOOTER.match(/const FOOTER_LINK_CLASS\s*=\s*(?:\n\s*)?'([^']+)'/);
     expect(decl, 'FOOTER_LINK_CLASS must be a single string literal').not.toBeNull();
     const cls = decl![1];
 
     // min-height only takes effect on a flex/block box, so both parts matter.
-    expect(cls).toMatch(/min-h-\[24px\]|min-h-6/);
+    expect(cls).toMatch(/min-h-\[44px\]|min-h-11/);
     expect(cls).toMatch(/inline-flex|flex/);
     expect(cls).toContain('items-center');
 
-    // 2.5.8 is a floor on BOTH dimensions. Only the height was guarded here,
+    // EC-5 is a floor on BOTH dimensions. Only the height was guarded once,
     // and "DPA" sat at 23px wide on production the whole time — a short label
     // is all it takes. Measured at 390×844.
-    expect(cls, 'width floor: a short label like "DPA" falls under 24px without it')
-      .toMatch(/min-w-\[24px\]|min-w-6/);
+    expect(cls, 'width floor: a short label like "DPA" falls under the floor without it')
+      .toMatch(/min-w-\[44px\]|min-w-11/);
   });
 
   it('no footer link carries a bare text-xs class without the hit-area wrapper', () => {
