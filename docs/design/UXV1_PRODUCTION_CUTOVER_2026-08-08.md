@@ -90,20 +90,30 @@ storytelling.
 
 ## Cleanup debt recorded for UX-F (foundation lane — do NOT block on these)
 
-1. Parked chrome (`Navbar`, `HeaderMenu`, `LiquidMenu`, `JourneyRail`,
-   `AnnouncementRail`, `styles/header.css`) removal once rollback confidence
-   expires; their unit suites retire with them.
-2. `styles/career-loop-home.css` + `styles/home.css` leave the `/` bundle
-   when their variants are retired from the registry.
-3. Token consolidation: `--ezh-*` / `--eb-*` island values should fold into
-   the UX-02 three-tier token system when it lands (the census's 993-custom-
-   property collapse); the two islands intentionally share the same palette
-   values today.
-4. `scripts/check-design-lint.ts` `LEGACY_HOME_ROOTS` still names the deleted
-   `HomePageClient.tsx`; drop it with the R4-legacy ratchet when the loop era
-   is removed.
-5. The `#npi` / `#how-it-works` anchors and the `scroll-margin-top: 80px`
-   rule should derive from one shared eyebrow-height token.
+Ledger audited 2026-08-09. Items carry their gate so nobody spends them early
+or twice — item 3 was nearly re-done by this lane a day after another lane had
+already shipped it.
+
+1. **OPEN — gated on founder rollback-confidence call.** Parked chrome
+   (`Navbar`, `HeaderMenu`, `LiquidMenu`, `JourneyRail`, `AnnouncementRail`,
+   `styles/header.css`) removal; their unit suites retire with them. Do NOT
+   take opportunistically: the env-var rollback is the homepage's incident
+   plan, and deleting its chrome a day after cutover trades real insurance for
+   tidiness.
+2. **OPEN — same gate.** `styles/career-loop-home.css` + `styles/home.css`
+   leave the `/` bundle when their variants are retired from the registry.
+3. **DONE 2026-08-09 by D-01 (#1229), not this lane.** The `--ezh-*` / `--eb-*`
+   island values now resolve through the `--vt-scene-*` register in
+   `styles/themes/index.css`; #1232 extends the same island to the signed-in
+   product bar. Nothing left to fold here — remaining token collapse belongs to
+   UX-02's census work.
+4. **OPEN — gated on item 2.** `scripts/check-design-lint.ts`
+   `LEGACY_HOME_ROOTS` still names the deleted `HomePageClient.tsx`; drop it
+   with the R4-legacy ratchet when the loop era is removed.
+5. **OPEN — deferred while #1232 holds `eyebrow.css`.** The `#npi` /
+   `#how-it-works` anchors and the `scroll-margin-top: 80px` rule should derive
+   from one shared eyebrow-height token. Not worth a merge conflict with an
+   open chrome PR; take it after #1232 lands.
 
 ## Founder gate
 
