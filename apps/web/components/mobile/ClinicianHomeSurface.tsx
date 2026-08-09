@@ -1,47 +1,45 @@
 'use client';
 
+/**
+ * ClinicianHomeSurface — the clinician home, recomposed (A3, 2026-08-08).
+ *
+ * The audit plan's strict hierarchy, in order: status since last visit → one
+ * next action → the work ledger (real recorded events only) → what is waiting
+ * on you or on someone else → the relevant application and role. Everything
+ * else is a contextual link, not a widget.
+ *
+ * Retired from the default home by the same ruling: the MATCHA compass and
+ * activity cards, the illustrative career graph, the decorative EKG "live
+ * read" monitor, the padded readiness bar (it drew a floor under an absent
+ * score), the Momentum and Proof-of-progress metric grids, and the
+ * eight-card action grid. No metric renders here unless it was actually
+ * computed from returned evidence and is explained where it appears.
+ */
+
 import * as React from 'react';
 import Link from 'next/link';
 import {
-  BellRing,
-  BriefcaseBusiness,
-  Compass,
-  Gauge,
-  History,
+  ArrowRight,
+  CircleCheck,
+  CircleDot,
+  Clock,
   RefreshCw,
-  Settings,
   Share2,
-  ShieldCheck,
-  Sparkles,
-  UserRound,
   Wallet,
 } from 'lucide-react';
 import {
   ApplicationList,
-  NotificationList,
   OpportunityGrid,
-  QuickActionGrid,
   SelectedOpportunityBanner,
 } from '@/components/mobile/ClinicianPanels';
-import type { MobileQuickAction } from '@/components/mobile/ClinicianPanels';
 import { ClinicianStatusBanner } from '@/components/mobile/ClinicianStatusBanner';
 import { ClinicianSupportCard } from '@/components/mobile/ClinicianSupportCard';
 import { useClinicianMobile } from '@/components/mobile/ClinicianMobileProvider';
-import { countApplicationsInMotion } from '@/lib/mobile/clinician-state';
-import { formatEventTimestamp } from '@/lib/mobile/formatEventTimestamp';
-import { RecognitionCard } from '@/components/recognition/RecognitionCard';
-import CareerCompass from '@/components/matcha/CareerCompass';
-import { CareerEvidenceGraph } from '@/components/holder/CareerEvidenceGraph';
 import { Reveal } from '@/components/motion/Reveal';
 import { FEATURES } from '@/lib/features';
-import { MatchaHomeActivity } from '@/components/matcha/MatchaHomeActivity';
 import { trackClinicianEventOncePerSession } from '@/lib/mobile/analytics';
-import { buildClinicianProofSummary } from '@/lib/proof/proof-model';
-
-/** One heartbeat cycle for the readiness-card vitals monitor, tiled for a
- *  seamless loop. Matches the homepage wallet's clinical-monitor language. */
-const READINESS_EKG =
-  'M0 22 H26 L34 22 L40 12 L46 30 L52 6 L58 34 L64 22 L72 22 H104 L112 22 L118 14 L124 28 L130 22 H160';
+import { formatEventTimestamp } from '@/lib/mobile/formatEventTimestamp';
+import { buildWorkLedger, type LedgerEntry } from '@/lib/mobile/work-ledger';
 
 function resumeLabel(path: string | null): { title: string; href: string } | null {
   if (!path || path === '/holder/home') {
@@ -79,42 +77,25 @@ function resumeLabel(path: string | null): { title: string; href: string } | nul
   return { title: 'Continue where you left off', href: path };
 }
 
-function readinessMomentumCopy(input: {
-  hasReadiness: boolean;
-  blockers: number;
-  readinessScore: number;
-  completeness: number;
-}): string {
-  if (!input.hasReadiness) {
-    return 'Start onboarding to build your readiness baseline.';
+/** Glyph per ledger state — always paired with the word, never color or shape alone (EC-4). */
+function LedgerGlyph({ state }: { state: LedgerEntry['state'] }) {
+  if (state === 'did' || state === 'finished') {
+    return <CircleCheck className="h-4 w-4 flex-none" aria-hidden="true" />;
   }
-
-  if (input.blockers === 0) {
-    return 'You are ready to keep moving.';
+  if (state === 'employer') {
+    return <Clock className="h-4 w-4 flex-none" aria-hidden="true" />;
   }
-
-  if (input.blockers === 1 && Math.max(input.readinessScore, input.completeness) >= 75) {
-    return 'You are close. Resolve 1 more item to feel ready.';
-  }
-
-  return `${input.blockers} item${input.blockers === 1 ? '' : 's'} left before you feel fully ready.`;
+  return <CircleDot className="h-4 w-4 flex-none" aria-hidden="true" />;
 }
 
-function countCompletedProfileChecks(
-  dimensions: {
-    npiVerified: boolean;
-    resumeUploaded: boolean;
-    linksAdded: boolean;
-    workAuthProvided: boolean;
-    credentialsImported: boolean;
-  } | null | undefined,
-): number {
-  if (!dimensions) {
-    return 0;
-  }
-
-  return Object.values(dimensions).filter(Boolean).length;
-}
+const CONTEXT_LINKS: Array<{ label: string; href: string; gated?: 'matcha' }> = [
+  { label: 'Readiness', href: '/holder/readiness' },
+  { label: 'Wallet', href: '/holder' },
+  { label: 'Career scoreboard', href: '/holder/scoreboard' },
+  { label: 'Career timeline', href: '/holder/timeline' },
+  { label: 'Your Career DNA', href: '/holder/matcha', gated: 'matcha' },
+  { label: 'Settings', href: '/holder/settings' },
+];
 
 export default function ClinicianHomeSurface() {
   const {
@@ -128,56 +109,46 @@ export default function ClinicianHomeSurface() {
     refresh,
   } = useClinicianMobile();
   const resume = resumeLabel(resumePath);
-  const readiness = data.trustState;
   const profile = data.workspace?.personProfile;
   const npi = profile?.npi ?? 'unknown';
   const hasValidNpi = /^\d{10}$/.test(npi);
   const fullName = [profile?.firstName, profile?.lastName].filter(Boolean).join(' ').trim();
   const displayName = fullName || 'Your VitalCV profile';
   // Share the real, public, source-backed proof (what an employer actually
-  // reads) — never the demo-backed presentation flow. Falls back to the wallet
-  // when no NPI is bound yet.
+  // reads). Falls back to the wallet when no NPI is bound yet.
   const shareHref = hasValidNpi ? `/verify/${npi}` : '/holder';
-  const completeness = data.profileCompleteness?.score ?? data.workspace?.personProfile?.completeness ?? 0;
-  const completedProfileChecks = countCompletedProfileChecks(data.profileCompleteness?.dimensions);
-  const profileComplete = completeness >= 100 || completedProfileChecks >= 5;
   const previousVisitMs = previousVisitAt ? Date.parse(previousVisitAt) : 0;
+  // Standing states (missing items) are not changes — they are stamped with
+  // the request clock and would report "5 changes" to an account where
+  // nothing has ever happened. They render once, under Waiting.
+  const eventNotifications = visibleNotifications.filter(
+    (notification) => notification.type !== 'missing_item_detected',
+  );
   const changesSinceLastVisit = previousVisitMs > 0
-    ? visibleNotifications.filter((notification) => Date.parse(notification.occurredAt) > previousVisitMs)
+    ? eventNotifications.filter((notification) => Date.parse(notification.occurredAt) > previousVisitMs)
     : [];
-  const highlightedChange = changesSinceLastVisit[0] ?? unreadNotifications[0] ?? null;
-  const readinessMomentum = readinessMomentumCopy({
-    hasReadiness: Boolean(readiness),
-    blockers: data.blockers.length,
-    readinessScore: readiness?.readinessScore ?? 0,
-    completeness,
+  const highlightedChange = changesSinceLastVisit[0] ?? null;
+  const ledger = buildWorkLedger(data);
+  const refreshedAtLabel = new Date(data.refreshedAt).toLocaleTimeString([], {
+    hour: 'numeric',
+    minute: '2-digit',
   });
+
   const primaryAction = resume
     ? {
         eyebrow: 'Continue',
         title: resume.title,
-        detail: highlightedChange?.body ?? 'Pick up where you left off without losing progress.',
+        detail: 'Pick up where you left off without losing progress.',
         href: resume.href,
         label: 'Continue',
-        tone: 'sky' as const,
       }
     : {
         eyebrow: data.recommendedAction?.kind === 'finish_onboarding' ? 'Start here' : 'Next step',
         title: data.recommendedAction?.title ?? 'Open your readiness',
-        detail: highlightedChange
-          ? `${data.recommendedAction?.description ?? 'Keep your source-backed identity ready to share.'} Latest: ${highlightedChange.title}.`
-          : data.recommendedAction?.description ?? 'Keep your source-backed identity ready to share.',
+        detail: data.recommendedAction?.description ?? 'Keep your source-backed identity ready to share.',
         href: data.recommendedAction?.href ?? '/holder',
-        label: data.recommendedAction?.kind === 'resolve_gap'
-          ? data.recommendedAction.ctaLabel
-          : data.recommendedAction?.kind === 'apply_now'
-            ? data.recommendedAction?.ctaLabel ?? 'View opportunities'
-            : data.recommendedAction?.kind === 'view_application'
-              ? 'View application'
-              : data.recommendedAction?.ctaLabel ?? 'Open your profile',
-        tone: 'emerald' as const,
+        label: data.recommendedAction?.ctaLabel ?? 'Open',
       };
-  const proof = buildClinicianProofSummary(data);
 
   React.useEffect(() => {
     if (!previousVisitAt) {
@@ -191,88 +162,6 @@ export default function ClinicianHomeSurface() {
       resumePath,
     });
   }, [npi, previousVisitAt, resumePath, unreadNotifications.length]);
-
-  const quickActions: MobileQuickAction[] = [
-    {
-      id: 'open-scoreboard',
-      label: 'Career scoreboard',
-      description: 'Your career at a glance — readiness, recognition, live roles, and the next clear step.',
-      href: '/holder/scoreboard',
-      icon: Gauge,
-      tone: 'emerald',
-    },
-    {
-      id: 'finish-onboarding',
-      label: readiness ? 'View readiness' : 'Start onboarding',
-      description: readiness
-        ? readinessMomentum
-        : 'Connect your clinician profile and unlock your live readiness baseline.',
-      href: readiness ? '/holder/readiness' : '/onboarding',
-      icon: ShieldCheck,
-      tone: 'emerald',
-    },
-    {
-      id: 'browse-roles',
-      label: data.recommendedAction?.kind === 'apply_now'
-        ? data.recommendedAction.ctaLabel
-        : 'View opportunities',
-      description: data.recommendedAction?.kind === 'apply_now'
-        ? data.recommendedAction.description
-        : 'Review matched roles and keep your next application moving.',
-      href: data.recommendedAction?.kind === 'apply_now'
-        ? data.recommendedAction.href
-        : '/holder/opportunities',
-      icon: Compass,
-      tone: 'sky',
-    },
-    {
-      id: 'open-updates',
-      label: 'View applications',
-      description: 'Track active applications and every employer update in one place.',
-      href: '/holder/applications',
-      icon: BellRing,
-      tone: 'amber',
-    },
-    {
-      id: 'open-profile',
-      label: 'Professional profile',
-      description: 'Review your profile record and add self-attested career links and work authorization.',
-      href: '/clinician/profile',
-      icon: UserRound,
-      tone: 'zinc',
-    },
-    {
-      id: 'open-timeline',
-      label: 'Career timeline',
-      description: 'Your professional timeline — evidence checks, trust milestones, recognition, and mobility changes.',
-      href: '/holder/timeline',
-      icon: History,
-      tone: 'zinc',
-    },
-    {
-      id: 'open-settings',
-      label: 'Settings',
-      description: 'Account, identity binding, and sharing.',
-      href: '/holder/settings',
-      icon: Settings,
-      tone: 'zinc',
-    },
-  ];
-
-  // The full MATCHA experience (Career DNA, preference tuning, live matches) is
-  // real + honest but pilot-gated behind NEXT_PUBLIC_FEATURE_MATCHA_V2. Surface a
-  // discoverable entry exactly when the pilot is enabled, so the experience is
-  // reachable from the dashboard instead of orphaned at a URL only.
-  if (FEATURES.MATCHA_V2) {
-    quickActions.unshift({
-      id: 'open-matcha',
-      label: 'Your Career DNA',
-      description: 'Meet MATCHA — teach it what you want, and see the career it understands.',
-      href: '/holder/matcha',
-      icon: Sparkles,
-      tone: 'emerald',
-    });
-  }
 
   return (
     <main className="mz mz-paper mz-persona-holder mz-ambient min-h-screen w-full">
@@ -325,8 +214,6 @@ export default function ClinicianHomeSurface() {
           </div>
         </Reveal>
 
-        <CareerCompass />
-
         {refreshError ? (
           <ClinicianStatusBanner
             tone="error"
@@ -341,252 +228,125 @@ export default function ClinicianHomeSurface() {
 
         <SelectedOpportunityBanner />
 
-        <MatchaHomeActivity />
-
-        <CareerEvidenceGraph />
-
+        {/* 1 — Status since your last visit. Counts only recorded notifications
+            newer than the prior visit; when nothing changed, it says so. */}
         <Reveal>
-          <section className="mz-glass-strong mz-glass-interactive p-5">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="mz-eyebrow">
-                <Sparkles className="h-3 w-3" aria-hidden="true" />
-                MATCHA · Your next step
-              </span>
-              <span className="mz-mono text-[11px] uppercase tracking-[0.18em] opacity-60">
-                {primaryAction.eyebrow}
-              </span>
-            </div>
+          <section aria-labelledby="home-since-heading" className="mz-glass p-5">
+            <p id="home-since-heading" className="mz-eyebrow">Since your last visit</p>
+            {changesSinceLastVisit.length > 0 ? (
+              <div className="mt-3">
+                <p className="mz-h2">
+                  {changesSinceLastVisit.length} recorded change{changesSinceLastVisit.length === 1 ? '' : 's'}
+                </p>
+                {highlightedChange ? (
+                  <p className="mt-1 mz-body">
+                    Latest: {highlightedChange.title}
+                    <span className="mz-small mz-mono">
+                      {/* formatEventTimestamp includes the year — a stale
+                          March event must never pass as fresh (#1214). */}
+                      {' '}· {formatEventTimestamp(highlightedChange.occurredAt)}
+                    </span>
+                  </p>
+                ) : null}
+              </div>
+            ) : (
+              <p className="mt-3 mz-body">
+                Nothing new was recorded since your last visit. State refreshed {refreshedAtLabel}.
+              </p>
+            )}
+          </section>
+        </Reveal>
+
+        {/* 2 — One next action. */}
+        <Reveal>
+          <section aria-labelledby="home-next-heading" className="mz-glass-strong mz-glass-interactive p-5">
+            <p className="mz-eyebrow">
+              {primaryAction.eyebrow}
+            </p>
             <div className="mt-3 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
               <div className="max-w-3xl">
-                <h2 className="mz-h1">
+                <h2 id="home-next-heading" className="mz-h1">
                   <span className="mz-accent">{primaryAction.title}</span>
                 </h2>
                 <p className="mt-2 mz-body">
                   {primaryAction.detail}
                 </p>
-                <p className="mt-2 mz-small">
-                  Reasoned from your source-backed readiness signals — VitalCV shows the evidence
-                  behind every step and never invents a credential.
-                </p>
-                {highlightedChange?.occurredAt ? (
-                  <p className="mt-3 mz-small mz-mono">
-                    Latest change recorded {formatEventTimestamp(highlightedChange.occurredAt)}
-                  </p>
-                ) : null}
               </div>
               <Link
                 href={primaryAction.href}
                 className="mz-btn min-h-12"
               >
                 {primaryAction.label}
-                <BriefcaseBusiness className="h-4 w-4" aria-hidden="true" />
+                <ArrowRight className="h-4 w-4" aria-hidden="true" />
               </Link>
             </div>
           </section>
         </Reveal>
 
-        <section className="grid gap-5 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,0.75fr)]">
-          <Reveal className="vh-scope vh-js relative overflow-hidden mz-glass p-5">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="mz-eyebrow">Readiness</p>
-                <h2 className="mz-h2 mt-3">
-                  {readiness?.readinessStatus ?? 'Readiness analysis in progress...'}
-                </h2>
-                <p className="mt-2 mz-small">
-                  Last synced {new Date(data.refreshedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
-                </p>
-              </div>
-              <div className="mz-glass-inset rounded-[8px] px-4 py-3 text-right">
-                <p className="mz-mono text-[10px] uppercase tracking-[0.16em] opacity-60">Trust</p>
-                <p className="mt-2 text-2xl font-semibold mz-mono">
-                  {readiness ? `${readiness.readinessScore}/100` : 'Pending'}
-                </p>
-                <p className="mt-1 mz-small">{readiness?.readinessLevel ?? 'Setup'}</p>
-              </div>
-            </div>
-
-            {/* Vitals monitor — the clinical heartbeat of the readiness card,
-                matching the public wallet's living-monitor language. */}
-            <div className="vh-monitor mt-5">
-              <svg aria-hidden="true" viewBox="0 0 320 44" preserveAspectRatio="none">
-                <path d={READINESS_EKG} />
-                <path d={READINESS_EKG} transform="translate(160 0)" />
-              </svg>
-              <span aria-hidden="true" className="vh-monitor-beam" />
-              <span className="vh-monitor-label">EVIDENCE · LIVE READ</span>
-            </div>
-
-            {/* Readiness meter — segmented clinical readout with a leading pulse,
-                replacing the flat gradient bar. */}
-            <div
-              className="vh-bar mt-4"
-              style={{ '--vh-bar': `${Math.max(8, readiness?.readinessScore ?? completeness)}%` } as React.CSSProperties}
-            >
-              <div className="vh-bar-fill" />
-            </div>
-
-            <div className="mt-4 flex flex-wrap items-center gap-3">
-              <span className="mz-inset mz-mono rounded-[2px] px-3 py-1 text-xs">
-                {completedProfileChecks}/5 profile checks complete
-              </span>
-              <p className="mz-body">{readinessMomentum}</p>
-            </div>
-
-            <div className="mt-5 grid gap-3 sm:grid-cols-3">
-              <MetricCard label="Active applications" value={`${countApplicationsInMotion(data.activeApplications)}`} />
-              <MetricCard label="Available roles" value={`${data.availableOpportunities.length}`} />
-              <MetricCard label="Unread updates" value={`${unreadNotifications.length}`} />
-            </div>
-          </Reveal>
-
-          <Reveal delay={80} className="mz-glass p-5">
-            <p className="mz-eyebrow">Momentum</p>
-            <h2 className="mz-h2 mt-3">
-              {readinessMomentum}
-            </h2>
-            <p className="mt-3 mz-body">
-              {data.blockers[0]
-                ? 'Resolve what is left and we will reflect the change in readiness, blockers, and any active applications.'
-                : data.activeApplications[0]
-                  ? 'Your application updates will continue to land here as the employer moves through review.'
-                  : data.availableOpportunities[0]
-                    ? 'You have live roles waiting when you are ready to apply.'
-                    : 'Your workspace is set up and ready for the next update.'}
-            </p>
-            <div className="mt-5 grid gap-3 sm:grid-cols-2">
-              <MetricCard label="What's left" value={`${data.blockers.length}`} />
-              <MetricCard label="Since last visit" value={`${changesSinceLastVisit.length}`} />
-            </div>
-          </Reveal>
-        </section>
-
-        {/^\d{10}$/.test(npi) && (
-          <Reveal>
-            <RecognitionCard npi={npi} />
-          </Reveal>
-        )}
-
+        {/* 3 — The work ledger: recorded events only, owner-labeled. */}
         <Reveal>
-          <section className="grid gap-5 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
-            <div className="mz-glass p-5">
-              <p className="mz-eyebrow">What&apos;s left</p>
-              {data.blockers.length > 0 ? (
-                <div className="mt-4 space-y-3">
-                  {data.blockers.slice(0, 5).map((blocker) => (
-                    <Link
-                      key={blocker.id}
-                      href={blocker.href}
-                      className="block mz-glass-inset mz-glass-interactive rounded-[8px] px-4 py-3"
-                    >
-                      <p className="mz-h2">{blocker.title}</p>
-                      <p className="mt-1 mz-body">{blocker.detail}</p>
-                      <p className="mt-2">
-                        <span className="mz-chip mz-chip-watch">
-                          <span className="mz-gl" />
-                          {blocker.nextActionLabel}
-                        </span>
-                      </p>
-                    </Link>
-                  ))}
-                </div>
-              ) : (
-                <p className="mt-4 mz-body">Nothing is blocking your next step right now.</p>
-              )}
-            </div>
-
-            <NotificationList
-              notifications={visibleNotifications}
-              maxItems={3}
-              heading="Recent changes"
-            />
+          <section aria-labelledby="home-ledger-heading" className="mz-glass p-5">
+            <p id="home-ledger-heading" className="mz-eyebrow">What happened in your workspace</p>
+            {ledger.length > 0 ? (
+              <ol className="mt-4 space-y-3">
+                {ledger.map((item) => (
+                  <li key={item.id}>
+                    {item.href ? (
+                      <Link
+                        href={item.href}
+                        className="block mz-glass-inset mz-glass-interactive rounded-[8px] px-4 py-3"
+                      >
+                        <LedgerRow item={item} />
+                      </Link>
+                    ) : (
+                      <div className="mz-glass-inset rounded-[8px] px-4 py-3">
+                        <LedgerRow item={item} />
+                      </div>
+                    )}
+                  </li>
+                ))}
+              </ol>
+            ) : (
+              <p className="mt-4 mz-body">
+                {hasValidNpi
+                  ? 'No recorded activity yet. Events land here when something actually happens — never before.'
+                  : 'Connect your NPI and recorded work will land here as it happens.'}
+              </p>
+            )}
           </section>
         </Reveal>
 
+        {/* 4 — Waiting: what needs you, what someone else controls. */}
         <Reveal>
-          <section className="mz-glass p-5">
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-              <div>
-                <p className="mz-eyebrow">Proof of progress</p>
-                <h2 className="mz-h1 mt-3">Measured outcomes in your workspace</h2>
-                <p className="mt-2 max-w-3xl mz-small">
-                  These changes are tied to recorded readiness, blocker, and application updates only.
-                </p>
-              </div>
-              {proof.readinessCurrentScore !== null ? (
-                <div className="mz-glass-inset rounded-[8px] px-4 py-3 text-right">
-                  <p className="mz-mono text-[10px] uppercase tracking-[0.16em] opacity-60">Current readiness</p>
-                  <p className="mt-2 text-2xl font-semibold mz-mono">
-                    {proof.readinessCurrentLevel ?? 'L0'} · {proof.readinessCurrentScore}/100
-                  </p>
-                  <p className="mt-1 mz-small">
-                    {proof.readinessDeltaScore === null
-                      ? 'Baseline established'
-                      : proof.readinessDeltaScore >= 0
-                        ? `+${proof.readinessDeltaScore} from baseline`
-                        : `${proof.readinessDeltaScore} from baseline`}
-                  </p>
-                </div>
-              ) : null}
-            </div>
-
-            <div className="mt-5 grid gap-3 sm:grid-cols-4">
-              <MetricCard label="Blockers resolved" value={`${proof.blockersResolvedCount}`} />
-              <MetricCard label="Applications submitted" value={`${proof.applicationsSubmitted}`} />
-              <MetricCard label="Applications moving" value={`${proof.applicationsMoving}`} />
-              <MetricCard
-                label="Readiness change"
-                value={proof.readinessDeltaScore === null
-                  ? 'Baseline'
-                  : proof.readinessDeltaScore >= 0
-                    ? `+${proof.readinessDeltaScore}`
-                    : `${proof.readinessDeltaScore}`}
-              />
-            </div>
-
-            {proof.completedWithVitalCv.length > 0 ? (
-              <div className="mt-5 grid gap-3 lg:grid-cols-2">
-                {proof.completedWithVitalCv.map((item) => (
-                  <div key={item} className="mz-inset px-4 py-3">
-                    <p className="mz-body">{item}</p>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="mt-5 mz-inset px-4 py-3">
-                <p className="mz-body">
-                  Measured proof will appear here as soon as readiness, blockers, or applications change.
-                </p>
-              </div>
-            )}
-
-            {proof.recentChanges.length > 0 ? (
-              <div className="mt-5 space-y-3">
-                {proof.recentChanges.slice(0, 3).map((change) => (
+          <section aria-labelledby="home-waiting-heading" className="mz-glass p-5">
+            <p id="home-waiting-heading" className="mz-eyebrow">Waiting</p>
+            {data.blockers.length > 0 ? (
+              <div className="mt-4 space-y-3">
+                {data.blockers.slice(0, 5).map((blocker) => (
                   <Link
-                    key={change.id}
-                    href={change.href}
+                    key={blocker.id}
+                    href={blocker.href}
                     className="block mz-glass-inset mz-glass-interactive rounded-[8px] px-4 py-3"
                   >
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="mz-h2">{change.title}</p>
-                        <p className="mt-1 mz-body">{change.summary}</p>
-                      </div>
-                      <p className="mz-small mz-mono">
-                        {new Date(change.occurredAt).toLocaleDateString([], {
-                          month: 'short',
-                          day: 'numeric',
-                        })}
-                      </p>
-                    </div>
+                    <p className="mz-small mz-mono uppercase tracking-[0.14em]">Needs you</p>
+                    <p className="mt-1 mz-h2">{blocker.title}</p>
+                    <p className="mt-1 mz-body">{blocker.detail}</p>
+                    <p className="mt-2">
+                      <span className="mz-chip mz-chip-watch">
+                        <span className="mz-gl" />
+                        {blocker.nextActionLabel}
+                      </span>
+                    </p>
                   </Link>
                 ))}
               </div>
-            ) : null}
+            ) : (
+              <p className="mt-4 mz-body">Nothing is waiting on you right now.</p>
+            )}
           </section>
         </Reveal>
 
+        {/* 5 — The relevant application and role. */}
         <Reveal>
           <section className="grid gap-5 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
             <ApplicationList
@@ -601,7 +361,19 @@ export default function ClinicianHomeSurface() {
           </section>
         </Reveal>
 
-        <QuickActionGrid actions={quickActions} />
+        {/* Contextual destinations — quiet links, not widgets. */}
+        <nav aria-label="More in your workspace" className="mz-glass p-5">
+          <p className="mz-eyebrow">More in your workspace</p>
+          <ul className="mt-3 flex flex-wrap gap-x-5 gap-y-2">
+            {CONTEXT_LINKS.filter((link) => link.gated !== 'matcha' || FEATURES.MATCHA_V2).map((link) => (
+              <li key={link.href}>
+                <Link href={link.href} className="mz-body underline-offset-4 hover:underline">
+                  {link.label}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </nav>
 
         <ClinicianSupportCard
           topic="clinician-home"
@@ -614,11 +386,18 @@ export default function ClinicianHomeSurface() {
   );
 }
 
-function MetricCard({ label, value }: { label: string; value: string }) {
+function LedgerRow({ item }: { item: LedgerEntry }) {
   return (
-    <div className="mz-glass-inset rounded-[8px] px-4 py-3">
-      <p className="mz-mono text-[10px] uppercase tracking-[0.16em] opacity-60">{label}</p>
-      <p className="mt-2 text-lg font-semibold mz-mono">{value}</p>
+    <div className="flex items-start gap-3">
+      <LedgerGlyph state={item.state} />
+      <div className="min-w-0">
+        <p className="mz-small mz-mono uppercase tracking-[0.14em]">{item.word}</p>
+        <p className="mt-1 mz-h2">{item.title}</p>
+        <p className="mt-1 mz-body">{item.consequence}</p>
+        <p className="mt-1 mz-small mz-mono">
+          {formatEventTimestamp(item.occurredAt)}
+        </p>
+      </div>
     </div>
   );
 }

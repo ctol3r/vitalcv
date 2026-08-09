@@ -357,7 +357,12 @@ export const ANSWERABLE_STEP_COUNT = ONBOARDING_STEPS.filter((s) => s.kind !== '
 export function coerceAnswer(step: OnboardingStep, raw: unknown): MatchaPreferences[PreferenceField] {
   switch (step.kind) {
     case 'number': {
-      const n = typeof raw === 'number' ? raw : Number(String(raw).replace(/[^0-9.]/g, ''));
+      // An empty input is "not yet shared", never a stored zero: Number('')
+      // is 0, and that parser artifact used to persist as a stated preference
+      // ("Target ~$0") with you-told-MATCHA provenance. Blank stays blank.
+      const cleaned = typeof raw === 'number' ? raw : String(raw).replace(/[^0-9.]/g, '');
+      if (cleaned === '') return undefined as never;
+      const n = typeof cleaned === 'number' ? cleaned : Number(cleaned);
       return Number.isFinite(n) ? (n as never) : (undefined as never);
     }
     case 'boolean':

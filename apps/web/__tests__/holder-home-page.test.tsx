@@ -268,31 +268,82 @@ function buildSampleData(): ClinicianMobileData {
   };
 }
 
-describe('/holder/home page', () => {
-  it('renders the daily-use mobile sections', () => {
-    const markup = renderToStaticMarkup(
-      <ClinicianMobileProvider initialData={buildSampleData()}>
-        <ClinicianHomeSurface />
-      </ClinicianMobileProvider>,
-    );
+describe('/holder/home page (A3 hierarchy)', () => {
+  const markup = renderToStaticMarkup(
+    <ClinicianMobileProvider initialData={buildSampleData()}>
+      <ClinicianHomeSurface />
+    </ClinicianMobileProvider>,
+  );
 
-    // Identity-forward wallet header: who you are + how to share/prove.
-    // Wave L1 (customer-language inventory): "wallet" retired as a customer
-    // noun; the canonical name is the clinician's VitalCV profile.
+  it('renders identity and sharing', () => {
     expect(markup).toContain('Your VitalCV profile');
     expect(markup).toContain('Ada Lovelace');
     expect(markup).toContain('NPI 1234567890');
     expect(markup).toContain('Share / prove');
     expect(markup).toContain('href="/verify/1234567890"');
-    expect(markup).toContain('Readiness');
-    expect(markup).toContain('What&#x27;s left');
-    expect(markup).toContain('Recent changes');
-    expect(markup).toContain('Applications in motion');
-    expect(markup).toContain('Momentum');
-    expect(markup).toContain('Opportunities available');
-    expect(markup).toContain('Other actions');
-    expect(markup).toContain('Proof of progress');
-    expect(markup).toContain('Measured outcomes in your workspace');
-    expect(markup).toContain('Applications submitted');
+  });
+
+  it('keeps the strict section order: status → next action → ledger → waiting → application/role', () => {
+    const order = [
+      'Since your last visit',
+      'Resolve your top blocker', // the one next action (from recommendedAction)
+      'What happened in your workspace',
+      '>Waiting<',
+      'Opportunities available',
+      'More in your workspace',
+    ].map((needle) => markup.indexOf(needle));
+    expect(order.every((index) => index >= 0)).toBe(true);
+    expect([...order].sort((a, b) => a - b)).toEqual(order);
+  });
+
+  it('renders the work ledger from recorded events with the controller preserved', () => {
+    expect(markup).toContain('Employer decides');
+    expect(markup).toContain('Application reviewed');
+    expect(markup).toContain('Needs you');
+  });
+
+  it('shows no metric that was not computed and explained — the widget era stays retired', () => {
+    expect(markup).not.toContain('Proof of progress');
+    expect(markup).not.toContain('Momentum');
+    expect(markup).not.toContain('Other actions');
+    expect(markup).not.toContain('Measured outcomes in your workspace');
+    expect(markup).not.toContain('EVIDENCE · LIVE READ');
+    expect(markup).not.toContain('vh-monitor');
+    expect(markup).not.toMatch(/\d+\/100/);
+    expect(markup).not.toMatch(/\d+% complete/);
+    expect(markup).not.toContain('profile checks complete');
+  });
+
+  it('keeps demoted destinations reachable as quiet contextual links', () => {
+    for (const href of ['/holder/readiness', '/holder/scoreboard', '/holder/timeline', '/holder/settings']) {
+      expect(markup).toContain(`href="${href}"`);
+    }
+  });
+});
+
+describe('/holder/home page (unlinked clinician)', () => {
+  it('renders honest empty states — no fabricated activity, score, or progress', () => {
+    const data = buildSampleData();
+    data.workspace = null;
+    data.trustState = null;
+    data.notifications = [];
+    data.blockers = [];
+    data.activeApplications = [];
+    data.availableOpportunities = [];
+    data.trustHistory = [];
+    data.recommendedAction = null;
+    data.profileCompleteness = null;
+
+    const markup = renderToStaticMarkup(
+      <ClinicianMobileProvider initialData={data}>
+        <ClinicianHomeSurface />
+      </ClinicianMobileProvider>,
+    );
+
+    expect(markup).toContain('Add your NPI to build your source-backed readiness.');
+    expect(markup).toContain('Connect your NPI and recorded work will land here as it happens.');
+    expect(markup).toContain('Nothing is waiting on you right now.');
+    expect(markup).not.toMatch(/\d+\/100/);
+    expect(markup).not.toContain('Analysis in progress');
   });
 });
