@@ -109,7 +109,7 @@ All `/holder/*` are gated once, in `app/holder/layout.tsx` (Clerk `auth()` → r
 | `/holder/settings` | content | |
 | `/holder/timeline` | content | Resolves NPI then redirects → `/activity/{npi}`; no NPI → `/onboarding`. |
 | `/holder/matcha` (+`/assessment`, `/onboarding`, `/opportunities`) | content | `FEATURES.MATCHA_V2` gate, defaults **true** (GA). |
-| `/clinician/profile` | holder-nav ("Profile") | **Finding RD-2** — outside every auth layer: no `/clinician` entry in `roles.ts`, no layout, no page `auth()`. Route answers 200 anonymously and chrome-less; data itself is backend-enforced via forwarded cookie. Owner: A2 (chrome) + a guard fix that need not wait for A2. |
+| `/clinician/profile` | holder-nav ("Profile") | **Finding RD-2 — guard half CLOSED.** `roles.ts` now carries `^/clinician` → CLINICIAN, the tree has a `force-dynamic` layout, and `/clinician` is in `SESSION_PATH_PREFIXES`, so an anonymous request 307s to `/sign-in` with `private, no-store`. Pinned by `__tests__/clinician-route-guard.test.ts`, which asserts the response rather than the list it came from. **Chrome half still open** — the route remains chrome-less; owner A2. |
 
 ### authenticated-employer (10)
 
@@ -212,7 +212,7 @@ header-trusted routes (`employer-review/[entityId]/[action]`, `workspace-config/
 | # | Finding | Class | Owner |
 | --- | --- | --- | --- |
 | RD-1 | `/dev/graph/[entityId]` ungated in production | exposure | Follow-up task (filed at census) |
-| RD-2 | `/clinician/profile` outside every auth layer, chrome-less | auth/IA | Guard: immediate follow-up; chrome: A2 |
+| RD-2 | `/clinician/profile` outside every auth layer, chrome-less | auth/IA | Guard: **CLOSED** (`apps/web/__tests__/clinician-route-guard.test.ts`); chrome: A2 |
 | RD-3 | `/api/internal/funnel-metrics` + `mission-ops/sources` unguarded; funnel-metrics fronts a privileged PostHog key | security | Follow-up task (filed at census) |
 | RD-4 | `/ops/*` checks sign-in, not role | authz | Ops Center roadmap (V1) |
 | RD-5 | `/demo` → `/network/[entityId]` auth+chrome cliff | IA | A6 / demo rebuild |

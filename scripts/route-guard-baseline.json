@@ -3,7 +3,6 @@
     "/activity/[entityId]",
     "/career-intelligence/[entityId]",
     "/career-map/[entityId]",
-    "/clinician/profile",
     "/concierge",
     "/contact",
     "/demo",
