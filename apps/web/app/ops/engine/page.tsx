@@ -14,6 +14,7 @@ import type { Metadata } from 'next';
 // this import is what actually makes those animations run.
 import { auth } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
+import { signInRedirectTo } from '@/lib/auth/signInRedirect';
 import { getOpsEngineSnapshot } from '@/lib/ops-engine/getOpsEngineSnapshot';
 import OpsEngineStatusPanel from '@/components/ops-engine/OpsEngineStatusPanel';
 import OpsEngineLiveMount from './OpsEngineLiveMount';
@@ -28,7 +29,7 @@ export const dynamic = 'force-dynamic';
 export default async function OpsEnginePage() {
   const session = await auth();
   if (!session.userId) {
-    redirect('/sign-in?redirect_url=/ops/engine');
+    redirect(signInRedirectTo('/ops/engine'));
   }
 
   const snapshot = await getOpsEngineSnapshot({

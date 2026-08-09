@@ -14,6 +14,7 @@ import { AuthDisclosureCard } from '@/components/auth/AuthDisclosureCard';
 import { AuthUnavailableNotice } from '@/components/auth/AuthUnavailableNotice';
 import DevKeysNotice from '@/components/auth/DevKeysNotice';
 import { CLERK_PROVIDER_ENABLED } from '@/lib/auth/clerkConfig';
+import { authCardAppearance } from '@/lib/clerkAppearance';
 
 export const metadata: Metadata = {
   title: 'Sign Up',
@@ -38,7 +39,7 @@ export default async function SignUpPage() {
     <>
       <DevKeysNotice />
       <AuthDisclosureCard mode="sign-up">
-        <SignUp />
+        <SignUp appearance={authCardAppearance} />
       </AuthDisclosureCard>
     </>
   );

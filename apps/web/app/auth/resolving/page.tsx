@@ -89,9 +89,18 @@ export default function ResolvingPage() {
         padding: '2rem',
       }}
     >
-      <p aria-live="polite" style={{ fontSize: '1rem', opacity: 0.8 }}>
+      {/* EC-5: this interstitial rendered no <h1> of its own. The 2026-08-09
+          audit counted two here only because the page client-redirects into
+          /sign-in and the capture caught that DOM — but "no heading" is a real
+          gap in the seconds before the redirect, and for a visitor whose
+          redirect stalls it is the whole page. Kept as the same line of text,
+          promoted to a heading and still the live region. */}
+      <h1
+        aria-live="polite"
+        style={{ fontSize: '1rem', fontWeight: 400, margin: 0, opacity: 0.8 }}
+      >
         Signing you in…
-      </p>
+      </h1>
       {stalled && (
         <p style={{ fontSize: '0.875rem', opacity: 0.7 }}>
           Taking longer than expected.{' '}

@@ -77,3 +77,26 @@ export const clerkAppearance = {
     logoBox: { display: 'none' }, // house wordmark supplied by the shell, not Clerk's slot
   },
 } as const;
+
+/**
+ * Per-component appearance for the <SignIn /> and <SignUp /> cards.
+ *
+ * Those cards render their own `<h1>` ("Sign in to VitalCV") inside a page that
+ * already has one ("Welcome back to VitalCV"), which the 2026-08-09 page
+ * audit recorded as finding F5: two competing document headings on /sign-in,
+ * /sign-up and /auth/resolving, reading as near-duplicate copy. The shell's
+ * heading is the better one — it carries the disclosure paragraph beneath it —
+ * so Clerk's header slot is suppressed here, exactly as `logoBox` already is
+ * for the same reason ("supplied by the shell, not Clerk's slot").
+ *
+ * Deliberately NOT added to `clerkAppearance` above: that object is passed to
+ * <ClerkProvider>, so it applies to every Clerk component in the app —
+ * including <UserProfile /> and the verification flows, where the header is the
+ * only thing naming the panel. This override is scoped to the two auth cards
+ * that sit under a page heading of their own.
+ */
+export const authCardAppearance = {
+  elements: {
+    header: { display: 'none' },
+  },
+} as const;

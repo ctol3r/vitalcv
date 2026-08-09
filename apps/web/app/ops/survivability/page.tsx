@@ -8,6 +8,7 @@
 import type { Metadata } from 'next';
 import { auth } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
+import { signInRedirectTo } from '@/lib/auth/signInRedirect';
 import { getOperatorDashboardSnapshot } from '@/lib/ops/getOperatorDashboardSnapshot';
 import { SurvivabilityDashboard } from '@/components/survivability/SurvivabilityDashboard';
 import { ReplayHealthMonitor } from '@/components/survivability/ReplayHealthMonitor';
@@ -39,7 +40,7 @@ function AnchorBand({ title }: { title: string }) {
 export default async function SurvivabilityPage() {
   const session = await auth();
   if (!session.userId) {
-    redirect('/sign-in');
+    redirect(signInRedirectTo('/ops/survivability'));
   }
 
   const snapshot = await getOperatorDashboardSnapshot();

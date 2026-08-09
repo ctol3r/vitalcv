@@ -144,6 +144,7 @@ export default async function ReviewPageClient({
           <div className="w-full max-w-sm">
             <TrustStateCard
               eyebrow="Employer review"
+              titleAs="h1"
               title="Review link unavailable"
               description={
                 isExpired
@@ -201,6 +202,7 @@ export default async function ReviewPageClient({
         <div className="w-full max-w-sm">
           <TrustStateCard
             eyebrow="Employer review"
+            titleAs="h1"
             title={isOrgError ? 'Set up employer workspace' : 'Employer review unavailable'}
             description={
               isOrgError

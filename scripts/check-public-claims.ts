@@ -93,6 +93,17 @@ const PROHIBITED_CLAIMS: ReadonlyArray<{ phrase: string; fix: string }> = [
   { phrase: 'SOC2 certified', fix: 'Remove unless a SOC 2 certification actually exists.' },
   { phrase: 'NCQA certified', fix: 'Remove unless an NCQA certification actually exists.' },
   { phrase: 'NPDB cleared', fix: 'NPDB is not integrated — remove entirely.' },
+  // EC-3 bans NPDB "as a customer-facing noun", not merely the phrase "NPDB
+  // cleared". That gap is why the 2026-08-09 page-consistency audit found
+  // /evidence-network rendering "UNAVAILABLE · NPDB — no payload" — a state
+  // implying a read against a source VitalCV has no adapter for — and why the
+  // T3 tier badge listed NPDB among the authorities a fact is "confirmed
+  // against". Both passed this gate because neither said "cleared".
+  //
+  // Two existing behaviours keep this from being blunt: comment lines in code
+  // files are skipped (so "NPDB is not integrated — do not add it back" stays
+  // legal), and a phrase preceded by a negation is treated as honest copy.
+  { phrase: 'NPDB', fix: 'NPDB is not integrated. EC-3 bans it as a customer-facing noun — remove it, or state the exclusion in negated form ("does not include NPDB").' },
   { phrase: 'blockchain anchored', fix: 'Say "cryptographically signed".' },
   { phrase: 'zero knowledge proof', fix: 'Say "selectively disclosed (SD-JWT)".' },
   { phrase: 'zero trust ledger', fix: 'Banned framing — say "audit trail".' },
@@ -209,13 +220,23 @@ function scanFile(absPath: string): void {
         if (raw.includes('*/')) inBlockComment = false;
         continue;
       }
-      // Opens a block comment that does not close on the same line.
-      if (trimmed.startsWith('/*') && !raw.includes('*/')) {
+      // Opens a block comment that does not close on the same line. `{/*` is
+      // included because a JSX comment is still a comment: it never reaches the
+      // DOM, so it cannot be public copy. Without this, explaining in a JSX
+      // comment WHY a banned phrase was removed re-trips the gate on the
+      // explanation — which is how a rule teaches people to stop writing the
+      // reasoning down.
+      if ((trimmed.startsWith('/*') || trimmed.startsWith('{/*')) && !raw.includes('*/')) {
         inBlockComment = true;
         continue;
       }
-      // Whole-line comment: `// ...`, JSDoc `* ...`, or a self-contained `/* ... */`.
-      if (trimmed.startsWith('//') || trimmed.startsWith('*') || /^\/\*.*\*\/\s*$/.test(trimmed)) {
+      // Whole-line comment: `// ...`, JSDoc `* ...`, or a self-contained
+      // `/* ... */` / `{/* ... */}`.
+      if (
+        trimmed.startsWith('//') ||
+        trimmed.startsWith('*') ||
+        /^\{?\/\*.*\*\/\}?\s*$/.test(trimmed)
+      ) {
         continue;
       }
     }

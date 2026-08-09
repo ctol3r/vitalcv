@@ -1,1 +1,12 @@
-[]
+[
+  {
+    "file": "apps/web/components/trust-state/types.ts",
+    "phrase": "NPDB",
+    "note": "Domain identifier, not copy. These are members of the CredentialType and SourceType unions — the names the system uses internally for a source. CLAUDE.md is explicit: 'Do not mass-rename backend classes, schemas, APIs or audit records to match the marketing vocabulary.' EC-3 bans NPDB as a customer-facing NOUN; a union member that no surface renders is neither."
+  },
+  {
+    "file": "apps/web/components/review/EmployerCockpit.tsx",
+    "phrase": "NPDB",
+    "note": "An exclusion list, under the heading 'Not included in this review' — it exists to tell an employer what this review does NOT cover, which is the opposite of the over-claim EC-3 guards against. The gate's negation rule only inspects the text immediately before the phrase, so a list item under a negative heading cannot express it inline. Component currently has zero importers; if it is ever mounted, this line is the honest half of the surface, not the risky half."
+  }
+]

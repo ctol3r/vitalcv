@@ -52,11 +52,16 @@ export interface PersonaLandingContent {
   };
 }
 
+// `title` feeds generateMetadata ONLY (each /for/* page passes it straight to
+// `metadata.title`); the visible heading comes from `hero`. It must therefore
+// NOT carry the brand: app/layout.tsx sets `template: '%s — VitalCV'`, so these
+// three rendered as "For CVOs — VitalCV — VitalCV" in the browser tab and in
+// every share card. Recorded as finding F8 of the 2026-08-09 page audit.
 export const PERSONA_LANDING_PAGES: ReadonlyArray<PersonaLandingContent> = [
   {
     slug: 'cvo',
     intakePersona: 'cvo',
-    title: 'For CVOs — VitalCV',
+    title: 'For CVOs',
     description:
       'Cut days-to-start without dropping primary-source rigor. VitalCV produces receipt candidates and PSV receipts your reviewers can stand behind.',
     hero: {
@@ -113,7 +118,7 @@ export const PERSONA_LANDING_PAGES: ReadonlyArray<PersonaLandingContent> = [
   {
     slug: 'payer',
     intakePersona: 'payer',
-    title: 'For Payers — VitalCV',
+    title: 'For Payers',
     description:
       'Reduce credentialing-cycle drag on network expansion. Receipt candidates are auditable, scoped, and never claim more than the source said.',
     hero: {
@@ -170,7 +175,7 @@ export const PERSONA_LANDING_PAGES: ReadonlyArray<PersonaLandingContent> = [
   {
     slug: 'staffing-exchange',
     intakePersona: 'staffing_exchange',
-    title: 'For Staffing Exchanges — VitalCV',
+    title: 'For Staffing Exchanges',
     description:
       'Clinicians arrive with portable, scoped credentialing artifacts. Match faster without re-running primary source for every placement.',
     hero: {

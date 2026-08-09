@@ -102,8 +102,12 @@ export default function FreshnessDesignReferencePage() {
             window={REGULATORY_WINDOWS.licenseMonitoring}
             now={NOW}
           />
+          {/* Was "NPDB continuous query" — a meter for a source VitalCV has no
+              adapter for, which reads as a monitored lane that simply has not
+              run yet. Named for the window it is paired with instead; the
+              never-checked state it demonstrates is unchanged. */}
           <FreshnessMeter
-            source="NPDB continuous query"
+            source="Primary source verification"
             checkedAt={null}
             window={REGULATORY_WINDOWS.primarySourceVerification}
             now={NOW}
