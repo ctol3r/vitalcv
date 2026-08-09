@@ -264,6 +264,45 @@ const RULES: Rule[] = [
     pattern: /font-family\s*:\s*(?!\s*var\()/,
     allow: (f) => isTokenFile(f) || f.endsWith('fonts.css'),
   },
+  // ── A-1: green reports, it never asks ─────────────────────────────────────
+  // EC-20's interaction row, amended 2026-08-09 (A-1): work-green is the
+  // completed/source-confirmed colour and is RETIRED as the primary action —
+  // the primary action is the paper-inverse instrument. That amendment was
+  // written because the shipped homepage had one hex doing both jobs in a
+  // single viewport, and it was fixed by hand with nothing to keep it fixed.
+  //
+  // A rule stated in a document and enforced nowhere is how the collision
+  // happened the first time. This is the enforcement. `error`, not `ratchet`:
+  // the live tree was swept clean first (the only two hits were in the dead
+  // EmployerDashboard, corrected in this change), so there is no debt to
+  // grandfather and the first re-offence is the offence.
+  //
+  // Scope is deliberately FILLS on action-shaped elements. Green as TEXT or a
+  // glyph is the whole point of the colour — `✓ Done by VitalCV` must keep
+  // working — so `text-*` and `color:` are not matched. `_archive` is skipped
+  // by EXCLUDED_DIRS, consistent with tsconfig excluding it from the build.
+  {
+    id: 'LINT-15',
+    mode: 'error',
+    what: 'Work-green used as an action fill (EC-20 interaction row, amended A-1)',
+    fix: 'Primary actions are the paper-inverse instrument (--vt-action-primary-bg/-fg). Green means source-confirmed or completed work and may never fill, tint, or hover-fill a button, link, or submit control. Green TEXT and glyphs on a completed state are correct and unaffected.',
+    roots: [join(web, 'styles'), join(web, 'components'), join(web, 'app')],
+    exts: [...CSS, ...TSX],
+    stripComments: true,
+    // Two shapes: a Tailwind green/emerald BACKGROUND utility (including
+    // hover:/group-hover:/focus: prefixes and /NN opacity suffixes), and a CSS
+    // background declaration resolving to the work-green family.
+    pattern:
+      /(?:^|[\s"'`:])(?:(?:group-)?hover:|focus(?:-visible)?:|active:)?bg-(?:emerald|green)-\d{2,3}(?:\/\d{1,3})?\b|(?:background|background-color)\s*:[^;]*(?:#(?:4ade97|2e9e6b|047857|10b981|22c55e|16a34a)\b|--(?:vt-evidence|ezh-work|eb-work|vt-scene-state-source-confirmed)\b)/i,
+    allow: (file, line) => {
+      // A fill is only an ACTION fill when the line carries an action. State
+      // surfaces (a completed row's background tint, a status panel) are a
+      // different question, governed by EC-4, and are not this rule's business.
+      const actionish =
+        /<(?:button|a|Link|Button)\b|role=["']button["']|type=["']submit["']|\bbtnClasses\b|\.(?:[a-z0-9-]*(?:btn|cta|button|submit|action)[a-z0-9-]*)\b/i;
+      return !actionish.test(line);
+    },
+  },
   // ── D-01: inspiration, not imitation ──────────────────────────────────────
   // The 2026 visual language studies Dimension, Linear and ElevenLabs and
   // takes none of their material (docs/design/VITALCV_2026_VISUAL_LANGUAGE.md

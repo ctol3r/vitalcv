@@ -34,7 +34,12 @@ export function EmployerNextBestAction({
       textColor = 'text-green-800';
       icon = '✅';
       actionLabel = 'Approve Candidate';
-      btnClasses = 'bg-green-600 text-white ring-green-600 hover:bg-green-700';
+      // A-1: the card may report a confirmed reading in green; the BUTTON may
+      // not. Green states a fact, and a fact that also solicits a click stops
+      // reading as a fact. The action takes the inverse-instrument treatment —
+      // ink fill on this light surface, the light-register analogue of the
+      // paper-inverse primary on the dark scene register.
+      btnClasses = 'bg-slate-900 text-white ring-slate-900 hover:bg-slate-800';
       break;
     case 'ESCALATE':
       bgColor = 'bg-red-100/50 border-red-200';

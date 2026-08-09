@@ -277,7 +277,7 @@ function ApplicationRow({
           <div className="text-xs font-medium text-muted-foreground text-right">
             Applied {relativeTime(application.createdAt)}
           </div>
-          <Link href={`/employer/review/${application.id}`} className="rounded-xl border border-border bg-muted px-4 py-2 text-xs font-bold text-foreground transition-all group-hover:bg-emerald-500 group-hover:text-foreground group-hover:border-emerald-500">
+          <Link href={`/employer/review/${application.id}`} className="rounded-xl border border-border bg-muted px-4 py-2 text-xs font-bold text-foreground transition-all group-hover:bg-foreground group-hover:text-background group-hover:border-foreground">
             Review & Verify
           </Link>
         </div>
@@ -555,7 +555,7 @@ export function EmployerDashboard() {
                 Post opportunity
               </Link>
               {FEATURES.MATCHA_V2 ? (
-                <Link href="/employer/candidates" className="glue-btn border border-emerald-400/30 bg-emerald-400/10 text-emerald-100 hover:bg-emerald-400/15">
+                <Link href="/employer/candidates" className="glue-btn border border-border bg-muted text-foreground hover:bg-foreground hover:text-background">
                   Browse credential-ready clinicians
                 </Link>
               ) : null}
