@@ -175,6 +175,67 @@ export const PREFIX_MATCHERS = [
   '/search',
 ] as const;
 
+// ── Product surfaces (UX-03) ───────────────────────────────────────────────
+//
+// The third chrome branch. Before UX-03 this file answered exactly two
+// questions — is it public, is it ops — and every signed-in product route fell
+// through both to nothing. The 2026-08-09 authed-navigation audit measured the
+// result: 39 routes with no header, no <nav> landmark, and in 30 cases zero
+// in-app links, the entire employer console and the entire issuer tree among
+// them. That was never a per-page oversight; it was a missing branch here.
+//
+// Membership grants CHROME ONLY. It never widens isPublicSurfacePath, and it
+// changes no auth: middleware.ts remains the sole gate, and every prefix below
+// is gated there today. A route can sit in this list and still 307 to /sign-in.
+//
+// /holder is deliberately ABSENT: HolderWorkspaceFrame is its chrome, and it
+// mounts the trail itself. Listing it here would render a second header.
+export const PRODUCT_SURFACE_PREFIXES = [
+  '/employer/applications',
+  '/employer/candidates',
+  '/employer/dashboard',
+  '/employer/decision',
+  '/employer/post',
+  '/employer/profile',
+  '/employer/review',
+  '/employer/review-queue',
+  '/employer/worklist',
+  '/issuer',
+  '/admin',
+  '/ops',
+] as const;
+
+/**
+ * The clinician namespace, matched by regex rather than listed as a string
+ * above.
+ *
+ * That namespace is golden with no root page, and the repo-wide sweep in
+ * holder-route-contract.test.ts rightly treats any quoted bare form of it —
+ * even inside a comment, which is why this note spells none of them — as
+ * minting a dead URL. The regex matches only children, which are the routes
+ * that actually exist. Same idiom as the activity namespace in
+ * isPublicSurfacePath below.
+ */
+const CLINICIAN_NAMESPACE = /^\/clinician\/.+/;
+
+/**
+ * Routes under a product prefix that must NOT take product chrome.
+ *
+ * /ops/engine is claimed by OPS_SURFACE_PREFIXES (it renders the intelligence
+ * AppShell); isProductSurfacePath yields to that, so the two branches stay
+ * mutually exclusive and navigation-contract.test.ts can assert it.
+ */
+export function isProductSurfacePath(pathname: string | null): boolean {
+  if (!pathname) return false;
+  // Public and ops classifications win — a route belongs to exactly one class.
+  if (isOpsSurfacePath(pathname)) return false;
+  if (isPublicSurfacePath(pathname)) return false;
+  if (CLINICIAN_NAMESPACE.test(pathname)) return true;
+  return PRODUCT_SURFACE_PREFIXES.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+  );
+}
+
 export function isPublicSurfacePath(pathname: string | null): boolean {
   if (!pathname) {
     return false;

@@ -1,0 +1,221 @@
+/**
+ * product-chrome.css — UX-03.
+ *
+ * The signed-in counterpart to eyebrow.css: a 64px sticky instrument plus the
+ * breadcrumb trail beneath it. Crossing from a public surface into the product
+ * must not move the instrument — one bar, one height, contents change by
+ * surface class.
+ *
+ * It is NOT the eyebrow with a different fill: the eyebrow's centre ticker and
+ * takeover index are marketing navigation, and mounting them over a review
+ * queue would offer a clinician's employer a link to /pricing mid-decision.
+ * This bar carries only where-you-are and how-to-get-out.
+ *
+ * This file carries LAYOUT ONLY. Every colour, the 64px height, the gutters and
+ * the hairline come from eyebrow.css, whose two register rules `.vcv-pc` and
+ * `.vcv-trail` now join — see the note there. So there is no --pc-* prefix
+ * family (LINT-13 rightly refuses a 71st), not one raw colour on the LINT-01
+ * ratchet, and no second copy of the palette to drift out of sync. Since D-01
+ * those --eb-* values resolve through the scene register, so this bar inherits
+ * that convergence too.
+ *
+ * Focus rings use --vt-focus-ring-scene-paper, the same token the eyebrow uses
+ * over a light band. This bar is always the paper register — a console never
+ * inverts on scroll — so it takes the paper ring unconditionally.
+ *
+ * `.vcv-trail` takes the island in its own right, not by inheritance, because
+ * it renders in two places: inside `.vcv-pc` on product surfaces, and directly
+ * inside HolderWorkspaceFrame on the clinician tree, which has no `.vcv-pc`
+ * ancestor to inherit from.
+ *
+ * z-index is the Tailwind `z-50` utility on the element, matching `.vcv-eb`;
+ * LINT-05 ratchets literal z-index in stylesheets.
+ */
+
+/* The shared rule sets height: var(--eb-h) — correct for a bar that IS the
+   instrument, wrong here: .vcv-pc wraps the bar AND the trail beneath it. The
+   64px lives on .vcv-pc__bar instead, so the instrument height is identical
+   while the trail adds its own row. */
+.vcv-pc {
+  height: auto;
+}
+
+.vcv-pc__bar {
+  height: var(--eb-h);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 0 var(--eb-gutter);
+}
+
+.vcv-pc__left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.vcv-pc__wordmark {
+  font-family: var(--font-geist), system-ui, sans-serif;
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--eb-text);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.vcv-pc__wordmark:focus-visible {
+  outline: 2px solid var(--vt-focus-ring-scene-paper);
+  outline-offset: 3px;
+}
+
+/* The section name. A rule, not a pill — EC-20 retires pills. */
+.vcv-pc__section {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding-left: 14px;
+  border-left: 1px solid var(--eb-line);
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--eb-text2);
+  white-space: nowrap;
+}
+
+.vcv-pc__right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.vcv-pc__link {
+  display: inline-flex;
+  align-items: center;
+  /* 44px touch target (EC-5) reached through padding, so the row stays 64px. */
+  min-height: 44px;
+  padding: 0 12px;
+  font-family: var(--font-geist), system-ui, sans-serif;
+  font-size: 13px;
+  color: var(--eb-text2);
+  text-decoration: none;
+  border-radius: 2px;
+}
+
+.vcv-pc__link:hover,
+.vcv-pc__link:focus-visible {
+  color: var(--eb-text);
+}
+
+.vcv-pc__link:focus-visible {
+  outline: 2px solid var(--vt-focus-ring-scene-paper);
+  outline-offset: -2px;
+}
+
+/* ── The trail ─────────────────────────────────────────────────────────── */
+
+/* Ground, ink and hairline arrive from the shared register rule. Undone here:
+   the trail is a content row, not a second sticky instrument — leaving it
+   sticky at top: 0 would park it underneath the bar. */
+.vcv-trail {
+  position: static;
+  height: auto;
+  padding: 10px var(--eb-gutter);
+}
+
+.vcv-trail__list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.vcv-trail__item {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.vcv-trail__sep {
+  padding: 0 2px;
+  color: var(--eb-text3);
+  font-size: 12px;
+  user-select: none;
+}
+
+.vcv-trail__crumb {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 8px;
+  font-family: var(--font-geist), system-ui, sans-serif;
+  font-size: 13px;
+  line-height: 1.2;
+  border-radius: 2px;
+  max-width: 42ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vcv-trail__crumb--link {
+  color: var(--eb-text2);
+  text-decoration: none;
+}
+
+.vcv-trail__crumb--link:hover,
+.vcv-trail__crumb--link:focus-visible {
+  color: var(--eb-text);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.vcv-trail__crumb--link:focus-visible {
+  outline: 2px solid var(--vt-focus-ring-scene-paper);
+  outline-offset: -2px;
+  text-decoration: none;
+}
+
+.vcv-trail__crumb--plain {
+  color: var(--eb-text3);
+}
+
+.vcv-trail__crumb--current {
+  color: var(--eb-text);
+  font-weight: 500;
+}
+
+/* Mobile: keep the trail to one line. Everything except the immediate parent
+   and the current page collapses; the bar's section link still reaches the
+   root, so no ancestor becomes unreachable. */
+@media (max-width: 640px) {
+  .vcv-pc__bar,
+  .vcv-trail {
+    --eb-gutter: 16px;
+  }
+
+  .vcv-pc__section {
+    display: none;
+  }
+
+  .vcv-trail__list {
+    flex-wrap: nowrap;
+  }
+
+  .vcv-trail__item:not(:nth-last-child(-n + 2)) {
+    display: none;
+  }
+
+  /* With ancestors hidden, the leading separator on the parent crumb would
+     dangle at the start of the row. */
+  .vcv-trail__item:nth-last-child(2) .vcv-trail__sep {
+    display: none;
+  }
+}
