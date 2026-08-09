@@ -22,6 +22,40 @@ export function ResearchSurface({ selectedId, mount }: { selectedId?: string; mo
   const selected = DEMO_RESEARCH_ITEMS.find((r) => r.id === selectedId);
   const confirmedPublications = DEMO_CV_ENTRIES.filter((e) => e.section === 'publications');
 
+  // A5 (2026-08-08): the production mount renders honest absence — the shelf
+  // and candidate queue are fictional sample content whose live wave has not
+  // shipped, and sample material no longer ships on the main Workbench path.
+  // The harness mount keeps the demo for design review.
+  if (mount === 'holder') {
+    return (
+      <div className="space-y-10">
+        <section aria-labelledby="research-shelf">
+          <h2 id="research-shelf" className="mz-h2">
+            Reading shelf
+          </h2>
+          <div className="mz-card mt-4 p-5">
+            <p className="mz-body">
+              Nothing on your shelf yet. Capture an insight or a teaching point with the Cursor
+              (⌘K / Ctrl+K) — it lands in your private notes today; the research shelf itself
+              arrives in a later wave.
+            </p>
+          </div>
+        </section>
+        <section aria-labelledby="research-candidates">
+          <h2 id="research-candidates" className="mz-h2">
+            Publication candidates
+          </h2>
+          <div className="mz-card mt-4 p-5">
+            <p className="mz-body">
+              No candidates yet. When publication matching ships, an author-name match will appear
+              here as a candidate for your review — never as an authorship assertion.
+            </p>
+          </div>
+        </section>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-10">
       {selected ? (

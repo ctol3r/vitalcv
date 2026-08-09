@@ -20,8 +20,9 @@ import { GARDEN_HREF_FOR, type GardenHrefFor, type GardenMount } from '@/lib/car
  * the five beds as quiet structure, recent activity as a timeline, and the
  * weekly tend card. No scores, no meters, no theatre.
  *
- * Live mount: Seeds and Blooms are your durable workspace; Roots, Branches,
- * and Harvests stay explicitly sample-labeled until their own waves land.
+ * Live mount: Seeds and Blooms are your durable workspace; Roots and
+ * Branches render honest absence until their waves land — no sample content
+ * on production routes (A5, 2026-08-08).
  */
 export function GardenHomeSurface({ data, mount }: { data: GardenData; mount: GardenMount }) {
   const hrefFor = GARDEN_HREF_FOR[mount];
@@ -34,7 +35,6 @@ export function GardenHomeSurface({ data, mount }: { data: GardenData; mount: Ga
     count: string;
     items: string[];
     href: string;
-    sample: boolean;
   }> = [
     {
       key: 'seeds',
@@ -46,27 +46,28 @@ export function GardenHomeSurface({ data, mount }: { data: GardenData; mount: Ga
           ? data.notes.slice(0, 2).map((s) => s.title)
           : ['None yet — press ⌘K (or Ctrl+K) to capture the first.'],
       href: hrefFor('notes'),
-      sample: false,
     },
     {
       key: 'roots',
       name: 'Roots',
       meaning: 'Connected identities and links',
-      count: `${DEMO_ROOTS.filter((r) => r.state !== 'not-connected').length}`,
-      items: DEMO_ROOTS.filter((r) => r.state !== 'not-connected').map((r) => r.provider),
+      // Honest absence (A5): nothing is connected until the connections wave
+      // ships — no demo providers, no fabricated count.
+      count: live ? '—' : `${DEMO_ROOTS.filter((r) => r.state !== 'not-connected').length}`,
+      items: live
+        ? ['Nothing connected yet — identity connections arrive in a later wave.']
+        : DEMO_ROOTS.filter((r) => r.state !== 'not-connected').map((r) => r.provider),
       href: hrefFor('privacy'),
-      sample: true,
     },
     {
       key: 'branches',
       name: 'Branches',
       meaning: 'Projects, teaching, research themes',
-      // Count and list derive from the same slice — a bed that says "4" while
-      // listing 3 reads as a bug, not a teaser.
-      count: `${DEMO_BRANCHES.length}`,
-      items: DEMO_BRANCHES.map((b) => b.name),
+      count: live ? '—' : `${DEMO_BRANCHES.length}`,
+      items: live
+        ? ['None recorded yet — group notes into themes when that wave ships.']
+        : DEMO_BRANCHES.map((b) => b.name),
       href: hrefFor('notes'),
-      sample: true,
     },
     {
       key: 'blooms',
@@ -78,7 +79,6 @@ export function GardenHomeSurface({ data, mount }: { data: GardenData; mount: Ga
           ? data.cvEntries.slice(0, 2).map((e) => e.headline)
           : ['None yet — grow a seed when one is ready.'],
       href: hrefFor('cv'),
-      sample: false,
     },
     {
       key: 'harvests',
@@ -87,7 +87,6 @@ export function GardenHomeSurface({ data, mount }: { data: GardenData; mount: Ga
       count: '0',
       items: ['None here — sharing stays off in the garden.'],
       href: hrefFor('privacy'),
-      sample: true,
     },
   ];
 
@@ -158,11 +157,6 @@ export function GardenHomeSurface({ data, mount }: { data: GardenData; mount: Ga
                     </li>
                   ))}
                 </ul>
-                {live && bed.sample ? (
-                  <p className="mz-mono mt-2 text-[10px] uppercase tracking-[0.12em]" style={{ color: 'var(--ink-500)' }}>
-                    Sample — its wave is next
-                  </p>
-                ) : null}
               </Link>
             </Reveal>
           ))}

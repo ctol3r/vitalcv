@@ -57,8 +57,11 @@ describe('career-garden pages (live server render)', () => {
     for (const bed of ['Seeds', 'Roots', 'Branches', 'Blooms', 'Harvests']) {
       expect(html).toContain(bed);
     }
-    // Sample beds stay unmistakably sample in the live mount.
-    expect(html).toContain('Sample — its wave is next');
+    // A5: no sample material on the live mount — unshipped beds render honest
+    // absence instead of demo content wearing a disclaimer.
+    expect(html).not.toContain('Sample — its wave is next');
+    expect(html).toContain('Nothing connected yet');
+    expect(html).toContain('None recorded yet');
     expect(html).toContain('Tend your garden');
     expect(html).toContain('Recent activity');
     expect(html).toContain('href="/holder"');
@@ -100,12 +103,15 @@ describe('career-garden pages (live server render)', () => {
     expect(html).toContain('removing a line reopens its seed');
   });
 
-  it('research renders the candidate rule and never asserts authorship', async () => {
+  it('research renders honest absence on the live mount — the rule survives, the samples do not', async () => {
     const html = await render(CareerGardenResearchPage(sp({})));
     expect(html).toContain('Publication candidates');
-    expect(html).toContain('never an authorship claim');
-    expect(html).toContain('Candidate match');
-    expect(html).toContain('Needs review');
+    // The load-bearing rule still renders in the empty state's own words…
+    expect(html).toContain('never as an authorship assertion');
+    // …and no fictional shelf items or candidates ship on the production route.
+    expect(html).not.toContain('Sample items');
+    expect(html).not.toContain('Candidate match');
+    expect(html).toContain('No candidates yet');
   });
 
   it('opportunity detail + composer keep the draft honest and unsendable', async () => {
