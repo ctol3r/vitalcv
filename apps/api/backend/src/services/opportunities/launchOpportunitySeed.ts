@@ -49,7 +49,7 @@ interface SeedOpportunity {
   status: 'ACTIVE';
 }
 
-const SEEDED_ORGANIZATIONS: readonly SeedOrganization[] = [
+export const SEEDED_ORGANIZATIONS: readonly SeedOrganization[] = [
   {
     slug: 'bay-area-cardiac-group',
     name: 'Bay Area Cardiac Group',
@@ -150,14 +150,18 @@ const SEEDED_ORGANIZATIONS: readonly SeedOrganization[] = [
     verifiedSince: '2023-02-10T00:00:00.000Z',
   },
   {
-    slug: 'kaiser-permanente-northern-california',
-    name: 'Kaiser Permanente NorCal',
+    // Named fictionally on purpose. This entry used to carry a real health
+    // system's name ("Kaiser Permanente NorCal"), which put a real company's
+    // brand on a job that does not exist — and the row reached production.
+    // Demo fixtures never borrow a real organization's identity.
+    slug: 'northgate-valley-health',
+    name: 'Northgate Valley Health (demo)',
     facilityType: 'health_system',
     specialties: ['Internal Medicine'],
     statesCovered: ['CA'],
-    tagline: 'Integrated Northern California health system hiring into permanent medicine teams.',
+    tagline: 'Integrated regional health system hiring into permanent medicine teams.',
     description:
-      'Kaiser Permanente NorCal runs permanent internal medicine hiring with structured onboarding, privileged access workflows, and standardized trust thresholds.',
+      'Northgate Valley Health runs permanent internal medicine hiring with structured onboarding, privileged access workflows, and standardized trust thresholds.',
     trustScore: 95,
     recentHires: 14,
     hiringTypes: ['perm'],
@@ -177,14 +181,37 @@ const SEEDED_ORGANIZATIONS: readonly SeedOrganization[] = [
 ] as const;
 
 /**
+ * Slugs this fixture has USED IN THE PAST but no longer emits.
+ *
+ * Deriving the exclusion list from SEEDED_ORGANIZATIONS alone looks airtight
+ * and is not: a seeded row keeps the slug it was written with, so renaming an
+ * entry here silently un-protects every database that already has the old row.
+ * That is not hypothetical — production served a demo posting under
+ * `kaiser-permanente-norcal` for weeks while the exclusion list named
+ * `kaiser-permanente-northern-california`, so `notIn` never matched the one org
+ * the filter's own comment claimed to cover.
+ *
+ * Every slug retired from the fixture above belongs here, permanently. The list
+ * only grows.
+ */
+export const LEGACY_SEEDED_ORG_SLUGS: readonly string[] = [
+  'kaiser-permanente-norcal',
+  'kaiser-permanente-northern-california',
+];
+
+/**
  * Slugs of the demo/launch seed organizations. Exposed so live matching can
  * EXCLUDE already-seeded demo rows (which may still exist in production from
  * earlier seeding) without deleting any data. Derived from SEEDED_ORGANIZATIONS
- * so the two never drift.
+ * so the two never drift, and unioned with the slugs this fixture used to emit
+ * so a rename cannot strand a live row.
  */
-export const SEEDED_ORG_SLUGS: readonly string[] = SEEDED_ORGANIZATIONS.map(
-  (organization) => organization.slug,
-);
+export const SEEDED_ORG_SLUGS: readonly string[] = [
+  ...new Set([
+    ...SEEDED_ORGANIZATIONS.map((organization) => organization.slug),
+    ...LEGACY_SEEDED_ORG_SLUGS,
+  ]),
+];
 
 /**
  * Demo/launch opportunity seeding is OFF by default. Production leaves
@@ -210,7 +237,12 @@ export function isDemoOpportunitySeedEnabled(): boolean {
  * Shared Prisma `where` fragment that keeps seeded demo employers out of live
  * surfaces in production (flag off) while including them in dev (flag on). Used
  * by the MATCHA match feed AND the public opportunity list/detail so nothing
- * demo-branded (e.g. the seeded "Kaiser Permanente" org) reaches real clinicians.
+ * demo-branded reaches real clinicians.
+ *
+ * This is defence in depth, NOT the primary control: it only suppresses rows at
+ * read time, so any read path that forgets it republishes the data. Rows that
+ * should not exist are closed by `retireSeededLaunchOpportunities` at boot.
+ *
  * Empty object when the demo flag is on. Combine via `AND` when the caller also
  * filters by organization slug, so the two organization clauses don't clobber.
  */
@@ -218,6 +250,46 @@ export function seededOrgExclusionFilter(): { organization?: { slug: { notIn: st
   return isDemoOpportunitySeedEnabled()
     ? {}
     : { organization: { slug: { notIn: [...SEEDED_ORG_SLUGS] } } };
+}
+
+/**
+ * Close every ACTIVE demo/launch posting, so a database that was seeded before
+ * the flag gate existed does not keep publishing invented jobs.
+ *
+ * Retiring beats filtering. A read-time exclusion has to be remembered by every
+ * current and future query; a CLOSED row is gone from all of them at once,
+ * including any surface written after this. The rows are closed rather than
+ * deleted so an operator can still see what was published and when.
+ *
+ * No-ops when demo seeding is explicitly enabled — that environment wants the
+ * fixtures.
+ */
+export async function retireSeededLaunchOpportunities(options: {
+  prismaClient?: PrismaClient;
+  logger?: SeedLogger;
+} = {}): Promise<{ retiredOpportunityCount: number; skipped: boolean }> {
+  const prismaClient = options.prismaClient ?? prisma;
+  const logger = options.logger;
+
+  if (isDemoOpportunitySeedEnabled()) {
+    logger?.('info', 'launch_opportunity_retire.skipped_demo_enabled');
+    return { retiredOpportunityCount: 0, skipped: true };
+  }
+
+  const { count } = await prismaClient.opportunity.updateMany({
+    where: {
+      status: 'ACTIVE',
+      organization: { slug: { in: [...SEEDED_ORG_SLUGS] } },
+    },
+    data: { status: 'CLOSED' },
+  });
+
+  logger?.(count > 0 ? 'warn' : 'info', 'launch_opportunity_retire.completed', {
+    retiredOpportunityCount: count,
+    slugs: [...SEEDED_ORG_SLUGS],
+  });
+
+  return { retiredOpportunityCount: count, skipped: false };
 }
 
 export const SEEDED_LAUNCH_OPPORTUNITIES: readonly SeedOpportunity[] = [
@@ -274,7 +346,7 @@ export const SEEDED_LAUNCH_OPPORTUNITIES: readonly SeedOpportunity[] = [
     status: 'ACTIVE',
   },
   {
-    organizationSlug: 'kaiser-permanente-northern-california',
+    organizationSlug: 'northgate-valley-health',
     title: 'Staff Internist - East Bay Access Clinics',
     specialty: 'Internal Medicine',
     hiringType: 'perm',
