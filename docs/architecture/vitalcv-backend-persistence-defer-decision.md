@@ -249,6 +249,10 @@ pair on its own.
   With no secret provisioned this route answers 403 to everyone. It is also on the
   tenant-guard skip list — it is a service-to-service call with no organization
   context — which is safe only because it authenticates itself first.
+  The route owns the Prisma transaction: it writes the durable `AuditEvent`
+  (doctrine anti-drift rule #2) and then the receipt, so either both rows commit
+  or neither does. An audited action that silently failed to persist is as wrong
+  as an unaudited one that did.
 - **`apps/web/lib/issuer-verification/serverRepositoryPsvReceiptWriter.ts`** — the
   server-only caller, implementing the BACKEND-2 `ServerPsvReceiptWriter` interface
   unchanged, so `writePsvReceiptWithConfirmation` still governs every result.

@@ -15,6 +15,7 @@ import { randomUUID } from 'crypto';
 import prisma from '../src/graphql/prisma_client';
 import {
   assertWritableIssuerPsvReceipt,
+  buildIssuerPsvReceiptAuditEvent,
   findIssuerPsvReceipt,
   IssuerPsvReceiptContractError,
   writeIssuerAuditEvent,
@@ -156,6 +157,67 @@ describe('writeIssuerPsvReceipt — every contract field round-trips', () => {
     const row = await findIssuerPsvReceipt(input.psvReceiptId);
     expect(Array.isArray(row!.limitations)).toBe(true);
     expect(row!.limitations).toEqual([]);
+  });
+});
+
+describe('audit-first pairing — the audit row and the receipt commit together', () => {
+  /**
+   * The caller (the route) owns the transaction. These tests drive the same
+   * shape directly so the rollback guarantee is proven at the repository level
+   * too: a contract failure inside the receipt write must take the caller's
+   * already-written audit row down with it.
+   */
+  it('commits the audit row alongside the receipt', async () => {
+    const input = baseInput();
+
+    await prisma.$transaction(async (tx) => {
+      await tx.auditEvent.create({ data: buildIssuerPsvReceiptAuditEvent(input) });
+      return writeIssuerPsvReceipt(input, {
+        confirmedBy: 'issuer10-test',
+        nowIso: NOW_ISO,
+        tx,
+      });
+    });
+
+    const events = await prisma.auditEvent.findMany({
+      where: { referenceId: input.psvReceiptId, type: 'issuer.psv_receipt_persisted' },
+    });
+    expect(events).toHaveLength(1);
+    const metadata = events[0].metadata as Record<string, unknown>;
+    expect(metadata.claimId).toBe(input.claimId);
+    expect(metadata.limitationKinds).toEqual(['contracted_agent', 'legally_only']);
+
+    const row = await findIssuerPsvReceipt(input.psvReceiptId);
+    expect(row).not.toBeNull();
+
+    await prisma.auditEvent.deleteMany({ where: { referenceId: input.psvReceiptId } });
+  });
+
+  it('rolls the audit row back when the receipt write is refused', async () => {
+    // A contracted agent with no named principal: refused inside the write, so
+    // the audit row written moments earlier must not survive.
+    const input = baseInput({
+      sourceBasis: { sourceOrganizationName: 'Example GME Office', isContractedAgent: true },
+    });
+
+    await expect(
+      prisma.$transaction(async (tx) => {
+        await tx.auditEvent.create({ data: buildIssuerPsvReceiptAuditEvent(input) });
+        return writeIssuerPsvReceipt(input, {
+          confirmedBy: 'issuer10-test',
+          nowIso: NOW_ISO,
+          tx,
+        });
+      }),
+    ).rejects.toThrow(IssuerPsvReceiptContractError);
+
+    const events = await prisma.auditEvent.findMany({
+      where: { referenceId: input.psvReceiptId },
+    });
+    expect(events).toHaveLength(0);
+
+    const row = await findIssuerPsvReceipt(input.psvReceiptId);
+    expect(row).toBeNull();
   });
 });
 

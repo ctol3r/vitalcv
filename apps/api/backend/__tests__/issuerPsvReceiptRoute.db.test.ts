@@ -199,6 +199,26 @@ describe('POST /api/internal/issuer/psv-receipts — enabled', () => {
     expect(row!.proofTier).toBe('psv_receipt');
     expect(row!.decisionGrade).toBe(true);
     expect(row!.globalCredentialTruth).toBe(false);
+
+    // Doctrine anti-drift rule #2: the durable audit row exists before the 2xx.
+    const events = await prisma.auditEvent.findMany({
+      where: { referenceId: body.psvReceiptId, type: 'issuer.psv_receipt_persisted' },
+    });
+    expect(events).toHaveLength(1);
+    await prisma.auditEvent.deleteMany({ where: { referenceId: body.psvReceiptId } });
+  });
+
+  it('writes no audit row when the write is refused', async () => {
+    const body = receipt('refused-no-audit');
+    body.scope = { ...body.scope, doesNotCover: '' };
+
+    const res = await post({ receipt: body, enableRepositoryWrites: true });
+    expect(res.status).toBe(422);
+
+    const events = await prisma.auditEvent.findMany({
+      where: { referenceId: body.psvReceiptId },
+    });
+    expect(events).toHaveLength(0);
   });
 
   it('refuses a contract violation with 422 and writes nothing', async () => {

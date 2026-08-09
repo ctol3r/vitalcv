@@ -25,7 +25,57 @@
  *     and answers a different question from `promotedAt`.
  */
 
+import { randomUUID } from 'crypto';
 import prisma from '../src/graphql/prisma_client';
+
+/**
+ * The subset of the Prisma client a transaction callback receives. Callers that
+ * own a transaction pass it in so their audit write and this receipt write
+ * commit together; callers that do not get an implicit one.
+ */
+export type PrismaTransactionClient = Omit<
+  typeof prisma,
+  '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'
+>;
+
+function runInTransaction<T>(
+  tx: PrismaTransactionClient | undefined,
+  fn: (client: PrismaTransactionClient) => Promise<T>,
+): Promise<T> {
+  if (tx) return fn(tx);
+  return prisma.$transaction((inner) => fn(inner as PrismaTransactionClient));
+}
+
+/**
+ * The durable AuditEvent payload for a persisted receipt. Exported so the route
+ * can write it inside the transaction it owns — the audit row and the receipt
+ * row must land together, and the write must be visible in the route file to
+ * `scripts/check-audit-coverage.ts`.
+ *
+ * `hash` is a fresh opaque event id, not a content digest: the platform column
+ * is an identifier, and computing a digest here would imply an integrity check
+ * that nothing performs.
+ */
+export function buildIssuerPsvReceiptAuditEvent(input: IssuerPsvReceiptWriteInput) {
+  return {
+    type: 'issuer.psv_receipt_persisted',
+    hash: randomUUID(),
+    referenceId: input.psvReceiptId,
+    metadata: {
+      psvCandidateId: input.psvCandidateId,
+      receiptCandidateId: input.receiptCandidateId,
+      requestId: input.requestId,
+      claimId: input.claimId,
+      claimType: input.claimType,
+      promotedAt: input.promotedAt,
+      promotedBy: input.promotedBy.actorId,
+      sourceOrganizationName: input.sourceBasis.sourceOrganizationName,
+      isContractedAgent: input.sourceBasis.isContractedAgent,
+      limitationKinds: input.limitations.map((l) => l.kind),
+      correlationId: input.correlationId,
+    },
+  };
+}
 
 // ---------------------------------------------------------------------------
 // Contract shapes (structural mirrors of apps/web/lib/issuer-verification/types.ts).
@@ -323,7 +373,7 @@ function assertRoundTrip(
  */
 export async function writeIssuerPsvReceipt(
   input: IssuerPsvReceiptWriteInput,
-  options: { confirmedBy: string; nowIso: string },
+  options: { confirmedBy: string; nowIso: string; tx?: PrismaTransactionClient },
 ): Promise<IssuerPsvReceiptWriteConfirmation> {
   assertWritableIssuerPsvReceipt(input);
 
@@ -343,44 +393,53 @@ export async function writeIssuerPsvReceipt(
     }
   }
 
-  const created = await prisma.issuerPsvReceipt.create({
-    data: {
-      psvReceiptId: input.psvReceiptId,
-      psvCandidateId: input.psvCandidateId,
-      receiptCandidateId: input.receiptCandidateId,
-      requestId: input.requestId,
-      claimId: input.claimId,
-      claimType: input.claimType,
-      promotedAt: new Date(input.promotedAt),
-      promotedBy: input.promotedBy as never,
-      sourceBasis: input.sourceBasis as never,
-      attributedResponder: input.attributedResponder as never,
-      scope: input.scope as never,
-      limitations: input.limitations as never,
-      freshness: input.freshness as never,
-      // Written here, never accepted from the caller.
-      proofTier: 'psv_receipt',
-      decisionGrade: true,
-      globalCredentialTruth: false,
-      recordedBy: input.recordedBy ?? 'system',
-      correlationId: input.correlationId,
-      idempotencyKey: input.idempotencyKey ?? null,
-      notes: input.notes ?? null,
-    },
-  });
+  // Audit-first: the caller owns the transaction and writes the durable
+  // AuditEvent into it BEFORE calling here (see the route), so a persisted
+  // receipt with no audit row is not a reachable state — doctrine anti-drift
+  // rule #2. The write and its read-back share one client: reading through the
+  // module-level `prisma` would query OUTSIDE the caller's uncommitted
+  // transaction and find nothing.
+  const persisted = await runInTransaction(options.tx, async (tx) => {
+    const created = await tx.issuerPsvReceipt.create({
+      data: {
+        psvReceiptId: input.psvReceiptId,
+        psvCandidateId: input.psvCandidateId,
+        receiptCandidateId: input.receiptCandidateId,
+        requestId: input.requestId,
+        claimId: input.claimId,
+        claimType: input.claimType,
+        promotedAt: new Date(input.promotedAt),
+        promotedBy: input.promotedBy as never,
+        sourceBasis: input.sourceBasis as never,
+        attributedResponder: input.attributedResponder as never,
+        scope: input.scope as never,
+        limitations: input.limitations as never,
+        freshness: input.freshness as never,
+        // Written here, never accepted from the caller.
+        proofTier: 'psv_receipt',
+        decisionGrade: true,
+        globalCredentialTruth: false,
+        recordedBy: input.recordedBy ?? 'system',
+        correlationId: input.correlationId,
+        idempotencyKey: input.idempotencyKey ?? null,
+        notes: input.notes ?? null,
+      },
+    });
 
-  // Read back through a fresh query rather than trusting the create() return
-  // value, so the confirmation reflects what the DATABASE holds.
-  const persisted = await prisma.issuerPsvReceipt.findUnique({
-    where: { id: created.id },
+    // Read back rather than trusting the create() return value, so the
+    // confirmation reflects what the database actually holds.
+    const row = await tx.issuerPsvReceipt.findUnique({ where: { id: created.id } });
+    if (!row) {
+      throw new IssuerPsvReceiptContractError(
+        'psvReceiptId',
+        'row was not readable immediately after write; refusing to confirm persistence',
+      );
+    }
+    // Inside the transaction on purpose: a contract failure throws, which rolls
+    // the receipt AND the caller's audit row back together.
+    assertRoundTrip(input, row as never);
+    return row;
   });
-  if (!persisted) {
-    throw new IssuerPsvReceiptContractError(
-      'psvReceiptId',
-      'row was not readable immediately after write; refusing to confirm persistence',
-    );
-  }
-  assertRoundTrip(input, persisted as never);
 
   return {
     confirmedAt: options.nowIso,

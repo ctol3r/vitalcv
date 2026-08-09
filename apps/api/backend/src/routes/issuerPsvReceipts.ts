@@ -31,8 +31,10 @@
 
 import type { Express, Request, Response } from 'express';
 
+import prisma from '../graphql/prisma_client';
 import { publicApiRateLimit } from '../middleware/publicSafety';
 import {
+  buildIssuerPsvReceiptAuditEvent,
   IssuerPsvReceiptContractError,
   writeIssuerAuditEvent,
   writeIssuerPsvReceipt,
@@ -110,9 +112,20 @@ export function registerIssuerPsvReceiptRoutes(app: Express): void {
       }
 
       try {
-        const confirmation = await writeIssuerPsvReceipt(body.receipt, {
-          confirmedBy: body.confirmedBy?.trim() || 'issuer-psv-receipt-route',
-          nowIso,
+        // Audit-first, atomically: this route owns the transaction, writes the
+        // durable AuditEvent into it, and only then persists the receipt. Either
+        // both rows commit or neither does — an audited action that silently
+        // failed to persist is as wrong as an unaudited one that did.
+        const receiptInput = body.receipt;
+        const confirmation = await prisma.$transaction(async (tx) => {
+          await tx.auditEvent.create({
+            data: buildIssuerPsvReceiptAuditEvent(receiptInput),
+          });
+          return writeIssuerPsvReceipt(receiptInput, {
+            confirmedBy: body.confirmedBy?.trim() || 'issuer-psv-receipt-route',
+            nowIso,
+            tx,
+          });
         });
 
         let auditConfirmation: Awaited<ReturnType<typeof writeIssuerAuditEvent>> | undefined;
