@@ -124,11 +124,31 @@ const AXE_SOURCE = (() => {
   throw new Error('axe-core bundle not found — is axe-core installed?');
 })();
 
+/**
+ * Viewports.
+ *
+ * EC-6 says mobile is designed independently, and the touch floor is a mobile
+ * concern first — a 44px target is trivially met by a desktop nav row and
+ * routinely missed by a 390px stack. The 2026-08-09 audit measured its 716
+ * sub-44px targets at 390×844; a desktop-only gate would ratchet the easy half
+ * and leave the hard half unmeasured, which is how a gate ends up technically
+ * green and practically useless.
+ *
+ * Baseline keys are `route@viewport`, so the two ratchet independently — fixing
+ * a desktop target cannot mask a mobile regression.
+ */
+const VIEWPORTS = [
+  { name: 'desktop', width: 1440, height: 900 },
+  { name: 'mobile', width: 390, height: 844 },
+] as const;
+
 const measured: Baseline = {};
 
 test.describe('a11y — real routes, WCAG 2.2 AA', () => {
+  for (const viewport of VIEWPORTS)
   for (const route of ROUTES) {
-    test(`${route} is never less accessible than its baseline`, async ({ page }) => {
+    test(`${route} @${viewport.name} is never less accessible than its baseline`, async ({ page }) => {
+      await page.setViewportSize({ width: viewport.width, height: viewport.height });
       // NOT `networkidle`: /sign-in and /sign-up mount Clerk, which keeps
       // connections open (telemetry retries, and a CSP-blocked endpoint that
       // never resolves), so the idle event never fires and the route times out
@@ -176,6 +196,12 @@ test.describe('a11y — real routes, WCAG 2.2 AA', () => {
           if (r.width === 0 || r.height === 0) continue;
           const cs = getComputedStyle(el);
           if (cs.visibility === 'hidden' || cs.display === 'none') continue;
+          // Screen-reader-only controls — the skip link is the canonical case —
+          // are clipped to ~1px until focused, then render full size. They are
+          // not touch targets, and counting them would make ADDING a skip link
+          // raise the number and fail this ratchet: an accessibility
+          // improvement punished as a regression.
+          if (r.width <= 2 && r.height <= 2) continue;
           if (r.width >= 44 && r.height >= 44) continue;
           const parent = el.parentElement?.closest<HTMLElement>(SEL);
           if (parent) {
@@ -187,29 +213,30 @@ test.describe('a11y — real routes, WCAG 2.2 AA', () => {
         return count;
       });
 
-      measured[route] = { violations, smallTargets };
+      const key = `${route}@${viewport.name}`;
+      measured[key] = { violations, smallTargets };
       if (WRITE) return;
 
-      const base = readBaseline()[route];
+      const base = readBaseline()[key];
       expect(
         base,
-        `${route} has no baseline entry. Run with A11Y_WRITE_BASELINE=1 and commit the diff.`,
+        `${key} has no baseline entry. Run with A11Y_WRITE_BASELINE=1 --workers=1 and commit the diff.`,
       ).toBeDefined();
       if (!base) return;
 
       // New rule firing on a route that was clean for it.
       const appeared = Object.keys(violations).filter((id) => !(id in base.violations));
-      expect(appeared, `${route}: new axe violation type(s) — ${appeared.join(', ')}`).toEqual([]);
+      expect(appeared, `${key}: new axe violation type(s) — ${appeared.join(', ')}`).toEqual([]);
 
       // Existing rule getting worse.
       const worse = Object.entries(violations)
         .filter(([id, n]) => id in base.violations && n > base.violations[id])
         .map(([id, n]) => `${id}: ${base.violations[id]} → ${n}`);
-      expect(worse, `${route}: axe violations increased — ${worse.join('; ')}`).toEqual([]);
+      expect(worse, `${key}: axe violations increased — ${worse.join('; ')}`).toEqual([]);
 
       expect(
         smallTargets,
-        `${route}: sub-44px touch targets increased ${base.smallTargets} → ${smallTargets} (EC-5)`,
+        `${key}: sub-44px touch targets increased ${base.smallTargets} → ${smallTargets} (EC-5)`,
       ).toBeLessThanOrEqual(base.smallTargets);
     });
   }
