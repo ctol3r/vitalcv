@@ -80,8 +80,10 @@ async function getMonitoredNpiCount(): Promise<number> {
  * proxy at `app/api/trust/events` forwards only to /api/trust/events, and
  * `MonitoringStatusPanel` is imported by no page).
  *
- * `POST /api/trust/events` is deliberately NOT guarded here — it IS fronted by
- * that live proxy. See docs/security/turnstile-route-dispositions.md.
+ * `POST /api/trust/events` is now guarded too. Its web proxy
+ * (`app/api/trust/events`) has no auth of its own and no UI caller, so the
+ * proxy fronts nothing and will simply 403 — forwarding the secret from an
+ * unauthenticated proxy would have laundered it to anonymous callers.
  */
 export function registerAsyncTrustRoutes(app: Express): void {
 
@@ -90,7 +92,7 @@ export function registerAsyncTrustRoutes(app: Express): void {
    * Ingest a single credential event and process it immediately.
    * Requires x-clerk-user-id header.
    */
-  app.post('/api/trust/events', async (req: Request, res: Response) => {
+  app.post('/api/trust/events', requireInternalSecret, async (req: Request, res: Response) => {
     const clerkUserId = req.headers['x-clerk-user-id'] as string | undefined;
     if (!clerkUserId) {
       res.status(401).json({ error: 'Unauthorized — x-clerk-user-id required' });

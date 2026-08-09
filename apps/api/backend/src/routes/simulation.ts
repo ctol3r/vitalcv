@@ -16,9 +16,23 @@ import {
   simulateComplianceRule,
 } from '../services/simulation/liveSimulationEngine';
 import { log } from '../obs/logger';
+import { requireInternalSecret } from '../middleware/internalSecret';
 
 const VALID_EVENT_TYPES = ['credential_expired', 'credential_revoked', 'credential_added', 'issuer_revoked'] as const;
 
+/**
+ * AUTHORIZATION (2026-08-09). All four simulation writes had no authorization
+ * beyond the global tenant guard, which accepted the mere PRESENCE of a
+ * caller-supplied `x-org-id`.
+ *
+ * Their web proxies (`app/api/simulation/*`) hold NO auth of their own, so
+ * "forward the operator secret from the proxy" — the fix used for
+ * app/api/internal/* in batch 2 — is the WRONG move here: it would launder the
+ * secret to any anonymous caller of the web origin. Gating the backend is
+ * correct, and costs nothing: the only consumers, `LiveSimulationPanel` and
+ * `SimulationControlPanel`, are imported by no page, so the proxies front dead
+ * UI and will simply 403.
+ */
 export function registerSimulationRoutes(app: Express): void {
 
   // ── Live: get simulation results ─────────────────────────────────────────
@@ -54,7 +68,7 @@ export function registerSimulationRoutes(app: Express): void {
 
 
   // ── Legacy: graph-based simulation ────────────────────────────────────────
-  app.post('/api/simulation/run', async (req: Request, res: Response) => {
+  app.post('/api/simulation/run', requireInternalSecret, async (req: Request, res: Response) => {
     const { npi, eventType, credentialId, issuerNodeId, label } = req.body ?? {};
 
     if (!npi || !eventType) {
@@ -97,7 +111,7 @@ export function registerSimulationRoutes(app: Express): void {
   });
 
   // ── Live: credential revocation simulation ─────────────────────────────────
-  app.post('/api/simulation/revocation', async (req: Request, res: Response) => {
+  app.post('/api/simulation/revocation', requireInternalSecret, async (req: Request, res: Response) => {
     const { npi, credentialType } = req.body ?? {};
 
     if (!npi || !credentialType) {
@@ -121,7 +135,7 @@ export function registerSimulationRoutes(app: Express): void {
   });
 
   // ── Live: license expiration simulation ───────────────────────────────────
-  app.post('/api/simulation/expiration', async (req: Request, res: Response) => {
+  app.post('/api/simulation/expiration', requireInternalSecret, async (req: Request, res: Response) => {
     const { npi, expirationDate } = req.body ?? {};
 
     if (!npi || !expirationDate) {
@@ -151,7 +165,7 @@ export function registerSimulationRoutes(app: Express): void {
   });
 
   // ── Live: compliance rule simulation ──────────────────────────────────────
-  app.post('/api/simulation/compliance', async (req: Request, res: Response) => {
+  app.post('/api/simulation/compliance', requireInternalSecret, async (req: Request, res: Response) => {
     const { rule, specialty, state } = req.body ?? {};
 
     if (!rule) {

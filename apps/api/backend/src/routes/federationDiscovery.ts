@@ -21,10 +21,9 @@ import {
  * authorization beyond the global tenant guard and no caller anywhere in the
  * repo. Operator secret.
  *
- * `POST /api/network/federation/discover` is deliberately NOT guarded here: it
- * is fronted by a live web proxy (`app/api/network/federation/discover`), so
- * its disposition is a product decision — see
- * docs/security/turnstile-route-dispositions.md.
+ * `POST /api/network/federation/discover` is now guarded too. Its web proxy
+ * has no auth of its own, and its only UI caller (`DebugPanel`) is imported by
+ * no page — so the proxy fronts dead UI and will simply 403.
  */
 export function registerFederationDiscoveryRoutes(app: Express): void {
   // GET — discover candidates without registering
@@ -45,7 +44,7 @@ export function registerFederationDiscoveryRoutes(app: Express): void {
   });
 
   // POST — discover + auto-register validated issuers
-  app.post('/api/network/federation/discover', async (_req: Request, res: Response) => {
+  app.post('/api/network/federation/discover', requireInternalSecret, async (_req: Request, res: Response) => {
     try {
       const report = await autoRegisterDiscoveredIssuers();
       res.json(report);

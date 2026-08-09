@@ -25,6 +25,7 @@ import request, { type Test } from 'supertest';
 jest.mock('../../obs/logger', () => ({ log: jest.fn() }));
 
 import { registerFederationRoutes } from '../federation';
+import { registerSimulationRoutes } from '../simulation';
 import { registerFederationDiscoveryRoutes } from '../federationDiscovery';
 import { registerIssuerOnboardingRoutes } from '../issuerOnboarding';
 import { registerAsyncTrustRoutes } from '../asyncTrust';
@@ -39,6 +40,7 @@ function makeApp() {
   const app = express();
   app.use(express.json());
   registerFederationRoutes(app);
+  registerSimulationRoutes(app);
   registerFederationDiscoveryRoutes(app);
   registerIssuerOnboardingRoutes(app);
   registerAsyncTrustRoutes(app);
@@ -58,6 +60,15 @@ function makeApp() {
  */
 const GUARDED: Array<[string, string, Record<string, unknown>]> = [
   ['post', '/api/network/federate', { networkName: 'n', networkType: 'peer' }],
+  // batch 6 — proxy-fronted, but every proxy is unauthenticated and fronts
+  // dead UI, so gating the backend is right and forwarding the secret from the
+  // proxy would have laundered it to anonymous callers.
+  ['post', '/api/trust/events', { type: 'x', npi: NPI }],
+  ['post', '/api/network/federation/discover', { entityId: 'e' }],
+  ['post', '/api/simulation/run', { scenario: 's' }],
+  ['post', '/api/simulation/revocation', { npi: NPI }],
+  ['post', '/api/simulation/expiration', { npi: NPI }],
+  ['post', '/api/simulation/compliance', { npi: NPI }],
   ['patch', `/api/network/peers/${UUID}/status`, { status: 'ACTIVE' }],
   ['post', '/api/network/federation/validate', { entityId: 'e' }],
   ['post', '/api/network/issuer/register', { name: 'i', did: 'did:web:x' }],
@@ -70,9 +81,12 @@ const GUARDED: Array<[string, string, Record<string, unknown>]> = [
  * is a product decision, not a sweep. Pinned so the boundary is explicit.
  */
 const DEFERRED: Array<[string, string, Record<string, unknown>]> = [
-  ['post', '/api/trust/events', { type: 'x', npi: NPI }],
+  // The one genuinely live consumer chain in this group: its proxy
+  // (`app/api/intelligence/providers`) is reached by VCommandBar — mounted in
+  // RootChrome, i.e. on every page — plus the command palette, useProviders and
+  // the copilot session. Gating it would break signed-in intelligence surfaces.
+  // Disposition is `identity`, blocked on CLERK_JWT_VERIFICATION.
   ['post', '/api/trust/score/batch', { npis: [NPI] }],
-  ['post', '/api/network/federation/discover', { entityId: 'e' }],
 ];
 
 const GUARDED_LABELS = GUARDED.map(([m, p]) => `${m.toUpperCase()} ${p}`);

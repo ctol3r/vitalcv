@@ -72,6 +72,7 @@ verdict.
 | #1223 b3 | `/api/crypto/{sign,resign,batch-resign}` (5), `/api/did/*` (3), `/api/coordination/*` (3) | operator |
 | #1223 b4 | `/api/credentials/export/wallet`, `/api/credentials/sd-jwt/issue` | operator |
 | #1223 b5 | `/api/network/{federate,peers/:id/status,federation/validate,issuer/register}` (4), `/api/trust/{events/batch,monitoring/cycle}` (2) | operator |
+| #1223 b6 | `/api/simulation/*` (4), `/api/trust/events`, `/api/network/federation/discover` | operator |
 
 Every one of those was an **orphan** — no caller anywhere in the repo — which is
 what made operator-secret safe. That property is the reason the batches were
@@ -101,21 +102,26 @@ decisions, not a guard.
 header-trust baseline, so it *may* read `x-clerk-user-id` when the identity work
 lands; nothing has to be added to the baseline.
 
-## Deferred on purpose — fronted by a live web proxy
+## Proxy-fronted routes: "forward the secret" is not the default answer
 
-These are the same shape as the batch-5 routes and were left OPEN deliberately,
-because a live Next proxy forwards to them and would start 403ing. Closing each
-needs the proxy to forward the operator secret first (the pattern used for
-`app/api/internal/{source-health,mission-ops/sources}` in batch 2).
-`federationTrustWritesAuth.test.ts` pins the boundary, so a later sweep cannot
-close them silently.
+Batch 2 fixed `app/api/internal/{source-health,mission-ops/sources}` to forward
+`MONITORING_SECRET` to the backend. That was right **only because #1210 had
+already machine-authenticated those two proxies**. The general rule is:
 
-| backend route | live proxy |
-|---|---|
-| `POST /api/trust/events` | `app/api/trust/events` |
-| `POST /api/trust/score/batch` | `app/api/intelligence/providers` |
-| `POST /api/network/federation/discover` | `app/api/network/federation/discover` |
-| `POST /api/simulation/{run,revocation,expiration,compliance}` | `app/api/simulation/*` |
+> A proxy may forward the operator secret only if it authenticates its own
+> caller. An unauthenticated proxy that holds the secret **launders** it — it
+> hands operator access to anyone who can reach the web origin.
+
+Batch 6 hit the other case. `app/api/{trust/events,simulation/*,network/federation/discover}`
+have **no auth of their own**, and their UI is dead (`LiveSimulationPanel`,
+`SimulationControlPanel`, `DebugPanel` are imported by no page). So the backend
+was gated and the proxies simply 403 — no laundering, nothing broken.
+
+### Still deferred
+
+| backend route | live proxy | why |
+|---|---|---|
+| `POST /api/trust/score/batch` | `app/api/intelligence/providers` | Genuinely live: reached by `VCommandBar` (mounted in `RootChrome`, i.e. every page), the command palette, `useProviders`, and the copilot session. Disposition **identity**, blocked on `CLERK_JWT_VERIFICATION`. |
 
 Note the asymmetry that made batch 5 safe: every *component* caller in these
 families (`FederationHealthPanel`, `IssuerOnboardingPanel`,
@@ -126,7 +132,7 @@ it is reachable on the web origin whether or not the UI calls it.
 
 ## Remaining register
 
-~90 unguarded mutations after batch 5. Largest families:
+~84 unguarded mutations after batch 6. Largest families:
 
 | family | count | likely disposition |
 |---|---|---|
