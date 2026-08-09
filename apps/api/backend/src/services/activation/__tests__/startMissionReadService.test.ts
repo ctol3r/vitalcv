@@ -36,6 +36,10 @@ function packet(hash = 'packet-hash'): ApplicationPacketReadResponse {
       // fixture seals none, so nothing is withheld.
       withheldFieldIds: [],
       fields: [],
+      // No selected section is left silent: `[]` asserts that every section in
+      // the disclosure contributed, and nothing is unaccounted for.
+      sectionAbsences: [],
+      unexplainedSectionIds: [],
       methodologyVersion: 'phase1',
       clinicianNote: null,
       lifecycle: 'active',
