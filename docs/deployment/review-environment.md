@@ -74,13 +74,13 @@ extracted.
   `/api/version`, never from an HTTP 200 — a healthy old container answers 200
   while serving the previous build.
 
-## Required setup: a `RAILWAY_API_TOKEN` secret
+## Required setup: one credential
 
-**Status 2026-08-08: this is the one outstanding step, and only one thing
-fixes it.**
+**Status 2026-08-08: this is the one outstanding step.** The `review`
+environment exists in Railway, but no credential in CI can reach it.
 
-The repo supplies `RAILWAY_TOKEN`, a Railway **project** token. Railway project
-tokens are scoped to a **single environment**, and this one is scoped to
+Why the existing one cannot: `RAILWAY_TOKEN` is a Railway **project** token,
+and project tokens are scoped to a **single environment** — this one to
 `production`. Three runs established that, in order:
 
 1. `environmentCreate` → `Not Authorized` (project tokens cannot create
@@ -88,19 +88,35 @@ tokens are scoped to a **single environment**, and this one is scoped to
 2. The environment was then created by hand. Next run: the listing returned
    *only* `production`, so the step tried to create `review` again and Railway
    answered **`An environment with that name already exists`**.
-3. That combination is conclusive: the environment exists, and this credential
-   cannot see it.
+3. Exists **and** invisible is conclusive — the token is environment-scoped.
 
-So **creating the environment by hand is not sufficient** — a token that cannot
-see `review` also cannot set its variables, create its domain, or deploy to it.
+So creating the environment by hand is not sufficient on its own: a token that
+cannot see `review` also cannot set its variables, create its domain, or deploy
+to it.
 
-**The fix:** Railway → Account Settings → Tokens → create a workspace/account
-token → add it as the repository secret `RAILWAY_API_TOKEN`. The workflow
-already prefers it over `RAILWAY_TOKEN` when present, so nothing else changes.
-Then re-run the workflow.
+**Set ONE of these repository secrets** (Settings → Secrets and variables →
+**Actions** — the Actions tab, not Dependabot, and repository-level rather than
+environment-level, since this workflow declares no `environment:`):
 
-The `review` environment created by hand can stay; the workflow will resolve it
-rather than recreate it.
+- **`RAILWAY_REVIEW_TOKEN` — recommended.** In Railway, open the `review`
+  environment → Settings → Tokens → create a **project token for that
+  environment**. It can do everything this workflow needs and *cannot reach
+  production at all*, which is worth having on a workflow that takes an
+  arbitrary ref by hand. It is the same kind of credential as the existing
+  `RAILWAY_TOKEN`.
+- **`RAILWAY_API_TOKEN`** — Railway → Account Settings → Tokens. Broader: it
+  can reach every environment, and it can also create the environment itself.
+
+The workflow prefers `RAILWAY_REVIEW_TOKEN`, then `RAILWAY_API_TOKEN`.
+`RAILWAY_TOKEN` is deliberately **not** a fallback for review work — it cannot
+see this environment, and allowing it through only moves the failure three
+steps later.
+
+Verify the secret actually landed before re-running:
+
+```bash
+gh secret list -R ctol3r/vitalcv --app actions | grep RAILWAY
+```
 
 Everything after environment resolution (`variableCollectionUpsert`,
 `serviceDomainCreate`, `serviceInstanceDeployV2`, and the SHA/noindex
