@@ -2831,3 +2831,356 @@
     transition: none !important;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ezh-rv — the recognition moment (UX-05).
+
+   ResolvingNarration: process rows while the real pairing is in flight.
+   Process-honest labels, no spinner, no percentage, nothing loops — the
+   "reading" word and an amber dot mark the running row; read rows settle to
+   filled dots. Reduced motion arrives fully settled (the pacing hook).
+
+   NpiReveal: identity assembles, then the real evidence rows. Equal
+   typographic confidence is enforced here structurally: every row shares one
+   type ramp and `opacity: 1` — an unavailable lane differs ONLY in its state
+   word and hue. Meaning stays in words (EC-4).
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.ezh-rv-narration {
+  margin-top: 26px;
+  border: 1px solid var(--ezh-line);
+  border-radius: var(--vt-shape-card);
+  background: var(--ezh-panel);
+  padding: 16px;
+}
+
+.ezh-rv-steps {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.ezh-rv-step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-geist-mono);
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  color: var(--ezh-text3);
+  transition: color 0.25s ease;
+}
+
+.ezh-rv-step.is-read { color: var(--ezh-text2); }
+.ezh-rv-step.is-running { color: var(--ezh-text); }
+
+.ezh-rv-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  border: 1px solid var(--ezh-line2);
+  background: transparent;
+  flex-shrink: 0;
+  transition: background-color 0.25s ease, border-color 0.25s ease;
+}
+
+.ezh-rv-step.is-read .ezh-rv-dot {
+  background: var(--ezh-text3);
+  border-color: var(--ezh-text3);
+}
+
+.ezh-rv-step.is-running .ezh-rv-dot {
+  background: var(--ezh-hold);
+  border-color: var(--ezh-hold);
+}
+
+.ezh-rv-now {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ezh-hold);
+}
+
+.ezh-rv-narr-note {
+  margin: 12px 0 0;
+  font-size: 12px;
+  color: var(--ezh-text3);
+}
+
+/* ── the reveal ────────────────────────────────────────────────────────── */
+
+.ezh-rv {
+  margin-top: 26px;
+  border: 1px solid var(--ezh-line);
+  border-radius: var(--vt-shape-card);
+  background: var(--ezh-panel);
+  padding: 16px;
+}
+
+/* Single-shot entrance stagger. Base = hidden; `.is-in` lands everything.
+   `.is-instant` (reduced motion) removes the transitions entirely. */
+.ezh-rv .ezh-rv-id,
+.ezh-rv .ezh-rv-src,
+.ezh-rv .ezh-rv-group,
+.ezh-rv .ezh-rv-next,
+.ezh-rv .ezh-rv-actions,
+.ezh-rv .ezh-rv-note {
+  opacity: 0;
+  transform: translateY(10px);
+  transition:
+    opacity 0.4s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.ezh-rv.is-in .ezh-rv-id,
+.ezh-rv.is-in .ezh-rv-src,
+.ezh-rv.is-in .ezh-rv-group,
+.ezh-rv.is-in .ezh-rv-next,
+.ezh-rv.is-in .ezh-rv-actions,
+.ezh-rv.is-in .ezh-rv-note {
+  opacity: 1;
+  transform: none;
+}
+
+.ezh-rv.is-in .ezh-rv-id { transition-delay: 0.05s; }
+.ezh-rv.is-in .ezh-rv-src { transition-delay: 0.22s; }
+.ezh-rv.is-in .ezh-rv-group.g-returned { transition-delay: 0.42s; }
+.ezh-rv.is-in .ezh-rv-group.g-attention { transition-delay: 0.62s; }
+.ezh-rv.is-in .ezh-rv-group.g-unavailable { transition-delay: 0.82s; }
+.ezh-rv.is-in .ezh-rv-next { transition-delay: 1.0s; }
+.ezh-rv.is-in .ezh-rv-actions { transition-delay: 1.12s; }
+.ezh-rv.is-in .ezh-rv-note { transition-delay: 1.2s; }
+
+.ezh-rv.is-instant *,
+.ezh-rv.is-instant {
+  transition: none !important;
+}
+
+.ezh-rv-id {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ezh-rv-mono {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--ezh-line2);
+  border-radius: 50%;
+  font-family: var(--font-geist-mono);
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--ezh-text);
+  flex-shrink: 0;
+}
+
+.ezh-rv-name {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--ezh-text);
+}
+
+.ezh-rv-meta {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: var(--ezh-text2);
+}
+
+.ezh-rv-src {
+  margin: 10px 0 0;
+  font-family: var(--font-geist-mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--ezh-text3);
+}
+
+/* ── evidence rows: one ramp, full opacity, state in words ─────────────── */
+
+.ezh-rv-rows {
+  margin-top: 14px;
+  border-top: 1px solid var(--ezh-line);
+}
+
+.ezh-rv-group {
+  padding-top: 12px;
+}
+
+.ezh-rv-group-h {
+  margin: 0 0 6px;
+  font-family: var(--font-geist-mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ezh-text2);
+}
+
+.ezh-rv-group ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* EQUAL CONFIDENCE, structurally: every row — returned, attention,
+   unavailable — shares this one presentation. No kind-conditional opacity,
+   size, or weight exists below; only the state word's hue varies. */
+.ezh-rv-row {
+  opacity: 1;
+  padding: 7px 0;
+}
+
+.ezh-rv-row + .ezh-rv-row {
+  border-top: 1px solid color-mix(in oklab, var(--ezh-line) 55%, transparent);
+}
+
+.ezh-rv-row-main {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.ezh-rv-claim {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ezh-text);
+  flex-shrink: 0;
+}
+
+.ezh-rv-returned {
+  font-size: 13px;
+  color: var(--ezh-text2);
+  flex: 1 1 220px;
+  min-width: 0;
+}
+
+.ezh-rv-state {
+  font-family: var(--font-geist-mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.ezh-rv-state.s-checked { color: var(--ezh-work); }
+.ezh-rv-state.s-reviewRequired,
+.ezh-rv-state.s-notFound { color: var(--ezh-hold); }
+.ezh-rv-state.s-pending,
+.ezh-rv-state.s-accessRequired { color: var(--ezh-wait); }
+
+/* progressive disclosure — closed by default, one tap for source & limits */
+.ezh-rv-more {
+  margin-top: 2px;
+}
+
+.ezh-rv-more summary {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  cursor: pointer;
+  list-style: none;
+  font-family: var(--font-geist-mono);
+  font-size: 10px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--ezh-text3);
+}
+
+.ezh-rv-more summary::-webkit-details-marker { display: none; }
+
+.ezh-rv-more summary::before {
+  content: '+';
+  margin-right: 6px;
+}
+
+.ezh-rv-more[open] summary::before {
+  content: '−';
+}
+
+.ezh-rv-more summary:hover { color: var(--ezh-text2); }
+
+.ezh-rv-more p {
+  margin: 0 0 6px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--ezh-text2);
+  max-width: 520px;
+}
+
+.ezh-rv-next {
+  margin: 12px 0 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--ezh-line);
+  font-size: 13px;
+  color: var(--ezh-text);
+}
+
+.ezh-rv-next .ezh-k {
+  margin-bottom: 4px;
+}
+
+/* ── actions ───────────────────────────────────────────────────────────── */
+
+.ezh-rv-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+}
+
+.ezh-rv-keep {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 20px;
+  background: var(--ezh-cta-bg);
+  color: var(--ezh-cta-text);
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: var(--vt-shape-pill);
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.ezh-rv-keep:hover,
+.ezh-rv-keep:focus-visible {
+  background: var(--ezh-cta-bg-press);
+  color: var(--ezh-cta-text-press);
+}
+
+.ezh-rv-again {
+  min-height: 44px;
+  padding: 0 14px;
+  background: transparent;
+  border: 1px solid var(--ezh-line2);
+  border-radius: var(--vt-shape-control);
+  color: var(--ezh-text2);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.ezh-rv-again:hover { color: var(--ezh-text); border-color: var(--ezh-text3); }
+
+.ezh-rv-note {
+  margin: 12px 0 0;
+  font-size: 12px;
+  color: var(--ezh-text3);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ezh-rv *,
+  .ezh-rv,
+  .ezh-rv-narration * {
+    transition: none !important;
+  }
+}
