@@ -840,3 +840,50 @@ evidence of a proof *strategy* — VitalCV names only sources it actually reads.
 4. **Extend the harvest method.** The remaining blind spots are pointer choreography, mobile beyond
    the single Medallion capture, and keyboard traversal (§1.2). Everything they would have told us is
    marked "Not observed" and should stay that way until it is measured.
+
+---
+
+## 12. Founder reference set — process-explainer program (2026-08-09)
+
+The founder directed a homepage-and-every-page deepening: "more higher level illustrations and
+animations… almost a whole visual of how the process of vitalcv works. almost cartoon-like, flowy,
+3d, gif explainer visual… shown throughout on every page," naming the reference set below. Captured
+2026-08-09 headlessly at 1440×900 (hero + 35% + 65% scroll), same method caveats as §1.
+
+**The set:** medallion.co · abridge.com · mercor.com/research · palantir.com/offerings/palantir-for-hospitals
+· verifiable.com · steadymd.com/credentialing-licensing · nursedash.com · openloophealth.com ·
+checkr.com · docs.truvera.io · healthstream.com · kaigohealth.ai · harbera.com · joinplanbase.com ·
+healthsherpa.com · beparallel.com · heyrevia.ai · doximity.com · linkedin.com · cheqd.io · world.org
+· chia.net · docs.discovery.verifiable.com · github.com/{cheqd,worldcoin,Chia-Network,metriport,docknetwork}
+
+### Pattern taxonomy (what the set actually does)
+
+| # | Pattern | Where observed | Verdict for VitalCV |
+|---|---|---|---|
+| P1 | **Agent work-timeline** — the flagship explainer narrates the agent doing real multi-week work ("Goal: Enroll Dr. Chen…", SIGNAL→DECISION→TASK→INTERACTION, "Step 17 of 28") | Medallion | **ADOPT the structure.** This is EC-27's five beats told as work over time — already VitalCV doctrine. Medallion names a real-sounding provider and payer; EC-25.1 forbids us that; ours stays masked and labeled. |
+| P2 | **Product-truth chips over life** — photography of working people with small honest product cards overlaid ("CVO Request Status", "Identity verified") | Checkr, Verifiable, OpenLoop | ADOPT the *chip honesty*, reject the stock-photo carrier (CD: no stock clinician imagery). Our carrier is the record object, not a model's face. |
+| P3 | **Soft dimensional dreamscape** — pastel gradient 3D renders as ambient identity (stairway, orb, ribbon) | Mercor research, cheqd, world.org | PARTIAL. The *feeling* (depth, softness, flow) is the founder's ask. The *palette* is outside EC-20's locked gradient row (one indigo `--vt-scene-glow` per viewport). Adopting the full pastel field requires an EC-22 amendment to a LOCKED row — flagged to the founder at the UX-04 gate, not smuggled. |
+| P4 | **Cinematic human film** — warm film stills/video of real people; product secondary | Abridge, Kaigo, World | REJECT as homepage carrier (stock/actor clinicians; EC-25.1-adjacent) — lawful someday for real customer stories. |
+| P5 | **Product-as-hero** — the actual UI framed dark, sometimes a live demo | Planbase, harbera, heyrevia | Already VitalCV doctrine (EC-11.4 "demonstrate it"); the hero WorkSurface is this. |
+| P6 | **Editorial authority** — giant type + institution logo wall, no illustration | Palantir hospitals | REJECT the logo wall (we have no such customers to name — truth), note the type confidence. |
+| P7 | **Numbered platform tour** — 01–04 sections walking the platform | Medallion | REJECT as marketing-number theatre on `/` (competitive-mandate guardrails 5–6) — but chapter numerals inside ONE self-contained explainer (a story, not a section taxonomy) do not re-create the 01–06 spine the mandate killed. Recorded so review can check the distinction deliberately. |
+
+### The synthesis that shipped (UX-04 slice 1)
+
+**Honest object, atmospheric field.** The protagonist record stays paper/ink per the Z0 anatomy
+(`vitalcv-cinematic-storyboard.md`) — evidence is never cartoon. The *world around it* carries the
+founder's flow: indigo atmosphere (within the locked gradient row), soft single-shot staggered
+motion, layered depth from overlap and scale. P1's structure × P5's honesty × as much of P3's
+feeling as current law permits. If the founder wants the full pastel-dimensional register after
+seeing this, that is an EC-22 amendment to EC-20's gradient row, decided at a visual gate — the
+atlas records the option so nobody discovers it mid-PR.
+
+### Rollout map (the "every page" part — EC-28 is the authority)
+
+The scene inventory already assigns home surfaces: NPI Reveal → NPI entry/resolution (UX-05 owns);
+Profile Layers → claim/profile completion (UX-06); Choice Gate → apply/sharing; Opportunity Field →
+`/holder/opportunities*`; Employer Desk → employer acquisition (`/employers`); Continuity Ribbon →
+application timeline; Quiet Source Constellation → Trust Center/Status; Workbench Window →
+clinician product page; Decision Trail → opportunity detail. Slice 1 (this PR) ships the homepage
+process story. Each subsequent surface is its own wave under EC-25 truth review + EC-29 budgets;
+none may blur illustration into app state (EC-26 kinds are law).
