@@ -183,7 +183,11 @@ async function bootstrapApp() {
   const { log } = await import('./obs/logger');
   const { loadEnv } = await import('./config/env');
   const { ensureInvestigationSeedDataBootstrapped } = await import('./services/investigators/seedInvestigationData');
-  const { ensureLaunchOpportunitiesBootstrapped, isDemoOpportunitySeedEnabled } = await import('./services/opportunities/launchOpportunitySeed');
+  const {
+    ensureLaunchOpportunitiesBootstrapped,
+    isDemoOpportunitySeedEnabled,
+    retireSeededLaunchOpportunities,
+  } = await import('./services/opportunities/launchOpportunitySeed');
   const { requestIntelligenceAutoWarm } = await import('./services/intelligence/intelligenceAutoWarmService');
   const { initializeTelemetry, shutdownTelemetry } = await import('./telemetry');
   const { runMonitoringCycle } = await import('../jobs/monitoringJob');
@@ -217,6 +221,13 @@ async function bootstrapApp() {
   if (config.NODE_ENV === 'production' || isDemoOpportunitySeedEnabled()) {
     await ensureLaunchOpportunitiesBootstrapped({ logger: log });
   }
+  // Gating the seed stopped NEW demo rows; it did nothing about rows already
+  // written before the gate existed. One of those — a posting under a real
+  // health system's name — stayed live on the public board because the
+  // read-time exclusion listed a slug the row did not have. Closing them at
+  // boot makes the cleanup independent of every read path remembering to
+  // filter. No-ops once they are closed, and when demo seeding is on.
+  await retireSeededLaunchOpportunities({ logger: log });
 
   const productionDeployment = config.NODE_ENV === 'production';
   const skipStartupMigration =
