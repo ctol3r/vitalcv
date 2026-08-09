@@ -69,17 +69,44 @@ jobs:
       - name: Resolve or create the review environment
         id: environment
         env:
+          RAILWAY_REVIEW_TOKEN: ${{ secrets.RAILWAY_REVIEW_TOKEN }}
           RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN }}
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
         run: |
           set -euo pipefail
 
-          if [ -n "${RAILWAY_API_TOKEN:-}" ]; then
+          # Credential preference, most-specific first.
+          #
+          # RAILWAY_REVIEW_TOKEN is a Railway PROJECT token scoped to the review
+          # environment — the least-privilege option, and the recommended one:
+          # it can do everything this workflow needs and literally cannot reach
+          # production, which matters for a workflow that takes an arbitrary ref
+          # by hand. RAILWAY_TOKEN (scoped to production) is deliberately NOT a
+          # fallback for review work: it cannot see this environment, and
+          # letting it through only produces a confusing failure three steps
+          # later.
+          if [ -n "${RAILWAY_REVIEW_TOKEN:-}" ]; then
+            AUTH="Project-Access-Token: ${RAILWAY_REVIEW_TOKEN}"
+            echo "Using RAILWAY_REVIEW_TOKEN (project token scoped to review)."
+          elif [ -n "${RAILWAY_API_TOKEN:-}" ]; then
             AUTH="Authorization: Bearer ${RAILWAY_API_TOKEN}"
-          elif [ -n "${RAILWAY_TOKEN:-}" ]; then
-            AUTH="Project-Access-Token: ${RAILWAY_TOKEN}"
+            echo "Using RAILWAY_API_TOKEN (account/workspace token)."
           else
-            echo "::error::RAILWAY_API_TOKEN or RAILWAY_TOKEN is required."
+            echo "::error::No usable Railway credential for the review environment."
+            echo "::notice::Set ONE of these repository secrets (Settings → Secrets and"
+            echo "::notice::variables → Actions):"
+            echo "::notice::  RAILWAY_REVIEW_TOKEN — RECOMMENDED. In Railway, open the"
+            echo "::notice::    'review' environment → Settings → Tokens → create a project"
+            echo "::notice::    token FOR THAT ENVIRONMENT. Least privilege: it cannot touch"
+            echo "::notice::    production. Same kind of credential as the existing"
+            echo "::notice::    RAILWAY_TOKEN, which is scoped to production."
+            echo "::notice::  RAILWAY_API_TOKEN — Railway → Account Settings → Tokens."
+            echo "::notice::    Broader: it can reach every environment."
+            if [ -n "${RAILWAY_TOKEN:-}" ]; then
+              echo "::notice::RAILWAY_TOKEN is set but is scoped to PRODUCTION and cannot see"
+              echo "::notice::the review environment, so it is not used here."
+            fi
+            echo "::notice::See docs/deployment/review-environment.md."
             exit 1
           fi
           echo "AUTH_HEADER=${AUTH}" >> "$GITHUB_ENV"
@@ -156,13 +183,17 @@ jobs:
                 echo "::notice::Railway reports the environment already exists — re-resolving."
                 ENV_ID=$(resolve_env_id || true)
                 if [ -z "$ENV_ID" ]; then
-                  echo "::error::'${REVIEW_ENVIRONMENT_NAME}' exists in Railway but is not visible to this token."
+                  echo "::error::'${REVIEW_ENVIRONMENT_NAME}' exists in Railway but is invisible to this token."
                   echo "::notice::Railway refused to create it because the name is taken, yet it does"
-                  echo "::notice::not appear in the environment list above. That combination means the"
-                  echo "::notice::credential can see the project but not this environment."
-                  echo "::notice::Add a RAILWAY_API_TOKEN repository secret (Railway → Account"
-                  echo "::notice::Settings → Tokens) — the workflow prefers it when present — or"
-                  echo "::notice::confirm the environment is named exactly '${REVIEW_ENVIRONMENT_NAME}'."
+                  echo "::notice::not appear in the environment list above. That combination is"
+                  echo "::notice::conclusive: RAILWAY_TOKEN is a PROJECT token, and Railway project"
+                  echo "::notice::tokens are scoped to ONE environment (here, production)."
+                  echo "::notice::Creating the environment by hand does NOT fix this — a token that"
+                  echo "::notice::cannot see '${REVIEW_ENVIRONMENT_NAME}' also cannot set its"
+                  echo "::notice::variables, create its domain, or deploy to it."
+                  echo "::notice::REQUIRED: add a RAILWAY_API_TOKEN repository secret (Railway →"
+                  echo "::notice::Account Settings → Tokens). This workflow prefers it when present."
+                  echo "::notice::See docs/deployment/review-environment.md."
                   exit 1
                 fi
                 echo "Resolved existing review environment ${ENV_ID}"

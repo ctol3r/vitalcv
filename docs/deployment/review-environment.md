@@ -74,30 +74,54 @@ extracted.
   `/api/version`, never from an HTTP 200 — a healthy old container answers 200
   while serving the previous build.
 
-## First-run setup: the environment must exist
+## Required setup: one credential
 
-**Status 2026-08-08: this is the one outstanding step.** The first real run of
-the workflow got as far as creating the environment and Railway answered
-`Not Authorized`.
+**Status 2026-08-08: this is the one outstanding step.** The `review`
+environment exists in Railway, but no credential in CI can reach it.
 
-The cause is token scope, not the workflow. The repo supplies `RAILWAY_TOKEN`,
-a Railway **project** token — it can read the project, set variables, and
-deploy, but it cannot *create an environment*. Pick either fix:
+Why the existing one cannot: `RAILWAY_TOKEN` is a Railway **project** token,
+and project tokens are scoped to a **single environment** — this one to
+`production`. Three runs established that, in order:
 
-- **(a) Create it once by hand (least privilege, recommended).** Railway
-  dashboard → the VitalCV project → **New Environment** → name it exactly
-  `review`. The workflow's first step then *resolves* the existing environment
-  and never needs the elevated scope again.
-- **(b) Add a `RAILWAY_API_TOKEN` secret.** Railway → Account Settings →
-  Tokens → create a workspace/account token, then add it as a repository
-  secret. The workflow already prefers `RAILWAY_API_TOKEN` over
-  `RAILWAY_TOKEN` when it is present, and will provision the environment
-  itself.
+1. `environmentCreate` → `Not Authorized` (project tokens cannot create
+   environments).
+2. The environment was then created by hand. Next run: the listing returned
+   *only* `production`, so the step tried to create `review` again and Railway
+   answered **`An environment with that name already exists`**.
+3. Exists **and** invisible is conclusive — the token is environment-scoped.
 
-After either, re-run the workflow. Whether the *remaining* steps
-(`variableCollectionUpsert`, `serviceDomainCreate`) are within the project
-token's scope is unverified — the run stopped before reaching them. If one of
-them also returns `Not Authorized`, option (b) resolves all of them at once.
+So creating the environment by hand is not sufficient on its own: a token that
+cannot see `review` also cannot set its variables, create its domain, or deploy
+to it.
+
+**Set ONE of these repository secrets** (Settings → Secrets and variables →
+**Actions** — the Actions tab, not Dependabot, and repository-level rather than
+environment-level, since this workflow declares no `environment:`):
+
+- **`RAILWAY_REVIEW_TOKEN` — recommended.** In Railway, open the `review`
+  environment → Settings → Tokens → create a **project token for that
+  environment**. It can do everything this workflow needs and *cannot reach
+  production at all*, which is worth having on a workflow that takes an
+  arbitrary ref by hand. It is the same kind of credential as the existing
+  `RAILWAY_TOKEN`.
+- **`RAILWAY_API_TOKEN`** — Railway → Account Settings → Tokens. Broader: it
+  can reach every environment, and it can also create the environment itself.
+
+The workflow prefers `RAILWAY_REVIEW_TOKEN`, then `RAILWAY_API_TOKEN`.
+`RAILWAY_TOKEN` is deliberately **not** a fallback for review work — it cannot
+see this environment, and allowing it through only moves the failure three
+steps later.
+
+Verify the secret actually landed before re-running:
+
+```bash
+gh secret list -R ctol3r/vitalcv --app actions | grep RAILWAY
+```
+
+Everything after environment resolution (`variableCollectionUpsert`,
+`serviceDomainCreate`, `serviceInstanceDeployV2`, and the SHA/noindex
+verification) is **still unexercised** — no run has reached those steps. Expect
+the first successful run to be their real test.
 
 ## Cost
 
