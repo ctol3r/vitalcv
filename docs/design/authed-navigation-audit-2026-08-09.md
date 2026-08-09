@@ -216,11 +216,26 @@ without quoting any bare namespace.
 
 ## Gaps — what this audit did not settle
 
-1. **No authed visual capture.** Chrome *resolution* is now proven exactly;
-   spacing, type scale, and colour on signed-in surfaces are not. That needs a
-   real session (`authed_e2e_local_recipe`: Postgres + backend + Clerk dev keys)
-   or the production synthetic-clinician path, which writes to the production
-   database and needs explicit authorization.
+1. ~~**No authed visual capture.**~~ **CLOSED 2026-08-09.** Stood up the local
+   authed harness per `authed_e2e_local_recipe` — Postgres, the backend on
+   :4000, Clerk **dev-instance** keys, ticket sign-in via
+   `tests/e2e-authed/clinician.setup.ts` — and captured the signed-in holder
+   tree at 1440×900. **No production writes**: the run is entirely local against
+   the development instance, which is why the earlier audit declined the
+   production synthetic-clinician path.
+
+   Rendering verified, not just resolution:
+
+   | Route | Trail | Current crumb |
+   |---|---|---|
+   | `/holder/home` | *(none — depth 1, correctly suppressed)* | — |
+   | `/holder/readiness` | Home / Readiness | Readiness |
+   | `/holder/opportunities/discover` | Home / Opportunities / Discover | Discover |
+
+   The trail seats under the holder nav as one hairline row — legible,
+   unobtrusive, current crumb weighted and non-interactive. **Employer, issuer
+   and admin consoles remain uncaptured**: they need an employer-role session,
+   which the clinician fixture does not provide.
 2. **The four nav systems are not yet one.** N3 is unresolved: this wave gave
    the orphans chrome and gave everything a trail; it did not converge
    `HolderDesktopNav`, `GardenShell`, `WorkspaceNav` and the ops shell. That is
