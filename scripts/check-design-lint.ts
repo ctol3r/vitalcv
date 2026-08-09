@@ -66,6 +66,9 @@ const TOKEN_FILES = [
   join(web, 'styles', 'tokens.css'),
   join(web, 'styles', 'theme.css'),
   join(web, 'app', 'globals.css'),
+  // D′-01: the semantic bridge — sole declaration site of the 2026 namespaces
+  // (LINT-14) and the de-islanding terminal state the census maps onto.
+  join(web, 'styles', 'tokens', 'semantic.css'),
 ];
 const isTokenFile = (f: string) => TOKEN_FILES.some((t) => f === t);
 
@@ -268,6 +271,38 @@ const RULES: Rule[] = [
         (m) => m[2] !== '-' || KNOWN_TOKEN_PREFIXES.has(m[1]),
       );
     },
+  },
+  // ── D′-01 (2026-08-09): the semantic token bridge ──────────────────────────
+  // The 2026 namespaces are the UX-02 target dialect. A second declaration
+  // site is how --vt-bg ended up declared three times with three values —
+  // import-order roulette. `error`, not `ratchet`: the namespaces were born
+  // with a single declaration site, so the first stray one is the offence.
+  {
+    id: 'LINT-14',
+    mode: 'error',
+    what: 'D′-01 semantic namespace declared outside styles/tokens/semantic.css',
+    fix: 'The 2026 namespaces (--vt-action/evidence/radius-{control,card,chip}/frost/atmos/scene/paper/space) have ONE declaration site: apps/web/styles/tokens/semantic.css. Reference with var(); never redeclare — including inside island roots.',
+    roots: [join(web, 'styles'), join(web, 'app'), join(web, 'components')],
+    exts: [...CSS, ...TSX],
+    stripComments: true,
+    pattern:
+      /(?:^|[{;'"])\s*--vt-(?:action|evidence|frost|atmos|scene|paper|space|radius-(?:control|card|chip))(?:-[a-z0-9-]+)?\s*['"]?\s*:/,
+    allow: (f) => f === join(web, 'styles', 'tokens', 'semantic.css'),
+  },
+  // The third-party reference palette (Dimension extraction, 2026-08-09
+  // package). Inspiration, not imitation: these hexes may not enter
+  // production surfaces. Ratchet: three pre-existing hits (opengraph-image
+  // gradient ×2, ReadinessDashboard bg) are recorded debt, not permission.
+  {
+    id: 'LINT-15',
+    mode: 'ratchet',
+    what: 'Third-party reference-palette hex outside token files',
+    fix: 'Use the shipped warm family via a --vt-* token (styles/tokens/semantic.css). The Dimension/reference palette is study material, never production color.',
+    roots: [join(web, 'styles'), join(web, 'app'), join(web, 'components')],
+    exts: [...CSS, ...TSX],
+    stripComments: true,
+    pattern: /#(?:0a0a0a|161616|d4d4d4|ededed|c2c2c2|686868|b2b2b2|e5e5e5|6b62f2)\b/i,
+    allow: (f) => isTokenFile(f),
   },
   // ── XS-1: the one scroll owner ──────────────────────────────────────────────
   // Added 2026-08-02 with the founder cinematic rulings. All three are `error`,

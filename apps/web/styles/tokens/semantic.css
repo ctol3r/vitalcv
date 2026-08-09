@@ -1,0 +1,94 @@
+/**
+ * semantic.css — the D′-01 semantic token bridge (2026-08-09).
+ *
+ * The ONE place the 2026 semantic namespaces are declared:
+ *
+ *   --vt-action-*   what asks the user to act (ruling 1: paper-inverse)
+ *   --vt-evidence*  what reports completed / source-confirmed work
+ *   --vt-radius-*   the three shape knobs (control / card / chip)
+ *   --vt-frost-*    chrome material knob (OFF until ruling R-b)
+ *   --vt-atmos-*    the one editorial atmosphere knob (OFF until ruling R-c)
+ *   --vt-scene-*    the composition surfaces VisualScene and the primitives read
+ *   --vt-paper-*    the light register (shipped values; D′-08 names the rest)
+ *   --vt-space-*    the spacing scale EC-20 records as absent
+ *
+ * Declared once, here, and nowhere else — LINT-14 enforces that, and
+ * __tests__/semantic-token-bridge.test.ts holds the values to their rulings.
+ * Every value maps to the SHIPPED warm family (styles/easy-home.css); no
+ * third-party reference palette enters production (LINT-15).
+ *
+ * This file is the designated terminal state of the UX-02 de-islanding: the
+ * census maps legacy properties ONTO these names and deletes imports. It adds
+ * exactly one import to globals.css and must never gain a sibling.
+ *
+ * Rulings ledger (design-lab/2026-register/RULING-MEMO.md):
+ *   1   CTA paper-inverse        ADOPTED 2026-08-09 — values live below
+ *   R-a chip silhouette          OPEN — chip radius holds the 2px lock
+ *   R-b frost                    OPEN — filter holds `none`
+ *   R-c atmosphere               OPEN — display holds `none`
+ *   R-d radius scale             OPEN — control/card hold 2px/3px
+ * D′-09 flips knob values with the EC-22 amendment; nothing else changes here
+ * before then.
+ */
+
+:root {
+  /* ── Action — what asks the user to act (ruling 1, adopted) ─────────── */
+  --vt-action-primary-bg: #f6f5f1;
+  --vt-action-primary-fg: #151412;
+  --vt-action-primary-bg-hover: #e8e5de;
+  --vt-action-secondary-fg: #f2f1ed;
+  --vt-action-secondary-rule: #403d39;
+  --vt-action-quiet-fg: #9c9d99;
+
+  /* ── Evidence — what reports work done. Never a request to act. ─────── */
+  --vt-evidence: #4ade97;
+  --vt-evidence-deep: #2e9e6b;
+
+  /* ── Shape knobs — hold the EC-20 locks until D′-09 ─────────────────── */
+  --vt-radius-control: 2px;
+  --vt-radius-card: 3px;
+  --vt-radius-chip: 2px;
+
+  /* ── Frost — chrome/Workbench material knob. OFF until R-b. ─────────── */
+  --vt-frost-filter: none;
+  --vt-frost-bg: #1d1b19;
+
+  /* ── Atmosphere — the one editorial moment per viewport. OFF until R-c.
+     The wash is the repo's own editorial indigo (#4338CA family), never the
+     reference palette's violet. ──────────────────────────────────────── */
+  --vt-atmos-display: none;
+  --vt-atmos-wash: radial-gradient(
+    ellipse 60% 50% at 50% 42%,
+    rgba(67, 56, 202, 0.28),
+    transparent 70%
+  );
+
+  /* ── Scene — the composition surfaces (shipped warm graphite family) ── */
+  --vt-scene-canvas: #151412;
+  --vt-scene-panel: #1d1b19;
+  --vt-scene-panel-raised: #232120;
+  --vt-scene-rule: #32302d;
+  --vt-scene-rule-strong: #403d39;
+  --vt-scene-ink: #f2f1ed;
+  --vt-scene-ink-secondary: #9c9d99;
+  --vt-scene-ink-tertiary: #7b7d79;
+  --vt-scene-paper: #f6f5f1;
+
+  /* ── Paper — the light register. Shipped values only; the full artifact
+     palette is D′-08's named task (EC-20 light-register row). ─────────── */
+  --vt-paper-ground: #f6f5f1;
+  --vt-paper-rule: #d9d6cd;
+  --vt-paper-ink: #151412;
+  --vt-paper-ink-secondary: #5b5c57;
+
+  /* ── Space — DELIBERATELY ABSENT from this wave.
+     D′-01 verification found 182 live `var(--vt-space-N)` references across
+     apps/web using a PIXEL-NAMED convention (--vt-space-12 ⇒ 12px) with zero
+     declarations anywhere — every one currently computes to `unset`, i.e.
+     the spacing at those call sites is silently collapsed today. Declaring
+     tokens under this name is therefore a RENDERING CHANGE at 182 sites, not
+     a bridge addition; a step-scale (--vt-space-8: 64px) would have resolved
+     the pixel-named refs to 4–10× their intended size. The namespace stays
+     reserved to this file (LINT-14); the declarations land in the dedicated
+     spacing wave with its own visual verification. ─────────────────────── */
+}

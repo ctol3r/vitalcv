@@ -41,6 +41,12 @@
    removed to avoid the double-emit documented above for typography.css. */
 @import '../styles/motion.css';
 @import '../styles/artifact-motion.css';
+/* D′-01 (2026-08-09): the semantic token bridge — the designated TERMINAL
+   state of de-islanding. The 2026 namespaces (--vt-action/evidence/radius/
+   frost/atmos/scene/paper/space) are declared there and nowhere else
+   (LINT-14). UX-02's census maps legacy properties onto these names and
+   DELETES imports from this block; nothing may be added after this line. */
+@import '../styles/tokens/semantic.css';
 /* glue.css, graph-foundry.css and trust-register.css were deleted here (745
    lines, zero importers between them). graph-foundry.css also carried a live
    `@import url('https://fonts.googleapis.com/…Nunito+Sans…')` — the exact CDN
