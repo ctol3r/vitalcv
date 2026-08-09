@@ -61,10 +61,18 @@ interface Rule {
 const TSX = ['.ts', '.tsx', '.js', '.jsx'];
 const CSS = ['.css'];
 
-/** Paths that legitimately define what everything else may only reference. */
+/**
+ * Paths that legitimately define what everything else may only reference.
+ *
+ * D-01 corrected two entries. `styles/theme.css` has never existed in this
+ * repository — the exemption named a file, and the file was not there. And
+ * `styles/themes/index.css` — which tokens.css itself says "owns these tokens
+ * now" — was missing, so the actual semantic owner was being linted as if it
+ * were a consumer.
+ */
 const TOKEN_FILES = [
   join(web, 'styles', 'tokens.css'),
-  join(web, 'styles', 'theme.css'),
+  join(web, 'styles', 'themes', 'index.css'),
   join(web, 'app', 'globals.css'),
 ];
 const isTokenFile = (f: string) => TOKEN_FILES.some((t) => f === t);
@@ -148,10 +156,37 @@ const RULES: Rule[] = [
     id: 'LINT-01',
     mode: 'ratchet',
     what: 'Raw color outside token files',
-    fix: 'Use a --vt-* token. Raw color belongs only in styles/tokens.css or a brand asset.',
+    fix: 'Use a --vt-* token. Raw color belongs only in the token files or a brand asset.',
     roots: [join(web, 'styles')],
     exts: CSS,
-    pattern: /(?:color|background|border|fill|stroke|shadow|outline)[a-z-]*\s*:[^;]*(?:#[0-9a-fA-F]{3,8}\b|\b(?:oklch|rgba?|hsla?)\()/,
+    /*
+     * D-01 widened this. The first alternative is the original: a raw colour
+     * in a PROPERTY declaration (`color:`, `background:`, `border:` …).
+     *
+     * The second is new: a raw colour in a CUSTOM-PROPERTY DEFINITION
+     * (`--ezh-work: #4ade97`). The rule could not see those, so the two
+     * islands that paint `/` — easy-home.css with seventeen literals and
+     * eyebrow.css with fourteen, eleven of them the same value declared twice
+     * — did not appear in this census AT ALL. easy-home.css scored zero while
+     * being the single largest concentration of unmanaged colour in the
+     * repository. A token layer whose own definitions are exempt from the
+     * token rule enforces nothing where it matters.
+     *
+     * `--vt-*` definitions are exempt wherever they appear: that prefix IS the
+     * semantic layer, and a semantic token has to be a literal somewhere.
+     * Every other prefix must reference, not declare.
+     */
+    pattern: new RegExp(
+      '(?:' +
+        // 1. property declaration with a raw colour
+        '(?:color|background|border|fill|stroke|shadow|outline)[a-z-]*\\s*:[^;]*' +
+        '(?:#[0-9a-fA-F]{3,8}\\b|\\b(?:oklch|rgba?|hsla?)\\()' +
+        '|' +
+        // 2. custom-property definition with a raw colour, --vt-* excepted
+        '(?:^|[{;])\\s*--(?!vt-)[a-z0-9-]+\\s*:\\s*[^;]*' +
+        '(?:#[0-9a-fA-F]{3,8}\\b|\\b(?:oklch|rgba?|hsla?)\\()' +
+      ')',
+    ),
     allow: (f) => isTokenFile(f),
   },
   {
@@ -228,6 +263,26 @@ const RULES: Rule[] = [
     exts: CSS,
     pattern: /font-family\s*:\s*(?!\s*var\()/,
     allow: (f) => isTokenFile(f) || f.endsWith('fonts.css'),
+  },
+  // ── D-01: inspiration, not imitation ──────────────────────────────────────
+  // The 2026 visual language studies Dimension, Linear and ElevenLabs and
+  // takes none of their material (docs/design/VITALCV_2026_VISUAL_LANGUAGE.md
+  // §1.1). Measured on 2026-08-08 the repository was clean of Dimension's
+  // values, which is the only reason this can be an `error` instead of a
+  // ratchet: the guard costs nothing today and a migration tomorrow.
+  {
+    id: 'LINT-14',
+    mode: 'error',
+    what: "Third-party reference token in production code (Dimension's palette or token names)",
+    fix: 'Use a --vt-* token. Reference style reports are studied, named and left outside the build — see VITALCV_2026_VISUAL_LANGUAGE.md §1.1.',
+    roots: [join(web, 'styles'), join(web, 'components'), join(web, 'app')],
+    exts: [...CSS, ...TSX],
+    stripComments: true,
+    // The distinctive values only. #0a0a0a and #e5e5e5 are deliberately absent:
+    // they are generic greys, they predate this rule in an OG image and a
+    // dashboard, and attributing them to Dimension would be false precision.
+    pattern:
+      /#(?:161616|d4d4d4|ededed|c2c2c2|686868|b2b2b2|6b62f2)\b|--color-(?:void-canvas|graphite|frosted-glass|bone|ash|slate|smoke|dusk-violet|ink-black|snow-white|hairline)\b|--font-dm-sans\b/i,
   },
   // ── W1083 (UX-02C): the shell's global CSS surface is pinned ───────────────
   // EC-23: "no new stylesheet imports". The shell reached five global sheets by

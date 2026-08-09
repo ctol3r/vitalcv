@@ -1,26 +1,49 @@
 'use client';
 
 /**
- * WorkSurface — the no-NPI explainer at the center of the UX-V1 homepage.
+ * WorkSurface — the no-NPI explainer at the centre of the homepage, recomposed
+ * in D-01A as the beginning of **Profile in Motion**.
  *
- * An abstracted product illustration in five beats: a masked NPI seed goes
- * in, VitalCV finds facts from named sources, ranks what remains by owner,
- * does the work it safely can (pausing for approval), and resolves into a
- * role, an application, and progress toward day one. It never renders a real
- * or fake NPI, never names a person, and labels itself an illustration.
+ * The protagonist is the clinician's profile record, not a dashboard. It moves
+ * through five permanent beats:
  *
- * Architecture: the SERVER renders the completed story frame — every beat
- * visible — so crawlers, no-script visitors, and reduced-motion visitors get
- * the full meaning with nothing to wait for. On mount, when motion is
- * allowed, the timeline resets the frame and replays it (~10.5s, first
- * meaning inside 5s, never blocking anything: the hero copy and the real NPI
- * entry sit beside it the whole time). Under prefers-reduced-motion the
- * frame stays put and gains numbered beat annotations instead.
+ *   1  Identify       a masked NPI goes in
+ *   2  Build          the record gains layers — identity, then facts that
+ *                     arrive carrying the name of the source that returned
+ *                     them, then the parts only the clinician can supply
+ *   3  Choose         what still matters, each item labelled by its one owner
+ *   4  Approve        VitalCV does the work it safely can and STOPS at a
+ *                     visible consent gate that only the clinician opens
+ *   5  Carry forward  a role that fits, and the employer's review desk
+ *
+ * Beat five ends at **review**. The employer decides; the scene does not decide
+ * for them, does not light green, and does not resolve. That boundary is the
+ * point of the last frame, not a caption on it.
+ *
+ * TRUTH. No real or fabricated NPI, no person, no source result, no match
+ * score, no employer outcome, no counter. Facts render as skeleton bars beside
+ * a real source name — that is what VitalCV reads, and the frame says
+ * "illustrative" in its own chrome.
+ *
+ * ARCHITECTURE. The SERVER renders the completed story frame — every beat on —
+ * so crawlers, no-script visitors and reduced-motion visitors get the whole
+ * meaning with nothing to wait for. On mount, when motion is allowed, the
+ * timeline resets the frame and replays it (~10.5s, first meaning inside 5s,
+ * never blocking: the hero copy and the real NPI entry sit beside it the whole
+ * time). Under prefers-reduced-motion the frame stays put and gains numbered
+ * beat annotations.
+ *
+ * GEOMETRY (D-00 findings B-1…B-4 and the 0.0054 CLS). Every beat's space is
+ * reserved by the grid at first paint: the resolution band is a real grid row
+ * rather than an absolutely-positioned panel sliding over the columns, the
+ * work feed and the consent gate stack instead of competing for a 101px
+ * column, and each status cell reserves its widest label so swapping "Ready
+ * for your approval" for "Approved" cannot reflow the row. Nothing in the
+ * timeline changes layout — only opacity and transform.
  *
  * The timeline is JS-scheduled class toggling over CSS transitions — no
- * keyframe animations, no scroll coupling, no wheel listeners. Each beat announces
- * itself through the HOME_BEAT_EVENT custom event so the eyebrow's mono
- * ticker can narrate along.
+ * keyframes, no scroll coupling, no wheel listeners. Each beat announces
+ * itself through HOME_BEAT_EVENT so the eyebrow's mono ticker narrates along.
  */
 
 import { useCallback, useEffect, useRef } from 'react';
@@ -29,10 +52,10 @@ import { HOME_BEAT_EVENT } from '@/components/layout/Eyebrow';
 
 const BEAT_LABELS: Record<number, string> = {
   1: 'Reading the NPI',
-  2: 'Finding sources',
+  2: 'Building the record',
   3: 'Ranking what remains',
-  4: 'Working',
-  5: 'Toward day one',
+  4: 'Waiting for your approval',
+  5: 'Toward the employer',
 };
 
 const STATIC_LABEL = 'How VitalCV works';
@@ -54,17 +77,17 @@ const TIMELINE_CLASSES = [
 /** The server-rendered end state, per selector — restored by jumpToEnd(). */
 const FINAL_ON = [
   '.ezh-seed',
-  '.ezh-profile',
-  '.ezh-fact-cap',
+  '.ezh-record',
+  '.ezh-rec-cap',
   '.ezh-remains',
   '.ezh-workfeed',
   '.ezh-feedline.f1',
   '.ezh-feedline.f2',
-  '.ezh-apcard',
+  '.ezh-gate',
   '.ezh-sf-resolve',
   '.ezh-role-facts',
   '.ezh-applied',
-  '.ezh-fillbar',
+  '.ezh-desk-in',
 ];
 
 export default function WorkSurface() {
@@ -120,14 +143,15 @@ export default function WorkSurface() {
       stage?.classList.add('is-off');
       for (const sel of FINAL_ON) root.querySelector(sel)?.classList.add('on');
       root.querySelectorAll('.ezh-g').forEach((g) => g.classList.add('on'));
+      root.querySelectorAll('.ezh-rec-layer').forEach((l) => l.classList.add('on'));
       root.querySelectorAll('.ezh-fact').forEach((f) => f.classList.add('on'));
       root.querySelectorAll('.ezh-arow').forEach((r) => {
         r.classList.add('on');
         const final = r.getAttribute('data-final');
         if (final) r.classList.add(`is-${final}`);
       });
-      root.querySelector('.ezh-apcard')?.classList.add('is-confirmed');
-      root.querySelector('.ezh-ap-btn')?.classList.add('is-pressed');
+      root.querySelector('.ezh-gate')?.classList.add('is-confirmed');
+      root.querySelector('.ezh-gate-btn')?.classList.add('is-pressed');
       root.classList.add('is-played');
       if (annotate) root.classList.add('is-static');
       root.setAttribute('data-active-beat', '5');
@@ -151,7 +175,7 @@ export default function WorkSurface() {
     };
     const rows = qa('.ezh-arow');
 
-    /* beat one — the masked seed types itself */
+    /* beat one — identify: the masked seed types itself */
     beat(1);
     qa('.ezh-g').forEach((g, i) => {
       at(250 + i * 70, () => g.classList.add('on'));
@@ -159,19 +183,22 @@ export default function WorkSurface() {
     at(1100, () => q('.ezh-npi-go')?.classList.add('is-press'));
     at(1400, () => q('.ezh-npi-go')?.classList.remove('is-press'));
 
-    /* beat two — finding sources */
+    /* beat two — build: the record gains its layers */
     at(1500, () => {
       beat(2);
       q('.ezh-sf-stage')?.classList.add('is-off');
       q('.ezh-seed')?.classList.add('on');
     });
-    at(1800, () => q('.ezh-profile')?.classList.add('on'));
-    qa('.ezh-fact').forEach((f, i) => {
-      at(2000 + i * 450, () => f.classList.add('on'));
+    at(1800, () => q('.ezh-record')?.classList.add('on'));
+    qa('.ezh-rec-layer').forEach((l, i) => {
+      at(2000 + i * 620, () => l.classList.add('on'));
     });
-    at(3900, () => q('.ezh-fact-cap')?.classList.add('on'));
+    qa('.ezh-fact').forEach((f, i) => {
+      at(2200 + i * 380, () => f.classList.add('on'));
+    });
+    at(3900, () => q('.ezh-rec-cap')?.classList.add('on'));
 
-    /* beat three — ranking what remains */
+    /* beat three — choose: what remains, by owner */
     at(4300, () => {
       beat(3);
       q('.ezh-remains')?.classList.add('on');
@@ -180,7 +207,7 @@ export default function WorkSurface() {
       at(4600 + i * 260, () => r.classList.add('on'));
     });
 
-    /* beat four — working */
+    /* beat four — approve: VitalCV works, then stops at the gate */
     at(6000, () => {
       beat(4);
       q('.ezh-workfeed')?.classList.add('on');
@@ -196,17 +223,17 @@ export default function WorkSurface() {
       rows[0]?.classList.add('is-done');
     });
     at(7350, () => {
-      q('.ezh-apcard')?.classList.add('on');
+      q('.ezh-gate')?.classList.add('on');
       rows[2]?.classList.add('is-ready');
     });
-    at(8250, () => q('.ezh-ap-btn')?.classList.add('is-pressed'));
+    at(8250, () => q('.ezh-gate-btn')?.classList.add('is-pressed'));
     at(8750, () => {
-      q('.ezh-apcard')?.classList.add('is-confirmed');
+      q('.ezh-gate')?.classList.add('is-confirmed');
       rows[2]?.classList.remove('is-ready');
       rows[2]?.classList.add('is-approved');
     });
 
-    /* beat five — toward day one */
+    /* beat five — carry forward: a role, then the employer's desk */
     at(9200, () => {
       beat(5);
       root.classList.add('is-dim');
@@ -214,7 +241,7 @@ export default function WorkSurface() {
     });
     at(9600, () => q('.ezh-role-facts')?.classList.add('on'));
     at(9900, () => q('.ezh-applied')?.classList.add('on'));
-    at(10200, () => q('.ezh-fillbar')?.classList.add('on'));
+    at(10200, () => q('.ezh-desk-in')?.classList.add('on'));
 
     at(10800, () => {
       root.classList.add('is-played');
@@ -253,7 +280,7 @@ export default function WorkSurface() {
       id="how-it-works"
       className="ezh-surface is-played"
       data-home-work-surface=""
-      aria-label="How VitalCV works — an illustrated walkthrough in five steps: your NPI goes in, VitalCV finds what it can from named public sources, ranks what remains by owner, does the work it safely can while pausing for your approval, and ends at a role, an application, and progress toward your first day."
+      aria-label="How VitalCV works — an illustrated walkthrough in five steps: your NPI goes in, VitalCV builds a record from named public sources, ranks what remains by who owns it, does the work it safely can and then stops at your approval, and ends with a role and the employer's review. The employer decides the outcome."
     >
       <div className="ezh-sf-chrome">
         <span className="ezh-sf-cap">How VitalCV works &middot; illustrative &mdash; not a live result</span>
@@ -269,7 +296,7 @@ export default function WorkSurface() {
 
       <div className="ezh-sf-body">
         <div className="ezh-sf-cols">
-          {/* left — the seed and what VitalCV found */}
+          {/* ── left: the profile record, in layers ────────────────────── */}
           <div className="ezh-sf-left">
             <div className="ezh-seed on" data-beat="1">
               <span className="ezh-seed-k">NPI</span>
@@ -277,39 +304,67 @@ export default function WorkSurface() {
               <span className="ezh-seed-tag">masked &middot; illustrative</span>
             </div>
 
-            <div className="ezh-profile on" data-beat="2">
-              <p className="ezh-sf-h">What VitalCV found</p>
-              <p className="ezh-sf-hsub">Each fact carries its source.</p>
-              <div className="ezh-facts">
-                <div className="ezh-fact on">
-                  <span className="ezh-fact-l">Name</span>
-                  <span className="ezh-skel" style={{ width: '73%' }} aria-hidden="true" />
-                  <span className="ezh-src">NPPES</span>
-                </div>
-                <div className="ezh-fact on">
-                  <span className="ezh-fact-l">Specialty</span>
-                  <span className="ezh-skel" style={{ width: '56%' }} aria-hidden="true" />
-                  <span className="ezh-src">NPPES</span>
-                </div>
-                <div className="ezh-fact on">
-                  <span className="ezh-fact-l">Practice</span>
-                  <span className="ezh-skel" style={{ width: '84%' }} aria-hidden="true" />
-                  <span className="ezh-src">Practice info</span>
-                </div>
-                <div className="ezh-fact on">
-                  <span className="ezh-fact-l">License record</span>
-                  <span className="ezh-skel" style={{ width: '64%' }} aria-hidden="true" />
-                  <span className="ezh-src">State board record</span>
+            <div className="ezh-record on" data-beat="2">
+              <p className="ezh-sf-h">Your record, as it builds</p>
+              <p className="ezh-sf-hsub">Every layer says where it came from.</p>
+
+              <div className="ezh-rec-layer on" data-layer="identity">
+                <span className="ezh-rec-k">Identity</span>
+                <div className="ezh-facts">
+                  <div className="ezh-fact on">
+                    <span className="ezh-fact-l">Name</span>
+                    <span className="ezh-skel" style={{ width: '68%' }} aria-hidden="true" />
+                    <span className="ezh-src">NPPES</span>
+                  </div>
                 </div>
               </div>
-              <p className="ezh-fact-cap on">
-                We show where every fact came from. Values here are placeholders &mdash; not every
-                source has every answer, and we say so when one doesn&rsquo;t.
+
+              <div className="ezh-rec-layer on" data-layer="sourced">
+                <span className="ezh-rec-k">From named sources</span>
+                <div className="ezh-facts">
+                  <div className="ezh-fact on">
+                    <span className="ezh-fact-l">Specialty</span>
+                    <span className="ezh-skel" style={{ width: '56%' }} aria-hidden="true" />
+                    <span className="ezh-src">NPPES</span>
+                  </div>
+                  <div className="ezh-fact on">
+                    <span className="ezh-fact-l">Practice</span>
+                    <span className="ezh-skel" style={{ width: '74%' }} aria-hidden="true" />
+                    <span className="ezh-src">Practice info</span>
+                  </div>
+                  <div className="ezh-fact on">
+                    <span className="ezh-fact-l">License record</span>
+                    <span className="ezh-skel" style={{ width: '62%' }} aria-hidden="true" />
+                    <span className="ezh-src">State board record</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="ezh-rec-layer on" data-layer="yours">
+                <span className="ezh-rec-k">Yours to add</span>
+                <div className="ezh-facts">
+                  <div className="ezh-fact on is-open">
+                    <span className="ezh-fact-l">Preferred location</span>
+                    <span className="ezh-fact-open">Open &mdash; only you can answer</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="ezh-rec-layer on" data-layer="consent">
+                <span className="ezh-rec-k">Shared only with your approval</span>
+                <p className="ezh-rec-note">
+                  Nothing in this record leaves it until you say so.
+                </p>
+              </div>
+
+              <p className="ezh-rec-cap on">
+                Values here are placeholders. Not every source has every answer, and the
+                profile says so instead of guessing.
               </p>
             </div>
           </div>
 
-          {/* right — what still matters, and the work happening */}
+          {/* ── right: what still matters, the work, and the gate ───────── */}
           <div className="ezh-sf-right">
             <div className="ezh-remains on" data-beat="3">
               <p className="ezh-sf-h">Here&rsquo;s what still matters</p>
@@ -320,7 +375,7 @@ export default function WorkSurface() {
                   <span className="ezh-chip">VitalCV</span>
                   <span className="ezh-stz">
                     <span className="ezh-st ezh-st-idle">&middot;</span>
-                    <span className="ezh-st ezh-st-done"><i className="ezh-ck" aria-hidden="true">&#10003;</i> Done by VitalCV <b className="ezh-t">0:06</b></span>
+                    <span className="ezh-st ezh-st-done"><i className="ezh-ck" aria-hidden="true">&#10003;</i> Done by VitalCV</span>
                   </span>
                 </li>
                 <li className="ezh-arow on is-done" data-final="done">
@@ -328,7 +383,7 @@ export default function WorkSurface() {
                   <span className="ezh-chip">VitalCV</span>
                   <span className="ezh-stz">
                     <span className="ezh-st ezh-st-idle">&middot;</span>
-                    <span className="ezh-st ezh-st-done"><i className="ezh-ck" aria-hidden="true">&#10003;</i> Done by VitalCV <b className="ezh-t">0:04</b></span>
+                    <span className="ezh-st ezh-st-done"><i className="ezh-ck" aria-hidden="true">&#10003;</i> Done by VitalCV</span>
                   </span>
                 </li>
                 <li className="ezh-arow on is-approved" data-final="approved">
@@ -336,8 +391,8 @@ export default function WorkSurface() {
                   <span className="ezh-chip">Your approval</span>
                   <span className="ezh-stz">
                     <span className="ezh-st ezh-st-idle">&middot;</span>
-                    <span className="ezh-st ezh-st-ready">Ready for your approval</span>
-                    <span className="ezh-st ezh-st-approved"><i className="ezh-ck" aria-hidden="true">&#10003;</i> Approved &middot; moving</span>
+                    <span className="ezh-st ezh-st-ready">Ready for you</span>
+                    <span className="ezh-st ezh-st-approved"><i className="ezh-ck" aria-hidden="true">&#10003;</i> You approved it</span>
                   </span>
                 </li>
                 <li className="ezh-arow on is-needs" data-final="needs">
@@ -359,24 +414,29 @@ export default function WorkSurface() {
               </ul>
             </div>
 
-            <div className="ezh-workfeed on" data-beat="4">
-              <div className="ezh-feed">
-                <span className="ezh-k">VitalCV working</span>
-                <p className="ezh-feedline f1 on"><b>0:04</b> <i className="ezh-ck" aria-hidden="true">&#10003;</i> State license record checked &mdash; done</p>
-                <p className="ezh-feedline f2 on"><b>0:06</b> <i className="ezh-ck" aria-hidden="true">&#10003;</i> Work history draft assembled &mdash; done</p>
-              </div>
-              <div className="ezh-apcard on is-confirmed">
-                <p className="ezh-ap-head"><span className="ezh-h-wait">Ready for your approval</span><span className="ezh-h-ok">Approved &mdash; VitalCV continues</span></p>
-                <p className="ezh-ap-body">Send your profile to an interested employer.</p>
-                <span className="ezh-ap-btn is-pressed" aria-hidden="true">Approve</span>
-                <p className="ezh-ap-done"><span aria-hidden="true">&#10003;</span> Profile sent</p>
-                <p className="ezh-ap-note">Illustrative &mdash; in the product, nothing moves without you.</p>
-              </div>
+            <div className="ezh-workfeed on">
+              <span className="ezh-k">VitalCV working</span>
+              <p className="ezh-feedline f1 on"><i className="ezh-ck" aria-hidden="true">&#10003;</i> State license record checked</p>
+              <p className="ezh-feedline f2 on"><i className="ezh-ck" aria-hidden="true">&#10003;</i> Work history draft assembled</p>
+            </div>
+
+            {/* the consent gate — the one place the scene stops for a person */}
+            <div className="ezh-gate on is-confirmed" data-beat="4">
+              <p className="ezh-gate-head">
+                <span className="ezh-h-wait">Your approval</span>
+                <span className="ezh-h-ok">You approved &mdash; VitalCV continues</span>
+              </p>
+              <p className="ezh-gate-body">Send your profile to an interested employer.</p>
+              <span className="ezh-gate-act">
+                <span className="ezh-gate-btn is-pressed" aria-hidden="true">Approve</span>
+                <span className="ezh-gate-done"><span aria-hidden="true">&#10003;</span> Profile sent</span>
+              </span>
+              <p className="ezh-gate-note">Illustrative &mdash; in the product, nothing moves without you.</p>
             </div>
           </div>
         </div>
 
-        {/* beat five — resolution band */}
+        {/* ── beat five — a role, then the employer's review desk ───────── */}
         <div className="ezh-sf-resolve on" data-beat="5">
           <div className="ezh-res-role">
             <p className="ezh-sf-h">A role that fits</p>
@@ -385,18 +445,23 @@ export default function WorkSurface() {
               <span className="ezh-skel" style={{ width: '46%' }} aria-hidden="true" />
             </div>
             <p className="ezh-applied on"><span className="ezh-ck" aria-hidden="true">&#10003;</span> Applied with VitalCV</p>
-            <p className="ezh-role-cap">Drawn from the profile above &mdash; illustrative.</p>
+            <p className="ezh-role-cap">Drawn from the record above &mdash; illustrative.</p>
           </div>
-          <div className="ezh-res-track">
-            <p className="ezh-sf-h">Toward your first day</p>
-            <div className="ezh-trackbar" aria-hidden="true">
-              <i className="ezh-fillbar on" />
-              <span className="ezh-node n1"><b /><span>Applied</span></span>
-              <span className="ezh-node n2"><b /><span>Interview</span></span>
-              <span className="ezh-node n3"><b /><span>Offer</span></span>
-              <span className="ezh-node n4"><b /><span>First day</span></span>
+
+          <div className="ezh-res-desk">
+            <p className="ezh-sf-h">The employer&rsquo;s review</p>
+            <div className="ezh-desk">
+              <span className="ezh-desk-in on">
+                <i className="ezh-desk-doc" aria-hidden="true" />
+                Your record, as you approved it
+              </span>
+              <span className="ezh-desk-line" aria-hidden="true" />
+              <span className="ezh-desk-out">The employer decides</span>
             </div>
-            <p className="ezh-track-cap">Illustrative pace &mdash; the remaining steps stay visible until day one.</p>
+            <p className="ezh-desk-cap">
+              This is where VitalCV stops. The employer reviews, asks what they need to ask,
+              and decides &mdash; on their own timeline.
+            </p>
           </div>
         </div>
 
@@ -414,8 +479,9 @@ export default function WorkSurface() {
       </div>
 
       <figcaption className="ezh-rm-legend">
-        The five steps at once: your NPI &middot; what VitalCV found &middot; what remains &middot;
-        work in motion &middot; a role and a start.
+        The five steps at once: your NPI &middot; the record VitalCV builds from named sources
+        &middot; what remains, by owner &middot; your approval &middot; a role, and the
+        employer&rsquo;s review.
       </figcaption>
     </figure>
   );

@@ -1,6 +1,6 @@
 # Homepage composition manifest
 
-**Established:** 2026-07-20 (deep-audit W0.2) · **Rewritten:** 2026-08-08 (UX-V1 production cutover)
+**Established:** 2026-07-20 (deep-audit W0.2) · **Rewritten:** 2026-08-08 (UX-V1 production cutover) · **Amended:** 2026-08-08 (D-01A homepage visual slice)
 **Rule:** every live homepage section has exactly one owner component, one motion
 owner, a declared fallback, and a conversion job. A section that cannot name its
 conversion job does not ship. No more than **one page-level in-page navigation
@@ -8,8 +8,13 @@ rail** may render at a time — enforced by
 `apps/web/__tests__/homepage-composition-gate.test.tsx`.
 
 The live composition is UX-V1 (`components/home/easy/EasyHome.tsx`, island
-`.ezh`, Direction B as amended by the UX-01 verdict): a normal vertical page in
-the dark warm-graphite register. Product explanation must not pin scrolling,
+`.ezh`, Direction B as amended by the UX-01 verdict, restyled by D-01A under
+`docs/design/VITALCV_2026_VISUAL_LANGUAGE.md`): a normal vertical page in the
+dark warm-graphite register. D-01A's standing rules: the primary action is the
+warm-paper inverse (green is evidence, never an action); the island's colours
+resolve through the `--vt-scene-*` register in `styles/themes/index.css`; one
+indigo atmospheric glow sits behind the work surface only; focus rings are
+indigo. Product explanation must not pin scrolling,
 rotate through panels, or require a carousel control. The page composes its own
 final CTA + footer band; the shared Footer is suppressed on `/` only.
 
@@ -26,7 +31,7 @@ final CTA + footer band; the shared Footer is suppressed on `/` only.
 | # | Section | Owner component | Data source | Motion owner | Fallback | Conversion job |
 | --- | --- | --- | --- | --- | --- | --- |
 | 1 | Hero — "Enter your NPI. VitalCV does the rest." + real NPI entry | `EasyHome` (hero block) + `NpiEntry` | Static copy; live lookup via `useCareerLoop` (bootstrap + trust-state + MATCHA, unchanged) | None on copy | SSR-complete form pre-hydration; results render only after a real lookup | THE primary conversion: NPI → profile → onboarding handoff |
-| 2 | Work surface — the 5-beat no-NPI explainer | `WorkSurface` | None — abstracted illustration, labelled illustrative | JS-scheduled class timeline (~10.5s, plays once, replayable); no @keyframes, no scroll coupling | Server renders the COMPLETED frame; reduced motion annotates it in place | Comprehension in under ~5s: VitalCV finds, ranks, works, pauses for consent, resolves to a role |
+| 2 | Work surface — the 5-beat Profile in Motion explainer (D-01A): the layered profile record builds from named sources, what remains ranks by owner, VitalCV works and stops at a visible consent gate, and the story ends at the employer's review desk — which never resolves | `WorkSurface` | None — abstracted illustration, labelled illustrative | JS-scheduled class timeline (~10.5s, plays once, replayable); no @keyframes, no scroll coupling; beat-5 space is grid-reserved at first paint (opacity reveals only — the D-00 CLS fix) | Server renders the COMPLETED frame; reduced motion annotates it in flow (numerals above each beat, not overlaying it) | Comprehension in under ~5s: VitalCV builds the record, the clinician approves what leaves it, the employer reviews and decides |
 | 3 | Truth boundary | `EasyHome` (`data-home-truth-boundary`) | Static, enumerated | None | SSR-complete text | Nothing has been sent; institution review decides |
 | 4 | Ownership — four work-state panels | `EasyHome` ownership grid | Static | None | SSR-complete | The agent model: VitalCV handles / your approval / you / the employer decides |
 | 5 | Outcome — "you start sooner" + role→first-day track | `EasyHome` outcome band | Static; illustrative track | CSS transition on the fill only | SSR-complete final state | The profile is not the destination; the job is |

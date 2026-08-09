@@ -170,6 +170,111 @@ html[data-theme='dark'] {
   --vt-badge-preview-text: oklch(0.80 0.08 180);
 }
 
+/* ── D-01 · The public scene register ───────────────────────────────────────
+ *
+ * Founder decisions, 2026-08-08 (docs/design/VITALCV_2026_VISUAL_LANGUAGE.md):
+ *   1. Dark-led public register, with warm-paper record/consent artifacts.
+ *   2. Primary CTA is a warm-paper inverse action with dark ink. Green is
+ *      reserved for factual source-confirmed and completed-work states only.
+ *   3. VitalCV indigo is the focus ring and the editorial atmosphere. Never a
+ *      status colour.
+ *   4. Shape scale: pill 9999px, control 10px, card 20px, panel 24px.
+ *
+ * WHY THIS BLOCK IS REGISTER-INDEPENDENT (`:root`, not `html.dark`).
+ * `/` is a dark ISLAND rendered inside a light `<html>`. next-themes never
+ * adds `.dark` there, so every value in the `html.dark` block above is
+ * unreachable from the homepage — which is precisely why easy-home.css and
+ * eyebrow.css each grew their own private copy of the palette, eleven hex
+ * values maintained twice with nothing enforcing agreement (D-00 §2.2).
+ *
+ * These tokens are the dark public register stated ONCE, addressable from any
+ * island regardless of the document theme. They do not redefine --vt-bg,
+ * --vt-text-*, --vt-state-*, or --vt-accent-editorial; the light and dark
+ * document themes above are untouched.
+ */
+:root {
+  /* ── Scene surfaces — the dark-led register (decision 1) ──────────────── */
+  --vt-scene-canvas:            #151412;
+  --vt-scene-panel:             #1D1B19;
+  --vt-scene-panel-raised:      #232120;
+  --vt-scene-line:              #32302D;
+  --vt-scene-line-strong:       #403D39;
+  --vt-scene-text:              #F2F1ED;  /* 16.29:1 on canvas */
+  --vt-scene-text-secondary:    #9C9D99;  /*  6.75:1 on canvas ·  6.29 on panel */
+  /* A-1 — was #7B7D79: 4.43:1 on canvas, 4.13 on panel, 3.86 on the raised
+     panel, and it carried the truth boundary, the source-cadence sentence and
+     every "Named by NPPES for NPI …" attribution at 9–13px. The qualifiers
+     that keep the page honest were its least legible text. Lifted to clear AA
+     on all three scene surfaces while staying visibly below the secondary
+     tier. Asserted in __tests__/scene-token-contract.test.ts. */
+  --vt-scene-text-tertiary:     #888A85;  /*  5.28 canvas · 4.92 panel · 4.60 raised */
+
+  /* ── Paper — the record / consent artifact (decision 1) ───────────────── */
+  --vt-scene-paper:             #F6F5F1;
+  --vt-scene-paper-line:        #D9D6CD;
+  --vt-scene-paper-text:        #151412;  /* 16.88:1 on paper */
+  --vt-scene-paper-text-secondary: #5B5C57;  /* 6.18:1 on paper */
+
+  /* ── Primary action — the warm-paper inverse (decision 2) ─────────────
+     The action inverts against whatever register it sits on: paper with dark
+     ink on the graphite canvas, ink with paper text on a paper band. Green is
+     no longer an action colour anywhere.
+
+     A-2 / A-2b — the green treatment this replaces put #F2F1ED on #2E9E6B:
+     2.99:1 on hover AND :focus-visible in the page island, and at REST for the
+     eyebrow's action over every light band. Every state below clears AA by a
+     wide margin, asserted in the token-contract test. */
+  --vt-action-primary-bg:               var(--vt-scene-paper);
+  --vt-action-primary-fg:               var(--vt-scene-paper-text);
+  --vt-action-primary-bg-press:         #E4E1D8;
+  --vt-action-primary-fg-press:         var(--vt-scene-paper-text);
+  --vt-action-primary-inverse-bg:       #151412;
+  --vt-action-primary-inverse-fg:       #F6F5F1;
+  --vt-action-primary-inverse-bg-press: #32302D;
+  --vt-action-primary-inverse-fg-press: #F6F5F1;
+
+  /* ── Editorial accent, register-scoped (decision 3) ───────────────────
+     --vt-accent-editorial already switches #4338CA → #a5b4fc between the
+     document themes, which a dark island inside a light document cannot
+     reach. These name the two registers explicitly. Indigo is atmosphere and
+     focus; it never reports state. */
+  --vt-accent-editorial-on-dark:  #A5B4FC;  /* indigo-300 · 9.23:1 on canvas */
+  --vt-accent-editorial-on-paper: #4338CA;  /* indigo-700 · 7.24:1 on paper  */
+  --vt-focus-ring-scene:          var(--vt-accent-editorial-on-dark);
+  --vt-focus-ring-scene-paper:    var(--vt-accent-editorial-on-paper);
+
+  /* ── Atmosphere — one glow per viewport, never on a control ────────────
+     Declared here so D-04 places it rather than inventing it. Unused today. */
+  --vt-scene-glow:
+    radial-gradient(60% 55% at 50% 40%,
+      color-mix(in oklab, var(--vt-accent-editorial-on-dark) 14%, transparent) 0%,
+      transparent 70%);
+
+  /* ── Frost — chrome material, never evidence ──────────────────────────── */
+  --vt-frost-bg:     color-mix(in oklab, var(--vt-scene-panel) 72%, transparent);
+  --vt-frost-border: color-mix(in oklab, var(--vt-scene-text) 12%, transparent);
+
+  /* ── Scene state hues ─────────────────────────────────────────────────
+     The dark-register lifts of the state semantics. These are VARIANTS of
+     --vt-state-* for the scene register — they do not redefine it, and the
+     meanings are unchanged: green only where a named source returned a match
+     or VitalCV completed work; amber only for a real needs-a-person state;
+     grey only for genuinely waiting on someone else. */
+  --vt-scene-state-source-confirmed:      #4ADE97;  /* 10.68:1 on canvas */
+  --vt-scene-state-source-confirmed-deep: #2E9E6B;
+  --vt-scene-state-needs-person:          #E4B45C;  /*  9.63:1 on canvas */
+  --vt-scene-state-waiting:               #8F8C88;  /*  5.50:1 on canvas */
+
+  /* ── Shape scale (decision 4) — DEFINED, NOT APPLIED ──────────────────
+     D-01's gate is explicit: do not alter legacy radius aliases until call
+     sites are audited. The live islands ship a 2px radius throughout; nothing
+     consumes these yet. D-02 builds the primitives that do. */
+  --vt-shape-pill:    9999px;
+  --vt-shape-control: 10px;
+  --vt-shape-card:    20px;
+  --vt-shape-panel:   24px;
+}
+
 /* Base Aliases */
 :root {
   --vt-text-1: var(--vt-text-primary);
