@@ -439,7 +439,10 @@ const GOLDEN_PATH_ROUTES: Array<{ route: string; auth: AuthExpectation }> = [
   { route: '/holder/timeline', auth: 'clinician' },
   { route: '/holder/settings', auth: 'clinician' },
   { route: '/holder/recognition', auth: 'clinician' },
-  { route: '/clinician/profile', auth: 'passthrough' },
+  // Was 'passthrough' — the route rendered owner-scoped data while matching
+  // neither guard list. Now CLINICIAN, like every other surface reachable from
+  // the holder nav that links to it.
+  { route: '/clinician/profile', auth: 'clinician' },
   { route: '/verify/[npi]', auth: 'public' },
   // Supporting routes the Golden Path depends on:
   { route: '/activity/[entityId]', auth: 'passthrough' }, // /holder/timeline redirect target

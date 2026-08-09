@@ -122,6 +122,7 @@ const SESSION_PATH_PREFIXES = [
   '/sign-up',
   '/auth',
   '/holder',
+  '/clinician',
   '/employer',
   '/review',
   '/apply',
