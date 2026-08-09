@@ -55,11 +55,81 @@ export interface GardenNoteInput {
   status?: unknown;
 }
 
-export async function listGardenNotes(userId: string) {
-  return prisma.gardenNote.findMany({
-    where: { userId },
-    orderBy: { createdAt: 'desc' },
+// WB-06: the list is bounded and searchable. Defaults preserve the previous
+// caller-visible behavior for small workspaces (newest first), but the read
+// is never again unbounded: a daily-note habit is ~365 rows/year of 4KB
+// bodies, and the workspace load path must not scale with note count.
+const LIST_DEFAULT_LIMIT = 100;
+const LIST_MAX_LIMIT = 200;
+const MAX_QUERY = 200;
+
+export interface GardenNoteListOptions {
+  /** Case-insensitive substring match over title and body. */
+  q?: unknown;
+  /** Exact tag membership. */
+  tag?: unknown;
+  /** Opaque cursor: the `id` of the last note of the previous page. */
+  cursor?: unknown;
+  limit?: unknown;
+}
+
+export interface GardenNoteListResult {
+  notes: Awaited<ReturnType<typeof prisma.gardenNote.findMany>>;
+  nextCursor: string | null;
+}
+
+function cleanLimit(value: unknown): number {
+  const n = typeof value === 'string' ? Number.parseInt(value, 10) : NaN;
+  if (!Number.isInteger(n) || n < 1) return LIST_DEFAULT_LIMIT;
+  return Math.min(n, LIST_MAX_LIMIT);
+}
+
+export async function listGardenNotes(
+  userId: string,
+  options: GardenNoteListOptions = {},
+): Promise<GardenNoteListResult> {
+  const q = cleanStr(options.q, MAX_QUERY);
+  const tag = cleanStr(options.tag, MAX_TAG);
+  const cursor = cleanStr(options.cursor, 64);
+  const limit = cleanLimit(options.limit);
+
+  // Every filter lives INSIDE the userId scope — search can never widen
+  // visibility, only narrow the caller's own notes.
+  const where = {
+    userId,
+    ...(tag ? { tags: { has: tag } } : {}),
+    ...(q
+      ? {
+          OR: [
+            { title: { contains: q, mode: 'insensitive' as const } },
+            { body: { contains: q, mode: 'insensitive' as const } },
+          ],
+        }
+      : {}),
+  };
+
+  if (cursor) {
+    // The cursor must be one of the caller's own notes. A foreign id and a
+    // nonexistent id must be indistinguishable (same 400), or pagination
+    // becomes a cross-user existence oracle.
+    const anchor = await prisma.gardenNote.findFirst({
+      where: { id: cursor, userId },
+      select: { id: true },
+    });
+    if (!anchor) throw new HttpError(400, 'Invalid cursor.');
+  }
+
+  const notes = await prisma.gardenNote.findMany({
+    where,
+    // `id` tiebreaker makes the cursor walk deterministic for same-instant rows.
+    orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+    take: limit + 1,
+    ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
   });
+
+  const page = notes.slice(0, limit);
+  const nextCursor = notes.length > limit ? page[page.length - 1]?.id ?? null : null;
+  return { notes: page, nextCursor };
 }
 
 export async function createGardenNote(userId: string, input: GardenNoteInput) {
