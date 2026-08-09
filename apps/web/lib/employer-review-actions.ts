@@ -390,6 +390,78 @@ export function employerReviewLoadingLabel(intent: EmployerReviewActionIntent): 
   }
 }
 
+/**
+ * How a failed employer-review mutation is classified.
+ *
+ * There are exactly two kinds and neither is a success. This is the closure
+ * for the no-fabricated-outcome contract on employer actions: a failed
+ * response has no path to a "recorded" claim, because no input to
+ * `classifyEmployerActionFailure` produces one.
+ */
+export type EmployerActionFailure =
+  | { kind: 'not_authorized'; message: string }
+  | { kind: 'failed'; message: string };
+
+/**
+ * Classifies a non-2xx employer-review mutation response.
+ *
+ * A pure function rather than a branch inside the review component, so the
+ * contract can be asserted exhaustively instead of by reading the component's
+ * source. The bug it closes: 401/403 on `request-refresh` was caught and
+ * converted into "Request recorded — clinician will be notified during pilot",
+ * rendered success-toned and reported to the live funnel as a success, with
+ * nothing written. On the RBAC path the backend writes a denied-mutation
+ * AuditEvent before returning 403, so the audit log recorded the opposite of
+ * what the employer was shown.
+ *
+ * 401/403 keeps the server's own `error_description` because that text names
+ * the remedy ("Complete employer setup first."). Do not replace it with
+ * reassuring copy, and do not add a status that resolves to a success — the
+ * server refused the caller, so there is no record to claim, and writing one
+ * anyway would be a mutation on behalf of a caller the server rejected.
+ */
+export function classifyEmployerActionFailure(
+  status: number,
+  errorDescription?: string | null,
+): EmployerActionFailure {
+  const described = typeof errorDescription === 'string' ? errorDescription.trim() : '';
+
+  if (status === 401 || status === 403) {
+    return {
+      kind: 'not_authorized',
+      message: described || 'Your workspace is not authorized to complete this action.',
+    };
+  }
+
+  return {
+    kind: 'failed',
+    message: described || `Action failed (${status})`,
+  };
+}
+
+/**
+ * Title for the state an employer lands in when the server refuses the
+ * mutation (401/403) — their session is signed in but carries no employer-org
+ * authority.
+ *
+ * The phrasing is deliberately about capability ("can't ... yet"), not about
+ * an outcome. Nothing was recorded, so nothing may be described as recorded.
+ * The denial's own text supplies the next step and is rendered as the
+ * description beneath this title.
+ */
+export function employerActionNotAuthorizedTitle(intent: EmployerReviewActionIntent): string {
+  switch (intent) {
+    case 'accept':
+      return "Your workspace can't record an acceptance yet";
+    case 'refresh':
+      return "Your workspace can't request a refresh yet";
+    case 'review':
+      return "Your workspace can't route this to review yet";
+    default:
+      return "Your workspace can't complete this action yet";
+  }
+}
+
 export function formatEmployerReviewPersistedLabel(state: EmployerReviewActionState): string {
   switch (state.action) {
     case 'accept':
