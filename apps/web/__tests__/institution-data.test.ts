@@ -46,4 +46,46 @@ describe('curated institution data', () => {
     expect(schools.length).toBeGreaterThan(0);
     expect(schools.every((i) => i.kind.startsWith('med_school'))).toBe(true);
   });
+
+  it('carries every CMSS member society (57 as of 2026-08-09), searchable by abbrev', () => {
+    // cmss.org/membership/current-members — completion delta landed 2026-08.
+    const cmssDelta = [
+      'aasld',
+      'aace',
+      'aes',
+      'amia',
+      'ascp-pathology',
+      'asge',
+      'asrm',
+      'asam',
+      'asbrs',
+      'ase-echo',
+      'cap-pathologists',
+      'naspghan',
+      'nass',
+      'oma',
+      'paltmed',
+      'svs',
+      'sgim',
+      'sgo',
+      'sir',
+      'snmmi',
+      'sso',
+      'sts',
+    ];
+    const byId = new Map(INSTITUTIONS.map((i) => [i.id, i]));
+    for (const id of cmssDelta) {
+      const inst = byId.get(id);
+      expect(inst, `missing CMSS society: ${id}`).toBeDefined();
+      expect(inst?.kind).toBe('society');
+      if (inst?.abbrev) {
+        expect(
+          searchInstitutions(inst.abbrev, { kinds: ['society'] }).some((r) => r.id === id),
+          `abbrev search failed for ${id}`,
+        ).toBe(true);
+      }
+    }
+    const societyCount = INSTITUTIONS.filter((i) => i.kind === 'society').length;
+    expect(societyCount).toBeGreaterThanOrEqual(57);
+  });
 });

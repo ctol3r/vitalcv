@@ -9,9 +9,10 @@
  * is self-reported ("User-entered") until source-backed — same truth contract as
  * the rest of the profile.
  *
- * Coverage (2026-07): specialty boards (ABMS + AOA), major professional
- * societies, associations, honor societies, and accreditors are reasonably
- * complete for the common cases. Medical schools here are the major US MD/DO
+ * Coverage (2026-08): specialty boards (ABMS + AOA), major professional
+ * societies (all 57 CMSS member societies as of 2026-08-09, plus selected
+ * non-CMSS societies), associations, honor societies, and accreditors are
+ * reasonably complete for the common cases. Medical schools here are the major US MD/DO
  * institutions — a high-signal SUBSET; the full LCME (~157 MD) + AACOM (~40 DO)
  * roster is a bulk-data ingestion follow-up (see docs / the datasets memo), as is
  * the ~13k ACGME residency/fellowship program list and NPPES Type-2 employers.
@@ -135,6 +136,34 @@ export const INSTITUTIONS: readonly Institution[] = [
   { id: 'acoem', name: 'American College of Occupational and Environmental Medicine', kind: 'society', abbrev: 'ACOEM' },
   { id: 'smfm', name: 'Society for Maternal-Fetal Medicine', kind: 'society', abbrev: 'SMFM' },
   { id: 'ascrs', name: 'American Society of Colon and Rectal Surgeons', kind: 'society', abbrev: 'ASCRS' },
+  // CMSS-membership completion (verified against cmss.org/membership/current-members, 2026-08-09).
+  { id: 'aasld', name: 'American Association for the Study of Liver Diseases', kind: 'society', abbrev: 'AASLD' },
+  { id: 'aace', name: 'American Association of Clinical Endocrinology', kind: 'society', abbrev: 'AACE' },
+  { id: 'aes', name: 'American Epilepsy Society', kind: 'society', abbrev: 'AES' },
+  { id: 'amia', name: 'American Medical Informatics Association', kind: 'society', abbrev: 'AMIA' },
+  { id: 'ascp-pathology', name: 'American Society for Clinical Pathology', kind: 'society', abbrev: 'ASCP' },
+  { id: 'asge', name: 'American Society for Gastrointestinal Endoscopy', kind: 'society', abbrev: 'ASGE' },
+  { id: 'asrm', name: 'American Society for Reproductive Medicine', kind: 'society', abbrev: 'ASRM' },
+  { id: 'asam', name: 'American Society of Addiction Medicine', kind: 'society', abbrev: 'ASAM' },
+  { id: 'asbrs', name: 'American Society of Breast Surgeons', kind: 'society', abbrev: 'ASBrS' },
+  { id: 'ase-echo', name: 'American Society of Echocardiography', kind: 'society', abbrev: 'ASE' },
+  { id: 'cap-pathologists', name: 'College of American Pathologists', kind: 'society', abbrev: 'CAP' },
+  {
+    id: 'naspghan',
+    name: 'North American Society for Pediatric Gastroenterology, Hepatology and Nutrition',
+    kind: 'society',
+    abbrev: 'NASPGHAN',
+  },
+  { id: 'nass', name: 'North American Spine Society', kind: 'society', abbrev: 'NASS' },
+  { id: 'oma', name: 'Obesity Medicine Association', kind: 'society', abbrev: 'OMA' },
+  { id: 'paltmed', name: 'Post-Acute and Long-Term Care Medical Association', kind: 'society', abbrev: 'PALTmed' },
+  { id: 'svs', name: 'Society for Vascular Surgery', kind: 'society', abbrev: 'SVS' },
+  { id: 'sgim', name: 'Society of General Internal Medicine', kind: 'society', abbrev: 'SGIM' },
+  { id: 'sgo', name: 'Society of Gynecologic Oncology', kind: 'society', abbrev: 'SGO' },
+  { id: 'sir', name: 'Society of Interventional Radiology', kind: 'society', abbrev: 'SIR' },
+  { id: 'snmmi', name: 'Society of Nuclear Medicine and Molecular Imaging', kind: 'society', abbrev: 'SNMMI' },
+  { id: 'sso', name: 'Society of Surgical Oncology', kind: 'society', abbrev: 'SSO' },
+  { id: 'sts', name: 'Society of Thoracic Surgeons', kind: 'society', abbrev: 'STS' },
 
   // ── Associations ───────────────────────────────────────────────────────────
   { id: 'ama', name: 'American Medical Association', kind: 'association', abbrev: 'AMA' },
