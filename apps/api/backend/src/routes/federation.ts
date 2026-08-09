@@ -17,11 +17,23 @@ import {
   type FederatedNetworkType,
 } from '../services/network/federation';
 import { log } from '../obs/logger';
+import { requireInternalSecret } from '../middleware/internalSecret';
 
+/**
+ * AUTHORIZATION (2026-08-08). `POST /api/network/federate` and
+ * `PATCH /api/network/peers/:networkId/status` had no authorization beyond the
+ * global tenant guard, which accepted the mere PRESENCE of a caller-supplied
+ * `x-org-id`. Federation admin — establishing a peer relationship and flipping
+ * a peer's status — was reachable anonymously with one header.
+ *
+ * Operator secret. The only caller of the PATCH was `FederationHealthPanel`,
+ * which NO page imports; verifier-sdk calls the sibling GET /api/network/peers,
+ * not this route, so the SDK is unaffected.
+ */
 export function registerFederationRoutes(app: Express): void {
 
   // ── POST /api/network/federate ─────────────────────────────────────
-  app.post('/api/network/federate', (req: Request, res: Response) => {
+  app.post('/api/network/federate', requireInternalSecret, (req: Request, res: Response) => {
     try {
       const { networkName, endpoint, publicKey, networkType, didMethods, metadata } =
         req.body ?? {};
@@ -104,7 +116,7 @@ export function registerFederationRoutes(app: Express): void {
   });
 
   // ── PATCH /api/network/peers/:networkId/status ─────────────────────
-  app.patch('/api/network/peers/:networkId/status', (req: Request, res: Response) => {
+  app.patch('/api/network/peers/:networkId/status', requireInternalSecret, (req: Request, res: Response) => {
     try {
       const { networkId } = req.params;
       const { status, nodeCount, lastSyncAt } = req.body ?? {};

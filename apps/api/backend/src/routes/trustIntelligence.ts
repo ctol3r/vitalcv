@@ -40,6 +40,24 @@ function validateNpi(res: Response, npi: string): boolean {
   return true;
 }
 
+/**
+ * AUTHORIZATION (2026-08-08). Nothing is operator-gated in this file, on
+ * purpose.
+ *
+ * The two divergence-resolution writes DO already require an actor: they read
+ * `x-clerk-user-id` inline and 401 without it, and they record it as
+ * `resolvedBy`. That makes them **identity** surfaces, not operator ones — so
+ * an operator secret is the wrong control even though the actor header is
+ * caller-supplied and therefore not yet a real boundary (gap G1; it becomes one
+ * when CLERK_JWT_VERIFICATION reaches enforce and verifiedIdentity rewrites the
+ * header from the verified `sub`).
+ *
+ * `POST /api/trust/score/batch` is likewise not gated here — it is fronted by
+ * the live `app/api/intelligence/providers` proxy.
+ *
+ * Both dispositions are recorded in
+ * docs/security/turnstile-route-dispositions.md.
+ */
 export function registerTrustIntelligenceRoutes(app: Express): void {
 
   // ── GET /api/trust/score/:npi ─────────────────────────────────────────────

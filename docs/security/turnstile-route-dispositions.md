@@ -25,12 +25,21 @@ sweep must handle both:
 2. **Named handlers** — `app.post('/api/internal/run-monitoring', runMonitoringNow)`
    is fully guarded *inside* `runMonitoringNow`. A scanner that only reads from
    the registration line to the next one sees an empty body and calls it open.
+3. **Inline identity reads** — `/api/trust/divergence/:npi/:conflictId/resolve`
+   reads `req.headers['x-clerk-user-id']` directly and 401s without it, with no
+   named helper to match on. Found the hard way: batch 5 operator-gated it, and
+   its existing suite caught the 401→403 regression. That route records the
+   actor as `resolvedBy`, so it is an **identity** surface — an operator secret
+   is the wrong control there even though the header is not yet a real boundary.
 
 *Validation* helpers (`requireBodyField`, `requireParam`, `requireUuid`) are
 deliberately **not** in the vocabulary: they answer "is this well-formed?",
 never "may this caller do it?".
 
-Correcting both brought the mutation register from a claimed 129 to **111**.
+Correcting the first two brought the mutation register from a claimed 129 to
+**111**. The third class means 111 is still an upper bound, not a count of
+genuinely open routes — treat every entry as a candidate to verify, not a
+verdict.
 
 ## Counts (origin/main, 2026-08-08)
 
@@ -62,6 +71,7 @@ Correcting both brought the mutation register from a claimed 129 to **111**.
 | #1223 b2 | `/api/mission-ops/*` (7), `/api/api-keys` (3), `/api/analytics/*` (5), `/api/learning/*` (6) | operator |
 | #1223 b3 | `/api/crypto/{sign,resign,batch-resign}` (5), `/api/did/*` (3), `/api/coordination/*` (3) | operator |
 | #1223 b4 | `/api/credentials/export/wallet`, `/api/credentials/sd-jwt/issue` | operator |
+| #1223 b5 | `/api/network/{federate,peers/:id/status,federation/validate,issuer/register}` (4), `/api/trust/{events/batch,monitoring/cycle}` (2) | operator |
 
 Every one of those was an **orphan** — no caller anywhere in the repo — which is
 what made operator-secret safe. That property is the reason the batches were
@@ -91,9 +101,32 @@ decisions, not a guard.
 header-trust baseline, so it *may* read `x-clerk-user-id` when the identity work
 lands; nothing has to be added to the baseline.
 
+## Deferred on purpose — fronted by a live web proxy
+
+These are the same shape as the batch-5 routes and were left OPEN deliberately,
+because a live Next proxy forwards to them and would start 403ing. Closing each
+needs the proxy to forward the operator secret first (the pattern used for
+`app/api/internal/{source-health,mission-ops/sources}` in batch 2).
+`federationTrustWritesAuth.test.ts` pins the boundary, so a later sweep cannot
+close them silently.
+
+| backend route | live proxy |
+|---|---|
+| `POST /api/trust/events` | `app/api/trust/events` |
+| `POST /api/trust/score/batch` | `app/api/intelligence/providers` |
+| `POST /api/network/federation/discover` | `app/api/network/federation/discover` |
+| `POST /api/simulation/{run,revocation,expiration,compliance}` | `app/api/simulation/*` |
+
+Note the asymmetry that made batch 5 safe: every *component* caller in these
+families (`FederationHealthPanel`, `IssuerOnboardingPanel`,
+`MonitoringStatusPanel`, `LiveSimulationPanel`, `SimulationControlPanel`,
+`DebugPanel`) is imported by **no page** — same as `EventFeed` in batch 1. A
+component caller is not evidence of a live consumer; a proxy route is, because
+it is reachable on the web origin whether or not the UI calls it.
+
 ## Remaining register
 
-~98 unguarded mutations after batch 4. Largest families:
+~90 unguarded mutations after batch 5. Largest families:
 
 | family | count | likely disposition |
 |---|---|---|

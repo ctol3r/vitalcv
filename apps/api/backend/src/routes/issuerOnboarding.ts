@@ -13,7 +13,15 @@ import {
 } from '../services/network/issuerOnboarding';
 import { initializeTrustRegistryPersistence } from '../services/registry/trustRegistry';
 import { log } from '../obs/logger';
+import { requireInternalSecret } from '../middleware/internalSecret';
 
+/**
+ * AUTHORIZATION (2026-08-08). `POST /api/network/issuer/register` had no
+ * authorization beyond the global tenant guard, which accepted the mere
+ * PRESENCE of a caller-supplied `x-org-id` — so anyone could register an
+ * issuer. Operator secret; its only caller, `IssuerOnboardingPanel`, is
+ * imported by no page.
+ */
 export function registerIssuerOnboardingRoutes(app: Express): void {
   /**
    * POST /api/network/issuer/register
@@ -32,7 +40,7 @@ export function registerIssuerOnboardingRoutes(app: Express): void {
    *   }
    * }
    */
-  app.post('/api/network/issuer/register', async (req: Request, res: Response) => {
+  app.post('/api/network/issuer/register', requireInternalSecret, async (req: Request, res: Response) => {
     try {
       const body = req.body as IssuerOnboardingRequest;
 
