@@ -22,6 +22,12 @@ export interface HeaderCta {
 export interface HeaderRouteContext {
   audience: HeaderAudience;
   /**
+   * A non-interactive route cue for the public eyebrow. The public bar names
+   * the visitor's current context; destination choices live in its full menu
+   * so it never collapses back into an unreadable horizontal link row.
+   */
+  contextLabel: string;
+  /**
    * The one contextual primary action. `null` on the action's own
    * destination — a button pointing at the page it is on is noise, and the
    * page carries the primary action itself.
@@ -63,6 +69,7 @@ export function getHeaderRouteContext(pathname: string): HeaderRouteContext {
   ) {
     return {
       audience: 'employer',
+      contextLabel: 'Hiring teams',
       // Suppressed on /employers (the page opens with the identical action)
       // and on the CTA's own destination — a bar button pointing at the page
       // you are already on is the same competing-primary problem.
@@ -79,6 +86,7 @@ export function getHeaderRouteContext(pathname: string): HeaderRouteContext {
   if (matches(pathname, '/verify') || matches(pathname, '/review')) {
     return {
       audience: 'employer',
+      contextLabel: 'Employer review',
       cta: EMPLOYER_CTA,
       defaultStage: 'review',
       defaultTheme: 'light',
@@ -97,6 +105,7 @@ export function getHeaderRouteContext(pathname: string): HeaderRouteContext {
   ) {
     return {
       audience: 'clinician',
+      contextLabel: 'Build your profile',
       cta: null,
       defaultStage: DEFAULT_JOURNEY_STAGE,
       defaultTheme: 'light',
@@ -108,6 +117,7 @@ export function getHeaderRouteContext(pathname: string): HeaderRouteContext {
   if (matches(pathname, '/explore')) {
     return {
       audience: 'clinician',
+      contextLabel: 'Find work that fits',
       cta: CLINICIAN_CTA,
       defaultStage: 'sources',
       defaultTheme: 'light',
@@ -123,6 +133,7 @@ export function getHeaderRouteContext(pathname: string): HeaderRouteContext {
   ) {
     return {
       audience: 'neutral',
+      contextLabel: 'Source limits, stated plainly',
       cta: CLINICIAN_CTA,
       defaultStage: 'sources',
       defaultTheme: 'light',
@@ -139,6 +150,7 @@ export function getHeaderRouteContext(pathname: string): HeaderRouteContext {
   ) {
     return {
       audience: pathname.startsWith('/opportunities') ? 'clinician' : 'neutral',
+      contextLabel: 'You control what you share',
       cta: CLINICIAN_CTA,
       defaultStage: 'permission',
       defaultTheme: 'light',
@@ -152,6 +164,7 @@ export function getHeaderRouteContext(pathname: string): HeaderRouteContext {
   if (pathname === '/') {
     return {
       audience: 'clinician',
+      contextLabel: 'Your profile, ready for every move',
       cta: CLINICIAN_CTA,
       defaultStage: DEFAULT_JOURNEY_STAGE,
       defaultTheme: 'dark',
@@ -161,6 +174,7 @@ export function getHeaderRouteContext(pathname: string): HeaderRouteContext {
 
   return {
     audience: 'neutral',
+    contextLabel: 'Your profile, ready for every move',
     cta: CLINICIAN_CTA,
     defaultStage: DEFAULT_JOURNEY_STAGE,
     defaultTheme: 'light',
