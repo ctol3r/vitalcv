@@ -15,10 +15,21 @@ the Workbench brief).
   user id. Cross-user access reads as **404, never 403** — existence and
   ownership are indistinguishable to a non-owner.
 - Notes, revisions, and links are excluded from employer surfaces, matching,
-  ranking, eligibility, dossier generation, agent inputs, and analytics by
-  construction: nothing outside `services/garden/*` and the
-  `/api/profile/garden/*` route family reads these tables
-  (`gardenLinks.test.ts` and `gardenNotes.test.ts` pin the access contract).
+  ranking, eligibility, dossier generation, and analytics by construction:
+  nothing outside `services/garden/*` and the `/api/profile/garden/*` route
+  family reads these tables (`gardenLinks.test.ts` and `gardenNotes.test.ts`
+  pin the access contract).
+- **Agent inputs (amended by WB-11, D1 decision 2026-08-09):** notes remain
+  excluded from agent inputs **by default**. The clinician may opt an
+  individual note into visibility for their own agent — explicit, per-note,
+  revocable (`agentConsentAt`; NULL = excluded). The ONLY agent-facing
+  accessor is `gardenAgentConsent.listAgentReadableNotes`, which re-checks
+  consent at query time (revocation is effective on the next read — nothing
+  is cached) and writes an `AuditEvent` before returning (ids and counts,
+  never note text). **Opt-in is not disclosure**: it never widens employer
+  surfaces, matching, ranking, eligibility, dossiers, or analytics, which
+  continue to read nothing from these tables
+  (`gardenAgentConsent.test.ts` pins the contract).
 - Link targets are a closed allowlist (`note | cv_entry | opportunity |
   profile_field | source_pointer`), resolved inside the caller's legal
   visibility at create time and again at read time. A link is a research
