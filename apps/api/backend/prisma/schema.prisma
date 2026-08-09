@@ -4332,6 +4332,97 @@ model ReceiptCandidate {
   @@index([createdAt])
 }
 
+/// ISSUER-10 — the promoted PSV receipt, contract-aligned.
+///
+/// NOT the legacy `PsvReceipt` model above: that one stores the pre-issuer-chain
+/// PsvReceiptSnapshot shape (receiptId / sourceAuthority / ttlSeconds) and drops
+/// every field the issuer truth contract depends on. Both exist; only this one
+/// may be read as an issuer-chain PSVReceipt.
+///
+/// The four nested contract objects are stored whole as JSONB rather than
+/// flattened into columns, because flattening is what lost them last time:
+/// `sourceBasis` collapsed to a `source_authority` string erases the
+/// contracted-agent / source-of-record distinction, and `attributedResponder`
+/// collapsed to an `attestorId` erases attributionMethod. A partial write is a
+/// structural failure, not a silent rewrite — the repository asserts every one
+/// of them round-trips.
+///
+/// Truth-contract CHECK constraints (proofTier = 'psv_receipt', decisionGrade =
+/// TRUE, globalCredentialTruth = FALSE, limitations is a JSON array) live in
+/// migration 20260809120000_issuer10_psv_receipt_persistence and cannot be
+/// weakened from here. `db push` does not create them — see the migration header.
+model IssuerPsvReceipt {
+  id                  String   @id @default(uuid()) @db.Uuid
+  psvReceiptId        String   @unique
+  psvCandidateId      String
+  receiptCandidateId  String
+  requestId           String
+  claimId             String
+  claimType           String
+  promotedAt          DateTime
+  /// PolicyReviewActor — actorId / displayName / role.
+  promotedBy          Json
+  /// SourceBasis — agent and source of record stay distinct.
+  sourceBasis         Json
+  /// AttributedResponder — carries attributionMethod, never just a name.
+  attributedResponder Json
+  /// PSVReceiptScope — covers / doesNotCover bound the claim.
+  scope               Json
+  /// PSVReceiptLimitation[] — may be empty, never absent.
+  limitations         Json
+  /// FreshnessPolicy — ttlDays / issuedAt / staleAfter.
+  freshness           Json
+
+  proofTier             String  @default("psv_receipt")
+  decisionGrade         Boolean @default(true)
+  globalCredentialTruth Boolean @default(false)
+
+  recordedBy String @default("demo")
+
+  correlationId  String
+  /// Caller-supplied write key. Unique, so a retried write is one row.
+  idempotencyKey String? @unique
+  notes          String?
+
+  createdAt DateTime @default(now())
+
+  @@index([psvReceiptId])
+  @@index([psvCandidateId])
+  @@index([requestId])
+  @@index([claimId])
+  @@index([createdAt])
+}
+
+/// ISSUER-10 — IssuerAuditEventRecord rows (ISSUER-7 contract).
+///
+/// `payloadHash` is NOT NULL with no default and the writer copies it verbatim:
+/// the record type permits the empty-string placeholder and forbids fabricating
+/// a hash, so a default here would invent one.
+model IssuerAuditEvent {
+  id                String   @id @default(uuid()) @db.Uuid
+  eventId           String   @unique
+  correlationId     String
+  requestId         String
+  subjectId         String?
+  /// IssuerRequestLifecycleActor, stored whole.
+  actor             Json
+  /// Mirror of actor.role, as the TS record carries both.
+  actorRole         String
+  eventType         String
+  occurredAt        DateTime
+  source            String
+  payloadHash       String
+  limitationNote    String?
+  relatedArtifactId String?
+  recordedBy        String   @default("system")
+  createdAt         DateTime @default(now())
+
+  @@index([correlationId])
+  @@index([requestId])
+  @@index([eventType, occurredAt])
+  @@index([createdAt])
+}
+
 /// D4 — probe-observed availability ledger.
 ///
 /// One row per source lane per probe tick. Exists because the source-health

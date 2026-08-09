@@ -133,6 +133,14 @@ export function shouldSkipTenantContext(path: string): boolean {
     // is a public, non-tenant-scoped credential: an opaque bitstring with no
     // subject identifiers, already rate limited by `publicApiRateLimit`.
     || normalized === '/api/credentials/status-list'
+    // ISSUER-10 — the issuer PSV receipt write boundary. A service-to-service
+    // call from the web server, not a user in an organization: there is no org
+    // context to require, and requiring one would 401 the only caller the
+    // route has. It is on this list ONLY because it authenticates itself first
+    // with a fail-closed shared secret (ISSUER_PSV_RECEIPT_WRITER_SECRET) —
+    // unset means 403 for everyone, including dev. If that check is ever
+    // loosened, this entry must come out with it.
+    || normalized === '/api/internal/issuer/psv-receipts'
     || normalized.startsWith('/api/pilot')
     || normalized.startsWith('/api/metrics')
     || normalized.startsWith('/api/artifact')

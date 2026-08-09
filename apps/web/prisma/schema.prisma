@@ -81,6 +81,75 @@ model ReceiptCandidate {
   @@index([createdAt])
 }
 
+// ISSUER-10 — promoted PSV receipt + issuer audit events. MIRROR of the backend
+// models; the migration is
+// apps/api/backend/prisma/migrations/20260809120000_issuer10_psv_receipt_persistence.
+//
+// This is NOT the legacy backend `PsvReceipt` table (the pre-issuer-chain
+// snapshot shape), which the web app deliberately does not model at all.
+//
+// The truth-contract CHECK constraints — proofTier = 'psv_receipt',
+// decisionGrade = TRUE, globalCredentialTruth = FALSE, limitations is a JSON
+// array — live in that migration and are NOT duplicated here. The web schema
+// cannot weaken them.
+model IssuerPsvReceipt {
+  id                  String   @id @default(uuid()) @db.Uuid
+  psvReceiptId        String   @unique
+  psvCandidateId      String
+  receiptCandidateId  String
+  requestId           String
+  claimId             String
+  claimType           String
+  promotedAt          DateTime
+  promotedBy          Json
+  sourceBasis         Json
+  attributedResponder Json
+  scope               Json
+  limitations         Json
+  freshness           Json
+
+  proofTier             String  @default("psv_receipt")
+  decisionGrade         Boolean @default(true)
+  globalCredentialTruth Boolean @default(false)
+
+  recordedBy String @default("demo")
+
+  correlationId  String
+  idempotencyKey String? @unique
+  notes          String?
+
+  createdAt DateTime @default(now())
+
+  @@index([psvReceiptId])
+  @@index([psvCandidateId])
+  @@index([requestId])
+  @@index([claimId])
+  @@index([createdAt])
+}
+
+model IssuerAuditEvent {
+  id                String   @id @default(uuid()) @db.Uuid
+  eventId           String   @unique
+  correlationId     String
+  requestId         String
+  subjectId         String?
+  actor             Json
+  actorRole         String
+  eventType         String
+  occurredAt        DateTime
+  source            String
+  payloadHash       String
+  limitationNote    String?
+  relatedArtifactId String?
+  recordedBy        String   @default("system")
+  createdAt         DateTime @default(now())
+
+  @@index([correlationId])
+  @@index([requestId])
+  @@index([eventType, occurredAt])
+  @@index([createdAt])
+}
+
 // MATCHA career preferences / Career DNA — mirror of the backend model (one
 // shared DB; migration + source of truth live in apps/api/backend/prisma).
 // The web app reads/writes this table directly via an auth-scoped route, keyed

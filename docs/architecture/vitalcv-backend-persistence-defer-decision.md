@@ -202,3 +202,97 @@ The next wave that turns persistence ON must:
 6. Update `createRepositoryAuditAdapter` to flip from `unavailable` to `repository_enabled` (still requiring per-row writer confirmation).
 
 The BACKEND-2 boundary is designed to drop into that future wave with no API change — the deferred writer just gets replaced by the real one.
+
+---
+
+## ISSUER-10 status update (2026-08-09) — the defer is lifted
+
+### Decision: `implement_now`. Persistence is BUILT and CONFIRMING; it is still OFF by default.
+
+Every capability check in `evaluateBackendPersistenceReadiness` is now satisfiable, and
+`buildIssuer10PersistenceReadiness()` returns `implement_now` with an empty blocker list.
+Read that precisely: **the contract is aligned and a confirming writer exists**. It does
+not mean any deployment writes rows. Persistence requires two independent operator
+opt-ins that are absent everywhere today, and each side of the boundary enforces the
+pair on its own.
+
+### What closed each blocker
+
+| Blocker (original memo) | Closed by |
+| --- | --- |
+| `contract_shape_mismatch` | `IssuerPsvReceipt` model + migration `20260809120000_issuer10_psv_receipt_persistence`. The legacy `PsvReceipt` table is untouched and is still NOT an issuer-chain receipt. |
+| `missing_limitations` | `limitations` JSONB + DB CHECK `jsonb_typeof = 'array'`; round-trip asserted including the empty case. |
+| `missing_source_basis` | `sourceBasis` stored whole; the repository refuses a contracted-agent basis without `agentName` + `agentActsFor`. |
+| `missing_responder_attribution` | `attributedResponder` stored whole; a responder without `attributionMethod` is refused. |
+| `missing_freshness_scope` | `freshness` + `scope` stored whole; caller timestamps are never replaced by the write clock. |
+| `no_writer_confirmation` | `writeIssuerPsvReceipt` re-reads the row and asserts every field before returning a `writerMode: 'repository'` confirmation. |
+| `client_server_boundary_violation` | `serverRepositoryPsvReceiptWriter.ts` is `server-only` and speaks HTTP to the backend; tests assert it statically imports no backend module, Prisma, or DB driver. |
+| `untested_repository` | `issuerPsvReceiptRepo.db.test.ts` — 16 tests against real Postgres in the PR-time backend gate. |
+| `migration_required` | The migration above; `check-migration-drift.mjs` passes (177/177 models created by the chain). |
+
+### What shipped
+
+- **`apps/api/backend/prisma/migrations/20260809120000_issuer10_psv_receipt_persistence/`** —
+  `IssuerPsvReceipt` and `IssuerAuditEvent`, with CHECK constraints pinning
+  `proofTier = 'psv_receipt'`, `decisionGrade = TRUE`, `globalCredentialTruth = FALSE`,
+  `limitations` is an array, and `recordedBy` inside the audit-metadata enum.
+  No FK from `requestId` to `IssuerRequest`: rollout is incremental and flag-gated, so
+  the earliest real receipts may reference a request row that predates the flag flip.
+- **`apps/api/backend/repositories/issuerPsvReceipts.repo.ts`** — the confirming writer.
+  Truth-tier literals are written here and are absent from the input type, so a caller
+  has no field with which to ask for a different tier.
+- **`apps/api/backend/src/routes/issuerPsvReceipts.ts`** — `POST /api/internal/issuer/psv-receipts`,
+  behind a **fail-closed** shared secret (`ISSUER_PSV_RECEIPT_WRITER_SECRET`, sent as
+  `x-issuer-writer-secret`) plus a rate limit. Deliberately not `apiKeyAuth`: that
+  middleware bypasses entirely outside production when no `API_KEYS` are configured,
+  which would leave a truth-artifact write anonymous in every dev and test environment.
+  With no secret provisioned this route answers 403 to everyone. It is also on the
+  tenant-guard skip list — it is a service-to-service call with no organization
+  context — which is safe only because it authenticates itself first.
+- **`apps/web/lib/issuer-verification/serverRepositoryPsvReceiptWriter.ts`** — the
+  server-only caller, implementing the BACKEND-2 `ServerPsvReceiptWriter` interface
+  unchanged, so `writePsvReceiptWithConfirmation` still governs every result.
+- **`buildIssuer10PersistenceReadiness()`** in `backendPersistenceDecision.ts`, whose
+  per-capability notes name the artifact that closed each blocker.
+
+### Deviation from the BACKEND-2 acceptance criteria, recorded on purpose
+
+Criterion 3 asked for the RPC boundary as a Next.js route under
+`apps/web/app/api/issuer/psv-receipt/persist/`. It shipped as a backend Express route
+instead. The reason is test coverage, which criterion 4 also demands: the round-trip
+guarantees are only meaningful against real Postgres, and the backend jest suite is the
+only PR-time gate in this repository that has one. A web-side route would have left the
+central claim — every contract field survives the write — proven by mocks alone.
+The web writer is interface-compatible either way; swapping the transport later changes
+one module and no contract.
+
+### What is still NOT done
+
+- `createRepositoryAuditAdapter` still reports `repository_candidate`. Audit events
+  persist today only as a **co-write alongside a receipt** through the same boundary;
+  a standalone audit-event adapter is not wired. The adapter's unavailability text is
+  now partly stale in that narrow sense and should be revisited by the wave that wants
+  standalone audit writes.
+- The four `/issuer/*` review surfaces still render as demo (`recordedBy: 'demo'`) and
+  do not call this writer. Wiring a real surface is a separate, deliberate step.
+- The DB CHECK constraints do not exist in the `backend-tests` ephemeral database,
+  which is built with `prisma db push` — `db push` cannot express CHECKs. They were
+  verified by hand against a `migrate deploy` database (the production path): all five
+  constraints refuse their violating row, with a well-formed control row accepted.
+
+### Turning it on
+
+Both of these must be set, on their respective services, and both default to off:
+
+- backend: `ISSUER_PSV_RECEIPT_PERSISTENCE_ENABLED=true` **and**
+  `ISSUER_PSV_RECEIPT_WRITER_SECRET=<secret>`
+- web: `ISSUER_PSV_RECEIPT_PERSISTENCE_ENABLED=true`,
+  `ISSUER_PSV_RECEIPT_WRITER_SECRET=<same secret>`, plus a caller passing
+  `enableRepositoryWrites: true`
+
+The secret is authentication (who may write); the flags are enablement (whether
+anyone writes at all). Both are absent everywhere today.
+
+With either missing, the writer returns `deferred` / `persisted: false` and sends no
+row. A 200 response with `persisted: false` is the normal honest outcome — callers must
+read `persisted`, never infer success from the status code.
