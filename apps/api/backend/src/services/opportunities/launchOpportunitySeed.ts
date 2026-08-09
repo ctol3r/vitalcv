@@ -49,7 +49,7 @@ interface SeedOpportunity {
   status: 'ACTIVE';
 }
 
-const SEEDED_ORGANIZATIONS: readonly SeedOrganization[] = [
+export const SEEDED_ORGANIZATIONS: readonly SeedOrganization[] = [
   {
     slug: 'bay-area-cardiac-group',
     name: 'Bay Area Cardiac Group',
@@ -346,7 +346,7 @@ export const SEEDED_LAUNCH_OPPORTUNITIES: readonly SeedOpportunity[] = [
     status: 'ACTIVE',
   },
   {
-    organizationSlug: 'kaiser-permanente-northern-california',
+    organizationSlug: 'northgate-valley-health',
     title: 'Staff Internist - East Bay Access Clinics',
     specialty: 'Internal Medicine',
     hiringType: 'perm',

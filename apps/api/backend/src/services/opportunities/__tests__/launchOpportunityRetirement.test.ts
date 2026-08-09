@@ -18,6 +18,8 @@
 
 import {
   LEGACY_SEEDED_ORG_SLUGS,
+  SEEDED_LAUNCH_OPPORTUNITIES,
+  SEEDED_ORGANIZATIONS,
   SEEDED_ORG_SLUGS,
   retireSeededLaunchOpportunities,
   seededOrgExclusionFilter,
@@ -57,6 +59,32 @@ describe('seeded demo employers — exclusion coverage', () => {
   });
 });
 
+describe('seeded demo employers — the fixture refers only to itself', () => {
+  /**
+   * Renaming an organization entry strands every opportunity still pointing at
+   * the old slug: the seeder resolves `organizationSlug` through a map built
+   * from the organization fixture, and an unresolved slug is `continue`d past
+   * with only a warn log. The posting then silently never exists.
+   *
+   * This is the same drift the exclusion list was hardened against, one level
+   * in — and it is invisible to the exclusion tests, because a stranded slug is
+   * by construction a LEGACY slug and so still passes `SEEDED_ORG_SLUGS`
+   * membership. It has to be checked against the organization fixture itself.
+   */
+  it('resolves every seeded opportunity to an organization the fixture emits', () => {
+    const emitted = new Set(SEEDED_ORGANIZATIONS.map((organization) => organization.slug));
+
+    const stranded = SEEDED_LAUNCH_OPPORTUNITIES.filter(
+      (opportunity) => !emitted.has(opportunity.organizationSlug),
+    ).map(
+      (opportunity) =>
+        `"${opportunity.title}" points at "${opportunity.organizationSlug}", which no organization entry emits`,
+    );
+
+    expect(stranded).toEqual([]);
+  });
+});
+
 describe('seeded demo employers — no borrowed identities', () => {
   /**
    * Real healthcare organizations whose names must not appear on a fixture.
@@ -93,6 +121,30 @@ describe('seeded demo employers — no borrowed identities', () => {
       REAL_ORGANIZATIONS.filter((real) =>
         fixtureName.toLowerCase().includes(real.toLowerCase()),
       ).map((real) => `"${fixtureName}" borrows the real organization "${real}"`),
+    );
+
+    expect(borrowed).toEqual([]);
+  });
+
+  /**
+   * A slug is identity too — it keys the organization row and is the handle
+   * employer surfaces address an org by, so a real system's slug on a demo row
+   * is the same impersonation the display name was fixed for.
+   *
+   * Scoped to the slugs the fixture EMITS. `LEGACY_SEEDED_ORG_SLUGS` must keep
+   * naming the retired real-world slugs forever — that list is what stops a
+   * rename from stranding a live row — so it is legitimately exempt.
+   */
+  it('emits no slug derived from a real organization', () => {
+    const emitted = [
+      ...SEEDED_ORGANIZATIONS.map((organization) => organization.slug),
+      ...SEEDED_LAUNCH_OPPORTUNITIES.map((opportunity) => opportunity.organizationSlug),
+    ];
+
+    const borrowed = [...new Set(emitted)].flatMap((slug) =>
+      REAL_ORGANIZATIONS.filter((real) =>
+        slug.includes(real.toLowerCase().replace(/\s+/g, '-')),
+      ).map((real) => `slug "${slug}" borrows the real organization "${real}"`),
     );
 
     expect(borrowed).toEqual([]);
