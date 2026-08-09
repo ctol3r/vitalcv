@@ -64,7 +64,7 @@ export function ProductChrome() {
 
   return (
     <>
-      <header className="vcv-pc" data-product-section={displaySection ?? 'unknown'}>
+      <header className="vcv-pc z-50" data-product-section={displaySection ?? 'unknown'}>
         <div className="vcv-pc__bar">
           <div className="vcv-pc__left">
             <Link href="/" className="vcv-pc__wordmark">

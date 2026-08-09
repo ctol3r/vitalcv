@@ -1,48 +1,52 @@
 /**
  * product-chrome.css — UX-03.
  *
- * The signed-in counterpart to eyebrow.css. It deliberately inherits the
- * eyebrow's geometry contract rather than inventing a second one: 64px
- * constant height, 32px gutters, full browser width, hairline bottom rule,
- * square corners. Crossing from a public surface into the product must not
- * move the instrument — one bar, one height, contents change by surface class.
+ * The signed-in counterpart to eyebrow.css: a 64px sticky instrument plus the
+ * breadcrumb trail beneath it. Crossing from a public surface into the product
+ * must not move the instrument — one bar, one height, contents change by
+ * surface class.
  *
  * It is NOT the eyebrow with a different fill: the eyebrow's centre ticker and
  * takeover index are marketing navigation, and mounting them over a review
  * queue would offer a clinician's employer a link to /pricing mid-decision.
  * This bar carries only where-you-are and how-to-get-out.
  *
- * Island discipline (same rule as eyebrow.css): every colour routes through a
- * --pc-* property declared here, so the bar cannot be recoloured by an
- * ambient token change on a page that happens to mount it.
+ * This file carries LAYOUT ONLY. Every colour, the 64px height, the gutters and
+ * the hairline come from eyebrow.css, whose two register rules `.vcv-pc` and
+ * `.vcv-trail` now join — see the note there. So there is no --pc-* prefix
+ * family (LINT-13 rightly refuses a 71st), not one raw colour on the LINT-01
+ * ratchet, and no second copy of the palette to drift out of sync. Since D-01
+ * those --eb-* values resolve through the scene register, so this bar inherits
+ * that convergence too.
+ *
+ * Focus rings use --vt-focus-ring-scene-paper, the same token the eyebrow uses
+ * over a light band. This bar is always the paper register — a console never
+ * inverts on scroll — so it takes the paper ring unconditionally.
+ *
+ * `.vcv-trail` takes the island in its own right, not by inheritance, because
+ * it renders in two places: inside `.vcv-pc` on product surfaces, and directly
+ * inside HolderWorkspaceFrame on the clinician tree, which has no `.vcv-pc`
+ * ancestor to inherit from.
+ *
+ * z-index is the Tailwind `z-50` utility on the element, matching `.vcv-eb`;
+ * LINT-05 ratchets literal z-index in stylesheets.
  */
 
+/* The shared rule sets height: var(--eb-h) — correct for a bar that IS the
+   instrument, wrong here: .vcv-pc wraps the bar AND the trail beneath it. The
+   64px lives on .vcv-pc__bar instead, so the instrument height is identical
+   while the trail adds its own row. */
 .vcv-pc {
-  --pc-h: 64px;
-  --pc-gutter: 32px;
-  --pc-bg: #f6f5f1;
-  --pc-text: #151412;
-  --pc-text2: #5b5c57;
-  --pc-text3: #8b8c85;
-  --pc-line: #d9d6cd;
-  --pc-accent: #2e9e6b;
-
-  position: sticky;
-  top: 0;
-  z-index: 50;
-  width: 100%;
-  background: var(--pc-bg);
-  color: var(--pc-text);
-  border-bottom: 1px solid var(--pc-line);
+  height: auto;
 }
 
 .vcv-pc__bar {
-  height: var(--pc-h);
+  height: var(--eb-h);
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 0 var(--pc-gutter);
+  padding: 0 var(--eb-gutter);
 }
 
 .vcv-pc__left {
@@ -57,13 +61,13 @@
   font-size: 18px;
   font-weight: 600;
   letter-spacing: -0.01em;
-  color: var(--pc-text);
+  color: var(--eb-text);
   text-decoration: none;
   white-space: nowrap;
 }
 
 .vcv-pc__wordmark:focus-visible {
-  outline: 2px solid var(--pc-accent);
+  outline: 2px solid var(--vt-focus-ring-scene-paper);
   outline-offset: 3px;
 }
 
@@ -73,12 +77,12 @@
   align-items: center;
   gap: 8px;
   padding-left: 14px;
-  border-left: 1px solid var(--pc-line);
+  border-left: 1px solid var(--eb-line);
   font-family: var(--font-geist-mono), ui-monospace, monospace;
   font-size: 11px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--pc-text2);
+  color: var(--eb-text2);
   white-space: nowrap;
 }
 
@@ -97,27 +101,30 @@
   padding: 0 12px;
   font-family: var(--font-geist), system-ui, sans-serif;
   font-size: 13px;
-  color: var(--pc-text2);
+  color: var(--eb-text2);
   text-decoration: none;
   border-radius: 2px;
 }
 
 .vcv-pc__link:hover,
 .vcv-pc__link:focus-visible {
-  color: var(--pc-text);
+  color: var(--eb-text);
 }
 
 .vcv-pc__link:focus-visible {
-  outline: 2px solid var(--pc-accent);
+  outline: 2px solid var(--vt-focus-ring-scene-paper);
   outline-offset: -2px;
 }
 
 /* ── The trail ─────────────────────────────────────────────────────────── */
 
+/* Ground, ink and hairline arrive from the shared register rule. Undone here:
+   the trail is a content row, not a second sticky instrument — leaving it
+   sticky at top: 0 would park it underneath the bar. */
 .vcv-trail {
-  padding: 10px var(--pc-gutter, 32px);
-  border-bottom: 1px solid var(--pc-line, #d9d6cd);
-  background: var(--pc-bg, #f6f5f1);
+  position: static;
+  height: auto;
+  padding: 10px var(--eb-gutter);
 }
 
 .vcv-trail__list {
@@ -138,7 +145,7 @@
 
 .vcv-trail__sep {
   padding: 0 2px;
-  color: var(--pc-text3, #8b8c85);
+  color: var(--eb-text3);
   font-size: 12px;
   user-select: none;
 }
@@ -159,29 +166,29 @@
 }
 
 .vcv-trail__crumb--link {
-  color: var(--pc-text2, #5b5c57);
+  color: var(--eb-text2);
   text-decoration: none;
 }
 
 .vcv-trail__crumb--link:hover,
 .vcv-trail__crumb--link:focus-visible {
-  color: var(--pc-text, #151412);
+  color: var(--eb-text);
   text-decoration: underline;
   text-underline-offset: 3px;
 }
 
 .vcv-trail__crumb--link:focus-visible {
-  outline: 2px solid var(--pc-accent, #2e9e6b);
+  outline: 2px solid var(--vt-focus-ring-scene-paper);
   outline-offset: -2px;
   text-decoration: none;
 }
 
 .vcv-trail__crumb--plain {
-  color: var(--pc-text3, #8b8c85);
+  color: var(--eb-text3);
 }
 
 .vcv-trail__crumb--current {
-  color: var(--pc-text, #151412);
+  color: var(--eb-text);
   font-weight: 500;
 }
 
@@ -191,7 +198,7 @@
 @media (max-width: 640px) {
   .vcv-pc__bar,
   .vcv-trail {
-    --pc-gutter: 16px;
+    --eb-gutter: 16px;
   }
 
   .vcv-pc__section {

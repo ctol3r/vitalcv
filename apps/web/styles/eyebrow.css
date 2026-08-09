@@ -18,7 +18,23 @@
  * scroll or inversion — only color transitions.
  */
 
-.vcv-eb {
+/* UX-03: .vcv-pc — the signed-in product bar — and .vcv-trail share this rule
+   rather than restating it. The product bar is the same instrument in its light
+   register, so it takes the same island, the same 64px, the same gutters and
+   the same hairline; product-chrome.css carries layout only and declares no
+   colour of its own. The two bars never co-render (each returns null on the
+   other's surfaces), so sharing the property names collides with nothing.
+
+   .vcv-trail joins in its own right rather than by inheritance: it renders both
+   inside .vcv-pc and directly inside HolderWorkspaceFrame, which has no .vcv-pc
+   ancestor to inherit from.
+
+   Since D-01 the values below resolve through the scene register, so the
+   product chrome now inherits that convergence for free — one palette edit
+   moves the marketing bar, the console bar and the trail together. */
+.vcv-eb,
+.vcv-pc,
+.vcv-trail {
   /* dark register (the homepage ground)
      D-01 — every value resolves through the scene register in
      styles/themes/index.css. This island and easy-home.css used to declare
@@ -54,8 +70,14 @@
 
 /* A-2b — over a light band the action inverts rather than darkening its green.
    The old rule set #F2F1ED on #2E9E6B here: 2.99:1 at REST, not on hover, on
-   every light-register public route. Ink on paper is 16.88:1. */
-.vcv-eb[data-eb-theme='light'] {
+   every light-register public route. Ink on paper is 16.88:1.
+
+   UX-03 — the product bar and the trail join unconditionally rather than
+   carrying a data-eb-theme of their own: a console is not a marketing scene and
+   never inverts on scroll, so the paper register is the only one they take. */
+.vcv-eb[data-eb-theme='light'],
+.vcv-pc,
+.vcv-trail {
   --eb-bg: var(--vt-scene-paper);
   --eb-text: var(--vt-scene-paper-text);
   --eb-text2: var(--vt-scene-paper-text-secondary);
