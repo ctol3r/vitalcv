@@ -355,6 +355,71 @@ export function evaluateBackendPersistenceReadiness(
 }
 
 /**
+ * The capability evidence as of ISSUER-10. Each note names the artifact that
+ * closed the blocker, so the review surface can show WHY a capability flipped
+ * rather than asserting it.
+ *
+ * Satisfying every capability means the decision reads `implement_now` — the
+ * contract is aligned and a confirming writer exists. It does NOT mean
+ * persistence is turned on: that still requires both operator opt-ins
+ * (ISSUER_PSV_RECEIPT_PERSISTENCE_ENABLED and enableRepositoryWrites), which
+ * are off by default and enforced independently on each side of the boundary.
+ */
+const ISSUER10_CAPABILITY_NOTES: Record<
+  BackendPersistenceCapabilityCheck['capability'],
+  string
+> = {
+  stores_scoped_psv_receipt:
+    'IssuerPsvReceipt (migration 20260809120000_issuer10_psv_receipt_persistence) stores the ISSUER-4 PSVReceipt shape, distinct from the legacy PsvReceiptSnapshot table.',
+  preserves_limitation_notes:
+    'limitations is a JSONB array with a DB CHECK that it IS an array; the repository asserts it round-trips, including the empty case.',
+  preserves_source_basis:
+    'sourceBasis is stored whole, and the repository refuses a contracted-agent basis that lacks agentName/agentActsFor — the agent and the source of record cannot collapse.',
+  preserves_responder_attribution:
+    'attributedResponder is stored whole; a responder without attributionMethod is refused rather than reduced to a name.',
+  preserves_freshness_and_scope:
+    'freshness (ttlDays/issuedAt/staleAfter) and scope (covers/doesNotCover/sourceOrganizationName) are stored whole; caller-supplied timestamps are never replaced by the write clock.',
+  distinguishes_candidate_vs_receipt:
+    'The row carries psvCandidateId and receiptCandidateId alongside psvReceiptId, and a DB CHECK pins proofTier to the literal psv_receipt.',
+  supports_audit_event_persistence:
+    'IssuerAuditEvent persists IssuerAuditEventRecord, preserving the empty-string payloadHash placeholder rather than fabricating a hash.',
+  exposes_server_only_writer:
+    'serverRepositoryPsvReceiptWriter.ts is server-only and calls POST /api/internal/issuer/psv-receipts; tests assert it statically imports no backend module, Prisma, or DB driver.',
+  has_test_coverage:
+    'issuerPsvReceiptRepo.db.test.ts exercises every contract field against real Postgres in the PR-time backend gate, including partial-write refusals and idempotency.',
+};
+
+/**
+ * Pure: the readiness decision reflecting the ISSUER-10 state of the codebase.
+ *
+ * Callers that want the historical baseline (every capability missing) should
+ * keep using `buildBackendPersistenceDeferDecision`.
+ */
+export function buildIssuer10PersistenceReadiness(input: {
+  decidedAt: string;
+  reason?: string;
+}): BackendPersistenceReadinessResult {
+  return evaluateBackendPersistenceReadiness({
+    decidedAt: input.decidedAt,
+    capabilities: {
+      stores_scoped_psv_receipt: true,
+      preserves_limitation_notes: true,
+      preserves_source_basis: true,
+      preserves_responder_attribution: true,
+      preserves_freshness_and_scope: true,
+      distinguishes_candidate_vs_receipt: true,
+      supports_audit_event_persistence: true,
+      exposes_server_only_writer: true,
+      has_test_coverage: true,
+    },
+    notes: ISSUER10_CAPABILITY_NOTES,
+    reason:
+      input.reason ??
+      'ISSUER-10 aligned the schema and wired a confirming server-only writer. Persistence remains off until both operator opt-ins are set.',
+  });
+}
+
+/**
  * Pure: convenience builder for the canonical defer decision used
  * by the review surface and the no-op adapter path.
  */

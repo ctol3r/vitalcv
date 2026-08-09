@@ -283,6 +283,7 @@ import { registerDemoRoutes } from './modules/demo';
 import { registerPsvVerifyRoutes } from './services/psv/verifyRoute';
 // Wave 31: HTM Proof of Experience (PoE) — cryptographic volume attestation
 import { registerIssuerRoutes } from './routes/issuer'; // Wave 38: Issuer Command Center
+import { registerIssuerPsvReceiptRoutes } from './routes/issuerPsvReceipts'; // ISSUER-10
 import { registerPoeRoutes } from './routes/poe';
 import { registerWidgetRoutes } from './routes/widget'; // Wave 34: Plaid Widget
 // Wave 27: Genesis Mesh Emergency Overrides
@@ -3608,6 +3609,7 @@ registerPsvVerifyRoutes(app);
 registerPoeRoutes(app);
 registerWidgetRoutes(app); // Wave 34: Plaid Widget
 registerIssuerRoutes(app); // Wave 38: Issuer Command Center
+registerIssuerPsvReceiptRoutes(app); // ISSUER-10: client-safe PSV receipt write boundary
 registerAuditRoutes(app); // Wave 35: Merkle Anchoring
 // registerIntelligenceRoutes superseded by registerIntelligenceEngineRoutes (Wave I)
 registerStatusListRoutes(app); // Wave 40: W3C Bitstring Status List
