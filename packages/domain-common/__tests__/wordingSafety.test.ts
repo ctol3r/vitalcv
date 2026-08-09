@@ -92,7 +92,15 @@ describe('public surface truth guards — post-release drift prevention', () => 
    * guard pinned to a component nobody serves.
    */
   const candidatePublicSurfaces = Array.from(new Set([
-    'apps/web/components/layout/Navbar.tsx',
+    // The public header chrome. `layout/Navbar.tsx` stood here until #1247
+    // deleted the journey-rail era — the surface did not go away, it moved to
+    // the eyebrow. REPLACED rather than dropped, and by BOTH files, because the
+    // visitor-facing wording is split across them: Eyebrow renders the chrome,
+    // and navDestinations carries the link labels with their one-line
+    // descriptions ("What VitalCV does and does not decide"), which is exactly
+    // the copy this scan exists to read.
+    'apps/web/components/layout/Eyebrow.tsx',
+    'apps/web/components/layout/navDestinations.ts',
     // `hero/ReadinessPreview.tsx` stood here until 2026-08-07, when it was
     // deleted as dead code — no route rendered it, so the scan was covering a
     // surface no visitor could see. The entry is DROPPED rather than replaced:
