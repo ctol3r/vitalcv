@@ -1,7 +1,13 @@
 # PSV promotion — element-scoped decision grade
 
-Status: **draft spec, awaiting founder GO. Docs-only; no code may cite this
-until it is accepted.** Promotion from `PSVReceiptCandidate` to a real
+Status: **ACCEPTED AS WRITTEN — founder ruling, 2026-08-09.** Wave P0 is
+unblocked and code may now cite this document. Accepted without amendment:
+promotion stays element-scoped, there is no packet-level grade, badge, or
+percentage, and `ReceiptCandidate.decisionGrade` remains the literal `false`.
+Amending any of those three is a change to this spec, not an implementation
+detail — it must be proposed here first.
+
+Promotion from `PSVReceiptCandidate` to a real
 `PSVReceipt` has always been "a separate gated wave" (truth contract,
 CLAUDE.md). This document is that wave's gate design. It exists because the
 founder asked, 2026-08-09, to close the "no decision-grade packet" gap.

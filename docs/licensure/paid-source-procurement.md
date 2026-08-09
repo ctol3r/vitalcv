@@ -1,8 +1,36 @@
 # Paid-source procurement — the physician unlock
 
-Status: **authorized to propose, 2026-08-09** ("if something cost money but we
-need it to reach goals then propose those paths"). Each path below still needs
-an explicit founder GO before any agreement is signed or money moves.
+Status: **GO — founder ruling, 2026-08-09.** Both paths below are approved.
+Superseded the "authorized to propose" status this document was written under;
+the standing rule that no agreement is signed and no money moves without an
+explicit founder GO is satisfied for these two items and these two only.
+
+## Founder rulings, 2026-08-09
+
+| # | Decision | Ruling |
+|---|---|---|
+| 1 | Nursys institutional enrolment, incl. the clinician **SSN/DOB** question ($0) | **APPROVED** — collect SSN/DOB |
+| 2 | Tier-1 pilot: FSMB PDC + AMA Profile + NPDB self-query, ≈$59/physician × 50 ≈ **$2,950** | **GO** |
+| 3 | Element-scoped PSV promotion spec | **ACCEPTED AS WRITTEN** — see [psv-element-promotion-spec.md](../architecture/psv-element-promotion-spec.md) |
+
+**Ruling 1 carries obligations this document did not price.** Approving SSN/DOB
+collection changes what VitalCV holds, not just what it can verify:
+
+- SSN + DOB at rest raises the breach blast radius above anything currently
+  stored, and the platform's existing PII posture was written without them.
+- Encryption at rest, field-level access control, retention limits, and an
+  audited deletion path are preconditions of enrolment, not follow-ups.
+- State breach-notification statutes and likely GLBA/state-privacy obligations
+  attach to SSN specifically. Confirm scope before the first record is stored.
+
+None of that is a reason to revisit the ruling — it is the work the ruling
+authorizes. It is recorded here because a $0 price tag made this look like the
+cheap decision, and on compliance surface it is the expensive one.
+
+**Ruling 2 starts a clock.** NCQA CVO certification requires six months of
+verification operations *before* an application can be filed, so the six months
+begins when Tier 1 begins, not when the paperwork is filed.
+
 Companion to [L1-access-diligence.md](./L1-access-diligence.md), which holds
 the full vendor question lists; this document adds verified pricing, the
 sequencing argument, and what each dollar unlocks.
