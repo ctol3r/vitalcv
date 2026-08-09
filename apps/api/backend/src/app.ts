@@ -144,6 +144,7 @@ import { registerWorkspaceRoutes } from './routes/workspace';               // W
 import { registerClinicianRoutes } from './routes/clinician';             // Wave 287: Clinician activation
 import { registerIntakeRoutes } from './routes/intake';                     // Wave 183: Resume + NPI + Links + Work Auth ingestion
 import { registerGardenRoutes } from './routes/gardenNotes';                 // Career Garden: private notes + Living CV lines
+import { registerLedgerProofRoutes } from './routes/ledgerProof';           // Anchor witness: public Merkle inclusion proofs + witness evidence
 import { registerEmailOtpRoutes } from './routes/identity';                 // Email-OTP identity-binding possession factor
 import { registerSearchRoutes } from './routes/search';                     // Wave 184: Unified Search Index & Content Graph
 import { registerRoleRoutes } from './routes/role';                         // Clerk auth: GET /api/me/role
@@ -3675,6 +3676,7 @@ registerAcceptanceRoutes(app);           // Acceptance Graph: /api/acceptance/pr
 registerTrustSubstrateRoutes(app);    // Substrate Consolidation: Phase 1 — unified trust substrate
 registerAuditStreamRoutes(app);       // Substrate Consolidation: Phase 2 — audit OS, cursor export, SIEM stream
 registerHealthStartRoutes(app);       // Substrate Consolidation: Phase 3 — HealthStart deployment profiles + evidence
+registerLedgerProofRoutes(app);       // Anchor witness — public, hash-only: inclusion proofs + Rekor/TSA evidence
 registerProviderRoutes(app);          // Wave 119 — Provider data integrity + provenance + smoke tests
 registerMissionOpsRoutes(app);        // Wave 123 — Mission Ops + onboarding flows
 registerWorkspaceRoutes(app);         // Wave 180 — Dual-Entity Identity + workspace switching

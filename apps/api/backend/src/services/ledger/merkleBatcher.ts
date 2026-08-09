@@ -1,5 +1,6 @@
 import prisma from '../../graphql/prisma_client';
 import { buildMerkleTreeFromLeafHashes } from '../../utils/merkle';
+import { computeLeafHashes } from './anchorProof';
 import { log } from '../../obs/logger';
 
 export interface BatchResult {
@@ -17,7 +18,11 @@ export interface BatchResult {
 export async function anchorPendingEvents(): Promise<BatchResult | null> {
   const pending = await prisma.auditEvent.findMany({
     where: { anchored: false },
-    orderBy: { createdAt: 'asc' },
+    // `id` as a tiebreaker makes the fetch order deterministic. The tree
+    // itself sorts leaves, but the duplicate-hash disambiguation below
+    // depends on iteration order — and the proof route must be able to
+    // reproduce the exact leaf set later.
+    orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
     select: { id: true, hash: true },
   });
 
@@ -25,18 +30,11 @@ export async function anchorPendingEvents(): Promise<BatchResult | null> {
     return null;
   }
 
-  // Deduplicate hashes — the Merkle builder rejects duplicates.
-  // If two events share a hash, append the event id to disambiguate.
-  const seen = new Set<string>();
-  const leafHashes: string[] = [];
-  for (const event of pending) {
-    let leaf = event.hash;
-    if (seen.has(leaf)) {
-      leaf = `${leaf}:${event.id}`;
-    }
-    seen.add(leaf);
-    leafHashes.push(leaf);
-  }
+  // Deduplicate hashes — the Merkle builder rejects duplicates. If two
+  // events share a hash, the later one gets its event id appended. Shared
+  // with the inclusion-proof route (anchorProof.computeLeafHashes) so a
+  // rebuilt batch always yields the same leaves.
+  const leafHashes = [...computeLeafHashes(pending).values()];
 
   const tree = buildMerkleTreeFromLeafHashes(leafHashes);
   const { root } = tree;
