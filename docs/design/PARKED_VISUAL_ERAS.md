@@ -36,7 +36,17 @@ public chrome. Nothing was deleted.
 | --- | --- | --- | --- |
 | Career-loop homepage ("One Real Loop", Wave 1075) | `components/home/career-loop/`, `styles/career-loop-home.css` | `PUBLIC_HOME_VARIANT=career-loop` (env rollback) | `tests/e2e/home-career-loop.spec.ts` (its own e2e pass), unit coverage via variant renders in `home-easy-cutover.test.tsx` |
 | Evidence-film homepage (COMPETE-1) | `components/home/film/`, `styles/home.css` | `PUBLIC_HOME_VARIANT=film` (env rollback) | film e2e pass (`E2E_HOME_VARIANT=film`), `film-journey-unification.test.tsx`, `home-artifact-provenance.test.tsx` |
-| Journey-rail header chrome (FR-6 shared-header era) | `components/layout/Navbar.tsx`, `HeaderMenu.tsx`, `LiquidMenu.tsx`, `JourneyRail.tsx`, `AnnouncementRail.tsx`, `styles/header.css` | Unmounted — `RootChrome` renders `Eyebrow` instead | `header-chrome.test.tsx`, `header-journey-system.test.tsx`, `header-scene.test.tsx` (component-level; the components remain importable) |
+| Journey-rail header chrome (FR-6 shared-header era) | **REMOVED 2026-08-09.** Was five components under components/layout (Navbar, HeaderMenu, LiquidMenu, JourneyRail, AnnouncementRail) plus the header stylesheet. Deliberately written without path syntax: these files no longer exist, and the citability guard is right to reject a dead path | Git history only — deleted on the founder's rollback-confidence call after the eyebrow held a day in production | Their two suites retired with them; `header-journey-system.test.tsx` was KEPT, because its stage / nav-destination / route-context subjects are LIVE — the eyebrow consumes them |
+
+**Removal note (2026-08-09).** The chrome row above is deleted, not parked. It
+was a closed island — Navbar and AnnouncementRail had zero importers, the other
+three were reachable only through Navbar, the header stylesheet had a single
+`@import`, and the film variant never touched any of it — so removal was a
+clean cut rather than an untangling. What did NOT go, because the eyebrow
+consumes all four: `apps/web/components/layout/journeyStages.ts`,
+`apps/web/components/layout/navDestinations.ts`,
+`apps/web/components/layout/headerRouteContext.ts` and
+`apps/web/components/layout/useHeaderScene.ts`.
 
 Notes:
 

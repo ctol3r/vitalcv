@@ -48,7 +48,7 @@
    serif wordmark onto the global header via a brittle Tailwind-class
    selector) was removed by the 2026-08-06 shared-header wave. The header now
    owns its own typography, its transparent-at-rest plate, and its scene
-   treatment (styles/header.css); this page declares its scenes with
+   treatment (the retired styles/header.css); this page declares its scenes with
    `data-header-theme` / `data-header-stage` on the rooms instead of
    restyling the chrome from outside. */
 

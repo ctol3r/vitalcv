@@ -214,7 +214,7 @@
   .w1501 .hp-reveal { opacity: 1 !important; transform: none !important; }
 }
 
-/* ---- nav (design-reference route only; `/` keeps the global Navbar) ---- */
+/* ---- nav (design-reference route only; `/` keeps the global Eyebrow) ---- */
 .w1501 .hp-nav {
   position: sticky; top: 0; z-index: 40;
   background: var(--vt-surface-page); border-bottom: 1px solid var(--vt-rule);

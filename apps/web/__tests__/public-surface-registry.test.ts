@@ -13,7 +13,7 @@ import {
 /**
  * The chrome registry contract (2026-08-07 headerless-routes sweep).
  *
- * Navbar and Footer both `return null` off this registry, so membership IS
+ * Eyebrow and Footer both `return null` off this registry, so membership IS
  * the header decision. Before this suite existed nothing pinned it, and the
  * sweep found 56 public routes headerless — including sitemap-indexed
  * marketing (/pricing) and the indexable registry page (/directory/[npi]).
@@ -106,7 +106,7 @@ describe('public surface registry — deliberate exclusions hold', () => {
 /**
  * Registry liveness (Wave 1080 hygiene, 2026-08-08).
  *
- * Navbar and Footer both `return null` off this registry, so a path listed
+ * Eyebrow and Footer both `return null` off this registry, so a path listed
  * here is a claim that a chromed page exists at it. Nine of those claims were
  * false: /developers, /documents, /mobile, /ask, /investors, /partners,
  * /updates and /compliance in the Set, plus /compliance and /clip in the

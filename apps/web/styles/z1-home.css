@@ -15,7 +15,7 @@
 
 .z1-page{background:var(--paper)}
 
-/* Page-scoped navigation treatment. The GLOBAL Navbar is shared with the
+/* Page-scoped navigation treatment. The GLOBAL chrome (now Eyebrow) is shared with the
    public homepage, which this slice must not alter — every rule here applies
    only while this preview is on screen (body:has). If the founder approves,
    the global change is a separate, deliberate PR.

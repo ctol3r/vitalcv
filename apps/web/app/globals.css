@@ -32,7 +32,6 @@
 @import '../styles/scene.css';
 @import '../styles/story-rail.css';
 @import '../styles/matcha-deck.css';
-@import '../styles/header.css';
 @import '../styles/eyebrow.css';
 /* UX-03: the signed-in instrument. Imported next to eyebrow.css because it
    inherits that file's geometry contract (64px, 32px gutters, hairline rule)
