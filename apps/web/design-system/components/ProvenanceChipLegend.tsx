@@ -32,7 +32,14 @@ const EXAMPLE: Partial<Record<ProvenanceState, Omit<ProvenanceLegendRow, 'state'
   stale: { source: 'State board', detail: '214d ago' },
   pending: { source: 'OIG LEIE', detail: 'querying' },
   reviewRequired: { source: 'Committee', detail: 'routed 2026-07-16' },
-  unavailable: { source: 'NPDB', detail: 'no payload' },
+  // NPPES, not NPDB. `unavailable` means "the source did not return a payload
+  // on this attempt" — a system condition — so the example must name a source
+  // VitalCV actually queries. NPDB is not integrated at all, so showing it here
+  // implied a read that never happens, and EC-3 bans the noun in customer-facing
+  // copy. Reusing NPPES (also the `checked` example) is deliberate: the same
+  // source in two states is the clearest way to show that VitalCV reports the
+  // attempt rather than inventing a value.
+  unavailable: { source: 'NPPES', detail: 'no payload' },
   notDecisionGrade: { source: 'Preview feed', detail: 'insufficient' },
   previewOnly: { detail: 'synthetic data' },
   revoked: { source: 'Issuer', timestamp: '2026-06-30T00:00:00Z', detail: 'fails closed' },

@@ -1,7 +1,21 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { AlertTriangle, ArrowRight, Home, LogIn } from 'lucide-react';
 import { PilotFailureSignal } from '@/components/pilot-ops/PilotFailureSignal';
 import { SupportActionButton } from '@/components/pilot-ops/SupportActionButton';
+
+/**
+ * F8 (2026-08-09 page audit): this route declared no metadata, so a failed
+ * sign-in landed on a tab titled "VitalCV — Your career evidence, ready before
+ * your next job" with a matching marketing description — an acquisition pitch
+ * as the label on an error. `noindex` because an error state is not a page
+ * anyone should arrive at from search.
+ */
+export const metadata: Metadata = {
+  title: 'Sign-in issue',
+  description: 'We could not finish signing you in. Try again, or restart from the homepage.',
+  robots: { index: false, follow: false },
+};
 
 export default function AuthErrorPage() {
   return (

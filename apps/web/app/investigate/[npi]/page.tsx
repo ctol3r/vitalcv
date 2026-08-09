@@ -204,17 +204,25 @@ export default async function InvestigatePage({
       {/* Dark masthead */}
       <header className="bg-gray-900 px-6 py-4 border-b border-gray-800">
         <div className="mx-auto max-w-4xl">
-          <div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-gray-400">
-            Credential Investigation
-          </div>
-          <div className="mt-0.5 text-sm font-mono text-white">
-            NPI {npi}
-            {!isValidNpi && (
-              <span className="ml-3 text-[10px] font-mono text-amber-400 normal-case">
-                ⚠ Non-standard NPI format
-              </span>
-            )}
-          </div>
+          {/* EC-5: this surface shipped with no <h1> at all — a public record
+              page with no document heading, so a screen reader landed with no
+              statement of what it was looking at. The two lines that were
+              already here ARE the title, so they become one heading rather than
+              a new one being invented above them. Sizes stay on the spans; the
+              h1 carries no type of its own, so the rendering is unchanged. */}
+          <h1 className="m-0 p-0 font-normal">
+            <span className="block text-[10px] font-semibold uppercase tracking-[0.08em] text-gray-400">
+              Credential Investigation
+            </span>
+            <span className="mt-0.5 block text-sm font-mono text-white">
+              NPI {npi}
+              {!isValidNpi && (
+                <span className="ml-3 text-[10px] font-mono text-amber-400 normal-case">
+                  ⚠ Non-standard NPI format
+                </span>
+              )}
+            </span>
+          </h1>
           <div className="mt-1 text-[10px] text-gray-500 font-mono">
             Public investigation surface · Read-only · No auth required
           </div>

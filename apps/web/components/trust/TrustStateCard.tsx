@@ -4,7 +4,6 @@ import {
   CardContent,
   CardFooter,
   CardHeader,
-  CardTitle,
 } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 
@@ -22,6 +21,17 @@ const TONE_CLASS: Record<TrustStateTone, string> = {
 interface TrustStateCardProps extends ComponentProps<'div'> {
   eyebrow?: string;
   title: string;
+  /**
+   * Element for the title. Defaults to CardTitle's own `div`, because this card
+   * is usually one panel among many and promoting every instance would scramble
+   * heading order site-wide.
+   *
+   * Pass `'h1'` when the card IS the page — the terminal state of a route, where
+   * nothing else supplies a document heading. EC-5 requires exactly one, and the
+   * 2026-08-09 audit found /review/[entityId] rendering none precisely because
+   * its unresolved-link state is a bare TrustStateCard.
+   */
+  titleAs?: 'div' | 'h1' | 'h2';
   description?: ReactNode;
   tone?: TrustStateTone;
   centered?: boolean;
@@ -32,6 +42,7 @@ interface TrustStateCardProps extends ComponentProps<'div'> {
 export function TrustStateCard({
   eyebrow,
   title,
+  titleAs = 'div',
   description,
   tone = 'default',
   centered = false,
@@ -40,6 +51,7 @@ export function TrustStateCard({
   className,
   ...props
 }: TrustStateCardProps) {
+  const TitleTag = titleAs;
   return (
     <Card
       className={cn(
@@ -55,7 +67,17 @@ export function TrustStateCard({
             {eyebrow}
           </p>
         ) : null}
-        <CardTitle className="text-sm font-semibold text-foreground/70">{title}</CardTitle>
+        {/* One render path for every value of titleAs. The classes and
+            data-slot below reproduce CardTitle's own output exactly (it is a
+            div with `leading-none font-semibold`), so `titleAs="div"` — the
+            default — is byte-identical to what shipped before; `m-0` only
+            matters once the tag is a heading with UA margins. */}
+        <TitleTag
+          data-slot="card-title"
+          className="m-0 text-sm leading-none font-semibold text-foreground/70"
+        >
+          {title}
+        </TitleTag>
         {description ? (
           <p className="text-xs leading-relaxed text-muted-foreground">{description}</p>
         ) : null}

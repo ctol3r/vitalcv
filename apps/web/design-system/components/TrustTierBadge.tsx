@@ -40,7 +40,11 @@ export const TRUST_TIER_META: Record<TrustTier, TrustTierMeta> = {
     label: 'T3 · Source-checked',
     shortLabel: 'T3',
     description: 'Confirmed against an authoritative registry (federal or state).',
-    example: 'e.g. NPPES, OIG/LEIE, PECOS, NPDB',
+    // NPDB removed: it is not integrated, so listing it as an authority this
+    // tier is "confirmed against" was a confirmed mark on a non-integrated
+    // source — the exact thing EC-3 forbids — on top of the customer-facing
+    // noun ban. The three that remain are read for real.
+    example: 'e.g. NPPES, OIG/LEIE, CMS PECOS',
   },
   T4: {
     label: 'T4 · Issuer-signed',

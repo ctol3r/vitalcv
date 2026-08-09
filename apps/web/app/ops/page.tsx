@@ -10,6 +10,7 @@ import * as React from 'react';
 import type { Metadata } from 'next';
 import { auth } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
+import { signInRedirectTo } from '@/lib/auth/signInRedirect';
 import { getOperatorDashboardSnapshot } from '@/lib/ops/getOperatorDashboardSnapshot';
 import { RuntimeIdentityPanel } from '@/components/ops/RuntimeIdentityPanel';
 import { DeploymentConvergenceStrip } from '@/components/ops/DeploymentConvergenceStrip';
@@ -459,7 +460,7 @@ export default async function OpsPage() {
   const session = await auth();
 
   if (!session.userId) {
-    redirect('/sign-in?redirect_url=/ops');
+    redirect(signInRedirectTo('/ops'));
   }
 
   const snapshot = await getOperatorDashboardSnapshot();
