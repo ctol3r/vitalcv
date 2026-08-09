@@ -133,6 +133,16 @@ export function shouldSkipTenantContext(path: string): boolean {
     // is a public, non-tenant-scoped credential: an opaque bitstring with no
     // subject identifiers, already rate limited by `publicApiRateLimit`.
     || normalized === '/api/credentials/status-list'
+    // Anchor-witness proof surface. Identical rationale to the status list
+    // above, and the same failure it was fixed for: the entire audience is
+    // unauthenticated third parties checking that VitalCV has not rewritten
+    // or backdated its own receipt history, so requiring org context 401s
+    // exactly the callers the routes exist for — which is what production
+    // did until this entry landed. Every response is a bare hash, a status
+    // string, an opaque RFC 3161 token, or a public key; assertHashOnlyAnchor
+    // gates what reaches the table these read from, so there is no tenant
+    // data here to scope.
+    || normalized.startsWith('/api/ledger/')
     // ISSUER-10 — the issuer PSV receipt write boundary. A service-to-service
     // call from the web server, not a user in an organization: there is no org
     // context to require, and requiring one would 401 the only caller the
