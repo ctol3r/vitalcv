@@ -208,20 +208,38 @@ Note what this means for the eyebrow: raising `.vcv-eb__cta` from 40 → 44
 **implements** the locked EC-20 row rather than overriding the founder-reviewed
 D-01A composition. 40px was the drift.
 
-### Result
+### Result — and why this landed in two parts
 
-| Viewport | Before | After | Change |
-|---|---|---|---|
-| desktop 1440×900 | 253 | **35** | −86% |
-| mobile 390×844 | 251 | **33** | −87% |
+The eyebrow half was **split out before merge**. PR #1261 ("rebuild the public
+eyebrow to the palantir.com grammar") was open from another lane and edits the
+same four files, and the founder visual gate §1 is explicit: *"Do not merge
+visual changes from multiple agent lanes into the same public surface without
+one named creative owner."* Two lanes editing `styles/eyebrow.css` means
+whichever lands second silently reverts the other — and a four-pixel CTA change
+is exactly what a rebuild would quietly undo.
 
-Two of the four changes are **zero-pixel visual changes** — the wordmark and
-sign-in link grow their hit box only (`inline-flex` + `min-height`), since the
-type keeps `line-height: 1` and the bar centres the box where it centred the
-text. The footer's link row gets taller; real 44px boxes were chosen over the
-padding/negative-margin trick because with `gap-4` between wrapped rows,
-phantom hit areas would overlap the neighbouring row's by 12px — trading a
-visible, honest height increase for silent mis-taps.
+So the eyebrow declarations wait for that rebuild and are re-applied on top of
+it, where the ratchet then *proves* the rebuilt bar clears the floor. Held on
+`fix/touch-floor-eyebrow-held`.
+
+| Viewport | Before | Footer + legal tabs (shipped) | Change | With eyebrow (held) |
+|---|---|---|---|---|
+| desktop 1440×900 | 253 | **93** | −63% | 35 (−86%) |
+| mobile 390×844 | 251 | **91** | −64% | 33 (−87%) |
+
+The footer alone carries roughly two-thirds of the debt; the eyebrow's four
+controls carry the next 58 targets, because they render on every one of the 20
+routes.
+
+In the **held** eyebrow half, two of the changes are zero-pixel visual changes —
+the wordmark and sign-in link grow their hit box only (`inline-flex` +
+`min-height`), since the type keeps `line-height: 1` and the bar centres the box
+where it centred the text.
+
+In the **shipped** half, the footer's link row gets taller. Real 44px boxes were
+chosen over the padding/negative-margin trick because with `gap-4` between
+wrapped rows, phantom hit areas would overlap the neighbouring row's by 12px —
+trading a visible, honest height increase for silent mis-taps.
 
 ### What the remaining ~34 are
 
