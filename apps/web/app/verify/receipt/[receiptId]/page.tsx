@@ -17,7 +17,7 @@ import { IssuerContinuityPanel } from '@/components/verifier/IssuerContinuityPan
 // ─── Metadata ─────────────────────────────────────────────────────────────────
 
 export const metadata: Metadata = {
-  title: 'Replay Inspection — VitalCV',
+  title: 'Replay Inspection',
   description: 'Verifier-facing replay chain and degradation ownership for a VitalCV credential receipt.',
   robots: { index: false, follow: false },
 };

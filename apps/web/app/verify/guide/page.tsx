@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { VerifierOnboardingGuide } from '@/components/verifier/VerifierOnboardingGuide';
 
 export const metadata = {
-  title: 'Verifier Guide — VitalCV',
+  title: 'Verifier Guide',
   description:
     'Full reference for hospital credentialing reviewers. Trust tiers, replay continuity, degraded states, and signature verification.',
 };

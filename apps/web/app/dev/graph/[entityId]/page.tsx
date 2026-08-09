@@ -3,7 +3,7 @@ import GraphExplorerClient from './GraphExplorerClient';
 export const dynamic = 'force-dynamic';
 
 export const metadata = {
-  title: 'Evidence Graph Explorer (dev) · VitalCV',
+  title: 'Evidence Graph Explorer (dev)',
   robots: { index: false, follow: false },
 };
 

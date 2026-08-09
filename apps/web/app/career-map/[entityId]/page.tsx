@@ -4,7 +4,7 @@ export const dynamic = 'force-dynamic';
 
 export const metadata = {
   robots: { index: false, follow: false },
-  title: 'Career Map · VitalCV',
+  title: 'Career Map',
   description: 'A navigable map of a clinician’s career — evidence, sources, organizations, and trust, connected.',
 };
 

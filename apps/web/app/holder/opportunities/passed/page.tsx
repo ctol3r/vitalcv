@@ -4,7 +4,7 @@ import { PassedWorkspaceSurface } from '@/components/matcha-deck/PassedWorkspace
 import { loadDeckWorkspaces } from '@/lib/matcha-deck/workspaceSource'
 
 export const metadata: Metadata = {
-  title: 'Passed — MATCHA · VitalCV',
+  title: 'Passed — MATCHA',
   description:
     'Roles you passed on in MATCHA Discover, kept as history so a pass is never a dead end. Restore any of them to the deck.',
 }

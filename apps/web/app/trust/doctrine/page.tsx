@@ -18,7 +18,7 @@ import type { LineageFlowProps } from '@/components/replay-doctrine/LineageConti
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
-  title: 'Replay Contract Doctrine — VitalCV',
+  title: 'Replay Contract Doctrine',
   description:
     'Machine-readable replay contract for VitalCV credential verification. 6 enforced invariants. Institutional cognition surface.',
 };

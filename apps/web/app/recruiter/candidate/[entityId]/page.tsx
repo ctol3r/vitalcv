@@ -4,7 +4,7 @@ export const dynamic = 'force-dynamic';
 
 export const metadata = {
   robots: { index: false, follow: false },
-  title: 'Candidate Review · VitalCV',
+  title: 'Candidate Review',
   description: 'Recruiter candidate review — placement readiness, evidence, trust, and background, source-backed.',
 };
 

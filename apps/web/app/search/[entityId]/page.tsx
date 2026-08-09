@@ -4,7 +4,7 @@ export const dynamic = 'force-dynamic';
 
 export const metadata = {
   robots: { index: false, follow: false },
-  title: 'Search · VitalCV',
+  title: 'Search',
   description: 'Unified search across a clinician’s career ecosystem — evidence, organizations, and career events.',
 };
 

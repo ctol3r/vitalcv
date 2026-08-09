@@ -27,7 +27,7 @@ import { CalendarBookingEmbed } from '@/components/pricing/CalendarBookingEmbed'
 export const revalidate = 300;
 
 export const metadata: Metadata = {
-  title: 'Pricing Foundation | VitalCV',
+  title: 'Pricing Foundation',
   description: 'Pricing is a foundation preview. Payments are not collected in this build.',
 };
 

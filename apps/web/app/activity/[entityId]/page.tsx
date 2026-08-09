@@ -4,7 +4,7 @@ export const dynamic = 'force-dynamic';
 
 export const metadata = {
   robots: { index: false, follow: false },
-  title: 'Activity · VitalCV',
+  title: 'Activity',
   description: 'The clinician career feed — evidence checks, trust milestones, recognition, and mobility changes.',
 };
 

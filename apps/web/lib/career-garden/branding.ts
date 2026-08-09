@@ -41,7 +41,7 @@ const WORKBENCH: ProductNaming = {
   sectionsNavLabel: 'Workbench sections',
   breadcrumbLabel: 'Workbench · private',
   storageName: 'Workbench storage',
-  titleBase: 'Workbench · VitalCV',
+  titleBase: 'Workbench',
 };
 
 const GARDEN: ProductNaming = {

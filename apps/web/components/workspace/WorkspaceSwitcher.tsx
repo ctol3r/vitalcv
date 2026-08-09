@@ -1,9 +1,9 @@
 'use client';
 
-import type { ActivePersona, WorkspaceList } from '@/types/workspace';
+import type { ActivePersona } from '@/types/workspace';
+import { useOptionalRoleContext } from '@/components/auth/RoleContext';
 import { cn } from '@/lib/utils';
 import { ChevronDown, RefreshCw } from 'lucide-react';
-import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 
 const PERSONA_LABEL: Record<ActivePersona, string> = {
@@ -19,16 +19,16 @@ const PERSONA_BADGE: Record<ActivePersona, string> = {
 };
 
 export function WorkspaceSwitcher() {
-  const [workspace, setWorkspace] = useState<WorkspaceList | null>(null);
-  const [loading, setLoading] = useState(true);
+  // Workspace state comes from RoleContext — this component used to own a
+  // second GET /api/me/workspaces, so every page load fetched the endpoint
+  // twice (RoleContext + here) with no shared cache.
+  const roleContext = useOptionalRoleContext();
+  const workspace = roleContext?.workspace ?? null;
+  const loading = !(roleContext?.isLoaded ?? false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [pendingPersona, setPendingPersona] = useState<ActivePersona | null>(null);
   const [error, setError] = useState<string | null>(null);
   const shellRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    void loadWorkspace();
-  }, []);
 
   useEffect(() => {
     function handlePointerDown(event: MouseEvent) {
@@ -40,34 +40,6 @@ export function WorkspaceSwitcher() {
     document.addEventListener('mousedown', handlePointerDown);
     return () => document.removeEventListener('mousedown', handlePointerDown);
   }, []);
-
-  async function loadWorkspace(): Promise<WorkspaceList | null> {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const response = await fetch('/api/me/workspaces', {
-        cache: 'no-store',
-      });
-
-      if (!response.ok) {
-        if (response.status === 401 || response.status === 404) {
-          setWorkspace(null);
-          return null;
-        }
-        throw new Error(`Workspace fetch failed with HTTP ${response.status}`);
-      }
-
-      const payload = await response.json() as WorkspaceList;
-      setWorkspace(payload);
-      return payload;
-    } catch (fetchError) {
-      setError(fetchError instanceof Error ? fetchError.message : 'Connection interrupted. Retrying securely.');
-      return null;
-    } finally {
-      setLoading(false);
-    }
-  }
 
   async function handleSwitch(persona: ActivePersona) {
     if (!workspace || pendingPersona || persona === workspace.activePersona) {
@@ -91,7 +63,10 @@ export function WorkspaceSwitcher() {
         throw new Error(`Workspace switch failed with HTTP ${response.status}`);
       }
 
-      await loadWorkspace();
+      // refresh() propagates the persona change to every RoleContext consumer
+      // (nav, gates, landing routes) — the old local reload updated only this
+      // widget.
+      await roleContext?.refresh();
       setMenuOpen(false);
     } catch (switchError) {
       setError(switchError instanceof Error ? switchError.message : 'Workspace switch interrupted. Please try again.');

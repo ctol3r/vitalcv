@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import { LegalShell } from '@/components/legal/LegalShell';
 
 export const metadata: Metadata = {
-  title: 'Data Processing Agreement Template · VitalCV',
+  title: 'Data Processing Agreement Template',
   description:
     'Template Data Processing Agreement for use with VitalCV. This is not a binding agreement; review with your legal team before use.',
 };

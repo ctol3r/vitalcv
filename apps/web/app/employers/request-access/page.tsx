@@ -23,7 +23,7 @@ import { PageFrame } from '@/components/layout/PageFrame';
 export const revalidate = 300;
 
 export const metadata: Metadata = {
-  title: 'Request organization access · VitalCV',
+  title: 'Request organization access',
   description:
     'Resolve your organization against NPPES, the federal source of record, and request access. Resolution identifies the organization — access is granted, never claimed.',
 };

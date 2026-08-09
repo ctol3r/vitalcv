@@ -8,7 +8,7 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export const metadata = {
-  title: 'Career Timeline · VitalCV',
+  title: 'Career Timeline',
   description:
     'Your professional timeline — evidence checks, trust milestones, recognition, and mobility changes, projected from recorded events.',
 };

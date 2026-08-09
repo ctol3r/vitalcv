@@ -172,7 +172,7 @@ export function OpportunityGrid({
           <div>
             <p className="mz-eyebrow">{heading}</p>
           </div>
-          <Compass className="mt-0.5 h-5 w-5 text-[var(--ink-400)]" />
+          <Compass className="mt-0.5 h-5 w-5 text-[var(--ink-400)]" aria-hidden="true" />
         </div>
       ) : null}
 
@@ -193,20 +193,20 @@ export function OpportunityGrid({
                     className="min-w-0 flex-1"
                   >
                     <p className="mz-mono flex items-center gap-1.5 text-[11px] uppercase tracking-[0.18em] text-[var(--ink-500)]">
-                      <Building2 className="h-3.5 w-3.5 opacity-60" />
+                      <Building2 className="h-3.5 w-3.5 opacity-60" aria-hidden="true" />
                       {opportunity.organizationName}
                     </p>
                     <h3 className="mz-h2 mt-2 transition hover:text-[var(--accent)]">
                       {opportunity.title}
                     </h3>
                     <div className="mt-2 flex flex-wrap items-center gap-2 mz-body">
-                      <span className="inline-flex items-center gap-1"><MapPin className="h-3.5 w-3.5 opacity-70" />{opportunity.state}</span>
+                      <span className="inline-flex items-center gap-1"><MapPin className="h-3.5 w-3.5 opacity-70" aria-hidden="true" />{opportunity.state}</span>
                       <span className="opacity-40">·</span>
-                      <span className="inline-flex items-center gap-1"><Stethoscope className="h-3.5 w-3.5 opacity-70" />{opportunity.specialty}</span>
+                      <span className="inline-flex items-center gap-1"><Stethoscope className="h-3.5 w-3.5 opacity-70" aria-hidden="true" />{opportunity.specialty}</span>
                       {opportunity.payRange ? (
                         <>
                           <span className="opacity-40">·</span>
-                          <span className="mz-mono inline-flex items-center gap-1 font-medium text-[var(--ink-800)]"><Banknote className="h-3.5 w-3.5 opacity-70" />{opportunity.payRange}</span>
+                          <span className="mz-mono inline-flex items-center gap-1 font-medium text-[var(--ink-800)]"><Banknote className="h-3.5 w-3.5 opacity-70" aria-hidden="true" />{opportunity.payRange}</span>
                         </>
                       ) : null}
                     </div>
@@ -246,17 +246,17 @@ export function OpportunityGrid({
 
                 <div className="mt-4 flex flex-wrap items-center justify-between gap-3 mz-small">
                   <span className="inline-flex items-center gap-1.5">
-                    <Clock4 className="h-3.5 w-3.5 opacity-60" />
+                    <Clock4 className="h-3.5 w-3.5 opacity-60" aria-hidden="true" />
                     Posted {formatEventTimestamp(opportunity.createdAt)}
                   </span>
                   {opportunity.hiringType === 'PERMANENT' ? (
                     <span className="inline-flex items-center gap-1.5">
-                      <Users className="h-3.5 w-3.5 opacity-60" />
+                      <Users className="h-3.5 w-3.5 opacity-60" aria-hidden="true" />
                       Direct Hire
                     </span>
                   ) : opportunity.hiringType === 'LOCUM_TENENS' ? (
                     <span className="inline-flex items-center gap-1.5">
-                      <Users className="h-3.5 w-3.5 opacity-60" />
+                      <Users className="h-3.5 w-3.5 opacity-60" aria-hidden="true" />
                       Locums
                     </span>
                   ) : null}
@@ -270,7 +270,7 @@ export function OpportunityGrid({
                       className="mz-btn min-h-11 justify-center"
                     >
                       View application
-                      <ArrowRight className="h-4 w-4" />
+                      <ArrowRight className="h-4 w-4" aria-hidden="true" />
                     </Link>
                   ) : (
                     <button
@@ -289,7 +289,7 @@ export function OpportunityGrid({
                       className="mz-btn min-h-11 justify-center"
                     >
                       Apply now
-                      <ArrowRight className="h-4 w-4" />
+                      <ArrowRight className="h-4 w-4" aria-hidden="true" />
                     </button>
                   )}
                   <Link
@@ -375,7 +375,7 @@ export function NotificationList({
             <p className="mt-2 mz-small">{description}</p>
           ) : null}
         </div>
-        <BellRing className="mt-0.5 h-5 w-5 text-[var(--ink-400)]" />
+        <BellRing className="mt-0.5 h-5 w-5 text-[var(--ink-400)]" aria-hidden="true" />
       </div>
 
       {visibleNotifications.length > 0 ? (
@@ -403,7 +403,7 @@ export function NotificationList({
                       className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-[var(--rule)] bg-[var(--card)] text-[var(--ink-500)] transition hover:border-[var(--ink-400)] hover:text-[var(--ink-800)]"
                       aria-label={`Dismiss ${notification.title}`}
                     >
-                      <X className="h-4 w-4" />
+                      <X className="h-4 w-4" aria-hidden="true" />
                     </button>
                   ) : null}
                 </div>
@@ -415,7 +415,7 @@ export function NotificationList({
                     className="inline-flex items-center gap-1 text-sm font-semibold text-[var(--accent)] transition hover:text-[var(--ink-900)]"
                   >
                     {notification.ctaLabel}
-                    <ChevronRight className="h-4 w-4" />
+                    <ChevronRight className="h-4 w-4" aria-hidden="true" />
                   </Link>
                 </div>
               </div>
@@ -457,7 +457,7 @@ export function ApplicationList({
             <p className="mt-2 mz-small">{description}</p>
           ) : null}
         </div>
-        <BriefcaseBusiness className="mt-0.5 h-5 w-5 text-[var(--ink-400)]" />
+        <BriefcaseBusiness className="mt-0.5 h-5 w-5 text-[var(--ink-400)]" aria-hidden="true" />
       </div>
 
       {visibleApplications.length > 0 ? (
@@ -484,7 +484,7 @@ export function ApplicationList({
                 <div className="flex items-center justify-between gap-3">
                   <p className="mz-h2">Record attached</p>
                   <span className="mz-chip mz-chip-ok">
-                    <ShieldCheck className="h-3.5 w-3.5" />
+                    <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
                     {application.readiness?.readinessLevel ?? 'L0'}
                   </span>
                 </div>
@@ -493,7 +493,7 @@ export function ApplicationList({
                 </p>
                 {application.latestRecommendation?.label ? (
                   <div className="mt-3 inline-flex items-center gap-2 rounded-[2px] border border-[var(--rule)] bg-[var(--paper-2)] px-3 py-1 text-xs text-[var(--ink-700)]">
-                    <CheckCircle2 className="h-3.5 w-3.5" />
+                    <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />
                     {application.latestRecommendation.label}
                   </div>
                 ) : null}
@@ -501,7 +501,7 @@ export function ApplicationList({
 
               <div className="mt-4 flex flex-wrap items-center justify-between gap-3 mz-small">
                 <span className="inline-flex items-center gap-1">
-                  <Clock3 className="h-3.5 w-3.5" />
+                  <Clock3 className="h-3.5 w-3.5" aria-hidden="true" />
                   Updated {formatEventTimestamp(application.updatedAt)}
                 </span>
                 <div className="flex flex-wrap items-center gap-3">
@@ -510,13 +510,13 @@ export function ApplicationList({
                     className="inline-flex items-center gap-1 text-sm font-semibold text-[var(--accent)] transition hover:text-[var(--ink-900)]"
                   >
                     View application
-                    <ChevronRight className="h-4 w-4" />
+                    <ChevronRight className="h-4 w-4" aria-hidden="true" />
                   </Link>
                   <Link
                     href={`/holder/opportunities/${application.opportunity.id}`}
                     className="inline-flex items-center gap-1 text-sm text-[var(--ink-500)] transition hover:text-[var(--ink-900)]"
                   >
-                    <Building2 className="h-4 w-4" />
+                    <Building2 className="h-4 w-4" aria-hidden="true" />
                     Role details
                   </Link>
                 </div>
@@ -544,7 +544,7 @@ export function QuickActionGrid({ actions }: { actions: readonly MobileQuickActi
         <div>
           <p className="mz-eyebrow">Other actions</p>
         </div>
-        <AlertTriangle className="mt-0.5 h-5 w-5 text-[var(--ink-400)]" />
+        <AlertTriangle className="mt-0.5 h-5 w-5 text-[var(--ink-400)]" aria-hidden="true" />
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
@@ -596,7 +596,7 @@ export function SelectedOpportunityBanner() {
             {selectedOpportunity.organizationName} · {selectedOpportunity.state}
           </p>
         </div>
-        <Building2 className="mt-0.5 h-5 w-5 text-[var(--accent)]" />
+        <Building2 className="mt-0.5 h-5 w-5 text-[var(--accent)]" aria-hidden="true" />
       </div>
       <div className="mt-4 flex flex-wrap gap-3">
         <Link
@@ -604,7 +604,7 @@ export function SelectedOpportunityBanner() {
           className="mz-btn min-h-11 justify-center"
         >
           {continueLabel}
-          <ArrowRight className="h-4 w-4" />
+          <ArrowRight className="h-4 w-4" aria-hidden="true" />
         </Link>
         <Link
           href={`/holder/opportunities/${selectedOpportunity.id}`}

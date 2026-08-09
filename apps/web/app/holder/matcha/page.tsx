@@ -4,7 +4,7 @@ import { FEATURES } from '@/lib/features';
 import { MatchaHub } from '@/components/matcha/MatchaHub';
 
 export const metadata: Metadata = {
-  title: 'MATCHA — VitalCV',
+  title: 'MATCHA',
   description: 'The intelligence layer that learns what you want and works in the background for you.',
 };
 

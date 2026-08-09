@@ -4,7 +4,7 @@ export const dynamic = 'force-dynamic';
 
 export const metadata = {
   robots: { index: false, follow: false },
-  title: 'Career Intelligence · VitalCV',
+  title: 'Career Intelligence',
   description: 'Deterministic, explainable career intelligence — insights, notifications, and prioritized actions.',
 };
 

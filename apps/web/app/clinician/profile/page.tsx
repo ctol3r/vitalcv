@@ -13,7 +13,7 @@ import { OWNER_CONTEXT_NOTE } from '@/lib/clinician-record/copy';
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
-  title: 'Clinician Profile · VitalCV',
+  title: 'Clinician Profile',
   description:
     'Your clinician profile. User-entered information is not verified until source-backed evidence is attached.',
 };

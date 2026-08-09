@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import OpportunityDetailSurface from './OpportunityDetailSurface';
 
 export const metadata: Metadata = {
-  title: 'Role Detail · VitalCV',
+  title: 'Role Detail',
   description:
     'Role detail with your deterministic match explanation — why you fit, what would strengthen the match, and one-tap apply with your VitalCV.',
 };

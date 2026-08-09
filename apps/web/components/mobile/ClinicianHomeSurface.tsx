@@ -284,7 +284,7 @@ export default function ClinicianHomeSurface() {
         >
           <div className="min-w-0">
             <div className="mz-eyebrow">
-              <Wallet className="h-3.5 w-3.5" />
+              <Wallet className="h-3.5 w-3.5" aria-hidden="true" />
               Your VitalCV profile
             </div>
             <h1 className="mz-h1 mt-4 truncate">
@@ -310,7 +310,7 @@ export default function ClinicianHomeSurface() {
               href={shareHref}
               className="mz-btn min-h-12"
             >
-              <Share2 className="h-4 w-4" />
+              <Share2 className="h-4 w-4" aria-hidden="true" />
               {hasValidNpi ? 'Share / prove' : 'Set up sharing'}
             </Link>
             <button
@@ -319,7 +319,7 @@ export default function ClinicianHomeSurface() {
               disabled={isRefreshing}
               className="mz-btn mz-btn-ghost min-h-12 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} aria-hidden="true" />
               Refresh
             </button>
           </div>
@@ -379,7 +379,7 @@ export default function ClinicianHomeSurface() {
                 className="mz-btn min-h-12"
               >
                 {primaryAction.label}
-                <BriefcaseBusiness className="h-4 w-4" />
+                <BriefcaseBusiness className="h-4 w-4" aria-hidden="true" />
               </Link>
             </div>
           </section>
@@ -409,7 +409,7 @@ export default function ClinicianHomeSurface() {
             {/* Vitals monitor — the clinical heartbeat of the readiness card,
                 matching the public wallet's living-monitor language. */}
             <div className="vh-monitor mt-5">
-              <svg viewBox="0 0 320 44" preserveAspectRatio="none">
+              <svg aria-hidden="true" viewBox="0 0 320 44" preserveAspectRatio="none">
                 <path d={READINESS_EKG} />
                 <path d={READINESS_EKG} transform="translate(160 0)" />
               </svg>

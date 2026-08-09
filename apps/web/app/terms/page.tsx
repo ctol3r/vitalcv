@@ -13,7 +13,10 @@ export default function TermsPage() {
       activeDoc="terms"
       eyebrow="Pilot product · informational"
       title="Terms"
-      updated={new Date().toISOString().slice(0, 10)}
+      // The page previously stamped `new Date()` — claiming it was updated
+      // today, every day. This is the last date the TEXT actually changed;
+      // move it when the text moves.
+      updated="2026-07-12"
     >
       <p className="mt-2 text-sm leading-6 text-muted-foreground" data-testid="terms-informational-disclaimer">
         This page is an informational summary of how the VitalCV pilot product works —

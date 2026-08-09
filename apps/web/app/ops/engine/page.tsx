@@ -19,7 +19,7 @@ import OpsEngineStatusPanel from '@/components/ops-engine/OpsEngineStatusPanel';
 import OpsEngineLiveMount from './OpsEngineLiveMount';
 
 export const metadata: Metadata = {
-  title: 'Operations Engine · VitalCV',
+  title: 'Operations Engine',
   description: 'Live operations console — real roster, readiness, and the append-only operational ledger.',
 };
 

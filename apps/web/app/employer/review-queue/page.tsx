@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { ReviewQueueSurface } from '@/components/review/ReviewQueueSurface';
 
 export const metadata: Metadata = {
-  title: 'Review queue — VitalCV',
+  title: 'Review queue',
   description:
     'Clinicians who shared source-backed evidence with your organization — triage with per-candidate audit events.',
 };

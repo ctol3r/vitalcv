@@ -61,7 +61,7 @@ export async function generateMetadata(
   if (!UUID_RE.test(id)) return { title: 'Opportunity' };
   const opp = await fetchOpportunity(id);
   return {
-    title: opp ? `${opp.title} — Apply with VitalCV` : 'Opportunity',
+    title: opp ? { absolute: `${opp.title} — Apply with VitalCV` } : 'Opportunity',
     description: opp
       ? 'Apply with your VitalCV profile — readiness snapshot attached, no résumé re-typing.'
       : undefined,

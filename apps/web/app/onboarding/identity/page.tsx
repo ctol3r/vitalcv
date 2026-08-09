@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import { IdentityOnboardingStep } from '@/components/onboarding/OnboardingFlowSteps';
 
 export const metadata: Metadata = {
-  title: 'Confirm profile · VitalCV',
+  title: 'Confirm profile',
   description:
     'Review the public clinician match and continue activation with confidence.',
 };

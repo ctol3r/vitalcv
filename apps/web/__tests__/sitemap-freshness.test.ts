@@ -118,7 +118,7 @@ describe('sitemap freshness is measured, not asserted', () => {
 
   it('does not list routes that are known to 404 or are robots-disallowed', () => {
     const listed = new Set(SITEMAP_ROUTES.map((r) => r.path));
-    for (const gone of ['/explore', '/developers', '/compliance', '/updates', '/about', '/review']) {
+    for (const gone of ['/developers', '/compliance', '/updates', '/about', '/review']) {
       expect(listed.has(gone), `${gone} must not be advertised in the sitemap`).toBe(false);
     }
   });

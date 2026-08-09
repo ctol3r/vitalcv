@@ -4,7 +4,7 @@ import { FEATURES } from '@/lib/features';
 import { MatchaOnboardingSurface } from '@/components/matcha/MatchaOnboardingSurface';
 
 export const metadata: Metadata = {
-  title: 'Meet MATCHA — VitalCV',
+  title: 'Meet MATCHA',
   description: 'A short conversation about what you want next in your career.',
 };
 

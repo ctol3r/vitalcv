@@ -5,7 +5,7 @@ import { BuyerLanding } from '@/components/matcha/buyer/BuyerLanding';
 import { EcosystemMap } from '@/components/matcha/buyer/EcosystemMap';
 
 export const metadata: Metadata = {
-  title: 'MATCHA & the career evidence network — VitalCV',
+  title: 'MATCHA & the career evidence network',
   description: 'Why reusable, source-backed clinician career evidence compounds into a network-effect moat.',
 };
 

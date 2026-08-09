@@ -21,7 +21,7 @@ import { BoardClient } from '@/components/explore/board/BoardClient';
 export const revalidate = 300;
 
 export const metadata: Metadata = {
-  title: 'Clinical roles · VitalCV',
+  title: 'Clinical roles',
   description:
     'Browse open clinical roles with the employer’s stated requirements, pay, start timing and sponsorship shown up front — each answer named to the source it came from.',
 };

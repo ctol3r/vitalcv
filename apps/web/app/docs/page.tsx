@@ -7,7 +7,7 @@ import {
 } from '@/lib/commercial/statusFoundation';
 
 export const metadata: Metadata = {
-  title: 'Docs · VitalCV',
+  title: 'Docs',
   description:
     'Docs are a launch-readiness foundation, not complete API documentation.',
 };

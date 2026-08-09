@@ -121,7 +121,7 @@ export default function CareerCompass() {
         <Compass className="h-3 w-3" aria-hidden />
         MATCHA Career Compass
       </p>
-      <h1 className="mz-h1 mt-4">
+      <h2 className="mz-h1 mt-4">
         {greeting}
         {firstName ? (
           <>
@@ -129,7 +129,7 @@ export default function CareerCompass() {
           </>
         ) : null}
         .
-      </h1>
+      </h2>
 
       {/* Four honest metrics */}
       <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">

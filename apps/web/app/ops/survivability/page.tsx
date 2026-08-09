@@ -20,7 +20,7 @@ import { RuntimeActivationBoard } from '@/components/ops/RuntimeActivationBoard'
 import { getRuntimeActivationState } from '@/lib/runtime/getRuntimeActivationState';
 
 export const metadata: Metadata = {
-  title: 'Survivability Detail · VitalCV Ops',
+  title: 'Survivability Detail · Ops',
   description: 'VitalCV operational survivability surfaces.',
 };
 

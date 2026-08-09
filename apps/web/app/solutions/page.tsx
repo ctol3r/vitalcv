@@ -3,7 +3,7 @@ import { SolutionCard } from '@/components/solutions/SolutionCard';
 import { DEMO_ENTITY_ID } from '@/lib/demo/demo-passport';
 
 export const metadata = {
-  title: 'Solutions · VitalCV',
+  title: 'Solutions',
   description: 'One source-backed evidence platform for clinicians, recruiters, organizations, and enterprise — choose your path.',
 };
 

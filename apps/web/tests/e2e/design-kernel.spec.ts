@@ -55,7 +55,7 @@ test.describe('design kernel — the intended font stack actually computes', () 
 
   test('homepage display and body compute Geist — the EC-20 locked faces', async ({ page }) => {
     expect(await firstFamily(page, 'h1')).toBe(SANS);
-    // `#main-content p`, not `main p`: the homepage has no <main> landmark —
+    // `#main-content p`, not `main p`: the homepage gained a <main> landmark in the 2026-08-08 audit wave; #main-content still wraps it, so this selector holds. It previously had no <main> landmark —
     // a finding the #1165 census already records. This spec measures fonts;
     // the landmark belongs to the census's accessibility work, and asserting
     // `main p` here would just re-discover that bug as a locator timeout.

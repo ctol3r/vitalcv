@@ -204,7 +204,7 @@ export default function EasyHome() {
   }, []);
 
   return (
-    <div className="ezh" data-home-variant="easy">
+    <main className="ezh" data-home-variant="easy">
       {/* ── hero: the Easy Button beside the working product ─────────────── */}
       <section
         id="npi"
@@ -419,6 +419,6 @@ export default function EasyHome() {
           </p>
         </div>
       </footer>
-    </div>
+    </main>
   );
 }

@@ -35,7 +35,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { npi } = await params;
   return {
-    title: `Credential Investigation — NPI ${npi} · VitalCV`,
+    title: `Credential Investigation — NPI ${npi}`,
     description: `Verifier investigation surface for NPI ${npi}. Evidence timeline, source chronology, replay chain, signer history.`,
     robots: { index: false },
   };

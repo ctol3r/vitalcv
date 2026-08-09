@@ -9,7 +9,7 @@ import { loadPreviewWorkspaces } from '@/lib/matcha-deck/previewWorkspaceSource'
 export const dynamic = 'force-dynamic'
 
 export const metadata = {
-  title: 'MATCHA Workspaces harness (dev) · VitalCV',
+  title: 'MATCHA Workspaces harness (dev)',
   robots: { index: false, follow: false },
 }
 

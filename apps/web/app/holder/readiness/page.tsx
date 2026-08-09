@@ -3,7 +3,7 @@ import { Suspense } from 'react';
 import ReadinessSurface from './ReadinessSurface';
 
 export const metadata: Metadata = {
-  title: 'Readiness — VitalCV',
+  title: 'Readiness',
   description: 'Source-backed readiness state. Every lane, every status, every limitation.',
 };
 

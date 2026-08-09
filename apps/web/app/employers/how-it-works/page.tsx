@@ -24,7 +24,7 @@ import { PageFrame } from '@/components/layout/PageFrame';
 export const revalidate = 300;
 
 export const metadata: Metadata = {
-  title: 'How it works — what arrives, source by source · VitalCV',
+  title: 'How it works — what arrives, source by source',
   description:
     'Every evidence lane VitalCV reads — what it returns, when it was read, and what it does not decide — plus what a reviewed, consented packet looks like.',
 };

@@ -3,7 +3,7 @@ import ProfessionalGrowthClient from './ProfessionalGrowthClient';
 export const dynamic = 'force-dynamic';
 
 export const metadata = {
-  title: 'Professional Growth · VitalCV',
+  title: 'Professional Growth',
   description: 'A clinician’s career arc — milestones, progression, and growth-readiness gaps.',
   robots: { index: false, follow: false },
 };
