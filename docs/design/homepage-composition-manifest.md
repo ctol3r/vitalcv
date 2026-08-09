@@ -22,8 +22,8 @@ final CTA + footer band; the shared Footer is suppressed on `/` only.
 
 | System | Owner | Motion owner | Fallback | Job |
 | --- | --- | --- | --- | --- |
-| Shared chrome | `components/layout/Eyebrow.tsx` (mounted by `RootChrome`) | Color transitions only — geometry constant | SSR bar; the takeover menu requires JS | The one persistent instrument: identity left, product state center, one action right |
-| Beat narration | `WorkSurface` → `HOME_BEAT_EVENT` → eyebrow ticker | The work-surface timeline | Static "How VitalCV works" label | The chrome narrates the story the page is telling |
+| Shared chrome | `components/layout/Eyebrow.tsx` (mounted by `RootChrome`) | Color transitions only — geometry constant | SSR floating instruments; the takeover menu requires JS | Zero-height floating chrome: wordmark upper-left, one action + lookup + menu upper-right (bottom-pinned on mobile); no bar, no center content |
+| Beat narration | `WorkSurface` dispatches `HOME_BEAT_EVENT`; the chrome no longer listens | The work-surface timeline | The surface narrates itself | The chrome carries no narration — the reference grammar has no center content |
 | In-page navigation | None | — | DOM order and anchors (`#npi`, `#how-it-works`) | No page-level carousel, rail, or chapter navigator |
 
 ## Sections, in DOM order

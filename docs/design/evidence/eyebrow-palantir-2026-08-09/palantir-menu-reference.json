@@ -1,0 +1,195 @@
+{
+  "genAlphaCandidates": 1,
+  "navItem": {
+    "rect": {
+      "x": 30,
+      "y": 196,
+      "w": 250,
+      "h": 60
+    },
+    "ff": "\"Alliance No.1\"",
+    "fs": "34px",
+    "fw": "400",
+    "lh": "40.001px",
+    "ls": "normal",
+    "tt": "none",
+    "color": "rgb(255, 255, 255)",
+    "bg": "rgba(0, 0, 0, 0)"
+  },
+  "overlay": {
+    "cls": "ptcom-design__launchPad__4os7w7 ptcom-design__active__4os7w7",
+    "rect": {
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 900
+    },
+    "ff": "\"Alliance No.1\"",
+    "fs": "18px",
+    "fw": "400",
+    "lh": "25px",
+    "ls": "normal",
+    "tt": "none",
+    "color": "rgb(255, 255, 255)",
+    "bg": "rgb(30, 33, 36)",
+    "position": "fixed",
+    "z-index": "590",
+    "padding": "30px",
+    "overflow": "auto"
+  },
+  "sectionLabel": {
+    "rect": {
+      "x": 30,
+      "y": 150,
+      "w": 440,
+      "h": 16
+    },
+    "ff": "\"Alliance No.2\"",
+    "fs": "10px",
+    "fw": "400",
+    "lh": "16px",
+    "ls": "0.5px",
+    "tt": "uppercase",
+    "color": "rgb(185, 185, 185)",
+    "bg": "rgba(0, 0, 0, 0)"
+  },
+  "labelParentCls": "ptcom-design__wrapper__4os7w7",
+  "hr": "no hr in label col",
+  "subItem": {
+    "html": "↳ AIP",
+    "rect": {
+      "x": 30,
+      "y": 256,
+      "w": 90,
+      "h": 60
+    },
+    "ff": "\"Alliance No.1\"",
+    "fs": "34px",
+    "fw": "400",
+    "lh": "40.001px",
+    "ls": "normal",
+    "tt": "none",
+    "color": "rgb(255, 255, 255)",
+    "bg": "rgba(0, 0, 0, 0)"
+  },
+  "upRightLink": {
+    "html": "Newsroom <span aria-hidden=\"true\">↗</span>",
+    "rect": {
+      "x": 863,
+      "y": 150,
+      "w": 77,
+      "h": 16
+    },
+    "ff": "\"Alliance No.2\"",
+    "fs": "10px",
+    "fw": "400",
+    "lh": "16px",
+    "ls": "0.5px",
+    "tt": "uppercase",
+    "color": "rgb(255, 255, 255)",
+    "bg": "rgba(0, 0, 0, 0)",
+    "text-decoration-line": "underline"
+  },
+  "newsEyebrow": {
+    "rect": {
+      "x": 500,
+      "y": 196,
+      "w": 205,
+      "h": 16
+    },
+    "ff": "\"Alliance No.2\"",
+    "fs": "10px",
+    "fw": "400",
+    "lh": "16px",
+    "ls": "0.5px",
+    "tt": "uppercase",
+    "color": "rgb(255, 255, 255)",
+    "bg": "rgba(0, 0, 0, 0)"
+  },
+  "newsTitle": {
+    "rect": {
+      "x": 500,
+      "y": 369,
+      "w": 205,
+      "h": 69
+    },
+    "ff": "\"Alliance No.1\"",
+    "fs": "16px",
+    "fw": "400",
+    "lh": "22.8576px",
+    "ls": "normal",
+    "tt": "none",
+    "color": "rgb(255, 255, 255)",
+    "bg": "rgba(0, 0, 0, 0)"
+  },
+  "quickLink": {
+    "rect": {
+      "x": 1182,
+      "y": 685,
+      "w": 209,
+      "h": 23
+    },
+    "ff": "\"Alliance No.1\"",
+    "fs": "16px",
+    "fw": "400",
+    "lh": "22.8576px",
+    "ls": "normal",
+    "tt": "none",
+    "color": "rgb(255, 255, 255)",
+    "bg": "rgba(0, 0, 0, 0)"
+  },
+  "offeringsLabel": {
+    "rect": {
+      "x": 970,
+      "y": 150,
+      "w": 64,
+      "h": 16
+    },
+    "ff": "\"Alliance No.2\"",
+    "fs": "10px",
+    "fw": "400",
+    "lh": "16px",
+    "ls": "0.5px",
+    "tt": "uppercase",
+    "color": "rgb(185, 185, 185)",
+    "bg": "rgba(0, 0, 0, 0)"
+  },
+  "newsLabel": {
+    "rect": {
+      "x": 500,
+      "y": 150,
+      "w": 73,
+      "h": 16
+    },
+    "ff": "\"Alliance No.2\"",
+    "fs": "10px",
+    "fw": "400",
+    "lh": "16px",
+    "ls": "0.5px",
+    "tt": "uppercase",
+    "color": "rgb(185, 185, 185)",
+    "bg": "rgba(0, 0, 0, 0)"
+  },
+  "closeBtn": {
+    "title": "Close Navigation",
+    "rect": {
+      "x": 1371,
+      "y": 30,
+      "w": 40,
+      "h": 40
+    },
+    "ff": "\"Alliance No.1\"",
+    "fs": "16px",
+    "fw": "400",
+    "lh": "22.8576px",
+    "ls": "normal",
+    "tt": "none",
+    "color": "rgb(30, 33, 36)",
+    "bg": "rgb(255, 255, 255)",
+    "border": "1px solid rgb(255, 255, 255)",
+    "width": "40px",
+    "height": "40px"
+  },
+  "bodyOverflow": "hidden",
+  "htmlOverflow": "visible"
+}

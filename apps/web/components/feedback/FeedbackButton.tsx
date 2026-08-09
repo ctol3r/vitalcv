@@ -32,8 +32,11 @@ export default function FeedbackButton() {
          at 390pt the labeled chip spans ~109px of the bottom-right corner and
          was measured sitting on top of centered tappable content (DL-001) —
          the accessible name lives in aria-label, so the visible label is
-         presentation, not the control's name. */
-      className="fixed bottom-6 right-6 z-40 flex min-h-11 min-w-11 items-center justify-center gap-2 rounded-[10px] bg-[var(--vt-text-primary)] px-3 py-2.5 text-xs font-medium text-[var(--vt-surface)] shadow-lg transition-colors duration-[120ms] hover:bg-[var(--vt-accent)] motion-reduce:transition-none md:px-4"
+         presentation, not the control's name.
+         Below md it also rides ABOVE the public chrome's bottom-pinned control
+         cluster (eyebrow.css pins it at 20px, 40px tall): at the old bottom-6
+         it landed directly on the Start action. */
+      className="fixed bottom-[76px] right-6 z-40 flex min-h-11 min-w-11 items-center justify-center gap-2 rounded-[10px] bg-[var(--vt-text-primary)] px-3 py-2.5 text-xs font-medium text-[var(--vt-surface)] shadow-lg transition-colors duration-[120ms] hover:bg-[var(--vt-accent)] motion-reduce:transition-none md:bottom-6 md:px-4"
       aria-label="Send feedback"
       type="button"
     >

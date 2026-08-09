@@ -1,16 +1,22 @@
 import { expect, test, type Page } from '@playwright/test';
 
 /**
- * The UX-V1 architectural eyebrow (shared public chrome).
+ * The floating-chrome eyebrow (shared public chrome, palantir-grammar
+ * rebuild).
  *
  * Pins the browser-measured half of the contract the unit suite cannot see:
- * the constant 64px geometry across scroll, the dark→light inversion over
- * the homepage's light employer band, the full-takeover menu's modality, the
- * 56px mobile recomposition, and reduced-motion behavior. Runs in the
- * default (easy) project — the chrome must hold on the shipping homepage.
+ * the zero-height sticky group whose instruments hold constant positions
+ * across scroll (wordmark at the 30px gutter, controls 30px from the top and
+ * right edges), the dark→light inversion over the homepage's light employer
+ * band, the full-takeover menu's modality below the live chrome, the mobile
+ * recomposition (wordmark up top, controls pinned to the viewport bottom),
+ * and reduced-motion behavior. Runs in the default (easy) project — the
+ * chrome must hold on the shipping homepage.
  */
 
 const eyebrow = (page: Page) => page.locator('header.vcv-eb');
+const brand = (page: Page) => page.locator('.vcv-eb__brand');
+const controls = (page: Page) => page.locator('.vcv-eb__controls');
 
 /**
  * Open-the-menu interactions click-and-poll, clicking only while collapsed —
@@ -43,21 +49,108 @@ test.describe('eyebrow — desktop', () => {
   test.beforeEach(async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto('/');
-    await expect(eyebrow(page)).toBeVisible();
+    await expect(brand(page)).toBeVisible();
   });
 
-  test('is a constant 64px instrument — geometry identical before and after scroll', async ({ page }) => {
-    const before = await eyebrow(page).boundingBox();
-    expect(before).not.toBeNull();
-    expect(Math.round(before!.height)).toBe(64);
-    expect(Math.round(before!.y)).toBe(0);
-    expect(Math.round(before!.width)).toBe(1440);
+  test('is a zero-height floating group — instrument positions identical before and after scroll', async ({ page }) => {
+    // The group itself takes no layout space…
+    const group = await eyebrow(page).boundingBox();
+    expect(group).not.toBeNull();
+    expect(Math.round(group!.height)).toBe(0);
+    expect(Math.round(group!.y)).toBe(0);
+
+    // …while the wide rectangle and its instruments float at the reference
+    // offsets. The wordmark is measured by the centre of its glyphs, because
+    // the link itself is padded out to the 44px target floor.
+    const wordmark = await page.locator('.vcv-eb__wordmark').boundingBox();
+    expect(Math.round(wordmark!.x)).toBe(30);
+    expect(Math.round(wordmark!.y + wordmark!.height / 2)).toBe(51);
+
+    // Measured on the PAINTED boxes, not the hit areas: instruments carry 2px
+    // of transparent padding to clear EC-5's 44px floor while the visible
+    // geometry stays on the reference numbers.
+    const lastBox = await page.locator('.vcv-eb__instr').last().boundingBox();
+    expect(Math.round(lastBox!.y)).toBe(31);
+    expect(Math.round(lastBox!.height)).toBe(40);
+    expect(Math.round(lastBox!.x + lastBox!.width)).toBe(1440 - 30);
 
     await page.evaluate(() => window.scrollTo({ top: 900, behavior: 'instant' as ScrollBehavior }));
-    const after = await eyebrow(page).boundingBox();
-    expect(Math.round(after!.height)).toBe(64);
-    expect(Math.round(after!.y)).toBe(0);
-    expect(Math.round(after!.width)).toBe(1440);
+    const wordmarkAfter = await page.locator('.vcv-eb__wordmark').boundingBox();
+    expect(Math.round(wordmarkAfter!.x)).toBe(30);
+    expect(Math.round(wordmarkAfter!.y + wordmarkAfter!.height / 2)).toBe(51);
+    const lastAfter = await page.locator('.vcv-eb__instr').last().boundingBox();
+    expect(Math.round(lastAfter!.y)).toBe(31);
+    expect(Math.round(lastAfter!.x + lastAfter!.width)).toBe(1440 - 30);
+  });
+
+  test('the chrome is a wide rounded rectangle, inset and frosted, and never eats a click', async ({ page }) => {
+    const shape = page.locator('.vcv-eb__shape');
+    const box = await shape.boundingBox();
+    expect(Math.round(box!.x)).toBe(10);
+    expect(Math.round(box!.width)).toBe(1440 - 20);
+    expect(Math.round(box!.y)).toBe(16);
+    expect(Math.round(box!.height)).toBe(70);
+
+    const style = await shape.evaluate((el) => {
+      const c = getComputedStyle(el);
+      return { radius: c.borderTopLeftRadius, backdrop: c.backdropFilter, pointer: c.pointerEvents };
+    });
+    expect(style.radius).toBe('10px');
+    expect(style.backdrop).toContain('blur');
+    // Decoration that spans the viewport must not intercept page clicks.
+    expect(style.pointer).toBe('none');
+
+    // Its geometry is as constant as the instruments': scroll changes colour,
+    // never position.
+    await page.evaluate(() => window.scrollTo({ top: 900, behavior: 'instant' as ScrollBehavior }));
+    const after = await shape.boundingBox();
+    expect(Math.round(after!.y)).toBe(16);
+    expect(Math.round(after!.height)).toBe(70);
+
+    // Every instrument sits inside it, not merely near it.
+    const shapeBox = after!;
+    for (const sel of ['.vcv-eb__wordmark', '.vcv-eb__cta-box', '.vcv-eb__instr']) {
+      const el = await page.locator(sel).first().boundingBox();
+      expect(el!.y).toBeGreaterThanOrEqual(shapeBox.y);
+      expect(el!.y + el!.height).toBeLessThanOrEqual(shapeBox.y + shapeBox.height);
+      expect(el!.x).toBeGreaterThanOrEqual(shapeBox.x);
+    }
+  });
+
+  test('the instruments are sharp-cornered and the action is the 40px rectangle', async ({ page }) => {
+    const box = await page.locator('.vcv-eb__cta-box').boundingBox();
+    expect(Math.round(box!.height)).toBe(40);
+    expect(box!.width).toBeGreaterThanOrEqual(205);
+    const radius = await page
+      .locator('.vcv-eb__cta-box')
+      .evaluate((el) => getComputedStyle(el).borderRadius);
+    expect(radius).toBe('0px');
+
+    const painted = await page.locator('.vcv-eb__instr').first().boundingBox();
+    expect(Math.round(painted!.width)).toBe(40);
+    expect(Math.round(painted!.height)).toBe(40);
+
+    // The two squares fuse: one shared hairline, not two adjacent borders.
+    const first = await page.locator('.vcv-eb__instr').first().boundingBox();
+    const second = await page.locator('.vcv-eb__instr').last().boundingBox();
+    expect(Math.round(second!.x - (first!.x + first!.width))).toBe(-1);
+  });
+
+  test('every chrome control clears EC-5 44px, painted box notwithstanding', async ({ page }) => {
+    // The reference's instruments are 40px; the constitution's floor is 44px.
+    // The interactive element carries the floor, the painted box carries the
+    // reference. Both have to hold, or the a11y baseline ratchet catches it.
+    const undersized = await page.evaluate(() => {
+      const header = document.querySelector('header.vcv-eb');
+      if (!header) return ['no chrome'];
+      return Array.from(header.querySelectorAll<HTMLElement>('a[href], button'))
+        .filter((el) => {
+          const r = el.getBoundingClientRect();
+          return r.width > 0 && r.height > 0 && (r.width < 44 || r.height < 44);
+        })
+        .map((el) => `${el.className}: ${Math.round(el.getBoundingClientRect().width)}x${Math.round(el.getBoundingClientRect().height)}`);
+    });
+    expect(undersized).toEqual([]);
   });
 
   test('rests dark on the homepage and inverts over the light employer band', async ({ page }) => {
@@ -68,14 +161,22 @@ test.describe('eyebrow — desktop', () => {
     await expect(eyebrow(page)).toHaveAttribute('data-eb-theme', 'dark', { timeout: 10000 });
   });
 
-  test('carries one quiet sign-in and one dominant action pointing at the real entry', async ({ page }) => {
+  test('carries one quiet sign-in, one dominant action, and the real lookup', async ({ page }) => {
     await expect(eyebrow(page).locator('a[href="/sign-in"]')).toHaveCount(1);
     const cta = eyebrow(page).locator('.vcv-eb__cta');
     await expect(cta).toHaveCount(1);
     await expect(cta).toHaveAttribute('href', '/#npi');
+    await expect(eyebrow(page).locator('.vcv-eb__lookup')).toHaveAttribute('href', '/verify');
   });
 
-  test('the takeover menu is modal: scroll locks, Escape closes, focus returns', async ({ page }) => {
+  test('carries no center content — no ticker, no route cue, no link row', async ({ page }) => {
+    await expect(page.locator('.vcv-eb__ticker')).toHaveCount(0);
+    await expect(page.locator('.vcv-eb__context')).toHaveCount(0);
+    await expect(page.locator('.vcv-eb__navlink')).toHaveCount(0);
+    await expect(page.locator('nav[aria-label="Primary"]')).toHaveCount(0);
+  });
+
+  test('the takeover menu is modal below the live chrome: scroll locks, Escape closes, focus returns', async ({ page }) => {
     await openMenu(page);
     const menu = page.locator('#vcv-eb-menu');
     await expect(menu).toHaveAttribute('aria-modal', 'true');
@@ -83,14 +184,20 @@ test.describe('eyebrow — desktop', () => {
       .poll(() => page.evaluate(() => document.body.style.overflow))
       .toBe('hidden');
 
-    // Tab stays inside the takeover.
+    // The chrome stays live over the takeover: the trap spans the header,
+    // so Tab cycles through menu destinations AND the floating instruments.
     for (let i = 0; i < 15; i += 1) {
       await page.keyboard.press('Tab');
       const inside = await page.evaluate(() =>
-        Boolean(document.activeElement?.closest('#vcv-eb-menu')),
+        Boolean(document.activeElement?.closest('header.vcv-eb')),
       );
       expect(inside).toBe(true);
     }
+
+    // While open, the chrome holds the dark register and the toggle reads
+    // as the close control.
+    await expect(eyebrow(page)).toHaveAttribute('data-eb-theme', 'dark');
+    await expect(page.locator('.vcv-eb__menu-btn')).toHaveAttribute('aria-label', 'Close menu');
 
     await page.keyboard.press('Escape');
     await expect(menu).toHaveCount(0);
@@ -106,8 +213,12 @@ test.describe('eyebrow — desktop', () => {
   test('the menu lists the complete navigation registry in large type', async ({ page }) => {
     await openMenu(page);
     const menu = page.locator('#vcv-eb-menu');
+    // Column heads specifically: "Trust" is both a register label and a
+    // destination, so a bare text match is ambiguous by construction.
     for (const label of ['Clinicians', 'Employers', 'Trust']) {
-      await expect(menu.getByText(label, { exact: true })).toBeVisible();
+      await expect(
+        menu.locator('.vcv-eb-menu__label', { hasText: new RegExp(`^${label}$`) }),
+      ).toBeVisible();
     }
     // W1079 swapped the clinician group's jobs destination from
     // /opportunities/discover — a redirect alias into the CLINICIAN-protected
@@ -118,40 +229,27 @@ test.describe('eyebrow — desktop', () => {
     }
     await expect(menu.locator('a[href="/opportunities/discover"]')).toHaveCount(0);
   });
-
-  test('narrates the work surface, then settles back to the static label', async ({ page }) => {
-    const ticker = page.locator('.vcv-eb__ticker');
-    await expect(ticker).toBeVisible();
-    // The surface plays on load; the ticker leaves the static label…
-    await expect
-      .poll(async () => ticker.textContent(), { timeout: 15000 })
-      .not.toBe('How VitalCV works');
-    // …and returns to it once the story completes.
-    await expect
-      .poll(async () => ticker.textContent(), { timeout: 20000 })
-      .toBe('How VitalCV works');
-  });
 });
 
 test.describe('eyebrow — off-homepage register', () => {
-  test('defaults light with a route cue, not a horizontal destination row', async ({ page }) => {
+  test('defaults light with the spacer, never a horizontal destination row', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     // Pricing is a stable public off-home route for this shared-chrome contract.
     await page.goto('/pricing');
-    await expect(eyebrow(page)).toBeVisible();
+    await expect(brand(page)).toBeVisible();
     await expect(eyebrow(page)).toHaveAttribute('data-eb-theme', 'light');
-    await expect(eyebrow(page).locator('.vcv-eb__context')).toHaveText(
-      'Your profile, ready for every move',
-    );
-    await expect(eyebrow(page).locator('.vcv-eb__navlink')).toHaveCount(0);
-    await expect(eyebrow(page).locator('nav[aria-label="Primary"]')).toHaveCount(0);
+    // Off-home compositions sit below the floating instruments.
+    const spacer = await page.locator('.vcv-eb__space').boundingBox();
+    expect(Math.round(spacer!.height)).toBe(104);
+    await expect(page.locator('.vcv-eb__navlink')).toHaveCount(0);
+    await expect(page.locator('nav[aria-label="Primary"]')).toHaveCount(0);
     await expect(page.locator('footer nav a[href="/trust"]')).toHaveCount(1);
     await expect(page.locator('footer nav a[href="/status"]')).toHaveCount(1);
   });
 
   test('suppresses the dominant action on its own destination', async ({ page }) => {
     await page.goto('/employers');
-    await expect(eyebrow(page)).toBeVisible();
+    await expect(brand(page)).toBeVisible();
     await expect(eyebrow(page).locator('.vcv-eb__cta')).toHaveCount(0);
   });
 });
@@ -160,16 +258,44 @@ test.describe('eyebrow — mobile recomposition', () => {
   test.beforeEach(async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto('/');
-    await expect(eyebrow(page)).toBeVisible();
+    await expect(brand(page)).toBeVisible();
   });
 
-  test('recomposes at 56px: wordmark + Start + menu box, no ticker, no sign-in', async ({ page }) => {
-    const box = await eyebrow(page).boundingBox();
-    expect(Math.round(box!.height)).toBe(56);
-    await expect(page.locator('.vcv-eb__ticker')).toBeHidden();
+  test('the rectangle goes full-bleed and square', async ({ page }) => {
+    const box = await page.locator('.vcv-eb__shape').boundingBox();
+    expect(Math.round(box!.x)).toBe(0);
+    expect(Math.round(box!.width)).toBe(390);
+    expect(Math.round(box!.y)).toBe(0);
+    expect(Math.round(box!.height)).toBe(65);
+    const radius = await page
+      .locator('.vcv-eb__shape')
+      .evaluate((el) => getComputedStyle(el).borderTopLeftRadius);
+    expect(radius).toBe('0px');
+  });
+
+  test('wordmark floats up top; the controls pin to the viewport bottom', async ({ page }) => {
+    const wordmark = await page.locator('.vcv-eb__wordmark').boundingBox();
+    expect(Math.round(wordmark!.x)).toBe(20);
+    expect(Math.round(wordmark!.y + wordmark!.height / 2)).toBe(32);
+
+    // Painted boxes: pinned 20px above the viewport bottom, 40px tall.
+    const painted = await page.locator('.vcv-eb__instr').first().boundingBox();
+    expect(Math.round(painted!.y + painted!.height)).toBe(844 - 20);
+    expect(Math.round(painted!.height)).toBe(40);
+    // Menu and lookup sit left; the action sits right.
+    const menuBox = await page.locator('.vcv-eb__menu-btn').boundingBox();
+    const ctaBox = await page.locator('.vcv-eb__cta-box').boundingBox();
+    expect(menuBox!.x).toBeLessThan(ctaBox!.x);
+    expect(Math.round(ctaBox!.x + ctaBox!.width)).toBe(390 - 20);
+
     await expect(page.locator('.vcv-eb__signin')).toBeHidden();
     await expect(page.locator('.vcv-eb__cta-short')).toHaveText('Start');
-    await expect(page.locator('.vcv-eb__menu-btn')).toBeVisible();
+  });
+
+  test('the pinned controls hold through scroll', async ({ page }) => {
+    await page.evaluate(() => window.scrollTo({ top: 1200, behavior: 'instant' as ScrollBehavior }));
+    const painted = await page.locator('.vcv-eb__instr').first().boundingBox();
+    expect(Math.round(painted!.y + painted!.height)).toBe(844 - 20);
   });
 
   test('the takeover works on mobile', async ({ page }) => {
@@ -190,15 +316,16 @@ test.describe('eyebrow — mobile recomposition', () => {
 test.describe('eyebrow — reduced motion', () => {
   // page.emulateMedia rather than test.use: with this config the context
   // option is not honored (@playwright/test 1.58.2), the CDP call is.
-  test('the ticker holds the static label', async ({ page }) => {
+  test('the chrome is complete without motion and the takeover opens readable', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto('/');
-    await expect(eyebrow(page)).toBeVisible();
-    const ticker = page.locator('.vcv-eb__ticker');
-    await expect(ticker).toHaveText('How VitalCV works');
-    // Give any stray timeline a beat to prove it stays put.
-    await page.waitForTimeout(1500);
-    await expect(ticker).toHaveText('How VitalCV works');
+    await expect(brand(page)).toBeVisible();
+    await expect(controls(page)).toBeVisible();
+    await openMenu(page);
+    await expect(page.locator('#vcv-eb-menu')).toBeVisible();
+    await expect(
+      page.locator('.vcv-eb-menu__link-label').first(),
+    ).toBeVisible();
   });
 });

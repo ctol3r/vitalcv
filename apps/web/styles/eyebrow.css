@@ -1,53 +1,56 @@
 /**
- * eyebrow.css — the shared public eyebrow (UX-V1 production cutover).
+ * eyebrow.css — the shared public chrome, rebuilt to the palantir.com header
+ * grammar (founder directive 2026-08-09: "exact to palantir").
  *
- * One continuous, deliberately shallow architectural instrument measured from
- * the Palantir/Zoox brief (design-lab/homepage-reset/MASTER-BRIEF.md):
- * 64px constant height, 32px gutters, full browser width, hairline bottom
- * rule, square-cornered instruments. It is not a SaaS navbar: no floating
- * rounded container, no centered destination link row, no backdrop blur.
+ * There is no bar. `.vcv-eb` is a zero-height sticky group; its instruments
+ * float over the page at a 30px gutter: wordmark upper-left, and a right
+ * cluster of sharp-cornered instruments — quiet sign-in, one rectangular
+ * dominant action (40px tall, 205px minimum), and a fused pair of 40px
+ * square instruments (lookup, menu) whose 1px borders collapse into one
+ * hairline between them. Radius 0 everywhere: the chrome sits inside the
+ * constitution's "evidence and operational surfaces stay near-sharp" clause;
+ * the pill remains available in the scene register but the chrome no longer
+ * uses it (A-1 permits pills, it does not mandate them).
  *
- * D-01A amends one clause of that brief. It read "no pills"; the founder shape
- * scale makes the primary action a full pill (9999px) while every instrument —
- * the menu button, the bar itself — stays square. The rounded silhouette is
- * reserved for the one thing that is an action.
+ * Register behavior is unchanged in mechanism: sections declare
+ * `data-header-theme`, useHeaderScene reflects it, and every color routes
+ * through the --eb-* island mapped to the shared --vt-scene-* register.
+ * Over dark scenes the instruments are paper-on-transparent with paper
+ * hairlines; over light scenes they are paper-filled with ink hairlines; the
+ * dominant action is always the paper instrument. Hover fills the ink
+ * inverse. Geometry NEVER changes on scroll or inversion — only color.
  *
- * Island discipline: every color routes through an --eb-* custom property
- * declared here; the bar inverts between its dark and light registers by
- * swapping those properties under [data-eb-theme]. Geometry NEVER changes on
- * scroll or inversion — only color transitions.
+ * The takeover menu is a fixed full-viewport ink canvas painted BELOW the
+ * chrome (DOM order, no z-index): three hairline-topped columns, 10px
+ * uppercase register labels, large-type destinations with a ↳ detail line.
  */
 
-/* UX-03: .vcv-pc — the signed-in product bar — and .vcv-trail share this rule
-   rather than restating it. The product bar is the same instrument in its light
-   register, so it takes the same island, the same 64px, the same gutters and
-   the same hairline; product-chrome.css carries layout only and declares no
-   colour of its own. The two bars never co-render (each returns null on the
-   other's surfaces), so sharing the property names collides with nothing.
-
-   .vcv-trail joins in its own right rather than by inheritance: it renders both
-   inside .vcv-pc and directly inside HolderWorkspaceFrame, which has no .vcv-pc
-   ancestor to inherit from.
-
-   Since D-01 the values below resolve through the scene register, so the
-   product chrome now inherits that convergence for free — one palette edit
-   moves the marketing bar, the console bar and the trail together. */
+/* UX-03: .vcv-pc — the signed-in product bar — and .vcv-trail share the
+   island TOKENS rather than restating them. The product bar remains a solid
+   64px paper bar (its geometry lives below and in product-chrome.css); only
+   the public .vcv-eb takes the floating zero-height grammar. The two bars
+   never co-render (each returns null on the other's surfaces). */
 .vcv-eb,
 .vcv-pc,
 .vcv-trail {
   /* dark register (the homepage ground)
      D-01 — every value resolves through the scene register in
-     styles/themes/index.css. This island and easy-home.css used to declare
-     eleven identical hex values independently, so a palette change to the page
-     and one to the chrome were two edits with nothing enforcing agreement
-     (D-00 §2.2). The --eb-* names stay; the source is now shared.
-
-     `--eb-work` / `--eb-work-deep` / `--eb-on-work` are gone rather than
-     remapped: their only consumer was the CTA, and green is no longer an
-     action colour (decision 2). The bar reports no state of its own, so it has
-     no remaining call for the state hues. */
+     styles/themes/index.css. The --eb-* names stay; the source is shared. */
   --eb-h: 64px;
-  --eb-gutter: 32px;
+  --eb-gutter: 30px;
+  /* the wide rectangle: inset 10px, 70px tall, held 16px from the top, and
+     the instruments centred inside it (16 + 70/2 - 40/2 = 31) */
+  --eb-shape-inset: 10px;
+  --eb-shape-top: 16px;
+  --eb-shape-h: 70px;
+  --eb-ctl-top: 31px;
+  /* the transparent ring that lifts a 40px painted box to a 44px target */
+  --eb-pad: 2px;
+  /* A-1 permits frost on chrome. One neutral value serves both registers, as
+     the reference does: it lifts a dark ground and settles a light one, and
+     the blur does the rest. color-mix over a scene token degrades to a flat
+     translucent panel wherever backdrop-filter is unsupported. */
+  --eb-shape-bg: color-mix(in oklab, var(--vt-scene-text-secondary) 10%, transparent);
   --eb-bg: var(--vt-scene-canvas);
   --eb-text: var(--vt-scene-text);
   --eb-text2: var(--vt-scene-text-secondary);
@@ -55,9 +58,43 @@
   --eb-line: var(--vt-scene-line);
   --eb-cta-bg: var(--vt-action-primary-bg);
   --eb-cta-text: var(--vt-action-primary-fg);
-  --eb-cta-bg-press: var(--vt-action-primary-bg-press);
-  --eb-cta-text-press: var(--vt-action-primary-fg-press);
+  --eb-cta-line: transparent;
+  --eb-instr-bg: transparent;
+  --eb-instr-text: var(--vt-scene-text);
+  --eb-instr-line: var(--vt-scene-text);
+  --eb-press-bg: var(--vt-action-primary-inverse-bg);
+  --eb-press-text: var(--vt-action-primary-inverse-fg);
+}
 
+/* Over a light band every instrument shows its ink hairline and fills paper;
+   the action keeps its paper fill and gains the ink border — the reference's
+   white-button-on-light-page treatment, in VitalCV's warm register.
+
+   UX-03 — the product bar and the trail join unconditionally rather than
+   carrying a data-eb-theme of their own: a console is not a marketing scene
+   and never inverts on scroll, so the paper register is the only one they
+   take. */
+.vcv-eb[data-eb-theme='light'],
+.vcv-pc,
+.vcv-trail {
+  --eb-bg: var(--vt-scene-paper);
+  --eb-text: var(--vt-scene-paper-text);
+  --eb-text2: var(--vt-scene-paper-text-secondary);
+  --eb-text3: var(--vt-scene-paper-text-secondary);
+  --eb-line: var(--vt-scene-paper-line);
+  --eb-cta-bg: var(--vt-scene-paper);
+  --eb-cta-text: var(--vt-scene-paper-text);
+  --eb-cta-line: var(--vt-scene-paper-text);
+  --eb-instr-bg: var(--vt-scene-paper);
+  --eb-instr-text: var(--vt-scene-paper-text);
+  --eb-instr-line: var(--vt-scene-paper-text);
+}
+
+/* The signed-in product bar and trail keep the solid-bar geometry the shared
+   rule used to carry; product-chrome.css continues to layer its own layout
+   on top exactly as before. */
+.vcv-pc,
+.vcv-trail {
   position: sticky;
   top: 0;
   width: 100%;
@@ -68,131 +105,133 @@
   transition: background-color 0.24s ease, color 0.24s ease, border-color 0.24s ease;
 }
 
-/* A-2b — over a light band the action inverts rather than darkening its green.
-   The old rule set #F2F1ED on #2E9E6B here: 2.99:1 at REST, not on hover, on
-   every light-register public route. Ink on paper is 16.88:1.
+/* ── the public chrome: a zero-height sticky group, instruments floating ── */
 
-   UX-03 — the product bar and the trail join unconditionally rather than
-   carrying a data-eb-theme of their own: a console is not a marketing scene and
-   never inverts on scroll, so the paper register is the only one they take. */
-.vcv-eb[data-eb-theme='light'],
-.vcv-pc,
-.vcv-trail {
-  --eb-bg: var(--vt-scene-paper);
-  --eb-text: var(--vt-scene-paper-text);
-  --eb-text2: var(--vt-scene-paper-text-secondary);
-  --eb-text3: var(--vt-scene-paper-text-secondary);
-  --eb-line: var(--vt-scene-paper-line);
-  --eb-cta-bg: var(--vt-action-primary-inverse-bg);
-  --eb-cta-text: var(--vt-action-primary-inverse-fg);
-  --eb-cta-bg-press: var(--vt-action-primary-inverse-bg-press);
-  --eb-cta-text-press: var(--vt-action-primary-inverse-fg-press);
+.vcv-eb {
+  position: sticky;
+  top: 0;
+  width: 100%;
+  height: 0;
+  background: none;
+  border: 0;
+  color: var(--eb-text);
 }
 
-.vcv-eb__in {
-  position: relative;
-  height: 100%;
+/* The wide rectangle: the chrome's one surface. Everything else floats over
+   it. Inert by construction — it spans the viewport and must not swallow a
+   click meant for the page. */
+.vcv-eb__shape {
+  position: absolute;
+  left: var(--eb-shape-inset);
+  right: var(--eb-shape-inset);
+  top: var(--eb-shape-top);
+  height: var(--eb-shape-h);
+  border-radius: var(--vt-shape-control);
+  background: var(--eb-shape-bg);
+  backdrop-filter: blur(10px);
+  pointer-events: none;
+}
+
+/* The mark centres on the rectangle (16 + 35 = 51), less the 22px half-height
+   the wordmark link gains from being padded out to the 44px target floor. */
+.vcv-eb__brand {
+  position: absolute;
+  left: var(--eb-gutter);
+  top: 0;
+  padding: 29px 0 16px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 0 var(--eb-gutter);
 }
 
 .vcv-eb__wordmark {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
   font-family: var(--font-geist);
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 600;
   letter-spacing: -0.01em;
+  line-height: 20px;
+  color: var(--eb-text);
+  transition: color 0.25s ease-in-out;
+}
+
+/* Instruments carry 2px of transparent padding so the interactive element is
+   44px while the painted box is the reference's 40px (--eb-pad). The row is
+   pulled back by that padding on both axes, so the VISIBLE edges — not the
+   hit areas — land on the 30px gutter and the 30px top offset. */
+.vcv-eb__controls {
+  position: absolute;
+  right: calc(var(--eb-gutter) - var(--eb-pad));
+  top: calc(var(--eb-ctl-top) - var(--eb-pad));
+  display: flex;
+  align-items: center;
+}
+
+/* ── right cluster: quiet sign-in, one rectangular action, fused squares ── */
+
+/* Text-only control: no painted box, so it takes the 44px floor directly. */
+.vcv-eb__signin {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-family: var(--font-geist);
+  font-size: 16px;
+  font-weight: 400;
   line-height: 1;
   color: var(--eb-text);
-  transition: color 0.24s ease;
-}
-
-/* ── center: contextual product state, never destination navigation ─────── */
-
-.vcv-eb__center {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  display: flex;
-  align-items: center;
-  gap: 28px;
-  white-space: nowrap;
-}
-
-.vcv-eb__ticker {
-  font-family: var(--font-geist-mono);
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--eb-text2);
-  opacity: 1;
-  transform: none;
-  transition: opacity 0.32s ease, transform 0.32s ease, color 0.24s ease;
-}
-
-.vcv-eb__ticker.is-roll {
-  opacity: 0;
-  transform: translateY(6px);
-  transition: none;
-}
-
-.vcv-eb__context {
-  font-family: var(--font-geist-mono);
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--eb-text2);
-  max-width: min(38vw, 440px);
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* ── right cluster: quiet sign-in, one dominant action, boxed menu ─────── */
-
-.vcv-eb__right {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-
-.vcv-eb__signin {
-  font-family: var(--font-geist);
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--eb-text2);
-  padding: 10px 6px;
-  transition: color 0.15s ease;
+  opacity: 0.85;
+  margin-right: 30px;
+  transition: color 0.25s ease-in-out, opacity 0.25s ease-in-out;
 }
 
 .vcv-eb__signin:hover,
 .vcv-eb__signin:focus-visible {
-  color: var(--eb-text);
+  opacity: 1;
 }
 
 .vcv-eb__cta {
   display: inline-flex;
   align-items: center;
-  height: 40px;
-  padding: 0 18px;
-  background: var(--eb-cta-bg);
+  padding: var(--eb-pad);
+  /* the 30px reference gap, less this instrument's and the cluster's padding */
+  margin-right: calc(30px - var(--eb-pad) - var(--eb-pad));
   color: var(--eb-cta-text);
-  font-family: var(--font-geist);
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.01em;
-  line-height: 1;
-  border-radius: var(--vt-shape-pill);
-  white-space: nowrap;
-  transition: background-color 0.15s ease, color 0.15s ease;
+  transition: color 0.25s ease-in-out;
 }
 
-/* EC-5 — the bar had no focus style of its own, so its one dominant action
-   relied on whatever the shell happened to provide. Indigo, at 9.23:1 on the
-   dark register and 7.24:1 on paper. */
+.vcv-eb__cta-box {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 40px;
+  min-width: 205px;
+  padding: 0 20px;
+  background: var(--eb-cta-bg);
+  color: inherit;
+  border: 1px solid var(--eb-cta-line);
+  border-radius: 0;
+  font-family: var(--font-geist);
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1;
+  white-space: nowrap;
+  transition: background-color 0.25s ease-in-out, color 0.25s ease-in-out,
+    border-color 0.25s ease-in-out;
+}
+
+.vcv-eb__cta:hover,
+.vcv-eb__cta:focus-visible {
+  color: var(--eb-press-text);
+}
+
+.vcv-eb__cta:hover .vcv-eb__cta-box,
+.vcv-eb__cta:focus-visible .vcv-eb__cta-box {
+  background: var(--eb-press-bg);
+  border-color: transparent;
+}
+
+/* EC-5 — indigo focus ring, register-resolved. */
 .vcv-eb :focus-visible {
   outline: 2px solid var(--vt-focus-ring-scene);
   outline-offset: 2px;
@@ -202,186 +241,201 @@
   outline-color: var(--vt-focus-ring-scene-paper);
 }
 
-.vcv-eb__cta:hover,
-.vcv-eb__cta:focus-visible {
-  background: var(--eb-cta-bg-press);
-  color: var(--eb-cta-text-press);
-}
-
-/* The light-register values already invert via [data-eb-theme='light'] on the
-   root, so this rule no longer needs to restate the pair — it existed only to
-   swap green for a darker green. Deliberately removed, not forgotten. */
-
 .vcv-eb__cta-short {
   display: none;
 }
 
-.vcv-eb__menu-btn {
-  width: 44px;
-  height: 44px;
-  border: 1px solid var(--eb-line);
-  border-radius: 2px;
+.vcv-eb__cluster {
+  display: flex;
+}
+
+/* Adjacent instruments fuse into one segmented control: the shift is the two
+   transparent pads plus 1px, so the PAINTED borders collapse into a single
+   shared hairline. */
+.vcv-eb__cluster > * + * {
+  margin-left: calc((var(--eb-pad) * -2) - 1px);
+}
+
+.vcv-eb__icon-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: var(--eb-text);
+  padding: var(--eb-pad);
   background: none;
+  border: 0;
+  color: var(--eb-instr-text);
   cursor: pointer;
-  transition: border-color 0.15s ease, color 0.24s ease;
+  transition: color 0.25s ease-in-out;
 }
 
-.vcv-eb__menu-btn:hover,
-.vcv-eb__menu-btn:focus-visible {
-  border-color: var(--eb-text2);
+/* The painted box: the reference's exact 40px square. */
+.vcv-eb__instr {
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--eb-instr-bg);
+  color: inherit;
+  border: 1px solid var(--eb-instr-line);
+  border-radius: 0;
+  transition: background-color 0.25s ease-in-out, color 0.25s ease-in-out,
+    border-color 0.25s ease-in-out;
+}
+
+.vcv-eb__icon-btn:hover,
+.vcv-eb__icon-btn:focus-visible {
+  color: var(--eb-press-text);
+}
+
+.vcv-eb__icon-btn:hover .vcv-eb__instr,
+.vcv-eb__icon-btn:focus-visible .vcv-eb__instr {
+  background: var(--eb-press-bg);
+}
+
+/* While the takeover is open the menu instrument fills paper and its glyph
+   turns to ink — the reference's close-state treatment. */
+.vcv-eb[data-menu-open='true'] .vcv-eb__menu-btn {
+  color: var(--vt-action-primary-fg);
+}
+
+.vcv-eb[data-menu-open='true'] .vcv-eb__menu-btn .vcv-eb__instr {
+  background: var(--vt-action-primary-bg);
+  border-color: var(--vt-action-primary-bg);
 }
 
 .vcv-eb__menu-glyph {
+  position: relative;
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  justify-content: center;
+  gap: 4px;
   width: 16px;
+  height: 16px;
 }
 
 .vcv-eb__menu-glyph i {
   display: block;
   height: 1px;
   background: currentColor;
+  transition: transform 0.25s ease-in-out, opacity 0.25s ease-in-out;
 }
 
-/* ── full-takeover index menu ──────────────────────────────────────────── */
+/* ≡ becomes × while the takeover is open — same instrument, same box. */
+.vcv-eb[data-menu-open='true'] .vcv-eb__menu-glyph i:nth-child(1) {
+  transform: translateY(5px) rotate(45deg);
+}
 
-/* The takeover is ALWAYS the dark register, regardless of the bar's current
-   inversion state — so it carries its own constants rather than the flipping
-   --eb-* family. */
+.vcv-eb[data-menu-open='true'] .vcv-eb__menu-glyph i:nth-child(2) {
+  opacity: 0;
+}
+
+.vcv-eb[data-menu-open='true'] .vcv-eb__menu-glyph i:nth-child(3) {
+  transform: translateY(-5px) rotate(-45deg);
+}
+
+/* Off-home page tops were composed under a 64px solid bar; the floating
+   chrome has zero footprint, so this spacer keeps them clear. */
+.vcv-eb__space {
+  height: 104px;
+}
+
+/* ── full-takeover index menu: an ink canvas below the chrome ───────────── */
+
+/* The takeover is ALWAYS the dark register (the chrome above it forces
+   data-eb-theme=dark while open), so it reads the dark scene tokens
+   directly and never inverts. */
 .vcv-eb-menu {
-  /* D-01A — a THIRD copy of the same eleven values lived here. Bridged to the
-     scene register with the others; because the takeover is always dark, it
-     reads the dark-register tokens directly and never inverts.
-
-     `--ebm-work` became `--ebm-accent`: its only job was colouring a nav
-     link's hover, which is decoration, and green is reserved for "a source
-     confirmed it" (decision 2). Indigo owns interaction (decision 3). */
   --ebm-bg: var(--vt-scene-canvas);
   --ebm-text: var(--vt-scene-text);
   --ebm-text2: var(--vt-scene-text-secondary);
   --ebm-text3: var(--vt-scene-text-tertiary);
   --ebm-line: var(--vt-scene-line);
-  --ebm-accent: var(--vt-accent-editorial-on-dark);
 
   position: fixed;
   inset: 0;
   background: var(--ebm-bg);
   color: var(--ebm-text);
-  display: flex;
-  flex-direction: column;
-}
-
-.vcv-eb-menu__top {
-  height: var(--eb-h, 64px);
-  flex: 0 0 auto;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 var(--eb-gutter, 32px);
-  border-bottom: 1px solid var(--ebm-line);
-}
-
-.vcv-eb-menu__top .vcv-eb__wordmark {
-  color: var(--ebm-text);
-}
-
-.vcv-eb-menu__close {
-  width: 44px;
-  height: 44px;
-  border: 1px solid var(--ebm-line);
-  border-radius: 2px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--ebm-text);
-  background: none;
-  cursor: pointer;
-  font-size: 15px;
-  transition: border-color 0.15s ease;
-}
-
-.vcv-eb-menu__close:hover,
-.vcv-eb-menu__close:focus-visible {
-  border-color: var(--ebm-text2);
-}
-
-.vcv-eb-menu__scroll {
-  flex: 1;
+  padding: 120px var(--eb-gutter, 30px) 40px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  padding: 32px var(--eb-gutter, 32px);
 }
 
-.vcv-eb-menu__groups {
-  width: 100%;
-  max-width: 1400px;
-  margin: 0 auto;
+.vcv-eb-menu__grid {
+  flex: 1 0 auto;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 48px;
+  gap: 30px;
+  align-items: start;
 }
 
-.vcv-eb-menu__group-label {
-  font-family: var(--font-geist-mono);
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.12em;
+/* Each column opens with a bright hairline rule, then its register label —
+   the reference's column head, in the warm register. */
+.vcv-eb-menu__col {
+  border-top: 1px solid var(--ebm-text);
+  padding-top: 12px;
+}
+
+.vcv-eb-menu__label {
+  font-family: var(--font-geist);
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
-  color: var(--ebm-text3);
-  padding-bottom: 12px;
-  border-bottom: 1px solid var(--ebm-line);
+  line-height: 16px;
+  color: var(--ebm-text2);
+}
+
+.vcv-eb-menu__list {
+  list-style: none;
+  margin: 28px 0 0;
+  padding: 0;
 }
 
 .vcv-eb-menu__link {
-  display: flex;
-  align-items: baseline;
-  gap: 16px;
-  font-family: var(--font-geist);
-  font-size: 26px;
-  font-weight: 500;
-  letter-spacing: -0.01em;
-  line-height: 1.2;
+  display: block;
+  padding: 10px 0;
   color: var(--ebm-text);
-  padding: 14px 0;
-  border-bottom: 1px solid var(--ebm-line);
-  transition: color 0.15s ease;
+  transition: color 0.25s ease-in-out;
 }
 
-.vcv-eb-menu__link:hover,
-.vcv-eb-menu__link:focus-visible {
-  color: var(--ebm-accent);
-}
-
-.vcv-eb-menu__link i {
-  margin-left: auto;
-  font-style: normal;
-  font-size: 18px;
-  color: var(--ebm-text3);
-}
-
-.vcv-eb-menu__link:hover i {
-  color: var(--ebm-accent);
+.vcv-eb-menu__link-label {
+  display: block;
+  font-family: var(--font-geist);
+  font-size: 34px;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  line-height: 1.18;
 }
 
 .vcv-eb-menu__detail {
   display: block;
   font-family: var(--font-geist);
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 400;
   color: var(--ebm-text2);
-  margin-top: 4px;
+  margin-top: 6px;
+  transition: color 0.25s ease-in-out;
+}
+
+.vcv-eb-menu__detail i {
+  font-style: normal;
+}
+
+/* Hovering one destination quiets its column siblings — the reference's
+   dimming read, done with color alone. */
+.vcv-eb-menu__list:hover .vcv-eb-menu__link:not(:hover) {
+  color: var(--ebm-text3);
+}
+
+.vcv-eb-menu__list:hover .vcv-eb-menu__link:not(:hover) .vcv-eb-menu__detail {
+  color: var(--ebm-text3);
 }
 
 .vcv-eb-menu__foot {
   flex: 0 0 auto;
-  padding: 20px var(--eb-gutter, 32px);
+  padding-top: 32px;
   font-family: var(--font-geist-mono);
   font-size: 10px;
   font-weight: 500;
@@ -390,22 +444,63 @@
   color: var(--ebm-text3);
 }
 
-/* ── mobile recomposition: wordmark + Start + menu box at 56px ─────────── */
+/* ── mobile recomposition: wordmark up top, controls pinned to the bottom ── */
 
 @media (max-width: 767px) {
   .vcv-eb {
-    --eb-h: 56px;
     --eb-gutter: 20px;
   }
 
-  .vcv-eb__center,
+  /* The rectangle goes full-bleed and square on mobile — the reference drops
+     both the inset and the radius, and shortens the band to 65px. */
+  .vcv-eb__shape {
+    left: 0;
+    right: 0;
+    top: 0;
+    height: 65px;
+    border-radius: 0;
+  }
+
+  .vcv-eb__brand {
+    /* the mark centres on the 65px band (32.5), less the wordmark's 22px
+       half-height from the 44px target floor */
+    padding: 10px 0 16px;
+  }
+
   .vcv-eb__signin {
     display: none;
   }
 
+  /* The control cluster pins to the bottom of the viewport: menu and lookup
+     on the left, the action on the right — the reference's mobile grammar.
+     Offsets absorb the instruments' 2px hit-area padding on all three edges,
+     so the painted boxes sit on the 20px gutter and 20px above the bottom. */
+  .vcv-eb__controls {
+    position: fixed;
+    left: calc(var(--eb-gutter) - var(--eb-pad));
+    right: calc(var(--eb-gutter) - var(--eb-pad));
+    top: auto;
+    bottom: calc(20px - var(--eb-pad));
+    justify-content: space-between;
+  }
+
+  .vcv-eb__cluster {
+    order: -1;
+    flex-direction: row-reverse;
+  }
+
+  .vcv-eb__cluster > * + * {
+    margin-left: 0;
+    margin-right: calc((var(--eb-pad) * -2) - 1px);
+  }
+
   .vcv-eb__cta {
-    height: 36px;
-    padding: 0 14px;
+    margin-right: 0;
+  }
+
+  .vcv-eb__cta-box {
+    min-width: 0;
+    padding: 0 16px;
   }
 
   .vcv-eb__cta-long {
@@ -416,29 +511,39 @@
     display: inline;
   }
 
-  .vcv-eb__menu-btn {
-    width: 40px;
-    height: 40px;
+  .vcv-eb__space {
+    height: 72px;
   }
 
-  .vcv-eb-menu__groups {
+  /* The pinned cluster floats over the page, so the page must end above it.
+     Measured without this: at the document bottom the footer's last two links
+     ("Start a Pilot", "Contact") sat underneath the cluster and could not be
+     tapped. The reference reserves the same clearance — its footer ends
+     ~30px above its own control row. The homepage suppresses the shared
+     footer, so its closing band carries the clearance in easy-home.css. */
+  .vcv-eb ~ footer {
+    padding-bottom: 84px;
+  }
+
+  .vcv-eb-menu {
+    padding: 96px var(--eb-gutter, 20px) 100px;
+  }
+
+  .vcv-eb-menu__grid {
     grid-template-columns: 1fr;
-    gap: 28px;
+    gap: 40px;
   }
 
-  .vcv-eb-menu__scroll {
-    justify-content: flex-start;
-  }
-
-  .vcv-eb-menu__link {
-    font-size: 21px;
-    padding: 12px 0;
+  .vcv-eb-menu__link-label {
+    font-size: 26px;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .vcv-eb,
-  .vcv-eb__ticker {
+  .vcv-eb *,
+  .vcv-eb-menu,
+  .vcv-eb-menu * {
     transition: none;
   }
 }

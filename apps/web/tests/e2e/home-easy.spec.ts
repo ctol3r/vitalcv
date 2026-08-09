@@ -97,6 +97,37 @@ test.describe('home — the Easy Button hero', () => {
   test('the final action returns to the real entry', async ({ page }) => {
     await expect(page.locator('.ezh-start-cta')).toHaveAttribute('href', '#npi');
   });
+
+  /**
+   * A-2's shape rule: an action is square, a word-label may be a pill. Asserted
+   * as an outcome across the whole page rather than per selector, so a new
+   * action added later cannot quietly reintroduce the pill. The chrome is
+   * excluded only because eyebrow.spec.ts already pins it.
+   */
+  test('every action is square; only word-labels keep the pill', async ({ page }) => {
+    const shapes = await page.evaluate(() => {
+      const roundedActions: string[] = [];
+      document.querySelectorAll<HTMLElement>('.ezh a[href], .ezh button').forEach((el) => {
+        const r = el.getBoundingClientRect();
+        if (!r.width || !r.height) return;
+        const rad = parseFloat(getComputedStyle(el).borderTopLeftRadius) || 0;
+        if (rad >= r.height / 2 - 0.5) {
+          roundedActions.push(`${el.className}: ${getComputedStyle(el).borderTopLeftRadius}`);
+        }
+      });
+      // The labels that legitimately keep it, so the rule is proven both ways
+      // and this does not silently pass on a page where nothing is a pill.
+      const labelPills = Array.from(document.querySelectorAll<HTMLElement>('.ezh-src, .ezh-chip, .ezh-seed-tag'))
+        .filter((el) => {
+          const r = el.getBoundingClientRect();
+          if (!r.width || !r.height) return false;
+          return (parseFloat(getComputedStyle(el).borderTopLeftRadius) || 0) >= r.height / 2 - 0.5;
+        }).length;
+      return { roundedActions, labelPills };
+    });
+    expect(shapes.roundedActions).toEqual([]);
+    expect(shapes.labelPills).toBeGreaterThan(0);
+  });
 });
 
 test.describe('home — layout integrity across viewports', () => {
