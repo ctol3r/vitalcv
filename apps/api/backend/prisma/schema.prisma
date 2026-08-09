@@ -2041,6 +2041,16 @@ model ApplicationPacket {
   /// PacketFieldEntry[] — per-field value, evidence state, source id,
   /// source observation time, freshness horizon, artifact/receipt ids
   fields               Json
+  /// PacketSectionAbsence[] — one entry per selected section that produced NO
+  /// field, with the evidence state and the reason nothing was found. Covered
+  /// by the seal hash. Three distinct values, none interchangeable:
+  ///   NULL = legacy packet sealed before absences existed; replays with the
+  ///          key OMITTED so its original hash still verifies.
+  ///   []   = every selected section contributed evidence (a positive claim).
+  ///   [..] = the sections that produced nothing, and why.
+  /// Without this, `selected_sections` naming a section with no field reads to
+  /// an employer as "checked and clean" when nothing was found at all.
+  sectionAbsences      Json?     @map("section_absences")
   clinicianNote        String?   @map("clinician_note")
   methodologyVersion   String    @map("methodology_version")
   consentAt            DateTime  @map("consent_at")
