@@ -1,11 +1,17 @@
 /**
- * The unauthenticated network-gateway scaffold is not served, and the two reads
- * that have real consumers still are.
+ * The unauthenticated network-gateway scaffold is not served, and the one read
+ * that has real consumers still is.
  *
  * Four routes were registered with no authentication of any kind:
  * `gateway/connect` minted a gateway token for any organization named in the
  * body, and `webhooks/register` accepted an arbitrary org id and callback URL.
  * None had a caller anywhere in the repository.
+ *
+ * `gateway/connections` joined them later. #962 kept it served because it
+ * "backs `GatewayConnections`" — a component with zero importers, mounted on no
+ * page or layout, so the read had no live caller either. A component that names
+ * a route is not a consumer of it; only a MOUNTED one is. That component is
+ * deleted, so nothing regressed by unwiring the route it never actually called.
  *
  * This asserts the OUTCOME against the booted app — the paths are not routed —
  * rather than asserting how that was achieved, so a later, better fix (real
@@ -26,6 +32,7 @@ const UNWIRED: Array<[('get' | 'post'), string]> = [
   ['post', '/api/network/webhooks/register'],
   ['post', '/api/network/webhooks/test'],
   ['get', '/api/network/webhooks'],
+  ['get', '/api/network/gateway/connections'],
 ];
 
 /**
@@ -85,23 +92,22 @@ describe('the network-gateway scaffold is not served', () => {
   });
 });
 
-describe('the reads with real consumers are still served', () => {
-  // These back the institutions map, GlobalTrustMap, and the ops
-  // TrustGraphConsole. Removing the scaffold must not take them with it.
+describe('the read with a real consumer is still served', () => {
+  // Reached by the served Next route handler `app/api/map/institutions/route.ts`,
+  // which fetches it to build the institutions map layer. That handler is a live
+  // HTTP surface of the web app, so this route has a caller regardless of which
+  // pages are mounted, and removing the scaffold must not take it with them.
   //
-  // Every case here sets x-org-id. The tenant guard answers 401 BEFORE routing
+  // NOT re-asserted here: #962 also named `GlobalTrustMap` and the ops
+  // `TrustGraphConsole` as consumers. Checked 2026-08-09 — `GlobalTrustMap` has
+  // zero importers, and every chain into `TrustGraphConsole` lands in
+  // `app/_archive`, which is unrouted. They are not evidence for anything; the
+  // route handler above is.
+  //
+  // The case here sets x-org-id. The tenant guard answers 401 BEFORE routing
   // when it is absent, and 401 is neither 404 nor 200 — so without the header a
   // "still routed" assertion passes whether the route exists or not, and would
   // keep passing if this cleanup deleted the wrong handler.
-  it('GET /api/network/gateway/connections still answers', async () => {
-    const res = await request(app)
-      .get('/api/network/gateway/connections')
-      .set('x-org-id', 'org_probe');
-
-    expect(res.status).toBe(200);
-    expect(Array.isArray(res.body.connections)).toBe(true);
-  });
-
   it('GET /api/network/global is still routed', async () => {
     const res = await request(app)
       .get('/api/network/global')
