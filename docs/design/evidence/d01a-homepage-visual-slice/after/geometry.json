@@ -1,0 +1,803 @@
+{
+  "no-script": {
+    "360": {
+      "horizontalOverflow": 0,
+      "escapes": [],
+      "overlaps": [],
+      "feedWidth": 256,
+      "smallTargets": [
+        {
+          "sel": "a.",
+          "text": "VitalCV for employers ↳",
+          "size": "145x19"
+        },
+        {
+          "sel": "button.ezh-sf-replay",
+          "text": "↻ Replay",
+          "size": "77x26"
+        },
+        {
+          "sel": "a.",
+          "text": "For employers",
+          "size": "84x20"
+        },
+        {
+          "sel": "a.",
+          "text": "Pricing",
+          "size": "41x20"
+        },
+        {
+          "sel": "a.",
+          "text": "Trust",
+          "size": "30x20"
+        },
+        {
+          "sel": "a.",
+          "text": "Status",
+          "size": "39x20"
+        },
+        {
+          "sel": "a.",
+          "text": "Privacy",
+          "size": "43x20"
+        },
+        {
+          "sel": "a.",
+          "text": "Terms",
+          "size": "36x20"
+        },
+        {
+          "sel": "a.",
+          "text": "Sign in",
+          "size": "41x20"
+        }
+      ]
+    },
+    "390": {
+      "horizontalOverflow": 0,
+      "escapes": [],
+      "overlaps": [],
+      "feedWidth": 286,
+      "smallTargets": [
+        {
+          "sel": "a.",
+          "text": "VitalCV for employers ↳",
+          "size": "145x19"
+        },
+        {
+          "sel": "button.ezh-sf-replay",
+          "text": "↻ Replay",
+          "size": "77x26"
+        },
+        {
+          "sel": "a.",
+          "text": "For employers",
+          "size": "84x20"
+        },
+        {
+          "sel": "a.",
+          "text": "Pricing",
+          "size": "41x20"
+        },
+        {
+          "sel": "a.",
+          "text": "Trust",
+          "size": "30x20"
+        },
+        {
+          "sel": "a.",
+          "text": "Status",
+          "size": "39x20"
+        },
+        {
+          "sel": "a.",
+          "text": "Privacy",
+          "size": "43x20"
+        },
+        {
+          "sel": "a.",
+          "text": "Terms",
+          "size": "36x20"
+        },
+        {
+          "sel": "a.",
+          "text": "Sign in",
+          "size": "41x20"
+        }
+      ]
+    },
+    "768": {
+      "horizontalOverflow": 0,
+      "escapes": [],
+      "overlaps": [],
+      "feedWidth": 664,
+      "smallTargets": [
+        {
+          "sel": "a.",
+          "text": "VitalCV for employers ↳",
+          "size": "145x19"
+        },
+        {
+          "sel": "button.ezh-sf-replay",
+          "text": "↻ Replay",
+          "size": "77x26"
+        },
+        {
+          "sel": "a.",
+          "text": "For employers",
+          "size": "84x20"
+        },
+        {
+          "sel": "a.",
+          "text": "Pricing",
+          "size": "41x20"
+        },
+        {
+          "sel": "a.",
+          "text": "Trust",
+          "size": "30x20"
+        },
+        {
+          "sel": "a.",
+          "text": "Status",
+          "size": "39x20"
+        },
+        {
+          "sel": "a.",
+          "text": "Privacy",
+          "size": "43x20"
+        },
+        {
+          "sel": "a.",
+          "text": "Terms",
+          "size": "36x20"
+        },
+        {
+          "sel": "a.",
+          "text": "Sign in",
+          "size": "41x20"
+        }
+      ]
+    },
+    "1280": {
+      "horizontalOverflow": 0,
+      "escapes": [],
+      "overlaps": [],
+      "feedWidth": 367,
+      "smallTargets": [
+        {
+          "sel": "a.",
+          "text": "VitalCV for employers ↳",
+          "size": "145x19"
+        },
+        {
+          "sel": "button.ezh-sf-replay",
+          "text": "↻ Replay",
+          "size": "77x26"
+        },
+        {
+          "sel": "a.",
+          "text": "For employers",
+          "size": "84x20"
+        },
+        {
+          "sel": "a.",
+          "text": "Pricing",
+          "size": "41x20"
+        },
+        {
+          "sel": "a.",
+          "text": "Trust",
+          "size": "30x20"
+        },
+        {
+          "sel": "a.",
+          "text": "Status",
+          "size": "39x20"
+        },
+        {
+          "sel": "a.",
+          "text": "Privacy",
+          "size": "43x20"
+        },
+        {
+          "sel": "a.",
+          "text": "Terms",
+          "size": "36x20"
+        },
+        {
+          "sel": "a.",
+          "text": "Sign in",
+          "size": "41x20"
+        }
+      ]
+    },
+    "1440": {
+      "horizontalOverflow": 0,
+      "escapes": [],
+      "overlaps": [],
+      "feedWidth": 439,
+      "smallTargets": [
+        {
+          "sel": "a.",
+          "text": "VitalCV for employers ↳",
+          "size": "145x19"
+        },
+        {
+          "sel": "button.ezh-sf-replay",
+          "text": "↻ Replay",
+          "size": "77x26"
+        },
+        {
+          "sel": "a.",
+          "text": "For employers",
+          "size": "84x20"
+        },
+        {
+          "sel": "a.",
+          "text": "Pricing",
+          "size": "41x20"
+        },
+        {
+          "sel": "a.",
+          "text": "Trust",
+          "size": "30x20"
+        },
+        {
+          "sel": "a.",
+          "text": "Status",
+          "size": "39x20"
+        },
+        {
+          "sel": "a.",
+          "text": "Privacy",
+          "size": "43x20"
+        },
+        {
+          "sel": "a.",
+          "text": "Terms",
+          "size": "36x20"
+        },
+        {
+          "sel": "a.",
+          "text": "Sign in",
+          "size": "41x20"
+        }
+      ]
+    }
+  },
+  "reduced-motion": {
+    "360": {
+      "horizontalOverflow": 0,
+      "escapes": [],
+      "overlaps": [],
+      "feedWidth": 256,
+      "smallTargets": [
+        {
+          "sel": "a.",
+          "text": "VitalCV for employers ↳",
+          "size": "145x19"
+        },
+        {
+          "sel": "button.ezh-sf-replay",
+          "text": "↻ Replay",
+          "size": "77x26"
+        },
+        {
+          "sel": "a.",
+          "text": "For employers",
+          "size": "84x20"
+        },
+        {
+          "sel": "a.",
+          "text": "Pricing",
+          "size": "41x20"
+        },
+        {
+          "sel": "a.",
+          "text": "Trust",
+          "size": "30x20"
+        },
+        {
+          "sel": "a.",
+          "text": "Status",
+          "size": "39x20"
+        },
+        {
+          "sel": "a.",
+          "text": "Privacy",
+          "size": "43x20"
+        },
+        {
+          "sel": "a.",
+          "text": "Terms",
+          "size": "36x20"
+        },
+        {
+          "sel": "a.",
+          "text": "Sign in",
+          "size": "41x20"
+        }
+      ]
+    },
+    "390": {
+      "horizontalOverflow": 0,
+      "escapes": [],
+      "overlaps": [],
+      "feedWidth": 286,
+      "smallTargets": [
+        {
+          "sel": "a.",
+          "text": "VitalCV for employers ↳",
+          "size": "145x19"
+        },
+        {
+          "sel": "button.ezh-sf-replay",
+          "text": "↻ Replay",
+          "size": "77x26"
+        },
+        {
+          "sel": "a.",
+          "text": "For employers",
+          "size": "84x20"
+        },
+        {
+          "sel": "a.",
+          "text": "Pricing",
+          "size": "41x20"
+        },
+        {
+          "sel": "a.",
+          "text": "Trust",
+          "size": "30x20"
+        },
+        {
+          "sel": "a.",
+          "text": "Status",
+          "size": "39x20"
+        },
+        {
+          "sel": "a.",
+          "text": "Privacy",
+          "size": "43x20"
+        },
+        {
+          "sel": "a.",
+          "text": "Terms",
+          "size": "36x20"
+        },
+        {
+          "sel": "a.",
+          "text": "Sign in",
+          "size": "41x20"
+        }
+      ]
+    },
+    "768": {
+      "horizontalOverflow": 0,
+      "escapes": [],
+      "overlaps": [],
+      "feedWidth": 664,
+      "smallTargets": [
+        {
+          "sel": "a.",
+          "text": "VitalCV for employers ↳",
+          "size": "145x19"
+        },
+        {
+          "sel": "button.ezh-sf-replay",
+          "text": "↻ Replay",
+          "size": "77x26"
+        },
+        {
+          "sel": "a.",
+          "text": "For employers",
+          "size": "84x20"
+        },
+        {
+          "sel": "a.",
+          "text": "Pricing",
+          "size": "41x20"
+        },
+        {
+          "sel": "a.",
+          "text": "Trust",
+          "size": "30x20"
+        },
+        {
+          "sel": "a.",
+          "text": "Status",
+          "size": "39x20"
+        },
+        {
+          "sel": "a.",
+          "text": "Privacy",
+          "size": "43x20"
+        },
+        {
+          "sel": "a.",
+          "text": "Terms",
+          "size": "36x20"
+        },
+        {
+          "sel": "a.",
+          "text": "Sign in",
+          "size": "41x20"
+        }
+      ]
+    },
+    "1280": {
+      "horizontalOverflow": 0,
+      "escapes": [],
+      "overlaps": [],
+      "feedWidth": 367,
+      "smallTargets": [
+        {
+          "sel": "a.",
+          "text": "VitalCV for employers ↳",
+          "size": "145x19"
+        },
+        {
+          "sel": "button.ezh-sf-replay",
+          "text": "↻ Replay",
+          "size": "77x26"
+        },
+        {
+          "sel": "a.",
+          "text": "For employers",
+          "size": "84x20"
+        },
+        {
+          "sel": "a.",
+          "text": "Pricing",
+          "size": "41x20"
+        },
+        {
+          "sel": "a.",
+          "text": "Trust",
+          "size": "30x20"
+        },
+        {
+          "sel": "a.",
+          "text": "Status",
+          "size": "39x20"
+        },
+        {
+          "sel": "a.",
+          "text": "Privacy",
+          "size": "43x20"
+        },
+        {
+          "sel": "a.",
+          "text": "Terms",
+          "size": "36x20"
+        },
+        {
+          "sel": "a.",
+          "text": "Sign in",
+          "size": "41x20"
+        }
+      ]
+    },
+    "1440": {
+      "horizontalOverflow": 0,
+      "escapes": [],
+      "overlaps": [],
+      "feedWidth": 439,
+      "smallTargets": [
+        {
+          "sel": "a.",
+          "text": "VitalCV for employers ↳",
+          "size": "145x19"
+        },
+        {
+          "sel": "button.ezh-sf-replay",
+          "text": "↻ Replay",
+          "size": "77x26"
+        },
+        {
+          "sel": "a.",
+          "text": "For employers",
+          "size": "84x20"
+        },
+        {
+          "sel": "a.",
+          "text": "Pricing",
+          "size": "41x20"
+        },
+        {
+          "sel": "a.",
+          "text": "Trust",
+          "size": "30x20"
+        },
+        {
+          "sel": "a.",
+          "text": "Status",
+          "size": "39x20"
+        },
+        {
+          "sel": "a.",
+          "text": "Privacy",
+          "size": "43x20"
+        },
+        {
+          "sel": "a.",
+          "text": "Terms",
+          "size": "36x20"
+        },
+        {
+          "sel": "a.",
+          "text": "Sign in",
+          "size": "41x20"
+        }
+      ]
+    }
+  },
+  "motion-settled": {
+    "360": {
+      "horizontalOverflow": 0,
+      "escapes": [],
+      "overlaps": [],
+      "feedWidth": 256,
+      "smallTargets": [
+        {
+          "sel": "a.",
+          "text": "VitalCV for employers ↳",
+          "size": "145x19"
+        },
+        {
+          "sel": "button.ezh-sf-replay",
+          "text": "↻ Replay",
+          "size": "77x26"
+        },
+        {
+          "sel": "a.",
+          "text": "For employers",
+          "size": "84x20"
+        },
+        {
+          "sel": "a.",
+          "text": "Pricing",
+          "size": "41x20"
+        },
+        {
+          "sel": "a.",
+          "text": "Trust",
+          "size": "30x20"
+        },
+        {
+          "sel": "a.",
+          "text": "Status",
+          "size": "39x20"
+        },
+        {
+          "sel": "a.",
+          "text": "Privacy",
+          "size": "43x20"
+        },
+        {
+          "sel": "a.",
+          "text": "Terms",
+          "size": "36x20"
+        },
+        {
+          "sel": "a.",
+          "text": "Sign in",
+          "size": "41x20"
+        }
+      ]
+    },
+    "390": {
+      "horizontalOverflow": 0,
+      "escapes": [],
+      "overlaps": [],
+      "feedWidth": 286,
+      "smallTargets": [
+        {
+          "sel": "a.",
+          "text": "VitalCV for employers ↳",
+          "size": "145x19"
+        },
+        {
+          "sel": "button.ezh-sf-replay",
+          "text": "↻ Replay",
+          "size": "77x26"
+        },
+        {
+          "sel": "a.",
+          "text": "For employers",
+          "size": "84x20"
+        },
+        {
+          "sel": "a.",
+          "text": "Pricing",
+          "size": "41x20"
+        },
+        {
+          "sel": "a.",
+          "text": "Trust",
+          "size": "30x20"
+        },
+        {
+          "sel": "a.",
+          "text": "Status",
+          "size": "39x20"
+        },
+        {
+          "sel": "a.",
+          "text": "Privacy",
+          "size": "43x20"
+        },
+        {
+          "sel": "a.",
+          "text": "Terms",
+          "size": "36x20"
+        },
+        {
+          "sel": "a.",
+          "text": "Sign in",
+          "size": "41x20"
+        }
+      ]
+    },
+    "768": {
+      "horizontalOverflow": 0,
+      "escapes": [],
+      "overlaps": [],
+      "feedWidth": 664,
+      "smallTargets": [
+        {
+          "sel": "a.",
+          "text": "VitalCV for employers ↳",
+          "size": "145x19"
+        },
+        {
+          "sel": "button.ezh-sf-replay",
+          "text": "↻ Replay",
+          "size": "77x26"
+        },
+        {
+          "sel": "a.",
+          "text": "For employers",
+          "size": "84x20"
+        },
+        {
+          "sel": "a.",
+          "text": "Pricing",
+          "size": "41x20"
+        },
+        {
+          "sel": "a.",
+          "text": "Trust",
+          "size": "30x20"
+        },
+        {
+          "sel": "a.",
+          "text": "Status",
+          "size": "39x20"
+        },
+        {
+          "sel": "a.",
+          "text": "Privacy",
+          "size": "43x20"
+        },
+        {
+          "sel": "a.",
+          "text": "Terms",
+          "size": "36x20"
+        },
+        {
+          "sel": "a.",
+          "text": "Sign in",
+          "size": "41x20"
+        }
+      ]
+    },
+    "1280": {
+      "horizontalOverflow": 0,
+      "escapes": [],
+      "overlaps": [],
+      "feedWidth": 367,
+      "smallTargets": [
+        {
+          "sel": "a.",
+          "text": "VitalCV for employers ↳",
+          "size": "145x19"
+        },
+        {
+          "sel": "button.ezh-sf-replay",
+          "text": "↻ Replay",
+          "size": "77x26"
+        },
+        {
+          "sel": "a.",
+          "text": "For employers",
+          "size": "84x20"
+        },
+        {
+          "sel": "a.",
+          "text": "Pricing",
+          "size": "41x20"
+        },
+        {
+          "sel": "a.",
+          "text": "Trust",
+          "size": "30x20"
+        },
+        {
+          "sel": "a.",
+          "text": "Status",
+          "size": "39x20"
+        },
+        {
+          "sel": "a.",
+          "text": "Privacy",
+          "size": "43x20"
+        },
+        {
+          "sel": "a.",
+          "text": "Terms",
+          "size": "36x20"
+        },
+        {
+          "sel": "a.",
+          "text": "Sign in",
+          "size": "41x20"
+        }
+      ]
+    },
+    "1440": {
+      "horizontalOverflow": 0,
+      "escapes": [],
+      "overlaps": [],
+      "feedWidth": 439,
+      "smallTargets": [
+        {
+          "sel": "a.",
+          "text": "VitalCV for employers ↳",
+          "size": "145x19"
+        },
+        {
+          "sel": "button.ezh-sf-replay",
+          "text": "↻ Replay",
+          "size": "77x26"
+        },
+        {
+          "sel": "a.",
+          "text": "For employers",
+          "size": "84x20"
+        },
+        {
+          "sel": "a.",
+          "text": "Pricing",
+          "size": "41x20"
+        },
+        {
+          "sel": "a.",
+          "text": "Trust",
+          "size": "30x20"
+        },
+        {
+          "sel": "a.",
+          "text": "Status",
+          "size": "39x20"
+        },
+        {
+          "sel": "a.",
+          "text": "Privacy",
+          "size": "43x20"
+        },
+        {
+          "sel": "a.",
+          "text": "Terms",
+          "size": "36x20"
+        },
+        {
+          "sel": "a.",
+          "text": "Sign in",
+          "size": "41x20"
+        }
+      ]
+    }
+  }
+}
