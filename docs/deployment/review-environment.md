@@ -102,12 +102,35 @@ pin.
 > holding production's `DATABASE_URL` can write to real records. The preflight
 > **refuses to deploy** while either is set.
 
-### 2. One credential
+### 2. One credential — **currently blocked by a GitHub fault, not by you**
 
-**Status 2026-08-08: this is the one outstanding step.** The `review`
-environment exists in Railway, but no credential in CI can reach it.
+> **Read this before setting the secret again.** As of 2026-08-09 this
+> repository has an **open GitHub secret-propagation fault**: secrets created
+> since 2026-08-08 do not reach Actions jobs *regardless of tab, name or
+> scope*, and a support ticket is open. `RAILWAY_API_TOKEN` was already set
+> once and read as the empty string in CI — it is listed in the evidence table
+> in [`clerk-rotation-2026-08.md`](clerk-rotation-2026-08.md) alongside
+> `CLERK_SECRET_KEY_PROD` and `DATABASE_URL`, all reading length 0.
+>
+> Confirm the state before repeating the attempt:
+>
+> ```bash
+> gh workflow run secret-visibility-probe.yml
+> ```
+>
+> `PROBE_CANARY` is a five-character control value. **Reads 5** → propagation
+> works, and a missing secret really is missing. **Reads 0** → the fault is
+> open, and setting this secret again cannot work. Measured 2026-08-09: **0**,
+> while pre-fault secrets read 64 and 19 in the same job.
+>
+> Two production monitors (`Release verify`, `Synthetic Reconcile`) are red on
+> main for this same reason. That is correct behaviour — they are refusing to
+> claim they verified something they could not read — and it is not a
+> regression from any recent change.
 
-Why the existing one cannot: `RAILWAY_TOKEN` is a Railway **project** token,
+Once propagation is working, set the credential as below.
+
+Why the existing `RAILWAY_TOKEN` cannot serve: `RAILWAY_TOKEN` is a Railway **project** token,
 and project tokens are scoped to a **single environment** — this one to
 `production`. Three runs established that, in order:
 
