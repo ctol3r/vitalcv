@@ -1,4 +1,5 @@
 import { anchorPendingEvents } from '../services/ledger/merkleBatcher';
+import { recordAnchorRoot, witnessPendingRoots } from '../services/ledger/anchorWitness';
 import { assertHashOnlyAnchor, PhiOnChainError } from '@vitalcv/poe-engine';
 import { log } from '../obs/logger';
 
@@ -27,13 +28,13 @@ async function runAnchorCycle(): Promise<void> {
 
       log('info', `[AUDIT SCRAPBOOK] Anchored ${result.eventCount} events. Merkle Root: 0x${result.merkleRoot}`);
 
-      // Simulate writing the root to a Substrate / public ledger.
-      // In production this would be an on-chain extrinsic call.
-      log('info', '[AUDIT SCRAPBOOK] Simulated ledger write', {
-        root: `0x${result.merkleRoot.slice(0, 16)}`,
-        block: Math.floor(Date.now() / 1000),
-      });
+      // Persist the guard-passed root, then witness it externally (Rekor +
+      // RFC 3161 TSA — env-gated, fail-open for the cycle: a witness outage
+      // never blocks anchoring, and unwitnessed roots retry next cycle).
+      await recordAnchorRoot(result.merkleRoot, result.eventCount);
     }
+
+    await witnessPendingRoots();
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     log('error', `[AUDIT SCRAPBOOK] Anchor cycle failed: ${message}`);
