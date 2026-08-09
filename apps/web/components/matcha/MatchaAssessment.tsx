@@ -14,6 +14,7 @@ import { ChevronDown } from 'lucide-react';
 import { useClinicianMobile } from '@/components/mobile/ClinicianMobileProvider';
 import { useMatchaPreferences } from './useMatchaPreferences';
 import { MatchaStepInput } from './MatchaStepInput';
+import { MatchaStorageNotice } from './MatchaStorageNotice';
 import {
   CATEGORY_META,
   CATEGORY_ORDER,
@@ -35,7 +36,7 @@ function ProgressBar({ percent }: { percent: number }) {
 export function MatchaAssessment() {
   const { data } = useClinicianMobile();
   const npi = data.workspace?.personProfile?.npi ?? undefined;
-  const { preferences, completeness, setField } = useMatchaPreferences(npi);
+  const { preferences, completeness, setField, notice } = useMatchaPreferences(npi);
   const [open, setOpen] = useState<MatchCategory | null>('personal');
 
   const progress = allCategoryProgress(preferences);
@@ -58,6 +59,10 @@ export function MatchaAssessment() {
           </span>
         </div>
       </header>
+
+      {/* "everything you enter stays yours" is true; where it is kept is the part the
+          reader cannot see, and it changes what a failed write costs them. */}
+      <MatchaStorageNotice notice={notice} />
 
       {/* Category sections */}
       {CATEGORY_ORDER.map((cat) => {

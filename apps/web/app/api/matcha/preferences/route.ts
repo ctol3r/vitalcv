@@ -36,8 +36,10 @@ export async function GET() {
     });
   } catch (err) {
     console.error('[matcha/preferences GET]', err);
-    // Degrade to empty — the client keeps its local cache as the fallback.
-    return NextResponse.json({ preferences: {}, updatedAt: null });
+    // Degrade rather than 500, but say so. An empty 200 is indistinguishable from an
+    // account that genuinely has no preferences saved, and the client would render the
+    // browser's local copy as though it were the account's own.
+    return NextResponse.json({ preferences: {}, updatedAt: null, degraded: true });
   }
 }
 
@@ -74,7 +76,9 @@ export async function PUT(req: NextRequest) {
     });
   } catch (err) {
     console.error('[matcha/preferences PUT]', err);
-    // Best-effort: never break the client; localStorage remains the fallback.
-    return NextResponse.json({ ok: false }, { status: 200 });
+    // Never break the client, but never imply the write landed either: `ok:false` is
+    // the signal that this answer exists only in the caller's browser. Clients must
+    // treat it as an unsaved write, not as a successful one.
+    return NextResponse.json({ ok: false, degraded: true }, { status: 200 });
   }
 }

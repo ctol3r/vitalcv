@@ -10,7 +10,19 @@ export type MarketplaceRole = 'guest' | 'clinician' | 'employer';
 
 export interface RoleContextValue {
   isLoaded: boolean;
+  /**
+   * True once the Clerk session itself has resolved, independent of the workspace
+   * fetch that `isLoaded` also waits on. A cache keyed by account must not read or
+   * write until this is true, or it picks a bucket before it knows the identity.
+   */
+  sessionLoaded: boolean;
   isSignedIn: boolean;
+  /**
+   * The Clerk user id of the current session, or null when signed out. Exposed so
+   * client-side caches can be keyed per account instead of per browser — see
+   * `lib/matcha/storage.ts`, where an unkeyed cache let one account read another's.
+   */
+  userId: string | null;
   clerkRole: string | null;
   persona: ActivePersona | null;
   role: MarketplaceRole;
@@ -134,7 +146,9 @@ function RoleProviderInner({
 
     return {
       isLoaded: sessionLoaded && workspaceLoaded,
+      sessionLoaded,
       isSignedIn: derived.isSignedIn,
+      userId,
       clerkRole,
       persona: derived.persona,
       role: derived.role,
