@@ -46,7 +46,14 @@ interface Props {
 type Phase = 'form' | 'submitting' | 'success' | 'error';
 const REQUEST_TIMEOUT_MS = 12_000;
 
-const DISCLOSURE_SECTIONS = [
+/**
+ * The section vocabulary this consent surface presents. The sealing truth
+ * lives in the backend (`APPLICATION_DISCLOSURE_SECTIONS` +
+ * `buildFieldEntriesFromTrustState`); apply-disclosure-contract.test.ts pins
+ * this list to the backend's ids so the preview can never drift from what a
+ * submission actually seals. Exported for that contract test.
+ */
+export const DISCLOSURE_SECTIONS = [
   {
     id: 'identity',
     label: 'Identity',
@@ -654,9 +661,6 @@ export default function ApplyModal({
                             <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-emerald-600">
                               Readiness {trustState.readinessLevel}
                             </p>
-                            <span className="w-fit rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] font-bold text-zinc-900">
-                              Score: {trustState.readinessScore}/100
-                            </span>
                           </div>
                           <p className="text-xs font-semibold text-zinc-800">
                             {trustState.readinessStatus}
@@ -687,8 +691,12 @@ export default function ApplyModal({
                       Choose what to present
                     </legend>
                     <p className="mt-1 text-xs leading-5 text-zinc-600">
-                      This is the exact section selection sealed into this employer&apos;s application packet.
-                      Omitted sections are not presented.
+                      The employer receives evidence from exactly these sections — omitted sections
+                      are not presented. The field-by-field contents become visible in your
+                      application record the moment it is sealed.
+                    </p>
+                    <p className="mt-1 text-xs leading-5 text-zinc-600">
+                      Recipient: <span className="font-semibold text-zinc-800">{opportunity.organizationName}</span> · Purpose: this application only.
                     </p>
                     <div className="mt-3 space-y-2">
                       {DISCLOSURE_SECTIONS.map((section) => {
