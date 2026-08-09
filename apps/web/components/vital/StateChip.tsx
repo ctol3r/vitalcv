@@ -91,6 +91,27 @@ export function StateChip({
         backgroundColor: `color-mix(in oklab, ${color} 9%, transparent)`,
       }}
       title={accessibleName}
+      /**
+       * role="img" is load-bearing, not decoration.
+       *
+       * `aria-label` is PROHIBITED on a role-less <span> — the element exposes
+       * no role that supports an accessible name, so assistive tech discards
+       * the attribute. With the icon and the visible word both aria-hidden
+       * below, that left this chip announcing **nothing at all**: the state was
+       * conveyed to sighted users only. On /trust — the page whose entire job
+       * is explaining what each state means — seven chips were silent.
+       *
+       * Caught by tests/e2e/a11y-public-routes.spec.ts (axe
+       * `aria-prohibited-attr`, 7 nodes) the first time a11y ran against the
+       * real page instead of a fixture.
+       *
+       * role="img" makes the composite glyph+word a single labelled object, so
+       * `accessibleName` — which carries the state AND its attribution — is the
+       * one thing announced, instead of the icon and word being read as two
+       * unrelated fragments. The children stay aria-hidden deliberately: they
+       * are the visual rendering of that same name.
+       */
+      role="img"
       aria-label={accessibleName}
     >
       <Icon size={glyph} aria-hidden="true" />

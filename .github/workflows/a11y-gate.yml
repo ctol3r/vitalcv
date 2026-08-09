@@ -36,4 +36,4 @@ jobs:
       - name: Build workspace package dependencies
         run: pnpm turbo build --filter='!@vitalcv/web'
       - name: Run axe WCAG 2.2 AA suite
-        run: pnpm --filter @vitalcv/web exec vitest run __tests__/a11y/hero-routes.test.tsx
+        run: pnpm --filter @vitalcv/web exec vitest run __tests__/a11y/shipped-components.test.tsx

@@ -1,0 +1,98 @@
+{
+  "/": {
+    "violations": {},
+    "smallTargets": 13
+  },
+  "/contact": {
+    "violations": {
+      "color-contrast": 3
+    },
+    "smallTargets": 13
+  },
+  "/docs": {
+    "violations": {},
+    "smallTargets": 12
+  },
+  "/employers": {
+    "violations": {},
+    "smallTargets": 19
+  },
+  "/evidence-network": {
+    "violations": {
+      "color-contrast": 1
+    },
+    "smallTargets": 15
+  },
+  "/for/cvo": {
+    "violations": {},
+    "smallTargets": 12
+  },
+  "/for/payer": {
+    "violations": {},
+    "smallTargets": 12
+  },
+  "/for/staffing-exchange": {
+    "violations": {},
+    "smallTargets": 12
+  },
+  "/onboarding": {
+    "violations": {},
+    "smallTargets": 11
+  },
+  "/pilot": {
+    "violations": {},
+    "smallTargets": 12
+  },
+  "/pricing": {
+    "violations": {
+      "color-contrast": 7
+    },
+    "smallTargets": 15
+  },
+  "/privacy": {
+    "violations": {
+      "color-contrast": 1
+    },
+    "smallTargets": 16
+  },
+  "/review": {
+    "violations": {
+      "color-contrast": 1
+    },
+    "smallTargets": 13
+  },
+  "/sign-in": {
+    "violations": {},
+    "smallTargets": 12
+  },
+  "/sign-up": {
+    "violations": {},
+    "smallTargets": 12
+  },
+  "/status": {
+    "violations": {
+      "color-contrast": 1
+    },
+    "smallTargets": 13
+  },
+  "/terms": {
+    "violations": {
+      "color-contrast": 1
+    },
+    "smallTargets": 16
+  },
+  "/trust": {
+    "violations": {},
+    "smallTargets": 14
+  },
+  "/verify": {
+    "violations": {},
+    "smallTargets": 13
+  },
+  "/verify/guide": {
+    "violations": {
+      "color-contrast": 6
+    },
+    "smallTargets": 18
+  }
+}
