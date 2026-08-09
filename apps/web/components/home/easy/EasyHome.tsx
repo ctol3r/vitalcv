@@ -307,6 +307,78 @@ export default function EasyHome() {
         </div>
       </section>
 
+      {/* ── the matching layer: why the roles here are different ─────────── */}
+      <section
+        className="ezh-match"
+        data-header-theme="dark"
+        data-home-matching=""
+        aria-labelledby="ezh-match-h"
+      >
+        <div className="ezh-wrap">
+          <div className="ezh-sec-head">
+            <span className="ezh-k">Roles</span>
+            <h2 id="ezh-match-h">A job board that reads your credentials, not your keywords</h2>
+          </div>
+          <p className="ezh-sec-sub">
+            Most boards match the words on your r&eacute;sum&eacute;. VitalCV scores a role against
+            what your record already shows &mdash; and names what stands between you and it.
+          </p>
+
+          <div className="ezh-match-grid">
+            <ul className="ezh-match-points">
+              <li>
+                <span className="ezh-tt">Scored on your record</span>
+                <p>
+                  Your NPPES profile, licenses, and specialty &mdash; not the keywords you
+                  remembered to put in a document.
+                </p>
+              </li>
+              <li>
+                <span className="ezh-tt">Every match explains itself</span>
+                <p>
+                  What lines up and what doesn&rsquo;t, in plain terms. Not a percentage you
+                  can&rsquo;t argue with.
+                </p>
+              </li>
+              <li>
+                <span className="ezh-tt">Blockers before you apply</span>
+                <p>
+                  A role that needs a license you don&rsquo;t hold says so up front &mdash; not
+                  after the interview.
+                </p>
+              </li>
+            </ul>
+
+            <div className="ezh-match-panel">
+              <span className="ezh-k">How a match reads</span>
+              <p className="ezh-match-role">Internal Medicine &middot; California &middot; Permanent</p>
+              <ul className="ezh-match-rows">
+                <li className="ezh-match-row is-fit">
+                  <span className="ezh-match-mark" aria-hidden="true" />
+                  <span>Your state license covers where the role is</span>
+                </li>
+                <li className="ezh-match-row is-fit">
+                  <span className="ezh-match-mark" aria-hidden="true" />
+                  <span>Your specialty matches what the role asks for</span>
+                </li>
+                <li className="ezh-match-row is-block">
+                  <span className="ezh-match-mark" aria-hidden="true" />
+                  <span>Board certification isn&rsquo;t on your record yet</span>
+                </li>
+              </ul>
+              <p className="ezh-match-cap">
+                Illustrative &mdash; the shape of a match, not a real posting or a real employer.
+              </p>
+            </div>
+          </div>
+
+          <p className="ezh-match-scope">
+            VitalCV scores the roles that are on VitalCV &mdash; it doesn&rsquo;t crawl the rest of
+            the internet. When nothing fits, it says nothing fits instead of padding the list.
+          </p>
+        </div>
+      </section>
+
       {/* ── the outcome ──────────────────────────────────────────────────── */}
       <section className="ezh-out" data-header-theme="dark" aria-labelledby="ezh-out-h">
         <div className="ezh-wrap">

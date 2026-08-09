@@ -1529,6 +1529,116 @@
   color: var(--ezh-text3);
 }
 
+/* ── matching ──────────────────────────────────────────────────────────── */
+
+.ezh-match .ezh-wrap {
+  padding-bottom: 96px;
+}
+
+.ezh-match-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 420px);
+  gap: 56px;
+  align-items: start;
+  margin-top: 36px;
+}
+
+.ezh-match-points {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
+}
+
+.ezh-match-points li {
+  padding-left: 18px;
+  border-left: 2px solid var(--ezh-line2);
+}
+
+.ezh-match-points .ezh-tt {
+  display: block;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.ezh-match-points p {
+  margin-top: 7px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--ezh-text2);
+}
+
+.ezh-match-panel {
+  border: 1px solid var(--ezh-line);
+  border-radius: var(--vt-shape-card);
+  background: var(--ezh-panel);
+  padding: 24px 22px 20px;
+}
+
+.ezh-match-role {
+  margin-top: 12px;
+  font-size: 14.5px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.ezh-match-rows {
+  list-style: none;
+  margin: 18px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ezh-match-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--ezh-text2);
+}
+
+/* Shape carries the fit/blocker distinction as well as colour, so the readout
+   survives a monochrome render and any form of colour blindness. */
+.ezh-match-mark {
+  flex: none;
+  width: 9px;
+  height: 9px;
+  margin-top: 6px;
+}
+
+.ezh-match-row.is-fit .ezh-match-mark {
+  background: var(--ezh-work);
+  border-radius: 50%;
+}
+
+.ezh-match-row.is-block .ezh-match-mark {
+  background: var(--ezh-hold);
+  border-radius: 1px;
+}
+
+.ezh-match-cap {
+  margin-top: 20px;
+  padding-top: 14px;
+  border-top: 1px solid var(--ezh-line);
+  font-size: 11.5px;
+  line-height: 1.55;
+  color: var(--ezh-text3);
+}
+
+.ezh-match-scope {
+  margin-top: 40px;
+  max-width: 640px;
+  font-size: 13px;
+  line-height: 1.65;
+  color: var(--ezh-text3);
+}
+
 /* ── outcome ───────────────────────────────────────────────────────────── */
 
 .ezh-out .ezh-wrap {
@@ -1795,6 +1905,7 @@
 
   .ezh-out-grid,
   .ezh-emp-grid,
+  .ezh-match-grid,
   .ezh-start-grid {
     grid-template-columns: 1fr;
     gap: 44px;
