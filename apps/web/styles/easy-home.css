@@ -2090,3 +2090,744 @@
     transition: none !important;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ezh-story — "What VitalCV is": the deep five-chapter explainer (UX-04).
+
+   Same island discipline as everything above: --ezh-* tokens only, no
+   keyframes, no loops, no scroll interception. Server markup ships every
+   chapter complete (`is-play` in SSR); the client strips and replays a
+   chapter once as it enters the viewport. `is-reset` kills transitions for
+   the strip so nothing animates in reverse. Under prefers-reduced-motion
+   every transition collapses and the finished frames simply stand.
+
+   Atmosphere: one --vt-scene-glow per chapter, behind the scene frame only
+   (EC-20 gradient row as amended A-1 — never on a control, carries no
+   meaning). Chapter rhythm keeps one glow per viewport.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.ezh-story {
+  border-top: 1px solid var(--ezh-line);
+  padding: 96px 0 104px;
+}
+
+.ezh-story .ezh-wrap {
+  max-width: var(--ezh-maxw);
+}
+
+.ezh-st-lede {
+  max-width: 660px;
+  margin-top: 18px;
+  font-size: 17px;
+  line-height: 1.7;
+  color: var(--ezh-text2);
+}
+
+/* ── chapter grid ──────────────────────────────────────────────────────── */
+
+.ezh-st-ch {
+  display: grid;
+  grid-template-columns: 5fr 7fr;
+  gap: 56px;
+  align-items: center;
+  margin-top: 110px;
+  min-height: 58vh;
+}
+
+.ezh-st-ch.is-flip .ezh-st-copy {
+  order: 2;
+}
+
+.ezh-st-ch.is-flip .ezh-st-stage {
+  order: 1;
+}
+
+.ezh-st-num {
+  display: block;
+  font-family: var(--font-geist-mono);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  color: var(--vt-accent-editorial-on-dark);
+}
+
+.ezh-st-beat {
+  display: block;
+  margin-top: 10px;
+  font-family: var(--font-geist-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ezh-text3);
+}
+
+.ezh-st-copy h3 {
+  margin: 14px 0 0;
+  font-size: clamp(22px, 2.4vw, 28px);
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.015em;
+  color: var(--ezh-text);
+}
+
+.ezh-st-copy p {
+  margin: 14px 0 0;
+  max-width: 440px;
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--ezh-text2);
+}
+
+/* ── the stage: glow + frame + chrome ──────────────────────────────────── */
+
+.ezh-st-stage {
+  position: relative;
+  margin: 0;
+  min-width: 0;
+}
+
+/* The single travelling glow: only the chapter holding `is-glow` lights it,
+   so at most one is ever visible per viewport (EC-20 as amended A-1). */
+.ezh-st-glow {
+  position: absolute;
+  inset: -16% -10%;
+  background: var(--vt-scene-glow);
+  pointer-events: none;
+  opacity: 0;
+  transform: scale(0.92);
+  transition:
+    opacity 0.8s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.ezh-st-ch.is-glow.is-play .ezh-st-glow {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.ezh-st-frame {
+  position: relative;
+  border: 1px solid var(--ezh-line);
+  border-radius: var(--vt-shape-card);
+  background: var(--ezh-panel);
+  padding: 18px 20px 22px;
+}
+
+.ezh-st-chrome {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--ezh-line);
+}
+
+.ezh-st-cap {
+  font-family: var(--font-geist-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ezh-text3);
+}
+
+.ezh-st-replay {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--ezh-line2);
+  border-radius: var(--vt-shape-control);
+  background: transparent;
+  color: var(--ezh-text2);
+  font-family: var(--font-geist-mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.ezh-st-replay:hover {
+  color: var(--ezh-text);
+  border-color: var(--ezh-text3);
+}
+
+.ezh-st-replay:focus-visible {
+  outline: 2px solid var(--ezh-focus);
+  outline-offset: 2px;
+}
+
+.ezh-st-legend {
+  margin-top: 12px;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--ezh-text3);
+}
+
+/* ── shared scene grammar ──────────────────────────────────────────────── */
+
+.ezh-st-scene {
+  position: relative;
+  padding-top: 18px;
+  min-height: 280px;
+}
+
+/* Every animated element: hidden base, flowy single-shot entrance on play. */
+.ezh-st-scene .ezh-st-seed,
+.ezh-st-scene .ezh-st-g,
+.ezh-st-scene .ezh-st-spine,
+.ezh-st-scene .ezh-st-nascent,
+.ezh-st-scene .ezh-st-record,
+.ezh-st-scene .ezh-st-fact,
+.ezh-st-scene .ezh-st-srcnode,
+.ezh-st-scene .ezh-st-lane,
+.ezh-st-scene .ezh-st-item,
+.ezh-st-scene .ezh-st-feed,
+.ezh-st-scene .ezh-st-line,
+.ezh-st-scene .ezh-st-gate,
+.ezh-st-scene .ezh-st-gate-ok,
+.ezh-st-scene .ezh-st-keep,
+.ezh-st-scene .ezh-st-arc,
+.ezh-st-scene .ezh-st-travel,
+.ezh-st-scene .ezh-st-desk {
+  transition:
+    opacity 0.42s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.42s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.ezh-st-ch:not(.is-play) .ezh-st-seed,
+.ezh-st-ch:not(.is-play) .ezh-st-nascent,
+.ezh-st-ch:not(.is-play) .ezh-st-record,
+.ezh-st-ch:not(.is-play) .ezh-st-fact,
+.ezh-st-ch:not(.is-play) .ezh-st-srcnode,
+.ezh-st-ch:not(.is-play) .ezh-st-lane,
+.ezh-st-ch:not(.is-play) .ezh-st-item,
+.ezh-st-ch:not(.is-play) .ezh-st-feed,
+.ezh-st-ch:not(.is-play) .ezh-st-line,
+.ezh-st-ch:not(.is-play) .ezh-st-gate,
+.ezh-st-ch:not(.is-play) .ezh-st-desk {
+  opacity: 0;
+  transform: translateY(16px);
+}
+
+.ezh-st-ch.is-reset *,
+.ezh-st-ch.is-reset .ezh-st-glow {
+  transition: none !important;
+}
+
+/* ── chapter 1 — identify ──────────────────────────────────────────────── */
+
+.ezh-st-sc1 {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  padding-bottom: 8px;
+}
+
+.ezh-st-seed {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid var(--ezh-line2);
+  border-radius: var(--vt-shape-control);
+  background: var(--ezh-panel2);
+  padding: 16px 18px;
+}
+
+.ezh-st-seedk {
+  font-family: var(--font-geist-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--ezh-text2);
+}
+
+.ezh-st-seedv {
+  display: inline-flex;
+  gap: 6px;
+}
+
+.ezh-st-g {
+  width: 11px;
+  height: 17px;
+  border-radius: 2px;
+  background: var(--ezh-line2);
+  opacity: 1;
+  transform: none;
+}
+
+.ezh-st-ch:not(.is-play) .ezh-st-g {
+  opacity: 0;
+  transform: translateY(6px);
+}
+
+.ezh-st-ch.is-play .ezh-st-g:nth-child(1) { transition-delay: 0.15s; }
+.ezh-st-ch.is-play .ezh-st-g:nth-child(2) { transition-delay: 0.24s; }
+.ezh-st-ch.is-play .ezh-st-g:nth-child(3) { transition-delay: 0.33s; }
+.ezh-st-ch.is-play .ezh-st-g:nth-child(4) { transition-delay: 0.42s; }
+.ezh-st-ch.is-play .ezh-st-g:nth-child(5) { transition-delay: 0.51s; }
+.ezh-st-ch.is-play .ezh-st-g:nth-child(6) { transition-delay: 0.6s; }
+.ezh-st-ch.is-play .ezh-st-g:nth-child(7) { transition-delay: 0.69s; }
+.ezh-st-ch.is-play .ezh-st-g:nth-child(8) { transition-delay: 0.78s; }
+.ezh-st-ch.is-play .ezh-st-g:nth-child(9) { transition-delay: 0.87s; }
+.ezh-st-ch.is-play .ezh-st-g:nth-child(10) { transition-delay: 0.96s; }
+
+.ezh-st-tag {
+  font-family: var(--font-geist-mono);
+  font-size: 9px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--ezh-text3);
+  border: 1px solid var(--ezh-line);
+  border-radius: var(--vt-shape-pill);
+  padding: 3px 8px;
+}
+
+.ezh-st-spine {
+  width: 2px;
+  height: 56px;
+  background: var(--ezh-line2);
+  transform-origin: top;
+  transform: scaleY(1);
+  transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.ezh-st-ch:not(.is-play) .ezh-st-spine {
+  transform: scaleY(0);
+}
+
+.ezh-st-ch.is-play .ezh-st-spine {
+  transition-delay: 1.2s;
+}
+
+.ezh-st-nascent {
+  width: min(300px, 78%);
+  border: 1px solid var(--ezh-line);
+  border-radius: 3px;
+  padding: 14px 16px 18px;
+  position: relative;
+}
+
+.ezh-st-ch.is-play .ezh-st-nascent {
+  transition-delay: 1.55s;
+}
+
+.ezh-st-rec-edge {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--ezh-text);
+}
+
+.ezh-st-nascent-cap {
+  display: block;
+  margin-top: 4px;
+  font-family: var(--font-geist-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ezh-text2);
+}
+
+/* ── chapter 2 — build ─────────────────────────────────────────────────── */
+
+.ezh-st-sc2 {
+  display: grid;
+  grid-template-columns: 7fr 5fr;
+  gap: 20px;
+  align-items: start;
+}
+
+.ezh-st-record {
+  position: relative;
+  border: 1px solid var(--ezh-line2);
+  border-radius: 3px;
+  padding: 18px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ezh-st-fact {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ezh-st-fact .ezh-skel {
+  flex: 0 1 auto;
+}
+
+.ezh-st-ch.is-play .ezh-st-record { transition-delay: 0.1s; }
+.ezh-st-ch.is-play .ezh-st-fact.f1 { transition-delay: 0.55s; }
+.ezh-st-ch.is-play .ezh-st-fact.f2 { transition-delay: 0.95s; }
+.ezh-st-ch.is-play .ezh-st-fact.f3 { transition-delay: 1.35s; }
+.ezh-st-ch.is-play .ezh-st-fact.f4 { transition-delay: 1.75s; }
+
+.ezh-st-open-slot {
+  font-family: var(--font-geist-mono);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ezh-hold);
+  border: 1px dashed var(--ezh-line2);
+  border-radius: 3px;
+  padding: 6px 10px;
+}
+
+.ezh-st-sources {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 8px;
+}
+
+.ezh-st-srcnode {
+  font-family: var(--font-geist-mono);
+  font-size: 10px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--ezh-text2);
+  border: 1px solid var(--ezh-line2);
+  border-radius: var(--vt-shape-pill);
+  padding: 8px 12px;
+  align-self: flex-start;
+}
+
+.ezh-st-ch.is-play .ezh-st-srcnode.s1 { transition-delay: 0.4s; }
+.ezh-st-ch.is-play .ezh-st-srcnode.s2 { transition-delay: 0.8s; }
+.ezh-st-ch.is-play .ezh-st-srcnode.s3 { transition-delay: 1.2s; }
+
+.ezh-st-ch:not(.is-play) .ezh-st-fact .ezh-skel {
+  transform: scaleX(0.4);
+}
+
+.ezh-st-ch.is-play .ezh-st-fact .ezh-skel {
+  transform: none;
+}
+
+/* ── chapter 3 — choose ────────────────────────────────────────────────── */
+
+.ezh-st-sc3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.ezh-st-lane {
+  border: 1px solid var(--ezh-line);
+  border-radius: var(--vt-shape-control);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 104px;
+}
+
+.ezh-st-lane-k {
+  font-family: var(--font-geist-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ezh-text2);
+}
+
+.ezh-st-lane.l2 .ezh-st-lane-k,
+.ezh-st-lane.l3 .ezh-st-lane-k {
+  color: var(--ezh-hold);
+}
+
+.ezh-st-item {
+  font-size: 13px;
+  color: var(--ezh-text);
+  border: 1px solid var(--ezh-line2);
+  border-radius: 3px;
+  padding: 7px 10px;
+  align-self: flex-start;
+}
+
+.ezh-st-ch.is-play .ezh-st-lane.l1 { transition-delay: 0.1s; }
+.ezh-st-ch.is-play .ezh-st-lane.l2 { transition-delay: 0.25s; }
+.ezh-st-ch.is-play .ezh-st-lane.l3 { transition-delay: 0.4s; }
+.ezh-st-ch.is-play .ezh-st-lane.l4 { transition-delay: 0.55s; }
+.ezh-st-ch.is-play .ezh-st-item.i1 { transition-delay: 0.8s; }
+.ezh-st-ch.is-play .ezh-st-item.i2 { transition-delay: 1.0s; }
+.ezh-st-ch.is-play .ezh-st-item.i3 { transition-delay: 1.2s; }
+.ezh-st-ch.is-play .ezh-st-item.i4 { transition-delay: 1.4s; }
+.ezh-st-ch.is-play .ezh-st-item.i5 { transition-delay: 1.6s; }
+
+/* ── chapter 4 — apply ─────────────────────────────────────────────────── */
+
+.ezh-st-sc4 {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.ezh-st-feed {
+  border: 1px solid var(--ezh-line);
+  border-radius: var(--vt-shape-control);
+  padding: 14px 16px;
+}
+
+.ezh-st-feedk {
+  display: block;
+  margin-bottom: 8px;
+  font-family: var(--font-geist-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ezh-text2);
+}
+
+.ezh-st-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: var(--ezh-text2);
+}
+
+.ezh-st-line .ezh-ck {
+  color: var(--ezh-work);
+  font-style: normal;
+}
+
+.ezh-st-ch.is-play .ezh-st-line.w1 { transition-delay: 0.4s; }
+.ezh-st-ch.is-play .ezh-st-line.w2 { transition-delay: 0.9s; }
+.ezh-st-ch.is-play .ezh-st-line.w3 { transition-delay: 1.4s; }
+
+.ezh-st-gate {
+  border: 1px solid var(--ezh-hold);
+  border-radius: var(--vt-shape-control);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ezh-st-ch.is-play .ezh-st-gate { transition-delay: 1.9s; }
+
+.ezh-st-gate-wait {
+  font-family: var(--font-geist-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ezh-hold);
+}
+
+.ezh-st-gate-what {
+  font-size: 14px;
+  color: var(--ezh-text);
+}
+
+.ezh-st-gate-btn {
+  align-self: flex-start;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ezh-cta-text);
+  background: var(--ezh-cta-bg);
+  border-radius: var(--vt-shape-control);
+  padding: 9px 16px;
+  transform: none;
+  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.ezh-st-ch.is-play .ezh-st-gate-btn {
+  transition-delay: 2.7s;
+}
+
+.ezh-st-ch:not(.is-play) .ezh-st-gate-btn {
+  transform: scale(0.96);
+}
+
+.ezh-st-gate-ok {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  color: var(--ezh-work);
+  opacity: 1;
+  transform: none;
+}
+
+.ezh-st-gate-ok .ezh-ck {
+  font-style: normal;
+}
+
+.ezh-st-ch:not(.is-play) .ezh-st-gate-ok {
+  opacity: 0;
+  transform: translateY(8px);
+}
+
+.ezh-st-ch.is-play .ezh-st-gate-ok {
+  transition-delay: 3.3s;
+}
+
+/* ── chapter 5 — carry forward ─────────────────────────────────────────── */
+
+.ezh-st-sc5 {
+  display: grid;
+  grid-template-columns: 5fr 1fr 4fr;
+  gap: 12px;
+  align-items: center;
+}
+
+.ezh-st-keep,
+.ezh-st-travel {
+  position: relative;
+  border: 1px solid var(--ezh-line2);
+  border-radius: 3px;
+  padding: 18px 14px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ezh-st-travel {
+  border-color: var(--ezh-line);
+}
+
+.ezh-st-keep-k {
+  font-family: var(--font-geist-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ezh-text2);
+}
+
+.ezh-st-keep-cap {
+  margin-top: 2px;
+  font-family: var(--font-geist-mono);
+  font-size: 9px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--ezh-text3);
+}
+
+.ezh-st-arc {
+  height: 1px;
+  background: var(--ezh-line2);
+  transform-origin: left;
+  transform: scaleX(1);
+  transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.ezh-st-ch:not(.is-play) .ezh-st-arc {
+  transform: scaleX(0);
+}
+
+.ezh-st-ch.is-play .ezh-st-keep { transition-delay: 0.1s; }
+.ezh-st-ch.is-play .ezh-st-arc { transition-delay: 0.7s; }
+
+.ezh-st-ch:not(.is-play) .ezh-st-travel {
+  opacity: 0;
+  transform: translateX(-32px);
+}
+
+.ezh-st-travel {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.ezh-st-ch.is-play .ezh-st-travel { transition-delay: 1.1s; }
+
+.ezh-st-sc5 .ezh-st-desk {
+  grid-column: 3;
+  margin-top: 12px;
+  border: 1px solid var(--ezh-line);
+  border-radius: var(--vt-shape-control);
+  padding: 12px 14px;
+}
+
+.ezh-st-desk-k {
+  display: block;
+  font-family: var(--font-geist-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ezh-text2);
+}
+
+.ezh-st-desk-verdict {
+  display: block;
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--ezh-wait);
+}
+
+.ezh-st-ch.is-play .ezh-st-desk { transition-delay: 1.7s; }
+
+/* ── close line ────────────────────────────────────────────────────────── */
+
+.ezh-st-close {
+  margin: 110px auto 0;
+  max-width: 620px;
+  text-align: center;
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--ezh-text2);
+}
+
+/* ── mobile: one column, scenes stay complete ──────────────────────────── */
+
+@media (max-width: 860px) {
+  .ezh-story {
+    padding: 64px 0 72px;
+  }
+
+  .ezh-st-ch {
+    grid-template-columns: 1fr;
+    gap: 24px;
+    margin-top: 72px;
+    min-height: 0;
+  }
+
+  .ezh-st-ch.is-flip .ezh-st-copy {
+    order: 1;
+  }
+
+  .ezh-st-ch.is-flip .ezh-st-stage {
+    order: 2;
+  }
+
+  .ezh-st-sc2 {
+    grid-template-columns: 1fr;
+  }
+
+  .ezh-st-sources {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .ezh-st-sc5 {
+    grid-template-columns: 1fr;
+  }
+
+  .ezh-st-arc {
+    display: none;
+  }
+
+  .ezh-st-sc5 .ezh-st-desk {
+    grid-column: auto;
+  }
+
+  .ezh-st-close {
+    margin-top: 72px;
+  }
+}
+
+/* Reduced motion: the finished frames simply stand. */
+@media (prefers-reduced-motion: reduce) {
+  .ezh-story *,
+  .ezh-story *::before,
+  .ezh-story *::after {
+    transition: none !important;
+  }
+}

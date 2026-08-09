@@ -26,6 +26,7 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
+import ProcessStory from '@/components/home/easy/ProcessStory';
 import WorkSurface from '@/components/home/easy/WorkSurface';
 import { FUNNEL_EVENTS, trackFunnelEvent } from '@/lib/analytics/funnel';
 import { useCareerLoop } from '@/lib/career-loop/useCareerLoop';
@@ -249,6 +250,9 @@ export default function EasyHome() {
           </div>
         </div>
       </section>
+
+      {/* ── what VitalCV is — the deep five-chapter explainer (UX-04) ────── */}
+      <ProcessStory />
 
       {/* ── the agent's ownership model ──────────────────────────────────── */}
       <section className="ezh-own" data-header-theme="dark" aria-labelledby="ezh-own-h">
