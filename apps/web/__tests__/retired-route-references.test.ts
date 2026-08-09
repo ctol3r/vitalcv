@@ -3,7 +3,7 @@
  *
  * Wave 1080 removed nine measured-dead paths from `publicSurfaceRoutes.ts` and
  * gated the registry so an unlanded promise expires loudly. But the registry
- * only decides which routes get Navbar + Footer chrome. It says nothing about
+ * only decides which routes get Eyebrow + Footer chrome. It says nothing about
  * whether anything still *navigates* to them, and three live references
  * outlived that cleanup:
  *

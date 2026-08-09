@@ -27,7 +27,6 @@ import {
 } from '@/components/layout/journeyStages';
 import { NAV_GROUPS, allNavHrefs } from '@/components/layout/navDestinations';
 import { getHeaderRouteContext } from '@/components/layout/headerRouteContext';
-import { JourneyRail } from '@/components/layout/JourneyRail';
 import { activationHeaderStage } from '@/lib/activation/headerStage';
 
 describe('journey stages', () => {
@@ -140,46 +139,5 @@ describe('activation stage truth', () => {
     for (const phase of ['checking', 'intro', 'form', 'submitting', 'student_success', 'load_error', 'signed_out']) {
       expect(activationHeaderStage(phase)).toBe('your-number');
     }
-  });
-});
-
-describe('JourneyRail rendering', () => {
-  it('marks the active stage with aria-current="step" and SR narration', () => {
-    const html = renderToStaticMarkup(
-      <JourneyRail stage="sources" interactive={false} variant="bar" />,
-    );
-    expect(html).toContain('aria-current="step"');
-    expect(html).toContain('current stage, 2 of 4');
-    expect(html).toContain('data-rail-stage="sources"');
-  });
-
-  it('carries state by shape, not color alone', () => {
-    const html = renderToStaticMarkup(
-      <JourneyRail stage="permission" interactive={false} variant="bar" />,
-    );
-    expect(html).toContain('data-rail-state="passed"');
-    expect(html).toContain('data-rail-state="active"');
-    expect(html).toContain('data-rail-state="ahead"');
-    expect((html.match(/vcv-rail__dot/g) ?? []).length).toBe(4);
-  });
-
-  it('renders anchors only when interactive, plain indicators otherwise', () => {
-    const interactive = renderToStaticMarkup(
-      <JourneyRail stage="your-number" interactive variant="bar" />,
-    );
-    expect(interactive).toContain('href="/#sources"');
-    const indicator = renderToStaticMarkup(
-      <JourneyRail stage="your-number" interactive={false} variant="bar" />,
-    );
-    expect(indicator).not.toContain('href=');
-  });
-
-  it('renders no ordinal numbering (CD-13)', () => {
-    const html = renderToStaticMarkup(
-      <JourneyRail stage="review" interactive={false} variant="bar" />,
-    );
-    // Position lives in SR text ("N of 4"), never as a rendered ordinal
-    // glyph before a label.
-    expect(html).not.toMatch(/>0[1-6]</);
   });
 });

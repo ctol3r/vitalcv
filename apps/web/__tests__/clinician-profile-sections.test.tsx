@@ -253,7 +253,6 @@ describe('ClinicianProfileSections', () => {
 describe('LIVE-100B source copy guard', () => {
   const sourceFiles = [
     'app/page.tsx',
-    'components/layout/Navbar.tsx',
     // /passport retired 2026-08-07 — its surviving redirect stub carries no
     // copy; the guest record surface it pointed to is swept via GetReadySurface.
     'app/passport/page.tsx',

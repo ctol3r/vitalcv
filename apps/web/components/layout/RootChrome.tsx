@@ -53,9 +53,10 @@ export default function RootChrome({ children, clerkEnabled }: RootChromeProps) 
       >
         Skip to content
       </a>
-      {/* UX-V1: the architectural eyebrow replaces Navbar + AnnouncementRail on
-          public surfaces. Navbar, AnnouncementRail, HeaderMenu, LiquidMenu and
-          JourneyRail are parked, not deleted — see
+      {/* UX-V1: the architectural eyebrow is the public chrome. The journey-rail
+          era it replaced (Navbar, AnnouncementRail, HeaderMenu, LiquidMenu,
+          JourneyRail, styles/header.css) was DELETED 2026-08-09 on the founder's
+          rollback-confidence call — recoverable from git history, recorded in
           docs/design/PARKED_VISUAL_ERAS.md. */}
       <Eyebrow />
       {/* UX-03: the signed-in counterpart. Eyebrow and ProductChrome are
