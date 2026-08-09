@@ -2,7 +2,6 @@
  * networkGateway.ts — Wave 91 + 96: Network Gateway + Webhook APIs
  *
  * SERVED:
- *   GET  /api/network/gateway/connections — List connected orgs
  *   GET  /api/network/global              — Wave 96: Global trust network graph
  *
  * NOT SERVED (see "Unwired scaffold" below):
@@ -10,20 +9,26 @@
  *   POST /api/network/webhooks/register   — Register webhook
  *   POST /api/network/webhooks/test       — Test webhook delivery
  *   GET  /api/network/webhooks            — List webhook subscriptions
+ *   GET  /api/network/gateway/connections — List connected orgs
  *
- * ── Why the two reads stay reachable ────────────────────────────────────────
- * Both have real consumers and both are aggregate platform views, not per-tenant
- * data: `/global` backs the institutions map, `GlobalTrustMap`, and the ops
- * `TrustGraphConsole`; `/gateway/connections` backs `GatewayConnections`. The
- * graph's clinician nodes carry only an NPI and a label, both of which are
- * public NPPES facts; the trust metrics on it belong to issuer nodes, and it
- * contains no acceptance edges, so it does not reveal which employer engaged
- * which clinician. Keeping them public was an explicit decision (2026-07-28),
- * not an oversight — if that changes, they need identity forwarding added to
- * those three web callers in the same change, or the surfaces break.
+ * ── Why the one read stays reachable ────────────────────────────────────────
+ * `/global` has a real consumer and is an aggregate platform view, not
+ * per-tenant data. The graph's clinician nodes carry only an NPI and a label,
+ * both of which are public NPPES facts; the trust metrics on it belong to issuer
+ * nodes, and it contains no acceptance edges, so it does not reveal which
+ * employer engaged which clinician. Keeping it public was an explicit decision
+ * (2026-07-28), not an oversight — if that changes, it needs identity forwarding
+ * added to its caller in the same change, or the institutions map breaks.
+ *
+ * That caller is `apps/web/app/api/map/institutions/route.ts`, a served Next
+ * route handler that fetches this route to build the map layer. #962 also named
+ * `GlobalTrustMap` and the ops `TrustGraphConsole`; re-checked 2026-08-09, both
+ * are dead — `GlobalTrustMap` has zero importers, and every chain into
+ * `TrustGraphConsole` terminates in `app/_archive`, which is unrouted. Neither
+ * supports keeping anything reachable. The route handler does, on its own.
  *
  * ── Unwired scaffold ────────────────────────────────────────────────────────
- * The four routes above were registered with NO authentication of any kind.
+ * The five routes above were registered with NO authentication of any kind.
  * `connect` minted a gateway token for any organization named in the body;
  * `webhooks/register` accepted an arbitrary org id and callback URL. Nothing in
  * the repository ever called any of them.
@@ -33,11 +38,20 @@
  * `webhookDispatcher`), nothing outside this module ever calls
  * `webhookDispatcher`, so a registered subscription is never dispatched — the
  * registry is write-only. Verified empty in production before removal:
- * `/gateway/connections` and `/webhooks` both returned `total: 0`. Removing
- * `connect` therefore changes nothing observable — `connections` was already
- * permanently empty, which is why `GatewayConnections` renders an empty state.
+ * `/gateway/connections` and `/webhooks` both returned `total: 0`.
  *
- * BEFORE RESTORING ANY OF THEM, all four must be true:
+ * `/gateway/connections` was kept served by #962 on the stated grounds that it
+ * "backs `GatewayConnections`". It did not: that component had ZERO importers —
+ * it was mounted on no page and no layout, so the justification for keeping a
+ * world-reachable unauthenticated route rested on a consumer that never
+ * rendered. Its emptiness was structural, not incidental: the only writer to
+ * `gatewayRegistry` is `services/network/gateway.ts`, which nothing imports, so
+ * the read answered `{ total: 0 }` in every process, permanently. The component
+ * is deleted in the same change that unregisters this route, because mounting it
+ * would have shipped a panel that can only ever say "no organizations connected"
+ * over copy pointing at `POST /api/network/gateway/connect` — 404 since #962.
+ *
+ * BEFORE RESTORING ANY OF THEM, all five must be true:
  *   1. Authentication. Every one was world-reachable. `connect` is credential
  *      issuance and needs a platform-operator boundary (middleware/platformAdmin.ts),
  *      not a session.
@@ -50,31 +64,24 @@
  *      internal/link-local addresses creates one immediately.
  *   4. Enumeration. `GET /api/network/webhooks` listed every subscription
  *      across all orgs, including each callback URL. It must be org-scoped.
+ *   5. Enumeration, again. `GET /api/network/gateway/connections` listed every
+ *      connected organization platform-wide with its permission set. It was
+ *      harmless only because the registry was always empty; the moment `connect`
+ *      is restored it stops being harmless, so restore the two together and
+ *      org-scope this one.
  *
- * `routes/__tests__/networkGatewayScaffold.test.ts` fails if any of the four is
+ * A restored route also needs a MOUNTED consumer, not merely a component that
+ * names it — that conflation is what kept this route served through #962.
+ *
+ * `routes/__tests__/networkGatewayScaffold.test.ts` fails if any of the five is
  * re-registered without this being revisited.
  */
 
 import type { Express, Request, Response } from 'express';
-import { gatewayRegistry } from '../services/network/gatewayRegistry';
 import { generateGlobalGraph } from '../services/network/globalGraph';
 import { log } from '../obs/logger';
 
 export function registerNetworkGatewayRoutes(app: Express): void {
-  // List connected organizations — aggregate, no per-tenant data.
-  app.get('/api/network/gateway/connections', (_req: Request, res: Response) => {
-    const connections = gatewayRegistry.listAll().map((org) => ({
-      id: org.id,
-      name: org.name,
-      type: org.type,
-      status: org.status,
-      connectedAt: org.connectedAt,
-      lastActivity: org.lastActivity,
-      permissions: org.permissions,
-    }));
-    res.json({ connections, total: connections.length });
-  });
-
   // ── GET /api/network/global — Wave 96: Global Trust Network Graph ──
   app.get('/api/network/global', async (_req: Request, res: Response) => {
     try {
