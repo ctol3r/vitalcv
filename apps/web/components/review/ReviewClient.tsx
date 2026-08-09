@@ -707,7 +707,7 @@ type ActionState =
   | { phase: 'error'; intent: EmployerReviewActionIntent; message: string }
   | { phase: 'downloading' };
 
-type EmployerActionEndpoint = 'accept' | 'request-refresh' | 'route-to-review' | 'reject';
+type EmployerActionEndpoint = 'accept' | 'request-refresh' | 'route-to-review';
 
 class PilotFallbackError extends Error {
   constructor(public readonly pilotMessage: string) {
@@ -786,7 +786,6 @@ async function postAction(
     const status = res.status;
     if (status === 401 || status === 403) {
       if (endpoint === 'request-refresh') throw new PilotFallbackError('Request recorded — clinician will be notified during pilot');
-      if (endpoint === 'reject') throw new PilotFallbackError('Rejection recorded — decision captured as pilot audit-boundary metadata');
     }
     throw new Error(err.error_description ?? `Action failed (${status})`);
   }
@@ -1528,11 +1527,7 @@ function ReviewClientLoaded({
           <SectionReveal delay={0.05}>
             <TrustStateCard
               title={actionState.message}
-              description={
-                actionState.intent === 'reject'
-                  ? 'Your rejection decision has been captured as audit-boundary metadata.'
-                  : 'Your request has been recorded. Clinicians will be notified through the operations channel.'
-              }
+              description="Your request has been recorded. Clinicians will be notified through the operations channel."
               tone="success"
               className="rounded-xl"
               actions={(

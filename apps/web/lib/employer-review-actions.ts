@@ -4,7 +4,14 @@ import type {
   CanonicalTruthStatus,
 } from '@vitalcv/trust-state';
 
-export type EmployerReviewActionIntent = 'accept' | 'refresh' | 'review' | 'reject';
+/**
+ * Mirrors the backend contract in
+ * `apps/api/backend/src/services/entity/employerReviewActions.ts`. There is no
+ * employer decline/reject action: no route mounts one and no writer persists
+ * one, so it must not appear here either — a phantom member let the review
+ * surface render a "rejection recorded" success with nothing written behind it.
+ */
+export type EmployerReviewActionIntent = 'accept' | 'refresh' | 'review';
 export type EmployerReviewPriority = 'LOW' | 'NORMAL' | 'HIGH';
 export type EmployerReviewPersistenceMode = 'durable_record' | 'audit_only';
 export type EmployerReviewPersistenceTarget =
@@ -134,7 +141,7 @@ function isNullableNumber(value: unknown): value is number | null | undefined {
 }
 
 function isEmployerReviewActionIntent(value: unknown): value is EmployerReviewActionIntent {
-  return value === 'accept' || value === 'refresh' || value === 'review' || value === 'reject';
+  return value === 'accept' || value === 'refresh' || value === 'review';
 }
 
 function isEmployerReviewPriority(value: unknown): value is EmployerReviewPriority {
@@ -273,7 +280,7 @@ export function isEmployerReviewActionState(value: unknown): value is EmployerRe
 
 export function normalizeEmployerReviewActionState(
   value: unknown,
-  expectedAction?: Exclude<EmployerReviewActionIntent, 'reject'>,
+  expectedAction?: EmployerReviewActionIntent,
 ): EmployerReviewActionState | null {
   if (!isEmployerReviewActionState(value)) {
     return null;
@@ -288,7 +295,7 @@ export function normalizeEmployerReviewActionState(
 
 export function normalizeEmployerReviewActionResponse(
   value: unknown,
-  expectedAction?: Exclude<EmployerReviewActionIntent, 'reject'>,
+  expectedAction?: EmployerReviewActionIntent,
 ): EmployerReviewActionResponse | null {
   if (!isRecord(value) || value.ok !== true) {
     return null;
@@ -378,8 +385,6 @@ export function employerReviewLoadingLabel(intent: EmployerReviewActionIntent): 
       return 'Recording refresh request...';
     case 'review':
       return 'Recording review routing...';
-    case 'reject':
-      return 'Recording rejection...';
     default:
       return 'Recording employer action...';
   }
@@ -395,8 +400,6 @@ export function formatEmployerReviewPersistedLabel(state: EmployerReviewActionSt
       return state.persistence.reviewItemCreated
         ? 'Most recent persisted action: routed to review queue'
         : 'Most recent persisted action: review routing';
-    case 'reject':
-      return 'Most recent persisted action: employer rejection';
     default:
       return 'Most recent persisted action';
   }
