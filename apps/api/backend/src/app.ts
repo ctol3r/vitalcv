@@ -2864,9 +2864,18 @@ function registerPilotRoutes(app: Express): void {
     }
   });
 
-  app.get('/api/internal/funnel-report', async (_req: Request, res: Response) => {
+  app.get('/api/internal/funnel-report', async (req: Request, res: Response) => {
+    // Operator surface: the other 20 /api/internal/* routes gate on the
+    // monitoring secret and these two did not, so they answered any anonymous
+    // caller who set x-org-id. loadFunnelMetrics is org-scoped, so a real org
+    // id returned that org's funnel. scripts/simulateVerifierFlow.ts already
+    // sends x-monitoring-secret and asserts it is required here.
+    if (!requireInternalSecret(req, res)) {
+      return;
+    }
+
     try {
-      const organizationId = getRequestOrganizationId(_req);
+      const organizationId = getRequestOrganizationId(req);
       const payload = await loadFunnelMetrics(organizationId);
       return res.status(200).json(payload);
     } catch (error) {
@@ -2878,9 +2887,18 @@ function registerPilotRoutes(app: Express): void {
     }
   });
 
-  app.get('/api/internal/verifier-funnel', async (_req: Request, res: Response) => {
+  app.get('/api/internal/verifier-funnel', async (req: Request, res: Response) => {
+    // Operator surface: the other 20 /api/internal/* routes gate on the
+    // monitoring secret and these two did not, so they answered any anonymous
+    // caller who set x-org-id. loadFunnelMetrics is org-scoped, so a real org
+    // id returned that org's funnel. scripts/simulateVerifierFlow.ts already
+    // sends x-monitoring-secret and asserts it is required here.
+    if (!requireInternalSecret(req, res)) {
+      return;
+    }
+
     try {
-      const organizationId = getRequestOrganizationId(_req);
+      const organizationId = getRequestOrganizationId(req);
       const payload = await loadFunnelMetrics(organizationId);
       return res.status(200).json(payload);
     } catch (error) {

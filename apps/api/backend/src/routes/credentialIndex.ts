@@ -13,10 +13,25 @@
  *   - credentialCompleteness: % of facts with status VERIFIED (0–100)
  *   - verificationFreshness: age of trust state in hours (lower = fresher)
  *   - freshnessStatus:       'fresh' (<24h) | 'aging' (24–72h) | 'stale' (>72h)
+ *
+ * AUTHORIZATION (2026-08-08). Both routes were reachable by any anonymous
+ * caller who set `x-org-id` to any value — they sit behind the global tenant
+ * guard, which accepted mere PRESENCE of a caller-supplied org id, and neither
+ * reads the org, so it was a turnstile token rather than a scope. Measured in
+ * production: /api/index/clinicians returned 24 clinicians, 16 of them with
+ * check-digit-valid NPIs (i.e. real registrants), each with a readiness score,
+ * trust band and gap count. That is this platform's private assessment of a
+ * named clinician's credential standing.
+ *
+ * Gated on the operator secret because there is no caller to preserve — no
+ * reference to either path exists anywhere outside this file. If a product
+ * surface later needs the index, the correct gate is a verified session, not
+ * this one; operator-secret is the fail-closed holding position.
  */
 
 import type { Express, Request, Response } from 'express';
 import prisma from '../graphql/prisma_client';
+import { requireInternalSecret } from '../middleware/internalSecret';
 import { log } from '../obs/logger';
 import type { ClinicianTrustState } from '../services/trust/trustStateEngine';
 
@@ -125,7 +140,7 @@ export function registerCredentialIndexRoutes(app: Express): void {
    *   sort=score             — sort by: score|band|freshness|completeness (default: score desc)
    *   order=desc             — asc | desc
    */
-  app.get('/api/index/clinicians', async (req: Request, res: Response) => {
+  app.get('/api/index/clinicians', requireInternalSecret, async (req: Request, res: Response) => {
     const startMs = Date.now();
 
     // Parse filters
@@ -216,7 +231,7 @@ export function registerCredentialIndexRoutes(app: Express): void {
    * GET /api/index/stats
    * Aggregate statistics across the entire index.
    */
-  app.get('/api/index/stats', async (req: Request, res: Response) => {
+  app.get('/api/index/stats', requireInternalSecret, async (req: Request, res: Response) => {
     try {
       const rows = await prisma.verificationArtifact.findMany({
         where: { source: 'TRUST_STATE_ENGINE' },
