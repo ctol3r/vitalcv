@@ -74,7 +74,35 @@ extracted.
   `/api/version`, never from an HTTP 200 — a healthy old container answers 200
   while serving the previous build.
 
-## Required setup: one credential
+## Required setup, in order
+
+### 1. The environment must contain the web service
+
+**Observed 2026-08-09: it does not.** The `review` environment
+(`a6b02b32-0cff-45f1-9f3b-d1dba0c7298f`) exists but is **completely empty** —
+zero services. It was created with Railway's *Empty Environment* option rather
+than *Duplicate Environment*.
+
+This matters more than the credential. Every mutation this workflow performs
+addresses a **(serviceId, environmentId) pair** — variables, domain and deploy
+alike — so an environment the service does not live in fails all three, no
+matter how well-scoped the token is.
+
+Fix: recreate `review` by **duplicating `production`** (Railway → environment
+dropdown → New Environment → *Duplicate Environment* → source `production`),
+then delete the services a visual review does not need. Duplicating is what
+gives the environment an instance of the pinned `vitalcv-web` service; adding a
+fresh service from GitHub instead would mint a **new service id** and break the
+pin.
+
+> **Duplicating also copies production's VARIABLES**, including `DATABASE_URL`
+> and `CLERK_SECRET_KEY`. Clear both on the review service afterwards. This is
+> not advisory: the workflow upserts a handful of variables *without*
+> `replace`, so anything inherited survives untouched, and a review deployment
+> holding production's `DATABASE_URL` can write to real records. The preflight
+> **refuses to deploy** while either is set.
+
+### 2. One credential
 
 **Status 2026-08-08: this is the one outstanding step.** The `review`
 environment exists in Railway, but no credential in CI can reach it.

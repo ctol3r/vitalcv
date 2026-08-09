@@ -173,6 +173,59 @@ jobs:
                 fi
               fi
             fi
+
+            # Project membership is NOT enough. A Railway environment created as
+            # "Empty Environment" has NO service instances, and every mutation
+            # below addresses a (serviceId, environmentId) PAIR — so variables,
+            # domain and deploy would all fail against an environment the
+            # service does not live in. Found exactly this on 2026-08-09: the
+            # `review` environment existed and was completely empty, which no
+            # amount of credential would have fixed.
+            if [ -n "$ENV_ID" ]; then
+              echo "Service instance in ${REVIEW_ENVIRONMENT_NAME}"
+              gql 'query SI($serviceId: String!, $environmentId: String!) {
+                serviceInstance(serviceId: $serviceId, environmentId: $environmentId) { id serviceName }
+              }' "$(jq -n --arg serviceId "$RAILWAY_WEB_SERVICE_ID" --arg environmentId "$ENV_ID" \
+                     '{serviceId:$serviceId,environmentId:$environmentId}')" > pf-instance.json
+              if jq -e '.data.serviceInstance.id' pf-instance.json >/dev/null 2>&1; then
+                ok "service instance exists"
+              else
+                fail "the web service has NO instance in '${REVIEW_ENVIRONMENT_NAME}' — the environment is empty"
+                echo "    Railway's New Environment dialog offers 'Duplicate Environment'"
+                echo "    (copies services, variables and config) or 'Empty Environment'."
+                echo "    An empty one cannot be deployed to. Recreate it by DUPLICATING"
+                echo "    production, then remove what a visual review does not need."
+                echo "    WARNING: duplicating also copies production VARIABLES, including"
+                echo "    DATABASE_URL — the next check refuses that."
+              fi
+            fi
+
+            # The review environment must not carry a database URL or a Clerk
+            # secret. A REFUSAL, not a cleanup: the workflow upserts a few
+            # variables without `replace`, so anything inherited from a
+            # duplicated production environment survives untouched — and a
+            # review deploy holding production's DATABASE_URL can write to real
+            # records.
+            if [ -n "$ENV_ID" ]; then
+              echo "Inherited secrets"
+              gql 'query V($projectId: String!, $environmentId: String!, $serviceId: String!) {
+                variables(projectId: $projectId, environmentId: $environmentId, serviceId: $serviceId)
+              }' "$(jq -n --arg projectId "$RAILWAY_PROJECT_ID" --arg environmentId "$ENV_ID" \
+                     --arg serviceId "$RAILWAY_WEB_SERVICE_ID" \
+                     '{projectId:$projectId,environmentId:$environmentId,serviceId:$serviceId}')" > pf-vars.json
+              if jq -e '.errors and (.errors|length>0)' pf-vars.json >/dev/null 2>&1; then
+                echo "    (variables unreadable — skipping)"
+              else
+                for forbidden in DATABASE_URL CLERK_SECRET_KEY; do
+                  val=$(jq -r --arg k "$forbidden" '.data.variables[$k] // ""' pf-vars.json)
+                  if [ -n "$val" ]; then
+                    fail "${forbidden} is SET in '${REVIEW_ENVIRONMENT_NAME}' — clear it before deploying"
+                  else
+                    ok "${forbidden} absent"
+                  fi
+                done
+              fi
+            fi
           fi
 
           echo ""
