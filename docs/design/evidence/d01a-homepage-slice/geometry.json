@@ -1,0 +1,1765 @@
+{
+  "no-script": {
+    "360": {
+      "horizontalOverflow": 0,
+      "escapes": [],
+      "overlaps": [
+        {
+          "a": "span.ezh-fact-l",
+          "aText": "Specialty",
+          "b": "span.ezh-fact-l",
+          "bText": "Practice",
+          "overlapPx": "60x3"
+        },
+        {
+          "a": "span.ezh-fact-l",
+          "aText": "Specialty",
+          "b": "span.ezh-src",
+          "bText": "Practice info",
+          "overlapPx": "8x3"
+        },
+        {
+          "a": "span.ezh-src",
+          "aText": "NPPES",
+          "b": "span.ezh-src",
+          "bText": "Practice info",
+          "overlapPx": "52x3"
+        },
+        {
+          "a": "span.ezh-fact-l",
+          "aText": "Practice",
+          "b": "span.ezh-fact-l",
+          "bText": "License record",
+          "overlapPx": "60x3"
+        },
+        {
+          "a": "span.ezh-src",
+          "aText": "Practice info",
+          "b": "span.ezh-fact-l",
+          "bText": "License record",
+          "overlapPx": "47x3"
+        },
+        {
+          "a": "span.ezh-src",
+          "aText": "Practice info",
+          "b": "span.ezh-src",
+          "bText": "State board record",
+          "overlapPx": "45x3"
+        },
+        {
+          "a": "span.ezh-arow-t",
+          "aText": "Send your profile to an interested",
+          "b": "span.ezh-chip",
+          "bText": "Your approval",
+          "overlapPx": "316x21"
+        },
+        {
+          "a": "span.ezh-chip",
+          "aText": "Your approval",
+          "b": "span.ezh-arow-t",
+          "bText": "Occupational health forms",
+          "overlapPx": "192x3"
+        }
+      ],
+      "feedWidth": 360,
+      "smallTargets": [
+        {
+          "sel": "input.ezh-npi-input",
+          "text": "10 digits",
+          "size": "194x18"
+        },
+        {
+          "sel": "button.ezh-npi-submit",
+          "text": "Start with your NPI",
+          "size": "138x18"
+        },
+        {
+          "sel": "a.",
+          "text": "VitalCV for employers ↳",
+          "size": "179x21"
+        },
+        {
+          "sel": "button.ezh-sf-replay",
+          "text": "↻ Replay",
+          "size": "67x18"
+        },
+        {
+          "sel": "a.ezh-emp-cta",
+          "text": "VitalCV for employers ↳",
+          "size": "179x21"
+        },
+        {
+          "sel": "a.ezh-start-cta",
+          "text": "Start with your NPI",
+          "size": "138x21"
+        },
+        {
+          "sel": "a.",
+          "text": "For employers",
+          "size": "76x39"
+        },
+        {
+          "sel": "a.",
+          "text": "Pricing",
+          "size": "50x21"
+        },
+        {
+          "sel": "a.",
+          "text": "Trust",
+          "size": "37x21"
+        },
+        {
+          "sel": "a.",
+          "text": "Status",
+          "size": "47x21"
+        },
+        {
+          "sel": "a.",
+          "text": "Privacy",
+          "size": "53x21"
+        },
+        {
+          "sel": "a.",
+          "text": "Terms",
+          "size": "44x21"
+        }
+      ]
+    },
+    "390": {
+      "horizontalOverflow": 0,
+      "escapes": [],
+      "overlaps": [
+        {
+          "a": "span.ezh-fact-l",
+          "aText": "Specialty",
+          "b": "span.ezh-fact-l",
+          "bText": "Practice",
+          "overlapPx": "60x3"
+        },
+        {
+          "a": "span.ezh-fact-l",
+          "aText": "Specialty",
+          "b": "span.ezh-src",
+          "bText": "Practice info",
+          "overlapPx": "8x3"
+        },
+        {
+          "a": "span.ezh-src",
+          "aText": "NPPES",
+          "b": "span.ezh-src",
+          "bText": "Practice info",
+          "overlapPx": "52x3"
+        },
+        {
+          "a": "span.ezh-fact-l",
+          "aText": "Practice",
+          "b": "span.ezh-fact-l",
+          "bText": "License record",
+          "overlapPx": "60x3"
+        },
+        {
+          "a": "span.ezh-src",
+          "aText": "Practice info",
+          "b": "span.ezh-fact-l",
+          "bText": "License record",
+          "overlapPx": "47x3"
+        },
+        {
+          "a": "span.ezh-src",
+          "aText": "Practice info",
+          "b": "span.ezh-src",
+          "bText": "State board record",
+          "overlapPx": "45x3"
+        },
+        {
+          "a": "span.ezh-arow-t",
+          "aText": "Send your profile to an interested",
+          "b": "span.ezh-chip",
+          "bText": "Your approval",
+          "overlapPx": "316x21"
+        },
+        {
+          "a": "span.ezh-chip",
+          "aText": "Your approval",
+          "b": "span.ezh-arow-t",
+          "bText": "Occupational health forms",
+          "overlapPx": "192x3"
+        }
+      ],
+      "feedWidth": 390,
+      "smallTargets": [
+        {
+          "sel": "input.ezh-npi-input",
+          "text": "10 digits",
+          "size": "194x18"
+        },
+        {
+          "sel": "button.ezh-npi-submit",
+          "text": "Start with your NPI",
+          "size": "138x18"
+        },
+        {
+          "sel": "a.",
+          "text": "VitalCV for employers ↳",
+          "size": "179x21"
+        },
+        {
+          "sel": "button.ezh-sf-replay",
+          "text": "↻ Replay",
+          "size": "67x18"
+        },
+        {
+          "sel": "a.ezh-emp-cta",
+          "text": "VitalCV for employers ↳",
+          "size": "179x21"
+        },
+        {
+          "sel": "a.ezh-start-cta",
+          "text": "Start with your NPI",
+          "size": "138x21"
+        },
+        {
+          "sel": "a.",
+          "text": "For employers",
+          "size": "104x21"
+        },
+        {
+          "sel": "a.",
+          "text": "Pricing",
+          "size": "50x21"
+        },
+        {
+          "sel": "a.",
+          "text": "Trust",
+          "size": "37x21"
+        },
+        {
+          "sel": "a.",
+          "text": "Status",
+          "size": "47x21"
+        },
+        {
+          "sel": "a.",
+          "text": "Privacy",
+          "size": "53x21"
+        },
+        {
+          "sel": "a.",
+          "text": "Terms",
+          "size": "44x21"
+        }
+      ]
+    },
+    "768": {
+      "horizontalOverflow": 0,
+      "escapes": [],
+      "overlaps": [
+        {
+          "a": "span.ezh-fact-l",
+          "aText": "Specialty",
+          "b": "span.ezh-fact-l",
+          "bText": "Practice",
+          "overlapPx": "60x3"
+        },
+        {
+          "a": "span.ezh-fact-l",
+          "aText": "Specialty",
+          "b": "span.ezh-src",
+          "bText": "Practice info",
+          "overlapPx": "8x3"
+        },
+        {
+          "a": "span.ezh-src",
+          "aText": "NPPES",
+          "b": "span.ezh-src",
+          "bText": "Practice info",
+          "overlapPx": "52x3"
+        },
+        {
+          "a": "span.ezh-fact-l",
+          "aText": "Practice",
+          "b": "span.ezh-fact-l",
+          "bText": "License record",
+          "overlapPx": "60x3"
+        },
+        {
+          "a": "span.ezh-src",
+          "aText": "Practice info",
+          "b": "span.ezh-fact-l",
+          "bText": "License record",
+          "overlapPx": "47x3"
+        },
+        {
+          "a": "span.ezh-src",
+          "aText": "Practice info",
+          "b": "span.ezh-src",
+          "bText": "State board record",
+          "overlapPx": "45x3"
+        },
+        {
+          "a": "span.ezh-arow-t",
+          "aText": "Assemble a work history draft",
+          "b": "span.ezh-arow-t",
+          "bText": "Check the state license record",
+          "overlapPx": "219x3"
+        },
+        {
+          "a": "span.ezh-chip",
+          "aText": "VitalCV",
+          "b": "span.ezh-arow-t",
+          "bText": "Check the state license record",
+          "overlapPx": "3x3"
+        }
+      ],
+      "feedWidth": 768,
+      "smallTargets": [
+        {
+          "sel": "input.ezh-npi-input",
+          "text": "10 digits",
+          "size": "194x18"
+        },
+        {
+          "sel": "button.ezh-npi-submit",
+          "text": "Start with your NPI",
+          "size": "138x18"
+        },
+        {
+          "sel": "a.",
+          "text": "VitalCV for employers ↳",
+          "size": "179x21"
+        },
+        {
+          "sel": "button.ezh-sf-replay",
+          "text": "↻ Replay",
+          "size": "67x18"
+        },
+        {
+          "sel": "a.ezh-emp-cta",
+          "text": "VitalCV for employers ↳",
+          "size": "179x21"
+        },
+        {
+          "sel": "a.ezh-start-cta",
+          "text": "Start with your NPI",
+          "size": "138x21"
+        },
+        {
+          "sel": "a.",
+          "text": "For employers",
+          "size": "104x21"
+        },
+        {
+          "sel": "a.",
+          "text": "Pricing",
+          "size": "50x21"
+        },
+        {
+          "sel": "a.",
+          "text": "Trust",
+          "size": "37x21"
+        },
+        {
+          "sel": "a.",
+          "text": "Status",
+          "size": "47x21"
+        },
+        {
+          "sel": "a.",
+          "text": "Privacy",
+          "size": "53x21"
+        },
+        {
+          "sel": "a.",
+          "text": "Terms",
+          "size": "44x21"
+        }
+      ]
+    },
+    "1280": {
+      "horizontalOverflow": 0,
+      "escapes": [],
+      "overlaps": [
+        {
+          "a": "span.ezh-fact-l",
+          "aText": "Specialty",
+          "b": "span.ezh-fact-l",
+          "bText": "Practice",
+          "overlapPx": "60x3"
+        },
+        {
+          "a": "span.ezh-fact-l",
+          "aText": "Specialty",
+          "b": "span.ezh-src",
+          "bText": "Practice info",
+          "overlapPx": "8x3"
+        },
+        {
+          "a": "span.ezh-src",
+          "aText": "NPPES",
+          "b": "span.ezh-src",
+          "bText": "Practice info",
+          "overlapPx": "52x3"
+        },
+        {
+          "a": "span.ezh-fact-l",
+          "aText": "Practice",
+          "b": "span.ezh-fact-l",
+          "bText": "License record",
+          "overlapPx": "60x3"
+        },
+        {
+          "a": "span.ezh-src",
+          "aText": "Practice info",
+          "b": "span.ezh-fact-l",
+          "bText": "License record",
+          "overlapPx": "47x3"
+        },
+        {
+          "a": "span.ezh-src",
+          "aText": "Practice info",
+          "b": "span.ezh-src",
+          "bText": "State board record",
+          "overlapPx": "45x3"
+        },
+        {
+          "a": "span.ezh-arow-t",
+          "aText": "Assemble a work history draft",
+          "b": "span.ezh-arow-t",
+          "bText": "Check the state license record",
+          "overlapPx": "219x3"
+        },
+        {
+          "a": "span.ezh-chip",
+          "aText": "VitalCV",
+          "b": "span.ezh-arow-t",
+          "bText": "Check the state license record",
+          "overlapPx": "3x3"
+        }
+      ],
+      "feedWidth": 1280,
+      "smallTargets": [
+        {
+          "sel": "input.ezh-npi-input",
+          "text": "10 digits",
+          "size": "194x18"
+        },
+        {
+          "sel": "button.ezh-npi-submit",
+          "text": "Start with your NPI",
+          "size": "138x18"
+        },
+        {
+          "sel": "a.",
+          "text": "VitalCV for employers ↳",
+          "size": "179x21"
+        },
+        {
+          "sel": "button.ezh-sf-replay",
+          "text": "↻ Replay",
+          "size": "67x18"
+        },
+        {
+          "sel": "a.ezh-emp-cta",
+          "text": "VitalCV for employers ↳",
+          "size": "179x21"
+        },
+        {
+          "sel": "a.ezh-start-cta",
+          "text": "Start with your NPI",
+          "size": "138x21"
+        },
+        {
+          "sel": "a.",
+          "text": "For employers",
+          "size": "104x21"
+        },
+        {
+          "sel": "a.",
+          "text": "Pricing",
+          "size": "50x21"
+        },
+        {
+          "sel": "a.",
+          "text": "Trust",
+          "size": "37x21"
+        },
+        {
+          "sel": "a.",
+          "text": "Status",
+          "size": "47x21"
+        },
+        {
+          "sel": "a.",
+          "text": "Privacy",
+          "size": "53x21"
+        },
+        {
+          "sel": "a.",
+          "text": "Terms",
+          "size": "44x21"
+        }
+      ]
+    },
+    "1440": {
+      "horizontalOverflow": 0,
+      "escapes": [],
+      "overlaps": [
+        {
+          "a": "span.ezh-fact-l",
+          "aText": "Specialty",
+          "b": "span.ezh-fact-l",
+          "bText": "Practice",
+          "overlapPx": "60x3"
+        },
+        {
+          "a": "span.ezh-fact-l",
+          "aText": "Specialty",
+          "b": "span.ezh-src",
+          "bText": "Practice info",
+          "overlapPx": "8x3"
+        },
+        {
+          "a": "span.ezh-src",
+          "aText": "NPPES",
+          "b": "span.ezh-src",
+          "bText": "Practice info",
+          "overlapPx": "52x3"
+        },
+        {
+          "a": "span.ezh-fact-l",
+          "aText": "Practice",
+          "b": "span.ezh-fact-l",
+          "bText": "License record",
+          "overlapPx": "60x3"
+        },
+        {
+          "a": "span.ezh-src",
+          "aText": "Practice info",
+          "b": "span.ezh-fact-l",
+          "bText": "License record",
+          "overlapPx": "47x3"
+        },
+        {
+          "a": "span.ezh-src",
+          "aText": "Practice info",
+          "b": "span.ezh-src",
+          "bText": "State board record",
+          "overlapPx": "45x3"
+        },
+        {
+          "a": "span.ezh-arow-t",
+          "aText": "Assemble a work history draft",
+          "b": "span.ezh-arow-t",
+          "bText": "Check the state license record",
+          "overlapPx": "219x3"
+        },
+        {
+          "a": "span.ezh-chip",
+          "aText": "VitalCV",
+          "b": "span.ezh-arow-t",
+          "bText": "Check the state license record",
+          "overlapPx": "3x3"
+        }
+      ],
+      "feedWidth": 1440,
+      "smallTargets": [
+        {
+          "sel": "input.ezh-npi-input",
+          "text": "10 digits",
+          "size": "194x18"
+        },
+        {
+          "sel": "button.ezh-npi-submit",
+          "text": "Start with your NPI",
+          "size": "138x18"
+        },
+        {
+          "sel": "a.",
+          "text": "VitalCV for employers ↳",
+          "size": "179x21"
+        },
+        {
+          "sel": "button.ezh-sf-replay",
+          "text": "↻ Replay",
+          "size": "67x18"
+        },
+        {
+          "sel": "a.ezh-emp-cta",
+          "text": "VitalCV for employers ↳",
+          "size": "179x21"
+        },
+        {
+          "sel": "a.ezh-start-cta",
+          "text": "Start with your NPI",
+          "size": "138x21"
+        },
+        {
+          "sel": "a.",
+          "text": "For employers",
+          "size": "104x21"
+        },
+        {
+          "sel": "a.",
+          "text": "Pricing",
+          "size": "50x21"
+        },
+        {
+          "sel": "a.",
+          "text": "Trust",
+          "size": "37x21"
+        },
+        {
+          "sel": "a.",
+          "text": "Status",
+          "size": "47x21"
+        },
+        {
+          "sel": "a.",
+          "text": "Privacy",
+          "size": "53x21"
+        },
+        {
+          "sel": "a.",
+          "text": "Terms",
+          "size": "44x21"
+        }
+      ]
+    }
+  },
+  "reduced-motion": {
+    "360": {
+      "horizontalOverflow": 0,
+      "escapes": [],
+      "overlaps": [],
+      "feedWidth": null,
+      "smallTargets": []
+    },
+    "390": {
+      "horizontalOverflow": 0,
+      "escapes": [],
+      "overlaps": [
+        {
+          "a": "span.ezh-fact-l",
+          "aText": "Specialty",
+          "b": "span.ezh-fact-l",
+          "bText": "Practice",
+          "overlapPx": "60x3"
+        },
+        {
+          "a": "span.ezh-fact-l",
+          "aText": "Specialty",
+          "b": "span.ezh-src",
+          "bText": "Practice info",
+          "overlapPx": "8x3"
+        },
+        {
+          "a": "span.ezh-src",
+          "aText": "NPPES",
+          "b": "span.ezh-src",
+          "bText": "Practice info",
+          "overlapPx": "52x3"
+        },
+        {
+          "a": "span.ezh-fact-l",
+          "aText": "Practice",
+          "b": "span.ezh-fact-l",
+          "bText": "License record",
+          "overlapPx": "60x3"
+        },
+        {
+          "a": "span.ezh-src",
+          "aText": "Practice info",
+          "b": "span.ezh-fact-l",
+          "bText": "License record",
+          "overlapPx": "47x3"
+        },
+        {
+          "a": "span.ezh-src",
+          "aText": "Practice info",
+          "b": "span.ezh-src",
+          "bText": "State board record",
+          "overlapPx": "45x3"
+        },
+        {
+          "a": "span.ezh-arow-t",
+          "aText": "Send your profile to an interested",
+          "b": "span.ezh-chip",
+          "bText": "Your approval",
+          "overlapPx": "316x21"
+        },
+        {
+          "a": "span.ezh-chip",
+          "aText": "Your approval",
+          "b": "span.ezh-arow-t",
+          "bText": "Occupational health forms",
+          "overlapPx": "192x3"
+        }
+      ],
+      "feedWidth": 390,
+      "smallTargets": [
+        {
+          "sel": "input.ezh-npi-input",
+          "text": "10 digits",
+          "size": "194x18"
+        },
+        {
+          "sel": "button.ezh-npi-submit",
+          "text": "Start with your NPI",
+          "size": "138x18"
+        },
+        {
+          "sel": "a.",
+          "text": "VitalCV for employers ↳",
+          "size": "179x21"
+        },
+        {
+          "sel": "button.ezh-sf-replay",
+          "text": "↻ Replay",
+          "size": "67x18"
+        },
+        {
+          "sel": "a.ezh-emp-cta",
+          "text": "VitalCV for employers ↳",
+          "size": "179x21"
+        },
+        {
+          "sel": "a.ezh-start-cta",
+          "text": "Start with your NPI",
+          "size": "138x21"
+        },
+        {
+          "sel": "a.",
+          "text": "For employers",
+          "size": "104x21"
+        },
+        {
+          "sel": "a.",
+          "text": "Pricing",
+          "size": "50x21"
+        },
+        {
+          "sel": "a.",
+          "text": "Trust",
+          "size": "37x21"
+        },
+        {
+          "sel": "a.",
+          "text": "Status",
+          "size": "47x21"
+        },
+        {
+          "sel": "a.",
+          "text": "Privacy",
+          "size": "53x21"
+        },
+        {
+          "sel": "a.",
+          "text": "Terms",
+          "size": "44x21"
+        }
+      ]
+    },
+    "768": {
+      "horizontalOverflow": 0,
+      "escapes": [],
+      "overlaps": [
+        {
+          "a": "span.ezh-fact-l",
+          "aText": "Specialty",
+          "b": "span.ezh-fact-l",
+          "bText": "Practice",
+          "overlapPx": "60x3"
+        },
+        {
+          "a": "span.ezh-fact-l",
+          "aText": "Specialty",
+          "b": "span.ezh-src",
+          "bText": "Practice info",
+          "overlapPx": "8x3"
+        },
+        {
+          "a": "span.ezh-src",
+          "aText": "NPPES",
+          "b": "span.ezh-src",
+          "bText": "Practice info",
+          "overlapPx": "52x3"
+        },
+        {
+          "a": "span.ezh-fact-l",
+          "aText": "Practice",
+          "b": "span.ezh-fact-l",
+          "bText": "License record",
+          "overlapPx": "60x3"
+        },
+        {
+          "a": "span.ezh-src",
+          "aText": "Practice info",
+          "b": "span.ezh-fact-l",
+          "bText": "License record",
+          "overlapPx": "47x3"
+        },
+        {
+          "a": "span.ezh-src",
+          "aText": "Practice info",
+          "b": "span.ezh-src",
+          "bText": "State board record",
+          "overlapPx": "45x3"
+        },
+        {
+          "a": "span.ezh-arow-t",
+          "aText": "Assemble a work history draft",
+          "b": "span.ezh-arow-t",
+          "bText": "Check the state license record",
+          "overlapPx": "219x3"
+        },
+        {
+          "a": "span.ezh-chip",
+          "aText": "VitalCV",
+          "b": "span.ezh-arow-t",
+          "bText": "Check the state license record",
+          "overlapPx": "3x3"
+        }
+      ],
+      "feedWidth": 768,
+      "smallTargets": [
+        {
+          "sel": "input.ezh-npi-input",
+          "text": "10 digits",
+          "size": "194x18"
+        },
+        {
+          "sel": "button.ezh-npi-submit",
+          "text": "Start with your NPI",
+          "size": "138x18"
+        },
+        {
+          "sel": "a.",
+          "text": "VitalCV for employers ↳",
+          "size": "179x21"
+        },
+        {
+          "sel": "button.ezh-sf-replay",
+          "text": "↻ Replay",
+          "size": "67x18"
+        },
+        {
+          "sel": "a.ezh-emp-cta",
+          "text": "VitalCV for employers ↳",
+          "size": "179x21"
+        },
+        {
+          "sel": "a.ezh-start-cta",
+          "text": "Start with your NPI",
+          "size": "138x21"
+        },
+        {
+          "sel": "a.",
+          "text": "For employers",
+          "size": "104x21"
+        },
+        {
+          "sel": "a.",
+          "text": "Pricing",
+          "size": "50x21"
+        },
+        {
+          "sel": "a.",
+          "text": "Trust",
+          "size": "37x21"
+        },
+        {
+          "sel": "a.",
+          "text": "Status",
+          "size": "47x21"
+        },
+        {
+          "sel": "a.",
+          "text": "Privacy",
+          "size": "53x21"
+        },
+        {
+          "sel": "a.",
+          "text": "Terms",
+          "size": "44x21"
+        }
+      ]
+    },
+    "1280": {
+      "horizontalOverflow": 0,
+      "escapes": [],
+      "overlaps": [
+        {
+          "a": "span.ezh-fact-l",
+          "aText": "Specialty",
+          "b": "span.ezh-fact-l",
+          "bText": "Practice",
+          "overlapPx": "60x3"
+        },
+        {
+          "a": "span.ezh-fact-l",
+          "aText": "Specialty",
+          "b": "span.ezh-src",
+          "bText": "Practice info",
+          "overlapPx": "8x3"
+        },
+        {
+          "a": "span.ezh-src",
+          "aText": "NPPES",
+          "b": "span.ezh-src",
+          "bText": "Practice info",
+          "overlapPx": "52x3"
+        },
+        {
+          "a": "span.ezh-fact-l",
+          "aText": "Practice",
+          "b": "span.ezh-fact-l",
+          "bText": "License record",
+          "overlapPx": "60x3"
+        },
+        {
+          "a": "span.ezh-src",
+          "aText": "Practice info",
+          "b": "span.ezh-fact-l",
+          "bText": "License record",
+          "overlapPx": "47x3"
+        },
+        {
+          "a": "span.ezh-src",
+          "aText": "Practice info",
+          "b": "span.ezh-src",
+          "bText": "State board record",
+          "overlapPx": "45x3"
+        },
+        {
+          "a": "span.ezh-arow-t",
+          "aText": "Assemble a work history draft",
+          "b": "span.ezh-arow-t",
+          "bText": "Check the state license record",
+          "overlapPx": "219x3"
+        },
+        {
+          "a": "span.ezh-chip",
+          "aText": "VitalCV",
+          "b": "span.ezh-arow-t",
+          "bText": "Check the state license record",
+          "overlapPx": "3x3"
+        }
+      ],
+      "feedWidth": 1280,
+      "smallTargets": [
+        {
+          "sel": "input.ezh-npi-input",
+          "text": "10 digits",
+          "size": "194x18"
+        },
+        {
+          "sel": "button.ezh-npi-submit",
+          "text": "Start with your NPI",
+          "size": "138x18"
+        },
+        {
+          "sel": "a.",
+          "text": "VitalCV for employers ↳",
+          "size": "179x21"
+        },
+        {
+          "sel": "button.ezh-sf-replay",
+          "text": "↻ Replay",
+          "size": "67x18"
+        },
+        {
+          "sel": "a.ezh-emp-cta",
+          "text": "VitalCV for employers ↳",
+          "size": "179x21"
+        },
+        {
+          "sel": "a.ezh-start-cta",
+          "text": "Start with your NPI",
+          "size": "138x21"
+        },
+        {
+          "sel": "a.",
+          "text": "For employers",
+          "size": "104x21"
+        },
+        {
+          "sel": "a.",
+          "text": "Pricing",
+          "size": "50x21"
+        },
+        {
+          "sel": "a.",
+          "text": "Trust",
+          "size": "37x21"
+        },
+        {
+          "sel": "a.",
+          "text": "Status",
+          "size": "47x21"
+        },
+        {
+          "sel": "a.",
+          "text": "Privacy",
+          "size": "53x21"
+        },
+        {
+          "sel": "a.",
+          "text": "Terms",
+          "size": "44x21"
+        }
+      ]
+    },
+    "1440": {
+      "horizontalOverflow": 0,
+      "escapes": [],
+      "overlaps": [
+        {
+          "a": "span.ezh-fact-l",
+          "aText": "Specialty",
+          "b": "span.ezh-fact-l",
+          "bText": "Practice",
+          "overlapPx": "60x3"
+        },
+        {
+          "a": "span.ezh-fact-l",
+          "aText": "Specialty",
+          "b": "span.ezh-src",
+          "bText": "Practice info",
+          "overlapPx": "8x3"
+        },
+        {
+          "a": "span.ezh-src",
+          "aText": "NPPES",
+          "b": "span.ezh-src",
+          "bText": "Practice info",
+          "overlapPx": "52x3"
+        },
+        {
+          "a": "span.ezh-fact-l",
+          "aText": "Practice",
+          "b": "span.ezh-fact-l",
+          "bText": "License record",
+          "overlapPx": "60x3"
+        },
+        {
+          "a": "span.ezh-src",
+          "aText": "Practice info",
+          "b": "span.ezh-fact-l",
+          "bText": "License record",
+          "overlapPx": "47x3"
+        },
+        {
+          "a": "span.ezh-src",
+          "aText": "Practice info",
+          "b": "span.ezh-src",
+          "bText": "State board record",
+          "overlapPx": "45x3"
+        },
+        {
+          "a": "span.ezh-arow-t",
+          "aText": "Assemble a work history draft",
+          "b": "span.ezh-arow-t",
+          "bText": "Check the state license record",
+          "overlapPx": "219x3"
+        },
+        {
+          "a": "span.ezh-chip",
+          "aText": "VitalCV",
+          "b": "span.ezh-arow-t",
+          "bText": "Check the state license record",
+          "overlapPx": "3x3"
+        }
+      ],
+      "feedWidth": 1440,
+      "smallTargets": [
+        {
+          "sel": "input.ezh-npi-input",
+          "text": "10 digits",
+          "size": "194x18"
+        },
+        {
+          "sel": "button.ezh-npi-submit",
+          "text": "Start with your NPI",
+          "size": "138x18"
+        },
+        {
+          "sel": "a.",
+          "text": "VitalCV for employers ↳",
+          "size": "179x21"
+        },
+        {
+          "sel": "button.ezh-sf-replay",
+          "text": "↻ Replay",
+          "size": "67x18"
+        },
+        {
+          "sel": "a.ezh-emp-cta",
+          "text": "VitalCV for employers ↳",
+          "size": "179x21"
+        },
+        {
+          "sel": "a.ezh-start-cta",
+          "text": "Start with your NPI",
+          "size": "138x21"
+        },
+        {
+          "sel": "a.",
+          "text": "For employers",
+          "size": "104x21"
+        },
+        {
+          "sel": "a.",
+          "text": "Pricing",
+          "size": "50x21"
+        },
+        {
+          "sel": "a.",
+          "text": "Trust",
+          "size": "37x21"
+        },
+        {
+          "sel": "a.",
+          "text": "Status",
+          "size": "47x21"
+        },
+        {
+          "sel": "a.",
+          "text": "Privacy",
+          "size": "53x21"
+        },
+        {
+          "sel": "a.",
+          "text": "Terms",
+          "size": "44x21"
+        }
+      ]
+    }
+  },
+  "motion-settled": {
+    "360": {
+      "horizontalOverflow": 0,
+      "escapes": [],
+      "overlaps": [
+        {
+          "a": "span.ezh-fact-l",
+          "aText": "Specialty",
+          "b": "span.ezh-fact-l",
+          "bText": "Practice",
+          "overlapPx": "60x3"
+        },
+        {
+          "a": "span.ezh-fact-l",
+          "aText": "Specialty",
+          "b": "span.ezh-src",
+          "bText": "Practice info",
+          "overlapPx": "8x3"
+        },
+        {
+          "a": "span.ezh-src",
+          "aText": "NPPES",
+          "b": "span.ezh-src",
+          "bText": "Practice info",
+          "overlapPx": "52x3"
+        },
+        {
+          "a": "span.ezh-fact-l",
+          "aText": "Practice",
+          "b": "span.ezh-fact-l",
+          "bText": "License record",
+          "overlapPx": "60x3"
+        },
+        {
+          "a": "span.ezh-src",
+          "aText": "Practice info",
+          "b": "span.ezh-fact-l",
+          "bText": "License record",
+          "overlapPx": "47x3"
+        },
+        {
+          "a": "span.ezh-src",
+          "aText": "Practice info",
+          "b": "span.ezh-src",
+          "bText": "State board record",
+          "overlapPx": "45x3"
+        },
+        {
+          "a": "span.ezh-arow-t",
+          "aText": "Send your profile to an interested",
+          "b": "span.ezh-chip",
+          "bText": "Your approval",
+          "overlapPx": "316x21"
+        },
+        {
+          "a": "span.ezh-chip",
+          "aText": "Your approval",
+          "b": "span.ezh-arow-t",
+          "bText": "Occupational health forms",
+          "overlapPx": "192x3"
+        }
+      ],
+      "feedWidth": 360,
+      "smallTargets": [
+        {
+          "sel": "input.ezh-npi-input",
+          "text": "10 digits",
+          "size": "194x18"
+        },
+        {
+          "sel": "button.ezh-npi-submit",
+          "text": "Start with your NPI",
+          "size": "138x18"
+        },
+        {
+          "sel": "a.",
+          "text": "VitalCV for employers ↳",
+          "size": "179x21"
+        },
+        {
+          "sel": "button.ezh-sf-replay",
+          "text": "↻ Replay",
+          "size": "67x18"
+        },
+        {
+          "sel": "a.ezh-emp-cta",
+          "text": "VitalCV for employers ↳",
+          "size": "179x21"
+        },
+        {
+          "sel": "a.ezh-start-cta",
+          "text": "Start with your NPI",
+          "size": "138x21"
+        },
+        {
+          "sel": "a.",
+          "text": "For employers",
+          "size": "76x39"
+        },
+        {
+          "sel": "a.",
+          "text": "Pricing",
+          "size": "50x21"
+        },
+        {
+          "sel": "a.",
+          "text": "Trust",
+          "size": "37x21"
+        },
+        {
+          "sel": "a.",
+          "text": "Status",
+          "size": "47x21"
+        },
+        {
+          "sel": "a.",
+          "text": "Privacy",
+          "size": "53x21"
+        },
+        {
+          "sel": "a.",
+          "text": "Terms",
+          "size": "44x21"
+        }
+      ]
+    },
+    "390": {
+      "horizontalOverflow": 0,
+      "escapes": [],
+      "overlaps": [
+        {
+          "a": "span.ezh-fact-l",
+          "aText": "Specialty",
+          "b": "span.ezh-fact-l",
+          "bText": "Practice",
+          "overlapPx": "60x3"
+        },
+        {
+          "a": "span.ezh-fact-l",
+          "aText": "Specialty",
+          "b": "span.ezh-src",
+          "bText": "Practice info",
+          "overlapPx": "8x3"
+        },
+        {
+          "a": "span.ezh-src",
+          "aText": "NPPES",
+          "b": "span.ezh-src",
+          "bText": "Practice info",
+          "overlapPx": "52x3"
+        },
+        {
+          "a": "span.ezh-fact-l",
+          "aText": "Practice",
+          "b": "span.ezh-fact-l",
+          "bText": "License record",
+          "overlapPx": "60x3"
+        },
+        {
+          "a": "span.ezh-src",
+          "aText": "Practice info",
+          "b": "span.ezh-fact-l",
+          "bText": "License record",
+          "overlapPx": "47x3"
+        },
+        {
+          "a": "span.ezh-src",
+          "aText": "Practice info",
+          "b": "span.ezh-src",
+          "bText": "State board record",
+          "overlapPx": "45x3"
+        },
+        {
+          "a": "span.ezh-arow-t",
+          "aText": "Send your profile to an interested",
+          "b": "span.ezh-chip",
+          "bText": "Your approval",
+          "overlapPx": "316x21"
+        },
+        {
+          "a": "span.ezh-chip",
+          "aText": "Your approval",
+          "b": "span.ezh-arow-t",
+          "bText": "Occupational health forms",
+          "overlapPx": "192x3"
+        }
+      ],
+      "feedWidth": 390,
+      "smallTargets": [
+        {
+          "sel": "input.ezh-npi-input",
+          "text": "10 digits",
+          "size": "194x18"
+        },
+        {
+          "sel": "button.ezh-npi-submit",
+          "text": "Start with your NPI",
+          "size": "138x18"
+        },
+        {
+          "sel": "a.",
+          "text": "VitalCV for employers ↳",
+          "size": "179x21"
+        },
+        {
+          "sel": "button.ezh-sf-replay",
+          "text": "↻ Replay",
+          "size": "67x18"
+        },
+        {
+          "sel": "a.ezh-emp-cta",
+          "text": "VitalCV for employers ↳",
+          "size": "179x21"
+        },
+        {
+          "sel": "a.ezh-start-cta",
+          "text": "Start with your NPI",
+          "size": "138x21"
+        },
+        {
+          "sel": "a.",
+          "text": "For employers",
+          "size": "104x21"
+        },
+        {
+          "sel": "a.",
+          "text": "Pricing",
+          "size": "50x21"
+        },
+        {
+          "sel": "a.",
+          "text": "Trust",
+          "size": "37x21"
+        },
+        {
+          "sel": "a.",
+          "text": "Status",
+          "size": "47x21"
+        },
+        {
+          "sel": "a.",
+          "text": "Privacy",
+          "size": "53x21"
+        },
+        {
+          "sel": "a.",
+          "text": "Terms",
+          "size": "44x21"
+        }
+      ]
+    },
+    "768": {
+      "horizontalOverflow": 0,
+      "escapes": [],
+      "overlaps": [
+        {
+          "a": "span.ezh-fact-l",
+          "aText": "Specialty",
+          "b": "span.ezh-fact-l",
+          "bText": "Practice",
+          "overlapPx": "60x3"
+        },
+        {
+          "a": "span.ezh-fact-l",
+          "aText": "Specialty",
+          "b": "span.ezh-src",
+          "bText": "Practice info",
+          "overlapPx": "8x3"
+        },
+        {
+          "a": "span.ezh-src",
+          "aText": "NPPES",
+          "b": "span.ezh-src",
+          "bText": "Practice info",
+          "overlapPx": "52x3"
+        },
+        {
+          "a": "span.ezh-fact-l",
+          "aText": "Practice",
+          "b": "span.ezh-fact-l",
+          "bText": "License record",
+          "overlapPx": "60x3"
+        },
+        {
+          "a": "span.ezh-src",
+          "aText": "Practice info",
+          "b": "span.ezh-fact-l",
+          "bText": "License record",
+          "overlapPx": "47x3"
+        },
+        {
+          "a": "span.ezh-src",
+          "aText": "Practice info",
+          "b": "span.ezh-src",
+          "bText": "State board record",
+          "overlapPx": "45x3"
+        },
+        {
+          "a": "span.ezh-arow-t",
+          "aText": "Assemble a work history draft",
+          "b": "span.ezh-arow-t",
+          "bText": "Check the state license record",
+          "overlapPx": "219x3"
+        },
+        {
+          "a": "span.ezh-chip",
+          "aText": "VitalCV",
+          "b": "span.ezh-arow-t",
+          "bText": "Check the state license record",
+          "overlapPx": "3x3"
+        }
+      ],
+      "feedWidth": 768,
+      "smallTargets": [
+        {
+          "sel": "input.ezh-npi-input",
+          "text": "10 digits",
+          "size": "194x18"
+        },
+        {
+          "sel": "button.ezh-npi-submit",
+          "text": "Start with your NPI",
+          "size": "138x18"
+        },
+        {
+          "sel": "a.",
+          "text": "VitalCV for employers ↳",
+          "size": "179x21"
+        },
+        {
+          "sel": "button.ezh-sf-replay",
+          "text": "↻ Replay",
+          "size": "67x18"
+        },
+        {
+          "sel": "a.ezh-emp-cta",
+          "text": "VitalCV for employers ↳",
+          "size": "179x21"
+        },
+        {
+          "sel": "a.ezh-start-cta",
+          "text": "Start with your NPI",
+          "size": "138x21"
+        },
+        {
+          "sel": "a.",
+          "text": "For employers",
+          "size": "104x21"
+        },
+        {
+          "sel": "a.",
+          "text": "Pricing",
+          "size": "50x21"
+        },
+        {
+          "sel": "a.",
+          "text": "Trust",
+          "size": "37x21"
+        },
+        {
+          "sel": "a.",
+          "text": "Status",
+          "size": "47x21"
+        },
+        {
+          "sel": "a.",
+          "text": "Privacy",
+          "size": "53x21"
+        },
+        {
+          "sel": "a.",
+          "text": "Terms",
+          "size": "44x21"
+        }
+      ]
+    },
+    "1280": {
+      "horizontalOverflow": 0,
+      "escapes": [],
+      "overlaps": [
+        {
+          "a": "span.ezh-fact-l",
+          "aText": "Specialty",
+          "b": "span.ezh-fact-l",
+          "bText": "Practice",
+          "overlapPx": "60x3"
+        },
+        {
+          "a": "span.ezh-fact-l",
+          "aText": "Specialty",
+          "b": "span.ezh-src",
+          "bText": "Practice info",
+          "overlapPx": "8x3"
+        },
+        {
+          "a": "span.ezh-src",
+          "aText": "NPPES",
+          "b": "span.ezh-src",
+          "bText": "Practice info",
+          "overlapPx": "52x3"
+        },
+        {
+          "a": "span.ezh-fact-l",
+          "aText": "Practice",
+          "b": "span.ezh-fact-l",
+          "bText": "License record",
+          "overlapPx": "60x3"
+        },
+        {
+          "a": "span.ezh-src",
+          "aText": "Practice info",
+          "b": "span.ezh-fact-l",
+          "bText": "License record",
+          "overlapPx": "47x3"
+        },
+        {
+          "a": "span.ezh-src",
+          "aText": "Practice info",
+          "b": "span.ezh-src",
+          "bText": "State board record",
+          "overlapPx": "45x3"
+        },
+        {
+          "a": "span.ezh-arow-t",
+          "aText": "Assemble a work history draft",
+          "b": "span.ezh-arow-t",
+          "bText": "Check the state license record",
+          "overlapPx": "219x3"
+        },
+        {
+          "a": "span.ezh-chip",
+          "aText": "VitalCV",
+          "b": "span.ezh-arow-t",
+          "bText": "Check the state license record",
+          "overlapPx": "3x3"
+        }
+      ],
+      "feedWidth": 1280,
+      "smallTargets": [
+        {
+          "sel": "input.ezh-npi-input",
+          "text": "10 digits",
+          "size": "194x18"
+        },
+        {
+          "sel": "button.ezh-npi-submit",
+          "text": "Start with your NPI",
+          "size": "138x18"
+        },
+        {
+          "sel": "a.",
+          "text": "VitalCV for employers ↳",
+          "size": "179x21"
+        },
+        {
+          "sel": "button.ezh-sf-replay",
+          "text": "↻ Replay",
+          "size": "67x18"
+        },
+        {
+          "sel": "a.ezh-emp-cta",
+          "text": "VitalCV for employers ↳",
+          "size": "179x21"
+        },
+        {
+          "sel": "a.ezh-start-cta",
+          "text": "Start with your NPI",
+          "size": "138x21"
+        },
+        {
+          "sel": "a.",
+          "text": "For employers",
+          "size": "104x21"
+        },
+        {
+          "sel": "a.",
+          "text": "Pricing",
+          "size": "50x21"
+        },
+        {
+          "sel": "a.",
+          "text": "Trust",
+          "size": "37x21"
+        },
+        {
+          "sel": "a.",
+          "text": "Status",
+          "size": "47x21"
+        },
+        {
+          "sel": "a.",
+          "text": "Privacy",
+          "size": "53x21"
+        },
+        {
+          "sel": "a.",
+          "text": "Terms",
+          "size": "44x21"
+        }
+      ]
+    },
+    "1440": {
+      "horizontalOverflow": 0,
+      "escapes": [],
+      "overlaps": [
+        {
+          "a": "span.ezh-fact-l",
+          "aText": "Specialty",
+          "b": "span.ezh-fact-l",
+          "bText": "Practice",
+          "overlapPx": "60x3"
+        },
+        {
+          "a": "span.ezh-fact-l",
+          "aText": "Specialty",
+          "b": "span.ezh-src",
+          "bText": "Practice info",
+          "overlapPx": "8x3"
+        },
+        {
+          "a": "span.ezh-src",
+          "aText": "NPPES",
+          "b": "span.ezh-src",
+          "bText": "Practice info",
+          "overlapPx": "52x3"
+        },
+        {
+          "a": "span.ezh-fact-l",
+          "aText": "Practice",
+          "b": "span.ezh-fact-l",
+          "bText": "License record",
+          "overlapPx": "60x3"
+        },
+        {
+          "a": "span.ezh-src",
+          "aText": "Practice info",
+          "b": "span.ezh-fact-l",
+          "bText": "License record",
+          "overlapPx": "47x3"
+        },
+        {
+          "a": "span.ezh-src",
+          "aText": "Practice info",
+          "b": "span.ezh-src",
+          "bText": "State board record",
+          "overlapPx": "45x3"
+        },
+        {
+          "a": "span.ezh-arow-t",
+          "aText": "Assemble a work history draft",
+          "b": "span.ezh-arow-t",
+          "bText": "Check the state license record",
+          "overlapPx": "219x3"
+        },
+        {
+          "a": "span.ezh-chip",
+          "aText": "VitalCV",
+          "b": "span.ezh-arow-t",
+          "bText": "Check the state license record",
+          "overlapPx": "3x3"
+        }
+      ],
+      "feedWidth": 1440,
+      "smallTargets": [
+        {
+          "sel": "input.ezh-npi-input",
+          "text": "10 digits",
+          "size": "194x18"
+        },
+        {
+          "sel": "button.ezh-npi-submit",
+          "text": "Start with your NPI",
+          "size": "138x18"
+        },
+        {
+          "sel": "a.",
+          "text": "VitalCV for employers ↳",
+          "size": "179x21"
+        },
+        {
+          "sel": "button.ezh-sf-replay",
+          "text": "↻ Replay",
+          "size": "67x18"
+        },
+        {
+          "sel": "a.ezh-emp-cta",
+          "text": "VitalCV for employers ↳",
+          "size": "179x21"
+        },
+        {
+          "sel": "a.ezh-start-cta",
+          "text": "Start with your NPI",
+          "size": "138x21"
+        },
+        {
+          "sel": "a.",
+          "text": "For employers",
+          "size": "104x21"
+        },
+        {
+          "sel": "a.",
+          "text": "Pricing",
+          "size": "50x21"
+        },
+        {
+          "sel": "a.",
+          "text": "Trust",
+          "size": "37x21"
+        },
+        {
+          "sel": "a.",
+          "text": "Status",
+          "size": "47x21"
+        },
+        {
+          "sel": "a.",
+          "text": "Privacy",
+          "size": "53x21"
+        },
+        {
+          "sel": "a.",
+          "text": "Terms",
+          "size": "44x21"
+        }
+      ]
+    }
+  }
+}

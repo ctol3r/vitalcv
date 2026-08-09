@@ -1808,7 +1808,11 @@
     font-size: 24px;
   }
 
+  /* On mobile everything is one flowing stack, so the desktop's row
+     reservation is unnecessary — and `minmax(0, 1fr)` actively collapses row
+     one under the stacked columns' height. Plain block flow sizes honestly. */
   .ezh-sf-body {
+    display: block;
     min-height: 340px;
   }
 
