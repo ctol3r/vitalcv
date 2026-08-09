@@ -78,6 +78,27 @@ export async function buildIdentityHeaders(
 }
 
 /**
+ * The signed-in user's email, read from the Clerk session claims.
+ *
+ * The backend's `ensureWorkspaceUser` creates a missing `User` row from
+ * `x-clerk-user-email`, and 404s ("Authenticated user has no VitalCV user
+ * record") when the header is absent. `/api/profile/npi/bootstrap` has always
+ * forwarded it; its sibling write proxies did not, so a signed-in clinician
+ * whose backend row did not yet exist got a permanent 404 on every save.
+ *
+ * Returns `{}` when the claim is missing — the header is additive, never a
+ * substitute for the verified identity pair above.
+ */
+export function buildEmailHeader(
+  sessionClaims: Record<string, unknown> | null | undefined,
+): Record<string, string> {
+  const email = sessionClaims?.email;
+  return typeof email === 'string' && email.length > 0
+    ? { 'x-clerk-user-email': email }
+    : {};
+}
+
+/**
  * Mutate an existing plain-object header map (or a `Headers`) in place with the
  * identity pair. Convenience for handlers that build a `Record<string,string>`
  * or `new Headers()` before fetching.

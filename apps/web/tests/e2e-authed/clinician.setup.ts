@@ -2,6 +2,7 @@ import { clerk, clerkSetup } from '@clerk/testing/playwright'
 import { expect, test as setup } from '@playwright/test'
 
 import { AUTH_STATE_PATH } from '../../playwright.config'
+import { E2E_CLINICIAN_EMAIL } from './testClinician'
 
 /**
  * Authed-suite bootstrap (J8): make the real gate crossable, once.
@@ -25,7 +26,6 @@ import { AUTH_STATE_PATH } from '../../playwright.config'
  * production traffic and holds no real clinician data.
  */
 
-export const E2E_CLINICIAN_EMAIL = 'e2e-clinician+clerk_test@vitalcv.dev'
 // A committed password for a synthetic user on a development-only instance
 // that can never hold real data. Only used to seed the user; sign-in uses a
 // one-time ticket, so the instance's enabled factors don't matter.

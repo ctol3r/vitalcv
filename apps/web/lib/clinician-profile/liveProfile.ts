@@ -203,16 +203,40 @@ export function describeClearedFields(clearedFields: string[]): string {
   return `Saving will remove ${list} from your profile. ${clearedFields.length > 1 ? 'These are' : 'This is'} self-attested — clearing only removes what you entered.`;
 }
 
+/**
+ * Read the server's own message out of an error body.
+ *
+ * The backend error handler emits `{ error: { code, message } }` — an OBJECT.
+ * This used to test `typeof body.error === 'string'`, which never matched, so
+ * every validation failure fell through to the generic copy and the specific
+ * reason (e.g. the work-auth enum list) was never shown. Both shapes are read
+ * here because the web proxies pass the backend body through verbatim and a
+ * bare-string `error` is still what some sibling routes return.
+ */
+function extractServerMessage(body: unknown): string | null {
+  if (!body || typeof body !== 'object') return null;
+  const error = (body as { error?: unknown }).error;
+  if (typeof error === 'string') return error.trim() || null;
+  if (error && typeof error === 'object') {
+    const message = (error as { message?: unknown }).message;
+    if (typeof message === 'string') return message.trim() || null;
+  }
+  return null;
+}
+
 export function describeProfileSaveError(status: number, body: unknown): string {
-  const message =
-    body && typeof body === 'object' && typeof (body as { error?: unknown }).error === 'string'
-      ? (body as { error: string }).error
-      : null;
+  const message = extractServerMessage(body);
   if (status === 401) {
     return 'Your session expired. Sign in again to save your profile.';
   }
   if (status === 400 || status === 422) {
     return message ?? 'That value could not be saved. Check it and try again.';
+  }
+  // 404 here means "no VitalCV user record for this account" — a permanent
+  // account state, not an outage. Calling it temporary sends the clinician
+  // into a retry loop that can never succeed.
+  if (status === 404) {
+    return 'Your account is not connected to a VitalCV profile yet. Connect your NPI to start saving.';
   }
   return 'Saving is temporarily unavailable. This is a system state — your entries were not lost; try again shortly.';
 }
