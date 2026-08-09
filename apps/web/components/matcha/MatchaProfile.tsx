@@ -37,7 +37,7 @@ function ConfidenceRing({ value }: { value: number }) {
   const c = 2 * Math.PI * r;
   const offset = c * (1 - Math.min(100, Math.max(0, value)) / 100);
   return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} role="img" aria-label={`${value}% learned`}>
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} role="img" aria-label={`${value}% of preferences shared`}>
       <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--vt-border, #E2E8E6)" strokeWidth={stroke} />
       <circle
         cx={size / 2}

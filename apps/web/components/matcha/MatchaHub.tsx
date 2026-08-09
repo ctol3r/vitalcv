@@ -82,7 +82,7 @@ export function MatchaHub() {
         </h1>
         <p style={{ margin: '6px 0 0', fontSize: 14, color: 'var(--vt-text-secondary)', lineHeight: 1.5 }}>
           {started
-            ? `MATCHA is ${completeness}% tuned to you. Here's where to take it next.`
+            ? `You've shared ${completeness}% of the preferences MATCHA can use — self-reported, not a readiness measure. Here's where to take it next.`
             : "Let's get MATCHA working for you — a few answers is all it takes to start."}
         </p>
         <div style={{ marginTop: 16, display: 'flex', flexWrap: 'wrap', gap: 10 }}>

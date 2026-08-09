@@ -162,19 +162,23 @@ export function deriveMatchaProfile(prefs: MatchaPreferences): MatchaDerivedProf
   } else if (prefs.remoteInterest && HIGH.has(prefs.remoteInterest)) {
     push(insights, 'ideal_location', 'Open to remote', ['remoteInterest']);
   }
-  if (isFieldAnswered(prefs.commuteRadiusMiles)) {
+  // Positive-value guards (A3): a stored 0 on these fields is a parser
+  // artifact from an empty input, not a preference — stating "Commute up to
+  // 0 mi" or "Target ~$0" with you-told-MATCHA provenance would attribute
+  // the artifact to the clinician. Absent stays absent.
+  if (isFieldAnswered(prefs.commuteRadiusMiles) && (prefs.commuteRadiusMiles as number) > 0) {
     push(insights, 'ideal_location', `Commute up to ${prefs.commuteRadiusMiles} mi`, ['commuteRadiusMiles']);
   }
 
   // ── Ideal compensation ──────────────────────────────────────────────────
-  if (isFieldAnswered(prefs.desiredSalary)) {
+  if (isFieldAnswered(prefs.desiredSalary) && (prefs.desiredSalary as number) > 0) {
     push(
       insights,
       'ideal_compensation',
       `Target ~$${(prefs.desiredSalary as number).toLocaleString()}`,
       ['desiredSalary'],
     );
-  } else if (isFieldAnswered(prefs.minimumSalary)) {
+  } else if (isFieldAnswered(prefs.minimumSalary) && (prefs.minimumSalary as number) > 0) {
     push(
       insights,
       'ideal_compensation',
