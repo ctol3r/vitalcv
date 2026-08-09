@@ -20,6 +20,7 @@ import {
   noteNeighborhood,
   restoreNoteRevision,
 } from '../services/garden/gardenLinksService';
+import { setNoteAgentConsent } from '../services/garden/gardenAgentConsent';
 import { requireInternalUserId } from './intake';
 
 /**
@@ -204,6 +205,25 @@ export function registerGardenRoutes(app: Express): void {
     asyncHandler(async (req, res) => {
       const userId = await requireInternalUserId(req);
       res.json(await noteNeighborhood(userId, req.params.noteId));
+    }),
+  );
+
+  // ——— WB-11: per-note agent visibility consent ————————————————————————
+  // D1: default excluded; explicit, revocable, audited before the 2xx.
+  // Same contract as every route above — scoped rows, misses read as 404.
+
+  app.post(
+    '/api/profile/garden/notes/:noteId/agent-consent',
+    asyncHandler(async (req, res) => {
+      const userId = await requireInternalUserId(req);
+      const enabled = (req.body ?? {}).enabled === true;
+      const note = await setNoteAgentConsent(userId, req.params.noteId, enabled);
+      await auditGarden(
+        enabled ? 'garden_note_agent_consent_granted' : 'garden_note_agent_consent_revoked',
+        userId,
+        { noteId: note.id },
+      );
+      res.json({ note });
     }),
   );
 }
