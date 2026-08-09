@@ -171,4 +171,34 @@ describe('describeSync names where the answers live', () => {
     // The distinction that was swallowed: degraded is not "no preferences saved".
     expect(notice?.detail).not.toMatch(/no preferences/i);
   });
+
+  it('never claims durability it does not have', () => {
+    for (const status of ['device', 'degraded'] as const) {
+      const notice = describeSync(status, false);
+      // These two states mean the answers are in one browser. Copy polish that
+      // reintroduces a cross-device or saved-to-account claim here is the defect.
+      expect(notice?.detail).not.toMatch(/across (your )?devices|saved to your account/i);
+    }
+  });
+});
+
+describe('the notice component carries the qualifier to the surface', () => {
+  it('renders nothing when there is nothing to disclose', async () => {
+    const { renderToStaticMarkup } = await import('react-dom/server');
+    const { MatchaStorageNotice } = await import('../components/matcha/MatchaStorageNotice');
+
+    expect(renderToStaticMarkup(<MatchaStorageNotice notice={null} />)).toBe('');
+  });
+
+  it('renders the degraded wording next to the completeness it qualifies', async () => {
+    const { renderToStaticMarkup } = await import('react-dom/server');
+    const { MatchaStorageNotice } = await import('../components/matcha/MatchaStorageNotice');
+
+    const markup = renderToStaticMarkup(
+      <MatchaStorageNotice notice={describeSync('degraded', false)} />,
+    );
+
+    expect(markup).toContain('this browser');
+    expect(markup).toContain('data-matcha-sync-tone="warn"');
+  });
 });
