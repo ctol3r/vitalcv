@@ -5,8 +5,8 @@
  *
  * One continuous 64px architectural instrument, full browser width:
  * restrained VitalCV identity left, contextual product state center (a mono
- * ticker that follows the homepage work surface's current beat; sparse nav
- * links elsewhere), and a minimal right cluster — quiet Sign in, at most ONE
+ * ticker that follows the homepage work surface's current beat; a plain route
+ * cue elsewhere), and a minimal right cluster — quiet Sign in, at most ONE
  * dominant contextual action (from headerRouteContext, unchanged policy), and
  * a boxed menu glyph opening a full-takeover index menu.
  *
@@ -25,7 +25,7 @@ import { usePathname } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { getHeaderRouteContext } from '@/components/layout/headerRouteContext';
-import { NAV_GROUPS, PRIMARY_NAV } from '@/components/layout/navDestinations';
+import { NAV_GROUPS } from '@/components/layout/navDestinations';
 import { isPublicSurfacePath } from '@/components/layout/publicSurfaceRoutes';
 import { useHeaderScene } from '@/components/layout/useHeaderScene';
 
@@ -145,22 +145,9 @@ export default function Eyebrow() {
               {ticker}
             </span>
           ) : (
-            /*
-             * W1079 — clinician-first order, from the shared PRIMARY_NAV, and
-             * Trust is no longer a top-level bar destination. A clinician's
-             * next actions are the profile (the CTA to the right) and the roles
-             * it unlocks; Trust answers a question they have not asked yet. It
-             * keeps a full group in the index menu and a direct link in the
-             * footer, which is the "compact path" the wave asks for — moved,
-             * not demoted.
-             */
-            <nav aria-label="Primary" className="vcv-eb__center-nav">
-              {PRIMARY_NAV.map((link) => (
-                <Link key={link.href} className="vcv-eb__navlink" href={link.href}>
-                  {link.label}
-                </Link>
-              ))}
-            </nav>
+            <span className="vcv-eb__context" data-header-context={route.audience}>
+              {route.contextLabel}
+            </span>
           )}
         </div>
 

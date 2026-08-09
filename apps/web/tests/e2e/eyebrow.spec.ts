@@ -134,31 +134,19 @@ test.describe('eyebrow — desktop', () => {
 });
 
 test.describe('eyebrow — off-homepage register', () => {
-  test('defaults light with sparse center navigation', async ({ page }) => {
+  test('defaults light with a route cue, not a horizontal destination row', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
-    await page.goto('/trust');
+    // Pricing is a stable public off-home route for this shared-chrome contract.
+    await page.goto('/pricing');
     await expect(eyebrow(page)).toBeVisible();
     await expect(eyebrow(page)).toHaveAttribute('data-eb-theme', 'light');
-    const navlinks = eyebrow(page).locator('.vcv-eb__navlink');
-    const count = await navlinks.count();
-    expect(count).toBeGreaterThan(0);
-    expect(count).toBeLessThanOrEqual(3);
-
-    // W1079: clinician-first order, and Trust is no longer a bar destination —
-    // it moved to the footer. Asserted here because the bar is the one nav
-    // surface a visitor sees without opening anything.
-    await expect(navlinks).toHaveText(['Jobs', 'For employers', 'How it works']);
-    await expect(eyebrow(page).locator('a[href="/trust"]')).toHaveCount(0);
+    await expect(eyebrow(page).locator('.vcv-eb__context')).toHaveText(
+      'Your profile, ready for every move',
+    );
+    await expect(eyebrow(page).locator('.vcv-eb__navlink')).toHaveCount(0);
+    await expect(eyebrow(page).locator('nav[aria-label="Primary"]')).toHaveCount(0);
     await expect(page.locator('footer nav a[href="/trust"]')).toHaveCount(1);
     await expect(page.locator('footer nav a[href="/status"]')).toHaveCount(1);
-
-    // The separation is a real flex gap. A literal space in the JSX measured
-    // ~4px at 11px uppercase mono with 0.12em tracking — the same as the gap
-    // between two letters — so the bar read as one run.
-    const gap = await eyebrow(page)
-      .locator('.vcv-eb__center-nav')
-      .evaluate((el) => parseFloat(getComputedStyle(el).columnGap));
-    expect(gap).toBeGreaterThanOrEqual(16);
   });
 
   test('suppresses the dominant action on its own destination', async ({ page }) => {

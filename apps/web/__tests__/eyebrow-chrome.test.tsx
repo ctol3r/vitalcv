@@ -4,8 +4,8 @@
  * The UX-V1 eyebrow's contracts: public-route gating, the dark/light
  * register defaults, the single dominant action and its per-route
  * suppression, exactly one quiet sign-in, the full-takeover index menu
- * (open / Escape / focus return / scroll lock / complete nav registry), and
- * the homepage beat ticker.
+ * (open / Escape / focus return / scroll lock / complete nav registry), the
+ * homepage beat ticker, and a plain route cue instead of a link row.
  *
  * Geometry (constant 64px height across scroll and inversion) is a browser
  * measurement — pinned in tests/e2e/eyebrow.spec.ts, not here.
@@ -119,7 +119,7 @@ describe('the right cluster: one quiet sign-in, at most one dominant action', ()
   });
 });
 
-describe('the center: product state on /, sparse nav elsewhere', () => {
+describe('the center: product state on /, route context elsewhere', () => {
   it('shows the static ticker before any beat arrives', async () => {
     await mount(<Eyebrow />);
     expect(container.querySelector('.vcv-eb__ticker')?.textContent).toBe('How VitalCV works');
@@ -135,13 +135,23 @@ describe('the center: product state on /, sparse nav elsewhere', () => {
     expect(container.querySelector('.vcv-eb__ticker')?.textContent).toBe('Finding sources');
   });
 
-  it('shows sparse mono navigation off the homepage, never a link row takeover', async () => {
+  it('shows a non-interactive route cue off the homepage, never a link row', async () => {
     pathnameRef.current = '/pricing';
     await mount(<Eyebrow />);
-    const links = container.querySelectorAll('.vcv-eb__navlink');
-    expect(links.length).toBeGreaterThan(0);
-    expect(links.length).toBeLessThanOrEqual(3);
+    const cue = container.querySelector('.vcv-eb__context');
+    expect(cue?.textContent).toBe('Your profile, ready for every move');
+    expect(container.querySelector('.vcv-eb__center-nav')).toBeNull();
+    expect(container.querySelectorAll('.vcv-eb__navlink')).toHaveLength(0);
+    expect(container.querySelector('nav[aria-label="Primary"]')).toBeNull();
     expect(container.querySelector('.vcv-eb__ticker')).toBeNull();
+  });
+
+  it('uses the employer route cue without reviving the old employer link', async () => {
+    pathnameRef.current = '/employers/team';
+    await mount(<Eyebrow />);
+    const cue = container.querySelector('.vcv-eb__context');
+    expect(cue?.textContent).toBe('Hiring teams');
+    expect(cue?.getAttribute('data-header-context')).toBe('employer');
   });
 });
 

@@ -5,7 +5,8 @@
  * the Palantir/Zoox brief (design-lab/homepage-reset/MASTER-BRIEF.md):
  * 64px constant height, 32px gutters, full browser width, hairline bottom
  * rule, square-cornered instruments. It is not a SaaS navbar: no floating
- * rounded container, no pills, no centered link row, no backdrop blur.
+ * rounded container, no pills, no centered destination link row, no backdrop
+ * blur.
  *
  * Island discipline: every color routes through an --eb-* custom property
  * declared here; the bar inverts between its dark and light registers by
@@ -64,7 +65,7 @@
   transition: color 0.24s ease;
 }
 
-/* ── center: contextual product state / sparse nav ─────────────────────── */
+/* ── center: contextual product state, never destination navigation ─────── */
 
 .vcv-eb__center {
   position: absolute;
@@ -95,38 +96,16 @@
   transition: none;
 }
 
-/*
- * W1079. The nav had no rule at all: an unstyled block whose only separation
- * between destinations was a literal space in the JSX. At 11px uppercase mono
- * with 0.12em letter-spacing that space measures ~4px — the same as the gap
- * between two letters — so the bar rendered as one run,
- * "HOW IT WORKS FOR EMPLOYERS TRUST", with no way to see where one destination
- * ended and the next began. Measured on production before this wave: link boxes
- * at 517-612, 616-719, 723-763.
- *
- * A real flex gap is what separates them; the JSX spaces are gone. 26px rather
- * than the right cluster's 14px because letter-spaced uppercase needs more room
- * to read as discrete items.
- */
-.vcv-eb__center-nav {
-  display: flex;
-  align-items: center;
-  gap: 26px;
-}
-
-.vcv-eb__navlink {
+.vcv-eb__context {
   font-family: var(--font-geist-mono);
   font-size: 11px;
   font-weight: 500;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--eb-text2);
-  transition: color 0.15s ease;
-}
-
-.vcv-eb__navlink:hover,
-.vcv-eb__navlink:focus-visible {
-  color: var(--eb-text);
+  max-width: min(38vw, 440px);
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* ── right cluster: quiet sign-in, one dominant action, boxed menu ─────── */
