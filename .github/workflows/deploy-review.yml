@@ -45,6 +45,10 @@ env:
   RAILWAY_PRODUCTION_ENVIRONMENT_ID: cd700720-5c9d-472b-bf68-4b3cc65191cd
   RAILWAY_PRODUCTION_DOMAIN: vitalcv.com
   REVIEW_ENVIRONMENT_NAME: review
+  # The container port. Must be ONE value used in two places — the PORT variable
+  # the app listens on, and the service domain's targetPort Railway routes to.
+  # Matches `EXPOSE 3000` and `next start -p ${PORT:-3000}` in apps/web.
+  REVIEW_TARGET_PORT: '3000'
 
 jobs:
   deploy-review:
@@ -65,6 +69,118 @@ jobs:
           SHA=$(git rev-parse HEAD)
           echo "sha=${SHA}" >> "$GITHUB_OUTPUT"
           echo "Publishing ${{ inputs.ref }} → ${SHA}"
+
+      # ── Preflight ─────────────────────────────────────────────────────────
+      # Every read-only check, up front, collecting ALL failures before exiting.
+      #
+      # Why this exists: the mutating steps below each exit on their first
+      # error, so a misconfiguration costs one run per problem to discover. The
+      # first four real runs of this workflow found four separate issues, one at
+      # a time, and each round-trip needed a human. This step answers "what is
+      # wrong" in a single run.
+      #
+      # It mutates nothing, so it is always safe to read its output and stop.
+      - name: Preflight — check everything that can be checked without mutating
+        env:
+          RAILWAY_REVIEW_TOKEN: ${{ secrets.RAILWAY_REVIEW_TOKEN }}
+          RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN }}
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          set -uo pipefail   # NOT -e: collect every failure, do not stop at one
+          PROBLEMS=0
+          fail() { echo "  ✗ $1"; PROBLEMS=$((PROBLEMS+1)); }
+          ok()   { echo "  ✓ $1"; }
+
+          echo "Credential"
+          if [ -n "${RAILWAY_REVIEW_TOKEN:-}" ]; then
+            AUTH="Project-Access-Token: ${RAILWAY_REVIEW_TOKEN}"; ok "RAILWAY_REVIEW_TOKEN present (review-scoped project token)"
+          elif [ -n "${RAILWAY_API_TOKEN:-}" ]; then
+            AUTH="Authorization: Bearer ${RAILWAY_API_TOKEN}"; ok "RAILWAY_API_TOKEN present (account token)"
+          else
+            fail "no usable credential — set RAILWAY_REVIEW_TOKEN (preferred) or RAILWAY_API_TOKEN"
+            [ -n "${RAILWAY_TOKEN:-}" ] && echo "    (RAILWAY_TOKEN is set but is production-scoped and cannot see this environment)"
+            echo ""
+            echo "PREFLIGHT: ${PROBLEMS} problem(s). Nothing was changed."
+            exit 1
+          fi
+
+          gql() {
+            jq -n --arg query "$1" --argjson variables "$2" '{query:$query,variables:$variables}' > pf.json
+            curl --silent --show-error https://backboard.railway.com/graphql/v2 \
+              -H "${AUTH}" -H 'Content-Type: application/json' --data-binary @pf.json
+          }
+
+          echo "Project ${RAILWAY_PROJECT_ID}"
+          gql 'query P($projectId: String!) {
+            project(id: $projectId) {
+              id name
+              environments { edges { node { id name } } }
+              services { edges { node { id name } } }
+            }
+          }' "$(jq -n --arg projectId "$RAILWAY_PROJECT_ID" '{projectId:$projectId}')" > pf-project.json
+
+          if jq -e '.errors and (.errors|length>0)' pf-project.json >/dev/null 2>&1; then
+            fail "project query returned errors: $(jq -c '[.errors[].message]' pf-project.json)"
+          elif jq -e '.data.project == null' pf-project.json >/dev/null 2>&1; then
+            fail "project is not readable with this credential"
+          else
+            ok "project readable: $(jq -r '.data.project.name' pf-project.json)"
+
+            echo "Environments visible"
+            jq -r '.data.project.environments.edges[]?.node | "    - \(.name) (\(.id))"' pf-project.json
+            ENV_ID=$(jq -r --arg n "$REVIEW_ENVIRONMENT_NAME" '
+              .data.project.environments.edges[]?.node
+              | select((.name|ascii_downcase|gsub("^\\s+|\\s+$";"")) == ($n|ascii_downcase)) | .id' pf-project.json | head -1)
+            if [ -n "$ENV_ID" ]; then
+              ok "'${REVIEW_ENVIRONMENT_NAME}' resolves to ${ENV_ID}"
+              if [ "$ENV_ID" = "$RAILWAY_PRODUCTION_ENVIRONMENT_ID" ]; then
+                fail "REFUSING: '${REVIEW_ENVIRONMENT_NAME}' resolved to the PRODUCTION environment id"
+              fi
+            else
+              fail "'${REVIEW_ENVIRONMENT_NAME}' not visible (create it in Railway, or the token cannot see it)"
+            fi
+
+            echo "Service ${RAILWAY_WEB_SERVICE_ID}"
+            if jq -e --arg id "$RAILWAY_WEB_SERVICE_ID" \
+                 '[.data.project.services.edges[]?.node.id] | index($id) != null' pf-project.json >/dev/null 2>&1; then
+              ok "web service present in this project"
+            else
+              fail "web service ${RAILWAY_WEB_SERVICE_ID} not visible in this project"
+            fi
+
+            if [ -n "$ENV_ID" ]; then
+              echo "Domain"
+              gql 'query D($projectId: String!, $environmentId: String!, $serviceId: String!) {
+                domains(projectId: $projectId, environmentId: $environmentId, serviceId: $serviceId) {
+                  serviceDomains { domain targetPort }
+                }
+              }' "$(jq -n --arg projectId "$RAILWAY_PROJECT_ID" --arg environmentId "$ENV_ID" \
+                     --arg serviceId "$RAILWAY_WEB_SERVICE_ID" \
+                     '{projectId:$projectId,environmentId:$environmentId,serviceId:$serviceId}')" > pf-domains.json
+              if jq -e '.errors and (.errors|length>0)' pf-domains.json >/dev/null 2>&1; then
+                fail "domain query errored: $(jq -c '[.errors[].message]' pf-domains.json)"
+              else
+                D=$(jq -r '.data.domains.serviceDomains[0].domain // empty' pf-domains.json)
+                P=$(jq -r '.data.domains.serviceDomains[0].targetPort // empty' pf-domains.json)
+                if [ -z "$D" ]; then
+                  ok "no domain yet — one will be created on port ${REVIEW_TARGET_PORT}"
+                else
+                  ok "existing domain ${D} (targetPort ${P:-unset})"
+                  [ "$D" = "$RAILWAY_PRODUCTION_DOMAIN" ] && fail "REFUSING: review domain IS the production domain"
+                  if [ -n "$P" ] && [ "$P" != "$REVIEW_TARGET_PORT" ]; then
+                    fail "domain targetPort ${P} != app PORT ${REVIEW_TARGET_PORT} — the URL would 404 on a healthy container"
+                  fi
+                fi
+              fi
+            fi
+          fi
+
+          echo ""
+          if [ "$PROBLEMS" -gt 0 ]; then
+            echo "PREFLIGHT FAILED: ${PROBLEMS} problem(s) above. Nothing was changed."
+            exit 1
+          fi
+          echo "PREFLIGHT PASSED — proceeding to mutate."
 
       - name: Resolve or create the review environment
         id: environment
@@ -245,17 +361,30 @@ jobs:
           # RAILWAY_ENVIRONMENT is supplied by Railway itself as the environment
           # NAME ("review"), which is exactly what isCanonicalProduction() reads
           # to refuse indexing. Do not override it.
+          #
+          # PORT is pinned to match the service domain's targetPort below.
+          # Railway routes the public domain to ONE container port; the app
+          # listens on $PORT (Dockerfile EXPOSE 3000, `next start -p ${PORT:-3000}`).
+          # If those two disagree the domain answers 404 with a perfectly
+          # healthy container behind it — the single most common way a
+          # correctly-deployed Railway service looks broken.
           VARS=$(jq -n \
             --arg pub "${E2E_CLERK_PUBLISHABLE_KEY:-}" \
+            --arg port "$REVIEW_TARGET_PORT" \
             '{
               BACKEND_URL: "https://api.vitalcv.com",
               NEXT_PUBLIC_API_BASE: "https://api.vitalcv.com",
-              NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: $pub
+              NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: $pub,
+              PORT: $port
             }')
 
           MUTATION='mutation SetVars($input: VariableCollectionUpsertInput!) {
             variableCollectionUpsert(input: $input)
           }'
+          # skipDeploys: the upsert would otherwise trigger its OWN deploy of
+          # whatever ref the service last used, racing the exact-SHA deploy two
+          # steps below — two builds, and a window where the review URL serves
+          # the wrong commit. This workflow deploys explicitly and on purpose.
           jq -n --arg query "$MUTATION" \
             --arg projectId "$RAILWAY_PROJECT_ID" \
             --arg environmentId "$REVIEW_ENVIRONMENT_ID" \
@@ -263,7 +392,8 @@ jobs:
             --argjson variables "$VARS" \
             '{query: $query, variables: {input: {
               projectId: $projectId, environmentId: $environmentId,
-              serviceId: $serviceId, variables: $variables
+              serviceId: $serviceId, variables: $variables,
+              skipDeploys: true
             }}}' > vars-request.json
 
           curl --fail-with-body --silent --show-error \
@@ -296,7 +426,7 @@ jobs:
 
           LIST='query Domains($projectId: String!, $environmentId: String!, $serviceId: String!) {
             domains(projectId: $projectId, environmentId: $environmentId, serviceId: $serviceId) {
-              serviceDomains { id domain }
+              serviceDomains { id domain targetPort }
               customDomains { id domain }
             }
           }'
@@ -311,12 +441,20 @@ jobs:
           if [ -z "$DOMAIN" ]; then
             echo "No review domain yet — creating one."
             CREATE='mutation CreateDomain($input: ServiceDomainCreateInput!) {
-              serviceDomainCreate(input: $input) { id domain }
+              serviceDomainCreate(input: $input) { id domain targetPort }
             }'
+            # targetPort is REQUIRED. Omitting it was a real defect in the first
+            # version of this workflow — Railway's own docs list environmentId,
+            # serviceId and targetPort as the required inputs, and a domain
+            # pointed at the wrong port is the documented cause of "service
+            # domain created via API returns 404". It matches the PORT variable
+            # set two steps above; --argjson keeps it a NUMBER, which the schema
+            # requires (a quoted string is rejected).
             api "$CREATE" "$(jq -n \
               --arg environmentId "$REVIEW_ENVIRONMENT_ID" \
               --arg serviceId "$RAILWAY_WEB_SERVICE_ID" \
-              '{input: {environmentId: $environmentId, serviceId: $serviceId}}')" > domain-created.json
+              --argjson targetPort "$REVIEW_TARGET_PORT" \
+              '{input: {environmentId: $environmentId, serviceId: $serviceId, targetPort: $targetPort}}')" > domain-created.json
             if jq -e '.errors and (.errors|length > 0)' domain-created.json >/dev/null; then
               jq '.errors' domain-created.json
               echo "::error::Could not create a review service domain."

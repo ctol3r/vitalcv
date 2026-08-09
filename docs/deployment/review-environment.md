@@ -118,10 +118,47 @@ Verify the secret actually landed before re-running:
 gh secret list -R ctol3r/vitalcv --app actions | grep RAILWAY
 ```
 
-Everything after environment resolution (`variableCollectionUpsert`,
-`serviceDomainCreate`, `serviceInstanceDeployV2`, and the SHA/noindex
-verification) is **still unexercised** — no run has reached those steps. Expect
-the first successful run to be their real test.
+## Preflight
+
+The first step after checkout is a **preflight** that performs every read-only
+check at once — credential, project readability, environment resolution,
+service presence, existing domain and its `targetPort`, and both
+production-refusal assertions — and reports **all** failures before exiting.
+It mutates nothing.
+
+It exists because the mutating steps each exit on their first error, so a
+misconfiguration cost one run (and one human round-trip) per problem. The first
+four real runs found four separate issues that way.
+
+## Known-correct API shapes
+
+These were verified against Railway's published API docs after the first runs,
+not assumed. Two were wrong:
+
+| Call | Requirement | Status |
+| --- | --- | --- |
+| `variableCollectionUpsert` | `projectId`, `environmentId`, `serviceId`, `variables` | was correct |
+| `serviceInstanceDeployV2` | `serviceId`, `environmentId`, `commitSha` | was correct |
+| `serviceDomainCreate` | `environmentId`, `serviceId`, **`targetPort`** | **was missing `targetPort`** |
+| `variableCollectionUpsert` | `skipDeploys` | **was unset, causing a racing deploy** |
+
+**`targetPort`** is required, and a domain pointed at the wrong port is
+Railway's documented cause of *"service domain created via API returns 404"* —
+a healthy container behind a URL that answers nothing. It is set from
+`REVIEW_TARGET_PORT` (3000, matching `EXPOSE 3000` and
+`next start -p ${PORT:-3000}`), and the same value is written as the `PORT`
+variable so the app listens exactly where the domain routes. The preflight
+fails if an existing domain's `targetPort` disagrees.
+
+**`skipDeploys: true`** matters because the variable upsert would otherwise
+trigger its own deploy of whatever ref the service last used, racing the
+exact-SHA deploy two steps later — two builds, and a window where the review
+URL serves the wrong commit.
+
+Everything after environment resolution is **still unexercised by a real run** —
+no invocation has got past it. The shapes above are verified against the docs
+and the preflight logic is proven against fixtures, but only a successful run
+proves the mutations themselves.
 
 ## Cost
 
