@@ -1831,35 +1831,21 @@
     opacity: 1;
   }
 
+  /* D-01A — the beat-one stage does not render on mobile. It sat at the
+     BOTTOM of the surface in flow (it is last in DOM for desktop stacking)
+     and then display:none'd itself at beat two, collapsing ~200px and
+     shifting everything below it — mobile CLS the desktop fix had just
+     removed. The real NPI entry is directly above the surface here, and the
+     dots + eyebrow ticker still narrate beat one. */
   .ezh-sf-stage {
-    position: static;
-    padding: 40px 16px;
-  }
-
-  .ezh-sf-stage.is-off {
     display: none;
   }
 
-  .ezh-npi-illus {
-    min-width: 0;
-    width: 100%;
-  }
-
-  .ezh-glyphs {
-    flex-wrap: wrap;
-    height: auto;
-  }
-
-  /* while the timeline is PLAYING, unfired stream blocks stay collapsed; the
-     server frame (no data-motion) shows everything */
-  .ezh-surface[data-motion='playing'] .ezh-record:not(.on),
-  .ezh-surface[data-motion='playing'] .ezh-remains:not(.on),
-  .ezh-surface[data-motion='playing'] .ezh-workfeed:not(.on),
-  .ezh-surface[data-motion='playing'] .ezh-fact:not(.on),
-  .ezh-surface[data-motion='playing'] .ezh-arow:not(.on),
-  .ezh-surface[data-motion='playing'] .ezh-sf-resolve:not(.on) {
-    display: none;
-  }
+  /* The old mobile "task stream" collapsed unfired blocks with display:none
+     while the timeline played — a layout-shift machine, one shift per beat.
+     Mobile now reserves space exactly like desktop: unfired blocks are
+     opacity 0 in their final geometry, and the timeline changes nothing but
+     opacity. */
 
   .ezh-fact {
     grid-template-columns: 84px 1fr auto;

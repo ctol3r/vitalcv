@@ -265,10 +265,14 @@ html[data-theme='dark'] {
   --vt-scene-state-needs-person:          #E4B45C;  /*  9.63:1 on canvas */
   --vt-scene-state-waiting:               #8F8C88;  /*  5.50:1 on canvas */
 
-  /* ── Shape scale (decision 4) — DEFINED, NOT APPLIED ──────────────────
-     D-01's gate is explicit: do not alter legacy radius aliases until call
-     sites are audited. The live islands ship a 2px radius throughout; nothing
-     consumes these yet. D-02 builds the primitives that do. */
+  /* ── Shape scale (decision 4) — APPLIED ON THE HOMEPAGE ISLANDS ───────
+     D-01 defined these unused, on the reasoning that legacy radius aliases
+     should not move until their call sites were audited. D-01A audited the
+     two homepage islands and moved them: easy-home.css and eyebrow.css now
+     resolve every radius through this scale (the primary CTA is
+     --vt-shape-pill, per decision 1's "full pill shape"). Islands OUTSIDE
+     the homepage still ship their own radii and are still un-audited —
+     D-02's primitives are what carry the scale off `/`. */
   --vt-shape-pill:    9999px;
   --vt-shape-control: 10px;
   --vt-shape-card:    20px;
