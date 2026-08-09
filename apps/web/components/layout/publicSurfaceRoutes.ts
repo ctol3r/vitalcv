@@ -236,6 +236,37 @@ export function isProductSurfacePath(pathname: string | null): boolean {
   );
 }
 
+/**
+ * WB-08 — where the Workbench capture dock may mount.
+ *
+ * A fail-closed allowlist, same doctrine as every registry decision in this
+ * file: a NEW surface gets no dock until someone deliberately adds it here.
+ * The dock is the clinician's private note instrument, so:
+ *
+ *  - the holder tree and the clinician namespace are in (the dock itself
+ *    still self-suppresses on /holder/garden/*, where the full workspace and
+ *    its Cursor own the surface);
+ *  - the public research surfaces where clinicians actually gather material
+ *    (/explore, /evidence-network) are in — RootChrome additionally gates the
+ *    mount behind SignedIn, so an anonymous visitor never sees the trigger;
+ *  - employer, issuer, admin, and ops surfaces are OUT, permanently. The
+ *    ops-facing investigation workbench shares the customer-facing name; the
+ *    two must never appear on one surface (CC-04 M5), and clinician-private
+ *    notes have no business near an employer decision screen (knowledge
+ *    program invariant 10).
+ */
+const WORKBENCH_RESEARCH_SURFACES = ['/explore', '/evidence-network'] as const;
+
+export function isWorkbenchCaptureSurface(pathname: string | null): boolean {
+  if (!pathname) return false;
+  if (isOpsSurfacePath(pathname)) return false;
+  if (pathname === '/holder' || pathname.startsWith('/holder/')) return true;
+  if (CLINICIAN_NAMESPACE.test(pathname)) return true;
+  return WORKBENCH_RESEARCH_SURFACES.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+  );
+}
+
 export function isPublicSurfacePath(pathname: string | null): boolean {
   if (!pathname) {
     return false;

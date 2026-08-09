@@ -111,7 +111,7 @@ afterEach(async () => {
 });
 
 describe('mount closure — the dock cannot reach public or employer surfaces', () => {
-  it('is imported by exactly one production component: the clinician chrome', () => {
+  it('is imported by exactly one production component: the root chrome registry mount', () => {
     const importers: string[] = [];
     const walk = (dir: string) => {
       for (const name of readdirSync(dir)) {
@@ -126,7 +126,10 @@ describe('mount closure — the dock cannot reach public or employer surfaces', 
     };
     walk(join(WEB_ROOT, 'app'));
     walk(join(WEB_ROOT, 'components'));
-    expect(importers).toEqual(['components/holder/HolderWorkspaceFrame.tsx']);
+    // WB-08 moved the single mount from HolderWorkspaceFrame to RootChrome,
+    // where the isWorkbenchCaptureSurface registry predicate + SignedIn gate
+    // it. Still exactly one importer — the registry stays the chrome decision.
+    expect(importers).toEqual(['components/layout/RootChrome.tsx']);
   });
 
   it('does not render on /holder/garden/* — the workspace and its Cursor own that surface', async () => {

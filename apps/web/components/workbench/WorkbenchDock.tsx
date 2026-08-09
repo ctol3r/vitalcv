@@ -10,11 +10,14 @@ import { NoteEditor } from '@/components/workbench/NoteEditor';
  * WorkbenchDock — CC-07 / WB-03, the spatial Workbench shell.
  *
  * A route-aware trigger plus a contextual pane system on signed-in clinician
- * surfaces. Mounted ONLY by HolderWorkspaceFrame (the clinician chrome), so
- * it can never appear on public, employer-marketing, or employer-app routes;
- * a source-scan test pins that closure. On /holder/garden/* the full
- * workspace already owns the surface — and the Cursor owns ⌘K there — so the
- * dock does not mount and there are never two competing launchers.
+ * surfaces. Mounted ONLY by RootChrome (WB-08), gated by the
+ * isWorkbenchCaptureSurface registry allowlist plus SignedIn — so it reaches
+ * the holder tree, the clinician namespace, and the designated research
+ * surfaces, and can never appear on employer, issuer, admin, or ops routes
+ * or for anonymous visitors; a source-scan test pins that closure. On
+ * /holder/garden/* the full workspace already owns the surface — and the
+ * Cursor owns ⌘K there — so the dock does not mount and there are never two
+ * competing launchers.
  *
  * Spatial model:
  *  - Desktop (≥1024px): right-hand drawer, 360–520px, resizable by its left
