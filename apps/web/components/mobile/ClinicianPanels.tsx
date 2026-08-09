@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import ApplyModal from '@/components/explore/ApplyModal';
 import { useClinicianMobile } from '@/components/mobile/ClinicianMobileProvider';
+import { formatEventTimestamp } from '@/lib/mobile/formatEventTimestamp';
 import { ClinicianStatusBanner } from '@/components/mobile/ClinicianStatusBanner';
 import { trackClinicianEventOncePerSession } from '@/lib/mobile/analytics';
 import type { ClinicianNotification } from '@/lib/mobile/clinician-state';
@@ -44,19 +45,7 @@ export interface MobileQuickAction {
   tone: 'emerald' | 'sky' | 'amber' | 'zinc';
 }
 
-function formatTimestamp(value: string): string {
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) {
-    return 'Updated recently';
-  }
 
-  return parsed.toLocaleString([], {
-    month: 'short',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  });
-}
 
 /** Map an application-status tone onto a calm truth-state chip variant. */
 function toneClasses(tone: ReturnType<typeof applicationStatusTone>): string {
@@ -107,7 +96,9 @@ function matchLabel(opportunity: MobileOpportunityCard): string {
     case 'INELIGIBLE':
       return 'Needs work';
     default:
-      return 'Live role';
+      // No match data is a statement about what we know, not about the role.
+      // 'Live role' asserted freshness precisely when we knew least.
+      return 'Open role';
   }
 }
 
@@ -256,7 +247,7 @@ export function OpportunityGrid({
                 <div className="mt-4 flex flex-wrap items-center justify-between gap-3 mz-small">
                   <span className="inline-flex items-center gap-1.5">
                     <Clock4 className="h-3.5 w-3.5 opacity-60" />
-                    Updated {formatTimestamp(opportunity.createdAt)}
+                    Posted {formatEventTimestamp(opportunity.createdAt)}
                   </span>
                   {opportunity.hiringType === 'PERMANENT' ? (
                     <span className="inline-flex items-center gap-1.5">
@@ -417,7 +408,7 @@ export function NotificationList({
                   ) : null}
                 </div>
                 <div className="mt-4 flex items-center justify-between gap-3">
-                  <span className="mz-small mz-mono">{formatTimestamp(notification.occurredAt)}</span>
+                  <span className="mz-small mz-mono">{formatEventTimestamp(notification.occurredAt, 'Recently')}</span>
                   <Link
                     href={notification.href}
                     onClick={() => markNotificationRead(notification.id)}
@@ -511,7 +502,7 @@ export function ApplicationList({
               <div className="mt-4 flex flex-wrap items-center justify-between gap-3 mz-small">
                 <span className="inline-flex items-center gap-1">
                   <Clock3 className="h-3.5 w-3.5" />
-                  Updated {formatTimestamp(application.updatedAt)}
+                  Updated {formatEventTimestamp(application.updatedAt)}
                 </span>
                 <div className="flex flex-wrap items-center gap-3">
                   <Link
@@ -591,13 +582,15 @@ export function SelectedOpportunityBanner() {
   const continueHref = selectedOpportunity.application
     ? `/holder/applications/${encodeURIComponent(selectedOpportunity.application.id)}`
     : `/holder/opportunities?apply=${encodeURIComponent(selectedOpportunity.id)}`;
-  const continueLabel = selectedOpportunity.application ? 'View application' : 'Continue application';
+  // "Continue application" promised an in-flight application that did not
+  // exist — the selection is a localStorage card click, not server state.
+  const continueLabel = selectedOpportunity.application ? 'View application' : 'Apply to this role';
 
   return (
     <section className="mz mz-glass p-5">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="mz-eyebrow">Continuing where you left off</p>
+          <p className="mz-eyebrow">{selectedOpportunity.application ? 'Continuing where you left off' : 'Recently viewed role'}</p>
           <h2 className="mz-h2 mt-3">{selectedOpportunity.title}</h2>
           <p className="mt-2 mz-body">
             {selectedOpportunity.organizationName} · {selectedOpportunity.state}

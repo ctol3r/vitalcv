@@ -62,4 +62,9 @@ export interface WorkspaceList {
     active: boolean;
   }>;
   canSwitchTo: ActivePersona[];
+  /**
+   * Signed-in account email, appended by the web proxy (/api/me/workspaces)
+   * from the Clerk session/backend API. Absent when Clerk is unreachable.
+   */
+  accountEmail?: string | null;
 }

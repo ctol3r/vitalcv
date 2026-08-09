@@ -8,7 +8,7 @@
  * we-do-not-claim disclaimer.
  *
  * Truth-contract guarantees (enforced by
- * `apps/web/__tests__/trust-attribution-page.test.tsx`):
+ * `apps/web/__tests__/status-attribution-receipts.test.tsx`):
  *  - Opening disclaimer contains the contracted phrase: "We publish
  *    the source of every field. We do not claim HIPAA, SOC 2, or
  *    NCQA certification."
@@ -44,46 +44,36 @@ export const metadata: Metadata = {
 
 export default function TrustAttributionPage() {
   return (
-    <div className="min-h-screen bg-gray-950 text-gray-100 font-mono">
-      <header className="border-b border-gray-800 px-6 py-5">
-        <div className="mx-auto flex max-w-4xl items-center justify-between">
-          <div>
-            <h1 className="text-sm font-bold tracking-tight text-white uppercase">
-              VitalCV · Source attribution
-            </h1>
-            <p className="mt-1 text-[10px] text-gray-500">
-              Per-field register; receipt-document style.
-            </p>
-          </div>
-          <Link
-            href="/"
-            /* 10px type gave a 78x12 target on production — under the 24px
-               WCAG 2.5.8 floor. Transparent ::before overlay lifts the hit
-               area without changing the type scale or the header layout. */
-            className="relative text-[10px] text-gray-500 underline underline-offset-2 hover:text-gray-300 before:absolute before:left-0 before:top-1/2 before:h-6 before:w-full before:-translate-y-1/2 before:content-['']"
-          >
-            ← vitalcv.com
-          </Link>
-        </div>
-      </header>
-
+    // Light theme on purpose: CD-14 fixes the public tier as paper, light
+    // only. This page shipped as the site's one hardcoded-dark surface
+    // (bg-gray-950) with its own second header stacked under the global
+    // chrome; both are gone. font-mono stays — receipt-document typography
+    // is the register's style, not a theme.
+    <div className="min-h-screen bg-[var(--vt-bg)] font-mono text-[var(--vt-text-primary)]">
       <main className="mx-auto max-w-4xl space-y-6 px-6 py-8">
+        <div>
+          <h1 className="text-sm font-bold uppercase tracking-tight">Source attribution</h1>
+          <p className="mt-1 text-[11px] text-[var(--vt-text-muted)]">
+            Per-field register; receipt-document style.
+          </p>
+        </div>
+
         <section
           data-trust-attribution-disclaimer=""
           aria-labelledby="trust-attribution-disclaimer-heading"
-          className="border border-gray-800"
+          className="border border-[var(--vt-border)]"
         >
-          <div className="border-b border-gray-800 px-4 py-2">
+          <div className="border-b border-[var(--vt-border)] px-4 py-2">
             <h2
               id="trust-attribution-disclaimer-heading"
-              className="text-[10px] font-bold uppercase tracking-widest text-gray-400"
+              className="text-[10px] font-bold uppercase tracking-widest text-[var(--vt-text-secondary)]"
             >
               Disclosure
             </h2>
           </div>
-          <div className="px-4 py-3 text-xs leading-relaxed text-gray-300">
+          <div className="px-4 py-3 text-xs leading-relaxed text-[var(--vt-text-secondary)]">
             <p>{TRUST_ATTRIBUTION_DISCLAIMER}</p>
-            <p className="mt-2 text-[10px] text-gray-500">
+            <p className="mt-2 text-[10px] text-[var(--vt-text-muted)]">
               This is a public register. Source, retrieval time, and state are
               recorded per field. Institution review remains the final step for
               credentialing decisions.
@@ -93,14 +83,14 @@ export default function TrustAttributionPage() {
 
         <TrustAttributionRegister />
 
-        <p className="text-center text-[9px] text-gray-700">
+        <p className="text-center text-[10px] text-[var(--vt-text-muted)]">
           Source of truth for connector states:{' '}
-          <Link href="/status" className="underline hover:text-gray-500">
+          <Link href="/status" className="underline hover:text-[var(--vt-text-secondary)]">
             /status
           </Link>
           {' · '}
           Trust doctrine:{' '}
-          <Link href="/trust" className="underline hover:text-gray-500">
+          <Link href="/trust" className="underline hover:text-[var(--vt-text-secondary)]">
             /trust
           </Link>
         </p>

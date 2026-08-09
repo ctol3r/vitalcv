@@ -42,8 +42,9 @@ export default function ExplorePage() {
           </h1>
           <p className="mz-lede" style={{ marginTop: 12, maxWidth: 620 }}>
             Every listing shows what the employer actually requires, what it pays, how
-            soon it starts, and where that information came from. Sign in and the board
-            also shows which requirements your record already satisfies.
+            soon it starts, and where that information came from. Signed in with your
+            NPI linked, the board also shows which requirements your record already
+            satisfies.
           </p>
         </header>
 

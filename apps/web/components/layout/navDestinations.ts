@@ -17,8 +17,8 @@
  * `/holder/opportunities/discover`, which 307s to `/sign-in` — so the clinician
  * group's jobs link walled a cold visitor at "Welcome back to VitalCV". The
  * public jobs board is `/explore`, which is built for exactly this reader
- * ("Sign in and the board also shows which requirements your record already
- * satisfies") and was reachable from no navigation at all.
+ * ("Signed in with your NPI linked, the board also shows which requirements
+ * your record already satisfies") and was reachable from no navigation at all.
  * `public-nav-reachability` now asserts every href here is a public surface.
  */
 

@@ -264,7 +264,7 @@ export function GardenCursor({ mount }: { mount: GardenMount }) {
           className="mz-glass-interactive fixed bottom-24 right-5 z-40 flex h-12 w-12 items-center justify-center rounded-full lg:bottom-[4.5rem]"
         >
           <span className="mz-mono text-[11px]" style={{ color: 'var(--ink-700)' }}>
-            ⌘K
+            ⌘K / Ctrl+K
           </span>
         </button>
       ) : null}

@@ -39,7 +39,7 @@ export function ResearchSurface({ selectedId, mount }: { selectedId?: string; mo
           </span>
         </div>
         <p className="mz-small mt-1.5" style={{ color: 'var(--vt-text-muted)' }}>
-          Private annotations — save an insight or a teaching point with the Cursor (⌘K). Everything on
+          Private annotations — save an insight or a teaching point with the Cursor (⌘K / Ctrl+K). Everything on
           this shelf is fictional sample content — its live wave comes next.
         </p>
         <ul className="mt-4 space-y-3">

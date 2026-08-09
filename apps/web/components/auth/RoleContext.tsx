@@ -198,3 +198,12 @@ export function useRoleContext(): RoleContextValue {
 
   return context;
 }
+
+/**
+ * Auth state for chrome that must also render outside the provider (tests,
+ * keyless environments). Null means "treat as signed out" — chrome degrades
+ * to its public form instead of throwing.
+ */
+export function useOptionalRoleContext(): RoleContextValue | null {
+  return useContext(RoleContext);
+}

@@ -5,10 +5,14 @@ import { usePathname } from 'next/navigation';
 import { Bell, Briefcase, Home, UserRound } from 'lucide-react';
 import { UserButton } from '@clerk/nextjs';
 import { useClinicianMobile } from '@/components/mobile/ClinicianMobileProvider';
+import { isApplicationNotification } from '@/lib/mobile/clinician-state';
 
 export function MobileBottomNav({ showClerkAccount = true }: { showClerkAccount?: boolean }) {
   const pathname = usePathname();
   const { unreadNotifications } = useClinicianMobile();
+  // The badge sits on the Updates (applications) tab, so it counts only
+  // application notifications — not the mixed feed (readiness deltas, blockers).
+  const unreadApplicationCount = unreadNotifications.filter(isApplicationNotification).length;
 
   // One nav model per breakpoint (A2): the same four primary destinations as
   // HolderDesktopNav, deliberately compact labels, full-cell touch targets.
@@ -51,9 +55,9 @@ export function MobileBottomNav({ showClerkAccount = true }: { showClerkAccount?
                   }`}
                   strokeWidth={isActive ? 2.5 : 2}
                 />
-                {item.href === '/holder/applications' && unreadNotifications.length > 0 ? (
+                {item.href === '/holder/applications' && unreadApplicationCount > 0 ? (
                   <span className="absolute -right-1 -top-1 inline-flex min-h-4 min-w-4 items-center justify-center rounded-full bg-vt-info px-1 text-[9px] font-bold text-zinc-950">
-                    {Math.min(unreadNotifications.length, 9)}
+                    {Math.min(unreadApplicationCount, 9)}
                   </span>
                 ) : null}
               </div>

@@ -3,6 +3,8 @@
 import Link from 'next/link';
 import { ArrowRight, BriefcaseBusiness, ClipboardList } from 'lucide-react';
 import { useClinicianMobile } from '@/components/mobile/ClinicianMobileProvider';
+import { countApplicationsInMotion } from '@/lib/mobile/clinician-state';
+import { formatEventTimestamp } from '@/lib/mobile/formatEventTimestamp';
 import { applicationStatusLabel, applicationStatusTone } from '@/lib/mobile/dashboard';
 import { buildApplicationProofMoments, buildClinicianProofSummary } from '@/lib/proof/proof-model';
 
@@ -22,19 +24,7 @@ function toneClasses(tone: ReturnType<typeof applicationStatusTone>): string {
   }
 }
 
-function formatTimestamp(value: string): string {
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) {
-    return 'Updated recently';
-  }
 
-  return parsed.toLocaleString([], {
-    month: 'short',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  });
-}
 
 function nextActionForApplication(applicationId: string, blockerHref: string | null): {
   href: string;
@@ -57,6 +47,8 @@ export default function ClinicianApplicationsSurface() {
   const { data } = useClinicianMobile();
 
   const activeApplications = data.activeApplications;
+  // "Active" excludes settled rows; the list below still shows them.
+  const inMotionCount = countApplicationsInMotion(activeApplications);
   const followUpCount = data.blockers.filter((blocker) => blocker.relatedApplicationId).length;
   const acceptedCount = activeApplications.filter((application) => application.status === 'ACCEPTED').length;
   const proof = buildClinicianProofSummary(data);
@@ -78,7 +70,7 @@ export default function ClinicianApplicationsSurface() {
         <section className="grid gap-3 sm:grid-cols-3">
           <div className="mz-glass p-4">
             <p className="mz-mono text-[11px] uppercase tracking-[0.18em] opacity-60">Active</p>
-            <p className="mt-2 text-3xl font-semibold mz-mono">{activeApplications.length}</p>
+            <p className="mt-2 text-3xl font-semibold mz-mono">{inMotionCount}</p>
           </div>
           <div className="mz-glass p-4">
             <p className="mz-mono text-[11px] uppercase tracking-[0.18em] opacity-60">Accepted</p>
@@ -146,11 +138,11 @@ export default function ClinicianApplicationsSurface() {
                   <div className="mt-5 grid gap-3 sm:grid-cols-4">
                     <div className="mz-inset px-4 py-3">
                       <p className="mz-mono text-[10px] uppercase tracking-[0.16em] opacity-60">Submitted</p>
-                      <p className="mt-2 text-sm text-[var(--ink-800)]">{formatTimestamp(application.createdAt)}</p>
+                      <p className="mt-2 text-sm text-[var(--ink-800)]">{formatEventTimestamp(application.createdAt, 'Recently')}</p>
                     </div>
                     <div className="mz-inset px-4 py-3">
                       <p className="mz-mono text-[10px] uppercase tracking-[0.16em] opacity-60">Updated</p>
-                      <p className="mt-2 text-sm text-[var(--ink-800)]">{formatTimestamp(application.updatedAt)}</p>
+                      <p className="mt-2 text-sm text-[var(--ink-800)]">{formatEventTimestamp(application.updatedAt, 'Recently')}</p>
                     </div>
                     <div className="mz-inset px-4 py-3">
                       <p className="mz-mono text-[10px] uppercase tracking-[0.16em] opacity-60">Readiness</p>

@@ -104,6 +104,15 @@ export function WorkspaceSwitcher() {
     return null;
   }
 
+  // A switcher with one persona has nothing to switch to. Today every
+  // clinician without an org membership gets exactly ['CLINICIAN'], so this
+  // widget was a no-op overlay occluding real controls (Refresh, Set up
+  // sharing, the readiness loop) on every page. Render nothing until the
+  // account genuinely has a second workspace.
+  if (workspace.canSwitchTo.length <= 1) {
+    return null;
+  }
+
   return (
     <div
       ref={shellRef}

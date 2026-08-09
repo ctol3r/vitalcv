@@ -38,6 +38,33 @@ export type ClinicianNotificationType =
   | 'application_status_changed'
   | 'trust_state_changed';
 
+/**
+ * Whether a notification is about an application. The nav badge sits on the
+ * Applications tab, so it may only count these — it used to count the full
+ * mixed feed (readiness deltas + blockers + applications), which produced
+ * "5 updates" over a page showing zero applications.
+ */
+export function isApplicationNotification(notification: { type: ClinicianNotificationType }): boolean {
+  return (
+    notification.type === 'application_submitted' ||
+    notification.type === 'application_status_changed'
+  );
+}
+
+/**
+ * Applications still in motion. `activeApplications` is "not withdrawn", which
+ * deliberately keeps settled rows visible in lists — but a tile labelled
+ * "Active" may not count ACCEPTED/DECLINED, or "Active 1 / Accepted 1" is
+ * guaranteed for every accepted application.
+ */
+export function countApplicationsInMotion(
+  applications: ReadonlyArray<{ status: string }>,
+): number {
+  return applications.filter(
+    (application) => application.status !== 'ACCEPTED' && application.status !== 'DECLINED',
+  ).length;
+}
+
 export type ClinicianBlockerType =
   | 'missing_credential'
   | 'unresolved_verification'

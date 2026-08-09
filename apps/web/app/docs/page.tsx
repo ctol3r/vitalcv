@@ -77,10 +77,9 @@ export default function DocsPage() {
             <dt className="text-xs uppercase tracking-wider text-muted-foreground">API docs complete</dt>
             <dd className="mt-1 font-mono">{String(plan.apiDocsComplete)}</dd>
           </div>
-          <div>
-            <dt className="text-xs uppercase tracking-wider text-muted-foreground">Production status page live</dt>
-            <dd className="mt-1 font-mono">{String(plan.productionStatusPageLive)}</dd>
-          </div>
+          {/* The "Production status page live: false" row was removed: /status
+              is live, so the flag publicly contradicted the product. The typed
+              literal remains in statusFoundation for its contract tests. */}
         </dl>
       </section>
 
@@ -96,7 +95,6 @@ export default function DocsPage() {
             <li key={d.label} className="text-sm">
               <p className="font-medium">{d.label}</p>
               <p className="mt-1 text-xs text-muted-foreground">{d.description}</p>
-              <p className="mt-1 text-[11px] font-mono text-muted-foreground/80">{d.href}</p>
             </li>
           ))}
         </ul>
@@ -126,7 +124,6 @@ export default function DocsPage() {
                 </span>
               </p>
               <p className="mt-1 text-xs text-muted-foreground">{s.description}</p>
-              <p className="mt-1 text-[11px] font-mono text-muted-foreground/60">kind: {s.kind}</p>
             </li>
           ))}
         </ul>

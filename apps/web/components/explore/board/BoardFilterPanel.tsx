@@ -49,12 +49,23 @@ function FacetSection({
   defaultOpen?: boolean;
 }) {
   return (
-    <details open={defaultOpen} className="border-b py-3" style={{ borderColor: RULE_SOFT }}>
+    <details open={defaultOpen} className="group border-b py-3" style={{ borderColor: RULE_SOFT }}>
+      {/* list-none stripped the native disclosure triangle, so the collapsed
+          groups (Pay, Start timing, Sponsorship, Benefits, Employer) read as
+          dead headings with working controls hidden beneath them. The chevron
+          is the affordance that says "this opens". */}
       <summary
-        className="mz-small cursor-pointer list-none select-none"
+        className="mz-small flex cursor-pointer items-center justify-between gap-2 list-none select-none"
         style={{ fontWeight: 600, color: 'var(--vt-text-primary)' }}
       >
         {title}
+        <span
+          aria-hidden="true"
+          className="text-[10px] transition-transform group-open:rotate-180"
+          style={{ color: 'var(--vt-text-muted)' }}
+        >
+          ▾
+        </span>
       </summary>
       <div style={{ marginTop: 10 }}>{children}</div>
     </details>

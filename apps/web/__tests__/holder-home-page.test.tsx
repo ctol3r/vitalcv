@@ -19,6 +19,12 @@ vi.mock('next/navigation', async () => {
   };
 });
 
+// CareerCompass now falls back to the Clerk account first name for the
+// greeting; render signed-out here so the fixture's profile name drives it.
+vi.mock('@clerk/nextjs', () => ({
+  useUser: () => ({ isLoaded: true, isSignedIn: false, user: null }),
+}));
+
 vi.mock('../components/explore/ApplyModal', () => ({
   default: () => null,
 }));

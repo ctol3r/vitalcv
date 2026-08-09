@@ -15,6 +15,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { ArrowRight, Check, Compass, Sparkles } from 'lucide-react';
+import { useUser } from '@clerk/nextjs';
 import { useClinicianMobile } from '@/components/mobile/ClinicianMobileProvider';
 import { fetchAcceptanceRecognition } from '@/lib/recognition/acceptance-recognition';
 import {
@@ -44,8 +45,11 @@ function greetingFor(hour: number): string {
 
 export default function CareerCompass() {
   const { data } = useClinicianMobile();
+  const { user } = useUser();
   const npi = data.workspace?.personProfile?.npi ?? null;
-  const firstName = data.workspace?.personProfile?.firstName || 'there';
+  // Workspace profile first, then the Clerk account name — the profile is
+  // empty pre-onboarding, which greeted every new user as 'there'.
+  const firstName = data.workspace?.personProfile?.firstName || user?.firstName || null;
 
   const [recognition, setRecognition] = useState<CompassInput['recognition']>({ state: 'unavailable' });
   const [greeting, setGreeting] = useState('Hello');
@@ -118,7 +122,13 @@ export default function CareerCompass() {
         MATCHA Career Compass
       </p>
       <h1 className="mz-h1 mt-4">
-        {greeting}, <span className="mz-accent">{firstName}</span>.
+        {greeting}
+        {firstName ? (
+          <>
+            , <span className="mz-accent">{firstName}</span>
+          </>
+        ) : null}
+        .
       </h1>
 
       {/* Four honest metrics */}

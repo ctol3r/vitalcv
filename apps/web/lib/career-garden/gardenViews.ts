@@ -143,7 +143,7 @@ export function deriveTodayTasks(data: GardenData): GardenTodayTask[] {
     tasks.push({
       id: 'today-first-seed',
       label: 'Plant your first seed',
-      detail: 'Press ⌘K and choose Capture — a thought is enough.',
+      detail: 'Press ⌘K (or Ctrl+K) and choose Capture — a thought is enough.',
     });
   }
   return tasks.slice(0, 3);

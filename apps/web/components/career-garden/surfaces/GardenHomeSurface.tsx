@@ -44,7 +44,7 @@ export function GardenHomeSurface({ data, mount }: { data: GardenData; mount: Ga
       items:
         data.notes.length > 0
           ? data.notes.slice(0, 2).map((s) => s.title)
-          : ['None yet — press ⌘K to capture the first.'],
+          : ['None yet — press ⌘K (or Ctrl+K) to capture the first.'],
       href: hrefFor('notes'),
       sample: false,
     },
@@ -61,8 +61,10 @@ export function GardenHomeSurface({ data, mount }: { data: GardenData; mount: Ga
       key: 'branches',
       name: 'Branches',
       meaning: 'Projects, teaching, research themes',
+      // Count and list derive from the same slice — a bed that says "4" while
+      // listing 3 reads as a bug, not a teaser.
       count: `${DEMO_BRANCHES.length}`,
-      items: DEMO_BRANCHES.slice(0, 3).map((b) => b.name),
+      items: DEMO_BRANCHES.map((b) => b.name),
       href: hrefFor('notes'),
       sample: true,
     },
@@ -217,8 +219,10 @@ export function GardenHomeSurface({ data, mount }: { data: GardenData; mount: Ga
           <Link href={hrefFor('notes')} className="mz-btn-ghost mz-btn-sm">
             Start with your notes
           </Link>
+          {/* "Review candidates" read as employer/ATS vocabulary on a clinician
+              surface; these are publication candidates (research surface). */}
           <Link href={hrefFor('research')} className="mz-btn-ghost mz-btn-sm">
-            Review candidates
+            Review publication candidates
           </Link>
         </div>
       </section>

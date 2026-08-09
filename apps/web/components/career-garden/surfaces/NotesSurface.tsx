@@ -72,7 +72,7 @@ export function NotesSurface({
               No seeds yet
             </p>
             <p className="mz-small mt-1">
-              Press <kbd className="mz-mono">⌘K</kbd> and choose Capture — a stray thought after rounds is
+              Press <kbd className="mz-mono">⌘K / Ctrl+K</kbd> and choose Capture — a stray thought after rounds is
               exactly the right size.
             </p>
           </div>
@@ -173,7 +173,7 @@ export function NotesSurface({
             </h2>
             <p className="mz-body mt-2">
               Select a note to read it, organize it, or grow it into a CV draft. New thoughts land here too —
-              press <kbd className="mz-mono">⌘K</kbd> and choose Capture.
+              press <kbd className="mz-mono">⌘K / Ctrl+K</kbd> and choose Capture.
             </p>
             {live ? (
               <p className="mz-small mt-2" style={{ color: 'var(--vt-text-muted)' }}>

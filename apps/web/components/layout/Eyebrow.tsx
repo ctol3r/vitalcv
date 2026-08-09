@@ -27,6 +27,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { getHeaderRouteContext } from '@/components/layout/headerRouteContext';
 import { NAV_GROUPS } from '@/components/layout/navDestinations';
 import { isPublicSurfacePath } from '@/components/layout/publicSurfaceRoutes';
+import { useOptionalRoleContext } from '@/components/auth/RoleContext';
 import { useHeaderScene } from '@/components/layout/useHeaderScene';
 
 /** The home work surface announces its current beat through this event. */
@@ -118,6 +119,10 @@ export default function Eyebrow() {
     setMenuOpen(false);
   }, [pathname]);
 
+  const roleContext = useOptionalRoleContext();
+  const isSignedIn = roleContext?.isSignedIn ?? false;
+  const workspaceHref = roleContext?.landingRoute ?? '/holder/home';
+
   if (!isPublicSurfacePath(pathname)) return null;
 
   const cta = isHome
@@ -152,9 +157,18 @@ export default function Eyebrow() {
         </div>
 
         <div className="vcv-eb__right">
-          <Link href="/sign-in" className="vcv-eb__signin">
-            Sign in
-          </Link>
+          {/* Signed-in visitors get their workspace, not a sign-in prompt.
+              Resolves client-side only — the root layout must stay static
+              (static-marketing-cache-contract), so no auth() on the server. */}
+          {isSignedIn ? (
+            <Link href={workspaceHref} className="vcv-eb__signin">
+              Workspace
+            </Link>
+          ) : (
+            <Link href="/sign-in" className="vcv-eb__signin">
+              Sign in
+            </Link>
+          )}
           {cta ? (
             <Link href={cta.href} className="vcv-eb__cta">
               <span className="vcv-eb__cta-long">{cta.label}</span>

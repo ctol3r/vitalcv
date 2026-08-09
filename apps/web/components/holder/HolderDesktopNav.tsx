@@ -19,6 +19,7 @@ import { usePathname } from 'next/navigation';
 import { UserButton } from '@clerk/nextjs';
 import { UserRound } from 'lucide-react';
 import { useClinicianMobile } from '@/components/mobile/ClinicianMobileProvider';
+import { isApplicationNotification } from '@/lib/mobile/clinician-state';
 
 interface NavItem {
   name: string;
@@ -49,6 +50,9 @@ function isItemActive(item: NavItem, pathname: string): boolean {
 export function HolderDesktopNav({ showClerkAccount = true }: { showClerkAccount?: boolean }) {
   const pathname = usePathname();
   const { unreadNotifications } = useClinicianMobile();
+  // The badge sits on the Updates (applications) tab, so it counts only
+  // application notifications — not the mixed feed (readiness deltas, blockers).
+  const unreadApplicationCount = unreadNotifications.filter(isApplicationNotification).length;
 
   return (
     <nav
@@ -80,9 +84,9 @@ export function HolderDesktopNav({ showClerkAccount = true }: { showClerkAccount
                 }`}
               >
                 {item.name}
-                {item.href === '/holder/applications' && unreadNotifications.length > 0 ? (
+                {item.href === '/holder/applications' && unreadApplicationCount > 0 ? (
                   <span className="absolute -right-0.5 top-0.5 inline-flex min-h-4 min-w-4 items-center justify-center rounded-full bg-[var(--accent)] px-1 text-[9px] font-bold text-[var(--card)]">
-                    {Math.min(unreadNotifications.length, 9)}
+                    {Math.min(unreadApplicationCount, 9)}
                   </span>
                 ) : null}
                 {active ? (
