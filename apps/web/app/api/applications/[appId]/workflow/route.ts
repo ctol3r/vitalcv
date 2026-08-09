@@ -4,6 +4,7 @@ import {
   buildMarketplaceHeaders,
   MARKETPLACE_BACKEND,
 } from '@/lib/server/marketplace-proxy';
+import { classifyWorkflowKind, recordHiringOutcome } from '@/lib/agent/outcomes/record-outcome';
 
 export const runtime = 'nodejs';
 
@@ -44,6 +45,25 @@ export async function POST(
     cache: 'no-store',
     signal: AbortSignal.timeout(12_000),
   });
+
+  if (res.ok) {
+    // L3 outcome join. Employer-session actions resolve against the employer's
+    // user id, find no agent runs, and honestly drop (see record-outcome.ts);
+    // clinician-side actions join. Raw action always travels in metadata.
+    let action = '';
+    try {
+      const parsed = JSON.parse(body) as { action?: unknown };
+      if (typeof parsed.action === 'string') action = parsed.action;
+    } catch {
+      /* non-JSON body: classify falls back to 'application' */
+    }
+    await recordHiringOutcome({
+      kind: classifyWorkflowKind(action),
+      ref: appId,
+      subjectRef: session.userId,
+      metadata: { workflowAction: action || null, route: 'workflow' },
+    });
+  }
 
   return NextResponse.json(await res.json().catch(() => ({})), { status: res.status });
 }
