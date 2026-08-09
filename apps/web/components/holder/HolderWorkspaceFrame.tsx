@@ -6,6 +6,7 @@ import { ClinicianMobileProvider } from '@/components/mobile/ClinicianMobileProv
 import ClinicianLaunchTracker from '@/components/mobile/ClinicianLaunchTracker';
 import NetworkStatusBanner from '@/components/mobile/NetworkStatusBanner';
 import type { ClinicianMobileData } from '@/lib/mobile/clinician-state';
+import { RouteTrail } from '@/components/navigation/RouteTrail';
 import { HolderDesktopNav } from './HolderDesktopNav';
 import { HolderWorkspaceShell } from './HolderWorkspaceShell';
 import { WorkbenchDock } from '@/components/workbench/WorkbenchDock';
@@ -37,6 +38,11 @@ export function HolderWorkspaceFrame({
         <ClinicianLaunchTracker />
         <NetworkStatusBanner />
         <HolderDesktopNav showClerkAccount={showClerkAccount} />
+        {/* UX-03: the holder tree already has a bar, so it takes the trail
+            alone rather than ProductChrome (which would be a second header).
+            The trail self-suppresses at depth 1, so /holder/home — where the
+            nav's own active state already says where you are — stays clean. */}
+        <RouteTrail />
         {/* Skip-link target. Deliberately a div: many holder pages render
             their own <main> landmark, so the frame must not add a second. */}
         <div

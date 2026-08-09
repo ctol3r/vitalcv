@@ -9,6 +9,7 @@ import Footer from '@/components/layout/Footer';
 import { PilotReporterHost } from '@/components/pilot-ops/PilotReporterHost';
 import { PilotSignInTracker } from '@/components/pilot-ops/PilotSignInTracker';
 import PrequalifyBar from '@/components/prequalify/PrequalifyBar';
+import { ProductChrome } from '@/components/navigation/ProductChrome';
 import { WorkspaceSwitcher } from '@/components/workspace/WorkspaceSwitcher';
 import VCommandBar from '@/components/ops/VCommandBar';
 import { isOpsSurfacePath } from '@/components/layout/publicSurfaceRoutes';
@@ -57,6 +58,12 @@ export default function RootChrome({ children, clerkEnabled }: RootChromeProps) 
           JourneyRail are parked, not deleted — see
           docs/design/PARKED_VISUAL_ERAS.md. */}
       <Eyebrow />
+      {/* UX-03: the signed-in counterpart. Eyebrow and ProductChrome are
+          mutually exclusive by registry — each returns null on the other's
+          surfaces — so exactly one 64px instrument ever renders. Mounted here
+          rather than in four subtree layouts so a new console cannot ship
+          without chrome by forgetting a layout file. */}
+      <ProductChrome />
       {clerkEnabled ? (
         <SignedIn>
           <WorkspaceSwitcher />

@@ -34,6 +34,10 @@
 @import '../styles/matcha-deck.css';
 @import '../styles/header.css';
 @import '../styles/eyebrow.css';
+/* UX-03: the signed-in instrument. Imported next to eyebrow.css because it
+   inherits that file's geometry contract (64px, 32px gutters, hairline rule)
+   and must load in the same layer for the two bars to stay identical. */
+@import '../styles/product-chrome.css';
 /* motion.css + artifact-motion.css were imported per-page by four marketing
    pages while components using their .ask-art-* grammar (CareerEvidenceTimeline)
    also render in the /holder route group — where no import existed, so every

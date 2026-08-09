@@ -1,0 +1,214 @@
+/**
+ * product-chrome.css — UX-03.
+ *
+ * The signed-in counterpart to eyebrow.css. It deliberately inherits the
+ * eyebrow's geometry contract rather than inventing a second one: 64px
+ * constant height, 32px gutters, full browser width, hairline bottom rule,
+ * square corners. Crossing from a public surface into the product must not
+ * move the instrument — one bar, one height, contents change by surface class.
+ *
+ * It is NOT the eyebrow with a different fill: the eyebrow's centre ticker and
+ * takeover index are marketing navigation, and mounting them over a review
+ * queue would offer a clinician's employer a link to /pricing mid-decision.
+ * This bar carries only where-you-are and how-to-get-out.
+ *
+ * Island discipline (same rule as eyebrow.css): every colour routes through a
+ * --pc-* property declared here, so the bar cannot be recoloured by an
+ * ambient token change on a page that happens to mount it.
+ */
+
+.vcv-pc {
+  --pc-h: 64px;
+  --pc-gutter: 32px;
+  --pc-bg: #f6f5f1;
+  --pc-text: #151412;
+  --pc-text2: #5b5c57;
+  --pc-text3: #8b8c85;
+  --pc-line: #d9d6cd;
+  --pc-accent: #2e9e6b;
+
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  width: 100%;
+  background: var(--pc-bg);
+  color: var(--pc-text);
+  border-bottom: 1px solid var(--pc-line);
+}
+
+.vcv-pc__bar {
+  height: var(--pc-h);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 0 var(--pc-gutter);
+}
+
+.vcv-pc__left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.vcv-pc__wordmark {
+  font-family: var(--font-geist), system-ui, sans-serif;
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--pc-text);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.vcv-pc__wordmark:focus-visible {
+  outline: 2px solid var(--pc-accent);
+  outline-offset: 3px;
+}
+
+/* The section name. A rule, not a pill — EC-20 retires pills. */
+.vcv-pc__section {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding-left: 14px;
+  border-left: 1px solid var(--pc-line);
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--pc-text2);
+  white-space: nowrap;
+}
+
+.vcv-pc__right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.vcv-pc__link {
+  display: inline-flex;
+  align-items: center;
+  /* 44px touch target (EC-5) reached through padding, so the row stays 64px. */
+  min-height: 44px;
+  padding: 0 12px;
+  font-family: var(--font-geist), system-ui, sans-serif;
+  font-size: 13px;
+  color: var(--pc-text2);
+  text-decoration: none;
+  border-radius: 2px;
+}
+
+.vcv-pc__link:hover,
+.vcv-pc__link:focus-visible {
+  color: var(--pc-text);
+}
+
+.vcv-pc__link:focus-visible {
+  outline: 2px solid var(--pc-accent);
+  outline-offset: -2px;
+}
+
+/* ── The trail ─────────────────────────────────────────────────────────── */
+
+.vcv-trail {
+  padding: 10px var(--pc-gutter, 32px);
+  border-bottom: 1px solid var(--pc-line, #d9d6cd);
+  background: var(--pc-bg, #f6f5f1);
+}
+
+.vcv-trail__list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.vcv-trail__item {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.vcv-trail__sep {
+  padding: 0 2px;
+  color: var(--pc-text3, #8b8c85);
+  font-size: 12px;
+  user-select: none;
+}
+
+.vcv-trail__crumb {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 8px;
+  font-family: var(--font-geist), system-ui, sans-serif;
+  font-size: 13px;
+  line-height: 1.2;
+  border-radius: 2px;
+  max-width: 42ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vcv-trail__crumb--link {
+  color: var(--pc-text2, #5b5c57);
+  text-decoration: none;
+}
+
+.vcv-trail__crumb--link:hover,
+.vcv-trail__crumb--link:focus-visible {
+  color: var(--pc-text, #151412);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.vcv-trail__crumb--link:focus-visible {
+  outline: 2px solid var(--pc-accent, #2e9e6b);
+  outline-offset: -2px;
+  text-decoration: none;
+}
+
+.vcv-trail__crumb--plain {
+  color: var(--pc-text3, #8b8c85);
+}
+
+.vcv-trail__crumb--current {
+  color: var(--pc-text, #151412);
+  font-weight: 500;
+}
+
+/* Mobile: keep the trail to one line. Everything except the immediate parent
+   and the current page collapses; the bar's section link still reaches the
+   root, so no ancestor becomes unreachable. */
+@media (max-width: 640px) {
+  .vcv-pc__bar,
+  .vcv-trail {
+    --pc-gutter: 16px;
+  }
+
+  .vcv-pc__section {
+    display: none;
+  }
+
+  .vcv-trail__list {
+    flex-wrap: nowrap;
+  }
+
+  .vcv-trail__item:not(:nth-last-child(-n + 2)) {
+    display: none;
+  }
+
+  /* With ancestors hidden, the leading separator on the parent crumb would
+     dangle at the start of the row. */
+  .vcv-trail__item:nth-last-child(2) .vcv-trail__sep {
+    display: none;
+  }
+}
