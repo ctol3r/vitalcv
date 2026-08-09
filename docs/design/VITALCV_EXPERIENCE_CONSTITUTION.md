@@ -26,7 +26,7 @@ This text rides at the top of every overhaul wave, verbatim:
 
 **Operating rule:** Product contracts are inherited. Visual decisions are not. No wave inherits a prior visual treatment merely because it exists.
 
-**The freeze.** A temporary UI PR freeze holds until UX-03 ships. **Exempt** (each still design-review gated): accessibility regressions; production-breaking UI defects; security/truth corrections; founder-authorized urgent fixes. No unrelated visual feature work rides an exemption.
+**The freeze.** LIFTED 2026-08-09 (founder ruling) — UX-03 shipped as UX-V1 (#1190) plus #1232. The exemptions below are historical; the founder visual gate and the design-only boundary are what bind visual work now. **Exempt** (each still design-review gated): accessibility regressions; production-breaking UI defects; security/truth corrections; founder-authorized urgent fixes. No unrelated visual feature work rides an exemption.
 
 ---
 

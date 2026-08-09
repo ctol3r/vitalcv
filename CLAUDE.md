@@ -105,13 +105,22 @@ Before adding any customer-facing term or feature, run
 
 ## Experience Overhaul Program — design-only boundary (Phase 0, 2026-08-08)
 
-A **UI PR freeze is in effect until UX-03 ships**: no visual PRs outside the Experience Overhaul
-Program (`docs/design/VITALCV_EXPERIENCE_OVERHAUL_PROGRAM_2026-08-08.md`). **Exempt** (each still
-design-review gated, never unrelated visual feature work): accessibility regressions;
-production-breaking UI defects; security/truth corrections; founder-authorized urgent fixes.
-Unapproved visual treatments are parked, not deleted — `docs/design/PARKED_VISUAL_ERAS.md`. The experience authority
-is `docs/design/VITALCV_EXPERIENCE_CONSTITUTION.md` (successor-of-record to
-`VITALCV_CREATIVE_DIRECTION.md`).
+**The UI PR freeze is LIFTED (founder ruling, 2026-08-09).** UX-03 has shipped, in two parts:
+UX-V1 (#1190) delivered the public eyebrow and the homepage, and #1232 delivered the signed-in
+navigation contract that shares its island. The founder ruled these jointly satisfy UX-03 and
+released the freeze. Visual PRs no longer need to sit inside the Experience Overhaul Program.
+
+**What did NOT change with the freeze.** These are separate rules and still bind every visual PR:
+the DESIGN-ONLY BOUNDARY below; the founder visual gate
+(`docs/ops/FOUNDER_VISUAL_GATE.md`) — public-facing visual work still needs rendered evidence, a
+live review URL, and an explicit `FOUNDER VISUAL DECISION`; and the experience authority,
+`docs/design/VITALCV_EXPERIENCE_CONSTITUTION.md` (successor-of-record to
+`VITALCV_CREATIVE_DIRECTION.md`). The freeze bought time to establish a direction — it is gone
+because the direction now exists, not because the bar dropped.
+
+Superseded visual treatments are recorded in `docs/design/PARKED_VISUAL_ERAS.md`. Parking is the
+default; the journey-rail chrome was the first era actually deleted (2026-08-09), and only after
+its replacement had held in production.
 
 Every overhaul wave carries this text verbatim at the top:
 

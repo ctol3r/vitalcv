@@ -78,7 +78,7 @@ Continuous            UX-14 motion · UX-15 mobile · UX-16 messaging · CI gate
 
 ### PHASE 0 — Freeze the visual churn (immediate, ~1 hour)
 
-- Declare a UI PR freeze until UX-03 ships: no visual PRs outside this program.
+- Declare a UI PR freeze until UX-03 ships: no visual PRs outside this program. **DONE, and DISCHARGED 2026-08-09** — UX-03 shipped as UX-V1 (#1190) + #1232, and the founder lifted the freeze. Recorded in CLAUDE.md.
 - Park (do not delete) all unapproved visual treatments; add `docs/design/PARKED_VISUAL_ERAS.md` listing each era, its stylesheets/islands, and its parked status.
 - Add the Design-Only Boundary + operating rule to `CLAUDE.md` so every agent inherits it.
 
