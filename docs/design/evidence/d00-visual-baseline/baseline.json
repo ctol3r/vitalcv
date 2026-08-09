@@ -1,0 +1,419 @@
+{
+  "base": "http://localhost:4311",
+  "capturedAt": "2026-08-09T04:00:59.042Z",
+  "routes": {
+    "/": {
+      "widths": {
+        "390": {
+          "vitals": {
+            "cls": 0,
+            "clsSources": [],
+            "lcp": {
+              "time": 932,
+              "size": 22445,
+              "el": "P.ezh-hero-sub",
+              "text": "We find what we can, show you exactly what remains, and handle the adm"
+            },
+            "fcp": 932,
+            "longTasks": 0,
+            "longTaskMs": 0
+          },
+          "bytes": {
+            "js": 1564323,
+            "css": 623942,
+            "font": 201624,
+            "img": 0,
+            "doc": 75062,
+            "other": 9788,
+            "count": 55
+          },
+          "fonts": [
+            {
+              "file": "125b055e8623e92e-s.p.woff2",
+              "transfer": 23428,
+              "decoded": 23128
+            },
+            {
+              "file": "37b8a9476d01468b-s.p.woff2",
+              "transfer": 67564,
+              "decoded": 67264
+            },
+            {
+              "file": "9ff55a8a9670220d-s.p.woff2",
+              "transfer": 29700,
+              "decoded": 29400
+            },
+            {
+              "file": "6442c9ebd985a117-s.p.woff2",
+              "transfer": 82132,
+              "decoded": 81832
+            }
+          ],
+          "docHeight": 5465
+        },
+        "768": {
+          "vitals": {
+            "cls": 0,
+            "clsSources": [],
+            "lcp": {
+              "time": 540,
+              "size": 26599,
+              "el": "P.ezh-hero-sub",
+              "text": "We find what we can, show you exactly what remains, and handle the adm"
+            },
+            "fcp": 540,
+            "longTasks": 0,
+            "longTaskMs": 0
+          },
+          "bytes": {
+            "js": 1564323,
+            "css": 623942,
+            "font": 201624,
+            "img": 0,
+            "doc": 75062,
+            "other": 9988,
+            "count": 56
+          },
+          "fonts": [
+            {
+              "file": "125b055e8623e92e-s.p.woff2",
+              "transfer": 23428,
+              "decoded": 23128
+            },
+            {
+              "file": "37b8a9476d01468b-s.p.woff2",
+              "transfer": 67564,
+              "decoded": 67264
+            },
+            {
+              "file": "6442c9ebd985a117-s.p.woff2",
+              "transfer": 82132,
+              "decoded": 81832
+            },
+            {
+              "file": "9ff55a8a9670220d-s.p.woff2",
+              "transfer": 29700,
+              "decoded": 29400
+            }
+          ],
+          "docHeight": 4917
+        },
+        "1280": {
+          "vitals": {
+            "cls": 0.005430565039316814,
+            "clsSources": [
+              {
+                "v": 0.0019,
+                "t": 8302,
+                "nodes": [
+                  "DIV.ezh-workfeed",
+                  "LI.ezh-arow",
+                  "LI.ezh-arow"
+                ]
+              },
+              {
+                "v": 0.0035,
+                "t": 9697,
+                "nodes": [
+                  "DIV.ezh-workfeed",
+                  "LI.ezh-arow",
+                  "LI.ezh-arow"
+                ]
+              }
+            ],
+            "lcp": {
+              "time": 500,
+              "size": 60756,
+              "el": "H1",
+              "text": "Enter your NPI.VitalCV does the rest."
+            },
+            "fcp": 500,
+            "longTasks": 0,
+            "longTaskMs": 0
+          },
+          "bytes": {
+            "js": 1564323,
+            "css": 623942,
+            "font": 201624,
+            "img": 0,
+            "doc": 75062,
+            "other": 9988,
+            "count": 56
+          },
+          "fonts": [
+            {
+              "file": "125b055e8623e92e-s.p.woff2",
+              "transfer": 23428,
+              "decoded": 23128
+            },
+            {
+              "file": "9ff55a8a9670220d-s.p.woff2",
+              "transfer": 29700,
+              "decoded": 29400
+            },
+            {
+              "file": "37b8a9476d01468b-s.p.woff2",
+              "transfer": 67564,
+              "decoded": 67264
+            },
+            {
+              "file": "6442c9ebd985a117-s.p.woff2",
+              "transfer": 82132,
+              "decoded": 81832
+            }
+          ],
+          "docHeight": 2728
+        },
+        "1440": {
+          "vitals": {
+            "cls": 0.0007496308754501029,
+            "clsSources": [
+              {
+                "v": 0.0007,
+                "t": 9742,
+                "nodes": [
+                  "DIV.ezh-workfeed",
+                  "SPAN.ezh-chip",
+                  "SPAN.ezh-stz"
+                ]
+              }
+            ],
+            "lcp": {
+              "time": 560,
+              "size": 60756,
+              "el": "H1",
+              "text": "Enter your NPI.VitalCV does the rest."
+            },
+            "fcp": 560,
+            "longTasks": 0,
+            "longTaskMs": 0
+          },
+          "bytes": {
+            "js": 1564323,
+            "css": 623942,
+            "font": 201624,
+            "img": 0,
+            "doc": 75062,
+            "other": 9988,
+            "count": 56
+          },
+          "fonts": [
+            {
+              "file": "125b055e8623e92e-s.p.woff2",
+              "transfer": 23428,
+              "decoded": 23128
+            },
+            {
+              "file": "37b8a9476d01468b-s.p.woff2",
+              "transfer": 67564,
+              "decoded": 67264
+            },
+            {
+              "file": "9ff55a8a9670220d-s.p.woff2",
+              "transfer": 29700,
+              "decoded": 29400
+            },
+            {
+              "file": "6442c9ebd985a117-s.p.woff2",
+              "transfer": 82132,
+              "decoded": 81832
+            }
+          ],
+          "docHeight": 2677
+        }
+      }
+    },
+    "/employers": {
+      "widths": {
+        "390": {
+          "vitals": {
+            "cls": 0,
+            "clsSources": [],
+            "lcp": {
+              "time": 488,
+              "size": 35653,
+              "el": "P.mz-lede",
+              "text": "The clinician arrives with a profile they have already built and revie"
+            },
+            "fcp": 488,
+            "longTasks": 0,
+            "longTaskMs": 0
+          },
+          "bytes": {
+            "js": 1084253,
+            "css": 570248,
+            "font": 201624,
+            "img": 0,
+            "doc": 107648,
+            "other": 77678,
+            "count": 39
+          },
+          "fonts": [
+            {
+              "file": "125b055e8623e92e-s.p.woff2",
+              "transfer": 23428,
+              "decoded": 23128
+            },
+            {
+              "file": "6442c9ebd985a117-s.p.woff2",
+              "transfer": 82132,
+              "decoded": 81832
+            },
+            {
+              "file": "37b8a9476d01468b-s.p.woff2",
+              "transfer": 67564,
+              "decoded": 67264
+            },
+            {
+              "file": "9ff55a8a9670220d-s.p.woff2",
+              "transfer": 29700,
+              "decoded": 29400
+            }
+          ],
+          "docHeight": 3840
+        },
+        "768": {
+          "vitals": {
+            "cls": 0,
+            "clsSources": [],
+            "lcp": {
+              "time": 620,
+              "size": 45288,
+              "el": "P.mz-lede",
+              "text": "The clinician arrives with a profile they have already built and revie"
+            },
+            "fcp": 620,
+            "longTasks": 0,
+            "longTaskMs": 0
+          },
+          "bytes": {
+            "js": 1084253,
+            "css": 570248,
+            "font": 201624,
+            "img": 0,
+            "doc": 107648,
+            "other": 77678,
+            "count": 40
+          },
+          "fonts": [
+            {
+              "file": "125b055e8623e92e-s.p.woff2",
+              "transfer": 23428,
+              "decoded": 23128
+            },
+            {
+              "file": "9ff55a8a9670220d-s.p.woff2",
+              "transfer": 29700,
+              "decoded": 29400
+            },
+            {
+              "file": "37b8a9476d01468b-s.p.woff2",
+              "transfer": 67564,
+              "decoded": 67264
+            },
+            {
+              "file": "6442c9ebd985a117-s.p.woff2",
+              "transfer": 82132,
+              "decoded": 81832
+            }
+          ],
+          "docHeight": 2939
+        },
+        "1280": {
+          "vitals": {
+            "cls": 0,
+            "clsSources": [],
+            "lcp": {
+              "time": 532,
+              "size": 45900,
+              "el": "P.mz-lede",
+              "text": "The clinician arrives with a profile they have already built and revie"
+            },
+            "fcp": 532,
+            "longTasks": 0,
+            "longTaskMs": 0
+          },
+          "bytes": {
+            "js": 1084253,
+            "css": 570248,
+            "font": 201624,
+            "img": 0,
+            "doc": 107648,
+            "other": 77678,
+            "count": 40
+          },
+          "fonts": [
+            {
+              "file": "125b055e8623e92e-s.p.woff2",
+              "transfer": 23428,
+              "decoded": 23128
+            },
+            {
+              "file": "37b8a9476d01468b-s.p.woff2",
+              "transfer": 67564,
+              "decoded": 67264
+            },
+            {
+              "file": "9ff55a8a9670220d-s.p.woff2",
+              "transfer": 29700,
+              "decoded": 29400
+            },
+            {
+              "file": "6442c9ebd985a117-s.p.woff2",
+              "transfer": 82132,
+              "decoded": 81832
+            }
+          ],
+          "docHeight": 2922
+        },
+        "1440": {
+          "vitals": {
+            "cls": 0,
+            "clsSources": [],
+            "lcp": {
+              "time": 432,
+              "size": 45900,
+              "el": "P.mz-lede",
+              "text": "The clinician arrives with a profile they have already built and revie"
+            },
+            "fcp": 432,
+            "longTasks": 0,
+            "longTaskMs": 0
+          },
+          "bytes": {
+            "js": 1388922,
+            "css": 570248,
+            "font": 201624,
+            "img": 0,
+            "doc": 111083,
+            "other": 93008,
+            "count": 51
+          },
+          "fonts": [
+            {
+              "file": "125b055e8623e92e-s.p.woff2",
+              "transfer": 23428,
+              "decoded": 23128
+            },
+            {
+              "file": "37b8a9476d01468b-s.p.woff2",
+              "transfer": 67564,
+              "decoded": 67264
+            },
+            {
+              "file": "6442c9ebd985a117-s.p.woff2",
+              "transfer": 82132,
+              "decoded": 81832
+            },
+            {
+              "file": "9ff55a8a9670220d-s.p.woff2",
+              "transfer": 29700,
+              "decoded": 29400
+            }
+          ],
+          "docHeight": 2922
+        }
+      }
+    }
+  }
+}
