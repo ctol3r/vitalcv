@@ -1,0 +1,47 @@
+# Read-only production probe: prints /api/version and /api/health/auth in
+# full. Exists because interactive agent sessions sit behind an egress policy
+# that denies vitalcv.com, while Actions runners reach it freely — this is the
+# sanctioned pair of eyes for rotation Step 0 (ROLE_COOKIE_SECRET decoupling)
+# and the CLERK_SECRET_KEY rotation steps that follow it
+# (docs/deployment/clerk-rotation-2026-08.md).
+#
+# Secretless by design: both endpoints are public and report presence booleans
+# only, never key material, so the full JSON is safe in a public log. No
+# commit statuses, no schedule — dispatch it when a reading is needed.
+#
+# Red means "could not reach production", nothing else. A 503 from the
+# fail-closed auth-config states is still a successful READING and stays
+# green; the JSON says what is wrong.
+name: Production Auth Health (read probe)
+
+on:
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  read:
+    name: Read production auth-config health
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Fetch and print (cache-busted)
+        run: |
+          set -euo pipefail
+          base="https://vitalcv.com"
+          cb="$(date +%s)"
+          {
+            echo "## Production auth-config health"
+            echo ""
+            for path in /api/version /api/health/auth; do
+              body="$(mktemp)"
+              code=$(curl -sS --max-time 15 -o "$body" -w '%{http_code}' \
+                -H 'Cache-Control: no-cache' "${base}${path}?cb=${cb}")
+              echo "### ${path} — HTTP ${code}"
+              echo ""
+              echo '```json'
+              jq . "$body" 2>/dev/null || cat "$body"
+              echo '```'
+              echo ""
+            done
+          } | tee -a "$GITHUB_STEP_SUMMARY"
