@@ -1,5 +1,11 @@
 # L1 — FSMB and NCSBN access diligence
 
+> **2026-08-09:** the no-paid-data-sources rule was amended — paid sources may
+> now be proposed where the goal requires them. Verified pricing, budget
+> shapes, and the recommended sequence live in
+> [paid-source-procurement.md](./paid-source-procurement.md); this document
+> remains the per-vendor question list to take into those conversations.
+
 **This wave is not an engineering task.** It is commercial and legal work that
 only Chris can execute, and it blocks L2, L3, L5, L8, L9 and L10. Nothing in the
 licensure program can go live until the questions below have answers.
