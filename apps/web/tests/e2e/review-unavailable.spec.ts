@@ -23,4 +23,23 @@ test.describe('Review without a hydratable passport', () => {
     await expect(page.getByRole('link', { name: 'Try again' })).toBeVisible();
     await expect(page.getByRole('link', { name: 'Back to review' })).toBeVisible();
   });
+
+  /**
+   * The unavailable state IS the whole page, and it shipped with no document
+   * heading at all — `/review/[entityId]` measured h1×0 on production
+   * 2026-08-09 (page consistency audit, F4). The card's title is now the h1.
+   *
+   * Asserted in a real browser rather than as a source grep, because the
+   * repo's axe gate scans hand-written fixtures for five other routes and was
+   * green through the entire regression.
+   */
+  test('the unavailable state owns the page h1', async ({ page }) => {
+    await page.goto('/review/00000000-0000-0000-0000-000000000000?contextId=demo-review', {
+      waitUntil: 'networkidle',
+    });
+
+    const h1 = page.getByRole('heading', { level: 1 });
+    await expect(h1).toHaveCount(1);
+    await expect(h1).toHaveText('Employer review unavailable');
+  });
 });

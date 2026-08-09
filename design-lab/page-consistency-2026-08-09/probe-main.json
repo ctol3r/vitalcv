@@ -1,0 +1,1241 @@
+[
+ {
+  "route": "/",
+  "probed": "/",
+  "dynamic": false,
+  "status": 200,
+  "location": null,
+  "robots": null,
+  "bytes": 74834,
+  "title": "VitalCV — Enter your NPI. VitalCV does the rest.",
+  "notFoundMarker": false
+ },
+ {
+  "route": "/activity/[entityId]",
+  "probed": "/activity/1407202518",
+  "dynamic": true,
+  "status": 200,
+  "location": null,
+  "robots": null,
+  "bytes": 60346,
+  "title": "Activity — VitalCV",
+  "notFoundMarker": false
+ },
+ {
+  "route": "/admin/demo-reset",
+  "probed": "/admin/demo-reset",
+  "dynamic": false,
+  "status": 307,
+  "location": "/sign-in?redirect_url=%2Fadmin%2Fdemo-reset",
+  "robots": null
+ },
+ {
+  "route": "/admin/leads",
+  "probed": "/admin/leads",
+  "dynamic": false,
+  "status": 307,
+  "location": "/sign-in?redirect_url=%2Fadmin%2Fleads",
+  "robots": null
+ },
+ {
+  "route": "/admin/platform",
+  "probed": "/admin/platform",
+  "dynamic": false,
+  "status": 307,
+  "location": "/sign-in?redirect_url=%2Fadmin%2Fplatform",
+  "robots": null
+ },
+ {
+  "route": "/apply/[requestUri]",
+  "probed": "/apply/probe-nonexistent",
+  "dynamic": true,
+  "status": 404,
+  "location": null,
+  "robots": null
+ },
+ {
+  "route": "/auth/error",
+  "probed": "/auth/error",
+  "dynamic": false,
+  "status": 200,
+  "location": null,
+  "robots": null,
+  "bytes": 65914,
+  "title": "VitalCV — Your career evidence, ready before your next job.",
+  "notFoundMarker": false
+ },
+ {
+  "route": "/auth/resolving",
+  "probed": "/auth/resolving",
+  "dynamic": false,
+  "status": 200,
+  "location": null,
+  "robots": null,
+  "bytes": 57957,
+  "title": "VitalCV — Your career evidence, ready before your next job.",
+  "notFoundMarker": false
+ },
+ {
+  "route": "/career-intelligence/[entityId]",
+  "probed": "/career-intelligence/1407202518",
+  "dynamic": true,
+  "status": 200,
+  "location": null,
+  "robots": null,
+  "bytes": 60429,
+  "title": "Career Intelligence — VitalCV",
+  "notFoundMarker": false
+ },
+ {
+  "route": "/career-map/[entityId]",
+  "probed": "/career-map/1407202518",
+  "dynamic": true,
+  "status": 200,
+  "location": null,
+  "robots": null,
+  "bytes": 60362,
+  "title": "Career Map — VitalCV",
+  "notFoundMarker": false
+ },
+ {
+  "route": "/clinician/profile",
+  "probed": "/clinician/profile",
+  "dynamic": false,
+  "status": 200,
+  "location": null,
+  "robots": null,
+  "bytes": 156372,
+  "title": "Clinician Profile — VitalCV",
+  "notFoundMarker": false
+ },
+ {
+  "route": "/concierge",
+  "probed": "/concierge",
+  "dynamic": false,
+  "status": 200,
+  "location": null,
+  "robots": null,
+  "bytes": 65339,
+  "title": "Concierge — Credential Readiness Packet — VitalCV",
+  "notFoundMarker": false
+ },
+ {
+  "route": "/contact",
+  "probed": "/contact",
+  "dynamic": false,
+  "status": 200,
+  "location": null,
+  "robots": null,
+  "bytes": 70123,
+  "title": "Contact — Start a Pilot — VitalCV",
+  "notFoundMarker": false
+ },
+ {
+  "route": "/demo",
+  "probed": "/demo",
+  "dynamic": false,
+  "status": 200,
+  "location": null,
+  "robots": null,
+  "bytes": 68832,
+  "title": "Live Demo — VitalCV",
+  "notFoundMarker": false
+ },
+ {
+  "route": "/design/acceptance-diff",
+  "probed": "/design/acceptance-diff",
+  "dynamic": false,
+  "status": 404,
+  "location": null,
+  "robots": "noindex, nofollow"
+ },
+ {
+  "route": "/design/freshness",
+  "probed": "/design/freshness",
+  "dynamic": false,
+  "status": 404,
+  "location": null,
+  "robots": "noindex, nofollow"
+ },
+ {
+  "route": "/design/proof-packet",
+  "probed": "/design/proof-packet",
+  "dynamic": false,
+  "status": 404,
+  "location": null,
+  "robots": "noindex, nofollow"
+ },
+ {
+  "route": "/design/provenance",
+  "probed": "/design/provenance",
+  "dynamic": false,
+  "status": 404,
+  "location": null,
+  "robots": "noindex, nofollow"
+ },
+ {
+  "route": "/design/reset",
+  "probed": "/design/reset",
+  "dynamic": false,
+  "status": 404,
+  "location": null,
+  "robots": "noindex, nofollow"
+ },
+ {
+  "route": "/design/transcript",
+  "probed": "/design/transcript",
+  "dynamic": false,
+  "status": 404,
+  "location": null,
+  "robots": "noindex, nofollow"
+ },
+ {
+  "route": "/design/verify",
+  "probed": "/design/verify",
+  "dynamic": false,
+  "status": 404,
+  "location": null,
+  "robots": "noindex, nofollow"
+ },
+ {
+  "route": "/design/wave1501",
+  "probed": "/design/wave1501",
+  "dynamic": false,
+  "status": 404,
+  "location": null,
+  "robots": "noindex, nofollow"
+ },
+ {
+  "route": "/design/wave1505",
+  "probed": "/design/wave1505",
+  "dynamic": false,
+  "status": 404,
+  "location": null,
+  "robots": "noindex, nofollow"
+ },
+ {
+  "route": "/design/z1-home",
+  "probed": "/design/z1-home",
+  "dynamic": false,
+  "status": 404,
+  "location": null,
+  "robots": "noindex, nofollow"
+ },
+ {
+  "route": "/dev/career-garden",
+  "probed": "/dev/career-garden",
+  "dynamic": false,
+  "status": 404,
+  "location": null,
+  "robots": null
+ },
+ {
+  "route": "/dev/compete-film",
+  "probed": "/dev/compete-film",
+  "dynamic": false,
+  "status": 404,
+  "location": null,
+  "robots": null
+ },
+ {
+  "route": "/dev/graph/[entityId]",
+  "probed": "/dev/graph/1407202518",
+  "dynamic": true,
+  "status": 200,
+  "location": null,
+  "robots": null,
+  "bytes": 58455,
+  "title": "Evidence Graph Explorer (dev) — VitalCV",
+  "notFoundMarker": false
+ },
+ {
+  "route": "/dev/matcha-deck",
+  "probed": "/dev/matcha-deck",
+  "dynamic": false,
+  "status": 404,
+  "location": null,
+  "robots": null
+ },
+ {
+  "route": "/dev/matcha-workspaces",
+  "probed": "/dev/matcha-workspaces",
+  "dynamic": false,
+  "status": 404,
+  "location": null,
+  "robots": null
+ },
+ {
+  "route": "/dev/page-stack",
+  "probed": "/dev/page-stack",
+  "dynamic": false,
+  "status": 404,
+  "location": null,
+  "robots": null
+ },
+ {
+  "route": "/dev/story-rail",
+  "probed": "/dev/story-rail",
+  "dynamic": false,
+  "status": 404,
+  "location": null,
+  "robots": null
+ },
+ {
+  "route": "/directory/[npi]",
+  "probed": "/directory/1407202518",
+  "dynamic": true,
+  "status": 200,
+  "location": null,
+  "robots": null,
+  "bytes": 117893,
+  "title": "JACOB AARON, MD — Internal Medicine Physician, SAN FRANCISCO, CA · NPI 1407202518 — VitalCV",
+  "notFoundMarker": false
+ },
+ {
+  "route": "/docs",
+  "probed": "/docs",
+  "dynamic": false,
+  "status": 200,
+  "location": null,
+  "robots": null,
+  "bytes": 74748,
+  "title": "Docs — VitalCV",
+  "notFoundMarker": false
+ },
+ {
+  "route": "/ecosystem/[entityId]",
+  "probed": "/ecosystem/1407202518",
+  "dynamic": true,
+  "status": 200,
+  "location": null,
+  "robots": null,
+  "bytes": 60408,
+  "title": "Career Ecosystem — VitalCV",
+  "notFoundMarker": false
+ },
+ {
+  "route": "/employer/applications",
+  "probed": "/employer/applications",
+  "dynamic": false,
+  "status": 307,
+  "location": "/sign-in?redirect_url=%2Femployer%2Fapplications",
+  "robots": null
+ },
+ {
+  "route": "/employer/applications/[applicationId]",
+  "probed": "/employer/applications/probe-nonexistent",
+  "dynamic": true,
+  "status": 307,
+  "location": "/sign-in?redirect_url=%2Femployer%2Fapplications%2Fprobe-nonexistent",
+  "robots": null
+ },
+ {
+  "route": "/employer/candidates",
+  "probed": "/employer/candidates",
+  "dynamic": false,
+  "status": 307,
+  "location": "/sign-in?redirect_url=%2Femployer%2Fcandidates",
+  "robots": null
+ },
+ {
+  "route": "/employer/dashboard",
+  "probed": "/employer/dashboard",
+  "dynamic": false,
+  "status": 307,
+  "location": "/sign-in?redirect_url=%2Femployer%2Fdashboard",
+  "robots": null
+ },
+ {
+  "route": "/employer/decision/[applicationId]",
+  "probed": "/employer/decision/probe-nonexistent",
+  "dynamic": true,
+  "status": 307,
+  "location": "/sign-in?redirect_url=%2Femployer%2Fdecision%2Fprobe-nonexistent",
+  "robots": null
+ },
+ {
+  "route": "/employer/post",
+  "probed": "/employer/post",
+  "dynamic": false,
+  "status": 307,
+  "location": "/sign-in?redirect_url=%2Femployer%2Fpost",
+  "robots": null
+ },
+ {
+  "route": "/employer/profile",
+  "probed": "/employer/profile",
+  "dynamic": false,
+  "status": 307,
+  "location": "/sign-in?redirect_url=%2Femployer%2Fprofile",
+  "robots": null
+ },
+ {
+  "route": "/employer/review-queue",
+  "probed": "/employer/review-queue",
+  "dynamic": false,
+  "status": 307,
+  "location": "/sign-in?redirect_url=%2Femployer%2Freview-queue",
+  "robots": null
+ },
+ {
+  "route": "/employer/review/[applicationId]",
+  "probed": "/employer/review/probe-nonexistent",
+  "dynamic": true,
+  "status": 307,
+  "location": "/sign-in?redirect_url=%2Femployer%2Freview%2Fprobe-nonexistent",
+  "robots": null
+ },
+ {
+  "route": "/employer/worklist",
+  "probed": "/employer/worklist",
+  "dynamic": false,
+  "status": 307,
+  "location": "/sign-in?redirect_url=%2Femployer%2Fworklist",
+  "robots": null
+ },
+ {
+  "route": "/employers",
+  "probed": "/employers",
+  "dynamic": false,
+  "status": 200,
+  "location": null,
+  "robots": null,
+  "bytes": 110931,
+  "title": "For Employers — VitalCV",
+  "notFoundMarker": false
+ },
+ {
+  "route": "/employers/how-it-works",
+  "probed": "/employers/how-it-works",
+  "dynamic": false,
+  "status": 200,
+  "location": null,
+  "robots": null,
+  "bytes": 107879,
+  "title": "How it works — what arrives, source by source — VitalCV",
+  "notFoundMarker": false
+ },
+ {
+  "route": "/employers/request-access",
+  "probed": "/employers/request-access",
+  "dynamic": false,
+  "status": 200,
+  "location": null,
+  "robots": null,
+  "bytes": 63914,
+  "title": "Request organization access — VitalCV",
+  "notFoundMarker": false
+ },
+ {
+  "route": "/evidence-network",
+  "probed": "/evidence-network",
+  "dynamic": false,
+  "status": 200,
+  "location": null,
+  "robots": null,
+  "bytes": 105113,
+  "title": "The Evidence Network — how career evidence moves — VitalCV",
+  "notFoundMarker": false
+ },
+ {
+  "route": "/explore",
+  "probed": "/explore",
+  "dynamic": false,
+  "status": 200,
+  "location": null,
+  "robots": null,
+  "bytes": 61134,
+  "title": "Clinical roles — VitalCV",
+  "notFoundMarker": false
+ },
+ {
+  "route": "/for/cvo",
+  "probed": "/for/cvo",
+  "dynamic": false,
+  "status": 200,
+  "location": null,
+  "robots": null,
+  "bytes": 70895,
+  "title": "For CVOs — VitalCV — VitalCV",
+  "notFoundMarker": false
+ },
+ {
+  "route": "/for/payer",
+  "probed": "/for/payer",
+  "dynamic": false,
+  "status": 200,
+  "location": null,
+  "robots": null,
+  "bytes": 70891,
+  "title": "For Payers — VitalCV — VitalCV",
+  "notFoundMarker": false
+ },
+ {
+  "route": "/for/staffing-exchange",
+  "probed": "/for/staffing-exchange",
+  "dynamic": false,
+  "status": 200,
+  "location": null,
+  "robots": null,
+  "bytes": 71078,
+  "title": "For Staffing Exchanges — VitalCV — VitalCV",
+  "notFoundMarker": false
+ },
+ {
+  "route": "/get-ready",
+  "probed": "/get-ready",
+  "dynamic": false,
+  "status": 307,
+  "location": "/onboarding",
+  "robots": null
+ },
+ {
+  "route": "/holder",
+  "probed": "/holder",
+  "dynamic": false,
+  "status": 307,
+  "location": "/sign-in?redirect_url=%2Fholder",
+  "robots": null
+ },
+ {
+  "route": "/holder/applications",
+  "probed": "/holder/applications",
+  "dynamic": false,
+  "status": 307,
+  "location": "/sign-in?redirect_url=%2Fholder%2Fapplications",
+  "robots": null
+ },
+ {
+  "route": "/holder/applications/[id]",
+  "probed": "/holder/applications/probe-nonexistent",
+  "dynamic": true,
+  "status": 307,
+  "location": "/sign-in?redirect_url=%2Fholder%2Fapplications%2Fprobe-nonexistent",
+  "robots": null
+ },
+ {
+  "route": "/holder/blockers/[blockerId]",
+  "probed": "/holder/blockers/probe-nonexistent",
+  "dynamic": true,
+  "status": 307,
+  "location": "/sign-in?redirect_url=%2Fholder%2Fblockers%2Fprobe-nonexistent",
+  "robots": null
+ },
+ {
+  "route": "/holder/garden",
+  "probed": "/holder/garden",
+  "dynamic": false,
+  "status": 307,
+  "location": "/sign-in?redirect_url=%2Fholder%2Fgarden",
+  "robots": null
+ },
+ {
+  "route": "/holder/garden/cv",
+  "probed": "/holder/garden/cv",
+  "dynamic": false,
+  "status": 307,
+  "location": "/sign-in?redirect_url=%2Fholder%2Fgarden%2Fcv",
+  "robots": null
+ },
+ {
+  "route": "/holder/garden/notes",
+  "probed": "/holder/garden/notes",
+  "dynamic": false,
+  "status": 307,
+  "location": "/sign-in?redirect_url=%2Fholder%2Fgarden%2Fnotes",
+  "robots": null
+ },
+ {
+  "route": "/holder/garden/opportunities",
+  "probed": "/holder/garden/opportunities",
+  "dynamic": false,
+  "status": 307,
+  "location": "/sign-in?redirect_url=%2Fholder%2Fgarden%2Fopportunities",
+  "robots": null
+ },
+ {
+  "route": "/holder/garden/privacy",
+  "probed": "/holder/garden/privacy",
+  "dynamic": false,
+  "status": 307,
+  "location": "/sign-in?redirect_url=%2Fholder%2Fgarden%2Fprivacy",
+  "robots": null
+ },
+ {
+  "route": "/holder/garden/research",
+  "probed": "/holder/garden/research",
+  "dynamic": false,
+  "status": 307,
+  "location": "/sign-in?redirect_url=%2Fholder%2Fgarden%2Fresearch",
+  "robots": null
+ },
+ {
+  "route": "/holder/home",
+  "probed": "/holder/home",
+  "dynamic": false,
+  "status": 307,
+  "location": "/sign-in?redirect_url=%2Fholder%2Fhome",
+  "robots": null
+ },
+ {
+  "route": "/holder/matcha",
+  "probed": "/holder/matcha",
+  "dynamic": false,
+  "status": 307,
+  "location": "/sign-in?redirect_url=%2Fholder%2Fmatcha",
+  "robots": null
+ },
+ {
+  "route": "/holder/matcha/assessment",
+  "probed": "/holder/matcha/assessment",
+  "dynamic": false,
+  "status": 307,
+  "location": "/sign-in?redirect_url=%2Fholder%2Fmatcha%2Fassessment",
+  "robots": null
+ },
+ {
+  "route": "/holder/matcha/onboarding",
+  "probed": "/holder/matcha/onboarding",
+  "dynamic": false,
+  "status": 307,
+  "location": "/sign-in?redirect_url=%2Fholder%2Fmatcha%2Fonboarding",
+  "robots": null
+ },
+ {
+  "route": "/holder/matcha/opportunities",
+  "probed": "/holder/matcha/opportunities",
+  "dynamic": false,
+  "status": 307,
+  "location": "/sign-in?redirect_url=%2Fholder%2Fmatcha%2Fopportunities",
+  "robots": null
+ },
+ {
+  "route": "/holder/opportunities",
+  "probed": "/holder/opportunities",
+  "dynamic": false,
+  "status": 307,
+  "location": "/sign-in?redirect_url=%2Fholder%2Fopportunities",
+  "robots": null
+ },
+ {
+  "route": "/holder/opportunities/[id]",
+  "probed": "/holder/opportunities/probe-nonexistent",
+  "dynamic": true,
+  "status": 307,
+  "location": "/sign-in?redirect_url=%2Fholder%2Fopportunities%2Fprobe-nonexistent",
+  "robots": null
+ },
+ {
+  "route": "/holder/opportunities/discover",
+  "probed": "/holder/opportunities/discover",
+  "dynamic": false,
+  "status": 307,
+  "location": "/sign-in?redirect_url=%2Fholder%2Fopportunities%2Fdiscover",
+  "robots": null
+ },
+ {
+  "route": "/holder/opportunities/interested",
+  "probed": "/holder/opportunities/interested",
+  "dynamic": false,
+  "status": 307,
+  "location": "/sign-in?redirect_url=%2Fholder%2Fopportunities%2Finterested",
+  "robots": null
+ },
+ {
+  "route": "/holder/opportunities/passed",
+  "probed": "/holder/opportunities/passed",
+  "dynamic": false,
+  "status": 307,
+  "location": "/sign-in?redirect_url=%2Fholder%2Fopportunities%2Fpassed",
+  "robots": null
+ },
+ {
+  "route": "/holder/readiness",
+  "probed": "/holder/readiness",
+  "dynamic": false,
+  "status": 307,
+  "location": "/sign-in?redirect_url=%2Fholder%2Freadiness",
+  "robots": null
+ },
+ {
+  "route": "/holder/recognition",
+  "probed": "/holder/recognition",
+  "dynamic": false,
+  "status": 307,
+  "location": "/sign-in?redirect_url=%2Fholder%2Frecognition",
+  "robots": null
+ },
+ {
+  "route": "/holder/scoreboard",
+  "probed": "/holder/scoreboard",
+  "dynamic": false,
+  "status": 307,
+  "location": "/sign-in?redirect_url=%2Fholder%2Fscoreboard",
+  "robots": null
+ },
+ {
+  "route": "/holder/settings",
+  "probed": "/holder/settings",
+  "dynamic": false,
+  "status": 307,
+  "location": "/sign-in?redirect_url=%2Fholder%2Fsettings",
+  "robots": null
+ },
+ {
+  "route": "/holder/timeline",
+  "probed": "/holder/timeline",
+  "dynamic": false,
+  "status": 307,
+  "location": "/sign-in?redirect_url=%2Fholder%2Ftimeline",
+  "robots": null
+ },
+ {
+  "route": "/investigate/[npi]",
+  "probed": "/investigate/1407202518",
+  "dynamic": true,
+  "status": 200,
+  "location": null,
+  "robots": null,
+  "bytes": 76705,
+  "title": "Credential Investigation — NPI 1407202518 — VitalCV",
+  "notFoundMarker": false
+ },
+ {
+  "route": "/issuer/audit-boundary/[requestId]",
+  "probed": "/issuer/audit-boundary/probe-nonexistent",
+  "dynamic": true,
+  "status": 307,
+  "location": "/sign-in?redirect_url=%2Fissuer%2Faudit-boundary%2Fprobe-nonexistent",
+  "robots": null
+ },
+ {
+  "route": "/issuer/backend-persistence/[requestId]",
+  "probed": "/issuer/backend-persistence/probe-nonexistent",
+  "dynamic": true,
+  "status": 307,
+  "location": "/sign-in?redirect_url=%2Fissuer%2Fbackend-persistence%2Fprobe-nonexistent",
+  "robots": null
+ },
+ {
+  "route": "/issuer/persistence-adapter/[requestId]",
+  "probed": "/issuer/persistence-adapter/probe-nonexistent",
+  "dynamic": true,
+  "status": 307,
+  "location": "/sign-in?redirect_url=%2Fissuer%2Fpersistence-adapter%2Fprobe-nonexistent",
+  "robots": null
+ },
+ {
+  "route": "/issuer/policy-review/[requestId]",
+  "probed": "/issuer/policy-review/probe-nonexistent",
+  "dynamic": true,
+  "status": 307,
+  "location": "/sign-in?redirect_url=%2Fissuer%2Fpolicy-review%2Fprobe-nonexistent",
+  "robots": null
+ },
+ {
+  "route": "/issuer/psv-receipt/[requestId]",
+  "probed": "/issuer/psv-receipt/probe-nonexistent",
+  "dynamic": true,
+  "status": 307,
+  "location": "/sign-in?redirect_url=%2Fissuer%2Fpsv-receipt%2Fprobe-nonexistent",
+  "robots": null
+ },
+ {
+  "route": "/issuer/psv-reuse/[receiptId]",
+  "probed": "/issuer/psv-reuse/probe-nonexistent",
+  "dynamic": true,
+  "status": 307,
+  "location": "/sign-in?redirect_url=%2Fissuer%2Fpsv-reuse%2Fprobe-nonexistent",
+  "robots": null
+ },
+ {
+  "route": "/issuer/request/[requestId]",
+  "probed": "/issuer/request/probe-nonexistent",
+  "dynamic": true,
+  "status": 307,
+  "location": "/sign-in?redirect_url=%2Fissuer%2Frequest%2Fprobe-nonexistent",
+  "robots": null
+ },
+ {
+  "route": "/issuer/review/[requestId]",
+  "probed": "/issuer/review/probe-nonexistent",
+  "dynamic": true,
+  "status": 307,
+  "location": "/sign-in?redirect_url=%2Fissuer%2Freview%2Fprobe-nonexistent",
+  "robots": null
+ },
+ {
+  "route": "/issuer/verify/[requestId]",
+  "probed": "/issuer/verify/probe-nonexistent",
+  "dynamic": true,
+  "status": 307,
+  "location": "/sign-in?redirect_url=%2Fissuer%2Fverify%2Fprobe-nonexistent",
+  "robots": null
+ },
+ {
+  "route": "/legal/cookies",
+  "probed": "/legal/cookies",
+  "dynamic": false,
+  "status": 200,
+  "location": null,
+  "robots": null,
+  "bytes": 78031,
+  "title": "Cookie Policy — VitalCV",
+  "notFoundMarker": false
+ },
+ {
+  "route": "/legal/dpa",
+  "probed": "/legal/dpa",
+  "dynamic": false,
+  "status": 200,
+  "location": null,
+  "robots": null,
+  "bytes": 80291,
+  "title": "Data Processing Agreement Template — VitalCV",
+  "notFoundMarker": false
+ },
+ {
+  "route": "/matcha/experience",
+  "probed": "/matcha/experience",
+  "dynamic": false,
+  "status": 200,
+  "location": null,
+  "robots": null,
+  "bytes": 109632,
+  "title": "MATCHA — a preview of your signed-in experience — VitalCV",
+  "notFoundMarker": false
+ },
+ {
+  "route": "/matcha/hospitals",
+  "probed": "/matcha/hospitals",
+  "dynamic": false,
+  "status": 404,
+  "location": null,
+  "robots": null
+ },
+ {
+  "route": "/matcha/investors",
+  "probed": "/matcha/investors",
+  "dynamic": false,
+  "status": 404,
+  "location": null,
+  "robots": null
+ },
+ {
+  "route": "/matcha/recruiters",
+  "probed": "/matcha/recruiters",
+  "dynamic": false,
+  "status": 404,
+  "location": null,
+  "robots": null
+ },
+ {
+  "route": "/network/[entityId]",
+  "probed": "/network/1407202518",
+  "dynamic": true,
+  "status": 307,
+  "location": "/sign-in?redirect_url=%2Fnetwork%2F1407202518",
+  "robots": null
+ },
+ {
+  "route": "/onboarding",
+  "probed": "/onboarding",
+  "dynamic": false,
+  "status": 200,
+  "location": null,
+  "robots": null,
+  "bytes": 64918,
+  "title": "Get started — VitalCV",
+  "notFoundMarker": false
+ },
+ {
+  "route": "/onboarding/fetching",
+  "probed": "/onboarding/fetching",
+  "dynamic": false,
+  "status": 200,
+  "location": null,
+  "robots": null,
+  "bytes": 64038,
+  "title": "VitalCV — Your career evidence, ready before your next job.",
+  "notFoundMarker": false
+ },
+ {
+  "route": "/onboarding/identity",
+  "probed": "/onboarding/identity",
+  "dynamic": false,
+  "status": 200,
+  "location": null,
+  "robots": null,
+  "bytes": 62266,
+  "title": "Confirm profile — VitalCV",
+  "notFoundMarker": false
+ },
+ {
+  "route": "/onboarding/readiness",
+  "probed": "/onboarding/readiness",
+  "dynamic": false,
+  "status": 200,
+  "location": null,
+  "robots": null,
+  "bytes": 65850,
+  "title": "Continue activation — VitalCV",
+  "notFoundMarker": false
+ },
+ {
+  "route": "/opportunities/[id]",
+  "probed": "/opportunities/probe-nonexistent",
+  "dynamic": true,
+  "status": 404,
+  "location": null,
+  "robots": null
+ },
+ {
+  "route": "/opportunities/discover",
+  "probed": "/opportunities/discover",
+  "dynamic": false,
+  "status": 307,
+  "location": "/holder/opportunities/discover",
+  "robots": null
+ },
+ {
+  "route": "/ops",
+  "probed": "/ops",
+  "dynamic": false,
+  "status": 307,
+  "location": "/sign-in?redirect_url=/ops",
+  "robots": null
+ },
+ {
+  "route": "/ops/engine",
+  "probed": "/ops/engine",
+  "dynamic": false,
+  "status": 307,
+  "location": "/sign-in?redirect_url=/ops/engine",
+  "robots": null
+ },
+ {
+  "route": "/ops/survivability",
+  "probed": "/ops/survivability",
+  "dynamic": false,
+  "status": 307,
+  "location": "/sign-in",
+  "robots": null
+ },
+ {
+  "route": "/p/[slug]",
+  "probed": "/p/probe-nonexistent",
+  "dynamic": true,
+  "status": 404,
+  "location": null,
+  "robots": null
+ },
+ {
+  "route": "/packet/[entityId]",
+  "probed": "/packet/1407202518",
+  "dynamic": true,
+  "status": 200,
+  "location": null,
+  "robots": null,
+  "bytes": 60869,
+  "title": "Career Packet — VitalCV",
+  "notFoundMarker": false
+ },
+ {
+  "route": "/passport",
+  "probed": "/passport",
+  "dynamic": false,
+  "status": 307,
+  "location": "/onboarding",
+  "robots": null
+ },
+ {
+  "route": "/passport/[id]",
+  "probed": "/passport/probe-nonexistent",
+  "dynamic": true,
+  "status": 307,
+  "location": "/onboarding",
+  "robots": null
+ },
+ {
+  "route": "/pilot",
+  "probed": "/pilot",
+  "dynamic": false,
+  "status": 200,
+  "location": null,
+  "robots": null,
+  "bytes": 98216,
+  "title": "Start a Pilot — VitalCV",
+  "notFoundMarker": false
+ },
+ {
+  "route": "/pricing",
+  "probed": "/pricing",
+  "dynamic": false,
+  "status": 200,
+  "location": null,
+  "robots": null,
+  "bytes": 94354,
+  "title": "Pricing Foundation — VitalCV",
+  "notFoundMarker": false
+ },
+ {
+  "route": "/privacy",
+  "probed": "/privacy",
+  "dynamic": false,
+  "status": 200,
+  "location": null,
+  "robots": null,
+  "bytes": 70795,
+  "title": "Privacy Policy — VitalCV",
+  "notFoundMarker": false
+ },
+ {
+  "route": "/professional-growth/[entityId]",
+  "probed": "/professional-growth/1407202518",
+  "dynamic": true,
+  "status": 200,
+  "location": null,
+  "robots": null,
+  "bytes": 62172,
+  "title": "Professional Growth — VitalCV",
+  "notFoundMarker": false
+ },
+ {
+  "route": "/profile/[npi]",
+  "probed": "/profile/1407202518",
+  "dynamic": true,
+  "status": 404,
+  "location": null,
+  "robots": null
+ },
+ {
+  "route": "/receipt/[receiptId]",
+  "probed": "/receipt/probe-nonexistent",
+  "dynamic": true,
+  "status": 404,
+  "location": null,
+  "robots": null
+ },
+ {
+  "route": "/recruiter/candidate/[entityId]",
+  "probed": "/recruiter/candidate/1407202518",
+  "dynamic": true,
+  "status": 200,
+  "location": null,
+  "robots": null,
+  "bytes": 60859,
+  "title": "Candidate Review — VitalCV",
+  "notFoundMarker": false
+ },
+ {
+  "route": "/review",
+  "probed": "/review",
+  "dynamic": false,
+  "status": 200,
+  "location": null,
+  "robots": null,
+  "bytes": 62684,
+  "title": "Employer Review — VitalCV",
+  "notFoundMarker": false
+ },
+ {
+  "route": "/review/[entityId]",
+  "probed": "/review/1407202518",
+  "dynamic": true,
+  "status": 200,
+  "location": null,
+  "robots": null,
+  "bytes": 66884,
+  "title": "Employer Review — VitalCV",
+  "notFoundMarker": false
+ },
+ {
+  "route": "/review/request",
+  "probed": "/review/request",
+  "dynamic": false,
+  "status": 200,
+  "location": null,
+  "robots": null,
+  "bytes": 64696,
+  "title": "Request Pilot Review — VitalCV",
+  "notFoundMarker": false
+ },
+ {
+  "route": "/search/[entityId]",
+  "probed": "/search/1407202518",
+  "dynamic": true,
+  "status": 200,
+  "location": null,
+  "robots": null,
+  "bytes": 62650,
+  "title": "Search — VitalCV",
+  "notFoundMarker": false
+ },
+ {
+  "route": "/sign-in/[[...sign-in]]",
+  "probed": "/sign-in",
+  "dynamic": true,
+  "status": 200,
+  "location": null,
+  "robots": null,
+  "bytes": 64683,
+  "title": "Sign In — VitalCV",
+  "notFoundMarker": false
+ },
+ {
+  "route": "/sign-up/[[...sign-up]]",
+  "probed": "/sign-up",
+  "dynamic": true,
+  "status": 200,
+  "location": null,
+  "robots": null,
+  "bytes": 64539,
+  "title": "Sign Up — VitalCV",
+  "notFoundMarker": false
+ },
+ {
+  "route": "/signup",
+  "probed": "/signup",
+  "dynamic": false,
+  "status": 307,
+  "location": "/sign-up",
+  "robots": null
+ },
+ {
+  "route": "/snapshot/[id]",
+  "probed": "/snapshot/probe-nonexistent",
+  "dynamic": true,
+  "status": 404,
+  "location": null,
+  "robots": null
+ },
+ {
+  "route": "/solutions",
+  "probed": "/solutions",
+  "dynamic": false,
+  "status": 200,
+  "location": null,
+  "robots": null,
+  "bytes": 68078,
+  "title": "Solutions — VitalCV",
+  "notFoundMarker": false
+ },
+ {
+  "route": "/status",
+  "probed": "/status",
+  "dynamic": false,
+  "status": 200,
+  "location": null,
+  "robots": null,
+  "bytes": 85853,
+  "title": "Status — VitalCV",
+  "notFoundMarker": false
+ },
+ {
+  "route": "/status/technical",
+  "probed": "/status/technical",
+  "dynamic": false,
+  "status": 200,
+  "location": null,
+  "robots": null,
+  "bytes": 112875,
+  "title": "Technical Status — VitalCV",
+  "notFoundMarker": false
+ },
+ {
+  "route": "/terms",
+  "probed": "/terms",
+  "dynamic": false,
+  "status": 200,
+  "location": null,
+  "robots": null,
+  "bytes": 71327,
+  "title": "Terms of Service — VitalCV",
+  "notFoundMarker": false
+ },
+ {
+  "route": "/trust",
+  "probed": "/trust",
+  "dynamic": false,
+  "status": 200,
+  "location": null,
+  "robots": null,
+  "bytes": 124773,
+  "title": "Trust Center — VitalCV",
+  "notFoundMarker": false
+ },
+ {
+  "route": "/trust/attribution",
+  "probed": "/trust/attribution",
+  "dynamic": false,
+  "status": 200,
+  "location": null,
+  "robots": null,
+  "bytes": 97298,
+  "title": "Source Attribution — VitalCV",
+  "notFoundMarker": false
+ },
+ {
+  "route": "/trust/doctrine",
+  "probed": "/trust/doctrine",
+  "dynamic": false,
+  "status": 200,
+  "location": null,
+  "robots": null,
+  "bytes": 83526,
+  "title": "Replay Contract Doctrine — VitalCV",
+  "notFoundMarker": false
+ },
+ {
+  "route": "/trust/technical",
+  "probed": "/trust/technical",
+  "dynamic": false,
+  "status": 200,
+  "location": null,
+  "robots": null,
+  "bytes": 101782,
+  "title": "Trust Register (technical) — VitalCV",
+  "notFoundMarker": false
+ },
+ {
+  "route": "/verify",
+  "probed": "/verify",
+  "dynamic": false,
+  "status": 200,
+  "location": null,
+  "robots": null,
+  "bytes": 62012,
+  "title": "VitalCV — Your career evidence, ready before your next job.",
+  "notFoundMarker": false
+ },
+ {
+  "route": "/verify/[npi]",
+  "probed": "/verify/1407202518",
+  "dynamic": true,
+  "status": 200,
+  "location": null,
+  "robots": null,
+  "bytes": 61684,
+  "title": "Verifier View — NPI 1407202518 — VitalCV",
+  "notFoundMarker": false
+ },
+ {
+  "route": "/verify/guide",
+  "probed": "/verify/guide",
+  "dynamic": false,
+  "status": 200,
+  "location": null,
+  "robots": null,
+  "bytes": 70312,
+  "title": "Verifier Guide — VitalCV",
+  "notFoundMarker": false
+ },
+ {
+  "route": "/verify/receipt/[receiptId]",
+  "probed": "/verify/receipt/probe-nonexistent",
+  "dynamic": true,
+  "status": 404,
+  "location": null,
+  "robots": null
+ }
+]
