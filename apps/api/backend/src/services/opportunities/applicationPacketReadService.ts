@@ -18,11 +18,15 @@ import { sha256ForPayload } from '../../utils/deterministic';
 import { HttpError } from '../../utils/httpError';
 import {
   buildFieldEntriesFromTrustState,
+  buildSectionAbsencesFromTrustState,
   withheldFieldIdsOf,
+  PACKET_ABSENCE_STATES,
   type DisclosureSelection,
   type ApplicationPacketContent,
+  type PacketAbsenceState,
   type PacketEvidenceState,
   type PacketFieldEntry,
+  type PacketSectionAbsence,
   type SealedApplicationPacket,
   verifySealedPacket,
 } from './applicationPacketService';
@@ -30,6 +34,7 @@ import { computeClinicianTrustState } from '../trust/trustStateEngine';
 
 export type ApplicationPacketAccessPerspective = 'clinician' | 'employer' | 'admin';
 export type SubmittedPacketField = PacketFieldEntry;
+export type SubmittedPacketAbsence = PacketSectionAbsence;
 export type ApplicationPacketLifecycle = 'active' | 'superseded' | 'revoked';
 
 export interface ApplicationPacketReadResponse {
@@ -52,6 +57,22 @@ export interface ApplicationPacketReadResponse {
     /** Field ids the clinician withheld at consent time (field-level disclosure). */
     withheldFieldIds: string[];
     fields: SubmittedPacketField[];
+    /**
+     * Selected sections that produced NO field, read straight out of the seal.
+     *
+     * `null` means this packet was sealed before absences were recorded — the
+     * reader is told the record is missing rather than being shown an empty
+     * list, which would assert "every section contributed" about a packet that
+     * never made that claim. An empty array IS that assertion.
+     */
+    sectionAbsences: SubmittedPacketAbsence[] | null;
+    /**
+     * Sections named in `selectedSections` that have neither a field nor an
+     * absence — the unexplained silences. Always `[]` for a packet sealed after
+     * the absence invariant; non-empty only for legacy packets, where it names
+     * exactly the sections a reader must NOT read as checked-and-clean.
+     */
+    unexplainedSectionIds: string[];
     methodologyVersion: string;
     clinicianNote: string | null;
     lifecycle: ApplicationPacketLifecycle;
@@ -82,6 +103,14 @@ export interface ApplicationEvidenceViewResponse extends ApplicationPacketReadRe
     observedAt: string | null;
     methodologyVersion: string | null;
     fields: SubmittedPacketField[];
+    /**
+     * Sections that produce nothing from CURRENT sources. Recomputed, like
+     * `fields` beside it — and necessarily so, since this panel is the live
+     * view. Without it the live panel would reintroduce the exact silence the
+     * sealed packet now removes: a section listed as disclosed, no row shown,
+     * and a reader free to infer it was checked and clean.
+     */
+    sectionAbsences: SubmittedPacketAbsence[];
     changesSinceSubmission: ApplicationEvidenceChange[];
     notice: string;
   };
@@ -132,6 +161,8 @@ type StoredApplicationPacket = {
   recipient: string;
   selectedSections: unknown;
   fields: unknown;
+  /** null for legacy packets sealed before absences were recorded. */
+  sectionAbsences: unknown;
   clinicianNote: string | null;
   methodologyVersion: string;
   consentAt: Date;
@@ -211,6 +242,53 @@ function parsePacketFields(value: unknown): PacketFieldEntry[] {
   });
 }
 
+/**
+ * NULL (legacy packet, sealed before the column existed) becomes `undefined`
+ * so `canonicalize` omits the key and the stored hash still verifies — the
+ * same rule `opportunityVersion` follows. An empty array is NOT the same thing
+ * and is preserved as an empty array: it is the packet asserting that every
+ * selected section contributed evidence.
+ */
+function parseSectionAbsences(value: unknown): PacketSectionAbsence[] | undefined {
+  if (value === null || value === undefined) {
+    return undefined;
+  }
+  if (!Array.isArray(value)) {
+    throw new Error('Invalid stored packet sectionAbsences.');
+  }
+
+  return value.map((entry, index) => {
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
+      throw new Error(`Invalid stored packet absence at index ${index}.`);
+    }
+    const record = entry as Record<string, unknown>;
+    const evidenceState = requireString(record.evidenceState, `sectionAbsences[${index}].evidenceState`);
+    if (!(PACKET_ABSENCE_STATES as readonly string[]).includes(evidenceState)) {
+      throw new Error(`Invalid stored packet absence state at index ${index}.`);
+    }
+
+    return {
+      sectionId: requireString(record.sectionId, `sectionAbsences[${index}].sectionId`),
+      evidenceState: evidenceState as PacketAbsenceState,
+      reason: requireString(record.reason, `sectionAbsences[${index}].reason`),
+    };
+  });
+}
+
+/**
+ * Selected sections a packet accounts for NEITHER with a field NOR with an
+ * absence. `sealPacket` makes this impossible for new packets; legacy packets
+ * predate that invariant, and their silences must be named rather than left for
+ * the reader to interpret as a clean check.
+ */
+function unexplainedSectionIdsOf(packet: SealedApplicationPacket): string[] {
+  const withFields = new Set(packet.fields.map((field) => field.sectionId));
+  const absent = new Set((packet.sectionAbsences ?? []).map((absence) => absence.sectionId));
+  return packet.selectedSections
+    .filter((sectionId) => !withFields.has(sectionId) && !absent.has(sectionId))
+    .sort();
+}
+
 function reconstructSealedPacket(row: StoredApplicationPacket): SealedApplicationPacket {
   const content: ApplicationPacketContent = {
     applicationId: row.applicationId,
@@ -223,6 +301,8 @@ function reconstructSealedPacket(row: StoredApplicationPacket): SealedApplicatio
     recipient: row.recipient,
     selectedSections: parseSelectedSections(row.selectedSections),
     fields: parsePacketFields(row.fields),
+    // Legacy NULL → undefined → key omitted → original hash still verifies.
+    sectionAbsences: parseSectionAbsences(row.sectionAbsences),
     clinicianNote: row.clinicianNote,
     methodologyVersion: row.methodologyVersion,
     consentAt: row.consentAt.toISOString(),
@@ -439,6 +519,11 @@ export async function readApplicationPacket(
       // Derived from the sealed fields, never a stored parallel list.
       withheldFieldIds: withheldFieldIdsOf(packet),
       fields: packet.fields,
+      // Read out of the seal, NOT recomputed. Recomputing here would resolve
+      // absences against today's sources, so the same immutable packet could
+      // show one reader "licensure — nothing found" and another nothing at all.
+      sectionAbsences: packet.sectionAbsences ?? null,
+      unexplainedSectionIds: unexplainedSectionIdsOf(packet),
       methodologyVersion: packet.methodologyVersion,
       clinicianNote: packet.clinicianNote,
       lifecycle: lifecycleOf(storedPacket),
@@ -520,6 +605,7 @@ export async function readApplicationEvidenceView(
         observedAt: null,
         methodologyVersion: null,
         fields: [],
+        sectionAbsences: [],
         changesSinceSubmission: [],
         notice: 'Current Wallet state is unavailable because this application has no clinician NPI attached.',
       },
@@ -536,6 +622,7 @@ export async function readApplicationEvidenceView(
         observedAt: trustState.computed_at,
         methodologyVersion: trustState.methodology_version,
         fields,
+        sectionAbsences: buildSectionAbsencesFromTrustState(trustState, disclosure, fields),
         changesSinceSubmission: compareApplicationEvidence(packet.submittedPacket?.fields ?? [], fields),
         notice: packet.mode === 'legacy'
           ? 'Current Wallet state — not the original submission.'
@@ -550,6 +637,7 @@ export async function readApplicationEvidenceView(
         observedAt: null,
         methodologyVersion: null,
         fields: [],
+        sectionAbsences: [],
         changesSinceSubmission: [],
         notice: 'Current Wallet sources are temporarily unavailable. The submitted packet remains intact.',
       },

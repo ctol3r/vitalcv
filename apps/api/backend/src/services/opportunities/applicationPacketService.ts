@@ -13,6 +13,8 @@
 
 import { createHash } from 'node:crypto';
 
+import type { CanonicalSourceCoverageState } from '@vitalcv/trust-state';
+
 import type { ClinicianTrustState } from '../trust/trustStateEngine';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -57,6 +59,69 @@ export interface PacketFieldEntry {
   artifactId: string | null;
   /** Verification receipt backing the value, when one exists. */
   receiptId: string | null;
+}
+
+/**
+ * The evidence states an ABSENCE may carry — a strict subset of
+ * `PacketEvidenceState`, not a second vocabulary.
+ *
+ * Every affirmative state is excluded by construction: an absence can never be
+ * `source_backed` or `checked` (nothing was found, so nothing was affirmed),
+ * never `self_attested` or `employer_decided` (nobody asserted anything), and
+ * never `withheld` (a withheld field STAYS in `fields` with a null value — see
+ * `PacketEvidenceState.withheld` — so a withheld section is not an absent one).
+ * What remains is the honest range for "we do not have this".
+ */
+export const PACKET_ABSENCE_STATES = [
+  /** Nothing was obtained: no source read, no usable record, or stale/preview data. */
+  'unavailable',
+  /** The route to this evidence is gated behind access the platform does not have. */
+  'access_required',
+  /**
+   * A human must look. Either the source answered and returned no record for
+   * this clinician (a FINDING, not missing evidence), or the resolved trust
+   * state claims something for this section that never reached the packet.
+   */
+  'needs_review',
+] as const;
+
+export type PacketAbsenceState = (typeof PACKET_ABSENCE_STATES)[number];
+
+/**
+ * Compile-time proof that the absence vocabulary IS the evidence vocabulary.
+ * If someone adds an absence state that `PacketEvidenceState` does not define,
+ * this assignment stops compiling — the two lists cannot drift into two
+ * different words for the same fact.
+ */
+const _absenceStatesAreEvidenceStates: readonly PacketEvidenceState[] = PACKET_ABSENCE_STATES;
+void _absenceStatesAreEvidenceStates;
+
+/**
+ * A section the clinician selected that contributed ZERO fields.
+ *
+ * `selectedSections` alone cannot carry this. A packet naming "licensure" in
+ * `selectedSections` with no licensure field present reads, to an employer, as
+ * "licensure was checked and came back clean" — when the truth is that nothing
+ * was found. Absence of evidence rendered as evidence of absence is the exact
+ * defect class this record exists to close: the packet now SAYS "licensure —
+ * nothing found, and here is why" instead of leaving a silence the reader fills
+ * in favourably.
+ *
+ * Sealed, never derived at read time. Computed after the fact, an absence would
+ * be recomputed against whatever the sources say today, so two readers of the
+ * same immutable packet could see different absences — which is the one thing a
+ * sealed artifact must not permit.
+ */
+export interface PacketSectionAbsence {
+  /** The selected section that produced no field entry. */
+  sectionId: string;
+  /** Why nothing was found — same vocabulary as a present field's state. */
+  evidenceState: PacketAbsenceState;
+  /**
+   * A standalone sentence the employer reads instead of silence. It must state
+   * that nothing was found; it must never read as a clean result.
+   */
+  reason: string;
 }
 
 /**
@@ -137,6 +202,22 @@ export interface ApplicationPacketContent {
   recipient: string;
   selectedSections: string[];
   fields: PacketFieldEntry[];
+  /**
+   * Explicit per-section absences — one entry for every selected section that
+   * produced no field. Inside the seal, so they replay unchanged like every
+   * other packet element.
+   *
+   * Three states, and they are NOT interchangeable:
+   *   - `undefined` — a legacy packet sealed before absences were recorded. The
+   *     key is omitted from the canonical bytes so the original hash still
+   *     verifies. This says nothing about whether sections were empty.
+   *   - `[]` — a positive statement: every selected section contributed
+   *     evidence. New packets ALWAYS set this rather than omitting it, because
+   *     an omitted key would make "nothing was absent" indistinguishable from
+   *     "absence was never computed" — the same silence defect one layer up.
+   *   - non-empty — the sections that produced nothing, and why.
+   */
+  sectionAbsences?: PacketSectionAbsence[];
   clinicianNote: string | null;
   methodologyVersion: string;
   consentAt: string;
@@ -199,6 +280,49 @@ export function hashPacketContent(content: ApplicationPacketContent): string {
   return createHash('sha256').update(canonicalize(content), 'utf8').digest('hex');
 }
 
+/**
+ * Every selected section must be ACCOUNTED FOR — by a field or by an absence.
+ *
+ * This is the invariant that makes the absence record a guarantee rather than a
+ * convention. Without it, a caller that forgets to pass `sectionAbsences` seals
+ * a packet whose `selectedSections` names a section the reader will infer was
+ * checked and clean — the original defect, reintroduced silently. Here it is a
+ * thrown error at seal time instead.
+ *
+ * Legacy packets are unaffected: replay verification hashes stored content
+ * directly and never calls `sealPacket`.
+ */
+function assertSectionsAreAccountedFor(content: ApplicationPacketContent): void {
+  const withFields = new Set(content.fields.map((field) => field.sectionId));
+  const absent = new Map(
+    (content.sectionAbsences ?? []).map((absence) => [absence.sectionId, absence]),
+  );
+
+  const silent = content.selectedSections.filter(
+    (sectionId) => !withFields.has(sectionId) && !absent.has(sectionId),
+  );
+  if (silent.length > 0) {
+    throw new Error(
+      `Cannot seal a packet with unexplained sections: ${silent.join(', ')}. `
+      + 'A selected section with no field must carry an explicit absence — '
+      + 'silence reads to an employer as a clean check.',
+    );
+  }
+
+  for (const [sectionId] of absent) {
+    if (withFields.has(sectionId)) {
+      throw new Error(
+        `Section ${sectionId} is recorded as absent but contributed fields.`,
+      );
+    }
+    if (!content.selectedSections.includes(sectionId)) {
+      throw new Error(
+        `Section ${sectionId} is recorded as absent but was never selected.`,
+      );
+    }
+  }
+}
+
 /** Seal = content + its hash. The hash covers EVERYTHING in the content. */
 export function sealPacket(content: ApplicationPacketContent): SealedApplicationPacket {
   if (content.fields.length === 0) {
@@ -207,6 +331,7 @@ export function sealPacket(content: ApplicationPacketContent): SealedApplication
   if (!content.consentReceiptId || !content.consentAt) {
     throw new Error('A disclosure packet cannot seal without recorded consent.');
   }
+  assertSectionsAreAccountedFor(content);
   return { ...content, packetHash: hashPacketContent(content) };
 }
 
@@ -296,4 +421,160 @@ export function buildFieldEntriesFromTrustState(
   // Deterministic order — packet hashing must not depend on fact iteration order.
   entries.sort((a, b) => a.fieldId.localeCompare(b.fieldId));
   return entries;
+}
+
+// ── Trust-state → section absences ────────────────────────────────────────────
+
+/**
+ * The trust-state signals an absence is derived from. Every one of these is
+ * DIMENSION-KEYED, so attributing a signal to a section involves no guessing.
+ */
+export type AbsenceTrustSignals = Partial<
+  Pick<
+    ClinicianTrustState,
+    'identityVerified' | 'exclusionStatus' | 'licensureStatus' | 'pecosStatus' | 'sourceCoverage'
+  >
+>;
+
+/**
+ * Coverage entries are attributed to a section by source id, because
+ * `ClinicianTrustState.sourceCoverage` is flattened across dimensions and no
+ * longer carries the dimension it came from.
+ *
+ * Deliberately partial. The licensure source id is dynamic (it can be any
+ * authority the credential names — Nursys, FSMB, a state board variant), so
+ * this table cannot be exhaustive. An unmapped source is simply not attributed:
+ * the absence keeps the conservative default and its reason makes no claim
+ * about source coverage at all. That direction UNDERSTATES what the platform
+ * knows, which is the safe way to be wrong here — the opposite direction would
+ * put a source's words against a section they did not describe.
+ */
+const SECTION_BY_COVERAGE_SOURCE: Readonly<Record<string, string>> = {
+  NPPES_API: 'identity',
+  NPPES_BULK: 'identity',
+  OIG_LEIE: 'exclusions',
+  SAM_GOV: 'exclusions',
+  PECOS_PUBLIC: 'enrollment',
+  STATE_BOARD: 'licensure',
+  STATE_BOARD_CA: 'licensure',
+  STATE_BOARD_NY: 'licensure',
+  STATE_BOARD_TX: 'licensure',
+  NURSYS_QUICKCONFIRM: 'licensure',
+  NURSYS_ENOTIFY: 'licensure',
+};
+
+const ABSENCE_STATE_BY_COVERAGE_STATE: Readonly<
+  Record<CanonicalSourceCoverageState, PacketAbsenceState>
+> = {
+  // The source answered affirmatively, yet nothing reached the packet. That
+  // contradiction is for a human, not for silent omission.
+  checked: 'needs_review',
+  // The source was read and returned no record for this clinician. A settled
+  // answer is a FINDING; rendering it as "unavailable" would understate it.
+  notFound: 'needs_review',
+  reviewRequired: 'needs_review',
+  accessRequired: 'access_required',
+  gated: 'access_required',
+  unavailable: 'unavailable',
+  pending: 'unavailable',
+  stale: 'unavailable',
+  notDecisionGrade: 'unavailable',
+  previewOnly: 'unavailable',
+};
+
+/**
+ * Does the resolved trust state assert anything about this section? Used only
+ * to detect the contradiction case — a claim that never became a packet field.
+ */
+function trustStateClaimsSection(sectionId: string, signals: AbsenceTrustSignals): boolean {
+  switch (sectionId) {
+    case 'identity':
+      return signals.identityVerified === true;
+    case 'exclusions':
+      return signals.exclusionStatus === 'CLEAR'
+        || signals.exclusionStatus === 'EXCLUDED'
+        || signals.exclusionStatus === 'POSSIBLE_MATCH';
+    case 'licensure':
+      return signals.licensureStatus === 'verified' || signals.licensureStatus === 'expired';
+    case 'enrollment':
+      return signals.pecosStatus === 'ENROLLED'
+        || signals.pecosStatus === 'NOT_FOUND'
+        || signals.pecosStatus === 'OPTED_OUT';
+    default:
+      return false;
+  }
+}
+
+/** Appends the source's OWN words, attributed, without letting them stand alone. */
+function withSourceNote(lead: string, note?: string | null): string {
+  const trimmed = note?.trim().replace(/[.\s]+$/, '');
+  return trimmed ? `${lead} Source note: ${trimmed}.` : lead;
+}
+
+function absenceFor(
+  sectionId: string,
+  signals: AbsenceTrustSignals,
+  coverage: { state: CanonicalSourceCoverageState; reason: string } | undefined,
+): PacketSectionAbsence {
+  if (trustStateClaimsSection(sectionId, signals)) {
+    return {
+      sectionId,
+      evidenceState: 'needs_review',
+      reason: withSourceNote(
+        `Nothing was found for ${sectionId}. The resolved trust state reports a ${sectionId} `
+        + 'result that did not enter this packet, so the two disagree — unresolved, not a clean check.',
+        coverage?.reason,
+      ),
+    };
+  }
+
+  if (coverage) {
+    const evidenceState = ABSENCE_STATE_BY_COVERAGE_STATE[coverage.state];
+    const lead = coverage.state === 'notFound'
+      ? `Nothing was found for ${sectionId}. The source was read and returned no record for this `
+        + 'clinician — a finding, not a pending check.'
+      : evidenceState === 'access_required'
+        ? `Nothing was found for ${sectionId}. The route to this evidence is gated behind access `
+          + 'the platform does not hold, so it was never read.'
+        : `Nothing was found for ${sectionId}. No usable record was obtained from its source.`;
+    return { sectionId, evidenceState, reason: withSourceNote(lead, coverage.reason) };
+  }
+
+  return {
+    sectionId,
+    evidenceState: 'unavailable',
+    // Says only what is unconditionally true. In particular it makes NO claim
+    // about which sources ran — an unmapped coverage entry may well exist.
+    reason: `Nothing was found for ${sectionId}. No evidence entered this packet for it; `
+      + 'this is not a check that came back clean.',
+  };
+}
+
+/**
+ * Build the explicit absence record for a disclosure.
+ *
+ * Called with the SAME selection and the SAME field list the packet seals, so
+ * the absences describe exactly the packet they are sealed into.
+ */
+export function buildSectionAbsencesFromTrustState(
+  trustState: AbsenceTrustSignals,
+  selection: DisclosureSelection | readonly string[],
+  fields: readonly PacketFieldEntry[],
+): PacketSectionAbsence[] {
+  const { sections } = normalizeDisclosureSelection(selection);
+  const sectionsWithFields = new Set(fields.map((field) => field.sectionId));
+
+  const coverageBySection = new Map<string, { state: CanonicalSourceCoverageState; reason: string }>();
+  for (const entry of trustState.sourceCoverage ?? []) {
+    const sectionId = SECTION_BY_COVERAGE_SOURCE[entry.sourceId];
+    if (sectionId && !coverageBySection.has(sectionId)) {
+      coverageBySection.set(sectionId, { state: entry.state, reason: entry.reason });
+    }
+  }
+
+  return sections
+    .filter((sectionId) => !sectionsWithFields.has(sectionId))
+    .map((sectionId) => absenceFor(sectionId, trustState, coverageBySection.get(sectionId)))
+    // Deterministic order — this is hashed.
+    .sort((left, right) => left.sectionId.localeCompare(right.sectionId));
 }

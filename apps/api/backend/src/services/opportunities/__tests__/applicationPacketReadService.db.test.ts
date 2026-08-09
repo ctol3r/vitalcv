@@ -16,6 +16,7 @@ import {
 } from '@prisma/client';
 
 import {
+  hashPacketContent,
   sealPacket,
   type ApplicationPacketContent,
 } from '../applicationPacketService';
@@ -70,6 +71,13 @@ function packetContent(input: {
       artifactId: null,
       receiptId: `receipt-${input.packetVersion}`,
     }],
+    // `exclusions` is selected and contributes no field. The packet must carry
+    // that as an explicit absence or it cannot seal at all.
+    sectionAbsences: [{
+      sectionId: 'exclusions',
+      evidenceState: 'unavailable',
+      reason: 'Nothing was found for exclusions. No usable record was obtained from its source.',
+    }],
     clinicianNote: 'Synthetic integration-test packet.',
     methodologyVersion: '243.3',
     consentAt: '2026-07-16T12:05:00.000Z',
@@ -96,6 +104,7 @@ async function persistPacket(input: {
       recipient: sealed.recipient,
       selectedSections: sealed.selectedSections,
       fields: sealed.fields as unknown as Prisma.InputJsonValue,
+      sectionAbsences: (sealed.sectionAbsences ?? []) as unknown as Prisma.InputJsonValue,
       clinicianNote: sealed.clinicianNote,
       methodologyVersion: sealed.methodologyVersion,
       consentAt: new Date(sealed.consentAt),
@@ -408,6 +417,72 @@ describe('application packet reader — real PostgreSQL authorization boundary',
         submittedPacket: null,
         legacyNotice: 'Legacy application — no immutable disclosure packet was captured at submission.',
       });
+  });
+
+  /**
+   * The employer-facing read is where the defect was visible: `selectedSections`
+   * listed "exclusions", no exclusions field was present, and the response said
+   * nothing else — so the only available reading was "checked, and clean".
+   */
+  it('shows the employer WHY a selected section is empty instead of leaving it silent', async () => {
+    const employer = await readApplicationPacket({ applicationId, clerkUserId: EMPLOYER });
+    const packet = employer.submittedPacket;
+
+    expect(packet?.selectedSections).toContain('exclusions');
+    expect(packet?.fields.some((field) => field.sectionId === 'exclusions')).toBe(false);
+
+    // Not silence: an explicit record, read straight out of the seal.
+    expect(packet?.sectionAbsences).toEqual([
+      expect.objectContaining({
+        sectionId: 'exclusions',
+        evidenceState: 'unavailable',
+        reason: expect.stringMatching(/nothing was found/i),
+      }),
+    ]);
+    // And nothing in the disclosed scope is left for the reader to guess at.
+    expect(packet?.unexplainedSectionIds).toEqual([]);
+
+    // The clinician sees exactly what the employer sees.
+    const clinician = await readApplicationPacket({ applicationId, clerkUserId: CLINICIAN });
+    expect(clinician.submittedPacket?.sectionAbsences).toEqual(packet?.sectionAbsences);
+  });
+
+  it('reports a pre-absence packet as HAVING NO RECORD, not as having nothing absent', async () => {
+    // A row written before absences existed: section_absences is NULL, and the
+    // hash covers content without the key. Sealed directly because sealPacket's
+    // invariant — correctly — refuses to produce such a packet today.
+    const legacyVersion = 4;
+    const content = packetContent({
+      applicationId,
+      opportunityId,
+      organizationId,
+      packetVersion: legacyVersion,
+      recipient: 'Packet Test Health',
+    });
+    const { sectionAbsences: _omitted, ...legacyContent } = content;
+    await prisma.applicationPacket.create({
+      data: {
+        id: randomUUID(),
+        ...legacyContent,
+        selectedSections: legacyContent.selectedSections,
+        fields: legacyContent.fields as unknown as Prisma.InputJsonValue,
+        consentAt: new Date(legacyContent.consentAt),
+        packetHash: hashPacketContent(legacyContent),
+        // sectionAbsences deliberately not written → NULL.
+      },
+    });
+
+    const legacy = await readApplicationPacket({
+      applicationId,
+      clerkUserId: EMPLOYER,
+      packetVersion: legacyVersion,
+    });
+
+    // NULL, not []. An empty list would assert "every section contributed" —
+    // a claim this packet never made.
+    expect(legacy.submittedPacket?.sectionAbsences).toBeNull();
+    // The silence is still named, so the reader is not left to infer a clean check.
+    expect(legacy.submittedPacket?.unexplainedSectionIds).toEqual(['exclusions']);
   });
 
   it('fails closed and records an integrity audit when persisted evidence is tampered', async () => {

@@ -150,6 +150,9 @@ async function readPacket(applicationId: string): Promise<SealedApplicationPacke
     recipient: row.recipient,
     selectedSections: row.selectedSections as string[],
     fields: row.fields as never,
+    // Same NULL→undefined rule as opportunityVersion below: a legacy row has no
+    // absence record and must replay with the key OMITTED.
+    sectionAbsences: (row.sectionAbsences ?? undefined) as never,
     clinicianNote: row.clinicianNote,
     methodologyVersion: row.methodologyVersion,
     consentAt: row.consentAt.toISOString(),
@@ -270,6 +273,62 @@ describe('applyToOpportunity — sealed submission (real DB)', () => {
 
     const row = await prisma.application.findUniqueOrThrow({ where: { id: first.id } });
     expect(row.sealedPacketVersion).toBe(2);
+  });
+
+  /**
+   * The gap this closes, observed empirically on a real sealed packet:
+   *
+   *   selectedSections:            ["enrollment","exclusions","identity","licensure"]
+   *   sectionIds present in fields: ["exclusions","identity"]
+   *
+   * An employer reading "licensure" in the selection with no licensure field
+   * present infers licensure was checked and came back clean. Nothing was found.
+   */
+  it('records an explicit absence for every selected section that produced nothing', async () => {
+    // Default disclosure = all four sections; the trust state carries identity
+    // and exclusion facts only.
+    const application = await applyToOpportunity({ opportunityId, clerkUserId: CLERK_USER });
+    const packet = await readPacket(application.id);
+
+    expect(packet.selectedSections).toEqual(['enrollment', 'exclusions', 'identity', 'licensure']);
+    expect([...new Set(packet.fields.map((field) => field.sectionId))].sort())
+      .toEqual(['exclusions', 'identity']);
+
+    // Every silent section is now named, with a non-affirmative state and a
+    // reason that cannot be read as a clean check.
+    const absences = packet.sectionAbsences ?? [];
+    expect(absences.map((absence) => absence.sectionId)).toEqual(['enrollment', 'licensure']);
+    for (const absence of absences) {
+      expect(['unavailable', 'access_required', 'needs_review']).toContain(absence.evidenceState);
+      expect(absence.reason).toMatch(/nothing was found/i);
+    }
+
+    // No section is left unaccounted for — the packet explains its whole scope.
+    const accounted = new Set([
+      ...packet.fields.map((field) => field.sectionId),
+      ...absences.map((absence) => absence.sectionId),
+    ]);
+    expect(packet.selectedSections.filter((section) => !accounted.has(section))).toEqual([]);
+
+    // Inside the seal: the packet verifies WITH the absences present, and the
+    // stored hash breaks if they are dropped or softened.
+    expect(verifySealedPacket(packet)).toBe(true);
+    const { sectionAbsences: _dropped, ...withoutAbsences } = packet;
+    expect(verifySealedPacket(withoutAbsences as typeof packet)).toBe(false);
+  });
+
+  it('records an EMPTY absence list when every selected section contributed', async () => {
+    const application = await applyToOpportunity({
+      opportunityId,
+      clerkUserId: CLERK_USER,
+      selectedSections: ['identity'],
+    });
+
+    const packet = await readPacket(application.id);
+    // `[]`, not undefined. "Every section contributed" is a positive claim the
+    // packet makes and the seal covers; omitting it would be the same silence.
+    expect(packet.sectionAbsences).toEqual([]);
+    expect(verifySealedPacket(packet)).toBe(true);
   });
 
   it('refuses to seal an empty disclosure rather than sealing a hollow packet', async () => {

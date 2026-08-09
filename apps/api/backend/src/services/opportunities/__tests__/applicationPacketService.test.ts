@@ -12,12 +12,14 @@
 
 import {
   buildFieldEntriesFromTrustState,
+  buildSectionAbsencesFromTrustState,
   canonicalize,
   hashPacketContent,
   sealPacket,
   verifySealedPacket,
   type ApplicationPacketContent,
   type PacketFieldEntry,
+  type PacketSectionAbsence,
 } from '../applicationPacketService';
 
 const FIELD: PacketFieldEntry = {
@@ -33,6 +35,17 @@ const FIELD: PacketFieldEntry = {
   receiptId: null,
 };
 
+/**
+ * `exclusions` is selected but contributes no field, so the packet must SAY so.
+ * Sealing it silently is what let an employer read the selection as a clean
+ * exclusions check.
+ */
+const EXCLUSIONS_ABSENCE: PacketSectionAbsence = {
+  sectionId: 'exclusions',
+  evidenceState: 'unavailable',
+  reason: 'Nothing was found for exclusions. No usable record was obtained from its source.',
+};
+
 const CONTENT: ApplicationPacketContent = {
   applicationId: '4b6f0000-0000-4000-8000-000000000001',
   packetVersion: 1,
@@ -44,6 +57,7 @@ const CONTENT: ApplicationPacketContent = {
   recipient: 'Example Health System',
   selectedSections: ['identity', 'exclusions'],
   fields: [FIELD],
+  sectionAbsences: [EXCLUSIONS_ABSENCE],
   clinicianNote: 'Available to start in August.',
   methodologyVersion: '243.3',
   consentAt: '2026-07-16T12:05:00.000Z',
@@ -205,3 +219,197 @@ describe('opportunityVersion in the sealed content (J5b)', () => {
     expect(verifySealedPacket(naiveNull)).toBe(false);
   });
 })
+
+describe('explicit section absences in the seal', () => {
+  /**
+   * The defect: `selectedSections` naming a section that produced no field, with
+   * nothing in the packet saying so. An employer reads the selection, sees no
+   * licensure row, and concludes licensure was checked and clean — when nothing
+   * was found at all.
+   */
+  it('OUTCOME: a selected section that produced nothing cannot be sealed silently', () => {
+    const silent = {
+      ...CONTENT,
+      selectedSections: ['identity', 'exclusions', 'licensure'],
+      // licensure contributes no field AND carries no absence.
+    };
+    expect(() => sealPacket(silent)).toThrow(/licensure/);
+
+    // Naming it explicitly is what makes the packet sealable.
+    const explained = {
+      ...silent,
+      sectionAbsences: [
+        EXCLUSIONS_ABSENCE,
+        {
+          sectionId: 'licensure',
+          evidenceState: 'access_required' as const,
+          reason: 'Nothing was found for licensure. The route is gated.',
+        },
+      ],
+    };
+    expect(() => sealPacket(explained)).not.toThrow();
+  });
+
+  it('rejects an absence that contradicts the packet it is sealed into', () => {
+    // identity HAS a field — claiming it is absent would be a lie inside the seal.
+    expect(() => sealPacket({
+      ...CONTENT,
+      sectionAbsences: [EXCLUSIONS_ABSENCE, {
+        sectionId: 'identity',
+        evidenceState: 'unavailable',
+        reason: 'Nothing was found for identity.',
+      }],
+    })).toThrow(/identity/);
+
+    // An absence for a section the clinician never selected would disclose the
+    // shape of evidence outside the consented scope.
+    expect(() => sealPacket({
+      ...CONTENT,
+      sectionAbsences: [EXCLUSIONS_ABSENCE, {
+        sectionId: 'enrollment',
+        evidenceState: 'unavailable',
+        reason: 'Nothing was found for enrollment.',
+      }],
+    })).toThrow(/enrollment/);
+  });
+
+  it('absences are INSIDE the seal — changing one breaks replay', () => {
+    const sealed = sealPacket(CONTENT);
+    expect(verifySealedPacket(JSON.parse(JSON.stringify(sealed)))).toBe(true);
+
+    // Softening the recorded reason after sealing must not verify. If absences
+    // were computed at read time this tamper would be undetectable.
+    const softened = {
+      ...sealed,
+      sectionAbsences: [{ ...EXCLUSIONS_ABSENCE, reason: 'Exclusions check completed.' }],
+    };
+    expect(verifySealedPacket(softened)).toBe(false);
+
+    // Dropping the absence entirely — the original defect, applied post-seal.
+    const { sectionAbsences: _dropped, ...withoutAbsences } = sealed;
+    expect(verifySealedPacket(withoutAbsences as typeof sealed)).toBe(false);
+  });
+
+  it('an EMPTY absence list is a claim, and hashes differently from an omitted one', () => {
+    // "Every selected section contributed evidence" and "absence was never
+    // computed" are different facts, so they must be different bytes.
+    const asserted = hashPacketContent({ ...CONTENT, selectedSections: ['identity'], sectionAbsences: [] });
+    const legacy = hashPacketContent({ ...CONTENT, selectedSections: ['identity'], sectionAbsences: undefined });
+    expect(asserted).not.toBe(legacy);
+  });
+
+  it('a legacy packet sealed before absences existed still replays', () => {
+    // Legacy rows were written by code that had no absence concept, so they are
+    // hashed directly here rather than through sealPacket's invariant.
+    const legacyContent = { ...CONTENT, sectionAbsences: undefined };
+    const legacySeal = { ...legacyContent, packetHash: hashPacketContent(legacyContent) };
+    // Read-service reconstruction of a NULL column: undefined → key omitted.
+    expect(verifySealedPacket({ ...legacySeal, sectionAbsences: undefined })).toBe(true);
+    // Passing the NULL through naively would add a key the legacy hash never covered.
+    expect(verifySealedPacket(
+      { ...legacySeal, sectionAbsences: null } as unknown as typeof legacySeal,
+    )).toBe(false);
+  });
+});
+
+describe('buildSectionAbsencesFromTrustState', () => {
+  const FIELDS = [FIELD];
+  const SELECTION = ['identity', 'exclusions', 'licensure', 'enrollment'];
+
+  it('names every selected section that produced no field, and no others', () => {
+    const absences = buildSectionAbsencesFromTrustState({}, SELECTION, FIELDS);
+    expect(absences.map((absence) => absence.sectionId)).toEqual([
+      'enrollment',
+      'exclusions',
+      'licensure',
+    ]);
+  });
+
+  it('never states, or implies, that an absent section came back clean', () => {
+    const absences = buildSectionAbsencesFromTrustState(
+      {
+        licensureStatus: 'unknown',
+        sourceCoverage: [
+          { sourceId: 'OIG_LEIE', state: 'notFound', reason: 'OIG LEIE returned no record' },
+          { sourceId: 'STATE_BOARD', state: 'gated', reason: 'State board requires credentialed access' },
+          { sourceId: 'PECOS_PUBLIC', state: 'unavailable', reason: 'PECOS quarterly file unavailable' },
+        ],
+      },
+      SELECTION,
+      FIELDS,
+    );
+
+    for (const absence of absences) {
+      // The vocabulary is shared with fields, minus every affirmative state.
+      expect(['unavailable', 'access_required', 'needs_review']).toContain(absence.evidenceState);
+      expect(absence.reason).toMatch(/nothing was found/i);
+      expect(absence.reason).not.toMatch(/\bclear\b|\bclean\b|verified|no issues/i);
+    }
+  });
+
+  it('distinguishes a gated route from a source that answered "no record"', () => {
+    const byId = new Map(
+      buildSectionAbsencesFromTrustState(
+        {
+          sourceCoverage: [
+            { sourceId: 'STATE_BOARD', state: 'accessRequired', reason: 'Board access not held' },
+            { sourceId: 'OIG_LEIE', state: 'notFound', reason: 'OIG LEIE returned no record' },
+            { sourceId: 'PECOS_PUBLIC', state: 'pending', reason: 'PECOS not yet read' },
+          ],
+        },
+        SELECTION,
+        FIELDS,
+      ).map((absence) => [absence.sectionId, absence]),
+    );
+
+    // Gated: we never read it.
+    expect(byId.get('licensure')?.evidenceState).toBe('access_required');
+    // Answered "no record" — a FINDING, so a human must see it, not a shrug.
+    expect(byId.get('exclusions')?.evidenceState).toBe('needs_review');
+    expect(byId.get('exclusions')?.reason).toMatch(/returned no record/i);
+    // Not read yet.
+    expect(byId.get('enrollment')?.evidenceState).toBe('unavailable');
+  });
+
+  it('flags the contradiction when trust state claims a section the packet lacks', () => {
+    // The trust state says licensure is verified, yet no licensure field exists.
+    // Silence here would be the worst case: an employer would infer a clean check
+    // that the packet cannot substantiate.
+    const [licensure] = buildSectionAbsencesFromTrustState(
+      { licensureStatus: 'verified' },
+      ['identity', 'licensure'],
+      FIELDS,
+    );
+    expect(licensure.sectionId).toBe('licensure');
+    expect(licensure.evidenceState).toBe('needs_review');
+    expect(licensure.reason).toMatch(/disagree|unresolved/i);
+  });
+
+  it('makes no claim about source coverage it could not attribute', () => {
+    // A dynamic licensure authority is not in the attribution table. The absence
+    // must fall back to the conservative default rather than borrow another
+    // section's words.
+    const [licensure] = buildSectionAbsencesFromTrustState(
+      { sourceCoverage: [{ sourceId: 'SOME_NEW_BOARD', state: 'gated', reason: 'Gated' }] },
+      ['identity', 'licensure'],
+      FIELDS,
+    );
+    expect(licensure.evidenceState).toBe('unavailable');
+    expect(licensure.reason).not.toMatch(/gated|source note/i);
+    expect(licensure.reason).toMatch(/nothing was found/i);
+  });
+
+  it('a section whose fields are all WITHHELD is not absent', () => {
+    // Withheld fields stay in the packet with a null value, so the section is
+    // represented. Calling it absent would erase the clinician's decision.
+    const withheld: PacketFieldEntry = {
+      ...FIELD,
+      sectionId: 'licensure',
+      fieldId: 'licensure.licensure.state_board',
+      value: null,
+      evidenceState: 'withheld',
+    };
+    const absences = buildSectionAbsencesFromTrustState({}, ['identity', 'licensure'], [FIELD, withheld]);
+    expect(absences).toEqual([]);
+  });
+});

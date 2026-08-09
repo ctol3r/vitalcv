@@ -248,6 +248,8 @@ describe('Apply Intent atomic handoff — real PostgreSQL', () => {
       recipient: packet.recipient,
       selectedSections: packet.selectedSections as string[],
       fields: packet.fields as never,
+      // NULL (legacy row) → undefined → key omitted, same rule as opportunityVersion.
+      sectionAbsences: (packet.sectionAbsences ?? undefined) as never,
       clinicianNote: packet.clinicianNote,
       methodologyVersion: packet.methodologyVersion,
       consentAt: packet.consentAt.toISOString(),

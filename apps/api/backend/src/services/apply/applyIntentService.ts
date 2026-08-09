@@ -15,8 +15,10 @@ import {
 } from '../handoffs/handoffReceiptService';
 import {
   buildFieldEntriesFromTrustState,
+  buildSectionAbsencesFromTrustState,
   sealPacket,
   type PacketFieldEntry,
+  type PacketSectionAbsence,
 } from '../opportunities/applicationPacketService';
 import {
   resolveDisclosureSections,
@@ -87,6 +89,13 @@ export interface ApplyIntentPreview extends ApplyIntentView {
     npi: string;
   };
   fields: PacketFieldEntry[];
+  /**
+   * Requested sections that would produce no field. The clinician sees the
+   * empty sections before consenting, in the same terms the employer will read
+   * them after — a preview that showed only populated sections would let the
+   * clinician consent to a disclosure they have not actually seen.
+   */
+  sectionAbsences: PacketSectionAbsence[];
   limitations: string[];
 }
 
@@ -459,6 +468,7 @@ export async function previewApplyIntent(
     ...toView(requestUri, row, payload),
     clinician: { npi },
     fields,
+    sectionAbsences: buildSectionAbsencesFromTrustState(trustState, payload.requestedSections, fields),
     limitations: limitationsForFields(payload.requestedSections, fields),
   };
 }
@@ -480,6 +490,7 @@ function packetPersistenceData(input: {
     recipient: sealed.recipient,
     selectedSections: asJson(sealed.selectedSections),
     fields: asJson(sealed.fields),
+    sectionAbsences: asJson(sealed.sectionAbsences ?? []),
     clinicianNote: sealed.clinicianNote,
     methodologyVersion: sealed.methodologyVersion,
     consentAt: new Date(sealed.consentAt),
@@ -610,6 +621,10 @@ export async function submitApplyIntent(
   if (fields.length === 0) {
     throw new HttpError(409, 'No evidence is available in the selected disclosure scope.');
   }
+  // Selected sections that produced nothing. `limitations` below says the same
+  // thing in prose, but it lives on the RESPONSE — outside the seal, gone the
+  // moment the response is discarded. This is the sealed record.
+  const sectionAbsences = buildSectionAbsencesFromTrustState(trustState, selectedSections, fields);
   const limitations = limitationsForFields(selectedSections, fields);
   const consentAt = new Date();
 
@@ -666,6 +681,8 @@ export async function submitApplyIntent(
       recipient: payload.organizationName,
       selectedSections: [...selectedSections].sort(),
       fields,
+      // Always set, including `[]` — see ApplicationPacketContent.sectionAbsences.
+      sectionAbsences,
       clinicianNote: input.coverNote?.trim() || null,
       methodologyVersion: trustState.methodology_version,
       consentAt: consentAt.toISOString(),

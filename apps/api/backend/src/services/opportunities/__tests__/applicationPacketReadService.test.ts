@@ -137,6 +137,13 @@ function storedPacket(
       artifactId: null,
       receiptId: 'receipt-1',
     }],
+    // `exclusions` is selected and produced no field, so the packet says so.
+    // Without this the seal itself would be refused — see sealPacket.
+    sectionAbsences: [{
+      sectionId: 'exclusions',
+      evidenceState: 'unavailable',
+      reason: 'Nothing was found for exclusions. No usable record was obtained from its source.',
+    }],
     clinicianNote: 'Available in August.',
     methodologyVersion: '243.3',
     consentAt: '2026-07-16T12:05:00.000Z',
