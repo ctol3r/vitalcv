@@ -92,7 +92,14 @@ describe('public surface truth guards — post-release drift prevention', () => 
    * guard pinned to a component nobody serves.
    */
   const candidatePublicSurfaces = Array.from(new Set([
-    'apps/web/components/layout/Navbar.tsx',
+    // `layout/Navbar.tsx` stood here until #1247 deleted the journey-rail-era
+    // chrome. The entry is REPLACED rather than dropped: its live successors —
+    // the public eyebrow bar, the nav label registry, and the UX-03 signed-in
+    // product chrome — are not swept by the copy manifest, so dropping the
+    // entry would shrink this scan by every piece of chrome wording at once.
+    'apps/web/components/layout/Eyebrow.tsx',
+    'apps/web/components/layout/navDestinations.ts',
+    'apps/web/components/navigation/ProductChrome.tsx',
     // `hero/ReadinessPreview.tsx` stood here until 2026-08-07, when it was
     // deleted as dead code — no route rendered it, so the scan was covering a
     // surface no visitor could see. The entry is DROPPED rather than replaced:
