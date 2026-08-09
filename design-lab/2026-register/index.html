@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex" />
+<title>D′-00 — 2026 register ruling board</title>
+<style>
+  /* ————————————————————————————————————————————————————————————
+     D′-00 ruling board. Static fixtures only — no motion, no app code.
+     Palette = the SHIPPED warm family from styles/easy-home.css.
+     The Sheet-D indigo is the repo's own editorial indigo family
+     (--vt-accent-editorial #4338CA), never the Dimension reference hex.
+     ———————————————————————————————————————————————————————————— */
+  :root {
+    --ground: #151412;
+    --panel: #1d1b19;
+    --panel2: #232120;
+    --line: #32302d;
+    --line2: #403d39;
+    --ink: #f2f1ed;
+    --ink2: #9c9d99;
+    --ink3: #7b7d79;
+    --evidence: #4ade97;
+    --hold: #e4b45c;
+    --paper: #f6f5f1;
+    --paper-line: #d9d6cd;
+    --paper-ink: #151412;
+    --paper-ink2: #5b5c57;
+    --indigo: #4338ca;
+    --indigo-soft: #a5b4fc;
+    --mono: ui-monospace, 'Geist Mono', 'SFMono-Regular', Menlo, monospace;
+    --sans: 'Geist', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  main { max-width: 1400px; margin: 0 auto; padding: 0 32px 96px; }
+  header.board {
+    border-bottom: 1px solid var(--line);
+    padding: 28px 0 20px;
+    margin-bottom: 12px;
+  }
+  header.board h1 { font-size: 22px; font-weight: 500; letter-spacing: -0.01em; }
+  header.board p { color: var(--ink2); max-width: 72ch; margin-top: 6px; font-size: 14px; }
+  .mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+  .k { font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink3); }
+
+  section.ruling { border-bottom: 1px solid var(--line); padding: 36px 0; }
+  section.ruling > h2 { font-size: 17px; font-weight: 500; margin-bottom: 2px; }
+  section.ruling > p.frame { color: var(--ink2); font-size: 14px; max-width: 78ch; margin-bottom: 22px; }
+  section.ruling > p.frame .ec { color: var(--ink); font-family: var(--mono); font-size: 12.5px; }
+
+  .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  @media (max-width: 760px) { .pair { grid-template-columns: 1fr; } }
+  .sheet {
+    border: 1px solid var(--line);
+    background: var(--panel);
+    padding: 22px;
+  }
+  .sheet > .k { display: block; margin-bottom: 16px; }
+  .sheet.l > .k::after { content: ' · current EC-20 lock'; color: var(--ink3); text-transform: none; letter-spacing: 0; }
+  .sheet.d > .k::after { content: ' · challenged value'; color: var(--hold); text-transform: none; letter-spacing: 0; }
+  .sheet.retired > .k::after { content: ' · superseded by ruling 1'; color: var(--ink3); text-transform: none; letter-spacing: 0; }
+
+  /* ————— fixture primitives (hand-built stand-ins, not app components) ————— */
+  .cta {
+    display: inline-flex; align-items: center; justify-content: center;
+    height: 48px; padding: 0 22px; border: 0;
+    background: var(--paper); color: var(--paper-ink);
+    font: 500 15px/1 var(--sans); cursor: default;
+  }
+  .cta.green { background: var(--evidence); color: #1c1914; }
+  .cta.r2 { border-radius: 2px; }
+  .cta.r10 { border-radius: 10px; }
+  .npi-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .npi-input {
+    height: 48px; width: min(280px, 100%); padding: 0 14px;
+    background: var(--panel2); border: 1px solid var(--line2);
+    color: var(--ink); font: 400 15px/1 var(--mono); letter-spacing: 0.04em;
+    display: flex; align-items: center;
+  }
+  .npi-input span { color: var(--ink3); }
+
+  .chips { display: flex; gap: 8px; flex-wrap: wrap; }
+  .chip {
+    display: inline-flex; align-items: center; height: 32px; padding: 0 12px;
+    border: 1px solid var(--line2); color: var(--ink2);
+    font: 400 13px/1 var(--sans); background: transparent;
+  }
+  .chip.on { border-color: var(--ink2); color: var(--ink); }
+  .chip.r2 { border-radius: 2px; }
+  .chip.pill { border-radius: 9999px; }
+
+  .cardstack { display: grid; gap: 12px; }
+  .card {
+    border: 1px solid var(--line2); background: var(--panel2); padding: 18px;
+  }
+  .card h4 { font-size: 14px; font-weight: 500; }
+  .card p { font-size: 13px; color: var(--ink2); margin-top: 4px; }
+  .card .st { display: inline-flex; align-items: center; gap: 6px; margin-top: 10px; font: 400 12px/1 var(--mono); }
+  .card .st .dot { width: 8px; height: 8px; border-radius: 1px; }
+  .card .st.done { color: var(--evidence); } .card .st.done .dot { background: var(--evidence); }
+  .card .st.hold { color: var(--hold); } .card .st.hold .dot { background: var(--hold); }
+  .card.r3 { border-radius: 3px; }
+  .card.r20 { border-radius: 20px; }
+
+  .sidecar {
+    border: 1px solid var(--line2); padding: 16px; max-width: 340px;
+  }
+  .sidecar.solid { background: var(--panel2); }
+  .sidecar.frost {
+    background: rgba(212, 210, 205, 0.08);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+  .sidecar .k { margin-bottom: 8px; display: block; }
+  .sidecar .note-line { height: 8px; background: var(--line2); margin: 8px 0; border-radius: 1px; }
+  .sidecar .note-line.short { width: 62%; }
+  .sidecar .priv { font: 400 11px/1.4 var(--mono); color: var(--hold); margin-top: 10px; }
+
+  .atmos-stage { position: relative; overflow: hidden; border: 1px solid var(--line2); padding: 28px; background: var(--ground); }
+  .atmos-stage .wash {
+    position: absolute; inset: 0; pointer-events: none;
+    background: radial-gradient(ellipse 60% 50% at 50% 42%, rgba(67, 56, 202, 0.28), transparent 70%);
+  }
+  .profile-object {
+    position: relative; width: 120px; margin: 0 auto;
+    border: 1px solid var(--line2); background: var(--panel);
+    border-radius: 2px; padding: 10px 10px 12px;
+  }
+  .profile-object .layer { height: 14px; border: 1px solid var(--line2); border-radius: 1px; margin-top: 6px; background: var(--panel2); }
+  .profile-object .layer.id { background: var(--paper); border-color: var(--paper-line); margin-top: 0; }
+  .profile-object .layer.src { border-color: var(--evidence); }
+  .profile-object .layer.open { border-style: dashed; background: transparent; }
+  .atmos-caption { text-align: center; margin-top: 14px; font: 400 12px/1.5 var(--mono); color: var(--ink2); position: relative; }
+
+  .before-strip {
+    margin-top: 22px; border: 1px dashed var(--line2); padding: 16px;
+    display: flex; gap: 18px; align-items: center; flex-wrap: wrap;
+  }
+  .before-strip .k { flex-basis: 100%; }
+  .grammar { display: grid; gap: 6px; margin-top: 16px; font: 400 13px/1.6 var(--sans); color: var(--ink2); }
+  .grammar b { color: var(--ink); font-weight: 500; }
+  .sw { display: inline-block; width: 10px; height: 10px; border-radius: 1px; vertical-align: baseline; margin-right: 6px; }
+</style>
+</head>
+<body>
+<main>
+  <header class="board">
+    <span class="k">design-lab / 2026-register · D′-00 ruling board · 2026-08-09</span>
+    <h1>Four rulings, rendered both ways</h1>
+    <p>
+      Static fixtures on the shipped warm-graphite family. Sheet&nbsp;L holds the current
+      EC-20 locks; Sheet&nbsp;D renders the value the 2026-08-09 brief challenges it with.
+      The CTA section is already ruled (paper-inverse adopted) and is shown for the record.
+      Nothing here is app code, a route, or a live result.
+    </p>
+  </header>
+
+  <!-- ——————————————— Ruling 1 (settled): the CTA ——————————————— -->
+  <section class="ruling" id="cta">
+    <h2>Ruled 2026-08-09 — primary action is paper-inverse; green means evidence</h2>
+    <p class="frame">Amends <span class="ec">EC-20 · Interaction/accent</span> ("work-green is the single work color and the primary action") via EC-22. Green keeps exactly one meaning: a named source returned a match, or work actually completed.</p>
+    <div class="pair">
+      <div class="sheet l"><span class="k">Adopted — both sheets</span>
+        <div class="npi-row">
+          <div class="npi-input mono"><span>NPI · 10 digits</span></div>
+          <button class="cta r2">Build my profile</button>
+        </div>
+        <div class="grammar">
+          <span><b>Paper acts.</b> The only filled paper element on the band is the one action.</span>
+          <span><span class="sw" style="background:var(--evidence)"></span><b>Green reports.</b> Source-confirmed and completed work only.</span>
+          <span><span class="sw" style="background:var(--hold)"></span><b>Amber waits on a person.</b> Unchanged.</span>
+        </div>
+      </div>
+      <div class="sheet retired"><span class="k">Retired — for the record</span>
+        <div class="before-strip" style="border:0;padding:0;margin:0">
+          <div class="npi-row">
+            <div class="npi-input mono"><span>NPI · 10 digits</span></div>
+            <button class="cta green r2">Build my profile</button>
+          </div>
+        </div>
+        <div class="grammar">
+          <span>The retired treatment: the CTA, the eyebrow action, and fourteen completed-state
+          marks shared <span class="mono">#4ade97</span>. Green did two jobs — a request to act
+          and a report of work done — and the truth grammar paid for it.</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ——————————————— R-a: chips/tags — near-sharp vs pill ——————————————— -->
+  <section class="ruling" id="r-a">
+    <h2>R-a — Filter and tag silhouette</h2>
+    <p class="frame">Challenges <span class="ec">EC-20 · Corner-radius/pill policy</span> ("pills retired, verdict-locked"). The brief proposes the full pill for filters and tags only — buttons and state markers stay square regardless.</p>
+    <div class="pair">
+      <div class="sheet l"><span class="k">Sheet L — 2px stamps</span>
+        <div class="chips">
+          <span class="chip r2 on">Emergency medicine</span>
+          <span class="chip r2">Within 50 mi</span>
+          <span class="chip r2">Nights OK</span>
+          <span class="chip r2">Locum</span>
+        </div>
+      </div>
+      <div class="sheet d"><span class="k">Sheet D — full pill</span>
+        <div class="chips">
+          <span class="chip pill on">Emergency medicine</span>
+          <span class="chip pill">Within 50 mi</span>
+          <span class="chip pill">Nights OK</span>
+          <span class="chip pill">Locum</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ——————————————— R-b: frost ——————————————— -->
+  <section class="ruling" id="r-b">
+    <h2>R-b — Chrome and Workbench sidecar material</h2>
+    <p class="frame">Challenges <span class="ec">EC-20 · Glass treatment</span> ("None. Solid surfaces everywhere; no blur halos"). The brief proposes frost on chrome and the private Workbench sidecar only — never on evidence surfaces, which stay solid under every ruling.</p>
+    <div class="pair">
+      <div class="sheet l"><span class="k">Sheet L — solid raised panel</span>
+        <div class="sidecar solid">
+          <span class="k">Workbench — private</span>
+          <div class="note-line"></div><div class="note-line"></div><div class="note-line short"></div>
+          <div class="priv">Visible only to you. Never shared, ranked, or matched.</div>
+        </div>
+      </div>
+      <div class="sheet d"><span class="k">Sheet D — frosted panel (blur 8px)</span>
+        <div class="atmos-stage" style="padding:22px">
+          <div class="wash" style="opacity:.5"></div>
+          <div class="sidecar frost">
+            <span class="k">Workbench — private</span>
+            <div class="note-line"></div><div class="note-line"></div><div class="note-line short"></div>
+            <div class="priv">Visible only to you. Never shared, ranked, or matched.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ——————————————— R-c: atmosphere ——————————————— -->
+  <section class="ruling" id="r-c">
+    <h2>R-c — One indigo atmosphere per viewport</h2>
+    <p class="frame">Challenges <span class="ec">EC-20 · Gradient treatment</span> ("None") and the no-glow clause. The brief proposes at most one quiet indigo wash behind a key visual moment — never on a button, text, status, or input. The indigo is the repo's own editorial family (<span class="mono">#4338CA</span>), not a borrowed accent.</p>
+    <div class="pair">
+      <div class="sheet l"><span class="k">Sheet L — no atmosphere</span>
+        <div class="atmos-stage">
+          <div class="profile-object" aria-label="Illustrative profile object">
+            <div class="layer id"></div><div class="layer src"></div><div class="layer"></div><div class="layer open"></div>
+          </div>
+          <div class="atmos-caption">Illustration — not a live result</div>
+        </div>
+      </div>
+      <div class="sheet d"><span class="k">Sheet D — one radial indigo wash</span>
+        <div class="atmos-stage">
+          <div class="wash"></div>
+          <div class="profile-object" aria-label="Illustrative profile object">
+            <div class="layer id"></div><div class="layer src"></div><div class="layer"></div><div class="layer open"></div>
+          </div>
+          <div class="atmos-caption">Illustration — not a live result</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ——————————————— R-d: radius scale ——————————————— -->
+  <section class="ruling" id="r-d">
+    <h2>R-d — Card and control radius scale</h2>
+    <p class="frame">Challenges <span class="ec">EC-20 · Corner-radius philosophy</span> ("near-sharp 0–3px on panels and instruments"). The brief proposes 8–10px controls and 20–24px marketing cards; operational tables and proof rows stay crisp under either ruling.</p>
+    <div class="pair">
+      <div class="sheet l"><span class="k">Sheet L — 2–3px</span>
+        <div class="cardstack">
+          <div class="card r3">
+            <h4>Licensure — Texas</h4>
+            <p>Read from the state board register.</p>
+            <span class="st done"><span class="dot"></span>SOURCE-CONFIRMED · read 2h ago</span>
+          </div>
+          <div class="card r3">
+            <h4>Preferred location</h4>
+            <p>One answer improves role relevance.</p>
+            <span class="st hold"><span class="dot"></span>NEEDS YOU</span>
+          </div>
+        </div>
+        <div style="margin-top:14px"><button class="cta r2">Continue</button></div>
+      </div>
+      <div class="sheet d"><span class="k">Sheet D — 10px controls · 20px cards</span>
+        <div class="cardstack">
+          <div class="card r20">
+            <h4>Licensure — Texas</h4>
+            <p>Read from the state board register.</p>
+            <span class="st done"><span class="dot"></span>SOURCE-CONFIRMED · read 2h ago</span>
+          </div>
+          <div class="card r20">
+            <h4>Preferred location</h4>
+            <p>One answer improves role relevance.</p>
+            <span class="st hold"><span class="dot"></span>NEEDS YOU</span>
+          </div>
+        </div>
+        <div style="margin-top:14px"><button class="cta r10">Continue</button></div>
+      </div>
+    </div>
+  </section>
+
+  <footer style="padding-top:28px">
+    <p class="k">Fixture content is fictional and labeled. No fake clinician, source result, match, count, or employer outcome appears (EC-25). RULING-MEMO.md carries the per-ruling recommendation and the EC-22 amendment drafts.</p>
+  </footer>
+</main>
+</body>
+</html>
