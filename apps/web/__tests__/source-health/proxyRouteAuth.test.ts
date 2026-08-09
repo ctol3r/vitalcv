@@ -64,6 +64,11 @@ describe('GET /api/internal/source-health', () => {
   });
 
   it('proxies the backend inventory for an authorized caller', async () => {
+    // The backend route is operator-gated, so the proxy must hold and forward
+    // MONITORING_SECRET. Without it this proxy sent no headers at all and the
+    // backend answered 401 — the machine auth above was protecting a call that
+    // never succeeded.
+    process.env.MONITORING_SECRET = 'test-monitoring-secret';
     const fetchMock = vi.fn().mockResolvedValue(new Response(
       JSON.stringify({ spineStatus: 'HEALTHY', sources: [] }),
       { status: 200, headers: { 'Content-Type': 'application/json' } },
@@ -75,7 +80,10 @@ describe('GET /api/internal/source-health', () => {
 
     expect(fetchMock).toHaveBeenCalledWith(
       'http://backend.test/api/mission-ops/sources',
-      expect.objectContaining({ cache: 'no-store' }),
+      expect.objectContaining({
+        cache: 'no-store',
+        headers: { 'x-monitoring-secret': 'test-monitoring-secret' },
+      }),
     );
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({ spineStatus: 'HEALTHY', sources: [] });

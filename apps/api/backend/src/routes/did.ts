@@ -18,12 +18,27 @@ import {
   type DIDStatus,
 } from '../services/identity/didRegistry';
 import { resolveDid } from '../services/identity/didResolver';
+import { requireInternalSecret } from '../middleware/internalSecret';
 import { log } from '../obs/logger';
 
+/**
+ * AUTHORIZATION (2026-08-08). Register and the two PATCH routes had NO
+ * authorization — reachable by any anonymous caller who set `x-org-id` to any
+ * value. `POST /api/did/register` accepts a caller-supplied `publicKey` and
+ * binds it to a new DID: unauthenticated identity injection. The PATCH routes
+ * rotate a DID's key and flip its status.
+ *
+ * Scope note, stated precisely: `didRegistry` stores documents in a
+ * process-local `Map`, so these writes do not survive a restart and are not
+ * shared across instances. That bounds the blast radius; it is not a control,
+ * and every other route that reads the registry trusts what was injected.
+ *
+ * Operator secret; no caller for these paths exists anywhere in the repo.
+ */
 export function registerDIDRoutes(app: Express): void {
 
   // ── POST /api/did/register ─────────────────────────────────────────
-  app.post('/api/did/register', (req: Request, res: Response) => {
+  app.post('/api/did/register', requireInternalSecret, (req: Request, res: Response) => {
     try {
       const { subjectType, identifier, publicKey, label, controller, serviceEndpoints, metadata } =
         req.body ?? {};
@@ -103,7 +118,7 @@ export function registerDIDRoutes(app: Express): void {
   });
 
   // ── PATCH /api/did/:method/:subtype/:id/status ─────────────────────
-  app.patch('/api/did/:method/:subtype/:id/status', (req: Request, res: Response) => {
+  app.patch('/api/did/:method/:subtype/:id/status', requireInternalSecret, (req: Request, res: Response) => {
     try {
       const { method, subtype, id } = req.params;
       const did = `did:${method}:${subtype}:${id}`;
@@ -130,7 +145,7 @@ export function registerDIDRoutes(app: Express): void {
   });
 
   // ── PATCH /api/did/:method/:subtype/:id/key ────────────────────────
-  app.patch('/api/did/:method/:subtype/:id/key', (req: Request, res: Response) => {
+  app.patch('/api/did/:method/:subtype/:id/key', requireInternalSecret, (req: Request, res: Response) => {
     try {
       const { method, subtype, id } = req.params;
       const did = `did:${method}:${subtype}:${id}`;

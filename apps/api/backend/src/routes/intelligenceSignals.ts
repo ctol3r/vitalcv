@@ -1,4 +1,5 @@
 import type { Express, Request, Response } from 'express';
+import { requireInternalSecret } from '../middleware/internalSecret';
 import { log } from '../obs/logger';
 import {
   buildIntelligenceFeed,
@@ -65,7 +66,18 @@ export function registerIntelligenceSignalRoutes(app: Express): void {
     }
   });
 
-  app.get('/api/influence/providers', async (req: Request, res: Response) => {
+  /**
+   * AUTHORIZATION (2026-08-08). Reachable by any anonymous caller who set
+   * `x-org-id` to any value — behind the global tenant guard, which accepted
+   * mere PRESENCE of a caller-supplied org id, and this route never reads it.
+   * Measured in production: 25 providers, 22 with check-digit-valid NPIs (real
+   * registrants), each with a display label, influence score, percentile, tier
+   * and rank. A public ranking of named clinicians that nobody consented to.
+   *
+   * No caller exists anywhere in the repo. Operator secret is the fail-closed
+   * holding position; a product surface would warrant a verified session.
+   */
+  app.get('/api/influence/providers', requireInternalSecret, async (req: Request, res: Response) => {
     try {
       const result = await listProviderInfluenceScores({
         sync: readBoolean(req.query.sync),

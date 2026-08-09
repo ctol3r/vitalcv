@@ -58,6 +58,11 @@ describe('/api/internal/mission-ops/sources proxy', () => {
   });
 
   it('forwards live source health responses without caching', async () => {
+    // The backend route is operator-gated, so the proxy must hold and forward
+    // MONITORING_SECRET. Without it this proxy sent no headers at all and the
+    // backend answered 401 — the machine auth was protecting a call that never
+    // succeeded.
+    process.env.MONITORING_SECRET = 'test-monitoring-secret';
     const fetchMock = vi.fn().mockResolvedValue(new Response(
       JSON.stringify({
         timestamp: '2026-03-23T12:00:00.000Z',
@@ -79,6 +84,7 @@ describe('/api/internal/mission-ops/sources proxy', () => {
       'http://backend.test/api/mission-ops/sources',
       expect.objectContaining({
         cache: 'no-store',
+        headers: { 'x-monitoring-secret': 'test-monitoring-secret' },
       }),
     );
     expect(response.status).toBe(200);
@@ -106,6 +112,11 @@ describe('/api/internal/mission-ops/sources proxy', () => {
   });
 
   it('returns a 502 when the backend cannot be reached', async () => {
+    // The backend route is operator-gated, so the proxy must hold and forward
+    // MONITORING_SECRET. Without it this proxy sent no headers at all and the
+    // backend answered 401 — the machine auth was protecting a call that never
+    // succeeded.
+    process.env.MONITORING_SECRET = 'test-monitoring-secret';
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('connection refused')));
 
     const { GET } = await loadRoute();

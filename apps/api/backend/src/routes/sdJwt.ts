@@ -14,6 +14,7 @@ import {
 } from '../services/trust-anchors/trustRegistryGovernance';
 import { validateSdJwt, validatePresentation } from '../services/verifier/verifierValidation';
 import { getSchema, listSchemas, validateAgainstSchema } from '../services/verifier/vc2SchemaRegistry';
+import { requireInternalSecret } from '../middleware/internalSecret';
 
 function sdJwtEnabled(): boolean {
   return parseBooleanEnv(process.env.FEATURE_SD_JWT_ISSUER, false);
@@ -34,7 +35,15 @@ export function registerSdJwtRoutes(app: Express): void {
   });
 
   // ── SD-JWT Issuance ─────────────────────────────────────────────────────────
-  app.post('/api/credentials/sd-jwt/issue', async (req: Request, res: Response) => {
+  //
+  // AUTHORIZATION (2026-08-08). Had no authorization: behind the global tenant
+  // guard only, which accepted the mere PRESENCE of a caller-supplied
+  // `x-org-id`. Anonymous credential ISSUANCE for a caller-supplied holderDid
+  // and claims. Currently reachable only when FEATURE_SD_JWT_ISSUER is on
+  // (`sdJwtEnabled()` 404s otherwise) — the same latent shape as
+  // /api/api-keys, so it is guarded now rather than when the flag flips.
+  // The only non-test reference is compliance/openid-self-cert/RUNBOOK.md.
+  app.post('/api/credentials/sd-jwt/issue', requireInternalSecret, async (req: Request, res: Response) => {
     if (!sdJwtEnabled()) { res.status(404).json({ error: 'Not found' }); return; }
     const { holderDid, claims, type, expiresInSeconds, issuerDid, kid } = req.body as {
       holderDid?: string;

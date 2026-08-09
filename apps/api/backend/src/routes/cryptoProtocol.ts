@@ -27,6 +27,7 @@ import {
   batchResignArtifacts,
   getNpiCryptoStatus,
 } from '../services/crypto/artifactCryptoService';
+import { requireInternalSecret } from '../middleware/internalSecret';
 import { log } from '../obs/logger';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -38,6 +39,23 @@ function parseSuite(raw: unknown, def: SuiteId = 'ml-dsa-65'): SuiteId {
   return VALID_SUITES.includes(raw as SuiteId) ? (raw as SuiteId) : def;
 }
 
+/**
+ * AUTHORIZATION (2026-08-08). The sign/resign routes below had NO
+ * authorization. They sit behind the global tenant guard, which accepted the
+ * mere PRESENCE of a caller-supplied `x-org-id`, and none of them reads the
+ * org — so one header reached all five. These are not reads that leak; they
+ * are PERSISTENT WRITES to trust-bearing data: `signArtifact` updates
+ * `VerificationArtifact.rawPayload` with a new crypto envelope and appends to
+ * `_cryptoHistory`.
+ *
+ * `batch-resign` is the worst of them. It takes an NPI — a public identifier —
+ * and re-signs up to 2000 of that clinician's artifacts in one call. An
+ * anonymous caller could rewrite the signature envelope on a named clinician's
+ * entire evidence set.
+ *
+ * Operator secret: signing is a system operation, and no caller for these paths
+ * exists anywhere in the repo.
+ */
 export function registerCryptoProtocolRoutes(app: Express): void {
 
   /**
@@ -76,7 +94,7 @@ export function registerCryptoProtocolRoutes(app: Express): void {
    * Sign a VerificationArtifact.
    * Body: { suite?: 'ed25519'|'ml-dsa-65'|'slh-dsa-128s' }
    */
-  app.post('/api/crypto/sign/artifact/:id', async (req: Request, res: Response) => {
+  app.post('/api/crypto/sign/artifact/:id', requireInternalSecret, async (req: Request, res: Response) => {
     const { id } = req.params;
     if (!UUID_RE.test(id)) { res.status(400).json({ error: 'Invalid artifact ID' }); return; }
 
@@ -101,7 +119,7 @@ export function registerCryptoProtocolRoutes(app: Express): void {
    * Sign a DecisionCapsule.
    * Body: { suite?: 'ed25519'|'ml-dsa-65'|'slh-dsa-128s' }
    */
-  app.post('/api/crypto/sign/capsule/:id', async (req: Request, res: Response) => {
+  app.post('/api/crypto/sign/capsule/:id', requireInternalSecret, async (req: Request, res: Response) => {
     const { id } = req.params;
     if (!UUID_RE.test(id)) { res.status(400).json({ error: 'Invalid capsule ID' }); return; }
 
@@ -178,7 +196,7 @@ export function registerCryptoProtocolRoutes(app: Express): void {
    * Preserves previous signature in _cryptoHistory[].
    * Body: { suite: 'ml-dsa-65'|'slh-dsa-128s'|'ed25519' }
    */
-  app.post('/api/crypto/resign/artifact/:id', async (req: Request, res: Response) => {
+  app.post('/api/crypto/resign/artifact/:id', requireInternalSecret, async (req: Request, res: Response) => {
     const { id } = req.params;
     if (!UUID_RE.test(id)) { res.status(400).json({ error: 'Invalid artifact ID' }); return; }
 
@@ -204,7 +222,7 @@ export function registerCryptoProtocolRoutes(app: Express): void {
    * Resign a DecisionCapsule.
    * Body: { suite }
    */
-  app.post('/api/crypto/resign/capsule/:id', async (req: Request, res: Response) => {
+  app.post('/api/crypto/resign/capsule/:id', requireInternalSecret, async (req: Request, res: Response) => {
     const { id } = req.params;
     if (!UUID_RE.test(id)) { res.status(400).json({ error: 'Invalid capsule ID' }); return; }
 
@@ -236,7 +254,7 @@ export function registerCryptoProtocolRoutes(app: Express): void {
    *   limit?:        number   max artifacts per call, default 500
    * }
    */
-  app.post('/api/crypto/batch-resign', async (req: Request, res: Response) => {
+  app.post('/api/crypto/batch-resign', requireInternalSecret, async (req: Request, res: Response) => {
     const body  = req.body as Record<string, unknown>;
     const npi   = typeof body.npi === 'string' ? body.npi.trim() : '';
     if (!NPI_RE.test(npi)) { res.status(400).json({ error: 'Valid 10-digit NPI required' }); return; }

@@ -1,6 +1,10 @@
 process.env.FEATURE_SD_JWT_ISSUER = 'true';
 process.env.ISSUER_KEY_ENCRYPTION_SECRET = 'wave199-test-secret';
 process.env.ISSUER_DID = 'did:web:vitalcv.com';
+// SD-JWT issuance is now operator-gated (it was anonymous credential issuance
+// behind nothing but the tenant guard). Set before importing app: app.ts reads
+// MONITORING_SECRET at module load.
+process.env.MONITORING_SECRET = 'wave199-monitoring-secret';
 
 import { createHash } from 'node:crypto';
 import request from 'supertest';
@@ -12,6 +16,7 @@ import { sha256ForPayload } from '../src/utils/deterministic';
 const runWave199Suite = process.env.DATABASE_URL ? describe : describe.skip;
 const TENANT_HEADERS = {
   'x-org-id': '00000000-0000-0000-0000-000000000199',
+  'x-monitoring-secret': 'wave199-monitoring-secret',
 };
 
 function sha256b64url(input: string): string {
@@ -34,6 +39,10 @@ runWave199Suite('Wave 199 SD-JWT issuer service', () => {
   afterAll(async () => {
     await clearWave199State();
     await prisma.$disconnect();
+    // jest runs maxWorkers:1, so process.env mutations persist across test
+    // FILES. Leaving MONITORING_SECRET set changes how later suites' copy of
+    // app.ts initialises.
+    delete process.env.MONITORING_SECRET;
   });
 
   it('issues SD-JWT credentials with persisted receipt, audit link, and hashed claim evidence', async () => {
