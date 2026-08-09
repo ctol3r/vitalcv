@@ -38,9 +38,19 @@
      styles/themes/index.css. The --eb-* names stay; the source is shared. */
   --eb-h: 64px;
   --eb-gutter: 30px;
-  --eb-ctl-top: 30px;
+  /* the wide rectangle: inset 10px, 70px tall, held 16px from the top, and
+     the instruments centred inside it (16 + 70/2 - 40/2 = 31) */
+  --eb-shape-inset: 10px;
+  --eb-shape-top: 16px;
+  --eb-shape-h: 70px;
+  --eb-ctl-top: 31px;
   /* the transparent ring that lifts a 40px painted box to a 44px target */
   --eb-pad: 2px;
+  /* A-1 permits frost on chrome. One neutral value serves both registers, as
+     the reference does: it lifts a dark ground and settles a light one, and
+     the blur does the rest. color-mix over a scene token degrades to a flat
+     translucent panel wherever backdrop-filter is unsupported. */
+  --eb-shape-bg: color-mix(in oklab, var(--vt-scene-text-secondary) 10%, transparent);
   --eb-bg: var(--vt-scene-canvas);
   --eb-text: var(--vt-scene-text);
   --eb-text2: var(--vt-scene-text-secondary);
@@ -107,14 +117,28 @@
   color: var(--eb-text);
 }
 
-/* The 30px top offset the reference puts on the mark, less the 12px the
-   wordmark link gains centring its 20px glyphs inside a 44px target — so the
-   painted mark still starts at y=30. */
+/* The wide rectangle: the chrome's one surface. Everything else floats over
+   it. Inert by construction — it spans the viewport and must not swallow a
+   click meant for the page. */
+.vcv-eb__shape {
+  position: absolute;
+  left: var(--eb-shape-inset);
+  right: var(--eb-shape-inset);
+  top: var(--eb-shape-top);
+  height: var(--eb-shape-h);
+  border-radius: var(--vt-shape-control);
+  background: var(--eb-shape-bg);
+  backdrop-filter: blur(10px);
+  pointer-events: none;
+}
+
+/* The mark centres on the rectangle (16 + 35 = 51), less the 22px half-height
+   the wordmark link gains from being padded out to the 44px target floor. */
 .vcv-eb__brand {
   position: absolute;
   left: var(--eb-gutter);
   top: 0;
-  padding: 18px 0 16px;
+  padding: 29px 0 16px;
   display: flex;
   align-items: center;
 }
@@ -427,9 +451,20 @@
     --eb-gutter: 20px;
   }
 
+  /* The rectangle goes full-bleed and square on mobile — the reference drops
+     both the inset and the radius, and shortens the band to 65px. */
+  .vcv-eb__shape {
+    left: 0;
+    right: 0;
+    top: 0;
+    height: 65px;
+    border-radius: 0;
+  }
+
   .vcv-eb__brand {
-    /* 20px reference offset, less the wordmark's 12px centring inset */
-    padding: 8px 0 16px;
+    /* the mark centres on the 65px band (32.5), less the wordmark's 22px
+       half-height from the 44px target floor */
+    padding: 10px 0 16px;
   }
 
   .vcv-eb__signin {

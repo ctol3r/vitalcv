@@ -4,6 +4,15 @@ Founder directive: *"since the beginning, I've been asking for the top eyebrow t
 palantir.com — can we make this a reality."* Constitution amendment **A-2** (EC-10 form + the
 EC-20 geometry row) records the ruling; this folder holds the measurements behind it.
 
+## Finding the rectangle
+
+The chrome's defining surface — the wide rounded rectangle the instruments sit inside — is a
+single `div` (`ptcom-design__headerBg__fz87o6`) with no text, no border, and a 10px radius. A DOM
+sweep for "large rounded containers near the top of the page" returns **nothing**: it is not a
+container, and 10px reads as noise next to card radii. It only surfaces when you sweep for what
+*paints* — elements whose `backdrop-filter` is not `none`. `palantir-shape-facts.json` is that
+sweep, across rest, scrolled, menu-open and mobile.
+
 ## How the reference was measured
 
 `palantir-reference.json` and `palantir-menu-reference.json` are computed styles and bounding
@@ -20,6 +29,8 @@ All VitalCV figures below are the **painted** boxes. Every interactive element i
 | Property | palantir.com | This branch |
 |---|---|---|
 | Chrome height | 0 (sticky group, instruments float) | 0 |
+| **The rectangle** | inset 10px L/R, 16px from top, 70px tall, radius 10, `rgba(171,171,171,0.1)` + `blur(10px)` | inset 10, top 16, 70 tall, radius 10 (`--vt-shape-control`), ~10% neutral scene mix + `blur(10px)` |
+| Rectangle on mobile | full-bleed, square, 65px tall | full-bleed, square, 65px tall |
 | Brand offset | x 30, glyphs centred on y 40 (logo 83×20) | x 30, glyphs centred on y 40 |
 | Control row offset | y 30, right gutter 30 | y 30, right edge 1410 at 1440 (= gutter 30) |
 | Primary action | 205 × 40, radius 0, 16px/400 | 205 × 40, radius 0, 16px/400 |
@@ -65,3 +76,8 @@ the top chrome only; whether the page action follows the chrome to square is a f
 Desktop: `desktop-hero.png` (dark register), `desktop-light-band.png` (inverted over the employer
 band), `desktop-hover.png`, `desktop-menu.png`, `desktop-pricing.png` (off-home).
 Mobile: `mobile-hero.png`, `mobile-menu.png`, `mobile-bottom-home.png`, `mobile-bottom-pricing.png`.
+Reference corners, for comparing the rectangle's inset and radius: `reference-shape-topleft.png`,
+`reference-shape-topright.png`.
+
+`verify-painted-geometry.mjs` re-measures the painted boxes and every hit area against a local
+dev server; `capture.mjs` takes the screenshots.

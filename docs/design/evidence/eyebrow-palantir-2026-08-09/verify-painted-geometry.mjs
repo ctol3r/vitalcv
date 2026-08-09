@@ -51,7 +51,10 @@ await page.keyboard.press('Escape');
 await page.goto(BASE + '/pricing', { waitUntil: 'load', timeout: 60000 });
 await page.waitForTimeout(2500);
 await page.evaluate(() => document.querySelector('nextjs-portal')?.remove());
+// Escape returned focus to the menu trigger; drop it so the capture shows rest state.
+await page.evaluate(() => (document.activeElement instanceof HTMLElement ? document.activeElement.blur() : null));
 await page.mouse.move(700, 700);
+await page.waitForTimeout(400);
 await page.screenshot({ path: `${OUT}/desktop-pricing.png`, clip: { x: 0, y: 0, width: 1440, height: 460 } });
 
 const mp = await browser.newPage({ viewport: { width: 390, height: 844 } });

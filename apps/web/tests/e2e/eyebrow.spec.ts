@@ -59,28 +59,62 @@ test.describe('eyebrow — desktop', () => {
     expect(Math.round(group!.height)).toBe(0);
     expect(Math.round(group!.y)).toBe(0);
 
-    // …while its instruments float at the reference offsets. The wordmark is
-    // measured by the centre of its 20px glyphs (y 30 → 40), because the link
-    // itself is padded out to the 44px target floor.
+    // …while the wide rectangle and its instruments float at the reference
+    // offsets. The wordmark is measured by the centre of its glyphs, because
+    // the link itself is padded out to the 44px target floor.
     const wordmark = await page.locator('.vcv-eb__wordmark').boundingBox();
     expect(Math.round(wordmark!.x)).toBe(30);
-    expect(Math.round(wordmark!.y + wordmark!.height / 2)).toBe(40);
+    expect(Math.round(wordmark!.y + wordmark!.height / 2)).toBe(51);
 
     // Measured on the PAINTED boxes, not the hit areas: instruments carry 2px
     // of transparent padding to clear EC-5's 44px floor while the visible
     // geometry stays on the reference numbers.
     const lastBox = await page.locator('.vcv-eb__instr').last().boundingBox();
-    expect(Math.round(lastBox!.y)).toBe(30);
+    expect(Math.round(lastBox!.y)).toBe(31);
     expect(Math.round(lastBox!.height)).toBe(40);
     expect(Math.round(lastBox!.x + lastBox!.width)).toBe(1440 - 30);
 
     await page.evaluate(() => window.scrollTo({ top: 900, behavior: 'instant' as ScrollBehavior }));
     const wordmarkAfter = await page.locator('.vcv-eb__wordmark').boundingBox();
     expect(Math.round(wordmarkAfter!.x)).toBe(30);
-    expect(Math.round(wordmarkAfter!.y + wordmarkAfter!.height / 2)).toBe(40);
+    expect(Math.round(wordmarkAfter!.y + wordmarkAfter!.height / 2)).toBe(51);
     const lastAfter = await page.locator('.vcv-eb__instr').last().boundingBox();
-    expect(Math.round(lastAfter!.y)).toBe(30);
+    expect(Math.round(lastAfter!.y)).toBe(31);
     expect(Math.round(lastAfter!.x + lastAfter!.width)).toBe(1440 - 30);
+  });
+
+  test('the chrome is a wide rounded rectangle, inset and frosted, and never eats a click', async ({ page }) => {
+    const shape = page.locator('.vcv-eb__shape');
+    const box = await shape.boundingBox();
+    expect(Math.round(box!.x)).toBe(10);
+    expect(Math.round(box!.width)).toBe(1440 - 20);
+    expect(Math.round(box!.y)).toBe(16);
+    expect(Math.round(box!.height)).toBe(70);
+
+    const style = await shape.evaluate((el) => {
+      const c = getComputedStyle(el);
+      return { radius: c.borderTopLeftRadius, backdrop: c.backdropFilter, pointer: c.pointerEvents };
+    });
+    expect(style.radius).toBe('10px');
+    expect(style.backdrop).toContain('blur');
+    // Decoration that spans the viewport must not intercept page clicks.
+    expect(style.pointer).toBe('none');
+
+    // Its geometry is as constant as the instruments': scroll changes colour,
+    // never position.
+    await page.evaluate(() => window.scrollTo({ top: 900, behavior: 'instant' as ScrollBehavior }));
+    const after = await shape.boundingBox();
+    expect(Math.round(after!.y)).toBe(16);
+    expect(Math.round(after!.height)).toBe(70);
+
+    // Every instrument sits inside it, not merely near it.
+    const shapeBox = after!;
+    for (const sel of ['.vcv-eb__wordmark', '.vcv-eb__cta-box', '.vcv-eb__instr']) {
+      const el = await page.locator(sel).first().boundingBox();
+      expect(el!.y).toBeGreaterThanOrEqual(shapeBox.y);
+      expect(el!.y + el!.height).toBeLessThanOrEqual(shapeBox.y + shapeBox.height);
+      expect(el!.x).toBeGreaterThanOrEqual(shapeBox.x);
+    }
   });
 
   test('the instruments are sharp-cornered and the action is the 40px rectangle', async ({ page }) => {
@@ -227,10 +261,22 @@ test.describe('eyebrow — mobile recomposition', () => {
     await expect(brand(page)).toBeVisible();
   });
 
+  test('the rectangle goes full-bleed and square', async ({ page }) => {
+    const box = await page.locator('.vcv-eb__shape').boundingBox();
+    expect(Math.round(box!.x)).toBe(0);
+    expect(Math.round(box!.width)).toBe(390);
+    expect(Math.round(box!.y)).toBe(0);
+    expect(Math.round(box!.height)).toBe(65);
+    const radius = await page
+      .locator('.vcv-eb__shape')
+      .evaluate((el) => getComputedStyle(el).borderTopLeftRadius);
+    expect(radius).toBe('0px');
+  });
+
   test('wordmark floats up top; the controls pin to the viewport bottom', async ({ page }) => {
     const wordmark = await page.locator('.vcv-eb__wordmark').boundingBox();
     expect(Math.round(wordmark!.x)).toBe(20);
-    expect(Math.round(wordmark!.y + wordmark!.height / 2)).toBe(30);
+    expect(Math.round(wordmark!.y + wordmark!.height / 2)).toBe(32);
 
     // Painted boxes: pinned 20px above the viewport bottom, 40px tall.
     const painted = await page.locator('.vcv-eb__instr').first().boundingBox();

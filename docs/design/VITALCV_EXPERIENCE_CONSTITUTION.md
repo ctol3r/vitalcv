@@ -103,14 +103,17 @@ The machine-checkable subset is planned as `scripts/copy-rules.json` (UX-16) —
 ### EC-10. The eyebrow — structural form is invariant
 
 **Amended 2026-08-09 (A-2), superseding the continuous-bar clause on the founder's direct
-directive ("exact to palantir.com").** The site chrome is a **floating instrument group**: a
-zero-height sticky layer with NO bar, no fill, and no bottom rule, whose instruments float over
-the page at the chrome gutter. LEFT: restrained identity (wordmark at the gutter). MIDDLE:
-nothing — the chrome carries no center content. RIGHT: quiet sign-in + at most one dominant
-rectangular action and a fused pair of square instruments (real lookup, menu). Instrument
-positions are architecturally stable on scroll (register/color may change, geometry never).
-Menu opens as a full-takeover canvas that paints BELOW the still-live chrome. Mobile recomposes
-deliberately: identity stays up top, the control cluster pins to the viewport bottom.
+directive ("exact to palantir.com", and "the top bar in a wide rectangle shape").** The site
+chrome is a **wide rounded rectangle floating over the page**: a zero-height sticky layer, no
+full-bleed bar and no bottom rule, carrying one inset rounded rectangle — the chrome's single
+surface — with the instruments floating inside it. LEFT: restrained identity (wordmark at the
+gutter). MIDDLE: nothing — the chrome carries no center content. RIGHT: quiet sign-in + at most
+one dominant rectangular action and a fused pair of square instruments (real lookup, menu). The
+rectangle is frosted, decorative, and inert: it never carries text, never intercepts a click, and
+its geometry is architecturally stable on scroll (register/colour may change, position never).
+Menu opens as a full-takeover canvas that paints BELOW the still-live chrome and over the
+rectangle. Mobile recomposes deliberately: the rectangle goes full-bleed and square, identity
+stays inside it up top, and the control cluster pins to the viewport bottom.
 
 **Banned forms (unchanged):** floating rounded container, SaaS pills, centered-link-row-as-main-event, backdrop-blur-navbar-with-thin-line, ordinary hamburger sheet.
 
@@ -186,7 +189,7 @@ The **structure** is locked now. The **values** are filled from the UX-01 verdic
 | Typography — display / body / mono faces | **Geist** (400/500/600) for display and body; **Geist Mono** (400/500) for machine facts and micro-labels | LOCKED |
 | Type scale | Anchors from the verdict reference: hero h1 44–52px desktop / 30–34px mobile; micro-labels 11px mono uppercase `+0.08em`. Full ramp finalized in UX-02 within these anchors | LOCKED ANCHORS · ramp in UX-02 |
 | Grid + page width | Full-width hairline-ruled band composition; content max ~1400px. Precise grid in UX-02 | LOCKED · grid in UX-02 |
-| Eyebrow exact geometry (within EC-10's form) | **Amended 2026-08-09 (A-2)**, superseding "64px desktop / 56px mobile, contextual product-state middle zone". Zero-height floating group; instruments at a 30px gutter (20px mobile), 30px from the top edge; dominant action 40px tall × 205px minimum, 16px/400 label; square instruments 40 × 40px with fused 1px borders; radius 0 on every chrome instrument; no fill, no bottom rule, no centre content. Mobile: identity at the 20px gutter, control cluster fixed 20px above the viewport bottom. **All dimensions here are the PAINTED box**; interactive elements carry a 2px transparent ring so the target measures 44px (EC-5) while the painted box measures the reference value | LOCKED (amended A-2) |
+| Eyebrow exact geometry (within EC-10's form) | **Amended 2026-08-09 (A-2)**, superseding "64px desktop / 56px mobile, contextual product-state middle zone". Zero-height floating group. **The rectangle:** inset 10px left and right, held 16px from the top, 70px tall, 10px radius (`--vt-shape-control`), frosted (`backdrop-filter: blur(10px)` over a ~10% neutral scene mix), `pointer-events: none`. **Inside it:** instruments centred (painted boxes at y 31), wordmark at a 30px gutter, dominant action 40px tall × 205px minimum with a 16px/400 label, square instruments 40 × 40px with fused 1px borders, 30px between the action and the cluster, cluster's right edge on the 30px gutter; radius 0 on every instrument; no bottom rule, no centre content. **Mobile:** rectangle full-bleed, square, 65px tall at the top; identity inside it at the 20px gutter; control cluster fixed 20px above the viewport bottom with the page reserving clearance. **All dimensions here are the PAINTED box**; interactive elements carry a 2px transparent ring so the target measures 44px (EC-5) while the painted box measures the reference value | LOCKED (amended A-2) |
 | Button grammar (primary/secondary/quiet/destructive; ≥44px targets locked via EC-5) | Primary = solid work-green square-cornered instrument with AA-corrected near-black ink (reference `#4ADE97`; solid `#2E9E6B` + off-white recorded as the alternative); secondary = hairline outline; quiet = text. Exact styles in UX-02 | LOCKED STRUCTURE · styles in UX-02 |
 | Rule/border treatment | 1px hairlines structure panels and bands (`#2E2F33` on the graphite register) | LOCKED |
 | Icon family | **Consolidate to one family in UX-02.** Two are installed today: `lucide-react` (imported by 330 `apps/web` files) and `@blueprintjs/icons`; 47 components also carry inline `<svg>`. Whichever wins must satisfy the locked grammar — 1px hairline weight, near-sharp 0–3px, no glass, no gradient, no glow — and the loser is removed, not left resident. Design review picks; this row records the constraint and the count | DEFERRED · UX-02 owns · constraint locked |
@@ -350,6 +353,15 @@ Subjective July-era taste is not encoded as CI law before the reset direction is
   the takeover paints beneath a chrome that stays live. VitalCV's implementation matches that
   geometry and maps the reference's search slot to the one real lookup it has (the public NPI
   check) rather than adding a decorative control.
+
+  **The rectangle was missed on the first pass and the founder had to ask twice** ("did I mention
+  I want the top bar to be in a wide rectangle shape — again just like palantir.com"). The reason
+  is worth recording: the reference's defining surface is a single `div` whose only distinguishing
+  property is `backdrop-filter`, it holds no text, and a DOM sweep for large rounded boxes near the
+  top of the page returns nothing — its radius is 10px and it was filtered out as noise. It was
+  visible in the very first screenshots as a soft rounded edge and was read as hero artwork. The
+  lesson generalises: **when copying a reference, sweep for what PAINTS (backdrop-filter, blend
+  modes, pseudo-elements), not only for what CONTAINS.** Measured values now in the EC-20 row.
 
   **What A-2 does not change.** The register mechanism is untouched: sections still declare
   `data-header-theme` and the chrome still inverts by declaration, never by pixel sampling or

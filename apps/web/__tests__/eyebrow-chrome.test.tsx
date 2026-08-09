@@ -88,6 +88,19 @@ describe('eyebrow gating and registers', () => {
     expect(header!.getAttribute('data-eb-theme')).toBe('light');
   });
 
+  it('renders the wide rectangle as inert decoration, on every public route', async () => {
+    for (const path of ['/', '/trust']) {
+      pathnameRef.current = path;
+      await mount(<Eyebrow />);
+      const shape = container.querySelector('.vcv-eb__shape');
+      expect(shape).not.toBeNull();
+      expect(shape!.getAttribute('aria-hidden')).toBe('true');
+      expect(shape!.textContent).toBe('');
+      expect(shape!.querySelector('a, button')).toBeNull();
+      await unmount();
+    }
+  });
+
   it('the homepage is full-bleed; every other public route gets the spacer', async () => {
     await mount(<Eyebrow />);
     expect(container.querySelector('.vcv-eb__space')).toBeNull();
@@ -205,14 +218,16 @@ describe('the full-takeover index menu', () => {
     expect(document.body.style.overflow).toBe('');
   });
 
-  it('the takeover paints before the instruments in DOM order — no z-index war', async () => {
+  it('paints shape → takeover → instruments in DOM order — no z-index war', async () => {
     await mount(<Eyebrow />);
     await click(trigger());
     const header = container.querySelector('header.vcv-eb')!;
     const children = Array.from(header.children).map((el) => el.className || el.id);
+    const shapeIndex = children.findIndex((c) => String(c).includes('vcv-eb__shape'));
     const menuIndex = children.findIndex((c) => String(c).includes('vcv-eb-menu'));
     const brandIndex = children.findIndex((c) => String(c).includes('vcv-eb__brand'));
-    expect(menuIndex).toBeGreaterThanOrEqual(0);
+    expect(shapeIndex).toBe(0);
+    expect(menuIndex).toBeGreaterThan(shapeIndex);
     expect(brandIndex).toBeGreaterThan(menuIndex);
   });
 });

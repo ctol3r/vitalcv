@@ -123,8 +123,14 @@ export default function Eyebrow() {
         data-eb-stage={scene.stage}
         data-menu-open={menuOpen ? 'true' : 'false'}
       >
-        {/* The takeover paints first so the chrome instruments that follow it
-            in DOM order sit above it — stacking is DOM order, no z-index. */}
+        {/* The wide frosted rectangle the instruments sit inside. First child,
+            so everything after it paints on top — stacking is DOM order.
+            Decorative and inert: it must never intercept a click aimed at the
+            page beneath it. */}
+        <div className="vcv-eb__shape" aria-hidden="true" />
+
+        {/* The takeover paints next so the chrome instruments that follow it
+            in DOM order sit above it — again, no z-index. */}
         {menuOpen ? (
           <div
             id="vcv-eb-menu"
