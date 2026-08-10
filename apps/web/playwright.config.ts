@@ -168,6 +168,14 @@ export default defineConfig({
       // RAILWAY_ENVIRONMENT/VERCEL_ENV first), so enabling it for the e2e
       // server cannot reach vitalcv.com.
       DESIGN_PREVIEW: '1',
+      // The `/dev/*` twin of DESIGN_PREVIEW. Under CI the webServer serves a
+      // PRODUCTION build (`preview:e2e`), which is exactly what the new
+      // app/dev/layout.tsx gate denies — so without this every `/dev/*`
+      // harness spec 404s. 34 of them did. This is the documented opt-in for
+      // a production-mode local build, not a loosening of the gate:
+      // canonical production never sets it, and that is what the gate exists
+      // to stop.
+      DEV_PREVIEW: '1',
       // UX-V1: `/` serves the Easy Button experience. A variant run flips the
       // whole server to the requested rollback so its preserved specs assert
       // the composition they were written for.
