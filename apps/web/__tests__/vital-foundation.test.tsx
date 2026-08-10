@@ -10,7 +10,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 
 import { checkNpi, isValidNpiChecksum, npiDigits } from '@/lib/vital/npi';
 import { EVIDENCE_STATE, evidenceStateMeta, type EvidenceState } from '@/lib/vital/evidenceState';
-import { StateChip } from '@/components/vital/StateChip';
+import { EvidenceProvenanceChip as StateChip } from '@/lib/vital/evidenceStateToProvenance';
 import { TrustGlyph } from '@/components/vital/TrustGlyph';
 import { NpiInput } from '@/components/vital/NpiInput';
 
@@ -54,18 +54,30 @@ describe('vital/evidenceState — vocabulary invariants', () => {
   });
 });
 
-describe('vital/StateChip + TrustGlyph — render', () => {
-  it('StateChip renders the label text (not color-only)', () => {
+describe('evidence chip + TrustGlyph — render', () => {
+  it('the chip renders the label text (not color-only)', () => {
     expect(renderToStaticMarkup(<StateChip state="source_backed" attribution={{ source: 'NPPES', asOf: 'Jul 15, 2026' }} />)).toContain('Source-backed');
     expect(renderToStaticMarkup(<StateChip state="access_required" attribution="declared" />)).toContain('Access required');
   });
 
-  it('affirmative StateChip uses a check glyph; gated does NOT', () => {
-    const backed = renderToStaticMarkup(<StateChip state="source_backed" attribution={{ source: 'NPPES', asOf: 'Jul 15, 2026' }} />);
-    const gated = renderToStaticMarkup(<StateChip state="access_required" attribution="declared" />);
-    expect(backed).toContain('lucide-circle-check');
-    expect(gated).not.toContain('lucide-circle-check');
-    expect(gated).toContain('lucide-lock');
+  it('no evidence state renders an affirmative check glyph (LINT-07, new register)', () => {
+    // UX-02 Step 4 deleted components/vital/StateChip; these surfaces now
+    // render ProvenanceChip, whose register is dot-based. The old assertions
+    // (`lucide-circle-check` on affirmative, `lucide-lock` on gated) described
+    // a mechanism that no longer exists. The RULE they protected is unchanged
+    // and is asserted here in the form the new register can carry.
+    // `design-lint-state-chip.test.tsx` holds the declaration half.
+    for (const s of ['source_backed', 'access_required', 'unavailable', 'needs_review'] as const) {
+      expect(renderToStaticMarkup(<StateChip state={s} attribution="legend" />)).not.toContain('lucide-circle-check');
+    }
+  });
+
+  it('separates affirmative from gated by WORD — what survives grayscale', () => {
+    const backed = renderToStaticMarkup(<StateChip state="source_backed" attribution="legend" />);
+    const gated = renderToStaticMarkup(<StateChip state="access_required" attribution="legend" />);
+    expect(backed).toContain('Source-backed');
+    expect(gated).toContain('Access required');
+    expect(backed).not.toContain('Access required');
   });
 
   it('TrustGlyph always carries its label (never icon-only)', () => {

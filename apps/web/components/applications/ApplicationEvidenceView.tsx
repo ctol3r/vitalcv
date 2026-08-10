@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { AlertTriangle, Fingerprint, ShieldCheck } from 'lucide-react';
-import { StateChip } from '@/components/vital/StateChip';
+import { EvidenceProvenanceChip as StateChip } from '@/lib/vital/evidenceStateToProvenance';
 import type {
   ApplicationEvidenceChangeKind,
   ApplicationEvidenceField,

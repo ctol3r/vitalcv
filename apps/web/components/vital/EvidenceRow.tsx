@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 
 import { type EvidenceState } from '@/lib/vital/evidenceState';
-import { StateChip } from './StateChip';
+import { EvidenceProvenanceChip as StateChip } from '@/lib/vital/evidenceStateToProvenance';
 
 /**
  * EvidenceRow — one claim rendered with its full honest context: the claim, the

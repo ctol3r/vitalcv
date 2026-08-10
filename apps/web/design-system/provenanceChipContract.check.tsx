@@ -20,8 +20,10 @@
  * ever stops requiring attribution — the exact regression W1082 exists to
  * prevent — the suppression becomes unused and the build fails.
  *
- * Sibling contract: lib/vital/stateChipContract.check.tsx (StateChip). When
- * StateChip is retired into this component, that file goes and this one stays.
+ * Sibling contract: there was one — lib/vital/stateChipContract.check.tsx, for
+ * the now-deleted StateChip. It was retired into this component in UX-02
+ * Step 4, so this file is the only compile-time attribution proof left. Do not
+ * delete it without replacing the guarantee.
  */
 import * as React from 'react';
 

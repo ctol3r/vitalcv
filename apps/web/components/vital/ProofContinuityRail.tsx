@@ -2,7 +2,7 @@ import * as React from 'react';
 import Link from 'next/link';
 
 import { type EvidenceState, evidenceStateMeta, TONE_COLOR } from '@/lib/vital/evidenceState';
-import { StateChip } from './StateChip';
+import { EvidenceProvenanceChip as StateChip } from '@/lib/vital/evidenceStateToProvenance';
 
 /**
  * ProofContinuityRail — the ONE shared continuity component the audit says the
