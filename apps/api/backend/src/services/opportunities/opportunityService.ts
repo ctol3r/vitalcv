@@ -219,6 +219,18 @@ export async function upsertOrgProfile(
         requirements: nextEnvelope as unknown as Prisma.InputJsonValue,
       },
     });
+    // Realign the tenancy binding with the membership that already governs
+    // this user. An employer whose organization predates the binding below
+    // holds a valid ADMIN membership and a null `User.organizationId`; without
+    // this, re-running setup would leave them just as unable to open their own
+    // applications as before. The target is read from their OWN active
+    // membership, so this can only ever bind a user to an organization they are
+    // already a member of — never move them into someone else's.
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { organizationId: membershipOrgProfile.organizationId },
+    });
+
     return { organizationId: membershipOrgProfile.organizationId };
   }
 
@@ -326,18 +338,36 @@ export async function upsertOrgProfile(
     throw new HttpError(500, 'Organization profile was not created.');
   }
 
-  await prisma.workspaceMembership.create({
-    data: {
-      // workspace_memberships.id has no DB default despite the schema's
-      // dbgenerated(gen_random_uuid()) (verified in prod 2026-07-05) —
-      // supply the id client-side or the insert throws P2011.
-      id: randomUUID(),
-      personProfileId: personProfile.id,
-      organizationProfileId: orgProfile.id,
-      role: 'ADMIN',
-      active: true,
-    },
-  });
+  // Membership and tenancy binding are ONE fact, so they commit together.
+  //
+  // `User.organizationId` is the membership store the employer decision path
+  // reads — `applicationService#getOrgForVerifier` and
+  // `middleware/organizationContext#resolveVerifiedOrganizationId` both resolve
+  // the caller's organization from this column and from nothing else. Creating
+  // the workspace membership without it left a self-serve employer resolving to
+  // no organization at all: `listAllOrgApplications` returned [], the
+  // application was absent from the workflow map, and the employer got a 404
+  // "Application not found." on their own application. Only
+  // `prisma/seed-demo-accounts.ts` had ever written the column, which is why
+  // seeded employers worked and every self-serve one was silently broken.
+  await prisma.$transaction([
+    prisma.workspaceMembership.create({
+      data: {
+        // workspace_memberships.id has no DB default despite the schema's
+        // dbgenerated(gen_random_uuid()) (verified in prod 2026-07-05) —
+        // supply the id client-side or the insert throws P2011.
+        id: randomUUID(),
+        personProfileId: personProfile.id,
+        organizationProfileId: orgProfile.id,
+        role: 'ADMIN',
+        active: true,
+      },
+    }),
+    prisma.user.update({
+      where: { id: user.id },
+      data: { organizationId: org.id },
+    }),
+  ]);
 
   // Close the loop: the access request now points at the organization it
   // produced, so the record is a usable history rather than a loose intent.
