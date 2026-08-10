@@ -55,7 +55,7 @@
     "apollo-server-express": "^3.12.2",
     "archiver": "^7.0.1",
     "cheerio": "^1.1.2",
-    "did-resolver": "^4.1.0",
+    "did-resolver": "^5.0.1",
     "dotenv": "^17.4.2",
     "ethers": "^6.15.0",
     "ethr-did-resolver": "^14.1.0",
