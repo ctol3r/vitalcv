@@ -164,3 +164,61 @@
     animation: none;
   }
 }
+
+/* ── RelationshipDrawer (G4) ──────────────────────────────────────────────── */
+
+.relDrawer {
+  margin: 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+}
+
+.relTabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.relTabs button {
+  padding: 4px 10px;
+  border-radius: 8px;
+  background: transparent;
+  border: 1px solid transparent;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.relTabActive {
+  font-weight: 600;
+  border-bottom: 2px solid var(--accent, currentColor) !important;
+}
+
+.relList {
+  display: grid;
+  gap: 6px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.relRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.relLabel {
+  opacity: 0.6;
+  flex: 0 0 auto;
+}
+
+.relNode {
+  font-weight: 500;
+}
+
+.relEmpty {
+  opacity: 0.6;
+  font-size: 13px;
+  padding: 6px 0;
+}

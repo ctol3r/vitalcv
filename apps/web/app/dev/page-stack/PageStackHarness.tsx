@@ -12,14 +12,47 @@
  * /holder; it is not seeded here because it needs the ClinicianMobile provider.
  */
 
+import { useEffect } from 'react';
+
 import { EntityLink } from '@/components/page-stack/EntityLink';
 import { PageStack } from '@/components/page-stack/PageStack';
+import { RelationshipDrawer } from '@/components/page-stack/RelationshipDrawer';
+import { useEntityRelationships } from '@/hooks/useEntityRelationships';
 import type { PaneKey } from '@/lib/page-stack/types';
 
 const SEED_LINKS: readonly { key: PaneKey; label: string; relationship: string }[] = [
   { key: { type: 'employer', id: 'org_demo' }, label: 'Open an employer', relationship: 'offered_by' },
   { key: { type: 'evidence_claim', id: 'claim_demo' }, label: 'Open an evidence claim', relationship: 'backed_by' },
 ];
+
+// A well-known demo NPI (public evidence via /verify/:npi). Its evidence graph's
+// real, typed relationships render in the drawer below; if it has none, the
+// drawer shows its honest empty state.
+const DEMO_NPI = '1003000126';
+
+function RelationshipsDemo() {
+  const { state, load } = useEntityRelationships('clinician', DEMO_NPI);
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  return (
+    <div style={{ marginTop: 24 }}>
+      <h2 className="mz-h3" style={{ marginBottom: 6 }}>
+        Relationships
+      </h2>
+      <p style={{ opacity: 0.7, fontSize: 13, marginBottom: 10 }}>
+        Bidirectional links from the clinician&apos;s real evidence graph — the same canonical edge,
+        phrased for each direction.
+      </p>
+      <RelationshipDrawer
+        outgoing={state.status === 'ready' ? state.data.outgoing : []}
+        backlinks={state.status === 'ready' ? state.data.backlinks : []}
+        loading={state.status === 'loading'}
+      />
+    </div>
+  );
+}
 
 function HarnessRoot() {
   return (
@@ -43,6 +76,7 @@ function HarnessRoot() {
           </EntityLink>
         ))}
       </nav>
+      <RelationshipsDemo />
     </div>
   );
 }
