@@ -279,7 +279,7 @@ beforeAll(async () => {
       data: {
         opportunityId: crossOpportunityId,
         clerkUserId: `cross-clinician-${suffix}`,
-        npi: '1558302471',
+        npi: '1558395511',
         sealedPacketVersion: 1,
       },
     }),

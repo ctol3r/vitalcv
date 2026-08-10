@@ -22,7 +22,7 @@ const FOREIGN_EMPLOYER = `intent-foreign-${suffix}`;
 const CLINICIAN = `intent-clinician-${suffix}`;
 const SECOND_CLINICIAN = `intent-second-clinician-${suffix}`;
 const NPI = '1558302470';
-const SECOND_NPI = '1558302471';
+const SECOND_NPI = '1558395511';
 
 let organizationId: string;
 let foreignOrganizationId: string;
