@@ -15,7 +15,8 @@
     "",
     "It EXTENDS apps/web/__tests__/customer-language-guard.test.ts (wave L1, `wallet`, per-file",
     "allowlist) to the whole surface area and to waves L2-L4. That test keeps the POSITIVE direction",
-    "— asserting truth qualifiers still exist. Do not delete it in favour of this."
+    "— asserting truth qualifiers still exist. Do not delete it in favour of this.",
+    "2026-08-10: wallet + passport moved tier 2 -> tier 1. The inventory classes both as Retire (dead concepts, everywhere in customer copy), unlike packet/receipt/recognition which are task-specific. Tier 2 placement was under-enforcing them."
   ],
   "protectedTruthQualifiers": {
     "description": [
@@ -59,16 +60,17 @@
       ]
     },
     "technicalRegister": {
-      "description": "Explaining the machine is the job of these pages — full internal vocabulary allowed. The inventory lists /trust/* explanatory pages as a legitimate home for 'evidence'.",
+      "description": "Explaining the machine is the job of these pages — full internal vocabulary allowed. The inventory lists /trust/* explanatory pages as a legitimate home for 'evidence'. Also covers components/developers/** — SDK documentation, where 'wallet' is the OID4VCI/OID4VP spec term and 'passport' names the actual /api/passport/[npi] path. Spec terms and API names are machine facts, not product vocabulary.",
       "globs": [
         "apps/web/app/trust/**",
         "apps/web/app/status/technical/**",
         "apps/web/app/verify/guide/**",
-        "apps/web/app/docs/**"
+        "apps/web/app/docs/**",
+        "apps/web/components/developers/**"
       ]
     },
     "internalOperator": {
-      "description": "Waived entirely — staffed by people who build and run VitalCV. NOT waived: /issuer/*, whose users are credentialing offices, i.e. customers. Also covers components/design-wave1505/** — a design-system reference tree mounted only at /design/wave1505 (layout-gated, 404 in production). Its 'matcha' occurrences name the BRAND COLOUR TOKEN (--matcha-900, 'Matcha is reserved for Recognition moments and primary-button hover'), not the product codename. Token naming is UX-02's contract, not EC-9's.",
+      "description": "Waived entirely — staffed by people who build and run VitalCV. NOT waived: /issuer/*, whose users are credentialing offices, i.e. customers. Also covers components/design-wave1505/** — a design-system reference tree mounted only at /design/wave1505 (layout-gated, 404 in production). Its 'matcha' occurrences name the BRAND COLOUR TOKEN (--matcha-900, 'Matcha is reserved for Recognition moments and primary-button hover'), not the product codename. Token naming is UX-02's contract, not EC-9's. Also covers components/home/w1501/** — the parked wave-1501 homepage era, mounted ONLY at /design/wave1501 (layout-gated, 404 in production). Parked eras are preserved as reference material (PARKED_VISUAL_ERAS.md); rewriting their copy to satisfy current vocabulary rules would falsify the record of what that era said.",
       "globs": [
         "apps/web/app/ops/**",
         "apps/web/app/admin/**",
@@ -77,7 +79,8 @@
         "apps/web/components/intelligence-ops/**",
         "apps/web/components/platform/**",
         "apps/web/components/matcha-deck/**",
-        "apps/web/components/design-wave1505/**"
+        "apps/web/components/design-wave1505/**",
+        "apps/web/components/home/w1501/**"
       ]
     },
     "legal": {
@@ -147,6 +150,14 @@
         {
           "term": "NPDB",
           "fix": "Not integrated. EC-3 bans the noun outright — remove, do not soften."
+        },
+        {
+          "term": "wallet",
+          "fix": "Retired concept (inventory Retire tier, wave L1). Say 'your VitalCV profile'."
+        },
+        {
+          "term": "passport",
+          "fix": "Retired concept (inventory Retire tier, wave L2; /passport route retired by #1096). Say 'your VitalCV profile'. app/manifest.ts is excluded — founder 08-07 decision 3."
         }
       ]
     },
@@ -160,14 +171,6 @@
       ],
       "description": "Inventory §'Retire' + §'Allowed when task-specific'. These name real things a customer may legitimately meet AT THE MOMENT THEY NEED THEM — but they must never lead. Banned on acquisition surfaces only. Waves L2-L4.",
       "terms": [
-        {
-          "term": "wallet",
-          "fix": "Wave L1, already swept. Canonical noun: 'your VitalCV profile'."
-        },
-        {
-          "term": "passport",
-          "fix": "Wave L2. Orphaned vocabulary for a dead concept (/passport retired by #1096). NOTE: app/manifest.ts is explicitly out of scope — founder 08-07 decision 3."
-        },
         {
           "term": "packet",
           "fix": "Wave L3. Allowed task-specific; retire from acquisition copy. Say 'what the employer receives'."

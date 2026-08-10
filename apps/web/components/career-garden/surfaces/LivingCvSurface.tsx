@@ -49,9 +49,9 @@ export function LivingCvSurface({
           <Link href="/clinician/profile" className="underline underline-offset-4">
             Profile
           </Link>{' '}
-          and your credential record in the{' '}
+          and your{' '}
           <Link href="/holder" className="underline underline-offset-4">
-            Wallet
+            credential record
           </Link>
           . This workspace view drafts lines alongside them — it never replaces them.
         </p>

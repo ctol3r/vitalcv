@@ -232,7 +232,7 @@ export function AcceptancePanel({ className = '', defaultPresentationId = '' }: 
                 </Button>
               </div>
               <p className="text-xs text-muted-foreground">
-                Clinicians generate presentations from their Holder Wallet. Or use the Request tab to generate an OID4VP request first.
+                Clinicians generate presentations from VitalCV. Or use the Request tab to generate an OID4VP request first.
               </p>
             </div>
 
