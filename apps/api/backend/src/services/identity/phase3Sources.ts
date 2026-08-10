@@ -25,6 +25,7 @@ import {
   type ClaimConfidence,
 } from './evidenceModel';
 import type { ClaimType } from './sourceCatalog';
+import { resolveLicenseStatus, unrecognizedStatusReason } from './licenseStatusVocabulary';
 import { log } from '../../obs/logger';
 
 // ── Shared utilities ──────────────────────────────────────────────────────────
@@ -225,8 +226,11 @@ export function parseNursysResult(
         _type: 'LICENSE', state, licenseNumber: licNum,
         issueDate: null,
         expiryDate: expiry ? String(expiry) : null,
+        // A discipline event is not a statement that the licence is active.
+        // Anything other than an explicit revocation or suspension leaves the
+        // status unresolved rather than defaulting to the affirmative.
         licenseStatus: eventType.toLowerCase().includes('revoke') ? 'REVOKED'
-          : eventType.toLowerCase().includes('suspend') ? 'SUSPENDED' : 'ACTIVE',
+          : eventType.toLowerCase().includes('suspend') ? 'SUSPENDED' : 'UNKNOWN',
         disciplinaryActions: [eventType],
         source: 'NURSYS',
       };
@@ -239,13 +243,18 @@ export function parseNursysResult(
       receipts.push(buildReceipt(dClaim, 'licenseStatus',
         `Nursys discipline event for NPI ${npi} in ${state}: ${eventType}. License ${licNum}.`));
     } else {
-      // License status claim
-      const statusStr = String(event.status ?? event.licenseStatus ?? 'ACTIVE').toUpperCase();
-      const licStatus: LicenseValue['licenseStatus'] =
-        statusStr.includes('ACTIVE') ? 'ACTIVE' :
-        statusStr.includes('EXPIRED') ? 'EXPIRED' :
-        statusStr.includes('REVOKED') ? 'REVOKED' :
-        statusStr.includes('SUSPENDED') ? 'SUSPENDED' : 'UNKNOWN';
+      // License status claim.
+      //
+      // Exact-key resolution, not substring matching: 'INACTIVE' contains
+      // 'ACTIVE', so the old ladder published every inactive nurse licence as
+      // active. An absent status is not defaulted either — the source saying
+      // nothing is not the source saying ACTIVE.
+      const resolution = resolveLicenseStatus(event.status ?? event.licenseStatus);
+      const licStatus: LicenseValue['licenseStatus'] = resolution.status;
+      const statusReviewReason = unrecognizedStatusReason(
+        `Nursys${state ? ` (${state})` : ''}`,
+        resolution,
+      );
 
       const value: LicenseValue = {
         _type: 'LICENSE', state, licenseNumber: licNum,
@@ -257,12 +266,16 @@ export function parseNursysResult(
       };
       const claim = makeClaim({
         ...base, claimType: 'NURSING_LICENSE', subjectNpi: npi, value,
-        confidence: 'HIGH', confidenceScore: 0.95,
+        confidence: statusReviewReason === null ? 'HIGH' : 'UNCERTAIN',
+        confidenceScore: statusReviewReason === null ? 0.95 : 0.2,
         expiresAt: expiry ? String(expiry) : null,
+        status: licStatus === 'UNKNOWN' ? 'UNVERIFIED' : 'ACTIVE',
+        reviewRequired: statusReviewReason !== null,
+        reviewReason: statusReviewReason,
       });
       claims.push(claim);
       receipts.push(buildReceipt(claim, 'licenseStatus',
-        `Nursys: ${state} nursing license ${licNum} — status ${licStatus}${expiry ? `, expires ${expiry}` : ''}.`));
+        `Nursys: ${state} nursing license ${licNum} — status ${licStatus}${expiry ? `, expires ${expiry}` : ''}.${statusReviewReason ? ` ${statusReviewReason}` : ''}`));
     }
   }
 
@@ -395,12 +408,12 @@ export function parseStateBoardResult(
 
     for (const lic of licenses) {
       const licState = String(lic.state ?? lic.jurisdiction ?? stateUpper).toUpperCase();
-      const statusStr = String(lic.status ?? lic.licenseStatus ?? '').toUpperCase();
-      const licStatus: LicenseValue['licenseStatus'] =
-        statusStr.includes('ACTIVE') ? 'ACTIVE' :
-        statusStr.includes('EXPIRED') ? 'EXPIRED' :
-        statusStr.includes('REVOKED') ? 'REVOKED' :
-        statusStr.includes('SUSPENDED') ? 'SUSPENDED' : 'UNKNOWN';
+      // Exact-key resolution, not substring matching. 'INACTIVE' contains
+      // 'ACTIVE', so the old ladder read an inactive physician licence as
+      // active and the INACTIVE case could never be reached.
+      const resolution = resolveLicenseStatus(lic.status ?? lic.licenseStatus);
+      const licStatus: LicenseValue['licenseStatus'] = resolution.status;
+      const statusReviewReason = unrecognizedStatusReason(`FSMB (${licState})`, resolution);
 
       const disciplinary = (lic.disciplinaryActions ?? lic.actions ?? []) as string[];
 
@@ -415,13 +428,17 @@ export function parseStateBoardResult(
       };
       const claim = makeClaim({
         ...base, claimType: 'LICENSE', subjectNpi: npi, value,
-        confidence: 'HIGH', confidenceScore: 0.95,
+        confidence: statusReviewReason === null ? 'HIGH' : 'UNCERTAIN',
+        confidenceScore: statusReviewReason === null ? 0.95 : 0.2,
         expiresAt: lic.expirationDate ? String(lic.expirationDate) : null,
-        status: licStatus === 'REVOKED' || licStatus === 'SUSPENDED' ? 'BLOCKED' : 'ACTIVE',
+        status: licStatus === 'REVOKED' || licStatus === 'SUSPENDED' ? 'BLOCKED'
+          : licStatus === 'UNKNOWN' ? 'UNVERIFIED' : 'ACTIVE',
+        reviewRequired: statusReviewReason !== null,
+        reviewReason: statusReviewReason,
       });
       claims.push(claim);
       receipts.push(buildReceipt(claim, 'licenseStatus',
-        `FSMB: ${licState} medical license ${lic.licenseNumber ?? 'N/A'} — ${licStatus}${lic.expirationDate ? `, expires ${lic.expirationDate}` : ''}.`));
+        `FSMB: ${licState} medical license ${lic.licenseNumber ?? 'N/A'} — ${licStatus}${lic.expirationDate ? `, expires ${lic.expirationDate}` : ''}.${statusReviewReason ? ` ${statusReviewReason}` : ''}`));
 
       // Discipline claims
       for (const action of disciplinary) {
@@ -429,7 +446,9 @@ export function parseStateBoardResult(
           _type: 'LICENSE', state: licState,
           licenseNumber: lic.licenseNumber ? String(lic.licenseNumber) : null,
           issueDate: null, expiryDate: null,
-          licenseStatus: 'ACTIVE',
+          // Carries the licence's resolved status. A disciplinary action is not
+          // evidence that the underlying licence is active.
+          licenseStatus: licStatus,
           disciplinaryActions: [action],
           source: 'FSMB',
         };
