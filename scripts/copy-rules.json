@@ -1,0 +1,163 @@
+{
+  "version": 2,
+  "authority": [
+    "docs/strategy/customer-language-inventory.md — THE canonical list (founder classification sign-off 2026-08-07)",
+    "docs/strategy/vitalcv-strategy-operating-brief.md — 'What customers should remember' / 'Remove from the main story'",
+    "docs/design/VITALCV_EXPERIENCE_CONSTITUTION.md — EC-9",
+    "docs/ops/founder-rulings-2026-08-09-open-items.md — D-I (amended: defers to the inventory), D-A (MATCHA)"
+  ],
+  "note": [
+    "This file is the MACHINE-READABLE ENCODING of customer-language-inventory.md. It is not an",
+    "independent list. If the two disagree, the inventory wins and this file is the bug.",
+    "",
+    "It is also NOT scripts/check-public-claims.ts, which guards the TRUTH CONTRACT (over-claims like",
+    "'HIPAA compliant'). This guards VOCABULARY. A phrase belongs in exactly one of them.",
+    "",
+    "It EXTENDS apps/web/__tests__/customer-language-guard.test.ts (wave L1, `wallet`, per-file",
+    "allowlist) to the whole surface area and to waves L2-L4. That test keeps the POSITIVE direction",
+    "— asserting truth qualifiers still exist. Do not delete it in favour of this."
+  ],
+
+  "protectedTruthQualifiers": {
+    "description": [
+      "THE MOST IMPORTANT RULE IN THIS FILE. ~45 occurrences of retire-tier words are not vocabulary",
+      "at all — they are freshness windows and limitation clauses. 'OIG/LEIE refresh on a monthly",
+      "snapshot'. 'Receipt recorded. Does not imply employer acceptance.' A find-and-replace that",
+      "strips them would pass a naive gate while deleting the honesty the product is built on.",
+      "",
+      "Where the vocabulary strategy and the truth contract disagree, THE TRUTH CONTRACT WINS.",
+      "A segment matching any pattern below is exempt from every vocabulary rule."
+    ],
+    "patterns": [
+      "does not (?:imply|establish|constitute|mean|confirm|guarantee|replace)",
+      "is not (?:a |an |primary source|verification|a guarantee|proof of)",
+      "must still (?:be )?(?:confirm|verif|review|check)",
+      "\\b(?:monthly|quarterly|daily|weekly|annual|per[- ]request|point[- ]in[- ]time)\\b",
+      "\\bread live\\b|\\brefresh(?:ed|es)? on\\b|\\bas of\\b|\\blast (?:read|checked)\\b",
+      "\\bnot (?:checked|verified|source[- ]backed|primary source verified)\\b",
+      "\\bonly\\b.{0,24}\\bsnapshot\\b|\\bsnapshot\\b.{0,24}\\bonly\\b"
+    ]
+  },
+
+  "surfaces": {
+    "acquisition": {
+      "description": "Where a stranger meets VitalCV — homepage, primary nav, onboarding headings, major CTAs, acquisition copy (operating brief). Retire-tier nouns are banned here; allowed deeper.",
+      "globs": [
+        "apps/web/app/page.tsx",
+        "apps/web/app/HomePageClient.tsx",
+        "apps/web/app/employers/**",
+        "apps/web/app/for/**",
+        "apps/web/app/pricing/**",
+        "apps/web/app/onboarding/**",
+        "apps/web/app/sign-in/**",
+        "apps/web/app/sign-up/**",
+        "apps/web/app/concierge/**",
+        "apps/web/app/pilot/**",
+        "apps/web/app/demo/**",
+        "apps/web/app/solutions/**",
+        "apps/web/components/home/**",
+        "apps/web/components/marketing/**",
+        "apps/web/components/layout/**"
+      ]
+    },
+    "technicalRegister": {
+      "description": "Explaining the machine is the job of these pages — full internal vocabulary allowed. The inventory lists /trust/* explanatory pages as a legitimate home for 'evidence'.",
+      "globs": [
+        "apps/web/app/trust/**",
+        "apps/web/app/status/technical/**",
+        "apps/web/app/verify/guide/**",
+        "apps/web/app/docs/**"
+      ]
+    },
+    "internalOperator": {
+      "description": "Waived entirely — staffed by people who build and run VitalCV. NOT waived: /issuer/*, whose users are credentialing offices, i.e. customers.",
+      "globs": [
+        "apps/web/app/ops/**",
+        "apps/web/app/admin/**",
+        "apps/web/components/ops/**",
+        "apps/web/components/ops-engine/**",
+        "apps/web/components/intelligence-ops/**",
+        "apps/web/components/platform/**",
+        "apps/web/components/matcha-deck/**"
+      ]
+    },
+    "legal": {
+      "description": "Plain words, not product vocabulary. Legal register may keep legal terms of art; it may not keep ours.",
+      "globs": [
+        "apps/web/app/privacy/**",
+        "apps/web/app/terms/**",
+        "apps/web/app/legal/**"
+      ]
+    }
+  },
+
+  "tiers": [
+    {
+      "id": 1,
+      "name": "internal-only",
+      "appliesTo": "all-customer-facing",
+      "waivedOn": ["technicalRegister", "internalOperator"],
+      "description": "Inventory §'Internal only — keep, do not market' + operating brief §'Remove from the main story'. Correct names for the machinery; never rendered to a customer. Backend classes, schemas, APIs and audit records keep these names — the strategy is explicit that they must NOT be mass-renamed, which is why apps/web/app/api/** is out of scope.",
+      "terms": [
+        { "term": "MATCHA", "fix": "Ruling D-A: internal codename. The canonical customer word for the marketplace is 'VitalCV Jobs' (inventory §two real gaps)." },
+        { "term": "PSV", "fix": "Internal. Say 'primary source verification' only where the limitation is being explained." },
+        { "term": "holder", "fix": "Say 'you' / 'the clinician'. Route prefix /holder/* stays — founder 08-07 decision 2: labels only, do not rename routes." },
+        { "term": "dossier", "fix": "Say 'your VitalCV profile'." },
+        { "term": "trust tier", "fix": "Name the state itself (source-backed / checked / self-attested)." },
+        { "term": "SD-JWT", "fix": "Crypto internal. Remove from customer copy." },
+        { "term": "knowledge graph", "fix": "Graph internal. Remove from customer copy." },
+        { "term": "trust graph", "fix": "The graph is not a shipped product surface." },
+        { "term": "blockchain", "fix": "Operating brief: remove blockchain language from the main story. Already absent repo-wide — keep it that way." },
+        { "term": "Trust Passport", "fix": "Retired concept. Say 'your VitalCV profile'." },
+        { "term": "Evidence OS", "fix": "Retired concept. Say 'VitalCV'." },
+        { "term": "NPDB", "fix": "Not integrated. EC-3 bans the noun outright — remove, do not soften." }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "retire-from-acquisition",
+      "appliesTo": "acquisition",
+      "waivedOn": ["technicalRegister", "internalOperator"],
+      "description": "Inventory §'Retire' + §'Allowed when task-specific'. These name real things a customer may legitimately meet AT THE MOMENT THEY NEED THEM — but they must never lead. Banned on acquisition surfaces only. Waves L2-L4.",
+      "terms": [
+        { "term": "wallet", "fix": "Wave L1, already swept. Canonical noun: 'your VitalCV profile'." },
+        { "term": "passport", "fix": "Wave L2. Orphaned vocabulary for a dead concept (/passport retired by #1096). NOTE: app/manifest.ts is explicitly out of scope — founder 08-07 decision 3." },
+        { "term": "packet", "fix": "Wave L3. Allowed task-specific; retire from acquisition copy. Say 'what the employer receives'." },
+        { "term": "receipt", "fix": "Wave L3. Limitation-clause usage is PROTECTED and exempt automatically; only the product-noun usage is banned here." },
+        { "term": "recognition", "fix": "Wave L3. Founder 08-07 decision 1: KEEP as a distinct in-app state — it names a real thing an employer did. Acquisition copy only." },
+        { "term": "snapshot", "fix": "Wave L4. Cadence usage ('monthly snapshot') is PROTECTED and exempt automatically; only the product-noun usage is banned here." }
+      ]
+    }
+  ],
+
+  "legalPlainLanguage": {
+    "appliesTo": "legal",
+    "description": "Product vocabulary must not leak into legal copy. In ADDITION to tier 1.",
+    "terms": [
+      { "term": "packet", "fix": "Say 'your credentialing information'." },
+      { "term": "passport", "fix": "Say 'your VitalCV profile'." },
+      { "term": "wallet", "fix": "Say 'your VitalCV profile'." }
+    ]
+  },
+
+  "scan": {
+    "roots": ["apps/web/app", "apps/web/components"],
+    "extensions": [".ts", ".tsx", ".js", ".jsx", ".mdx"],
+    "excludeDirs": [
+      "node_modules", ".next", ".turbo", "dist", "build", "coverage",
+      "__tests__", "_archive", "dev", "design"
+    ],
+    "excludeFilePatterns": ["\\.(test|spec|stories)\\.[cm]?[tj]sx?$", "\\.d\\.ts$"],
+    "excludePathPatterns": [
+      "^apps/web/app/api/",
+      "^apps/web/app/manifest\\.ts$"
+    ],
+    "note": [
+      "'dev' and 'design' are gated out of production (per-page notFound() / layout gate).",
+      "'app/api/**' holds log lines and error strings, not copy — and the strategy explicitly",
+      "forbids mass-renaming APIs to match marketing vocabulary.",
+      "'app/manifest.ts' is founder 08-07 decision 3: DO NOT TOUCH. It is an install-surface string",
+      "on every mobile home screen and is out of scope for every language wave."
+    ]
+  }
+}
