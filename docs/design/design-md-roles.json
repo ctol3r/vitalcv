@@ -8,5 +8,19 @@
   "--vt-badge-preview-text": "Ink for synthetic/preview payloads. Must never be mistaken for a real source confirmation.",
   "--vt-text-secondary": "Support copy. The darkest grey allowed for prose at AA on paper. Never body text on a dark ground without rechecking contrast.",
   "--vt-text-muted": "Captions and metadata, 12px and up. Never body text.",
-  "--vt-rule": "Hairline separators. Paper separates with rules, not shadows — there is no elevation system to reach for."
+  "--vt-rule": "Hairline separators. Paper separates with rules, not shadows — there is no elevation system to reach for.",
+  "_agent_guide": [
+    "**Read the authority, not this file, for brand decisions.** EC-20 in `docs/design/VITALCV_EXPERIENCE_CONSTITUTION.md` is rejection law. Where wave-1505's `DESIGN_SYSTEM.md` disagrees, EC-20 wins — 1505 is the architecture, its values are superseded.",
+    "**Never write a raw hex or px in a component.** Consume `--vt-*` semantic tokens. Raw values outside the token files are lint-illegal, and the token table below is the whole vocabulary.",
+    "**Check the cascade table before adding a token.** Six files declare `--vt-*` and later `@import`s win. Adding a value to the wrong file is silently overridden — 15 tokens are in that state right now.",
+    "**A state is never colour alone.** Every state renders glyph + word. Remove all colour and the screen must stay fully readable and fully honest (EC-4).",
+    "**Red is reserved.** `--vt-severity-critical` belongs to `revoked` — a withdrawal at the source — and nothing else. Absence (unavailable, no-active-record, not-decision-grade) is neutral: absence is not severity.",
+    "**A check glyph means a source backed the fact.** Never put one on a gated, review, unavailable, or self-attested state. This is the design system's cardinal sin (LINT-07).",
+    "**Every asserted state carries attribution.** Source and as-of, or an explicit statement that none was recorded. `ProvenanceChip` enforces this at the type level; do not route around it.",
+    "**Contrast floor is AA, measured against the painted result** — not against the class name, and not against a token you assumed. Check the pair you actually ship.",
+    "**Touch targets are 44px**, and that beats WCAG's 24px here — it is a founder ruling, not a default.",
+    "**Customer-facing copy has a banned list.** No bare \"Verified\" as a status; no \"automatically verified\", \"HIPAA compliant\", \"instant credentialing\". `CLAUDE.md` holds the full list and CI enforces it.",
+    "**Before creating a component, search for one that already exists.** This repo has three parallel `StateChip` implementations and five parallel evidence-row types. Duplicate design-system infrastructure is CI-blocking after UX-02.",
+    "**Public-facing visual work needs a founder decision.** Rendered before/after evidence at desktop and mobile, a review URL, and an explicit `FOUNDER VISUAL DECISION: GO`. Green CI is not visual approval."
+  ]
 }

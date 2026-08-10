@@ -91,7 +91,7 @@ function main(): void {
     byToken.get(d.token)!.push(d);
   }
 
-  const roles: Record<string, string> = existsSync(ROLES)
+  const roles: Record<string, string | string[]> = existsSync(ROLES)
     ? JSON.parse(readFileSync(ROLES, 'utf8'))
     : {};
 
@@ -125,7 +125,55 @@ function main(): void {
   ).length;
 
   const tokens = [...byToken.keys()].sort();
-  const documented = tokens.filter((t) => roles[t]).length;
+
+  /** Effective (cascade-winning) value for a token. */
+  const effective = (t: string) => byToken.get(t)![byToken.get(t)!.length - 1].value;
+  /** Tokens in a `--vt-<family>-…` family, sorted. */
+  const family = (f: string) => tokens.filter((t) => t.startsWith(`--vt-${f}-`));
+  /** px magnitude of a length value, for ordering ladders by size not alphabet. */
+  const px = (v: string): number => {
+    const n = parseFloat(v);
+    if (!Number.isFinite(n)) return Number.POSITIVE_INFINITY;
+    return v.trim().endsWith('rem') ? n * 16 : n;
+  };
+  /** A scale reads as a ladder, so order it by magnitude. */
+  const bySize = (list: string[]) =>
+    [...list].sort((a, b) => px(effective(a)) - px(effective(b)) || a.localeCompare(b));
+
+  /**
+   * EC-20 conflict candidates.
+   *
+   * Several EC-20 rows are LOCKED at "None" or at a narrow range, yet tokens
+   * implementing the forbidden treatment are declared. This section reports the
+   * pairing — locked rule beside the tokens that contradict it — and
+   * deliberately does NOT adjudicate.
+   *
+   * Why not adjudicate: some of these legitimately serve scoped islands (ops
+   * surfaces, `.mz`, the wave-1505 island) where the public-register rules do
+   * not apply. Declaring them defects would be overclaiming. Declaring them
+   * fine would be underclaiming. Measuring them is the honest option, and it is
+   * the one thing no human currently does by hand.
+   */
+  const CONFLICTS: Array<{ row: string; rule: string; fams: string[]; extra?: string[] }> = [
+    { row: 'Glass treatment', rule: '**None.** Solid surfaces everywhere; no blur halos', fams: ['glass'] },
+    { row: 'Card grammar', rule: 'Solid hairline-ruled panels, radius 0–3px, **no shadows**', fams: ['shadow'] },
+    {
+      row: 'Corner-radius philosophy + pill policy',
+      rule: 'Near-sharp **0–3px** on panels and instruments; **pills retired**',
+      fams: ['radius', 'shape'],
+    },
+    {
+      row: 'Typography — display / body / mono faces',
+      rule: '**Geist** for display and body; **Geist Mono** for machine facts',
+      fams: [],
+      extra: tokens.filter((t) => t.startsWith('--vt-font') && /fraunces|georgia|serif/i.test(effective(t))),
+    },
+  ];
+  const conflicts = CONFLICTS.map((c) => ({
+    ...c,
+    hits: [...c.fams.flatMap(family), ...(c.extra ?? [])],
+  })).filter((c) => c.hits.length > 0);
+  const documented = tokens.filter((t) => typeof roles[t] === 'string').length;
 
   const fileCounts = order
     .map((f) => ({ f, n: decls.filter((d) => d.file === f).length }))
@@ -188,6 +236,98 @@ function main(): void {
     }
   }
   L.push('');
+  // ── Refero-shaped sections ────────────────────────────────────────────────
+  // Document SHAPE adopted from the `styles.refero.design` corpus (see the
+  // 2026-08-09 addendum in docs/design/ui-ux-inspiration-repository). No
+  // catalogued brand's values are used — only the idea that an agent-facing
+  // design doc groups tokens by what they DO, states fallbacks explicitly,
+  // gives radius per element, and ends with a quick reference it can act on.
+
+  const fonts = tokens.filter((t) => t.startsWith('--vt-font'));
+  if (fonts.length) {
+    L.push('## Tokens — Typography');
+    L.push('');
+    L.push('Fallback chains are shown in full: the substitute is what a reader actually sees when');
+    L.push('the primary face has not loaded, so it is part of the design, not an implementation detail.');
+    L.push('');
+    L.push('| Token | Primary | Fallback chain |');
+    L.push('|---|---|---|');
+    for (const t of fonts) {
+      const v = effective(t);
+      const inner = v.match(/var\(\s*(--[a-z0-9-]+)\s*,\s*(.+)\)\s*$/i);
+      const primary = inner ? `\`${inner[1]}\`` : '—';
+      const chain = inner ? inner[2] : v;
+      L.push(`| \`${t}\` | ${primary} | \`${chain.trim()}\` |`);
+    }
+    L.push('');
+  }
+
+  const spacing = bySize(family('spacing'));
+  const radius = bySize([...family('radius'), ...family('shape')]);
+  if (spacing.length || radius.length) {
+    L.push('## Tokens — Spacing & Shapes');
+    L.push('');
+    if (spacing.length) {
+      const px = spacing
+        .map((t) => effective(t))
+        .map((v) => (v.endsWith('rem') ? parseFloat(v) * 16 : parseFloat(v)))
+        .filter((n) => Number.isFinite(n) && n > 0);
+      const gcd = (a: number, b: number): number => (b < 0.001 ? a : gcd(b, a % b));
+      const base = px.length ? Math.round(px.reduce((a, b) => gcd(a, b))) : 0;
+      if (base > 0) L.push(`**Base unit:** ${base}px (derived — the GCD of the declared ladder)`);
+      L.push('');
+      L.push('| Token | Value |');
+      L.push('|---|---|');
+      for (const t of spacing) L.push(`| \`${t}\` | \`${effective(t)}\` |`);
+      L.push('');
+    }
+    if (radius.length) {
+      L.push('### Radius, per element');
+      L.push('');
+      L.push('| Token | Value |');
+      L.push('|---|---|');
+      for (const t of radius) L.push(`| \`${t}\` | \`${effective(t)}\` |`);
+      L.push('');
+    }
+  }
+
+  L.push('## EC-20 conflict candidates');
+  L.push('');
+  if (conflicts.length === 0) {
+    L.push('None. No declared token contradicts a locked EC-20 row.');
+  } else {
+    L.push('Locked EC-20 rows, beside tokens that implement the treatment they forbid.');
+    L.push('');
+    L.push('**This section measures; it does not adjudicate.** Some of these legitimately serve');
+    L.push('scoped islands (ops surfaces, `.mz`, the wave-1505 island) where the public-register');
+    L.push('rules do not apply. Calling them defects would overclaim; calling them fine would');
+    L.push('underclaim. Resolving each is a design decision — this file only makes them visible.');
+    L.push('');
+    for (const c of conflicts) {
+      L.push(`### ${c.row}`);
+      L.push('');
+      L.push(`**EC-20 (LOCKED):** ${c.rule}`);
+      L.push('');
+      L.push('| Token | Effective value |');
+      L.push('|---|---|');
+      for (const t of c.hits) L.push(`| \`${t}\` | \`${effective(t)}\` |`);
+      L.push('');
+    }
+  }
+
+  L.push('## Agent Prompt Guide');
+  L.push('');
+  L.push('For an agent about to build or change a VitalCV surface. Read this before the token');
+  L.push('table — the table says what exists, this says what to do.');
+  L.push('');
+  const guide: string[] = Array.isArray(roles._agent_guide) ? roles._agent_guide : [];
+  if (guide.length === 0) {
+    L.push('— *(no guide entries yet; add `_agent_guide` to `docs/design/design-md-roles.json`)*');
+  } else {
+    for (const line of guide) L.push(`- ${line}`);
+  }
+  L.push('');
+
   L.push('## Tokens');
   L.push('');
   L.push(`Role sentences come from \`docs/design/design-md-roles.json\`. **${documented} of ${tokens.length}**`);
@@ -199,7 +339,7 @@ function main(): void {
     const list = byToken.get(token)!;
     const winner = list[list.length - 1];
     const where = [...new Set(list.map((d) => d.file))].join(', ');
-    const role = roles[token] ?? '— *(role not documented)*';
+    const role = typeof roles[token] === 'string' ? roles[token] : '— *(role not documented)*';
     L.push(`| \`${token}\` | \`${winner.value}\` | \`${where}\` | ${role} |`);
   }
   L.push('');

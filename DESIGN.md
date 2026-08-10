@@ -77,6 +77,120 @@ this file only measures.
 | `--vt-badge-warning-text` | `var(--vt-severity-medium)` | `styles/themes/index.css` | `:root` | no |
 | `--vt-badge-warning-text` | `var(--vt-badge-pending-text)` | `styles/tokens.css` | `:root` | **yes** |
 
+## Tokens — Typography
+
+Fallback chains are shown in full: the substitute is what a reader actually sees when
+the primary face has not loaded, so it is part of the design, not an implementation detail.
+
+| Token | Primary | Fallback chain |
+|---|---|---|
+| `--vt-font-body` | `--font-geist-loaded` | `ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif` |
+| `--vt-font-display` | `--font-fraunces-loaded` | `Georgia, 'Times New Roman', serif` |
+
+## Tokens — Spacing & Shapes
+
+**Base unit:** 4px (derived — the GCD of the declared ladder)
+
+| Token | Value |
+|---|---|
+| `--vt-spacing-xs` | `0.25rem` |
+| `--vt-spacing-sm` | `0.5rem` |
+| `--vt-spacing-md` | `1rem` |
+| `--vt-spacing-lg` | `1.5rem` |
+| `--vt-spacing-xl` | `2rem` |
+| `--vt-spacing-2xl` | `3rem` |
+
+### Radius, per element
+
+| Token | Value |
+|---|---|
+| `--vt-radius-sm` | `0.25rem` |
+| `--vt-radius-md` | `0.5rem` |
+| `--vt-shape-control` | `10px` |
+| `--vt-radius-lg` | `0.75rem` |
+| `--vt-shape-card` | `20px` |
+| `--vt-shape-panel` | `24px` |
+| `--vt-radius-full` | `9999px` |
+| `--vt-shape-pill` | `9999px` |
+
+## EC-20 conflict candidates
+
+Locked EC-20 rows, beside tokens that implement the treatment they forbid.
+
+**This section measures; it does not adjudicate.** Some of these legitimately serve
+scoped islands (ops surfaces, `.mz`, the wave-1505 island) where the public-register
+rules do not apply. Calling them defects would overclaim; calling them fine would
+underclaim. Resolving each is a design decision — this file only makes them visible.
+
+### Glass treatment
+
+**EC-20 (LOCKED):** **None.** Solid surfaces everywhere; no blur halos
+
+| Token | Effective value |
+|---|---|
+| `--vt-glass-bg` | `oklch(1 0 0 / 0.05)` |
+| `--vt-glass-divider` | `oklch(1 0 0 / 0.05)` |
+| `--vt-glass-ring` | `oklch(1 0 0 / 0.10)` |
+| `--vt-glass-ring-faint` | `oklch(1 0 0 / 0.06)` |
+| `--vt-glass-sheen` | `inset 0 1px 0 0 color-mix(in oklab, white 60%, transparent)` |
+| `--vt-glass-subtle-bg` | `oklch(1 0 0 / 0.03)` |
+
+### Card grammar
+
+**EC-20 (LOCKED):** Solid hairline-ruled panels, radius 0–3px, **no shadows**
+
+| Token | Effective value |
+|---|---|
+| `--vt-shadow-card` | `0 14px 32px rgb(26 34 40 / 0.05), 0 2px 10px rgb(26 34 40 / 0.03)` |
+| `--vt-shadow-glow` | `0 0 30px oklch(0.55 0.20 255 / 0.3)` |
+| `--vt-shadow-lg` | `0 16px 32px -8px oklch(0 0 0 / 0.06), 0 8px 16px -4px oklch(0 0 0 / 0.03)` |
+| `--vt-shadow-md` | `0 8px 16px -4px oklch(0 0 0 / 0.04), 0 4px 8px -2px oklch(0 0 0 / 0.02)` |
+| `--vt-shadow-pill` | `0 1px 2px rgb(26 34 40 / 0.04)` |
+| `--vt-shadow-sm` | `0 2px 8px -2px oklch(0 0 0 / 0.03), 0 1px 3px -1px oklch(0 0 0 / 0.02)` |
+| `--vt-shadow-soft` | `0 20px 48px rgb(26 34 40 / 0.06), 0 6px 18px rgb(26 34 40 / 0.04)` |
+
+### Corner-radius philosophy + pill policy
+
+**EC-20 (LOCKED):** Near-sharp **0–3px** on panels and instruments; **pills retired**
+
+| Token | Effective value |
+|---|---|
+| `--vt-radius-full` | `9999px` |
+| `--vt-radius-lg` | `0.75rem` |
+| `--vt-radius-md` | `0.5rem` |
+| `--vt-radius-sm` | `0.25rem` |
+| `--vt-shape-card` | `20px` |
+| `--vt-shape-control` | `10px` |
+| `--vt-shape-panel` | `24px` |
+| `--vt-shape-pill` | `9999px` |
+
+### Typography — display / body / mono faces
+
+**EC-20 (LOCKED):** **Geist** for display and body; **Geist Mono** for machine facts
+
+| Token | Effective value |
+|---|---|
+| `--vt-font-body` | `var(--font-geist-loaded, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif)` |
+| `--vt-font-display` | `var(--font-fraunces-loaded, Georgia, 'Times New Roman', serif)` |
+
+## Agent Prompt Guide
+
+For an agent about to build or change a VitalCV surface. Read this before the token
+table — the table says what exists, this says what to do.
+
+- **Read the authority, not this file, for brand decisions.** EC-20 in `docs/design/VITALCV_EXPERIENCE_CONSTITUTION.md` is rejection law. Where wave-1505's `DESIGN_SYSTEM.md` disagrees, EC-20 wins — 1505 is the architecture, its values are superseded.
+- **Never write a raw hex or px in a component.** Consume `--vt-*` semantic tokens. Raw values outside the token files are lint-illegal, and the token table below is the whole vocabulary.
+- **Check the cascade table before adding a token.** Six files declare `--vt-*` and later `@import`s win. Adding a value to the wrong file is silently overridden — 15 tokens are in that state right now.
+- **A state is never colour alone.** Every state renders glyph + word. Remove all colour and the screen must stay fully readable and fully honest (EC-4).
+- **Red is reserved.** `--vt-severity-critical` belongs to `revoked` — a withdrawal at the source — and nothing else. Absence (unavailable, no-active-record, not-decision-grade) is neutral: absence is not severity.
+- **A check glyph means a source backed the fact.** Never put one on a gated, review, unavailable, or self-attested state. This is the design system's cardinal sin (LINT-07).
+- **Every asserted state carries attribution.** Source and as-of, or an explicit statement that none was recorded. `ProvenanceChip` enforces this at the type level; do not route around it.
+- **Contrast floor is AA, measured against the painted result** — not against the class name, and not against a token you assumed. Check the pair you actually ship.
+- **Touch targets are 44px**, and that beats WCAG's 24px here — it is a founder ruling, not a default.
+- **Customer-facing copy has a banned list.** No bare "Verified" as a status; no "automatically verified", "HIPAA compliant", "instant credentialing". `CLAUDE.md` holds the full list and CI enforces it.
+- **Before creating a component, search for one that already exists.** This repo has three parallel `StateChip` implementations and five parallel evidence-row types. Duplicate design-system infrastructure is CI-blocking after UX-02.
+- **Public-facing visual work needs a founder decision.** Rendered before/after evidence at desktop and mobile, a review URL, and an explicit `FOUNDER VISUAL DECISION: GO`. Green CI is not visual approval.
+
 ## Tokens
 
 Role sentences come from `docs/design/design-md-roles.json`. **8 of 178**
