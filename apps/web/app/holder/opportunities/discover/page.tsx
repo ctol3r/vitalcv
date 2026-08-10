@@ -4,7 +4,7 @@ import { DiscoverSurface } from '@/components/matcha-deck/DiscoverSurface'
 import { loadHolderMatchaDeckPayload } from '@/lib/matcha-deck/serverSource'
 
 export const metadata: Metadata = {
-  title: 'Discover — MATCHA',
+  title: 'Discover — Matches',
   description:
     'Swipe through opportunities matched to your evidence and preferences. Save the ones worth a closer look — applying stays a separate, consented step.',
 }

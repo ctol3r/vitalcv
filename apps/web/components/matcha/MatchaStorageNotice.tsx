@@ -86,7 +86,7 @@ export function MatchaUnboundPreferencesPrompt({
     >
       <p style={{ margin: 0, fontSize: 13, lineHeight: 1.5, color: 'var(--vt-text-primary)' }}>
         This browser holds {answeredCount} saved {answeredCount === 1 ? 'answer' : 'answers'} from
-        before MATCHA kept preferences with your account. We cannot tell whose they are, so they
+        before preferences were kept with your account. We cannot tell whose they are, so they
         are not part of your account until you say they are yours.
       </p>
       <div style={{ marginTop: 12, display: 'flex', flexWrap: 'wrap', gap: 8 }}>

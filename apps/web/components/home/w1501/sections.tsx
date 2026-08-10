@@ -124,7 +124,7 @@ export const WhySection = () => (
   </section>
 );
 
-/* ---------- Try MATCHA (DG-7.7) ---------- */
+/* ---------- Try matching (DG-7.7) ---------- */
 
 type Qa = { id: string; q: string; a: string; chips: [CoverageState, string][] };
 
@@ -170,13 +170,13 @@ export const MatchaSection = () => {
   const [sel, setSel] = React.useState(MATCHA_QA[0].id);
   const cur = MATCHA_QA.find((x) => x.id === sel) ?? MATCHA_QA[0];
   return (
-    <section className="hp-section" id="matcha" data-screen-label="Try MATCHA">
+    <section className="hp-section" id="matcha" data-screen-label="Try matching">
       <div className="hp-container">
         <SecHead
           brand
-          eyebrow="MATCHA · Try it"
+          eyebrow="Matching · Try it"
           title="Ask the record a hard question."
-          lede="MATCHA answers from the snapshot’s honest states — the same chips you see everywhere on this page."
+          lede="Matching answers from the snapshot’s honest states — the same chips you see everywhere on this page."
         />
         <Reveal>
           <div className="mt-panel">
@@ -213,7 +213,7 @@ export const MatchaSection = () => {
                     color: 'var(--vt-brand)',
                   }}
                 >
-                  MATCHA
+                  Matching
                 </span>
               </div>
               <p>{cur.a}</p>

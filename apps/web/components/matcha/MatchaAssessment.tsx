@@ -49,7 +49,7 @@ export function MatchaAssessment() {
       <header>
         <h1 style={{ margin: 0, fontSize: 24, fontWeight: 600, color: 'var(--vt-text-primary)' }}>Match questions</h1>
         <p style={{ margin: '6px 0 0', fontSize: 14, color: 'var(--vt-text-secondary)', lineHeight: 1.55 }}>
-          Answer as many as you like across three areas. The more MATCHA knows, the sharper your
+          Answer as many as you like across three areas. The more we know, the sharper your
           matches — and everything you enter stays yours.
         </p>
         <div style={{ marginTop: 14, display: 'flex', alignItems: 'center', gap: 12 }}>

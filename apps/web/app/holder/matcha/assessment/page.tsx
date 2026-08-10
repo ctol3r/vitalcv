@@ -5,7 +5,7 @@ import { MatchaAssessment } from '@/components/matcha/MatchaAssessment';
 
 export const metadata: Metadata = {
   title: 'Match questions',
-  description: 'Answer Personal, Professional, and Place match questions to sharpen how MATCHA matches you.',
+  description: 'Answer Personal, Professional, and Place match questions to sharpen how we match you.',
 };
 
 export default function HolderMatchaAssessmentPage() {
