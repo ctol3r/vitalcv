@@ -528,3 +528,69 @@ the agents that build surfaces rather than sitting in a doc nobody opens:
 **Non-copy boundary (atlas §10) applies unchanged.** No Steep token, face, component spec, or copy
 is reproduced. The brand is named to attribute a *discipline*, and its rules are paraphrased into
 VitalCV's own terms.
+
+
+---
+
+## Addendum — Impilo style record, `refero /style/b44b0bb2` (2026-08-10)
+
+**Method:** full 21,850-char style document read in the browser pane. First **healthcare-domain**
+reference in this corpus.
+
+### Verdict: almost entirely rejectable visually — and worth reading anyway
+
+Its geometry and palette collide with locked EC-20 rows on nearly every axis: pill radius declared
+"non-negotiable"; an explicit floor of *"avoid sharp corners (0–4px); minimum 16px inputs, 24px
+cards"* — the precise inverse of EC-20's near-sharp **0–3px**; a violet/cyan/mint triad against
+work-green as the single work colour; ambient shadows against **no shadows**. Being in healthcare
+buys it nothing here.
+
+**What it has that the others do not is a rigorous account of colour *meaning*,** and that is worth
+more than its palette.
+
+### Adopt — semantic discipline, added to the `DESIGN.md` Agent Prompt Guide
+
+- **I1. A semantic colour's meaning is locked, and may not be borrowed for an adjacent state.**
+  Impilo locks mint to positive health signals and forbids it for errors or warnings. VitalCV
+  arrived at the same rule from the other direction in #1312 — red is locked to `revoked`, so
+  absence must be neutral. Stating it as a general principle is the contribution: borrowing a state
+  hue for a neighbouring state is how a palette starts lying, and it is the same class of defect as
+  a check glyph on a gated source.
+- **I2. Ink colours and surface colours are separate roles, per token.** A hue licensed for data,
+  links, and strokes is not licensed as a large fill. VitalCV's token table has no such distinction
+  today, and a token that quietly crosses over changes how much weight a colour carries on a page.
+- **I3. Dark and light meet at a hard cut, never a blend.** This answers a question VitalCV
+  genuinely has and has not written down: EC-20 permits a dark **public register** and *requires*
+  light for evidence artifacts, so the two registers will sit adjacent on real pages. Because
+  EC-20 also locks gradient treatment to **None**, the transition is a hard edge *by construction* —
+  Impilo's contribution is the confirmation that the resulting seam reads as a deliberate signature
+  rather than an unfinished join.
+
+### Reject
+
+Every value. Violet canvas, cyan and mint accents, Gilroy at 500/600, pill-everything, the 16/24px
+radius floor, ambient violet shadows. Its "never sharp corners" rule and EC-20's "near-sharp" lock
+are direct opposites — the second such collision in this corpus (Steep was the first), which is the
+clearest possible argument for harvesting posture and never numbers.
+
+**Non-copy boundary (atlas §10) applies unchanged.** No Impilo token, face, component spec, or copy
+is reproduced. The brand is named to attribute a *principle*, paraphrased into VitalCV's terms.
+
+---
+
+## Corpus close-out — what four refero records were actually worth (2026-08-10)
+
+| Record | Visual yield | What survived |
+|---|---|---|
+| Wispr Flow | none | the **document shape** — R1–R5, now implemented in `DESIGN.md` |
+| Obsidian | none | density/spacing as named facts (O1–O2); a warning that its power-tool posture pulls against EC-1 |
+| Steep | none | editorial restraint — accent budget, earned elevation, tracking ramp, half-step weights (S1–S5) |
+| Impilo | none | locked colour meaning, ink-vs-surface roles, the dark/light hard cut (I1–I3) |
+
+**Zero values adopted across four records; thirteen principles adopted.** That ratio is the finding.
+This corpus is a source of *design discipline*, and every time it offers a number that number
+collides with a locked EC-20 row — twice in exact opposition. Future harvests should read the
+Do/Don't and Agent-Guide sections and skip the token tables entirely.
+
+All thirteen live in `docs/design/design-md-roles.json` under `_agent_guide`, so they reach the
+agents that build surfaces rather than sitting in a document nobody opens.

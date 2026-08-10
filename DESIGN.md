@@ -195,6 +195,9 @@ table — the table says what exists, this says what to do.
 - **Tighten tracking as size grows.** Negative letter-spacing that scales with type size is what stops large display text reading as loose. EC-20 fixes the anchors and leaves the ramp to UX-02; this is the method that ramp should use.
 - **Reach for half-step weights before jumping.** A variable face gives 430/450/480 as real hierarchy steps. Use them before going to 500 — the coarse 400/500/700 ladder is a static-font habit.
 - **A link affordance must survive colour removal.** An arrow suffix or an underline carries it; colour alone does not (EC-4). Underline-on-hover-only is acceptable *only* when a non-colour glyph carries the affordance at rest.
+- **A semantic colour's meaning is locked, and may not be borrowed for an adjacent state.** If a hue means *source-backed*, it may not also mean *nearly there*; if red means *revoked*, absence stays neutral. Borrowing a state hue for a neighbouring state is how a palette starts lying — it is the same defect as putting a check on a gated source.
+- **Distinguish ink colours from surface colours, per token.** A hue licensed for data, links, and strokes is not licensed as a large fill. Ink and surface are separate roles; a token that crosses over silently changes how much weight a colour carries on the page.
+- **Dark and light meet at a hard cut, never a blend.** EC-20 permits a dark public register and *requires* light for evidence artifacts, so the two registers will sit adjacent. Gradients are locked to None, so the transition is a hard edge by construction — treat it as a deliberate seam, not something to soften.
 
 ## Tokens
 
