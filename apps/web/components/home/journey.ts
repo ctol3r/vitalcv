@@ -57,9 +57,9 @@ export const JOURNEY_CHAPTERS: readonly JourneyChapter[] = [
   {
     id: 'matcha',
     label: 'Find roles that fit',
-    eyebrow: '02 · MATCHA',
+    eyebrow: '02 · Matching',
     title: 'Match evidence to the right opportunity.',
-    body: 'MATCHA matches evidence to role requirements — reasoning visible, gaps named.',
+    body: 'Matching connects evidence to role requirements — reasoning visible, gaps named.',
     action: 'See why it matched',
     href: '/onboarding',
     icon: 'match',

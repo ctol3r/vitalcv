@@ -86,7 +86,7 @@ function groundedAnswer(query: string, data: GardenData): string | null {
     return 'Two publication candidates from your saved Scholar link are waiting for your review. A name match never becomes authorship until you confirm it.';
   }
   if (/opportunit|role|job|posting|nocturnist/.test(q)) {
-    return 'Two sample postings sit in your preparation studio. Real roles live in MATCHA under Roles.';
+    return 'Two sample postings sit in your preparation studio. Real roles live under Roles.';
   }
   if (/\bcv\b|living|bloom/.test(q)) {
     if (data.cvEntries.length === 0) {
@@ -655,14 +655,14 @@ function PreparePane({
   return (
     <div className="mz-inset p-3">
       <p className="mz-body">
-        Open a sample posting to see fit, gaps, and the cover-letter drafter — or browse real roles in MATCHA.
+        Open a sample posting to see fit, gaps, and the cover-letter drafter — or browse real roles under Roles.
       </p>
       <div className="mt-3 flex flex-wrap gap-2">
         <Link href={hrefFor('opportunities')} onClick={onNavigate} className="mz-btn-ghost mz-btn-sm">
           Preparation studio
         </Link>
         <Link href="/holder/opportunities" className="mz-btn-ghost mz-btn-sm">
-          Real roles in MATCHA
+          Real roles under Roles
         </Link>
       </div>
     </div>

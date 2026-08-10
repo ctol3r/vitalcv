@@ -35,7 +35,7 @@ export function useMatchaOpportunities(npi: string | null | undefined) {
       .then((r) => {
         // A backend failure (e.g. 502 with { matches: [] }) must NOT read as an
         // honest "no matches" empty state — surface it as an error instead.
-        if (!r.ok) throw new Error(`matcha opportunities ${r.status}`);
+        if (!r.ok) throw new Error(`opportunities ${r.status}`);
         return r.json();
       })
       .then((payload: { matches?: RawMatch[] }) => {

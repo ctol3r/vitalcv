@@ -17,7 +17,6 @@
     "allowlist) to the whole surface area and to waves L2-L4. That test keeps the POSITIVE direction",
     "— asserting truth qualifiers still exist. Do not delete it in favour of this."
   ],
-
   "protectedTruthQualifiers": {
     "description": [
       "THE MOST IMPORTANT RULE IN THIS FILE. ~45 occurrences of retire-tier words are not vocabulary",
@@ -38,7 +37,6 @@
       "\\bonly\\b.{0,24}\\bsnapshot\\b|\\bsnapshot\\b.{0,24}\\bonly\\b"
     ]
   },
-
   "surfaces": {
     "acquisition": {
       "description": "Where a stranger meets VitalCV — homepage, primary nav, onboarding headings, major CTAs, acquisition copy (operating brief). Retire-tier nouns are banned here; allowed deeper.",
@@ -70,7 +68,7 @@
       ]
     },
     "internalOperator": {
-      "description": "Waived entirely — staffed by people who build and run VitalCV. NOT waived: /issuer/*, whose users are credentialing offices, i.e. customers.",
+      "description": "Waived entirely — staffed by people who build and run VitalCV. NOT waived: /issuer/*, whose users are credentialing offices, i.e. customers. Also covers components/design-wave1505/** — a design-system reference tree mounted only at /design/wave1505 (layout-gated, 404 in production). Its 'matcha' occurrences name the BRAND COLOUR TOKEN (--matcha-900, 'Matcha is reserved for Recognition moments and primary-button hover'), not the product codename. Token naming is UX-02's contract, not EC-9's.",
       "globs": [
         "apps/web/app/ops/**",
         "apps/web/app/admin/**",
@@ -78,7 +76,8 @@
         "apps/web/components/ops-engine/**",
         "apps/web/components/intelligence-ops/**",
         "apps/web/components/platform/**",
-        "apps/web/components/matcha-deck/**"
+        "apps/web/components/matcha-deck/**",
+        "apps/web/components/design-wave1505/**"
       ]
     },
     "legal": {
@@ -90,64 +89,150 @@
       ]
     }
   },
-
   "tiers": [
     {
       "id": 1,
       "name": "internal-only",
       "appliesTo": "all-customer-facing",
-      "waivedOn": ["technicalRegister", "internalOperator"],
+      "waivedOn": [
+        "technicalRegister",
+        "internalOperator"
+      ],
       "description": "Inventory §'Internal only — keep, do not market' + operating brief §'Remove from the main story'. Correct names for the machinery; never rendered to a customer. Backend classes, schemas, APIs and audit records keep these names — the strategy is explicit that they must NOT be mass-renamed, which is why apps/web/app/api/** is out of scope.",
       "terms": [
-        { "term": "MATCHA", "fix": "Ruling D-A: internal codename. The canonical customer word for the marketplace is 'VitalCV Jobs' (inventory §two real gaps)." },
-        { "term": "PSV", "fix": "Internal. Say 'primary source verification' only where the limitation is being explained." },
-        { "term": "holder", "fix": "Say 'you' / 'the clinician'. Route prefix /holder/* stays — founder 08-07 decision 2: labels only, do not rename routes." },
-        { "term": "dossier", "fix": "Say 'your VitalCV profile'." },
-        { "term": "trust tier", "fix": "Name the state itself (source-backed / checked / self-attested)." },
-        { "term": "SD-JWT", "fix": "Crypto internal. Remove from customer copy." },
-        { "term": "knowledge graph", "fix": "Graph internal. Remove from customer copy." },
-        { "term": "trust graph", "fix": "The graph is not a shipped product surface." },
-        { "term": "blockchain", "fix": "Operating brief: remove blockchain language from the main story. Already absent repo-wide — keep it that way." },
-        { "term": "Trust Passport", "fix": "Retired concept. Say 'your VitalCV profile'." },
-        { "term": "Evidence OS", "fix": "Retired concept. Say 'VitalCV'." },
-        { "term": "NPDB", "fix": "Not integrated. EC-3 bans the noun outright — remove, do not soften." }
+        {
+          "term": "MATCHA",
+          "fix": "Ruling D-A: internal codename. The canonical customer word for the marketplace is 'VitalCV Jobs' (inventory §two real gaps)."
+        },
+        {
+          "term": "PSV",
+          "fix": "Internal. Say 'primary source verification' only where the limitation is being explained."
+        },
+        {
+          "term": "holder",
+          "fix": "Say 'you' / 'the clinician'. Route prefix /holder/* stays — founder 08-07 decision 2: labels only, do not rename routes."
+        },
+        {
+          "term": "dossier",
+          "fix": "Say 'your VitalCV profile'."
+        },
+        {
+          "term": "trust tier",
+          "fix": "Name the state itself (source-backed / checked / self-attested)."
+        },
+        {
+          "term": "SD-JWT",
+          "fix": "Crypto internal. Remove from customer copy."
+        },
+        {
+          "term": "knowledge graph",
+          "fix": "Graph internal. Remove from customer copy."
+        },
+        {
+          "term": "trust graph",
+          "fix": "The graph is not a shipped product surface."
+        },
+        {
+          "term": "blockchain",
+          "fix": "Operating brief: remove blockchain language from the main story. Already absent repo-wide — keep it that way."
+        },
+        {
+          "term": "Trust Passport",
+          "fix": "Retired concept. Say 'your VitalCV profile'."
+        },
+        {
+          "term": "Evidence OS",
+          "fix": "Retired concept. Say 'VitalCV'."
+        },
+        {
+          "term": "NPDB",
+          "fix": "Not integrated. EC-3 bans the noun outright — remove, do not soften."
+        }
       ]
     },
     {
       "id": 2,
       "name": "retire-from-acquisition",
       "appliesTo": "acquisition",
-      "waivedOn": ["technicalRegister", "internalOperator"],
+      "waivedOn": [
+        "technicalRegister",
+        "internalOperator"
+      ],
       "description": "Inventory §'Retire' + §'Allowed when task-specific'. These name real things a customer may legitimately meet AT THE MOMENT THEY NEED THEM — but they must never lead. Banned on acquisition surfaces only. Waves L2-L4.",
       "terms": [
-        { "term": "wallet", "fix": "Wave L1, already swept. Canonical noun: 'your VitalCV profile'." },
-        { "term": "passport", "fix": "Wave L2. Orphaned vocabulary for a dead concept (/passport retired by #1096). NOTE: app/manifest.ts is explicitly out of scope — founder 08-07 decision 3." },
-        { "term": "packet", "fix": "Wave L3. Allowed task-specific; retire from acquisition copy. Say 'what the employer receives'." },
-        { "term": "receipt", "fix": "Wave L3. Limitation-clause usage is PROTECTED and exempt automatically; only the product-noun usage is banned here." },
-        { "term": "recognition", "fix": "Wave L3. Founder 08-07 decision 1: KEEP as a distinct in-app state — it names a real thing an employer did. Acquisition copy only." },
-        { "term": "snapshot", "fix": "Wave L4. Cadence usage ('monthly snapshot') is PROTECTED and exempt automatically; only the product-noun usage is banned here." }
+        {
+          "term": "wallet",
+          "fix": "Wave L1, already swept. Canonical noun: 'your VitalCV profile'."
+        },
+        {
+          "term": "passport",
+          "fix": "Wave L2. Orphaned vocabulary for a dead concept (/passport retired by #1096). NOTE: app/manifest.ts is explicitly out of scope — founder 08-07 decision 3."
+        },
+        {
+          "term": "packet",
+          "fix": "Wave L3. Allowed task-specific; retire from acquisition copy. Say 'what the employer receives'."
+        },
+        {
+          "term": "receipt",
+          "fix": "Wave L3. Limitation-clause usage is PROTECTED and exempt automatically; only the product-noun usage is banned here."
+        },
+        {
+          "term": "recognition",
+          "fix": "Wave L3. Founder 08-07 decision 1: KEEP as a distinct in-app state — it names a real thing an employer did. Acquisition copy only."
+        },
+        {
+          "term": "snapshot",
+          "fix": "Wave L4. Cadence usage ('monthly snapshot') is PROTECTED and exempt automatically; only the product-noun usage is banned here."
+        }
       ]
     }
   ],
-
   "legalPlainLanguage": {
     "appliesTo": "legal",
     "description": "Product vocabulary must not leak into legal copy. In ADDITION to tier 1.",
     "terms": [
-      { "term": "packet", "fix": "Say 'your credentialing information'." },
-      { "term": "passport", "fix": "Say 'your VitalCV profile'." },
-      { "term": "wallet", "fix": "Say 'your VitalCV profile'." }
+      {
+        "term": "packet",
+        "fix": "Say 'your credentialing information'."
+      },
+      {
+        "term": "passport",
+        "fix": "Say 'your VitalCV profile'."
+      },
+      {
+        "term": "wallet",
+        "fix": "Say 'your VitalCV profile'."
+      }
     ]
   },
-
   "scan": {
-    "roots": ["apps/web/app", "apps/web/components"],
-    "extensions": [".ts", ".tsx", ".js", ".jsx", ".mdx"],
-    "excludeDirs": [
-      "node_modules", ".next", ".turbo", "dist", "build", "coverage",
-      "__tests__", "_archive", "dev", "design"
+    "roots": [
+      "apps/web/app",
+      "apps/web/components"
     ],
-    "excludeFilePatterns": ["\\.(test|spec|stories)\\.[cm]?[tj]sx?$", "\\.d\\.ts$"],
+    "extensions": [
+      ".ts",
+      ".tsx",
+      ".js",
+      ".jsx",
+      ".mdx"
+    ],
+    "excludeDirs": [
+      "node_modules",
+      ".next",
+      ".turbo",
+      "dist",
+      "build",
+      "coverage",
+      "__tests__",
+      "_archive",
+      "dev",
+      "design"
+    ],
+    "excludeFilePatterns": [
+      "\\.(test|spec|stories)\\.[cm]?[tj]sx?$",
+      "\\.d\\.ts$"
+    ],
     "excludePathPatterns": [
       "^apps/web/app/api/",
       "^apps/web/app/manifest\\.ts$"

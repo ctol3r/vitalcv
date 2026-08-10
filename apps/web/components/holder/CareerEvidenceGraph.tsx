@@ -242,7 +242,7 @@ export function CareerEvidenceGraph() {
             {FEATURES.MATCHA_V2 ? (
               <Link href="/holder/matcha" className="mz-btn mz-btn-sm">
                 <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
-                Explore in MATCHA
+                Explore your matches
               </Link>
             ) : null}
           </div>

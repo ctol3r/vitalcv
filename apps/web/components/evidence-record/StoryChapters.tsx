@@ -211,10 +211,10 @@ export function StoryChapters({ decidingFace, returnedFace }: Props) {
       {/* ================= chapter 2 · DISCOVER (MATCHA) ================= */}
       <section ref={discoverRef} className="z1-chapter z1-discover" aria-label="Discover the right opportunity">
         <header className="z1-ch-head" data-reveal>
-          <p className="z1-eyebrow">MATCHA · Discover</p>
+          <p className="z1-eyebrow">Matches · Discover</p>
           <h2 className="z1-ch-headline">Find work that fits more than your résumé.</h2>
           <p className="z1-ch-support">
-            MATCHA reads the profile you already built — specialty, schedule,
+            Matching reads the profile you already built — specialty, schedule,
             readiness — and puts the right opportunities around it.
           </p>
         </header>
@@ -452,7 +452,7 @@ export function StoryChapters({ decidingFace, returnedFace }: Props) {
               })}
             >
               <span className="z1-opp-role">Your next opportunity →</span>
-              <span className="z1-opp-org">MATCHA keeps reading the record you keep</span>
+              <span className="z1-opp-org">Matching keeps reading the record you keep</span>
             </button>
           </div>
         </div>

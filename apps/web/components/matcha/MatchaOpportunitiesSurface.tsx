@@ -32,7 +32,7 @@ export function MatchaOpportunitiesSurface() {
     <div className="mz mz-paper matcha-enter" style={{ maxWidth: 820, margin: '0 auto', padding: '28px 24px 96px', display: 'grid', gap: 16, minHeight: '100vh' }}>
       <header style={{ marginBottom: 4 }}>
         <h1 style={{ margin: 0, fontSize: 24, fontWeight: 600, color: 'var(--vt-text-primary)' }}>
-          Opportunities MATCHA found
+          Opportunities we found
         </h1>
         <p style={{ margin: '6px 0 0', fontSize: 14, color: 'var(--vt-text-secondary)' }}>
           Scored on your credential eligibility, explained with your own preferences.
@@ -52,9 +52,9 @@ export function MatchaOpportunitiesSurface() {
       )}
 
       {state === 'no-npi' && (
-        <EmptyNote title="Add your NPI to get matches" body="Once your NPI is on file, MATCHA can score real opportunities for you." />
+        <EmptyNote title="Add your NPI to get matches" body="Once your NPI is on file, we can score real opportunities for you." />
       )}
-      {state === 'loading' && <EmptyNote title="Checking opportunities…" body="MATCHA is scoring live roles against your trust state." />}
+      {state === 'loading' && <EmptyNote title="Checking opportunities…" body="Scoring live roles against your trust state." />}
       {state === 'error' && (
         <EmptyNote title="Matches are temporarily unavailable" body="This is a live check — please try again shortly. Nothing about your profile changed." />
       )}

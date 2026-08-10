@@ -100,7 +100,7 @@ export function MatchAiSummary(props: MatchAiSummaryProps) {
           }}
         >
           <Sparkles size={13} aria-hidden="true" />
-          {state === 'loading' ? 'Summarizing…' : 'Why this fits you — MATCHA AI'}
+          {state === 'loading' ? 'Summarizing…' : 'Why this fits you'}
         </button>
       ) : null}
 
@@ -130,7 +130,7 @@ export function MatchAiSummary(props: MatchAiSummaryProps) {
               marginBottom: 5,
             }}
           >
-            MATCHA AI · from your match signals
+            From your match signals
           </span>
           <p style={{ margin: 0, fontSize: 13.5, lineHeight: 1.55, color: 'var(--vt-text-secondary)' }}>{summary}</p>
           <button

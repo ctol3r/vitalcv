@@ -40,7 +40,9 @@ describe('MatchaExplanation', () => {
 
   it('shows an honest empty state instead of inventing reasons', () => {
     const markup = renderToStaticMarkup(<MatchaExplanation reasons={[]} />);
-    expect(markup.toLowerCase()).toContain("doesn");
+    // Assert the honest claim, not one spelling of the contraction: the empty
+    // state must say it lacks the information, never invent a reason.
+    expect(markup.toLowerCase()).toMatch(/do(?:es)?n[’']t have enough/);
     expect(markup).toContain('enough of your preferences');
   });
 });
@@ -102,15 +104,15 @@ describe('MatchaProfile', () => {
       teachingInterest: 'passionate',
     });
     const markup = renderToStaticMarkup(<MatchaProfile derived={derived} clinicianName="Sarah" />);
-    expect(markup).toContain('MATCHA understands you');
-    expect(markup).toContain('because you told MATCHA');
+    expect(markup).toContain('What we know about you');
+    expect(markup).toContain('because you told us');
     expect(markup).toContain('Cardiology');
     expectNoBanned(markup);
   });
 
   it('shows a learning-ready empty state with no invented insights', () => {
     const markup = renderToStaticMarkup(<MatchaProfile derived={deriveMatchaProfile({})} />);
-    expect(markup).toContain('ready to learn about you');
-    expect(markup).not.toContain('because you told MATCHA');
+    expect(markup.toLowerCase()).toContain('ready to learn about you');
+    expect(markup).not.toContain('because you told us');
   });
 });

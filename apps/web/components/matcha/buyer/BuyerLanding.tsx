@@ -92,7 +92,7 @@ export function BuyerLanding({
               textDecoration: 'none',
             }}
           >
-            See MATCHA for clinicians
+            See matching for clinicians
           </Link>
         </div>
       </header>

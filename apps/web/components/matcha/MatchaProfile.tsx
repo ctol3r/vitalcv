@@ -69,7 +69,7 @@ function InsightRow({ insight }: { insight: MatchaInsight }) {
     <li style={{ display: 'grid', gap: 3, padding: '10px 0', borderBottom: '1px solid var(--vt-border, #EEF2F0)' }}>
       <span style={{ fontSize: 15, color: 'var(--vt-text-primary)', fontWeight: 500 }}>{insight.label}</span>
       <span style={{ fontSize: 11, color: 'var(--vt-text-muted)' }}>
-        because you told MATCHA: {insight.provenance.map(readableField).join(', ')}
+        because you told us: {insight.provenance.map(readableField).join(', ')}
       </span>
     </li>
   );
@@ -94,10 +94,10 @@ export function MatchaProfile({ derived, clinicianName }: MatchaProfileProps) {
         }}
       >
         <h2 style={{ margin: 0, fontSize: 20, fontWeight: 600, color: 'var(--vt-text-primary)' }}>
-          MATCHA is ready to learn about you
+          Ready to learn about you
         </h2>
         <p style={{ margin: '8px 0 0', fontSize: 14, color: 'var(--vt-text-secondary)', lineHeight: 1.5 }}>
-          Answer a few questions and MATCHA will build a picture of what you&rsquo;re looking for —
+          Answer a few questions and we will build a picture of what you&rsquo;re looking for —
           reflected back here, always tied to what you actually said.
         </p>
       </section>
@@ -127,14 +127,14 @@ export function MatchaProfile({ derived, clinicianName }: MatchaProfileProps) {
         <ConfidenceRing value={confidenceScore} />
         <div style={{ minWidth: 220, flex: 1 }}>
           <p style={{ margin: 0, fontSize: 11, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--vt-accent, #0A7B7F)', fontWeight: 700 }}>
-            MATCHA understands you
+            What we know about you
           </p>
           <h2 style={{ margin: '6px 0 0', fontSize: 24, fontWeight: 600, color: 'var(--vt-text-primary)' }}>
             {clinicianName ? `Here's what I know about you, ${clinicianName}` : "Here's what I know about you"}
           </h2>
           <p style={{ margin: '8px 0 0', fontSize: 13, color: 'var(--vt-text-secondary)', lineHeight: 1.5 }}>
             Confidence reflects how much you&rsquo;ve shared — {confidenceScore}% so far. The more you
-            tell MATCHA, the sharper your matches get. Everything below traces to your own answers.
+            tell us, the sharper your matches get. Everything below traces to your own answers.
           </p>
         </div>
       </div>

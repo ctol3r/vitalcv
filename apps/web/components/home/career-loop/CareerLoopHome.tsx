@@ -281,7 +281,7 @@ export function CareerLoopHome() {
         </div>
 
         {state.matchPhase === 'loading' && (
-          <p className="clh-sub" role="status">MATCHA is reading the profile…</p>
+          <p className="clh-sub" role="status">Reading the profile…</p>
         )}
         {state.matchPhase === 'error' && (
           <p className="clh-sub" role="status">Matching is unavailable right now. Your profile is unaffected — try again, or browse the open board.</p>
@@ -331,7 +331,7 @@ export function CareerLoopHome() {
           </div>
         )}
         <p className="clh-fine">
-          {isDemo ? 'Illustrative matches — not live listings' : 'Ranked by MATCHA from open listings · reasons are computed, not written'}
+          {isDemo ? 'Illustrative matches — not live listings' : 'Ranked from open listings · reasons are computed, not written'}
         </p>
       </section>
 

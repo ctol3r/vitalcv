@@ -119,7 +119,7 @@ export default function CareerCompass() {
     <section className="mz mz-glass p-5 sm:p-6">
       <p className="mz-eyebrow">
         <Compass className="h-3 w-3" aria-hidden />
-        MATCHA Career Compass
+        Career Compass
       </p>
       <h2 className="mz-h1 mt-4">
         {greeting}
