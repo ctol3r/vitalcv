@@ -101,7 +101,6 @@
   --vt-badge-info-border: var(--vt-badge-preview-bg);
 
   --vt-surface-hero: linear-gradient(180deg, rgb(255 255 255 / 0.96), rgb(249 251 250 / 0.92));
-  --vt-shadow-soft: 0 20px 48px rgb(26 34 40 / 0.06), 0 6px 18px rgb(26 34 40 / 0.04);
   --vt-shadow-card: 0 14px 32px rgb(26 34 40 / 0.05), 0 2px 10px rgb(26 34 40 / 0.03);
   --vt-shadow-pill: 0 1px 2px rgb(26 34 40 / 0.04);
 
@@ -110,7 +109,6 @@
      packet housing, the pointer lens. Their sheen and float live here rather
      than inline so the design-lint ratchets (LINT-01/05/06) stay meaningful:
      a raw shadow or colour in a stylesheet is drift, a token is a decision. */
-  --vt-glass-sheen: inset 0 1px 0 0 color-mix(in oklab, white 60%, transparent);
   /* The packet housing: sheen, a faint bottom seat, and a float a fraction of
      the nav rail's so the one reserved float shadow keeps its rank. */
   --vt-shadow-glass-panel:

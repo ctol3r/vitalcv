@@ -76,13 +76,9 @@
   --vt-radius-sm:             0.25rem;  /* 4px */
   --vt-radius-md:             0.5rem;   /* 8px */
   --vt-radius-lg:             0.75rem;  /* 12px */
-  --vt-radius-full:           9999px;
 
   /* ── Shadow Tokens ─────────────────────────────────────────── */
-  --vt-shadow-sm:             0 2px 8px -2px oklch(0 0 0 / 0.03), 0 1px 3px -1px oklch(0 0 0 / 0.02);
   --vt-shadow-md:             0 8px 16px -4px oklch(0 0 0 / 0.04), 0 4px 8px -2px oklch(0 0 0 / 0.02);
-  --vt-shadow-lg:             0 16px 32px -8px oklch(0 0 0 / 0.06), 0 8px 16px -4px oklch(0 0 0 / 0.03);
-  --vt-shadow-glow:           0 0 30px oklch(0.55 0.20 255 / 0.3);
 
   /* ── Control Feel — Semantic Tokens (3-color discipline) ──── */
   --control-surface:          oklch(0.06 0.005 255);   /* near-black */
