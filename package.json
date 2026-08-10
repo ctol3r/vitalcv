@@ -35,7 +35,7 @@
     "check:workflow-contract:protection": "node scripts/check-workflow-path-filters.js --verify-protection"
   },
   "devDependencies": {
-    "@types/node": "^20",
+    "@types/node": "^26",
     "next": "15.5.22",
     "turbo": "^2.10.8",
     "typescript": "5.9.3"
