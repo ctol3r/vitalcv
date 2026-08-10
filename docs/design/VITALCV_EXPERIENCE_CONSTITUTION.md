@@ -189,7 +189,7 @@ The **structure** is locked now. The **values** are filled from the UX-01 verdic
 | Typography — display / body / mono faces | **Geist** (400/500/600) for display and body; **Geist Mono** (400/500) for machine facts and micro-labels | LOCKED |
 | Type scale | Anchors from the verdict reference: hero h1 44–52px desktop / 30–34px mobile; micro-labels 11px mono uppercase `+0.08em`. Full ramp finalized in UX-02 within these anchors | LOCKED ANCHORS · ramp in UX-02 |
 | Grid + page width | Full-width hairline-ruled band composition; content max ~1400px. Precise grid in UX-02 | LOCKED · grid in UX-02 |
-| Eyebrow exact geometry (within EC-10's form) | **Amended 2026-08-09 (A-2)**, superseding "64px desktop / 56px mobile, contextual product-state middle zone". Zero-height floating group. **The rectangle:** inset 10px left and right, held 16px from the top, 70px tall, 10px radius (`--vt-shape-control`), frosted (`backdrop-filter: blur(10px)` over a ~10% neutral scene mix), `pointer-events: none`. **Inside it:** instruments centred (painted boxes at y 31), wordmark at a 30px gutter, dominant action 40px tall × 205px minimum with a 16px/400 label, square instruments 40 × 40px with fused 1px borders, 30px between the action and the cluster, cluster's right edge on the 30px gutter; radius 0 on every instrument; no bottom rule, no centre content. **Mobile:** rectangle full-bleed, square, 65px tall at the top; identity inside it at the 20px gutter; control cluster fixed 20px above the viewport bottom with the page reserving clearance. **All dimensions here are the PAINTED box**; interactive elements carry a 2px transparent ring so the target measures 44px (EC-5) while the painted box measures the reference value | LOCKED (amended A-2) |
+| Eyebrow exact geometry (within EC-10's form) | **Amended 2026-08-09 (A-2, then A-3)**, superseding "64px desktop / 56px mobile, contextual product-state middle zone". Zero-height floating group. **The rectangle:** inset 10px left and right **but capped at 1480px wide and centred above that cap (A-3)**, held 16px from the top, 70px tall, 10px radius (`--vt-shape-control`), frosted (`backdrop-filter: blur(10px)` over a ~10% neutral scene mix), `pointer-events: none`. **Inside it:** instruments centred (painted boxes at y 31), and **every instrument measures from the RECTANGLE's edge, not the viewport's — 20px inside it on both sides (A-3)**, which still reads as the familiar 30px gutter at any width below the cap. Dominant action 40px tall × 205px minimum with a 16px/400 label, square instruments 40 × 40px with fused 1px borders, 30px between the action and the cluster; radius 0 on every instrument; no bottom rule, no centre content. **The takeover's columns ride the same band (A-3).** **Mobile:** rectangle full-bleed, square, 65px tall at the top — the band collapses there, so identity sits at the 20px gutter from the viewport edge; control cluster fixed 20px above the viewport bottom with the page reserving clearance. **All dimensions here are the PAINTED box**; interactive elements carry a 2px transparent ring so the target measures 44px (EC-5) while the painted box measures the reference value | LOCKED (amended A-3) |
 | Button grammar (primary/secondary/quiet/destructive; ≥44px targets locked via EC-5) | Primary = solid work-green square-cornered instrument with AA-corrected near-black ink (reference `#4ADE97`; solid `#2E9E6B` + off-white recorded as the alternative); secondary = hairline outline; quiet = text. Exact styles in UX-02 | LOCKED STRUCTURE · styles in UX-02 |
 | Rule/border treatment | 1px hairlines structure panels and bands (`#2E2F33` on the graphite register) | LOCKED |
 | Icon family | **Consolidate to one family in UX-02.** Two are installed today: `lucide-react` (imported by 330 `apps/web` files) and `@blueprintjs/icons`; 47 components also carry inline `<svg>`. Whichever wins must satisfy the locked grammar — 1px hairline weight, near-sharp 0–3px, no glass, no gradient, no glow — and the loser is removed, not left resident. Design review picks; this row records the constraint and the count | DEFERRED · UX-02 owns · constraint locked |
@@ -339,6 +339,41 @@ Class A clauses and locked EC-20 rows change only by editing this file with a da
 Subjective July-era taste is not encoded as CI law before the reset direction is chosen. The `check-design-lint.ts` port from `.worktrees/retire-speed-claim` is scoped to the objective list above; taste rules from wave-1505's set (pill radii, shadow discipline, dark-on-public) join CI only if and when the verdict locks the matching EC-20 row. Proof obligation stands: a deliberately-violating PR must fail CI on every objective count before the gate is considered live.
 
 ### EC-24. Records
+
+- **A-3 — the rectangle stops growing, on founder directive (2026-08-09).** EC-20's
+  eyebrow-geometry row moves from `amended A-2` to `amended A-3`. The founder, on the chrome A-2
+  shipped: *"can we make the top bar eyebrow less wide and more exact to the palantir.com size"*.
+
+  **The defect was a measurement taken at one width.** A-2 probed the reference at 1440 and 390 and
+  recorded "inset 10px left and right" — true at 1440, and false as a rule. Re-probed at
+  1280/1440/1512/1728/1920/2560, the reference paints **1260 / 1420 / 1480 / 1480 / 1480 / 1480**,
+  centred once capped: it holds a 10px inset only until the rectangle reaches **1480px**, then
+  stops growing and centres. VitalCV's implementation had no cap, so on a 1920 display the chrome
+  measured 1900 wide against the reference's 1480, and on a 2560 display 2540 against 1480. Every
+  desktop assertion in the eyebrow suite ran at 1440 — *below the cap* — so nothing could see it.
+  **The lesson generalises past this row: a geometry rule read off a single viewport is an
+  anecdote. Probe a reference at the extremes of the range you intend to ship, or the constant you
+  write down is really a coordinate.**
+
+  The instruments turned out to be band-relative too, which the single-width probe also hid: the
+  wordmark sits at reference `x` 30 / 36 / 144 / 240 / 560 as the viewport grows — always
+  **20px inside the rectangle**, never at a fixed viewport gutter. Below the cap that is 10 + 20 =
+  the 30px gutter A-2 recorded, which is why the two readings agreed at 1440 and only at 1440. The
+  takeover was measured open at 1920: columns start at 240 and the last closes at 240 — **the same
+  band**, so it moves with the chrome rather than staying full-bleed under it.
+
+  Implementation note kept deliberately: the band is `max(10px, (100% - 1480px) / 2)` against
+  `.vcv-eb`, **not `100vw`** — a classic (non-overlay) scrollbar makes `100vw` wider than the
+  layout box and would push the centred band off-centre by half the scrollbar on exactly the
+  platforms least likely to be checked.
+
+  **Not touched, and recorded rather than taken silently:** the reference's dominant action is
+  *fluid* — measured 178 / 205 / 217 / 253 / 285 / 392 across the same six widths, ≈`16.7vw − 36px`
+  — while EC-20 locks ours at a 205px minimum, a value A-2 read at 1440 for the same reason it
+  misread the inset. VitalCV's action stays 205 here: matching the reference would make the action
+  *wider* on large displays, which is the opposite of the directive this amendment serves, and the
+  action's shape was separately founder-ruled under A-2. **Flagged for a founder decision, not
+  folded into a width-reduction PR.**
 
 - **A-2 — the floating chrome, on founder directive (2026-08-09).** EC-10's structural form and
   EC-20's eyebrow-geometry row carry an `amended A-2` marker. This entry records the directive and

@@ -1,0 +1,846 @@
+{
+ "palantir": {
+  "1280": {
+   "viewport": 1280,
+   "painted": [
+    {
+     "tag": "header",
+     "cls": "ptcom-design__banner__todd69 ptcom-design__light__todd69",
+     "x": 0,
+     "y": 53,
+     "w": 1280,
+     "h": 0,
+     "radius": "0px",
+     "bg": "rgba(0, 0, 0, 0)",
+     "backdrop": "none",
+     "blend": "difference",
+     "maxWidth": "none",
+     "inset": "auto / auto",
+     "position": "sticky"
+    },
+    {
+     "tag": "div",
+     "cls": "ptcom-design__headerBg__fz87o6",
+     "x": 10,
+     "y": 69,
+     "w": 1260,
+     "h": 70,
+     "radius": "10px",
+     "bg": "rgba(171, 171, 171, 0.1)",
+     "backdrop": "blur(10px)",
+     "blend": "normal",
+     "maxWidth": "none",
+     "inset": "10px / 10px",
+     "position": "absolute"
+    }
+   ],
+   "instruments": [
+    {
+     "text": "",
+     "x": 30,
+     "y": 83,
+     "w": 83,
+     "h": 40,
+     "right": 1167,
+     "radius": "0px",
+     "fontSize": "18px",
+     "padding": "0px"
+    }
+   ]
+  },
+  "1440": {
+   "viewport": 1440,
+   "painted": [
+    {
+     "tag": "header",
+     "cls": "ptcom-design__banner__todd69 ptcom-design__light__todd69",
+     "x": 0,
+     "y": 53,
+     "w": 1440,
+     "h": 0,
+     "radius": "0px",
+     "bg": "rgba(0, 0, 0, 0)",
+     "backdrop": "none",
+     "blend": "difference",
+     "maxWidth": "none",
+     "inset": "auto / auto",
+     "position": "sticky"
+    },
+    {
+     "tag": "div",
+     "cls": "ptcom-design__headerBg__fz87o6",
+     "x": 10,
+     "y": 69,
+     "w": 1420,
+     "h": 70,
+     "radius": "10px",
+     "bg": "rgba(171, 171, 171, 0.1)",
+     "backdrop": "blur(10px)",
+     "blend": "normal",
+     "maxWidth": "none",
+     "inset": "10px / 10px",
+     "position": "absolute"
+    }
+   ],
+   "instruments": [
+    {
+     "text": "",
+     "x": 30,
+     "y": 83,
+     "w": 83,
+     "h": 40,
+     "right": 1327,
+     "radius": "0px",
+     "fontSize": "18px",
+     "padding": "0px"
+    }
+   ]
+  },
+  "1512": {
+   "viewport": 1512,
+   "painted": [
+    {
+     "tag": "header",
+     "cls": "ptcom-design__banner__todd69 ptcom-design__light__todd69",
+     "x": 0,
+     "y": 53,
+     "w": 1512,
+     "h": 0,
+     "radius": "0px",
+     "bg": "rgba(0, 0, 0, 0)",
+     "backdrop": "none",
+     "blend": "difference",
+     "maxWidth": "none",
+     "inset": "auto / auto",
+     "position": "sticky"
+    },
+    {
+     "tag": "div",
+     "cls": "ptcom-design__headerBg__fz87o6",
+     "x": 16,
+     "y": 69,
+     "w": 1480,
+     "h": 70,
+     "radius": "10px",
+     "bg": "rgba(171, 171, 171, 0.1)",
+     "backdrop": "blur(10px)",
+     "blend": "normal",
+     "maxWidth": "none",
+     "inset": "16px / 16px",
+     "position": "absolute"
+    }
+   ],
+   "instruments": [
+    {
+     "text": "",
+     "x": 36,
+     "y": 83,
+     "w": 83,
+     "h": 40,
+     "right": 1393,
+     "radius": "0px",
+     "fontSize": "18px",
+     "padding": "0px"
+    }
+   ]
+  },
+  "1728": {
+   "viewport": 1728,
+   "painted": [
+    {
+     "tag": "header",
+     "cls": "ptcom-design__banner__todd69 ptcom-design__light__todd69",
+     "x": 0,
+     "y": 53,
+     "w": 1728,
+     "h": 0,
+     "radius": "0px",
+     "bg": "rgba(0, 0, 0, 0)",
+     "backdrop": "none",
+     "blend": "difference",
+     "maxWidth": "none",
+     "inset": "auto / auto",
+     "position": "sticky"
+    },
+    {
+     "tag": "div",
+     "cls": "ptcom-design__headerBg__fz87o6",
+     "x": 124,
+     "y": 69,
+     "w": 1480,
+     "h": 70,
+     "radius": "10px",
+     "bg": "rgba(171, 171, 171, 0.1)",
+     "backdrop": "blur(10px)",
+     "blend": "normal",
+     "maxWidth": "none",
+     "inset": "124px / 124px",
+     "position": "absolute"
+    }
+   ],
+   "instruments": [
+    {
+     "text": "",
+     "x": 144,
+     "y": 83,
+     "w": 83,
+     "h": 40,
+     "right": 1501,
+     "radius": "0px",
+     "fontSize": "18px",
+     "padding": "0px"
+    }
+   ]
+  },
+  "1920": {
+   "viewport": 1920,
+   "painted": [
+    {
+     "tag": "header",
+     "cls": "ptcom-design__banner__todd69 ptcom-design__light__todd69",
+     "x": 0,
+     "y": 53,
+     "w": 1920,
+     "h": 0,
+     "radius": "0px",
+     "bg": "rgba(0, 0, 0, 0)",
+     "backdrop": "none",
+     "blend": "difference",
+     "maxWidth": "none",
+     "inset": "auto / auto",
+     "position": "sticky"
+    },
+    {
+     "tag": "div",
+     "cls": "ptcom-design__headerBg__fz87o6",
+     "x": 220,
+     "y": 69,
+     "w": 1480,
+     "h": 70,
+     "radius": "10px",
+     "bg": "rgba(171, 171, 171, 0.1)",
+     "backdrop": "blur(10px)",
+     "blend": "normal",
+     "maxWidth": "none",
+     "inset": "220px / 220px",
+     "position": "absolute"
+    }
+   ],
+   "instruments": [
+    {
+     "text": "",
+     "x": 240,
+     "y": 83,
+     "w": 83,
+     "h": 40,
+     "right": 1597,
+     "radius": "0px",
+     "fontSize": "18px",
+     "padding": "0px"
+    }
+   ]
+  },
+  "2560": {
+   "viewport": 2560,
+   "painted": [
+    {
+     "tag": "header",
+     "cls": "ptcom-design__banner__todd69 ptcom-design__light__todd69",
+     "x": 0,
+     "y": 53,
+     "w": 2560,
+     "h": 0,
+     "radius": "0px",
+     "bg": "rgba(0, 0, 0, 0)",
+     "backdrop": "none",
+     "blend": "difference",
+     "maxWidth": "none",
+     "inset": "auto / auto",
+     "position": "sticky"
+    },
+    {
+     "tag": "div",
+     "cls": "ptcom-design__headerBg__fz87o6",
+     "x": 540,
+     "y": 69,
+     "w": 1480,
+     "h": 70,
+     "radius": "10px",
+     "bg": "rgba(171, 171, 171, 0.1)",
+     "backdrop": "blur(10px)",
+     "blend": "normal",
+     "maxWidth": "none",
+     "inset": "540px / 540px",
+     "position": "absolute"
+    }
+   ],
+   "instruments": [
+    {
+     "text": "",
+     "x": 560,
+     "y": 83,
+     "w": 83,
+     "h": 40,
+     "right": 1917,
+     "radius": "0px",
+     "fontSize": "18px",
+     "padding": "0px"
+    }
+   ]
+  }
+ },
+ "vitalcv": {
+  "1280": {
+   "viewport": 1280,
+   "painted": [
+    {
+     "tag": "div",
+     "cls": "vcv-eb__shape",
+     "x": 10,
+     "y": 16,
+     "w": 1260,
+     "h": 70,
+     "radius": "10px",
+     "bg": "oklab(0.693974 -0.00271377 0.00518274 / 0.1)",
+     "backdrop": "blur(10px)",
+     "blend": "normal",
+     "maxWidth": "none",
+     "inset": "10px / 10px",
+     "position": "absolute"
+    },
+    {
+     "tag": "span",
+     "cls": "vcv-eb__cta-box",
+     "x": 936,
+     "y": 31,
+     "w": 205,
+     "h": 40,
+     "radius": "0px",
+     "bg": "rgb(246, 245, 241)",
+     "backdrop": "none",
+     "blend": "normal",
+     "maxWidth": "none",
+     "inset": "auto / auto",
+     "position": "static"
+    }
+   ],
+   "instruments": [
+    {
+     "text": "VitalCV",
+     "x": 30,
+     "y": 29,
+     "w": 71,
+     "h": 44,
+     "right": 1179,
+     "radius": "0px",
+     "fontSize": "20px",
+     "padding": "0px"
+    },
+    {
+     "text": "Sign in",
+     "x": 854,
+     "y": 29,
+     "w": 50,
+     "h": 44,
+     "right": 376,
+     "radius": "0px",
+     "fontSize": "16px",
+     "padding": "0px"
+    },
+    {
+     "text": "Start with your NPI",
+     "x": 934,
+     "y": 29,
+     "w": 209,
+     "h": 44,
+     "right": 137,
+     "radius": "0px",
+     "fontSize": "16px",
+     "padding": "2px"
+    },
+    {
+     "text": "",
+     "x": 1169,
+     "y": 29,
+     "w": 44,
+     "h": 44,
+     "right": 67,
+     "radius": "0px",
+     "fontSize": "16px",
+     "padding": "2px"
+    },
+    {
+     "text": "",
+     "x": 1208,
+     "y": 29,
+     "w": 44,
+     "h": 44,
+     "right": 28,
+     "radius": "0px",
+     "fontSize": "16px",
+     "padding": "2px"
+    }
+   ]
+  },
+  "1440": {
+   "viewport": 1440,
+   "painted": [
+    {
+     "tag": "div",
+     "cls": "vcv-eb__shape",
+     "x": 10,
+     "y": 16,
+     "w": 1420,
+     "h": 70,
+     "radius": "10px",
+     "bg": "oklab(0.693974 -0.00271377 0.00518274 / 0.1)",
+     "backdrop": "blur(10px)",
+     "blend": "normal",
+     "maxWidth": "none",
+     "inset": "10px / 10px",
+     "position": "absolute"
+    },
+    {
+     "tag": "span",
+     "cls": "vcv-eb__cta-box",
+     "x": 1096,
+     "y": 31,
+     "w": 205,
+     "h": 40,
+     "radius": "0px",
+     "bg": "rgb(246, 245, 241)",
+     "backdrop": "none",
+     "blend": "normal",
+     "maxWidth": "none",
+     "inset": "auto / auto",
+     "position": "static"
+    }
+   ],
+   "instruments": [
+    {
+     "text": "VitalCV",
+     "x": 30,
+     "y": 29,
+     "w": 71,
+     "h": 44,
+     "right": 1339,
+     "radius": "0px",
+     "fontSize": "20px",
+     "padding": "0px"
+    },
+    {
+     "text": "Sign in",
+     "x": 1014,
+     "y": 29,
+     "w": 50,
+     "h": 44,
+     "right": 376,
+     "radius": "0px",
+     "fontSize": "16px",
+     "padding": "0px"
+    },
+    {
+     "text": "Start with your NPI",
+     "x": 1094,
+     "y": 29,
+     "w": 209,
+     "h": 44,
+     "right": 137,
+     "radius": "0px",
+     "fontSize": "16px",
+     "padding": "2px"
+    },
+    {
+     "text": "",
+     "x": 1329,
+     "y": 29,
+     "w": 44,
+     "h": 44,
+     "right": 67,
+     "radius": "0px",
+     "fontSize": "16px",
+     "padding": "2px"
+    },
+    {
+     "text": "",
+     "x": 1368,
+     "y": 29,
+     "w": 44,
+     "h": 44,
+     "right": 28,
+     "radius": "0px",
+     "fontSize": "16px",
+     "padding": "2px"
+    }
+   ]
+  },
+  "1512": {
+   "viewport": 1512,
+   "painted": [
+    {
+     "tag": "div",
+     "cls": "vcv-eb__shape",
+     "x": 10,
+     "y": 16,
+     "w": 1492,
+     "h": 70,
+     "radius": "10px",
+     "bg": "oklab(0.693974 -0.00271377 0.00518274 / 0.1)",
+     "backdrop": "blur(10px)",
+     "blend": "normal",
+     "maxWidth": "none",
+     "inset": "10px / 10px",
+     "position": "absolute"
+    },
+    {
+     "tag": "span",
+     "cls": "vcv-eb__cta-box",
+     "x": 1168,
+     "y": 31,
+     "w": 205,
+     "h": 40,
+     "radius": "0px",
+     "bg": "rgb(246, 245, 241)",
+     "backdrop": "none",
+     "blend": "normal",
+     "maxWidth": "none",
+     "inset": "auto / auto",
+     "position": "static"
+    }
+   ],
+   "instruments": [
+    {
+     "text": "VitalCV",
+     "x": 30,
+     "y": 29,
+     "w": 71,
+     "h": 44,
+     "right": 1411,
+     "radius": "0px",
+     "fontSize": "20px",
+     "padding": "0px"
+    },
+    {
+     "text": "Sign in",
+     "x": 1086,
+     "y": 29,
+     "w": 50,
+     "h": 44,
+     "right": 376,
+     "radius": "0px",
+     "fontSize": "16px",
+     "padding": "0px"
+    },
+    {
+     "text": "Start with your NPI",
+     "x": 1166,
+     "y": 29,
+     "w": 209,
+     "h": 44,
+     "right": 137,
+     "radius": "0px",
+     "fontSize": "16px",
+     "padding": "2px"
+    },
+    {
+     "text": "",
+     "x": 1401,
+     "y": 29,
+     "w": 44,
+     "h": 44,
+     "right": 67,
+     "radius": "0px",
+     "fontSize": "16px",
+     "padding": "2px"
+    },
+    {
+     "text": "",
+     "x": 1440,
+     "y": 29,
+     "w": 44,
+     "h": 44,
+     "right": 28,
+     "radius": "0px",
+     "fontSize": "16px",
+     "padding": "2px"
+    }
+   ]
+  },
+  "1728": {
+   "viewport": 1728,
+   "painted": [
+    {
+     "tag": "div",
+     "cls": "vcv-eb__shape",
+     "x": 10,
+     "y": 16,
+     "w": 1708,
+     "h": 70,
+     "radius": "10px",
+     "bg": "oklab(0.693974 -0.00271377 0.00518274 / 0.1)",
+     "backdrop": "blur(10px)",
+     "blend": "normal",
+     "maxWidth": "none",
+     "inset": "10px / 10px",
+     "position": "absolute"
+    },
+    {
+     "tag": "span",
+     "cls": "vcv-eb__cta-box",
+     "x": 1384,
+     "y": 31,
+     "w": 205,
+     "h": 40,
+     "radius": "0px",
+     "bg": "rgb(246, 245, 241)",
+     "backdrop": "none",
+     "blend": "normal",
+     "maxWidth": "none",
+     "inset": "auto / auto",
+     "position": "static"
+    }
+   ],
+   "instruments": [
+    {
+     "text": "VitalCV",
+     "x": 30,
+     "y": 29,
+     "w": 71,
+     "h": 44,
+     "right": 1627,
+     "radius": "0px",
+     "fontSize": "20px",
+     "padding": "0px"
+    },
+    {
+     "text": "Sign in",
+     "x": 1302,
+     "y": 29,
+     "w": 50,
+     "h": 44,
+     "right": 376,
+     "radius": "0px",
+     "fontSize": "16px",
+     "padding": "0px"
+    },
+    {
+     "text": "Start with your NPI",
+     "x": 1382,
+     "y": 29,
+     "w": 209,
+     "h": 44,
+     "right": 137,
+     "radius": "0px",
+     "fontSize": "16px",
+     "padding": "2px"
+    },
+    {
+     "text": "",
+     "x": 1617,
+     "y": 29,
+     "w": 44,
+     "h": 44,
+     "right": 67,
+     "radius": "0px",
+     "fontSize": "16px",
+     "padding": "2px"
+    },
+    {
+     "text": "",
+     "x": 1656,
+     "y": 29,
+     "w": 44,
+     "h": 44,
+     "right": 28,
+     "radius": "0px",
+     "fontSize": "16px",
+     "padding": "2px"
+    }
+   ]
+  },
+  "1920": {
+   "viewport": 1920,
+   "painted": [
+    {
+     "tag": "div",
+     "cls": "vcv-eb__shape",
+     "x": 10,
+     "y": 16,
+     "w": 1900,
+     "h": 70,
+     "radius": "10px",
+     "bg": "oklab(0.693974 -0.00271377 0.00518274 / 0.1)",
+     "backdrop": "blur(10px)",
+     "blend": "normal",
+     "maxWidth": "none",
+     "inset": "10px / 10px",
+     "position": "absolute"
+    },
+    {
+     "tag": "span",
+     "cls": "vcv-eb__cta-box",
+     "x": 1576,
+     "y": 31,
+     "w": 205,
+     "h": 40,
+     "radius": "0px",
+     "bg": "rgb(246, 245, 241)",
+     "backdrop": "none",
+     "blend": "normal",
+     "maxWidth": "none",
+     "inset": "auto / auto",
+     "position": "static"
+    }
+   ],
+   "instruments": [
+    {
+     "text": "VitalCV",
+     "x": 30,
+     "y": 29,
+     "w": 71,
+     "h": 44,
+     "right": 1819,
+     "radius": "0px",
+     "fontSize": "20px",
+     "padding": "0px"
+    },
+    {
+     "text": "Sign in",
+     "x": 1494,
+     "y": 29,
+     "w": 50,
+     "h": 44,
+     "right": 376,
+     "radius": "0px",
+     "fontSize": "16px",
+     "padding": "0px"
+    },
+    {
+     "text": "Start with your NPI",
+     "x": 1574,
+     "y": 29,
+     "w": 209,
+     "h": 44,
+     "right": 137,
+     "radius": "0px",
+     "fontSize": "16px",
+     "padding": "2px"
+    },
+    {
+     "text": "",
+     "x": 1809,
+     "y": 29,
+     "w": 44,
+     "h": 44,
+     "right": 67,
+     "radius": "0px",
+     "fontSize": "16px",
+     "padding": "2px"
+    },
+    {
+     "text": "",
+     "x": 1848,
+     "y": 29,
+     "w": 44,
+     "h": 44,
+     "right": 28,
+     "radius": "0px",
+     "fontSize": "16px",
+     "padding": "2px"
+    }
+   ]
+  },
+  "2560": {
+   "viewport": 2560,
+   "painted": [
+    {
+     "tag": "div",
+     "cls": "vcv-eb__shape",
+     "x": 10,
+     "y": 16,
+     "w": 2540,
+     "h": 70,
+     "radius": "10px",
+     "bg": "oklab(0.693974 -0.00271377 0.00518274 / 0.1)",
+     "backdrop": "blur(10px)",
+     "blend": "normal",
+     "maxWidth": "none",
+     "inset": "10px / 10px",
+     "position": "absolute"
+    },
+    {
+     "tag": "span",
+     "cls": "vcv-eb__cta-box",
+     "x": 2216,
+     "y": 31,
+     "w": 205,
+     "h": 40,
+     "radius": "0px",
+     "bg": "rgb(246, 245, 241)",
+     "backdrop": "none",
+     "blend": "normal",
+     "maxWidth": "none",
+     "inset": "auto / auto",
+     "position": "static"
+    }
+   ],
+   "instruments": [
+    {
+     "text": "VitalCV",
+     "x": 30,
+     "y": 29,
+     "w": 71,
+     "h": 44,
+     "right": 2459,
+     "radius": "0px",
+     "fontSize": "20px",
+     "padding": "0px"
+    },
+    {
+     "text": "Sign in",
+     "x": 2134,
+     "y": 29,
+     "w": 50,
+     "h": 44,
+     "right": 376,
+     "radius": "0px",
+     "fontSize": "16px",
+     "padding": "0px"
+    },
+    {
+     "text": "Start with your NPI",
+     "x": 2214,
+     "y": 29,
+     "w": 209,
+     "h": 44,
+     "right": 137,
+     "radius": "0px",
+     "fontSize": "16px",
+     "padding": "2px"
+    },
+    {
+     "text": "",
+     "x": 2449,
+     "y": 29,
+     "w": 44,
+     "h": 44,
+     "right": 67,
+     "radius": "0px",
+     "fontSize": "16px",
+     "padding": "2px"
+    },
+    {
+     "text": "",
+     "x": 2488,
+     "y": 29,
+     "w": 44,
+     "h": 44,
+     "right": 28,
+     "radius": "0px",
+     "fontSize": "16px",
+     "padding": "2px"
+    }
+   ]
+  }
+ }
+}

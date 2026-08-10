@@ -44,6 +44,18 @@
   --eb-shape-top: 16px;
   --eb-shape-h: 70px;
   --eb-ctl-top: 31px;
+  /* …but the rectangle STOPS GROWING at 1480px and centres from there. The
+     first rebuild measured the reference only at 1440 — below the cap — and
+     read a plain 10px inset, so the chrome ran the full width of a large
+     display. Re-probed 2026-08-09 at 1280/1440/1512/1728/1920/2560, the
+     reference paints 1260/1420/1480/1480/1480/1480, centred once capped.
+     The percentage resolves against .vcv-eb (width:100%), not 100vw, so a
+     classic scrollbar cannot push the band off-centre. */
+  --eb-band-max: 1480px;
+  --eb-band-inset: max(var(--eb-shape-inset), (100% - var(--eb-band-max)) / 2);
+  /* every instrument sits 20px inside the rectangle's edge — which is why the
+     gutter reads 30px (10 + 20) at every width below the cap */
+  --eb-band-pad: 20px;
   /* the transparent ring that lifts a 40px painted box to a 44px target */
   --eb-pad: 2px;
   /* A-1 permits frost on chrome. One neutral value serves both registers, as
@@ -122,8 +134,8 @@
    click meant for the page. */
 .vcv-eb__shape {
   position: absolute;
-  left: var(--eb-shape-inset);
-  right: var(--eb-shape-inset);
+  left: var(--eb-band-inset);
+  right: var(--eb-band-inset);
   top: var(--eb-shape-top);
   height: var(--eb-shape-h);
   border-radius: var(--vt-shape-control);
@@ -136,7 +148,7 @@
    the wordmark link gains from being padded out to the 44px target floor. */
 .vcv-eb__brand {
   position: absolute;
-  left: var(--eb-gutter);
+  left: calc(var(--eb-band-inset) + var(--eb-band-pad));
   top: 0;
   padding: 29px 0 16px;
   display: flex;
@@ -162,7 +174,7 @@
    hit areas — land on the 30px gutter and the 30px top offset. */
 .vcv-eb__controls {
   position: absolute;
-  right: calc(var(--eb-gutter) - var(--eb-pad));
+  right: calc(var(--eb-band-inset) + var(--eb-band-pad) - var(--eb-pad));
   top: calc(var(--eb-ctl-top) - var(--eb-pad));
   display: flex;
   align-items: center;
@@ -356,7 +368,10 @@
   inset: 0;
   background: var(--ebm-bg);
   color: var(--ebm-text);
-  padding: 120px var(--eb-gutter, 30px) 40px;
+  /* the takeover's columns ride the same capped band as the chrome that stays
+     live above them — measured on the reference at 1920: columns open at 240
+     and the last one closes at 240, i.e. the 1480 band plus its 20px inner */
+  padding: 120px calc(var(--eb-band-inset) + var(--eb-band-pad)) 40px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
@@ -449,6 +464,10 @@
 @media (max-width: 767px) {
   .vcv-eb {
     --eb-gutter: 20px;
+    /* the band collapses on mobile — the rectangle is full-bleed, so the
+       instruments measure from the viewport edge and the gutter IS the inset */
+    --eb-band-inset: 0px;
+    --eb-band-pad: var(--eb-gutter);
   }
 
   /* The rectangle goes full-bleed and square on mobile — the reference drops
