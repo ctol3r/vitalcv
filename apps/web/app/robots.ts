@@ -1,6 +1,7 @@
 import type { MetadataRoute } from 'next';
 
 import { isCanonicalProductionProcess } from '@/lib/deployment/canonicalProduction';
+import { directorySitemapChunkCount } from '@/lib/directory/sitemapSeed';
 
 /**
  * `robots.txt`.
@@ -63,6 +64,24 @@ export default function robots(): MetadataRoute.Robots {
         ],
       },
     ],
-    sitemap: 'https://vitalcv.com/sitemap.xml',
+    /**
+     * Two sitemaps, because they are two different kinds of claim.
+     *
+     * /sitemap.xml is the hand-maintained site: 22 marketing and legal routes,
+     * each with a lastModified recomputed from git history.
+     *
+     * /directory/sitemap/N.xml is the provider pages — thousands of URLs
+     * derived from a federal enrolment file, listed without dates because
+     * VitalCV does not know when any given clinician last updated their filing.
+     * Advertised as a list rather than folded into the first one so the two
+     * stay separately reviewable and separately revocable.
+     */
+    sitemap: [
+      'https://vitalcv.com/sitemap.xml',
+      ...Array.from(
+        { length: directorySitemapChunkCount() },
+        (_, id) => `https://vitalcv.com/directory/sitemap/${id}.xml`,
+      ),
+    ],
   };
 }
