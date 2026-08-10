@@ -29,13 +29,25 @@
  * checks. In Actions the default token is enough with:
  *   permissions: { contents: read, pull-requests: read, checks: read }
  *
- * EXIT CODE IS NOT THE SIGNAL, by design. With hundreds of open PRs some are
- * always mid-conflict; a sweep that failed on that would be red permanently and
- * would be ignored within a week — the precise failure mode (a monitor whose
- * red means nothing) that motivated this whole line of work. The findings are
- * the report: a job summary and `::warning` annotations. `--fail-on-findings`
- * is opt-in for a human running it deliberately. A green run of this workflow
- * means THE SWEEP RAN, never "no PR is wedged".
+ * AN `invisible` FINDING FAILS THE RUN. `--report-only` opts out.
+ *
+ * This reverses the default this script shipped with (#1131), because the
+ * justification given there did not survive contact with its own code. That
+ * justification was: "with hundreds of open PRs some are always mid-conflict,
+ * so failing on findings would be red permanently and ignored within a week."
+ * True of the `conflicting` class — and the exit code never keyed on that
+ * class. It keys on `invisible` alone, which is neither common nor transient:
+ * a conflicting PR can never acquire check runs, so the state does not clear
+ * on its own, and the live repo currently has zero.
+ *
+ * What the old default actually produced was a sweep that stayed GREEN while a
+ * PR sat silently ungated — a monitor whose green means nothing, which is the
+ * exact disease this whole line of work exists to treat. A job summary that
+ * nobody opens is not a signal.
+ *
+ * The distinction is kept where it is real: `conflicting` and `unknown` are
+ * reported and never fail the run. Only `invisible` — nothing ran, and nothing
+ * else anywhere says so — is worth a red.
  */
 
 const API = (process.env.GITHUB_API_URL ?? 'https://api.github.com').replace(/\/$/, '');
@@ -167,8 +179,11 @@ export function renderReport(rows, { now = Date.now() } = {}) {
   lines.push(
     '---',
     '',
-    'A green run of this workflow means the sweep executed — never that no PR is wedged.',
-    'Findings are reported here and as warning annotations; the job does not fail on them.',
+    invisible.length > 0
+      ? 'This run FAILS because a PR is running zero gates. Merging the base branch into it ' +
+        'is the only fix — re-running checks cannot create the missing runs.'
+      : 'Green means no PR is in the invisible state. Conflicting-but-gated PRs and ' +
+        'uncomputed mergeability are reported above and do not fail the run.',
   );
 
   return lines.join('\n');
@@ -302,8 +317,18 @@ async function main() {
     appendFileSync(process.env.GITHUB_STEP_SUMMARY, `${renderReport(rows)}\n`);
   }
 
-  const findings = rows.filter((r) => r.level === 'invisible').length;
-  if (findings > 0 && hasFlag('--fail-on-findings')) process.exitCode = 1;
+  // Only `invisible` fails: conflicting-with-checks is visible on the PR itself
+  // and clears when its author merges the base; uncomputed mergeability clears
+  // by itself. An invisible PR clears only when a human is told about it.
+  const invisible = rows.filter((r) => r.level === 'invisible').length;
+  if (invisible > 0 && !hasFlag('--report-only')) {
+    console.error(
+      `\n${invisible} pull request(s) are running zero gates. This is not a flake and ` +
+        'will not clear on its own — merge the base branch into each and resolve. ' +
+        'Re-run with --report-only to report without failing.',
+    );
+    process.exitCode = 1;
+  }
 }
 
 // Only run when invoked directly, so the pure helpers above stay importable.

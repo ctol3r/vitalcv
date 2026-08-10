@@ -116,17 +116,19 @@ describe('renderReport', () => {
     expect(out).toMatch(/re-running checks cannot fix this/i);
   });
 
-  it('never lets a green run read as "no PR is wedged"', () => {
+  it('states plainly what green means, and what red means', () => {
     const clean = renderReport(
       [{ number: 1, title: 't', url: 'u', draft: false, base: 'main', updatedAt: '2026-08-08T00:00:00Z', checkRunCount: -1, level: 'ok' as const }],
       { now: NOW },
     );
     expect(clean).toContain('No PR is currently in the invisible state.');
-    expect(clean).toMatch(/means the sweep executed — never that no PR is wedged/);
+    expect(clean).toMatch(/Green means no PR is in the invisible state/);
+    // And with a finding present, the report says the run failed and why.
+    expect(renderReport(rows, { now: NOW })).toMatch(/This run FAILS because a PR is running zero gates/);
   });
 });
 
-describe('the sweep is a report, not a gate', () => {
+describe('an invisible PR fails the run; nothing else does', () => {
   const workflow = readFileSync(WORKFLOW_PATH, 'utf-8');
   const script = readFileSync(SCRIPT_PATH, 'utf-8');
 
@@ -136,16 +138,26 @@ describe('the sweep is a report, not a gate', () => {
     expect(workflow).toMatch(/workflow_dispatch:/);
   });
 
-  it('does not pass --fail-on-findings on the scheduled path', () => {
-    // The flag appears only inside the guarded manual branch.
-    const scheduled = workflow.split('if [ "${FAIL_ON_FINDINGS:-false}" = "true" ]; then')[1] ?? '';
-    const [manualBranch, elseBranch] = scheduled.split('else');
-    expect(manualBranch).toContain('--fail-on-findings');
-    expect(elseBranch).not.toContain('--fail-on-findings');
+  it('fails on the scheduled path — report-only is the opt-out, not the default', () => {
+    // Regression guard for the reversal: the scheduled path must NOT suppress
+    // the exit code. A green sweep while a PR is silently ungated is the
+    // lying-monitor failure this tool exists to treat.
+    const [manualBranch, elseBranch] = (
+      workflow.split('if [ "${REPORT_ONLY:-false}" = "true" ]; then')[1] ?? ''
+    ).split('else');
+    expect(manualBranch).toContain('--report-only');
+    expect(elseBranch).not.toContain('--report-only');
+  });
+
+  it('only the invisible class drives the exit code', () => {
+    // conflicting-but-gated is visible on the PR; unknown clears itself.
+    expect(script).toMatch(/const invisible = rows\.filter\(\(r\) => r\.level === 'invisible'\)\.length/);
+    expect(script).toMatch(/if \(invisible > 0 && !hasFlag\('--report-only'\)\)/);
+    expect(script).not.toMatch(/level === 'conflicting'[^\n]*exitCode/);
   });
 
   it('reads the dispatch input through env, never interpolated into the shell', () => {
-    expect(workflow).toMatch(/FAIL_ON_FINDINGS:\s*\$\{\{\s*inputs\.fail_on_findings\s*\}\}/);
+    expect(workflow).toMatch(/REPORT_ONLY:\s*\$\{\{\s*inputs\.report_only\s*\}\}/);
     // No `${{ ... }}` inside the run: block's node invocation.
     expect(workflow).not.toMatch(/node scripts\/check-conflicting-prs\.mjs.*\$\{\{/);
   });
