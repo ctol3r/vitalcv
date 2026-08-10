@@ -73,7 +73,14 @@ function ChangeRow({ change }: { change: AcceptanceChange }) {
       {state && change.kind !== 'removed' && (
         <ProvenanceChip
           state={state}
-          timestamp={change.checkedAt ?? undefined}
+          attribution={{
+            // The row already carries the human label; the provenance line
+            // carries the machine source id, which is what identifies WHICH
+            // check moved. `checkedAt` is optional upstream — `null` renders
+            // the words rather than silently dropping the as-of.
+            source: change.sourceId,
+            asOf: change.checkedAt ?? null,
+          }}
           size="sm"
         />
       )}

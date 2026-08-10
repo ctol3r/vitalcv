@@ -154,7 +154,15 @@ export default function FreshnessDesignReferencePage() {
             padding: 16,
           }}
         >
-          <ProvenanceChip state="stale" source="State board" timestamp="2026-06-10T00:00:00Z" detail="38d ago" />
+          <ProvenanceChip
+            state="stale"
+            attribution={{
+              legend: true,
+              source: 'State board',
+              asOf: '2026-06-10T00:00:00Z',
+              detail: '38d ago',
+            }}
+          />
           <div style={{ flex: '1 1 320px', minWidth: 260 }}>
             <FreshnessMeter
               source="State license monitoring"

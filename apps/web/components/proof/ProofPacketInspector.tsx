@@ -190,7 +190,13 @@ export function ProofPacketInspector({ className }: { className?: string }) {
         >
           <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
             <h3 className="m-0 text-[15px] font-semibold text-[var(--vt-text-primary)]">{selected.claim}</h3>
-            <ProvenanceChip state={selected.state} source={selected.source} timestamp={selected.checkedAt} />
+            {/* This inspector is EXPLICITLY illustrative (see the file header),
+                so its chips attribute as examples — never as results about a
+                real provider. */}
+            <ProvenanceChip
+              state={selected.state}
+              attribution={{ legend: true, source: selected.source, asOf: selected.checkedAt }}
+            />
           </div>
           <DetailRow label="Source">
             {selected.source} <span className="font-mono text-[11px] text-[var(--vt-text-muted)]">· {selected.sourceUrl}</span>
