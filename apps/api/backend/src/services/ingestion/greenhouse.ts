@@ -146,6 +146,33 @@ export function normalizeBoardJobs(jobs: GreenhouseJob[], board: string): FeedLi
   return listings;
 }
 
+/**
+ * Take from each board in turn until the budget is spent, so a large employer
+ * cannot crowd out the rest. Exported for testing.
+ */
+export function roundRobin(
+  perBoard: Map<string, FeedListing[]>,
+  limit: number,
+): FeedListing[] {
+  const queues = [...perBoard.values()].map((list) => [...list]);
+  const taken: FeedListing[] = [];
+  let progressed = true;
+
+  while (taken.length < limit && progressed) {
+    progressed = false;
+    for (const queue of queues) {
+      if (taken.length >= limit) break;
+      const next = queue.shift();
+      if (next) {
+        taken.push(next);
+        progressed = true;
+      }
+    }
+  }
+
+  return taken;
+}
+
 export class GreenhouseBoardsConnector implements FeedConnector {
   readonly feed = 'greenhouse';
 
@@ -165,16 +192,25 @@ export class GreenhouseBoardsConnector implements FeedConnector {
   }
 
   async fetch({ limit }: { limit: number }): Promise<FeedFetchResult> {
-    const listings: FeedListing[] = [];
+    /*
+     * Every board is read, then the limit is applied by taking a fair share of
+     * each — never by truncating in roster order.
+     *
+     * The first version broke out of the loop once the running total reached
+     * the limit. `onemedical` alone returns ~339 listings, so it filled the
+     * budget on iteration one and the remaining eleven employers were never
+     * fetched at all: production came up with 188 rows, all from one employer.
+     * Ordering silently decided who existed.
+     *
+     * Reading all twelve is not an unbounded pull — the roster is explicit and
+     * small, which is what bounds this feed. The limit then governs how many
+     * rows are kept, and round-robin means a large employer cannot starve the
+     * rest.
+     */
+    const perBoard = new Map<string, FeedListing[]>();
     let allBoardsSucceeded = true;
 
     for (const board of this.boards) {
-      if (listings.length >= limit) {
-        // Stopped early, so this run has NOT seen the feed's full set.
-        allBoardsSucceeded = false;
-        break;
-      }
-
       try {
         const response = await fetch(`${BOARDS_API}/${encodeURIComponent(board)}/jobs?content=true`, {
           headers: { Accept: 'application/json' },
@@ -187,22 +223,28 @@ export class GreenhouseBoardsConnector implements FeedConnector {
         }
 
         const payload = (await response.json()) as { jobs?: GreenhouseJob[] };
-        listings.push(...normalizeBoardJobs(payload.jobs ?? [], board));
+        perBoard.set(board, normalizeBoardJobs(payload.jobs ?? [], board));
       } catch {
         // One board failing must not let expiry close that board's live rows.
         allBoardsSucceeded = false;
       }
     }
 
+    const total = [...perBoard.values()].reduce((sum, list) => sum + list.length, 0);
+    const listings = total <= limit
+      ? [...perBoard.values()].flat()
+      : roundRobin(perBoard, limit);
+
     return {
-      listings: listings.slice(0, limit),
+      listings,
       /*
        * `complete` gates expiry, which closes every row this run did not see.
-       * It may only be true when every board answered: if one board 500s and
-       * we still claimed completeness, expiry would close that entire
-       * employer's live inventory on the strength of an outage.
+       * True only when every board answered AND nothing was dropped to fit the
+       * limit: if one board 500s, or a fair share left rows behind, expiry
+       * would otherwise close live inventory on the strength of an outage or a
+       * ceiling.
        */
-      complete: allBoardsSucceeded && listings.length <= limit,
+      complete: allBoardsSucceeded && total <= limit,
     };
   }
 }
