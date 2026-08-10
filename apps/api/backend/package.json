@@ -32,7 +32,7 @@
     "@opentelemetry/semantic-conventions": "^1.43.0",
     "@polkadot/api": "^16.5.6",
     "@polkadot/keyring": "^13.5.6",
-    "@prisma/client": "^6.19.2",
+    "@prisma/client": "^7.9.1",
     "@sd-jwt/decode": "^0.19.0",
     "@types/cheerio": "^1.0.0",
     "@types/multer": "^2.2.0",

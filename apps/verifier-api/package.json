@@ -10,7 +10,7 @@
     "test": "vitest"
   },
   "dependencies": {
-    "@prisma/client": "^6.19.2",
+    "@prisma/client": "^7.9.1",
     "@vitalcv/haip-config": "workspace:*",
     "@vitalcv/domain-common": "workspace:*",
     "cors": "^2.8.6",

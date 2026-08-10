@@ -11,7 +11,7 @@
     "test:watch": "echo 'no tests'"
   },
   "dependencies": {
-    "@prisma/client": "^5.7.1",
+    "@prisma/client": "^7.9.1",
     "prisma": "^5.7.1",
     "@simplewebauthn/server": "^9.0.0",
     "bcryptjs": "^2.4.3",
