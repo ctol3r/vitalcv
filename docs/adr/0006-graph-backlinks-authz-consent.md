@@ -1,6 +1,6 @@
 # ADR 0006: Public bidirectional-relationships endpoint — authorization & consent
 
-- **Status:** Proposed — gates the merge of [#748](https://github.com/ctol3r/vitalcv/pull/748) (G4 bidirectional backlinks).
+- **Status:** Accepted (2026-08-10), **as amended by Amendment A below** — gated the merge of [#1316](https://github.com/ctol3r/vitalcv/pull/1316) (G4 bidirectional relationships), which supersedes the closed [#748](https://github.com/ctol3r/vitalcv/pull/748). Read the Decision section together with Amendment A: where they conflict, **Amendment A controls.**
 - **Date:** 2026-07-20
 - **Context basis:** `origin/main`; endpoint under review: `apps/web/app/api/entities/[type]/[id]/relationships/route.ts` (from PR #748).
 - **Deciders:** graph lane + product/policy. BASE-0 (`docs/audits/base-0-current-state-2026-07-20.md` §8) flags #748 **REBASE, then hold for ADR** — "do not merge on CI-green alone."
@@ -37,6 +37,43 @@ Concretely, the merge gate for #748 is:
 
 If, on inspection, `projectEvidenceToGraph`'s backlink edges are **already** all public-derivable, this ADR is satisfied by adding the test that pins that invariant (little code, permanent guarantee). If any backlink edge is **not** independently public, that edge must be gated behind subject/authorized-org auth (the viewer is the subject clinician, or an org with a legitimate relationship) rather than served publicly.
 
+## Amendment A (2026-08-10) — the boundary is node-level, not directional
+
+**Accepted together with the ADR. Where the Decision above conflicts with this, this controls.**
+
+Implementing the Decision exposed a flaw in its central framing. The Decision says ship `outgoing`
+public and constrain `backlinks`. **A disclosure boundary drawn on edge direction is not a boundary**,
+for two independent reasons found in the code:
+
+1. **The sensitive edge is in the `outgoing` half.** `classifyEvidenceClass` maps any `sourceId`
+   containing `npdb` to `peer_review`, and `subjectRelationshipFor('peer_review')` emits `REVIEWED_BY`
+   on a **subject → evidence** edge. Shipping `outgoing` unfiltered — exactly what the Decision
+   proposed — discloses NPDB peer-review to an unauthenticated caller.
+2. **An edge-type filter is porous under `?focus=`.** `?focus=<nodeId>` accepts any node id. Dropping
+   `REVIEWED_BY` by type still leaves the `source:npdb` node reachable; focusing it returns its
+   `VERIFIED_BY` backlinks, re-disclosing precisely what the type filter removed.
+
+**The boundary must therefore be node-level and direction-agnostic:** non-public evidence is dropped
+from the collection *before* projection (`toPublicEvidenceCollection` in
+`apps/web/lib/entity-relationships/public-disclosure.ts`), so the node never exists in either half and
+cannot be reached by any `focus` value.
+
+**Allow-list (public):** 9 evidence classes — identity, licensure, board_cert, registration, exclusion,
+enrollment, research, publication, training → 10 edge types.
+
+**Excluded, with reasons:** `peer_review` (NPDB; never public), and the five employer-side classes
+(privilege, recognition, acceptance, start, employment). The employer-side classes have no producer in
+the passport runtime today; allow-listing them out converts that from an accident into a guarantee, and
+keeps this ADR's "public NPI-keyed endpoint only" scope intact when the demand-side projection is built.
+
+**Default-deny:** a newly added `EvidenceClass` is non-public until explicitly classified, enforced by a
+`Record<EvidenceClass, true>` exhaustiveness test — the compiler fails on an unclassified class rather
+than the class defaulting into the public response.
+
+**Enforcement is injection-proven, not asserted:** replacing the filter with a passthrough fails 4 tests;
+widening the allow-list to include `peer_review` fails 7 across both locks. Requirements 3 (uniform 404,
+`no-store`) and 4 (exact-match `^\d{10}$`) of the Decision are unchanged and still in force.
+
 ## Options considered
 
 | Option | Verdict |
@@ -52,6 +89,14 @@ If, on inspection, `projectEvidenceToGraph`'s backlink edges are **already** all
 - **Cost:** #748 needs the allow-list + one contract test before merge (small); a genuine audit of which backlink edge types `projectEvidenceToGraph` emits.
 - **Follow-on:** when an authenticated, tenant-scoped person/evidence relationship view is built (the richer graph), it is a *separate* authorized surface — this ADR governs only the **public** NPI-keyed endpoint.
 
-## Action for #748
+## Action for #748 — satisfied by #1316
 
-Do not merge on CI-green alone (per BASE-0). Before merge: add the backlink edge-type allow-list + the contract test above; confirm no non-public edge type is in the public response. Then the endpoint may ship public.
+#748 was closed unmerged (2026-08-08) without ever meeting this gate. Its work was re-cut from current
+`main` as [#1316](https://github.com/ctol3r/vitalcv/pull/1316), which satisfies the gate **as amended**:
+the allow-list and its contract tests exist, and the boundary is enforced at the node level per
+Amendment A rather than by edge direction.
+
+The BASE-0 instruction still stands and is not discharged by CI: **do not merge on CI-green alone.** The
+disclosure filter must be exercised live, with the counter-proof — bypass the filter and confirm the
+NPDB edge *reappears*. A clean response with the guard removed means the injection never reached the
+code path under test, not that the guard works.
