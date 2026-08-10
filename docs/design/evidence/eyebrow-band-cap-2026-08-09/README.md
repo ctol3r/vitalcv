@@ -76,10 +76,17 @@ width-reduction PR.**
 - e2e `eyebrow.spec.ts` 18/19; `a11y-public-routes` + `design-kernel` + `home-easy` 63/63;
   `eyebrow-chrome.test.tsx` 16/16; production build green; design-lint PASS (22 rules, no baseline
   raised).
-- **One failure, PRE-EXISTING and not caused by this change:** `eyebrow — mobile recomposition ›
-  the takeover works on mobile` times out opening the menu at 390px. Reproduced identically with
-  `eyebrow.css` reverted to unmodified `origin/main`, single-worker, so it is not a flake and not
-  this wave's. Reported rather than absorbed.
+- **One local failure, since RESOLVED as a harness artifact — not a defect.**
+  `eyebrow — mobile recomposition › the takeover works on mobile` timed out opening the menu at
+  390px. It reproduced single-worker and reproduced identically with `eyebrow.css` reverted to
+  unmodified `origin/main`, which ruled out this branch — but "pre-existing failure" was still the
+  wrong call. `playwright.config.ts` sets `command: isCI ? 'preview:e2e' : 'dev:e2e'`, so **locally
+  the suite serves a DEV build**, and the Next dev-tools overlay (`<nextjs-portal>`) occupies the
+  bottom-left corner where the mobile control cluster pins. `elementFromPoint` at the button's
+  centre (`40,804`) returns `<nextjs-portal>` under `dev`, and the button's own `<i>` under a
+  production build, where `aria-expanded` flips and the takeover renders 390×844. `Web E2E
+  (Playwright)` is green on this head SHA, which runs the production path. Recorded so the next
+  session does not re-chase it.
 
 ## Reproducing
 
