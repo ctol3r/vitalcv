@@ -120,6 +120,32 @@ export const GROUP_LABEL: Record<EvidenceRowKind, string> = {
  * (how a seeded "Sarah Chen" profile rendered as the NPPES identity of a real
  * provider's NPI in production).
  */
+/**
+ * Present an NPPES-returned name the way a person writes it.
+ *
+ * NPPES stores names in upper case ("JACOB AARON"), which is a storage
+ * convention, not the provider's name. Rendering it raw shouts at the
+ * clinician on the one surface meant to feel like recognition.
+ *
+ * This is presentation normalization of a registry value, NOT a truth
+ * change: the same characters, cased. It lives here, exported, because two
+ * surfaces render this same field from this same source — the evidence
+ * capsule's identity header and `buildCareerProfile`'s `displayName` — and
+ * they disagreed until they shared this function. A second copy is how they
+ * drift apart again.
+ *
+ * Known limit, deliberately kept: internal capitals are not reconstructed,
+ * so "MCDONALD" reads "Mcdonald" and "O'BRIEN" reads "O'brien". Guessing
+ * where a capital belongs inside a surname invents information about a real
+ * person; the correction path ("Not you?") and the claim flow are where a
+ * clinician fixes their own name.
+ */
+export function registryDisplayName(raw: string | null | undefined): string | null {
+  const trimmed = raw?.trim();
+  if (!trimmed) return null;
+  return trimmed.replace(/\S+/g, (w) => w[0].toUpperCase() + w.slice(1).toLowerCase());
+}
+
 export function registryIdentity(
   boot: Bootstrap | null,
 ): { name: string | null; detail: string | null; fromRegistry: boolean } {
@@ -132,7 +158,7 @@ export function registryIdentity(
 
   const raw = [boot.firstName, boot.lastName].filter(Boolean).join(' ').trim();
   return {
-    name: raw ? raw.replace(/\S+/g, (w) => w[0].toUpperCase() + w.slice(1).toLowerCase()) : null,
+    name: registryDisplayName(raw),
     detail: [boot.specialty, boot.state].filter(Boolean).join(' · ') || null,
     fromRegistry: true,
   };

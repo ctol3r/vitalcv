@@ -22,6 +22,7 @@
 
 import {
   buildEvidenceCapsule,
+  registryDisplayName,
   rowsOfKind,
   type Bootstrap,
   type EvidenceCapsuleModel,
@@ -78,7 +79,9 @@ export function buildCareerProfile(
 ): ClinicianCareerProfile | null {
   if (!isResolvedIndividual(boot)) return null;
 
-  const displayName = [boot.firstName, boot.lastName].filter(Boolean).join(' ');
+  // Cased by the SAME transform the capsule's identity header uses, so the
+  // two renderings of this one registry field cannot disagree again.
+  const displayName = registryDisplayName([boot.firstName, boot.lastName].filter(Boolean).join(' ')) ?? '';
   const capsule: EvidenceCapsuleModel = buildEvidenceCapsule(npi, boot, trust);
   const answered = rowsOfKind(capsule, 'returned').length;
   /* "Needs review" = attention rows plus lanes no source could answer —
