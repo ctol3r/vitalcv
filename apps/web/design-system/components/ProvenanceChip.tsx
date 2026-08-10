@@ -78,7 +78,8 @@ interface ProvenanceMeta {
 }
 
 /**
- * W1082, ported from `components/vital/StateChip` (UX-02 Step 1).
+ * W1082, ported from `components/vital/StateChip` (UX-02 Step 1). That component
+ * was deleted in Step 4 — this is now the only attributed chip.
  *
  * The chip is ATTRIBUTED, and attribution is required at the type level. A
  * state word without "who answered, and when" is exactly how `checked` got
@@ -104,6 +105,12 @@ export type ProvenanceAttribution =
       source: string;
       /** ISO instant, honest relative phrase, or null → "as-of not recorded". */
       asOf: string | null;
+      /**
+       * Machine ISO instant, for when `asOf` is human-formatted prose
+       * ("Jul 15, 2026"). Keeps `<time datetime>` machine-readable. Omit when
+       * `asOf` is already ISO.
+       */
+      asOfISO?: string;
       /** Extra mono note appended after the as-of (e.g. "no match"). */
       detail?: string;
       legend?: never;
@@ -378,6 +385,7 @@ export function ProvenanceChip({
   // StateChip uses, and what lets a tight inline row adopt the contract
   // without gaining a second line of text.
   const detail = isDeclared ? undefined : attribution.detail;
+  const asOfISO = isDeclared || isLegend ? undefined : attribution.asOfISO;
 
   // `asOf: null` is a statement, not an absence: it renders the words. Only an
   // omitted key (legend form) yields no time node at all.
@@ -388,7 +396,7 @@ export function ProvenanceChip({
   if (ts) {
     provNodes.push(
       asOf ? (
-        <time key="t" dateTime={asOf}>{ts}</time>
+        <time key="t" dateTime={asOfISO ?? asOf}>{ts}</time>
       ) : (
         <span key="t">{ts}</span>
       ),

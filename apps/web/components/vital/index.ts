@@ -5,7 +5,6 @@
 // built on the existing --vt-* tokens.
 
 export { NpiInput, type NpiInputProps } from './NpiInput';
-export { StateChip } from './StateChip';
 
 // ── D-02 scene primitives (docs/design/VITALCV_2026_VISUAL_LANGUAGE.md) ─────
 export { VitalAction, type VitalActionProps } from './VitalAction';
