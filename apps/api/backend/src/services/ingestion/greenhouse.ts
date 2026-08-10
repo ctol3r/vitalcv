@@ -176,6 +176,21 @@ export function roundRobin(
 export class GreenhouseBoardsConnector implements FeedConnector {
   readonly feed = 'greenhouse';
 
+  /**
+   * Above the roster's whole measured size (~835 listings across 12 boards),
+   * so a healthy run sees the feed entire and can report `complete`.
+   *
+   * At the runner's default of 200 this feed truncated on every cycle, so
+   * `complete` was permanently false and expiry never ran — meaning a role
+   * that had been filled and pulled from the employer's board stayed ACTIVE on
+   * VitalCV forever. Showing a filled job as open is the omission this whole
+   * ingestion path is meant to avoid.
+   *
+   * The bound is the roster, which is explicit and changes only by someone
+   * editing BOARDS — not a page count that could run away.
+   */
+  readonly maxListings = 2000;
+
   private readonly boards: readonly string[];
 
   constructor(boards: readonly string[] = BOARDS) {

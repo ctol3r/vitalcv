@@ -184,7 +184,12 @@ export async function ingestFeed(
   let listings: FeedListing[];
   let sweepWasComplete = false;
   try {
-    const result = await connector.fetch({ limit: options.limit ?? DEFAULT_LIMIT });
+    const result = await connector.fetch({
+      // A connector bounded by an explicit roster may raise its own ceiling —
+      // otherwise a feed bigger than DEFAULT_LIMIT truncates every run, never
+      // reports complete, and its stale rows can never expire.
+      limit: options.limit ?? connector.maxListings ?? DEFAULT_LIMIT,
+    });
     listings = result.listings;
     sweepWasComplete = result.complete;
   } catch (error) {

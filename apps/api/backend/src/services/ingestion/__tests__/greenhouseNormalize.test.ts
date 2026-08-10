@@ -184,6 +184,13 @@ describe('normalizeBoardJobs', () => {
   });
 });
 
+const okJobShared = {
+  id: 1,
+  title: 'Registered Nurse',
+  absolute_url: 'https://job-boards.greenhouse.io/a/jobs/1',
+  location: { name: 'Austin, TX' },
+};
+
 describe('GreenhouseBoardsConnector — completeness gates expiry', () => {
   const okJob = {
     id: 1,
@@ -273,6 +280,29 @@ describe('GreenhouseBoardsConnector — completeness gates expiry', () => {
   it('is configured without any credential — the endpoint is public', () => {
     expect(new GreenhouseBoardsConnector().isConfigured()).toBe(true);
     expect(new GreenhouseBoardsConnector([]).isConfigured()).toBe(false);
+  });
+});
+
+describe('completeness is reachable, so expiry can run', () => {
+  afterEach(() => jest.restoreAllMocks());
+
+  it('declares a ceiling above the roster’s whole size', () => {
+    // At the runner's default of 200 this feed truncated every run, so
+    // `complete` was permanently false and expiry never ran — a filled role
+    // would have stayed ACTIVE on VitalCV forever.
+    const connector = new GreenhouseBoardsConnector();
+    expect(connector.maxListings).toBeGreaterThan(835);
+  });
+
+  it('reports complete on a healthy run that keeps everything', async () => {
+    jest.spyOn(global, 'fetch').mockResolvedValue({
+      ok: true,
+      json: async () => ({ jobs: [okJobShared] }),
+    } as unknown as Response);
+
+    const connector = new GreenhouseBoardsConnector(['a', 'b']);
+    const result = await connector.fetch({ limit: connector.maxListings });
+    expect(result.complete).toBe(true);
   });
 });
 

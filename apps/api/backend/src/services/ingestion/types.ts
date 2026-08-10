@@ -61,6 +61,17 @@ export interface FeedConnector {
   isConfigured(): boolean;
   /** Human-readable reason it cannot run, for the operator report. */
   configurationHint(): string;
+  /**
+   * Per-run ceiling for THIS feed, when the default is too low to ever see it
+   * whole. Optional; the runner's default applies when absent.
+   *
+   * This exists because the ceiling and `complete` interact: a feed larger
+   * than its ceiling must truncate, truncation means the run did not see
+   * everything, and `complete: false` blocks expiry — permanently. A feed
+   * bounded by something real (an explicit roster, not a page count) can raise
+   * its own ceiling above that bound so a run can conclude.
+   */
+  readonly maxListings?: number;
   fetch(options: { limit: number }): Promise<FeedFetchResult>;
 }
 
