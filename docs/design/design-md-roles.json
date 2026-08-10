@@ -30,5 +30,10 @@
     "**A semantic colour's meaning is locked, and may not be borrowed for an adjacent state.** If a hue means *source-backed*, it may not also mean *nearly there*; if red means *revoked*, absence stays neutral. Borrowing a state hue for a neighbouring state is how a palette starts lying — it is the same defect as putting a check on a gated source.",
     "**Distinguish ink colours from surface colours, per token.** A hue licensed for data, links, and strokes is not licensed as a large fill. Ink and surface are separate roles; a token that crosses over silently changes how much weight a colour carries on the page.",
     "**Dark and light meet at a hard cut, never a blend.** EC-20 permits a dark public register and *requires* light for evidence artifacts, so the two registers will sit adjacent. Gradients are locked to None, so the transition is a hard edge by construction — treat it as a deliberate seam, not something to soften."
-  ]
+  ],
+  "--vt-font-display": "Fraunces, the SUPERSEDED display face — EC-20 locks Geist. Verified 2026-08-10: narrower than it looks. All four `home.css` consumers are `.film-*` classes and the film variant does NOT render in production, so the homepage is unaffected. Live consumers are `typography.css` (`--font-display`), `matcha-zen.css` (`--mz-serif`), and the authed holder nav. Resolving it is a design ruling, not a bug fix.",
+  "--vt-font-body": "Geist Sans via `next/font/local`, correctly bound to `--font-geist-loaded`. Matches EC-20. Fallback is the system sans stack — the substitute is part of the design, not an implementation detail.",
+  "--vt-glass-bg": "Glass surface tint. EC-20 locks glass treatment to None, so any use on a public surface is a conflict; these tokens survive for scoped islands. Check the island before assuming a defect.",
+  "--vt-shadow-glow": "A glow shadow. EC-20 locks BOTH 'no shadows' and 'Nothing glows', so this token has no lawful public use. The strongest conflict candidate in the set.",
+  "--vt-shape-panel": "24px panel radius against EC-20's locked near-sharp 0–3px. Retained for scoped islands; a public panel reaching for this is a rejection under EC-21."
 }

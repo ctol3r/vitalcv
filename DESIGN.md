@@ -215,7 +215,7 @@ table — the table says what exists, this says what to do.
 
 ## Tokens
 
-Role sentences come from `docs/design/design-md-roles.json`. **8 of 178**
+Role sentences come from `docs/design/design-md-roles.json`. **13 of 178**
 tokens have a documented role; the rest say so plainly rather than inventing one.
 
 | Token | Effective value | Declared in | Role |
@@ -294,11 +294,11 @@ tokens have a documented role; the rest say so plainly rather than inventing one
 | `--vt-focus-ring` | `#E4E3E0` | `styles/themes/index.css` | — *(role not documented)* |
 | `--vt-focus-ring-scene` | `var(--vt-accent-editorial-on-dark)` | `styles/themes/index.css` | — *(role not documented)* |
 | `--vt-focus-ring-scene-paper` | `var(--vt-accent-editorial-on-paper)` | `styles/themes/index.css` | — *(role not documented)* |
-| `--vt-font-body` | `var(--font-geist-loaded, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif)` | `styles/tokens.css` | — *(role not documented)* |
-| `--vt-font-display` | `var(--font-fraunces-loaded, Georgia, 'Times New Roman', serif)` | `styles/tokens.css` | — *(role not documented)* |
+| `--vt-font-body` | `var(--font-geist-loaded, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif)` | `styles/tokens.css` | Geist Sans via `next/font/local`, correctly bound to `--font-geist-loaded`. Matches EC-20. Fallback is the system sans stack — the substitute is part of the design, not an implementation detail. |
+| `--vt-font-display` | `var(--font-fraunces-loaded, Georgia, 'Times New Roman', serif)` | `styles/tokens.css` | Fraunces, the SUPERSEDED display face — EC-20 locks Geist. Verified 2026-08-10: narrower than it looks. All four `home.css` consumers are `.film-*` classes and the film variant does NOT render in production, so the homepage is unaffected. Live consumers are `typography.css` (`--font-display`), `matcha-zen.css` (`--mz-serif`), and the authed holder nav. Resolving it is a design ruling, not a bug fix. |
 | `--vt-frost-bg` | `color-mix(in oklab, var(--vt-scene-panel) 72%, transparent)` | `styles/themes/index.css` | — *(role not documented)* |
 | `--vt-frost-border` | `color-mix(in oklab, var(--vt-scene-text) 12%, transparent)` | `styles/themes/index.css` | — *(role not documented)* |
-| `--vt-glass-bg` | `oklch(1 0 0 / 0.05)` | `styles/vitalTokens.css` | — *(role not documented)* |
+| `--vt-glass-bg` | `oklch(1 0 0 / 0.05)` | `styles/vitalTokens.css` | Glass surface tint. EC-20 locks glass treatment to None, so any use on a public surface is a conflict; these tokens survive for scoped islands. Check the island before assuming a defect. |
 | `--vt-glass-divider` | `oklch(1 0 0 / 0.05)` | `styles/vitalTokens.css` | — *(role not documented)* |
 | `--vt-glass-ring` | `oklch(1 0 0 / 0.10)` | `styles/vitalTokens.css` | — *(role not documented)* |
 | `--vt-glass-ring-faint` | `oklch(1 0 0 / 0.06)` | `styles/vitalTokens.css` | — *(role not documented)* |
@@ -351,7 +351,7 @@ tokens have a documented role; the rest say so plainly rather than inventing one
 | `--vt-severity-low` | `#71717a` | `styles/themes/index.css` | — *(role not documented)* |
 | `--vt-severity-medium` | `#3b82f6` | `styles/themes/index.css` | — *(role not documented)* |
 | `--vt-shadow-card` | `0 14px 32px rgb(26 34 40 / 0.05), 0 2px 10px rgb(26 34 40 / 0.03)` | `styles/tokens.css` | — *(role not documented)* |
-| `--vt-shadow-glow` | `0 0 30px oklch(0.55 0.20 255 / 0.3)` | `styles/vitalTokens.css` | — *(role not documented)* |
+| `--vt-shadow-glow` | `0 0 30px oklch(0.55 0.20 255 / 0.3)` | `styles/vitalTokens.css` | A glow shadow. EC-20 locks BOTH 'no shadows' and 'Nothing glows', so this token has no lawful public use. The strongest conflict candidate in the set. |
 | `--vt-shadow-lg` | `0 16px 32px -8px oklch(0 0 0 / 0.06), 0 8px 16px -4px oklch(0 0 0 / 0.03)` | `styles/vitalTokens.css` | — *(role not documented)* |
 | `--vt-shadow-md` | `0 8px 16px -4px oklch(0 0 0 / 0.04), 0 4px 8px -2px oklch(0 0 0 / 0.02)` | `styles/vitalTokens.css` | — *(role not documented)* |
 | `--vt-shadow-pill` | `0 1px 2px rgb(26 34 40 / 0.04)` | `styles/tokens.css` | — *(role not documented)* |
@@ -359,7 +359,7 @@ tokens have a documented role; the rest say so plainly rather than inventing one
 | `--vt-shadow-soft` | `0 20px 48px rgb(26 34 40 / 0.06), 0 6px 18px rgb(26 34 40 / 0.04)` | `styles/tokens.css` | — *(role not documented)* |
 | `--vt-shape-card` | `20px` | `styles/themes/index.css` | — *(role not documented)* |
 | `--vt-shape-control` | `10px` | `styles/themes/index.css` | — *(role not documented)* |
-| `--vt-shape-panel` | `24px` | `styles/themes/index.css` | — *(role not documented)* |
+| `--vt-shape-panel` | `24px` | `styles/themes/index.css` | 24px panel radius against EC-20's locked near-sharp 0–3px. Retained for scoped islands; a public panel reaching for this is a rejection under EC-21. |
 | `--vt-shape-pill` | `9999px` | `styles/themes/index.css` | — *(role not documented)* |
 | `--vt-spacing-2xl` | `3rem` | `styles/vitalTokens.css` | — *(role not documented)* |
 | `--vt-spacing-lg` | `1.5rem` | `styles/vitalTokens.css` | — *(role not documented)* |
