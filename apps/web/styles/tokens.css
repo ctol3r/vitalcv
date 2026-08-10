@@ -73,6 +73,10 @@
    *
    * The homepage patched this locally first; that override asked for the
    * correction to be made at source as its own reviewable change. This is it.
+   *
+   * Surfaced a second time by UX-02 Step 3: the moment /trust adopted the
+   * canonical chip, its `gated` register rendered the same cool ink, and
+   * `doctrine-visual` failed on /trust as well as /.
    */
   --vt-badge-access-text: #676257;
   --vt-badge-unavailable-bg: #F5EDED;

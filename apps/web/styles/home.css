@@ -53,20 +53,15 @@
   --film-ease-exit: cubic-bezier(0.4, 0, 1, 1);
 
   /*
-   * CD-4 correction, deliberately scoped to this route.
+   * CD-4 correction RETIRED — the global token is now correct.
    *
-   * `--vt-badge-access-text` ships as #6B6F75 — a blue-leaning grey — and
-   * `ProvenanceChip`'s `gated` register renders it. Three "Access required"
-   * chips therefore put cool ink on the warmest surface in the product, and
-   * `doctrine-visual` caught it the moment the homepage adopted the canonical
-   * chip. #676257 is the warm grey CD-5 already assigns to the access state.
-   *
-   * The token itself is wrong product-wide and should be corrected at source,
-   * but doing that here would silently restyle five other mounted surfaces
-   * inside a homepage PR. This override fixes what this page renders; the
-   * global correction is its own reviewable change.
+   * This route used to override `--vt-badge-access-text` because the shipped
+     * value was a blue-leaning grey that ProvenanceChip's `gated`
+   * register rendered as ink. That override asked for the fix to be made at
+   * source as its own reviewable change; UX-02 Step 3 is that change, and
+   * styles/tokens.css now ships #676257 product-wide. The override was
+   * identical to the global value, so removing it changes no pixel here.
    */
-  --vt-badge-access-text: #676257;
 
   position: relative;
   background: var(--film-paper);
