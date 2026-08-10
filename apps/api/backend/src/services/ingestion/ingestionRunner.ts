@@ -17,7 +17,7 @@ import prisma from '../../graphql/prisma_client';
 import { log } from '../../obs/logger';
 import { isClinicalRole } from './clinicalRelevance';
 import { GreenhouseBoardsConnector } from './greenhouse';
-import type { FeedConnector, FeedListing, IngestionReport } from './types';
+import { SPECIALTY_NOT_STATED, type FeedConnector, type FeedListing, type IngestionReport } from './types';
 import { UsaJobsConnector } from './usajobs';
 
 export const FEED_CONNECTORS: FeedConnector[] = [
@@ -231,7 +231,7 @@ export async function ingestFeed(
         title: listing.title,
         // The feed's own classification, or a neutral placeholder — never a
         // specialty inferred from the job title.
-        specialty: listing.specialty ?? 'Not stated',
+        specialty: listing.specialty ?? SPECIALTY_NOT_STATED,
         hiringType: 'perm',
         state: listing.state as string,
         payRange: null,
