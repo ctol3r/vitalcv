@@ -64,7 +64,11 @@ export const SITEMAP_ROUTES: readonly SitemapRoute[] = [
   // 2026-08-08 audit: these were live public pages the sitemap omitted —
   // including /explore, which the stale comment above called a 404.
   { path: '/explore', source: 'app/explore', lastModified: '2026-08-09', changeFrequency: 'daily', priority: 0.8 },
-  { path: '/docs', source: 'app/docs', lastModified: '2026-08-09', changeFrequency: 'monthly', priority: 0.3 },
+  // /docs is intentionally ABSENT — deindexed by founder ruling D-B (2026-08-09).
+  // It renders twelve FOUNDATION PLANNED entries; honest for a visitor we sent
+  // there, wrong to publish to search. Its `robots: { index: false }` lives in
+  // app/docs/page.tsx. Restore this row together with that directive, never
+  // alone — a sitemap entry plus a noindex is a contradiction.
   { path: '/evidence-network', source: 'app/evidence-network', lastModified: '2026-08-02', changeFrequency: 'monthly', priority: 0.5 },
   { path: '/trust/attribution', source: 'app/trust/attribution', lastModified: '2026-08-09', changeFrequency: 'monthly', priority: 0.5 },
   { path: '/privacy', source: 'app/privacy', lastModified: '2026-07-13', changeFrequency: 'monthly', priority: 0.3 },
