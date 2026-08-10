@@ -25,6 +25,20 @@ export { OfflineBanner } from './OfflineBanner';
 export { EmptyState } from './EmptyState';
 export { SkeletonStack } from './SkeletonStack';
 
+// ── ILL-03 the Living Evidence Record illustration kit ──────────────────────
+// Static illustration only; the Z0 anatomy is its definition of record. Kept in
+// a subdirectory because it is artwork, not a product primitive — a call site
+// reaching for a record face should have to say so.
+export {
+  LivingRecord,
+  IllustrationLabel,
+  SourceKiosk,
+  ReviewDesk,
+  type LivingRecordProps,
+  type SourceKioskKind,
+  type ImplementedFace,
+} from './record';
+
 export {
   type EvidenceState,
   type EvidenceTone,
