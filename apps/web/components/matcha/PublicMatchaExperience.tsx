@@ -137,7 +137,7 @@ export function PublicMatchaExperience() {
       {/* Left: the conversation */}
       <div className="mz-card mz-card-pad" style={{ minHeight: 260 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-          <span className="mz-eyebrow">Try MATCHA</span>
+          <span className="mz-eyebrow">Try matching</span>
           {answeredCount > 0 ? (
             <button
               type="button"
@@ -197,11 +197,11 @@ export function PublicMatchaExperience() {
                 That&rsquo;s the idea.
               </p>
               <p className="mz-body" style={{ marginTop: 10 }}>
-                With your profile, MATCHA keeps learning and works in the background — scoring real
+                With your profile, matching keeps learning and works in the background — scoring real
                 roles on your source-backed readiness, not just what you typed here.
               </p>
               <Link href="/holder/matcha" className="mz-btn" style={{ marginTop: 18 }}>
-                Let MATCHA work for you <ArrowRight size={16} />
+                See your matches <ArrowRight size={16} />
               </Link>
             </motion.div>
           )}
@@ -210,11 +210,11 @@ export function PublicMatchaExperience() {
 
       {/* Right: the live reflection */}
       <div className="mz-card mz-card-pad mz-inset" style={{ minHeight: 260 }}>
-        <span className="mz-eyebrow">MATCHA understands you</span>
+        <span className="mz-eyebrow">What we know about you</span>
 
         {derived.insights.length === 0 ? (
           <p className="mz-body" style={{ marginTop: 16 }}>
-            Tap an answer and watch MATCHA reflect it back — always tied to exactly what you said,
+            Tap an answer and watch it reflect back — always tied to exactly what you said,
             never guessed.
           </p>
         ) : (
@@ -230,7 +230,7 @@ export function PublicMatchaExperience() {
                 >
                   <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--ink-900)' }}>{insight.label}</span>
                   <span className="mz-mono" style={{ fontSize: 10, color: 'var(--ink-500)' }}>
-                    because you told MATCHA: {insight.provenance.join(', ').replace(/([A-Z])/g, ' $1').toLowerCase()}
+                    because you told us: {insight.provenance.join(', ').replace(/([A-Z])/g, ' $1').toLowerCase()}
                   </span>
                 </motion.li>
               ))}
@@ -241,7 +241,7 @@ export function PublicMatchaExperience() {
                 <p className="mz-mono" style={{ margin: '0 0 10px', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--ink-400)' }}>
                   Example role · illustration only
                 </p>
-                <MatchaExplanation reasons={exampleReasons} title="Why MATCHA would surface this" />
+                <MatchaExplanation reasons={exampleReasons} title="Why this would be surfaced" />
               </div>
             ) : null}
           </>

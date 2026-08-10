@@ -58,17 +58,17 @@ export function MatchaExperienceShowcase() {
       {/* Preview banner */}
       <div className="mz-inset" style={{ padding: '12px 16px', borderRadius: 4 }}>
         <span className="mz-mono" style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--ink-500)' }}>
-          Preview · sample clinician · this is what MATCHA looks like when it&rsquo;s yours
+          Preview · sample clinician · this is what matching looks like when it&rsquo;s yours
         </span>
       </div>
 
       {/* Greeting */}
       <div>
-        <p className="mz-eyebrow">Your MATCHA</p>
+        <p className="mz-eyebrow">Your matches</p>
         <h1 className="mz-display" style={{ marginTop: 12, fontSize: 34 }}>
           Welcome back, <span className="mz-accent">Dr. Rivera</span>.
         </h1>
-        <p className="mz-lede" style={{ marginTop: 10 }}>MATCHA is 62% tuned to you. Here&rsquo;s what moved.</p>
+        <p className="mz-lede" style={{ marginTop: 10 }}>Matching is 62% tuned to you. Here&rsquo;s what moved.</p>
       </div>
 
       {/* Daily brief — presentational, sample data, shown in its "new day" state */}
@@ -87,7 +87,7 @@ export function MatchaExperienceShowcase() {
 
       {/* An opportunity intelligence card */}
       <div>
-        <p className="mz-eyebrow" style={{ marginBottom: 10 }}>An opportunity MATCHA found</p>
+        <p className="mz-eyebrow" style={{ marginBottom: 10 }}>An opportunity we found</p>
         <OpportunityIntelligenceCard opportunity={SAMPLE_OPP} explanation={SAMPLE_EXPLANATION} />
       </div>
 
@@ -114,7 +114,7 @@ export function MatchaExperienceShowcase() {
         <p className="mz-body" style={{ margin: 0 }}>
           Signed in, this is built from <strong>your</strong> real evidence and live matches — not sample data.
         </p>
-        <a href="/holder/matcha" className="mz-btn" style={{ marginTop: 14 }}>Let MATCHA work for you</a>
+        <a href="/holder/matcha" className="mz-btn" style={{ marginTop: 14 }}>See your matches</a>
       </div>
     </div>
   );
