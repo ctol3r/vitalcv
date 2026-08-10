@@ -83,6 +83,63 @@ test.describe('eyebrow — desktop', () => {
     expect(Math.round(lastAfter!.x + lastAfter!.width)).toBe(1440 - 30);
   });
 
+  /**
+   * Every other desktop assertion here runs at 1440 — BELOW the reference's
+   * cap — which is exactly how the first rebuild shipped a chrome that kept
+   * growing to the edge of a large display. The cap is invisible at 1440 by
+   * construction, so it has to be measured where it bites.
+   *
+   * Reference, re-probed 2026-08-09 (headless, consent node removed):
+   *   vp 1280 → 1260 @ x10 · 1440 → 1420 @ x10 · 1512 → 1480 @ x16
+   *   vp 1728 → 1480 @ x124 · 1920 → 1480 @ x220 · 2560 → 1480 @ x540
+   */
+  test('the rectangle stops growing at 1480 and centres — instruments ride the band', async ({ page }) => {
+    for (const width of [1512, 1728, 1920, 2560]) {
+      await page.setViewportSize({ width, height: 900 });
+      await expect(brand(page)).toBeVisible();
+
+      const shape = await page.locator('.vcv-eb__shape').boundingBox();
+      expect(Math.round(shape!.width), `shape width @${width}`).toBe(1480);
+      // Centred: the two side gutters are equal, not merely "inset".
+      const leftGutter = Math.round(shape!.x);
+      const rightGutter = Math.round(width - (shape!.x + shape!.width));
+      expect(leftGutter, `left gutter @${width}`).toBe(rightGutter);
+      expect(leftGutter, `band inset @${width}`).toBe(Math.round((width - 1480) / 2));
+
+      // The instruments ride the band, not the viewport: 20px inside each edge.
+      const wordmark = await page.locator('.vcv-eb__wordmark').boundingBox();
+      expect(Math.round(wordmark!.x), `wordmark @${width}`).toBe(leftGutter + 20);
+
+      const lastInstr = await page.locator('.vcv-eb__instr').last().boundingBox();
+      expect(
+        Math.round(width - (lastInstr!.x + lastInstr!.width)),
+        `cluster right edge @${width}`,
+      ).toBe(rightGutter + 20);
+    }
+
+    // Below the cap the band is the plain 10px inset it always was.
+    await page.setViewportSize({ width: 1440, height: 900 });
+    const uncapped = await page.locator('.vcv-eb__shape').boundingBox();
+    expect(Math.round(uncapped!.x)).toBe(10);
+    expect(Math.round(uncapped!.width)).toBe(1420);
+  });
+
+  test('the takeover rides the same band as the chrome above it', async ({ page }) => {
+    await page.setViewportSize({ width: 1920, height: 1000 });
+    await expect(brand(page)).toBeVisible();
+    await openMenu(page);
+
+    // Reference at 1920: columns open at 240 and the last one closes at 240.
+    const cols = page.locator('.vcv-eb-menu__col');
+    const count = await cols.count();
+    expect(count).toBeGreaterThan(0);
+
+    const first = await cols.first().boundingBox();
+    const last = await cols.last().boundingBox();
+    expect(Math.round(first!.x)).toBe(240);
+    expect(Math.round(1920 - (last!.x + last!.width))).toBe(240);
+  });
+
   test('the chrome is a wide rounded rectangle, inset and frosted, and never eats a click', async ({ page }) => {
     const shape = page.locator('.vcv-eb__shape');
     const box = await shape.boundingBox();
