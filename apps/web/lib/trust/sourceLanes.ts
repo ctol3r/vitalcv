@@ -9,6 +9,7 @@
  *   2. `app/api/status/route.ts`      → the public /api/status JSON
  *   3. `lib/status/sourceOps.ts`      → internal ops panels
  *   4. `components/home/MetricStrip`  → the homepage `03 federal source lanes`
+ *      (component retired and deleted 2026-08-09; recoverable from history)
  *
  * (2), (3) and (4) agreed that three lanes are live. (1) did not: it marked OIG
  * `partial` and omitted PECOS entirely, so the public /status page under-reported

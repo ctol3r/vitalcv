@@ -1,6 +1,6 @@
 {
   "generatedAgainst": "local",
-  "total": 115,
+  "total": 100,
   "entries": {
     "apps/web/app/concierge/page.tsx::2::packet": 8,
     "apps/web/app/demo/page.tsx::2::packet": 3,
@@ -38,14 +38,6 @@
     "apps/web/components/home/journey.ts::2::packet": 3,
     "apps/web/components/home/journey.ts::2::receipt": 2,
     "apps/web/components/home/journey.ts::2::recognition": 2,
-    "apps/web/components/home/MetricStrip.tsx::1::wallet": 1,
-    "apps/web/components/home/MetricStrip.tsx::2::snapshot": 1,
-    "apps/web/components/home/OutcomeTriad.tsx::1::wallet": 1,
-    "apps/web/components/home/OutcomeTriad.tsx::2::packet": 1,
-    "apps/web/components/home/ProductCarousel.tsx::1::wallet": 3,
-    "apps/web/components/home/ProductCarousel.tsx::2::packet": 3,
-    "apps/web/components/home/ProductCarousel.tsx::2::receipt": 2,
-    "apps/web/components/home/ProductCarousel.tsx::2::recognition": 3,
     "apps/web/components/intelligence-workspace/SpatialIntelligenceWorkspace.tsx::1::trust graph": 1,
     "apps/web/components/intelligence/CommandCenterDashboard.tsx::1::dossier": 1,
     "apps/web/components/intelligence/GraphPanel.tsx::1::trust graph": 2,
