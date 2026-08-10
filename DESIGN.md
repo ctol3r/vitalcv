@@ -34,6 +34,20 @@ specificity, so this list is the precedence:
 
 **267 declarations across 4 files, 178 distinct tokens.**
 
+### Route-scoped token files (outside the global cascade)
+
+Imported directly by a route component, not by `app/globals.css`. They load **after** the
+global cascade on the routes that pull them in, so they override — but only there.
+They are listed separately rather than ranked, because a global precedence number for a
+per-route override would state a cascade that does not exist.
+
+| File | `--vt-*` declarations |
+|---|---|
+| `apps/web/styles/wave1501-home.css` | 47 |
+
+**47 further declarations** live here and are invisible to the global
+precedence table above.
+
 ## Collisions — one declaration silently overriding another
 
 Same token, **same selector**, different value, in more than one file. Theme variants

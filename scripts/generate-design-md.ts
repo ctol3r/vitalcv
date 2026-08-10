@@ -30,7 +30,7 @@
  * Usage:  node --experimental-strip-types scripts/generate-design-md.ts [--check]
  *         --check exits 1 if the committed DESIGN.md is stale.
  */
-import { readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync, readdirSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 
 const REPO = join(import.meta.dirname, '..');
@@ -81,9 +81,42 @@ function declarationsIn(fileRel: string, order: number): Decl[] {
   return out;
 }
 
+/** Every .css under apps/web, so route-scoped files cannot hide. */
+function allCssFiles(dir: string, acc: string[] = []): string[] {
+  for (const name of readdirSync(dir)) {
+    if (name === 'node_modules' || name === '.next' || name.startsWith('.next.bak')) continue;
+    const abs = join(dir, name);
+    if (statSync(abs).isDirectory()) allCssFiles(abs, acc);
+    else if (name.endsWith('.css')) acc.push(relative(WEB, abs));
+  }
+  return acc;
+}
+
 function main(): void {
   const order = importOrder();
+
+  /**
+   * Route-scoped token files — declared in CSS that a ROUTE COMPONENT imports
+   * directly rather than through `app/globals.css`.
+   *
+   * Missing these was a real defect in the first cut of this script: scanning
+   * only the globals `@import` chain hid 48 declarations, including all of
+   * `wave1501-home.css`. Route-scoped CSS loads AFTER the global cascade on the
+   * routes that import it, so those are precisely the declarations most likely
+   * to override — the opposite of safe to omit.
+   *
+   * They are reported separately and NOT folded into the global precedence
+   * order, because their precedence is per-route: a token they override wins
+   * only on the routes that pull them in. Ranking them globally would state a
+   * cascade that does not exist.
+   */
+  const scoped = allCssFiles(WEB)
+    .filter((f) => !order.includes(f))
+    .filter((f) => declarationsIn(f, 0).length > 0)
+    .sort();
+
   const decls = order.flatMap((f, i) => declarationsIn(f, i));
+  const scopedDecls = scoped.flatMap((f) => declarationsIn(f, -1));
 
   const byToken = new Map<string, Decl[]>();
   for (const d of decls) {
@@ -212,6 +245,24 @@ function main(): void {
   fileCounts.forEach(({ f, n }, i) => L.push(`| ${i + 1} | \`apps/web/${f}\` | ${n} |`));
   L.push('');
   L.push(`**${decls.length} declarations across ${fileCounts.length} files, ${tokens.length} distinct tokens.**`);
+  L.push('');
+  L.push('### Route-scoped token files (outside the global cascade)');
+  L.push('');
+  L.push('Imported directly by a route component, not by `app/globals.css`. They load **after** the');
+  L.push('global cascade on the routes that pull them in, so they override — but only there.');
+  L.push('They are listed separately rather than ranked, because a global precedence number for a');
+  L.push('per-route override would state a cascade that does not exist.');
+  L.push('');
+  if (scoped.length === 0) {
+    L.push('None.');
+  } else {
+    L.push('| File | `--vt-*` declarations |');
+    L.push('|---|---|');
+    for (const f of scoped) L.push(`| \`apps/web/${f}\` | ${declarationsIn(f, 0).length} |`);
+    L.push('');
+    L.push(`**${scopedDecls.length} further declarations** live here and are invisible to the global`);
+    L.push('precedence table above.');
+  }
   L.push('');
   L.push('## Collisions — one declaration silently overriding another');
   L.push('');
