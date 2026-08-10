@@ -158,3 +158,68 @@ describe('middleware preview fallback', () => {
     expect(response.headers.get('location')).toContain('redirect_url=%2Fholder');
   });
 });
+
+/**
+ * The return destination has to survive sign-in WHOLE — path and query.
+ *
+ * `redirect_url` used to carry the pathname alone. That is invisible on a gated
+ * page whose path is its whole address, and silently destructive on one whose
+ * subject travels in the query: `/holder/garden/notes?note=<id>` selects a
+ * note, and a signed-out visitor following that link came back to the index
+ * with the note gone.
+ */
+describe('sign-in preserves the whole return destination', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.resetModules();
+    vi.stubEnv('CLERK_SECRET_KEY', '');
+  });
+
+  /** The `redirect_url` the middleware actually sent, decoded. */
+  async function redirectUrlFor(path: string): Promise<string | null> {
+    const middlewareModule = await import('../middleware');
+    const req = new NextRequest(`http://localhost:3000${path}`);
+    const response = await middlewareModule.default(req, {} as never);
+    const location = response.headers.get('location') ?? '';
+    return new URL(location, 'http://localhost:3000').searchParams.get('redirect_url');
+  }
+
+  it('keeps a deep link to a specific garden note', async () => {
+    expect(await redirectUrlFor('/holder/garden/notes?note=abc123')).toBe(
+      '/holder/garden/notes?note=abc123',
+    );
+  });
+
+  it('keeps every parameter, not just the first', async () => {
+    expect(await redirectUrlFor('/holder/garden/notes?note=abc123&grow=1')).toBe(
+      '/holder/garden/notes?note=abc123&grow=1',
+    );
+  });
+
+  it('still works for a path with no query at all', async () => {
+    expect(await redirectUrlFor('/holder')).toBe('/holder');
+  });
+
+  it('does not leave the destination’s parameters loose on the sign-in URL', async () => {
+    const middlewareModule = await import('../middleware');
+    const req = new NextRequest('http://localhost:3000/holder/garden/notes?note=abc123');
+    const response = await middlewareModule.default(req, {} as never);
+
+    const url = new URL(response.headers.get('location') ?? '', 'http://localhost:3000');
+    // The clone carries the original query; exactly one parameter must survive,
+    // and it must be the destination — `note` must not also sit on /sign-in.
+    expect([...url.searchParams.keys()]).toEqual(['redirect_url']);
+  });
+
+  it('sends a relative destination, never an absolute one', async () => {
+    const middlewareModule = await import('../middleware');
+    const req = new NextRequest('http://localhost:3000/holder?next=https://evil.example.com');
+    const response = await middlewareModule.default(req, {} as never);
+
+    const url = new URL(response.headers.get('location') ?? '', 'http://localhost:3000');
+    // Built from this request's own path and query, so no crafted parameter can
+    // turn it into an off-site bounce.
+    expect(url.searchParams.get('redirect_url')?.startsWith('/holder')).toBe(true);
+    expect(url.origin).toBe('http://localhost:3000');
+  });
+});
