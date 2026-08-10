@@ -260,6 +260,43 @@ describe('Living Evidence Record — truth review (EC-25)', () => {
     expect(html).toContain(ILLUSTRATION_LABEL);
   });
 
+  it('renders no two faces identically', () => {
+    // The defect this exists for: `arrived` and `reviewed` shipped pixel-
+    // identical. Every other assertion passed, because they all check anatomy
+    // — and the anatomy WAS right. What was wrong is that two distinct states
+    // were indistinguishable, which means the state was carried by nothing.
+    // Compare what the face LOOKS like, not what it calls itself. The first
+    // version of this guard compared raw markup and could never fail, because
+    // `data-face={face}` makes every face's markup unique whether or not any
+    // pixel differs — a test asserting the mechanism instead of the closure.
+    // Injecting the original defect is what exposed it: only one of the two
+    // new guards fired.
+    const appearance = (face: (typeof IMPLEMENTED_FACES)[number]) =>
+      renderToStaticMarkup(<LivingRecord face={face} />).replace(/ data-face="[^"]*"/g, '');
+
+    const seen = new Map<string, string>();
+    for (const face of IMPLEMENTED_FACES) {
+      const html = appearance(face);
+      const twin = seen.get(html);
+      expect(
+        twin,
+        `faces "${face}" and "${twin}" render identically — the state is carried by nothing`,
+      ).toBeUndefined();
+      seen.set(html, face);
+    }
+    expect(seen.size).toBe(IMPLEMENTED_FACES.length);
+  });
+
+  it('uses every state it declares', () => {
+    // `reviewing` sat declared and unwired, which is how the twin faces got
+    // through. A vocabulary with a dead word is a vocabulary that is lying
+    // about its own size.
+    const all = IMPLEMENTED_FACES.map((f) => renderToStaticMarkup(<LivingRecord face={f} />)).join('');
+    for (const [state, { word }] of Object.entries(ILLUSTRATIVE_STATES)) {
+      expect(all, `state "${state}" is declared but no face uses it`).toContain(word);
+    }
+  });
+
   it('labels itself as an illustration', () => {
     expect(renderToStaticMarkup(<IllustrationLabel />)).toContain(ILLUSTRATION_LABEL);
     expect(ILLUSTRATION_LABEL.toLowerCase()).toContain('not a live result');

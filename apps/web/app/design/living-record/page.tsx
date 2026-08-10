@@ -1,7 +1,6 @@
 import type { Metadata } from 'next';
 
 import {
-  ClinicianFigure,
   ConsentGate,
   IllustrationLabel,
   LivingRecord,
@@ -140,7 +139,6 @@ export default function LivingRecordHarness() {
           </Specimen>
 
           <Specimen label="Consent gate, holder, and the record">
-            <ClinicianFigure />
             <LivingRecord face="returned" />
             <ConsentGate />
             <LivingRecord face="arrived" variant="recipient" />

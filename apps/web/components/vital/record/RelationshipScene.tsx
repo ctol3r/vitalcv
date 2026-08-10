@@ -2,7 +2,6 @@
 
 import * as React from 'react';
 
-import { ClinicianFigure } from './ClinicianFigure';
 import { ConsentGate } from './ConsentGate';
 import { IllustrationLabel, LivingRecord } from './LivingRecord';
 import { ReviewDesk } from './ReviewDesk';
@@ -258,20 +257,23 @@ export function RelationshipScene() {
       {/* ── the composition ─────────────────────────────────────────────── */}
       <div className="mt-6 grid grid-cols-1 items-start gap-8 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.15fr)_minmax(0,1fr)] lg:gap-6">
         <div className="flex flex-col gap-3" style={zone('issuer')}>
-          <ZoneLabel n="02">Trusted sources add facts</ZoneLabel>
+          <ZoneLabel>Trusted sources add facts</ZoneLabel>
           <SourceKiosk kind="training" />
           <SourceKiosk kind="licensing" />
           <SourceKiosk kind="certification" />
         </div>
 
         <div className="flex flex-col gap-4" style={zone('holder')}>
-          <ZoneLabel n="01">You, and the record you hold</ZoneLabel>
-          <div className="flex items-end gap-3">
-            <ClinicianFigure />
-            <div className="flex items-stretch gap-3">
-              <LivingRecord face="returned" caption="Facts arrive. Open slots stay open." />
-              <ConsentGate />
-            </div>
+          <ZoneLabel>You, and the record you hold</ZoneLabel>
+          {/* The holder is present as the record and the gate, not as a figure.
+              A clinician silhouette was drawn here and removed at design
+              review: it was a supporting glyph carrying no meaning the zone
+              label did not already carry, it cost an EC-27 departure, and its
+              round head was the only fully-round form in a kit whose geometry
+              law is near-sharp stamps with pills retired. */}
+          <div className="flex items-stretch gap-3">
+            <LivingRecord face="returned" caption="Facts arrive. Open slots stay open." />
+            <ConsentGate />
           </div>
           <LivingRecord
             face="deciding"
@@ -280,7 +282,7 @@ export function RelationshipScene() {
         </div>
 
         <div className="flex flex-col gap-3" style={zone('verifier')}>
-          <ZoneLabel n="03">Employer review</ZoneLabel>
+          <ZoneLabel>Employer review</ZoneLabel>
           <LivingRecord
             face="arrived"
             variant="recipient"
@@ -298,12 +300,21 @@ export function RelationshipScene() {
   );
 }
 
-function ZoneLabel({ n, children }: { n: string; children: React.ReactNode }) {
+/**
+ * The zones carry no numeral. They did, and on screen the three columns read
+ * "02, 01, 03" left to right, which looks like a mistake to anyone who has not
+ * read the code.
+ *
+ * The arrangement is spatial, not sequential: sources sit left because they
+ * feed INTO the record, the employer sits right because it receives FROM it,
+ * and the holder is centre because the whole thesis is that the record is the
+ * middle of this picture. Numbering that arrangement fights it. The sequence
+ * is real, but it belongs to the 01–05 prose list underneath — which is the
+ * transcript EC-26 already requires to carry the meaning.
+ */
+function ZoneLabel({ children }: { children: React.ReactNode }) {
   return (
-    <h3 className="flex items-baseline gap-2 font-mono text-[10px] uppercase tracking-[0.08em] text-[var(--vt-scene-text-secondary)]">
-      {/* The numeral is always visible, not only under reduced motion — the
-          sequence is part of the meaning and should not depend on a media query. */}
-      <span className="text-[var(--vt-scene-text-tertiary)]">{n}</span>
+    <h3 className="font-mono text-[10px] uppercase tracking-[0.08em] text-[var(--vt-scene-text-secondary)]">
       {children}
     </h3>
   );

@@ -56,9 +56,21 @@ const FACE_ROWS: Record<ImplementedFace, ClaimRow[]> = {
     { claim: 'Identity', state: 'answered' },
     { claim: 'Registration', state: 'answered' },
   ],
+  /**
+   * `reviewed` differs from `arrived` by the employer's mark, not by content.
+   * Measured side by side, the first cut of these two faces was pixel-
+   * identical — the state was carried by nothing, and the anatomy tests missed
+   * it because they assert structure rather than distinguishability.
+   *
+   * The mark is the question the desk is already asking ("Can you confirm the
+   * dates on one of these?"), landing on the row it is about. `In review` is
+   * the employer holding a row open, which is the one thing that has actually
+   * happened. It is not an outcome: no face in this kit may say cleared,
+   * accepted, or declined, because the employer decides and this is a drawing.
+   */
   reviewed: [
     { claim: 'Identity', state: 'answered' },
-    { claim: 'Registration', state: 'answered' },
+    { claim: 'Registration', state: 'reviewing' },
   ],
 };
 

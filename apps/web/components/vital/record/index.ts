@@ -14,7 +14,6 @@ export { LivingRecord, IllustrationLabel, type LivingRecordProps } from './Livin
 export { SourceKiosk, type SourceKioskKind, type SourceKioskProps } from './SourceKiosk';
 export { ReviewDesk, type ReviewDeskProps } from './ReviewDesk';
 export { ConsentGate, type ConsentGateProps } from './ConsentGate';
-export { ClinicianFigure, type ClinicianFigureProps } from './ClinicianFigure';
 export { RelationshipScene } from './RelationshipScene';
 export {
   RECORD_FACES,

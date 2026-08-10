@@ -84,21 +84,31 @@ product's visual language is a record or a character. It also interacts with EC-
 "isometric illustration, and decorative 3D are default-rejected at review; founder sign-off can
 override" — which is the ILL program's entire master direction.
 
-**Resolved during the wave: the figure ships, as a supporting actor.** The founder supplied the
-`Illustrated Journey Prototype` design project mid-wave, which renders a clinician silhouette beside
-the folio. That is design direction, and EC-27 is Class C — it departs through design review with a
-named rationale (EC-21), not an EC-22 amendment. The rationale is recorded in
-`components/vital/record/ClinicianFigure.tsx` and is narrow enough to argue with: the figure is a
-supporting actor, not the protagonist. The record stays the largest object, the only one with faces,
-and the only one that travels; the figure never carries a fact and never appears in the recipient or
-review zones. What EC-27 forbids is the record's role being taken over — not a human ever appearing
-in a scene about a human's career. Deleting that one component restores strict EC-27.
+**Resolved at design review: strict EC-27. The figure was built, then deleted.** The founder supplied
+the `Illustrated Journey Prototype` mid-wave, which renders a clinician silhouette beside the folio,
+and it shipped first as a recorded Class-C departure (EC-21) with a supporting-actor rationale. Design
+review reversed that, on two grounds that only became visible once the scene was rendered and looked
+at:
 
-Two things the figure deliberately does not have: a skin tone or a white coat. The prototype rendered
-a skin-toned head (`#e8c9a8`); the illustration brief behind it separately warns against "skin color
-stereotypes, white-coat glamour, or a fabricated medical identity", and a single rendered skin tone in
-the only human figure the product ships is exactly that signal. The figure is scene ink at low
-emphasis.
+1. **It carried no meaning the zone label did not already carry.** The column says "You, and the
+   record you hold" and the control says "You, the clinician." At scene scale the figure read as a
+   placeholder avatar glyph — the head-and-shoulders mark that means "no profile photo" — and removing
+   it costs the composition nothing.
+2. **Its geometry contradicted the kit.** A `9999px` head was the only fully-round form in a system
+   whose geometry law is near-sharp stamps with pills retired. The one human figure in the product was
+   also the one shape breaking the shape rule.
+
+Two constitutional frictions for no comprehension gain is a bad trade, so the holder is now present
+as the record and the consent gate — which is what EC-27 says the story is about. `ClinicianFigure.tsx`
+is deleted rather than parked: the prototype it came from is preserved, so nothing is lost, and
+`PARKED_VISUAL_ERAS.md` is for treatments that may return, not for a component that failed review on
+its merits.
+
+Recorded for whoever reopens this: if a figure ever returns, it must not have a skin tone or a white
+coat. The prototype rendered a skin-toned head (`#e8c9a8`), and the illustration brief behind it
+separately warns against "skin color stereotypes, white-coat glamour, or a fabricated medical
+identity" — a single rendered skin tone in the only human figure the product ships is exactly that
+signal.
 
 ### 4.2 The relationship scene is not in the approved inventory, and `/` is not authorized
 
@@ -120,6 +130,24 @@ ending at an employer desk that never resolves. ILL-07 would make it a third tel
 ("do not replace the production WorkSurface yet"). The open question for the founder is not *where does
 a third explainer go* but *should the harness composition eventually replace or consolidate §2 and §4* —
 a UX-04/D-05 consolidation question, not an illustration-wave question.
+
+**Decided at design review: it is a product dependency, deferred to D-05, and this wave does not touch
+`/`.** Recording the reasoning so the next wave does not relitigate it from scratch:
+
+- **The homepage does not need a third telling, and it may not need a second.** §2 and §4 already
+  overlap. Adding this composition without removing something would make `/` say the same thing three
+  ways, which is the "multiple competing systems" failure EC-27 exists to end.
+- **The right merge is probably §2 → this composition, and that is D-05's call, not ILL's.** §2
+  (`WorkSurface`) is the shallower of the two and the one this composition most directly supersedes;
+  §4 (`ProcessStory`) is the deep narrative and should survive. But changing `/` means changing the
+  live NPI funnel's surroundings, and the ILL operating protocol says one surface per wave.
+- **Nothing is blocked by deferring.** The composition is reviewable at `/design/living-record` today,
+  and the kit is importable by any wave that wants it. D-05 inherits a built, tested, reviewed
+  composition rather than a proposal.
+
+The dependency to carry into D-05: *does `WorkSurface` (§2) get replaced by the relationship
+composition, merged into `ProcessStory` (§4), or kept?* That question needs the homepage's conversion
+evidence, which is ILL-08's job, not this wave's.
 
 ---
 
