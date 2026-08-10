@@ -27,9 +27,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { renderToStaticMarkup } from 'react-dom/server';
 
 import { generateMetadata as verifyMetadata } from '@/app/verify/[npi]/page';
-import { metadata as pilotMetadata } from '@/app/p/[slug]/page';
+import PilotProofPage, { metadata as pilotMetadata } from '@/app/p/[slug]/page';
 
 const VALID_NPI = '1558395516'; // sanctioned synthetic: check-digit-invalid, absent from NPPES
 
@@ -104,13 +105,22 @@ describe('/p/[slug] pilot evidence', () => {
   it('publishes no clinician identity', async () => {
     // The pilot's evidentiary claim is the event chain and its timings, which
     // the loop id anchors. The subject's name and number were only ever
-    // exposure. Asserted against the rendered module rather than the file so a
-    // reintroduced identifier fails here even if it arrives via a new field.
-    const mod = await import('@/app/p/[slug]/page');
-    const serialized = JSON.stringify(mod);
+    // exposure.
+    //
+    // This renders the page. The first version of this test stringified the
+    // module namespace instead, which serializes exports — a page function and
+    // a metadata object — and never touches the pilot record the component
+    // closes over. It passed with the real name and NPI put straight back.
+    const html = renderToStaticMarkup(
+      await PilotProofPage({ params: Promise.resolve({ slug: 'norcal-pa-pilot-1' }) }),
+    );
 
-    expect(serialized).not.toMatch(/\b\d{10}\b/);
-    expect(serialized.toUpperCase()).not.toContain('MACIE');
+    expect(html).not.toContain('1457128589');
+    expect(html.toUpperCase()).not.toContain('MACIE');
+    expect(html.toUpperCase()).not.toContain('MILLER');
+    // Any bare 10-digit token on this page is NPI-shaped. The loop id's 13-digit
+    // suffix is not matched by the word boundaries.
+    expect(html).not.toMatch(/\b\d{10}\b/);
   });
 });
 
