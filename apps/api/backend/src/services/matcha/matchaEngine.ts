@@ -16,6 +16,8 @@
  */
 
 import { randomUUID } from 'crypto';
+
+import { isSpecialtyStated } from '../ingestion/types';
 import type {
   ClinicianProfile,
   CandidateIntent,
@@ -191,8 +193,22 @@ export function scoreOpportunity(
   // registries, and episodic/follow-up exceptions are real pathways we cannot
   // see, so a missing licence is a SOFT blocker — never INELIGIBLE.
   const stateEligible = license.held || practicesInState;
-  const specialtyMatch = clinician.specialty.toLowerCase() === opp.specialty.toLowerCase()
-    || opp.specialty === 'All Specialties';
+  /*
+   * A feed listing carries a placeholder when the source published no
+   * specialty. Comparing against it produced, in production, on all 454
+   * ingested rows:
+   *
+   *   "Specialty mismatch (Not stated required)"
+   *
+   * — telling a clinician an employer requires a specialty called "Not
+   * stated". The employer said nothing; the placeholder records that silence.
+   * Publishing it as a requirement invents an employer statement, which is the
+   * thing listingSource='public_feed' exists to prevent.
+   */
+  const specialtyStated = isSpecialtyStated(opp.specialty);
+  const specialtyMatch = specialtyStated
+    && (clinician.specialty.toLowerCase() === opp.specialty.toLowerCase()
+      || opp.specialty === 'All Specialties');
 
   const licenseBlocker = (actionLabel: string): MatchBlocker => ({
     credentialKey: 'state_license',
@@ -240,6 +256,25 @@ export function scoreOpportunity(
       dimension: 'specialty',
       label: specialtyCoverageLabel(clinician.specialty, clinician.specialtySource),
       positive: true,
+    });
+  } else if (!specialtyStated) {
+    /*
+     * Scored exactly as a mismatch is — no credit, but no worse either.
+     *
+     * Awarding nothing here ranked an unstated specialty BELOW a known
+     * mismatch (70 vs 72): a role that might fit sorted under one that
+     * demonstrably does not. Silence is not evidence of unfit. It earns no
+     * credit, because nothing was matched, and takes no penalty, because
+     * nothing failed.
+     *
+     * The reason names the LISTING's silence and attributes it to the listing,
+     * never to the employer.
+     */
+    score += 2;
+    fitReasons.push({
+      dimension: 'specialty',
+      label: 'This listing does not state a specialty',
+      positive: false,
     });
   } else {
     score += 2;

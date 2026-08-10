@@ -11,6 +11,23 @@
  * be presented as something an employer told VitalCV.
  */
 
+/**
+ * What `Opportunity.specialty` holds when a feed published none.
+ *
+ * `Opportunity.specialty` is non-nullable, so a feed listing without a stated
+ * specialty needs a placeholder. It is a RECORD OF SILENCE, never a
+ * requirement — an employer with no relationship to VitalCV has said nothing
+ * about who they want. Anything reading this value must treat it as "not
+ * stated" rather than comparing against it.
+ */
+export const SPECIALTY_NOT_STATED = 'Not stated';
+
+/** True when the opportunity's specialty is the placeholder, not a real one. */
+export function isSpecialtyStated(specialty: string | null | undefined): boolean {
+  const value = specialty?.trim();
+  return Boolean(value) && value !== SPECIALTY_NOT_STATED;
+}
+
 export interface FeedListing {
   /** The feed's own identifier. With `feed`, this is the idempotency key. */
   sourceRef: string;
