@@ -178,6 +178,8 @@ export function EvidenceViewer({
   const [selectedQuality, setSelectedQuality] = useState<EvidenceQuality | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  /** The server refused, or never answered. Nothing was recorded. */
+  const [submitFailed, setSubmitFailed] = useState(false);
   const [sortMode, setSortMode] = useState<SortMode>('confidence');
   const [groupMode, setGroupMode] = useState<GroupMode>('none');
 
@@ -219,11 +221,12 @@ export function EvidenceViewer({
     }
 
     setSubmitting(true);
+    setSubmitFailed(false);
     try {
       if (onQualitySubmit) {
         onQualitySubmit(findingId, selectedQuality);
       } else {
-        await fetch(`/api/findings/${findingId}/outcome`, {
+        const response = await fetch(`/api/findings/${findingId}/outcome`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -232,10 +235,22 @@ export function EvidenceViewer({
             analystNote: `Evidence quality rated ${selectedQuality} from workbench`,
           }),
         });
+        // A non-2xx means the rating was NOT recorded. Falling through to
+        // `setSubmitted(true)` would tell an analyst their assessment was
+        // captured when the server refused it — the no-fabricated-outcome
+        // contract, same defect this codebase just removed from the employer
+        // review path (#1277).
+        if (!response.ok) {
+          setSubmitFailed(true);
+          return;
+        }
       }
       setSubmitted(true);
     } catch {
-      // Intentionally silent: the surrounding workbench already exposes the action state.
+      // A thrown fetch means nothing reached the server, so nothing was
+      // recorded. Say so rather than staying silent — silence here reads as
+      // success, because the button simply stops responding.
+      setSubmitFailed(true);
     } finally {
       setSubmitting(false);
     }
@@ -410,6 +425,11 @@ export function EvidenceViewer({
                 </button>
               ) : null}
               {submitted ? <p className="mt-1 text-[10px] text-emerald-400">✓ Evidence quality recorded</p> : null}
+              {submitFailed ? (
+                <p className="mt-1 text-[10px] text-amber-400" role="status">
+                  Not recorded — the rating did not reach the server. Try again.
+                </p>
+              ) : null}
             </div>
           ) : null}
         </div>
