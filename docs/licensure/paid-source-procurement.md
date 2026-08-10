@@ -53,6 +53,23 @@ consent-ledger architecture uniquely supports — the spend is one-time per
 clinician and amortizes across every employer they ever apply to, while every
 competitor re-charges per employer.
 
+> **Amortization is a per-source claim, and only one source is confirmed
+> (added 2026-08-09).** It holds for **NPDB self-query**, which the practitioner
+> is explicitly permitted to forward to whomever they choose. It is
+> **unconfirmed for FSMB PDC and the AMA Profile**, whose published terms
+> restrict reproducing or distributing their data without prior written consent
+> — L1 Track A **Q13a** is the question that settles it. And it is **prohibited
+> outright for NPDB *entity* queries**: a response obtained for one entity may
+> not be disclosed to another *even with the practitioner's written consent*
+> ([NPDB Guidebook ch. D Q&A 11](https://www.npdb.hrsa.gov/guidebook/DQA11.jsp)),
+> which is exactly why this plan buys the self-query instead.
+>
+> Do not restate the paragraph above as a blanket claim until Q13a has an
+> answer. If FSMB and AMA turn out to be per-employer, Tier 1 is a recurring
+> per-employer cost rather than one-time per clinician, and the budget table
+> below understates it by a factor of however many employers a clinician
+> applies to.
+
 ## Tier 0 — $0, blocked on paperwork, not money
 
 | Item | Cost | Blocked on |
@@ -99,6 +116,26 @@ clinician-owned, tamper-evident, independently re-verifiable credential
 artifact — our architecture, already existing inside a federal system, at $3.
 Engineering work: an intake lane that accepts the clinician's certified PDF and
 verifies the embedded certifying signature. No agreement required.
+
+**The limitation that must travel with it, in customer-facing copy.** A
+self-query **does not satisfy a hospital's mandated NPDB query**: "practitioners
+may share the information contained in their own Self-Query responses with
+whomever they choose, [but] such shared information *does not* satisfy a
+hospital's legal requirement to query the NPDB"
+([Guidebook ch. D Q&A 6](https://www.npdb.hrsa.gov/guidebook/DQA6.jsp)).
+Hospitals are the only entities federally *mandated* to query, at appointment
+and every two years thereafter, and that obligation is theirs and
+non-delegable.
+
+So the self-query is real, decision-useful evidence for screening, locums,
+pre-application and the clinician's own record — and it is **never** a
+substitute for the employer's own query. Tier 1 is billed above as a
+"decision-grade physician file"; on the NPDB element specifically, a hospital
+buyer who reads that as "we can skip our NPDB query" has been misled, which is
+the class of overclaim `CLAUDE.md`'s banned-strings rule exists to prevent.
+Any surface presenting a self-query artifact must carry the limitation inside
+the value rather than in a footnote — the same grammar the freshness lanes
+already use ("checked against [source] at [timestamp]").
 
 ## Tier 2 — the acceptance layer (NCQA CVO certification)
 
