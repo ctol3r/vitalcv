@@ -505,6 +505,27 @@ function trustStateClaimsSection(sectionId: string, signals: AbsenceTrustSignals
   }
 }
 
+/**
+ * How each section is NAMED to the person reading the reason.
+ *
+ * An absence reason is customer-facing copy — it renders verbatim on the
+ * employer and clinician surfaces — so it is bound by EC-9's language rules,
+ * which ban the internal nouns this module otherwise uses freely. A raw
+ * `sectionId` is also just an identifier: "exclusions" is not what a reviewer
+ * calls the thing. Unknown sections fall back to the id, which is honest — a
+ * made-up friendly name for a section we do not recognise would be worse.
+ */
+const SECTION_READING_LABEL: Readonly<Record<string, string>> = {
+  identity: 'identity',
+  licensure: 'licensure',
+  enrollment: 'Medicare enrollment',
+  exclusions: 'federal exclusion screening',
+};
+
+function readingLabel(sectionId: string): string {
+  return SECTION_READING_LABEL[sectionId] ?? sectionId;
+}
+
 /** Appends the source's OWN words, attributed, without letting them stand alone. */
 function withSourceNote(lead: string, note?: string | null): string {
   const trimmed = note?.trim().replace(/[.\s]+$/, '');
@@ -516,13 +537,15 @@ function absenceFor(
   signals: AbsenceTrustSignals,
   coverage: { state: CanonicalSourceCoverageState; reason: string } | undefined,
 ): PacketSectionAbsence {
+  const label = readingLabel(sectionId);
+
   if (trustStateClaimsSection(sectionId, signals)) {
     return {
       sectionId,
       evidenceState: 'needs_review',
       reason: withSourceNote(
-        `Nothing was found for ${sectionId}. The resolved trust state reports a ${sectionId} `
-        + 'result that did not enter this packet, so the two disagree — unresolved, not a clean check.',
+        `Nothing was found for ${label}. The current profile reports a ${label} result that was `
+        + 'not included here, so the two disagree — unresolved, not a clean check.',
         coverage?.reason,
       ),
     };
@@ -531,12 +554,12 @@ function absenceFor(
   if (coverage) {
     const evidenceState = ABSENCE_STATE_BY_COVERAGE_STATE[coverage.state];
     const lead = coverage.state === 'notFound'
-      ? `Nothing was found for ${sectionId}. The source was read and returned no record for this `
-        + 'clinician — a finding, not a pending check.'
+      ? `Nothing was found for ${label}. The source was read and returned no record for this `
+        + 'clinician — an answer, not a pending check.'
       : evidenceState === 'access_required'
-        ? `Nothing was found for ${sectionId}. The route to this evidence is gated behind access `
-          + 'the platform does not hold, so it was never read.'
-        : `Nothing was found for ${sectionId}. No usable record was obtained from its source.`;
+        ? `Nothing was found for ${label}. Reaching this evidence needs source access VitalCV does `
+          + 'not hold, so it was never read.'
+        : `Nothing was found for ${label}. No usable record came back from its source.`;
     return { sectionId, evidenceState, reason: withSourceNote(lead, coverage.reason) };
   }
 
@@ -545,8 +568,8 @@ function absenceFor(
     evidenceState: 'unavailable',
     // Says only what is unconditionally true. In particular it makes NO claim
     // about which sources ran — an unmapped coverage entry may well exist.
-    reason: `Nothing was found for ${sectionId}. No evidence entered this packet for it; `
-      + 'this is not a check that came back clean.',
+    reason: `Nothing was found for ${label}. No evidence for it was included, and this is not a `
+      + 'check that came back clean.',
   };
 }
 

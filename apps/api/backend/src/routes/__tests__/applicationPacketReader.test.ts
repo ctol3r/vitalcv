@@ -68,7 +68,7 @@ function responseFixture() {
       fields: [],
       sectionAbsences: [],
       changesSinceSubmission: [],
-      notice: 'Current Wallet evidence is shown separately and does not alter the submitted packet.',
+      notice: 'The current profile is shown separately and does not alter the submitted record.',
     },
   };
 }
@@ -152,7 +152,7 @@ describe('GET /api/applications/:applicationId/packet', () => {
       ...responseFixture(),
       mode: 'legacy',
       submittedPacket: null,
-      legacyNotice: 'Legacy application — no immutable disclosure packet was captured at submission.',
+      legacyNotice: 'Legacy application — no immutable disclosure record was captured at submission.',
     });
 
     const response = await request(buildApp('clinician-owner'))

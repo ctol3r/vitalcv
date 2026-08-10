@@ -327,14 +327,23 @@ function selectedWithinRequested(
   return selected.every((section) => allowed.has(section));
 }
 
-function limitationsForFields(
+/**
+ * Reader-facing limitations for the apply composer.
+ *
+ * These render verbatim to the clinician before they consent, which makes them
+ * customer-facing copy bound by EC-9 — and, like every other string this
+ * backend authors, invisible to `scripts/check-public-claims.ts`, whose scan
+ * roots stop at `apps/web` and `apps/marketing`. Covered instead by
+ * `applicationCopyContract.test.ts`.
+ */
+export function limitationsForFields(
   requestedSections: readonly ApplicationDisclosureSection[],
   fields: readonly PacketFieldEntry[],
 ): string[] {
   const limitations: string[] = [];
   const fieldSections = new Set(fields.map((field) => field.sectionId));
   for (const section of requestedSections) {
-    if (!fieldSections.has(section)) limitations.push(`No current ${section} evidence was available for this packet.`);
+    if (!fieldSections.has(section)) limitations.push(`Nothing was found for ${section}. No current evidence was available at submission.`);
   }
   if (fields.some((field) => field.evidenceState === 'access_required')) {
     limitations.push('Some requested evidence requires source access or employer review.');
