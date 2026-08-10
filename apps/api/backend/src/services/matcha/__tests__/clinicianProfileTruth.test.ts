@@ -22,6 +22,7 @@
 import {
   buildBaseClinicianProfile,
   licenseAuthorityFor,
+  specialtyFamilyFromDesc,
   type FetchLike,
 } from '../clinicianProfileFromNppes';
 
@@ -34,7 +35,9 @@ const failing: FetchLike = async () => {
   throw new Error('NPPES unreachable');
 };
 
-const individual = (opts: { license?: string; taxonomy?: string; state?: string } = {}) => ({
+const individual = (
+  opts: { license?: string; taxonomy?: string; state?: string; desc?: string } = {},
+) => ({
   result_count: 1,
   results: [
     {
@@ -45,6 +48,7 @@ const individual = (opts: { license?: string; taxonomy?: string; state?: string 
           code: opts.taxonomy ?? '207R00000X',
           primary: true,
           state: opts.state ?? 'CA',
+          ...(opts.desc ? { desc: opts.desc } : {}),
           ...(opts.license ? { license: opts.license } : {}),
         },
       ],
@@ -154,6 +158,52 @@ describe('licenseAuthorityFor names the body that actually issues', () => {
     ['999X99999X', 'State licensing authority'],
   ])('%s → %s', (code, expected) => {
     expect(licenseAuthorityFor(code)).toBe(expected);
+  });
+});
+
+describe('specialty comes from NPPES, not a 15-entry table', () => {
+  it('reads a specialty the curated map does not cover', async () => {
+    // The real shape of the dermatologist volunteer: 207N00000X is NOT in
+    // TAXONOMY_MAP, so this used to read as the generic "Medicine" and match
+    // no specialty at all.
+    const profile = await buildBaseClinicianProfile(
+      '1841386489',
+      serving(individual({ taxonomy: '207N00000X', desc: 'Dermatology', license: 'A88967' })),
+    );
+
+    expect(profile!.specialty).toBe('Dermatology');
+    // The description is on the same NPPES record as the code, so it is a
+    // genuine source check — not a guess.
+    expect((profile as any).specialtySource).toBe('nppes_taxonomy');
+  });
+
+  it('collapses a subspecialty to its family, the granularity listings use', async () => {
+    const profile = await buildBaseClinicianProfile(
+      '1000000000',
+      serving(individual({ taxonomy: '207RG0100X', desc: 'Internal Medicine, Gastroenterology' })),
+    );
+    expect(profile!.specialty).toBe('Internal Medicine');
+  });
+
+  it('stays unknown when NPPES gives a code with no description', async () => {
+    const profile = await buildBaseClinicianProfile(
+      '1000000000',
+      serving(individual({ taxonomy: '999X99999X' })),
+    );
+
+    expect(profile!.specialty).toBe('Medicine');
+    // Nothing claimed: the generic backstop must never present as checked.
+    expect((profile as any).specialtySource).toBe('unknown');
+  });
+
+  it.each([
+    ['Dermatology', 'Dermatology'],
+    ['Internal Medicine, Gastroenterology', 'Internal Medicine'],
+    ['Psychiatry & Neurology, Addiction Medicine', 'Psychiatry & Neurology'],
+    ['', null],
+    [undefined, null],
+  ])('specialtyFamilyFromDesc(%p) → %p', (input, expected) => {
+    expect(specialtyFamilyFromDesc(input as string | undefined)).toBe(expected);
   });
 });
 

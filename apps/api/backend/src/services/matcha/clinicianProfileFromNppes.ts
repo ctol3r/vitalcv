@@ -62,6 +62,28 @@ export function mapTaxonomy(code: string): string {
 }
 
 /**
+ * Broad specialty family from the description NPPES returns on the record.
+ *
+ * `TAXONOMY_MAP` covers 15 of the ~870 NUCC codes, so it fell through to the
+ * generic 'Medicine' for most real providers — a board-certified dermatologist
+ * (`207N00000X`) read as "Medicine" and could match no specialty at all. That
+ * fallback was honest (it left `specialtySource: 'unknown'`, so nothing claimed a
+ * checked specialty) but lossy, and no hand-maintained table will ever cover the
+ * full set.
+ *
+ * NPPES already returns the taxonomy's own `desc` on the record, so use it.
+ * Subspecialties are named "<family>, <subspecialty>" — "Internal Medicine,
+ * Gastroenterology", "Psychiatry & Neurology, Addiction Medicine" — so the segment
+ * before the first comma is the family, which is the granularity opportunity
+ * listings are written at. This is exactly as source-backed as the code itself:
+ * same record, same field, same request.
+ */
+export function specialtyFamilyFromDesc(desc: string | undefined | null): string | null {
+  const family = (desc ?? '').split(',')[0].trim();
+  return family.length > 0 ? family : null;
+}
+
+/**
  * Name the authority that licenses this taxonomy, by its NUCC code prefix.
  *
  * Getting this wrong is not cosmetic: a physician assistant is licensed by a
@@ -131,8 +153,21 @@ export async function buildBaseClinicianProfile(
         const primary = taxonomies.find((t: any) => t.primary) ?? taxonomies[0];
         if (primary?.code) {
           primaryCode = String(primary.code);
-          specialty = mapTaxonomy(primaryCode);
-          if (TAXONOMY_MAP[primaryCode]) specialtySource = 'nppes_taxonomy';
+          // Curated broad bucket first (it normalises a few codes to the wording
+          // listings use), then NPPES's own description for everything else.
+          // Both come from this record, so either is a genuine NPPES source check
+          // for specialty; only the generic 'Medicine' backstop stays 'unknown'.
+          const curated = TAXONOMY_MAP[primaryCode];
+          const fromDesc = specialtyFamilyFromDesc(primary.desc);
+          if (curated) {
+            specialty = curated;
+            specialtySource = 'nppes_taxonomy';
+          } else if (fromDesc) {
+            specialty = fromDesc;
+            specialtySource = 'nppes_taxonomy';
+          } else {
+            specialty = 'Medicine';
+          }
         }
         if (primary?.state) state = primary.state;
 
