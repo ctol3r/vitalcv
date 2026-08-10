@@ -1,11 +1,22 @@
 # Force Nixpacks builder for Railway — do not use Railpack.
 # Explicit phases prevent Railway from improvising install/build steps.
 
-# Node 22. NOTE: `nodejs_22` in this nixpkgs channel resolves BELOW 22.12 —
-# proven in production 2026-07-27, when @noble/post-quantum threw
-# ERR_REQUIRE_ESM at startup, which cannot happen on >= 22.12 (require(esm)).
-# An earlier revision of this comment asserted ">= 22.12"; that was aspiration,
-# not fact, and jose v6 was pinned back to v5 because of it.
+# Node 22.13.1, pinned. The bare `nodejs_22` attribute resolved to 22.11.0 in
+# Railway's default nixpkgs snapshot — proven in production 2026-07-27, when
+# @noble/post-quantum threw ERR_REQUIRE_ESM at startup, which cannot happen on
+# >= 22.12 (require(esm) is enabled by default from Node 22.12.0). An earlier
+# revision of this comment asserted ">= 22.12" for the bare attribute; that was
+# aspiration, not fact — Railway's snapshot pins an older nixpkgs where
+# `nodejs_22` is 22.11.0, and jose v6 was pinned back to v5 because of it.
+#
+# FIX: pin the nixpkgs snapshot instead of trusting Railway's default. Commit
+# 51ad838b03a05b1de6f9f2a0fffecee64a9788ee ships `nodejs_22` = 22.13.1 (verified
+# against nixpkgs pkgs/development/web/nodejs/v22.nix at that SHA). This keeps
+# the Node 22 LTS line (so jose v6 stays) while guaranteeing >= 22.12, and is
+# deterministic — it no longer depends on which nixpkgs Railway's Nixpacks
+# happens to default to. If you bump the archive, re-verify the resolved Node
+# version is still >= 22.12 and confirm the live value after deploy:
+#   curl -s https://api.vitalcv.com/health | jq -r .node_version
 #
 # Practical consequence: any ESM-only dependency needs either a CJS-shipping
 # version, or the require-then-import fallback in
@@ -35,6 +46,9 @@
 # Node 20 also reached end-of-life in April 2026. If you ever pin this back
 # below 22.12, revert jose to a version shipping a CJS build first.
 [phases.setup]
+# Pin the nixpkgs snapshot so `nodejs_22` resolves to 22.13.1, not Railway's
+# default 22.11.0 (see the require(esm) history above).
+nixpkgsArchive = "51ad838b03a05b1de6f9f2a0fffecee64a9788ee"
 nixPkgs = ["nodejs_22", "pnpm"]
 
 [phases.install]
