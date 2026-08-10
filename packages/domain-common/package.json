@@ -6,13 +6,13 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "test": "vitest run --coverage --config vitest.config.ts",
-    "test:watch": "vitest --config vitest.config.ts",
-    "typecheck": "tsc --noEmit"
+    "test": "vitest run --coverage --config vitest.config.mts",
+    "test:watch": "vitest --config vitest.config.mts",
+    "typecheck": "tsc -p tsconfig.test.json"
   },
   "devDependencies": {
-    "@vitest/coverage-v8": "^3.2.6",
+    "@vitest/coverage-v8": "^4.1.10",
     "typescript": "^5.4.5",
-    "vitest": "^3.2.6"
+    "vitest": "^4.1.10"
   }
 }

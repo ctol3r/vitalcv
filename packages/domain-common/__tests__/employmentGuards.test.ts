@@ -15,11 +15,15 @@ import {
   verifyCanonicalPath,
 } from '../employmentGuards';
 
+// `as const` on the two discriminants: the contracts type them as literal
+// unions ('Ed25519Signature2020' | 'JcsEd25519Signature2020', 'assertionMethod'),
+// and without it TypeScript widens both to `string`, so every fixture built
+// here fails to satisfy the contract it is meant to exercise.
 const createProof = (did: string, created: string) => ({
-  type: 'Ed25519Signature2020',
+  type: 'Ed25519Signature2020' as const,
   created,
   verificationMethod: `${did}#key-1`,
-  proofPurpose: 'assertionMethod',
+  proofPurpose: 'assertionMethod' as const,
   proofValue: `proof-${did}`,
 });
 

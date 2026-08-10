@@ -53,7 +53,31 @@ permissions:
   contents: read
 
 env:
-  NODE_VERSION: '20.11.1'
+  # EXACTLY the Node the Railway API runtime serves. Do not float this to '22'.
+  #
+  # `nixpacks.toml` installs `nodejs_22` from Railway's default nixpkgs channel,
+  # which resolves BELOW 22.12 — live value confirmed 2026-08-10:
+  #   curl -s https://api.vitalcv.com/health | jq -r .node_version   ->  v22.11.0
+  # Pinning the snapshot to lift that was tried (#1317) and reverted (#1320):
+  # it swaps the whole toolchain, pnpm could not create its bin shims, and the
+  # API could not deploy at all. Read nixpacks.toml before touching this.
+  #
+  # Why the exact version and not '22': `require(esm)` is enabled by default
+  # only from 22.12. `setup-node` with '22' installs the latest 22.x, which HAS
+  # it, while production does NOT. A deploy gate that can `require()` an
+  # ESM-only dependency would go green on code that dies at boot — precisely the
+  # failure that stranded seven API deploys when jose v6 met a runtime without
+  # it. The previous '20.11.1' pin shared production's no-require(esm)
+  # behaviour but was two majors adrift and EOL since April 2026; 22.11.0 keeps
+  # the behaviour and closes the drift.
+  #
+  # This does NOT constrain vitest. vitest 4 only needs `require(esm)` to load a
+  # `.ts` config (via `vitest/dist/config.cjs` -> ESM-only `std-env`); the
+  # configs it runs here are `.mts`, which it imports natively. Verify that this
+  # job's Node cannot regress the suite:
+  #   NODE_OPTIONS=--no-experimental-require-module pnpm turbo run test \
+  #     --filter=!@vitalcv/api --filter=!chai-vc-platform-backend --filter=!@vitalcv/web
+  NODE_VERSION: '22.11.0'
   PNPM_VERSION: '10.6.1'
 
 jobs:
@@ -169,12 +193,14 @@ jobs:
         # context, no ISSUER_KEY_ENCRYPTION_SECRET, no seeded UUIDs).
         #
         # Full @vitalcv/web unit tests and the canonical web build are
-        # protected by the Web Quality workflow on Node 22. Railway
-        # preflight runs on the deploy/API Node 20 lane and should not
-        # duplicate the full jsdom web test suite, which can fail before
-        # tests start on Node 20 because of transitive ESM/CJS worker
-        # loading drift. This keeps deploy preflight focused on Railway
-        # backend/package smoke coverage without hiding Web Quality.
-        # Same backend exclusion shape applied to monorepo.yml in
-        # PR #173 (OPS-DEPLOY-1).
+        # protected by the Web Quality workflow. This step stays scoped to
+        # backend/package smoke coverage so it does not duplicate that suite
+        # or hide it behind a deploy gate. Same backend exclusion shape
+        # applied to monorepo.yml in PR #173 (OPS-DEPLOY-1).
+        #
+        # The exclusion used to be justified by this job running "the deploy/API
+        # Node 20 lane", where the jsdom suite could fail before tests started
+        # on transitive ESM/CJS worker loading drift. That specific wording is
+        # retired — this job now runs 22.11.0, the API runtime's own Node — but
+        # the scoping stands on the duplication reason above regardless.
         run: pnpm turbo run test --filter=!@vitalcv/api --filter=!chai-vc-platform-backend --filter=!@vitalcv/web
