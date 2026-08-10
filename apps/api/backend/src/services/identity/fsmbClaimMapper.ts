@@ -19,6 +19,11 @@ import type {
   TrainingCompletionValue,
 } from './evidenceModel';
 import { buildClaimArtifactTrace, computeClaimId } from './evidenceModel';
+import {
+  resolveCertificationStatus,
+  resolveLicenseStatus,
+  unrecognizedStatusReason,
+} from './licenseStatusVocabulary';
 
 export function isFsmbEnabled(): boolean {
   return process.env.FSMB_ENABLED === 'true';
@@ -144,22 +149,17 @@ async function fetchFsmbDocInfo(npi: string): Promise<FsmbFetchResult> {
   }
 }
 
-function normLicStatus(raw?: string): LicenseValue['licenseStatus'] {
-  const status = (raw ?? '').trim().toUpperCase();
-  if (status.includes('ACTIVE')) return 'ACTIVE';
-  if (status.includes('EXPIRED')) return 'EXPIRED';
-  if (status.includes('REVOKED')) return 'REVOKED';
-  if (status.includes('SUSPENDED')) return 'SUSPENDED';
-  return 'UNKNOWN';
-}
-
-function normCertStatus(raw?: string): BoardCertValue['certificationStatus'] {
-  const status = (raw ?? '').trim().toUpperCase();
-  if (status.includes('CERTIFIED')) return 'CERTIFIED';
-  if (status.includes('LAPSED') || status.includes('EXPIRED')) return 'LAPSED';
-  if (status.includes('NOT')) return 'NOT_CERTIFIED';
-  return 'UNKNOWN';
-}
+/*
+ * `normLicStatus` and `normCertStatus` used to live here. Both matched by
+ * substring with the affirmative arm first, which cannot express negation:
+ * `'INACTIVE'.includes('ACTIVE')` and `'NOT CERTIFIED'.includes('CERTIFIED')`
+ * are both true, so the negative arms beneath them were unreachable dead code.
+ * An inactive licence read as ACTIVE, and a physician the board reports as
+ * *not* board certified read as CERTIFIED. They are replaced by the exact-key
+ * resolvers in `licenseStatusVocabulary.ts`, called directly at the two sites
+ * below so there is one obvious path; anything outside the vocabulary fails
+ * closed to UNKNOWN and is marked for review.
+ */
 
 function inferSeverityFromDescription(description: string): BoardOrderSeverity {
   const normalized = description.trim().toUpperCase();
@@ -436,7 +436,9 @@ export async function fetchFsmbClaims(
 
   for (const license of licenses) {
     const state = (license.state ?? license.jurisdiction ?? 'UNKNOWN').trim().toUpperCase();
-    const licenseStatus = normLicStatus(license.status ?? license.licenseStatus);
+    const licenseResolution = resolveLicenseStatus(license.status ?? license.licenseStatus);
+    const licenseStatus = licenseResolution.status;
+    const statusReviewReason = unrecognizedStatusReason(`FSMB (${state})`, licenseResolution);
     const actions = normalizeDisciplinaryActions([
       ...(license.disciplinaryActions ?? []),
       ...(license.actions ?? []),
@@ -476,11 +478,16 @@ export async function fetchFsmbClaims(
             : licenseStatus === 'SUSPENDED' || licenseStatus === 'REVOKED'
               ? 'BLOCKED'
               : 'UNVERIFIED',
-      reviewRequired: boardOrderSeverityRequiresReview(topSeverity),
+      reviewRequired: boardOrderSeverityRequiresReview(topSeverity) || statusReviewReason !== null,
       reviewReason:
-        boardOrderSeverityRequiresReview(topSeverity)
-          ? `FSMB board order present for ${state}`
-          : null,
+        [
+          boardOrderSeverityRequiresReview(topSeverity)
+            ? `FSMB board order present for ${state}`
+            : null,
+          statusReviewReason,
+        ]
+          .filter((reason): reason is string => reason !== null)
+          .join(' ') || null,
       validFrom: license.issueDate ?? observedAt,
       validUntil: license.expirationDate ?? null,
       expiresAt: license.expirationDate ?? null,
@@ -508,7 +515,7 @@ export async function fetchFsmbClaims(
   }
 
   for (const cert of certs) {
-    const certificationStatus = normCertStatus(cert.certificationStatus);
+    const certificationStatus = resolveCertificationStatus(cert.certificationStatus).status;
     const certValue: BoardCertValue = {
       _type: 'BOARD_CERTIFICATION',
       certifyingBoard: cert.certifyingBoard ?? 'ABMS member board',
