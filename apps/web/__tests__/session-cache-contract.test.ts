@@ -18,6 +18,7 @@ const SESSION_TREES = [
   'sign-up',
   'auth',
   'holder',
+  'clinician',
   'employer',
   'review',
 ] as const;

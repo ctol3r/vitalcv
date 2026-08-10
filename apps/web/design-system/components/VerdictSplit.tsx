@@ -208,9 +208,23 @@ export function VerdictSplit({ integrity, issuer, revocation, className }: Verdi
                       ? 'None found'
                       : 'Not checked'
                 }
-                source={revocation.source}
-                timestamp={revocation.checkedAt}
-                detail={revocation.state === 'none-found' ? 'checked against status list' : undefined}
+                attribution={
+                  // Both `source` and `checkedAt` are optional upstream. When a
+                  // source is named, `asOf: null` still renders the words
+                  // rather than vanishing. When none is named, nothing read the
+                  // status list — which is `declared`, not a source with a
+                  // missing timestamp. The 'Not checked' label already says so.
+                  revocation.source
+                    ? {
+                        source: revocation.source,
+                        asOf: revocation.checkedAt ?? null,
+                        detail:
+                          revocation.state === 'none-found'
+                            ? 'checked against status list'
+                            : undefined,
+                      }
+                    : { declared: 'no revocation source recorded' }
+                }
                 size="sm"
               />
             </div>

@@ -255,9 +255,22 @@ describe('clinician foundation — route copy invariants', () => {
   });
 
   it('profile page renders provenance vocabulary disclaimer', () => {
-    const src = readRoute('profile/page.tsx');
-    expect(src).toContain('User-entered information is not verified until source-backed evidence is attached.');
-    expect(src).toContain('PROVENANCE_META');
+    // Scans the route's whole composition, not just page.tsx. The disclaimer
+    // and the provenance vocabulary used to live literally in page.tsx, back
+    // when it was a self-contained read-only shell; the page now delegates to
+    // ProfileSurface and the same strings render from there.
+    //
+    // Grepping page.tsx alone asserted the MECHANISM (which file holds the
+    // string) rather than the INVARIANT (the route shows the disclaimer and
+    // speaks provenance). That form of guard fails on a refactor that changes
+    // nothing a clinician sees — and, worse, would pass if page.tsx kept the
+    // string in a comment while rendering nothing. Rendered-DOM coverage of
+    // both strings lives in clinician-profile-licensure.test.tsx.
+    const composition = [readRoute('profile/page.tsx'), readRoute('profile/ProfileSurface.tsx')].join('\n');
+    expect(composition).toContain(
+      'User-entered information is not verified until source-backed evidence is attached.',
+    );
+    expect(composition).toContain('PROVENANCE_META');
   });
 
   // The import-page and graph-page blocks left with their routes: the

@@ -92,7 +92,7 @@ export function CoverLetterDrafter({ opportunity }: { opportunity: CoverLetterOp
           style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 15px', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: state === 'loading' ? 'default' : 'pointer', border: `1px solid ${ACCENT}`, background: `color-mix(in srgb, ${ACCENT} 8%, transparent)`, color: ACCENT, opacity: state === 'loading' ? 0.7 : 1 }}
         >
           <Sparkles size={14} aria-hidden="true" />
-          {state === 'loading' ? 'Drafting…' : 'Draft a cover letter with MATCHA'}
+          {state === 'loading' ? 'Drafting…' : 'Draft a cover letter'}
         </button>
       ) : null}
 

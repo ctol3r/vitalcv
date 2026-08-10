@@ -55,7 +55,7 @@ function assertNotBanned(text: string, context: string): void {
 describe('ProvenanceChip — vocabulary & honesty', () => {
   it('renders every state without throwing and tags it', () => {
     for (const state of PROVENANCE_ORDER) {
-      const html = renderToStaticMarkup(<ProvenanceChip state={state} />);
+      const html = renderToStaticMarkup(<ProvenanceChip state={state} attribution={{ legend: true }} />);
       expect(html).toContain('data-provenance-state="' + state + '"');
       expect(html).toContain(PROVENANCE_META[state].label);
     }
@@ -86,7 +86,7 @@ describe('ProvenanceChip — vocabulary & honesty', () => {
 describe('ProvenanceChip — visible provenance line (the differentiator)', () => {
   it('renders source and timestamp VISIBLY (never sr-only)', () => {
     const html = renderToStaticMarkup(
-      <ProvenanceChip state="checked" source="NPPES" timestamp="2026-07-14T09:12:00Z" />,
+      <ProvenanceChip state="checked" attribution={{ source: "NPPES", asOf: "2026-07-14T09:12:00Z" }} />,
     );
     // The provenance is visible chrome, not screen-reader-only.
     expect(html).toContain('NPPES');
@@ -96,7 +96,7 @@ describe('ProvenanceChip — visible provenance line (the differentiator)', () =
 
   it('joins source · timestamp · detail with a middot separator', () => {
     const html = renderToStaticMarkup(
-      <ProvenanceChip state="checked" source="OIG LEIE" timestamp="2026-07-17T14:32:00Z" detail="no match" />,
+      <ProvenanceChip state="checked" attribution={{ source: "OIG LEIE", asOf: "2026-07-17T14:32:00Z", detail: "no match" }} />,
     );
     expect(html).toContain('OIG LEIE');
     expect(html).toContain('no match');
@@ -104,13 +104,13 @@ describe('ProvenanceChip — visible provenance line (the differentiator)', () =
   });
 
   it('omits the provenance line entirely when there is nothing to show', () => {
-    const html = renderToStaticMarkup(<ProvenanceChip state="pending" />);
+    const html = renderToStaticMarkup(<ProvenanceChip state="pending" attribution={{ declared: "check in progress" }} />);
     expect(html).not.toContain('font-mono');
   });
 
   it('folds source + timestamp + fail-closed into the aria-label', () => {
     const html = renderToStaticMarkup(
-      <ProvenanceChip state="revoked" source="Issuer" timestamp="2026-06-30T00:00:00Z" />,
+      <ProvenanceChip state="revoked" attribution={{ source: "Issuer", asOf: "2026-06-30T00:00:00Z" }} />,
     );
     expect(html).toMatch(/aria-label="[^"]*Issuer[^"]*"/);
     expect(html).toMatch(/aria-label="[^"]*fail closed[^"]*"/);
@@ -119,7 +119,7 @@ describe('ProvenanceChip — visible provenance line (the differentiator)', () =
 
 describe('ProvenanceChip — fail-closed & self-attested registers', () => {
   it('marks `revoked` as fail-closed and uses the reserved severity-critical red', () => {
-    const html = renderToStaticMarkup(<ProvenanceChip state="revoked" />);
+    const html = renderToStaticMarkup(<ProvenanceChip state="revoked" attribution={{ legend: true }} />);
     expect(html).toContain('data-fail-closed="true"');
     expect(html).toContain('--vt-severity-critical');
   });
@@ -132,14 +132,14 @@ describe('ProvenanceChip — fail-closed & self-attested registers', () => {
   });
 
   it('renders `selfAttested` in a dashed band', () => {
-    const html = renderToStaticMarkup(<ProvenanceChip state="selfAttested" />);
+    const html = renderToStaticMarkup(<ProvenanceChip state="selfAttested" attribution={{ declared: "entered by holder" }} />);
     expect(html).toContain('border-dashed');
   });
 
   it('does not paint any non-revoked state with severity-critical red', () => {
     for (const state of PROVENANCE_ORDER) {
       if (state === 'revoked') continue;
-      const html = renderToStaticMarkup(<ProvenanceChip state={state} />);
+      const html = renderToStaticMarkup(<ProvenanceChip state={state} attribution={{ legend: true }} />);
       expect(html).not.toContain('--vt-severity-critical');
     }
   });

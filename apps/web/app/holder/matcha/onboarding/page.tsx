@@ -4,7 +4,7 @@ import { FEATURES } from '@/lib/features';
 import { MatchaOnboardingSurface } from '@/components/matcha/MatchaOnboardingSurface';
 
 export const metadata: Metadata = {
-  title: 'Meet MATCHA',
+  title: 'Set up matching',
   description: 'A short conversation about what you want next in your career.',
 };
 

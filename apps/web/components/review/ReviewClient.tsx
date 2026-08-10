@@ -63,6 +63,8 @@ import {
 import {
   type EmployerAcceptanceHistoryEntry,
   type EmployerAcceptanceHistoryResponse,
+  classifyEmployerActionFailure,
+  employerActionNotAuthorizedTitle,
   employerReviewLoadingLabel,
   formatEmployerReviewPersistedDetail,
   formatEmployerReviewPersistedLabel,
@@ -703,16 +705,41 @@ type ActionState =
   | { phase: 'idle' }
   | { phase: 'loading'; intent: EmployerReviewActionIntent }
   | { phase: 'done'; state: EmployerReviewActionState }
-  | { phase: 'pilot_confirmation'; intent: EmployerReviewActionIntent; message: string }
+  | { phase: 'authorization_required'; intent: EmployerReviewActionIntent; message: string }
   | { phase: 'error'; intent: EmployerReviewActionIntent; message: string }
   | { phase: 'downloading' };
 
 type EmployerActionEndpoint = 'accept' | 'request-refresh' | 'route-to-review';
 
-class PilotFallbackError extends Error {
-  constructor(public readonly pilotMessage: string) {
-    super(pilotMessage);
-    this.name = 'PilotFallbackError';
+/**
+ * A 401/403 from an employer-review mutation: the server refused this caller.
+ *
+ * `canPersistActions` is a client-side check — Clerk signed-in plus employer
+ * role. The server checks something else entirely: an active verifier-role
+ * account and a registered employer organization
+ * (`enforceEmployerMutationRbac`, `getOrgProfile`). When those disagree, the
+ * caller reaches this path with the action panel fully enabled.
+ *
+ * This carries the server's own denial text because that text names the next
+ * step ("Complete employer setup first."). The previous behavior discarded it
+ * and rendered "Request recorded — clinician will be notified during pilot" on
+ * a success-toned card. Nothing had been written; on the RBAC path the backend
+ * writes a *denied-mutation* AuditEvent before returning 403, so the audit log
+ * and the employer's screen asserted opposite things about the same request,
+ * and the funnel recorded a third version of events (`success`).
+ *
+ * Nothing may convert this into a success. The caller is unauthorized, so
+ * there is no request record to claim — and persisting one anyway would be a
+ * write on behalf of a caller the server just refused, which is the
+ * cross-tenant hazard the org-governance work (#1219) exists to close.
+ */
+class EmployerActionNotAuthorizedError extends Error {
+  constructor(
+    public readonly status: number,
+    message: string,
+  ) {
+    super(message);
+    this.name = 'EmployerActionNotAuthorizedError';
   }
 }
 
@@ -783,11 +810,14 @@ async function postAction(
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({})) as { error_description?: string };
-    const status = res.status;
-    if (status === 401 || status === 403) {
-      if (endpoint === 'request-refresh') throw new PilotFallbackError('Request recorded — clinician will be notified during pilot');
+    // Classification lives in the action contract module, not here — see
+    // `classifyEmployerActionFailure`. No endpoint is special-cased: an
+    // authorization denial is a denial regardless of which action asked.
+    const failure = classifyEmployerActionFailure(res.status, err.error_description);
+    if (failure.kind === 'not_authorized') {
+      throw new EmployerActionNotAuthorizedError(res.status, failure.message);
     }
-    throw new Error(err.error_description ?? `Action failed (${status})`);
+    throw new Error(failure.message);
   }
   return res.json() as Promise<EmployerReviewActionResponse>;
 }
@@ -1169,11 +1199,18 @@ function ReviewClientLoaded({
     });
   }
 
+  /**
+   * `result: 'success'` means the server persisted the action and returned a
+   * state. It must never be reported for a request the server refused — these
+   * events are live funnel metrics (#1121), so a fabricated success here
+   * corrupts the qualified-start measurement as well as the employer's screen.
+   */
   function trackEmployerActionResult(
     action: EmployerReviewActionIntent,
     result: 'success' | 'error',
     startedAt: number,
     errorMessage?: string,
+    denialReason?: 'not_authorized',
   ) {
     trackUxEvent({
       event_name: 'employer_action_result',
@@ -1183,6 +1220,7 @@ function ReviewClientLoaded({
         action,
         auth_state: authState,
         blockers_count: blocked.length,
+        denial_reason: denialReason ?? null,
         error_message: errorMessage ?? null,
         interaction_result: result,
         source_mode: 'live',
@@ -1235,9 +1273,13 @@ function ReviewClientLoaded({
       trackEmployerActionResult(config.intent, 'success', startedAt);
     } catch (error) {
       if (!mountedRef.current) return;
-      if (error instanceof PilotFallbackError) {
-        setActionState({ phase: 'pilot_confirmation', intent: config.intent, message: error.pilotMessage });
-        trackEmployerActionResult(config.intent, 'success', startedAt);
+      if (error instanceof EmployerActionNotAuthorizedError) {
+        setActionState({
+          phase: 'authorization_required',
+          intent: config.intent,
+          message: error.message,
+        });
+        trackEmployerActionResult(config.intent, 'error', startedAt, error.message, 'not_authorized');
         return;
       }
       const message = resolveLivePathErrorMessage(error, 'Action failed');
@@ -1523,17 +1565,30 @@ function ReviewClientLoaded({
           </SectionReveal>
         )}
 
-        {actionState.phase === 'pilot_confirmation' && (
+        {/*
+          Authorization denial. Warning tone, not success and not critical:
+          nothing was written, but nothing is broken either — the account is
+          missing employer-org authority. The description is the server's own
+          denial text, which names the remedy; `/employers/request-access` is
+          where that remedy is actually performed (it POSTs /api/employer/setup).
+        */}
+        {actionState.phase === 'authorization_required' && (
           <SectionReveal delay={0.05}>
             <TrustStateCard
-              title={actionState.message}
-              description="Your request has been recorded. Clinicians will be notified through the operations channel."
-              tone="success"
+              data-testid="employer-action-authorization-required"
+              title={employerActionNotAuthorizedTitle(actionState.intent)}
+              description={actionState.message}
+              tone="warning"
               className="rounded-xl"
               actions={(
-                <Button onClick={() => setActionState({ phase: 'idle' })} variant="ghost" className="min-h-[44px] w-full text-xs text-muted-foreground/50 hover:bg-transparent hover:text-muted-foreground">
-                  Back
-                </Button>
+                <div className="flex w-full flex-col gap-2">
+                  <Button asChild variant="outline" className="min-h-[44px] w-full text-xs">
+                    <Link href="/employers/request-access">Complete employer setup</Link>
+                  </Button>
+                  <Button onClick={() => setActionState({ phase: 'idle' })} variant="ghost" className="min-h-[44px] w-full text-xs text-muted-foreground/50 hover:bg-transparent hover:text-muted-foreground">
+                    Back
+                  </Button>
+                </div>
               )}
             />
           </SectionReveal>

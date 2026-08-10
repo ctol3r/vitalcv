@@ -6,6 +6,7 @@
  */
 
 import type { Express, NextFunction, Request, Response } from 'express';
+import { requireInternalSecret } from '../middleware/internalSecret';
 import { log } from '../obs/logger';
 import { getPrismaEventStore } from '../services/feedback/prismaEventStore';
 // import { computeFunnel, computeUserPerformance } from '../services/feedback/feedbackLearningService';
@@ -25,6 +26,7 @@ export function registerLearningAnalyticsRoutes(app: Express): void {
   // ── Funnel ───────────────────────────────────────────────────────────────
   app.get(
     '/api/learning/funnel',
+    requireInternalSecret,
     asyncHandler(async (req, res) => {
       const store = getPrismaEventStore();
       const providerId = typeof req.query.providerId === 'string' ? req.query.providerId : undefined;
@@ -66,6 +68,7 @@ export function registerLearningAnalyticsRoutes(app: Express): void {
   // ── Provider performance ─────────────────────────────────────────────────
   app.get(
     '/api/learning/performance/:providerId',
+    requireInternalSecret,
     asyncHandler(async (req, res) => {
       const { providerId } = req.params;
       if (!providerId?.trim()) {
@@ -83,6 +86,7 @@ export function registerLearningAnalyticsRoutes(app: Express): void {
   // ── Match quality per opportunity ────────────────────────────────────────
   app.get(
     '/api/learning/match-quality',
+    requireInternalSecret,
     asyncHandler(async (req, res) => {
       const opportunityId = typeof req.query.opportunityId === 'string' ? req.query.opportunityId : null;
       if (!opportunityId?.trim()) {
@@ -97,6 +101,7 @@ export function registerLearningAnalyticsRoutes(app: Express): void {
   // ── Signal attribution ───────────────────────────────────────────────────
   app.get(
     '/api/learning/signal-attribution',
+    requireInternalSecret,
     asyncHandler(async (req, res) => {
       const employerId = typeof req.query.employerId === 'string' ? req.query.employerId : undefined;
       const specialty = typeof req.query.specialty === 'string' ? req.query.specialty : undefined;
@@ -109,6 +114,7 @@ export function registerLearningAnalyticsRoutes(app: Express): void {
   // ── Employer insights ────────────────────────────────────────────────────
   app.get(
     '/api/learning/employer-insights',
+    requireInternalSecret,
     asyncHandler(async (req, res) => {
       const employerId = typeof req.query.employerId === 'string' ? req.query.employerId : null;
       if (!employerId?.trim()) {
@@ -123,6 +129,7 @@ export function registerLearningAnalyticsRoutes(app: Express): void {
   // ── Ops dashboard data ──────────────────────────────────────────────────
   app.get(
     '/api/learning/ops',
+    requireInternalSecret,
     asyncHandler(async (req, res) => {
       const store = getPrismaEventStore();
 

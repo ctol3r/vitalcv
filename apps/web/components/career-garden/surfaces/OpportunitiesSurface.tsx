@@ -51,7 +51,7 @@ export function OpportunitiesSurface({
         <p className="mz-small mt-2" style={{ color: 'var(--vt-text-muted)' }}>
           Real roles live in{' '}
           <Link href="/holder/opportunities" className="underline underline-offset-4">
-            MATCHA search
+            Role search
           </Link>{' '}
           and the{' '}
           <Link href="/holder/opportunities/discover" className="underline underline-offset-4">
@@ -176,7 +176,7 @@ export function OpportunitiesSurface({
               </Link>
             ) : null}
             <span className="mz-small" style={{ color: 'var(--vt-text-muted)' }}>
-              Drafting happens here; applying happens in MATCHA when you choose to.
+              Drafting happens here; applying happens under Roles when you choose to.
             </span>
           </div>
 

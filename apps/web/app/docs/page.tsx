@@ -10,6 +10,25 @@ export const metadata: Metadata = {
   title: 'Docs',
   description:
     'Docs are a launch-readiness foundation, not complete API documentation.',
+  /**
+   * Deindexed deliberately (founder ruling D-B, 2026-08-09).
+   *
+   * This page is honest — it says outright that the docs are a foundation, and
+   * labels twelve entries FOUNDATION PLANNED. That honesty is the right call
+   * for someone we sent here. It is the wrong thing to publish to a search
+   * engine, where the label arrives with no context and the page reads as the
+   * product advertising its own unfinished-ness to a stranger.
+   *
+   * So: reachable by direct link, absent from the index. Nothing links here
+   * today anyway (the only inbound reference is under `app/_archive/`), and it
+   * has been removed from `app/sitemap.ts` in the same change — a sitemap entry
+   * and a noindex directive contradict each other, and crawlers act on the
+   * stronger signal.
+   *
+   * Reversible: delete this block and restore the sitemap row when the docs are
+   * something we would choose to be found by.
+   */
+  robots: { index: false, follow: true },
 };
 
 interface DocLink {

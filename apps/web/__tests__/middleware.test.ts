@@ -72,8 +72,13 @@ describe('Route role mapping', () => {
     { path: '/admin/demo-reset', role: 'ADMIN', expected: 'allow' },
     { path: '/admin/leads', role: 'ADMIN', expected: 'allow' },
     { path: '/admin/platform', role: 'ADMIN', expected: 'allow' },
+    { path: '/admin/agent-ops', role: 'ADMIN', expected: 'allow' },
     { path: '/admin/demo-reset', role: 'CLINICIAN', expected: '/holder' },
     { path: '/admin/demo-reset', role: 'VERIFIER', expected: '/employer/dashboard' },
+    // L0 — the agent decision ledger is an internal surface. A clinician
+    // reaching it would be reading the cohort's aggregate agent behaviour.
+    { path: '/admin/agent-ops', role: 'CLINICIAN', expected: '/holder' },
+    { path: '/admin/agent-ops', role: 'VERIFIER', expected: '/employer/dashboard' },
   ];
 
   it.each(cases)(

@@ -279,9 +279,11 @@ export default function OpportunityDetailSurface({ opportunityId }: { opportunit
             <h2 id="match-heading" className="mz-eyebrow">
               Your match
             </h2>
+            {/* Band word only — never a magic number (A4 gate: a clinician
+                compares roles by explained fit, not a score). */}
             <span className={matchBandTone(match.band)}>
               <span className="mz-gl" />
-              {matchBandLabel(match.band)} · {match.score}/100
+              {matchBandLabel(match.band)}
             </span>
           </div>
           {match.fitReasons.length > 0 && (

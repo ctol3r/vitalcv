@@ -128,7 +128,7 @@ than forcing them into scope.
   lands `/profile/activate` and may inform the answer — **sequence after B1**.
 - **Note:** nav labels were deliberately excluded from wave L1 for this reason.
 
-## DL-009 — Dead homepage components still carrying retired vocabulary
+## DL-009 — Dead homepage components still carrying retired vocabulary — **CLOSED 2026-08-09**
 
 - **Route/surface:** `components/home/ProductCarousel.tsx`, `components/home/OutcomeTriad.tsx`
 - **Problem:** both have **zero real importers** — nothing renders them. They still carry
@@ -141,6 +141,14 @@ than forcing them into scope.
 - **Recommended direction:** delete both, with their tests. Do not "fix" their copy —
   polishing dead code is how it survives another audit.
 - **Size:** XS · **Collision risk:** verify against #1079 before deleting (it owns `components/home/`)
+- **Closure (2026-08-09):** deleted as recommended — copy untouched, files removed —
+  along with `MetricStrip.tsx`, the same dead-component class (zero importers; its
+  retirement was already ruled by the C5 composition ruling and
+  `docs/strategy/one-platform-synthesis-2026-07-25.md`). Their tests went with them:
+  the ProductCarousel glyph-grammar blocks in `homepage-truth-pass.test.tsx` and the
+  MetricStrip lane-parity block in `source-lane-registry.test.ts`. #1079 verified
+  CLOSED (unmerged) before deletion. Baselines regenerated: 8 (file, term) pairs left
+  `copy-rules-baseline.json`; LINT-02 ceiling lowered 284 → 281.
 
 ## L2 — `passport` retired from customer copy — **AT FOUNDER GATE**
 

@@ -1529,6 +1529,116 @@
   color: var(--ezh-text3);
 }
 
+/* ── matching ──────────────────────────────────────────────────────────── */
+
+.ezh-match .ezh-wrap {
+  padding-bottom: 96px;
+}
+
+.ezh-match-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 420px);
+  gap: 56px;
+  align-items: start;
+  margin-top: 36px;
+}
+
+.ezh-match-points {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
+}
+
+.ezh-match-points li {
+  padding-left: 18px;
+  border-left: 2px solid var(--ezh-line2);
+}
+
+.ezh-match-points .ezh-tt {
+  display: block;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.ezh-match-points p {
+  margin-top: 7px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--ezh-text2);
+}
+
+.ezh-match-panel {
+  border: 1px solid var(--ezh-line);
+  border-radius: var(--vt-shape-card);
+  background: var(--ezh-panel);
+  padding: 24px 22px 20px;
+}
+
+.ezh-match-role {
+  margin-top: 12px;
+  font-size: 14.5px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.ezh-match-rows {
+  list-style: none;
+  margin: 18px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ezh-match-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--ezh-text2);
+}
+
+/* Shape carries the fit/blocker distinction as well as colour, so the readout
+   survives a monochrome render and any form of colour blindness. */
+.ezh-match-mark {
+  flex: none;
+  width: 9px;
+  height: 9px;
+  margin-top: 6px;
+}
+
+.ezh-match-row.is-fit .ezh-match-mark {
+  background: var(--ezh-work);
+  border-radius: 50%;
+}
+
+.ezh-match-row.is-block .ezh-match-mark {
+  background: var(--ezh-hold);
+  border-radius: 1px;
+}
+
+.ezh-match-cap {
+  margin-top: 20px;
+  padding-top: 14px;
+  border-top: 1px solid var(--ezh-line);
+  font-size: 11.5px;
+  line-height: 1.55;
+  color: var(--ezh-text3);
+}
+
+.ezh-match-scope {
+  margin-top: 40px;
+  max-width: 640px;
+  font-size: 13px;
+  line-height: 1.65;
+  color: var(--ezh-text3);
+}
+
 /* ── outcome ───────────────────────────────────────────────────────────── */
 
 .ezh-out .ezh-wrap {
@@ -1795,6 +1905,7 @@
 
   .ezh-out-grid,
   .ezh-emp-grid,
+  .ezh-match-grid,
   .ezh-start-grid {
     grid-template-columns: 1fr;
     gap: 44px;
@@ -1976,6 +2087,1100 @@
   .ezh *,
   .ezh *::before,
   .ezh *::after {
+    transition: none !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ezh-story — "What VitalCV is": the deep five-chapter explainer (UX-04).
+
+   Same island discipline as everything above: --ezh-* tokens only, no
+   keyframes, no loops, no scroll interception. Server markup ships every
+   chapter complete (`is-play` in SSR); the client strips and replays a
+   chapter once as it enters the viewport. `is-reset` kills transitions for
+   the strip so nothing animates in reverse. Under prefers-reduced-motion
+   every transition collapses and the finished frames simply stand.
+
+   Atmosphere: one --vt-scene-glow per chapter, behind the scene frame only
+   (EC-20 gradient row as amended A-1 — never on a control, carries no
+   meaning). Chapter rhythm keeps one glow per viewport.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.ezh-story {
+  border-top: 1px solid var(--ezh-line);
+  padding: 96px 0 104px;
+}
+
+.ezh-story .ezh-wrap {
+  max-width: var(--ezh-maxw);
+}
+
+.ezh-st-lede {
+  max-width: 660px;
+  margin-top: 18px;
+  font-size: 17px;
+  line-height: 1.7;
+  color: var(--ezh-text2);
+}
+
+/* ── chapter grid ──────────────────────────────────────────────────────── */
+
+.ezh-st-ch {
+  display: grid;
+  grid-template-columns: 5fr 7fr;
+  gap: 56px;
+  align-items: center;
+  margin-top: 110px;
+  min-height: 58vh;
+}
+
+.ezh-st-ch.is-flip .ezh-st-copy {
+  order: 2;
+}
+
+.ezh-st-ch.is-flip .ezh-st-stage {
+  order: 1;
+}
+
+.ezh-st-num {
+  display: block;
+  font-family: var(--font-geist-mono);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  color: var(--vt-accent-editorial-on-dark);
+}
+
+.ezh-st-beat {
+  display: block;
+  margin-top: 10px;
+  font-family: var(--font-geist-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ezh-text3);
+}
+
+.ezh-st-copy h3 {
+  margin: 14px 0 0;
+  font-size: clamp(22px, 2.4vw, 28px);
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.015em;
+  color: var(--ezh-text);
+}
+
+.ezh-st-copy p {
+  margin: 14px 0 0;
+  max-width: 440px;
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--ezh-text2);
+}
+
+/* ── the stage: glow + frame + chrome ──────────────────────────────────── */
+
+.ezh-st-stage {
+  position: relative;
+  margin: 0;
+  min-width: 0;
+}
+
+/* The single travelling glow: only the chapter holding `is-glow` lights it,
+   so at most one is ever visible per viewport (EC-20 as amended A-1). */
+.ezh-st-glow {
+  position: absolute;
+  inset: -16% -10%;
+  background: var(--vt-scene-glow);
+  pointer-events: none;
+  opacity: 0;
+  transform: scale(0.92);
+  transition:
+    opacity 0.8s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.ezh-st-ch.is-glow.is-play .ezh-st-glow {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.ezh-st-frame {
+  position: relative;
+  border: 1px solid var(--ezh-line);
+  border-radius: var(--vt-shape-card);
+  background: var(--ezh-panel);
+  padding: 18px 20px 22px;
+}
+
+.ezh-st-chrome {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--ezh-line);
+}
+
+.ezh-st-cap {
+  font-family: var(--font-geist-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ezh-text3);
+}
+
+.ezh-st-replay {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--ezh-line2);
+  border-radius: var(--vt-shape-control);
+  background: transparent;
+  color: var(--ezh-text2);
+  font-family: var(--font-geist-mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.ezh-st-replay:hover {
+  color: var(--ezh-text);
+  border-color: var(--ezh-text3);
+}
+
+.ezh-st-replay:focus-visible {
+  outline: 2px solid var(--ezh-focus);
+  outline-offset: 2px;
+}
+
+.ezh-st-legend {
+  margin-top: 12px;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--ezh-text3);
+}
+
+/* ── shared scene grammar ──────────────────────────────────────────────── */
+
+.ezh-st-scene {
+  position: relative;
+  padding-top: 18px;
+  min-height: 280px;
+}
+
+/* Every animated element: hidden base, flowy single-shot entrance on play. */
+.ezh-st-scene .ezh-st-seed,
+.ezh-st-scene .ezh-st-g,
+.ezh-st-scene .ezh-st-spine,
+.ezh-st-scene .ezh-st-nascent,
+.ezh-st-scene .ezh-st-record,
+.ezh-st-scene .ezh-st-fact,
+.ezh-st-scene .ezh-st-srcnode,
+.ezh-st-scene .ezh-st-lane,
+.ezh-st-scene .ezh-st-item,
+.ezh-st-scene .ezh-st-feed,
+.ezh-st-scene .ezh-st-line,
+.ezh-st-scene .ezh-st-gate,
+.ezh-st-scene .ezh-st-gate-ok,
+.ezh-st-scene .ezh-st-keep,
+.ezh-st-scene .ezh-st-arc,
+.ezh-st-scene .ezh-st-travel,
+.ezh-st-scene .ezh-st-desk {
+  transition:
+    opacity 0.42s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.42s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.ezh-st-ch:not(.is-play) .ezh-st-seed,
+.ezh-st-ch:not(.is-play) .ezh-st-nascent,
+.ezh-st-ch:not(.is-play) .ezh-st-record,
+.ezh-st-ch:not(.is-play) .ezh-st-fact,
+.ezh-st-ch:not(.is-play) .ezh-st-srcnode,
+.ezh-st-ch:not(.is-play) .ezh-st-lane,
+.ezh-st-ch:not(.is-play) .ezh-st-item,
+.ezh-st-ch:not(.is-play) .ezh-st-feed,
+.ezh-st-ch:not(.is-play) .ezh-st-line,
+.ezh-st-ch:not(.is-play) .ezh-st-gate,
+.ezh-st-ch:not(.is-play) .ezh-st-desk {
+  opacity: 0;
+  transform: translateY(16px);
+}
+
+.ezh-st-ch.is-reset *,
+.ezh-st-ch.is-reset .ezh-st-glow {
+  transition: none !important;
+}
+
+/* ── chapter 1 — identify ──────────────────────────────────────────────── */
+
+.ezh-st-sc1 {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  padding-bottom: 8px;
+}
+
+.ezh-st-seed {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid var(--ezh-line2);
+  border-radius: var(--vt-shape-control);
+  background: var(--ezh-panel2);
+  padding: 16px 18px;
+}
+
+.ezh-st-seedk {
+  font-family: var(--font-geist-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--ezh-text2);
+}
+
+.ezh-st-seedv {
+  display: inline-flex;
+  gap: 6px;
+}
+
+.ezh-st-g {
+  width: 11px;
+  height: 17px;
+  border-radius: 2px;
+  background: var(--ezh-line2);
+  opacity: 1;
+  transform: none;
+}
+
+.ezh-st-ch:not(.is-play) .ezh-st-g {
+  opacity: 0;
+  transform: translateY(6px);
+}
+
+.ezh-st-ch.is-play .ezh-st-g:nth-child(1) { transition-delay: 0.15s; }
+.ezh-st-ch.is-play .ezh-st-g:nth-child(2) { transition-delay: 0.24s; }
+.ezh-st-ch.is-play .ezh-st-g:nth-child(3) { transition-delay: 0.33s; }
+.ezh-st-ch.is-play .ezh-st-g:nth-child(4) { transition-delay: 0.42s; }
+.ezh-st-ch.is-play .ezh-st-g:nth-child(5) { transition-delay: 0.51s; }
+.ezh-st-ch.is-play .ezh-st-g:nth-child(6) { transition-delay: 0.6s; }
+.ezh-st-ch.is-play .ezh-st-g:nth-child(7) { transition-delay: 0.69s; }
+.ezh-st-ch.is-play .ezh-st-g:nth-child(8) { transition-delay: 0.78s; }
+.ezh-st-ch.is-play .ezh-st-g:nth-child(9) { transition-delay: 0.87s; }
+.ezh-st-ch.is-play .ezh-st-g:nth-child(10) { transition-delay: 0.96s; }
+
+.ezh-st-tag {
+  font-family: var(--font-geist-mono);
+  font-size: 9px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--ezh-text3);
+  border: 1px solid var(--ezh-line);
+  border-radius: var(--vt-shape-pill);
+  padding: 3px 8px;
+}
+
+.ezh-st-spine {
+  width: 2px;
+  height: 56px;
+  background: var(--ezh-line2);
+  transform-origin: top;
+  transform: scaleY(1);
+  transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.ezh-st-ch:not(.is-play) .ezh-st-spine {
+  transform: scaleY(0);
+}
+
+.ezh-st-ch.is-play .ezh-st-spine {
+  transition-delay: 1.2s;
+}
+
+.ezh-st-nascent {
+  width: min(300px, 78%);
+  border: 1px solid var(--ezh-line);
+  border-radius: 3px;
+  padding: 14px 16px 18px;
+  position: relative;
+}
+
+.ezh-st-ch.is-play .ezh-st-nascent {
+  transition-delay: 1.55s;
+}
+
+.ezh-st-rec-edge {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--ezh-text);
+}
+
+.ezh-st-nascent-cap {
+  display: block;
+  margin-top: 4px;
+  font-family: var(--font-geist-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ezh-text2);
+}
+
+/* ── chapter 2 — build ─────────────────────────────────────────────────── */
+
+.ezh-st-sc2 {
+  display: grid;
+  grid-template-columns: 7fr 5fr;
+  gap: 20px;
+  align-items: start;
+}
+
+.ezh-st-record {
+  position: relative;
+  border: 1px solid var(--ezh-line2);
+  border-radius: 3px;
+  padding: 18px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ezh-st-fact {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ezh-st-fact .ezh-skel {
+  flex: 0 1 auto;
+}
+
+.ezh-st-ch.is-play .ezh-st-record { transition-delay: 0.1s; }
+.ezh-st-ch.is-play .ezh-st-fact.f1 { transition-delay: 0.55s; }
+.ezh-st-ch.is-play .ezh-st-fact.f2 { transition-delay: 0.95s; }
+.ezh-st-ch.is-play .ezh-st-fact.f3 { transition-delay: 1.35s; }
+.ezh-st-ch.is-play .ezh-st-fact.f4 { transition-delay: 1.75s; }
+
+.ezh-st-open-slot {
+  font-family: var(--font-geist-mono);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ezh-hold);
+  border: 1px dashed var(--ezh-line2);
+  border-radius: 3px;
+  padding: 6px 10px;
+}
+
+.ezh-st-sources {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 8px;
+}
+
+.ezh-st-srcnode {
+  font-family: var(--font-geist-mono);
+  font-size: 10px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--ezh-text2);
+  border: 1px solid var(--ezh-line2);
+  border-radius: var(--vt-shape-pill);
+  padding: 8px 12px;
+  align-self: flex-start;
+}
+
+.ezh-st-ch.is-play .ezh-st-srcnode.s1 { transition-delay: 0.4s; }
+.ezh-st-ch.is-play .ezh-st-srcnode.s2 { transition-delay: 0.8s; }
+.ezh-st-ch.is-play .ezh-st-srcnode.s3 { transition-delay: 1.2s; }
+
+.ezh-st-ch:not(.is-play) .ezh-st-fact .ezh-skel {
+  transform: scaleX(0.4);
+}
+
+.ezh-st-ch.is-play .ezh-st-fact .ezh-skel {
+  transform: none;
+}
+
+/* ── chapter 3 — choose ────────────────────────────────────────────────── */
+
+.ezh-st-sc3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.ezh-st-lane {
+  border: 1px solid var(--ezh-line);
+  border-radius: var(--vt-shape-control);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 104px;
+}
+
+.ezh-st-lane-k {
+  font-family: var(--font-geist-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ezh-text2);
+}
+
+.ezh-st-lane.l2 .ezh-st-lane-k,
+.ezh-st-lane.l3 .ezh-st-lane-k {
+  color: var(--ezh-hold);
+}
+
+.ezh-st-item {
+  font-size: 13px;
+  color: var(--ezh-text);
+  border: 1px solid var(--ezh-line2);
+  border-radius: 3px;
+  padding: 7px 10px;
+  align-self: flex-start;
+}
+
+.ezh-st-ch.is-play .ezh-st-lane.l1 { transition-delay: 0.1s; }
+.ezh-st-ch.is-play .ezh-st-lane.l2 { transition-delay: 0.25s; }
+.ezh-st-ch.is-play .ezh-st-lane.l3 { transition-delay: 0.4s; }
+.ezh-st-ch.is-play .ezh-st-lane.l4 { transition-delay: 0.55s; }
+.ezh-st-ch.is-play .ezh-st-item.i1 { transition-delay: 0.8s; }
+.ezh-st-ch.is-play .ezh-st-item.i2 { transition-delay: 1.0s; }
+.ezh-st-ch.is-play .ezh-st-item.i3 { transition-delay: 1.2s; }
+.ezh-st-ch.is-play .ezh-st-item.i4 { transition-delay: 1.4s; }
+.ezh-st-ch.is-play .ezh-st-item.i5 { transition-delay: 1.6s; }
+
+/* ── chapter 4 — apply ─────────────────────────────────────────────────── */
+
+.ezh-st-sc4 {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.ezh-st-feed {
+  border: 1px solid var(--ezh-line);
+  border-radius: var(--vt-shape-control);
+  padding: 14px 16px;
+}
+
+.ezh-st-feedk {
+  display: block;
+  margin-bottom: 8px;
+  font-family: var(--font-geist-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ezh-text2);
+}
+
+.ezh-st-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: var(--ezh-text2);
+}
+
+.ezh-st-line .ezh-ck {
+  color: var(--ezh-work);
+  font-style: normal;
+}
+
+.ezh-st-ch.is-play .ezh-st-line.w1 { transition-delay: 0.4s; }
+.ezh-st-ch.is-play .ezh-st-line.w2 { transition-delay: 0.9s; }
+.ezh-st-ch.is-play .ezh-st-line.w3 { transition-delay: 1.4s; }
+
+.ezh-st-gate {
+  border: 1px solid var(--ezh-hold);
+  border-radius: var(--vt-shape-control);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ezh-st-ch.is-play .ezh-st-gate { transition-delay: 1.9s; }
+
+.ezh-st-gate-wait {
+  font-family: var(--font-geist-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ezh-hold);
+}
+
+.ezh-st-gate-what {
+  font-size: 14px;
+  color: var(--ezh-text);
+}
+
+.ezh-st-gate-btn {
+  align-self: flex-start;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ezh-cta-text);
+  background: var(--ezh-cta-bg);
+  border-radius: var(--vt-shape-control);
+  padding: 9px 16px;
+  transform: none;
+  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.ezh-st-ch.is-play .ezh-st-gate-btn {
+  transition-delay: 2.7s;
+}
+
+.ezh-st-ch:not(.is-play) .ezh-st-gate-btn {
+  transform: scale(0.96);
+}
+
+.ezh-st-gate-ok {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  color: var(--ezh-work);
+  opacity: 1;
+  transform: none;
+}
+
+.ezh-st-gate-ok .ezh-ck {
+  font-style: normal;
+}
+
+.ezh-st-ch:not(.is-play) .ezh-st-gate-ok {
+  opacity: 0;
+  transform: translateY(8px);
+}
+
+.ezh-st-ch.is-play .ezh-st-gate-ok {
+  transition-delay: 3.3s;
+}
+
+/* ── chapter 5 — carry forward ─────────────────────────────────────────── */
+
+.ezh-st-sc5 {
+  display: grid;
+  grid-template-columns: 5fr 1fr 4fr;
+  gap: 12px;
+  align-items: center;
+}
+
+.ezh-st-keep,
+.ezh-st-travel {
+  position: relative;
+  border: 1px solid var(--ezh-line2);
+  border-radius: 3px;
+  padding: 18px 14px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ezh-st-travel {
+  border-color: var(--ezh-line);
+}
+
+.ezh-st-keep-k {
+  font-family: var(--font-geist-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ezh-text2);
+}
+
+.ezh-st-keep-cap {
+  margin-top: 2px;
+  font-family: var(--font-geist-mono);
+  font-size: 9px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--ezh-text3);
+}
+
+.ezh-st-arc {
+  height: 1px;
+  background: var(--ezh-line2);
+  transform-origin: left;
+  transform: scaleX(1);
+  transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.ezh-st-ch:not(.is-play) .ezh-st-arc {
+  transform: scaleX(0);
+}
+
+.ezh-st-ch.is-play .ezh-st-keep { transition-delay: 0.1s; }
+.ezh-st-ch.is-play .ezh-st-arc { transition-delay: 0.7s; }
+
+.ezh-st-ch:not(.is-play) .ezh-st-travel {
+  opacity: 0;
+  transform: translateX(-32px);
+}
+
+.ezh-st-travel {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.ezh-st-ch.is-play .ezh-st-travel { transition-delay: 1.1s; }
+
+.ezh-st-sc5 .ezh-st-desk {
+  grid-column: 3;
+  margin-top: 12px;
+  border: 1px solid var(--ezh-line);
+  border-radius: var(--vt-shape-control);
+  padding: 12px 14px;
+}
+
+.ezh-st-desk-k {
+  display: block;
+  font-family: var(--font-geist-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ezh-text2);
+}
+
+.ezh-st-desk-verdict {
+  display: block;
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--ezh-wait);
+}
+
+.ezh-st-ch.is-play .ezh-st-desk { transition-delay: 1.7s; }
+
+/* ── close line ────────────────────────────────────────────────────────── */
+
+.ezh-st-close {
+  margin: 110px auto 0;
+  max-width: 620px;
+  text-align: center;
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--ezh-text2);
+}
+
+/* ── mobile: one column, scenes stay complete ──────────────────────────── */
+
+@media (max-width: 860px) {
+  .ezh-story {
+    padding: 64px 0 72px;
+  }
+
+  .ezh-st-ch {
+    grid-template-columns: 1fr;
+    gap: 24px;
+    margin-top: 72px;
+    min-height: 0;
+  }
+
+  .ezh-st-ch.is-flip .ezh-st-copy {
+    order: 1;
+  }
+
+  .ezh-st-ch.is-flip .ezh-st-stage {
+    order: 2;
+  }
+
+  .ezh-st-sc2 {
+    grid-template-columns: 1fr;
+  }
+
+  .ezh-st-sources {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .ezh-st-sc5 {
+    grid-template-columns: 1fr;
+  }
+
+  .ezh-st-arc {
+    display: none;
+  }
+
+  .ezh-st-sc5 .ezh-st-desk {
+    grid-column: auto;
+  }
+
+  .ezh-st-close {
+    margin-top: 72px;
+  }
+}
+
+/* Reduced motion: the finished frames simply stand. */
+@media (prefers-reduced-motion: reduce) {
+  .ezh-story *,
+  .ezh-story *::before,
+  .ezh-story *::after {
+    transition: none !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ezh-rv — the recognition moment (UX-05).
+
+   ResolvingNarration: process rows while the real pairing is in flight.
+   Process-honest labels, no spinner, no percentage, nothing loops — the
+   "reading" word and an amber dot mark the running row; read rows settle to
+   filled dots. Reduced motion arrives fully settled (the pacing hook).
+
+   NpiReveal: identity assembles, then the real evidence rows. Equal
+   typographic confidence is enforced here structurally: every row shares one
+   type ramp and `opacity: 1` — an unavailable lane differs ONLY in its state
+   word and hue. Meaning stays in words (EC-4).
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.ezh-rv-narration {
+  margin-top: 26px;
+  border: 1px solid var(--ezh-line);
+  border-radius: var(--vt-shape-card);
+  background: var(--ezh-panel);
+  padding: 16px;
+}
+
+.ezh-rv-steps {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.ezh-rv-step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-geist-mono);
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  color: var(--ezh-text3);
+  transition: color 0.25s ease;
+}
+
+.ezh-rv-step.is-read { color: var(--ezh-text2); }
+.ezh-rv-step.is-running { color: var(--ezh-text); }
+
+.ezh-rv-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  border: 1px solid var(--ezh-line2);
+  background: transparent;
+  flex-shrink: 0;
+  transition: background-color 0.25s ease, border-color 0.25s ease;
+}
+
+.ezh-rv-step.is-read .ezh-rv-dot {
+  background: var(--ezh-text3);
+  border-color: var(--ezh-text3);
+}
+
+.ezh-rv-step.is-running .ezh-rv-dot {
+  background: var(--ezh-hold);
+  border-color: var(--ezh-hold);
+}
+
+.ezh-rv-now {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ezh-hold);
+}
+
+.ezh-rv-narr-note {
+  margin: 12px 0 0;
+  font-size: 12px;
+  color: var(--ezh-text3);
+}
+
+/* ── the reveal ────────────────────────────────────────────────────────── */
+
+.ezh-rv {
+  margin-top: 26px;
+  border: 1px solid var(--ezh-line);
+  border-radius: var(--vt-shape-card);
+  background: var(--ezh-panel);
+  padding: 16px;
+}
+
+/* Single-shot entrance stagger. Base = hidden; `.is-in` lands everything.
+   `.is-instant` (reduced motion) removes the transitions entirely. */
+.ezh-rv .ezh-rv-id,
+.ezh-rv .ezh-rv-src,
+.ezh-rv .ezh-rv-group,
+.ezh-rv .ezh-rv-next,
+.ezh-rv .ezh-rv-actions,
+.ezh-rv .ezh-rv-note {
+  opacity: 0;
+  transform: translateY(10px);
+  transition:
+    opacity 0.4s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.ezh-rv.is-in .ezh-rv-id,
+.ezh-rv.is-in .ezh-rv-src,
+.ezh-rv.is-in .ezh-rv-group,
+.ezh-rv.is-in .ezh-rv-next,
+.ezh-rv.is-in .ezh-rv-actions,
+.ezh-rv.is-in .ezh-rv-note {
+  opacity: 1;
+  transform: none;
+}
+
+.ezh-rv.is-in .ezh-rv-id { transition-delay: 0.05s; }
+.ezh-rv.is-in .ezh-rv-src { transition-delay: 0.22s; }
+.ezh-rv.is-in .ezh-rv-group.g-returned { transition-delay: 0.42s; }
+.ezh-rv.is-in .ezh-rv-group.g-attention { transition-delay: 0.62s; }
+.ezh-rv.is-in .ezh-rv-group.g-unavailable { transition-delay: 0.82s; }
+.ezh-rv.is-in .ezh-rv-next { transition-delay: 1.0s; }
+.ezh-rv.is-in .ezh-rv-actions { transition-delay: 1.12s; }
+.ezh-rv.is-in .ezh-rv-note { transition-delay: 1.2s; }
+
+.ezh-rv.is-instant *,
+.ezh-rv.is-instant {
+  transition: none !important;
+}
+
+.ezh-rv-id {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ezh-rv-mono {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--ezh-line2);
+  border-radius: 50%;
+  font-family: var(--font-geist-mono);
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--ezh-text);
+  flex-shrink: 0;
+}
+
+.ezh-rv-name {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--ezh-text);
+}
+
+.ezh-rv-meta {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: var(--ezh-text2);
+}
+
+.ezh-rv-src {
+  margin: 10px 0 0;
+  font-family: var(--font-geist-mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--ezh-text3);
+}
+
+/* ── evidence rows: one ramp, full opacity, state in words ─────────────── */
+
+.ezh-rv-rows {
+  margin-top: 14px;
+  border-top: 1px solid var(--ezh-line);
+}
+
+.ezh-rv-group {
+  padding-top: 12px;
+}
+
+.ezh-rv-group-h {
+  margin: 0 0 6px;
+  font-family: var(--font-geist-mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ezh-text2);
+}
+
+.ezh-rv-group ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* EQUAL CONFIDENCE, structurally: every row — returned, attention,
+   unavailable — shares this one presentation. No kind-conditional opacity,
+   size, or weight exists below; only the state word's hue varies. */
+.ezh-rv-row {
+  opacity: 1;
+  padding: 7px 0;
+}
+
+.ezh-rv-row + .ezh-rv-row {
+  border-top: 1px solid color-mix(in oklab, var(--ezh-line) 55%, transparent);
+}
+
+.ezh-rv-row-main {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.ezh-rv-claim {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ezh-text);
+  flex-shrink: 0;
+}
+
+.ezh-rv-returned {
+  font-size: 13px;
+  color: var(--ezh-text2);
+  flex: 1 1 220px;
+  min-width: 0;
+}
+
+.ezh-rv-state {
+  font-family: var(--font-geist-mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.ezh-rv-state.s-checked { color: var(--ezh-work); }
+.ezh-rv-state.s-reviewRequired,
+.ezh-rv-state.s-notFound { color: var(--ezh-hold); }
+.ezh-rv-state.s-pending,
+.ezh-rv-state.s-accessRequired { color: var(--ezh-wait); }
+
+/* progressive disclosure — closed by default, one tap for source & limits */
+.ezh-rv-more {
+  margin-top: 2px;
+}
+
+.ezh-rv-more summary {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  cursor: pointer;
+  list-style: none;
+  font-family: var(--font-geist-mono);
+  font-size: 10px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--ezh-text3);
+}
+
+.ezh-rv-more summary::-webkit-details-marker { display: none; }
+
+.ezh-rv-more summary::before {
+  content: '+';
+  margin-right: 6px;
+}
+
+.ezh-rv-more[open] summary::before {
+  content: '−';
+}
+
+.ezh-rv-more summary:hover { color: var(--ezh-text2); }
+
+.ezh-rv-more p {
+  margin: 0 0 6px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--ezh-text2);
+  max-width: 520px;
+}
+
+.ezh-rv-next {
+  margin: 12px 0 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--ezh-line);
+  font-size: 13px;
+  color: var(--ezh-text);
+}
+
+.ezh-rv-next .ezh-k {
+  margin-bottom: 4px;
+}
+
+/* ── actions ───────────────────────────────────────────────────────────── */
+
+.ezh-rv-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+}
+
+.ezh-rv-keep {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 20px;
+  background: var(--ezh-cta-bg);
+  color: var(--ezh-cta-text);
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: var(--vt-shape-pill);
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.ezh-rv-keep:hover,
+.ezh-rv-keep:focus-visible {
+  background: var(--ezh-cta-bg-press);
+  color: var(--ezh-cta-text-press);
+}
+
+.ezh-rv-again {
+  min-height: 44px;
+  padding: 0 14px;
+  background: transparent;
+  border: 1px solid var(--ezh-line2);
+  border-radius: var(--vt-shape-control);
+  color: var(--ezh-text2);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.ezh-rv-again:hover { color: var(--ezh-text); border-color: var(--ezh-text3); }
+
+.ezh-rv-note {
+  margin: 12px 0 0;
+  font-size: 12px;
+  color: var(--ezh-text3);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ezh-rv *,
+  .ezh-rv,
+  .ezh-rv-narration * {
     transition: none !important;
   }
 }

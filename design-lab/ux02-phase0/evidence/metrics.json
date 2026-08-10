@@ -1,0 +1,300 @@
+{
+  "base": "http://localhost:4890",
+  "capturedAt": "2026-08-07 origin/main efda1a5d8",
+  "results": [
+    {
+      "route": "/",
+      "slug": "home",
+      "width": 390,
+      "status": 200,
+      "pageHeight": 3199,
+      "viewportHeight": 900,
+      "textChars": 1266,
+      "title": "VitalCV — Build your clinician profile from your NPI and apply with it.",
+      "heightRatio": 3.55,
+      "charsPerViewport": 357,
+      "axeViolations": null
+    },
+    {
+      "route": "/",
+      "slug": "home",
+      "width": 768,
+      "status": 200,
+      "pageHeight": 2983,
+      "viewportHeight": 900,
+      "textChars": 1431,
+      "title": "VitalCV — Build your clinician profile from your NPI and apply with it.",
+      "heightRatio": 3.31,
+      "charsPerViewport": 432,
+      "axeViolations": null
+    },
+    {
+      "route": "/",
+      "slug": "home",
+      "width": 1280,
+      "status": 200,
+      "pageHeight": 3689,
+      "viewportHeight": 900,
+      "textChars": 1431,
+      "title": "VitalCV — Build your clinician profile from your NPI and apply with it.",
+      "heightRatio": 4.1,
+      "charsPerViewport": 349,
+      "axeViolations": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "nodes": 14,
+          "help": "Elements must meet minimum color contrast ratio thresholds"
+        },
+        {
+          "id": "landmark-one-main",
+          "impact": "moderate",
+          "nodes": 1,
+          "help": "Document should have one main landmark"
+        }
+      ]
+    },
+    {
+      "route": "/",
+      "slug": "home",
+      "width": 1728,
+      "status": 200,
+      "pageHeight": 3826,
+      "viewportHeight": 900,
+      "textChars": 1431,
+      "title": "VitalCV — Build your clinician profile from your NPI and apply with it.",
+      "heightRatio": 4.25,
+      "charsPerViewport": 337,
+      "axeViolations": null
+    },
+    {
+      "route": "/employers",
+      "slug": "employers",
+      "width": 390,
+      "status": 200,
+      "pageHeight": 3776,
+      "viewportHeight": 900,
+      "textChars": 5336,
+      "title": "For Employers · VitalCV — VitalCV",
+      "heightRatio": 4.2,
+      "charsPerViewport": 1270,
+      "axeViolations": null
+    },
+    {
+      "route": "/employers",
+      "slug": "employers",
+      "width": 768,
+      "status": 200,
+      "pageHeight": 2940,
+      "viewportHeight": 900,
+      "textChars": 5492,
+      "title": "For Employers · VitalCV — VitalCV",
+      "heightRatio": 3.27,
+      "charsPerViewport": 1680,
+      "axeViolations": null
+    },
+    {
+      "route": "/employers",
+      "slug": "employers",
+      "width": 1280,
+      "status": 200,
+      "pageHeight": 2923,
+      "viewportHeight": 900,
+      "textChars": 5492,
+      "title": "For Employers · VitalCV — VitalCV",
+      "heightRatio": 3.25,
+      "charsPerViewport": 1690,
+      "axeViolations": []
+    },
+    {
+      "route": "/employers",
+      "slug": "employers",
+      "width": 1728,
+      "status": 200,
+      "pageHeight": 2923,
+      "viewportHeight": 900,
+      "textChars": 5492,
+      "title": "For Employers · VitalCV — VitalCV",
+      "heightRatio": 3.25,
+      "charsPerViewport": 1690,
+      "axeViolations": null
+    },
+    {
+      "route": "/pricing",
+      "slug": "pricing",
+      "width": 390,
+      "status": 200,
+      "pageHeight": 2893,
+      "viewportHeight": 900,
+      "textChars": 2551,
+      "title": "Pricing Foundation | VitalCV — VitalCV",
+      "heightRatio": 3.21,
+      "charsPerViewport": 795,
+      "axeViolations": null
+    },
+    {
+      "route": "/pricing",
+      "slug": "pricing",
+      "width": 768,
+      "status": 200,
+      "pageHeight": 1956,
+      "viewportHeight": 900,
+      "textChars": 2725,
+      "title": "Pricing Foundation | VitalCV — VitalCV",
+      "heightRatio": 2.17,
+      "charsPerViewport": 1256,
+      "axeViolations": null
+    },
+    {
+      "route": "/pricing",
+      "slug": "pricing",
+      "width": 1280,
+      "status": 200,
+      "pageHeight": 1656,
+      "viewportHeight": 900,
+      "textChars": 2725,
+      "title": "Pricing Foundation | VitalCV — VitalCV",
+      "heightRatio": 1.84,
+      "charsPerViewport": 1481,
+      "axeViolations": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "nodes": 7,
+          "help": "Elements must meet minimum color contrast ratio thresholds"
+        }
+      ]
+    },
+    {
+      "route": "/pricing",
+      "slug": "pricing",
+      "width": 1728,
+      "status": 200,
+      "pageHeight": 1656,
+      "viewportHeight": 900,
+      "textChars": 2725,
+      "title": "Pricing Foundation | VitalCV — VitalCV",
+      "heightRatio": 1.84,
+      "charsPerViewport": 1481,
+      "axeViolations": null
+    },
+    {
+      "route": "/profile/1407202518",
+      "slug": "profile-test-npi",
+      "width": 390,
+      "status": 404,
+      "pageHeight": 1121,
+      "viewportHeight": 900,
+      "textChars": 487,
+      "title": "Career Profile — VitalCV",
+      "heightRatio": 1.25,
+      "charsPerViewport": 390,
+      "axeViolations": null
+    },
+    {
+      "route": "/profile/1407202518",
+      "slug": "profile-test-npi",
+      "width": 768,
+      "status": 404,
+      "pageHeight": 1089,
+      "viewportHeight": 900,
+      "textChars": 661,
+      "title": "Career Profile — VitalCV",
+      "heightRatio": 1.21,
+      "charsPerViewport": 546,
+      "axeViolations": null
+    },
+    {
+      "route": "/profile/1407202518",
+      "slug": "profile-test-npi",
+      "width": 1280,
+      "status": 404,
+      "pageHeight": 1089,
+      "viewportHeight": 900,
+      "textChars": 661,
+      "title": "Career Profile — VitalCV",
+      "heightRatio": 1.21,
+      "charsPerViewport": 546,
+      "axeViolations": [
+        {
+          "id": "region",
+          "impact": "moderate",
+          "nodes": 2,
+          "help": "All page content should be contained by landmarks"
+        }
+      ]
+    },
+    {
+      "route": "/profile/1407202518",
+      "slug": "profile-test-npi",
+      "width": 1728,
+      "status": 404,
+      "pageHeight": 1089,
+      "viewportHeight": 900,
+      "textChars": 661,
+      "title": "Career Profile — VitalCV",
+      "heightRatio": 1.21,
+      "charsPerViewport": 546,
+      "axeViolations": null
+    },
+    {
+      "route": "/matcha",
+      "slug": "matcha",
+      "width": 390,
+      "status": 404,
+      "pageHeight": 1121,
+      "viewportHeight": 900,
+      "textChars": 487,
+      "title": "Page Not Found — VitalCV",
+      "heightRatio": 1.25,
+      "charsPerViewport": 390,
+      "axeViolations": null
+    },
+    {
+      "route": "/matcha",
+      "slug": "matcha",
+      "width": 768,
+      "status": 404,
+      "pageHeight": 1089,
+      "viewportHeight": 900,
+      "textChars": 661,
+      "title": "Page Not Found — VitalCV",
+      "heightRatio": 1.21,
+      "charsPerViewport": 546,
+      "axeViolations": null
+    },
+    {
+      "route": "/matcha",
+      "slug": "matcha",
+      "width": 1280,
+      "status": 404,
+      "pageHeight": 1089,
+      "viewportHeight": 900,
+      "textChars": 661,
+      "title": "Page Not Found — VitalCV",
+      "heightRatio": 1.21,
+      "charsPerViewport": 546,
+      "axeViolations": [
+        {
+          "id": "region",
+          "impact": "moderate",
+          "nodes": 2,
+          "help": "All page content should be contained by landmarks"
+        }
+      ]
+    },
+    {
+      "route": "/matcha",
+      "slug": "matcha",
+      "width": 1728,
+      "status": 404,
+      "pageHeight": 1089,
+      "viewportHeight": 900,
+      "textChars": 661,
+      "title": "Page Not Found — VitalCV",
+      "heightRatio": 1.21,
+      "charsPerViewport": 546,
+      "axeViolations": null
+    }
+  ]
+}

@@ -36,6 +36,7 @@ import {
 import { HttpError } from '../../utils/httpError';
 import {
   buildFieldEntriesFromTrustState,
+  buildSectionAbsencesFromTrustState,
   normalizeDisclosureSelection,
   sealPacket,
   type DisclosureSelection,
@@ -212,6 +213,10 @@ async function sealSubmissionPacket(
   };
   const normalizedDisclosure = normalizeDisclosureSelection(disclosure);
   const fields = buildFieldEntriesFromTrustState(args.trustState, disclosure);
+  // Selected sections that produced nothing, recorded explicitly. Built from
+  // the SAME selection and field list about to be sealed, so the absences
+  // describe exactly this packet and not a later recomputation.
+  const sectionAbsences = buildSectionAbsencesFromTrustState(args.trustState, disclosure, fields);
   if (fields.length === 0) {
     throw new HttpError(
       409,
@@ -261,6 +266,10 @@ async function sealSubmissionPacket(
     // per entry and is hashed. A packet with nothing withheld therefore
     // hashes exactly as it did before field-level disclosure existed.
     fields,
+    // ALWAYS set for a new packet, including the empty array — an omitted key
+    // would make "every section contributed" indistinguishable from "absence
+    // was never computed", which is the silence this record exists to remove.
+    sectionAbsences,
     clinicianNote: args.clinicianNote,
     methodologyVersion: args.trustState.methodology_version,
     consentAt: args.consentAt.toISOString(),
@@ -284,6 +293,7 @@ async function sealSubmissionPacket(
       recipient: sealed.recipient,
       selectedSections: sealed.selectedSections,
       fields: sealed.fields as unknown as Prisma.InputJsonValue,
+      sectionAbsences: (sealed.sectionAbsences ?? []) as unknown as Prisma.InputJsonValue,
       clinicianNote: sealed.clinicianNote,
       methodologyVersion: sealed.methodologyVersion,
       consentAt: new Date(sealed.consentAt),
@@ -308,6 +318,9 @@ async function sealSubmissionPacket(
         consent_receipt_id: sealed.consentReceiptId,
         methodology_version: sealed.methodologyVersion,
         field_count: sealed.fields.length,
+        // Which selected sections produced nothing — the audit trail records
+        // the empty sections, not only the populated ones.
+        absent_section_ids: (sealed.sectionAbsences ?? []).map((absence) => absence.sectionId),
       },
     },
   });

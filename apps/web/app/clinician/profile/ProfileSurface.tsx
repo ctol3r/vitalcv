@@ -83,7 +83,18 @@ const EMPTY_FORM: ProfileFormValues = {
 const INPUT_CLASS = 'mt-2 w-full rounded-[6px] border px-3 py-2.5 text-sm outline-none transition focus:border-[var(--accent)]';
 const INPUT_STYLE = { borderColor: 'var(--paper-edge)', background: '#fff', color: 'var(--ink)' } as const;
 
-export default function ProfileSurface() {
+export interface ProfileSurfaceProps {
+  /**
+   * The clinician's own registry record, rendered on the server and passed in
+   * as a slot. It sits ABOVE the editing form on purpose: it is what employers
+   * already read about them, and a clinician cannot fix a filing they have not
+   * been shown. Passed as a prop rather than imported because it is an async
+   * server component and this surface is a client component.
+   */
+  registrySlot?: React.ReactNode;
+}
+
+export default function ProfileSurface({ registrySlot }: ProfileSurfaceProps = {}) {
   const [phase, setPhase] = useState<Phase>('checking');
   const [profile, setProfile] = useState<WorkspacePersonProfile | null>(null);
   const [passport, setPassport] = useState<PassportData | null>(null);
@@ -478,6 +489,9 @@ export default function ProfileSurface() {
         </dl>
       </section>
 
+      {/* What the world already says, before what the clinician types. */}
+      {registrySlot}
+
       {/* Completeness — filled-ness only, with what's-missing guidance */}
       <section aria-labelledby="completeness-heading" className="vcv-panel p-5">
         <h2 id="completeness-heading" className="vcv-eyebrow">
@@ -725,6 +739,23 @@ export default function ProfileSurface() {
 
       {/* Self-attested structured sections — editable */}
       <SelfAttestedEditor initial={profile.selfAttested} onSaved={handleSelfAttestedSaved} />
+
+      {/* What this surface cannot capture yet.
+          The read-only shell this replaced listed twelve CV sections as empty
+          placeholders. Eight of them are now genuinely editable above; four
+          are not, and there is no field to type them into. Saying so is the
+          difference between a gap and a silent omission — a clinician who
+          cannot find "Residency" needs to know it is missing, not conclude
+          their record is complete without it. */}
+      <section className="vcv-panel p-5" data-testid="profile-coverage-gap">
+        <h2 className="vcv-eyebrow">Not capturable here yet</h2>
+        <p className="mt-2 text-sm leading-relaxed vcv-muted">
+          Residency, fellowship, other training programs, and publications have no
+          field on this page yet. Your training history is not part of your saved
+          profile until they ship — nothing is being hidden, and nothing you have
+          entered elsewhere has been dropped.
+        </p>
+      </section>
 
       {/* Share or don't share — the public career profile page */}
       {profile.npi ? <CareerProfileSharingCard npi={profile.npi} /> : null}

@@ -17,6 +17,7 @@
     "build": "pnpm turbo build",
     "check:deploy": "node --experimental-strip-types scripts/deployment-integrity-check.ts",
     "check:claims": "node --experimental-strip-types --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/check-public-claims.ts",
+    "check:copy": "node --experimental-strip-types --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/check-copy-rules.ts",
     "check:design": "node --experimental-strip-types --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/check-design-lint.ts",
     "check:routes": "node --experimental-strip-types --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/check-route-guards.ts",
     "check:canonical-source-adapters": "node scripts/check-canonical-source-adapter-imports.mjs",
@@ -36,7 +37,7 @@
   "devDependencies": {
     "@types/node": "^20",
     "next": "15.5.22",
-    "turbo": "^2.9.14",
+    "turbo": "^2.10.8",
     "typescript": "5.9.3"
   },
   "pnpm": {

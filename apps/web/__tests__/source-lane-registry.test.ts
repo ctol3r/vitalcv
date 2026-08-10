@@ -78,10 +78,9 @@ describe('source-lane registry', () => {
     expect(statusRoute).toContain('SOURCE_LANE_OPS');
     expect(statusRoute).not.toMatch(/oig_exclusions: \{/);
 
-    const metricStrip = repoFile('components/home/MetricStrip.tsx');
-    expect(metricStrip).toContain('getLiveSourceLanes');
-    expect(metricStrip).not.toMatch(/n: '03'/);
-    expect(metricStrip).not.toMatch(/n: '04'/);
+    // components/home/MetricStrip.tsx was the fourth surface this block
+    // pinned; the component was retired (unmounted, 2026-08-09) and deleted,
+    // so there is no homepage copy left to check.
 
     // The ribbon keeps its own copy (names, accessible descriptions) but its
     // cadence badges must come from the registry, never a hardcoded label.

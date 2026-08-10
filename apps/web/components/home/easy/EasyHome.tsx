@@ -24,8 +24,10 @@
  */
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
+import { NpiReveal, ResolvingNarration } from '@/components/home/easy/NpiReveal';
+import ProcessStory from '@/components/home/easy/ProcessStory';
 import WorkSurface from '@/components/home/easy/WorkSurface';
 import { FUNNEL_EVENTS, trackFunnelEvent } from '@/lib/analytics/funnel';
 import { useCareerLoop } from '@/lib/career-loop/useCareerLoop';
@@ -35,14 +37,31 @@ import { sourceCadenceSentence } from '@/lib/trust/sourceCadence';
 function NpiEntry() {
   const { state, onInput, submit, reset } = useCareerLoop();
   const [raw, setRaw] = useState('');
+  // The recognition pacing (UX-05): `settled` goes false the moment a submit
+  // starts and true only when the narration's floor elapses — so the reveal
+  // never beats the narration, and fast networks still get the beat. Under
+  // prefers-reduced-motion the floor is zero (the pacing hook settles
+  // instantly), which preserves today's immediate result exactly.
+  const [settled, setSettled] = useState(true);
+  const [attempt, setAttempt] = useState(0);
   const digits = raw.replace(/\D/g, '').slice(0, 10);
   const resolving = state.phase === 'resolving';
+  const narrating = resolving || !settled;
 
   const handleChange = (value: string) => {
     const next = value.replace(/\D/g, '').slice(0, 10);
     setRaw(next);
     onInput(next);
   };
+
+  const handleSubmit = () => {
+    if (resolving) return;
+    setSettled(false);
+    setAttempt((a) => a + 1);
+    void submit(raw);
+  };
+
+  const handleSettled = useCallback(() => setSettled(true), []);
 
   const profile = state.outcome === 'individual' ? state.profile : null;
 
@@ -52,7 +71,7 @@ function NpiEntry() {
         className="ezh-npi-form"
         onSubmit={(event) => {
           event.preventDefault();
-          if (!resolving) void submit(raw);
+          handleSubmit();
         }}
       >
         <label className="ezh-k" htmlFor="ezh-npi">
@@ -84,21 +103,25 @@ function NpiEntry() {
         </p>
       </form>
 
-      {profile ? (
-        <div className="ezh-result" role="status">
-          <div className="ezh-result-head">
-            <span className="ezh-result-mono" aria-hidden="true">{profile.monogram}</span>
-            <div>
-              <p className="ezh-result-name">{profile.displayName}</p>
-              <p className="ezh-result-meta">
-                {[profile.credential, profile.specialty, profile.location]
-                  .filter(Boolean)
-                  .join(' · ') || 'Named in the NPPES registry'}
-              </p>
-            </div>
-          </div>
-          <p className="ezh-result-src">Named by NPPES for NPI {profile.npi}</p>
+      {narrating && attempt > 0 && state.phase !== 'invalid' ? (
+        <ResolvingNarration
+          key={attempt}
+          done={!resolving}
+          onSettled={handleSettled}
+        />
+      ) : null}
 
+      {!narrating && profile ? (
+        <NpiReveal
+          profile={profile}
+          capsule={state.capsule}
+          isDemo={state.isDemo}
+          onKeep={() => writeNpiHandoff(profile.npi)}
+          onReset={() => {
+            setRaw('');
+            reset();
+          }}
+        >
           {state.matchPhase === 'loading' ? (
             <p className="ezh-result-note">Finding roles that fit&hellip;</p>
           ) : null}
@@ -125,33 +148,10 @@ function NpiEntry() {
           {state.matchPhase === 'error' ? (
             <p className="ezh-result-note">Role matching is unavailable right now.</p>
           ) : null}
-
-          <div className="ezh-result-actions">
-            <Link
-              href="/onboarding"
-              className="ezh-result-keep"
-              onClick={() => writeNpiHandoff(profile.npi)}
-            >
-              Keep this record
-            </Link>
-            <button
-              type="button"
-              className="ezh-result-again"
-              onClick={() => {
-                setRaw('');
-                reset();
-              }}
-            >
-              Check another NPI
-            </button>
-          </div>
-          <p className="ezh-result-note">
-            Your profile continues in onboarding &mdash; you decide what gets shared, every time.
-          </p>
-        </div>
+        </NpiReveal>
       ) : null}
 
-      {state.outcome === 'organization' ? (
+      {!narrating && state.outcome === 'organization' ? (
         <div className="ezh-result" role="status">
           <p className="ezh-result-name">This NPI names an organization.</p>
           <p className="ezh-result-note">
@@ -173,7 +173,7 @@ function NpiEntry() {
         </div>
       ) : null}
 
-      {state.outcome === 'unavailable' || state.phase === 'error' ? (
+      {!narrating && (state.outcome === 'unavailable' || state.phase === 'error') ? (
         <div className="ezh-result" role="status">
           <p className="ezh-result-name">The registry could not answer.</p>
           <p className="ezh-result-note">
@@ -250,6 +250,9 @@ export default function EasyHome() {
         </div>
       </section>
 
+      {/* ── what VitalCV is — the deep five-chapter explainer (UX-04) ────── */}
+      <ProcessStory />
+
       {/* ── the agent's ownership model ──────────────────────────────────── */}
       <section className="ezh-own" data-header-theme="dark" aria-labelledby="ezh-own-h">
         <div className="ezh-wrap">
@@ -304,6 +307,78 @@ export default function EasyHome() {
               </p>
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* ── the matching layer: why the roles here are different ─────────── */}
+      <section
+        className="ezh-match"
+        data-header-theme="dark"
+        data-home-matching=""
+        aria-labelledby="ezh-match-h"
+      >
+        <div className="ezh-wrap">
+          <div className="ezh-sec-head">
+            <span className="ezh-k">Roles</span>
+            <h2 id="ezh-match-h">A job board that reads your credentials, not your keywords</h2>
+          </div>
+          <p className="ezh-sec-sub">
+            Most boards match the words on your r&eacute;sum&eacute;. VitalCV scores a role against
+            what your record already shows &mdash; and names what stands between you and it.
+          </p>
+
+          <div className="ezh-match-grid">
+            <ul className="ezh-match-points">
+              <li>
+                <span className="ezh-tt">Scored on your record</span>
+                <p>
+                  Your NPPES profile, licenses, and specialty &mdash; not the keywords you
+                  remembered to put in a document.
+                </p>
+              </li>
+              <li>
+                <span className="ezh-tt">Every match explains itself</span>
+                <p>
+                  What lines up and what doesn&rsquo;t, in plain terms. Not a percentage you
+                  can&rsquo;t argue with.
+                </p>
+              </li>
+              <li>
+                <span className="ezh-tt">Blockers before you apply</span>
+                <p>
+                  A role that needs a license you don&rsquo;t hold says so up front &mdash; not
+                  after the interview.
+                </p>
+              </li>
+            </ul>
+
+            <div className="ezh-match-panel">
+              <span className="ezh-k">How a match reads</span>
+              <p className="ezh-match-role">Internal Medicine &middot; California &middot; Permanent</p>
+              <ul className="ezh-match-rows">
+                <li className="ezh-match-row is-fit">
+                  <span className="ezh-match-mark" aria-hidden="true" />
+                  <span>Your state license covers where the role is</span>
+                </li>
+                <li className="ezh-match-row is-fit">
+                  <span className="ezh-match-mark" aria-hidden="true" />
+                  <span>Your specialty matches what the role asks for</span>
+                </li>
+                <li className="ezh-match-row is-block">
+                  <span className="ezh-match-mark" aria-hidden="true" />
+                  <span>Board certification isn&rsquo;t on your record yet</span>
+                </li>
+              </ul>
+              <p className="ezh-match-cap">
+                Illustrative &mdash; the shape of a match, not a real posting or a real employer.
+              </p>
+            </div>
+          </div>
+
+          <p className="ezh-match-scope">
+            VitalCV scores the roles that are on VitalCV &mdash; it doesn&rsquo;t crawl the rest of
+            the internet. When nothing fits, it says nothing fits instead of padding the list.
+          </p>
         </div>
       </section>
 

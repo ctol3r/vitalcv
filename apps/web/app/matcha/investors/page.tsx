@@ -5,7 +5,7 @@ import { BuyerLanding } from '@/components/matcha/buyer/BuyerLanding';
 import { EcosystemMap } from '@/components/matcha/buyer/EcosystemMap';
 
 export const metadata: Metadata = {
-  title: 'MATCHA & the career evidence network',
+  title: 'Matching & the career evidence network',
   description: 'Why reusable, source-backed clinician career evidence compounds into a network-effect moat.',
 };
 
@@ -18,7 +18,7 @@ export default function MatchaInvestorsPage() {
     <BuyerLanding
       eyebrow="For investors"
       title="Not a job board. A career evidence network."
-      subtitle="The wedge is a clinician-owned credential wallet. The company is reusable, source-backed career evidence that follows providers across every opportunity, employer, and credentialing team — with MATCHA as the intelligence layer on top."
+      subtitle="The wedge is a clinician-owned credential profile. The company is reusable, source-backed career evidence that follows providers across every opportunity, employer, and credentialing team — with matching as the intelligence layer on top."
       disclaimer={DISCLAIMER}
       comparison={{
         traditionalLabel: 'Job boards',
@@ -28,7 +28,7 @@ export default function MatchaInvestorsPage() {
           { label: 'Who owns the data', traditional: 'The platform; the clinician re-enters everywhere.', vital: 'The clinician owns it; it travels with them.' },
           { label: 'Defensibility', traditional: 'Commoditized; switching costs are low.', vital: 'Each verified hire deepens reusable evidence and trust.' },
           { label: 'Monetization', traditional: 'Per-post fees, race to the bottom.', vital: 'Employer review and acceptance of source-backed evidence.' },
-          { label: 'Intelligence', traditional: 'Keyword match.', vital: 'MATCHA explains fit from real preferences and eligibility.' },
+          { label: 'Intelligence', traditional: 'Keyword match.', vital: 'Fit is explained from real preferences and eligibility.' },
         ],
       }}
       benefits={[

@@ -18,6 +18,10 @@ const SESSION_ROUTES = [
   '/sign-up',
   '/auth/error',
   '/holder/home',
+  // Owner-scoped: renders the NPI linked to THIS account and that clinician's
+  // CMS filing. Sat outside SESSION_PATH_PREFIXES until the RD-2 guard fix, so the
+  // anonymous response carried no Cache-Control at all.
+  '/clinician/profile',
   '/employer/dashboard',
   '/review',
 ] as const;

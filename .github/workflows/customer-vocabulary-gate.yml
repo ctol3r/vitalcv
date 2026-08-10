@@ -1,0 +1,56 @@
+name: Customer Vocabulary Gate
+
+# UX-16 / EC-9 — the vocabulary gate the 2026-08-09 page-consistency audit found missing.
+#
+# Distinct from "Public Claims Gate", which runs check-public-claims.ts against the TRUTH
+# CONTRACT (over-claims: "HIPAA compliant", bare "Verified"). This one enforces the CUSTOMER
+# VOCABULARY inventory (docs/strategy/customer-language-inventory.md) — internal nouns leaking
+# into copy a customer reads.
+#
+# NOT a required status check, deliberately. It is path-filtered (which the workflow contract
+# forbids for required checks) and its baseline is one day old. Promote it to required only
+# after it has run green on unrelated PRs — and update scripts/check-workflow-path-filters.js
+# REQUIRED_CHECKS and branch protection in the SAME change, or the contract gate goes red.
+#
+# The gate RATCHETS: it fails on new or increased violations, never on the standing baseline
+# in scripts/copy-rules-baseline.json. Lower the ceiling with `pnpm check:copy --update-baseline`.
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'apps/web/app/**'
+      - 'apps/web/components/**'
+      - 'scripts/check-copy-rules.ts'
+      - 'scripts/copy-rules.json'
+      - 'scripts/copy-rules-baseline.json'
+      - '.github/workflows/customer-vocabulary-gate.yml'
+  push:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+env:
+  NODE_VERSION: '22'
+
+jobs:
+  vocabulary:
+    name: check-copy-rules
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      # Unlike check-public-claims (zero deps), this scanner parses the TypeScript AST rather
+      # than regexing source. A regex-based first cut reported 825 "violations", most of them
+      # `=>` and generics mistaken for JSX text. Correctness is worth the install.
+      - uses: pnpm/action-setup@v6
+      - name: Install (typescript only — no build needed)
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Scan customer copy for retired vocabulary
+        run: pnpm check:copy

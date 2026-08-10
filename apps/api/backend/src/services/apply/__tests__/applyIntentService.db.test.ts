@@ -22,7 +22,7 @@ const FOREIGN_EMPLOYER = `intent-foreign-${suffix}`;
 const CLINICIAN = `intent-clinician-${suffix}`;
 const SECOND_CLINICIAN = `intent-second-clinician-${suffix}`;
 const NPI = '1558302470';
-const SECOND_NPI = '1558302471';
+const SECOND_NPI = '1558395511';
 
 let organizationId: string;
 let foreignOrganizationId: string;
@@ -248,6 +248,8 @@ describe('Apply Intent atomic handoff — real PostgreSQL', () => {
       recipient: packet.recipient,
       selectedSections: packet.selectedSections as string[],
       fields: packet.fields as never,
+      // NULL (legacy row) → undefined → key omitted, same rule as opportunityVersion.
+      sectionAbsences: (packet.sectionAbsences ?? undefined) as never,
       clinicianNote: packet.clinicianNote,
       methodologyVersion: packet.methodologyVersion,
       consentAt: packet.consentAt.toISOString(),

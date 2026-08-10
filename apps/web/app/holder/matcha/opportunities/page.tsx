@@ -4,7 +4,7 @@ import { FEATURES } from '@/lib/features';
 import { MatchaOpportunitiesSurface } from '@/components/matcha/MatchaOpportunitiesSurface';
 
 export const metadata: Metadata = {
-  title: 'MATCHA opportunities',
+  title: 'Matched opportunities',
   description: 'Live roles scored on your credential eligibility and explained with your preferences.',
 };
 

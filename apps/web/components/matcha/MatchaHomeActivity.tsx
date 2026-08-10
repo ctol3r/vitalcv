@@ -30,14 +30,14 @@ export function MatchaHomeActivity() {
       <div className="flex items-start justify-between gap-4">
         <span className="mz-eyebrow">
           <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
-          MATCHA activity
+          Matching activity
         </span>
         <Link
           href="/holder/matcha"
           className="inline-flex items-center gap-1.5 text-sm font-semibold transition-opacity hover:opacity-80"
           style={{ color: 'var(--accent)' }}
         >
-          {started ? 'Open MATCHA' : 'Meet MATCHA'}
+          {started ? 'Open matches' : 'Open matches'}
           <ArrowRight className="h-4 w-4" aria-hidden="true" />
         </Link>
       </div>
@@ -64,7 +64,7 @@ export function MatchaHomeActivity() {
                 </ul>
               ) : (
                 <p className="mt-2 mz-small">
-                  Keep answering and MATCHA sharpens your matches. Every answer is yours.
+                  Keep answering and your matches sharpen. Every answer is yours.
                 </p>
               )}
             </div>
@@ -77,7 +77,7 @@ export function MatchaHomeActivity() {
         </>
       ) : (
         <p className="mt-4 max-w-2xl mz-body">
-          MATCHA learns what you want next, then works in the background to surface roles worth your
+          We learn what you want next, then works in the background to surface roles worth your
           time. A short conversation gets it started.
         </p>
       )}

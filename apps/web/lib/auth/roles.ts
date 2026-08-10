@@ -36,7 +36,11 @@ export const ROLE_LANDING: Record<UserRoleType, string> = {
  *               NOTE: /onboarding is public end-to-end — it resolves the
  *               public registry record anonymously (record before account);
  *               only the BIND (POST /api/profile/npi/bootstrap) needs auth.
- *   Clinician — /holder/*                                 → CLINICIAN role
+ *   Clinician — /holder/*, /clinician/*                    → CLINICIAN role
+ *               NOTE: /clinicians (plural) is NOT this tree. The pattern
+ *               requires end-of-string or `/` immediately after "clinician",
+ *               the same shape that keeps public `/employers` out of the
+ *               protected `/employer` workspace.
  *               NOTE: /passport was RETIRED by founder decision 2026-08-07 —
  *               both routes are public redirect stubs (/passport →
  *               /onboarding; /passport/{npi} → /verify/{npi}, kept forever
@@ -55,6 +59,15 @@ export const ROLE_LANDING: Record<UserRoleType, string> = {
  */
 export const PROTECTED_ROUTES: Array<{ pattern: RegExp; role: UserRoleType }> = [
   { pattern: /^\/holder(\/.*)?$/, role: UserRole.CLINICIAN },
+  // The clinician's own profile tree. `/clinician/profile` server-renders
+  // owner-scoped data (loadOwnerRecord → the NPI linked to THIS account, plus
+  // that clinician's CMS filing) and was in neither list, so the middleware
+  // passed it through unauthenticated. Nothing leaked — the loader itself
+  // resolves identity via auth() and degrades — but the route was protected by
+  // nothing, and the next page added under /clinician would have inherited
+  // that. Guarded as a PREFIX for the same reason /admin is: so the sibling
+  // nobody has written yet is born gated.
+  { pattern: /^\/clinician(\/.*)?$/, role: UserRole.CLINICIAN },
   { pattern: /^\/verifier(\/.*)?$/, role: UserRole.VERIFIER },
   // W0.3: the LIVE employer workspace. This guard was missing while the
   // `/verifier` guard above protected an archived tree — so every real

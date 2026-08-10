@@ -35,7 +35,7 @@ This document and that table must change together.
 | `/holder/timeline` | Server redirect → `/activity/[entityId]` | `apps/web/app/holder/timeline/page.tsx` | Signed-in, role `CLINICIAN` (redirects: no NPI → `/get-ready`; no session → `/sign-in`) | Private | `curl` → 307 ✅; signed-in browser pass confirms redirect chain | `a2d03cac2` |
 | `/holder/settings` | `SettingsSurface` | `apps/web/app/holder/settings/SettingsSurface.tsx` | Signed-in, role `CLINICIAN` | Private | `curl` → 307 ✅; signed-in browser pass | `a2d03cac2` |
 | `/holder/recognition` | `RecognitionSurface` | `apps/web/components/recognition/RecognitionSurface.tsx` (page: `apps/web/app/holder/recognition/page.tsx`) | Signed-in, role `CLINICIAN` | Private | `curl` → 307 ✅; signed-in browser pass | `a2d03cac2` |
-| `/clinician/profile` | `ProfileSurface` | `apps/web/app/clinician/profile/ProfileSurface.tsx` | Middleware pass-through (page-level session handling; not role-gated in `PROTECTED_ROUTES`) | Private in intent, not middleware-gated | `curl` → 200 ✅; signed-in browser pass for profile data | `a2d03cac2` |
+| `/clinician/profile` | `ProfileSurface` | `apps/web/app/clinician/profile/ProfileSurface.tsx` | Signed-in, role `CLINICIAN` | Private | `__tests__/clinician-route-guard.test.ts` drives the real middleware: anonymous → 307 `/sign-in` + `private, no-store` ✅ | RD-2 guard fix |
 | `/verify/[npi]` | Public verifier surface | `apps/web/app/verify/[npi]/page.tsx` | Anonymous (public share target for recognition/passport links) | Public | `curl /verify/1234567890` → 200 ✅ | `a2d03cac2` |
 
 ## Supporting routes the Golden Path depends on
@@ -48,7 +48,7 @@ This document and that table must change together.
 
 ## Auth-state legend
 
-- **Signed-in, role `CLINICIAN`** — `apps/web/lib/auth/roles.ts` `PROTECTED_ROUTES` matches `/holder(/.*)?` to `UserRole.CLINICIAN`; middleware 307s anonymous traffic to `/sign-in`. The contract test asserts this classification (`getRequiredRole`).
+- **Signed-in, role `CLINICIAN`** — `apps/web/lib/auth/roles.ts` `PROTECTED_ROUTES` matches `/holder(/.*)?` and `/clinician(/.*)?` to `UserRole.CLINICIAN`; middleware 307s anonymous traffic to `/sign-in`. The contract test asserts this classification (`getRequiredRole`). Note that asserting the classification is asserting a LIST — `apps/web/__tests__/clinician-route-guard.test.ts` additionally asserts the response an anonymous visitor actually receives, which is what the list is for.
 - **Public** — matches `PUBLIC_ROUTE_PATTERNS`; the contract test asserts `isPublicRoute(...) === true`.
 - **Middleware pass-through** — neither protected nor public in middleware; the page handles its own state. The contract test pins this too, so silently gating or un-gating one of these routes fails CI.
 

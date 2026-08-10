@@ -95,7 +95,12 @@ export function useSourceCheckSequence(opts: {
 function RowStatus({ position }: { position: 'read' | 'running' | 'queued' }) {
   if (position === 'running') {
     // Honest: the check is in progress, shown as the canonical pending chip.
-    return <ProvenanceChip state="pending" size="sm" />;
+    // Attribution is `declared` because no source has answered yet — naming
+    // one here would imply a read that has not returned. The declaration is
+    // announced to assistive tech and paints nothing, so the row is unchanged.
+    return (
+      <ProvenanceChip state="pending" attribution={{ declared: 'check in progress' }} size="sm" />
+    );
   }
   if (position === 'read') {
     return (

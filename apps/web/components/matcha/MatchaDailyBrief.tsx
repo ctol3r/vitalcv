@@ -63,7 +63,7 @@ export function DailyBriefView({ streak, items, isNewDay, onSeen }: DailyBriefVi
         style={{ overflow: 'hidden' }}
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '16px 20px', borderBottom: '1px solid var(--rule)' }}>
-          <span className="mz-eyebrow">MATCHA today</span>
+          <span className="mz-eyebrow">Today</span>
           <span className="mz-mono" style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-700)', letterSpacing: '0.04em' }}>
             {streak > 1 ? `${streak}-day streak` : 'Day 1'}
           </span>

@@ -579,13 +579,10 @@ export function SelectedOpportunityBanner() {
     return null;
   }
 
-  const continueHref = selectedOpportunity.application
-    ? `/holder/applications/${encodeURIComponent(selectedOpportunity.application.id)}`
-    : `/holder/opportunities?apply=${encodeURIComponent(selectedOpportunity.id)}`;
-  // "Continue application" promised an in-flight application that did not
-  // exist — the selection is a localStorage card click, not server state.
-  const continueLabel = selectedOpportunity.application ? 'View application' : 'Apply to this role';
-
+  // One control (A4): the role card and the role detail own the apply/view
+  // choreography. This banner is recall context from a localStorage card
+  // click — repeating the card's CTA pair here made the same role show two
+  // identical "Apply"/"View application" pairs on one screen.
   return (
     <section className="mz mz-glass p-5">
       <div className="flex items-start justify-between gap-3">
@@ -598,19 +595,13 @@ export function SelectedOpportunityBanner() {
         </div>
         <Building2 className="mt-0.5 h-5 w-5 text-[var(--accent)]" aria-hidden="true" />
       </div>
-      <div className="mt-4 flex flex-wrap gap-3">
-        <Link
-          href={continueHref}
-          className="mz-btn min-h-11 justify-center"
-        >
-          {continueLabel}
-          <ArrowRight className="h-4 w-4" aria-hidden="true" />
-        </Link>
+      <div className="mt-4">
         <Link
           href={`/holder/opportunities/${selectedOpportunity.id}`}
           className="mz-btn mz-btn-ghost min-h-11 justify-center"
         >
           Open role details
+          <ArrowRight className="h-4 w-4" />
         </Link>
       </div>
     </section>

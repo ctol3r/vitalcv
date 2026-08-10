@@ -90,12 +90,12 @@ export function MatchaHub() {
       {/* Greeting + what to do next */}
       <Panel>
         <h1 style={{ margin: 0, fontSize: 26, fontWeight: 600, color: 'var(--vt-text-primary)', letterSpacing: '-0.01em' }}>
-          {firstName ? `Welcome back, ${firstName}.` : 'Welcome to MATCHA.'}
+          {firstName ? `Welcome back, ${firstName}.` : 'Welcome to matching.'}
         </h1>
         <p style={{ margin: '6px 0 0', fontSize: 14, color: 'var(--vt-text-secondary)', lineHeight: 1.5 }}>
           {started
-            ? `You've shared ${completeness}% of the preferences MATCHA can use — self-reported, not a readiness measure. Here's where to take it next.`
-            : "Let's get MATCHA working for you — a few answers is all it takes to start."}
+            ? `You've shared ${completeness}% of the preferences we can use — self-reported, not a readiness measure. Here's where to take it next.`
+            : "Let's get matching working for you — a few answers is all it takes to start."}
         </p>
         <div style={{ marginTop: 16, display: 'flex', flexWrap: 'wrap', gap: 10 }}>
           {nextActions.map((a) => (
@@ -163,7 +163,7 @@ export function MatchaHub() {
           }}
         >
           <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: ACCENT }}>
-            MATCHA remembers
+            What we remember
           </div>
           <ul style={{ listStyle: 'none', margin: '8px 0 0', padding: 0, display: 'grid', gap: 4 }}>
             {memory.map((note, i) => (
@@ -221,7 +221,7 @@ export function MatchaHub() {
           </Link>
         </div>
         <p style={{ margin: '6px 0 14px', fontSize: 13, color: 'var(--vt-text-secondary)' }}>
-          The more you answer across these three areas, the sharper MATCHA&rsquo;s matches.
+          The more you answer across these three areas, the sharper your matches.
         </p>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12 }}>
           {CATEGORY_ORDER.map((cat) => {
@@ -253,7 +253,7 @@ export function MatchaHub() {
           href="/holder/matcha/onboarding"
           style={{ textAlign: 'center', padding: '14px 18px', borderRadius: 12, background: ACCENT, color: '#fff', fontWeight: 600, fontSize: 15, textDecoration: 'none' }}
         >
-          Start with MATCHA →
+          Start matching →
         </Link>
       )}
     </div>

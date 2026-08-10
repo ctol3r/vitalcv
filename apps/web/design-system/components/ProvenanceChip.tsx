@@ -59,51 +59,121 @@ interface ProvenanceMeta {
   description: string;
   register: ProvenanceRegister;
   dot: DotShape;
+  /**
+   * May this state be drawn with an affirmative (check) glyph?
+   *
+   * LINT-07: the check is reserved for states where a source actually backed
+   * the fact. A gated, review, unavailable, not-found, revoked, or
+   * self-attested state carrying a check is the system's cardinal sin.
+   *
+   * This mirrors `EVIDENCE_STATE[...].affirmative` in `lib/vital/evidenceState`
+   * so LINT-07 can cover both chips off one flag while StateChip is retired
+   * into this component (UX-02). Only `checked` is affirmative — `notFound` is
+   * deliberately NOT, because the source answering "no record" is a finding,
+   * never a confirmation.
+   */
+  affirmative: boolean;
   /** True only for `revoked`: content blocks, custody history stays visible. */
   failClosed?: boolean;
 }
+
+/**
+ * W1082, ported from `components/vital/StateChip` (UX-02 Step 1).
+ *
+ * The chip is ATTRIBUTED, and attribution is required at the type level. A
+ * state word without "who answered, and when" is exactly how `checked` got
+ * conflated with affirmation, so a call site can no longer forget attribution —
+ * it can only state explicitly which kind it has:
+ *
+ *  - `{ source, asOf }` — a source or check answered. `asOf: null` is
+ *    first-class: it renders and announces "as-of not recorded" rather than
+ *    pretending a timestamp exists. The qualifier lives INSIDE the value, so no
+ *    consumer can strip it in a copy pass.
+ *  - `{ declared }` — nobody was queried; the state names its own actor
+ *    (self-attested → the holder). The caller must say who, in words.
+ *  - `{ legend: true, ... }` — the chip illustrates the vocabulary itself, or
+ *    renders demo/illustrative lane data. Announced as an example so it is
+ *    impossible to mistake for a real result about a real person.
+ *
+ * Before this contract, `source` and `timestamp` were optional and six mounted
+ * call sites rendered a bare state word with no attribution at all.
+ */
+export type ProvenanceAttribution =
+  | {
+      /** Which source or check answered (e.g. "NPPES", "OIG LEIE"). */
+      source: string;
+      /** ISO instant, honest relative phrase, or null → "as-of not recorded". */
+      asOf: string | null;
+      /** Extra mono note appended after the as-of (e.g. "no match"). */
+      detail?: string;
+      legend?: never;
+      declared?: never;
+    }
+  | {
+      /** Who declared it, in words (e.g. "entered by holder"). */
+      declared: string;
+      source?: never;
+      legend?: never;
+    }
+  | {
+      /** Illustrative only — a vocabulary example or demo data. */
+      legend: true;
+      /** Optional illustrative provenance, rendered but announced as an example. */
+      source?: string;
+      asOf?: string | null;
+      detail?: string;
+      declared?: never;
+    };
 
 export const PROVENANCE_META: Record<ProvenanceState, ProvenanceMeta> = {
   checked: {
     label: 'Checked',
     description: 'A source returned a usable payload for this fact. The only state that earns the word.',
     register: 'checked',
+    // The ONLY affirmative state in the vocabulary (LINT-07).
+    affirmative: true,
     dot: 'filled',
   },
   stale: {
     label: 'Stale',
     description: 'Was checked once; aged past its freshness window. A refresh is one request away.',
     register: 'aging',
+    affirmative: false,
     dot: 'filled',
   },
   pending: {
     label: 'Pending',
     description: 'A check is in progress or queued. No claim is made yet.',
     register: 'aging',
+    affirmative: false,
     dot: 'hollow',
   },
   gated: {
     label: 'Gated',
     description: 'The source is reachable but blocked behind an agreement or authorization. Honest, not hidden.',
     register: 'gated',
+    affirmative: false,
     dot: 'filled',
   },
   accessRequired: {
     label: 'Access required',
     description: 'Authorization is needed before this source can be read. Caller action expected.',
     register: 'gated',
+    affirmative: false,
     dot: 'filled',
   },
   reviewRequired: {
     label: 'Review required',
     description: 'A human review is needed before this can advance. Routed, not decided.',
     register: 'review',
+    affirmative: false,
     dot: 'filled',
   },
   unavailable: {
     label: 'Unavailable',
     description: 'The source did not return a payload on this attempt. A system condition, not a finding.',
     register: 'unknown',
+    affirmative: false,
     dot: 'hollow',
   },
   notFound: {
@@ -112,24 +182,28 @@ export const PROVENANCE_META: Record<ProvenanceState, ProvenanceMeta> = {
     // nothing, here the source gave us an answer and the answer was no.
     description: 'The source answered and holds no active record for this subject. A finding, not a system condition — and never a confirmation.',
     register: 'unknown',
+    affirmative: false,
     dot: 'hollow',
   },
   notDecisionGrade: {
     label: 'Not decision-grade',
     description: 'Present but not sufficient to decide on. Treated as absence for any decision.',
     register: 'unknown',
+    affirmative: false,
     dot: 'hollow',
   },
   previewOnly: {
     label: 'Preview',
     description: 'Synthetic or preview payload for demonstration. Never a real source confirmation.',
     register: 'preview',
+    affirmative: false,
     dot: 'filled',
   },
   revoked: {
     label: 'Revoked',
     description: 'Withdrawn at the source and failed closed — content blocks; the custody history stays visible.',
     register: 'revoked',
+    affirmative: false,
     dot: 'diamond',
     failClosed: true,
   },
@@ -137,6 +211,7 @@ export const PROVENANCE_META: Record<ProvenanceState, ProvenanceMeta> = {
     label: 'Self-attested',
     description: 'Entered by the holder and unverified. Rendered apart so it can never read as source-checked.',
     register: 'selfAttested',
+    affirmative: false,
     dot: 'hollow',
   },
 };
@@ -223,26 +298,37 @@ export function formatProvenanceTimestamp(value: string): string {
   return m ? `${m[1]} ${m[2]}Z` : value;
 }
 
+/** The literal words rendered (and announced) when a source answered but the
+ *  as-of was not recorded. Never a silent omission, never an invented time. */
+export const AS_OF_NOT_RECORDED = 'as-of not recorded';
+
 export interface ProvenanceChipProps
   extends Omit<React.HTMLAttributes<HTMLSpanElement>, 'aria-label'> {
   /** The provenance state to display. */
   state: ProvenanceState;
-  /** Source identifier shown in the visible mono line (e.g. "NPPES"). */
-  source?: string;
-  /** ISO instant (or honest relative phrase) shown in the visible mono line. */
-  timestamp?: string;
-  /** Extra mono note appended after the timestamp (e.g. "no match"). */
-  detail?: string;
+  /**
+   * Who answered, and when — REQUIRED (W1082). There is no way to render a
+   * state word without stating its attribution; see {@link ProvenanceAttribution}.
+   */
+  attribution: ProvenanceAttribution;
   /** Override the visible label (caller owns banned-strings review). */
   label?: string;
   size?: 'sm' | 'md';
   /** Geometry. `stamp` is CD-10's 3px rectangle; see `chipVariants`. */
   shape?: 'pill' | 'stamp';
   /**
-   * Force the provenance line on/off. Defaults to showing it whenever a
-   * `source`, `timestamp`, or `detail` is provided.
+   * Whether the chip PAINTS its provenance line. Never whether it STATES its
+   * attribution — `attribution` is required either way and always reaches
+   * assistive tech through the accessible name.
+   *
+   * `'hidden'` exists for rows that already paint the provenance themselves
+   * (the EvidenceCapsule row, EvidenceRow's adjacent mono line). Without it a
+   * caller would have to choose between duplicating the line visually and
+   * dropping the attribution entirely — and the old optional `source`/
+   * `timestamp` props made the second option the easy one. This is the
+   * layout escape hatch; there is no truth escape hatch.
    */
-  showProvenance?: boolean;
+  provenanceLine?: 'auto' | 'hidden';
 }
 
 /**
@@ -251,31 +337,53 @@ export interface ProvenanceChipProps
  */
 export function ProvenanceChip({
   state,
-  source,
-  timestamp,
-  detail,
+  attribution,
   label,
   size,
   shape,
-  showProvenance,
+  provenanceLine = 'auto',
   className,
   ...rest
 }: ProvenanceChipProps) {
   const meta = PROVENANCE_META[state];
   const visibleLabel = label ?? meta.label;
-  const ts = timestamp ? formatProvenanceTimestamp(timestamp) : undefined;
+
+  const isLegend = 'legend' in attribution && attribution.legend === true;
+  const isDeclared = 'declared' in attribution && attribution.declared !== undefined;
+
+  const source = isDeclared ? undefined : attribution.source;
+  const asOf = isDeclared ? undefined : attribution.asOf;
+  // The `declared` form is ANNOUNCED but not PAINTED: it names an actor, not a
+  // source that answered, so there is no provenance line to draw. It still
+  // reaches assistive tech through `ariaLabel` below — the same split
+  // StateChip uses, and what lets a tight inline row adopt the contract
+  // without gaining a second line of text.
+  const detail = isDeclared ? undefined : attribution.detail;
+
+  // `asOf: null` is a statement, not an absence: it renders the words. Only an
+  // omitted key (legend form) yields no time node at all.
+  const ts = asOf ? formatProvenanceTimestamp(asOf) : asOf === null ? AS_OF_NOT_RECORDED : undefined;
 
   const provNodes: React.ReactNode[] = [];
   if (source) provNodes.push(<span key="s" className="text-[var(--vt-text-secondary)]">{source}</span>);
-  if (ts) provNodes.push(<time key="t" dateTime={timestamp}>{ts}</time>);
+  if (ts) {
+    provNodes.push(
+      asOf ? (
+        <time key="t" dateTime={asOf}>{ts}</time>
+      ) : (
+        <span key="t">{ts}</span>
+      ),
+    );
+  }
   if (detail) provNodes.push(<span key="d">{detail}</span>);
-  const wantProvenance = showProvenance ?? provNodes.length > 0;
-  const hasProvenance = wantProvenance && provNodes.length > 0;
+  const hasProvenance = provenanceLine !== 'hidden' && provNodes.length > 0;
 
   const ariaLabel = [
     visibleLabel,
+    isLegend ? 'vocabulary example, not a result about anyone' : null,
     source ? `source ${source}` : null,
     ts ?? null,
+    isDeclared ? attribution.declared : null,
     meta.failClosed ? 'fail closed' : null,
   ]
     .filter(Boolean)
@@ -286,6 +394,7 @@ export function ProvenanceChip({
       role="group"
       aria-label={ariaLabel}
       data-provenance-state={state}
+      data-attribution={isLegend ? 'legend' : isDeclared ? 'declared' : 'source'}
       data-fail-closed={meta.failClosed ? 'true' : undefined}
       className={cn('inline-flex flex-col items-start gap-1', className)}
       {...rest}

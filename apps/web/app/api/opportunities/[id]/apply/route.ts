@@ -5,6 +5,7 @@ import {
   MARKETPLACE_BACKEND,
 } from '@/lib/server/marketplace-proxy';
 import { getPilotSurfaceControl, recordPilotServerEvent } from '@/lib/server/pilot-ops';
+import { recordHiringOutcome } from '@/lib/agent/outcomes/record-outcome';
 
 export const runtime = 'nodejs';
 
@@ -45,7 +46,18 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       cache: 'no-store',
       signal: AbortSignal.timeout(12_000),
     });
-    return NextResponse.json(await res.json().catch(() => ({})), { status: res.status });
+    const payload = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+    if (res.ok) {
+      // L3 outcome join — observed, never attributed; never fails the route.
+      const application = payload.application as Record<string, unknown> | undefined;
+      await recordHiringOutcome({
+        kind: 'application',
+        ref: String(payload.applicationId ?? application?.id ?? id),
+        subjectRef: session.userId,
+        metadata: { opportunityId: id, route: 'apply' },
+      });
+    }
+    return NextResponse.json(payload, { status: res.status });
   } catch {
     await recordPilotServerEvent({
       eventType: 'route_failure',

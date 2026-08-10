@@ -51,7 +51,7 @@ export function MatchaExplanation({
         className={className}
         style={{ fontSize: 13, color: 'var(--vt-text-muted)', lineHeight: 1.5 }}
       >
-        MATCHA doesn&rsquo;t have enough of your preferences yet to explain this. Answer a few
+        We don&rsquo;t have enough of your preferences yet to explain this. Answer a few
         more questions and reasons will appear here.
       </div>
     );

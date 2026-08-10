@@ -47,12 +47,12 @@ export function MatchaSearchPrompt({ onSearch, loading }: MatchaSearchPromptProp
       <GlassCardHeader>
         <div className="flex items-center gap-2">
           <Sparkles className="h-5 w-5 text-[var(--accent)]" />
-          <GlassCardTitle>Matcha AI Matching</GlassCardTitle>
+          <GlassCardTitle>AI matching</GlassCardTitle>
         </div>
       </GlassCardHeader>
       <GlassCardContent className="space-y-4">
         <p className="text-sm text-muted-foreground">
-          Describe the clinician profile you need. Matcha will search
+          Describe the clinician profile you need. We will search
           verified credentials and return ranked matches.
         </p>
 

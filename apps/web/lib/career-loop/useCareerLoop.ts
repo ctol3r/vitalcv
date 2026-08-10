@@ -27,7 +27,11 @@ import { useCallback, useRef, useState } from 'react';
 
 import { FUNNEL_EVENTS, trackFunnelEvent } from '@/lib/analytics/funnel';
 import { checkNpi } from '@/lib/vital/npi';
-import type { Bootstrap } from '@/components/home/evidence/evidenceCapsuleModel';
+import {
+  buildEvidenceCapsule,
+  type Bootstrap,
+  type EvidenceCapsuleModel,
+} from '@/components/home/evidence/evidenceCapsuleModel';
 import type { TrustState } from '@/components/readiness/sourceCheckNarration';
 import {
   buildCareerProfile,
@@ -67,6 +71,14 @@ export interface CareerLoopState {
   phase: LoopPhase;
   outcome: ResolveOutcome | null;
   profile: ClinicianCareerProfile | null;
+  /**
+   * The full evidence rows behind `profile.readinessSummary` — the same
+   * `buildEvidenceCapsule` output the counts were always derived from, now
+   * exposed so the recognition view can render the rows themselves (UX-05)
+   * instead of collapsing them to two numbers. Null except when an
+   * individual resolves from the real pairing; the demo path leaves it null.
+   */
+  capsule: EvidenceCapsuleModel | null;
   invalidReason: string | null;
   /** True only when the explicit demo control loaded fixture data. */
   isDemo: boolean;
@@ -112,7 +124,7 @@ function normalizeMatches(payload: unknown): LoopMatch[] {
 
 export function useCareerLoop() {
   const [state, setState] = useState<CareerLoopState>({
-    phase: 'idle', outcome: null, profile: null, invalidReason: null,
+    phase: 'idle', outcome: null, profile: null, capsule: null, invalidReason: null,
     isDemo: false, matchPhase: 'idle', matches: [], selected: null,
   });
   const startedTyping = useRef(false);
@@ -128,7 +140,7 @@ export function useCareerLoop() {
       phase: raw.replace(/\D/g, '').length > 0 ? 'typing' : 'idle',
       invalidReason: null,
       // a new number clears a previous journey — including any demo
-      outcome: null, profile: null, isDemo: false,
+      outcome: null, profile: null, capsule: null, isDemo: false,
       matchPhase: 'idle', matches: [], selected: null,
     }));
   }, []);
@@ -183,8 +195,10 @@ export function useCareerLoop() {
       const boot = (await bootRes.json()) as Bootstrap & { npi?: string };
       const profile = buildCareerProfile(npi, boot, trust);
       if (profile) {
+        // The same pure transform the counts come from — no second source of truth.
+        const capsule = buildEvidenceCapsule(npi, boot, trust);
         trackFunnelEvent(FUNNEL_EVENTS.NPI_RESOLVED, { outcome: 'individual' });
-        setState((s) => ({ ...s, phase: 'resolved', outcome: 'individual', profile }));
+        setState((s) => ({ ...s, phase: 'resolved', outcome: 'individual', profile, capsule }));
         void loadMatches(npi, seq);
       } else if (isOrganization(boot)) {
         trackFunnelEvent(FUNNEL_EVENTS.NPI_RESOLVED, { outcome: 'organization' });
@@ -212,7 +226,7 @@ export function useCareerLoop() {
     void seq;
     setState({
       phase: 'resolved', outcome: 'individual',
-      profile: DEMO_FIXTURE.profile, invalidReason: null,
+      profile: DEMO_FIXTURE.profile, capsule: null, invalidReason: null,
       isDemo: true,
       matchPhase: DEMO_FIXTURE.matches.length ? 'loaded' : 'empty',
       matches: DEMO_FIXTURE.matches,
@@ -223,7 +237,7 @@ export function useCareerLoop() {
   const reset = useCallback(() => {
     ++requestSeq.current;
     setState({
-      phase: 'idle', outcome: null, profile: null, invalidReason: null,
+      phase: 'idle', outcome: null, profile: null, capsule: null, invalidReason: null,
       isDemo: false, matchPhase: 'idle', matches: [], selected: null,
     });
   }, []);

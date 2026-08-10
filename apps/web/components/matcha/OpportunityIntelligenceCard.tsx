@@ -213,7 +213,7 @@ export function OpportunityIntelligenceCard({
       {/* Honesty footer: what these scores are based on */}
       <p style={{ margin: '16px 0 0', fontSize: 11, color: 'var(--vt-text-muted)', lineHeight: 1.5 }}>
         {explanation
-          ? 'Fit reflects both your credential eligibility (from your trust state) and your stated preferences — location, role type, pay, and timing. MATCHA does not estimate interview outcomes.'
+          ? 'Fit reflects both your credential eligibility (from your trust state) and your stated preferences — location, role type, pay, and timing. This does not estimate interview outcomes.'
           : 'Live fit scoring is unavailable right now — reasons shown come from your stated preferences only.'}
       </p>
     </Wrapper>

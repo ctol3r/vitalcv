@@ -4,9 +4,9 @@ import { InterestedWorkspaceSurface } from '@/components/matcha-deck/InterestedW
 import { loadDeckWorkspaces } from '@/lib/matcha-deck/workspaceSource'
 
 export const metadata: Metadata = {
-  title: 'Interested — MATCHA',
+  title: 'Interested — Matches',
   description:
-    'The roles you saved from MATCHA Discover, priority first, with a side-by-side comparison. Applying stays a separate, consented step.',
+    'The roles you saved from Discover, priority first, with a side-by-side comparison. Applying stays a separate, consented step.',
 }
 
 export const dynamic = 'force-dynamic'

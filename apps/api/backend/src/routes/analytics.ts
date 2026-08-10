@@ -18,11 +18,12 @@ import {
   getApiUsageSummary,
   getRevocationRate,
 } from '../services/analytics/analyticsEngine';
+import { requireInternalSecret } from '../middleware/internalSecret';
 import { log } from '../obs/logger';
 
 export function registerAnalyticsRoutes(app: Express): void {
 
-  app.get('/api/analytics/overview', async (_req: Request, res: Response) => {
+  app.get('/api/analytics/overview', requireInternalSecret, async (_req: Request, res: Response) => {
     try {
       const overview = await getPlatformOverview();
       res.json(overview);
@@ -33,7 +34,7 @@ export function registerAnalyticsRoutes(app: Express): void {
     }
   });
 
-  app.get('/api/analytics/credentials', async (req: Request, res: Response) => {
+  app.get('/api/analytics/credentials', requireInternalSecret, async (req: Request, res: Response) => {
     try {
       const days = Number(req.query.days) || 30;
       const stats = await getCredentialIssuanceStats(days);
@@ -44,7 +45,7 @@ export function registerAnalyticsRoutes(app: Express): void {
     }
   });
 
-  app.get('/api/analytics/verifiers', async (req: Request, res: Response) => {
+  app.get('/api/analytics/verifiers', requireInternalSecret, async (req: Request, res: Response) => {
     try {
       const days = Number(req.query.days) || 30;
       const activity = await getVerifierActivity(days);
@@ -55,7 +56,7 @@ export function registerAnalyticsRoutes(app: Express): void {
     }
   });
 
-  app.get('/api/analytics/network', async (_req: Request, res: Response) => {
+  app.get('/api/analytics/network', requireInternalSecret, async (_req: Request, res: Response) => {
     try {
       const [network, topIssuers] = await Promise.all([
         getNetworkGrowth(),
@@ -68,7 +69,7 @@ export function registerAnalyticsRoutes(app: Express): void {
     }
   });
 
-  app.get('/api/analytics/revenue', async (_req: Request, res: Response) => {
+  app.get('/api/analytics/revenue', requireInternalSecret, async (_req: Request, res: Response) => {
     try {
       const [apiUsage, revocation] = await Promise.all([
         getApiUsageSummary(),

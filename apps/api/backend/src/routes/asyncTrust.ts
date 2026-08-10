@@ -27,6 +27,7 @@ import {
 } from '../services/async/monitoringScheduler';
 import { log } from '../obs/logger';
 import prisma from '../graphql/prisma_client';
+import { requireInternalSecret } from '../middleware/internalSecret';
 
 // ── Validation ────────────────────────────────────────────────────────────────
 
@@ -71,6 +72,19 @@ async function getMonitoredNpiCount(): Promise<number> {
 
 // ── Route registration ────────────────────────────────────────────────────────
 
+/**
+ * AUTHORIZATION (2026-08-08). `POST /api/trust/events/batch` and
+ * `POST /api/trust/monitoring/cycle` had no authorization beyond the global
+ * tenant guard — anonymous batch trust-event injection and monitoring-cycle
+ * triggering with one header. Operator secret; neither has a caller (the web
+ * proxy at `app/api/trust/events` forwards only to /api/trust/events, and
+ * `MonitoringStatusPanel` is imported by no page).
+ *
+ * `POST /api/trust/events` is now guarded too. Its web proxy
+ * (`app/api/trust/events`) has no auth of its own and no UI caller, so the
+ * proxy fronts nothing and will simply 403 — forwarding the secret from an
+ * unauthenticated proxy would have laundered it to anonymous callers.
+ */
 export function registerAsyncTrustRoutes(app: Express): void {
 
   /**
@@ -78,7 +92,7 @@ export function registerAsyncTrustRoutes(app: Express): void {
    * Ingest a single credential event and process it immediately.
    * Requires x-clerk-user-id header.
    */
-  app.post('/api/trust/events', async (req: Request, res: Response) => {
+  app.post('/api/trust/events', requireInternalSecret, async (req: Request, res: Response) => {
     const clerkUserId = req.headers['x-clerk-user-id'] as string | undefined;
     if (!clerkUserId) {
       res.status(401).json({ error: 'Unauthorized — x-clerk-user-id required' });
@@ -135,7 +149,7 @@ export function registerAsyncTrustRoutes(app: Express): void {
    * POST /api/trust/events/batch
    * Ingest and process multiple credential events (deduped by NPI).
    */
-  app.post('/api/trust/events/batch', async (req: Request, res: Response) => {
+  app.post('/api/trust/events/batch', requireInternalSecret, async (req: Request, res: Response) => {
     const clerkUserId = req.headers['x-clerk-user-id'] as string | undefined;
     if (!clerkUserId) {
       res.status(401).json({ error: 'Unauthorized — x-clerk-user-id required' });
@@ -260,7 +274,7 @@ export function registerAsyncTrustRoutes(app: Express): void {
    * POST /api/trust/monitoring/cycle
    * Manually trigger a monitoring cycle (admin).
    */
-  app.post('/api/trust/monitoring/cycle', async (req: Request, res: Response) => {
+  app.post('/api/trust/monitoring/cycle', requireInternalSecret, async (req: Request, res: Response) => {
     const clerkUserId = req.headers['x-clerk-user-id'] as string | undefined;
     if (!clerkUserId) {
       res.status(401).json({ error: 'Unauthorized — x-clerk-user-id required' });
