@@ -48,7 +48,7 @@ jobs:
       # Unlike check-public-claims (zero deps), this scanner parses the TypeScript AST rather
       # than regexing source. A regex-based first cut reported 825 "violations", most of them
       # `=>` and generics mistaken for JSX text. Correctness is worth the install.
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
       - name: Install (typescript only — no build needed)
         run: pnpm install --frozen-lockfile --ignore-scripts
 
