@@ -20,7 +20,13 @@ import * as React from 'react';
 import { describe, expect, it } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 
-import { LivingRecord, ReviewDesk, SourceKiosk, IllustrationLabel } from '@/components/vital/record';
+import {
+  IllustrationLabel,
+  LivingRecord,
+  RelationshipScene,
+  ReviewDesk,
+  SourceKiosk,
+} from '@/components/vital/record';
 import {
   APERTURE_COUNT,
   IMPLEMENTED_FACES,
@@ -230,6 +236,28 @@ describe('Living Evidence Record — truth review (EC-25)', () => {
     expect(arrived).not.toContain('Licence');
     expect(arrived).not.toContain('Where you want to work');
     expect(arrived).toContain('Identity');
+  });
+
+  it('ships no live-looking dead control in the server frame', () => {
+    // Measured with JS disabled: all four controls rendered as ordinary live
+    // buttons that could never do anything. The server frame must hand the
+    // visitor honestly inert controls and explain why, then enable them on
+    // mount — which also costs no layout shift, since a disabled button
+    // occupies the same box.
+    const html = renderToStaticMarkup(<RelationshipScene />);
+    const buttons = html.match(/<button\b[^>]*>/g) ?? [];
+    expect(buttons.length).toBeGreaterThan(0);
+    for (const b of buttons) expect(b).toContain('disabled');
+    expect(html).toContain('<noscript>');
+  });
+
+  it('carries the whole story in the server frame, so no-JS loses nothing', () => {
+    // EC-26: removing every scene must leave the surface fully usable. The
+    // transcript is the load-bearing half of that promise.
+    const html = renderToStaticMarkup(<RelationshipScene />);
+    expect(html).toContain('data-scene-transcript');
+    expect(html).toContain('The complete relationship');
+    expect(html).toContain(ILLUSTRATION_LABEL);
   });
 
   it('labels itself as an illustration', () => {

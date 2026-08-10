@@ -76,6 +76,18 @@ export function RelationshipScene() {
   const [caption, setCaption] = React.useState<keyof typeof TRANSCRIPT>('all');
   const [playing, setPlaying] = React.useState(false);
   const [canMove, setCanMove] = React.useState(false);
+  /**
+   * The controls are an enhancement, and until React has hydrated they cannot
+   * do anything. Measured with JS disabled, all four rendered as ordinary live
+   * buttons — a control that looks interactive and is inert is a broken
+   * promise, and EC-4 makes the no-JS composition a first-class one that gets
+   * reviewed rather than tolerated.
+   *
+   * They render DISABLED rather than hidden: a disabled button occupies the
+   * same box, so enabling it on mount costs no layout shift, and `disabled` is
+   * the real attribute rather than a styling lie (the D-02 precedent).
+   */
+  const [mounted, setMounted] = React.useState(false);
   const timers = React.useRef<number[]>([]);
   const rootRef = React.useRef<HTMLDivElement | null>(null);
 
@@ -98,7 +110,10 @@ export function RelationshipScene() {
     });
   }, [clearTimers]);
 
-  React.useEffect(() => setCanMove(motionPermitted()), []);
+  React.useEffect(() => {
+    setMounted(true);
+    setCanMove(motionPermitted());
+  }, []);
 
   // Single play, only once in view, only when motion is permitted. A tab
   // hidden mid-sequence stops it rather than finishing unseen.
@@ -187,6 +202,7 @@ export function RelationshipScene() {
             <button
               key={s.id}
               type="button"
+              disabled={!mounted}
               aria-pressed={focus === s.id}
               onClick={() => step(s.id)}
               className="min-h-[44px] px-3.5 text-[12px] font-medium"
@@ -196,6 +212,7 @@ export function RelationshipScene() {
                 border: `1px solid ${focus === s.id ? 'var(--vt-scene-text)' : 'var(--vt-scene-line-strong)'}`,
                 // EC-20 A-2: an action is square.
                 borderRadius: 0,
+                opacity: mounted ? 1 : 0.5,
               }}
             >
               {s.label}
@@ -204,6 +221,7 @@ export function RelationshipScene() {
         </div>
         <button
           type="button"
+          disabled={!mounted}
           onClick={replay}
           className="min-h-[44px] px-3.5 text-[12px] font-medium"
           style={{
@@ -211,11 +229,21 @@ export function RelationshipScene() {
             color: 'var(--vt-scene-text)',
             border: '1px solid var(--vt-scene-line-strong)',
             borderRadius: 0,
+            opacity: mounted ? 1 : 0.5,
           }}
         >
           {canMove ? 'Replay' : 'Reset'}
         </button>
       </div>
+
+      {/* Says the true thing to the visitor who has no JS, rather than leaving
+          four greyed controls unexplained. The story below is unaffected. */}
+      <noscript>
+        <p className="mt-2 text-[12px] leading-relaxed text-[var(--vt-scene-text-tertiary)]">
+          The step controls need JavaScript. The scene below is already showing its complete state,
+          and the full account is written out under it.
+        </p>
+      </noscript>
 
       {/* ── the transcript, which is where the meaning actually lives ───── */}
       <p
