@@ -11,7 +11,7 @@ import { authCardAppearance } from '@/lib/clerkAppearance';
 export const metadata: Metadata = {
   title: 'Sign In',
   description:
-    'Welcome back to VitalCV. Access your Wallet, readiness progress, opportunities, applications, and shared evidence.',
+    'Welcome back to VitalCV. Access your profile, readiness progress, opportunities, applications, and shared evidence.',
 };
 
 export default async function SignInPage({

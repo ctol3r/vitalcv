@@ -98,12 +98,12 @@ export default function ReadinessSurface() {
       addLog('Loading source-backed readiness…');
       try {
         const res = await fetch(`/api/passport/${encodeURIComponent(npi)}`, { cache: 'no-store' });
-        if (!res.ok) throw new Error(`passport ${res.status}`);
+        if (!res.ok) throw new Error(`readiness ${res.status}`);
         const payload: unknown = await res.json();
         if (cancelled) return;
 
         if (!isPassportData(payload)) {
-          throw new Error('passport payload invalid');
+          throw new Error('readiness payload invalid');
         }
 
         const snap = buildReadinessSnapshotFromPassport(payload, { npi, name });

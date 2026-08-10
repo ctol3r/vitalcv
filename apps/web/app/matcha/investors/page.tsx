@@ -18,7 +18,7 @@ export default function MatchaInvestorsPage() {
     <BuyerLanding
       eyebrow="For investors"
       title="Not a job board. A career evidence network."
-      subtitle="The wedge is a clinician-owned credential wallet. The company is reusable, source-backed career evidence that follows providers across every opportunity, employer, and credentialing team — with matching as the intelligence layer on top."
+      subtitle="The wedge is a clinician-owned credential profile. The company is reusable, source-backed career evidence that follows providers across every opportunity, employer, and credentialing team — with matching as the intelligence layer on top."
       disclaimer={DISCLAIMER}
       comparison={{
         traditionalLabel: 'Job boards',
