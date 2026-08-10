@@ -22,28 +22,39 @@
  * and unrelated. Restoring the embed is roadmap item H1
  * (docs/ops/vitalcv-enterprise-100-task-map.md).
  *
- * WHAT A RESTORE MUST FIX (all four, not just the first)
- *  1. POST /api/widget/apply takes npi, opportunityId and verifierOrgId straight
- *     from the request body — anyone could file an application attributed to any
- *     clinician, against any opportunity, for any org. The applicant's NPI must
- *     come from an authenticated holder identity, and the org from the
- *     opportunity record — never from the body.
- *  2. GET /api/verifier/candidates and /candidates/pool scope results by the
- *     `x-verifier-org-id` header, defaulting to 'DEMO_ORG'. That header is
- *     independent of the tenant guard's `x-org-id`, so even a legitimately
- *     authenticated member of org A can read org B's candidate queue by setting
- *     it. Org scope must be derived server-side from the caller's verified
- *     membership. This is the same header-trust weakness that
+ * WHAT A RESTORE MUST FIX — 2 of 4 CLOSED (V2-03, 2026-08-10), 2 STILL OPEN.
+ *
+ * ⚠️  Closing two defects did NOT make this file safe to wire. Defects 1 and 2
+ *     are untouched and each is independently sufficient to re-open the hole
+ *     this module was unwired for. The NOT WIRED status above still stands.
+ *
+ *  1. ❌ STILL OPEN — POST /api/widget/apply takes npi, opportunityId and
+ *     verifierOrgId straight from the request body — anyone could file an
+ *     application attributed to any clinician, against any opportunity, for any
+ *     org. The applicant's NPI must come from an authenticated holder identity,
+ *     and the org from the opportunity record — never from the body.
+ *  2. ❌ STILL OPEN — GET /api/verifier/candidates and /candidates/pool scope
+ *     results by the `x-verifier-org-id` header, defaulting to 'DEMO_ORG'. That
+ *     header is independent of the tenant guard's `x-org-id`, so even a
+ *     legitimately authenticated member of org A can read org B's candidate
+ *     queue by setting it. Org scope must be derived server-side from the
+ *     caller's verified membership. This is the same header-trust weakness that
  *     middleware/orgRoleGuard.ts documents — do not repeat it. requireOrgRole is
  *     authorization only; it authenticates nobody and runs in SHADOW today.
- *  3. GET /api/holder/applications?npi= returns any clinician's full application
- *     history — which employers they applied to, and when — keyed on an NPI. NPIs
- *     are public identifiers published by NPPES, so this is enumerable, not
- *     merely guessable. It must be scoped to the authenticated holder.
- *  4. POST /api/verifier/offers/respond accepts or declines an offer given only
- *     its offerId, with no ownership check — a third party who learns an id can
- *     answer on the clinician's behalf. It must verify the offer belongs to the
- *     authenticated holder.
+ *  3. ✅ CLOSED (#948) — GET /api/holder/applications returned any clinician's
+ *     full application history, keyed on a `?npi=` query parameter. The subject
+ *     is now resolved from the verified Clerk session via
+ *     `resolveAuthorizedNpis`; `?npi=` is compared and refused on mismatch, and
+ *     can no longer select rows.
+ *  4. ✅ CLOSED (#949) — POST /api/verifier/offers/respond accepted or declined
+ *     an offer given only its offerId. It now requires a verified session whose
+ *     ownership bindings include `offer.npi`, refuses anything not PENDING (409)
+ *     and anything past `expiresAt` (410, and the offer transitions to EXPIRED).
+ *     `offerId` is an identifier, never a bearer credential.
+ *
+ * Both fixes are proved by routes/__tests__/verifierPipelineAuthorization.test.ts,
+ * which mounts these handlers on a throwaway Express app. That test exercising
+ * them is NOT the same as this module being served — see the not-wired test.
  *
  * The blast radius was limited because both stores are in-process Maps
  * (services/verifier/verifierPipelineService.ts) that die on every deploy and are
@@ -58,15 +69,21 @@
  * GET  /api/holder/applications        — Holder's own application history
  */
 
-import type { Express, Request, Response } from 'express';
+import type { Express, NextFunction, Request, Response } from 'express';
 import {
   applyToOpportunity,
   getCandidateQueue,
   getPrequalifiedPool,
   sendInstantOffer,
   respondToOffer,
-  getApplicationsByNpi,
+  getApplicationsForNpis,
 } from '../services/verifier/verifierPipelineService';
+import { HttpError } from '../utils/httpError';
+import { requireVerifiedClerkUserId, resolveAuthorizedNpis } from '../middleware/verifiedActor';
+
+function asyncHandler(fn: (req: Request, res: Response, next: NextFunction) => Promise<void>) {
+  return (req: Request, res: Response, next: NextFunction) => fn(req, res, next).catch(next);
+}
 
 export function registerVerifierPipelineRoutes(app: Express): void {
 
@@ -138,28 +155,86 @@ export function registerVerifierPipelineRoutes(app: Express): void {
   });
 
   /**
-   * POST /api/verifier/offers/respond
+   * POST /api/verifier/offers/respond — defect 4, closed (#949).
    * Body: { offerId, accept }
+   *
+   * The responder is the holder the offer was issued to, proven by a verified
+   * Clerk session and an ownership binding — never by possession of `offerId`.
+   *
+   * ON 404 WHERE THE ISSUE SPECIFIED 403. #949 asks for "403 otherwise" when
+   * `offer.npi` does not match the session. This returns 404 for both "no such
+   * offer" and "not yours", deliberately, because a 403 is an existence oracle:
+   * it tells anyone holding a guessed id that the offer is real and belongs to
+   * someone else. That contradicts the boundary the same program states for
+   * shares — a recipient must not learn that another recipient's record exists,
+   * "including through counts/titles/errors". The stricter answer is a superset
+   * of the issue's intent; flag it if you want the literal 403 back.
    */
-  app.post('/api/verifier/offers/respond', (req: Request, res: Response) => {
-    const { offerId, accept } = req.body ?? {};
-    if (!offerId || accept === undefined) {
-      res.status(400).json({ error: 'offerId and accept required' });
-      return;
-    }
-    const offer = respondToOffer(offerId, Boolean(accept));
-    if (!offer) { res.status(404).json({ error: 'Offer not found' }); return; }
-    res.json({ offer });
-  });
+  app.post(
+    '/api/verifier/offers/respond',
+    asyncHandler(async (req: Request, res: Response) => {
+      const clerkUserId = requireVerifiedClerkUserId(req);
+      const { offerId, accept } = req.body ?? {};
+      if (!offerId || accept === undefined) {
+        throw new HttpError(400, 'offerId and accept required');
+      }
+
+      const authorizedNpis = await resolveAuthorizedNpis(clerkUserId);
+      const result = respondToOffer({ offerId, accept: Boolean(accept), authorizedNpis });
+
+      if (result.ok) {
+        res.json({ offer: result.offer });
+        return;
+      }
+      switch (result.reason) {
+        case 'not_found':
+          throw new HttpError(404, 'Offer not found.');
+        case 'expired':
+          // 410 Gone: the offer existed and can no longer be answered. Distinct
+          // from 409 so the surface can say which happened.
+          throw new HttpError(410, 'This offer has expired.', 'OFFER_EXPIRED');
+        case 'not_pending':
+          throw new HttpError(
+            409,
+            `This offer was already ${result.offer.status.toLowerCase()}.`,
+            'OFFER_NOT_PENDING',
+          );
+      }
+    }),
+  );
 
   /**
-   * GET /api/holder/applications?npi=
-   * Returns a holder's own application history.
+   * GET /api/holder/applications — defect 3, closed (#948).
+   *
+   * Returns the authenticated holder's own application history, and only that.
+   * The subject is resolved server-side from the verified session; `?npi=` can
+   * no longer select rows. It is accepted solely as an assertion about who the
+   * caller believes they are, and a mismatch is refused rather than honoured —
+   * so the parameter can never widen the result set, only fail to narrow it.
+   *
+   * This matters more than it looks: NPIs are public identifiers published by
+   * NPPES, so the old handler was walkable straight from the registry, and each
+   * record discloses which employers a clinician applied to and when.
    */
-  app.get('/api/holder/applications', (req: Request, res: Response) => {
-    const npi = req.query.npi as string;
-    if (!npi) { res.status(400).json({ error: 'npi required' }); return; }
-    const applications = getApplicationsByNpi(npi);
-    res.json({ applications, total: applications.length });
-  });
+  app.get(
+    '/api/holder/applications',
+    asyncHandler(async (req: Request, res: Response) => {
+      const clerkUserId = requireVerifiedClerkUserId(req);
+      const authorizedNpis = await resolveAuthorizedNpis(clerkUserId);
+
+      const requestedNpi = typeof req.query.npi === 'string' ? req.query.npi.trim() : undefined;
+      if (requestedNpi) {
+        // Compared, never used as a selector. 403 is safe here where it was not
+        // for offers: the caller is authenticated and NPIs are public, so this
+        // reveals nothing they could not read from NPPES.
+        if (!authorizedNpis.includes(requestedNpi)) {
+          throw new HttpError(403, 'This NPI is not linked to your account.', 'OWNERSHIP_REQUIRED');
+        }
+      }
+
+      const scope = requestedNpi ? [requestedNpi] : authorizedNpis;
+      const applications = getApplicationsForNpis(scope);
+      res.json({ applications, total: applications.length });
+    }),
+  );
 }
