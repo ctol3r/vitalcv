@@ -71,6 +71,21 @@ References:
 **Legal / permitted use**
 13. May results be **retained** and **redisplayed** to an employer inside VitalCV,
     or is display limited to the querying institution?
+13a. **The one that decides the business model:** may a single purchased profile
+    back credentialing decisions at **multiple, unaffiliated employers**, or is
+    each employer a separate purchase? Ask it in exactly those terms — Q13 asks
+    about redisplay to *an* employer and does not settle reuse across *several*.
+    The whole verify-once-reuse-everywhere argument in
+    [paid-source-procurement.md](./paid-source-procurement.md) rests on the
+    answer: "one purchase, many employers" makes Tier 1 one-time per clinician;
+    "per employer" makes it recurring and multiplies the budget by the number of
+    employers each clinician applies to. **Get the answer in writing.**
+    Precedent for the restrictive answer: NPDB forbids exactly this reuse across
+    entities, even with the practitioner's written consent
+    (<https://www.npdb.hrsa.gov/guidebook/DQA11.jsp>). Do not assume FSMB is more
+    permissive — its published terms already bar reproducing or distributing its
+    data without prior written consent. **The same question goes to the AMA** for
+    the Physician Profile, which carries the larger per-unit price.
 14. May results be shown to the clinician themselves (wallet/passport surface)?
 15. What attribution is required on display?
 16. Are there caching restrictions — must each display be backed by a fresh query?
