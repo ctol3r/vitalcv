@@ -92,7 +92,7 @@ describe('polling routes', () => {
       .send({
         source: 'PECOS_PUBLIC',
         description: 'Quarterly PECOS sync',
-        npis: ['1558302470', '1558302471'],
+        npis: ['1558302470', '1558395511'],
         batchSize: 25,
         delayMs: 0,
       });
@@ -101,7 +101,7 @@ describe('polling routes', () => {
     expect(mockProcessBurstEvent).toHaveBeenCalledWith({
       source: 'PECOS_PUBLIC',
       description: 'Quarterly PECOS sync',
-      npis: ['1558302470', '1558302471'],
+      npis: ['1558302470', '1558395511'],
       batchSize: 25,
       delayMs: 0,
     });
