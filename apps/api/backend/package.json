@@ -60,7 +60,7 @@
     "ethers": "^6.15.0",
     "ethr-did-resolver": "^14.1.0",
     "express": "^4.19.2",
-    "express-validator": "^6.15.0",
+    "express-validator": "^7.3.2",
     "jose": "^5.10.0",
     "key-did-resolver": "^4.0.0",
     "lru-cache": "^10.4.3",
