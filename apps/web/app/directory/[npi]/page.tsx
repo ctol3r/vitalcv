@@ -62,13 +62,34 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const name = record.identity.data.displayName || `NPI ${npi}`;
   const what = primary?.displayName ?? '';
 
+  const title = `${name}${what ? ` — ${what}` : ''}${where ? `, ${where}` : ''} · NPI ${npi}`;
+  // Describes the page honestly: this is a registry filing, not a check.
+  const description = `Public CMS registry record for ${name}${
+    what ? `, ${what}` : ''
+  }${where ? ` in ${where}` : ''}. NPI ${npi}. Shows what was filed with CMS, including what is not covered by the filing.`;
+
   return {
-    title: `${name}${what ? ` — ${what}` : ''}${where ? `, ${where}` : ''} · NPI ${npi}`,
-    // Describes the page honestly: this is a registry filing, not a check.
-    description: `Public CMS registry record for ${name}${
-      what ? `, ${what}` : ''
-    }${where ? ` in ${where}` : ''}. NPI ${npi}. Shows what was filed with CMS, including what is not covered by the filing.`,
+    title,
+    description,
     alternates: { canonical: `/directory/${npi}` },
+    /**
+     * Without these, every provider page inherited the one site-wide card from
+     * app/layout.tsx, so a million distinct records shared a single title and
+     * blurb everywhere they were shared or previewed. The card now says whose
+     * record it is — and says "registry record", because a share preview is
+     * read with even less context than a search result.
+     *
+     * The image stays the site card deliberately: a per-record image would put
+     * a named clinician's details into a file fetched by any service that
+     * unfurls a link, which is a wider audience than the page itself has.
+     */
+    openGraph: {
+      type: 'profile',
+      title,
+      description,
+      url: `/directory/${npi}`,
+    },
+    twitter: { card: 'summary_large_image', title, description },
   };
 }
 
@@ -167,6 +188,34 @@ export default async function ProviderDirectoryPage({ params }: PageProps) {
         </div>
 
         <ClinicianRecordDetail record={record} mode="public" />
+
+        {/* A clinician who searches for themselves lands here and, until now,
+            had no way in: every path into VitalCV started at the homepage. The
+            record is the introduction, so the invitation belongs on it — after
+            the data, where they have already decided whether it is them.
+            Individual records only; an organization NPI has no one to claim it. */}
+        {record.entityType !== 'organization' && (
+          <section
+            className="rounded-[3px] border px-4 py-4"
+            style={{ borderColor: 'var(--rule)' }}
+          >
+            <h2 className="mz-h3">Is this you?</h2>
+            <p className="mt-2 text-[13px] leading-relaxed text-[var(--ink-700)]">
+              Claim this record to keep it, add what the registry does not hold,
+              and reuse it the next time you apply. Claiming connects this NPI to
+              an account you control — it confirms nothing about your credentials
+              and changes nothing on this page.
+            </p>
+            <Link
+              href={`/onboarding?npi=${record.npi}`}
+              className="mt-3 inline-flex min-h-[44px] items-center rounded-[3px] border px-4 text-[13px] font-medium text-[var(--ink-800)]"
+              style={{ borderColor: 'var(--ink-300)' }}
+              data-testid="directory-claim-cta"
+            >
+              Claim this record
+            </Link>
+          </section>
+        )}
 
         <footer className="border-t border-[var(--rule)] pt-4">
           <p className="text-[12px] leading-relaxed text-[var(--ink-600)]">

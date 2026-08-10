@@ -507,6 +507,17 @@ export default async function VerifierPage({
           <Reveal delay={60}>
           <Section title="Full registry record">
             <ClinicianRecordDetail record={clinicianRecord} mode="public" />
+            {/* The canonical home for this filing, and the only link off this
+                page a crawler can follow — the employer CTA below points at
+                /review/, which robots.txt disallows. Without this, the public
+                directory page had no inbound link from anywhere in the app. */}
+            <p className="mt-4 text-[12px] leading-relaxed text-[var(--ink-500)]">
+              This filing is public record.{' '}
+              <Link href={`/directory/${npi}`} className="underline">
+                View the registry page for NPI {npi}
+              </Link>
+              .
+            </p>
           </Section>
           </Reveal>
         )}
