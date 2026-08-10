@@ -10,13 +10,19 @@ name: Conflicting PR Sweep
 # reported "queued" forever; close/reopen and a fresh SHA both did nothing, and
 # merging the base branch fixed it instantly.
 #
-# THIS IS A REPORT, NOT A GATE. With hundreds of open PRs some are always
-# mid-conflict, so a job that failed on findings would be red permanently and
-# ignored within a week — the same "monitor whose red means nothing" failure
-# this line of work started from. Findings surface as a job summary and warning
-# annotations. A green run means THE SWEEP RAN, never "no PR is wedged".
-# `fail_on_findings` is available on manual runs for a human who wants the
-# exit code.
+# A PR RUNNING ZERO GATES FAILS THIS RUN. Everything else is reported only.
+#
+# This reverses the default this workflow shipped with (#1131). The reasoning
+# given there — "some PRs are always mid-conflict, so failing would be red
+# permanently" — describes the `conflicting` class, which the exit code never
+# keyed on. It keys on `invisible`: conflicting AND zero check runs, a state
+# that cannot clear on its own because a conflicting PR can never acquire check
+# runs. The old default therefore produced a sweep that stayed green while a PR
+# sat silently ungated, which is the same lying-monitor failure this line of
+# work exists to treat.
+#
+# Conflicting-but-gated and uncomputed-mergeability stay green: the first is
+# already visible on the PR, the second clears itself.
 #
 # No pull_request trigger, so scripts/check-workflow-concurrency.js does not
 # apply to it. `cancel-in-progress: true` on a main-ref workflow is deliberate
@@ -29,8 +35,8 @@ on:
     - cron: '17 */6 * * *'
   workflow_dispatch:
     inputs:
-      fail_on_findings:
-        description: 'Exit non-zero if any PR is running zero gates'
+      report_only:
+        description: 'Report findings without failing the run'
         required: false
         default: 'false'
 
@@ -63,11 +69,11 @@ jobs:
           # Read into env rather than interpolated into the `run` script: a
           # workflow_dispatch input is attacker-influencable text, and `${{ }}`
           # inside a shell line is string substitution, not an argument.
-          FAIL_ON_FINDINGS: ${{ inputs.fail_on_findings }}
+          REPORT_ONLY: ${{ inputs.report_only }}
         run: |
           set -euo pipefail
-          if [ "${FAIL_ON_FINDINGS:-false}" = "true" ]; then
-            node scripts/check-conflicting-prs.mjs --fail-on-findings
+          if [ "${REPORT_ONLY:-false}" = "true" ]; then
+            node scripts/check-conflicting-prs.mjs --report-only
           else
             node scripts/check-conflicting-prs.mjs
           fi
