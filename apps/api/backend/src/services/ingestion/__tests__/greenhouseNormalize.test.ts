@@ -14,9 +14,11 @@ import {
   extractState,
   isRemote,
   normalizeBoardJobs,
+  roundRobin,
   toPlainText,
 } from '../greenhouse';
 import { isClinicalRole } from '../clinicalRelevance';
+import type { FeedListing } from '../types';
 
 describe('isClinicalRole', () => {
   it('accepts roles a licensed clinician holds', () => {
@@ -223,7 +225,7 @@ describe('GreenhouseBoardsConnector — completeness gates expiry', () => {
     expect(result.complete).toBe(false);
   });
 
-  it('reports INCOMPLETE when the limit stops it early', async () => {
+  it('reports INCOMPLETE when the limit drops rows', async () => {
     jest.spyOn(global, 'fetch').mockResolvedValue({
       ok: true,
       json: async () => ({ jobs: [okJob, { ...okJob, id: 2 }] }),
@@ -232,6 +234,40 @@ describe('GreenhouseBoardsConnector — completeness gates expiry', () => {
     const result = await new GreenhouseBoardsConnector(['a', 'b', 'c']).fetch({ limit: 2 });
     expect(result.complete).toBe(false);
     expect(result.listings).toHaveLength(2);
+  });
+
+  it('READS EVERY BOARD even when the first one alone exceeds the limit', async () => {
+    /*
+     * The production defect this pins. The first version broke out of the loop
+     * once the running total hit the limit, so a big first board consumed the
+     * whole budget and every later employer went unfetched — 188 live rows,
+     * all from one employer, with eleven never read.
+     */
+    const big = Array.from({ length: 300 }, (_, i) => ({ ...okJob, id: i + 1 }));
+    const fetchSpy = jest.spyOn(global, 'fetch')
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ jobs: big }) } as unknown as Response)
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ jobs: [{ ...okJob, id: 901 }] }) } as unknown as Response)
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ jobs: [{ ...okJob, id: 902 }] }) } as unknown as Response);
+
+    const result = await new GreenhouseBoardsConnector(['big', 'small1', 'small2']).fetch({ limit: 200 });
+
+    // Every board was requested — no employer is skipped by ordering.
+    expect(fetchSpy).toHaveBeenCalledTimes(3);
+
+    // And each is represented in the kept set.
+    const boards = new Set(result.listings.map((l) => l.organizationName));
+    expect(boards).toEqual(new Set(['big', 'small1', 'small2']));
+  });
+
+  it('gives a small board its rows even against a much larger one', async () => {
+    const big = Array.from({ length: 100 }, (_, i) => ({ ...okJob, id: i + 1 }));
+    jest.spyOn(global, 'fetch')
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ jobs: big }) } as unknown as Response)
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ jobs: [{ ...okJob, id: 901 }] }) } as unknown as Response);
+
+    const result = await new GreenhouseBoardsConnector(['big', 'small']).fetch({ limit: 10 });
+    expect(result.listings.some((l) => l.organizationName === 'small')).toBe(true);
+    expect(result.listings).toHaveLength(10);
   });
 
   it('is configured without any credential — the endpoint is public', () => {
@@ -244,5 +280,44 @@ describe('the board roster', () => {
   it('is explicit and de-duplicated — a roster, never a crawl', () => {
     expect(BOARDS.length).toBeGreaterThan(0);
     expect(new Set(BOARDS).size).toBe(BOARDS.length);
+  });
+});
+
+
+describe('roundRobin', () => {
+  const row = (board: string, n: number): FeedListing => ({
+    sourceRef: `${board}:${n}`,
+    sourceUrl: `https://example.test/${board}/${n}`,
+    title: 'Registered Nurse',
+    organizationName: board,
+    state: 'CA',
+    remote: false,
+    description: null,
+    specialty: null,
+    payMin: null,
+    payMax: null,
+    postedAt: null,
+  });
+
+  it('interleaves so no board is starved by another', () => {
+    const map = new Map([
+      ['a', [row('a', 1), row('a', 2), row('a', 3)]],
+      ['b', [row('b', 1)]],
+    ]);
+    const taken = roundRobin(map, 3);
+    expect(taken.map((t) => t.organizationName)).toEqual(['a', 'b', 'a']);
+  });
+
+  it('drains the remaining boards once a queue empties', () => {
+    const map = new Map([
+      ['a', [row('a', 1), row('a', 2), row('a', 3)]],
+      ['b', [row('b', 1)]],
+    ]);
+    expect(roundRobin(map, 10)).toHaveLength(4);
+  });
+
+  it('terminates on empty input rather than spinning', () => {
+    expect(roundRobin(new Map(), 10)).toEqual([]);
+    expect(roundRobin(new Map([['a', []]]), 10)).toEqual([]);
   });
 });
