@@ -1,4 +1,9 @@
 jest.mock('../../../graphql/prisma_client', () => ({ __esModule: true, default: {} }));
+// Partial mock: the real connectors, but a mutable array one case can empty.
+jest.mock('../ingestionRunner', () => ({
+  ...jest.requireActual('../ingestionRunner'),
+  FEED_CONNECTORS: [...jest.requireActual('../ingestionRunner').FEED_CONNECTORS],
+}));
 
 import { startIngestionWorker, stopIngestionWorker } from '../../../workers/ingestionWorker';
 
@@ -50,10 +55,43 @@ describe('startIngestionWorker scheduling', () => {
     interval.mockRestore();
   });
 
-  it('schedules NOTHING when no feed is configured', () => {
-    // An unconfigured deployment must stay silent, not fail on a timer.
+  it('still schedules with USAJOBS unset, because Greenhouse needs no credential', () => {
+    /*
+     * This case used to assert the opposite. Deleting the USAJOBS variables
+     * WAS "no feed is configured", because USAJOBS was the only connector.
+     * The Greenhouse boards endpoint is public, so that connector reports
+     * configured with nothing set — and a deployment that has added no
+     * credentials now ingests real clinical listings instead of staying dark.
+     *
+     * The invariant the old assertion protected — an unconfigured deployment
+     * must not spin a timer — is still real, and is asserted below against a
+     * connector set where genuinely nothing is configured.
+     */
     delete process.env.USAJOBS_API_KEY;
     delete process.env.USAJOBS_USER_AGENT;
+
+    const timeout = jest.spyOn(global, 'setTimeout');
+    const interval = jest.spyOn(global, 'setInterval');
+
+    startIngestionWorker();
+
+    expect(timeout).toHaveBeenCalled();
+    expect(interval).toHaveBeenCalled();
+
+    timeout.mockRestore();
+    interval.mockRestore();
+  });
+
+  it('schedules NOTHING when no connector is configured at all', () => {
+    // An unconfigured deployment must stay silent, not fail on a timer. With a
+    // credential-free connector in the roster this can no longer be produced by
+    // unsetting env vars, so the connector list itself is emptied.
+    delete process.env.USAJOBS_API_KEY;
+    delete process.env.USAJOBS_USER_AGENT;
+
+    const runner = jest.requireMock('../ingestionRunner') as { FEED_CONNECTORS: unknown[] };
+    const saved = [...runner.FEED_CONNECTORS];
+    runner.FEED_CONNECTORS.length = 0;
 
     const timeout = jest.spyOn(global, 'setTimeout');
     const interval = jest.spyOn(global, 'setInterval');
@@ -63,6 +101,7 @@ describe('startIngestionWorker scheduling', () => {
     expect(timeout).not.toHaveBeenCalled();
     expect(interval).not.toHaveBeenCalled();
 
+    runner.FEED_CONNECTORS.push(...saved);
     timeout.mockRestore();
     interval.mockRestore();
   });

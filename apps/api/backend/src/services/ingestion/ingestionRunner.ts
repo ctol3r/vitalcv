@@ -15,11 +15,14 @@
 
 import prisma from '../../graphql/prisma_client';
 import { log } from '../../obs/logger';
+import { isClinicalRole } from './clinicalRelevance';
+import { GreenhouseBoardsConnector } from './greenhouse';
 import type { FeedConnector, FeedListing, IngestionReport } from './types';
 import { UsaJobsConnector } from './usajobs';
 
 export const FEED_CONNECTORS: FeedConnector[] = [
   new UsaJobsConnector(),
+  new GreenhouseBoardsConnector(),
 ];
 
 /** Default per-run ceiling, so one run cannot pull an unbounded page count. */
@@ -199,6 +202,19 @@ export async function ingestFeed(
   for (const listing of listings) {
     if (!isPersistable(listing)) {
       report.rejectedIncomplete += 1;
+      continue;
+    }
+
+    /*
+     * The relevance gate `types.ts` always described, finally applied here so
+     * every feed gets it. USAJOBS never needed it — it restricts to nine
+     * clinical series server-side — so `rejectedNotClinical` was declared and
+     * summed but never incremented. A feed without a server-side clinical
+     * filter (any public ATS board) would otherwise have every listing
+     * persisted, and the board would fill with engineers and recruiters.
+     */
+    if (!isClinicalRole(listing.title)) {
+      report.rejectedNotClinical += 1;
       continue;
     }
 

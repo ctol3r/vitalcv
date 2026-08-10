@@ -20,6 +20,7 @@
  */
 
 import type { FeedConnector, FeedFetchResult, FeedListing } from './types';
+import { STATE_NAME_TO_CODE } from './usStates';
 
 const USAJOBS_HOST = 'data.usajobs.gov';
 const SEARCH_URL = `https://${USAJOBS_HOST}/api/search`;
@@ -79,21 +80,6 @@ export interface UsaJobsSearchResponse {
  * USAJOBS reports locations as "Palo Alto, California", so the state arrives as
  * a name rather than the two-letter code the Opportunity column stores.
  */
-const STATE_NAME_TO_CODE: Record<string, string> = {
-  alabama: 'AL', alaska: 'AK', arizona: 'AZ', arkansas: 'AR', california: 'CA',
-  colorado: 'CO', connecticut: 'CT', delaware: 'DE', 'district of columbia': 'DC',
-  florida: 'FL', georgia: 'GA', hawaii: 'HI', idaho: 'ID', illinois: 'IL',
-  indiana: 'IN', iowa: 'IA', kansas: 'KS', kentucky: 'KY', louisiana: 'LA',
-  maine: 'ME', maryland: 'MD', massachusetts: 'MA', michigan: 'MI',
-  minnesota: 'MN', mississippi: 'MS', missouri: 'MO', montana: 'MT',
-  nebraska: 'NE', nevada: 'NV', 'new hampshire': 'NH', 'new jersey': 'NJ',
-  'new mexico': 'NM', 'new york': 'NY', 'north carolina': 'NC',
-  'north dakota': 'ND', ohio: 'OH', oklahoma: 'OK', oregon: 'OR',
-  pennsylvania: 'PA', 'rhode island': 'RI', 'south carolina': 'SC',
-  'south dakota': 'SD', tennessee: 'TN', texas: 'TX', utah: 'UT',
-  vermont: 'VT', virginia: 'VA', washington: 'WA', 'west virginia': 'WV',
-  wisconsin: 'WI', wyoming: 'WY',
-};
 
 /** Two-letter state code, or null. USAJOBS gives "Palo Alto, California". */
 function extractState(locations: UsaJobsLocation[] | undefined): string | null {
