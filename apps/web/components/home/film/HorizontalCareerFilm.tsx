@@ -399,6 +399,11 @@ export function HorizontalCareerFilm() {
                           <ProvenanceChip
                             state={lane.state}
                             label={lane.stateLabel}
+                            // Pre-lookup lane: nothing queried, nothing to
+                            // attribute to a source. `lane.meta` below paints
+                            // the source · cadence line.
+                            attribution={{ declared: 'no lookup yet' }}
+                            provenanceLine="hidden"
                             shape="stamp"
                             size="sm"
                           />
@@ -475,6 +480,12 @@ export function HorizontalCareerFilm() {
                                   <ProvenanceChip
                                     state={lane.state}
                                     label={lane.stateLabel}
+                                    // AWAITING_ROWS are the pre-lookup lanes:
+                                    // nothing has been queried, so there is no
+                                    // source to name. `lane.meta` paints the
+                                    // source · cadence line adjacently.
+                                    attribution={{ declared: 'no lookup yet' }}
+                                    provenanceLine="hidden"
                                     shape="stamp"
                                     size="sm"
                                   />

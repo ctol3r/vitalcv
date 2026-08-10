@@ -143,9 +143,12 @@ export default function ProvenanceDesignReferencePage() {
         >
           <ProvenanceChip
             state="revoked"
-            source="Issuer"
-            timestamp="2026-06-30T00:00:00Z"
-            detail="fails closed"
+            attribution={{
+              legend: true,
+              source: 'Issuer',
+              asOf: '2026-06-30T00:00:00Z',
+              detail: 'fails closed',
+            }}
           />
           <p
             style={{
@@ -178,7 +181,10 @@ export default function ProvenanceDesignReferencePage() {
             alignItems: 'flex-start',
           }}
         >
-          <ProvenanceChip state="selfAttested" detail="entered by holder" />
+          <ProvenanceChip
+            state="selfAttested"
+            attribution={{ legend: true, detail: 'entered by holder' }}
+          />
           <p
             style={{
               fontSize: 13,

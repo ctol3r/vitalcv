@@ -148,7 +148,26 @@ export function CapsuleModelRow({ row }: { row: EvidenceRow }) {
       claim={row.claim}
       returned={row.returned}
       provenance={provenanceParts(row)}
-      trailing={<ProvenanceChip state={row.state} shape="stamp" size="sm" />}
+      trailing={
+        <ProvenanceChip
+          state={row.state}
+          // The row already paints the full provenance line via
+          // `provenanceParts`, so the chip must not repeat it — but it still
+          // has to STATE its attribution. `row.source` is null exactly when no
+          // source answered, which is the `declared` case rather than a source
+          // with an unrecorded as-of.
+          attribution={
+            row.source
+              ? { source: row.source, asOf: row.observedAt }
+              : { declared: 'no source answered' }
+          }
+          // The row paints the provenance; the chip states it for assistive
+          // tech without repeating it visually.
+          provenanceLine="hidden"
+          shape="stamp"
+          size="sm"
+        />
+      }
     />
   );
 }

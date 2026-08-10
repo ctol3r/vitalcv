@@ -92,11 +92,25 @@ export function ProvenanceChipLegend({
             key={row.state}
             className="grid grid-cols-[minmax(180px,220px)_1fr] items-start gap-4"
           >
+            {/*
+              Every legend chip is illustrative by construction — these are
+              vocabulary examples, not results about anyone. The `legend` form
+              still renders the sample provenance line (that IS the legend's
+              job) while announcing it as an example, so a screen-reader user
+              cannot mistake a row for a real check on a real provider.
+            */}
             <ProvenanceChip
               state={row.state}
-              source={row.source}
-              timestamp={row.timestamp}
-              detail={row.detail}
+              attribution={{
+                legend: true,
+                source: row.source,
+                // Deliberately NOT `?? null`: several legend rows carry no
+                // sample timestamp on purpose and explain themselves through
+                // `detail` instead. `null` means "a source answered and the
+                // as-of was not recorded" — a claim these rows do not make.
+                asOf: row.timestamp,
+                detail: row.detail,
+              }}
             />
             <span className="text-[12.5px] leading-snug text-[var(--vt-text-secondary)]">
               {row.meaning ?? PROVENANCE_META[row.state].description}
