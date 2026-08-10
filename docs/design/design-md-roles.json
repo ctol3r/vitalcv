@@ -1,0 +1,12 @@
+{
+  "_comment": "Role sentences for DESIGN.md. Hand-authored: what a token is FOR and where it must NOT go. The generator supplies every other column from the CSS. A token with no entry renders as '(role not documented)' rather than getting an invented sentence.",
+  "--vt-badge-checked-text": "Ink for the one affirmative state. Only `checked` earns it — a source returned a usable payload. Never decoration, never a default success colour.",
+  "--vt-badge-access-text": "Warm grey ink for gated and access-required states. Warm on purpose: CD-4 requires a warm ramp, and the prior blue-leaning value put cool ink on a warm surface.",
+  "--vt-badge-neutral-text": "Ink for absence — unavailable, no-active-record, not-decision-grade. Neutral because absence is not severity; red is reserved for revoked alone.",
+  "--vt-badge-pending-text": "Ink for in-flight and aged states (pending, stale, review-required). Amber says 'not settled', never 'wrong'.",
+  "--vt-severity-critical": "The reserved fail-closed red. `revoked` only. Any other state painting this is a truth defect, not a style choice.",
+  "--vt-badge-preview-text": "Ink for synthetic/preview payloads. Must never be mistaken for a real source confirmation.",
+  "--vt-text-secondary": "Support copy. The darkest grey allowed for prose at AA on paper. Never body text on a dark ground without rechecking contrast.",
+  "--vt-text-muted": "Captions and metadata, 12px and up. Never body text.",
+  "--vt-rule": "Hairline separators. Paper separates with rules, not shadows — there is no elevation system to reach for."
+}
