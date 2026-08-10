@@ -34,6 +34,28 @@
 #
 # Node 20 also reached end-of-life in April 2026. If you ever pin this back
 # below 22.12, revert jose to a version shipping a CJS build first.
+#
+# ---------------------------------------------------------------------------
+# DO NOT "fix" the sub-22.12 Node by pinning `nixpkgsArchive`. It was tried in
+# #1317 (b4d8b5633, 2026-08-10) — `nixpkgsArchive =
+# "51ad838b03a05b1de6f9f2a0fffecee64a9788ee"`, chosen because `nodejs_22`
+# resolves to 22.13.1 at that snapshot. The Node claim was correct. The build
+# still failed, and this is reverted.
+#
+# Pinning the archive does not move Node alone — it swaps the WHOLE toolchain.
+# On that snapshot pnpm could not create its bin shims: dozens of
+#   WARN Failed to create bin at .../node_modules/.bin/<x>  ENOENT
+# then `apps/web postinstall$ prisma generate` -> `sh: 1: prisma: Permission
+# denied` -> ELIFECYCLE -> `pnpm install` exit 1, killing the API build at
+# stage 6/10. The API (service `delightful-essence`, which builds from
+# /railway.toml) could not deploy AT ALL until this revert; `vitalcv-web`
+# builds from /apps/web/railway.toml and was unaffected, which is why the web
+# deploy looked green while the API silently stayed on the previous build.
+#
+# No PR check runs Nixpacks, so this is invisible until it reaches Railway.
+# Any future attempt must be proven on a non-production service first, and
+# verified with `curl -s https://api.vitalcv.com/health | jq -r .node_version`.
+# ---------------------------------------------------------------------------
 [phases.setup]
 nixPkgs = ["nodejs_22", "pnpm"]
 

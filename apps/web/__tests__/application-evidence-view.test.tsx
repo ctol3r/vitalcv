@@ -15,13 +15,14 @@ function fixture(): ApplicationEvidenceLoadResult {
       submittedPacket: {
         packetVersion: 2, packetHash: 'a'.repeat(64), clinicianNpi: '1558302470', integrity: 'valid',
         purpose: 'application', recipient: 'Example Health', consentAt: '2026-07-16T12:00:00.000Z',
-        consentReceiptId: 'consent-1', selectedSections: ['licensure'], fields: [field], methodologyVersion: '243.3',
+        consentReceiptId: 'consent-1', selectedSections: ['licensure'], fields: [field], sectionAbsences: [], unexplainedSectionIds: [], methodologyVersion: '243.3',
         clinicianNote: null, lifecycle: 'active',
       },
       currentEvidence: {
         status: 'available', observedAt: '2026-07-16T13:00:00.000Z', methodologyVersion: '243.3', fields: [field],
+        sectionAbsences: [],
         changesSinceSubmission: [{ fieldId: field.fieldId, label: field.label, kind: 'unchanged', submitted: field, current: field }],
-        notice: 'Current Wallet evidence is shown separately and does not alter the submitted packet.',
+        notice: 'The current profile is shown separately and does not alter the submitted record.',
       },
     },
   };
@@ -30,10 +31,10 @@ function fixture(): ApplicationEvidenceLoadResult {
 describe('ApplicationEvidenceView', () => {
   it('renders exact packet integrity, consent, current evidence, and non-affirmative state grammar', () => {
     const html = renderToStaticMarkup(<ApplicationEvidenceView result={fixture()} />);
-    expect(html).toContain('Submitted packet · version 2');
+    expect(html).toContain('Submitted record · version 2');
     expect(html).toContain('Integrity valid');
     expect(html).toContain('consent-1');
-    expect(html).toContain('Current Wallet evidence');
+    expect(html).toContain('The current profile is shown separately');
     expect(html).toContain('Access required');
     expect(html).not.toContain('demo_receipt');
     expect(html).not.toContain('CHECKED');
@@ -43,10 +44,10 @@ describe('ApplicationEvidenceView', () => {
     const base = fixture();
     if (base.status !== 'ok') throw new Error('bad fixture');
     const html = renderToStaticMarkup(<ApplicationEvidenceView result={{
-      status: 'ok', data: { ...base.data, mode: 'legacy', submittedPacket: null, legacyNotice: 'Legacy application — no immutable disclosure packet was captured at submission.' },
+      status: 'ok', data: { ...base.data, mode: 'legacy', submittedPacket: null, legacyNotice: 'Legacy application — no immutable disclosure record was captured at submission.' },
     }} />);
     expect(html).toContain('Legacy application');
-    expect(html).toContain('no immutable disclosure packet');
+    expect(html).toContain('no immutable disclosure record');
     expect(html).not.toContain('Integrity valid');
   });
 });

@@ -61,7 +61,24 @@
   --vt-badge-pending-bg: #FEF3E2;
   --vt-badge-pending-text: #A05C00;
   --vt-badge-access-bg: #F0F1F3;
-  --vt-badge-access-text: #6B6F75;
+  /*
+   * CD-4 warm ramp, AND the contrast floor.
+   *
+   * The prior value was a blue-leaning grey that failed two ways at once:
+   * `doctrine-visual` flags it as cool ink on a warm surface, and axe flags
+   * the gated chip's 11px text on `--vt-badge-access-bg` as a contrast
+   * violation (~4.5:1, on the wrong side of the line). #676257 is the warm
+   * grey CD-5 already assigns to the access state and clears the floor at
+   * ~5.4:1.
+   *
+   * The homepage patched this locally first; that override asked for the
+   * correction to be made at source as its own reviewable change. This is it.
+   *
+   * Surfaced a second time by UX-02 Step 3: the moment /trust adopted the
+   * canonical chip, its `gated` register rendered the same cool ink, and
+   * `doctrine-visual` failed on /trust as well as /.
+   */
+  --vt-badge-access-text: #676257;
   --vt-badge-unavailable-bg: #F5EDED;
   --vt-badge-unavailable-text: #8C2A2A;
   --vt-badge-preview-bg: #E5F4F5;

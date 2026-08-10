@@ -415,7 +415,7 @@ describe('application packet reader — real PostgreSQL authorization boundary',
       .resolves.toMatchObject({
         mode: 'legacy',
         submittedPacket: null,
-        legacyNotice: 'Legacy application — no immutable disclosure packet was captured at submission.',
+        legacyNotice: 'Legacy application — no immutable disclosure record was captured at submission.',
       });
   });
 

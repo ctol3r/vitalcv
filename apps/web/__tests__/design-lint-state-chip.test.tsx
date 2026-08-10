@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 
-import { StateChip } from '@/components/vital/StateChip';
+import { EvidenceProvenanceChip as StateChip } from '@/lib/vital/evidenceStateToProvenance';
 import { EVIDENCE_STATE, type EvidenceState } from '@/lib/vital/evidenceState';
 import {
   ProvenanceChip,
@@ -24,7 +24,10 @@ import {
  * what the pixels show is exactly the failure this rule exists to catch.
  *
  * `truth-state-chip.test.tsx` guards a different component (`TruthStateChip` /
- * `TRUTH_STATE_META`); `components/vital/StateChip.tsx` had no coverage.
+ * `TRUTH_STATE_META`). `components/vital/StateChip.tsx` was the third chip and
+ * was DELETED in UX-02 Step 4 — its states now render through
+ * `EVIDENCE_TO_PROVENANCE` onto ProvenanceChip, which is what `render()` below
+ * exercises.
  */
 
 /** lucide's CheckCircle2 draws this polyline; no other glyph in the set does. */
@@ -42,9 +45,14 @@ describe('LINT-07 — the check glyph is reserved for affirmative states', () =>
     expect(render(state)).toContain(EVIDENCE_STATE[state].label);
   });
 
-  it.each(STATES)('%s renders a check only if it is declared affirmative', (state) => {
-    const hasCheck = CHECK_PATH.test(render(state));
-    expect(hasCheck).toBe(EVIDENCE_STATE[state].affirmative);
+  it.each(STATES)('%s renders no check glyph — the register is dot-based', (state) => {
+    // Was `expect(hasCheck).toBe(EVIDENCE_STATE[state].affirmative)`, against
+    // components/vital/StateChip's lucide icons. That component was deleted in
+    // UX-02 Step 4; these states now render through EVIDENCE_TO_PROVENANCE →
+    // ProvenanceChip, which draws dots, so NO state may draw a check.
+    // `affirmative` remains load-bearing: the declaration tests below pin it,
+    // and the ProvenanceChip block pins it to `checked` alone.
+    expect(CHECK_PATH.test(render(state))).toBe(false);
   });
 
   it('keeps at least one non-affirmative state, or the rule is vacuous', () => {

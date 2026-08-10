@@ -5,7 +5,7 @@ import { ArrowRight, ShieldCheck, FileCode2, Activity } from 'lucide-react';
 import { getTrustRegisterSnapshot } from '@/lib/trust/register';
 import { ArtifactStage } from '@/components/motion/ArtifactStage';
 import { ReceiptArtifact } from '@/components/artifacts/PageArtifacts';
-import { StateChip } from '@/components/vital/StateChip';
+import { EvidenceProvenanceChip as StateChip } from '@/lib/vital/evidenceStateToProvenance';
 import { EVIDENCE_STATE, type EvidenceState } from '@/lib/vital/evidenceState';
 import { PageFrame } from '@/components/layout/PageFrame';
 import { SourceCoverageDiagram } from '@/components/trust/SourceCoverageDiagram';

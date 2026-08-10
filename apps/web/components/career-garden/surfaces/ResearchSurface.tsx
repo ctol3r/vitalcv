@@ -1,6 +1,6 @@
 import Link from 'next/link';
 
-import { StateChip } from '@/components/vital/StateChip';
+import { EvidenceProvenanceChip as StateChip } from '@/lib/vital/evidenceStateToProvenance';
 import {
   DEMO_CV_ENTRIES,
   DEMO_PUB_CANDIDATES,

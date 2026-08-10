@@ -78,7 +78,8 @@ interface ProvenanceMeta {
 }
 
 /**
- * W1082, ported from `components/vital/StateChip` (UX-02 Step 1).
+ * W1082, ported from `components/vital/StateChip` (UX-02 Step 1). That component
+ * was deleted in Step 4 — this is now the only attributed chip.
  *
  * The chip is ATTRIBUTED, and attribution is required at the type level. A
  * state word without "who answered, and when" is exactly how `checked` got
@@ -104,6 +105,12 @@ export type ProvenanceAttribution =
       source: string;
       /** ISO instant, honest relative phrase, or null → "as-of not recorded". */
       asOf: string | null;
+      /**
+       * Machine ISO instant, for when `asOf` is human-formatted prose
+       * ("Jul 15, 2026"). Keeps `<time datetime>` machine-readable. Omit when
+       * `asOf` is already ISO.
+       */
+      asOfISO?: string;
       /** Extra mono note appended after the as-of (e.g. "no match"). */
       detail?: string;
       legend?: never;
@@ -253,7 +260,26 @@ const chipVariants = cva(
         aging: 'border-transparent bg-[var(--vt-badge-pending-bg)] text-[var(--vt-badge-pending-text)]',
         gated: 'border-transparent bg-[var(--vt-badge-access-bg)] text-[var(--vt-badge-access-text)]',
         review: 'border-[var(--vt-badge-warning-border,transparent)] bg-[var(--vt-badge-warning-bg)] text-[var(--vt-badge-warning-text)]',
-        unknown: 'border-transparent bg-[var(--vt-badge-unavailable-bg)] text-[var(--vt-badge-unavailable-text)]',
+        /**
+         * ABSENCE, not severity. `unknown` covers `unavailable` (the source
+         * returned nothing), `notFound` (it answered, and the answer was no),
+         * and `notDecisionGrade` (present but insufficient). None of the three
+         * is a severity finding, and this file's own header reserves red for
+         * `revoked` alone — "a first-class fail-closed register (the only red)".
+         *
+         * It used to paint `--vt-badge-unavailable-*`, which is a RED family,
+         * so all three rendered red and contradicted both that sentence and
+         * `unavailable`'s own description ("A system condition, not a
+         * finding"). The reserved-red guard missed it because it string-matched
+         * `--vt-severity-critical` — a different token that is also red — so
+         * the rule passed while three states broke it.
+         *
+         * Neutral is the honest register. `unknown` and `gated` therefore share
+         * a hue; they stay distinguishable by dot shape (hollow vs filled) and
+         * by their words, which is what EC-4 requires anyway — meaning is never
+         * carried by colour alone.
+         */
+        unknown: 'border-transparent bg-[var(--vt-badge-neutral-bg)] text-[var(--vt-badge-neutral-text)]',
         preview: 'border-transparent bg-[var(--vt-badge-preview-bg)] text-[var(--vt-badge-preview-text)]',
         revoked:
           'border-[color-mix(in_oklab,var(--vt-severity-critical)_50%,transparent)] bg-[color-mix(in_oklab,var(--vt-severity-critical)_12%,transparent)] text-[var(--vt-severity-critical)] font-[var(--vt-font-weight-bold,700)]',
@@ -359,6 +385,7 @@ export function ProvenanceChip({
   // StateChip uses, and what lets a tight inline row adopt the contract
   // without gaining a second line of text.
   const detail = isDeclared ? undefined : attribution.detail;
+  const asOfISO = isDeclared || isLegend ? undefined : attribution.asOfISO;
 
   // `asOf: null` is a statement, not an absence: it renders the words. Only an
   // omitted key (legend form) yields no time node at all.
@@ -369,7 +396,7 @@ export function ProvenanceChip({
   if (ts) {
     provNodes.push(
       asOf ? (
-        <time key="t" dateTime={asOf}>{ts}</time>
+        <time key="t" dateTime={asOfISO ?? asOf}>{ts}</time>
       ) : (
         <span key="t">{ts}</span>
       ),

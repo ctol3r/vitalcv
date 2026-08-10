@@ -210,7 +210,7 @@ describe('readApplicationEvidenceView', () => {
     expect(result.submittedPacket?.methodologyVersion).toBe('243.3');
     expect(result.currentEvidence.methodologyVersion).toBe('243.4');
     expect(result.currentEvidence.status).toBe('available');
-    expect(result.currentEvidence.notice).toContain('does not alter the submitted packet');
+    expect(result.currentEvidence.notice).toContain('does not alter the submitted record');
   });
 
   it('still returns the verified submitted packet when current sources fail', async () => {

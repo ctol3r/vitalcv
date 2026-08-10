@@ -84,8 +84,8 @@ VitalCV is a healthcare credentialing platform (pnpm + turbo monorepo):
 
 ### Pages
 - Location: `apps/web/app/{route}/page.tsx`
-- **Design authority is `docs/design/VITALCV_CREATIVE_DIRECTION.md` (clauses CD-1…CD-20).** Read it before composing any surface; it supersedes every prior per-wave design doc on look and feel. Warm paper and ink, hairline rules, mono for machine facts, indigo signal — green is reserved for one state and is forbidden as a brand or decorative color. Glass on chrome, solid on evidence. Do not copy a neighbouring component to infer the system; much of the codebase predates the current direction.
-- Delegate composition to **ui-compositor**, which carries the full CD summary.
+- **Design authority is `docs/design/VITALCV_EXPERIENCE_CONSTITUTION.md` (clauses EC-0…EC-29)**, read from `origin/main` — branch copies of the design docs are routinely stale. It is the successor-of-record to `VITALCV_CREATIVE_DIRECTION.md`, whose Parts III (palette) and IV (typography) are superseded by EC-20; do not cite a CD clause to reject work. The 2026 register (`--vt-scene-*`, `--vt-action-*`, `--vt-frost-*`, `--vt-shape-*` in `apps/web/styles/themes/index.css`, documented in `docs/design/VITALCV_2026_VISUAL_LANGUAGE.md`) was ratified into EC-20 by amendment A-1. Green means source-confirmed or completed work and is **never an action fill** — green text and glyphs are allowed, and `LINT-15` in `scripts/check-design-lint.ts` enforces the fill ban as an error. An action is square; a word-label may be a pill; a pill is never a state marker (EC-20 A-2, EC-4). Per EC-12, visual decisions are not inherited — do not copy a neighbouring component to infer the system.
+- Delegate contained composition to **ui-compositor**. Delegate anything that ships — a new or restyled surface, responsive recomposition, motion, tokens, accessibility, customer-facing copy — to **vitalcv-ui-dev**, which owns the design gates, production-build rendering, and the founder visual gate evidence.
 
 ## Constraints
 
@@ -133,8 +133,9 @@ When a wave touches specific subsystems, you may delegate to specialized subagen
 - **simulation**: Trust simulation and impact analysis
 - **monitoring**: Expiration and revocation monitoring
 - **network**: Telemetry, network map, and gateway changes
-- **ui-compositor**: Component layout and composition under the canonical creative direction
-- **interaction-physics**: Canvas/rAF work. Constrained by CD-11 and the CD-13 kill list — cursor glow, particle backgrounds, magnetic buttons, and anything that idles are retired. Do not delegate new ambient effects here.
+- **vitalcv-ui-dev**: UI/UX that ships — composition, restyling, responsive recomposition, motion, tokens, accessibility, customer-facing copy, plus the design gates, rendered verification, and founder visual gate evidence. Default for any visual change that must land.
+- **ui-compositor**: narrow, contained component composition only. It does not run gates or verify rendered output; it hands off to vitalcv-ui-dev.
+- **interaction-physics**: Canvas/rAF work. Constrained by EC-4 (one scroll owner per page) and EC-29 (**nothing loops** except a loading skeleton, a system-status pulse, or a source check genuinely running) — cursor glow, particle backgrounds, and magnetic buttons are retired. The old CD-13 kill list is dissolved as a unitary rejection list; cite the EC row. Do not delegate new ambient effects here.
 
 ## Output Format
 

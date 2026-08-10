@@ -136,11 +136,44 @@ describe('ProvenanceChip — fail-closed & self-attested registers', () => {
     expect(html).toContain('border-dashed');
   });
 
-  it('does not paint any non-revoked state with severity-critical red', () => {
+  /**
+   * Red is reserved for `revoked` — the file header says so in as many words:
+   * "a first-class fail-closed register (the only red)".
+   *
+   * This used to assert `not.toContain('--vt-severity-critical')`, which names
+   * ONE red token rather than the rule. The `unknown` register painted
+   * `--vt-badge-unavailable-*` — a DIFFERENT red — so `unavailable`, `notFound`,
+   * and `notDecisionGrade` all rendered red while this guard stayed green. The
+   * guard named a token; the closure is "no severity colour on a non-severity
+   * state".
+   *
+   * So it now rejects the whole red FAMILY by name. If a new red token is
+   * added, add it here — a state that needs red needs a ruling, not a token.
+   */
+  const RED_FAMILY_TOKENS = [
+    '--vt-severity-critical',
+    '--vt-badge-unavailable-bg',
+    '--vt-badge-unavailable-text',
+    '--vt-badge-critical-bg',
+    '--vt-badge-critical-text',
+  ] as const;
+
+  it('paints no non-revoked state with ANY red-family token', () => {
     for (const state of PROVENANCE_ORDER) {
       if (state === 'revoked') continue;
       const html = renderToStaticMarkup(<ProvenanceChip state={state} attribution={{ legend: true }} />);
-      expect(html).not.toContain('--vt-severity-critical');
+      for (const token of RED_FAMILY_TOKENS) {
+        expect(html, `${state} must not paint ${token} — red is reserved for revoked`).not.toContain(token);
+      }
+    }
+  });
+
+  it('keeps absence states out of the severity register entirely', () => {
+    // The three states that mean "we do not have this", each for a different
+    // reason. None is a finding about the clinician; none may read as one.
+    for (const state of ['unavailable', 'notFound', 'notDecisionGrade'] as const) {
+      const html = renderToStaticMarkup(<ProvenanceChip state={state} attribution={{ legend: true }} />);
+      expect(html).toContain('--vt-badge-neutral-text');
     }
   });
 });

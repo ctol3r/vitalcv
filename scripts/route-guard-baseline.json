@@ -79,10 +79,6 @@
     "/^\\/graph(\\/.*)?$/ -> AUTHENTICATED",
     "/^\\/documents(\\/.*)?$/ -> AUTHENTICATED"
   ],
-  "ROUTE-03": [
-    "ISSUER -> /issuer",
-    "ADMIN -> /internal/metrics",
-    "AUTHENTICATED -> /intelligence"
-  ],
+  "ROUTE-03": [],
   "ROUTE-04": []
 }

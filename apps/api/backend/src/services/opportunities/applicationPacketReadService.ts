@@ -123,7 +123,25 @@ export interface ReadApplicationPacketInput {
   packetVersion?: number;
 }
 
-const LEGACY_NOTICE = 'Legacy application — no immutable disclosure packet was captured at submission.';
+const LEGACY_NOTICE = 'Legacy application — no immutable disclosure record was captured at submission.';
+
+/**
+ * Every notice this service puts in front of a reader, in one place.
+ *
+ * These render VERBATIM on the employer and clinician surfaces, which makes
+ * them customer-facing copy bound by EC-9 — but `scripts/check-public-claims.ts`
+ * only scans `apps/web/app`, `apps/web/components` and `apps/marketing`, so
+ * backend-authored copy is invisible to it. That is how "Current Wallet
+ * evidence" survived the wave that retired "wallet" from customer language.
+ * Collecting them here gives `applicationCopyContract.test.ts` something to
+ * assert against without standing up a database.
+ */
+export const CURRENT_EVIDENCE_NOTICES = {
+  noNpi: 'The current profile cannot be shown because this application has no clinician NPI attached.',
+  legacy: 'This is the current profile — not the original submission.',
+  sealed: 'The current profile is shown separately and does not alter the submitted record.',
+  sourcesDown: 'Current profile sources are temporarily unavailable. The submitted record remains intact.',
+} as const;
 const PACKET_NOT_FOUND_MESSAGE = 'Application packet not found.';
 const REVIEW_MEMBERSHIP_ROLES = new Set<MembershipRole>([
   MembershipRole.ADMIN,
@@ -417,7 +435,7 @@ async function resolveAccessPerspective(
 /**
  * Reads the exact immutable packet attached to an application, or an explicitly
  * requested retained version. The query never substitutes a newer packet or
- * current Wallet evidence for the submitted record.
+ * the current profile for the submitted record.
  */
 export async function readApplicationPacket(
   input: ReadApplicationPacketInput,
@@ -607,7 +625,7 @@ export async function readApplicationEvidenceView(
         fields: [],
         sectionAbsences: [],
         changesSinceSubmission: [],
-        notice: 'Current Wallet state is unavailable because this application has no clinician NPI attached.',
+        notice: CURRENT_EVIDENCE_NOTICES.noNpi,
       },
     };
   }
@@ -625,8 +643,8 @@ export async function readApplicationEvidenceView(
         sectionAbsences: buildSectionAbsencesFromTrustState(trustState, disclosure, fields),
         changesSinceSubmission: compareApplicationEvidence(packet.submittedPacket?.fields ?? [], fields),
         notice: packet.mode === 'legacy'
-          ? 'Current Wallet state — not the original submission.'
-          : 'Current Wallet evidence is shown separately and does not alter the submitted packet.',
+          ? CURRENT_EVIDENCE_NOTICES.legacy
+          : CURRENT_EVIDENCE_NOTICES.sealed,
       },
     };
   } catch {
@@ -639,7 +657,7 @@ export async function readApplicationEvidenceView(
         fields: [],
         sectionAbsences: [],
         changesSinceSubmission: [],
-        notice: 'Current Wallet sources are temporarily unavailable. The submitted packet remains intact.',
+        notice: CURRENT_EVIDENCE_NOTICES.sourcesDown,
       },
     };
   }
