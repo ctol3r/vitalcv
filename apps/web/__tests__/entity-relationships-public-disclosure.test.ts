@@ -232,4 +232,38 @@ describe('ADR 0006 — injection: an NPDB peer-review record must not surface', 
     }
     expect(filtered.relationships.some((r) => r.to === 'npdb')).toBe(false);
   });
+
+  /**
+   * The case above only exercises `from`, because the passport producer always sets
+   * `to` to a sourceId. But `EvidenceRelationship.to` is documented as "evidenceId,
+   * sourceId, or entity key", and `derived_from` / `supersedes` / `proven_by` are
+   * evidence-to-evidence by nature. A KEPT public object pointing AT the dropped
+   * NPDB record must not survive: the edge would re-disclose the very evidenceId the
+   * node-level filter removed. Filtering on `from` alone passes this vacuously today
+   * and would leak the day such an edge is emitted.
+   */
+  it('drops an edge from KEPT evidence that points AT dropped evidence', () => {
+    const base = collectionOf([LICENSE, NPDB]);
+    const withCrossEdge = buildEvidenceCollection({
+      subjectKey: base.subjectKey,
+      generatedFor: base.generatedFor,
+      objects: base.objects,
+      relationships: [
+        ...base.relationships,
+        // public licensure record claims to be derived from the peer-review record
+        {
+          from: LICENSE.evidenceId,
+          to: NPDB.evidenceId,
+          type: 'derived_from',
+          confidence: null,
+          observedAt: null,
+        },
+      ],
+    });
+
+    const filtered = toPublicEvidenceCollection(withCrossEdge);
+
+    expect(filtered.relationships.some((r) => r.to === NPDB.evidenceId)).toBe(false);
+    expect(JSON.stringify(filtered)).not.toContain('npdb');
+  });
 });

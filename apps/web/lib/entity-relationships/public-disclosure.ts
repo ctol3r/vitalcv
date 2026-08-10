@@ -129,7 +129,21 @@ export function toPublicEvidenceCollection(collection: EvidenceCollection): Evid
   const objects = collection.objects.filter((obj) => isPublicEvidenceClass(obj.evidenceClass));
   const keptIds = new Set(objects.map((obj) => obj.evidenceId));
 
-  const relationships = (collection.relationships ?? []).filter((rel) => keptIds.has(rel.from));
+  // Both endpoints must be clear, not just `from`. Today's producer always sets
+  // `to` to a sourceId, so the `to` check is a no-op — but `EvidenceRelationship.to`
+  // is documented as "evidenceId, sourceId, or entity key", and `derived_from` /
+  // `supersedes` / `proven_by` are evidence-to-evidence by nature. The moment one of
+  // those is emitted, filtering on `from` alone would keep an edge POINTING AT a
+  // dropped object and re-disclose the evidenceId we just removed.
+  const droppedIds = new Set(
+    collection.objects
+      .filter((obj) => !isPublicEvidenceClass(obj.evidenceClass))
+      .map((obj) => obj.evidenceId),
+  );
+
+  const relationships = (collection.relationships ?? []).filter(
+    (rel) => keptIds.has(rel.from) && !droppedIds.has(rel.to),
+  );
 
   return buildEvidenceCollection({
     subjectKey: collection.subjectKey,
