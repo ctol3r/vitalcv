@@ -190,6 +190,11 @@ table — the table says what exists, this says what to do.
 - **Customer-facing copy has a banned list.** No bare "Verified" as a status; no "automatically verified", "HIPAA compliant", "instant credentialing". `CLAUDE.md` holds the full list and CI enforces it.
 - **Before creating a component, search for one that already exists.** This repo has three parallel `StateChip` implementations and five parallel evidence-row types. Duplicate design-system infrastructure is CI-blocking after UX-02.
 - **Public-facing visual work needs a founder decision.** Rendered before/after evidence at desktop and mobile, a review URL, and an explicit `FOUNDER VISUAL DECISION: GO`. Green CI is not visual approval.
+- **Spend the accent like a budget, not a palette.** The strongest reference systems ration colour to functional emphasis and stay near-achromatic everywhere else. VitalCV already bans state hues as decoration (EC-20) — treat that as *at most one chromatic surface per view*, and let structure come from rules and space.
+- **Elevation is earned by a content class, not offered as an affordance.** Where a system permits any lift at all, it belongs to the artifact being presented, never to ordinary containers. Here the answer is stricter — EC-20 locks no shadows — so a card earns its box with a hairline or it does not get one (EC-14).
+- **Tighten tracking as size grows.** Negative letter-spacing that scales with type size is what stops large display text reading as loose. EC-20 fixes the anchors and leaves the ramp to UX-02; this is the method that ramp should use.
+- **Reach for half-step weights before jumping.** A variable face gives 430/450/480 as real hierarchy steps. Use them before going to 500 — the coarse 400/500/700 ladder is a static-font habit.
+- **A link affordance must survive colour removal.** An arrow suffix or an underline carries it; colour alone does not (EC-4). Underline-on-hover-only is acceptable *only* when a non-colour glyph carries the affordance at rest.
 
 ## Tokens
 
@@ -215,7 +220,7 @@ tokens have a documented role; the rest say so plainly rather than inventing one
 | `--vt-action-primary-inverse-fg` | `#F6F5F1` | `styles/themes/index.css` | — *(role not documented)* |
 | `--vt-action-primary-inverse-fg-press` | `#F6F5F1` | `styles/themes/index.css` | — *(role not documented)* |
 | `--vt-badge-access-bg` | `#F0F1F3` | `styles/tokens.css` | — *(role not documented)* |
-| `--vt-badge-access-text` | `#6B6F75` | `styles/tokens.css` | Warm grey ink for gated and access-required states. Warm on purpose: CD-4 requires a warm ramp, and the prior blue-leaning value put cool ink on a warm surface. |
+| `--vt-badge-access-text` | `#676257` | `styles/tokens.css` | Warm grey ink for gated and access-required states. Warm on purpose: CD-4 requires a warm ramp, and the prior blue-leaning value put cool ink on a warm surface. |
 | `--vt-badge-checked-bg` | `#E8F5EE` | `styles/tokens.css` | — *(role not documented)* |
 | `--vt-badge-checked-text` | `#2E7D45` | `styles/tokens.css` | Ink for the one affirmative state. Only `checked` earns it — a source returned a usable payload. Never decoration, never a default success colour. |
 | `--vt-badge-critical-bg` | `var(--vt-badge-unavailable-bg)` | `styles/themes/index.css, styles/tokens.css` | — *(role not documented)* |
