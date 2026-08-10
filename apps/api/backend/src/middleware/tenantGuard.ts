@@ -4,6 +4,7 @@ import {
   getRequestOrganizationId,
   resolveVerifiedOrganizationId,
 } from './organizationContext';
+import { isVerifiedPlatformAdmin } from './platformAdminContext';
 import { env } from '../config/env';
 import { log } from '../obs/logger';
 
@@ -117,8 +118,6 @@ export async function bindOrganizationContext(req: Request): Promise<
   // org-required routes 401 below rather than honouring the header.
   return { ok: true };
 }
-
-const SUPER_ADMIN_ROLE = 'super-admin';
 
 /**
  * Route prefixes that allow READ access without an org context.
@@ -384,8 +383,24 @@ export function parseRequestRole(req: Request): string | null {
   );
 }
 
+/**
+ * S1 — platform-operator status, from a VERIFIED session's DB role.
+ *
+ * This used to be `parseRequestRole(req) === 'super-admin'`, i.e. the answer to
+ * "is this caller a platform operator?" was "they said so". That header is
+ * settable by anyone who can reach the API origin, so every privilege gated on
+ * `isSuperAdminRequest` — the `enforceOrganizationMatch` cross-org bypass, the
+ * org-role guard bypass, identity-binding refresh, cross-org trust widening —
+ * was reachable without any authentication at all.
+ *
+ * The header is now a hint only. `bindPlatformAdmin` (mounted globally, right
+ * after `verifiedIdentity`) resolves the verified Clerk subject to a `User` row
+ * and requires role ADMIN / status ACTIVE. If that middleware did not run, the
+ * answer is `false` — a guard that must have run in order to deny is not a
+ * guard. See middleware/platformAdminContext.ts.
+ */
 function isSuperAdmin(req: Request): boolean {
-  return parseRequestRole(req) === SUPER_ADMIN_ROLE;
+  return isVerifiedPlatformAdmin(req);
 }
 
 export function isSuperAdminRequest(req: Request): boolean {
