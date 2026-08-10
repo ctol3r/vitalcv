@@ -22,9 +22,28 @@ export const ROLE_LANDING: Record<UserRoleType, string> = {
   // Live employer workspace hub. The old `/verifier` tree is archived
   // (app/_archive/verifier) — landing there 404s. See app/employer/*.
   VERIFIER: '/employer/dashboard',
-  ISSUER: '/issuer',
-  ADMIN: '/internal/metrics',
-  AUTHENTICATED: '/intelligence',
+  // The issuer tree has NO index page by design: every issuer surface is keyed
+  // by a request id (`/issuer/*/[requestId]`), and routeManifest marks the
+  // `/issuer` root an unlinked waypoint precisely because clicking it would
+  // 404. So there is no issuer home to land on. The previous target `/issuer`
+  // served nothing and 404'd every issuer at sign-in (default post-resolve is
+  // `/holder` → wrong-role bounce → here). Fall back to the public front door,
+  // reachable by any role without a redirect loop. A real issuer home is a
+  // product decision, not a routing bug — tracked separately.
+  ISSUER: '/',
+  // The live ADMIN operator surface. The previous target `/internal/metrics`
+  // exists only under app/_archive and 404'd every admin at sign-in.
+  // `/admin/platform` is the ADMIN-gated Founder/Operations dashboard served on
+  // main, and `/admin/*` is an ADMIN prefix in PROTECTED_ROUTES so the landing
+  // is role-reachable without a mismatch loop.
+  ADMIN: '/admin/platform',
+  // AUTHENTICATED is a middleware route TIER ("any signed-in user"), not a
+  // storable role — the Prisma UserRole enum is {CLINICIAN,VERIFIER,ISSUER,
+  // ADMIN}, so `/api/me/role` never returns AUTHENTICATED and this entry is
+  // never used as a live landing. It exists only to satisfy the exhaustive
+  // Record type and the route-guard gate. The previous target `/intelligence`
+  // serves no page. Point it at the public front door, which always resolves.
+  AUTHENTICATED: '/',
 };
 
 /**

@@ -47,14 +47,16 @@ describe('Route role mapping', () => {
     { path: '/holder', role: 'CLINICIAN', expected: 'allow' },
     { path: '/holder/checklist', role: 'CLINICIAN', expected: 'allow' },
     { path: '/holder', role: 'VERIFIER', expected: '/employer/dashboard' },
-    { path: '/holder', role: 'ISSUER', expected: '/issuer' },
-    { path: '/holder', role: 'ADMIN', expected: '/internal/metrics' },
+    // ROLE_LANDING repointed to served routes (was /issuer, /internal/metrics —
+    // both 404'd). Issuer has no home surface by design → public front door.
+    { path: '/holder', role: 'ISSUER', expected: '/' },
+    { path: '/holder', role: 'ADMIN', expected: '/admin/platform' },
 
     // /verifier - VERIFIER only
     { path: '/verifier', role: 'VERIFIER', expected: 'allow' },
     { path: '/verifier/dashboard', role: 'VERIFIER', expected: 'allow' },
     { path: '/verifier', role: 'CLINICIAN', expected: '/holder' },
-    { path: '/verifier', role: 'ADMIN', expected: '/internal/metrics' },
+    { path: '/verifier', role: 'ADMIN', expected: '/admin/platform' },
 
     // /issuer - ISSUER only
     { path: '/issuer', role: 'ISSUER', expected: 'allow' },
