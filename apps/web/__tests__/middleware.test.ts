@@ -1,5 +1,7 @@
 // apps/web/__tests__/middleware.test.ts
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { execFileSync } from 'node:child_process';
+import { resolve } from 'node:path';
 import { NextRequest } from 'next/server';
 import { clerkMiddleware } from '@clerk/nextjs/server';
 
@@ -121,6 +123,43 @@ describe('Route leak sentinel', () => {
     for (const path of protectedPaths) {
       expect(isPublicRoute(path)).toBe(false);
     }
+  });
+
+  /**
+   * The same rule, over EVERY served route rather than a hand-listed few.
+   *
+   * `clerkHandler` checks `isPublicRoute(pathname)` FIRST and returns
+   * `NextResponse.next()` on a hit — before it ever asks `getRequiredRole`. So a
+   * gated route that also matches a public pattern is not merely mislabelled: it
+   * is ungated, for everyone, with no sign-in redirect and no role check. Public
+   * wins, silently, because it is asked first.
+   *
+   * The hand-listed check above cannot catch that. It asserts seven paths
+   * somebody thought of; the danger is the eighth. A single over-broad pattern
+   * added to `PUBLIC_ROUTE_PATTERNS` — `/^\/pro(\/.*)?$/` while reaching for
+   * `/profile`, say — would swallow a whole protected subtree while every
+   * existing assertion stayed green.
+   *
+   * So this enumerates what the app actually serves (the same route audit the
+   * page-density suite uses) and asserts the two classifications are disjoint.
+   * It grows automatically as routes are added, which is the point: the next
+   * gated surface is covered the day it lands, by nobody remembering to do
+   * anything.
+   */
+  it('no served route is both protected and public', () => {
+    const raw = execFileSync(
+      'node',
+      [resolve(process.cwd(), '..', '..', 'scripts', 'audit-active-routes.mjs'), '--json'],
+      { encoding: 'utf8' },
+    );
+    const inventory = JSON.parse(raw) as Array<{ route: string }>;
+    expect(inventory.length).toBeGreaterThan(0);
+
+    const shadowed = inventory
+      .filter((item) => getRequiredRole(item.route) !== null && isPublicRoute(item.route))
+      .map((item) => `${item.route} (requires ${getRequiredRole(item.route)}, but matches a public pattern)`);
+
+    expect(shadowed).toEqual([]);
   });
 });
 
