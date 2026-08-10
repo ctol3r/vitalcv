@@ -164,7 +164,10 @@ export const PUBLIC_ROUTE_PATTERNS = [
   // declaring them closes the ROUTE-01 drift entry instead of baselining it.
   /^\/employers(\/.*)?$/,
   /^\/search(\/.*)?$/, // public search
-  /^\/p(\/.*)?$/, // public clinician profiles — /p/:npi and subpaths
+  // Pilot evidence pages — /p/:slug. Not clinician profiles: the route was
+  // repurposed and the old comment outlived it. Public but noindex; the page
+  // itself withholds the subject's identity.
+  /^\/p(\/.*)?$/,
   // Public provider directory — /directory/:npi. Deliberately anonymous and
   // indexable: it renders only the federal registry filing for an NPI, which
   // is already public record at npiregistry.cms.hhs.gov. It carries no

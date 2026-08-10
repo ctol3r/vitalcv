@@ -171,13 +171,35 @@ async function fetchAcceptanceHistory(
 
 // ── Metadata ──────────────────────────────────────────────────────────────────
 
+/**
+ * Two search signals, and which one applies depends on whether VitalCV holds
+ * anything for this NPI.
+ *
+ * No passport: the page below renders <NotFound/> — an HTTP 200 carrying a
+ * sentence. That is a soft 404, and this route's URL space is every 10-digit
+ * number, so left indexable it manufactures thin pages for ~5.5M NPIs VitalCV
+ * has never touched. Those get `noindex`, and deliberately no canonical: a
+ * noindex paired with a canonical is a contradiction, the same reason
+ * app/sitemap.ts refuses to list a noindexed route.
+ *
+ * Passport present: this page and /directory/[npi] both render
+ * ClinicianRecordDetail for the same clinician, so a crawler sees two URLs for
+ * one entity. /directory is the surface built to be indexed — it carries the
+ * descriptive title, the Physician JSON-LD, and its own noindex fallback — so
+ * authority consolidates there and this route stays the tool it is.
+ * directory-provider-page.test.ts already asserted the directory half of this
+ * pair; this is the half that was missing.
+ *
+ * fetchPassport runs again in the page body. Next memoizes identical fetches
+ * within a render, so this costs no extra backend round trip.
+ */
 export async function generateMetadata({
   params,
 }: {
   params: Promise<{ npi: string }>;
 }): Promise<Metadata> {
   const { npi } = await params;
-  return {
+  const base: Metadata = {
     title: `Verifier View — NPI ${npi}`,
     description: 'Read-only credential verification for hospital and employer reviewers.',
     // NOT INDEXABLE. This page renders a named clinician's record — legal name,
@@ -196,6 +218,17 @@ export async function generateMetadata({
     // "not advertised" and "not indexable".
     robots: { index: false, follow: false },
   };
+
+  if (!/^\d{10}$/.test(npi)) {
+    return { ...base, robots: { index: false, follow: false } };
+  }
+
+  const passport = await fetchPassport(npi);
+  if (!passport) {
+    return { ...base, robots: { index: false, follow: false } };
+  }
+
+  return { ...base, alternates: { canonical: `/directory/${npi}` } };
 }
 
 // ── Page ───────────────────────────────────────────────────────────────────────
