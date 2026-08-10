@@ -220,3 +220,377 @@ What the research says VitalCV must visibly NOT be:
 | 7 | Market / valuation / vector search / chains | 14 (1 dup) | 3 search-fallback; edupij chain-benchmark PDF read in full |
 
 Full per-URL findings (status + extracted inspirations) live in the session's agent transcripts; the strongest per-batch "Top 5" lists were merged into Parts 1–14 above.
+
+---
+
+## Addendum — Dribbble harvest, `search/medical-credential-hiring` (2026-08-09)
+
+**Method:** the search page was loaded in the browser pane (it is client-rendered — `WebFetch` returns an empty
+document) and the full result grid was read out of the DOM: 48 tiles, each with title, designer, and the
+designer's own tag string. Two shots were then opened and viewed directly (EddyNow, Vectorion). Non-essential
+cookies were declined. Nothing below is inferred from a title alone; where a shot was not opened, the claim is
+limited to what its title and tags state.
+
+**Yield verdict: low. Harvest closed, do not re-run.** Of 48 tiles: 5 are Dribbble's own promos; ~9 are print,
+social-ad, logo, or explainer-video work rather than product UI; ~16 are off-topic (dermatology/dental clinic
+sites, patient-booking apps, a 3D holographic-imaging site, a skilled-trades marketplace, a tattoo studio).
+That leaves ~13 clinician-hiring shots — and exactly **one** shot in the entire result set is about
+credentialing itself (R-D1). The query reads as a credentialing query; the corpus is a healthcare-marketing
+corpus.
+
+**The visual language is uniformly unusable for us, and this is not a taste call.** Across the relevant shots
+the shared register is teal/blue gradient fills, 12–24px rounded cards, bento grids, glass panels, pill
+buttons, drop shadows, and stock clinician photography. Every one of those is a *locked* EC-20 rejection
+(gradient treatment **None**; glass treatment **None**; pills retired; radius 0–3px; card grammar = solid
+hairline-ruled panels, no shadows; illustration = VitalCV's own artifacts, no stock imagery). Nothing in this
+addendum proposes a visual treatment. Three **structural** ideas survive.
+
+### Records
+
+- **R-D1 — `Healthcare CMS Web App EddyNow` (Marina Kotenko).** Opened and viewed. The only credentialing
+  product in the set. Left rail (Dashboard / Profile / Notifications / Common Form); four counted work tiles
+  (`REFERENCE 1`, `DOCUMENTS UPLOAD 3`, `AFFILIATION 7`, `CERTIFICATION 0`); an **Expiration Alerts** panel and
+  a **Checklist** panel side by side; and a right-hand **Common Form Status** list — Personal Information /
+  Educational Information / Training / Certification / Specialities, each row carrying its own state mark.
+- **R-D2 — `AI-Powered Healthcare Recruitment & Provider Matching Platform` (Vectorion Design).** Opened and
+  viewed. Stock-photo hero, teal accent, headline "…Career You Want", and a segmented audience control in the
+  first viewport (`Healthcare Talent` | `Employer`).
+- **R-D3 — the genre's self-description.** Recorded from titles/tags, not opened: `Averdire — SaaS Explainer
+  Video for a Verified Hiring Platform`; `MedHire — Global Medical Recruitment`; `Midatec – Healthcare Hiring
+  Platform`; `Revolutionizing Hospital Staffing & Management` (tagged `bento cards`, `bento style`);
+  `Talentbloom … For Lead Generation`.
+
+### Adopt — three structural ideas
+
+1. **D1. The section-completion ledger** *(from R-D1's "Common Form Status")*. A flat, named list of the
+   sections of a clinician's file, each with its own state — rather than a single aggregate figure. This is the
+   customer-facing translation we still lack: EC-9 bans *lanes*, *coverage*, *readiness score*, and *passport*
+   from customer surfaces, and a plain list of file sections says the same thing in permitted nouns. Serves
+   EC-2 principle 5 (work completed over data displayed) and EC-11 (one obvious next action).
+   **Amendments, binding:** rows are hairline-ruled, radius 0–3px (EC-20 card grammar); every row is glyph +
+   **word**, never the bare red/green dot the shot uses (EC-4, and Part 14 item 13); every asserted row carries
+   source + as-of (EC-3, T1, T3); no row may read a bare "Verified" (EC-3). → extends `LaneStateBadge` /
+   `FreshnessIndicator`, does not fork them. [readiness] [holder-wallet]
+2. **D2. Expiration Alerts as a standing panel** *(from R-D1)*. The shot gives expiry its own named panel
+   rather than burying it in a feed. VitalCV already runs an expiration scanner; giving it a first-class home
+   surface matches EC-8's "something changed" work state. **Precondition:** the panel renders only rows the
+   scanner actually returned — this path has fabricated before (see the `expiration_scanner_fabrication_fixed`
+   record). An empty scan renders as an explicit "nothing expiring, checked <date>", never as a hidden panel.
+   [readiness] [holder-wallet]
+3. **D3. Counted outstanding work, by category** *(from R-D1's four tiles, treatment discarded)*. The idea
+   worth keeping is a small count of *outstanding items per category*, which converts a file into a next
+   action. The shot's execution is Part 14 item 8 (dashboard sprawl) in gradient tiles — discard it entirely.
+   **Amendments:** 3–5 categories maximum, each count defined on hover/inline; a `0` must read as *done*, not
+   as *empty*; counts are real returned values (EC-3, numbers animate only between real values). [holder-wallet]
+
+### Considered and rejected — record so it is not re-proposed
+
+- **D4. The hero audience toggle** *(R-D2)*. **Rejected.** It makes the visitor declare an identity before
+  receiving anything, which inverts EC-2 principle 4 (value before commitment) and EC-11 asymmetry 1 — the NPI
+  field owns the first viewport and returns real state with no account. It also puts two arguments on one
+  surface against EC-14. Dual-audience is a real VitalCV doctrine; a first-viewport segmented control is not
+  how it gets expressed.
+- **D5. The whole visual register.** **Rejected** on the locked EC-20 rows listed above. No amendment is
+  sought; recording the rejection so a future wave does not re-litigate it.
+
+### One competitive finding, from the corpus rather than any single shot
+
+"**Verified** hiring platform" is the genre's *default self-description* (R-D3), alongside "Revolutionizing"
+and lead-gen landing pages. The bare status word that EC-3 bans outright, and that Part 14 item 1 already
+flagged at TopNPI, is not an outlier in this market — it is the category's marketing norm. This strengthens,
+rather than complicates, the EC-11 asymmetry 2 position: showing one attributed artifact is differentiating
+precisely because asserting is what everyone else does. No new work item; a confirmation of an existing one.
+
+**Non-copy boundary (atlas §10) applies unchanged.** Nothing above copies source, CSS, class names, assets,
+compositions, palettes, or copy. Designer and shot names are recorded to attribute a *behavior*.
+
+---
+
+## Addendum — `styles.refero.design` harvest (2026-08-09)
+
+**Method:** the index and one full style document (`Wispr Flow`, 21,091 chars) were read in the browser pane —
+the site is client-rendered, and the document body lives in a `<pre>`, not in `innerText`. The index self-
+describes as "2,000+ AI-readable design systems… a DESIGN.md you can use in Cursor, Claude Code, Codex, v0, or
+Lovable."
+
+**Yield verdict: high — but on FORMAT, not on any catalogued style.** This is not a Dribbble-style aesthetics
+corpus. It is a corpus of *agent-facing design documents*, and VitalCV — built by a Claude Code + Codex fleet —
+is exactly the consumer they are written for. Every catalogued brand's values, fonts, and copy remain out of
+bounds under atlas §10 and EC-20; nothing below proposes adopting any of them.
+
+### The document shape worth stealing (R-R1)
+
+```
+# <Name> — Style Reference        + one-line mood + one prose paragraph (the gestalt, before the numbers)
+## Tokens — Colors                 table: Name | Value | Token | ROLE SENTENCE
+## Tokens — Typography             per face: Substitute / Weights / Sizes / Line height / Letter spacing / Role
+### Type Scale                     table: Role | Size | Line Height | Letter Spacing | Token
+## Tokens — Spacing & Shapes       Base unit · Density · Spacing scale · Radius PER ELEMENT · Layout
+## Components                      per component: **Role:** + exact values + explicit non-negotiables
+## Do's and Don'ts                 ### Do / ### Don't
+## Surfaces · Elevation · Imagery · Layout
+## Agent Prompt Guide              ← written FOR the coding agent
+## Quick Start                     ### CSS Custom Properties · ### Tailwind v4
+```
+
+### Adopt
+
+- **R1. Every token carries a role sentence, not just a hex.** Refero writes a color's *job and its restraint*
+  beside its value — e.g. a CTA fill described as signalling the one clickable thing on a page "without ever
+  shouting"; a card radius noted as consistent at every size, "no smaller cards, no exceptions". VitalCV's
+  EC-20 table carries values; the when-to-use and when-never lives scattered across Constitution prose,
+  wave-1505's do/don't gallery, and component docstrings. Co-locating them is the single highest-value move.
+  [design-language]
+- **R2. An `Agent Prompt Guide` section.** VitalCV has `AGENTS.md` (merge gate, lane coordination, branch
+  cutting, truth contract, banned strings) but it carries **no** design tokens — no colors, no type, no
+  spacing. An agent asked to build UI today has no single file to read. [design-language] [ops]
+- **R3. Explicit non-negotiables per component.** Stated inline, in the same breath as the values, rather than
+  discovered later as a CI failure. This is the human-readable twin of what `check-design-lint` already
+  enforces. [design-language]
+- **R4. Substitute/fallback faces as a first-class field.** Ours are self-hosted `woff2` via
+  `next/font/local` (EC-20) — the fallback chain deserves the same explicitness. [design-language]
+- **R5. Radius specified per element**, not as one global scale — cards vs badges vs inputs vs sections each
+  get a value. EC-20 locks "near-sharp 0–3px on panels and instruments"; per-element is the resolution an
+  implementer actually needs. [design-language]
+
+### Why this matters here, specifically — a measured problem
+
+The audit behind this addendum found the doctrine/reality gap is real and quantified:
+
+1. **No `DESIGN.md` exists** anywhere in the repo.
+2. **`AGENTS.md` exists but is design-silent** — it never states a token, face, or scale.
+3. **`--vt-*` tokens are declared across six files** in `apps/web` with no documented precedence:
+   `styles/themes/index.css` (148) · `styles/vitalTokens.css` (69) · `styles/wave1501-home.css` (47) ·
+   `styles/tokens.css` (38) · `styles/matcha-zen.css` (16) · `styles/home.css` (1).
+4. **The canonical `DESIGN_SYSTEM.md` documents a token architecture that was never shipped.** It specifies
+   `01-primitives.css → 02-semantic.css → 03-themes.css`, "imported in that order." Those three files exist
+   **only** under `design-handoff/…/wave1500/` — none is in `apps/web`.
+5. **Its values are superseded but still read as current.** wave-1505 specifies Fraunces, matcha `#2c3e2d`,
+   and paper-light-only-on-public; EC-20 locks Geist, work-green, and dark as a permitted public register.
+   Both documents are on disk, neither points at the other. This cost real time in this very session: the
+   StateChip retirement spec needed a whole table explaining which document governs which domain, because
+   building straight from the 1505 doc would have shipped the wrong brand.
+
+### The binding constraint on doing this at all
+
+**A hand-written `DESIGN.md` would become the fifth drifting doctrine source, not the fix.** Items 3–5 above
+are drift; adding another prose file that restates values by hand reproduces the disease. So:
+
+> `DESIGN.md` must be **generated from the token files and CI-checked against them**, and must state which
+> upstream document governs each domain (Constitution EC-20 for brand, wave-1505 for architecture) rather
+> than restating either.
+
+That is the difference between a fix and a fifth voice. It also matches the standing rule that citability is
+a test, not a claim — a governance doc that cites files which do not exist is precisely the failure recorded
+against this repo before.
+
+### Rejected
+
+- **The evocative mood line** as a load-bearing device ("black velvet with violet neon"). It is a
+  discoverability affordance for a 2,000-entry catalog, not something a single-brand document needs. One
+  plain sentence of gestalt is worth keeping; the poetry is not.
+- **Any catalogued style's values.** Fonts in that corpus are licensed to their owners; palettes and
+  component specs are theirs. We take the document shape and nothing inside it.
+
+**Non-copy boundary (atlas §10) applies unchanged.** Nothing above reproduces any catalogued brand's tokens,
+type, components, or copy. `Wispr Flow` is named to attribute a *document structure*, and short fragments are
+quoted only to characterize that structure.
+
+---
+
+## Addendum — Obsidian style record, `refero /style/e793a53c` (2026-08-09)
+
+**Method:** the full 14,840-char style document read in the browser pane.
+
+### Headline: this is a validation of EC-20, not a proposal to change it
+
+Roughly 70% of Obsidian's system is *already* VitalCV's locked direction — and the convergence is on the
+**rules**, not just the values:
+
+| Obsidian | EC-20 / EC-14 (already locked) |
+|---|---|
+| Near-black ground, elevated surface panel | dark warm-graphite ground + panel (public register) |
+| System UI font, chosen so the site reads as a tool, not a marketing page | Geist; "no decorative or serif" — same instinct |
+| One accent, reserved **strictly** for interactive elements | work-green is the single work color *and* the primary action |
+| Elevation without drop shadows | no shadows; hairlines structure panels |
+| Graphite borders/dividers | 1px hairlines |
+| "Do not use lifestyle photography; focus on the product UI" | EC-14: VitalCV publishes its own artifacts; stock imagery default-rejected |
+| Negative tracking at display sizes | EC-20 type anchors |
+
+Its own **Similar Brands** list is Raycast, Linear, VS Code, Superhuman. That is the neighbourhood VitalCV's
+locked register already sits in.
+
+### The finding that actually matters — a tension with EC-1, not a compatibility
+
+**Obsidian's register is a power-tool aesthetic. It rewards operation.** Compact density, a 14-step type
+ramp reaching 8px, a graph view as hero imagery, "your second brain" — the whole system is built for someone
+who *wants* to operate the instrument, and gets better at it over time.
+
+EC-1 says the opposite in as many words: the product must **NOT** primarily feel like "healthcare software you
+have to operate"; the target is *calm intelligence doing complicated work for you*, and complexity lives
+behind the screen.
+
+So the surface values look compatible while the underlying posture is not. Borrowing more of this register
+would pull against EC-1 even though every hex looks on-brand. **That is the trap in this reference**, and it
+is worth naming before a wave cites "Obsidian" as a justification for density.
+
+### Adopt — only on rows EC-20 leaves OPEN
+
+These are legitimate raw material because the matching EC-20 row is `PENDING UX-02`, so citing them is not a
+Class-B violation:
+
+- **O1. Density, as a named token.** Obsidian declares `Density: compact` and `Base unit: 4px` as first-class
+  facts. EC-20's *Product-UI visual density* row is PENDING UX-02. Recording density as an explicit,
+  named decision — rather than an emergent property of spacing choices — is the transferable idea. Note the
+  EC-1 tension above: evidence that compact *works* is not evidence that compact is *right for us*.
+  [design-language]
+- **O2. Spacing rhythm as an explicit scale.** EC-20's *Spacing rhythm* row is PENDING UX-02. A published
+  4px-based ladder with named tokens is the shape that decision should take. [design-language]
+
+### Candidate EC-22 amendment — flag it, do not smuggle it
+
+- **O3. Elevation by internal luminescence.** Obsidian replaces drop shadows with a 1px inset white line at
+  ~5% opacity — no blur, no spread — to define a surface edge on a dark ground.
+
+  **The honest reading is that this is a hairline drawn with light instead of a border colour**, which is what
+  EC-20 already mandates ("1px hairlines structure panels and bands"). But EC-20 also locks *"Nothing glows"*,
+  and the reference itself calls the effect a glow. A locked row cannot be reinterpreted inside an
+  implementation PR — the standing rule is that a locked-row change is amended in the **same** PR that relies
+  on it, founder-approved. So: raise as a candidate amendment with the hairline-not-halo argument, get a
+  ruling, and only then use it. Do not ship it quietly on the grounds that it is "technically a border."
+  [design-language]
+
+### Reject
+
+- **Violet accent, 8–12px radii, and pill tags.** Each collides with a **locked** EC-20 row (work-green as
+  the single work colour; near-sharp 0–3px; pills retired). No amendment sought — these are the decisions the
+  UX-01 verdict already made.
+- **The bottom of the type ramp.** The scale runs to **8px, 9px, 10px, 11px**. VitalCV's legibility floor puts
+  body no lower than 12.5px and muted captions no lower than 12px, and EC-5 requires 200% zoom with no clipped
+  control. Those four steps are below our floor and are rejected on accessibility grounds, not taste.
+- **Its own shadow tokens.** The document says "do not use traditional drop shadows" while shipping
+  `--shadow-xl` at `0 20px 25px -5px`. An internal contradiction in the reference; a reminder that a published
+  design doc is not self-verifying — which is exactly why the `DESIGN.md` proposal in the previous addendum is
+  conditioned on being **generated and CI-checked**, never hand-maintained.
+
+**Non-copy boundary (atlas §10) applies unchanged.** No Obsidian token value, component spec, or copy is
+adopted. The brand is named to attribute a *technique* and to record a rejected direction.
+
+
+
+---
+
+## Addendum — Steep style record, `refero /style/75fdb89f` (2026-08-10)
+
+**Method:** full 21,667-char style document read in the browser pane.
+
+### Verdict: the closest reference in this corpus so far — on POSTURE
+
+Where Obsidian was a power-tool aesthetic that pulls against EC-1 (see the previous addendum),
+Steep is **editorial**, and that is the register EC-1 actually asks for. Its own summary describes
+product surfaces "presented as floating artifacts around the headline, not nested in a dashboard
+shell" — which is EC-14's own-artifacts default and EC-1's *calm intelligence doing complicated
+work for you*, arrived at independently.
+
+It also lands on the register VitalCV has specified **least**. EC-20 mandates a light register for
+evidence artifacts, printable surfaces, dense workflow, and legibility-critical contexts — and
+then marks its values `PENDING UX-02`. Steep is a fully-worked light, warm-paper, near-achromatic
+editorial system. That makes it raw material for an OPEN row rather than a challenge to a locked
+one.
+
+### Adopt — as discipline, on open rows
+
+Recorded in the `DESIGN.md` Agent Prompt Guide (`docs/design/design-md-roles.json`), so it reaches
+the agents that build surfaces rather than sitting in a doc nobody opens:
+
+- **S1. Spend the accent like a budget.** Steep is ~97% achromatic and rations its one accent to
+  *at most once per page, for editorial emphasis only*. VitalCV bans state hues as decoration
+  (EC-20) but sets no budget. "At most one chromatic surface per view" is the missing quantity.
+- **S2. Elevation is earned by a content class.** Where any lift exists it belongs to the artifact
+  being presented, never to ordinary containers. VitalCV's answer is stricter (no shadows), but the
+  *principle* sharpens EC-14's "cards earn their box".
+- **S3. Tracking tightens as size grows.** A scale-dependent negative letter-spacing ramp. EC-20
+  fixes the anchors and leaves the ramp to UX-02 — this is the method that ramp should use.
+- **S4. Half-step weights before whole ones.** 430/450/480 as real hierarchy steps. Geist is
+  variable; the 400/500/700 ladder is a static-font habit.
+- **S5. A link affordance must survive colour removal.** Steep drops rest-state underlines and lets
+  an arrow suffix carry the affordance. Compliant with EC-4 *only* because the glyph is non-chromatic
+  — worth stating, because "no underline" alone would fail.
+
+### Reject
+
+- **Its values, wholesale.** Signifier serif display, 24px card radius, 9999px pill controls, and
+  the peach/brown accent pair each collide with a **locked** EC-20 row (Geist; near-sharp 0–3px;
+  pills retired; work-green as the single work colour). No amendment sought.
+- **"Never sharp corners."** Steep forbids radii below 16px. EC-20 locks the opposite. This is the
+  cleanest illustration of why these documents are harvested for posture and never for numbers.
+
+**Non-copy boundary (atlas §10) applies unchanged.** No Steep token, face, component spec, or copy
+is reproduced. The brand is named to attribute a *discipline*, and its rules are paraphrased into
+VitalCV's own terms.
+
+
+---
+
+## Addendum — Impilo style record, `refero /style/b44b0bb2` (2026-08-10)
+
+**Method:** full 21,850-char style document read in the browser pane. First **healthcare-domain**
+reference in this corpus.
+
+### Verdict: almost entirely rejectable visually — and worth reading anyway
+
+Its geometry and palette collide with locked EC-20 rows on nearly every axis: pill radius declared
+"non-negotiable"; an explicit floor of *"avoid sharp corners (0–4px); minimum 16px inputs, 24px
+cards"* — the precise inverse of EC-20's near-sharp **0–3px**; a violet/cyan/mint triad against
+work-green as the single work colour; ambient shadows against **no shadows**. Being in healthcare
+buys it nothing here.
+
+**What it has that the others do not is a rigorous account of colour *meaning*,** and that is worth
+more than its palette.
+
+### Adopt — semantic discipline, added to the `DESIGN.md` Agent Prompt Guide
+
+- **I1. A semantic colour's meaning is locked, and may not be borrowed for an adjacent state.**
+  Impilo locks mint to positive health signals and forbids it for errors or warnings. VitalCV
+  arrived at the same rule from the other direction in #1312 — red is locked to `revoked`, so
+  absence must be neutral. Stating it as a general principle is the contribution: borrowing a state
+  hue for a neighbouring state is how a palette starts lying, and it is the same class of defect as
+  a check glyph on a gated source.
+- **I2. Ink colours and surface colours are separate roles, per token.** A hue licensed for data,
+  links, and strokes is not licensed as a large fill. VitalCV's token table has no such distinction
+  today, and a token that quietly crosses over changes how much weight a colour carries on a page.
+- **I3. Dark and light meet at a hard cut, never a blend.** This answers a question VitalCV
+  genuinely has and has not written down: EC-20 permits a dark **public register** and *requires*
+  light for evidence artifacts, so the two registers will sit adjacent on real pages. Because
+  EC-20 also locks gradient treatment to **None**, the transition is a hard edge *by construction* —
+  Impilo's contribution is the confirmation that the resulting seam reads as a deliberate signature
+  rather than an unfinished join.
+
+### Reject
+
+Every value. Violet canvas, cyan and mint accents, Gilroy at 500/600, pill-everything, the 16/24px
+radius floor, ambient violet shadows. Its "never sharp corners" rule and EC-20's "near-sharp" lock
+are direct opposites — the second such collision in this corpus (Steep was the first), which is the
+clearest possible argument for harvesting posture and never numbers.
+
+**Non-copy boundary (atlas §10) applies unchanged.** No Impilo token, face, component spec, or copy
+is reproduced. The brand is named to attribute a *principle*, paraphrased into VitalCV's terms.
+
+---
+
+## Corpus close-out — what four refero records were actually worth (2026-08-10)
+
+| Record | Visual yield | What survived |
+|---|---|---|
+| Wispr Flow | none | the **document shape** — R1–R5, now implemented in `DESIGN.md` |
+| Obsidian | none | density/spacing as named facts (O1–O2); a warning that its power-tool posture pulls against EC-1 |
+| Steep | none | editorial restraint — accent budget, earned elevation, tracking ramp, half-step weights (S1–S5) |
+| Impilo | none | locked colour meaning, ink-vs-surface roles, the dark/light hard cut (I1–I3) |
+
+**Zero values adopted across four records; thirteen principles adopted.** That ratio is the finding.
+This corpus is a source of *design discipline*, and every time it offers a number that number
+collides with a locked EC-20 row — twice in exact opposition. Future harvests should read the
+Do/Don't and Agent-Guide sections and skip the token tables entirely.
+
+All thirteen live in `docs/design/design-md-roles.json` under `_agent_guide`, so they reach the
+agents that build surfaces rather than sitting in a document nobody opens.
