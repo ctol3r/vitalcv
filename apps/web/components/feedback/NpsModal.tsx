@@ -28,20 +28,35 @@ export default function NpsModal({ isOpen, onClose }: NpsModalProps) {
   const [email, setEmail] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  /** The note did not reach the server. Nothing was received. */
+  const [failed, setFailed] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (type === 'nps' && score === null) return;
     setSubmitting(true);
+    setFailed(false);
+    // "Message received" is a claim about what the server did. It may only be
+    // shown when the server actually accepted the note — a swallowed error
+    // followed by an unconditional success screen tells someone their feedback
+    // arrived when it did not.
+    let ok = false;
     try {
-      await fetch('/api/feedback', {
+      const response = await fetch('/api/feedback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ type, score: score ?? undefined, message, email: email || undefined }),
       });
-    } catch { /* best-effort */ }
-    setSubmitted(true);
+      ok = response.ok;
+    } catch {
+      ok = false;
+    }
     setSubmitting(false);
+    if (!ok) {
+      setFailed(true);
+      return;
+    }
+    setSubmitted(true);
     setTimeout(onClose, 2000);
   }
 
@@ -84,6 +99,12 @@ export default function NpsModal({ isOpen, onClose }: NpsModalProps) {
                 </div>
 
                 <div className="p-5 space-y-5">
+                  {failed ? (
+                    <p role="status" className="rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                      Not sent — your note didn&rsquo;t reach us. Nothing was recorded. Try again.
+                    </p>
+                  ) : null}
+
                   {/* Type selector */}
                   <div className="flex gap-2">
                     {([['nps', '⭐ Rate'], ['bug', '🐛 Bug'], ['feature', '💡 Idea']] as [FeedbackType, string][]).map(([t, label]) => (
