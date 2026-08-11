@@ -426,6 +426,23 @@ export default function EasyHome() {
         </div>
       </section>
 
+      {/* ── objections, answered at the end of the clinician run ──────────
+          Placed BEFORE the light employer band, and that placement is
+          load-bearing, not taste. `useHeaderScene` hands the eyebrow to
+          whichever declared section is latest in document order within the
+          top 35% of the viewport — so a DARK section following the light
+          `.ezh-emp` claims the eyebrow while the bar is still painted over
+          light paper, rendering it near-white on near-white (measured 1.03:1,
+          i.e. invisible). On origin/main that state is unreachable only
+          because nothing scrollable follows `.ezh-emp`, so the page bottoms
+          out first. Anything added below the light band removes that
+          accidental protection.
+
+          Keeping the light band last preserves it. It also reads better: the
+          questions are clinician-facing, so they belong at the end of the
+          clinician narrative rather than after the employer aside. */}
+      <Questions />
+
       {/* ── the employer doorway: light band, eyebrow inverts ────────────── */}
       <section className="ezh-emp" data-header-theme="light" aria-labelledby="ezh-emp-h">
         <div className="ezh-wrap">
@@ -460,12 +477,6 @@ export default function EasyHome() {
           </div>
         </div>
       </section>
-
-      {/* ── objections, answered before the ask ──────────────────────────
-          After the employer band (which is light) and before the final
-          action, so the last thing between reading and acting is the honest
-          boundary rather than another pitch. */}
-      <Questions />
 
       {/* ── final action + footer composition ────────────────────────────── */}
       <section className="ezh-start" data-header-theme="dark" aria-labelledby="ezh-start-h">
