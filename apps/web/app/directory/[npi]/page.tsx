@@ -29,6 +29,7 @@ import { buildClinicianRecord, attachMedicareEnrollment } from '@/lib/clinician-
 import { fetchCmsClinicianRows } from '@/lib/clinician-record/cmsClinicians';
 import { DIRECTORY_CONTEXT_NOTE } from '@/lib/clinician-record/copy';
 import { RecordViewTracker, ClaimRecordLink } from '@/components/directory/RecordAnalytics';
+import { isExcludedFromDirectory } from '@/lib/directory/sitemapSeed';
 
 /**
  * Cache for the NPPES refresh window. CMS updates weekly, so re-fetching per
@@ -46,6 +47,18 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const nppes = await fetchNppesRecord(npi);
 
   if (!nppes) {
+    return {
+      title: `NPI ${npi}`,
+      robots: { index: false, follow: false },
+    };
+  }
+
+  // Asked not to be listed. Dropping the NPI from the sitemap only stops us
+  // advertising the page — a crawler that already has the URL keeps it — so the
+  // same list has to reach the page's own robots directive. Otherwise the
+  // product could tell someone they were removed while their page stayed
+  // indexed.
+  if (isExcludedFromDirectory(npi)) {
     return {
       title: `NPI ${npi}`,
       robots: { index: false, follow: false },
@@ -230,6 +243,45 @@ export default async function ProviderDirectoryPage({ params }: PageProps) {
             </ClaimRecordLink>
           </section>
         )}
+
+        {/* The removal path, on the page itself.
+            This page can exist for a clinician who has never heard of VitalCV,
+            and the sitemap asks search engines to come and find it. A person in
+            that position needs a way out that does not depend on them knowing
+            VitalCV exists well enough to go looking for a policy page — so the
+            offer is here, on the record, next to the claim.
+            Deliberately an email address and not a form: a form would be a new
+            place to collect personal data in order to process a request whose
+            entire content is "stop". */}
+        <section
+          className="rounded-[3px] border px-4 py-4"
+          style={{ borderColor: 'var(--rule)' }}
+        >
+          <h2 className="mz-h3">Why this page exists</h2>
+          <p className="mt-2 text-[13px] leading-relaxed text-[var(--ink-700)]">
+            It republishes a filing this provider made with CMS, which CMS
+            publishes at{' '}
+            <a
+              href="https://npiregistry.cms.hhs.gov/"
+              className="underline"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              npiregistry.cms.hhs.gov
+            </a>
+            . VitalCV did not create the filing and does not confirm it.
+          </p>
+          <p className="mt-2 text-[13px] leading-relaxed text-[var(--ink-700)]">
+            If this is your record and you would rather VitalCV did not list it,
+            email{' '}
+            <a href="mailto:privacy@vitalcv.com" className="underline">
+              privacy@vitalcv.com
+            </a>{' '}
+            and we will stop pointing search engines at this page and mark it not
+            to be indexed. We cannot change or remove the CMS filing itself —
+            that stays with CMS, and you can correct it with them.
+          </p>
+        </section>
 
         <footer className="border-t border-[var(--rule)] pt-4">
           <p className="text-[12px] leading-relaxed text-[var(--ink-600)]">

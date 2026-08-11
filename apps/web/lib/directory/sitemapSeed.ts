@@ -18,16 +18,30 @@ import seed from './sitemap-seed.json';
  * Clinicians who asked not to be listed.
  *
  * Applied after the seed loads, so it outlives any regeneration of
- * sitemap-seed.json. Removing an NPI from the sitemap stops VitalCV pointing
- * crawlers at the page; it does not remove the page, because the underlying
- * CMS filing is public record and /directory/[npi] renders it on request.
+ * sitemap-seed.json.
  *
- * Add the NPI and the date. Nothing else — a reason field here would build a
- * small database of who objected and why, which is not ours to keep.
+ * TWO EFFECTS, and both are needed for the request to mean anything. Dropping
+ * an NPI from the sitemap only stops VitalCV *advertising* the page; a crawler
+ * that already knows the URL keeps it. So `isExcludedFromDirectory` also drives
+ * `robots: noindex` on that record's own page — see
+ * app/directory/[npi]/page.tsx. Honouring half of this would let the product
+ * tell someone they had been removed while their page stayed in the index.
+ *
+ * What it does NOT do, and the page says so: it cannot remove or change the CMS
+ * filing. That is held by CMS, published at npiregistry.cms.hhs.gov, and
+ * /directory/[npi] still renders it to anyone who asks for the URL directly.
+ *
+ * Add the NPI and the date. Nothing else — a reason field would build a small
+ * database of who objected and why, which is not ours to keep.
  */
 export const EXCLUDED_NPIS: ReadonlySet<string> = new Set([
   // '1234567890', // 2026-08-10
 ]);
+
+/** True when this clinician asked not to be listed. */
+export function isExcludedFromDirectory(npi: string): boolean {
+  return EXCLUDED_NPIS.has(npi);
+}
 
 export interface DirectorySeedProvenance {
   name: string;

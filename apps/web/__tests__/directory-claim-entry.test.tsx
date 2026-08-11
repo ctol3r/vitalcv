@@ -196,6 +196,44 @@ describe('claim entry', () => {
   });
 });
 
+describe('removal path', () => {
+  it('offers a way out on the record itself', async () => {
+    // This page can exist for a clinician who has never heard of VitalCV, and
+    // the sitemap invites crawlers to it. A removal route reachable only from a
+    // policy page assumes they already know VitalCV well enough to go looking.
+    resolves();
+    const html = await render();
+
+    expect(html).toContain('mailto:privacy@vitalcv.com');
+    expect(html).toMatch(/not to be indexed/i);
+  });
+
+  it('does not promise to remove the CMS filing', async () => {
+    // The one thing VitalCV cannot do. Saying "we'll remove your record" would
+    // be a promise about a federal registry it has no write access to.
+    resolves();
+    const html = await render();
+
+    expect(html).toMatch(/cannot change or remove the CMS filing/i);
+    expect(html).toContain('npiregistry.cms.hhs.gov');
+  });
+
+  it('takes an excluded record out of the index, not just the sitemap', async () => {
+    // Dropping the NPI from the sitemap only stops VitalCV advertising it; a
+    // crawler holding the URL keeps it. Honouring half of this would let the
+    // product tell someone they were removed while the page stayed indexed.
+    resolves();
+    const seed = await import('@/lib/directory/sitemapSeed');
+    const spy = vi.spyOn(seed, 'isExcludedFromDirectory').mockReturnValue(true);
+    try {
+      const meta = await generateMetadata({ params: Promise.resolve({ npi: NPI }) });
+      expect(meta.robots).toMatchObject({ index: false, follow: false });
+    } finally {
+      spy.mockRestore();
+    }
+  });
+});
+
 describe('share card', () => {
   it('names the record rather than inheriting the site-wide card', async () => {
     resolves();
