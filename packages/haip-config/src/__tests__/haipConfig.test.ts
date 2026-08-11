@@ -61,7 +61,15 @@ describe('@vitalcv/haip-config', () => {
     });
 
     it('includes violation code INVALID_ALGORITHM', async () => {
-      const { assertAlgorithmAllowed } = await loadFresh();
+      // `assertAlgorithmAllowed` is an assertion function
+      // (`asserts alg is HaipAlgorithm`), and TypeScript refuses to call one
+      // through an inferred binding (TS2775) — the annotation has to sit on the
+      // identifier's own declaration, which a destructuring pattern does not
+      // satisfy. Only this call site needs it: the others invoke it inside an
+      // arrow passed to `expect`, where the narrowing never applies.
+      const assertAlgorithmAllowed: typeof import('../index').assertAlgorithmAllowed = (
+        await loadFresh()
+      ).assertAlgorithmAllowed;
       try {
         assertAlgorithmAllowed('none');
         expect.fail('Should have thrown');

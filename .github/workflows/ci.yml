@@ -287,4 +287,4 @@ jobs:
       - name: Typecheck mobile
         run: pnpm --filter @vitalcv/mobile-wallet exec tsc --noEmit
       - name: Run mobile tests
-        run: pnpm --filter @vitalcv/mobile-wallet exec vitest run --config vitest.config.ts
+        run: pnpm --filter @vitalcv/mobile-wallet exec vitest run --config vitest.config.mts

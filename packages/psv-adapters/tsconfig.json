@@ -6,6 +6,14 @@
     "outDir": "dist",
     "declaration": true
   },
-  "include": ["**/*.ts"],
-  "exclude": ["node_modules", "dist", "__tests__/**", "**/*.test.ts"]
+  "include": [
+    "**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "vitest.config.mts",
+    "__tests__/**",
+    "**/*.test.ts"
+  ]
 }
