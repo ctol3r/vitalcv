@@ -1,9 +1,11 @@
 # VitalCV — Operational Snapshot
 
-**Last verified:** 2026-08-10 (against `origin/main` @ `fa40386b7`)
+**Last verified:** 2026-08-10 (against `origin/main` @ `b10e681c2`)
 **Supersedes:** the 2026-01-07 snapshot, which described a monorepo that no longer exists.
-**Companion:** `docs/architecture/BILLION_DOLLAR_V2_CURRENT_REALITY.md` — the timestamped
-reconciliation (SHAs, deploy state, open PRs, security blockers, next eligible branch).
+**Companions:** `docs/architecture/vcd-00-current-reality.md` — the timestamped reconciliation
+(SHAs, deploy state, open PRs, security blockers, next eligible work) — and
+`docs/product/evidence-network/canonical-transaction-baseline.md` — the canonical transaction
+map and gap register.
 
 ---
 
@@ -118,7 +120,7 @@ failure breaks the deploy.
 ## 4. Deployment
 
 **Railway. Not Vercel.** Identities, exact-SHA mechanics and the per-service deploy path are in
-`docs/architecture/BILLION_DOLLAR_V2_CURRENT_REALITY.md` §2.
+`docs/architecture/vcd-00-current-reality.md` §2.
 
 The rule that matters here: **verify a deploy by reading the SHA production reports** —
 `/api/version` (web, field `commit`) or `/health` (API, field `git_sha`) — never by trusting a
@@ -182,7 +184,7 @@ a report.
 | Public-facing visual sign-off | `docs/ops/FOUNDER_VISUAL_GATE.md` |
 | What public copy may claim | `docs/ops/vitalcv-public-claims-matrix.md` |
 | Trust/provenance data model | `docs/architecture/vitalcv-knowledge-trust-graph.{md,json}` |
-| Current SHAs, deploys, open PRs, security blockers, next branch | `docs/architecture/BILLION_DOLLAR_V2_CURRENT_REALITY.md` |
+| Current SHAs, deploys, open PRs, security blockers, next branch | `docs/architecture/vcd-00-current-reality.md` |
 | Open launch blockers | `docs/ops/launch-blockers.md` (⚠️ status date 2026-07-11 — re-verify) |
 
 `VITALCV_CREATIVE_DIRECTION.md` is **superseded** by the Experience Constitution.
