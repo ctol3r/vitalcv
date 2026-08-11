@@ -53,7 +53,11 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(exchange, { status: 200, headers: { 'Cache-Control': 'no-store' } });
   } catch (error) {
-    const detail = error instanceof Error ? error.message : 'Exchange issuance failed.';
+    // Never echo an internal error message to the caller: it is the only
+    // caller-visible difference between failure causes on an otherwise uniform
+    // response. Log it server-side; return the static description.
+    console.error('[exchange/issue]', error);
+    const detail = 'Exchange issuance failed.';
     return NextResponse.json(
       { error: 'issue_failed', error_description: detail },
       { status: 500, headers: { 'Cache-Control': 'no-store' } },

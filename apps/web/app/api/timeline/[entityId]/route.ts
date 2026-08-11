@@ -67,7 +67,11 @@ export async function GET(
       { status: 200, headers: { 'Cache-Control': 'no-store' } },
     );
   } catch (error) {
-    const detail = error instanceof Error ? error.message : 'Timeline projection failed.';
+    // Never echo an internal error message to the caller: it is the only
+    // caller-visible difference between failure causes on an otherwise uniform
+    // response. Log it server-side; return the static description.
+    console.error('[timeline/[entityId]]', error);
+    const detail = 'Timeline projection failed.';
     return NextResponse.json(
       { error: 'timeline_unavailable', error_description: detail },
       { status: 500, headers: { 'Cache-Control': 'no-store' } },
