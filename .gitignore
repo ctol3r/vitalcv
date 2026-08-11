@@ -92,6 +92,10 @@ node_modules/
 dist/
 .cache/
 
+# Rust/Cargo build output (blockchain/substrate). Without this, a `git add -A` commits
+# the whole target/ tree — it did once, adding 15,027 files (~2.2 GB per worktree).
+target/
+
 # Deployment + playbook lineage manifests (CI uploads as artifacts; never commit)
 .deployment-lineage/
 .playbook-lineage/
