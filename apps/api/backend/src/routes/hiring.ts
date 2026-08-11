@@ -1,31 +1,44 @@
 // @ts-nocheck
 /**
- * hiring.ts — Wave 41 (updated Wave 42): Start Attestation + Billing Engine
+ * hiring.ts — Wave 41: Employer Acceptance + Start Attestation
  *
- * Closes the ON Loop and triggers usage-based billing.
+ * Closes the ON Loop. Recording a start raises no charge — see VCD-01b below.
  *
  * POST /api/hiring/accept
  * ────────────────────────
  * Records an employer's formal decision to hire a clinician.
  * Creates an EmployerAcceptance row.  Unchanged from Wave 41.
  *
- * POST /api/hiring/start  ← UPDATED in Wave 42
+ * POST /api/hiring/start
  * ────────────────────────
- * Records the clinician's first day.  Wave 42 additions:
+ * Records the clinician's first day.
  *
  *   ATOMIC TRANSACTION
  *   ─────────────────
- *   StartAttestation + AuditEvent + BillingEvent(PENDING) are written in a
- *   single Prisma transaction.  Either all three are persisted or none are —
- *   preventing orphaned billing records or untracked start events.
+ *   StartAttestation + AuditEvent are written in a single Prisma transaction.
+ *   Either both are persisted or neither is.
  *
- *   ASYNC STRIPE BILLING
- *   ────────────────────
- *   After the transaction commits, `recordSuccessfulHire()` is called
- *   fire-and-forget.  On success the BillingEvent is updated to BILLED.
- *   On failure (network error, Stripe outage) it is updated to ERROR with
- *   the error message, without rolling back the start attestation.
- *   When STRIPE_SECRET_KEY is absent it is set to SKIPPED (dev/test).
+ *   NO BILLING — VCD-01b, founder ruling 2026-08-11
+ *   ───────────────────────────────────────────────
+ *   Wave 42 also wrote a BillingEvent inside that transaction and then called
+ *   `recordSuccessfulHire()` fire-and-forget, creating a $37.99 Stripe
+ *   InvoiceItem against the employer.
+ *
+ *   VCD-00 found the other wired start writer —
+ *   `POST /api/employer-review/:entityId/confirm-start`, the one the employer
+ *   UI actually uses — never billed. So the same business fact billed or did
+ *   not depending on which door it came through, and the door in the product
+ *   was the silent one. Closing that the other way would have invoiced pilot
+ *   participants who never agreed a price.
+ *
+ *   Billing is therefore off the start path entirely until there is a signed
+ *   commercial scope to bill against. The machinery is intact and
+ *   unreferenced — `services/billing/stripeClient.ts` and the `BillingEvent`
+ *   model are untouched — so reintroduction behind a real commercial gate is a
+ *   small explicit change, not a rebuild.
+ *
+ *   `apps/api/backend/src/routes/__tests__/startPathDoesNotBill.test.ts`
+ *   asserts both start routes stay free of it.
  *
  * SECURITY
  * ────────
@@ -38,7 +51,6 @@ import prisma from '../graphql/prisma_client';
 import { log } from '../obs/logger';
 import { apiKeyAuth, publicApiRateLimit } from '../middleware/publicSafety';
 import { sha256ForPayload } from '../utils/deterministic';
-import { recordSuccessfulHire, VERIFIED_HIRE_AMOUNT_CENTS, VERIFIED_HIRE_CURRENCY } from '../services/billing/stripeClient';
 import { computeClinicianTrustState } from '../services/trust/trustStateEngine';
 import { capsuleEngine } from '../services/decision/capsuleEngine';
 import {
@@ -326,7 +338,6 @@ export function registerHiringRoutes(app: Express): void {
       const startedAtDate  = new Date(startedAt);
       const createdAt      = new Date();
       const attestationId  = randomUUID();
-      const billingEventId = randomUUID();
 
       // Binds employer + clinician + role + facility + timestamp into a single
       // tamper-evident commitment for the Wave 35 Merkle ledger.
@@ -342,9 +353,10 @@ export function registerHiringRoutes(app: Express): void {
       });
 
       // ── ATOMIC TRANSACTION ───────────────────────────────────────────────
-      // StartAttestation + AuditEvent + BillingEvent(PENDING) in one TX.
-      // All three rows are written or none are.
-      const { attestation, auditEvent, billingEvent } = await prisma.$transaction(async (tx) => {
+      // StartAttestation + AuditEvent in one TX. Both rows are written or
+      // neither is. (A BillingEvent was written here until VCD-01b — see the
+      // module header.)
+      const { attestation, auditEvent } = await prisma.$transaction(async (tx) => {
         const attestation = await tx.startAttestation.create({
           data: {
             id:           attestationId,
@@ -376,21 +388,7 @@ export function registerHiringRoutes(app: Express): void {
           },
         });
 
-        // BillingEvent starts PENDING; Stripe call resolves it async.
-        const billingEvent = await tx.billingEvent.create({
-          data: {
-            id:                 billingEventId,
-            employerId:         acceptance.employerId,
-            startAttestationId: attestationId,
-            stripeInvoiceItemId: null,
-            stripeCustomerId:    null,
-            amountCents:         VERIFIED_HIRE_AMOUNT_CENTS,
-            currency:            VERIFIED_HIRE_CURRENCY,
-            status:              'PENDING',
-          },
-        });
-
-        return { attestation, auditEvent, billingEvent };
+        return { attestation, auditEvent };
       });
 
       // ── ON Loop velocity metric ──────────────────────────────────────────
@@ -399,7 +397,6 @@ export function registerHiringRoutes(app: Express): void {
       log('info', 'hiring_start_attested', {
         attestationId,
         acceptanceId,
-        billingEventId:   billingEvent.id,
         employerId:       acceptance.employerId,
         npi_prefix:       acceptance.clinicianNpi.slice(0, 4) + '····',
         role:             role.trim(),
@@ -410,53 +407,7 @@ export function registerHiringRoutes(app: Express): void {
         on_loop_delta_ms: onLoopDeltaMs,
       });
 
-      // ── ASYNC STRIPE BILLING (fire-and-forget) ───────────────────────────
-      // The 201 response is sent BEFORE this settles — Stripe latency never
-      // blocks the employer's workflow.  BillingEvent.status tracks the result.
-      void recordSuccessfulHire(
-        acceptance.employerId,
-        acceptance.clinicianNpi,
-        attestationId,
-      ).then(async (result) => {
-        if (!result) {
-          // STRIPE_SECRET_KEY not set — expected in dev; mark as SKIPPED.
-          await prisma.billingEvent.update({
-            where: { id: billingEventId },
-            data:  { status: 'SKIPPED' },
-          });
-          log('info', 'billing_event_skipped', { billingEventId, attestationId });
-          return;
-        }
-
-        await prisma.billingEvent.update({
-          where: { id: billingEventId },
-          data: {
-            stripeInvoiceItemId: result.stripeInvoiceItemId,
-            stripeCustomerId:    result.stripeCustomerId,
-            status:              'BILLED',
-          },
-        });
-
-        log('info', 'billing_event_billed', {
-          billingEventId,
-          attestationId,
-          stripeInvoiceItemId: result.stripeInvoiceItemId,
-          amountCents:         result.amountCents,
-        });
-      }).catch(async (err: unknown) => {
-        const message = err instanceof Error ? err.message : String(err);
-
-        await prisma.billingEvent.update({
-          where: { id: billingEventId },
-          data:  { status: 'ERROR', errorMessage: message },
-        }).catch(() => { /* best-effort; don't throw in a fire-and-forget */ });
-
-        log('error', 'billing_event_error', {
-          billingEventId,
-          attestationId,
-          error: message,
-        });
-      });
+      // Recording a start raises no charge. See the module header (VCD-01b).
 
       const pilotContext = await getEmployerPilotContext(acceptance.employerId).catch((error: unknown) => {
         log('warn', 'hiring_start_pilot_policy_lookup_failed', {
@@ -529,12 +480,6 @@ export function registerHiringRoutes(app: Express): void {
           attestationHash: attestationHash,
           anchoredRoot:    null,
           status:          'PENDING_ANCHOR',
-        },
-        billing: {
-          billingEventId:  billingEvent.id,
-          status:          'PENDING',        // resolves async
-          amountCents:     VERIFIED_HIRE_AMOUNT_CENTS,
-          currency:        VERIFIED_HIRE_CURRENCY,
         },
         on_loop_delta_ms: onLoopDeltaMs,
         pilotReadiness,
