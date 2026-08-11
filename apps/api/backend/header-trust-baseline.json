@@ -9,7 +9,6 @@
     "routes/asyncTrust.ts",
     "routes/clinician.ts",
     "routes/credentials.ts",
-    "routes/decisionCapsules.ts",
     "routes/documents.ts",
     "routes/employerActions.ts",
     "routes/employerNotifications.ts",

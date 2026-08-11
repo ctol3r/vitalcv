@@ -11,14 +11,19 @@
  * POST /api/decisions/cascade/:credentialId       — trigger revocation cascade
  */
 
-import type { Express, Request, Response } from 'express';
+import type { Express, NextFunction, Request, Response } from 'express';
 import { log } from '../obs/logger';
+import { requireVerifiedClerkUserId } from '../middleware/verifiedActor';
 import { capsuleEngine, type DecisionType } from '../services/decision/capsuleEngine';
 import { revocationCascade } from '../services/decision/revocationCascade';
 import { revocationCascadeEngine } from '../services/revocation/cascadeEngine';
 import { computeClinicianTrustState, type ClinicianTrustState } from '../services/trust/trustStateEngine';
 import prisma from '../graphql/prisma_client';
 import type { DecisionTriggerEvent } from '../../repositories/decisionCapsules.repo';
+
+function asyncHandler(fn: (req: Request, res: Response, next: NextFunction) => Promise<void>) {
+  return (req: Request, res: Response, next: NextFunction) => fn(req, res, next).catch(next);
+}
 
 const VALID_DECISION_TYPES: DecisionType[] = ['HIRING', 'PRIVILEGING', 'DEPLOYMENT', 'RENEWAL'];
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -154,12 +159,22 @@ export function registerDecisionCapsuleRoutes(app: Express): void {
 
   // ── GET /api/employer/decisions ───────────────────────────────────────
   // Returns recent Decision Capsules for the verifier's org (via accepted applications)
-  app.get('/api/employer/decisions', async (req: Request, res: Response) => {
-    const clerkUserId = (req.headers['x-clerk-user-id'] as string | undefined)?.trim();
-    if (!clerkUserId) {
-      res.status(401).json({ error: 'Missing x-clerk-user-id header' });
-      return;
-    }
+  //
+  // Identity is the VERIFIED Clerk subject, not the `x-clerk-user-id` header.
+  //
+  // The header was checked for PRESENCE only ("Missing x-clerk-user-id header"),
+  // and presence is not authentication — the value was then used to select the
+  // caller's organization, so whoever named a user id was treated as that user.
+  // Production runs `CLERK_JWT_VERIFICATION=shadow`, and shadow does NOT rewrite
+  // the header (only `enforce` does), so this route received the raw
+  // caller-supplied value. This response is an employer's ACCEPTED-candidate
+  // list, which is confidential to both the employer and the clinicians in it.
+  //
+  // `requireVerifiedClerkUserId` reads `verifiedAuth.verifiedUserId`, populated
+  // only when a bearer token actually verified — so it fails closed in every
+  // rollout mode rather than waiting on the enforce flip.
+  app.get('/api/employer/decisions', asyncHandler(async (req: Request, res: Response) => {
+    const clerkUserId = requireVerifiedClerkUserId(req);
     try {
       // Find the verifier's org
       const user = await prisma.user.findUnique({ where: { clerkUserId } });
@@ -208,7 +223,7 @@ export function registerDecisionCapsuleRoutes(app: Express): void {
       log('error', 'decision_capsules: employer_decisions failed', { error: String(err) });
       res.status(500).json({ error: 'Failed to retrieve employer decisions' });
     }
-  });
+  }));
 
   // ── GET /api/decisions/impact/:npi ────────────────────────────────────
   // Must be defined BEFORE /:npi to avoid route conflict
