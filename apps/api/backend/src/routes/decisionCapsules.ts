@@ -18,6 +18,8 @@ import { revocationCascade } from '../services/decision/revocationCascade';
 import { revocationCascadeEngine } from '../services/revocation/cascadeEngine';
 import { computeClinicianTrustState, type ClinicianTrustState } from '../services/trust/trustStateEngine';
 import prisma from '../graphql/prisma_client';
+import { requireVerifiedClerkUserId } from '../middleware/verifiedActor';
+import { HttpError } from '../utils/httpError';
 import type { DecisionTriggerEvent } from '../../repositories/decisionCapsules.repo';
 
 const VALID_DECISION_TYPES: DecisionType[] = ['HIRING', 'PRIVILEGING', 'DEPLOYMENT', 'RENEWAL'];
@@ -155,9 +157,22 @@ export function registerDecisionCapsuleRoutes(app: Express): void {
   // ── GET /api/employer/decisions ───────────────────────────────────────
   // Returns recent Decision Capsules for the verifier's org (via accepted applications)
   app.get('/api/employer/decisions', async (req: Request, res: Response) => {
-    const clerkUserId = (req.headers['x-clerk-user-id'] as string | undefined)?.trim();
-    if (!clerkUserId) {
-      res.status(401).json({ error: 'Missing x-clerk-user-id header' });
+    /*
+     * S1 — this route resolves the caller's ORGANISATION from their identity and
+     * then answers with that org's decision capsules, so identity here IS the
+     * tenancy boundary. It used to read `x-clerk-user-id` straight off the
+     * request: a plain header on a public origin, meaning anyone holding a known
+     * member's Clerk id could read that employer's hiring decisions. Identity
+     * now comes from the verified session token only — `verifiedAuth` is
+     * populated in shadow as well as enforce, so this fails closed today rather
+     * than at some future flip.
+     */
+    let clerkUserId: string;
+    try {
+      clerkUserId = requireVerifiedClerkUserId(req);
+    } catch (err) {
+      const status = err instanceof HttpError ? err.status : 401;
+      res.status(status).json({ error: 'Verified Clerk session required.' });
       return;
     }
     try {

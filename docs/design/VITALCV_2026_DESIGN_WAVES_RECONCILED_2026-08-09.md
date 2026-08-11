@@ -60,7 +60,7 @@ Two registers, both already constitutional (EC-20 light/dark doctrine):
 | Borders | 1px warm hairlines; elevation by rule and surface contrast, never heavy shadow | EC-20 |
 | Type | Geist display/body (never bolder than 600; display weight 500 preferred), Geist Mono for machine facts with `tabular-nums` | EC-20 |
 | Shape | Radius knobs `--vt-radius-{control,card,chip}`, values 2–3px until ruling R-d | Ruling 2 |
-| Motion | Four bands (80–150 / 150–250 / 250–450 / 450–800ms rare); **no movement means no new state**; single-shot; reduced-motion/data-saver/no-JS get the complete composed experience | EC-29 · EC-20 |
+| Motion | Four bands (80–150 / 150–250 / 250–450 / 450–800ms rare); **no movement means no new state**; single-shot; reduced-motion/data-saver/no-JS get the complete composed experience. The shipped `--duration-*` family does **not** satisfy the 80–150ms control-feedback band — values hold at their current 280ms floor until ruling R-e | EC-29 · EC-20 |
 
 ## 5. The D′ wave map
 
@@ -72,7 +72,7 @@ Rules for every wave: the DESIGN-ONLY BOUNDARY verbatim at the top of the PR; wo
 
 | ID | Goal | Founder gate | Parallel with |
 | --- | --- | --- | --- |
-| **D′-00** Ruling packet | Both-ways fixtures + memo for the four open rulings; CTA amendment text; freeze/UX-03 disposition; #1165 recommendation | **YES** — rulings R-a…R-d | D′-01 |
+| **D′-00** Ruling packet | Both-ways fixtures + memo for the five open rulings; CTA amendment text; freeze/UX-03 disposition; #1165 recommendation | **YES** — rulings R-a…R-e | D′-01 |
 | **D′-01** Semantic token bridge | One additive file `apps/web/styles/tokens/semantic.css` + LINT-14/15 + token-contract test | No | D′-00 |
 | **D′-02** Primitive kit | VitalAction/VitalChip/VitalPanel/VitalField in `components/vital/`, treatment from tokens only, fixtures under both value sheets | Async look | D′-03, D′-08 |
 | **D′-03** ProfileObject kit | `components/vital/profile-object/` — ProfileObject, ProfileLayerStack, ContinuityRibbon + poster-grade statics, art neutral on unruled axes | **YES** — EC-25 | D′-02, D′-08 |
@@ -114,8 +114,9 @@ atmospheric wash, 8–10px controls / 20–24px cards). The CTA renders paper-in
 on BOTH sheets (ruling 1 is settled) with a small before-strip showing the retired
 green CTA for context. Add RULING-MEMO.md: one page per ruling R-a (pills on
 filters/tags only?) R-b (frost on chrome/Workbench sidecar only?) R-c (one indigo
-atmosphere per viewport?) R-d (radius scale), each citing the EC-20 row it would
-amend; plus the drafted EC-22 CTA amendment text, the freeze/UX-03 disposition
+atmosphere per viewport?) R-d (radius scale) R-e (control-feedback duration —
+see §8.8; the band is locked, only the value is open), each citing the EC-20 row
+it would amend; plus the drafted EC-22 CTA amendment text, the freeze/UX-03 disposition
 recommendation, and the #1165 census recommendation. Capture 1440/390 +
 reduced-motion evidence with a capture.mjs in the same directory (pattern:
 design-lab/homepage-reset/evidence/capture.mjs). Do not add routes, tokens, or
@@ -297,6 +298,15 @@ Next eligible wave:
 5. **Stacked-PR squash trap** — merge D′-01 before opening dependents; maximum stack depth 1; rebase children `--onto` after each squash.
 6. **CC-10 collision** — `wave/cc-10-decision-trail` shares Workbench files with D′-07a; disposition first.
 7. **Stale checkouts** — long-lived local trees are hundreds of commits behind; every wave cuts fresh from `origin/main`.
+8. **The shipped duration tokens cannot express the control-feedback band — ruling R-e.** Verified against `origin/main` `0323745d0`, 2026-08-10. EC-29 locks 80–150ms for control feedback; `apps/web/styles/tokens.css` declares its whole `--duration-*` family "locked to 280–420ms", so **no shipped token can express the fastest band**. The tokens named for control feel are the ones that miss it: `--duration-instant`, `--duration-snap`, and `--duration-respond` are all **280ms**.
+
+   **This is not a missing-token gap — it is a declared value overriding an in-band intent.** Every consumer writes the fallback `var(--duration-snap, 80ms)`: `apps/web/styles/utilities.css` (`.instant-transition`, `.control-hover`, `.control-surface`) and `apps/web/components/ui/ActionBar.tsx`. The call sites already ask for 80ms — exactly the band floor. Because `tokens.css` is imported globally (`app/globals.css:21`) and declares `--duration-snap: 280ms` at `:root`, the fallback never fires and every one of those sites resolves to **280ms, 3.5× the authored intent**. Adding a *new* in-band token would therefore fix nothing: the seven live `--duration-snap` references would keep resolving to 280ms unless they are also repointed. The minimal correct change is to the value of the existing control-feel tokens.
+
+   **Blast radius today is one route, and that is the reason to rule now rather than patch now.** Of 13 `var(--duration-*)` references in `apps/web`, 7 sit inside `tokens.css`'s own `--transition-*` presets, which have **zero consumers**. The only live user-facing surface is `/review/[entityId]` (`ReviewPageClient` → `ReviewClient` → `DecisionCard`), where `.instant-transition` and `ActionBar`'s approve/secondary buttons animate at 280ms — the employer's highest-stakes click. `SignalCard` reaches `_archive/wave119` only; `.control-hover` and `--duration-{fast,normal,slow,xslow,stagger,instant,respond}` have no live consumers at all. So this is a **latent doctrine defect, not a live latency problem** — the surfaces that do real motion (`easy-home`, `wave1501-home`, `home.css`) each carry island-local values that land in-band on their own (`--dur-fast: 160ms`, `--film-dur-state: 120ms`). It becomes product-wide the moment **D′-02's primitive kit** starts consuming the global family, which is why it should be ruled inside the D′-00 packet rather than after.
+
+   **Recommended default:** set `--duration-snap` / `--duration-instant` / `--duration-respond` to **120ms** — inside 80–150ms, matching the `--film-dur-state: 120ms` precedent already in the tree, and honouring the call sites' intent without sitting on the band floor. Leave `--duration-{normal,slow,xslow}` untouched (320/380/420ms are legitimately the 250–450ms transformation band) and correct the file's "locked to 280–420ms" header comment, which is the origin of the error. **No EC-22 amendment is required for this:** EC-20's animation row reads `LOCKED CONSTRAINTS · values in UX-02` — the four-band structure is locked, the exact durations are explicitly delegated. An amendment becomes necessary only if a ruling *widens a band* to fit the current tokens, which is not recommended. Do not mint a new `--dur-*` prefix (one system: extend the file that owns the tokens), and do not reach for the `wave1501`/`film` island tokens, which are scoped and superseded.
+
+   Separately confirmed on `origin/main`: `--dur-state`, `--dur-enter`, `--dur-scene`, `--ease-enter`, `--ease-exit` are declared **nowhere** in `apps/web` and have zero references. They came from the superseded `VITALCV_CREATIVE_DIRECTION.md`; agent definitions instructed agents to use them until PR #1302 repointed them. The near-miss `--film-dur-{state,enter,scene}` in `apps/web/styles/home.css` is film-island-scoped and is **not** the replacement.
 
 ## 9. Completion definition
 
@@ -305,5 +315,5 @@ The program is complete when a clinician can see — in five seconds, without de
 ## 10. Continuation block
 
 **CURRENT STATE:** Rulings 1–3 recorded; D′-00 packet and D′-01 bridge executed alongside this plan; D′-02/03/08 are the next eligible waves once the D′-00 freeze disposition is recorded and D′-01 merges.
-**NEXT STEPS:** Founder rules R-a…R-d from the D′-00 board; then D′-02 ∥ D′-03 ∥ D′-08; then D′-04.
+**NEXT STEPS:** Founder rules R-a…R-e from the D′-00 board (R-e is value-only — see §8.8); then D′-02 ∥ D′-03 ∥ D′-08; then D′-04.
 **OPEN QUESTIONS:** the four D′-00 rulings; #1165 merge-lift; CC-10 disposition; who produces master 3D/motion sources after D′-06 posters prove the compositions.

@@ -10,14 +10,45 @@
  * - All external input treated as unsafe (NPI validated, orgRequirements sanitized)
  * - requestingOrg is logged but never returned in response
  * - No write-back to trust data
+ * - The subject must be a clinician the CALLER is bound to (added below).
+ *
+ * WHY THESE ROUTES NOW REQUIRE A BOUND HOLDER
+ * A report is a derived assessment of a named clinician — readiness, blockers,
+ * risk flags, time-to-start — keyed on an NPI. NPIs are public identifiers
+ * published by NPPES, so a subject taken from the URL is enumerable rather than
+ * guessable. Input validation ("NPI validated") answers whether the parameter is
+ * well-formed, never whether the caller may read that person's assessment; the
+ * original header above listed only the former under "SECURITY:".
+ *
+ * The only thing standing in front of these handlers was the global tenant
+ * guard, and that guard is a turnstile, not a scope: `TENANT_ORG_BINDING`
+ * defaults to `off`, and middleware/organizationContext.ts documents its own
+ * query/header sources as unauthenticated and "NOT an authorization decision"
+ * even under `enforce`. So org context was a formality the caller supplied
+ * about itself.
+ *
+ * These are the same helpers `/api/apply/shares/:npi` uses, deliberately —
+ * copying the shape that is already correct rather than inventing a second one.
+ *
+ * PRODUCT QUESTION LEFT OPEN, ON PURPOSE
+ * Holder-only is the fail-closed answer, not necessarily the final one. If an
+ * employer is meant to read a candidate's report, that is a recipient-scoped
+ * share decision and belongs with the share authorization model — not a route
+ * that answers for any NPI. Nothing in the app calls these routes today, so
+ * fail-closed costs no working surface.
  */
 
-import type { Express, Request, Response } from 'express';
+import type { Express, NextFunction, Request, Response } from 'express';
 import {
   generateCredentialIntelligenceReport,
   type CredentialIntelligenceReport,
 } from '../services/report/credentialIntelligenceReport';
 import { log } from '../obs/logger';
+import { requireVerifiedClerkUserId, requireNpiAuthorization } from '../middleware/verifiedActor';
+
+function asyncHandler(fn: (req: Request, res: Response, next: NextFunction) => Promise<void>) {
+  return (req: Request, res: Response, next: NextFunction) => fn(req, res, next).catch(next);
+}
 
 const NPI_RE = /^\d{10}$/;
 
@@ -47,7 +78,8 @@ export function registerReportRoutes(app: Express): void {
   //     "orgRequirements": ["State medical license", "DEA registration"],  // optional
   //     "requestingOrg": "Memorial Hospital"                                // optional, audit only
   //   }
-  app.post('/api/report', async (req: Request, res: Response) => {
+  app.post('/api/report', asyncHandler(async (req: Request, res: Response) => {
+    const clerkUserId = requireVerifiedClerkUserId(req);
     const { npi, orgRequirements, requestingOrg } = req.body ?? {};
 
     if (!npi || !NPI_RE.test(String(npi))) {
@@ -57,6 +89,7 @@ export function registerReportRoutes(app: Express): void {
       });
       return;
     }
+    await requireNpiAuthorization(clerkUserId, String(npi), req);
 
     try {
       const report = await generateCredentialIntelligenceReport({
@@ -70,18 +103,20 @@ export function registerReportRoutes(app: Express): void {
       log('error', 'report_route_error', { npi, err: String(err) });
       res.status(500).json({ error: 'Report generation failed. Check ingest pipeline status.', npi });
     }
-  });
+  }));
 
   // ── GET /api/report/:npi ────────────────────────────────────────────────────
   //
   // Convenience GET for no-body clients and direct browser access.
-  app.get('/api/report/:npi', async (req: Request, res: Response) => {
+  app.get('/api/report/:npi', asyncHandler(async (req: Request, res: Response) => {
+    const clerkUserId = requireVerifiedClerkUserId(req);
     const { npi } = req.params;
 
     if (!NPI_RE.test(npi)) {
       res.status(400).json({ error: 'Invalid NPI', npi });
       return;
     }
+    await requireNpiAuthorization(clerkUserId, npi, req);
 
     try {
       const report = await generateCredentialIntelligenceReport({ npi });
@@ -90,20 +125,22 @@ export function registerReportRoutes(app: Express): void {
       log('error', 'report_get_error', { npi, err: String(err) });
       res.status(500).json({ error: 'Report generation failed.', npi });
     }
-  });
+  }));
 
   // ── GET /api/report/:npi/summary ────────────────────────────────────────────
   //
   // Compact summary — designed for employer dashboards, list views, and pilot demos.
   // Returns only: identity, readiness, time-to-start, top 3 blockers, top 3 risk flags.
   // Suitable for < 5KB payloads that render in < 60 seconds.
-  app.get('/api/report/:npi/summary', async (req: Request, res: Response) => {
+  app.get('/api/report/:npi/summary', asyncHandler(async (req: Request, res: Response) => {
+    const clerkUserId = requireVerifiedClerkUserId(req);
     const { npi } = req.params;
 
     if (!NPI_RE.test(npi)) {
       res.status(400).json({ error: 'Invalid NPI', npi });
       return;
     }
+    await requireNpiAuthorization(clerkUserId, npi, req);
 
     try {
       const full = await generateCredentialIntelligenceReport({ npi });
@@ -144,5 +181,5 @@ export function registerReportRoutes(app: Express): void {
       log('error', 'report_summary_error', { npi, err: String(err) });
       res.status(500).json({ error: 'Report summary failed.', npi });
     }
-  });
+  }));
 }

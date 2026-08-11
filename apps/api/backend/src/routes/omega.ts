@@ -1,3 +1,25 @@
+/**
+ * Omega — READ ONLY.
+ *
+ * `POST /api/omega/:npi` was retired (VCD-01a). It chose the organization on
+ * whose behalf it recorded a decision from `employerId` / `orgId` in the
+ * REQUEST BODY, then wrote an `EmployerAcceptance` and, when the activation
+ * graph allowed, a `StartActivation` — two decision-grade rows created by a
+ * caller-named employer, behind a global tenant guard whose org binding
+ * defaults to a no-op and whose org context is itself caller-supplied.
+ *
+ * It had no callers: the only `/api/omega` reference in web, marketing or
+ * mobile is an archived page calling the GET below.
+ *
+ * `apps/api/backend/src/routes/__tests__/omegaDecisionWritesRetired.test.ts`
+ * asserts the POST answers 404 — not 400 or 401 — because anything else would
+ * pass while the handler was mounted and merely rejecting one request.
+ *
+ * Do not re-add a write path here. An omega decision route needs org context
+ * derived from the caller's verified membership, not from its body; see the
+ * consolidation direction in
+ * `docs/product/evidence-network/canonical-transaction-baseline.md` §5.
+ */
 import { Router, Request, Response } from 'express';
 import { OmegaOrchestrator } from '../services/decision/omegaOrchestrator';
 
@@ -21,44 +43,6 @@ router.get('/:npi', async (req: Request, res: Response) => {
   } catch (err) {
     console.error('[Omega] readState failed:', err);
     res.status(500).json({ error: 'Omega read failed' });
-  }
-});
-
-/**
- * POST /api/omega/:npi — Evaluate an action (Recognition + Acceptance → Start)
- */
-router.post('/:npi', async (req: Request, res: Response) => {
-  const { npi } = req.params;
-  const { employerId, orgId, role, action, comment } = req.body;
-
-  if (!/^\d{10}$/.test(npi)) {
-    res.status(400).json({ error: 'Invalid NPI format. Must be 10 digits.' });
-    return;
-  }
-
-  if (!employerId || !orgId || !action) {
-    res.status(400).json({ error: 'Missing required fields: employerId, orgId, action' });
-    return;
-  }
-
-  if (!['accept', 'request_data', 'flag'].includes(action)) {
-    res.status(400).json({ error: 'Invalid action. Must be: accept, request_data, flag' });
-    return;
-  }
-
-  try {
-    const result = await OmegaOrchestrator.evaluateAction({
-      npi,
-      employerId,
-      orgId,
-      role,
-      action,
-      comment,
-    });
-    res.json(result);
-  } catch (err) {
-    console.error('[Omega] evaluateAction failed:', err);
-    res.status(500).json({ error: 'Omega evaluation failed' });
   }
 });
 

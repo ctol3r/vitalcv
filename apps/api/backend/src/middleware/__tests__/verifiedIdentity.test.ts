@@ -4,7 +4,13 @@ import type { NextFunction, Request, Response } from 'express';
 // See the runtime contract test for why the backend must stay on a jose that
 // ships a CommonJS build.
 import { SignJWT, generateKeyPair, jwtVerify } from 'jose';
-import { createVerifiedIdentityMiddleware, type TokenVerifier, type VerifiedAuth } from '../verifiedIdentity';
+import {
+  ACCEPTED_JWT_ALGORITHMS,
+  createTokenVerifier,
+  createVerifiedIdentityMiddleware,
+  type TokenVerifier,
+  type VerifiedAuth,
+} from '../verifiedIdentity';
 
 // G1 header-trust closure (ASVS 14.5.4 / gap register G1,
 // docs/security/ASVS-scorecard-2026-07.md): identity must come from a verified
@@ -216,6 +222,76 @@ describe('verifiedIdentity — enforce mode', () => {
     });
     expect(next).toHaveBeenCalled();
     expect(req.headers['x-user-role']).toBe('verifier-admin');
+  });
+});
+
+/**
+ * S1 — algorithm allowlist.
+ *
+ * `jwtVerify` with no `algorithms` option accepts whatever the token's own
+ * header names, which makes the attacker a participant in choosing how their
+ * token is checked (the `alg: none` / RS256→HS256-confusion family).
+ *
+ * These run `createTokenVerifier` — the SAME factory `getRemoteVerifier` uses
+ * in production, differing only in the key input — so the assertion is about
+ * the shipped verification path, not a stub. Asserted as an outcome: a token
+ * the issuer never could have signed does not verify.
+ */
+describe('verifiedIdentity — JWT algorithm allowlist', () => {
+  beforeEach(() => {
+    mockEnv.CLERK_JWT_VERIFICATION = 'shadow';
+    mockEnv.CLERK_AUTHORIZED_PARTIES = [];
+  });
+
+  it('accepts only RS256 — Clerk signs session tokens with nothing else', () => {
+    expect([...ACCEPTED_JWT_ALGORITHMS]).toEqual(['RS256']);
+  });
+
+  it('verifies a well-formed RS256 token', async () => {
+    const rsa = await generateKeyPair('RS256');
+    const token = await new SignJWT({ sub: 'user_rs' })
+      .setProtectedHeader({ alg: 'RS256' })
+      .setIssuer(ISSUER)
+      .setIssuedAt()
+      .setExpirationTime('5m')
+      .sign(rsa.privateKey);
+
+    const payload = await createTokenVerifier(rsa.publicKey, ISSUER)(token);
+    expect(payload.sub).toBe('user_rs');
+  });
+
+  it('refuses an otherwise-valid token signed with a non-allowlisted algorithm', async () => {
+    // Correct issuer, unexpired, valid signature over its own key. The ONLY
+    // thing wrong with it is the algorithm.
+    const es = await generateKeyPair('ES256');
+    const token = await new SignJWT({ sub: 'user_es' })
+      .setProtectedHeader({ alg: 'ES256' })
+      .setIssuer(ISSUER)
+      .setIssuedAt()
+      .setExpirationTime('5m')
+      .sign(es.privateKey);
+
+    await expect(createTokenVerifier(es.publicKey, ISSUER)(token)).rejects.toThrow();
+  });
+
+  it('classifies a non-allowlisted-algorithm token as invalid through the middleware', async () => {
+    const es = await generateKeyPair('ES256');
+    const token = await new SignJWT({ sub: 'user_es' })
+      .setProtectedHeader({ alg: 'ES256' })
+      .setIssuer(ISSUER)
+      .setIssuedAt()
+      .setExpirationTime('5m')
+      .sign(es.privateKey);
+
+    const middleware = createVerifiedIdentityMiddleware({
+      verifier: createTokenVerifier(es.publicKey, ISSUER),
+    });
+    const req = createRequest({ 'x-clerk-user-id': 'user_es', authorization: `Bearer ${token}` });
+    const { res } = createResponse();
+    await middleware(req, res, (() => undefined) as unknown as NextFunction);
+
+    expect((req as any).verifiedAuth?.outcome).toBe('invalid_token');
+    expect((req as any).verifiedAuth?.verifiedUserId).toBeUndefined();
   });
 });
 
