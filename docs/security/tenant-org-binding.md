@@ -8,15 +8,12 @@ Staged by `TENANT_ORG_BINDING` (default `off`), mirroring
 
 ## What was open
 
-`requireTenantContext` accepted the **presence** of `x-org-id` or
-`?organizationId=` as authorization. Both are caller-supplied, so every route
-not in `shouldSkipTenantContext` answered any anonymous caller who set one
-header. Confirmed live in production **2026-08-08** (status codes only):
-
-```
-GET /api/mission-ops/sources                          → 401
-GET /api/mission-ops/sources  -H 'x-org-id: <any>'    → 200, ~14 KB
-```
+`requireTenantContext` accepted the **presence** of a caller-supplied
+organization identifier as authorization rather than binding it to verified
+membership. Because the value is caller-supplied, routes not in
+`shouldSkipTenantContext` did not distinguish an authorized member from an
+anonymous caller. Confirmed live in production **2026-08-08** (status codes
+only); [reproduction detail withheld — see internal gap register].
 
 Measured against `origin/main` d52ec533b, 647 route paths classified with the
 real `shouldSkipTenantContext`:
@@ -27,14 +24,14 @@ real `shouldSkipTenantContext`:
 | …of those, using org as an actual data **scope** | **17** |
 | Skip-listed routes that still consume caller-supplied org | 7 |
 | Param-free guarded GETs probed | 185 |
-| …returning **200** to one bogus header | **117** (1.9 MB) |
+| …that did **not** fail closed | **117** |
 
 **The shape that matters:** ~95% of guarded routes never read the org at all.
-For them the header was a **turnstile token, not a tenant scope** — so the
+For them the value was a **turnstile token, not a tenant scope** — so the
 exposure was not "one org's data to another org" but "platform-global data to
-anyone". The largest was `GET /api/monitoring/events`: 1.25 MB, ~3,748 events
-(3,727 `CRITICAL`), keyed to 28 NPIs of which 24 are check-digit-valid. That
-route is closed separately, on the operator secret — see its file header.
+anyone". The largest single surface was `GET /api/monitoring/events`, since
+closed on the operator secret — see its file header.
+[Payload characterisation withheld — see internal gap register.]
 
 Routes with a real secondary control held throughout: `/api/internal/*` (403 via
 `MONITORING_SECRET`) and the clinician/employer data routes (401 via the #951
@@ -67,10 +64,11 @@ rewrite `x-clerk-user-id`.
    `config/envValidation.ts` makes that combination **fatal at boot** rather
    than at first request.
 
-   As of 2026-08-08 production is **not** at `CLERK_JWT_VERIFICATION=enforce`:
-   sending `x-verifier-role: verifier` still moves `/api/verifier/dashboard`
-   from 403 to 500, so the role header is still honoured for anonymous callers.
-   `off` vs `shadow` is not distinguishable from outside — read the Railway var.
+   As of 2026-08-08 production is **not** at `CLERK_JWT_VERIFICATION=enforce`,
+   established by behavioural probe rather than inference — a caller-asserted
+   role claim was still observably honoured. [Reproduction detail withheld —
+   see internal gap register.] `off` vs `shadow` is not distinguishable from
+   outside — read the Railway var.
 
 2. **The web tier stops asserting sentinel org ids.** This is the real blocker
    and it is not an attacker problem — it is ours. The web tier sends hardcoded
@@ -129,10 +127,10 @@ member of org A can reach org B's records through `enforceOrganizationMatch` by
 claiming super-admin. Closing it is G1's job, not this flag's. Prefer flipping
 `CLERK_JWT_VERIFICATION=enforce` first.
 
-It also does not touch the web-origin proxies. PR #1210 guards
-`/api/internal/{funnel-metrics, mission-ops/sources, source-health,
-pilot/start-outcome}` on the web side — necessary but not sufficient, since
-`api.vitalcv.com` is directly reachable.
+It also does not touch the web-origin proxies. PR #1210 machine-authenticated
+four `/api/internal/*` proxies on the web side — necessary but not sufficient,
+since the API origin is directly reachable and a web-tier guard does not bind
+the backend route behind it. [Route list withheld — see internal gap register.]
 
 ## Tests
 

@@ -19,8 +19,11 @@ classes are trustworthy**).
 The five `header_without_token` events all **predate the final call-site
 conversion deploy** (PR #612, live 2026-07-10 23:34 UTC):
 
-- `2026-07-08` — `/api/pilot-ops/events` ×2, `/api/me/workspaces` ×2 (fixed in #610/#611)
-- `2026-07-10 23:21` — `/api/me/role` (13 min before #612, which converted its caller)
+- `2026-07-08` — two identity-bearing routes, ×2 each (fixed in #610/#611)
+- `2026-07-10 23:21` — one identity-bearing route (13 min before #612, which
+  converted its caller)
+
+[Route names withheld — see internal gap register.]
 
 **Zero `header_without_token` since full conversion went live.**
 

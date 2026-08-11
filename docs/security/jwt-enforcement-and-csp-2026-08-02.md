@@ -10,26 +10,19 @@ Owner: platform security · Probed 2026-08-02 against `api.vitalcv.com` and
 Under `enforce`, an identity header **without** a valid bearer token is a 401,
 fail-closed, and the role-bypass headers are stripped.
 
-Production does not do that. The probe:
+Production does not do that. A behavioural probe against an identity-bearing
+read established it. **[Probe command and response withheld — see internal gap
+register.]**
 
-```bash
-# A forged identity header. No bearer token. No session. Nothing.
-curl -s -o /dev/null -w '%{http_code}\n' \
-  -H "x-clerk-user-id: user_forged_probe_$(date +%s)" \
-  https://api.vitalcv.com/api/me/role
-```
-
-**Observed: `404` with body `{"error":{"code":"NOT_FOUND","message":"Authenticated user has no VitalCV user record."}}`**
-
-That is the finding. A 401 would mean the header was rejected. A 404 saying the
-*authenticated user* has no record means the forged header was **accepted as
-identity** and used to perform a database lookup — the request got past the
-identity layer and failed only because no user by that id exists. Had the id
-belonged to a real user, the lookup would have succeeded.
+The shape of the finding, without the recipe: the response was **not** a refusal.
+It was a downstream not-found whose message referred to the *authenticated* user
+— meaning the asserted identity was accepted and used for a database lookup. The
+request got past the identity layer and failed only because that particular id
+matched no row. An id belonging to a real user would have resolved.
 
 So `CLERK_JWT_VERIFICATION` is `off` or `shadow` in production, and the G1
-header-trust gap (ASVS 14.5.4) is **open**: anyone who can reach the API origin
-directly can present any user's id.
+header-trust gap (ASVS 14.5.4) is **open**. The trust boundary is the API
+origin, and the API origin is directly addressable.
 
 ### Why this is not fixed in this PR
 
@@ -52,7 +45,7 @@ one of those becomes a 401 the moment enforce is on.
    `header_without_token` from legitimate web traffic** over a full traffic
    cycle. Any that remain are call sites that will 401 on enforce.
    `verified_mismatch` is the forgery signal and should be zero.
-3. **Flip to `enforce`,** then re-run the probe above. The expected result is
+3. **Flip to `enforce`,** then re-run the probe. The expected result is a
    **401**, and that assertion belongs in the deploy smoke so it cannot regress
    silently.
 
@@ -61,12 +54,12 @@ anyone who can address the API origin.
 
 ### One observation this probe surfaced, needing a decision
 
-`GET /api/candidates` returned **HTTP 200 with clinician PII** — real names,
-NPIs, and internal `userId` values — to a request carrying only a forged
-`x-clerk-user-id` and `x-user-role: super-admin`. Whether that route is
-*intended* to be public was not established here (the follow-up probe that
-would have distinguished "public by design" from "header-gated and bypassed"
-was not run). Both readings need action:
+One read surface returned **HTTP 200 with clinician PII** — names, NPIs, and
+internal user ids — to a request that asserted identity and an elevated role
+without a session. **[Route and request shape withheld — see internal gap
+register.]** Whether that route is *intended* to be public was not established
+here (the follow-up probe that would have distinguished "public by design" from
+"header-gated and bypassed" was not run). Both readings need action:
 
 - if it is **header-gated**, this is a live PII exposure and enforce-mode is
   urgent;
@@ -75,6 +68,10 @@ was not run). Both readings need action:
   not incidental.
 
 Resolve this before the enforce flip, since the flip changes the answer.
+
+**Status note:** this is an *unresolved* finding recorded on 2026-08-02, not a
+closed one. It is carried in the internal gap register. Re-verify before acting
+on it — findings in this repository go stale within days.
 
 ## 2. `X-Powered-By` — removed in this PR
 

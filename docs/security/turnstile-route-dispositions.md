@@ -1,8 +1,15 @@
 # Turnstile route dispositions (gap G1, second half)
 
-The G1 report was about org **scope**: `x-org-id` was caller-supplied, so a
-route that scoped a query by it could be pointed at another tenant. That is real
-and is fixed by `TENANT_ORG_BINDING`
+> **Redaction note.** This file is a live remediation register for a control
+> that is not yet enforcing, published in a public repository. Specific
+> route-level targets, per-route reachability findings, and the request shapes
+> that reach them have been withheld. Method, counts, dispositions, closed
+> batches and rules-learned are kept, because those are the record and the
+> record has value. See the internal gap register for the withheld detail.
+
+The G1 report was about org **scope**: the organization identifier was
+caller-supplied, so a route that scoped a query by it could be pointed at
+another tenant. That is real and is fixed by `TENANT_ORG_BINDING`
 ([tenant-org-binding.md](./tenant-org-binding.md)).
 
 It was also the smaller half. Most routes behind `requireTenantContext` never
@@ -25,12 +32,13 @@ sweep must handle both:
 2. **Named handlers** — `app.post('/api/internal/run-monitoring', runMonitoringNow)`
    is fully guarded *inside* `runMonitoringNow`. A scanner that only reads from
    the registration line to the next one sees an empty body and calls it open.
-3. **Inline identity reads** — `/api/trust/divergence/:npi/:conflictId/resolve`
-   reads `req.headers['x-clerk-user-id']` directly and 401s without it, with no
-   named helper to match on. Found the hard way: batch 5 operator-gated it, and
-   its existing suite caught the 401→403 regression. That route records the
-   actor as `resolvedBy`, so it is an **identity** surface — an operator secret
-   is the wrong control there even though the header is not yet a real boundary.
+3. **Inline identity reads** — a route may read the identity header directly and
+   401 without it, with no named helper for a scanner to match on. Found the
+   hard way: batch 5 operator-gated one such route, and its existing suite caught
+   the 401→403 regression. Because that route records the actor, it is an
+   **identity** surface — an operator secret is the wrong control there even
+   though the header is not yet a real boundary. [Route withheld — see internal
+   gap register.]
 
 *Validation* helpers (`requireBodyField`, `requireParam`, `requireUuid`) are
 deliberately **not** in the vocabulary: they answer "is this well-formed?",
@@ -48,7 +56,7 @@ verdict.
 | Route paths total | 647 |
 | Behind the tenant guard | 412 |
 | …using org as an actual data **scope** | 17 |
-| Param-free guarded GETs returning **200** to one bogus header | 117 (1.9 MB) |
+| Param-free guarded GETs that did **not** fail closed | 117 |
 | **Mutations** behind the guard with no other authorization | **111** |
 
 ## Disposition vocabulary
@@ -83,24 +91,18 @@ safe, and it runs out here.
 13 unguarded mutations, **11 with live callers**. This family needs product
 decisions, not a guard.
 
-| route | callers | disposition | blocked on |
-|---|---|---|---|
-| `POST /api/credentials/ingest` | web onboarding proxy, `EvidenceUploadPanel`, `CredentialReview`, `OnboardingFlowSteps` | **public** (probably) | `/onboarding` is public end-to-end — an "anonymous NPI preview". An identity gate here breaks clinician activation. Needs rate limiting / NPI-scoping instead. |
-| `POST /api/credentials/ingest-npi` | same | **public** (probably) | same |
-| `POST /api/credentials/present` | wallet-sdk, verifier-sdk, `CredentialPresentationActions` | identity | G1 + ownership on the subject |
-| `POST /api/credentials/present/selective` | wallet-sdk, verifier-sdk, `SelectiveDisclosureModal` | identity | same |
-| `DELETE /api/credentials/wallet/:credentialId` | wallet-sdk, `credential-wallet-paths.ts` | identity | same — destructive |
-| `DELETE /api/credentials/:id` | `credential-wallet-paths.ts` | identity | same — destructive |
-| `PATCH /api/credentials/:id/confirm` | — | identity | same |
-| `POST /api/credentials/issue` | issuer-sdk, e2e | machine | `apiKeyAuth`; confirm every issuer integration sends a key |
-| `POST /api/credentials/verify` | verifier-sdk, e2e | machine | verifier-sdk sends `X-API-Key` only when configured |
-| `POST /api/credentials/verify/presentation` | — | machine | same |
-| `POST /api/credentials/accept` | verifier-sdk, e2e | machine | same |
+**[Per-route table withheld — see internal gap register.]** The dispositions
+break down as: 2 probably **public** (they sit on the anonymous onboarding
+preview, so an identity gate there breaks clinician activation — the answer is
+rate limiting and subject-scoping, not a session), 5 **identity** (needs G1 plus
+an ownership check on the subject; two of those are destructive), and 4
+**machine** (`apiKeyAuth`, gated on confirming every SDK integration actually
+sends a key).
 
-`routes/credentials.ts` contains **no identity signal at all** — no
-`clerkUserId`, no ownership check anywhere in the file. It is already on the
-header-trust baseline, so it *may* read `x-clerk-user-id` when the identity work
-lands; nothing has to be added to the baseline.
+`routes/credentials.ts` contains **no identity signal at all** — no ownership
+check anywhere in the file. It is already on the header-trust baseline, so it
+*may* read the identity header when the identity work lands; nothing has to be
+added to the baseline.
 
 ## Proxy-fronted routes: "forward the secret" is not the default answer
 
@@ -112,16 +114,18 @@ already machine-authenticated those two proxies**. The general rule is:
 > caller. An unauthenticated proxy that holds the secret **launders** it — it
 > hands operator access to anyone who can reach the web origin.
 
-Batch 6 hit the other case. `app/api/{trust/events,simulation/*,network/federation/discover}`
-have **no auth of their own**, and their UI is dead (`LiveSimulationPanel`,
-`SimulationControlPanel`, `DebugPanel` are imported by no page). So the backend
-was gated and the proxies simply 403 — no laundering, nothing broken.
+Batch 6 hit the other case. Three web proxies had **no auth of their own**, and
+their UI is dead (`LiveSimulationPanel`, `SimulationControlPanel`, `DebugPanel`
+are imported by no page). So the backend was gated and the proxies simply 403 —
+no laundering, nothing broken.
 
 ### Still deferred
 
-| backend route | live proxy | why |
-|---|---|---|
-| `POST /api/trust/score/batch` | `app/api/intelligence/providers` | Genuinely live: reached by `VCommandBar` (mounted in `RootChrome`, i.e. every page), the command palette, `useProviders`, and the copilot session. Disposition **identity**, blocked on `CLERK_JWT_VERIFICATION`. |
+**[Route/proxy pair withheld — see internal gap register.]** One backend
+mutation is fronted by a genuinely live proxy — reached by a command surface
+mounted on every page, so gating the backend without a disposition would break
+signed-in navigation. Disposition **identity**, blocked on
+`CLERK_JWT_VERIFICATION`.
 
 Note the asymmetry that made batch 5 safe: every *component* caller in these
 families (`FederationHealthPanel`, `IssuerOnboardingPanel`,
@@ -132,29 +136,19 @@ it is reachable on the web origin whether or not the UI calls it.
 
 ## Remaining register
 
-~84 unguarded mutations after batch 6. Largest families:
-
-| family | count | likely disposition |
-|---|---|---|
-| `credentials` | 11 | identity / machine — see above |
-| `trust` | 6 | operator |
-| `referrals` | 5 | identity |
-| `network` | 5 | operator |
-| `simulation` | 4 | operator |
-| `oid4vci` | 4 | machine (OID4VCI is a spec'd flow — check the spec before gating) |
-| `decisions` | 4 | identity |
-| `actions` | 4 | identity |
+~84 unguarded mutations after batch 6, spread across roughly eight route
+families. The largest is `credentials` (11, above); the remainder are mostly
+**operator** dispositions with a smaller **identity** tail and one **machine**
+family that implements a specified protocol flow (check the spec before gating
+it). **[Per-family breakdown withheld — see internal gap register.]**
 
 Reads: ~90 anonymously-reachable remain. Some are **public and should be
-allowlisted rather than gated**:
-
-- `/api/crypto/keys` — issuer public keys, documented in `packages/verifier-sdk`
-  as an external fetch target. Publishing them is the point.
-- `/api/crypto/suites`, `/api/protocol/*`, `/api/schemas`, `/api/docs/endpoints`
-  — protocol/API transparency.
-- `/api/security/posture` — advertised on a marketing endpoint directory. Worth
-  a second look: "security toggle and enforcement posture" tells an attacker
-  which controls are on.
+allowlisted rather than gated** — issuer public keys are documented in
+`packages/verifier-sdk` as an external fetch target, and the protocol/schema/API
+transparency surfaces are meant to be readable. One read is worth a second look
+rather than an allowlist: an endpoint that reports **security toggle and
+enforcement posture** tells a caller which controls are on. **[Route names
+withheld — see internal gap register.]**
 
 ## Rules learned
 
@@ -163,14 +157,15 @@ allowlisted rather than gated**:
   (`app/api/{predictions,polling,investigators,graph-engine,actions,storylines,system-health,findings}/[...path]`)
   and template-literal construction; then check non-web callers (SDKs, scripts,
   e2e) before calling anything an orphan.
-- **Unguarded is not the same as exploitable.** `/api/api-keys` had no
-  authorization at all but could not execute — `apiKeyService` targets
-  `subscriptionApiKey` with the *`ApiKey`* model's fields. Guard it anyway:
-  repairing that drift would land on an open door.
+- **Unguarded is not the same as exploitable.** One family had no authorization
+  at all but could not execute, because its service layer queried one model with
+  another model's fields. Guard it anyway: repairing that drift would land on an
+  open door.
 - **For write routes, assert the writing service was never invoked.** A 403
   returned after the service already ran still means the write happened.
-- **Never probe writes against production.** A reachability probe on
-  `batch-resign` means re-signing a real clinician's artifacts.
-- **The anonymous-only test case is theatre.** Without `x-org-id` the tenant
-  guard 401s first, so an anonymous-only assertion passes even with the route's
-  guard removed. The `x-org-id` case carries the proof.
+- **Never probe writes against production.** A reachability probe on a
+  re-signing route means re-signing a real clinician's artifacts.
+- **The anonymous-only test case is theatre.** A wholly anonymous request is
+  refused by the tenant guard before the route's own guard runs, so an
+  anonymous-only assertion passes even with that guard removed. The proof case
+  is the one that satisfies the turnstile and *then* asserts refusal.
