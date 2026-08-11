@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { buildKnowledgeGraph, searchEntities, type KnowledgeEntityKind } from '@vitalcv/domain-evidence';
 import { resolvePassportRuntimePassport } from '@/lib/trust/passport-runtime';
 import { passportToEvidenceCollection } from '@/lib/evidence/passport-to-evidence';
+import { toPublicEvidenceCollection } from '@/lib/entity-relationships/public-disclosure';
 
 export const runtime = 'nodejs';
 
@@ -19,6 +20,15 @@ const ENTITY_KINDS = new Set<KnowledgeEntityKind>(['subject', 'evidence', 'sourc
  * Smart caching (C6): the graph's deterministic `contentHash` is returned as a
  * weak ETag; a matching `If-None-Match` yields 304. Body stays no-store so trust
  * data is never served stale.
+ *
+ * PUBLIC AND UNAUTHENTICATED, and NPI-keyed, so what it may return is governed by
+ * ADR 0006 and enforced by `toPublicEvidenceCollection` — non-public evidence is
+ * removed BEFORE `buildKnowledgeGraph`, which is the only placement that holds
+ * here for three reasons: this projection publishes `evidenceClass` verbatim on
+ * every entity; it overlays `projectOrganizations`, which derives organization
+ * nodes from the SAME collection; and `?kind=`/`?q=` search the projected graph,
+ * so anything left in it is directly queryable. See
+ * `graph-routes-public-disclosure.test.ts`.
  */
 export async function GET(
   req: NextRequest,
@@ -27,7 +37,8 @@ export async function GET(
   const { entityId } = await context.params;
   try {
     const passport = await resolvePassportRuntimePassport(entityId);
-    const collection = passportToEvidenceCollection(passport);
+    // ADR 0006: reduce to publicly-disclosable evidence BEFORE projecting.
+    const collection = toPublicEvidenceCollection(passportToEvidenceCollection(passport));
     const graph = buildKnowledgeGraph(collection);
 
     const etag = `W/"${graph.contentHash}"`;
@@ -54,7 +65,11 @@ export async function GET(
 
     return NextResponse.json(graph, { status: 200, headers: { ETag: etag, 'Cache-Control': 'no-store' } });
   } catch (error) {
-    const detail = error instanceof Error ? error.message : 'Knowledge graph unavailable.';
+    // Never echo an internal error message to the caller: it is the only
+    // caller-visible difference between failure causes on an otherwise uniform
+    // response. Log it server-side; return the static description.
+    console.error('[knowledge-graph/[entityId]]', error);
+    const detail = 'Knowledge graph unavailable.';
     return NextResponse.json(
       { error: 'knowledge_graph_unavailable', error_description: detail },
       { status: 500, headers: { 'Cache-Control': 'no-store' } },

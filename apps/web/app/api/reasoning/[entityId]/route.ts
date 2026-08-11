@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { buildKnowledgeGraph, reason, type ReasoningQuery, type KnowledgeEntityKind } from '@vitalcv/domain-evidence';
 import { resolvePassportRuntimePassport } from '@/lib/trust/passport-runtime';
 import { passportToEvidenceCollection } from '@/lib/evidence/passport-to-evidence';
+import { toPublicEvidenceCollection } from '@/lib/entity-relationships/public-disclosure';
 
 export const runtime = 'nodejs';
 
@@ -22,7 +23,9 @@ export async function GET(
   const { entityId } = await context.params;
   try {
     const passport = await resolvePassportRuntimePassport(entityId);
-    const collection = passportToEvidenceCollection(passport);
+    // ADR 0006: public, NPI-keyed — reduce to publicly-disclosable evidence BEFORE
+    // projecting, so a non-public node never exists. See graph-routes-public-disclosure.test.ts.
+    const collection = toPublicEvidenceCollection(passportToEvidenceCollection(passport));
     const graph = buildKnowledgeGraph(collection);
 
     const { searchParams } = new URL(req.url);
@@ -39,7 +42,11 @@ export async function GET(
     const result = reason(graph, query);
     return NextResponse.json(result, { status: 200, headers: { 'Cache-Control': 'no-store' } });
   } catch (error) {
-    const detail = error instanceof Error ? error.message : 'Reasoning failed.';
+    // Never echo an internal error message to the caller: it is the only
+    // caller-visible difference between failure causes on an otherwise uniform
+    // response. Log it server-side; return the static description.
+    console.error('[reasoning/[entityId]]', error);
+    const detail = 'Reasoning failed.';
     return NextResponse.json(
       { error: 'reasoning_unavailable', error_description: detail },
       { status: 500, headers: { 'Cache-Control': 'no-store' } },

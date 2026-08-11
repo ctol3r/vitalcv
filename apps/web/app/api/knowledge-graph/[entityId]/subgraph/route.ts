@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { buildKnowledgeGraph, indexKnowledgeGraph, traverseSubgraph } from '@vitalcv/domain-evidence';
 import { resolvePassportRuntimePassport } from '@/lib/trust/passport-runtime';
 import { passportToEvidenceCollection } from '@/lib/evidence/passport-to-evidence';
+import { toPublicEvidenceCollection } from '@/lib/entity-relationships/public-disclosure';
 
 export const runtime = 'nodejs';
 
@@ -14,6 +15,14 @@ const MAX_DEPTH = 6;
  * Depth is clamped to [0, 6] so large-graph traversal can never explode; the
  * response reports `truncated` honestly when a bound was hit. Defaults: root =
  * the subject node, depth = 2.
+ *
+ * PUBLIC AND UNAUTHENTICATED, and NPI-keyed, so what it may return is governed by
+ * ADR 0006 and enforced by `toPublicEvidenceCollection` — non-public evidence is
+ * removed BEFORE `buildKnowledgeGraph`. `?root=` is Amendment A's reachability
+ * case exactly: it accepts ANY entity id in the projection, so filtering the
+ * RESPONSE would still let a caller root the traversal at a non-public node and
+ * read it back. Removing the node upstream is what makes `?root=` safe — there is
+ * no id to name. See `graph-routes-public-disclosure.test.ts`.
  */
 export async function GET(
   req: NextRequest,
@@ -22,7 +31,8 @@ export async function GET(
   const { entityId } = await context.params;
   try {
     const passport = await resolvePassportRuntimePassport(entityId);
-    const collection = passportToEvidenceCollection(passport);
+    // ADR 0006: reduce to publicly-disclosable evidence BEFORE projecting.
+    const collection = toPublicEvidenceCollection(passportToEvidenceCollection(passport));
     const graph = buildKnowledgeGraph(collection);
     const index = indexKnowledgeGraph(graph);
 
@@ -37,7 +47,11 @@ export async function GET(
       { status: 200, headers: { 'Cache-Control': 'no-store' } },
     );
   } catch (error) {
-    const detail = error instanceof Error ? error.message : 'Subgraph traversal failed.';
+    // Never echo an internal error message to the caller: it is the only
+    // caller-visible difference between failure causes on an otherwise uniform
+    // response. Log it server-side; return the static description.
+    console.error('[knowledge-graph/[entityId]/subgraph]', error);
+    const detail = 'Subgraph traversal failed.';
     return NextResponse.json(
       { error: 'subgraph_unavailable', error_description: detail },
       { status: 500, headers: { 'Cache-Control': 'no-store' } },

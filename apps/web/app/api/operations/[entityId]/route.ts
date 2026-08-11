@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { composeCareerModel, buildKnowledgeGraph, reason } from '@vitalcv/domain-evidence';
 import { resolvePassportRuntimePassport } from '@/lib/trust/passport-runtime';
 import { passportToEvidenceCollection } from '@/lib/evidence/passport-to-evidence';
+import { toPublicEvidenceCollection } from '@/lib/entity-relationships/public-disclosure';
 import { deriveTasks } from '@/lib/operations/tasks';
 import { recordOperationalEvents } from '@/lib/operations/events';
 import { projectWorklist, buildActivityFeed } from '@/lib/operations/projections';
@@ -27,7 +28,9 @@ export async function GET(
     const at = searchParams.get('at')?.trim() || new Date().toISOString();
 
     const passport = await resolvePassportRuntimePassport(entityId);
-    const model = composeCareerModel(passportToEvidenceCollection(passport));
+    // ADR 0006: public, NPI-keyed — reduce to publicly-disclosable evidence BEFORE
+    // projecting, so a non-public node never exists. See graph-routes-public-disclosure.test.ts.
+    const model = composeCareerModel(toPublicEvidenceCollection(passportToEvidenceCollection(passport)));
 
     const tasks = deriveTasks(model);
     const events = recordOperationalEvents(tasks, at);
@@ -53,7 +56,11 @@ export async function GET(
       { status: 200, headers: { ETag: `W/"${model.meta.contentHash}"`, 'Cache-Control': 'no-store' } },
     );
   } catch (error) {
-    const detail = error instanceof Error ? error.message : 'Operations snapshot failed.';
+    // Never echo an internal error message to the caller: it is the only
+    // caller-visible difference between failure causes on an otherwise uniform
+    // response. Log it server-side; return the static description.
+    console.error('[operations/[entityId]]', error);
+    const detail = 'Operations snapshot failed.';
     return NextResponse.json(
       { error: 'operations_unavailable', error_description: detail },
       { status: 500, headers: { 'Cache-Control': 'no-store' } },

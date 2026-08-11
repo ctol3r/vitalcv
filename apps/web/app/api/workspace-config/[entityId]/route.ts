@@ -88,7 +88,11 @@ export async function GET(
       { status: 200, headers: { ETag: `W/"${model.meta.contentHash}"`, 'Cache-Control': 'no-store' } },
     );
   } catch (error) {
-    const detail = error instanceof Error ? error.message : 'Workspace projection failed.';
+    // Never echo an internal error message to the caller: it is the only
+    // caller-visible difference between failure causes on an otherwise uniform
+    // response. Log it server-side; return the static description.
+    console.error('[workspace-config/[entityId]]', error);
+    const detail = 'Workspace projection failed.';
     return NextResponse.json(
       { error: 'workspace_unavailable', error_description: detail },
       { status: 500, headers: { 'Cache-Control': 'no-store' } },

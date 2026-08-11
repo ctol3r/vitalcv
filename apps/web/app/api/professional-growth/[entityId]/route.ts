@@ -7,6 +7,7 @@ import {
 } from '@vitalcv/domain-evidence';
 import { resolvePassportRuntimePassport } from '@/lib/trust/passport-runtime';
 import { passportToEvidenceCollection } from '@/lib/evidence/passport-to-evidence';
+import { toPublicEvidenceCollection } from '@/lib/entity-relationships/public-disclosure';
 
 export const runtime = 'nodejs';
 
@@ -23,7 +24,9 @@ export async function GET(
   const { entityId } = await context.params;
   try {
     const passport = await resolvePassportRuntimePassport(entityId);
-    const collection = passportToEvidenceCollection(passport);
+    // ADR 0006: public, NPI-keyed — reduce to publicly-disclosable evidence BEFORE
+    // projecting, so a non-public node never exists. See graph-routes-public-disclosure.test.ts.
+    const collection = toPublicEvidenceCollection(passportToEvidenceCollection(passport));
     const graph = projectEvidenceToGraph(collection);
     const trust = propagateTrust(graph);
     const timeline = projectTimeline(collection, graph, trust);
@@ -33,7 +36,11 @@ export async function GET(
       { status: 200, headers: { 'Cache-Control': 'no-store' } },
     );
   } catch (error) {
-    const detail = error instanceof Error ? error.message : 'Professional growth failed.';
+    // Never echo an internal error message to the caller: it is the only
+    // caller-visible difference between failure causes on an otherwise uniform
+    // response. Log it server-side; return the static description.
+    console.error('[professional-growth/[entityId]]', error);
+    const detail = 'Professional growth failed.';
     return NextResponse.json(
       { error: 'professional_growth_unavailable', error_description: detail },
       { status: 500, headers: { 'Cache-Control': 'no-store' } },
