@@ -122,6 +122,13 @@
    `background-image` needs neither, and a background already sits
    behind content by definition.                                      */
 
+/* Compound AND descendant. The register block carries `.bandsys` and
+   `.bs-scene` on the SAME element, so a descendant-only selector never
+   matched and the wash never painted. Caught by measuring
+   `backgroundImage` — no glow and a subtle glow are the same
+   screenshot, which is why this needed a probe, not a look. */
+
+.bandsys.bs-scene,
 .bandsys .bs-scene {
   background-image: var(--vt-scene-glow, none);
   background-repeat: no-repeat;
