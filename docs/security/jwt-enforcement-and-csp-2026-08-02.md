@@ -52,7 +52,7 @@ one of those becomes a 401 the moment enforce is on.
 Until step 3 lands, treat every identity-header-trusting route as reachable by
 anyone who can address the API origin.
 
-### One observation this probe surfaced, needing a decision
+### One observation this probe surfaced — RESOLVED 2026-08-03 (see status note)
 
 One read surface returned **HTTP 200 with clinician PII** — names, NPIs, and
 internal user ids — to a request that asserted identity and an elevated role
@@ -69,9 +69,27 @@ here (the follow-up probe that would have distinguished "public by design" from
 
 Resolve this before the enforce flip, since the flip changes the answer.
 
-**Status note:** this is an *unresolved* finding recorded on 2026-08-02, not a
-closed one. It is carried in the internal gap register. Re-verify before acting
-on it — findings in this repository go stale within days.
+**Status note — RESOLVED 2026-08-03, one day after this record.** The surface was
+**removed, not guarded**, and the removal is live on `main`. Guarding it would have
+been the wrong fix: the available helper asserts only that an *unsigned* identity
+header is **present**, so adding it would have converted an anonymous read into a
+forged-header read.
+
+Verified on `origin/main` 2026-08-10, by code rather than by probe:
+- no handler file remains, and nothing registers the route;
+- the containment commit is an ancestor of `origin/main`;
+- a regression guard pins it removed and asserts **404, not 401** — deliberately
+  sending the headers a caller would forge, so a pass means "no such route"
+  rather than "the guard held".
+
+Residue, harmless but worth a sweep: the removed path is still listed in the tenant
+guard's skip-list, an orphaned entry for a route that no longer exists.
+
+**The lesson is the stale doc, not the finding.** This section read as an open P0
+for eight days after it was closed, and cost a re-investigation on 2026-08-10 to
+establish that nothing was wrong. When a finding closes, update the record that
+carries it — a security document that outlives its finding manufactures false
+alarms, which is the same failure mode as an audit that goes stale within days.
 
 ## 2. `X-Powered-By` — removed in this PR
 
