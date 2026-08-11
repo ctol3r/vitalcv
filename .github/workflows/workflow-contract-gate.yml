@@ -2,8 +2,8 @@ name: Workflow Contract Gate
 
 # Enforces two rules about what workflow files may say.
 #
-# Rule 1: a REQUIRED status check must never path-filter its
-# `pull_request` trigger.
+# Rule 1: every REQUIRED status check must actually report on a pull request to
+# main.
 #
 # A path-filtered workflow is skipped ENTIRELY on a PR touching none of its
 # paths, so its check run is never created — and a required check that never
@@ -15,8 +15,17 @@ name: Workflow Contract Gate
 # The reasoning already existed as prose in three workflow files. Prose is
 # documentation, not enforcement.
 #
-# The rule is narrow on purpose: path-filtering is fine for non-required
-# workflows (eight currently do it to save CI minutes), and `paths:` under
+# Until 2026-08-11 the rule was written as the mechanism — "no `paths:` under
+# `pull_request:`" — and the same incident stayed reachable through doors it did
+# not watch. Injection on 2026-08-10 proved two of them: deleting ci.yml's
+# `pull_request` trigger outright, and narrowing it to `branches: [develop]`,
+# both left the gate green while three required contexts could no longer report
+# on any PR to main. The rule now asks the question branch protection asks —
+# will this context report on a PR to main? — which also covers `types:` that
+# omit `synchronize`, and two jobs sharing one check name.
+#
+# The rule stays narrow where it was narrow: path-filtering is fine for
+# non-required workflows (several do it to save CI minutes), and `paths:` under
 # `push:` is always fine because push filtering cannot affect a PR's checks.
 #
 # Rule 2: every pull_request-triggered workflow must declare a ref-keyed
@@ -60,7 +69,13 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
-      - name: Required checks must not be path-filtered on pull_request
-        run: node scripts/check-workflow-path-filters.js
+      # Runs first: a gate that cannot catch its own defects is not a gate. The
+      # fixtures include both 2026-08-10 injections — a deleted pull_request
+      # trigger and one narrowed off main — each of which passed this gate
+      # before it checked the closure.
+      - name: The contract checker must catch the defects it claims to catch
+        run: node scripts/check-workflow-path-filters.js --self-test
+      - name: Required checks must actually report on a pull request to main
+        run: node scripts/check-workflow-path-filters.js --report
       - name: PR-triggered workflows must cancel superseded runs (never on main)
         run: node scripts/check-workflow-concurrency.js
