@@ -16,7 +16,10 @@ import { expect, test } from '@playwright/test';
  */
 
 const NPI = '1234567893'; // checksum-valid; the canonical test number
-const ORG_NPI = '1003000134';
+// 1558395514 — check-digit INVALID, NPPES result_count 0, final digit (4)
+// preserved. Was 1003000134 until 2026-08-10, which NPPES answers with
+// result_count 1: a real registrant, used here as a stand-in organization.
+const ORG_NPI = '1558395514';
 
 const BOOT = {
   npi: NPI, npiType: 'TYPE_1', inferredPersona: 'CLINICIAN',

@@ -27,13 +27,14 @@
  * a synthetic number). A mention is a comment; a usage is a value.
  */
 import { readFileSync } from 'node:fs';
+import { readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const REPO = join(__dirname, '..', '..', '..');
 
 /** Files that can execute, render, or seed — the founder's tier-1 axis. */
-const TIER_1 = [
+const TIER_1_EXPLICIT = [
   'scripts/smoke/prod.sh',
   'scripts/launch-monitor.sh',
   'apps/web/app/dev/page-stack/PageStackHarness.tsx',
@@ -42,6 +43,54 @@ const TIER_1 = [
   'apps/api/backend/src/agents/SanctionsAgent.ts',
   'apps/api/backend/src/agents/StateBoardAgent.ts',
 ];
+
+/**
+ * Every Playwright spec, discovered rather than listed.
+ *
+ * E2E specs are tier 1 in the only sense that matters here: they drive REAL
+ * HTTP at real identifiers, so an NPI in one is a live request against that
+ * person's record, not an inert fixture string. They were originally filed as
+ * tier 3 ("tests — mechanical hygiene") and that was wrong.
+ *
+ * Proven on 2026-08-10: `relationship-drawer.spec.ts` hardcoded 1003000126 — a
+ * real physician — and kept requesting his evidence graph on every CI run.
+ * The tier-1 list above did not include it, so THIS GUARD WAS SCOPED TO MISS
+ * IT. The Web E2E gate caught the drift only because changing the harness
+ * constant orphaned the spec's copy; had both carried the real NPI, both would
+ * have stayed green forever.
+ *
+ * Globbed, not enumerated, so a NEW spec cannot slip in unlisted — which is
+ * exactly how the last one survived.
+ */
+function e2eSpecs(): string[] {
+  const dir = 'apps/web/tests/e2e';
+  return readdirSync(join(REPO, dir))
+    .filter((f) => f.endsWith('.spec.ts') || f.endsWith('.spec.tsx'))
+    .map((f) => `${dir}/${f}`)
+    .sort();
+}
+
+const TIER_1 = [...TIER_1_EXPLICIT, ...e2eSpecs()];
+
+/**
+ * NPIs whose check digit is VALID but which the registry does not assign.
+ *
+ * A valid check digit means a number COULD be assigned, not that it IS. The
+ * arithmetic is the cheap screen; only NPPES can settle it, and a unit test
+ * must not make a network call. So each entry here records a value verified
+ * against `npiregistry.cms.hhs.gov` as unassigned, with the date checked.
+ *
+ * This is deliberately NOT a general escape hatch: adding a number here is
+ * asserting you asked the registry and it answered `result_count: 0`. If that
+ * ever changes — CMS does reissue ranges — the entry is wrong and the guard
+ * silently stops protecting a real person. Re-verify when touching this list.
+ */
+const VERIFIED_UNASSIGNED: Record<string, string> = {
+  // Sequential digits + check digit; the canonical well-formed-but-nonexistent
+  // test number, used across ~11 specs on purpose. Verified 2026-08-10:
+  // result_count 0. Also the NPI behind the /verify not-found truth contract.
+  '1234567893': 'NPPES result_count 0, verified 2026-08-10',
+};
 
 /** The official NPI check digit: Luhn over the number prefixed with 80840. */
 function hasValidCheckDigit(npi: string): boolean {
@@ -80,9 +129,9 @@ describe('tier-1 executables carry no real registrant NPI', () => {
     lines.forEach((line, i) => {
       if (isProtectiveMention(line)) return; // comments may name the real NPI
       for (const candidate of line.match(/\b\d{10}\b/g) ?? []) {
-        if (hasValidCheckDigit(candidate)) {
-          offenders.push(`${rel}:${i + 1}  ${candidate}  ${line.trim().slice(0, 90)}`);
-        }
+        if (!hasValidCheckDigit(candidate)) continue;
+        if (candidate in VERIFIED_UNASSIGNED) continue; // registry says nobody holds it
+        offenders.push(`${rel}:${i + 1}  ${candidate}  ${line.trim().slice(0, 90)}`);
       }
     });
 
