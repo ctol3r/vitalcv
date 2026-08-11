@@ -78,8 +78,8 @@ function Segment() {
     const option = list.querySelectorAll<HTMLElement>('.bs-segment__option')[active];
     if (!option) return;
 
-    list.style.setProperty('--bs-seg-x', `${option.offsetLeft}px`);
-    list.style.setProperty('--bs-seg-w', `${option.offsetWidth}px`);
+    list.style.setProperty('--vt-bs-seg-x', `${option.offsetLeft}px`);
+    list.style.setProperty('--vt-bs-seg-w', `${option.offsetWidth}px`);
     setArmed(true);
   }, [active]);
 
@@ -169,7 +169,7 @@ function Specimens() {
         <p className="bs-earmark">01 — Earmark</p>
         <hr className="bs-rule bs-rule--reveal" style={{ margin: '0.75rem 0 1.5rem' }} />
         <p className="bs-earmark">NPI 1063708299 · Read 2026-08-09 14:02 UTC</p>
-        <p style={{ marginTop: '0.75rem', maxInlineSize: '52ch', color: 'var(--bs-ink-2)' }}>
+        <p style={{ marginTop: '0.75rem', maxInlineSize: '52ch', color: 'var(--vt-bs-ink-2)' }}>
           11px mono, uppercase, +0.08em, <code>slashed-zero</code> and <code>tabular-nums</code>.
           The slashed zero is a correctness affordance on a surface where identifiers and dates
           are the content — not decoration.
@@ -197,11 +197,11 @@ function Specimens() {
             <hr className="bs-rule bs-rule--reveal" />
             <hr
               className="bs-rule bs-rule--reveal"
-              style={{ marginTop: '0.5rem', ['--bs-delay' as string]: '120ms' }}
+              style={{ marginTop: '0.5rem', ['--vt-bs-delay' as string]: '120ms' }}
             />
             <hr
               className="bs-rule bs-rule--reveal"
-              style={{ marginTop: '0.5rem', ['--bs-delay' as string]: '240ms' }}
+              style={{ marginTop: '0.5rem', ['--vt-bs-delay' as string]: '240ms' }}
             />
           </div>
         </div>
@@ -227,7 +227,7 @@ function Specimens() {
             </span>
           </a>
         </div>
-        <p style={{ marginTop: '1.25rem', maxInlineSize: '52ch', color: 'var(--bs-ink-2)' }}>
+        <p style={{ marginTop: '1.25rem', maxInlineSize: '52ch', color: 'var(--vt-bs-ink-2)' }}>
           Tab to each control: focus is styled outside the hover media query, so the affordance
           survives on touch-capable laptops. Every control clears the 44px block floor.
         </p>
@@ -238,7 +238,7 @@ function Specimens() {
         <hr className="bs-rule bs-rule--reveal" style={{ margin: '0.75rem 0 1.5rem' }} />
 
         {/* Alignment proof. The first row is a real grid child; the second is
-            a plain block outside any grid, sized by `--bs-track`. Their right
+            a plain block outside any grid, sized by `--vt-bs-track`. Their right
             edges must agree exactly — that is the whole claim. */}
         <div className="bs-band__grid" style={{ rowGap: '0.5rem' }}>
           <div
@@ -246,8 +246,8 @@ function Specimens() {
             style={{
               gridColumn: 'span 4',
               blockSize: '2.5rem',
-              background: 'var(--bs-raised)',
-              border: '1px solid var(--bs-hairline)',
+              background: 'var(--vt-bs-raised)',
+              border: '1px solid var(--vt-bs-hairline)',
               borderRadius: '2px',
             }}
           />
@@ -258,15 +258,15 @@ function Specimens() {
           style={{
             blockSize: '2.5rem',
             marginBlockStart: '0.5rem',
-            background: 'var(--bs-raised)',
-            border: '1px solid var(--bs-ink)',
+            background: 'var(--vt-bs-raised)',
+            border: '1px solid var(--vt-bs-ink)',
             borderRadius: '2px',
           }}
         />
         <p className="bs-earmark" style={{ marginBlockStart: '0.75rem' }}>
           Top: grid child, span 4 · Bottom: .bs-span-4, no grid parent
         </p>
-        <p style={{ marginTop: '0.75rem', maxInlineSize: '52ch', color: 'var(--bs-ink-2)' }}>
+        <p style={{ marginTop: '0.75rem', maxInlineSize: '52ch', color: 'var(--vt-bs-ink-2)' }}>
           The reference computes this from <code>100svw</code>, which counts the scrollbar — its
           own 4-column span paints 4.99px wide of a true grid child. Container units exclude it.
         </p>
@@ -309,7 +309,7 @@ function Specimens() {
             </span>
           </button>
         </div>
-        <p style={{ marginTop: '1.25rem', maxInlineSize: '56ch', color: 'var(--bs-ink-2)' }}>
+        <p style={{ marginTop: '1.25rem', maxInlineSize: '56ch', color: 'var(--vt-bs-ink-2)' }}>
           The trailing arrow leaves to the right as a second arrives from the left and the label
           slides to meet it — one arrow overtaking the label, not two cross-fading. The resting
           arrow is drawn before any pointer arrives, so the affordance never depends on hover.
@@ -324,7 +324,7 @@ function Specimens() {
           <IconButton size="md" label="Next, 32px mark" />
           <IconButton size="lg" label="Next, 44px mark" />
         </div>
-        <p style={{ marginTop: '1.25rem', maxInlineSize: '56ch', color: 'var(--bs-ink-2)' }}>
+        <p style={{ marginTop: '1.25rem', maxInlineSize: '56ch', color: 'var(--vt-bs-ink-2)' }}>
           Both glyphs move from one custom property: slot one translates by it, slot two by it
           minus 100%. The reference&rsquo;s 24px and 32px marks are kept — the hit area around
           them is expanded to 44px rather than the mark shrunk to match it.
@@ -335,7 +335,7 @@ function Specimens() {
         <p className="bs-earmark">08 — Segment · travelling indicator</p>
         <hr className="bs-rule bs-rule--reveal" style={{ margin: '0.75rem 0 1.5rem' }} />
         <Segment />
-        <p style={{ marginTop: '1.25rem', maxInlineSize: '56ch', color: 'var(--bs-ink-2)' }}>
+        <p style={{ marginTop: '1.25rem', maxInlineSize: '56ch', color: 'var(--vt-bs-ink-2)' }}>
           One indicator travels rather than each option carrying its own ground. The selected
           option is drawn by CSS from <code>aria-current</code>, so it stays readable if the
           measuring script never runs; arming then hands the job to the bar. Never both at once.
@@ -356,7 +356,7 @@ function Specimens() {
             </a>
           ))}
         </div>
-        <p style={{ marginTop: '1.25rem', maxInlineSize: '56ch', color: 'var(--bs-ink-2)' }}>
+        <p style={{ marginTop: '1.25rem', maxInlineSize: '56ch', color: 'var(--vt-bs-ink-2)' }}>
           Ground fades and the label travels on hover, gated on hover <em>capability</em> rather
           than a width breakpoint — the reference gates this at 1080px, which switches it on for a
           narrow laptop window and off for a 1024px tablet.
@@ -392,7 +392,7 @@ function Specimens() {
             </details>
           ))}
         </div>
-        <p style={{ marginTop: '1.25rem', maxInlineSize: '56ch', color: 'var(--bs-ink-2)' }}>
+        <p style={{ marginTop: '1.25rem', maxInlineSize: '56ch', color: 'var(--vt-bs-ink-2)' }}>
           A row drops its own divider when the row below it is open or hovered, so an active row
           reads as one block. Built on <code>&lt;details&gt;</code>, so it opens before hydration
           and with no script at all.
@@ -429,7 +429,7 @@ function Specimens() {
             </label>
           </div>
         </div>
-        <p style={{ marginTop: '1.25rem', maxInlineSize: '56ch', color: 'var(--bs-ink-2)' }}>
+        <p style={{ marginTop: '1.25rem', maxInlineSize: '56ch', color: 'var(--vt-bs-ink-2)' }}>
           The label parks exactly one line-height down, so it cannot drift from the type size. It
           stays a real <code>&lt;label for&gt;</code> throughout — only its position animates, so
           the control keeps one stable accessible name whether empty or filled.
@@ -453,7 +453,7 @@ function Specimens() {
             Placeholder — pair with a live-region status word
           </p>
         </div>
-        <p style={{ marginTop: '1.25rem', maxInlineSize: '56ch', color: 'var(--bs-ink-2)' }}>
+        <p style={{ marginTop: '1.25rem', maxInlineSize: '56ch', color: 'var(--vt-bs-ink-2)' }}>
           The tag is a word-label, so it may round; the action beside it may not. That is the one
           place the two systems genuinely differ, and the silhouette is doing the work.
         </p>
@@ -472,7 +472,7 @@ export default function BandSystemReference() {
           <p className="bs-earmark">VitalCV · Band System · Dark register</p>
           <hr className="bs-rule bs-rule--strong bs-rule--reveal" style={{ margin: '0.75rem 0 1.5rem' }} />
           <h1 className="bs-heading">Structural primitives, both registers.</h1>
-          <p style={{ marginTop: '1rem', maxInlineSize: '56ch', color: 'var(--bs-ink-2)' }}>
+          <p style={{ marginTop: '1rem', maxInlineSize: '56ch', color: 'var(--vt-bs-ink-2)' }}>
             Near-sharp graphite: the island&rsquo;s own convention, and the register required for
             evidence, dense workflow, and legibility-critical surfaces.
           </p>
@@ -485,7 +485,7 @@ export default function BandSystemReference() {
           <p className="bs-earmark">VitalCV · Band System · Light register</p>
           <hr className="bs-rule bs-rule--strong bs-rule--reveal" style={{ margin: '0.75rem 0 1.5rem' }} />
           <h1 className="bs-heading">Required, not derived.</h1>
-          <p style={{ marginTop: '1rem', maxInlineSize: '56ch', color: 'var(--bs-ink-2)' }}>
+          <p style={{ marginTop: '1rem', maxInlineSize: '56ch', color: 'var(--vt-bs-ink-2)' }}>
             The light register is required for evidence, dense workflow, and legibility-critical
             surfaces. Identical markup below — only the register class changes.
           </p>
@@ -502,7 +502,7 @@ export default function BandSystemReference() {
           <p className="bs-earmark">VitalCV · Band System · Scene register</p>
           <hr className="bs-rule bs-rule--strong bs-rule--reveal" style={{ margin: '0.75rem 0 1.5rem' }} />
           <h1 className="bs-heading">Same components, softer character.</h1>
-          <p style={{ marginTop: '1rem', maxInlineSize: '56ch', color: 'var(--bs-ink-2)' }}>
+          <p style={{ marginTop: '1rem', maxInlineSize: '56ch', color: 'var(--vt-bs-ink-2)' }}>
             Nothing below is a different component. The shape scale, the frosted surface and the
             single atmospheric wash are rebound from tokens — panels soften to 24px, labels become
             pills, and actions stay square, because silhouette is what tells you a thing can be

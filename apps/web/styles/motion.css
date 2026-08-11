@@ -12,6 +12,27 @@
  * Keyframes for film surfaces therefore live here, not there.
  */
 
+/* Band-system reveal wipe, driven by `animation-timeline: view()` from
+ * `band-system-components.css` — no script and no observer, so where the
+ * timeline is unsupported the content is simply present.
+ *
+ * The end state sits OUTSIDE the border box on purpose. `clip-path` clips
+ * descendants' outlines, and the animation uses `fill-mode: both`, so ending
+ * on `inset(0)` would leave every revealed band permanently cropping the focus
+ * ring of any control near its edge (EC-5). Negative `inset()` values are
+ * valid and honoured — verified in-browser, `inset(-8px)` computes as authored
+ * — and 8px clears a 2px ring at its 3px offset with room spare. Visually
+ * identical: nothing paints out there except outlines, which is the point.
+ */
+@keyframes bs-reveal-wipe {
+  from {
+    clip-path: inset(-8px 100% -8px -8px);
+  }
+  to {
+    clip-path: inset(-8px -8px -8px -8px);
+  }
+}
+
 /* Used by `.film-record` via `[data-film-record-live]` (COMPETE-2): the record
  * settles onto the paper rather than appearing. It stays record-specific — only
  * FilmRecord emits that attribute, even though the lane class is shared panel

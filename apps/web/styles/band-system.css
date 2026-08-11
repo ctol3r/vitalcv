@@ -46,19 +46,19 @@
      EC-20 "Grid + page width": full-width hairline-ruled band
      composition, content max ~1400px.
 
-     `--bs-contain` is the one idea worth taking wholesale from R2:
+     `--vt-bs-contain` is the one idea worth taking wholesale from R2:
      a single padding value that pins content to the max-width while
      the band itself stays edge-to-edge — no wrapper element, so a
      rule can span the viewport while text stays on the grid.
 
      R2 ships this idiom twice broken (`css-max(...)`, an uncompiled
      Sass helper that browsers drop). This is the working form.       */
-  --bs-max: 1400px;
-  --bs-pad: 1.25rem;
-  --bs-contain: max((100% - var(--bs-max)) / 2, var(--bs-pad));
-  --bs-gutter: 1rem;
-  --bs-cols: 12;
-  --bs-grid: repeat(12, minmax(0, 1fr));
+  --vt-bs-max: 1400px;
+  --vt-bs-pad: 1.25rem;
+  --vt-bs-contain: max((100% - var(--vt-bs-max)) / 2, var(--vt-bs-pad));
+  --vt-bs-gutter: 1rem;
+  --vt-bs-cols: 12;
+  --vt-bs-grid: repeat(12, minmax(0, 1fr));
 
   /* One grid track, derived. Reference R3 (Zoox) computes column spans
      arithmetically instead of requiring grid parentage, which lets an
@@ -73,38 +73,38 @@
 
      `100cqw` is the container's content box, so the scrollbar is already
      excluded and the span matches a real grid child exactly.            */
-  --bs-track: calc((100cqw - (var(--bs-cols) - 1) * var(--bs-gutter)) / var(--bs-cols));
+  --vt-bs-track: calc((100cqw - (var(--vt-bs-cols) - 1) * var(--vt-bs-gutter)) / var(--vt-bs-cols));
 
   /* ── Vertical rhythm ──────────────────────────────────────────
      UX-02 item 3 (spacing rhythm) is PENDING; these are a proposal,
      not a locked row. R3's four-step scale with a mobile/desktop pair
      per step is the right shape — the values here are ours.            */
-  --bs-rhythm-xs: 1.5rem;
-  --bs-rhythm-sm: 2.5rem;
-  --bs-rhythm-md: 3.5rem;
-  --bs-rhythm-lg: 6rem;
+  --vt-bs-rhythm-xs: 1.5rem;
+  --vt-bs-rhythm-sm: 2.5rem;
+  --vt-bs-rhythm-md: 3.5rem;
+  --vt-bs-rhythm-lg: 6rem;
 
   /* ── Motion (EC-20 "motion communicates quickly", single-shot) ── */
-  --bs-ease: cubic-bezier(0.22, 0.61, 0.36, 1);
-  --bs-dur: 240ms;
+  --vt-bs-ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --vt-bs-dur: 240ms;
 
   /* ── Type (EC-20 locked faces + micro-label anchors) ─────── */
-  --bs-mono: var(--font-geist-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
-  --bs-sans: var(--font-geist, ui-sans-serif, system-ui, sans-serif);
+  --vt-bs-mono: var(--font-geist-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  --vt-bs-sans: var(--font-geist, ui-sans-serif, system-ui, sans-serif);
 
-  color: var(--bs-ink);
-  background-color: var(--bs-ground);
-  font-family: var(--bs-sans);
+  color: var(--vt-bs-ink);
+  background-color: var(--vt-bs-ground);
+  font-family: var(--vt-bs-sans);
 }
 
 @media (min-width: 60em) {
   .bandsys {
-    --bs-pad: 2rem;
-    --bs-gutter: 1.5rem;
-    --bs-rhythm-xs: 2rem;
-    --bs-rhythm-sm: 3.75rem;
-    --bs-rhythm-md: 5rem;
-    --bs-rhythm-lg: 10rem;
+    --vt-bs-pad: 2rem;
+    --vt-bs-gutter: 1.5rem;
+    --vt-bs-rhythm-xs: 2rem;
+    --vt-bs-rhythm-sm: 3.75rem;
+    --vt-bs-rhythm-md: 5rem;
+    --vt-bs-rhythm-lg: 10rem;
   }
 }
 
@@ -114,60 +114,73 @@
    a class, so a band flips register without any component knowing
    which register it is in.
 
-   Values are EC-20's locked palette, not R2's. EC-20 "Light/dark
-   doctrine": dark is a permitted public register; light is REQUIRED
-   for evidence artifacts, dense workflow, and legibility-critical
-   surfaces — so both must be first-class, not one themed off the
-   other.                                                            */
+   EC-20 "Light/dark doctrine": dark is a permitted public register;
+   light is REQUIRED for evidence artifacts, dense workflow, and
+   legibility-critical surfaces — so both must be first-class, not one
+   themed off the other.
+
+   BOUND to the ratified scene palette rather than restated. These
+   seven names were originally hand-written hexes, and diffing them
+   against `themes/index.css` showed why that is a bad idea: two were
+   byte-identical to the scene ink pair, and the
+   rest had drifted 1–4 per channel from the values they were copied
+   from. A hand-copied palette is one that silently stops matching.
+   Binding removes the drift, and an EC-20 palette change now reaches
+   this island for free.
+
+   Light surfaces are mixed from the paper pair because the scene set
+   carries no second paper tint. The relationship is preserved — panel
+   stays lighter than ground — using only tokens, so no raw colour is
+   reintroduced (LINT-01).                                            */
 
 .bandsys,
 .bandsys-dark {
-  --bs-ground: #141517;
-  --bs-panel: #1c1d20;
-  --bs-raised: #222326;
-  --bs-hairline: #2e2f33;
-  --bs-ink: #f2f1ed;
-  --bs-ink-2: #9c9d99;
-  --bs-hover: #ffffff;
+  --vt-bs-ground: var(--vt-scene-canvas);
+  --vt-bs-panel: var(--vt-scene-panel);
+  --vt-bs-raised: var(--vt-scene-panel-raised);
+  --vt-bs-hairline: var(--vt-scene-line);
+  --vt-bs-ink: var(--vt-scene-text);
+  --vt-bs-ink-2: var(--vt-scene-text-secondary);
+  --vt-bs-hover: var(--vt-scene-text);
 }
 
 .bandsys-light {
-  --bs-ground: #f7f6f3;
-  --bs-panel: #ffffff;
-  --bs-raised: #efeee9;
-  --bs-hairline: #d4d2cc;
-  --bs-ink: #16171a;
-  --bs-ink-2: #5c5e60;
-  --bs-hover: #000000;
+  --vt-bs-ground: color-mix(in oklab, var(--vt-scene-paper-line) 22%, var(--vt-scene-paper));
+  --vt-bs-panel: var(--vt-scene-paper);
+  --vt-bs-raised: color-mix(in oklab, var(--vt-scene-paper-line) 45%, var(--vt-scene-paper));
+  --vt-bs-hairline: var(--vt-scene-paper-line);
+  --vt-bs-ink: var(--vt-scene-paper-text);
+  --vt-bs-ink-2: var(--vt-scene-paper-text-secondary);
+  --vt-bs-hover: var(--vt-scene-paper-text);
 
-  color: var(--bs-ink);
-  background-color: var(--bs-ground);
+  color: var(--vt-bs-ink);
+  background-color: var(--vt-bs-ground);
 }
 
 /* ── Band ─────────────────────────────────────────────────────
    Full-bleed ground, hairline top rule spanning the viewport,
-   content contained to --bs-max.                                    */
+   content contained to --vt-bs-max.                                    */
 
 .bs-band {
-  background-color: var(--bs-ground);
-  color: var(--bs-ink);
-  padding-block: var(--bs-rhythm-md);
-  padding-inline: var(--bs-contain);
+  background-color: var(--vt-bs-ground);
+  color: var(--vt-bs-ink);
+  padding-block: var(--vt-bs-rhythm-md);
+  padding-inline: var(--vt-bs-contain);
 
   /* Makes the band's CONTENT BOX the query container, so `100cqw` in
-     `--bs-track` is the contained width — scrollbar already excluded.
+     `--vt-bs-track` is the contained width — scrollbar already excluded.
      Inline-axis only: block size still comes from the content.         */
   container-type: inline-size;
 }
 
 .bs-band + .bs-band {
-  border-top: 1px solid var(--bs-hairline);
+  border-top: 1px solid var(--vt-bs-hairline);
 }
 
 .bs-band__grid {
   display: grid;
-  grid-template-columns: var(--bs-grid);
-  column-gap: var(--bs-gutter);
+  grid-template-columns: var(--vt-bs-grid);
+  column-gap: var(--vt-bs-gutter);
   row-gap: 2rem;
 }
 
@@ -181,22 +194,22 @@
    only for the cases where that is unavailable.                        */
 
 .bs-span {
-  inline-size: calc(var(--bs-track) * var(--bs-n) + (var(--bs-n) - 1) * var(--bs-gutter));
+  inline-size: calc(var(--vt-bs-track) * var(--vt-bs-n) + (var(--vt-bs-n) - 1) * var(--vt-bs-gutter));
   max-inline-size: 100%;
 }
 
-.bs-span-1 { --bs-n: 1; }
-.bs-span-2 { --bs-n: 2; }
-.bs-span-3 { --bs-n: 3; }
-.bs-span-4 { --bs-n: 4; }
-.bs-span-5 { --bs-n: 5; }
-.bs-span-6 { --bs-n: 6; }
-.bs-span-7 { --bs-n: 7; }
-.bs-span-8 { --bs-n: 8; }
-.bs-span-9 { --bs-n: 9; }
-.bs-span-10 { --bs-n: 10; }
-.bs-span-11 { --bs-n: 11; }
-.bs-span-12 { --bs-n: 12; }
+.bs-span-1 { --vt-bs-n: 1; }
+.bs-span-2 { --vt-bs-n: 2; }
+.bs-span-3 { --vt-bs-n: 3; }
+.bs-span-4 { --vt-bs-n: 4; }
+.bs-span-5 { --vt-bs-n: 5; }
+.bs-span-6 { --vt-bs-n: 6; }
+.bs-span-7 { --vt-bs-n: 7; }
+.bs-span-8 { --vt-bs-n: 8; }
+.bs-span-9 { --vt-bs-n: 9; }
+.bs-span-10 { --vt-bs-n: 10; }
+.bs-span-11 { --vt-bs-n: 11; }
+.bs-span-12 { --vt-bs-n: 12; }
 
 /* ── Vertical rhythm utilities ────────────────────────────────
    R3 emits the mobile/desktop pair inside every block component's own
@@ -204,15 +217,15 @@
    repeated across ~30 components. Here the pair lives once on the token
    and the utilities just read it, so a rhythm change is a token edit.   */
 
-.bs-pad-t-xs { padding-block-start: var(--bs-rhythm-xs); }
-.bs-pad-t-sm { padding-block-start: var(--bs-rhythm-sm); }
-.bs-pad-t-md { padding-block-start: var(--bs-rhythm-md); }
-.bs-pad-t-lg { padding-block-start: var(--bs-rhythm-lg); }
+.bs-pad-t-xs { padding-block-start: var(--vt-bs-rhythm-xs); }
+.bs-pad-t-sm { padding-block-start: var(--vt-bs-rhythm-sm); }
+.bs-pad-t-md { padding-block-start: var(--vt-bs-rhythm-md); }
+.bs-pad-t-lg { padding-block-start: var(--vt-bs-rhythm-lg); }
 
-.bs-pad-b-xs { padding-block-end: var(--bs-rhythm-xs); }
-.bs-pad-b-sm { padding-block-end: var(--bs-rhythm-sm); }
-.bs-pad-b-md { padding-block-end: var(--bs-rhythm-md); }
-.bs-pad-b-lg { padding-block-end: var(--bs-rhythm-lg); }
+.bs-pad-b-xs { padding-block-end: var(--vt-bs-rhythm-xs); }
+.bs-pad-b-sm { padding-block-end: var(--vt-bs-rhythm-sm); }
+.bs-pad-b-md { padding-block-end: var(--vt-bs-rhythm-md); }
+.bs-pad-b-lg { padding-block-end: var(--vt-bs-rhythm-lg); }
 
 /* ── Earmark — the micro-label ────────────────────────────────
    EC-20 "Type scale": 11px mono uppercase +0.08em.
@@ -224,14 +237,14 @@
    unambiguous zero is a correctness affordance, not decoration.      */
 
 .bs-earmark {
-  font-family: var(--bs-mono);
+  font-family: var(--vt-bs-mono);
   font-size: 0.6875rem; /* 11px */
   line-height: 1.45;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   font-variant-numeric: slashed-zero tabular-nums;
   font-feature-settings: 'tnum' on, 'zero' on;
-  color: var(--bs-ink-2);
+  color: var(--vt-bs-ink-2);
 }
 
 /* ── Heading ──────────────────────────────────────────────────
@@ -245,14 +258,14 @@
    pairing for no stated benefit.                                        */
 
 .bs-heading {
-  font-family: var(--bs-sans);
+  font-family: var(--vt-bs-sans);
   font-size: clamp(2rem, 5vw, 3.25rem);
   line-height: 1.05;
   letter-spacing: -0.03em;
   text-wrap: balance;
   max-inline-size: 20ch;
   margin: 0;
-  color: var(--bs-ink);
+  color: var(--vt-bs-ink);
 }
 
 /* ── Hairline rule ────────────────────────────────────────────
@@ -270,17 +283,17 @@
   inline-size: 100%;
   border: 0;
   margin: 0;
-  background-color: var(--bs-hairline);
+  background-color: var(--vt-bs-hairline);
 }
 
 .bs-rule--strong {
-  background-color: var(--bs-ink);
+  background-color: var(--vt-bs-ink);
 }
 
 .bs-rule--reveal {
   transform: scaleX(0);
   transform-origin: left center;
-  transition: transform 700ms var(--bs-ease) var(--bs-delay, 0ms);
+  transition: transform 700ms var(--vt-bs-ease) var(--vt-bs-delay, 0ms);
 }
 
 .bs-rule--reveal.is-revealed {
@@ -310,7 +323,7 @@
 .bs-rule--dashed {
   block-size: 0;
   background-color: transparent;
-  border-top: 1px dashed var(--bs-hairline);
+  border-top: 1px dashed var(--vt-bs-hairline);
 }
 
 /* ── Travelling link underline ────────────────────────────────
@@ -329,15 +342,15 @@
      exactly half the shortfall between the line box and the floor, so
      the control measures >=44px at any font-size, and the underline
      still sits tight against the text rather than at the box edge.    */
-  --bs-link-lh: 1.4;
-  --bs-link-pad: max(0.25rem, (44px - var(--bs-link-lh) * 1em) / 2);
+  --vt-bs-link-lh: 1.4;
+  --vt-bs-link-pad: max(0.25rem, (44px - var(--vt-bs-link-lh) * 1em) / 2);
 
   position: relative;
   display: inline-block;
-  color: var(--bs-ink);
+  color: var(--vt-bs-ink);
   text-decoration: none;
-  line-height: var(--bs-link-lh);
-  padding-block: var(--bs-link-pad);
+  line-height: var(--vt-bs-link-lh);
+  padding-block: var(--vt-bs-link-pad);
 
   /* The derivation above is exact on paper — 22.4 + 10.8 + 10.8 = 44 — and
      still lands SHORT. Browsers quantise layout to 1/64px, so the used
@@ -353,7 +366,7 @@
    so this variant relies on the WCAG 2.5.8 exception for targets inline
    in a block of text. Never use it for standalone navigation.          */
 .bs-link--inline {
-  --bs-link-pad: 0px;
+  --vt-bs-link-pad: 0px;
   /* Must also drop the floor, or a mid-sentence link gets a 44px box and
      collides with the lines above and below it. */
   min-block-size: 0;
@@ -364,19 +377,19 @@
   content: '';
   position: absolute;
   inset-inline: 0;
-  inset-block-end: var(--bs-link-pad);
+  inset-block-end: var(--vt-bs-link-pad);
   block-size: 1px;
 }
 
 .bs-link::before {
-  background-color: var(--bs-hairline);
+  background-color: var(--vt-bs-hairline);
 }
 
 .bs-link::after {
-  background-color: var(--bs-ink);
+  background-color: var(--vt-bs-ink);
   transform: scaleX(0);
   transform-origin: right center;
-  transition: transform var(--bs-dur) var(--bs-ease);
+  transition: transform var(--vt-bs-dur) var(--vt-bs-ease);
 }
 
 .bs-link:hover::after,
@@ -386,7 +399,7 @@
 }
 
 .bs-link:focus-visible {
-  outline: 2px solid var(--bs-ink);
+  outline: 2px solid var(--vt-bs-ink);
   outline-offset: 3px;
 }
 
@@ -401,8 +414,8 @@
   gap: 0.5rem;
   min-block-size: 44px;
   padding-inline: 0.125rem;
-  color: var(--bs-ink);
-  font-family: var(--bs-sans);
+  color: var(--vt-bs-ink);
+  font-family: var(--vt-bs-sans);
   text-decoration: none;
   background: none;
   border: 0;
@@ -412,7 +425,7 @@
 .bs-cta__glyph {
   display: inline-block;
   transform: translate(0, 0);
-  transition: transform var(--bs-dur) var(--bs-ease);
+  transition: transform var(--vt-bs-dur) var(--vt-bs-ease);
 }
 
 .bs-cta:hover .bs-cta__glyph,
@@ -431,17 +444,17 @@
 }
 
 .bs-cta:focus-visible {
-  outline: 2px solid var(--bs-ink);
+  outline: 2px solid var(--vt-bs-ink);
   outline-offset: 3px;
 }
 
 /* ── Focus over media ─────────────────────────────────────────
    R3 rings every focused control twice: a dark outline plus a white
    border on a pseudo-element. Read closely, that is a workaround — their
-   focus colour is the hardcoded literal #0d1212, which would vanish on
+   focus colour is a hardcoded near-black literal, which would vanish on
    their own dark register, so a second ring is needed to rescue it.
 
-   Our focus colour is `var(--bs-ink)`, rebound per register, so the
+   Our focus colour is `var(--vt-bs-ink)`, rebound per register, so the
    single ring already contrasts in both. The second ring is redundant
    EXCEPT over photography or video, where neither register token is
    guaranteed any contrast — that case is real, and this is for it.
@@ -457,7 +470,7 @@
 }
 
 .bs-ring-media:focus-visible {
-  outline: 2px solid var(--bs-ink);
+  outline: 2px solid var(--vt-bs-ink);
   outline-offset: 3px;
 }
 
@@ -465,7 +478,7 @@
   content: '';
   position: absolute;
   inset: -5px;
-  border: 2px solid var(--bs-ground);
+  border: 2px solid var(--vt-bs-ground);
   border-radius: 2px;
   pointer-events: none;
 }
@@ -473,11 +486,11 @@
 /* ── Panel ────────────────────────────────────────────────────
    EC-20 "Card grammar": solid hairline-ruled panels, radius 0–3px,
    no shadows. R2's cards carry `border-radius: 10px` and
-   `box-shadow: 0 2px 10px rgba(0,0,0,.1)` — both rejected.           */
+   a soft drop shadow — both rejected.           */
 
 .bs-panel {
-  background-color: var(--bs-panel);
-  border: 1px solid var(--bs-hairline);
+  background-color: var(--vt-bs-panel);
+  border: 1px solid var(--vt-bs-hairline);
   border-radius: 2px;
   padding: 1.5rem;
 }
@@ -494,19 +507,19 @@
 }
 
 .bs-stat__figure {
-  font-family: var(--bs-sans);
+  font-family: var(--vt-bs-sans);
   font-size: clamp(2.25rem, 5vw, 3.5rem);
   line-height: 1;
   letter-spacing: -0.03em;
   font-variant-numeric: slashed-zero tabular-nums;
   font-feature-settings: 'tnum' on, 'zero' on;
-  color: var(--bs-ink);
+  color: var(--vt-bs-ink);
 }
 
 .bs-stat__desc {
   font-size: 0.9375rem;
   line-height: 1.35;
-  color: var(--bs-ink-2);
+  color: var(--vt-bs-ink-2);
   max-inline-size: 32ch;
 }
 

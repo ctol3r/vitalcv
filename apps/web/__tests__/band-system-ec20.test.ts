@@ -88,7 +88,7 @@ describe('band-system.css — EC-20 conformance', () => {
   it('declares the 44px target floor for interactive primitives (EC-5)', () => {
     // .bs-cta carries an explicit floor; .bs-link derives its padding from it.
     expect(css).toMatch(/min-block-size:\s*44px/);
-    expect(css).toMatch(/--bs-link-pad:[^;]*44px/);
+    expect(css).toMatch(/--vt-bs-link-pad:[^;]*44px/);
   });
 
   it('keeps motion optional (EC-4 / EC-5)', () => {
@@ -107,7 +107,7 @@ describe('band-system.css — EC-20 conformance', () => {
    * scrollbars and only appears on Windows.
    */
   it('derives the grid track from the container, not the viewport', () => {
-    const track = css.match(/--bs-track:\s*([^;]+)/)?.[1] ?? '';
+    const track = css.match(/--vt-bs-track:\s*([^;]+)/)?.[1] ?? '';
     expect(track).toContain('100cqw');
     expect(track).not.toMatch(/\d+(svw|vw|dvw|lvw)/);
     // A container query unit is meaningless without a query container.
@@ -117,8 +117,8 @@ describe('band-system.css — EC-20 conformance', () => {
   it('carries a responsive rhythm scale on tokens, not per-component', () => {
     for (const step of ['xs', 'sm', 'md', 'lg']) {
       // Each step is declared twice: base (mobile) and the >=60em override.
-      const declared = css.match(new RegExp(`--bs-rhythm-${step}:`, 'g'))?.length ?? 0;
-      expect(declared, `--bs-rhythm-${step} needs a mobile and a desktop value`).toBe(2);
+      const declared = css.match(new RegExp(`--vt-bs-rhythm-${step}:`, 'g'))?.length ?? 0;
+      expect(declared, `--vt-bs-rhythm-${step} needs a mobile and a desktop value`).toBe(2);
     }
   });
 });

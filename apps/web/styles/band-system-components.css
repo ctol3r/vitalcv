@@ -74,14 +74,14 @@
    register hold their own radii until migrated.                    */
 
 .bandsys {
-  --bs-shape-action: 0;
-  --bs-shape-control: 2px;
-  --bs-shape-card: 2px;
-  --bs-shape-panel: 2px;
-  --bs-shape-label: 2px;
+  --vt-bs-shape-action: 0;
+  --vt-bs-shape-control: 2px;
+  --vt-bs-shape-card: 2px;
+  --vt-bs-shape-panel: 2px;
+  --vt-bs-shape-label: 2px;
 
-  --bs-surface: var(--bs-panel);
-  --bs-surface-border: var(--bs-hairline);
+  --vt-bs-surface: var(--vt-bs-panel);
+  --vt-bs-surface-border: var(--vt-bs-hairline);
 }
 
 /* Scene register: R3's warmth, from VitalCV's own ratified scale.
@@ -92,17 +92,17 @@
    rather than bound.                                                */
 
 .bandsys-scene {
-  --bs-shape-action: 0;
-  --bs-shape-control: var(--vt-shape-control, 10px);
-  --bs-shape-card: var(--vt-shape-card, 20px);
-  --bs-shape-panel: var(--vt-shape-panel, 24px);
-  --bs-shape-label: var(--vt-shape-pill, 9999px);
+  --vt-bs-shape-action: 0;
+  --vt-bs-shape-control: var(--vt-shape-control, 10px);
+  --vt-bs-shape-card: var(--vt-shape-card, 20px);
+  --vt-bs-shape-panel: var(--vt-shape-panel, 24px);
+  --vt-bs-shape-label: var(--vt-shape-pill, 9999px);
 
   /* Frost, A-1: chrome and scene overlays only, `color-mix` so the
      effect degrades to a solid panel where `backdrop-filter` is
      unsupported rather than leaving unreadable text over media. */
-  --bs-surface: var(--vt-frost-bg, var(--bs-panel));
-  --bs-surface-border: var(--vt-frost-border, var(--bs-hairline));
+  --vt-bs-surface: var(--vt-frost-bg, var(--vt-bs-panel));
+  --vt-bs-surface-border: var(--vt-frost-border, var(--vt-bs-hairline));
 }
 
 /* ── Scene atmosphere ─────────────────────────────────────────
@@ -113,20 +113,18 @@
    This is the closest legal equivalent of the ambient colour R3
    spends freely across its sections, and the constraint is worth
    stating on the element: `.bs-scene` is not a utility to sprinkle.
-   One per viewport. Never behind an evidence surface.               */
+   One per viewport. Never behind an evidence surface.
+
+   Painted as the element's OWN background rather than an absolutely
+   positioned `::before` on a negative z stop. The pseudo-element form
+   works, but it buys a literal z-index (LINT-05) and a new stacking
+   context to contain it, for a layer that is only ever a background.
+   `background-image` needs neither, and a background already sits
+   behind content by definition.                                      */
 
 .bandsys .bs-scene {
-  position: relative;
-  isolation: isolate;
-}
-
-.bandsys .bs-scene::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  background: var(--vt-scene-glow, transparent);
-  pointer-events: none;
+  background-image: var(--vt-scene-glow, none);
+  background-repeat: no-repeat;
 }
 
 /* ── Surface — the frosted panel ──────────────────────────────
@@ -157,15 +155,15 @@
 
    Nothing is lost. A-1 specifies frost as `color-mix` over scene
    surfaces precisely so it degrades to a solid translucent panel where
-   `backdrop-filter` is unsupported. `--bs-surface` already binds to
+   `backdrop-filter` is unsupported. `--vt-bs-surface` already binds to
    `--vt-frost-bg`, so this IS that degraded form. If the retirement
    settles in favour of frost on scene chrome, this becomes a one-line
    addition against a token that is already wired.                     */
 
 .bandsys .bs-surface {
-  background-color: var(--bs-surface);
-  border: 1px solid var(--bs-surface-border);
-  border-radius: var(--bs-shape-panel);
+  background-color: var(--vt-bs-surface);
+  border: 1px solid var(--vt-bs-surface-border);
+  border-radius: var(--vt-bs-shape-panel);
   padding: 1.5rem;
 }
 
@@ -189,7 +187,7 @@
       layout reflow-free at the same visual result.                   */
 
 .bandsys .bs-action {
-  --bs-action-travel: 0.375rem;
+  --vt-bs-action-travel: 0.375rem;
 
   position: relative;
   display: inline-flex;
@@ -203,18 +201,18 @@
   min-block-size: 44px;
   padding-inline: 1rem;
 
-  border-radius: var(--bs-shape-action);
+  border-radius: var(--vt-bs-shape-action);
   border: 1px solid transparent;
 
-  font-family: var(--bs-sans);
+  font-family: var(--vt-bs-sans);
   font-size: 0.9375rem;
   line-height: 1.2;
   text-decoration: none;
   background: none;
-  color: var(--bs-ink);
+  color: var(--vt-bs-ink);
   cursor: pointer;
-  transition: background-color var(--bs-dur) var(--bs-ease),
-    border-color var(--bs-dur) var(--bs-ease), color var(--bs-dur) var(--bs-ease);
+  transition: background-color var(--vt-bs-dur) var(--vt-bs-ease),
+    border-color var(--vt-bs-dur) var(--vt-bs-ease), color var(--vt-bs-dur) var(--vt-bs-ease);
 }
 
 /* The glyph track. Width is reserved at rest so the swap never
@@ -232,7 +230,7 @@
   position: absolute;
   inset-block-start: 0;
   inset-inline-start: 0;
-  transition: transform var(--bs-dur) var(--bs-ease), opacity var(--bs-dur) var(--bs-ease);
+  transition: transform var(--vt-bs-dur) var(--vt-bs-ease), opacity var(--vt-bs-dur) var(--vt-bs-ease);
 }
 
 /* Lead glyph waits outside its rail, to the left. */
@@ -249,7 +247,7 @@
 }
 
 .bandsys .bs-action__label {
-  transition: transform var(--bs-dur) var(--bs-ease);
+  transition: transform var(--vt-bs-dur) var(--vt-bs-ease);
 }
 
 .bandsys .bs-action:hover .bs-action__glyph--lead,
@@ -266,11 +264,11 @@
 
 .bandsys .bs-action:hover .bs-action__label,
 .bandsys .bs-action:focus-visible .bs-action__label {
-  transform: translateX(var(--bs-action-travel));
+  transform: translateX(var(--vt-bs-action-travel));
 }
 
 .bandsys .bs-action:focus-visible {
-  outline: 2px solid var(--bs-ink);
+  outline: 2px solid var(--vt-bs-ink);
   outline-offset: 3px;
 }
 
@@ -279,17 +277,17 @@
    instrument expressed in the island's own register tokens, so it
    inverts correctly in both without a second declaration. */
 .bandsys .bs-action--primary {
-  background-color: var(--bs-ink);
-  color: var(--bs-ground);
+  background-color: var(--vt-bs-ink);
+  color: var(--vt-bs-ground);
 }
 
 .bandsys .bs-action--secondary {
-  border-color: var(--bs-hairline);
-  color: var(--bs-ink);
+  border-color: var(--vt-bs-hairline);
+  color: var(--vt-bs-ink);
 }
 
 .bandsys .bs-action--secondary:hover {
-  border-color: var(--bs-ink);
+  border-color: var(--vt-bs-ink);
 }
 
 .bandsys .bs-action--quiet {
@@ -299,15 +297,15 @@
 /* In the scene register the focus ring is indigo (A-1: editorial
    indigo carries the focus ring and is never a status colour). */
 .bandsys-scene .bs-action:focus-visible {
-  outline-color: var(--vt-focus-ring-scene, var(--bs-ink));
+  outline-color: var(--vt-focus-ring-scene, var(--vt-bs-ink));
 }
 
 /* Disabled reads as disabled without colour alone: cursor, ARIA
    state, and dimmed ink all carry it (EC-4). */
 .bandsys .bs-action:disabled,
 .bandsys .bs-action[aria-disabled='true'] {
-  color: var(--bs-ink-2);
-  border-color: var(--bs-hairline);
+  color: var(--vt-bs-ink-2);
+  border-color: var(--vt-bs-hairline);
   background-color: transparent;
   cursor: not-allowed;
   pointer-events: none;
@@ -318,14 +316,14 @@
    path; a spinner that must stop under reduced motion says nothing
    when stopped, so the state is carried by text (EC-4). */
 .bandsys .bs-action[aria-busy='true'] {
-  color: var(--bs-ink-2);
+  color: var(--vt-bs-ink-2);
   pointer-events: none;
 }
 
 /* ── Icon instrument — the two-wrapper slide ──────────────────
    R3's `SquareIcon` drives both icons from ONE custom property:
 
-     --icon-translate: 0% → 100% on hover
+     icon-translate runs 0% → 100% on hover
      slot 1: translateX(var(--icon-translate))
      slot 2: translateX(calc(var(--icon-translate) - 100%))
 
@@ -339,8 +337,8 @@
    target is 44px. R3's look, our floor.                             */
 
 .bandsys .bs-iconbtn {
-  --bs-icon-translate: 0%;
-  --bs-icon-mark: 24px;
+  --vt-bs-icon-translate: 0%;
+  --vt-bs-icon-mark: 24px;
 
   display: inline-flex;
   align-items: center;
@@ -352,10 +350,10 @@
   min-block-size: 44px;
   padding: 0;
 
-  border-radius: var(--bs-shape-action);
+  border-radius: var(--vt-bs-shape-action);
   border: 0;
   background: none;
-  color: var(--bs-ink);
+  color: var(--vt-bs-ink);
   cursor: pointer;
 }
 
@@ -365,43 +363,43 @@
   position: relative;
   overflow: hidden;
 
-  inline-size: var(--bs-icon-mark);
-  block-size: var(--bs-icon-mark);
+  inline-size: var(--vt-bs-icon-mark);
+  block-size: var(--vt-bs-icon-mark);
 
   display: flex;
   align-items: center;
   justify-content: center;
 
-  border-radius: var(--bs-shape-action);
-  border: 1px solid var(--bs-hairline);
-  transition: border-color var(--bs-dur) var(--bs-ease),
-    background-color var(--bs-dur) var(--bs-ease);
+  border-radius: var(--vt-bs-shape-action);
+  border: 1px solid var(--vt-bs-hairline);
+  transition: border-color var(--vt-bs-dur) var(--vt-bs-ease),
+    background-color var(--vt-bs-dur) var(--vt-bs-ease);
 }
 
 .bandsys .bs-iconbtn--md {
-  --bs-icon-mark: 32px;
+  --vt-bs-icon-mark: 32px;
 }
 
 .bandsys .bs-iconbtn--lg {
-  --bs-icon-mark: 44px;
+  --vt-bs-icon-mark: 44px;
 }
 
 .bandsys .bs-iconbtn:hover {
-  --bs-icon-translate: 100%;
+  --vt-bs-icon-translate: 100%;
 }
 
 .bandsys .bs-iconbtn:hover .bs-iconbtn__mark {
-  border-color: var(--bs-ink);
+  border-color: var(--vt-bs-ink);
 }
 
 .bandsys .bs-iconbtn:focus-visible {
-  --bs-icon-translate: 100%;
-  outline: 2px solid var(--bs-ink);
+  --vt-bs-icon-translate: 100%;
+  outline: 2px solid var(--vt-bs-ink);
   outline-offset: 2px;
 }
 
 .bandsys-scene .bs-iconbtn:focus-visible {
-  outline-color: var(--vt-focus-ring-scene, var(--bs-ink));
+  outline-color: var(--vt-focus-ring-scene, var(--vt-bs-ink));
 }
 
 .bandsys .bs-iconbtn__slot {
@@ -410,15 +408,15 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: transform var(--bs-dur) var(--bs-ease);
+  transition: transform var(--vt-bs-dur) var(--vt-bs-ease);
 }
 
 .bandsys .bs-iconbtn__slot:first-child {
-  transform: translateX(var(--bs-icon-translate));
+  transform: translateX(var(--vt-bs-icon-translate));
 }
 
 .bandsys .bs-iconbtn__slot:nth-child(2) {
-  transform: translateX(calc(var(--bs-icon-translate) - 100%));
+  transform: translateX(calc(var(--vt-bs-icon-translate) - 100%));
 }
 
 /* ── Segment — travelling indicator, statically legible ───────
@@ -447,13 +445,13 @@
    mode becomes "does not animate" instead of "cannot be read".      */
 
 .bandsys .bs-segment {
-  --bs-seg-x: 0px;
-  --bs-seg-w: 0px;
+  --vt-bs-seg-x: 0px;
+  --vt-bs-seg-w: 0px;
 
   position: relative;
   display: inline-flex;
   flex-wrap: wrap;
-  border-block-end: 1px solid var(--bs-hairline);
+  border-block-end: 1px solid var(--vt-bs-hairline);
 }
 
 .bandsys .bs-segment__option {
@@ -465,27 +463,27 @@
   min-block-size: 44px;
   padding-inline: 1rem;
 
-  border-radius: var(--bs-shape-action);
+  border-radius: var(--vt-bs-shape-action);
   border: 0;
   /* Reserve the rule's space at rest so selecting does not shift the
      row by 2px. */
   border-block-end: 2px solid transparent;
   background: none;
 
-  font-family: var(--bs-sans);
+  font-family: var(--vt-bs-sans);
   font-size: 0.9375rem;
   line-height: 1.2;
-  color: var(--bs-ink-2);
+  color: var(--vt-bs-ink-2);
   cursor: pointer;
-  transition: color var(--bs-dur) var(--bs-ease);
+  transition: color var(--vt-bs-dur) var(--vt-bs-ease);
 }
 
 .bandsys .bs-segment__option:hover {
-  color: var(--bs-ink);
+  color: var(--vt-bs-ink);
 }
 
 .bandsys .bs-segment__option:focus-visible {
-  outline: 2px solid var(--bs-ink);
+  outline: 2px solid var(--vt-bs-ink);
   outline-offset: -2px;
 }
 
@@ -493,9 +491,9 @@
    so it survives grayscale; `aria-current` carries it to assistive
    tech. Colour is never the only channel (EC-4). */
 .bandsys .bs-segment__option[aria-current='true'] {
-  color: var(--bs-ink);
+  color: var(--vt-bs-ink);
   font-weight: 500;
-  border-block-end-color: var(--bs-ink);
+  border-block-end-color: var(--vt-bs-ink);
 }
 
 /* The travelling bar exists only once JS has measured. Until then it
@@ -505,16 +503,16 @@
   inset-block-end: -1px;
   inset-inline-start: 0;
   block-size: 2px;
-  inline-size: var(--bs-seg-w);
-  transform: translateX(var(--bs-seg-x));
-  background-color: var(--bs-ink);
+  inline-size: var(--vt-bs-seg-w);
+  transform: translateX(var(--vt-bs-seg-x));
+  background-color: var(--vt-bs-ink);
   opacity: 0;
   pointer-events: none;
 }
 
 .bandsys .bs-segment--armed .bs-segment__indicator {
   opacity: 1;
-  transition: transform var(--bs-dur) var(--bs-ease), inline-size var(--bs-dur) var(--bs-ease);
+  transition: transform var(--vt-bs-dur) var(--vt-bs-ease), inline-size var(--vt-bs-dur) var(--vt-bs-ease);
 }
 
 /* Hand the job over exactly once, so the two never coexist. */
@@ -545,22 +543,22 @@
   padding-block: 1rem;
   padding-inline: 0.75rem;
 
-  border-radius: var(--bs-shape-control);
-  color: var(--bs-ink);
+  border-radius: var(--vt-bs-shape-control);
+  color: var(--vt-bs-ink);
   text-decoration: none;
-  border-block-end: 1px solid var(--bs-hairline);
-  transition: background-color var(--bs-dur) var(--bs-ease);
+  border-block-end: 1px solid var(--vt-bs-hairline);
+  transition: background-color var(--vt-bs-dur) var(--vt-bs-ease);
 }
 
 .bandsys .bs-row__label {
   flex: 1 1 auto;
-  transition: transform var(--bs-dur) var(--bs-ease);
+  transition: transform var(--vt-bs-dur) var(--vt-bs-ease);
 }
 
 .bandsys .bs-row__glyph {
   flex: none;
-  color: var(--bs-ink-2);
-  transition: transform var(--bs-dur) var(--bs-ease), color var(--bs-dur) var(--bs-ease);
+  color: var(--vt-bs-ink-2);
+  transition: transform var(--vt-bs-dur) var(--vt-bs-ease), color var(--vt-bs-dur) var(--vt-bs-ease);
 }
 
 /* Gated on hover CAPABILITY, not a width breakpoint. R3 gates this at
@@ -569,7 +567,7 @@
    axis for a pointer question. */
 @media (hover: hover) {
   .bandsys .bs-row:hover {
-    background-color: var(--bs-raised);
+    background-color: var(--vt-bs-raised);
   }
 
   .bandsys .bs-row:hover .bs-row__label {
@@ -580,11 +578,11 @@
 .bandsys .bs-row:hover .bs-row__glyph,
 .bandsys .bs-row:focus-visible .bs-row__glyph {
   transform: translateX(0.25rem);
-  color: var(--bs-ink);
+  color: var(--vt-bs-ink);
 }
 
 .bandsys .bs-row:focus-visible {
-  outline: 2px solid var(--bs-ink);
+  outline: 2px solid var(--vt-bs-ink);
   outline-offset: -2px;
 }
 
@@ -606,11 +604,11 @@
    markup alone (EC-4).                                                */
 
 .bandsys .bs-disclosure {
-  border-block-start: 1px solid var(--bs-hairline);
+  border-block-start: 1px solid var(--vt-bs-hairline);
 }
 
 .bandsys .bs-disclosure:last-of-type {
-  border-block-end: 1px solid var(--bs-hairline);
+  border-block-end: 1px solid var(--vt-bs-hairline);
 }
 
 /* Where `:has()` is unsupported the rule simply never matches and
@@ -629,8 +627,8 @@
 }
 
 .bandsys .bs-disclosure[open] {
-  background-color: var(--bs-raised);
-  border-radius: var(--bs-shape-card);
+  background-color: var(--vt-bs-raised);
+  border-radius: var(--vt-bs-shape-card);
 }
 
 .bandsys .bs-disclosure__summary {
@@ -643,12 +641,12 @@
   padding-block: 0.75rem;
   padding-inline: 0.75rem;
 
-  font-family: var(--bs-sans);
-  color: var(--bs-ink);
+  font-family: var(--vt-bs-sans);
+  color: var(--vt-bs-ink);
   cursor: pointer;
   list-style: none;
-  border-radius: var(--bs-shape-control);
-  transition: background-color var(--bs-dur) var(--bs-ease);
+  border-radius: var(--vt-bs-shape-control);
+  transition: background-color var(--vt-bs-dur) var(--vt-bs-ease);
 }
 
 /* Safari draws its own triangle unless this is suppressed. */
@@ -657,11 +655,11 @@
 }
 
 .bandsys .bs-disclosure__summary:hover {
-  background-color: var(--bs-raised);
+  background-color: var(--vt-bs-raised);
 }
 
 .bandsys .bs-disclosure__summary:focus-visible {
-  outline: 2px solid var(--bs-ink);
+  outline: 2px solid var(--vt-bs-ink);
   outline-offset: -2px;
 }
 
@@ -671,8 +669,8 @@
 .bandsys .bs-disclosure__marker {
   flex: none;
   display: inline-block;
-  color: var(--bs-ink-2);
-  transition: transform var(--bs-dur) var(--bs-ease);
+  color: var(--vt-bs-ink-2);
+  transition: transform var(--vt-bs-dur) var(--vt-bs-ease);
 }
 
 .bandsys .bs-disclosure[open] .bs-disclosure__marker {
@@ -682,7 +680,7 @@
 .bandsys .bs-disclosure__panel {
   padding-inline: 0.75rem;
   padding-block-end: 1rem;
-  color: var(--bs-ink-2);
+  color: var(--vt-bs-ink-2);
   max-inline-size: 62ch;
 }
 
@@ -721,30 +719,30 @@
   padding-block: 1.5rem 0.5rem;
 
   /* An input is not an action, so it takes the control radius. */
-  border-radius: var(--bs-shape-control);
-  border: 1px solid var(--bs-hairline);
-  background-color: var(--bs-panel);
-  color: var(--bs-ink);
+  border-radius: var(--vt-bs-shape-control);
+  border: 1px solid var(--vt-bs-hairline);
+  background-color: var(--vt-bs-panel);
+  color: var(--vt-bs-ink);
 
-  font-family: var(--bs-sans);
+  font-family: var(--vt-bs-sans);
   /* >=16px, so iOS does not zoom on focus. */
   font-size: 1rem;
   line-height: 1.4;
-  transition: border-color var(--bs-dur) var(--bs-ease);
+  transition: border-color var(--vt-bs-dur) var(--vt-bs-ease);
 }
 
 .bandsys .bs-field__input:hover {
-  border-color: var(--bs-ink-2);
+  border-color: var(--vt-bs-ink-2);
 }
 
 .bandsys .bs-field__input:focus-visible {
-  border-color: var(--bs-ink);
-  outline: 2px solid var(--bs-ink);
+  border-color: var(--vt-bs-ink);
+  outline: 2px solid var(--vt-bs-ink);
   outline-offset: 2px;
 }
 
 .bandsys-scene .bs-field__input:focus-visible {
-  outline-color: var(--vt-focus-ring-scene, var(--bs-ink));
+  outline-color: var(--vt-focus-ring-scene, var(--vt-bs-ink));
 }
 
 /* Always present, always associated. Sits over the input's own top
@@ -754,14 +752,14 @@
   inset-block-start: 0.5rem;
   inset-inline-start: 0.9375rem;
 
-  font-family: var(--bs-sans);
+  font-family: var(--vt-bs-sans);
   font-size: 0.75rem;
   line-height: 1.2;
-  color: var(--bs-ink-2);
+  color: var(--vt-bs-ink-2);
 
   pointer-events: none;
-  transition: transform var(--bs-dur) var(--bs-ease), font-size var(--bs-dur) var(--bs-ease),
-    color var(--bs-dur) var(--bs-ease);
+  transition: transform var(--vt-bs-dur) var(--vt-bs-ease), font-size var(--vt-bs-dur) var(--vt-bs-ease),
+    color var(--vt-bs-dur) var(--vt-bs-ease);
 }
 
 /* Resting position: centred in the field at input size. The label
@@ -779,7 +777,7 @@
 }
 
 .bandsys .bs-field__input:focus + .bs-field__label {
-  color: var(--bs-ink);
+  color: var(--vt-bs-ink);
 }
 
 /* ── Tag — the word-label ─────────────────────────────────────
@@ -804,16 +802,16 @@
 
   padding-block: 0.25rem;
   padding-inline: 0.5rem;
-  border-radius: var(--bs-shape-label);
-  border: 1px solid var(--bs-hairline);
+  border-radius: var(--vt-bs-shape-label);
+  border: 1px solid var(--vt-bs-hairline);
 
-  font-family: var(--bs-mono);
+  font-family: var(--vt-bs-mono);
   font-size: 0.6875rem;
   line-height: 1.45;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   font-variant-numeric: slashed-zero tabular-nums;
-  color: var(--bs-ink-2);
+  color: var(--vt-bs-ink-2);
 }
 
 /* Pill padding needs the horizontal room or the shape reads as a
@@ -846,11 +844,9 @@
    defect that only appears once someone places a control flush to the
    band edge.
 
-   So the wipe ends slightly OUTSIDE the border box. Negative `inset()`
-   values are valid and honoured (verified in-browser: `inset(-8px)`
-   computes as authored), and 8px clears the 2px ring at its 3px
-   offset with room spare. Visually identical — nothing paints out
-   there except outlines, which is exactly the point.                  */
+   The wipe itself lives in `styles/motion.css`, the one file LINT-03
+   allows keyframe blocks in, along with the reasoning for why its end
+   state sits outside the border box (focus rings, EC-5).             */
 
 @media (prefers-reduced-motion: no-preference) {
   @supports (animation-timeline: view()) {
@@ -873,15 +869,6 @@
   }
 }
 
-@keyframes bs-reveal-wipe {
-  from {
-    clip-path: inset(-8px 100% -8px -8px);
-  }
-  to {
-    clip-path: inset(-8px -8px -8px -8px);
-  }
-}
-
 /* ── Skeleton ─────────────────────────────────────────────────
    R3's `SkeletonCard` is a flat block in a single tint with no
    shimmer, and that restraint is worth keeping for a second reason:
@@ -892,8 +879,8 @@
    happening — pair it with a live-region status word (EC-4).         */
 
 .bandsys .bs-skeleton {
-  background-color: var(--bs-raised);
-  border-radius: var(--bs-shape-control);
+  background-color: var(--vt-bs-raised);
+  border-radius: var(--vt-bs-shape-control);
   block-size: 1rem;
 }
 
@@ -926,6 +913,6 @@
      un-transitioned. */
   .bandsys .bs-iconbtn:hover,
   .bandsys .bs-iconbtn:focus-visible {
-    --bs-icon-translate: 0%;
+    --vt-bs-icon-translate: 0%;
   }
 }

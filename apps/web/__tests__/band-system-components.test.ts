@@ -38,6 +38,14 @@ import path from 'node:path';
 
 const CSS_PATH = path.join(__dirname, '..', 'styles', 'band-system-components.css');
 
+/**
+ * The band system's keyframes live in the house motion file, not beside the
+ * component that drives them: LINT-03 admits `@keyframes` in `motion.css` and
+ * nowhere else. The component stylesheet still owns the `animation:` shorthand
+ * that references them, so the invariant below has to read across both files.
+ */
+const MOTION_CSS_PATH = path.join(__dirname, '..', 'styles', 'motion.css');
+
 /** Strip comments so documented counter-examples aren't scanned. */
 function declarationsOnly(css: string): string {
   return css.replace(/\/\*[\s\S]*?\*\//g, '');
@@ -46,6 +54,7 @@ function declarationsOnly(css: string): string {
 describe('band-system-components.css — synthesis invariants', () => {
   const raw = fs.readFileSync(CSS_PATH, 'utf8');
   const css = declarationsOnly(raw);
+  const motionCss = declarationsOnly(fs.readFileSync(MOTION_CSS_PATH, 'utf8'));
 
   /**
    * Structural sanity, and it earned its place the hard way.
@@ -97,7 +106,7 @@ describe('band-system-components.css — synthesis invariants', () => {
    * Silhouette is load-bearing: square means you can act on it.
    */
   it('keeps every action square in EVERY register (A-2)', () => {
-    const declared = [...css.matchAll(/--bs-shape-action:\s*([^;]+)/g)].map((m) => m[1].trim());
+    const declared = [...css.matchAll(/--vt-bs-shape-action:\s*([^;]+)/g)].map((m) => m[1].trim());
 
     // Declared in the base island and re-declared in the scene register,
     // so a future register cannot inherit a rounded action by accident.
@@ -113,8 +122,8 @@ describe('band-system-components.css — synthesis invariants', () => {
     for (const selector of ['bs-action', 'bs-iconbtn', 'bs-segment__option']) {
       const block = css.match(new RegExp(`\\.${selector}\\s*\\{[^}]*\\}`))?.[0] ?? '';
       expect(block, `.${selector} must declare a radius`).toMatch(/border-radius:/);
-      expect(block, `.${selector} must read --bs-shape-action`).toMatch(
-        /border-radius:\s*var\(--bs-shape-action\)/,
+      expect(block, `.${selector} must read --vt-bs-shape-action`).toMatch(
+        /border-radius:\s*var\(--vt-bs-shape-action\)/,
       );
     }
   });
@@ -145,7 +154,7 @@ describe('band-system-components.css — synthesis invariants', () => {
 
     // And it must actually paint an indicator, not just recolour text —
     // colour alone would still fail EC-4 in grayscale.
-    expect(body).toMatch(/border-block-end-color:\s*var\(--bs-ink\)/);
+    expect(body).toMatch(/border-block-end-color:\s*var\(--vt-bs-ink\)/);
     expect(body).toMatch(/font-weight:/);
   });
 
@@ -170,7 +179,7 @@ describe('band-system-components.css — synthesis invariants', () => {
    * that does not need it.
    *
    * Nothing is lost: A-1 builds frost from `color-mix` so it degrades
-   * to a solid translucent panel, and `--bs-surface` binds to
+   * to a solid translucent panel, and `--vt-bs-surface` binds to
    * `--vt-frost-bg`, which IS that degraded form. This assertion is
    * what stops the blur being added back absent-mindedly while the
    * retirement is still in flight.
@@ -182,8 +191,8 @@ describe('band-system-components.css — synthesis invariants', () => {
 
   it('still binds the frost token, so the treatment is one line away (A-1)', () => {
     // The architecture stays wired even though the blur is withheld.
-    expect(css).toMatch(/--bs-surface:\s*var\(--vt-frost-bg/);
-    expect(css).toMatch(/--bs-surface-border:\s*var\(--vt-frost-border/);
+    expect(css).toMatch(/--vt-bs-surface:\s*var\(--vt-frost-bg/);
+    expect(css).toMatch(/--vt-bs-surface-border:\s*var\(--vt-frost-border/);
   });
 
   it('authors no raw gradient — the one permitted wash arrives by token (A-1)', () => {
@@ -241,8 +250,15 @@ describe('band-system-components.css — synthesis invariants', () => {
    * The end state must therefore sit OUTSIDE the border box.
    */
   it('ends the reveal outside the border box so focus rings survive (EC-5)', () => {
-    const kf = css.match(/@keyframes\s+bs-reveal-wipe\s*\{([\s\S]*?)\n\}/)?.[1];
-    expect(kf, 'the reveal keyframes must exist').toBeTruthy();
+    // The component stylesheet must still be the thing that DRIVES it —
+    // otherwise this assertion would keep passing over an orphaned animation
+    // that nothing references.
+    expect(css, '.bs-*-reveal must reference the wipe').toMatch(
+      /animation:\s*bs-reveal-wipe\b/,
+    );
+
+    const kf = motionCss.match(/@keyframes\s+bs-reveal-wipe\s*\{([\s\S]*?)\n\}/)?.[1];
+    expect(kf, 'the reveal keyframes must exist in motion.css').toBeTruthy();
 
     const to = kf!.match(/\bto\s*\{([^}]*)\}/)?.[1] ?? '';
     const inset = to.match(/clip-path:\s*inset\(([^)]*)\)/)?.[1] ?? '';
