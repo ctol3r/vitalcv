@@ -296,17 +296,22 @@ export function shouldSkipTenantContext(path: string): boolean {
     || normalized === '/api/system-health'
     // Deploy-verification surface. It answers ONE question — which commit is
     // this container running — and the whole point is that the asker is an
-    // outside monitor with no account: the release-verify workflow, the
-    // deploy-api smoke, or a human following the production-promotion
-    // discipline in CLAUDE.md, which requires reading a matching
-    // `/api/version` before promoting. Requiring org context 401s every one of
-    // those callers, and the failure is worse than a dead route because the
-    // 401 looks like an auth problem rather than a missing skip-list entry:
-    // production served `organization_context_required` here while `/health`
-    // answered 200 on the same host, so the service looked up and the check
-    // looked broken. The alternative anyone reaches for — reading
-    // `vitalcv.com/api/version` instead — is a DIFFERENT service (a Next route
-    // on the web container) and says nothing about the API deployment.
+    // outside monitor with no account: `scripts/verifyProduction.ts` (which
+    // defaults to the API base and expects 200 here), or a human following the
+    // production-promotion discipline in CLAUDE.md, which requires reading a
+    // matching `/api/version` before promoting. Requiring org context 401s
+    // both, and the failure is worse than a dead route because the 401 looks
+    // like an auth problem rather than a missing skip-list entry: production
+    // served `organization_context_required` here while `/health` answered 200
+    // on the same host, so the service looked up and the check looked broken.
+    //
+    // The substitute anyone reaches for — `vitalcv.com/api/version` — is a
+    // DIFFERENT service (a Next route on the web container) and says nothing
+    // about the API deployment. It is not even the same schema: that route
+    // returns commit/platform/environment/branch, which is what
+    // `deploy-web.yml` → `scripts/deploy-smoke.mjs` asserts. The API's own
+    // deploy gate (`deploy-api.yml`) asserts `git_sha` from `/health`, not
+    // this route, so nothing in CI was watching this 401.
     //
     // Nothing here is tenant-scoped: the payload is buildVersion, commitHash,
     // nodeVersion and prismaVersion — four process-level constants, identical
