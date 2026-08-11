@@ -147,3 +147,58 @@ describe('X-Powered-By is suppressed at the framework level', () => {
     expect(powered).toBeUndefined();
   });
 });
+
+/**
+ * Sentry ingest must be reachable from the BROWSER.
+ *
+ * This asserts the closure — "a real region-scoped DSN host is permitted by
+ * connect-src" — rather than the mechanism, "the string *.ingest.sentry.io
+ * appears". The distinction is the whole defect: that string WAS present, and
+ * the browser still blocked every event, because Sentry's current DSNs resolve
+ * to o<orgId>.ingest.<region>.sentry.io and the CSP wildcard only matches names
+ * ending in ".ingest.sentry.io".
+ *
+ * It failed silently in both directions a reader would check:
+ *   - /api/health reported sentry:true, because that flag only reads whether
+ *     NEXT_PUBLIC_SENTRY_DSN is SET, not whether events can leave the page;
+ *   - server-side events arrived normally, because CSP does not apply to
+ *     server-to-server requests. Only the browser half was dark.
+ *
+ * Measured against the live production header on 2026-08-11.
+ */
+describe('CSP permits Sentry ingest from the browser', () => {
+  const connectSrc = () => {
+    const csp = securityHeaders.find(
+      (h: { key: string }) => h.key.toLowerCase() === 'content-security-policy',
+    ) as { value: string } | undefined;
+    const directive = csp?.value
+      .split(';')
+      .map((d: string) => d.trim())
+      .find((d: string) => d.startsWith('connect-src '));
+    return (directive ?? '').split(/\s+/).slice(1);
+  };
+
+  /** CSP host-source matching: "*.a.b" matches only names ending in ".a.b". */
+  const permits = (sources: string[], url: string) => {
+    const host = new URL(url).host;
+    return sources.some((src) => {
+      const bare = src.replace(/^https?:\/\//, '').replace(/\/.*$/, '');
+      if (bare.startsWith('*.')) return host.endsWith(bare.slice(1));
+      return host === bare;
+    });
+  };
+
+  it('permits a region-scoped DSN host (the shape Sentry issues today)', () => {
+    expect(
+      permits(connectSrc(), 'https://o4511892657143808.ingest.us.sentry.io/4511892679557120'),
+    ).toBe(true);
+  });
+
+  it('still permits the legacy non-region ingest host', () => {
+    expect(permits(connectSrc(), 'https://o123.ingest.sentry.io/456')).toBe(true);
+  });
+
+  it('does not blanket-allow unrelated sentry.io hosts', () => {
+    expect(permits(connectSrc(), 'https://evil.sentry.io/1')).toBe(false);
+  });
+});
