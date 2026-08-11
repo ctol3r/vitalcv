@@ -114,8 +114,12 @@ export function createTraceId(): string {
  *
  *   1. NPI_INGESTED        — POST /api/ingest/:npi  (ingestOrchestrator.ts)
  *   2. PASSPORT_SHARED     — POST /api/share        (passportEntity.ts)
- *   3. EMPLOYER_ACCEPTANCE_CREATED — POST /api/hiring/accept (hiring.ts)
- *   4. EMPLOYER_ACCEPTANCE_CREATED — POST /api/employer-review/:entityId/accept (employerReviewActions.ts)
+ *   3. EMPLOYER_REVIEW_ACCEPTED — POST /api/employer-review/:entityId/accept (employerReviewActions.ts)
+ *      This entry previously named EMPLOYER_ACCEPTANCE_CREATED for BOTH this
+ *      route and POST /api/hiring/accept. Both halves were wrong: this route
+ *      has always emitted EMPLOYER_REVIEW_ACCEPTED, and the hiring route was
+ *      the type's only emitter — with nothing reading it — until VCD-01e closed
+ *      it. Corrected 2026-08-11 to describe what is actually emitted.
  *   5. START_ATTESTED      — POST /api/hiring/start  (hiring.ts)
  *                          — POST /api/employer-review/:entityId/confirm-start (employerActions.ts)
  *

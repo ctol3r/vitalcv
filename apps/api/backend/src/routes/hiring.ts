@@ -1,13 +1,25 @@
 // @ts-nocheck
+//
+// WHAT THIS SUPPRESSION IS HIDING — measured 2026-08-11 by removing it (VCD-01e).
+// Seven errors remain, all the same defect class and all in the start route:
+// EmployerAcceptance.clinicianNpi and .employerId are nullable columns
+// (deliberately — see migration 20260717000000), and the handler treats both as
+// non-null. Lines ~220, 243, 254, 264, 280, 294, 295.
+//
+// Fixing them is a real decision, not a cast: it means choosing what a start
+// attestation should do when its parent acceptance has no NPI or no employer.
+// That is its own wave. Until then, be aware that `tsc` verifies NOTHING in
+// this file — a green typecheck on a change here is not evidence.
 /**
- * hiring.ts — Wave 41: Employer Acceptance + Start Attestation
+ * hiring.ts — Start Attestation
  *
  * Closes the ON Loop. Recording a start raises no charge — see VCD-01b below.
  *
- * POST /api/hiring/accept
- * ────────────────────────
- * Records an employer's formal decision to hire a clinician.
- * Creates an EmployerAcceptance row.  Unchanged from Wave 41.
+ * `POST /api/hiring/accept` was closed in VCD-01e; the reasoning sits at the
+ * former registration site further down. Employer acceptance is recorded by
+ * `POST /api/employer-review/:entityId/accept`, which captures what was
+ * accepted — entity, organization, application, packet hash, and a frozen
+ * snapshot of the source coverage the reviewer saw.
  *
  * POST /api/hiring/start
  * ────────────────────────
@@ -58,29 +70,17 @@ import {
   DEFAULT_PILOT_POLICY,
   evaluatePilotReadiness,
   parseOrganizationRequirementsEnvelope,
-  type PilotReadinessEvaluation,
 } from '../services/employers/pilotPolicy';
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const NPI_RE  = /^\d{10}$/;
 
 function isUuid(v: unknown): v is string {
   return typeof v === 'string' && UUID_RE.test(v);
 }
 
-function isNpi(v: unknown): v is string {
-  return typeof v === 'string' && NPI_RE.test(v);
-}
-
 // ── Request body shapes ────────────────────────────────────────────────────
-
-interface AcceptBody {
-  employerId:   string;
-  clinicianNpi: string;
-  artifactId?:  string;
-}
 
 interface StartBody {
   acceptanceId: string;
@@ -114,158 +114,27 @@ async function getEmployerPilotContext(employerId: string): Promise<{
   };
 }
 
-async function buildPilotReadinessEvaluation(
-  employerId: string,
-  clinicianNpi: string,
-): Promise<PilotReadinessEvaluation | null> {
-  const { policy } = await getEmployerPilotContext(employerId);
-  if (!policy.pilotMode) {
-    return null;
-  }
-
-  const trustState = await computeClinicianTrustState(clinicianNpi);
-  return evaluatePilotReadiness(trustState, policy);
-}
-
 // ── Route registration ─────────────────────────────────────────────────────
 
 export function registerHiringRoutes(app: Express): void {
 
-  // ── POST /api/hiring/accept ──────────────────────────────────────────────
-  app.post(
-    '/api/hiring/accept',
-    apiKeyAuth,
-    publicApiRateLimit,
-    async (req: Request, res: Response) => {
-      const { employerId, clinicianNpi, artifactId } = req.body as AcceptBody;
-
-      // ── Validation ───────────────────────────────────────────────────────
-      if (!employerId || typeof employerId !== 'string' || employerId.trim().length === 0) {
-        return res.status(400).json({
-          error:             'invalid_request',
-          error_description: 'employerId is required.',
-        });
-      }
-      if (!isNpi(clinicianNpi)) {
-        return res.status(400).json({
-          error:             'invalid_request',
-          error_description: 'clinicianNpi must be a 10-digit string.',
-        });
-      }
-      if (artifactId !== undefined && !isUuid(artifactId)) {
-        return res.status(400).json({
-          error:             'invalid_request',
-          error_description: 'artifactId must be a valid UUID when provided.',
-        });
-      }
-
-      // ── Prevent duplicate open acceptances ───────────────────────────────
-      const existing = await prisma.employerAcceptance.findFirst({
-        where: {
-          employerId:   employerId.trim(),
-          clinicianNpi,
-          status:       'ACCEPTED',
-        },
-        select: { id: true },
-      });
-
-      if (existing) {
-        return res.status(409).json({
-          error:             'already_accepted',
-          error_description: 'An active EmployerAcceptance already exists for this employer/NPI pair.',
-          acceptanceId:      existing.id,
-        });
-      }
-
-      // Pre-generate IDs and hash before the transaction so they can be used
-      // in both the EmployerAcceptance row and the AuditEvent commitment.
-      const acceptanceId = randomUUID();
-      const acceptedAt   = new Date();
-      const acceptanceHash = sha256ForPayload({
-        acceptanceId,
-        employerId:   employerId.trim(),
-        clinicianNpi,
-        artifactId:   artifactId ?? null,
-        acceptedAt:   acceptedAt.toISOString(),
-      });
-
-      // ATOMIC: EmployerAcceptance + AuditEvent written together or neither.
-      const acceptance = await prisma.$transaction(async (tx) => {
-        const created = await tx.employerAcceptance.create({
-          data: {
-            id:           acceptanceId,
-            employerId:   employerId.trim(),
-            clinicianNpi,
-            artifactId:   artifactId ?? null,
-            status:       'ACCEPTED',
-            acceptedAt,
-          },
-        });
-
-        await tx.auditEvent.create({
-          data: {
-            id:          randomUUID(),
-            type:        'EMPLOYER_ACCEPTANCE_CREATED',
-            hash:        acceptanceHash,
-            referenceId: acceptanceId,
-            clinicianId: clinicianNpi,
-            anchored:    false,
-            metadata: {
-              acceptanceId,
-              employerId:  employerId.trim(),
-              artifactId:  artifactId ?? null,
-              acceptedAt:  acceptedAt.toISOString(),
-            },
-          },
-        });
-
-        return created;
-      });
-
-      const pilotReadiness = await buildPilotReadinessEvaluation(
-        acceptance.employerId,
-        acceptance.clinicianNpi,
-      ).catch((error: unknown) => {
-        log('warn', 'hiring_accept_pilot_readiness_failed', {
-          acceptanceId: acceptance.id,
-          employerId: acceptance.employerId,
-          error: String(error),
-        });
-        return null;
-      });
-
-      log('info', 'hiring_accept', {
-        acceptanceId: acceptance.id,
-        employerId:   acceptance.employerId,
-        npi_prefix:   clinicianNpi.slice(0, 4) + '····',
-        artifactId:   artifactId ?? null,
-        pilotReadiness,
-      });
-
-      void capsuleEngine.createDecisionFromAcceptance({
-        subjectNpi: acceptance.clinicianNpi,
-        employerId: acceptance.employerId,
-        acceptanceId: acceptance.id,
-        artifactId: acceptance.artifactId,
-      }).catch((error: unknown) => {
-        log('warn', 'hiring_accept_decision_capsule_creation_failed', {
-          acceptanceId: acceptance.id,
-          employerId: acceptance.employerId,
-          error: String(error),
-        });
-      });
-
-      return res.status(201).json({
-        ok:           true,
-        acceptanceId: acceptance.id,
-        employerId:   acceptance.employerId,
-        clinicianNpi: acceptance.clinicianNpi,
-        status:       acceptance.status,
-        acceptedAt:   acceptance.acceptedAt.toISOString(),
-        pilotReadiness,
-      });
-    },
-  );
+  // `POST /api/hiring/accept` was closed here (VCD-01e, founder ruling
+  // 2026-08-11). It recorded an EmployerAcceptance carrying employerId,
+  // clinicianNpi, artifactId, status and acceptedAt and nothing else — no
+  // entityId, no organization, no applicationId, no packetHash, no source
+  // snapshot. An acceptance with no record of what was accepted.
+  //
+  // The live employer accept never used it: /review/[entityId] and
+  // /verify/[npi] go through POST /api/employer-review/:entityId/accept,
+  // which records all of that plus a frozen snapshot of the source coverage
+  // the reviewer saw. The only caller here was StartClinicianAction.tsx,
+  // rendered solely from app/_archive/ — a folder Next excludes from routing.
+  //
+  // Its employerId also came from the request body behind apiKeyAuth, so a
+  // shared-key holder could name any employer.
+  //
+  // See routes/__tests__/thinAcceptDoorClosed.test.ts. Reopening this needs a
+  // server-derived employerId and the same packet linkage the live path records.
 
   // ── POST /api/hiring/start ───────────────────────────────────────────────
   app.post(
