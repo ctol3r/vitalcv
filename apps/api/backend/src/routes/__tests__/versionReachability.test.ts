@@ -91,4 +91,23 @@ describe('the exemption does not leak past /api/version', () => {
     expect(res.status).toBe(401);
     expect(res.body.error).toBe('organization_context_required');
   });
+
+  // `registerComplianceRoutes` mounts three routes; only one was exempted.
+  // The other two are NOT reporting facts about the running process — they
+  // serve hardcoded `true` claims (COMPLIANCE_SUMMARY.ncqaAlignment,
+  // SECURITY_POSTURE.internalRouteProtection, app.ts:490-503) that nothing
+  // measures. Publishing self-graded compliance and security assertions to
+  // anonymous callers is a different decision from publishing a commit SHA,
+  // and it has not been made. scripts/verifyProduction.ts expects 200 from
+  // both against the API base and is wired into no workflow, so if someone
+  // reaches for the skip-list to make that script pass, this is the tripwire.
+  it.each([
+    '/api/compliance/summary',
+    '/api/security/posture',
+  ])('%s was NOT exempted alongside it', async (path) => {
+    const res = await request(app).get(path);
+
+    expect(res.status).toBe(401);
+    expect(res.body.error).toBe('organization_context_required');
+  });
 });
