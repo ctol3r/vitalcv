@@ -356,7 +356,6 @@ type YcMetricsPayload = {
   verifierViews: number;
   exports: number;
   avgTimeToView: number;
-  verifierAcceptances: number;
   estimatedStartDateAccelerationDays: number | null;
   activePilotOrgs: number;
   bundlesGenerated: number;
@@ -1441,7 +1440,6 @@ function collectDemoYcMetrics(): YcMetricsPayload {
   const verifierViews = 16;
   const avgTimeToView = 24;
   const avgMillisecondsToView = avgTimeToView * 60 * 1000;
-  const verifierAcceptances = 2;
   const exports = 3;
   const bundlesGenerated = DEMO_PILOT_ORGS.reduce((sum, org) => sum + org.bundlesGenerated, 0);
   const estimatedStartDateAccelerationDays = toStartDateAcceleration(avgMillisecondsToView) ?? 0;
@@ -1454,7 +1452,6 @@ function collectDemoYcMetrics(): YcMetricsPayload {
     verifierViews,
     exports,
     avgTimeToView,
-    verifierAcceptances,
     estimatedStartDateAccelerationDays,
     activePilotOrgs,
     bundlesGenerated,
@@ -1644,7 +1641,7 @@ async function loadYcMetrics(organizationId?: string): Promise<YcMetricsPayload>
 
   const organizationFilter = buildOrganizationFilter(organizationId);
 
-  const [shareLinks, verifiedViews, npiGroups, verifierAcceptances, viewRows, exportCount, funnelMetrics, pilotOrgs, activePilotPlans, timeFromRegistrationToPilotActivation, trustStateDistribution, monitoringDeltaFrequency, enterpriseStatus] =
+  const [shareLinks, verifiedViews, npiGroups, viewRows, exportCount, funnelMetrics, pilotOrgs, activePilotPlans, timeFromRegistrationToPilotActivation, trustStateDistribution, monitoringDeltaFrequency, enterpriseStatus] =
     await Promise.all([
       prisma.shareLink.count({ where: organizationFilter }),
       prisma.shareLink.count({
@@ -1658,7 +1655,6 @@ async function loadYcMetrics(organizationId?: string): Promise<YcMetricsPayload>
         _count: { _all: true },
         where: organizationFilter,
       }),
-      prisma.verifierAcceptance.count(),
       prisma.shareLink.findMany({
         where: {
           ...organizationFilter,
@@ -1728,7 +1724,6 @@ async function loadYcMetrics(organizationId?: string): Promise<YcMetricsPayload>
     verifierViews: verifiedViews,
     exports: exportCount,
     avgTimeToView,
-    verifierAcceptances,
     estimatedStartDateAccelerationDays,
     activePilotOrgs: bundlesByOrg.size,
     bundlesGenerated: activeBundlesGenerated,
@@ -2737,36 +2732,18 @@ function registerPilotRoutes(app: Express): void {
     }
   });
 
-  // Pilot KPI acceptance marker. This lived at /api/verifier/accept, where —
-  // by registering first — it silently shadowed the credential-presentation
-  // acceptance route (routes/verifier.ts), leaving that route's revocation
-  // fail-closed logic and org-role guard unreachable. The verifier namespace
-  // keeps verification semantics (didRegistry advertises it as
-  // PresentationVerification); the KPI marker lives with its pilot siblings.
-  app.post('/api/pilot/acceptance', walletRateLimit, async (req: Request, res: Response) => {
-    const body = (req.body ?? {}) as Record<string, unknown>;
-    let acceptedAt = new Date();
-
-    try {
-      const organization = parseRequiredString(body.organization, 'organization');
-      acceptedAt = parseDateField(body.acceptedAt);
-      const created = await prisma.verifierAcceptance.create({
-        data: {
-          organization,
-          acceptedAt,
-        },
-      });
-
-      return res.status(201).json({
-        id: created.id,
-        organization: created.organization,
-        acceptedAt: created.acceptedAt.toISOString(),
-      });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unable to create verifier acceptance';
-      return res.status(400).json({ error: message });
-    }
-  });
+  // `POST /api/pilot/acceptance` was retired here (VCD-01d). It sat behind
+  // walletRateLimit and nothing else, and wrote a VerifierAcceptance row from a
+  // caller-supplied organization string. That model holds id, organization and
+  // acceptedAt — no clinician, no packet, no employer identity — so it could
+  // not represent a head-start acceptance; it recorded nothing to accept. Its
+  // rows were nonetheless counted into the metrics payload, unfiltered by
+  // organization, which made an unauthenticated endpoint the writer of a number
+  // presented as "employers accepted".
+  //
+  // The VerifierAcceptance model is intentionally still in the schema; dropping
+  // it is a destructive migration and a separate decision. See
+  // routes/__tests__/pilotAcceptanceCounterRetired.test.ts.
 
   app.post('/api/pilot/activate', walletRateLimit, async (req: Request, res: Response) => {
     const body = (req.body ?? {}) as Record<string, unknown>;
