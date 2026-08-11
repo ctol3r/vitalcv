@@ -43,9 +43,11 @@ per-route override would state a cascade that does not exist.
 
 | File | `--vt-*` declarations |
 |---|---|
+| `apps/web/styles/band-system-components.css` | 24 |
+| `apps/web/styles/band-system.css` | 38 |
 | `apps/web/styles/wave1501-home.css` | 47 |
 
-**47 further declarations** live here and are invisible to the global
+**109 further declarations** live here and are invisible to the global
 precedence table above.
 
 ## Collisions — one declaration silently overriding another
