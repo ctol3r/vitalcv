@@ -32,6 +32,51 @@ const MUTATING = /\b(router|app)\.(post|put|patch|delete)\s*\(/;
 const DURABLE_AUDIT =
   /(auditEvent\.create|AuditEvent\.create|auditIssuance|auditRevocation|auditDecision|auditPresentation|recordAuditEvent|writeAuditEvent)\b/;
 
+/**
+ * Routes may delegate the write to a shared writer instead of calling prisma
+ * inline — `recordStart()` pairs a StartAttestation with its START_ATTESTED row
+ * in one transaction, precisely so a caller cannot record one without the other.
+ * A per-file scan cannot see through that call, and would read the delegation as
+ * a NEW gap. It is the opposite: the pairing is stronger than an inline write.
+ *
+ * This is NOT a name allowlist. Each delegate names its module, and:
+ *   1. the file must actually IMPORT from that module — `recordStart` is not a
+ *      unique name (routes/activation.ts calls an unrelated one from
+ *      services/activation/startEventService, which does not audit, and must
+ *      keep counting as a gap); and
+ *   2. the module must itself carry a durable signal — so gutting the writer
+ *      stops it counting as coverage and every delegating route goes red.
+ *
+ * The guarantee is a closure, not a promise. `startWriter.test.ts` holds the
+ * same line from the other side, behaviourally.
+ */
+const DELEGATED_AUDIT_WRITERS: ReadonlyArray<{
+  call: RegExp;
+  importSpecifier: string;
+  module: string;
+}> = [
+  {
+    call: /\brecordStart\s*\(/,
+    importSpecifier: 'services/hiring/startWriter',
+    module: join('apps', 'api', 'backend', 'src', 'services', 'hiring', 'startWriter.ts'),
+  },
+];
+
+/** True when the file delegates to a writer that it imports and that provably audits. */
+function delegatesToAuditingWriter(src: string): boolean {
+  return DELEGATED_AUDIT_WRITERS.some(({ call, importSpecifier, module }) => {
+    if (!call.test(src)) return false;
+    // The call alone is ambiguous; the import is what identifies the writer.
+    if (!src.includes(importSpecifier)) return false;
+    try {
+      return DURABLE_AUDIT.test(readFileSync(join(repoRoot, module), 'utf8'));
+    } catch {
+      // Writer moved or deleted — the delegation proves nothing. Fail closed.
+      return false;
+    }
+  });
+}
+
 function walk(absDir: string): string[] {
   let out: string[] = [];
   let entries;
@@ -75,6 +120,7 @@ for (const f of files) {
   const src = readFileSync(f, 'utf8');
   if (!MUTATING.test(src)) continue;
   if (DURABLE_AUDIT.test(src)) continue;
+  if (delegatesToAuditingWriter(src)) continue;
   currentGaps.push(relative(absRoutes, f));
 }
 
