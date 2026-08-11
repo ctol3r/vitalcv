@@ -26,8 +26,10 @@
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 
+import Attribution from '@/components/home/easy/Attribution';
 import { NpiReveal, ResolvingNarration } from '@/components/home/easy/NpiReveal';
 import ProcessStory from '@/components/home/easy/ProcessStory';
+import Questions from '@/components/home/easy/Questions';
 import WorkSurface from '@/components/home/easy/WorkSurface';
 import { FUNNEL_EVENTS, trackFunnelEvent } from '@/lib/analytics/funnel';
 import { useCareerLoop } from '@/lib/career-loop/useCareerLoop';
@@ -310,6 +312,13 @@ export default function EasyHome() {
         </div>
       </section>
 
+      {/* ── how VitalCV knows what it knows ──────────────────────────────
+          Sits directly after ownership on purpose: ownership answers whose
+          move it is, attribution answers how a line was established. Two
+          halves of the same trust story, and the page previously had only
+          the first. */}
+      <Attribution />
+
       {/* ── the matching layer: why the roles here are different ─────────── */}
       <section
         className="ezh-match"
@@ -451,6 +460,12 @@ export default function EasyHome() {
           </div>
         </div>
       </section>
+
+      {/* ── objections, answered before the ask ──────────────────────────
+          After the employer band (which is light) and before the final
+          action, so the last thing between reading and acting is the honest
+          boundary rather than another pitch. */}
+      <Questions />
 
       {/* ── final action + footer composition ────────────────────────────── */}
       <section className="ezh-start" data-header-theme="dark" aria-labelledby="ezh-start-h">

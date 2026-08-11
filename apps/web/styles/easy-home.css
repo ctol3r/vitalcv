@@ -3184,3 +3184,234 @@
     transition: none !important;
   }
 }
+
+/* ── attribution + questions ──────────────────────────────────────────────
+   Ported from the Claude Design file `VitalCV Homepage v2.html` (sections 04
+   and 06) and re-cut into this island's register. Two gaps were being filled:
+   `/` carried no credential-state vocabulary (ownership answers "whose move",
+   never "how was this established"), and it answered "is this credentialing?"
+   nowhere.
+
+   SHAPE RULE, the narrow reading. A-1's surviving limit is that a pill is
+   never a state marker, which is why `.ezh-st` is radius 0. `.ezh-attr-chip`
+   IS a state marker, so it takes radius 0 too — it is deliberately NOT built
+   on `.ezh-src`, whose pill is correct only because a source NAME is a label.
+   Colour here is redundant in every case: each chip spells its state, so
+   dropping the palette costs nothing (EC-4).
+
+   No keyframes, no z-index, every colour through an --ezh-* property. */
+
+.ezh-attr-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 420px);
+  gap: 56px;
+  align-items: start;
+  margin-top: 36px;
+}
+
+.ezh-attr-points {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.ezh-attr-points .ezh-tt {
+  display: block;
+  margin-top: 9px;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.ezh-attr-points p {
+  margin-top: 6px;
+  max-width: 52ch;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--ezh-text2);
+}
+
+/* The state marker. Radius 0 — see the shape note above. */
+.ezh-attr-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid var(--ezh-line2);
+  border-radius: 0;
+  padding: 4px 8px;
+  font-family: var(--font-geist-mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.07em;
+  line-height: 1.3;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--ezh-text2);
+}
+
+.ezh-attr-chip::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 1px;
+  background: currentColor;
+  flex: none;
+}
+
+.ezh-attr-chip[data-tone='work'] {
+  color: var(--ezh-work);
+}
+
+.ezh-attr-chip[data-tone='hold'] {
+  color: var(--ezh-hold);
+}
+
+.ezh-attr-chip[data-tone='wait'] {
+  color: var(--ezh-wait);
+}
+
+.ezh-attr-chip[data-tone='ink'] {
+  /* No hue: the fourth state colour is a DEFERRED EC-20 row owned by UX-02,
+     and EC-22 forbids resolving a deferred row by inventing a value. */
+  color: var(--ezh-text);
+}
+
+.ezh-attr-panel {
+  border: 1px solid var(--ezh-line);
+  border-radius: var(--vt-shape-card);
+  background: var(--ezh-panel);
+  padding: 24px 22px 20px;
+}
+
+.ezh-attr-rows {
+  list-style: none;
+  margin: 14px 0 0;
+  padding: 0;
+}
+
+.ezh-attr-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--ezh-line);
+}
+
+.ezh-attr-row:last-child {
+  border-bottom: 0;
+}
+
+.ezh-attr-row-label {
+  min-width: 0;
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--ezh-text);
+}
+
+.ezh-attr-cap {
+  margin-top: 14px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ezh-text3);
+}
+
+.ezh-attr-scope {
+  margin-top: 34px;
+  max-width: 66ch;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--ezh-text2);
+}
+
+/* ── questions ─────────────────────────────────────────────────────────── */
+
+.ezh-faq-list {
+  margin-top: 30px;
+  max-width: 760px;
+  border-top: 1px solid var(--ezh-line);
+}
+
+.ezh-faq-item {
+  border-bottom: 1px solid var(--ezh-line);
+}
+
+/* EC-5: the painted row is tall enough that the 44px target needs no ring. */
+.ezh-faq-q {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  min-height: 44px;
+  padding: 17px 0;
+  cursor: pointer;
+  list-style: none;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--ezh-text);
+}
+
+.ezh-faq-q::-webkit-details-marker {
+  display: none;
+}
+
+/* Plus/minus drawn as two rules, so the open state reads without colour and
+   without a glyph font (EC-4). */
+.ezh-faq-mark {
+  position: relative;
+  width: 13px;
+  height: 13px;
+  flex: none;
+}
+
+.ezh-faq-mark::before,
+.ezh-faq-mark::after {
+  content: '';
+  position: absolute;
+  background: var(--ezh-text2);
+}
+
+.ezh-faq-mark::before {
+  left: 0;
+  top: 6px;
+  width: 13px;
+  height: 1px;
+}
+
+.ezh-faq-mark::after {
+  left: 6px;
+  top: 0;
+  width: 1px;
+  height: 13px;
+}
+
+.ezh-faq-item[open] .ezh-faq-mark::after {
+  display: none;
+}
+
+.ezh-faq-a {
+  margin: 0 0 20px;
+  max-width: 64ch;
+  font-size: 14.5px;
+  line-height: 1.65;
+  color: var(--ezh-text2);
+}
+
+@media (max-width: 1100px) {
+  .ezh-attr-grid {
+    grid-template-columns: 1fr;
+    gap: 44px;
+  }
+}
+
+@media (max-width: 480px) {
+  .ezh-attr-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+}
