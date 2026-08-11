@@ -14,6 +14,15 @@ interface TrustNodeProps {
   isHovered: boolean;
   isDimmed: boolean;
   isExpanded?: boolean;
+  /**
+   * Paint the label at rest, not only on hover/expand.
+   *
+   * The default (label only when active, plus the always-labelled centre) suits
+   * a dense investigation graph where permanent labels would collide. A small
+   * curated graph — e.g. a clinician's own career map, ~9 nodes — reads as
+   * anonymous dots under that rule. Opt-in so existing consumers are untouched.
+   */
+  alwaysShowLabel?: boolean;
   onHover: () => void;
   onLeave: () => void;
   onClick: () => void;
@@ -28,6 +37,7 @@ export function TrustNode({
   isHovered,
   isDimmed,
   isExpanded = false,
+  alwaysShowLabel = false,
   onHover,
   onLeave,
   onClick
@@ -67,7 +77,7 @@ export function TrustNode({
         strokeWidth={isActive ? 2.5 : 1}
       />
       {/* Dynamic Label visibility based on interaction states */}
-      {(isActive || isCenter) && (
+      {(isActive || isCenter || alwaysShowLabel) && (
         <motion.text
           initial={{ opacity: 0, y: 5 }}
           animate={{ opacity: 1, y: 0 }}

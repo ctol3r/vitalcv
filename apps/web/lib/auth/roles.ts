@@ -98,6 +98,16 @@ export const PROTECTED_ROUTES: Array<{ pattern: RegExp; role: UserRoleType }> = 
   // pattern requires end-of-string or `/` immediately after "employer".
   { pattern: /^\/employer(\/.*)?$/, role: UserRole.VERIFIER },
   { pattern: /^\/issuer(\/.*)?$/, role: UserRole.ISSUER },
+  // /career-map/:entityId — the clinician's own career graph. It was neither
+  // public nor protected, so it fell through the "pass through" branch of the
+  // middleware and answered 200 to anonymous requests in production, keyed by
+  // NPI. AUTHENTICATED rather than CLINICIAN is deliberate: the role claim is
+  // resolved asynchronously (see the /auth/resolving interstitial) and this
+  // route is reached directly from links, so requiring a specific role would
+  // bounce legitimate owners mid-resolution. Authentication alone is NOT the
+  // scope — the page itself checks that the caller owns the NPI and 404s
+  // otherwise. This guard is the turnstile; the ownership check is the scope.
+  { pattern: /^\/career-map(\/.*)?$/, role: UserRole.AUTHENTICATED },
   { pattern: /^\/internal(\/.*)?$/, role: UserRole.ADMIN },
   // Internal / operator surfaces — admin only
   // /admin/* — leads, platform, demo-reset. /admin/demo-reset shipped with no
