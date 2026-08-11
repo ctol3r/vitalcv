@@ -171,35 +171,13 @@ async function fetchAcceptanceHistory(
 
 // ── Metadata ──────────────────────────────────────────────────────────────────
 
-/**
- * Two search signals, and which one applies depends on whether VitalCV holds
- * anything for this NPI.
- *
- * No passport: the page below renders <NotFound/> — an HTTP 200 carrying a
- * sentence. That is a soft 404, and this route's URL space is every 10-digit
- * number, so left indexable it manufactures thin pages for ~5.5M NPIs VitalCV
- * has never touched. Those get `noindex`, and deliberately no canonical: a
- * noindex paired with a canonical is a contradiction, the same reason
- * app/sitemap.ts refuses to list a noindexed route.
- *
- * Passport present: this page and /directory/[npi] both render
- * ClinicianRecordDetail for the same clinician, so a crawler sees two URLs for
- * one entity. /directory is the surface built to be indexed — it carries the
- * descriptive title, the Physician JSON-LD, and its own noindex fallback — so
- * authority consolidates there and this route stays the tool it is.
- * directory-provider-page.test.ts already asserted the directory half of this
- * pair; this is the half that was missing.
- *
- * fetchPassport runs again in the page body. Next memoizes identical fetches
- * within a render, so this costs no extra backend round trip.
- */
 export async function generateMetadata({
   params,
 }: {
   params: Promise<{ npi: string }>;
 }): Promise<Metadata> {
   const { npi } = await params;
-  const base: Metadata = {
+  return {
     title: `Verifier View — NPI ${npi}`,
     description: 'Read-only credential verification for hospital and employer reviewers.',
     // NOT INDEXABLE. This page renders a named clinician's record — legal name,
@@ -216,19 +194,17 @@ export async function generateMetadata({
     // and names a real physician). No /verify URL has ever been in the
     // sitemap, so nothing here was advertised; this closes the gap between
     // "not advertised" and "not indexable".
+    //
+    // UNCONDITIONAL, and deliberately so. A version of this gated the noindex
+    // on whether a passport existed — noindex the soft-404s, canonicalise the
+    // real records to /directory/[npi] — which treated the problem as duplicate
+    // content between two URLs for one clinician. It is not: the objection above
+    // is consent, and it applies most strongly to exactly the records that
+    // version would have left indexable. No canonical either; pairing one with
+    // a noindex asks a crawler to both ignore this page and index another on
+    // its behalf.
     robots: { index: false, follow: false },
   };
-
-  if (!/^\d{10}$/.test(npi)) {
-    return { ...base, robots: { index: false, follow: false } };
-  }
-
-  const passport = await fetchPassport(npi);
-  if (!passport) {
-    return { ...base, robots: { index: false, follow: false } };
-  }
-
-  return { ...base, alternates: { canonical: `/directory/${npi}` } };
 }
 
 // ── Page ───────────────────────────────────────────────────────────────────────
@@ -507,10 +483,11 @@ export default async function VerifierPage({
           <Reveal delay={60}>
           <Section title="Full registry record">
             <ClinicianRecordDetail record={clinicianRecord} mode="public" />
-            {/* The canonical home for this filing, and the only link off this
-                page a crawler can follow — the employer CTA below points at
-                /review/, which robots.txt disallows. Without this, the public
-                directory page had no inbound link from anywhere in the app. */}
+            {/* The public home for this filing. A reader's affordance only —
+                this page is noindex, nofollow, so the link carries no crawl
+                signal and the directory sitemap does that work instead. It is
+                here because a reviewer who wants the plain registry record
+                otherwise has to leave for npiregistry.cms.hhs.gov. */}
             <p className="mt-4 text-[12px] leading-relaxed text-[var(--ink-500)]">
               This filing is public record.{' '}
               <Link href={`/directory/${npi}`} className="underline">

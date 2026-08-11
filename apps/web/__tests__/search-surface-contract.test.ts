@@ -57,43 +57,40 @@ describe('/verify/[npi] indexing posture', () => {
     fetchSpy.mockRestore();
   });
 
-  it('keeps a soft-404 out of the index', async () => {
-    fetchSpy.mockResolvedValue(notFoundResponse());
+  it.each([VALID_NPI, 'not-an-npi'])('refuses the index for %s', async (npi) => {
+    fetchSpy.mockResolvedValue(passportResponse());
 
-    const meta = await verifyMetadata({ params: Promise.resolve({ npi: VALID_NPI }) });
+    const meta = await verifyMetadata({ params: Promise.resolve({ npi }) });
 
     expect(meta.robots).toMatchObject({ index: false, follow: false });
   });
 
-  it('does not pair that noindex with a canonical', async () => {
-    // A page that says "don't index me" and "index this other URL instead" is
-    // sending two different instructions. app/sitemap.ts refuses the same
-    // contradiction in the other direction, by declining to list /docs while
-    // /docs is noindexed.
+  it('does not decide indexability from whether a record exists', async () => {
+    // An earlier version of this gated the noindex on the passport lookup:
+    // noindex the soft-404s, canonicalise the real records to /directory. That
+    // reads the problem as duplicate content, when the objection is consent —
+    // and consent bites hardest on precisely the records that version would
+    // have left indexable. Nothing about the metadata may depend on the
+    // backend, and it must not cost a request to find that out.
     fetchSpy.mockResolvedValue(notFoundResponse());
+    const missing = await verifyMetadata({ params: Promise.resolve({ npi: VALID_NPI }) });
+
+    fetchSpy.mockResolvedValue(passportResponse());
+    const present = await verifyMetadata({ params: Promise.resolve({ npi: VALID_NPI }) });
+
+    expect(present.robots).toEqual(missing.robots);
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it('does not pair that noindex with a canonical', async () => {
+    // "Don't index me" plus "index this other URL on my behalf" are two
+    // different instructions. app/sitemap.ts refuses the same contradiction in
+    // the other direction, by declining to list /docs while /docs is noindexed.
+    fetchSpy.mockResolvedValue(passportResponse());
 
     const meta = await verifyMetadata({ params: Promise.resolve({ npi: VALID_NPI }) });
 
     expect(meta.alternates?.canonical).toBeUndefined();
-  });
-
-  it('points a real record at the directory page as the canonical URL', async () => {
-    fetchSpy.mockResolvedValue(passportResponse());
-
-    const meta = await verifyMetadata({ params: Promise.resolve({ npi: VALID_NPI }) });
-
-    expect(meta.alternates?.canonical).toBe(`/directory/${VALID_NPI}`);
-    // Consolidating to /directory is the point; suppressing this page is not.
-    expect(meta.robots).toBeUndefined();
-  });
-
-  it('refuses to index a malformed NPI without asking the backend', async () => {
-    fetchSpy.mockResolvedValue(passportResponse());
-
-    const meta = await verifyMetadata({ params: Promise.resolve({ npi: 'not-an-npi' }) });
-
-    expect(meta.robots).toMatchObject({ index: false, follow: false });
-    expect(fetchSpy).not.toHaveBeenCalled();
   });
 });
 
