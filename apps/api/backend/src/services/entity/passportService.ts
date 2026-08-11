@@ -18,7 +18,9 @@
  */
 
 import prisma from '../../graphql/prisma_client';
-import { getEntityById, resolveEntityFromNpi } from './entityResolutionService';
+// `resolveEntityFromNpi` is deliberately NOT imported here: it upserts, and
+// everything this module serves is a read. See `buildPassportByNpi`.
+import { getEntityById } from './entityResolutionService';
 import {
   getCachedTrustState,
   type ClinicianTrustState,
@@ -2456,10 +2458,43 @@ export async function buildPassport(entityId: string): Promise<TrustPassport | n
 }
 
 /**
- * Build passport by NPI — resolves entity first if needed.
+ * Build passport by NPI — READ ONLY. Never creates an entity.
+ *
+ * This used to call `resolveEntityFromNpi`, which runs an unconditional
+ * `prisma.vcvEntity.upsert` writing the subject's legal name, NPI, specialty,
+ * credentials, taxonomies and ADDRESS. Its only caller of consequence is
+ * `GET /api/passport/npi/:npi`, which is **public and unauthenticated**.
+ *
+ * So reading a passport was a write. Anyone could cause VitalCV to persist a
+ * named record — with address — for any of ~1.3M US clinicians by requesting a
+ * URL, and none of those people had asked for or consented to it. The homepage
+ * promises that entering an NPI "starts nothing you don't approve"; this made
+ * merely *looking* start something.
+ *
+ * Worse for diagnosis: the write happened BEFORE `buildPassport`, so a 404 was
+ * never evidence that nothing was stored. An NPI that returns "no passport"
+ * still got a row. That is how this stayed invisible — the observable response
+ * for an unknown NPI is identical either way.
+ *
+ * Read-only lookup mirrors `resolveEmployerReviewSubjectByNpi`, which already
+ * documents itself as "never creates an entity, unlike resolveEntityFromNpi" —
+ * earliest row wins so the result is deterministic when an NPI has more than
+ * one. Returning null makes the route 404, exactly as it does today for an NPI
+ * with no passport data, so the public contract is unchanged.
+ *
+ * Entities are still created by the paths whose JOB is to create them: the
+ * clinician-initiated `GET /api/entity/resolve/npi/:npi` onboarding entry
+ * point, `ingestOrchestrator`, and `vcvCredentialMaterializer`. Those are
+ * writes by design and keep calling `resolveEntityFromNpi`.
  */
 export async function buildPassportByNpi(npi: string): Promise<TrustPassport | null> {
-  // Resolve creates/updates entity if needed
-  const record = await resolveEntityFromNpi(npi);
-  return buildPassport(record.entity.id);
+  const entity = await prisma.vcvEntity.findFirst({
+    where: { npi },
+    orderBy: { createdAt: 'asc' },
+    select: { id: true },
+  });
+
+  if (!entity) return null;
+
+  return buildPassport(entity.id);
 }

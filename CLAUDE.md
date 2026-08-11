@@ -43,9 +43,13 @@ source-truth checks do not prove visual quality.
 
 Production promotion requires an explicit founder instruction for the change in
 question, plus the deployment discipline in
-[Deployment](#deployment-railway--vercel-is-deprecated): exact deployed SHA,
-matching public `/api/version`, a passing production smoke, and a homepage
-interaction audit.
+[Deployment](#deployment-railway--vercel-is-deprecated): exact deployed SHA, a
+passing production smoke, and a homepage interaction audit. **The SHA check is
+per service and reads a different endpoint on each** — see the Deployment
+bullets. This used to read "matching public `/api/version`", which is a web-only
+check: on the API that path answered `organization_context_required` until
+2026-08-11, and its payload has no `commit` field in any case. Neither service's
+endpoint stands in for the other's.
 
 **Superseded 2026-08-05.** The Wave-1072 founder visual gate that stood here
 implied Z0 was open, Z1 could not begin, production promotion was locked, and the
@@ -156,6 +160,10 @@ Do not remove worktrees you didn't create — they are load-bearing.
 
 - **API** deploys from root `railway.toml` (+ `nixpacks.toml`, `apps/api/Dockerfile`): `pnpm turbo build`, `prisma migrate deploy`, health `/health`.
 - **Web** deploys from `apps/web/Dockerfile` (+ `apps/web/railway.toml`): `next start -p $PORT`, health `/api/health`. Both auto-deploy on push to `main`; `.github/workflows/deploy-api.yml` + `deploy-web.yml` wait + smoke-test.
+- **Deployed-SHA check — different endpoint and different schema per service. Do not substitute one for the other.**
+  - **API:** `https://api.vitalcv.com/health` → `git_sha`. This is what `deploy-api.yml` polls (cache-busted) until it equals `GITHUB_SHA`. `api.vitalcv.com/api/version` serves the same SHA as `commitHash` alongside `buildVersion`/`nodeVersion`/`prismaVersion`, but no gate reads it — it was 401ing behind the global tenant guard until 2026-08-11 and nothing noticed.
+  - **Web:** `https://vitalcv.com/api/version` → `{commit, platform, environment, branch}`, `no-store`. This is what `deploy-web.yml` → `scripts/deploy-smoke.mjs` asserts. It is a Next route on the web container and says nothing about the API deployment.
+  - Assert SHA **ancestry** (`git merge-base --is-ancestor <yours> <deployed>`), never just that a deploy job succeeded.
 - **Required web env:** set `BACKEND_URL` (e.g. `https://api.vitalcv.com`) — `getBackendBase()` uses it for server-side reads and it overrides the Docker build default `NEXT_PUBLIC_API_BASE=http://localhost:4000`. Without it, live-data surfaces (e.g. `/ops/engine`) read the wrong base.
 - Deploy metadata: prefer `RAILWAY_*` env (`RAILWAY_ENVIRONMENT`, `RAILWAY_GIT_COMMIT_SHA`, `RAILWAY_GIT_BRANCH`); `VERCEL_*` reads remain only as backwards-compatible fallbacks.
 

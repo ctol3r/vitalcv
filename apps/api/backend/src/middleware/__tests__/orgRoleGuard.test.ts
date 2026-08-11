@@ -131,9 +131,39 @@ describe('orgRoleGuard — requireOrgRole', () => {
     expect(res.status).toHaveBeenCalledWith(403);
   });
 
-  it('enforce: super-admin bypasses the org-role check even with no org-role', () => {
+  /*
+   * S1 — this pair replaces a single case that asserted
+   * "super-admin bypasses the org-role check" from the HEADER alone. That
+   * assertion encoded the defect: the header is caller-supplied, so the bypass
+   * was available to anyone. The doctrine (a platform operator bypasses the
+   * org-role requirement) is unchanged; what changed is where the answer comes
+   * from — `bindPlatformAdmin` resolves a verified Clerk session to a
+   * `User.role = ADMIN` row. The assertion is STRENGTHENED, not relaxed: the
+   * legitimate bypass is still asserted below, and the forged one is now
+   * refused.
+   */
+  it('enforce: a super-admin ROLE HEADER alone does not bypass the org-role check', () => {
     process.env.VERIFIER_RBAC_MODE = 'enforce';
     const req = createRequest({ 'x-user-role': 'super-admin' });
+    const res = createResponse();
+    const next = jest.fn();
+
+    requireOrgRole(VERIFIER_MUTATION_ROLES)(req, res, next);
+
+    expect(next).not.toHaveBeenCalled();
+    expect(res.status).toHaveBeenCalledWith(403);
+  });
+
+  it('enforce: a VERIFIED platform admin bypasses the org-role check even with no org-role', () => {
+    process.env.VERIFIER_RBAC_MODE = 'enforce';
+    const req = createRequest({ 'x-user-role': 'super-admin' });
+    // What bindPlatformAdmin writes after resolving the verified subject to an
+    // ADMIN/ACTIVE User row. Set directly so this case stays a unit test of the
+    // guard; platformAdminBinding.test.ts covers the resolution itself.
+    (req as Request & { platformAdmin?: unknown }).platformAdmin = {
+      asserted: true,
+      verified: true,
+    };
     const res = createResponse();
     const next = jest.fn();
 

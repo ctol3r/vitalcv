@@ -46,26 +46,19 @@ runPilotRouteSuite('pilot routes', () => {
     expect(secondVisit.body.status).toBe('VERIFIED');
   });
 
-  it('records verifier acceptance payloads', async () => {
+  // These two cases previously asserted that POST /api/pilot/acceptance
+  // accepted an unauthenticated write (201) and validated its body (400). Both
+  // were green throughout, because they described the defect as the contract:
+  // the endpoint had no authentication, and its rows were counted into the
+  // metrics payload as "employers accepted". The route is retired (VCD-01d);
+  // full reasoning and the primary guard live in
+  // src/routes/__tests__/pilotAcceptanceCounterRetired.test.ts.
+  it('no longer accepts an unauthenticated acceptance write', async () => {
     const res = await request(app).post('/api/pilot/acceptance').send({
       organization: 'Regional Health Center',
     });
 
-    expect(res.status).toBe(201);
-    expect(res.body).toMatchObject({
-      organization: 'Regional Health Center',
-      id: expect.any(String),
-    });
-    expect(res.body.acceptedAt).toBeTruthy();
-  });
-
-  it('rejects invalid verifier acceptance requests without crashing the process', async () => {
-    const res = await request(app).post('/api/pilot/acceptance').send({});
-
-    expect(res.status).toBe(400);
-    expect(res.body).toEqual({
-      error: 'organization is required',
-    });
+    expect(res.status).toBe(404);
   });
 
   it('returns YC and pilot metrics aggregates', async () => {
@@ -91,6 +84,8 @@ runPilotRouteSuite('pilot routes', () => {
       ],
     });
 
+    // Seeded on purpose: rows may still exist from before the counter was
+    // retired (VCD-01d), and no metrics payload may surface them again.
     await prisma.verifierAcceptance.createMany({
       data: [
         { organization: 'Regional Health Center' },
@@ -105,10 +100,10 @@ runPilotRouteSuite('pilot routes', () => {
       shareLinks: 3,
       verifierViews: 2,
       exports: 0,
-      verifierAcceptances: 2,
       activePilotOrgs: 0,
       estimatedRevenueImpact: 0,
     });
+    expect(yc.body).not.toHaveProperty('verifierAcceptances');
     expect(typeof yc.body.avgTimeToView).toBe('number');
     expect(yc.body.estimatedStartDateAccelerationDays).not.toBeNull();
 
@@ -119,7 +114,6 @@ runPilotRouteSuite('pilot routes', () => {
       shareLinks: 3,
       verifierViews: 2,
       exports: 0,
-      verifierAcceptances: 2,
       pilotOrgCount: 0,
       bundlesGenerated: 0,
       activePilotOrgs: 0,

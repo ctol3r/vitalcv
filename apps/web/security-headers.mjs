@@ -50,13 +50,26 @@ const CLERK_HOSTS =
 // and loads a script + iframe from this host.
 const TURNSTILE_HOST = 'https://challenges.cloudflare.com';
 
+// Sentry ingest. Region-scoped DSNs — the default for orgs created on the current
+// Sentry — resolve to o<orgId>.ingest.<region>.sentry.io, e.g.
+// o…​.ingest.us.sentry.io. That host does NOT match https://*.ingest.sentry.io: the
+// CSP host wildcard matches only names ending in ".ingest.sentry.io", and the region
+// label makes this a subdomain of us.sentry.io instead. Exactly the Clerk
+// custom-domain shape above, and it fails the same silent way — the browser blocks
+// every client-side event while /api/health still reports sentry:true, because that
+// flag only reads whether the DSN is set. Server-side events are unaffected (no CSP
+// on server-to-server), so the gap is invisible unless you check the browser.
+// Measured 2026-08-11 against the live header. Legacy host kept for older DSNs.
+const SENTRY_INGEST =
+  'https://*.ingest.sentry.io https://*.ingest.us.sentry.io';
+
 const cspDirectives = [
   `default-src ${SELF}`,
   `script-src ${SELF} 'unsafe-inline' 'unsafe-eval' ${STRIPE_HOSTS} ${VERCEL_LIVE_HOSTS} ${CLERK_HOSTS} ${TURNSTILE_HOST} ${POSTHOG_INGESTION} ${POSTHOG_ASSETS}`,
   `style-src ${SELF} 'unsafe-inline' https://fonts.googleapis.com`,
   `font-src ${SELF} data: https://fonts.gstatic.com`,
   `img-src ${SELF} data: blob: https:`,
-  `connect-src ${SELF} ${CLERK_HOSTS} https://api.stripe.com https://*.ingest.sentry.io wss://*.vitalcv.com ${POSTHOG_INGESTION} ${POSTHOG_ASSETS}`,
+  `connect-src ${SELF} ${CLERK_HOSTS} https://api.stripe.com ${SENTRY_INGEST} wss://*.vitalcv.com ${POSTHOG_INGESTION} ${POSTHOG_ASSETS}`,
   `frame-src ${STRIPE_HOSTS} https://*.clerk.accounts.dev https://clerk.vitalcv.com ${TURNSTILE_HOST}`,
   // ClerkJS runs part of its runtime in a Web Worker created from a blob: URL;
   // without this it falls back to default-src 'self' and the worker is blocked.
