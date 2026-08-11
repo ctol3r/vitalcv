@@ -1,7 +1,10 @@
 import type { MetadataRoute } from 'next';
 
 import { isCanonicalProductionProcess } from '@/lib/deployment/canonicalProduction';
-import { directorySitemapChunkCount } from '@/lib/directory/sitemapSeed';
+import {
+  directorySitemapChunkCount,
+  directorySitemapEnabled,
+} from '@/lib/directory/sitemapSeed';
 
 /**
  * `robots.txt`.
@@ -78,10 +81,15 @@ export default function robots(): MetadataRoute.Robots {
      */
     sitemap: [
       'https://vitalcv.com/sitemap.xml',
-      ...Array.from(
-        { length: directorySitemapChunkCount() },
-        (_, id) => `https://vitalcv.com/directory/sitemap/${id}.xml`,
-      ),
+      // Nothing while DIRECTORY_SITEMAP is unset: advertising an empty sitemap
+      // tells a crawler this section has no pages, which is a different and
+      // worse claim than saying nothing.
+      ...(directorySitemapEnabled()
+        ? Array.from(
+            { length: directorySitemapChunkCount() },
+            (_, id) => `https://vitalcv.com/directory/sitemap/${id}.xml`,
+          )
+        : []),
     ],
   };
 }

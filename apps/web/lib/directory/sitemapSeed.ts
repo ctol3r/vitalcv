@@ -51,6 +51,28 @@ export interface DirectorySeedProvenance {
 }
 
 /**
+ * Is VitalCV allowed to advertise provider pages to search engines?
+ *
+ * OFF until someone decides. #1329 named the question and declined to answer it
+ * in a code review — "whether VitalCV should show the public record for someone
+ * who never enrolled is a consent decision, not a copy fix" — and a sitemap
+ * pointing crawlers at ~5,000 clinicians who have never heard of VitalCV is
+ * that decision, made by merge.
+ *
+ * So it is staged the way this repo stages its other consequential switches
+ * (CLERK_JWT_VERIFICATION, VERIFIER_RBAC_MODE): the code ships complete and
+ * inert, and a founder flips one Railway variable. Off, the route still exists
+ * and still answers — it advertises nothing, and robots.txt does not list it.
+ *
+ * Read per request, never frozen into the bundle, for the same reason
+ * app/robots.ts is force-dynamic: a build-time read bakes whatever the CI
+ * environment happened to have.
+ */
+export function directorySitemapEnabled(): boolean {
+  return process.env.DIRECTORY_SITEMAP === 'enabled';
+}
+
+/**
  * Valid, de-duplicated, excluded-list applied, sorted.
  *
  * Exported separately from the seed it normally reads so the filtering can be
@@ -78,6 +100,7 @@ export function filterSeedNpis(
 }
 
 export function directorySitemapNpis(): string[] {
+  if (!directorySitemapEnabled()) return [];
   return filterSeedNpis(Array.isArray(seed.npis) ? seed.npis : [], EXCLUDED_NPIS);
 }
 

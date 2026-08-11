@@ -11,7 +11,7 @@
  * second failure. This guards the generated half.
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import {
   directorySitemapNpis,
   directorySitemapChunk,
@@ -22,6 +22,23 @@ import {
 } from '@/lib/directory/sitemapSeed';
 import directorySitemap, { generateSitemaps } from '@/app/directory/sitemap';
 import robots from '@/app/robots';
+
+/**
+ * Advertising provider pages is off until a founder turns it on — the consent
+ * decision #1329 named and declined to make in a code review. Most of this file
+ * describes what the sitemap must look like WHEN enabled, so it enables it; the
+ * "switched off" block below is what ships by default.
+ */
+const ORIGINAL_FLAG = process.env.DIRECTORY_SITEMAP;
+
+beforeEach(() => {
+  process.env.DIRECTORY_SITEMAP = 'enabled';
+});
+
+afterEach(() => {
+  if (ORIGINAL_FLAG === undefined) delete process.env.DIRECTORY_SITEMAP;
+  else process.env.DIRECTORY_SITEMAP = ORIGINAL_FLAG;
+});
 
 describe('seed integrity', () => {
   it('lists only well-formed NPIs', () => {
@@ -107,6 +124,53 @@ describe('emitted entries', () => {
       expect(entry.lastModified).toBeUndefined();
       expect(entry.changeFrequency).toBeUndefined();
       expect(entry.priority).toBeUndefined();
+    }
+  });
+});
+
+describe('switched off — what ships by default', () => {
+  beforeEach(() => {
+    delete process.env.DIRECTORY_SITEMAP;
+  });
+
+  it('advertises no provider sitemap', () => {
+    const previous = process.env.RAILWAY_ENVIRONMENT;
+    process.env.RAILWAY_ENVIRONMENT = 'production';
+    try {
+      const sitemaps = robots().sitemap;
+      const list = Array.isArray(sitemaps) ? sitemaps : [sitemaps].filter(Boolean);
+
+      expect(list).toEqual(['https://vitalcv.com/sitemap.xml']);
+    } finally {
+      if (previous === undefined) delete process.env.RAILWAY_ENVIRONMENT;
+      else process.env.RAILWAY_ENVIRONMENT = previous;
+    }
+  });
+
+  it('lists no NPI', async () => {
+    // Not "an empty sitemap" — an empty sitemap tells a crawler this section
+    // has no pages, which is a different and worse claim than saying nothing.
+    // Nothing points at the route at all while the flag is unset.
+    expect(directorySitemapNpis()).toEqual([]);
+    expect(await directorySitemap({ id: 0 })).toEqual([]);
+  });
+
+  it('leaves the record pages themselves untouched', () => {
+    // The flag governs advertising, not the route. /directory/[npi] still
+    // answers, still carries its canonical and JSON-LD, and is still indexable
+    // on its own merits — the same posture as before any of this shipped.
+    const previous = process.env.RAILWAY_ENVIRONMENT;
+    process.env.RAILWAY_ENVIRONMENT = 'production';
+    try {
+      const rules = robots().rules;
+      const disallow = (Array.isArray(rules) ? rules : [rules]).flatMap((r) =>
+        r?.disallow === undefined ? [] : Array.isArray(r.disallow) ? r.disallow : [r.disallow],
+      );
+
+      expect(disallow.some((path) => path.startsWith('/directory'))).toBe(false);
+    } finally {
+      if (previous === undefined) delete process.env.RAILWAY_ENVIRONMENT;
+      else process.env.RAILWAY_ENVIRONMENT = previous;
     }
   });
 });
