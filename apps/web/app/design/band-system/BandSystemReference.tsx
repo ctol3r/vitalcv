@@ -214,22 +214,21 @@ function Specimens() {
           <a className="bs-link" href="#band-system">
             Travelling underline
           </a>
-          <button type="button" className="bs-cta">
-            <span>Internal action</span>
-            <span className="bs-cta__glyph" aria-hidden="true">
-              →
+          <Action variant="quiet">Internal action</Action>
+          <a className="bs-action bs-action--quiet bs-action--external" href="#band-system">
+            <span className="bs-action__rail" aria-hidden="true">
+              <span className="bs-action__glyph bs-action__glyph--lead">↗</span>
             </span>
-          </button>
-          <a className="bs-cta bs-cta--external" href="#band-system">
-            <span>External destination</span>
-            <span className="bs-cta__glyph" aria-hidden="true">
-              ↗
+            <span className="bs-action__label">External destination</span>
+            <span className="bs-action__rail" aria-hidden="true">
+              <span className="bs-action__glyph bs-action__glyph--trail">↗</span>
             </span>
           </a>
         </div>
         <p style={{ marginTop: '1.25rem', maxInlineSize: '52ch', color: 'var(--vt-bs-ink-2)' }}>
           Tab to each control: focus is styled outside the hover media query, so the affordance
-          survives on touch-capable laptops. Every control clears the 44px block floor.
+          survives on touch-capable laptops. Every control clears the 44px block floor. R2&rsquo;s
+          separate arrow CTA is retired — one control answered this, so the island keeps one.
         </p>
       </section>
 

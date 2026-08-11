@@ -45,6 +45,7 @@ const CSS_PATH = path.join(__dirname, '..', 'styles', 'band-system-components.cs
  * that references them, so the invariant below has to read across both files.
  */
 const MOTION_CSS_PATH = path.join(__dirname, '..', 'styles', 'motion.css');
+const PRIMITIVES_CSS_PATH = path.join(__dirname, '..', 'styles', 'band-system.css');
 
 /** Strip comments so documented counter-examples aren't scanned. */
 function declarationsOnly(css: string): string {
@@ -296,5 +297,42 @@ describe('band-system-components.css — synthesis invariants', () => {
     const lower = css.toLowerCase();
     const found = referenceHexes.filter((hex) => lower.includes(hex));
     expect(found).toEqual([]);
+  });
+
+  /**
+   * SURFACE vs PANEL is A-1's evidence/chrome boundary, and it was
+   * accidental before it was a contract: the two components' code was
+   * near-identical and only the token wiring differed, so nothing
+   * stopped an author frosting a surface a decision is read from.
+   *
+   * `.bs-panel` must therefore stay hardcoded solid and near-sharp —
+   * if it ever reads the surface or scene-shape tokens it inherits the
+   * frost with them.
+   */
+  it('keeps .bs-panel solid and near-sharp, so evidence cannot frost (A-1)', () => {
+    const primitives = declarationsOnly(fs.readFileSync(PRIMITIVES_CSS_PATH, 'utf8'));
+    const panel = primitives.match(/\.bs-panel\s*\{([^}]*)\}/)?.[1] ?? '';
+
+    expect(panel, '.bs-panel must exist in the primitives').not.toBe('');
+    expect(panel).not.toMatch(/--vt-bs-surface/);
+    expect(panel).not.toMatch(/--vt-bs-shape-/);
+    expect(panel).not.toMatch(/--vt-frost/);
+
+    // And its radius stays near-sharp rather than tracking a token.
+    const radius = panel.match(/border-radius:\s*([^;]+)/)?.[1]?.trim() ?? '';
+    expect(radius).toMatch(/^[0-3](\.\d+)?px$/);
+  });
+
+  /**
+   * R2's arrow CTA and R3's action were one control with two names. The
+   * duplicate is retired rather than aliased — an alias keeps both
+   * reachable and the duplication merely becomes invisible.
+   */
+  it('retires .bs-cta rather than aliasing it', () => {
+    const primitives = declarationsOnly(fs.readFileSync(PRIMITIVES_CSS_PATH, 'utf8'));
+    expect(primitives).not.toMatch(/\.bs-cta/);
+
+    // The replacement carries the external travel the retired one had.
+    expect(css).toMatch(/\.bs-action--external/);
   });
 });

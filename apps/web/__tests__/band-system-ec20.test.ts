@@ -86,7 +86,7 @@ describe('band-system.css — EC-20 conformance', () => {
   });
 
   it('declares the 44px target floor for interactive primitives (EC-5)', () => {
-    // .bs-cta carries an explicit floor; .bs-link derives its padding from it.
+    // .bs-link carries the floor; .bs-cta was retired in favour of .bs-action.
     expect(css).toMatch(/min-block-size:\s*44px/);
     expect(css).toMatch(/--vt-bs-link-pad:[^;]*44px/);
   });
