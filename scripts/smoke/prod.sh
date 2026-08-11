@@ -90,8 +90,14 @@ echo ""
 echo -e "${BOLD}Demo${NC}"
 check_get "/demo/status"
 check_get "/demo/sample-npis"
-check_post "/demo/issue" '{"npi":"1003000126"}'
-check_post "/demo/verify" '{"npi":"1003000126"}'
+# 1558395516 — check-digit-INVALID, NPPES result_count 0, final digit 6 preserved
+# because the sandbox connectors branch on it. This was 1003000126 until
+# 2026-08-10: a real physician (ARDALAN ENKESHAFI in NPPES). These two lines
+# POST to PRODUCTION on every smoke run, issuing and verifying a demo credential
+# against that person's identifier. No PR check runs this script, so it was
+# never going to be caught by CI.
+check_post "/demo/issue" '{"npi":"1558395516"}'
+check_post "/demo/verify" '{"npi":"1558395516"}'
 
 # ── Validation: bad input should return 400 ───────────────────
 echo ""

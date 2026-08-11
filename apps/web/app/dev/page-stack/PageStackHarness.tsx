@@ -25,10 +25,15 @@ const SEED_LINKS: readonly { key: PaneKey; label: string; relationship: string }
   { key: { type: 'evidence_claim', id: 'claim_demo' }, label: 'Open an evidence claim', relationship: 'backed_by' },
 ];
 
-// A well-known demo NPI (public evidence via /verify/:npi). Its evidence graph's
+// A synthetic demo NPI (public evidence via /verify/:npi). Its evidence graph's
 // real, typed relationships render in the drawer below; if it has none, the
-// drawer shows its honest empty state.
-const DEMO_NPI = '1003000126';
+// drawer shows its honest empty state — which is the expected result here.
+//
+// 1558395516 is check-digit-INVALID and absent from NPPES. It was 1003000126
+// until 2026-08-10 — a real physician — which rendered that person's named
+// record in a dev harness. Final digit (6) preserved: the sandbox connectors
+// branch on it.
+const DEMO_NPI = '1558395516';
 
 function RelationshipsDemo() {
   const { state, load } = useEntityRelationships('clinician', DEMO_NPI);
