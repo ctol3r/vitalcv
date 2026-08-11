@@ -3138,7 +3138,25 @@
   margin-top: 16px;
 }
 
-.ezh-rv-keep {
+/* The primary action of the whole recognition moment.
+ *
+ * Scoped `.ezh .ezh-rv-keep` (0,2,0) rather than `.ezh-rv-keep` (0,1,0)
+ * BECAUSE OF A LIVE DEFECT, measured on production 2026-08-10: this control is
+ * a Next `<Link>`, so it renders as an `<a>`, and `.ezh a { color: inherit }`
+ * at the top of this file is (0,1,1) — it outranked the bare class and won.
+ * The button therefore painted the dark-scene ink token #F2F1ED on its own
+ * paper fill #F6F5F1: a contrast ratio of **1.04**, i.e. invisible. Every
+ * clinician who entered an NPI saw a blank pill where "Keep this record" is —
+ * the single conversion action on the homepage.
+ *
+ * Its `<button>` sibling `.ezh-rv-again` was never affected, which is why the
+ * secondary action stayed readable and the primary one did not. Nothing about
+ * the token chain was wrong: --ezh-cta-text resolved to #151412 correctly the
+ * whole time; the declaration simply lost the cascade.
+ *
+ * Asserted in __tests__/home-cta-contrast.test.ts — a specificity assertion,
+ * because the computed value is the thing that regressed, not the token. */
+.ezh .ezh-rv-keep {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -3152,8 +3170,8 @@
   transition: background-color 0.15s ease, color 0.15s ease;
 }
 
-.ezh-rv-keep:hover,
-.ezh-rv-keep:focus-visible {
+.ezh .ezh-rv-keep:hover,
+.ezh .ezh-rv-keep:focus-visible {
   background: var(--ezh-cta-bg-press);
   color: var(--ezh-cta-text-press);
 }
