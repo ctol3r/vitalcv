@@ -133,3 +133,48 @@ describe('LINT-13 — custom-property family freeze (W1083)', () => {
     expect(re.test(line)).toBe(true);
   });
 });
+
+/**
+ * Content rules must not fire on their own documentation.
+ *
+ * Found on #1323: the last five design-lint violations on that branch were all
+ * PROSE — a comment explaining why a `z-index` was removed, a comment quoting a
+ * rejected reference shadow, and (the tell) the sentence "LINT-03 allows
+ * keyframes". The gate punished exactly the comments most worth writing: the
+ * ones recording what was rejected and why.
+ *
+ * `stripComments` already existed and 14 of 22 rules set it; the false-positive
+ * rules simply did not. This pins the flag so it cannot be dropped again.
+ *
+ * LINT-08 is a DELIBERATE exception. It is the prohibited-marketing-copy rule —
+ * a truth-contract gate — and a false positive there costs one reword, while
+ * loosening it is a truth-surface risk. Strict on purpose.
+ */
+describe('comment stripping is enabled on the content rules', () => {
+  const source = SOURCE;
+
+  /** The rule object for `id`, up to the start of the next rule. */
+  function ruleBody(id: string): string {
+    const start = source.indexOf(`id: '${id}'`);
+    expect(start, `rule ${id} must exist`).toBeGreaterThan(-1);
+    const next = source.slice(start + 1).search(/id: '[^']+',/);
+    return next === -1 ? source.slice(start) : source.slice(start, start + 1 + next);
+  }
+
+  it.each(['LINT-01', 'LINT-03', 'LINT-05', 'LINT-06', 'LINT-09', 'LINT-12', 'LINT-13'])(
+    '%s strips comments before scanning',
+    (id) => {
+      expect(ruleBody(id)).toContain('stripComments: true');
+    },
+  );
+
+  it('LINT-08 stays strict — a truth-contract gate, exception is deliberate', () => {
+    expect(ruleBody('LINT-08')).not.toContain('stripComments: true');
+  });
+
+  it('stripComments preserves line numbers so reports stay accurate', () => {
+    // The implementation blanks comment bodies rather than deleting them.
+    const impl = source.slice(source.indexOf('function stripComments'));
+    expect(impl.slice(0, 220)).toMatch(/replace\(\/\[\^\\n\]\/g, ' '\)/);
+  });
+});
