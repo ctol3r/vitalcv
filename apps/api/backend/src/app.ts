@@ -18,6 +18,7 @@ import { apiKeyAuth, publicApiRateLimit, trustStateRateLimit } from './middlewar
 import { credentialStatusRateLimit, proofRateLimit, walletRateLimit } from './middleware/rateLimitFactory';
 import { requestObservability } from './middleware/requestObservability';
 import { verifiedIdentityMiddleware } from './middleware/verifiedIdentity';
+import { bindPlatformAdmin } from './middleware/platformAdminContext';
 import {
     enforceOrganizationMatch,
     isSuperAdminRequest,
@@ -3584,6 +3585,12 @@ registerReplayByNpiRoute(app);
 // verified JWT sub (and strips role-bypass headers on unverified requests)
 // before any downstream reader — including tenantGuard — consumes them.
 app.use(verifiedIdentityMiddleware);
+
+// S1 platform-admin binding. Mounted AFTER verifiedIdentity (it consumes the
+// verified subject) and BEFORE the tenant guard (which asks `isSuperAdmin`
+// while deciding org scope). Single mount, so every `isSuperAdminRequest`
+// caller downstream gets a verified answer with no per-route change.
+app.use(bindPlatformAdmin);
 
 // Intelligence/investigation read routes bypass org requirement.
 // All other routes still require org context via requireTenantContext.
