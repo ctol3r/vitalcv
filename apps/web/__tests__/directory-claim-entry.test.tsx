@@ -122,6 +122,17 @@ describe('claim entry', () => {
     expect(html).toContain(`/onboarding?npi=${NPI}`);
   });
 
+  it('names what the clinician is claiming', async () => {
+    // A stranger arriving from a search result has met the record but not the
+    // product. "Claim this" with no noun leaves them claiming nothing in
+    // particular, and this page is the first place most clinicians will ever
+    // meet the name the category strategy asks them to remember.
+    resolves();
+    const html = await render();
+
+    expect(html).toMatch(/your VitalCV profile/i);
+  });
+
   it('does not claim the record is verified by claiming it', async () => {
     // The whole risk of putting a CTA on a registry page is that "claim this"
     // reads as "this is confirmed". The copy has to say what claiming does not

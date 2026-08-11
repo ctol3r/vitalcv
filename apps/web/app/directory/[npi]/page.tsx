@@ -28,6 +28,7 @@ import { fetchNppesRecord } from '@/lib/clinician-record/nppes';
 import { buildClinicianRecord, attachMedicareEnrollment } from '@/lib/clinician-record/build';
 import { fetchCmsClinicianRows } from '@/lib/clinician-record/cmsClinicians';
 import { DIRECTORY_CONTEXT_NOTE } from '@/lib/clinician-record/copy';
+import { RecordViewTracker, ClaimRecordLink } from '@/components/directory/RecordAnalytics';
 
 /**
  * Cache for the NPPES refresh window. CMS updates weekly, so re-fetching per
@@ -156,6 +157,13 @@ export default async function ProviderDirectoryPage({ params }: PageProps) {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
 
+      {/* Fires for organization records too — an employer landing on a practice
+          page is signal, and dropping it would make the funnel's denominator
+          quietly clinician-only. */}
+      <RecordViewTracker
+        entityType={record.entityType === 'organization' ? 'organization' : 'individual'}
+      />
+
       <main className="mx-auto w-full max-w-4xl space-y-6 px-4 py-8 sm:py-12">
         <header className="space-y-2">
           <p className="mz-eyebrow">Public registry record</p>
@@ -200,20 +208,26 @@ export default async function ProviderDirectoryPage({ params }: PageProps) {
             style={{ borderColor: 'var(--rule)' }}
           >
             <h2 className="mz-h3">Is this you?</h2>
+            {/* Names the thing being claimed. A stranger arriving from a search
+                result has met the record but not the product, and "claim this"
+                with no noun leaves them claiming nothing in particular. "Your
+                VitalCV profile" is one of the four names the category strategy
+                requires customers to remember; this is the first place a
+                clinician ever encounters it. */}
             <p className="mt-2 text-[13px] leading-relaxed text-[var(--ink-700)]">
-              Claim this record to keep it, add what the registry does not hold,
-              and reuse it the next time you apply. Claiming connects this NPI to
-              an account you control — it confirms nothing about your credentials
-              and changes nothing on this page.
+              Claim this record and it becomes your VitalCV profile — yours to
+              keep, to add what the registry does not hold, and to reuse the next
+              time you apply. Claiming connects this NPI to an account you
+              control. It confirms nothing about your credentials and changes
+              nothing on this page.
             </p>
-            <Link
-              href={`/onboarding?npi=${record.npi}`}
+            <ClaimRecordLink
+              npi={record.npi}
               className="mt-3 inline-flex min-h-[44px] items-center rounded-[3px] border px-4 text-[13px] font-medium text-[var(--ink-800)]"
               style={{ borderColor: 'var(--ink-300)' }}
-              data-testid="directory-claim-cta"
             >
               Claim this record
-            </Link>
+            </ClaimRecordLink>
           </section>
         )}
 
