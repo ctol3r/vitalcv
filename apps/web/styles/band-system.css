@@ -403,50 +403,20 @@
   outline-offset: 3px;
 }
 
-/* ── Arrow CTA ────────────────────────────────────────────────
-   EC-5: 44px minimum touch target. The reference page this pattern
-   comes from fails that on 97 of 140 targets; the floor is declared
-   here so the primitive cannot reproduce the defect.                 */
+/* ── Arrow CTA — RETIRED, superseded by `.bs-action` ──────────
+   R2's arrow CTA and R3's `.bs-action` were the same control: a text
+   button with a travelling arrow and a 44px floor. Keeping both left
+   the island with two answers to one question, which is how a
+   component set starts competing with itself.
 
-.bs-cta {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  min-block-size: 44px;
-  padding-inline: 0.125rem;
-  color: var(--vt-bs-ink);
-  font-family: var(--vt-bs-sans);
-  text-decoration: none;
-  background: none;
-  border: 0;
-  cursor: pointer;
-}
+   `.bs-action--quiet` is the direct replacement and is strictly
+   better: two glyphs on reserved rails rather than one translating
+   glyph, so the swap cannot reflow the label; plus the primary and
+   secondary variants EC-20's button grammar asks for.
+   `.bs-action--external` carries the up-and-out travel this had.
 
-.bs-cta__glyph {
-  display: inline-block;
-  transform: translate(0, 0);
-  transition: transform var(--vt-bs-dur) var(--vt-bs-ease);
-}
-
-.bs-cta:hover .bs-cta__glyph,
-.bs-cta:focus-visible .bs-cta__glyph {
-  transform: translateX(0.25rem);
-}
-
-/* External destinations travel up-and-out rather than along. */
-.bs-cta--external .bs-cta__glyph {
-  transform: translate(0, 0);
-}
-
-.bs-cta--external:hover .bs-cta__glyph,
-.bs-cta--external:focus-visible .bs-cta__glyph {
-  transform: translate(3px, -3px);
-}
-
-.bs-cta:focus-visible {
-  outline: 2px solid var(--vt-bs-ink);
-  outline-offset: 3px;
-}
+   Retired rather than aliased. An alias keeps both names reachable
+   and the duplication just becomes invisible.                        */
 
 /* ── Focus over media ─────────────────────────────────────────
    R3 rings every focused control twice: a dark outline plus a white
@@ -533,8 +503,7 @@
     transition: none;
   }
 
-  .bandsys .bs-link::after,
-  .bandsys .bs-cta__glyph {
+  .bandsys .bs-link::after {
     transition: none;
   }
 }

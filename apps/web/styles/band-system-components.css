@@ -135,6 +135,26 @@
 }
 
 /* ── Surface — the frosted panel ──────────────────────────────
+
+   SURFACE vs PANEL — the A-1 line, and the reason both exist.
+
+   `.bs-panel` (primitives) is hardcoded solid and near-sharp.
+   `.bs-surface` (here) reads `--vt-bs-surface` and `--vt-bs-shape-panel`,
+   so in the scene register it frosts and softens to 24px.
+
+   That is not duplication, it is A-1's evidence/chrome boundary
+   expressed as two components: frost is permitted on chrome and scene
+   overlays and BARRED from any surface a decision is read from. The
+   distinction was accidental when these files were written separately
+   — the code was near-identical and only the token wiring differed —
+   which meant the next author would pick whichever name they typed
+   first and could frost an evidence surface without noticing.
+
+   So it is now a contract, asserted in
+   `band-system-components.test.ts`: PANEL for evidence, proofs,
+   receipts, anything decided from. SURFACE for chrome, sheets, scene.
+   If you are unsure which you are building, it is a panel.
+
    R3's floating rounded containers are the most recognisable thing
    about its chrome. Under A-1 that treatment is available on chrome
    and scene overlays, and under A-2 the soft radius is available to a
@@ -299,6 +319,28 @@
 
 .bandsys .bs-action--quiet {
   padding-inline: 0.25rem;
+}
+
+/* External destinations travel up-and-out rather than along, so the
+   glyph's direction says where the click goes before the URL does.
+   Carried over from the retired `.bs-cta--external`. */
+.bandsys .bs-action--external .bs-action__glyph--trail {
+  transform: translate(0, 0);
+}
+
+.bandsys .bs-action--external:hover .bs-action__glyph--trail,
+.bandsys .bs-action--external:focus-visible .bs-action__glyph--trail {
+  transform: translate(125%, -125%);
+  opacity: 0;
+}
+
+.bandsys .bs-action--external .bs-action__glyph--lead {
+  transform: translate(-125%, 125%);
+}
+
+.bandsys .bs-action--external:hover .bs-action__glyph--lead,
+.bandsys .bs-action--external:focus-visible .bs-action__glyph--lead {
+  transform: translate(0, 0);
 }
 
 /* In the scene register the focus ring is indigo (A-1: editorial
