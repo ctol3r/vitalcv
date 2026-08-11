@@ -144,6 +144,34 @@ describe('claim entry', () => {
     expect(html).not.toMatch(/>\s*Verified\s*</);
   });
 
+  it('hands the NPI over in the shape /onboarding actually reads', async () => {
+    // Two modules have to agree for a claim to avoid re-typing: this CTA writes
+    // the query string, and GetReadySurface reads it back through
+    // readNpiQueryHandoff to resolve the record before any account ask. Nothing
+    // connected them, so renaming the param on either side would have silently
+    // returned the clinician to a blank form at the moment of highest intent —
+    // and the page would still have looked correct.
+    resolves();
+    const html = await render();
+
+    const href = html.match(/href="(\/onboarding\?[^"]*)"/)?.[1];
+    expect(href).toBeTruthy();
+
+    const original = Object.getOwnPropertyDescriptor(globalThis, 'window');
+    Object.defineProperty(globalThis, 'window', {
+      value: { location: { search: href!.slice(href!.indexOf('?')) } },
+      configurable: true,
+      writable: true,
+    });
+    try {
+      const { readNpiQueryHandoff } = await import('@/lib/onboarding/npiHandoff');
+      expect(readNpiQueryHandoff()).toBe(NPI);
+    } finally {
+      if (original) Object.defineProperty(globalThis, 'window', original);
+      else delete (globalThis as { window?: unknown }).window;
+    }
+  });
+
   it('does not invite an organization NPI to claim a career', async () => {
     // Type-2 NPIs are practices and facilities. There is no person to claim
     // one, and offering it is how an org NPI ends up with a clinician profile.
