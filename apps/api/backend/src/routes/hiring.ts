@@ -51,6 +51,7 @@ import prisma from '../graphql/prisma_client';
 import { log } from '../obs/logger';
 import { apiKeyAuth, publicApiRateLimit } from '../middleware/publicSafety';
 import { sha256ForPayload } from '../utils/deterministic';
+import { recordStart } from '../services/hiring/startWriter';
 import { computeClinicianTrustState } from '../services/trust/trustStateEngine';
 import { capsuleEngine } from '../services/decision/capsuleEngine';
 import {
@@ -352,43 +353,27 @@ export function registerHiringRoutes(app: Express): void {
         createdAt:    createdAt.toISOString(),
       });
 
-      // ── ATOMIC TRANSACTION ───────────────────────────────────────────────
-      // StartAttestation + AuditEvent in one TX. Both rows are written or
-      // neither is. (A BillingEvent was written here until VCD-01b — see the
+      // StartAttestation + AuditEvent, atomically, through the single start
+      // writer (VCD-01c). createdAt is pinned because the hash above commits
+      // to it. (A BillingEvent was written here until VCD-01b — see the
       // module header.)
-      const { attestation, auditEvent } = await prisma.$transaction(async (tx) => {
-        const attestation = await tx.startAttestation.create({
-          data: {
-            id:           attestationId,
-            acceptanceId,
-            role:         role.trim(),
-            facility:     facility.trim(),
-            startedAt:    startedAtDate,
-            anchoredRoot: null,
-            createdAt,
-          },
-        });
-
-        const auditEvent = await tx.auditEvent.create({
-          data: {
-            id:          randomUUID(),
-            type:        'START_ATTESTED',
-            hash:        attestationHash,
-            referenceId: attestationId,
-            clinicianId: acceptance.clinicianNpi,
-            anchored:    false,
-            metadata: {
-              attestationId,
-              acceptanceId,
-              employerId:  acceptance.employerId,
-              role:        role.trim(),
-              facility:    facility.trim(),
-              startedAt:   startedAtDate.toISOString(),
-            },
-          },
-        });
-
-        return { attestation, auditEvent };
+      const { attestation, auditEvent } = await recordStart({
+        attestationId,
+        acceptanceId,
+        clinicianNpi: acceptance.clinicianNpi,
+        role,
+        facility,
+        startedAt: startedAtDate,
+        createdAt,
+        attestationHash,
+        auditMetadata: {
+          attestationId,
+          acceptanceId,
+          employerId:  acceptance.employerId,
+          role:        role.trim(),
+          facility:    facility.trim(),
+          startedAt:   startedAtDate.toISOString(),
+        },
       });
 
       // ── ON Loop velocity metric ──────────────────────────────────────────
