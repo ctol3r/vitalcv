@@ -84,6 +84,8 @@ runPilotRouteSuite('pilot routes', () => {
       ],
     });
 
+    // Seeded on purpose: rows may still exist from before the counter was
+    // retired (VCD-01d), and no metrics payload may surface them again.
     await prisma.verifierAcceptance.createMany({
       data: [
         { organization: 'Regional Health Center' },
@@ -98,10 +100,10 @@ runPilotRouteSuite('pilot routes', () => {
       shareLinks: 3,
       verifierViews: 2,
       exports: 0,
-      verifierAcceptances: 2,
       activePilotOrgs: 0,
       estimatedRevenueImpact: 0,
     });
+    expect(yc.body).not.toHaveProperty('verifierAcceptances');
     expect(typeof yc.body.avgTimeToView).toBe('number');
     expect(yc.body.estimatedStartDateAccelerationDays).not.toBeNull();
 
@@ -112,7 +114,6 @@ runPilotRouteSuite('pilot routes', () => {
       shareLinks: 3,
       verifierViews: 2,
       exports: 0,
-      verifierAcceptances: 2,
       pilotOrgCount: 0,
       bundlesGenerated: 0,
       activePilotOrgs: 0,
