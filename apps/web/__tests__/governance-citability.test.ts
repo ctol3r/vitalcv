@@ -28,6 +28,13 @@ const GOVERNANCE_DOCS = [
   'docs/design/VITALCV_EXPERIENCE_CONSTITUTION.md',
   'docs/design/PARKED_VISUAL_ERAS.md',
   'design-lab/homepage-reset/DECISION.md',
+  // CLAUDE.md is loaded into every session, so a dead path here misleads more
+  // readers than a dead path anywhere else in the repo — and it cites by
+  // markdown link rather than by backtick, which the CITATION pattern alone
+  // does not see. Added with the 2026-08 IP constraints, whose whole value is
+  // that a builder can open the note behind them.
+  'CLAUDE.md',
+  'docs/strategy/README.md',
 ];
 
 /**
@@ -51,6 +58,15 @@ const trackedByBasename = new Set(trackedFiles.map((f) => basename(f)));
  * only strings carrying a file extension we care about.
  */
 const CITATION = /`([A-Za-z0-9_./-]+\.(?:md|html|json|ts|tsx|css|mjs))`/g;
+
+/**
+ * Markdown-link citations — `[label](docs/path.md)`.
+ *
+ * CLAUDE.md and docs/strategy/README.md cite almost entirely this way, so the
+ * backtick pattern above sees none of it. Anchors and URLs are excluded: a
+ * `#section` fragment is not a file, and an http(s) link is not ours to resolve.
+ */
+const LINK_CITATION = /\]\((?!https?:)([A-Za-z0-9_./-]+\.(?:md|html|json|ts|tsx|css|mjs))(?:#[^)]*)?\)/g;
 
 /**
  * Citations this test cannot resolve and should not pretend to. Each needs a
@@ -90,7 +106,10 @@ describe('governance documents cite files that exist in the repository', () => {
 
   it.each(GOVERNANCE_DOCS)('every path cited by %s resolves', (doc) => {
     const source = readFileSync(resolve(REPO_ROOT, doc), 'utf-8');
-    const cited = [...source.matchAll(CITATION)].map((m) => m[1]);
+    const cited = [
+      ...[...source.matchAll(CITATION)].map((m) => m[1]),
+      ...[...source.matchAll(LINK_CITATION)].map((m) => m[1]),
+    ];
     expect(cited.length).toBeGreaterThan(0);
 
     const unresolved = [...new Set(cited)].filter((path) => {

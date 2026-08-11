@@ -86,6 +86,18 @@ reviewer should follow.
 | [`beachhead-decision.md`](./beachhead-decision.md) | Six candidates on verifiable evidence; two finalists; awaiting `FOUNDER BEACHHEAD DECISION` |
 | [`90-day-category-execution-plan.md`](./90-day-category-execution-plan.md) | The mandate with each item's real status and baseline |
 
+## Evidence and constraints (2026-08)
+
+| Document | What it answers |
+| --- | --- |
+| [`market-evidence-2026-08-11.md`](./market-evidence-2026-08-11.md) | The competitive map in five rings, the 2026 trend read, and where a clinician who has never heard of VitalCV first meets it. Supporting evidence for the canon, not a replacement — but its **IP constraints section binds engineering**. |
+| [`fto-axuall-12079891.md`](./fto-axuall-12079891.md) | Axuall's patent read against the OID4VP layer already in `apps/api/backend`, and the design-around acceptance intelligence must respect until counsel says otherwise |
+| [`name-clearance-2026-08-10.md`](./name-clearance-2026-08-10.md) | Whether to rename (no), what a rename costs as receipt volume grows, and what counsel still needs to clear |
+
+Those IP sections bind regardless of this directory's rank: they are legal and
+honesty constraints rather than positioning preferences, and rank 4 has always
+outranked positioning.
+
 ## Decision filter
 
 See [`product-decision-filter.md`](./product-decision-filter.md). A proposal

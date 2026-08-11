@@ -107,6 +107,44 @@ superseded notice.
 Before adding any customer-facing term or feature, run
 [`docs/strategy/product-decision-filter.md`](docs/strategy/product-decision-filter.md).
 
+### Standing constraints from the 2026-08 market and IP review
+
+Evidence: [`docs/strategy/market-evidence-2026-08-11.md`](docs/strategy/market-evidence-2026-08-11.md).
+It does not change the positioning above. These four do bind what you build.
+
+**1. Acceptance intelligence must not put the clinician in the loop as a
+credential-presenting holder.** Axuall holds US 12,079,891, whose claims describe
+configuring rules on required credential attributes → defining a requisite collection
+→ sending it to a **holder** as a presentation request → verifying the holder's
+returned proof against a registry. `apps/api/backend` already carries an OID4VP layer
+that reads onto most of it; what keeps the question small is that no product surface
+invokes it, pinned by `apps/web/__tests__/presentation-exchange-baseline.test.ts`.
+**Evaluate employer requirements server-side against VitalCV-held source reads
+instead** — which is what the truth contract already describes, so the design-around
+and the stated position are the same thing. Full note and the questions for counsel:
+[`docs/strategy/fto-axuall-12079891.md`](docs/strategy/fto-axuall-12079891.md). Move
+that baseline only in the same PR as an FTO decision, never alone to go green.
+
+**2. `/directory/[npi]` is the public acquisition surface; `/verify/[npi]` is a
+reviewer's tool.** The directory page answers for any NPI in the federal registry and
+is where a clinician who has never heard of VitalCV meets it. `/verify/[npi]` is
+`noindex, nofollow` on consent grounds (#1329), so a link from it carries no crawl
+signal. Do not add an NPI-scale section to `app/sitemap.ts` — that file's
+`lastModified` is recomputed from git, and a data-derived section fails its freshness
+guard for reasons unrelated to freshness.
+
+**3. Publishing provider pages to crawlers is a consent decision, not a copy fix.**
+Gated on `DIRECTORY_SITEMAP`, off until a founder ruling. Removal requests run through
+`EXCLUDED_NPIS`, which drops the NPI from the sitemap **and** noindexes that record's
+page — honouring half would tell someone they were removed while their page stayed
+indexed.
+
+**4. Keep the name; do not rename.** `did:web:vitalcv.com` is the `issuerDid` on
+signed receipts, so the cost grows per artifact — a rename, if ever, happens before
+receipt volume matters. Counsel still owes a real clearance search before the first
+pilot contract:
+[`docs/strategy/name-clearance-2026-08-10.md`](docs/strategy/name-clearance-2026-08-10.md).
+
 ## Experience Overhaul Program — design-only boundary (Phase 0, 2026-08-08)
 
 **The UI PR freeze is LIFTED (founder ruling, 2026-08-09).** UX-03 has shipped, in two parts:
