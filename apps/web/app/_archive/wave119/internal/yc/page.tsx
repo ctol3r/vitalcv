@@ -35,7 +35,6 @@ type YcMetrics = {
   verifierViews: number;
   exports: number;
   avgTimeToView: number;
-  verifierAcceptances: number;
   estimatedStartDateAccelerationDays: number | null;
   bundlesGenerated: number;
   activePilotOrgs: number;
@@ -167,7 +166,6 @@ export default async function YcDashboardPage({
               <Stat label="Share links" value={metrics.shareLinks} />
               <Stat label="Verifier views" value={metrics.verifierViews} />
               <Stat label="Pilot orgs" value={metrics.pilotOrgCount} />
-              <Stat label="Verifier acceptances" value={metrics.verifierAcceptances} />
               <Stat
                 label="Verifier conversion"
                 value={percent(metrics.verifierConversionRate)}

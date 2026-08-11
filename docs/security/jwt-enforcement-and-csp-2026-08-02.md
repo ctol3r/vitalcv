@@ -10,26 +10,19 @@ Owner: platform security · Probed 2026-08-02 against `api.vitalcv.com` and
 Under `enforce`, an identity header **without** a valid bearer token is a 401,
 fail-closed, and the role-bypass headers are stripped.
 
-Production does not do that. The probe:
+Production does not do that. A behavioural probe against an identity-bearing
+read established it. **[Probe command and response withheld — see internal gap
+register.]**
 
-```bash
-# A forged identity header. No bearer token. No session. Nothing.
-curl -s -o /dev/null -w '%{http_code}\n' \
-  -H "x-clerk-user-id: user_forged_probe_$(date +%s)" \
-  https://api.vitalcv.com/api/me/role
-```
-
-**Observed: `404` with body `{"error":{"code":"NOT_FOUND","message":"Authenticated user has no VitalCV user record."}}`**
-
-That is the finding. A 401 would mean the header was rejected. A 404 saying the
-*authenticated user* has no record means the forged header was **accepted as
-identity** and used to perform a database lookup — the request got past the
-identity layer and failed only because no user by that id exists. Had the id
-belonged to a real user, the lookup would have succeeded.
+The shape of the finding, without the recipe: the response was **not** a refusal.
+It was a downstream not-found whose message referred to the *authenticated* user
+— meaning the asserted identity was accepted and used for a database lookup. The
+request got past the identity layer and failed only because that particular id
+matched no row. An id belonging to a real user would have resolved.
 
 So `CLERK_JWT_VERIFICATION` is `off` or `shadow` in production, and the G1
-header-trust gap (ASVS 14.5.4) is **open**: anyone who can reach the API origin
-directly can present any user's id.
+header-trust gap (ASVS 14.5.4) is **open**. The trust boundary is the API
+origin, and the API origin is directly addressable.
 
 ### Why this is not fixed in this PR
 
@@ -52,21 +45,21 @@ one of those becomes a 401 the moment enforce is on.
    `header_without_token` from legitimate web traffic** over a full traffic
    cycle. Any that remain are call sites that will 401 on enforce.
    `verified_mismatch` is the forgery signal and should be zero.
-3. **Flip to `enforce`,** then re-run the probe above. The expected result is
+3. **Flip to `enforce`,** then re-run the probe. The expected result is a
    **401**, and that assertion belongs in the deploy smoke so it cannot regress
    silently.
 
 Until step 3 lands, treat every identity-header-trusting route as reachable by
 anyone who can address the API origin.
 
-### One observation this probe surfaced, needing a decision
+### One observation this probe surfaced — RESOLVED 2026-08-03 (see status note)
 
-`GET /api/candidates` returned **HTTP 200 with clinician PII** — real names,
-NPIs, and internal `userId` values — to a request carrying only a forged
-`x-clerk-user-id` and `x-user-role: super-admin`. Whether that route is
-*intended* to be public was not established here (the follow-up probe that
-would have distinguished "public by design" from "header-gated and bypassed"
-was not run). Both readings need action:
+One read surface returned **HTTP 200 with clinician PII** — names, NPIs, and
+internal user ids — to a request that asserted identity and an elevated role
+without a session. **[Route and request shape withheld — see internal gap
+register.]** Whether that route is *intended* to be public was not established
+here (the follow-up probe that would have distinguished "public by design" from
+"header-gated and bypassed" was not run). Both readings need action:
 
 - if it is **header-gated**, this is a live PII exposure and enforce-mode is
   urgent;
@@ -75,6 +68,28 @@ was not run). Both readings need action:
   not incidental.
 
 Resolve this before the enforce flip, since the flip changes the answer.
+
+**Status note — RESOLVED 2026-08-03, one day after this record.** The surface was
+**removed, not guarded**, and the removal is live on `main`. Guarding it would have
+been the wrong fix: the available helper asserts only that an *unsigned* identity
+header is **present**, so adding it would have converted an anonymous read into a
+forged-header read.
+
+Verified on `origin/main` 2026-08-10, by code rather than by probe:
+- no handler file remains, and nothing registers the route;
+- the containment commit is an ancestor of `origin/main`;
+- a regression guard pins it removed and asserts **404, not 401** — deliberately
+  sending the headers a caller would forge, so a pass means "no such route"
+  rather than "the guard held".
+
+Residue, harmless but worth a sweep: the removed path is still listed in the tenant
+guard's skip-list, an orphaned entry for a route that no longer exists.
+
+**The lesson is the stale doc, not the finding.** This section read as an open P0
+for eight days after it was closed, and cost a re-investigation on 2026-08-10 to
+establish that nothing was wrong. When a finding closes, update the record that
+carries it — a security document that outlives its finding manufactures false
+alarms, which is the same failure mode as an audit that goes stale within days.
 
 ## 2. `X-Powered-By` — removed in this PR
 

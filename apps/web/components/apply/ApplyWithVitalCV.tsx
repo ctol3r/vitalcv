@@ -164,9 +164,15 @@ function formatCountdown(iso: string): string {
   return `${h}h ${m}m remaining`;
 }
 
-function clerkId(): string {
-  return (window as unknown as { Clerk?: { user?: { id?: string } } }).Clerk?.user?.id ?? '';
-}
+/*
+ * S1 — this component used to read `window.Clerk.user.id` here and send it as
+ * `x-clerk-user-id` on the share/revoke calls, and the /api/apply/* proxies
+ * forwarded that header verbatim to the backend. A browser header is an
+ * assertion, not an identity: anything in the page could put another
+ * clinician's Clerk id there. The proxies now derive identity server-side from
+ * the Clerk session, so the header is both unnecessary and ignored — continuing
+ * to send it would only advertise a channel that no longer exists.
+ */
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
@@ -363,9 +369,7 @@ export function ApplyWithVitalCV({ npi, label = 'Apply with VitalCV', initialOrg
 
     setIsSharing(true);
     try {
-      const id = clerkId();
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-      if (id) headers['x-clerk-user-id'] = id;
 
       const res = await fetch('/api/apply/share', {
         method: 'POST',
@@ -421,11 +425,8 @@ export function ApplyWithVitalCV({ npi, label = 'Apply with VitalCV', initialOrg
     if (!shareResult?.shareId) return;
     setIsRevoking(true);
     try {
-      const id = clerkId();
-      const headers: Record<string, string> = {};
-      if (id) headers['x-clerk-user-id'] = id;
       const res = await fetch(`/api/apply/share/${shareResult.shareId}`, {
-        method: 'DELETE', headers,
+        method: 'DELETE',
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({})) as { error?: string };

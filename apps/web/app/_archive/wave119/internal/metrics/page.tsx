@@ -6,7 +6,6 @@ type YcMetrics = {
   verifierViews: number;
   exports: number;
   avgTimeToView: number;
-  verifierAcceptances: number;
   estimatedStartDateAccelerationDays: number | null;
 };
 
@@ -77,7 +76,6 @@ export default async function InternalMetricsPage({
         <MetricItem label="Total NPIs" value={metrics?.totalNPIs ?? '—'} />
         <MetricItem label="Share links" value={metrics?.shareLinks ?? '—'} />
         <MetricItem label="Verifier views" value={metrics?.verifierViews ?? '—'} />
-        <MetricItem label="Verifier acceptances" value={metrics?.verifierAcceptances ?? '—'} />
         <MetricItem label="Exports" value={metrics?.exports ?? '—'} />
         <MetricItem label="Avg time to view" value={metrics ? formatMinutes(metrics.avgTimeToView) : '—'} />
         <MetricItem
