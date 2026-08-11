@@ -119,12 +119,13 @@ the rest remain open and are the larger disclosure.
 
 **Residual while `CLERK_JWT_VERIFICATION` is only `shadow`.** Role-bypass
 headers are stripped from unverified requests only at JWT `enforce`. So with
-`TENANT_ORG_BINDING=enforce` + `CLERK_JWT_VERIFICATION=shadow`, a caller sending
-`x-user-role: super-admin` still short-circuits `enforceOrganizationMatch`.
+`TENANT_ORG_BINDING=enforce` + `CLERK_JWT_VERIFICATION=shadow`, a caller
+asserting an elevated platform role still short-circuits
+`enforceOrganizationMatch`. [Request shape withheld — see internal gap register.]
 Binding itself holds — it never consults roles, so an anonymous caller still
 gets no org context and still 401s. The residual is narrower: a *verified*
 member of org A can reach org B's records through `enforceOrganizationMatch` by
-claiming super-admin. Closing it is G1's job, not this flag's. Prefer flipping
+asserting that role. Closing it is G1's job, not this flag's. Prefer flipping
 `CLERK_JWT_VERIFICATION=enforce` first.
 
 It also does not touch the web-origin proxies. PR #1210 machine-authenticated
