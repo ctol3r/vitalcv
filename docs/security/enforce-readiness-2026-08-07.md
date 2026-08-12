@@ -48,12 +48,12 @@ degrades to a neutral status rather than a red failure when unwired.
 | Time (UTC) | Action | Result |
 |---|---|---|
 | 20:02 | `CLERK_JWT_VERIFICATION=enforce` set; deployment `99e0dd2f` | SUCCESS, booted clean in `mode="enforce"` |
-| ~20:05 | Probe: anonymous `POST /api/verifier/accept` | 400 (unchanged — anonymous flows unaffected) |
-| ~20:05 | Probe: forged `x-clerk-user-id` + `x-org-role: admin`, no token | **401 `identity_header_requires_verified_session_token`** — the forgery hole closes exactly as designed |
+| ~20:05 | Probe: anonymous mutation on a verifier route | 400 (unchanged — anonymous flows unaffected) |
+| ~20:05 | Probe: asserted identity with no session token | **401 `identity_header_requires_verified_session_token`** — the forgery hole closes exactly as designed. [Reproduction detail withheld — see internal gap register.] |
 | 20:09 | release-verify dispatched as canary | "success", but **`Run release verification` skipped** — no signed-in evidence produced |
 | 20:11–20:25 | Live deployment log sweep | 16 requests, all `outcome:"anonymous"`, **zero 401s, zero verified** — no signed-in traffic exists to prove or disprove the happy path |
 | 20:25 | `CLERK_JWT_VERIFICATION=shadow` — **rolled back** | Var set; rollback carried by a later deployment |
-| 20:35 | Rollback **confirmed at the behavior level** | Forged-header probe returned to **400** (was 401 under enforce); anonymous 400; `mode="shadow"` in logs; both vars read `shadow`. Note the deployment created immediately after the var-set ended `REMOVED` — superseded seconds later by another build — so deployment status alone would have read as a failed rollback. Assert the served behavior, not the deployment row. |
+| 20:35 | Rollback **confirmed at the behavior level** | The same probe returned to its pre-enforce status code; anonymous 400; `mode="shadow"` in logs; both vars read `shadow`. Note the deployment created immediately after the var-set ended `REMOVED` — superseded seconds later by another build — so deployment status alone would have read as a failed rollback. Assert the served behavior, not the deployment row. |
 
 No user-visible breakage was observed during the ~23 minutes at enforce, but absence of breakage
 here is absence of traffic, not evidence of correctness. Leaving a security-critical fail-closed
@@ -82,9 +82,9 @@ happy-path evidence; that method is a dead end regardless of the canary.
 (`identity_header_requires_verified_session_token`) any request carrying `x-clerk-user-id`
 *without* a verified bearer. Two live sources do exactly that:
 
-1. **`apps/web/lib/server/employer-workspace.ts`** sets `x-clerk-user-id` and **no `Authorization`
-   header at all** (zero references in the file), then calls `${BACKEND}/api/me/workspaces`
-   (line 128) and `/api/entity/resolve/npi/...` (line 239). It is imported by the live route
+1. **`apps/web/lib/server/employer-workspace.ts`** asserts an identity header with **no
+   `Authorization` header at all** (zero references in the file) on two backend calls
+   (lines 128 and 239). It is imported by the live route
    `apps/web/app/api/request-review/route.ts`. **This 401s the moment enforce is on.**
 2. **`apps/web/lib/auth/forwardIdentity.ts`** — the helper written *for* this flip — degrades to
    forwarding `x-clerk-user-id` alone when `getToken()` returns null. Its own docblock calls that
@@ -111,15 +111,10 @@ the canary — was the criterion carrying real risk: if JWKS fetch, issuer match
 wrong, enforce would 401 every authenticated backend call and we would learn it from users.
 
 **It is now met.** A signed-in session exercising an **employer** surface produced **26
-`verified_match` events**, `mode: shadow`, `hasHeaderIdentity: true`, across five real routes:
-
-```
-GET  /api/me/workspaces          ← the employer workspace lookup (lib/server/employer-workspace.ts)
-GET  /api/profile/completeness
-GET  /api/clinician/proof
-GET  /api/clinician/applications
-POST /api/pilot-ops/events
-```
+`verified_match` events**, `mode: shadow`, `hasHeaderIdentity: true`, across five real
+identity-bearing routes — the employer workspace lookup
+(`lib/server/employer-workspace.ts`), two profile/proof reads, an applications read, and
+one telemetry write. **[Route list withheld — see internal gap register.]**
 
 `verified_match` is the strong outcome: the token verified **and** its `sub` matched the forwarded
 `x-clerk-user-id` — precisely the pairing enforce requires. JWKS, issuer and clock are therefore all
@@ -184,8 +179,9 @@ monitoring**, not the flip decision.)*
 **`CLERK_SECRET_KEY` exists at NO scope GitHub Actions can read.** Verified against the API rather
 than `gh secret list` (which shows only repo scope): repo returns `total_count: 5` without it, and
 all nine environments return `total_count: 0` — the repo call returning 5 being the control that
-proves the API is not hiding it from the caller's token. The value *does* exist on Railway
-(`delightful-essence`); extraction was confirmed to yield a 50-character `sk_`-prefixed value.
+proves the API is not hiding it from the caller's token. The value *does* exist on the Railway
+API service; its presence was confirmed by shape assertion only, and no value was read, echoed
+or recorded.
 
 Wiring it is a founder credential action — an agent must not copy live `sk_live_` material. **Do not
 use a pipeline for this**: three attempts through
@@ -207,8 +203,8 @@ walk `/holder` and so never produce a `verified_match`. **That was wrong — the
 right monitor**, and it was designed for this precise gap.
 
 `lib/release-monitor/syntheticClinician.ts` does walk `/holder`, but it also exports
-`probeBackendIdentityProxy`, which hits `/api/me/workspaces` — the identity-bearing web→backend
-proxy — with the synthetic session. Its docblock states the reasoning outright: *"The page sweep
+`probeBackendIdentityProxy`, which hits the identity-bearing web→backend workspace proxy with
+the synthetic session. Its docblock states the reasoning outright: *"The page sweep
 alone cannot see this — the /holder surfaces render in the web tier without calling the backend."*
 Whoever built it had already established the topology finding recorded above.
 
@@ -227,8 +223,8 @@ Setting `RAILWAY_API_TOKEN` alongside it also activates the PR #508 release-moni
 
 | Item | Status | Evidence |
 |---|---|---|
-| Guard live in prod, evaluating | **Confirmed 2026-08-07** | Live probe 20:00:13Z: role-less `POST /api/verifier/accept` with empty body → guard logged `verifier_rbac_shadow_would_block role="none" mode="shadow"`, handler returned 400 before any write. |
-| UI path carries verified `x-org-role` | **Confirmed at main tip** | `buildMarketplaceHeaders` (apps/web/lib/server/marketplace-proxy.ts) forwards `x-org-role` from the verified Clerk `org_role` claim + `x-user-role` for the super-admin bypass; the `/api/verifier/accept` web proxy exists and uses it. |
+| Guard live in prod, evaluating | **Confirmed 2026-08-07** | Live probe 20:00:13Z on a role-less verifier mutation: guard logged `verifier_rbac_shadow_would_block role="none" mode="shadow"`, handler returned 400 before any write. [Reproduction detail withheld — see internal gap register.] |
+| UI path carries verified org-role | **Confirmed at main tip** | `buildMarketplaceHeaders` (apps/web/lib/server/marketplace-proxy.ts) forwards the org-role from the verified Clerk `org_role` claim, plus the platform-role header for the super-admin path; the verifier-acceptance web proxy exists and uses it. |
 | Shadow observation window | **Structurally unfulfillable — decision is reasoned, not observed** | The backend serves ~a dozen requests per container lifetime; a month of shadow produced no organic verifier-mutation traffic. Zero would-block events from legit UI traffic, but that is absence of traffic, not proof. Acknowledged per the 2026-07-27 finding. |
 | Role ≠ membership (#951) | **Closed 2026-07-28** | #954 authorizes activation routes on org membership resolved from the membership store keyed on verified Clerk id (`requireOrgRole` stays as defense-in-depth); #992 requires tenant context on the directory publish write. Enforce covers *who you are*; membership checks separately cover *which org you are in*. |
 

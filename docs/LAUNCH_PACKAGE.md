@@ -141,21 +141,32 @@ for r in "/" "/explore" "/employers" "/intelligence"; do
 done
 
 # 4. Data counts
+#
+# These reads need an authorized organization context. Supply it at run time via
+# SMOKE_AUTH_HEADER — a value you are entitled to use, in `Header: value` form.
+# This runbook deliberately does not carry a working one: a checked-in header
+# that reaches data routes is an attack recipe, not a smoke test. Left unset,
+# each check reports that it was skipped rather than reaching the route.
 echo "--- Data Counts ---"
-FINDINGS=$(curl -s "$BACKEND/api/findings?limit=1" -H "x-org-id: demo" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("total",0))' 2>/dev/null)
-echo "Findings: $FINDINGS"
+if [ -z "$SMOKE_AUTH_HEADER" ]; then
+  echo "Findings: skipped (SMOKE_AUTH_HEADER unset)"
+  echo "Feed items: skipped (SMOKE_AUTH_HEADER unset)"
+else
+  FINDINGS=$(curl -s "$BACKEND/api/findings?limit=1" -H "$SMOKE_AUTH_HEADER" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("total",0))' 2>/dev/null)
+  echo "Findings: $FINDINGS"
 
-FEED=$(curl -s "$BACKEND/api/intelligence/feed?limit=1" -H "x-org-id: demo" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("total",0))' 2>/dev/null)
-echo "Feed items: $FEED"
+  FEED=$(curl -s "$BACKEND/api/intelligence/feed?limit=1" -H "$SMOKE_AUTH_HEADER" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("total",0))' 2>/dev/null)
+  echo "Feed items: $FEED"
+fi
 
 # Set GRAPH_SMOKE_NPI to an NPI you are permitted to query. Do not hardcode a real
 # clinician's NPI here — see "Demo Identity Strategy" above; 1003000126 in particular
 # is off-limits. Left unset, this check reports that it was skipped rather than
-# silently querying someone.
-if [ -n "$GRAPH_SMOKE_NPI" ]; then
-  GRAPH=$(curl -s "$BACKEND/api/graph/investigation?npi=$GRAPH_SMOKE_NPI&limit=1" -H "x-org-id: demo" | python3 -c 'import json,sys; d=json.load(sys.stdin); print(f"nodes={len(d.get(\"nodes\",[]))} edges={len(d.get(\"edges\",[]))}")' 2>/dev/null)
+# silently querying someone. Needs SMOKE_AUTH_HEADER as above.
+if [ -n "$GRAPH_SMOKE_NPI" ] && [ -n "$SMOKE_AUTH_HEADER" ]; then
+  GRAPH=$(curl -s "$BACKEND/api/graph/investigation?npi=$GRAPH_SMOKE_NPI&limit=1" -H "$SMOKE_AUTH_HEADER" | python3 -c 'import json,sys; d=json.load(sys.stdin); print(f"nodes={len(d.get(\"nodes\",[]))} edges={len(d.get(\"edges\",[]))}")' 2>/dev/null)
 else
-  GRAPH="skipped (GRAPH_SMOKE_NPI unset)"
+  GRAPH="skipped (GRAPH_SMOKE_NPI or SMOKE_AUTH_HEADER unset)"
 fi
 echo "Graph: $GRAPH"
 

@@ -1,22 +1,9 @@
 # Codex handoff ledger
 
-Append-only. **Newest entry at the top.** One entry per work order, written in
-the same PR as the work it describes.
+Append-only. **Newest entry at the top.** One entry per work order is recorded
+in the same pull request as its implementation or takeover evidence.
 
-This file is the state of the world between lanes. A report that lives only in a
-terminal is lost the moment the session ends; a report on `main` is readable by
-whoever picks up next. Entry format is in
-[`CODEX_HANDOFF_PROTOCOL.md`](CODEX_HANDOFF_PROTOCOL.md) §8.
-
-Two kinds of entry are worth as much as a merge and are frequently skipped:
-
-- **ABORTED — already landed.** `main` already had the behaviour. Say so and name
-  the PR that did it. This is the cheapest possible outcome and it is a success.
-- **BLOCKED — product dependency.** The experience required a change to truth,
-  auth, consent, data models, or pricing. Name the dependency and stop; do not
-  solve it inside the PR.
-
-## WO-1 · Merge #1362 — delete `verifyProduction.ts` — BLOCKED
+## WO-1 · Merge #1362 — delete `verifyProduction.ts` — OPEN #1362
 
 - **Date:** 2026-08-11
 - **Claim-check:** Ran the protocol resume sequence against `origin/main` at
@@ -29,7 +16,8 @@ Two kinds of entry are worth as much as a merge and are frequently skipped:
 - **Change:** Removes the orphaned production-check script. It asserted route
   outcomes that the current tenant guard cannot produce and was not wired into
   a runnable repository path.
-- **Verification:** `git diff --check origin/main...HEAD` exited 0. `git grep
+- **Verification:** Before the refreshed baseline, `git diff --check
+  origin/main...HEAD` exited 0. `git grep
   -n -i 'verifyProduction' HEAD` found only historical text references after
   the deletion, not a runnable caller. The PR head's 14 check runs all reported
   `success`, including Backend Tests (Postgres), Web Quality, both Playwright
@@ -37,12 +25,30 @@ Two kinds of entry are worth as much as a merge and are frequently skipped:
   Fresh `pnpm typecheck` and `pnpm build` passed. Fresh `pnpm test` failed one
   unrelated current-main test: `apps/web/__tests__/sitemap-freshness.test.ts`
   reports `/pricing` as `2026-08-09` while its latest source commit is
-  `2026-08-11` (`05b09f3c`).
-- **Gate:** Head `f703430f3157e3224f66416c1193ea42856a43e6`; `CLEAN`; zero
-  pending or failing check runs. GitHub's branch-protection endpoint is not
-  available to this private repository plan (HTTP 403), so required-context
-  names could not be enumerated live.
-- **Left open:** Do not merge #1362 until the current-main sitemap freshness
-  drift is repaired and the full suite is green on the updated merge ref. The
-  repair is outside this work order; it must be a separate, focused PR. This
-  PR also establishes the ledger file for subsequent work orders.
+  `2026-08-11` (`05b09f3c`). WO-2 landed the focused correction in `b861a4abf`;
+  refreshed full verification is required on this merge ref before #1362 lands.
+- **Gate:** The merge includes the current `main` ledger rather than overwriting
+  it, avoids a force-push, and keeps the executable deletion as the only
+  functional change in this work order.
+
+## WO-2 · Merge #1365 — Axuall '891 FTO read and presentation-exchange tripwire — OPEN #1365
+
+- **Date:** 2026-08-11
+- **Claim-check:** The open and merged pull-request lists and remote branches were
+  checked before takeover. No existing merged work carried this FTO record or its
+  dormant-presentation guard.
+- **Change:** Documents the Axuall '891 research constraint, adds a five-file
+  deployed OID4VP baseline and tripwire test, and corrects the stale `/pricing`
+  sitemap `lastModified` value that made the existing full test suite fail on
+  current `main`.
+- **Verification:** The focused tripwire suite passes cleanly. Three deliberate
+  injections failed as intended: a new deployed `presentation_definition` path,
+  a product-page import of `AcceptancePanel`, and a product caller of
+  `/api/oid4vp`; each was removed before continuing. `pnpm typecheck`, `pnpm
+  build`, and `pnpm test` all pass.
+- **Scope boundary:** This records a research and regression boundary only. It
+  does not activate OID4VP exchange, change product behavior, or remediate the
+  separately identified unauthenticated-endpoint concern.
+- **Next gate:** Push this ledger entry, require all head checks to finish green
+  with a clean merge state, then land #1365. Its sitemap correction unblocks the
+  existing WO-1 deletion PR from a known baseline test failure.
