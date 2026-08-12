@@ -3,6 +3,7 @@ jest.mock('../../../graphql/prisma_client', () => ({
   default: {
     user: {
       findUnique: jest.fn(),
+      update: jest.fn(),
     },
     personProfile: {
       findUnique: jest.fn(),
@@ -34,6 +35,7 @@ jest.mock('../../../graphql/prisma_client', () => ({
     },
     auditEvent: { create: jest.fn() },
     outboxEvent: { upsert: jest.fn() },
+    $transaction: jest.fn((operations: Promise<unknown>[]) => Promise.all(operations)),
   },
 }));
 
@@ -45,7 +47,10 @@ import {
 } from '../opportunityService';
 
 const prismaMock = prisma as unknown as {
-  user: { findUnique: jest.Mock };
+  user: {
+    findUnique: jest.Mock;
+    update: jest.Mock;
+  };
   personProfile: {
     findUnique: jest.Mock;
     create: jest.Mock;
@@ -73,6 +78,7 @@ const prismaMock = prisma as unknown as {
   };
   auditEvent: { create: jest.Mock };
   outboxEvent: { upsert: jest.Mock };
+  $transaction: jest.Mock;
 };
 
 /**
@@ -90,6 +96,7 @@ describe('opportunityService org profile pilot policy', () => {
   beforeEach(() => {
     resetGovernanceMocks();
     prismaMock.user.findUnique.mockReset();
+    prismaMock.user.update.mockReset().mockResolvedValue({});
     prismaMock.personProfile.findUnique.mockReset();
     prismaMock.personProfile.create.mockReset();
     prismaMock.workspaceMembership.findFirst.mockReset();
@@ -229,6 +236,10 @@ describe('opportunityService org profile pilot policy', () => {
         }),
       }),
     }));
+    expect(prismaMock.user.update).toHaveBeenCalledWith({
+      where: { id: 'user-1' },
+      data: { organizationId: 'org-1' },
+    });
   });
 
   it('rejects placeholder employer domains before creating a public profile', async () => {
@@ -269,6 +280,10 @@ describe('opportunityService org profile pilot policy', () => {
         slug: 'mindbridge-health',
       }),
     }));
+    expect(prismaMock.user.update).toHaveBeenCalledWith({
+      where: { id: 'user-1' },
+      data: { organizationId: 'org-1' },
+    });
   });
 
   it('refuses to create an organization without work-domain authority', async () => {
@@ -312,6 +327,10 @@ describe('opportunityService org profile pilot policy', () => {
         npi: '1999999999',
       }),
     }));
+    expect(prismaMock.user.update).toHaveBeenCalledWith({
+      where: { id: 'user-1' },
+      data: { organizationId: 'org-1' },
+    });
   });
 });
 
