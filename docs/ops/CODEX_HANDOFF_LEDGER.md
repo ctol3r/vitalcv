@@ -16,17 +16,15 @@ in the same pull request as its implementation or takeover evidence.
 - **Change:** Removes the orphaned production-check script. It asserted route
   outcomes that the current tenant guard cannot produce and was not wired into
   a runnable repository path.
-- **Verification:** Before the refreshed baseline, `git diff --check
-  origin/main...HEAD` exited 0. `git grep
+- **Verification:** `git diff --check origin/main...HEAD` exits 0. `git grep
   -n -i 'verifyProduction' HEAD` found only historical text references after
   the deletion, not a runnable caller. The PR head's 14 check runs all reported
   `success`, including Backend Tests (Postgres), Web Quality, both Playwright
   suites, axe, copy, claims, design, route, and workflow-contract gates.
-  Fresh `pnpm typecheck` and `pnpm build` passed. Fresh `pnpm test` failed one
-  unrelated current-main test: `apps/web/__tests__/sitemap-freshness.test.ts`
-  reports `/pricing` as `2026-08-09` while its latest source commit is
-  `2026-08-11` (`05b09f3c`). WO-2 landed the focused correction in `b861a4abf`;
-  refreshed full verification is required on this merge ref before #1362 lands.
+  WO-2 landed the focused `/pricing` correction in `b861a4abf`; on this updated
+  merge ref, fresh `pnpm typecheck`, `pnpm build`, and `pnpm test` all pass
+  (4,401 web tests passed; the suite's seven environment-gated files remain
+  intentionally skipped).
 - **Gate:** The merge includes the current `main` ledger rather than overwriting
   it, avoids a force-push, and keeps the executable deletion as the only
   functional change in this work order.
