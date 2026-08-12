@@ -209,6 +209,34 @@ The **structure** is locked now. The **values** are filled from the UX-01 verdic
 
 State hues may never be spent as decoration (EC-3). The accent-work merge above is the recorded verdict decision. Rows marked "in UX-02" or **DEFERRED** are bounded design tasks inside locked constraints — not open questions.
 
+#### Direction D homepage register — amendment D (2026-08-11)
+
+The founder selected **D · Watch it build** for `/` on 2026-08-11. This is a
+route-scoped implementation register for the production `easy` homepage; it
+supersedes the conflicting Direction-B presentation on that route only. It does
+not reopen the product, source, consent, authorization, or scene-truth
+contracts above.
+
+| Decision | Value | Status |
+|---|---|---|
+| Ground | Warm light paper `#f7f6f3` | LOCKED for `/` |
+| Ink / dim / rule | `#131211` / `#5c5852` / `#e0ddd6` | LOCKED for `/` |
+| Panel | Solid white `#ffffff` | LOCKED for `/` |
+| Accent | Deep green `#0f6d4e`, reserved for source-confirmation and focus | LOCKED for `/` |
+| Primary action | Ink `#131211`, white label, 8px radius | LOCKED for `/` |
+| Hero H1 | `clamp(31px, 4.3cqw, 47px)`, 500 weight, `-0.035em` tracking, 1.04 line-height | LOCKED for `/` |
+| Monospace | None on this surface | LOCKED for `/` |
+
+The organizing idea is the product demonstration: a self-labelled career
+record assembles row by row, naming the source or limitation on every row. The
+complete record is server-rendered and visible before JavaScript; the assembly
+effect may begin only after JavaScript marks the record animated. This preserves
+the no-script and blocked-compositor failure mode.
+
+**Deliberately not changed:** EC-10's shared public chrome geometry, its
+instruments, and its route-declared theme mechanism. This amendment changes the
+homepage composition beneath that chrome, not the chrome itself.
+
 **On the difference (W1080 closure, 2026-08-08).** Three rows previously read
 "PENDING UX-02", which is indistinguishable from an unresolved brand decision and
 made the table read as incomplete when it is not. A deferral is legitimate only
