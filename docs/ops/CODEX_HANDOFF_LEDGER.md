@@ -3,6 +3,37 @@
 Append-only. **Newest entry at the top.** One entry per work order is recorded
 in the same pull request as its implementation or takeover evidence.
 
+## WO-5 · Unblock #1364 — self-serve employer organization binding — OPEN #1364
+
+- **Date:** 2026-08-11
+- **Claim-check and rebase:** #1364 is the only open PR for the self-serve
+  employer tenancy defect. Codex rebased its four commits directly onto current
+  `origin/main` at `7de868d9d`, without merging any stale parent. The functional
+  fix binds the setup user to the organization it just created; the data-only,
+  idempotent migration backfills only unambiguous active memberships and preserves
+  already-bound users.
+- **Shared gate repair:** The failing backend check was reproduced under the
+  CI-compatible Node 22 runtime. `hiringAutomationService` is a legacy
+  `@ts-nocheck` module whose mixed Prisma value/type ESM import was elided by the
+  ts-jest CommonJS transform, leaving `client_1` undefined before affected tests
+  could execute. Its runtime `Prisma` namespace now uses an explicit CommonJS
+  load and keeps `PrismaClient` type-only. The full run then exposed a second
+  runtime-only Prisma field-name defect in the same module: the schema field is
+  `isActive`, not `active`. Both repairs preserve the existing authorization and
+  data semantics and remove the shared blocker for WO-6.
+- **Verification:** After generating the backend client from the backend schema,
+  the focused automation, Copilot strategy, self-serve DB/HTTP, and updated
+  opportunity-service tests pass: **6 suites / 50 tests**, Node 22.20. The full
+  real-Postgres backend harness passes **344 suites / 2,722 tests**; the aggregate
+  root gate also passes (21 non-backend workspace tasks, 460 web files / 4,450
+  tests, then the same backend harness). The unit mock now proves both
+  existing-profile and create-profile flows call `User.update` with the resolved
+  organization; the DB suites prove the resulting persisted behavior.
+- **Next gate:** Run repository typecheck, build, and aggregate test gates on this
+  rebased head; confirm the migration's second application is a no-op and that
+  multi-org users remain unbound; then require `Backend Tests (Postgres)` and every
+  refreshed head check to be green and `CLEAN` before merge.
+
 ## WO-3 · Merge #1358 — clinician-record distribution and removal controls — OPEN #1358
 
 - **Date:** 2026-08-11

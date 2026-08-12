@@ -1,6 +1,12 @@
 // @ts-nocheck
 import { createHash } from 'node:crypto';
-import { Prisma, type PrismaClient } from '@prisma/client';
+import type { PrismaClient } from '@prisma/client';
+
+// ts-jest's CommonJS transform can elide the mixed value/type Prisma import in
+// this @ts-nocheck legacy module, then leave references to its generated binding
+// behind. Keep the runtime namespace as an explicit CommonJS load; the typed
+// client remains type-only.
+const { Prisma } = require('@prisma/client') as typeof import('@prisma/client');
 import type { RecommendedAction } from '../../../../../../core/actions/actionEngine';
 import { log } from '../../obs/logger';
 import {
@@ -533,7 +539,7 @@ export async function generateHiringAutomationActions(
   const webhookConfigs = await prismaClient.employerWebhookConfig.findMany({
     where: {
       employerId: { in: organizationIds },
-      active: true,
+      isActive: true,
     },
     select: {
       employerId: true,
