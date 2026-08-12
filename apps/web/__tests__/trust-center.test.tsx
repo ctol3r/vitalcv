@@ -65,6 +65,17 @@ describe('/trust — human Trust Center', () => {
     // Never the bare status word.
     expect(/>\s*Verified\s*</.test(html)).toBe(false);
   });
+
+  it('describes source attribution without promising a correction workflow', async () => {
+    const { default: TrustCenterPage } = await import('@/app/trust/page');
+    const html = renderToStaticMarkup(await (TrustCenterPage as () => Promise<React.ReactElement>)());
+
+    expect(html).toContain('Source records stay attributable');
+    expect(html).toContain('Source-backed values retain their source and read time.');
+    expect(html).toContain('You can add self-attested information to your profile; VitalCV does not silently replace source records.');
+    expect(html).not.toContain('Corrections have a path');
+    expect(html).not.toContain('flag it and attach supporting evidence');
+  });
 });
 
 describe('/trust/technical — moved register with notice', () => {
