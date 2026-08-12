@@ -194,6 +194,15 @@ export async function generateMetadata({
     // and names a real physician). No /verify URL has ever been in the
     // sitemap, so nothing here was advertised; this closes the gap between
     // "not advertised" and "not indexable".
+    //
+    // UNCONDITIONAL, and deliberately so. A version of this gated the noindex
+    // on whether a passport existed — noindex the soft-404s, canonicalise the
+    // real records to /directory/[npi] — which treated the problem as duplicate
+    // content between two URLs for one clinician. It is not: the objection above
+    // is consent, and it applies most strongly to exactly the records that
+    // version would have left indexable. No canonical either; pairing one with
+    // a noindex asks a crawler to both ignore this page and index another on
+    // its behalf.
     robots: { index: false, follow: false },
   };
 }
@@ -474,6 +483,18 @@ export default async function VerifierPage({
           <Reveal delay={60}>
           <Section title="Full registry record">
             <ClinicianRecordDetail record={clinicianRecord} mode="public" />
+            {/* The public home for this filing. A reader's affordance only —
+                this page is noindex, nofollow, so the link carries no crawl
+                signal and the directory sitemap does that work instead. It is
+                here because a reviewer who wants the plain registry record
+                otherwise has to leave for npiregistry.cms.hhs.gov. */}
+            <p className="mt-4 text-[12px] leading-relaxed text-[var(--ink-500)]">
+              This filing is public record.{' '}
+              <Link href={`/directory/${npi}`} className="underline">
+                View the registry page for NPI {npi}
+              </Link>
+              .
+            </p>
           </Section>
           </Reveal>
         )}

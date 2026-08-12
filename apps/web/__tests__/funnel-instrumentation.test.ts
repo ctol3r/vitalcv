@@ -12,6 +12,10 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
 import { FUNNEL_EVENTS } from '@/lib/analytics/funnel';
+import {
+  LIVE_FUNNEL_EVENTS,
+  RETIRED_FUNNEL_EVENTS,
+} from '@/lib/analytics/funnelCoverage';
 
 const webFile = (rel: string) => readFileSync(path.join(__dirname, '..', rel), 'utf8');
 
@@ -68,8 +72,14 @@ describe('funnel instrumentation', () => {
   });
 
   it('derives internal funnel metrics from events that still have producers', () => {
-    const live = metricsRoute.match(/const LIVE_FUNNEL_EVENTS = \[[\s\S]*?\]/)?.[0] ?? '';
-    expect(live, 'LIVE_FUNNEL_EVENTS block missing from the metrics route').not.toBe('');
+    // Reads the exported list rather than regexing `const LIVE_FUNNEL_EVENTS`
+    // out of the route source. The regex version asserted where the array was
+    // declared, not what it held: moving the list into
+    // lib/analytics/funnelCoverage.ts — without changing a single event —
+    // failed this test, while emptying the array in its old location would
+    // have passed it.
+    const live = new Set<string>(LIVE_FUNNEL_EVENTS);
+
     for (const event of [
       FUNNEL_EVENTS.HOMEPAGE_VIEWED,
       FUNNEL_EVENTS.NPI_INPUT_STARTED,
@@ -77,16 +87,20 @@ describe('funnel instrumentation', () => {
       FUNNEL_EVENTS.RESULTS_DISPLAYED,
       FUNNEL_EVENTS.DROPOFF_DETECTED,
     ]) {
-      expect(live, `live funnel lost ${event}`).toContain(`'${event}'`);
+      expect(live.has(event), `live funnel lost ${event}`).toBe(true);
     }
     expect(
-      live,
+      live.has(FUNNEL_EVENTS.NPI_INPUT_FOCUSED),
       'npi_input_focused lost its only producer on 2026-08-07 (#1099) — it may appear only as a labelled retired event',
-    ).not.toContain(FUNNEL_EVENTS.NPI_INPUT_FOCUSED);
+    ).toBe(false);
+    expect(
+      Object.keys(RETIRED_FUNNEL_EVENTS),
+      'retired steps must stay labelled, not silently dropped',
+    ).toContain(FUNNEL_EVENTS.NPI_INPUT_FOCUSED);
     expect(
       metricsRoute,
-      'retired steps must stay labelled, not silently dropped',
-    ).toContain('RETIRED_FUNNEL_EVENTS');
+      'the route must still consume both lists',
+    ).toContain('funnelCoverage');
   });
 
   it('keeps the documented event names in sync with the schema doc', () => {

@@ -8,33 +8,15 @@ const POSTHOG_HOST = process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://us.i.posth
 const POSTHOG_API_KEY = process.env.POSTHOG_PERSONAL_API_KEY || '';
 const POSTHOG_PROJECT_ID = process.env.POSTHOG_PROJECT_ID || '';
 
-// The live acquisition funnel — see docs/ops/metrics-analytics.md. Since the
-// /passport retirement (2026-08-07, #1096/#1099) the career loop on `/` emits
-// npi_input_started at the moment the deleted hero console emitted
-// npi_input_focused, and the guest lane on /onboarding owns the terminal pair
-// (results_displayed / dropoff_detected).
-const LIVE_FUNNEL_EVENTS = [
-  'homepage_viewed',
-  'npi_input_started',
-  'npi_submitted',
-  'results_displayed',
-  'dropoff_detected',
-] as const;
-
-// Declared in FUNNEL_EVENTS but nothing live emits them. This endpoint reports
-// today only, so counting a producer-less event would render a permanent 0 as
-// if it were a measurement — they are labelled here instead of counted.
-// Pre-retirement rows remain queryable in PostHog directly.
-const RETIRED_FUNNEL_EVENTS = {
-  npi_input_focused:
-    'Producer (hero LiveTrustConsole) deleted 2026-08-07 with the /passport retirement (#1099); npi_input_started marks the equivalent moment.',
-  signup_prompt_shown: 'Producer CreateAccountModal is no longer mounted anywhere.',
-  signup_prompt_dismissed: 'Producer CreateAccountModal is no longer mounted anywhere.',
-  signup_clicked: 'Producer CreateAccountModal is no longer mounted anywhere.',
-  signup_completed: 'Never had a producer.',
-  packet_downloaded:
-    'Server producer exists on /api/passport/analytics/[npi]/download but nothing in the product calls that route since /passport retired.',
-} as const;
+// Which events are counted and which are labelled — see
+// lib/analytics/funnelCoverage.ts and docs/ops/metrics-analytics.md. The lists
+// live outside this file so they can be asserted directly: a route module
+// cannot export arbitrary constants, and while they lived here the only
+// possible test was a source grep of this file.
+import {
+  LIVE_FUNNEL_EVENTS,
+  RETIRED_FUNNEL_EVENTS,
+} from '@/lib/analytics/funnelCoverage';
 
 interface EventCount {
   event: string;

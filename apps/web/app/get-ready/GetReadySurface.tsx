@@ -348,6 +348,15 @@ export default function GetReadySurface() {
         setPhase('form');
         return;
       }
+      // The bind landed. This is the conversion the acquisition funnel exists
+      // to count, and it emitted nothing: the backend wrote its npi_bootstrapped
+      // and clinician_attestation audit rows while the funnel saw a clinician
+      // reach this form and then disappear.
+      //
+      // Reached only on a 2xx with a well-formed body — both failure paths above
+      // return first, so this cannot count an attempt as a bind. Profession
+      // only; no NPI, for the reason given on the guest resolve.
+      trackFunnelEvent(FUNNEL_EVENTS.NPI_BOUND, { profession });
       setSummary(summarizeBootstrapResult(body));
       setPhase('success');
     } catch {

@@ -56,7 +56,16 @@ describe('robots.txt refuses every non-canonical deployment', () => {
     const robots = await robotsFor({ RAILWAY_ENVIRONMENT: 'production' });
     const rule = Array.isArray(robots.rules) ? robots.rules[0] : robots.rules;
     expect(rule.allow).toBe('/');
-    expect(robots.sitemap).toBe('https://vitalcv.com/sitemap.xml');
+    // A list since the generated provider sitemaps joined it. What this test is
+    // about is WHICH deployments advertise anything at all — asserting the exact
+    // single string made adding a second sitemap look like a review-environment
+    // regression. The "advertises nothing off canonical production" case below
+    // is the half that carries the meaning.
+    const sitemaps = Array.isArray(robots.sitemap)
+      ? robots.sitemap
+      : [robots.sitemap].filter(Boolean);
+    expect(sitemaps).toContain('https://vitalcv.com/sitemap.xml');
+    expect(sitemaps.every((s) => s?.startsWith('https://vitalcv.com/'))).toBe(true);
   });
 
   it('disallows the whole tree on the review environment', async () => {
