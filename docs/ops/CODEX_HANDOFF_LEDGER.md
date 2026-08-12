@@ -3,6 +3,30 @@
 Append-only. **Newest entry at the top.** One entry per work order is recorded
 in the same pull request as its implementation or takeover evidence.
 
+## WO-3 · Merge #1358 — clinician-record distribution and removal controls — OPEN #1358
+
+- **Date:** 2026-08-11
+- **Claim-check:** Claude's `wave/clinician-record-distribution` is the sole
+  open PR for this intent. Its 11 commits and all required prior checks were
+  inspected; it is `CLEAN` against its target. The Codex takeover branch merges
+  current `main` before any new evidence is added.
+- **Change:** Removes a real clinician's identity from the pilot proof and
+  noindexes it; makes the public CMS registry record discoverable only behind
+  the runtime `DIRECTORY_SITEMAP=enabled` switch; adds an on-page claim handoff,
+  bounded analytics, removal contact, exclusion/noindex behavior, and source
+  provenance for the declared NPI seed.
+- **Truth and privacy:** This does not claim a directory record is credentialing
+  or a verification result. The sitemap stays disabled by default. The removal
+  path stops VitalCV from advertising the record and marks it `noindex`; it does
+  not claim to alter the underlying CMS filing.
+- **Verification:** Existing PR checks are green. Fresh `pnpm typecheck`, `pnpm
+  build`, and `pnpm test` pass on the current merge ref; final diff review and
+  a new head-check run remain required before landing.
+- **Next gate:** Add this ledger entry in #1358, require all refreshed head
+  checks to finish green with a clean merge state, then land it. Production
+  enablement of the sitemap is intentionally outside this merge and requires a
+  founder decision.
+
 ## WO-1 · Merge #1362 — delete `verifyProduction.ts` — OPEN #1362
 
 - **Date:** 2026-08-11
