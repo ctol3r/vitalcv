@@ -3,6 +3,34 @@
 Append-only. **Newest entry at the top.** One entry per work order is recorded
 in the same pull request as its implementation or takeover evidence.
 
+## WO-4 · Remediate #1369 disclosure-boundary review findings — IMPLEMENTED LOCALLY, UNPUSHED
+
+- **Date:** 2026-08-12
+- **Finding and change:** The anonymous NPI timeline had remained a stated
+  exclusion while reading and merging `acceptance` evidence. It now projects only
+  the public-filtered passport collection and does not read or transform
+  acceptance history, so acceptance labels, values, relationships, and derived
+  recognition/trust effects do not cross the public boundary; public licensure
+  evidence remains visible. The authenticated employer reader and the acceptance
+  producer are unchanged.
+- **Issuance boundary:** `POST /api/exchange/issue` now fails closed unless this
+  deployment has a server-bound federation issuer and machine credential, and a
+  timing-safe Bearer comparison succeeds. A caller may bind its request to that
+  issuer but cannot select another configured federation member. The endpoint
+  remains an explicit authorized exclusion from the public collection filter.
+- **Verification:** Test-first RED reproduced the acceptance disclosure, the
+  unclassified timeline route, anonymous issuance, and caller-selected issuer.
+  GREEN: `pnpm --filter @vitalcv/web exec vitest run
+  __tests__/recognition-timeline.test.ts
+  __tests__/evidence-chain-disclosure-closure.test.ts
+  __tests__/evidence-route-public-disclosure.test.ts
+  __tests__/graph-routes-public-disclosure.test.ts
+  __tests__/trust-exchange-route.test.ts` — **5 files / 61 tests pass**.
+- **Next gate:** Run the repository pre-commit gates and `git diff --check`, then
+  commit this review remediation without pushing. Any deployment that needs
+  exchange issuance must provision the two server-only exchange-issuer settings;
+  until then, the route returns its static unavailable response.
+
 ## WO-5 · Unblock #1364 — self-serve employer organization binding — OPEN #1364
 
 - **Date:** 2026-08-11

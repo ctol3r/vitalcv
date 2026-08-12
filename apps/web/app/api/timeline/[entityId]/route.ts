@@ -1,21 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import {
-  buildEvidenceCollection,
   projectEvidenceToGraph,
   projectTimeline,
   propagateTrust,
 } from '@vitalcv/domain-evidence';
 import { resolvePassportRuntimePassport } from '@/lib/trust/passport-runtime';
 import { passportToEvidenceCollection } from '@/lib/evidence/passport-to-evidence';
-import { BACKEND_URL } from '@/lib/backend-url';
-import {
-  acceptanceHistoryToEvidenceObjects,
-  fetchAcceptanceHistoryForTimeline,
-} from '@/lib/recognition/acceptance-evidence';
+import { toPublicEvidenceCollection } from '@/lib/entity-relationships/public-disclosure';
 
 export const runtime = 'nodejs';
-
-const NPI_PATTERN = /^\d{10}$/;
 
 /**
  * GET /api/timeline/[entityId] — read-only Professional Memory timeline (Wave 225).
@@ -26,11 +19,10 @@ const NPI_PATTERN = /^\d{10}$/;
  * docs/wave225/C4-memory-api-contracts.md are filters over this single read.
  * No persistence, no ML, recruiter surfaces untouched.
  *
- * Recognition: for NPI subjects, recorded employer acceptances (the canonical
- * Recognition → Acceptance → Start middle step) are merged in as
- * acceptance-class evidence before projection, so they appear as career
- * events with recognitionImpact 'acceptance'. If the acceptance read fails,
- * the timeline projects without them — honest omission, never fabrication.
+ * Recognition: employer acceptance is a protected employer-review concern. This
+ * unauthenticated NPI response projects only the passport's public evidence and
+ * does not read or merge acceptance history. Authorized employer readers retain
+ * their separate, audited acceptance path.
  */
 export async function GET(
   _req: NextRequest,
@@ -39,24 +31,10 @@ export async function GET(
   const { entityId } = await context.params;
 
   try {
-    const [passport, acceptanceHistory] = await Promise.all([
-      resolvePassportRuntimePassport(entityId),
-      NPI_PATTERN.test(entityId.trim())
-        ? fetchAcceptanceHistoryForTimeline(BACKEND_URL, entityId.trim())
-        : Promise.resolve(null),
-    ]);
-
-    let collection = passportToEvidenceCollection(passport);
-
-    if (acceptanceHistory) {
-      const acceptance = acceptanceHistoryToEvidenceObjects(entityId.trim(), acceptanceHistory);
-      collection = buildEvidenceCollection({
-        subjectKey: collection.subjectKey,
-        generatedFor: collection.generatedFor,
-        objects: [...collection.objects, ...acceptance.objects],
-        relationships: [...collection.relationships, ...acceptance.relationships],
-      });
-    }
+    const passport = await resolvePassportRuntimePassport(entityId);
+    // This is an unauthenticated NPI projection. Filter before graph or timeline
+    // projection so non-public evidence cannot survive through derived events.
+    const collection = toPublicEvidenceCollection(passportToEvidenceCollection(passport));
 
     const graph = projectEvidenceToGraph(collection);
     const trust = propagateTrust(graph);

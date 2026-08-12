@@ -46,12 +46,13 @@ const API_DIR = fileURLToPath(new URL('../app/api', import.meta.url));
  */
 const DELIBERATE_EXCLUSIONS: Record<string, string> = {
   'exchange/issue/route.ts':
-    'AUTHORIZED, not public. `authorizeIssuer` refuses a non-member or a member ' +
-    'without the issuer role (403) before any evidence work, and the result is a ' +
-    'SIGNED EvidenceExchange the receiver re-evaluates. Filtering here would ' +
-    'silently strip evidence out of issued credential envelopes — a correctness ' +
-    'bug in issuance, not a disclosure fix. ADR 0006 governs the PUBLIC surface ' +
-    'and explicitly reserves authorized surfaces as separate.',
+    'AUTHENTICATED AND AUTHORIZED, not public. A caller must present a valid ' +
+    'machine credential and bind its request to the deployment\'s server-configured ' +
+    'issuer; that issuer must also hold the federation issuer role before any ' +
+    'evidence work. The result is a SIGNED EvidenceExchange the receiver ' +
+    're-evaluates. Filtering here would silently strip evidence out of issued ' +
+    'credential envelopes — a correctness bug in issuance, not a disclosure fix. ' +
+    'ADR 0006 governs PUBLIC surfaces and explicitly reserves authorized ones.',
 
   'workspace-config/[entityId]/route.ts':
     'AUTHENTICATED AND AUTHORIZED. The caller must present a matching app key ' +
@@ -59,16 +60,6 @@ const DELIBERATE_EXCLUSIONS: Record<string, string> = {
     'response is a role-scoped projection. Applying the public allow-list would ' +
     'narrow what a granted role can legitimately see.',
 
-  'timeline/[entityId]/route.ts':
-    'PRODUCT-OWNED, do not change here. This route intentionally merges employer ' +
-    'acceptance history into the collection (`acceptanceHistoryToEvidenceObjects`), ' +
-    'which is the Recognition feature working as designed — the upstream service ' +
-    'decides what each entry may say and anonymises the ones it deems scoped. ' +
-    'ADR 0006 lists `acceptance` as non-public for the GRAPH projection, so the ' +
-    'class list and this feature disagree by construction. Applying the filter ' +
-    'here would remove shipped behaviour, not close a gap, so it is a product ' +
-    'decision rather than a patch. Raise it with product; do not resolve it by ' +
-    'editing this list.',
 };
 
 function routeFilesUnder(dir: string, prefix = ''): string[] {
@@ -151,10 +142,23 @@ describe('ADR 0006 — structural closure over the evidence chain', () => {
     for (const rel of consumers) {
       const src = readFileSync(join(API_DIR, rel), 'utf8');
       if (!src.includes('toPublicEvidenceCollection')) continue;
+
+      if (rel !== 'timeline/[entityId]/route.ts') {
+        expect(
+          src.includes('toPublicEvidenceCollection(passportToEvidenceCollection('),
+          `${rel} imports the filter but does not wrap passportToEvidenceCollection with it`,
+        ).toBe(true);
+        continue;
+      }
+
+      const filterAt = src.indexOf('toPublicEvidenceCollection(');
+      const graphAt = src.indexOf('projectEvidenceToGraph(collection)');
+
+      expect(filterAt, `${rel} imports the filter but does not call it`).toBeGreaterThanOrEqual(0);
       expect(
-        src.includes('toPublicEvidenceCollection(passportToEvidenceCollection('),
-        `${rel} imports the filter but does not wrap passportToEvidenceCollection with it`,
-      ).toBe(true);
+        filterAt,
+        `${rel} applies the filter after graph projection, leaving a non-public node reachable`,
+      ).toBeLessThan(graphAt);
     }
   });
 });
