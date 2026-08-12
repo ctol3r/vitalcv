@@ -3,6 +3,31 @@
 Append-only. **Newest entry at the top.** One entry per work order is recorded
 in the same pull request as its implementation or takeover evidence.
 
+## WO-6 · API production surface probe — RESCUED IN #1370
+
+- **Date:** 2026-08-13
+- **Claim-check and stale-stack classification:** #1370 is the sole open PR for
+  the anonymous API production-surface probe. Its product, disclosure-boundary,
+  organization-binding, and market-evidence ancestors already landed on
+  `main`; Codex classified those commits as LANDED and rebased only the two
+  UNIQUE probe and ledger commits onto production baseline `253091496`.
+- **Change:** Adds a dependency-free, anonymous API probe and a single shared
+  public/guarded-surface contract consumed by both the post-deploy workflow and
+  a real-app backend test. The workflow records a deployment receipt after its
+  existing exact-SHA wait; the probe never sends credentials or performs a
+  mutation. `/readyz` now fails closed: only HTTP 200 with `status: ready` can
+  satisfy the deployment contract, so database-unready HTTP 503 cannot produce
+  a false-green release.
+- **Live pre-rescue evidence:** The read-only probe passed **31 checks** against
+  `https://api.vitalcv.com` at production SHA `1b9632b24`: `/health` and
+  `/api/version` agreed on the exact SHA, `/readyz` returned 200/ready, declared
+  public routes answered as contracted, and all ten guarded routes returned
+  `401 organization_context_required`.
+- **Next gate:** Run the focused real-app contract test, the real PostgreSQL
+  backend harness, typecheck, build, aggregate test, and refreshed-head CI;
+  require every check green and `CLEAN` before merge. After merge, require the
+  workflow receipt and a live probe against the exact deployed main SHA.
+
 ## WO-11 · Land August 2026 market evidence — OPEN #1366
 
 - **Date:** 2026-08-13
@@ -26,7 +51,9 @@ in the same pull request as its implementation or takeover evidence.
   PR updates the factual sitemap date to its Git-derived `2026-08-14`. The
   corrected aggregate run passes **464 web files / 4,505 tests** plus the real
   PostgreSQL backend harness at **344 suites / 2,722 tests**. Merge still
-  requires refreshed green required checks and a `CLEAN` merge state.
+  required checks and `CLEAN` passed; #1366 merged as `253091496`, Railway
+  reported that exact SHA, `/trust` published the corrected `2026-08-14`
+  sitemap date, and the production-browser audit passed.
 
 ## WO-8 · Direction D homepage recovery — OPEN
 
@@ -115,7 +142,6 @@ in the same pull request as its implementation or takeover evidence.
   commit this review remediation without pushing. Any deployment that needs
   exchange issuance must provision the two server-only exchange-issuer settings;
   until then, the route returns its static unavailable response.
-
 ## WO-5 · Unblock #1364 — self-serve employer organization binding — OPEN #1364
 
 - **Date:** 2026-08-11
