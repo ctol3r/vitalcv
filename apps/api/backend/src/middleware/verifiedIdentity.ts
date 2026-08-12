@@ -74,16 +74,60 @@ function shouldLogSampled(outcome: VerifiedIdentityOutcome): boolean {
   return n <= ALWAYS_LOG_FIRST || n % SAMPLE_EVERY === 0;
 }
 
+/**
+ * The ONLY signature algorithm this backend will accept on a session token.
+ *
+ * `jwtVerify` without an `algorithms` allowlist accepts whatever the token's
+ * own header asks for, which makes the attacker a participant in choosing how
+ * their token is checked — the family that includes `alg: none` and the
+ * RS256→HS256 confusion where the public key is replayed as an HMAC secret.
+ * Clerk signs session JWTs with RS256, so the allowlist is exactly one entry;
+ * anything else is either a downgrade attempt or an issuer change that must be
+ * a reviewed edit here rather than a silent acceptance.
+ *
+ * Related: #553 deleted the HS256 stack from this codebase. Leaving the
+ * verifier open to symmetric algorithms would let it back in through the door
+ * the token itself holds.
+ */
+export const ACCEPTED_JWT_ALGORITHMS = ['RS256'] as const;
+
+/**
+ * Either jose key form: a JWKS resolver (production) or a resolved key (tests).
+ *
+ * Spelled as a union rather than `Parameters<typeof jwtVerify>[1]`, which
+ * collapses to the last overload — the resolver — and rejects a plain key. The
+ * key arm is written structurally rather than as jose's `KeyLike` on purpose:
+ * that alias exists in jose 5 and not in 6, and this file must not pin a major.
+ * `CryptoKey` and node's `KeyObject` both satisfy `{ type: string }`.
+ */
+export type JWTVerifierKeyInput =
+  | Parameters<typeof jwtVerify>[1]
+  | Uint8Array
+  | { readonly type: string };
+
+/**
+ * Build a verifier over any jose key input (remote JWKS in production, a local
+ * key in tests). Exported so the algorithm allowlist is exercised by the same
+ * code path production runs, rather than asserted against a stub that would
+ * pass whether or not the allowlist is there.
+ */
+export function createTokenVerifier(key: JWTVerifierKeyInput, issuer: string): TokenVerifier {
+  return async (token: string) => {
+    const { payload } = await jwtVerify(token, key as Parameters<typeof jwtVerify>[1], {
+      issuer,
+      algorithms: [...ACCEPTED_JWT_ALGORITHMS],
+    });
+    return payload;
+  };
+}
+
 let remoteVerifier: TokenVerifier | null = null;
 let remoteVerifierIssuer: string | null = null;
 
 function getRemoteVerifier(issuer: string): TokenVerifier {
   if (!remoteVerifier || remoteVerifierIssuer !== issuer) {
     const jwks = createRemoteJWKSet(new URL(`${issuer.replace(/\/$/, '')}/.well-known/jwks.json`));
-    remoteVerifier = async (token: string) => {
-      const { payload } = await jwtVerify(token, jwks, { issuer });
-      return payload;
-    };
+    remoteVerifier = createTokenVerifier(jwks, issuer);
     remoteVerifierIssuer = issuer;
   }
   return remoteVerifier;

@@ -37,6 +37,7 @@ import { captureDecisionSignal } from '../services/feedback/decisionSignalServic
 import { buildPassport } from '../services/entity/passportService';
 import { buildEmployerEvidencePacket } from '../services/entity/employerPacket';
 import { createEmployerEvidencePacketZipStream } from '../services/entity/employerPacketExport';
+import { recordStart } from '../services/hiring/startWriter';
 import { issueTrustContainerManifestEntry } from '../services/trust/container/trustContainerIssuance';
 import { toTrustContainerAuditMetadata } from '../services/trust/container/trustContainerManifest';
 import {
@@ -1746,40 +1747,28 @@ export function registerEmployerActionRoutes(app: Express): void {
       });
 
       // AUDIT: START_ATTESTED is one of the 5 canonical non-repudiation events.
-      // StartAttestation and AuditEvent are written atomically before returning 2xx.
-      const { attestation } = await prisma.$transaction(async (tx) => {
-        const created = await tx.startAttestation.create({
-          data: {
-            id:          attestationId,
-            acceptanceId: acceptance.id,
-            role:        role.trim(),
-            facility:    facility.trim(),
-            startedAt:   startDate,
-          },
-        });
-
-        await tx.auditEvent.create({
-          data: {
-            id:          auditEventId,
-            type:        'START_ATTESTED',
-            hash:        attestationHash,
-            referenceId: attestationId,
-            clinicianId: acceptance.clinicianNpi,
-            anchored:    false,
-            metadata: {
-              attestationId,
-              acceptanceId: acceptance.id,
-              entityId,
-              employerId,
-              ...runtimeFields(runtimeTrust),
-              startedAt:   startDate.toISOString(),
-              role,
-              facility,
-            },
-          },
-        });
-
-        return { attestation: created };
+      // StartAttestation and AuditEvent are written atomically before returning
+      // 2xx, through the single start writer (VCD-01c). createdAt is not pinned
+      // here — the hash above does not commit to it — so the column default applies.
+      const { attestation } = await recordStart({
+        attestationId,
+        acceptanceId: acceptance.id,
+        clinicianNpi: acceptance.clinicianNpi,
+        role,
+        facility,
+        startedAt: startDate,
+        attestationHash,
+        auditEventId,
+        auditMetadata: {
+          attestationId,
+          acceptanceId: acceptance.id,
+          entityId,
+          employerId,
+          ...runtimeFields(runtimeTrust),
+          startedAt:   startDate.toISOString(),
+          role,
+          facility,
+        },
       });
 
       log('info', 'employer_start_attested', {

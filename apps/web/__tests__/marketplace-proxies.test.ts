@@ -170,49 +170,14 @@ describe('marketplace proxies', () => {
     await expect(response.json()).resolves.toEqual(payload);
   });
 
-  it('injects org context and server api key for hiring accept', async () => {
-    resolveIntelligenceAuthContextMock.mockResolvedValue({
-      status: 'authenticated',
-      userId: 'clerk-user-2',
-      email: 'employer@example.com',
-      role: 'VERIFIER',
-      orgId: 'org_123',
-      authToken: null,
-    });
-    requireAuthenticatedOrgContextMock.mockReturnValue(null);
-    const fetchMock = vi.fn().mockResolvedValue(new Response(
-      JSON.stringify({ ok: true, acceptanceId: 'accept_1' }),
-      { status: 201, headers: { 'Content-Type': 'application/json' } },
-    ));
-    vi.stubGlobal('fetch', fetchMock);
-
-    const { POST } = await import('../app/api/hiring/accept/route');
-    const response = await POST(new Request('http://localhost/api/hiring/accept', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        clinicianNpi: '1234567890',
-        employerId: 'forged_org',
-      }),
-    }) as never);
-
-    expect(fetchMock).toHaveBeenCalledWith(
-      'http://backend.test/api/hiring/accept',
-      expect.objectContaining({
-        method: 'POST',
-        headers: expect.any(Headers),
-        body: JSON.stringify({
-          clinicianNpi: '1234567890',
-          artifactId: undefined,
-          employerId: 'org_123',
-        }),
-      }),
-    );
-
-    const [, init] = fetchMock.mock.calls[0] as [string, { headers: Headers }];
-    expect(init.headers.get('x-api-key')).toBe('server-api-key');
-    expect(init.headers.get('x-clerk-user-id')).toBe('clerk-user-2');
-    expect(response.status).toBe(201);
-    await expect(response.json()).resolves.toEqual({ ok: true, acceptanceId: 'accept_1' });
+  // The 'injects org context and server api key for hiring accept' case lived
+  // here. It proved the proxy ignored a forged employerId in the body and
+  // substituted the authenticated org instead. Both the proxy and the backend
+  // route it fronted are closed (VCD-01e): the route recorded an acceptance
+  // with no record of what was accepted, and its only caller was an archived,
+  // unroutable screen. Employer acceptance goes through
+  // /api/employer-review/[entityId]/[action].
+  it('exposes no proxy for the closed hiring accept route', async () => {
+    await expect(import('../app/api/hiring/accept/route')).rejects.toThrow();
   });
 });
