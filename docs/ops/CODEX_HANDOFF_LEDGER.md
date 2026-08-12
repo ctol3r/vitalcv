@@ -3,6 +3,32 @@
 Append-only. **Newest entry at the top.** One entry per work order is recorded
 in the same pull request as its implementation or takeover evidence.
 
+## WO-1 · Merge #1362 — delete `verifyProduction.ts` — OPEN #1362
+
+- **Date:** 2026-08-11
+- **Claim-check:** Ran the protocol resume sequence against `origin/main` at
+  `35574fd9e`. #1362 is the sole open PR for this intent and is `CLEAN`; no
+  merged PR or unclaimed branch duplicates it. A full text search finds legacy
+  mentions in two historical `.claude/settings.local.json` permission entries
+  and explanatory backend comments, but no import, package script, workflow,
+  or executable caller. The deleted script itself was the only executable
+  implementation.
+- **Change:** Removes the orphaned production-check script. It asserted route
+  outcomes that the current tenant guard cannot produce and was not wired into
+  a runnable repository path.
+- **Verification:** `git diff --check origin/main...HEAD` exits 0. `git grep
+  -n -i 'verifyProduction' HEAD` found only historical text references after
+  the deletion, not a runnable caller. The PR head's 14 check runs all reported
+  `success`, including Backend Tests (Postgres), Web Quality, both Playwright
+  suites, axe, copy, claims, design, route, and workflow-contract gates.
+  WO-2 landed the focused `/pricing` correction in `b861a4abf`; on this updated
+  merge ref, fresh `pnpm typecheck`, `pnpm build`, and `pnpm test` all pass
+  (4,401 web tests passed; the suite's seven environment-gated files remain
+  intentionally skipped).
+- **Gate:** The merge includes the current `main` ledger rather than overwriting
+  it, avoids a force-push, and keeps the executable deletion as the only
+  functional change in this work order.
+
 ## WO-2 · Merge #1365 — Axuall '891 FTO read and presentation-exchange tripwire — OPEN #1365
 
 - **Date:** 2026-08-11
