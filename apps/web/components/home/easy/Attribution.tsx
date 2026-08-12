@@ -102,7 +102,7 @@ const ROWS: { label: string; chip: string; tone: AttrState['tone'] }[] = [
 
 export default function Attribution() {
   return (
-    <section className="ezh-attr" data-header-theme="dark" aria-labelledby="ezh-attr-h">
+    <section className="ezh-attr" data-header-theme="light" aria-labelledby="ezh-attr-h">
       <div className="ezh-wrap">
         <div className="ezh-sec-head">
           <span className="ezh-k">Attribution</span>

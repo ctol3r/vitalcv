@@ -155,6 +155,18 @@
   }
 }
 
+/* Direction D's homepage record enters row by row only after the client marks
+ * the already-complete SSR record animated. The resting rule lives in
+ * easy-home.css; this composited transform is the optional transition. */
+@keyframes ezh-watch-assemble {
+  from {
+    transform: translateY(8px);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
 /* ── Z1 homepage story (/preview/home · styles/z1-home.css) ──────────────────
  * The z1-* set below is consumed only by z1-home.css; the page imports this
  * file alongside it. Every use sits behind that stylesheet's

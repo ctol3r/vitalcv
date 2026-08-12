@@ -1,6 +1,6 @@
 /**
- * `/` serves the UX-V1 production experience — Enter your NPI. VitalCV does
- * the rest.
+ * `/` serves the Direction-D production experience — the record builds in the
+ * first viewport while the real NPI action remains available.
  *
  * These pin what the production homepage IS, and what it must never claim.
  * They render the ROUTE (`app/page.tsx`), not the component, so a future
@@ -62,8 +62,8 @@ describe('1 — / renders the UX-V1 experience by default', () => {
   it('serves the Easy Button hero with no variant configured', async () => {
     const html = await renderRoot(undefined);
     expect(html).toContain(EASY);
-    expect(html).toContain('Enter your NPI.');
-    expect(html).toContain('VitalCV does the rest.');
+    expect(html).toContain('Your career record,');
+    expect(html).toContain('ready when work moves.');
     expect(html).toContain('Start with your NPI');
     expect(html).toContain('data-home-work-surface');
   });
@@ -208,30 +208,28 @@ describe('nothing claims completion before a backend success', () => {
 
 // ── the work surface tells the truthful progression ─────────────────────────
 
-describe('the work surface states the ownership story and stops honestly', () => {
-  it('walks record → remains → work → approval → review (D-01A Profile in Motion)', () => {
+describe('the work surface states record truth without manufacturing an outcome', () => {
+  it('names source state, control, and access limits in the first viewport', () => {
     const html = renderHomepageHtml();
-    for (const beat of [
-      'Your record, as it builds',
-      'what still matters',
-      'Your approval',
-      'Needs you',
-      'Waiting on the employer',
-      'Applied with VitalCV',
-      // the story now ENDS at the employer's desk, open and undecided
-      'The employer\u2019s review',
+    for (const line of [
+      'Career record',
+      'Identity',
+      'Source-backed',
+      'Access required',
+      'Needs your review',
+      'Choose what you share',
     ]) {
-      expect(html).toContain(beat);
+      expect(html).toContain(line);
     }
     expect(html).not.toMatch(/start (confirmed|guaranteed)/i);
   });
 
-  it('every fact carries a named source, and the approval pause is explicit', () => {
+  it('labels sources and limitations while keeping the sharing boundary explicit', () => {
     const html = renderHomepageHtml();
-    for (const source of ['NPPES', 'State board record', 'Practice info']) {
+    for (const source of ['NPPES', 'State board']) {
       expect(html).toContain(source);
     }
-    expect(html).toContain('nothing moves without you');
+    expect(html).toContain('nothing has been sent');
   });
 
   it('the ownership model names the external actor honestly', () => {

@@ -1,10 +1,10 @@
 /**
  * easy-home.css — the `/` production experience (UX-V1 cutover).
  *
- * Direction B thesis, amended: the product demonstration is the brand. Dark
- * warm-graphite public register (a register, not a mandate), hairline-ruled
- * panels, square corners, Geist + Geist Mono, work-green reserved for
- * completed/moving work and the primary action, amber for "needs a person".
+ * Direction D, Watch it build: a warm-paper page leads with the product
+ * demonstration. A self-labelled record is complete in SSR and gains its
+ * row-by-row assembly only after hydration, so neither a blocked script nor
+ * reduced motion can hide the message.
  *
  * Island discipline: `.ezh` scopes everything; every color routes through an
  * --ezh-* custom property declared on the island root. No keyframe
@@ -18,22 +18,9 @@
  * resets and replays it; without script, and under prefers-reduced-motion,
  * the full meaning is simply present.
  *
- * SHAPE RULE (A-2, founder directive 2026-08-09 — "square the page action to
- * match"): an ACTION is square, a WORD-LABEL is a pill. The chrome went square
- * with the palantir rebuild, and a pill NPI button beside a square chrome
- * action was the same control drawn two ways. So every real action here takes
- * radius 0 — `.ezh-npi-submit`, `.ezh-result-keep`, `.ezh-result-again`,
- * `.ezh-sf-replay`, `.ezh-emp-cta`, `.ezh-start-cta` — and so do the two
- * DEPICTIONS of buttons inside the illustrative surface (`.ezh-gate-btn`,
- * `.ezh-npi-go`), because an illustration that draws a product we no longer
- * ship is just a wrong picture.
- *
- * The four word-labels KEEP `--vt-shape-pill`: `.ezh-seed-tag`, `.ezh-src`
- * (source names), `.ezh-chip` (owner), and the reduced-motion step index.
- * They are names, not controls, and holding the pill for them makes the
- * silhouette carry meaning — square means you can act on it. A-1's surviving
- * limit is untouched: a pill is never a state marker, and `.ezh-st` stays
- * radius 0.
+ * Direction D does not alter EC-10 shared chrome. It updates page-local action
+ * language to an 8px radius and removes the mono/uppercase presentation
+ * register from the served homepage.
  */
 
 .ezh {
@@ -2078,6 +2065,393 @@
   .ezh-npi-submit {
     width: 100%;
     height: 48px;
+  }
+}
+
+/* ── Direction D — Watch it build, the last homepage cascade ───────────── */
+
+.ezh {
+  --ezh-ground: var(--vt-home-d-ground);
+  --ezh-panel: var(--vt-home-d-panel);
+  --ezh-panel2: var(--vt-home-d-ground);
+  --ezh-line: var(--vt-home-d-rule);
+  --ezh-line2: var(--vt-home-d-rule);
+  --ezh-text: var(--vt-home-d-ink);
+  --ezh-text2: var(--vt-home-d-dim);
+  --ezh-text3: var(--vt-home-d-dim);
+  --ezh-work: var(--vt-home-d-source);
+  --ezh-work-deep: var(--vt-home-d-source);
+  --ezh-hold: var(--vt-home-d-ink);
+  --ezh-wait: var(--vt-home-d-dim);
+  --ezh-cta-bg: var(--vt-home-d-ink);
+  --ezh-cta-text: var(--vt-home-d-panel);
+  --ezh-cta-bg-press: var(--vt-home-d-dim);
+  --ezh-cta-text-press: var(--vt-home-d-panel);
+  --ezh-focus: var(--vt-home-d-source);
+  --ezh-light: var(--vt-home-d-ground);
+  --ezh-light-line: var(--vt-home-d-rule);
+  --ezh-light-text: var(--vt-home-d-ink);
+  --ezh-light-text2: var(--vt-home-d-dim);
+  color: var(--vt-home-d-ink);
+}
+
+/* The register is deliberately sans-first: no mono labels or uppercase
+   microcopy remain on the served homepage. */
+.ezh *,
+.ezh input,
+.ezh button {
+  font-family: var(--font-geist);
+  text-transform: none;
+}
+
+.ezh .ezh-k {
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0;
+  line-height: 1.35;
+}
+
+.ezh .ezh-sec-head h2 {
+  font-family: var(--font-fraunces-loaded, Georgia, 'Times New Roman', serif);
+  font-weight: 500;
+  letter-spacing: -0.025em;
+}
+
+.ezh-hero .ezh-wrap {
+  grid-template-columns: minmax(0, 0.9fr) minmax(400px, 1.1fr);
+  gap: clamp(32px, 5vw, 80px);
+  align-items: center;
+  padding-top: 132px;
+  padding-bottom: 64px;
+}
+
+.ezh-hero-copy {
+  container-type: inline-size;
+}
+
+.ezh h1 {
+  font-family: var(--font-fraunces-loaded, Georgia, 'Times New Roman', serif);
+  font-size: clamp(31px, 4.3cqw, 47px);
+  font-weight: 500;
+  line-height: 1.04;
+  letter-spacing: -0.035em;
+  margin-bottom: 22px;
+}
+
+.ezh-hero-sub {
+  font-size: 17px;
+  line-height: 1.55;
+  margin-bottom: 32px;
+}
+
+.ezh-npi-input,
+.ezh-npi-submit,
+.ezh-result,
+.ezh .ezh-emp-cta,
+.ezh .ezh-start-cta,
+.ezh-result-keep,
+.ezh-result-again {
+  border-radius: 8px;
+}
+
+.ezh-npi-input {
+  background: var(--vt-home-d-panel);
+  border-color: var(--vt-home-d-rule);
+}
+
+.ezh-npi-submit,
+.ezh .ezh-emp-cta,
+.ezh .ezh-start-cta {
+  background: var(--vt-home-d-ink);
+  color: var(--vt-home-d-panel);
+}
+
+.ezh-npi-submit:hover,
+.ezh-npi-submit:focus-visible,
+.ezh .ezh-emp-cta:hover,
+.ezh .ezh-emp-cta:focus-visible,
+.ezh .ezh-start-cta:hover,
+.ezh .ezh-start-cta:focus-visible {
+  background: var(--vt-home-d-dim);
+  color: var(--vt-home-d-panel);
+}
+
+.ezh-hero-stagecol::before {
+  display: none;
+}
+
+.ezh-watch-record {
+  width: 100%;
+  max-width: 650px;
+  min-height: 0;
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid var(--vt-home-d-rule);
+  border-radius: 18px;
+  background: var(--vt-home-d-panel);
+  box-shadow: none;
+}
+
+.ezh-watch-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 24px 24px 20px;
+  border-bottom: 1px solid var(--vt-home-d-rule);
+}
+
+.ezh-watch-kicker,
+.ezh-watch-illustrative {
+  margin: 0;
+  color: var(--vt-home-d-dim);
+  font-size: 13px;
+  line-height: 1.3;
+}
+
+.ezh-watch-title {
+  margin: 5px 0 0;
+  max-width: 29ch;
+  font-family: var(--font-fraunces-loaded, Georgia, 'Times New Roman', serif);
+  font-size: 22px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  line-height: 1.14;
+}
+
+.ezh-watch-illustrative {
+  flex: none;
+  padding: 4px 8px;
+  border: 1px solid var(--vt-home-d-rule);
+  border-radius: 999px;
+}
+
+.ezh-watch-rows {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ezh-watch-row {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  min-height: 76px;
+  padding: 13px 24px;
+  border-bottom: 1px solid var(--vt-home-d-rule);
+}
+
+.ezh-watch-index {
+  display: grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border: 1px solid var(--vt-home-d-rule);
+  border-radius: 50%;
+  color: var(--vt-home-d-dim);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.ezh-watch-row-copy {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.ezh-watch-row-copy strong {
+  color: var(--vt-home-d-ink);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.ezh-watch-row-copy small,
+.ezh-watch-state {
+  color: var(--vt-home-d-dim);
+  font-size: 13px;
+  line-height: 1.3;
+}
+
+.ezh-watch-state {
+  max-width: 16ch;
+  text-align: right;
+}
+
+.ezh-watch-row.is-source .ezh-watch-state {
+  color: var(--vt-home-d-source);
+  font-weight: 600;
+}
+
+.ezh-watch-row.is-attention .ezh-watch-state {
+  color: var(--vt-home-d-ink);
+  font-weight: 600;
+}
+
+.ezh-watch-choice {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 20px 24px;
+  background: var(--vt-home-d-ground);
+}
+
+.ezh-watch-choice-mark {
+  width: 30px;
+  height: 36px;
+  flex: none;
+  border: 1px solid var(--vt-home-d-ink);
+  border-radius: 5px;
+}
+
+.ezh-watch-choice p {
+  margin: 0;
+  color: var(--vt-home-d-ink);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.ezh-watch-choice span:not(.ezh-watch-choice-mark) {
+  display: block;
+  margin-top: 3px;
+  color: var(--vt-home-d-dim);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.ezh-watch-record .ezh-rm-legend {
+  display: block;
+  margin: 0;
+  padding: 13px 24px;
+  border-top: 1px solid var(--vt-home-d-rule);
+  color: var(--vt-home-d-dim);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .ezh-watch-record.anim .ezh-watch-row,
+  .ezh-watch-record.anim .ezh-watch-choice {
+    animation: ezh-watch-assemble 460ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+
+  .ezh-watch-record.anim .ezh-watch-row:nth-child(2) { animation-delay: 90ms; }
+  .ezh-watch-record.anim .ezh-watch-row:nth-child(3) { animation-delay: 180ms; }
+  .ezh-watch-record.anim .ezh-watch-row:nth-child(4) { animation-delay: 270ms; }
+  .ezh-watch-record.anim .ezh-watch-choice { animation-delay: 360ms; }
+}
+
+.ezh-record-path .ezh-wrap {
+  padding-top: 20px;
+  padding-bottom: 20px;
+}
+
+.ezh-record-path ol {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ezh-record-path li {
+  display: grid;
+  gap: 4px;
+  min-height: 58px;
+  padding: 0 24px;
+  border-left: 1px solid var(--vt-home-d-rule);
+}
+
+.ezh-record-path li:first-child {
+  padding-left: 0;
+  border-left: 0;
+}
+
+.ezh-record-path strong {
+  color: var(--vt-home-d-ink);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.ezh-record-path span {
+  color: var(--vt-home-d-dim);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.ezh-own,
+.ezh-match,
+.ezh-out,
+.ezh-start,
+.ezh-attr,
+.ezh-faq,
+.ezh-emp {
+  background: var(--vt-home-d-ground);
+}
+
+@media (max-width: 900px) {
+  .ezh-hero .ezh-wrap {
+    grid-template-columns: 1fr;
+    padding-top: 112px;
+  }
+
+  .ezh-hero-stagecol {
+    max-width: 650px;
+  }
+}
+
+@media (max-width: 600px) {
+  .ezh-hero .ezh-wrap {
+    padding-top: 98px;
+    padding-bottom: 44px;
+  }
+
+  .ezh h1 {
+    font-size: clamp(31px, 10vw, 39px);
+  }
+
+  .ezh-npi-row {
+    flex-direction: column;
+  }
+
+  .ezh-npi-input,
+  .ezh-npi-submit {
+    width: 100%;
+  }
+
+  .ezh-watch-head,
+  .ezh-watch-row,
+  .ezh-watch-choice,
+  .ezh-watch-record .ezh-rm-legend {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+
+  .ezh-watch-row {
+    grid-template-columns: 24px minmax(0, 1fr);
+    gap: 11px;
+  }
+
+  .ezh-watch-state {
+    grid-column: 2;
+    max-width: none;
+    text-align: left;
+  }
+
+  .ezh-record-path ol {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .ezh-record-path li,
+  .ezh-record-path li:first-child {
+    min-height: auto;
+    padding: 0 0 0 16px;
+    border-left: 1px solid var(--vt-home-d-rule);
   }
 }
 
