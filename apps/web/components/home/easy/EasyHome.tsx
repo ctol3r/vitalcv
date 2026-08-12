@@ -26,15 +26,35 @@
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 
+import Attribution from '@/components/home/easy/Attribution';
 import { NpiReveal, ResolvingNarration } from '@/components/home/easy/NpiReveal';
 import ProcessStory from '@/components/home/easy/ProcessStory';
+import Questions from '@/components/home/easy/Questions';
 import WorkSurface from '@/components/home/easy/WorkSurface';
 import { FUNNEL_EVENTS, trackFunnelEvent } from '@/lib/analytics/funnel';
 import { useCareerLoop } from '@/lib/career-loop/useCareerLoop';
 import { writeNpiHandoff } from '@/lib/onboarding/npiHandoff';
 import { sourceCadenceSentence } from '@/lib/trust/sourceCadence';
 
-function NpiEntry() {
+/**
+ * The hero's one source of truth, lifted out of `NpiEntry` so BOTH hero
+ * columns can read it.
+ *
+ * Why it moved (measured on production 2026-08-10): the entry column and the
+ * stage column were siblings, and only the entry column could see the loop
+ * state. So when the registry actually named someone — Michael Abdel-malek,
+ * Hospitalist, CA, from a live NPPES read — the real record appeared as a
+ * modest card under the form while the dominant two-thirds of the hero kept
+ * playing the masked, skeleton-bar illustration of that same story, captioned
+ * "ILLUSTRATIVE — NOT A LIVE RESULT". The product's best moment was the
+ * smallest thing on the screen, and the largest thing on the screen was a
+ * mock of it.
+ *
+ * Nothing about the pipeline changes here: same `useCareerLoop`, same real
+ * `/api/identity/bootstrap` + `/api/trust-state` pairing, same capsule. This
+ * is composition — who gets to render the result.
+ */
+function useHeroLoop() {
   const { state, onInput, submit, reset } = useCareerLoop();
   const [raw, setRaw] = useState('');
   // The recognition pacing (UX-05): `settled` goes false the moment a submit
@@ -62,8 +82,25 @@ function NpiEntry() {
   };
 
   const handleSettled = useCallback(() => setSettled(true), []);
+  const handleReset = useCallback(() => {
+    setRaw('');
+    reset();
+  }, [reset]);
 
   const profile = state.outcome === 'individual' ? state.profile : null;
+
+  return {
+    state, raw, digits, resolving, narrating, attempt, profile,
+    handleChange, handleSubmit, handleSettled, handleReset,
+  };
+}
+
+type HeroLoop = ReturnType<typeof useHeroLoop>;
+
+function NpiEntry({
+  state, raw, digits, resolving, narrating, profile,
+  handleChange, handleSubmit, handleReset,
+}: HeroLoop) {
 
   return (
     <div className="ezh-entry">
@@ -103,53 +140,11 @@ function NpiEntry() {
         </p>
       </form>
 
-      {narrating && attempt > 0 && state.phase !== 'invalid' ? (
-        <ResolvingNarration
-          key={attempt}
-          done={!resolving}
-          onSettled={handleSettled}
-        />
-      ) : null}
-
-      {!narrating && profile ? (
-        <NpiReveal
-          profile={profile}
-          capsule={state.capsule}
-          isDemo={state.isDemo}
-          onKeep={() => writeNpiHandoff(profile.npi)}
-          onReset={() => {
-            setRaw('');
-            reset();
-          }}
-        >
-          {state.matchPhase === 'loading' ? (
-            <p className="ezh-result-note">Finding roles that fit&hellip;</p>
-          ) : null}
-          {state.matchPhase === 'loaded' && state.matches.length > 0 ? (
-            <ul className="ezh-result-matches">
-              {state.matches.slice(0, 3).map((match) => (
-                <li key={match.opportunityId || match.title} className="ezh-result-match">
-                  <p className="ezh-result-match-title">{match.title}</p>
-                  <p className="ezh-result-match-meta">
-                    {[match.organizationName, match.location, match.hiringType]
-                      .filter(Boolean)
-                      .join(' · ')}
-                  </p>
-                </li>
-              ))}
-            </ul>
-          ) : null}
-          {state.matchPhase === 'empty' ? (
-            <p className="ezh-result-note">
-              No open roles matched just now. The profile still moves you forward &mdash; keep it
-              and VitalCV keeps watching.
-            </p>
-          ) : null}
-          {state.matchPhase === 'error' ? (
-            <p className="ezh-result-note">Role matching is unavailable right now.</p>
-          ) : null}
-        </NpiReveal>
-      ) : null}
+      {/*
+        The narration and the reveal now render in the STAGE column — see
+        `HeroStage`. They are the result, and the result belongs where the
+        illustration of it used to be, not underneath the form.
+      */}
 
       {!narrating && state.outcome === 'organization' ? (
         <div className="ezh-result" role="status">
@@ -162,10 +157,7 @@ function NpiEntry() {
             <button
               type="button"
               className="ezh-result-again"
-              onClick={() => {
-                setRaw('');
-                reset();
-              }}
+              onClick={handleReset}
             >
               Check another NPI
             </button>
@@ -184,10 +176,7 @@ function NpiEntry() {
             <button
               type="button"
               className="ezh-result-again"
-              onClick={() => {
-                setRaw('');
-                reset();
-              }}
+              onClick={handleReset}
             >
               Try again
             </button>
@@ -198,7 +187,85 @@ function NpiEntry() {
   );
 }
 
+/**
+ * The hero's right-hand column — one slot, three states, never two at once.
+ *
+ *   idle       the illustrated work surface, captioned illustrative
+ *   resolving  the process narration (what we are DOING, never a result)
+ *   resolved   the REAL record the registry returned
+ *
+ * The truth caption is bound to the state rather than hardcoded under the
+ * column. It previously read "Illustrative — no real people" unconditionally,
+ * which was correct only while the illustration was showing; once a live NPPES
+ * read has named a person on this same screen, that sentence is false. So the
+ * caption ships WITH the illustration and is replaced, not kept, when the real
+ * record takes the slot. WorkSurface's own internal "illustrative" chrome goes
+ * with it, because WorkSurface itself unmounts.
+ *
+ * The organization / unavailable outcomes deliberately stay in the entry
+ * column: they are answers about the NUMBER, not a record to display, and the
+ * illustration should keep explaining the product while the visitor retries.
+ */
+function HeroStage({
+  state, resolving, narrating, attempt, profile, handleSettled, handleReset,
+}: HeroLoop) {
+  if (narrating && attempt > 0 && state.phase !== 'invalid') {
+    return <ResolvingNarration key={attempt} done={!resolving} onSettled={handleSettled} />;
+  }
+
+  if (!narrating && profile) {
+    return (
+      <NpiReveal
+        profile={profile}
+        capsule={state.capsule}
+        isDemo={state.isDemo}
+        onKeep={() => writeNpiHandoff(profile.npi)}
+        onReset={handleReset}
+      >
+        {state.matchPhase === 'loading' ? (
+          <p className="ezh-result-note">Finding roles that fit&hellip;</p>
+        ) : null}
+        {state.matchPhase === 'loaded' && state.matches.length > 0 ? (
+          <ul className="ezh-result-matches">
+            {state.matches.slice(0, 3).map((match) => (
+              <li key={match.opportunityId || match.title} className="ezh-result-match">
+                <p className="ezh-result-match-title">{match.title}</p>
+                <p className="ezh-result-match-meta">
+                  {[match.organizationName, match.location, match.hiringType]
+                    .filter(Boolean)
+                    .join(' · ')}
+                </p>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+        {state.matchPhase === 'empty' ? (
+          <p className="ezh-result-note">
+            No open roles matched just now. The profile still moves you forward &mdash; keep it
+            and VitalCV keeps watching.
+          </p>
+        ) : null}
+        {state.matchPhase === 'error' ? (
+          <p className="ezh-result-note">Role matching is unavailable right now.</p>
+        ) : null}
+      </NpiReveal>
+    );
+  }
+
+  return (
+    <>
+      <WorkSurface />
+      <p className="ezh-truth" data-home-truth-boundary="">
+        Illustrative &mdash; no real people, and nothing has been sent. In the product,
+        sending is yours to approve, and institution review decides the outcome.
+      </p>
+    </>
+  );
+}
+
 export default function EasyHome() {
+  const loop = useHeroLoop();
+
   useEffect(() => {
     trackFunnelEvent(FUNNEL_EVENTS.HOMEPAGE_VIEWED);
   }, []);
@@ -226,7 +293,7 @@ export default function EasyHome() {
               work that can safely be handled.
             </p>
 
-            <NpiEntry />
+            <NpiEntry {...loop} />
 
             <p className="ezh-hero-emp">
               Hiring clinicians?{' '}
@@ -240,12 +307,8 @@ export default function EasyHome() {
             </p>
           </div>
 
-          <div className="ezh-hero-stagecol">
-            <WorkSurface />
-            <p className="ezh-truth" data-home-truth-boundary="">
-              Illustrative &mdash; no real people, and nothing has been sent. In the product,
-              sending is yours to approve, and institution review decides the outcome.
-            </p>
+          <div className="ezh-hero-stagecol" data-home-stage="">
+            <HeroStage {...loop} />
           </div>
         </div>
       </section>
@@ -309,6 +372,13 @@ export default function EasyHome() {
           </div>
         </div>
       </section>
+
+      {/* ── how VitalCV knows what it knows ──────────────────────────────
+          Sits directly after ownership on purpose: ownership answers whose
+          move it is, attribution answers how a line was established. Two
+          halves of the same trust story, and the page previously had only
+          the first. */}
+      <Attribution />
 
       {/* ── the matching layer: why the roles here are different ─────────── */}
       <section
@@ -416,6 +486,23 @@ export default function EasyHome() {
           </div>
         </div>
       </section>
+
+      {/* ── objections, answered at the end of the clinician run ──────────
+          Placed BEFORE the light employer band, and that placement is
+          load-bearing, not taste. `useHeaderScene` hands the eyebrow to
+          whichever declared section is latest in document order within the
+          top 35% of the viewport — so a DARK section following the light
+          `.ezh-emp` claims the eyebrow while the bar is still painted over
+          light paper, rendering it near-white on near-white (measured 1.03:1,
+          i.e. invisible). On origin/main that state is unreachable only
+          because nothing scrollable follows `.ezh-emp`, so the page bottoms
+          out first. Anything added below the light band removes that
+          accidental protection.
+
+          Keeping the light band last preserves it. It also reads better: the
+          questions are clinician-facing, so they belong at the end of the
+          clinician narrative rather than after the employer aside. */}
+      <Questions />
 
       {/* ── the employer doorway: light band, eyebrow inverts ────────────── */}
       <section className="ezh-emp" data-header-theme="light" aria-labelledby="ezh-emp-h">

@@ -13,16 +13,24 @@ import {
 } from './driftEngine';
 
 /**
- * The Omega Orchestrator
+ * The Omega Orchestrator — READ ONLY.
  *
- * Implements the core VitalCV Algorithm Canon: Start = Recognition + Acceptance
+ * `Omega.readState()` reads Recognition + the acceptance/activation graph for
+ * an NPI. It creates nothing.
  *
- * FLOW:
- *   Omega.evaluateAction()
- *     → Recognition (buildPassportDataByNpi)
- *     → Acceptance (EmployerAcceptance persisted with decisionState snapshot)
- *     → Start (StartActivation created if action=accept)
- *     → Learning (DecisionLearningEvent recorded with PENDING outcome)
+ * `Omega.evaluateAction()` was removed in VCD-01a. It wrote an
+ * `EmployerAcceptance` and a `StartActivation` for an employer and org named in
+ * the caller's request body, reachable through `POST /api/omega/:npi` behind a
+ * tenant guard that defaults to a no-op. VCD-00 found acceptance had five wired
+ * emitters across three models; this retires one of them.
+ *
+ * Its only caller was that route, which now answers 404 — asserted by
+ * `apps/api/backend/src/routes/__tests__/omegaDecisionWritesRetired.test.ts`.
+ *
+ * Do not restore a write path here. A real omega decision route needs org
+ * context derived from verified membership, and should write through the single
+ * acceptance route the consolidation names — see
+ * `docs/product/evidence-network/canonical-transaction-baseline.md` §5.
  *
  *   DriftReactionHandler.handleEvent()
  *     → Invalidates StartActivation state in DB
@@ -67,152 +75,6 @@ export interface OmegaOutput {
 }
 
 export class OmegaOrchestrator {
-  /**
-   * Evaluate Recognition + Acceptance to potentially mint a Start.
-   * Wires the full feedback loop: decision → action → learning record.
-   */
-  static async evaluateAction(params: {
-    npi: string;
-    employerId: string;
-    orgId: string;
-    role?: string;
-    action: 'accept' | 'request_data' | 'flag';
-    comment?: string;
-  }): Promise<OmegaOutput> {
-    const { npi, employerId, orgId, role = 'CLINICIAN', action, comment } = params;
-
-    // 1. Recognition Layer
-    let recognition: Awaited<ReturnType<typeof buildPassportDataByNpi>> | null = null;
-    try {
-      recognition = await buildPassportDataByNpi(npi);
-    } catch {
-      // Recognition failure should not block Acceptance recording
-    }
-
-    // 2. Acceptance Layer — structured decision node
-    const decisionState: string = recognition?.decisionPosture
-      ? String(((recognition.decisionPosture as unknown) as Record<string, unknown>).status || 'UNKNOWN')
-      : 'UNKNOWN';
-
-    const trustSnapshot: Record<string, unknown> = {};
-    if (recognition) {
-      trustSnapshot.sourceCoverage = recognition.sourceCoverage ?? null;
-      trustSnapshot.truth = recognition.truth ?? null;
-    }
-
-    const entity = await prisma.vcvEntity.findFirst({
-      where: { displayName: { contains: orgId } },
-      select: { id: true },
-    });
-
-    const acceptance = await prisma.employerAcceptance.create({
-      data: {
-        entityId: entity?.id || '00000000-0000-0000-0000-000000000000',
-        organization: orgId,
-        employerId,
-        clinicianNpi: npi,
-        status: action.toUpperCase(),
-        acceptedAt: new Date(),
-        metadata: JSON.parse(JSON.stringify({
-          decisionState,
-          trustSnapshot,
-          comment: comment || null,
-          role,
-        })),
-      },
-    });
-
-    // 3. Start Layer — only if action is 'accept'
-    let startCreated = false;
-    if (action === 'accept') {
-      try {
-        await prisma.startActivation.create({
-          data: {
-            clinicianNpi: npi,
-            orgId,
-            acceptanceId: acceptance.id,
-            role,
-            activationState: 'READY_TO_START',
-            metadata: JSON.parse(JSON.stringify({ decisionState, trustSnapshot })),
-          },
-        });
-        startCreated = true;
-      } catch {
-        // Start creation failure should not block Acceptance
-      }
-    }
-
-    // 4. Learning Layer — record decision cycle with PENDING outcome
-    let learningEvent: DecisionLearningEvent | null = null;
-    if (decisionState !== 'UNKNOWN') {
-      learningEvent = LearningEngine.evaluateDecisionCycle(
-        npi,
-        decisionState,
-        String(action).toUpperCase(),
-        RealWorldOutcome.PENDING,
-      );
-      // TODO: Persist to DB when DecisionLearningEvent model is added to schema
-      console.log(
-        `[Omega] Learning record: npi=${npi}, state=${decisionState}, action=${action}, outcome=PENDING, mismatch=${learningEvent.mismatchDetected}`
-      );
-    }
-
-    // 5. Fetch graph state
-    const priorAcceptances = await prisma.employerAcceptance.findMany({
-      where: { clinicianNpi: npi },
-      orderBy: { acceptedAt: 'desc' },
-      take: 50,
-    });
-
-    const acceptances: AcceptanceGraphNode[] = priorAcceptances.map((a) => {
-      const meta = (a.metadata as Record<string, unknown>) || {};
-      return {
-        id: a.id,
-        clinicianNpi: a.clinicianNpi || '',
-        orgId: a.organization || '',
-        role: (meta.role as string) || 'UNKNOWN',
-        decisionState: (meta.decisionState as string) || 'UNKNOWN',
-        trustSignals: (meta.trustSnapshot as Record<string, unknown>) || {},
-        createdAt: a.acceptedAt.toISOString(),
-      };
-    });
-
-    const priorActivations = await prisma.startActivation.findMany({
-      where: { clinicianNpi: npi },
-      orderBy: { createdAt: 'desc' },
-      take: 50,
-    });
-
-    const activations: StartActivationNode[] = priorActivations.map((a) => ({
-      id: a.id,
-      acceptanceId: a.acceptanceId,
-      orgId: a.orgId,
-      role: a.role || 'UNKNOWN',
-      activationState: a.activationState,
-      createdAt: a.createdAt.toISOString(),
-      activatedAt: a.activatedAt?.toISOString() || null,
-    }));
-
-    const nextBestAction = NextBestActionEngine({
-      readinessPosture: (decisionState as any)?.readinessPosture,
-      activationState: (activations[0]?.activationState as any) || 'NOT_STARTABLE',
-      hasHardDrift: false, // Pulled from drift engine in the future
-      hasSoftDrift: false,
-      learningConfidenceFactor: 1.0,
-    } as any);
-
-    return {
-      recognition: recognition
-        ? { npi, decisionPosture: recognition.decisionPosture ?? null, sourceCoverage: recognition.sourceCoverage ?? null }
-        : null,
-      acceptances,
-      activations,
-      startCreated,
-      learningEvent,
-      nextBestAction,
-    };
-  }
-
   /**
    * Read-only: Get the full Omega state for an NPI without creating any records.
    */

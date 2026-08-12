@@ -156,6 +156,31 @@ A CSS token or variable named with a banned word leaks that word into the
 rendered HTML and trips the copy gate. Name tokens for the material, not the
 claim.
 
+## Operational scripts
+
+Checked-in tooling that is easy to miss and easy to reinvent badly. Every entry
+below was read from source, not assumed.
+
+| Script | What it does |
+|---|---|
+| `scripts/railway/autopilot.sh` | Verify → build → deploy → smoke, in one command. Requires a **clean working tree** and a linked Railway CLI. `DEPLOY_BRANCH=develop` targets another branch; `SKIP_BUILD=1` skips the local build when CI already passed. Polls `https://$RAILWAY_DOMAIN/health` and `/readyz` (the latter confirms the database is connected). |
+| `scripts/railway/bootstrap.sh` | **One-time** setup: installs the Railway CLI, authenticates, links the project, seeds required env vars. `RAILWAY_TOKEN=xxx` runs it non-interactively. |
+| `scripts/railway/preflight.mjs` | Static deploy checks against source files, before a deploy is triggered. |
+| `scripts/railway/print-required-env.mjs` | Prints the env vars an environment requires, e.g. `node scripts/railway/print-required-env.mjs production`. |
+| `scripts/smoke/prod.sh <base-url>` | Production smoke checks against a supplied base URL (URL is `$1`; trailing slash trimmed). |
+| `scripts/backend-test-db.sh` | The real-Postgres backend Jest harness behind `pnpm test:backend:db`. Takes a lock to serialise runs, prefers Docker `postgres:16-alpine`, **falls back to local Postgres.app binaries** when Docker is unavailable, applies `prisma migrate deploy`, then runs Jest from `apps/api/backend`. |
+| `scripts/prisma-generate-locked.sh` | Serialises `prisma generate` to avoid concurrent-generate races. Prefer the package scripts that already call it over raw `prisma generate`. |
+| `scripts/verify-build.sh` | Monorepo build verification helper. |
+
+Playwright defaults to `http://127.0.0.1:3000` (`PORT` overrides the port,
+`PLAYWRIGHT_BASE_URL` overrides the whole URL) and picks its own server: `pnpm run
+dev:e2e` locally, `pnpm run preview:e2e` when `CI` is set. Only the CI path does a
+cold `next build`, so a local run serves a **dev** build — see
+`apps/web/playwright.config.ts`.
+
+For Railway deploy work prefer the preflight/autopilot path over ad-hoc
+commands.
+
 ## Gotchas
 
 - **Green CI is not evidence the code works.** Anything CI does not execute must

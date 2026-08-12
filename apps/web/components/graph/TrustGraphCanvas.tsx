@@ -12,9 +12,21 @@ interface TrustGraphCanvasProps {
   edges: GraphEdge[];
   onNodeClick: (node: GraphNode) => void;
   activeNodeId: string | null;
+  /**
+   * Label every node at rest rather than only the centre and the active one.
+   * Suits a small curated graph; leave off for dense graphs where permanent
+   * labels collide. Defaults to the existing hover-only behaviour.
+   */
+  showAllLabels?: boolean;
 }
 
-export function TrustGraphCanvas({ nodes, edges, onNodeClick, activeNodeId }: TrustGraphCanvasProps) {
+export function TrustGraphCanvas({
+  nodes,
+  edges,
+  onNodeClick,
+  activeNodeId,
+  showAllLabels = false,
+}: TrustGraphCanvasProps) {
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const dragControls = useDragControls();
@@ -145,6 +157,7 @@ export function TrustGraphCanvas({ nodes, edges, onNodeClick, activeNodeId }: Tr
                 isHovered={hoveredNodeId === node.id}
                 isExpanded={activeNodeId === node.id}
                 isDimmed={isDimmed && !isActive}
+                alwaysShowLabel={showAllLabels}
                 onHover={() => setHoveredNodeId(node.id)}
                 onLeave={() => setHoveredNodeId(null)}
                 onClick={() => onNodeClick(node as GraphNode)}

@@ -198,8 +198,16 @@ describe('/verify/[npi] — invalid-id path', () => {
     const html = renderToStaticMarkup(
       (await renderPage('1234567890')) as React.ReactElement,
     );
+    // The load-bearing assertion, unchanged: a well-formed NPI the backend does
+    // not know renders an IN-PAGE state, never a Next 404.
     expect(notFoundMock).not.toHaveBeenCalled();
-    expect(html).toContain('NPI not found');
+    // The headline used to read "NPI not found". That was false for every NPI
+    // the federal registry does know — two enrolled pilot NPIs rendered it in
+    // production while NPPES returned result_count 1. The absent thing is the
+    // VitalCV profile, and the copy now says so. See
+    // verify-no-profile-truth.test.tsx for the full contract.
+    expect(html).toContain('No VitalCV profile');
+    expect(html).not.toContain('NPI not found');
     expect(html).toContain('1234567890');
   });
 });

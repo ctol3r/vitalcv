@@ -20,7 +20,13 @@ export default defineConfig({
     environment: 'node',
     globalSetup: ['./test/require-workspace-build.ts'],
     setupFiles: ['./test/setup.ts'],
-    exclude: [...configDefaults.exclude, 'tests/**'],
+    // `**/dist/**` is listed explicitly: vitest 4 shrank `configDefaults.exclude`
+    // to just node_modules and .git (vitest 3 included dist, cypress and the
+    // *.config.* patterns). Spreading the defaults therefore silently stopped
+    // excluding build output. That matters here because, per the note above,
+    // workspace deps are resolved through their built `dist/`, so compiled
+    // copies of specs are on disk while these tests run.
+    exclude: [...configDefaults.exclude, '**/dist/**', '**/cypress/**', 'tests/**'],
   },
   // Match Next's automatic JSX runtime so components without a `React` import
   // (the app's prevailing style) also render under jsdom tests.

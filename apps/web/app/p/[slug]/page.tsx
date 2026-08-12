@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -10,14 +11,28 @@ import {
   type ChainEvent,
 } from '../../../../../packages/trust-contract/src/proof-integrity';
 
+// This page is sales collateral for a named prospect conversation, not a
+// search surface. It is deliberately off the index: an indexable page about
+// one clinician's file is the exact shape that published a real registrant's
+// name and NPI to crawlers under the root marketing title.
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+};
+
 // ─── Pilot Registry ───────────────────────────────────────────────
 // Every entry here traces to real events.
 // If a number doesn't trace to an audit event, it is not on this page.
+//
+// The subject is NOT identified here. The pilot ran against a real clinician's
+// NPI, and the standing rule (2026-07-27) is that no demo or marketing surface
+// may point at a real clinician's NPI. The evidence this page makes is about
+// the event chain and its timings, which the loop id already anchors — the
+// subject's name and number were never load-bearing for that claim, only for
+// exposing them. Substituting a synthetic NPI was rejected: it would make the
+// page assert that a number that cannot exist was run through the system.
 
 interface PilotEvidence {
   loopId: string;
-  npi: string;
-  providerName: string;
   taxonomy: string;
   state: string;
   nppesStatus: 'Active' | 'Inactive';
@@ -47,8 +62,6 @@ const PILOTS: Record<string, {
     what: 'We ran a real NPI through the VitalCV wedge — identity verification, readiness computation, and employer review — and measured the time from readiness view to employer action.',
     evidence: {
       loopId: 'isv-loop-1776423023956',
-      npi: '1457128589',
-      providerName: 'MACIE MILLER',
       taxonomy: 'Behavior Technician (NUCC 106S00000X)',
       state: 'TX',
       nppesStatus: 'Active',
@@ -216,7 +229,7 @@ export default async function PilotProofPage({
         <section>
           <h2 className="text-sm font-bold uppercase tracking-widest text-gray-400 mb-4">Evidence</h2>
           <div className="space-y-3">
-            <EvidenceRow label="Provider" value={`${e.providerName} · NPI ${e.npi}`} />
+            <EvidenceRow label="Provider" value="Withheld — subject not published" />
             <EvidenceRow label="Taxonomy" value={e.taxonomy} />
             <EvidenceRow label="State" value={e.state} />
             <EvidenceRow label="NPPES Identity Status" value={e.nppesStatus} positive />
@@ -318,7 +331,8 @@ export default async function PilotProofPage({
         <footer className="text-xs text-gray-400 border-t pt-6 space-y-1">
           <p>This page was generated from real system events. All timestamps are from the live VitalCV event pipeline.</p>
           <p>OIG exclusions and state license verification are not yet integrated. This page does not claim full credentialing coverage.</p>
-          <p>Loop ID: {e.loopId} · NPI: {e.npi}</p>
+          <p>The pilot subject is a real clinician whose identity is withheld. Events are traceable by loop id.</p>
+          <p>Loop ID: {e.loopId}</p>
         </footer>
       </div>
     </div>

@@ -1,0 +1,17 @@
+{
+  "//": "Type-checks SOURCE *and* tests. tsconfig.json deliberately excludes tests so the build never emits them into dist/; that exclusion also meant test files were never type-checked at all. This config restores the check without touching the emit path.",
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "incremental": false,
+    "composite": false
+  },
+  "exclude": [
+    "node_modules",
+    "dist"
+  ],
+  "include": [
+    "**/*.ts",
+    "**/*.mts"
+  ]
+}

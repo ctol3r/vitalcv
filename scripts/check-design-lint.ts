@@ -154,6 +154,7 @@ const HOMEPAGE_ROOTS = [...FILM_ROOTS, ...LEGACY_HOME_ROOTS, ...EASY_HOME_ROOTS]
 const RULES: Rule[] = [
   {
     id: 'LINT-01',
+    stripComments: true,
     mode: 'ratchet',
     what: 'Raw color outside token files',
     fix: 'Use a --vt-* token. Raw color belongs only in the token files or a brand asset.',
@@ -202,6 +203,7 @@ const RULES: Rule[] = [
   },
   {
     id: 'LINT-03',
+    stripComments: true,
     mode: 'ratchet',
     what: '@keyframes outside the house motion file',
     fix: 'Add it to styles/motion.css with a CHANGES.md entry, or reuse an existing house animation.',
@@ -225,6 +227,7 @@ const RULES: Rule[] = [
   },
   {
     id: 'LINT-05',
+    stripComments: true,
     mode: 'ratchet',
     what: 'Literal z-index',
     fix: 'Use a --vt-z-* stop. A seventh stop requires a CHANGES.md entry.',
@@ -235,6 +238,7 @@ const RULES: Rule[] = [
   },
   {
     id: 'LINT-06',
+    stripComments: true,
     mode: 'ratchet',
     what: 'box-shadow that is not none or a token',
     fix: 'Use var(--vt-lift) or var(--vt-focus-ring).',
@@ -256,6 +260,7 @@ const RULES: Rule[] = [
   },
   {
     id: 'LINT-09',
+    stripComments: true,
     mode: 'ratchet',
     what: 'font-family literal',
     fix: 'Use var(--font-display | --font-body | --font-mono).',
@@ -331,6 +336,7 @@ const RULES: Rule[] = [
   // the first new global sheet or token-prefix family is the offence itself.
   {
     id: 'LINT-12',
+    stripComments: true,
     mode: 'error',
     what: 'New global stylesheet import in the shell',
     fix: 'The shell loads exactly globals.css + typography.css + page-density.css (W1083). New CSS belongs to the island component that owns it, or to the UX-02 token layer via an @import reviewed into globals.css.',
@@ -344,6 +350,7 @@ const RULES: Rule[] = [
   },
   {
     id: 'LINT-13',
+    stripComments: true,
     mode: 'error',
     what: 'New custom-property prefix family',
     fix: 'Define new tokens under --vt-* (the semantic layer) or inside an existing island prefix. 70 prefix families already compete — the answer to "none of these fit" is UX-02 token work, not family #71.',

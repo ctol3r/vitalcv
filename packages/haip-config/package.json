@@ -6,13 +6,14 @@
   "types": "./dist/index.d.ts",
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "test": "vitest run --config vitest.config.ts",
-    "test:watch": "vitest --config vitest.config.ts"
+    "test": "vitest run --config vitest.config.mts",
+    "test:watch": "vitest --config vitest.config.mts",
+    "typecheck": "tsc -p tsconfig.test.json"
   },
   "devDependencies": {
     "@types/node": "^20.10.6",
     "typescript": "^5.4.5",
     "vite": "^6.4.3",
-    "vitest": "^3.2.6"
+    "vitest": "^4.1.10"
   }
 }

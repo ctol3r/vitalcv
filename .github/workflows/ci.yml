@@ -1,8 +1,48 @@
 name: CI
 
 on:
+  # POST-MERGE ONLY. The branch prefixes ('feature/**', 'fix/**', 'wave/**',
+  # 'chore/**') were removed 2026-08-10 because they double-fired this workflow
+  # on every PR whose head branch matched one:
+  #
+  #   push          → ref refs/heads/fix/qa-fixture-real-npi
+  #   pull_request  → ref refs/pull/1336/merge
+  #
+  # Two different refs, so the ref-keyed concurrency group below puts them in
+  # two different groups and NEITHER cancels the other. Both then run the same
+  # four jobs on the same tree: ~22.7 runner-minutes and four concurrent hosted
+  # runners, duplicated. Measured on runs 31459417142 / 31450209062 /
+  # 31433269432 (Web Quality ~6.5m, Web E2E ~13.9m, Mobile Quality ~2m, Web E2E
+  # real-auth ~0.3m). A repo-wide census of the 2026-08-09→11 window found CI
+  # was the ONLY workflow doing this — 12 of 43 non-main SHAs ran it twice;
+  # every other workflow scored 0, because their push triggers are already
+  # `branches: [main]`.
+  #
+  # That matters beyond minutes: runner-pool saturation on 2026-08-06 starved
+  # the prod monitors (Source Health Probe #2344, Release verify #398 sat at
+  # runner_id 0 and were failed by the service), which then reported
+  # infrastructure failures as prod regressions. Halving CI's runner footprint
+  # on the branches that produce most PRs is pool hygiene, same motive as the
+  # concurrency invariant in scripts/check-workflow-concurrency.js.
+  #
+  # WHAT WAS DELIBERATELY NOT DONE — both alternatives are the unmergeable-PR
+  # bug in disguise:
+  #   * Touching the `pull_request:` trigger below in any way. It is the trigger
+  #     that produces three REQUIRED status checks. See its own comment.
+  #   * Coalescing push and pull_request into one concurrency group (e.g.
+  #     `${{ github.head_ref || github.ref }}`). Whichever run starts second
+  #     cancels the first; when that loser is the pull_request run, a required
+  #     check reports `cancelled` and the PR is blocked. It would also fail
+  #     scripts/check-workflow-concurrency.js, whose group check matches the
+  #     literal `${{ github.ref }}`.
+  #
+  # Cost of this change, stated plainly: a branch with no PR open yet gets no CI
+  # until the PR exists, and a CONFLICTING PR (whose pull_request runs GitHub
+  # cannot create) now shows no CI checks at all instead of green push checks.
+  # The second is an improvement — those green push checks were the "conflicting
+  # PR looks gated" illusion.
   push:
-    branches: [main, 'feature/**', 'fix/**', 'wave/**', 'chore/**']
+    branches: [main]
     paths:
       - 'apps/web/**'
       - 'apps/mobile/**'
@@ -287,4 +327,4 @@ jobs:
       - name: Typecheck mobile
         run: pnpm --filter @vitalcv/mobile-wallet exec tsc --noEmit
       - name: Run mobile tests
-        run: pnpm --filter @vitalcv/mobile-wallet exec vitest run --config vitest.config.ts
+        run: pnpm --filter @vitalcv/mobile-wallet exec vitest run --config vitest.config.mts

@@ -65,7 +65,7 @@ echo "  Findings:   $FINDINGS"
 FEED=$(curl -sf "$BACKEND/api/intelligence/feed?limit=1" -H "x-org-id: monitor" 2>/dev/null | python3 -c 'import json,sys; d=json.load(sys.stdin); print(d.get("total",0), "delivery=" + d.get("delivery",{}).get("mode","?"))' 2>/dev/null || echo "?")
 echo "  Feed:       $FEED"
 
-GRAPH=$(curl -sf "$BACKEND/api/graph/investigation?npi=1003000126&limit=1" -H "x-org-id: monitor" 2>/dev/null | python3 -c "import json,sys; d=json.load(sys.stdin); print('nodes=%d edges=%d' % (len(d.get('nodes',[])), len(d.get('edges',[]))))" 2>/dev/null || echo "?")
+GRAPH=$(curl -sf "$BACKEND/api/graph/investigation?npi=1558395516&limit=1" -H "x-org-id: monitor" 2>/dev/null | python3 -c "import json,sys; d=json.load(sys.stdin); print('nodes=%d edges=%d' % (len(d.get('nodes',[])), len(d.get('edges',[]))))" 2>/dev/null || echo "?")
 echo "  Graph:      $GRAPH"
 
 # ── 5. Threshold Alerts ────────────────────────────────────────────────────────

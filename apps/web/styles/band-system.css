@@ -1,0 +1,509 @@
+/* ─────────────────────────────────────────────────────────────
+   VitalCV Band System — structural primitives
+   ─────────────────────────────────────────────────────────────
+
+   Structural patterns adapted from reference R2 (Palantir,
+   `/offerings/palantir-for-hospitals/`) in the reference-experience
+   atlas. The ARCHITECTURE is adopted; the SKIN is not.
+
+   Adopted:  semantic per-register tokens · full-bleed contain idiom
+             · slashed-zero/tabular micro-labels · animated hairline
+             · travelling link underline · translating arrow CTA
+   Rejected: backdrop blur (EC-20 Glass: None, EC-10 banned forms)
+             · gradients (EC-20 Gradient: None) · pills and 10px radii
+             (EC-20 pills retired, 0–3px) · shadows (EC-20 card grammar)
+             · sub-44px targets (EC-5)
+
+   Reference R3 (Zoox, `zoox.com`) contributes the arithmetic column
+   span, the four-step rhythm scale, and balanced heading rag. Its
+   pills, gradients, shadows, blur, floating rounded nav, 55%-sub-44px
+   targets and total absence of a reduced-motion path are all rejected.
+
+   Both references author against a different root font-size than we do
+   (R2 = 18px, R3 = 10px, ours = 16px), so NO rem value from either is
+   transferable. Everything here is authored against a 16px root.
+
+   See, for the clause-by-clause adopt / adapt / reject records:
+     docs/design/palantir-r2-element-adoption-2026-08-09.md
+     docs/design/zoox-r3-element-adoption-2026-08-10.md
+
+   Scoped island: every rule is nested under `.bandsys` so this file
+   cannot alter any existing surface. Follows the `.w14` / `.w1505`
+   scoped-island precedent.
+
+   Design Handoff References:
+     EC-3  (truth outranks visual implication — no certainty theatre)
+     EC-4  (meaning never carried by colour/motion/hover alone)
+     EC-5  (AA floor, visible focus, 44px targets)
+     EC-10 (eyebrow banned forms — informs what is NOT here)
+     EC-20 (typography, grid + page width, rule treatment, corner
+            radius, card grammar, glass, gradient, mono policy,
+            light/dark doctrine)
+   ───────────────────────────────────────────────────────────── */
+
+.bandsys {
+  /* ── Geometry ──────────────────────────────────────────────
+     EC-20 "Grid + page width": full-width hairline-ruled band
+     composition, content max ~1400px.
+
+     `--vt-bs-contain` is the one idea worth taking wholesale from R2:
+     a single padding value that pins content to the max-width while
+     the band itself stays edge-to-edge — no wrapper element, so a
+     rule can span the viewport while text stays on the grid.
+
+     R2 ships this idiom twice broken (`css-max(...)`, an uncompiled
+     Sass helper that browsers drop). This is the working form.       */
+  --vt-bs-max: 1400px;
+  --vt-bs-pad: 1.25rem;
+  --vt-bs-contain: max((100% - var(--vt-bs-max)) / 2, var(--vt-bs-pad));
+  --vt-bs-gutter: 1rem;
+  --vt-bs-cols: 12;
+  --vt-bs-grid: repeat(12, minmax(0, 1fr));
+
+  /* One grid track, derived. Reference R3 (Zoox) computes column spans
+     arithmetically instead of requiring grid parentage, which lets an
+     element align to the page grid from anywhere in the tree. That idea
+     is adopted; its implementation is not.
+
+     R3 resolves the container with `100svw`, which COUNTS THE SCROLLBAR.
+     Measured on their own page at 1280x800: a 4-column span paints
+     402.66px where a true grid child measures 397.67px — 4.99px wide,
+     exactly scrollbar (15px) x 4/12. The drift scales with the span, so
+     the widest elements are the most misaligned.
+
+     `100cqw` is the container's content box, so the scrollbar is already
+     excluded and the span matches a real grid child exactly.            */
+  --vt-bs-track: calc((100cqw - (var(--vt-bs-cols) - 1) * var(--vt-bs-gutter)) / var(--vt-bs-cols));
+
+  /* ── Vertical rhythm ──────────────────────────────────────────
+     UX-02 item 3 (spacing rhythm) is PENDING; these are a proposal,
+     not a locked row. R3's four-step scale with a mobile/desktop pair
+     per step is the right shape — the values here are ours.            */
+  --vt-bs-rhythm-xs: 1.5rem;
+  --vt-bs-rhythm-sm: 2.5rem;
+  --vt-bs-rhythm-md: 3.5rem;
+  --vt-bs-rhythm-lg: 6rem;
+
+  /* ── Motion (EC-20 "motion communicates quickly", single-shot) ── */
+  --vt-bs-ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --vt-bs-dur: 240ms;
+
+  /* ── Type (EC-20 locked faces + micro-label anchors) ─────── */
+  --vt-bs-mono: var(--font-geist-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  --vt-bs-sans: var(--font-geist, ui-sans-serif, system-ui, sans-serif);
+
+  color: var(--vt-bs-ink);
+  background-color: var(--vt-bs-ground);
+  font-family: var(--vt-bs-sans);
+}
+
+@media (min-width: 60em) {
+  .bandsys {
+    --vt-bs-pad: 2rem;
+    --vt-bs-gutter: 1.5rem;
+    --vt-bs-rhythm-xs: 2rem;
+    --vt-bs-rhythm-sm: 3.75rem;
+    --vt-bs-rhythm-md: 5rem;
+    --vt-bs-rhythm-lg: 10rem;
+  }
+}
+
+/* ── Registers ────────────────────────────────────────────────
+   R2's best structural idea after `--h-contain`: one set of
+   *semantic* names (`ground`, `ink`, `ink-2`, `hairline`) rebound by
+   a class, so a band flips register without any component knowing
+   which register it is in.
+
+   EC-20 "Light/dark doctrine": dark is a permitted public register;
+   light is REQUIRED for evidence artifacts, dense workflow, and
+   legibility-critical surfaces — so both must be first-class, not one
+   themed off the other.
+
+   BOUND to the ratified scene palette rather than restated. These
+   seven names were originally hand-written hexes, and diffing them
+   against `themes/index.css` showed why that is a bad idea: two were
+   byte-identical to the scene ink pair, and the
+   rest had drifted 1–4 per channel from the values they were copied
+   from. A hand-copied palette is one that silently stops matching.
+   Binding removes the drift, and an EC-20 palette change now reaches
+   this island for free.
+
+   Light surfaces are mixed from the paper pair because the scene set
+   carries no second paper tint. The relationship is preserved — panel
+   stays lighter than ground — using only tokens, so no raw colour is
+   reintroduced (LINT-01).                                            */
+
+.bandsys,
+.bandsys-dark {
+  --vt-bs-ground: var(--vt-scene-canvas);
+  --vt-bs-panel: var(--vt-scene-panel);
+  --vt-bs-raised: var(--vt-scene-panel-raised);
+  --vt-bs-hairline: var(--vt-scene-line);
+  --vt-bs-ink: var(--vt-scene-text);
+  --vt-bs-ink-2: var(--vt-scene-text-secondary);
+  --vt-bs-hover: var(--vt-scene-text);
+}
+
+.bandsys-light {
+  --vt-bs-ground: color-mix(in oklab, var(--vt-scene-paper-line) 22%, var(--vt-scene-paper));
+  --vt-bs-panel: var(--vt-scene-paper);
+  --vt-bs-raised: color-mix(in oklab, var(--vt-scene-paper-line) 45%, var(--vt-scene-paper));
+  --vt-bs-hairline: var(--vt-scene-paper-line);
+  --vt-bs-ink: var(--vt-scene-paper-text);
+  --vt-bs-ink-2: var(--vt-scene-paper-text-secondary);
+  --vt-bs-hover: var(--vt-scene-paper-text);
+
+  color: var(--vt-bs-ink);
+  background-color: var(--vt-bs-ground);
+}
+
+/* ── Band ─────────────────────────────────────────────────────
+   Full-bleed ground, hairline top rule spanning the viewport,
+   content contained to --vt-bs-max.                                    */
+
+.bs-band {
+  background-color: var(--vt-bs-ground);
+  color: var(--vt-bs-ink);
+  padding-block: var(--vt-bs-rhythm-md);
+  padding-inline: var(--vt-bs-contain);
+
+  /* Makes the band's CONTENT BOX the query container, so `100cqw` in
+     `--vt-bs-track` is the contained width — scrollbar already excluded.
+     Inline-axis only: block size still comes from the content.         */
+  container-type: inline-size;
+}
+
+.bs-band + .bs-band {
+  border-top: 1px solid var(--vt-bs-hairline);
+}
+
+.bs-band__grid {
+  display: grid;
+  grid-template-columns: var(--vt-bs-grid);
+  column-gap: var(--vt-bs-gutter);
+  row-gap: 2rem;
+}
+
+/* ── Column span without grid parentage ───────────────────────
+   For elements that must align to the page grid but cannot be grid
+   children — a figure that breaks out of prose, a band-level rule that
+   stops at column 8, a caption pinned under a 6-column asset.
+
+   Inside `.bs-band__grid`, use `grid-column: span n` instead. It is
+   exact by construction and needs no arithmetic; this utility exists
+   only for the cases where that is unavailable.                        */
+
+.bs-span {
+  inline-size: calc(var(--vt-bs-track) * var(--vt-bs-n) + (var(--vt-bs-n) - 1) * var(--vt-bs-gutter));
+  max-inline-size: 100%;
+}
+
+.bs-span-1 { --vt-bs-n: 1; }
+.bs-span-2 { --vt-bs-n: 2; }
+.bs-span-3 { --vt-bs-n: 3; }
+.bs-span-4 { --vt-bs-n: 4; }
+.bs-span-5 { --vt-bs-n: 5; }
+.bs-span-6 { --vt-bs-n: 6; }
+.bs-span-7 { --vt-bs-n: 7; }
+.bs-span-8 { --vt-bs-n: 8; }
+.bs-span-9 { --vt-bs-n: 9; }
+.bs-span-10 { --vt-bs-n: 10; }
+.bs-span-11 { --vt-bs-n: 11; }
+.bs-span-12 { --vt-bs-n: 12; }
+
+/* ── Vertical rhythm utilities ────────────────────────────────
+   R3 emits the mobile/desktop pair inside every block component's own
+   padding classes — eight near-identical class bodies per component,
+   repeated across ~30 components. Here the pair lives once on the token
+   and the utilities just read it, so a rhythm change is a token edit.   */
+
+.bs-pad-t-xs { padding-block-start: var(--vt-bs-rhythm-xs); }
+.bs-pad-t-sm { padding-block-start: var(--vt-bs-rhythm-sm); }
+.bs-pad-t-md { padding-block-start: var(--vt-bs-rhythm-md); }
+.bs-pad-t-lg { padding-block-start: var(--vt-bs-rhythm-lg); }
+
+.bs-pad-b-xs { padding-block-end: var(--vt-bs-rhythm-xs); }
+.bs-pad-b-sm { padding-block-end: var(--vt-bs-rhythm-sm); }
+.bs-pad-b-md { padding-block-end: var(--vt-bs-rhythm-md); }
+.bs-pad-b-lg { padding-block-end: var(--vt-bs-rhythm-lg); }
+
+/* ── Earmark — the micro-label ────────────────────────────────
+   EC-20 "Type scale": 11px mono uppercase +0.08em.
+   EC-20 "Mono presentation policy": machine facts in Geist Mono,
+   tabular-nums.
+
+   `slashed-zero` is the detail worth taking from R2 — on a surface
+   where NPIs, dates and licence numbers are the content, an
+   unambiguous zero is a correctness affordance, not decoration.      */
+
+.bs-earmark {
+  font-family: var(--vt-bs-mono);
+  font-size: 0.6875rem; /* 11px */
+  line-height: 1.45;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-variant-numeric: slashed-zero tabular-nums;
+  font-feature-settings: 'tnum' on, 'zero' on;
+  color: var(--vt-bs-ink-2);
+}
+
+/* ── Heading ──────────────────────────────────────────────────
+   `text-wrap: balance` is the one typographic setting worth taking from
+   R3's stack wholesale — it evens the rag without a hand-placed <br>,
+   so a heading survives translation and register changes intact.
+
+   NOT taken: R3 sets `font-kerning: none` and `font-feature-settings:
+   "kern" off` globally, disabling kerning across the entire site. That
+   is a deliberate choice there; here it would degrade the locked Geist
+   pairing for no stated benefit.                                        */
+
+.bs-heading {
+  font-family: var(--vt-bs-sans);
+  font-size: clamp(2rem, 5vw, 3.25rem);
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+  max-inline-size: 20ch;
+  margin: 0;
+  color: var(--vt-bs-ink);
+}
+
+/* ── Hairline rule ────────────────────────────────────────────
+   EC-20 "Rule/border treatment": 1px hairlines structure panels
+   and bands.
+
+   EC-4: static is the first-class composition. The base rule is
+   fully drawn with no JS and no motion; `--reveal` is the opt-in
+   animated variant and it ENDS in the same state, so nothing is
+   carried by motion alone.                                          */
+
+.bs-rule {
+  display: block;
+  block-size: 1px;
+  inline-size: 100%;
+  border: 0;
+  margin: 0;
+  background-color: var(--vt-bs-hairline);
+}
+
+.bs-rule--strong {
+  background-color: var(--vt-bs-ink);
+}
+
+.bs-rule--reveal {
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 700ms var(--vt-bs-ease) var(--vt-bs-delay, 0ms);
+}
+
+.bs-rule--reveal.is-revealed {
+  transform: scaleX(1);
+}
+
+/* No-JS is a first-class composition (EC-4). `is-revealed` is added by
+   script, so with scripting off the rule would stay at scaleX(0) and
+   never draw — the same stranding class as an opacity-0 scene that
+   shipped invisible with every gate green.
+
+   `scripting: none` resolves it without the flash an arm-after-hydration
+   approach would cause. It covers JS disabled, not JS errored; content
+   that must survive a failed hydration should use `.bs-reveal`, whose
+   animation is scroll-driven and needs no script at all. */
+@media (scripting: none) {
+  .bandsys .bs-rule--reveal {
+    transform: scaleX(1);
+    transition: none;
+  }
+}
+
+/* Dashed variant — R2 draws this with `repeating-linear-gradient` and
+   animates `clip-path`. A repeating hard-stop is still a gradient
+   function, so EC-20 rules it out; a plain dashed border gets the same
+   read with no gradient and no extra paint. */
+.bs-rule--dashed {
+  block-size: 0;
+  background-color: transparent;
+  border-top: 1px dashed var(--vt-bs-hairline);
+}
+
+/* ── Travelling link underline ────────────────────────────────
+   R2 builds this from two `linear-gradient` pseudo-elements that
+   swap. EC-20 "Gradient treatment: None" — so this is rebuilt from
+   two SOLID bars: a resting hairline, and an ink bar that draws in
+   from the left on hover and retracts to the right on exit.
+
+   Focus is deliberately OUTSIDE the hover media query. R2 nests
+   `:focus` inside `@media (hover:hover) and (pointer:fine)`, which
+   silently removes the keyboard affordance on touch-capable
+   laptops — an EC-5 violation we are not inheriting.                 */
+
+.bs-link {
+  /* EC-5 44px floor. The padding is derived, not a magic number: it is
+     exactly half the shortfall between the line box and the floor, so
+     the control measures >=44px at any font-size, and the underline
+     still sits tight against the text rather than at the box edge.    */
+  --vt-bs-link-lh: 1.4;
+  --vt-bs-link-pad: max(0.25rem, (44px - var(--vt-bs-link-lh) * 1em) / 2);
+
+  position: relative;
+  display: inline-block;
+  color: var(--vt-bs-ink);
+  text-decoration: none;
+  line-height: var(--vt-bs-link-lh);
+  padding-block: var(--vt-bs-link-pad);
+
+  /* The derivation above is exact on paper — 22.4 + 10.8 + 10.8 = 44 — and
+     still lands SHORT. Browsers quantise layout to 1/64px, so the used
+     values are 22.390625 + 10.796875 x 2 = 43.984375. Measured, not
+     predicted: this primitive rendered 43.98px until this line existed.
+
+     So the floor is declared, not computed. The padding keeps the
+     underline tight to the text; this guarantees the target.            */
+  min-block-size: 44px;
+}
+
+/* In-sentence links only. Vertical padding would overlap adjacent lines,
+   so this variant relies on the WCAG 2.5.8 exception for targets inline
+   in a block of text. Never use it for standalone navigation.          */
+.bs-link--inline {
+  --vt-bs-link-pad: 0px;
+  /* Must also drop the floor, or a mid-sentence link gets a 44px box and
+     collides with the lines above and below it. */
+  min-block-size: 0;
+}
+
+.bs-link::before,
+.bs-link::after {
+  content: '';
+  position: absolute;
+  inset-inline: 0;
+  inset-block-end: var(--vt-bs-link-pad);
+  block-size: 1px;
+}
+
+.bs-link::before {
+  background-color: var(--vt-bs-hairline);
+}
+
+.bs-link::after {
+  background-color: var(--vt-bs-ink);
+  transform: scaleX(0);
+  transform-origin: right center;
+  transition: transform var(--vt-bs-dur) var(--vt-bs-ease);
+}
+
+.bs-link:hover::after,
+.bs-link:focus-visible::after {
+  transform: scaleX(1);
+  transform-origin: left center;
+}
+
+.bs-link:focus-visible {
+  outline: 2px solid var(--vt-bs-ink);
+  outline-offset: 3px;
+}
+
+/* ── Arrow CTA — RETIRED, superseded by `.bs-action` ──────────
+   R2's arrow CTA and R3's `.bs-action` were the same control: a text
+   button with a travelling arrow and a 44px floor. Keeping both left
+   the island with two answers to one question, which is how a
+   component set starts competing with itself.
+
+   `.bs-action--quiet` is the direct replacement and is strictly
+   better: two glyphs on reserved rails rather than one translating
+   glyph, so the swap cannot reflow the label; plus the primary and
+   secondary variants EC-20's button grammar asks for.
+   `.bs-action--external` carries the up-and-out travel this had.
+
+   Retired rather than aliased. An alias keeps both names reachable
+   and the duplication just becomes invisible.                        */
+
+/* ── Focus over media ─────────────────────────────────────────
+   R3 rings every focused control twice: a dark outline plus a white
+   border on a pseudo-element. Read closely, that is a workaround — their
+   focus colour is a hardcoded near-black literal, which would vanish on
+   their own dark register, so a second ring is needed to rescue it.
+
+   Our focus colour is `var(--vt-bs-ink)`, rebound per register, so the
+   single ring already contrasts in both. The second ring is redundant
+   EXCEPT over photography or video, where neither register token is
+   guaranteed any contrast — that case is real, and this is for it.
+
+   Built from a pseudo-element, not `box-shadow`: EC-20's card grammar
+   bans shadows, and a focus ring is not the place to make an exception
+   the gate would then have to carve out.
+
+   Do not combine with `.bs-link` — that primitive already owns ::after. */
+
+.bs-ring-media {
+  position: relative;
+}
+
+.bs-ring-media:focus-visible {
+  outline: 2px solid var(--vt-bs-ink);
+  outline-offset: 3px;
+}
+
+.bs-ring-media:focus-visible::after {
+  content: '';
+  position: absolute;
+  inset: -5px;
+  border: 2px solid var(--vt-bs-ground);
+  border-radius: 2px;
+  pointer-events: none;
+}
+
+/* ── Panel ────────────────────────────────────────────────────
+   EC-20 "Card grammar": solid hairline-ruled panels, radius 0–3px,
+   no shadows. R2's cards carry `border-radius: 10px` and
+   a soft drop shadow — both rejected.           */
+
+.bs-panel {
+  background-color: var(--vt-bs-panel);
+  border: 1px solid var(--vt-bs-hairline);
+  border-radius: 2px;
+  padding: 1.5rem;
+}
+
+/* ── Stat ─────────────────────────────────────────────────────
+   EC-3: figures are attributed and never animate except between
+   real returned values. The primitive carries a required source
+   slot so an unattributed figure is visibly incomplete.              */
+
+.bs-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.bs-stat__figure {
+  font-family: var(--vt-bs-sans);
+  font-size: clamp(2.25rem, 5vw, 3.5rem);
+  line-height: 1;
+  letter-spacing: -0.03em;
+  font-variant-numeric: slashed-zero tabular-nums;
+  font-feature-settings: 'tnum' on, 'zero' on;
+  color: var(--vt-bs-ink);
+}
+
+.bs-stat__desc {
+  font-size: 0.9375rem;
+  line-height: 1.35;
+  color: var(--vt-bs-ink-2);
+  max-inline-size: 32ch;
+}
+
+/* ── Reduced motion ───────────────────────────────────────────
+   EC-4 / EC-5: motion is optional for meaning. Every animated
+   primitive above resolves to its end state instantly.               */
+
+@media (prefers-reduced-motion: reduce) {
+  .bandsys .bs-rule--reveal {
+    transform: scaleX(1);
+    transition: none;
+  }
+
+  .bandsys .bs-link::after {
+    transition: none;
+  }
+}

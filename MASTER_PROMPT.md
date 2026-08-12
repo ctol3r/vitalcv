@@ -1,5 +1,24 @@
 # VitalCV Master Prompt — Canonical Operator Context
-> **Version:** 2026-04-01 | **Scope:** All AI agents operating on this repo
+
+> ## ⚠️ SUPERSEDED — DO NOT LOAD AS CURRENT DOCTRINE
+>
+> **`CLAUDE.md` is the operator contract of record.** Where this file disagrees with it,
+> `CLAUDE.md` wins — without exception. Read governance from `origin/main`, never from the
+> checked-out branch.
+>
+> Retained for **historical product context only** (CRS, trust states, the canonical path,
+> naming). Its operating instructions are stale and actively wrong:
+>
+> - §17 "Cowork mode" (line 480) authorises Cowork for workspace file operations. `CLAUDE.md`
+>   forbids OpenClaw, Browser, and Cowork for build/verify work.
+> - §17 model routing (line 448) assigns Codex ownership of cryptography, backend services, and
+>   ledger flows. Codex is an **optional** surgical verifier and is **not** a merge gate.
+> - It predates the truth contract, the banned-string list, the founder visual gate, and the
+>   Experience Constitution. None of those appear here.
+>
+> Do not cite this file as authority for how to work. Cite `CLAUDE.md`.
+
+> **Version:** 2026-04-01 (frozen) | **Original scope:** All AI agents operating on this repo
 > **Authority:** Synthesized from: repo source, ANTIGRAVITY.md, Canon.md, CRED0_DOCTRINE.md, CONTRACTORS.md, VITALCV_OVERVIEW.md, PRODUCT_POSITIONING.md, TRUST_LOOP.md, yc-positioning.md, all skill SKILL.md files, RELEASE-GATE-REPORT-2026-04-01.md, LIGHT_FIRST_UX_AUDIT, WAVE180.md, and Google Drive strategic documents.
 
 ---

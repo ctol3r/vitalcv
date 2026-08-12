@@ -101,7 +101,6 @@
   --vt-badge-info-border: var(--vt-badge-preview-bg);
 
   --vt-surface-hero: linear-gradient(180deg, rgb(255 255 255 / 0.96), rgb(249 251 250 / 0.92));
-  --vt-shadow-soft: 0 20px 48px rgb(26 34 40 / 0.06), 0 6px 18px rgb(26 34 40 / 0.04);
   --vt-shadow-card: 0 14px 32px rgb(26 34 40 / 0.05), 0 2px 10px rgb(26 34 40 / 0.03);
   --vt-shadow-pill: 0 1px 2px rgb(26 34 40 / 0.04);
 
@@ -110,7 +109,6 @@
      packet housing, the pointer lens. Their sheen and float live here rather
      than inline so the design-lint ratchets (LINT-01/05/06) stay meaningful:
      a raw shadow or colour in a stylesheet is drift, a token is a decision. */
-  --vt-glass-sheen: inset 0 1px 0 0 color-mix(in oklab, white 60%, transparent);
   /* The packet housing: sheen, a faint bottom seat, and a float a fraction of
      the nav rail's so the one reserved float shadow keeps its rank. */
   --vt-shadow-glass-panel:
@@ -234,7 +232,13 @@
 /* ── 3. Motion Tokens ─────────────────────────────────────────────────────── */
 /*
  * SYSTEM CURVE: cubic-bezier(0.2, 0.8, 0.2, 1)
- * DURATION RANGE: 280ms – 420ms (no motion outside this band)
+ * DURATION BANDS (EC-29, Class A — the source of truth for every value here):
+ *   80–150ms   control feedback      (press, toggle, focus, hover)
+ *   150–250ms  state transition
+ *   250–450ms  product transformation
+ *   450–800ms  rare narrative
+ * The former "280–420ms, no motion outside this band" note was narrower than
+ * EC-29 and excluded the control-feedback band entirely — see ruling R-e.
  */
 
 :root {
@@ -249,17 +253,20 @@
   --ease-spring:     var(--vt-ease-system);
   --ease-bounce:     var(--vt-ease-system);
 
-  /* Durations — locked to 280–420ms band */
-  --duration-instant:  280ms;
+  /* Durations — each value sits inside an EC-29 band (see header) */
+  --duration-instant:  120ms;   /* control feedback — R-e */
   --duration-fast:     280ms;
   --duration-normal:   320ms;
   --duration-slow:     380ms;
   --duration-xslow:    420ms;
   --duration-stagger:  50ms;
 
-  /* Control-feel durations */
-  --duration-snap:     280ms;
-  --duration-respond:  280ms;
+  /* Control-feel durations — EC-29 control-feedback band (80–150ms), R-e.
+   * Call sites already request this: utilities.css and ActionBar.tsx both
+   * write var(--duration-snap, 80ms). This file is imported globally, so the
+   * previous 280ms declaration overrode that fallback everywhere. */
+  --duration-snap:     120ms;
+  --duration-respond:  120ms;
 
   /* Control-feel easing */
   --ease-control:      var(--vt-ease-system);

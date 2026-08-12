@@ -180,6 +180,30 @@ export async function generateMetadata({
   return {
     title: `Verifier View — NPI ${npi}`,
     description: 'Read-only credential verification for hospital and employer reviewers.',
+    // NOT INDEXABLE. This page renders a named clinician's record — legal name,
+    // practice address, licence number as filed, and CMS administrative fields.
+    // Every one of those facts is public at its own source, but a crawlable
+    // VitalCV page per NPI is a different artifact from a lookup a reviewer
+    // performs: it makes us a search-surfaced profile about a clinician who
+    // may never have engaged with VitalCV, and the homepage promise is that
+    // entering an NPI "starts nothing you don't approve".
+    //
+    // The page was `index, follow` by default and is reachable for any NPI
+    // with a passport row — including NPIs used as QA fixtures (1003000126 is
+    // seeded through core/qa/edgeCaseScanner.ts and the verifier-sdk examples,
+    // and names a real physician). No /verify URL has ever been in the
+    // sitemap, so nothing here was advertised; this closes the gap between
+    // "not advertised" and "not indexable".
+    //
+    // UNCONDITIONAL, and deliberately so. A version of this gated the noindex
+    // on whether a passport existed — noindex the soft-404s, canonicalise the
+    // real records to /directory/[npi] — which treated the problem as duplicate
+    // content between two URLs for one clinician. It is not: the objection above
+    // is consent, and it applies most strongly to exactly the records that
+    // version would have left indexable. No canonical either; pairing one with
+    // a noindex asks a crawler to both ignore this page and index another on
+    // its behalf.
+    robots: { index: false, follow: false },
   };
 }
 
@@ -209,7 +233,10 @@ export default async function VerifierPage({
   ]);
 
   if (!passport) {
-    return <NotFound npi={npi} />;
+    // `nppes` is already in hand from the parallel read above. Whether the
+    // federal registry knows this NPI is the difference between two different
+    // findings, and the page used to collapse both into "NPI not found".
+    return <NoProfile npi={npi} registeredInNppes={Boolean(nppes)} />;
   }
 
   // Null when CMS was unreachable or the NPI is unknown. The section is then
@@ -456,6 +483,18 @@ export default async function VerifierPage({
           <Reveal delay={60}>
           <Section title="Full registry record">
             <ClinicianRecordDetail record={clinicianRecord} mode="public" />
+            {/* The public home for this filing. A reader's affordance only —
+                this page is noindex, nofollow, so the link carries no crawl
+                signal and the directory sitemap does that work instead. It is
+                here because a reviewer who wants the plain registry record
+                otherwise has to leave for npiregistry.cms.hhs.gov. */}
+            <p className="mt-4 text-[12px] leading-relaxed text-[var(--ink-500)]">
+              This filing is public record.{' '}
+              <Link href={`/directory/${npi}`} className="underline">
+                View the registry page for NPI {npi}
+              </Link>
+              .
+            </p>
           </Section>
           </Reveal>
         )}
@@ -666,18 +705,44 @@ function AcceptancePanel({
   );
 }
 
-function NotFound({ npi }: { npi: string }) {
+/**
+ * Shown when no VitalCV passport exists for a well-formed NPI.
+ *
+ * This used to say "NPI not found" — which was false for every NPI the federal
+ * registry does know. Two of the five enrolled pilot NPIs rendered it while
+ * NPPES returned `result_count: 1` for both, and while this very page had the
+ * NPPES record in hand from its own parallel read. A reviewer reading "not
+ * found" would reasonably conclude the number was bad, or the clinician not
+ * real. The absent thing is a VitalCV profile, not the clinician.
+ *
+ * So the headline states what is actually missing, and `registeredInNppes`
+ * separates the two findings. Deliberately NOT rendered here: the clinician's
+ * name, address, taxonomy, or licence. Whether VitalCV should publish the
+ * public record for someone who never enrolled is a consent decision, not a
+ * copy fix, and it is not made here.
+ */
+function NoProfile({ npi, registeredInNppes }: { npi: string; registeredInNppes: boolean }) {
   return (
     <div className="mz mz-paper mz-persona-verifier min-h-screen flex flex-col items-center justify-center gap-4">
       <ShieldAlert className="w-10 h-10 text-[var(--ink-300)]" />
-      <div className="text-center">
-        <h1 className="mz-h1">NPI not found</h1>
+      <div className="text-center max-w-md px-6">
+        <h1 className="mz-h1">No VitalCV profile</h1>
         <p className="text-sm text-[var(--ink-500)] mt-2">
-          No verification data available for NPI <span className="mz-mono text-[var(--ink-700)]">{npi}</span>.
+          VitalCV holds no profile for NPI{' '}
+          <span className="mz-mono text-[var(--ink-700)]">{npi}</span>.
         </p>
-        <p className="text-xs text-[var(--ink-400)] mt-2">
-          The clinician may not have initiated a VitalCV profile yet.
-        </p>
+        {registeredInNppes ? (
+          <p className="text-xs text-[var(--ink-400)] mt-3 leading-5">
+            This NPI is registered in the federal NPPES registry. No clinician has started a
+            VitalCV profile for it, so there is nothing here to review — that is a fact about
+            VitalCV, not about the clinician or their credentials.
+          </p>
+        ) : (
+          <p className="text-xs text-[var(--ink-400)] mt-3 leading-5">
+            The federal NPPES registry did not return a record for this NPI, and VitalCV holds no
+            profile for it. Check the number, or look it up directly in NPPES.
+          </p>
+        )}
       </div>
     </div>
   );

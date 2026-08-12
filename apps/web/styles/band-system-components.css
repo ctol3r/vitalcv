@@ -1,0 +1,967 @@
+/* ─────────────────────────────────────────────────────────────
+   VitalCV Band System — component layer
+   A synthesis with reference R3 (Zoox, `zoox.com`)
+   ─────────────────────────────────────────────────────────────
+
+   Companion to `band-system.css`, which holds the structural
+   primitives. This file holds the INTERACTIVE components.
+
+   The earlier R3 round (`docs/design/zoox-r3-element-adoption-2026-08-10.md`)
+   took R3's token and utility layer and turned down most of its
+   surface character. That round was written against a LOCAL copy of
+   the constitution that was 545 lines behind `origin/main`, and it
+   cited four EC-20 rows that had been amended the day before. Read
+   against main, the picture is close to inverted: most of what makes
+   R3 feel like R3 is already authorised here.
+
+   WHAT MAIN ACTUALLY SAYS (amendments A-1 and A-2, 2026-08-09):
+
+     Soft radii     `--vt-shape-control` 10px · `--vt-shape-card` 20px
+                    `--vt-shape-panel` 24px · `--vt-shape-pill` 9999px.
+                    That IS R3's radius family, already law in the
+                    scene register.
+     Frost          Permitted on chrome and scene overlays, built from
+                    `color-mix` so it degrades to a solid panel.
+     Gradient       One atmospheric wash per viewport, behind a scene
+                    (`--vt-scene-glow`), carrying no meaning.
+     Pill labels    A word-label may be a pill.
+
+   So this is a synthesis, not a filtered import. The components below
+   are R3's compositions — the dual-glyph action, the one-variable icon
+   slide, the travelling segment indicator, the hover-reveal row, the
+   `:has()` divider coordination, the `1lh` floating label, the
+   clip-path reveal — bound to VitalCV's own tokens so they render
+   near-sharp graphite in the base registers and R3-warm in the scene
+   register from the same markup.
+
+   THE ONE PLACE THE TWO SYSTEMS GENUINELY DIVERGE is the action
+   silhouette. A-2 resolves the shape scale by making silhouette carry
+   meaning: square means you can act on it, rounded means it names
+   something. So an action takes radius 0 even in the scene register,
+   while R3 rounds its CTAs to 16px. Everything else about R3's action
+   — the arrow overtaking the label, the paper-inverse fill, the
+   motion timing — comes across intact. A-2 is founder-ratified
+   (2026-08-09) and EC-22 reserves changes to the founder, so making
+   the CTA round is an amendment request, not a stylesheet edit.
+
+   Two mechanisms are carried across HARDENED rather than as-found:
+   R3's segment control is unreadable before its script runs, and the
+   floating-label pattern is a known way to lose a control's
+   accessible name. Both are fixed in place, with the reasoning at the
+   component. Neither changes how they look.
+
+   Colour is taken from VitalCV's palette throughout. No R3 hex is
+   reproduced here (LINT-14 bans third-party reference tokens).
+
+   Scoped island: every rule is nested under `.bandsys`, so this file
+   cannot alter an existing surface.
+
+   Design Handoff References:
+     EC-3  (truth outranks visual implication)
+     EC-4  (meaning never carried by colour/motion/hover alone;
+            no-JS and reduced-motion are first-class compositions)
+     EC-5  (AA floor, visible focus, 44px targets)
+     EC-20 (button grammar; corner radius as amended A-1/A-2; glass
+            and gradient as amended A-1; card grammar; mono policy)
+   ───────────────────────────────────────────────────────────── */
+
+/* ── Shape tokens ─────────────────────────────────────────────
+   Shape is a token, not a value baked into each component, so one
+   set of components serves both characters.
+
+   Base: the island's near-sharp convention. A-1 keeps evidence and
+   operational surfaces near-sharp, and islands outside the scene
+   register hold their own radii until migrated.                    */
+
+.bandsys {
+  --vt-bs-shape-action: 0;
+  --vt-bs-shape-control: 2px;
+  --vt-bs-shape-card: 2px;
+  --vt-bs-shape-panel: 2px;
+  --vt-bs-shape-label: 2px;
+
+  --vt-bs-surface: var(--vt-bs-panel);
+  --vt-bs-surface-border: var(--vt-bs-hairline);
+}
+
+/* Scene register: R3's warmth, from VitalCV's own ratified scale.
+   Same components, same markup — only the bindings change.
+
+   `--vt-shape-action` is deliberately absent from the scale: A-2
+   makes the action square in every register, so it is pinned here
+   rather than bound.                                                */
+
+.bandsys-scene {
+  --vt-bs-shape-action: 0;
+  --vt-bs-shape-control: var(--vt-shape-control, 10px);
+  --vt-bs-shape-card: var(--vt-shape-card, 20px);
+  --vt-bs-shape-panel: var(--vt-shape-panel, 24px);
+  --vt-bs-shape-label: var(--vt-shape-pill, 9999px);
+
+  /* Frost, A-1: chrome and scene overlays only, `color-mix` so the
+     effect degrades to a solid panel where `backdrop-filter` is
+     unsupported rather than leaving unreadable text over media. */
+  --vt-bs-surface: var(--vt-frost-bg, var(--vt-bs-panel));
+  --vt-bs-surface-border: var(--vt-frost-border, var(--vt-bs-hairline));
+}
+
+/* ── Scene atmosphere ─────────────────────────────────────────
+   A-1 authorises exactly ONE atmospheric wash per viewport, behind a
+   scene composition, carrying no meaning — removing it must cost
+   nothing but atmosphere.
+
+   This is the closest legal equivalent of the ambient colour R3
+   spends freely across its sections, and the constraint is worth
+   stating on the element: `.bs-scene` is not a utility to sprinkle.
+   One per viewport. Never behind an evidence surface.
+
+   Painted as the element's OWN background rather than an absolutely
+   positioned `::before` on a negative z stop. The pseudo-element form
+   works, but it buys a literal z-index (LINT-05) and a new stacking
+   context to contain it, for a layer that is only ever a background.
+   `background-image` needs neither, and a background already sits
+   behind content by definition.                                      */
+
+/* Compound AND descendant. The register block carries `.bandsys` and
+   `.bs-scene` on the SAME element, so a descendant-only selector never
+   matched and the wash never painted. Caught by measuring
+   `backgroundImage` — no glow and a subtle glow are the same
+   screenshot, which is why this needed a probe, not a look. */
+
+.bandsys.bs-scene,
+.bandsys .bs-scene {
+  background-image: var(--vt-scene-glow, none);
+  background-repeat: no-repeat;
+}
+
+/* ── Surface — the frosted panel ──────────────────────────────
+
+   SURFACE vs PANEL — the A-1 line, and the reason both exist.
+
+   `.bs-panel` (primitives) is hardcoded solid and near-sharp.
+   `.bs-surface` (here) reads `--vt-bs-surface` and `--vt-bs-shape-panel`,
+   so in the scene register it frosts and softens to 24px.
+
+   That is not duplication, it is A-1's evidence/chrome boundary
+   expressed as two components: frost is permitted on chrome and scene
+   overlays and BARRED from any surface a decision is read from. The
+   distinction was accidental when these files were written separately
+   — the code was near-identical and only the token wiring differed —
+   which meant the next author would pick whichever name they typed
+   first and could frost an evidence surface without noticing.
+
+   So it is now a contract, asserted in
+   `band-system-components.test.ts`: PANEL for evidence, proofs,
+   receipts, anything decided from. SURFACE for chrome, sheets, scene.
+   If you are unsure which you are building, it is a panel.
+
+   R3's floating rounded containers are the most recognisable thing
+   about its chrome. Under A-1 that treatment is available on chrome
+   and scene overlays, and under A-2 the soft radius is available to a
+   container (a panel is not an action).
+
+   Kept off evidence: A-1 is explicit that no frost goes on a proof
+   row, artifact, receipt, or any surface a decision is read from, so
+   this is for chrome, sheets, and scene composition only.
+
+   No shadow. R3 lifts these with `0 3rem 3rem rgba(23,33,30,.031)`;
+   EC-20's card grammar has no shadow row exception, and the frost
+   plus the hairline already separate the surface from its ground.
+
+   NO `backdrop-filter` IS AUTHORED HERE, deliberately, and the reason
+   is not the EC-20 row that A-1 superseded.
+
+   A-1 does permit frost on a scene surface, so this component could
+   carry the blur. But `docs/design/glass-retirement-scope-2026-08-10.md`
+   is an ACTIVE workstream, dated today: three painting glass surfaces in
+   root chrome are fixed, ~147 remaining occurrences are held flat by
+   `__tests__/glass-ratchet.test.ts`, and the tail is sequenced. Adding
+   the 148th — on a design-reference island, no less — fights an
+   in-flight retirement and forces someone else's baseline wider to land
+   work that does not need it.
+
+   Nothing is lost. A-1 specifies frost as `color-mix` over scene
+   surfaces precisely so it degrades to a solid translucent panel where
+   `backdrop-filter` is unsupported. `--vt-bs-surface` already binds to
+   `--vt-frost-bg`, so this IS that degraded form. If the retirement
+   settles in favour of frost on scene chrome, this becomes a one-line
+   addition against a token that is already wired.                     */
+
+.bandsys .bs-surface {
+  background-color: var(--vt-bs-surface);
+  border: 1px solid var(--vt-bs-surface-border);
+  border-radius: var(--vt-bs-shape-panel);
+  padding: 1.5rem;
+}
+
+/* ── Action — the dual-glyph swap ─────────────────────────────
+   R3's `Cta` is the best-composed thing in the reference. A resting
+   arrow sits after the label; on hover it flies off to the right and
+   fades while a second arrow arrives from the left, and the label
+   slides to meet it. It reads as one arrow overtaking the label
+   rather than two arrows cross-fading. Adopted as-composed.
+
+   Two changes, one required and one an improvement:
+
+   1. Radius 0 (A-2). This is the single point of real divergence and
+      it is a founder-ratified clause, not a taste call — silhouette
+      is load-bearing here: square means actionable.
+
+   2. Fixed-width glyph rails. R3 composes the swap with a negative
+      margin (`margin-left: -2rem`) on the text container plus an
+      absolutely-parked left arrow, which pulls the label's box under
+      the arrow. Two fixed rails keep the label box honest and the
+      layout reflow-free at the same visual result.                   */
+
+.bandsys .bs-action {
+  --vt-bs-action-travel: 0.375rem;
+
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.125rem;
+
+  /* EC-5 44px floor, declared not derived. The primitives round
+     learned this: a derived padding summed to 43.984375px because
+     browsers quantise layout to 1/64px. Declare the floor. */
+  min-block-size: 44px;
+  padding-inline: 1rem;
+
+  border-radius: var(--vt-bs-shape-action);
+  border: 1px solid transparent;
+
+  font-family: var(--vt-bs-sans);
+  font-size: 0.9375rem;
+  line-height: 1.2;
+  text-decoration: none;
+  background: none;
+  color: var(--vt-bs-ink);
+  cursor: pointer;
+  transition: background-color var(--vt-bs-dur) var(--vt-bs-ease),
+    border-color var(--vt-bs-dur) var(--vt-bs-ease), color var(--vt-bs-dur) var(--vt-bs-ease);
+}
+
+/* The glyph track. Width is reserved at rest so the swap never
+   reflows the label. */
+.bandsys .bs-action__rail {
+  display: inline-block;
+  flex: none;
+  inline-size: 1.25rem;
+  block-size: 1em;
+  overflow: hidden;
+  position: relative;
+}
+
+.bandsys .bs-action__glyph {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  transition: transform var(--vt-bs-dur) var(--vt-bs-ease), opacity var(--vt-bs-dur) var(--vt-bs-ease);
+}
+
+/* Lead glyph waits outside its rail, to the left. */
+.bandsys .bs-action__glyph--lead {
+  transform: translateX(-125%);
+  opacity: 0;
+}
+
+/* Trail glyph is the resting state — visible with no interaction, so
+   the affordance does not depend on hover (EC-4). */
+.bandsys .bs-action__glyph--trail {
+  transform: translateX(0);
+  opacity: 1;
+}
+
+.bandsys .bs-action__label {
+  transition: transform var(--vt-bs-dur) var(--vt-bs-ease);
+}
+
+.bandsys .bs-action:hover .bs-action__glyph--lead,
+.bandsys .bs-action:focus-visible .bs-action__glyph--lead {
+  transform: translateX(0);
+  opacity: 1;
+}
+
+.bandsys .bs-action:hover .bs-action__glyph--trail,
+.bandsys .bs-action:focus-visible .bs-action__glyph--trail {
+  transform: translateX(125%);
+  opacity: 0;
+}
+
+.bandsys .bs-action:hover .bs-action__label,
+.bandsys .bs-action:focus-visible .bs-action__label {
+  transform: translateX(var(--vt-bs-action-travel));
+}
+
+.bandsys .bs-action:focus-visible {
+  outline: 2px solid var(--vt-bs-ink);
+  outline-offset: 3px;
+}
+
+/* EC-20 button grammar: primary / secondary / quiet.
+   Primary is the register inverse — A-1's warm-paper inverse
+   instrument expressed in the island's own register tokens, so it
+   inverts correctly in both without a second declaration. */
+.bandsys .bs-action--primary {
+  background-color: var(--vt-bs-ink);
+  color: var(--vt-bs-ground);
+}
+
+.bandsys .bs-action--secondary {
+  border-color: var(--vt-bs-hairline);
+  color: var(--vt-bs-ink);
+}
+
+.bandsys .bs-action--secondary:hover {
+  border-color: var(--vt-bs-ink);
+}
+
+.bandsys .bs-action--quiet {
+  padding-inline: 0.25rem;
+}
+
+/* External destinations travel up-and-out rather than along, so the
+   glyph's direction says where the click goes before the URL does.
+   Carried over from the retired `.bs-cta--external`. */
+.bandsys .bs-action--external .bs-action__glyph--trail {
+  transform: translate(0, 0);
+}
+
+.bandsys .bs-action--external:hover .bs-action__glyph--trail,
+.bandsys .bs-action--external:focus-visible .bs-action__glyph--trail {
+  transform: translate(125%, -125%);
+  opacity: 0;
+}
+
+.bandsys .bs-action--external .bs-action__glyph--lead {
+  transform: translate(-125%, 125%);
+}
+
+.bandsys .bs-action--external:hover .bs-action__glyph--lead,
+.bandsys .bs-action--external:focus-visible .bs-action__glyph--lead {
+  transform: translate(0, 0);
+}
+
+/* In the scene register the focus ring is indigo (A-1: editorial
+   indigo carries the focus ring and is never a status colour). */
+.bandsys-scene .bs-action:focus-visible {
+  outline-color: var(--vt-focus-ring-scene, var(--vt-bs-ink));
+}
+
+/* Disabled reads as disabled without colour alone: cursor, ARIA
+   state, and dimmed ink all carry it (EC-4). */
+.bandsys .bs-action:disabled,
+.bandsys .bs-action[aria-disabled='true'] {
+  color: var(--vt-bs-ink-2);
+  border-color: var(--vt-bs-hairline);
+  background-color: transparent;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* Busy is a WORD, not a spinner. R3 spins an SVG at
+   `animation: loading 1s linear infinite` with no reduced-motion
+   path; a spinner that must stop under reduced motion says nothing
+   when stopped, so the state is carried by text (EC-4). */
+.bandsys .bs-action[aria-busy='true'] {
+  color: var(--vt-bs-ink-2);
+  pointer-events: none;
+}
+
+/* ── Icon instrument — the two-wrapper slide ──────────────────
+   R3's `SquareIcon` drives both icons from ONE custom property:
+
+     icon-translate runs 0% → 100% on hover
+     slot 1: translateX(var(--icon-translate))
+     slot 2: translateX(calc(var(--icon-translate) - 100%))
+
+   One variable, two elements, nothing to keep in sync. Tidy
+   authoring, adopted whole.
+
+   R3's size ramp runs 24 / 32 / 40 / 48 / 56px, and its 24px icons
+   are among the sub-44px targets on that page. Rather than drop the
+   small sizes, the GLYPH keeps R3's scale and the HIT AREA is
+   expanded to the EC-5 floor around it — the mark stays 24px, the
+   target is 44px. R3's look, our floor.                             */
+
+.bandsys .bs-iconbtn {
+  --vt-bs-icon-translate: 0%;
+  --vt-bs-icon-mark: 24px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+
+  /* The target. Never below the floor, whatever the mark measures. */
+  min-inline-size: 44px;
+  min-block-size: 44px;
+  padding: 0;
+
+  border-radius: var(--vt-bs-shape-action);
+  border: 0;
+  background: none;
+  color: var(--vt-bs-ink);
+  cursor: pointer;
+}
+
+/* The visible mark, centred inside the target. This is what carries
+   R3's size ramp; the button around it does not shrink with it. */
+.bandsys .bs-iconbtn__mark {
+  position: relative;
+  overflow: hidden;
+
+  inline-size: var(--vt-bs-icon-mark);
+  block-size: var(--vt-bs-icon-mark);
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: var(--vt-bs-shape-action);
+  border: 1px solid var(--vt-bs-hairline);
+  transition: border-color var(--vt-bs-dur) var(--vt-bs-ease),
+    background-color var(--vt-bs-dur) var(--vt-bs-ease);
+}
+
+.bandsys .bs-iconbtn--md {
+  --vt-bs-icon-mark: 32px;
+}
+
+.bandsys .bs-iconbtn--lg {
+  --vt-bs-icon-mark: 44px;
+}
+
+.bandsys .bs-iconbtn:hover {
+  --vt-bs-icon-translate: 100%;
+}
+
+.bandsys .bs-iconbtn:hover .bs-iconbtn__mark {
+  border-color: var(--vt-bs-ink);
+}
+
+.bandsys .bs-iconbtn:focus-visible {
+  --vt-bs-icon-translate: 100%;
+  outline: 2px solid var(--vt-bs-ink);
+  outline-offset: 2px;
+}
+
+.bandsys-scene .bs-iconbtn:focus-visible {
+  outline-color: var(--vt-focus-ring-scene, var(--vt-bs-ink));
+}
+
+.bandsys .bs-iconbtn__slot {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform var(--vt-bs-dur) var(--vt-bs-ease);
+}
+
+.bandsys .bs-iconbtn__slot:first-child {
+  transform: translateX(var(--vt-bs-icon-translate));
+}
+
+.bandsys .bs-iconbtn__slot:nth-child(2) {
+  transform: translateX(calc(var(--vt-bs-icon-translate) - 100%));
+}
+
+/* ── Segment — travelling indicator, statically legible ───────
+   R3's `Pills` draws the active state with `.activeBlob`: ONE
+   absolutely-positioned element that JS measures and moves under the
+   selected option, instead of N per-option backgrounds. The
+   single-element approach is right and is adopted, motion and all.
+
+   CARRIED ACROSS HARDENED. In R3, `.pill.active` sets only
+   `color: var(--active-text-color)` — white on the default register —
+   and the background under it comes exclusively from the
+   JS-positioned blob. Before that script runs (first paint, a
+   hydration error, JS off, blob mid-measure) the selected option is
+   white text on a white ground: not merely unanimated, unreadable.
+   EC-4 requires no-JS to be a first-class composition.
+
+   The fix inverts which layer is the fallback:
+
+     - CSS alone draws the active option: 2px ink rule, weight, and
+       `aria-current`. Legible with zero script, in grayscale, and to
+       a screen reader.
+     - JS opts IN by adding `.bs-segment--armed`, which retires the
+       static rule and hands the job to the travelling bar.
+
+   Same end state either way, never both at once, and the failure
+   mode becomes "does not animate" instead of "cannot be read".      */
+
+.bandsys .bs-segment {
+  --vt-bs-seg-x: 0px;
+  --vt-bs-seg-w: 0px;
+
+  position: relative;
+  display: inline-flex;
+  flex-wrap: wrap;
+  border-block-end: 1px solid var(--vt-bs-hairline);
+}
+
+.bandsys .bs-segment__option {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  min-block-size: 44px;
+  padding-inline: 1rem;
+
+  border-radius: var(--vt-bs-shape-action);
+  border: 0;
+  /* Reserve the rule's space at rest so selecting does not shift the
+     row by 2px. */
+  border-block-end: 2px solid transparent;
+  background: none;
+
+  font-family: var(--vt-bs-sans);
+  font-size: 0.9375rem;
+  line-height: 1.2;
+  color: var(--vt-bs-ink-2);
+  cursor: pointer;
+  transition: color var(--vt-bs-dur) var(--vt-bs-ease);
+}
+
+.bandsys .bs-segment__option:hover {
+  color: var(--vt-bs-ink);
+}
+
+.bandsys .bs-segment__option:focus-visible {
+  outline: 2px solid var(--vt-bs-ink);
+  outline-offset: -2px;
+}
+
+/* The no-JS truth. Weight and ink carry the state alongside the rule
+   so it survives grayscale; `aria-current` carries it to assistive
+   tech. Colour is never the only channel (EC-4). */
+.bandsys .bs-segment__option[aria-current='true'] {
+  color: var(--vt-bs-ink);
+  font-weight: 500;
+  border-block-end-color: var(--vt-bs-ink);
+}
+
+/* The travelling bar exists only once JS has measured. Until then it
+   has no width and paints nothing. */
+.bandsys .bs-segment__indicator {
+  position: absolute;
+  inset-block-end: -1px;
+  inset-inline-start: 0;
+  block-size: 2px;
+  inline-size: var(--vt-bs-seg-w);
+  transform: translateX(var(--vt-bs-seg-x));
+  background-color: var(--vt-bs-ink);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.bandsys .bs-segment--armed .bs-segment__indicator {
+  opacity: 1;
+  transition: transform var(--vt-bs-dur) var(--vt-bs-ease), inline-size var(--vt-bs-dur) var(--vt-bs-ease);
+}
+
+/* Hand the job over exactly once, so the two never coexist. */
+.bandsys .bs-segment--armed .bs-segment__option[aria-current='true'] {
+  border-block-end-color: transparent;
+}
+
+/* ── Row — the hover-reveal list item ─────────────────────────
+   R3's `ItemList`: a full-width row whose ground fades in on hover
+   while the headline translates and the tag inverts. Good composition
+   for a dense list of sources or evidence, and adopted as such.
+
+   The trailing glyph is drawn at rest rather than on hover, so the
+   row reads as actionable before any pointer arrives — and on touch,
+   where hover never fires at all (EC-4).
+
+   The ground is a solid colour: A-1 spends the one permitted
+   atmospheric gradient behind a scene, and bars gradient from
+   controls outright, so a row ground is not eligible for one.        */
+
+.bandsys .bs-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+
+  min-block-size: 44px;
+  padding-block: 1rem;
+  padding-inline: 0.75rem;
+
+  border-radius: var(--vt-bs-shape-control);
+  color: var(--vt-bs-ink);
+  text-decoration: none;
+  border-block-end: 1px solid var(--vt-bs-hairline);
+  transition: background-color var(--vt-bs-dur) var(--vt-bs-ease);
+}
+
+.bandsys .bs-row__label {
+  flex: 1 1 auto;
+  transition: transform var(--vt-bs-dur) var(--vt-bs-ease);
+}
+
+.bandsys .bs-row__glyph {
+  flex: none;
+  color: var(--vt-bs-ink-2);
+  transition: transform var(--vt-bs-dur) var(--vt-bs-ease), color var(--vt-bs-dur) var(--vt-bs-ease);
+}
+
+/* Gated on hover CAPABILITY, not a width breakpoint. R3 gates this at
+   `min-width: 1080px`, which switches the affordance on for a narrow
+   non-touch laptop window and off for a 1024px tablet — the wrong
+   axis for a pointer question. */
+@media (hover: hover) {
+  .bandsys .bs-row:hover {
+    background-color: var(--vt-bs-raised);
+  }
+
+  .bandsys .bs-row:hover .bs-row__label {
+    transform: translateX(0.5rem);
+  }
+}
+
+.bandsys .bs-row:hover .bs-row__glyph,
+.bandsys .bs-row:focus-visible .bs-row__glyph {
+  transform: translateX(0.25rem);
+  color: var(--vt-bs-ink);
+}
+
+.bandsys .bs-row:focus-visible {
+  outline: 2px solid var(--vt-bs-ink);
+  outline-offset: -2px;
+}
+
+/* ── Disclosure — divider coordination via :has() ─────────────
+   The piece of pure CSS craft in R3 most worth taking outright:
+
+     .Collapsable:has(+ .Collapsable[data-open=true]) .Divider { opacity: 0 }
+     .Collapsable:has(+ .Collapsable:hover)          .Divider { opacity: 0 }
+
+   A row hides its OWN bottom divider when the row below it is open or
+   hovered, so an active row reads as one uninterrupted block instead
+   of a tinted panel with a stray rule across its top edge. Most
+   accordions get this wrong.
+
+   Moved onto `<details>`/`<summary>`, which makes the whole
+   disclosure work with no JS — R3 drives its state from a `data-open`
+   attribute a script must set, so its accordion does not open at all
+   before hydration. `details[open]` makes the same selector work from
+   markup alone (EC-4).                                                */
+
+.bandsys .bs-disclosure {
+  border-block-start: 1px solid var(--vt-bs-hairline);
+}
+
+.bandsys .bs-disclosure:last-of-type {
+  border-block-end: 1px solid var(--vt-bs-hairline);
+}
+
+/* Where `:has()` is unsupported the rule simply never matches and
+   every divider stays drawn — the plain accordion, a correct
+   composition rather than a broken one. */
+.bandsys .bs-disclosure:has(+ .bs-disclosure[open]) {
+  border-block-end-color: transparent;
+}
+
+.bandsys .bs-disclosure:has(+ .bs-disclosure:hover) {
+  border-block-end-color: transparent;
+}
+
+.bandsys .bs-disclosure[open] + .bs-disclosure {
+  border-block-start-color: transparent;
+}
+
+.bandsys .bs-disclosure[open] {
+  background-color: var(--vt-bs-raised);
+  border-radius: var(--vt-bs-shape-card);
+}
+
+.bandsys .bs-disclosure__summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+
+  min-block-size: 44px;
+  padding-block: 0.75rem;
+  padding-inline: 0.75rem;
+
+  font-family: var(--vt-bs-sans);
+  color: var(--vt-bs-ink);
+  cursor: pointer;
+  list-style: none;
+  border-radius: var(--vt-bs-shape-control);
+  transition: background-color var(--vt-bs-dur) var(--vt-bs-ease);
+}
+
+/* Safari draws its own triangle unless this is suppressed. */
+.bandsys .bs-disclosure__summary::-webkit-details-marker {
+  display: none;
+}
+
+.bandsys .bs-disclosure__summary:hover {
+  background-color: var(--vt-bs-raised);
+}
+
+.bandsys .bs-disclosure__summary:focus-visible {
+  outline: 2px solid var(--vt-bs-ink);
+  outline-offset: -2px;
+}
+
+/* The marker rotates, but the open state is also carried by the
+   visible panel and by `<details>`'s own semantics, so the rotation
+   is decoration and not the message (EC-4). */
+.bandsys .bs-disclosure__marker {
+  flex: none;
+  display: inline-block;
+  color: var(--vt-bs-ink-2);
+  transition: transform var(--vt-bs-dur) var(--vt-bs-ease);
+}
+
+.bandsys .bs-disclosure[open] .bs-disclosure__marker {
+  transform: rotate(45deg);
+}
+
+.bandsys .bs-disclosure__panel {
+  padding-inline: 0.75rem;
+  padding-block-end: 1rem;
+  color: var(--vt-bs-ink-2);
+  max-inline-size: 62ch;
+}
+
+/* ── Field — floating label on the line-height unit ───────────
+   R3's `FormInput` parks the label at `top: 1lh` and pads the input
+   by the same `1lh` when filled. Using the line-height unit rather
+   than a magic offset is the good idea: the label lands exactly one
+   line down whatever the type size, so the pair cannot drift.
+
+   CARRIED ACROSS HARDENED. The known failure of this pattern is that
+   the label stops being the control's accessible name — swapped for a
+   `placeholder`, or moved into `aria-label` on focus. Here it stays a
+   real `<label for>` in the accessibility tree at all times and only
+   its POSITION animates, so the control keeps one stable name whether
+   the field is empty or filled.
+
+   `:placeholder-shown` drives the rest state, so the float needs no
+   JS and no `.active` class to maintain (R3 tracks it in React).
+
+   R3 also carries `body.ios input { font-size: 1.6rem }` to stop
+   Safari zooming on focus. That workaround exists only because its
+   10px root makes the default 1.4rem = 14px, under Safari's 16px
+   threshold. At our 16px root the default already clears it — a
+   concrete case of the root-size difference generating a workaround
+   that must not be pasted across.                                    */
+
+.bandsys .bs-field {
+  position: relative;
+  display: block;
+}
+
+.bandsys .bs-field__input {
+  inline-size: 100%;
+  min-block-size: 56px;
+  padding-inline: 0.875rem;
+  padding-block: 1.5rem 0.5rem;
+
+  /* An input is not an action, so it takes the control radius. */
+  border-radius: var(--vt-bs-shape-control);
+  border: 1px solid var(--vt-bs-hairline);
+  background-color: var(--vt-bs-panel);
+  color: var(--vt-bs-ink);
+
+  font-family: var(--vt-bs-sans);
+  /* >=16px, so iOS does not zoom on focus. */
+  font-size: 1rem;
+  line-height: 1.4;
+  transition: border-color var(--vt-bs-dur) var(--vt-bs-ease);
+}
+
+.bandsys .bs-field__input:hover {
+  border-color: var(--vt-bs-ink-2);
+}
+
+.bandsys .bs-field__input:focus-visible {
+  border-color: var(--vt-bs-ink);
+  outline: 2px solid var(--vt-bs-ink);
+  outline-offset: 2px;
+}
+
+.bandsys-scene .bs-field__input:focus-visible {
+  outline-color: var(--vt-focus-ring-scene, var(--vt-bs-ink));
+}
+
+/* Always present, always associated. Sits over the input's own top
+   padding, so it never overlaps typed text. */
+.bandsys .bs-field__label {
+  position: absolute;
+  inset-block-start: 0.5rem;
+  inset-inline-start: 0.9375rem;
+
+  font-family: var(--vt-bs-sans);
+  font-size: 0.75rem;
+  line-height: 1.2;
+  color: var(--vt-bs-ink-2);
+
+  pointer-events: none;
+  transition: transform var(--vt-bs-dur) var(--vt-bs-ease), font-size var(--vt-bs-dur) var(--vt-bs-ease),
+    color var(--vt-bs-dur) var(--vt-bs-ease);
+}
+
+/* Resting position: centred in the field at input size. The label
+   drops to its parked place only when the field is empty AND
+   unfocused. */
+.bandsys .bs-field__input:placeholder-shown:not(:focus) + .bs-field__label {
+  font-size: 1rem;
+  transform: translateY(0.875rem);
+}
+
+@supports (top: 1lh) {
+  .bandsys .bs-field__input:placeholder-shown:not(:focus) + .bs-field__label {
+    transform: translateY(1lh);
+  }
+}
+
+.bandsys .bs-field__input:focus + .bs-field__label {
+  color: var(--vt-bs-ink);
+}
+
+/* ── Tag — the word-label ─────────────────────────────────────
+   A-2 makes silhouette carry meaning: square means you can act on it,
+   rounded means it names something. The pill therefore survives for
+   names and labels, which is exactly what R3's `Tag` is — so in the
+   scene register this takes `--vt-shape-pill` and reads as R3 intends,
+   while the action beside it stays square.
+
+   R3's `GradientTag` — three linear-gradient variants, an oklch pair,
+   and a 3s infinite background-position loop — is where a gradient
+   lands ON a label. A-1 spends the one permitted wash behind a scene,
+   and the loop has no reduced-motion path in the reference. The tag
+   picks up its warmth from the frosted surface it sits on instead.
+
+   A pill is never a state marker (A-1, EC-4): this names things.     */
+
+.bandsys .bs-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+
+  padding-block: 0.25rem;
+  padding-inline: 0.5rem;
+  border-radius: var(--vt-bs-shape-label);
+  border: 1px solid var(--vt-bs-hairline);
+
+  font-family: var(--vt-bs-mono);
+  font-size: 0.6875rem;
+  line-height: 1.45;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-variant-numeric: slashed-zero tabular-nums;
+  color: var(--vt-bs-ink-2);
+}
+
+/* Pill padding needs the horizontal room or the shape reads as a
+   lozenge squeezed onto the word. */
+.bandsys-scene .bs-tag {
+  padding-inline: 0.75rem;
+}
+
+/* ── Reveal — the clip-path entrance ──────────────────────────
+   The clip-path inset wipe is R3's signature transition, used on its
+   nav, sidebar, hero video, tags and slides. It is a better entrance
+   than a fade because the element arrives at full opacity — text is
+   never rendered at a partial alpha where it fails contrast mid-way.
+
+   Driven by a SCROLL-DRIVEN ANIMATION rather than R3's
+   IntersectionObserver + GSAP, which makes the whole thing CSS and
+   gives it the right failure mode: where `animation-timeline` is
+   unsupported, no animation is applied and the content is simply
+   there. Nothing to strand, no observer to miss a late mount.
+
+   R3 ships zero `prefers-reduced-motion` blocks across all 3426 rules
+   of its stylesheet set while running scroll hijacking, GSAP
+   sequences and clip transitions throughout. That is the one thing
+   here that cannot be synthesised — it has to be added.
+
+   `clip-path` CLIPS DESCENDANTS' OUTLINES, and `animation-fill-mode:
+   both` means the end state persists after the reveal finishes. Ending
+   on `inset(0)` would therefore leave every revealed band permanently
+   cropping any focus ring on a control near its edge — a latent EC-5
+   defect that only appears once someone places a control flush to the
+   band edge.
+
+   The wipe itself lives in `styles/motion.css`, the one file LINT-03
+   allows keyframe blocks in, along with the reasoning for why its end
+   state sits outside the border box (focus rings, EC-5).             */
+
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: view()) {
+    .bandsys .bs-reveal {
+      animation: bs-reveal-wipe linear both;
+      animation-timeline: view();
+
+      /* The range ends at `entry 100%` — the moment the element has
+         fully entered the viewport — so anything wholly on screen is
+         wholly revealed, with no further scrolling required.
+
+         `cover`-based ranges do not hold that property. Measured at a
+         3000px viewport with `entry 8% cover 26%`, a band sitting fully
+         in view painted at 93.8% clipped: on screen, unreadable, and on
+         a page too short to scroll there would be no way to finish it.
+         Tying the end to `entry` makes "fully visible" and "fully
+         revealed" the same condition. */
+      animation-range: entry 0% entry 100%;
+    }
+  }
+}
+
+/* ── Skeleton ─────────────────────────────────────────────────
+   R3's `SkeletonCard` is a flat block in a single tint with no
+   shimmer, and that restraint is worth keeping for a second reason:
+   a shimmer is a gradient sweeping a surface, and it would need a
+   reduced-motion path.
+
+   A placeholder must never be the only signal that loading is
+   happening — pair it with a live-region status word (EC-4).         */
+
+.bandsys .bs-skeleton {
+  background-color: var(--vt-bs-raised);
+  border-radius: var(--vt-bs-shape-control);
+  block-size: 1rem;
+}
+
+/* ── Reduced motion ───────────────────────────────────────────
+   EC-4 / EC-5. Every component above resolves to a legible, complete
+   rest state with all transition removed — none of them lose meaning,
+   because none of them carried meaning in the motion.                */
+
+@media (prefers-reduced-motion: reduce) {
+  .bandsys .bs-action,
+  .bandsys .bs-action__glyph,
+  .bandsys .bs-action__label,
+  .bandsys .bs-iconbtn__mark,
+  .bandsys .bs-iconbtn__slot,
+  .bandsys .bs-segment__option,
+  .bandsys .bs-segment__indicator,
+  .bandsys .bs-segment--armed .bs-segment__indicator,
+  .bandsys .bs-row,
+  .bandsys .bs-row__label,
+  .bandsys .bs-row__glyph,
+  .bandsys .bs-disclosure__summary,
+  .bandsys .bs-disclosure__marker,
+  .bandsys .bs-field__input,
+  .bandsys .bs-field__label {
+    transition: none;
+  }
+
+  /* The icon slide is the one component whose hover state is a
+     mid-animation value, so it is pinned rather than merely
+     un-transitioned. */
+  .bandsys .bs-iconbtn:hover,
+  .bandsys .bs-iconbtn:focus-visible {
+    --vt-bs-icon-translate: 0%;
+  }
+}

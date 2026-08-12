@@ -28,11 +28,11 @@ specificity, so this list is the precedence:
 | # | File | `--vt-*` declarations |
 |---|---|---|
 | 1 | `apps/web/styles/themes/index.css` | 147 |
-| 2 | `apps/web/styles/tokens.css` | 35 |
-| 3 | `apps/web/styles/vitalTokens.css` | 69 |
+| 2 | `apps/web/styles/tokens.css` | 33 |
+| 3 | `apps/web/styles/vitalTokens.css` | 65 |
 | 4 | `apps/web/styles/matcha-zen.css` | 16 |
 
-**267 declarations across 4 files, 178 distinct tokens.**
+**261 declarations across 4 files, 172 distinct tokens.**
 
 ### Route-scoped token files (outside the global cascade)
 
@@ -43,9 +43,11 @@ per-route override would state a cascade that does not exist.
 
 | File | `--vt-*` declarations |
 |---|---|
+| `apps/web/styles/band-system-components.css` | 24 |
+| `apps/web/styles/band-system.css` | 38 |
 | `apps/web/styles/wave1501-home.css` | 47 |
 
-**47 further declarations** live here and are invisible to the global
+**109 further declarations** live here and are invisible to the global
 precedence table above.
 
 ## Collisions — one declaration silently overriding another
@@ -124,7 +126,6 @@ the primary face has not loaded, so it is part of the design, not an implementat
 | `--vt-radius-lg` | `0.75rem` |
 | `--vt-shape-card` | `20px` |
 | `--vt-shape-panel` | `24px` |
-| `--vt-radius-full` | `9999px` |
 | `--vt-shape-pill` | `9999px` |
 
 ## EC-20 conflict candidates
@@ -146,7 +147,6 @@ underclaim. Resolving each is a design decision — this file only makes them vi
 | `--vt-glass-divider` | `oklch(1 0 0 / 0.05)` |
 | `--vt-glass-ring` | `oklch(1 0 0 / 0.10)` |
 | `--vt-glass-ring-faint` | `oklch(1 0 0 / 0.06)` |
-| `--vt-glass-sheen` | `inset 0 1px 0 0 color-mix(in oklab, white 60%, transparent)` |
 | `--vt-glass-subtle-bg` | `oklch(1 0 0 / 0.03)` |
 
 ### Card grammar
@@ -156,12 +156,8 @@ underclaim. Resolving each is a design decision — this file only makes them vi
 | Token | Effective value |
 |---|---|
 | `--vt-shadow-card` | `0 14px 32px rgb(26 34 40 / 0.05), 0 2px 10px rgb(26 34 40 / 0.03)` |
-| `--vt-shadow-glow` | `0 0 30px oklch(0.55 0.20 255 / 0.3)` |
-| `--vt-shadow-lg` | `0 16px 32px -8px oklch(0 0 0 / 0.06), 0 8px 16px -4px oklch(0 0 0 / 0.03)` |
 | `--vt-shadow-md` | `0 8px 16px -4px oklch(0 0 0 / 0.04), 0 4px 8px -2px oklch(0 0 0 / 0.02)` |
 | `--vt-shadow-pill` | `0 1px 2px rgb(26 34 40 / 0.04)` |
-| `--vt-shadow-sm` | `0 2px 8px -2px oklch(0 0 0 / 0.03), 0 1px 3px -1px oklch(0 0 0 / 0.02)` |
-| `--vt-shadow-soft` | `0 20px 48px rgb(26 34 40 / 0.06), 0 6px 18px rgb(26 34 40 / 0.04)` |
 
 ### Corner-radius philosophy + pill policy
 
@@ -169,7 +165,6 @@ underclaim. Resolving each is a design decision — this file only makes them vi
 
 | Token | Effective value |
 |---|---|
-| `--vt-radius-full` | `9999px` |
 | `--vt-radius-lg` | `0.75rem` |
 | `--vt-radius-md` | `0.5rem` |
 | `--vt-radius-sm` | `0.25rem` |
@@ -215,7 +210,7 @@ table — the table says what exists, this says what to do.
 
 ## Tokens
 
-Role sentences come from `docs/design/design-md-roles.json`. **13 of 178**
+Role sentences come from `docs/design/design-md-roles.json`. **12 of 172**
 tokens have a documented role; the rest say so plainly rather than inventing one.
 
 | Token | Effective value | Declared in | Role |
@@ -298,11 +293,10 @@ tokens have a documented role; the rest say so plainly rather than inventing one
 | `--vt-font-display` | `var(--font-fraunces-loaded, Georgia, 'Times New Roman', serif)` | `styles/tokens.css` | Fraunces, the SUPERSEDED display face — EC-20 locks Geist. Verified 2026-08-10: narrower than it looks. All four `home.css` consumers are `.film-*` classes and the film variant does NOT render in production, so the homepage is unaffected. Live consumers are `typography.css` (`--font-display`), `matcha-zen.css` (`--mz-serif`), and the authed holder nav. Resolving it is a design ruling, not a bug fix. |
 | `--vt-frost-bg` | `color-mix(in oklab, var(--vt-scene-panel) 72%, transparent)` | `styles/themes/index.css` | — *(role not documented)* |
 | `--vt-frost-border` | `color-mix(in oklab, var(--vt-scene-text) 12%, transparent)` | `styles/themes/index.css` | — *(role not documented)* |
-| `--vt-glass-bg` | `oklch(1 0 0 / 0.05)` | `styles/vitalTokens.css` | Glass surface tint. EC-20 locks glass treatment to None, so any use on a public surface is a conflict; these tokens survive for scoped islands. Check the island before assuming a defect. |
+| `--vt-glass-bg` | `oklch(1 0 0 / 0.05)` | `styles/vitalTokens.css` | Glass surface tint. EC-20 locks glass treatment to None, so any use on a public surface is a conflict; the remaining tokens survive for scoped islands. Check the island before assuming a defect — the unused ones were retired in the dead-token sweep. |
 | `--vt-glass-divider` | `oklch(1 0 0 / 0.05)` | `styles/vitalTokens.css` | — *(role not documented)* |
 | `--vt-glass-ring` | `oklch(1 0 0 / 0.10)` | `styles/vitalTokens.css` | — *(role not documented)* |
 | `--vt-glass-ring-faint` | `oklch(1 0 0 / 0.06)` | `styles/vitalTokens.css` | — *(role not documented)* |
-| `--vt-glass-sheen` | `inset 0 1px 0 0 color-mix(in oklab, white 60%, transparent)` | `styles/tokens.css` | — *(role not documented)* |
 | `--vt-glass-subtle-bg` | `oklch(1 0 0 / 0.03)` | `styles/vitalTokens.css` | — *(role not documented)* |
 | `--vt-glow-passport` | `oklch(0.45 0.01 255 / 0.10)` | `styles/vitalTokens.css` | — *(role not documented)* |
 | `--vt-info` | `var(--vt-accent)` | `styles/themes/index.css` | — *(role not documented)* |
@@ -323,7 +317,6 @@ tokens have a documented role; the rest say so plainly rather than inventing one
 | `--vt-passport-from` | `oklch(0.045 0.004 255)` | `styles/vitalTokens.css` | — *(role not documented)* |
 | `--vt-passport-to` | `oklch(0.075 0.008 255)` | `styles/vitalTokens.css` | — *(role not documented)* |
 | `--vt-passport-via` | `oklch(0.07 0.005 255)` | `styles/vitalTokens.css` | — *(role not documented)* |
-| `--vt-radius-full` | `9999px` | `styles/vitalTokens.css` | — *(role not documented)* |
 | `--vt-radius-lg` | `0.75rem` | `styles/vitalTokens.css` | — *(role not documented)* |
 | `--vt-radius-md` | `0.5rem` | `styles/vitalTokens.css` | — *(role not documented)* |
 | `--vt-radius-sm` | `0.25rem` | `styles/vitalTokens.css` | — *(role not documented)* |
@@ -351,12 +344,8 @@ tokens have a documented role; the rest say so plainly rather than inventing one
 | `--vt-severity-low` | `#71717a` | `styles/themes/index.css` | — *(role not documented)* |
 | `--vt-severity-medium` | `#3b82f6` | `styles/themes/index.css` | — *(role not documented)* |
 | `--vt-shadow-card` | `0 14px 32px rgb(26 34 40 / 0.05), 0 2px 10px rgb(26 34 40 / 0.03)` | `styles/tokens.css` | — *(role not documented)* |
-| `--vt-shadow-glow` | `0 0 30px oklch(0.55 0.20 255 / 0.3)` | `styles/vitalTokens.css` | A glow shadow. EC-20 locks BOTH 'no shadows' and 'Nothing glows', so this token has no lawful public use. The strongest conflict candidate in the set. |
-| `--vt-shadow-lg` | `0 16px 32px -8px oklch(0 0 0 / 0.06), 0 8px 16px -4px oklch(0 0 0 / 0.03)` | `styles/vitalTokens.css` | — *(role not documented)* |
 | `--vt-shadow-md` | `0 8px 16px -4px oklch(0 0 0 / 0.04), 0 4px 8px -2px oklch(0 0 0 / 0.02)` | `styles/vitalTokens.css` | — *(role not documented)* |
 | `--vt-shadow-pill` | `0 1px 2px rgb(26 34 40 / 0.04)` | `styles/tokens.css` | — *(role not documented)* |
-| `--vt-shadow-sm` | `0 2px 8px -2px oklch(0 0 0 / 0.03), 0 1px 3px -1px oklch(0 0 0 / 0.02)` | `styles/vitalTokens.css` | — *(role not documented)* |
-| `--vt-shadow-soft` | `0 20px 48px rgb(26 34 40 / 0.06), 0 6px 18px rgb(26 34 40 / 0.04)` | `styles/tokens.css` | — *(role not documented)* |
 | `--vt-shape-card` | `20px` | `styles/themes/index.css` | — *(role not documented)* |
 | `--vt-shape-control` | `10px` | `styles/themes/index.css` | — *(role not documented)* |
 | `--vt-shape-panel` | `24px` | `styles/themes/index.css` | 24px panel radius against EC-20's locked near-sharp 0–3px. Retained for scoped islands; a public panel reaching for this is a rejection under EC-21. |

@@ -38,7 +38,14 @@ const rule = '#dddbd3';
 const ruleSoft = '#e7e4dc';
 const textSecondary = '#474540';
 const textMuted = '#6b6860';
-const textFaint = '#8a8780';
+// 10px uppercase mono labels ('Pricing foundation', the tier eyebrows).
+// Was #8a8780, which measured 3.58:1 on white and 3.20:1 on the panel —
+// below the 4.5:1 AA floor. 10px bold is NOT 'large text' (that needs
+// >=18.66px bold or >=24px), so the 3:1 allowance does not apply here.
+// #6b6963 keeps the warm 138:135:128 hue ratio and clears every surface
+// these labels actually sit on, with headroom: white 5.49, panel 4.90,
+// card 5.03. Measured against the rendered page, not assumed.
+const textFaint = '#6b6963';
 const stateP0 = '#7a1414';
 const stateChecked = '#1c5c38';
 const stateStale = '#7d5a1e';

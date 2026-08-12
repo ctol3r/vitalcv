@@ -1,0 +1,55 @@
+{
+  "$comment": [
+    "EC-20 'Glass treatment', as AMENDED 2026-08-09 (A-1). Read from origin/main:",
+    "",
+    "  'Frost is permitted on chrome and scene overlays only — --vt-frost-bg /",
+    "   --vt-frost-border, both color-mix over scene surfaces, so the effect degrades",
+    "   to a solid panel wherever backdrop-filter is unsupported. Evidence surfaces",
+    "   stay solid: no frost on a proof row, artifact, receipt, or any surface a",
+    "   decision is read from.'",
+    "",
+    "WHY THIS FILE EXISTS. The first version of the glass gate enforced the PRE-A-1",
+    "blanket ban and cited 'Glass treatment: None' — a row superseded the day before it",
+    "was written. It failed lawful A-1 frost on the scene island (148 vs a baseline of",
+    "147), and that work was withheld rather than the baseline widened. A guard citing",
+    "repealed law converts permitted work into blocked work, silently.",
+    "",
+    "Files here are chrome or scene overlays, where frost is LAWFUL. They are exempt",
+    "from the tail count but must still carry a degradation path (color-mix or",
+    "@supports) — that is A-1's own condition, not a preference.",
+    "",
+    "The list is explicit rather than pattern-matched. Guessing a surface's class from",
+    "its filename is how a proof row ends up frosted.",
+    "",
+    "NEVER addable here: the eyebrow's blurred-bar-with-a-thin-rule form. EC-10 lists",
+    "'backdrop-blur-navbar-with-thin-line' under 'Banned forms (unchanged)' and EC-10 is",
+    "Class A — A-2 amending the chrome's shape did not license that composite."
+  ],
+  "frostPermitted": {
+    "styles/band-system-components.css": "Scene-register component island. `.bs-surface` is the floating chrome/overlay container; A-1 permits frost there and the file binds --vt-frost-bg with a color-mix fallback."
+  },
+
+  "$evidenceComment": [
+    "Files the path heuristic classes as EVIDENCE that already carry glass, re-measured",
+    "2026-08-10 after the gate was rebuilt. They are NOT approved — they are frozen and",
+    "queued so the class cannot grow while each is reviewed.",
+    "",
+    "The heuristic is coarse about purpose-of-surface: 'credential' in a filename does",
+    "not prove a decision is read from it. One entry is dead code and one is decorative",
+    "motion. Hard-failing CI on that classification would repeat the mistake this gate",
+    "exists to correct — a guard imposing its author's judgement as law.",
+    "",
+    "Clearing an entry means one of: delete the dead file, confirm it is chrome/overlay",
+    "and move it to frostPermitted, or remove the frost. Never delete an entry to make a",
+    "build pass."
+  ],
+  "evidenceUnreviewed": {
+    "app/_archive/wave119/clip/verify/[npi]/page.tsx": "Dead — archived wave. Goes with the archive deletion.",
+    "components/motion/FloatingCredentials.tsx": "Decorative motion, not a proof row — likely reclassify.",
+    "components/clinician/CredentialPresentationActions.tsx": "Plausibly a real evidence surface. Review.",
+    "components/clinician/CredentialReadinessCard.tsx": "Plausibly a real evidence surface. Review.",
+    "components/graph/CredentialInspector.tsx": "Plausibly a real evidence surface. Review.",
+    "components/trust-state/EvidenceArtifactPreview.tsx": "A-1 names artifacts explicitly. Review first.",
+    "styles/artifact-motion.css": "New since the first measurement. A-1 names artifacts explicitly. Review."
+  }
+}

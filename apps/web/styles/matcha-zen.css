@@ -297,10 +297,39 @@
 .mz-btn:hover { background: var(--vt-accent-hover, var(--ink-700)); }
 .mz-btn:active { transform: translateY(1px); }
 
+/* Authored as a MODIFIER — three paint properties, expecting `.mz-btn`
+   alongside to supply the box. It is used as a STANDALONE class by 49 of
+   its 67 call sites, so those 49 got no box at all: no inline-flex, no
+   padding, and critically no `min-height`, leaving them under the EC-5
+   44px floor while the composed 18 cleared it.
+
+   Measured on the six `/holder/garden/*` routes at 390px: the section
+   nav's inactive items painted 33.38px against the active item's 44px —
+   same nav, same markup shape, differing only in whether `.mz-btn` was
+   present. Desktop hid it, because the nav wraps differently there.
+
+   Made self-sufficient rather than editing 49 call sites: standalone is
+   how three quarters of the codebase already uses it, so the class
+   should be what its callers assume. Box values are copied from
+   `.mz-btn`, so the 18 composed sites resolve identically. `.mz-btn-sm`
+   still overrides padding after this and sets no min-height, so the
+   floor survives the small variant — which is where the defect was. */
 .mz-btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 10px 18px;
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  font-family: var(--mz-sans);
+  font-size: 13.5px;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  text-decoration: none;
+  cursor: pointer;
   background: transparent;
   color: var(--ink-900);
-  border-color: var(--rule);
 }
 .mz-btn-ghost:hover { background: var(--ink-50); border-color: var(--ink-300); }
 
@@ -380,7 +409,13 @@
 
 /* ── Selectable chips (options) ───────────────────────────────────────────── */
 
+/* Same standalone-control defect as `.mz-btn-ghost` above: an interactive
+   option carrying padding but no floor — measured 32.94px at 390px in the
+   control sweep. Given the box it already assumes; paint untouched. */
 .mz-opt {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
   padding: 8px 13px;
   border: 1px solid var(--ink-200);
   background: var(--card);

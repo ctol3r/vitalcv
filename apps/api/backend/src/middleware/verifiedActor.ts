@@ -98,6 +98,44 @@ export async function resolveInternalUserId(clerkUserId: string): Promise<string
 }
 
 /**
+ * Every NPI the verified user may act for — the server-side answer to "who is
+ * this?", used where the caller must not be allowed to name the subject at all.
+ *
+ * `requireNpiAuthorization` answers a *closed* question ("may you act for this
+ * NPI you named?"). Some routes need the *open* one ("which NPIs are yours?"),
+ * because accepting a subject identifier from the request is itself the defect
+ * — see #948, where `?npi=` selected the rows and NPIs are public NPPES
+ * identifiers, so the history was enumerable rather than merely guessable.
+ *
+ * Same authority rule as the closed form and for the same reason: only
+ * VERIFIED and DELEGATED bindings count. A `CLAIMED` row is a request someone
+ * made about themselves, and treating it as authority is exactly how PR #1074
+ * let any signed-in user read a stranger's record.
+ *
+ * Returns `[]` for a user with no account row or no qualifying binding. An
+ * empty set is a real answer — "you may act for nobody" — and callers must
+ * render it as an empty result, never as unscoped access.
+ */
+export async function resolveAuthorizedNpis(clerkUserId: string): Promise<string[]> {
+  const internalUserId = await resolveInternalUserId(clerkUserId);
+  if (!internalUserId) return [];
+
+  // Revoked rows are fetched rather than filtered in SQL so `ownershipState`
+  // stays the single place that decides what a row means. A `revokedAt` filter
+  // here would be a second, silently diverging copy of that rule.
+  const bindings = await prisma.npiOwnership.findMany({
+    where: { userId: internalUserId },
+    select: { npi: true, verifiedAt: true, verificationMethod: true, revokedAt: true },
+  });
+
+  const authorized = new Set<string>();
+  for (const binding of bindings) {
+    if (authorizesPrivateAccess(ownershipState(binding))) authorized.add(binding.npi);
+  }
+  return [...authorized];
+}
+
+/**
  * Assert that the verified user may act for this NPI.
  *
  * A share discloses a clinician's compiled evidence, so "signed in" is not

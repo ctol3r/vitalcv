@@ -7,5 +7,12 @@
     "declaration": true
   },
   "include": ["**/*.ts"],
-  "exclude": ["node_modules", "dist", "**/*.test.ts"]
+  "exclude": [
+    "node_modules",
+    "dist",
+    "vitest.config.mts",
+    "__tests__/**",
+    "**/*.test.ts",
+    "**/*.spec.ts"
+  ]
 }

@@ -89,7 +89,12 @@ describe('page density system', () => {
     //   relationship scene on `/` without an EC-22 amendment and a founder
     //   visual gate, and `/` already carries the WorkSurface and ProcessStory
     //   tellings of the same story.
-    expect(inventory).toHaveLength(138);
+    // 139 = 138 + /design/band-system — the R3 synthesis component layer
+    //   (noindex; 404s in canonical production via the same /design layout
+    //   gate). A reference route, not a product surface: it is where the band
+    //   primitives are shown at every register so a component can be judged
+    //   against EC-20 without first shipping it onto a customer page.
+    expect(inventory).toHaveLength(139);
     expect(inventory.every((item) => !item.source.includes('/_archive/'))).toBe(true);
     expect(inventory.every((item) => !item.route.startsWith('/api/'))).toBe(true);
     expect(new Set(inventory.map((item) => item.density))).toEqual(

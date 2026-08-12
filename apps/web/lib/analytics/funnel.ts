@@ -52,6 +52,30 @@ export const FUNNEL_EVENTS = {
   /** Fires ONLY after the backend share succeeded. */
   SHARE_COMPLETED: 'share_completed',
   SHARE_REVOKED: 'share_revoked',
+
+  /*
+   * The search-arrival lane — /directory/[npi].
+   *
+   * Every event above starts from someone who already came to VitalCV. These
+   * start from someone who did not: a clinician who searched for themselves
+   * and found their own registry record. Without them, the acquisition path
+   * the directory sitemap opens is unmeasurable, and "does a stranger who
+   * finds their own record claim it?" has no answer.
+   *
+   * Same payload discipline as the loop events: stage metadata only, and no
+   * NPI in any form. A SHA-256 of a ten-digit number is brute-forceable in
+   * seconds, so hashing it would not make it anonymous.
+   */
+  RECORD_VIEWED: 'record_viewed',
+  CLAIM_CLICKED: 'claim_clicked',
+  /**
+   * The bind succeeded — POST /api/profile/npi/bootstrap returned 201.
+   *
+   * The most important conversion in the product, and it emitted nothing: the
+   * backend wrote its audit rows while the funnel saw a clinician reach the
+   * form and then vanish.
+   */
+  NPI_BOUND: 'npi_bound',
 } as const;
 
 export type FunnelEventName = (typeof FUNNEL_EVENTS)[keyof typeof FUNNEL_EVENTS];
