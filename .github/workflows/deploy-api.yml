@@ -14,6 +14,12 @@ on:
       # Railway rebuilds on every push to main — a workflow-only merge still
       # produces a deploy for this job to assert against.
       - '.github/workflows/deploy-api.yml'
+      # Same reasoning, for the probe this job runs. Without these, editing the
+      # declared surface would not re-run the check that enforces it, and the
+      # first execution of a changed probe would be whenever someone next
+      # touched apps/api — which is exactly how a broken verifier sits unnoticed.
+      - 'scripts/api-surface-probe.mjs'
+      - 'scripts/lib/apiSurfaceContract.cjs'
   workflow_dispatch:
     inputs:
       reason:
@@ -104,3 +110,55 @@ jobs:
           echo "the service before assuming the change is live — a queued or"
           echo "failed build looks identical to a healthy one from /health alone."
           exit 1
+
+      # The step above proves ONE route on the API answers with the right SHA.
+      # That was the entire production assertion this service had: everything
+      # else that looks like API coverage reads the WEB container
+      # (scripts/deploy-smoke.mjs and prod-auth-health.yml both hit
+      # vitalcv.com/api/version, a Next route on a different service), and
+      # scripts/deploy-health-probe.sh needs a secret and reads only
+      # /api/internal/source-health/*.
+      #
+      # The steps below probe the API's own surface. They run AFTER the wait,
+      # so the SHA has already landed and nothing here re-races the deploy.
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      # No `pnpm install`. The probe imports one repo-local file and otherwise
+      # uses global fetch, so it has zero dependencies — which is what lets it
+      # run on every deploy instead of being the kind of check people disable.
+      - name: Probe the API's public and guarded surface
+        env:
+          API_DOMAIN: ${{ secrets.RAILWAY_API_DOMAIN }}
+        run: |
+          set -uo pipefail
+          # Receipt goes to RUNNER_TEMP, not the checkout, so a local run of the
+          # same command never drops an untracked file in the repo root.
+          receipt="${RUNNER_TEMP:-/tmp}/api-surface-receipt.json"
+          node scripts/api-surface-probe.mjs \
+            --base "https://${API_DOMAIN:-api.vitalcv.com}" \
+            --sha "$GITHUB_SHA" \
+            --receipt "$receipt"
+          status=$?
+
+          # A durable artifact, so "the surface was fine" is a file someone can
+          # read rather than a recollection — same reasoning as W0.5's deploy
+          # receipt for the web smoke.
+          {
+            echo "## API surface probe"
+            echo ""
+            if [ -f "$receipt" ]; then
+              echo '```json'
+              cat "$receipt"
+              echo '```'
+            else
+              # No receipt means the script died before judging anything —
+              # a different failure from "the surface moved", and worth saying
+              # so rather than leaving an empty section that reads as a pass.
+              echo "No receipt written — the probe failed before it could judge."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit "$status"
