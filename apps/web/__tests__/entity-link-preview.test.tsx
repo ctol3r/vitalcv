@@ -61,10 +61,14 @@ afterEach(async () => {
 // A distinct id per test — the preview cache is module-level (one fetch per
 // entity per page life, by design), so reusing an id would leak across tests.
 let entityId = 'opp_1';
-async function render(id = 'opp_1') {
+async function render(id = 'opp_1', relationship?: string) {
   entityId = id;
   await act(async () => {
-    root.render(<EntityLink entity={{ type: 'opportunity', id }}>El Camino role</EntityLink>);
+    root.render(
+      <EntityLink entity={{ type: 'opportunity', id }} relationship={relationship}>
+        El Camino role
+      </EntityLink>,
+    );
   });
 }
 
@@ -131,5 +135,15 @@ describe('EntityLink — navigation', () => {
   it('exposes a real href for cmd/middle-click and no-JS', async () => {
     await render();
     expect(link().getAttribute('href')).toContain('pane=opportunity%3Aopp_1');
+  });
+
+  it('connects relationship context through a supported accessible description', async () => {
+    await render('opp_relationship', 'Recommended because the schedule matches your preferences.');
+    const descriptionId = link().getAttribute('aria-describedby');
+
+    expect(descriptionId).toBeTruthy();
+    expect(document.getElementById(descriptionId!)?.textContent).toContain(
+      'Recommended because the schedule matches your preferences.',
+    );
   });
 });
