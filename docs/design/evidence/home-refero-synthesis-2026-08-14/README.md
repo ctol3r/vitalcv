@@ -99,6 +99,11 @@ ordinary wheel scrolling and keyboard focus without a scroll trap.
 - Browser log review found no application-origin runtime or chunk failure. The
   connected Chrome annotations extension emitted its own content-script and
   message-channel errors; those are outside the page bundle.
+- The local optimized server, which intentionally had no Clerk runtime
+  configuration, logged Clerk's middleware-detection error when the homepage
+  polled `/api/opportunities`; the page kept its honest server-visible fallback
+  and every browser assertion passed. This is a local auth-configuration
+  limitation, not a claim that the opportunity request succeeded.
 
 ## Visual review scorecard
 
