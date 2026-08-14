@@ -2,10 +2,8 @@
 
 /**
  * BoardPagination — numbered pages with an elided middle, so a long result set
- * doesn't produce a hundred controls. Page numbers are mono (CD-8).
+ * doesn't produce a hundred controls.
  */
-
-const RULE = 'var(--rule, #C9C3B6)';
 
 /** 1 … 4 5 [6] 7 8 … 20 — always first, last, and a window around current. */
 function pageWindow(page: number, totalPages: number): Array<number | 'gap'> {
@@ -42,8 +40,7 @@ export function BoardPagination({
   return (
     <nav
       aria-label="Pagination"
-      className="flex flex-wrap items-center gap-1.5 border-t pt-4"
-      style={{ borderColor: RULE, marginTop: 8 }}
+      className="opf-pagination"
     >
       <PageButton disabled={page <= 1} onClick={() => onPage(page - 1)} label="Previous" />
       {items.map((item, index) => (
@@ -51,8 +48,7 @@ export function BoardPagination({
           ? (
             <span
               key={`gap-${index}`}
-              className="mz-mono px-1 text-[12px]"
-              style={{ color: 'var(--vt-text-muted)' }}
+              className="opf-pagination-gap"
               aria-hidden="true"
             >
               …
@@ -65,13 +61,8 @@ export function BoardPagination({
               onClick={() => onPage(item)}
               aria-current={item === page ? 'page' : undefined}
               aria-label={`Page ${item}`}
-              className="mz-mono border px-2.5 py-1 text-[12px]"
-              style={{
-                borderRadius: 3,
-                borderColor: item === page ? 'var(--vt-text-primary)' : RULE,
-                background: item === page ? 'var(--vt-text-primary)' : 'transparent',
-                color: item === page ? 'var(--paper, #F0EEE9)' : 'var(--vt-text-secondary)',
-              }}
+              className="opf-page-button"
+              data-current={item === page ? 'true' : undefined}
             >
               {item}
             </button>
@@ -96,8 +87,7 @@ function PageButton({
       type="button"
       disabled={disabled}
       onClick={onClick}
-      className="border px-2.5 py-1 text-[12px] disabled:opacity-40"
-      style={{ borderRadius: 3, borderColor: RULE, color: 'var(--vt-text-secondary)' }}
+      className="opf-page-button opf-page-word"
     >
       {label}
     </button>

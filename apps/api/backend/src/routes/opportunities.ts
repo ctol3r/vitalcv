@@ -200,17 +200,27 @@ export function registerOpportunityRoutes(app: Express): void {
   app.get(
     '/api/opportunities',
     asyncHandler(async (req, res) => {
-      const { q, specialty, state, hiringType, organizationSlug, payModel, visaSponsorship, benefits, employerType, startUrgency, readinessStatus, missingRequirement, npi, remote } = req.query;
+      const { q, specialty, profession, schedule, state, hiringType, organizationSlug, payModel, visaSponsorship, benefits, employerType, startUrgency, readinessStatus, missingRequirement, npi, remote } = req.query;
       const result = await listPublicOpportunities({
         // Free-text keyword, matched against the Postgres tsvector. Length-capped
         // so a pathological query cannot make the text-search parser do
         // unbounded work on an unauthenticated route.
         q: typeof q === 'string' ? q.slice(0, 200) : undefined,
         specialty: typeof specialty === 'string' ? specialty : undefined,
+        profession: typeof profession === 'string'
+          ? profession as 'physician' | 'advanced_practice' | 'nursing' | 'behavioral_health' | 'allied_health' | 'not_stated'
+          : undefined,
+        schedule: typeof schedule === 'string'
+          ? schedule as 'full_time' | 'part_time' | 'per_diem' | 'flexible' | 'not_stated'
+          : undefined,
         state: typeof state === 'string' ? state : undefined,
         hiringType: typeof hiringType === 'string' ? hiringType : undefined,
         organizationSlug: typeof organizationSlug === 'string' ? organizationSlug : undefined,
-        remote: remote === 'true' || remote === '1',
+        remote: remote === 'true' || remote === '1'
+          ? true
+          : remote === 'false' || remote === '0'
+            ? false
+            : undefined,
         payModel: typeof payModel === 'string' ? payModel as 'salary' | 'hourly' | 'locums' | 'shift' | 'unknown' : undefined,
         payMin: parseOptionalNumber(req.query.payMin),
         payMax: parseOptionalNumber(req.query.payMax),

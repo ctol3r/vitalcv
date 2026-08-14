@@ -3,6 +3,59 @@
 Append-only. **Newest entry at the top.** One entry per work order is recorded
 in the same pull request as its implementation or takeover evidence.
 
+## WO-13 · Public opportunity field — OPEN
+
+- **Date:** 2026-08-14
+- **Claim-check and creative ownership:** No open PR or remote branch duplicates
+  WO-13's source-labelled editorial field, five-facet browse register,
+  documentary scene, or application-mode boundary. Merged #1005 is LANDED
+  search groundwork. Codex is the named creative owner implementing the
+  founder-selected human+tactile extension of Direction D; shared public chrome
+  is unchanged.
+- **Change:** Replaces `/explore`'s dense dashboard/feed treatment with a
+  server-rendered editorial opportunity field and documentary clinical scene.
+  The page exposes current roles before sign-up, exactly five browse facets,
+  large ruled role records, native no-JavaScript filters, and explicit external
+  versus integrated application actions. The anonymous opportunity contract now
+  derives profession, schedule, availability state and confidence, source URL,
+  observation time, application mode, and compensation source. Public-feed
+  listings cannot inherit claims from a placeholder organization's profile.
+- **Truth and rights boundary:** External listings retain `View original
+  listing`; only integrated records may use `Apply with VitalCV`. Missing pay,
+  unavailable observation time, stale or closed state, and unavailable source
+  pages remain explicit. The generated anonymous-clinician scene is art
+  direction, not a clinician, patient, employer, credential, result, or customer
+  claim; it contains no visible identifier or PHI. No readiness percentage,
+  automatic eligibility, hidden ranking, unsupported source, or speed promise
+  was added.
+- **Accessibility and performance:** The optimized build has 0px horizontal
+  overflow at 390, 768, 1440, and 1728 widths; the H1 is computed Fraunces; the
+  measured contrast range is 5.86:1 to 17.31:1; and the primary row action is at
+  least 48px high. The 167,602-byte LCP poster is below budget, shipped motion is
+  zero, no WebGL or canvas is required, and the controlled profile records LCP
+  700ms, CLS 0, and INP 16ms. The one supported public theme is light and is
+  measured directly.
+- **Evidence:** `docs/design/evidence/wo13-public-opportunity-field-2026-08-14/`
+  contains paired 390, 768, 1440, and 1728 before/after frames, full-page,
+  reduced-motion, and no-JavaScript frames, a real-row scroll recording,
+  computed typography/contrast/overflow, controlled performance results,
+  provenance disclosure, and the duplicate-intent record.
+- **Verification:** Focused frontend coverage passes **2 files / 19 tests**;
+  focused production-build Playwright passes **4/4**; and the real-PostgreSQL
+  opportunity/ingestion suites pass **3 suites / 52 tests**. EC-9 vocabulary,
+  glass, and sitemap-freshness ratchets pass after the aggregate gate found and
+  corrected two new vocabulary uses, two blur treatments, and the stale
+  homepage freshness date. Copy, claims, design, route, typecheck, build, the
+  zero-warning lint, and typecheck gates pass. The final aggregate run passes
+  **465 web files / 4,510 tests** plus the real-PostgreSQL backend at **343
+  suites / 2,756 tests**. The web aggregate's seven database-gated files / 45
+  tests remain assigned to refreshed CI's PostgreSQL step. Refreshed-head CI and
+  `CLEAN` remain required before merge.
+- **Next gate:** Publish this implementation and same-PR ledger receipt, require
+  all refreshed-head checks green and `CLEAN`, then squash-merge. Verify Railway
+  web and API `/api/version` at the exact merge SHA and exercise `/explore` on
+  desktop and mobile before WO-14 begins.
+
 ## WO-12 · Human+tactile homepage release — OPEN
 
 - **Date:** 2026-08-14

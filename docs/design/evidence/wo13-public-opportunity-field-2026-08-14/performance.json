@@ -1,0 +1,9 @@
+{
+  "profile": "Chromium 1440x900, 4x CPU, 40ms RTT, 10Mbps down, 5Mbps up",
+  "lcpMs": 700,
+  "cls": 0,
+  "inpMs": 16,
+  "firstContentfulPaintMs": 520,
+  "domContentLoadedMs": 513,
+  "loadMs": 836
+}

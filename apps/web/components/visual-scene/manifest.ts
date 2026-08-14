@@ -31,17 +31,23 @@ export type SceneId = (typeof SCENE_IDS)[number];
 export type SceneKind = 'decorative' | 'process' | 'stateful';
 
 /**
- * A route variant changes only composition (crop/aspect), never the scene's
- * truth, source, license, or kind. Keeping this in the manifest prevents a
- * route-local CSS crop from becoming an undocumented second asset system.
+ * A route variant changes presentation, never the scene's truth or kind. It
+ * may select a separately provenance-bound documentary poster for that route;
+ * keeping both crop and asset here prevents route CSS from becoming an
+ * undocumented second media system.
  */
-export type SceneRouteVariantId = 'home_documentary';
+export type SceneRouteVariantId = 'home_documentary' | 'explore_documentary';
 
 export interface SceneRouteVariant {
   id: SceneRouteVariantId;
-  route: '/' | '/employers' | '/pilot' | '/onboarding' | '/trust';
+  route: '/' | '/explore' | '/employers' | '/pilot' | '/onboarding' | '/trust';
   aspect: { w: number; h: number };
   objectPosition?: string;
+  /**
+   * A route-owned documentary frame from the same scene family. The manifest,
+   * rather than route CSS, owns its provenance and budget.
+   */
+  poster?: SceneAsset;
 }
 
 /** EC-29 budgets, in bytes. Measured by the asset validation test. */
@@ -106,6 +112,19 @@ export const SCENE_MANIFEST: readonly SceneManifestEntry[] = [
         aspect: { w: 4, h: 5 },
         objectPosition: '52% 46%',
       },
+      {
+        id: 'explore_documentary',
+        route: '/explore',
+        aspect: { w: 16, h: 9 },
+        objectPosition: 'center center',
+        poster: {
+          path: '/scenes/explore-clinician-horizon.jpg',
+          format: 'jpeg',
+          source: 'Original generated commission for VitalCV',
+          license: 'VitalCV proprietary',
+          origin: 'WO-13, 2026-08-14; generated adult, no real clinician or patient',
+        },
+      },
     ],
   },
   {
@@ -169,4 +188,11 @@ export function sceneRouteVariant(
 ): SceneRouteVariant | undefined {
   if (!variant) return undefined;
   return entry.routeVariants?.find((candidate) => candidate.id === variant);
+}
+
+export function scenePoster(
+  entry: SceneManifestEntry,
+  variant: SceneRouteVariant | undefined,
+): SceneAsset {
+  return variant?.poster ?? entry.poster;
 }

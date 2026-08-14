@@ -5,6 +5,8 @@ jest.mock('../../../graphql/prisma_client', () => ({
 
 import {
   buildOpportunityTruth,
+  classifyOpportunityProfession,
+  classifyOpportunitySchedule,
   matchesOpportunityTruthFilters,
   type ClinicianOpportunityProfile,
   type OpportunityTruthRecord,
@@ -105,6 +107,47 @@ describe('opportunityTruth', () => {
     expect(truth.freshness.listingStatus).toBe('fresh');
     expect(truth.transparency.speedToStartEstimate).toContain('7-10 days');
     expect(truth.credentialRequirements).toHaveLength(2);
+    expect(truth.profession).toBe('physician');
+    expect(truth.schedule).toBe('not_stated');
+    expect(truth.applicationMode).toBe('vitalcv');
+    expect(truth.source.url).toBe('/opportunities/opp-1');
+    expect(truth.availability).toMatchObject({
+      state: 'open',
+      confidence: 'recent_observation',
+      observedAt: '2026-03-18T00:00:00.000Z',
+    });
+    expect(truth.compensationProvenance).toMatchObject({
+      state: 'supplied',
+      method: 'source_text',
+      sourceLabel: 'Employer profile + public opportunity record',
+    });
+  });
+
+  it('derives browse facets only from explicit title or labelled schedule text', () => {
+    expect(classifyOpportunityProfession('Nurse Practitioner - California')).toBe('advanced_practice');
+    expect(classifyOpportunityProfession('Registered Nurse')).toBe('nursing');
+    expect(classifyOpportunityProfession('Mental Health Therapist')).toBe('behavioral_health');
+    expect(classifyOpportunityProfession('Territory Manager (MD, Baltimore)')).toBe('not_stated');
+
+    expect(classifyOpportunitySchedule('Part-Time NY Center Physician', null)).toBe('part_time');
+    expect(classifyOpportunitySchedule('Nurse Practitioner', 'Employment Type: Full-Time FLSA exempt')).toBe('full_time');
+    expect(classifyOpportunitySchedule('Registered Nurse', 'Join our full-time clinical team.')).toBe('not_stated');
+  });
+
+  it('filters on profession and schedule without creating an eligibility verdict', () => {
+    const record = makeOpportunityRecord();
+    const truth = buildOpportunityTruth({
+      opportunity: {
+        ...record,
+        title: 'Part-Time Family Medicine Physician',
+      },
+      now: new Date('2026-03-20T00:00:00.000Z'),
+    });
+
+    expect(matchesOpportunityTruthFilters(truth, { profession: 'physician' })).toBe(true);
+    expect(matchesOpportunityTruthFilters(truth, { profession: 'nursing' })).toBe(false);
+    expect(matchesOpportunityTruthFilters(truth, { schedule: 'part_time' })).toBe(true);
+    expect(truth.comparison).toBeNull();
   });
 
   it('marks state mismatch as a confirmed blocker and filters by readiness fit', () => {

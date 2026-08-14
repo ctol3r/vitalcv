@@ -41,6 +41,14 @@ export function validateSceneEntry(entry: SceneManifestEntry, stat: AssetStat): 
     if (!(variant.aspect.w > 0 && variant.aspect.h > 0)) {
       errors.push(`${label}: route variant ${variant.id} aspect ratio must be positive`);
     }
+    if (variant.poster) {
+      const bytes = stat(variant.poster.path);
+      if (bytes === null) {
+        errors.push(`${label}: route variant ${variant.id} poster ${variant.poster.path} does not exist`);
+      } else if (bytes > POSTER_BUDGET_BYTES) {
+        errors.push(`${label}: route variant ${variant.id} poster is ${bytes} bytes, over the ${POSTER_BUDGET_BYTES} budget`);
+      }
+    }
   }
 
   // Poster: exists, within budget, fully labeled.
@@ -50,7 +58,11 @@ export function validateSceneEntry(entry: SceneManifestEntry, stat: AssetStat): 
   } else if (posterBytes > POSTER_BUDGET_BYTES) {
     errors.push(`${label}: poster is ${posterBytes} bytes, over the ${POSTER_BUDGET_BYTES} budget`);
   }
-  for (const asset of [entry.poster, ...entry.motion]) {
+  for (const asset of [
+    entry.poster,
+    ...(entry.routeVariants ?? []).flatMap((variant) => variant.poster ? [variant.poster] : []),
+    ...entry.motion,
+  ]) {
     if (!asset.source.trim() || !asset.license.trim() || !asset.origin.trim()) {
       errors.push(`${label}: asset ${asset.path} is missing source/license/origin metadata`);
     }

@@ -582,6 +582,8 @@ const SCAN_CAP = 500;
 function usesDerivedFilters(filters: OpportunityTruthFilters): boolean {
   return Boolean(
     filters.payModel
+    || filters.profession
+    || filters.schedule
     || filters.payMin !== undefined
     || filters.payMax !== undefined
     || filters.visaSponsorship
@@ -628,7 +630,7 @@ export async function listPublicOpportunities(filters: OpportunityTruthFilters &
     ...(filters.state ? { state: filters.state } : {}),
     ...(filters.hiringType ? { hiringType: filters.hiringType } : {}),
     ...(filters.organizationSlug ? { organization: { slug: filters.organizationSlug } } : {}),
-    ...(filters.remote ? { remote: true } : {}),
+    ...(typeof filters.remote === 'boolean' ? { remote: filters.remote } : {}),
   };
 
   // Keep seeded demo employers off the live public list in prod (flag off).

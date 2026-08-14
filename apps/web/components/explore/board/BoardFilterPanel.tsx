@@ -1,32 +1,13 @@
 'use client';
 
-/**
- * BoardFilterPanel — the facet rail.
- *
- * Note on reuse: the equivalent group in components/intelligence-ops/finding-filters.tsx
- * was NOT extracted. It renders `rounded-full` (CD-10 retires pills) and carries
- * ops-dark colours, both of which are disallowed on a public paper surface. The
- * behaviour is the same; only the skin differs.
- *
- * Facets are single-select because the opportunity service takes single values
- * per field. Sections are native <details> so collapsing needs no JS and no
- * keyframes (LINT-03).
- */
-
 import type { BoardFilters } from '@/lib/explore/board-filters';
 import {
-  BENEFIT_LABEL,
-  BENEFIT_OPTIONS,
   HIRING_TYPE_LABEL,
   HIRING_TYPE_OPTIONS,
-  PAY_MODEL_LABEL,
-  PAY_MODEL_OPTIONS,
-  READINESS_LABEL,
-  READINESS_OPTIONS,
-  START_URGENCY_LABEL,
-  START_URGENCY_OPTIONS,
-  VISA_LABEL,
-  VISA_OPTIONS,
+  PROFESSION_LABEL,
+  PROFESSION_OPTIONS,
+  SCHEDULE_LABEL,
+  SCHEDULE_OPTIONS,
 } from '@/lib/explore/board-filters';
 
 const US_STATES = [
@@ -36,114 +17,25 @@ const US_STATES = [
   'TN', 'TX', 'UT', 'VA', 'VT', 'WA', 'WI', 'WV', 'WY',
 ] as const;
 
-const RULE = 'var(--rule, #C9C3B6)';
-const RULE_SOFT = 'var(--rule-soft, #DAD5C9)';
+const CONTROL_STYLE = {
+  minHeight: 48,
+  border: '1px solid var(--vt-home-d-rule)',
+  borderRadius: 0,
+  background: 'var(--vt-home-d-ground)',
+  color: 'var(--vt-home-d-ink)',
+} as const;
 
-function FacetSection({
-  title,
-  children,
-  defaultOpen = false,
-}: {
-  title: string;
-  children: React.ReactNode;
-  defaultOpen?: boolean;
-}) {
-  return (
-    <details open={defaultOpen} className="group border-b py-3" style={{ borderColor: RULE_SOFT }}>
-      {/* list-none stripped the native disclosure triangle, so the collapsed
-          groups (Pay, Start timing, Sponsorship, Benefits, Employer) read as
-          dead headings with working controls hidden beneath them. The chevron
-          is the affordance that says "this opens". */}
-      <summary
-        className="mz-small flex cursor-pointer items-center justify-between gap-2 list-none select-none"
-        style={{ fontWeight: 600, color: 'var(--vt-text-primary)' }}
-      >
-        {title}
-        <span
-          aria-hidden="true"
-          className="text-[10px] transition-transform group-open:rotate-180"
-          style={{ color: 'var(--vt-text-muted)' }}
-        >
-          ▾
-        </span>
-      </summary>
-      <div style={{ marginTop: 10 }}>{children}</div>
-    </details>
-  );
-}
-
-/** Single-select option list. Square corners — pills are retired (CD-10). */
-function OptionGroup({
-  options,
-  labels,
-  value,
-  onChange,
-  name,
-}: {
-  options: readonly string[];
-  labels: Record<string, string>;
-  value: string;
-  onChange: (next: string) => void;
-  name: string;
-}) {
-  return (
-    <div className="flex flex-wrap gap-1.5" role="group" aria-label={name}>
-      {options.map((option) => {
-        const active = value === option;
-        return (
-          <button
-            key={option}
-            type="button"
-            aria-pressed={active}
-            onClick={() => onChange(active ? '' : option)}
-            className="border px-2.5 py-1 text-left text-[12px] transition"
-            style={{
-              borderRadius: 3,
-              borderColor: active ? 'var(--vt-text-primary)' : RULE,
-              background: active ? 'var(--vt-text-primary)' : 'transparent',
-              color: active ? 'var(--paper, #F0EEE9)' : 'var(--vt-text-secondary)',
-            }}
-          >
-            {labels[option] ?? option}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
-function TextField({
+function Field({
   label,
-  value,
-  onChange,
-  placeholder,
-  inputMode,
+  children,
 }: {
   label: string;
-  value: string;
-  onChange: (next: string) => void;
-  placeholder?: string;
-  inputMode?: 'numeric' | 'text';
+  children: React.ReactNode;
 }) {
   return (
-    <label className="block">
-      <span className="mz-small" style={{ display: 'block', marginBottom: 4, color: 'var(--vt-text-muted)' }}>
-        {label}
-      </span>
-      <input
-        type="text"
-        inputMode={inputMode}
-        value={value}
-        placeholder={placeholder}
-        onChange={(event) => onChange(event.target.value)}
-        className="w-full border px-2.5 py-1.5 text-[13px]"
-        style={{
-          borderRadius: 3,
-          borderColor: RULE,
-          background: 'var(--card, #FBFAF6)',
-          color: 'var(--vt-text-primary)',
-        }}
-      />
+    <label className="opf-filter-field">
+      <span className="opf-filter-label">{label}</span>
+      {children}
     </label>
   );
 }
@@ -151,156 +43,97 @@ function TextField({
 export function BoardFilterPanel({
   filters,
   onChange,
-  readinessAvailable,
 }: {
   filters: BoardFilters;
   onChange: (patch: Partial<BoardFilters>) => void;
-  /** True only when a clinician NPI resolved — the readiness facets need one. */
-  readinessAvailable: boolean;
 }) {
   return (
-    <aside aria-label="Filter opportunities">
-      <FacetSection title="Location" defaultOpen>
-        <div className="space-y-3">
-          <label className="block">
-            <span className="mz-small" style={{ display: 'block', marginBottom: 4, color: 'var(--vt-text-muted)' }}>
-              State
-            </span>
-            <select
-              value={filters.state}
-              onChange={(event) => onChange({ state: event.target.value })}
-              className="w-full border px-2.5 py-1.5 text-[13px]"
-              style={{
-                borderRadius: 3,
-                borderColor: RULE,
-                background: 'var(--card, #FBFAF6)',
-                color: 'var(--vt-text-primary)',
-              }}
-            >
-              <option value="">Any state</option>
-              {US_STATES.map((code) => (
-                <option key={code} value={code}>{code}</option>
-              ))}
-            </select>
-          </label>
+    <section className="opf-filter-grid" aria-label="Filter clinical opportunities">
+      <Field label="Specialty">
+        <input
+          type="text"
+          value={filters.specialty}
+          onChange={(event) => onChange({ specialty: event.target.value })}
+          placeholder="Family medicine"
+          className="opf-filter-control"
+          style={CONTROL_STYLE}
+        />
+      </Field>
 
-          <OptionGroup
-            name="Work setting"
-            options={['remote', 'onsite']}
-            labels={{ remote: 'Remote', onsite: 'Onsite' }}
+      <Field label="Profession">
+        <select
+          value={filters.profession}
+          onChange={(event) => onChange({ profession: event.target.value })}
+          className="opf-filter-control"
+          style={CONTROL_STYLE}
+        >
+          <option value="">All professions</option>
+          {PROFESSION_OPTIONS.map((value) => (
+            <option key={value} value={value}>{PROFESSION_LABEL[value]}</option>
+          ))}
+        </select>
+      </Field>
+
+      <Field label="Location">
+        <div className="opf-location-controls">
+          <select
+            aria-label="State"
+            value={filters.state}
+            onChange={(event) => onChange({ state: event.target.value })}
+            className="opf-filter-control"
+            style={CONTROL_STYLE}
+          >
+            <option value="">Any state</option>
+            {US_STATES.map((value) => <option key={value} value={value}>{value}</option>)}
+          </select>
+          <select
+            aria-label="Work setting"
             value={filters.remote === true ? 'remote' : filters.remote === false ? 'onsite' : ''}
-            onChange={(next) => onChange({ remote: next === 'remote' ? true : next === 'onsite' ? false : null })}
-          />
+            onChange={(event) => onChange({
+              remote: event.target.value === 'remote'
+                ? true
+                : event.target.value === 'onsite'
+                  ? false
+                  : null,
+            })}
+            className="opf-filter-control"
+            style={CONTROL_STYLE}
+          >
+            <option value="">Any setting</option>
+            <option value="remote">Remote</option>
+            <option value="onsite">On-site or hybrid</option>
+          </select>
         </div>
-      </FacetSection>
+      </Field>
 
-      <FacetSection title="Role" defaultOpen>
-        <div className="space-y-3">
-          <TextField
-            label="Specialty"
-            value={filters.specialty}
-            onChange={(specialty) => onChange({ specialty })}
-            placeholder="e.g. Internal Medicine"
-          />
-          <OptionGroup
-            name="Commitment"
-            options={HIRING_TYPE_OPTIONS}
-            labels={HIRING_TYPE_LABEL}
-            value={filters.hiringType}
-            onChange={(hiringType) => onChange({ hiringType })}
-          />
-        </div>
-      </FacetSection>
+      <Field label="Schedule">
+        <select
+          value={filters.schedule}
+          onChange={(event) => onChange({ schedule: event.target.value })}
+          className="opf-filter-control"
+          style={CONTROL_STYLE}
+        >
+          <option value="">Any schedule</option>
+          {SCHEDULE_OPTIONS.map((value) => (
+            <option key={value} value={value}>{SCHEDULE_LABEL[value]}</option>
+          ))}
+        </select>
+      </Field>
 
-      <FacetSection title="Pay">
-        <div className="space-y-3">
-          <OptionGroup
-            name="Pay model"
-            options={PAY_MODEL_OPTIONS}
-            labels={PAY_MODEL_LABEL}
-            value={filters.payModel}
-            onChange={(payModel) => onChange({ payModel })}
-          />
-          <div className="grid grid-cols-2 gap-2">
-            <TextField
-              label="Min"
-              value={filters.payMin}
-              onChange={(payMin) => onChange({ payMin })}
-              placeholder="0"
-              inputMode="numeric"
-            />
-            <TextField
-              label="Max"
-              value={filters.payMax}
-              onChange={(payMax) => onChange({ payMax })}
-              placeholder="Any"
-              inputMode="numeric"
-            />
-          </div>
-          <p className="mz-small" style={{ margin: 0, color: 'var(--vt-text-muted)' }}>
-            Filtering by pay hides roles that publish no figure.
-          </p>
-        </div>
-      </FacetSection>
-
-      <FacetSection title="Start timing">
-        <OptionGroup
-          name="Start timing"
-          options={START_URGENCY_OPTIONS}
-          labels={START_URGENCY_LABEL}
-          value={filters.startUrgency}
-          onChange={(startUrgency) => onChange({ startUrgency })}
-        />
-      </FacetSection>
-
-      <FacetSection title="Sponsorship">
-        <OptionGroup
-          name="Sponsorship"
-          options={VISA_OPTIONS}
-          labels={VISA_LABEL}
-          value={filters.visaSponsorship}
-          onChange={(visaSponsorship) => onChange({ visaSponsorship })}
-        />
-      </FacetSection>
-
-      <FacetSection title="Benefits">
-        <OptionGroup
-          name="Benefits"
-          options={BENEFIT_OPTIONS}
-          labels={BENEFIT_LABEL}
-          value={filters.benefits}
-          onChange={(benefits) => onChange({ benefits })}
-        />
-      </FacetSection>
-
-      <FacetSection title="Employer">
-        <TextField
-          label="Employer type"
-          value={filters.employerType}
-          onChange={(employerType) => onChange({ employerType })}
-          placeholder="e.g. health system"
-        />
-      </FacetSection>
-
-      {/* The facet no general job board can offer. Gated on a resolved NPI,
-          because without one there is nothing to compare requirements against. */}
-      <FacetSection title="Your readiness" defaultOpen={readinessAvailable}>
-        {readinessAvailable ? (
-          <OptionGroup
-            name="Your readiness"
-            options={READINESS_OPTIONS}
-            labels={READINESS_LABEL}
-            value={filters.readinessStatus}
-            onChange={(readinessStatus) => onChange({ readinessStatus })}
-          />
-        ) : (
-          <p className="mz-small" style={{ margin: 0, color: 'var(--vt-text-muted)' }}>
-            Filtering by readiness needs your NPI on file. Sign in, and add it to your
-            profile if it isn’t there yet.
-          </p>
-        )}
-      </FacetSection>
-    </aside>
+      <Field label="Employment type">
+        <select
+          value={filters.hiringType}
+          onChange={(event) => onChange({ hiringType: event.target.value })}
+          className="opf-filter-control"
+          style={CONTROL_STYLE}
+        >
+          <option value="">Any type</option>
+          {HIRING_TYPE_OPTIONS.map((value) => (
+            <option key={value} value={value}>{HIRING_TYPE_LABEL[value]}</option>
+          ))}
+        </select>
+      </Field>
+    </section>
   );
 }
 

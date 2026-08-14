@@ -1,65 +1,87 @@
 import type { Metadata } from 'next';
-import { Suspense } from 'react';
-import { PageFrame } from '@/components/layout/PageFrame';
 import { BoardClient } from '@/components/explore/board/BoardClient';
-
-/**
- * /explore — the public opportunities board.
- *
- * This route already existed in the auth and chrome contracts (roles.ts
- * PUBLIC_ROUTE_PATTERNS, publicSurfaceRoutes.ts) and is monitored as a critical
- * route by launch-ops, but its page had been archived to _archive/wave119 — so
- * /explore returned 404 in production while four surfaces still linked to it.
- * This restores the page those contracts assume.
- *
- * Static + revalidate: the board is anonymous-first, so it is shared-cached and
- * the viewer-specific half (credential readiness) is fetched client-side. That
- * keeps the public surface fast and indexable without ever caching one
- * clinician's readiness for another.
- */
+import { PageFrame } from '@/components/layout/PageFrame';
+import { VisualScene } from '@/components/visual-scene/VisualScene';
+import { parseBoardFilters, toApiQuery } from '@/lib/explore/board-filters';
+import { fetchPublicOpportunityField } from '@/lib/launch/marketplace';
+import '@/styles/opportunity-field.css';
 
 export const revalidate = 300;
 
+const TITLE = 'Clinical opportunities — source in view';
+const DESCRIPTION =
+  'Browse current clinical roles with the original source, observation time, availability, compensation source, and application path in view.';
+
 export const metadata: Metadata = {
-  title: 'Clinical roles',
-  description:
-    'Browse open clinical roles with the employer’s stated requirements, pay, start timing and sponsorship shown up front — each answer named to the source it came from.',
+  title: { absolute: `${TITLE} | VitalCV` },
+  description: DESCRIPTION,
+  alternates: { canonical: 'https://vitalcv.com/explore' },
+  openGraph: {
+    title: TITLE,
+    description: DESCRIPTION,
+    url: 'https://vitalcv.com/explore',
+  },
+  twitter: { card: 'summary_large_image', title: TITLE, description: DESCRIPTION },
 };
 
-export default function ExplorePage() {
+export default async function ExplorePage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const raw = await searchParams;
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(raw)) {
+    const first = Array.isArray(value) ? value[0] : value;
+    if (typeof first === 'string') params.set(key, first);
+  }
+  const initial = await fetchPublicOpportunityField(toApiQuery(parseBoardFilters(params)));
+
   return (
-    // data-surface-tier="public": CD-14 fixes the public acquisition tier as
-    // paper, light only. The app currently pins forcedTheme="light" in
-    // providers.tsx, so `.dark` never lands today — this attribute is the guard
-    // for if that is ever relaxed, since a dark `.mz` repaint would otherwise
-    // take this surface with it. See styles/matcha-zen.css.
-    <div className="mz mz-paper mz-persona-holder min-h-screen" data-surface-tier="public">
-      <PageFrame as="main" mode="marketing">
-        <header style={{ marginBottom: 22 }}>
-          <p className="mz-eyebrow">Open roles</p>
-          <h1 className="mz-h1" style={{ marginTop: 12, maxWidth: 660 }}>
-            Roles with the <span className="mz-accent">requirements shown up front</span>.
-          </h1>
-          <p className="mz-lede" style={{ marginTop: 12, maxWidth: 620 }}>
-            Every listing shows what the employer actually requires, what it pays, how
-            soon it starts, and where that information came from. Signed in with your
-            NPI linked, the board also shows which requirements your record already
-            satisfies.
-          </p>
+    <div className="opf-page" data-surface-tier="public">
+      <PageFrame as="main" mode="marketing" className="opf-frame">
+        <header className="opf-hero">
+          <div className="opf-hero-copy">
+            <p className="opf-eyebrow">Clinician opportunities</p>
+            <h1>Find clinical work with the source in view.</h1>
+            <p className="opf-hero-lede">
+              Search current roles by profession, specialty, location, schedule, and employment
+              type. Every listing keeps its source, observation time, availability, and
+              application path attached.
+            </p>
+            <div className="opf-hero-boundary" aria-label="Opportunity field boundaries">
+              <p>
+                <span aria-hidden="true">01</span>
+                No account required
+              </p>
+              <p>
+                <span aria-hidden="true">02</span>
+                No public eligibility verdict
+              </p>
+              <p>
+                <span aria-hidden="true">03</span>
+                External roles return to the source
+              </p>
+            </div>
+          </div>
+
+          <div className="opf-hero-media">
+            <VisualScene
+              scene="journey_film"
+              kind="process"
+              routeVariant="explore_documentary"
+              priority="hero"
+              mode="static"
+            />
+            <div className="opf-media-caption" aria-hidden="true">
+              <span>Human context</span>
+              <span>Real source records below</span>
+            </div>
+          </div>
         </header>
 
-        <Suspense fallback={<BoardFallback />}>
-          <BoardClient />
-        </Suspense>
+        <BoardClient initial={initial} />
       </PageFrame>
     </div>
-  );
-}
-
-function BoardFallback() {
-  return (
-    <p className="mz-mono" style={{ fontSize: 12.5, color: 'var(--vt-text-muted)' }}>
-      Loading roles…
-    </p>
   );
 }

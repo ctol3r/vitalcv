@@ -271,6 +271,31 @@ employer accepting a packet as a head start only when it says that this follows
 an employer-recorded decision; it may not depict the current visitor as hired,
 cleared, privileged, or started.
 
+#### Public opportunity-field amendment D.2 (2026-08-14)
+
+The founder extended the human+tactile career-mobility register to `/explore`
+through WO-13. The route is an acquisition surface built from **current roles**,
+not a dashboard and not a MATCHA verdict. Documentary clinical-setting media
+supplies the human ambition; tactile, hairline-ruled listing folios carry the
+real opportunity facts. Shared public chrome remains unchanged.
+
+| Decision | Value | Status |
+|---|---|---|
+| Route promise | **Find clinical work with the source in view.** | LOCKED for `/explore` |
+| Human media | An original, licensed, or generated anonymous clinical setting with recorded provenance; no patient, PHI, badge, employer mark, fictional identity, or implied hire | LOCKED for `/explore` |
+| Dominant object | A real, source-labelled opportunity field with generous editorial hierarchy; no generic card grid or fake product dashboard | LOCKED for `/explore` |
+| Required filters | Specialty, profession, location, schedule, and employment type; filtering never implies readiness or eligibility | LOCKED for `/explore` |
+| Listing truth | Source and source URL, observation time, availability language and confidence, application mode, and supplied compensation provenance remain selectable text | LOCKED for `/explore` |
+| Application boundary | External roles say **View original listing**; only integrated roles may say **Apply with VitalCV** | LOCKED for `/explore` |
+| Prohibitions | No public readiness score, automatic eligibility verdict, hidden ranking, invented requirement, inferred compensation, stale listing disguised as current, or source-unavailable role presented as actionable | LOCKED for `/explore` |
+
+The documentary frame is a manifest-owned `journey_film` route variant because
+it carries human context, not opportunity state. The listings below are the
+stateful surface: their facts come from the current API and remain complete
+without the image. A route variant may select its own provenance-bound poster,
+but it may not change the scene kind, invent state, exceed EC-29 budgets, or
+move evidence facts into pixels.
+
 **On the difference (W1080 closure, 2026-08-08).** Three rows previously read
 "PENDING UX-02", which is indistinguishable from an unresolved brand decision and
 made the table read as incomplete when it is not. A deferral is legitimate only
@@ -368,6 +393,12 @@ variant** on `/`. It is a non-blocking human-stakes still beside the real NPI
 action and tactile record; it does not restore the retired horizontal film,
 create a scroll owner, or carry evidence/result state. The server poster is the
 complete experience and remains subject to EC-25 and EC-29.
+
+**Explore route-variant authorization (2026-08-14).** Amendment D.2 supplies
+the founder decision for a static `journey_film` documentary route variant on
+`/explore`. It is atmosphere beside the public opportunity field, never a role,
+clinician identity, employer relationship, match, or outcome. The route's
+source and availability claims remain real text from the opportunity contract.
 
 **Route note (founder decision, 2026-08-08).** The source briefs target a `/jobs` surface. No such route exists. Opportunity and apply scenes target the surfaces that do: `/holder/opportunities{,/discover,/interested,/passed}`, `/holder/matcha/opportunities`, and `/opportunities/discover`. Renaming the customer-facing noun is UX-16 copy work; creating a `/jobs` route is a product dependency, not an illustration wave.
 
