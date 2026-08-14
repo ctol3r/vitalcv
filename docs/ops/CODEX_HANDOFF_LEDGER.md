@@ -3,6 +3,59 @@
 Append-only. **Newest entry at the top.** One entry per work order is recorded
 in the same pull request as its implementation or takeover evidence.
 
+## WO-16 · NPI-to-opportunity activation path — OPEN
+
+- **Date:** 2026-08-14
+- **Claim-check and creative ownership:** No open PR duplicates the `/pilot`
+  or `/onboarding` composition. The remote onboarding and pilot branches are
+  old, unsubmitted, and either listed for deletion or superseded by current
+  `main`; open #1377, #1378, #1380, #1381, #1382, and #1384 address strategy or
+  the authorized hire-to-start transaction. Codex is the creative owner
+  applying the founder-selected human+tactile direction. Shared public chrome
+  is unchanged.
+- **Change:** Gives `/pilot` and `/onboarding` one shared, server-visible NPI →
+  source states → CV Wallet → opportunity journey and one provenance-bound
+  tactile scene. Onboarding preserves the existing NPI behavior, account
+  boundary, signed-in phases, endpoints, and unhappy states while replacing a
+  generic benefits list with the visible path. Pilot replaces a simulated KPI
+  and dense card stack with a real-cohort target, canonical source states, six
+  distinct measurement moments, explicit limits, and one governed request.
+- **Truth, authority, and transaction boundary:** NPPES remains a public
+  registry identity read, not identity possession or a license check. The
+  clinician controls saving and presentation. The illustration stops before
+  application, review, decision, credentialing, hire, or start. Pilot target
+  is not published outcome; employer response is human; packet, clarification,
+  credentialing, intended start, and actual start stay distinct. No schema,
+  migration, authorization, packet, decision, Recognition, or durable-state
+  path changes.
+- **Accessibility and performance:** Production-build coverage confirms 0px
+  horizontal overflow at 390, 768, 1440, and 1728 on both routes, complete
+  static paths under reduced motion and no JavaScript, 44px/50px primary
+  controls, and 16.74:1 H1 contrast. The 102,220-byte AVIF is below the 250KB
+  target, shipped motion is zero, and no canvas, WebGL, or new animation engine
+  is required. The controlled profile records maximum LCP 88ms, CLS 0.0597,
+  and maximum INP 40ms.
+- **Evidence:**
+  `docs/design/evidence/wo16-activation-path-2026-08-14/` contains paired
+  production-before and optimized-build-after frames for both routes at every
+  required width, initial mobile viewports, reduced-motion and no-JavaScript
+  frames, real route recordings, computed typography/contrast/performance,
+  duplicate-intent classification, and generation provenance. The app is
+  founder-pinned to one supported theme, light, and that theme is measured.
+- **Verification:** Focused component, route, claim-parity, and scene coverage
+  passes **7 files / 66 tests**; focused production-build Playwright passes
+  **10/10**, and the combined activation plus retained-artifact contract passes
+  **18/18**; full typecheck passes **50/50**; and the optimized web build passes.
+  The aggregate web suite passes **468 files / 4,532 tests** and the
+  migration-backed PostgreSQL backend census passes **343 suites / 2,761
+  tests** in the exact documented CI mode. Copy, claims, design, route, and
+  design-markdown gates pass; the copy ratchet improves from 100 to 90 and the
+  design LINT-02 ratchet improves from 280 to 279.
+- **Next gate:** Publish this implementation with its same-PR ledger receipt,
+  require every refreshed-head check green and `CLEAN`, squash-merge, verify
+  Railway web and API at the exact merge SHA, and exercise `/pilot` and
+  `/onboarding` live on desktop and mobile before WO-17.
+
 ## WO-15 · Employer exact-packet review story — OPEN
 
 - **Date:** 2026-08-14

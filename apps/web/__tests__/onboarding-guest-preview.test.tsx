@@ -103,7 +103,9 @@ describe('/onboarding anonymous visitor — record before account', () => {
     await renderSurface();
 
     expect(container.querySelector('#guest-npi-input')).not.toBeNull();
-    expect(container.textContent).toContain('See your record before you create anything');
+    expect(container.textContent).toContain('Start with your NPI. See where your record can go.');
+    expect(container.querySelector('[data-scene="activation_path"]')).not.toBeNull();
+    expect(container.querySelectorAll('[data-activation-path="clinician"] [data-activation-step]')).toHaveLength(4);
     expect(container.textContent).not.toContain('sign-in comes first');
     expect(container.textContent).not.toContain("Sign in to confirm you're a clinician");
   });

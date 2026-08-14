@@ -158,7 +158,7 @@ export function PilotRequestForm({
           placeholder="Acme Health System"
         />
       </div>
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <label htmlFor="name" className="block text-sm font-medium text-[var(--vt-text-primary)] mb-1.5">
             Contact name

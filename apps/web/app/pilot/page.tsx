@@ -1,34 +1,19 @@
-import * as React from 'react';
 import type { Metadata } from 'next';
-import {
-  ActivitySquare,
-  AlertTriangle,
-  CheckCircle2,
-  FileLock2,
-  ListTodo,
-  Presentation,
-  ShieldCheck,
-} from 'lucide-react';
+import Link from 'next/link';
+
 import { PilotRequestForm } from './PilotRequestForm';
-import { Reveal } from '@/components/motion/Reveal';
-import { ArtifactStage } from '@/components/motion/ArtifactStage';
-import { MeasureArtifact } from '@/components/artifacts/PageArtifacts';
+import { Icon, type IconName } from '@/components/Icon';
+import { PageFrame } from '@/components/layout/PageFrame';
+import { ActivationPath } from '@/components/onboarding/ActivationPath';
+import { VisualScene } from '@/components/visual-scene/VisualScene';
 import { SOURCE_LANE_OPS, getLaneDisplayName } from '@/lib/trust/sourceLanes';
 
-/**
- * Automated lanes, counted from the canonical registry rather than typed by
- * hand.
- *
- * This page published `Automated source lanes: 4` with the note
- * "NPPES · OIG LEIE · PECOS public · state-board adapter" while, forty lines
- * lower, listing "Configured state-board PSV adapters" under what remains
- * PARTIAL — and while /api/status, /status and /status/technical all published
- * state_license as `pending_integration`. The buyer-facing headline counted a
- * lane the rest of the product calls unavailable.
- *
- * Counting `operational` lanes from SOURCE_LANE_OPS makes that overclaim
- * unrepresentable: a lane appears here only once the registry says it answers.
- */
+export const metadata: Metadata = {
+  title: 'Start a Pilot',
+  description:
+    'Measure the real path from clinician NPI to CV Wallet, opportunity, exact packet, employer response, and actual start without replacing institution review.',
+};
+
 const AUTOMATED_LANES = SOURCE_LANE_OPS.filter(
   (lane) => lane.statusApiStatus === 'operational',
 );
@@ -36,344 +21,207 @@ const AUTOMATED_LANE_NAMES = AUTOMATED_LANES.map((lane) =>
   getLaneDisplayName(lane.laneId),
 ).join(' · ');
 
-/**
- * Export formats, stated once. The page said `JSON · ZIP · PDF` in the metric
- * strip and "(JSON and ZIP)" in the live-capability list — a self-contradiction
- * in one view. PDF is real (`/api/export/packet` renders one via
- * `renderEmployerProofPacketPdf` and returns `application/pdf`), so the
- * capability list was the stale half. One constant now feeds both.
- */
 const EXPORT_FORMATS = ['JSON', 'ZIP', 'PDF'] as const;
 const EXPORT_FORMATS_LABEL = EXPORT_FORMATS.join(' · ');
 const EXPORT_FORMATS_PROSE = `${EXPORT_FORMATS.slice(0, -1).join(', ')} and ${EXPORT_FORMATS.at(-1)}`;
 
-export const metadata: Metadata = {
-  title: 'Start a Pilot',
-  description:
-    'Run a 30-day focused employer pilot for credential readiness decisions using VitalCV primary source verification and proof packs.',
-};
+const PILOT_INPUTS = [
+  {
+    title: 'A bounded cohort',
+    body: 'Bring 10–30 real clinician NPIs. We agree on which applications and roles belong in the measurement window before it begins.',
+    icon: 'list-checks',
+  },
+  {
+    title: 'A named human operator',
+    body: 'One reviewer owns the employer response for every application submitted in the cohort. The pilot does not substitute an automated employment decision.',
+    icon: 'building',
+  },
+  {
+    title: 'The baseline you actually have',
+    body: 'Share your current timeline and request counts—or say “we do not track this yet” so the pilot records a clean starting point.',
+    icon: 'clock',
+  },
+] as const satisfies readonly { title: string; body: string; icon: IconName }[];
 
-const PILOT_SCOPE = [
-  {
-    title: 'What this pilot is',
-    body:
-      'A 30-day focused employer pilot. We measure startability timeline events against your current workflow on 10–30 real clinician NPIs and hand you a signed scope document before any measurement starts.',
-    icon: <Presentation className="h-4 w-4" aria-hidden />,
-  },
-  {
-    title: 'What you provide',
-    body:
-      'A roster of 10–30 clinician NPIs, a named review operator, and your current baseline numbers (time-to-start days, applications per month) — or an honest "we don’t track this yet" so we can capture it from scratch.',
-    icon: <ListTodo className="h-4 w-4" aria-hidden />,
-  },
-  {
-    title: 'What VitalCV measures',
-    body:
-      'Submit → first view → first action → advanced → start-ready → started timeline deltas, refresh and missing-info request counts with owner attribution, and proof-tier distribution at submit time.',
-    icon: <ActivitySquare className="h-4 w-4" aria-hidden />,
-  },
-  {
-    title: 'What success looks like',
-    body:
-      'You see documented source coverage, packet status, and limitation notes per clinician before the formal committee process. We do not replace your credentialing committee — we shorten the days-at-risk window before committee review.',
-    icon: <CheckCircle2 className="h-4 w-4" aria-hidden />,
-  },
-] as const;
+const MEASUREMENT_MOMENTS = [
+  ['Packet submitted', 'The clinician-selected version and consent become the measurement anchor.', 'send'],
+  ['Packet opened', 'The first employer view is recorded separately from submission.', 'file-search'],
+  ['Clarification requested', 'Every missing-information request keeps its owner and time.', 'message-question'],
+  ['Employer response', 'Clarify, accept as a head start, or do not proceed—never an inferred decision.', 'building'],
+  ['Credentialing started', 'Institution review beginning is not the same event as an offer or start.', 'list-checks'],
+  ['Actual start attested', 'The first day is measured only when the relevant party records it.', 'waypoints'],
+] as const satisfies readonly (readonly [string, string, IconName])[];
 
 const LIMITATION_HONESTY = [
-  'NPPES identity checks confirm NPI registration only; they do not replace licensure proof.',
-  'OIG LEIE covers federal exclusion scope only; state Medicaid exclusion lists are out of scope until they are adapter-connected.',
-  'PECOS public data reflects the public release, not the real-time enrollment portal.',
-  'State board coverage depends on institutional access agreements; uninstrumented states remain an adapter gap, not a verified claim.',
-  'The trust container records packet metadata and artifact status; it does not replace Primary Source Verification (PSV).',
-  'A partial proof stays partial. Container issuance never upgrades partial evidence to decision-grade.',
+  'NPPES confirms a public registry record only; it does not prove identity possession or licensure.',
+  'OIG/LEIE covers the federal exclusion list. It does not stand in for state Medicaid exclusion sources.',
+  'PECOS uses the public quarterly release, not the real-time enrollment portal.',
+  'Licensure remains access-gated until an authorized production source returns a result.',
+  'An employer accepting one exact packet as a head start is not credentialing, privileging, employment, or start.',
+  'If the measured workflow avoids zero employer requests, the report says zero instead of manufacturing a success story.',
 ] as const;
 
-const PILOT_KPI_SAMPLES = [
-  {
-    label: 'Avg time to first signal',
-    value: '1.8 min',
-    note: 'Internal simulation · not a customer pilot result',
-  },
-  {
-    label: 'Automated source lanes',
-    value: String(AUTOMATED_LANES.length),
-    note: AUTOMATED_LANE_NAMES,
-  },
-  {
-    label: 'Proof-pack export formats',
-    value: EXPORT_FORMATS_LABEL,
-    note: 'Manifest references in every export',
-    token: true,
-  },
-  {
-    label: 'Audit record per export',
-    value: 'ARTIFACT_EXPORTED',
-    note: 'Records an audit event before the bundle returns',
-    token: true,
-  },
-] as const;
-
-const PROOF_OBJECT_LIVE = [
-  'NPPES, OIG LEIE, and PECOS public checks with canonical source coverage',
-  `Proof-pack exports (${EXPORT_FORMATS_PROSE}) with deterministic artifact hashing`,
-  'ARTIFACT_EXPORTED audit event every time a packet leaves the platform',
-  'Partial-proof limitation notes preserved verbatim through every export',
-] as const;
-
-const PROOF_OBJECT_PARTIAL = [
-  'Configured state-board PSV adapters for launch-state authority checks',
-  'Additional payer and organization source adapters after source agreements',
-  'Production credential-container issuance after provider configuration',
-  'Continuous monitoring outside the configured pilot lanes',
-] as const;
-
-const TRUST_CONTAINER_SAFE_COPY = [
-  'Records the evidence packet’s credential envelope and artifact status.',
-  'Does not replace primary source verification.',
-  'Does not upgrade partial evidence to decision-grade.',
-  'The pilot does not issue production credentials.',
-  'Limitations shown in the packet remain controlling.',
-] as const;
+function laneStanding(lifecycle: string, cadence: string): string {
+  if (lifecycle === 'active') return `Read · ${cadence}`;
+  if (lifecycle === 'planned') return `Not read · ${cadence}`;
+  if (lifecycle === 'demo_only') return 'Demonstration only';
+  return 'Not integrated';
+}
 
 export default function PilotPage() {
-  return (
-    <main
-      className="mz mz-paper mz-persona-employer px-6 py-16"
-      data-testid="pilot-proof-page"
-    >
-      <div className="mx-auto max-w-5xl space-y-12">
-        {/* Headline + value prop */}
-        <header className="mz-ambient">
-          <Reveal variant="fade" className="space-y-5">
-            <span className="mz-eyebrow">Employer pilot</span>
-            <h1 className="mz-display" data-testid="pilot-headline">
-              Cut credentialing uncertainty{' '}
-              <span className="mz-accent">before the start date slips.</span>
-            </h1>
-            <p className="mz-lede max-w-3xl" data-testid="pilot-value-prop">
-              {/* Was the literal word "four" — the same overclaim as the metric
-                  strip, in the first sentence a buyer reads. Counted from the
-                  registry so the lede can never outrun the lanes.
+  const readinessLanes = SOURCE_LANE_OPS.filter((lane) => lane.readinessDimension !== null);
 
-                  "deterministic proof pack" and "auditable trust container" were
-                  also here. Both are accurate and both are OUR words, not the
-                  buyer's: a credentialing lead does not arrive looking for a
-                  container. The mechanism is unchanged and still stated below —
-                  it just no longer occupies the first sentence. */}
-              VitalCV gives your reviewers {AUTOMATED_LANES.length} source-backed
-              lanes of clinician evidence with the gaps named, so a file arrives
-              at committee review with the routine checks already done and the
-              open items listed — without changing your existing compliance
-              stack.
+  return (
+    <div className="mz mz-paper mz-persona-employer min-h-screen overflow-x-clip" data-testid="pilot-proof-page">
+      <PageFrame as="main" mode="marketing" className="pb-14 sm:pb-20">
+        <header className="grid gap-9 border-b border-[var(--vt-border)] pb-10 pt-3 lg:grid-cols-[minmax(0,0.82fr)_minmax(32rem,1.18fr)] lg:items-center lg:gap-12 lg:pb-14">
+          <div>
+            <p className="mz-eyebrow">Measured employer pilot</p>
+            <h1 className="mz-h1 mt-3 max-w-3xl" data-testid="pilot-headline">
+              Prove the handoff. <span className="mz-accent">Measure what actually moves.</span>
+            </h1>
+            <p className="mz-lede mt-5 max-w-2xl" data-testid="pilot-value-prop">
+              Follow a real cohort from NPI to CV Wallet, first opportunity, exact packet, employer response, and actual start—without changing who makes the institutional decision.
             </p>
-          </Reveal>
+            <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:items-center">
+              <Link href="#pilot-request" className="mz-btn min-h-12 justify-center">
+                Request a measured pilot
+              </Link>
+              <Link
+                href="#pilot-activation-path"
+                className="inline-flex min-h-12 items-center justify-center gap-2 border border-[var(--vt-border)] px-5 text-sm font-semibold text-[var(--vt-text-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--vt-focus-ring)]"
+              >
+                See the activation path
+                <Icon name="arrow-down" className="size-4" aria-hidden="true" />
+              </Link>
+            </div>
+            <p className="mt-5 max-w-2xl border-l-2 border-[var(--vt-border)] pl-3 font-mono text-[11px] leading-relaxed text-[var(--vt-text-muted)]">
+              Pilot target—not a published result: every application submitted in the cohort receives a human employer response, and every result includes its cohort, baseline, period, sample size, and lineage.
+            </p>
+          </div>
+
+          <div className="min-w-0">
+            <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.12em] text-[var(--vt-text-muted)]">
+              Illustration — not a live clinician, application, or outcome
+            </p>
+            <VisualScene
+              scene="activation_path"
+              kind="process"
+              priority="hero"
+              className="overflow-hidden border border-[var(--vt-border)] bg-[var(--vt-surface)] [&_figcaption]:border-t [&_figcaption]:border-[var(--vt-border)] [&_figcaption]:px-4 [&_figcaption]:py-3 [&_figcaption]:font-mono [&_figcaption]:text-[10px] [&_figcaption]:leading-relaxed [&_figcaption]:text-[var(--vt-text-muted)]"
+            />
+          </div>
         </header>
 
-        {/* The page's animated artifact: the span the pilot exists to measure —
-            offer to first day, at-risk days bracketed, and deliberately no
-            numbers anywhere (projection-vs-measurement rule: the drawing must
-            not pre-announce a result nothing has measured). */}
-        <section aria-label="What the pilot measures" data-testid="pilot-measure-artifact">
-          <ArtifactStage glass>
-            <MeasureArtifact />
-          </ArtifactStage>
-        </section>
+        <div id="pilot-activation-path" className="scroll-mt-28 pt-14 sm:pt-20">
+          <ActivationPath audience="pilot" heading="The same record stays visible from entry to response." />
+        </div>
 
-        {/* KPI snapshot — honest labels only */}
-        <section
-          aria-label="Pilot KPI snapshot"
-          data-testid="pilot-kpi-snapshot"
-          className="grid grid-cols-2 lg:grid-cols-4 gap-4"
-        >
-          {PILOT_KPI_SAMPLES.map((kpi, i) => (
-            <Reveal
-              as="div"
-              key={kpi.label}
-              delay={i * 80}
-              className="mz-glass mz-glass-interactive rounded-[12px] p-5"
-              data-testid={`pilot-kpi-${kpi.label.toLowerCase().replace(/\s+/g, '-')}`}
-            >
-              <div className="mz-mono mb-2 text-[11px] uppercase tracking-[0.16em] text-[var(--vt-text-muted)]">
-                {kpi.label}
-              </div>
-              {/* System tokens (event names, format lists) render as mono at a
-                  size that stays inside the tile; numbers keep the big stat cut. */}
-              <div
-                className={
-                  'token' in kpi && kpi.token
-                    ? 'mz-mono text-[1.05rem] font-semibold leading-snug tracking-[0.01em] text-[var(--vt-text-primary)] [overflow-wrap:anywhere]'
-                    : 'text-[1.7rem] font-semibold leading-none tracking-tight text-[var(--vt-text-primary)] [font-variant-numeric:tabular-nums]'
-                }
-              >
-                {kpi.value}
-              </div>
-              <div className="mz-mono mt-2 text-[10.5px] uppercase tracking-[0.1em] text-[var(--vt-text-muted)]">
-                {kpi.note}
-              </div>
-            </Reveal>
-          ))}
-        </section>
-
-        {/* Pilot scope + buyer requirements */}
-        <section className="grid gap-4 md:grid-cols-2" aria-label="Pilot scope">
-          {PILOT_SCOPE.map((step, i) => (
-            <Reveal
-              as="article"
-              key={step.title}
-              delay={i * 80}
-              className="mz-glass mz-glass-interactive rounded-[12px] p-5"
-            >
-              <div className="mz-pop mb-4 inline-flex rounded-[3px] border border-[var(--rule)] bg-[var(--paper-2)] p-2.5 text-[var(--accent)]">
-                {step.icon}
-              </div>
-              <h3 className="mz-h2">{step.title}</h3>
-              <p className="mz-body mt-2">
-                {step.body}
-              </p>
-            </Reveal>
-          ))}
-        </section>
-
-        {/* Proof object explanation */}
-        <Reveal
-          as="section"
-          aria-label="Proof pack explanation"
-          data-testid="pilot-proof-object"
-          className="mz-card p-6 md:p-8"
-        >
-          <div className="flex items-center gap-3 mb-4">
-            <ShieldCheck className="h-6 w-6 text-[var(--accent)]" aria-hidden />
-            <h2 className="mz-h1">
-              The <span className="mz-accent">proof pack</span>
-            </h2>
-          </div>
-          <p className="mz-body max-w-3xl mb-6">
-            Every clinician review generates a deterministic evidence packet with
-            canonical source coverage, per-lane freshness, and a sha256 artifact
-            hash. When your reviewer exports the packet, VitalCV writes an
-            ARTIFACT_EXPORTED audit event before the bytes leave the platform.
-          </p>
-          <div className="grid md:grid-cols-2 gap-6 text-sm">
-            <div className="space-y-3" data-testid="pilot-live-now">
-              <span className="mz-chip mz-chip-ok">
-                <span className="mz-gl" aria-hidden />
-                What is live now
-              </span>
-              <ul className="mz-body list-disc pl-5 space-y-1.5">
-                {PROOF_OBJECT_LIVE.map((item) => (
-                  <li key={item}>{item}</li>
-                ))}
-              </ul>
+        <section aria-label="Source states in the pilot" className="mt-16 sm:mt-20">
+          <div className="grid gap-5 lg:grid-cols-[minmax(0,0.7fr)_minmax(32rem,1.3fr)] lg:items-end">
+            <div>
+              <p className="mz-eyebrow">Source states in view</p>
+              <h2 className="mz-h2 mt-2">
+                Start with what sources can <span className="mz-accent">support today.</span>
+              </h2>
             </div>
-            <div className="space-y-3" data-testid="pilot-partial-pending">
-              <span className="mz-chip mz-chip-watch">
-                <span className="mz-gl" aria-hidden />
-                What remains partial or pending
-              </span>
-              <ul className="mz-body list-disc pl-5 space-y-1.5">
-                {PROOF_OBJECT_PARTIAL.map((item) => (
-                  <li key={item}>{item}</li>
-                ))}
-              </ul>
-            </div>
+            <p className="mz-small max-w-2xl lg:justify-self-end">
+              {AUTOMATED_LANES.length} active source reads: {AUTOMATED_LANE_NAMES}. Access-gated and unavailable sources remain visible rather than being upgraded by the pilot.
+            </p>
           </div>
-        </Reveal>
-
-        {/* Trust container explanation — separate from proof object, overclaim-safe */}
-        <Reveal
-          as="section"
-          aria-label="Trust container explanation"
-          data-testid="pilot-trust-container"
-          className="mz-card p-6 md:p-8"
-        >
-          <div className="flex items-center gap-3 mb-4">
-            <FileLock2 className="h-6 w-6 text-[var(--accent)]" aria-hidden />
-            <h2 className="mz-h1">
-              The trust container
-            </h2>
-          </div>
-          <p className="mz-body max-w-3xl mb-4">
-            {/* Was: "provider-pluggable — a deterministic mock today and a
-                production-provider scaffold ready for future wiring." That is
-                implementation vocabulary on a buyer page, and "mock" reads to a
-                credentialing lead as "the evidence is fake" rather than what it
-                means (issuance is not wired). The limitation is unchanged and
-                stated more plainly. */}
-            The trust container is a backend record that binds the credential
-            envelope id, artifact status, and issuer metadata to the proof pack.
-            During the pilot it records and references evidence; it does not
-            issue production credentials.
-          </p>
-          <ul
-            className="mz-body list-disc pl-5 space-y-1.5"
-            data-testid="pilot-trust-container-disclaimers"
-          >
-            {TRUST_CONTAINER_SAFE_COPY.map((line) => (
-              <li key={line}>{line}</li>
-            ))}
-          </ul>
-        </Reveal>
-
-        {/* Limitation honesty */}
-        <Reveal
-          as="section"
-          aria-label="Limitation honesty"
-          data-testid="pilot-limitations"
-          className="mz-inset p-6 md:p-8"
-        >
-          <h2 className="mz-h2 flex items-center gap-2 mb-4">
-            <AlertTriangle className="h-5 w-5 text-[var(--watch)]" aria-hidden />
-            Limitation honesty
-          </h2>
-          <ul className="space-y-3 pl-2">
-            {LIMITATION_HONESTY.map((item) => (
-              <li
-                key={item}
-                className="mz-body flex gap-3"
-              >
-                <span className="text-[var(--watch)] mt-1" aria-hidden>
-                  •
-                </span>
-                <span>{item}</span>
+          <ul className="mt-7 grid list-none border-l border-t border-[var(--vt-border)] sm:grid-cols-2 lg:grid-cols-4">
+            {readinessLanes.map((lane) => (
+              <li key={lane.laneId} className="min-h-32 border-b border-r border-[var(--vt-border)] bg-[var(--vt-surface)] p-4 sm:p-5">
+                <p className="font-mono text-[10px] uppercase tracking-[0.1em] text-[var(--vt-text-muted)]">
+                  {lane.readinessDimension}
+                </p>
+                <h3 className="mt-5 text-base font-semibold text-[var(--vt-text-primary)]">
+                  {lane.marketingShortName}
+                </h3>
+                <p className="mt-2 font-mono text-[11px] leading-relaxed text-[var(--vt-text-secondary)]">
+                  {laneStanding(lane.lifecycle, lane.cadenceLabel)}
+                </p>
               </li>
             ))}
           </ul>
-        </Reveal>
+        </section>
 
-        {/* Pilot CTA */}
-        <Reveal
-          as="section"
-          aria-label="Request pilot"
-          data-testid="pilot-cta"
-          className="mz-glass-strong p-6 md:p-10"
-        >
-          <div className="grid lg:grid-cols-2 gap-10">
+        <section aria-label="What the pilot measures" data-testid="pilot-kpi-snapshot" className="mt-16 sm:mt-20">
+          <div className="grid gap-5 lg:grid-cols-[minmax(0,0.72fr)_minmax(32rem,1.28fr)] lg:items-end">
             <div>
-              <p className="mz-eyebrow">
-                The next step
-              </p>
-              <h2 className="mz-h1 mt-3">
-                Request a 30-day PSV{' '}
-                <span className="mz-accent">readiness pilot</span>
+              <p className="mz-eyebrow">No proxy metric</p>
+              <h2 className="mz-h2 mt-2">
+                Measure the moments. <span className="mz-accent">Do not pre-announce the result.</span>
               </h2>
-              <p className="mz-lede mt-4 max-w-md">
-                We review every submission within two business days. If the
-                scope is a fit, we schedule a scoping call to confirm your
-                baseline metrics, the pilot NPIs, and the measurement window.
-              </p>
-              <p className="mz-small mt-4">
-                No auto-provisioning. You will see a signed scope document
-                before anything is measured.
-              </p>
             </div>
+            <p className="mz-small max-w-2xl lg:justify-self-end">
+              Offer acceptance, credentialing start, intended start, and actual start remain distinct events. A faster-looking intermediate state is never relabelled as a start.
+            </p>
+          </div>
+          <ol className="mt-7 grid list-none border-l border-t border-[var(--vt-border)] md:grid-cols-2 xl:grid-cols-3">
+            {MEASUREMENT_MOMENTS.map(([title, body, icon]) => (
+              <li key={title} className="grid min-h-36 grid-cols-[2.75rem_1fr] gap-3 border-b border-r border-[var(--vt-border)] bg-[var(--vt-surface)] p-4 sm:p-5">
+                <span className="inline-flex size-11 items-center justify-center border border-[var(--vt-border)] font-mono text-xs text-[var(--vt-text-muted)]" aria-hidden="true">
+                  <Icon name={icon} className="size-5" strokeWidth={1.5} />
+                </span>
+                <div>
+                  <h3 className="text-sm font-semibold text-[var(--vt-text-primary)]">{title}</h3>
+                  <p className="mt-2 text-[12px] leading-relaxed text-[var(--vt-text-secondary)]">{body}</p>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </section>
 
-            <div className="mz-card p-6">
-              <PilotRequestForm sourceContext="/pilot" />
+        <section aria-label="Pilot inputs and limits" className="mt-16 grid gap-8 border-y border-[var(--vt-border)] py-8 sm:mt-20 lg:grid-cols-2 lg:gap-12 lg:py-10">
+          <div data-testid="pilot-proof-object">
+            <p className="mz-eyebrow">What you bring</p>
+            <h2 className="mz-h2 mt-2">A real cohort and an honest baseline.</h2>
+            <div className="mt-6 divide-y divide-[var(--vt-border)] border-y border-[var(--vt-border)]">
+              {PILOT_INPUTS.map((item) => (
+                <div key={item.title} className="grid grid-cols-[2.5rem_1fr] gap-3 py-4">
+                  <span className="inline-flex size-9 items-center justify-center border border-[var(--vt-border)] text-[var(--vt-text-muted)]" aria-hidden="true">
+                    <Icon name={item.icon} className="size-4" strokeWidth={1.5} />
+                  </span>
+                  <div>
+                    <h3 className="text-sm font-semibold text-[var(--vt-text-primary)]">{item.title}</h3>
+                    <p className="mt-1 text-[12px] leading-relaxed text-[var(--vt-text-secondary)]">{item.body}</p>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
-        </Reveal>
-      </div>
-    </main>
+
+          <div data-testid="pilot-trust-container">
+            <p className="mz-eyebrow">The limits travel with the report</p>
+            <h2 className="mz-h2 mt-2">A partial proof stays partial.</h2>
+            <details open className="mt-6 border-y border-[var(--vt-border)] py-4" data-testid="pilot-limitations">
+              <summary className="min-h-11 cursor-pointer text-sm font-semibold text-[var(--vt-text-primary)]">
+                Read the measurement and source boundaries
+              </summary>
+              <ul className="mt-3 space-y-3 pl-5 text-[12px] leading-relaxed text-[var(--vt-text-secondary)]">
+                {LIMITATION_HONESTY.map((item) => <li key={item}>{item}</li>)}
+              </ul>
+            </details>
+            <p className="mt-4 font-mono text-[10px] leading-relaxed text-[var(--vt-text-muted)]">
+              Integrity support: {EXPORT_FORMATS_LABEL} exports preserve source coverage, freshness, limitation notes, and the sealed-submission hash. ARTIFACT_EXPORTED is recorded before {EXPORT_FORMATS_PROSE} bytes return. The pilot does not issue production credentials.
+            </p>
+          </div>
+        </section>
+
+        <section id="pilot-request" aria-label="Request pilot" data-testid="pilot-cta" className="scroll-mt-28 mt-16 grid gap-8 border border-[var(--vt-border)] bg-[var(--vt-surface)] p-6 sm:mt-20 sm:p-8 lg:grid-cols-[0.78fr_1.22fr] lg:items-start lg:p-10">
+          <div>
+            <p className="mz-eyebrow">One next action</p>
+            <h2 className="mz-h2 mt-3">Scope the cohort before anything is measured.</h2>
+            <p className="mz-small mt-4 max-w-md">
+              We review the request, confirm the baseline, cohort, employer-response owner, and measurement window, then provide a signed scope. No auto-provisioning and no payment collection on this page.
+            </p>
+          </div>
+          <div className="border-t border-[var(--vt-border)] pt-6 lg:border-l lg:border-t-0 lg:pl-8 lg:pt-0">
+            <PilotRequestForm sourceContext="/pilot" />
+          </div>
+        </section>
+      </PageFrame>
+    </div>
   );
 }

@@ -1,11 +1,10 @@
 {
   "generatedAgainst": "local",
-  "total": 100,
+  "total": 90,
   "entries": {
     "apps/web/app/concierge/page.tsx::2::packet": 8,
     "apps/web/app/demo/page.tsx::2::packet": 3,
     "apps/web/app/employers/how-it-works/page.tsx::2::packet": 2,
-    "apps/web/app/employers/page.tsx::2::packet": 3,
     "apps/web/app/issuer/audit-boundary/[requestId]/page.tsx::1::holder": 1,
     "apps/web/app/issuer/policy-review/[requestId]/page.tsx::1::PSV": 4,
     "apps/web/app/issuer/psv-receipt/[requestId]/page.tsx::1::PSV": 2,
@@ -14,9 +13,7 @@
     "apps/web/app/issuer/review/[requestId]/page.tsx::1::PSV": 1,
     "apps/web/app/not-found.tsx::1::holder": 1,
     "apps/web/app/onboarding/fetching/page.tsx::2::snapshot": 2,
-    "apps/web/app/pilot/page.tsx::1::PSV": 2,
-    "apps/web/app/pilot/page.tsx::2::packet": 6,
-    "apps/web/app/pilot/page.tsx::2::snapshot": 1,
+    "apps/web/app/pilot/page.tsx::2::packet": 2,
     "apps/web/components/clinician/BiometricPrompt.tsx::1::holder": 2,
     "apps/web/components/clinician/CredentialCard.tsx::1::PSV": 4,
     "apps/web/components/clinician/intake-types.ts::1::PSV": 1,

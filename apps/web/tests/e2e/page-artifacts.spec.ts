@@ -4,10 +4,10 @@ import { expect, test } from '@playwright/test';
  * Animated artifacts on the non-homepage public pages — e2e contracts.
  *
  * The founder mandate: "nearly all pages should have an animated visual."
- * These pin the deployment of that mandate to /employers, /trust, and
- * /pilot, and hold the same motion honesty the homepage holds: play once on
- * entry, then rest (CD-11); the base frame is complete without JS; nothing
- * moves under prefers-reduced-motion.
+ * These pin the deployment of that mandate to the public routes that still
+ * mount AskVitalCV SVG artifacts, and hold the same motion honesty the
+ * homepage holds: play once on entry, then rest (CD-11); the base frame is
+ * complete without JS; nothing moves under prefers-reduced-motion.
  */
 
 /**
@@ -16,11 +16,13 @@ import { expect, test } from '@playwright/test';
  * and the rest-check below covers every artifact on the page. WO-15 replaces
  * the employers elevation with manifest-owned documentary and tactile scenes;
  * their static/motion contract is covered by employers-experience.spec.ts.
+ * WO-16 does the same for /pilot through the activation_path VisualScene; its
+ * static, reduced-motion, and no-JS contract lives in
+ * activation-path-experience.spec.ts.
  */
 const PAGES = [
   { path: '/employers/how-it-works', artifact: 'A consented packet arriving' },
   { path: '/trust', artifact: 'One claim connected to its named source' },
-  { path: '/pilot', artifact: 'A timeline from accepted offer' },
   { path: '/matcha/experience', artifact: 'A drawn clinician beside the record' },
   { path: '/matcha/experience', artifact: 'Six medical specialties drawn at equal weight' },
 ] as const;

@@ -24,6 +24,7 @@ export const SCENE_IDS = [
   'quiet_source_constellation',
   'workbench_window',
   'decision_trail',
+  'activation_path',
 ] as const;
 export type SceneId = (typeof SCENE_IDS)[number];
 
@@ -163,6 +164,23 @@ export const SCENE_MANIFEST: readonly SceneManifestEntry[] = [
         },
       },
     ],
+  },
+  {
+    scene: 'activation_path',
+    kind: 'process',
+    title: 'From NPI to first opportunity',
+    aspect: { w: 8, h: 5 },
+    poster: {
+      path: '/scenes/activation-path.avif',
+      format: 'avif',
+      source: 'Original generated commission for VitalCV',
+      license: 'VitalCV proprietary',
+      origin: 'WO-16, 2026-08-14; tactile activation illustration, truth-reviewed to stop before application or decision',
+    },
+    motion: [],
+    transcript:
+      'An illustrative NPI card enters a source-reading aperture, evidence gathers into a CV Wallet folio, the clinician reaches a physical choice gate, and one opportunity doorway waits ahead. The illustration stops before application, employer review, decision, credentialing, hire, or start.',
+    altText: 'Tactile illustration of an NPI card becoming a CV Wallet, passing a clinician choice gate, and reaching an opportunity doorway',
   },
   {
     scene: 'employer_desk',

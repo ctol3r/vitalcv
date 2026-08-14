@@ -35,11 +35,8 @@ import {
   Check,
   CheckCircle2,
   ChevronRight,
-  FileCheck2,
   Loader2,
   ShieldCheck,
-  Stethoscope,
-  Wallet,
 } from 'lucide-react';
 import {
   describeBootstrapError,
@@ -61,6 +58,8 @@ import { readNpiHandoff, readNpiQueryHandoff, writeNpiHandoff } from '@/lib/onbo
 import { trackPilotEvent } from '@/lib/pilot-ops/client';
 import { FUNNEL_EVENTS, trackFunnelEvent } from '@/lib/analytics/funnel';
 import { UX_EVENTS } from '@/lib/analytics/ux-events';
+import { ActivationPath } from '@/components/onboarding/ActivationPath';
+import { VisualScene } from '@/components/visual-scene/VisualScene';
 import type { Bootstrap } from '@/components/home/evidence/evidenceCapsuleModel';
 import type { TrustState } from '@/components/readiness/sourceCheckNarration';
 
@@ -102,14 +101,6 @@ type Profession = (typeof PROFESSIONS)[number]['value'];
 
 /** Bump when the services-agreement / attestation copy materially changes. */
 const ATTESTATION_VERSION = 'v1';
-
-/** Honest value props — VitalCV's real clinician offer, no over-claim. */
-const BENEFITS: ReadonlyArray<{ icon: React.ReactNode; text: string }> = [
-  { icon: <Stethoscope className="h-4 w-4" aria-hidden />, text: 'Source-backed career evidence that follows you across every role' },
-  { icon: <Wallet className="h-4 w-4" aria-hidden />, text: 'A clinician-owned career profile — free to start, and yours to keep' },
-  { icon: <FileCheck2 className="h-4 w-4" aria-hidden />, text: 'An employer-ready readiness packet a hospital can review claim by claim' },
-  { icon: <ShieldCheck className="h-4 w-4" aria-hidden />, text: 'Your evidence, your control — no credit card, no document uploads to start' },
-];
 
 const FAQS: ReadonlyArray<{ q: string; a: string }> = [
   {
@@ -412,6 +403,13 @@ export default function GetReadySurface() {
           <Loader2 className="h-7 w-7 animate-spin text-[var(--vt-text-muted)]" aria-hidden />
           <p className="mz-small">Checking your workspace…</p>
         </div>
+        <noscript>
+          <div className="mt-5 border-y border-[var(--vt-border)] py-5 text-left">
+            <p className="text-sm font-semibold text-[var(--vt-text-primary)]">JavaScript is needed to connect a workspace.</p>
+            <p className="mz-small mt-2">You can still inspect a public NPI record without signing in or saving anything.</p>
+            <Link href="/verify" className={`${secondaryBtn} mt-4`}>Look up an NPI</Link>
+          </div>
+        </noscript>
       </Shell>
     );
   }
@@ -536,8 +534,8 @@ export default function GetReadySurface() {
       <Shell>
         <GateIcon />
         <Header
-          title="See your record before you create anything"
-          lede="Enter your NPI and VitalCV shows you your public NPPES registry record first. Sign in only when you want to keep it."
+          title="Start with your NPI. See where your record can go."
+          lede="VitalCV reads your public NPPES record first, keeps every later source state distinct, and opens the path to a CV Wallet and source-labelled opportunities. Sign in only when you want to save it."
         />
         <form
           onSubmit={(event) => {
@@ -991,36 +989,32 @@ function Shell({ children, headerStage }: { children: React.ReactNode; headerSta
       data-header-stage={headerStage}
       data-header-theme={headerStage ? 'light' : undefined}
     >
-      <div className="flex items-center justify-center px-6 py-12">
+      <div className="flex items-center justify-center px-6 py-12 lg:px-8">
         <div className="w-full max-w-md text-center">{children}</div>
       </div>
-      <BenefitsPanel />
+      <ActivationPanel />
     </div>
   );
 }
 
-function BenefitsPanel() {
-  // Calm-light benefits rail — full Calm Wave D56, no dark surfaces. Sits as the
-  // second column on the shared paper canvas, set off from the action side by a
-  // single left hairline and a subtle paper-2 inset. No gradient, no glow, no
-  // drop-shadow — ink on paper, the same family as the action column.
+function ActivationPanel() {
   return (
-    <div className="hidden border-l border-[var(--rule)] px-8 py-12 lg:flex lg:items-center lg:justify-center">
-      <div className="mz-inset w-full max-w-sm p-8">
-        <p className="mz-eyebrow">VitalCV for Clinicians</p>
-        <p className="mz-body mt-3">Your free, source-backed career profile</p>
-        <ul className="mt-6 space-y-4">
-          {BENEFITS.map((b, i) => (
-            <li key={i} className="flex items-start gap-3 text-sm text-[var(--ink-600)]">
-              <span className="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-[3px] border border-[color-mix(in_oklab,var(--accent)_30%,transparent)] bg-[color-mix(in_oklab,var(--accent)_10%,transparent)] text-[var(--accent)]">
-                {b.icon}
-              </span>
-              <span className="leading-relaxed">{b.text}</span>
-            </li>
-          ))}
-        </ul>
+    <aside className="border-t border-[var(--rule)] px-5 py-10 lg:flex lg:items-center lg:justify-center lg:border-l lg:border-t-0 lg:px-8 lg:py-12" aria-label="The clinician activation path">
+      <div className="w-full max-w-xl">
+        <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.12em] text-[var(--vt-text-muted)]">
+          Illustration — not a live record, application, or result
+        </p>
+        <VisualScene
+          scene="activation_path"
+          kind="process"
+          priority="inline"
+          className="overflow-hidden border border-[var(--vt-border)] bg-[var(--vt-surface)] [&_figcaption]:border-t [&_figcaption]:border-[var(--vt-border)] [&_figcaption]:px-4 [&_figcaption]:py-3 [&_figcaption]:font-mono [&_figcaption]:text-[10px] [&_figcaption]:leading-relaxed [&_figcaption]:text-[var(--vt-text-muted)]"
+        />
+        <div className="mt-7">
+          <ActivationPath compact heading="Your record opens the next move." />
+        </div>
       </div>
-    </div>
+    </aside>
   );
 }
 
@@ -1028,14 +1022,16 @@ function FaqSection() {
   return (
     <section className="mt-10 border-t border-[var(--vt-border)] pt-6 text-left">
       <h3 className="mz-eyebrow">Verification FAQ</h3>
-      <dl className="mt-4 space-y-4">
+      <div className="mt-4 divide-y divide-[var(--vt-border)] border-y border-[var(--vt-border)]">
         {FAQS.map((f) => (
-          <div key={f.q}>
-            <dt className="text-sm font-semibold text-[var(--vt-text-primary)]">{f.q}</dt>
-            <dd className="mz-small mt-1 leading-relaxed">{f.a}</dd>
-          </div>
+          <details key={f.q} className="py-3">
+            <summary className="flex min-h-11 cursor-pointer items-center text-sm font-semibold text-[var(--vt-text-primary)]">
+              {f.q}
+            </summary>
+            <p className="mz-small pb-2 leading-relaxed">{f.a}</p>
+          </details>
         ))}
-      </dl>
+      </div>
     </section>
   );
 }
