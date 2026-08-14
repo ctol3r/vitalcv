@@ -16,23 +16,97 @@ import { expect, test, type Page } from '@playwright/test';
 
 const surface = (page: Page) => page.locator('[data-home-work-surface]');
 
+const PUBLIC_OPPORTUNITIES = {
+  total: 2,
+  opportunities: [
+    {
+      id: 'feed-role',
+      organizationId: 'feed-org',
+      organizationName: 'Source Health',
+      organizationSlug: 'source-health',
+      title: 'Family Medicine Physician',
+      specialty: 'Family Medicine',
+      hiringType: 'locums',
+      state: 'CA',
+      payRange: null,
+      requirementLevel: 'not_stated',
+      description: null,
+      remote: false,
+      status: 'ACTIVE',
+      createdAt: '2026-08-13T12:00:00.000Z',
+      isFeedListing: true,
+      source: {
+        kind: 'public_feed',
+        label: 'Listed on greenhouse',
+        url: 'https://jobs.example.test/family-medicine',
+        updatedAt: '2026-08-13T12:00:00.000Z',
+        fetchedAt: '2026-08-13T12:00:00.000Z',
+      },
+      freshness: {
+        listingStatus: 'fresh',
+        employerDataStatus: 'limited',
+        completenessScore: 0,
+        isStale: false,
+        isUncertain: true,
+        lastUpdatedAt: '2026-08-13T12:00:00.000Z',
+      },
+    },
+    {
+      id: 'integrated-role',
+      organizationId: 'integrated-org',
+      organizationName: 'Connected Clinical Group',
+      organizationSlug: 'connected-clinical-group',
+      title: 'Emergency Medicine Physician',
+      specialty: 'Emergency Medicine',
+      hiringType: 'perm',
+      state: 'TX',
+      payRange: null,
+      requirementLevel: 'stated',
+      description: null,
+      remote: false,
+      status: 'open',
+      createdAt: '2026-08-13T13:00:00.000Z',
+      isFeedListing: false,
+      source: {
+        kind: 'opportunity',
+        label: 'Published through VitalCV',
+        updatedAt: '2026-08-13T13:00:00.000Z',
+      },
+      freshness: {
+        listingStatus: 'fresh',
+        employerDataStatus: 'complete',
+        completenessScore: 100,
+        isStale: false,
+        isUncertain: false,
+        lastUpdatedAt: '2026-08-13T13:00:00.000Z',
+      },
+    },
+  ],
+};
+
 test.describe('home — the Easy Button hero', () => {
   test.beforeEach(async ({ page }) => {
+    await page.route('**/api/opportunities?*', (route) => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(PUBLIC_OPPORTUNITIES),
+    }));
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto('/');
   });
 
-  test('one h1, and it is the record-first thesis', async ({ page }) => {
+  test('one h1, and it is the founder-locked career-mobility thesis', async ({ page }) => {
     const h1 = page.locator('h1');
     await expect(h1).toHaveCount(1);
-    await expect(h1).toContainText('Your career record,');
-    await expect(h1).toContainText('ready when work moves.');
+    await expect(h1).toHaveText('One career record. More ways forward.');
+    await expect(page.getByText('The Provider Career Evidence Network.', { exact: true })).toBeVisible();
   });
 
-  test('the hero never blocks: copy, entry, and surface are visible together on load', async ({ page }) => {
+  test('the hero never blocks: human image, NPI entry, and tactile folio paint together', async ({ page }) => {
     await expect(page.locator('[data-home-hero]')).toBeVisible();
     await expect(page.locator('#ezh-npi')).toBeVisible();
-    await expect(page.locator('[data-home-primary-cta]')).toBeVisible();
+    await expect(page.locator('[data-home-primary-cta]')).toHaveText('Start my CV Wallet');
+    await expect(page.locator('[data-scene="journey_film"] img')).toBeVisible();
     await expect(surface(page)).toBeVisible();
   });
 
@@ -71,16 +145,34 @@ test.describe('home — the Easy Button hero', () => {
     expect(reached).toBe(true);
   });
 
-  test('the employer doorway is subordinate: after the clinician action, quiet, and real', async ({ page }) => {
-    const employer = page.locator('[data-home-employer-cta]');
-    await expect(employer).toHaveAttribute('href', '/employers');
+  test('the opportunity doorway is the signed-out secondary action', async ({ page }) => {
+    const opportunity = page.locator('[data-home-opportunity-cta]');
+    await expect(opportunity).toHaveAttribute('href', '/explore');
+    await expect(opportunity).toHaveText(/Explore clinician opportunities/);
     const order = await page.evaluate(() => {
       const primary = document.querySelector('[data-home-primary-cta]');
-      const emp = document.querySelector('[data-home-employer-cta]');
-      if (!primary || !emp) return false;
-      return Boolean(primary.compareDocumentPosition(emp) & Node.DOCUMENT_POSITION_FOLLOWING);
+      const secondary = document.querySelector('[data-home-opportunity-cta]');
+      if (!primary || !secondary) return false;
+      return Boolean(primary.compareDocumentPosition(secondary) & Node.DOCUMENT_POSITION_FOLLOWING);
     });
     expect(order).toBe(true);
+  });
+
+  test('the opportunity horizon renders only returned roles with source and application boundary', async ({ page }) => {
+    const horizon = page.locator('[data-home-opportunity-horizon]');
+    await expect(horizon.locator('.ezh-opportunity-row')).toHaveCount(2);
+    await expect(horizon.getByText('Listed on greenhouse', { exact: true })).toBeVisible();
+    await expect(horizon.getByText('Observed Aug 13, 2026', { exact: true }).first()).toBeVisible();
+    await expect(horizon.getByText(/Listed as open/).first()).toBeVisible();
+    await expect(horizon.getByRole('link', { name: 'View original listing' })).toHaveAttribute(
+      'href',
+      'https://jobs.example.test/family-medicine',
+    );
+    await expect(horizon.getByRole('link', { name: 'Apply with VitalCV' })).toHaveAttribute(
+      'href',
+      '/opportunities/integrated-role',
+    );
+    await expect(horizon).not.toContainText(/ready now|automatically eligible/i);
   });
 
   test('the final action returns to the real entry', async ({ page }) => {
@@ -94,7 +186,7 @@ test.describe('home — the Easy Button hero', () => {
 
 test.describe('home — layout integrity across viewports', () => {
   for (const [width, height] of [
-    [1728, 1000],
+    [1728, 1117],
     [1440, 900],
     [1280, 832],
     [1024, 768],
@@ -102,6 +194,11 @@ test.describe('home — layout integrity across viewports', () => {
     [390, 844],
   ] as const) {
     test(`no horizontal overflow at ${width}×${height}`, async ({ page }) => {
+      await page.route('**/api/opportunities?*', (route) => route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(PUBLIC_OPPORTUNITIES),
+      }));
       await page.setViewportSize({ width, height });
       await page.goto('/');
       await expect(page.locator('[data-home-hero]')).toBeVisible();
@@ -128,6 +225,11 @@ test.describe('home — reduced motion', () => {
   // page.emulateMedia rather than test.use: with this config the context
   // option is not honored (@playwright/test 1.58.2), the CDP call is.
   test('the static frame is complete, annotated, and loses no meaning', async ({ page }) => {
+    await page.route('**/api/opportunities?*', (route) => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(PUBLIC_OPPORTUNITIES),
+    }));
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto('/');
@@ -135,5 +237,20 @@ test.describe('home — reduced motion', () => {
     await expect(surface(page).getByText('Identity', { exact: true })).toBeVisible();
     await expect(surface(page).getByText('Needs your review', { exact: true })).toBeVisible();
     await expect(surface(page).locator('.ezh-rm-legend')).toBeVisible();
+  });
+
+  test('the no-JavaScript frame keeps the promise, photo, record rows, and opportunity doorway', async ({ browser }) => {
+    const context = await browser.newContext({
+      javaScriptEnabled: false,
+      viewport: { width: 1440, height: 900 },
+    });
+    const page = await context.newPage();
+    await page.goto('/');
+    await expect(page.locator('h1')).toHaveText('One career record. More ways forward.');
+    await expect(page.locator('[data-scene="journey_film"] img')).toBeVisible();
+    await expect(surface(page).locator('.ezh-watch-row')).toHaveCount(4);
+    await expect(page.locator('[data-home-opportunity-cta]')).toHaveAttribute('href', '/explore');
+    await expect(page.getByText('Reading the current opportunity feed…')).toBeVisible();
+    await context.close();
   });
 });

@@ -86,6 +86,18 @@ const MATCHERS = rules.ec9BannedCustomerFacingNouns.map((noun) => ({
   re: new RegExp(`\\b${noun.replace(/ /g, '\\s+')}\\b`, 'i'),
 }));
 
+/**
+ * Direction D.1 restores exact, founder-ratified compounds without
+ * restoring their generic nouns. The machine-readable copy gate carries the
+ * same narrow allowWithin contract; keep this older AST ratchet aligned until
+ * it is retired in favour of the canonical engine.
+ */
+const RATIFIED_COMPOUNDS = [
+  /\bCV\s+Wallet\b/gi,
+  /\bExact\s+packet\b/gi,
+  /\bProvider\s+Career\s+Evidence\s+Network\b/gi,
+];
+
 function walk(dir: string, acc: string[] = []): string[] {
   if (!fs.existsSync(dir)) return acc;
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -109,7 +121,11 @@ function scan(): Record<string, number> {
 
     let n = 0;
     const hit = (text: string) => {
-      if (MATCHERS.some((m) => m.re.test(text))) n += 1;
+      const governed = RATIFIED_COMPOUNDS.reduce(
+        (copy, phrase) => copy.replace(phrase, ''),
+        text,
+      );
+      if (MATCHERS.some((m) => m.re.test(governed))) n += 1;
     };
 
     const visit = (node: ts.Node): void => {

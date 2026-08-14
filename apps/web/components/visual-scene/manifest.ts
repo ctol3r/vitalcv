@@ -1,17 +1,16 @@
 /**
  * VisualScene asset manifest — CC-06 / VIS-05.
  *
- * One registry for every public visual scene. The ten scene ids are the
+ * One registry for every public visual scene. The approved scene ids are the
  * approved first-release inventory (Experience Constitution EC-28); a scene
  * outside this list cannot be rendered, and a new one requires an EC-22
  * amendment. Budgets and metadata obligations are EC-29 law: every asset
  * carries source / license / origin, posters stay ≤ 250 KB, desktop motion
  * ≤ 1.5 MB per format.
  *
- * This wave ships static placeholder posters only (original SVG, drawn for
- * this repo — no stock, no generated concept art, no 3D footage). Motion
- * sources land per-scene in later waves (CC-13+) and must pass the same
- * validation.
+ * The inventory contains both original in-repo SVG placeholders and the
+ * provenance-bound WO-12 documentary commission. Motion sources land
+ * per-scene in later waves and must pass the same validation.
  */
 
 export const SCENE_IDS = [
@@ -31,6 +30,20 @@ export type SceneId = (typeof SCENE_IDS)[number];
 /** EC-26: the three scene kinds, distinguished at the type level. */
 export type SceneKind = 'decorative' | 'process' | 'stateful';
 
+/**
+ * A route variant changes only composition (crop/aspect), never the scene's
+ * truth, source, license, or kind. Keeping this in the manifest prevents a
+ * route-local CSS crop from becoming an undocumented second asset system.
+ */
+export type SceneRouteVariantId = 'home_documentary';
+
+export interface SceneRouteVariant {
+  id: SceneRouteVariantId;
+  route: '/' | '/employers' | '/pilot' | '/onboarding' | '/trust';
+  aspect: { w: number; h: number };
+  objectPosition?: string;
+}
+
 /** EC-29 budgets, in bytes. Measured by the asset validation test. */
 export const POSTER_BUDGET_BYTES = 250_000;
 export const MOTION_BUDGET_BYTES = 1_500_000;
@@ -38,7 +51,7 @@ export const MOTION_BUDGET_BYTES = 1_500_000;
 export interface SceneAsset {
   /** Path under apps/web/public (leading slash). */
   path: string;
-  format: 'svg' | 'avif' | 'webp' | 'png' | 'webm' | 'mp4';
+  format: 'svg' | 'avif' | 'webp' | 'png' | 'jpeg' | 'webm' | 'mp4';
   /** Provenance metadata — required on every asset (EC-29). */
   source: string;
   license: string;
@@ -61,15 +74,40 @@ export interface SceneManifestEntry {
   transcript?: string;
   /** Alt text: empty string for decorative crops, meaningful otherwise. */
   altText: string;
+  /** Optional route-authorized crops of the same provenance-bound asset. */
+  routeVariants?: readonly SceneRouteVariant[];
 }
 
 /**
- * Placeholder entries — one per kind, so the whole contract is exercised
- * before any production art exists. Compositions are abstract by design and
- * pass the EC-25 truth review: no providers, no counts, no source responses,
- * no outcomes.
+ * Manifest entries are truth-reviewed compositions: none may imply a real
+ * clinician identity, employer, source response, credential, or outcome.
  */
 export const SCENE_MANIFEST: readonly SceneManifestEntry[] = [
+  {
+    scene: 'journey_film',
+    kind: 'process',
+    title: 'A clinician moving toward the next role',
+    aspect: { w: 2, h: 3 },
+    poster: {
+      path: '/scenes/home-career-forward-portrait.jpg',
+      format: 'jpeg',
+      source: 'Original generated commission for VitalCV',
+      license: 'VitalCV proprietary',
+      origin: 'WO-12, 2026-08-14; generated adult, no real clinician or patient',
+    },
+    motion: [],
+    transcript:
+      'An art-directed image of an anonymous clinician moving through a quiet clinical setting. No real clinician, patient, employer, credential, or outcome is represented.',
+    altText: 'Art-directed view from behind of a clinician walking through a quiet hospital corridor',
+    routeVariants: [
+      {
+        id: 'home_documentary',
+        route: '/',
+        aspect: { w: 4, h: 5 },
+        objectPosition: '52% 46%',
+      },
+    ],
+  },
   {
     scene: 'continuity_ribbon',
     kind: 'decorative',
@@ -123,4 +161,12 @@ export const SCENE_MANIFEST: readonly SceneManifestEntry[] = [
 
 export function sceneEntry(scene: SceneId): SceneManifestEntry | undefined {
   return SCENE_MANIFEST.find((e) => e.scene === scene);
+}
+
+export function sceneRouteVariant(
+  entry: SceneManifestEntry,
+  variant: SceneRouteVariantId | undefined,
+): SceneRouteVariant | undefined {
+  if (!variant) return undefined;
+  return entry.routeVariants?.find((candidate) => candidate.id === variant);
 }

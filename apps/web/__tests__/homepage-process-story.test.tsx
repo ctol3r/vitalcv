@@ -20,7 +20,7 @@ describe('homepage record-first composition', () => {
     const html = renderHomepageHtml();
     expect(html).toContain('data-home-work-surface');
     expect(html).toContain('data-motion="static"');
-    expect(html).toContain('Career record');
+    expect(html).toContain('CV Wallet');
     expect(html).not.toContain('data-home-process-story');
     expect(html).not.toContain('Chapter 1 of 5');
   });

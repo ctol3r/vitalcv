@@ -11,7 +11,7 @@
  */
 
 import { usePathname, useSearchParams } from 'next/navigation';
-import { useCallback, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useId, useRef, useState, type ReactNode } from 'react';
 
 import { useEntityPreview } from '@/hooks/useEntityPreview';
 import { usePaneStack } from '@/hooks/usePaneStack';
@@ -37,6 +37,7 @@ export function EntityLink({ entity, children, className, relationship }: Entity
   const searchParams = useSearchParams();
   const { state, load, cancel } = useEntityPreview(entity.type, entity.id);
   const [open, setOpen] = useState(false);
+  const relationshipId = useId();
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const href = (() => {
@@ -76,7 +77,7 @@ export function EntityLink({ entity, children, className, relationship }: Entity
         href={href}
         className={className}
         data-entity-link={`${entity.type}:${entity.id}`}
-        aria-description={relationship}
+        aria-describedby={relationship ? relationshipId : undefined}
         onFocus={beginPreview}
         onBlur={endPreview}
         onClick={(event) => {
@@ -97,6 +98,11 @@ export function EntityLink({ entity, children, className, relationship }: Entity
       >
         {children}
       </a>
+      {relationship ? (
+        <span id={relationshipId} className={styles.visuallyHidden}>
+          {relationship}
+        </span>
+      ) : null}
       {showCard ? (
         <span className={styles.entityLinkPreview}>
           <EntityPreviewCard

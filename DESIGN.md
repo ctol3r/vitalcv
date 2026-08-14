@@ -27,12 +27,12 @@ specificity, so this list is the precedence:
 
 | # | File | `--vt-*` declarations |
 |---|---|---|
-| 1 | `apps/web/styles/themes/index.css` | 153 |
+| 1 | `apps/web/styles/themes/index.css` | 165 |
 | 2 | `apps/web/styles/tokens.css` | 33 |
 | 3 | `apps/web/styles/vitalTokens.css` | 65 |
 | 4 | `apps/web/styles/matcha-zen.css` | 16 |
 
-**267 declarations across 4 files, 178 distinct tokens.**
+**279 declarations across 4 files, 190 distinct tokens.**
 
 ### Route-scoped token files (outside the global cascade)
 
@@ -210,7 +210,7 @@ table — the table says what exists, this says what to do.
 
 ## Tokens
 
-Role sentences come from `docs/design/design-md-roles.json`. **12 of 178**
+Role sentences come from `docs/design/design-md-roles.json`. **12 of 190**
 tokens have a documented role; the rest say so plainly rather than inventing one.
 
 | Token | Effective value | Declared in | Role |
@@ -299,12 +299,23 @@ tokens have a documented role; the rest say so plainly rather than inventing one
 | `--vt-glass-ring-faint` | `oklch(1 0 0 / 0.06)` | `styles/vitalTokens.css` | — *(role not documented)* |
 | `--vt-glass-subtle-bg` | `oklch(1 0 0 / 0.03)` | `styles/vitalTokens.css` | — *(role not documented)* |
 | `--vt-glow-passport` | `oklch(0.45 0.01 255 / 0.10)` | `styles/vitalTokens.css` | — *(role not documented)* |
+| `--vt-home-d-binding` | `#191817` | `styles/themes/index.css` | — *(role not documented)* |
+| `--vt-home-d-binding-line` | `#A7A197` | `styles/themes/index.css` | — *(role not documented)* |
 | `--vt-home-d-dim` | `#5C5852` | `styles/themes/index.css` | — *(role not documented)* |
+| `--vt-home-d-folio-back` | `#C8C2B7` | `styles/themes/index.css` | — *(role not documented)* |
+| `--vt-home-d-folio-line` | `#C9C2B5` | `styles/themes/index.css` | — *(role not documented)* |
+| `--vt-home-d-folio-mid` | `#EEE9DF` | `styles/themes/index.css` | — *(role not documented)* |
+| `--vt-home-d-folio-sheet` | `#E7E2D8` | `styles/themes/index.css` | — *(role not documented)* |
 | `--vt-home-d-ground` | `#F7F6F3` | `styles/themes/index.css` | — *(role not documented)* |
 | `--vt-home-d-ink` | `#131211` | `styles/themes/index.css` | — *(role not documented)* |
 | `--vt-home-d-panel` | `#FFFFFF` | `styles/themes/index.css` | — *(role not documented)* |
+| `--vt-home-d-photo-matte` | `#D8D4CA` | `styles/themes/index.css` | — *(role not documented)* |
 | `--vt-home-d-rule` | `#E0DDD6` | `styles/themes/index.css` | — *(role not documented)* |
 | `--vt-home-d-source` | `#0F6D4E` | `styles/themes/index.css` | — *(role not documented)* |
+| `--vt-home-d-tab` | `#EFEDE8` | `styles/themes/index.css` | — *(role not documented)* |
+| `--vt-home-d-tactile-back` | `#D8D2C7` | `styles/themes/index.css` | — *(role not documented)* |
+| `--vt-home-d-tactile-front` | `#FDFCF9` | `styles/themes/index.css` | — *(role not documented)* |
+| `--vt-home-d-tactile-line` | `#AAA397` | `styles/themes/index.css` | — *(role not documented)* |
 | `--vt-info` | `var(--vt-accent)` | `styles/themes/index.css` | — *(role not documented)* |
 | `--vt-node-alert` | `#ef4444` | `styles/themes/index.css` | — *(role not documented)* |
 | `--vt-node-company` | `#8b5cf6` | `styles/themes/index.css` | — *(role not documented)* |
@@ -393,4 +404,5 @@ tokens have a documented role; the rest say so plainly rather than inventing one
 | `--vt-text-primary` | `var(--ink-900)` | `styles/themes/index.css, styles/matcha-zen.css` | — *(role not documented)* |
 | `--vt-text-secondary` | `var(--ink-600)` | `styles/themes/index.css, styles/matcha-zen.css` | Support copy. The darkest grey allowed for prose at AA on paper. Never body text on a dark ground without rechecking contrast. |
 | `--vt-warning` | `var(--vt-severity-medium)` | `styles/themes/index.css` | — *(role not documented)* |
+| `--vt-z-raised` | `10` | `styles/themes/index.css` | — *(role not documented)* |
 

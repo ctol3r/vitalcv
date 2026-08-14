@@ -16,7 +16,8 @@
     "It EXTENDS apps/web/__tests__/customer-language-guard.test.ts (wave L1, `wallet`, per-file",
     "allowlist) to the whole surface area and to waves L2-L4. That test keeps the POSITIVE direction",
     "— asserting truth qualifiers still exist. Do not delete it in favour of this.",
-    "2026-08-10: wallet + passport moved tier 2 -> tier 1. The inventory classes both as Retire (dead concepts, everywhere in customer copy), unlike packet/receipt/recognition which are task-specific. Tier 2 placement was under-enforcing them."
+    "2026-08-10: wallet + passport moved tier 2 -> tier 1. The inventory classes both as Retire (dead concepts, everywhere in customer copy), unlike packet/receipt/recognition which are task-specific. Tier 2 placement was under-enforcing them.",
+    "2026-08-13: the founder-locked human+tactile direction restores the exact compound product name CV Wallet and the process label Exact packet. The gate exempts only those ratified phrases; generic wallet/packet acquisition copy remains prohibited."
   ],
   "protectedTruthQualifiers": {
     "description": [
@@ -153,7 +154,11 @@
         },
         {
           "term": "wallet",
-          "fix": "Retired concept (inventory Retire tier, wave L1). Say 'your VitalCV profile'."
+          "fix": "Generic wallet remains retired. The founder-locked compound product name 'CV Wallet' is allowed.",
+          "allowWithin": [
+            "CV Wallet"
+          ],
+          "allowNote": "Founder direction D.1, 2026-08-13: CV Wallet is the clinician-owned record's exact name."
         },
         {
           "term": "passport",
@@ -173,7 +178,11 @@
       "terms": [
         {
           "term": "packet",
-          "fix": "Wave L3. Allowed task-specific; retire from acquisition copy. Say 'what the employer receives'."
+          "fix": "Allowed task-specific; retire from acquisition copy except the founder-locked process label 'Exact packet'.",
+          "allowWithin": [
+            "Exact packet"
+          ],
+          "allowNote": "Founder direction D.1, 2026-08-13: the record-to-reuse sequence names the clinician-selected artifact Exact packet."
         },
         {
           "term": "receipt",

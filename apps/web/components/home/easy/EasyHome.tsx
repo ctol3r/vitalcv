@@ -1,14 +1,13 @@
 'use client';
 
 /**
- * EasyHome — the `/` production experience (UX-V1 cutover).
+ * EasyHome — the `/` production experience (Direction D.1, WO-12).
  *
- * Direction B, as amended: show VitalCV doing work rather than explaining
- * machinery. One headline ("Enter your NPI. VitalCV does the rest."), the
- * REAL NPI entry beside an illustrated work surface that plays the whole
- * story in ~10 seconds without blocking anything, the agent's ownership
- * model, the outcome, a subordinate employer doorway on a light band, and a
- * final action + footer composition.
+ * The human+tactile amendment keeps Direction D's record-first decision and
+ * adds the missing career stakes: an art-directed documentary scene, a
+ * tactile CV Wallet folio, source-labelled public opportunities, and the
+ * complete record → opportunity → choice → packet → review → accepted-head-
+ * start → reuse sequence. The shared public chrome is intentionally unchanged.
  *
  * The NPI entry is the same real flow the previous homepage ran: checkNpi
  * gates format locally, /api/identity/bootstrap and /api/trust-state resolve
@@ -16,20 +15,24 @@
  * record" hands the NPI to /onboarding. No API, auth, consent, or data
  * behavior changes here — this file is presentation over the existing hook.
  *
- * Truth contract carried forward, not relaxed: the illustration labels
- * itself illustrative, the boundary line states that nothing has been sent
- * and institution review decides outcomes, and the footer carries the
- * derived source-freshness sentence so cadence can never drift from
- * /status.
+ * Truth contract carried forward, not relaxed: documentary art is labelled as
+ * art-directed, example evidence remains illustrative, opportunities are
+ * loaded from the live provenance-bearing public API, and institution review
+ * remains an unresolved employer decision.
  */
 
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 
 import Attribution from '@/components/home/easy/Attribution';
+import CareerMobilitySequence from '@/components/home/easy/CareerMobilitySequence';
 import { NpiReveal, ResolvingNarration } from '@/components/home/easy/NpiReveal';
+import OpportunityHorizon from '@/components/home/easy/OpportunityHorizon';
 import Questions from '@/components/home/easy/Questions';
 import WorkSurface from '@/components/home/easy/WorkSurface';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { VisualScene } from '@/components/visual-scene/VisualScene';
 import { FUNNEL_EVENTS, trackFunnelEvent } from '@/lib/analytics/funnel';
 import { useCareerLoop } from '@/lib/career-loop/useCareerLoop';
 import { writeNpiHandoff } from '@/lib/onboarding/npiHandoff';
@@ -114,7 +117,7 @@ function NpiEntry({
           Your NPI
         </label>
         <div className="ezh-npi-row">
-          <input
+          <Input
             id="ezh-npi"
             className="ezh-npi-input"
             type="text"
@@ -125,9 +128,9 @@ function NpiEntry({
             value={raw}
             onChange={(event) => handleChange(event.target.value)}
           />
-          <button className="ezh-npi-submit" type="submit" data-home-primary-cta="" disabled={resolving}>
-            {resolving ? 'Checking the registry…' : 'Start with your NPI'}
-          </button>
+          <Button className="ezh-npi-submit" type="submit" data-home-primary-cta="" disabled={resolving}>
+            {resolving ? 'Checking the registry…' : 'Start my CV Wallet'}
+          </Button>
         </div>
         <p className="ezh-npi-count">{digits.length}/10 digits &middot; free, no account needed</p>
         {state.phase === 'invalid' && state.invalidReason ? (
@@ -253,10 +256,24 @@ function HeroStage({
 
   return (
     <>
-      <WorkSurface />
+      <div className="ezh-human-tactile-stage">
+        <div className="ezh-human-media" data-home-human-scene="">
+          <VisualScene
+            scene="journey_film"
+            kind="process"
+            routeVariant="home_documentary"
+            mode="static"
+            priority="hero"
+            className="ezh-human-scene"
+          />
+        </div>
+        <div className="ezh-folio-stage">
+          <WorkSurface />
+        </div>
+      </div>
       <p className="ezh-truth" data-home-truth-boundary="">
-        Illustrative &mdash; no real people, and nothing has been sent. In the product,
-        sending is yours to approve, and institution review decides the outcome.
+        Art-directed image; no real clinician or patient. The record is illustrative, nothing has
+        been sent, and institution review decides the outcome.
       </p>
     </>
   );
@@ -281,28 +298,18 @@ export default function EasyHome() {
       >
         <div className="ezh-wrap">
           <div className="ezh-hero-copy">
-            <h1>
-              Your career record,
-              <br />
-              ready when work moves.
-            </h1>
+            <span className="ezh-hero-eyebrow">The Provider Career Evidence Network.</span>
+            <h1>One career record. More ways forward.</h1>
             <p className="ezh-hero-sub">
-              Start with your NPI. See what public sources support, what you control, and what
-              still needs your attention.
+              Start with your NPI. VitalCV assembles what sources can support, shows what still
+              needs you, and helps you find roles where that record can move with you.
             </p>
 
             <NpiEntry {...loop} />
 
-            <p className="ezh-hero-emp">
-              Hiring clinicians?{' '}
-              <a
-                href="/employers"
-                data-home-employer-cta=""
-                onClick={() => trackFunnelEvent(FUNNEL_EVENTS.EMPLOYER_ENTRY_CLICKED)}
-              >
-                VitalCV for employers <span aria-hidden="true">&#8627;</span>
-              </a>
-            </p>
+            <Link className="ezh-hero-opportunity" href="/explore" data-home-opportunity-cta="">
+              Explore clinician opportunities <span aria-hidden="true">↗</span>
+            </Link>
           </div>
 
           <div className="ezh-hero-stagecol" data-home-stage="">
@@ -311,72 +318,9 @@ export default function EasyHome() {
         </div>
       </section>
 
-      <section className="ezh-record-path" data-header-theme="light" aria-label="How the record moves">
-        <div className="ezh-wrap">
-          <ol>
-            <li><strong>Your record</strong><span>Source states stay visible.</span></li>
-            <li><strong>Your choice</strong><span>You decide what leaves it.</span></li>
-            <li><strong>Exact record for review</strong><span>Review begins with what you approved.</span></li>
-          </ol>
-        </div>
-      </section>
+      <OpportunityHorizon />
 
-      {/* ── the agent's ownership model ──────────────────────────────────── */}
-      <section className="ezh-own" data-header-theme="light" aria-labelledby="ezh-own-h">
-        <div className="ezh-wrap">
-          <div className="ezh-sec-head">
-            <span className="ezh-k">Ownership</span>
-            <h2 id="ezh-own-h">What VitalCV handles &mdash; and what it never touches without you</h2>
-          </div>
-          <p className="ezh-sec-sub">
-            Every item in your hiring process has exactly one owner. That&rsquo;s the whole system.
-          </p>
-
-          <div className="ezh-own-grid">
-            <div className="ezh-own-cell">
-              <span className="ezh-own-mark m-work" aria-hidden="true" />
-              <h3>VitalCV handles</h3>
-              <ul>
-                <li>Pulling public records &mdash; NPPES, state license boards</li>
-                <li>Assembling your work history draft</li>
-                <li>Tracking license renewal dates</li>
-              </ul>
-              <p className="ezh-own-note">
-                Work VitalCV can do safely on its own. Every action is logged for you to see.
-              </p>
-            </div>
-            <div className="ezh-own-cell">
-              <span className="ezh-own-mark m-hold" aria-hidden="true" />
-              <h3>Needs your approval</h3>
-              <ul>
-                <li>Sending your profile to an employer</li>
-                <li>Requesting a reference on your behalf</li>
-              </ul>
-              <p className="ezh-own-note">Prepared and waiting. Nothing is sent until you say so.</p>
-            </div>
-            <div className="ezh-own-cell">
-              <span className="ezh-own-mark m-hold" aria-hidden="true" />
-              <h3>Needs you</h3>
-              <ul>
-                <li>Signing applications</li>
-                <li>Occupational health forms</li>
-              </ul>
-              <p className="ezh-own-note">Only you can do these. We keep the list short and obvious.</p>
-            </div>
-            <div className="ezh-own-cell">
-              <span className="ezh-own-mark m-wait" aria-hidden="true" />
-              <h3>The employer decides</h3>
-              <ul>
-                <li>Interviews and offers</li>
-                <li>Sign-off at their facility</li>
-              </ul>
-              <p className="ezh-own-note">
-                Their call, not ours &mdash; so we show you what we know, when we know it.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
+      <CareerMobilitySequence />
 
       {/* ── how VitalCV knows what it knows ──────────────────────────────
           Sits directly after ownership on purpose: ownership answers whose
@@ -384,113 +328,6 @@ export default function EasyHome() {
           halves of the same trust story, and the page previously had only
           the first. */}
       <Attribution />
-
-      {/* ── the matching layer: why the roles here are different ─────────── */}
-      <section
-        className="ezh-match"
-        data-header-theme="light"
-        data-home-matching=""
-        aria-labelledby="ezh-match-h"
-      >
-        <div className="ezh-wrap">
-          <div className="ezh-sec-head">
-            <span className="ezh-k">Roles</span>
-            <h2 id="ezh-match-h">A job board that reads your credentials, not your keywords</h2>
-          </div>
-          <p className="ezh-sec-sub">
-            Most boards match the words on your r&eacute;sum&eacute;. VitalCV scores a role against
-            what your record already shows &mdash; and names what stands between you and it.
-          </p>
-
-          <div className="ezh-match-grid">
-            <ul className="ezh-match-points">
-              <li>
-                <span className="ezh-tt">Scored on your record</span>
-                <p>
-                  Your NPPES profile, licenses, and specialty &mdash; not the keywords you
-                  remembered to put in a document.
-                </p>
-              </li>
-              <li>
-                <span className="ezh-tt">Every match explains itself</span>
-                <p>
-                  What lines up and what doesn&rsquo;t, in plain terms. Not a percentage you
-                  can&rsquo;t argue with.
-                </p>
-              </li>
-              <li>
-                <span className="ezh-tt">Blockers before you apply</span>
-                <p>
-                  A role that needs a license you don&rsquo;t hold says so up front &mdash; not
-                  after the interview.
-                </p>
-              </li>
-            </ul>
-
-            <div className="ezh-match-panel">
-              <span className="ezh-k">How a match reads</span>
-              <p className="ezh-match-role">Internal Medicine &middot; California &middot; Permanent</p>
-              <ul className="ezh-match-rows">
-                <li className="ezh-match-row is-fit">
-                  <span className="ezh-match-mark" aria-hidden="true" />
-                  <span>Your state license covers where the role is</span>
-                </li>
-                <li className="ezh-match-row is-fit">
-                  <span className="ezh-match-mark" aria-hidden="true" />
-                  <span>Your specialty matches what the role asks for</span>
-                </li>
-                <li className="ezh-match-row is-block">
-                  <span className="ezh-match-mark" aria-hidden="true" />
-                  <span>Board certification isn&rsquo;t on your record yet</span>
-                </li>
-              </ul>
-              <p className="ezh-match-cap">
-                Illustrative &mdash; the shape of a match, not a real posting or a real employer.
-              </p>
-            </div>
-          </div>
-
-          <p className="ezh-match-scope">
-            VitalCV scores the roles that are on VitalCV &mdash; it doesn&rsquo;t crawl the rest of
-            the internet. When nothing fits, it says nothing fits instead of padding the list.
-          </p>
-        </div>
-      </section>
-
-      {/* ── the outcome ──────────────────────────────────────────────────── */}
-      <section className="ezh-out" data-header-theme="light" aria-labelledby="ezh-out-h">
-        <div className="ezh-wrap">
-          <div className="ezh-sec-head">
-            <span className="ezh-k">Outcome</span>
-            <h2 id="ezh-out-h">All of this exists so you start sooner</h2>
-          </div>
-          <div className="ezh-out-grid">
-            <div className="ezh-out-copy">
-              <p>
-                The profile is not the destination &mdash; the job is. VitalCV keeps the remaining
-                steps visible and keeps them moving, from application to your first day.
-              </p>
-              <p>
-                And when it&rsquo;s time for the next move, the work you did here is still yours
-                &mdash; ready to go again.
-              </p>
-            </div>
-            <div className="ezh-bigtrack">
-              <span className="ezh-k">From role to first day</span>
-              <div className="ezh-trackbar" aria-hidden="true">
-                <i className="ezh-fillbar" />
-                <span className="ezh-node n1"><b /><span>Apply</span></span>
-                <span className="ezh-node n2"><b /><span>Interview</span></span>
-                <span className="ezh-node n3"><b /><span>Offer</span></span>
-                <span className="ezh-node n4"><b /><span>First day</span></span>
-              </div>
-              <p className="ezh-bigtrack-cap">
-                Each step has one owner &mdash; you always know whose move it is.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
 
       {/* ── objections, answered at the end of the clinician run ────────── */}
       <Questions />
@@ -508,7 +345,12 @@ export default function EasyHome() {
                 Find people who fit. Know what remains. Keep the hire moving. VitalCV shows your
                 team exactly where each candidate stands &mdash; and who owns the next step.
               </p>
-              <Link className="ezh-emp-cta" href="/employers">
+              <Link
+                className="ezh-emp-cta"
+                href="/employers"
+                data-home-employer-cta
+                onClick={() => trackFunnelEvent(FUNNEL_EVENTS.EMPLOYER_ENTRY_CLICKED)}
+              >
                 VitalCV for employers <span aria-hidden="true">&#8627;</span>
               </Link>
             </div>

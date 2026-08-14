@@ -62,9 +62,10 @@ describe('1 — / renders the UX-V1 experience by default', () => {
   it('serves the Easy Button hero with no variant configured', async () => {
     const html = await renderRoot(undefined);
     expect(html).toContain(EASY);
-    expect(html).toContain('Your career record,');
-    expect(html).toContain('ready when work moves.');
-    expect(html).toContain('Start with your NPI');
+    expect(html).toContain('The Provider Career Evidence Network.');
+    expect(html).toContain('One career record. More ways forward.');
+    expect(html).toContain('Start my CV Wallet');
+    expect(html).toContain('Explore clinician opportunities');
     expect(html).toContain('data-home-work-surface');
   });
 
@@ -86,7 +87,6 @@ describe('2 — / visibly differs from every former homepage', () => {
   it('the retired story vocabulary does not survive the cutover', async () => {
     const html = await renderRoot(undefined);
     for (const retired of [
-      'Provider Career Evidence Network',
       'A number becomes a career',
       'Work that fits more than a résumé',
       'Get hired for the right opportunity',
@@ -212,7 +212,7 @@ describe('the work surface states record truth without manufacturing an outcome'
   it('names source state, control, and access limits in the first viewport', () => {
     const html = renderHomepageHtml();
     for (const line of [
-      'Career record',
+      'CV Wallet',
       'Identity',
       'Source-backed',
       'Access required',
@@ -232,10 +232,11 @@ describe('the work surface states record truth without manufacturing an outcome'
     expect(html).toContain('nothing has been sent');
   });
 
-  it('the ownership model names the external actor honestly', () => {
+  it('the mobility sequence names clinician choice and institution review honestly', () => {
     const html = renderHomepageHtml();
-    expect(html).toContain('The employer decides');
-    expect(html).toContain('Needs your approval');
+    expect(html).toContain('Employer review');
+    expect(html).toContain('You select what the employer may review.');
+    expect(html).toContain('Only after the employer records that decision.');
   });
 });
 
@@ -304,7 +305,7 @@ describe('banned vocabulary and claims stay out of the homepage', () => {
     const html = renderHomepageHtml().toLowerCase();
     for (const term of [
       'sd-jwt', 'blockchain', 'merkle', 'w3c verifiable credential', 'zero-knowledge',
-      'evidence network', 'provenance', 'trust tier', 'dossier', 'wallet',
+      'provenance', 'trust tier', 'dossier',
     ]) {
       expect(html).not.toContain(term);
     }

@@ -1,18 +1,11 @@
 /**
- * The homepage sells job matching. These pin the line it may not cross.
+ * The homepage exposes the real anonymous opportunity feed immediately below
+ * the hero. SSR carries an honest loading boundary, then the client renders
+ * only service-returned roles — never a fixture dressed as inventory.
  *
- * The section exists to sell a category ("a job board that reads your
- * credentials") on the strength of the MATCHA engine — which really does hard-
- * gate on credential requirements and explain each result. What it must never
- * do is sell INVENTORY. VitalCV does not have a stocked board, and a volume
- * claim on the homepage would be a promise the product cannot keep the moment
- * a visitor enters an NPI and the feed comes back empty.
- *
- * The illustrative readout is held to the same rule the hero's work surface is:
- * it may show the SHAPE of a match, and it may not invent an employer. A demo
- * fixture wearing a real health system's name is exactly how a fabricated
- * posting reached production once already — see
- * `services/opportunities/__tests__/launchOpportunityRetirement.test.ts`.
+ * This file pins the static contract. Browser coverage owns the fetched rows,
+ * source URL, observation time, availability wording, and the external-versus-
+ * integrated application boundary.
  */
 
 import { describe, expect, it, vi } from 'vitest';
@@ -38,21 +31,23 @@ const text = html
   .replace(/\s+/g, ' ')
   .trim();
 
-describe('homepage — the matching section is present', () => {
-  it('renders the matching section on the served route', () => {
-    expect(html).toContain('data-home-matching');
+describe('homepage — the public opportunity horizon is present', () => {
+  it('renders the acquisition surface directly on the served route', () => {
+    expect(html).toContain('data-home-opportunity-horizon');
+    expect(text).toContain('See where your record could go next.');
+    expect(html).toContain('href="/explore"');
   });
 
-  it('sells the credential-aware differentiator, not a keyword board', () => {
-    expect(text).toContain('reads your credentials, not your keywords');
-    expect(text).toMatch(/scores a role against\s+what your record already shows/i);
+  it('server-renders an honest pending state instead of fictional inventory', () => {
+    expect(text).toContain('Reading the current opportunity feed…');
+    expect(text).not.toMatch(/Internal Medicine · California/i);
   });
 
-  it('promises an explanation and a blocker, which the engine actually produces', () => {
-    // matchaEngine returns MatchExplanation + MatchBlocker and hard-gates on
-    // credentials; these two claims are the ones backed by real behaviour.
-    expect(text).toMatch(/every match explains itself/i);
-    expect(text).toMatch(/blockers before you apply/i);
+  it('states the external and integrated application boundary before results load', () => {
+    expect(text).toContain('Public-feed roles open at their original source.');
+    expect(text).toContain(
+      'Apply with VitalCV appears only for opportunities connected to VitalCV.',
+    );
   });
 });
 
@@ -79,18 +74,7 @@ describe('homepage — no inventory claim', () => {
     }
   });
 
-  it('scopes matching to the roles VitalCV actually has', () => {
-    expect(text).toMatch(/doesn’t crawl the rest of\s+the internet/i);
-    expect(text).toMatch(/says nothing fits instead of padding the list/i);
-  });
-});
-
-describe('homepage — the readout invents nobody', () => {
-  it('labels the match readout illustrative', () => {
-    expect(text).toMatch(/Illustrative — the shape of a match, not a real posting/i);
-  });
-
-  it('names no employer in the readout', () => {
+  it('names no employer before the real feed answers', () => {
     // Every organization the demo fixture has ever carried, plus the real
     // health system it once impersonated.
     for (const org of [
@@ -106,11 +90,13 @@ describe('homepage — the readout invents nobody', () => {
     }
   });
 
-  it('makes no verification claim in the new copy', () => {
+  it('makes no verification or automatic-eligibility claim', () => {
     // The page-wide ban lives in homepage-truth-contract; this keeps the
     // matching section honest on its own terms as it gets edited.
     expect(text).not.toMatch(/\bverified\b/i);
     expect(text).not.toMatch(/\bpre-?screened\b/i);
     expect(text).not.toMatch(/\bguaranteed\b/i);
+    expect(text).not.toMatch(/ready now/i);
+    expect(text).not.toMatch(/automatically eligible/i);
   });
 });

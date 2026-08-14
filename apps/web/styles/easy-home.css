@@ -3807,3 +3807,762 @@
     gap: 8px;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Direction D.1 — Human + tactile career mobility (2026-08-13)
+
+   One generated, provenance-bound documentary still supplies the person and
+   place. All product truth remains DOM. The folio, opportunity rows, and
+   mobility objects use rules and offset material layers instead of a second
+   animation system, fake screenshots, gradients, or WebGL.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.ezh-hero .ezh-wrap {
+  grid-template-columns: minmax(360px, 0.82fr) minmax(620px, 1.38fr);
+  gap: clamp(34px, 4.5vw, 78px);
+  align-items: center;
+  padding-top: 124px;
+  padding-bottom: 72px;
+}
+
+.ezh-hero-eyebrow {
+  display: block;
+  max-width: 32ch;
+  margin: 0 0 20px;
+  color: var(--vt-home-d-source);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.ezh h1 {
+  max-width: 10.8ch;
+  font-size: clamp(43px, 4.5cqw, 61px);
+  line-height: 0.98;
+  letter-spacing: -0.045em;
+  text-wrap: balance;
+}
+
+.ezh-hero-sub {
+  max-width: 47ch;
+  font-size: clamp(16px, 1.25vw, 18px);
+  line-height: 1.58;
+}
+
+.ezh-npi-form {
+  max-width: 470px;
+}
+
+.ezh-npi-input,
+.ezh-npi-submit {
+  height: 52px;
+  min-height: 52px;
+  border-radius: 8px;
+}
+
+.ezh-npi-submit {
+  transform: none;
+  box-shadow: none;
+}
+
+.ezh-npi-submit:hover,
+.ezh-npi-submit:active,
+.ezh-npi-submit:focus-visible {
+  transform: none;
+  box-shadow: none;
+}
+
+.ezh-hero-opportunity {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 9px;
+  margin-top: 18px;
+  border-bottom: 1px solid var(--vt-home-d-rule);
+  color: var(--vt-home-d-ink);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.ezh-hero-opportunity:hover,
+.ezh-hero-opportunity:focus-visible {
+  border-color: var(--vt-home-d-ink);
+}
+
+.ezh-human-tactile-stage {
+  position: relative;
+  min-height: 650px;
+  isolation: isolate;
+}
+
+.ezh-human-media {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 56%;
+  min-width: 300px;
+}
+
+.ezh-human-scene {
+  position: relative;
+  height: 100%;
+}
+
+.ezh-human-scene > div {
+  height: 100%;
+  min-height: 610px;
+  border: 1px solid var(--vt-home-d-rule);
+  border-radius: 24px;
+  background: var(--vt-home-d-photo-matte);
+}
+
+.ezh-human-scene > figcaption {
+  position: absolute;
+  left: 18px;
+  bottom: 18px;
+  z-index: var(--vt-z-raised);
+  max-width: min(33ch, calc(100% - 36px));
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--vt-home-d-panel) 55%, transparent);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--vt-home-d-ink) 78%, transparent);
+  color: var(--vt-home-d-panel);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.ezh-human-scene > figcaption p {
+  margin: 0;
+}
+
+.ezh-folio-stage {
+  position: absolute;
+  z-index: var(--vt-z-raised);
+  top: 54px;
+  right: 0;
+  width: min(74%, 640px);
+  perspective: 1400px;
+}
+
+.ezh-watch-record {
+  position: relative;
+  width: 100%;
+  max-width: none;
+  padding: 0 12px 14px 0;
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  transform: rotateY(-2.2deg) rotateX(0.5deg);
+  transform-origin: right center;
+}
+
+.ezh-folio-depth {
+  position: absolute;
+  inset: 11px 0 3px 11px;
+  border: 1px solid var(--vt-home-d-folio-line);
+  border-radius: 18px;
+  background: var(--vt-home-d-folio-sheet);
+  pointer-events: none;
+}
+
+.ezh-folio-depth.depth-back {
+  transform: translate(12px, 12px);
+  background: var(--vt-home-d-folio-back);
+}
+
+.ezh-folio-depth.depth-mid {
+  transform: translate(6px, 6px);
+  background: var(--vt-home-d-folio-mid);
+}
+
+.ezh-folio-paper {
+  position: relative;
+  z-index: var(--vt-z-raised);
+  overflow: hidden;
+  border: 1px solid var(--vt-home-d-rule);
+  border-radius: 18px;
+  background: var(--vt-home-d-panel);
+}
+
+.ezh-folio-binding {
+  position: absolute;
+  z-index: var(--vt-z-raised);
+  inset: 30px auto 30px 0;
+  width: 5px;
+  border-right: 1px solid var(--vt-home-d-binding-line);
+  background: var(--vt-home-d-binding);
+}
+
+.ezh-folio-tab {
+  position: absolute;
+  z-index: var(--vt-z-raised);
+  right: 0;
+  width: 56px;
+  padding: 5px 7px;
+  border-bottom: 1px solid var(--vt-home-d-rule);
+  border-left: 1px solid var(--vt-home-d-rule);
+  background: var(--vt-home-d-tab);
+  color: var(--vt-home-d-dim);
+  font-size: 10px;
+  line-height: 1;
+  text-align: center;
+}
+
+.ezh-folio-tab.tab-record { top: 104px; }
+.ezh-folio-tab.tab-share { top: 137px; }
+
+.ezh-watch-head {
+  padding: 24px 72px 20px 26px;
+}
+
+.ezh-watch-row {
+  padding-right: 26px;
+  padding-left: 26px;
+}
+
+.ezh-watch-choice,
+.ezh-watch-record .ezh-rm-legend {
+  padding-right: 26px;
+  padding-left: 26px;
+}
+
+.ezh-watch-choice-mark {
+  position: relative;
+  border-radius: 2px;
+  background: var(--vt-home-d-panel);
+}
+
+.ezh-watch-choice-mark::before,
+.ezh-watch-choice-mark::after {
+  content: '';
+  position: absolute;
+  right: 5px;
+  height: 1px;
+  background: var(--vt-home-d-ink);
+}
+
+.ezh-watch-choice-mark::before {
+  bottom: 8px;
+  left: 5px;
+}
+
+.ezh-watch-choice-mark::after {
+  bottom: 13px;
+  left: 10px;
+}
+
+.ezh-truth {
+  max-width: 60ch;
+  margin-top: 13px;
+  margin-left: auto;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+/* Opportunity horizon — live rows, not an illustrative card deck. */
+.ezh-opportunities,
+.ezh-mobility {
+  background: var(--vt-home-d-ground);
+}
+
+.ezh-opportunities .ezh-wrap {
+  padding-top: 48px;
+  padding-bottom: 54px;
+}
+
+.ezh-opportunity-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 32px;
+  align-items: end;
+  margin-bottom: 28px;
+}
+
+.ezh-opportunity-head h2,
+.ezh-mobility-head h2 {
+  margin: 8px 0 0;
+  font-family: var(--font-fraunces-loaded, Georgia, 'Times New Roman', serif);
+  font-size: clamp(32px, 4vw, 55px);
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  text-wrap: balance;
+}
+
+.ezh-opportunity-all {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid var(--vt-home-d-ink);
+  color: var(--vt-home-d-ink);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.ezh-opportunity-state {
+  min-height: 92px;
+  padding: 28px 0;
+  border-top: 1px solid var(--vt-home-d-rule);
+  border-bottom: 1px solid var(--vt-home-d-rule);
+  color: var(--vt-home-d-dim);
+  font-size: 14px;
+}
+
+.ezh-opportunity-state a {
+  color: var(--vt-home-d-ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.ezh-opportunity-list {
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--vt-home-d-rule);
+  list-style: none;
+}
+
+.ezh-opportunity-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 28px;
+  align-items: center;
+  padding: 23px 0;
+  border-bottom: 1px solid var(--vt-home-d-rule);
+}
+
+.ezh-opportunity-titleline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  align-items: baseline;
+}
+
+.ezh-opportunity-titleline h3 {
+  margin: 0;
+  font-family: var(--font-fraunces-loaded, Georgia, 'Times New Roman', serif);
+  font-size: clamp(20px, 2.1vw, 29px);
+  font-weight: 500;
+  line-height: 1.12;
+  letter-spacing: -0.025em;
+}
+
+.ezh-opportunity-org,
+.ezh-opportunity-meta {
+  color: var(--vt-home-d-dim);
+  font-size: 13px;
+}
+
+.ezh-opportunity-meta {
+  margin: 7px 0 0;
+  text-transform: capitalize;
+}
+
+.ezh-opportunity-source {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  margin: 10px 0 0;
+  color: var(--vt-home-d-dim);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.ezh-opportunity-source i {
+  color: var(--vt-home-d-ink);
+  font-style: normal;
+}
+
+.ezh-opportunity-action {
+  min-height: 44px;
+  border: 1px solid var(--vt-home-d-ink);
+  border-radius: 0;
+  background: var(--vt-home-d-panel);
+  color: var(--vt-home-d-ink);
+  box-shadow: none;
+  transform: none;
+  white-space: normal;
+}
+
+.ezh-opportunity-action:hover,
+.ezh-opportunity-action:active,
+.ezh-opportunity-action:focus-visible {
+  border-color: var(--vt-home-d-ink);
+  background: var(--vt-home-d-ink);
+  color: var(--vt-home-d-panel);
+  box-shadow: none;
+  transform: none;
+}
+
+.ezh-opportunity-boundary,
+.ezh-mobility-boundary {
+  margin: 16px 0 0;
+  color: var(--vt-home-d-dim);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+/* The full career loop: seven physical objects, one ruled sequence. */
+.ezh-mobility .ezh-wrap {
+  padding-top: 70px;
+  padding-bottom: 76px;
+}
+
+.ezh-mobility-head {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(260px, 0.5fr);
+  column-gap: clamp(42px, 7vw, 120px);
+  align-items: end;
+  margin-bottom: 48px;
+}
+
+.ezh-mobility-head .ezh-k,
+.ezh-mobility-head h2 {
+  grid-column: 1;
+}
+
+.ezh-mobility-head p {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  align-self: end;
+  margin: 0;
+  color: var(--vt-home-d-dim);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.ezh-mobility-track {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--vt-home-d-rule);
+  border-bottom: 1px solid var(--vt-home-d-rule);
+  list-style: none;
+}
+
+.ezh-mobility-track > li {
+  min-width: 0;
+  padding: 28px 16px 24px;
+  border-left: 1px solid var(--vt-home-d-rule);
+}
+
+.ezh-mobility-track > li:first-child {
+  border-left: 0;
+}
+
+.ezh-tactile-object {
+  position: relative;
+  width: 78px;
+  height: 76px;
+  margin: 0 0 24px;
+}
+
+.ezh-tactile-sheet {
+  position: absolute;
+  display: block;
+  width: 54px;
+  height: 64px;
+  border: 1px solid var(--vt-home-d-tactile-line);
+  background: var(--vt-home-d-panel);
+}
+
+.ezh-tactile-sheet.sheet-back {
+  top: 8px;
+  left: 13px;
+  background: var(--vt-home-d-tactile-back);
+  transform: rotate(6deg);
+}
+
+.ezh-tactile-sheet.sheet-front {
+  top: 2px;
+  left: 5px;
+  background: var(--vt-home-d-tactile-front);
+  transform: rotate(-2deg);
+}
+
+.ezh-tactile-mark {
+  position: absolute;
+  top: 17px;
+  left: 17px;
+  width: 29px;
+  height: 1px;
+  background: var(--vt-home-d-ink);
+}
+
+.ezh-tactile-mark::before,
+.ezh-tactile-mark::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  width: 22px;
+  height: 1px;
+  background: var(--vt-home-d-rule);
+}
+
+.ezh-tactile-mark::before { top: 9px; }
+.ezh-tactile-mark::after { top: 18px; width: 17px; }
+
+.ezh-tactile-object.is-window .sheet-front {
+  width: 68px;
+  height: 48px;
+  top: 9px;
+}
+
+.ezh-tactile-object.is-gate .sheet-front {
+  left: 23px;
+  width: 34px;
+}
+
+.ezh-tactile-object.is-packet .sheet-front {
+  top: 13px;
+  left: 4px;
+  width: 69px;
+  height: 45px;
+}
+
+.ezh-tactile-object.is-packet .ezh-tactile-mark {
+  top: 37px;
+  left: 23px;
+  width: 31px;
+}
+
+.ezh-tactile-object.is-desk .sheet-back {
+  top: 47px;
+  left: 1px;
+  width: 76px;
+  height: 10px;
+  transform: rotate(0);
+}
+
+.ezh-tactile-object.is-seal .ezh-tactile-mark {
+  top: 34px;
+  left: 25px;
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--vt-home-d-ink);
+  border-radius: 50%;
+  background: var(--vt-home-d-folio-mid);
+}
+
+.ezh-tactile-object.is-seal .ezh-tactile-mark::before,
+.ezh-tactile-object.is-seal .ezh-tactile-mark::after {
+  display: none;
+}
+
+.ezh-tactile-object.is-return .sheet-back {
+  transform: translateX(9px) rotate(5deg);
+}
+
+.ezh-mobility-index {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--vt-home-d-dim);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.ezh-mobility-copy h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1.25;
+}
+
+.ezh-mobility-copy p {
+  margin: 7px 0 0;
+  color: var(--vt-home-d-dim);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+@media (max-width: 1180px) {
+  .ezh-hero .ezh-wrap {
+    grid-template-columns: minmax(320px, 0.78fr) minmax(520px, 1.22fr);
+  }
+
+  .ezh-human-tactile-stage {
+    min-height: 600px;
+  }
+
+  .ezh-human-scene > div {
+    min-height: 560px;
+  }
+
+  .ezh-folio-stage {
+    top: 62px;
+    width: 78%;
+  }
+
+  .ezh-mobility-track {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .ezh-mobility-track > li:nth-child(5) {
+    border-left: 0;
+  }
+
+  .ezh-mobility-track > li:nth-child(n + 5) {
+    border-top: 1px solid var(--vt-home-d-rule);
+  }
+}
+
+@media (max-width: 900px) {
+  .ezh-hero .ezh-wrap {
+    grid-template-columns: 1fr;
+    gap: 48px;
+  }
+
+  .ezh h1 {
+    max-width: 12ch;
+    font-size: clamp(45px, 9.4vw, 68px);
+  }
+
+  .ezh-human-tactile-stage {
+    width: 100%;
+    max-width: 760px;
+    min-height: 690px;
+  }
+
+  .ezh-human-media {
+    width: 56%;
+  }
+
+  .ezh-human-scene > div {
+    min-height: 640px;
+  }
+
+  .ezh-folio-stage {
+    top: 70px;
+    width: 72%;
+  }
+
+  .ezh-mobility-head {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .ezh-mobility-head .ezh-k,
+  .ezh-mobility-head h2,
+  .ezh-mobility-head p {
+    grid-column: 1;
+    grid-row: auto;
+  }
+}
+
+@media (max-width: 640px) {
+  .ezh-hero .ezh-wrap {
+    padding-top: 96px;
+    padding-bottom: 48px;
+  }
+
+  .ezh h1 {
+    max-width: 11ch;
+    font-size: clamp(41px, 12vw, 54px);
+  }
+
+  .ezh-hero-sub {
+    font-size: 16px;
+  }
+
+  .ezh-human-tactile-stage {
+    min-height: 790px;
+  }
+
+  .ezh-human-media {
+    position: relative;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .ezh-human-scene > div {
+    min-height: 390px;
+    aspect-ratio: 4 / 3 !important;
+    border-radius: 20px;
+  }
+
+  .ezh-human-scene > div img {
+    object-position: 50% 34% !important;
+  }
+
+  .ezh-human-scene > figcaption {
+    bottom: 14px;
+    left: 14px;
+  }
+
+  .ezh-folio-stage {
+    top: 330px;
+    right: -6px;
+    width: calc(100% - 18px);
+  }
+
+  .ezh-watch-record {
+    padding-right: 7px;
+    transform: rotate(-1deg);
+  }
+
+  .ezh-watch-head {
+    padding-right: 62px;
+  }
+
+  .ezh-watch-title {
+    font-size: 19px;
+  }
+
+  .ezh-watch-row {
+    min-height: 66px;
+  }
+
+  .ezh-truth {
+    margin-top: 16px;
+  }
+
+  .ezh-opportunity-head {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    align-items: start;
+  }
+
+  .ezh-opportunity-all {
+    justify-self: start;
+  }
+
+  .ezh-opportunity-row {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .ezh-opportunity-action {
+    justify-self: stretch;
+  }
+
+  .ezh-mobility-track {
+    grid-template-columns: 1fr;
+  }
+
+  .ezh-mobility-track > li,
+  .ezh-mobility-track > li:nth-child(5) {
+    display: grid;
+    grid-template-columns: 92px minmax(0, 1fr);
+    gap: 8px;
+    padding: 22px 0;
+    border-top: 1px solid var(--vt-home-d-rule);
+    border-left: 0;
+  }
+
+  .ezh-mobility-track > li:first-child {
+    border-top: 0;
+  }
+
+  .ezh-tactile-object {
+    margin: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ezh-watch-record {
+    transform: none;
+  }
+}
