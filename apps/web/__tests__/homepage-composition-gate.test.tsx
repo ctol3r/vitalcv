@@ -123,5 +123,8 @@ describe('homepage composition gate (W0.2)', () => {
     }
     expect(html).toContain('Only after the employer records that decision.');
     expect(html).toContain('Fresh clinician consent is required next time.');
+    expect(html).toContain('01 / 07');
+    expect(html).toContain('07 / 07');
+    expect(html).toMatch(/data-home-mobility-sequence=""[^>]*data-header-theme="dark"/);
   });
 });

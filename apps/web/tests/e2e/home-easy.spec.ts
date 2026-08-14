@@ -175,6 +175,19 @@ test.describe('home — the Easy Button hero', () => {
     await expect(horizon).not.toContainText(/ready now|automatically eligible/i);
   });
 
+  test('the reference synthesis uses a contained ink stage and numbered inverse career band', async ({ page }) => {
+    const stage = page.locator('.ezh-human-tactile-stage');
+    const mobility = page.locator('[data-home-mobility-sequence]');
+
+    await expect(stage).toHaveCSS('background-color', 'rgb(19, 18, 17)');
+    await expect(stage).toHaveCSS('overflow', 'hidden');
+    await expect(mobility).toHaveCSS('background-color', 'rgb(19, 18, 17)');
+    await expect(mobility.locator('.ezh-mobility-index')).toHaveCount(7);
+    await expect(mobility.getByText('01 / 07', { exact: true })).toBeVisible();
+    await expect(mobility.getByText('07 / 07', { exact: true })).toBeVisible();
+    await expect(mobility.locator('h2')).toHaveCSS('color', 'rgb(247, 246, 243)');
+  });
+
   test('the final action returns to the real entry', async ({ page }) => {
     await expect(page.locator('.ezh-start-cta')).toHaveAttribute('href', '#npi');
   });

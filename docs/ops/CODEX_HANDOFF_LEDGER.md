@@ -3,6 +3,51 @@
 Append-only. **Newest entry at the top.** One entry per work order is recorded
 in the same pull request as its implementation or takeover evidence.
 
+## WO-17 · Homepage Refero synthesis — OPEN
+
+- **Date:** 2026-08-14
+- **Claim-check and creative ownership:** Merged #1371 and #1373 are the landed
+  Direction D and D.1 foundations. No open PR changes `/`; the remote home and
+  visual branches are historical, superseded, or unsubmitted rather than a
+  competing current implementation. Codex is the creative owner. This work
+  composes the canonical `HeroStage`, `WorkSurface`, and
+  `CareerMobilitySequence`; it adds no component family, motion engine, scene
+  registry, in-page rail, or shared chrome change.
+- **Change:** Synthesizes the founder-supplied Impilo and Integrated Biosciences
+  references into the existing VitalCV register. The documentary hero and solid
+  evidence folio now sit inside a contained ink-ground observatory frame. The
+  existing record-to-reuse sequence becomes a hard-cut inverse editorial band
+  with architectural type, seven numbered physical objects, hairline structure,
+  and mobile two-column moments. VitalCV's paper, ink, Fraunces, 8px primary
+  action, and semantic source-green remain; no reference palette, font, asset,
+  scientific wallpaper, decorative state hue, or new mono register is copied.
+- **Truth and authority boundary:** The folio, process, and documentary image
+  remain explicitly illustrative. Real public opportunities retain source,
+  observation, availability, and application-mode boundaries. Clinician choice
+  precedes exact-packet review; accepted head start follows an employer-recorded
+  decision; reuse requires fresh consent. No API, schema, migration,
+  authorization, packet, decision, Recognition, or durable-state behavior
+  changes.
+- **Evidence:**
+  `docs/design/evidence/home-refero-synthesis-2026-08-14/` contains production
+  before and optimized-build after frames at every required width, a full-page
+  composition, hero and career-loop details, reduced-motion, no-JavaScript,
+  200% zoom, desktop and mobile recordings, reference classification, scorecard,
+  and computed typography/contrast/overflow measurements. The changed band has
+  zero monospace and the implementation adds no source-green decoration.
+- **Verification:** Focused Vitest passes **2 files / 35 tests**;
+  production-build Chromium passes **18/18** across 390/768/1024/1280/1440/1728,
+  reduced motion, no JavaScript, keyboard, source boundaries, and painted style
+  assertions. Full repository typecheck, build, and lint pass. After restoring
+  the canonical backend Prisma client with the repository's locked generator,
+  the real-PostgreSQL backend sweep passes **343 suites / 2,761 tests** in band;
+  the non-backend Turbo sweep also passes. Design, copy, claims, route, and
+  generated-design-document gates pass without ratchet movement.
+- **Next gate:** Publish the draft PR and review environment, require
+  refreshed-head CI and `CLEAN`, then review the live URL.
+  After explicit founder GO, merge and require exact Railway `/api/version` plus
+  desktop/mobile interaction verification before marking WO-17 landed.
+
 ## WO-16 · NPI-to-opportunity activation path — OPEN
 
 - **Date:** 2026-08-14
