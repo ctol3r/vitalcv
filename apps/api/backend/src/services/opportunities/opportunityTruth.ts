@@ -486,7 +486,7 @@ export function classifyOpportunityProfession(title: string): OpportunityProfess
   if (/\b(nurse practitioner|physician assistant|pa-c|advanced practice|app)\b/i.test(value)) {
     return 'advanced_practice';
   }
-  if (/\b(physician|medical director|psychiatrist|doctor|md\/do|md or do)\b/i.test(value)) {
+  if (/\b(physician|medical director|psychiatrist|doctor|md\/do|md or do|hospitalist|cardiologist|anesthesiologist|neurologist|radiologist|surgeon|oncologist|internist|pediatrician|dermatologist|gastroenterologist|nephrologist|pulmonologist|rheumatologist|urologist|pathologist|ophthalmologist|otolaryngologist|endocrinologist|hematologist|intensivist|physiatrist|gynecologist|obstetrician)\b/i.test(value)) {
     return 'physician';
   }
   if (/\b(registered nurse|nurse|nursing|rn|lpn|lvn|cna)\b/i.test(value)) {
@@ -850,10 +850,9 @@ function buildFreshness(input: {
   visaStatus: OpportunityVisaStatus;
   now: Date;
 }): OpportunityTruth['freshness'] {
-  const lastUpdatedAt = input.employerUpdatedAt
-    && new Date(input.employerUpdatedAt).getTime() > new Date(input.opportunityUpdatedAt).getTime()
-    ? input.employerUpdatedAt
-    : input.opportunityUpdatedAt;
+  // Listing freshness belongs to the opportunity record. A recently edited
+  // organization profile must not make an old role look newly observed.
+  const lastUpdatedAt = input.opportunityUpdatedAt;
   const listingStatus = classifyFreshness(lastUpdatedAt, input.now);
 
   const completenessFactors = [
@@ -1519,19 +1518,20 @@ export function buildOpportunityTruth(input: {
   });
   const observedAt = isFeedListing
     ? opportunity.fetchedAt ? isoString(opportunity.fetchedAt) : null
-    : freshness.lastUpdatedAt;
+    : opportunity.updatedAt.toISOString();
+  const observationFreshness = observedAt ? classifyFreshness(observedAt, now) : null;
   const availabilityState: OpportunityAvailabilityState = opportunity.status !== 'ACTIVE'
     ? 'closed'
     : isFeedListing && !opportunity.sourceUrl
       ? 'source_unavailable'
-      : freshness.isStale
+      : observationFreshness === 'stale'
         ? 'stale'
         : 'open';
   const availabilityConfidence: OpportunityAvailabilityConfidence = !observedAt
     ? 'not_observed'
-    : freshness.listingStatus === 'fresh'
+    : observationFreshness === 'fresh'
       ? 'recent_observation'
-      : freshness.listingStatus === 'aging'
+      : observationFreshness === 'aging'
         ? 'aging_observation'
         : 'stale_observation';
   const compensationMethod = structuredPay.min !== null || structuredPay.max !== null

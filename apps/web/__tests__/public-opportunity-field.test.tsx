@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { BoardResultRow } from '@/components/explore/board/BoardResultRow';
 import {
+  clampedBoardPage,
   parseBoardFilters,
   serializeBoardFilters,
   toApiQuery,
@@ -126,5 +127,11 @@ describe('WO-13 public opportunity field', () => {
     expect(api.get('remote')).toBe('false');
     expect(api.get('limit')).toBe('12');
     expect(api.get('offset')).toBe('24');
+  });
+
+  it('normalizes a stale shared page to the last real result page', () => {
+    expect(clampedBoardPage(99, 25)).toBe(3);
+    expect(clampedBoardPage(3, 25)).toBeNull();
+    expect(clampedBoardPage(9, 0)).toBe(1);
   });
 });

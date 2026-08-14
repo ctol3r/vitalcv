@@ -50,7 +50,9 @@ in the same pull request as its implementation or takeover evidence.
   **465 web files / 4,510 tests** plus the real-PostgreSQL backend at **343
   suites / 2,756 tests**. The web aggregate's seven database-gated files / 45
   tests remain assigned to refreshed CI's PostgreSQL step. Refreshed-head CI and
-  `CLEAN` remain required before merge.
+  `CLEAN` remain required before merge. Final review also pinned the SSR pilot
+  control, opportunity-owned freshness, physician-title coverage, and stale-page
+  normalization with regression tests before landing.
 - **Next gate:** Publish this implementation and same-PR ledger receipt, require
   all refreshed-head checks green and `CLEAN`, then squash-merge. Verify Railway
   web and API `/api/version` at the exact merge SHA and exercise `/explore` on

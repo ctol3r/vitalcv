@@ -9,6 +9,7 @@ import {
   EMPTY_BOARD_FILTERS,
   PAGE_SIZE,
   activeFilterSummary,
+  clampedBoardPage,
   clearFilter,
   hasActiveFilters,
   normalizeBoardFilters,
@@ -102,6 +103,16 @@ export function BoardClient({ initial }: { initial: OpportunityListPayload }) {
   const active = activeFilterSummary(filters);
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const currentPage = Math.min(filters.page, totalPages);
+  const correctedPage = state === 'ready' ? clampedBoardPage(filters.page, total) : null;
+
+  useEffect(() => {
+    if (correctedPage === null) return;
+    // Do not render "no roles" for a page that no longer exists. Normalize the
+    // URL; the existing apiQuery effect then refetches the real last page.
+    pushFilters(normalizeBoardFilters({ ...filters, page: correctedPage }));
+  }, [correctedPage, filters, pushFilters]);
+
+  const displayState: LoadState = correctedPage === null ? state : 'loading';
 
   return (
     <section className="opf-board" aria-labelledby="opportunity-field-title">
@@ -152,26 +163,26 @@ export function BoardClient({ initial }: { initial: OpportunityListPayload }) {
           <h2 id="opportunity-field-title">The opportunity field</h2>
         </div>
         <p className="opf-result-count" aria-live="polite">
-          {state === 'loading' ? 'Reading current sources…' : null}
-          {state === 'error' ? 'Source unavailable' : null}
-          {state === 'ready' ? `${total}${truncated ? '+' : ''} ${total === 1 ? 'role' : 'roles'}` : null}
+          {displayState === 'loading' ? 'Reading current sources…' : null}
+          {displayState === 'error' ? 'Source unavailable' : null}
+          {displayState === 'ready' ? `${total}${truncated ? '+' : ''} ${total === 1 ? 'role' : 'roles'}` : null}
         </p>
       </div>
 
-      {truncated && state === 'ready' ? (
+      {truncated && displayState === 'ready' ? (
         <p className="opf-board-note">
           More roles match than this source window can count. Narrow the field to inspect the rest.
         </p>
       ) : null}
 
-      {state === 'error' ? (
+      {displayState === 'error' ? (
         <BoardNote
           title="The opportunity source could not be read"
           body="No role or profile state changed. Try again before acting on a listing."
         />
       ) : null}
 
-      {state === 'ready' && opportunities.length === 0 ? (
+      {displayState === 'ready' && opportunities.length === 0 ? (
         <BoardNote
           title={hasActiveFilters(filters) ? 'No roles match this field' : 'No current roles are available'}
           body={hasActiveFilters(filters)
@@ -180,7 +191,7 @@ export function BoardClient({ initial }: { initial: OpportunityListPayload }) {
         />
       ) : null}
 
-      {state === 'ready' ? (
+      {displayState === 'ready' ? (
         <div className="opf-role-list">
           {opportunities.map((opportunity, index) => (
             <BoardResultRow
@@ -192,7 +203,7 @@ export function BoardClient({ initial }: { initial: OpportunityListPayload }) {
         </div>
       ) : null}
 
-      {state === 'ready' && totalPages > 1 ? (
+      {displayState === 'ready' && totalPages > 1 ? (
         <BoardPagination
           page={currentPage}
           totalPages={totalPages}

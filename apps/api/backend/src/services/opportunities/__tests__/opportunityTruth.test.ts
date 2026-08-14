@@ -128,10 +128,37 @@ describe('opportunityTruth', () => {
     expect(classifyOpportunityProfession('Registered Nurse')).toBe('nursing');
     expect(classifyOpportunityProfession('Mental Health Therapist')).toBe('behavioral_health');
     expect(classifyOpportunityProfession('Territory Manager (MD, Baltimore)')).toBe('not_stated');
+    expect(classifyOpportunityProfession('Locums Interventional Cardiologist')).toBe('physician');
+    expect(classifyOpportunityProfession('Night Hospitalist')).toBe('physician');
 
     expect(classifyOpportunitySchedule('Part-Time NY Center Physician', null)).toBe('part_time');
     expect(classifyOpportunitySchedule('Nurse Practitioner', 'Employment Type: Full-Time FLSA exempt')).toBe('full_time');
     expect(classifyOpportunitySchedule('Registered Nurse', 'Join our full-time clinical team.')).toBe('not_stated');
+  });
+
+  it('does not let a recent organization edit refresh an old role observation', () => {
+    const record = makeOpportunityRecord();
+    const truth = buildOpportunityTruth({
+      opportunity: {
+        ...record,
+        updatedAt: new Date('2025-12-01T00:00:00.000Z'),
+        organization: {
+          ...record.organization,
+          organizationProfile: {
+            ...record.organization.organizationProfile!,
+            updatedAt: new Date('2026-03-19T00:00:00.000Z'),
+          },
+        },
+      },
+      now: new Date('2026-03-20T00:00:00.000Z'),
+    });
+
+    expect(truth.freshness.lastUpdatedAt).toBe('2025-12-01T00:00:00.000Z');
+    expect(truth.availability).toMatchObject({
+      state: 'stale',
+      confidence: 'stale_observation',
+      observedAt: '2025-12-01T00:00:00.000Z',
+    });
   });
 
   it('filters on profession and schedule without creating an eligibility verdict', () => {

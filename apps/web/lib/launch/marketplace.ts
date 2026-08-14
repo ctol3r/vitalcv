@@ -273,6 +273,15 @@ export async function fetchPublicOpportunityField(
   params: URLSearchParams,
 ): Promise<OpportunityListPayload> {
   try {
+    // Keep the server-rendered first frame behind the same operational control
+    // as the browser proxy. Otherwise a hidden/disabled field leaks rows until
+    // hydration, then appears to empty itself on the first filtered request.
+    const { getPilotSurfaceControl } = await import('@/lib/server/pilot-ops');
+    const control = await getPilotSurfaceControl('explore_board');
+    if (control && (control.mode === 'hidden' || control.mode === 'disabled')) {
+      return { opportunities: [], total: 0, truncated: false, available: true };
+    }
+
     const response = await fetch(
       `${getBackendBase()}/api/opportunities?${params.toString()}`,
       { next: { revalidate: 300 } },

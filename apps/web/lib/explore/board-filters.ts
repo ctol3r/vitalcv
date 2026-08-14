@@ -150,6 +150,16 @@ export function clearFilter(filters: BoardFilters, key: keyof BoardFilters): Boa
   } as Partial<BoardFilters>);
 }
 
+/**
+ * Keep a shared or stale page URL inside the current result set. Returning
+ * null means no navigation is needed; a number means the caller must replace
+ * the URL and refetch that page before presenting an empty-result state.
+ */
+export function clampedBoardPage(page: number, total: number): number | null {
+  const lastPage = Math.max(1, Math.ceil(Math.max(0, total) / PAGE_SIZE));
+  return page > lastPage ? lastPage : null;
+}
+
 export const PROFESSION_LABEL: Record<string, string> = {
   physician: 'Physicians',
   advanced_practice: 'Advanced practice',
