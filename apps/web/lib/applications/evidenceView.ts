@@ -53,6 +53,7 @@ export interface ApplicationEvidenceViewData {
   submittedPacket: {
     packetVersion: number;
     packetHash: string;
+    opportunityVersion: string | null;
     clinicianNpi: string;
     integrity: 'valid';
     purpose: string;

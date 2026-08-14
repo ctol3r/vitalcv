@@ -6,7 +6,7 @@
  * durable outbox request all use the real Prisma transaction and constraints.
  */
 import { randomUUID } from 'node:crypto';
-import { Prisma, PrismaClient, UserRole, UserStatus } from '@prisma/client';
+import { Prisma, UserRole, UserStatus } from '@prisma/client';
 
 jest.mock('../../trust/trustStateEngine', () => ({
   ...jest.requireActual('../../trust/trustStateEngine'),
@@ -23,8 +23,9 @@ import {
   type ApplicationPacketContent,
 } from '../applicationPacketService';
 import { runEmployerWorkflowAction } from '../employerWorkflowService';
+import { readHireToStartCase } from '../hireToStartReadService';
+import prisma from '../../../graphql/prisma_client';
 
-const prisma = new PrismaClient();
 const suffix = `${Date.now()}-${Math.round(Math.random() * 1_000_000)}`;
 const EMPLOYER = `hire-start-employer-${suffix}`;
 const CLINICIAN = `hire-start-clinician-${suffix}`;
@@ -217,18 +218,19 @@ describe('runEmployerWorkflowAction accept — real PostgreSQL', () => {
       urgency: 'priority',
     });
 
-    const [application, acceptance, activation, requirements, decisionAudit, outbox] = await Promise.all([
-      prisma.application.findUniqueOrThrow({ where: { id: submitted.applicationId } }),
-      prisma.employerAcceptance.findFirstOrThrow({ where: { applicationId: submitted.applicationId } }),
-      prisma.startActivation.findUniqueOrThrow({ where: { applicationId: submitted.applicationId } }),
-      prisma.activationRequirement.findMany({ where: { applicationId: submitted.applicationId } }),
-      prisma.auditEvent.findFirstOrThrow({
-        where: { referenceId: submitted.applicationId, type: 'APPLICATION_DECISION_RECORDED' },
-      }),
-      prisma.outboxEvent.findUniqueOrThrow({
-        where: { dedupeKey: `APPLICATION_DECISION_CAPSULE_REQUESTED:${submitted.applicationId}:ACCEPTED` },
-      }),
-    ]);
+    // Keep verification reads sequential. The full backend sweep runs many
+    // Prisma suites together, so a fan-out here can exhaust the test server's
+    // intentionally small connection budget without exercising more behavior.
+    const application = await prisma.application.findUniqueOrThrow({ where: { id: submitted.applicationId } });
+    const acceptance = await prisma.employerAcceptance.findFirstOrThrow({ where: { applicationId: submitted.applicationId } });
+    const activation = await prisma.startActivation.findUniqueOrThrow({ where: { applicationId: submitted.applicationId } });
+    const requirements = await prisma.activationRequirement.findMany({ where: { applicationId: submitted.applicationId } });
+    const decisionAudit = await prisma.auditEvent.findFirstOrThrow({
+      where: { referenceId: submitted.applicationId, type: 'APPLICATION_DECISION_RECORDED' },
+    });
+    const outbox = await prisma.outboxEvent.findUniqueOrThrow({
+      where: { dedupeKey: `APPLICATION_DECISION_CAPSULE_REQUESTED:${submitted.applicationId}:ACCEPTED` },
+    });
 
     expect(application.status).toBe('ACCEPTED');
     expect(acceptance.packetHash).toBe(submitted.packetHash);
@@ -250,6 +252,26 @@ describe('runEmployerWorkflowAction accept — real PostgreSQL', () => {
       startActivationId: activation.id,
       remainingRequirementCount: 1,
     });
+
+    const employerCase = await readHireToStartCase({ applicationId: submitted.applicationId, clerkUserId: EMPLOYER });
+    const clinicianCase = await readHireToStartCase({ applicationId: submitted.applicationId, clerkUserId: CLINICIAN });
+    expect(employerCase.accessPerspective).toBe('employer');
+    expect(clinicianCase.accessPerspective).toBe('clinician');
+    expect(employerCase.packetBinding).toMatchObject({
+      state: 'bound',
+      packetVersion: 1,
+      packetHash: submitted.packetHash,
+      integrity: 'valid',
+    });
+    expect(clinicianCase.packetBinding).toEqual(employerCase.packetBinding);
+    expect(clinicianCase.requirements).toEqual(employerCase.requirements);
+    expect(employerCase.primaryNextAction).toMatchObject({ owner: 'clinician', objectId: requirements[0].id });
+    expect(employerCase.externalSystemSync.state).toBe('not_configured');
+
+    await expect(readHireToStartCase({
+      applicationId: submitted.applicationId,
+      clerkUserId: `outside-${suffix}`,
+    })).rejects.toMatchObject({ status: 404 });
   });
 
   it('allows at most one terminal acceptance under concurrent commands', async () => {
