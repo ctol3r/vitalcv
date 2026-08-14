@@ -63,7 +63,7 @@ export const SITEMAP_ROUTES: readonly SitemapRoute[] = [
   { path: '/status', source: 'app/status', lastModified: '2026-08-09', changeFrequency: 'daily', priority: 0.4 },
   // 2026-08-08 audit: these were live public pages the sitemap omitted —
   // including /explore, which the stale comment above called a 404.
-  { path: '/explore', source: 'app/explore', lastModified: '2026-08-09', changeFrequency: 'daily', priority: 0.8 },
+  { path: '/explore', source: 'app/explore', lastModified: '2026-08-14', changeFrequency: 'daily', priority: 0.8 },
   // /docs is intentionally ABSENT — deindexed by founder ruling D-B (2026-08-09).
   // It renders twelve FOUNDATION PLANNED entries; honest for a visitor we sent
   // there, wrong to publish to search. Its `robots: { index: false }` lives in

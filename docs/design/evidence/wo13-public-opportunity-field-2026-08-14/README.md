@@ -1,6 +1,6 @@
 # WO-13 public opportunity field — visual evidence
 
-Date: 2026-08-14  
+Date: 2026-08-14
 Creative owner: Codex, implementing the founder-selected human+tactile extension
 of Direction D. Shared public chrome is unchanged.
 
