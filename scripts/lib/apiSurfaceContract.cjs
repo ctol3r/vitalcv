@@ -50,11 +50,11 @@ const TENANT_GUARD_ERROR = 'organization_context_required';
 /**
  * Curated public surface, probed against production on every API deploy.
  *
- * `expect` lists every status the DEPLOYED app may legitimately return — which
- * is not always just 200. `/readyz` reports 503 when the database is
- * unreachable, and that is a true answer, not a probe failure; the probe
- * records which one it saw. Asserting a single status here is precisely the
- * mistake that made verifyProduction.ts unrunnable.
+ * `expect` lists every status the DEPLOYED app may legitimately return for a
+ * successful release probe. Some transparency routes deliberately publish
+ * degraded states, but `/readyz` is the deployment's database-reachability
+ * gate: HTTP 503 is an honest handler response and a failed release contract.
+ * `values` pins payload facts whose presence alone would be too weak.
  */
 const PROBE_PUBLIC = [
   {
@@ -71,12 +71,13 @@ const PROBE_PUBLIC = [
   },
   {
     path: '/readyz',
-    // 503 is `status: not_ready` — the handler's own answer when `SELECT 1`
-    // fails. A probe that demanded 200 would be asserting database uptime as a
-    // deploy contract; what is actually asserted is that the route answers and
-    // that the guard did not eat it. The reading is reported either way.
-    expect: [200, 503],
+    // 503 is `status: not_ready` when `SELECT 1` fails. It proves the route is
+    // mounted, but it also proves the release cannot reach its database. This
+    // probe is the only production gate against the API container's own DB, so
+    // accepting 503 here would turn a real outage into a green deployment.
+    expect: [200],
     keys: ['status', 'service', 'git_branch', 'git_sha'],
+    values: { status: 'ready' },
     note: 'API-container database reachability. Nothing else in CI checks this — the web smoke checks the WEB container /api/health/db.',
   },
   {
@@ -198,9 +199,10 @@ const PROBE_GUARDED = [
  * down here, in a diff a reviewer can see and argue with.
  *
  * UPPER BOUND, deliberately. An undeclared 200 fails. A declared entry that has
- * since closed does NOT fail — closing a route is the safe direction, and a
- * test that punished it would quietly pressure the next person to reopen one to
- * get green. Stale entries are swept by a separate assertion instead.
+ * since closed does NOT fail this upper bound — closing a route is the safe
+ * direction. A separate structural assertion asks whether a settled entry
+ * moved behind the organization guard or disappeared. The curated production
+ * probe routes are still exercised end to end.
  *
  * THIS IS NOT AN ENDORSEMENT. Several of these publish more than their name
  * suggests — `/api/audit/events`, `/api/directory/csv`, `/api/pilot/report`,
@@ -330,7 +332,7 @@ function isTenantGuardRejection(status, body) {
   return status === 401 && body != null && body.error === TENANT_GUARD_ERROR;
 }
 
-/** Census paths that must currently answer 200 (i.e. everything not transitional). */
+/** Census paths whose settled mount and tenant-boundary state is swept. */
 function settledCensusPaths() {
   return ANONYMOUS_CENSUS.filter((entry) => !entry.transitional).map((entry) => entry.path);
 }

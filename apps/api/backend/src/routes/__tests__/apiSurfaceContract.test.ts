@@ -1,5 +1,5 @@
 /**
- * The API's anonymous surface is exactly what `scripts/lib/apiSurfaceContract.mjs`
+ * The API's anonymous surface is exactly what `scripts/lib/apiSurfaceContract.cjs`
  * declares — enforced against the REAL app, on every PR.
  *
  * WHY THIS FILE AND NOT JUST THE PROBE. `scripts/api-surface-probe.mjs` runs
@@ -8,8 +8,9 @@
  * `scripts/deploy-health-probe.sh` at 5/5 green while the script could not run
  * at all. A probe whose expectations nothing verifies is the same class of
  * artifact as the script it replaces. This test verifies them, by booting the
- * app the way `sourceRuntimePublic.test.ts` and `versionReachability.test.ts`
- * do — the standard route-test idiom (mount a router on a bare `express()`) is
+ * app while consolidating the former `sourceRuntimePublic.test.ts` and
+ * `versionReachability.test.ts` suites — the standard route-test idiom (mount
+ * a router on a bare `express()`) is
  * structurally blind to the globally-mounted tenant guard, which is the only
  * thing that decides any of this.
  *
@@ -21,13 +22,23 @@
  *     `shouldSkipTenantContext` is a list of prefixes, so a two-line diff can
  *     open a dozen routes at once, and nothing before this noticed.
  *
- * OUTCOME, NOT MECHANISM. Nothing here names the skip list. The assertions are
- * about what a caller receives, so they keep holding if the guard is
- * reimplemented, re-ordered, or replaced — and go red only if the surface
- * actually moves. The one exception is the route ENUMERATION, which must read
- * Express internals because there is no other way to ask "what is mounted".
+ * OUTCOME FIRST. The public and guarded probe assertions exercise the real app.
+ * The census closure also enumerates Express and inspects the tenant-boundary
+ * predicate because there is no safe way to issue 100-plus side-effectful GETs
+ * inside the repository-wide parallel PostgreSQL suite. Any newly exposed
+ * undeclared route is still exercised through the real app before it can pass.
  */
 import request from 'supertest';
+
+// The undeclared-route safety check can reach `/api/system-health`. An empty
+// test database makes that handler schedule investigator recovery after its
+// response; recovery is not part of the HTTP boundary contract and otherwise
+// outlives this suite. Keep the app, route, guard, and database reads real while
+// making only that post-response job deterministic and immediate.
+jest.mock('../../services/investigators/investigatorEngineService', () => ({
+  ...jest.requireActual('../../services/investigators/investigatorEngineService'),
+  runScheduledInvestigators: jest.fn(async () => []),
+}));
 
 import app from '../../app';
 import { shouldSkipTenantContext } from '../../middleware/tenantGuard';
@@ -42,8 +53,7 @@ import {
   // rather than two copies that will eventually disagree. See its header.
 } from '../../../../../../scripts/lib/apiSurfaceContract.cjs';
 
-// Module init (trust-list ingestion, detail-agent setup) dominates; the ~130
-// requests themselves were measured at ~2.5s in total.
+// Module init (trust-list ingestion and detail-agent setup) dominates.
 jest.setTimeout(300_000);
 
 /**
@@ -75,13 +85,19 @@ function registeredParameterlessGetPaths(): string[] {
   return [...paths].filter((p) => !p.includes(':') && !p.includes('*')).sort();
 }
 
-type PublicEntry = { path: string; expect: number[]; keys?: string[] };
+type PublicEntry = {
+  path: string;
+  expect: number[];
+  keys?: string[];
+  values?: Record<string, unknown>;
+};
 
 const PUBLIC_ENTRIES: Array<[string, PublicEntry]> = (PROBE_PUBLIC as PublicEntry[]).map((entry) => [
   entry.path,
   entry,
 ]);
 const PUBLIC_WITH_KEYS = PUBLIC_ENTRIES.filter(([, entry]) => Boolean(entry.keys));
+const PUBLIC_WITH_VALUES = PUBLIC_ENTRIES.filter(([, entry]) => Boolean(entry.values));
 
 describe('the routes the production probe calls PUBLIC are reachable anonymously', () => {
   it.each(PUBLIC_ENTRIES)('%s answers without an organization', async (path, entry) => {
@@ -105,6 +121,19 @@ describe('the routes the production probe calls PUBLIC are reachable anonymously
       expect(res.body).toHaveProperty(key);
     }
   });
+
+  it.each(PUBLIC_WITH_VALUES)('%s publishes the payload values the probe asserts', async (path, entry) => {
+    const res = await request(app).get(path);
+
+    expect(res.body).toMatchObject(entry.values ?? {});
+  });
+
+  it('fails closed when the API container cannot reach its database', () => {
+    const ready = (PROBE_PUBLIC as PublicEntry[]).find((entry) => entry.path === '/readyz');
+
+    expect(ready).toMatchObject({ expect: [200], values: { status: 'ready' } });
+    expect(ready?.expect).not.toContain(503);
+  });
 });
 
 describe('the routes the production probe calls GUARDED refuse anonymously', () => {
@@ -117,6 +146,72 @@ describe('the routes the production probe calls GUARDED refuse anonymously', () 
       expect(res.body.error).toBe(TENANT_GUARD_ERROR);
     },
   );
+});
+
+describe('the public version contract remains narrow', () => {
+  it('publishes only the four process build constants', async () => {
+    const res = await request(app).get('/api/version');
+
+    expect(Object.keys(res.body).sort()).toEqual([
+      'buildVersion',
+      'commitHash',
+      'nodeVersion',
+      'prismaVersion',
+    ]);
+  });
+
+  it('does not change when a caller asserts an organization header', async () => {
+    const anonymous = await request(app).get('/api/version');
+    const asserted = await request(app).get('/api/version').set('x-org-id', 'probe-org');
+
+    expect(anonymous.status).toBe(200);
+    expect(asserted.body).toEqual(anonymous.body);
+  });
+
+  it('does not exempt neighbouring version-history routes', async () => {
+    const res = await request(app).get('/api/version/history');
+
+    expect(res.status).toBe(401);
+    expect(res.body.error).toBe(TENANT_GUARD_ERROR);
+  });
+});
+
+describe('the public source-runtime contract remains narrow', () => {
+  it.each([
+    '/api/system/source-runtime',
+    '/api/system/source-runtime/NPPES_API',
+    '/api/system/source-runtime/OIG_LEIE',
+  ])('%s reaches its handler without an organization', async (path) => {
+    const res = await request(app).get(path);
+
+    expect(res.status).not.toBe(401);
+    expect(res.body?.error).not.toBe(TENANT_GUARD_ERROR);
+    expect([200, 404, 503]).toContain(res.status);
+  });
+
+  it('never publishes lastArtifactId to an anonymous caller', async () => {
+    const res = await request(app).get('/api/system/source-runtime');
+
+    if (res.status === 200) {
+      for (const source of res.body.sources ?? []) {
+        expect(source).not.toHaveProperty('lastArtifactId');
+      }
+    }
+    expect(JSON.stringify(res.body)).not.toContain('lastArtifactId');
+  });
+
+  it.each([
+    '/api/system/telemetry',
+    '/api/system/telemetry/pilot',
+    '/api/system/trust-health',
+    '/api/system/trust-health/graph',
+    '/api/system/trust-health/orphans',
+  ])('%s stays behind the organization guard', async (path) => {
+    const res = await request(app).get(path);
+
+    expect(res.status).toBe(401);
+    expect(res.body.error).toBe(TENANT_GUARD_ERROR);
+  });
 });
 
 describe('the anonymous census is an upper bound on what the API publishes', () => {
@@ -165,18 +260,20 @@ describe('the anonymous census is an upper bound on what the API publishes', () 
     expect(candidates.length).toBeGreaterThan(80);
   });
 
-  it('carries no stale census entries — every settled path still answers 200', async () => {
-    const stale: string[] = [];
-    for (const path of settledCensusPaths()) {
-      // eslint-disable-next-line no-await-in-loop
-      const res = await request(app).get(path);
-      if (res.status !== 200) stale.push(`${path} → ${res.status}`);
-    }
+  it('carries no census entries that moved behind a guard or disappeared', () => {
+    const registered = new Set(registeredParameterlessGetPaths());
+    const closed = settledCensusPaths().flatMap((path) => {
+      if (!registered.has(path)) return [`${path} → unmounted`];
+      if (!shouldSkipTenantContext(path)) return [`${path} → organization guard`];
+      return [];
+    });
 
-    // Keeps the upper bound from rotting into a wishlist. A route that closed
-    // on purpose should be DELETED from the census in the same PR that closed
-    // it, so the file keeps describing the surface rather than its history.
-    expect(stale).toEqual([]);
+    // A route that closed on purpose should be DELETED from the census in the
+    // same PR that closed it, so this file describes the surface, not history.
+    // The curated probe routes above remain exercised end-to-end; the larger
+    // census stays structural so this contract does not exhaust PostgreSQL
+    // while the repository's real-database suites run in parallel.
+    expect(closed).toEqual([]);
   });
 
   it('holds at most one transitional entry, and it names the PR that closes it', () => {

@@ -153,6 +153,23 @@ try {
       const missing = entry.keys.filter((key) => !(res.body && key in res.body));
       record(`public ${entry.path}: payload shape`, missing.length === 0, missing.length ? `missing ${missing.join(', ')}` : entry.keys.join(', '));
     }
+
+    if (statusOk && entry.values) {
+      const mismatched = Object.entries(entry.values).filter(
+        ([key, expected]) => !res.body || !Object.is(res.body[key], expected),
+      );
+      record(
+        `public ${entry.path}: payload values`,
+        mismatched.length === 0,
+        mismatched.length
+          ? mismatched
+              .map(([key, expected]) => `${key}=${JSON.stringify(res.body?.[key])} (expected ${JSON.stringify(expected)})`)
+              .join(', ')
+          : Object.entries(entry.values)
+              .map(([key, value]) => `${key}=${JSON.stringify(value)}`)
+              .join(', '),
+      );
+    }
   }
 
   // ---------------------------------------------------------------------

@@ -18,17 +18,28 @@ in the same pull request as its implementation or takeover evidence.
   mutation. `/readyz` now fails closed: only HTTP 200 with `status: ready` can
   satisfy the deployment contract, so database-unready HTTP 503 cannot produce
   a false-green release.
-- **Live pre-rescue evidence:** The read-only probe passed **31 checks** against
-  `https://api.vitalcv.com` at production SHA `1b9632b24`: `/health` and
+- **Verification:** The focused real-app contract passes **45/45** through the
+  real PostgreSQL harness, including the exact ready payload and an explicit
+  assertion that HTTP 503 is never accepted. Curated public and guarded routes,
+  plus any newly exposed undeclared route, are exercised through the real app;
+  the larger census verifies mounted-route and tenant-boundary state without
+  issuing 100-plus side-effectful requests inside the parallel database suite.
+  The unrelated post-response investigator recovery is mocked to finish
+  immediately so it cannot outlive the contract test.
+  The tightened read-only probe also passed every declared check against
+  `https://api.vitalcv.com` at production SHA `253091496`: `/health` and
   `/api/version` agreed on the exact SHA, `/readyz` returned 200/ready, declared
   public routes answered as contracted, and all ten guarded routes returned
-  `401 organization_context_required`.
-- **Next gate:** Run the focused real-app contract test, the real PostgreSQL
-  backend harness, typecheck, build, aggregate test, and refreshed-head CI;
-  require every check green and `CLEAN` before merge. After merge, require the
-  workflow receipt and a live probe against the exact deployed main SHA.
+  `401 organization_context_required`. The final local gate passes typecheck,
+  build, **464 web files / 4,505 tests**, and the real-PostgreSQL backend at
+  **343 suites / 2,751 tests**. The web aggregate's 45 database-gated tests are
+  exercised separately by the CI `web-quality` PostgreSQL step.
+- **Next gate:** Require refreshed-head CI, including the PostgreSQL web-quality
+  step, every required check green, and `CLEAN` before merge. After merge,
+  require the workflow receipt and a live probe against the exact deployed main
+  SHA.
 
-## WO-11 · Land August 2026 market evidence — OPEN #1366
+## WO-11 · Land August 2026 market evidence — LANDED #1366
 
 - **Date:** 2026-08-13
 - **Claim-check and stale-stack classification:** #1366 is the sole open PR for
@@ -50,10 +61,10 @@ in the same pull request as its implementation or takeover evidence.
   `2026-08-10` after #1372 changed that route; with no other open repair, this
   PR updates the factual sitemap date to its Git-derived `2026-08-14`. The
   corrected aggregate run passes **464 web files / 4,505 tests** plus the real
-  PostgreSQL backend harness at **344 suites / 2,722 tests**. Merge still
-  required checks and `CLEAN` passed; #1366 merged as `253091496`, Railway
-  reported that exact SHA, `/trust` published the corrected `2026-08-14`
-  sitemap date, and the production-browser audit passed.
+  PostgreSQL backend harness at **344 suites / 2,722 tests**. Merge required
+  checks and `CLEAN` passed; #1366 merged as `253091496`, Railway reported that
+  exact SHA, `/trust` published the corrected `2026-08-14` sitemap date, and the
+  production-browser audit passed.
 
 ## WO-8 · Direction D homepage recovery — OPEN
 
