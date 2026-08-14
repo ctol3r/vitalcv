@@ -205,6 +205,9 @@ export interface OpportunityTruthFilters {
   payMax?: number;
   visaSponsorship?: OpportunityVisaStatus;
   benefits?: OpportunityBenefitsAvailability;
+  applicationMode?: 'external' | 'vitalcv';
+  compensation?: 'supplied' | 'not_supplied';
+  observedWithinDays?: number;
   employerType?: string;
   startUrgency?: OpportunityStartUrgency;
   readinessStatus?: OpportunityReadinessStatus;
@@ -1701,6 +1704,21 @@ export function matchesOpportunityTruthFilters(
   }
   if (filters.benefits && opportunity.benefitsAvailability !== filters.benefits) {
     return false;
+  }
+  if (filters.applicationMode && opportunity.applicationMode !== filters.applicationMode) {
+    return false;
+  }
+  if (filters.compensation && opportunity.compensationProvenance.state !== filters.compensation) {
+    return false;
+  }
+  if (filters.observedWithinDays !== undefined) {
+    const observedAt = opportunity.availability.observedAt
+      ? Date.parse(opportunity.availability.observedAt)
+      : Number.NaN;
+    const cutoff = Date.now() - (filters.observedWithinDays * 24 * 60 * 60 * 1000);
+    if (!Number.isFinite(observedAt) || observedAt < cutoff) {
+      return false;
+    }
   }
   if (filters.employerType && !stringIncludes(opportunity.employerType, filters.employerType)) {
     return false;

@@ -166,6 +166,140 @@
   padding-top: clamp(2.5rem, 5vw, 4.5rem);
 }
 
+.opf-lenses {
+  margin-bottom: clamp(2.4rem, 5vw, 4.25rem);
+  padding-bottom: clamp(2rem, 4vw, 3.5rem);
+  border-bottom: 1px solid var(--vt-home-d-rule);
+}
+
+.opf-lenses-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.opf-lenses-heading h2 {
+  max-width: 18ch;
+  margin: 0.4rem 0 0;
+  font-family: var(--font-fraunces-loaded, Georgia, 'Times New Roman', serif);
+  font-size: clamp(1.75rem, 2.8vw, 3rem);
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: -0.035em;
+}
+
+.opf-lens-controls {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.opf-lens-controls button {
+  width: 48px;
+  height: 48px;
+  border: 1px solid var(--vt-home-d-ink);
+  border-radius: 50%;
+  color: var(--vt-home-d-ink);
+  background: transparent;
+  cursor: pointer;
+  font-size: 1.1rem;
+}
+
+.opf-lens-rail {
+  display: grid;
+  grid-auto-columns: minmax(16.5rem, 23%);
+  grid-auto-flow: column;
+  gap: 0.75rem;
+  padding: 0.1rem 0 1rem;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  scrollbar-color: var(--vt-home-d-ink) var(--vt-home-d-rule);
+  scrollbar-width: thin;
+}
+
+.opf-lens-card {
+  position: relative;
+  display: grid;
+  grid-template-rows: auto auto 1fr auto;
+  min-height: 13.5rem;
+  padding: 1.1rem;
+  border: 1px solid var(--vt-home-d-rule);
+  color: var(--vt-home-d-ink);
+  background:
+    linear-gradient(145deg, color-mix(in srgb, var(--vt-home-d-panel) 94%, var(--vt-home-d-source) 6%), var(--vt-home-d-panel));
+  text-decoration: none;
+  transition: border-color 180ms ease, transform 180ms ease;
+}
+
+.opf-lens-card::after {
+  position: absolute;
+  right: 1rem;
+  bottom: 1rem;
+  width: 1.4rem;
+  height: 1.4rem;
+  border: 1px solid var(--vt-home-d-rule);
+  border-radius: 50%;
+  content: '';
+}
+
+.opf-lens-card:hover {
+  border-color: var(--vt-home-d-ink);
+  transform: translateY(-3px);
+}
+
+.opf-lens-card[data-active='true'] {
+  border-color: var(--vt-home-d-source);
+  outline: 1px solid var(--vt-home-d-source);
+  outline-offset: -3px;
+}
+
+.opf-lens-card[data-active='true']::after {
+  border: 5px solid var(--vt-home-d-panel);
+  background: var(--vt-home-d-source);
+  outline: 1px solid var(--vt-home-d-source);
+  outline-offset: 0;
+}
+
+.opf-lens-index,
+.opf-lens-action {
+  color: var(--vt-home-d-source);
+  font-family: var(--font-geist-mono-loaded, ui-monospace, monospace);
+  font-size: 0.65rem;
+  letter-spacing: 0.075em;
+  text-transform: uppercase;
+}
+
+.opf-lens-title {
+  max-width: 12ch;
+  margin-top: 1.9rem;
+  font-family: var(--font-fraunces-loaded, Georgia, 'Times New Roman', serif);
+  font-size: 1.6rem;
+  line-height: 1;
+  letter-spacing: -0.035em;
+}
+
+.opf-lens-detail {
+  max-width: 22ch;
+  margin-top: 0.65rem;
+  color: var(--vt-home-d-dim);
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.opf-lens-action {
+  align-self: end;
+  margin-top: 1.5rem;
+  color: var(--vt-home-d-ink);
+}
+
+.opf-lens-boundary {
+  margin: 0.6rem 0 0;
+  color: var(--vt-text-muted);
+  font-size: 0.72rem;
+  line-height: 1.45;
+}
+
 .opf-search-band {
   padding-bottom: clamp(2rem, 4vw, 3.5rem);
   border-bottom: 1px solid var(--vt-home-d-rule);
@@ -261,6 +395,8 @@
 .opf-filter-toggle:focus-visible,
 .opf-active-filters button:focus-visible,
 .opf-page-button:focus-visible,
+.opf-lens-card:focus-visible,
+.opf-lens-controls button:focus-visible,
 .opf-role a:focus-visible {
   outline: 3px solid var(--vt-focus-ring-scene-paper);
   outline-offset: 2px;
@@ -600,6 +736,10 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .opf-lens-rail {
+    grid-auto-columns: minmax(16rem, 44%);
+  }
+
   .opf-role-proof {
     grid-template-columns: 1fr 1fr;
   }
@@ -670,6 +810,28 @@
 
   .opf-board {
     padding-top: 2.5rem;
+  }
+
+  .opf-lenses-heading {
+    align-items: flex-start;
+  }
+
+  .opf-lenses-heading h2 {
+    font-size: 2rem;
+  }
+
+  .opf-lens-controls {
+    display: none;
+  }
+
+  .opf-lens-rail {
+    grid-auto-columns: minmax(15.75rem, 84%);
+    margin-right: calc(-1 * var(--page-pad, 1rem));
+    padding-right: var(--page-pad, 1rem);
+  }
+
+  .opf-lens-card {
+    min-height: 12.5rem;
   }
 
   .opf-search-row {

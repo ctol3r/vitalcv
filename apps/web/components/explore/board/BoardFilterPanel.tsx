@@ -2,12 +2,22 @@
 
 import type { BoardFilters } from '@/lib/explore/board-filters';
 import {
+  APPLICATION_MODE_LABEL,
+  APPLICATION_MODE_OPTIONS,
+  BENEFITS_LABEL,
+  BENEFITS_OPTIONS,
+  COMPENSATION_LABEL,
+  COMPENSATION_OPTIONS,
   HIRING_TYPE_LABEL,
   HIRING_TYPE_OPTIONS,
+  OBSERVED_WITHIN_LABEL,
+  OBSERVED_WITHIN_OPTIONS,
   PROFESSION_LABEL,
   PROFESSION_OPTIONS,
   SCHEDULE_LABEL,
   SCHEDULE_OPTIONS,
+  SORT_LABEL,
+  SORT_OPTIONS,
 } from '@/lib/explore/board-filters';
 
 const US_STATES = [
@@ -49,7 +59,7 @@ export function BoardFilterPanel({
 }) {
   return (
     <section className="opf-filter-grid" aria-label="Filter clinical opportunities">
-      <Field label="Specialty">
+      <Field label="Specialty or service line">
         <input
           type="text"
           value={filters.specialty}
@@ -130,6 +140,75 @@ export function BoardFilterPanel({
           <option value="">Any type</option>
           {HIRING_TYPE_OPTIONS.map((value) => (
             <option key={value} value={value}>{HIRING_TYPE_LABEL[value]}</option>
+          ))}
+        </select>
+      </Field>
+
+      <Field label="Source observation">
+        <select
+          value={filters.observedWithin}
+          onChange={(event) => onChange({ observedWithin: event.target.value })}
+          className="opf-filter-control"
+          style={CONTROL_STYLE}
+        >
+          <option value="">Any observation time</option>
+          {OBSERVED_WITHIN_OPTIONS.map((value) => (
+            <option key={value} value={value}>{OBSERVED_WITHIN_LABEL[value]}</option>
+          ))}
+        </select>
+      </Field>
+
+      <Field label="Application path">
+        <select
+          value={filters.applicationMode}
+          onChange={(event) => onChange({ applicationMode: event.target.value })}
+          className="opf-filter-control"
+          style={CONTROL_STYLE}
+        >
+          <option value="">Any application path</option>
+          {APPLICATION_MODE_OPTIONS.map((value) => (
+            <option key={value} value={value}>{APPLICATION_MODE_LABEL[value]}</option>
+          ))}
+        </select>
+      </Field>
+
+      <Field label="Compensation detail">
+        <select
+          value={filters.compensation}
+          onChange={(event) => onChange({ compensation: event.target.value })}
+          className="opf-filter-control"
+          style={CONTROL_STYLE}
+        >
+          <option value="">Any compensation detail</option>
+          {COMPENSATION_OPTIONS.map((value) => (
+            <option key={value} value={value}>{COMPENSATION_LABEL[value]}</option>
+          ))}
+        </select>
+      </Field>
+
+      <Field label="Benefits detail">
+        <select
+          value={filters.benefits}
+          onChange={(event) => onChange({ benefits: event.target.value })}
+          className="opf-filter-control"
+          style={CONTROL_STYLE}
+        >
+          <option value="">Any benefits detail</option>
+          {BENEFITS_OPTIONS.map((value) => (
+            <option key={value} value={value}>{BENEFITS_LABEL[value]}</option>
+          ))}
+        </select>
+      </Field>
+
+      <Field label="Sort field">
+        <select
+          value={filters.sort}
+          onChange={(event) => onChange({ sort: event.target.value })}
+          className="opf-filter-control"
+          style={CONTROL_STYLE}
+        >
+          {SORT_OPTIONS.map((value) => (
+            <option key={value} value={value}>{SORT_LABEL[value]}</option>
           ))}
         </select>
       </Field>

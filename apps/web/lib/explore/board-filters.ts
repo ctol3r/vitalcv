@@ -14,6 +14,11 @@ export const PROFESSION_OPTIONS = [
 ] as const;
 export const SCHEDULE_OPTIONS = ['full_time', 'part_time', 'per_diem', 'flexible', 'not_stated'] as const;
 export const HIRING_TYPE_OPTIONS = ['perm', 'locums', 'contract', 'telehealth'] as const;
+export const OBSERVED_WITHIN_OPTIONS = ['1', '3', '7', '14', '30', '90'] as const;
+export const APPLICATION_MODE_OPTIONS = ['external', 'vitalcv'] as const;
+export const COMPENSATION_OPTIONS = ['supplied', 'not_supplied'] as const;
+export const BENEFITS_OPTIONS = ['listed', 'limited', 'not_listed'] as const;
+export const SORT_OPTIONS = ['recent', 'title', 'organization'] as const;
 
 export const PAGE_SIZE = 12;
 
@@ -24,6 +29,11 @@ export interface BoardFilters {
   state: string;
   schedule: string;
   hiringType: string;
+  observedWithin: string;
+  applicationMode: string;
+  compensation: string;
+  benefits: string;
+  sort: string;
   /** null = any setting; true = remote; false = on-site or hybrid. */
   remote: boolean | null;
   page: number;
@@ -40,6 +50,11 @@ export const EMPTY_BOARD_FILTERS: BoardFilters = {
   state: '',
   schedule: '',
   hiringType: '',
+  observedWithin: '',
+  applicationMode: '',
+  compensation: '',
+  benefits: '',
+  sort: 'recent',
   remote: null,
   page: 1,
 };
@@ -73,6 +88,11 @@ export function normalizeBoardFilters(filters: Partial<BoardFilters>): BoardFilt
     state: text(filters.state).toUpperCase().slice(0, 2),
     schedule: oneOf(filters.schedule, SCHEDULE_OPTIONS),
     hiringType: oneOf(filters.hiringType, HIRING_TYPE_OPTIONS),
+    observedWithin: oneOf(filters.observedWithin, OBSERVED_WITHIN_OPTIONS),
+    applicationMode: oneOf(filters.applicationMode, APPLICATION_MODE_OPTIONS),
+    compensation: oneOf(filters.compensation, COMPENSATION_OPTIONS),
+    benefits: oneOf(filters.benefits, BENEFITS_OPTIONS),
+    sort: oneOf(filters.sort, SORT_OPTIONS) || 'recent',
     remote: filters.remote === true || filters.remote === false ? filters.remote : null,
     page: filters.page && filters.page > 0 ? Math.floor(filters.page) : 1,
   };
@@ -86,6 +106,11 @@ export function parseBoardFilters(searchParams: SearchParamsReader): BoardFilter
     state: searchParams.get('state') ?? '',
     schedule: searchParams.get('schedule') ?? '',
     hiringType: searchParams.get('hiringType') ?? '',
+    observedWithin: searchParams.get('observedWithin') ?? '',
+    applicationMode: searchParams.get('applicationMode') ?? '',
+    compensation: searchParams.get('compensation') ?? '',
+    benefits: searchParams.get('benefits') ?? '',
+    sort: searchParams.get('sort') ?? 'recent',
     remote: parseRemote(searchParams.get('remote')),
     page: positiveInt(searchParams.get('page')),
   });
@@ -100,6 +125,11 @@ export function serializeBoardFilters(filters: Partial<BoardFilters>): URLSearch
   if (f.state) params.set('state', f.state);
   if (f.schedule) params.set('schedule', f.schedule);
   if (f.hiringType) params.set('hiringType', f.hiringType);
+  if (f.observedWithin) params.set('observedWithin', f.observedWithin);
+  if (f.applicationMode) params.set('applicationMode', f.applicationMode);
+  if (f.compensation) params.set('compensation', f.compensation);
+  if (f.benefits) params.set('benefits', f.benefits);
+  if (f.sort !== 'recent') params.set('sort', f.sort);
   if (f.remote !== null) params.set('remote', String(f.remote));
   if (f.page > 1) params.set('page', String(f.page));
   return params;
@@ -114,6 +144,11 @@ export function toApiQuery(filters: Partial<BoardFilters>): URLSearchParams {
   if (f.state) params.set('state', f.state);
   if (f.schedule) params.set('schedule', f.schedule);
   if (f.hiringType) params.set('hiringType', f.hiringType);
+  if (f.observedWithin) params.set('observedWithinDays', f.observedWithin);
+  if (f.applicationMode) params.set('applicationMode', f.applicationMode);
+  if (f.compensation) params.set('compensation', f.compensation);
+  if (f.benefits) params.set('benefits', f.benefits);
+  params.set('sort', f.sort);
   if (f.remote !== null) params.set('remote', String(f.remote));
   params.set('limit', String(PAGE_SIZE));
   params.set('offset', String((f.page - 1) * PAGE_SIZE));
@@ -124,7 +159,8 @@ export function hasActiveFilters(filters: BoardFilters): boolean {
   const f = normalizeBoardFilters(filters);
   return Boolean(
     f.q || f.specialty || f.profession || f.state || f.schedule
-    || f.hiringType || f.remote !== null,
+    || f.hiringType || f.remote !== null || f.observedWithin || f.applicationMode
+    || f.compensation || f.benefits,
   );
 }
 
@@ -139,6 +175,19 @@ export function activeFilterSummary(filters: BoardFilters): Array<{ key: keyof B
   if (f.remote === false) out.push({ key: 'remote', label: 'On-site or hybrid' });
   if (f.schedule) out.push({ key: 'schedule', label: SCHEDULE_LABEL[f.schedule] ?? f.schedule });
   if (f.hiringType) out.push({ key: 'hiringType', label: HIRING_TYPE_LABEL[f.hiringType] ?? f.hiringType });
+  if (f.observedWithin) out.push({
+    key: 'observedWithin',
+    label: `Source observed within ${f.observedWithin} ${f.observedWithin === '1' ? 'day' : 'days'}`,
+  });
+  if (f.applicationMode) out.push({
+    key: 'applicationMode',
+    label: APPLICATION_MODE_LABEL[f.applicationMode] ?? f.applicationMode,
+  });
+  if (f.compensation) out.push({
+    key: 'compensation',
+    label: COMPENSATION_LABEL[f.compensation] ?? f.compensation,
+  });
+  if (f.benefits) out.push({ key: 'benefits', label: BENEFITS_LABEL[f.benefits] ?? f.benefits });
   return out;
 }
 
@@ -182,4 +231,35 @@ export const HIRING_TYPE_LABEL: Record<string, string> = {
   locums: 'Locums',
   contract: 'Contract',
   telehealth: 'Telehealth',
+};
+
+export const OBSERVED_WITHIN_LABEL: Record<string, string> = {
+  '1': 'Past day',
+  '3': 'Past 3 days',
+  '7': 'Past week',
+  '14': 'Past 2 weeks',
+  '30': 'Past month',
+  '90': 'Past 3 months',
+};
+
+export const APPLICATION_MODE_LABEL: Record<string, string> = {
+  external: 'Original listing',
+  vitalcv: 'Apply with VitalCV',
+};
+
+export const COMPENSATION_LABEL: Record<string, string> = {
+  supplied: 'Compensation supplied',
+  not_supplied: 'Compensation not supplied',
+};
+
+export const BENEFITS_LABEL: Record<string, string> = {
+  listed: 'Benefits listed',
+  limited: 'Limited benefits detail',
+  not_listed: 'Benefits not listed',
+};
+
+export const SORT_LABEL: Record<string, string> = {
+  recent: 'Most recently updated',
+  title: 'Role title A–Z',
+  organization: 'Organization A–Z',
 };

@@ -2,6 +2,7 @@ import * as React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { BoardResultRow } from '@/components/explore/board/BoardResultRow';
+import { OpportunityLensRail } from '@/components/explore/board/OpportunityLensRail';
 import {
   clampedBoardPage,
   parseBoardFilters,
@@ -103,6 +104,11 @@ describe('WO-13 public opportunity field', () => {
       schedule: 'part_time',
       hiringType: 'locums',
       remote: 'false',
+      observedWithin: '7',
+      applicationMode: 'external',
+      compensation: 'supplied',
+      benefits: 'listed',
+      sort: 'organization',
       readinessStatus: 'ready_now',
       payMin: '300000',
       page: '3',
@@ -118,6 +124,11 @@ describe('WO-13 public opportunity field', () => {
       schedule: 'part_time',
       hiringType: 'locums',
       remote: false,
+      observedWithin: '7',
+      applicationMode: 'external',
+      compensation: 'supplied',
+      benefits: 'listed',
+      sort: 'organization',
       page: 3,
     });
     expect(publicUrl.has('readinessStatus')).toBe(false);
@@ -126,8 +137,28 @@ describe('WO-13 public opportunity field', () => {
     expect(api.get('profession')).toBe('physician');
     expect(api.get('schedule')).toBe('part_time');
     expect(api.get('remote')).toBe('false');
+    expect(api.get('observedWithinDays')).toBe('7');
+    expect(api.get('applicationMode')).toBe('external');
+    expect(api.get('compensation')).toBe('supplied');
+    expect(api.get('benefits')).toBe('listed');
+    expect(api.get('sort')).toBe('organization');
     expect(api.get('limit')).toBe('12');
     expect(api.get('offset')).toBe('24');
+  });
+
+  it('renders source-honest opportunity lenses as real links without JavaScript', () => {
+    const filters = parseBoardFilters(new URLSearchParams());
+    const html = renderToStaticMarkup(<OpportunityLensRail filters={filters} />);
+
+    expect(html).toContain('data-testid="opportunity-lens-rail"');
+    expect(html).toContain('Fresh from source');
+    expect(html).toContain('/explore?observedWithin=7');
+    expect(html).toContain('Pay in view');
+    expect(html).toContain('compensation=supplied');
+    expect(html).toContain('Apply with VitalCV');
+    expect(html).toContain('applicationMode=vitalcv');
+    expect(html).toContain('They are not MATCHA recommendations or eligibility decisions.');
+    expect(html).not.toMatch(/ready now|automatic eligibility|guaranteed/i);
   });
 
   it('normalizes a stale shared page to the last real result page', () => {

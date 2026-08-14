@@ -588,6 +588,9 @@ function usesDerivedFilters(filters: OpportunityTruthFilters): boolean {
     || filters.payMax !== undefined
     || filters.visaSponsorship
     || filters.benefits
+    || filters.applicationMode
+    || filters.compensation
+    || filters.observedWithinDays !== undefined
     || filters.employerType
     || filters.startUrgency
     || filters.readinessStatus
@@ -623,6 +626,7 @@ export async function listPublicOpportunities(filters: OpportunityTruthFilters &
   offset?: number;
   clinicianNpi?: string;
   clerkUserId?: string | null;
+  sort?: 'recent' | 'title' | 'organization';
 }): Promise<{ opportunities: OpportunityResult[]; total: number; truncated: boolean }> {
   const where: Prisma.OpportunityWhereInput = {
     status: 'ACTIVE',
@@ -651,10 +655,11 @@ export async function listPublicOpportunities(filters: OpportunityTruthFilters &
       },
     },
   } as const;
-  const orderBy = [
-    { updatedAt: 'desc' as const },
-    { createdAt: 'desc' as const },
-  ];
+  const orderBy: Prisma.OpportunityOrderByWithRelationInput[] = filters.sort === 'title'
+    ? [{ title: 'asc' }, { updatedAt: 'desc' }]
+    : filters.sort === 'organization'
+      ? [{ organization: { name: 'asc' } }, { title: 'asc' }]
+      : [{ updatedAt: 'desc' }, { createdAt: 'desc' }];
 
   let rankedIds: string[] | null = null;
   if (query) {
@@ -703,7 +708,7 @@ export async function listPublicOpportunities(filters: OpportunityTruthFilters &
     .map((opportunity) => buildOpportunityTruth({ opportunity, clinicianProfile }))
     .filter((opportunity) => matchesOpportunityTruthFilters(opportunity, filters));
 
-  if (rankedIds) {
+  if (rankedIds && (filters.sort ?? 'recent') === 'recent') {
     // findMany returned the rows in updatedAt order; restore relevance order.
     const rankPosition = new Map(rankedIds.map((id, index) => [id, index]));
     normalized = normalized.sort(
