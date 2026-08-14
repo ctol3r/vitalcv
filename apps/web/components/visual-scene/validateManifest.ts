@@ -32,6 +32,17 @@ export function validateSceneEntry(entry: SceneManifestEntry, stat: AssetStat): 
     errors.push(`${label}: aspect ratio must be positive`);
   }
 
+  const variantIds = new Set<string>();
+  for (const variant of entry.routeVariants ?? []) {
+    if (variantIds.has(variant.id)) {
+      errors.push(`${label}: route variant ${variant.id} appears twice`);
+    }
+    variantIds.add(variant.id);
+    if (!(variant.aspect.w > 0 && variant.aspect.h > 0)) {
+      errors.push(`${label}: route variant ${variant.id} aspect ratio must be positive`);
+    }
+  }
+
   // Poster: exists, within budget, fully labeled.
   const posterBytes = stat(entry.poster.path);
   if (posterBytes === null) {

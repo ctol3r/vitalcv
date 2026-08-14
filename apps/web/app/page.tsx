@@ -12,9 +12,9 @@ import '@/styles/home.css';
 import '@/styles/career-loop-home.css';
 import '@/styles/easy-home.css';
 
-const TAGLINE = 'VitalCV — Enter your NPI. VitalCV does the rest.';
+const TAGLINE = 'VitalCV — One career record. More ways forward.';
 const DESCRIPTION =
-  'Enter your NPI and VitalCV builds your clinician profile, shows exactly what remains, handles the administrative work it safely can, and lets you apply with the same profile — free for clinicians.';
+  'Start with your NPI. VitalCV assembles a source-attributed clinician profile, helps you explore roles, and lets you apply with the exact record you choose.';
 
 export const metadata: Metadata = {
   title: { absolute: TAGLINE },
@@ -33,7 +33,7 @@ const STRUCTURED_DATA = {
       name: 'VitalCV',
       url: 'https://vitalcv.com',
       description:
-        'VitalCV builds a clinician profile from an NPI, shows what remains, and handles the administrative work of hiring that can safely be handled.',
+        'VitalCV is the Provider Career Evidence Network: a clinician-owned record for finding opportunities, applying with selected evidence, and carrying accepted work forward.',
     },
     {
       '@type': 'WebSite',

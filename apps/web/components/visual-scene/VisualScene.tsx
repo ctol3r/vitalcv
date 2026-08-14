@@ -2,7 +2,12 @@
 
 import * as React from 'react';
 
-import { sceneEntry, type SceneId } from './manifest';
+import {
+  sceneEntry,
+  sceneRouteVariant,
+  type SceneId,
+  type SceneRouteVariantId,
+} from './manifest';
 
 /**
  * VisualScene — the one rendering path for public visual scenes.
@@ -34,6 +39,8 @@ export interface SceneState {
 
 interface SceneBaseProps {
   scene: SceneId;
+  /** Manifest-owned route crop; never a route-local asset override. */
+  routeVariant?: SceneRouteVariantId;
   mode?: 'auto' | 'static' | 'motion';
   priority?: 'hero' | 'inline' | 'background';
   className?: string;
@@ -63,8 +70,9 @@ function saveDataOn(): boolean {
 }
 
 export function VisualScene(props: VisualSceneProps) {
-  const { scene, mode = 'auto', priority = 'inline', className } = props;
+  const { scene, routeVariant, mode = 'auto', priority = 'inline', className } = props;
   const entry = sceneEntry(scene);
+  const variant = entry ? sceneRouteVariant(entry, routeVariant) : undefined;
 
   const containerRef = React.useRef<HTMLDivElement | null>(null);
   const videoRef = React.useRef<HTMLVideoElement | null>(null);
@@ -115,20 +123,33 @@ export function VisualScene(props: VisualSceneProps) {
       data-scene={scene}
       data-scene-kind={entry.kind}
       data-scene-priority={priority}
+      data-scene-variant={variant?.id}
       style={{ margin: 0 }}
     >
       <div
         ref={containerRef}
         // The reserved box: aspect ratio comes from the manifest, so the
         // element occupies its final size before any asset arrives (no CLS).
-        style={{ position: 'relative', aspectRatio: `${entry.aspect.w} / ${entry.aspect.h}`, overflow: 'hidden' }}
+        style={{
+          position: 'relative',
+          aspectRatio: `${variant?.aspect.w ?? entry.aspect.w} / ${variant?.aspect.h ?? entry.aspect.h}`,
+          overflow: 'hidden',
+        }}
       >
         {/* eslint-disable-next-line @next/next/no-img-element -- manifest-validated static asset with a reserved box */}
         <img
           src={entry.poster.path}
           alt={entry.altText}
           aria-hidden={entry.kind === 'decorative' ? true : undefined}
-          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+          fetchPriority={priority === 'hero' ? 'high' : undefined}
+          style={{
+            position: 'absolute',
+            inset: 0,
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            objectPosition: variant?.objectPosition,
+          }}
         />
         {showMotion && entry.motion.length > 0 ? (
           <video
@@ -150,7 +171,14 @@ export function VisualScene(props: VisualSceneProps) {
                 void videoRef.current?.play().catch(() => setFailed(true));
               }
             }}
-            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+            style={{
+              position: 'absolute',
+              inset: 0,
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              objectPosition: variant?.objectPosition,
+            }}
           >
             {entry.motion.map((m) => (
               <source key={m.path} src={m.path} type={m.format === 'webm' ? 'video/webm' : 'video/mp4'} />

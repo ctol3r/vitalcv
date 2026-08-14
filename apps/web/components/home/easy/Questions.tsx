@@ -33,11 +33,11 @@ const QUESTIONS: { q: string; a: string }[] = [
   },
   {
     q: 'What happens to something I have already shared?',
-    a: 'It shows the current state, not a copy taken on the day you shared it. If a source changes its answer, what your reader sees changes with it — there is no exported file sitting in an inbox still showing the old one.',
+    a: 'A submitted ApplicationPacket stays as the exact historical record you approved. Your CV Wallet may change later, but the product shows current evidence separately instead of silently replacing what an employer received.',
   },
   {
     q: 'Who decides what leaves my profile?',
-    a: 'You do, every time. VitalCV assembles and it prepares, but sending is yours to approve — that boundary is the same one drawn on the ownership grid above, and it is not configurable away.',
+    a: 'You do, every time. VitalCV assembles and prepares, but sending is yours to approve. A future employer receives nothing merely because you shared with someone else before.',
   },
   {
     q: 'What does it cost to start?',
