@@ -346,6 +346,38 @@ filterable as missing rather than being inferred. The rail uses native overflow
 with supplementary controls, requires no WebGL or new motion engine, and its
 reduced-motion frame is identical except for immediate movement.
 
+#### Employer exact-packet review amendment D.5 (2026-08-14)
+
+The founder extended the human+tactile career-mobility register to
+`/employers` through WO-15. The route must show the employer transaction rather
+than explain it through a narrow text column: a clinician-selected exact packet
+arrives, a human reviewer inspects it, clarification stays available, and any
+acceptance is only a head start. Institution review and actual start remain
+separate. Shared public chrome is unchanged.
+
+| Decision | Value | Status |
+|---|---|---|
+| Route promise | **Review the exact packet. Keep the decision yours.** | LOCKED for `/employers` |
+| Dominant object | A proprietary tactile **Employer Desk** process scene: exact packet -> consent gate -> inspect / clarify / institution review; the scene visibly stops before a decision | LOCKED for `/employers` |
+| Human media | Original, licensed, or generated documentary clinical-operations imagery with recorded provenance; no patient, PHI, readable screen, badge, employer mark, fictional identity, or implied outcome | LOCKED for `/employers` |
+| Interactive explainer | A keyboard-accessible horizontal review rail using the existing employer stages: request access, define requirements, receive the exact packet, inspect or clarify, accept as a head start, keep start events distinct | LOCKED for `/employers` |
+| Review truth | Submitted packet version, clinician choice, named source and freshness, open gaps, clarification, employer-recorded head-start acceptance, and institution authority remain selectable DOM text outside the artwork | LOCKED for `/employers` |
+| No-JavaScript path | Both scenes render their complete posters and transcripts; every review moment remains in DOM order and reachable through native overflow without JavaScript | LOCKED for `/employers` |
+| Prohibitions | No fake candidate, employer, packet result, readiness percentage, approval seal, automatic decision, hidden ranking, credentialing replacement, start claim, generic dashboard wall, or unsupported numerical outcome | LOCKED for `/employers` |
+
+The tactile Employer Desk uses a new `employer_desk` entry in the existing
+`VisualScene` inventory and runtime. The documentary operations frame is a manifest-owned
+`journey_film` route variant; it supplies human setting only and carries no
+packet or outcome state. The interactive rail reuses
+`EmployerWorkflowPreview` and `EMPLOYER_STAGES`, preserving one employer story
+instead of creating a second carousel engine or review model.
+
+The illustration is self-labelled as an example and stops at review, as
+required by EC-25. The only real transaction action on the acquisition page is
+the governed request for organization access. Type 2 NPI resolution remains
+organization identity, not authority to act, and no visual treatment weakens
+that boundary.
+
 **On the difference (W1080 closure, 2026-08-08).** Three rows previously read
 "PENDING UX-02", which is indistinguishable from an unresolved brand decision and
 made the table read as incomplete when it is not. A deferral is legitimate only
@@ -449,6 +481,13 @@ the founder decision for a static `journey_film` documentary route variant on
 `/explore`. It is atmosphere beside the public opportunity field, never a role,
 clinician identity, employer relationship, match, or outcome. The route's
 source and availability claims remain real text from the opportunity contract.
+
+**Employers route-variant authorization (2026-08-14).** Amendment D.5 supplies
+the founder decision for a static `journey_film` documentary route variant on
+`/employers` and for the approved `employer_desk` process scene on employer
+acquisition. The documentary frame is human setting only. The tactile desk
+stops at inspect, clarification, and institution review; it never depicts an
+acceptance, hire, clearance, credentialing decision, or start.
 
 **Route note (founder decision, 2026-08-08).** The source briefs target a `/jobs` surface. No such route exists. Opportunity and apply scenes target the surfaces that do: `/holder/opportunities{,/discover,/interested,/passed}`, `/holder/matcha/opportunities`, and `/opportunities/discover`. Renaming the customer-facing noun is UX-16 copy work; creating a `/jobs` route is a product dependency, not an illustration wave.
 

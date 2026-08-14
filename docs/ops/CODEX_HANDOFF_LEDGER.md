@@ -3,6 +3,53 @@
 Append-only. **Newest entry at the top.** One entry per work order is recorded
 in the same pull request as its implementation or takeover evidence.
 
+## WO-15 · Employer exact-packet review story — OPEN
+
+- **Date:** 2026-08-14
+- **Claim-check and creative ownership:** No open PR or remote branch duplicates
+  this public `/employers` composition. Open #1377, #1378, and #1380 address
+  category doctrine and authorized hire-to-start services; the older
+  `codex/wave2-employer-packet-review` branch is signed-in application-reader
+  work. Codex is the creative owner applying the founder-selected human+tactile
+  direction. Shared public chrome is unchanged.
+- **Change:** Rebuilds the employer page around a tactile consent-to-review desk,
+  an anonymous documentary-style clinical-operations scene, three review
+  truths, and one native horizontal six-moment review rail. Swipe, drag, 48px
+  controls, arrow keys, active narration, reduced motion, and no-JavaScript
+  completeness share one server-visible content path. A source-lane register
+  reads the existing canonical source contract rather than hand-typed status.
+- **Truth, authority, and transaction boundary:** The tactile illustration
+  stops before a decision. Submitted and current evidence remain separate;
+  clarification stays visible; acceptance remains a head start; credentialing,
+  privileging, hiring, and start remain institution decisions. Type 2 NPI
+  identity is not organization authority. No employer, clinician, result,
+  source response, metric, readiness score, or speed claim is invented. This
+  visual PR creates no packet, decision, authorization, schema, migration, or
+  durable-state path and does not overlap the open canonical transaction work.
+- **Accessibility and performance:** The optimized build has 0px horizontal
+  overflow at 390, 768, 1440, and 1728; every review moment remains in the DOM;
+  review controls are 48px square; and measured contrast ranges from 6.61:1 to
+  15.28:1. The two shipped WebP assets total 67,982 bytes, shipped motion is
+  zero, and no canvas, WebGL, or new animation engine is required. Three
+  controlled runs record maximum LCP 96ms, CLS 0, and maximum INP 48ms.
+- **Evidence:**
+  `docs/design/evidence/wo15-employer-review-story-2026-08-14/` contains paired
+  production-before and optimized-build-after frames at every required width,
+  the initial mobile viewport, reduced-motion and no-JavaScript frames, a real
+  carousel-control recording, computed typography/contrast/performance,
+  duplicate-intent classification, and generation provenance. The public app
+  is founder-pinned to one supported theme, light, and that theme is measured.
+- **Verification:** Focused employer coverage passes **9 files / 64 tests** and
+  focused production-build Playwright passes **30/30**. Copy, claims, design,
+  route, and design-markdown gates pass; the copy ratchet improves by three.
+  Typecheck passes **50/50**, build passes **35/35**, the aggregate web suite
+  passes **467 files / 4,527 tests**, and the serialized migration-backed
+  PostgreSQL backend census passes **343 suites / 2,761 tests**.
+- **Next gate:** Publish this implementation and same-PR receipt, require every
+  refreshed-head check green and `CLEAN`, squash-merge, verify Railway web and
+  API at the exact merge SHA, and exercise `/employers` plus the review rail
+  live on desktop and mobile before WO-16.
+
 ## WO-13B-F1 · Mobile source-title containment — OPEN
 
 - **Date:** 2026-08-14

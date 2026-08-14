@@ -7,7 +7,7 @@ const viewports = [
 ] as const;
 
 const publicSurfaces = [
-  { name: 'employers', path: '/employers', mode: 'focused-form', action: true },
+  { name: 'employers', path: '/employers', mode: 'marketing', action: true },
   { name: 'cvo', path: '/for/cvo', mode: 'marketing', action: true },
   { name: 'trust', path: '/trust', mode: 'marketing', action: false },
   { name: 'status', path: '/status', mode: 'marketing', action: false },
@@ -56,7 +56,7 @@ test.describe('Intentional page density', () => {
     await page.setViewportSize({ width: 1440, height: 1000 });
     await page.goto('/employers', { waitUntil: 'networkidle' });
 
-    const tokens = await page.locator('[data-page-density="focused-form"]').evaluate((node) => {
+    const tokens = await page.locator('[data-page-density="marketing"]').evaluate((node) => {
       const style = getComputedStyle(node);
       return {
         maxWidth: style.maxWidth,
@@ -67,7 +67,7 @@ test.describe('Intentional page density', () => {
       };
     });
 
-    expect(tokens.maxWidth).toBe('768px');
+    expect(tokens.maxWidth).toBe('1320px');
     expect(Number.parseFloat(tokens.paddingLeft)).toBeGreaterThanOrEqual(16);
     expect(tokens.block).not.toBe('');
     expect(tokens.sectionGap).not.toBe('');

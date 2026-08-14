@@ -96,13 +96,13 @@ describe('Wave 5 buyer proof surface', () => {
 
     const markup = renderToStaticMarkup(await EmployersPage());
 
-    // Wave 6 pinned "Start clinicians from source-backed evidence" here.
-    // REVISION 2 of the doorway (founder visual gate, 2026-08-07) retired that
-    // lead: the hiring experience is the proposition, and attribution enters
-    // beneath it as the proof. Still stated WITHOUT a speed claim — "faster"
-    // stays retired (brand split 2026-07-26) until a pilot measures it.
-    expect(markup).toContain('Move a clinician hire from interest to');
-    expect(markup).toContain('named to their public source');
+    // WO-15 makes the exact submitted packet the visual and verbal subject.
+    // Human review, clarification, and institution authority remain explicit;
+    // the route still makes no unmeasured speed claim.
+    expect(markup).toContain('Review the exact packet');
+    expect(markup).toContain('where each fact came from');
+    expect(markup).toContain('Ask for clarification');
+    expect(markup).toContain('Keep institution authority');
     expect(markup).not.toContain('Start clinicians faster');
     // D3: limits are stated plainly and EARLY on employer surfaces, and the
     // cadence line derives from the source-lane registry.
@@ -120,7 +120,7 @@ describe('Wave 5 buyer proof surface', () => {
     expect(markup).toContain('Request organization access');
     expect(markup).toContain('href="/employers/request-access"');
     expect(markup).toContain('not authority to act for it');
-    const heroAt = markup.indexOf('Move a clinician hire from interest to');
+    const heroAt = markup.indexOf('Review the exact packet');
     const workflowAt = markup.indexOf('data-employer-workflow');
     expect(workflowAt, 'workflow section renders').toBeGreaterThan(-1);
     expect(

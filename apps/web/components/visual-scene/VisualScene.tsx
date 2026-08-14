@@ -116,7 +116,8 @@ export function VisualScene(props: VisualSceneProps) {
   // Once motion has mounted it stays mounted (a finished video settles on
   // its last frame); 'failed' is the only path back to poster-only.
   const showMotion = motionAllowed && visible && !failed;
-  const transcript = entry.kind === 'decorative' ? undefined : entry.transcript;
+  const transcript = entry.kind === 'decorative' ? undefined : (variant?.transcript ?? entry.transcript);
+  const altText = variant?.altText ?? entry.altText;
   const stateForCaption = props.kind === 'stateful' ? props.state : undefined;
 
   return (
@@ -141,7 +142,7 @@ export function VisualScene(props: VisualSceneProps) {
         {/* eslint-disable-next-line @next/next/no-img-element -- manifest-validated static asset with a reserved box */}
         <img
           src={poster.path}
-          alt={entry.altText}
+          alt={altText}
           aria-hidden={entry.kind === 'decorative' ? true : undefined}
           fetchPriority={priority === 'hero' ? 'high' : undefined}
           style={{

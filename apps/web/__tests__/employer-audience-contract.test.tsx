@@ -26,16 +26,14 @@ describe('/employers is a page, not a redirect', () => {
     expect(markup).toContain('data-employer-audience');
   });
 
-  it('leads with the hiring experience, with evidence beneath it as proof', () => {
-    // REVISION 2 (founder visual gate, 2026-08-07): the previous pin here was
-    // "Start clinicians from source-backed evidence" — an H1 that sold the
-    // trust machinery as the product. The canonical employer direction leads
-    // with what the employer accomplishes; attribution enters immediately
-    // after as the reason it can be trusted. Both halves are pinned so
-    // neither the experience lead nor the proof line can quietly vanish.
-    expect(text).toContain('Move a clinician hire from interest to start');
+  it('leads with exact-packet review, with evidence and institution authority in view', () => {
+    // WO-15 (founder visual gate, 2026-08-14) replaces the prior hire-to-start
+    // headline with the selected employer promise. Pin the exact submission,
+    // attribution, and institution-authority halves so the new visual story
+    // cannot drift back into generic workflow copy.
+    expect(text).toContain('Review the exact packet. Keep the decision yours.');
     expect(text).toContain('the hiring decision stays yours');
-    expect(text).toContain('named to their public source');
+    expect(text).toContain('where each fact came from');
   });
 
   it('frames organization access as the doorway, not the proposition', () => {

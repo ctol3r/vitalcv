@@ -1,0 +1,122 @@
+{
+  "capturedAt": "2026-08-14T19:15:27.096Z",
+  "baselineSha": "6af0524bcfe04a0ed4b5e4e1370afd3e41a2141d",
+  "build": "local optimized Next.js production build",
+  "viewports": [
+    {
+      "viewport": { "width": 390, "height": 844 },
+      "horizontalOverflowPx": 0,
+      "stageCount": 6,
+      "scenes": [
+        { "scene": "employer_desk", "variant": null },
+        { "scene": "journey_film", "variant": "employers_documentary" }
+      ],
+      "h1": {
+        "family": "fraunces, \"fraunces Fallback\", Georgia, \"Times New Roman\", serif",
+        "size": "25.6px",
+        "lineHeight": "28.672px",
+        "weight": "500",
+        "color": "oklch(0.16 0.005 85)"
+      },
+      "lede": {
+        "size": "17px",
+        "lineHeight": "26.35px",
+        "color": "oklch(0.46 0.01 85)"
+      },
+      "primaryAction": { "width": 358, "height": 44, "top": 337.9375, "bottom": 381.9375 },
+      "nextControl": { "width": 48, "height": 48 },
+      "publicTheme": "light-only"
+    },
+    {
+      "viewport": { "width": 768, "height": 1024 },
+      "horizontalOverflowPx": 0,
+      "stageCount": 6,
+      "scenes": [
+        { "scene": "employer_desk", "variant": null },
+        { "scene": "journey_film", "variant": "employers_documentary" }
+      ],
+      "h1": {
+        "family": "fraunces, \"fraunces Fallback\", Georgia, \"Times New Roman\", serif",
+        "size": "25.6px",
+        "lineHeight": "28.672px",
+        "weight": "500",
+        "color": "oklch(0.16 0.005 85)"
+      },
+      "lede": {
+        "size": "17px",
+        "lineHeight": "26.35px",
+        "color": "oklch(0.46 0.01 85)"
+      },
+      "primaryAction": { "width": 218.109375, "height": 44, "top": 296.671875, "bottom": 340.671875 },
+      "nextControl": { "width": 48, "height": 48 },
+      "publicTheme": "light-only"
+    },
+    {
+      "viewport": { "width": 1440, "height": 1000 },
+      "horizontalOverflowPx": 0,
+      "stageCount": 6,
+      "scenes": [
+        { "scene": "employer_desk", "variant": null },
+        { "scene": "journey_film", "variant": "employers_documentary" }
+      ],
+      "h1": {
+        "family": "fraunces, \"fraunces Fallback\", Georgia, \"Times New Roman\", serif",
+        "size": "33.6px",
+        "lineHeight": "37.632px",
+        "weight": "500",
+        "color": "oklch(0.16 0.005 85)"
+      },
+      "lede": {
+        "size": "17px",
+        "lineHeight": "26.35px",
+        "color": "oklch(0.46 0.01 85)"
+      },
+      "primaryAction": { "width": 218.109375, "height": 44, "top": 520.609375, "bottom": 564.609375 },
+      "nextControl": { "width": 48, "height": 48 },
+      "publicTheme": "light-only"
+    },
+    {
+      "viewport": { "width": 1728, "height": 1117 },
+      "horizontalOverflowPx": 0,
+      "stageCount": 6,
+      "scenes": [
+        { "scene": "employer_desk", "variant": null },
+        { "scene": "journey_film", "variant": "employers_documentary" }
+      ],
+      "h1": {
+        "family": "fraunces, \"fraunces Fallback\", Georgia, \"Times New Roman\", serif",
+        "size": "33.6px",
+        "lineHeight": "37.632px",
+        "weight": "500",
+        "color": "oklch(0.16 0.005 85)"
+      },
+      "lede": {
+        "size": "17px",
+        "lineHeight": "26.35px",
+        "color": "oklch(0.46 0.01 85)"
+      },
+      "primaryAction": { "width": 218.109375, "height": 44, "top": 520.609375, "bottom": 564.609375 },
+      "nextControl": { "width": 48, "height": 48 },
+      "publicTheme": "light-only"
+    }
+  ],
+  "contrast": {
+    "primary-ink-on-paper": 15.28,
+    "secondary-ink-on-paper": 6.61,
+    "editorial-accent-on-paper": 6.82,
+    "white-on-primary-action": 7.9
+  },
+  "assets": [
+    { "path": "apps/web/public/scenes/employer-review-desk.webp", "bytes": 36984 },
+    { "path": "apps/web/public/scenes/employers-care-team.webp", "bytes": 30998 },
+    { "path": "review evidence only: motion/review-rail.webm", "bytes": 719415 }
+  ],
+  "performance": {
+    "profile": "headless Chromium, 1440x1000, local optimized build",
+    "runs": [
+      { "cls": 0, "lcp": 96, "inp": 40 },
+      { "cls": 0, "lcp": 84, "inp": 48 },
+      { "cls": 0, "lcp": 84, "inp": 40 }
+    ]
+  }
+}
