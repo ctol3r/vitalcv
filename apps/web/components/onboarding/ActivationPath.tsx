@@ -99,7 +99,7 @@ export function ActivationPath({
             </span>
             <div className={compact ? 'min-w-0' : 'mt-8'}>
               <p className="font-mono text-[10px] uppercase tracking-[0.1em] text-[var(--vt-text-muted)]">
-                {String(index + 1).padStart(2, '0')} · {step.label}
+                {step.label}
               </p>
               <h3 className="mt-2 text-sm font-semibold text-[var(--vt-text-primary)]">
                 {step.title}

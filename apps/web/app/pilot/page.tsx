@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 
 import { PilotRequestForm } from './PilotRequestForm';
-import { Icon } from '@/components/Icon';
+import { Icon, type IconName } from '@/components/Icon';
 import { PageFrame } from '@/components/layout/PageFrame';
 import { ActivationPath } from '@/components/onboarding/ActivationPath';
 import { VisualScene } from '@/components/visual-scene/VisualScene';
@@ -29,25 +29,28 @@ const PILOT_INPUTS = [
   {
     title: 'A bounded cohort',
     body: 'Bring 10–30 real clinician NPIs. We agree on which applications and roles belong in the measurement window before it begins.',
+    icon: 'list-checks',
   },
   {
     title: 'A named human operator',
     body: 'One reviewer owns the employer response for every application submitted in the cohort. The pilot does not substitute an automated employment decision.',
+    icon: 'building',
   },
   {
     title: 'The baseline you actually have',
     body: 'Share your current timeline and request counts—or say “we do not track this yet” so the pilot records a clean starting point.',
+    icon: 'clock',
   },
-] as const;
+] as const satisfies readonly { title: string; body: string; icon: IconName }[];
 
 const MEASUREMENT_MOMENTS = [
-  ['Packet submitted', 'The clinician-selected version and consent become the measurement anchor.'],
-  ['Packet opened', 'The first employer view is recorded separately from submission.'],
-  ['Clarification requested', 'Every missing-information request keeps its owner and time.'],
-  ['Employer response', 'Clarify, accept as a head start, or do not proceed—never an inferred decision.'],
-  ['Credentialing started', 'Institution review beginning is not the same event as an offer or start.'],
-  ['Actual start attested', 'The first day is measured only when the relevant party records it.'],
-] as const;
+  ['Packet submitted', 'The clinician-selected version and consent become the measurement anchor.', 'send'],
+  ['Packet opened', 'The first employer view is recorded separately from submission.', 'file-search'],
+  ['Clarification requested', 'Every missing-information request keeps its owner and time.', 'message-question'],
+  ['Employer response', 'Clarify, accept as a head start, or do not proceed—never an inferred decision.', 'building'],
+  ['Credentialing started', 'Institution review beginning is not the same event as an offer or start.', 'list-checks'],
+  ['Actual start attested', 'The first day is measured only when the relevant party records it.', 'waypoints'],
+] as const satisfies readonly (readonly [string, string, IconName])[];
 
 const LIMITATION_HONESTY = [
   'NPPES confirms a public registry record only; it does not prove identity possession or licensure.',
@@ -156,10 +159,10 @@ export default function PilotPage() {
             </p>
           </div>
           <ol className="mt-7 grid list-none border-l border-t border-[var(--vt-border)] md:grid-cols-2 xl:grid-cols-3">
-            {MEASUREMENT_MOMENTS.map(([title, body], index) => (
+            {MEASUREMENT_MOMENTS.map(([title, body, icon]) => (
               <li key={title} className="grid min-h-36 grid-cols-[2.75rem_1fr] gap-3 border-b border-r border-[var(--vt-border)] bg-[var(--vt-surface)] p-4 sm:p-5">
                 <span className="inline-flex size-11 items-center justify-center border border-[var(--vt-border)] font-mono text-xs text-[var(--vt-text-muted)]" aria-hidden="true">
-                  {String(index + 1).padStart(2, '0')}
+                  <Icon name={icon} className="size-5" strokeWidth={1.5} />
                 </span>
                 <div>
                   <h3 className="text-sm font-semibold text-[var(--vt-text-primary)]">{title}</h3>
@@ -175,9 +178,11 @@ export default function PilotPage() {
             <p className="mz-eyebrow">What you bring</p>
             <h2 className="mz-h2 mt-2">A real cohort and an honest baseline.</h2>
             <div className="mt-6 divide-y divide-[var(--vt-border)] border-y border-[var(--vt-border)]">
-              {PILOT_INPUTS.map((item, index) => (
+              {PILOT_INPUTS.map((item) => (
                 <div key={item.title} className="grid grid-cols-[2.5rem_1fr] gap-3 py-4">
-                  <span className="font-mono text-xs text-[var(--vt-text-muted)]">0{index + 1}</span>
+                  <span className="inline-flex size-9 items-center justify-center border border-[var(--vt-border)] text-[var(--vt-text-muted)]" aria-hidden="true">
+                    <Icon name={item.icon} className="size-4" strokeWidth={1.5} />
+                  </span>
                   <div>
                     <h3 className="text-sm font-semibold text-[var(--vt-text-primary)]">{item.title}</h3>
                     <p className="mt-1 text-[12px] leading-relaxed text-[var(--vt-text-secondary)]">{item.body}</p>
