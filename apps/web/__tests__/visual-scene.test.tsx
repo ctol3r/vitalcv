@@ -166,6 +166,18 @@ describe('server render is the composed static scene (EC-26)', () => {
     expect(desk).toContain('The illustration stops before any decision, credentialing action, hire, or start.');
   });
 
+  it('the activation path stops before application and preserves a static transcript', () => {
+    const html = renderToStaticMarkup(
+      <VisualScene scene="activation_path" kind="process" priority="hero" />,
+    );
+    expect(html).toContain('data-scene="activation_path"');
+    expect(html).toContain('aspect-ratio:8 / 5');
+    expect(html).toContain('/scenes/activation-path.avif');
+    expect(html).toContain('data-scene-transcript');
+    expect(html).toContain('The illustration stops before application, employer review, decision, credentialing, hire, or start.');
+    expect(html).not.toContain('<video');
+  });
+
   it('a decorative scene is aria-hidden with empty alt', () => {
     const html = renderToStaticMarkup(<VisualScene scene="continuity_ribbon" kind="decorative" />);
     expect(html).toContain('alt=""');

@@ -5,10 +5,10 @@
  *   - page renders without crashing
  *   - all required sections are present (headline, value prop, KPI,
  *     live vs partial, scope, limitations, CTA)
- *   - KPI labels are honest (simulation/internal flagged)
+ *   - measurement labels are honest (targets, not results)
  *   - limitation copy visible
  *   - banned overclaim strings absent
- *   - trust-container copy does not say wallet/blockchain
+ *   - integrity-support copy does not overclaim cryptographic infrastructure
  *   - CTA targets the real /api/pilot-request route (form has an
  *     action or a live client handler that calls the endpoint)
  */
@@ -49,37 +49,38 @@ describe('/pilot buyer proof page', () => {
     expect(html).toContain('data-testid="pilot-kpi-snapshot"');
     expect(html).toContain('data-testid="pilot-proof-object"');
     expect(html).toContain('data-testid="pilot-trust-container"');
-    expect(html).toContain('data-testid="pilot-live-now"');
-    expect(html).toContain('data-testid="pilot-partial-pending"');
     expect(html).toContain('data-testid="pilot-limitations"');
     expect(html).toContain('data-testid="pilot-cta"');
-    expect(html).toContain('Cut credentialing uncertainty');
+    expect(html).toContain('data-scene="activation_path"');
+    expect(html).toContain('data-activation-path="pilot"');
+    expect(html).toContain('Prove the handoff');
   });
 
-  it('labels KPIs honestly (simulation / internal, not customer results)', () => {
+  it('labels the measurement plan as a target rather than a customer result', () => {
     const html = renderToStaticMarkup(<PilotPage />);
-    expect(html).toContain('Internal simulation');
-    expect(html).toContain('not a customer pilot result');
+    expect(html).toContain('Pilot target—not a published result');
+    expect(html).toContain('Measure the moments');
+    expect(html).toContain('Do not pre-announce the result');
+    expect(html).not.toContain('Internal simulation');
     // No fabricated customer-pilot traction line on the CTA sidebar.
     expect(html).not.toMatch(/Pilot\s*#\s*1\s*recorded/i);
   });
 
   it('surfaces explicit limitation copy', () => {
     const html = renderToStaticMarkup(<PilotPage />);
-    expect(html).toContain('NPPES identity checks confirm NPI registration only');
-    expect(html).toContain('OIG LEIE covers federal exclusion scope only');
-    expect(html).toContain('PECOS public data reflects the public release');
-    expect(html).toContain('State board coverage depends on institutional access agreements');
-    expect(html).toContain(
-      'The trust container records packet metadata and artifact status; it does not replace Primary Source Verification',
-    );
+    expect(html).toContain('NPPES confirms a public registry record only');
+    expect(html).toContain('OIG/LEIE covers the federal exclusion list');
+    expect(html).toContain('PECOS uses the public quarterly release');
+    expect(html).toContain('Licensure remains access-gated');
+    expect(html).toContain('accepting one exact packet as a head start');
+    expect(html).toContain('does not issue production credentials');
     expect(html).toContain('A partial proof stays partial');
   });
 
-  it('includes trust-container copy that is never wallet / blockchain / on-chain', () => {
+  it('keeps integrity language subordinate and avoids blockchain claims', () => {
     const html = renderToStaticMarkup(<PilotPage />).toLowerCase();
-    expect(html).toContain('trust container');
-    expect(html).not.toContain('wallet');
+    expect(html).toContain('integrity support');
+    expect(html).toContain('cv wallet');
     expect(html).not.toContain('blockchain');
     expect(html).not.toContain('on-chain');
     expect(html).not.toContain('on chain');

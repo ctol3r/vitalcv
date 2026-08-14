@@ -1,0 +1,78 @@
+{
+  "pilot": {
+    "viewport": {
+      "width": 1440,
+      "height": 1000
+    },
+    "overflowPx": 0,
+    "h1": {
+      "fontFamily": "fraunces, \"fraunces Fallback\", Georgia, \"Times New Roman\", serif",
+      "fontSize": "33.6px",
+      "lineHeight": "37.632px",
+      "color": "oklch(0.16 0.005 85)",
+      "background": "rgb(240, 238, 233)",
+      "contrastRatio": 16.74
+    },
+    "primaryControl": {
+      "width": 197.45,
+      "height": 44
+    },
+    "scene": {
+      "width": 712.73,
+      "height": 519.95
+    },
+    "vitalsMs": {
+      "lcp": 80,
+      "inp": 16,
+      "cls": 0
+    },
+    "navigationMs": {
+      "responseEnd": 3.8,
+      "domContentLoaded": 41.2,
+      "load": 64.9
+    },
+    "activationImage": {
+      "transferSize": 102520,
+      "decodedBodySize": 102220,
+      "durationMs": 5.8
+    }
+  },
+  "onboarding": {
+    "viewport": {
+      "width": 1440,
+      "height": 1000
+    },
+    "overflowPx": 0,
+    "h1": {
+      "fontFamily": "fraunces, \"fraunces Fallback\", Georgia, \"Times New Roman\", serif",
+      "fontSize": "33.6px",
+      "lineHeight": "37.632px",
+      "color": "oklch(0.16 0.005 85)",
+      "background": "rgb(240, 238, 233)",
+      "contrastRatio": 16.74
+    },
+    "primaryControl": {
+      "width": 448,
+      "height": 50
+    },
+    "scene": {
+      "width": 576,
+      "height": 450.75
+    },
+    "vitalsMs": {
+      "lcp": 88,
+      "inp": 40,
+      "cls": 0.0597
+    },
+    "navigationMs": {
+      "responseEnd": 9.1,
+      "domContentLoaded": 63.1,
+      "load": 72.6
+    },
+    "activationImage": {
+      "transferSize": 102520,
+      "decodedBodySize": 102220,
+      "durationMs": 6.6
+    }
+  }
+}

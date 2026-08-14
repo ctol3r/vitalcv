@@ -11,8 +11,9 @@
  *
  * Two directions, deliberately.
  *
- *   1. NEGATIVE — `wallet` must not return as a product noun on the customer
- *      surfaces this wave cleaned.
+ *   1. NEGATIVE — generic `wallet` must not return as a product noun on the
+ *      customer surfaces this wave cleaned. Direction D.1 later ratified the
+ *      exact compound `CV Wallet`; that compound is the sole exception.
  *   2. POSITIVE — the truth qualifiers must REMAIN. ~45 occurrences of the
  *      retire-tier words are freshness windows and limitation clauses, not
  *      vocabulary. A future find-and-replace that strips them would pass a
@@ -77,12 +78,14 @@ export function customerVisibleStrings(src: string): string[] {
 }
 
 describe('customer-language guard — `wallet` stays retired (L1)', () => {
-  it.each(WALLET_FREE_SURFACES)('%s renders no "wallet" product noun', (rel) => {
-    const hits = customerVisibleStrings(read(rel)).filter((s) => /\bwallets?\b/i.test(s));
+  it.each(WALLET_FREE_SURFACES)('%s renders no generic "wallet" product noun', (rel) => {
+    const hits = customerVisibleStrings(read(rel)).filter((s) =>
+      /\bwallets?\b/i.test(s.replace(/\bCV\s+Wallet\b/gi, '')),
+    );
     expect(
       hits,
-      `"wallet" is retired customer vocabulary — the canonical noun is "your VitalCV profile". `
-        + `See docs/strategy/customer-language-inventory.md.`,
+      `Generic "wallet" is retired customer vocabulary. Direction D.1 permits only the exact `
+        + `founder-ratified compound "CV Wallet". See docs/strategy/customer-language-inventory.md.`,
     ).toEqual([]);
   });
 
@@ -99,6 +102,14 @@ describe('customer-language guard — `wallet` stays retired (L1)', () => {
     expect(seen).toContain('Your free, source-backed career wallet');
     // …and none of the identifier slots are.
     expect(seen.some((s) => s === 'cv-wallet' || s === 'Wallet' || s === '/holder')).toBe(false);
+  });
+
+  it('allows only the founder-ratified CV Wallet compound', () => {
+    const seen = customerVisibleStrings('<p>Open your CV Wallet</p><p>Open your wallet</p>');
+    const generic = seen.filter((s) =>
+      /\bwallets?\b/i.test(s.replace(/\bCV\s+Wallet\b/gi, '')),
+    );
+    expect(generic).toEqual(['Open your wallet']);
   });
 });
 

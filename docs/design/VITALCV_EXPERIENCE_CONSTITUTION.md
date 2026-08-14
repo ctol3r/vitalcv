@@ -378,6 +378,35 @@ the governed request for organization access. Type 2 NPI resolution remains
 organization identity, not authority to act, and no visual treatment weakens
 that boundary.
 
+#### Activation-path amendment D.6 (2026-08-14)
+
+The founder extended the human+tactile career-mobility register to `/pilot`
+and `/onboarding` through WO-16. Both routes now show the same real product
+continuity: public NPI record -> visible source states -> clinician-controlled
+CV Wallet -> source-labelled opportunity. The pilot extends the path to the
+exact packet and human employer response so it can measure the transaction;
+onboarding stops at the first opportunity and preserves one visible next
+action. Shared public chrome is unchanged.
+
+| Decision | Value | Status |
+|---|---|---|
+| Pilot promise | **Prove the handoff. Measure what actually moves.** | LOCKED for `/pilot` |
+| Onboarding promise | **Start with your NPI. See where your record can go.** | LOCKED for `/onboarding` |
+| Dominant object | A proprietary tactile **Activation Path** process scene: abstract NPI card -> source-reading aperture -> CV Wallet folio -> clinician choice gate -> one opportunity doorway; it stops before application, review, decision, credentialing, hire, or start | LOCKED for `/pilot` and `/onboarding` |
+| Shared path | NPI registry record -> separate source states -> saved CV Wallet -> source-labelled opportunity; `/pilot` alone adds exact packet and employer response as measured moments | LOCKED for both routes |
+| Pilot measurement | Submitted packet, packet open, clarification, employer response, credentialing start, intended start, and actual start remain distinct events; every numerical outcome requires cohort, baseline, period, sample size, and lineage | LOCKED for `/pilot` |
+| Onboarding action | The real existing NPI lookup/binding remains the single dominant action. Sign-in occurs only when the clinician chooses to save the public record; alternate training and recovery paths remain truthful and usable | LOCKED for `/onboarding` |
+| Source truth | NPPES identity is a registry record match; OIG/LEIE and PECOS retain their real cadences; licensure stays access-gated; unavailable, unknown, invalid, organization-NPI, and system-error states remain explicit | LOCKED for both routes |
+| No-JavaScript path | `/pilot` renders its complete process, source register, limits, and native request form without motion; `/onboarding` retains a server-visible public NPI fallback link when the session-aware client flow cannot run | LOCKED for both routes |
+| Prohibitions | No fabricated pilot KPI, customer result, readiness percentage, employer decision, placement, start, source response, fake clinician, auto-application, generic KPI dashboard wall, or implication that the illustration is live product state | LOCKED for both routes |
+
+The Activation Path is a new `process` entry in the existing `VisualScene`
+runtime, authorized below through EC-22 rather than implemented as a second
+illustration engine. Its selectable transcript carries the complete meaning;
+the image contains no readable identity, source result, metric, status word,
+employer, or outcome. The shared `ActivationPath` DOM component supplies one
+semantic journey on both routes rather than two route-local diagrams.
+
 **On the difference (W1080 closure, 2026-08-08).** Three rows previously read
 "PENDING UX-02", which is indistinguishable from an unresolved brand decision and
 made the table read as incomplete when it is not. A deferral is legitimate only
@@ -466,6 +495,7 @@ Only these scenes are approved for the first release. A new scene requires an EC
 | Quiet Source Constellation | stateful | Trust Center, Status |
 | Workbench Window | process | Clinician product page |
 | Decision Trail | stateful | Opportunity detail |
+| Activation Path | process | `/pilot`, `/onboarding` |
 
 **Placement note — the Journey Film is not authorized on `/` by this clause.** Homepage composition authority rests with the homepage reset and UX-04 (EC-24), and the retired film/scene model may not re-enter through an illustration wave. A Journey Film on the homepage requires an explicit EC-22 amendment and a founder visual gate. Independent of that, UX-01 amendment 5 forbids a blocking hero: no scene may make a visitor wait for the message, and the real NPI action outranks the journey (XS-10, EC-1).
 
@@ -488,6 +518,12 @@ the founder decision for a static `journey_film` documentary route variant on
 acquisition. The documentary frame is human setting only. The tactile desk
 stops at inspect, clarification, and institution review; it never depicts an
 acceptance, hire, clearance, credentialing decision, or start.
+
+**Activation-path authorization (2026-08-14).** Amendment D.6 supplies the
+founder decision and EC-22 amendment for the `activation_path` process scene on
+`/pilot` and `/onboarding`. It illustrates a bounded journey from an abstract
+NPI card to one opportunity doorway and stops before any submitted
+application, employer review, decision, credentialing event, hire, or start.
 
 **Route note (founder decision, 2026-08-08).** The source briefs target a `/jobs` surface. No such route exists. Opportunity and apply scenes target the surfaces that do: `/holder/opportunities{,/discover,/interested,/passed}`, `/holder/matcha/opportunities`, and `/opportunities/discover`. Renaming the customer-facing noun is UX-16 copy work; creating a `/jobs` route is a product dependency, not an illustration wave.
 

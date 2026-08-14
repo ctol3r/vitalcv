@@ -27,7 +27,6 @@ vi.mock('next/link', () => ({
 const BUYER_BANNED_STRINGS = [
   'blockchain',
   'ledger',
-  'wallet',
   'zero-knowledge',
   'zero trust',
   'zero-trust',
@@ -66,17 +65,20 @@ function expectNoBuyerBannedStrings(markup: string) {
 }
 
 describe('Wave 5 buyer proof surface', () => {
-  it('keeps /pilot honest about KPIs, limitations, trust containers, and CTA submission', async () => {
+  it('keeps /pilot honest about targets, limitations, source states, and CTA submission', async () => {
     const { default: PilotPage } = await import('../app/pilot/page');
 
     const markup = renderToStaticMarkup(<PilotPage />);
 
     const formSource = readFileSync(resolve(process.cwd(), 'app/pilot/PilotRequestForm.tsx'), 'utf8');
 
-    expect(markup).toContain('Internal simulation');
-    expect(markup).toContain('not a customer pilot result');
-    expect(markup).toContain('Limitation honesty');
-    expect(markup).toContain('does not replace Primary Source Verification');
+    expect(markup).toContain('Pilot target—not a published result');
+    expect(markup).toContain('data-scene="activation_path"');
+    expect(markup).toContain('data-activation-path="pilot"');
+    expect(markup).toContain('NPPES confirms a public registry record only');
+    expect(markup).toContain('Licensure remains access-gated');
+    expect(markup).toContain('Record what the employer did');
+    expect(markup).toContain('accepting one exact packet as a head start');
     expect(markup).toContain('A partial proof stays partial');
     // The limitation, not the wording that used to carry it. These previously
     // pinned 'Mock/dev containers are not production credentials' and
@@ -86,6 +88,8 @@ describe('Wave 5 buyer proof surface', () => {
     // disclosure, so the disclosure itself is what is asserted now.
     expect(markup).toContain('does not issue production credentials');
     expect(markup).not.toMatch(/mock/i);
+    expect(markup).not.toContain('Internal simulation');
+    expect(markup).not.toMatch(/Pilot\s*#\s*1\s*recorded/i);
     expect(formSource).toContain("fetch('/api/pilot-request'");
     expect(markup).not.toContain('final credentialing decision');
     expectNoBuyerBannedStrings(markup);

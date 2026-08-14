@@ -17,6 +17,7 @@ import {
   Send,
   ShieldAlert,
   ShieldCheck,
+  WalletCards,
   Waypoints,
   type LucideIcon,
 } from 'lucide-react';
@@ -41,6 +42,7 @@ const ICONS = {
   send: Send,
   alert: ShieldAlert,
   shield: ShieldCheck,
+  wallet: WalletCards,
   waypoints: Waypoints,
 } satisfies Record<string, LucideIcon>;
 
