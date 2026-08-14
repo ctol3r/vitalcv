@@ -30,6 +30,12 @@ import {
   type HireToStartInboundEvent,
 } from '../../integrations/hireToStartIntegrationService';
 import { importGenericHireToStartRoles } from '../../integrations/hireToStartRoleImportService';
+import {
+  confirmApplicationStart,
+  confirmStartByAcceptance,
+  markApplicationStartReady,
+} from '../../activation/applicationStartCommandService';
+import { resolveActivationRequirement } from '../../activation/activationRequirementService';
 import prisma from '../../../graphql/prisma_client';
 
 const suffix = `${Date.now()}-${Math.round(Math.random() * 1_000_000)}`;
@@ -49,6 +55,7 @@ async function cleanCases(): Promise<void> {
   await prisma.integrationInboxEvent.deleteMany({ where: { organizationId } });
   await prisma.applicationExternalReference.deleteMany({ where: { organizationId } });
   await prisma.employerWebhookConfig.deleteMany({ where: { employerId: organizationId, eventType: 'HIRE_TO_START_INBOUND' } });
+  await prisma.startAttestation.deleteMany({ where: { organizationId } });
   await prisma.startActivation.deleteMany({ where: { orgId: organizationId } });
   await prisma.employerAcceptance.deleteMany({ where: { employerId: organizationId } });
   await prisma.activationRequirement.deleteMany({ where: { organizationId } });
@@ -303,6 +310,144 @@ describe('runEmployerWorkflowAction accept — real PostgreSQL', () => {
     expect(await prisma.outboxEvent.count({
       where: { aggregateId: submitted.applicationId, eventType: 'HIRE_TO_START_DECISION_RECORDED' },
     })).toBe(1);
+  });
+
+  it('atomically advances accept to requirements to start-ready to one confirmed first day', async () => {
+    const submitted = await createApplication();
+    await runEmployerWorkflowAction({
+      action: 'accept',
+      applicationId: submitted.applicationId,
+      reviewerClerkUserId: EMPLOYER,
+      packetVersion: 1,
+      packetHash: submitted.packetHash!,
+    });
+    const requirement = await prisma.activationRequirement.findFirstOrThrow({
+      where: { applicationId: submitted.applicationId },
+    });
+    const actualFirstDay = new Date('2026-08-14T22:00:00.000Z');
+
+    await expect(confirmApplicationStart({
+      applicationId: submitted.applicationId,
+      organizationId,
+      actorId: EMPLOYER,
+      startedAt: actualFirstDay,
+      now: new Date('2026-08-14T23:00:00.000Z'),
+    })).rejects.toMatchObject({ status: 409, code: 'START_NOT_READY' });
+    expect(await prisma.startAttestation.count({ where: { applicationId: submitted.applicationId } })).toBe(0);
+
+    expect(await resolveActivationRequirement({
+      requirementId: requirement.id,
+      organizationId,
+      toStatus: 'waived',
+      actorId: EMPLOYER,
+      reason: 'Institution documented an authorized pilot waiver.',
+    })).toEqual({ ok: true });
+
+    const ready = await markApplicationStartReady({
+      applicationId: submitted.applicationId,
+      organizationId,
+      actorId: EMPLOYER,
+      now: new Date('2026-08-14T21:00:00.000Z'),
+    });
+    expect(ready).toMatchObject({ state: 'start_ready', duplicate: false });
+
+    await prisma.employerAcceptance.update({
+      where: { id: (await prisma.startActivation.findUniqueOrThrow({
+        where: { applicationId: submitted.applicationId },
+      })).acceptanceId! },
+      data: { packetHash: 'tampered-after-acceptance' },
+    });
+    await expect(confirmApplicationStart({
+      applicationId: submitted.applicationId,
+      organizationId,
+      actorId: EMPLOYER,
+      startedAt: actualFirstDay,
+      now: new Date('2026-08-14T23:00:00.000Z'),
+    })).rejects.toMatchObject({ status: 409, code: 'START_ACCEPTANCE_REQUIRED' });
+    await prisma.employerAcceptance.updateMany({
+      where: { applicationId: submitted.applicationId },
+      data: { packetHash: submitted.packetHash },
+    });
+
+    const confirmed = await confirmApplicationStart({
+      applicationId: submitted.applicationId,
+      organizationId,
+      actorId: EMPLOYER,
+      startedAt: actualFirstDay,
+      now: new Date('2026-08-14T23:00:00.000Z'),
+    });
+    expect(confirmed).toMatchObject({ state: 'started', duplicate: false });
+    expect(confirmed.attestation).toMatchObject({
+      applicationId: submitted.applicationId,
+      organizationId,
+      confirmedBy: EMPLOYER,
+      acceptanceId: expect.any(String),
+      startedAt: actualFirstDay,
+    });
+    expect((await prisma.startActivation.findUniqueOrThrow({
+      where: { applicationId: submitted.applicationId },
+    })).activationState).toBe('started');
+    expect(await prisma.auditEvent.count({
+      where: { referenceId: submitted.applicationId, type: { in: ['START_READY', 'START_RECORDED'] } },
+    })).toBe(2);
+    expect(await prisma.auditEvent.count({
+      where: { referenceId: confirmed.attestation.id, type: 'START_ATTESTED' },
+    })).toBe(1);
+    expect(await prisma.outboxEvent.count({
+      where: { aggregateId: submitted.applicationId, eventType: { in: ['HIRE_TO_START_START_READY', 'HIRE_TO_START_START_CONFIRMED'] } },
+    })).toBe(2);
+
+    const replay = await confirmApplicationStart({
+      applicationId: submitted.applicationId,
+      organizationId,
+      actorId: EMPLOYER,
+      startedAt: actualFirstDay,
+      now: new Date('2026-08-14T23:05:00.000Z'),
+    });
+    expect(replay).toMatchObject({ duplicate: true, attestation: { id: confirmed.attestation.id } });
+    expect(await prisma.startAttestation.count({ where: { applicationId: submitted.applicationId } })).toBe(1);
+    await expect(confirmApplicationStart({
+      applicationId: submitted.applicationId,
+      organizationId: randomUUID(),
+      actorId: EMPLOYER,
+      startedAt: actualFirstDay,
+      now: new Date('2026-08-14T23:05:00.000Z'),
+    })).rejects.toMatchObject({ status: 404 });
+    await expect(confirmApplicationStart({
+      applicationId: submitted.applicationId,
+      organizationId,
+      actorId: EMPLOYER,
+      startedAt: new Date('2026-08-14T21:00:00.000Z'),
+      now: new Date('2026-08-14T23:05:00.000Z'),
+    })).rejects.toMatchObject({ status: 409, code: 'START_ALREADY_CONFIRMED' });
+
+    const joined = await readHireToStartCase({ applicationId: submitted.applicationId, clerkUserId: EMPLOYER });
+    expect(joined.currentStage).toBe('started');
+    expect(joined.actualStart).toMatchObject({
+      attestationId: confirmed.attestation.id,
+      actualFirstDay: actualFirstDay.toISOString(),
+      employerConfirmed: true,
+    });
+    expect(joined.limitations).not.toEqual(expect.arrayContaining([
+      expect.stringMatching(/without an application start event|without an employer start attestation/),
+    ]));
+  });
+
+  it('fails closed when a compatibility start route receives an unbound legacy acceptance', async () => {
+    const acceptance = await prisma.employerAcceptance.create({
+      data: {
+        employerId: organizationId,
+        clinicianNpi: NPI,
+        status: 'ACCEPTED',
+        acceptedAt: new Date('2026-08-13T18:00:00.000Z'),
+      },
+    });
+    await expect(confirmStartByAcceptance({
+      acceptanceId: acceptance.id,
+      actorId: EMPLOYER,
+      startedAt: new Date('2026-08-14T18:00:00.000Z'),
+    })).rejects.toMatchObject({ status: 409, code: 'START_ACCEPTANCE_REQUIRED' });
+    expect(await prisma.startAttestation.count({ where: { acceptanceId: acceptance.id } })).toBe(0);
   });
 
   it('accepts signed requirement events once, rejects content replay, and ignores older state', async () => {

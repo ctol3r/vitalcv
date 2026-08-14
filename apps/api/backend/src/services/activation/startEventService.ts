@@ -13,11 +13,11 @@ import { createHash, randomUUID } from 'crypto';
 
 import prisma from '../../graphql/prisma_client';
 import type { AuditEventType } from '../../types/auditEventTypes';
-import { getApplicationActivation } from './activationRequirementService';
 import type { RequirementView } from './requirementLifecycle';
 import {
-  canMarkStartReady,
-  canRecordStart,
+  markApplicationStartReady,
+} from './applicationStartCommandService';
+import {
   deriveStartState,
   type StartEvent,
   type StartEventType,
@@ -73,36 +73,29 @@ export async function markStartReady(input: {
   organizationId: string;
   actorId: string;
 }): Promise<StartActionResult> {
-  const state = await getApplicationStartState(input.applicationId);
-  if (!canMarkStartReady(state)) return { ok: false, reason: 'invalid_state', state };
-
-  const { readiness } = await getApplicationActivation(input.applicationId);
-  if (!readiness.startReady) {
-    return { ok: false, reason: 'not_start_ready', blocking: readiness.blocking };
+  try {
+    await markApplicationStartReady(input);
+    return { ok: true, state: 'start_ready' };
+  } catch (error) {
+    if (error instanceof Error && 'code' in error && error.code === 'START_REQUIREMENTS_OPEN') {
+      const rows = await prisma.activationRequirement.findMany({
+        where: { applicationId: input.applicationId, organizationId: input.organizationId, necessity: 'required' },
+        orderBy: { createdAt: 'asc' },
+      });
+      const blocking: RequirementView[] = rows
+        .filter((row) => !['met', 'waived', 'not_applicable'].includes(row.status))
+        .map((row) => ({
+          id: row.id,
+          necessity: row.necessity as RequirementView['necessity'],
+          status: row.status as RequirementView['status'],
+        }));
+      return { ok: false, reason: 'not_start_ready', blocking };
+    }
+    if (error instanceof Error && 'status' in error && error.status === 409) {
+      return { ok: false, reason: 'invalid_state', state: await getApplicationStartState(input.applicationId) };
+    }
+    throw error;
   }
-
-  await writeStartEvent('START_READY', input.applicationId, input.organizationId, {
-    actorId: input.actorId,
-    resolvedRequirementCount: readiness.blocking.length === 0 ? 'all_required_resolved' : undefined,
-  });
-  return { ok: true, state: 'start_ready' };
-}
-
-/** Record that the clinician actually started. Only from an explicit start-ready decision. */
-export async function recordStart(input: {
-  applicationId: string;
-  organizationId: string;
-  actorId: string;
-  startedAt: string;
-}): Promise<StartActionResult> {
-  const state = await getApplicationStartState(input.applicationId);
-  if (!canRecordStart(state)) return { ok: false, reason: 'invalid_state', state };
-
-  await writeStartEvent('START_RECORDED', input.applicationId, input.organizationId, {
-    actorId: input.actorId,
-    startedAt: input.startedAt,
-  });
-  return { ok: true, state: 'started' };
 }
 
 /** Cancel/withdraw. Allowed from any active state; records the reason, never deletes history. */

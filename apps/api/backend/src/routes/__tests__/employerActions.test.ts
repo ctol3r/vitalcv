@@ -40,6 +40,10 @@ jest.mock('../../services/seal/sealEventCapture', () => ({
   captureStartOutcome: jest.fn().mockResolvedValue(undefined),
 }));
 
+jest.mock('../../services/activation/applicationStartCommandService', () => ({
+  confirmStartByAcceptance: jest.fn(),
+}));
+
 jest.mock('../../services/feedback/prismaEventStore', () => ({
   emitLearningEvent: jest.fn(),
 }));
@@ -80,6 +84,7 @@ import {
 import { buildEmployerEvidencePacket } from '../../services/entity/employerPacket';
 import { createEmployerEvidencePacketZipStream } from '../../services/entity/employerPacketExport';
 import { issueTrustContainerManifestEntry } from '../../services/trust/container/trustContainerIssuance';
+import { confirmStartByAcceptance } from '../../services/activation/applicationStartCommandService';
 import { registerEmployerActionRoutes } from '../employerActions';
 import { sha256ForPayload } from '../../utils/deterministic';
 
@@ -124,6 +129,8 @@ const createEmployerEvidencePacketZipStreamMock =
   createEmployerEvidencePacketZipStream as jest.MockedFunction<typeof createEmployerEvidencePacketZipStream>;
 const issueTrustContainerManifestEntryMock =
   issueTrustContainerManifestEntry as jest.MockedFunction<typeof issueTrustContainerManifestEntry>;
+const confirmStartByAcceptanceMock =
+  confirmStartByAcceptance as jest.MockedFunction<typeof confirmStartByAcceptance>;
 
 function buildTrustContainerFixture() {
   return {
@@ -405,6 +412,21 @@ describe('employer action routes', () => {
     buildEmployerEvidencePacketMock.mockReset();
     createEmployerEvidencePacketZipStreamMock.mockReset();
     issueTrustContainerManifestEntryMock.mockReset();
+    confirmStartByAcceptanceMock.mockReset().mockResolvedValue({
+      state: 'started',
+      duplicate: false,
+      applicationId: '33333333-3333-4333-8333-333333333333',
+      organizationId: '44444444-4444-4444-8444-444444444444',
+      attestation: {
+        id: 'attestation-1',
+        acceptanceId: 'accept-1',
+        role: 'RN',
+        facility: 'Providence',
+        startedAt: new Date('2026-03-25T18:00:00.000Z'),
+      } as never,
+      lifecycleAuditEventId: 'lifecycle-audit-1',
+      attestationAuditEventId: 'attestation-audit-1',
+    });
 
     buildPassportMock.mockResolvedValue({ entityId: "11111111-1111-4111-8111-111111111111", decisionPosture: { status: "READY", blockers: [], missing: [] } } as never);
     issueTrustContainerManifestEntryMock.mockResolvedValue(buildTrustContainerFixture());
@@ -417,7 +439,11 @@ describe('employer action routes', () => {
     // The RBAC gate resolves the caller's User row; an active VERIFIER is
     // allowed in both shadow and enforced modes, so these route tests stay
     // focused on the per-route contracts.
-    prismaMock.user.findUnique.mockResolvedValue({ role: 'VERIFIER', status: 'ACTIVE' });
+    prismaMock.user.findUnique.mockResolvedValue({
+      role: 'VERIFIER',
+      status: 'ACTIVE',
+      organizationId: '44444444-4444-4444-8444-444444444444',
+    });
     prismaMock.employerAcceptance.findFirst.mockResolvedValue(null);
     prismaMock.applicationPacket.findFirst.mockResolvedValue(null);
     prismaMock.employerAcceptance.create.mockResolvedValue({
@@ -1239,7 +1265,7 @@ describe('employer action routes', () => {
     expect(prismaMock.employerAcceptance.findFirst).toHaveBeenCalledWith({
       where: {
         id: 'accept-other-npi',
-        employerId: 'employer-1',
+        employerId: { in: ['employer-1', '44444444-4444-4444-8444-444444444444'] },
         clinicianNpi: '1234567890',
         status: 'ACCEPTED',
       },
@@ -1775,35 +1801,25 @@ describe('employer action routes', () => {
     expect(prismaMock.employerAcceptance.findFirst).toHaveBeenCalledWith(expect.objectContaining({
       where: {
         id: 'accept-1',
-        employerId: 'employer-1',
+        employerId: { in: ['employer-1', '44444444-4444-4444-8444-444444444444'] },
         clinicianNpi: '1234567890',
         status: 'ACCEPTED',
       },
     }));
-    expect(prismaMock.startAttestation.create).toHaveBeenCalledWith(expect.objectContaining({
-      data: expect.objectContaining({
-        acceptanceId: 'accept-1',
-        role: 'RN',
-        facility: 'Providence',
-      }),
+    expect(confirmStartByAcceptanceMock).toHaveBeenCalledWith(expect.objectContaining({
+      acceptanceId: 'accept-1',
+      actorId: 'employer-1',
+      expectedClinicianNpi: '1234567890',
+      expectedOrganizationId: '44444444-4444-4444-8444-444444444444',
+      role: 'RN',
+      facility: 'Providence',
     }));
     expect(response.body).toEqual({
       ok: true,
+      duplicate: false,
       attestationId: 'attestation-1',
-      auditEventId: expect.any(String),
+      auditEventId: 'attestation-audit-1',
       startedAt: '2026-03-25T18:00:00.000Z',
     });
-    expect(prismaMock.auditEvent.create).toHaveBeenCalledWith(expect.objectContaining({
-      data: expect.objectContaining({
-        type: 'START_ATTESTED',
-        metadata: expect.objectContaining({
-          correlationId: expect.any(String),
-          mutationFingerprint: expect.stringMatching(/^[a-f0-9]{64}$/),
-          mutationClassification: 'TRUST_START_ATTESTATION',
-          replayCategory: 'R-CAT-4',
-          payloadHash: expect.stringMatching(/^[a-f0-9]{64}$/),
-        }),
-      }),
-    }));
   });
 });

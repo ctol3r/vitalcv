@@ -37,7 +37,7 @@ import { captureDecisionSignal } from '../services/feedback/decisionSignalServic
 import { buildPassport } from '../services/entity/passportService';
 import { buildEmployerEvidencePacket } from '../services/entity/employerPacket';
 import { createEmployerEvidencePacketZipStream } from '../services/entity/employerPacketExport';
-import { recordStart } from '../services/hiring/startWriter';
+import { confirmStartByAcceptance } from '../services/activation/applicationStartCommandService';
 import { issueTrustContainerManifestEntry } from '../services/trust/container/trustContainerIssuance';
 import { toTrustContainerAuditMetadata } from '../services/trust/container/trustContainerManifest';
 import {
@@ -1648,6 +1648,8 @@ export function registerEmployerActionRoutes(app: Express): void {
   app.post(
     '/api/employer-review/:entityId/confirm-start',
     asyncHandler(async (req, res) => {
+      res.setHeader('Deprecation', 'true');
+      res.setHeader('Link', '</api/applications/{applicationId}/start>; rel="successor-version"');
       const employerId = requireClerkUserId(req);
       const { entityId } = req.params;
 
@@ -1674,15 +1676,29 @@ export function registerEmployerActionRoutes(app: Express): void {
       const startDate = new Date(startedAt);
       if (isNaN(startDate.getTime())) throw new HttpError(400, 'startedAt must be a valid ISO date.');
 
+      // Compatibility accepts both historical rows keyed to the Clerk actor
+      // and canonical rows keyed to the actor's persisted organization. The
+      // organization comes from the server-held User row, never the request.
+      const actorOrganization = await prisma.user.findUnique({
+        where: { clerkUserId: employerId },
+        select: { organizationId: true },
+      });
+      if (!actorOrganization?.organizationId) {
+        throw new HttpError(404, 'No active acceptance found for this employer/clinician pair.');
+      }
+      const employerScopes = actorOrganization?.organizationId
+        ? [employerId, actorOrganization.organizationId]
+        : [employerId];
+
       // Resolve the open acceptance for this employer+clinician.
       // If a specific acceptanceId is provided, use it; otherwise find the most recent ACCEPTED one.
       const acceptance = await (bodyAcceptanceId
         ? prisma.employerAcceptance.findFirst({
-            where:  { id: bodyAcceptanceId, employerId, clinicianNpi: subject.clinicianNpi, status: 'ACCEPTED' },
+            where:  { id: bodyAcceptanceId, employerId: { in: employerScopes }, clinicianNpi: subject.clinicianNpi, status: 'ACCEPTED' },
             select: { id: true, clinicianNpi: true },
           })
         : prisma.employerAcceptance.findFirst({
-            where:   { employerId, clinicianNpi: subject.clinicianNpi, status: 'ACCEPTED' },
+            where:   { employerId: { in: employerScopes }, clinicianNpi: subject.clinicianNpi, status: 'ACCEPTED' },
             orderBy: { acceptedAt: 'desc' },
             select:  { id: true, clinicianNpi: true },
           })
@@ -1717,59 +1733,20 @@ export function registerEmployerActionRoutes(app: Express): void {
         throw new HttpError(409, 'No active acceptance found for this employer/clinician pair. Accept first before recording a start.');
       }
 
-      const attestationId = randomUUID();
-      const auditEventId  = randomUUID();
-      const attestationHash = sha256ForPayload({
-        attestationId,
+      // Compatibility adapter: the application command is the only writer of
+      // actual-start state. Unbound legacy acceptances cannot manufacture a
+      // hire-to-start case and fail closed.
+      const confirmed = await confirmStartByAcceptance({
         acceptanceId: acceptance.id,
-        entityId,
-        employerId,
-        clinicianNpi: acceptance.clinicianNpi,
-        startedAt: startDate.toISOString(),
-        role,
-        facility,
-      });
-      const runtimeTrust = buildRuntimeMutationMetadata({
-        action: 'confirm-start',
         actorId: employerId,
-        entityId,
-        clinicianNpi: acceptance.clinicianNpi,
-        correlationId: resolveCorrelationId(req),
-        payload: {
-          attestationId,
-          acceptanceId: acceptance.id,
-          startedAt: startDate.toISOString(),
-          role,
-          facility,
-        },
-        outcome: 'allowed',
-        readonly: resolveReadonlyIndicator(req),
-      });
-
-      // AUDIT: START_ATTESTED is one of the 5 canonical non-repudiation events.
-      // StartAttestation and AuditEvent are written atomically before returning
-      // 2xx, through the single start writer (VCD-01c). createdAt is not pinned
-      // here — the hash above does not commit to it — so the column default applies.
-      const { attestation } = await recordStart({
-        attestationId,
-        acceptanceId: acceptance.id,
-        clinicianNpi: acceptance.clinicianNpi,
+        expectedClinicianNpi: acceptance.clinicianNpi,
+        expectedOrganizationId: actorOrganization.organizationId,
         role,
         facility,
         startedAt: startDate,
-        attestationHash,
-        auditEventId,
-        auditMetadata: {
-          attestationId,
-          acceptanceId: acceptance.id,
-          entityId,
-          employerId,
-          ...runtimeFields(runtimeTrust),
-          startedAt:   startDate.toISOString(),
-          role,
-          facility,
-        },
       });
+      const attestation = confirmed.attestation;
+      const auditEventId = confirmed.attestationAuditEventId;
 
       log('info', 'employer_start_attested', {
         attestationId:  attestation.id,
@@ -1802,8 +1779,9 @@ export function registerEmployerActionRoutes(app: Express): void {
         });
       });
 
-      return void res.status(201).json({
+      return void res.status(confirmed.duplicate ? 200 : 201).json({
         ok:            true,
+        duplicate:     confirmed.duplicate,
         attestationId: attestation.id,
         auditEventId,
         startedAt:     startDate.toISOString(),

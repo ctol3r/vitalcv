@@ -22,6 +22,10 @@ jest.mock('../../services/activation/startEventService', () => ({
   cancelStart: jest.fn(),
 }));
 
+jest.mock('../../services/activation/applicationStartCommandService', () => ({
+  confirmApplicationStart: jest.fn(),
+}));
+
 // requireOrgRole is mocked to ALWAYS pass. That is deliberate: it makes every
 // assertion below a statement about the org-MEMBERSHIP check alone, independent
 // of VERIFIER_RBAC_MODE. If membership is the real boundary, these tests hold
@@ -37,7 +41,8 @@ import {
   instantiateActivationRequirements,
   resolveActivationRequirement,
 } from '../../services/activation/activationRequirementService';
-import { getApplicationStartState, markStartReady, recordStart } from '../../services/activation/startEventService';
+import { getApplicationStartState, markStartReady } from '../../services/activation/startEventService';
+import { confirmApplicationStart } from '../../services/activation/applicationStartCommandService';
 import { registerActivationRoutes } from '../activation';
 
 const APP_ID = '11111111-1111-4111-8111-111111111111';
@@ -283,13 +288,13 @@ describe('activation routes — mutations', () => {
     expect(res.status).toBe(400);
   });
 
-  it('maps a wrong_tenant resolve to 403', async () => {
+  it('maps a wrong_tenant resolve to the same 404 as an unknown requirement', async () => {
     (resolveActivationRequirement as jest.Mock).mockResolvedValue({ ok: false, reason: 'wrong_tenant' });
     const res = await request(buildApp())
       .patch(`/api/applications/${APP_ID}/activation/requirements/${REQ_ID}`)
       .set('x-test-verified-user', EMPLOYER)
       .send({ toStatus: 'met' });
-    expect(res.status).toBe(403);
+    expect(res.status).toBe(404);
   });
 
   it('returns the named blockers when start-ready is refused (409)', async () => {
@@ -313,6 +318,28 @@ describe('activation routes — mutations', () => {
       .set('x-test-verified-user', EMPLOYER)
       .send({ startedAt: 'not-a-date' });
     expect(res.status).toBe(400);
-    expect(recordStart).not.toHaveBeenCalled();
+    expect(confirmApplicationStart).not.toHaveBeenCalled();
+  });
+
+  it('returns the canonical attestation identifiers for a confirmed first day', async () => {
+    (confirmApplicationStart as jest.Mock).mockResolvedValue({
+      state: 'started',
+      duplicate: false,
+      attestation: { id: 'attestation-1', startedAt: new Date('2026-01-01T00:00:00.000Z') },
+      lifecycleAuditEventId: 'lifecycle-audit-1',
+      attestationAuditEventId: 'attestation-audit-1',
+    });
+    const res = await request(buildApp())
+      .post(`/api/applications/${APP_ID}/start`)
+      .set('x-test-verified-user', EMPLOYER)
+      .send({ startedAt: '2026-01-01T00:00:00.000Z' });
+
+    expect(res.status).toBe(201);
+    expect(res.body).toMatchObject({
+      state: 'started',
+      startAttestationId: 'attestation-1',
+      lifecycleAuditEventId: 'lifecycle-audit-1',
+      attestationAuditEventId: 'attestation-audit-1',
+    });
   });
 });

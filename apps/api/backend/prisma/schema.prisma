@@ -4352,6 +4352,11 @@ model ValidationBaseline {
 model StartAttestation {
   id           String    @id @default(uuid()) @db.Uuid
   acceptanceId String    @map("acceptance_id")
+  /// Canonical hire-to-start binding. Historical attestations may remain null
+  /// when their acceptance was never linked to an application.
+  applicationId String?  @unique @map("application_id") @db.Uuid
+  organizationId String? @map("organization_id") @db.Uuid
+  confirmedBy  String?   @map("confirmed_by")
   role         String
   facility     String
   startedAt    DateTime  @map("started_at")
@@ -4362,6 +4367,7 @@ model StartAttestation {
   updatedAt    DateTime  @updatedAt @map("updated_at")
 
   @@index([acceptanceId])
+  @@index([organizationId])
   @@map("start_attestations")
 }
 

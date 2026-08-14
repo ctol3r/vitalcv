@@ -1,15 +1,3 @@
-// @ts-nocheck
-//
-// WHAT THIS SUPPRESSION IS HIDING — measured 2026-08-11 by removing it (VCD-01e).
-// Seven errors remain, all the same defect class and all in the start route:
-// EmployerAcceptance.clinicianNpi and .employerId are nullable columns
-// (deliberately — see migration 20260717000000), and the handler treats both as
-// non-null. Lines ~220, 243, 254, 264, 280, 294, 295.
-//
-// Fixing them is a real decision, not a cast: it means choosing what a start
-// attestation should do when its parent acceptance has no NPI or no employer.
-// That is its own wave. Until then, be aware that `tsc` verifies NOTHING in
-// this file — a green typecheck on a change here is not evidence.
 /**
  * hiring.ts — Start Attestation
  *
@@ -54,16 +42,17 @@
  *
  * SECURITY
  * ────────
- * Both routes sit behind apiKeyAuth + publicApiRateLimit.
+ * The remaining compatibility route sits behind apiKeyAuth and
+ * publicApiRateLimit. It additionally requires a canonical acceptance whose
+ * employer matches the application-owning organization. Legacy nullable or
+ * unbound acceptance rows fail closed.
  */
 
-import { randomUUID } from 'node:crypto';
 import type { Express, Request, Response } from 'express';
 import prisma from '../graphql/prisma_client';
 import { log } from '../obs/logger';
 import { apiKeyAuth, publicApiRateLimit } from '../middleware/publicSafety';
-import { sha256ForPayload } from '../utils/deterministic';
-import { recordStart } from '../services/hiring/startWriter';
+import { confirmStartByAcceptance } from '../services/activation/applicationStartCommandService';
 import { computeClinicianTrustState } from '../services/trust/trustStateEngine';
 import { capsuleEngine } from '../services/decision/capsuleEngine';
 import {
@@ -86,7 +75,7 @@ interface StartBody {
   acceptanceId: string;
   role:         string;
   facility:     string;
-  /** ISO 8601 timestamp — may be future-dated for pre-scheduled starts. */
+  /** ISO 8601 timestamp for an actual first day; future dates are rejected. */
   startedAt:    string;
 }
 
@@ -142,6 +131,8 @@ export function registerHiringRoutes(app: Express): void {
     apiKeyAuth,
     publicApiRateLimit,
     async (req: Request, res: Response) => {
+      res.setHeader('Deprecation', 'true');
+      res.setHeader('Link', '</api/applications/{applicationId}/start>; rel="successor-version"');
       const { acceptanceId, role, facility, startedAt } = req.body as StartBody;
 
       // ── Validation ───────────────────────────────────────────────────────
@@ -189,67 +180,35 @@ export function registerHiringRoutes(app: Express): void {
           error_description: `EmployerAcceptance is in status "${acceptance.status}" — only ACCEPTED records can have a start attested.`,
         });
       }
-
-      // ── Idempotency guard ────────────────────────────────────────────────
-      const existingStart = await prisma.startAttestation.findFirst({
-        where:  { acceptanceId },
-        select: { id: true },
-      });
-
-      if (existingStart) {
+      if (!acceptance.clinicianNpi || !acceptance.employerId) {
         return res.status(409).json({
-          error:               'already_started',
-          error_description:   'A StartAttestation already exists for this acceptance.',
-          startAttestationId:  existingStart.id,
+          error: 'acceptance_not_canonical',
+          error_description: 'A canonical application- and organization-bound acceptance is required.',
         });
       }
 
-      // ── Prepare deterministic IDs and hashes ─────────────────────────────
       const startedAtDate  = new Date(startedAt);
-      const createdAt      = new Date();
-      const attestationId  = randomUUID();
-
-      // Binds employer + clinician + role + facility + timestamp into a single
-      // tamper-evident commitment for the Wave 35 Merkle ledger.
-      const attestationHash = sha256ForPayload({
-        attestationId,
+      // Compatibility adapter: the application-bound command owns the state
+      // transition, attestation, both audits, and outbound event atomically.
+      // Historical acceptances without an application binding fail closed.
+      const confirmed = await confirmStartByAcceptance({
         acceptanceId,
-        employerId:   acceptance.employerId,
-        clinicianNpi: acceptance.clinicianNpi,
-        role:         role.trim(),
-        facility:     facility.trim(),
-        startedAt:    startedAtDate.toISOString(),
-        createdAt:    createdAt.toISOString(),
-      });
-
-      // StartAttestation + AuditEvent, atomically, through the single start
-      // writer (VCD-01c). createdAt is pinned because the hash above commits
-      // to it. (A BillingEvent was written here until VCD-01b — see the
-      // module header.)
-      const { attestation, auditEvent } = await recordStart({
-        attestationId,
-        acceptanceId,
-        clinicianNpi: acceptance.clinicianNpi,
+        actorId: `api-key:${String(res.locals.api_key_id ?? 'unattributed')}`,
+        expectedClinicianNpi: acceptance.clinicianNpi,
+        expectedOrganizationId: acceptance.employerId,
         role,
         facility,
         startedAt: startedAtDate,
-        createdAt,
-        attestationHash,
-        auditMetadata: {
-          attestationId,
-          acceptanceId,
-          employerId:  acceptance.employerId,
-          role:        role.trim(),
-          facility:    facility.trim(),
-          startedAt:   startedAtDate.toISOString(),
-        },
       });
+      const attestation = confirmed.attestation;
+      const auditEvent = { id: confirmed.attestationAuditEventId };
+      const attestationHash = attestation.eventHash ?? '';
 
       // ── ON Loop velocity metric ──────────────────────────────────────────
       const onLoopDeltaMs = startedAtDate.getTime() - acceptance.acceptedAt.getTime();
 
       log('info', 'hiring_start_attested', {
-        attestationId,
+        attestationId:      attestation.id,
         acceptanceId,
         employerId:       acceptance.employerId,
         npi_prefix:       acceptance.clinicianNpi.slice(0, 4) + '····',
@@ -321,8 +280,9 @@ export function registerHiringRoutes(app: Express): void {
       });
 
       // ── 201 response ─────────────────────────────────────────────────────
-      return res.status(201).json({
+      return res.status(confirmed.duplicate ? 200 : 201).json({
         ok:                 true,
+        duplicate:          confirmed.duplicate,
         startAttestationId: attestation.id,
         acceptanceId,
         role:               attestation.role,
