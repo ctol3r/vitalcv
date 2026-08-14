@@ -8,6 +8,11 @@
 
 **Status:** Current-state map; not a target-state implementation specification
 
+**PTC V2 authority:** The repository-specific target architecture, exact Demo 1
+sequence, legacy-equivalence contract, and research blockers are defined in
+`docs/trust-computing/PTC_*.md`. Where this broader archaeology predates or
+conflicts with those documents, the PTC V2 documents control.
+
 ## 1. Wave 00 verdict
 
 VitalCV already has most of the inputs and downstream transactions a trust
@@ -38,14 +43,15 @@ The repository also has dangerous semantic duplication:
   database;
 - both durable and in-memory audit abstractions.
 
-**Recommended architecture:** introduce a new, pure `@vitalcv/trust-compiler`
-package only after the vocabulary and TrustSpec contract are approved. Feed it
-through a backend adapter that projects canonical persisted source evidence into
-an immutable Trust Graph snapshot. Its canonical result is a versioned,
-requirement-level Policy Satisfaction Proof, not a generic score and not an
+**Recommended architecture:** extend the active, pure
+`@vitalcv/domain-evidence` package with a `trust-computing/` module only after
+the TrustSpec contract is approved. Feed it through a backend adapter that
+projects canonical persisted source evidence into an immutable
+`EvidenceCollection` snapshot. Its canonical result is a versioned,
+requirement-level ProfessionalStateProof, not a generic score and not an
 employer acceptance. Keep persistence, network access, authorization, source
 refresh, matching, packet sealing, employer decisions, and activation outside
-the compiler.
+the compiler. Do not create a new package or graph for Demo 1.
 
 Wave 00 deliberately adds no TrustSpec schema, compiler code, database model,
 route, migration, or business-logic rewrite.
@@ -114,7 +120,7 @@ VitalCV is a pnpm/Turborepo TypeScript monorepo with 43 workspace projects in
 | `apps/web` | Next.js 15 / React 19 product and public site; Clerk session boundary; some direct Prisma access | Consumer and presentation layer, not compiler host |
 | `apps/api/backend` | Express API; primary Prisma schema; source ingestion, applications, packet, employer, audit, readiness services | Canonical orchestration and persistence adapter host |
 | sibling API apps | Admin, authz, issuer, status, verifier, and other bounded APIs | Inspect per use; existence is not production linkage |
-| `packages/*` | Shared contracts, pure transforms, source adapters, domain packages, UI, and infrastructure | Future pure compiler belongs here after contracts settle |
+| `packages/*` | Shared contracts, pure transforms, source adapters, domain packages, UI, and infrastructure | Future pure compiler extends `packages/domain-evidence` after contracts settle |
 | PostgreSQL | Primary durable state via Prisma | Stores evidence, packets, decisions, audit, and future versioned compiler records |
 | Clerk | Authenticated identity for web and backend verification | Supplies actor identity; never a TrustSpec fact by itself |
 | Railway | Canonical production platform | Deployment truth; not exercised in Wave 00 |
@@ -427,29 +433,35 @@ Create architecture decision records and a glossary under documentation. Keep
 these contract-first and implementation-neutral. Do not widen production types
 in Wave 01.
 
-### 11.2 Pure compiler kernel — earliest Wave 04
+### 11.2 Pure compiler kernel
 
 Recommended future location:
 
 ```text
-packages/trust-compiler/
-  src/spec/
-  src/evidence/
-  src/compiler/
-  src/result/
-  src/index.ts
+packages/domain-evidence/src/trust-computing/
+  trustSpec.ts
+  trustIr.ts
+  evaluator.ts
+  compiler.ts
+  dependencyIndex.ts
+  actions.ts
+  optimizer.ts
+  snapshots.ts
+  proof.ts
 ```
 
-The package should have no Prisma, HTTP, Clerk, filesystem, clock, random, audit,
-or source-adapter dependency. Time, semantic version, TrustSpec version, and
-evidence snapshot identity are explicit inputs.
+The module and its containing package should have no Prisma, HTTP, Clerk,
+filesystem, ambient clock, random, audit, or source-adapter dependency. Time,
+semantic version, TrustSpec version, and evidence snapshot identity are
+explicit inputs. The exact file proposal is in
+`docs/trust-computing/PTC_ARCHITECTURE_MAP.md`.
 
 ### 11.3 Backend projection and orchestration
 
 Recommended future location:
 
 ```text
-apps/api/backend/src/services/trust-compiler/
+apps/api/backend/src/services/trust-computing/
   buildEvidenceSnapshot.ts
   authorizeCompilation.ts
   persistCompilation.ts
