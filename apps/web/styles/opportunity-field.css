@@ -478,6 +478,10 @@
   gap: 2rem;
 }
 
+.opf-role-heading > div {
+  min-width: 0;
+}
+
 .opf-role-org {
   color: var(--vt-home-d-source);
 }
@@ -490,6 +494,7 @@
   font-weight: 400;
   line-height: 1.03;
   letter-spacing: -0.037em;
+  overflow-wrap: anywhere;
 }
 
 .opf-availability {
@@ -874,6 +879,7 @@
 
   .opf-role-heading {
     display: grid;
+    grid-template-columns: minmax(0, 1fr);
     gap: 1rem;
   }
 
