@@ -25,7 +25,10 @@ in the same pull request as its implementation or takeover evidence.
   the larger census verifies mounted-route and tenant-boundary state without
   issuing 100-plus side-effectful requests inside the parallel database suite.
   The unrelated post-response investigator recovery is mocked to finish
-  immediately so it cannot outlive the contract test.
+  immediately so it cannot outlive the contract test. The census explicitly
+  records the two issuer JWKS routes that answer 200 when the issuer-key secret
+  is configured; they remain outside the curated availability probe because
+  production baseline `253091496` returned 500 while that key was unavailable.
   The tightened read-only probe also passed every declared check against
   `https://api.vitalcv.com` at production SHA `253091496`: `/health` and
   `/api/version` agreed on the exact SHA, `/readyz` returned 200/ready, declared

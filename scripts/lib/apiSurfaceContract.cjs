@@ -221,8 +221,15 @@ const PROBE_GUARDED = [
  */
 const ANONYMOUS_CENSUS = [
   { path: '/' },
+  // Intentionally public issuer metadata. CI configures the issuer-key secret,
+  // so both answer 200 there; production baseline 253091496 answered 500 while
+  // that key was unavailable. Keep successful configuration from becoming an
+  // undeclared exposure, but do not promote availability into PROBE_PUBLIC
+  // until production key readiness is an explicit release contract.
+  { path: '/.well-known/jwks.json' },
   { path: '/.well-known/openid-federation' },
   { path: '/.well-known/vitalcv-trust' },
+  { path: '/api/.well-known/jwks.json' },
   { path: '/api/agents' },
   { path: '/api/agents/insights' },
   { path: '/api/agents/reports' },
