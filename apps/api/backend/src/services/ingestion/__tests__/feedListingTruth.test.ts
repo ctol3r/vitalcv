@@ -89,6 +89,12 @@ describe('feed listings never borrow employer-stated language', () => {
     expect(truth.source.url).toBe('https://www.usajobs.gov/job/11482');
     expect(truth.source.fetchedAt).toBe('2026-08-02T00:00:00.000Z');
     expect(truth.isFeedListing).toBe(true);
+    expect(truth.applicationMode).toBe('external');
+    expect(truth.availability).toMatchObject({
+      state: 'open',
+      confidence: 'recent_observation',
+      observedAt: '2026-08-02T00:00:00.000Z',
+    });
   });
 
   it('withholds the readiness comparison even for a fully credentialed clinician', () => {
@@ -124,6 +130,62 @@ describe('feed listings never borrow employer-stated language', () => {
     const truth = buildOpportunityTruth({ opportunity: makeFeedRecord(), now });
     expect(truth.payRangeMin).toBe(250000);
     expect(truth.payRangeMax).toBe(320000);
+    expect(truth.compensationProvenance).toMatchObject({
+      state: 'supplied',
+      method: 'structured_source',
+      sourceLabel: 'Listed on USAJOBS',
+    });
+  });
+
+  it('states missing compensation rather than parsing an unstructured mention', () => {
+    const truth = buildOpportunityTruth({
+      opportunity: {
+        ...makeFeedRecord(),
+        payMin: null,
+        payMax: null,
+        description: 'The listing prose mentions $39/hour but publishes no structured pay field.',
+      },
+      now,
+    });
+
+    expect(truth.payRangeMin).toBeNull();
+    expect(truth.payRangeMax).toBeNull();
+    expect(truth.compensationProvenance.state).toBe('not_supplied');
+  });
+
+  it('never borrows facts from a profile attached to the feed placeholder organization', () => {
+    const truth = buildOpportunityTruth({
+      opportunity: {
+        ...makeFeedRecord(),
+        payMin: null,
+        payMax: null,
+        organization: {
+          ...makeFeedRecord().organization,
+          organizationProfile: {
+            facilityType: 'hospital',
+            hiringStatus: 'ACTIVELY_HIRING',
+            timeToStart: '7 days',
+            timeToOnboard: '3 days',
+            clearToStartThreshold: 'Internal policy',
+            payTransparency: true,
+            payRange: '$999/hour',
+            description: 'Benefits include housing and malpractice coverage.',
+            tagline: 'Employer-managed profile',
+            requirements: [],
+            verifiedSince: new Date('2026-08-01T00:00:00.000Z'),
+            verified: true,
+            updatedAt: new Date('2026-08-01T00:00:00.000Z'),
+          },
+        },
+      },
+      now,
+    });
+
+    expect(truth.payRange).toBeNull();
+    expect(truth.compensationProvenance.state).toBe('not_supplied');
+    expect(truth.benefitsAvailability).toBe('not_listed');
+    expect(truth.startTimeline).toBeNull();
+    expect(truth.trustIndicators.join(' ')).not.toMatch(/profile|benefit|start/i);
   });
 });
 

@@ -47,6 +47,8 @@ export interface OpportunitySummary {
   organizationSlug: string;
   title: string;
   specialty: string;
+  profession?: 'physician' | 'advanced_practice' | 'nursing' | 'behavioral_health' | 'allied_health' | 'not_stated';
+  schedule?: 'full_time' | 'part_time' | 'per_diem' | 'flexible' | 'not_stated';
   hiringType: string;
   state: string;
   payRange: string | null;
@@ -94,7 +96,7 @@ export interface OpportunitySummary {
     kind: 'employer_profile' | 'opportunity' | 'public_feed';
     label: string;
     updatedAt: string;
-    /** Feed listings only: the original posting. */
+    /** Original feed posting or the canonical VitalCV opportunity record. */
     url?: string | null;
     /** Feed listings only: when the feed was read — a fetch, not a check. */
     fetchedAt?: string | null;
@@ -106,6 +108,19 @@ export interface OpportunitySummary {
    * means going to the original posting rather than through VitalCV.
    */
   isFeedListing?: boolean;
+  availability?: {
+    state: 'open' | 'stale' | 'closed' | 'source_unavailable';
+    confidence: 'recent_observation' | 'aging_observation' | 'stale_observation' | 'not_observed';
+    observedAt: string | null;
+    limitation: string;
+  };
+  applicationMode?: 'external' | 'vitalcv';
+  compensationProvenance?: {
+    state: 'supplied' | 'not_supplied';
+    method: 'structured_source' | 'source_text' | 'not_supplied';
+    sourceLabel: string;
+    observedAt: string | null;
+  };
   transparency?: {
     hiringState: string;
     speedToStartEstimate: string;
@@ -136,6 +151,9 @@ export interface OpportunitySummary {
 export interface OpportunityListPayload {
   opportunities: OpportunitySummary[];
   total: number;
+  truncated?: boolean;
+  /** False only when the server could not read the opportunity service. */
+  available?: boolean;
 }
 
 async function fetchMarketplace<T>(path: string): Promise<T | null> {
@@ -168,7 +186,10 @@ export async function fetchLaunchEmployer(slug: string): Promise<EmployerDetail 
 }
 
 export async function fetchLaunchOpportunities(filters: {
+  q?: string;
   specialty?: string;
+  profession?: 'physician' | 'advanced_practice' | 'nursing' | 'behavioral_health' | 'allied_health' | 'not_stated';
+  schedule?: 'full_time' | 'part_time' | 'per_diem' | 'flexible' | 'not_stated';
   state?: string;
   hiringType?: string;
   organizationSlug?: string;
@@ -187,8 +208,17 @@ export async function fetchLaunchOpportunities(filters: {
 } = {}): Promise<OpportunityListPayload> {
   const params = new URLSearchParams();
 
+  if (filters.q) {
+    params.set('q', filters.q);
+  }
   if (filters.specialty) {
     params.set('specialty', filters.specialty);
+  }
+  if (filters.profession) {
+    params.set('profession', filters.profession);
+  }
+  if (filters.schedule) {
+    params.set('schedule', filters.schedule);
   }
   if (filters.state) {
     params.set('state', filters.state);
@@ -236,6 +266,32 @@ export async function fetchLaunchOpportunities(filters: {
 
   return await fetchMarketplace<OpportunityListPayload>(`/api/opportunities?${params.toString()}`)
     ?? { opportunities: [], total: 0 };
+}
+
+/** Server-render the same filtered public field the client will refresh. */
+export async function fetchPublicOpportunityField(
+  params: URLSearchParams,
+): Promise<OpportunityListPayload> {
+  try {
+    // Keep the server-rendered first frame behind the same operational control
+    // as the browser proxy. Otherwise a hidden/disabled field leaks rows until
+    // hydration, then appears to empty itself on the first filtered request.
+    const { getPilotSurfaceControl } = await import('@/lib/server/pilot-ops');
+    const control = await getPilotSurfaceControl('explore_board');
+    if (control && (control.mode === 'hidden' || control.mode === 'disabled')) {
+      return { opportunities: [], total: 0, truncated: false, available: true };
+    }
+
+    const response = await fetch(
+      `${getBackendBase()}/api/opportunities?${params.toString()}`,
+      { next: { revalidate: 300 } },
+    );
+    if (!response.ok) throw new Error('Opportunity service unavailable');
+    const payload = await response.json() as OpportunityListPayload;
+    return { ...payload, available: true };
+  } catch {
+    return { opportunities: [], total: 0, truncated: false, available: false };
+  }
 }
 
 export async function fetchLaunchOpportunity(id: string, filters: {

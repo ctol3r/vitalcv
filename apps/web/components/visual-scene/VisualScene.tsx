@@ -4,6 +4,7 @@ import * as React from 'react';
 
 import {
   sceneEntry,
+  scenePoster,
   sceneRouteVariant,
   type SceneId,
   type SceneRouteVariantId,
@@ -73,6 +74,7 @@ export function VisualScene(props: VisualSceneProps) {
   const { scene, routeVariant, mode = 'auto', priority = 'inline', className } = props;
   const entry = sceneEntry(scene);
   const variant = entry ? sceneRouteVariant(entry, routeVariant) : undefined;
+  const poster = entry ? scenePoster(entry, variant) : undefined;
 
   const containerRef = React.useRef<HTMLDivElement | null>(null);
   const videoRef = React.useRef<HTMLVideoElement | null>(null);
@@ -109,7 +111,7 @@ export function VisualScene(props: VisualSceneProps) {
     return () => observer.disconnect();
   }, [motionAllowed]);
 
-  if (!entry) return null;
+  if (!entry || !poster) return null;
 
   // Once motion has mounted it stays mounted (a finished video settles on
   // its last frame); 'failed' is the only path back to poster-only.
@@ -138,7 +140,7 @@ export function VisualScene(props: VisualSceneProps) {
       >
         {/* eslint-disable-next-line @next/next/no-img-element -- manifest-validated static asset with a reserved box */}
         <img
-          src={entry.poster.path}
+          src={poster.path}
           alt={entry.altText}
           aria-hidden={entry.kind === 'decorative' ? true : undefined}
           fetchPriority={priority === 'hero' ? 'high' : undefined}
@@ -157,7 +159,7 @@ export function VisualScene(props: VisualSceneProps) {
             muted
             playsInline
             preload="auto"
-            poster={entry.poster.path}
+            poster={poster.path}
             onEnded={() => setPhase('finished')}
             onError={() => {
               // A broken asset never leaves a broken scene: fall back to the

@@ -23,6 +23,20 @@ export type OpportunityStartUrgency = 'immediate' | 'within_2_weeks' | 'within_m
 export type OpportunityFreshness = 'fresh' | 'aging' | 'stale';
 export type OpportunityDataStatus = 'complete' | 'partial' | 'limited';
 export type OpportunityReadinessStatus = 'ready_now' | 'needs_review' | 'requirements_missing';
+export type OpportunityProfession =
+  | 'physician'
+  | 'advanced_practice'
+  | 'nursing'
+  | 'behavioral_health'
+  | 'allied_health'
+  | 'not_stated';
+export type OpportunitySchedule = 'full_time' | 'part_time' | 'per_diem' | 'flexible' | 'not_stated';
+export type OpportunityAvailabilityState = 'open' | 'stale' | 'closed' | 'source_unavailable';
+export type OpportunityAvailabilityConfidence =
+  | 'recent_observation'
+  | 'aging_observation'
+  | 'stale_observation'
+  | 'not_observed';
 
 interface OrganizationRequirementRecord {
   label: string;
@@ -100,6 +114,8 @@ export interface OpportunityTruth {
   organizationSlug: string;
   title: string;
   specialty: string;
+  profession: OpportunityProfession;
+  schedule: OpportunitySchedule;
   hiringType: string;
   state: string;
   payRange: string | null;
@@ -139,7 +155,7 @@ export interface OpportunityTruth {
     kind: 'employer_profile' | 'opportunity' | 'public_feed';
     label: string;
     updatedAt: string;
-    /** Feed listings only: the original posting, so a reader can check it. */
+    /** Original feed posting or the canonical VitalCV opportunity record. */
     url: string | null;
     /** Feed listings only: when the feed was read. A fetch, not a verification. */
     fetchedAt: string | null;
@@ -150,6 +166,19 @@ export interface OpportunityTruth {
    * language, a readiness comparison, or a VitalCV apply path for these.
    */
   isFeedListing: boolean;
+  availability: {
+    state: OpportunityAvailabilityState;
+    confidence: OpportunityAvailabilityConfidence;
+    observedAt: string | null;
+    limitation: string;
+  };
+  applicationMode: 'external' | 'vitalcv';
+  compensationProvenance: {
+    state: 'supplied' | 'not_supplied';
+    method: 'structured_source' | 'source_text' | 'not_supplied';
+    sourceLabel: string;
+    observedAt: string | null;
+  };
   transparency: {
     hiringState: string;
     speedToStartEstimate: string;
@@ -165,6 +194,8 @@ export interface OpportunityTruth {
 
 export interface OpportunityTruthFilters {
   specialty?: string;
+  profession?: OpportunityProfession;
+  schedule?: OpportunitySchedule;
   state?: string;
   hiringType?: string;
   organizationSlug?: string;
@@ -442,6 +473,53 @@ function inferPayModel(hiringType: string, payRange: string | null): Opportunity
   }
 
   return 'unknown';
+}
+
+/**
+ * Conservative title classification for public browsing. This is a display
+ * facet, not a license inference or an eligibility decision.
+ */
+export function classifyOpportunityProfession(title: string): OpportunityProfession {
+  const value = title.trim().toLowerCase();
+  if (!value) return 'not_stated';
+
+  if (/\b(nurse practitioner|physician assistant|pa-c|advanced practice|app)\b/i.test(value)) {
+    return 'advanced_practice';
+  }
+  if (/\b(physician|medical director|psychiatrist|doctor|md\/do|md or do|hospitalist|cardiologist|anesthesiologist|neurologist|radiologist|surgeon|oncologist|internist|pediatrician|dermatologist|gastroenterologist|nephrologist|pulmonologist|rheumatologist|urologist|pathologist|ophthalmologist|otolaryngologist|endocrinologist|hematologist|intensivist|physiatrist|gynecologist|obstetrician)\b/i.test(value)) {
+    return 'physician';
+  }
+  if (/\b(registered nurse|nurse|nursing|rn|lpn|lvn|cna)\b/i.test(value)) {
+    return 'nursing';
+  }
+  if (/\b(therapist|therapy|psychologist|counselor|counsellor|social worker|lcsw|lmft|lpcc?)\b/i.test(value)) {
+    return 'behavioral_health';
+  }
+  if (/\b(pharmacist|dietitian|dietician|medical assistant|phlebotom|sonographer|radiolog|midwife|dentist|hygienist|optometrist|podiatrist|paramedic)\b/i.test(value)) {
+    return 'allied_health';
+  }
+  return 'not_stated';
+}
+
+/**
+ * Schedule is published only when the title or a labelled listing field says
+ * it. A stray mention of a full-time colleague must not classify the role.
+ */
+export function classifyOpportunitySchedule(
+  title: string,
+  description: string | null,
+): OpportunitySchedule {
+  const titleText = title.trim();
+  const labelled = (description ?? '').match(
+    /\b(?:employment type|position type|schedule)\s*:?\s*(full[- ]time|part[- ]time|per diem|prn|flexible)\b/i,
+  )?.[1] ?? '';
+  const signal = `${titleText} ${labelled}`;
+
+  if (/\b(part[- ]time)\b/i.test(signal)) return 'part_time';
+  if (/\b(per diem|prn)\b/i.test(signal)) return 'per_diem';
+  if (/\b(full[- ]time)\b/i.test(signal)) return 'full_time';
+  if (/\bflexible\b/i.test(signal)) return 'flexible';
+  return 'not_stated';
 }
 
 function normalizeEmployerType(value: string | null): string | null {
@@ -772,10 +850,9 @@ function buildFreshness(input: {
   visaStatus: OpportunityVisaStatus;
   now: Date;
 }): OpportunityTruth['freshness'] {
-  const lastUpdatedAt = input.employerUpdatedAt
-    && new Date(input.employerUpdatedAt).getTime() > new Date(input.opportunityUpdatedAt).getTime()
-    ? input.employerUpdatedAt
-    : input.opportunityUpdatedAt;
+  // Listing freshness belongs to the opportunity record. A recently edited
+  // organization profile must not make an old role look newly observed.
+  const lastUpdatedAt = input.opportunityUpdatedAt;
   const listingStatus = classifyFreshness(lastUpdatedAt, input.now);
 
   const completenessFactors = [
@@ -1384,8 +1461,14 @@ export function buildOpportunityTruth(input: {
 }): OpportunityTruth {
   const now = input.now ?? new Date();
   const opportunity = input.opportunity;
-  const organizationProfile = opportunity.organization.organizationProfile;
   const isFeedListing = opportunity.listingSource === 'public_feed';
+  // A feed row is sourced from the feed, never from a profile attached to the
+  // placeholder organization. Keeping that boundary here prevents a later
+  // profile merge from silently relabelling pay, benefits, start timing, or
+  // other organization claims as facts about the external listing.
+  const organizationProfile = isFeedListing
+    ? null
+    : opportunity.organization.organizationProfile;
   /**
    * Feed listings carry NO requirements.
    *
@@ -1433,6 +1516,36 @@ export function buildOpportunityTruth(input: {
     visaStatus: visa.status,
     freshness: freshness.listingStatus,
   });
+  const observedAt = isFeedListing
+    ? opportunity.fetchedAt ? isoString(opportunity.fetchedAt) : null
+    : opportunity.updatedAt.toISOString();
+  const observationFreshness = observedAt ? classifyFreshness(observedAt, now) : null;
+  const availabilityState: OpportunityAvailabilityState = opportunity.status !== 'ACTIVE'
+    ? 'closed'
+    : isFeedListing && !opportunity.sourceUrl
+      ? 'source_unavailable'
+      : observationFreshness === 'stale'
+        ? 'stale'
+        : 'open';
+  const availabilityConfidence: OpportunityAvailabilityConfidence = !observedAt
+    ? 'not_observed'
+    : observationFreshness === 'fresh'
+      ? 'recent_observation'
+      : observationFreshness === 'aging'
+        ? 'aging_observation'
+        : 'stale_observation';
+  const compensationMethod = structuredPay.min !== null || structuredPay.max !== null
+    ? 'structured_source' as const
+    : compensationText
+      ? 'source_text' as const
+      : 'not_supplied' as const;
+  const sourceLabel = isFeedListing
+    ? opportunity.sourceFeed
+      ? `Listed on ${FEED_LABEL[opportunity.sourceFeed] ?? opportunity.sourceFeed}`
+      : 'Listed on a public job feed'
+    : organizationProfile
+      ? 'Employer profile + public opportunity record'
+      : 'Public opportunity record';
   const baseTruth: OpportunityTruth = {
     id: opportunity.id,
     organizationId: opportunity.organizationId,
@@ -1440,6 +1553,8 @@ export function buildOpportunityTruth(input: {
     organizationSlug: opportunity.organization.slug,
     title: opportunity.title,
     specialty: opportunity.specialty,
+    profession: classifyOpportunityProfession(opportunity.title),
+    schedule: classifyOpportunitySchedule(opportunity.title, opportunity.description),
     hiringType: opportunity.hiringType,
     state: opportunity.state,
     payRange: compensationText,
@@ -1469,21 +1584,38 @@ export function buildOpportunityTruth(input: {
       ? {
         kind: 'public_feed' as const,
         // Names the feed, never the employer — the employer told us nothing.
-        label: opportunity.sourceFeed
-          ? `Listed on ${FEED_LABEL[opportunity.sourceFeed] ?? opportunity.sourceFeed}`
-          : 'Listed on a public job feed',
+        label: sourceLabel,
         updatedAt: freshness.lastUpdatedAt,
         url: opportunity.sourceUrl ?? null,
         fetchedAt: opportunity.fetchedAt ? isoString(opportunity.fetchedAt) : null,
       }
       : {
         kind: (organizationProfile ? 'employer_profile' : 'opportunity') as 'employer_profile' | 'opportunity',
-        label: organizationProfile ? 'Employer profile + public opportunity record' : 'Public opportunity record',
+        label: sourceLabel,
         updatedAt: freshness.lastUpdatedAt,
-        url: null,
+        url: `/opportunities/${opportunity.id}`,
         fetchedAt: null,
       },
     isFeedListing,
+    availability: {
+      state: availabilityState,
+      confidence: availabilityConfidence,
+      observedAt,
+      limitation: availabilityState === 'closed'
+        ? 'This role is recorded as closed.'
+        : availabilityState === 'source_unavailable'
+          ? 'No source page is available for this listing.'
+          : availabilityState === 'stale'
+            ? 'The last source observation is stale; confirm the role before acting.'
+            : 'The source was observed recently; the employer can still change or close the role.',
+    },
+    applicationMode: isFeedListing ? 'external' : 'vitalcv',
+    compensationProvenance: {
+      state: compensationMethod === 'not_supplied' ? 'not_supplied' : 'supplied',
+      method: compensationMethod,
+      sourceLabel,
+      observedAt,
+    },
     transparency: buildTransparency({
       hiringStatus: organizationProfile?.hiringStatus ?? opportunity.status,
       startTimeline,
@@ -1531,6 +1663,12 @@ export function matchesOpportunityTruthFilters(
   filters: OpportunityTruthFilters,
 ): boolean {
   if (filters.specialty && !stringIncludes(opportunity.specialty, filters.specialty)) {
+    return false;
+  }
+  if (filters.profession && opportunity.profession !== filters.profession) {
+    return false;
+  }
+  if (filters.schedule && opportunity.schedule !== filters.schedule) {
     return false;
   }
   if (filters.state && opportunity.state !== filters.state) {

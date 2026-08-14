@@ -1,48 +1,31 @@
 /**
- * board-filters — URL state for the public opportunities board.
+ * URL state for the public opportunity field.
  *
- * The URL is the single source of truth: every facet, the sort, and the page
- * live in the query string, so a filtered view is shareable and survives a
- * reload. This replaces the fifteen separate `useState` hooks and the manual
- * re-sync effect in the retired ExploreClient.
- *
- * Shape follows the house pattern in lib/intelligence/finding-filters.ts —
- * parse / normalize / serialize over one plain object.
+ * These are browse facets, never a readiness or eligibility verdict. The API
+ * owns filtering and pagination so a shared URL reproduces the same real set.
  */
 
-export const SORT_OPTIONS = ['relevance', 'newest', 'fastest_start', 'pay'] as const;
-export type BoardSort = (typeof SORT_OPTIONS)[number];
+export const PROFESSION_OPTIONS = [
+  'physician',
+  'advanced_practice',
+  'nursing',
+  'behavioral_health',
+  'allied_health',
+] as const;
+export const SCHEDULE_OPTIONS = ['full_time', 'part_time', 'per_diem', 'flexible', 'not_stated'] as const;
+export const HIRING_TYPE_OPTIONS = ['perm', 'locums', 'contract', 'telehealth'] as const;
 
-export const PAY_MODEL_OPTIONS = ['salary', 'hourly', 'locums', 'shift'] as const;
-export const VISA_OPTIONS = ['available', 'case_by_case', 'not_available', 'not_stated'] as const;
-export const BENEFIT_OPTIONS = ['listed', 'limited', 'not_listed'] as const;
-export const START_URGENCY_OPTIONS = ['immediate', 'within_2_weeks', 'within_month', 'flexible'] as const;
-export const READINESS_OPTIONS = ['ready_now', 'needs_review', 'requirements_missing'] as const;
-export const HIRING_TYPE_OPTIONS = ['perm', 'locums', 'telehealth', 'contract'] as const;
-
-/** Results per page. Matches the density of a single-column ruled list. */
-export const PAGE_SIZE = 25;
+export const PAGE_SIZE = 12;
 
 export interface BoardFilters {
-  /** Free-text keyword. Matched against title, specialty, description, employer. */
   q: string;
   specialty: string;
+  profession: string;
   state: string;
+  schedule: string;
   hiringType: string;
-  organizationSlug: string;
-  /** Tri-state: null = any, true = remote only, false = onsite only. */
+  /** null = any setting; true = remote; false = on-site or hybrid. */
   remote: boolean | null;
-  payModel: string;
-  payMin: string;
-  payMax: string;
-  visaSponsorship: string;
-  benefits: string;
-  employerType: string;
-  startUrgency: string;
-  /** Requires a resolved clinician NPI — the signed-in-only facets. */
-  readinessStatus: string;
-  missingRequirement: string;
-  sort: BoardSort;
   page: number;
 }
 
@@ -53,209 +36,112 @@ export interface SearchParamsReader {
 export const EMPTY_BOARD_FILTERS: BoardFilters = {
   q: '',
   specialty: '',
+  profession: '',
   state: '',
+  schedule: '',
   hiringType: '',
-  organizationSlug: '',
   remote: null,
-  payModel: '',
-  payMin: '',
-  payMax: '',
-  visaSponsorship: '',
-  benefits: '',
-  employerType: '',
-  startUrgency: '',
-  readinessStatus: '',
-  missingRequirement: '',
-  sort: 'relevance',
   page: 1,
 };
-
-function oneOf(value: string | null | undefined, allowed: readonly string[]): string {
-  const trimmed = (value ?? '').trim().toLowerCase();
-  return allowed.includes(trimmed) ? trimmed : '';
-}
 
 function text(value: string | null | undefined): string {
   return (value ?? '').trim();
 }
 
-/** Positive integers only; anything else falls back so the query can't be poisoned. */
-function positiveInt(value: string | null | undefined, fallback: number): number {
-  const parsed = Number.parseInt((value ?? '').trim(), 10);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+function oneOf(value: string | null | undefined, allowed: readonly string[]): string {
+  const normalized = text(value).toLowerCase();
+  return allowed.includes(normalized) ? normalized : '';
 }
 
-function money(value: string | null | undefined): string {
-  const raw = (value ?? '').trim().replace(/[$,\s]/g, '');
-  if (!raw) return '';
-  const parsed = Number.parseFloat(raw);
-  if (!Number.isFinite(parsed) || parsed < 0) return '';
-  return String(Math.round(parsed));
+function positiveInt(value: string | null | undefined): number {
+  const parsed = Number.parseInt(text(value), 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 1;
 }
 
 function parseRemote(value: string | null | undefined): boolean | null {
-  const trimmed = (value ?? '').trim().toLowerCase();
-  if (trimmed === 'true' || trimmed === '1') return true;
-  if (trimmed === 'false' || trimmed === '0') return false;
+  const normalized = text(value).toLowerCase();
+  if (normalized === 'true' || normalized === '1') return true;
+  if (normalized === 'false' || normalized === '0') return false;
   return null;
 }
 
 export function normalizeBoardFilters(filters: Partial<BoardFilters>): BoardFilters {
-  const payMin = money(filters.payMin);
-  const payMax = money(filters.payMax);
-
-  const normalized: BoardFilters = {
+  return {
     q: text(filters.q).slice(0, 200),
-    specialty: text(filters.specialty),
+    specialty: text(filters.specialty).slice(0, 120),
+    profession: oneOf(filters.profession, PROFESSION_OPTIONS),
     state: text(filters.state).toUpperCase().slice(0, 2),
+    schedule: oneOf(filters.schedule, SCHEDULE_OPTIONS),
     hiringType: oneOf(filters.hiringType, HIRING_TYPE_OPTIONS),
-    organizationSlug: text(filters.organizationSlug),
     remote: filters.remote === true || filters.remote === false ? filters.remote : null,
-    payModel: oneOf(filters.payModel, PAY_MODEL_OPTIONS),
-    payMin,
-    payMax,
-    visaSponsorship: oneOf(filters.visaSponsorship, VISA_OPTIONS),
-    benefits: oneOf(filters.benefits, BENEFIT_OPTIONS),
-    employerType: text(filters.employerType),
-    startUrgency: oneOf(filters.startUrgency, START_URGENCY_OPTIONS),
-    readinessStatus: oneOf(filters.readinessStatus, READINESS_OPTIONS),
-    missingRequirement: text(filters.missingRequirement),
-    sort: SORT_OPTIONS.includes(filters.sort as BoardSort) ? (filters.sort as BoardSort) : 'relevance',
     page: filters.page && filters.page > 0 ? Math.floor(filters.page) : 1,
   };
-
-  // A reversed pay range filters out everything, which reads as a broken board
-  // rather than as user error. Swap instead.
-  if (normalized.payMin && normalized.payMax
-    && Number.parseFloat(normalized.payMin) > Number.parseFloat(normalized.payMax)) {
-    return { ...normalized, payMin: normalized.payMax, payMax: normalized.payMin };
-  }
-
-  return normalized;
 }
 
 export function parseBoardFilters(searchParams: SearchParamsReader): BoardFilters {
   return normalizeBoardFilters({
     q: searchParams.get('q') ?? '',
     specialty: searchParams.get('specialty') ?? '',
+    profession: searchParams.get('profession') ?? '',
     state: searchParams.get('state') ?? '',
+    schedule: searchParams.get('schedule') ?? '',
     hiringType: searchParams.get('hiringType') ?? '',
-    organizationSlug: searchParams.get('organizationSlug') ?? '',
     remote: parseRemote(searchParams.get('remote')),
-    payModel: searchParams.get('payModel') ?? '',
-    payMin: searchParams.get('payMin') ?? '',
-    payMax: searchParams.get('payMax') ?? '',
-    visaSponsorship: searchParams.get('visaSponsorship') ?? '',
-    benefits: searchParams.get('benefits') ?? '',
-    employerType: searchParams.get('employerType') ?? '',
-    startUrgency: searchParams.get('startUrgency') ?? '',
-    readinessStatus: searchParams.get('readinessStatus') ?? '',
-    missingRequirement: searchParams.get('missingRequirement') ?? '',
-    sort: (searchParams.get('sort') ?? '') as BoardSort,
-    page: positiveInt(searchParams.get('page'), 1),
+    page: positiveInt(searchParams.get('page')),
   });
 }
 
-/**
- * Query string for the address bar. Defaults are omitted so a clean board has a
- * clean URL and `/explore` stays canonical for sharing and for the crawler.
- */
 export function serializeBoardFilters(filters: Partial<BoardFilters>): URLSearchParams {
   const f = normalizeBoardFilters(filters);
   const params = new URLSearchParams();
-
   if (f.q) params.set('q', f.q);
   if (f.specialty) params.set('specialty', f.specialty);
+  if (f.profession) params.set('profession', f.profession);
   if (f.state) params.set('state', f.state);
+  if (f.schedule) params.set('schedule', f.schedule);
   if (f.hiringType) params.set('hiringType', f.hiringType);
-  if (f.organizationSlug) params.set('organizationSlug', f.organizationSlug);
   if (f.remote !== null) params.set('remote', String(f.remote));
-  if (f.payModel) params.set('payModel', f.payModel);
-  if (f.payMin) params.set('payMin', f.payMin);
-  if (f.payMax) params.set('payMax', f.payMax);
-  if (f.visaSponsorship) params.set('visaSponsorship', f.visaSponsorship);
-  if (f.benefits) params.set('benefits', f.benefits);
-  if (f.employerType) params.set('employerType', f.employerType);
-  if (f.startUrgency) params.set('startUrgency', f.startUrgency);
-  if (f.readinessStatus) params.set('readinessStatus', f.readinessStatus);
-  if (f.missingRequirement) params.set('missingRequirement', f.missingRequirement);
-  if (f.sort !== 'relevance') params.set('sort', f.sort);
   if (f.page > 1) params.set('page', String(f.page));
-
   return params;
 }
 
-/**
- * Query string for GET /api/opportunities.
- *
- * Only the parameters the backend actually understands today. `q` and `sort`
- * are deliberately NOT sent — the service has no full-text index yet, so they
- * are applied over the fetched set by `applyBoardQuery` until the Postgres FTS
- * migration lands and moves them into SQL.
- */
-export function toApiQuery(filters: Partial<BoardFilters>, options?: { limit?: number; npi?: string }): URLSearchParams {
+export function toApiQuery(filters: Partial<BoardFilters>): URLSearchParams {
   const f = normalizeBoardFilters(filters);
   const params = new URLSearchParams();
-
+  if (f.q) params.set('q', f.q);
   if (f.specialty) params.set('specialty', f.specialty);
+  if (f.profession) params.set('profession', f.profession);
   if (f.state) params.set('state', f.state);
+  if (f.schedule) params.set('schedule', f.schedule);
   if (f.hiringType) params.set('hiringType', f.hiringType);
-  if (f.organizationSlug) params.set('organizationSlug', f.organizationSlug);
-  // The service only narrows on `remote=true`; onsite-only is resolved client-side.
-  if (f.remote === true) params.set('remote', 'true');
-  if (f.payModel) params.set('payModel', f.payModel);
-  if (f.payMin) params.set('payMin', f.payMin);
-  if (f.payMax) params.set('payMax', f.payMax);
-  if (f.visaSponsorship) params.set('visaSponsorship', f.visaSponsorship);
-  if (f.benefits) params.set('benefits', f.benefits);
-  if (f.employerType) params.set('employerType', f.employerType);
-  if (f.startUrgency) params.set('startUrgency', f.startUrgency);
-  if (f.readinessStatus) params.set('readinessStatus', f.readinessStatus);
-  if (f.missingRequirement) params.set('missingRequirement', f.missingRequirement);
-  if (options?.npi) params.set('npi', options.npi);
-
-  params.set('limit', String(options?.limit ?? 500));
-  params.set('offset', '0');
-
+  if (f.remote !== null) params.set('remote', String(f.remote));
+  params.set('limit', String(PAGE_SIZE));
+  params.set('offset', String((f.page - 1) * PAGE_SIZE));
   return params;
 }
 
 export function hasActiveFilters(filters: BoardFilters): boolean {
   const f = normalizeBoardFilters(filters);
   return Boolean(
-    f.q || f.specialty || f.state || f.hiringType || f.organizationSlug
-    || f.remote !== null || f.payModel || f.payMin || f.payMax
-    || f.visaSponsorship || f.benefits || f.employerType || f.startUrgency
-    || f.readinessStatus || f.missingRequirement,
+    f.q || f.specialty || f.profession || f.state || f.schedule
+    || f.hiringType || f.remote !== null,
   );
 }
 
-/** Human-readable label per active facet, for the "clear this one" chips row. */
 export function activeFilterSummary(filters: BoardFilters): Array<{ key: keyof BoardFilters; label: string }> {
   const f = normalizeBoardFilters(filters);
   const out: Array<{ key: keyof BoardFilters; label: string }> = [];
-
   if (f.q) out.push({ key: 'q', label: `“${f.q}”` });
   if (f.specialty) out.push({ key: 'specialty', label: f.specialty });
+  if (f.profession) out.push({ key: 'profession', label: PROFESSION_LABEL[f.profession] ?? f.profession });
   if (f.state) out.push({ key: 'state', label: f.state });
-  if (f.hiringType) out.push({ key: 'hiringType', label: HIRING_TYPE_LABEL[f.hiringType] ?? f.hiringType });
-  if (f.organizationSlug) out.push({ key: 'organizationSlug', label: f.organizationSlug });
   if (f.remote === true) out.push({ key: 'remote', label: 'Remote' });
-  if (f.remote === false) out.push({ key: 'remote', label: 'Onsite' });
-  if (f.payModel) out.push({ key: 'payModel', label: PAY_MODEL_LABEL[f.payModel] ?? f.payModel });
-  if (f.payMin) out.push({ key: 'payMin', label: `Min ${formatMoney(f.payMin)}` });
-  if (f.payMax) out.push({ key: 'payMax', label: `Max ${formatMoney(f.payMax)}` });
-  if (f.visaSponsorship) out.push({ key: 'visaSponsorship', label: VISA_LABEL[f.visaSponsorship] ?? f.visaSponsorship });
-  if (f.benefits) out.push({ key: 'benefits', label: BENEFIT_LABEL[f.benefits] ?? f.benefits });
-  if (f.employerType) out.push({ key: 'employerType', label: f.employerType });
-  if (f.startUrgency) out.push({ key: 'startUrgency', label: START_URGENCY_LABEL[f.startUrgency] ?? f.startUrgency });
-  if (f.readinessStatus) out.push({ key: 'readinessStatus', label: READINESS_LABEL[f.readinessStatus] ?? f.readinessStatus });
-  if (f.missingRequirement) out.push({ key: 'missingRequirement', label: `Missing: ${f.missingRequirement}` });
-
+  if (f.remote === false) out.push({ key: 'remote', label: 'On-site or hybrid' });
+  if (f.schedule) out.push({ key: 'schedule', label: SCHEDULE_LABEL[f.schedule] ?? f.schedule });
+  if (f.hiringType) out.push({ key: 'hiringType', label: HIRING_TYPE_LABEL[f.hiringType] ?? f.hiringType });
   return out;
 }
 
-/** Reset one facet to its empty value without disturbing the rest. */
 export function clearFilter(filters: BoardFilters, key: keyof BoardFilters): BoardFilters {
   return normalizeBoardFilters({
     ...filters,
@@ -264,55 +150,36 @@ export function clearFilter(filters: BoardFilters, key: keyof BoardFilters): Boa
   } as Partial<BoardFilters>);
 }
 
-export function formatMoney(value: string | number | null | undefined): string {
-  const parsed = typeof value === 'number' ? value : Number.parseFloat(String(value ?? ''));
-  if (!Number.isFinite(parsed)) return '';
-  return `$${Math.round(parsed).toLocaleString('en-US')}`;
+/**
+ * Keep a shared or stale page URL inside the current result set. Returning
+ * null means no navigation is needed; a number means the caller must replace
+ * the URL and refetch that page before presenting an empty-result state.
+ */
+export function clampedBoardPage(page: number, total: number): number | null {
+  const lastPage = Math.max(1, Math.ceil(Math.max(0, total) / PAGE_SIZE));
+  return page > lastPage ? lastPage : null;
 }
+
+export const PROFESSION_LABEL: Record<string, string> = {
+  physician: 'Physicians',
+  advanced_practice: 'Advanced practice',
+  nursing: 'Nursing',
+  behavioral_health: 'Behavioral health',
+  allied_health: 'Allied health',
+  not_stated: 'Profession not stated',
+};
+
+export const SCHEDULE_LABEL: Record<string, string> = {
+  full_time: 'Full-time',
+  part_time: 'Part-time',
+  per_diem: 'Per diem / PRN',
+  flexible: 'Flexible',
+  not_stated: 'Schedule not stated',
+};
 
 export const HIRING_TYPE_LABEL: Record<string, string> = {
   perm: 'Permanent',
   locums: 'Locums',
-  telehealth: 'Telehealth',
   contract: 'Contract',
-};
-
-export const PAY_MODEL_LABEL: Record<string, string> = {
-  salary: 'Salary',
-  hourly: 'Hourly',
-  locums: 'Locums rate',
-  shift: 'Per shift',
-};
-
-export const VISA_LABEL: Record<string, string> = {
-  available: 'Sponsorship available',
-  case_by_case: 'Sponsorship case by case',
-  not_available: 'No sponsorship',
-  not_stated: 'Sponsorship not stated',
-};
-
-export const BENEFIT_LABEL: Record<string, string> = {
-  listed: 'Benefits listed',
-  limited: 'Some benefits listed',
-  not_listed: 'Benefits not listed',
-};
-
-export const START_URGENCY_LABEL: Record<string, string> = {
-  immediate: 'Start immediately',
-  within_2_weeks: 'Within 2 weeks',
-  within_month: 'Within a month',
-  flexible: 'Flexible start',
-};
-
-export const READINESS_LABEL: Record<string, string> = {
-  ready_now: 'Ready now',
-  needs_review: 'Needs review',
-  requirements_missing: 'Requirements missing',
-};
-
-export const SORT_LABEL: Record<BoardSort, string> = {
-  relevance: 'Relevance',
-  newest: 'Newest',
-  fastest_start: 'Fastest start',
-  pay: 'Pay',
+  telehealth: 'Telehealth',
 };

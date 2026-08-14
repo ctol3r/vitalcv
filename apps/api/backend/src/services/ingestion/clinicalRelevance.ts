@@ -112,6 +112,7 @@ const NON_CLINICAL_OVERRIDES: RegExp[] = [
   /\boperations\b/i,
   /\bprogram manager\b/i,
   /\bproject manager\b/i,
+  /\bterritory manager\b/i,
 ];
 
 /*

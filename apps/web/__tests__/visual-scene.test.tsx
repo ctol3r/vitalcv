@@ -129,6 +129,22 @@ describe('server render is the composed static scene (EC-26)', () => {
     expect(html).toContain('No real clinician, patient, employer, credential, or outcome is represented.');
   });
 
+  it('the explore documentary frame is a separately budgeted manifest asset', () => {
+    const html = renderToStaticMarkup(
+      <VisualScene
+        scene="journey_film"
+        kind="process"
+        routeVariant="explore_documentary"
+        priority="hero"
+      />,
+    );
+    expect(html).toContain('data-scene-variant="explore_documentary"');
+    expect(html).toContain('aspect-ratio:16 / 9');
+    expect(html).toContain('/scenes/explore-clinician-horizon.jpg');
+    expect(html).not.toContain('/scenes/home-career-forward-portrait.jpg');
+    expect(html).toContain('No real clinician, patient, employer, credential, or outcome is represented.');
+  });
+
   it('a decorative scene is aria-hidden with empty alt', () => {
     const html = renderToStaticMarkup(<VisualScene scene="continuity_ribbon" kind="decorative" />);
     expect(html).toContain('alt=""');

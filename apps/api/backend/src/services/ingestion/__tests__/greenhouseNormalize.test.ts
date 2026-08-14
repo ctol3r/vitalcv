@@ -72,6 +72,10 @@ describe('isClinicalRole', () => {
     }
   });
 
+  it('does not mistake a Maryland location suffix for a physician credential', () => {
+    expect(isClinicalRole('Territory Manager (MD, Baltimore County)')).toBe(false);
+  });
+
   it('keeps clinical leadership while dropping operations leadership', () => {
     // The ambiguous edge, pinned in both directions so a later "simplification"
     // to a blanket /director/ override goes red.

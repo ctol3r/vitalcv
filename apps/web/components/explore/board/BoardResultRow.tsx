@@ -1,182 +1,195 @@
 'use client';
 
-/**
- * BoardResultRow — one opportunity, as a ruled row.
- *
- * Deliberately NOT a card: CD-13 retires card grids, and a single ruled column
- * is also what a scanning reader actually wants. Structure comes from a 1px
- * rule between rows, not from shadows or boxes.
- *
- * CD-8 (mono law): every machine fact — state, money, durations, dates, source
- * names — renders mono. Human prose stays sans.
- * CD-2.2: a state is never colour alone. Each carries a glyph AND its word AND
- * the source it came from AND how old that source is.
- */
-
 import Link from 'next/link';
 import type { OpportunitySummary } from '@/lib/launch/marketplace';
-import { HIRING_TYPE_LABEL, READINESS_LABEL } from '@/lib/explore/board-filters';
+import {
+  HIRING_TYPE_LABEL,
+  PROFESSION_LABEL,
+  SCHEDULE_LABEL,
+} from '@/lib/explore/board-filters';
 
-/** CD-5 glyphs. Shape carries the state; hue only reinforces it. */
-const READINESS_GLYPH: Record<string, string> = {
-  ready_now: '●',
-  needs_review: '▲',
-  requirements_missing: '○',
-};
+const AVAILABILITY_LABEL = {
+  open: 'Recently observed',
+  stale: 'Stale observation',
+  closed: 'Closed',
+  source_unavailable: 'Source page unavailable',
+} as const;
 
-const READINESS_INK: Record<string, string> = {
-  ready_now: 'var(--ok, #1C5C38)',
-  needs_review: 'var(--watch, #7D5A1E)',
-  requirements_missing: 'var(--unknown, #3F3D38)',
-};
+const AVAILABILITY_GLYPH = {
+  open: '●',
+  stale: '△',
+  closed: '×',
+  source_unavailable: '○',
+} as const;
 
-function formatPay(o: OpportunitySummary): string | null {
-  if (o.payRange) return o.payRange;
-  const min = o.payRangeMin;
-  const max = o.payRangeMax;
+const CONFIDENCE_LABEL = {
+  recent_observation: 'Recent source observation',
+  aging_observation: 'Aging source observation',
+  stale_observation: 'Stale source observation',
+  not_observed: 'Observation time unavailable',
+} as const;
+
+function formatPay(opportunity: OpportunitySummary): string | null {
+  if (opportunity.compensationProvenance?.state !== 'supplied') return null;
+  if (opportunity.payRange) return opportunity.payRange;
+
+  const min = opportunity.payRangeMin;
+  const max = opportunity.payRangeMax;
   if (min == null && max == null) return null;
-  const unit = o.payUnit === 'hour' ? '/hr' : o.payUnit === 'shift' ? '/shift' : '';
-  const fmt = (n: number) => `$${Math.round(n).toLocaleString('en-US')}`;
-  if (min != null && max != null) return `${fmt(min)}–${fmt(max)}${unit}`;
-  return `${fmt((min ?? max) as number)}${unit}`;
+  const unit = opportunity.payUnit === 'hour'
+    ? '/hr'
+    : opportunity.payUnit === 'shift'
+      ? '/shift'
+      : opportunity.payUnit === 'year'
+        ? '/year'
+        : ' · unit not stated';
+  const money = (value: number) => `$${Math.round(value).toLocaleString('en-US')}`;
+  if (min != null && max != null) return `${money(min)}–${money(max)}${unit}`;
+  return `${money((min ?? max) as number)}${unit}`;
 }
 
-/** "12 Apr" / "12 Apr 2025" — short, unambiguous, and mono at the call site. */
-function formatDate(iso: string | null | undefined): string | null {
-  if (!iso) return null;
-  const parsed = new Date(iso);
-  if (Number.isNaN(parsed.getTime())) return null;
-  const sameYear = parsed.getUTCFullYear() === new Date().getUTCFullYear();
-  return parsed.toLocaleDateString('en-US', {
-    day: 'numeric',
+function formatObserved(iso: string | null | undefined): string {
+  if (!iso) return 'Observation time unavailable';
+  const value = new Date(iso);
+  if (Number.isNaN(value.getTime())) return 'Observation time unavailable';
+  return `Observed ${value.toLocaleString('en-US', {
     month: 'short',
-    ...(sameYear ? {} : { year: 'numeric' }),
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
     timeZone: 'UTC',
-  });
+    timeZoneName: 'short',
+  })}`;
 }
 
-export function BoardResultRow({ opportunity }: { opportunity: OpportunitySummary }) {
-  const pay = formatPay(opportunity);
-  const placement = opportunity.remote ? 'Remote' : opportunity.state || null;
-  const hiringType = HIRING_TYPE_LABEL[opportunity.hiringType] ?? opportunity.hiringType;
-  const start = opportunity.startTimeline ?? null;
-  const requirements = (opportunity.credentialRequirements ?? []).filter((r) => r.priority !== 'preferred');
-  const comparison = opportunity.comparison ?? null;
-  const freshness = opportunity.freshness ?? null;
-  const sourceLabel = opportunity.source?.label ?? null;
-  const isFeedListing = opportunity.isFeedListing === true;
-  const sourceUrl = opportunity.source?.url ?? null;
-  const updated = formatDate(freshness?.lastUpdatedAt ?? opportunity.updatedAt ?? opportunity.createdAt);
+function sourceMethod(opportunity: OpportunitySummary): string {
+  if (opportunity.compensationProvenance?.method === 'structured_source') {
+    return 'Structured source data';
+  }
+  if (opportunity.compensationProvenance?.method === 'source_text') {
+    return 'Source-published text';
+  }
+  return 'Not supplied by source';
+}
 
-  // Machine facts, in one mono line. Nulls are dropped rather than rendered as
-  // "—" so an absent value never reads as a stated one.
-  const facts = [placement, pay, hiringType, start].filter(Boolean) as string[];
+export function BoardResultRow({
+  opportunity,
+  ordinal,
+}: {
+  opportunity: OpportunitySummary;
+  ordinal: number;
+}) {
+  const availability = opportunity.availability ?? {
+    state: opportunity.freshness?.isStale ? 'stale' as const : 'open' as const,
+    confidence: opportunity.freshness?.isStale ? 'stale_observation' as const : 'not_observed' as const,
+    observedAt: opportunity.source?.fetchedAt ?? opportunity.updatedAt ?? null,
+    limitation: 'Confirm the current listing at its source before acting.',
+  };
+  const applicationMode = opportunity.applicationMode
+    ?? (opportunity.isFeedListing ? 'external' : 'vitalcv');
+  const sourceUrl = opportunity.source?.url ?? null;
+  const sourceLabel = opportunity.source?.label ?? 'Source not stated';
+  const compensation = formatPay(opportunity);
+  const location = opportunity.remote
+    ? opportunity.state ? `Remote · ${opportunity.state}` : 'Remote'
+    : opportunity.state || 'Location not stated';
+  const profession = PROFESSION_LABEL[opportunity.profession ?? 'not_stated'] ?? 'Profession not stated';
+  const schedule = SCHEDULE_LABEL[opportunity.schedule ?? 'not_stated'] ?? 'Schedule not stated';
+  const employment = HIRING_TYPE_LABEL[opportunity.hiringType] ?? opportunity.hiringType;
 
   return (
     <article
       data-opportunity-id={opportunity.id}
-      className="border-t py-5 first:border-t-0"
-      style={{ borderColor: 'var(--rule-soft, #DAD5C9)' }}
+      data-application-mode={applicationMode}
+      data-availability-state={availability.state}
+      className="opf-role"
     >
-      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-        <h3 className="mz-h2" style={{ margin: 0, fontSize: 19, lineHeight: 1.3 }}>
-          {/* A feed listing is applied to at its source. Pointing it at a
-              VitalCV detail page would imply we can carry an application to an
-              employer who has never heard of us. */}
-          {isFeedListing && sourceUrl ? (
-            <a
-              href={sourceUrl}
-              target="_blank"
-              rel="noopener noreferrer nofollow"
-              className="no-underline hover:underline"
-              style={{ color: 'var(--vt-text-primary)' }}
-            >
-              {opportunity.title}
-            </a>
-          ) : (
-            <Link
-              href={`/opportunities/${opportunity.id}`}
-              className="no-underline hover:underline"
-              style={{ color: 'var(--vt-text-primary)' }}
-            >
-              {opportunity.title}
-            </Link>
-          )}
-        </h3>
-        <p className="mz-small" style={{ margin: 0 }}>
-          {opportunity.organizationName}
-          {opportunity.employerType ? ` · ${opportunity.employerType}` : ''}
-        </p>
+      <div className="opf-role-index" aria-hidden="true">
+        {String(ordinal).padStart(2, '0')}
       </div>
 
-      {facts.length > 0 && (
-        <p
-          className="mz-mono"
-          style={{ margin: '8px 0 0', fontSize: 12.5, color: 'var(--vt-text-secondary)' }}
-        >
-          {facts.join('  ·  ')}
-        </p>
-      )}
+      <div className="opf-role-main">
+        <div className="opf-role-heading">
+          <div>
+            <p className="opf-role-org">{opportunity.organizationName}</p>
+            <h3 className="opf-role-title">{opportunity.title}</h3>
+          </div>
+          <p className="opf-availability" data-state={availability.state}>
+            <span aria-hidden="true">{AVAILABILITY_GLYPH[availability.state]}</span>{' '}
+            {AVAILABILITY_LABEL[availability.state]}
+          </p>
+        </div>
 
-      {opportunity.specialty && (
-        <p className="mz-small" style={{ margin: '6px 0 0' }}>
-          {opportunity.specialty}
-        </p>
-      )}
+        <dl className="opf-role-facts">
+          <div>
+            <dt>Profession</dt>
+            <dd>{profession}</dd>
+          </div>
+          <div>
+            <dt>Location</dt>
+            <dd>{location}</dd>
+          </div>
+          <div>
+            <dt>Schedule</dt>
+            <dd>{schedule}</dd>
+          </div>
+          <div>
+            <dt>Employment</dt>
+            <dd>{employment}</dd>
+          </div>
+          <div>
+            <dt>Specialty</dt>
+            <dd>{opportunity.specialty || 'Not stated'}</dd>
+          </div>
+          <div>
+            <dt>Compensation</dt>
+            <dd>{compensation ?? 'Not supplied by source'}</dd>
+          </div>
+        </dl>
 
-      {requirements.length > 0 && (
-        <p
-          className="mz-small"
-          style={{ margin: '8px 0 0', color: 'var(--vt-text-secondary)' }}
-        >
-          <span style={{ color: 'var(--vt-text-muted)' }}>Employer requires </span>
-          {requirements.map((r) => r.label).join(' · ')}
-        </p>
-      )}
+        <div className="opf-role-proof">
+          <div>
+            <p className="opf-proof-label">Source</p>
+            {sourceUrl ? (
+              applicationMode === 'external' ? (
+                <a href={sourceUrl} target="_blank" rel="noopener noreferrer nofollow">
+                  {sourceLabel}
+                </a>
+              ) : (
+                <Link href={sourceUrl}>{sourceLabel}</Link>
+              )
+            ) : (
+              <p>{sourceLabel} · source page unavailable</p>
+            )}
+          </div>
+          <div>
+            <p className="opf-proof-label">Observation</p>
+            <p>{formatObserved(availability.observedAt)}</p>
+            <p>{CONFIDENCE_LABEL[availability.confidence]}</p>
+          </div>
+          <div>
+            <p className="opf-proof-label">Compensation source</p>
+            <p>{sourceMethod(opportunity)}</p>
+          </div>
+        </div>
 
-      {/* Readiness — only when the viewer's credentials actually resolved.
-          Anonymous readers get the honest prompt instead of a teaser count. */}
-      {comparison ? (
-        <p
-          className="mz-mono"
-          style={{
-            margin: '10px 0 0',
-            fontSize: 12.5,
-            color: READINESS_INK[comparison.status] ?? 'var(--vt-text-secondary)',
-            borderLeft: `2px solid ${READINESS_INK[comparison.status] ?? 'var(--rule)'}`,
-            paddingLeft: 8,
-          }}
-        >
-          <span aria-hidden="true">{READINESS_GLYPH[comparison.status] ?? '○'}</span>{' '}
-          {READINESS_LABEL[comparison.status] ?? comparison.status}
-          {comparison.status !== 'ready_now' && comparison.shortestPath
-            ? ` — ${comparison.shortestPath}`
-            : ''}
-        </p>
-      ) : null}
+        <p className="opf-role-limitation">{availability.limitation}</p>
 
-      {/* Provenance + age. CD-2.2: the source and its age travel with the claim. */}
-      {(sourceLabel || updated) && (
-        <p
-          className="mz-mono"
-          style={{ margin: '10px 0 0', fontSize: 11.5, color: 'var(--vt-text-muted)' }}
-        >
-          {sourceLabel}
-          {sourceLabel && updated ? ' · ' : ''}
-          {updated ? `updated ${updated}` : ''}
-          {freshness?.isStale ? ' · may be out of date' : ''}
-        </p>
-      )}
-
-      {/* Says plainly that this one is not an employer we have a relationship
-          with, so a reader never assumes the requirements/readiness machinery
-          applies to it. */}
-      {isFeedListing && (
-        <p className="mz-small" style={{ margin: '6px 0 0', color: 'var(--vt-text-muted)' }}>
-          Copied from a public job feed. This employer has not published
-          requirements to VitalCV — apply at the original posting.
-        </p>
-      )}
+        <div className="opf-role-action">
+          {applicationMode === 'external' ? (
+            sourceUrl ? (
+              <a href={sourceUrl} target="_blank" rel="noopener noreferrer nofollow">
+                View original listing <span aria-hidden="true">↗</span>
+              </a>
+            ) : (
+              <span aria-disabled="true">Original listing unavailable</span>
+            )
+          ) : (
+            <Link href={`/opportunities/${opportunity.id}`}>Apply with VitalCV</Link>
+          )}
+        </div>
+      </div>
     </article>
   );
 }
