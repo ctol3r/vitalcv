@@ -10,6 +10,12 @@
 
 **Current wave:** Wave 00 complete; Wave 01 proposed, not started
 
+**PTC V2 authority:** This thesis-era tracker is retained as a broad program
+inventory. The required PTC-WAVE-00 artifacts in `docs/trust-computing/` are
+authoritative for package placement, Demo 1 scope, exact tests, and next build
+sequence. In particular, Demo 1 extends `@vitalcv/domain-evidence`; it does not
+create `@vitalcv/trust-compiler`.
+
 ## 1. Program control
 
 This is the canonical execution tracker for the Trust Compiler program. Update
@@ -190,6 +196,10 @@ Artifacts:
 
 - `docs/architecture/CURRENT_SYSTEM_MAP.md`
 - `plans/TRUST_COMPILER_EXECUTION_PLAN.md`
+- `docs/trust-computing/PTC_ARCHITECTURE_MAP.md`
+- `docs/trust-computing/PTC_DEMO1_EXECUTION_PLAN.md`
+- `docs/trust-computing/PTC_LEGACY_EQUIVALENCE_MAP.md`
+- `docs/trust-computing/PTC_RESEARCH_REGISTER.md`
 
 Runtime impact:
 
@@ -202,11 +212,13 @@ Runtime impact:
 - no TrustSpec or compiler implementation;
 - no production access or deployment.
 
-## 7. Wave 01 proposed execution
+## 7. Earlier Wave 01 proposal — superseded for Demo 1
 
-Wave 01 is one documentation-only PR unless review shows a bounded reason to
-split it. No production type, route, database, or UI change is authorized by
-this plan.
+The sections below preserve the earlier thesis-era plan for review history.
+They are not the next execution order. After architecture approval, follow the
+bundle sequence in `docs/trust-computing/PTC_DEMO1_EXECUTION_PLAN.md`, beginning
+with the independently testable TrustSpec 0.1 bundle. No implementation starts
+automatically from Wave 00.
 
 ### Bundle 01A — Domain glossary and compatibility matrix
 

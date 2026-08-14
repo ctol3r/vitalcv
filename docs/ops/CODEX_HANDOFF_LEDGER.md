@@ -3,7 +3,7 @@
 Append-only. **Newest entry at the top.** One entry per work order is recorded
 in the same pull request as its implementation or takeover evidence.
 
-## PTC-WAVE-00 · Professional Trust Computing architecture — OPEN
+## PTC-WAVE-00 · Professional Trust Computing architecture — OPEN #1386
 
 - **Date:** 2026-08-14
 - **Claim-check:** No open or merged PR implements TrustSpec, TrustIR, or the
