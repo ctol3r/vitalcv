@@ -18,16 +18,16 @@ import { expect, test, type Page } from '@playwright/test';
  * next/font/google, the kill switch's exact shape — and proves each guard by
  * injection where a unit can.
  *
- * Fraunces note: EC-20 locks Geist for display and body. The UX-V1 homepage
- * complies. Legacy surfaces (e.g. /explore's Fraunces h1) are recorded
- * migration debt for the page waves (UX-04+) — W1081 is "no page redesign", so
- * this spec asserts the locked faces exactly where the verdict has been
- * implemented, and does not paper over the rest by asserting them everywhere.
+ * Direction D uses the product's three-face system deliberately: Fraunces for
+ * the homepage display, Geist for reading and controls, and Geist Mono only
+ * where a source surface calls for it. This spec measures that rendered
+ * contract instead of pinning the superseded all-Geist homepage register.
  */
 
 /** The loaded-family names next/font/local registers (see app/layout.tsx). */
 const SANS = 'geistSans';
 const MONO = 'geistMono';
+const DISPLAY = 'fraunces';
 
 const firstFamily = async (page: Page, selector: string) =>
   page
@@ -51,10 +51,11 @@ test.describe('design kernel — the intended font stack actually computes', () 
     );
     expect(loaded).toContain(SANS);
     expect(loaded).toContain(MONO);
+    expect(loaded).toContain(DISPLAY);
   });
 
-  test('homepage display and body compute Geist — the EC-20 locked faces', async ({ page }) => {
-    expect(await firstFamily(page, 'h1')).toBe(SANS);
+  test('homepage display computes Fraunces while reading copy computes Geist', async ({ page }) => {
+    expect(await firstFamily(page, 'h1')).toBe(DISPLAY);
     // `#main-content p`, not `main p`: the homepage gained a <main> landmark in the 2026-08-08 audit wave; #main-content still wraps it, so this selector holds. It previously had no <main> landmark —
     // a finding the #1165 census already records. This spec measures fonts;
     // the landmark belongs to the census's accessibility work, and asserting
@@ -62,11 +63,11 @@ test.describe('design kernel — the intended font stack actually computes', () 
     expect(await firstFamily(page, '#main-content p')).toBe(SANS);
   });
 
-  test('machine facts compute Geist Mono — mono is the retrieved-not-written signal', async ({ page }) => {
-    // The homepage's micro-labels are the always-present mono surface. The
-    // chrome no longer carries center content (the floating-chrome rebuild),
-    // so the page's own kicker labels carry this contract.
-    expect(await firstFamily(page, '.ezh-k')).toBe(MONO);
+  test('homepage labels remain in Geist rather than presenting a false machine-data signal', async ({ page }) => {
+    // Direction D intentionally removed monospace microcopy from the served
+    // illustration. Its labels explain the record; they are not retrieved
+    // values or identifiers.
+    expect(await firstFamily(page, '.ezh-k')).toBe(SANS);
   });
 
   test('every legacy font variable resolves to a kernel face — no era escapes', async ({ page }) => {

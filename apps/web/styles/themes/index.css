@@ -193,6 +193,17 @@ html[data-theme='dark'] {
  * document themes above are untouched.
  */
 :root {
+  /* ── Direction D — homepage route register (2026-08-11) ───────────────
+     These values are deliberately separate from the document light/dark
+     themes and the earlier scene register. `/` consumes them through the
+     `easy` island; other public routes keep their established registers. */
+  --vt-home-d-ground: #F7F6F3;
+  --vt-home-d-ink: #131211;
+  --vt-home-d-dim: #5C5852;
+  --vt-home-d-rule: #E0DDD6;
+  --vt-home-d-panel: #FFFFFF;
+  --vt-home-d-source: #0F6D4E;
+
   /* ── Scene surfaces — the dark-led register (decision 1) ──────────────── */
   --vt-scene-canvas:            #151412;
   --vt-scene-panel:             #1D1B19;

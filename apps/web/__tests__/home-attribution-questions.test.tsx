@@ -98,8 +98,8 @@ describe('homepage attribution', () => {
     expect(attribution).not.toMatch(/#[0-9a-fA-F]{3,8}\b/);
   });
 
-  it('marks its own header theme so the eyebrow inverts correctly', () => {
-    expect(attribution).toContain('data-header-theme="dark"');
+  it('marks its own light header theme for the paper-surface composition', () => {
+    expect(attribution).toContain('data-header-theme="light"');
   });
 });
 
@@ -146,8 +146,8 @@ describe('homepage questions', () => {
     expect(questions).toMatch(/<details class="ezh-faq-item" open/);
   });
 
-  it('marks its own header theme so the eyebrow inverts correctly', () => {
-    expect(questions).toContain('data-header-theme="dark"');
+  it('marks its own light header theme for the paper-surface composition', () => {
+    expect(questions).toContain('data-header-theme="light"');
   });
 });
 

@@ -82,31 +82,26 @@ describe('homepage composition gate (W0.2)', () => {
   });
 
   /**
-   * D-01A — Profile in Motion's boundary and layer contract, pinned.
-   *
-   * 1. The story ends at the employer's REVIEW. The scene renders the review
-   *    desk with an open, undecided outcome — no "hired", no "accepted", no
-   *    resolved employer decision. The boundary is the point of the frame.
-   * 2. The layered record and the consent gate exist in the SERVER frame:
-   *    the completed story is what crawlers and no-JS visitors receive.
+   * Direction D — the server frame presents an illustrative record and a
+   * clinician-controlled disclosure boundary without turning the homepage
+   * into a fictional employer outcome.
    */
-  it('the work surface ends at employer review, undecided (D-01A)', () => {
+  it('the work surface shows an unresolved, clinician-controlled record', () => {
     const html = renderHomepageHtml();
-    expect(html).toContain('ezh-desk-out');
-    expect(html).toContain('This is where VitalCV stops');
+    expect(html).toContain('data-home-work-surface');
+    expect(html).toContain('Illustrative');
+    expect(html).toContain('Choose what you share');
+    expect(html).toContain('Your employer receives the exact record you approve.');
     for (const resolved of ['Hired', 'Offer accepted', 'You got the job']) {
       expect(html, `the employer boundary resolved itself: "${resolved}"`).not.toContain(resolved);
     }
   });
 
-  it('the server frame carries the layered record and the consent gate (D-01A)', () => {
+  it('the server frame carries visible source states and a consent boundary', () => {
     const html = renderHomepageHtml();
-    for (const layer of ['identity', 'sourced', 'yours', 'consent']) {
-      expect(html, `record layer "${layer}" missing from the server frame`).toContain(
-        `data-layer="${layer}"`,
-      );
+    for (const state of ['Source-backed', 'Your record', 'Access required', 'Needs your review']) {
+      expect(html, `record state "${state}" missing from the server frame`).toContain(state);
     }
-    expect(html).toContain('ezh-gate');
-    expect(html).toContain('Your approval');
+    expect(html).toContain('Your employer receives the exact record you approve.');
   });
 });

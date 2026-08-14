@@ -3,9 +3,9 @@ import { expect, test, type Page } from '@playwright/test';
 /**
  * The UX-V1 homepage in a real browser.
  *
- * Pins what renderToStaticMarkup cannot: the work-surface timeline plays and
- * completes without blocking anything, the reduced-motion static frame is
- * annotated and complete, the real NPI entry validates locally and is
+ * Pins what renderToStaticMarkup cannot: the record assembly never hides its
+ * content, the reduced-motion static frame is annotated and complete, the
+ * real NPI entry validates locally and is
  * keyboard-reachable, and the composition holds without horizontal overflow
  * across six viewports.
  *
@@ -22,11 +22,11 @@ test.describe('home — the Easy Button hero', () => {
     await page.goto('/');
   });
 
-  test('one h1, and it is the thesis', async ({ page }) => {
+  test('one h1, and it is the record-first thesis', async ({ page }) => {
     const h1 = page.locator('h1');
     await expect(h1).toHaveCount(1);
-    await expect(h1).toContainText('Enter your NPI.');
-    await expect(h1).toContainText('VitalCV does the rest.');
+    await expect(h1).toContainText('Your career record,');
+    await expect(h1).toContainText('ready when work moves.');
   });
 
   test('the hero never blocks: copy, entry, and surface are visible together on load', async ({ page }) => {
@@ -36,24 +36,13 @@ test.describe('home — the Easy Button hero', () => {
     await expect(surface(page)).toBeVisible();
   });
 
-  test('the work surface plays to completion and lands on the composed frame', async ({ page }) => {
-    // The timeline starts ~400ms after mount and finishes inside ~11s.
+  test('the record is complete and visible before its optional assembly settles', async ({ page }) => {
+    await expect(surface(page).locator('.ezh-watch-row')).toHaveCount(4);
+    await expect(surface(page).getByText('Source-backed', { exact: true })).toBeVisible();
+    await expect(surface(page).getByText('Access required', { exact: true })).toBeVisible();
     await expect
-      .poll(async () => surface(page).getAttribute('data-active-beat'), { timeout: 20000 })
-      .toBe('5');
-    await expect(surface(page)).toHaveClass(/is-played/);
-    await expect(surface(page).locator('.ezh-applied')).toBeVisible();
-  });
-
-  test('replay is a real control', async ({ page }) => {
-    await expect
-      .poll(async () => surface(page).getAttribute('data-active-beat'), { timeout: 20000 })
-      .toBe('5');
-    await surface(page).locator('.ezh-sf-replay').click();
-    // Replaying returns to the early beats before completing again.
-    await expect
-      .poll(async () => surface(page).getAttribute('data-active-beat'), { timeout: 5000 })
-      .not.toBe('5');
+      .poll(async () => surface(page).getAttribute('data-motion'), { timeout: 5000 })
+      .toBe('assembling');
   });
 
   test('the NPI entry validates locally and states progress honestly', async ({ page }) => {
@@ -98,35 +87,8 @@ test.describe('home — the Easy Button hero', () => {
     await expect(page.locator('.ezh-start-cta')).toHaveAttribute('href', '#npi');
   });
 
-  /**
-   * A-2's shape rule: an action is square, a word-label may be a pill. Asserted
-   * as an outcome across the whole page rather than per selector, so a new
-   * action added later cannot quietly reintroduce the pill. The chrome is
-   * excluded only because eyebrow.spec.ts already pins it.
-   */
-  test('every action is square; only word-labels keep the pill', async ({ page }) => {
-    const shapes = await page.evaluate(() => {
-      const roundedActions: string[] = [];
-      document.querySelectorAll<HTMLElement>('.ezh a[href], .ezh button').forEach((el) => {
-        const r = el.getBoundingClientRect();
-        if (!r.width || !r.height) return;
-        const rad = parseFloat(getComputedStyle(el).borderTopLeftRadius) || 0;
-        if (rad >= r.height / 2 - 0.5) {
-          roundedActions.push(`${el.className}: ${getComputedStyle(el).borderTopLeftRadius}`);
-        }
-      });
-      // The labels that legitimately keep it, so the rule is proven both ways
-      // and this does not silently pass on a page where nothing is a pill.
-      const labelPills = Array.from(document.querySelectorAll<HTMLElement>('.ezh-src, .ezh-chip, .ezh-seed-tag'))
-        .filter((el) => {
-          const r = el.getBoundingClientRect();
-          if (!r.width || !r.height) return false;
-          return (parseFloat(getComputedStyle(el).borderTopLeftRadius) || 0) >= r.height / 2 - 0.5;
-        }).length;
-      return { roundedActions, labelPills };
-    });
-    expect(shapes.roundedActions).toEqual([]);
-    expect(shapes.labelPills).toBeGreaterThan(0);
+  test('the first action uses the approved 8px control radius', async ({ page }) => {
+    await expect(page.locator('[data-home-primary-cta]')).toHaveCSS('border-top-left-radius', '8px');
   });
 });
 
@@ -169,16 +131,9 @@ test.describe('home — reduced motion', () => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto('/');
-    await expect(surface(page)).toHaveClass(/is-static/, { timeout: 15000 });
-    await expect(surface(page)).toHaveAttribute('data-active-beat', '5');
-    // Every beat's content is present at once — D-01A's Profile in Motion
-    // frame: the layered record, what remains, the consent gate, and the
-    // employer's open review desk.
-    await expect(surface(page).getByText('Your record, as it builds', { exact: true })).toBeVisible();
-    await expect(surface(page).getByText(/what still matters/)).toBeVisible();
-    await expect(surface(page).locator('.ezh-applied')).toBeVisible();
-    await expect(surface(page).locator('.ezh-desk-out')).toBeVisible();
-    // The annotation legend replaces the timeline.
+    await expect(surface(page)).toHaveAttribute('data-motion', 'static');
+    await expect(surface(page).getByText('Identity', { exact: true })).toBeVisible();
+    await expect(surface(page).getByText('Needs your review', { exact: true })).toBeVisible();
     await expect(surface(page).locator('.ezh-rm-legend')).toBeVisible();
   });
 });

@@ -28,7 +28,6 @@ import { useCallback, useEffect, useState } from 'react';
 
 import Attribution from '@/components/home/easy/Attribution';
 import { NpiReveal, ResolvingNarration } from '@/components/home/easy/NpiReveal';
-import ProcessStory from '@/components/home/easy/ProcessStory';
 import Questions from '@/components/home/easy/Questions';
 import WorkSurface from '@/components/home/easy/WorkSurface';
 import { FUNNEL_EVENTS, trackFunnelEvent } from '@/lib/analytics/funnel';
@@ -277,20 +276,19 @@ export default function EasyHome() {
         id="npi"
         className="ezh-hero"
         data-home-hero=""
-        data-header-theme="dark"
+        data-header-theme="light"
         aria-label="VitalCV — enter your NPI"
       >
         <div className="ezh-wrap">
           <div className="ezh-hero-copy">
-            <span className="ezh-k">For US clinicians</span>
             <h1>
-              Enter your NPI.
+              Your career record,
               <br />
-              VitalCV does the rest.
+              ready when work moves.
             </h1>
             <p className="ezh-hero-sub">
-              We find what we can, show you exactly what remains, and handle the administrative
-              work that can safely be handled.
+              Start with your NPI. See what public sources support, what you control, and what
+              still needs your attention.
             </p>
 
             <NpiEntry {...loop} />
@@ -313,11 +311,18 @@ export default function EasyHome() {
         </div>
       </section>
 
-      {/* ── what VitalCV is — the deep five-chapter explainer (UX-04) ────── */}
-      <ProcessStory />
+      <section className="ezh-record-path" data-header-theme="light" aria-label="How the record moves">
+        <div className="ezh-wrap">
+          <ol>
+            <li><strong>Your record</strong><span>Source states stay visible.</span></li>
+            <li><strong>Your choice</strong><span>You decide what leaves it.</span></li>
+            <li><strong>Exact record for review</strong><span>Review begins with what you approved.</span></li>
+          </ol>
+        </div>
+      </section>
 
       {/* ── the agent's ownership model ──────────────────────────────────── */}
-      <section className="ezh-own" data-header-theme="dark" aria-labelledby="ezh-own-h">
+      <section className="ezh-own" data-header-theme="light" aria-labelledby="ezh-own-h">
         <div className="ezh-wrap">
           <div className="ezh-sec-head">
             <span className="ezh-k">Ownership</span>
@@ -383,7 +388,7 @@ export default function EasyHome() {
       {/* ── the matching layer: why the roles here are different ─────────── */}
       <section
         className="ezh-match"
-        data-header-theme="dark"
+        data-header-theme="light"
         data-home-matching=""
         aria-labelledby="ezh-match-h"
       >
@@ -453,7 +458,7 @@ export default function EasyHome() {
       </section>
 
       {/* ── the outcome ──────────────────────────────────────────────────── */}
-      <section className="ezh-out" data-header-theme="dark" aria-labelledby="ezh-out-h">
+      <section className="ezh-out" data-header-theme="light" aria-labelledby="ezh-out-h">
         <div className="ezh-wrap">
           <div className="ezh-sec-head">
             <span className="ezh-k">Outcome</span>
@@ -487,24 +492,10 @@ export default function EasyHome() {
         </div>
       </section>
 
-      {/* ── objections, answered at the end of the clinician run ──────────
-          Placed BEFORE the light employer band, and that placement is
-          load-bearing, not taste. `useHeaderScene` hands the eyebrow to
-          whichever declared section is latest in document order within the
-          top 35% of the viewport — so a DARK section following the light
-          `.ezh-emp` claims the eyebrow while the bar is still painted over
-          light paper, rendering it near-white on near-white (measured 1.03:1,
-          i.e. invisible). On origin/main that state is unreachable only
-          because nothing scrollable follows `.ezh-emp`, so the page bottoms
-          out first. Anything added below the light band removes that
-          accidental protection.
-
-          Keeping the light band last preserves it. It also reads better: the
-          questions are clinician-facing, so they belong at the end of the
-          clinician narrative rather than after the employer aside. */}
+      {/* ── objections, answered at the end of the clinician run ────────── */}
       <Questions />
 
-      {/* ── the employer doorway: light band, eyebrow inverts ────────────── */}
+      {/* ── the employer doorway ─────────────────────────────────────────── */}
       <section className="ezh-emp" data-header-theme="light" aria-labelledby="ezh-emp-h">
         <div className="ezh-wrap">
           <div className="ezh-sec-head">
@@ -540,7 +531,7 @@ export default function EasyHome() {
       </section>
 
       {/* ── final action + footer composition ────────────────────────────── */}
-      <section className="ezh-start" data-header-theme="dark" aria-labelledby="ezh-start-h">
+      <section className="ezh-start" data-header-theme="light" aria-labelledby="ezh-start-h">
         <div className="ezh-wrap">
           <div className="ezh-sec-head">
             <span className="ezh-k">Start</span>

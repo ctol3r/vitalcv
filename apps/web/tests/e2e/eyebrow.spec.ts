@@ -7,8 +7,8 @@ import { expect, test, type Page } from '@playwright/test';
  * Pins the browser-measured half of the contract the unit suite cannot see:
  * the zero-height sticky group whose instruments hold constant positions
  * across scroll (wordmark at the 30px gutter, controls 30px from the top and
- * right edges), the dark→light inversion over the homepage's light employer
- * band, the full-takeover menu's modality below the live chrome, the mobile
+ * right edges), the correct contrast contract over the served homepage, the
+ * full-takeover menu's modality below the live chrome, the mobile
  * recomposition (wordmark up top, controls pinned to the viewport bottom),
  * and reduced-motion behavior. Runs in the default (easy) project — the
  * chrome must hold on the shipping homepage.
@@ -210,12 +210,12 @@ test.describe('eyebrow — desktop', () => {
     expect(undersized).toEqual([]);
   });
 
-  test('rests dark on the homepage and inverts over the light employer band', async ({ page }) => {
-    await expect(eyebrow(page)).toHaveAttribute('data-eb-theme', 'dark');
+  test('rests light across Direction D’s paper homepage', async ({ page }) => {
+    await expect(eyebrow(page)).toHaveAttribute('data-eb-theme', 'light');
     await scrollToLightBand(page);
     await expect(eyebrow(page)).toHaveAttribute('data-eb-theme', 'light', { timeout: 10000 });
     await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior }));
-    await expect(eyebrow(page)).toHaveAttribute('data-eb-theme', 'dark', { timeout: 10000 });
+    await expect(eyebrow(page)).toHaveAttribute('data-eb-theme', 'light', { timeout: 10000 });
   });
 
   test('carries one quiet sign-in, one dominant action, and the real lookup', async ({ page }) => {

@@ -47,7 +47,7 @@ const QUESTIONS: { q: string; a: string }[] = [
 
 export default function Questions() {
   return (
-    <section className="ezh-faq" data-header-theme="dark" aria-labelledby="ezh-faq-h">
+    <section className="ezh-faq" data-header-theme="light" aria-labelledby="ezh-faq-h">
       <div className="ezh-wrap">
         <div className="ezh-sec-head">
           <span className="ezh-k">Questions</span>
