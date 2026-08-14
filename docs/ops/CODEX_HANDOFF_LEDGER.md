@@ -3,6 +3,31 @@
 Append-only. **Newest entry at the top.** One entry per work order is recorded
 in the same pull request as its implementation or takeover evidence.
 
+## WO-11 · Land August 2026 market evidence — OPEN #1366
+
+- **Date:** 2026-08-13
+- **Claim-check and stale-stack classification:** #1366 is the sole open PR for
+  the August market-evidence intent. Its previous branch contained an older
+  stack whose product, directory, FTO, and name-clearance commits already
+  landed on `main`. Codex classified those commits as LANDED and rebased only
+  the one UNIQUE market-evidence commit onto production baseline `1b9632b24`;
+  no stale stack content was retained.
+- **Change:** Adds the dated five-ring market evidence brief, links it from the
+  strategy index, records the bounded Axuall presentation-exchange design-around
+  in `CLAUDE.md`, and extends governance-citation coverage to Markdown links in
+  the operating and strategy documents.
+- **Truth boundary:** The brief is rank-5 supporting research. Competitor,
+  market, and regulatory figures remain attributed research and do not license
+  public VitalCV outcome, verification, speed, compliance, or readiness claims.
+- **Verification:** Focused governance and sitemap suites pass **2 files / 20
+  tests**; copy and public-claims checks pass; `pnpm typecheck` and `pnpm build`
+  pass. The first aggregate run found `/trust` freshness still stamped
+  `2026-08-10` after #1372 changed that route; with no other open repair, this
+  PR updates the factual sitemap date to its Git-derived `2026-08-14`. The
+  corrected aggregate run passes **464 web files / 4,505 tests** plus the real
+  PostgreSQL backend harness at **344 suites / 2,722 tests**. Merge still
+  requires refreshed green required checks and a `CLEAN` merge state.
+
 ## WO-8 · Direction D homepage recovery — OPEN
 
 - **Date:** 2026-08-11
