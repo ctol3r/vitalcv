@@ -193,6 +193,25 @@ describe('opportunityTruth', () => {
     expect(truth.comparison).toBeNull();
   });
 
+  it('filters only on explicit application, compensation, benefits, and source observation truth', () => {
+    const truth = buildOpportunityTruth({
+      opportunity: makeOpportunityRecord(),
+      now: new Date(),
+    });
+    truth.availability.observedAt = new Date(Date.now() - (2 * 24 * 60 * 60 * 1000)).toISOString();
+
+    expect(matchesOpportunityTruthFilters(truth, { applicationMode: 'vitalcv' })).toBe(true);
+    expect(matchesOpportunityTruthFilters(truth, { applicationMode: 'external' })).toBe(false);
+    expect(matchesOpportunityTruthFilters(truth, { compensation: 'supplied' })).toBe(true);
+    expect(matchesOpportunityTruthFilters(truth, { compensation: 'not_supplied' })).toBe(false);
+    expect(matchesOpportunityTruthFilters(truth, { benefits: 'limited' })).toBe(true);
+    expect(matchesOpportunityTruthFilters(truth, { observedWithinDays: 3 })).toBe(true);
+    expect(matchesOpportunityTruthFilters(truth, { observedWithinDays: 1 })).toBe(false);
+
+    truth.availability.observedAt = null;
+    expect(matchesOpportunityTruthFilters(truth, { observedWithinDays: 30 })).toBe(false);
+  });
+
   it('marks state mismatch as a confirmed blocker and filters by readiness fit', () => {
     const truth = buildOpportunityTruth({
       opportunity: makeOpportunityRecord(),

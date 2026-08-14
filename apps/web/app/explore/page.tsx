@@ -45,9 +45,9 @@ export default async function ExplorePage({
             <p className="opf-eyebrow">Clinician opportunities</p>
             <h1>Find clinical work with the source in view.</h1>
             <p className="opf-hero-lede">
-              Search current roles by profession, specialty, location, schedule, and employment
-              type. Every listing keeps its source, observation time, availability, and
-              application path attached.
+              Shape the field by profession, specialty, setting, source observation,
+              compensation detail, and application path. Every listing keeps its source,
+              availability, and limitations attached.
             </p>
             <div className="opf-hero-boundary" aria-label="Opportunity field boundaries">
               <p>

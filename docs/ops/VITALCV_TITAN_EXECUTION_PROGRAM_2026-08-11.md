@@ -73,6 +73,7 @@ matches another company's customers, scale, integrations, or outcomes.
 | [Mercor Research](https://www.mercor.com/research/) | Editorial restraint, strong research hierarchy, and an obvious path from ideas to work | Model rankings, elite-talent mythology, or hidden candidate scoring | Research supports an explainable clinical opportunity field; matching stays clinician-side |
 | [Medallion](https://www.medallion.co/) | Concrete workflow proof, operational continuity, and visible human review | Their enterprise claims, unsupported source lanes, dense fake dashboards, or outcome numbers | VitalCV spans the clinician-owned record, opportunity, exact packet, employer decision, Recognition, and reuse |
 | [NurseDash](https://nursedash.com/) | Work opportunity and clinician benefit are unmistakable near the first interaction | A shift-only marketplace, employer-first ranking, or testimonial claims VitalCV cannot substantiate | Real roles acquire clinicians into a reusable career record rather than ending at a single placement |
+| [HiringCafe](https://hiringcafe.com/) | Fast keyword/place search, one-move discovery lenses, deep grouped facets, shareable state, and useful listing triage | Opaque candidate ranking, generic high-density card wallpaper, account-gated agent claims, or auto-application | VitalCV pairs HiringCafe-class discovery controls with explicit source observation, missing-data states, application boundaries, and signed-in clinician-side MATCHA explanation |
 | [Verifiable Resources](https://verifiable.com/resources) | Navigable domain authority and useful technical education | Generic resource-card archive or unsupported integration claims | Editorial content connects source capability, clinician mobility, and exact-packet decisions |
 
 The composite bar is Abridge's human authority, Palantir's clinical setting,
@@ -176,6 +177,25 @@ External roles say **View original listing**. Only integrated opportunities may
 say **Apply with VitalCV**. Missing compensation, stale feeds, closed or expired
 roles, and unavailable source pages stay explicit. There is no public
 readiness score or automatic eligibility verdict.
+
+### WO-13B · Opportunity discovery controls
+
+Reach HiringCafe-class discovery utility without cloning its visual identity or
+creating a second matcher. Add a horizontal opportunity-lens rail for fresh
+source observations, supplied compensation, integrated application, locums,
+remote care, and profession paths. Extend the advanced public contract with:
+
+- source-observation window;
+- original-listing versus Apply with VitalCV path;
+- supplied, limited, and missing compensation or benefits detail;
+- recent update, title, and organization sorting;
+- normalized, shareable URL state.
+
+Lens cards remain ordinary links without JavaScript; carousel controls are an
+enhancement. Filters read only explicit canonical opportunity truth. They never
+infer pay, benefits, fit, readiness, eligibility, employer preference, or
+sensitive facts. Natural-language intent and personal explanation remain in
+signed-in MATCHA; no public control may auto-apply or auto-reject.
 
 ### WO-14 · Opportunity detail and signed-in MATCHA
 

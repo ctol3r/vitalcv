@@ -70,9 +70,14 @@ async function mockFilteredField(page: import('@playwright/test').Page) {
   }));
 }
 
+async function waitForOpportunityField(page: import('@playwright/test').Page) {
+  await page.locator('.opf-board[data-hydrated="true"]').waitFor();
+}
+
 async function loadDeterministicRows(page: import('@playwright/test').Page) {
   await mockFilteredField(page);
   await page.goto('/explore', { waitUntil: 'domcontentloaded' });
+  await waitForOpportunityField(page);
   await page.getByRole('searchbox', { name: 'Search the field' }).fill('family medicine');
   await expect(page).toHaveURL(/q=family(?:\+|%20)medicine/);
   await expect(page.locator('.opf-role')).toHaveCount(2);
@@ -85,7 +90,7 @@ async function expectNoHorizontalOverflow(page: import('@playwright/test').Page)
 }
 
 test.describe('WO-13 public opportunity field', () => {
-  test('leads with an editorial opportunity promise and exactly five browse facets', async ({ page }) => {
+  test('leads with an editorial promise, interactive lenses, and source-honest browse facets', async ({ page }) => {
     await page.goto('/explore', { waitUntil: 'domcontentloaded' });
 
     await expect(page.getByRole('heading', {
@@ -96,17 +101,48 @@ test.describe('WO-13 public opportunity field', () => {
 
     const facetLabels = page.locator('.opf-filter-grid .opf-filter-label');
     await expect(facetLabels).toHaveText([
-      'Specialty',
+      'Specialty or service line',
       'Profession',
       'Location',
       'Schedule',
       'Employment type',
+      'Source observation',
+      'Application path',
+      'Compensation detail',
+      'Benefits detail',
+      'Sort field',
     ]);
     for (const label of await facetLabels.all()) await expect(label).toBeVisible();
 
     const body = (await page.locator('body').innerText()).toLowerCase();
     expect(body).not.toContain('ready now');
     expect(body).not.toContain('automatic eligibility');
+
+    const lenses = page.getByTestId('opportunity-lens-rail');
+    await expect(lenses.getByRole('link', { name: /Fresh from source/ })).toHaveAttribute(
+      'href',
+      '/explore?observedWithin=7',
+    );
+    await expect(lenses.getByRole('link', { name: /Pay in view/ })).toHaveAttribute(
+      'href',
+      '/explore?compensation=supplied',
+    );
+  });
+
+  test('shares discovery controls through the URL and preserves their API contract', async ({ page }) => {
+    await mockFilteredField(page);
+    await page.goto('/explore', { waitUntil: 'domcontentloaded' });
+    await waitForOpportunityField(page);
+
+    await page.getByLabel('Source observation').selectOption('7');
+    await expect(page).toHaveURL(/observedWithin=7/);
+    await page.getByLabel('Compensation detail').selectOption('supplied');
+    await expect(page).toHaveURL(/compensation=supplied/);
+    await page.getByLabel('Sort field').selectOption('title');
+    await expect(page).toHaveURL(/sort=title/);
+
+    await expect(page.getByRole('button', { name: 'Remove filter Source observed within 7 days' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Remove filter Compensation supplied' })).toBeVisible();
   });
 
   test('keeps source truth and the external versus integrated application boundary visible', async ({ page }) => {

@@ -200,7 +200,7 @@ export function registerOpportunityRoutes(app: Express): void {
   app.get(
     '/api/opportunities',
     asyncHandler(async (req, res) => {
-      const { q, specialty, profession, schedule, state, hiringType, organizationSlug, payModel, visaSponsorship, benefits, employerType, startUrgency, readinessStatus, missingRequirement, npi, remote } = req.query;
+      const { q, specialty, profession, schedule, state, hiringType, organizationSlug, payModel, visaSponsorship, benefits, employerType, startUrgency, readinessStatus, missingRequirement, npi, remote, applicationMode, compensation, observedWithinDays, sort } = req.query;
       const result = await listPublicOpportunities({
         // Free-text keyword, matched against the Postgres tsvector. Length-capped
         // so a pathological query cannot make the text-search parser do
@@ -230,6 +230,17 @@ export function registerOpportunityRoutes(app: Express): void {
         benefits: typeof benefits === 'string'
           ? benefits as 'listed' | 'limited' | 'not_listed'
           : undefined,
+        applicationMode: applicationMode === 'external' || applicationMode === 'vitalcv'
+          ? applicationMode
+          : undefined,
+        compensation: compensation === 'supplied' || compensation === 'not_supplied'
+          ? compensation
+          : undefined,
+        observedWithinDays: typeof observedWithinDays === 'string'
+          && ['1', '3', '7', '14', '30', '90'].includes(observedWithinDays)
+          ? Number(observedWithinDays)
+          : undefined,
+        sort: sort === 'title' || sort === 'organization' ? sort : 'recent',
         employerType: typeof employerType === 'string' ? employerType : undefined,
         startUrgency: typeof startUrgency === 'string'
           ? startUrgency as 'immediate' | 'within_2_weeks' | 'within_month' | 'flexible' | 'unknown'

@@ -23,6 +23,8 @@ jest.mock('../../../graphql/prisma_client', () => ({
       findUnique: jest.fn(),
     },
     opportunity: {
+      count: jest.fn(),
+      findMany: jest.fn(),
       findFirst: jest.fn(),
       findUnique: jest.fn(),
       update: jest.fn(),
@@ -44,6 +46,7 @@ import prisma from '../../../graphql/prisma_client';
 import {
   getOrgProfile,
   getPublicOpportunityById,
+  listPublicOpportunities,
   updateOpportunity,
   upsertOrgProfile,
 } from '../opportunityService';
@@ -71,6 +74,8 @@ const prismaMock = prisma as unknown as {
     findUnique: jest.Mock;
   };
   opportunity: {
+    count: jest.Mock;
+    findMany: jest.Mock;
     findFirst: jest.Mock;
     findUnique: jest.Mock;
     update: jest.Mock;
@@ -335,6 +340,27 @@ describe('opportunityService org profile pilot policy', () => {
       where: { id: 'user-1' },
       data: { organizationId: 'org-1' },
     });
+  });
+});
+
+describe('listPublicOpportunities discovery order', () => {
+  beforeEach(() => {
+    prismaMock.opportunity.count.mockReset().mockResolvedValue(0);
+    prismaMock.opportunity.findMany.mockReset().mockResolvedValue([]);
+  });
+
+  it('sorts the public field by organization through the bounded URL contract', async () => {
+    await expect(listPublicOpportunities({ sort: 'organization', limit: 12, offset: 0 }))
+      .resolves.toEqual({ opportunities: [], total: 0, truncated: false });
+
+    expect(prismaMock.opportunity.findMany).toHaveBeenCalledWith(expect.objectContaining({
+      orderBy: [
+        { organization: { name: 'asc' } },
+        { title: 'asc' },
+      ],
+      skip: 0,
+      take: 12,
+    }));
   });
 });
 

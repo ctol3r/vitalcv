@@ -20,6 +20,7 @@ import {
 import { BoardFilterPanel } from './BoardFilterPanel';
 import { BoardPagination } from './BoardPagination';
 import { BoardResultRow } from './BoardResultRow';
+import { OpportunityLensRail } from './OpportunityLensRail';
 
 type LoadState = 'loading' | 'ready' | 'error';
 
@@ -32,8 +33,10 @@ export function BoardClient({ initial }: { initial: OpportunityListPayload }) {
   const [total, setTotal] = useState(initial.total);
   const [truncated, setTruncated] = useState(initial.truncated === true);
   const [state, setState] = useState<LoadState>(initial.available === false ? 'error' : 'ready');
+  const [hydrated, setHydrated] = useState(false);
   const hasHydrated = useRef(false);
 
+  useEffect(() => setHydrated(true), []);
   useEffect(() => setQueryDraft(filters.q), [filters.q]);
 
   const pushFilters = useCallback((next: BoardFilters) => {
@@ -115,7 +118,13 @@ export function BoardClient({ initial }: { initial: OpportunityListPayload }) {
   const displayState: LoadState = correctedPage === null ? state : 'loading';
 
   return (
-    <section className="opf-board" aria-labelledby="opportunity-field-title">
+    <section
+      className="opf-board"
+      aria-labelledby="opportunity-field-title"
+      data-hydrated={hydrated ? 'true' : 'false'}
+    >
+      <OpportunityLensRail filters={filters} />
+
       <div className="opf-search-band">
         <label className="opf-search-label" htmlFor="opportunity-search">Search the field</label>
         <div className="opf-search-row">
