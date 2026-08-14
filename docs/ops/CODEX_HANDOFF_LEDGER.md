@@ -3,6 +3,34 @@
 Append-only. **Newest entry at the top.** One entry per work order is recorded
 in the same pull request as its implementation or takeover evidence.
 
+## WO-4 · Remediate #1369 disclosure-boundary review findings — IMPLEMENTED LOCALLY, UNPUSHED
+
+- **Date:** 2026-08-12
+- **Finding and change:** The anonymous NPI timeline had remained a stated
+  exclusion while reading and merging `acceptance` evidence. It now projects only
+  the public-filtered passport collection and does not read or transform
+  acceptance history, so acceptance labels, values, relationships, and derived
+  recognition/trust effects do not cross the public boundary; public licensure
+  evidence remains visible. The authenticated employer reader and the acceptance
+  producer are unchanged.
+- **Issuance boundary:** `POST /api/exchange/issue` now fails closed unless this
+  deployment has a server-bound federation issuer and machine credential, and a
+  timing-safe Bearer comparison succeeds. A caller may bind its request to that
+  issuer but cannot select another configured federation member. The endpoint
+  remains an explicit authorized exclusion from the public collection filter.
+- **Verification:** Test-first RED reproduced the acceptance disclosure, the
+  unclassified timeline route, anonymous issuance, and caller-selected issuer.
+  GREEN: `pnpm --filter @vitalcv/web exec vitest run
+  __tests__/recognition-timeline.test.ts
+  __tests__/evidence-chain-disclosure-closure.test.ts
+  __tests__/evidence-route-public-disclosure.test.ts
+  __tests__/graph-routes-public-disclosure.test.ts
+  __tests__/trust-exchange-route.test.ts` — **5 files / 61 tests pass**.
+- **Next gate:** Run the repository pre-commit gates and `git diff --check`, then
+  commit this review remediation without pushing. Any deployment that needs
+  exchange issuance must provision the two server-only exchange-issuer settings;
+  until then, the route returns its static unavailable response.
+
 ## WO-5 · Unblock #1364 — self-serve employer organization binding — OPEN #1364
 
 - **Date:** 2026-08-11
@@ -33,6 +61,36 @@ in the same pull request as its implementation or takeover evidence.
   rebased head; confirm the migration's second application is a no-op and that
   multi-org users remain unbound; then require `Backend Tests (Postgres)` and every
   refreshed head check to be green and `CLEAN` before merge.
+## WO-4 · Rebase and land #1357 — ADR 0006 disclosure boundary — OPEN
+
+- **Date:** 2026-08-11
+- **Claim-check and rebase:** #1357 was the sole open disclosure-boundary
+  follow-up and its stacked base `feat/g4-backlinks-adr0006` had already merged.
+  Codex rebased the one-commit branch with `git rebase --onto origin/main
+  feat/g4-backlinks-adr0006` after WO-3 landed at `7de868d9d`, then rebased again
+  onto current `origin/main` at `e20b3d52d` after WO-5. `git range-diff
+  3fd346a1^..3fd346a1 HEAD^..HEAD` reports the rebased commit as patch-equivalent;
+  no stale base was merged in and `git diff --check origin/main...HEAD` passes.
+- **Change:** Applies the explicit public-evidence allow-list before projection
+  across the remaining NPI-keyed public route consumers, replaces raw internal
+  error echoes with static client descriptions plus server logging, and adds
+  structural and behavioral regression coverage for the route census.
+- **Truth and authorization:** The route-level boundary does not make an
+  NPI-keyed projection an authorization grant. Issuance, workspace configuration,
+  and the product-owned timeline remain explicit, tested exclusions with their
+  distinct authorization or product boundaries documented in the test.
+- **Verification:** A public projection containing non-allow-listed data is
+  exercised by `evidence-route-public-disclosure`,
+  `graph-routes-public-disclosure`, and `evidence-chain-disclosure-closure`:
+  **3 files / 49 tests pass**. `pnpm typecheck`, `pnpm build`, and diff checks
+  pass. The aggregate root run passes 343/344 backend suites but repeats the
+  unrelated, order-sensitive `pilot.routes` 500 result (its focused real-Postgres
+  run is 6/6). This is recorded as a suspected suite-isolation defect and is not
+  folded into the disclosure-boundary PR.
+- **Next gate:** Open a replacement PR from the rebased Codex branch rather than
+  force-pushing the stale Claude source; require its refreshed head checks to be
+  green and `CLEAN`. Resolve the pilot-suite isolation defect in its own bounded
+  work order before treating repeated aggregate red runs as a disclosure failure.
 
 ## WO-3 · Merge #1358 — clinician-record distribution and removal controls — OPEN #1358
 

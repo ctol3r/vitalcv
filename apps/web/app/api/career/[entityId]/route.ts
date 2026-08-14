@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { composeCareerModel } from '@vitalcv/domain-evidence';
 import { resolvePassportRuntimePassport } from '@/lib/trust/passport-runtime';
 import { passportToEvidenceCollection } from '@/lib/evidence/passport-to-evidence';
+import { toPublicEvidenceCollection } from '@/lib/entity-relationships/public-disclosure';
 
 export const runtime = 'nodejs';
 
@@ -24,7 +25,9 @@ export async function GET(
   const { entityId } = await context.params;
   try {
     const passport = await resolvePassportRuntimePassport(entityId);
-    const collection = passportToEvidenceCollection(passport);
+    // ADR 0006: public, NPI-keyed — reduce to publicly-disclosable evidence BEFORE
+    // projecting, so a non-public node never exists. See graph-routes-public-disclosure.test.ts.
+    const collection = toPublicEvidenceCollection(passportToEvidenceCollection(passport));
     const model = composeCareerModel(collection);
 
     const etag = `W/"${model.meta.contentHash}"`;
@@ -40,7 +43,11 @@ export async function GET(
       headers: { ETag: etag, 'Cache-Control': 'no-store' },
     });
   } catch (error) {
-    const detail = error instanceof Error ? error.message : 'Career model unavailable.';
+    // Never echo an internal error message to the caller: it is the only
+    // caller-visible difference between failure causes on an otherwise uniform
+    // response. Log it server-side; return the static description.
+    console.error('[career/[entityId]]', error);
+    const detail = 'Career model unavailable.';
     return NextResponse.json(
       { error: 'career_unavailable', error_description: detail },
       { status: 500, headers: { 'Cache-Control': 'no-store' } },

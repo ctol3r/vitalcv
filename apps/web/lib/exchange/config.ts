@@ -25,6 +25,26 @@ export function exchangeSecret(): string {
   return DEV_FALLBACK_SECRET;
 }
 
+export interface ExchangeIssueConfig {
+  /** The sole federation issuer this deployment may sign exchanges for. */
+  issuer: string;
+  /** Server-to-server credential required to invoke the issuance route. */
+  machineSecret: string;
+}
+
+/**
+ * Issuance is a privileged server-to-server operation, not a demo endpoint.
+ * Unlike the signing secret, there is intentionally no development fallback:
+ * every deployment must bind an issuer and provision a caller credential before
+ * it can issue an exchange.
+ */
+export function exchangeIssueConfig(): ExchangeIssueConfig | null {
+  const issuer = process.env.TRUST_EXCHANGE_ISSUER?.trim();
+  const machineSecret = process.env.TRUST_EXCHANGE_ISSUER_SECRET?.trim();
+  if (!issuer || !machineSecret) return null;
+  return { issuer, machineSecret };
+}
+
 /** The demo federation: one issuing org, one verifying org, one that does both. */
 export function demoFederation(): FederationRegistry {
   return {

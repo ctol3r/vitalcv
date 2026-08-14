@@ -152,7 +152,7 @@ describe('GET /api/timeline/[entityId] recognition merge', () => {
     resolveMock.mockReset();
   });
 
-  it('merges recorded acceptances into the projection for NPI subjects', async () => {
+  it('omits acceptance evidence from the public NPI timeline while retaining public evidence', async () => {
     resolveMock.mockResolvedValue(assertPassportData(buildPassportPayload('1234567890')));
     vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input);
@@ -171,16 +171,16 @@ describe('GET /api/timeline/[entityId] recognition merge', () => {
 
     const body = await res.json();
     expect(body.schema).toBe('vitalcv.timeline.v1');
-    expect(body.recognition).toHaveLength(1);
-    expect(body.recognition[0].recognitionImpact).toBe('acceptance');
-    expect(body.recognition[0].label).toBe('Accepted as head start — Pilot organization 1');
-    // The acceptance also appears in the main event stream.
-    expect(body.events.some((e: { type: string }) => e.type === 'acceptance')).toBe(true);
+    expect(body.recognition).toEqual([]);
+    expect(body.events.some((e: { type: string }) => e.type === 'acceptance')).toBe(false);
+    expect(JSON.stringify(body)).not.toContain('Pilot organization 1');
+    expect(body.events.some((e: { type: string }) => e.type === 'licensure')).toBe(true);
   });
 
-  it('projects an honest timeline without recognition events when the acceptance read fails', async () => {
+  it('does not request acceptance history for the public timeline', async () => {
     resolveMock.mockResolvedValue(assertPassportData(buildPassportPayload('1234567890')));
-    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ error: 'boom' }), { status: 500 })));
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify({ error: 'boom' }), { status: 500 }));
+    vi.stubGlobal('fetch', fetchMock);
 
     const { GET } = await import('../app/api/timeline/[entityId]/route');
     const res = await GET(req(), ctx('1234567890'));
@@ -189,6 +189,7 @@ describe('GET /api/timeline/[entityId] recognition merge', () => {
     const body = await res.json();
     expect(body.recognition).toEqual([]);
     expect(body.events.some((e: { type: string }) => e.type === 'acceptance')).toBe(false);
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it('skips the acceptance read entirely for non-NPI subjects', async () => {

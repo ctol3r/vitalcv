@@ -97,6 +97,20 @@ export const ENV_SCHEMA: ReadonlyArray<EnvVarSchema> = [
     rationale: 'Server-only backend URL for SSR fetches.',
   },
 
+  // ── Trust Exchange issuance ───────────────────────────────────────
+  {
+    name: 'TRUST_EXCHANGE_ISSUER',
+    kind: 'optional',
+    visibility: 'server',
+    rationale: 'Federation issuer bound server-side for POST /api/exchange/issue; issuance fails closed when unset.',
+  },
+  {
+    name: 'TRUST_EXCHANGE_ISSUER_SECRET',
+    kind: 'optional',
+    visibility: 'server',
+    rationale: 'Bearer machine credential for POST /api/exchange/issue; issuance fails closed when unset.',
+  },
+
   // ── Source health probe (RELIABILITY-2 / PR #187) ──────────────────
   {
     name: 'CRON_SECRET',
