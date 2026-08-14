@@ -14,6 +14,10 @@ jest.mock('../applicationService', () => ({
 
 import prisma from '../../../graphql/prisma_client';
 import { listAllOrgApplications } from '../applicationService';
+import {
+  sealPacket,
+  type ApplicationPacketContent,
+} from '../applicationPacketService';
 import { runEmployerWorkflowAction } from '../employerWorkflowService';
 
 const prismaMock = prisma as unknown as {
@@ -73,6 +77,49 @@ function buildApplication(overrides?: Record<string, unknown>) {
       payRange: '$3,600/week',
       status: 'ACTIVE',
     },
+    ...overrides,
+  };
+}
+
+function buildStoredPacket(overrides: Record<string, unknown> = {}) {
+  const content: ApplicationPacketContent = {
+    applicationId: 'app-1',
+    packetVersion: 1,
+    clerkUserId: 'clinician-1',
+    clinicianNpi: '1234567890',
+    opportunityId: 'opp-1',
+    employerOrgId: 'org-1',
+    purpose: 'Apply with VitalCV',
+    recipient: 'Providence',
+    selectedSections: ['identity'],
+    fields: [{
+      sectionId: 'identity',
+      fieldId: 'identity.npi.nppes',
+      label: 'NPI',
+      value: '1234567890',
+      evidenceState: 'source_backed',
+      sourceId: 'nppes',
+      sourceObservedAt: '2026-04-09T09:00:00.000Z',
+      freshUntil: '2026-07-08T09:00:00.000Z',
+      artifactId: null,
+      receiptId: 'receipt-1',
+    }],
+    sectionAbsences: [],
+    clinicianNote: null,
+    methodologyVersion: 'test-v1',
+    consentAt: '2026-04-09T10:00:00.000Z',
+    consentReceiptId: 'consent-1',
+  };
+  const sealed = sealPacket(content);
+  return {
+    id: 'packet-1',
+    ...sealed,
+    consentAt: new Date(sealed.consentAt),
+    consentGrantId: null,
+    opportunityVersion: null,
+    supersededByPacketId: null,
+    revokedAt: null,
+    revokedReason: null,
     ...overrides,
   };
 }
@@ -168,7 +215,8 @@ describe('Employer Workflow Actions', () => {
     expect(result.application.workflowState).toBe('WAITING_FOR_DOCUMENTS');
   });
 
-  test('accept moves to credentialing', async () => {
+  test('accept atomically opens the packet-bound hire-to-start mission', async () => {
+    const storedPacket = buildStoredPacket();
     const initialApplication = buildApplication({
       status: 'REVIEWED',
       reviewedBy: 'verifier-1',
@@ -180,7 +228,7 @@ describe('Employer Workflow Actions', () => {
       status: 'ACCEPTED',
       reviewedBy: 'verifier-1',
       reviewedAt: '2026-04-09T13:00:00.000Z',
-      reviewNote: 'Approved and moved to credentialing.',
+      reviewNote: 'Accepted as a head start; institution review remains.',
       updatedAt: '2026-04-09T13:00:00.000Z',
     });
 
@@ -250,10 +298,29 @@ describe('Employer Workflow Actions', () => {
     const transactionClient = {
       application: {
         update: jest.fn().mockResolvedValue({}),
+        updateMany: jest.fn().mockResolvedValue({ count: 1 }),
         findUnique: jest.fn().mockResolvedValue({ sealedPacketVersion: 1 }),
       },
       applicationPacket: {
-        findFirst: jest.fn().mockResolvedValue({ packetVersion: 1, packetHash: 'packet-hash-1' }),
+        findFirst: jest.fn().mockResolvedValue(storedPacket),
+      },
+      employerAcceptance: {
+        create: jest.fn().mockResolvedValue({ id: 'acceptance-1' }),
+      },
+      startActivation: {
+        create: jest.fn().mockResolvedValue({ id: 'activation-1' }),
+      },
+      activationRequirement: {
+        createMany: jest.fn().mockResolvedValue({ count: 1 }),
+      },
+      organizationProfile: {
+        findUnique: jest.fn().mockResolvedValue({
+          requirements: [
+            { label: 'NPI', level: 'L3', key: 'identity.npi.nppes' },
+            { label: 'Hospital orientation', level: 'L2', key: 'institution.orientation' },
+          ],
+          updatedAt: new Date('2026-04-09T08:00:00.000Z'),
+        }),
       },
       auditEvent: {
         create: jest.fn().mockResolvedValue({ id: 'audit-decision-1' }),
@@ -269,16 +336,44 @@ describe('Employer Workflow Actions', () => {
       action: 'accept',
       applicationId: 'app-1',
       reviewerClerkUserId: 'verifier-1',
+      packetVersion: 1,
+      packetHash: storedPacket.packetHash,
+      intendedStartDate: '2026-05-01T08:00:00.000Z',
+      urgency: 'priority',
     });
 
-    expect(transactionClient.application.update).toHaveBeenCalledWith(expect.objectContaining({
-      where: { id: 'app-1' },
+    expect(transactionClient.application.updateMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({ id: 'app-1' }),
       data: expect.objectContaining({
         status: 'ACCEPTED',
       }),
     }));
     expect(result.application.workflowState).toBe('APPROVED');
-    expect(result.application.queue).toBe('credentialing');
+    expect(result.application.queue).toBe('hire_to_start');
+    expect(transactionClient.employerAcceptance.create).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        applicationId: 'app-1',
+        packetHash: storedPacket.packetHash,
+        acceptedBy: 'verifier-1',
+      }),
+    }));
+    expect(transactionClient.activationRequirement.createMany).toHaveBeenCalledWith({
+      data: [expect.objectContaining({
+        sourceRequirementId: 'institution.orientation',
+        label: 'Hospital orientation',
+        status: 'not_started',
+      })],
+    });
+    expect(transactionClient.startActivation.create).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        applicationId: 'app-1',
+        acceptanceId: 'acceptance-1',
+        acceptedPacketId: 'packet-1',
+        acceptedPacketHash: storedPacket.packetHash,
+        activationState: 'head_start_accepted',
+        urgency: 'priority',
+      }),
+    }));
     expect(transactionClient.auditEvent.create).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({
         type: 'APPLICATION_DECISION_RECORDED',
@@ -295,14 +390,23 @@ describe('Employer Workflow Actions', () => {
         payload: expect.objectContaining({
           submission: {
             mode: 'sealed',
+            packetId: 'packet-1',
             packetVersion: 1,
-            packetHash: 'packet-hash-1',
+            packetHash: storedPacket.packetHash,
+          },
+          consequences: {
+            acceptanceId: 'acceptance-1',
+            startActivationId: 'activation-1',
+            remainingRequirementCount: 1,
           },
         }),
       }),
     }));
     expect(result.auditEventId).toBe('audit-decision-1');
     expect(result.decisionOutboxEventId).toBe('outbox-decision-1');
+    expect(result.acceptanceId).toBe('acceptance-1');
+    expect(result.startActivationId).toBe('activation-1');
+    expect(result.remainingRequirementCount).toBe(1);
   });
 
   test('starts review through the canonical workflow command', async () => {
@@ -376,6 +480,7 @@ describe('Employer Workflow Actions', () => {
     const transactionClient = {
       application: {
         update: jest.fn().mockResolvedValue({}),
+        updateMany: jest.fn().mockResolvedValue({ count: 1 }),
         findUnique: jest.fn().mockResolvedValue({ sealedPacketVersion: null }),
       },
       applicationPacket: {
@@ -402,6 +507,7 @@ describe('Employer Workflow Actions', () => {
         payload: expect.objectContaining({
           submission: {
             mode: 'legacy',
+            packetId: null,
             packetVersion: null,
             packetHash: null,
           },
@@ -435,6 +541,8 @@ describe('Employer Workflow Actions', () => {
       action: 'accept',
       applicationId: 'app-1',
       reviewerClerkUserId: 'verifier-1',
+      packetVersion: 1,
+      packetHash: 'expected-packet-hash',
     })).rejects.toThrow('submitted application packet is unavailable');
 
     expect(transactionClient.application.update).not.toHaveBeenCalled();

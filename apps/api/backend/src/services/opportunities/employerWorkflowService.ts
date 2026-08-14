@@ -6,6 +6,16 @@ import {
 } from './applicationService';
 import { HttpError } from '../../utils/httpError';
 import { sha256ForPayload } from '../../utils/deterministic';
+import { parseOrganizationRequirementsEnvelope } from '../employers/pilotPolicy';
+import type { EmployerRequirementSpec } from '../employers/employerCatalog';
+import {
+  verifySealedPacket,
+  type SealedApplicationPacket,
+} from './applicationPacketService';
+import {
+  reconstructSealedPacket,
+  type StoredApplicationPacket,
+} from './applicationPacketReadService';
 
 const REQUEST_INFO_EVENT = 'APPLICATION_MISSING_INFO_REQUESTED';
 const CLOSE_REQUEST_EVENT = 'APPLICATION_MISSING_INFO_CLOSED';
@@ -39,7 +49,7 @@ export type MissingRequest = {
 
 export type EmployerWorkflowApplication = MarketplaceApplication & {
   workflowState: EmployerWorkflowState;
-  queue: 'applications' | 'credentialing' | 'closed';
+  queue: 'applications' | 'hire_to_start' | 'closed';
   missingRequests: MissingRequest[];
 };
 
@@ -50,7 +60,7 @@ export type EmployerWorkflowDashboard = {
     waitingForDocumentsCount: number;
     underReviewOver48HoursCount: number;
     newApplicationsCount: number;
-    approvedForCredentialingCount: number;
+    acceptedHeadStartCount: number;
   };
   missingData: MissingRequest[];
 };
@@ -62,13 +72,26 @@ export type EmployerWorkflowActionResult = {
   notificationTriggered: boolean;
   auditEventId: string | null;
   decisionOutboxEventId: string | null;
+  acceptanceId: string | null;
+  startActivationId: string | null;
+  remainingRequirementCount: number;
 };
 
-type DecisionSubmissionBinding = {
-  mode: 'sealed' | 'legacy';
-  packetVersion: number | null;
-  packetHash: string | null;
-};
+type DecisionSubmissionBinding =
+  | {
+      mode: 'sealed';
+      packetId: string;
+      packetVersion: number;
+      packetHash: string;
+      packet: SealedApplicationPacket;
+    }
+  | {
+      mode: 'legacy';
+      packetId: null;
+      packetVersion: null;
+      packetHash: null;
+      packet: null;
+    };
 
 type MissingRequestEventRecord = {
   type: string;
@@ -104,12 +127,35 @@ type WorkflowTransaction = {
       where: { id: string };
       select: { sealedPacketVersion: true };
     }) => Promise<{ sealedPacketVersion: number | null } | null>;
+    updateMany: (args: {
+      where: { id: string; status: { notIn: string[] } };
+      data: Record<string, unknown>;
+    }) => Promise<{ count: number }>;
   };
   applicationPacket: {
     findFirst: (args: {
       where: { applicationId: string; packetVersion: number };
-      select: { packetVersion: true; packetHash: true };
-    }) => Promise<{ packetVersion: number; packetHash: string } | null>;
+      select: Record<string, boolean>;
+    }) => Promise<(StoredApplicationPacket & {
+      id: string;
+      revokedAt: Date | null;
+      supersededByPacketId: string | null;
+    }) | null>;
+  };
+  employerAcceptance: {
+    create: (args: { data: Record<string, unknown> }) => Promise<{ id: string }>;
+  };
+  startActivation: {
+    create: (args: { data: Record<string, unknown> }) => Promise<{ id: string }>;
+  };
+  activationRequirement: {
+    createMany: (args: { data: Array<Record<string, unknown>> }) => Promise<{ count: number }>;
+  };
+  organizationProfile: {
+    findUnique: (args: {
+      where: { organizationId: string };
+      select: { requirements: true; updatedAt: true };
+    }) => Promise<{ requirements: unknown; updatedAt: Date } | null>;
   };
   auditEvent: {
     create: (args: {
@@ -197,7 +243,7 @@ function deriveQueue(
 ): EmployerWorkflowApplication['queue'] {
   switch (workflowState) {
     case 'APPROVED':
-      return 'credentialing';
+      return 'hire_to_start';
     case 'REJECTED':
       return 'closed';
     default:
@@ -397,13 +443,58 @@ function decisionAuditPayload(input: {
     reviewerClerkUserId: input.reviewerClerkUserId,
     reviewNote: input.reviewNote,
     decidedAt: input.decidedAt.toISOString(),
-    submission: input.submission,
+    submission: {
+      mode: input.submission.mode,
+      packetId: input.submission.packetId,
+      packetVersion: input.submission.packetVersion,
+      packetHash: input.submission.packetHash,
+    },
   };
+}
+
+type DecisionSubmissionExpectation = {
+  action: 'accept' | 'reject';
+  expectedPacketVersion?: number;
+  expectedPacketHash?: string;
+  clinicianNpi: string | null;
+  clinicianClerkUserId: string;
+  opportunityId: string;
+  organizationId: string;
+};
+
+const PACKET_SELECT = {
+  id: true,
+  applicationId: true,
+  packetVersion: true,
+  clerkUserId: true,
+  clinicianNpi: true,
+  opportunityId: true,
+  employerOrgId: true,
+  purpose: true,
+  recipient: true,
+  selectedSections: true,
+  fields: true,
+  sectionAbsences: true,
+  clinicianNote: true,
+  methodologyVersion: true,
+  consentAt: true,
+  consentReceiptId: true,
+  consentGrantId: true,
+  opportunityVersion: true,
+  packetHash: true,
+  supersededByPacketId: true,
+  revokedAt: true,
+  revokedReason: true,
+} as const;
+
+function packetIntegrityFailure(message = 'The submitted application packet failed integrity verification.'): HttpError {
+  return new HttpError(409, message, 'APPLICATION_PACKET_INTEGRITY_FAILED');
 }
 
 async function resolveDecisionSubmissionBinding(
   tx: WorkflowTransaction,
   applicationId: string,
+  expectation: DecisionSubmissionExpectation,
 ): Promise<DecisionSubmissionBinding> {
   const application = await tx.application.findUnique({
     where: { id: applicationId },
@@ -414,11 +505,29 @@ async function resolveDecisionSubmissionBinding(
   }
 
   if (application.sealedPacketVersion === null) {
+    if (expectation.action === 'accept') {
+      throw new HttpError(
+        409,
+        'Legacy application — no immutable disclosure packet was captured at submission. It cannot be accepted as a head start.',
+        'APPLICATION_PACKET_REQUIRED',
+      );
+    }
     return {
       mode: 'legacy',
+      packetId: null,
       packetVersion: null,
       packetHash: null,
+      packet: null,
     };
+  }
+
+  if (expectation.action === 'accept') {
+    if (!Number.isInteger(expectation.expectedPacketVersion) || !expectation.expectedPacketHash?.trim()) {
+      throw new HttpError(400, 'packetVersion and packetHash are required to accept as a head start.');
+    }
+    if (expectation.expectedPacketVersion !== application.sealedPacketVersion) {
+      throw packetIntegrityFailure('The reviewed packet version is not the application\'s attached submission.');
+    }
   }
 
   const packet = await tx.applicationPacket.findFirst({
@@ -426,10 +535,7 @@ async function resolveDecisionSubmissionBinding(
       applicationId,
       packetVersion: application.sealedPacketVersion,
     },
-    select: {
-      packetVersion: true,
-      packetHash: true,
-    },
+    select: PACKET_SELECT,
   });
   if (!packet) {
     // A sealed version with no stored packet is an integrity ambiguity. Do
@@ -437,11 +543,106 @@ async function resolveDecisionSubmissionBinding(
     throw new HttpError(409, 'The submitted application packet is unavailable.');
   }
 
+  if (packet.revokedAt || packet.supersededByPacketId) {
+    throw packetIntegrityFailure('The submitted application packet is no longer active.');
+  }
+
+  let reconstructed: SealedApplicationPacket;
+  try {
+    reconstructed = reconstructSealedPacket(packet);
+  } catch {
+    throw packetIntegrityFailure();
+  }
+
+  if (!verifySealedPacket(reconstructed)) {
+    throw packetIntegrityFailure();
+  }
+
+  if (
+    reconstructed.applicationId !== applicationId
+    || reconstructed.opportunityId !== expectation.opportunityId
+    || reconstructed.employerOrgId !== expectation.organizationId
+    || reconstructed.clerkUserId !== expectation.clinicianClerkUserId
+    || (expectation.clinicianNpi !== null && reconstructed.clinicianNpi !== expectation.clinicianNpi)
+  ) {
+    throw packetIntegrityFailure('The submitted packet does not belong to this application.');
+  }
+
+  if (
+    expectation.expectedPacketHash !== undefined
+    && expectation.expectedPacketHash.trim() !== reconstructed.packetHash
+  ) {
+    throw packetIntegrityFailure('The reviewed packet hash no longer matches the attached submission.');
+  }
+
   return {
     mode: 'sealed',
+    packetId: packet.id,
     packetVersion: packet.packetVersion,
     packetHash: packet.packetHash,
+    packet: reconstructed,
   };
+}
+
+type StartUrgency = 'routine' | 'priority' | 'critical';
+
+function parseIntendedStartDate(value: string | null | undefined): Date | null {
+  if (value === undefined || value === null || value.trim() === '') return null;
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    throw new HttpError(400, 'intendedStartDate must be a valid ISO-8601 timestamp.');
+  }
+  return parsed;
+}
+
+function normalizeStartUrgency(value: string | null | undefined): StartUrgency {
+  if (value === undefined || value === null || value.trim() === '') return 'routine';
+  if (value === 'routine' || value === 'priority' || value === 'critical') return value;
+  throw new HttpError(400, 'urgency must be routine, priority, or critical.');
+}
+
+function acceptedPacketEvidenceKeys(packet: SealedApplicationPacket): Set<string> {
+  return new Set(packet.fields
+    .filter((field) => (
+      field.value !== null
+      && (field.evidenceState === 'source_backed'
+        || field.evidenceState === 'checked'
+        || field.evidenceState === 'employer_decided')
+    ))
+    .map((field) => field.fieldId));
+}
+
+function remainingRequirementRows(input: {
+  applicationId: string;
+  organizationId: string;
+  requirements: readonly EmployerRequirementSpec[];
+  packet: SealedApplicationPacket;
+  policyVersion: string;
+}): Array<Record<string, unknown>> {
+  const acceptedKeys = acceptedPacketEvidenceKeys(input.packet);
+
+  return input.requirements
+    // Only an exact, explicit requirement key may be satisfied by the accepted
+    // packet. Labels and source names are not interchangeable identifiers and
+    // must never be guessed into a favorable state.
+    .filter((requirement) => !requirement.key || !acceptedKeys.has(requirement.key))
+    .map((requirement) => ({
+      id: randomUUID(),
+      applicationId: input.applicationId,
+      organizationId: input.organizationId,
+      sourceRequirementId: requirement.key ?? null,
+      category: 'evidence',
+      label: requirement.label,
+      necessity: requirement.priority === 'preferred' ? 'preferred' : 'required',
+      status: 'not_started',
+      owner: 'both',
+      evidenceRule: requirement.note ?? null,
+      dependencyIds: [],
+      dueAt: null,
+      resolvedBy: null,
+      resolvedAt: null,
+      policyVersion: input.policyVersion,
+    }));
 }
 
 async function closeOpenMissingRequests(input: {
@@ -496,7 +697,7 @@ export async function listEmployerWorkflowDashboard(
         application.workflowState === 'UNDER_REVIEW' && updatedBeyond48Hours(application.updatedAt)
       )).length,
       newApplicationsCount: byState.NEW.length,
-      approvedForCredentialingCount: byState.APPROVED.length,
+      acceptedHeadStartCount: byState.APPROVED.length,
     },
     missingData: applications
       .flatMap((application) => application.missingRequests)
@@ -524,6 +725,10 @@ export async function runEmployerWorkflowAction(input: {
   reviewerClerkUserId: string;
   requests?: readonly MissingRequestInput[];
   reviewNote?: string;
+  packetVersion?: number;
+  packetHash?: string;
+  intendedStartDate?: string | null;
+  urgency?: string | null;
 }): Promise<EmployerWorkflowActionResult> {
   const application = await getEmployerWorkflowApplication(input.applicationId, input.reviewerClerkUserId);
   ensureActionableState(application);
@@ -584,6 +789,9 @@ export async function runEmployerWorkflowAction(input: {
       notificationTriggered: false,
       auditEventId,
       decisionOutboxEventId: null,
+      acceptanceId: null,
+      startActivationId: null,
+      remainingRequirementCount: 0,
     };
   }
 
@@ -668,6 +876,9 @@ export async function runEmployerWorkflowAction(input: {
       notificationTriggered: true,
       auditEventId: null,
       decisionOutboxEventId: null,
+      acceptanceId: null,
+      startActivationId: null,
+      remainingRequirementCount: 0,
     };
   }
 
@@ -675,21 +886,45 @@ export async function runEmployerWorkflowAction(input: {
   const nextStatus = decisionAction === 'accept' ? 'ACCEPTED' : 'DECLINED';
   const nextReviewNote = normalizeText(input.reviewNote, 500)
     ?? (decisionAction === 'accept'
-      ? 'Approved and moved to credentialing.'
+      ? 'Accepted as a head start; institution review remains.'
       : 'Application rejected.');
 
   let auditEventId: string | null = null;
   let decisionOutboxEventId: string | null = null;
+  let acceptanceId: string | null = null;
+  let startActivationId: string | null = null;
+  let remainingRequirementCount = 0;
+  const intendedStartDate = decisionAction === 'accept'
+    ? parseIntendedStartDate(input.intendedStartDate)
+    : null;
+  const urgency = decisionAction === 'accept'
+    ? normalizeStartUrgency(input.urgency)
+    : 'routine';
 
   await prisma.$transaction(async (tx: unknown) => {
     const workflowTx = tx as unknown as WorkflowTransaction;
     const submission = await resolveDecisionSubmissionBinding(
       workflowTx,
       application.id,
+      {
+        action: decisionAction,
+        expectedPacketVersion: input.packetVersion,
+        expectedPacketHash: input.packetHash,
+        clinicianNpi: application.npi,
+        clinicianClerkUserId: application.clerkUserId,
+        opportunityId: application.opportunityId,
+        organizationId: application.employer.organizationId,
+      },
     );
 
-    await workflowTx.application.update({
-      where: { id: application.id },
+    // The status predicate is the concurrency gate. Two actors may load the
+    // same open application, but only one transaction may close it; the loser
+    // records no acceptance, activation, audit, or outbox consequence.
+    const transition = await workflowTx.application.updateMany({
+      where: {
+        id: application.id,
+        status: { notIn: ['ACCEPTED', 'DECLINED', 'WITHDRAWN'] },
+      },
       data: {
         status: nextStatus,
         reviewedBy: input.reviewerClerkUserId,
@@ -697,22 +932,135 @@ export async function runEmployerWorkflowAction(input: {
         reviewNote: nextReviewNote,
       },
     });
+    if (transition.count !== 1) {
+      throw new HttpError(409, 'This application is already closed.');
+    }
+
+    if (decisionAction === 'accept') {
+      if (submission.mode !== 'sealed') {
+        throw new HttpError(409, 'A sealed packet is required for head-start acceptance.');
+      }
+
+      const acceptance = await workflowTx.employerAcceptance.create({
+        data: {
+          id: randomUUID(),
+          organization: application.employer.name,
+          employerId: application.employer.organizationId,
+          clinicianNpi: submission.packet.clinicianNpi,
+          applicationId: application.id,
+          packetHash: submission.packetHash,
+          status: 'ACCEPTED',
+          acceptedAt: now,
+          acceptedBy: input.reviewerClerkUserId,
+          metadata: {
+            schema: 'vitalcv.employer-head-start-acceptance.v1',
+            packetId: submission.packetId,
+            packetVersion: submission.packetVersion,
+            opportunityId: application.opportunityId,
+            decisionMeaning: 'accepted_as_head_start',
+            institutionReviewRemains: true,
+          },
+        },
+      });
+      acceptanceId = acceptance.id;
+
+      const organizationProfile = await workflowTx.organizationProfile.findUnique({
+        where: { organizationId: application.employer.organizationId },
+        select: { requirements: true, updatedAt: true },
+      });
+      const requirementSpecs = parseOrganizationRequirementsEnvelope(
+        organizationProfile?.requirements,
+        [],
+      ).requirements;
+      const policyVersion = organizationProfile
+        ? `organization_requirements:${organizationProfile.updatedAt.toISOString()}`
+        : 'organization_requirements:unavailable';
+      const remainingRequirements = remainingRequirementRows({
+        applicationId: application.id,
+        organizationId: application.employer.organizationId,
+        requirements: requirementSpecs,
+        packet: submission.packet,
+        policyVersion,
+      });
+
+      if (remainingRequirements.length > 0) {
+        const created = await workflowTx.activationRequirement.createMany({
+          data: remainingRequirements,
+        });
+        remainingRequirementCount = created.count;
+      }
+
+      const activation = await workflowTx.startActivation.create({
+        data: {
+          id: randomUUID(),
+          clinicianNpi: submission.packet.clinicianNpi,
+          orgId: application.employer.organizationId,
+          acceptanceId: acceptance.id,
+          role: application.opportunity.title,
+          activationState: 'head_start_accepted',
+          activatedAt: now,
+          applicationId: application.id,
+          opportunityId: application.opportunityId,
+          acceptedPacketId: submission.packetId,
+          acceptedPacketHash: submission.packetHash,
+          intendedStartDate,
+          urgency,
+          policyVersion,
+          metadata: {
+            schema: 'vitalcv.start-mission.activation.v1',
+            packetVersion: submission.packetVersion,
+            remainingRequirementCount,
+            credentialingCompletionInferred: false,
+            institutionReviewRemains: true,
+          },
+        },
+      });
+      startActivationId = activation.id;
+
+      const requirementsAuditPayload = {
+        schema: 'vitalcv.activation-requirements-instantiated.v1',
+        applicationId: application.id,
+        acceptanceId: acceptance.id,
+        startActivationId: activation.id,
+        packetId: submission.packetId,
+        packetHash: submission.packetHash,
+        remainingRequirementCount,
+        policyVersion,
+      };
+      await workflowTx.auditEvent.create({
+        data: {
+          type: 'ACTIVATION_REQUIREMENTS_INSTANTIATED',
+          hash: sha256ForPayload(requirementsAuditPayload),
+          referenceId: application.id,
+          clinicianId: submission.packet.clinicianNpi,
+          organizationId: application.employer.organizationId,
+          metadata: { employerWorkflow: requirementsAuditPayload },
+        },
+      });
+    }
 
     await closeOpenMissingRequests({
       tx: workflowTx,
       application,
-      action: input.action as any,
+      action: decisionAction,
       now,
     });
 
-    const decisionPayload = decisionAuditPayload({
-      action: decisionAction,
-      application,
-      reviewerClerkUserId: input.reviewerClerkUserId,
-      reviewNote: nextReviewNote,
-      decidedAt: now,
-      submission,
-    });
+    const decisionPayload = {
+      ...decisionAuditPayload({
+        action: decisionAction,
+        application,
+        reviewerClerkUserId: input.reviewerClerkUserId,
+        reviewNote: nextReviewNote,
+        decidedAt: now,
+        submission,
+      }),
+      consequences: {
+        acceptanceId,
+        startActivationId,
+        remainingRequirementCount,
+      },
+    };
     const auditEvent = await workflowTx.auditEvent.create({
       data: {
         type: 'APPLICATION_DECISION_RECORDED',
@@ -764,5 +1112,8 @@ export async function runEmployerWorkflowAction(input: {
     notificationTriggered: true,
     auditEventId,
     decisionOutboxEventId,
+    acceptanceId,
+    startActivationId,
+    remainingRequirementCount,
   };
 }

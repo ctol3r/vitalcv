@@ -30,7 +30,7 @@ export type EmployerWorkflowApplication = {
   reviewNote: string | null;
   createdAt: string;
   updatedAt: string;
-  queue: 'applications' | 'credentialing' | 'closed';
+  queue: 'applications' | 'hire_to_start' | 'closed';
   workflowState: EmployerWorkflowState;
   missingRequests: MissingRequest[];
   provider: {
@@ -84,7 +84,7 @@ export type EmployerWorkflowDashboardPayload = {
     waitingForDocumentsCount: number;
     underReviewOver48HoursCount: number;
     newApplicationsCount: number;
-    approvedForCredentialingCount: number;
+    acceptedHeadStartCount: number;
   };
   missingData: MissingRequest[];
 };

@@ -199,9 +199,23 @@ export function registerApplicationRoutes(app: Express): void {
     '/api/applications/:appId/review',
     requireOrgRole(VERIFIER_MUTATION_ROLES),
     asyncHandler(async (req, res) => {
-      const clerkUserId = requireClerkUserId(req);
+      const clerkUserId = requireVerifiedClerkUserId(req);
       const applicationId = requireUuidParam(req.params.appId, 'Application');
-      const { status, reviewNote } = req.body as { status?: string; reviewNote?: string };
+      const {
+        status,
+        reviewNote,
+        packetVersion,
+        packetHash,
+        intendedStartDate,
+        urgency,
+      } = req.body as {
+        status?: string;
+        reviewNote?: string;
+        packetVersion?: number;
+        packetHash?: string;
+        intendedStartDate?: string | null;
+        urgency?: string | null;
+      };
 
       if (!status || !['REVIEWED', 'ACCEPTED', 'DECLINED'].includes(status)) {
         throw new HttpError(400, 'status must be REVIEWED, ACCEPTED, or DECLINED.');
@@ -217,6 +231,10 @@ export function registerApplicationRoutes(app: Express): void {
         applicationId,
         reviewerClerkUserId: clerkUserId,
         reviewNote,
+        packetVersion,
+        packetHash,
+        intendedStartDate,
+        urgency,
       });
 
       // Compatibility response: the legacy route still returns its original
@@ -242,16 +260,24 @@ export function registerApplicationRoutes(app: Express): void {
     '/api/applications/:appId/workflow-action',
     requireOrgRole(VERIFIER_MUTATION_ROLES),
     asyncHandler(async (req, res) => {
-      const clerkUserId = requireClerkUserId(req);
+      const clerkUserId = requireVerifiedClerkUserId(req);
       const appId = requireUuidParam(req.params.appId, 'Application');
       const {
         action,
         requests,
         reviewNote,
+        packetVersion,
+        packetHash,
+        intendedStartDate,
+        urgency,
       } = req.body as {
         action?: string;
         requests?: Array<{ field?: string; message?: string }>;
         reviewNote?: string;
+        packetVersion?: number;
+        packetHash?: string;
+        intendedStartDate?: string | null;
+        urgency?: string | null;
       };
 
       if (!action || !['accept', 'request_info', 'reject'].includes(action)) {
@@ -267,6 +293,10 @@ export function registerApplicationRoutes(app: Express): void {
           message: request.message ?? '',
         })),
         reviewNote,
+        packetVersion,
+        packetHash,
+        intendedStartDate,
+        urgency,
       });
 
       res.json(result);
