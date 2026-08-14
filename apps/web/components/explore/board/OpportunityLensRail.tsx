@@ -115,7 +115,7 @@ export function OpportunityLensRail({ filters }: { filters: BoardFilters }) {
         })}
       </div>
       <p className="opf-lens-boundary">
-        Lenses narrow source records. They are not MATCHA recommendations or eligibility decisions.
+        Lenses narrow source records. They are not personalized recommendations or eligibility decisions.
       </p>
     </section>
   );

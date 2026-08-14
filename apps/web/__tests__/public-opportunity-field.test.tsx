@@ -157,7 +157,7 @@ describe('WO-13 public opportunity field', () => {
     expect(html).toContain('compensation=supplied');
     expect(html).toContain('Apply with VitalCV');
     expect(html).toContain('applicationMode=vitalcv');
-    expect(html).toContain('They are not MATCHA recommendations or eligibility decisions.');
+    expect(html).toContain('They are not personalized recommendations or eligibility decisions.');
     expect(html).not.toMatch(/ready now|automatic eligibility|guaranteed/i);
   });
 
