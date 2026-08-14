@@ -3,6 +3,63 @@
 Append-only. **Newest entry at the top.** One entry per work order is recorded
 in the same pull request as its implementation or takeover evidence.
 
+## WO-12 · Human+tactile homepage release — OPEN
+
+- **Date:** 2026-08-14
+- **Claim-check and creative ownership:** No open PR or remote branch duplicates
+  the human+tactile homepage, career-mobility story, or opportunity-horizon
+  intent. Merged #1371 is the Direction D baseline. Codex is the named creative
+  owner implementing the founder's dated Direction D.1 choice; shared public
+  chrome is unchanged.
+- **Change:** Reframes `/` as a single clinician career-mobility story with the
+  exact founder-selected eyebrow, headline, lede, NPI primary action, and public
+  opportunity secondary action. A documentary clinical scene carries the human
+  stakes; the existing source-state record becomes a tactile CV Wallet folio;
+  current source-labelled roles appear directly below the hero; and the page
+  continues through clinician choice, exact packet, employer review, accepted
+  head start, and consented reuse. The existing NPI lookup, server-visible
+  evidence rows, truth labels, and canonical motion infrastructure remain in
+  place.
+- **Truth and rights boundary:** The anonymous generated hero is art direction,
+  not clinician, employer, result, or customer evidence, and its manifest plus
+  adjacent disclosure record that boundary. It contains no patient identifiers
+  or PHI. Opportunity rows preserve source, source URL, observation time,
+  availability, and the external-versus-integrated application boundary. The
+  page adds no readiness percentage, unsupported source, invented employer,
+  speed promise, hidden ranking, automatic decision, packet mutation, or access
+  change.
+- **Accessibility and performance:** The production-build reading order remains
+  complete without JavaScript and under reduced motion. Required viewport
+  captures have no horizontal overflow; keyboard focus and semantic links are
+  exercised. Computed contrast is at least 5.86:1 for measured hero text and
+  18.71:1 for the primary action. The 201,854-byte LCP poster is below the
+  250KB target, there is no shipped motion payload or required WebGL, and the
+  controlled profile records LCP 816ms, CLS 0, and INP 24ms.
+- **Evidence:** `docs/design/evidence/wo12-human-tactile-home-2026-08-14/`
+  contains paired 390, 768, 1440, and 1728 before/after frames, full-page
+  captures, the motion recording, reduced-motion and no-JavaScript frames,
+  performance results, computed typography/contrast, asset measurements, the
+  duplicate-intent record, and provenance disclosures.
+- **Verification:** Focused Vitest coverage passes **7 files / 71 tests**. The
+  production-build Playwright homepage suite passes **17/17**, including all
+  required viewport, keyboard, reduced-motion, and no-JavaScript cases. Copy,
+  claims, design, route, typecheck, zero-warning lint, and build gates pass. The
+  final canonical root run passes **464 web files / 4,506 tests** and the
+  real-PostgreSQL backend at **343 suites / 2,751 tests**. The seven web
+  database-gated suites also pass **45/45** against ephemeral PostgreSQL 16.
+  The first backend
+  attempt compiled against a shared Prisma client generated from another
+  worktree; after explicit backend-schema regeneration, one run reproduced the
+  documented order-sensitive pilot-suite failure while that suite passed 6/6 in
+  isolation. The final canonical run passed every backend suite and test; only
+  that final green result is counted. Refreshed-head CI remains required before
+  this entry can move from OPEN to LANDED.
+- **Next gate:** Open the same-PR implementation and ledger receipt, attach the
+  committed evidence, require all refreshed head checks green and `CLEAN`, then
+  squash-merge. Verify Railway web and API `/api/version` at the exact merge SHA
+  before exercising `/` on desktop and mobile. WO-13 begins only after that
+  receipt is complete.
+
 ## WO-11 · Canonical Titan execution program — RESCUED IN #1368
 
 - **Date:** 2026-08-13
