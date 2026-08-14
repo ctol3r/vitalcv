@@ -13,13 +13,11 @@ import { expect, test } from '@playwright/test';
 /**
  * A page may carry MORE than one artifact, so each entry names the artifact it
  * is asserting by aria-label rather than assuming the page has exactly one,
- * and the rest-check below covers every artifact on the page. The employers
- * restructure split the pair that used to share the doorway: the hospital
- * elevation stays on /employers; the reviewer's decision surface moved to
- * /employers/how-it-works with the rest of the packet anatomy.
+ * and the rest-check below covers every artifact on the page. WO-15 replaces
+ * the employers elevation with manifest-owned documentary and tactile scenes;
+ * their static/motion contract is covered by employers-experience.spec.ts.
  */
 const PAGES = [
-  { path: '/employers', artifact: 'An elevation drawing of a hospital' },
   { path: '/employers/how-it-works', artifact: 'A consented packet arriving' },
   { path: '/trust', artifact: 'One claim connected to its named source' },
   { path: '/pilot', artifact: 'A timeline from accepted offer' },

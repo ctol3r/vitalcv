@@ -1,27 +1,47 @@
 import {
+  ArrowDown,
+  ArrowLeft,
   ArrowRight,
   Building2,
   Clock3,
+  FileInput,
+  FileSearch,
   FileCheck2,
   FileKey2,
+  Files,
+  ListChecks,
   Loader2,
+  MessageCircleQuestion,
+  Scale,
+  Search,
   Send,
   ShieldAlert,
   ShieldCheck,
+  Waypoints,
   type LucideIcon,
 } from 'lucide-react';
 import type { ComponentPropsWithoutRef } from 'react';
 
 const ICONS = {
+  'arrow-down': ArrowDown,
+  'arrow-left': ArrowLeft,
   'arrow-right': ArrowRight,
   building: Building2,
   clock: Clock3,
+  'file-input': FileInput,
+  'file-search': FileSearch,
   'file-check': FileCheck2,
   'file-key': FileKey2,
+  files: Files,
+  'list-checks': ListChecks,
   loader: Loader2,
+  'message-question': MessageCircleQuestion,
+  scale: Scale,
+  search: Search,
   send: Send,
   alert: ShieldAlert,
   shield: ShieldCheck,
+  waypoints: Waypoints,
 } satisfies Record<string, LucideIcon>;
 
 export type IconName = keyof typeof ICONS;

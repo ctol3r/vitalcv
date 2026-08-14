@@ -55,15 +55,15 @@ export const EMPLOYER_STAGES: readonly EmployerStage[] = [
   },
   {
     id: 'receive-packet',
-    title: 'Receive a consented packet',
-    body: 'A clinician shares a source-backed readiness packet with your organization.',
-    boundary: 'You see a record only when the clinician shares it. No silent sourcing, no anonymous directory.',
+    title: 'Receive the exact packet',
+    body: 'The submitted version preserves the fields, sources, freshness, purpose, recipient, and consent the clinician chose.',
+    boundary: 'You see a record only when the clinician shares it. Current evidence never silently replaces the submission.',
   },
   {
     id: 'review-coverage',
-    title: 'Review coverage and blockers',
-    body: 'Every claim names its source, state, and freshness.',
-    boundary: 'Checked reads as checked, gated as gated, blockers as blockers — never one green light over an unproven record.',
+    title: 'Inspect or ask for clarification',
+    body: 'Read each source state and freshness, then ask about an open item without losing the submitted version.',
+    boundary: 'Checked reads as checked, gated as gated, and open stays open — never one green light over an unproven record.',
   },
   {
     id: 'accept-head-start',
@@ -73,8 +73,8 @@ export const EMPLOYER_STAGES: readonly EmployerStage[] = [
   },
   {
     id: 'reach-start-ready',
-    title: 'Reach start-ready',
-    body: 'Work the remaining requirements down to start-ready.',
-    boundary: 'Every step attributable and recorded, auditable end to end.',
+    title: 'Keep start events distinct',
+    body: 'Continue institution review while credentialing start, intended start, and actual start remain separate events.',
+    boundary: 'A head start is not a hire or a start. Every later step keeps its own actor, time, and scope.',
   },
 ] as const;

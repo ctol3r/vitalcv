@@ -145,6 +145,27 @@ describe('server render is the composed static scene (EC-26)', () => {
     expect(html).toContain('No real clinician, patient, employer, credential, or outcome is represented.');
   });
 
+  it('the employer page owns truthful documentary and tactile review scenes', () => {
+    const documentary = renderToStaticMarkup(
+      <VisualScene
+        scene="journey_film"
+        kind="process"
+        routeVariant="employers_documentary"
+      />,
+    );
+    expect(documentary).toContain('data-scene-variant="employers_documentary"');
+    expect(documentary).toContain('/scenes/employers-care-team.webp');
+    expect(documentary).toContain('clinical operations team reviewing a paper folder');
+    expect(documentary).toContain('No real clinician, patient, employer, credential, packet result, or outcome is represented.');
+
+    const desk = renderToStaticMarkup(
+      <VisualScene scene="employer_desk" kind="process" priority="hero" />,
+    );
+    expect(desk).toContain('/scenes/employer-review-desk.webp');
+    expect(desk).toContain('inspect, clarify, and institution-review actions');
+    expect(desk).toContain('The illustration stops before any decision, credentialing action, hire, or start.');
+  });
+
   it('a decorative scene is aria-hidden with empty alt', () => {
     const html = renderToStaticMarkup(<VisualScene scene="continuity_ribbon" kind="decorative" />);
     expect(html).toContain('alt=""');

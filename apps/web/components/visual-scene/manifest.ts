@@ -39,13 +39,18 @@ export type SceneKind = 'decorative' | 'process' | 'stateful';
 export type SceneRouteVariantId =
   | 'home_documentary'
   | 'explore_documentary'
-  | 'opportunity_detail_documentary';
+  | 'opportunity_detail_documentary'
+  | 'employers_documentary';
 
 export interface SceneRouteVariant {
   id: SceneRouteVariantId;
   route: '/' | '/explore' | '/opportunities/[id]' | '/employers' | '/pilot' | '/onboarding' | '/trust';
   aspect: { w: number; h: number };
   objectPosition?: string;
+  /** Route-specific meaningful description when the crop changes subject. */
+  altText?: string;
+  /** Route-specific adjacent equivalent; never moves meaning into pixels. */
+  transcript?: string;
   /**
    * A route-owned documentary frame from the same scene family. The manifest,
    * rather than route CSS, owns its provenance and budget.
@@ -141,7 +146,40 @@ export const SCENE_MANIFEST: readonly SceneManifestEntry[] = [
           origin: 'WO-13, 2026-08-14; generated adult, no real clinician or patient',
         },
       },
+      {
+        id: 'employers_documentary',
+        route: '/employers',
+        aspect: { w: 16, h: 9 },
+        objectPosition: 'center center',
+        altText: 'Art-directed view of an anonymous clinical operations team reviewing a paper folder together',
+        transcript:
+          'An art-directed image of anonymous clinical and operations professionals reviewing together. No real clinician, patient, employer, credential, packet result, or outcome is represented.',
+        poster: {
+          path: '/scenes/employers-care-team.webp',
+          format: 'webp',
+          source: 'Original generated commission for VitalCV',
+          license: 'VitalCV proprietary',
+          origin: 'WO-15, 2026-08-14; generated adults and environment, no real clinician, patient, or employer',
+        },
+      },
     ],
+  },
+  {
+    scene: 'employer_desk',
+    kind: 'process',
+    title: 'The exact packet reaches human review',
+    aspect: { w: 16, h: 10 },
+    poster: {
+      path: '/scenes/employer-review-desk.webp',
+      format: 'webp',
+      source: 'Original generated commission for VitalCV',
+      license: 'VitalCV proprietary',
+      origin: 'WO-15, 2026-08-14; tactile process illustration, truth-reviewed to stop before decision',
+    },
+    motion: [],
+    transcript:
+      'An illustrative exact packet moves through an explicit consent gate to an employer desk. The reviewer may inspect it, ask for clarification, or continue institution review. The illustration stops before any decision, credentialing action, hire, or start.',
+    altText: 'Tactile illustration of an evidence folio moving through a consent gate to inspect, clarify, and institution-review actions',
   },
   {
     scene: 'continuity_ribbon',

@@ -1,67 +1,20 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { ArtifactStage } from '@/components/motion/ArtifactStage';
-import { HospitalArtifact } from '@/components/artifacts/SceneArtifacts';
+
+import { Icon, type IconName } from '@/components/Icon';
 import { EmployerAudienceSection } from '@/components/employers/EmployerAudienceSection';
 import { EmployerWorkflowPreview } from '@/components/employers/EmployerWorkflowPreview';
 import { PageFrame } from '@/components/layout/PageFrame';
+import { VisualScene } from '@/components/visual-scene/VisualScene';
 import { SOURCE_LANE_OPS } from '@/lib/trust/sourceLanes';
 
-/**
- * /employers — the employer landing.
- *
- * Restructured per the founder experience audit (2026-08-06): the page ran
- * 5,744px with its only conversion moment at 96% depth, the primary CTA was a
- * 5,100px in-page smooth-scroll, and three mono disclaimer paragraphs sat
- * between the H1 and the action. The restructure:
- *
- *  - The primary CTA is a real route, `/employers/request-access`, which now
- *    owns Step 1 (the Type 2 NPI resolution + access request). The page sells;
- *    the route converts.
- *  - The lane register and the illustrative packet moved to
- *    `/employers/how-it-works`. This page keeps a short, registry-derived
- *    hand-off so the lane count cannot drift from lane truth.
- *  - The D3 limits block survives, compressed to two sentences plus the
- *    registry-derived cadence line, placed directly after the hero artifact:
- *    still early, still plain prose, no longer outranking the only action.
- *    The audit asked for below-the-fold; D3 (deep-audit 2026-07-21) requires
- *    "early, never a footnote" for procurement readers. This is the
- *    reconciliation — final placement is a founder visual gate decision.
- *
- * REVISION 2 (founder visual gate, 2026-08-07): the restructure was approved;
- * the hierarchy was not. The evidence-led H1 ("Start clinicians from
- * source-backed evidence") sold the trust machinery as the product. The
- * canonical employer direction is the hiring experience — find clinicians,
- * see what is known, watch what remains, move the hire toward start — with
- * attribution entering immediately beneath as the reason the experience can
- * be trusted. Organization access is framed as the doorway in, not the value
- * proposition, and the audience section was recomposed from six cards in two
- * grids to two hairline row lists. No quantitative speed claim anywhere: the
- * brand split (2026-07-26) still bans pace language, and this page describes
- * the work, not the clock.
- *
- * Step 1 remains a REQUEST for organization access, never a claim: resolving a
- * Type 2 NPI against NPPES establishes which organization is meant, not
- * authority to act for it, and the server refuses on that basis
- * (resolveOrganizationAuthority).
- *
- * The outcome is stated WITHOUT a speed claim. The brand split (2026-07-26)
- * retired the speed hero — "faster" is a promise about time-to-start, and no
- * pilot has measured it yet. Re-add it only when a pilot produces the number,
- * and then state the number, not the adjective. See check-public-claims.ts.
- *
- * The cadence sentence derives from lib/trust/sourceLanes.ts, the same
- * registry behind /, /status and /api/status, so this page cannot drift from
- * lane truth.
- */
-
-// Bound external shared-cache staleness to 5 min (see app/page.tsx note).
+// Bound external shared-cache staleness to five minutes.
 export const revalidate = 300;
 
 export const metadata: Metadata = {
   title: 'For Employers',
   description:
-    'Move a clinician hire from interest to start — see what is already known, what remains, and who owns the next step, with every answer named to its source. The hiring decision stays yours.',
+    'Review the exact clinician-selected submission, ask for clarification, and record a head-start decision while institution authority remains yours.',
 };
 
 /** Lane-truth cadences, from the registry — never hand-typed on this page. */
@@ -75,169 +28,211 @@ function cadenceSentence(): string {
   );
 }
 
+function laneStanding(lifecycle: string, cadence: string): string {
+  if (lifecycle === 'active') return `Read · ${cadence}`;
+  if (lifecycle === 'planned') return `Not read · ${cadence}`;
+  if (lifecycle === 'demo_only') return 'Demonstration only';
+  return 'Not integrated';
+}
+
+const REVIEW_TRUTHS = [
+  {
+    title: 'Inspect the submission',
+    body: 'The employer and clinician read the same submitted version. Current evidence stays visibly separate.',
+    icon: 'file-search',
+  },
+  {
+    title: 'Ask what remains open',
+    body: 'Clarification is a recorded next step, not a hidden rejection or an invented answer.',
+    icon: 'message-question',
+  },
+  {
+    title: 'Keep institution authority',
+    body: 'A head-start acceptance records scope. Credentialing, privileging, hiring, and start remain your decisions.',
+    icon: 'scale',
+  },
+] as const satisfies readonly { title: string; body: string; icon: IconName }[];
+
 export default function EmployersPage() {
   return (
-    // Calm Wave, employer surface on full-width paper (one editorial accent, CD-3) — the
-    // same design language as the homepage, so the acquisition page reads as one
-    // system instead of a plainer offshoot.
-    <div className="mz mz-paper mz-persona-employer min-h-screen">
-      <PageFrame as="main" mode="focused-form">
-        <header className="mb-4">
-          <p className="mz-eyebrow">For employers &amp; verifiers</p>
-          <h1 className="mz-h1" style={{ marginTop: 12, maxWidth: 680 }}>
-            Move a clinician hire from interest to <span className="mz-accent">start</span>.
-          </h1>
-          <p className="mz-lede" style={{ marginTop: 12, maxWidth: 620 }}>
-            The clinician arrives with a profile they have already built and reviewed. You see
-            what is known, what remains, and who owns the next step — and the hiring decision
-            stays yours.
-          </p>
-          {/* Evidence enters here, immediately under the experience, as the
-              reason it can be trusted — not as the proposition itself
-              (REVISION 2). */}
-          <p className="mz-small" style={{ marginTop: 10, maxWidth: 620 }}>
-            What makes that reviewable is attribution: identity, exclusions, and enrollment
-            answers arrive named to their public source, dated, with what has not been checked
-            listed beside them.
-          </p>
-          {/* One action in the opening viewport, and it is a real route: the
-              page makes the case, /employers/request-access takes the request.
-              The caption keeps the mechanism in its place — a doorway, not
-              the reason the product exists. */}
-          <p style={{ marginTop: 16 }}>
-            <Link href="/employers/request-access" className="mz-btn">
-              Request organization access
-            </Link>
-          </p>
-          <p className="mz-mono mt-2 text-[12px] leading-relaxed text-[var(--vt-text-muted)]">
-            Organization access is the doorway in, not the product — resolve your organization
-            against the federal registry and ask to begin.
-          </p>
+    <div className="mz mz-paper mz-persona-employer min-h-screen overflow-x-clip">
+      <PageFrame as="main" mode="marketing" className="pb-14 sm:pb-20">
+        <header className="grid gap-9 border-b border-[var(--vt-border)] pb-10 pt-3 lg:grid-cols-[minmax(0,0.82fr)_minmax(32rem,1.18fr)] lg:items-center lg:gap-12 lg:pb-14">
+          <div>
+            <p className="mz-eyebrow">For employers &amp; verifiers</p>
+            <h1 className="mz-h1 mt-3 max-w-3xl">
+              Review the exact packet. <span className="mz-accent">Keep the decision yours.</span>
+            </h1>
+            <p className="mz-lede mt-5 max-w-2xl">
+              See what the clinician chose to share, where each fact came from, and what remains open. Ask for clarification or accept it as a head start.
+            </p>
+
+            <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:items-center">
+              <Link href="/employers/request-access" className="mz-btn min-h-12 justify-center">
+                Request organization access
+              </Link>
+              <Link
+                href="#employer-review-journey"
+                className="inline-flex min-h-12 items-center justify-center gap-2 border border-[var(--vt-border)] px-5 text-sm font-semibold text-[var(--vt-text-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--vt-focus-ring)]"
+              >
+                See the review journey
+                <Icon name="arrow-down" className="size-4" aria-hidden="true" />
+              </Link>
+            </div>
+
+            <p className="mt-5 max-w-2xl border-l-2 border-[var(--vt-border)] pl-3 font-mono text-[11px] leading-relaxed text-[var(--vt-text-muted)]">
+              Organization access is the doorway in, not the product. A Type 2 NPI identifies an organization; it is not authority to act for it, and access is granted separately.
+            </p>
+          </div>
+
+          <div className="min-w-0">
+            <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.12em] text-[var(--vt-text-muted)]">
+              Illustration — not a live submission or decision
+            </p>
+            <VisualScene
+              scene="employer_desk"
+              kind="process"
+              priority="hero"
+              className="overflow-hidden border border-[var(--vt-border)] bg-[var(--vt-surface)] [&_figcaption]:border-t [&_figcaption]:border-[var(--vt-border)] [&_figcaption]:px-4 [&_figcaption]:py-3 [&_figcaption]:font-mono [&_figcaption]:text-[10px] [&_figcaption]:leading-relaxed [&_figcaption]:text-[var(--vt-text-muted)]"
+            />
+          </div>
         </header>
 
-        {/* The hero artifact: the employer as somewhere REAL. This page used to
-            open on an abstract worklist rectangle, which made the buyer surface
-            read like every other B2B diagram. An elevation of the hospital —
-            packet arriving at the door, one lit room where it is being read —
-            says who the page is for before a word of copy is. */}
-        {/* Dense vignette (founder density lever, 2026-08-07): same drawing,
-            cropped viewBox and compact stage — the elevation still says who
-            the page is for without spending half a viewport saying it. */}
-        <section aria-label="Where the packet arrives" className="mt-6">
-          <ArtifactStage glass dense>
-            <HospitalArtifact />
-          </ArtifactStage>
+        <section
+          aria-label="Where human review happens"
+          className="mt-12 grid overflow-hidden border border-[var(--vt-border)] bg-[var(--vt-surface)] lg:grid-cols-[minmax(0,1.08fr)_minmax(22rem,0.92fr)]"
+        >
+          <VisualScene
+            scene="journey_film"
+            kind="process"
+            routeVariant="employers_documentary"
+            priority="inline"
+            className="min-w-0 [&_figcaption]:border-t [&_figcaption]:border-[var(--vt-border)] [&_figcaption]:px-4 [&_figcaption]:py-3 [&_figcaption]:font-mono [&_figcaption]:text-[10px] [&_figcaption]:leading-relaxed [&_figcaption]:text-[var(--vt-text-muted)] lg:[&_figcaption]:border-b-0 lg:[&_figcaption]:border-r"
+          />
+
+          <div className="flex flex-col justify-center p-6 sm:p-8 lg:p-10">
+            <p className="mz-eyebrow">Where review begins</p>
+            <h2 className="mz-h2 mt-3 max-w-xl">
+              Give every team the same <span className="mz-accent">reviewable record.</span>
+            </h2>
+            <div className="mt-7 divide-y divide-[var(--vt-border)] border-y border-[var(--vt-border)]">
+              {REVIEW_TRUTHS.map(({ title, body, icon }) => (
+                <div key={title} className="grid grid-cols-[3rem_1fr] gap-4 py-4">
+                  <span className="inline-flex size-11 items-center justify-center border border-[var(--vt-border)] text-[var(--vt-accent-editorial)]">
+                    <Icon name={icon} className="size-5" strokeWidth={1.5} aria-hidden="true" />
+                  </span>
+                  <div>
+                    <h3 className="text-sm font-semibold text-[var(--vt-text-primary)]">{title}</h3>
+                    <p className="mt-1 text-[13px] leading-relaxed text-[var(--vt-text-secondary)]">
+                      {body}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </section>
 
-        {/* D3: plain, early limits — compressed to the boundary, the cadence,
-            and the diligence route. The per-field register link stays INSIDE
-            this block (employers-diligence-route contract): the reader with a
-            diligence question finds the register beside the boundary, not in
-            marketing body copy. */}
         <div
           data-employer-limits=""
-          className="mz-mono mt-6 max-w-[620px] border-l-2 border-[var(--vt-border)] pl-3 text-[12px] leading-relaxed text-[var(--vt-text-muted)]"
+          className="mt-6 grid gap-3 border-l-2 border-[var(--vt-border)] pl-4 font-mono text-[11px] leading-relaxed text-[var(--vt-text-muted)] lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start lg:gap-8"
         >
           <p>
-            The limits, stated plainly: VitalCV is not a credentialing service, and the hiring
-            decision stays yours. {cadenceSentence()}
+            The limits, stated plainly: VitalCV is not a credentialing service, and the hiring decision stays yours. {cadenceSentence()}
           </p>
-          <p style={{ marginTop: 6 }}>
-            Checking us out?{' '}
-            <Link
-              href="/trust/attribution"
-              className="underline underline-offset-2 hover:text-[var(--vt-text-primary)]"
-            >
-              Read the per-field source register
-            </Link>{' '}
-            — every field, its source, when we read it, and what it does not establish.
-          </p>
+          <Link
+            href="/trust/attribution"
+            className="inline-flex min-h-11 items-center gap-2 font-semibold text-[var(--vt-text-primary)] underline underline-offset-2"
+          >
+            Read the source register
+            <Icon name="arrow-right" className="size-4" aria-hidden="true" />
+          </Link>
         </div>
 
-        {/* The reviewer's-eye artifact ("what a reviewer receives") moved to
-            /employers/how-it-works with the rest of the packet anatomy — two
-            glass artifact stages in a row competed, and its subject is exactly
-            what that page carries in full. */}
         <EmployerWorkflowPreview />
 
-        {/* The lane register and the illustrative packet live on their own page
-            now (audit: reference-documentation density on a landing page). The
-            hand-off keeps one registry-derived fact — the lane count — so even
-            this sentence cannot drift from lane truth. */}
-        <section aria-label="What arrives, source by source" className="mt-9">
-          <p className="mz-eyebrow">What arrives, source by source</p>
-          <h2 className="mz-h2" style={{ marginTop: 8, maxWidth: 620 }}>
-            {SOURCE_LANE_OPS.length} evidence lanes, each named to its source.
-          </h2>
-          <p className="mz-small" style={{ marginTop: 8, maxWidth: 620 }}>
-            Every lane states what it returns, when it was read, and what it does not decide —
-            read from the same registry that drives /status. The full register, and what a
-            reviewed packet looks like, has its own page.
-          </p>
-          <p style={{ marginTop: 12 }}>
+        <section aria-label="What arrives, source by source" className="mt-16 sm:mt-20">
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,0.72fr)_minmax(32rem,1.28fr)] lg:items-end">
+            <div>
+              <p className="mz-eyebrow">Source posture, in view</p>
+              <h2 className="mz-h2 mt-2">
+                Every lane says what it can—and <span className="mz-accent">cannot—support.</span>
+              </h2>
+            </div>
+            <p className="mz-small max-w-2xl lg:justify-self-end">
+              This register is read from the same source-lane contract that drives status. A missing or access-gated source stays missing or access-gated.
+            </p>
+          </div>
+
+          <ul className="mt-7 grid list-none border-l border-t border-[var(--vt-border)] sm:grid-cols-2 lg:grid-cols-3">
+            {SOURCE_LANE_OPS.map((lane) => (
+              <li
+                key={lane.laneId}
+                className="min-h-32 border-b border-r border-[var(--vt-border)] bg-[var(--vt-surface)] p-4 sm:p-5"
+              >
+                <p className="font-mono text-[10px] uppercase tracking-[0.1em] text-[var(--vt-text-muted)]">
+                  Evidence lane
+                </p>
+                <h3 className="mt-5 text-base font-semibold text-[var(--vt-text-primary)]">
+                  {lane.marketingShortName}
+                </h3>
+                <p className="mt-2 font-mono text-[11px] leading-relaxed text-[var(--vt-text-secondary)]">
+                  {laneStanding(lane.lifecycle, lane.cadenceLabel)}
+                </p>
+              </li>
+            ))}
+          </ul>
+
+          <p className="mt-5">
             <Link
               href="/employers/how-it-works"
-              className="text-[14px] font-semibold text-[var(--vt-text-primary)] underline underline-offset-2"
+              className="inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-[var(--vt-text-primary)] underline underline-offset-2"
             >
-              See what each lane returns, and what a reviewed packet looks like
+              Inspect every lane and the illustrative record anatomy
+              <Icon name="arrow-right" className="size-4" aria-hidden="true" />
             </Link>
           </p>
         </section>
 
-        {/* MB1 — the teams who actually read this page, and the way in by org size.
-            Placed after the operating model has made the case and BEFORE the ask,
-            which is the order every credentialing vendor uses for its segmented
-            story (study §9.4). Small practices and groups route to
-            /employers/request-access; health systems route to /pilot. */}
         <EmployerAudienceSection />
 
-        {/* What this costs (founder ruling, 2026-08-07): the audit's
-            30-second test asked "what do I pay for?" and this page answered
-            with silence, which reads as enterprise-sales friction. Every
-            sentence below is checkable today — collectsPayment:false across
-            all plans (lib/commercial/pricingFoundation.ts), Stripe dark
-            without its key — and the direction sentence is the category
-            strategy's own model (docs/strategy/vitalcv-category-strategy.md:
-            "Employers should pay for outcomes and workflow"), stated without
-            figures because real pricing is set in a signed scope, never on
-            a page. */}
-        <section aria-label="What this costs" data-employer-pricing="" className="mt-9">
-          <p className="mz-eyebrow">What this costs</p>
-          <p className="mz-small" style={{ marginTop: 8, maxWidth: 620 }}>
-            Free for clinicians, always. For organizations: no payment is collected on this
-            site — the pilot costs nothing, and commercial terms are set in a signed scope.
-            When VitalCV charges employers, it charges for outcomes — clinicians who start —
-            not seats or lookups.{' '}
+        <section
+          aria-label="What this costs"
+          data-employer-pricing=""
+          className="mt-16 grid gap-5 border-y border-[var(--vt-border)] py-7 sm:mt-20 sm:grid-cols-[minmax(0,0.7fr)_minmax(0,1.3fr)] sm:py-9"
+        >
+          <div>
+            <p className="mz-eyebrow">Commercial boundary</p>
+            <h2 className="mz-h2 mt-2">No checkout theatre.</h2>
+          </div>
+          <p className="mz-small max-w-2xl">
+            Free for clinicians, always. For organizations: no payment is collected on this site—the pilot costs nothing, and commercial terms are set in a signed scope. When VitalCV charges employers, it charges for outcomes—clinicians who start—not seats or lookups.{' '}
             <Link
               href="/pricing"
               className="font-semibold text-[var(--vt-text-primary)] underline underline-offset-2"
             >
-              Plain terms, stated
+              Read the plain terms
             </Link>
           </p>
         </section>
 
-        {/* The close: same label, same destination as the hero — one intention,
-            one route (audit: three labels for one intention forced a choice
-            without information). */}
-        <section className="mz-card mt-9 p-5 sm:p-6" aria-label="Request organization access">
-          <p className="mz-eyebrow">Ready when you are</p>
-          <h2 className="mz-h2" style={{ marginTop: 8 }}>
-            Request access to your organization
-          </h2>
-          <p className="mz-small" style={{ marginTop: 4, marginBottom: 12, maxWidth: 620 }}>
-            The doorway into the employer experience: resolve your organization against the
-            federal registry and request access — a request that has to be granted, never a
-            claim.
-          </p>
-          <p>
-            <Link href="/employers/request-access" className="mz-btn">
-              Request organization access
-            </Link>
-          </p>
+        <section
+          className="mt-12 grid gap-7 border border-[var(--vt-border)] bg-[var(--vt-surface)] p-6 sm:p-8 lg:grid-cols-[1fr_auto] lg:items-center lg:p-10"
+          aria-label="Request organization access"
+        >
+          <div>
+            <p className="mz-eyebrow">Start with governed access</p>
+            <h2 className="mz-h2 mt-2">Bring the submitted record to your review team.</h2>
+            <p className="mz-small mt-3 max-w-2xl">
+              Resolve the organization against the federal registry, then request access. Identity is the beginning of the request—not authority to act.
+            </p>
+          </div>
+          <Link href="/employers/request-access" className="mz-btn min-h-12 justify-center">
+            Request organization access
+          </Link>
         </section>
 
-        <p className="mt-5 text-center text-xs text-[var(--vt-text-muted)]">
+        <p className="mt-6 text-center text-xs text-[var(--vt-text-muted)]">
           A network or health system?{' '}
           <Link href="/pilot" className="underline underline-offset-2 hover:text-[var(--vt-text-primary)]">
             Request a pilot
