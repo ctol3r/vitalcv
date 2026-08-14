@@ -3,6 +3,42 @@
 Append-only. **Newest entry at the top.** One entry per work order is recorded
 in the same pull request as its implementation or takeover evidence.
 
+## Credential operations core · CVO, licensing, enrollment, privileging — OPEN
+
+- **Date:** 2026-08-14
+- **Claim-check:** No open or merged PR matches the reviewed workflow-template,
+  tenant-owned credential-operations case, or frozen task intent. The remote
+  branch `codex/implement-delegated-credential-attestations` has no PR and is
+  not a repository claim under the lane contract.
+- **Change:** Adds one additive domain substrate for CVO credentialing, state
+  licensing, payer enrollment, facility privileging, recredentialing,
+  reappointment, delegation setup/oversight, and renewal. A human-reviewed,
+  versioned template freezes into a tenant-owned clinician case and task set.
+  Existing `ActivationRequirement` remains the qualified-start roll-up.
+- **Authorization and integrity:** Tenant scope comes only from active,
+  server-resolved workspace membership; body/header organization claims do not
+  participate. Active templates carry a canonical SHA-256 content hash and
+  fail closed if altered before case creation. Case creation is organization-
+  scoped and database-idempotent, with its audit record in the same transaction.
+  Verified clinician subjects and explicit platform admins have bounded reads;
+  foreign and missing cases share a 404.
+- **Data and claim boundary:** JSON ingestion rejects raw SSN-like values and
+  restricted SSN, DOB, health, medical-history, and peer-review keys. The model
+  stores controlled-system references and receipts. No automated external
+  submission, CVO accreditation, delegated approval, nationwide coverage,
+  payer access, privileges, or completed-credentialing claim is introduced.
+- **Verification:** Prisma validation/generation passes; lint passes **2/2**,
+  typecheck **50/50**, and build **35/35**. The aggregate frontend/package gate
+  passes **21/21** tasks, including web **467 files / 4,525 tests**, and the
+  migration-backed real-PostgreSQL backend passes **347 suites / 2,783 tests**,
+  including the new **22-test** route, lifecycle, authorization, and restricted-data
+  coverage. Copy, claim, route-guard, workflow-contract, and deploy-integrity
+  checks pass. Exact-head CI remains required before merge.
+- **Next gate:** Add human-approved task transitions and source-result receipts,
+  then load the exact design-partner rule matrices for launch states, payers,
+  facilities, and professions. Committee and delegation-oversight records are
+  later independently testable bundles.
+
 ## WO-13B-F1 · Mobile source-title containment — OPEN
 
 - **Date:** 2026-08-14
