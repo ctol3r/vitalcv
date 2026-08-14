@@ -69,6 +69,7 @@ describe('WO-13 public opportunity field', () => {
     expect(html).toContain('Recent source observation');
     expect(html).toContain('Not supplied by source');
     expect(html).toContain('View original listing');
+    expect(html).toContain('/opportunities/opp-external');
     expect(html).toContain('https://job-boards.greenhouse.io/example/jobs/123');
     expect(html).not.toContain('Apply with VitalCV');
     expect(html).not.toMatch(/ready now|your readiness|eligib/i);

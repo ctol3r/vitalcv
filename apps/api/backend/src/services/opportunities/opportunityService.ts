@@ -730,7 +730,6 @@ export async function getPublicOpportunityById(
   const opportunity = await prisma.opportunity.findFirst({
     where: {
       id,
-      status: 'ACTIVE',
       // A seeded demo posting is not a real opening — hide it in prod (flag off).
       ...seededOrgExclusionFilter(),
     },

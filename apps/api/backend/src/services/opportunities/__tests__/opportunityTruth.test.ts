@@ -161,6 +161,22 @@ describe('opportunityTruth', () => {
     });
   });
 
+  it('preserves a closed role as an explicit non-actionable availability state', () => {
+    const truth = buildOpportunityTruth({
+      opportunity: {
+        ...makeOpportunityRecord(),
+        status: 'CLOSED',
+      },
+      now: new Date('2026-03-20T00:00:00.000Z'),
+    });
+
+    expect(truth.status).toBe('CLOSED');
+    expect(truth.availability).toMatchObject({
+      state: 'closed',
+      limitation: 'This role is recorded as closed.',
+    });
+  });
+
   it('filters on profession and schedule without creating an eligibility verdict', () => {
     const record = makeOpportunityRecord();
     const truth = buildOpportunityTruth({

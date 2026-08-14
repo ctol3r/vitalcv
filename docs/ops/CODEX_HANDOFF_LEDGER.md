@@ -3,6 +3,69 @@
 Append-only. **Newest entry at the top.** One entry per work order is recorded
 in the same pull request as its implementation or takeover evidence.
 
+## WO-14 · Opportunity detail and signed-in MATCHA — OPEN
+
+- **Date:** 2026-08-14
+- **Claim-check and creative ownership:** No open PR duplicates the WO-14
+  source-preserving public detail, external-versus-integrated action boundary,
+  closed-role receipt, or signed-in MATCHA continuity. Historical #477 is the
+  LANDED baseline this work replaces rather than a competing implementation.
+  Codex is the named creative owner implementing founder-locked Direction D.3;
+  shared public chrome is unchanged.
+- **Change:** Rebuilds `/opportunities/[id]` as a human+tactile editorial role
+  record using the same canonical opportunity truth as `/explore`: real role
+  facts, a provenance-bound documentary crop, tactile source ticket, ruled fact
+  register, and source receipt. The signed-in clinician detail retains that
+  record and adds `Why this may fit`, evidence gaps, uncertainty, and
+  clinician-controlled next steps. Integrated roles continue into the existing
+  disclosure composer rather than a parallel application path.
+- **Truth boundary:** External roles only say `View original listing`; only
+  integrated roles may say `Apply with VitalCV`. Closed direct links remain
+  readable as closed and expose no application action. Missing descriptions,
+  compensation, source pages, observations, and explanation elements remain
+  explicit. No public readiness score, automatic eligibility verdict, hidden
+  employer ranking, inferred sensitive fact, invented requirement, or employer
+  endorsement was added.
+- **Authorization, evidence, and data:** The anonymous detail contract and the
+  signed-in proxy remain unchanged. No new auth route, packet API, decision
+  service, schema, migration, or durable mutation is introduced. The clinician
+  application action reuses the existing preview, selective disclosure,
+  consent, and sealed-packet flow. The detail reader now preserves a closed
+  opportunity's canonical availability truth rather than converting it to a
+  not-found response.
+- **Accessibility and performance:** The committed production-build evidence
+  covers 390, 768, 1440, and 1728 widths, reduced motion, no JavaScript, the one
+  supported public theme, computed typography/contrast, mobile control
+  clearance, and a real scroll recording. Horizontal overflow is 0px; measured
+  contrast is 5.86:1 to 18.71:1; the primary action is 52px high; and three
+  controlled runs record maximum LCP 196ms, CLS 0, and maximum INP 56ms. The
+  route reuses the 167,602-byte WO-13 poster, adds no shipped motion, canvas,
+  WebGL, or animation engine, and keeps evidence facts outside the pixels.
+- **Evidence:**
+  `docs/design/evidence/wo14-opportunity-detail-matcha-2026-08-14/` contains
+  paired 390, 768, 1440, and 1728 before/after frames, the initial mobile
+  viewport, reduced-motion and no-JavaScript frames, a real detail-scroll
+  recording, computed visual/performance measurements, provenance, and the
+  duplicate-intent record. No local Clerk credentials were present, so the
+  authenticated route was not weakened with a bypass to manufacture a frame;
+  signed continuity is source- and component-tested and remains in the
+  controlled post-deploy receipt when an authorized session is available.
+- **Verification:** Focused UI passes **2 files / 11 tests**, including the
+  actual signed-in detail component for external and integrated modes; focused
+  opportunity truth and service coverage passes **2 suites / 20 tests** against real
+  PostgreSQL; and canonical opportunity contract coverage passes **4 files / 246
+  tests**. Zero-warning lint, copy, claims, design, route, design-markdown,
+  typecheck, and full build gates pass. The aggregate passes **467 web files /
+  4,522 tests**; the seven web database-gated files pass **45/45** against
+  ephemeral PostgreSQL 16; and the backend passes **343 suites / 2,759 tests**
+  against the migration-backed harness. Refreshed exact-head CI and `CLEAN`
+  remain required before merge.
+- **Next gate:** Publish this implementation and same-PR ledger receipt, require
+  refreshed-head CI green and `CLEAN`, then squash-merge. Verify Railway web and
+  API `/api/version` at the exact merge SHA and exercise the public detail on
+  desktop and mobile plus the authorized signed detail when a controlled
+  session is available before WO-15.
+
 ## WO-13 · Public opportunity field — OPEN
 
 - **Date:** 2026-08-14

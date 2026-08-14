@@ -1,0 +1,25 @@
+{
+  "profile": "Controlled Chromium, optimized local production build",
+  "runs": [
+    {
+      "lcpMs": 196,
+      "cls": 0,
+      "inpMs": 56
+    },
+    {
+      "lcpMs": 136,
+      "cls": 0,
+      "inpMs": 40
+    },
+    {
+      "lcpMs": 120,
+      "cls": 0,
+      "inpMs": 40
+    }
+  ],
+  "acceptanceSummary": {
+    "maxLcpMs": 196,
+    "maxCls": 0,
+    "maxInpMs": 56
+  }
+}

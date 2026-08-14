@@ -1,10 +1,11 @@
 import type { Metadata } from 'next';
 import OpportunityDetailSurface from './OpportunityDetailSurface';
+import '@/styles/opportunity-detail.css';
 
 export const metadata: Metadata = {
   title: 'Role Detail',
   description:
-    'Role detail with your deterministic match explanation — why you fit, what would strengthen the match, and one-tap apply with your VitalCV.',
+    'Review why a clinical role may fit, what evidence gaps and uncertainty remain, and choose the next step.',
 };
 
 // Auth + workspace data come from the /holder layout (Clerk gate + provider).
