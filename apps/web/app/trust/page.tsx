@@ -150,7 +150,7 @@ export default async function TrustCenterPage() {
             {[
               { t: 'You own it', d: 'Your profile, source checks, and receipts live in a record you own — not an employer’s filing cabinet. It leaves with you.' },
               { t: 'Sharing is explicit', d: 'Nothing is shared until you share it. A shared proof packet names exactly what the recipient can see.' },
-              { t: 'Corrections have a path', d: 'When a source value is wrong, you can flag it and attach supporting evidence — prior evidence and timestamps are preserved, never silently overwritten.' },
+              { t: 'Source records stay attributable', d: 'Source-backed values retain their source and read time. You can add self-attested information to your profile; VitalCV does not silently replace source records.' },
               { t: 'Consent is withdrawable', d: 'Access you grant can be withdrawn; each open and each acceptance is recorded in your activity.' },
             ].map((c) => (
               <div key={c.t} className="rounded-[10px] border border-[var(--vt-border)] px-5 py-4">

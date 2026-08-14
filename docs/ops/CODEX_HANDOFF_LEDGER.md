@@ -3,6 +3,22 @@
 Append-only. **Newest entry at the top.** One entry per work order is recorded
 in the same pull request as its implementation or takeover evidence.
 
+## WO-10 · Trust Center source-record copy correction
+
+- **Date:** 2026-08-12
+- **Claim-check:** Checked open and recently merged pull requests plus remote
+  trust-copy branches before editing. The older `hotfix/employer-trust-copy`
+  and `trust-copy-pass` branches do not change this control card or its test.
+- **Change:** Replaces the unsupported clinician source-observation correction
+  promise with the exact implemented boundary: source-backed values retain their
+  source and read time; clinicians may add self-attested profile information;
+  VitalCV does not silently replace source records.
+- **Verification:** The focused Trust Center test was run RED against the old
+  card, then GREEN after the copy replacement. `pnpm check:copy` and `pnpm
+  check:claims` cover the resulting public copy.
+- **Scope boundary:** No clinician correction, review, attachment, overwrite, or
+  dispute workflow was added.
+
 ## WO-4 · Remediate #1369 disclosure-boundary review findings — IMPLEMENTED LOCALLY, UNPUSHED
 
 - **Date:** 2026-08-12
