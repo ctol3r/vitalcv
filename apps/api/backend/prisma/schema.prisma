@@ -477,6 +477,8 @@ model Organization {
   updatedAt DateTime @updatedAt
   opportunities Opportunity[]
   organizationProfile OrganizationProfile?
+  credentialOpsTemplates CredentialOpsWorkflowTemplate[]
+  credentialOpsCases CredentialOperationsCase[]
 }
 
 model Opportunity {
@@ -2010,6 +2012,7 @@ model Application {
   sealedPacketVersion Int?        @map("sealed_packet_version")
   packets       ApplicationPacket[]
   activationRequirements ActivationRequirement[]
+  credentialOpsCases CredentialOperationsCase[]
   opportunity   Opportunity       @relation(fields: [opportunityId], references: [id])
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
@@ -2105,6 +2108,7 @@ model ActivationRequirement {
   updatedAt           DateTime  @updatedAt @map("updated_at")
 
   application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  credentialOpsCase CredentialOperationsCase?
 
   @@index([applicationId])
   @@index([organizationId])
@@ -2154,6 +2158,7 @@ model StartActivation {
   createdAt          DateTime  @default(now()) @map("created_at")
   activatedAt        DateTime? @map("activated_at")
   metadata           Json?
+  credentialOpsCases CredentialOperationsCase[]
 
   // StartMission is a domain aggregate over this sidecar, not a competing table.
   applicationId      String?   @unique @map("application_id") @db.Uuid
@@ -2172,6 +2177,138 @@ model StartActivation {
   @@index([opportunityId])
   @@index([activationState, intendedStartDate])
   @@map("start_activations")
+}
+
+/// A reviewed, versioned source of operational requirements. ACTIVE versions
+/// are immutable inputs to cases; edits require a new version so historical
+/// case work can always be replayed against the rules in force at creation.
+model CredentialOpsWorkflowTemplate {
+  id                  String                      @id @default(uuid()) @db.Uuid
+  scopeKey            String                      @map("scope_key")
+  organizationId      String?                     @map("organization_id") @db.Uuid
+  templateKey         String                      @map("template_key")
+  version             Int
+  caseType            CredentialOpsCaseType       @map("case_type")
+  targetKind          CredentialOpsTargetKind     @map("target_kind")
+  targetAuthorityName String                      @map("target_authority_name")
+  jurisdiction        String?
+  professionCodes     String[]                    @map("profession_codes")
+  status              CredentialOpsTemplateStatus @default(DRAFT)
+  sourceReferences    Json                        @map("source_references")
+  effectiveAt         DateTime                    @map("effective_at")
+  expiresAt           DateTime?                   @map("expires_at")
+  reviewedBy          String?                     @map("reviewed_by")
+  reviewedAt          DateTime?                   @map("reviewed_at")
+  contentHash         String?                     @map("content_hash")
+  createdBy           String                      @map("created_by")
+  createdAt           DateTime                    @default(now()) @map("created_at")
+  updatedAt           DateTime                    @updatedAt @map("updated_at")
+
+  organization Organization?                      @relation(fields: [organizationId], references: [id])
+  requirements CredentialOpsTemplateRequirement[]
+  cases        CredentialOperationsCase[]
+
+  @@unique([scopeKey, templateKey, version], map: "credential_ops_templates_scope_key_version_uq")
+  @@index([status, caseType, effectiveAt], map: "credential_ops_templates_active_lookup_idx")
+  @@index([organizationId], map: "credential_ops_templates_org_idx")
+  @@map("credential_ops_workflow_templates")
+}
+
+model CredentialOpsTemplateRequirement {
+  id             String                       @id @default(uuid()) @db.Uuid
+  templateId     String                       @map("template_id") @db.Uuid
+  requirementKey String                       @map("requirement_key")
+  label          String
+  category       CredentialOpsTaskCategory
+  owner          CredentialOpsTaskOwner
+  necessity      CredentialOpsTaskNecessity   @default(REQUIRED)
+  evidenceRule   Json                         @default("{}") @map("evidence_rule")
+  dependencyKeys String[]                     @map("dependency_keys")
+  dueOffsetDays  Int?                         @map("due_offset_days")
+  dataHandling   CredentialOpsDataHandling    @default(STANDARD) @map("data_handling")
+  sortOrder      Int                          @default(0) @map("sort_order")
+  createdAt      DateTime                     @default(now()) @map("created_at")
+
+  template CredentialOpsWorkflowTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  @@unique([templateId, requirementKey], map: "credential_ops_template_requirements_key_uq")
+  @@index([templateId, sortOrder], map: "credential_ops_template_requirements_order_idx")
+  @@map("credential_ops_template_requirements")
+}
+
+/// A tenant-owned operational case for one clinician identity and one frozen
+/// workflow-template version. It may feed an ActivationRequirement, but it does
+/// not replace that qualified-start roll-up.
+model CredentialOperationsCase {
+  id                      String                  @id @default(uuid()) @db.Uuid
+  organizationId          String                  @map("organization_id") @db.Uuid
+  subjectEntityId         String                  @map("subject_entity_id") @db.Uuid
+  subjectNpiSnapshot      String?                 @map("subject_npi_snapshot")
+  workflowTemplateId      String                  @map("workflow_template_id") @db.Uuid
+  workflowTemplateHash    String                  @map("workflow_template_hash")
+  caseType                CredentialOpsCaseType   @map("case_type")
+  professionCode          String                  @map("profession_code")
+  targetKind              CredentialOpsTargetKind @map("target_kind")
+  targetAuthoritySnapshot Json                    @map("target_authority_snapshot")
+  state                   CredentialOpsCaseState  @default(INTAKE)
+  applicationId           String?                 @map("application_id") @db.Uuid
+  activationRequirementId String?                 @unique @map("activation_requirement_id") @db.Uuid
+  startActivationId       String?                 @map("start_activation_id") @db.Uuid
+  idempotencyKey          String                  @map("idempotency_key")
+  createdBy               String                  @map("created_by")
+  metadata                Json                    @default("{}")
+  openedAt                DateTime                @default(now()) @map("opened_at")
+  targetDueAt             DateTime?               @map("target_due_at")
+  closedAt                DateTime?               @map("closed_at")
+  createdAt               DateTime                @default(now()) @map("created_at")
+  updatedAt               DateTime                @updatedAt @map("updated_at")
+
+  organization          Organization                  @relation(fields: [organizationId], references: [id])
+  subject               VcvEntity                     @relation(fields: [subjectEntityId], references: [id])
+  workflowTemplate      CredentialOpsWorkflowTemplate @relation(fields: [workflowTemplateId], references: [id])
+  application           Application?                  @relation(fields: [applicationId], references: [id])
+  activationRequirement ActivationRequirement?        @relation(fields: [activationRequirementId], references: [id])
+  startActivation       StartActivation?              @relation(fields: [startActivationId], references: [id])
+  tasks                 CredentialOpsCaseTask[]
+
+  @@unique([organizationId, idempotencyKey], map: "credential_ops_cases_org_idempotency_uq")
+  @@index([organizationId, state, updatedAt], map: "credential_ops_cases_queue_idx")
+  @@index([subjectEntityId, updatedAt], map: "credential_ops_cases_subject_idx")
+  @@index([workflowTemplateId], map: "credential_ops_cases_template_idx")
+  @@index([applicationId], map: "credential_ops_cases_application_idx")
+  @@index([startActivationId], map: "credential_ops_cases_start_activation_idx")
+  @@map("credential_operations_cases")
+}
+
+/// Frozen task snapshot seeded from a reviewed template. Evidence payloads are
+/// references/receipts only; restricted credentialing values remain external.
+model CredentialOpsCaseTask {
+  id             String                     @id @default(uuid()) @db.Uuid
+  caseId         String                     @map("case_id") @db.Uuid
+  requirementKey String                     @map("requirement_key")
+  label          String
+  category       CredentialOpsTaskCategory
+  owner          CredentialOpsTaskOwner
+  necessity      CredentialOpsTaskNecessity
+  state          CredentialOpsTaskState     @default(NOT_STARTED)
+  evidenceRule   Json                       @map("evidence_rule")
+  dependencyKeys String[]                   @map("dependency_keys")
+  dataHandling   CredentialOpsDataHandling  @map("data_handling")
+  dueAt          DateTime?                  @map("due_at")
+  externalRef    String?                    @map("external_ref")
+  receiptRef     String?                    @map("receipt_ref")
+  resolvedBy     String?                    @map("resolved_by")
+  resolvedAt     DateTime?                  @map("resolved_at")
+  resolutionNote String?                    @map("resolution_note")
+  sortOrder      Int                        @default(0) @map("sort_order")
+  createdAt      DateTime                   @default(now()) @map("created_at")
+  updatedAt      DateTime                   @updatedAt @map("updated_at")
+
+  case CredentialOperationsCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  @@unique([caseId, requirementKey], map: "credential_ops_case_tasks_key_uq")
+  @@index([caseId, state, sortOrder], map: "credential_ops_case_tasks_queue_idx")
+  @@map("credential_ops_case_tasks")
 }
 
 /// A field/claim-scoped authorization. Revocation is a state, never a deletion.
@@ -3516,6 +3653,7 @@ model VcvEntity {
   employerDecisionEvents  EmployerDecisionEvent[]  @relation("employer_decision_entity")
   organizationContexts     VcvOrganizationContext[] @relation("org_context_requestor")
   startOutcomeEvents      StartOutcomeEvent[]      @relation("start_outcome_entity")
+  credentialOpsCases      CredentialOperationsCase[]
 
   @@index([npi])
   @@index([entityType], map: "vcv_entities_type_idx")
@@ -3967,6 +4105,92 @@ enum MembershipRole {
   ADMIN
   RECRUITER
   CREDENTIALING_SPECIALIST
+}
+
+enum CredentialOpsCaseType {
+  CVO_CREDENTIALING
+  STATE_LICENSING
+  PAYER_ENROLLMENT
+  FACILITY_PRIVILEGING
+  RECREDENTIALING
+  REAPPOINTMENT
+  DELEGATION_SETUP
+  DELEGATION_OVERSIGHT
+  RENEWAL
+}
+
+enum CredentialOpsTargetKind {
+  CREDENTIALING_PROGRAM
+  STATE_BOARD
+  PAYER
+  FACILITY
+  DELEGATION_PROGRAM
+}
+
+enum CredentialOpsTemplateStatus {
+  DRAFT
+  ACTIVE
+  RETIRED
+}
+
+enum CredentialOpsCaseState {
+  INTAKE
+  IN_PROGRESS
+  WAITING_ON_CLINICIAN
+  WAITING_ON_ORGANIZATION
+  WAITING_ON_SOURCE
+  READY_FOR_REVIEW
+  UNDER_REVIEW
+  SUBMITTED
+  EXTERNAL_REVIEW
+  DECIDED
+  CLOSED
+  CANCELLED
+}
+
+enum CredentialOpsTaskCategory {
+  EVIDENCE
+  POLICY
+  APPLICATION
+  SUBMISSION
+  FOLLOW_UP
+  COMMITTEE
+  MONITORING
+  MANUAL_REVIEW
+}
+
+enum CredentialOpsTaskOwner {
+  CLINICIAN
+  CUSTOMER_OPERATOR
+  VITALCV_OPERATOR
+  PARTNER_REVIEWER
+  COMMITTEE
+  SYSTEM
+}
+
+enum CredentialOpsTaskNecessity {
+  REQUIRED
+  PREFERRED
+}
+
+enum CredentialOpsTaskState {
+  NOT_STARTED
+  READY
+  IN_PROGRESS
+  WAITING
+  SUBMITTED
+  UNDER_REVIEW
+  COMPLETED
+  WAIVED
+  NOT_APPLICABLE
+  BLOCKED
+  EXPIRED
+}
+
+enum CredentialOpsDataHandling {
+  STANDARD
+  REFERENCE_ONLY
+  EXTERNAL_ONLY
 }
 
 enum EmployerHiringStatus {

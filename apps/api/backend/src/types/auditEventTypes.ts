@@ -68,6 +68,13 @@ export type ActivationEventType =
   | 'START_RECORDED'
   | 'START_CANCELLED';
 
+// ── Credential operations core ──────────────────────────────
+export type CredentialOpsEventType =
+  | 'CREDENTIAL_OPS_TEMPLATE_DRAFTED'
+  | 'CREDENTIAL_OPS_TEMPLATE_ACTIVATED'
+  | 'CREDENTIAL_OPS_CASE_CREATED'
+  | 'CREDENTIAL_OPS_CASE_VIEWED';
+
 // ── Canonical union ──────────────────────────────────────────
 export type AuditEventType =
   | VerificationEventType
@@ -77,4 +84,5 @@ export type AuditEventType =
   | TrustChainEventType
   | OperationalEventType
   | ResearchEventType
-  | ActivationEventType;
+  | ActivationEventType
+  | CredentialOpsEventType;

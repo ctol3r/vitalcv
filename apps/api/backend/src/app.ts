@@ -158,6 +158,7 @@ import { registerOpportunityRoutes } from './routes/opportunities';          // 
 import { registerMatchaRoutes } from './routes/matcha';                      // Wave K: MATCHA demand-side engine
 import { registerApplicationRoutes } from './routes/applications';            // Wave 229: Application Flow
 import { registerActivationRoutes } from './routes/activation';               // ACT-7.3: Activation ledger + start-state HTTP surface
+import { registerCredentialOpsRoutes } from './routes/credentialOps';         // Credential operations: reviewed templates + tenant-owned cases
 import { registerAskRoutes } from './routes/ask';                           // Wave 185: Ask VitalCV answer engine
 import { registerCopilotRoutes } from './routes/copilot';                   // Waves C25-C28: Copilot query engine
 import { registerInvestigationRoutes } from './routes/investigation';        // Wave INV: Investigation engine
@@ -3699,6 +3700,7 @@ registerOpportunityRoutes(app);       // Wave 227 — Opportunities + Candidates
 registerMatchaRoutes(app);            // Wave K — MATCHA demand-side engine (was built + tested but never mounted)
 registerApplicationRoutes(app);       // Wave 229 — Clinician Application Flow
 registerActivationRoutes(app);        // ACT-7.3 — mounts the activation requirement ledger + start-state services
+registerCredentialOpsRoutes(app);     // Credential operations core — CVO, licensing, enrollment, privileging
 registerAskRoutes(app);               // Wave 185 — Ask VitalCV natural language answer engine
 registerCopilotRoutes(app);           // Waves C25-C28 — Copilot query engine
 registerInvestigationRoutes(app);    // Wave INV — Investigation engine
