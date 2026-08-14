@@ -101,6 +101,12 @@ function CaseBody({ data, dark }: { data: HireToStartCase; dark: boolean }) {
                         {normalized(requirement.owner)} owns this · {normalized(requirement.necessity)}
                         {requirement.dueAt ? ` · due ${formatDate(requirement.dueAt)}` : ''}
                       </p>
+                      {requirement.externalSourceSystem ? (
+                        <p className={`mt-1 text-xs ${secondary}`}>
+                          {requirement.externalSourceSystem} · {requirement.externalObjectType} · observed {formatDate(requirement.externalObservedAt)}
+                        </p>
+                      ) : null}
+                      {requirement.externalLimitation ? <p className={`mt-1 text-xs leading-5 ${secondary}`}>{requirement.externalLimitation}</p> : null}
                     </div>
                     <span className={`shrink-0 rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-wide ${isResolved(requirement) ? 'border-emerald-500/30 text-emerald-500' : 'border-amber-500/30 text-amber-500'}`}>
                       {normalized(requirement.status)}
@@ -132,7 +138,17 @@ function CaseBody({ data, dark }: { data: HireToStartCase; dark: boolean }) {
         <ExternalLink className={`mt-0.5 h-4 w-4 shrink-0 ${secondary}`} aria-hidden="true" />
         <div>
           <p className={`text-xs font-semibold uppercase tracking-[0.12em] ${secondary}`}>External system sync</p>
-          <p className={`mt-1 text-sm ${primary}`}>Not configured for this case</p>
+          <p className={`mt-1 text-sm ${primary}`}>{data.externalSystemSync.state === 'not_configured' ? 'Not configured for this case' : normalized(data.externalSystemSync.state)}</p>
+          {data.externalSystemSync.lastEventAt ? <p className={`mt-1 text-xs ${secondary}`}>Last event {formatDate(data.externalSystemSync.lastEventAt, true)}</p> : null}
+          {data.externalSystemSync.sources.length > 0 ? (
+            <ul className={`mt-2 text-xs leading-5 ${secondary}`}>
+              {data.externalSystemSync.sources.map((source) => (
+                <li key={`${source.sourceSystem}:${source.objectType}:${source.externalIdentifier}`}>
+                  {source.sourceSystem} · {source.objectType} · last observed {formatDate(source.lastObservedAt, true)}
+                </li>
+              ))}
+            </ul>
+          ) : null}
           <p className={`mt-1 text-xs leading-5 ${secondary}`}>{data.externalSystemSync.limitations.join(' ')}</p>
         </div>
       </div>

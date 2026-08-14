@@ -6,6 +6,7 @@ import {
 } from './applicationService';
 import { HttpError } from '../../utils/httpError';
 import { sha256ForPayload } from '../../utils/deterministic';
+import { enqueueHireToStartOutboundEvent } from '../integrations/hireToStartOutbox';
 import { parseOrganizationRequirementsEnvelope } from '../employers/pilotPolicy';
 import type { EmployerRequirementSpec } from '../employers/employerCatalog';
 import {
@@ -1098,6 +1099,23 @@ export async function runEmployerWorkflowAction(input: {
       },
     });
     decisionOutboxEventId = decisionOutbox.id;
+
+    await enqueueHireToStartOutboundEvent(workflowTx, {
+      eventType: 'HIRE_TO_START_DECISION_RECORDED',
+      applicationId: application.id,
+      organizationId: application.employer.organizationId,
+      occurredAt: now,
+      dedupeKey: `HIRE_TO_START_DECISION_RECORDED:${application.id}:${nextStatus}`,
+      data: {
+        decision: decisionAction,
+        applicationStatus: nextStatus,
+        packetVersion: submission?.packetVersion ?? null,
+        packetHash: submission?.packetHash ?? null,
+        acceptanceId,
+        startActivationId,
+        institutionReviewRemains: true,
+      },
+    });
   });
 
   const updatedApplication = await getEmployerWorkflowApplication(

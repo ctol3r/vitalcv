@@ -34,6 +34,7 @@ import {
   type ClinicianTrustState,
 } from '../trust/trustStateEngine';
 import { HttpError } from '../../utils/httpError';
+import { enqueueHireToStartOutboundEvent } from '../integrations/hireToStartOutbox';
 import {
   buildFieldEntriesFromTrustState,
   buildSectionAbsencesFromTrustState,
@@ -476,6 +477,20 @@ export async function applyToOpportunity(input: ApplyInput): Promise<Marketplace
           packet_hash: sealed.packetHash,
           consent_receipt_id: sealed.consentReceiptId,
         },
+      },
+    });
+
+    await enqueueHireToStartOutboundEvent(tx, {
+      eventType: 'HIRE_TO_START_APPLICATION_SUBMITTED',
+      applicationId: row.id,
+      organizationId: opp.organizationId,
+      occurredAt: consentAt,
+      dedupeKey: `HIRE_TO_START_APPLICATION_SUBMITTED:${row.id}:${sealed.packetVersion}`,
+      data: {
+        opportunityId,
+        packetVersion: sealed.packetVersion,
+        packetHash: sealed.packetHash,
+        opportunityVersion: sealed.opportunityVersion ?? null,
       },
     });
 

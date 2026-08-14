@@ -68,6 +68,12 @@ export type ActivationEventType =
   | 'START_RECORDED'
   | 'START_CANCELLED';
 
+// ── Hire-to-start integration receipts ─────────────────────
+export type HireToStartIntegrationEventType =
+  | 'INTEGRATION_EXTERNAL_REFERENCE_RECORDED'
+  | 'INTEGRATION_REQUIREMENT_STATUS_RECORDED'
+  | 'INTEGRATION_ROLE_IMPORTED';
+
 // ── Canonical union ──────────────────────────────────────────
 export type AuditEventType =
   | VerificationEventType
@@ -77,4 +83,5 @@ export type AuditEventType =
   | TrustChainEventType
   | OperationalEventType
   | ResearchEventType
-  | ActivationEventType;
+  | ActivationEventType
+  | HireToStartIntegrationEventType;

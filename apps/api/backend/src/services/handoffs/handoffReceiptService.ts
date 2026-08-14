@@ -2,6 +2,10 @@ import { Prisma, type PrismaClient } from '@prisma/client';
 
 import prisma from '../../graphql/prisma_client';
 import { sha256ForPayload } from '../../utils/deterministic';
+import {
+  enqueueHireToStartOutboundEvent,
+  type HireToStartOutboxWriter,
+} from '../integrations/hireToStartOutbox';
 
 export type HandoffReceiptStatus =
   | 'delivered'
@@ -46,7 +50,7 @@ export interface HandoffReceiptRecord {
   issuedAt: Date;
 }
 
-export interface HandoffReceiptTransaction {
+export interface HandoffReceiptTransaction extends HireToStartOutboxWriter {
   auditEvent: {
     create(args: { data: Record<string, unknown> }): Promise<{ id: string }>;
   };
@@ -139,7 +143,7 @@ export async function issueHandoffReceiptInTransaction(
     },
   });
 
-  return tx.handoffReceipt.create({
+  const receipt = await tx.handoffReceipt.create({
     data: {
       handoffId: canonical.handoffId,
       attemptNumber: canonical.attemptNumber,
@@ -167,6 +171,26 @@ export async function issueHandoffReceiptInTransaction(
       metadata: asJson(input.metadata ?? {}),
     },
   });
+
+  if (canonical.status === 'delivered' && canonical.applicationId && canonical.recipientOrganizationId) {
+    await enqueueHireToStartOutboundEvent(tx, {
+      eventType: 'HIRE_TO_START_PACKET_DELIVERED',
+      applicationId: canonical.applicationId,
+      organizationId: canonical.recipientOrganizationId,
+      occurredAt: input.deliveredAt as Date,
+      dedupeKey: `HIRE_TO_START_PACKET_DELIVERED:${canonical.applicationId}:${canonical.handoffId}:${canonical.attemptNumber}`,
+      data: {
+        handoffReceiptId: receipt.id,
+        packetId: canonical.packetId,
+        packetHash: canonical.packetHash,
+        channel: canonical.channel,
+        deliveryStatus: canonical.status,
+        deliveryDoesNotImplyReview: true,
+      },
+    });
+  }
+
+  return receipt;
 }
 
 export async function issueHandoffReceipt(

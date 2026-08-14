@@ -67,6 +67,11 @@ function mission(overrides: Record<string, unknown> = {}) {
         resolvedBy: null,
         resolvedAt: null,
         policyVersion: 'policy-1',
+        externalSourceSystem: null,
+        externalObjectType: null,
+        externalIdentifier: null,
+        externalObservedAt: null,
+        externalLimitation: null,
       }],
       verificationRequests: [],
       recentCommunications: [],
@@ -119,6 +124,8 @@ function record(overrides: Record<string, unknown> = {}) {
       { type: 'APPLICATION_REVIEW_STARTED', createdAt: new Date('2026-08-14T10:30:00.000Z') },
       { type: 'APPLICATION_DECISION_RECORDED', createdAt: new Date('2026-08-14T11:00:00.000Z') },
     ],
+    externalReferences: [],
+    latestIntegrationEvent: null,
     ...overrides,
   };
 }
@@ -160,6 +167,7 @@ describe('readHireToStartCase', () => {
     expect(result.externalSystemSync).toEqual({
       state: 'not_configured',
       lastEventAt: null,
+      sources: [],
       limitations: ['No external ATS or credentialing event source is configured for this case.'],
     });
     expect(result).not.toHaveProperty('reviewNote');

@@ -24,6 +24,11 @@ export interface HireToStartRequirement {
   resolvedBy: string | null;
   resolvedAt: string | null;
   policyVersion: string | null;
+  externalSourceSystem: string | null;
+  externalObjectType: string | null;
+  externalIdentifier: string | null;
+  externalObservedAt: string | null;
+  externalLimitation: string | null;
 }
 
 export interface HireToStartCase {
@@ -91,8 +96,14 @@ export interface HireToStartCase {
     occurredAt: string;
   }>;
   externalSystemSync: {
-    state: 'not_configured';
-    lastEventAt: null;
+    state: 'not_configured' | 'fresh' | 'stale' | 'failed' | 'unavailable';
+    lastEventAt: string | null;
+    sources: Array<{
+      sourceSystem: string;
+      objectType: string;
+      externalIdentifier: string;
+      lastObservedAt: string;
+    }>;
     limitations: string[];
   };
   limitations: string[];

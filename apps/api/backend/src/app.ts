@@ -157,6 +157,7 @@ import { leieCacheStats }               from './services/identity/leieCache'; //
 import { registerOpportunityRoutes } from './routes/opportunities';          // Wave 227: Opportunities + Candidates
 import { registerMatchaRoutes } from './routes/matcha';                      // Wave K: MATCHA demand-side engine
 import { registerApplicationRoutes } from './routes/applications';            // Wave 229: Application Flow
+import { registerHireToStartIntegrationRoutes } from './routes/hireToStartIntegrations';
 import { registerActivationRoutes } from './routes/activation';               // ACT-7.3: Activation ledger + start-state HTTP surface
 import { registerAskRoutes } from './routes/ask';                           // Wave 185: Ask VitalCV answer engine
 import { registerCopilotRoutes } from './routes/copilot';                   // Waves C25-C28: Copilot query engine
@@ -3547,6 +3548,9 @@ app.use(
       'x-user-role',
       'x-verifier-role',
       'x-clerk-user-id',
+      'x-vitalcv-key-id',
+      'x-vitalcv-timestamp',
+      'x-vitalcv-signature',
     ],
     credentials: corsOrigin !== '*',
   }),
@@ -3698,6 +3702,7 @@ app.get('/api/leie/status', (_req, res) => { res.json(leieCacheStats()); });
 registerOpportunityRoutes(app);       // Wave 227 — Opportunities + Candidates
 registerMatchaRoutes(app);            // Wave K — MATCHA demand-side engine (was built + tested but never mounted)
 registerApplicationRoutes(app);       // Wave 229 — Clinician Application Flow
+registerHireToStartIntegrationRoutes(app); // Signed vendor-neutral hire-to-start inbox
 registerActivationRoutes(app);        // ACT-7.3 — mounts the activation requirement ledger + start-state services
 registerAskRoutes(app);               // Wave 185 — Ask VitalCV natural language answer engine
 registerCopilotRoutes(app);           // Waves C25-C28 — Copilot query engine

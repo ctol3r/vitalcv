@@ -2010,6 +2010,8 @@ model Application {
   sealedPacketVersion Int?        @map("sealed_packet_version")
   packets       ApplicationPacket[]
   activationRequirements ActivationRequirement[]
+  externalReferences ApplicationExternalReference[]
+  integrationInboxEvents IntegrationInboxEvent[]
   opportunity   Opportunity       @relation(fields: [opportunityId], references: [id])
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
@@ -2101,6 +2103,13 @@ model ActivationRequirement {
   resolvedBy          String?   @map("resolved_by")
   resolvedAt          DateTime? @map("resolved_at")
   policyVersion       String?   @map("policy_version")
+  /// Operational status received from an external system. This is never
+  /// promoted into clinician evidence or treated as institutional approval.
+  externalSourceSystem String?  @map("external_source_system")
+  externalObjectType   String?  @map("external_object_type")
+  externalIdentifier   String?  @map("external_identifier")
+  externalObservedAt   DateTime? @map("external_observed_at")
+  externalLimitation   String?  @map("external_limitation")
   createdAt           DateTime  @default(now()) @map("created_at")
   updatedAt           DateTime  @updatedAt @map("updated_at")
 
@@ -2110,6 +2119,59 @@ model ActivationRequirement {
   @@index([organizationId])
   @@index([status])
   @@map("activation_requirements")
+}
+
+/// Durable mapping between a VitalCV application and the corresponding object
+/// in an ATS, credentialing platform, HRIS, or other partner system. A mapping
+/// is organization-scoped; an external id supplied by one tenant can never bind
+/// an application owned by another tenant.
+model ApplicationExternalReference {
+  id                 String   @id @default(uuid()) @db.Uuid
+  applicationId      String   @map("application_id") @db.Uuid
+  organizationId     String   @map("organization_id") @db.Uuid
+  sourceSystem       String   @map("source_system")
+  objectType         String   @map("object_type")
+  externalIdentifier String   @map("external_identifier")
+  firstObservedAt    DateTime @map("first_observed_at")
+  lastObservedAt     DateTime @map("last_observed_at")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, sourceSystem, objectType, externalIdentifier], map: "application_external_references_external_uq")
+  @@unique([applicationId, organizationId, sourceSystem, objectType], map: "application_external_references_application_uq")
+  @@index([applicationId])
+  @@index([organizationId, sourceSystem])
+  @@map("application_external_references")
+}
+
+/// Immutable inbound receipt plus mutable processing state. The signed
+/// envelope, normalized payload, and payload hash are never rewritten; only the
+/// processing fields advance. Duplicate external event ids are replay-safe.
+model IntegrationInboxEvent {
+  id                 String    @id @default(uuid()) @db.Uuid
+  organizationId     String    @map("organization_id") @db.Uuid
+  applicationId      String?   @map("application_id") @db.Uuid
+  sourceSystem       String    @map("source_system")
+  externalEventId    String    @map("external_event_id")
+  eventType          String    @map("event_type")
+  payload            Json
+  payloadHash        String    @map("payload_hash")
+  signatureKeyId     String    @map("signature_key_id") @db.Uuid
+  occurredAt         DateTime  @map("occurred_at")
+  receivedAt         DateTime  @default(now()) @map("received_at")
+  processingState    String    @default("RECEIVED") @map("processing_state")
+  processedAt        DateTime? @map("processed_at")
+  processingError    String?   @map("processing_error")
+  outboxEventId      String?   @map("outbox_event_id") @db.Uuid
+
+  application Application? @relation(fields: [applicationId], references: [id], onDelete: SetNull)
+
+  @@unique([organizationId, sourceSystem, externalEventId], map: "integration_inbox_events_external_uq")
+  @@index([organizationId, processingState, receivedAt])
+  @@index([applicationId, occurredAt])
+  @@map("integration_inbox_events")
 }
 
 model EmployerAcceptance {

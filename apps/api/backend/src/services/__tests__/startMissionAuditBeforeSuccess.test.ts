@@ -169,6 +169,12 @@ describe('Start Mission audit-before-success writes', () => {
           };
         },
       },
+      outboxEvent: {
+        async upsert() {
+          order.push('outbox');
+          return { id: '4b6f0000-0000-4000-8000-000000000008' };
+        },
+      },
     };
 
     await issueHandoffReceiptInTransaction(tx, {
@@ -186,7 +192,7 @@ describe('Start Mission audit-before-success writes', () => {
       issuedAt: new Date('2026-07-30T12:02:00.000Z'),
     });
 
-    expect(order).toEqual(['audit', 'receipt']);
+    expect(order).toEqual(['audit', 'receipt', 'outbox']);
   });
 
   it('does not issue a handoff receipt when its audit fails', async () => {
@@ -196,6 +202,11 @@ describe('Start Mission audit-before-success writes', () => {
       handoffReceipt: {
         async create() {
           receiptCalled = true;
+          throw new Error('must not run');
+        },
+      },
+      outboxEvent: {
+        async upsert() {
           throw new Error('must not run');
         },
       },
