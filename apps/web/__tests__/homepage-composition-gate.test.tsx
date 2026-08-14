@@ -104,4 +104,24 @@ describe('homepage composition gate (W0.2)', () => {
     }
     expect(html).toContain('Your employer receives the exact record you approve.');
   });
+
+  it('Direction D.1 makes the career opportunity and full acceptance loop visible', () => {
+    const html = renderHomepageHtml();
+    expect(html).toContain('data-home-human-scene');
+    expect(html).toContain('data-home-opportunity-horizon');
+    expect(html).toContain('data-home-mobility-sequence');
+    for (const step of [
+      'Your record',
+      'Opportunity',
+      'Your choice',
+      'Exact packet',
+      'Employer review',
+      'Accepted head start',
+      'Reuse',
+    ]) {
+      expect(html, `career-mobility step "${step}" missing`).toContain(step);
+    }
+    expect(html).toContain('Only after the employer records that decision.');
+    expect(html).toContain('Fresh clinician consent is required next time.');
+  });
 });

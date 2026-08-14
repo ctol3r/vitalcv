@@ -1,0 +1,86 @@
+{
+  "measuredAt": "2026-08-14T07:37:37.908Z",
+  "browser": "Chromium production build",
+  "viewports": [
+    {
+      "width": 390,
+      "height": 844,
+      "horizontalOverflowPx": 0,
+      "h1": {
+        "fontFamily": "fraunces, \"fraunces Fallback\", Georgia, \"Times New Roman\", serif",
+        "fontSize": "46.8px",
+        "fontWeight": "500",
+        "lineHeight": "45.864px"
+      }
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "horizontalOverflowPx": 0,
+      "h1": {
+        "fontFamily": "fraunces, \"fraunces Fallback\", Georgia, \"Times New Roman\", serif",
+        "fontSize": "68px",
+        "fontWeight": "500",
+        "lineHeight": "66.64px"
+      }
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "horizontalOverflowPx": 0,
+      "h1": {
+        "fontFamily": "fraunces, \"fraunces Fallback\", Georgia, \"Times New Roman\", serif",
+        "fontSize": "43px",
+        "fontWeight": "500",
+        "lineHeight": "42.14px"
+      }
+    },
+    {
+      "width": 1728,
+      "height": 1117,
+      "horizontalOverflowPx": 0,
+      "h1": {
+        "fontFamily": "fraunces, \"fraunces Fallback\", Georgia, \"Times New Roman\", serif",
+        "fontSize": "43px",
+        "fontWeight": "500",
+        "lineHeight": "42.14px"
+      }
+    }
+  ],
+  "themeContract": {
+    "className": "__variable_9471b9 __variable_6fa4e4 __variable_ec48ec light",
+    "forcedTheme": "light-only (apps/web/app/providers.tsx)"
+  },
+  "contrast": {
+    "headline": {
+      "foreground": "rgb(19, 18, 17)",
+      "background": "rgb(247, 246, 243)",
+      "contrast": 17.31
+    },
+    "lede": {
+      "foreground": "rgb(92, 88, 82)",
+      "background": "rgb(247, 246, 243)",
+      "contrast": 6.54
+    },
+    "eyebrow": {
+      "foreground": "rgb(15, 109, 78)",
+      "background": "rgb(247, 246, 243)",
+      "contrast": 5.86
+    },
+    "primaryAction": {
+      "foreground": "rgb(255, 255, 255)",
+      "background": "rgb(19, 18, 17)",
+      "contrast": 18.71
+    }
+  },
+  "primaryAction": {
+    "borderRadius": "8px",
+    "minHeight": "52px"
+  },
+  "webglRequired": false,
+  "canvasCount": 0,
+  "assets": {
+    "heroPosterBytes": 201854,
+    "shippedMotionBytes": 0
+  }
+}

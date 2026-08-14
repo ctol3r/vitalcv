@@ -113,6 +113,22 @@ describe('server render is the composed static scene (EC-26)', () => {
     expect(html).toContain('Nothing leaves the workspace without that explicit step.');
   });
 
+  it('the homepage documentary crop stays manifest-owned and provenance-bound', () => {
+    const html = renderToStaticMarkup(
+      <VisualScene
+        scene="journey_film"
+        kind="process"
+        routeVariant="home_documentary"
+        priority="hero"
+      />,
+    );
+    expect(html).toContain('data-scene-variant="home_documentary"');
+    expect(html).toContain('aspect-ratio:4 / 5');
+    expect(html).toContain('/scenes/home-career-forward-portrait.jpg');
+    expect(html).toContain('fetchPriority="high"');
+    expect(html).toContain('No real clinician, patient, employer, credential, or outcome is represented.');
+  });
+
   it('a decorative scene is aria-hidden with empty alt', () => {
     const html = renderToStaticMarkup(<VisualScene scene="continuity_ribbon" kind="decorative" />);
     expect(html).toContain('alt=""');
