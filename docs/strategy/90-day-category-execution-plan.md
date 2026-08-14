@@ -1,99 +1,193 @@
-# 90-day category execution plan
+# 90-day clinician hire-to-start execution plan
 
-**Date:** 2026-08-05 · **Wave:** 1077 (PR C) · Derived from
-[`vitalcv-category-strategy.md`](./vitalcv-category-strategy.md) and
-[`vitalcv-strategy-operating-brief.md`](./vitalcv-strategy-operating-brief.md).
+**Date:** 2026-08-14 · **Status:** Founder-approved execution contract · Derived
+from [`vitalcv-category-strategy.md`](./vitalcv-category-strategy.md),
+[`vitalcv-strategy-operating-brief.md`](./vitalcv-strategy-operating-brief.md),
+and [`beachhead-decision.md`](./beachhead-decision.md).
 
-## North-star metric
+## Position and boundary
 
-> **Clinician starts enabled by a reused VitalCV profile**
+- **Clinicians:** a reusable professional profile for finding opportunities,
+  applying, and moving without starting over.
+- **Employers:** **VitalCV is the Clinician Hire-to-Start Platform.** From
+  opportunity to confirmed first day.
+- **Buyer:** provider recruitment leadership at health systems.
+- **Initial market:** employed physicians and advanced practice providers.
+- **System role:** an orchestration layer around a clinician-controlled profile.
+  The ATS remains the recruiting record. Credentialing platforms and
+  institutions retain credentialing, enrollment, privileging, monitoring, and
+  compliance authority.
+- **Primary outcome:** an authorized employer confirms the clinician's actual
+  first day. First-billable is optional secondary data, never the universal
+  success event.
+- **Commercial direction:** after the pilot, an annual platform fee plus an
+  idempotent fee per confirmed start.
 
-Not profiles created, checks run, or packets generated. Those measure activity.
-The north star measures whether the product worked for someone.
+VitalCV may distribute and match opportunities, but does not compete on listing
+inventory alone. It integrates with credentialing, enrollment, privileging,
+monitoring, CVO, ATS, HR, and workforce systems rather than replacing them. The
+product owns the joined case, next action, blocker owner, milestone history, and
+outcome clock between application and actual start.
 
-**Baseline, measured 2026-08-05:** `0`. There are 0 verified NPI bindings, 6
-opportunities across 6 organizations, and no completed application in production.
-Every number below starts from zero, and saying so is the point — a plan that
-opens by implying traction cannot be checked against reality later.
+Public employer hero copy must not name competitors. Procurement materials may
+name them only to state interoperability, ownership boundaries, and
+non-replacement. Do not claim faster starts, savings, credentialing completion,
+or live integration support without production workflow evidence.
 
----
+## Canonical lifecycle
 
-## Days 1–30 · Ruthless simplification
+1. A clinician privately views or matches to an opportunity.
+2. The clinician submits an application with an exact, clinician-approved,
+   immutable packet.
+3. An authorized employer opens and reviews that packet.
+4. The employer requests clarification, accepts the packet as a head start, or
+   does not proceed.
+5. Head-start acceptance opens the existing `StartMission`.
+6. Remaining requirements are assigned to the clinician, employer, external
+   system, institution, or source.
+7. The employer records start-ready only after every required item is resolved.
+8. An authorized employer records the actual first day.
+9. VitalCV records the outcome and profile reuse without implying credentialing
+   approval or institutional clearance.
 
-| # | Item | State | Evidence |
-| --- | --- | --- | --- |
-| 1 | Install the strategy contract | ✅ **Done** | PR #1078 |
-| 2 | Converge homepage copy | 🟡 **Ready, unmerged** | PR #1079, live review environment |
-| 3 | Converge customer-facing vocabulary | ✅ **Audited** — smaller than expected | [inventory](./customer-language-inventory.md): 0 retired terms render on acquisition surfaces |
-| 4 | Audit navigation and routes | ✅ **Done** | [IA audit](./information-architecture-audit.md); 5 gaps recorded |
-| 5 | Choose one beachhead | ⏸ **Blocked on founder** | [packet](./beachhead-decision.md); 6 of 10 criteria need founder input |
-| 6 | Fix remaining critical security and legal blockers | 🟡 **Two closed, one open** | #1074 closed anonymous NPI disclosure; #1075 made a self-asserted claim non-authoritative; **no verification path exists yet** |
-| 7 | Instrument the full funnel | 🟡 **Events defined, sink unconfirmed** | 13 events in `lib/analytics/funnel.ts`; the preview transmits none — no analytics key configured |
-| 8 | Freeze new customer-facing concept creation | ✅ **Enforced** | `strategy-messaging-guard.test.tsx` fails the build on the retire list |
+## Days 1–15 — install the contract
 
-**The blocking item is 5.** Items 2 and 6 can proceed without it; nothing in
-days 31–60 can.
+- Amend the canonical strategy, operating brief, beachhead decision, and this
+  plan with the dual-audience category, broader pilot, buyer, confirmed-start
+  event, and complementary incumbent posture.
+- Add copy and contract tests that preserve the exact employer category,
+  VitalCV's non-credentialing boundary, and final institutional authority.
+- Refresh the current-state audit from current `main` and deployed production;
+  retain dated historical counts only as history, never as current truth.
+- Freeze the lifecycle above as the only product path. Do not add a fourth
+  decision, activation, or start engine.
 
----
+## Days 16–45 — make one canonical transaction
 
-## Days 31–60 · One perfect loop
+- Route every employer terminal decision through one canonical application
+  decision command.
+- Make head-start acceptance one database transaction containing:
+  - application transition;
+  - verified actor and owning organization;
+  - exact sealed packet version and hash;
+  - `EmployerAcceptance`;
+  - closure of clarification requests;
+  - audit event;
+  - durable Decision Capsule/outbox request;
+  - `StartActivation`;
+  - only the remaining `ActivationRequirement` rows.
+- Fail closed on missing, legacy, cross-application, revoked, or hash-invalid
+  packets. Never fabricate a historic packet for a legacy application.
+- Consolidate actual-start recording so application start lifecycle,
+  `StartAttestation`, and audit are atomic. Keep old endpoints only as
+  compatibility adapters to the canonical command and mark them deprecated.
+- Extend the employer application detail into the working hire-to-start case:
+  exact submission, decisions, intended start, requirements, blocker owner,
+  next action, start-ready state, and confirmed start.
+- Keep the clinician application view synchronized to the same requirement and
+  milestone ledger without exposing employer-private notes.
 
-Ship and verify end to end:
+## Days 46–65 — connect existing systems
 
-> NPI → useful preview → claim profile → set preferences → see real role → apply with profile → employer reviews
+Add a generic contract before any vendor-specific adapter:
 
-**Honest status of each link today:**
+- `ApplicationExternalReference`: durable application-to-external-object mapping
+  scoped to organization and source system.
+- `IntegrationInboxEvent`: immutable organization-scoped receipt keyed by
+  external event ID, with payload hash, processing state, and replay protection.
+- Reuse the transactional outbox and employer webhook configuration for outbound
+  delivery.
 
-| Link | Works? | What is missing |
-| --- | --- | --- |
-| NPI → useful preview | ✅ Live on `/` | — |
-| → claim profile | 🟡 Claim submits as **pending** | Nothing verifies it |
-| → set preferences | 🟡 Route exists (`/holder/matcha`) | Not exercised end to end |
-| → see real role | ⚠️ Works, but **6 listings exist** | Demand-side density |
-| → apply with profile | 🟡 Component is real and gated correctly | Blocked behind unverified ownership |
-| → employer reviews | ⚠️ Surface exists | No employer has used it |
+Expose:
 
-**The critical path is not code — it is two things:** a working ownership
-verification path (Wave 1076 PR B, scoped but unbuilt), and employers with real
-listings.
+- `GET /api/applications/:applicationId/hire-to-start` for the authorized joined
+  read model.
+- Existing decision and start routes as adapters to canonical services.
+- `POST /api/integrations/hire-to-start/events` for signed, idempotent inbound
+  status events.
+- Outbound events for application submitted, packet delivered, decision
+  recorded, requirement changed, start-ready, and start confirmed.
 
-Recruit **5–10 employer design partners in the same segment** — the segment
-chosen in item 5.
+The joined read model includes application and opportunity versions; packet
+binding and limitations; employer decision; stage; intended and actual start;
+requirements with owner, status, deadline, source-system reference, and
+limitation; primary next action; milestone timestamps; and external-system sync
+freshness.
 
----
+An external credentialing status may update a requirement or report
+waiting/review. It cannot create source-backed evidence without an attributable
+artifact. Unknown, stale, failed, and unavailable states remain visible. Begin
+with authenticated generic role import and signed events; select a
+vendor-specific connector only after a signed design partner identifies its
+production stack.
 
-## Days 61–90 · Prove economic value
+## Days 66–90 — pilot and prove
 
-Instrument and report:
+- Recruit 5–10 health-system design partners; launch with the first 2–3 that can
+  supply real physician or APP cases and signed data/integration scope.
+- Limit each partner to no more than two service lines.
+- Use real opportunities. Use synthetic identities for uncontrolled or
+  pre-production tests; never use real clinician data there.
+- Keep the pilot free under signed scope. Do not enable start-triggered billing
+  until a commercial agreement defines entitlement, price, dispute handling,
+  cancellation, and duplicate-start behavior.
+- Produce a procurement packet that names what VitalCV, the ATS, the
+  credentialing platform, and the institution each own; the exact data
+  exchanged; security and authorization boundaries; implemented versus planned
+  capabilities; and pilot measurement methodology.
 
-| Metric | Baseline | Instrumented? |
-| --- | --- | --- |
-| NPI-to-preview success | — | ✅ `npi_resolved` / `npi_resolution_failed` |
-| Preview-to-claimed-profile conversion | 0 | 🟡 needs a claim event |
-| Time to first useful profile | — | ❌ not instrumented |
-| Profile-to-application conversion | 0 | ✅ `apply_opened` → `share_completed` |
-| Application completion | 0 | ✅ `share_completed` fires only on backend success |
-| Employer time to first review | — | ❌ not instrumented |
-| Repeated data entry avoided | — | ❌ not instrumented |
-| Offer-to-start time | — | ❌ requires employer input |
-| Starts per employer | 0 | ❌ **no Starts surface exists** |
-| Clinician profile reuse | 0 | ❌ not instrumented |
+## Measurement and commercial acceptance
 
-**Four of ten are instrumented.** The north star itself — starts enabled by reuse
-— has neither a surface nor an event. That is the single largest gap between the
-strategy and the product, and it is recorded as gap #1 in the
-[IA audit](./information-architecture-audit.md).
+Primary metric:
 
----
+> **Employer-confirmed clinician starts enabled by a VitalCV profile.**
 
-## What would make this plan fail
+Measure these clocks independently:
 
-1. **Choosing a beachhead by intuition rather than by employer access.** On
-   current evidence, access is the deciding variable and it is the one the
-   codebase cannot answer.
-2. **Building the loop before anyone can be verified.** Apply is correctly gated;
-   with no verification path, a correctly-gated door is still a closed one.
-3. **Measuring activity because it is easy.** Profiles created will move first and
-   fastest, and it is not the north star.
-4. **Adding a concept.** The vocabulary sprawl the strategy diagnoses was created
-   one reasonable noun at a time.
+- opportunity/application to confirmed first day;
+- head-start acceptance to confirmed first day.
+
+Supporting measures are time to employer first review, clarification cycles,
+required items reused versus re-entered or rechecked, open blockers by owner,
+intended-start slippage, start-ready to actual-start duration, cancellations and
+reasons, incomplete integrations, and missing terminal events.
+
+Do not publish a speed or savings claim before at least 12 complete, valid start
+spans exist. Report excluded incomplete cases. Never calculate days saved without
+a defensible comparison cohort or baseline.
+
+After the pilot, one unique authorized `StartAttestation` may create at most one
+billable event, and only for an organization with active signed commercial
+entitlement.
+
+## Acceptance gates
+
+- Real-PostgreSQL tests prove accept → requirements → start-ready → confirmed
+  start.
+- Negative tests cover cross-tenant access, spoofed roles/organizations, packet
+  tampering, wrong versions, revoked membership, duplicate and out-of-order
+  events, premature start-ready, duplicate starts, and anti-enumeration.
+- Integration tests prove signatures, idempotency, replay rejection, outbox
+  retry, external-reference uniqueness, and honest outage degradation.
+- End-to-end tests exercise the complete clinician and employer lifecycle.
+- Production acceptance requires green required checks, Railway `/api/version`
+  matching the deployed SHA, private `no-store` on authenticated surfaces, and
+  the changed desktop and mobile flow exercised.
+
+## Current implementation baseline (verified 2026-08-14)
+
+At `main` commit `c95e01b7a38e458008bf6022caceeef82d7f9463`:
+
+- immutable packet writing and authorized packet reading exist;
+- packet-bound employer acceptance exists on one employer path;
+- `StartActivation`, requirements, start-ready, and start events exist;
+- a shared `StartAttestation` writer exists for two compatibility routes;
+- billing is intentionally absent from the start path;
+- employer decision, activation, and start paths are not yet one transaction;
+- the application-scoped joined hire-to-start read model does not exist;
+- generic application external references and integration inbox receipts do not
+  exist;
+- existing ATS adapter code is not evidence of a mounted production integration.
+
+This is a source baseline, not a deployment claim. Production acceptance remains
+subject to the gates above.

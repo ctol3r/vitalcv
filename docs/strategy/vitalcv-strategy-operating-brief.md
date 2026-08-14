@@ -3,11 +3,21 @@ title: "VitalCV Strategy Operating Brief"
 status: "Canonical"
 owner: "Chris Toler"
 date: "2026-08-04"
-amended: "2026-08-08"
+amended: "2026-08-14"
 source: "VitalCV Category Strategy"
 ---
 
 # VitalCV Strategy Operating Brief
+
+> **Amendment — 2026-08-14 (founder decision).** VitalCV keeps its broader
+> clinician-facing identity as the portable professional identity and employment
+> network. For employers, its explicit category is now **the Clinician
+> Hire-to-Start Platform**. The initial pilot includes employed physicians and
+> advanced practice providers; this supersedes the 2026-08-05 APP-only operating
+> hypothesis. The primary buyer is provider recruitment leadership at health
+> systems, and the primary outcome is an employer-confirmed actual first day.
+> Credentialing, enrollment, privileging, and compliance remain institution- or
+> vendor-owned requirements inside the joined case, never VitalCV's authority.
 
 > **Amendment — 2026-08-08 (founder decision, Wave 1078).** The homepage hero is
 > now **"Enter your NPI. VitalCV does the rest."**, shipped by UX-V1 (#1190).
@@ -19,13 +29,24 @@ source: "VitalCV Category Strategy"
 
 ## Category
 
-**VitalCV is the portable professional identity and employment network for clinicians.**
+**Clinicians:** VitalCV is the portable professional identity and employment
+network for clinicians.
 
-It is not primarily a résumé builder, credentialing product, document wallet, or job board.
+**Employers:** VitalCV is **the Clinician Hire-to-Start Platform**.
+
+> From opportunity to confirmed first day.
+
+VitalCV connects qualified interest, clinician-controlled application,
+employer decisions, remaining requirements, and the confirmed first day. The
+ATS remains the recruiting record. Credentialing platforms and institutions
+retain credentialing, enrollment, privileging, and compliance authority.
+
+It is not primarily a résumé builder, credentialing service, document wallet,
+job board, applicant tracking system, CVO, or privileging authority.
 
 ## Core loop
 
-> NPI → useful profile preview → claim profile → set preferences → see relevant role → apply with profile → employer reviews → clinician reuses profile
+> NPI → useful profile preview → claim profile → set preferences → see relevant role → apply with an exact packet → employer reviews → accepts as a head start → remaining requirements → start-ready → employer confirms actual first day → profile reuse
 
 ## Clinician problem
 
@@ -122,19 +143,27 @@ After that, prioritize speed, clarity, utility, and confidence.
 
 ## Initial beachhead
 
-Preferred broad beachhead:
+**Founder decision, 2026-08-14:**
 
-**Physicians and advanced practice providers hired repeatedly by multi-site medical groups, health systems, and specialist staffing organizations.**
+**Employed physicians and advanced practice providers hired by health systems.**
 
-Choose one narrow starting segment before scaling.
+The pilot permits both populations while constraining each design partner to no
+more than two service lines. The buyer is provider recruitment leadership,
+with credentialing, medical staff services, HR, and onboarding as required
+workflow participants.
 
 ## Business model
 
 - Clinicians remain free
-- Employer platform subscription
-- Successful-start fee
-- Integration and API revenue
-- Premium workforce products
+- Free pilot under a signed scope
+- After the pilot, an annual employer platform fee
+- After the pilot, an idempotent fee per employer-confirmed start
+- No start-triggered billing without active signed commercial entitlement,
+  duplicate-start protection, dispute handling, and cancellation terms
+
+One unique authorized `StartAttestation` may create at most one billable event.
+First-billable may be recorded when an employer supplies it, but it is not the
+universal outcome event.
 
 ## Moat
 
@@ -148,19 +177,23 @@ The deepest differentiator is **acceptance intelligence**: what employers accept
 
 ## 90-day mandate
 
-### Days 1–30
-- Choose one beachhead
-- Freeze new concept creation
-- Simplify vocabulary and navigation
-- Close critical security and legal gaps
-- Instrument the complete funnel
+### Days 1–15
+- Install this contract in strategy, copy tests, lifecycle definitions, and a
+  production-grounded current-state audit.
 
-### Days 31–60
-- Build the one perfect end-to-end loop
-- Recruit 5–10 employer design partners in the same segment
+### Days 16–45
+- Converge employer decisions, head-start acceptance, requirements, start-ready,
+  and actual-start attestation onto one packet-bound transaction path.
 
-### Days 61–90
-- Prove conversion, reuse, employer review speed, and successful starts
+### Days 46–65
+- Add a vendor-neutral integration contract and the authorized joined
+  hire-to-start read model before choosing a vendor-specific adapter.
+
+### Days 66–90
+- Recruit 5–10 design partners; launch with the first 2–3 that have signed scope
+  and can provide real employed-physician or APP cases.
+- Measure confirmed starts and both elapsed-time clocks without publishing speed
+  or savings claims before 12 complete, valid spans exist.
 
 ## Decision filter
 

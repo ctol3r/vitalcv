@@ -48,22 +48,22 @@ const EXPORT_FORMATS_LABEL = EXPORT_FORMATS.join(' · ');
 const EXPORT_FORMATS_PROSE = `${EXPORT_FORMATS.slice(0, -1).join(', ')} and ${EXPORT_FORMATS.at(-1)}`;
 
 export const metadata: Metadata = {
-  title: 'Start a Pilot',
+  title: 'Clinician Hire-to-Start Pilot',
   description:
-    'Run a 30-day focused employer pilot for credential readiness decisions using VitalCV primary source verification and proof packs.',
+    'Run a scoped clinician hire-to-start pilot from clinician-controlled application to employer-confirmed first day while your ATS and credentialing authority remain in place.',
 };
 
 const PILOT_SCOPE = [
   {
     title: 'What this pilot is',
     body:
-      'A 30-day focused employer pilot. We measure startability timeline events against your current workflow on 10–30 real clinician NPIs and hand you a signed scope document before any measurement starts.',
+      'A free, signed-scope health-system pilot for real employed-physician or APP cases in no more than two service lines. Scope, data access, operators, and measurement are agreed before work starts.',
     icon: <Presentation className="h-4 w-4" aria-hidden />,
   },
   {
     title: 'What you provide',
     body:
-      'A roster of 10–30 clinician NPIs, a named review operator, and your current baseline numbers (time-to-start days, applications per month) — or an honest "we don’t track this yet" so we can capture it from scratch.',
+      'Real opportunities, authorized employer operators, the clinicians’ knowing participation, and your current ATS and credentialing workflow — plus baseline data when it exists or an explicit "not tracked" when it does not.',
     icon: <ListTodo className="h-4 w-4" aria-hidden />,
   },
   {
@@ -75,7 +75,7 @@ const PILOT_SCOPE = [
   {
     title: 'What success looks like',
     body:
-      'You see documented source coverage, packet status, and limitation notes per clinician before the formal committee process. We do not replace your credentialing committee — we shorten the days-at-risk window before committee review.',
+      'An authorized employer records the actual first day, with the exact application packet, decisions, remaining requirements, blocker owners, and milestone history still inspectable. VitalCV does not replace your credentialing committee or institutional authority.',
     icon: <CheckCircle2 className="h-4 w-4" aria-hidden />,
   },
 ] as const;
@@ -148,8 +148,8 @@ export default function PilotPage() {
           <Reveal variant="fade" className="space-y-5">
             <span className="mz-eyebrow">Employer pilot</span>
             <h1 className="mz-display" data-testid="pilot-headline">
-              Cut credentialing uncertainty{' '}
-              <span className="mz-accent">before the start date slips.</span>
+              Pilot the clinician hire-to-start case,{' '}
+              <span className="mz-accent">through the confirmed first day.</span>
             </h1>
             <p className="mz-lede max-w-3xl" data-testid="pilot-value-prop">
               {/* Was the literal word "four" — the same overclaim as the metric
@@ -161,11 +161,11 @@ export default function PilotPage() {
                   buyer's: a credentialing lead does not arrive looking for a
                   container. The mechanism is unchanged and still stated below —
                   it just no longer occupies the first sentence. */}
-              VitalCV gives your reviewers {AUTOMATED_LANES.length} source-backed
-              lanes of clinician evidence with the gaps named, so a file arrives
-              at committee review with the routine checks already done and the
-              open items listed — without changing your existing compliance
-              stack.
+              VitalCV is the Clinician Hire-to-Start Platform. It joins a
+              clinician-controlled application, employer decisions, remaining
+              requirements, and the employer-confirmed first day. Keep your ATS,
+              credentialing platform, and institutional authority; this pilot
+              connects the case between them.
             </p>
           </Reveal>
         </header>

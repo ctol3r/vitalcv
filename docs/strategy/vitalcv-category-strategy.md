@@ -3,6 +3,7 @@ title: "VitalCV Category Strategy"
 status: "Founder-approved strategic direction"
 owner: "Chris Toler"
 date: "2026-08-04"
+amended: "2026-08-14"
 canonical_for:
   - Product positioning
   - Homepage messaging
@@ -22,13 +23,37 @@ review_trigger:
 
 # VitalCV Category Strategy
 
+> **Founder amendment — 2026-08-14.** VitalCV now uses an explicit dual-audience
+> position. The clinician-facing category remains the portable professional
+> identity and employment network. The employer-facing category is **the
+> Clinician Hire-to-Start Platform**. The initial market is employed physicians
+> and advanced practice providers at health systems, the buyer is provider
+> recruitment leadership, and the primary success event is an authorized
+> employer's confirmation of the actual first day. This amendment supersedes
+> the APP-only beachhead and any older success event that stops at employer
+> review or offer acceptance.
+
 ## Canonical decision
 
-VitalCV is **the portable professional identity and employment network for clinicians**.
+For clinicians, VitalCV is **the portable professional identity and employment
+network for clinicians**.
+
+For employers, VitalCV is **the Clinician Hire-to-Start Platform**:
+
+> From opportunity to confirmed first day.
 
 > A clinician builds one trusted profile, uses it to find work, applies without starting over, and carries it to every future employer.
 
-The reusable clinician profile is the product. NPI resolution is the wedge. Matching, trust infrastructure, evidence receipts, employer packets, and acceptance intelligence support the transaction but should not compete for the customer’s attention.
+The reusable clinician profile is the product. NPI resolution is the wedge.
+Matching, trust infrastructure, evidence receipts, employer packets, acceptance
+intelligence, remaining requirements, and start attestation support the
+transaction but should not compete for the clinician's attention.
+
+For employers, VitalCV owns the joined case, next action, blocker ownership,
+milestone history, and outcome clock. The ATS remains the recruiting record.
+Credentialing platforms, CVOs, and institutions retain credentialing,
+enrollment, privileging, monitoring, and compliance authority. VitalCV
+integrates with those systems and never overrules them.
 
 ## Founder operating mandate
 
@@ -55,7 +80,7 @@ Everything else is infrastructure unless a user needs it to complete a task.
 
 **Employer**
 
-> Hire from information the clinician has already reviewed and approved.
+> VitalCV is the Clinician Hire-to-Start Platform. From opportunity to confirmed first day.
 
 **Economic**
 
@@ -63,11 +88,19 @@ Everything else is infrastructure unless a user needs it to complete a task.
 
 ## North-star metric
 
-> **Clinician starts enabled by a reused VitalCV profile**
+> **Employer-confirmed clinician starts enabled by a VitalCV profile**
+
+Track two clocks separately: opportunity/application to confirmed first day,
+and head-start acceptance to confirmed first day. Do not publish a speed or
+savings claim until at least 12 complete, valid start spans exist, and report
+excluded incomplete cases.
 
 ---
 
 # Full Strategy Memo
+
+The memo below is retained as the source strategy. Where it conflicts with the
+2026-08-14 amendment above, the amendment controls.
 
 # The verdict
 

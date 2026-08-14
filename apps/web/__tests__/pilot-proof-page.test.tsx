@@ -53,7 +53,8 @@ describe('/pilot buyer proof page', () => {
     expect(html).toContain('data-testid="pilot-partial-pending"');
     expect(html).toContain('data-testid="pilot-limitations"');
     expect(html).toContain('data-testid="pilot-cta"');
-    expect(html).toContain('Cut credentialing uncertainty');
+    expect(html).toContain('Pilot the clinician hire-to-start case');
+    expect(html).toContain('through the confirmed first day');
   });
 
   it('labels KPIs honestly (simulation / internal, not customer results)', () => {

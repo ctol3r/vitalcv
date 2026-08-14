@@ -59,9 +59,9 @@ import { SOURCE_LANE_OPS } from '@/lib/trust/sourceLanes';
 export const revalidate = 300;
 
 export const metadata: Metadata = {
-  title: 'For Employers',
+  title: 'Clinician Hire-to-Start Platform for Employers',
   description:
-    'Move a clinician hire from interest to start — see what is already known, what remains, and who owns the next step, with every answer named to its source. The hiring decision stays yours.',
+    'VitalCV is the Clinician Hire-to-Start Platform: a joined case from clinician-controlled application to employer-confirmed first day. Your ATS and institutional credentialing authority remain in place.',
 };
 
 /** Lane-truth cadences, from the registry — never hand-typed on this page. */
@@ -91,6 +91,11 @@ export default function EmployersPage() {
             The clinician arrives with a profile they have already built and reviewed. You see
             what is known, what remains, and who owns the next step — and the hiring decision
             stays yours.
+          </p>
+          <p className="mz-small" style={{ marginTop: 10, maxWidth: 620 }}>
+            VitalCV is the Clinician Hire-to-Start Platform: from opportunity to an
+            employer-confirmed first day. Keep your ATS and your credentialing platform;
+            VitalCV connects the joined case between them without taking over their authority.
           </p>
           {/* Evidence enters here, immediately under the experience, as the
               reason it can be trusted — not as the proposition itself
@@ -139,8 +144,9 @@ export default function EmployersPage() {
           className="mz-mono mt-6 max-w-[620px] border-l-2 border-[var(--vt-border)] pl-3 text-[12px] leading-relaxed text-[var(--vt-text-muted)]"
         >
           <p>
-            The limits, stated plainly: VitalCV is not a credentialing service, and the hiring
-            decision stays yours. {cadenceSentence()}
+            The limits, stated plainly: VitalCV is not a credentialing service, and each
+            institution retains final credentialing, privileging, and hiring authority.{' '}
+            {cadenceSentence()}
           </p>
           <p style={{ marginTop: 6 }}>
             Checking us out?{' '}

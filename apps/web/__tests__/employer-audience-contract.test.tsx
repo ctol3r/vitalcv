@@ -38,6 +38,15 @@ describe('/employers is a page, not a redirect', () => {
     expect(text).toContain('named to their public source');
   });
 
+  it('installs the exact employer category without displacing incumbent authority', () => {
+    expect(text).toContain('VitalCV is the Clinician Hire-to-Start Platform');
+    expect(text).toContain('employer-confirmed first day');
+    expect(text).toContain('Keep your ATS and your credentialing platform');
+    expect(text).toContain(
+      'each institution retains final credentialing, privileging, and hiring authority',
+    );
+  });
+
   it('frames organization access as the doorway, not the proposition', () => {
     expect(text).toContain('Organization access is the doorway');
   });
