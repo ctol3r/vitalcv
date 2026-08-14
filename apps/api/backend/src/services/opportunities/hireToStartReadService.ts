@@ -67,6 +67,17 @@ export interface JoinedPersistenceRecord {
     createdAt: Date;
   };
   auditEvents: Array<{ type: string; createdAt: Date }>;
+  externalReferences: Array<{
+    sourceSystem: string;
+    objectType: string;
+    externalIdentifier: string;
+    lastObservedAt: Date;
+  }>;
+  latestIntegrationEvent: null | {
+    processingState: string;
+    occurredAt: Date;
+    processingError: string | null;
+  };
 }
 
 export interface HireToStartReadDependencies {
@@ -123,8 +134,14 @@ export interface HireToStartReadModel {
   primaryNextAction: StartMission['nextAction'];
   milestones: Array<{ type: HireToStartMilestoneType; occurredAt: string }>;
   externalSystemSync: {
-    state: 'not_configured';
-    lastEventAt: null;
+    state: 'not_configured' | 'fresh' | 'stale' | 'failed' | 'unavailable';
+    lastEventAt: string | null;
+    sources: Array<{
+      sourceSystem: string;
+      objectType: string;
+      externalIdentifier: string;
+      lastObservedAt: string;
+    }>;
     limitations: string[];
   };
   limitations: string[];
@@ -158,7 +175,7 @@ async function loadFromPrisma(applicationId: string): Promise<JoinedPersistenceR
     orderBy: { acceptedAt: 'desc' },
     select: { id: true, status: true, packetHash: true, acceptedAt: true },
   });
-  const [attestation, auditEvents] = await Promise.all([
+  const [attestation, auditEvents, externalReferences, latestIntegrationEvent] = await Promise.all([
     acceptance
       ? prisma.startAttestation.findFirst({
           where: { acceptanceId: acceptance.id },
@@ -182,9 +199,19 @@ async function loadFromPrisma(applicationId: string): Promise<JoinedPersistenceR
       orderBy: { createdAt: 'asc' },
       select: { type: true, createdAt: true },
     }),
+    prisma.applicationExternalReference.findMany({
+      where: { applicationId },
+      orderBy: { lastObservedAt: 'desc' },
+      select: { sourceSystem: true, objectType: true, externalIdentifier: true, lastObservedAt: true },
+    }),
+    prisma.integrationInboxEvent.findFirst({
+      where: { applicationId },
+      orderBy: { occurredAt: 'desc' },
+      select: { processingState: true, occurredAt: true, processingError: true },
+    }),
   ]);
 
-  return { application, acceptance, attestation, auditEvents };
+  return { application, acceptance, attestation, auditEvents, externalReferences, latestIntegrationEvent };
 }
 
 const DEFAULT_DEPENDENCIES: HireToStartReadDependencies = {
@@ -238,6 +265,55 @@ function nextActionWithoutMission(stage: HireToStartStage): StartMission['nextAc
     return { kind: 'none', owner: 'system', label: 'No next action is currently recorded.', objectId: null };
   }
   return NO_NEXT_ACTION;
+}
+
+function externalSyncOf(record: JoinedPersistenceRecord, now = new Date()): HireToStartReadModel['externalSystemSync'] {
+  const sources = record.externalReferences.map((reference) => ({
+    ...reference,
+    lastObservedAt: reference.lastObservedAt.toISOString(),
+  }));
+  const latest = record.latestIntegrationEvent;
+  if (sources.length === 0 && !latest) {
+    return {
+      state: 'not_configured',
+      lastEventAt: null,
+      sources: [],
+      limitations: ['No external ATS or credentialing event source is configured for this case.'],
+    };
+  }
+  if (!latest) {
+    return {
+      state: 'unavailable',
+      lastEventAt: null,
+      sources,
+      limitations: ['External object mappings exist, but no signed status event has been received.'],
+    };
+  }
+  if (latest.processingState === 'FAILED') {
+    return {
+      state: 'failed',
+      lastEventAt: latest.occurredAt.toISOString(),
+      sources,
+      limitations: [`The latest external event could not be applied${latest.processingError ? `: ${latest.processingError}.` : '.'}`],
+    };
+  }
+  const ageMs = now.getTime() - latest.occurredAt.getTime();
+  if (latest.processingState === 'IGNORED' || ageMs > 24 * 60 * 60 * 1000) {
+    return {
+      state: 'stale',
+      lastEventAt: latest.occurredAt.toISOString(),
+      sources,
+      limitations: [latest.processingState === 'IGNORED'
+        ? 'The latest external event was older than the current recorded state.'
+        : 'The latest external event is more than 24 hours old.'],
+    };
+  }
+  return {
+    state: 'fresh',
+    lastEventAt: latest.occurredAt.toISOString(),
+    sources,
+    limitations: ['External status is operational context only; institutional review and source-attributed evidence remain separate.'],
+  };
 }
 
 export async function readHireToStartCase(
@@ -345,11 +421,7 @@ export async function readHireToStartCase(
     blockerSummary: mission?.blockerSummary ?? [],
     primaryNextAction: mission?.nextAction ?? nextActionWithoutMission(currentStage),
     milestones,
-    externalSystemSync: {
-      state: 'not_configured',
-      lastEventAt: null,
-      limitations: ['No external ATS or credentialing event source is configured for this case.'],
-    },
+    externalSystemSync: externalSyncOf(record),
     limitations,
   };
 }

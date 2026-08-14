@@ -16,11 +16,11 @@ const data = {
   packetBinding: { state: 'bound', packetVersion: 1, packetHash: 'a'.repeat(64), integrity: 'valid', limitations: [] },
   decision: { state: 'accepted_as_head_start', decidedAt: '2026-08-14T11:00:00.000Z', acceptanceId: 'accept-1', packetHash: 'a'.repeat(64), institutionReviewRemains: true },
   currentStage: 'requirements_in_progress', intendedStartDate: '2026-09-01T12:00:00.000Z', actualStart: null,
-  requirements: [{ id: 'req-1', category: 'onboarding', label: 'Hospital orientation', necessity: 'required', status: 'not_started', owner: 'clinician', evidenceRule: null, dependencyIds: [], dueAt: '2026-08-28T12:00:00.000Z', resolvedBy: null, resolvedAt: null, policyVersion: 'v1' }],
+  requirements: [{ id: 'req-1', category: 'onboarding', label: 'Hospital orientation', necessity: 'required', status: 'not_started', owner: 'clinician', evidenceRule: null, dependencyIds: [], dueAt: '2026-08-28T12:00:00.000Z', resolvedBy: null, resolvedAt: null, policyVersion: 'v1', externalSourceSystem: null, externalObjectType: null, externalIdentifier: null, externalObservedAt: null, externalLimitation: null }],
   blockerSummary: [{ requirementId: 'req-1', label: 'Hospital orientation', status: 'not_started', owner: 'clinician', dueAt: '2026-08-28T12:00:00.000Z' }],
   primaryNextAction: { kind: 'clinician_requirement', owner: 'clinician', label: 'Hospital orientation', objectId: 'req-1' },
   milestones: [{ type: 'application_submitted', occurredAt: '2026-08-14T10:00:00.000Z' }, { type: 'head_start_accepted', occurredAt: '2026-08-14T11:00:00.000Z' }],
-  externalSystemSync: { state: 'not_configured', lastEventAt: null, limitations: ['No external ATS or credentialing event source is configured for this case.'] },
+  externalSystemSync: { state: 'not_configured', lastEventAt: null, sources: [], limitations: ['No external ATS or credentialing event source is configured for this case.'] },
   limitations: [],
 } as unknown as HireToStartCase;
 

@@ -24,6 +24,12 @@ import {
 } from '../applicationPacketService';
 import { runEmployerWorkflowAction } from '../employerWorkflowService';
 import { readHireToStartCase } from '../hireToStartReadService';
+import {
+  buildHireToStartIntegrationSignature,
+  receiveHireToStartIntegrationEvent,
+  type HireToStartInboundEvent,
+} from '../../integrations/hireToStartIntegrationService';
+import { importGenericHireToStartRoles } from '../../integrations/hireToStartRoleImportService';
 import prisma from '../../../graphql/prisma_client';
 
 const suffix = `${Date.now()}-${Math.round(Math.random() * 1_000_000)}`;
@@ -40,6 +46,9 @@ async function cleanCases(): Promise<void> {
     select: { id: true },
   })).map(({ id }) => id);
 
+  await prisma.integrationInboxEvent.deleteMany({ where: { organizationId } });
+  await prisma.applicationExternalReference.deleteMany({ where: { organizationId } });
+  await prisma.employerWebhookConfig.deleteMany({ where: { employerId: organizationId, eventType: 'HIRE_TO_START_INBOUND' } });
   await prisma.startActivation.deleteMany({ where: { orgId: organizationId } });
   await prisma.employerAcceptance.deleteMany({ where: { employerId: organizationId } });
   await prisma.activationRequirement.deleteMany({ where: { organizationId } });
@@ -288,7 +297,198 @@ describe('runEmployerWorkflowAction accept — real PostgreSQL', () => {
     expect(attempts.filter(({ status }) => status === 'fulfilled')).toHaveLength(1);
     expect(await prisma.employerAcceptance.count({ where: { applicationId: submitted.applicationId } })).toBe(1);
     expect(await prisma.startActivation.count({ where: { applicationId: submitted.applicationId } })).toBe(1);
-    expect(await prisma.outboxEvent.count({ where: { aggregateId: submitted.applicationId } })).toBe(1);
+    expect(await prisma.outboxEvent.count({
+      where: { aggregateId: submitted.applicationId, eventType: 'APPLICATION_DECISION_CAPSULE_REQUESTED' },
+    })).toBe(1);
+    expect(await prisma.outboxEvent.count({
+      where: { aggregateId: submitted.applicationId, eventType: 'HIRE_TO_START_DECISION_RECORDED' },
+    })).toBe(1);
+  });
+
+  it('accepts signed requirement events once, rejects content replay, and ignores older state', async () => {
+    const submitted = await createApplication();
+    await runEmployerWorkflowAction({
+      action: 'accept',
+      applicationId: submitted.applicationId,
+      reviewerClerkUserId: EMPLOYER,
+      packetVersion: 1,
+      packetHash: submitted.packetHash!,
+    });
+    const requirement = await prisma.activationRequirement.findFirstOrThrow({
+      where: { applicationId: submitted.applicationId },
+    });
+    const key = await prisma.employerWebhookConfig.create({
+      data: {
+        employerId: organizationId,
+        webhookUrl: 'https://integration.invalid/hire-to-start',
+        secret: 'test-hire-to-start-secret-at-least-32-bytes',
+        eventType: 'HIRE_TO_START_INBOUND',
+      },
+    });
+    const now = new Date();
+    const timestamp = String(Math.floor(now.getTime() / 1000));
+    const event: HireToStartInboundEvent = {
+      version: '1',
+      organizationId,
+      sourceSystem: 'design-partner-test',
+      externalEventId: `requirement-requested-${suffix}`,
+      eventType: 'requirement.status_changed',
+      applicationId: submitted.applicationId,
+      occurredAt: now.toISOString(),
+      data: {
+        requirementId: requirement.id,
+        status: 'requested',
+        objectType: 'credentialing-case',
+        externalIdentifier: `case-${suffix}`,
+        limitation: 'Partner status only; no source-backed evidence was supplied.',
+      },
+    };
+    const headers = {
+      keyId: key.id,
+      timestamp,
+      signature: buildHireToStartIntegrationSignature(event, timestamp, key.secret!),
+    };
+
+    const staleTimestamp = String(Math.floor(now.getTime() / 1000) - 301);
+    await expect(receiveHireToStartIntegrationEvent(event, {
+      keyId: key.id,
+      timestamp: staleTimestamp,
+      signature: buildHireToStartIntegrationSignature(event, staleTimestamp, key.secret!),
+    }, now)).rejects.toMatchObject({ status: 401 });
+    await expect(receiveHireToStartIntegrationEvent(event, {
+      ...headers,
+      signature: `v1=${'0'.repeat(64)}`,
+    }, now)).rejects.toMatchObject({ status: 401 });
+
+    const first = await receiveHireToStartIntegrationEvent(event, headers, now);
+    const replay = await receiveHireToStartIntegrationEvent(event, headers, now);
+    expect(first).toMatchObject({ state: 'PROCESSED', duplicate: false });
+    expect(replay).toMatchObject({ receiptId: first.receiptId, state: 'PROCESSED', duplicate: true });
+
+    const updated = await prisma.activationRequirement.findUniqueOrThrow({ where: { id: requirement.id } });
+    expect(updated).toMatchObject({
+      status: 'requested',
+      externalSourceSystem: 'design-partner-test',
+      externalObjectType: 'credentialing-case',
+      externalIdentifier: `case-${suffix}`,
+      externalLimitation: 'Partner status only; no source-backed evidence was supplied.',
+    });
+    expect(await prisma.integrationInboxEvent.count({ where: { externalEventId: event.externalEventId } })).toBe(1);
+    expect(await prisma.outboxEvent.count({
+      where: { dedupeKey: `HIRE_TO_START_REQUIREMENT_CHANGED:${requirement.id}:${event.externalEventId}` },
+    })).toBe(1);
+
+    const tampered: HireToStartInboundEvent = {
+      ...event,
+      data: { ...event.data, status: 'submitted' },
+    };
+    await expect(receiveHireToStartIntegrationEvent(tampered, {
+      ...headers,
+      signature: buildHireToStartIntegrationSignature(tampered, timestamp, key.secret!),
+    }, now)).rejects.toMatchObject({ status: 409 });
+
+    const older: HireToStartInboundEvent = {
+      ...event,
+      externalEventId: `requirement-older-${suffix}`,
+      occurredAt: new Date(now.getTime() - 60_000).toISOString(),
+      data: { ...event.data, status: 'submitted' },
+    };
+    const ignored = await receiveHireToStartIntegrationEvent(older, {
+      keyId: key.id,
+      timestamp,
+      signature: buildHireToStartIntegrationSignature(older, timestamp, key.secret!),
+    }, now);
+    expect(ignored).toMatchObject({ state: 'IGNORED', reason: 'out_of_order' });
+    expect((await prisma.activationRequirement.findUniqueOrThrow({ where: { id: requirement.id } })).status).toBe('requested');
+
+    const packetCount = await prisma.applicationPacket.count({ where: { applicationId: submitted.applicationId } });
+    expect(packetCount).toBe(1);
+    const joined = await readHireToStartCase({ applicationId: submitted.applicationId, clerkUserId: EMPLOYER });
+    expect(joined.externalSystemSync.state).toBe('fresh');
+    expect(joined.requirements[0]).toMatchObject({
+      externalSourceSystem: 'design-partner-test',
+      externalLimitation: 'Partner status only; no source-backed evidence was supplied.',
+    });
+  });
+
+  it('keeps external references tenant-scoped and unique across applications', async () => {
+    const firstApplication = await createApplication();
+    const secondApplication = await createApplication();
+    const key = await prisma.employerWebhookConfig.create({
+      data: {
+        employerId: organizationId,
+        webhookUrl: 'https://integration.invalid/hire-to-start',
+        secret: 'test-hire-to-start-secret-at-least-32-bytes',
+        eventType: 'HIRE_TO_START_INBOUND',
+      },
+    });
+    const now = new Date();
+    const timestamp = String(Math.floor(now.getTime() / 1000));
+    const mapping = (applicationId: string, externalEventId: string): HireToStartInboundEvent => ({
+      version: '1',
+      organizationId,
+      sourceSystem: 'partner-ats',
+      externalEventId,
+      eventType: 'application.external_reference.upserted',
+      applicationId,
+      occurredAt: now.toISOString(),
+      data: { objectType: 'ats-application', externalIdentifier: `ATS-${suffix}` },
+    });
+    const first = mapping(firstApplication.applicationId, `mapping-first-${suffix}`);
+    const second = mapping(secondApplication.applicationId, `mapping-second-${suffix}`);
+
+    expect(await receiveHireToStartIntegrationEvent(first, {
+      keyId: key.id,
+      timestamp,
+      signature: buildHireToStartIntegrationSignature(first, timestamp, key.secret!),
+    }, now)).toMatchObject({ state: 'PROCESSED' });
+    expect(await receiveHireToStartIntegrationEvent(second, {
+      keyId: key.id,
+      timestamp,
+      signature: buildHireToStartIntegrationSignature(second, timestamp, key.secret!),
+    }, now)).toMatchObject({ state: 'FAILED', reason: 'external_reference_conflict' });
+
+    const references = await prisma.applicationExternalReference.findMany({ where: { organizationId } });
+    expect(references).toHaveLength(1);
+    expect(references[0]).toMatchObject({
+      applicationId: firstApplication.applicationId,
+      sourceSystem: 'partner-ats',
+      objectType: 'ats-application',
+      externalIdentifier: `ATS-${suffix}`,
+    });
+  });
+
+  it('imports generic roles idempotently into only the verified caller organization', async () => {
+    const input = {
+      sourceSystem: 'partner-ats',
+      roles: [{
+        externalRoleId: `ROLE-${suffix}`,
+        title: 'Employed cardiologist',
+        specialty: 'Cardiology',
+        hiringType: 'permanent',
+        state: 'CA',
+        description: 'Partner-supplied role description.',
+        remote: false,
+        status: 'ACTIVE' as const,
+        sourceUrl: 'https://jobs.example.test/role/123',
+      }],
+    };
+    const created = await importGenericHireToStartRoles(EMPLOYER, input);
+    const updated = await importGenericHireToStartRoles(EMPLOYER, {
+      ...input,
+      roles: [{ ...input.roles[0], title: 'Employed cardiologist — updated' }],
+    });
+    expect(created).toMatchObject({ organizationId, created: 1, updated: 0 });
+    expect(updated).toMatchObject({ organizationId, created: 0, updated: 1 });
+    expect(updated.opportunityIds).toEqual(created.opportunityIds);
+    const role = await prisma.opportunity.findUniqueOrThrow({ where: { id: created.opportunityIds[0] } });
+    expect(role).toMatchObject({
+      organizationId,
+      title: 'Employed cardiologist — updated',
+      listingSource: 'employer_posted',
+      sourceFeed: 'employer_integration',
+    });
+    await expect(importGenericHireToStartRoles(CLINICIAN, input)).rejects.toMatchObject({ status: 404 });
   });
 
   it.each([

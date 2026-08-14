@@ -73,6 +73,11 @@ export interface StartMission {
     resolvedBy: string | null;
     resolvedAt: string | null;
     policyVersion: string | null;
+    externalSourceSystem: string | null;
+    externalObjectType: string | null;
+    externalIdentifier: string | null;
+    externalObservedAt: string | null;
+    externalLimitation: string | null;
   }>;
   verificationRequests: Array<{
     requestId: string;
@@ -156,6 +161,11 @@ interface MissionPersistenceRecord {
     resolvedBy: string | null;
     resolvedAt: Date | null;
     policyVersion: string | null;
+    externalSourceSystem: string | null;
+    externalObjectType: string | null;
+    externalIdentifier: string | null;
+    externalObservedAt: Date | null;
+    externalLimitation: string | null;
   }>;
   verificationRequests: Array<{
     requestId: string;
@@ -315,6 +325,11 @@ async function loadFromPrisma(applicationId: string): Promise<MissionPersistence
         resolvedBy: true,
         resolvedAt: true,
         policyVersion: true,
+        externalSourceSystem: true,
+        externalObjectType: true,
+        externalIdentifier: true,
+        externalObservedAt: true,
+        externalLimitation: true,
       },
     }),
     prisma.verificationRequest.findMany({
@@ -470,6 +485,7 @@ export async function readStartMission(
       ...requirement,
       dueAt: iso(requirement.dueAt),
       resolvedAt: iso(requirement.resolvedAt),
+      externalObservedAt: iso(requirement.externalObservedAt),
     })),
     verificationRequests: record.verificationRequests.map((request) => ({
       ...request,
