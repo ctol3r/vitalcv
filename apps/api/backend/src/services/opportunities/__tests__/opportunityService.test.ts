@@ -23,6 +23,7 @@ jest.mock('../../../graphql/prisma_client', () => ({
       findUnique: jest.fn(),
     },
     opportunity: {
+      findFirst: jest.fn(),
       findUnique: jest.fn(),
       update: jest.fn(),
     },
@@ -42,6 +43,7 @@ jest.mock('../../../graphql/prisma_client', () => ({
 import prisma from '../../../graphql/prisma_client';
 import {
   getOrgProfile,
+  getPublicOpportunityById,
   updateOpportunity,
   upsertOrgProfile,
 } from '../opportunityService';
@@ -69,6 +71,7 @@ const prismaMock = prisma as unknown as {
     findUnique: jest.Mock;
   };
   opportunity: {
+    findFirst: jest.Mock;
     findUnique: jest.Mock;
     update: jest.Mock;
   };
@@ -107,6 +110,7 @@ describe('opportunityService org profile pilot policy', () => {
     prismaMock.organizationProfile.update.mockReset();
     prismaMock.organizationProfile.findUnique.mockReset();
     prismaMock.opportunity.findUnique.mockReset();
+    prismaMock.opportunity.findFirst.mockReset();
     prismaMock.opportunity.update.mockReset();
   });
 
@@ -331,6 +335,22 @@ describe('opportunityService org profile pilot policy', () => {
       where: { id: 'user-1' },
       data: { organizationId: 'org-1' },
     });
+  });
+});
+
+describe('getPublicOpportunityById', () => {
+  beforeEach(() => {
+    prismaMock.opportunity.findFirst.mockReset().mockResolvedValue(null);
+  });
+
+  it('allows direct detail reads to preserve an explicit closed state', async () => {
+    await expect(getPublicOpportunityById(
+      '11111111-1111-1111-1111-111111111111',
+    )).resolves.toBeNull();
+
+    expect(prismaMock.opportunity.findFirst).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.not.objectContaining({ status: 'ACTIVE' }),
+    }));
   });
 });
 

@@ -36,11 +36,14 @@ export type SceneKind = 'decorative' | 'process' | 'stateful';
  * keeping both crop and asset here prevents route CSS from becoming an
  * undocumented second media system.
  */
-export type SceneRouteVariantId = 'home_documentary' | 'explore_documentary';
+export type SceneRouteVariantId =
+  | 'home_documentary'
+  | 'explore_documentary'
+  | 'opportunity_detail_documentary';
 
 export interface SceneRouteVariant {
   id: SceneRouteVariantId;
-  route: '/' | '/explore' | '/employers' | '/pilot' | '/onboarding' | '/trust';
+  route: '/' | '/explore' | '/opportunities/[id]' | '/employers' | '/pilot' | '/onboarding' | '/trust';
   aspect: { w: number; h: number };
   objectPosition?: string;
   /**
@@ -117,6 +120,19 @@ export const SCENE_MANIFEST: readonly SceneManifestEntry[] = [
         route: '/explore',
         aspect: { w: 16, h: 9 },
         objectPosition: 'center center',
+        poster: {
+          path: '/scenes/explore-clinician-horizon.jpg',
+          format: 'jpeg',
+          source: 'Original generated commission for VitalCV',
+          license: 'VitalCV proprietary',
+          origin: 'WO-13, 2026-08-14; generated adult, no real clinician or patient',
+        },
+      },
+      {
+        id: 'opportunity_detail_documentary',
+        route: '/opportunities/[id]',
+        aspect: { w: 4, h: 5 },
+        objectPosition: '47% center',
         poster: {
           path: '/scenes/explore-clinician-horizon.jpg',
           format: 'jpeg',

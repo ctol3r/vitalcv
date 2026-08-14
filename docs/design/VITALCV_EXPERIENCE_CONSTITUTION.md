@@ -296,6 +296,31 @@ without the image. A route variant may select its own provenance-bound poster,
 but it may not change the scene kind, invent state, exceed EC-29 budgets, or
 move evidence facts into pixels.
 
+#### Opportunity detail and MATCHA continuity amendment D.3 (2026-08-14)
+
+The founder extended the WO-13 register through public `/opportunities/[id]`
+and the signed-in clinician detail in WO-14. The public route is a source-first
+role record, not an application funnel. The signed-in route adds the clinician's
+MATCHA explanation while preserving the exact source, observation,
+availability, compensation provenance, and application mode from the public
+record.
+
+| Decision | Value | Status |
+|---|---|---|
+| Public composition | Editorial split hero with documentary clinical context, a tactile source ticket, a ruled fact register, source receipt, and one current application path | LOCKED for `/opportunities/[id]` |
+| Public truth | Organization, role, setting, schedule, supplied compensation, source URL, observation time, availability confidence, limitation, and application mode remain selectable DOM text | LOCKED for `/opportunities/[id]` |
+| Application boundary | External listings use **View original listing**; only integrated records may use **Apply with VitalCV**; closed or source-unavailable records expose no application action | LOCKED for opportunity detail |
+| Signed-in MATCHA | **Why this may fit**, **Evidence gaps**, **Still unknown**, and **Clinician-controlled next steps**; no score, automatic eligibility verdict, hidden employer ranking, or inferred sensitive fact | LOCKED for clinician detail |
+| Continuity | An integrated next step enters the existing selective-disclosure composer; the preview, consent, and sealed packet remain the canonical application chain | LOCKED for clinician detail |
+| Media | Reuse the provenance-bound WO-13 documentary commission through a manifest-owned dynamic-route crop; the image carries human context only | LOCKED for public detail |
+
+A closed direct link remains readable with `Closed` and its recorded limitation
+instead of becoming an ambiguous 404. A public-feed role never receives
+employer-stated requirements or a VitalCV application path merely because its
+placeholder organization has data. MATCHA is clinician-side guidance: the
+employer receives only the exact packet the clinician later chooses and
+consents to submit.
+
 **On the difference (W1080 closure, 2026-08-08).** Three rows previously read
 "PENDING UX-02", which is indistinguishable from an unresolved brand decision and
 made the table read as incomplete when it is not. A deferral is legitimate only

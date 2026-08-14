@@ -1,0 +1,75 @@
+{
+  "measuredAt": "2026-08-14",
+  "browser": "Chromium production build",
+  "viewports": [
+    {
+      "width": 390,
+      "height": 844,
+      "horizontalOverflowPx": 0,
+      "h1": {
+        "fontFamily": "fraunces, Fraunces Fallback, Georgia, Times New Roman, serif",
+        "fontSize": "50.7px",
+        "fontWeight": "400"
+      }
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "horizontalOverflowPx": 0,
+      "h1": {
+        "fontFamily": "fraunces, Fraunces Fallback, Georgia, Times New Roman, serif",
+        "fontSize": "48px",
+        "fontWeight": "400"
+      }
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "horizontalOverflowPx": 0,
+      "h1": {
+        "fontFamily": "fraunces, Fraunces Fallback, Georgia, Times New Roman, serif",
+        "fontSize": "67.68px",
+        "fontWeight": "400"
+      }
+    },
+    {
+      "width": 1728,
+      "height": 1117,
+      "horizontalOverflowPx": 0,
+      "h1": {
+        "fontFamily": "fraunces, Fraunces Fallback, Georgia, Times New Roman, serif",
+        "fontSize": "81.216px",
+        "fontWeight": "400"
+      }
+    }
+  ],
+  "themeContract": {
+    "forcedTheme": "light-only (apps/web/app/providers.tsx)"
+  },
+  "contrast": {
+    "headline": 17.31,
+    "lede": 6.54,
+    "eyebrow": 5.86,
+    "primaryAction": 18.71
+  },
+  "action": {
+    "heightPx": 52,
+    "mobileBottomPx": 586.75,
+    "fixedPublicControlsTopPx": 782,
+    "overlapsFixedControls": false
+  },
+  "publicActionContract": {
+    "externalActionCount": 1,
+    "integratedActionCount": 0,
+    "applicationMode": "external",
+    "availability": "open"
+  },
+  "webglRequired": false,
+  "canvasCount": 0,
+  "videoCount": 0,
+  "assets": {
+    "heroPosterBytes": 167602,
+    "shippedMotionBytes": 0,
+    "motionEvidenceBytes": 422982
+  }
+}
