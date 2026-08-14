@@ -321,6 +321,31 @@ placeholder organization has data. MATCHA is clinician-side guidance: the
 employer receives only the exact packet the clinician later chooses and
 consents to submit.
 
+#### Opportunity discovery-controls amendment D.4 (2026-08-14)
+
+The founder directed `/explore` to reach the functional discovery bar of
+HiringCafe while preserving VitalCV's own human+tactile register and stricter
+source truth. WO-13B therefore extends D.2 with a horizontal **opportunity lens
+rail** and richer advanced controls. This is a discovery layer over the same
+canonical opportunity records, not a second job board, matcher, or visual era.
+
+| Decision | Value | Status |
+|---|---|---|
+| Quick discovery | A keyboard-accessible horizontal rail for **Fresh from source**, **Pay in view**, **Apply with VitalCV**, locums, remote care, and profession lenses | LOCKED for `/explore` |
+| Advanced controls | Existing role/place facets plus source-observation window, application path, supplied compensation detail, benefits detail, and explicit sort | LOCKED for `/explore` |
+| Shareability | Every discovery selection is normalized into a bounded public URL and replayed by the server-owned API contract | LOCKED for `/explore` |
+| Sorting | Most recently updated, role title A-Z, or organization A-Z; sorting does not imply fit, quality, eligibility, or employer preference | LOCKED for `/explore` |
+| No-JavaScript path | Lens cards remain ordinary links and advanced controls remain native form elements; JavaScript enhances carousel movement and live filtering but does not gate the source-labelled field | LOCKED for `/explore` |
+| MATCHA boundary | Natural-language intent and personal explanation belong to signed-in MATCHA; public discovery exposes no readiness score, hidden ranking, automatic rejection, inferred sensitive fact, or auto-application | LOCKED for opportunity discovery |
+
+HiringCafe is a functional benchmark, not a design source to clone. VitalCV
+keeps its documentary scene, paper-object geometry, source labels, observation
+limits, and external-versus-integrated action boundary. A lens narrows records;
+it never says the visitor qualifies. Missing compensation and benefits remain
+filterable as missing rather than being inferred. The rail uses native overflow
+with supplementary controls, requires no WebGL or new motion engine, and its
+reduced-motion frame is identical except for immediate movement.
+
 **On the difference (W1080 closure, 2026-08-08).** Three rows previously read
 "PENDING UX-02", which is indistinguishable from an unresolved brand decision and
 made the table read as incomplete when it is not. A deferral is legitimate only

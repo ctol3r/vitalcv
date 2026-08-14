@@ -3,6 +3,61 @@
 Append-only. **Newest entry at the top.** One entry per work order is recorded
 in the same pull request as its implementation or takeover evidence.
 
+## WO-13B · Opportunity discovery controls — OPEN
+
+- **Date:** 2026-08-14
+- **Claim-check and creative ownership:** No open pull request or remote branch
+  duplicates the source-aware discovery lens rail, expanded public browse
+  contract, or explicit sort. Merged #1374 and #1375 are LANDED foundations,
+  not competing implementations. Codex is the named creative owner applying
+  the founder's HiringCafe-class functionality directive inside the locked D.2
+  register; shared public chrome is unchanged.
+- **Change:** Adds six tactile opportunity lenses with keyboard controls,
+  native horizontal overflow, real no-JavaScript links, active state, and a clear
+  MATCHA boundary. The advanced field grows from five browse facets to ten
+  controls: specialty, profession, location, schedule, employment type, source
+  observation window, application path, compensation detail, benefits detail,
+  and sort. Every selection remains shareable through normalized URL state.
+- **Truth and ranking boundary:** Source-observation filtering reads the
+  opportunity's recorded observation time; compensation and benefits filters
+  distinguish supplied, limited, and missing data without inference; and
+  application mode preserves the original-listing versus VitalCV boundary.
+  Sorting is only recent update, title, or organization. No public fit score,
+  readiness verdict, hidden ranking, automatic rejection, sensitive inference,
+  employer preference, or auto-application is introduced. Signed-in MATCHA
+  remains the owner of natural-language intent and personal explanation.
+- **Architecture and data:** Extends the existing `BoardFilters`, canonical
+  opportunity truth matcher, list service, and anonymous API route. It creates
+  no parallel board, matcher, animation engine, schema, migration, durable
+  mutation, authorization path, or application API. Derived filters retain the
+  existing 500-row bounded scan and explicit `truncated` response; title and
+  organization sorting stay database-owned on the fast path.
+- **Accessibility and performance:** Lens cards are real links without
+  JavaScript; arrow controls are supplementary 48px targets; native selects
+  retain the advanced path; focus, reduced motion, no-JavaScript disclosure,
+  200% zoom, and 390/768/1440/1728 behavior are production-build tested.
+  Measured horizontal overflow is 0px at all required widths, ink contrast is
+  18.71:1, source green contrast is 6.33:1, and the implementation adds no
+  shipped image, video, canvas, WebGL, or motion payload.
+- **Evidence:**
+  `docs/design/evidence/wo13b-opportunity-discovery-2026-08-14/` contains paired
+  production-before and optimized-build-after frames at all four required
+  widths, reduced-motion and no-JavaScript frames, a real carousel-control
+  recording, computed geometry and contrast, duplicate-intent evidence, and
+  the explicit local-source limitation.
+- **Verification:** Focused frontend passes **1 file / 5 tests**; focused
+  opportunity truth and service coverage passes **2 suites / 22 tests** against
+  the migration-backed PostgreSQL harness; production-build Playwright passes
+  **5/5**. Zero-warning lint, copy, claims, design, route, design-markdown,
+  typecheck, and full build gates pass. The aggregate web suite passes **467
+  files / 4,524 tests** and the backend passes **343 suites / 2,761 tests**
+  against the migration-backed PostgreSQL harness. Refreshed exact-head CI and
+  `CLEAN` remain required before merge.
+- **Next gate:** Publish the same-PR implementation and ledger receipt, require
+  all refreshed-head checks green and `CLEAN`, then squash-merge. Verify Railway
+  web and API `/api/version` at the exact merge SHA and exercise the new lens and
+  advanced URL flow on desktop and mobile before WO-15.
+
 ## WO-14 · Opportunity detail and signed-in MATCHA — OPEN
 
 - **Date:** 2026-08-14

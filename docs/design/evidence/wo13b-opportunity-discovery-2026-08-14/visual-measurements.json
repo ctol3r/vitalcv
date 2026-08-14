@@ -1,0 +1,40 @@
+{
+  "measuredAt": "2026-08-14",
+  "browser": "Chromium optimized production build",
+  "baselineSha": "c95e01b7a38e458008bf6022caceeef82d7f9463",
+  "viewports": [
+    { "width": 390, "height": 844, "horizontalOverflowPx": 0, "lensCount": 6 },
+    { "width": 768, "height": 1024, "horizontalOverflowPx": 0, "lensCount": 6 },
+    { "width": 1440, "height": 900, "horizontalOverflowPx": 0, "lensCount": 6 },
+    { "width": 1728, "height": 1117, "horizontalOverflowPx": 0, "lensCount": 6 }
+  ],
+  "themeContract": {
+    "forcedTheme": "light-only (apps/web/app/providers.tsx)"
+  },
+  "lensTypography": {
+    "fontFamily": "fraunces, Fraunces Fallback, Georgia, Times New Roman, serif",
+    "fontSize": "25.6px",
+    "lineHeight": "25.6px"
+  },
+  "contrast": {
+    "inkOnPaper": 18.71,
+    "sourceGreenOnPaper": 6.33,
+    "mutedCopyOnPaper": 6.83
+  },
+  "interaction": {
+    "arrowTargetPx": 48,
+    "horizontalOverflowControl": "native, no scroll snap",
+    "hoverTranslationPx": 3,
+    "transitionMs": 180,
+    "reducedMotionAuthored": true,
+    "noJavaScriptLinks": 6
+  },
+  "webglRequired": false,
+  "canvasCount": 0,
+  "shippedAssetAdditions": {
+    "imageBytes": 0,
+    "motionBytes": 0,
+    "newAnimationEngine": false
+  },
+  "localEvidenceBoundary": "No local backend session; after frames document discovery controls without synthetic opportunity rows."
+}
