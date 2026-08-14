@@ -27,12 +27,12 @@ specificity, so this list is the precedence:
 
 | # | File | `--vt-*` declarations |
 |---|---|---|
-| 1 | `apps/web/styles/themes/index.css` | 147 |
+| 1 | `apps/web/styles/themes/index.css` | 153 |
 | 2 | `apps/web/styles/tokens.css` | 33 |
 | 3 | `apps/web/styles/vitalTokens.css` | 65 |
 | 4 | `apps/web/styles/matcha-zen.css` | 16 |
 
-**261 declarations across 4 files, 172 distinct tokens.**
+**267 declarations across 4 files, 178 distinct tokens.**
 
 ### Route-scoped token files (outside the global cascade)
 
@@ -210,7 +210,7 @@ table — the table says what exists, this says what to do.
 
 ## Tokens
 
-Role sentences come from `docs/design/design-md-roles.json`. **12 of 172**
+Role sentences come from `docs/design/design-md-roles.json`. **12 of 178**
 tokens have a documented role; the rest say so plainly rather than inventing one.
 
 | Token | Effective value | Declared in | Role |
@@ -299,6 +299,12 @@ tokens have a documented role; the rest say so plainly rather than inventing one
 | `--vt-glass-ring-faint` | `oklch(1 0 0 / 0.06)` | `styles/vitalTokens.css` | — *(role not documented)* |
 | `--vt-glass-subtle-bg` | `oklch(1 0 0 / 0.03)` | `styles/vitalTokens.css` | — *(role not documented)* |
 | `--vt-glow-passport` | `oklch(0.45 0.01 255 / 0.10)` | `styles/vitalTokens.css` | — *(role not documented)* |
+| `--vt-home-d-dim` | `#5C5852` | `styles/themes/index.css` | — *(role not documented)* |
+| `--vt-home-d-ground` | `#F7F6F3` | `styles/themes/index.css` | — *(role not documented)* |
+| `--vt-home-d-ink` | `#131211` | `styles/themes/index.css` | — *(role not documented)* |
+| `--vt-home-d-panel` | `#FFFFFF` | `styles/themes/index.css` | — *(role not documented)* |
+| `--vt-home-d-rule` | `#E0DDD6` | `styles/themes/index.css` | — *(role not documented)* |
+| `--vt-home-d-source` | `#0F6D4E` | `styles/themes/index.css` | — *(role not documented)* |
 | `--vt-info` | `var(--vt-accent)` | `styles/themes/index.css` | — *(role not documented)* |
 | `--vt-node-alert` | `#ef4444` | `styles/themes/index.css` | — *(role not documented)* |
 | `--vt-node-company` | `#8b5cf6` | `styles/themes/index.css` | — *(role not documented)* |

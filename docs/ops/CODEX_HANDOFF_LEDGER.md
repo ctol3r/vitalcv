@@ -30,6 +30,18 @@ in the same pull request as its implementation or takeover evidence.
   implementation was reviewed at 1440×900. The pre-existing mobile shared
   chrome control cluster still overlays the viewport by its locked EC-10 design;
   it is recorded, not modified in this homepage-composition work order.
+- **CI recovery (2026-08-13):** The restored remote gates found four server-frame
+  assertions and two browser assertions still describing the retired dark,
+  layered homepage. They now assert Direction D's light paper composition,
+  Fraunces display/Geist reading contract, visible source states, and
+  clinician-controlled disclosure boundary. `DESIGN.md` was regenerated after
+  the Direction D tokens made its freshness test fail. `pnpm typecheck`, the
+  production web build, focused Vitest (27 assertions), and focused production
+  Playwright (26 browser checks) pass. The aggregate root command's web phase
+  passes (460 files / 4,444 tests); its backend phase hit the known
+  shared-worktree Prisma-generation collision while the isolated remote
+  backend job is green. The next pushed head requires the full remote gate run
+  before landing.
 - **Gate:** Creative owner: Codex. Before merge, attach 390/1440 before-and-after
   screenshots, the reduced-motion capture, a motion recording, and review
   environment evidence to the PR. Production promotion remains outside this
