@@ -3,6 +3,39 @@
 Append-only. **Newest entry at the top.** One entry per work order is recorded
 in the same pull request as its implementation or takeover evidence.
 
+## WO-11 · Canonical Titan execution program — RESCUED IN #1368
+
+- **Date:** 2026-08-13
+- **Claim-check and stale-stack classification:** #1368 is the only open PR for
+  the Titan execution-program intent. Its branch carried one UNIQUE docs commit;
+  all preceding product and operations commits are LANDED on `main`. Codex
+  rebased only that docs commit onto production baseline `d08b69231` and
+  preserved the newer WO-11 market-evidence and WO-6 API-probe ledger entries.
+  The concurrent lanes reused `WO-11`; this entry retains the program's
+  pre-existing identifier while PR numbers remain the unambiguous work receipts.
+- **Change:** Replaces the stale pre-reconciliation snapshot with
+  `VITALCV_TITAN_EXECUTION_PROGRAM_2026-08-11.md` as the canonical current
+  program. It records the founder's 2026-08-13 human+tactile decision, an
+  evidence-bounded benchmark scorecard, clinician-opportunity strategy, the
+  accepted-evidence differentiation, and ordered WO-12 through pilot waves.
+  References to the removed dated action plan and handoff protocol are retired.
+- **Truth and authority boundary:** The program implements the selected
+  documentary-photography plus proprietary-tactile direction; it does not
+  license invented metrics, unsupported sources, hidden employment ranking,
+  automatic credentialing, or public outcome claims. Shared public chrome,
+  security enforcement flips, destructive migrations, unsupported integrations,
+  and high-stakes automated employment decisions remain separately gated.
+- **Verification:** Docs-only change. `git diff --check`, copy and public-claims
+  gates, typecheck, and build pass. The final non-interactive aggregate run
+  passes **464 web files / 4,505 tests** plus the real-PostgreSQL backend at
+  **343 suites / 2,751 tests**. The first aggregate attempt was interrupted
+  after its TTY renderer retained control with no useful completion status; no
+  interrupted result is counted as evidence. Require refreshed CI green and
+  `CLEAN` before merge.
+- **Next execution unit:** WO-12, the human+tactile homepage release. It starts
+  with a dated EC-20 amendment and retains the visual evidence, no-JavaScript,
+  reduced-motion, performance, truth, and exact-SHA production gates.
+
 ## WO-6 · API production surface probe — RESCUED IN #1370
 
 - **Date:** 2026-08-13
