@@ -165,6 +165,7 @@ export NODE_ENV="test"
 
 cd "${REPO_ROOT}"
 cd "${REPO_ROOT}/apps/api/backend"
+bash ../../../scripts/prisma-generate-locked.sh --schema prisma/schema.prisma >/dev/null
 pnpm exec prisma migrate deploy --schema prisma/schema.prisma >/dev/null
 set +e
 if [[ ${#JEST_ARGS[@]} -gt 0 ]]; then

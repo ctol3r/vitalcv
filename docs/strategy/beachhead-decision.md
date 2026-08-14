@@ -1,6 +1,11 @@
 # Beachhead decision packet
 
-**Date:** 2026-08-05 · **Wave:** 1077 (PR C) · **Status:** ✅ **DECIDED 2026-08-05 — hospital-based APPs**
+**Date:** 2026-08-05 · **Amended:** 2026-08-14 · **Status:** **SUPERSEDED — see founder decision below**
+
+> **Supersession notice.** The 2026-08-05 hospital-based APP-only beachhead is
+> retained below as decision history. The founder broadened the initial pilot on
+> 2026-08-14 to employed physicians and advanced practice providers at health
+> systems. That later decision is canonical.
 
 The Wave 1077 instruction is explicit: *"Do not independently declare VitalCV 'for
 every clinician'"* and *"Evaluate each using only verifiable evidence and current
@@ -149,3 +154,27 @@ Pilot recruitment expresses the segment more narrowly:
 This is an operating hypothesis to validate. **No market dominance or density
 claim** — the 6 opportunities / 0 verified clinicians measured above is evidence
 that clinician activation is the bottleneck, not evidence about any segment.
+
+---
+
+## Superseding founder decision (2026-08-14)
+
+The initial market is **employed physicians and advanced practice providers at
+health systems**. The primary buyer is **provider recruitment leadership**.
+Credentialing, medical staff services, HR, and onboarding remain essential
+participants, but VitalCV does not enter their credentialing or privileging
+category.
+
+Pilot controls:
+
+- Recruit 5–10 health-system design partners and launch with the first 2–3 that
+  can provide real cases and signed data/integration scope.
+- Permit physician and APP participation, while limiting each partner to no more
+  than two service lines.
+- Measure employer-confirmed actual first day as the primary outcome.
+- Keep the pilot free under signed scope and keep production billing disabled.
+- Do not infer market density, speed, savings, credentialing completion, or
+  integration support from the selected beachhead.
+
+This decision supersedes only the APP-only scope. The evidence cautions and the
+prohibition on unsupported market claims above remain in force.

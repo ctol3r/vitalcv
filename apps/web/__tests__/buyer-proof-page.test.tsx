@@ -75,6 +75,10 @@ describe('Wave 5 buyer proof surface', () => {
 
     expect(markup).toContain('Internal simulation');
     expect(markup).toContain('not a customer pilot result');
+    expect(markup).toContain('VitalCV is the Clinician Hire-to-Start Platform');
+    expect(markup).toContain('employer-confirmed first day');
+    expect(markup).toContain('does not replace your credentialing committee');
+    expect(markup).toContain('institutional authority');
     expect(markup).toContain('Limitation honesty');
     expect(markup).toContain('does not replace Primary Source Verification');
     expect(markup).toContain('A partial proof stays partial');
