@@ -62,11 +62,19 @@ const INTEGRATED_ROLE = {
   applicationMode: 'vitalcv',
 };
 
-async function mockFilteredField(page: import('@playwright/test').Page) {
+const LONG_TITLE_ROLE = {
+  ...EXTERNAL_ROLE,
+  title: 'NY Center Advanced Practice Provider (Nurse Practitioner/Physician Assistant)',
+};
+
+async function mockFilteredField(
+  page: import('@playwright/test').Page,
+  opportunities = [EXTERNAL_ROLE, INTEGRATED_ROLE],
+) {
   await page.route('**/api/opportunities?**', (route) => route.fulfill({
     status: 200,
     contentType: 'application/json',
-    body: JSON.stringify({ opportunities: [EXTERNAL_ROLE, INTEGRATED_ROLE], total: 2 }),
+    body: JSON.stringify({ opportunities, total: opportunities.length }),
   }));
 }
 
@@ -184,6 +192,26 @@ test.describe('WO-13 public opportunity field', () => {
     await expect(page.getByLabel('Profession')).toBeVisible();
     await expectNoHorizontalOverflow(page);
     await context.close();
+  });
+
+  test('a source-supplied long role title stays inside a 390px result card', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await mockFilteredField(page, [LONG_TITLE_ROLE]);
+    await page.goto('/explore', { waitUntil: 'domcontentloaded' });
+    await waitForOpportunityField(page);
+    await page.getByRole('searchbox', { name: 'Search the field' }).fill('nurse practitioner');
+    await expect(page).toHaveURL(/q=nurse(?:\+|%20)practitioner/);
+    await expect(page.locator('.opf-role')).toHaveCount(1);
+
+    const longTitle = page.getByRole('heading', {
+      level: 3,
+      name: LONG_TITLE_ROLE.title,
+    });
+    await expect(longTitle).toBeVisible();
+
+    const titleRight = await longTitle.evaluate((element) => element.getBoundingClientRect().right);
+    expect(titleRight).toBeLessThanOrEqual(390);
+    await expectNoHorizontalOverflow(page);
   });
 
   test('required widths, reduced motion, keyboard, and 200% layout remain operable', async ({ page }) => {

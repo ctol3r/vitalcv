@@ -1,5 +1,6 @@
 'use client';
 
+import { Fragment } from 'react';
 import Link from 'next/link';
 import type { OpportunitySummary } from '@/lib/launch/marketplace';
 import {
@@ -50,7 +51,14 @@ export function BoardResultRow({
           <div>
             <p className="opf-role-org">{opportunity.organizationName}</p>
             <h3 className="opf-role-title">
-              <Link href={`/opportunities/${opportunity.id}`}>{opportunity.title}</Link>
+              <Link href={`/opportunities/${opportunity.id}`}>
+                {opportunity.title.split('/').map((segment, index) => (
+                  <Fragment key={`${segment}-${index}`}>
+                    {index > 0 ? <>/<wbr /></> : null}
+                    {segment}
+                  </Fragment>
+                ))}
+              </Link>
             </h3>
           </div>
           <p className="opf-availability" data-state={availability.state}>

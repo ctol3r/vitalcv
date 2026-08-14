@@ -3,6 +3,38 @@
 Append-only. **Newest entry at the top.** One entry per work order is recorded
 in the same pull request as its implementation or takeover evidence.
 
+## WO-13B-F1 · Mobile source-title containment — OPEN
+
+- **Date:** 2026-08-14
+- **Production defect:** Exact live verification of merged WO-13B at 390px found
+  the source-supplied title `NY Center Advanced Practice Provider (Nurse
+  Practitioner/Physician Assistant)` rendering to 393.83px, beyond the 390px
+  viewport. This is a bounded visual-defect correction inside the approved
+  opportunity register; shared public chrome is unchanged.
+- **Correction:** The existing role-heading grid now explicitly permits its text
+  track and nested wrapper to shrink, long source strings wrap instead of
+  escaping the card, and slash-delimited titles receive a semantic-free soft
+  wrap opportunity without changing the source text or accessible name.
+- **Truth, product, and architecture boundary:** No role fact, source label,
+  filter, ranking, application path, API, schema, authorization rule, durable
+  state, component family, or animation engine changes. The exact source title
+  remains present and linked to the existing opportunity detail.
+- **Evidence:**
+  `docs/design/evidence/wo13b-mobile-overflow-2026-08-14/` contains the exact
+  390px live-production before card and optimized-build after card. The title
+  edge moves from 393.83px to 358px; the after document is 390px wide.
+- **Verification:** Focused rendering passes **1 file / 6 tests** and
+  production-build Playwright passes **6/6**, including the exact live title,
+  390/768/1440/1728 widths, no JavaScript, reduced motion, keyboard, and 200%
+  zoom. Typecheck passes **50/50**, build passes **35/35**, the aggregate web
+  suite passes **467 files / 4,525 tests**, and the serialized migration-backed
+  PostgreSQL backend suite passes **343 suites / 2,761 tests**. Exact
+  refreshed-head CI and `CLEAN` remain required before merge.
+- **Next gate:** Publish the same-PR correction and ledger receipt, require all
+  refreshed-head checks green and `CLEAN`, squash-merge, verify Railway web and
+  API at the exact merge SHA, and remeasure the exact live title at 390px before
+  WO-15.
+
 ## WO-13B · Opportunity discovery controls — OPEN
 
 - **Date:** 2026-08-14

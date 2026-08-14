@@ -96,6 +96,16 @@ describe('WO-13 public opportunity field', () => {
     expect(html).not.toContain('View original listing');
   });
 
+  it('preserves a source title while adding a safe wrap point after a slash', () => {
+    const role: OpportunitySummary = {
+      ...externalRole(),
+      title: 'Nurse Practitioner/Physician Assistant',
+    };
+    const html = renderToStaticMarkup(<BoardResultRow opportunity={role} ordinal={1} />);
+
+    expect(html).toContain('Nurse Practitioner/<wbr/>Physician Assistant');
+  });
+
   it('limits the public URL contract to browse facets and server pagination', () => {
     const params = new URLSearchParams({
       q: 'family medicine',
