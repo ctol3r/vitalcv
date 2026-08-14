@@ -237,6 +237,40 @@ the no-script and blocked-compositor failure mode.
 instruments, and its route-declared theme mechanism. This amendment changes the
 homepage composition beneath that chrome, not the chrome itself.
 
+#### Human + tactile career-mobility amendment D.1 (2026-08-13)
+
+The founder extended Direction D for `/`: the record remains the protagonist,
+but the route may no longer ask an interface table and long-form copy to carry
+the whole emotional load. The approved composition combines **original,
+rights-cleared documentary clinical media** for human stakes with **VitalCV's
+own tactile record objects** for identity, evidence, choice, packet review, and
+reuse. This is an extension of Direction D, not a new homepage era.
+
+| Decision | Value | Status |
+|---|---|---|
+| Public promise | **The Provider Career Evidence Network.** | LOCKED for `/` |
+| Hero headline | **One career record. More ways forward.** | LOCKED for `/` |
+| Hero lede | **Start with your NPI. VitalCV assembles what sources can support, shows what still needs you, and helps you find roles where that record can move with you.** | LOCKED for `/` |
+| Primary / secondary action | **Start my CV Wallet.** / **Explore clinician opportunities.** | LOCKED for `/` |
+| Human media | Original commissioned, licensed, or generated documentary clinical imagery with recorded provenance; no patient, PHI, badge detail, employer mark, invented clinician identity, or implied outcome | LOCKED for `/` |
+| Product media | Tactile folio and paper-object compositions built from the real record vocabulary: named source states, an explicit consent gate, exact packet, employer review, Recognition boundary, and fresh-consent reuse | LOCKED for `/` |
+| Opportunity horizon | Current public listings may render without sign-up only with source label, original source URL where supplied, observation time, availability language, and the correct application boundary | LOCKED for `/` |
+| Sequence | Record -> opportunity -> clinician choice -> exact packet -> employer review -> accepted head start -> reuse; the sequence is labelled as process, never as the visitor's result | LOCKED for `/` |
+| Prohibitions | No dense network galaxy, generic SaaS card wallpaper, fake dashboard, staged white-coat portrait, fictional person or employer, invented result/score, unsupported source, or numerical speed promise | LOCKED for `/` |
+
+The hero documentary still uses the existing `VisualScene` registry and the
+existing record assembly treatment. A human image carries no evidence state.
+Every source, limitation, consent choice, application boundary, and employer
+decision remains selectable DOM text outside the pixels. The static server
+frame is complete; motion is an optional single-shot enhancement and the
+reduced-motion/no-JavaScript frame is the authored composition.
+
+This amendment leaves EC-10 shared public chrome unchanged. It also leaves the
+institutional authority boundary unchanged: the sequence may explain an
+employer accepting a packet as a head start only when it says that this follows
+an employer-recorded decision; it may not depict the current visitor as hired,
+cleared, privileged, or started.
+
 **On the difference (W1080 closure, 2026-08-08).** Three rows previously read
 "PENDING UX-02", which is indistinguishable from an unresolved brand decision and
 made the table read as incomplete when it is not. A deferral is legitimate only
@@ -257,7 +291,12 @@ Every scene, still or moving, passes this review before it ships. This is EC-3 a
 
 A scene may never contain or imply:
 
-1. A clinician who could be mistaken for a real person — no real or well-formed NPI, no realistic external identifier, no plausible name paired with credentials.
+1. A clinician presented as a real VitalCV user, or paired with a fictional
+   identity, NPI, credential, source response, employer, or outcome. Under the
+   dated D.1 amendment, anonymous documentary media may show a model-released
+   or generated adult clinician when provenance is recorded, no patient or PHI
+   appears, no identity/evidence claim is attached, and adjacent copy says the
+   image is art-directed rather than a live result.
 2. A source response that did not occur, a source that is not integrated, or a confirmation mark on a gated source.
 3. A count, score, match, or metric presented as a measurement. Illustrative numbers are labeled illustrative or removed.
 4. A submission, share, or send shown as complete before the real endpoint has succeeded.
@@ -322,6 +361,13 @@ Only these scenes are approved for the first release. A new scene requires an EC
 | Decision Trail | stateful | Opportunity detail |
 
 **Placement note — the Journey Film is not authorized on `/` by this clause.** Homepage composition authority rests with the homepage reset and UX-04 (EC-24), and the retired film/scene model may not re-enter through an illustration wave. A Journey Film on the homepage requires an explicit EC-22 amendment and a founder visual gate. Independent of that, UX-01 amendment 5 forbids a blocking hero: no scene may make a visitor wait for the message, and the real NPI action outranks the journey (XS-10, EC-1).
+
+**Homepage route-variant authorization (2026-08-13).** Amendment D.1 supplies
+the required founder decision for a `journey_film` **static documentary route
+variant** on `/`. It is a non-blocking human-stakes still beside the real NPI
+action and tactile record; it does not restore the retired horizontal film,
+create a scroll owner, or carry evidence/result state. The server poster is the
+complete experience and remains subject to EC-25 and EC-29.
 
 **Route note (founder decision, 2026-08-08).** The source briefs target a `/jobs` surface. No such route exists. Opportunity and apply scenes target the surfaces that do: `/holder/opportunities{,/discover,/interested,/passed}`, `/holder/matcha/opportunities`, and `/opportunities/discover`. Renaming the customer-facing noun is UX-16 copy work; creating a `/jobs` route is a product dependency, not an illustration wave.
 

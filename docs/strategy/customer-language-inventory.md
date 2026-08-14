@@ -238,6 +238,26 @@ limitation clauses remain. Guard the truth strings, not only the marketing strin
 
 ## Founder decisions — recorded 2026-08-07
 
+### Amendment — recorded 2026-08-13
+
+The founder-locked human+tactile career-mobility direction restores two precise
+public labels without reopening the wider retired vocabulary:
+
+1. **CV Wallet — KEEP as the compound product name.** It names the
+   clinician-owned reusable career record. Generic “wallet” and crypto-wallet
+   language remain retired.
+2. **Exact packet — KEEP inside the record-to-reuse process.** It names the
+   clinician-selected, versioned record an employer receives. Generic packet
+   marketing remains retired; `ApplicationPacket` remains the technical name.
+3. **Accepted head start — KEEP as public acquisition language.** Recognition
+   remains the distinct in-app state tied to the exact employer decision.
+
+This dated direction supersedes the 2026-08-07 classification only for these
+exact compounds. The copy gate encodes them as narrow `allowWithin` phrases so
+the earlier vocabulary-sprawl protection remains effective.
+
+### Standing decisions from 2026-08-07
+
 1. **`recognition` — KEEP** as a distinct in-app state. It names a real thing an
    employer did; folding it into "employer accepted" would cost meaning. Stays
    *allowed when task-specific*: in-app yes, acquisition copy no.

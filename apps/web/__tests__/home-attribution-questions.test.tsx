@@ -154,12 +154,15 @@ describe('homepage questions', () => {
 describe('both sections', () => {
   it('introduces no EC-9 banned customer-facing noun', () => {
     // The nouns the EC-9 ratchet counts. New surfaces must start clean.
+    // Direction D.1 restores only the ratified compound `CV Wallet`; generic
+    // wallet remains governed after that exact phrase is removed.
+    const governedText = text.replace(/\bCV\s+Wallet\b/gi, '');
     const banned = [
       'packet', 'artifact', 'lane', 'evidence network', 'provenance', 'holder',
       'readiness score', 'passport', 'wallet', 'graph', 'trust tier', 'dossier',
       'credential object',
     ];
-    const found = banned.filter((n) => new RegExp(`\\b${n}\\b`, 'i').test(text));
+    const found = banned.filter((n) => new RegExp(`\\b${n}\\b`, 'i').test(governedText));
     expect(found).toEqual([]);
   });
 

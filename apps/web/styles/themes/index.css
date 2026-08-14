@@ -203,6 +203,22 @@ html[data-theme='dark'] {
   --vt-home-d-rule: #E0DDD6;
   --vt-home-d-panel: #FFFFFF;
   --vt-home-d-source: #0F6D4E;
+  /* D.1 tactile material palette. These belong to the route register rather
+     than easy-home.css so every rendered colour remains token-owned. */
+  --vt-home-d-photo-matte: #D8D4CA;
+  --vt-home-d-folio-line: #C9C2B5;
+  --vt-home-d-folio-sheet: #E7E2D8;
+  --vt-home-d-folio-back: #C8C2B7;
+  --vt-home-d-folio-mid: #EEE9DF;
+  --vt-home-d-binding-line: #A7A197;
+  --vt-home-d-binding: #191817;
+  --vt-home-d-tab: #EFEDE8;
+  --vt-home-d-tactile-line: #AAA397;
+  --vt-home-d-tactile-back: #D8D2C7;
+  --vt-home-d-tactile-front: #FDFCF9;
+  /* Established DG-18.4 material-above-flow stop, made available to the live
+     register; it is not a new layer in the seven-stop z scale. */
+  --vt-z-raised: 10;
 
   /* ── Scene surfaces — the dark-led register (decision 1) ──────────────── */
   --vt-scene-canvas:            #151412;
