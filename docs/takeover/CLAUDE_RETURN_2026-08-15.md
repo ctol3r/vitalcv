@@ -63,17 +63,29 @@ token that can read it (admin scope); the default CI token cannot.
 gh: Branch not protected (HTTP 404)
 ```
 
-It reports the workflow *contract* as passing (14 checks correctly declared),
-then attributes the 404 to token scope and **exits 0**. But GitHub returns
-404 `"Branch not protected"` only when no protection object exists; insufficient
-scope returns 403. The same session read repository settings and `rulesets`
-successfully, so scope is not the cause here.
+*(Corrected on verification, late pass 2026-08-15.)* The script does set
+`process.exitCode = 1` on that failure (`check-workflow-path-filters.js:701`) —
+the silence mechanism is threefold, and worse than a wrong exit code:
 
-The gate therefore cannot distinguish *"I can't see protection"* from
-*"there is no protection"* — and treats both as non-fatal. That is the precise
-mechanism by which this failure stayed silent. Worth fixing when protection is
-restored: on a 404 with a token that demonstrably reads other admin endpoints,
-fail loudly.
+1. The catch **misattributes** the 404 to token scope (`:695-700`), so an
+   operator reads "my token lacks admin scope" and moves on. GitHub returns 404
+   `"Branch not protected"` only when no protection object exists; insufficient
+   scope returns 403 — and the HTTP status is right there in the stderr text the
+   script prints without parsing.
+2. The contract-lint success line prints **first** (`:938-942`), so the
+   transcript reads "passed" followed by a caveat.
+3. **`--verify-protection` is wired into no workflow at all.** The Workflow
+   Contract Gate runs only `--self-test` and `--report`
+   (`workflow-contract-gate.yml:77-79`); the protection mode exists solely as a
+   manual `package.json` script. No CI job ever observes its exit code.
+
+The opt-out was deliberate — the file's header says the default `GITHUB_TOKEN`
+cannot read branch protection — but that premise is now demonstrably false for
+the *existence* question: `repos/:owner/:repo/branches/main` exposes
+`.protected` (false today) and `rules/branches/main` returns `[]`, both readable
+with the default token. The existence assertion can therefore live in the
+always-on gate; only the full context-list comparison needs admin scope. That is
+Wave C1 bundle 1.
 
 CI itself is healthy. PR #1388's head carries **17 successful check runs**
 (Web E2E, Web E2E real auth, Backend Tests (Postgres), axe WCAG 2.2 AA, SCA,
@@ -247,7 +259,7 @@ re-verified when a surface next changes.
 | `VerifierAcceptance` model | **REPLACED BY LESSER RISK** | Route retired; the model still exists at `schema.prisma:889` with no writer. Dead table, not a live defect. |
 | `propagateDriftResponse` queries non-existent columns under `@ts-nocheck` | **UNKNOWN — REQUIRES TEST** | Not re-verified this wave. |
 | `Acceptance`, `Start`, `ShareLink` are "dead models with no writer" | **FALSIFIED — writers exist** | The wedge lane is mounted (`src/app.ts:10` → `routes/wedge.ts`): `POST /acceptances` (`wedge.ts:336`) and `POST /starts` (`wedge.ts:444`) write them behind `apiKeyAuth`. `ShareLink` is written at `apps/marketing/app/api/share/[npi]/route.ts:41` and `src/app.ts:2622`. Not publicly reachable (API-key gated), but a live parallel Recognition→Acceptance→Start lane, and `docs/product/evidence-network/canonical-transaction-baseline.md:102` still calls `Start` a dead model — that line is stale. |
-| `routes/employer-action.ts` wired-looking but unmounted | **STILL TRUE — and it has a live caller that silently 404s** | Router still exported and never imported (`src/app.ts:51` imports `./routes/employerActions`, a different file). Meanwhile `apps/web/app/review/[entityId]/ConsoleWrapper.tsx:170` POSTs to `/api/employer-action` — no Next handler, no rewrite — with a hardcoded `employerId: 'pilot-employer-1'`, and never checks the response. The reviewer's action button does nothing and reports nothing. |
+| `routes/employer-action.ts` wired-looking but unmounted | **STILL TRUE — and its web caller is itself an orphan (corrected)** | Router still exported, never imported (`src/app.ts:51` imports `./routes/employerActions`, a different file — the hyphen is the whole trap). Its would-be caller `apps/web/app/review/[entityId]/ConsoleWrapper.tsx` (POSTs `/api/employer-action` with hardcoded `employerId: 'pilot-employer-1'`) is **imported by nothing** — `page.tsx:22` renders `ReviewPageClient` → `ReviewClient`, which posts correctly to the real authenticated `/api/employer-review/[entityId]/[action]` proxy with failure classification (`ReviewClient.tsx:802`). So the live review surface works; what exists is a dead PAIR — an unmounted, **unauthenticated** backend route that trusts body-supplied `employerId` and fabricates audit hashes (`employer-action.ts:33,:81`), and an unmounted console that would call it — shipped by #140/#148 on 2026-04-17 and never wired. Delete both, plus `EmployerDecisionConsole.tsx` whose only importer is the orphan. |
 
 Codex closed every P0 that the 2026-08-11 audit named. That is the headline
 result of this takeover, and it should change how the next wave treats this work:
@@ -283,8 +295,8 @@ gap's clothes, and it changes what Wave C1 should be.
 3. **No clinician correction lane.** The false *claim* is gone; the *capability* still does not exist. Source observations cannot be contested by the person they describe (C5).
 4. **No second-move / reuse path.** The thesis feature is unbuilt at product level. `reuseAcrossEmployers.e2e.test.ts` proves the `@vitalcv/psv` + `crs` + `audit` packages can express reuse with mocked sources — it does not prove a clinician can make an easier second application.
 5. **Two signed-in acceptance writers plus a third machine door**, keyed on different identifiers (application id vs entity id, plus the `apiKeyAuth` wedge lane writing a separate `Acceptance` table). Counting acceptances still means unioning streams.
-6. **The employer review console's action button does nothing.** `/review/[entityId]` POSTs to `/api/employer-action`, which exists nowhere (backend router unmounted, no Next handler), and discards the result — a reviewer believes they acted and nothing was recorded. Fix or remove before any employer touches the console.
-7. **A cold `/directory/[npi]` render takes ~8.2 seconds** (ISR-warm: 0.15–0.53s). Every crawler request to the 4,955 seeded NPIs is cold. Cause unidentified — not the upstreams, not the 8s timeout.
+6. **A cold `/directory/[npi]` render takes ~8.2 seconds** (ISR-warm: 0.15–0.53s). Every crawler request to the 4,955 seeded NPIs is cold. Cause unidentified — not the upstreams, not the 8s timeout.
+7. *(withdrawn on deeper read — corrected 2026-08-15 late pass)* The "employer console action does nothing" finding was wrong as a user-facing defect: the caller (`ConsoleWrapper.tsx`) is itself imported by nothing, and the live `/review/[entityId]` surface acts through the real authenticated endpoints (`ReviewClient.tsx:802`). The dead pair is a re-wiring hazard (risk #9), not a blocker.
 8. **Zero credential requirements and zero compensation on any live role.** `credentialRequirements: []` and `payRange: null` for all 498 — correct for feed listings and honestly labelled, but MATCHA evidence-fit and any Trust Compiler demo have nothing real to evaluate against, and it is a real weakness against HiringCafe-class discovery.
 9. **Employer supply is 8 organizations, 65% one employer.** onemedical 130, charliehealth 28, twochairs 17, firsthand 12, then a tail of four.
 10. **No operator console for a pilot.** The C0 operator gate (source health, identity collisions, correction review, mutation tracing) has no single surface; supporting a pilot still means SQL.
@@ -299,7 +311,7 @@ gap's clothes, and it changes what Wave C1 should be.
 6. **Four-deep stacked PR chain** (#1378 → #1380 → #1381 → #1384), two of them `UNSTABLE`. Squash-merging any parent orphans its children; this repo has been bitten by exactly this.
 7. **WO-4 disclosure-boundary remediation is recorded as implemented-but-unpushed.** Unpushed work looks landed in a ledger and does not exist in a repository.
 8. **The Experience Constitution contradicts itself at Class-A level.** EC-20 locked rows mandate "Start my CV Wallet." and "The Provider Career Evidence Network." on `/` while EC-9:97 bans "wallet" and "evidence networks" as customer-facing nouns. Both halves are rejection law; gates and reviewers can currently justify rejecting either direction. See C0.1.
-9. **Schema and lane hygiene invites accidental re-wiring.** Dead `VerifierAcceptance` model (`schema.prisma:889`, no writer); a live-but-orphaned `apiKeyAuth` wedge lane (Recognition→Acceptance→Start writing parallel tables, `routes/wedge.ts:336,444`); unmounted `routes/employer-action.ts` with a web caller still POSTing at it; `propagateDriftResponse` compiling only under `@ts-nocheck` against columns that do not exist (zero callers — the OIG-drift cascade throws on first wiring; not re-verified this wave). Every discovery pass pays for these.
+9. **Schema and lane hygiene invites accidental re-wiring.** Dead `VerifierAcceptance` model (`schema.prisma:889`, no writer); a live-but-orphaned `apiKeyAuth` wedge lane (Recognition→Acceptance→Start writing parallel tables, `routes/wedge.ts:336,444`); the orphaned decision-console pair — unmounted **unauthenticated** `routes/employer-action.ts` (trusts body `employerId`, fabricates audit hashes) plus its never-imported caller `ConsoleWrapper.tsx` and `EmployerDecisionConsole.tsx`; `propagateDriftResponse` compiling only under `@ts-nocheck` against columns that do not exist (zero callers; not re-verified this wave). Every discovery pass pays for these, and mounting `employer-action.ts` by accident would open an unauthenticated acceptance write. |
 10. **`explanation.whyThisMayFit` is boilerplate.** Every role returns the identical string "This employer profile includes source-backed requirement and freshness data." It is not false, but it is a fit explanation that explains nothing — and it is what MATCHA 1.0 will be measured against.
 
 ## Top 10 commercially important next actions
@@ -346,13 +358,13 @@ Running C1 as written would spend a wave re-auditing closed findings.
   not implementation.
 - **C1.d — Fix `/directory/[npi]` latency.** Independently provable, no strategy
   dependency, and it is the acquisition wedge.
-- **C1.e — Close the silent-failure and re-wiring hazards.** Fix or remove the
-  `/review/[entityId]` console action that POSTs to a nonexistent
-  `/api/employer-action` and discards the result; decide the orphaned wedge lane
-  (`routes/wedge.ts` — retire or document as the machine lane); delete
-  `routes/employer-action.ts` and `driftPropagation.ts`'s dead write; correct
-  the stale "dead model" line in `canonical-transaction-baseline.md`. All
-  bounded, all independently provable.
+- **C1.e — Delete the re-wiring hazards.** Remove the orphaned decision-console
+  trio (`ConsoleWrapper.tsx`, `EmployerDecisionConsole.tsx`, and the unmounted
+  unauthenticated backend `routes/employer-action.ts`); decide the orphaned
+  wedge lane (`routes/wedge.ts` — retire or document as the machine lane);
+  delete `driftPropagation.ts`'s dead write; correct the stale "dead model"
+  line in `canonical-transaction-baseline.md`. All bounded, all independently
+  provable by grep (zero importers).
 - **C1.f — Reconcile the vocabulary law.** One founder decision (ratify the
   Titan nouns or revert the locked rows), then a one-file EC-9/EC-20 edit with
   the dated rationale EC-22 requires, plus the operating-brief H1 clause. Do it

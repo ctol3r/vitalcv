@@ -188,14 +188,19 @@ propose an answer to it (see triage).
 
 **Two further findings from the second pass:**
 
-- **The review console's action button silently does nothing.**
-  `apps/web/app/review/[entityId]/ConsoleWrapper.tsx:170` POSTs to
-  `/api/employer-action` with a hardcoded `employerId: 'pilot-employer-1'`.
-  That route exists nowhere — the backend `employerActionRouter` is exported
-  but never mounted (`src/app.ts:51` imports `./routes/employerActions`, a
-  different file), and there is no Next handler or rewrite. The response is
-  never checked, so the reviewer sees success theater over a 404. Any pilot
-  that seats an employer at this console records none of their actions.
+- **An orphaned decision-console pair is a re-wiring hazard (corrected finding).**
+  First reported as "the review console's action button does nothing" — wrong:
+  `ConsoleWrapper.tsx` (which POSTs to the nonexistent `/api/employer-action`
+  with a hardcoded `employerId: 'pilot-employer-1'`) is **imported by nothing**.
+  The live `/review/[entityId]` page renders `ReviewPageClient` → `ReviewClient`,
+  which posts to the real authenticated
+  `/api/employer-review/[entityId]/[action]` proxy with failure classification
+  (`ReviewClient.tsx:802`). What exists is a dead pair shipped by #140/#148 on
+  2026-04-17 and never wired: an unmounted **unauthenticated** backend route
+  (`routes/employer-action.ts` — trusts body-supplied `employerId`, fabricates
+  audit hashes via `randomUUID()`) and its never-imported caller. Mounting it by
+  accident would open an unauthenticated acceptance write. Delete both, plus
+  `EmployerDecisionConsole.tsx` (only importer is the orphan).
 - **A third acceptance door exists on a machine lane.** The wedge routes are
   mounted (`src/app.ts:10`): `POST /acceptances` (`routes/wedge.ts:336`) and
   `POST /starts` (`wedge.ts:444`), both behind `apiKeyAuth`, writing the
