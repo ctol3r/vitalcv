@@ -8,8 +8,13 @@
  *   GET  /api/employer/opportunities   → this employer's own postings
  *   POST /api/employer/opportunities   → create a real DB Opportunity (MATCHA
  *                                        scores clinicians against it)
- *   POST /api/employer/setup { name }  → first-time org setup (the honest
- *                                        "no organization yet" path)
+ *
+ * No org-setup call originates here. This page used to carry a name-only
+ * inline setup fallback, but the authority gate requires the organization's
+ * website (work-email domain must match it) — a websiteless setup ALWAYS
+ * 403'd (`no_org_domain`). The one working setup surface is /employers
+ * (EmployerGetStartedClient), so a caller with no organization is routed
+ * there instead (duplicate-intent rule).
  *
  * A posting is a plain listing — nothing here implies VitalCV verified the
  * employer. Calm-glass employer surface; one editorial accent (CD-3).
@@ -99,10 +104,9 @@ export default function EmployerPostPage() {
   const [closeError, setCloseError] = useState<{ id: string; msg: string } | null>(null);
   const isEditing = editingId !== null;
 
-  // org-setup fallback (shown only when a post fails for lack of an org)
+  // Shown only when a post fails for lack of an org — routes to /employers,
+  // the one working setup surface (see header comment).
   const [needsOrg, setNeedsOrg] = useState(false);
-  const [orgName, setOrgName] = useState('');
-  const [orgSaving, setOrgSaving] = useState(false);
 
   const loadOpps = useCallback(async () => {
     setLoading(true);
@@ -293,40 +297,6 @@ export default function EmployerPostPage() {
       return;
     }
     setFormError(r.error ?? 'Post failed.');
-  }
-
-  async function setupOrgThenPost(e: React.FormEvent) {
-    e.preventDefault();
-    if (!orgName.trim()) {
-      setFormError('Add your organization name.');
-      return;
-    }
-    setFormError('');
-    setOrgSaving(true);
-    try {
-      const res = await fetch('/api/employer/setup', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ name: orgName.trim() }),
-      });
-      if (!res.ok) {
-        const d = (await res.json().catch(() => ({}))) as { error?: string };
-        throw new Error(d.error ?? `Org setup failed (${res.status}).`);
-      }
-      // Org is set up — retry the post.
-      const r = await postJob();
-      if (r.ok) {
-        setNeedsOrg(false);
-        resetForm();
-        flash("Posted — it's live and matchable now.");
-        void loadOpps();
-      } else {
-        setFormError(r.error ?? 'Post failed after setup.');
-      }
-    } catch (err) {
-      setFormError(err instanceof Error ? err.message : 'Org setup failed.');
-    }
-    setOrgSaving(false);
   }
 
   return (
@@ -543,30 +513,17 @@ export default function EmployerPostPage() {
               ) : null}
 
               {needsOrg ? (
-                <div className="mz-inset mt-5 p-4">
-                  <p className="mz-h2">Set up your organization to post</p>
+                <div className="mz-inset mt-5 p-4" data-testid="needs-org-notice">
+                  <p className="mz-h2">Finish employer setup to post</p>
                   <p className="mz-small mt-1">
-                    One-time — the name your openings post under.
+                    Posting needs a registered organization. Setup happens once,
+                    on the employer start page — it asks for your
+                    organization&apos;s website, which is matched against your
+                    work email domain.
                   </p>
-                  <div className="mt-3 flex flex-wrap items-end gap-2">
-                    <label className="block flex-1 min-w-[12rem]">
-                      <span className="mz-eyebrow">Organization name</span>
-                      <input
-                        className="mz-input mt-1.5"
-                        value={orgName}
-                        onChange={(e) => setOrgName(e.target.value)}
-                        placeholder="Bay Area Cardiac Group"
-                      />
-                    </label>
-                    <button
-                      type="button"
-                      className="mz-btn"
-                      disabled={orgSaving}
-                      onClick={setupOrgThenPost}
-                    >
-                      {orgSaving ? 'Setting up…' : 'Set up & post'}
-                    </button>
-                  </div>
+                  <Link className="mz-btn mt-3 inline-block" href="/employers">
+                    Go to employer setup
+                  </Link>
                 </div>
               ) : (
                 <div className="mt-5 flex flex-wrap items-center gap-2">

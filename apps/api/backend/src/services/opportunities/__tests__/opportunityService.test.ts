@@ -247,7 +247,9 @@ describe('opportunityService org profile pilot policy', () => {
     }));
     expect(prismaMock.user.update).toHaveBeenCalledWith({
       where: { id: 'user-1' },
-      data: { organizationId: 'org-1' },
+      // Role ignition: the mocked user carries no elevated role, so the
+      // org grant also grants the employer role (VERIFIER).
+      data: { organizationId: 'org-1', role: 'VERIFIER' },
     });
   });
 
@@ -291,7 +293,9 @@ describe('opportunityService org profile pilot policy', () => {
     }));
     expect(prismaMock.user.update).toHaveBeenCalledWith({
       where: { id: 'user-1' },
-      data: { organizationId: 'org-1' },
+      // Role ignition: the mocked user carries no elevated role, so the
+      // org grant also grants the employer role (VERIFIER).
+      data: { organizationId: 'org-1', role: 'VERIFIER' },
     });
   });
 
@@ -338,7 +342,9 @@ describe('opportunityService org profile pilot policy', () => {
     }));
     expect(prismaMock.user.update).toHaveBeenCalledWith({
       where: { id: 'user-1' },
-      data: { organizationId: 'org-1' },
+      // Role ignition: the mocked user carries no elevated role, so the
+      // org grant also grants the employer role (VERIFIER).
+      data: { organizationId: 'org-1', role: 'VERIFIER' },
     });
   });
 });
