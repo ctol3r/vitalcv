@@ -296,6 +296,21 @@ without the image. A route variant may select its own provenance-bound poster,
 but it may not change the scene kind, invent state, exceed EC-29 budgets, or
 move evidence facts into pixels.
 
+#### Explore media pause amendment D.8 (2026-08-14)
+
+The founder directed the current `/explore` composition to remove its documentary
+frame for now. This amendment supersedes D.2's **mounted** human-media placement;
+the parked manifest variant is not customer-facing authority to restore it. The
+opportunity field, filters, source facts, and application boundaries remain
+unchanged and now carry the page without an atmospheric raster.
+
+Any future `/explore` image must be a dynamic close-up with human-centered,
+optimistic energy: bright, vibrant, active, and visually immediate. Distant,
+shadowed corridor views and isolated figures moving away from the viewer are not
+authorized. A replacement still requires recorded provenance, no patient or PHI,
+no readable badge or employer mark, and no implied identity, match, hire, or
+outcome.
+
 #### Opportunity detail and MATCHA continuity amendment D.3 (2026-08-14)
 
 The founder extended the WO-13 register through public `/opportunities/[id]`
