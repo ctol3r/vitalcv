@@ -128,7 +128,7 @@ function NpiEntry({
             onChange={(event) => handleChange(event.target.value)}
           />
           <Button className="ezh-npi-submit" type="submit" data-home-primary-cta="" disabled={resolving}>
-            {resolving ? 'Checking the registry…' : 'Start my CV Wallet'}
+            {resolving ? 'Checking the registry…' : 'Build my free profile'}
           </Button>
         </div>
         <p className="ezh-npi-count">{digits.length}/10 digits &middot; free, no account needed</p>
@@ -287,7 +287,7 @@ export default function EasyHome() {
       >
         <div className="ezh-wrap">
           <div className="ezh-hero-copy">
-            <span className="ezh-hero-eyebrow">The Provider Career Evidence Network.</span>
+            <span className="ezh-hero-eyebrow">Your VitalCV profile. Ready for every move.</span>
             <h1>One career record. More ways forward.</h1>
             <p className="ezh-hero-sub">
               Start with your NPI. VitalCV assembles what sources can support, shows what still
