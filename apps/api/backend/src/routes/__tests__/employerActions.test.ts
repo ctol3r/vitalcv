@@ -143,8 +143,26 @@ function buildTrustContainerFixture() {
   };
 }
 
+/**
+ * Stands in for `verifiedIdentity` in enforce/shadow mode: it publishes
+ * `req.verifiedAuth.verifiedUserId` only for a caller the test declares
+ * verified. Tests send `x-test-verified-user` to simulate presenting a valid
+ * Clerk JWT; a request carrying only `x-clerk-user-id` models a caller who
+ * supplied the forgeable identity header, which the mutation routes must
+ * reject. (Same stand-in as activation.test.ts.)
+ */
 function buildApp() {
   const app = express();
+  app.use((req, _res, next) => {
+    const verified = req.headers['x-test-verified-user'];
+    if (typeof verified === 'string' && verified.length > 0) {
+      (req as unknown as { verifiedAuth: unknown }).verifiedAuth = {
+        outcome: 'verified_match',
+        verifiedUserId: verified,
+      };
+    }
+    next();
+  });
   app.use(express.json());
   registerEmployerActionRoutes(app);
   app.use((err: { status?: number; statusCode?: number; message?: string }, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
@@ -444,7 +462,7 @@ describe('employer action routes', () => {
   it('persists accept actions with a durable acceptance record and outbox handoff', async () => {
     const response = await request(buildApp())
       .post('/api/employer-review/11111111-1111-4111-8111-111111111111/accept')
-      .set('x-clerk-user-id', 'employer-1')
+      .set('x-test-verified-user', 'employer-1')
       .send({ role: 'Recruiter', facility: 'Providence', notes: 'Head start only' })
       .expect(201);
 
@@ -533,7 +551,7 @@ describe('employer action routes', () => {
 
     const response = await request(buildApp())
       .post('/api/employer-review/11111111-1111-4111-8111-111111111111/accept')
-      .set('x-clerk-user-id', 'employer-1')
+      .set('x-test-verified-user', 'employer-1')
       .send({
         applicationId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
         packetHash: 'sha256:foreign',
@@ -575,7 +593,7 @@ describe('employer action routes', () => {
 
     await request(buildApp())
       .post('/api/employer-review/11111111-1111-4111-8111-111111111111/accept')
-      .set('x-clerk-user-id', 'employer-1')
+      .set('x-test-verified-user', 'employer-1')
       .send({
         applicationId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
         packetHash: 'sha256:reviewed',
@@ -588,6 +606,10 @@ describe('employer action routes', () => {
         packetHash: 'sha256:reviewed',
         metadata: {
           schema: 'vitalcv.employer-acceptance.metadata.v1',
+          // Reviewer provenance (ADR 0007) — the acting Clerk user id and the
+          // employerId semantic this row was written under.
+          acceptedByClerkUserId: 'employer-1',
+          employerIdSemantics: 'legacy_clerk_user',
           acceptedSourceSnapshot: {
             capturedAt: expect.any(String),
             checks: [
@@ -610,20 +632,26 @@ describe('employer action routes', () => {
     }));
   });
 
-  it('leaves acceptance metadata NULL when the passport exposes no source coverage', async () => {
-    // Default buildPassport mock has no sourceCoverage — the row must keep a
-    // NULL metadata column, not an empty snapshot that would later diff as
-    // "everything is new".
+  it('omits the acceptedSourceSnapshot key when the passport exposes no source coverage', async () => {
+    // Default buildPassport mock has no sourceCoverage — the row metadata must
+    // not carry an empty snapshot that would later diff as "everything is
+    // new". The metadata column itself is now always written (it carries
+    // reviewer provenance per ADR 0007), but the snapshot KEY stays absent so
+    // the W6 diff still reads "no accepted side".
     await request(buildApp())
       .post('/api/employer-review/11111111-1111-4111-8111-111111111111/accept')
-      .set('x-clerk-user-id', 'employer-1')
+      .set('x-test-verified-user', 'employer-1')
       .send({})
       .expect(201);
 
     const createArgs = prismaMock.employerAcceptance.create.mock.calls[0][0] as {
-      data: { metadata?: unknown };
+      data: { metadata?: Record<string, unknown> };
     };
-    expect(createArgs.data.metadata).toBeUndefined();
+    expect(createArgs.data.metadata).toEqual({
+      acceptedByClerkUserId: 'employer-1',
+      employerIdSemantics: 'legacy_clerk_user',
+    });
+    expect(createArgs.data.metadata).not.toHaveProperty('acceptedSourceSnapshot');
   });
 
   it('returns anonymized portable acceptance history without requiring employer auth', async () => {
@@ -860,7 +888,7 @@ describe('employer action routes', () => {
   it('persists refresh requests through the outbox and normalizes the refresh payload', async () => {
     const response = await request(buildApp())
       .post('/api/employer-review/11111111-1111-4111-8111-111111111111/request-refresh')
-      .set('x-clerk-user-id', 'employer-1')
+      .set('x-test-verified-user', 'employer-1')
       .send({
         staleSources: ['CMS PECOS', 'CMS PECOS', '  OIG LEIE  ', '', 12],
         missingDomains: ['LICENSURE', 'LICENSURE', 'BOARD_CERTIFICATION', null],
@@ -930,7 +958,7 @@ describe('employer action routes', () => {
 
     const response = await request(buildApp())
       .post('/api/employer-review/11111111-1111-4111-8111-111111111111/route-to-review')
-      .set('x-clerk-user-id', 'employer-1')
+      .set('x-test-verified-user', 'employer-1')
       .send({ reason: 'Manual check required', priority: 'high' })
       .expect(201);
 
@@ -982,7 +1010,7 @@ describe('employer action routes', () => {
 
     const response = await request(buildApp())
       .post('/api/employer-review/11111111-1111-4111-8111-111111111111/accept')
-      .set('x-clerk-user-id', 'employer-1')
+      .set('x-test-verified-user', 'employer-1')
       .send({})
       .expect(409);
 
@@ -1028,7 +1056,7 @@ describe('employer action routes', () => {
 
     const response = await request(buildApp())
       .post('/api/employer-review/11111111-1111-4111-8111-111111111111/accept')
-      .set('x-clerk-user-id', 'employer-1')
+      .set('x-test-verified-user', 'employer-1')
       .send({})
       .expect(422);
 
@@ -1059,7 +1087,7 @@ describe('employer action routes', () => {
   it('generates share-packet bearer tokens with crypto randomness and stores only the token hash', async () => {
     const response = await request(buildApp())
       .post('/api/employer-review/11111111-1111-4111-8111-111111111111/share-packet')
-      .set('x-clerk-user-id', 'employer-1')
+      .set('x-test-verified-user', 'employer-1')
       .send({ npi: '1234567890', organizationContextId: 'ctx-1', bundleId: 'bundle-1' })
       .expect(201);
 
@@ -1095,7 +1123,7 @@ describe('employer action routes', () => {
   it('rejects share-packet requests when the body NPI does not match the reviewed entity', async () => {
     await request(buildApp())
       .post('/api/employer-review/11111111-1111-4111-8111-111111111111/share-packet')
-      .set('x-clerk-user-id', 'employer-1')
+      .set('x-test-verified-user', 'employer-1')
       .send({ npi: '9999999999' })
       .expect(400);
 
@@ -1208,7 +1236,7 @@ describe('employer action routes', () => {
 
     const response = await request(buildApp())
       .post('/api/employer-review/11111111-1111-4111-8111-111111111111/confirm-start')
-      .set('x-clerk-user-id', 'employer-1')
+      .set('x-test-verified-user', 'employer-1')
       .send({
         startedAt: '2026-03-24',
         role: 'Attending',
@@ -1227,7 +1255,7 @@ describe('employer action routes', () => {
 
     await request(buildApp())
       .post('/api/employer-review/11111111-1111-4111-8111-111111111111/confirm-start')
-      .set('x-clerk-user-id', 'employer-1')
+      .set('x-test-verified-user', 'employer-1')
       .send({
         acceptanceId: 'accept-other-npi',
         startedAt: '2026-03-24',
@@ -1239,7 +1267,8 @@ describe('employer action routes', () => {
     expect(prismaMock.employerAcceptance.findFirst).toHaveBeenCalledWith({
       where: {
         id: 'accept-other-npi',
-        employerId: 'employer-1',
+        // Both employer-id semantics (ADR 0007); an org-less reviewer has one.
+        employerId: { in: ['employer-1'] },
         clinicianNpi: '1234567890',
         status: 'ACCEPTED',
       },
@@ -1566,7 +1595,7 @@ describe('employer action routes', () => {
 
     const response = await request(buildApp())
       .post('/api/employer-review/11111111-1111-4111-8111-111111111111/accept')
-      .set('x-clerk-user-id', 'employer-1')
+      .set('x-test-verified-user', 'employer-1')
       .send({})
       .expect(422);
 
@@ -1599,7 +1628,7 @@ describe('employer action routes', () => {
 
     const response = await request(buildApp())
       .post('/api/employer-review/11111111-1111-4111-8111-111111111111/share-packet')
-      .set('x-clerk-user-id', 'employer-1')
+      .set('x-test-verified-user', 'employer-1')
       .send({ npi: '1234567890', organizationContextId: 'ctx-1', bundleId: 'bundle-1' })
       .expect(201);
 
@@ -1638,7 +1667,7 @@ describe('employer action routes', () => {
   it('rejects share-packet requests for an NPI that does not match the reviewed entity', async () => {
     await request(buildApp())
       .post('/api/employer-review/11111111-1111-4111-8111-111111111111/share-packet')
-      .set('x-clerk-user-id', 'employer-1')
+      .set('x-test-verified-user', 'employer-1')
       .send({ npi: '1111111111' })
       .expect(400);
 
@@ -1729,7 +1758,7 @@ describe('employer action routes', () => {
 
     await request(buildApp())
       .post('/api/employer-review/11111111-1111-4111-8111-111111111111/confirm-start')
-      .set('x-clerk-user-id', 'employer-1')
+      .set('x-test-verified-user', 'employer-1')
       .send({
         startedAt: '2026-03-25T18:00:00.000Z',
         role: 'RN',
@@ -1763,7 +1792,7 @@ describe('employer action routes', () => {
 
     const response = await request(buildApp())
       .post('/api/employer-review/11111111-1111-4111-8111-111111111111/confirm-start')
-      .set('x-clerk-user-id', 'employer-1')
+      .set('x-test-verified-user', 'employer-1')
       .send({
         startedAt: '2026-03-25T18:00:00.000Z',
         role: 'RN',
@@ -1775,7 +1804,8 @@ describe('employer action routes', () => {
     expect(prismaMock.employerAcceptance.findFirst).toHaveBeenCalledWith(expect.objectContaining({
       where: {
         id: 'accept-1',
-        employerId: 'employer-1',
+        // Both employer-id semantics (ADR 0007); an org-less reviewer has one.
+        employerId: { in: ['employer-1'] },
         clinicianNpi: '1234567890',
         status: 'ACCEPTED',
       },
@@ -1805,5 +1835,73 @@ describe('employer action routes', () => {
         }),
       }),
     }));
+  });
+
+  // ── Door B verified-identity closure ────────────────────────────────────
+  // The x-clerk-user-id header is browser-forgeable. Every mutation surface
+  // (and the org-scoped queue read) must reject a request that carries ONLY
+  // that header — identity comes from the verified Clerk session
+  // (req.verifiedAuth), which the stand-in middleware sets only for
+  // x-test-verified-user. Before this closure, each of these requests
+  // mutated (or disclosed the queue) as whoever the header named.
+  const ENTITY = '11111111-1111-4111-8111-111111111111';
+  it.each([
+    ['POST', `/api/employer-review/${ENTITY}/accept`, {}],
+    ['POST', `/api/employer-review/${ENTITY}/request-refresh`, {}],
+    ['POST', `/api/employer-review/${ENTITY}/route-to-review`, {}],
+    ['POST', '/api/employer-review/batch', { action: 'accept', entityIds: [ENTITY] }],
+    ['POST', `/api/employer-review/${ENTITY}/share-packet`, {}],
+    ['POST', `/api/employer-review/${ENTITY}/confirm-start`, { startedAt: '2026-03-25T18:00:00.000Z', role: 'RN', facility: 'Providence' }],
+    ['GET', '/api/employer-review/queue', null],
+  ] as const)(
+    '%s %s rejects a caller presenting only the forgeable x-clerk-user-id header',
+    async (method, path, body) => {
+      const app = buildApp();
+      const req = method === 'GET'
+        ? request(app).get(path)
+        : request(app).post(path).send(body ?? {});
+
+      const response = await req
+        .set('x-clerk-user-id', 'employer-1')
+        .expect(401);
+
+      expect(response.body.error).toBe('Verified Clerk session required.');
+      // Nothing was written or disclosed under the forged identity.
+      expect(prismaMock.$transaction).not.toHaveBeenCalled();
+      expect(prismaMock.employerAcceptance.create).not.toHaveBeenCalled();
+      expect(prismaMock.startAttestation.create).not.toHaveBeenCalled();
+      expect(prismaMock.auditEvent.create).not.toHaveBeenCalled();
+      expect(prismaMock.outboxEvent.upsert).not.toHaveBeenCalled();
+    },
+  );
+
+  it('checks the duplicate-acceptance guard against BOTH employer-id semantics and 409s org-wide (ADR 0007)', async () => {
+    // Reviewer bound to an organization: rows may be keyed by the org id (new
+    // semantics) or their Clerk user id (legacy rows). A prior acceptance by a
+    // DIFFERENT reviewer in the same org must 409 this accept.
+    prismaMock.user.findUnique.mockResolvedValue({
+      role: 'VERIFIER',
+      status: 'ACTIVE',
+      organizationId: 'org-uuid-1',
+    });
+    prismaMock.employerAcceptance.findFirst.mockResolvedValueOnce({ id: 'accept-by-colleague' });
+
+    const response = await request(buildApp())
+      .post('/api/employer-review/11111111-1111-4111-8111-111111111111/accept')
+      .set('x-test-verified-user', 'employer-1')
+      .send({})
+      .expect(409);
+
+    expect(response.body.error).toBe('already_accepted');
+    expect(response.body.acceptanceId).toBe('accept-by-colleague');
+    expect(prismaMock.employerAcceptance.findFirst).toHaveBeenCalledWith({
+      where: {
+        employerId: { in: ['org-uuid-1', 'employer-1'] },
+        clinicianNpi: '1234567890',
+        status: 'ACCEPTED',
+      },
+      select: { id: true },
+    });
+    expect(prismaMock.$transaction).not.toHaveBeenCalled();
   });
 });
