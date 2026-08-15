@@ -195,12 +195,17 @@ describe('page render carries its timing spans', () => {
     expect(other['server-timing-metadata']).toMatch(/assemble;dur=\d+(\.\d)?/);
   });
 
-  it('keeps the noindex fallback untimed-but-logged when the record is unreadable', async () => {
+  it('keeps the noindex fallback AND times it — a timeout lands exactly there', async () => {
+    // fetchNppesRecord fails closed to null on its 8s AbortSignal, so a
+    // metadata-phase NPPES stall produces this fallback: a page whose body
+    // renders fine while its head went noindex. The fallback must stay
+    // noindex and must carry the span that would expose an ~8000ms fetch.
     vi.mocked(fetchNppesRecord).mockResolvedValue(null);
     const metadata = await generateMetadata({
       params: Promise.resolve({ npi: NPI }),
     });
     expect(metadata.robots).toEqual({ index: false, follow: false });
-    expect(metadata.other).toBeUndefined();
+    const other = (metadata.other ?? {}) as Record<string, string>;
+    expect(other['server-timing-metadata']).toMatch(/nppes;dur=\d+(\.\d)?/);
   });
 });

@@ -53,6 +53,16 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     return {
       title: `NPI ${npi}`,
       robots: { index: false, follow: false },
+      /**
+       * The fallback carries its timing too, deliberately: fetchNppesRecord
+       * fails closed to null on a timeout, so a metadata-phase NPPES stall to
+       * its 8s AbortSignal lands EXACTLY here — a page whose body renders
+       * fine while its head quietly went noindex. Production's 8.22–8.30s
+       * cold renders are 8.0s (TIMEOUT_MS) + the 0.2–0.3s a healthy phase
+       * costs, so this tag is how that hypothesis gets confirmed or killed
+       * from a served page: nppes;dur≈8000 here is the smoking gun.
+       */
+      other: { 'server-timing-metadata': timing.headerValue() },
     };
   }
 
@@ -66,6 +76,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     return {
       title: `NPI ${npi}`,
       robots: { index: false, follow: false },
+      other: { 'server-timing-metadata': timing.headerValue() },
     };
   }
 
