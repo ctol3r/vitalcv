@@ -65,7 +65,7 @@ documents immutability, revocation and audit-on-access.
 | Packet read | `GET /api/applications/:appId/workflow`; packet read service | `applicationPacketReadService.ts` |
 | M2 review lane | `GET /api/employer-review/queue`, `…/:entityId/packet`, `…/:entityId/status` | `apps/api/backend/src/routes/employerActions.ts` |
 
-### 1.5 Accept — **the headline finding: five wired emitters, three models**
+### 1.5 Accept — **the headline finding: six wired emitters, four models**
 
 | # | Path | Writes | Code | Wired? |
 |---|---|---|---|---|
@@ -74,14 +74,17 @@ documents immutability, revocation and audit-on-access.
 | 3 | `POST /api/employer-review/:entityId/accept` | `EmployerAcceptance` | `routes/employerActions.ts` (M2) | **Yes** |
 | 4 | `POST /api/omega/:npi` | `EmployerAcceptance` — entity resolved by `displayName contains orgId` with an all-zero-UUID fallback | `routes/omega.ts` → `omegaOrchestrator.ts:108` | **Yes** |
 | 5 | (Wave 99 verifier acceptance path) | `VerifierAcceptance` | `app.ts:2753` (inline) | **Yes** |
-| — | `POST /api/employer-action` (`accept_head_start`) | `EmployerAcceptance` | `routes/employer-action.ts` (wave-122) | **No — router never mounted** |
-| — | — | `Acceptance` model | — | **No writer; dead model** |
+| — | `POST /api/employer-action` (`accept_head_start`) | `EmployerAcceptance` | `routes/employer-action.ts` (wave-122) | **No — router was never mounted; file deleted 2026-08-15, re-introduction guarded by `src/routes/__tests__/employerActionRouteRemoved.test.ts`** |
+| 6 | `POST /acceptances` | `Acceptance` | `routes/wedge.ts:335` (`apiKeyAuth`) → `repositories/acceptances.repo.ts:65` `prisma.acceptance.create`; mounted at `src/app.ts:3608` `registerWedgeRoutes` | **Yes** — an earlier revision of this table called `Acceptance` a writerless dead model; that was wrong |
 | — | verifier pipeline offers | — | `routes/verifierPipeline.ts` | **Intentionally unwired**; hardened by PR #1337 |
 
-Additionally, two *non-transactional* services mutate the acceptance table:
-`omegaOrchestrator.ts` (creates rows — see #4) and `driftPropagation.ts:49`
-(`employerAcceptance.updateMany`). A validation/simulation lane writing to a
-transaction-of-record table is a category error regardless of intent.
+Additionally, one *non-transactional* service mutates the acceptance table:
+`omegaOrchestrator.ts` (creates rows — see #4). A validation/simulation lane
+writing to a transaction-of-record table is a category error regardless of
+intent. (`driftPropagation.ts` formerly bulk-updated the table via
+`employerAcceptance.updateMany` against field names — `npi`, `action` — that do
+not exist on the model, under `@ts-nocheck`, with zero callers; deleted
+2026-08-15.)
 
 ### 1.6 Resolve
 
@@ -91,15 +94,15 @@ transaction-of-record table is a category error regardless of intent.
 | Request-info loop | `workflow-action: request_info` | `employerWorkflowService.ts:590` |
 | Resolution telemetry | `blocker_resolution_events` | read by `pilotKpiService.ts` |
 
-### 1.7 Start — **two wired writers, four start-shaped models**
+### 1.7 Start — **three wired writers, four start-shaped models**
 
 | # | Path | Writes | Code | Wired? |
 |---|---|---|---|---|
 | 1 | `POST /api/hiring/start` | `StartAttestation` + `AuditEvent` + `BillingEvent(PENDING)` in one transaction; async Stripe billing | `routes/hiring.ts:259` (Wave 42) | **Yes** |
 | 2 | `POST /api/employer-review/:entityId/confirm-start` | `StartAttestation` | `routes/employerActions.ts:1751` | **Yes** |
 | — | SEAL training capture | `StartOutcomeEvent` | `services/seal/sealEventCapture.ts` | **Yes** (telemetry) |
-| — | drift/omega engines | `StartActivation` | `driftEngine.ts`, `omegaOrchestrator.ts`, `driftPropagation.ts` | Engine-written |
-| — | — | `Start` model | — | **No writer; dead model** |
+| — | drift/omega engines | `StartActivation` | `driftEngine.ts`, `omegaOrchestrator.ts` (`driftPropagation.ts` deleted 2026-08-15 — zero callers, `@ts-nocheck`, queried nonexistent fields) | Engine-written |
+| 3 | `POST /starts` | `Start` | `routes/wedge.ts:443` (`apiKeyAuth`) → `repositories/starts.repo.ts:61` `prisma.start.create`; mounted at `src/app.ts:3608` `registerWedgeRoutes` | **Yes** — an earlier revision of this table called `Start` a writerless dead model; that was wrong |
 
 Note the asymmetry: **billing hangs off writer #1 only.** A start recorded through writer #2
 produces no `BillingEvent`.
@@ -173,10 +176,10 @@ but only after the loop has one door per fact (§4).
 | # | Gap | Evidence | Consequence |
 |---|---|---|---|
 | G1 | **Acceptance success has ≥5 wired emitters across 3 models** (`Application.status`, `EmployerAcceptance`, `VerifierAcceptance`) | §1.5 | No single acceptance fact; KPIs and any future event contract must union tables; **fails the VCD-00 exit gate** |
-| G2 | **Start success has 2 wired writers**, and billing fires from only one of them | §1.7 | A start recorded via `confirm-start` is invisible to billing |
+| G2 | **Start success has 3 wired writers**, and billing fires from only one of them | §1.7 | A start recorded via `confirm-start` or `POST /starts` is invisible to billing |
 | G3 | **Share has 3 wired models + 5 recipient surfaces**; only `/snapshot/[id]` documents immutability/revocation/audit | §1.3 | Consent and revocation semantics differ by which door was used |
-| G4 | **Dead weight**: `Acceptance`, `Start`, `ShareLink` models have no writers; `employer-action.ts` router is unmounted; `ApplicationStatus` carries two overlapping vocabulary generations (`ACCEPTED` *and* `APPROVED`) | §1.5, §1.7, schema | Every future wave pays a discovery tax; dead paths invite accidental re-wiring |
-| G5 | **Engine writes to transaction-of-record tables**: `omegaOrchestrator` creates `EmployerAcceptance` rows (entity by `displayName contains`, zero-UUID fallback); `driftPropagation` bulk-updates them | §1.5 | Decision-grade tables can contain rows no employer actor created |
+| G4 | **Dead weight**: `ApplicationStatus` carries two overlapping vocabulary generations (`ACCEPTED` *and* `APPROVED`). (An earlier revision also listed `Acceptance` and `Start` as writerless — wrong, `routes/wedge.ts` writes both — and the unmounted `employer-action.ts` router, deleted 2026-08-15. `ShareLink` writer status unverified here.) | §1.5, §1.7, schema | Every future wave pays a discovery tax; dead paths invite accidental re-wiring |
+| G5 | **Engine writes to transaction-of-record tables**: `omegaOrchestrator` creates `EmployerAcceptance` rows (entity by `displayName contains`, zero-UUID fallback). (`driftPropagation`'s bulk update was dead code against nonexistent fields; deleted 2026-08-15.) | §1.5 | Decision-grade tables can contain rows no employer actor created |
 | G6 | **No correction/dispute workflow** against source observations (self-attestation exists; correction lineage does not) | §1.2 | The program's corrections wave premise, confirmed |
 | G7 | **No clinician packet-reuse path** | §1.8 | The reuse half of the north-star loop is unmeasurable |
 | G8 | **Client and server event taxonomies are disjoint** — no shared correlation ID from NPI entry to start | §3 | Funnel cannot be joined end-to-end |
