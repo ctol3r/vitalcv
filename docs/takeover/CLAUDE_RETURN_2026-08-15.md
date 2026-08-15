@@ -51,6 +51,30 @@ This is almost certainly a side effect of the repository going private on
 plans. Nobody appears to have noticed, because the *symptom is invisible*: CI
 still runs and still goes green, so PRs still look gated.
 
+**And the repository's own protection verifier cannot see it.** Running the
+checked-in gate:
+
+```
+$ node scripts/check-workflow-path-filters.js --verify-protection
+Workflow contract check passed — 14 required checks, each produced by exactly
+one job in a workflow that reports on a pull request to main.
+Could not read branch protection. This mode needs `gh` authenticated with a
+token that can read it (admin scope); the default CI token cannot.
+gh: Branch not protected (HTTP 404)
+```
+
+It reports the workflow *contract* as passing (14 checks correctly declared),
+then attributes the 404 to token scope and **exits 0**. But GitHub returns
+404 `"Branch not protected"` only when no protection object exists; insufficient
+scope returns 403. The same session read repository settings and `rulesets`
+successfully, so scope is not the cause here.
+
+The gate therefore cannot distinguish *"I can't see protection"* from
+*"there is no protection"* — and treats both as non-fatal. That is the precise
+mechanism by which this failure stayed silent. Worth fixing when protection is
+restored: on a 404 with a token that demonstrably reads other admin endpoints,
+fail loudly.
+
 CI itself is healthy. PR #1388's head carries **17 successful check runs**
 (Web E2E, Web E2E real auth, Backend Tests (Postgres), axe WCAG 2.2 AA, SCA,
 design-lint, copy/claims/route guards). The checks run. They are simply no
