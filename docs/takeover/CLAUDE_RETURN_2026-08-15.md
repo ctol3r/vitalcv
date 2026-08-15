@@ -216,9 +216,9 @@ All ten probed public surfaces return HTTP 200 from production at the current SH
 | `/status` | 200 | 85,022 | 0.15s |
 | `/verify` | 200 | 62,266 | 0.12s |
 | `/pricing` | 200 | 94,634 | 0.13s |
-| `/directory/[live NPI]` | 200 | 120,338 | **8.31s** |
+| `/directory/[live NPI]` | 200 | 120,338 | **8.31s** (cold render; see below) |
 
-**`/directory/[npi]` is 45× slower than every other surface.** 8.3 seconds is a
+**A cold `/directory/[npi]` render is ~45× slower than every other surface.** Re-measured in C1.d: cold is a consistent 8.22–8.30s across five seed NPIs, while an ISR-warm hit on the same replica is 0.15–0.53s. `revalidate = 3600` works — but a crawler sweeping the 4,955 seeded NPIs pays the cold cost on essentially every request. Both obvious causes are disproven: the upstreams measure 0.20s (NPPES) and 0.26–0.47s (the exact CMS query), and the 8s `TIMEOUT_MS` coincidence is a red herring because the CMS block renders successfully with real data. Cause still open. 8.3 seconds is a
 bounce, and this is the acquisition wedge — the page the sitemap points crawlers
 and cold clinicians at. It is the single highest-leverage performance defect on
 the public product. Cause not yet diagnosed (likely a synchronous NPPES read on
@@ -284,7 +284,7 @@ gap's clothes, and it changes what Wave C1 should be.
 4. **No second-move / reuse path.** The thesis feature is unbuilt at product level. `reuseAcrossEmployers.e2e.test.ts` proves the `@vitalcv/psv` + `crs` + `audit` packages can express reuse with mocked sources — it does not prove a clinician can make an easier second application.
 5. **Two signed-in acceptance writers plus a third machine door**, keyed on different identifiers (application id vs entity id, plus the `apiKeyAuth` wedge lane writing a separate `Acceptance` table). Counting acceptances still means unioning streams.
 6. **The employer review console's action button does nothing.** `/review/[entityId]` POSTs to `/api/employer-action`, which exists nowhere (backend router unmounted, no Next handler), and discards the result — a reviewer believes they acted and nothing was recorded. Fix or remove before any employer touches the console.
-7. **`/directory/[npi]` takes 8.3 seconds.** The acquisition wedge is the slowest page in the product.
+7. **A cold `/directory/[npi]` render takes ~8.2 seconds** (ISR-warm: 0.15–0.53s). Every crawler request to the 4,955 seeded NPIs is cold. Cause unidentified — not the upstreams, not the 8s timeout.
 8. **Zero credential requirements and zero compensation on any live role.** `credentialRequirements: []` and `payRange: null` for all 498 — correct for feed listings and honestly labelled, but MATCHA evidence-fit and any Trust Compiler demo have nothing real to evaluate against, and it is a real weakness against HiringCafe-class discovery.
 9. **Employer supply is 8 organizations, 65% one employer.** onemedical 130, charliehealth 28, twochairs 17, firsthand 12, then a tail of four.
 10. **No operator console for a pilot.** The C0 operator gate (source health, identity collisions, correction review, mutation tracing) has no single surface; supporting a pilot still means SQL.

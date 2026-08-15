@@ -39,8 +39,40 @@ right of the wall is built, tested, and **unreachable from the front door**.
 `/directory/[npi]` returns HTTP 200 with a source-attributed record, and is
 findable, claimable, measurable, and refusable (#1358).
 
-**Defect: it takes 8.31 seconds.** Every other public surface answers in
-0.12–0.23s. This is the acquisition wedge and the slowest page in the product.
+**Defect: a cold render takes ~8.2 seconds.** Measured precisely (Wave C1.d,
+2026-08-15), because the first framing of this finding was too simple:
+
+| Case | Time |
+|---|---|
+| Cold render, any seed NPI (5 sampled: `1003006115`, `1003055666`, `1003098807`, `1003155912`, `1003159450`) | **8.22 / 8.24 / 8.30 / 8.24 / 8.28 s** |
+| Immediate re-hit, different replica | 4.5–8.1 s |
+| ISR warm on that replica | 0.15–0.53 s |
+| Every other public surface | 0.12–0.23 s |
+
+`revalidate = 3600`, so ISR *does* work — each replica just pays one cold render
+per NPI. **A human returning to a popular page is fast. A crawler sweeping the
+4,955 seeded NPIs pays ~8.2s essentially every request**, because every URL is
+cold on whatever replica answers. That is the case that matters for the
+acquisition wedge.
+
+**Cause not yet identified. Two plausible explanations were tested and
+disproven:**
+
+- *Not the upstreams.* Measured directly: NPPES `0.20s`, and the exact filtered
+  CMS query the page issues (`conditions[0][property]=npi`, `limit=40` against
+  `mj5m-pzi6`) `0.26–0.47s`. The page makes only these two sequential calls
+  (`page.tsx:115`, `:121`).
+- *Not the 8s timeout*, despite `TIMEOUT_MS = 8_000` in both `nppes.ts:24` and
+  `cmsClinicians.ts:38` matching the observed figure almost exactly. That
+  coincidence is a trap: the live page renders the CMS block **successfully**,
+  with `Confirmed by source`, `Within refresh window · today`, PECOS ID
+  `I20080221000313`, and a group-practice rollup. A timed-out fetch fails closed
+  to `unavailable` and would render nothing of the sort.
+
+Remaining candidates need local profiling or Railway logs rather than black-box
+probing: server render cost of the record component tree, or per-process load of
+`lib/reference/nucc-taxonomy.generated.ts` (492KB). Neither is confirmed, and
+neither should be assumed.
 
 ### 2. Account + NPI binding — **WORKS, BUT UNVERIFIED IDENTITY**
 
