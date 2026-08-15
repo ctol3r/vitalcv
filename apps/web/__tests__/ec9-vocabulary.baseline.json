@@ -103,7 +103,6 @@
   "components/proof/LanePanel.tsx": 2,
   "components/proof/ProofPacketInspector.tsx": 2,
   "components/review/EmployerCockpit.tsx": 1,
-  "components/review/EmployerDecisionConsole.tsx": 1,
   "components/shell/TopNav.tsx": 2,
   "components/source-health/LaneHealthSection.tsx": 1,
   "components/strategy/GraphStrategyPanel.tsx": 1,
