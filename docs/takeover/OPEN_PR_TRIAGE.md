@@ -189,6 +189,15 @@ simultaneously narrow the clinician-owned thesis that is the actual differentiat
 and walk toward the credentialing-infrastructure lane the 2026-08 market read
 says not to enter.
 
+One more fact belongs in the founder's hands for this decision: **the homepage
+already ships a category claim.** The live eyebrow is the EC-20-locked
+"The Provider Career Evidence Network." (`VITALCV_EXPERIENCE_CONSTITUTION.md:251`)
+— a framing earlier strategy work retired, now standing as a third claimant
+beside the canonical "portable professional identity and employment network" and
+#1377's "Clinician Hire-to-Start Platform." Deciding #1377 without also ruling on
+the locked eyebrow leaves two different categories live on the two most public
+surfaces. See the return report's vocabulary-law section.
+
 ---
 
 ## The hire-to-start stack: #1378 → #1380 → #1381 → #1384

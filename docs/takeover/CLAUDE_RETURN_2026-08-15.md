@@ -86,6 +86,36 @@ nothing to read. Until protection is restored, the gate is procedural only and
 depends entirely on the operator enumerating check-runs by hand on the head SHA.
 This is a founder action (repository settings), not a code change.
 
+### The vocabulary law now contradicts itself
+
+The live homepage renders, verbatim: eyebrow **"The Provider Career Evidence
+Network."**, H1 "One career record. More ways forward.", primary action
+**"Start my CV Wallet."** This is not Codex overreach — the Titan program
+(§5, founder-locked thesis 2026-08-13) mandated exactly that copy, and the
+Experience Constitution was amended to lock it
+(`VITALCV_EXPERIENCE_CONSTITUTION.md:251` locks the public promise, `:254` locks
+the primary action, both `LOCKED for /`).
+
+But the same document's EC-9 list was never reconciled. Line 97 still reads:
+*"Never customer-facing: packets · artifacts · lanes · **evidence networks** ·
+provenance · holder · readiness score · passport · **wallet** · graph · …"* —
+and line 39 still says the product must not primarily feel like "a credential
+wallet, an evidence network." Locked EC-20 rows and EC-9 are **both** rejection
+law under EC-21, so the constitution now mandates on `/` two nouns it
+simultaneously bans everywhere. Downstream, the strategy operating brief's own
+locked H1 amendment ("Enter your NPI. VitalCV does the rest.", Wave 1078) is
+displaced from production, and the strategy canon's category ("portable
+professional identity and employment network") now coexists with a *third*
+live claimant: the EC-20-locked "Provider Career Evidence Network" eyebrow —
+a framing earlier strategy work had retired.
+
+**Founder reconciliation required (one decision, small edits):** either ratify
+the Titan vocabulary by carving "CV Wallet" and the CEN eyebrow out of EC-9's
+ban list and amending the operating brief's H1 clause (dated rationale per
+EC-22), or revert the locked rows to the canonical vocabulary. This folds into
+the same founder session as the #1377 category decision — they are the same
+question asked twice.
+
 ### Scheduled monitors: three red, and two of those reds are correct
 
 | Workflow | State | Verdict |
@@ -178,7 +208,7 @@ All ten probed public surfaces return HTTP 200 from production at the current SH
 | `/status` | 200 | 85,022 | 0.15s |
 | `/verify` | 200 | 62,266 | 0.12s |
 | `/pricing` | 200 | 94,634 | 0.13s |
-| `/directory/1003000126` | 200 | 120,338 | **8.31s** |
+| `/directory/[live NPI]` | 200 | 120,338 | **8.31s** |
 
 **`/directory/[npi]` is 45× slower than every other surface.** 8.3 seconds is a
 bounce, and this is the acquisition wedge — the page the sitemap points crawlers
@@ -208,6 +238,8 @@ re-verified when a surface next changes.
 | NPI binding is self-asserted, no possession proof | **STILL TRUE** | `apps/web/lib/get-ready/npi-binding.ts` validates 10 digits and NPPES-matches. Nothing proves possession. |
 | `VerifierAcceptance` model | **REPLACED BY LESSER RISK** | Route retired; the model still exists at `schema.prisma:889` with no writer. Dead table, not a live defect. |
 | `propagateDriftResponse` queries non-existent columns under `@ts-nocheck` | **UNKNOWN — REQUIRES TEST** | Not re-verified this wave. |
+| `Acceptance`, `Start`, `ShareLink` are "dead models with no writer" | **FALSIFIED — writers exist** | The wedge lane is mounted (`src/app.ts:10` → `routes/wedge.ts`): `POST /acceptances` (`wedge.ts:336`) and `POST /starts` (`wedge.ts:444`) write them behind `apiKeyAuth`. `ShareLink` is written at `apps/marketing/app/api/share/[npi]/route.ts:41` and `src/app.ts:2622`. Not publicly reachable (API-key gated), but a live parallel Recognition→Acceptance→Start lane, and `docs/product/evidence-network/canonical-transaction-baseline.md:102` still calls `Start` a dead model — that line is stale. |
+| `routes/employer-action.ts` wired-looking but unmounted | **STILL TRUE — and it has a live caller that silently 404s** | Router still exported and never imported (`src/app.ts:51` imports `./routes/employerActions`, a different file). Meanwhile `apps/web/app/review/[entityId]/ConsoleWrapper.tsx:170` POSTs to `/api/employer-action` — no Next handler, no rewrite — with a hardcoded `employerId: 'pilot-employer-1'`, and never checks the response. The reviewer's action button does nothing and reports nothing. |
 
 Codex closed every P0 that the 2026-08-11 audit named. That is the headline
 result of this takeover, and it should change how the next wave treats this work:
@@ -242,10 +274,10 @@ gap's clothes, and it changes what Wave C1 should be.
 2. **No identity possession check.** NPI binding is self-asserted (C4.4). Anyone can bind any NPI. This gates any real pilot involving a real clinician.
 3. **No clinician correction lane.** The false *claim* is gone; the *capability* still does not exist. Source observations cannot be contested by the person they describe (C5).
 4. **No second-move / reuse path.** The thesis feature is unbuilt at product level. `reuseAcrossEmployers.e2e.test.ts` proves the `@vitalcv/psv` + `crs` + `audit` packages can express reuse with mocked sources — it does not prove a clinician can make an easier second application.
-5. **Two acceptance writers**, keyed on different identifiers (application id vs entity id). Counting acceptances still means unioning an AuditEvent stream with an outbox stream.
-6. **`/directory/[npi]` takes 8.3 seconds.** The acquisition wedge is the slowest page in the product.
-7. **Zero credential requirements on any live role.** `credentialRequirements: []` for all 498 (correct — feed listings do not carry them). MATCHA evidence-fit and any Trust Compiler demo have nothing real to evaluate against.
-8. **Zero compensation data.** `payRange: null` for all 498, honestly labelled `not_supplied`. Truthful, and a real weakness against HiringCafe-class discovery.
+5. **Two signed-in acceptance writers plus a third machine door**, keyed on different identifiers (application id vs entity id, plus the `apiKeyAuth` wedge lane writing a separate `Acceptance` table). Counting acceptances still means unioning streams.
+6. **The employer review console's action button does nothing.** `/review/[entityId]` POSTs to `/api/employer-action`, which exists nowhere (backend router unmounted, no Next handler), and discards the result — a reviewer believes they acted and nothing was recorded. Fix or remove before any employer touches the console.
+7. **`/directory/[npi]` takes 8.3 seconds.** The acquisition wedge is the slowest page in the product.
+8. **Zero credential requirements and zero compensation on any live role.** `credentialRequirements: []` and `payRange: null` for all 498 — correct for feed listings and honestly labelled, but MATCHA evidence-fit and any Trust Compiler demo have nothing real to evaluate against, and it is a real weakness against HiringCafe-class discovery.
 9. **Employer supply is 8 organizations, 65% one employer.** onemedical 130, charliehealth 28, twochairs 17, firsthand 12, then a tail of four.
 10. **No operator console for a pilot.** The C0 operator gate (source health, identity collisions, correction review, mutation tracing) has no single surface; supporting a pilot still means SQL.
 
@@ -258,15 +290,15 @@ gap's clothes, and it changes what Wave C1 should be.
 5. **#1382 credential-ops vs #1386 TrustSpec own the same business fact** — versioned institutional requirements. #1386 names this collision itself and rates it Critical. Unresolved, this is two policy models.
 6. **Four-deep stacked PR chain** (#1378 → #1380 → #1381 → #1384), two of them `UNSTABLE`. Squash-merging any parent orphans its children; this repo has been bitten by exactly this.
 7. **WO-4 disclosure-boundary remediation is recorded as implemented-but-unpushed.** Unpushed work looks landed in a ledger and does not exist in a repository.
-8. **Dead `VerifierAcceptance` model** with no writer, still in the schema.
-9. **`propagateDriftResponse` compiles only under `@ts-nocheck` and queries columns that do not exist.** Zero callers, so the OIG-drift revocation cascade is unreachable code that throws on first wiring. Not re-verified this wave.
+8. **The Experience Constitution contradicts itself at Class-A level.** EC-20 locked rows mandate "Start my CV Wallet." and "The Provider Career Evidence Network." on `/` while EC-9:97 bans "wallet" and "evidence networks" as customer-facing nouns. Both halves are rejection law; gates and reviewers can currently justify rejecting either direction. See C0.1.
+9. **Schema and lane hygiene invites accidental re-wiring.** Dead `VerifierAcceptance` model (`schema.prisma:889`, no writer); a live-but-orphaned `apiKeyAuth` wedge lane (Recognition→Acceptance→Start writing parallel tables, `routes/wedge.ts:336,444`); unmounted `routes/employer-action.ts` with a web caller still POSTing at it; `propagateDriftResponse` compiling only under `@ts-nocheck` against columns that do not exist (zero callers — the OIG-drift cascade throws on first wiring; not re-verified this wave). Every discovery pass pays for these.
 10. **`explanation.whyThisMayFit` is boilerplate.** Every role returns the identical string "This employer profile includes source-backed requirement and freshness data." It is not false, but it is a fit explanation that explains nothing — and it is what MATCHA 1.0 will be measured against.
 
 ## Top 10 commercially important next actions
 
 1. **Get one real employer to create one real role with structured requirements.** This single act converts an inert stack into a testable loop and is the precondition for C9–C14.
 2. Restore branch protection on `main`, and confirm the Actions budget.
-3. Decide the category question (#1377) — it blocks how every employer surface is worded.
+3. Decide the category question (#1377) — it blocks how every employer surface is worded, and the homepage's EC-20-locked "Provider Career Evidence Network" eyebrow is the same decision already shipped in a third form.
 4. Resolve TrustSpec policy ownership (#1382 vs #1386) before either lands.
 5. Build identity possession, or scope the pilot to founder-verified clinicians and say so.
 6. Fix `/directory/[npi]` latency — it is the top of the acquisition funnel.
@@ -304,6 +336,18 @@ Running C1 as written would spend a wave re-auditing closed findings.
   not implementation.
 - **C1.d — Fix `/directory/[npi]` latency.** Independently provable, no strategy
   dependency, and it is the acquisition wedge.
+- **C1.e — Close the silent-failure and re-wiring hazards.** Fix or remove the
+  `/review/[entityId]` console action that POSTs to a nonexistent
+  `/api/employer-action` and discards the result; decide the orphaned wedge lane
+  (`routes/wedge.ts` — retire or document as the machine lane); delete
+  `routes/employer-action.ts` and `driftPropagation.ts`'s dead write; correct
+  the stale "dead model" line in `canonical-transaction-baseline.md`. All
+  bounded, all independently provable.
+- **C1.f — Reconcile the vocabulary law.** One founder decision (ratify the
+  Titan nouns or revert the locked rows), then a one-file EC-9/EC-20 edit with
+  the dated rationale EC-22 requires, plus the operating-brief H1 clause. Do it
+  in the same founder session as the #1377 category call — it is the same
+  question.
 
 Truth and privacy work does **not** disappear — it moves to where the real gap
 is: the correction lane (C5) and identity possession (C4.4) are capabilities to

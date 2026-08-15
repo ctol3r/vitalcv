@@ -154,6 +154,25 @@ canonical one is not mechanical — it decides which auth posture wins and what
 the acceptance record anchors to. This is the C10.4 decision, and PRs #1378/#1384
 propose an answer to it (see triage).
 
+**Two further findings from the second pass:**
+
+- **The review console's action button silently does nothing.**
+  `apps/web/app/review/[entityId]/ConsoleWrapper.tsx:170` POSTs to
+  `/api/employer-action` with a hardcoded `employerId: 'pilot-employer-1'`.
+  That route exists nowhere — the backend `employerActionRouter` is exported
+  but never mounted (`src/app.ts:51` imports `./routes/employerActions`, a
+  different file), and there is no Next handler or rewrite. The response is
+  never checked, so the reviewer sees success theater over a 404. Any pilot
+  that seats an employer at this console records none of their actions.
+- **A third acceptance door exists on a machine lane.** The wedge routes are
+  mounted (`src/app.ts:10`): `POST /acceptances` (`routes/wedge.ts:336`) and
+  `POST /starts` (`wedge.ts:444`), both behind `apiKeyAuth`, writing the
+  parallel `Acceptance` and `Start` models — the tables the 2026-08-11 audit
+  (and `docs/product/evidence-network/canonical-transaction-baseline.md:102`,
+  now stale) recorded as dead with no writers. Not publicly reachable, but it
+  is a live Recognition→Acceptance→Start lane that the one-canonical-writer
+  decision must explicitly retire or scope.
+
 ### 7. Hire-to-start — **ENTIRELY IN DRAFT**
 
 Models exist in `schema.prisma`: `Application` (1994), `ApplicationPacket` (2029),

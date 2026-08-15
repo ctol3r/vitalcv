@@ -96,6 +96,8 @@ Correct work with a specific, bounded defect.
 | **#1386 stray `sitemap.ts` hunk** | A docs-only PR edits `apps/web/app/sitemap.ts` (+1). The identical edit already landed via #1383, which is why #1386 is `DIRTY`. | Drop the hunk, rebase. |
 | **#1382 / #1378 migration timestamp** | Both ship `20260814180000_*`. Deterministic under Prisma's lexicographic ordering, but it destroys human-readable migration order. | Renumber one before either lands. |
 | **Employer supply concentration** | 8 employers; onemedical is 130 of the first 200. | Ingestion breadth, not a code defect. |
+| **EC-9 vs EC-20 vocabulary contradiction** | The Titan homepage copy was correctly ratified into EC-20 locked rows ("Start my CV Wallet." / "The Provider Career Evidence Network.", `VITALCV_EXPERIENCE_CONSTITUTION.md:251,254`) — but EC-9:97 still bans "wallet" and "evidence networks" as customer-facing nouns, and the operating brief's locked H1 was displaced without amendment. The amendment was half-done. | One founder ruling, then a one-file EC-9/EC-20 reconciliation with EC-22's dated rationale, plus the operating-brief H1 clause. Same session as the #1377 category decision. |
+| **Review console action** | `/review/[entityId]`'s action button POSTs to `/api/employer-action` — a route that exists nowhere — with a hardcoded `employerId`, and discards the response. Predates this cycle; the cycle did not touch it. | Fix or remove before any employer sits at the console. Wave C1 candidate. |
 
 ---
 
@@ -123,9 +125,16 @@ Two items need **verification** rather than reversal:
    anyone wires it. **Not re-verified this wave** — flagged as
    `UNKNOWN_REQUIRES_TEST`.
 
-And one piece of **dead weight**, not a defect: the `VerifierAcceptance` model
-survives at `schema.prisma:889` with its route retired and no remaining writer.
-Drop it in a schema-hygiene pass, not urgently.
+And two pieces of **dead weight**, not defects — both predating this cycle:
+
+- The `VerifierAcceptance` model survives at `schema.prisma:889` with its route
+  retired and no remaining writer. Drop it in a schema-hygiene pass.
+- The wedge lane (`routes/wedge.ts`, mounted at `src/app.ts:10`, `apiKeyAuth`)
+  still writes the parallel `Acceptance`/`Start` models that the 2026-08-11
+  audit and `canonical-transaction-baseline.md:102` recorded as writerless dead
+  models — both records are wrong; the lane is alive. The one-canonical-writer
+  decision (C10.4) must retire or explicitly scope it, and the baseline doc line
+  needs correcting either way.
 
 ---
 
