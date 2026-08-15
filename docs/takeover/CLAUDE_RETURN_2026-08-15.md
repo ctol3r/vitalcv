@@ -143,13 +143,21 @@ the script itself cannot be the cause. A job that fails before its first step
 generally means the runner never accepted it. Every failure today falls after
 ~20:45, and successes cluster before it.
 
-**Hypothesis, not a finding: Actions minutes or a spending limit were reached
-today on the now-private repository.** I could not confirm it — the billing
-endpoint needs a `user` OAuth scope this session does not hold, and I did not
-change token scopes to get it. **Founder action:** check
-Settings → Billing → Actions minutes. If that is the cause, it compounds the
-protection gap: unprotected `main` plus a CI budget that can silently stop
-gating PRs mid-day.
+**CONFIRMED (second pass, 21:53Z): it is billing.** This report's own draft PR
+(#1389, docs-only) triggered 15 check runs and every one failed in 1–3 seconds
+with zero steps executed. The check-run annotation states the cause verbatim:
+
+> The job was not started because recent account payments have failed or your
+> spending limit needs to be increased. Please check the 'Billing & plans'
+> section in your settings
+
+So **all GitHub Actions on this repository are currently dead** — PR gates,
+scheduled monitors, and deploy-verification workflows alike. Combined with the
+missing branch protection, a merge to `main` at this moment would be both
+ungated and unverified by CI. **Founder action, now urgent:** fix the payment
+method or raise the spending limit (Settings → Billing), then restore branch
+protection. Until both are done, treat every green-looking PR as unverified and
+run the gate scripts locally before any merge.
 
 ---
 
@@ -284,7 +292,7 @@ gap's clothes, and it changes what Wave C1 should be.
 ## Top 10 technical / architecture risks
 
 1. **`main` is unprotected.** Zero required checks, no ruleset. The documented merge gate reads an empty list.
-2. **CI may be silently budget-limited.** Unexplained zero-step failures after ~20:45 today. Unconfirmed; needs the billing page.
+2. **CI is dead repo-wide — confirmed billing failure.** Every check run since ~20:45 fails in 1–3s with zero steps; the annotation names failed payments / spending limit. Nothing is being tested by CI at all until billing is fixed.
 3. **PR #1384 deletes the one start writer** (`services/hiring/startWriter.ts`, 0 additions) that #1352 landed specifically so a start could not exist without its audit row. It substitutes `applicationStartCommandService.ts`. The replacement may well be better — but this is the exact invariant the repo has already had to fix once.
 4. **Migration timestamp collision.** #1382 and #1378 both ship `20260814180000_*`. Prisma orders lexicographically so application order is deterministic, but both also edit `schema.prisma` — they will conflict textually, and a shared timestamp defeats human reading of migration order.
 5. **#1382 credential-ops vs #1386 TrustSpec own the same business fact** — versioned institutional requirements. #1386 names this collision itself and rates it Critical. Unresolved, this is two policy models.
@@ -324,9 +332,11 @@ Running C1 as written would spend a wave re-auditing closed findings.
 
 **Recommended Wave C1 instead — "Restore the gate, then unblock the loop":**
 
-- **C1.a — Restore the merge gate.** Branch protection on `main` with the check
-  set that already runs green; confirm the Actions budget. *Founder action; I
-  cannot change repository settings.* Nothing else should merge until this holds.
+- **C1.a — Restore the merge gate.** Two founder settings actions, now both
+  confirmed necessary: fix Actions billing (payments failing / spending limit —
+  all CI is currently dead), and restore branch protection on `main` with the
+  check set that ran green through 2026-08-15 ~20:45. *I cannot change
+  repository settings.* Nothing else should merge until both hold.
 - **C1.b — Land the two clean, bounded PRs.** #1388 (visual removal, `CLEAN`,
   founder decision) and #1386 (docs-only after dropping one stale sitemap line).
   Both are low-risk and clear the board for the real triage.
