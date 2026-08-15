@@ -3,6 +3,61 @@
 Append-only. **Newest entry at the top.** One entry per work order is recorded
 in the same pull request as its implementation or takeover evidence.
 
+## WO-17 · Homepage warm-glass motion synthesis — OPEN
+
+- **Date:** 2026-08-14
+- **Claim-check and creative ownership:** Merged #1371 and #1373 are the landed
+  Direction D and D.1 foundations. No open PR changes `/`; the remote home and
+  visual branches are historical, superseded, or unsubmitted rather than a
+  competing current implementation. Codex is the creative owner. This work
+  composes the canonical `HeroStage`, `WorkSurface`, and
+  `CareerMobilitySequence`; it adds no component family, motion engine, scene
+  registry, or in-page rail. Shared chrome geometry, navigation, and controls
+  stay fixed; the homepage SSR/no-JavaScript fallback uses the existing light
+  register so it is legible before client-side section observation.
+- **Change:** Synthesizes the founder-supplied visual tokens, Dimension material
+  reference, and professional-trust theses into the existing VitalCV register.
+  Per the founder's 2026-08-14 correction, the homepage documentary poster is
+  unmounted and the evidence folio becomes a warm frosted-glass register over a
+  code-authored NPI -> source states -> source-labelled roles horizon. The
+  existing record-to-reuse sequence becomes a hard-cut inverse editorial band
+  with architectural type, seven numbered physical objects, hairline structure,
+  and mobile two-column moments. VitalCV's paper, ink, Fraunces, 8px primary
+  action, and semantic source-green remain; no black/violet reference palette,
+  font, photo, raster illustration, scientific wallpaper, decorative state hue,
+  or new mono register is copied.
+- **Truth and authority boundary:** The glass register and motion display remain
+  explicitly illustrative. Distinct evidence states do not collapse into a
+  score or implied Trust Compiler output. Real public opportunities retain source,
+  observation, availability, and application-mode boundaries. Clinician choice
+  precedes exact-packet review; accepted head start follows an employer-recorded
+  decision; reuse requires fresh consent. No API, schema, migration,
+  authorization, packet, decision, Recognition, or durable-state behavior
+  changes.
+- **Evidence:**
+  `docs/design/evidence/home-refero-synthesis-2026-08-14/` contains production
+  before and optimized-build after frames at every required width, a full-page
+  composition, hero and career-loop details, reduced-motion, no-JavaScript,
+  200% zoom, desktop and mobile recordings, reference classification, scorecard,
+  and computed typography/contrast/overflow measurements. The changed band has
+  zero monospace and the implementation adds no source-green decoration.
+- **Verification:** Focused Vitest, including the glass governance ratchet,
+  passes **4 files / 44 tests**;
+  production-build Chromium passes **19/19** across 390/768/1024/1280/1440/1728,
+  reduced motion, no JavaScript, keyboard, source boundaries, and painted style
+  assertions. Full repository typecheck, build, and lint pass. After restoring
+  the canonical backend Prisma client with the repository's locked generator,
+  the real-PostgreSQL backend sweep passes **343 suites / 2,761 tests** in band;
+  the non-backend Turbo sweep passes **468 files / 4,532 tests**. Design, copy,
+  claims, route, and generated-design-document gates pass. The glass ratchet
+  contains one exact founder-directed marketing-illustration allowlist entry
+  with a complete-readable-fallback requirement; operational evidence and decision
+  surfaces remain prohibited.
+- **Next gate:** Publish the draft PR and review environment, require
+  refreshed-head CI and `CLEAN`, then review the live URL.
+  After explicit founder GO, merge and require exact Railway `/api/version` plus
+  desktop/mobile interaction verification before marking WO-17 landed.
+
 ## WO-16 · NPI-to-opportunity activation path — OPEN
 
 - **Date:** 2026-08-14

@@ -1,0 +1,29 @@
+{
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "horizontalOverflow": 0,
+  "stage": {
+    "background": "color(srgb 0.805569 0.863765 0.828706)",
+    "borderRadius": "24px",
+    "overflow": "hidden"
+  },
+  "glass": {
+    "background": "rgba(255, 255, 255, 0.58)",
+    "backdropFilter": "blur(26px) saturate(1.18)",
+    "border": "rgba(255, 255, 255, 0.76)"
+  },
+  "h1": {
+    "fontFamily": "fraunces, \"fraunces Fallback\", Georgia, \"Times New Roman\", serif",
+    "fontSize": "43px",
+    "fontWeight": "500"
+  },
+  "primaryAction": {
+    "height": "52px",
+    "borderRadius": "8px"
+  },
+  "recordRows": 4,
+  "horizonStops": 3,
+  "heroImages": 0
+}

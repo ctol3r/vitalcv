@@ -158,16 +158,17 @@ export function getHeaderRouteContext(pathname: string): HeaderRouteContext {
     };
   }
 
-  // The homepage: UX-V1's dark warm-graphite register (a register, not a
-  // mandate — UX-01 amendment 2). Sections still declare stage and theme;
-  // the eyebrow substitutes its own "Start with your NPI" action on `/`.
+  // The homepage: Direction D's warm paper register. Sections still declare
+  // stage and theme; this default keeps the server/no-JavaScript chrome
+  // legible before useHeaderScene can observe the first light section. The
+  // eyebrow substitutes its own "Start with your NPI" action on `/`.
   if (pathname === '/') {
     return {
       audience: 'clinician',
       contextLabel: 'Your profile, ready for every move',
       cta: CLINICIAN_CTA,
       defaultStage: DEFAULT_JOURNEY_STAGE,
-      defaultTheme: 'dark',
+      defaultTheme: 'light',
       railInteractive: true,
     };
   }

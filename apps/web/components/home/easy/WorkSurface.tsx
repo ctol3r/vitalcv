@@ -31,9 +31,28 @@ export default function WorkSurface() {
       id="how-it-works"
       className={`ezh-surface ezh-watch-record${animate ? ' anim' : ''}`}
       data-home-work-surface=""
+      data-visual-material="frosted-glass"
       data-motion={animate ? 'assembling' : 'static'}
       aria-label="Illustration of a clinician-controlled career record, with source states shown openly."
     >
+      <div className="ezh-career-horizon" data-home-motion-display="" aria-hidden="true">
+        <span className="ezh-horizon-aura aura-start" />
+        <span className="ezh-horizon-aura aura-forward" />
+        <span className="ezh-horizon-line" />
+        <span className="ezh-horizon-pulse" />
+        <span className="ezh-horizon-stop stop-start">
+          <b>NPI</b>
+          <i>Start</i>
+        </span>
+        <span className="ezh-horizon-stop stop-sources">
+          <b>Source states</b>
+          <i>Kept distinct</i>
+        </span>
+        <span className="ezh-horizon-stop stop-forward">
+          <b>Open roles</b>
+          <i>Source-labelled</i>
+        </span>
+      </div>
       <span className="ezh-folio-depth depth-back" aria-hidden="true" />
       <span className="ezh-folio-depth depth-mid" aria-hidden="true" />
       <div className="ezh-folio-paper">

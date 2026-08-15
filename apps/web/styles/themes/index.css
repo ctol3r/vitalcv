@@ -213,6 +213,15 @@ html[data-theme='dark'] {
   --vt-home-d-binding-line: #A7A197;
   --vt-home-d-binding: #191817;
   --vt-home-d-tab: #EFEDE8;
+  /* D.7 frosted career register. The external glass reference contributes
+     material behavior only; VitalCV keeps the warm Direction D register. */
+  --vt-home-d-glass: rgb(255 255 255 / 58%);
+  --vt-home-d-glass-strong: rgb(255 255 255 / 74%);
+  --vt-home-d-glass-line: rgb(255 255 255 / 76%);
+  --vt-home-d-glass-quiet: rgb(247 246 243 / 42%);
+  --vt-home-d-glass-catch: rgb(255 255 255 / 46%);
+  --vt-home-d-horizon: #DDE8E2;
+  --vt-home-d-horizon-deep: #B8CFC3;
   --vt-home-d-tactile-line: #AAA397;
   --vt-home-d-tactile-back: #D8D2C7;
   --vt-home-d-tactile-front: #FDFCF9;

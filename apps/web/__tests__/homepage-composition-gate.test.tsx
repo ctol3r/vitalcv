@@ -89,6 +89,8 @@ describe('homepage composition gate (W0.2)', () => {
   it('the work surface shows an unresolved, clinician-controlled record', () => {
     const html = renderHomepageHtml();
     expect(html).toContain('data-home-work-surface');
+    expect(html).toContain('data-visual-material="frosted-glass"');
+    expect(html).toContain('data-home-motion-display');
     expect(html).toContain('Illustrative');
     expect(html).toContain('Choose what you share');
     expect(html).toContain('Your employer receives the exact record you approve.');
@@ -107,7 +109,8 @@ describe('homepage composition gate (W0.2)', () => {
 
   it('Direction D.1 makes the career opportunity and full acceptance loop visible', () => {
     const html = renderHomepageHtml();
-    expect(html).toContain('data-home-human-scene');
+    expect(html).toContain('data-home-motion-display');
+    expect(html).not.toContain('data-home-human-scene');
     expect(html).toContain('data-home-opportunity-horizon');
     expect(html).toContain('data-home-mobility-sequence');
     for (const step of [
@@ -123,5 +126,8 @@ describe('homepage composition gate (W0.2)', () => {
     }
     expect(html).toContain('Only after the employer records that decision.');
     expect(html).toContain('Fresh clinician consent is required next time.');
+    expect(html).toContain('01 / 07');
+    expect(html).toContain('07 / 07');
+    expect(html).toMatch(/data-home-mobility-sequence=""[^>]*data-header-theme="dark"/);
   });
 });

@@ -68,11 +68,11 @@ const pressEscape = () =>
   });
 
 describe('eyebrow gating and registers', () => {
-  it('renders the chrome on the homepage in the dark register', async () => {
+  it('renders the chrome on the homepage in the light register before section observation', async () => {
     await mount(<Eyebrow />);
     const header = container.querySelector('header.vcv-eb');
     expect(header).not.toBeNull();
-    expect(header!.getAttribute('data-eb-theme')).toBe('dark');
+    expect(header!.getAttribute('data-eb-theme')).toBe('light');
   });
 
   it('renders nothing on ops surfaces', async () => {

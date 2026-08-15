@@ -48,7 +48,7 @@ export default function CareerMobilitySequence() {
     <section
       className="ezh-mobility"
       data-home-mobility-sequence=""
-      data-header-theme="light"
+      data-header-theme="dark"
       aria-labelledby="ezh-mobility-heading"
     >
       <div className="ezh-wrap">
@@ -62,7 +62,7 @@ export default function CareerMobilitySequence() {
         </div>
 
         <ol className="ezh-mobility-track">
-          {STEPS.map((step) => (
+          {STEPS.map((step, index) => (
             <li key={step.id} data-mobility-step={step.id}>
               <div className={`ezh-tactile-object is-${step.object}`} aria-hidden="true">
                 <span className="ezh-tactile-sheet sheet-back" />
@@ -70,6 +70,9 @@ export default function CareerMobilitySequence() {
                 <span className="ezh-tactile-mark" />
               </div>
               <div className="ezh-mobility-copy">
+                <span className="ezh-mobility-index">
+                  {String(index + 1).padStart(2, '0')} / {String(STEPS.length).padStart(2, '0')}
+                </span>
                 <h3>{step.label}</h3>
                 <p>{step.detail}</p>
               </div>
