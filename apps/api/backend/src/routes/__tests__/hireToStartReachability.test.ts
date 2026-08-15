@@ -113,6 +113,9 @@ describe('GET /api/applications/:applicationId/hire-to-start survives the global
     expect(shouldSkipTenantContext(`/api/applications/${APPLICATION_ID}/hire-to-start`)).toBe(true);
     expect(shouldSkipTenantContext(`/api/applications/${APPLICATION_ID}/hire-to-start/extra`)).toBe(false);
     expect(shouldSkipTenantContext(`/api/applicationsx/${APPLICATION_ID}/hire-to-start`)).toBe(false);
-    expect(shouldSkipTenantContext(`/api/applications/${APPLICATION_ID}/withdraw`)).toBe(false);
+    // /withdraw joined the exempted decision family in the follow-up commit
+    // (see decisionRouteReachability.test.ts); /activation is the guarded
+    // neighbour that pins the boundary now.
+    expect(shouldSkipTenantContext(`/api/applications/${APPLICATION_ID}/activation`)).toBe(false);
   });
 });

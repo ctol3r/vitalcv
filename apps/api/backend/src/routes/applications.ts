@@ -108,7 +108,10 @@ export function registerApplicationRoutes(app: Express): void {
   app.get(
     '/api/clinician/applications',
     asyncHandler(async (req, res) => {
-      const clerkUserId = requireClerkUserId(req);
+      // Verified identity: this is a self-scoped read exempted from the tenant
+      // turnstile, so the raw header alone must never select whose
+      // applications are returned.
+      const clerkUserId = requireVerifiedClerkUserId(req);
       const applications = await listClinicianApplications(clerkUserId);
       res.json(applications);
     }),
@@ -118,7 +121,9 @@ export function registerApplicationRoutes(app: Express): void {
   app.delete(
     '/api/applications/:appId/withdraw',
     asyncHandler(async (req, res) => {
-      const clerkUserId = requireClerkUserId(req);
+      // Verified identity: exempted from the tenant turnstile; a forged
+      // header must not be able to withdraw an application.
+      const clerkUserId = requireVerifiedClerkUserId(req);
       const appId = requireUuidParam(req.params.appId, 'Application');
       const updated = await withdrawApplication(appId, clerkUserId);
       res.json(updated);
