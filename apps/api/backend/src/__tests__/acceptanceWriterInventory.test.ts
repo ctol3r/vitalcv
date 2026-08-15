@@ -22,7 +22,7 @@
  * 0007-one-employer-decision-service.md) and cite the ADR in the PR before
  * extending a list here. Known upcoming addition: PR #1378 lands
  * `services/opportunities/employerWorkflowService.ts` as door A's writer —
- * that PR extends EMPLOYER_ACCEPTANCE_WRITERS with it under ADR 0007.
+ * that PR extends EMPLOYER_ACCEPTANCE_WRITERS with it under ADR 0007 (done).
  */
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
@@ -32,6 +32,9 @@ const SRC_ROOT = join(__dirname, '..');
 /** The only modules permitted to create durable EmployerAcceptance rows. */
 const EMPLOYER_ACCEPTANCE_WRITERS = [
   'src/services/entity/employerReviewActions.ts',
+  // Door A's packet-bound accept transaction (ADR 0007: the canonical spine).
+  // Added by the #1378-takeover PR that this comment's header anticipated.
+  'src/services/opportunities/employerWorkflowService.ts',
 ];
 
 /** The only modules permitted to create StartAttestation rows. */
