@@ -407,6 +407,37 @@ the image contains no readable identity, source result, metric, status word,
 employer, or outcome. The shared `ActivationPath` DOM component supplies one
 semantic journey on both routes rather than two route-local diagrams.
 
+#### Warm-glass and code-authored motion amendment D.7 (2026-08-14)
+
+The founder directed the homepage lane to set aside its new photographic and
+raster imagery for now and focus on animation, illustration, and motion
+displays. This amendment replaces only the homepage media/material rows below. It
+does not replace Direction D's paper, ink, Fraunces, source green, shared
+chrome, real NPI flow, opportunity provenance, or career-mobility sequence.
+
+| Decision | Value | Status |
+|---|---|---|
+| Homepage protagonist | The existing server-visible CV Wallet register becomes a warm frosted-glass object over a code-authored career horizon; the exact four source-state rows and clinician-choice boundary remain readable DOM text | LOCKED for `/` |
+| Homepage media | The D.1 documentary route variant is unmounted for this composition. No photo, generated raster, video, canvas, WebGL, fake person, or fake employer appears in the idle hero | LOCKED for `/` |
+| Motion | One-shot focus choreography may draw the career horizon, move a progress point, and catch light across glass. It never loops, hides the complete record, delays the NPI control, or resolves an employer decision | LOCKED for `/` |
+| Static behavior | All homepage objects and all truth text exist in the server frame. Reduced motion and no JavaScript show the complete final composition without hidden rows or required controls | LOCKED for `/` |
+| Reference synthesis | The supplied Dimension reference contributes translucency, backdrop blur, hairline highlights, pill labels, and restrained depth only. Its black canvas, violet accent, DM Sans/Geist register, gradient hero, and product category are not imported | LOCKED for `/` |
+| Technology-thesis boundary | This visual may show separate source states, an open-work boundary, selective clinician choice, and human review. It may not imply a deployed Trust Compiler, employer-policy satisfaction proof, universal acceptance, automatic eligibility, or a numerical readiness result | LOCKED for `/` |
+
+The two supplied professional-trust theses are treated as product and truth
+context, not evidence that their target architecture is deployed. Their useful
+visual consequence is separation: source-backed, clinician-controlled,
+access-gated, and review-required states stay distinct. Their useful interaction
+consequence is explainability: a viewer can follow what changed without a magic
+percentage. Institution review remains visibly unresolved.
+
+**A-1 classification.** The frosted homepage folio is an illustrative marketing
+scene overlay, not current Wallet evidence, submitted evidence, a proof row, an
+artifact, a receipt, or any surface from which a decision is made. Its text
+names the evidence-state vocabulary but cannot be acted on. Operational and
+decision-bearing evidence surfaces remain solid under A-1; D.7 does not license
+frost on them.
+
 **On the difference (W1080 closure, 2026-08-08).** Three rows previously read
 "PENDING UX-02", which is indistinguishable from an unresolved brand decision and
 made the table read as incomplete when it is not. A deferral is legitimate only
@@ -505,6 +536,11 @@ variant** on `/`. It is a non-blocking human-stakes still beside the real NPI
 action and tactile record; it does not restore the retired horizontal film,
 create a scroll owner, or carry evidence/result state. The server poster is the
 complete experience and remains subject to EC-25 and EC-29.
+
+**Homepage warm-glass authorization (2026-08-14).** Amendment D.7 supersedes
+the D.1 documentary placement for the current `/` composition. The manifest
+entry remains available to other explicitly authorized routes, but `/` mounts
+the frosted record and code-authored horizon instead of a raster poster.
 
 **Explore route-variant authorization (2026-08-14).** Amendment D.2 supplies
 the founder decision for a static `journey_film` documentary route variant on

@@ -3,9 +3,9 @@
 /**
  * EasyHome — the `/` production experience (Direction D.1, WO-12).
  *
- * The human+tactile amendment keeps Direction D's record-first decision and
- * adds the missing career stakes: an art-directed documentary scene, a
- * tactile CV Wallet folio, source-labelled public opportunities, and the
+ * The glass-and-motion amendment keeps Direction D's record-first decision and
+ * adds the missing career stakes: a code-authored career horizon, a frosted
+ * CV Wallet register, source-labelled public opportunities, and the
  * complete record → opportunity → choice → packet → review → accepted-head-
  * start → reuse sequence. The shared public chrome is intentionally unchanged.
  *
@@ -15,8 +15,8 @@
  * record" hands the NPI to /onboarding. No API, auth, consent, or data
  * behavior changes here — this file is presentation over the existing hook.
  *
- * Truth contract carried forward, not relaxed: documentary art is labelled as
- * art-directed, example evidence remains illustrative, opportunities are
+ * Truth contract carried forward, not relaxed: the code-authored display is
+ * labelled illustrative, example evidence remains illustrative, opportunities are
  * loaded from the live provenance-bearing public API, and institution review
  * remains an unresolved employer decision.
  */
@@ -32,7 +32,6 @@ import Questions from '@/components/home/easy/Questions';
 import WorkSurface from '@/components/home/easy/WorkSurface';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { VisualScene } from '@/components/visual-scene/VisualScene';
 import { FUNNEL_EVENTS, trackFunnelEvent } from '@/lib/analytics/funnel';
 import { useCareerLoop } from '@/lib/career-loop/useCareerLoop';
 import { writeNpiHandoff } from '@/lib/onboarding/npiHandoff';
@@ -257,23 +256,13 @@ function HeroStage({
   return (
     <>
       <div className="ezh-human-tactile-stage">
-        <div className="ezh-human-media" data-home-human-scene="">
-          <VisualScene
-            scene="journey_film"
-            kind="process"
-            routeVariant="home_documentary"
-            mode="static"
-            priority="hero"
-            className="ezh-human-scene"
-          />
-        </div>
         <div className="ezh-folio-stage">
           <WorkSurface />
         </div>
       </div>
       <p className="ezh-truth" data-home-truth-boundary="">
-        Art-directed image; no real clinician or patient. The record is illustrative, nothing has
-        been sent, and institution review decides the outcome.
+        Code-authored illustration; no real clinician, employer, or result; nothing has been sent,
+        and institution review decides the outcome.
       </p>
     </>
   );

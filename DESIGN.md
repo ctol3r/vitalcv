@@ -27,12 +27,12 @@ specificity, so this list is the precedence:
 
 | # | File | `--vt-*` declarations |
 |---|---|---|
-| 1 | `apps/web/styles/themes/index.css` | 165 |
+| 1 | `apps/web/styles/themes/index.css` | 172 |
 | 2 | `apps/web/styles/tokens.css` | 33 |
 | 3 | `apps/web/styles/vitalTokens.css` | 65 |
 | 4 | `apps/web/styles/matcha-zen.css` | 16 |
 
-**279 declarations across 4 files, 190 distinct tokens.**
+**286 declarations across 4 files, 197 distinct tokens.**
 
 ### Route-scoped token files (outside the global cascade)
 
@@ -210,7 +210,7 @@ table — the table says what exists, this says what to do.
 
 ## Tokens
 
-Role sentences come from `docs/design/design-md-roles.json`. **12 of 190**
+Role sentences come from `docs/design/design-md-roles.json`. **12 of 197**
 tokens have a documented role; the rest say so plainly rather than inventing one.
 
 | Token | Effective value | Declared in | Role |
@@ -306,7 +306,14 @@ tokens have a documented role; the rest say so plainly rather than inventing one
 | `--vt-home-d-folio-line` | `#C9C2B5` | `styles/themes/index.css` | — *(role not documented)* |
 | `--vt-home-d-folio-mid` | `#EEE9DF` | `styles/themes/index.css` | — *(role not documented)* |
 | `--vt-home-d-folio-sheet` | `#E7E2D8` | `styles/themes/index.css` | — *(role not documented)* |
+| `--vt-home-d-glass` | `rgb(255 255 255 / 58%)` | `styles/themes/index.css` | — *(role not documented)* |
+| `--vt-home-d-glass-catch` | `rgb(255 255 255 / 46%)` | `styles/themes/index.css` | — *(role not documented)* |
+| `--vt-home-d-glass-line` | `rgb(255 255 255 / 76%)` | `styles/themes/index.css` | — *(role not documented)* |
+| `--vt-home-d-glass-quiet` | `rgb(247 246 243 / 42%)` | `styles/themes/index.css` | — *(role not documented)* |
+| `--vt-home-d-glass-strong` | `rgb(255 255 255 / 74%)` | `styles/themes/index.css` | — *(role not documented)* |
 | `--vt-home-d-ground` | `#F7F6F3` | `styles/themes/index.css` | — *(role not documented)* |
+| `--vt-home-d-horizon` | `#DDE8E2` | `styles/themes/index.css` | — *(role not documented)* |
+| `--vt-home-d-horizon-deep` | `#B8CFC3` | `styles/themes/index.css` | — *(role not documented)* |
 | `--vt-home-d-ink` | `#131211` | `styles/themes/index.css` | — *(role not documented)* |
 | `--vt-home-d-panel` | `#FFFFFF` | `styles/themes/index.css` | — *(role not documented)* |
 | `--vt-home-d-photo-matte` | `#D8D4CA` | `styles/themes/index.css` | — *(role not documented)* |

@@ -3,45 +3,27 @@
     "width": 1440,
     "height": 900
   },
-  "page": {
-    "ground": "rgb(247, 246, 243)",
-    "overflow": 0
-  },
-  "heroH1": {
-    "color": "rgb(19, 18, 17)",
-    "fontFamily": "fraunces, \"fraunces Fallback\", Georgia, \"Times New Roman\", serif",
-    "fontSize": "43px",
-    "fontWeight": "500",
-    "letterSpacing": "-1.935px",
-    "lineHeight": "42.14px"
-  },
-  "primaryAction": {
-    "background": "rgb(19, 18, 17)",
-    "color": "rgb(255, 255, 255)",
-    "radius": "8px",
-    "height": 52
-  },
-  "heroStage": {
-    "background": "rgb(19, 18, 17)",
-    "radius": "24px",
+  "horizontalOverflow": 0,
+  "stage": {
+    "background": "color(srgb 0.805569 0.863765 0.828706)",
+    "borderRadius": "24px",
     "overflow": "hidden"
   },
-  "mobility": {
-    "background": "rgb(19, 18, 17)",
-    "color": "rgb(247, 246, 243)",
-    "headingColor": "rgb(247, 246, 243)",
-    "headingSize": "86.4px",
-    "headingWeight": "500",
-    "headingTracking": "-4.752px",
-    "headingLineHeight": "81.216px",
-    "numberedSteps": 7,
-    "monospaceElements": 0
+  "glass": {
+    "background": "rgba(255, 255, 255, 0.58)",
+    "backdropFilter": "blur(26px) saturate(1.18)",
+    "border": "rgba(255, 255, 255, 0.76)"
   },
-  "pageMonospaceElements": 10,
-  "pageMonospaceNote": "All ten are retained machine-fact chips in the existing attribution section; this change adds no monospace and the new mobility band contains none.",
-  "contrast": {
-    "heroH1OnGround": 17.31,
-    "primaryAction": 18.71,
-    "mobilityHeading": 17.31
-  }
+  "h1": {
+    "fontFamily": "fraunces, \"fraunces Fallback\", Georgia, \"Times New Roman\", serif",
+    "fontSize": "43px",
+    "fontWeight": "500"
+  },
+  "primaryAction": {
+    "height": "52px",
+    "borderRadius": "8px"
+  },
+  "recordRows": 4,
+  "horizonStops": 3,
+  "heroImages": 0
 }

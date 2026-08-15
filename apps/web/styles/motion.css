@@ -167,6 +167,45 @@
   }
 }
 
+/* D.7 warm-glass career horizon. The pulse travels once from NPI toward the
+ * source-labelled opportunity stop, the atmosphere settles once, and the
+ * folio receives one restrained light catch. Consumers live in easy-home.css
+ * behind a no-preference media query; reduced motion and SSR/no-JavaScript use
+ * the complete resting composition. */
+@keyframes ezh-horizon-travel {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(min(690px, 67vw));
+  }
+}
+
+@keyframes ezh-horizon-breathe {
+  from {
+    opacity: 0.46;
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes ezh-glass-catch {
+  0% {
+    left: -34%;
+    opacity: 0;
+  }
+  22% {
+    opacity: 0.7;
+  }
+  100% {
+    left: 116%;
+    opacity: 0;
+  }
+}
+
 /* ── Z1 homepage story (/preview/home · styles/z1-home.css) ──────────────────
  * The z1-* set below is consumed only by z1-home.css; the page imports this
  * file alongside it. Every use sits behind that stylesheet's

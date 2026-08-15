@@ -102,12 +102,30 @@ test.describe('home — the Easy Button hero', () => {
     await expect(page.getByText('The Provider Career Evidence Network.', { exact: true })).toBeVisible();
   });
 
-  test('the hero never blocks: human image, NPI entry, and tactile folio paint together', async ({ page }) => {
+  test('the hero never blocks: NPI entry, motion display, and frosted record paint together', async ({ page }) => {
     await expect(page.locator('[data-home-hero]')).toBeVisible();
     await expect(page.locator('#ezh-npi')).toBeVisible();
     await expect(page.locator('[data-home-primary-cta]')).toHaveText('Start my CV Wallet');
-    await expect(page.locator('[data-scene="journey_film"] img')).toBeVisible();
+    await expect(page.locator('[data-home-motion-display]')).toBeVisible();
     await expect(surface(page)).toBeVisible();
+    await expect(surface(page)).toHaveAttribute('data-visual-material', 'frosted-glass');
+    await expect(page.locator('[data-home-stage] img')).toHaveCount(0);
+  });
+
+  test('the register uses real frosted material and keeps every truth state legible', async ({ page }) => {
+    const material = await surface(page).locator('.ezh-folio-paper').evaluate((node) => {
+      const style = getComputedStyle(node);
+      return {
+        backdropFilter: style.backdropFilter || style.getPropertyValue('-webkit-backdrop-filter'),
+        background: style.backgroundColor,
+        overflow: style.overflow,
+      };
+    });
+
+    expect(material.backdropFilter).toContain('blur(');
+    expect(material.background).toMatch(/rgba?\(/);
+    expect(material.overflow).toBe('hidden');
+    await expect(surface(page).locator('.ezh-watch-row')).toHaveCount(4);
   });
 
   test('the record is complete and visible before its optional assembly settles', async ({ page }) => {
@@ -175,12 +193,14 @@ test.describe('home — the Easy Button hero', () => {
     await expect(horizon).not.toContainText(/ready now|automatically eligible/i);
   });
 
-  test('the reference synthesis uses a contained ink stage and numbered inverse career band', async ({ page }) => {
+  test('the reference synthesis uses a contained warm-glass stage and numbered inverse career band', async ({ page }) => {
     const stage = page.locator('.ezh-human-tactile-stage');
     const mobility = page.locator('[data-home-mobility-sequence]');
 
-    await expect(stage).toHaveCSS('background-color', 'rgb(19, 18, 17)');
     await expect(stage).toHaveCSS('overflow', 'hidden');
+    await expect(stage).toHaveCSS('border-radius', '24px');
+    await expect(stage.locator('[data-home-motion-display]')).toBeVisible();
+    await expect(stage.locator('img')).toHaveCount(0);
     await expect(mobility).toHaveCSS('background-color', 'rgb(19, 18, 17)');
     await expect(mobility.locator('.ezh-mobility-index')).toHaveCount(7);
     await expect(mobility.getByText('01 / 07', { exact: true })).toBeVisible();
@@ -252,7 +272,7 @@ test.describe('home — reduced motion', () => {
     await expect(surface(page).locator('.ezh-rm-legend')).toBeVisible();
   });
 
-  test('the no-JavaScript frame keeps the promise, photo, record rows, and opportunity doorway', async ({ browser }) => {
+  test('the no-JavaScript frame keeps the promise, motion illustration, record rows, and opportunity doorway', async ({ browser }) => {
     const context = await browser.newContext({
       javaScriptEnabled: false,
       viewport: { width: 1440, height: 900 },
@@ -260,7 +280,10 @@ test.describe('home — reduced motion', () => {
     const page = await context.newPage();
     await page.goto('/');
     await expect(page.locator('h1')).toHaveText('One career record. More ways forward.');
-    await expect(page.locator('[data-scene="journey_film"] img')).toBeVisible();
+    await expect(page.locator('header.vcv-eb')).toHaveAttribute('data-eb-theme', 'light');
+    await expect(page.locator('.vcv-eb__wordmark')).toHaveCSS('color', 'rgb(21, 20, 18)');
+    await expect(page.locator('[data-home-motion-display]')).toBeVisible();
+    await expect(page.locator('[data-home-stage] img')).toHaveCount(0);
     await expect(surface(page).locator('.ezh-watch-row')).toHaveCount(4);
     await expect(page.locator('[data-home-opportunity-cta]')).toHaveAttribute('href', '/explore');
     await expect(page.getByText('Reading the current opportunity feed…')).toBeVisible();
