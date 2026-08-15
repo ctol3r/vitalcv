@@ -2,7 +2,13 @@
  * employerActions.ts — M2: Accept with Confidence
  *
  * Employer-facing action routes for the review/[entityId] workflow.
- * Auth: Clerk session header (x-clerk-user-id). No API key required.
+ * Auth: mutations (accept, request-refresh, route-to-review, batch,
+ * share-packet, confirm-start) and the org-scoped queue read require a
+ * VERIFIED Clerk session (`requireVerifiedClerkUserId` — the bearer-verified
+ * identity set by verifiedIdentityMiddleware; the forgeable x-clerk-user-id
+ * header alone is rejected in every CLERK_JWT_VERIFICATION mode). The
+ * remaining reads (status, packet) still accept the legacy header; the
+ * public reads (acceptance-history, share-token, refresh-requests) take none.
  *
  * Routes:
  *   POST /api/employer-review/:entityId/accept          — Accept as head start
@@ -40,6 +46,7 @@ import { createEmployerEvidencePacketZipStream } from '../services/entity/employ
 import { recordStart } from '../services/hiring/startWriter';
 import { issueTrustContainerManifestEntry } from '../services/trust/container/trustContainerIssuance';
 import { toTrustContainerAuditMetadata } from '../services/trust/container/trustContainerManifest';
+import { requireVerifiedClerkUserId } from '../middleware/verifiedActor';
 import {
   loadEmployerAcceptanceHistory,
   loadEmployerReviewStatus,
@@ -48,6 +55,7 @@ import {
   recordEmployerReviewRouting,
   resolveEmployerReviewSubject,
   resolveEmployerReviewSubjectByNpi,
+  resolveReviewerAcceptanceIdentity,
   type EmployerReviewActionState,
 } from '../services/entity/employerReviewActions';
 import { evaluatePacketAcceptance } from '../services/entity/packetAcceptanceGuard';
@@ -65,7 +73,14 @@ function asyncHandler(fn: (req: Request, res: Response, next: NextFunction) => P
   return (req: Request, res: Response, next: NextFunction) => fn(req, res, next).catch(next);
 }
 
-/** Extract Clerk user ID or throw 401 */
+/**
+ * Extract the LEGACY Clerk user ID header or throw 401.
+ *
+ * Read-only surfaces only (status, packet). Every mutating action and the
+ * org-scoped queue read authenticate via `requireVerifiedClerkUserId`
+ * instead — the raw x-clerk-user-id header is browser-forgeable and must
+ * never authorize a write.
+ */
 function requireClerkUserId(req: Request): string {
   const id = (req.headers['x-clerk-user-id'] as string | undefined)?.trim();
   if (!id) throw new HttpError(401, 'Missing x-clerk-user-id header.');
@@ -314,7 +329,7 @@ export function registerEmployerActionRoutes(app: Express): void {
   app.post(
     '/api/employer-review/:entityId/accept',
     asyncHandler(async (req, res) => {
-      const employerId = requireClerkUserId(req);
+      const employerId = requireVerifiedClerkUserId(req);
       const { entityId } = req.params;
 
       if (!entityId?.trim()) throw new HttpError(400, 'entityId is required.');
@@ -326,9 +341,18 @@ export function registerEmployerActionRoutes(app: Express): void {
         req, employerId, entityId, clinicianNpi: subject.clinicianNpi, action: 'accept',
       });
 
-      // Guard: no duplicate open acceptances
+      // Guard: no duplicate open acceptances. Checked against BOTH ids that
+      // may occupy employerId — the reviewer's organization id (ADR 0007
+      // semantics) and their Clerk user id (legacy rows) — so the semantic
+      // convergence cannot mint duplicates. With org semantics, a second
+      // reviewer in the same organization now correctly 409s here.
+      const reviewer = await resolveReviewerAcceptanceIdentity(employerId);
       const existing = await prisma.employerAcceptance.findFirst({
-        where:  { employerId, clinicianNpi: subject.clinicianNpi, status: 'ACCEPTED' },
+        where:  {
+          employerId: { in: reviewer.acceptanceEmployerIds },
+          clinicianNpi: subject.clinicianNpi,
+          status: 'ACCEPTED',
+        },
         select: { id: true },
       });
       if (existing) {
@@ -561,7 +585,7 @@ export function registerEmployerActionRoutes(app: Express): void {
   app.post(
     '/api/employer-review/:entityId/request-refresh',
     asyncHandler(async (req, res) => {
-      const employerId = requireClerkUserId(req);
+      const employerId = requireVerifiedClerkUserId(req);
       const { entityId } = req.params;
 
       if (!entityId?.trim()) throw new HttpError(400, 'entityId is required.');
@@ -669,7 +693,7 @@ export function registerEmployerActionRoutes(app: Express): void {
   app.post(
     '/api/employer-review/:entityId/route-to-review',
     asyncHandler(async (req, res) => {
-      const employerId = requireClerkUserId(req);
+      const employerId = requireVerifiedClerkUserId(req);
       const { entityId } = req.params;
 
       if (!entityId?.trim()) throw new HttpError(400, 'entityId is required.');
@@ -792,7 +816,7 @@ export function registerEmployerActionRoutes(app: Express): void {
   app.post(
     '/api/employer-review/batch',
     asyncHandler(async (req, res) => {
-      const employerId = requireClerkUserId(req);
+      const employerId = requireVerifiedClerkUserId(req);
 
       const BATCH_ACTIONS = ['accept', 'request-refresh', 'route-to-review'] as const;
       type BatchAction = (typeof BATCH_ACTIONS)[number];
@@ -875,6 +899,10 @@ export function registerEmployerActionRoutes(app: Express): void {
 
       const results: BatchResult[] = [];
 
+      // One reviewer identity for the whole batch — the actor is constant, so
+      // the org resolution is done once, outside the loop.
+      const batchReviewer = await resolveReviewerAcceptanceIdentity(employerId);
+
       // Sequential on purpose: deterministic audit ordering, and no fan-out of
       // passport builds against live sources.
       for (const entityId of entityIds) {
@@ -897,8 +925,13 @@ export function registerEmployerActionRoutes(app: Express): void {
             });
 
             if (action === 'accept') {
+              // Same both-ids duplicate guard as the single accept route.
               const existing = await prisma.employerAcceptance.findFirst({
-                where: { employerId, clinicianNpi: subject.clinicianNpi, status: 'ACCEPTED' },
+                where: {
+                  employerId: { in: batchReviewer.acceptanceEmployerIds },
+                  clinicianNpi: subject.clinicianNpi,
+                  status: 'ACCEPTED',
+                },
                 select: { id: true },
               });
               if (existing) {
@@ -1162,7 +1195,9 @@ export function registerEmployerActionRoutes(app: Express): void {
   app.get(
     '/api/employer-review/queue',
     asyncHandler(async (req, res) => {
-      const employerId = requireClerkUserId(req);
+      // The queue is a cross-clinician candidate pipeline scoped to the
+      // caller's organization — verified identity, same as the mutations.
+      const employerId = requireVerifiedClerkUserId(req);
 
       const orgProfile = await getOrgProfile(employerId);
       if (!orgProfile) {
@@ -1177,6 +1212,9 @@ export function registerEmployerActionRoutes(app: Express): void {
       const organizationIds = [orgProfile.organizationId, organization?.slug].filter(
         (v): v is string => typeof v === 'string' && v.length > 0,
       );
+      // Acceptance rows for this reviewer may be keyed by their organization
+      // id (ADR 0007) or by their Clerk user id (legacy rows).
+      const queueEmployerIds = [...new Set([orgProfile.organizationId, employerId])];
 
       const limitRaw = Number.parseInt(String(req.query.limit ?? ''), 10);
       const limit = Number.isFinite(limitRaw) ? Math.min(Math.max(limitRaw, 1), 50) : 25;
@@ -1222,7 +1260,14 @@ export function registerEmployerActionRoutes(app: Express): void {
           : null;
         const alreadyAccepted = subject
           ? await prisma.employerAcceptance.findFirst({
-              where: { employerId, clinicianNpi: subject.clinicianNpi, status: 'ACCEPTED' },
+              where: {
+                // Rows may be keyed by the organization id (ADR 0007) or by
+                // the Clerk user id (legacy) — check both so the queue shows
+                // acceptances written under either semantic.
+                employerId: { in: queueEmployerIds },
+                clinicianNpi: subject.clinicianNpi,
+                status: 'ACCEPTED',
+              },
               select: { id: true, acceptedAt: true },
             })
           : null;
@@ -1464,7 +1509,7 @@ export function registerEmployerActionRoutes(app: Express): void {
   app.post(
     '/api/employer-review/:entityId/share-packet',
     asyncHandler(async (req, res) => {
-      const employerId = requireClerkUserId(req);
+      const employerId = requireVerifiedClerkUserId(req);
       const { entityId } = req.params;
 
       if (!entityId?.trim()) throw new HttpError(400, 'entityId is required.');
@@ -1648,7 +1693,7 @@ export function registerEmployerActionRoutes(app: Express): void {
   app.post(
     '/api/employer-review/:entityId/confirm-start',
     asyncHandler(async (req, res) => {
-      const employerId = requireClerkUserId(req);
+      const employerId = requireVerifiedClerkUserId(req);
       const { entityId } = req.params;
 
       if (!entityId?.trim()) throw new HttpError(400, 'entityId is required.');
@@ -1675,14 +1720,26 @@ export function registerEmployerActionRoutes(app: Express): void {
       if (isNaN(startDate.getTime())) throw new HttpError(400, 'startedAt must be a valid ISO date.');
 
       // Resolve the open acceptance for this employer+clinician.
-      // If a specific acceptanceId is provided, use it; otherwise find the most recent ACCEPTED one.
+      // If a specific acceptanceId is provided, use it; otherwise find the most
+      // recent ACCEPTED one. Rows may be keyed by the reviewer's organization
+      // id (ADR 0007) or their Clerk user id (legacy) — match both.
+      const startReviewer = await resolveReviewerAcceptanceIdentity(employerId);
       const acceptance = await (bodyAcceptanceId
         ? prisma.employerAcceptance.findFirst({
-            where:  { id: bodyAcceptanceId, employerId, clinicianNpi: subject.clinicianNpi, status: 'ACCEPTED' },
+            where:  {
+              id: bodyAcceptanceId,
+              employerId: { in: startReviewer.acceptanceEmployerIds },
+              clinicianNpi: subject.clinicianNpi,
+              status: 'ACCEPTED',
+            },
             select: { id: true, clinicianNpi: true },
           })
         : prisma.employerAcceptance.findFirst({
-            where:   { employerId, clinicianNpi: subject.clinicianNpi, status: 'ACCEPTED' },
+            where:   {
+              employerId: { in: startReviewer.acceptanceEmployerIds },
+              clinicianNpi: subject.clinicianNpi,
+              status: 'ACCEPTED',
+            },
             orderBy: { acceptedAt: 'desc' },
             select:  { id: true, clinicianNpi: true },
           })

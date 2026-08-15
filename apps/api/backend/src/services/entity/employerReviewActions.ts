@@ -348,6 +348,49 @@ export interface EmployerReviewSubject {
   clinicianNpi: string;
 }
 
+/**
+ * Who the reviewer is, in acceptance-row terms.
+ *
+ * `EmployerAcceptance.employerId` means ORGANIZATION id (ADR 0007): door A
+ * (runEmployerWorkflowAction, PR #1378) writes it as the employer's
+ * organization id, and door B converges by resolving the reviewer's
+ * `User.organizationId` here. Rows written before the convergence — and rows
+ * for reviewers with no organization binding — carry the Clerk user id
+ * instead, so every lookup keyed on employerId must check BOTH ids via
+ * `acceptanceEmployerIds`.
+ */
+export interface ReviewerAcceptanceIdentity {
+  clerkUserId: string;
+  organizationId: string | null;
+  /**
+   * Every id that may occupy EmployerAcceptance.employerId for this reviewer:
+   * the resolved organization id (org semantics) plus the Clerk user id
+   * (legacy rows written before the convergence, and org-less reviewers).
+   */
+  acceptanceEmployerIds: string[];
+}
+
+/**
+ * Resolve the reviewer's organization binding server-side from their verified
+ * Clerk user id. The caller must never supply the organization id — the
+ * binding is derived from the User row in exactly one place so a caller
+ * cannot act for an organization they are not bound to.
+ */
+export async function resolveReviewerAcceptanceIdentity(
+  clerkUserId: string,
+): Promise<ReviewerAcceptanceIdentity> {
+  const user = await prisma.user.findUnique({
+    where: { clerkUserId },
+    select: { organizationId: true },
+  });
+  const organizationId = user?.organizationId ?? null;
+  return {
+    clerkUserId,
+    organizationId,
+    acceptanceEmployerIds: organizationId ? [organizationId, clerkUserId] : [clerkUserId],
+  };
+}
+
 type EmployerActionAuditType =
   | 'EMPLOYER_REVIEW_ACCEPTED'
   | 'EMPLOYER_REVIEW_REFRESH_REQUESTED'
@@ -865,6 +908,11 @@ export async function recordEmployerReviewAcceptance(input: {
 }): Promise<EmployerReviewActionState> {
   const now = new Date();
   const requestId = randomUUID();
+  // ADR 0007 — EmployerAcceptance.employerId means ORGANIZATION id. The
+  // reviewer's org binding is resolved server-side from their Clerk user id
+  // (never caller-supplied); reviewers with no binding keep the legacy
+  // clerk-id semantics, marked as such in the row metadata below.
+  const reviewer = await resolveReviewerAcceptanceIdentity(input.employerId);
   const attribution = await resolveEmployerReviewAttribution({
     entityId: input.entityId,
     organizationContextId: input.organizationContextId,
@@ -923,6 +971,17 @@ export async function recordEmployerReviewAcceptance(input: {
     checks: input.acceptedSourceSnapshot ?? [],
   });
 
+  // Reviewer provenance stored beside the snapshot (ADR 0007): the row's
+  // employerId column now means ORGANIZATION id when the reviewer is bound to
+  // one, so the metadata keeps the acting Clerk user id and names which
+  // semantic the row was written under. `employerIdSemantics` is the
+  // discriminator that keeps legacy rows distinguishable from org rows.
+  const rowMetadata = {
+    ...(acceptanceRowMetadata ?? {}),
+    acceptedByClerkUserId: input.employerId,
+    employerIdSemantics: reviewer.organizationId ? 'organization' : 'legacy_clerk_user',
+  };
+
   const { auditEvent, metadata } = await prisma.$transaction(async (tx) => {
     const acceptanceRow = await tx.employerAcceptance.create({
       data: {
@@ -932,14 +991,20 @@ export async function recordEmployerReviewAcceptance(input: {
         // are nullable; hiring.ts, which has neither, legitimately omits them.)
         entityId: input.entityId,
         organization: input.organizationName ?? input.employerId,
-        employerId: input.employerId,
+        // ADR 0007 — organization id when bound; Clerk user id only for
+        // reviewers with no organization (today's behavior, marked in
+        // metadata). Door A's readers query this column as an org id.
+        employerId: reviewer.organizationId ?? input.employerId,
+        // The acting human, in every mode — employerId no longer carries the
+        // actor once org semantics apply.
+        acceptedBy: input.employerId,
         clinicianNpi: input.clinicianNpi,
         artifactId: null,
         // ACT-1.2 linkage — the exact packet this acceptance accepted (null on
         // the NPI-keyed path that has no application in hand).
         applicationId: input.applicationId ?? null,
         packetHash: input.packetHash ?? null,
-        metadata: acceptanceRowMetadata ? toJsonValue(acceptanceRowMetadata) : undefined,
+        metadata: toJsonValue(rowMetadata),
         status: 'ACCEPTED',
         acceptedAt: now,
       },
