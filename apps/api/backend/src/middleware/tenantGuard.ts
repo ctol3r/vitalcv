@@ -177,7 +177,7 @@ const NEVER_SKIP_TENANT_CONTEXT = [
 
 export function shouldSkipTenantContext(path: string): boolean {
   const normalized = normalizePath(path);
-  const isAuthorizedPacketRead = /^\/api\/applications\/[^/]+\/packet$/.test(normalized);
+  const isAuthorizedPacketRead = /^\/api\/applications\/[^/]+\/(packet|hire-to-start)$/.test(normalized);
 
   if (NEVER_SKIP_TENANT_CONTEXT.includes(normalized as typeof NEVER_SKIP_TENANT_CONTEXT[number])) {
     return false;
@@ -273,8 +273,14 @@ export function shouldSkipTenantContext(path: string): boolean {
     || normalized.startsWith('/api/search')
     || normalized.startsWith('/api/employers')
     // Clinicians do not require an organization to read their own immutable
-    // submission. This exact read route performs verified-identity, ownership,
-    // employer-membership, and platform-admin authorization in its service.
+    // submission. These exact read routes (/packet and the joined
+    // /hire-to-start case, which delegates to the same packet reader) perform
+    // verified-identity, ownership, employer-membership, and platform-admin
+    // authorization in their service, answering 404 to foreign callers.
+    // Without this entry the marketplace proxies — which forward verified
+    // identity but never an org header — get organization_context_required
+    // before routing, and the panels silently never render
+    // (routes/__tests__/hireToStartReachability.test.ts pins reachability).
     // Other /api/applications routes remain tenant guarded.
     || isAuthorizedPacketRead
     // MATCHA clinician demand-side surfaces: NPI-keyed scoring reads plus

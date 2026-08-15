@@ -40,12 +40,18 @@ describe('tenantGuard', () => {
     expect(shouldSkipTenantContext('/api/clinician/activate')).toBe(false);
   });
 
-  it('allows only the authorized packet read without tenant context', () => {
+  it('allows only the service-authorized application reads without tenant context', () => {
     expect(shouldSkipTenantContext(
       '/api/applications/a1111111-1111-4111-8111-111111111111/packet',
     )).toBe(true);
     expect(shouldSkipTenantContext(
+      '/api/applications/a1111111-1111-4111-8111-111111111111/hire-to-start',
+    )).toBe(true);
+    expect(shouldSkipTenantContext(
       '/api/applications/a1111111-1111-4111-8111-111111111111/packet/extra',
+    )).toBe(false);
+    expect(shouldSkipTenantContext(
+      '/api/applications/a1111111-1111-4111-8111-111111111111/hire-to-start/extra',
     )).toBe(false);
     expect(shouldSkipTenantContext(
       '/api/applications/a1111111-1111-4111-8111-111111111111/withdraw',

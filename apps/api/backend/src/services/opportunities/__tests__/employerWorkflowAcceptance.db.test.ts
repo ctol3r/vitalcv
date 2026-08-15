@@ -216,6 +216,7 @@ describe('runEmployerWorkflowAction accept — real PostgreSQL', () => {
       packetHash: submitted.packetHash!,
       intendedStartDate: '2026-09-01T08:00:00.000Z',
       urgency: 'priority',
+      reviewNote: 'Employer-internal note: salary band and panel impressions.',
     });
 
     // Keep verification reads sequential. The full backend sweep runs many
@@ -267,6 +268,18 @@ describe('runEmployerWorkflowAction accept — real PostgreSQL', () => {
     expect(clinicianCase.requirements).toEqual(employerCase.requirements);
     expect(employerCase.primaryNextAction).toMatchObject({ owner: 'clinician', objectId: requirements[0].id });
     expect(employerCase.externalSystemSync.state).toBe('not_configured');
+
+    // The employer review note IS persisted on the application row (asserted
+    // here so this closure cannot rot into scanning for a value that was
+    // never written), and the joined case must not carry it — at any depth,
+    // by key or by value — to the clinician. The employer-perspective joined
+    // case omits it too: employer notes live on the workflow surface, not
+    // in the joined case.
+    expect(application.reviewNote).toContain('salary band');
+    const clinicianJson = JSON.stringify(clinicianCase);
+    expect(clinicianJson).not.toContain('reviewNote');
+    expect(clinicianJson).not.toContain('salary band');
+    expect(JSON.stringify(employerCase)).not.toContain('salary band');
 
     await expect(readHireToStartCase({
       applicationId: submitted.applicationId,

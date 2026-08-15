@@ -190,6 +190,10 @@ describe('readHireToStartCase', () => {
       employerConfirmed: true,
     });
     expect(result.limitations).toContain('An employer start attestation exists without an application start event.');
+    // The clinician-perspective payload carries no employer-private review
+    // field at any depth. (employerWorkflowAcceptance.db.test.ts closes the
+    // value half of this against a really-persisted note.)
+    expect(JSON.stringify(result)).not.toContain('reviewNote');
   });
 
   it('keeps legacy submissions visibly unbound', async () => {
