@@ -30,6 +30,7 @@ import { fetchCmsClinicianRows } from '@/lib/clinician-record/cmsClinicians';
 import { DIRECTORY_CONTEXT_NOTE } from '@/lib/clinician-record/copy';
 import { RecordViewTracker, ClaimRecordLink } from '@/components/directory/RecordAnalytics';
 import { isExcludedFromDirectory } from '@/lib/directory/sitemapSeed';
+import { DirectoryTiming } from '@/lib/directory/serverTiming';
 
 /**
  * Cache for the NPPES refresh window. CMS updates weekly, so re-fetching per
@@ -44,9 +45,11 @@ interface PageProps {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { npi } = await params;
-  const nppes = await fetchNppesRecord(npi);
+  const timing = new DirectoryTiming('metadata', npi);
+  const nppes = await timing.measure('nppes', () => fetchNppesRecord(npi));
 
   if (!nppes) {
+    timing.log();
     return {
       title: `NPI ${npi}`,
       robots: { index: false, follow: false },
@@ -59,15 +62,18 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   // product could tell someone they were removed while their page stayed
   // indexed.
   if (isExcludedFromDirectory(npi)) {
+    timing.log();
     return {
       title: `NPI ${npi}`,
       robots: { index: false, follow: false },
     };
   }
 
-  const record = buildClinicianRecord(nppes.reading, {
-    retrievedAt: nppes.retrievedAt,
-  });
+  const record = timing.measureSync('assemble', () =>
+    buildClinicianRecord(nppes.reading, {
+      retrievedAt: nppes.retrievedAt,
+    }),
+  );
   const primary = record.taxonomies.data[0];
   const city = record.practiceAddress.data?.city ?? '';
   const state = record.practiceAddress.data?.state ?? '';
@@ -82,10 +88,19 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     what ? `, ${what}` : ''
   }${where ? ` in ${where}` : ''}. NPI ${npi}. Shows what was filed with CMS, including what is not covered by the filing.`;
 
+  timing.log();
   return {
     title,
     description,
     alternates: { canonical: `/directory/${npi}` },
+    /**
+     * Metadata-phase render timing, Server-Timing field-value syntax. In the
+     * document rather than an HTTP header because a server-component page
+     * cannot set one, and because this page is ISR — the document carries the
+     * timings of the render that actually produced it, which a header on a
+     * cache-served response would not. See lib/directory/serverTiming.ts.
+     */
+    other: { 'server-timing-metadata': timing.headerValue() },
     /**
      * Without these, every provider page inherited the one site-wide card from
      * app/layout.tsx, so a million distinct records shared a single title and
@@ -112,18 +127,25 @@ export default async function ProviderDirectoryPage({ params }: PageProps) {
 
   if (!/^\d{10}$/.test(npi)) notFound();
 
-  const nppes = await fetchNppesRecord(npi);
-  if (!nppes) notFound();
+  const timing = new DirectoryTiming('page', npi);
+
+  const nppes = await timing.measure('nppes', () => fetchNppesRecord(npi));
+  if (!nppes) {
+    timing.log();
+    notFound();
+  }
 
   // The Medicare lookup runs alongside nothing else here, but is deliberately
   // attached AFTER the base record exists: a slow or failed second federal
   // source must never be able to take the primary record off the page.
-  const cms = await fetchCmsClinicianRows(npi);
+  const cms = await timing.measure('cms', () => fetchCmsClinicianRows(npi));
 
-  const record = attachMedicareEnrollment(
-    buildClinicianRecord(nppes.reading, { retrievedAt: nppes.retrievedAt }),
-    cms,
-    nppes.reading,
+  const record = timing.measureSync('assemble', () =>
+    attachMedicareEnrollment(
+      buildClinicianRecord(nppes.reading, { retrievedAt: nppes.retrievedAt }),
+      cms,
+      nppes.reading,
+    ),
   );
 
   const primary = record.taxonomies.data[0];
@@ -137,7 +159,7 @@ export default async function ProviderDirectoryPage({ params }: PageProps) {
    * structured credential data would let a search engine present an
    * unverified claim as a verified attribute of the person.
    */
-  const jsonLd = {
+  const jsonLd = timing.measureSync('jsonld', () => ({
     '@context': 'https://schema.org',
     '@type': record.entityType === 'organization' ? 'MedicalOrganization' : 'Physician',
     name: record.identity.data.displayName,
@@ -160,7 +182,9 @@ export default async function ProviderDirectoryPage({ params }: PageProps) {
           ...(address.telephone ? { telephone: address.telephone } : {}),
         }
       : {}),
-  };
+  }));
+
+  timing.log();
 
   return (
     <div className="mz mz-paper min-h-screen">
@@ -168,6 +192,19 @@ export default async function ProviderDirectoryPage({ params }: PageProps) {
         type="application/ld+json"
         // Server-rendered from values we constructed; no user input reaches it.
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+
+      {/* Page-phase render timing, Server-Timing field-value syntax. Inert
+          (unknown script type; never executed, never rendered). In the document
+          rather than an HTTP header because a server-component page cannot set
+          one, and because under ISR the document — unlike a header on a
+          cache-served response — carries the timings of the render that
+          actually produced it. Span names and durations only; nothing
+          caller-supplied reaches this string. See lib/directory/serverTiming.ts. */}
+      <script
+        type="application/server-timing"
+        id="directory-server-timing"
+        dangerouslySetInnerHTML={{ __html: timing.headerValue() }}
       />
 
       {/* Fires for organization records too — an employer landing on a practice
