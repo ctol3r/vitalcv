@@ -581,6 +581,18 @@
   }
 }
 
+/* The narrow drawings are authored against a 330 viewBox, so their effective
+   text size is `font-size × rendered-width ÷ 330`. The hero's frame charges
+   2 × (padding + border) against that rendered width, and below ~390px the
+   clamp's 16px floor is enough to push the smallest labels under the 11px
+   figure floor — measured 10.49px at 375. The frame gives the width back on
+   the narrowest phones; the drawing is unchanged. */
+@media (max-width: 389px) {
+  .ezh .ezh-fig-hero {
+    padding: 4px;
+  }
+}
+
 @media (max-width: 999px) {
   .ezh .ezh-fig-w1000 .ezh-fig-wide {
     display: none;
