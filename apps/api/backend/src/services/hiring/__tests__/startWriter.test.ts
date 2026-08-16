@@ -2,16 +2,17 @@
  * A start and its non-repudiation audit row are inseparable.
  *
  * `START_ATTESTED` is one of the five canonical non-repudiation events, so a
- * `StartAttestation` without one is an unprovable claim. Both wired start
- * routes already paired them correctly, but nothing made that structural — a
- * third writer could have added a start with no audit row and no test would
- * have objected. `recordStart()` is now the only caller of
- * `startAttestation.create`, and this file is what keeps it that way.
+ * `StartAttestation` without one is an unprovable claim. The canonical writer
+ * is now `services/activation/applicationStartCommandService.ts` (ADR 0007
+ * amendment, start-writer succession); this legacy writer remains solely for
+ * the entity-scoped confirm-start path in employerActions.ts, and the
+ * behavioural cases here prove it still pairs the two rows correctly for that
+ * caller.
  *
- * The last test is the load-bearing one: it asserts no route reintroduces its
- * own start write. That is the closure. The behavioural cases above it prove
- * the writer the routes were pointed at is itself correct — a guard that only
- * checked routing would happily protect a broken writer.
+ * The last describe is the routing closure: every start route persists through
+ * its ALLOWLISTED writer, never directly. The whole-tree closure (only the two
+ * allowlisted modules contain `startAttestation.create` at all) lives in
+ * `src/__tests__/acceptanceWriterInventory.test.ts`.
  */
 jest.mock('../../../graphql/prisma_client', () => ({
   __esModule: true,
@@ -145,15 +146,25 @@ describe('recordStart', () => {
 });
 
 describe('no route writes a start on its own', () => {
-  it.each([['hiring.ts'], ['employerActions.ts']])(
-    '%s persists its start through recordStart, not directly',
-    (file) => {
-      const code = readFileSync(join(ROUTES, file), 'utf8')
-        .replace(/\/\*[\s\S]*?\*\//g, '')
-        .replace(/(^|[^:])\/\/.*$/gm, '$1');
+  const stripComments = (src: string): string => src
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/(^|[^:])\/\/.*$/gm, '$1');
+
+  it.each([
+    // The machine lane and the application surface persist through the
+    // canonical application-bound command.
+    ['hiring.ts', /confirmStartByAcceptance\s*\(/],
+    ['activation.ts', /confirmApplicationStart\s*\(/],
+    // The entity-scoped confirm-start path still writes through this legacy
+    // writer — its migration is ADR 0007's recorded follow-up.
+    ['employerActions.ts', /recordStart\s*\(/],
+  ] as const)(
+    '%s persists its start through its allowlisted writer, not directly',
+    (file, writerCall) => {
+      const code = stripComments(readFileSync(join(ROUTES, file), 'utf8'));
 
       expect(code).not.toMatch(/startAttestation\s*\.\s*create/);
-      expect(code).toMatch(/recordStart\s*\(/);
+      expect(code).toMatch(writerCall);
     },
   );
 });

@@ -1,23 +1,23 @@
 /**
- * ACT-1.4 — the start-ready / started / cancellation service.
+ * ACT-1.4 — start-state read, start-ready adapter, and cancellation.
  *
  * Every start fact is a durable audit event; the current state is derived
- * (startState.ts). markStartReady is gated by the ACT-1.3 readiness predicate —
- * it refuses when a required requirement is still open and names the exact
- * blockers, so "not ready" always points at an actionable requirement rather
- * than blaming the clinician. A start is recorded only from an explicit
- * start-ready decision by an authorized employer actor; it is never inferred.
+ * (startState.ts). Start-ready and actual-first-day WRITES are owned by the
+ * canonical application-bound command (applicationStartCommandService) —
+ * markStartReady here is a thin adapter that keeps the existing route
+ * vocabulary, and recordStart no longer exists in this module. A start is
+ * recorded only from an explicit start-ready decision by an authorized
+ * employer actor; it is never inferred.
  */
 
 import { createHash, randomUUID } from 'crypto';
 
 import prisma from '../../graphql/prisma_client';
 import type { AuditEventType } from '../../types/auditEventTypes';
-import { getApplicationActivation } from './activationRequirementService';
+import { HttpError } from '../../utils/httpError';
+import { markApplicationStartReady } from './applicationStartCommandService';
 import type { RequirementView } from './requirementLifecycle';
 import {
-  canMarkStartReady,
-  canRecordStart,
   deriveStartState,
   type StartEvent,
   type StartEventType,
@@ -65,44 +65,47 @@ export type StartActionResult =
   | { ok: false; reason: 'invalid_state'; state: StartState };
 
 /**
- * Mark the application start-ready. Refuses unless every REQUIRED activation
- * requirement is resolved (naming the blockers) and the current state permits it.
+ * Mark the application start-ready.
+ *
+ * Delegates to the canonical application-bound start command
+ * (applicationStartCommandService), which advances StartActivation, writes the
+ * START_READY audit, and enqueues the outbound event in one transaction — this
+ * wrapper only translates the command's failures into this module's
+ * StartActionResult vocabulary for the existing route contract. It no longer
+ * writes any start fact itself; a start-ready that only existed as an audit
+ * event, with the aggregate left behind, was the pre-#1384 defect.
+ *
+ * `recordStart` is GONE from this module: actual-first-day confirmation flows
+ * only through `confirmApplicationStart` (one authoritative start command).
  */
 export async function markStartReady(input: {
   applicationId: string;
   organizationId: string;
   actorId: string;
 }): Promise<StartActionResult> {
-  const state = await getApplicationStartState(input.applicationId);
-  if (!canMarkStartReady(state)) return { ok: false, reason: 'invalid_state', state };
-
-  const { readiness } = await getApplicationActivation(input.applicationId);
-  if (!readiness.startReady) {
-    return { ok: false, reason: 'not_start_ready', blocking: readiness.blocking };
+  try {
+    await markApplicationStartReady(input);
+    return { ok: true, state: 'start_ready' };
+  } catch (error) {
+    if (error instanceof HttpError && error.code === 'START_REQUIREMENTS_OPEN') {
+      const rows = await prisma.activationRequirement.findMany({
+        where: { applicationId: input.applicationId, organizationId: input.organizationId, necessity: 'required' },
+        orderBy: { createdAt: 'asc' },
+      });
+      const blocking: RequirementView[] = rows
+        .filter((row) => !['met', 'waived', 'not_applicable'].includes(row.status))
+        .map((row) => ({
+          id: row.id,
+          necessity: row.necessity as RequirementView['necessity'],
+          status: row.status as RequirementView['status'],
+        }));
+      return { ok: false, reason: 'not_start_ready', blocking };
+    }
+    if (error instanceof HttpError && error.status === 409) {
+      return { ok: false, reason: 'invalid_state', state: await getApplicationStartState(input.applicationId) };
+    }
+    throw error;
   }
-
-  await writeStartEvent('START_READY', input.applicationId, input.organizationId, {
-    actorId: input.actorId,
-    resolvedRequirementCount: readiness.blocking.length === 0 ? 'all_required_resolved' : undefined,
-  });
-  return { ok: true, state: 'start_ready' };
-}
-
-/** Record that the clinician actually started. Only from an explicit start-ready decision. */
-export async function recordStart(input: {
-  applicationId: string;
-  organizationId: string;
-  actorId: string;
-  startedAt: string;
-}): Promise<StartActionResult> {
-  const state = await getApplicationStartState(input.applicationId);
-  if (!canRecordStart(state)) return { ok: false, reason: 'invalid_state', state };
-
-  await writeStartEvent('START_RECORDED', input.applicationId, input.organizationId, {
-    actorId: input.actorId,
-    startedAt: input.startedAt,
-  });
-  return { ok: true, state: 'started' };
 }
 
 /** Cancel/withdraw. Allowed from any active state; records the reason, never deletes history. */

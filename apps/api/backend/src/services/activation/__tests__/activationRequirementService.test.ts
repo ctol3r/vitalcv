@@ -4,9 +4,11 @@ const prismaMock = {
     findUnique: jest.fn(),
     findMany: jest.fn(),
     createMany: jest.fn(),
-    update: jest.fn(),
+    updateMany: jest.fn(),
   },
   auditEvent: { create: jest.fn() },
+  outboxEvent: { upsert: jest.fn() },
+  $transaction: jest.fn(),
 };
 
 jest.mock('../../../graphql/prisma_client', () => ({
@@ -31,11 +33,17 @@ const seed = (overrides: Partial<RequirementSeed> = {}): RequirementSeed => ({
 
 beforeEach(() => {
   for (const group of Object.values(prismaMock)) {
-    for (const fn of Object.values(group)) (fn as jest.Mock).mockReset();
+    if (typeof group === 'function') (group as jest.Mock).mockReset();
+    else for (const fn of Object.values(group)) (fn as jest.Mock).mockReset();
   }
+  // The service runs its consequential writes inside one transaction; the stub
+  // hands the callback the same mock client so ordering stays observable.
+  prismaMock.$transaction.mockImplementation(async (callback: (tx: typeof prismaMock) => unknown) => callback(prismaMock));
   prismaMock.activationRequirement.findFirst.mockResolvedValue(null);
   prismaMock.activationRequirement.createMany.mockResolvedValue({ count: 0 });
+  prismaMock.activationRequirement.updateMany.mockResolvedValue({ count: 1 });
   prismaMock.auditEvent.create.mockResolvedValue({ id: 'audit-1' });
+  prismaMock.outboxEvent.upsert.mockResolvedValue({ id: 'outbox-1' });
 });
 
 describe('instantiateActivationRequirements', () => {
@@ -69,19 +77,32 @@ describe('instantiateActivationRequirements', () => {
 });
 
 describe('resolveActivationRequirement', () => {
-  it('writes the audit BEFORE the update (audit-before-success)', async () => {
+  it('commits the update, its audit, and the outbound intent in ONE transaction', async () => {
     const order: string[] = [];
     prismaMock.activationRequirement.findUnique.mockResolvedValue({
-      id: 'r1', organizationId: 'org-1', applicationId: 'app-1', status: 'submitted', policyVersion: null,
+      id: 'r1', organizationId: 'org-1', applicationId: 'app-1', status: 'submitted', owner: 'clinician', policyVersion: null,
     });
     prismaMock.auditEvent.create.mockImplementation(async () => { order.push('audit'); return { id: 'a' }; });
-    prismaMock.activationRequirement.update.mockImplementation(async () => { order.push('update'); return {}; });
+    prismaMock.activationRequirement.updateMany.mockImplementation(async () => { order.push('update'); return { count: 1 }; });
+    prismaMock.outboxEvent.upsert.mockImplementation(async () => { order.push('outbox'); return { id: 'o' }; });
 
     const res = await resolveActivationRequirement({ requirementId: 'r1', organizationId: 'org-1', toStatus: 'met', actorId: 'user-1' });
     expect(res).toEqual({ ok: true });
-    expect(order).toEqual(['audit', 'update']);
+    expect(order).toEqual(['update', 'audit', 'outbox']);
+    expect(prismaMock.$transaction).toHaveBeenCalledTimes(1);
     // met is resolved → resolvedBy/resolvedAt set
-    expect(prismaMock.activationRequirement.update.mock.calls[0][0].data.resolvedBy).toBe('user-1');
+    expect(prismaMock.activationRequirement.updateMany.mock.calls[0][0].data.resolvedBy).toBe('user-1');
+  });
+
+  it('reports invalid_transition when a concurrent transition wins the conditional update', async () => {
+    prismaMock.activationRequirement.findUnique.mockResolvedValue({
+      id: 'r1', organizationId: 'org-1', applicationId: 'app-1', status: 'submitted', owner: 'clinician', policyVersion: null,
+    });
+    prismaMock.activationRequirement.updateMany.mockResolvedValue({ count: 0 });
+    const res = await resolveActivationRequirement({ requirementId: 'r1', organizationId: 'org-1', toStatus: 'met', actorId: 'user-1' });
+    expect(res).toEqual({ ok: false, reason: 'invalid_transition' });
+    expect(prismaMock.auditEvent.create).not.toHaveBeenCalled();
+    expect(prismaMock.outboxEvent.upsert).not.toHaveBeenCalled();
   });
 
   it('rejects a transition the state machine forbids — no audit, no update', async () => {
@@ -89,14 +110,14 @@ describe('resolveActivationRequirement', () => {
     const res = await resolveActivationRequirement({ requirementId: 'r1', organizationId: 'org-1', toStatus: 'met', actorId: 'user-1' });
     expect(res).toEqual({ ok: false, reason: 'invalid_transition' });
     expect(prismaMock.auditEvent.create).not.toHaveBeenCalled();
-    expect(prismaMock.activationRequirement.update).not.toHaveBeenCalled();
+    expect(prismaMock.activationRequirement.updateMany).not.toHaveBeenCalled();
   });
 
   it('refuses a requirement outside the acting organization', async () => {
     prismaMock.activationRequirement.findUnique.mockResolvedValue({ id: 'r1', organizationId: 'org-OTHER', applicationId: 'app-1', status: 'submitted' });
     const res = await resolveActivationRequirement({ requirementId: 'r1', organizationId: 'org-1', toStatus: 'met', actorId: 'user-1' });
     expect(res).toEqual({ ok: false, reason: 'wrong_tenant' });
-    expect(prismaMock.activationRequirement.update).not.toHaveBeenCalled();
+    expect(prismaMock.activationRequirement.updateMany).not.toHaveBeenCalled();
   });
 
   it('returns not_found for a missing requirement', async () => {

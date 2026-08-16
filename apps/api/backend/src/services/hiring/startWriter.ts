@@ -1,22 +1,28 @@
 /**
- * startWriter.ts — the one place a start is recorded.
+ * startWriter.ts — the LEGACY start writer (superseded; ADR 0007 amendment,
+ * start-writer succession).
  *
+ * The canonical start writer is now
+ * `services/activation/applicationStartCommandService.ts` — the one
+ * application-bound start command. This module remains for exactly one caller:
+ * the entity-scoped `POST /api/employer-review/:entityId/confirm-start` path
+ * (routes/employerActions.ts), whose migration onto the command is the ADR's
+ * recorded follow-up. Do not point new callers here.
+ *
+ * ORIGINAL RATIONALE (still what this module guarantees for its caller):
  * VCD-00 found two wired start writers, each with its own hand-rolled
- * transaction:
- *
- *   POST /api/hiring/start                              (routes/hiring.ts)
- *   POST /api/employer-review/:entityId/confirm-start   (routes/employerActions.ts)
- *
- * Both were correct — each wrote its `StartAttestation` and its
+ * transaction. Both were correct — each wrote its `StartAttestation` and its
  * `START_ATTESTED` `AuditEvent` inside one `$transaction`. The risk was that
  * nothing made that structural: a third writer could add a start with no audit
  * row and nothing would object. `START_ATTESTED` is one of the five canonical
  * non-repudiation events, so a start without one is an unprovable claim.
  *
- * This module makes the pairing structural. `recordStart()` is the only place
- * `startAttestation.create` is called;
+ * The pairing is structural: the allowlist in
+ * `src/__tests__/acceptanceWriterInventory.test.ts` names the only modules
+ * that may call `startAttestation.create`, and
  * `apps/api/backend/src/services/hiring/__tests__/startWriter.test.ts` asserts
- * both routes go through it and that the two rows are inseparable.
+ * the routes go through their allowlisted writer and that the two rows are
+ * inseparable.
  *
  * WHAT THIS DELIBERATELY DOES NOT UNIFY
  * The two callers commit to *different* hash payloads:

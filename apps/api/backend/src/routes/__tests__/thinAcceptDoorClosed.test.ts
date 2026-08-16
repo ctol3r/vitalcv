@@ -93,11 +93,11 @@ describe('the thin acceptance door is closed', () => {
     expect(code).not.toMatch(/EMPLOYER_ACCEPTANCE_CREATED/);
   });
 
-  it('leaves the start route and its shared writer intact', () => {
+  it('leaves the start route as an adapter to the canonical application command', () => {
     // Closing the accept door is not authorisation to close the start one —
     // that is a separate decision. If this fails, the change overreached.
     const code = readFileSync(join(__dirname, '..', 'hiring.ts'), 'utf8');
     expect(code).toMatch(/'\/api\/hiring\/start'/);
-    expect(code).toMatch(/recordStart\s*\(/);
+    expect(code).toMatch(/confirmStartByAcceptance\s*\(/);
   });
 });

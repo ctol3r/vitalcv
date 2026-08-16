@@ -56,3 +56,31 @@ against door B's rows, and split the duplicate-acceptance guarantee.
   meaning of "the organization already accepted".
 - Legacy rows are identifiable by metadata marker, not guessed at by id shape.
 - A resurrected or new acceptance/attestation writer fails CI until an ADR names it.
+
+## Amendment — start-writer succession (2026-08-15, supersedes-#1384 reconstruction)
+
+Point 5's StartAttestation allowlist changes as follows.
+
+`services/activation/applicationStartCommandService.ts` is the **one authoritative
+start command**. Start-ready and employer-confirmed actual-first-day flow only
+through it: it advances `StartActivation`, creates exactly one `StartAttestation`
+for the case, writes the `START_ATTESTED` and `START_RECORDED` audit events, and
+enqueues the outbound `HIRE_TO_START_*` intent in one PostgreSQL transaction. A
+failure at any step leaves no half-state. `POST /api/applications/:appId/start`
+runs it directly; the machine lane (`POST /api/hiring/start`) adapts onto it via
+`confirmStartByAcceptance` and fails closed for acceptances with no application
+binding, no clinician NPI, or no employer organization.
+
+`services/hiring/startWriter.ts` **remains allowlisted for exactly one caller**:
+the entity-scoped `POST /api/employer-review/:entityId/confirm-start` path in
+`routes/employerActions.ts`, which was out of scope for this succession.
+Migrating confirm-start onto `confirmStartByAcceptance` (as PR #1384 drafted) is
+the recorded follow-up that removes `startWriter.ts` from the allowlist; until
+then no new caller may use it.
+
+Deferred deliberately, not forgotten: #1384's `StartAttestation`
+application/organization/confirmedBy columns and unique index are a Prisma
+schema change (founder-approval tier). The exactly-once guarantee is carried by
+the command's conditional `StartActivation` state advance inside the
+transaction; the binding is durable in the attestation metadata and both audit
+rows.
