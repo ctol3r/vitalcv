@@ -44,9 +44,20 @@ import path from 'node:path';
  *   would pass. It stops the bleed and protects the evidence class; it is not
  *   evidence of compliance. Measure the rendered surface before claiming that.
  *
- * UNCHANGED BY A-2: EC-10 lists `backdrop-blur-navbar-with-thin-line` under
- * "Banned forms (unchanged)" and EC-10 is Class A. Frosting the chrome is
- * lawful; rebuilding the blurred-bar-with-a-rule composite is not.
+ * AMENDED BY A-4 (2026-08-16). This header used to end: "UNCHANGED BY A-2:
+ * EC-10 lists `backdrop-blur-navbar-with-thin-line` under 'Banned forms
+ * (unchanged)' and EC-10 is Class A. Frosting the chrome is lawful; rebuilding
+ * the blurred-bar-with-a-rule composite is not."
+ *
+ * EC-10 amendment A-4 RETIRED that ban on the founder's directive ("build the
+ * glass rail", 2026-08-16). The floating frosted bar is now the REQUIRED
+ * shared-chrome form, and `styles/eyebrow.css` moved from the ratcheted tail to
+ * `frostPermitted`. Note what did NOT change: A-1's degradation condition, which
+ * the rail satisfies with both `color-mix` and `@supports`, and the evidence
+ * rule — a proof row still may not frost. This file has now been wrong about
+ * repealed doctrine twice (the pre-A-1 blanket ban, then the A-2 navbar ban);
+ * both times the failure mode was the same, and both times it blocked lawful
+ * work. Re-read EC-10/EC-20 from `origin/main` before citing them here.
  */
 
 const APP_ROOT = path.join(__dirname, '..');
