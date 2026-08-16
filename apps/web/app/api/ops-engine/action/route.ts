@@ -15,7 +15,10 @@ import { buildMarketplaceHeaders } from '@/lib/server/marketplace-proxy';
 
 export const dynamic = 'force-dynamic';
 
-const ACTIONS = new Set(['accept', 'request_info', 'reject']);
+// 'accept' is deliberately absent: head-start acceptance is packet-bound and
+// belongs to the employer decision surface, never an ops console. The backend
+// rejects a bare accept anyway; this keeps ops-engine from ever offering one.
+const ACTIONS = new Set(['request_info', 'reject']);
 
 export async function POST(req: Request) {
   const session = await auth();

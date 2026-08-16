@@ -168,7 +168,7 @@ type ApplicationForPacketRead = {
   opportunity: { organizationId: string };
 };
 
-type StoredApplicationPacket = {
+export type StoredApplicationPacket = {
   applicationId: string;
   packetVersion: number;
   clerkUserId: string;
@@ -307,7 +307,7 @@ function unexplainedSectionIdsOf(packet: SealedApplicationPacket): string[] {
     .sort();
 }
 
-function reconstructSealedPacket(row: StoredApplicationPacket): SealedApplicationPacket {
+export function reconstructSealedPacket(row: StoredApplicationPacket): SealedApplicationPacket {
   const content: ApplicationPacketContent = {
     applicationId: row.applicationId,
     packetVersion: row.packetVersion,
