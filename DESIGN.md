@@ -27,12 +27,12 @@ specificity, so this list is the precedence:
 
 | # | File | `--vt-*` declarations |
 |---|---|---|
-| 1 | `apps/web/styles/themes/index.css` | 172 |
+| 1 | `apps/web/styles/themes/index.css` | 186 |
 | 2 | `apps/web/styles/tokens.css` | 32 |
 | 3 | `apps/web/styles/vitalTokens.css` | 65 |
 | 4 | `apps/web/styles/matcha-zen.css` | 16 |
 
-**285 declarations across 4 files, 196 distinct tokens.**
+**299 declarations across 4 files, 210 distinct tokens.**
 
 ### Route-scoped token files (outside the global cascade)
 
@@ -122,6 +122,7 @@ the primary face has not loaded, so it is part of the design, not an implementat
 |---|---|
 | `--vt-radius-sm` | `0.25rem` |
 | `--vt-radius-md` | `0.5rem` |
+| `--vt-shape-action-page` | `8px` |
 | `--vt-shape-control` | `10px` |
 | `--vt-radius-lg` | `0.75rem` |
 | `--vt-shape-card` | `20px` |
@@ -139,7 +140,7 @@ underclaim. Resolving each is a design decision — this file only makes them vi
 
 ### Glass treatment
 
-**EC-20 (LOCKED):** **None.** Solid surfaces everywhere; no blur halos
+**EC-20 (LOCKED):** Frost on **chrome and scene overlays only** (A-1); evidence surfaces stay solid
 
 | Token | Effective value |
 |---|---|
@@ -161,13 +162,14 @@ underclaim. Resolving each is a design decision — this file only makes them vi
 
 ### Corner-radius philosophy + pill policy
 
-**EC-20 (LOCKED):** Near-sharp **0–3px** on panels and instruments; **pills retired**
+**EC-20 (LOCKED):** Scene shape scale (A-1); actions square on chrome, `--vt-shape-action-page` on page actions (A-2, E); pills for word-labels only
 
 | Token | Effective value |
 |---|---|
 | `--vt-radius-lg` | `0.75rem` |
 | `--vt-radius-md` | `0.5rem` |
 | `--vt-radius-sm` | `0.25rem` |
+| `--vt-shape-action-page` | `8px` |
 | `--vt-shape-card` | `20px` |
 | `--vt-shape-control` | `10px` |
 | `--vt-shape-panel` | `24px` |
@@ -210,7 +212,7 @@ table — the table says what exists, this says what to do.
 
 ## Tokens
 
-Role sentences come from `docs/design/design-md-roles.json`. **12 of 196**
+Role sentences come from `docs/design/design-md-roles.json`. **12 of 210**
 tokens have a documented role; the rest say so plainly rather than inventing one.
 
 | Token | Effective value | Declared in | Role |
@@ -292,7 +294,7 @@ tokens have a documented role; the rest say so plainly rather than inventing one
 | `--vt-font-display` | `var(--font-fraunces-loaded, Georgia, 'Times New Roman', serif)` | `styles/tokens.css` | Fraunces, the SUPERSEDED display face — EC-20 locks Geist. Verified 2026-08-10: narrower than it looks. All four `home.css` consumers are `.film-*` classes and the film variant does NOT render in production, so the homepage is unaffected. Live consumers are `typography.css` (`--font-display`), `matcha-zen.css` (`--mz-serif`), and the authed holder nav. Resolving it is a design ruling, not a bug fix. |
 | `--vt-frost-bg` | `color-mix(in oklab, var(--vt-scene-panel) 72%, transparent)` | `styles/themes/index.css` | — *(role not documented)* |
 | `--vt-frost-border` | `color-mix(in oklab, var(--vt-scene-text) 12%, transparent)` | `styles/themes/index.css` | — *(role not documented)* |
-| `--vt-glass-bg` | `oklch(1 0 0 / 0.05)` | `styles/vitalTokens.css` | Glass surface tint. EC-20 locks glass treatment to None, so any use on a public surface is a conflict; the remaining tokens survive for scoped islands. Check the island before assuming a defect — the unused ones were retired in the dead-token sweep. |
+| `--vt-glass-bg` | `oklch(1 0 0 / 0.05)` | `styles/vitalTokens.css` | Glass surface tint. EC-20 (amended A-1) permits frost on chrome and scene overlays only; evidence surfaces stay solid, so use on a proof row, artifact, receipt, or any decision-bearing surface is a conflict; the remaining tokens survive for scoped islands. Check the island before assuming a defect — the unused ones were retired in the dead-token sweep. |
 | `--vt-glass-divider` | `oklch(1 0 0 / 0.05)` | `styles/vitalTokens.css` | — *(role not documented)* |
 | `--vt-glass-ring` | `oklch(1 0 0 / 0.10)` | `styles/vitalTokens.css` | — *(role not documented)* |
 | `--vt-glass-ring-faint` | `oklch(1 0 0 / 0.06)` | `styles/vitalTokens.css` | — *(role not documented)* |
@@ -322,6 +324,19 @@ tokens have a documented role; the rest say so plainly rather than inventing one
 | `--vt-home-d-tactile-back` | `#D8D2C7` | `styles/themes/index.css` | — *(role not documented)* |
 | `--vt-home-d-tactile-front` | `#FDFCF9` | `styles/themes/index.css` | — *(role not documented)* |
 | `--vt-home-d-tactile-line` | `#AAA397` | `styles/themes/index.css` | — *(role not documented)* |
+| `--vt-home-e-action` | `#D92800` | `styles/themes/index.css` | — *(role not documented)* |
+| `--vt-home-e-action-hover` | `#C42400` | `styles/themes/index.css` | — *(role not documented)* |
+| `--vt-home-e-action-label` | `#FFFFFF` | `styles/themes/index.css` | — *(role not documented)* |
+| `--vt-home-e-action-press` | `#B22000` | `styles/themes/index.css` | — *(role not documented)* |
+| `--vt-home-e-band-text` | `#FBFAF7` | `styles/themes/index.css` | — *(role not documented)* |
+| `--vt-home-e-dim` | `#5C5852` | `styles/themes/index.css` | — *(role not documented)* |
+| `--vt-home-e-figure-bar` | `#E6E2DA` | `styles/themes/index.css` | — *(role not documented)* |
+| `--vt-home-e-figure-dim` | `#5C5852` | `styles/themes/index.css` | — *(role not documented)* |
+| `--vt-home-e-figure-line` | `#141312` | `styles/themes/index.css` | — *(role not documented)* |
+| `--vt-home-e-ground` | `#FBFAF7` | `styles/themes/index.css` | — *(role not documented)* |
+| `--vt-home-e-ink` | `#141312` | `styles/themes/index.css` | — *(role not documented)* |
+| `--vt-home-e-panel` | `#FFFFFF` | `styles/themes/index.css` | — *(role not documented)* |
+| `--vt-home-e-rule` | `#E0DDD6` | `styles/themes/index.css` | — *(role not documented)* |
 | `--vt-info` | `var(--vt-accent)` | `styles/themes/index.css` | — *(role not documented)* |
 | `--vt-node-alert` | `#ef4444` | `styles/themes/index.css` | — *(role not documented)* |
 | `--vt-node-company` | `#8b5cf6` | `styles/themes/index.css` | — *(role not documented)* |
@@ -369,9 +384,10 @@ tokens have a documented role; the rest say so plainly rather than inventing one
 | `--vt-shadow-card` | `0 14px 32px rgb(26 34 40 / 0.05), 0 2px 10px rgb(26 34 40 / 0.03)` | `styles/tokens.css` | — *(role not documented)* |
 | `--vt-shadow-md` | `0 8px 16px -4px oklch(0 0 0 / 0.04), 0 4px 8px -2px oklch(0 0 0 / 0.02)` | `styles/vitalTokens.css` | — *(role not documented)* |
 | `--vt-shadow-pill` | `0 1px 2px rgb(26 34 40 / 0.04)` | `styles/tokens.css` | — *(role not documented)* |
+| `--vt-shape-action-page` | `8px` | `styles/themes/index.css` | — *(role not documented)* |
 | `--vt-shape-card` | `20px` | `styles/themes/index.css` | — *(role not documented)* |
 | `--vt-shape-control` | `10px` | `styles/themes/index.css` | — *(role not documented)* |
-| `--vt-shape-panel` | `24px` | `styles/themes/index.css` | 24px panel radius against EC-20's locked near-sharp 0–3px. Retained for scoped islands; a public panel reaching for this is a rejection under EC-21. |
+| `--vt-shape-panel` | `24px` | `styles/themes/index.css` | 24px panel radius within the A-1 scene shape scale (pill/control/card/panel); actions stay square on chrome and take --vt-shape-action-page on page actions (A-2, E). Retained for scoped islands; a public panel reaching for this is a rejection under EC-21. |
 | `--vt-shape-pill` | `9999px` | `styles/themes/index.css` | — *(role not documented)* |
 | `--vt-spacing-2xl` | `3rem` | `styles/vitalTokens.css` | — *(role not documented)* |
 | `--vt-spacing-lg` | `1.5rem` | `styles/vitalTokens.css` | — *(role not documented)* |

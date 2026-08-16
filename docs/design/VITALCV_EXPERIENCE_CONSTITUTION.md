@@ -100,6 +100,8 @@ Never customer-facing: packets · artifacts · lanes · evidence networks · pro
 
 **Receipt, resolved:** `receipt` is an internal and audit concept. It remains lawful on audit and trust-center surfaces. Customer-facing surfaces say **"Activity"** or **"Completed work."** The same noun is never simultaneously banned and mandated.
 
+**"Provider Career Evidence Network", retired (founder rulings, 2026-08-15):** the phrase is retired as public category language everywhere — it is not a customer noun, not an eyebrow, not metadata. The EC-9 machine ratchet no longer carries it as a ratified compound; remaining occurrences are frozen baseline debt scheduled against the surface waves that retire them (the homepage occurrences fall with the C1 vocabulary PR and the Direction A recomposition). The canonical customer nouns are **VitalCV · your VitalCV profile · VitalCV Jobs · Apply with VitalCV**.
+
 The machine-checkable subset is planned as `scripts/copy-rules.json` (UX-16) — **it does not exist yet**; today's enforcement is `scripts/check-public-claims.ts`, which already covers every EC-3 banned string (verified W1080, 2026-08-08; its matcher normalizes hyphens and case, so "zero-knowledge proof" and "zero knowledge proof" both fail). Until UX-16 lands, cite the script, not the JSON. Voice: calm, declarative; facts with lineage, never enthusiasm; errors never apologize twice, never "oops."
 
 ### EC-10. The eyebrow — structural form is invariant
@@ -195,7 +197,7 @@ The **structure** is locked now. The **values** are filled from the UX-01 verdic
 | Button grammar (primary/secondary/quiet/destructive; ≥44px targets locked via EC-5) | Primary = solid work-green square-cornered instrument with AA-corrected near-black ink (reference `#4ADE97`; solid `#2E9E6B` + off-white recorded as the alternative); secondary = hairline outline; quiet = text. Exact styles in UX-02 | LOCKED STRUCTURE · styles in UX-02 |
 | Rule/border treatment | 1px hairlines structure panels and bands (`#2E2F33` on the graphite register) | LOCKED |
 | Icon family | **Consolidate to one family in UX-02.** Two are installed today: `lucide-react` (imported by 330 `apps/web` files) and `@blueprintjs/icons`; 47 components also carry inline `<svg>`. Whichever wins must satisfy the locked grammar — 1px hairline weight, near-sharp 0–3px, no glass, no gradient, no glow — and the loser is removed, not left resident. Design review picks; this row records the constraint and the count | DEFERRED · UX-02 owns · constraint locked |
-| Corner-radius philosophy + pill policy | **Amended 2026-08-09 (A-1, then A-2).** A-1 superseded "near-sharp 0–3px on panels and instruments; pills retired" and gave the public **scene register** a four-step shape scale — `--vt-shape-pill` 9999px, `--vt-shape-control` 10px, `--vt-shape-card` 20px, `--vt-shape-panel` 24px. **A-2 resolves what the scale left ambiguous: an ACTION is square, a WORD-LABEL may be a pill.** Every action on a public surface takes radius 0 — chrome instruments and page actions alike — and so does any illustration that DEPICTS an action. The pill survives for names and labels (source names, owner chips, disclosure tags, step indices), which makes the silhouette carry meaning: square means you can act on it. A-1's limits are untouched: evidence and operational surfaces stay near-sharp, and **a pill is never a state marker** (EC-4). Islands outside the scene register keep their own radii until migrated | LOCKED (amended A-2) |
+| Corner-radius philosophy + pill policy | **Amended 2026-08-09 (A-1, then A-2).** A-1 superseded "near-sharp 0–3px on panels and instruments; pills retired" and gave the public **scene register** a four-step shape scale — `--vt-shape-pill` 9999px, `--vt-shape-control` 10px, `--vt-shape-card` 20px, `--vt-shape-panel` 24px. **A-2 resolves what the scale left ambiguous: an ACTION is square, a WORD-LABEL may be a pill.** Every action on a public surface takes radius 0 — chrome instruments and page actions alike — and so does any illustration that DEPICTS an action. The pill survives for names and labels (source names, owner chips, disclosure tags, step indices), which makes the silhouette carry meaning: square means you can act on it. A-1's limits are untouched: evidence and operational surfaces stay near-sharp, and **a pill is never a state marker** (EC-4). Islands outside the scene register keep their own radii until migrated. **Amendment E (2026-08-15) resolves the seam A-2 left with Direction D:** on the public scene register, CHROME instruments and any illustration depicting chrome stay radius 0 (A-3 untouched); PAGE actions take `--vt-shape-action-page` (8px) — the value Direction D shipped and the e2e contract already pins. The bake-off artifact's 11px was normalized to 8px rather than minting a third value | LOCKED (amended A-2, then E) |
 | Spacing rhythm | **No spacing scale exists yet** — measured 2026-08-08 (W1080): zero `--*-space*` custom properties across `apps/web/styles` and `globals.css`, so every value is currently ad hoc. UX-02A's "one semantic token layer" owns it; until that lands no wave may assert a spacing rule as law. Bounded by the locked band composition (full-width hairline-ruled, content max ~1400px) and the chrome gutter (30px desktop / 20px mobile, A-2) | DEFERRED · UX-02A owns · nothing to supersede |
 | Neutral palette (grounds, ink ramp, rules) | **Public register (dark, permitted not mandated):** ground `#141517`, panel `#1C1D20`, raised `#222326`, hairline `#2E2F33`, ink `#F2F1ED`, secondary `#9C9D99`. **Light register (required for evidence/printable/dense-legibility surfaces):** off-white family with graphite ink; exact artifact palette is a named UX-02 design task | LOCKED · light values in UX-02 |
 | Interaction/accent treatment | **Amended 2026-08-09 (A-1): the accent-work merge is reversed.** Work-green (`#4ADE97`, `--vt-scene-state-source-confirmed`) is the single **work** colour — source-confirmed facts and completed work — and is **retired as the primary action**. The primary action is the warm-paper inverse instrument (`--vt-action-primary-bg` = scene paper, `--vt-action-primary-fg` = paper ink). Needs-you amber `#E4B45C`; waiting neutral `#8F8C88`. VitalCV indigo (`--vt-accent-editorial`, register-resolved via `-on-dark` / `-on-paper`) carries the focus ring and the editorial atmosphere, and is **never a status colour**. State words always in ink (EC-4). Full state-hue family reconciled in UX-02 with the EC-3 vocabulary mapping | LOCKED (amended A-1) |
@@ -221,13 +223,13 @@ contracts above.
 
 | Decision | Value | Status |
 |---|---|---|
-| Ground | Warm light paper `#f7f6f3` | LOCKED for `/` |
-| Ink / dim / rule | `#131211` / `#5c5852` / `#e0ddd6` | LOCKED for `/` |
-| Panel | Solid white `#ffffff` | LOCKED for `/` |
-| Accent | Deep green `#0f6d4e`, reserved for source-confirmation and focus | LOCKED for `/` |
-| Primary action | Ink `#131211`, white label, 8px radius | LOCKED for `/` |
-| Hero H1 | `clamp(31px, 4.3cqw, 47px)`, 500 weight, `-0.035em` tracking, 1.04 line-height | LOCKED for `/` |
-| Monospace | None on this surface | LOCKED for `/` |
+| Ground | Warm light paper `#f7f6f3` | SUPERSEDED by E (2026-08-15): `--vt-home-e-ground` `#FBFAF7` |
+| Ink / dim / rule | `#131211` / `#5c5852` / `#e0ddd6` | SUPERSEDED by E (2026-08-15): `#141312` / `#5C5852` / `#E0DDD6` |
+| Panel | Solid white `#ffffff` | SUPERSEDED by E (2026-08-15): unchanged value, `--vt-home-e-panel` |
+| Accent | Deep green `#0f6d4e`, reserved for source-confirmation and focus | SUPERSEDED by E (2026-08-15): source-confirmation keeps green; focus returns to indigo per A-1; the page action takes `--vt-home-e-action` |
+| Primary action | Ink `#131211`, white label, 8px radius | SUPERSEDED by E (2026-08-15): `--vt-home-e-action` `#D92800`, white label, `--vt-shape-action-page` |
+| Hero H1 | `clamp(31px, 4.3cqw, 47px)`, 500 weight, `-0.035em` tracking, 1.04 line-height | SUPERSEDED by E (2026-08-15): `clamp(38px, 6.2cqw, 66px)`, 500, `-0.042em`, 0.96, Geist |
+| Monospace | None on this surface | LOCKED for `/` (reaffirmed by E) |
 
 The organizing idea is the product demonstration: a self-labelled career
 record assembles row by row, naming the source or limitation on every row. The
@@ -434,12 +436,12 @@ chrome, real NPI flow, opportunity provenance, or career-mobility sequence.
 
 | Decision | Value | Status |
 |---|---|---|
-| Homepage protagonist | The existing server-visible CV Wallet register becomes a warm frosted-glass object over a code-authored career horizon; the exact four source-state rows and clinician-choice boundary remain readable DOM text | LOCKED for `/` |
-| Homepage media | The D.1 documentary route variant is unmounted for this composition. No photo, generated raster, video, canvas, WebGL, fake person, or fake employer appears in the idle hero | LOCKED for `/` |
-| Motion | One-shot focus choreography may draw the career horizon, move a progress point, and catch light across glass. It never loops, hides the complete record, delays the NPI control, or resolves an employer decision | LOCKED for `/` |
-| Static behavior | All homepage objects and all truth text exist in the server frame. Reduced motion and no JavaScript show the complete final composition without hidden rows or required controls | LOCKED for `/` |
-| Reference synthesis | The supplied Dimension reference contributes translucency, backdrop blur, hairline highlights, pill labels, and restrained depth only. Its black canvas, violet accent, DM Sans/Geist register, gradient hero, and product category are not imported | LOCKED for `/` |
-| Technology-thesis boundary | This visual may show separate source states, an open-work boundary, selective clinician choice, and human review. It may not imply a deployed Trust Compiler, employer-policy satisfaction proof, universal acceptance, automatic eligibility, or a numerical readiness result | LOCKED for `/` |
+| Homepage protagonist | The existing server-visible CV Wallet register becomes a warm frosted-glass object over a code-authored career horizon; the exact four source-state rows and clinician-choice boundary remain readable DOM text | SUPERSEDED by E (2026-08-15) |
+| Homepage media | The D.1 documentary route variant is unmounted for this composition. No photo, generated raster, video, canvas, WebGL, fake person, or fake employer appears in the idle hero | SUPERSEDED by E (2026-08-15) |
+| Motion | One-shot focus choreography may draw the career horizon, move a progress point, and catch light across glass. It never loops, hides the complete record, delays the NPI control, or resolves an employer decision | SUPERSEDED by E (2026-08-15) |
+| Static behavior | All homepage objects and all truth text exist in the server frame. Reduced motion and no JavaScript show the complete final composition without hidden rows or required controls | SUPERSEDED by E (2026-08-15) |
+| Reference synthesis | The supplied Dimension reference contributes translucency, backdrop blur, hairline highlights, pill labels, and restrained depth only. Its black canvas, violet accent, DM Sans/Geist register, gradient hero, and product category are not imported | SUPERSEDED by E (2026-08-15) |
+| Technology-thesis boundary | This visual may show separate source states, an open-work boundary, selective clinician choice, and human review. It may not imply a deployed Trust Compiler, employer-policy satisfaction proof, universal acceptance, automatic eligibility, or a numerical readiness result | SUPERSEDED by E (2026-08-15) |
 
 The two supplied professional-trust theses are treated as product and truth
 context, not evidence that their target architecture is deployed. Their useful
@@ -454,6 +456,68 @@ artifact, a receipt, or any surface from which a decision is made. Its text
 names the evidence-state vocabulary but cannot be acted on. Operational and
 decision-bearing evidence surfaces remain solid under A-1; D.7 does not license
 frost on them.
+
+#### Direction A homepage register — amendment E (2026-08-15)
+
+The founder selected **Direction A** for `/` on 2026-08-15, at the end of a
+four-round rendered bake-off (committed at
+`design-lab/homepage-2026-08-direction-a/`, with the round-by-round rulings in
+its `DECISION.md`). The directives this amendment implements, quoted from the
+rounds: *"ok i like A the most. but i need illustrations and visuals not just
+text"*; *"why isnt job opportunities mentioned once on homepage??"*; *"the idea
+is for the clinician not needing to do anything. vitalcv keeps the clinician
+updated and ready to get hired"*; and the standing bar: *"the user needs to
+understand vitalcv within the first 30 secs of visiting the site."* Scope,
+ruled the same day: the register applies to **all public surfaces, homepage
+first**, under the homepage visual freeze recorded in
+`docs/ops/FOUNDER_VISUAL_GATE.md`.
+
+This is a route-scoped register for `/` in the Direction D lineage — it
+supersedes the D/D.7 presentation rows marked above, and (once the C1
+vocabulary amendment lands) the D.1 copy rows, without reopening product,
+source, consent, authorization, or scene-truth contracts.
+
+| Decision | Value | Status |
+|---|---|---|
+| Ground / ink / dim / rule / panel | `--vt-home-e-ground` `#FBFAF7` · `--vt-home-e-ink` `#141312` · `--vt-home-e-dim` `#5C5852` · `--vt-home-e-rule` `#E0DDD6` · `--vt-home-e-panel` `#FFFFFF` | LOCKED for `/` |
+| Primary page action | `--vt-home-e-action` `#D92800`, label `#FFFFFF` (4.94:1) · hover `#C42400` (5.83:1) · press `#B22000` (6.78:1) · radius `--vt-shape-action-page` | LOCKED for `/` |
+| Action-colour semantics | `#D92800` is an **action instrument, never a state**. It never renders as text-on-paper, a state chip, a chart mark, or a rule; removing it must cost nothing but emphasis (EC-4). It stays outside the `--vt-accent*` namespace. **`--vt-severity-critical` never renders on the `/` scene register** — the action red and the reserved revoked-red are distinguished by rule, not hue distance | LOCKED for `/` |
+| Focus | Indigo `--vt-focus-ring-scene-paper` — restores A-1 on this route, superseding Direction D's green focus | LOCKED for `/` |
+| Display | **Geist** (restores the EC-20 typography row; Fraunces is retired from the H1 and survives only as the serif editorial aside), hero H1 `clamp(38px, 6.2cqw, 66px)`, 500, `-0.042em`, 0.96 line-height | LOCKED for `/` |
+| Monospace | None on this surface (Direction D row reaffirmed) | LOCKED for `/` |
+| Material | Flat warm paper. **No frost on this route** — D.7's frosted folio is superseded; `styles/easy-home.css` leaves the frost allowlist with the recomposition. A-1's chrome-frost permission (the eyebrow rectangle) is untouched | LOCKED for `/` |
+| Illustration | Drawn inline-SVG figures in the register inks (`--vt-home-e-figure-*`): every VALUE is a blank bar (`--vt-home-e-figure-bar`) because the real ones belong to the viewer; every figure carries its own self-labelling caption; no fabricated source response, count, score, employer decision, or completion (EC-25); art is `aria-hidden` with adjacent selectable caption text; complete in the server frame | LOCKED for `/` |
+| Figure set | Six: sources→profile (hero — one row left visibly open where no source answered), match explanation (Roles), owner routing (Attribution), approval boundary + reuse (the dark band), standing watch | LOCKED for `/` |
+| Composition additions | A **Roles** section: the live opportunity feed (D.1 opportunity-horizon truth rows unchanged) framed by the match-explanation figure. A **standing watch** section: "Most weeks, you do nothing." — the clinician-does-nothing thesis stated to the limit of what the product truthfully does (watch, refresh, flag), never as a credentialing outcome | LOCKED for `/` |
+| Dark band | The career-mobility sequence remains the route's one dark band, ground `--vt-home-e-ink`; its seven steps and boundary sentences are unchanged — the approval-boundary and reuse figures redraw its material, not its story | LOCKED for `/` |
+| Motion | One-shot only, inside the EC-29 bands: the figure line-draw reveal and the payoff line's **single-pass** cycling word (role → shift → hospital → state → application, then it settles). The server frame renders the settled word; reduced motion and no-JS show the settled word with an sr-only full sentence. Nothing loops | LOCKED for `/` |
+
+**Copy — supersedes the D.1 copy table (as amended by C1) when the
+recomposition lands through the founder visual gate:**
+
+| Row | Value |
+|---|---|
+| Eyebrow | **For US clinicians** |
+| Hero H1 | **Enter your NPI. VitalCV does the rest.** |
+| Payoff line | **One profile. Every** {role · shift · hospital · state · application}**.** — settled word: **application** |
+| Hero sub | **We find what we can, show you exactly what remains, and handle the administrative work that can safely be handled. Then we keep it that way — and show you where your record could go next.** |
+| Primary action | **Start with your NPI** (matches the chrome action verbatim) |
+| Secondary action | **Explore clinician opportunities** (unchanged) |
+| Metadata tagline | **VitalCV — One career record. More ways forward.** (unchanged — noun-clean) |
+
+**Deliberately not changed:** EC-10/A-3 shared-chrome geometry and its frost;
+A-1's indigo-carries-focus rule (restored here, not modified); LINT-15's
+green-action ban; the film and career-loop rollback variants and their
+stylesheets; the opportunity-feed truth contract (honest SSR pending state,
+source labels, observation times, the external-vs-integrated application
+boundary); EC-9's "CV Wallet, resolved" interior-surface ruling (C1) — the
+noun simply no longer appears on `/` once the recomposition lands.
+
+**Law-then-values order (the A-1 lesson, inverted deliberately):** this
+amendment and its tokens land while the route still renders D.7 under the
+2026-08-15 homepage visual freeze. The recomposition PR that makes `/` match
+this law carries the full founder visual gate. Until it merges, D.7 remains
+what the route SHOWS, and this section is what the route OWES.
 
 **On the difference (W1080 closure, 2026-08-08).** Three rows previously read
 "PENDING UX-02", which is indistinguishable from an unresolved brand decision and
@@ -640,6 +704,32 @@ Class A clauses and locked EC-20 rows change only by editing this file with a da
 Subjective July-era taste is not encoded as CI law before the reset direction is chosen. The `check-design-lint.ts` port from `.worktrees/retire-speed-claim` is scoped to the objective list above; taste rules from wave-1505's set (pill radii, shadow discipline, dark-on-public) join CI only if and when the verdict locks the matching EC-20 row. Proof obligation stands: a deliberately-violating PR must fail CI on every objective count before the gate is considered live.
 
 ### EC-24. Records
+
+- **E — the Direction A homepage register, on founder verdict (2026-08-15).** Four rendered
+  rounds, one winner, three rulings, and a freeze. The founder judged three live directions
+  ("A — minimal-bold paper", "B — the ledger", "C — apply"), rejected B as *"too basic"*, took
+  C's cycling payoff line into A, and closed with *"ok i like A the most. but i need
+  illustrations and visuals not just text."* Two product rulings landed in the same rounds —
+  jobs must be visible on `/` (*"why isnt job opportunities mentioned once on homepage??"*)
+  and the standing watch (*"the idea is for the clinician not needing to do anything"*) — plus
+  the standing bar: understood in thirty seconds. Same-day scope rulings: the register applies
+  to all public surfaces homepage-first; a homepage visual freeze holds until the recomposition
+  ships and is approved; jobs render as the live feed framed by the match-explanation figure.
+
+  **What the amendment deliberately preserves:** the A-2 silhouette thesis survives scoped to
+  chrome (square means you can act on it — on instruments); the 8px page-action value Direction
+  D shipped is adopted rather than the artifact's 11px, so the seam between A-2 and D closes on
+  the value the e2e contract already pins; A-1's indigo focus returns to `/` (Direction D's
+  green focus was a deviation, not a decision); and the reserved severity red stays reserved —
+  the E action colour is distinguished from it by rule, recorded in the E table, because the
+  palette cannot carry that distinction itself.
+
+  **Process note.** E lands law-and-tokens first while the route still renders D.7 — the
+  inverse of the A-1 failure (values shipped a day before their law). The freeze makes the
+  interim state legible: D.7 is what the route shows; E is what it owes. The bake-off artifact
+  is committed at `design-lab/homepage-2026-08-direction-a/` — note the name collision with
+  `design-lab/homepage-reset/direction-a/`, the *retired 2026-08-07 UX-01 candidate*, which is
+  a different direction that happens to share the letter.
 
 - **A-3 — the rectangle stops growing, on founder directive (2026-08-09).** EC-20's
   eyebrow-geometry row moves from `amended A-2` to `amended A-3`. The founder, on the chrome A-2
