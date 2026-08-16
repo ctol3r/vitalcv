@@ -73,23 +73,16 @@
   overflow-wrap: break-word;
 }
 
-/* The drawn pulse line under the name — decorative ink, drawn once. It is a
-   drawing, not a chart mark, and it is never the action colour (the E row:
-   #D92800 never renders as a rule). */
-.dra-pulse {
-  display: block;
+/* The hairline rule under the name — Option 1 "Chart & Badge" theme ruling
+   (2026-08-16): clinical OBJECTS, no EKG/pulse motif. Plain dim ink, drawn
+   in once left-to-right as an enhancement; complete without JS. Never the
+   action colour (the E row: #D92800 never renders as a rule). */
+.dra-rule {
   width: min(340px, 70%);
-  height: 28px;
-  margin-top: 16px;
-  color: var(--vt-home-e-dim);
-}
-
-.dra-pulse-path {
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
+  height: 1px;
+  margin-top: 20px;
+  background: var(--vt-home-e-dim);
+  transform-origin: left center;
 }
 
 .dra-meta {
@@ -403,16 +396,15 @@
     transform: none;
   }
 
-  /* The pulse line draws once under the name — the page's single narrative
-     beat (--duration-narrative), starting a breath after the header lands. */
-  .dra-armed .dra-head .dra-pulse-path {
-    stroke-dasharray: 1;
-    stroke-dashoffset: 1;
-    transition: stroke-dashoffset var(--duration-narrative) var(--vt-ease-system) 160ms;
+  /* The hairline rule draws in once under the name, a breath after the
+     header lands — product-transformation band. */
+  .dra-armed .dra-head .dra-rule {
+    transform: scaleX(0);
+    transition: transform var(--duration-slow) var(--vt-ease-system) 160ms;
   }
 
-  .dra-armed .dra-head.is-in .dra-pulse-path {
-    stroke-dashoffset: 0;
+  .dra-armed .dra-head.is-in .dra-rule {
+    transform: scaleX(1);
   }
 }
 

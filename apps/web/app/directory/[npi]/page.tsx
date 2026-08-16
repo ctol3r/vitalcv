@@ -283,14 +283,11 @@ export default async function ProviderDirectoryPage({ params }: PageProps) {
           <h1 className="dra-name">
             {record.identity.data.displayName || `NPI ${record.npi}`}
           </h1>
-          {/* The drawn pulse under the name: decorative ink, draws once. */}
-          <svg className="dra-pulse" viewBox="0 0 360 28" aria-hidden="true" focusable="false">
-            <path
-              className="dra-pulse-path"
-              pathLength={1}
-              d="M2 18 H92 L100 18 L107 4 L116 26 L122 18 H210 L218 18 L224 9 L231 24 L236 18 H358"
-            />
-          </svg>
+          {/* A plain hairline rule under the name, drawn in once. The theme
+              ruling of 2026-08-16 picked Option 1 "Chart & Badge" — clinical
+              OBJECTS (badge, chart) — and rejected the EKG/pulse-line motif
+              this rule replaces. Decorative dim ink; complete without JS. */}
+          <div className="dra-rule" aria-hidden="true" />
           <p className="dra-meta">
             {[
               record.entityTypeLabel,

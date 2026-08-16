@@ -6,6 +6,12 @@
 **Captured:** 2026-08-16, production build (`next build` + `next start -p 3077`), Chromium via
 `apps/web/scripts/capture-directory-a-evidence.mjs`.
 
+**Theme-ruling revision (2026-08-16):** the founder picked Option 1 "Chart & Badge" (clinical
+OBJECTS) and rejected the EKG/pulse-line motif. The drawn pulse under the name was replaced with
+a plain hairline rule in the same dim ink, drawn in once (same one-shot mechanism); the ID-badge
+and clipboard pictograms stand. Every `after-*` file was recaptured from the revised production
+build; the `before-*` files are unchanged.
+
 ## What was rendered
 
 Every screenshot renders the **sanctioned synthetic fixture**, never a real person:
@@ -29,11 +35,11 @@ record appears in committed evidence. Both fixture NPIs render the honest
 | `after-390x844{,-viewport}.png` | Direction A register, mobile (390 composed deliberately, EC-6) |
 | `after-768x1024{,-viewport}.png` | Direction A register, tablet |
 | `after-1728x1117-viewport.png` | Wide viewport (content is a 1040px column; included for completeness) |
-| `after-1440x900-reduced-motion.png` | Finished frame with nothing armed — identical composition, pulse fully drawn |
+| `after-1440x900-reduced-motion.png` | Finished frame with nothing armed — identical composition, hairline rule fully drawn |
 | `after-200pct-zoom-of-1440.png` | 200% zoom equivalent (720 CSS px layout width), no clipped control |
 | `after-org-1440x900.png` | Organization branch: no claim CTA, full record |
 | `after-1440-focus-claim-cta.png` | Focus visible on the claim CTA (paper-white ring on the ink card) |
-| `after-motion-desktop.webm` · `after-motion-mobile.webm` | One-shot entrance reveals on scroll, pulse draw, CTA hover/press |
+| `after-motion-desktop.webm` · `after-motion-mobile.webm` | One-shot entrance reveals on scroll, hairline rule draw-in, CTA hover/press |
 | `after-motion-reduced.webm` | Reduced motion: nothing moves; the story is complete |
 | `{before,after}-runtime-report.json` | Console errors (0), horizontal-overflow probe, CTA measurement |
 
@@ -52,7 +58,7 @@ record appears in committed evidence. Both fixture NPIs render the honest
 | Horizontal overflow at 1440 / 768 / 390 | none (`scrollWidth == innerWidth`) | none (EC-6) |
 | Console errors / hydration errors | 0 | 0 |
 
-Decorative drawn art (badge glyph bars, clipboard bars, pulse line) is `aria-hidden`,
+Decorative drawn art (badge glyph bars, clipboard bars, the hairline rule) is `aria-hidden`,
 depicts no source, count, person, or result, and carries no meaning — removing it costs
 only emphasis (EC-4).
 
