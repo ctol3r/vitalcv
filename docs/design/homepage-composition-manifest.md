@@ -56,3 +56,8 @@ does not switch with the content variant. See
 Adding, removing, or re-ordering a section requires updating THIS manifest and
 the composition-gate test in the same PR. A PR that changes homepage
 composition without touching this file is incomplete.
+
+While the 2026-08-15 homepage visual freeze is active
+(`docs/ops/FOUNDER_VISUAL_GATE.md` §1a), a composition change must also cite the
+freeze clause and be the Direction A recomposition or a PR it explicitly
+sequences.

@@ -147,6 +147,10 @@ pilot contract:
 
 ## Experience Overhaul Program — design-only boundary (Phase 0, 2026-08-08)
 
+**HOMEPAGE VISUAL FREEZE — 2026-08-15, ACTIVE.** A newer, homepage-scoped freeze is in
+force: see `docs/ops/FOUNDER_VISUAL_GATE.md` §1 (the single source of truth — this line is
+only a pointer). Only the Direction A recomposition (constitution amendment E) merges.
+
 **The UI PR freeze is LIFTED (founder ruling, 2026-08-09).** UX-03 has shipped, in two parts:
 UX-V1 (#1190) delivered the public eyebrow and the homepage, and #1232 delivered the signed-in
 navigation contract that shares its island. The founder ruled these jointly satisfy UX-03 and
