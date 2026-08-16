@@ -10,16 +10,18 @@
  *
  * Island discipline, unchanged: `.ezh` scopes everything; every colour routes
  * through a custom property declared on the island root — zero literals in
- * this file. No keyframe animations: the figure reveal and the cycling word
- * are JS-scheduled class/state timelines over CSS transitions, so reduced
- * motion neutralization needs no animation machinery. No z-index: stacking
+ * this file. Keyframe DEFINITIONS live in styles/motion.css (LINT-03's one
+ * permitted home); this file only consumes them, and every consumer sits
+ * behind the `[data-ezh-motion]` arming attribute that hydration sets only
+ * outside prefers-reduced-motion (amendment E.2). No z-index: stacking
  * follows DOM order. No scroll interception. No backdrop-filter — amendment
  * E's Material row retires frost from this route; this file left the frost
  * allowlist with the recomposition.
  *
  * Server markup renders the COMPLETED story frame. Script arms and plays the
  * one-shot enhancements; without script, and under prefers-reduced-motion,
- * the full meaning is simply present.
+ * the full meaning is simply present. The one lawful loop is the live feed's
+ * "Listed as open" status pulse (EC-29's system-status exception).
  *
  * Amendment E resolves the radius seam: page actions take
  * `--vt-shape-action-page` (8px); chrome instruments stay radius 0 (A-3).
@@ -334,6 +336,17 @@
   color: var(--ezh-card-dim);
 }
 
+/* The digit counter's per-digit pop (amendment E.2): control feedback for a
+   real typed count, 100ms, armed-only. React re-keys the span per digit, so
+   the animation runs once per real change and never on load. */
+.ezh-npi-count-num {
+  display: inline-block;
+}
+
+.ezh[data-ezh-motion] .ezh-npi-count-num.is-pop {
+  animation: ezh-count-pop 0.1s ease;
+}
+
 .ezh-npi-note {
   margin-top: 10px;
   font-size: 12.5px;
@@ -359,11 +372,33 @@
   font-size: 14px;
   font-weight: 600;
   text-decoration: none;
+  transition: border-color 0.12s ease;
 }
 
 .ezh-hero-opportunity:hover,
 .ezh-hero-opportunity:focus-visible {
   border-color: var(--ezh-text);
+}
+
+/* Arrow-glyph nudge on the two doorway links (E.2 micro-interactions, 80–150ms
+   feedback band). `translate` needs a box, so the glyph spans are blocks. */
+.ezh-hero-opportunity span,
+.ezh-opportunity-all span,
+.ezh-emp-cta span {
+  display: inline-block;
+  transition: translate 0.12s ease;
+}
+
+.ezh-hero-opportunity:hover span,
+.ezh-hero-opportunity:focus-visible span,
+.ezh-opportunity-all:hover span,
+.ezh-opportunity-all:focus-visible span {
+  translate: 2px -2px;
+}
+
+.ezh .ezh-emp-cta:hover span,
+.ezh .ezh-emp-cta:focus-visible span {
+  translate: 2px 2px;
 }
 
 /* ── resolved result panel (the real thing, not the illustration) ──────── */
@@ -552,20 +587,90 @@
 
 /* The one-shot row reveal is an ENHANCEMENT: rows are visible unless
    hydration explicitly arms the animation, and the component's safety
-   timeout strips the machinery whatever the transitions did. */
+   timeout strips the machinery whatever the transitions did. E.2 (Option 1
+   "Chart & Badge"): the chart rows slide/fade in sequence. */
 .ezh-surface[data-motion='armed'] .ezh-rowfx {
   opacity: 0;
+  transform: translateY(6px);
 }
 
 .ezh-surface[data-motion='run'] .ezh-rowfx {
   opacity: 1;
-  transition: opacity 0.4s ease;
+  transform: none;
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+
+/* The badge object itself (E.2, Option 1): it clips on with a small swing
+   about the lanyard slot and settles once. Resting state carries no
+   transform; reduced motion and no-JS never see the animation. */
+.ezh .ezh-badge {
+  transform-box: fill-box;
+  transform-origin: 50% 0;
+}
+
+.ezh-surface[data-motion='run'] .ezh-badge {
+  animation: ezh-badge-swing 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* The lanyard slot punches through the badge's accent band, so it strokes in
+   panel paper, not ink. */
+.ezh .ezh-slot {
+  stroke: var(--ezh-panel);
 }
 
 .ezh-surface[data-motion='run'] .ezh-rowfx[data-r='2'] { transition-delay: 0.23s; }
 .ezh-surface[data-motion='run'] .ezh-rowfx[data-r='3'] { transition-delay: 0.46s; }
 .ezh-surface[data-motion='run'] .ezh-rowfx[data-r='4'] { transition-delay: 0.69s; }
 .ezh-surface[data-motion='run'] .ezh-rowfx[data-r='5'] { transition-delay: 0.92s; }
+
+/* ── amendment E.2: one-shot section entrances ──────────────────────────────
+ *
+ * SSR-complete enhancement, same grammar as the figure reveal above: the
+ * server frame is finished; hydration (outside reduced motion) sets
+ * `data-ezh-motion="armed"` on the island root, the IntersectionObserver adds
+ * `.is-in` once per section, and a safety timer flips the root to "done" so a
+ * reveal that never fires can strand nothing. No-JS and reduced motion never
+ * arm, so the hidden state below is unreachable for them.
+ */
+.ezh[data-ezh-motion='armed'] [data-ezh-reveal]:not(.is-in) > .ezh-wrap {
+  opacity: 0;
+  transform: translateY(14px);
+}
+
+.ezh[data-ezh-motion] [data-ezh-reveal] > .ezh-wrap {
+  transition:
+    opacity 0.42s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.42s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ── amendment E.2: figure line-draws (one shot, on entry) ──────────────────
+ *
+ * `.ezh-draw` elements set --ezh-draw-len (≥ their real path length) inline;
+ * the resting dasharray below is one dash that covers the whole path, so the
+ * stroke is visually solid with or without the animation — SSR, no-JS, and
+ * reduced motion all see the finished drawing. The keyframes in motion.css
+ * animate only the offset from that same var. The hero figure draws on its
+ * existing arming machinery; every other figure draws when its section
+ * reveals.
+ */
+.ezh .ezh-draw {
+  stroke-dasharray: var(--ezh-draw-len, 600);
+}
+
+.ezh-surface[data-motion='run'] .ezh-draw,
+.ezh[data-ezh-motion] [data-ezh-reveal].is-in .ezh-draw {
+  animation: ezh-fig-draw 0.42s ease both;
+}
+
+.ezh-surface[data-motion='run'] .ezh-draw.ezh-draw-d2,
+.ezh[data-ezh-motion] [data-ezh-reveal].is-in .ezh-draw.ezh-draw-d2 {
+  animation-delay: 0.12s;
+}
+
+.ezh-surface[data-motion='run'] .ezh-draw.ezh-draw-d3,
+.ezh[data-ezh-motion] [data-ezh-reveal].is-in .ezh-draw.ezh-draw-d3 {
+  animation-delay: 0.24s;
+}
 
 /* Wide/narrow switch points, chosen from each pair's viewBox so effective
    text never lands under the floor. */
@@ -675,9 +780,27 @@
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 28px;
   align-items: center;
-  padding: 23px 0;
+  padding: 23px 0 23px 12px;
+  margin-left: -12px;
   border-bottom: 1px solid var(--ezh-line);
+  transition: background-color 0.12s ease, border-color 0.12s ease;
 }
+
+/* E.2 micro-interaction: a row under the cursor lifts to panel white and
+   sharpens its rule — border/ink only, no shadow, no movement. */
+.ezh-opportunity-row:hover {
+  background: var(--ezh-panel);
+  border-bottom-color: var(--ezh-text2);
+}
+
+/* Late-mounted rows arrive one-shot (armed only): the real fetch answers
+   after hydration, so the section transition cannot carry them. */
+.ezh[data-ezh-motion='armed'] .ezh-opportunity-row {
+  animation: ezh-row-in 0.3s ease both;
+}
+
+.ezh[data-ezh-motion='armed'] .ezh-opportunity-row:nth-child(2) { animation-delay: 0.08s; }
+.ezh[data-ezh-motion='armed'] .ezh-opportunity-row:nth-child(3) { animation-delay: 0.16s; }
 
 .ezh-opportunity-titleline {
   display: flex;
@@ -718,6 +841,13 @@
 .ezh-opportunity-source i {
   color: var(--ezh-text);
   font-style: normal;
+}
+
+/* The "Listed as open" availability dot — the route's ONE lawful loop
+   (EC-29 system-status pulse; amendment E.2 Loops row). Slow, opacity-only,
+   armed-only; the words beside it carry the meaning (EC-4). */
+.ezh[data-ezh-motion] .ezh-opportunity-source i.is-open {
+  animation: ezh-status-pulse 2.6s ease-in-out infinite;
 }
 
 .ezh-opportunity-action {
@@ -1113,6 +1243,21 @@
   border-radius: var(--vt-shape-card);
   background: var(--ezh-panel);
   padding: 28px 26px 30px;
+  transition: border-color 0.12s ease;
+}
+
+/* E.2 micro-interaction: border/ink shift only — the card grammar forbids
+   shadows, and nothing moves. */
+.ezh-promise:hover {
+  border-color: var(--ezh-text2);
+}
+
+.ezh-promise p {
+  transition: color 0.12s ease;
+}
+
+.ezh-promise:hover p {
+  color: var(--ezh-text);
 }
 
 .ezh-promise-glyph {
@@ -1156,6 +1301,20 @@
   gap: 24px;
   padding: 16px 0;
   border-bottom: 1px solid var(--ezh-line);
+  transition: border-color 0.12s ease;
+}
+
+/* E.2 micro-interaction: the row under the cursor sharpens — ink only. */
+.ezh-qa-row:hover {
+  border-bottom-color: var(--ezh-text2);
+}
+
+.ezh-qa-row dd {
+  transition: color 0.12s ease;
+}
+
+.ezh-qa-row:hover dd {
+  color: var(--ezh-text);
 }
 
 .ezh-qa-row dt {
@@ -1459,5 +1618,6 @@
   .ezh *::before,
   .ezh *::after {
     transition: none !important;
+    animation: none !important;
   }
 }

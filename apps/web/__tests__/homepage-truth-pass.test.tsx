@@ -31,6 +31,7 @@ describe('Hero — no fabricated readiness score', () => {
 describe('Hero NPI input — honest microcopy intact', () => {
   it('renders the digit count at rest', () => {
     const html = renderHomepageHtml();
-    expect(html).toContain('0/10 digits');
+    // E.2 wraps the count number in the pop span, so match through the tag.
+    expect(html).toMatch(/0(?:<\/span>)?\/10 digits/);
   });
 });

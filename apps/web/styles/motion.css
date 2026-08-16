@@ -155,6 +155,87 @@
   }
 }
 
+/* ── Amendment E.2 — the homepage's one-shot clinical-motion set ────────────
+ * Consumers live in easy-home.css, gated behind the `[data-ezh-motion]`
+ * arming attribute that only hydration outside prefers-reduced-motion sets.
+ * SSR, no-JS, and reduced motion render the complete resting frame; the
+ * global reduced-motion kill switch clamps whatever slips through. */
+
+/* A figure stroke draws itself once on entry. Same shape as ask-art-trace:
+ * the element sets --ezh-draw-len to a value ≥ its real path length (its
+ * resting stroke-dasharray in easy-home.css is that same var, so one dash
+ * covers the whole path and the resting state is visually solid), and this
+ * animates only the offset. Chromium does NOT scale CSS dash values by the
+ * SVG pathLength attribute — a pathLength="1" + `stroke-dasharray: 1` scheme
+ * renders 1px dots, measured in-browser 2026-08-16 — hence explicit lengths.
+ * 250–450ms product-transformation band (EC-29). */
+@keyframes ezh-fig-draw {
+  from {
+    stroke-dashoffset: var(--ezh-draw-len, 600);
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* The hero badge clips on with a small swing and settles — the route's one
+ * narrative accent (450–800ms band), from the founder-selected Option 1
+ * "Chart & Badge" (E.2). Rotation only, ≤1.4deg about the lanyard slot;
+ * edge displacement stays under ~7px. One shot; the resting state carries no
+ * transform. */
+@keyframes ezh-badge-swing {
+  0% {
+    rotate: 1.4deg;
+  }
+  55% {
+    rotate: -0.5deg;
+  }
+  100% {
+    rotate: 0deg;
+  }
+}
+
+/* A late-mounted feed row arriving (the live Roles rows exist only after the
+ * real fetch answers, so the section-reveal transition cannot carry them).
+ * One shot on mount, opacity + a small rise; nothing a neighbour can feel. */
+@keyframes ezh-row-in {
+  from {
+    opacity: 0;
+    translate: 0 8px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+/* The live feed's "Listed as open" availability dot — the route's ONE lawful
+ * loop (EC-29: a system-status pulse; amendment E.2 Loops row). Opacity only,
+ * slow, restating a status the row already states in words (EC-4). */
+@keyframes ezh-status-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+/* The NPI digit counter's per-digit pop — control feedback for a real typed
+ * count (EC-3: real value to real value), inside the 80–150ms band. */
+@keyframes ezh-count-pop {
+  0% {
+    scale: 1;
+  }
+  45% {
+    scale: 1.3;
+  }
+  100% {
+    scale: 1;
+  }
+}
+
 /* Direction D's homepage record enters row by row only after the client marks
  * the already-complete SSR record animated. The resting rule lives in
  * easy-home.css; this composited transform is the optional transition. */

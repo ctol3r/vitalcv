@@ -287,13 +287,68 @@ test.describe('home — the Direction A hero', () => {
     await expect(page.locator('[data-home-mobility-sequence]')).toHaveCount(0);
     await expect(page.locator('[data-home-standing-watch]')).toHaveCount(0);
     const promises = page.locator('.ezh-promise');
+    await promises.first().scrollIntoViewIfNeeded();
     await expect(promises).toHaveCount(3);
     await expect(promises.first().locator('svg.ezh-promise-glyph')).toBeVisible();
     await expect(page.getByText('Build it once. Take it everywhere.')).toBeVisible();
-    await expect(page.getByText('Most weeks, nothing does.')).toBeVisible();
+    await expect(page.getByText(/most weeks, nothing does/i)).toBeVisible();
     // Flat answers: a real <dl>, zero <details> anywhere on the page.
+    await page.locator('.ezh-qa-list').scrollIntoViewIfNeeded();
     await expect(page.locator('.ezh-qa-list')).toBeVisible();
     await expect(page.locator('main details')).toHaveCount(0);
+  });
+
+  test('E.2: sections enter once on scroll and never re-hide', async ({ page }) => {
+    // The reveal system arms after hydration and reveals each section exactly
+    // once. The assertions poll well inside the safety timer, so a passing
+    // run proves the OBSERVER fired, not the force-complete.
+    await expect
+      .poll(async () => page.locator('main.ezh').getAttribute('data-ezh-motion'), { timeout: 4000 })
+      .not.toBeNull();
+    const promises = page.locator('.ezh-promises');
+    // Below the fold and not yet revealed — so the reveal that follows is the
+    // observer's work, not the safety timer's.
+    await expect(promises).not.toHaveClass(/is-in/);
+    await promises.scrollIntoViewIfNeeded();
+    await expect(promises).toHaveClass(/is-in/, { timeout: 2500 });
+    const wrapOpacity = async () =>
+      promises.locator('> .ezh-wrap').evaluate((el) => getComputedStyle(el).opacity);
+    await expect.poll(wrapOpacity, { timeout: 2500 }).toBe('1');
+    // One-shot: scrolling away and back does not reset the section.
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await page.waitForTimeout(200);
+    await expect(promises).toHaveClass(/is-in/);
+  });
+
+  test('E.2: the ONLY infinite animation on the route is the status pulse', async ({ page }) => {
+    // EC-29: nothing loops except a system-status pulse. Sweep every element
+    // on the island for an infinite iteration count and require that each one
+    // is the "Listed as open" availability dot.
+    await page.locator('.ezh-opportunities').scrollIntoViewIfNeeded();
+    await expect(page.locator('.ezh-opportunity-row').first()).toBeVisible();
+    const loops = await page.evaluate(() =>
+      [...document.querySelectorAll('.ezh, .ezh *')]
+        .filter((el) => getComputedStyle(el).animationIterationCount.split(',').includes('infinite'))
+        .map((el) => `${el.tagName.toLowerCase()}.${String(el.className).slice(0, 40)}`),
+    );
+    for (const offender of loops) {
+      expect(offender, `unlawful loop: ${offender}`).toContain('is-open');
+    }
+    // And the lawful pulse is actually present on the open listing's dot.
+    await expect(page.locator('.ezh-opportunity-source i.is-open').first()).toBeVisible();
+  });
+
+  test('E.2: the digit counter pops per typed digit, from real counts only', async ({ page }) => {
+    const input = page.locator('#ezh-npi');
+    await expect(async () => {
+      await input.fill('12');
+      await expect(page.getByText('2/10 digits')).toBeVisible({ timeout: 1500 });
+    }).toPass({ timeout: 15000 });
+    // The pop class is present only once a real digit exists.
+    await expect(page.locator('.ezh-npi-count-num.is-pop')).toHaveText('2');
+    await input.fill('');
+    await expect(page.getByText('0/10 digits')).toBeVisible();
+    await expect(page.locator('.ezh-npi-count-num.is-pop')).toHaveCount(0);
   });
 
   test('the final action returns to the real entry', async ({ page }) => {
@@ -382,6 +437,42 @@ test.describe('home — reduced motion', () => {
     );
     expect(hidden).toBe(0);
     await expect(surface(page).locator('.ezh-fig-cap')).toBeVisible();
+    // E.2: the section-reveal system never arms — every section is the
+    // finished frame without scrolling.
+    await expect(page.locator('main.ezh')).not.toHaveAttribute('data-ezh-motion');
+    const hiddenSections = await page.evaluate(() =>
+      [...document.querySelectorAll('[data-ezh-reveal] > .ezh-wrap')].filter(
+        (wrap) => getComputedStyle(wrap).opacity !== '1',
+      ).length,
+    );
+    expect(hiddenSections).toBe(0);
+  });
+
+  test('E.2: zero animation survives reduced motion on the island', async ({ page }) => {
+    // The design-kernel kill switch, asserted island-wide: no element inside
+    // .ezh may keep an animation or transition ≥ 50ms under reduced motion —
+    // including the status pulse, the entrances, and the line-draws.
+    await routeOpportunities(page);
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto('/');
+    await expect(page.locator('.ezh-opportunity-row').first()).toBeVisible();
+    const offenders = await page.evaluate(() => {
+      const bad: string[] = [];
+      for (const el of document.querySelectorAll('.ezh, .ezh *')) {
+        const s = getComputedStyle(el);
+        const durations = `${s.animationDuration},${s.transitionDuration}`
+          .split(',')
+          .map((d) => parseFloat(d) * (d.includes('ms') ? 1 : 1000))
+          .filter((n) => Number.isFinite(n));
+        if (durations.some((n) => n >= 50)) {
+          bad.push(`${el.tagName.toLowerCase()}.${String(el.className).slice(0, 40)}`);
+          if (bad.length >= 5) break;
+        }
+      }
+      return bad;
+    });
+    expect(offenders, `animating under reduced motion:\n${offenders.join('\n')}`).toEqual([]);
   });
 
   test('the no-JavaScript frame keeps the thesis, figure, settled word, and doorway', async ({ browser }) => {
@@ -402,6 +493,17 @@ test.describe('home — reduced motion', () => {
     await expect(page.locator('[data-home-cycling-word]')).toHaveText('application');
     await expect(page.locator('[data-home-opportunity-cta]')).toHaveAttribute('href', '/explore');
     await expect(page.getByText('Reading the current opportunity feed…')).toBeVisible();
+    // E.2: without script the reveal system never arms — every section is
+    // fully visible without scrolling, promises and answers included.
+    await expect(page.locator('main.ezh')).not.toHaveAttribute('data-ezh-motion');
+    const hiddenSections = await page.evaluate(() =>
+      [...document.querySelectorAll('[data-ezh-reveal] > .ezh-wrap')].filter(
+        (wrap) => getComputedStyle(wrap).opacity !== '1',
+      ).length,
+    );
+    expect(hiddenSections).toBe(0);
+    await expect(page.locator('.ezh-promise')).toHaveCount(3);
+    await expect(page.getByText(/most weeks, nothing does/i)).toBeVisible();
     await context.close();
   });
 });

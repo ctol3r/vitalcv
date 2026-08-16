@@ -24,18 +24,25 @@ function observedLabel(value: string | null | undefined): string {
   })}`;
 }
 
-function availability(opportunity: OpportunitySummary): { glyph: string; label: string } {
+function availability(opportunity: OpportunitySummary): {
+  glyph: string;
+  label: string;
+  open: boolean;
+} {
   const status = opportunity.status?.toLowerCase();
   if (status && status !== 'open' && status !== 'active') {
-    return { glyph: '○', label: 'Availability needs review' };
+    return { glyph: '○', label: 'Availability needs review', open: false };
   }
   if (opportunity.freshness?.isStale) {
-    return { glyph: '△', label: 'Listing may be out of date' };
+    return { glyph: '△', label: 'Listing may be out of date', open: false };
   }
   if (opportunity.freshness?.listingStatus === 'aging') {
-    return { glyph: '△', label: 'Listing is aging' };
+    return { glyph: '△', label: 'Listing is aging', open: false };
   }
-  return { glyph: '●', label: 'Listed as open' };
+  // `open: true` lets the dot carry the route's one lawful loop — a slow
+  // system-status pulse (EC-29; amendment E.2 Loops row). The words beside
+  // it keep carrying the meaning (EC-4).
+  return { glyph: '●', label: 'Listed as open', open: true };
 }
 
 function placement(opportunity: OpportunitySummary): string {
@@ -76,6 +83,7 @@ export default function OpportunityHorizon() {
       className="ezh-opportunities"
       data-home-opportunity-horizon=""
       data-header-theme="light"
+      data-ezh-reveal=""
       aria-labelledby="ezh-opportunities-heading"
     >
       <div className="ezh-wrap">
@@ -85,11 +93,10 @@ export default function OpportunityHorizon() {
             <h2 id="ezh-opportunities-heading">
               A job board that reads your credentials, not your keywords.
             </h2>
+            {/* Amendment E.2: one sentence. */}
             <p className="ezh-sec-sub">
-              Most boards match the words on your r&eacute;sum&eacute;. VitalCV scores a role
-              against what your record already shows &mdash; and names what stands between you
-              and it, before you apply. When nothing fits, it says nothing fits instead of
-              padding the list.
+              VitalCV scores each role against what your record already shows &mdash; and names
+              what stands between you and it, before you apply.
             </p>
           </div>
           <Link className="ezh-opportunity-all" href="/explore">
@@ -145,7 +152,12 @@ export default function OpportunityHorizon() {
                       <span>{observedLabel(sourceObservedAt)}</span>
                       <span aria-hidden="true"> · </span>
                       <span>
-                        <i aria-hidden="true">{currentAvailability.glyph}</i>{' '}
+                        <i
+                          aria-hidden="true"
+                          className={currentAvailability.open ? 'is-open' : undefined}
+                        >
+                          {currentAvailability.glyph}
+                        </i>{' '}
                         {currentAvailability.label}
                       </span>
                     </p>

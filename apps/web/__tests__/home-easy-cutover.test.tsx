@@ -178,8 +178,9 @@ describe('the idle homepage invents no clinician', () => {
 
   it('states the NPI action honestly before any lookup', () => {
     const html = renderHomepageHtml();
-    // Countable progress, not an implied result.
-    expect(html).toContain('0/10 digits');
+    // Countable progress, not an implied result. E.2 wraps the number in the
+    // pop span, so match through the tag.
+    expect(html).toMatch(/0(?:<\/span>)?\/10 digits/);
     expect(html).not.toMatch(/\bverified\b/i);
   });
 
