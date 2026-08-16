@@ -211,33 +211,42 @@ test.describe('home — the v4 hero and register', () => {
     expect(hidden).toBe(0);
   });
 
-  test('exactly ONE loop on the route — the sanctioned status pulse, nothing else', async ({ page }) => {
-    // EC-29: no decorative loop. The founder's v4 kit shipped ambient
-    // infinite animations; amendment F ports single-shot only. The single
-    // lawful exception is E.2's system-status pulse on the live feed's
-    // "Listed as open" availability dot (`ezh-status-pulse`) — a status the
-    // row already states in words (EC-4). Anything else computing an
-    // infinite iteration count is a regression.
+  test('every ambient loop is confined to illustration art, plus the status pulse', async ({ page }) => {
+    // Amendment F.1 (founder "Allow ambient loops", 2026-08-16; EC-29 amended
+    // in the same PR): bounded ambient loops are permitted, but ONLY inside
+    // illustration figures (`.ezh-fig-art`, aria-hidden) — never a control,
+    // text, status, or evidence surface (EC-4). The one non-figure loop is
+    // E.2's live-feed status pulse on the "Listed as open" dot. Any infinite
+    // animation that is neither is a regression.
     await expect
       .poll(async () => folio(page).getAttribute('data-motion'), { timeout: 6000 })
       .toBe('done');
     await expect(page.locator('.ezh-opportunity-source i.is-open').first()).toBeVisible();
-    const looping = await page.evaluate(() => {
-      const bad: string[] = [];
+    const audit = await page.evaluate(() => {
+      const escaped: string[] = [];
+      let inArt = 0;
+      let statusPulse = 0;
       for (const el of document.querySelectorAll('main.ezh, main.ezh *')) {
         const s = getComputedStyle(el);
-        if (
-          s.animationName !== 'none' &&
-          s.animationIterationCount.includes('infinite') &&
-          !(s.animationName === 'ezh-status-pulse' && el.classList.contains('is-open'))
-        ) {
-          bad.push(`${el.tagName.toLowerCase()}.${String(el.className).slice(0, 48)} → ${s.animationName}`);
-          if (bad.length >= 5) break;
-        }
+        if (s.animationName === 'none' || !s.animationIterationCount.includes('infinite')) continue;
+        // Illustration art: the figure drawings and the arc beat minis, both
+        // aria-hidden. `.ezh-beat-fig` is the beat minis' own art wrapper.
+        const isFigureArt = el.closest('.ezh-fig-art') !== null || el.closest('.ezh-beat-fig') !== null;
+        const isStatusPulse = s.animationName === 'ezh-status-pulse' && el.classList.contains('is-open');
+        if (isFigureArt) inArt += 1;
+        else if (isStatusPulse) statusPulse += 1;
+        else escaped.push(`${el.tagName.toLowerCase()}.${String(el.className).slice(0, 48)} → ${s.animationName}`);
       }
-      return bad;
+      return { escaped, inArt, statusPulse };
     });
-    expect(looping, `unsanctioned infinite animations on /:\n${looping.join('\n')}`).toEqual([]);
+    // No loop escapes the illustration art or the status pulse.
+    expect(audit.escaped, `ambient loop escaped illustration art:\n${audit.escaped.join('\n')}`).toEqual([]);
+    // The ambient loops actually run (the ECG trace at minimum), and the
+    // status pulse is present — so the guard is testing something live. (The
+    // mocked feed returns two open roles, so two pulse dots; the count is not
+    // fixed, only that it exists and every pulse is the sanctioned one.)
+    expect(audit.inArt, 'no ambient illustration loop is running').toBeGreaterThan(0);
+    expect(audit.statusPulse, 'the live-feed status pulse is missing').toBeGreaterThanOrEqual(1);
   });
 
   test('the one-shot section entrances leave nothing hidden', async ({ page }) => {
@@ -481,7 +490,12 @@ test.describe('home — reduced motion and no-JS', () => {
       ).length,
     );
     expect(hidden).toBe(0);
-    // Zero animations of consequence anywhere in the island.
+    // Zero animations of consequence anywhere in the island — the F.1
+    // invariant. This is the real test of the ambient exception: under normal
+    // motion the ECG traces, the packet travels, connectors march and glyphs
+    // tick; under reduced motion EVERY one of them, plus the status pulse and
+    // the entrances, must stop. `getAnimations()` returns nothing for an
+    // element whose computed `animation` is `none`.
     const running = await page.evaluate(() =>
       document
         .getAnimations()

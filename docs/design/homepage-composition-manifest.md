@@ -17,12 +17,17 @@ facts** — if it is mono, a source returned it. Five evidence-geometry figure
 groups in the register inks: every value a blank bar, every NPI masked, every
 figure self-labelled illustrative with a hidden transcript, all complete in
 the server frame. There is no frost, no photograph, no raster, no canvas, and
-no WebGL on this route. Motion is single-shot, on E.2's system: the hero
-folio's one cadence-line draw + tile arrivals, the reveal's one-shot stagger,
-`useSectionReveals` one-shot section entrances over an SSR-complete page, and
-`ezh-row-in` for late-mounted feed rows. The one lawful loop is the live
-feed's "Listed as open" status pulse (EC-29's system-status exception);
-nothing else loops. The page does not pin scrolling, rotate panels, or depend on
+no WebGL on this route. Motion has two mechanisms, both confined to
+illustration art (`.ezh-fig-art`, aria-hidden) or the live feed, and both
+fully killed by reduced motion: (1) one-shot ENTRANCES on E.2's system — the
+hero folio tile arrivals, the reveal's one-shot stagger, `useSectionReveals`
+section entrances over an SSR-complete page, and `ezh-row-in` for
+late-mounted feed rows; (2) ambient LOOPS (amendment F.1, founder "Allow
+ambient loops" 2026-08-16, EC-29 amended in the same PR) — the hero cadence
+line traces, the trust-flow packet travels, accent connectors dash-march, and
+illustration marker glyphs tick, all inside figures only. The live feed's
+"Listed as open" status pulse (EC-29's separate system-status exception)
+stays. Reduced motion stops EVERY animation on the route. The page does not pin scrolling, rotate panels, or depend on
 JavaScript to reveal the record or the decision boundaries. The shared public
 chrome is unchanged (A-3 geometry, A-1 chrome frost) — the v4 file's floating
 glass rail was NOT ported and awaits its own founder chrome ruling (EC-10).
@@ -33,7 +38,7 @@ glass rail was NOT ported and awaits its own founder chrome ruling (EC-10).
 | --- | --- | --- | --- | --- |
 | Shared chrome | `components/layout/Eyebrow.tsx` (mounted by `RootChrome`) | Color transitions only — geometry constant | SSR light register matches the warm-paper page; the takeover menu requires JS | Zero-height floating chrome: wordmark upper-left, one action + lookup + menu upper-right (bottom-pinned on mobile); no bar, no center content |
 | State grammar | `components/home/easy/stateVocabulary.tsx` (`StateStamp`) | None | Glyph + word in ink; hue only on glyph and left rule (EC-4) | Five states, no others: ● Source-confirmed · ◐ Snapshot (cadence in the value) · ▲ Needs you · ⊘ Access required · ○ Not checked |
-| Figure grammar | The five `data-home-figure` groups (`hero-folio`, `trust-flow`, `arc-beats`, `packet-shape`, `requirement-ledger`) | Hero folio's one-shot draw/arrive; everything else static | Wide + narrow viewBox pairs both server-rendered; CSS shows one; effective text ≥ 11px at 390/375/360 (e2e-measured) | Show the mechanism — sources → record → consent → review — without asserting a real clinician, employer, credential, source response, or result |
+| Figure grammar | The five `data-home-figure` groups (`hero-folio`, `trust-flow`, `arc-beats`, `packet-shape`, `requirement-ledger`) | One-shot tile arrivals (hero) + **ambient illustration loops (F.1): `ezh-il-draw` on the hero cadence line, `ezh-il-travel` on the trust-flow packet, `ezh-il-dash` on accent connectors, `ezh-il-tick` on marker glyphs** — figures only (EC-4), reduced-motion-killed | Wide + narrow viewBox pairs both server-rendered; CSS shows one; effective text ≥ 11px at 390/375/360 (e2e-measured) | Show the mechanism — sources → record → consent → review — without asserting a real clinician, employer, credential, source response, or result |
 | Section entrances (E.2, adopted by F) | `components/home/easy/useSectionReveals.ts` (arms `data-ezh-motion` on the `.ezh` root; sections opt in via `data-ezh-reveal`) | One-shot IntersectionObserver reveal per section; safety timer force-completes; MutationObserver catches late mounts | SSR-complete page — the hidden state exists only while armed; no-JS and reduced motion never arm | Engaging motion without a scroll owner: the document remains the page's only scroll driver (EC-4) |
 | In-page navigation | None | — | DOM order and anchors (`#npi`, `#record`, `#flow`, `#arc`, `#packet`, `#employers`, `#limits`) | No page-level carousel, rail, or chapter navigator |
 
@@ -41,7 +46,7 @@ glass rail was NOT ported and awaits its own founder chrome ruling (EC-10).
 
 | # | Section | Owner component | Data source | Motion owner | Fallback | Conversion job |
 | --- | --- | --- | --- | --- | --- | --- |
-| 1 | Hero — “Get hired. Start working sooner.” + the NPI underline field (where the whole visual budget goes) + **hero folio figure** | `EasyHome` (`NpiEntry`) + `HeroFolio` + `heroLoop.ts` | Amendment F copy table; live lookup via `useCareerLoop` | `HeroFolio` one-shot draw + arrivals (safety-stripped; reduced motion never arms) | SSR renders the complete folio; no-JS keeps the full frame; organization/unavailable outcomes answer in the entry column | Primary conversion: NPI → live record → onboarding handoff; secondary: explore opportunities |
+| 1 | Hero — “Get hired. Start working sooner.” + the NPI underline field (where the whole visual budget goes) + **hero folio figure** | `EasyHome` (`NpiEntry`) + `HeroFolio` + `heroLoop.ts` | Amendment F copy table; live lookup via `useCareerLoop` | `HeroFolio` one-shot tile arrivals (safety-stripped) + the ambient cadence-line trace (F.1); reduced motion stops both | SSR renders the complete folio; no-JS keeps the full frame; organization/unavailable outcomes answer in the entry column | Primary conversion: NPI → live record → onboarding handoff; secondary: explore opportunities |
 | 2 | Resolution scene — the eight-row idle ledger (real registry, nothing read), the read log, the tally (“Counts are of lanes, not a score.”), next actions; **real rows replace the idle ledger on resolve** (recognition moment, UX-05) | `ResolutionScene` + `NpiReveal` + `ResolvingNarration` (`data-home-resolution`, `data-npi-reveal`) | **Real returned records only** — `state.capsule` from the live bootstrap + trust-state pairing (EC-26 stateful; no fixture path); idle rows derive from the real source registry with nothing read | `useSourceCheckSequence` pacing floor, then the reveal's one-shot CSS-transition stagger; no spinner, no percentage, nothing loops | Idle ledger is SSR-complete and honestly “Not checked”; reduced motion settles instantly (`is-instant`); unavailable/error compose their own honest states | The magic moment: “VitalCV already did work for me” — unknowns at equal typographic confidence |
 | 3 | Trust flow — four hops (sources → your record → consent gate → employer exceptions queue), one barred source | `EasyHome` section + `TrustFlowFigure` | Illustrative process figure over the real lane registry; transcript carries the meaning | None — static by design | Both viewBox variants SSR'd; adjacent transcript + legend | Teach the consent boundary: nothing moves without the clinician; the decision stays with the employer |
 | 4 | The arc — “One record, once — then every job after it.” Five beats (record · readiness · roles · apply with proof · start) + axis + duration honesty note | `ArcBeats` (`data-home-arc`, `data-home-duration-note`) | Static; no fabricated counts, dates, or ids; “Durations are pilot targets, not returned data” | None | SSR-complete | The reuse thesis in one sweep — why one record beats every folder |

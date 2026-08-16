@@ -434,13 +434,18 @@
 .ezh .ezh-f-link { fill: none; stroke: var(--vt-home-f-rule-strong); stroke-width: 1; stroke-dasharray: 5 5; }
 .ezh .ezh-f-link.is-acc { stroke: var(--vt-home-f-signal); }
 .ezh .ezh-f-gate { fill: none; stroke: var(--vt-home-f-ink); stroke-width: 2; }
-.ezh .ezh-f-pktdot { fill: var(--vt-home-f-signal); }
+/* The traveling-packet dot is invisible at rest (and under reduced motion);
+   it exists only while its ambient travel loop runs (amendment F.1). */
+.ezh .ezh-f-pktdot { fill: var(--vt-home-f-signal); opacity: 0; }
 .ezh .ezh-f-ecg {
   fill: none;
   stroke: var(--vt-home-f-signal);
   stroke-width: 1.5;
   stroke-linecap: round;
   stroke-linejoin: round;
+  /* Solid at rest / reduced motion; the ambient loop redraws it (F.1). */
+  stroke-dasharray: var(--ezh-len, 600);
+  stroke-dashoffset: 0;
 }
 
 .ezh .ezh-f-lbl {
@@ -499,38 +504,63 @@
 .ezh .ezh-fig-legend i.is-acc { border-top-color: var(--vt-home-f-signal); }
 .ezh .ezh-fig-legend i.is-solid { border-top-style: solid; border-top-color: var(--vt-home-f-ink); }
 
-/* ── hero folio motion: single-shot, armed only by hydration ─────────────── */
+/* ── figure motion ───────────────────────────────────────────────────────────
+ *
+ * Two mechanisms, both confined to illustration art (`.ezh-fig-art`,
+ * aria-hidden) and both fully killed by reduced motion:
+ *
+ *   1. One-shot ENTRANCES — the hero folio tiles arrive once (a transition,
+ *      not a loop), armed by hydration via `data-motion`.
+ *   2. Ambient LOOPS — amendment F.1 (founder ruling "Allow ambient loops",
+ *      2026-08-16): the hero ECG cadence line traces continuously, the
+ *      trust-flow packet dot travels, the accent connector lines march, and
+ *      illustration marker glyphs tick. These are the founder's v4
+ *      `body.mo-amb` behaviours, scoped to figures only — never a control,
+ *      text, status, or evidence surface (EC-4). Pure CSS so they progress
+ *      before hydration; the reduced-motion kill below stops every one.
+ */
 
-/* Server frame and `static`/`done`: everything complete and visible. */
+/* one-shot tile entrance (kept) */
 .ezh .ezh-fig-hero .ezh-f-arr { opacity: 1; }
-
 .ezh .ezh-fig-hero[data-motion='armed'] .ezh-f-arr,
 .ezh .ezh-fig-hero[data-motion='run'] .ezh-f-arr { opacity: 0; }
-
-.ezh .ezh-fig-hero[data-motion='armed'] .ezh-f-ecg,
-.ezh .ezh-fig-hero[data-motion='run'] .ezh-f-ecg {
-  stroke-dasharray: var(--ezh-len, 600);
-  stroke-dashoffset: var(--ezh-len, 600);
-}
-
-.ezh .ezh-fig-hero[data-motion='run'] .ezh-f-ecg {
-  /* 760ms: the rare-narrative band (450–800ms, EC-29). Keyframes live in
-     styles/motion.css (LINT-03). */
-  animation: ezh-f-draw 760ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
-}
-
 .ezh .ezh-fig-hero[data-motion='run'] .ezh-f-arr {
   /* 220ms per tile: the state-transition band. --ezh-d staggers the four. */
   animation: ezh-f-arrive 220ms cubic-bezier(0.22, 1, 0.36, 1) var(--ezh-d, 0s) forwards;
 }
 
+/* ambient illustration loops (F.1) — keyframes live in styles/motion.css */
+.ezh .ezh-fig-art .ezh-f-ecg {
+  /* the cadence line redraws on a 5s heartbeat (bounded, decorative). */
+  animation: ezh-il-draw 5s linear infinite;
+}
+.ezh .ezh-fig-art .ezh-f-pktdot {
+  /* a reading travels its --ezh-tx once every cycle, then repeats. */
+  animation: ezh-il-travel 3.2s cubic-bezier(0.22, 1, 0.36, 1) var(--ezh-d, 0s) infinite;
+}
+.ezh .ezh-fig-art .ezh-f-link.is-acc {
+  /* readings-in-transit: the accent connectors march. */
+  animation: ezh-il-dash 1.6s linear infinite;
+}
+/* an illustration marker glyph breathes — opacity only, carries no meaning.
+   The arc beat minis live in `.ezh-beat-fig` (their own art wrapper), so the
+   tick is scoped to both illustration containers. */
+.ezh .ezh-fig-art .ezh-f-tick,
+.ezh .ezh-beat-fig .ezh-f-tick {
+  animation: ezh-il-tick 2.8s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
+  /* The invariant: ZERO animation survives here — the entrances, every
+     ambient loop, the transitions, and the live-feed status pulse all stop.
+     The illustrations rest in their complete, solid frame. */
   .ezh *, .ezh *::before, .ezh *::after {
     animation: none !important;
     transition: none !important;
   }
   .ezh .ezh-fig-hero .ezh-f-arr { opacity: 1 !important; }
-  .ezh .ezh-fig-hero .ezh-f-ecg { stroke-dasharray: none !important; stroke-dashoffset: 0 !important; }
+  .ezh .ezh-fig-art .ezh-f-ecg { stroke-dasharray: none !important; stroke-dashoffset: 0 !important; }
+  .ezh .ezh-fig-art .ezh-f-pktdot { opacity: 0 !important; }
 }
 
 /* ── the resolution scene ────────────────────────────────────────────────── */

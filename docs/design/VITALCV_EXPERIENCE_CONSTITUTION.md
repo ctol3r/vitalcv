@@ -641,7 +641,7 @@ and its copy/budget rows — each E.2 row above carries its own marker.
 | Monospace | **The mono law returns to `/`** — machine facts (the NPI field, digit counts, masked NPIs, source names, cadence labels, state stamps, micro-labels) render in Geist Mono with `tabular-nums`: *if you are looking at mono type, a source returned it*. Supersedes D's and E's "None on this surface" rows | LOCKED for `/` |
 | State grammar | **Five states, no others**, each glyph + word in ink (EC-4): ● Source-confirmed (`--vt-state-source-confirmed`) · ◐ Snapshot, cadence inside the value (`--vt-home-f-snapshot` `#6E5A1C`, minted — no existing hue means "true as of a dated file") · ▲ Needs you (`--vt-state-pending`) · ⊘ Access required (`--vt-state-access`) · ○ Not checked (ink-subtle). Hue carries only the glyph and a left rule | LOCKED for `/` |
 | Composition | Hero (H1 + NPI underline field + hero folio figure) → interactive resolution scene (eight real registry rows · read log · tally · next actions) → trust-flow diagram (four hops, one barred source) → five-beat arc with the **live opportunity feed** as the Roles beat's expansion (the jobs-on-`/` founder ruling holds; feed truth contract untouched) → truth boundary → exact-packet shape + refuses-to-decide list + state legend → employers (four claims + illustrative requirement ledger) → honest limits → close → footer with the source-cadence sentence | LOCKED for `/` |
-| Motion | **Single-shot only**, on E.2's system: the hero folio's cadence-line draw (760ms, rare-narrative band) and tile arrivals (220ms, state-transition band); the reveal's one-shot stagger; E.2's `useSectionReveals` one-shot section entrances (340ms, product-transformation band) over an SSR-complete page; and E.2's `ezh-row-in` for late-mounted feed rows. **The route's ONE lawful loop is E.2's "Listed as open" status pulse** (EC-29's system-status exception) — nothing else loops. Server frame complete; reduced motion never arms anything and kills the pulse. **The founder file's `ambient` default is deliberately not implemented** — see the deviations table | LOCKED for `/` |
+| Motion | **Amended by F.1 (2026-08-16) — ambient loops ALLOWED.** One-shot entrances (E.2's system): the hero folio tile arrivals (220ms, state-transition band); the reveal's one-shot stagger; E.2's `useSectionReveals` one-shot section entrances (340ms, product-transformation band) over an SSR-complete page; and E.2's `ezh-row-in` for late-mounted feed rows. **Ambient illustration loops (founder "Allow ambient loops", 2026-08-16, EC-29 amended in the same PR):** the hero cadence line traces continuously, the trust-flow packet travels, the accent connectors dash-march, and illustration marker glyphs tick — all inside `.ezh-fig-art` only (EC-4: never a control, text, status, or evidence surface). The live feed's "Listed as open" status pulse (EC-29's separate system-status exception) stays. **Reduced motion stops every animation on the route** — the invariant, e2e-asserted. Server frame complete | LOCKED for `/` (amended F.1) |
 | Text-node budget | **285** (measured 259 at landing + ~10% headroom) — supersedes E.1's 110: the founder's v4 is deliberately denser than the simple-bottom-half composition. Enforced by `homepage-composition-gate.test.tsx`; additions are funded by cuts | LOCKED for `/` |
 
 **Copy of record for `/` (the founder's v4, as corrected by standing law):**
@@ -668,7 +668,7 @@ by amending the law it cites:**
 | 3 | Demonstration NPI **1043002765** + a "Use the demonstration NPI" button | Masked `NPI ··· ··· ····` in every illustration; the demo button is deleted; the interactive resolve wires to the real lookup (`useCareerLoop` → bootstrap + trust-state), and real data replaces the idle ledger on resolve | A well-formed NPI may name a real person; EC-25.1; the recognition-moment contract |
 | 4 | Illustrative reads from **ABIM/ABMS** (not integrated), **NPDB** (banned noun), California `A-96421` / Oregon `MD187254` licences with expiry dates, **UCSF Health** privileges, **Meridian Health** recipient, `PKT-…` ids, `sha256` hashes, `vitalcv.com/verify/…` URLs, fixture clocks, OIG "no match returned" | The REAL registry lanes only (NPPES read live · OIG/LEIE monthly snapshot · PECOS quarterly snapshot · state licensure access-gated · employment/board-cert not read), blank bars for every value, no ids/hashes/URLs/clocks, no employer names, no depicted OIG response | EC-3, EC-25.2/3; NPDB ban; the no-fixture-clock rule |
 | 5 | A six-state legend including **"Adverse · under dispute"**; heading "Six states, no others" | Five states; heading **"Five states, no others"**; Confirmed→**Source-confirmed**, Needs attention→**Needs you**, Snapshot keeps its cadence inside the value | Never teach a state the product cannot produce; EC-3 state-vocabulary freeze |
-| 6 | Motion default **ambient** (infinite ECG draw, packet-travel, link-dash, beat-tick loops) | **Single-shot everything**; the trust-flow diagram ships static. The only loop on the route is E.2's sanctioned "Listed as open" status pulse — a system status, not decoration | EC-29: nothing loops except a loading skeleton, a status pulse, or a genuinely running check — the founder file's loops were decorative. **Reversible only by founder amendment of EC-29's application** |
+| 6 | Motion default **ambient** (infinite ECG draw, packet-travel, link-dash, beat-tick loops) | **Ambient loops IMPLEMENTED** (founder ruled "Allow ambient loops", 2026-08-16, after the initial single-shot port): the four `body.mo-amb` behaviours run inside `.ezh-fig-art` illustration art; reduced motion stops all of them | Initially shipped single-shot under EC-29's no-loop rule; the founder ruled to allow ambient, and **EC-29 was amended in the same PR (F.1)** to permit bounded ambient illustration loops on the `/` scene register — scoped to figures only (EC-4), reduced-motion-killed |
 | 7 | A **floating glass nav rail** (fixed, rounded, frosted) | **Not ported** — the existing shared eyebrow chrome stays. The rail is recorded as a gap: it needs a separate founder chrome ruling (EC-10 bans the floating rounded container form, and shared chrome is founder-gated) | EC-10, A-2/A-3; `FOUNDER_VISUAL_GATE.md` |
 | 8 | Intro claims "a real proof packet"; button **"Open a real public packet"** | The section is explicitly illustrative ("This is not a real submission"), values are blank bars, and the quiet link points at the real public surface, `/verify` | Packet receipts ship dark; `decisionGrade: false` is untouchable; EC-25.4 |
 | 9 | Google Fonts `<link>`s; React/Babel tweaks scaffolding | Self-hosted `next/font/local` faces already in `app/fonts/`; no scaffolding | EC-20 font-delivery row |
@@ -828,9 +828,31 @@ Objective, measurable, and CI-enforceable (EC-23):
 - Every motion asset ships: poster, static reduced-motion composition, and — for `kind='process'` and `'stateful'` — a transcript or adjacent textual equivalent. Decorative crops carry empty alt text; meaningful process scenes never do.
 - Every asset carries source, license, and origin metadata. An unlabeled, oversized, or fallback-less asset fails the gate.
 - Motion timing follows the four bands already locked in EC-20: 80–150ms control feedback · 150–250ms state transition · 250–450ms product transformation · 450–800ms rare narrative.
-- **Nothing loops** except a loading skeleton, a system-status pulse, or a source check that is genuinely running. A hero does not loop once it has finished.
+- **Nothing loops** except a loading skeleton, a system-status pulse, a source check that is genuinely running, or a **bounded ambient illustration loop** authorised per the amendment below. A hero does not loop once it has finished.
 - Numbers animate only between real returned values (EC-3).
 - No body copy is printed inside an image; contrast floors hold independent of artwork (EC-5).
+
+**Amendment F.1 — ambient illustration loops on the `/` scene register (founder ruling, 2026-08-16).**
+Founder directive, quoted verbatim: *"Allow ambient loops"* — ruled on the Homepage v4 PR (#1431)
+alongside the v4 GO. This adds one bounded exception to the no-loop rule, scoped as narrowly as
+the rule it relaxes:
+
+- **Permitted:** continuous, bounded, decorative motion loops **inside a homepage illustration
+  figure** (the `/` route's `.ezh-fig-art` illustration art — the founder's v4 `body.mo-amb`
+  behaviours: the hero cadence line's continuous trace, the trust-flow packet's travel, the accent
+  connectors' dash-march, and an illustration marker glyph's opacity tick).
+- **Never:** a control, an input, text, a status marker, a state marker, an evidence surface, a
+  proof row, an artifact, or any number. The loop carries **no meaning** — removing it must cost
+  nothing but atmosphere (EC-4), and the illustration's meaning stays in its static frame and its
+  adjacent transcript.
+- **Reduced motion stops every one of them.** Under `prefers-reduced-motion: reduce` the figure
+  rests in its complete, solid frame with zero animation — this is the invariant, asserted against
+  a production build in `tests/e2e/home-easy.spec.ts`. The no-JS frame is likewise complete; the
+  loops are pure CSS and decorative, so their absence changes nothing legible.
+- **Scope:** this exception is the `/` scene register only. It does not authorise loops on any
+  other surface, and it does not touch the system-status-pulse exception (which remains separate —
+  the live feed's "Listed as open" availability dot). Other routes remain under the unamended
+  no-loop rule; extending the exception requires its own amendment.
 
 ---
 

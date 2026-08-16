@@ -70,8 +70,8 @@ export default function ArcBeats() {
                 <rect className="ezh-f-bar" x="30" y="33" width="48" height="5" rx="2.5" />
                 <rect className="ezh-f-bar" x="30" y="55" width="58" height="5" rx="2.5" />
                 <text className="ezh-f-g is-confirmed" x="10" y="19">●</text>
-                <text className="ezh-f-g is-attention" x="10" y="41">▲</text>
-                <text className="ezh-f-g is-attention" x="10" y="63">▲</text>
+                <text className="ezh-f-g is-attention ezh-f-tick" x="10" y="41">▲</text>
+                <text className="ezh-f-g is-attention ezh-f-tick" x="10" y="63">▲</text>
               </svg>
             </figure>
             <span className="ezh-k ezh-beat-stage">Continuously</span>

@@ -160,6 +160,27 @@ for (const [name, w, h] of [['after-resolved-1440x900', 1440, 900], ['after-reso
   await ctx.close();
 }
 
+// Ambient motion (amendment F.1): a focused clip that lingers on the hero
+// cadence-line trace, then scrolls to the trust-flow diagram so the packet
+// travel + connector dash-march are unmistakable, then the arc for the tick.
+{
+  const ctx = await browser.newContext({
+    viewport: { width: 1440, height: 900 },
+    recordVideo: { dir: OUT, size: { width: 1440, height: 900 } },
+  });
+  const page = await ctx.newPage();
+  await page.goto(base, { waitUntil: 'networkidle' });
+  await page.waitForTimeout(5200); // several ECG heartbeats on the hero
+  await page.locator('#flow').scrollIntoViewIfNeeded();
+  await page.waitForTimeout(5000); // packet travel + dash-march cycles
+  await page.locator('#arc').scrollIntoViewIfNeeded();
+  await page.waitForTimeout(4000); // marker-glyph tick
+  const video = page.video();
+  await page.close();
+  await video?.saveAs(`${OUT}/after-ambient-motion.webm`);
+  await ctx.close();
+}
+
 // Mobile: load, hero one-shots, then the scroll story.
 {
   const ctx = await browser.newContext({

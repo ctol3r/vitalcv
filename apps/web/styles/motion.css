@@ -403,20 +403,10 @@
   }
 }
 
-/* Homepage v4 (amendment F, 2026-08-16) — the hero folio's single-shot pair.
- * Used only by `.ezh-fig-hero[data-motion='run']` in easy-home.css: the
- * cadence line draws once (rare-narrative band) and the four source tiles
- * arrive once, staggered (state-transition band). The founder's v4 kit
- * shipped these as ambient infinite loops; EC-29 permits no decorative loop,
- * so only the single-shot semantics are ported — recorded as a deviation in
- * the amendment F table. Reduced motion never arms the animation, and
- * easy-home.css force-completes both under prefers-reduced-motion. */
-@keyframes ezh-f-draw {
-  to {
-    stroke-dashoffset: 0;
-  }
-}
-
+/* Homepage v4 (amendment F, 2026-08-16) — the hero folio's one-shot tile
+ * entrance. Used by `.ezh-fig-hero[data-motion='run']` in easy-home.css: the
+ * four source tiles arrive once, staggered (state-transition band). Reduced
+ * motion never arms it. */
 @keyframes ezh-f-arrive {
   from {
     opacity: 0;
@@ -425,5 +415,57 @@
   to {
     opacity: 1;
     transform: none;
+  }
+}
+
+/* Homepage v4 — ambient illustration loops (amendment F.1, 2026-08-16).
+ *
+ * Founder ruling, verbatim: "Allow ambient loops". These are the founder's
+ * v4 `body.mo-amb` behaviours from vitalcv-ill-v4.css, ported to the F island
+ * and consumed ONLY by `.ezh-fig-art` illustration classes (aria-hidden art):
+ * never a control, text, status, or evidence surface (EC-4). EC-29 was
+ * amended in the same PR to permit bounded ambient illustration loops on the
+ * `/` scene register; the easy-home.css reduced-motion block stops every one
+ * of them. Distinct from the live-feed status pulse (`ezh-status-pulse`),
+ * which is EC-29's separate system-status exception and stays. */
+@keyframes ezh-il-draw {
+  from {
+    stroke-dashoffset: var(--ezh-len, 600);
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes ezh-il-travel {
+  0% {
+    opacity: 0;
+    transform: translateX(0);
+  }
+  14% {
+    opacity: 1;
+  }
+  82% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(var(--ezh-tx, 90px));
+  }
+}
+
+@keyframes ezh-il-dash {
+  to {
+    stroke-dashoffset: -20;
+  }
+}
+
+@keyframes ezh-il-tick {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
   }
 }

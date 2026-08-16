@@ -91,7 +91,15 @@ export default function TrustFlowFigure() {
           <path className="ezh-f-gate" d="M612 40 V136" />
           <path className="ezh-f-gate" d="M612 176 V272" />
           <path className="ezh-f-link is-acc" d="M560 156 H660" />
-          <rect className="ezh-f-pktdot" x="576" y="150" width="11" height="11" rx="2" />
+          <rect
+            className="ezh-f-pktdot"
+            x="576"
+            y="150"
+            width="11"
+            height="11"
+            rx="2"
+            style={{ ['--ezh-tx' as never]: '78px' }}
+          />
           <text className="ezh-f-lbl" x="612" y="296" textAnchor="middle">one exact packet</text>
 
           <text className="ezh-f-lbl" x="660" y="16">04 · Employer review</text>
@@ -167,7 +175,15 @@ export default function TrustFlowFigure() {
           <text className="ezh-f-lbl" x="2" y="468">03 · Consent</text>
           <path className="ezh-f-gate" d="M2 482 H140" />
           <path className="ezh-f-gate" d="M190 482 H328" />
-          <rect className="ezh-f-pktdot" x="160" y="476" width="11" height="11" rx="2" />
+          <rect
+            className="ezh-f-pktdot"
+            x="160"
+            y="476"
+            width="11"
+            height="11"
+            rx="2"
+            style={{ ['--ezh-tx' as never]: '26px' }}
+          />
           <text className="ezh-f-lbl" x="165" y="506" textAnchor="middle">one exact packet</text>
           <path className="ezh-f-link is-acc" d="M165 514 V532" />
 
