@@ -565,6 +565,53 @@ once each, in words a visitor would actually read.
 145 to **110**, enforced by `homepage-composition-gate.test.tsx`. Additions
 are funded by cuts, permanently.
 
+#### Composition amendment E.2 — clinical theme and motion (2026-08-16)
+
+Founder directive on the shipped E.1 page, quoted verbatim: *"its better for
+sure. but its lacking the clinic/clinician/hospital theme. again less text
+more higher level and simplified visuals. the whole thing needs to be
+interactive and animated, trendy, clean, polished, fun, smart engaging motion
+throughout."*
+
+**Theme ruling (2026-08-16).** The clinical theme was selected from a
+three-option rendered bake-off. The founder picked **Option 1 "Chart &
+Badge"** — the clinic expressed through its OBJECTS — verbatim: *"i think
+option 1 is headed in the right direction. not perfect but [better] than the
+two others."* Considered and **not selected**: Option 2 (an EKG/pulse-line
+motif as connective tissue) and Option 3 (drawn clinician characters). Both
+are recorded as rejected vocabulary for this route: no EKG/pulse-line
+connective motif, and no drawn people. "Not perfect" is the founder's caveat —
+refinement is expected at the visual gate.
+
+**What this amends.** Three things, all inside the E register: the page gains
+a clinical drawn-pictogram vocabulary, loses another pass of text, and gains a
+page-wide one-shot motion system. Nothing outside `/`'s presentation moves.
+
+| Decision | Value | Status |
+|---|---|---|
+| Clinical pictogram vocabulary | **Drawn only, never photographed** — the Option 1 "Chart & Badge" object set: simple 2px-stroke pictograms in the register inks, always `aria-hidden`, always depicting an OBJECT and never a fact. The profile is a clinician's **ID badge** (accent band, punched lanyard slot, empty photo frame, blank identity bars) whose **chart rows** fill from **labelled source pills** (pills are the ratified shape for source-name word-labels); source pictograms are registry building (NPPES), **cross-in-shield used sparingly** (state board), flag (federal list); plus watch-with-stethoscope curve (the standing-watch promise) and plus-in-building (an open role's facility). **Rejected:** EKG/pulse-line connective motifs and drawn clinician characters. No pictogram may depict a source response, count, score, person, employer decision, or result — EC-25 applies to pictograms exactly as to scenes. D.8's commissioning boundary for photography is untouched: this vocabulary does not authorize any raster or photographic asset | LOCKED for `/` |
+| Motion posture | **The record assembling — one-shot entrances + micro-interactions, inside the EC-29 bands.** The badge clips on with a small swing settle (rotation ≤1.4°, the route's one narrative accent, 450–800ms band); chart rows slide/fade in sequence; connector lines from the source pills draw once (stroke-dashoffset). Section entrances are an IntersectionObserver-armed enhancement over an SSR-complete page: content is fully present in the server frame, hydration arms the one-shot reveal, a safety timer force-completes it, late-mounted sections are caught, and each section reveals exactly once. Micro-interactions (hover/press on cards, rows, and actions; the NPI digit-count pop) sit in the 80–150ms feedback band; state transitions 150–250ms; entrances and line-draws 250–450ms. Calm and precise, not showy. The digit counter animates only between real typed counts (EC-3) | LOCKED for `/` |
+| Loops | **System-status pulses only** — EC-29's named exception. The one instance: the live feed's "Listed as open" availability dot may carry a slow opacity pulse, because it restates a status the row already states in words (EC-4). Nothing else on the route loops: no looping hero, no ambient sweep, no shimmer | LOCKED for `/` |
+| Reduced motion / no-JS | The finished frame, with **zero animation**: the reveal system never arms, the pulse does not run, and every section, figure, and row is complete — asserted by `design-kernel.spec.ts` and `home-easy.spec.ts` against a production build | LOCKED for `/` |
+| Scroll ownership | Unchanged: the document is the one scroll owner (EC-4). No scroll-snap, wheel listeners, or scroll-driven animation libraries (XS-1, R8) | LOCKED for `/` |
+| Hero sub (supersedes the E copy-table row) | **We find what we can, show you exactly what remains, and keep it that way.** — one sentence | LOCKED for `/` |
+| Composition budget | The page-wide prose text-node ceiling tightens from 110 to **90**, enforced by `homepage-composition-gate.test.tsx`. Additions are funded by cuts, permanently | LOCKED for `/` |
+
+**Copy discipline (the "less text" pass).** Promise bodies are one sentence
+each; Quick answers are one line each; the Roles subhead is one sentence; the
+truth-boundary line shortens while keeping its two load-bearing phrases —
+"nothing has been sent" and "institution review" — verbatim.
+
+**Deliberately not changed:** the E register values (ground, ink, action
+ladder, radius, type, figure inks); the E.1 composition order (hero →
+Recognition → Roles → truth line → three promises → quick answers → employer
+doorway → final action); the hero H1, payoff line, eyebrow, and both action
+labels; the Roles feed contract (source labels, observation times, honest
+loading/error/empty states, the external-vs-integrated application boundary);
+the truth boundaries (consent stated once, institution review deciding, figure
+self-labels and hidden transcripts); `NpiReveal`'s resolved-state semantics;
+and `OpportunityHorizon`'s data contract.
+
 #### Acquisition-vocabulary amendment C1 (2026-08-15)
 
 Per the founder vocabulary rulings of 2026-08-15 (Wave C1): **"Provider Career

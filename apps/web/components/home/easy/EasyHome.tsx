@@ -26,13 +26,14 @@
  */
 
 import Link from 'next/link';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import CyclingWord from '@/components/home/easy/CyclingWord';
 import FigureMarkers from '@/components/home/easy/figures/FigureMarkers';
 import { NpiReveal, ResolvingNarration } from '@/components/home/easy/NpiReveal';
 import OpportunityHorizon from '@/components/home/easy/OpportunityHorizon';
 import ThreePromises from '@/components/home/easy/ThreePromises';
+import { useSectionReveals } from '@/components/home/easy/useSectionReveals';
 import WorkSurface from '@/components/home/easy/WorkSurface';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -135,13 +136,23 @@ function NpiEntry({
             {resolving ? 'Checking the registry…' : 'Start with your NPI'}
           </Button>
         </div>
-        <p className="ezh-npi-count">{digits.length}/10 digits &middot; free, no account needed</p>
+        {/* The per-digit pop (E.2): re-keying the span restarts the 100ms
+            feedback animation on every REAL count change — never on load,
+            never at zero, and only when the motion system is armed. */}
+        <p className="ezh-npi-count">
+          <span
+            key={digits.length}
+            className={digits.length > 0 ? 'ezh-npi-count-num is-pop' : 'ezh-npi-count-num'}
+          >
+            {digits.length}
+          </span>
+          /10 digits &middot; free, no account needed
+        </p>
         {state.phase === 'invalid' && state.invalidReason ? (
           <p className="ezh-npi-note" role="status">{state.invalidReason}</p>
         ) : null}
         <p className="ezh-npi-fine">
-          Free for clinicians. Your NPI is a public identifier &mdash; entering it starts nothing
-          you don&rsquo;t approve.
+          Free for clinicians &mdash; entering your NPI starts nothing you don&rsquo;t approve.
         </p>
       </form>
 
@@ -258,13 +269,15 @@ function HeroStage({
 
 export default function EasyHome() {
   const loop = useHeroLoop();
+  const rootRef = useRef<HTMLElement | null>(null);
+  useSectionReveals(rootRef);
 
   useEffect(() => {
     trackFunnelEvent(FUNNEL_EVENTS.HOMEPAGE_VIEWED);
   }, []);
 
   return (
-    <main className="ezh" data-home-variant="easy">
+    <main ref={rootRef} className="ezh" data-home-variant="easy">
       <FigureMarkers />
 
       {/* ── 1 · hero: the thesis beside Figure 1 ─────────────────────────── */}
@@ -285,10 +298,9 @@ export default function EasyHome() {
                 One profile. Every role, shift, hospital, state, and application.
               </span>
             </p>
+            {/* Amendment E.2: one sentence (supersedes the E copy-table row). */}
             <p className="ezh-hero-sub">
-              We find what we can, show you exactly what remains, and handle the administrative
-              work that can safely be handled. Then we keep it that way &mdash; and show you
-              where your record could go next.
+              We find what we can, show you exactly what remains, and keep it that way.
             </p>
 
             <NpiEntry {...loop} />
@@ -311,12 +323,13 @@ export default function EasyHome() {
       <section
         className="ezh-truthline"
         data-header-theme="light"
+        data-ezh-reveal=""
         aria-label="What this page does not claim"
       >
         <div className="ezh-wrap">
           <p className="ezh-truth" data-home-truth-boundary="">
-            Drawn illustrations; no real clinician, employer, or result; nothing has been sent,
-            and institution review decides the outcome.
+            Drawn illustrations, not real people or results &mdash; nothing has been sent, and
+            institution review decides.
           </p>
         </div>
       </section>
@@ -324,8 +337,13 @@ export default function EasyHome() {
       {/* ── 4 · three promises: the whole bottom-half story, once each ───── */}
       <ThreePromises />
 
-      {/* ── 5 · quick answers: flat, three lines, no accordions ──────────── */}
-      <section className="ezh-qa" data-header-theme="light" aria-labelledby="ezh-qa-h">
+      {/* ── 5 · quick answers: flat, one line each (E.2) ─────────────────── */}
+      <section
+        className="ezh-qa"
+        data-header-theme="light"
+        data-ezh-reveal=""
+        aria-labelledby="ezh-qa-h"
+      >
         <div className="ezh-wrap">
           <h2 id="ezh-qa-h" className="ezh-qa-h">
             Quick answers
@@ -333,10 +351,7 @@ export default function EasyHome() {
           <dl className="ezh-qa-list">
             <div className="ezh-qa-row">
               <dt>Is this credentialing?</dt>
-              <dd>
-                No &mdash; those decisions always stay with the employer. VitalCV keeps your
-                record ready to share.
-              </dd>
+              <dd>No &mdash; those decisions always stay with the employer.</dd>
             </div>
             <div className="ezh-qa-row">
               <dt>What does it cost?</dt>
@@ -344,17 +359,19 @@ export default function EasyHome() {
             </div>
             <div className="ezh-qa-row">
               <dt>Do I need an account just to look?</dt>
-              <dd>
-                No. Enter your NPI and see what the public record shows &mdash; an account only
-                matters when you want to keep it.
-              </dd>
+              <dd>No &mdash; enter your NPI and see what the public record shows.</dd>
             </div>
           </dl>
         </div>
       </section>
 
       {/* ── 6 · the employer doorway, one warm line ──────────────────────── */}
-      <section className="ezh-emp" data-header-theme="light" aria-labelledby="ezh-emp-h">
+      <section
+        className="ezh-emp"
+        data-header-theme="light"
+        data-ezh-reveal=""
+        aria-labelledby="ezh-emp-h"
+      >
         <div className="ezh-wrap">
           <div className="ezh-emp-row">
             <h2 id="ezh-emp-h">Hiring clinicians?</h2>
@@ -372,7 +389,12 @@ export default function EasyHome() {
       </section>
 
       {/* ── 7 · final action ─────────────────────────────────────────────── */}
-      <section className="ezh-start" data-header-theme="light" aria-labelledby="ezh-start-h">
+      <section
+        className="ezh-start"
+        data-header-theme="light"
+        data-ezh-reveal=""
+        aria-labelledby="ezh-start-h"
+      >
         <div className="ezh-wrap ezh-start-center">
           {/* Fraunces survives on this route only as the serif editorial
               aside (amendment E, Display row). */}
@@ -403,8 +425,7 @@ export default function EasyHome() {
             <Link href="/sign-in">Sign in</Link>
           </nav>
           <p className="ezh-foot-truth" data-home-source-cadence="">
-            Source freshness, stated plainly: {sourceCadenceSentence()} Where a source
-            hasn&rsquo;t answered, the profile says so instead of guessing.
+            {sourceCadenceSentence()} Where a source hasn&rsquo;t answered, the profile says so.
           </p>
         </div>
       </footer>

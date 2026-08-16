@@ -90,7 +90,8 @@ describe('homepage — required disclosures', () => {
   it('keeps the NPI action honest and free', () => {
     const html = renderHomepageHtml();
     expect(html).toContain('data-home-primary-cta');
-    expect(html).toContain('0/10 digits');
+    // E.2 wraps the count number in the pop span, so match through the tag.
+    expect(html).toMatch(/0(?:<\/span>)?\/10 digits/);
     expect(html).toContain('Free for clinicians');
   });
 });

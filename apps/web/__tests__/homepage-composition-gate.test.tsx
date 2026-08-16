@@ -134,7 +134,8 @@ describe('homepage composition gate (W0.2 / amendment E)', () => {
     expect(html).toContain('One profile. Every');
     expect(html).toContain('data-home-cycling-word="settled"');
     expect(html).toContain('application');
-    expect(html).toContain('Most weeks, nothing does.');
+    // E.2 folded the standing-watch payoff into one sentence; the claim holds.
+    expect(html).toMatch(/most\s+weeks,\s+nothing\s+does/i);
     expect(html).toContain('data-home-opportunity-horizon');
   });
 
@@ -184,7 +185,7 @@ describe('homepage composition gate (W0.2 / amendment E)', () => {
     expect(html).toContain('You say what gets shared.');
     expect(html).toContain('Nothing leaves your record until you say so.');
     expect(html).toMatch(/We keep watch, so you don/);
-    expect(html).toContain('Most weeks, nothing does.');
+    expect(html).toMatch(/most\s+weeks,\s+nothing\s+does/i);
     // Flat answers, not accordions; the credentialing boundary survives.
     expect(html).toContain('Quick answers');
     expect(html).toContain('Is this credentialing?');
@@ -194,14 +195,28 @@ describe('homepage composition gate (W0.2 / amendment E)', () => {
     expect(html).toContain('Hiring clinicians?');
   });
 
-  it('the bottom half stays SHORT — the E.1 budget is a hard ceiling', () => {
+  it('the page stays SHORT — the E.2 budget is a hard ceiling', () => {
     const html = renderHomepageHtml();
     const count = countTextNodes(html);
-    // The E budget was 145 for the whole page; E.1 cut four sections, so the
-    // whole page must now hold under 110. Fund additions with cuts.
+    // The E budget was 145; E.1 cut four sections (110); E.2's "less text"
+    // pass tightens the whole page to 90. Fund additions with cuts.
     expect(
       count,
-      `the homepage renders ${count} prose text nodes — the amendment E.1 budget is 110`,
-    ).toBeLessThanOrEqual(110);
+      `the homepage renders ${count} prose text nodes — the amendment E.2 budget is 90`,
+    ).toBeLessThanOrEqual(90);
+  });
+
+  it('amendment E.2: the clinical pictograms are drawn objects inside aria-hidden art', () => {
+    const html = renderHomepageHtml();
+    // The badge framing and pictograms live inside the figures' aria-hidden
+    // SVG art or the promises' aria-hidden glyphs — never as raster assets.
+    expect(html).not.toMatch(/<img[^>]*(?:badge|caduceus|stethoscope|hospital)/i);
+    // The motion system is an enhancement: the server frame carries NO arming
+    // attribute (hydration adds it outside reduced motion), so SSR, no-JS,
+    // and crawlers get the finished page.
+    expect(html).not.toContain('data-ezh-motion=');
+    // Sections opt into the one-shot entrance; the server frame ships them
+    // complete (the hidden state exists only under the armed attribute).
+    expect((html.match(/data-ezh-reveal/g) ?? []).length).toBeGreaterThanOrEqual(5);
   });
 });
