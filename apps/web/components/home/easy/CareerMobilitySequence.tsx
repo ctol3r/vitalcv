@@ -1,3 +1,5 @@
+import { FigureApproval, FigureReuse } from '@/components/home/easy/HomeFigures';
+
 const STEPS = [
   {
     id: 'record',
@@ -79,6 +81,39 @@ export default function CareerMobilitySequence() {
             </li>
           ))}
         </ol>
+
+        {/*
+          Amendment E: the route's one dark band gains the approval-boundary and
+          reuse figures. They redraw the band's material, not its story — the
+          seven steps above and the boundary sentence below are unchanged.
+
+          Both figures stop where the product stops. The approval figure's
+          employer side receives and never resolves; the reuse figure repeats
+          "approved each time" on every branch, because reuse is not standing
+          consent (EC-25 §5).
+        */}
+        <div className="ezh-mobility-figures">
+          <div className="ezh-mobility-figure">
+            <span className="ezh-k">Sharing</span>
+            <h3>Only what you approved crosses over.</h3>
+            <p className="ezh-sec-p">
+              When you apply, a copy carrying just the rows you approved goes to the employer. Your
+              employer receives the exact record you approve. The complete profile never leaves
+              &mdash; it stays with you, ready for the next role.
+            </p>
+            <FigureApproval />
+          </div>
+
+          <div className="ezh-mobility-figure">
+            <span className="ezh-k">Reuse</span>
+            <h3>Build it once. Use it for the next role, and the one after that.</h3>
+            <p className="ezh-sec-p">
+              The profile is not rebuilt for each application &mdash; but it is approved for each
+              one. Reuse is not standing consent.
+            </p>
+            <FigureReuse />
+          </div>
+        </div>
 
         <p className="ezh-mobility-boundary">
           Illustrative process — not a current application, employer decision, accepted head start,

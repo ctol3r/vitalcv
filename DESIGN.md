@@ -27,12 +27,12 @@ specificity, so this list is the precedence:
 
 | # | File | `--vt-*` declarations |
 |---|---|---|
-| 1 | `apps/web/styles/themes/index.css` | 186 |
+| 1 | `apps/web/styles/themes/index.css` | 189 |
 | 2 | `apps/web/styles/tokens.css` | 33 |
 | 3 | `apps/web/styles/vitalTokens.css` | 65 |
 | 4 | `apps/web/styles/matcha-zen.css` | 16 |
 
-**300 declarations across 4 files, 211 distinct tokens.**
+**303 declarations across 4 files, 214 distinct tokens.**
 
 ### Route-scoped token files (outside the global cascade)
 
@@ -212,7 +212,7 @@ table — the table says what exists, this says what to do.
 
 ## Tokens
 
-Role sentences come from `docs/design/design-md-roles.json`. **12 of 211**
+Role sentences come from `docs/design/design-md-roles.json`. **12 of 214**
 tokens have a documented role; the rest say so plainly rather than inventing one.
 
 | Token | Effective value | Declared in | Role |
@@ -332,7 +332,10 @@ tokens have a documented role; the rest say so plainly rather than inventing one
 | `--vt-home-e-band-text` | `#FBFAF7` | `styles/themes/index.css` | — *(role not documented)* |
 | `--vt-home-e-dim` | `#5C5852` | `styles/themes/index.css` | — *(role not documented)* |
 | `--vt-home-e-figure-bar` | `#E6E2DA` | `styles/themes/index.css` | — *(role not documented)* |
+| `--vt-home-e-figure-bar-band` | `#332F2B` | `styles/themes/index.css` | — *(role not documented)* |
 | `--vt-home-e-figure-dim` | `#5C5852` | `styles/themes/index.css` | — *(role not documented)* |
+| `--vt-home-e-figure-dim-band` | `#A49E95` | `styles/themes/index.css` | — *(role not documented)* |
+| `--vt-home-e-figure-hot-band` | `#FF6B4A` | `styles/themes/index.css` | — *(role not documented)* |
 | `--vt-home-e-figure-line` | `#141312` | `styles/themes/index.css` | — *(role not documented)* |
 | `--vt-home-e-ground` | `#FBFAF7` | `styles/themes/index.css` | — *(role not documented)* |
 | `--vt-home-e-ink` | `#141312` | `styles/themes/index.css` | — *(role not documented)* |

@@ -248,6 +248,20 @@ html[data-theme='dark'] {
   --vt-home-e-figure-line: #141312;
   --vt-home-e-figure-dim: #5C5852;
   --vt-home-e-figure-bar: #E6E2DA; /* blank value bars in drawn figures */
+  /* The band half of the figure inks. Amendment E's Illustration row names the
+     `--vt-home-e-figure-*` family and its Dark band row keeps the career-
+     mobility sequence on `--vt-home-e-ink`, but the table enumerates only the
+     paper values — a figure drawn on #141312 needs its own. These are the
+     committed bake-off artifact's band values, carried over rather than
+     invented, and measured against the band ground:
+       #FF6B4A on #141312 = 6.64:1   (the band's action instrument)
+       #A49E95 on #141312 = 7.09:1   (band figure captions and dim labels)
+     `--vt-home-e-action` itself is NOT usable here — #D92800 on #141312 is
+     2.9:1, which is why the artifact warmed it for the band in the first
+     place. Flagged for founder confirmation in the recomposition PR. */
+  --vt-home-e-figure-hot-band: #FF6B4A;
+  --vt-home-e-figure-dim-band: #A49E95;
+  --vt-home-e-figure-bar-band: #332F2B;
   /* Established DG-18.4 material-above-flow stop, made available to the live
      register; it is not a new layer in the seven-stop z scale. */
   --vt-z-raised: 10;

@@ -62,11 +62,13 @@ describe('1 — / renders the UX-V1 experience by default', () => {
   it('serves the Easy Button hero with no variant configured', async () => {
     const html = await renderRoot(undefined);
     expect(html).toContain(EASY);
-    expect(html).toContain('Your VitalCV profile. Ready for every move.');
-    expect(html).toContain('One career record. More ways forward.');
-    expect(html).toContain('Build my free profile');
+    // Amendment E's copy table. The hero action matches the chrome action
+    // verbatim, which is why both read "Start with your NPI".
+    expect(html).toContain('For US clinicians');
+    expect(html).toContain('Enter your NPI. VitalCV does the rest.');
+    expect(html).toContain('Start with your NPI');
     expect(html).toContain('Explore clinician opportunities');
-    expect(html).toContain('data-home-work-surface');
+    expect(html).toContain('data-home-register="direction-a"');
   });
 
   it('the resolver defaults to easy', () => {
@@ -208,16 +210,18 @@ describe('nothing claims completion before a backend success', () => {
 
 // ── the work surface tells the truthful progression ─────────────────────────
 
-describe('the work surface states record truth without manufacturing an outcome', () => {
-  it('names source state, control, and access limits in the first viewport', () => {
+describe('the illustrated record states truth without manufacturing an outcome', () => {
+  it('names source state, control, and access limits', () => {
     const html = renderHomepageHtml();
+    // Retargeted from the D.7 folio's rows to amendment E's figures and
+    // Attribution ledger. "CV Wallet" is gone on purpose — E retires the noun
+    // from `/`, and homepage-process-story now asserts its absence.
     for (const line of [
-      'CV Wallet',
       'Identity',
-      'Source-backed',
+      'Source-confirmed',
       'Access required',
-      'Needs your review',
-      'Choose what you share',
+      'Not checked',
+      'Only what you approved crosses over.',
     ]) {
       expect(html).toContain(line);
     }

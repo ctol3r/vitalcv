@@ -1,13 +1,34 @@
 'use client';
 
 /**
- * EasyHome — the `/` production experience (Direction D.1, WO-12).
+ * EasyHome — the `/` production experience (Direction A, constitution
+ * amendment E, 2026-08-15).
  *
- * The glass-and-motion amendment keeps Direction D's record-first decision and
- * adds the missing career stakes: a code-authored career horizon, a frosted
- * CV Wallet register, source-labelled public opportunities, and the
- * complete record → opportunity → choice → packet → review → accepted-head-
- * start → reuse sequence. The shared public chrome is intentionally unchanged.
+ * The founder chose Direction A at the end of a four-round rendered bake-off:
+ * minimal-bold warm paper, one hot accent, and — the round-3 ruling — drawn
+ * figures rather than text alone. Amendment E is the law; the bake-off record
+ * is `design-lab/homepage-2026-08-direction-a/DECISION.md`.
+ *
+ * What this recomposition changes, and why each is here:
+ *
+ *   HERO. New copy from E's table, and the right column now carries figure 1
+ *   (where the record comes from) in place of D.7's frosted folio. The folio
+ *   printed the words "CV Wallet" on the homepage; E retires that noun from
+ *   `/` and the figure replaces it rather than relabelling it.
+ *
+ *   ROLES. The founder's round-4 question was blunt — "why isnt job
+ *   opportunities mentioned once on homepage??" The live opportunity feed now
+ *   sits inside an explaining frame with the match figure. The feed component
+ *   itself is untouched; it carries the D.1 opportunity truth contract.
+ *
+ *   STANDING WATCH. The other round-4 ruling — the clinician should not need
+ *   to do anything — stated to the limit of watch / refresh / flag, never as a
+ *   credentialing or hiring outcome.
+ *
+ * The shared public chrome is intentionally unchanged (EC-10 / A-3), and the
+ * light employer band stays the last scrollable section: a dark section below
+ * it takes the eyebrow while the bar is still painted over paper, which
+ * renders the wordmark at 1.03:1.
  *
  * The NPI entry is the same real flow the previous homepage ran: checkNpi
  * gates format locally, /api/identity/bootstrap and /api/trust-state resolve
@@ -26,10 +47,19 @@ import { useCallback, useEffect, useState } from 'react';
 
 import Attribution from '@/components/home/easy/Attribution';
 import CareerMobilitySequence from '@/components/home/easy/CareerMobilitySequence';
+import CyclingPayoff from '@/components/home/easy/CyclingPayoff';
+import {
+  FigureApproval,
+  FigureMarkers,
+  FigureOwners,
+  FigureReuse,
+  FigureSources,
+} from '@/components/home/easy/HomeFigures';
 import { NpiReveal, ResolvingNarration } from '@/components/home/easy/NpiReveal';
 import OpportunityHorizon from '@/components/home/easy/OpportunityHorizon';
 import Questions from '@/components/home/easy/Questions';
-import WorkSurface from '@/components/home/easy/WorkSurface';
+import Roles from '@/components/home/easy/Roles';
+import StandingWatch from '@/components/home/easy/StandingWatch';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { FUNNEL_EVENTS, trackFunnelEvent } from '@/lib/analytics/funnel';
@@ -128,7 +158,9 @@ function NpiEntry({
             onChange={(event) => handleChange(event.target.value)}
           />
           <Button className="ezh-npi-submit" type="submit" data-home-primary-cta="" disabled={resolving}>
-            {resolving ? 'Checking the registry…' : 'Build my free profile'}
+            {/* E's copy table pins this to the chrome action verbatim, so the
+                page and the eyebrow ask for the same thing in the same words. */}
+            {resolving ? 'Checking the registry…' : 'Start with your NPI'}
           </Button>
         </div>
         <p className="ezh-npi-count">{digits.length}/10 digits &middot; free, no account needed</p>
@@ -253,13 +285,13 @@ function HeroStage({
     );
   }
 
+  // Amendment E: figure 1 takes the idle slot. It replaces D.7's frosted folio
+  // — the surface that printed "CV Wallet" on the homepage — and it draws the
+  // one thing the folio never did: the row no source answered, left open
+  // instead of guessed.
   return (
     <>
-      <div className="ezh-human-tactile-stage">
-        <div className="ezh-folio-stage">
-          <WorkSurface />
-        </div>
-      </div>
+      <FigureSources />
       <p className="ezh-truth" data-home-truth-boundary="">
         Code-authored illustration; no real clinician, employer, or result; nothing has been sent,
         and institution review decides the outcome.
@@ -276,7 +308,11 @@ export default function EasyHome() {
   }, []);
 
   return (
-    <main className="ezh" data-home-variant="easy">
+    <main className="ezh" data-home-variant="easy" data-home-register="direction-a">
+      {/* Arrowhead markers, hoisted out of every figure and rendered once. A
+          <marker> defined inside a display:none figure vanishes on mobile and
+          takes every arrow that references it with it. */}
+      <FigureMarkers />
       {/* ── hero: the Easy Button beside the working product ─────────────── */}
       <section
         id="npi"
@@ -287,11 +323,13 @@ export default function EasyHome() {
       >
         <div className="ezh-wrap">
           <div className="ezh-hero-copy">
-            <span className="ezh-hero-eyebrow">Your VitalCV profile. Ready for every move.</span>
-            <h1>One career record. More ways forward.</h1>
+            <span className="ezh-hero-eyebrow">For US clinicians</span>
+            <h1>Enter your NPI. VitalCV does the rest.</h1>
+            <CyclingPayoff />
             <p className="ezh-hero-sub">
-              Start with your NPI. VitalCV assembles what sources can support, shows what still
-              needs you, and helps you find roles where that record can move with you.
+              We find what we can, show you exactly what remains, and handle the administrative
+              work that can safely be handled. Then we keep it that way &mdash; and show you where
+              your record could go next.
             </p>
 
             <NpiEntry {...loop} />
@@ -307,16 +345,24 @@ export default function EasyHome() {
         </div>
       </section>
 
+      {/* ── roles: the round-4 question, answered ─────────────────────────
+          "why isnt job opportunities mentioned once on homepage??" — the
+          explaining frame and the match figure, then the live feed itself.
+          Two siblings, joined visually by CSS, because the feed carries the
+          opportunity truth contract and E leaves those rows alone. */}
+      <Roles />
       <OpportunityHorizon />
 
+      {/* ── how VitalCV knows what it knows ──────────────────────────────
+          Ownership answers whose move it is, attribution answers how a line
+          was established. Two halves of the same trust story. */}
+      <Attribution />
+
+      {/* ── the one dark band, now carrying figures 3 and 4 ─────────────── */}
       <CareerMobilitySequence />
 
-      {/* ── how VitalCV knows what it knows ──────────────────────────────
-          Sits directly after ownership on purpose: ownership answers whose
-          move it is, attribution answers how a line was established. Two
-          halves of the same trust story, and the page previously had only
-          the first. */}
-      <Attribution />
+      {/* ── the clinician does nothing, stated to its truthful limit ────── */}
+      <StandingWatch />
 
       {/* ── objections, answered at the end of the clinician run ────────── */}
       <Questions />

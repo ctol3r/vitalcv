@@ -33,7 +33,7 @@ const QUESTIONS: { q: string; a: string }[] = [
   },
   {
     q: 'What happens to something I have already shared?',
-    a: 'A submitted ApplicationPacket stays as the exact historical record you approved. Your CV Wallet may change later, but the product shows current evidence separately instead of silently replacing what an employer received.',
+    a: 'A submitted ApplicationPacket stays as the exact historical record you approved. Your VitalCV profile may change later, but the product shows current evidence separately instead of silently replacing what an employer received.',
   },
   {
     q: 'Who decides what leaves my profile?',

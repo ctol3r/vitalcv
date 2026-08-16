@@ -28,6 +28,8 @@
  * these chips take radius 0, matching `.ezh-st`).
  */
 
+import { FigureOwners } from '@/components/home/easy/HomeFigures';
+
 /**
  * The four states are drawn from the product's real lane vocabulary — Checked,
  * Pending, Access required, Blocked, Contradicted, Not checked (see
@@ -142,6 +144,16 @@ export default function Attribution() {
               Illustrative &mdash; the shape of a record, not a real person&rsquo;s.
             </p>
           </div>
+        </div>
+
+        {/*
+          Amendment E, figure 2. Attribution says how a line got there; the
+          routing figure says whose move the remainder is. They are the same
+          question asked backwards, so the figure belongs here rather than in a
+          section of its own. The employer lane stops at "decides".
+        */}
+        <div className="ezh-attr-figure">
+          <FigureOwners />
         </div>
 
         <p className="ezh-attr-scope">
