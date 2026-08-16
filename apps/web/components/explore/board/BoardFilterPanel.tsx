@@ -12,12 +12,18 @@ import {
   HIRING_TYPE_OPTIONS,
   OBSERVED_WITHIN_LABEL,
   OBSERVED_WITHIN_OPTIONS,
+  PAY_MODEL_LABEL,
+  PAY_MODEL_OPTIONS,
   PROFESSION_LABEL,
   PROFESSION_OPTIONS,
   SCHEDULE_LABEL,
   SCHEDULE_OPTIONS,
   SORT_LABEL,
   SORT_OPTIONS,
+  START_URGENCY_LABEL,
+  START_URGENCY_OPTIONS,
+  VISA_LABEL,
+  VISA_OPTIONS,
 } from '@/lib/explore/board-filters';
 
 const US_STATES = [
@@ -37,18 +43,32 @@ const CONTROL_STYLE = {
 
 function Field({
   label,
+  hint,
   children,
 }: {
   label: string;
+  hint?: string;
   children: React.ReactNode;
 }) {
   return (
     <label className="opf-filter-field">
       <span className="opf-filter-label">{label}</span>
       {children}
+      {hint ? <span className="opf-filter-hint">{hint}</span> : null}
     </label>
   );
 }
+
+/**
+ * A pay bound compares against the figure the employer PUBLISHED, so setting one
+ * necessarily drops every role that published no pay at all. That is the API's
+ * semantics and it is the right one — ranking an unpublished range as $0 would
+ * punish the employer, and ranking it high would invent a number — but it has to
+ * be said on the control, or an empty result reads as "nothing pays this".
+ */
+const PAY_RANGE_HINT
+  = 'Compares against the published figure, in whatever basis the employer used. '
+  + 'Setting either bound excludes roles that published no pay.';
 
 export function BoardFilterPanel({
   filters,
@@ -184,6 +204,88 @@ export function BoardFilterPanel({
             <option key={value} value={value}>{COMPENSATION_LABEL[value]}</option>
           ))}
         </select>
+      </Field>
+
+      <Field label="Pay basis">
+        <select
+          value={filters.payModel}
+          onChange={(event) => onChange({ payModel: event.target.value })}
+          className="opf-filter-control"
+          style={CONTROL_STYLE}
+        >
+          <option value="">Any pay basis</option>
+          {PAY_MODEL_OPTIONS.map((value) => (
+            <option key={value} value={value}>{PAY_MODEL_LABEL[value]}</option>
+          ))}
+        </select>
+      </Field>
+
+      <Field label="Pay range" hint={PAY_RANGE_HINT}>
+        <div className="opf-pay-controls">
+          <input
+            type="number"
+            inputMode="numeric"
+            min={0}
+            step={1000}
+            aria-label="Minimum pay"
+            value={filters.payMin}
+            onChange={(event) => onChange({ payMin: event.target.value })}
+            placeholder="Minimum"
+            className="opf-filter-control"
+            style={CONTROL_STYLE}
+          />
+          <input
+            type="number"
+            inputMode="numeric"
+            min={0}
+            step={1000}
+            aria-label="Maximum pay"
+            value={filters.payMax}
+            onChange={(event) => onChange({ payMax: event.target.value })}
+            placeholder="Maximum"
+            className="opf-filter-control"
+            style={CONTROL_STYLE}
+          />
+        </div>
+      </Field>
+
+      <Field label="Visa sponsorship">
+        <select
+          value={filters.visaSponsorship}
+          onChange={(event) => onChange({ visaSponsorship: event.target.value })}
+          className="opf-filter-control"
+          style={CONTROL_STYLE}
+        >
+          <option value="">Any sponsorship status</option>
+          {VISA_OPTIONS.map((value) => (
+            <option key={value} value={value}>{VISA_LABEL[value]}</option>
+          ))}
+        </select>
+      </Field>
+
+      <Field label="Start timing">
+        <select
+          value={filters.startUrgency}
+          onChange={(event) => onChange({ startUrgency: event.target.value })}
+          className="opf-filter-control"
+          style={CONTROL_STYLE}
+        >
+          <option value="">Any start timing</option>
+          {START_URGENCY_OPTIONS.map((value) => (
+            <option key={value} value={value}>{START_URGENCY_LABEL[value]}</option>
+          ))}
+        </select>
+      </Field>
+
+      <Field label="Employer type" hint="Matches any part of the employer’s stated facility type.">
+        <input
+          type="text"
+          value={filters.employerType}
+          onChange={(event) => onChange({ employerType: event.target.value })}
+          placeholder="Hospital, telehealth…"
+          className="opf-filter-control"
+          style={CONTROL_STYLE}
+        />
       </Field>
 
       <Field label="Benefits detail">

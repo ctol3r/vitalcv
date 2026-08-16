@@ -207,6 +207,7 @@ export function BoardClient({ initial }: { initial: OpportunityListPayload }) {
               key={opportunity.id}
               opportunity={opportunity}
               ordinal={(currentPage - 1) * PAGE_SIZE + index + 1}
+              onFilterEmployer={(organizationSlug) => update({ organizationSlug })}
             />
           ))}
         </div>

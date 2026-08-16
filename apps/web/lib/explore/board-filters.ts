@@ -18,9 +18,19 @@ export const OBSERVED_WITHIN_OPTIONS = ['1', '3', '7', '14', '30', '90'] as cons
 export const APPLICATION_MODE_OPTIONS = ['external', 'vitalcv'] as const;
 export const COMPENSATION_OPTIONS = ['supplied', 'not_supplied'] as const;
 export const BENEFITS_OPTIONS = ['listed', 'limited', 'not_listed'] as const;
+export const PAY_MODEL_OPTIONS = ['salary', 'hourly', 'locums', 'shift', 'unknown'] as const;
+export const VISA_OPTIONS = ['available', 'case_by_case', 'not_available', 'not_stated'] as const;
+export const START_URGENCY_OPTIONS = ['immediate', 'within_2_weeks', 'within_month', 'flexible', 'unknown'] as const;
 export const SORT_OPTIONS = ['recent', 'title', 'organization'] as const;
 
 export const PAGE_SIZE = 12;
+
+/**
+ * Ceiling on a pay bound, in whole currency units. Guards the number inputs
+ * against a value the API would reject or that would silently overflow the
+ * comparison — not a statement about what any role pays.
+ */
+const PAY_BOUND_CEILING = 10_000_000;
 
 export interface BoardFilters {
   q: string;
@@ -33,6 +43,27 @@ export interface BoardFilters {
   applicationMode: string;
   compensation: string;
   benefits: string;
+  /** Pay basis the employer published: salary / hourly / locums / shift. */
+  payModel: string;
+  /**
+   * Pay bounds, held as strings because they are text-input state. Empty means
+   * unset. The API compares these against the employer's PUBLISHED range, so a
+   * role with no published pay is excluded by either bound — the panel says so
+   * rather than letting an empty result read as "nothing pays this".
+   */
+  payMin: string;
+  payMax: string;
+  visaSponsorship: string;
+  startUrgency: string;
+  /**
+   * Free text, because the underlying value is free text — an employer's stated
+   * facility type, not a controlled vocabulary. The API substring-matches it, so
+   * a text control is what the data actually supports; a dropdown here would be
+   * a taxonomy we invented.
+   */
+  employerType: string;
+  /** Set by clicking an employer on a result row; there is no free-text control. */
+  organizationSlug: string;
   sort: string;
   /** null = any setting; true = remote; false = on-site or hybrid. */
   remote: boolean | null;
@@ -54,6 +85,13 @@ export const EMPTY_BOARD_FILTERS: BoardFilters = {
   applicationMode: '',
   compensation: '',
   benefits: '',
+  payModel: '',
+  payMin: '',
+  payMax: '',
+  visaSponsorship: '',
+  startUrgency: '',
+  employerType: '',
+  organizationSlug: '',
   sort: 'recent',
   remote: null,
   page: 1,
@@ -61,6 +99,27 @@ export const EMPTY_BOARD_FILTERS: BoardFilters = {
 
 function text(value: string | null | undefined): string {
   return (value ?? '').trim();
+}
+
+/**
+ * A pay bound is a non-negative whole number or nothing. Anything else — a
+ * negative, a stray character, a value past the ceiling — normalizes to unset
+ * rather than to zero, because a zero bound is a real filter that would quietly
+ * drop every role with no published pay.
+ */
+function payBound(value: string | null | undefined): string {
+  const raw = text(value);
+  if (!raw) return '';
+  if (!/^\d+$/.test(raw)) return '';
+  const parsed = Number.parseInt(raw, 10);
+  if (!Number.isFinite(parsed) || parsed <= 0 || parsed > PAY_BOUND_CEILING) return '';
+  return String(parsed);
+}
+
+/** A slug arrives from our own result rows, never typed — keep it URL-shaped. */
+function slug(value: string | null | undefined): string {
+  const raw = text(value).toLowerCase();
+  return /^[a-z0-9][a-z0-9-]{0,119}$/.test(raw) ? raw : '';
 }
 
 function oneOf(value: string | null | undefined, allowed: readonly string[]): string {
@@ -81,6 +140,15 @@ function parseRemote(value: string | null | undefined): boolean | null {
 }
 
 export function normalizeBoardFilters(filters: Partial<BoardFilters>): BoardFilters {
+  // A reversed pair reads as an impossible window ("at least 300k and at most
+  // 100k") and would return nothing. Swap it, matching how the read path already
+  // treats a reversed pair on the record itself.
+  let payMin = payBound(filters.payMin);
+  let payMax = payBound(filters.payMax);
+  if (payMin && payMax && Number(payMin) > Number(payMax)) {
+    [payMin, payMax] = [payMax, payMin];
+  }
+
   return {
     q: text(filters.q).slice(0, 200),
     specialty: text(filters.specialty).slice(0, 120),
@@ -92,6 +160,13 @@ export function normalizeBoardFilters(filters: Partial<BoardFilters>): BoardFilt
     applicationMode: oneOf(filters.applicationMode, APPLICATION_MODE_OPTIONS),
     compensation: oneOf(filters.compensation, COMPENSATION_OPTIONS),
     benefits: oneOf(filters.benefits, BENEFITS_OPTIONS),
+    payModel: oneOf(filters.payModel, PAY_MODEL_OPTIONS),
+    payMin,
+    payMax,
+    visaSponsorship: oneOf(filters.visaSponsorship, VISA_OPTIONS),
+    startUrgency: oneOf(filters.startUrgency, START_URGENCY_OPTIONS),
+    employerType: text(filters.employerType).slice(0, 120),
+    organizationSlug: slug(filters.organizationSlug),
     sort: oneOf(filters.sort, SORT_OPTIONS) || 'recent',
     remote: filters.remote === true || filters.remote === false ? filters.remote : null,
     page: filters.page && filters.page > 0 ? Math.floor(filters.page) : 1,
@@ -110,6 +185,13 @@ export function parseBoardFilters(searchParams: SearchParamsReader): BoardFilter
     applicationMode: searchParams.get('applicationMode') ?? '',
     compensation: searchParams.get('compensation') ?? '',
     benefits: searchParams.get('benefits') ?? '',
+    payModel: searchParams.get('payModel') ?? '',
+    payMin: searchParams.get('payMin') ?? '',
+    payMax: searchParams.get('payMax') ?? '',
+    visaSponsorship: searchParams.get('visaSponsorship') ?? '',
+    startUrgency: searchParams.get('startUrgency') ?? '',
+    employerType: searchParams.get('employerType') ?? '',
+    organizationSlug: searchParams.get('organizationSlug') ?? '',
     sort: searchParams.get('sort') ?? 'recent',
     remote: parseRemote(searchParams.get('remote')),
     page: positiveInt(searchParams.get('page')),
@@ -129,6 +211,13 @@ export function serializeBoardFilters(filters: Partial<BoardFilters>): URLSearch
   if (f.applicationMode) params.set('applicationMode', f.applicationMode);
   if (f.compensation) params.set('compensation', f.compensation);
   if (f.benefits) params.set('benefits', f.benefits);
+  if (f.payModel) params.set('payModel', f.payModel);
+  if (f.payMin) params.set('payMin', f.payMin);
+  if (f.payMax) params.set('payMax', f.payMax);
+  if (f.visaSponsorship) params.set('visaSponsorship', f.visaSponsorship);
+  if (f.startUrgency) params.set('startUrgency', f.startUrgency);
+  if (f.employerType) params.set('employerType', f.employerType);
+  if (f.organizationSlug) params.set('organizationSlug', f.organizationSlug);
   if (f.sort !== 'recent') params.set('sort', f.sort);
   if (f.remote !== null) params.set('remote', String(f.remote));
   if (f.page > 1) params.set('page', String(f.page));
@@ -148,6 +237,13 @@ export function toApiQuery(filters: Partial<BoardFilters>): URLSearchParams {
   if (f.applicationMode) params.set('applicationMode', f.applicationMode);
   if (f.compensation) params.set('compensation', f.compensation);
   if (f.benefits) params.set('benefits', f.benefits);
+  if (f.payModel) params.set('payModel', f.payModel);
+  if (f.payMin) params.set('payMin', f.payMin);
+  if (f.payMax) params.set('payMax', f.payMax);
+  if (f.visaSponsorship) params.set('visaSponsorship', f.visaSponsorship);
+  if (f.startUrgency) params.set('startUrgency', f.startUrgency);
+  if (f.employerType) params.set('employerType', f.employerType);
+  if (f.organizationSlug) params.set('organizationSlug', f.organizationSlug);
   params.set('sort', f.sort);
   if (f.remote !== null) params.set('remote', String(f.remote));
   params.set('limit', String(PAGE_SIZE));
@@ -160,7 +256,8 @@ export function hasActiveFilters(filters: BoardFilters): boolean {
   return Boolean(
     f.q || f.specialty || f.profession || f.state || f.schedule
     || f.hiringType || f.remote !== null || f.observedWithin || f.applicationMode
-    || f.compensation || f.benefits,
+    || f.compensation || f.benefits || f.payModel || f.payMin || f.payMax
+    || f.visaSponsorship || f.startUrgency || f.employerType || f.organizationSlug,
   );
 }
 
@@ -188,7 +285,31 @@ export function activeFilterSummary(filters: BoardFilters): Array<{ key: keyof B
     label: COMPENSATION_LABEL[f.compensation] ?? f.compensation,
   });
   if (f.benefits) out.push({ key: 'benefits', label: BENEFITS_LABEL[f.benefits] ?? f.benefits });
+  if (f.payModel) out.push({ key: 'payModel', label: PAY_MODEL_LABEL[f.payModel] ?? f.payModel });
+  // Two chips rather than one range chip, so each bound clears on its own.
+  if (f.payMin) out.push({ key: 'payMin', label: `Pay from ${formatPayBound(f.payMin)}` });
+  if (f.payMax) out.push({ key: 'payMax', label: `Pay up to ${formatPayBound(f.payMax)}` });
+  if (f.visaSponsorship) out.push({
+    key: 'visaSponsorship',
+    label: VISA_LABEL[f.visaSponsorship] ?? f.visaSponsorship,
+  });
+  if (f.startUrgency) out.push({
+    key: 'startUrgency',
+    label: START_URGENCY_LABEL[f.startUrgency] ?? f.startUrgency,
+  });
+  if (f.employerType) out.push({ key: 'employerType', label: `Employer type: ${f.employerType}` });
+  if (f.organizationSlug) out.push({ key: 'organizationSlug', label: `Employer: ${f.organizationSlug}` });
   return out;
+}
+
+/**
+ * Thousands separators only. No unit is appended: the bound is compared against
+ * whatever figure the employer published, which may be annual, hourly or per
+ * shift — the pay-basis facet is what makes the comparison meaningful.
+ */
+export function formatPayBound(value: string): string {
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) ? `$${parsed.toLocaleString('en-US')}` : value;
 }
 
 export function clearFilter(filters: BoardFilters, key: keyof BoardFilters): BoardFilters {
@@ -256,6 +377,29 @@ export const BENEFITS_LABEL: Record<string, string> = {
   listed: 'Benefits listed',
   limited: 'Limited benefits detail',
   not_listed: 'Benefits not listed',
+};
+
+export const PAY_MODEL_LABEL: Record<string, string> = {
+  salary: 'Salaried',
+  hourly: 'Hourly',
+  locums: 'Locums rate',
+  shift: 'Per shift',
+  unknown: 'Pay basis not stated',
+};
+
+export const VISA_LABEL: Record<string, string> = {
+  available: 'Sponsorship available',
+  case_by_case: 'Sponsorship case by case',
+  not_available: 'Sponsorship not available',
+  not_stated: 'Sponsorship not stated',
+};
+
+export const START_URGENCY_LABEL: Record<string, string> = {
+  immediate: 'Starting immediately',
+  within_2_weeks: 'Starting within 2 weeks',
+  within_month: 'Starting within a month',
+  flexible: 'Flexible start',
+  unknown: 'Start timing not stated',
 };
 
 export const SORT_LABEL: Record<string, string> = {
