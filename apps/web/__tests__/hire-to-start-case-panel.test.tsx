@@ -33,7 +33,28 @@ describe('HireToStartCasePanel', () => {
     expect(html).toContain('Hospital orientation');
     expect(html).toContain('Not configured for this case');
     expect(html).toContain('Actual first day');
+    expect(html).toContain('data-testid="hire-to-start-employer-controls"');
+    expect(html).toContain('Mark submitted');
+    expect(html).toContain('Resolve every required item before recording start-ready.');
     expect(html).not.toContain('credentialing complete');
+  });
+
+  it('shows actual-first-day confirmation only after explicit start-ready', () => {
+    const ready = {
+      ...data,
+      currentStage: 'start_ready',
+      requirements: data.requirements.map((requirement) => ({ ...requirement, status: 'waived' })),
+      blockerSummary: [],
+    } as HireToStartCase;
+    const html = renderToStaticMarkup(<HireToStartCasePanel result={{ status: 'ok', data: ready }} variant="employer" />);
+    expect(html).toContain('Actual first day');
+    expect(html).toContain('Confirm actual first day');
+    expect(html).not.toContain('Record start-ready');
+  });
+
+  it('renders no employer controls on the clinician perspective', () => {
+    const html = renderToStaticMarkup(<HireToStartCasePanel result={{ status: 'ok', data }} />);
+    expect(html).not.toContain('data-testid="hire-to-start-employer-controls"');
   });
 
   it('does not render unauthorized case state', () => {
