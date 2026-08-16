@@ -1,0 +1,16 @@
+-- Drops the column added earlier today by 20260816120000.
+--
+-- Forward-only: the adding migration stays in history because it has already
+-- run against production, and deleting an applied migration file is how you
+-- get drift on the next deploy.
+--
+-- Measured against the live roster before dropping: of the jobs carrying a
+-- single-valued `Clinician Type`, 249 agreed with the classification the job
+-- title already produced, 0 resolved a title the classifier could not read,
+-- and 6 CONTRADICTED the title — in every one of those the metadata was the
+-- wrong half ("Per Diem Family Medicine Physician" tagged `NP or PA`;
+-- "Nurse Practitioner or Physician Assistant" tagged `MD or DO`).
+--
+-- So the field added no coverage and misfiled roles away from the clinicians
+-- they were written for. The column holds nothing worth keeping.
+ALTER TABLE "Opportunity" DROP COLUMN IF EXISTS "stated_profession";

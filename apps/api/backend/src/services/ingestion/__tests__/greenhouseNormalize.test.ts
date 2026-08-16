@@ -8,7 +8,16 @@
  * with engineers and recruiters.
  */
 
-import { BOARDS, GreenhouseBoardsConnector, extractState, extractStatedProfession, extractStatedSpecialty, isRemote, normalizeBoardJobs, roundRobin, toPlainText } from '../greenhouse';
+import {
+  BOARDS,
+  GreenhouseBoardsConnector,
+  extractState,
+  extractStatedSpecialty,
+  isRemote,
+  normalizeBoardJobs,
+  roundRobin,
+  toPlainText,
+} from '../greenhouse';
 import { isClinicalRole } from '../clinicalRelevance';
 import type { FeedListing } from '../types';
 
@@ -320,7 +329,6 @@ describe('roundRobin', () => {
     remote: false,
     description: null,
     specialty: null,
-    profession: null,
     payMin: null,
     payMax: null,
     postedAt: null,
@@ -439,43 +447,5 @@ describe('normalizeBoardJobs specialty', () => {
       metadata: [{ name: 'Clinical Specialty', value: 'Urgent Care' }],
     }] as never, 'onemedical');
     expect([listing.payMin, listing.payMax]).toEqual([null, null]);
-  });
-});
-
-describe('extractStatedProfession', () => {
-  const job = (value: unknown) => ({
-    id: 1,
-    title: 'Family Medicine Physician',
-    absolute_url: 'https://example.com/1',
-    metadata: [{ name: 'Clinician Type', value }],
-  }) as never;
-
-  it('maps each licence the roster actually publishes', () => {
-    expect(extractStatedProfession(job(['MD or DO']))).toBe('physician');
-    expect(extractStatedProfession(job(['NP or PA']))).toBe('advanced_practice');
-    expect(extractStatedProfession(job(['RN']))).toBe('nursing');
-  });
-
-  it('returns null when the employer names more than one licence', () => {
-    // 19 live jobs do this. Filing a role open to either under one of them
-    // drops it out of the other's filter, so it falls back to the title.
-    expect(extractStatedProfession(job(['MD or DO', 'NP or PA']))).toBeNull();
-  });
-
-  it('returns null on silence and on values we have not mapped', () => {
-    expect(extractStatedProfession(job([]))).toBeNull();
-    expect(extractStatedProfession(job(null))).toBeNull();
-    expect(extractStatedProfession(job(['Chiropractor']))).toBeNull();
-    expect(extractStatedProfession({ id: 1, title: 'x', absolute_url: 'u' } as never)).toBeNull();
-  });
-
-  it('reads only the clinician-type field, never a neighbouring one', () => {
-    const decoy = {
-      id: 1,
-      title: 'Family Medicine Physician',
-      absolute_url: 'https://example.com/1',
-      metadata: [{ name: 'Provider Role', value: ['MD or DO'] }],
-    } as never;
-    expect(extractStatedProfession(decoy)).toBeNull();
   });
 });

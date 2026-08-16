@@ -244,21 +244,6 @@ function resolveStructuredPay(
   return { min, max };
 }
 
-/**
- * The employer's stated profession when the feed carried one, else the title
- * classifier. Validated against the known set first: an unrecognised column
- * value must not leak into the API as if it were a real profession.
- */
-function resolveProfession(
-  opportunity: Pick<OpportunityTruthRecord, 'title' | 'statedProfession'>,
-): OpportunityProfession {
-  const stated = (opportunity.statedProfession ?? '').trim();
-  if ((SUPPORTED_PROFESSIONS as readonly string[]).includes(stated)) {
-    return stated as OpportunityProfession;
-  }
-  return classifyOpportunityProfession(opportunity.title);
-}
-
 function resolveEmployerType(
   opportunity: Pick<OpportunityTruthRecord, 'employerType'>,
   organizationProfile: { facilityType?: string | null } | null | undefined,
@@ -289,19 +274,6 @@ const FEED_LABEL: Record<string, string> = {
   usajobs: 'USAJOBS',
 };
 
-/**
- * `not_stated` is deliberately absent. It is what the classifier RETURNS when
- * it recognises nothing, never something an employer states — accepting it
- * from the column would let a stored placeholder suppress the title fallback.
- */
-const SUPPORTED_PROFESSIONS: readonly OpportunityProfession[] = [
-  'physician',
-  'advanced_practice',
-  'nursing',
-  'behavioral_health',
-  'allied_health',
-];
-
 const SUPPORTED_START_URGENCIES: readonly OpportunityStartUrgency[] = [
   'immediate',
   'within_2_weeks',
@@ -328,7 +300,6 @@ export interface OpportunityTruthRecord {
   payMax?: number | null;
   employerType?: string | null;
   startUrgency?: string | null;
-  statedProfession?: string | null;
   /** 'employer_posted' (default) or 'public_feed'. See the Prisma model. */
   listingSource?: string | null;
   sourceFeed?: string | null;
@@ -1589,7 +1560,7 @@ export function buildOpportunityTruth(input: {
     organizationSlug: opportunity.organization.slug,
     title: opportunity.title,
     specialty: opportunity.specialty,
-    profession: resolveProfession(opportunity),
+    profession: classifyOpportunityProfession(opportunity.title),
     schedule: classifyOpportunitySchedule(opportunity.title, opportunity.description),
     hiringType: opportunity.hiringType,
     state: opportunity.state,
