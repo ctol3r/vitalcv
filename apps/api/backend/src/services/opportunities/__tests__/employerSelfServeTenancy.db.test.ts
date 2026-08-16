@@ -56,6 +56,49 @@ let otherOrganizationId: string;
 let applicationId: string;
 
 /**
+ * Delete every row this suite created, scoped to its own organizations.
+ *
+ * Leftover rows here are not a private mess. `applications.opportunity_id` and
+ * `Opportunity.organization_id` are both ON DELETE RESTRICT, so a later suite
+ * that resets shared state with an unscoped `organization.deleteMany({})` —
+ * `routes/__tests__/graphRoutes.test.ts` does exactly that — dies on
+ * `applications_opportunity_id_fkey` against an application THIS file owns.
+ * The failure surfaces in the other file, so it reads as a graph defect and is
+ * invisible when either suite runs alone. Deletes are ordered child-first.
+ */
+async function cleanUpSuiteRows(): Promise<void> {
+  const organizationIds = [organizationId, otherOrganizationId].filter(Boolean);
+  const applicationIds = (await prisma.application.findMany({
+    where: { opportunity: { organizationId: { in: organizationIds } } },
+    select: { id: true },
+  })).map(({ id }) => id);
+  const organizationProfileIds = (await prisma.organizationProfile.findMany({
+    where: { organizationId: { in: organizationIds } },
+    select: { id: true },
+  })).map(({ id }) => id);
+  const userIds = (await prisma.user.findMany({
+    where: { clerkUserId: { in: [SELF_SERVE_EMPLOYER, OTHER_EMPLOYER, CLINICIAN] } },
+    select: { id: true },
+  })).map(({ id }) => id);
+
+  await prisma.applicationPacket.deleteMany({ where: { applicationId: { in: applicationIds } } });
+  await prisma.activationRequirement.deleteMany({ where: { applicationId: { in: applicationIds } } });
+  await prisma.application.deleteMany({ where: { id: { in: applicationIds } } });
+  await prisma.opportunity.deleteMany({ where: { organizationId: { in: organizationIds } } });
+  await prisma.auditEvent.deleteMany({ where: { organizationId: { in: organizationIds } } });
+  await prisma.organizationAccessRequest.deleteMany({
+    where: { clerkUserId: { in: [SELF_SERVE_EMPLOYER, OTHER_EMPLOYER, CLINICIAN] } },
+  });
+  await prisma.workspaceMembership.deleteMany({
+    where: { organizationProfileId: { in: organizationProfileIds } },
+  });
+  await prisma.organizationProfile.deleteMany({ where: { organizationId: { in: organizationIds } } });
+  await prisma.personProfile.deleteMany({ where: { userId: { in: userIds } } });
+  await prisma.user.deleteMany({ where: { id: { in: userIds } } });
+  await prisma.organization.deleteMany({ where: { id: { in: organizationIds } } });
+}
+
+/**
  * Create the User row exactly as a real signup leaves it: a work email at the
  * organization's own domain (which is what the authority gate reads) and NO
  * organizationId — the column self-serve setup is supposed to populate.
@@ -132,6 +175,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
+  await cleanUpSuiteRows();
   await prisma.$disconnect();
 });
 
