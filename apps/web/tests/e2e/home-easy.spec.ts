@@ -202,6 +202,27 @@ test.describe('home — the Direction A hero', () => {
     expect(min, `smallest effective figure text: ${where}`).toBeGreaterThanOrEqual(11);
   });
 
+  test('exactly one viewBox variant of each figure is visible', async ({ page }) => {
+    // Both variants ship in the server frame; CSS must show ONE. An
+    // equal-specificity slip rendered both halves of every pair at desktop —
+    // caught by a screenshot, now pinned here at both breakpoints.
+    for (const width of [1440, 390] as const) {
+      await page.setViewportSize({ width, height: 900 });
+      const counts = await page.evaluate(() => {
+        const figures = [...document.querySelectorAll('[data-home-figure]')];
+        return figures.map((fig) => ({
+          id: fig.getAttribute('data-home-figure'),
+          visible: [...fig.querySelectorAll('svg')].filter(
+            (svg) => svg.getBoundingClientRect().width > 0,
+          ).length,
+        }));
+      });
+      for (const { id, visible } of counts) {
+        expect(visible, `figure "${id}" shows ${visible} variants at ${width}px`).toBe(1);
+      }
+    }
+  });
+
   test('the NPI entry validates locally and states progress honestly', async ({ page }) => {
     const input = page.locator('#ezh-npi');
     await expect(page.getByText('0/10 digits')).toBeVisible();

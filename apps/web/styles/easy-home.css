@@ -492,7 +492,11 @@
   height: auto;
 }
 
-.ezh-fig-narrow {
+/* `.ezh .ezh-fig-narrow` (0,2,0), not `.ezh-fig-narrow` (0,1,0): the generic
+   `.ezh-fig-art svg { display: block }` above is (0,1,1) and would outrank a
+   bare class — which rendered BOTH variants of every figure at desktop. The
+   artifact hit the same equal-specificity trap twice; scope wins here. */
+.ezh .ezh-fig-narrow {
   display: none;
 }
 
@@ -566,23 +570,23 @@
 /* Wide/narrow switch points, chosen from each pair's viewBox so effective
    text never lands under the floor. */
 @media (max-width: 719px) {
-  .ezh-fig-hero .ezh-fig-wide,
-  .ezh-fig-w620 .ezh-fig-wide {
+  .ezh .ezh-fig-hero .ezh-fig-wide,
+  .ezh .ezh-fig-w620 .ezh-fig-wide {
     display: none;
   }
 
-  .ezh-fig-hero .ezh-fig-narrow,
-  .ezh-fig-w620 .ezh-fig-narrow {
+  .ezh .ezh-fig-hero .ezh-fig-narrow,
+  .ezh .ezh-fig-w620 .ezh-fig-narrow {
     display: block;
   }
 }
 
 @media (max-width: 999px) {
-  .ezh-fig-w1000 .ezh-fig-wide {
+  .ezh .ezh-fig-w1000 .ezh-fig-wide {
     display: none;
   }
 
-  .ezh-fig-w1000 .ezh-fig-narrow {
+  .ezh .ezh-fig-w1000 .ezh-fig-narrow {
     display: block;
     max-width: 560px;
   }
