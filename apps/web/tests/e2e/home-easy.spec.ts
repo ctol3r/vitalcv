@@ -99,13 +99,13 @@ test.describe('home — the Easy Button hero', () => {
     const h1 = page.locator('h1');
     await expect(h1).toHaveCount(1);
     await expect(h1).toHaveText('One career record. More ways forward.');
-    await expect(page.getByText('The Provider Career Evidence Network.', { exact: true })).toBeVisible();
+    await expect(page.getByText('Your VitalCV profile. Ready for every move.', { exact: true })).toBeVisible();
   });
 
   test('the hero never blocks: NPI entry, motion display, and frosted record paint together', async ({ page }) => {
     await expect(page.locator('[data-home-hero]')).toBeVisible();
     await expect(page.locator('#ezh-npi')).toBeVisible();
-    await expect(page.locator('[data-home-primary-cta]')).toHaveText('Start my CV Wallet');
+    await expect(page.locator('[data-home-primary-cta]')).toHaveText('Build my free profile');
     await expect(page.locator('[data-home-motion-display]')).toBeVisible();
     await expect(surface(page)).toBeVisible();
     await expect(surface(page)).toHaveAttribute('data-visual-material', 'frosted-glass');

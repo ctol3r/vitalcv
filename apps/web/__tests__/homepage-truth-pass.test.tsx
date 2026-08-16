@@ -1,10 +1,9 @@
 /**
  * homepage-truth-pass.test.tsx — locks the homepage truth fixes:
  *  1. The hero carries no fabricated readiness percentage. (The static
- *     WalletPreview mockup was replaced by the live Career Evidence Network
- *     graph, which renders client-only and labels itself "illustrative
- *     structure"; the anti-fabrication guard here is that no invented score —
- *     e.g. "72%" — reaches the homepage server render.)
+ *     WalletPreview mockup was replaced by a client-only illustrative graph,
+ *     since itself superseded; the anti-fabrication guard here is that no
+ *     invented score — e.g. "72%" — reaches the homepage server render.)
  *  2. The hero NPI input still renders its count + honest microcopy (checksum
  *     gating behavior is covered by lib/vital/npi unit tests).
  */
