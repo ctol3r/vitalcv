@@ -71,7 +71,11 @@
  *
  * Self-proving: `node scripts/check-workflow-path-filters.js --self-test` runs
  * the closure evaluator over in-memory fixtures that each carry one of the
- * defects above, and fails if any defect goes uncaught. CI runs it.
+ * defects above, and fails if any defect goes uncaught. It also runs the
+ * branch-protection classifier over injected `gh` runners — no token, no
+ * network — proving each failure mode (absent protection, insufficient scope,
+ * missing binary, malformed response, containment drift) gets its own distinct
+ * verdict. CI runs it.
  */
 
 const fs = require('node:fs');
@@ -88,19 +92,25 @@ const workflowDir = path.join(repoRoot, '.github/workflows');
  * every name here must be produced by some workflow job, so a renamed job fails
  * this check instead of silently dropping out of coverage.
  *
- * THE OTHER DIRECTION IS NOT COVERED IN CI. A check that is required in branch
- * protection but missing from this list is invisible here — the lint would
- * happily pass while that check went path-filtered and started blocking every
- * PR. That is the exact bug this script exists to prevent, so run
+ * THE OTHER DIRECTION IS NOT FULLY COVERED IN CI. A check that is required in
+ * branch protection but missing from this list is invisible here — the lint
+ * would happily pass while that check went path-filtered and started blocking
+ * every PR. That is the exact bug this script exists to prevent, so run
  *
  *   node scripts/check-workflow-path-filters.js --verify-protection
  *
- * whenever branch protection changes. It needs a token that can read protection
- * (the default CI one cannot, which is why it is opt-in rather than a gate) and
- * fails on drift in either direction.
+ * whenever branch protection changes. Reading classic protection needs a token
+ * with admin scope (rulesets are readable with the default token), which is why
+ * the full both-direction comparison is opt-in rather than a gate.
+ *
+ * What IS always-on — every default and --report run, including CI — is the
+ * EXISTENCE assertion: a protection object (classic protection or a branch
+ * ruleset) must exist on main at all. It needs only default-token reads. An
+ * unprotected main makes every entry in this list decorative — "required" is a
+ * property of the protection object, and with no object, nothing is required.
  *
  * Verify by hand with:
- *   gh api repos/ctol3r/vitalcv/branches/main/protection \
+ *   gh api repos/:owner/:repo/branches/main/protection \
  *     --jq '.required_status_checks.contexts[]'
  */
 const REQUIRED_CHECKS = [
@@ -671,59 +681,268 @@ function loadWorkflows(dir) {
 }
 
 // ---------------------------------------------------------------------------
-// Opt-in: compare REQUIRED_CHECKS against LIVE branch protection, both ways.
+// Branch-protection verification.
 //
-// Not part of the CI gate because the default GITHUB_TOKEN cannot read branch
-// protection — a gate that silently cannot do its job is the failure this whole
-// script is about, so it is an explicit flag instead. Run it whenever branch
-// protection changes.
+// Two modes share this machinery, and both return { failures, lines } instead
+// of printing, so main() can order failures before any success line and the
+// self-tests can drive them with injected runners:
 //
-// The direction CI genuinely cannot see is protection → list: a check required
-// on main but absent here would let this lint pass while that check went
-// path-filtered and blocked every PR.
+//   * ALWAYS-ON (default and --report — the mode CI runs): assert that a
+//     protection object EXISTS on main at all: classic protection
+//     (`.protected == true` on the branch) or a non-empty branch ruleset.
+//     Needs only default-token reads.
+//   * --verify-protection: additionally read the live required contexts and
+//     compare against REQUIRED_CHECKS. Containment (every entry here must be
+//     live-required) and the reverse direction (every live-required context
+//     must be listed here) fail distinctly. Classic protection needs admin
+//     scope; a rulesets-only repo is read through `rules/branches/main`
+//     instead, which the default token can see.
+//
+// Failure classification is explicit because the previous version attributed
+// EVERY failure — including GitHub's "Branch not protected" 404, which means
+// no protection object exists — to token scope, printing an operator hint over
+// a live incident. GitHub returns 404 from the protection endpoint only when
+// there is no protection object; insufficient scope is a 403 with different
+// stderr. The 404 path issues confirming default-token reads so "unreadable"
+// is disproven in the same output.
 // ---------------------------------------------------------------------------
-function verifyAgainstProtection() {
+
+const PROTECTION_ENDPOINT = 'repos/:owner/:repo/branches/main/protection';
+const BRANCH_ENDPOINT = 'repos/:owner/:repo/branches/main';
+const RULES_ENDPOINT = 'repos/:owner/:repo/rules/branches/main';
+
+/**
+ * The real `gh` runner. cwd is pinned to the repo root so gh resolves the
+ * `:owner/:repo` placeholders from this checkout's remote, no matter where the
+ * caller ran `node` from.
+ */
+function ghRunner(args) {
   const { execFileSync } = require('node:child_process');
-  let live;
+  return execFileSync('gh', args, {
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+    cwd: repoRoot,
+  });
+}
+
+/** HTTP status from gh's stderr, e.g. "gh: Branch not protected (HTTP 404)". */
+function httpStatusOf(err) {
+  const m = String(err?.stderr ?? '').match(/\(HTTP (\d{3})\)/);
+  return m ? Number(m[1]) : null;
+}
+
+const ghErrorText = (err) => String(err?.stderr || err?.message || err).trim();
+
+/** GET one endpoint as parsed JSON; a structured error instead of a throw. */
+function ghRead(run, endpoint) {
+  let out;
   try {
-    const out = execFileSync(
-      'gh',
-      ['api', 'repos/ctol3r/vitalcv/branches/main/protection', '--jq', '.required_status_checks.contexts[]'],
-      { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] },
-    );
-    live = out.split('\n').map((s) => s.trim()).filter(Boolean);
+    out = run(['api', endpoint]);
   } catch (err) {
-    console.error(
-      'Could not read branch protection. This mode needs `gh` authenticated with a ' +
-        'token that can read it (admin scope); the default CI token cannot.\n' +
-        String(err.stderr ?? err.message ?? err).trim(),
-    );
-    process.exitCode = 1;
-    return;
+    return { ok: false, status: httpStatusOf(err), code: err?.code ?? null, error: ghErrorText(err) };
   }
-
-  const missingFromList = live.filter((c) => !REQUIRED_CHECKS.includes(c));
-  const missingFromProtection = REQUIRED_CHECKS.filter((c) => !live.includes(c));
-
-  if (missingFromList.length === 0 && missingFromProtection.length === 0) {
-    console.log(`Protection matches REQUIRED_CHECKS — ${live.length} checks, both directions.`);
-    return;
+  try {
+    return { ok: true, data: JSON.parse(out) };
+  } catch {
+    return {
+      ok: false,
+      status: null,
+      code: 'BAD_JSON',
+      error: `unparseable response from \`gh api ${endpoint}\`: ${JSON.stringify(String(out).slice(0, 200))}`,
+    };
   }
+}
 
-  console.error('REQUIRED_CHECKS and branch protection have DRIFTED:\n');
-  for (const c of missingFromList) {
-    console.error(
-      `  - "${c}" is REQUIRED on main but missing from REQUIRED_CHECKS. ` +
-        'This lint is therefore not guarding it against path-filtering.\n',
+/** One distinct message per failure mode — never a catch-all scope hint. */
+function describeReadFailure(endpoint, r) {
+  if (r.code === 'ENOENT') {
+    return (
+      `the \`gh\` CLI is not installed or not on PATH (ENOENT while reading ${endpoint}). ` +
+      'Cannot verify branch protection — failing closed.'
     );
   }
-  for (const c of missingFromProtection) {
-    console.error(
-      `  - "${c}" is in REQUIRED_CHECKS but NOT required on main. ` +
-        'The list is claiming a guarantee that does not exist.\n',
+  if (r.status === 403) {
+    return (
+      `HTTP 403 reading ${endpoint}: the token cannot read it, so the protection state is UNKNOWN. ` +
+      'This is an operator/token problem, not evidence that protection exists or is absent. ' +
+      'Re-run with a token that can read branch protection (classic protection needs repo admin; ' +
+      'rulesets are readable with the default token).'
     );
   }
-  process.exitCode = 1;
+  if (r.code === 'BAD_JSON') {
+    return `${r.error} — failing closed.`;
+  }
+  return `could not read ${endpoint} (${r.error || 'unknown error'}) — failing closed.`;
+}
+
+function absentProtectionFailure(evidence) {
+  return (
+    'main has NO branch protection: no protection object exists — absent-protection state, not a ' +
+    'scope problem. Every entry in REQUIRED_CHECKS is currently unenforced; nothing blocks a merge ' +
+    'that fails all of them. Restore protection (docs/ops/github-security-controls-2026-08-02.md ' +
+    'has the 14-context PATCH) before trusting any green PR.\n' +
+    `    Evidence: ${evidence}`
+  );
+}
+
+/** Required-check contexts declared by branch rulesets. */
+function rulesetContexts(rules) {
+  const out = [];
+  for (const rule of Array.isArray(rules) ? rules : []) {
+    if (rule?.type !== 'required_status_checks') continue;
+    for (const check of rule?.parameters?.required_status_checks ?? []) {
+      if (check?.context != null) out.push(String(check.context));
+    }
+  }
+  return out;
+}
+
+/** Both directions, failing distinctly: containment first, then reverse drift. */
+function compareContexts(live, via) {
+  const failures = [];
+  for (const c of REQUIRED_CHECKS.filter((c) => !live.includes(c))) {
+    failures.push(
+      `CONTAINMENT failure: "${c}" is in REQUIRED_CHECKS but NOT required on main (read via ${via}). ` +
+        'The committed list claims a guarantee that does not exist — nothing blocks a merge that fails this check.',
+    );
+  }
+  for (const c of live.filter((c) => !REQUIRED_CHECKS.includes(c))) {
+    failures.push(
+      `DRIFT: "${c}" is REQUIRED on main (read via ${via}) but missing from REQUIRED_CHECKS, ` +
+        'so this lint is not guarding it against path-filtering — the blind spot this script exists to close.',
+    );
+  }
+  if (failures.length > 0) return { failures, lines: [] };
+  return {
+    failures,
+    lines: [
+      `Protection matches REQUIRED_CHECKS — ${live.length} contexts (read via ${via}); ` +
+        'containment and the reverse direction both hold.',
+    ],
+  };
+}
+
+/**
+ * ALWAYS-ON existence assertion: does any protection object exist on main?
+ * Uses only default-token-readable endpoints; any read failure fails closed.
+ */
+function assertProtectionExists({ run = ghRunner } = {}) {
+  const branch = ghRead(run, BRANCH_ENDPOINT);
+  if (!branch.ok) return { failures: [describeReadFailure(BRANCH_ENDPOINT, branch)], lines: [] };
+
+  const rules = ghRead(run, RULES_ENDPOINT);
+  if (!rules.ok) return { failures: [describeReadFailure(RULES_ENDPOINT, rules)], lines: [] };
+  if (!Array.isArray(rules.data)) {
+    return {
+      failures: [`unexpected shape from ${RULES_ENDPOINT} (expected an array) — failing closed.`],
+      lines: [],
+    };
+  }
+
+  if (branch.data?.protected === true) {
+    return {
+      failures: [],
+      lines: [`Branch protection exists on main (classic protection: ${BRANCH_ENDPOINT} reports protected=true).`],
+    };
+  }
+  if (rules.data.length > 0) {
+    return {
+      failures: [],
+      lines: [`Branch protection exists on main via rulesets (${rules.data.length} rule(s) on ${RULES_ENDPOINT}).`],
+    };
+  }
+  return {
+    failures: [
+      absentProtectionFailure(
+        `${BRANCH_ENDPOINT} → protected=${JSON.stringify(branch.data?.protected ?? null)}; ` +
+          `${RULES_ENDPOINT} → 0 rules. Both default-token reads succeeded — the state is readable, and it is absent.`,
+      ),
+    ],
+    lines: [],
+  };
+}
+
+/**
+ * --verify-protection: full comparison of REQUIRED_CHECKS against the live
+ * required contexts, from classic protection or, failing that, from rulesets.
+ */
+function verifyAgainstProtection({ run = ghRunner } = {}) {
+  const prot = ghRead(run, PROTECTION_ENDPOINT);
+
+  if (prot.ok) {
+    const rsc = prot.data?.required_status_checks;
+    const contexts = Array.isArray(rsc?.contexts)
+      ? rsc.contexts.map(String)
+      : Array.isArray(rsc?.checks)
+        ? rsc.checks.map((c) => String(c?.context))
+        : null;
+    if (contexts == null) {
+      return {
+        failures: [
+          'branch protection exists on main but carries no required_status_checks — every entry in ' +
+            'REQUIRED_CHECKS is unenforced. Failing closed.',
+        ],
+        lines: [],
+      };
+    }
+    return compareContexts(contexts, 'classic branch protection');
+  }
+
+  if (prot.status === 404) {
+    // GitHub 404s this endpoint ONLY when no classic protection object exists;
+    // scope problems are a 403. Disprove "unreadable" in the same output with
+    // two default-token reads, then decide: rulesets-only repo, or truly
+    // unprotected.
+    const branch = ghRead(run, BRANCH_ENDPOINT);
+    const rules = ghRead(run, RULES_ENDPOINT);
+    if (!branch.ok || !rules.ok || !Array.isArray(rules.data)) {
+      const details = [
+        branch.ok ? null : describeReadFailure(BRANCH_ENDPOINT, branch),
+        rules.ok ? null : describeReadFailure(RULES_ENDPOINT, rules),
+        rules.ok && !Array.isArray(rules.data) ? `unexpected shape from ${RULES_ENDPOINT} (expected an array)` : null,
+      ].filter(Boolean);
+      return {
+        failures: [
+          `${PROTECTION_ENDPOINT} returned HTTP 404 and the confirming default-token reads ALSO failed, ` +
+            'so the absent-protection diagnosis cannot be confirmed — failing closed.\n    ' +
+            details.join('\n    '),
+        ],
+        lines: [],
+      };
+    }
+    if (rules.data.length > 0) {
+      // Rulesets-only repo: classic protection absent, but rules exist. Read
+      // the required checks from the rules and compare those. An empty context
+      // set here fails containment for every listed check — accurately.
+      return compareContexts(
+        rulesetContexts(rules.data),
+        `branch rulesets (${PROTECTION_ENDPOINT} 404s; ${RULES_ENDPOINT} carries the rules)`,
+      );
+    }
+    if (branch.data?.protected === true) {
+      return {
+        failures: [
+          `inconsistent protection state: ${BRANCH_ENDPOINT} reports protected=true, but ` +
+            `${PROTECTION_ENDPOINT} returns 404 and ${RULES_ENDPOINT} is empty — cannot determine ` +
+            'the required-check set; failing closed.',
+        ],
+        lines: [],
+      };
+    }
+    return {
+      failures: [
+        absentProtectionFailure(
+          `${PROTECTION_ENDPOINT} → HTTP 404 ("Branch not protected"); ` +
+            `${BRANCH_ENDPOINT} → protected=${JSON.stringify(branch.data?.protected ?? null)}; ` +
+            `${RULES_ENDPOINT} → 0 rules. The confirming reads succeeded — the state is readable, and it is absent.`,
+        ),
+      ],
+      lines: [],
+    };
+  }
+
+  // 403, ENOENT, network failure, malformed response — each gets its own text.
+  return { failures: [describeReadFailure(PROTECTION_ENDPOINT, prot)], lines: [] };
 }
 
 // ---------------------------------------------------------------------------
@@ -892,8 +1111,185 @@ const SELF_TEST_CASES = [
   },
 ];
 
+// ---------------------------------------------------------------------------
+// Protection-classifier self-tests: injected runners, no token, no network —
+// so the CI --self-test step exercises them as-is. Each fixture reproduces one
+// failure mode the old code collapsed into a single "needs admin scope" hint.
+//
+// `responses` maps endpoint → { stdout } for success, or
+// { throw: true, stderr?, code?, message? } for a runner failure. `expect` is a
+// regex the joined failures must match; `expect: null` means the fixture must
+// be accepted, with `expectLine` matched against the success lines.
+// ---------------------------------------------------------------------------
+
+const protectionJson = (contexts) => JSON.stringify({ required_status_checks: { contexts } });
+const rulesetJson = (contexts) =>
+  JSON.stringify([
+    {
+      type: 'required_status_checks',
+      ruleset_id: 1,
+      parameters: { required_status_checks: contexts.map((context) => ({ context })) },
+    },
+  ]);
+
+function stubRunner(responses) {
+  return (args) => {
+    const endpoint = args[1];
+    const r = responses[endpoint];
+    if (r == null) {
+      const e = new Error(`self-test stub has no response for ${endpoint}`);
+      e.stderr = e.message;
+      throw e;
+    }
+    if (r.throw) {
+      const e = new Error(r.message ?? 'gh failed');
+      if (r.stderr != null) e.stderr = r.stderr;
+      if (r.code != null) e.code = r.code;
+      throw e;
+    }
+    return r.stdout;
+  };
+}
+
+const HTTP_404 = { throw: true, stderr: 'gh: Branch not protected (HTTP 404)' };
+
+const SELF_TEST_PROTECTION_CASES = [
+  {
+    label: 'protection: 404 + confirming reads → UNPROTECTED, not a scope problem',
+    mode: 'verify',
+    expect: /absent-protection state, not a scope problem/,
+    responses: {
+      [PROTECTION_ENDPOINT]: HTTP_404,
+      [BRANCH_ENDPOINT]: { stdout: '{"name":"main","protected":false}' },
+      [RULES_ENDPOINT]: { stdout: '[]' },
+    },
+  },
+  {
+    label: 'protection: 403 → explicit UNKNOWN/operator message, still a failure',
+    mode: 'verify',
+    expect: /protection state is UNKNOWN/,
+    responses: {
+      [PROTECTION_ENDPOINT]: { throw: true, stderr: 'gh: Resource not accessible by integration (HTTP 403)' },
+    },
+  },
+  {
+    label: 'protection: all 14 live contexts → pass',
+    mode: 'verify',
+    expect: null,
+    expectLine: /matches REQUIRED_CHECKS — 14 contexts/,
+    responses: { [PROTECTION_ENDPOINT]: { stdout: protectionJson([...REQUIRED_CHECKS]) } },
+  },
+  {
+    label: 'protection: 13 of 14 live → CONTAINMENT failure, named check',
+    mode: 'verify',
+    expect: /CONTAINMENT failure: "Backend Tests \(Postgres\)"/,
+    responses: { [PROTECTION_ENDPOINT]: { stdout: protectionJson(REQUIRED_CHECKS.slice(0, -1)) } },
+  },
+  {
+    label: 'protection: extra live context absent from the list → DRIFT failure',
+    mode: 'verify',
+    expect: /DRIFT: "Extra Gate" is REQUIRED on main/,
+    responses: { [PROTECTION_ENDPOINT]: { stdout: protectionJson([...REQUIRED_CHECKS, 'Extra Gate']) } },
+  },
+  {
+    label: 'protection: malformed stdout → fail closed',
+    mode: 'verify',
+    expect: /unparseable response/,
+    responses: { [PROTECTION_ENDPOINT]: { stdout: 'gh: something that is not JSON' } },
+  },
+  {
+    label: 'protection: empty stdout → fail closed',
+    mode: 'verify',
+    expect: /unparseable response/,
+    responses: { [PROTECTION_ENDPOINT]: { stdout: '' } },
+  },
+  {
+    label: 'protection: gh missing (ENOENT) → fail closed, distinct message',
+    mode: 'verify',
+    expect: /`gh` CLI is not installed/,
+    responses: { [PROTECTION_ENDPOINT]: { throw: true, code: 'ENOENT', message: 'spawnSync gh ENOENT' } },
+  },
+  {
+    label: 'protection: rulesets-only repo → read from rules, compared, passing',
+    mode: 'verify',
+    expect: null,
+    expectLine: /read via branch rulesets/,
+    responses: {
+      [PROTECTION_ENDPOINT]: HTTP_404,
+      [BRANCH_ENDPOINT]: { stdout: '{"protected":false}' },
+      [RULES_ENDPOINT]: { stdout: rulesetJson([...REQUIRED_CHECKS]) },
+    },
+  },
+  {
+    label: 'protection: rulesets-only, one check missing → CONTAINMENT failure',
+    mode: 'verify',
+    expect: /CONTAINMENT failure/,
+    responses: {
+      [PROTECTION_ENDPOINT]: HTTP_404,
+      [BRANCH_ENDPOINT]: { stdout: '{"protected":false}' },
+      [RULES_ENDPOINT]: { stdout: rulesetJson(REQUIRED_CHECKS.slice(1)) },
+    },
+  },
+  {
+    label: 'protection: 404 but confirming reads also fail → fail closed, not UNPROTECTED',
+    mode: 'verify',
+    expect: /cannot be confirmed — failing closed/,
+    responses: {
+      [PROTECTION_ENDPOINT]: HTTP_404,
+      [BRANCH_ENDPOINT]: { throw: true, stderr: 'gh: something broke (HTTP 500)' },
+      [RULES_ENDPOINT]: { throw: true, stderr: 'gh: something broke (HTTP 500)' },
+    },
+  },
+  {
+    label: 'existence: protected=false and zero rules → absent-protection failure',
+    mode: 'existence',
+    expect: /absent-protection state, not a scope problem/,
+    responses: {
+      [BRANCH_ENDPOINT]: { stdout: '{"protected":false}' },
+      [RULES_ENDPOINT]: { stdout: '[]' },
+    },
+  },
+  {
+    label: 'existence: classic protection present → pass',
+    mode: 'existence',
+    expect: null,
+    expectLine: /classic protection/,
+    responses: {
+      [BRANCH_ENDPOINT]: { stdout: '{"protected":true}' },
+      [RULES_ENDPOINT]: { stdout: '[]' },
+    },
+  },
+  {
+    label: 'existence: rulesets present → pass',
+    mode: 'existence',
+    expect: null,
+    expectLine: /via rulesets/,
+    responses: {
+      [BRANCH_ENDPOINT]: { stdout: '{"protected":false}' },
+      [RULES_ENDPOINT]: { stdout: rulesetJson(['Web Quality']) },
+    },
+  },
+  {
+    label: 'existence: branch read fails → fail closed',
+    mode: 'existence',
+    expect: /failing closed/,
+    responses: {
+      [BRANCH_ENDPOINT]: { throw: true, stderr: 'gh: something broke (HTTP 500)' },
+    },
+  },
+  {
+    label: 'existence: 403 on the branch read → explicit UNKNOWN/operator message',
+    mode: 'existence',
+    expect: /protection state is UNKNOWN/,
+    responses: {
+      [BRANCH_ENDPOINT]: { throw: true, stderr: 'gh: Resource not accessible by integration (HTTP 403)' },
+    },
+  },
+];
+
 function selfTest() {
   let failures = 0;
+
   for (const testCase of SELF_TEST_CASES) {
     const { problems } = evaluate(testCase.files, ['Gate']);
     const joined = problems.join('\n');
@@ -904,9 +1300,30 @@ function selfTest() {
         (ok ? '' : `\n       expected ${testCase.expect ?? '(no problems)'}, got: ${joined || '(none)'}`),
     );
   }
+
+  for (const testCase of SELF_TEST_PROTECTION_CASES) {
+    const run = stubRunner(testCase.responses);
+    const result =
+      testCase.mode === 'existence' ? assertProtectionExists({ run }) : verifyAgainstProtection({ run });
+    const joined = result.failures.join('\n');
+    const ok = testCase.expect
+      ? testCase.expect.test(joined)
+      : result.failures.length === 0 &&
+        (!testCase.expectLine || testCase.expectLine.test(result.lines.join('\n')));
+    if (!ok) failures++;
+    console.log(
+      `${ok ? 'ok  ' : 'FAIL'} ${testCase.label}` +
+        (ok
+          ? ''
+          : `\n       expected ${testCase.expect ?? `(no failures${testCase.expectLine ? ` + line ${testCase.expectLine}` : ''})`}, ` +
+            `got failures: ${joined || '(none)'}; lines: ${result.lines.join(' | ') || '(none)'}`),
+    );
+  }
+
+  const total = SELF_TEST_CASES.length + SELF_TEST_PROTECTION_CASES.length;
   console.log(
-    `\n${SELF_TEST_CASES.length} self-test cases, ${failures} failed. ` +
-      'Each defect case blocks every PR to main if it reaches a required check.',
+    `\n${total} self-test cases (${SELF_TEST_CASES.length} closure, ${SELF_TEST_PROTECTION_CASES.length} protection), ` +
+      `${failures} failed. Each defect case blocks every PR to main if it reaches a required check.`,
   );
   if (failures > 0) process.exitCode = 1;
 }
@@ -930,21 +1347,44 @@ function main() {
     console.log('');
   }
 
+  // Protection is checked in every mode and its failures print FIRST: an
+  // unprotected main invalidates everything below — the workflow contract is a
+  // statement about REQUIRED checks, and with no protection object nothing is
+  // required. No success line prints unless everything passed.
+  const protection = process.argv.includes('--verify-protection')
+    ? verifyAgainstProtection()
+    : assertProtectionExists();
+
+  if (protection.failures.length > 0) {
+    console.error('Branch-protection verification FAILED:\n');
+    for (const f of protection.failures) console.error(`  - ${f}\n`);
+  }
+
   if (problems.length > 0) {
     console.error('Workflow contract check FAILED — a required check would not report on a PR to main:\n');
     for (const p of problems) console.error(`  - ${p}\n`);
-    process.exitCode = 1;
-  } else {
-    console.log(
-      `Workflow contract check passed — ${REQUIRED_CHECKS.length} required checks, each produced by ` +
-        'exactly one job in a workflow that reports on a pull request to main ' +
-        '(pull_request trigger present, no path filter, branches include main, types include synchronize).',
-    );
   }
 
-  if (process.argv.includes('--verify-protection')) verifyAgainstProtection();
+  if (protection.failures.length > 0 || problems.length > 0) {
+    process.exitCode = 1;
+    return;
+  }
+
+  console.log(
+    `Workflow contract check passed — ${REQUIRED_CHECKS.length} required checks, each produced by ` +
+      'exactly one job in a workflow that reports on a pull request to main ' +
+      '(pull_request trigger present, no path filter, branches include main, types include synchronize).',
+  );
+  for (const line of protection.lines) console.log(line);
 }
 
 if (require.main === module) main();
 
-module.exports = { evaluate, parseWorkflow, reportsOnMain, REQUIRED_CHECKS };
+module.exports = {
+  evaluate,
+  parseWorkflow,
+  reportsOnMain,
+  REQUIRED_CHECKS,
+  assertProtectionExists,
+  verifyAgainstProtection,
+};
