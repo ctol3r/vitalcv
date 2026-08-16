@@ -7,8 +7,8 @@ Status: PTC-WAVE-00 evidence and decision register. Items marked OPEN block or c
 | ID | Finding | Evidence | Decision / next check | State |
 | --- | --- | --- | --- | --- |
 | R-001 | No TrustSpec, TrustIR, or Trust Compiler implementation is open or merged. | GitHub open/merged PR claim-check on 2026-08-14; repository search. | Proceed with architecture only. Re-run claim check before every bundle. | CONFIRMED |
-| R-002 | Draft PR #1382 adds versioned, human-reviewed credential-operations templates, requirements, hashes, and frozen case tasks. | `codex/credential-ops-core`, head `9f48eac5`, currently DIRTY. | Resolve before any TrustSpec persistence. Prefer an explicit reviewed adapter if it lands. | OPEN / IN FLIGHT |
-| R-003 | PRs #1378/#1380/#1381/#1384 are converging employer acceptance, read model, integration, and start lifecycle. | GitHub PR metadata and diffs. | Do not bind Demo 1 acceptance until the canonical stack is settled on main. | OPEN / IN FLIGHT |
+| R-002 | Draft PR #1382 adds versioned, human-reviewed credential-operations templates, requirements, hashes, and frozen case tasks. | `codex/credential-ops-core`; founder ruling 2026-08-15. | DEFERRED by founder ruling (2026-08-15) pending TrustSpec ownership. It is not a blocker for pure TrustSpec work; revisit only when TrustSpec persistence is on the table. | DEFERRED (2026-08-15) |
+| R-003 | The acceptance/start stack has LANDED: #1378 as #1391 (packet-bound canonical employer acceptance), #1380 as #1397 (authorized joined case + employer decision controls), #1384 as #1401 (one application-bound start command). #1381 (vendor-neutral integration contract) remains open. | Merged PRs #1391/#1397/#1401 on `origin/main`; `apps/api/backend/src/services/opportunities/employerWorkflowService.ts` and `apps/api/backend/src/services/activation/applicationStartCommandService.ts` exist. | The canonical decision paths are `employerWorkflowService` (employer decision) and `applicationStartCommandService` (start command). A future demo acceptance adapter binds to these, not to a stacked draft. | RESOLVED ON MAIN (2026-08-15) |
 | R-004 | Root working tree contains unrelated dirty work and newer untracked ops documents; origin/main's checked-in `AGENTS.md` is older. | Read-only root status and comparison to clean worktree. | Preserve root. Use isolated worktree. Treat founder-supplied instructions as authority and record governance drift separately. | CONFIRMED |
 | R-005 | `CODEX_HANDOFF_LEDGER.md` can lag GitHub merge truth. | Ledger top still described a work order now merged as #1383. | GitHub/current main outrank ledger status; update only within owned work. | CONFIRMED |
 
@@ -33,7 +33,7 @@ Status: PTC-WAVE-00 evidence and decision register. Items marked OPEN block or c
 | P-015 | Recognition/start | Recognition, Acceptance, Start, StartActivation, and StartAttestation coexist. | EXISTS / NEEDS RECONCILIATION | Follow canonical decision transaction; avoid direct writes. |
 | P-016 | StartAgent | Deterministic plan/runtime, permissions, receipts, diffs, and START-Bench exist. | ADAPT | Reuse patterns, not ranked heuristic or app-layer imports. |
 | P-017 | Activation requirement ledger | Application-linked post-decision tasks with transitions/audit. | EXISTS / ADAPT LATER | Potential execution output, never policy or satisfaction truth. |
-| P-018 | Credential-operations core | Reviewed workflow template and frozen operational case proposed in #1382. | IN FLIGHT / ADAPT LATER | Direct collision with durable policy workflow; resolve before persistence. |
+| P-018 | Credential-operations core | Reviewed workflow template and frozen operational case proposed in #1382, DEFERRED by founder ruling (2026-08-15) pending TrustSpec ownership. | DEFERRED / ADAPT LATER | No longer an active collision; TrustSpec ownership is decided first, and #1382 is revisited against it before any persistence. |
 | P-019 | Hash/canonicalization | Multiple implementations exist across backend and packages; FNV cache hash also exists. | EXISTS / FRAGMENTED | Establish golden canonical vectors and one crypto boundary before integrity claims. |
 | P-020 | Exact optimizer | No exact minimum-action set/state planner found. | NEW | Implement bounded BFS after actions/dependency index. |
 
@@ -75,7 +75,7 @@ State: BLOCKS stable hashing implementation.
 
 Question: Does a reviewed credential-operations template become a TrustSpec source, or are operational workflow and evidence policy distinct durable records?
 
-Known facts: #1382 freezes reviewed templates with target authority, effective window, sources, requirement dependencies, evidence rules, reviewer, and SHA-256 hash. It is in flight and DIRTY. Its requirements include owners, due offsets, and restricted-data handling that are operational, while TrustSpec needs evidence predicates, accepted sources, freshness, and review policy.
+Known facts: #1382 freezes reviewed templates with target authority, effective window, sources, requirement dependencies, evidence rules, reviewer, and SHA-256 hash. It is DEFERRED by founder ruling (2026-08-15) pending TrustSpec ownership. Its requirements include owners, due offsets, and restricted-data handling that are operational, while TrustSpec needs evidence predicates, accepted sources, freshness, and review policy.
 
 Proposed experiment: after #1382 resolution, map one active template to TrustSpec and enumerate loss/ambiguity. If the mapping is not total and deterministic, retain separate contracts but link versions explicitly; do not duplicate authoring UI casually.
 
@@ -143,11 +143,11 @@ State: BLOCKS production proof persistence.
 
 Question: Which model/service is canonical after the current stacked PRs, and where should proof ID/hash and requirement-level outcomes live?
 
-Known facts: `EmployerAcceptance` now has application/packet fields but free-text status; `Acceptance -> Recognition -> Start` is a separate FK path; DecisionCapsule carries decision provenance. The active stack is still changing these seams.
+Known facts: the stack has settled on main. #1391 landed packet-bound canonical employer acceptance, #1397 landed the authorized joined case and employer decision controls, and #1401 landed the single application-bound start command. The landed decision paths are `apps/api/backend/src/services/opportunities/employerWorkflowService.ts` (employer decision) and `apps/api/backend/src/services/activation/applicationStartCommandService.ts` (start command). `DecisionCapsule` still carries decision provenance. #1381 (vendor-neutral integration contract) remains open.
 
-Required review: classify each persisted record as canonical, compatibility, or deprecated after stack settlement. Add no migration before then.
+Required review: where proof ID/hash and requirement-level outcomes live within the landed services is still undecided; a production acceptance adapter binds to `employerWorkflowService`/`applicationStartCommandService`, not to any superseded draft. Add no migration before that review.
 
-State: BLOCKS explicit production acceptance adapter.
+State: OWNERSHIP RESOLVED ON MAIN (2026-08-15); requirement-level outcome structure still BLOCKS a production acceptance adapter.
 
 ### RQ-10 — Graph provenance for immutable fixture policy
 
@@ -187,15 +187,15 @@ Connections to investigate after correctness:
 | Compiler/dependency index/optimizer | No | Pure deterministic transforms. |
 | Synthetic runtime | No | Test/internal fixture boundary. |
 | Headless synthetic proofs | No | Controlled artifacts, not production records. |
-| Production TrustSpec | Unknown | Depends on #1382 ownership and policy governance. |
+| Production TrustSpec | Unknown | Depends on policy governance; #1382 is DEFERRED (founder ruling 2026-08-15) pending TrustSpec ownership. |
 | Production proof/snapshot | Yes, likely | Needs immutable access-controlled persistence and retention design. |
 | Requirement-level acceptance | Yes, likely | Existing free-text/coarse models are insufficient; wait for acceptance stack. |
 | Career-graph requirement/satisfaction projection | No separate graph store | Project from canonical policy/evaluation/proof records when they exist. |
 
 ## Architecture review checklist
 
-- [ ] #1382 policy/workflow ownership resolved.
-- [ ] #1378/#1380/#1381/#1384 acceptance/start ownership resolved on main.
+- [x] #1382 policy/workflow ownership: DEFERRED by founder ruling (2026-08-15) pending TrustSpec ownership; not a blocker for pure TrustSpec work.
+- [x] Acceptance/start ownership resolved on main: #1378/#1380/#1384 landed as #1391/#1397/#1401; decision paths are `employerWorkflowService` and `applicationStartCommandService`. #1381 remains open (integration contract only).
 - [ ] Canonical representation + SHA-256 vectors approved.
 - [ ] Initial TrustSpec operators and fail-closed statuses approved.
 - [ ] Evidence hydration boundary approved.

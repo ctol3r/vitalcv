@@ -32,8 +32,8 @@ human-reviewed institutional policy
 - Backend trust/readiness candidates: `apps/api/backend/src/services/trust-state/*`, `services/trust/trustRulesEngine.ts`, `services/decision/{capsuleEngine,acceptanceGraph}.ts`, and `services/orgPolicyEngine.ts`.
 - Application truth: `apps/api/backend/src/services/opportunities/applicationPacket{Service,ReadService}.ts`, `applicationService.ts`, and application routes.
 - Persistence: `ApplicationPacket`, `DecisionCapsule`, `EmployerAcceptance`, `Acceptance`, `Recognition`, `Start`, `StartActivation`, `StartAttestation`, and `ActivationRequirement` in `apps/api/backend/prisma/schema.prisma`.
-- Existing execution/planning semantics: `apps/web/lib/agent/*` (StartAgent), activation services, and credential-operations draft PR #1382.
-- Active PR coordination: #1378, #1380, #1381, #1382, and #1384. No open or merged PR implements TrustSpec, TrustIR, or the Trust Compiler.
+- Existing execution/planning semantics: `apps/web/lib/agent/*` (StartAgent), activation services, and credential-operations draft PR #1382 (DEFERRED by founder ruling 2026-08-15 pending TrustSpec ownership).
+- PR coordination (updated 2026-08-15): the acceptance/start stack LANDED — #1378 as #1391, #1380 as #1397, #1384 as #1401; the landed decision paths are `employerWorkflowService` and `applicationStartCommandService`. #1381 remains open; #1382 is DEFERRED. No open or merged PR implements TrustSpec, TrustIR, or the Trust Compiler.
 
 ## Primitive classification
 
@@ -42,7 +42,7 @@ human-reviewed institutional policy
 | Persistent professional evidence | EXISTS | Retain canonical database records and the Passport-to-`EvidenceCollection` adapter. Do not add a demo-only evidence database. |
 | Evidence collection | EXISTS | Retain `EvidenceObject`, `EvidenceCollection`, and `buildEvidenceCollection()` unchanged. |
 | Evidence graph | EXISTS | Retain the pure evidence graph and the separate career-graph ontology; do not create a Professional Trust Graph package. |
-| Institutional requirement input | ADAPT | Adapt `OpportunityRequirement`; later adapt human-reviewed credential-operations templates if #1382 lands. Neither is itself canonical TrustSpec. |
+| Institutional requirement input | ADAPT | Adapt `OpportunityRequirement`; later adapt human-reviewed credential-operations templates if #1382 (DEFERRED 2026-08-15) is ever revived. Neither is itself canonical TrustSpec. |
 | TrustSpec | NEW | Add a pure, strict, versioned contract in domain-evidence. No persistence in the first bundle. |
 | TrustIR | NEW | Add normalized operator nodes and canonical ordering in domain-evidence. |
 | Trust Compiler | EXTEND | Extract reusable semantics from `detectGaps()` behind new evaluator contracts; do not rewrite or remove legacy readiness. |
@@ -112,7 +112,7 @@ Extraction must not copy legacy lossiness. `candidates[0]`, the four-value `GapK
 | `ApplicationPacket` | High | Immutable disclosure artifact, not reusable professional-state proof. Reuse canonicalization principles only. |
 | `DecisionCapsule` | High | Replayable institutional decision provenance, not compiler output. Proof may be referenced by a future capsule, never substituted for it. |
 | `ActivationRequirement` | High | Post-decision operational work ledger, not policy definition or compiler evaluation. Adapt compiler actions to it only after semantic ownership is explicit. |
-| PR #1382 credential-operations templates | Critical/in flight | Versioned, reviewed workflow persistence directly overlaps policy authoring. If it lands, write a reviewed adapter from an active template version; do not add a parallel TrustSpec table in Demo 1. |
+| PR #1382 credential-operations templates | Deferred (founder ruling 2026-08-15) | DEFERRED pending TrustSpec ownership; not an active collision. If it is ever revived and lands, write a reviewed adapter from an active template version; do not add a parallel TrustSpec table in Demo 1. |
 | StartAgent | High | Existing deterministic planner/runtime. Reuse execution safety patterns, but its ranked next-action heuristic is not an exact minimum-action optimizer. |
 | `manifest-engine.ts` / trust proofs | Medium | Several proof/manifest objects exist. Random IDs/current time and different claim scopes make them unsuitable as canonical compiler proofs. |
 | career-graph | Critical | It already is the canonical ontology contract. Extend it; do not create another graph. |
@@ -176,7 +176,7 @@ apps/web/tests/e2e/trust-computing-demo.spec.ts
 
 ### Q1. Where should TrustSpec live?
 
-In `packages/domain-evidence/src/trust-computing/trustSpec.ts`. It is a pure versioned policy contract, independent of Prisma, HTTP, React, and any one employer workflow. Demo 1 uses checked-in, human-authored fixtures. Persistence is deferred until the reviewed credential-operations template work (#1382) is resolved; an adapter is preferred over a second policy table.
+In `packages/domain-evidence/src/trust-computing/trustSpec.ts`. It is a pure versioned policy contract, independent of Prisma, HTTP, React, and any one employer workflow. Demo 1 uses checked-in, human-authored fixtures. Persistence remains deferred: the credential-operations template work (#1382) is DEFERRED by founder ruling (2026-08-15) pending TrustSpec ownership, so TrustSpec is defined first and #1382 is revisited against it; an adapter is preferred over a second policy table.
 
 ### Q2. Where should TrustIR live?
 
@@ -200,7 +200,7 @@ Reuse the existing `requirement`, `requires`, `satisfies`, and `partially_satisf
 
 ### Q7. What existing persistence can represent acceptance?
 
-The application decision path, `EmployerAcceptance`, `DecisionCapsule`, `Recognition`, and start records are the existing seam. The active #1378/#1380/#1381/#1384 stack is converging the exact packet decision and start lifecycle. Demo acceptance should call that canonical service after the stack settles; it must not write another acceptance table or treat free-text status as requirement-level acceptance. A later migration may add structured outcome/proof references, but Wave 1 does not assume them.
+The application decision path, `EmployerAcceptance`, `DecisionCapsule`, `Recognition`, and start records are the existing seam. The stack has settled on main (2026-08-15): #1378/#1380/#1384 landed as #1391/#1397/#1401, and the canonical decision paths are `apps/api/backend/src/services/opportunities/employerWorkflowService.ts` (employer decision) and `apps/api/backend/src/services/activation/applicationStartCommandService.ts` (application-bound start command). Demo acceptance calls those landed services; it must not write another acceptance table or treat free-text status as requirement-level acceptance. A later migration may add structured outcome/proof references, but Wave 1 does not assume them.
 
 ### Q8. Which proof parts can reuse packet hashing/snapshot concepts?
 
@@ -220,8 +220,8 @@ Demo 1 compiler, optimizer, golden fixtures, synthetic runtime, and in-memory pr
 
 ## Unresolved decisions before PTC-WAVE-01
 
-1. Resolve #1382: land, reshape, or close the credential-operations template work before choosing TrustSpec persistence.
-2. Resolve which current employer decision service is canonical after #1378/#1380/#1381/#1384; never wire the demo to a stacked implementation by assumption.
+1. ~~Resolve #1382~~ RESOLVED 2026-08-15: #1382 is DEFERRED by founder ruling pending TrustSpec ownership. TrustSpec is defined first; #1382 is revisited against it before any TrustSpec persistence decision.
+2. ~~Resolve which employer decision service is canonical~~ RESOLVED 2026-08-15: #1378/#1380/#1384 landed as #1391/#1397/#1401. The canonical decision paths are `employerWorkflowService` and `applicationStartCommandService`. #1381 (vendor-neutral integration contract) remains open and stays downstream.
 3. Choose a single cross-runtime canonical JSON + SHA-256 implementation. The repository has multiple subtly different serializers; equivalence vectors must precede reuse.
 4. Define the canonical backend adapter from persisted evidence to `EvidenceCollection`. Current web composition is Passport-based; the compiler cannot accept public-filtered or demo-degraded data as institutional truth.
 5. Decide whether Demo 1’s internal UI is needed for architecture approval or only after the headless proof is complete. Any visual work must follow the founder visual evidence gate.
