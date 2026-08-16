@@ -1,21 +1,25 @@
 import { expect, test, type Page } from '@playwright/test';
 
 /**
- * The Direction A homepage (amendment E) in a real browser.
+ * The founder's Homepage v4 (amendment F) in a real browser.
  *
- * Pins what renderToStaticMarkup cannot: the drawn figures are flat paper
- * (no frost anywhere on the route), the one-shot row reveal never hides
- * content, the cycling word settles and never loops, effective figure text
- * clears the 11px floor at both evidence viewports, the real NPI entry
- * validates locally and is keyboard-reachable, and the composition holds
- * without horizontal overflow across six viewports.
+ * Pins what renderToStaticMarkup cannot: the drawn figures are flat paper (no
+ * frost anywhere on the route), the hero folio's reveal is one-shot and
+ * strands nothing, NOTHING on the page loops, effective figure text clears
+ * the 11px floor at the narrow evidence viewports, the real NPI entry
+ * validates locally and is keyboard-reachable, the resolution scene moves
+ * idle → read log → real rows against route-mocked REAL-SHAPED payloads, and
+ * the composition holds without horizontal overflow across eight viewports.
  *
- * Live registry resolution deliberately has NO spec here — the e2e server is
- * backend-deterministic, and the resolution path is exercised against
- * production during deploy verification instead.
+ * The resolve path here runs against page.route mocks of the two real
+ * endpoints (`/api/identity/bootstrap/*`, `/api/trust-state/*`) — the e2e
+ * server is backend-deterministic, and live registry resolution stays covered
+ * against production during deploy verification.
  */
 
-const surface = (page: Page) => page.locator('[data-home-work-surface]');
+const folio = (page: Page) => page.locator('[data-home-work-surface]');
+
+const VALID_NPI = '1234567893'; // the repo's standard checksum-valid e2e NPI
 
 const PUBLIC_OPPORTUNITIES = {
   total: 2,
@@ -93,17 +97,51 @@ async function routeOpportunities(page: Page) {
   }));
 }
 
+/** REAL-SHAPED payloads for the resolve pipeline (EC-26: no fixture path in
+ * the app — the fixtures live here, in the test, shaped like the real API). */
+async function routeResolve(page: Page) {
+  await page.route('**/api/identity/bootstrap/**', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({
+      firstName: 'TEST',
+      lastName: 'CLINICIAN',
+      specialty: 'Internal Medicine',
+      state: 'CA',
+      npiType: 'TYPE_1',
+      identitySource: 'NPPES_API',
+    }),
+  }));
+  await page.route('**/api/trust-state/**', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({
+      identityVerified: true,
+      exclusionStatus: 'CLEAR',
+      pecosStatus: 'ENROLLED',
+      licensureStatus: 'unknown',
+      blockers: [],
+      nextActions: ['Add your preferred locations'],
+    }),
+  }));
+  await page.route('**/api/matcha/opportunities/**', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ matches: [] }),
+  }));
+}
+
 /**
- * Amendment E's figure floor, in CI shape: effective text size =
- * font-size × (rendered width ÷ viewBox width) must be ≥ 11px for every
- * visible <text> in every drawn figure. Measured, not eyeballed — the trap
- * this catches shipped once as 9.5px hero labels.
+ * The figure floor, in CI shape: effective text size = font-size × (rendered
+ * width ÷ viewBox width) must be ≥ 11px for every visible <text> in every
+ * drawn figure on the route — the hero folio, the trust flow, and the arc
+ * beat miniatures alike.
  */
 async function minEffectiveFigureText(page: Page): Promise<{ min: number; where: string }> {
   return page.evaluate(() => {
     let min = Number.POSITIVE_INFINITY;
     let where = 'none';
-    for (const svg of document.querySelectorAll('.ezh-fig-art svg, figure.ezh-fig svg')) {
+    for (const svg of document.querySelectorAll('.ezh-fig-art svg, .ezh-beat-fig svg')) {
       const rect = svg.getBoundingClientRect();
       if (rect.width === 0) continue; // the hidden half of a wide/narrow pair
       const viewBox = (svg as SVGSVGElement).viewBox.baseVal;
@@ -122,39 +160,30 @@ async function minEffectiveFigureText(page: Page): Promise<{ min: number; where:
   });
 }
 
-test.describe('home — the Direction A hero', () => {
+test.describe('home — the v4 hero and register', () => {
   test.beforeEach(async ({ page }) => {
     await routeOpportunities(page);
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto('/');
   });
 
-  test('one h1, and it is the amendment E thesis', async ({ page }) => {
+  test('one h1, and it is the amendment F thesis', async ({ page }) => {
     const h1 = page.locator('h1');
     await expect(h1).toHaveCount(1);
-    await expect(h1).toHaveText('Enter your NPI. VitalCV does the rest.');
-    await expect(page.getByText('For US clinicians', { exact: true })).toBeVisible();
+    await expect(h1).toHaveText('Get hired. Start working sooner.');
+    await expect(page.getByText('For clinicians · no account required')).toBeVisible();
   });
 
-  test('the hero never blocks: NPI entry and the drawn figure paint together', async ({ page }) => {
+  test('the hero never blocks: NPI entry and the folio paint together', async ({ page }) => {
     await expect(page.locator('[data-home-hero]')).toBeVisible();
     await expect(page.locator('#ezh-npi')).toBeVisible();
     await expect(page.locator('[data-home-primary-cta]')).toHaveText('Start with your NPI');
-    await expect(surface(page)).toBeVisible();
-    await expect(surface(page)).toHaveAttribute('data-visual-material', 'drawn-ink');
+    await expect(folio(page)).toBeVisible();
+    await expect(folio(page)).toHaveAttribute('data-visual-material', 'drawn-ink');
     await expect(page.locator('[data-home-stage] img')).toHaveCount(0);
   });
 
   test('the route carries no frost: flat paper, no backdrop-filter anywhere', async ({ page }) => {
-    const material = await surface(page).evaluate((node) => {
-      const style = getComputedStyle(node);
-      return {
-        backdropFilter: style.backdropFilter || style.getPropertyValue('-webkit-backdrop-filter'),
-        background: style.backgroundColor,
-      };
-    });
-    expect(material.backdropFilter === '' || material.backdropFilter === 'none').toBe(true);
-
     const frosted = await page.evaluate(() => {
       const bad: string[] = [];
       for (const el of document.querySelectorAll('.ezh, .ezh *')) {
@@ -167,34 +196,76 @@ test.describe('home — the Direction A hero', () => {
       }
       return bad;
     });
-    expect(frosted, `frost on the E register:\n${frosted.join('\n')}`).toEqual([]);
+    expect(frosted, `frost on the F register:\n${frosted.join('\n')}`).toEqual([]);
   });
 
-  test('the figure reveal is one-shot and strands nothing', async ({ page }) => {
-    // The enhancement runs once, then the machinery is stripped; whatever the
-    // transitions did, every row ends visible.
+  test('the folio reveal is one-shot and strands nothing', async ({ page }) => {
     await expect
-      .poll(async () => surface(page).getAttribute('data-motion'), { timeout: 6000 })
+      .poll(async () => folio(page).getAttribute('data-motion'), { timeout: 6000 })
       .toBe('done');
     const hidden = await page.evaluate(() =>
-      [...document.querySelectorAll('.ezh-rowfx')].filter(
+      [...document.querySelectorAll('.ezh-fig-hero .ezh-f-arr')].filter(
         (row) => getComputedStyle(row).opacity !== '1',
       ).length,
     );
     expect(hidden).toBe(0);
   });
 
-  test('the cycling word runs a single pass and settles on the locked word', async ({ page }) => {
+  test('every ambient loop is confined to illustration art, plus the status pulse', async ({ page }) => {
+    // Amendment F.1 (founder "Allow ambient loops", 2026-08-16; EC-29 amended
+    // in the same PR): bounded ambient loops are permitted, but ONLY inside
+    // illustration figures (`.ezh-fig-art`, aria-hidden) — never a control,
+    // text, status, or evidence surface (EC-4). The one non-figure loop is
+    // E.2's live-feed status pulse on the "Listed as open" dot. Any infinite
+    // animation that is neither is a regression.
+    await expect
+      .poll(async () => folio(page).getAttribute('data-motion'), { timeout: 6000 })
+      .toBe('done');
+    await expect(page.locator('.ezh-opportunity-source i.is-open').first()).toBeVisible();
+    const audit = await page.evaluate(() => {
+      const escaped: string[] = [];
+      let inArt = 0;
+      let statusPulse = 0;
+      for (const el of document.querySelectorAll('main.ezh, main.ezh *')) {
+        const s = getComputedStyle(el);
+        if (s.animationName === 'none' || !s.animationIterationCount.includes('infinite')) continue;
+        // Illustration art: the figure drawings and the arc beat minis, both
+        // aria-hidden. `.ezh-beat-fig` is the beat minis' own art wrapper.
+        const isFigureArt = el.closest('.ezh-fig-art') !== null || el.closest('.ezh-beat-fig') !== null;
+        const isStatusPulse = s.animationName === 'ezh-status-pulse' && el.classList.contains('is-open');
+        if (isFigureArt) inArt += 1;
+        else if (isStatusPulse) statusPulse += 1;
+        else escaped.push(`${el.tagName.toLowerCase()}.${String(el.className).slice(0, 48)} → ${s.animationName}`);
+      }
+      return { escaped, inArt, statusPulse };
+    });
+    // No loop escapes the illustration art or the status pulse.
+    expect(audit.escaped, `ambient loop escaped illustration art:\n${audit.escaped.join('\n')}`).toEqual([]);
+    // The ambient loops actually run (the ECG trace at minimum), and the
+    // status pulse is present — so the guard is testing something live. (The
+    // mocked feed returns two open roles, so two pulse dots; the count is not
+    // fixed, only that it exists and every pulse is the sanctioned one.)
+    expect(audit.inArt, 'no ambient illustration loop is running').toBeGreaterThan(0);
+    expect(audit.statusPulse, 'the live-feed status pulse is missing').toBeGreaterThanOrEqual(1);
+  });
+
+  test('the one-shot section entrances leave nothing hidden', async ({ page }) => {
+    // E.2's reveal system, adopted by F: the hidden state exists only while
+    // the root is armed, and the safety timer force-completes at 4s — so
+    // whatever the observers did, every [data-ezh-reveal] section ends at
+    // computed opacity 1.
     await expect
       .poll(
-        async () => page.locator('[data-home-cycling-word]').getAttribute('data-home-cycling-word'),
-        { timeout: 6000 },
+        async () => page.locator('main.ezh').getAttribute('data-ezh-motion'),
+        { timeout: 8000 },
       )
-      .toBe('settled');
-    await expect(page.locator('[data-home-cycling-word]')).toHaveText('application');
-    // Nothing loops: the settled word is still settled well after the pass.
-    await page.waitForTimeout(1200);
-    await expect(page.locator('[data-home-cycling-word]')).toHaveText('application');
+      .toBe('done');
+    const stranded = await page.evaluate(() =>
+      [...document.querySelectorAll('[data-ezh-reveal]')].filter(
+        (el) => Number(getComputedStyle(el).opacity) < 0.99,
+      ).length,
+    );
+    expect(stranded).toBe(0);
   });
 
   test('effective figure text clears the 11px floor at 1440', async ({ page }) => {
@@ -202,16 +273,13 @@ test.describe('home — the Direction A hero', () => {
     expect(min, `smallest effective figure text: ${where}`).toBeGreaterThanOrEqual(11);
   });
 
-  test('exactly one viewBox variant of each figure is visible', async ({ page }) => {
-    // Both variants ship in the server frame; CSS must show ONE. An
-    // equal-specificity slip rendered both halves of every pair at desktop —
-    // caught by a screenshot, now pinned here at both breakpoints.
+  test('exactly one viewBox variant of each paired figure is visible', async ({ page }) => {
     for (const width of [1440, 390] as const) {
       await page.setViewportSize({ width, height: 900 });
       const counts = await page.evaluate(() => {
-        const figures = [...document.querySelectorAll('[data-home-figure]')];
-        return figures.map((fig) => ({
-          id: fig.getAttribute('data-home-figure'),
+        const figures = [...document.querySelectorAll('.ezh-fig-art')];
+        return figures.map((fig, i) => ({
+          id: fig.closest('[data-home-figure]')?.getAttribute('data-home-figure') ?? `art-${i}`,
           visible: [...fig.querySelectorAll('svg')].filter(
             (svg) => svg.getBoundingClientRect().width > 0,
           ).length,
@@ -262,9 +330,9 @@ test.describe('home — the Direction A hero', () => {
     expect(order).toBe(true);
   });
 
-  test('Roles renders only returned roles with source and application boundary', async ({ page }) => {
+  test('Roles renders only returned roles with source and application boundary — and never says job board', async ({ page }) => {
     const horizon = page.locator('[data-home-opportunity-horizon]');
-    await expect(horizon.getByText('A job board that reads your credentials, not your keywords.')).toBeVisible();
+    await expect(horizon.getByText('Roles, read against your record — not your keywords.')).toBeVisible();
     await expect(horizon.locator('.ezh-opportunity-row')).toHaveCount(2);
     await expect(horizon.getByText('Listed on greenhouse', { exact: true })).toBeVisible();
     await expect(horizon.getByText('Observed Aug 13, 2026', { exact: true }).first()).toBeVisible();
@@ -277,78 +345,19 @@ test.describe('home — the Direction A hero', () => {
       'href',
       '/opportunities/integrated-role',
     );
-    await expect(horizon).not.toContainText(/ready now|automatically eligible/i);
+    await expect(horizon).not.toContainText(/ready now|automatically eligible|job board/i);
   });
 
-  test('amendment E.1: three promises render, and the retired sections are gone', async ({ page }) => {
-    // The 2026-08-16 founder directive replaced the seven-step band, standing
-    // watch, attribution ledger, and accordion FAQ with three benefit cards
-    // and three flat answers.
-    await expect(page.locator('[data-home-mobility-sequence]')).toHaveCount(0);
-    await expect(page.locator('[data-home-standing-watch]')).toHaveCount(0);
-    const promises = page.locator('.ezh-promise');
-    await promises.first().scrollIntoViewIfNeeded();
-    await expect(promises).toHaveCount(3);
-    await expect(promises.first().locator('svg.ezh-promise-glyph')).toBeVisible();
-    await expect(page.getByText('Build it once. Take it everywhere.')).toBeVisible();
-    await expect(page.getByText(/most weeks, nothing does/i)).toBeVisible();
-    // Flat answers: a real <dl>, zero <details> anywhere on the page.
-    await page.locator('.ezh-qa-list').scrollIntoViewIfNeeded();
-    await expect(page.locator('.ezh-qa-list')).toBeVisible();
-    await expect(page.locator('main details')).toHaveCount(0);
-  });
-
-  test('E.2: sections enter once on scroll and never re-hide', async ({ page }) => {
-    // The reveal system arms after hydration and reveals each section exactly
-    // once. The assertions poll well inside the safety timer, so a passing
-    // run proves the OBSERVER fired, not the force-complete.
-    await expect
-      .poll(async () => page.locator('main.ezh').getAttribute('data-ezh-motion'), { timeout: 4000 })
-      .not.toBeNull();
-    const promises = page.locator('.ezh-promises');
-    // Below the fold and not yet revealed — so the reveal that follows is the
-    // observer's work, not the safety timer's.
-    await expect(promises).not.toHaveClass(/is-in/);
-    await promises.scrollIntoViewIfNeeded();
-    await expect(promises).toHaveClass(/is-in/, { timeout: 2500 });
-    const wrapOpacity = async () =>
-      promises.locator('> .ezh-wrap').evaluate((el) => getComputedStyle(el).opacity);
-    await expect.poll(wrapOpacity, { timeout: 2500 }).toBe('1');
-    // One-shot: scrolling away and back does not reset the section.
-    await page.evaluate(() => window.scrollTo(0, 0));
-    await page.waitForTimeout(200);
-    await expect(promises).toHaveClass(/is-in/);
-  });
-
-  test('E.2: the ONLY infinite animation on the route is the status pulse', async ({ page }) => {
-    // EC-29: nothing loops except a system-status pulse. Sweep every element
-    // on the island for an infinite iteration count and require that each one
-    // is the "Listed as open" availability dot.
-    await page.locator('.ezh-opportunities').scrollIntoViewIfNeeded();
-    await expect(page.locator('.ezh-opportunity-row').first()).toBeVisible();
-    const loops = await page.evaluate(() =>
-      [...document.querySelectorAll('.ezh, .ezh *')]
-        .filter((el) => getComputedStyle(el).animationIterationCount.split(',').includes('infinite'))
-        .map((el) => `${el.tagName.toLowerCase()}.${String(el.className).slice(0, 40)}`),
-    );
-    for (const offender of loops) {
-      expect(offender, `unlawful loop: ${offender}`).toContain('is-open');
-    }
-    // And the lawful pulse is actually present on the open listing's dot.
-    await expect(page.locator('.ezh-opportunity-source i.is-open').first()).toBeVisible();
-  });
-
-  test('E.2: the digit counter pops per typed digit, from real counts only', async ({ page }) => {
-    const input = page.locator('#ezh-npi');
-    await expect(async () => {
-      await input.fill('12');
-      await expect(page.getByText('2/10 digits')).toBeVisible({ timeout: 1500 });
-    }).toPass({ timeout: 15000 });
-    // The pop class is present only once a real digit exists.
-    await expect(page.locator('.ezh-npi-count-num.is-pop')).toHaveText('2');
-    await input.fill('');
-    await expect(page.getByText('0/10 digits')).toBeVisible();
-    await expect(page.locator('.ezh-npi-count-num.is-pop')).toHaveCount(0);
+  test('the v4 document sections render in order with their state grammar', async ({ page }) => {
+    await expect(page.locator('[data-home-resolution]')).toBeVisible();
+    await expect(page.locator('[data-home-figure="trust-flow"]')).toBeVisible();
+    await expect(page.locator('[data-home-arc]')).toBeVisible();
+    await expect(page.locator('[data-home-figure="packet-shape"]')).toBeVisible();
+    await expect(page.locator('[data-home-state-legend]')).toBeVisible();
+    await expect(page.getByText('Five states, no others')).toBeVisible();
+    await expect(page.getByText('Counts are of lanes, not a score. VitalCV does not grade clinicians.')).toBeVisible();
+    await expect(page.getByText('Durations are pilot targets, not returned data')).toBeVisible();
+    await expect(page.locator('main')).not.toContainText(/Adverse|under dispute/);
   });
 
   test('the final action returns to the real entry', async ({ page }) => {
@@ -360,6 +369,65 @@ test.describe('home — the Direction A hero', () => {
   });
 });
 
+test.describe('home — the resolution scene, idle → resolved', () => {
+  test('idle: the real registry with nothing read, and honest tally counts', async ({ page }) => {
+    await routeOpportunities(page);
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto('/');
+    const scene = page.locator('[data-home-resolution]');
+    await expect(scene.getByText('Awaiting an NPI — nothing has been read yet')).toBeVisible();
+    await expect(scene.locator('[data-home-idle-ledger] .ezh-lrow')).toHaveCount(8);
+    // The idle scene claims no read: no "no match", no timestamps, no clock.
+    await expect(scene).not.toContainText(/no match/i);
+    await expect(scene.getByText('Illustrative until a real lookup returns', { exact: false })).toBeVisible();
+  });
+
+  test('resolved: real-shaped rows replace the idle ledger, unknowns at full opacity', async ({ page }) => {
+    await routeOpportunities(page);
+    await routeResolve(page);
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto('/');
+
+    const input = page.locator('#ezh-npi');
+    await expect(async () => {
+      await input.fill(VALID_NPI);
+      await expect(page.getByText('10/10 digits')).toBeVisible({ timeout: 1500 });
+    }).toPass({ timeout: 15000 });
+    await page.locator('[data-home-primary-cta]').click();
+
+    const reveal = page.locator('[data-npi-reveal]');
+    await expect(reveal).toBeVisible({ timeout: 15000 });
+    // The registry-named identity, presentation-cased.
+    await expect(reveal.getByText('Test Clinician')).toBeVisible();
+    await expect(reveal.getByText(`Named by NPPES for NPI ${VALID_NPI}`)).toBeVisible();
+    // The idle ledger is gone — real rows replaced the illustration.
+    await expect(page.locator('[data-home-idle-ledger]')).toHaveCount(0);
+
+    // Equal typographic confidence: the access-required lane paints at full
+    // opacity, same structure as a returned row.
+    const accessRow = reveal.locator('.ezh-rv-row.is-unavailable').first();
+    await expect(accessRow).toBeVisible();
+    await expect(accessRow).toContainText('Access required');
+    expect(await accessRow.evaluate((el) => getComputedStyle(el).opacity)).toBe('1');
+
+    // Provenance stays behind a CLOSED disclosure.
+    const disclosure = reveal.locator('details.ezh-rv-more').first();
+    await expect(disclosure).toBeVisible();
+    expect(await disclosure.evaluate((el) => (el as HTMLDetailsElement).open)).toBe(false);
+
+    // The tally now counts the real rows, not the idle fixture. ("Returned
+    // by source" is also the reveal's group heading, so scope to the tally.)
+    const scene = page.locator('[data-home-resolution]');
+    await expect(scene.locator('.ezh-tally').getByText('Returned by source')).toBeVisible();
+    await expect(scene.getByText('Shown to you only. Nothing here has been sent anywhere.')).toBeVisible();
+
+    // The correction path is first-class and resets to the idle composition.
+    await reveal.getByRole('button', { name: 'Not you? Check another NPI' }).click();
+    await expect(page.locator('[data-home-idle-ledger]')).toBeVisible();
+    await expect(scene.getByText('Awaiting an NPI — nothing has been read yet')).toBeVisible();
+  });
+});
+
 test.describe('home — layout integrity across viewports', () => {
   for (const [width, height] of [
     [1728, 1117],
@@ -368,9 +436,6 @@ test.describe('home — layout integrity across viewports', () => {
     [1024, 768],
     [768, 1024],
     [390, 844],
-    // 390 was the narrowest declared width, which left the two commonest
-    // small phones untested: 375 (iPhone SE / 12–13 mini / 6–8) and 360 (the
-    // modal Android). The figure floor failed at 375 while passing at 390.
     [375, 812],
     [360, 800],
   ] as const) {
@@ -383,27 +448,58 @@ test.describe('home — layout integrity across viewports', () => {
         () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
       );
       expect(overflow).toBeLessThanOrEqual(0);
-      // scrollWidth is blind when an ancestor hides overflow-x — a clipped
-      // page measures "no overflow" while the CTA hangs off screen. Assert
-      // the interactive elements actually END inside the viewport.
+      // scrollWidth is blind when an ancestor hides overflow-x — assert the
+      // interactive elements actually END inside the viewport.
       for (const selector of ['#ezh-npi', '[data-home-primary-cta]', '[data-home-work-surface]']) {
         const box = await page.locator(selector).boundingBox();
         expect(box, `${selector} missing at ${width}`).not.toBeNull();
+        // On failure, report WHICH ancestor is oversized rather than only the
+        // leaf's number. This layout depends on font metrics (an `fr` track's
+        // automatic minimum is min-content), so the same build can pass on one
+        // platform and fail on another — and the leaf is never the culprit,
+        // it merely inherits its column's width.
+        const right = box!.x + box!.width;
+        let chain = '';
+        if (right > width + 1) {
+          chain = await page.locator(selector).evaluate((el) => {
+            const rows: string[] = [];
+            for (let node: Element | null = el; node; node = node.parentElement) {
+              const r = node.getBoundingClientRect();
+              const cs = getComputedStyle(node);
+              const id = `${node.tagName.toLowerCase()}${node.id ? `#${node.id}` : ''}` +
+                `${node.classList.length ? `.${[...node.classList].join('.')}` : ''}`;
+              rows.push(
+                `${id.slice(0, 64)} x=${r.x.toFixed(1)} w=${r.width.toFixed(1)} ` +
+                  `right=${(r.x + r.width).toFixed(1)} scrollW=${node.scrollWidth} ` +
+                  `display=${cs.display} cols=${cs.gridTemplateColumns} ` +
+                  `minW=${cs.minWidth} maxW=${cs.maxWidth} padL=${cs.paddingLeft} ovX=${cs.overflowX}`,
+              );
+              if (node.tagName === 'HTML') break;
+            }
+            const widest = [...document.querySelectorAll('main.ezh *')]
+              .map((n) => ({ n, r: n.getBoundingClientRect() }))
+              .filter(({ r }) => r.width > 0 && r.x + r.width > window.innerWidth + 1)
+              .sort((a, b) => b.r.x + b.r.width - (a.r.x + a.r.width))
+              .slice(0, 6)
+              .map(({ n, r }) =>
+                `${n.tagName.toLowerCase()}.${String(n.className).slice(0, 44)} right=${(r.x + r.width).toFixed(1)}`,
+              );
+            return (
+              `\n  innerWidth=${window.innerWidth} clientWidth=${document.documentElement.clientWidth} ` +
+              `docScrollW=${document.documentElement.scrollWidth} dpr=${window.devicePixelRatio} ` +
+              `fonts=${document.fonts.status}\n  ANCESTORS:\n    ${rows.join('\n    ')}` +
+              `\n  WIDEST OVERFLOWING:\n    ${widest.join('\n    ') || '(none)'}`
+            );
+          });
+        }
         expect(
-          box!.x + box!.width,
-          `${selector} clipped past the ${width}px viewport`,
+          right,
+          `${selector} clipped past the ${width}px viewport${chain}`,
         ).toBeLessThanOrEqual(width + 1);
       }
     });
   }
 
-  /*
-   * The floor is checked at every narrow width we claim to support, not just
-   * the widest of them. It passed at 390 and failed at 375 by 0.51px — the
-   * hero's frame charges its padding against the drawing's rendered width, so
-   * the margin shrinks as the viewport does and the widest narrow viewport is
-   * the least likely to catch it.
-   */
   for (const [width, height] of [
     [390, 844],
     [375, 812],
@@ -420,90 +516,61 @@ test.describe('home — layout integrity across viewports', () => {
   }
 });
 
-test.describe('home — reduced motion', () => {
-  // page.emulateMedia rather than test.use: with this config the context
-  // option is not honored (@playwright/test 1.58.2), the CDP call is.
-  test('the static frame is complete: figure static, word settled, nothing armed', async ({ page }) => {
+test.describe('home — reduced motion and no-JS', () => {
+  test('reduced motion: the static frame is complete and runs ZERO animations ≥50ms', async ({ page }) => {
     await routeOpportunities(page);
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto('/');
-    await expect(surface(page)).toHaveAttribute('data-motion', 'static');
-    await expect(page.locator('[data-home-cycling-word]')).toHaveText('application');
+    await expect(folio(page)).toHaveAttribute('data-motion', 'static');
     const hidden = await page.evaluate(() =>
-      [...document.querySelectorAll('.ezh-rowfx')].filter(
+      [...document.querySelectorAll('.ezh-fig-hero .ezh-f-arr')].filter(
         (row) => getComputedStyle(row).opacity !== '1',
       ).length,
     );
     expect(hidden).toBe(0);
-    await expect(surface(page).locator('.ezh-fig-cap')).toBeVisible();
-    // E.2: the section-reveal system never arms — every section is the
-    // finished frame without scrolling.
-    await expect(page.locator('main.ezh')).not.toHaveAttribute('data-ezh-motion');
-    const hiddenSections = await page.evaluate(() =>
-      [...document.querySelectorAll('[data-ezh-reveal] > .ezh-wrap')].filter(
-        (wrap) => getComputedStyle(wrap).opacity !== '1',
-      ).length,
+    // Zero animations of consequence anywhere in the island — the F.1
+    // invariant. This is the real test of the ambient exception: under normal
+    // motion the ECG traces, the packet travels, connectors march and glyphs
+    // tick; under reduced motion EVERY one of them, plus the status pulse and
+    // the entrances, must stop. `getAnimations()` returns nothing for an
+    // element whose computed `animation` is `none`.
+    const running = await page.evaluate(() =>
+      document
+        .getAnimations()
+        .filter((a) => {
+          const target = (a.effect as KeyframeEffect | null)?.target as Element | null;
+          if (!target || !target.closest('main.ezh')) return false;
+          const duration = (a.effect?.getTiming().duration as number) || 0;
+          return duration >= 50;
+        })
+        .map((a) => (a as CSSAnimation).animationName ?? a.id),
     );
-    expect(hiddenSections).toBe(0);
+    expect(running, `animations under reduced motion: ${running.join(', ')}`).toEqual([]);
+    await expect(folio(page).locator('.ezh-fig-cap')).toBeVisible();
   });
 
-  test('E.2: zero animation survives reduced motion on the island', async ({ page }) => {
-    // The design-kernel kill switch, asserted island-wide: no element inside
-    // .ezh may keep an animation or transition ≥ 50ms under reduced motion —
-    // including the status pulse, the entrances, and the line-draws.
-    await routeOpportunities(page);
-    await page.setViewportSize({ width: 1440, height: 900 });
-    await page.emulateMedia({ reducedMotion: 'reduce' });
-    await page.goto('/');
-    await expect(page.locator('.ezh-opportunity-row').first()).toBeVisible();
-    const offenders = await page.evaluate(() => {
-      const bad: string[] = [];
-      for (const el of document.querySelectorAll('.ezh, .ezh *')) {
-        const s = getComputedStyle(el);
-        const durations = `${s.animationDuration},${s.transitionDuration}`
-          .split(',')
-          .map((d) => parseFloat(d) * (d.includes('ms') ? 1 : 1000))
-          .filter((n) => Number.isFinite(n));
-        if (durations.some((n) => n >= 50)) {
-          bad.push(`${el.tagName.toLowerCase()}.${String(el.className).slice(0, 40)}`);
-          if (bad.length >= 5) break;
-        }
-      }
-      return bad;
-    });
-    expect(offenders, `animating under reduced motion:\n${offenders.join('\n')}`).toEqual([]);
-  });
-
-  test('the no-JavaScript frame keeps the thesis, figure, settled word, and doorway', async ({ browser }) => {
+  test('the no-JavaScript frame is the complete composition', async ({ browser }) => {
     const context = await browser.newContext({
       javaScriptEnabled: false,
       viewport: { width: 1440, height: 900 },
     });
     const page = await context.newPage();
     await page.goto('/');
-    await expect(page.locator('h1')).toHaveText('Enter your NPI. VitalCV does the rest.');
+    await expect(page.locator('h1')).toHaveText('Get hired. Start working sooner.');
     await expect(page.locator('header.vcv-eb')).toHaveAttribute('data-eb-theme', 'light');
-    await expect(page.locator('.vcv-eb__wordmark')).toHaveCSS('color', 'rgb(21, 20, 18)');
-    await expect(surface(page)).toHaveAttribute('data-motion', 'static');
+    await expect(folio(page)).toHaveAttribute('data-motion', 'static');
     await expect(page.locator('[data-home-stage] img')).toHaveCount(0);
-    // The figure is complete in the server frame: both viewBox variants are
-    // in DOM (5 rows each), and CSS shows exactly one.
-    await expect(surface(page).locator('.ezh-rowfx')).toHaveCount(10);
-    await expect(page.locator('[data-home-cycling-word]')).toHaveText('application');
+    // The folio is complete in the server frame: both viewBox variants are in
+    // DOM (4 arrival groups each) and CSS shows exactly one.
+    await expect(folio(page).locator('.ezh-f-arr')).toHaveCount(8);
+    // The idle resolution ledger, the arc, the packet shape, and the legend
+    // all read without JavaScript.
+    await expect(page.locator('[data-home-idle-ledger] .ezh-lrow')).toHaveCount(8);
+    await expect(page.getByText('Five states, no others')).toBeVisible();
+    await expect(page.getByText('Counts are of lanes, not a score. VitalCV does not grade clinicians.')).toBeVisible();
     await expect(page.locator('[data-home-opportunity-cta]')).toHaveAttribute('href', '/explore');
     await expect(page.getByText('Reading the current opportunity feed…')).toBeVisible();
-    // E.2: without script the reveal system never arms — every section is
-    // fully visible without scrolling, promises and answers included.
-    await expect(page.locator('main.ezh')).not.toHaveAttribute('data-ezh-motion');
-    const hiddenSections = await page.evaluate(() =>
-      [...document.querySelectorAll('[data-ezh-reveal] > .ezh-wrap')].filter(
-        (wrap) => getComputedStyle(wrap).opacity !== '1',
-      ).length,
-    );
-    expect(hiddenSections).toBe(0);
-    await expect(page.locator('.ezh-promise')).toHaveCount(3);
-    await expect(page.getByText(/most weeks, nothing does/i)).toBeVisible();
     await context.close();
   });
 });

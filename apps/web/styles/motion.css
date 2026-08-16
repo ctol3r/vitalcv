@@ -155,45 +155,15 @@
   }
 }
 
-/* ── Amendment E.2 — the homepage's one-shot clinical-motion set ────────────
- * Consumers live in easy-home.css, gated behind the `[data-ezh-motion]`
- * arming attribute that only hydration outside prefers-reduced-motion sets.
- * SSR, no-JS, and reduced motion render the complete resting frame; the
- * global reduced-motion kill switch clamps whatever slips through. */
+/* ── Amendment E.2 → F — the homepage's one-shot motion survivors ──────────
+ * E.2 landed five clinical-motion keyframes; the same-day F recomposition
+ * (the founder's Homepage v4) retired their consumers with the E figures.
+ * The two that keep consumers under F stay: `ezh-row-in` (one-shot arrival
+ * for late-mounted live-feed rows) and `ezh-status-pulse` (the route's ONE
+ * lawful loop). `ezh-fig-draw`, `ezh-badge-swing` and `ezh-count-pop` were
+ * removed with their consumers — see CHANGES.md 2026-08-16. */
 
-/* A figure stroke draws itself once on entry. Same shape as ask-art-trace:
- * the element sets --ezh-draw-len to a value ≥ its real path length (its
- * resting stroke-dasharray in easy-home.css is that same var, so one dash
- * covers the whole path and the resting state is visually solid), and this
- * animates only the offset. Chromium does NOT scale CSS dash values by the
- * SVG pathLength attribute — a pathLength="1" + `stroke-dasharray: 1` scheme
- * renders 1px dots, measured in-browser 2026-08-16 — hence explicit lengths.
- * 250–450ms product-transformation band (EC-29). */
-@keyframes ezh-fig-draw {
-  from {
-    stroke-dashoffset: var(--ezh-draw-len, 600);
-  }
-  to {
-    stroke-dashoffset: 0;
-  }
-}
 
-/* The hero badge clips on with a small swing and settles — the route's one
- * narrative accent (450–800ms band), from the founder-selected Option 1
- * "Chart & Badge" (E.2). Rotation only, ≤1.4deg about the lanyard slot;
- * edge displacement stays under ~7px. One shot; the resting state carries no
- * transform. */
-@keyframes ezh-badge-swing {
-  0% {
-    rotate: 1.4deg;
-  }
-  55% {
-    rotate: -0.5deg;
-  }
-  100% {
-    rotate: 0deg;
-  }
-}
 
 /* A late-mounted feed row arriving (the live Roles rows exist only after the
  * real fetch answers, so the section-reveal transition cannot carry them).
@@ -222,19 +192,6 @@
   }
 }
 
-/* The NPI digit counter's per-digit pop — control feedback for a real typed
- * count (EC-3: real value to real value), inside the 80–150ms band. */
-@keyframes ezh-count-pop {
-  0% {
-    scale: 1;
-  }
-  45% {
-    scale: 1.3;
-  }
-  100% {
-    scale: 1;
-  }
-}
 
 /* Direction D's homepage record enters row by row only after the client marks
  * the already-complete SSR record animated. The resting rule lives in
@@ -442,6 +399,73 @@
   }
   to {
     transform: none;
+    opacity: 1;
+  }
+}
+
+/* Homepage v4 (amendment F, 2026-08-16) — the hero folio's one-shot tile
+ * entrance. Used by `.ezh-fig-hero[data-motion='run']` in easy-home.css: the
+ * four source tiles arrive once, staggered (state-transition band). Reduced
+ * motion never arms it. */
+@keyframes ezh-f-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Homepage v4 — ambient illustration loops (amendment F.1, 2026-08-16).
+ *
+ * Founder ruling, verbatim: "Allow ambient loops". These are the founder's
+ * v4 `body.mo-amb` behaviours from vitalcv-ill-v4.css, ported to the F island
+ * and consumed ONLY by `.ezh-fig-art` illustration classes (aria-hidden art):
+ * never a control, text, status, or evidence surface (EC-4). EC-29 was
+ * amended in the same PR to permit bounded ambient illustration loops on the
+ * `/` scene register; the easy-home.css reduced-motion block stops every one
+ * of them. Distinct from the live-feed status pulse (`ezh-status-pulse`),
+ * which is EC-29's separate system-status exception and stays. */
+@keyframes ezh-il-draw {
+  from {
+    stroke-dashoffset: var(--ezh-len, 600);
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes ezh-il-travel {
+  0% {
+    opacity: 0;
+    transform: translateX(0);
+  }
+  14% {
+    opacity: 1;
+  }
+  82% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(var(--ezh-tx, 90px));
+  }
+}
+
+@keyframes ezh-il-dash {
+  to {
+    stroke-dashoffset: -20;
+  }
+}
+
+@keyframes ezh-il-tick {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
     opacity: 1;
   }
 }

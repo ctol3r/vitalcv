@@ -34,9 +34,11 @@ const text = html
 describe('homepage — the public opportunity horizon is present', () => {
   it('renders the acquisition surface directly on the served route', () => {
     expect(html).toContain('data-home-opportunity-horizon');
-    // The Roles heading (amendment E): the feed framed by the
-    // match-explanation figure, scored on the record rather than keywords.
-    expect(text).toContain('A job board that reads your credentials, not your keywords.');
+    // The Roles heading (amendment F, founder UX audit 2026-08-16): roles
+    // are read against the record, and VitalCV never calls itself a job
+    // board — that noun hands the category away.
+    expect(text).toContain('Roles, read against your record — not your keywords.');
+    expect(text.toLowerCase()).not.toContain('job board');
     expect(html).toContain('href="/explore"');
   });
 

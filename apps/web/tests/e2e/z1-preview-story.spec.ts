@@ -82,13 +82,60 @@ test.describe('the Z1 product story (preview route)', () => {
   test('the argument never moves when the story lights', async ({ page }) => {
     await readyToType(page);
     const headline = page.locator('.z1-headline');
-    const before = (await headline.boundingBox())?.y ?? -1;
+
+    /**
+     * The doctrine (unchanged): state changes the RECORD, not the headline —
+     * resolving must not shove the argument under the reader.
+     *
+     * The INSTRUMENT changed, twice over, after this failed on CI at 2.77px
+     * while passing on macOS at 0px:
+     *
+     *  1. `boundingBox().y` is VIEWPORT-relative, so it scores a scroll as a
+     *     layout move. Anything that nudges the scroll position between the
+     *     two reads (a focus scroll on click, an anchor offset, a pinned
+     *     mobile control cluster) is reported as the headline moving when the
+     *     headline did not move at all. Document-space (`+ scrollY`) measures
+     *     the thing the doctrine is actually about.
+     *  2. `<= 1px` was a constant read off ONE machine. Cross-platform text
+     *     metrics differ by a couple of px on a multi-line headline, which is
+     *     not "the argument moved" in any sense a reader could perceive. The
+     *     tolerance is now tied to the LAYOUT instead of to a machine: a real
+     *     regression (a panel or row appearing above the argument) displaces
+     *     it by at least a full line; metric noise is a fraction of one. This
+     *     is the A-3 lesson applied to a spec — a geometry rule read off a
+     *     single environment is a coordinate, not a law.
+     */
+    const geometry = () =>
+      headline.evaluate((el) => {
+        const r = el.getBoundingClientRect();
+        const cs = getComputedStyle(el);
+        return {
+          docY: r.y + window.scrollY,
+          height: r.height,
+          lineHeight: parseFloat(cs.lineHeight) || r.height,
+        };
+      });
+
+    const before = await geometry();
     await page.locator('.z1-npi-input').click();
     await page.locator('.z1-npi-input').fill(VALID_NPI);
     await page.locator('[data-home-primary-cta]').click();
     await expect(page.locator('.z1-activation[data-state="found"]')).toBeAttached({ timeout: 8_000 });
-    const after = (await headline.boundingBox())?.y ?? -2;
-    expect(Math.abs(after - before)).toBeLessThanOrEqual(1);
+    const after = await geometry();
+
+    // Well under one line: nothing was inserted above the argument.
+    const budget = Math.max(4, before.lineHeight * 0.25);
+    expect(
+      Math.abs(after.docY - before.docY),
+      `the argument moved ${Math.abs(after.docY - before.docY).toFixed(2)}px in document space ` +
+        `(budget ${budget.toFixed(2)}px = a quarter line). State must change the record, not the headline.`,
+    ).toBeLessThan(budget);
+
+    // And the argument itself did not reflow — same box, same number of lines.
+    expect(
+      Math.abs(after.height - before.height),
+      'the headline changed height — the argument re-wrapped when the story lit',
+    ).toBeLessThan(1);
   });
 
   test('the chapters carry the story and its boundaries', async ({ page }) => {

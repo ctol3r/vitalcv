@@ -63,7 +63,10 @@ describe('homepage primary CTA is not invisible', () => {
   it('still has the generic anchor rule that caused the defect', () => {
     // If this ever goes away the scoping below is harmless; if it is still
     // here, the scoping is load-bearing. Either way the test should say which.
-    expect(CSS).toMatch(/\.ezh a\s*\{[^}]*color:\s*inherit/);
+    // (Amendment F: the generic rule now paints the signal indigo rather than
+    // `inherit`; the cascade hazard — an anchor rule outranking the CTA's own
+    // colour — is identical.)
+    expect(CSS).toMatch(/\.ezh a\s*\{[^}]*color:/);
   });
 
   it('scopes the keep CTA above `.ezh a`, or the anchor rule wins', () => {
@@ -80,10 +83,11 @@ describe('homepage primary CTA is not invisible', () => {
     }
   });
 
-  it('paints the paper-ink token, not an inherited colour', () => {
-    // The pair is --ezh-cta-bg / --ezh-cta-text, documented 16.88:1 on paper.
+  it('paints the action token pair, not an inherited colour', () => {
+    // Amendment F: the pair is --vt-home-f-action / --vt-home-f-action-label,
+    // measured 16.12:1 (scene-token-contract asserts the resolved values).
     const rule = CSS.match(/\.ezh\s+\.ezh-rv-keep\s*\{[^}]*\}/)?.[0] ?? '';
-    expect(rule).toMatch(/background:\s*var\(--ezh-cta-bg\)/);
-    expect(rule).toMatch(/color:\s*var\(--ezh-cta-text\)/);
+    expect(rule).toMatch(/background:\s*var\(--vt-home-f-action\)/);
+    expect(rule).toMatch(/color:\s*var\(--vt-home-f-action-label\)/);
   });
 });

@@ -1,0 +1,55 @@
+/* VitalCV illustration kit v4 — abstract evidence geometry on warm paper. No people, no nodes, no stock. */
+.il{display:block;width:100%;height:auto;overflow:visible}
+.il .paper{fill:var(--vt-paper-raised);stroke:var(--vt-rule-strong);stroke-width:1}
+.il .field{fill:var(--vt-paper-inset);stroke:var(--vt-rule);stroke-width:1}
+.il .tile{fill:var(--vt-paper-raised);stroke:var(--vt-rule);stroke-width:1}
+.il .tile.acc{stroke:var(--vt-accent);fill:var(--vt-accent-wash)}
+.il .hair{fill:none;stroke:var(--vt-rule);stroke-width:1}
+.il .hair-s{fill:none;stroke:var(--vt-rule-strong);stroke-width:1}
+.il .bar{fill:var(--vt-rule)}
+.il .bar.ink{fill:var(--vt-ink)}
+.il .bar.acc{fill:var(--vt-accent)}
+.il .link{fill:none;stroke:var(--vt-rule-strong);stroke-width:1;stroke-dasharray:5 5}
+.il .link.acc{stroke:var(--vt-accent)}
+.il .pkt{fill:var(--vt-accent)}
+.il .gate{fill:none;stroke:var(--vt-ink);stroke-width:2}
+.il .g{font:400 9px/1 var(--vt-data)}
+.il .g-conf{fill:var(--vt-confirmed)}.il .g-snap{fill:var(--vt-snapshot)}.il .g-att{fill:var(--vt-attention)}.il .g-acc{fill:var(--vt-access)}.il .g-un{fill:var(--vt-rule-strong)}
+.il .lbl{font:500 8.5px/1 var(--vt-data);letter-spacing:.09em;text-transform:uppercase;fill:var(--vt-ink-subtle)}
+.il .val{font:400 9.5px/1 var(--vt-data);fill:var(--vt-ink)}
+.il .val.mut{fill:var(--vt-ink-subtle)}
+.il .ttl{font:500 11px/1 var(--vt-text);fill:var(--vt-ink)}
+.il .ecg{fill:none;stroke:var(--vt-accent);stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:var(--len,900);stroke-dashoffset:var(--len,900)}
+.il .draw{stroke-dasharray:var(--len,200);stroke-dashoffset:var(--len,200)}
+/* ---- motion: single-shot by default, ambient opt-in, both killed by reduced-motion ---- */
+@keyframes il-draw{to{stroke-dashoffset:0}}
+@keyframes il-arrive{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes il-travel{0%{opacity:0;transform:translateX(0)}14%{opacity:1}82%{opacity:1}100%{opacity:0;transform:translateX(var(--tx,90px))}}
+@keyframes il-dash{to{stroke-dashoffset:-20}}
+@keyframes il-tick{0%,100%{opacity:.55}50%{opacity:1}}
+body.mo-on .il .ecg,body.mo-amb .il .ecg,body.mo-on .il .draw,body.mo-amb .il .draw{animation:il-draw 1.9s var(--vt-ease-enter) var(--d,.2s) forwards}
+body.mo-amb .il .ecg{animation:il-draw 5s linear var(--d,0s) infinite}
+body.mo-on .il .arr,body.mo-amb .il .arr{opacity:0;animation:il-arrive var(--vt-dur-enter) var(--vt-ease-enter) var(--d,0s) forwards}
+body.mo-amb .il .link{animation:il-dash 1.6s linear infinite}
+body.mo-amb .il .pkt{animation:il-travel 3.2s var(--vt-ease-enter) var(--d,0s) infinite}
+body.mo-on .il .pkt{animation:il-travel 2.6s var(--vt-ease-enter) var(--d,0s) 1 both}
+body.mo-amb .il .beat-mark{animation:il-tick 2.8s var(--vt-ease-enter) infinite}
+body.mo-off .il .ecg,body.mo-off .il .draw{stroke-dashoffset:0;animation:none}
+body.mo-off .il .arr{opacity:1;animation:none}
+body.mo-off .il .pkt{opacity:0;animation:none}
+@media(prefers-reduced-motion:reduce){.il *{animation:none!important}.il .ecg,.il .draw{stroke-dashoffset:0!important}.il .arr{opacity:1!important}.il .pkt{opacity:0}}
+/* ---- illustration styles ---- */
+body.ill-outline .il .paper,body.ill-outline .il .tile,body.ill-outline .il .field{fill:transparent}
+body.ill-outline .il .tile.acc{fill:transparent}
+body.ill-blueprint .il-frame{background-image:linear-gradient(var(--vt-rule) 1px,transparent 1px),linear-gradient(90deg,var(--vt-rule) 1px,transparent 1px);background-size:24px 24px,24px 24px}
+body.ill-blueprint .il .paper{stroke-dasharray:4 3}
+/* ---- frames + captions ---- */
+.il-frame{position:relative;border:1px solid var(--vt-rule);border-radius:var(--vt-r-doc);background:var(--vt-paper-raised);padding:22px 22px 14px}
+.il-cap{margin:12px 0 0;font:400 .6875rem/1.5 var(--vt-data);letter-spacing:.04em;color:var(--vt-ink-subtle);text-align:center}
+.il-legend{display:flex;gap:20px;flex-wrap:wrap;justify-content:center;margin-top:14px}
+.il-legend span{display:flex;align-items:center;gap:7px;font:400 .6875rem/1 var(--vt-data);color:var(--vt-ink-subtle)}
+.il-legend i{width:16px;height:0;border-top:1px dashed var(--vt-rule-strong);display:block}
+.il-legend i.acc{border-top-color:var(--vt-accent)}
+.il-legend i.solid{border-top-style:solid;border-top-color:var(--vt-ink)}
+.beat-fig{margin:0 0 16px;height:72px}
+.beat-fig .il{height:72px;width:auto}

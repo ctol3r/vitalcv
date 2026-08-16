@@ -1,0 +1,396 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>VitalCV — One wallet, every job after it</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..600&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="ds/vitalcv-ds-v3.css">
+<link rel="stylesheet" href="ds/vitalcv-ill-v4.css">
+<!-- NOTE (handoff): React/Babel mockup scaffolding + tweaks panel intentionally omitted from this
+     saved copy's PORT — but the ORIGINAL includes them; see the port manifest. Styles + markup below
+     are verbatim from the founder's file. -->
+<style>
+/* ---- chrome: one detached glass rail, content scrolls beneath ---- */
+.rail{position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:40;width:calc(100% - 40px);max-width:var(--vt-max);display:flex;align-items:center;gap:6px;padding:9px 10px 9px 16px}
+.mark{display:flex;align-items:baseline;gap:9px;margin-right:18px;color:var(--vt-ink-strong);font:500 1.0625rem/1 var(--vt-display);font-variation-settings:'SOFT' 0,'WONK' 0;letter-spacing:-.01em}
+.mark i{width:8px;height:8px;border-radius:2px;background:var(--vt-accent);display:block}
+.rlink{padding:9px 12px;border-radius:8px;font:500 .8125rem/1 var(--vt-text);color:var(--vt-ink-muted);min-height:36px;display:inline-flex;align-items:center;white-space:nowrap;transition:color var(--vt-dur-state) var(--vt-ease-enter)}
+.rlink:hover{color:var(--vt-ink);text-decoration:none}
+.rail .end{margin-left:auto;display:flex;align-items:center;gap:8px}
+.rail .end .vt-btn{min-height:36px;padding:9px 16px;font-size:.8125rem}
+@media(max-width:1260px){.rail .hide-md{display:none}}
+@media(max-width:1020px){.rail .hide-sm{display:none}}
+@media(max-width:820px){.rail .hide-sm{display:none}}
+/* ---- hero ---- */
+.hero{padding:150px 0 0}
+.hero .eyebrow{display:flex;align-items:center;gap:10px;margin-bottom:26px}
+.hero .eyebrow s{width:26px;height:1px;background:var(--vt-rule-strong);display:block}
+.hero h1{max-width:19ch}
+.hero .vt-lede{margin-top:26px;max-width:56ch}
+.hero-grid{display:grid;grid-template-columns:1.02fr .98fr;gap:56px;align-items:start;padding-bottom:52px}
+.hero-fig{margin:8px 0 0}
+.flow-grid{display:grid;grid-template-columns:1fr;gap:0}
+.hero-note{border-left:2px solid var(--vt-rule);padding-left:18px;max-width:38ch}
+.hero-note p{margin:0 0 10px}
+.hero-note p:last-child{margin:0}
+/* ---- the NPI field: where the whole visual budget goes ---- */
+.claim{margin-top:38px;max-width:540px}
+.field{display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap}
+.npi-box{flex:1;min-width:260px}
+.npi-lab{display:block;margin-bottom:9px}
+.npi-in{width:100%;background:transparent;border:0;border-bottom:1.5px solid var(--vt-ink);padding:6px 2px 10px;font:500 1.625rem/1.15 var(--vt-data);font-variant-numeric:tabular-nums slashed-zero;letter-spacing:.14em;color:var(--vt-ink-strong);outline:0;border-radius:0}
+.npi-in::placeholder{color:var(--vt-rule-strong);letter-spacing:.14em}
+.npi-in:focus{border-bottom-color:var(--vt-accent)}
+.npi-in:focus-visible{outline:0}
+.claim-meta{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:18px}
+.claim-meta .vt-body{max-width:44ch;font-size:.8125rem}
+/* ---- resolution scene ---- */
+.res{padding:0 0 96px}
+.res-head{display:flex;justify-content:space-between;align-items:flex-end;gap:24px;flex-wrap:wrap;padding-bottom:14px}
+.res-shell{display:grid;grid-template-columns:1fr 336px;gap:0;border:1px solid var(--vt-rule);border-radius:var(--vt-r-doc);background:var(--vt-paper-raised);overflow:hidden}
+.res-main{padding:26px 28px 30px;border-right:1px solid var(--vt-rule)}
+.res-side{padding:26px 24px 30px;background:var(--vt-paper-inset)}
+.res-side h3,.res-main h3{margin:0 0 4px}
+.res-main .vt-ledger{margin-top:18px}
+.log{margin-top:16px;border-top:1px solid var(--vt-rule);padding-top:14px;min-height:22px}
+.log div{font:400 .75rem/1.7 var(--vt-data);color:var(--vt-ink-subtle);font-variant-numeric:tabular-nums slashed-zero}
+.log div b{color:var(--vt-ink);font-weight:500}
+.tally{display:flex;flex-direction:column;gap:0;margin:16px 0 0;border-top:1px solid var(--vt-rule-strong)}
+.tally div{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:9px 0;border-bottom:1px solid var(--vt-rule)}
+.tally span{font:400 .8125rem/1.4 var(--vt-text);color:var(--vt-ink-muted)}
+.tally b{font:500 1rem/1 var(--vt-data);font-variant-numeric:tabular-nums slashed-zero;color:var(--vt-ink)}
+.next{margin-top:24px}
+.next ol{list-style:none;margin:12px 0 0;padding:0;display:flex;flex-direction:column;gap:12px}
+.next li{background:var(--vt-paper-raised);border:1px solid var(--vt-rule);border-radius:var(--vt-r-doc);padding:13px 14px}
+.next li p{margin:0;font:400 .8125rem/1.5 var(--vt-text);color:var(--vt-ink-muted)}
+.next li strong{display:block;font:500 .875rem/1.35 var(--vt-text);color:var(--vt-ink);margin-bottom:4px}
+.disclose{margin-top:14px;font:400 .75rem/1.6 var(--vt-data);color:var(--vt-ink-subtle)}
+.idle .res-shell{opacity:1}
+/* ---- the arc: wallet to start date ---- */
+.arc{border-top:1px solid var(--vt-rule-strong);display:grid;grid-template-columns:repeat(5,1fr)}
+.beat{padding:0 22px 26px 0;border-right:1px solid var(--vt-rule);position:relative}
+.beat:last-child{border-right:0}
+.beat::before{content:"";position:absolute;top:-1px;left:0;right:0;height:2px;background:var(--vt-accent);transform:scaleX(var(--fill,1));transform-origin:left}
+.beat .stage{display:block;margin:18px 0 12px}
+.beat h3{margin:0 0 8px;font:500 1.1875rem/1.2 var(--vt-display);font-variation-settings:'SOFT' 0,'WONK' 0;letter-spacing:-.01em;color:var(--vt-ink-strong)}
+.beat p{margin:0;font:400 .8125rem/1.6 var(--vt-text);color:var(--vt-ink-muted);max-width:30ch}
+.beat .frag{margin-top:16px;border-top:1px solid var(--vt-rule);padding-top:12px;display:flex;flex-direction:column;gap:7px;align-items:flex-start}
+.beat .frag .vt-data{font-size:.75rem;color:var(--vt-ink-subtle)}
+.axis{display:grid;grid-template-columns:repeat(5,1fr);border-top:1px solid var(--vt-rule-strong)}
+.axis span{padding:11px 22px 0 0;border-right:1px solid var(--vt-rule);font:500 .6875rem/1.4 var(--vt-data);letter-spacing:.08em;text-transform:uppercase;color:var(--vt-ink-subtle)}
+.axis span:last-child{border-right:0;color:var(--vt-accent)}
+.arc-note{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap;margin-top:22px}
+@media(max-width:1000px){.arc,.axis{grid-template-columns:1fr}.beat{border-right:0;border-bottom:1px solid var(--vt-rule);padding:0 0 24px}.beat::before{right:auto;width:64px}.axis span{border-right:0;padding:11px 0 0}}
+/* ---- sections ---- */
+section{padding:92px 0;border-top:1px solid var(--vt-rule)}
+.sec-head{display:grid;grid-template-columns:1fr 1fr;gap:64px;align-items:end;margin-bottom:44px}
+.sec-head .vt-eyebrow{display:block;margin-bottom:18px}
+/* ---- the artifact: reads as printed and filed ---- */
+.pkt{border:1px solid var(--vt-rule-strong);border-top:3px solid var(--vt-ink);border-radius:var(--vt-r-doc);background:var(--vt-paper-raised);max-width:840px}
+.pkt-top{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap;padding:22px 28px 18px;border-bottom:1px solid var(--vt-rule)}
+.pkt-top h3{font:500 1.25rem/1.2 var(--vt-display);font-variation-settings:'SOFT' 0,'WONK' 0;margin:0 0 6px;color:var(--vt-ink-strong)}
+.pkt-meta{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 32px;padding:18px 28px;border-bottom:1px solid var(--vt-rule)}
+.pkt-meta div{display:flex;justify-content:space-between;gap:16px;padding:7px 0;border-bottom:1px solid var(--vt-rule)}
+.pkt-meta div:nth-last-child(-n+2){border-bottom:0}
+.pkt-meta dt,.pkt-meta span:first-child{font:400 .75rem/1.5 var(--vt-text);color:var(--vt-ink-subtle)}
+.pkt-body{padding:22px 28px}
+.pkt-body .vt-ledger{margin-top:14px}
+.pkt-not{margin:0;padding:20px 28px 24px;border-top:1px solid var(--vt-rule-strong);background:var(--vt-paper-inset)}
+.pkt-not ul{margin:12px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px}
+.pkt-not li{display:grid;grid-template-columns:14px 1fr;gap:10px;font:400 .8125rem/1.55 var(--vt-text);color:var(--vt-ink-muted)}
+.pkt-not li s{text-decoration:none;color:var(--vt-ink-subtle);font-family:var(--vt-data)}
+.pkt-foot{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;padding:14px 28px;border-top:1px solid var(--vt-rule)}
+.pkt-side{display:flex;flex-direction:column;gap:22px}
+.art-grid{display:grid;grid-template-columns:minmax(0,840px) 1fr;gap:56px;align-items:start}
+/* ---- employer beat ---- */
+.emp{display:grid;grid-template-columns:1fr 1fr;gap:64px;align-items:start}
+.emp-list{list-style:none;margin:0;padding:0;border-top:1px solid var(--vt-rule-strong)}
+.emp-list li{padding:16px 0;border-bottom:1px solid var(--vt-rule);display:grid;grid-template-columns:auto 1fr;gap:16px;align-items:baseline}
+.emp-list b{font:500 .875rem/1.4 var(--vt-text);color:var(--vt-ink);display:block;margin-bottom:4px}
+.emp-list p{margin:0;font:400 .8125rem/1.55 var(--vt-text);color:var(--vt-ink-muted)}
+.emp-list .k{font:500 .6875rem/1.6 var(--vt-data);letter-spacing:.08em;text-transform:uppercase;color:var(--vt-ink-subtle)}
+/* ---- limits ---- */
+.limits{display:grid;grid-template-columns:repeat(3,1fr);gap:0;border-top:1px solid var(--vt-rule-strong)}
+.limits div{padding:22px 24px 24px 0;border-right:1px solid var(--vt-rule)}
+.limits div:last-child{border-right:0}
+.limits h4{margin:14px 0 8px;font:500 1rem/1.3 var(--vt-text);color:var(--vt-ink)}
+.limits p{margin:0;font:400 .8125rem/1.6 var(--vt-text);color:var(--vt-ink-muted);max-width:34ch}
+/* ---- close + footer ---- */
+.close{display:grid;grid-template-columns:1fr auto;gap:48px;align-items:end}
+footer{border-top:1px solid var(--vt-rule);padding:36px 0 72px}
+.foot-in{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap;align-items:baseline}
+.foot-in nav{display:flex;gap:22px;flex-wrap:wrap}
+.foot-in a{font:400 .8125rem/1.5 var(--vt-text);color:var(--vt-ink-muted)}
+.foot-in a:hover{color:var(--vt-ink)}
+@media(max-width:1000px){.hero-grid,.sec-head,.emp,.art-grid,.close{grid-template-columns:1fr;gap:36px}.res-shell{grid-template-columns:1fr}.res-main{border-right:0;border-bottom:1px solid var(--vt-rule)}.limits{grid-template-columns:1fr}.limits div{border-right:0;border-bottom:1px solid var(--vt-rule);padding-right:0}.pkt-meta{grid-template-columns:1fr}}
+</style>
+</head>
+<body class="mo-amb ill-filled">
+<nav class="rail vt-rail" aria-label="Primary">
+<a class="mark" href="#top"><i></i>VitalCV</a>
+<a class="rlink hide-sm" href="#resolve">Start with an NPI</a>
+<a class="rlink hide-sm" href="#flow">How evidence moves</a>
+<a class="rlink hide-sm" href="#arc">Wallet to start date</a>
+<a class="rlink hide-sm" href="#packet">The packet</a>
+<a class="rlink hide-sm hide-md" href="#employers">For employers</a>
+<a class="rlink hide-sm hide-md" href="#limits">What we can't see</a>
+<span class="end"><a class="rlink" href="#">Sign in</a><a class="vt-btn vt-btn-primary" href="#resolve">Start with your NPI</a></span>
+</nav>
+
+<header class="vt-wrap hero" id="top" data-screen-label="Hero">
+<div class="hero-grid">
+<div>
+<span class="eyebrow vt-eyebrow"><s></s>For clinicians · no account required</span>
+<h1 class="vt-display-xl">Get hired faster. <span class="vt-accent-word">Start working</span> sooner.</h1>
+<p class="vt-lede">Your licences, certifications and registrations already exist in sources employers trust. Enter your NPI and see what is confirmed, what needs you, and what nobody can read — before anyone asks you for a folder.</p>
+<div class="claim" id="resolve">
+<div class="field">
+<span class="npi-box"><label class="npi-lab vt-eyebrow" for="npi">Your NPI · 10 digits</label>
+<input class="npi-in" id="npi" inputmode="numeric" autocomplete="off" maxlength="10" placeholder="0000000000" aria-describedby="npi-hint"></span>
+<button class="vt-btn vt-btn-primary" id="go" type="button">Resolve</button>
+</div>
+<div class="claim-meta">
+<button class="vt-btn-text" id="demo" type="button">Use the demonstration NPI 1043002765</button>
+</div>
+<p class="vt-body" id="npi-hint" style="margin-top:12px;font-size:.8125rem">Free for clinicians, always. We read public and permissioned sources only, and nothing leaves your record until you consent to a specific recipient.</p>
+</div>
+</div>
+<figure class="hero-fig il-frame" data-screen-label="Hero illustration">
+<svg class="il" viewBox="0 0 440 400" role="img" aria-label="Illustration: source readings arrive as tiles into a record folio the clinician owns; one lane stays unchecked.">
+<path class="ecg" style="--len:560" d="M10 44 H92 l7-16 5 30 6-26 6 12 H184 l8-20 5 28 5-16 H430"></path>
+<text class="lbl" x="10" y="26">Sources read on their own cadence</text>
+<rect class="field" x="28" y="62" width="140" height="22" rx="3"></rect>
+<text class="lbl" x="42" y="77">Your wallet</text>
+<rect class="paper" x="28" y="84" width="384" height="288" rx="3"></rect>
+<text class="lbl" x="48" y="108">NPI 1043002765 · 8 lanes</text>
+<path class="hair" d="M48 120 H392"></path>
+<g class="arr" style="--d:.35s"><rect class="tile" x="48" y="134" width="344" height="48" rx="3"></rect><text class="g g-conf" x="66" y="163">●</text><text class="val" x="86" y="155">Board certification — ABIM</text><text class="val mut" x="86" y="170">ABMS · read 14:02 today</text></g>
+<g class="arr" style="--d:.6s"><rect class="tile" x="48" y="192" width="344" height="48" rx="3"></rect><text class="g g-snap" x="66" y="221">◐</text><text class="val" x="86" y="213">Licence — California A-96421</text><text class="val mut" x="86" y="228">Board batch · dated 2026-08-01</text></g>
+<g class="arr" style="--d:.85s"><rect class="tile" x="48" y="250" width="344" height="48" rx="3"></rect><text class="g g-att" x="66" y="279">▲</text><text class="val" x="86" y="271">Licence — Oregon MD187254</text><text class="val mut" x="86" y="286">Expires 2026-09-14 · yours to file</text></g>
+<g class="arr" style="--d:1.1s"><rect class="tile" x="48" y="308" width="344" height="48" rx="3" style="fill:transparent"></rect><text class="g g-un" x="66" y="337">○</text><text class="val" x="86" y="329">Hospital privileges — UCSF</text><text class="val mut" x="86" y="344">Not checked · nobody has looked</text></g>
+</svg>
+<figcaption class="il-cap">Illustrative composition · every lane carries glyph, word, source and age</figcaption>
+</figure>
+</div>
+</header>
+
+<section class="res vt-wrap" style="border-top:0;padding-top:0" data-screen-label="Resolution">
+<div class="res-head">
+<span class="vt-eyebrow" id="res-state">Awaiting an NPI — nothing has been read yet</span>
+<span class="vt-eyebrow" id="res-clock">Local time 14:02 · 2026-08-10</span>
+</div>
+<div class="res-shell" id="shell">
+<div class="res-main">
+<h3 class="vt-display-md">The record, as sources return it</h3>
+<p class="vt-body" style="font-size:.8125rem;margin-top:6px">Eight lanes. Each row shows glyph, word, source and age — never colour alone.</p>
+<div class="vt-ledger" id="ledger"></div>
+<div class="log" id="log" aria-live="polite"><div>Idle. No source has been queried.</div></div>
+</div>
+<div class="res-side">
+<h3 class="vt-title">Where you stand</h3>
+<p class="vt-body" style="font-size:.8125rem;margin-top:6px">Counts are of lanes, not a score. VitalCV does not grade clinicians.</p>
+<div class="tally" id="tally"></div>
+<div class="next" id="nextbox" hidden>
+<span class="vt-eyebrow">Next, and only you can do these</span>
+<ol id="nextlist"></ol>
+</div>
+<p class="disclose" id="disclose">Demonstration data. Figures are illustrative until a real lookup returns.</p>
+</div>
+</div>
+</section>
+
+<section id="flow" data-screen-label="Trust flow"><div class="vt-wrap">
+<div class="sec-head">
+<div><span class="vt-eyebrow">How evidence moves</span>
+<h2 class="vt-display-lg">Sources read. You hold. <span class="vt-accent-word">You release</span>.</h2></div>
+<p class="vt-body">Four hops, drawn honestly: what a source returned, where it rests, the gate only you open, and the desk where a human still decides. One lane stops at a barred rule — that is a source we are not allowed to read, and it is drawn that way on purpose.</p>
+</div>
+<figure class="il-frame" style="padding:26px 24px 16px">
+<svg class="il" viewBox="0 0 960 320" role="img" aria-label="Diagram: named sources return readings into the clinician's wallet; a consent gate releases a scoped packet to an employer's exception queue; the DEA and NPDB lane stops at a barred rule because it cannot be read.">
+<text class="lbl" x="0" y="16">01 · Named sources</text>
+<g><rect class="paper" x="0" y="30" width="200" height="62" rx="3"></rect><text class="ttl" x="16" y="56">State medical board</text><text class="val mut" x="16" y="74">batch · dated 2026-08-01</text><text class="g g-snap" x="176" y="58">◐</text></g>
+<g><rect class="paper" x="0" y="104" width="200" height="62" rx="3"></rect><text class="ttl" x="16" y="130">ABMS certification</text><text class="val mut" x="16" y="148">read 14:02 today</text><text class="g g-conf" x="176" y="132">●</text></g>
+<g><rect class="paper" x="0" y="178" width="200" height="62" rx="3"></rect><text class="ttl" x="16" y="204">DEA · NPDB</text><text class="val mut" x="16" y="222">not readable by VitalCV</text><text class="g g-acc" x="176" y="206">⊘</text></g>
+<path class="link acc" d="M200 61 C248 61 252 108 300 108"></path>
+<path class="link acc" d="M200 135 C248 135 252 154 300 154"></path>
+<path class="link" d="M200 209 H258"></path>
+<path class="gate" d="M264 194 V224" style="stroke:var(--vt-access)"></path>
+<text class="lbl" x="292" y="246" text-anchor="end">you query it</text>
+<g class="pkt" style="--tx:92px;--d:0s"><rect x="204" y="56" width="9" height="9" rx="2"></rect></g>
+<g class="pkt" style="--tx:92px;--d:.9s"><rect x="204" y="130" width="9" height="9" rx="2"></rect></g>
+<text class="lbl" x="300" y="16">02 · Your wallet, for life</text>
+<rect class="field" x="300" y="30" width="112" height="18" rx="3"></rect>
+<rect class="paper" x="300" y="48" width="260" height="224" rx="3"></rect>
+<text class="lbl" x="316" y="70">NPI 1043002765 · 8 lanes</text>
+<path class="hair" d="M316 80 H544"></path>
+<g class="arr" style="--d:.2s"><rect class="tile" x="316" y="92" width="228" height="38" rx="3"></rect><text class="g g-conf" x="330" y="116">●</text><text class="val" x="348" y="110">Certification</text><text class="val mut" x="348" y="123">confirmed 14:02</text></g>
+<g class="arr" style="--d:.4s"><rect class="tile" x="316" y="138" width="228" height="38" rx="3"></rect><text class="g g-snap" x="330" y="162">◐</text><text class="val" x="348" y="156">Licence · CA</text><text class="val mut" x="348" y="169">snapshot · 9d old</text></g>
+<g class="arr" style="--d:.6s"><rect class="tile" x="316" y="184" width="228" height="38" rx="3"></rect><text class="g g-att" x="330" y="208">▲</text><text class="val" x="348" y="202">Licence · OR</text><text class="val mut" x="348" y="215">needs you · renewal</text></g>
+<g class="arr" style="--d:.8s"><rect class="tile" x="316" y="230" width="228" height="32" rx="3" style="fill:transparent"></rect><text class="g g-un" x="330" y="250">○</text><text class="val mut" x="348" y="250">5 lanes not checked</text></g>
+<text class="lbl" x="612" y="16" text-anchor="middle">03 · Consent</text>
+<path class="gate" d="M612 40 V132"></path>
+<path class="gate" d="M612 176 V272"></path>
+<path class="link acc" d="M560 154 H660"></path>
+<g class="pkt" style="--tx:78px;--d:1.4s"><rect x="572" y="149" width="11" height="11" rx="2"></rect></g>
+<text class="lbl" x="612" y="296" text-anchor="middle">one scoped packet</text>
+<text class="lbl" x="660" y="16">04 · Employer review</text>
+<rect class="paper" x="660" y="48" width="300" height="224" rx="3"></rect>
+<text class="ttl" x="676" y="74">Exceptions queue · not a folder</text>
+<path class="hair" d="M676 86 H944"></path>
+<g class="arr" style="--d:1.6s"><rect class="tile" x="676" y="98" width="268" height="38" rx="3"></rect><text class="g g-att" x="690" y="122">▲</text><text class="val" x="710" y="116">Oregon renewal</text><text class="val mut" x="710" y="129">owner: clinician</text></g>
+<g class="arr" style="--d:1.75s"><rect class="tile" x="676" y="144" width="268" height="38" rx="3"></rect><text class="g g-acc" x="690" y="168">⊘</text><text class="val" x="710" y="162">NPDB self-query</text><text class="val mut" x="710" y="175">owner: clinician · requested</text></g>
+<g class="arr" style="--d:1.9s"><rect class="tile acc" x="676" y="190" width="268" height="38" rx="3"></rect><text class="val" x="690" y="208">Everything else already satisfied</text><text class="val mut" x="690" y="221">3 requirements, source-backed</text></g>
+<text class="lbl" x="676" y="252">the decision stays with the employer</text>
+</svg>
+<div class="il-legend"><span><i class="acc"></i>Reading in transit</span><span><i></i>Lane we may not read</span><span><i class="solid"></i>Consent gate · opened only by you</span></div>
+<figcaption class="il-cap">Illustrative · no copies of documents move, only readings with a source and a time</figcaption>
+</figure>
+</div></section>
+
+<section id="arc" data-screen-label="The arc"><div class="vt-wrap">
+<div class="sec-head">
+<div><span class="vt-eyebrow">Wallet to start date</span>
+<h2 class="vt-display-lg">One wallet, once — then <span class="vt-accent-word">every job after it</span>.</h2></div>
+<p class="vt-body">You assemble your evidence a single time and keep it for the rest of your career. Everything downstream — what fits you, what you apply with, how fast you start — runs off that one record instead of asking you again.</p>
+</div>
+<div class="arc">
+<div class="beat"><figure class="beat-fig"><svg class="il" viewBox="0 0 140 72" role="img" aria-label="A record folio holding three source-backed tiles"><rect class="field" x="4" y="6" width="46" height="12" rx="3"></rect><rect class="paper" x="4" y="17" width="116" height="51" rx="3"></rect><rect class="bar" x="14" y="27" width="84" height="7" rx="2"></rect><rect class="bar" x="14" y="41" width="68" height="7" rx="2"></rect><rect class="bar acc" x="14" y="55" width="52" height="7" rx="2"></rect><text class="g g-conf" x="106" y="33">●</text></svg></figure><span class="stage vt-eyebrow">Once, and for good</span><h3>The wallet</h3><p>Ten digits open it. Sources fill it, you own it, and it outlives every employer you'll ever have.</p><span class="frag"><span class="vt-stamp" data-state="confirmed"><span class="g">●</span>Confirmed · 3 lanes</span><span class="vt-data">8 lanes · NPI 1043002765</span></span></div>
+<div class="beat"><figure class="beat-fig"><svg class="il" viewBox="0 0 140 72" role="img" aria-label="Four requirement lanes, two flagged as needing the clinician"><rect class="tile" x="3" y="5" width="116" height="14" rx="3"></rect><rect class="tile" x="3" y="24" width="116" height="14" rx="3"></rect><rect class="tile" x="3" y="43" width="116" height="14" rx="3"></rect><rect class="bar" x="14" y="10" width="66" height="4" rx="2"></rect><rect class="bar" x="14" y="29" width="48" height="4" rx="2"></rect><rect class="bar" x="14" y="48" width="58" height="4" rx="2"></rect><text class="g g-conf" x="6" y="16">●</text><text class="g g-att beat-mark" x="6" y="35">▲</text><text class="g g-att beat-mark" x="6" y="54">▲</text><text class="lbl" x="3" y="70">2 actions are yours</text></svg></figure><span class="stage vt-eyebrow">Continuously</span><h3>Readiness</h3><p>You see the two things that would have stalled you in week three — before anyone asks for them.</p><span class="frag"><span class="vt-stamp" data-state="attention"><span class="g">▲</span>2 actions open</span><span class="vt-data">re-read on file · no re-upload</span></span></div>
+<div class="beat"><figure class="beat-fig"><svg class="il" viewBox="0 0 140 72" role="img" aria-label="Evidence lanes on the left matched to two eligible roles on the right"><rect class="bar" x="2" y="10" width="42" height="9" rx="2"></rect><rect class="bar" x="2" y="31" width="42" height="9" rx="2"></rect><rect class="bar" x="2" y="52" width="42" height="9" rx="2"></rect><rect class="tile acc" x="92" y="7" width="46" height="15" rx="3"></rect><rect class="tile acc" x="92" y="49" width="46" height="15" rx="3"></rect><rect class="tile" x="92" y="28" width="46" height="15" rx="3"></rect><path class="link acc" d="M46 15 H90"></path><path class="link acc" d="M46 57 H90"></path></svg></figure><span class="stage vt-eyebrow">When you're looking</span><h3>Roles that fit the evidence</h3><p>Matching starts from what you can already practise on — licence state, certification, setting — not from keywords in a résumé.</p><span class="frag"><span class="vt-stamp" data-state="snapshot"><span class="g">◐</span>4 roles eligible today</span><span class="vt-data">2 more if OR renews</span></span></div>
+<div class="beat"><figure class="beat-fig"><svg class="il" viewBox="0 0 140 72" role="img" aria-label="A scoped packet held left of a consent gate and a released copy beyond it"><path class="link acc" d="M30 36 H132"></path><path class="gate" d="M74 6 V26"></path><path class="gate" d="M74 46 V66"></path><rect class="tile" x="4" y="20" width="26" height="32" rx="3"></rect><rect class="bar" x="9" y="27" width="16" height="3" rx="1.5"></rect><rect class="bar" x="9" y="34" width="12" height="3" rx="1.5"></rect><rect class="bar acc" x="9" y="41" width="9" height="3" rx="1.5"></rect><rect class="tile acc" x="100" y="22" width="32" height="28" rx="3"></rect><text class="g g-conf" x="104" y="40">●</text><g class="pkt" style="--tx:58px"><rect x="36" y="30" width="12" height="12" rx="2"></rect></g><text class="lbl" x="4" y="70">only you open it</text></svg></figure><span class="stage vt-eyebrow">On your consent</span><h3>Apply with proof attached</h3><p>One scoped packet goes with the application. No portal re-typing, no folder, no second collection round.</p><span class="frag"><span class="vt-stamp" data-state="confirmed"><span class="g">●</span>Packet released</span><span class="vt-data">PKT-2026-0810-4C71 · 30d</span></span></div>
+<div class="beat"><figure class="beat-fig"><svg class="il" viewBox="0 0 140 72" role="img" aria-label="A two-week strip of days with an early start date marked"><rect class="field" x="3" y="14" width="15" height="15" rx="2"></rect><rect class="field" x="22" y="14" width="15" height="15" rx="2"></rect><rect class="field" x="41" y="14" width="15" height="15" rx="2"></rect><rect class="field" x="60" y="14" width="15" height="15" rx="2"></rect><rect class="tile acc beat-mark" x="79" y="14" width="15" height="15" rx="2"></rect><rect class="field" x="98" y="14" width="15" height="15" rx="2"></rect><rect class="field" x="117" y="14" width="15" height="15" rx="2"></rect><path class="hair-s draw" style="--len:132" d="M3 40 H132"></path><text class="lbl" x="3" y="58">target start</text><text class="val" x="79" y="58">2026-08-24</text></svg></figure><span class="stage vt-eyebrow">Day one</span><h3>Start in days</h3><p>The employer begins at exceptions, not at intake. Two named blockers instead of a months-long paper chase.</p><span class="frag"><span class="vt-stamp" data-state="attention"><span class="g">▲</span>2 blockers, both owned</span><span class="vt-data">target start 2026-08-24</span></span></div>
+</div>
+<div class="axis"><span>Minutes</span><span>Ongoing</span><span>Same week</span><span>On release</span><span>Days, not months</span></div>
+<div class="arc-note">
+<p class="vt-body" style="font-size:.8125rem">The loop only holds because the wallet is the clinician's. Every arrow above moves evidence, never a copy of a document.</p>
+<span class="vt-eyebrow">Durations are pilot targets, not returned data</span>
+</div>
+</div></section>
+
+<section id="packet" data-screen-label="Proof packet"><div class="vt-wrap">
+<div class="sec-head">
+<div><span class="vt-eyebrow">The artifact</span>
+<h2 class="vt-display-lg">One packet, and <span class="vt-accent-word">what it refuses</span> to decide.</h2></div>
+<p class="vt-body">This is the only thing VitalCV publishes as an image of itself: a real proof packet. Source, timestamp, scope, and an explicit statement of the questions it does not answer. An employer can read it in a minute and forward it without a call.</p>
+</div>
+<div class="art-grid">
+<article class="pkt" data-screen-label="Packet artifact">
+<div class="pkt-top">
+<div><h3>Proof packet — clinical evidence</h3><span class="vt-data">PKT-2026-0810-4C71 · consented 2026-08-10 14:06</span></div>
+<span class="vt-stamp" data-state="snapshot"><span class="g">◐</span>Composed 14:06 · expires in 30d</span>
+</div>
+<div class="pkt-meta vt-data">
+<div><span>Subject</span><span>NPI 1043002765</span></div>
+<div><span>Recipient</span><span>Meridian Health · credentialing</span></div>
+<div><span>Scope</span><span>Licensure, certification, sanctions</span></div>
+<div><span>Excluded</span><span>Employment history, references</span></div>
+<div><span>Lanes read</span><span>6 of 8</span></div>
+<div><span>Packet hash</span><span>sha256 8f2a…c41d</span></div>
+</div>
+<div class="pkt-body">
+<span class="vt-eyebrow">Findings as returned</span>
+<div class="vt-ledger">
+<div class="vt-row"><div><div class="fact">NPI registry record — active, Internal Medicine</div><div class="prov">NPPES public read · 2026-08-10 14:02</div></div><span class="vt-stamp" data-state="confirmed"><span class="g">●</span>Confirmed</span></div>
+<div class="vt-row"><div><div class="fact">Board certification — ABIM, Internal Medicine</div><div class="prov">ABMS Certification Matters · 2026-08-10 14:02</div></div><span class="vt-stamp" data-state="confirmed"><span class="g">●</span>Confirmed</span></div>
+<div class="vt-row"><div><div class="fact">Medical licence — California A-96421</div><div class="prov">Medical Board of California batch · dated 2026-08-01</div></div><span class="vt-stamp" data-state="snapshot"><span class="g">◐</span>Snapshot · 9d old</span></div>
+<div class="vt-row"><div><div class="fact">Medical licence — Oregon MD187254</div><div class="prov">Oregon Medical Board · renewal not filed · expires 2026-09-14</div></div><span class="vt-stamp" data-state="attention"><span class="g">▲</span>Needs attention</span></div>
+<div class="vt-row"><div><div class="fact">NPDB report</div><div class="prov">Requires clinician self-query · not readable by VitalCV</div></div><span class="vt-stamp" data-state="access"><span class="g">⊘</span>Access required</span></div>
+<div class="vt-row"><div><div class="fact">Hospital privileges — UCSF Health</div><div class="prov">No source queried · needs medical staff office attestation</div></div><span class="vt-stamp" data-state="unchecked"><span class="g">○</span>Not checked</span></div>
+</div>
+</div>
+<div class="pkt-not">
+<span class="vt-eyebrow">What this packet does not decide</span>
+<ul>
+<li><s>—</s><span>Whether this clinician should be hired, privileged, or enrolled. That authority stays with the reviewing organisation.</span></li>
+<li><s>—</s><span>Anything about the two lanes marked <em>access required</em> or <em>not checked</em>. Absence of a finding is not a finding.</span></li>
+<li><s>—</s><span>That the California licence is valid <em>today</em> — that lane is a dated batch, and the date is printed above.</span></li>
+</ul>
+</div>
+<div class="pkt-foot">
+<span class="vt-data" style="color:var(--vt-ink-subtle)">Recompute this packet at vitalcv.com/verify/8f2a-c41d</span>
+<span class="vt-data" style="color:var(--vt-ink-subtle)">Page 1 of 1</span>
+</div>
+</article>
+<div class="pkt-side">
+<div><span class="vt-eyebrow">Read it the way a reviewer does</span>
+<p class="vt-body" style="margin-top:12px;font-size:.875rem">Machine facts are set in mono, prose in sans. If you are looking at mono type, a source returned it — VitalCV did not write it.</p></div>
+<div class="vt-panel" style="padding:18px 18px 20px">
+<span class="vt-eyebrow">Six states, no others</span>
+<div style="display:flex;flex-direction:column;gap:9px;margin-top:14px">
+<span class="vt-stamp" data-state="confirmed"><span class="g">●</span>Confirmed · source + time</span>
+<span class="vt-stamp" data-state="snapshot"><span class="g">◐</span>Snapshot · true as of a date</span>
+<span class="vt-stamp" data-state="attention"><span class="g">▲</span>Needs attention · yours to act</span>
+<span class="vt-stamp" data-state="access"><span class="g">⊘</span>Access required · we can't look</span>
+<span class="vt-stamp" data-state="adverse" data-disputed="true"><span class="g">■</span>Adverse · under dispute</span>
+<span class="vt-stamp" data-state="unchecked"><span class="g">○</span>Not checked · the default</span>
+</div>
+<p class="vt-body" style="margin-top:16px;font-size:.75rem">The word is always ink. The hue only ever carries the glyph and the left rule.</p>
+</div>
+<a class="vt-btn vt-btn-quiet" href="#" style="align-self:start">Open a real public packet</a>
+</div>
+</div>
+</div></section>
+
+<section id="employers" data-screen-label="Employers"><div class="vt-wrap">
+<div class="sec-head">
+<div><span class="vt-eyebrow">For employers</span>
+<h2 class="vt-display-lg">Start clinicians <span class="vt-accent-word">from evidence</span>, not from scratch.</h2></div>
+<p class="vt-body">A consented packet, the requirements it already satisfies, and the blockers that remain. Your team reviews exceptions instead of chasing documents — and every decision stays yours.</p>
+</div>
+<div class="emp">
+<ul class="emp-list">
+<li><span class="k">01</span><div><b>Arrive with the evidence attached</b><p>The candidate consents to a scoped packet before your first conversation. Nothing arrives that they did not release.</p></div></li>
+<li><span class="k">02</span><div><b>Read requirements as a ledger</b><p>Each requirement resolves to a lane with a source and an age. Unread lanes are shown as unread, not as pending optimism.</p></div></li>
+<li><span class="k">03</span><div><b>Work the exceptions</b><p>Two blockers, both named, both with an owner. That is the queue — not a folder of eighteen PDFs.</p></div></li>
+<li><span class="k">04</span><div><b>Keep the decision</b><p>VitalCV never returns a verdict on a person. It returns what sources said and when they said it.</p></div></li>
+</ul>
+<div>
+<div class="vt-panel" style="padding:22px 24px 24px">
+<span class="vt-eyebrow">Requirement ledger · Meridian Health · locums IM</span>
+<div class="vt-ledger" style="margin-top:16px">
+<div class="vt-row"><div><div class="fact">State licence in state of practice</div><div class="prov">Satisfied by CA A-96421 · batch 2026-08-01</div></div><span class="vt-stamp" data-state="snapshot"><span class="g">◐</span>Snapshot</span></div>
+<div class="vt-row"><div><div class="fact">Board certification</div><div class="prov">ABMS read 2026-08-10 14:02</div></div><span class="vt-stamp" data-state="confirmed"><span class="g">●</span>Confirmed</span></div>
+<div class="vt-row"><div><div class="fact">Sanctions screen — OIG LEIE</div><div class="prov">Read 2026-08-10 14:03 · no match returned</div></div><span class="vt-stamp" data-state="confirmed"><span class="g">●</span>No match</span></div>
+<div class="vt-row"><div><div class="fact">NPDB self-query</div><div class="prov">Clinician-initiated · requested 14:06, awaiting release</div></div><span class="vt-stamp" data-state="access"><span class="g">⊘</span>Access required</span></div>
+<div class="vt-row"><div><div class="fact">Oregon licence renewal</div><div class="prov">Expires 2026-09-14 · clinician action open</div></div><span class="vt-stamp" data-state="attention"><span class="g">▲</span>Needs attention</span></div>
+</div>
+<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:22px"><a class="vt-btn vt-btn-primary" href="#">Request a pilot</a><a class="vt-btn vt-btn-quiet" href="#">See the reviewer workspace</a></div>
+</div>
+</div>
+</div>
+</div></section>
+
+<section id="limits" data-screen-label="Limits"><div class="vt-wrap">
+<div class="sec-head">
+<div><span class="vt-eyebrow">Honest limits</span>
+<h2 class="vt-display-lg">What we <span class="vt-accent-word">cannot</span> see.</h2></div>
+<p class="vt-body">Published here rather than discovered later. A product that reads sources for a living owes you the boundary of what it reads.</p>
+</div>
+<div class="limits">
+<div><span class="vt-stamp" data-state="access"><span class="g">⊘</span>Access required</span><h4>Sources we are not allowed to read</h4><p>NPDB and DEA registration are not open to a third party. You query them; we hold the receipt you release.</p></div>
+<div><span class="vt-stamp" data-state="snapshot"><span class="g">◐</span>Snapshot</span><h4>Sources that publish in batches</h4><p>Several state boards publish dated files, not live records. Those lanes carry the file date, never the word “current”.</p></div>
+<div><span class="vt-stamp" data-state="unchecked"><span class="g">○</span>Not checked</span><h4>Things nobody has asked for yet</h4><p>Privileges, employment and references need an issuer to attest. Until one does, the lane stays empty and says so.</p></div>
+</div>
+</div></section>
+
+<section data-screen-label="Close"><div class="vt-wrap">
+<div class="close">
+<div><h2 class="vt-display-lg" style="max-width:26ch">Ten digits. Then <span class="vt-accent-word">read it yourself</span>.</h2>
+<p class="vt-body" style="margin-top:18px">No demo call, no gated download, no account. The same record an employer would receive is the one you see first.</p></div>
+<a class="vt-btn vt-btn-primary" href="#resolve">Start with your NPI</a>
+</div>
+</div></section>
+
+<footer><div class="vt-wrap foot-in">
+<span class="vt-data" style="color:var(--vt-ink-subtle)">© 2026 VitalCV · clinician-owned career evidence</span>
+<nav><a href="#">Sources we read</a><a href="#">Security</a><a href="#">Privacy</a><a href="#">Status</a><a href="#">Docs</a></nav>
+</div></footer>
+<!-- ORIGINAL also carries: interactive resolve <script> (LANES fixture with 8 lanes, GLYPH map,
+     TALLY, typed-NPI auto-resolve at 10 digits, demo button), and a Babel tweaks panel with
+     HOME4_DEFAULTS {motion:ambient, illustration:filled, showFlow:true, accent:#4338CA,
+     paper:#EDEAE3, headline:"Get hired faster. Start working sooner."} and options
+     paper ∈ {#F0EEE9,#F4F2EC,#EDEAE3}, accent ∈ {#4338CA,#3A4AB8,#1F4B8F,#1A1815},
+     illustration ∈ {filled,outline,blueprint}, motion ∈ {off,single-shot,ambient}. -->
+</body>
+</html>

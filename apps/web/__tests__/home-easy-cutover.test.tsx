@@ -1,7 +1,7 @@
 /**
- * `/` serves the Direction A production experience (amendment E) — the drawn
- * record figure holds the first viewport while the real NPI action remains
- * available.
+ * `/` serves the founder's Homepage v4 (amendment F) — the warm-paper ruled
+ * document with the real NPI action in the first viewport beside the hero
+ * folio figure.
  *
  * These pin what the production homepage IS, and what it must never claim.
  * They render the ROUTE (`app/page.tsx`), not the component, so a future
@@ -59,17 +59,20 @@ const FILM = 'data-film-scene';
 
 // ── 1–3 · the cutover and its rollbacks ─────────────────────────────────────
 
-describe('1 — / renders the Direction A experience by default', () => {
-  it('serves the amendment E hero with no variant configured', async () => {
+describe('1 — / renders the Homepage v4 experience by default', () => {
+  it('serves the amendment F hero with no variant configured', async () => {
     const html = await renderRoot(undefined);
     expect(html).toContain(EASY);
-    expect(html).toContain('For US clinicians');
-    expect(html).toContain('Enter your NPI. VitalCV does the rest.');
-    expect(html).toContain('One profile. Every');
+    expect(html).toContain('For clinicians');
+    expect(html).toContain('no account required');
+    expect(html).toContain('Get hired.');
+    expect(html).toContain('Start working');
+    expect(html).toContain('sooner.');
     expect(html).toContain('Start with your NPI');
     expect(html).toContain('Explore clinician opportunities');
     expect(html).toContain('data-home-work-surface');
     expect(html).toContain('data-visual-material="drawn-ink"');
+    expect(html).toContain('data-home-resolution');
   });
 
   it('the resolver defaults to easy', () => {
@@ -98,9 +101,7 @@ describe('2 — / visibly differs from every former homepage', () => {
       'The same profile, handed over',
       'Review starts ahead, not from zero',
       'Your career evidence, ready before your next job',
-      // Direction D-era copy, superseded by the amendment E table. The
-      // metadata tagline legitimately keeps "One career record. More ways
-      // forward." — metadata is not part of this render.
+      // Direction D-era copy, superseded by the amendment E table.
       'The Provider Career Evidence Network.',
       'Start my CV Wallet',
       'CV Wallet',
@@ -108,6 +109,25 @@ describe('2 — / visibly differs from every former homepage', () => {
       'One career record. More ways forward.',
       'See where your record could go next.',
       'frosted-glass',
+      // Amendment E/E.1 compositional copy, superseded by F (the founder's
+      // v4). The Easy Button sentence survives as doctrine (EC-1), not as
+      // this composition's H1.
+      'One profile. Every',
+      'data-home-cycling-word',
+      'Three things. That',
+      'Most weeks, nothing does.',
+      'Quick answers',
+      'Hiring clinicians?',
+      'Ready when you are.',
+      // Founder v4 file strings that standing law corrected in the port:
+      // the wallet noun (EC-9/C1), the demonstration NPI, the sixth legend
+      // state, and the category-surrendering noun (founder UX audit).
+      'wallet',
+      'Wallet',
+      'Use the demonstration NPI',
+      'Adverse',
+      'under dispute',
+      'job board',
     ]) {
       expect(html, `retired copy "${retired}" reached the served homepage`).not.toContain(retired);
     }
@@ -222,16 +242,16 @@ describe('nothing claims completion before a backend success', () => {
 
 // ── the work surface tells the truthful progression ─────────────────────────
 
-describe('the work surface states record truth without manufacturing an outcome', () => {
-  it('names its sources and leaves the unanswered row open in the first viewport', () => {
+describe('the hero folio states record truth without manufacturing an outcome', () => {
+  it('names the real registry lanes and their honest states in the first viewport', () => {
     const html = renderHomepageHtml();
     for (const line of [
       'NPPES registry',
-      'State board',
-      'Federal exclusion list',
-      'Checked',
-      'no source answered',
-      'Your profile',
+      'OIG LEIE',
+      'State licensure',
+      'access-gated',
+      'not checked',
+      'Your record',
     ]) {
       expect(html).toContain(line);
     }
@@ -240,16 +260,17 @@ describe('the work surface states record truth without manufacturing an outcome'
 
   it('labels sources and limitations while keeping the sharing boundary explicit', () => {
     const html = renderHomepageHtml();
-    for (const source of ['NPPES', 'State board']) {
+    for (const source of ['NPPES', 'OIG']) {
       expect(html).toContain(source);
     }
     expect(html).toContain('nothing has been sent');
   });
 
-  it('the promises keep the consent rule and the credentialing boundary honest', () => {
+  it('keeps the consent rule and the decision boundary honest', () => {
     const html = renderHomepageHtml();
-    expect(html).toContain('Nothing leaves your record until you say so.');
-    expect(html).toContain('those decisions always stay with the employer');
+    expect(html).toContain('nothing leaves your record until you approve a specific recipient');
+    expect(html).toContain('institution review decides the rest');
+    expect(html).toContain('the decision stays with the employer');
   });
 });
 

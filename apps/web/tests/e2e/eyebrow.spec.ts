@@ -36,8 +36,11 @@ async function openMenu(page: Page) {
 
 async function scrollToLightBand(page: Page) {
   await page.evaluate(() => {
-    const el = document.querySelector('.ezh-emp');
-    if (!el) throw new Error('missing .ezh-emp light band');
+    // Amendment F renamed the homepage employer band `.ezh-emp` →
+    // `.ezh-emp-sec`. Accept either so this CHROME spec does not break every
+    // time the homepage island renames a class it merely scrolls to.
+    const el = document.querySelector('.ezh-emp-sec, .ezh-emp');
+    if (!el) throw new Error('missing employer light band (.ezh-emp-sec/.ezh-emp)');
     window.scrollTo({
       top: el.getBoundingClientRect().top + window.scrollY + 200,
       behavior: 'instant' as ScrollBehavior,

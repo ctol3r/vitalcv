@@ -229,7 +229,7 @@ contracts above.
 | Accent | Deep green `#0f6d4e`, reserved for source-confirmation and focus | SUPERSEDED by E (2026-08-15): source-confirmation keeps green; focus returns to indigo per A-1; the page action takes `--vt-home-e-action` |
 | Primary action | Ink `#131211`, white label, 8px radius | SUPERSEDED by E (2026-08-15): `--vt-home-e-action` `#D92800`, white label, `--vt-shape-action-page` |
 | Hero H1 | `clamp(31px, 4.3cqw, 47px)`, 500 weight, `-0.035em` tracking, 1.04 line-height | SUPERSEDED by E (2026-08-15): `clamp(38px, 6.2cqw, 66px)`, 500, `-0.042em`, 0.96, Geist |
-| Monospace | None on this surface | LOCKED for `/` (reaffirmed by E) |
+| Monospace | None on this surface | SUPERSEDED by F (2026-08-16): the mono law returns for machine facts on `/` (was: reaffirmed by E) |
 
 The organizing idea is the product demonstration: a self-labelled career
 record assembles row by row, naming the source or limitation on every row. The
@@ -479,21 +479,23 @@ source, consent, authorization, or scene-truth contracts.
 
 | Decision | Value | Status |
 |---|---|---|
-| Ground / ink / dim / rule / panel | `--vt-home-e-ground` `#FBFAF7` · `--vt-home-e-ink` `#141312` · `--vt-home-e-dim` `#5C5852` · `--vt-home-e-rule` `#E0DDD6` · `--vt-home-e-panel` `#FFFFFF` | LOCKED for `/` |
-| Primary page action | `--vt-home-e-action` `#D92800`, label `#FFFFFF` (4.94:1) · hover `#C42400` (5.83:1) · press `#B22000` (6.78:1) · radius `--vt-shape-action-page` | LOCKED for `/` |
+| Ground / ink / dim / rule / panel | `--vt-home-e-ground` `#FBFAF7` · `--vt-home-e-ink` `#141312` · `--vt-home-e-dim` `#5C5852` · `--vt-home-e-rule` `#E0DDD6` · `--vt-home-e-panel` `#FFFFFF` | SUPERSEDED by F (2026-08-16): the `--vt-home-f-*` warm-paper family, ground `#EDEAE3` |
+| Primary page action | `--vt-home-e-action` `#D92800`, label `#FFFFFF` (4.94:1) · hover `#C42400` (5.83:1) · press `#B22000` (6.78:1) · radius `--vt-shape-action-page` | SUPERSEDED by F (2026-08-16): the paper-inverse ink instrument `--vt-home-f-action`; the radius row survives |
 | Action-colour semantics | `#D92800` is an **action instrument, never a state**. It never renders as text-on-paper, a state chip, a chart mark, or a rule; removing it must cost nothing but emphasis (EC-4). It stays outside the `--vt-accent*` namespace. **`--vt-severity-critical` never renders on the `/` scene register** — the action red and the reserved revoked-red are distinguished by rule, not hue distance | LOCKED for `/` |
 | Focus | Indigo `--vt-focus-ring-scene-paper` — restores A-1 on this route, superseding Direction D's green focus | LOCKED for `/` |
-| Display | **Geist** (restores the EC-20 typography row; Fraunces is retired from the H1 and survives only as the serif editorial aside), hero H1 `clamp(38px, 6.2cqw, 66px)`, 500, `-0.042em`, 0.96 line-height | LOCKED for `/` |
-| Monospace | None on this surface (Direction D row reaffirmed) | LOCKED for `/` |
+| Display | **Geist** (restores the EC-20 typography row; Fraunces is retired from the H1 and survives only as the serif editorial aside), hero H1 `clamp(38px, 6.2cqw, 66px)`, 500, `-0.042em`, 0.96 line-height | SUPERSEDED by F (2026-08-16): Fraunces returns as the display face on `/` |
+| Monospace | None on this surface (Direction D row reaffirmed) | SUPERSEDED by F (2026-08-16): the mono law returns for machine facts on `/` |
 | Material | Flat warm paper. **No frost on this route** — D.7's frosted folio is superseded; `styles/easy-home.css` leaves the frost allowlist with the recomposition. A-1's chrome-frost permission (the eyebrow rectangle) is untouched | LOCKED for `/` |
 | Illustration | Drawn inline-SVG figures in the register inks (`--vt-home-e-figure-*`): every VALUE is a blank bar (`--vt-home-e-figure-bar`) because the real ones belong to the viewer; every figure carries its own self-labelling caption; no fabricated source response, count, score, employer decision, or completion (EC-25); art is `aria-hidden` with adjacent selectable caption text; complete in the server frame | LOCKED for `/` |
-| Figure set | Six: sources→profile (hero — one row left visibly open where no source answered), match explanation (Roles), owner routing (Attribution), approval boundary + reuse (the dark band), standing watch | LOCKED for `/` |
-| Composition additions | A **Roles** section: the live opportunity feed (D.1 opportunity-horizon truth rows unchanged) framed by the match-explanation figure. A **standing watch** section: "Most weeks, you do nothing." — the clinician-does-nothing thesis stated to the limit of what the product truthfully does (watch, refresh, flag), never as a credentialing outcome | LOCKED for `/` |
-| Dark band | The career-mobility sequence remains the route's one dark band, ground `--vt-home-e-ink`; its seven steps and boundary sentences are unchanged — the approval-boundary and reuse figures redraw its material, not its story | LOCKED for `/` |
-| Motion | One-shot only, inside the EC-29 bands: the figure line-draw reveal and the payoff line's **single-pass** cycling word (role → shift → hospital → state → application, then it settles). The server frame renders the settled word; reduced motion and no-JS show the settled word with an sr-only full sentence. Nothing loops | LOCKED for `/` |
+| Figure set | Six: sources→profile (hero — one row left visibly open where no source answered), match explanation (Roles), owner routing (Attribution), approval boundary + reuse (the dark band), standing watch | SUPERSEDED by F (2026-08-16): the v4 evidence-geometry set |
+| Composition additions | A **Roles** section: the live opportunity feed (D.1 opportunity-horizon truth rows unchanged) framed by the match-explanation figure. A **standing watch** section: "Most weeks, you do nothing." — the clinician-does-nothing thesis stated to the limit of what the product truthfully does (watch, refresh, flag), never as a credentialing outcome | SUPERSEDED by F (2026-08-16): the live feed rides the v4 arc's Roles beat; the standing-watch section had already retired with E.1 |
+| Dark band | The career-mobility sequence remains the route's one dark band, ground `--vt-home-e-ink`; its seven steps and boundary sentences are unchanged — the approval-boundary and reuse figures redraw its material, not its story | Retired by E.1 (2026-08-16); F has no dark band |
+| Motion | One-shot only, inside the EC-29 bands: the figure line-draw reveal and the payoff line's **single-pass** cycling word (role → shift → hospital → state → application, then it settles). The server frame renders the settled word; reduced motion and no-JS show the settled word with an sr-only full sentence. Nothing loops | SUPERSEDED by F (2026-08-16): the cycling word retires; one-shot-only survives |
 
 **Copy — supersedes the D.1 copy table (as amended by C1) when the
-recomposition lands through the founder visual gate:**
+recomposition lands through the founder visual gate. This whole copy table is
+in turn SUPERSEDED by F (2026-08-16), the founder's v4 copy as corrected by
+standing law — see amendment F below:**
 
 | Row | Value |
 |---|---|
@@ -589,13 +591,13 @@ page-wide one-shot motion system. Nothing outside `/`'s presentation moves.
 
 | Decision | Value | Status |
 |---|---|---|
-| Clinical pictogram vocabulary | **Drawn only, never photographed** — the Option 1 "Chart & Badge" object set: simple 2px-stroke pictograms in the register inks, always `aria-hidden`, always depicting an OBJECT and never a fact. The profile is a clinician's **ID badge** (accent band, punched lanyard slot, empty photo frame, blank identity bars) whose **chart rows** fill from **labelled source pills** (pills are the ratified shape for source-name word-labels); source pictograms are registry building (NPPES), **cross-in-shield used sparingly** (state board), flag (federal list); plus watch-with-stethoscope curve (the standing-watch promise) and plus-in-building (an open role's facility). **Rejected:** EKG/pulse-line connective motifs and drawn clinician characters. No pictogram may depict a source response, count, score, person, employer decision, or result — EC-25 applies to pictograms exactly as to scenes. D.8's commissioning boundary for photography is untouched: this vocabulary does not authorize any raster or photographic asset | LOCKED for `/` |
-| Motion posture | **The record assembling — one-shot entrances + micro-interactions, inside the EC-29 bands.** The badge clips on with a small swing settle (rotation ≤1.4°, the route's one narrative accent, 450–800ms band); chart rows slide/fade in sequence; connector lines from the source pills draw once (stroke-dashoffset). Section entrances are an IntersectionObserver-armed enhancement over an SSR-complete page: content is fully present in the server frame, hydration arms the one-shot reveal, a safety timer force-completes it, late-mounted sections are caught, and each section reveals exactly once. Micro-interactions (hover/press on cards, rows, and actions; the NPI digit-count pop) sit in the 80–150ms feedback band; state transitions 150–250ms; entrances and line-draws 250–450ms. Calm and precise, not showy. The digit counter animates only between real typed counts (EC-3) | LOCKED for `/` |
+| Clinical pictogram vocabulary | **Drawn only, never photographed** — the Option 1 "Chart & Badge" object set: simple 2px-stroke pictograms in the register inks, always `aria-hidden`, always depicting an OBJECT and never a fact. The profile is a clinician's **ID badge** (accent band, punched lanyard slot, empty photo frame, blank identity bars) whose **chart rows** fill from **labelled source pills** (pills are the ratified shape for source-name word-labels); source pictograms are registry building (NPPES), **cross-in-shield used sparingly** (state board), flag (federal list); plus watch-with-stethoscope curve (the standing-watch promise) and plus-in-building (an open role's facility). **Rejected:** EKG/pulse-line connective motifs and drawn clinician characters. No pictogram may depict a source response, count, score, person, employer decision, or result — EC-25 applies to pictograms exactly as to scenes. D.8's commissioning boundary for photography is untouched: this vocabulary does not authorize any raster or photographic asset | SUPERSEDED by F (2026-08-16): the v4 evidence-geometry set replaces the Option 1 pictograms; "drawn only, never photographed", the EC-25 pictogram rule, and both rejections survive |
+| Motion posture | **The record assembling — one-shot entrances + micro-interactions, inside the EC-29 bands.** The badge clips on with a small swing settle (rotation ≤1.4°, the route's one narrative accent, 450–800ms band); chart rows slide/fade in sequence; connector lines from the source pills draw once (stroke-dashoffset). Section entrances are an IntersectionObserver-armed enhancement over an SSR-complete page: content is fully present in the server frame, hydration arms the one-shot reveal, a safety timer force-completes it, late-mounted sections are caught, and each section reveals exactly once. Micro-interactions (hover/press on cards, rows, and actions; the NPI digit-count pop) sit in the 80–150ms feedback band; state transitions 150–250ms; entrances and line-draws 250–450ms. Calm and precise, not showy. The digit counter animates only between real typed counts (EC-3) | PARTLY SUPERSEDED by F (2026-08-16): the section-entrance system, one-shot grammar, and band discipline survive and are adopted; the badge-swing and count-pop retire with their objects |
 | Loops | **System-status pulses only** — EC-29's named exception. The one instance: the live feed's "Listed as open" availability dot may carry a slow opacity pulse, because it restates a status the row already states in words (EC-4). Nothing else on the route loops: no looping hero, no ambient sweep, no shimmer | LOCKED for `/` |
 | Reduced motion / no-JS | The finished frame, with **zero animation**: the reveal system never arms, the pulse does not run, and every section, figure, and row is complete — asserted by `design-kernel.spec.ts` and `home-easy.spec.ts` against a production build | LOCKED for `/` |
 | Scroll ownership | Unchanged: the document is the one scroll owner (EC-4). No scroll-snap, wheel listeners, or scroll-driven animation libraries (XS-1, R8) | LOCKED for `/` |
-| Hero sub (supersedes the E copy-table row) | **We find what we can, show you exactly what remains, and keep it that way.** — one sentence | LOCKED for `/` |
-| Composition budget | The page-wide prose text-node ceiling tightens from 110 to **90**, enforced by `homepage-composition-gate.test.tsx`. Additions are funded by cuts, permanently | LOCKED for `/` |
+| Hero sub (supersedes the E copy-table row) | **We find what we can, show you exactly what remains, and keep it that way.** — one sentence | SUPERSEDED by F (2026-08-16): the v4 hero lede |
+| Composition budget | The page-wide prose text-node ceiling tightens from 110 to **90**, enforced by `homepage-composition-gate.test.tsx`. Additions are funded by cuts, permanently | SUPERSEDED by F (2026-08-16): the founder's v4 is a deliberately denser document; the F ceiling is 285 (measured 259 + headroom) |
 
 **Copy discipline (the "less text" pass).** Promise bodies are one sentence
 each; Quick answers are one line each; the Roles subhead is one sentence; the
@@ -611,6 +613,77 @@ loading/error/empty states, the external-vs-integrated application boundary);
 the truth boundaries (consent stated once, institution review deciding, figure
 self-labels and hidden transcripts); `NpiReveal`'s resolved-state semantics;
 and `OpportunityHorizon`'s data contract.
+
+#### Homepage v4 register — amendment F (2026-08-16)
+
+**Founder directive, quoted verbatim: *"Implement: VitalCV Homepage v4.html"*
+(2026-08-16).** The founder's design is committed byte-for-byte at
+`design-lab/homepage-2026-08-v4/` (`index.html` + `vitalcv-ill-v4.css` +
+`DECISION.md`). Its committed defaults: paper `#EDEAE3`, accent `#4338CA`,
+illustration `filled`, motion `ambient`, headline **"Get hired faster. Start
+working sooner."** This amendment is the design's law of record for `/`; it
+**supersedes the E / E.1 lineage wherever the two differ**, and every
+supersession is marked on the E rows above. It lands in the same PR as its
+implementation (EC-22), and the route ships only through the founder visual
+gate — no `FOUNDER VISUAL DECISION` on the rendered result is recorded yet.
+Amendment E.2 landed the same day, before this one; F carries E.2's motion
+SYSTEM forward (the one-shot section entrances, the live feed's status-pulse
+loop, the row-arrival) while superseding its clinical pictogram vocabulary
+and its copy/budget rows — each E.2 row above carries its own marker.
+
+| Decision | Value | Status |
+|---|---|---|
+| Ground / raised / inset | `--vt-home-f-ground` `#EDEAE3` · `--vt-home-f-raised` `#F6F4EF` · `--vt-home-f-inset` `#E3DFD5` — warm paper with raised and inset paper surfaces, hairline-ruled document composition (`--vt-home-f-rule` `#D9D4C8`, `-rule-strong` `#B8B1A1` decorative only) | LOCKED for `/` |
+| Ink family | `--vt-home-f-ink-strong` `#1A1815` · `-ink` `#2B2823` · `-ink-muted` `#57534A` · `-ink-subtle` `#655E51` — all AA-measured on ground, raised, and inset (worst pair 4.82:1) | LOCKED for `/` |
+| Signal | `--vt-home-f-signal` `#4338CA` (+ `-signal-wash` `#ECEBF8`) — byte-equal to the CD-4 light-theme indigo, declared register-locked. Links, focus, the accent word, and drawn-figure emphasis; **never a state hue, never a status fill**. Supersedes E's hot `#D92800` as the route's one accent | LOCKED for `/` |
+| Primary page action | The paper-inverse ink instrument (A-1): `--vt-home-f-action` `#1A1815`, label `#F6F4EF` (16.12:1), press `#32302D` (11.97:1), radius `--vt-shape-action-page` (the E seam value the e2e contract pins). Supersedes E's `#D92800` action | LOCKED for `/` |
+| Display | **Fraunces** returns as the display face on `/` (H1, section H2s, beat headings), Geist for prose — supersedes E's Geist-display row. Self-hosted via `next/font/local` only | LOCKED for `/` |
+| Monospace | **The mono law returns to `/`** — machine facts (the NPI field, digit counts, masked NPIs, source names, cadence labels, state stamps, micro-labels) render in Geist Mono with `tabular-nums`: *if you are looking at mono type, a source returned it*. Supersedes D's and E's "None on this surface" rows | LOCKED for `/` |
+| State grammar | **Five states, no others**, each glyph + word in ink (EC-4): ● Source-confirmed (`--vt-state-source-confirmed`) · ◐ Snapshot, cadence inside the value (`--vt-home-f-snapshot` `#6E5A1C`, minted — no existing hue means "true as of a dated file") · ▲ Needs you (`--vt-state-pending`) · ⊘ Access required (`--vt-state-access`) · ○ Not checked (ink-subtle). Hue carries only the glyph and a left rule | LOCKED for `/` |
+| Composition | Hero (H1 + NPI underline field + hero folio figure) → interactive resolution scene (eight real registry rows · read log · tally · next actions) → trust-flow diagram (four hops, one barred source) → five-beat arc with the **live opportunity feed** as the Roles beat's expansion (the jobs-on-`/` founder ruling holds; feed truth contract untouched) → truth boundary → exact-packet shape + refuses-to-decide list + state legend → employers (four claims + illustrative requirement ledger) → honest limits → close → footer with the source-cadence sentence | LOCKED for `/` |
+| Motion | **Amended by F.1 (2026-08-16) — ambient loops ALLOWED.** One-shot entrances (E.2's system): the hero folio tile arrivals (220ms, state-transition band); the reveal's one-shot stagger; E.2's `useSectionReveals` one-shot section entrances (340ms, product-transformation band) over an SSR-complete page; and E.2's `ezh-row-in` for late-mounted feed rows. **Ambient illustration loops (founder "Allow ambient loops", 2026-08-16, EC-29 amended in the same PR):** the hero cadence line traces continuously, the trust-flow packet travels, the accent connectors dash-march, and illustration marker glyphs tick — all inside `.ezh-fig-art` only (EC-4: never a control, text, status, or evidence surface). The live feed's "Listed as open" status pulse (EC-29's separate system-status exception) stays. **Reduced motion stops every animation on the route** — the invariant, e2e-asserted. Server frame complete | LOCKED for `/` (amended F.1) |
+| Text-node budget | **285** (measured 259 at landing + ~10% headroom) — supersedes E.1's 110: the founder's v4 is deliberately denser than the simple-bottom-half composition. Enforced by `homepage-composition-gate.test.tsx`; additions are funded by cuts | LOCKED for `/` |
+
+**Copy of record for `/` (the founder's v4, as corrected by standing law):**
+
+| Row | Value |
+|---|---|
+| Eyebrow | **For clinicians · no account required** |
+| Hero H1 | **Get hired. Start working sooner.** — see deviation 1 |
+| Hero lede | **Parts of your record already live in public sources employers trust. Enter your NPI and see what they return, what still needs you, and what nobody can read yet — before anyone asks you for a folder.** |
+| Primary action | **Start with your NPI** (matches the chrome action verbatim) |
+| Secondary action | **Explore clinician opportunities** (unchanged) |
+| Tally caption | **Counts are of lanes, not a score. VitalCV does not grade clinicians.** — verbatim from the founder's v4, load-bearing |
+| Duration note | **Durations are pilot targets, not returned data** — adjacent to the arc's axis |
+| Metadata title | **VitalCV — One record, every job after it.** (the v4 title, wallet→record) |
+
+**Port-manifest deviations — where standing law required the port to differ
+from the committed v4 file. Each is a correction the founder can reverse only
+by amending the law it cites:**
+
+| # | The founder file said | Shipped as | Law |
+|---|---|---|---|
+| 1 | H1 **"Get hired faster. Start working sooner."**; axis ends **"Days, not months"** | **"Get hired. Start working sooner."**; axis ends **"Days"**, with the file's own honesty note ("Durations are pilot targets, not returned data") kept adjacent | `check-public-claims` bans "hired faster" and "days, not months" (brand-split ruling 2026-07-26 — un-retire only by deleting the gate entry once a pilot produces the number). **Open founder question** |
+| 2 | "wallet" throughout — title, nav, arc eyebrow, H2, figure labels | "record" / "your record" throughout; H2 **"One record, once — then every job after it."**; title likewise | Strategy contract; EC-9; C1 ruling (#1392); `check:copy` tier 1 |
+| 3 | Demonstration NPI **1043002765** + a "Use the demonstration NPI" button | Masked `NPI ··· ··· ····` in every illustration; the demo button is deleted; the interactive resolve wires to the real lookup (`useCareerLoop` → bootstrap + trust-state), and real data replaces the idle ledger on resolve | A well-formed NPI may name a real person; EC-25.1; the recognition-moment contract |
+| 4 | Illustrative reads from **ABIM/ABMS** (not integrated), **NPDB** (banned noun), California `A-96421` / Oregon `MD187254` licences with expiry dates, **UCSF Health** privileges, **Meridian Health** recipient, `PKT-…` ids, `sha256` hashes, `vitalcv.com/verify/…` URLs, fixture clocks, OIG "no match returned" | The REAL registry lanes only (NPPES read live · OIG/LEIE monthly snapshot · PECOS quarterly snapshot · state licensure access-gated · employment/board-cert not read), blank bars for every value, no ids/hashes/URLs/clocks, no employer names, no depicted OIG response | EC-3, EC-25.2/3; NPDB ban; the no-fixture-clock rule |
+| 5 | A six-state legend including **"Adverse · under dispute"**; heading "Six states, no others" | Five states; heading **"Five states, no others"**; Confirmed→**Source-confirmed**, Needs attention→**Needs you**, Snapshot keeps its cadence inside the value | Never teach a state the product cannot produce; EC-3 state-vocabulary freeze |
+| 6 | Motion default **ambient** (infinite ECG draw, packet-travel, link-dash, beat-tick loops) | **Ambient loops IMPLEMENTED** (founder ruled "Allow ambient loops", 2026-08-16, after the initial single-shot port): the four `body.mo-amb` behaviours run inside `.ezh-fig-art` illustration art; reduced motion stops all of them | Initially shipped single-shot under EC-29's no-loop rule; the founder ruled to allow ambient, and **EC-29 was amended in the same PR (F.1)** to permit bounded ambient illustration loops on the `/` scene register — scoped to figures only (EC-4), reduced-motion-killed |
+| 7 | A **floating glass nav rail** (fixed, rounded, frosted) | **Not ported** — the existing shared eyebrow chrome stays. The rail is recorded as a gap: it needs a separate founder chrome ruling (EC-10 bans the floating rounded container form, and shared chrome is founder-gated) | EC-10, A-2/A-3; `FOUNDER_VISUAL_GATE.md` |
+| 8 | Intro claims "a real proof packet"; button **"Open a real public packet"** | The section is explicitly illustrative ("This is not a real submission"), values are blank bars, and the quiet link points at the real public surface, `/verify` | Packet receipts ship dark; `decisionGrade: false` is untouchable; EC-25.4 |
+| 9 | Google Fonts `<link>`s; React/Babel tweaks scaffolding | Self-hosted `next/font/local` faces already in `app/fonts/`; no scaffolding | EC-20 font-delivery row |
+| 10 | Section H2 vocabulary: "A job board that reads your credentials…" (carried from E) | **"Roles, read against your record — not your keywords."** — the noun "job board" is banned from the route | Founder UX audit 2026-08-16: VitalCV is not a job board; the noun hands the category away |
+| 11 | "8 lanes" and lane-vocabulary throughout the customer copy | "lanes" survives in exactly ONE customer-visible line — the founder's load-bearing tally caption (row above, kept verbatim). Everywhere else: rows / sources / checks. The EC-9 AST ratchet baseline records the single occurrence (+1 in `ec9-vocabulary.baseline.json`, net total unchanged) | EC-9 (the EC-9/EC-20 vocabulary contradiction remains open for founder ruling; this amendment does not resolve it) |
+| 12 | NPI input placeholder `0000000000` | Placeholder `··· ··· ····` (the 3-3-4 mask) | The homepage renders no ten-digit sequence (masked-NPI rule) |
+| 13 | Idle resolution fixture: 8 invented reads with timestamps ("read 14:02 today", "Local time 14:02 · 2026-08-10") | The idle ledger is the real registry with **nothing read yet**: seven ○ Not checked rows + one ⊘ Access required (licensure), tally 7/1/0, log "Idle. No source has been queried."; no clock anywhere | EC-3 (numbers/times only from real returns); the request-clock trap |
+
+**Deliberately not changed:** EC-10/A-3 shared-chrome geometry and its frost;
+A-1's indigo-carries-focus rule; LINT-15's green-action ban; the film and
+career-loop rollback variants and their stylesheets; the opportunity-feed
+truth contract (honest SSR pending state, source labels, observation times,
+the external-vs-integrated application boundary); the recognition-moment
+pipeline (`useCareerLoop`, `buildEvidenceCapsule`, `NpiReveal` — presentation
+re-cut to the v4 ledger, no API/auth/consent/data change).
 
 #### Acquisition-vocabulary amendment C1 (2026-08-15)
 
@@ -755,9 +828,31 @@ Objective, measurable, and CI-enforceable (EC-23):
 - Every motion asset ships: poster, static reduced-motion composition, and — for `kind='process'` and `'stateful'` — a transcript or adjacent textual equivalent. Decorative crops carry empty alt text; meaningful process scenes never do.
 - Every asset carries source, license, and origin metadata. An unlabeled, oversized, or fallback-less asset fails the gate.
 - Motion timing follows the four bands already locked in EC-20: 80–150ms control feedback · 150–250ms state transition · 250–450ms product transformation · 450–800ms rare narrative.
-- **Nothing loops** except a loading skeleton, a system-status pulse, or a source check that is genuinely running. A hero does not loop once it has finished.
+- **Nothing loops** except a loading skeleton, a system-status pulse, a source check that is genuinely running, or a **bounded ambient illustration loop** authorised per the amendment below. A hero does not loop once it has finished.
 - Numbers animate only between real returned values (EC-3).
 - No body copy is printed inside an image; contrast floors hold independent of artwork (EC-5).
+
+**Amendment F.1 — ambient illustration loops on the `/` scene register (founder ruling, 2026-08-16).**
+Founder directive, quoted verbatim: *"Allow ambient loops"* — ruled on the Homepage v4 PR (#1431)
+alongside the v4 GO. This adds one bounded exception to the no-loop rule, scoped as narrowly as
+the rule it relaxes:
+
+- **Permitted:** continuous, bounded, decorative motion loops **inside a homepage illustration
+  figure** (the `/` route's `.ezh-fig-art` illustration art — the founder's v4 `body.mo-amb`
+  behaviours: the hero cadence line's continuous trace, the trust-flow packet's travel, the accent
+  connectors' dash-march, and an illustration marker glyph's opacity tick).
+- **Never:** a control, an input, text, a status marker, a state marker, an evidence surface, a
+  proof row, an artifact, or any number. The loop carries **no meaning** — removing it must cost
+  nothing but atmosphere (EC-4), and the illustration's meaning stays in its static frame and its
+  adjacent transcript.
+- **Reduced motion stops every one of them.** Under `prefers-reduced-motion: reduce` the figure
+  rests in its complete, solid frame with zero animation — this is the invariant, asserted against
+  a production build in `tests/e2e/home-easy.spec.ts`. The no-JS frame is likewise complete; the
+  loops are pure CSS and decorative, so their absence changes nothing legible.
+- **Scope:** this exception is the `/` scene register only. It does not authorise loops on any
+  other surface, and it does not touch the system-status-pulse exception (which remains separate —
+  the live feed's "Listed as open" availability dot). Other routes remain under the unamended
+  no-loop rule; extending the exception requires its own amendment.
 
 ---
 

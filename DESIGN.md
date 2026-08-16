@@ -27,12 +27,12 @@ specificity, so this list is the precedence:
 
 | # | File | `--vt-*` declarations |
 |---|---|---|
-| 1 | `apps/web/styles/themes/index.css` | 171 |
+| 1 | `apps/web/styles/themes/index.css` | 190 |
 | 2 | `apps/web/styles/tokens.css` | 32 |
 | 3 | `apps/web/styles/vitalTokens.css` | 65 |
 | 4 | `apps/web/styles/matcha-zen.css` | 16 |
 
-**284 declarations across 4 files, 195 distinct tokens.**
+**303 declarations across 4 files, 214 distinct tokens.**
 
 ### Route-scoped token files (outside the global cascade)
 
@@ -212,7 +212,7 @@ table — the table says what exists, this says what to do.
 
 ## Tokens
 
-Role sentences come from `docs/design/design-md-roles.json`. **12 of 195**
+Role sentences come from `docs/design/design-md-roles.json`. **12 of 214**
 tokens have a documented role; the rest say so plainly rather than inventing one.
 
 | Token | Effective value | Declared in | Role |
@@ -322,6 +322,25 @@ tokens have a documented role; the rest say so plainly rather than inventing one
 | `--vt-home-e-panel` | `#FFFFFF` | `styles/themes/index.css` | — *(role not documented)* |
 | `--vt-home-e-rule` | `#E0DDD6` | `styles/themes/index.css` | — *(role not documented)* |
 | `--vt-home-e-source` | `#0F6D4E` | `styles/themes/index.css` | — *(role not documented)* |
+| `--vt-home-f-access` | `var(--vt-state-access)` | `styles/themes/index.css` | — *(role not documented)* |
+| `--vt-home-f-action` | `#1A1815` | `styles/themes/index.css` | — *(role not documented)* |
+| `--vt-home-f-action-label` | `#F6F4EF` | `styles/themes/index.css` | — *(role not documented)* |
+| `--vt-home-f-action-press` | `#32302D` | `styles/themes/index.css` | — *(role not documented)* |
+| `--vt-home-f-attention` | `var(--vt-state-pending)` | `styles/themes/index.css` | — *(role not documented)* |
+| `--vt-home-f-confirmed` | `var(--vt-state-source-confirmed)` | `styles/themes/index.css` | — *(role not documented)* |
+| `--vt-home-f-ground` | `#EDEAE3` | `styles/themes/index.css` | — *(role not documented)* |
+| `--vt-home-f-ink` | `#2B2823` | `styles/themes/index.css` | — *(role not documented)* |
+| `--vt-home-f-ink-muted` | `#57534A` | `styles/themes/index.css` | — *(role not documented)* |
+| `--vt-home-f-ink-strong` | `#1A1815` | `styles/themes/index.css` | — *(role not documented)* |
+| `--vt-home-f-ink-subtle` | `#655E51` | `styles/themes/index.css` | — *(role not documented)* |
+| `--vt-home-f-inset` | `#E3DFD5` | `styles/themes/index.css` | — *(role not documented)* |
+| `--vt-home-f-raised` | `#F6F4EF` | `styles/themes/index.css` | — *(role not documented)* |
+| `--vt-home-f-rule` | `#D9D4C8` | `styles/themes/index.css` | — *(role not documented)* |
+| `--vt-home-f-rule-strong` | `#B8B1A1` | `styles/themes/index.css` | — *(role not documented)* |
+| `--vt-home-f-signal` | `#4338CA` | `styles/themes/index.css` | — *(role not documented)* |
+| `--vt-home-f-signal-wash` | `#ECEBF8` | `styles/themes/index.css` | — *(role not documented)* |
+| `--vt-home-f-snapshot` | `#6E5A1C` | `styles/themes/index.css` | — *(role not documented)* |
+| `--vt-home-f-unchecked` | `var(--vt-home-f-ink-subtle)` | `styles/themes/index.css` | — *(role not documented)* |
 | `--vt-info` | `var(--vt-accent)` | `styles/themes/index.css` | — *(role not documented)* |
 | `--vt-node-alert` | `#ef4444` | `styles/themes/index.css` | — *(role not documented)* |
 | `--vt-node-company` | `#8b5cf6` | `styles/themes/index.css` | — *(role not documented)* |
