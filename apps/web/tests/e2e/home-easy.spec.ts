@@ -453,9 +453,48 @@ test.describe('home — layout integrity across viewports', () => {
       for (const selector of ['#ezh-npi', '[data-home-primary-cta]', '[data-home-work-surface]']) {
         const box = await page.locator(selector).boundingBox();
         expect(box, `${selector} missing at ${width}`).not.toBeNull();
+        // On failure, report WHICH ancestor is oversized rather than only the
+        // leaf's number. This layout depends on font metrics (an `fr` track's
+        // automatic minimum is min-content), so the same build can pass on one
+        // platform and fail on another — and the leaf is never the culprit,
+        // it merely inherits its column's width.
+        const right = box!.x + box!.width;
+        let chain = '';
+        if (right > width + 1) {
+          chain = await page.locator(selector).evaluate((el) => {
+            const rows: string[] = [];
+            for (let node: Element | null = el; node; node = node.parentElement) {
+              const r = node.getBoundingClientRect();
+              const cs = getComputedStyle(node);
+              const id = `${node.tagName.toLowerCase()}${node.id ? `#${node.id}` : ''}` +
+                `${node.classList.length ? `.${[...node.classList].join('.')}` : ''}`;
+              rows.push(
+                `${id.slice(0, 64)} x=${r.x.toFixed(1)} w=${r.width.toFixed(1)} ` +
+                  `right=${(r.x + r.width).toFixed(1)} scrollW=${node.scrollWidth} ` +
+                  `display=${cs.display} cols=${cs.gridTemplateColumns} ` +
+                  `minW=${cs.minWidth} maxW=${cs.maxWidth} padL=${cs.paddingLeft} ovX=${cs.overflowX}`,
+              );
+              if (node.tagName === 'HTML') break;
+            }
+            const widest = [...document.querySelectorAll('main.ezh *')]
+              .map((n) => ({ n, r: n.getBoundingClientRect() }))
+              .filter(({ r }) => r.width > 0 && r.x + r.width > window.innerWidth + 1)
+              .sort((a, b) => b.r.x + b.r.width - (a.r.x + a.r.width))
+              .slice(0, 6)
+              .map(({ n, r }) =>
+                `${n.tagName.toLowerCase()}.${String(n.className).slice(0, 44)} right=${(r.x + r.width).toFixed(1)}`,
+              );
+            return (
+              `\n  innerWidth=${window.innerWidth} clientWidth=${document.documentElement.clientWidth} ` +
+              `docScrollW=${document.documentElement.scrollWidth} dpr=${window.devicePixelRatio} ` +
+              `fonts=${document.fonts.status}\n  ANCESTORS:\n    ${rows.join('\n    ')}` +
+              `\n  WIDEST OVERFLOWING:\n    ${widest.join('\n    ') || '(none)'}`
+            );
+          });
+        }
         expect(
-          box!.x + box!.width,
-          `${selector} clipped past the ${width}px viewport`,
+          right,
+          `${selector} clipped past the ${width}px viewport${chain}`,
         ).toBeLessThanOrEqual(width + 1);
       }
     });

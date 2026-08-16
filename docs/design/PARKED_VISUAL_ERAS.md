@@ -119,9 +119,13 @@ amendment F squash commit rather than an env-switchable variant; the
 `--vt-home-e-*` token family stays declared in `styles/themes/index.css` as
 the historical record until nothing references it (scene-token-contract still
 pins its values). Deleted with the recomposition, recoverable from history:
-`components/home/easy/WorkSurface.tsx`, `ThreePromises.tsx`,
-`CyclingWord.tsx`, and `figures/` (`MatchExplanationFigure`,
-`FigureMarkers`). The E rows in the constitution carry dated
+the WorkSurface, ThreePromises and CyclingWord components and the whole
+figures directory beside them (MatchExplanationFigure, FigureMarkers) — all
+formerly under the easy home island, and named here **without path syntax on
+purpose**: the files no longer exist, and the citability guard is right to
+reject a dead path (the same convention the 2026-08-15 removal note above
+uses). Recover them from the amendment F squash commit. The E rows in the
+constitution carry dated
 `SUPERSEDED by F` markers; nothing here was silently forked.
 
 ## What "unparking" would take

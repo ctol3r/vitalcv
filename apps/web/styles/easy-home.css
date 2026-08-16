@@ -208,7 +208,7 @@
 
 .ezh .ezh-sec-head {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr);
   gap: 20px;
   align-items: end;
   margin-bottom: 44px;
@@ -216,7 +216,7 @@
 
 @media (min-width: 1000px) {
   .ezh .ezh-sec-head {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     gap: 64px;
   }
 }
@@ -225,18 +225,59 @@
   margin-bottom: 16px;
 }
 
+/* ── overflow hardening: no child may widen its own column ──────────────────
+ *
+ * Every `fr` track in this island is written `minmax(0, 1fr)`, and every
+ * grid/flex item that can hold a drawing or an unbreakable mono string gets
+ * `min-width: 0`. Both say the same thing: a track is sized by its CONTAINER,
+ * never by the intrinsic width of what happens to be inside it.
+ *
+ * This is the fix for a failure that only ever appeared on CI. A bare `1fr`
+ * track's automatic minimum is `min-content`, so a child whose intrinsic
+ * width exceeds the viewport silently widens the column and every item in it
+ * — the hero's NPI input measured 394px inside a 390px viewport, while the
+ * same build measured 366px on macOS. The difference is font metrics: the
+ * figures' SVG labels and the mono strings are a few px wider under CI's
+ * font rendering, which was enough to push min-content past the viewport
+ * there and nowhere else. `document.scrollWidth` could not see it because an
+ * ancestor hides overflow-x, which is exactly why the spec measures the
+ * elements' own right edges.
+ *
+ * Sizing by the container makes the layout metric-independent, which is the
+ * property we actually want: the composition must not depend on how wide a
+ * given platform draws a word.
+ */
+.ezh .ezh-hero-copy,
+.ezh .ezh-hero-figcol,
+.ezh .ezh-claim,
+.ezh .ezh-field,
+.ezh .ezh-fig,
+.ezh .ezh-beat,
+.ezh .ezh-res-main,
+.ezh .ezh-res-side,
+.ezh .ezh-emp-panel,
+.ezh .ezh-pkt {
+  min-width: 0;
+}
+
+/* A drawing never exceeds its frame, whatever its viewBox implies. */
+.ezh .ezh-fig-art svg,
+.ezh .ezh-beat-fig svg {
+  max-width: 100%;
+}
+
 /* ── hero ────────────────────────────────────────────────────────────────── */
 
 .ezh-hero-grid {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr);
   gap: 48px;
   align-items: start;
 }
 
 @media (min-width: 1000px) {
   .ezh-hero-grid {
-    grid-template-columns: 1.02fr 0.98fr;
+    grid-template-columns: minmax(0, 1.02fr) minmax(0, 0.98fr);
     gap: 56px;
   }
 }
@@ -284,10 +325,6 @@
     align-items: flex-end;
     flex-wrap: wrap;
   }
-
-  .ezh .ezh-npi-in {
-    min-width: 240px;
-  }
 }
 
 .ezh .ezh-npi-k {
@@ -296,9 +333,10 @@
 
 .ezh .ezh-npi-in {
   flex: 1;
-  /* min-width:0 lets the flex item shrink below its intrinsic width; the
-     240px floor only applies once the row layout returns. max-width caps it
-     against any container. Both together make overflow impossible. */
+  /* min-width:0 lets the flex item shrink below its intrinsic width, so the
+     field can never be widened past its container by the input's intrinsic
+     size; max-width caps it against that container. Both together make
+     overflow impossible at phone widths. */
   min-width: 0;
   max-width: 100%;
   background: transparent;
@@ -327,6 +365,17 @@
 
 .ezh .ezh-npi-in:focus {
   border-bottom-color: var(--vt-home-f-signal);
+}
+
+/* The row-mode floor, declared AFTER the base rule on purpose: it previously
+   sat in an earlier `min-width: 700px` block, where the later same-specificity
+   `min-width: 0` above simply overrode it and the floor never applied at any
+   width. Order is the whole mechanism here. It is safe from 700px up, where
+   the field is a row and the container is wider than the floor. */
+@media (min-width: 700px) {
+  .ezh .ezh-npi-in {
+    min-width: 240px;
+  }
 }
 
 .ezh .ezh-npi-count {
@@ -602,7 +651,7 @@
 
 .ezh .ezh-res-shell {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr);
   border: 1px solid var(--vt-home-f-rule);
   border-radius: 3px;
   background: var(--vt-home-f-raised);
@@ -610,7 +659,7 @@
 }
 
 @media (min-width: 1000px) {
-  .ezh .ezh-res-shell { grid-template-columns: 1fr 336px; }
+  .ezh .ezh-res-shell { grid-template-columns: minmax(0, 1fr) 336px; }
 }
 
 .ezh .ezh-res-main { padding: 26px 24px 30px; }
@@ -1035,11 +1084,11 @@
   padding: 0;
   border-top: 1px solid var(--vt-home-f-rule-strong);
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr);
 }
 
 @media (min-width: 1000px) {
-  .ezh .ezh-arc { grid-template-columns: repeat(5, 1fr); }
+  .ezh .ezh-arc { grid-template-columns: repeat(5, minmax(0, 1fr)); }
 }
 
 .ezh .ezh-beat {
@@ -1107,13 +1156,13 @@
 
 .ezh .ezh-axis {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr);
   border-top: 1px solid var(--vt-home-f-rule-strong);
   margin-top: 0;
 }
 
 @media (min-width: 1000px) {
-  .ezh .ezh-axis { grid-template-columns: repeat(5, 1fr); }
+  .ezh .ezh-axis { grid-template-columns: repeat(5, minmax(0, 1fr)); }
 }
 
 .ezh .ezh-axis span {
@@ -1314,13 +1363,13 @@
 
 .ezh .ezh-pkt-grid {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr);
   gap: 40px;
   align-items: start;
 }
 
 @media (min-width: 1000px) {
-  .ezh .ezh-pkt-grid { grid-template-columns: minmax(0, 760px) 1fr; gap: 56px; }
+  .ezh .ezh-pkt-grid { grid-template-columns: minmax(0, 760px) minmax(0, 1fr); gap: 56px; }
 }
 
 .ezh .ezh-pkt {
@@ -1352,7 +1401,7 @@
 
 .ezh .ezh-pkt-meta {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr);
   gap: 0 32px;
   margin: 0;
   padding: 14px 26px;
@@ -1428,7 +1477,7 @@
 
 .ezh .ezh-pkt-not li {
   display: grid;
-  grid-template-columns: 14px 1fr;
+  grid-template-columns: 14px minmax(0, 1fr);
   gap: 10px;
   font-size: 0.8125rem;
   line-height: 1.55;
@@ -1489,13 +1538,13 @@
 
 .ezh .ezh-emp-grid {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr);
   gap: 40px;
   align-items: start;
 }
 
 @media (min-width: 1000px) {
-  .ezh .ezh-emp-grid { grid-template-columns: 1fr 1fr; gap: 64px; }
+  .ezh .ezh-emp-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 64px; }
 }
 
 .ezh .ezh-emp-list {
@@ -1509,7 +1558,7 @@
   padding: 16px 0;
   border-bottom: 1px solid var(--vt-home-f-rule);
   display: grid;
-  grid-template-columns: auto 1fr;
+  grid-template-columns: auto minmax(0, 1fr);
   gap: 16px;
   align-items: baseline;
 }
@@ -1552,12 +1601,12 @@
 
 .ezh .ezh-limits {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr);
   border-top: 1px solid var(--vt-home-f-rule-strong);
 }
 
 @media (min-width: 1000px) {
-  .ezh .ezh-limits { grid-template-columns: repeat(3, 1fr); }
+  .ezh .ezh-limits { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 
 .ezh .ezh-limits > div {
@@ -1593,13 +1642,13 @@
 
 .ezh .ezh-close {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr);
   gap: 32px;
   align-items: end;
 }
 
 @media (min-width: 1000px) {
-  .ezh .ezh-close { grid-template-columns: 1fr auto; gap: 48px; }
+  .ezh .ezh-close { grid-template-columns: minmax(0, 1fr) auto; gap: 48px; }
 }
 
 .ezh .ezh-start-line {
